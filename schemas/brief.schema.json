@@ -1,0 +1,44 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "reelforge://schemas/brief",
+  "title": "Project Brief",
+  "description": "客户项目 Brief 的标准结构",
+  "type": "object",
+  "properties": {
+    "brief_id": {"type": "string", "description": "Brief 唯一标识"},
+    "project_id": {"type": "string", "description": "关联项目 ID"},
+    "client_name": {"type": "string", "description": "客户名称"},
+    "client_industry": {"type": "string", "description": "客户行业"},
+    "platform": {
+      "type": "string",
+      "enum": ["tiktok", "youtube_shorts", "instagram_reels", "other"],
+      "description": "目标平台"
+    },
+    "target_audience": {
+      "type": "object",
+      "properties": {
+        "age_range": {"type": "string", "description": "年龄范围，如 18-35"},
+        "gender": {"type": "string", "enum": ["all", "male", "female"]},
+        "interests": {"type": "array", "items": {"type": "string"}},
+        "region": {"type": "string", "description": "目标地区"}
+      }
+    },
+    "content_goal": {
+      "type": "string",
+      "enum": ["brand_awareness", "product_promotion", "lead_generation", "engagement", "education", "other"]
+    },
+    "brand_tone": {"type": "string", "description": "品牌调性，如 professional, casual, humorous"},
+    "key_messages": {"type": "array", "items": {"type": "string"}, "description": "核心传播信息"},
+    "reference_links": {"type": "array", "items": {"type": "string", "format": "uri"}},
+    "budget_tier": {"type": "string", "enum": ["basic", "standard", "premium"]},
+    "video_count": {"type": "integer", "minimum": 1, "description": "需要的视频数量"},
+    "video_duration_seconds": {"type": "integer", "minimum": 5, "maximum": 180},
+    "language": {"type": "string", "default": "en"},
+    "deadline": {"type": "string", "format": "date"},
+    "special_requirements": {"type": "string"},
+    "status": {"type": "string", "enum": ["draft", "confirmed", "in_progress", "completed"]},
+    "created_at": {"type": "string", "format": "date-time"},
+    "updated_at": {"type": "string", "format": "date-time"}
+  },
+  "required": ["brief_id", "project_id", "client_name", "platform", "content_goal", "video_count"]
+}

@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "reelforge://schemas/strategy",
+  "title": "Content Strategy",
+  "description": "内容策略输出结构",
+  "type": "object",
+  "properties": {
+    "strategy_id": {"type": "string"},
+    "project_id": {"type": "string"},
+    "brief_id": {"type": "string"},
+    "content_pillars": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "pillar_name": {"type": "string"},
+          "description": {"type": "string"},
+          "weight": {"type": "number", "minimum": 0, "maximum": 1}
+        },
+        "required": ["pillar_name", "description"]
+      },
+      "description": "内容支柱"
+    },
+    "topic_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "topic": {"type": "string"},
+          "angle": {"type": "string"},
+          "priority": {"type": "string", "enum": ["high", "medium", "low"]},
+          "estimated_engagement": {"type": "string"}
+        },
+        "required": ["topic", "angle", "priority"]
+      }
+    },
+    "tone_guidelines": {
+      "type": "object",
+      "properties": {
+        "voice": {"type": "string"},
+        "style": {"type": "string"},
+        "dos": {"type": "array", "items": {"type": "string"}},
+        "donts": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "hashtag_strategy": {
+      "type": "object",
+      "properties": {
+        "primary_hashtags": {"type": "array", "items": {"type": "string"}},
+        "secondary_hashtags": {"type": "array", "items": {"type": "string"}},
+        "trending_hashtags": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "posting_schedule": {
+      "type": "object",
+      "properties": {
+        "frequency": {"type": "string"},
+        "best_times": {"type": "array", "items": {"type": "string"}},
+        "timezone": {"type": "string"}
+      }
+    },
+    "platform_constraints": {
+      "type": "object",
+      "properties": {
+        "max_duration_seconds": {"type": "integer"},
+        "recommended_aspect_ratio": {"type": "string"},
+        "caption_max_length": {"type": "integer"}
+      }
+    },
+    "created_at": {"type": "string", "format": "date-time"}
+  },
+  "required": ["strategy_id", "project_id", "brief_id", "content_pillars", "topic_suggestions"]
+}

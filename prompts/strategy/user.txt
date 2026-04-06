@@ -1,0 +1,67 @@
+Generate a content strategy for this project.
+
+## Client Brief
+- Client: {{client_name}}
+- Industry: {{client_industry}}
+- Platform: {{platform}}
+- Content Goal: {{content_goal}}
+- Brand Tone: {{brand_tone}}
+- Video Count: {{video_count}}
+- Target Video Duration: {{video_duration_seconds}}s
+- Key Messages: {{key_messages}}
+- Special Requirements: {{special_requirements}}
+
+## Research Data
+- Trending Topics: {{trending_topics}}
+- Top Content Formats: {{top_formats}}
+- Peak Posting Hours: {{peak_hours}}
+- Competitor Themes: {{competitor_themes}}
+- Audience Insights: {{audience_insights}}
+
+## Platform Constraints
+- Max Duration: {{max_duration}}s
+- Optimal Durations: {{optimal_duration}}
+- Aspect Ratio: {{aspect_ratio}}
+- Max Hashtags per post: {{max_hashtags}}
+
+## Required Output Format (strict JSON)
+Return ONLY a JSON object with this exact structure:
+
+{
+  "content_pillars": [
+    "Pillar 1 name — brief description",
+    "Pillar 2 name — brief description",
+    "Pillar 3 name — brief description"
+  ],
+  "tone_guidelines": {
+    "voice": "e.g. professional_friendly, casual, authoritative",
+    "energy": "e.g. high, medium_high, calm",
+    "language_style": "e.g. conversational, concise, witty",
+    "cta_style": "e.g. soft_sell, direct, question_based"
+  },
+  "topic_suggestions": [
+    {
+      "topic": "Specific topic title",
+      "format": "tutorial | showcase | behind_the_scenes | trend | educational | storytelling | challenge",
+      "angle": "A specific creative angle that makes this video unique and compelling",
+      "duration": 30,
+      "priority": "high | medium | low"
+    }
+  ],
+  "hashtag_strategy": {
+    "primary_tags": ["#branded_tag", "#niche_tag"],
+    "secondary_tags": ["#trending_tag"],
+    "max_per_post": {{max_hashtags}}
+  },
+  "posting_schedule": {
+    "frequency": "e.g. 3_per_week",
+    "best_times": [9, 18],
+    "best_days": ["monday", "wednesday", "friday"]
+  }
+}
+
+IMPORTANT:
+- topic_suggestions must have at least {{video_count}} items
+- Each topic's duration must be between 15 and {{max_duration}} seconds
+- Each topic must have a unique, specific angle (not generic)
+- Prioritize topics that align with the client's key messages and content goal

@@ -12,6 +12,7 @@ import {
   Globe,
   TrendingUp,
 } from "lucide-react";
+import { Logo } from "@/components/ui/logo";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 30 },
@@ -74,9 +75,7 @@ export default function LandingPage() {
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <Link href="/landing" className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-xs font-bold">
-              RF
-            </div>
+            <Logo size={32} />
             <span className="text-[15px] font-semibold tracking-tight">
               ReelForge
             </span>

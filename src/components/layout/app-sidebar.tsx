@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/ui/logo";
 
 const mainNav = [
   { href: "/", label: "工作台", icon: LayoutDashboard },
@@ -38,9 +39,7 @@ export function AppSidebar() {
         {/* Logo */}
         <div className="px-5 pt-6 pb-8">
           <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600 text-white text-xs font-bold tracking-tight">
-              RF
-            </div>
+            <Logo size={32} />
             <span className="text-[15px] font-semibold text-white tracking-tight">
               ReelForge
             </span>

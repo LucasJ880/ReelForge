@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Logo } from "@/components/ui/logo";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -57,8 +58,8 @@ export default function RegisterPage() {
   return (
     <div className="w-full max-w-sm space-y-8 px-6">
       <div className="text-center">
-        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-600 text-lg font-bold text-white">
-          RF
+        <div className="mx-auto mb-6">
+          <Logo size={48} />
         </div>
         <h1 className="text-2xl font-bold text-white">创建账号</h1>
         <p className="mt-2 text-sm text-zinc-400">

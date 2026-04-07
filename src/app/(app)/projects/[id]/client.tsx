@@ -16,6 +16,10 @@ import {
   Pencil,
   Save,
   X,
+  RefreshCw,
+  Heart,
+  MessageCircle,
+  Share2,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -384,72 +388,122 @@ export function ProjectDetailClient({
         </div>
       ) : null}
 
-      {/* Published stats */}
+      {/* Published + Analytics section */}
       {project.publication?.publishStatus === "PUBLISHED" && (
-        <div className="rounded-xl bg-emerald-500/10 p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-            <span className="text-sm font-medium text-emerald-400">已发布到 TikTok</span>
-          </div>
-          <div className="flex items-center gap-4 text-xs text-emerald-400 mb-4">
-            <span>ID: {project.publication.platformVideoId || "N/A"}</span>
-            {project.publication.publishedAt && (
-              <span>{formatDate(project.publication.publishedAt)}</span>
-            )}
-          </div>
-          {project.publication.snapshots?.[0] && (
-            <div className="grid grid-cols-4 gap-4">
-              {[
-                { label: "播放", value: project.publication.snapshots[0].views },
-                { label: "点赞", value: project.publication.snapshots[0].likes },
-                { label: "评论", value: project.publication.snapshots[0].comments },
-                { label: "分享", value: project.publication.snapshots[0].shares },
-              ].map((m) => (
-                <div key={m.label}>
-                  <p className="text-xl font-extralight tabular-nums text-emerald-300">
-                    {m.value.toLocaleString()}
-                  </p>
-                  <p className="text-[11px] text-emerald-400">{m.label}</p>
+        <div className="space-y-6">
+          {/* TikTok publish confirmation */}
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm font-medium text-white">已发布到 TikTok</p>
+                  <p className="text-[11px] text-zinc-500 mt-0.5">
+                    {project.publication.publishedAt && formatDate(project.publication.publishedAt)}
+                  </p>
+                </div>
+              </div>
+              <button
+                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-zinc-800/50 text-zinc-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-50"
+                onClick={handleAnalyze}
+                disabled={analyzing}
+              >
+                {analyzing ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3 w-3" />
+                )}
+                {project.analysisReport ? "刷新分析" : "获取分析"}
+              </button>
             </div>
-          )}
-        </div>
-      )}
 
-      {/* Analysis report */}
-      {project.analysisReport && (
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
-              数据分析
-            </p>
-            {project.analysisReport.overallScore !== null && (
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-extralight tabular-nums text-white">
-                  {project.analysisReport.overallScore}
-                </span>
-                <span className="text-xs text-zinc-300">/ 100</span>
+            {/* Metrics cards */}
+            {project.publication.snapshots?.[0] ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "播放量", value: project.publication.snapshots[0].views, icon: Play, color: "text-sky-400" },
+                  { label: "点赞数", value: project.publication.snapshots[0].likes, icon: Heart, color: "text-pink-400" },
+                  { label: "评论数", value: project.publication.snapshots[0].comments, icon: MessageCircle, color: "text-amber-400" },
+                  { label: "分享数", value: project.publication.snapshots[0].shares, icon: Share2, color: "text-emerald-400" },
+                ].map((m) => (
+                  <div key={m.label} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-4">
+                    <div className="flex items-center gap-1.5 mb-2">
+                      <m.icon className={cn("h-3.5 w-3.5", m.color)} />
+                      <span className="text-[11px] text-zinc-500">{m.label}</span>
+                    </div>
+                    <p className="text-xl font-light tabular-nums text-white">
+                      {m.value.toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-xs text-zinc-500">暂无数据，点击「获取分析」拉取 TikTok 数据</p>
               </div>
             )}
-          </div>
-          <div className="space-y-5">
-            <AnalysisBlock label="表现总结" content={project.analysisReport.performanceSummary} />
-            <AnalysisBlock label="方向建议" content={project.analysisReport.directionAdvice} />
-            <div>
-              <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2">
-                优化建议
+            {project.publication.snapshots?.[0] && (
+              <p className="text-[10px] text-zinc-600 mt-3">
+                数据更新于 {formatDate(project.publication.snapshots[0].fetchedAt)}
               </p>
-              <ul className="space-y-2">
-                {project.analysisReport.optimizationTips.map((tip, i) => (
-                  <li key={i} className="flex gap-2.5 text-sm text-zinc-400">
-                    <span className="text-zinc-300 shrink-0 tabular-nums text-xs mt-0.5">{i + 1}.</span>
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            )}
           </div>
+
+          {/* AI Analysis report */}
+          {project.analysisReport && (
+            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
+                    <BarChart3 className="h-4 w-4 text-violet-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">AI 数据分析</p>
+                    <p className="text-[11px] text-zinc-500 mt-0.5">
+                      {project.analysisReport.modelUsed} · {formatDate(project.analysisReport.createdAt)}
+                    </p>
+                  </div>
+                </div>
+                {project.analysisReport.overallScore !== null && (
+                  <div className="text-right">
+                    <div className="flex items-baseline gap-0.5">
+                      <span className={cn(
+                        "text-3xl font-light tabular-nums",
+                        project.analysisReport.overallScore >= 70 ? "text-emerald-400" :
+                        project.analysisReport.overallScore >= 40 ? "text-amber-400" : "text-red-400"
+                      )}>
+                        {project.analysisReport.overallScore}
+                      </span>
+                      <span className="text-xs text-zinc-500">/100</span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 mt-0.5">综合评分</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-5">
+                <AnalysisBlock label="表现总结" content={project.analysisReport.performanceSummary} />
+                <AnalysisBlock label="方向建议" content={project.analysisReport.directionAdvice} />
+                <div>
+                  <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-3">
+                    优化建议
+                  </p>
+                  <div className="space-y-2">
+                    {project.analysisReport.optimizationTips.map((tip, i) => (
+                      <div key={i} className="flex gap-3 items-start">
+                        <span className="shrink-0 h-5 w-5 rounded-md bg-violet-500/10 flex items-center justify-center text-[10px] text-violet-400 font-medium mt-0.5">
+                          {i + 1}
+                        </span>
+                        <p className="text-sm text-zinc-400 leading-relaxed">{tip}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

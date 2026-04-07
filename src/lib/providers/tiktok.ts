@@ -234,7 +234,12 @@ export async function fetchVideoMetrics(
   accessToken: string
 ): Promise<VideoMetrics> {
   if (isMockMode()) return fetchMetricsMock();
-  return fetchMetricsReal(platformVideoId, accessToken);
+
+  if (platformVideoId) {
+    return fetchMetricsByVideoId(platformVideoId, accessToken);
+  }
+
+  return fetchMetricsFromVideoList(accessToken);
 }
 
 function fetchMetricsMock(): VideoMetrics {
@@ -246,7 +251,7 @@ function fetchMetricsMock(): VideoMetrics {
   };
 }
 
-async function fetchMetricsReal(
+async function fetchMetricsByVideoId(
   platformVideoId: string,
   accessToken: string
 ): Promise<VideoMetrics> {
@@ -266,7 +271,7 @@ async function fetchMetricsReal(
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`TikTok Display API 错误: ${res.status} ${errText}`);
+    throw new Error(`TikTok Video Query API 错误: ${res.status} ${errText}`);
   }
 
   const data = await res.json();
@@ -279,3 +284,46 @@ async function fetchMetricsReal(
     shares: video?.share_count ?? 0,
   };
 }
+
+async function fetchMetricsFromVideoList(
+  accessToken: string
+): Promise<VideoMetrics> {
+  console.log("[tiktok] No platformVideoId, using Video List API");
+
+  const res = await fetch(
+    "https://open.tiktokapis.com/v2/video/list/?fields=id,title,view_count,like_count,comment_count,share_count,create_time",
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json; charset=UTF-8",
+      },
+      body: JSON.stringify({ max_count: 5 }),
+    }
+  );
+
+  if (!res.ok) {
+    const errText = await res.text();
+    console.log("[tiktok] Video List API error:", res.status, errText);
+    return { views: 0, likes: 0, comments: 0, shares: 0 };
+  }
+
+  const data = await res.json();
+  console.log("[tiktok] Video List response:", JSON.stringify(data).slice(0, 500));
+
+  const videos = data.data?.videos || [];
+  if (videos.length === 0) {
+    console.log("[tiktok] No videos found via list API");
+    return { views: 0, likes: 0, comments: 0, shares: 0 };
+  }
+
+  const latest = videos[0];
+  return {
+    views: latest.view_count ?? 0,
+    likes: latest.like_count ?? 0,
+    comments: latest.comment_count ?? 0,
+    shares: latest.share_count ?? 0,
+  };
+}
+
+export { fetchMetricsFromVideoList };

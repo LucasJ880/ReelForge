@@ -17,6 +17,10 @@ import {
   Play,
   AlertCircle,
   CheckCircle2,
+  Pencil,
+  Save,
+  X,
+  Clock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +32,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { StatusStepper } from "@/components/project/status-stepper";
 import { StatusBadge } from "@/components/project/status-badge";
 import { formatDate } from "@/lib/utils";
@@ -48,6 +54,9 @@ export function ProjectDetailClient({
   const [deleting, setDeleting] = useState(false);
   const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState({ script: "", caption: "", videoPrompt: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setProject(initial);
@@ -146,6 +155,38 @@ export function ProjectDetailClient({
     }
   }
 
+  function startEditing() {
+    if (!cp) return;
+    setEditData({
+      script: cp.script,
+      caption: cp.caption,
+      videoPrompt: cp.videoPrompt,
+    });
+    setEditing(true);
+  }
+
+  async function handleSaveEdit() {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/content`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "保存失败");
+      }
+      toast.success("内容已更新");
+      setEditing(false);
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleAnalyze() {
     if (analyzing) return;
     setAnalyzing(true);
@@ -183,6 +224,8 @@ export function ProjectDetailClient({
   const cp = project.contentPlan;
   const vj = project.videoJob;
   const angles = (cp?.contentAngles ?? []) as ContentAngle[];
+  const canEdit =
+    cp && ["CONTENT_GENERATED", "VIDEO_FAILED"].includes(project.status);
 
   return (
     <div className="space-y-6">
@@ -414,6 +457,23 @@ export function ProjectDetailClient({
         </Card>
       )}
 
+      {/* 发布中 */}
+      {project.status === "PUBLISHING" && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardContent className="flex items-center gap-3 py-4">
+            <Clock className="h-5 w-5 text-blue-500 animate-pulse" />
+            <div>
+              <p className="text-sm font-medium text-blue-700">
+                正在发布到 TikTok...
+              </p>
+              <p className="text-xs text-blue-600 mt-0.5">
+                视频正在上传到 TikTok，处理可能需要几分钟
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* 发布成功 */}
       {project.publication?.publishStatus === "PUBLISHED" && (
         <Card className="border-green-200 bg-green-50">
@@ -458,6 +518,38 @@ export function ProjectDetailClient({
       {/* 内容方案展示 */}
       {cp && (
         <div className="grid gap-4 md:grid-cols-2">
+          {/* 编辑/只读切换栏 */}
+          {canEdit && (
+            <div className="md:col-span-2 flex justify-end gap-2">
+              {!editing ? (
+                <Button variant="outline" size="sm" onClick={startEditing}>
+                  <Pencil className="mr-1.5 h-3 w-3" />
+                  编辑内容
+                </Button>
+              ) : (
+                <>
+                  <Button size="sm" onClick={handleSaveEdit} disabled={saving}>
+                    {saving ? (
+                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                    ) : (
+                      <Save className="mr-1.5 h-3 w-3" />
+                    )}
+                    保存
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setEditing(false)}
+                    disabled={saving}
+                  >
+                    <X className="mr-1.5 h-3 w-3" />
+                    取消
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
+
           <Card className="md:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">
@@ -466,9 +558,20 @@ export function ProjectDetailClient({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                {cp.script}
-              </p>
+              {editing ? (
+                <Textarea
+                  value={editData.script}
+                  onChange={(e) =>
+                    setEditData((d) => ({ ...d, script: e.target.value }))
+                  }
+                  rows={6}
+                  className="text-sm"
+                />
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed">
+                  {cp.script}
+                </p>
+              )}
             </CardContent>
           </Card>
 
@@ -480,7 +583,17 @@ export function ProjectDetailClient({
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm">{cp.caption}</p>
+              {editing ? (
+                <Input
+                  value={editData.caption}
+                  onChange={(e) =>
+                    setEditData((d) => ({ ...d, caption: e.target.value }))
+                  }
+                  className="text-sm"
+                />
+              ) : (
+                <p className="text-sm">{cp.caption}</p>
+              )}
             </CardContent>
           </Card>
 
@@ -511,7 +624,18 @@ export function ProjectDetailClient({
               <CardDescription>用于 AI 视频生成</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-gray-600 italic">{cp.videoPrompt}</p>
+              {editing ? (
+                <Textarea
+                  value={editData.videoPrompt}
+                  onChange={(e) =>
+                    setEditData((d) => ({ ...d, videoPrompt: e.target.value }))
+                  }
+                  rows={3}
+                  className="text-sm"
+                />
+              ) : (
+                <p className="text-sm text-gray-600 italic">{cp.videoPrompt}</p>
+              )}
             </CardContent>
           </Card>
 

@@ -2,13 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, FolderPlus, List, Settings } from "lucide-react";
+import { LayoutDashboard, FolderPlus, List, Settings, Layers, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   { href: "/", label: "仪表板", icon: LayoutDashboard },
   { href: "/projects", label: "项目列表", icon: List },
   { href: "/projects/new", label: "新建项目", icon: FolderPlus },
+  { href: "/batches", label: "批量任务", icon: Layers },
+  { href: "/batches/new", label: "批量生成", icon: Zap },
   { href: "/settings", label: "设置", icon: Settings },
 ];
 

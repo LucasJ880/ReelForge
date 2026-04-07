@@ -6,7 +6,7 @@ import { fetchVideoMetrics } from "@/lib/providers/tiktok";
  * 拉取所有已发布项目的 TikTok 数据（幂等）
  * 由 Vercel Cron 定时调用
  */
-export async function fetchAllPendingAnalytics() {
+export async function fetchAllPendingAnalytics(batchSize = 10) {
   const publications = await db.publication.findMany({
     where: {
       publishStatus: PublishStatus.PUBLISHED,
@@ -17,6 +17,8 @@ export async function fetchAllPendingAnalytics() {
       },
     },
     include: { project: true },
+    take: batchSize,
+    orderBy: { publishedAt: "asc" },
   });
 
   const results = [];

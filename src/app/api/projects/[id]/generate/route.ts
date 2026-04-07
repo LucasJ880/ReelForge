@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateContentPlan } from "@/lib/services/content-service";
+import { handleApiError } from "@/lib/utils/api-error";
 
 export async function POST(
   _request: NextRequest,
@@ -11,19 +12,6 @@ export async function POST(
     const contentPlan = await generateContentPlan(id);
     return NextResponse.json({ contentPlan });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "内容生成失败";
-
-    if (message === "项目不存在") {
-      return NextResponse.json({ error: message }, { status: 404 });
-    }
-    if (message.startsWith("当前状态")) {
-      return NextResponse.json({ error: message }, { status: 400 });
-    }
-
-    console.error("[generate] 内容生成失败:", error);
-    return NextResponse.json(
-      { error: "内容生成失败，请重试", detail: message },
-      { status: 500 }
-    );
+    return handleApiError(error, "内容生成");
   }
 }

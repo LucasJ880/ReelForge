@@ -1,6 +1,6 @@
 # ReelForge — API 与模块设计
 
-> 版本: 2.0 | 更新时间: 2026-04-06
+> 版本: 2.1 | 更新时间: 2026-04-07
 > 框架: Next.js Route Handlers
 
 ---
@@ -19,6 +19,7 @@
 | POST   | `/api/projects/[id]/video`        | 触发视频生成             |
 | GET    | `/api/projects/[id]/video/status` | 查询视频生成状态（轮询用）      |
 | POST   | `/api/projects/[id]/publish`      | 发布到 TikTok         |
+| PATCH  | `/api/projects/[id]/content`      | 编辑内容方案（脚本/标题/提示词） |
 | POST   | `/api/projects/[id]/analyze`      | 手动触发分析             |
 | GET    | `/api/tiktok/auth`                | 发起 TikTok OAuth 授权 |
 | GET    | `/api/tiktok/callback`            | TikTok OAuth 回调    |

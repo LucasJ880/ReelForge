@@ -28,6 +28,8 @@ export async function GET(
   return NextResponse.json(project);
 }
 
+const ALLOWED_PATCH_FIELDS = new Set(["keyword"]);
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -35,12 +37,23 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
 
-  const project = await db.project.update({
-    where: { id },
-    data: body,
-  });
+  const data: Record<string, unknown> = {};
+  for (const key of Object.keys(body)) {
+    if (ALLOWED_PATCH_FIELDS.has(key)) {
+      data[key] = body[key];
+    }
+  }
 
-  return NextResponse.json(project);
+  if (Object.keys(data).length === 0) {
+    return NextResponse.json({ error: "无有效字段" }, { status: 400 });
+  }
+
+  try {
+    const project = await db.project.update({ where: { id }, data });
+    return NextResponse.json(project);
+  } catch {
+    return NextResponse.json({ error: "项目不存在" }, { status: 404 });
+  }
 }
 
 export async function DELETE(

@@ -5,7 +5,22 @@ import {
   getVideoJobStatus,
 } from "@/lib/providers/jimeng";
 
-export async function submitVideoJob(projectId: string) {
+export interface VideoParams {
+  duration?: number;
+  resolution?: string;
+  ratio?: string;
+}
+
+const DEFAULT_PARAMS: Required<VideoParams> = {
+  duration: 5,
+  resolution: "720p",
+  ratio: "9:16",
+};
+
+export async function submitVideoJob(
+  projectId: string,
+  params?: VideoParams
+) {
   const project = await db.project.findUnique({
     where: { id: projectId },
     include: { contentPlan: true, videoJob: true },
@@ -21,8 +36,15 @@ export async function submitVideoJob(projectId: string) {
     throw new Error(`当前状态 ${project.status} 不允许生成视频`);
   }
 
+  const duration = params?.duration || DEFAULT_PARAMS.duration;
+  const resolution = params?.resolution || DEFAULT_PARAMS.resolution;
+  const ratio = params?.ratio || DEFAULT_PARAMS.ratio;
+
   const { jobId } = await submitVideoGeneration({
     prompt: project.contentPlan.videoPrompt,
+    duration,
+    resolution,
+    ratio,
   });
 
   if (project.videoJob) {
@@ -33,6 +55,9 @@ export async function submitVideoJob(projectId: string) {
         status: VideoJobStatus.PROCESSING,
         videoUrl: null,
         thumbnailUrl: null,
+        duration,
+        resolution,
+        ratio,
         errorMessage: null,
         completedAt: null,
         retryCount: { increment: 1 },
@@ -54,6 +79,9 @@ export async function submitVideoJob(projectId: string) {
         provider: "jimeng",
         providerJobId: jobId,
         status: VideoJobStatus.PROCESSING,
+        duration,
+        resolution,
+        ratio,
       },
     }),
     db.project.update({

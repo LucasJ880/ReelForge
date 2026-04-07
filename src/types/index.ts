@@ -50,6 +50,9 @@ export interface ProjectWithRelations {
     status: string;
     videoUrl: string | null;
     thumbnailUrl: string | null;
+    duration: number;
+    resolution: string;
+    ratio: string;
     errorMessage: string | null;
     retryCount: number;
     createdAt: Date;

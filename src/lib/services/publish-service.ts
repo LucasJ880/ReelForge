@@ -82,14 +82,19 @@ export async function publishToTikTok(projectId: string) {
       });
     }
 
+    const newStatus =
+      result.status === "published"
+        ? ProjectStatus.PUBLISHED
+        : ProjectStatus.PUBLISHING;
+
+    const updateData: Record<string, unknown> = { status: newStatus };
+    if (newStatus === ProjectStatus.PUBLISHED) {
+      updateData.status = ProjectStatus.ANALYTICS_PENDING;
+    }
+
     await db.project.update({
       where: { id: projectId },
-      data: {
-        status:
-          result.status === "published"
-            ? ProjectStatus.PUBLISHED
-            : ProjectStatus.PUBLISHING,
-      },
+      data: updateData,
     });
 
     return result;

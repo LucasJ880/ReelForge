@@ -1,14 +1,19 @@
 /**
  * 即梦 / Seedance 视频生成 Provider
  *
- * Mock 模式：模拟异步视频生成流程（提交 → 处理中 → 完成）
- * Real 模式：调用火山方舟 Ark Seedance API（待接入 ARK_API_KEY 后启用）
+ * Mock 模式：无 ARK_API_KEY 时模拟异步视频生成
+ * Real 模式：调用火山方舟 Ark Seedance API
+ *
+ * API 文档: https://www.volcengine.com/docs/82379/1520757
+ * 端点: POST /contents/generations/tasks  (提交)
+ *       GET  /contents/generations/tasks/{id} (查询)
  */
 
 export interface VideoGenerationOptions {
   prompt: string;
   duration?: number;
   resolution?: string;
+  ratio?: string;
 }
 
 export interface VideoJobResult {
@@ -101,31 +106,47 @@ async function submitReal(
   const apiKey = process.env.ARK_API_KEY;
   const baseUrl =
     process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
-  const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-1-5-pro-251215";
+  const model =
+    process.env.ARK_VIDEO_MODEL || "doubao-seedance-1-5-pro-251215";
 
   if (!apiKey) throw new Error("ARK_API_KEY 未配置");
 
-  const res = await fetch(`${baseUrl}/video/generations`, {
+  const body = {
+    model,
+    content: [
+      {
+        type: "text",
+        text: options.prompt,
+      },
+    ],
+    resolution: options.resolution || "720p",
+    ratio: options.ratio || "9:16",
+    duration: options.duration || 5,
+    watermark: false,
+  };
+
+  console.log(`[jimeng:real] 提交视频生成任务, model=${model}, prompt=${options.prompt.slice(0, 80)}...`);
+
+  const res = await fetch(`${baseUrl}/contents/generations/tasks`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      prompt: options.prompt,
-      duration: options.duration || 5,
-      resolution: options.resolution || "720p",
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
     const err = await res.text();
+    console.error(`[jimeng:real] 提交失败: ${res.status}`, err);
     throw new Error(`即梦 API 提交失败: ${res.status} ${err}`);
   }
 
   const data = await res.json();
-  return { jobId: data.id || data.task_id };
+  const jobId = data.id || data.task_id;
+  console.log(`[jimeng:real] 任务已提交: ${jobId}`);
+
+  return { jobId };
 }
 
 async function getStatusReal(jobId: string): Promise<VideoJobResult> {
@@ -135,31 +156,40 @@ async function getStatusReal(jobId: string): Promise<VideoJobResult> {
 
   if (!apiKey) throw new Error("ARK_API_KEY 未配置");
 
-  const res = await fetch(`${baseUrl}/video/generations/${jobId}`, {
+  const res = await fetch(`${baseUrl}/contents/generations/tasks/${jobId}`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
 
   if (!res.ok) {
     const err = await res.text();
+    console.error(`[jimeng:real] 查询失败: ${res.status}`, err);
     throw new Error(`即梦 API 查询失败: ${res.status} ${err}`);
   }
 
   const data = await res.json();
+  console.log(`[jimeng:real] 任务 ${jobId} 状态: ${data.status}`);
 
   const statusMap: Record<string, VideoJobResult["status"]> = {
-    pending: "pending",
+    queued: "pending",
     running: "processing",
-    processing: "processing",
     succeeded: "completed",
-    completed: "completed",
     failed: "failed",
+    expired: "failed",
+    cancelled: "failed",
   };
+
+  const videoUrl = data.content?.video_url || data.video_url;
 
   return {
     jobId,
     status: statusMap[data.status] || "processing",
-    videoUrl: data.video_url || data.output?.video_url,
-    thumbnailUrl: data.thumbnail_url || data.output?.cover_url,
-    errorMessage: data.error?.message,
+    videoUrl,
+    thumbnailUrl: data.content?.cover_url || data.thumbnail_url,
+    errorMessage:
+      data.status === "failed"
+        ? data.error?.message || "视频生成失败"
+        : data.status === "expired"
+          ? "任务已过期"
+          : undefined,
   };
 }

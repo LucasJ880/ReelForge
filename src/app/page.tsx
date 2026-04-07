@@ -5,6 +5,8 @@ import {
   Video,
   BarChart3,
   ChevronRight,
+  Layers,
+  Zap,
 } from "lucide-react";
 import {
   Card,
@@ -15,11 +17,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/project/status-badge";
 import { db } from "@/lib/db";
-import { ProjectStatus } from "@prisma/client";
+import { BatchStatus, ProjectStatus } from "@prisma/client";
 import { formatDate } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const [totalProjects, publishedCount, analyzedCount, recentProjects] =
+  const [totalProjects, publishedCount, analyzedCount, recentProjects, runningBatches] =
     await Promise.all([
       db.project.count(),
       db.project.count({
@@ -40,12 +42,22 @@ export default async function DashboardPage() {
         take: 5,
         include: { contentPlan: { select: { caption: true } } },
       }),
+      db.batch.findMany({
+        where: { status: BatchStatus.RUNNING },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+      }),
     ]);
 
-  const latestSnapshot = await db.analyticsSnapshot.aggregate({
-    _sum: { views: true },
-  });
-  const totalViews = latestSnapshot._sum.views || 0;
+  const latestSnapshots = await db.$queryRaw<{ total: bigint }[]>`
+    SELECT COALESCE(SUM(s.views), 0) as total
+    FROM (
+      SELECT DISTINCT ON ("publicationId") views
+      FROM "AnalyticsSnapshot"
+      ORDER BY "publicationId", "fetchedAt" DESC
+    ) s
+  `;
+  const totalViews = Number(latestSnapshots[0]?.total ?? 0);
 
   return (
     <div className="space-y-6">
@@ -56,12 +68,20 @@ export default async function DashboardPage() {
             AI 驱动的 TikTok 短视频自动化平台
           </p>
         </div>
-        <Link href="/projects/new">
-          <Button>
-            <FolderPlus className="mr-2 h-4 w-4" />
-            新建项目
-          </Button>
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/batches/new">
+            <Button variant="outline">
+              <Zap className="mr-2 h-4 w-4" />
+              批量生成
+            </Button>
+          </Link>
+          <Link href="/projects/new">
+            <Button>
+              <FolderPlus className="mr-2 h-4 w-4" />
+              新建项目
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -112,6 +132,40 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {runningBatches.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-blue-700 flex items-center gap-2">
+              <Layers className="h-4 w-4" />
+              正在执行的批次
+            </CardTitle>
+            <Link href="/batches" className="text-xs text-blue-600 hover:underline">
+              查看全部
+            </Link>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {runningBatches.map((b) => {
+              const progress = b.totalCount > 0
+                ? Math.round(((b.completedCount + b.failedCount) / b.totalCount) * 100)
+                : 0;
+              return (
+                <Link key={b.id} href={`/batches/${b.id}`}>
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-blue-100/50 transition-colors">
+                    <span className="text-sm font-medium text-blue-900">{b.name}</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-16 h-1.5 bg-blue-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%` }} />
+                      </div>
+                      <span className="text-xs text-blue-600">{progress}%</span>
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {recentProjects.length > 0 ? (
         <Card>

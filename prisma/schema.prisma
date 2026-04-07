@@ -34,21 +34,55 @@ enum PublishStatus {
   FAILED
 }
 
+enum BatchStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+model Batch {
+  id              String      @id @default(cuid())
+  name            String
+  status          BatchStatus @default(PENDING)
+  totalCount      Int         @default(0)
+  completedCount  Int         @default(0)
+  failedCount     Int         @default(0)
+  videoParams     Json?
+  concurrency     Int         @default(2)
+  autoGenerateVideo Boolean   @default(true)
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  projects Project[]
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
 model Project {
   id           String        @id @default(cuid())
   keyword      String
   status       ProjectStatus @default(DRAFT)
   errorMessage String?
   retryCount   Int           @default(0)
+  batchId      String?
+  batchIndex   Int?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
+  batch          Batch?           @relation(fields: [batchId], references: [id])
   contentPlan    ContentPlan?
   videoJob       VideoJob?
   publication    Publication?
   analysisReport AnalysisReport?
 
   @@index([status])
+  @@index([batchId])
   @@index([createdAt(sort: Desc)])
 }
 
@@ -75,6 +109,9 @@ model VideoJob {
   status        VideoJobStatus @default(PENDING)
   videoUrl      String?
   thumbnailUrl  String?
+  duration      Int            @default(5)
+  resolution    String         @default("720p")
+  ratio         String         @default("9:16")
   errorMessage  String?
   retryCount    Int            @default(0)
   createdAt     DateTime       @default(now())

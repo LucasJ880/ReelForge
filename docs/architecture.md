@@ -1,6 +1,6 @@
 # ReelForge — 系统架构设计
 
-> 版本: 2.0 | 更新时间: 2026-04-06
+> 版本: 2.1 | 更新时间: 2026-04-07
 > 技术栈: Next.js + TypeScript + Prisma + Neon Postgres + Vercel
 
 ---
@@ -149,8 +149,9 @@ src/
 ├── lib/
 │   ├── db.ts                          # Prisma Client 单例
 │   ├── providers/
+│   │   ├── types.ts                   # 统一 Provider 接口定义
 │   │   ├── openai.ts                  # OpenAI 封装
-│   │   ├── jimeng.ts                  # 即梦/Seedance 封装
+│   │   ├── jimeng.ts                  # 即梦/Seedance 封装（Mock + Real）
 │   │   └── tiktok.ts                  # TikTok API 封装
 │   ├── services/
 │   │   ├── content-service.ts         # 内容生成
@@ -161,6 +162,7 @@ src/
 │   │   ├── content-generation.ts      # 内容生成 Prompt
 │   │   └── analysis.ts               # 分析 Prompt
 │   └── utils/
+│       ├── api-error.ts               # API 路由统一错误处理
 │       ├── errors.ts                  # 统一错误类型
 │       └── retry.ts                   # 重试工具函数
 ├── components/

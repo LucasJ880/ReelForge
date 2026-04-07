@@ -7,23 +7,25 @@
 
 ## 1. API 路由总览
 
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/projects` | 创建项目 |
-| GET | `/api/projects` | 项目列表（支持状态筛选、分页） |
-| GET | `/api/projects/[id]` | 项目详情（含所有关联数据） |
-| PATCH | `/api/projects/[id]` | 更新项目（编辑内容方案） |
-| DELETE | `/api/projects/[id]` | 删除项目 |
-| POST | `/api/projects/[id]/generate` | 生成/重新生成内容方案 |
-| POST | `/api/projects/[id]/video` | 触发视频生成 |
-| GET | `/api/projects/[id]/video/status` | 查询视频生成状态（轮询用） |
-| POST | `/api/projects/[id]/publish` | 发布到 TikTok |
-| POST | `/api/projects/[id]/analyze` | 手动触发分析 |
-| GET | `/api/tiktok/auth` | 发起 TikTok OAuth 授权 |
-| GET | `/api/tiktok/callback` | TikTok OAuth 回调 |
-| GET | `/api/tiktok/account` | 获取已绑定的 TikTok 账号信息 |
-| DELETE | `/api/tiktok/account` | 解绑 TikTok 账号 |
-| POST | `/api/cron/fetch-analytics` | Cron: 拉取待分析数据 |
+
+| 方法     | 路径                                | 说明                 |
+| ------ | --------------------------------- | ------------------ |
+| POST   | `/api/projects`                   | 创建项目               |
+| GET    | `/api/projects`                   | 项目列表（支持状态筛选、分页）    |
+| GET    | `/api/projects/[id]`              | 项目详情（含所有关联数据）      |
+| PATCH  | `/api/projects/[id]`              | 更新项目（编辑内容方案）       |
+| DELETE | `/api/projects/[id]`              | 删除项目               |
+| POST   | `/api/projects/[id]/generate`     | 生成/重新生成内容方案        |
+| POST   | `/api/projects/[id]/video`        | 触发视频生成             |
+| GET    | `/api/projects/[id]/video/status` | 查询视频生成状态（轮询用）      |
+| POST   | `/api/projects/[id]/publish`      | 发布到 TikTok         |
+| POST   | `/api/projects/[id]/analyze`      | 手动触发分析             |
+| GET    | `/api/tiktok/auth`                | 发起 TikTok OAuth 授权 |
+| GET    | `/api/tiktok/callback`            | TikTok OAuth 回调    |
+| GET    | `/api/tiktok/account`             | 获取已绑定的 TikTok 账号信息 |
+| DELETE | `/api/tiktok/account`             | 解绑 TikTok 账号       |
+| POST   | `/api/cron/fetch-analytics`       | Cron: 拉取待分析数据      |
+
 
 ## 2. API 详细设计
 
@@ -261,6 +263,7 @@ AnalyticsService
 ### 4.1 OpenAI Provider (`lib/providers/openai.ts`)
 
 封装 OpenAI API 调用：
+
 - `generateContent(input)`: 内容生成（JSON mode，结构化输出）
 - `generateAnalysis(input)`: 分析报告生成
 - 内置重试（3次）、超时（30s）、token 统计
@@ -269,6 +272,7 @@ AnalyticsService
 ### 4.2 即梦 Provider (`lib/providers/jimeng.ts`)
 
 封装火山方舟 Ark Seedance API：
+
 - `submitGeneration(prompt, options)`: 提交视频生成任务
 - `getJobStatus(jobId)`: 查询任务状态
 - `getJobResult(jobId)`: 获取生成结果
@@ -277,6 +281,7 @@ AnalyticsService
 ### 4.3 TikTok Provider (`lib/providers/tiktok.ts`)
 
 封装 TikTok 平台 API：
+
 - `getAuthUrl()`: 生成 OAuth 授权 URL
 - `exchangeToken(code)`: 用 auth code 换取 access_token
 - `refreshToken(refreshToken)`: 刷新 token
@@ -310,12 +315,15 @@ AnalyticsService
 
 ## 6. 错误处理策略
 
-| 场景 | 处理 |
-|------|------|
-| OpenAI 调用失败 | 重试 3 次 → 返回错误，Project.status 不变 |
-| 即梦 API 提交失败 | 返回错误，VideoJob.status = FAILED |
-| 即梦 视频生成失败 | VideoJob.status = FAILED, retryCount++ |
-| TikTok 发布失败 | Publication.publishStatus = FAILED, Project.status = PUBLISH_FAILED |
-| TikTok Token 过期 | 自动尝试 refresh → 如果 refresh 也失败，提示用户重新授权 |
-| Cron 拉数失败 | 单条失败不影响其他，下次 Cron 自动重试 |
-| 数据库写入失败 | API 返回 500，不改变外部状态 |
+
+| 场景              | 处理                                                                  |
+| --------------- | ------------------------------------------------------------------- |
+| OpenAI 调用失败     | 重试 3 次 → 返回错误，Project.status 不变                                     |
+| 即梦 API 提交失败     | 返回错误，VideoJob.status = FAILED                                       |
+| 即梦 视频生成失败       | VideoJob.status = FAILED, retryCount++                              |
+| TikTok 发布失败     | Publication.publishStatus = FAILED, Project.status = PUBLISH_FAILED |
+| TikTok Token 过期 | 自动尝试 refresh → 如果 refresh 也失败，提示用户重新授权                              |
+| Cron 拉数失败       | 单条失败不影响其他，下次 Cron 自动重试                                              |
+| 数据库写入失败         | API 返回 500，不改变外部状态                                                  |
+
+

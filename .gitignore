@@ -1,18 +1,51 @@
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files
 .env
-*.db
-/storage/
-.venv/
-venv/
-dist/
-build/
-*.egg-info/
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.python312/
-.cursor/
-get-pip.py
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# prisma
+/prisma/*.db
+/prisma/*.db-journal
+
+# legacy python
+_legacy/__pycache__/
+_legacy/**/__pycache__/
+_legacy/*.pyc
+_legacy/.env
+_legacy/*.db

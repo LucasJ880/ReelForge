@@ -31,13 +31,15 @@
 
 ## 2. 分层职责
 
-| 层 | 职责 | 原则 |
-|---|------|------|
-| **前端层** | UI 渲染、用户交互、状态展示 | Server Components 优先，Client Components 仅在需要交互时 |
-| **API 路由层** | 请求校验、调用 Service、返回响应 | 薄路由，不包含业务逻辑 |
-| **Service 层** | 核心业务逻辑、状态流转、错误处理 | 纯函数优先，可测试，不直接调外部 API |
-| **Provider 层** | 封装外部 API 调用细节 | 面向接口编程，可替换实现 |
-| **数据层** | 数据持久化、查询 | 统一通过 Prisma，由 Service 层调用 |
+
+| 层              | 职责                   | 原则                                             |
+| -------------- | -------------------- | ---------------------------------------------- |
+| **前端层**        | UI 渲染、用户交互、状态展示      | Server Components 优先，Client Components 仅在需要交互时 |
+| **API 路由层**    | 请求校验、调用 Service、返回响应 | 薄路由，不包含业务逻辑                                    |
+| **Service 层**  | 核心业务逻辑、状态流转、错误处理     | 纯函数优先，可测试，不直接调外部 API                           |
+| **Provider 层** | 封装外部 API 调用细节        | 面向接口编程，可替换实现                                   |
+| **数据层**        | 数据持久化、查询             | 统一通过 Prisma，由 Service 层调用                      |
+
 
 ## 3. 核心数据流
 
@@ -77,6 +79,7 @@ DRAFT ──→ CONTENT_GENERATED ──→ VIDEO_GENERATING ──→ VIDEO_REA
 ```
 
 状态规则：
+
 - 每次状态变更记录 `updatedAt`
 - 失败状态保留 `errorMessage` 和 `retryCount`
 - 任何失败状态可重试，回到前一个正常状态
@@ -191,23 +194,28 @@ src/
 
 ## 7. 关键技术决策
 
-| 决策 | 选择 | 备选 | 理由 |
-|------|------|------|------|
-| 视频生成状态 | 前端 5-10s 轮询 | WebSocket / SSE | MVP 简单可靠 |
-| 定时任务 | Vercel Cron | 外部 Cron 服务 | 零额外成本 |
-| 视频文件 | 只存 URL | 上传到 S3 | MVP 不需要自己存文件 |
-| 平台认证 | 环境变量密码 | NextAuth | 个人使用不需要用户系统 |
-| TikTok Token | Postgres 存储 | Redis | 已有数据库，不引入额外组件 |
-| 前端状态 | 数据库 + SWR/fetch | Zustand/Redux | 服务端数据为主，不需要复杂状态管理 |
-| Runtime | Node.js | Edge | Prisma 在 Edge 需要额外适配，MVP 用 Node.js 更稳 |
+
+| 决策           | 选择              | 备选              | 理由                                    |
+| ------------ | --------------- | --------------- | ------------------------------------- |
+| 视频生成状态       | 前端 5-10s 轮询     | WebSocket / SSE | MVP 简单可靠                              |
+| 定时任务         | Vercel Cron     | 外部 Cron 服务      | 零额外成本                                 |
+| 视频文件         | 只存 URL          | 上传到 S3          | MVP 不需要自己存文件                          |
+| 平台认证         | 环境变量密码          | NextAuth        | 个人使用不需要用户系统                           |
+| TikTok Token | Postgres 存储     | Redis           | 已有数据库，不引入额外组件                         |
+| 前端状态         | 数据库 + SWR/fetch | Zustand/Redux   | 服务端数据为主，不需要复杂状态管理                     |
+| Runtime      | Node.js         | Edge            | Prisma 在 Edge 需要额外适配，MVP 用 Node.js 更稳 |
+
 
 ## 8. 外部依赖
 
-| 依赖 | 服务 | 用途 | API 文档 |
-|------|------|------|---------|
-| OpenAI | gpt-4o-mini | 内容生成 + 数据分析 | https://platform.openai.com/docs |
-| 火山方舟 Ark | Seedance/即梦 | AI 视频生成 | https://www.volcengine.com/docs/82379 |
-| TikTok | Content Posting API | 视频发布 | https://developers.tiktok.com/doc/content-posting-api-get-started |
-| TikTok | Video Query API | 数据获取 | https://developers.tiktok.com/doc/research-api-specs-query-videos |
-| Neon | Serverless Postgres | 数据存储 | https://neon.tech/docs |
-| Vercel | Hosting + Cron | 部署和定时任务 | https://vercel.com/docs |
+
+| 依赖       | 服务                  | 用途          | API 文档                                                                                                                                 |
+| -------- | ------------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| OpenAI   | gpt-4o-mini         | 内容生成 + 数据分析 | [https://platform.openai.com/docs](https://platform.openai.com/docs)                                                                   |
+| 火山方舟 Ark | Seedance/即梦         | AI 视频生成     | [https://www.volcengine.com/docs/82379](https://www.volcengine.com/docs/82379)                                                         |
+| TikTok   | Content Posting API | 视频发布        | [https://developers.tiktok.com/doc/content-posting-api-get-started](https://developers.tiktok.com/doc/content-posting-api-get-started) |
+| TikTok   | Video Query API     | 数据获取        | [https://developers.tiktok.com/doc/research-api-specs-query-videos](https://developers.tiktok.com/doc/research-api-specs-query-videos) |
+| Neon     | Serverless Postgres | 数据存储        | [https://neon.tech/docs](https://neon.tech/docs)                                                                                       |
+| Vercel   | Hosting + Cron      | 部署和定时任务     | [https://vercel.com/docs](https://vercel.com/docs)                                                                                     |
+
+

@@ -14,17 +14,19 @@
 
 ## 技术栈
 
-| 组件 | 选型 |
-|------|------|
-| 前端 | Next.js + TypeScript |
-| UI | Tailwind CSS + shadcn/ui |
-| 数据库 | Neon Postgres |
-| ORM | Prisma |
-| 部署 | Vercel |
-| 定时任务 | Vercel Cron |
-| 文本生成 | OpenAI |
-| 视频生成 | 即梦 / Seedance (火山方舟) |
-| 发布 | TikTok Content Posting API |
+
+| 组件   | 选型                         |
+| ---- | -------------------------- |
+| 前端   | Next.js + TypeScript       |
+| UI   | Tailwind CSS + shadcn/ui   |
+| 数据库  | Neon Postgres              |
+| ORM  | Prisma                     |
+| 部署   | Vercel                     |
+| 定时任务 | Vercel Cron                |
+| 文本生成 | OpenAI                     |
+| 视频生成 | 即梦 / Seedance (火山方舟)       |
+| 发布   | TikTok Content Posting API |
+
 
 ## 开发
 
@@ -52,3 +54,4 @@ npm run dev
 - [MVP 计划](docs/mvp-plan.md)
 - [重构计划](docs/refactor-plan.md)
 - [待确认项](docs/open-questions.md)
+

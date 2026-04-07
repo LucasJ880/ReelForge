@@ -72,24 +72,24 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white overflow-hidden">
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <Link href="/landing" className="flex items-center gap-2.5">
-            <Logo size={32} />
-            <span className="text-[15px] font-semibold tracking-tight">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-950/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+          <Link href="/landing" className="flex items-center gap-3">
+            <Logo size={34} />
+            <span className="text-base font-semibold tracking-tight">
               ReelForge
             </span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href="/login"
-              className="rounded-lg px-4 py-2 text-sm text-zinc-400 transition hover:text-white"
+              className="rounded-xl px-5 py-2.5 text-sm text-zinc-400 transition hover:text-white"
             >
               登录
             </Link>
             <Link
               href="/register"
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium transition hover:bg-violet-500"
+              className="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium transition hover:bg-violet-500 shadow-lg shadow-violet-600/20"
             >
               免费开始
             </Link>
@@ -98,10 +98,11 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 px-6">
+      <section className="relative pt-36 pb-24 px-6">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] rounded-full bg-violet-600/10 blur-[120px]" />
-          <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] rounded-full bg-pink-600/8 blur-[100px]" />
+          <div className="absolute top-[10%] left-1/2 -translate-x-1/2 w-[900px] h-[700px] rounded-full bg-violet-600/[0.12] blur-[150px]" />
+          <div className="absolute top-[20%] left-[20%] w-[500px] h-[500px] rounded-full bg-pink-600/[0.06] blur-[120px]" />
+          <div className="absolute top-[15%] right-[15%] w-[300px] h-[300px] rounded-full bg-blue-600/[0.05] blur-[100px]" />
         </div>
 
         <div className="relative mx-auto max-w-4xl text-center">

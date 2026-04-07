@@ -37,18 +37,18 @@ export function AppSidebar() {
     return (
       <>
         {/* Logo */}
-        <div className="px-5 pt-6 pb-8">
-          <Link href="/" className="flex items-center gap-2.5" onClick={() => setMobileOpen(false)}>
-            <Logo size={32} />
-            <span className="text-[15px] font-semibold text-white tracking-tight">
+        <div className="px-4 pt-5 pb-6">
+          <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
+            <Logo size={34} />
+            <span className="text-base font-semibold text-white tracking-tight">
               ReelForge
             </span>
           </Link>
         </div>
 
         {/* Main nav */}
-        <nav className="flex-1 px-3 space-y-6">
-          <div className="space-y-1">
+        <nav className="flex-1 px-3 space-y-5">
+          <div className="space-y-0.5">
             {mainNav.map((item) => {
               const isActive =
                 pathname === item.href ||
@@ -59,13 +59,16 @@ export function AppSidebar() {
                   href={item.href}
                   onClick={() => setMobileOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all duration-150",
+                    "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition-all duration-150",
                     isActive
-                      ? "bg-white/10 text-white font-medium"
-                      : "text-zinc-400 hover:text-white hover:bg-white/5"
+                      ? "bg-violet-500/15 text-white font-medium"
+                      : "text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
                   )}
                 >
-                  <item.icon className="h-4 w-4 shrink-0" />
+                  {isActive && (
+                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-violet-500" />
+                  )}
+                  <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-violet-400")} />
                   {item.label}
                 </Link>
               );
@@ -73,10 +76,10 @@ export function AppSidebar() {
           </div>
 
           <div>
-            <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.15em] text-zinc-500 font-medium">
+            <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-medium">
               创作
             </p>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {createNav.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -85,13 +88,16 @@ export function AppSidebar() {
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all duration-150",
+                      "relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition-all duration-150",
                       isActive
-                        ? "bg-white/10 text-white font-medium"
-                        : "text-zinc-400 hover:text-white hover:bg-white/5"
+                        ? "bg-violet-500/15 text-white font-medium"
+                        : "text-zinc-500 hover:text-zinc-200 hover:bg-white/5"
                     )}
                   >
-                    <item.icon className="h-4 w-4 shrink-0" />
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-violet-500" />
+                    )}
+                    <item.icon className={cn("h-[18px] w-[18px] shrink-0", isActive && "text-violet-400")} />
                     {item.label}
                   </Link>
                 );
@@ -101,26 +107,26 @@ export function AppSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/5 space-y-1">
+        <div className="px-3 py-3 border-t border-white/[0.04] space-y-0.5">
           <Link
             href="/settings"
             onClick={() => setMobileOpen(false)}
             className={cn(
-              "flex items-center gap-3 rounded-lg px-2 py-2 text-[13px] transition-all duration-150",
+              "flex items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] transition-all duration-150",
               pathname === "/settings"
-                ? "text-white"
-                : "text-zinc-500 hover:text-zinc-300"
+                ? "text-zinc-200"
+                : "text-zinc-600 hover:text-zinc-300"
             )}
           >
-            <Settings className="h-4 w-4" />
+            <Settings className="h-[18px] w-[18px]" />
             设置
           </Link>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-[13px] text-zinc-500 hover:text-zinc-300 transition-all duration-150"
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-zinc-600 hover:text-zinc-300 transition-all duration-150"
           >
-            <LogOut className="h-4 w-4" />
-            退出登录
+            <LogOut className="h-[18px] w-[18px]" />
+            退出
           </button>
         </div>
       </>
@@ -148,7 +154,7 @@ export function AppSidebar() {
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-56 flex flex-col bg-zinc-950 transition-transform duration-200 md:hidden",
+          "fixed inset-y-0 left-0 z-50 w-[220px] flex flex-col bg-[#0a0a0f] transition-transform duration-200 md:hidden",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -162,7 +168,7 @@ export function AppSidebar() {
       </aside>
 
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-56 flex-col bg-zinc-950 shrink-0">
+      <aside className="hidden md:flex w-[220px] flex-col bg-[#0a0a0f] border-r border-white/[0.04] shrink-0">
         <NavContent />
       </aside>
     </>

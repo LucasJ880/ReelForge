@@ -6,6 +6,7 @@ import {
   TrendingUp,
   BarChart3,
   Layers,
+  Sparkles,
 } from "lucide-react";
 import { StatusBadge } from "@/components/project/status-badge";
 import { db } from "@/lib/db";
@@ -55,37 +56,41 @@ export default async function DashboardPage() {
   const totalViews = Number(latestSnapshots[0]?.total ?? 0);
 
   return (
-    <div className="space-y-10">
-      {/* Hero */}
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-2">
-            创作工作台
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-white">
-            用 AI 创作你的下一个爆款视频
-          </h1>
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="/batches/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-zinc-800/50 px-4 py-2.5 text-sm font-medium text-zinc-100 transition-colors hover:bg-white/5"
-          >
-            <Zap className="h-3.5 w-3.5" />
-            批量生成
-          </Link>
-          <Link
-            href="/projects/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
-          >
-            开始创作
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
+    <div className="space-y-8">
+      {/* Hero — with subtle glow */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500/[0.08] via-transparent to-pink-500/[0.05] border border-white/[0.06] p-8">
+        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-violet-600/10 blur-[80px]" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 border border-violet-500/20 px-3 py-1 text-[11px] text-violet-400 font-medium mb-4">
+              <Sparkles className="h-3 w-3" />
+              创作工作台
+            </div>
+            <h1 className="text-[26px] font-bold tracking-tight text-white leading-snug">
+              用 AI 创作你的下一个<br className="hidden sm:inline" />爆款视频
+            </h1>
+          </div>
+          <div className="flex gap-2.5 shrink-0">
+            <Link
+              href="/batches/new"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-zinc-200 transition-all hover:bg-white/[0.08] hover:border-white/15"
+            >
+              <Zap className="h-3.5 w-3.5" />
+              批量生成
+            </Link>
+            <Link
+              href="/projects/new"
+              className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500 shadow-lg shadow-violet-600/20"
+            >
+              开始创作
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* Stats — inline, not cards */}
-      <div className="flex flex-wrap gap-x-10 gap-y-4">
+      {/* Stats — glass cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Stat icon={Video} label="作品" value={totalProjects} />
         <Stat icon={TrendingUp} label="已发布" value={publishedCount} />
         <Stat icon={BarChart3} label="总播放" value={totalViews.toLocaleString()} />
@@ -94,8 +99,8 @@ export default async function DashboardPage() {
 
       {/* Running batches */}
       {runningBatches.length > 0 && (
-        <div className="rounded-xl bg-violet-500/10 p-5">
-          <div className="flex items-center justify-between mb-3">
+        <div className="rounded-2xl bg-violet-500/[0.06] border border-violet-500/10 p-5">
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-violet-400 font-medium">
               <Layers className="h-3.5 w-3.5" />
               执行中
@@ -111,13 +116,13 @@ export default async function DashboardPage() {
                 : 0;
               return (
                 <Link key={b.id} href={`/batches/${b.id}`}>
-                  <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-white/5 transition-colors">
+                  <div className="flex items-center justify-between rounded-xl px-4 py-3 hover:bg-white/[0.04] transition-colors">
                     <span className="text-sm font-medium text-zinc-100">{b.name}</span>
                     <div className="flex items-center gap-3">
-                      <div className="w-20 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-violet-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div className="w-24 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-xs text-violet-400 font-medium w-8 text-right">{pct}%</span>
+                      <span className="text-xs text-violet-400 font-mono font-medium w-8 text-right">{pct}%</span>
                     </div>
                   </div>
                 </Link>
@@ -130,33 +135,33 @@ export default async function DashboardPage() {
       {/* Recent works */}
       {recentProjects.length > 0 ? (
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-sm font-medium text-zinc-300">
               最近作品
             </p>
-            <Link href="/projects" className="text-xs text-zinc-400 hover:text-zinc-300 font-medium">
-              查看全部
+            <Link href="/projects" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+              查看全部 →
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {recentProjects.map((p) => (
               <Link key={p.id} href={`/projects/${p.id}`}>
-                <div className="group rounded-xl border border-white/5 bg-zinc-900/50 p-4 transition-all hover:border-zinc-800">
+                <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-200 hover:bg-white/[0.04] hover:border-white/10">
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <h3 className="text-sm font-medium text-zinc-100 truncate">
+                    <h3 className="text-[15px] font-semibold text-zinc-100 truncate">
                       {p.keyword}
                     </h3>
                     <StatusBadge status={p.status} />
                   </div>
-                  <p className="text-xs text-zinc-400 truncate mb-3">
+                  <p className="text-[13px] text-zinc-500 truncate mb-4 leading-relaxed">
                     {p.contentPlan?.caption || "尚未生成内容"}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] text-zinc-400">
+                    <span className="text-[11px] text-zinc-600">
                       {formatDate(p.updatedAt)}
                     </span>
-                    <span className="text-xs text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                      查看 →
+                    <span className="text-xs text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      打开 →
                     </span>
                   </div>
                 </div>
@@ -165,11 +170,14 @@ export default async function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-16">
+        <div className="text-center py-20 rounded-2xl border border-dashed border-white/[0.06]">
+          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10">
+            <Video className="h-6 w-6 text-violet-400" />
+          </div>
           <p className="text-zinc-400 text-sm mb-6">还没有作品，开始你的第一次创作</p>
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500 shadow-lg shadow-violet-600/20"
           >
             开始创作
             <ArrowRight className="h-3.5 w-3.5" />
@@ -190,12 +198,14 @@ function Stat({
   value: number | string;
 }) {
   return (
-    <div className="flex items-center gap-3">
-      <Icon className="h-4 w-4 text-zinc-400" />
-      <div>
-        <p className="text-2xl font-extralight tabular-nums text-white">{value}</p>
-        <p className="text-[11px] text-zinc-400">{label}</p>
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+      <div className="flex items-center gap-2.5 mb-2">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10">
+          <Icon className="h-3.5 w-3.5 text-violet-400" />
+        </div>
+        <span className="text-[11px] text-zinc-500 font-medium">{label}</span>
       </div>
+      <p className="text-2xl font-bold tabular-nums text-white tracking-tight">{value}</p>
     </div>
   );
 }

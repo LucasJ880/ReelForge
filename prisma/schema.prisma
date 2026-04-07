@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProjectStatus {
+  DRAFT
+  CONTENT_GENERATED
+  VIDEO_GENERATING
+  VIDEO_FAILED
+  VIDEO_READY
+  PUBLISHING
+  PUBLISH_FAILED
+  PUBLISHED
+  ANALYTICS_PENDING
+  ANALYTICS_FETCHED
+  ANALYZED
+}
+
+enum VideoJobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum PublishStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  keyword      String
+  status       ProjectStatus @default(DRAFT)
+  errorMessage String?
+  retryCount   Int           @default(0)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  contentPlan    ContentPlan?
+  videoJob       VideoJob?
+  publication    Publication?
+  analysisReport AnalysisReport?
+
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+model ContentPlan {
+  id            String   @id @default(cuid())
+  projectId     String   @unique
+  script        String
+  videoPrompt   String
+  caption       String
+  hashtags      String[]
+  contentAngles Json
+  modelUsed     String
+  tokenUsage    Json?
+  createdAt     DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model VideoJob {
+  id            String         @id @default(cuid())
+  projectId     String         @unique
+  provider      String         @default("jimeng")
+  providerJobId String?
+  status        VideoJobStatus @default(PENDING)
+  videoUrl      String?
+  thumbnailUrl  String?
+  errorMessage  String?
+  retryCount    Int            @default(0)
+  createdAt     DateTime       @default(now())
+  completedAt   DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model Publication {
+  id                   String        @id @default(cuid())
+  projectId            String        @unique
+  platform             String        @default("tiktok")
+  platformVideoId      String?
+  publishStatus        PublishStatus @default(PENDING)
+  publishedAt          DateTime?
+  errorMessage         String?
+  analyticsScheduledAt DateTime?
+
+  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshots AnalyticsSnapshot[]
+}
+
+model AnalyticsSnapshot {
+  id            String   @id @default(cuid())
+  publicationId String
+  views         Int      @default(0)
+  likes         Int      @default(0)
+  comments      Int      @default(0)
+  shares        Int      @default(0)
+  fetchedAt     DateTime @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId])
+}
+
+model AnalysisReport {
+  id                 String   @id @default(cuid())
+  projectId          String   @unique
+  performanceSummary String
+  directionAdvice    String
+  optimizationTips   String[]
+  overallScore       Int?
+  modelUsed          String
+  tokenUsage         Json?
+  createdAt          DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+model TikTokAccount {
+  id             String   @id @default(cuid())
+  openId         String   @unique
+  accessToken    String
+  refreshToken   String
+  tokenExpiresAt DateTime
+  displayName    String?
+  avatarUrl      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

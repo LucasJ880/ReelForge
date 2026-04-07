@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ProjectStatus, PublishStatus } from "@prisma/client";
-import { publishVideo } from "@/lib/providers/tiktok";
+import { publishVideo, isMockMode } from "@/lib/providers/tiktok";
+import { getActiveTikTokAccount } from "@/lib/providers/tiktok-auth";
 
 export async function publishToTikTok(projectId: string) {
   const project = await db.project.findUnique({
@@ -19,6 +20,18 @@ export async function publishToTikTok(projectId: string) {
     throw new Error(`当前状态 ${project.status} 不允许发布`);
   }
 
+  let accessToken = "mock_token";
+  let openId = "mock_open_id";
+
+  if (!isMockMode()) {
+    const account = await getActiveTikTokAccount();
+    if (!account) {
+      throw new Error("未绑定 TikTok 账号，请先在设置页绑定");
+    }
+    accessToken = account.accessToken;
+    openId = account.openId;
+  }
+
   await db.project.update({
     where: { id: projectId },
     data: { status: ProjectStatus.PUBLISHING, errorMessage: null },
@@ -35,8 +48,8 @@ export async function publishToTikTok(projectId: string) {
     const result = await publishVideo({
       videoUrl: project.videoJob.videoUrl,
       caption,
-      accessToken: "mock_token",
-      openId: "mock_open_id",
+      accessToken,
+      openId,
     });
 
     if (result.status === "failed") {
@@ -84,17 +97,12 @@ export async function publishToTikTok(projectId: string) {
 
     const newStatus =
       result.status === "published"
-        ? ProjectStatus.PUBLISHED
+        ? ProjectStatus.ANALYTICS_PENDING
         : ProjectStatus.PUBLISHING;
-
-    const updateData: Record<string, unknown> = { status: newStatus };
-    if (newStatus === ProjectStatus.PUBLISHED) {
-      updateData.status = ProjectStatus.ANALYTICS_PENDING;
-    }
 
     await db.project.update({
       where: { id: projectId },
-      data: updateData,
+      data: { status: newStatus },
     });
 
     return result;

@@ -1,10 +1,10 @@
 import { db } from "@/lib/db";
 import { ProjectStatus, PublishStatus } from "@prisma/client";
-import { fetchVideoMetrics } from "@/lib/providers/tiktok";
+import { fetchVideoMetrics, isMockMode } from "@/lib/providers/tiktok";
+import { getActiveTikTokAccount } from "@/lib/providers/tiktok-auth";
 
 /**
  * 拉取所有已发布项目的 TikTok 数据（幂等）
- * 由 Vercel Cron 定时调用
  */
 export async function fetchAllPendingAnalytics(batchSize = 10) {
   const publications = await db.publication.findMany({
@@ -64,9 +64,19 @@ async function fetchAnalyticsForPublication(publicationId: string) {
 
   if (!publication) throw new Error("发布记录不存在");
 
+  let accessToken = "mock_token";
+
+  if (!isMockMode()) {
+    const account = await getActiveTikTokAccount();
+    if (!account) {
+      throw new Error("未绑定 TikTok 账号，无法拉取数据");
+    }
+    accessToken = account.accessToken;
+  }
+
   const metrics = await fetchVideoMetrics(
     publication.platformVideoId || "",
-    "mock_token"
+    accessToken
   );
 
   const snapshot = await db.analyticsSnapshot.create({

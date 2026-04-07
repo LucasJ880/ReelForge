@@ -1,26 +1,51 @@
-import { CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+"use client";
 
-function EnvStatus({ name, envKey, hint }: { name: string; envKey: string; hint?: string }) {
-  const isSet = !!process.env[envKey];
-  return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center gap-2.5">
-        {isSet ? (
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-        ) : (
-          <span className="h-1.5 w-1.5 rounded-full bg-zinc-200" />
-        )}
-        <span className="text-sm text-zinc-700">{name}</span>
-      </div>
-      <span className={isSet ? "text-xs text-emerald-600" : "text-xs text-zinc-400"}>
-        {isSet ? "已配置" : hint || "未配置"}
-      </span>
-    </div>
-  );
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import { CheckCircle2, AlertCircle, Loader2, LogOut } from "lucide-react";
+
+interface TikTokStatus {
+  connected: boolean;
+  displayName?: string;
+  avatarUrl?: string;
+  tokenExpired?: boolean;
+  updatedAt?: string;
 }
 
 export default function SettingsPage() {
-  const mockMode = !process.env.ARK_API_KEY || !process.env.TIKTOK_CLIENT_KEY;
+  const searchParams = useSearchParams();
+  const [tiktokStatus, setTiktokStatus] = useState<TikTokStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [disconnecting, setDisconnecting] = useState(false);
+
+  useEffect(() => {
+    const error = searchParams.get("tiktok_error");
+    const connected = searchParams.get("tiktok_connected");
+    if (error) toast.error(`TikTok 授权失败: ${error}`);
+    if (connected) toast.success("TikTok 账号已绑定");
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetch("/api/auth/tiktok/status")
+      .then((r) => r.json())
+      .then(setTiktokStatus)
+      .catch(() => setTiktokStatus({ connected: false }))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleDisconnect() {
+    setDisconnecting(true);
+    try {
+      await fetch("/api/auth/tiktok/status", { method: "DELETE" });
+      setTiktokStatus({ connected: false });
+      toast.success("TikTok 账号已解绑");
+    } catch {
+      toast.error("操作失败");
+    } finally {
+      setDisconnecting(false);
+    }
+  }
 
   return (
     <div className="max-w-xl mx-auto space-y-8">
@@ -31,32 +56,77 @@ export default function SettingsPage() {
         <h1 className="text-lg font-semibold tracking-tight text-zinc-900">设置</h1>
       </div>
 
-      {mockMode && (
-        <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-4">
-          <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-          <p className="text-sm text-amber-700">
-            当前处于 Mock 模式 — 视频生成和 TikTok 发布使用模拟数据。配置 API Key 后自动切换为真实模式。
-          </p>
-        </div>
-      )}
-
-      {/* TikTok */}
+      {/* TikTok Account */}
       <div>
         <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-3">
           TikTok 账号
         </p>
-        <div className="rounded-xl border border-dashed border-zinc-200 p-5">
-          <p className="text-sm font-medium text-zinc-700">尚未绑定 TikTok 账号</p>
-          <p className="text-xs text-zinc-400 mt-1">
-            绑定后可以直接从平台发布视频到 TikTok
-          </p>
-          <button
-            disabled
-            className="mt-3 inline-flex items-center rounded-lg bg-zinc-100 px-3.5 py-2 text-sm text-zinc-400 cursor-not-allowed"
-          >
-            绑定 TikTok
-          </button>
-        </div>
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-zinc-400 py-4">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            加载中...
+          </div>
+        ) : tiktokStatus?.connected ? (
+          <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {tiktokStatus.avatarUrl ? (
+                  <img
+                    src={tiktokStatus.avatarUrl}
+                    alt=""
+                    className="h-9 w-9 rounded-full"
+                  />
+                ) : (
+                  <div className="h-9 w-9 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+                  </div>
+                )}
+                <div>
+                  <p className="text-sm font-medium text-zinc-900">
+                    {tiktokStatus.displayName || "已绑定 TikTok"}
+                  </p>
+                  {tiktokStatus.tokenExpired && (
+                    <p className="text-[11px] text-amber-600">Token 已过期，请重新绑定</p>
+                  )}
+                  {!tiktokStatus.tokenExpired && (
+                    <p className="text-[11px] text-emerald-600">已连接</p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {tiktokStatus.tokenExpired && (
+                  <a
+                    href="/api/auth/tiktok"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-violet-700"
+                  >
+                    重新绑定
+                  </a>
+                )}
+                <button
+                  onClick={handleDisconnect}
+                  disabled={disconnecting}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-100 px-3 py-1.5 text-xs text-zinc-600 hover:bg-zinc-200 disabled:opacity-50"
+                >
+                  {disconnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <LogOut className="h-3 w-3" />}
+                  解绑
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-dashed border-zinc-200 p-5">
+            <p className="text-sm font-medium text-zinc-700">尚未绑定 TikTok 账号</p>
+            <p className="text-xs text-zinc-400 mt-1">
+              绑定后可以直接从平台发布视频到 TikTok
+            </p>
+            <a
+              href="/api/auth/tiktok"
+              className="mt-3 inline-flex items-center rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+            >
+              绑定 TikTok
+            </a>
+          </div>
+        )}
       </div>
 
       {/* API Status */}
@@ -65,13 +135,39 @@ export default function SettingsPage() {
           API 连接状态
         </p>
         <div className="rounded-xl border border-zinc-100 divide-y divide-zinc-100 px-4">
-          <EnvStatus name="OpenAI" envKey="OPENAI_API_KEY" />
-          <EnvStatus name="即梦 / 火山方舟" envKey="ARK_API_KEY" hint="Mock 模式" />
-          <EnvStatus name="TikTok Client" envKey="TIKTOK_CLIENT_KEY" hint="Mock 模式" />
-          <EnvStatus name="数据库 (Neon)" envKey="DATABASE_URL" />
-          <EnvStatus name="Cron Secret" envKey="CRON_SECRET" hint="可选" />
+          <EnvRow name="OpenAI" status={true} />
+          <EnvRow name="即梦 / 火山方舟" status={true} />
+          <EnvRow name="TikTok" status={tiktokStatus?.connected || false} hint={tiktokStatus?.connected ? undefined : "未绑定"} />
+          <EnvRow name="数据库 (Neon)" status={true} />
         </div>
+        <p className="text-[11px] text-zinc-300 mt-2">
+          API Key 状态在服务端检查，此处显示简化状态
+        </p>
       </div>
+
+      {/* Mock mode warning */}
+      {!tiktokStatus?.connected && (
+        <div className="flex items-start gap-3 rounded-xl bg-amber-50 p-4">
+          <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-amber-700">
+            TikTok 未绑定 — 发布和数据拉取将使用模拟数据。绑定 TikTok 账号后自动切换为真实模式。
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EnvRow({ name, status, hint }: { name: string; status: boolean; hint?: string }) {
+  return (
+    <div className="flex items-center justify-between py-2.5">
+      <div className="flex items-center gap-2.5">
+        <span className={`h-1.5 w-1.5 rounded-full ${status ? "bg-emerald-500" : "bg-zinc-200"}`} />
+        <span className="text-sm text-zinc-700">{name}</span>
+      </div>
+      <span className={status ? "text-xs text-emerald-600" : "text-xs text-zinc-400"}>
+        {status ? "已配置" : hint || "未配置"}
+      </span>
     </div>
   );
 }

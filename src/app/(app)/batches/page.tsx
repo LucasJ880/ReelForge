@@ -24,7 +24,7 @@ export default async function BatchListPage() {
           <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-1">
             生产队列
           </p>
-          <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
+          <h1 className="text-lg font-semibold tracking-tight text-white">
             批量任务
           </h1>
         </div>
@@ -39,7 +39,7 @@ export default async function BatchListPage() {
 
       {batches.length === 0 ? (
         <div className="text-center py-20">
-          <Layers className="h-8 w-8 text-zinc-200 mx-auto mb-4" />
+          <Layers className="h-8 w-8 text-zinc-600 mx-auto mb-4" />
           <p className="text-zinc-400 text-sm mb-6">暂无批量任务</p>
           <Link
             href="/batches/new"
@@ -59,12 +59,12 @@ export default async function BatchListPage() {
 
             return (
               <Link key={batch.id} href={`/batches/${batch.id}`}>
-                <div className="group flex items-center justify-between rounded-xl border border-zinc-100 bg-white p-4 transition-all hover:border-zinc-200 hover:shadow-sm">
+                <div className="group flex items-center justify-between rounded-xl border border-white/5 bg-zinc-900/50 p-4 transition-all hover:border-zinc-800 hover:bg-white/5">
                   <div className="flex items-center gap-3 min-w-0">
                     <span className={`h-2 w-2 rounded-full shrink-0 ${s.dot}`} />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-zinc-900 truncate">
+                        <p className="text-sm font-medium text-white truncate">
                           {batch.name}
                         </p>
                         <span className="text-[11px] text-zinc-400">{s.label}</span>
@@ -77,14 +77,14 @@ export default async function BatchListPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
-                    <div className="w-20 h-1 bg-zinc-100 rounded-full overflow-hidden">
+                    <div className="w-20 h-1 bg-zinc-800 rounded-full overflow-hidden">
                       <div
                         className="h-full bg-violet-500 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>
                     <span className="text-[11px] text-zinc-400 w-8 text-right tabular-nums">{pct}%</span>
-                    <span className="text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
+                    <span className="text-xs text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity">→</span>
                   </div>
                 </div>
               </Link>

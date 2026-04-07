@@ -100,15 +100,15 @@ export const PROJECT_STATUS_LABELS: Record<string, string> = {
 };
 
 export const PROJECT_STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-zinc-100 text-zinc-600",
-  CONTENT_GENERATED: "bg-violet-50 text-violet-600",
-  VIDEO_GENERATING: "bg-amber-50 text-amber-600",
-  VIDEO_FAILED: "bg-red-50 text-red-600",
-  VIDEO_READY: "bg-emerald-50 text-emerald-600",
-  PUBLISHING: "bg-amber-50 text-amber-600",
-  PUBLISH_FAILED: "bg-red-50 text-red-600",
-  PUBLISHED: "bg-emerald-50 text-emerald-600",
-  ANALYTICS_PENDING: "bg-sky-50 text-sky-600",
-  ANALYTICS_FETCHED: "bg-sky-50 text-sky-600",
-  ANALYZED: "bg-violet-50 text-violet-600",
+  DRAFT: "bg-zinc-800/60 text-zinc-400",
+  CONTENT_GENERATED: "bg-violet-500/15 text-violet-400",
+  VIDEO_GENERATING: "bg-amber-500/15 text-amber-400",
+  VIDEO_FAILED: "bg-red-500/15 text-red-400",
+  VIDEO_READY: "bg-emerald-500/15 text-emerald-400",
+  PUBLISHING: "bg-amber-500/15 text-amber-400",
+  PUBLISH_FAILED: "bg-red-500/15 text-red-400",
+  PUBLISHED: "bg-emerald-500/15 text-emerald-400",
+  ANALYTICS_PENDING: "bg-sky-500/15 text-sky-400",
+  ANALYTICS_FETCHED: "bg-sky-500/15 text-sky-400",
+  ANALYZED: "bg-violet-500/15 text-violet-400",
 };

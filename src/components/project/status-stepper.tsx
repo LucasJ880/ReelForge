@@ -50,7 +50,7 @@ export function StatusStepper({ status }: { status: string }) {
                   done && "bg-emerald-500 text-white",
                   active && !activeLoading && "bg-violet-600 text-white",
                   activeLoading && "bg-amber-500 text-white",
-                  !done && !active && "bg-zinc-100 text-zinc-400"
+                  !done && !active && "bg-zinc-800 text-zinc-500"
                 )}
               >
                 {done ? (
@@ -64,7 +64,7 @@ export function StatusStepper({ status }: { status: string }) {
               <span
                 className={cn(
                   "text-[11px] hidden sm:inline",
-                  done ? "text-zinc-500" : active ? "text-zinc-900 font-medium" : "text-zinc-300"
+                  done ? "text-zinc-500" : active ? "text-zinc-100 font-medium" : "text-zinc-600"
                 )}
               >
                 {step.label}
@@ -74,7 +74,7 @@ export function StatusStepper({ status }: { status: string }) {
               <div
                 className={cn(
                   "h-px w-4 lg:w-6",
-                  i < currentStep ? "bg-emerald-400" : "bg-zinc-200"
+                  i < currentStep ? "bg-emerald-400" : "bg-zinc-700"
                 )}
               />
             )}

@@ -74,7 +74,7 @@ export default function NewBatchPage() {
         <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-2">
           批量生成
         </p>
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
+        <h1 className="text-xl font-semibold tracking-tight text-white">
           一次创建多个视频
         </h1>
         <p className="text-sm text-zinc-400 mt-1">
@@ -94,7 +94,7 @@ export default function NewBatchPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={loading}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
           />
         </div>
 
@@ -104,7 +104,7 @@ export default function NewBatchPage() {
             <label className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium">
               关键词列表
             </label>
-            <span className="text-[11px] text-zinc-300 tabular-nums">
+            <span className="text-[11px] text-zinc-500 tabular-nums">
               已识别 {keywords.length} 个
             </span>
           </div>
@@ -114,7 +114,7 @@ export default function NewBatchPage() {
             onChange={(e) => setKeywordsText(e.target.value)}
             disabled={loading}
             rows={8}
-            className="w-full rounded-lg border border-zinc-200 bg-white px-4 py-3 text-sm font-mono text-zinc-900 placeholder:text-zinc-300 focus:outline-none focus:border-violet-300 focus:ring-2 focus:ring-violet-100 transition-all resize-none"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all resize-none"
           />
         </div>
 
@@ -123,13 +123,13 @@ export default function NewBatchPage() {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors"
           >
             高级设置
             <ChevronDown className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
           </button>
           {!showAdvanced && (
-            <p className="text-[11px] text-zinc-300 mt-1">
+            <p className="text-[11px] text-zinc-500 mt-1">
               默认：5秒 · 9:16竖屏 · 720p · 并发2
             </p>
           )}
@@ -149,9 +149,9 @@ export default function NewBatchPage() {
                   id="autoVideo"
                   checked={autoVideo}
                   onChange={(e) => setAutoVideo(e.target.checked)}
-                  className="rounded border-zinc-300"
+                  className="rounded border-zinc-700 bg-zinc-900"
                 />
-                <label htmlFor="autoVideo" className="text-sm text-zinc-600">
+                <label htmlFor="autoVideo" className="text-sm text-zinc-400">
                   自动生成视频
                 </label>
               </div>
@@ -191,7 +191,7 @@ function FieldSelect({
         {label}
       </label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="text-sm border-zinc-200">
+        <SelectTrigger className="text-sm border-zinc-700 bg-zinc-900 text-zinc-100">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

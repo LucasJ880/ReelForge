@@ -63,7 +63,7 @@ export default function NewProjectPage() {
         <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-2">
           新作品
         </p>
-        <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
+        <h1 className="text-xl font-semibold tracking-tight text-white">
           输入关键词，开始创作
         </h1>
         <p className="text-sm text-zinc-400 mt-1">
@@ -72,7 +72,7 @@ export default function NewProjectPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-1 focus-within:border-violet-300 focus-within:ring-2 focus-within:ring-violet-100 transition-all">
+        <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-1 focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all">
           <input
             type="text"
             placeholder="描述你想创作的视频方向..."
@@ -80,7 +80,7 @@ export default function NewProjectPage() {
             onChange={(e) => setKeyword(e.target.value)}
             disabled={loading}
             autoFocus
-            className="w-full bg-transparent px-4 py-4 text-base text-zinc-900 placeholder:text-zinc-300 focus:outline-none disabled:opacity-50"
+            className="w-full bg-transparent px-4 py-4 text-base text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-50"
           />
           <div className="flex items-center justify-between px-3 pb-2">
             <div className="flex flex-wrap gap-1.5">
@@ -89,7 +89,7 @@ export default function NewProjectPage() {
                   key={s}
                   type="button"
                   onClick={() => setKeyword(s)}
-                  className="rounded-full bg-zinc-50 px-2.5 py-1 text-[11px] text-zinc-500 hover:bg-violet-50 hover:text-violet-600 transition-colors"
+                  className="rounded-full bg-zinc-800/50 px-2.5 py-1 text-[11px] text-zinc-400 hover:bg-violet-500/10 hover:text-violet-400 transition-colors"
                 >
                   {s}
                 </button>
@@ -116,7 +116,7 @@ export default function NewProjectPage() {
       </form>
 
       {step === "generating" && (
-        <div className="mt-6 flex items-center gap-3 text-sm text-violet-600">
+        <div className="mt-6 flex items-center gap-3 text-sm text-violet-400">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>
             AI 正在为「{keyword}」构思内容方案...

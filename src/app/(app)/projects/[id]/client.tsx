@@ -165,7 +165,7 @@ export function ProjectDetailClient({
         </div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
+            <h1 className="text-xl font-semibold tracking-tight text-white">
               {project.keyword}
             </h1>
             <p className="text-xs text-zinc-400 mt-1">
@@ -199,16 +199,16 @@ export function ProjectDetailClient({
 
       {/* Error */}
       {project.errorMessage && (
-        <div className="flex items-start gap-3 rounded-xl bg-red-50 p-4">
-          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
-          <p className="text-sm text-red-600">{project.errorMessage}</p>
+        <div className="flex items-start gap-3 rounded-xl bg-red-500/10 p-4">
+          <AlertCircle className="h-4 w-4 text-red-400 mt-0.5 shrink-0" />
+          <p className="text-sm text-red-400">{project.errorMessage}</p>
         </div>
       )}
 
       {/* DRAFT empty state */}
       {project.status === "DRAFT" && !cp && (
         <div className="text-center py-16">
-          <Sparkles className="h-8 w-8 text-zinc-200 mx-auto mb-4" />
+          <Sparkles className="h-8 w-8 text-zinc-500 mx-auto mb-4" />
           <p className="text-sm text-zinc-400">
             点击「生成内容」，AI 将为「{project.keyword}」创建完整的内容方案
           </p>
@@ -217,14 +217,14 @@ export function ProjectDetailClient({
 
       {/* Video generating */}
       {isVideoGenerating && (
-        <div className="rounded-xl bg-amber-50 p-5">
+        <div className="rounded-xl bg-amber-500/10 p-5">
           <div className="flex items-center gap-2 mb-3">
-            <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
-            <span className="text-sm font-medium text-amber-700">
+            <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+            <span className="text-sm font-medium text-amber-400">
               视频生成中 {videoProgress > 0 ? `${videoProgress}%` : ""}
             </span>
           </div>
-          <div className="h-1 w-full bg-amber-200 rounded-full overflow-hidden">
+          <div className="h-1 w-full bg-amber-500/20 rounded-full overflow-hidden">
             <div
               className="h-full bg-amber-500 rounded-full transition-all duration-500"
               style={{ width: `${videoProgress}%` }}
@@ -235,21 +235,21 @@ export function ProjectDetailClient({
 
       {/* Video failed */}
       {project.status === "VIDEO_FAILED" && vj && (
-        <div className="rounded-xl border border-red-100 p-5">
+        <div className="rounded-xl border border-zinc-800 p-5">
           <div className="flex items-center gap-2 mb-2">
-            <AlertCircle className="h-4 w-4 text-red-500" />
-            <span className="text-sm font-medium text-red-600">视频生成失败</span>
+            <AlertCircle className="h-4 w-4 text-red-400" />
+            <span className="text-sm font-medium text-red-400">视频生成失败</span>
           </div>
-          <p className="text-xs text-red-500 mb-1">{vj.errorMessage || "未知错误"}</p>
+          <p className="text-xs text-red-400 mb-1">{vj.errorMessage || "未知错误"}</p>
           <p className="text-[11px] text-zinc-400">已重试 {vj.retryCount} 次</p>
         </div>
       )}
 
       {/* Publishing */}
       {project.status === "PUBLISHING" && (
-        <div className="flex items-center gap-3 rounded-xl bg-violet-50 p-5">
-          <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
-          <span className="text-sm text-violet-600">正在发布到 TikTok...</span>
+        <div className="flex items-center gap-3 rounded-xl bg-violet-500/10 p-5">
+          <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
+          <span className="text-sm text-violet-400">正在发布到 TikTok...</span>
         </div>
       )}
 
@@ -262,7 +262,7 @@ export function ProjectDetailClient({
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
                 视频预览
               </p>
-              <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-lg">
+              <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
                 <div className="aspect-[9/16]">
                   <video
                     src={vj.videoUrl}
@@ -289,17 +289,17 @@ export function ProjectDetailClient({
               {canEdit && (
                 <div className="flex justify-end">
                   {!editing ? (
-                    <button onClick={startEditing} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
+                    <button onClick={startEditing} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors">
                       <Pencil className="h-3 w-3" />
                       编辑
                     </button>
                   ) : (
                     <div className="flex gap-2">
-                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-700 disabled:opacity-50">
+                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 disabled:opacity-50">
                         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                         保存
                       </button>
-                      <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50">
+                      <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 disabled:opacity-50">
                         <X className="h-3 w-3" />
                         取消
                       </button>
@@ -315,10 +315,10 @@ export function ProjectDetailClient({
                     value={editData.script}
                     onChange={(e) => setEditData((d) => ({ ...d, script: e.target.value }))}
                     rows={6}
-                    className="text-sm border-zinc-200 focus:border-violet-300 focus:ring-violet-100"
+                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-violet-500 focus:ring-violet-500/20"
                   />
                 ) : (
-                  <p className="text-sm leading-relaxed text-zinc-600 whitespace-pre-wrap">{cp.script}</p>
+                  <p className="text-sm leading-relaxed text-zinc-400 whitespace-pre-wrap">{cp.script}</p>
                 )}
               </ContentSection>
 
@@ -328,10 +328,10 @@ export function ProjectDetailClient({
                   <Input
                     value={editData.caption}
                     onChange={(e) => setEditData((d) => ({ ...d, caption: e.target.value }))}
-                    className="text-sm border-zinc-200 focus:border-violet-300 focus:ring-violet-100"
+                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-violet-500 focus:ring-violet-500/20"
                   />
                 ) : (
-                  <p className="text-sm text-zinc-700">{cp.caption}</p>
+                  <p className="text-sm text-zinc-100">{cp.caption}</p>
                 )}
               </ContentSection>
 
@@ -339,7 +339,7 @@ export function ProjectDetailClient({
               <ContentSection label="Hashtags">
                 <div className="flex flex-wrap gap-1.5">
                   {cp.hashtags.map((tag, i) => (
-                    <span key={i} className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] text-zinc-600">
+                    <span key={i} className="rounded-full bg-zinc-800/50 px-2.5 py-0.5 text-[11px] text-zinc-400">
                       {tag.startsWith("#") ? tag : `#${tag}`}
                     </span>
                   ))}
@@ -353,10 +353,10 @@ export function ProjectDetailClient({
                     value={editData.videoPrompt}
                     onChange={(e) => setEditData((d) => ({ ...d, videoPrompt: e.target.value }))}
                     rows={3}
-                    className="text-sm border-zinc-200 focus:border-violet-300 focus:ring-violet-100"
+                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-violet-500 focus:ring-violet-500/20"
                   />
                 ) : (
-                  <p className="text-sm text-zinc-500 italic">{cp.videoPrompt}</p>
+                  <p className="text-sm text-zinc-400 italic">{cp.videoPrompt}</p>
                 )}
               </ContentSection>
 
@@ -366,7 +366,7 @@ export function ProjectDetailClient({
                   <div className="space-y-3">
                     {angles.map((a, i) => (
                       <div key={i}>
-                        <p className="text-sm font-medium text-zinc-700">{a.angle}</p>
+                        <p className="text-sm font-medium text-zinc-100">{a.angle}</p>
                         <p className="text-xs text-zinc-400 mt-0.5">{a.reason}</p>
                       </div>
                     ))}
@@ -386,12 +386,12 @@ export function ProjectDetailClient({
 
       {/* Published stats */}
       {project.publication?.publishStatus === "PUBLISHED" && (
-        <div className="rounded-xl bg-emerald-50 p-5">
+        <div className="rounded-xl bg-emerald-500/10 p-5">
           <div className="flex items-center gap-2 mb-4">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-            <span className="text-sm font-medium text-emerald-700">已发布到 TikTok</span>
+            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <span className="text-sm font-medium text-emerald-400">已发布到 TikTok</span>
           </div>
-          <div className="flex items-center gap-4 text-xs text-emerald-600 mb-4">
+          <div className="flex items-center gap-4 text-xs text-emerald-400 mb-4">
             <span>ID: {project.publication.platformVideoId || "N/A"}</span>
             {project.publication.publishedAt && (
               <span>{formatDate(project.publication.publishedAt)}</span>
@@ -406,10 +406,10 @@ export function ProjectDetailClient({
                 { label: "分享", value: project.publication.snapshots[0].shares },
               ].map((m) => (
                 <div key={m.label}>
-                  <p className="text-xl font-extralight tabular-nums text-emerald-800">
+                  <p className="text-xl font-extralight tabular-nums text-emerald-300">
                     {m.value.toLocaleString()}
                   </p>
-                  <p className="text-[11px] text-emerald-500">{m.label}</p>
+                  <p className="text-[11px] text-emerald-400">{m.label}</p>
                 </div>
               ))}
             </div>
@@ -426,7 +426,7 @@ export function ProjectDetailClient({
             </p>
             {project.analysisReport.overallScore !== null && (
               <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-extralight tabular-nums text-zinc-900">
+                <span className="text-2xl font-extralight tabular-nums text-white">
                   {project.analysisReport.overallScore}
                 </span>
                 <span className="text-xs text-zinc-300">/ 100</span>
@@ -442,7 +442,7 @@ export function ProjectDetailClient({
               </p>
               <ul className="space-y-2">
                 {project.analysisReport.optimizationTips.map((tip, i) => (
-                  <li key={i} className="flex gap-2.5 text-sm text-zinc-600">
+                  <li key={i} className="flex gap-2.5 text-sm text-zinc-400">
                     <span className="text-zinc-300 shrink-0 tabular-nums text-xs mt-0.5">{i + 1}.</span>
                     {tip}
                   </li>
@@ -473,7 +473,7 @@ function AnalysisBlock({ label, content }: { label: string; content: string }) {
       <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-1.5">
         {label}
       </p>
-      <p className="text-sm leading-relaxed text-zinc-600">{content}</p>
+      <p className="text-sm leading-relaxed text-zinc-400">{content}</p>
     </div>
   );
 }
@@ -493,8 +493,8 @@ function ActionButtons({
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
   const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
-  const secondary = `${btn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`;
-  const ghost = `${btn} text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100`;
+  const secondary = `${btn} bg-zinc-800/50 text-zinc-100 hover:bg-white/5`;
+  const ghost = `${btn} text-zinc-400 hover:text-zinc-300 hover:bg-white/5`;
   const destructive = `${btn} bg-red-600 text-white hover:bg-red-700`;
 
   return (
@@ -536,7 +536,7 @@ function ActionButtons({
         </button>
       )}
       {!confirmDelete ? (
-        <button className={`${ghost} text-red-400 hover:text-red-600 hover:bg-red-50`} onClick={() => onConfirmDelete(true)}>
+        <button className={`${ghost} text-red-400 hover:text-red-300 hover:bg-red-500/10`} onClick={() => onConfirmDelete(true)}>
           <Trash2 className="h-3.5 w-3.5" />
         </button>
       ) : (

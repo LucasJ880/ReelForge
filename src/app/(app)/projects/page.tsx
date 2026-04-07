@@ -20,7 +20,7 @@ export default async function ProjectsPage() {
           <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-1">
             作品库
           </p>
-          <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
+          <h1 className="text-lg font-semibold tracking-tight text-white">
             全部项目
           </h1>
         </div>
@@ -48,9 +48,9 @@ export default async function ProjectsPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
             <Link key={p.id} href={`/projects/${p.id}`}>
-              <div className="group rounded-xl border border-zinc-100 bg-white p-4 transition-all hover:border-zinc-200 hover:shadow-sm">
+              <div className="group rounded-xl border border-white/5 bg-zinc-900/50 p-4 transition-all hover:border-zinc-800 hover:shadow-none">
                 <div className="flex items-start justify-between gap-2 mb-3">
-                  <h3 className="text-sm font-medium text-zinc-900 truncate">
+                  <h3 className="text-sm font-medium text-white truncate">
                     {p.keyword}
                   </h3>
                   <StatusBadge status={p.status} />

@@ -12,7 +12,9 @@ import {
   Zap,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const mainNav = [
@@ -100,7 +102,7 @@ export function AppSidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/5">
+        <div className="px-5 py-4 border-t border-white/5 space-y-1">
           <Link
             href="/settings"
             onClick={() => setMobileOpen(false)}
@@ -114,6 +116,13 @@ export function AppSidebar() {
             <Settings className="h-4 w-4" />
             设置
           </Link>
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-[13px] text-zinc-500 hover:text-zinc-300 transition-all duration-150"
+          >
+            <LogOut className="h-4 w-4" />
+            退出登录
+          </button>
         </div>
       </>
     );

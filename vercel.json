@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/fetch-analytics",
-      "schedule": "0 */1 * * *"
+      "schedule": "0 12 * * *"
     }
   ]
 }

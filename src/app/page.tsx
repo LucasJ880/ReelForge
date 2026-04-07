@@ -1,20 +1,12 @@
 import Link from "next/link";
 import {
-  FolderPlus,
-  TrendingUp,
-  Video,
-  BarChart3,
-  ChevronRight,
-  Layers,
+  ArrowRight,
   Zap,
+  Video,
+  TrendingUp,
+  BarChart3,
+  Layers,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/project/status-badge";
 import { db } from "@/lib/db";
 import { BatchStatus, ProjectStatus } from "@prisma/client";
@@ -39,8 +31,11 @@ export default async function DashboardPage() {
       db.project.count({ where: { status: ProjectStatus.ANALYZED } }),
       db.project.findMany({
         orderBy: { updatedAt: "desc" },
-        take: 5,
-        include: { contentPlan: { select: { caption: true } } },
+        take: 6,
+        include: {
+          contentPlan: { select: { caption: true } },
+          videoJob: { select: { status: true, videoUrl: true } },
+        },
       }),
       db.batch.findMany({
         where: { status: BatchStatus.RUNNING },
@@ -60,175 +55,147 @@ export default async function DashboardPage() {
   const totalViews = Number(latestSnapshots[0]?.total ?? 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-10">
+      {/* Hero */}
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-2xl font-bold">欢迎使用 ReelForge</h2>
-          <p className="text-gray-500 mt-1">
-            AI 驱动的 TikTok 短视频自动化平台
+          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-2">
+            创作工作台
           </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+            用 AI 创作你的下一个爆款视频
+          </h1>
         </div>
         <div className="flex gap-2">
-          <Link href="/batches/new">
-            <Button variant="outline">
-              <Zap className="mr-2 h-4 w-4" />
-              批量生成
-            </Button>
+          <Link
+            href="/batches/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-zinc-100 px-4 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-200"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            批量生成
           </Link>
-          <Link href="/projects/new">
-            <Button>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              新建项目
-            </Button>
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+          >
+            开始创作
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              总项目数
-            </CardTitle>
-            <Video className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalProjects}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              已发布
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{publishedCount}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              总播放量
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {totalViews.toLocaleString()}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              分析完成
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analyzedCount}</div>
-          </CardContent>
-        </Card>
+      {/* Stats — inline, not cards */}
+      <div className="flex flex-wrap gap-x-10 gap-y-4">
+        <Stat icon={Video} label="作品" value={totalProjects} />
+        <Stat icon={TrendingUp} label="已发布" value={publishedCount} />
+        <Stat icon={BarChart3} label="总播放" value={totalViews.toLocaleString()} />
+        <Stat icon={BarChart3} label="已分析" value={analyzedCount} />
       </div>
 
+      {/* Running batches */}
       {runningBatches.length > 0 && (
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-blue-700 flex items-center gap-2">
-              <Layers className="h-4 w-4" />
-              正在执行的批次
-            </CardTitle>
-            <Link href="/batches" className="text-xs text-blue-600 hover:underline">
-              查看全部
+        <div className="rounded-xl bg-violet-50/60 p-5">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-violet-600 font-medium">
+              <Layers className="h-3.5 w-3.5" />
+              执行中
+            </div>
+            <Link href="/batches" className="text-xs text-violet-600 hover:text-violet-700 font-medium">
+              全部批次
             </Link>
-          </CardHeader>
-          <CardContent className="space-y-2">
+          </div>
+          <div className="space-y-2">
             {runningBatches.map((b) => {
-              const progress = b.totalCount > 0
+              const pct = b.totalCount > 0
                 ? Math.round(((b.completedCount + b.failedCount) / b.totalCount) * 100)
                 : 0;
               return (
                 <Link key={b.id} href={`/batches/${b.id}`}>
-                  <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-blue-100/50 transition-colors">
-                    <span className="text-sm font-medium text-blue-900">{b.name}</span>
-                    <div className="flex items-center gap-2">
-                      <div className="w-16 h-1.5 bg-blue-200 rounded-full overflow-hidden">
-                        <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%` }} />
+                  <div className="flex items-center justify-between rounded-lg px-3 py-2 hover:bg-violet-100/60 transition-colors">
+                    <span className="text-sm font-medium text-zinc-800">{b.name}</span>
+                    <div className="flex items-center gap-3">
+                      <div className="w-20 h-1 bg-violet-200 rounded-full overflow-hidden">
+                        <div className="h-full bg-violet-600 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-xs text-blue-600">{progress}%</span>
+                      <span className="text-xs text-violet-600 font-medium w-8 text-right">{pct}%</span>
                     </div>
                   </div>
                 </Link>
               );
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
+      {/* Recent works */}
       {recentProjects.length > 0 ? (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>最近项目</CardTitle>
-            <Link
-              href="/projects"
-              className="text-sm text-gray-500 hover:text-gray-900"
-            >
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+              最近作品
+            </p>
+            <Link href="/projects" className="text-xs text-zinc-400 hover:text-zinc-600 font-medium">
               查看全部
             </Link>
-          </CardHeader>
-          <CardContent className="space-y-2">
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {recentProjects.map((p) => (
               <Link key={p.id} href={`/projects/${p.id}`}>
-                <div className="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-gray-50 transition-colors -mx-1">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">
-                        {p.keyword}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate">
-                        {p.contentPlan?.caption || "尚未生成内容"} ·{" "}
-                        {formatDate(p.updatedAt)}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                <div className="group rounded-xl border border-zinc-100 bg-white p-4 transition-all hover:border-zinc-200 hover:shadow-sm">
+                  <div className="flex items-start justify-between gap-2 mb-3">
+                    <h3 className="text-sm font-medium text-zinc-900 truncate">
+                      {p.keyword}
+                    </h3>
                     <StatusBadge status={p.status} />
-                    <ChevronRight className="h-4 w-4 text-gray-300" />
+                  </div>
+                  <p className="text-xs text-zinc-400 truncate mb-3">
+                    {p.contentPlan?.caption || "尚未生成内容"}
+                  </p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] text-zinc-300">
+                      {formatDate(p.updatedAt)}
+                    </span>
+                    <span className="text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                      查看 →
+                    </span>
                   </div>
                 </div>
               </Link>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>快速开始</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 text-sm text-gray-600">
-              {[
-                { n: 1, title: "输入关键词", desc: "输入中文关键词或产品方向，AI 自动生成内容方案" },
-                { n: 2, title: "生成视频", desc: "确认内容后，AI 自动生成短视频" },
-                { n: 3, title: "一键发布", desc: "预览确认后，直接发布到 TikTok" },
-                { n: 4, title: "数据分析", desc: "发布后自动追踪数据，AI 给出优化建议" },
-              ].map((s) => (
-                <div key={s.n} className="flex items-start gap-3">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-black text-white text-xs font-bold">
-                    {s.n}
-                  </span>
-                  <div>
-                    <p className="font-medium text-gray-900">{s.title}</p>
-                    <p>{s.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="text-center py-16">
+          <p className="text-zinc-300 text-sm mb-6">还没有作品，开始你的第一次创作</p>
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+          >
+            开始创作
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
       )}
+    </div>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <Icon className="h-4 w-4 text-zinc-300" />
+      <div>
+        <p className="text-2xl font-extralight tabular-nums text-zinc-900">{value}</p>
+        <p className="text-[11px] text-zinc-400">{label}</p>
+      </div>
     </div>
   );
 }

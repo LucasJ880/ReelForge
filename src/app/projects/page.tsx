@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { FolderPlus, Inbox, ChevronRight } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ArrowRight, FolderPlus } from "lucide-react";
 import { StatusBadge } from "@/components/project/status-badge";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
@@ -11,79 +9,68 @@ export default async function ProjectsPage() {
     orderBy: { createdAt: "desc" },
     include: {
       contentPlan: { select: { caption: true } },
+      videoJob: { select: { status: true, videoUrl: true } },
     },
   });
 
-  if (projects.length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">项目列表</h2>
-          <Link href="/projects/new">
-            <Button>
-              <FolderPlus className="mr-2 h-4 w-4" />
-              新建项目
-            </Button>
-          </Link>
-        </div>
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-16">
-            <Inbox className="h-12 w-12 text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-1">
-              还没有项目
-            </h3>
-            <p className="text-sm text-gray-500 mb-4">
-              创建你的第一个 TikTok 短视频项目
-            </p>
-            <Link href="/projects/new">
-              <Button>
-                <FolderPlus className="mr-2 h-4 w-4" />
-                新建项目
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">项目列表</h2>
-        <Link href="/projects/new">
-          <Button>
-            <FolderPlus className="mr-2 h-4 w-4" />
-            新建项目
-          </Button>
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-1">
+            作品库
+          </p>
+          <h1 className="text-lg font-semibold tracking-tight text-zinc-900">
+            全部项目
+          </h1>
+        </div>
+        <Link
+          href="/projects/new"
+          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+        >
+          <FolderPlus className="h-3.5 w-3.5" />
+          新建
         </Link>
       </div>
 
-      <div className="space-y-3">
-        {projects.map((p) => (
-          <Link key={p.id} href={`/projects/${p.id}`}>
-            <Card className="hover:bg-gray-50 transition-colors cursor-pointer">
-              <CardContent className="flex items-center justify-between py-4">
-                <div className="flex items-center gap-4 min-w-0">
-                  <div className="min-w-0">
-                    <p className="font-medium truncate">{p.keyword}</p>
-                    <p className="text-xs text-gray-500 truncate">
-                      {p.contentPlan?.caption || "尚未生成内容"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 shrink-0">
+      {projects.length === 0 ? (
+        <div className="text-center py-20">
+          <p className="text-zinc-300 text-sm mb-6">还没有作品</p>
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+          >
+            开始创作
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map((p) => (
+            <Link key={p.id} href={`/projects/${p.id}`}>
+              <div className="group rounded-xl border border-zinc-100 bg-white p-4 transition-all hover:border-zinc-200 hover:shadow-sm">
+                <div className="flex items-start justify-between gap-2 mb-3">
+                  <h3 className="text-sm font-medium text-zinc-900 truncate">
+                    {p.keyword}
+                  </h3>
                   <StatusBadge status={p.status} />
-                  <span className="text-xs text-gray-400 hidden sm:inline">
+                </div>
+                <p className="text-xs text-zinc-400 truncate mb-4">
+                  {p.contentPlan?.caption || "尚未生成内容"}
+                </p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-zinc-300">
                     {formatDate(p.createdAt)}
                   </span>
-                  <ChevronRight className="h-4 w-4 text-gray-400" />
+                  <span className="text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity">
+                    查看 →
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

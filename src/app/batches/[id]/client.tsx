@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -12,21 +11,10 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
-  Video,
-  FileText,
   ExternalLink,
-  Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface BatchProject {
   id: string;
@@ -54,14 +42,6 @@ interface BatchData {
   projects: BatchProject[];
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "等待中", color: "bg-gray-100 text-gray-700" },
-  RUNNING: { label: "执行中", color: "bg-blue-100 text-blue-700" },
-  PAUSED: { label: "已暂停", color: "bg-yellow-100 text-yellow-700" },
-  COMPLETED: { label: "已完成", color: "bg-green-100 text-green-700" },
-  FAILED: { label: "失败", color: "bg-red-100 text-red-700" },
-};
-
 const projectStatusLabels: Record<string, string> = {
   DRAFT: "待处理",
   CONTENT_GENERATED: "内容已生成",
@@ -74,17 +54,14 @@ const projectStatusLabels: Record<string, string> = {
 };
 
 export function BatchDetailClient({ initial }: { initial: BatchData }) {
-  const router = useRouter();
   const [batch, setBatch] = useState(initial);
   const isRunning = batch.status === "RUNNING";
 
   const refresh = useCallback(async () => {
     try {
       const res = await fetch(`/api/batches/${batch.id}`);
-      if (res.ok) {
-        setBatch(await res.json());
-      }
-    } catch {}
+      if (res.ok) setBatch(await res.json());
+    } catch { /* silent */ }
   }, [batch.id]);
 
   useEffect(() => {
@@ -93,20 +70,12 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
     return () => clearInterval(timer);
   }, [isRunning, refresh]);
 
-  const progress =
-    batch.totalCount > 0
-      ? Math.round(
-          ((batch.completedCount + batch.failedCount) / batch.totalCount) * 100
-        )
-      : 0;
+  const pct = batch.totalCount > 0
+    ? Math.round(((batch.completedCount + batch.failedCount) / batch.totalCount) * 100)
+    : 0;
 
-  const videoReadyCount = batch.projects.filter(
-    (p) => p.videoJob?.status === "COMPLETED"
-  ).length;
-
-  const contentDoneCount = batch.projects.filter(
-    (p) => p.contentPlan !== null
-  ).length;
+  const videoReadyCount = batch.projects.filter((p) => p.videoJob?.status === "COMPLETED").length;
+  const contentDoneCount = batch.projects.filter((p) => p.contentPlan !== null).length;
 
   async function handleAction(action: string) {
     try {
@@ -115,204 +84,181 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "操作失败");
-      }
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "操作失败"); }
       toast.success(action === "pause" ? "批次已暂停" : "批次已启动");
       setTimeout(refresh, 1000);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "操作失败");
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "操作失败"); }
   }
 
-  const batchStatus = statusConfig[batch.status] || statusConfig.PENDING;
+  const statusDot: Record<string, string> = {
+    PENDING: "bg-zinc-300",
+    RUNNING: "bg-violet-500 animate-pulse",
+    PAUSED: "bg-amber-400",
+    COMPLETED: "bg-emerald-500",
+    FAILED: "bg-red-500",
+  };
+
+  const statusLabel: Record<string, string> = {
+    PENDING: "等待中",
+    RUNNING: "执行中",
+    PAUSED: "已暂停",
+    COMPLETED: "已完成",
+    FAILED: "失败",
+  };
+
+  const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors";
+  const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
+  const secondary = `${btn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold">{batch.name}</h2>
-            <Badge className={batchStatus.color}>{batchStatus.label}</Badge>
+          <div className="flex items-center gap-2 mb-1">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+              批次详情
+            </p>
+            <span className={cn("h-2 w-2 rounded-full", statusDot[batch.status] || "bg-zinc-300")} />
+            <span className="text-[11px] text-zinc-400">{statusLabel[batch.status] || batch.status}</span>
           </div>
-          <p className="text-sm text-gray-500 mt-1">
-            创建于 {formatDate(batch.createdAt)}
+          <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
+            {batch.name}
+          </h1>
+          <p className="text-xs text-zinc-400 mt-1">
+            {formatDate(batch.createdAt)}
             {batch.completedAt && ` · 完成于 ${formatDate(batch.completedAt)}`}
           </p>
         </div>
         <div className="flex gap-2">
           {isRunning && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleAction("pause")}
-            >
-              <Pause className="mr-1.5 h-3.5 w-3.5" />
+            <button className={secondary} onClick={() => handleAction("pause")}>
+              <Pause className="h-3.5 w-3.5" />
               暂停
-            </Button>
+            </button>
           )}
           {(batch.status === "PAUSED" || batch.status === "PENDING") && (
-            <Button size="sm" onClick={() => handleAction("resume")}>
-              <Play className="mr-1.5 h-3.5 w-3.5" />
+            <button className={primary} onClick={() => handleAction("resume")}>
+              <Play className="h-3.5 w-3.5" />
               {batch.status === "PAUSED" ? "继续" : "启动"}
-            </Button>
+            </button>
           )}
           {batch.status === "COMPLETED" && batch.failedCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleAction("retry")}
-            >
-              <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+            <button className={secondary} onClick={() => handleAction("retry")}>
+              <RotateCcw className="h-3.5 w-3.5" />
               重试失败项 ({batch.failedCount})
-            </Button>
+            </button>
           )}
         </div>
       </div>
 
-      {/* Progress Overview */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">
-                总进度: {batch.completedCount + batch.failedCount} / {batch.totalCount}
-              </span>
-              <span className="font-medium">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-3" />
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-              <div>
-                <div className="text-2xl font-bold">{batch.totalCount}</div>
-                <div className="text-xs text-gray-500">总数</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {contentDoneCount}
-                </div>
-                <div className="text-xs text-gray-500">内容已生成</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-green-600">
-                  {videoReadyCount}
-                </div>
-                <div className="text-xs text-gray-500">视频就绪</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-red-600">
-                  {batch.failedCount}
-                </div>
-                <div className="text-xs text-gray-500">失败</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Batch config summary */}
-      <div className="flex flex-wrap gap-2 text-xs">
-        <Badge variant="outline">
-          并发: {batch.concurrency}
-        </Badge>
-        {batch.videoParams && (
-          <>
-            <Badge variant="outline">
-              {(batch.videoParams as { duration?: number }).duration || 5}s
-            </Badge>
-            <Badge variant="outline">
-              {(batch.videoParams as { ratio?: string }).ratio || "9:16"}
-            </Badge>
-            <Badge variant="outline">
-              {(batch.videoParams as { resolution?: string }).resolution || "720p"}
-            </Badge>
-          </>
-        )}
-        <Badge variant="outline">
-          {batch.autoGenerateVideo ? "内容+视频" : "仅内容"}
-        </Badge>
+      {/* Progress */}
+      <div>
+        <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+          <span>{batch.completedCount + batch.failedCount} / {batch.totalCount}</span>
+          <span className="font-medium tabular-nums">{pct}%</span>
+        </div>
+        <div className="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-violet-500 rounded-full transition-all duration-500"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
       </div>
 
-      {/* Project List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">项目列表</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      {/* Stats */}
+      <div className="flex flex-wrap gap-x-10 gap-y-3">
+        <StatInline label="总数" value={batch.totalCount} />
+        <StatInline label="内容完成" value={contentDoneCount} color="text-violet-600" />
+        <StatInline label="视频就绪" value={videoReadyCount} color="text-emerald-600" />
+        {batch.failedCount > 0 && <StatInline label="失败" value={batch.failedCount} color="text-red-500" />}
+      </div>
+
+      {/* Config tags */}
+      <div className="flex flex-wrap gap-1.5">
+        {[
+          `并发 ${batch.concurrency}`,
+          batch.videoParams && `${(batch.videoParams as { duration?: number }).duration || 5}s`,
+          batch.videoParams && `${(batch.videoParams as { ratio?: string }).ratio || "9:16"}`,
+          batch.videoParams && `${(batch.videoParams as { resolution?: string }).resolution || "720p"}`,
+          batch.autoGenerateVideo ? "内容+视频" : "仅内容",
+        ].filter(Boolean).map((tag, i) => (
+          <span key={i} className="rounded-full bg-zinc-50 px-2.5 py-0.5 text-[11px] text-zinc-400">
+            {tag}
+          </span>
+        ))}
+      </div>
+
+      {/* Project list */}
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
+          项目列表
+        </p>
+        <div className="space-y-1">
           {batch.projects.map((p) => (
             <ProjectRow key={p.id} project={p} />
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ProjectRow({ project }: { project: BatchProject }) {
-  const statusLabel = projectStatusLabels[project.status] || project.status;
-  const isProcessing = ["VIDEO_GENERATING", "PUBLISHING"].includes(
-    project.status
+function StatInline({
+  label,
+  value,
+  color,
+}: {
+  label: string;
+  value: number;
+  color?: string;
+}) {
+  return (
+    <div>
+      <p className={cn("text-2xl font-extralight tabular-nums", color || "text-zinc-900")}>{value}</p>
+      <p className="text-[11px] text-zinc-400">{label}</p>
+    </div>
   );
+}
+
+function ProjectRow({ project }: { project: { id: string; keyword: string; status: string; errorMessage: string | null; contentPlan: { caption: string } | null; videoJob: { status: string } | null } }) {
+  const statusLabel = projectStatusLabels[project.status] || project.status;
+  const isProcessing = ["VIDEO_GENERATING", "PUBLISHING"].includes(project.status);
   const isFailed = project.status.includes("FAILED");
-  const isDone =
-    project.videoJob?.status === "COMPLETED" ||
-    project.status === "VIDEO_READY" ||
-    project.status === "PUBLISHED";
+  const isDone = project.videoJob?.status === "COMPLETED" || project.status === "VIDEO_READY" || project.status === "PUBLISHED";
 
   return (
-    <div className="flex items-center justify-between rounded-lg border px-4 py-3 hover:bg-gray-50 transition-colors">
-      <div className="flex items-center gap-3 min-w-0">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full shrink-0">
-          {isDone ? (
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-          ) : isFailed ? (
-            <XCircle className="h-4 w-4 text-red-500" />
-          ) : isProcessing ? (
-            <Loader2 className="h-4 w-4 text-blue-500 animate-spin" />
-          ) : (
-            <Clock className="h-4 w-4 text-gray-300" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <p className="text-sm font-medium truncate">{project.keyword}</p>
-          <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
-            {project.contentPlan && (
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {project.contentPlan.caption.slice(0, 30)}
-                {project.contentPlan.caption.length > 30 ? "..." : ""}
-              </span>
+    <Link href={`/projects/${project.id}`}>
+      <div className="flex items-center justify-between rounded-lg px-3 py-2.5 hover:bg-zinc-50 transition-colors group">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="shrink-0">
+            {isDone ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+            ) : isFailed ? (
+              <XCircle className="h-4 w-4 text-red-400" />
+            ) : isProcessing ? (
+              <Loader2 className="h-4 w-4 text-violet-500 animate-spin" />
+            ) : (
+              <Clock className="h-4 w-4 text-zinc-300" />
             )}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm text-zinc-700 truncate">{project.keyword}</p>
             {project.errorMessage && (
-              <span className="text-red-500 truncate max-w-[200px]">
-                {project.errorMessage}
-              </span>
+              <p className="text-[11px] text-red-400 truncate max-w-[300px]">{project.errorMessage}</p>
             )}
           </div>
         </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={cn(
+            "text-[11px] font-medium",
+            isFailed ? "text-red-400" : isDone ? "text-emerald-600" : isProcessing ? "text-violet-500" : "text-zinc-400"
+          )}>
+            {statusLabel}
+          </span>
+          <ExternalLink className="h-3 w-3 text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+        </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <Badge
-          variant="secondary"
-          className={
-            isFailed
-              ? "bg-red-50 text-red-600"
-              : isDone
-                ? "bg-green-50 text-green-600"
-                : isProcessing
-                  ? "bg-blue-50 text-blue-600"
-                  : ""
-          }
-        >
-          {statusLabel}
-        </Badge>
-        <Link href={`/projects/${project.id}`}>
-          <Button variant="ghost" size="icon" className="h-7 w-7">
-            <ExternalLink className="h-3.5 w-3.5" />
-          </Button>
-        </Link>
-      </div>
-    </div>
+    </Link>
   );
 }

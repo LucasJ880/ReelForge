@@ -9,10 +9,6 @@ import {
   Send,
   BarChart3,
   Trash2,
-  Hash,
-  FileText,
-  Lightbulb,
-  ImageIcon,
   Loader2,
   Play,
   AlertCircle,
@@ -20,23 +16,13 @@ import {
   Pencil,
   Save,
   X,
-  Clock,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { StatusStepper } from "@/components/project/status-stepper";
 import { StatusBadge } from "@/components/project/status-badge";
 import { formatDate } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { ProjectWithRelations, ContentAngle } from "@/types";
 
 export function ProjectDetailClient({
@@ -58,9 +44,7 @@ export function ProjectDetailClient({
   const [editData, setEditData] = useState({ script: "", caption: "", videoPrompt: "" });
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    setProject(initial);
-  }, [initial]);
+  useEffect(() => { setProject(initial); }, [initial]);
 
   const isVideoGenerating = project.status === "VIDEO_GENERATING";
 
@@ -69,21 +53,10 @@ export function ProjectDetailClient({
       const res = await fetch(`/api/projects/${project.id}/video`);
       if (!res.ok) return;
       const data = await res.json();
-
-      if (data.progress !== undefined) {
-        setVideoProgress(data.progress);
-      }
-
-      if (data.status === "COMPLETED") {
-        toast.success("视频生成完成");
-        router.refresh();
-      } else if (data.status === "FAILED") {
-        toast.error("视频生成失败");
-        router.refresh();
-      }
-    } catch {
-      // silent
-    }
+      if (data.progress !== undefined) setVideoProgress(data.progress);
+      if (data.status === "COMPLETED") { toast.success("视频生成完成"); router.refresh(); }
+      else if (data.status === "FAILED") { toast.error("视频生成失败"); router.refresh(); }
+    } catch { /* silent */ }
   }, [project.id, router]);
 
   useEffect(() => {
@@ -97,20 +70,12 @@ export function ProjectDetailClient({
     if (generating) return;
     setGenerating(true);
     try {
-      const res = await fetch(`/api/projects/${project.id}/generate`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "生成失败");
-      }
+      const res = await fetch(`/api/projects/${project.id}/generate`, { method: "POST" });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "生成失败"); }
       toast.success("内容方案已生成");
       router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "生成失败");
-    } finally {
-      setGenerating(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "生成失败"); }
+    finally { setGenerating(false); }
   }
 
   async function handleVideoGenerate() {
@@ -118,50 +83,30 @@ export function ProjectDetailClient({
     setVideoSubmitting(true);
     setVideoProgress(0);
     try {
-      const res = await fetch(`/api/projects/${project.id}/video`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "视频生成失败");
-      }
-      toast.info("视频生成已提交，请等待完成");
+      const res = await fetch(`/api/projects/${project.id}/video`, { method: "POST" });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "视频生成失败"); }
+      toast.info("视频生成已提交");
       router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "视频生成失败");
-    } finally {
-      setVideoSubmitting(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "视频生成失败"); }
+    finally { setVideoSubmitting(false); }
   }
 
   async function handlePublish() {
     if (publishing) return;
     setPublishing(true);
     try {
-      const res = await fetch(`/api/projects/${project.id}/publish`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "发布失败");
-      }
+      const res = await fetch(`/api/projects/${project.id}/publish`, { method: "POST" });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "发布失败"); }
       toast.success("已成功发布到 TikTok");
       setConfirmPublish(false);
       router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "发布失败");
-    } finally {
-      setPublishing(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "发布失败"); }
+    finally { setPublishing(false); }
   }
 
   function startEditing() {
     if (!cp) return;
-    setEditData({
-      script: cp.script,
-      caption: cp.caption,
-      videoPrompt: cp.videoPrompt,
-    });
+    setEditData({ script: cp.script, caption: cp.caption, videoPrompt: cp.videoPrompt });
     setEditing(true);
   }
 
@@ -173,38 +118,24 @@ export function ProjectDetailClient({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(editData),
       });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "保存失败");
-      }
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "保存失败"); }
       toast.success("内容已更新");
       setEditing(false);
       router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "保存失败");
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "保存失败"); }
+    finally { setSaving(false); }
   }
 
   async function handleAnalyze() {
     if (analyzing) return;
     setAnalyzing(true);
     try {
-      const res = await fetch(`/api/projects/${project.id}/analyze`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "分析失败");
-      }
+      const res = await fetch(`/api/projects/${project.id}/analyze`, { method: "POST" });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "分析失败"); }
       toast.success("分析报告已生成");
       router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "分析失败");
-    } finally {
-      setAnalyzing(false);
-    }
+    } catch (e) { toast.error(e instanceof Error ? e.message : "分析失败"); }
+    finally { setAnalyzing(false); }
   }
 
   async function handleDelete() {
@@ -214,507 +145,411 @@ export function ProjectDetailClient({
       if (!res.ok) throw new Error("删除失败");
       toast.success("项目已删除");
       router.push("/projects");
-    } catch {
-      toast.error("删除失败");
-      setDeleting(false);
-      setConfirmDelete(false);
-    }
+    } catch { toast.error("删除失败"); setDeleting(false); setConfirmDelete(false); }
   }
 
   const cp = project.contentPlan;
   const vj = project.videoJob;
   const angles = (cp?.contentAngles ?? []) as ContentAngle[];
-  const canEdit =
-    cp && ["CONTENT_GENERATED", "VIDEO_FAILED"].includes(project.status);
+  const canEdit = cp && ["CONTENT_GENERATED", "VIDEO_FAILED"].includes(project.status);
 
   return (
-    <div className="space-y-6">
-      {/* 顶部 */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <div className="flex items-center gap-3">
-            <h2 className="text-2xl font-bold">{project.keyword}</h2>
-            <StatusBadge status={project.status} />
-          </div>
-          <p className="text-sm text-gray-500">
-            创建于 {formatDate(project.createdAt)}
+    <div className="space-y-8">
+      {/* Header */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+            作品详情
           </p>
+          <StatusBadge status={project.status} />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {(project.status === "DRAFT" ||
-            project.status === "CONTENT_GENERATED") && (
-            <Button onClick={handleGenerate} disabled={generating}>
-              {generating ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              {project.status === "DRAFT" ? "生成内容" : "重新生成"}
-            </Button>
-          )}
-          {(project.status === "CONTENT_GENERATED" ||
-            project.status === "VIDEO_FAILED") && (
-            <Button
-              variant="outline"
-              onClick={handleVideoGenerate}
-              disabled={videoSubmitting}
-            >
-              {videoSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Video className="mr-2 h-4 w-4" />
-              )}
-              生成视频
-            </Button>
-          )}
-          {(project.status === "VIDEO_READY" ||
-            project.status === "PUBLISH_FAILED") &&
-            (!confirmPublish ? (
-              <Button variant="outline" onClick={() => setConfirmPublish(true)}>
-                <Send className="mr-2 h-4 w-4" />
-                发布到 TikTok
-              </Button>
-            ) : (
-              <div className="flex items-center gap-1">
-                <Button
-                  size="sm"
-                  onClick={handlePublish}
-                  disabled={publishing}
-                >
-                  {publishing ? (
-                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="mr-1 h-3 w-3" />
-                  )}
-                  确认发布
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setConfirmPublish(false)}
-                  disabled={publishing}
-                >
-                  取消
-                </Button>
-              </div>
-            ))}
-          {(project.status === "PUBLISHED" ||
-            project.status === "ANALYTICS_FETCHED" ||
-            project.status === "ANALYTICS_PENDING" ||
-            project.status === "ANALYZED") && (
-            <Button
-              variant="outline"
-              onClick={handleAnalyze}
-              disabled={analyzing}
-            >
-              {analyzing ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <BarChart3 className="mr-2 h-4 w-4" />
-              )}
-              {project.status === "ANALYZED" ? "重新分析" : "拉取数据 & 分析"}
-            </Button>
-          )}
-          {!confirmDelete ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setConfirmDelete(true)}
-              className="text-red-500 hover:text-red-600 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          ) : (
-            <div className="flex items-center gap-1">
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={deleting}
-              >
-                {deleting ? (
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                ) : null}
-                确认删除
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => setConfirmDelete(false)}
-                disabled={deleting}
-              >
-                取消
-              </Button>
-            </div>
-          )}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-xl font-semibold tracking-tight text-zinc-900">
+              {project.keyword}
+            </h1>
+            <p className="text-xs text-zinc-400 mt-1">
+              {formatDate(project.createdAt)}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <ActionButtons
+              project={project}
+              generating={generating}
+              videoSubmitting={videoSubmitting}
+              publishing={publishing}
+              analyzing={analyzing}
+              deleting={deleting}
+              confirmPublish={confirmPublish}
+              confirmDelete={confirmDelete}
+              onGenerate={handleGenerate}
+              onVideoGenerate={handleVideoGenerate}
+              onPublish={handlePublish}
+              onAnalyze={handleAnalyze}
+              onDelete={handleDelete}
+              onConfirmPublish={setConfirmPublish}
+              onConfirmDelete={setConfirmDelete}
+            />
+          </div>
         </div>
       </div>
 
-      {/* 进度步骤条 */}
-      <Card>
-        <CardContent className="py-4">
-          <StatusStepper status={project.status} />
-        </CardContent>
-      </Card>
+      {/* Stepper */}
+      <StatusStepper status={project.status} />
 
-      {/* 错误提示 */}
+      {/* Error */}
       {project.errorMessage && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="flex items-center gap-3 py-3">
-            <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-            <p className="text-sm text-red-700">{project.errorMessage}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* DRAFT 引导 */}
-      {project.status === "DRAFT" && !cp && (
-        <Card>
-          <CardContent className="flex flex-col items-center py-12">
-            <Sparkles className="h-10 w-10 text-gray-300 mb-3" />
-            <h3 className="text-lg font-medium mb-1">准备生成内容</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              点击上方「生成内容」按钮，AI 将为「{project.keyword}
-              」生成完整的短视频内容方案
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 视频生成进度 */}
-      {isVideoGenerating && (
-        <Card className="border-yellow-200 bg-yellow-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Loader2 className="h-4 w-4 animate-spin text-yellow-600" />
-              视频生成中
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="h-2 w-full bg-yellow-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-yellow-500 rounded-full transition-all duration-500"
-                  style={{ width: `${videoProgress}%` }}
-                />
-              </div>
-              <p className="text-sm text-yellow-700">
-                AI 正在生成视频... {videoProgress}%
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 视频预览 */}
-      {vj?.status === "COMPLETED" && vj.videoUrl && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Play className="h-4 w-4" />
-              视频预览
-            </CardTitle>
-            <CardDescription>
-              视频已生成完成，请预览确认
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="relative aspect-[9/16] max-w-sm mx-auto bg-black rounded-lg overflow-hidden">
-              <video
-                src={vj.videoUrl}
-                controls
-                className="w-full h-full object-contain"
-                poster={vj.thumbnailUrl || undefined}
-              />
-            </div>
-            <div className="mt-3 flex items-center justify-between text-xs text-gray-400">
-              <span>Provider: {vj.provider}</span>
-              {vj.completedAt && (
-                <span>生成于 {formatDate(vj.completedAt)}</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 视频生成失败 */}
-      {project.status === "VIDEO_FAILED" && vj && (
-        <Card className="border-red-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-red-700">
-              <AlertCircle className="h-4 w-4" />
-              视频生成失败
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-red-600 mb-3">
-              {vj.errorMessage || "未知错误"}
-            </p>
-            <p className="text-xs text-gray-500">
-              已重试 {vj.retryCount} 次。点击上方「生成视频」按钮重试。
-            </p>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 发布中 */}
-      {project.status === "PUBLISHING" && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardContent className="flex items-center gap-3 py-4">
-            <Clock className="h-5 w-5 text-blue-500 animate-pulse" />
-            <div>
-              <p className="text-sm font-medium text-blue-700">
-                正在发布到 TikTok...
-              </p>
-              <p className="text-xs text-blue-600 mt-0.5">
-                视频正在上传到 TikTok，处理可能需要几分钟
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 发布成功 */}
-      {project.publication?.publishStatus === "PUBLISHED" && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base text-green-700">
-              <Send className="h-4 w-4" />
-              已发布到 TikTok
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between text-sm text-green-700">
-              <span>
-                视频 ID: {project.publication.platformVideoId || "N/A"}
-              </span>
-              {project.publication.publishedAt && (
-                <span>
-                  发布于 {formatDate(project.publication.publishedAt)}
-                </span>
-              )}
-            </div>
-            {project.publication.snapshots?.[0] && (
-              <div className="mt-3 grid grid-cols-4 gap-3">
-                {[
-                  { label: "播放", value: project.publication.snapshots[0].views },
-                  { label: "点赞", value: project.publication.snapshots[0].likes },
-                  { label: "评论", value: project.publication.snapshots[0].comments },
-                  { label: "分享", value: project.publication.snapshots[0].shares },
-                ].map((m) => (
-                  <div key={m.label} className="text-center">
-                    <p className="text-lg font-bold text-green-800">
-                      {m.value.toLocaleString()}
-                    </p>
-                    <p className="text-xs text-green-600">{m.label}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 内容方案展示 */}
-      {cp && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* 编辑/只读切换栏 */}
-          {canEdit && (
-            <div className="md:col-span-2 flex justify-end gap-2">
-              {!editing ? (
-                <Button variant="outline" size="sm" onClick={startEditing}>
-                  <Pencil className="mr-1.5 h-3 w-3" />
-                  编辑内容
-                </Button>
-              ) : (
-                <>
-                  <Button size="sm" onClick={handleSaveEdit} disabled={saving}>
-                    {saving ? (
-                      <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                    ) : (
-                      <Save className="mr-1.5 h-3 w-3" />
-                    )}
-                    保存
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditing(false)}
-                    disabled={saving}
-                  >
-                    <X className="mr-1.5 h-3 w-3" />
-                    取消
-                  </Button>
-                </>
-              )}
-            </div>
-          )}
-
-          <Card className="md:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <FileText className="h-4 w-4" />
-                视频脚本
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {editing ? (
-                <Textarea
-                  value={editData.script}
-                  onChange={(e) =>
-                    setEditData((d) => ({ ...d, script: e.target.value }))
-                  }
-                  rows={6}
-                  className="text-sm"
-                />
-              ) : (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                  {cp.script}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Send className="h-4 w-4" />
-                TikTok 标题
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {editing ? (
-                <Input
-                  value={editData.caption}
-                  onChange={(e) =>
-                    setEditData((d) => ({ ...d, caption: e.target.value }))
-                  }
-                  className="text-sm"
-                />
-              ) : (
-                <p className="text-sm">{cp.caption}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Hash className="h-4 w-4" />
-                Hashtags
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {cp.hashtags.map((tag, i) => (
-                  <Badge key={i} variant="secondary">
-                    {tag.startsWith("#") ? tag : `#${tag}`}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <ImageIcon className="h-4 w-4" />
-                视频提示词
-              </CardTitle>
-              <CardDescription>用于 AI 视频生成</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {editing ? (
-                <Textarea
-                  value={editData.videoPrompt}
-                  onChange={(e) =>
-                    setEditData((d) => ({ ...d, videoPrompt: e.target.value }))
-                  }
-                  rows={3}
-                  className="text-sm"
-                />
-              ) : (
-                <p className="text-sm text-gray-600 italic">{cp.videoPrompt}</p>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Lightbulb className="h-4 w-4" />
-                内容角度建议
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {angles.map((a, i) => (
-                <div key={i}>
-                  <p className="text-sm font-medium">{a.angle}</p>
-                  <p className="text-xs text-gray-500">{a.reason}</p>
-                  {i < angles.length - 1 && <Separator className="mt-3" />}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-
-          <Card className="md:col-span-2">
-            <CardContent className="py-3">
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <span>模型: {cp.modelUsed}</span>
-                <span>生成于 {formatDate(cp.createdAt)}</span>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="flex items-start gap-3 rounded-xl bg-red-50 p-4">
+          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 shrink-0" />
+          <p className="text-sm text-red-600">{project.errorMessage}</p>
         </div>
       )}
 
-      {/* 分析报告 */}
+      {/* DRAFT empty state */}
+      {project.status === "DRAFT" && !cp && (
+        <div className="text-center py-16">
+          <Sparkles className="h-8 w-8 text-zinc-200 mx-auto mb-4" />
+          <p className="text-sm text-zinc-400">
+            点击「生成内容」，AI 将为「{project.keyword}」创建完整的内容方案
+          </p>
+        </div>
+      )}
+
+      {/* Video generating */}
+      {isVideoGenerating && (
+        <div className="rounded-xl bg-amber-50 p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
+            <span className="text-sm font-medium text-amber-700">
+              视频生成中 {videoProgress > 0 ? `${videoProgress}%` : ""}
+            </span>
+          </div>
+          <div className="h-1 w-full bg-amber-200 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-amber-500 rounded-full transition-all duration-500"
+              style={{ width: `${videoProgress}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Video failed */}
+      {project.status === "VIDEO_FAILED" && vj && (
+        <div className="rounded-xl border border-red-100 p-5">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="h-4 w-4 text-red-500" />
+            <span className="text-sm font-medium text-red-600">视频生成失败</span>
+          </div>
+          <p className="text-xs text-red-500 mb-1">{vj.errorMessage || "未知错误"}</p>
+          <p className="text-[11px] text-zinc-400">已重试 {vj.retryCount} 次</p>
+        </div>
+      )}
+
+      {/* Publishing */}
+      {project.status === "PUBLISHING" && (
+        <div className="flex items-center gap-3 rounded-xl bg-violet-50 p-5">
+          <Loader2 className="h-4 w-4 animate-spin text-violet-600" />
+          <span className="text-sm text-violet-600">正在发布到 TikTok...</span>
+        </div>
+      )}
+
+      {/* Main content area */}
+      {(vj?.status === "COMPLETED" && vj.videoUrl) || cp ? (
+        <div className="grid gap-8 lg:grid-cols-5">
+          {/* Left: Video */}
+          {vj?.status === "COMPLETED" && vj.videoUrl && (
+            <div className="lg:col-span-2">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
+                视频预览
+              </p>
+              <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-lg">
+                <div className="aspect-[9/16]">
+                  <video
+                    src={vj.videoUrl}
+                    controls
+                    className="w-full h-full object-contain"
+                    poster={vj.thumbnailUrl || undefined}
+                  />
+                </div>
+              </div>
+              <div className="flex items-center justify-between mt-3 text-[11px] text-zinc-300">
+                <span>{vj.provider}</span>
+                {vj.completedAt && <span>{formatDate(vj.completedAt)}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Right: Content */}
+          {cp && (
+            <div className={cn(
+              "space-y-6",
+              vj?.status === "COMPLETED" && vj.videoUrl ? "lg:col-span-3" : "lg:col-span-5"
+            )}>
+              {/* Edit toggle */}
+              {canEdit && (
+                <div className="flex justify-end">
+                  {!editing ? (
+                    <button onClick={startEditing} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 transition-colors">
+                      <Pencil className="h-3 w-3" />
+                      编辑
+                    </button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-violet-600 hover:text-violet-700 disabled:opacity-50">
+                        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                        保存
+                      </button>
+                      <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-600 disabled:opacity-50">
+                        <X className="h-3 w-3" />
+                        取消
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Script */}
+              <ContentSection label="视频脚本">
+                {editing ? (
+                  <Textarea
+                    value={editData.script}
+                    onChange={(e) => setEditData((d) => ({ ...d, script: e.target.value }))}
+                    rows={6}
+                    className="text-sm border-zinc-200 focus:border-violet-300 focus:ring-violet-100"
+                  />
+                ) : (
+                  <p className="text-sm leading-relaxed text-zinc-600 whitespace-pre-wrap">{cp.script}</p>
+                )}
+              </ContentSection>
+
+              {/* Caption */}
+              <ContentSection label="TikTok 标题">
+                {editing ? (
+                  <Input
+                    value={editData.caption}
+                    onChange={(e) => setEditData((d) => ({ ...d, caption: e.target.value }))}
+                    className="text-sm border-zinc-200 focus:border-violet-300 focus:ring-violet-100"
+                  />
+                ) : (
+                  <p className="text-sm text-zinc-700">{cp.caption}</p>
+                )}
+              </ContentSection>
+
+              {/* Hashtags */}
+              <ContentSection label="Hashtags">
+                <div className="flex flex-wrap gap-1.5">
+                  {cp.hashtags.map((tag, i) => (
+                    <span key={i} className="rounded-full bg-zinc-100 px-2.5 py-0.5 text-[11px] text-zinc-600">
+                      {tag.startsWith("#") ? tag : `#${tag}`}
+                    </span>
+                  ))}
+                </div>
+              </ContentSection>
+
+              {/* Video prompt */}
+              <ContentSection label="视频提示词">
+                {editing ? (
+                  <Textarea
+                    value={editData.videoPrompt}
+                    onChange={(e) => setEditData((d) => ({ ...d, videoPrompt: e.target.value }))}
+                    rows={3}
+                    className="text-sm border-zinc-200 focus:border-violet-300 focus:ring-violet-100"
+                  />
+                ) : (
+                  <p className="text-sm text-zinc-500 italic">{cp.videoPrompt}</p>
+                )}
+              </ContentSection>
+
+              {/* Angles */}
+              {angles.length > 0 && (
+                <ContentSection label="内容角度">
+                  <div className="space-y-3">
+                    {angles.map((a, i) => (
+                      <div key={i}>
+                        <p className="text-sm font-medium text-zinc-700">{a.angle}</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">{a.reason}</p>
+                      </div>
+                    ))}
+                  </div>
+                </ContentSection>
+              )}
+
+              {/* Meta */}
+              <div className="flex items-center gap-4 text-[11px] text-zinc-300 pt-2">
+                <span>模型 {cp.modelUsed}</span>
+                <span>{formatDate(cp.createdAt)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* Published stats */}
+      {project.publication?.publishStatus === "PUBLISHED" && (
+        <div className="rounded-xl bg-emerald-50 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span className="text-sm font-medium text-emerald-700">已发布到 TikTok</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-emerald-600 mb-4">
+            <span>ID: {project.publication.platformVideoId || "N/A"}</span>
+            {project.publication.publishedAt && (
+              <span>{formatDate(project.publication.publishedAt)}</span>
+            )}
+          </div>
+          {project.publication.snapshots?.[0] && (
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: "播放", value: project.publication.snapshots[0].views },
+                { label: "点赞", value: project.publication.snapshots[0].likes },
+                { label: "评论", value: project.publication.snapshots[0].comments },
+                { label: "分享", value: project.publication.snapshots[0].shares },
+              ].map((m) => (
+                <div key={m.label}>
+                  <p className="text-xl font-extralight tabular-nums text-emerald-800">
+                    {m.value.toLocaleString()}
+                  </p>
+                  <p className="text-[11px] text-emerald-500">{m.label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Analysis report */}
       {project.analysisReport && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart3 className="h-4 w-4" />
-              数据分析报告
-            </CardTitle>
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+              数据分析
+            </p>
             {project.analysisReport.overallScore !== null && (
-              <CardDescription>
-                综合评分：
-                <span className="font-bold text-lg ml-1">
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-extralight tabular-nums text-zinc-900">
                   {project.analysisReport.overallScore}
                 </span>
-                <span className="text-gray-400"> / 100</span>
-              </CardDescription>
+                <span className="text-xs text-zinc-300">/ 100</span>
+              </div>
             )}
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </div>
+          <div className="space-y-5">
+            <AnalysisBlock label="表现总结" content={project.analysisReport.performanceSummary} />
+            <AnalysisBlock label="方向建议" content={project.analysisReport.directionAdvice} />
             <div>
-              <h4 className="text-sm font-medium mb-1">表现总结</h4>
-              <p className="text-sm text-gray-600">
-                {project.analysisReport.performanceSummary}
+              <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2">
+                优化建议
               </p>
-            </div>
-            <Separator />
-            <div>
-              <h4 className="text-sm font-medium mb-1">方向建议</h4>
-              <p className="text-sm text-gray-600">
-                {project.analysisReport.directionAdvice}
-              </p>
-            </div>
-            <Separator />
-            <div>
-              <h4 className="text-sm font-medium mb-1">优化建议</h4>
-              <ul className="space-y-1">
+              <ul className="space-y-2">
                 {project.analysisReport.optimizationTips.map((tip, i) => (
-                  <li key={i} className="text-sm text-gray-600 flex gap-2">
-                    <span className="text-gray-400 shrink-0">{i + 1}.</span>
+                  <li key={i} className="flex gap-2.5 text-sm text-zinc-600">
+                    <span className="text-zinc-300 shrink-0 tabular-nums text-xs mt-0.5">{i + 1}.</span>
                     {tip}
                   </li>
                 ))}
               </ul>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
+  );
+}
+
+function ContentSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2">
+        {label}
+      </p>
+      {children}
+    </div>
+  );
+}
+
+function AnalysisBlock({ label, content }: { label: string; content: string }) {
+  return (
+    <div>
+      <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-1.5">
+        {label}
+      </p>
+      <p className="text-sm leading-relaxed text-zinc-600">{content}</p>
+    </div>
+  );
+}
+
+function ActionButtons({
+  project,
+  generating, videoSubmitting, publishing, analyzing, deleting,
+  confirmPublish, confirmDelete,
+  onGenerate, onVideoGenerate, onPublish, onAnalyze, onDelete,
+  onConfirmPublish, onConfirmDelete,
+}: {
+  project: ProjectWithRelations;
+  generating: boolean; videoSubmitting: boolean; publishing: boolean; analyzing: boolean; deleting: boolean;
+  confirmPublish: boolean; confirmDelete: boolean;
+  onGenerate: () => void; onVideoGenerate: () => void; onPublish: () => void; onAnalyze: () => void; onDelete: () => void;
+  onConfirmPublish: (v: boolean) => void; onConfirmDelete: (v: boolean) => void;
+}) {
+  const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
+  const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
+  const secondary = `${btn} bg-zinc-100 text-zinc-700 hover:bg-zinc-200`;
+  const ghost = `${btn} text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100`;
+  const destructive = `${btn} bg-red-600 text-white hover:bg-red-700`;
+
+  return (
+    <>
+      {(project.status === "DRAFT" || project.status === "CONTENT_GENERATED") && (
+        <button className={primary} onClick={onGenerate} disabled={generating}>
+          {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+          {project.status === "DRAFT" ? "生成内容" : "重新生成"}
+        </button>
+      )}
+      {(project.status === "CONTENT_GENERATED" || project.status === "VIDEO_FAILED") && (
+        <button className={secondary} onClick={onVideoGenerate} disabled={videoSubmitting}>
+          {videoSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+          生成视频
+        </button>
+      )}
+      {(project.status === "VIDEO_READY" || project.status === "PUBLISH_FAILED") && (
+        !confirmPublish ? (
+          <button className={secondary} onClick={() => onConfirmPublish(true)}>
+            <Send className="h-3.5 w-3.5" />
+            发布到 TikTok
+          </button>
+        ) : (
+          <div className="flex items-center gap-1">
+            <button className={primary} onClick={onPublish} disabled={publishing}>
+              {publishing && <Loader2 className="h-3 w-3 animate-spin" />}
+              确认发布
+            </button>
+            <button className={ghost} onClick={() => onConfirmPublish(false)} disabled={publishing}>
+              取消
+            </button>
+          </div>
+        )
+      )}
+      {["PUBLISHED", "ANALYTICS_FETCHED", "ANALYTICS_PENDING", "ANALYZED"].includes(project.status) && (
+        <button className={secondary} onClick={onAnalyze} disabled={analyzing}>
+          {analyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BarChart3 className="h-3.5 w-3.5" />}
+          {project.status === "ANALYZED" ? "重新分析" : "分析数据"}
+        </button>
+      )}
+      {!confirmDelete ? (
+        <button className={`${ghost} text-red-400 hover:text-red-600 hover:bg-red-50`} onClick={() => onConfirmDelete(true)}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </button>
+      ) : (
+        <div className="flex items-center gap-1">
+          <button className={destructive} onClick={onDelete} disabled={deleting}>
+            {deleting && <Loader2 className="h-3 w-3 animate-spin" />}
+            确认删除
+          </button>
+          <button className={ghost} onClick={() => onConfirmDelete(false)} disabled={deleting}>
+            取消
+          </button>
+        </div>
+      )}
+    </>
   );
 }

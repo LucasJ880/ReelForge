@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { PROJECT_STATUS_LABELS, PROJECT_STATUS_COLORS } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -9,11 +8,17 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const label = PROJECT_STATUS_LABELS[status] || status;
-  const colors = PROJECT_STATUS_COLORS[status] || "bg-gray-100 text-gray-700";
+  const colors = PROJECT_STATUS_COLORS[status] || "bg-zinc-100 text-zinc-600";
 
   return (
-    <Badge variant="secondary" className={cn(colors, "font-medium", className)}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
+        colors,
+        className
+      )}
+    >
       {label}
-    </Badge>
+    </span>
   );
 }

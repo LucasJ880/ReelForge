@@ -1,51 +1,36 @@
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-
 export default function ProjectDetailLoading() {
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-4 w-32" />
+    <div className="space-y-8 animate-pulse">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <div className="h-3 w-16 rounded bg-zinc-100" />
+          <div className="h-4 w-14 rounded-full bg-zinc-50" />
         </div>
-        <div className="flex gap-2">
-          <Skeleton className="h-10 w-28" />
-          <Skeleton className="h-10 w-28" />
-        </div>
+        <div className="h-6 w-40 rounded bg-zinc-100" />
+        <div className="h-3 w-28 rounded bg-zinc-50 mt-2" />
       </div>
-      <Card>
-        <CardContent className="py-4">
-          <div className="flex items-center gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <Skeleton className="h-7 w-7 rounded-full" />
-                <Skeleton className="h-4 w-16 hidden sm:block" />
-                {i < 3 && <Skeleton className="h-px w-10" />}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <Skeleton className="h-5 w-24" />
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-20 w-full" />
-          </CardContent>
-        </Card>
+      <div className="flex items-center gap-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-5 w-28" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-12 w-full" />
-            </CardContent>
-          </Card>
+          <div key={i} className="flex items-center gap-1.5">
+            <div className="h-5 w-5 rounded-full bg-zinc-100" />
+            <div className="h-3 w-8 rounded bg-zinc-50 hidden sm:block" />
+            {i < 3 && <div className="h-px w-6 bg-zinc-100" />}
+          </div>
         ))}
+      </div>
+      <div className="grid gap-8 lg:grid-cols-5">
+        <div className="lg:col-span-2">
+          <div className="h-3 w-16 rounded bg-zinc-100 mb-3" />
+          <div className="rounded-2xl bg-zinc-100 aspect-[9/16]" />
+        </div>
+        <div className="lg:col-span-3 space-y-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i}>
+              <div className="h-3 w-20 rounded bg-zinc-100 mb-2" />
+              <div className="h-12 w-full rounded bg-zinc-50" />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

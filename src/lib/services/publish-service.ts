@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { ProjectStatus, PublishStatus } from "@prisma/client";
-import { publishVideo, isMockMode } from "@/lib/providers/tiktok";
+import { publishVideo, checkPublishStatus, isMockMode } from "@/lib/providers/tiktok";
 import { getActiveTikTokAccount } from "@/lib/providers/tiktok-auth";
 
 export async function publishToTikTok(projectId: string) {
@@ -76,6 +76,7 @@ export async function publishToTikTok(projectId: string) {
 
     const pubData = {
       platform: "tiktok",
+      publishId: result.publishId || null,
       platformVideoId: result.platformVideoId || null,
       publishStatus: result.status === "published"
         ? PublishStatus.PUBLISHED
@@ -118,4 +119,66 @@ export async function publishToTikTok(projectId: string) {
     });
     throw error;
   }
+}
+
+export async function checkAndUpdatePublishStatus(projectId: string) {
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    include: { publication: true },
+  });
+
+  if (!project?.publication) throw new Error("未找到发布记录");
+
+  const pub = project.publication;
+  if (!pub.publishId) throw new Error("缺少 publishId，无法查询状态");
+
+  if (pub.publishStatus === PublishStatus.PUBLISHED) {
+    return { status: "published", platformVideoId: pub.platformVideoId };
+  }
+
+  let accessToken = "mock_token";
+  if (!isMockMode()) {
+    const account = await getActiveTikTokAccount();
+    if (!account) throw new Error("未绑定 TikTok 账号");
+    accessToken = account.accessToken;
+  }
+
+  const result = await checkPublishStatus(pub.publishId, accessToken);
+  const statusLower = (result.status || "").toLowerCase();
+
+  if (statusLower === "publish_complete") {
+    await db.publication.update({
+      where: { projectId },
+      data: {
+        publishStatus: PublishStatus.PUBLISHED,
+        platformVideoId: result.platformVideoId || null,
+        publishedAt: new Date(),
+      },
+    });
+    await db.project.update({
+      where: { id: projectId },
+      data: { status: ProjectStatus.PUBLISHED },
+    });
+    return { status: "published", platformVideoId: result.platformVideoId };
+  }
+
+  if (statusLower === "failed" || statusLower === "publish_cancelled") {
+    await db.publication.update({
+      where: { projectId },
+      data: {
+        publishStatus: PublishStatus.FAILED,
+        errorMessage: result.errorMessage || "发布失败",
+      },
+    });
+    await db.project.update({
+      where: { id: projectId },
+      data: {
+        status: ProjectStatus.PUBLISH_FAILED,
+        errorMessage: result.errorMessage || "发布失败",
+      },
+    });
+    return { status: "failed", error: result.errorMessage };
+  }
+
+  return { status: result.status || "processing" };
 }

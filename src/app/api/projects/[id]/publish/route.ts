@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { publishToTikTok } from "@/lib/services/publish-service";
+import { checkAndUpdatePublishStatus } from "@/lib/services/publish-service";
 import { handleApiError } from "@/lib/utils/api-error";
 
 export async function POST(
@@ -13,5 +14,19 @@ export async function POST(
     return NextResponse.json({ result });
   } catch (error) {
     return handleApiError(error, "发布");
+  }
+}
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  try {
+    const result = await checkAndUpdatePublishStatus(id);
+    return NextResponse.json(result);
+  } catch (error) {
+    return handleApiError(error, "查询发布状态");
   }
 }

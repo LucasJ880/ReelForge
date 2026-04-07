@@ -124,6 +124,7 @@ model Publication {
   id                   String        @id @default(cuid())
   projectId            String        @unique
   platform             String        @default("tiktok")
+  publishId            String?
   platformVideoId      String?
   publishStatus        PublishStatus @default(PENDING)
   publishedAt          DateTime?

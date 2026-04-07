@@ -53,7 +53,21 @@ function publishMock(_options: PublishOptions): PublishResult {
 
 async function publishReal(options: PublishOptions): Promise<PublishResult> {
   try {
-    // Step 1: Query creator info to get available privacy levels
+    // Step 1: Download video from source URL into memory
+    console.log("[tiktok] Downloading video from source...");
+    const videoRes = await fetch(options.videoUrl);
+    if (!videoRes.ok) {
+      return {
+        publishId: "",
+        status: "failed",
+        errorMessage: `无法下载视频: ${videoRes.status}`,
+      };
+    }
+    const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+    const videoSize = videoBuffer.length;
+    console.log(`[tiktok] Video downloaded: ${(videoSize / 1024 / 1024).toFixed(2)} MB`);
+
+    // Step 2: Query creator info for privacy levels
     const creatorRes = await fetch(
       "https://open.tiktokapis.com/v2/post/publish/creator_info/query/",
       {
@@ -65,19 +79,27 @@ async function publishReal(options: PublishOptions): Promise<PublishResult> {
       }
     );
 
+    // Sandbox/unaudited apps must use SELF_ONLY; production apps can upgrade later
+    const isSandbox = process.env.TIKTOK_CLIENT_KEY?.startsWith("sb");
     let privacyLevel = "SELF_ONLY";
-    if (creatorRes.ok) {
+    if (!isSandbox && creatorRes.ok) {
       const creatorData = await creatorRes.json();
       const levels = creatorData.data?.privacy_level_options || [];
       if (levels.includes("PUBLIC_TO_EVERYONE")) {
         privacyLevel = "PUBLIC_TO_EVERYONE";
       } else if (levels.includes("MUTUAL_FOLLOW_FRIENDS")) {
         privacyLevel = "MUTUAL_FOLLOW_FRIENDS";
+      } else if (levels.includes("FOLLOWER_OF_CREATOR")) {
+        privacyLevel = "FOLLOWER_OF_CREATOR";
       }
     }
+    console.log(`[tiktok] Privacy level: ${privacyLevel} (sandbox: ${isSandbox})`);
 
-    // Step 2: Init video post via PULL_FROM_URL
-    const res = await fetch(
+    // Step 3: Init FILE_UPLOAD with TikTok
+    const chunkSize = Math.min(videoSize, 10_000_000);
+    const totalChunkCount = Math.ceil(videoSize / chunkSize);
+
+    const initRes = await fetch(
       "https://open.tiktokapis.com/v2/post/publish/video/init/",
       {
         method: "POST",
@@ -94,25 +116,66 @@ async function publishReal(options: PublishOptions): Promise<PublishResult> {
             disable_stitch: false,
           },
           source_info: {
-            source: "PULL_FROM_URL",
-            video_url: options.videoUrl,
+            source: "FILE_UPLOAD",
+            video_size: videoSize,
+            chunk_size: chunkSize,
+            total_chunk_count: totalChunkCount,
           },
         }),
       }
     );
 
-    const data = await res.json();
+    const initData = await initRes.json();
+    console.log("[tiktok] Init response:", JSON.stringify(initData));
 
-    if (data.error?.code !== "ok") {
+    if (initData.error?.code !== "ok") {
       return {
         publishId: "",
         status: "failed",
-        errorMessage: `TikTok API: ${data.error?.code} - ${data.error?.message || "未知错误"}`,
+        errorMessage: `TikTok Init: ${initData.error?.code} - ${initData.error?.message || "未知错误"}`,
       };
     }
 
+    const uploadUrl = initData.data?.upload_url;
+    const publishId = initData.data?.publish_id || "";
+
+    if (!uploadUrl) {
+      return {
+        publishId,
+        status: "failed",
+        errorMessage: "TikTok 未返回 upload_url",
+      };
+    }
+
+    // Step 4: Upload video chunks
+    for (let i = 0; i < totalChunkCount; i++) {
+      const start = i * chunkSize;
+      const end = Math.min(start + chunkSize, videoSize) - 1;
+      const chunk = videoBuffer.subarray(start, end + 1);
+
+      console.log(`[tiktok] Uploading chunk ${i + 1}/${totalChunkCount}: bytes ${start}-${end}/${videoSize}`);
+      const uploadRes = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Range": `bytes ${start}-${end}/${videoSize}`,
+          "Content-Type": "video/mp4",
+        },
+        body: chunk,
+      });
+
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text();
+        return {
+          publishId,
+          status: "failed",
+          errorMessage: `上传失败 chunk ${i + 1}: ${uploadRes.status} ${errText}`,
+        };
+      }
+    }
+
+    console.log(`[tiktok] Upload complete. publish_id: ${publishId}`);
     return {
-      publishId: data.data?.publish_id || "",
+      publishId,
       status: "pending",
     };
   } catch (err) {

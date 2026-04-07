@@ -28,6 +28,7 @@ export interface TokenUsage {
 export interface ProjectWithRelations {
   id: string;
   keyword: string;
+  category: string | null;
   status: string;
   errorMessage: string | null;
   retryCount: number;

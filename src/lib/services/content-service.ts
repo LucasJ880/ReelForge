@@ -37,6 +37,7 @@ export async function generateContentPlan(projectId: string) {
       where: { id: projectId },
       data: {
         status: ProjectStatus.CONTENT_GENERATED,
+        category: result.category || undefined,
         errorMessage: null,
       },
     });
@@ -61,6 +62,7 @@ export async function generateContentPlan(projectId: string) {
       where: { id: projectId },
       data: {
         status: ProjectStatus.CONTENT_GENERATED,
+        category: result.category || undefined,
         errorMessage: null,
       },
     }),

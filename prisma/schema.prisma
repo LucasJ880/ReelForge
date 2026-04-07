@@ -67,6 +67,7 @@ model Batch {
 model Project {
   id           String        @id @default(cuid())
   keyword      String
+  category     String?
   status       ProjectStatus @default(DRAFT)
   errorMessage String?
   retryCount   Int           @default(0)
@@ -82,6 +83,7 @@ model Project {
   analysisReport AnalysisReport?
 
   @@index([status])
+  @@index([category])
   @@index([batchId])
   @@index([createdAt(sort: Desc)])
 }

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
 
 const mainNav = [
-  { href: "/", label: "工作台", icon: LayoutDashboard },
+  { href: "/dashboard", label: "工作台", icon: LayoutDashboard },
   { href: "/projects", label: "作品库", icon: List },
   { href: "/batches", label: "批量任务", icon: Layers },
 ];
@@ -38,7 +38,7 @@ export function AppSidebar() {
       <>
         {/* Logo */}
         <div className="px-4 pt-5 pb-6">
-          <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
+          <Link href="/dashboard" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
             <Logo size={34} />
             <span className="text-base font-semibold text-white tracking-tight">
               Aivora
@@ -52,7 +52,7 @@ export function AppSidebar() {
             {mainNav.map((item) => {
               const isActive =
                 pathname === item.href ||
-                (item.href !== "/" && pathname.startsWith(item.href));
+                (item.href !== "/dashboard" && pathname.startsWith(item.href));
               return (
                 <Link
                   key={item.href}
@@ -122,7 +122,7 @@ export function AppSidebar() {
             设置
           </Link>
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={() => signOut({ callbackUrl: "/" })}
             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-[13px] text-zinc-600 hover:text-zinc-300 transition-all duration-150"
           >
             <LogOut className="h-[18px] w-[18px]" />

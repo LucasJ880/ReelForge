@@ -6,6 +6,8 @@ const publicPaths = ["/login", "/register", "/landing", "/api/", "/terms", "/pri
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  if (pathname === "/") return NextResponse.next();
+
   const isPublic = publicPaths.some((p) => pathname.startsWith(p));
   if (isPublic) return NextResponse.next();
 
@@ -17,7 +19,7 @@ export async function proxy(req: NextRequest) {
   const isLoggedIn = !!token;
 
   if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/landing", req.url));
+    return NextResponse.redirect(new URL("/login", req.url));
   }
 
   return NextResponse.next();

@@ -50,7 +50,7 @@ export default function LoginPage() {
             欢迎回来
           </h1>
           <p className="mt-1.5 text-sm text-zinc-500">
-            登录你的 ReelForge 账号
+            登录你的 Aivora 账号
           </p>
         </div>
 

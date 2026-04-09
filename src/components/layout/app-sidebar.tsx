@@ -41,7 +41,7 @@ export function AppSidebar() {
           <Link href="/" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
             <Logo size={34} />
             <span className="text-base font-semibold text-white tracking-tight">
-              ReelForge
+              Aivora
             </span>
           </Link>
         </div>

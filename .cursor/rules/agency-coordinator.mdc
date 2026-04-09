@@ -9,7 +9,7 @@ alwaysApply: true
 
 ## 项目概况
 
-**ReelForge** 是一个中文 TikTok AI 短视频自动化平台，技术栈：
+**Aivora** (原 ReelForge) 是一个中文 TikTok AI 短视频自动化平台，技术栈：
 - **前端**: Next.js 16 App Router + React 19 + TypeScript + Tailwind CSS v4 + shadcn/ui
 - **后端**: Next.js API Routes + Prisma ORM + Neon Postgres
 - **AI**: OpenAI (gpt-4o-mini) + 即梦/Seedance (视频生成)

@@ -77,7 +77,7 @@ export default function LandingPage() {
           <Link href="/landing" className="flex items-center gap-3">
             <Logo size={34} />
             <span className="text-base font-semibold tracking-tight">
-              ReelForge
+              Aivora
             </span>
           </Link>
           <div className="flex items-center gap-3">
@@ -287,7 +287,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-white/5 py-8 px-6">
         <div className="mx-auto flex max-w-5xl items-center justify-between text-xs text-zinc-500">
-          <span>© 2026 ReelForge</span>
+          <span>© 2026 Aivora</span>
           <div className="flex gap-4">
             <Link href="/terms" className="hover:text-zinc-300">
               服务条款

@@ -1,4 +1,4 @@
-# ReelForge
+# Aivora
 
 AI 驱动的 TikTok 短视频自动化平台。输入关键词，自动生成内容方案、AI 视频、发布到 TikTok，并用 AI 分析表现数据。
 

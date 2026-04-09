@@ -7,6 +7,8 @@ import {
   BarChart3,
   Layers,
   Sparkles,
+  Eye,
+  Activity,
 } from "lucide-react";
 import { StatusBadge } from "@/components/project/status-badge";
 import { db } from "@/lib/db";
@@ -57,12 +59,15 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      {/* Hero — with subtle glow */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500/[0.08] via-transparent to-pink-500/[0.05] border border-white/[0.06] p-8">
-        <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-violet-600/10 blur-[80px]" />
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl p-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-pink-600/10" />
+        <div className="absolute inset-0 bg-[#0c0c14]/40" />
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-violet-500/15 blur-[80px]" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-fuchsia-500/10 blur-[60px]" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/10 border border-violet-500/20 px-3 py-1 text-[11px] text-violet-400 font-medium mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/15 border border-violet-400/25 px-3 py-1 text-[11px] text-violet-300 font-medium mb-4">
               <Sparkles className="h-3 w-3" />
               创作工作台
             </div>
@@ -73,14 +78,14 @@ export default async function DashboardPage() {
           <div className="flex gap-2.5 shrink-0">
             <Link
               href="/batches/new"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-zinc-200 transition-all hover:bg-white/[0.08] hover:border-white/15"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.06] px-5 py-2.5 text-sm font-medium text-zinc-200 transition-all hover:bg-white/[0.1] hover:border-white/20"
             >
               <Zap className="h-3.5 w-3.5" />
               批量生成
             </Link>
             <Link
               href="/projects/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500 shadow-lg shadow-violet-600/20"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg hover:shadow-violet-500/20 hover:brightness-110"
             >
               开始创作
               <ArrowRight className="h-3.5 w-3.5" />
@@ -89,17 +94,17 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Stats — glass cards */}
+      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat icon={Video} label="作品" value={totalProjects} />
-        <Stat icon={TrendingUp} label="已发布" value={publishedCount} />
-        <Stat icon={BarChart3} label="总播放" value={totalViews.toLocaleString()} />
-        <Stat icon={BarChart3} label="已分析" value={analyzedCount} />
+        <Stat icon={Video} label="作品" value={totalProjects} color="text-violet-400" bg="bg-violet-500/10" borderColor="border-violet-500/15" />
+        <Stat icon={TrendingUp} label="已发布" value={publishedCount} color="text-emerald-400" bg="bg-emerald-500/10" borderColor="border-emerald-500/15" />
+        <Stat icon={Eye} label="总播放" value={totalViews.toLocaleString()} color="text-cyan-400" bg="bg-cyan-500/10" borderColor="border-cyan-500/15" />
+        <Stat icon={Activity} label="已分析" value={analyzedCount} color="text-pink-400" bg="bg-pink-500/10" borderColor="border-pink-500/15" />
       </div>
 
       {/* Running batches */}
       {runningBatches.length > 0 && (
-        <div className="rounded-2xl bg-violet-500/[0.06] border border-violet-500/10 p-5">
+        <div className="rounded-2xl bg-violet-500/[0.06] border border-violet-500/15 p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-violet-400 font-medium">
               <Layers className="h-3.5 w-3.5" />
@@ -119,8 +124,8 @@ export default async function DashboardPage() {
                   <div className="flex items-center justify-between rounded-xl px-4 py-3 hover:bg-white/[0.04] transition-colors">
                     <span className="text-sm font-medium text-zinc-100">{b.name}</span>
                     <div className="flex items-center gap-3">
-                      <div className="w-24 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-violet-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      <div className="w-28 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-xs text-violet-400 font-mono font-medium w-8 text-right">{pct}%</span>
                     </div>
@@ -139,14 +144,14 @@ export default async function DashboardPage() {
             <p className="text-sm font-medium text-zinc-300">
               最近作品
             </p>
-            <Link href="/projects" className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">
+            <Link href="/projects" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
               查看全部 →
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {recentProjects.map((p) => (
               <Link key={p.id} href={`/projects/${p.id}`}>
-                <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-200 hover:bg-white/[0.04] hover:border-white/10">
+                <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:bg-white/[0.05] hover:border-violet-500/20 hover:shadow-lg hover:shadow-violet-500/5">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <h3 className="text-[15px] font-semibold text-zinc-100 truncate">
                       {p.keyword}
@@ -160,7 +165,7 @@ export default async function DashboardPage() {
                     <span className="text-[11px] text-zinc-600">
                       {formatDate(p.updatedAt)}
                     </span>
-                    <span className="text-xs text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
                       打开 →
                     </span>
                   </div>
@@ -170,14 +175,14 @@ export default async function DashboardPage() {
           </div>
         </div>
       ) : (
-        <div className="text-center py-20 rounded-2xl border border-dashed border-white/[0.06]">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-violet-500/10">
+        <div className="text-center py-20 rounded-2xl border border-dashed border-white/[0.08]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15">
             <Video className="h-6 w-6 text-violet-400" />
           </div>
           <p className="text-zinc-400 text-sm mb-6">还没有作品，开始你的第一次创作</p>
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-2.5 text-sm font-medium text-white transition-all hover:bg-violet-500 shadow-lg shadow-violet-600/20"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg hover:shadow-violet-500/20 hover:brightness-110"
           >
             开始创作
             <ArrowRight className="h-3.5 w-3.5" />
@@ -192,16 +197,22 @@ function Stat({
   icon: Icon,
   label,
   value,
+  color,
+  bg,
+  borderColor,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: number | string;
+  color: string;
+  bg: string;
+  borderColor: string;
 }) {
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+    <div className={`rounded-xl border ${borderColor} bg-white/[0.02] p-4 transition-all hover:bg-white/[0.04]`}>
       <div className="flex items-center gap-2.5 mb-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-violet-500/10">
-          <Icon className="h-3.5 w-3.5 text-violet-400" />
+        <div className={`flex h-7 w-7 items-center justify-center rounded-lg ${bg}`}>
+          <Icon className={`h-3.5 w-3.5 ${color}`} />
         </div>
         <span className="text-[11px] text-zinc-500 font-medium">{label}</span>
       </div>

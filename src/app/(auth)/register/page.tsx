@@ -57,7 +57,7 @@ export default function RegisterPage() {
 
   return (
     <div className="relative w-full max-w-[400px] px-6">
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-violet-600/[0.07] blur-[100px] pointer-events-none" />
+      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-violet-600/[0.12] blur-[100px] pointer-events-none" />
 
       <div className="relative">
         <div className="text-center mb-10">
@@ -72,7 +72,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
+        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl p-6 shadow-xl shadow-black/20">
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="mb-2 block text-xs font-medium text-zinc-400">
@@ -123,7 +123,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-violet-600 py-3 text-sm font-medium text-white transition-all hover:bg-violet-500 disabled:opacity-50 shadow-lg shadow-violet-600/20"
+              className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50 shadow-lg shadow-violet-600/25"
             >
               {loading ? "注册中..." : "注册"}
             </button>

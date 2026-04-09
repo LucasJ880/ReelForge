@@ -1,0 +1,44 @@
+---
+description: "ReelForge 项目技术规范和编码约定 - 适用于所有代码文件"
+globs: "src/**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# ReelForge 编码规范
+
+## 技术栈
+- Next.js 16 App Router (Server Components + Client Components)
+- React 19, TypeScript strict
+- Tailwind CSS v4, shadcn/ui
+- Prisma ORM + Neon Postgres
+- NextAuth.js v4 (Credentials Provider, JWT strategy)
+- OpenAI SDK, 即梦/Seedance API (via 火山方舟 Ark)
+- Vercel deployment
+
+## 目录约定
+- `src/app/(app)/` — 认证后页面，使用 AppSidebar 布局
+- `src/app/(auth)/` — 登录/注册页，最小布局
+- `src/app/(public)/` — 公开页（Landing）
+- `src/app/api/` — API 路由，保持精简，委托给 services
+- `src/lib/services/` — 业务逻辑（content-service, video-service, publish-service, analytics-service, analysis-service, batch-service）
+- `src/lib/providers/` — 外部 API 封装（openai.ts, tiktok.ts, tiktok-auth.ts, jimeng.ts）
+- `src/components/ui/` — shadcn/ui 组件
+- `src/types/` — TypeScript 类型
+
+## 编码规则
+- 页面默认中文（UI 文案、提示、按钮文字）
+- API 路由不塞业务逻辑，委托给 service 层
+- Provider 层封装所有外部 API 调用
+- 所有核心实体有 status 字段和 timestamps
+- 使用 `sonner` 做 toast 通知
+- 使用 `lucide-react` 做图标
+- Dark theme 为默认主题（bg-zinc-950 基底）
+- 组件使用 `cn()` 合并 class names
+- Prisma 的 JSON 字段空值用 `Prisma.JsonNull`
+
+## 状态流
+```
+DRAFT → CONTENT_GENERATED → VIDEO_GENERATING → VIDEO_READY → PUBLISHING → PUBLISHED → ANALYTICS_FETCHED → ANALYZED
+                                ↓                                ↓
+                          VIDEO_FAILED                    PUBLISH_FAILED
+```

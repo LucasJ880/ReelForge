@@ -64,6 +64,24 @@ model Batch {
   @@index([createdAt(sort: Desc)])
 }
 
+model ProductCatalog {
+  id          String   @id @default(cuid())
+  name        String
+  productLine String
+  color       String
+  description String
+  features    String[]
+  sizes       Json
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  projects Project[]
+
+  @@index([productLine])
+  @@index([isActive])
+}
+
 model Project {
   id           String        @id @default(cuid())
   keyword      String
@@ -73,10 +91,12 @@ model Project {
   retryCount   Int           @default(0)
   batchId      String?
   batchIndex   Int?
+  productId    String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   batch          Batch?           @relation(fields: [batchId], references: [id])
+  product        ProductCatalog?  @relation(fields: [productId], references: [id])
   contentPlan    ContentPlan?
   videoJob       VideoJob?
   publication    Publication?
@@ -85,6 +105,7 @@ model Project {
   @@index([status])
   @@index([category])
   @@index([batchId])
+  @@index([productId])
   @@index([createdAt(sort: Desc)])
 }
 

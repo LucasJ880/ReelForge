@@ -1,5 +1,6 @@
 export type {
   Project,
+  ProductCatalog,
   ContentPlan,
   VideoJob,
   Publication,
@@ -32,8 +33,17 @@ export interface ProjectWithRelations {
   status: string;
   errorMessage: string | null;
   retryCount: number;
+  productId: string | null;
   createdAt: Date;
   updatedAt: Date;
+  product: {
+    id: string;
+    name: string;
+    productLine: string;
+    color: string;
+    description: string;
+    features: string[];
+  } | null;
   contentPlan: {
     id: string;
     script: string;

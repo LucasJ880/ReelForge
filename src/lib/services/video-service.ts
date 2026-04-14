@@ -23,7 +23,7 @@ export async function submitVideoJob(
 ) {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: { contentPlan: true, videoJob: true },
+    include: { contentPlan: true, videoJob: true, product: true },
   });
 
   if (!project) throw new Error("项目不存在");
@@ -42,6 +42,7 @@ export async function submitVideoJob(
 
   const { jobId } = await submitVideoGeneration({
     prompt: project.contentPlan.videoPrompt,
+    referenceImageUrl: project.product?.imageUrl || undefined,
     duration,
     resolution,
     ratio,

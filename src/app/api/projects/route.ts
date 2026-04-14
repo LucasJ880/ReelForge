@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
+        product: { select: { id: true, name: true, productLine: true, color: true } },
         contentPlan: { select: { id: true, caption: true, createdAt: true } },
         videoJob: { select: { id: true, status: true, videoUrl: true, thumbnailUrl: true } },
         publication: {
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { keyword } = body;
+  const { keyword, productId } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
@@ -78,8 +79,23 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (productId) {
+    const product = await db.productCatalog.findUnique({
+      where: { id: productId },
+    });
+    if (!product || !product.isActive) {
+      return NextResponse.json(
+        { error: "所选产品不存在或已下架" },
+        { status: 400 }
+      );
+    }
+  }
+
   const project = await db.project.create({
-    data: { keyword: keyword.trim() },
+    data: {
+      keyword: keyword.trim(),
+      productId: productId || null,
+    },
   });
 
   return NextResponse.json(project, { status: 201 });

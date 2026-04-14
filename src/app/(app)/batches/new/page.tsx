@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Zap, ChevronDown } from "lucide-react";
+import { Loader2, Zap, ChevronDown, Package } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,6 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+interface Product {
+  id: string;
+  name: string;
+  productLine: string;
+  color: string;
+}
+
+const productLineLabels: Record<string, string> = {
+  flannel: "法兰绒毛毯",
+  sherpa: "Sherpa双面毛毯",
+};
+
 export default function NewBatchPage() {
   const router = useRouter();
   const [name, setName] = useState("");
@@ -19,11 +31,21 @@ export default function NewBatchPage() {
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
+  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>("__none");
+
   const [duration, setDuration] = useState("5");
   const [ratio, setRatio] = useState("9:16");
   const [resolution, setResolution] = useState("720p");
   const [concurrency, setConcurrency] = useState("2");
   const [autoVideo, setAutoVideo] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((r) => r.json())
+      .then((data) => setProducts(data))
+      .catch(() => {});
+  }, []);
 
   const set = (fn: (v: string) => void) => (v: string | null) => {
     if (v !== null) fn(v);
@@ -46,6 +68,7 @@ export default function NewBatchPage() {
         body: JSON.stringify({
           name: name.trim(),
           keywords,
+          productId: selectedProductId === "__none" ? null : selectedProductId,
           videoParams: { duration: parseInt(duration), ratio, resolution },
           concurrency: parseInt(concurrency),
           autoGenerateVideo: autoVideo,
@@ -98,6 +121,37 @@ export default function NewBatchPage() {
           />
         </div>
 
+        {/* Product Selector */}
+        {products.length > 0 && (
+          <div>
+            <label className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2 block">
+              <Package className="inline h-3 w-3 mr-1 -mt-0.5" />
+              关联产品（所有关键词共用）
+            </label>
+            <Select value={selectedProductId} onValueChange={set(setSelectedProductId)}>
+              <SelectTrigger className="text-sm border-zinc-700 bg-zinc-900 text-zinc-100">
+                <SelectValue placeholder="不关联产品" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none">不关联产品（通用模式）</SelectItem>
+                {Object.entries(
+                  products.reduce((acc, p) => {
+                    if (!acc[p.productLine]) acc[p.productLine] = [];
+                    acc[p.productLine].push(p);
+                    return acc;
+                  }, {} as Record<string, Product[]>)
+                ).map(([line, items]) => (
+                  items.map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {productLineLabels[line] || line} — {p.color}
+                    </SelectItem>
+                  ))
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {/* Keywords */}
         <div>
           <div className="flex items-center justify-between mb-2">
@@ -109,7 +163,7 @@ export default function NewBatchPage() {
             </span>
           </div>
           <textarea
-            placeholder={"宠物用品推荐\n健身教程\n美食探店\n旅行攻略\n数码产品评测"}
+            placeholder={"宠物+毛毯\n冬日居家好物\n沙发追剧神器\n助眠好物\n圣诞礼物推荐"}
             value={keywordsText}
             onChange={(e) => setKeywordsText(e.target.value)}
             disabled={loading}

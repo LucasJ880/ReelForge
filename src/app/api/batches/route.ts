@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, keywords, videoParams, concurrency, autoGenerateVideo, autoStart } = body;
+    const { name, keywords, productId, videoParams, concurrency, autoGenerateVideo, autoStart } = body;
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "请输入批次名称" }, { status: 400 });
@@ -35,6 +35,7 @@ export async function POST(request: NextRequest) {
     const batch = await createBatch({
       name,
       keywords: validKeywords,
+      productId: productId || null,
       videoParams,
       concurrency: concurrency ?? 2,
       autoGenerateVideo: autoGenerateVideo ?? true,

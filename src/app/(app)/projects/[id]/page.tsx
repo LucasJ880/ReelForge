@@ -12,6 +12,7 @@ export default async function ProjectDetailPage({ params }: Props) {
   const project = await db.project.findUnique({
     where: { id },
     include: {
+      product: { select: { id: true, name: true, productLine: true, color: true, description: true, features: true } },
       contentPlan: true,
       videoJob: true,
       publication: {

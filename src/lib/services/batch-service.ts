@@ -7,13 +7,14 @@ import type { VideoParams } from "./video-service";
 export interface CreateBatchInput {
   name: string;
   keywords: string[];
+  productId?: string | null;
   videoParams?: VideoParams;
   concurrency?: number;
   autoGenerateVideo?: boolean;
 }
 
 export async function createBatch(input: CreateBatchInput) {
-  const { name, keywords, videoParams, concurrency = 2, autoGenerateVideo = true } = input;
+  const { name, keywords, productId, videoParams, concurrency = 2, autoGenerateVideo = true } = input;
 
   if (!keywords.length) throw new Error("至少需要一个关键词");
   if (keywords.length > 50) throw new Error("单批次最多 50 个关键词");
@@ -29,6 +30,7 @@ export async function createBatch(input: CreateBatchInput) {
         create: keywords.map((kw, i) => ({
           keyword: kw.trim(),
           batchIndex: i,
+          productId: productId || null,
         })),
       },
     },

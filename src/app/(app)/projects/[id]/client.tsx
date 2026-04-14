@@ -172,6 +172,11 @@ export function ProjectDetailClient({
             <h1 className="text-xl font-semibold tracking-tight text-white">
               {project.keyword}
             </h1>
+            {project.product && (
+              <p className="text-xs text-violet-400/80 mt-0.5">
+                {project.product.name}
+              </p>
+            )}
             <p className="text-xs text-zinc-400 mt-1">
               {formatDate(project.createdAt)}
             </p>

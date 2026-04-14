@@ -11,6 +11,7 @@
 
 export interface VideoGenerationOptions {
   prompt: string;
+  referenceImageUrl?: string;
   duration?: number;
   resolution?: string;
   ratio?: string;
@@ -111,14 +112,16 @@ async function submitReal(
 
   if (!apiKey) throw new Error("ARK_API_KEY 未配置");
 
+  const content: Array<Record<string, string>> = [];
+
+  if (options.referenceImageUrl) {
+    content.push({ type: "image_url", image_url: options.referenceImageUrl });
+  }
+  content.push({ type: "text", text: options.prompt });
+
   const body = {
     model,
-    content: [
-      {
-        type: "text",
-        text: options.prompt,
-      },
-    ],
+    content,
     resolution: options.resolution || "720p",
     ratio: options.ratio || "9:16",
     duration: options.duration || 5,

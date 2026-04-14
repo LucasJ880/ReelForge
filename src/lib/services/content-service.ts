@@ -1,11 +1,11 @@
 import { db } from "@/lib/db";
-import { generateContent } from "@/lib/providers/openai";
+import { generateContent, type ProductContext } from "@/lib/providers/openai";
 import { Prisma, ProjectStatus } from "@prisma/client";
 
 export async function generateContentPlan(projectId: string) {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: { contentPlan: true },
+    include: { contentPlan: true, product: true },
   });
 
   if (!project) throw new Error("项目不存在");
@@ -17,7 +17,23 @@ export async function generateContentPlan(projectId: string) {
     throw new Error(`当前状态 ${project.status} 不允许生成内容`);
   }
 
-  const result = await generateContent({ keyword: project.keyword });
+  let productContext: ProductContext | undefined;
+  if (project.product) {
+    const sizes = project.product.sizes as Array<{ name: string; dimensions: string }>;
+    productContext = {
+      name: project.product.name,
+      productLine: project.product.productLine,
+      color: project.product.color,
+      description: project.product.description,
+      features: project.product.features,
+      sizes: sizes.map((s) => `${s.name} ${s.dimensions}`),
+    };
+  }
+
+  const result = await generateContent({
+    keyword: project.keyword,
+    productContext,
+  });
 
   if (project.contentPlan) {
     const updated = await db.contentPlan.update({

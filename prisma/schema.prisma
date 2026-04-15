@@ -82,6 +82,41 @@ model ProductCatalog {
   @@index([isActive])
 }
 
+model TrendReference {
+  id              String    @id @default(cuid())
+  sourceUrl       String?
+  platform        String    @default("tiktok")
+  title           String?
+  description     String?
+  authorName      String?
+  hashtags        String[]
+  viewCount       Int?
+  likeCount       Int?
+  commentCount    Int?
+  shareCount      Int?
+  styleAnalysis   Json?
+  visualAnalysis  Json?
+  thumbnailUrl    String?
+  duration        Int?
+  publishedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  projects Project[]
+
+  @@index([platform])
+  @@index([createdAt(sort: Desc)])
+}
+
+model SearchKeyword {
+  id         String    @id @default(cuid())
+  keyword    String    @unique
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([isActive])
+}
+
 model Project {
   id           String        @id @default(cuid())
   keyword      String
@@ -92,11 +127,13 @@ model Project {
   batchId      String?
   batchIndex   Int?
   productId    String?
+  trendRefId   String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
 
   batch          Batch?           @relation(fields: [batchId], references: [id])
   product        ProductCatalog?  @relation(fields: [productId], references: [id])
+  trendRef       TrendReference?  @relation(fields: [trendRefId], references: [id])
   contentPlan    ContentPlan?
   videoJob       VideoJob?
   publication    Publication?
@@ -106,6 +143,7 @@ model Project {
   @@index([category])
   @@index([batchId])
   @@index([productId])
+  @@index([trendRefId])
   @@index([createdAt(sort: Desc)])
 }
 

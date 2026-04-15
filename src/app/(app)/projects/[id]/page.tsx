@@ -13,6 +13,7 @@ export default async function ProjectDetailPage({ params }: Props) {
     where: { id },
     include: {
       product: { select: { id: true, name: true, productLine: true, color: true, description: true, features: true } },
+      trendRef: { select: { id: true, sourceUrl: true, platform: true, title: true, authorName: true, thumbnailUrl: true, viewCount: true, likeCount: true, styleAnalysis: true } },
       contentPlan: true,
       videoJob: true,
       publication: {

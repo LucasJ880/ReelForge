@@ -1,11 +1,17 @@
 import { db } from "@/lib/db";
-import { generateContent, type ProductContext } from "@/lib/providers/openai";
+import {
+  generateContent,
+  type ProductContext,
+  type TrendStyleContext,
+  type TrendReferenceContext,
+} from "@/lib/providers/openai";
 import { Prisma, ProjectStatus } from "@prisma/client";
+import type { ViralStyleAnalysis, ThumbnailVisualAnalysis } from "@/types";
 
 export async function generateContentPlan(projectId: string) {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: { contentPlan: true, product: true },
+    include: { contentPlan: true, product: true, trendRef: true },
   });
 
   if (!project) throw new Error("项目不存在");
@@ -30,9 +36,58 @@ export async function generateContentPlan(projectId: string) {
     };
   }
 
+  let trendStyle: TrendStyleContext | undefined;
+  let trendReferences: TrendReferenceContext[] | undefined;
+
+  if (project.trendRef) {
+    const sa = project.trendRef.styleAnalysis as unknown as ViralStyleAnalysis | null;
+    const va = project.trendRef.visualAnalysis as unknown as ThumbnailVisualAnalysis | null;
+
+    if (sa) {
+      trendStyle = {
+        narrativeStyle: sa.narrativeStyle,
+        emotionalTone: sa.emotionalTone,
+        hookStrategy: sa.hookStrategy,
+        contentStructure: sa.contentStructure,
+        visualStyle: sa.visualStyle,
+        originalTitle: project.trendRef.title || undefined,
+      };
+    }
+
+    if (sa || va) {
+      trendReferences = [
+        {
+          title: project.trendRef.title || undefined,
+          platform: project.trendRef.platform,
+          viewCount: project.trendRef.viewCount || undefined,
+          styleAnalysis: sa
+            ? {
+                narrativeStyle: sa.narrativeStyle,
+                emotionalTone: sa.emotionalTone,
+                hookStrategy: sa.hookStrategy,
+                contentStructure: sa.contentStructure,
+                visualStyle: sa.visualStyle,
+              }
+            : undefined,
+          visualAnalysis: va
+            ? {
+                colorPalette: va.colorPalette,
+                overallMood: va.overallMood,
+                suggestedVideoStyle: va.suggestedVideoStyle,
+                sceneType: va.sceneType,
+                lightingStyle: va.lightingStyle,
+              }
+            : undefined,
+        },
+      ];
+    }
+  }
+
   const result = await generateContent({
     keyword: project.keyword,
     productContext,
+    trendStyle,
+    trendReferences,
   });
 
   if (project.contentPlan) {

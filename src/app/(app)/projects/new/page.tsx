@@ -3,7 +3,17 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Package, ChevronDown, Check } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Package,
+  ChevronDown,
+  Check,
+  Flame,
+  X,
+  Eye,
+  Heart,
+} from "lucide-react";
 
 interface Product {
   id: string;
@@ -12,6 +22,18 @@ interface Product {
   color: string;
   description: string;
   features: string[];
+}
+
+interface TrendRef {
+  id: string;
+  platform: string;
+  title: string | null;
+  authorName: string | null;
+  thumbnailUrl: string | null;
+  viewCount: number | null;
+  likeCount: number | null;
+  styleAnalysis: Record<string, string> | null;
+  visualAnalysis: Record<string, string> | null;
 }
 
 const suggestions = [
@@ -32,6 +54,19 @@ const productLineLabels: Record<string, string> = {
   sherpa: "Sherpa双面毛毯",
 };
 
+const PLATFORM_LABELS: Record<string, { label: string; color: string }> = {
+  tiktok: { label: "TikTok", color: "bg-pink-500/15 text-pink-400" },
+  instagram: { label: "Instagram", color: "bg-purple-500/15 text-purple-400" },
+  facebook: { label: "Facebook", color: "bg-blue-500/15 text-blue-400" },
+};
+
+function formatCount(n: number | null | undefined): string {
+  if (!n) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
+}
+
 export default function NewProjectPage() {
   const router = useRouter();
   const [keyword, setKeyword] = useState("");
@@ -43,12 +78,25 @@ export default function NewProjectPage() {
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
   const [productFilter, setProductFilter] = useState<string>("");
 
+  const [trendLibrary, setTrendLibrary] = useState<TrendRef[]>([]);
+  const [selectedRefs, setSelectedRefs] = useState<TrendRef[]>([]);
+  const [refPickerOpen, setRefPickerOpen] = useState(false);
+
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
       .then((data) => setProducts(data))
       .catch(() => toast.error("加载产品列表失败"));
   }, []);
+
+  useEffect(() => {
+    if (refPickerOpen && trendLibrary.length === 0) {
+      fetch("/api/trends?limit=50")
+        .then((r) => r.json())
+        .then(setTrendLibrary)
+        .catch(() => toast.error("加载参考库失败"));
+    }
+  }, [refPickerOpen, trendLibrary.length]);
 
   const selectedProduct = products.find((p) => p.id === selectedProductId);
 
@@ -72,6 +120,18 @@ export default function NewProjectPage() {
     {} as Record<string, Product[]>
   );
 
+  function toggleRef(ref: TrendRef) {
+    setSelectedRefs((prev) => {
+      const exists = prev.find((r) => r.id === ref.id);
+      if (exists) return prev.filter((r) => r.id !== ref.id);
+      if (prev.length >= 3) {
+        toast.error("最多选择 3 个参考");
+        return prev;
+      }
+      return [...prev, ref];
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword.trim() || loading) return;
@@ -85,6 +145,7 @@ export default function NewProjectPage() {
         body: JSON.stringify({
           keyword: keyword.trim(),
           productId: selectedProductId,
+          trendRefId: selectedRefs[0]?.id || null,
         }),
       });
       if (!res.ok) throw new Error("创建失败");
@@ -167,7 +228,6 @@ export default function NewProjectPage() {
                 />
               </div>
               <div className="overflow-y-auto max-h-52 p-1">
-                {/* "No product" option */}
                 <button
                   type="button"
                   onClick={() => {
@@ -225,6 +285,61 @@ export default function NewProjectPage() {
         )}
       </div>
 
+      {/* Trend Reference Selector */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-zinc-400 mb-2">
+          <Flame className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          参考爆款（可选，最多 3 个）
+        </label>
+
+        {selectedRefs.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {selectedRefs.map((ref) => (
+              <div
+                key={ref.id}
+                className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-2.5 py-1.5"
+              >
+                {ref.thumbnailUrl && (
+                  <img
+                    src={ref.thumbnailUrl}
+                    alt=""
+                    className="w-8 h-10 rounded object-cover"
+                  />
+                )}
+                <div className="min-w-0">
+                  <p className="text-[11px] text-white truncate max-w-[120px]">
+                    {ref.title || "无标题"}
+                  </p>
+                  <span
+                    className={`inline-block rounded-full px-1.5 py-0.5 text-[8px] font-medium ${PLATFORM_LABELS[ref.platform]?.color || "bg-zinc-800 text-zinc-400"}`}
+                  >
+                    {PLATFORM_LABELS[ref.platform]?.label || ref.platform}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => toggleRef(ref)}
+                  className="text-zinc-500 hover:text-white transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setRefPickerOpen(true)}
+          disabled={loading}
+          className="w-full rounded-xl border border-dashed border-zinc-700 bg-zinc-900/50 px-4 py-3 text-sm text-zinc-500 hover:border-amber-500/40 hover:text-amber-400 transition-all disabled:opacity-50"
+        >
+          {selectedRefs.length > 0
+            ? `+ 添加更多参考（已选 ${selectedRefs.length}/3）`
+            : "从参考库选择爆款视频..."}
+        </button>
+      </div>
+
       {/* Keyword Input */}
       <form onSubmit={handleSubmit}>
         <label className="block text-xs font-medium text-zinc-400 mb-2">
@@ -278,7 +393,6 @@ export default function NewProjectPage() {
         </div>
       </form>
 
-      {/* More suggestions */}
       {!loading && (
         <div className="mt-4 flex flex-wrap gap-1.5">
           {suggestions.slice(4).map((s) => (
@@ -298,10 +412,108 @@ export default function NewProjectPage() {
         <div className="mt-6 flex items-center gap-3 text-sm text-violet-400">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>
-            AI 正在为
+            AI 正在
+            {selectedRefs.length > 0 ? "参考爆款风格，" : ""}
+            为
             {selectedProduct && `「${selectedProduct.color}」× `}
             「{keyword}」构思内容方案...
           </span>
+        </div>
+      )}
+
+      {/* Reference Picker Modal */}
+      {refPickerOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+          onClick={() => setRefPickerOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl max-h-[80vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-900 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-white">
+                从参考库选择（已选 {selectedRefs.length}/3）
+              </h3>
+              <button
+                onClick={() => setRefPickerOpen(false)}
+                className="text-zinc-500 hover:text-white transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {trendLibrary.length === 0 ? (
+              <div className="text-center py-12 text-zinc-600 text-sm">
+                参考库为空，先去
+                <a href="/trends" className="text-amber-400 hover:underline ml-1">
+                  爆款参考库
+                </a>
+                {" "}搜索入库
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {trendLibrary.map((ref) => {
+                  const isSelected = selectedRefs.some((r) => r.id === ref.id);
+                  return (
+                    <div
+                      key={ref.id}
+                      onClick={() => toggleRef(ref)}
+                      className={`group rounded-xl border overflow-hidden cursor-pointer transition-all ${
+                        isSelected
+                          ? "border-amber-500/40 bg-amber-500/5 ring-1 ring-amber-500/20"
+                          : "border-zinc-800 hover:border-zinc-700"
+                      }`}
+                    >
+                      {ref.thumbnailUrl && (
+                        <div className="relative">
+                          <img
+                            src={ref.thumbnailUrl}
+                            alt=""
+                            className="w-full h-24 object-cover"
+                          />
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 rounded-full bg-amber-500 p-0.5">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                          <span
+                            className={`absolute bottom-1.5 left-1.5 rounded-full px-1.5 py-0.5 text-[8px] font-medium backdrop-blur-sm ${PLATFORM_LABELS[ref.platform]?.color || "bg-zinc-800 text-zinc-400"}`}
+                          >
+                            {PLATFORM_LABELS[ref.platform]?.label}
+                          </span>
+                        </div>
+                      )}
+                      <div className="p-2">
+                        <p className="text-[11px] text-white line-clamp-1">
+                          {ref.title || "无标题"}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="flex items-center gap-0.5 text-[9px] text-zinc-500">
+                            <Eye className="h-2.5 w-2.5" />
+                            {formatCount(ref.viewCount)}
+                          </span>
+                          <span className="flex items-center gap-0.5 text-[9px] text-zinc-500">
+                            <Heart className="h-2.5 w-2.5" />
+                            {formatCount(ref.likeCount)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setRefPickerOpen(false)}
+                className="rounded-lg bg-amber-600/80 px-4 py-2 text-sm font-medium text-white hover:bg-amber-600 transition-colors"
+              >
+                确定（{selectedRefs.length} 个）
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

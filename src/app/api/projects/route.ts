@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { keyword, productId } = body;
+  const { keyword, productId, trendRefId } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
     data: {
       keyword: keyword.trim(),
       productId: productId || null,
+      trendRefId: trendRefId || null,
     },
   });
 

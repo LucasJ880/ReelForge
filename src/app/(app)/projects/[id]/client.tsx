@@ -177,6 +177,12 @@ export function ProjectDetailClient({
                 {project.product.name}
               </p>
             )}
+            {project.trendRef && (
+              <p className="text-xs text-amber-400/80 mt-0.5">
+                灵感参考：{project.trendRef.title?.slice(0, 40) || "TikTok 爆款视频"}
+                {project.trendRef.authorName && ` · @${project.trendRef.authorName}`}
+              </p>
+            )}
             <p className="text-xs text-zinc-400 mt-1">
               {formatDate(project.createdAt)}
             </p>

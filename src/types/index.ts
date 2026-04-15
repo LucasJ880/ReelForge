@@ -1,6 +1,8 @@
 export type {
   Project,
   ProductCatalog,
+  TrendReference,
+  SearchKeyword,
   ContentPlan,
   VideoJob,
   Publication,
@@ -26,6 +28,38 @@ export interface TokenUsage {
   totalTokens: number;
 }
 
+export interface ViralStyleAnalysis {
+  narrativeStyle: string;
+  emotionalTone: string;
+  hookStrategy: string;
+  contentStructure: string;
+  visualStyle: string;
+  successFactors?: string[];
+}
+
+export interface ThumbnailVisualAnalysis {
+  colorPalette: string;
+  lightingStyle: string;
+  sceneType: string;
+  overallMood: string;
+  productPresentation: string;
+  suggestedVideoStyle: string;
+}
+
+export interface TrendReferenceInfo {
+  id: string;
+  sourceUrl: string | null;
+  platform: string;
+  title: string | null;
+  authorName: string | null;
+  thumbnailUrl: string | null;
+  viewCount: number | null;
+  likeCount: number | null;
+  duration: number | null;
+  styleAnalysis: ViralStyleAnalysis | null;
+  visualAnalysis: ThumbnailVisualAnalysis | null;
+}
+
 export interface ProjectWithRelations {
   id: string;
   keyword: string;
@@ -34,6 +68,7 @@ export interface ProjectWithRelations {
   errorMessage: string | null;
   retryCount: number;
   productId: string | null;
+  trendRefId: string | null;
   createdAt: Date;
   updatedAt: Date;
   product: {
@@ -44,6 +79,7 @@ export interface ProjectWithRelations {
     description: string;
     features: string[];
   } | null;
+  trendRef: TrendReferenceInfo | null;
   contentPlan: {
     id: string;
     script: string;

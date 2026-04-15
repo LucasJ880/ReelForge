@@ -20,6 +20,10 @@ async function getFFmpeg(): Promise<FFmpeg> {
   return ffmpeg;
 }
 
+function proxyUrl(url: string): string {
+  return `/api/proxy-video?url=${encodeURIComponent(url)}`;
+}
+
 export async function stitchVideos(
   url1: string,
   url2: string,
@@ -30,8 +34,8 @@ export async function stitchVideos(
   onProgress?.(20);
 
   const [data1, data2] = await Promise.all([
-    fetchFile(url1),
-    fetchFile(url2),
+    fetchFile(proxyUrl(url1)),
+    fetchFile(proxyUrl(url2)),
   ]);
   onProgress?.(40);
 

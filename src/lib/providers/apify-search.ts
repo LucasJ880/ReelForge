@@ -2,14 +2,34 @@
  * Apify 跨平台爆款短视频搜索 Provider
  *
  * 支持平台：TikTok / Instagram Reels / Facebook Reels
- * 通过 Apify Actor 关键词搜索，返回统一的 TrendCandidate 格式
+ * 通过 Apify REST API 关键词搜索，返回统一的 TrendCandidate 格式
+ * 使用 REST API 而非 SDK 以避免 Turbopack 动态导入兼容问题
  */
 
-import { ApifyClient } from "apify-client";
+const APIFY_BASE = "https://api.apify.com/v2";
 
-const client = new ApifyClient({
-  token: process.env.APIFY_TOKEN,
-});
+function getToken() {
+  const token = process.env.APIFY_TOKEN;
+  if (!token) throw new Error("APIFY_TOKEN 未配置");
+  return token;
+}
+
+async function apifyFetch(path: string, opts?: RequestInit) {
+  const url = `${APIFY_BASE}${path}`;
+  const res = await fetch(url, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${getToken()}`,
+      ...opts?.headers,
+    },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Apify API ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
 
 export type Platform = "tiktok" | "instagram" | "facebook";
 
@@ -45,20 +65,35 @@ function extractHashtags(text: string): string[] {
 function normalizeTikTok(item: Record<string, unknown>): TrendCandidate {
   const desc = (item.desc ?? item.description ?? item.text ?? "") as string;
   const title = (item.title ?? desc.slice(0, 100)) as string;
+  const author = item.author as Record<string, unknown> | undefined;
+  const stats = item.stats as Record<string, unknown> | undefined;
+  const video = item.video as Record<string, unknown> | undefined;
+  const challenges = item.challenges as Array<{ title?: string }> | undefined;
+
+  const uniqueId = author?.uniqueId as string | undefined;
+  const videoId = item.id as string | undefined;
+  const constructedUrl = uniqueId && videoId
+    ? `https://www.tiktok.com/@${uniqueId}/video/${videoId}`
+    : "";
+
+  const hashtags = challenges?.length
+    ? challenges.map((c) => `#${c.title}`).filter(Boolean)
+    : extractHashtags(desc);
+
   return {
-    sourceUrl: (item.webVideoUrl ?? item.url ?? item.videoUrl ?? "") as string,
+    sourceUrl: (item.webVideoUrl ?? item.url ?? item.videoUrl ?? constructedUrl) as string,
     platform: "tiktok",
     title,
     description: desc,
-    authorName: (item.authorName ?? (item.author as Record<string, unknown>)?.nickname ?? "") as string,
-    thumbnailUrl: (item.coverUrl ?? item.thumbnail ?? item.cover ?? "") as string,
-    viewCount: Number(item.playCount ?? item.views ?? item.viewCount ?? 0),
-    likeCount: Number(item.diggCount ?? item.likes ?? item.likeCount ?? 0),
-    commentCount: Number(item.commentCount ?? item.comments ?? 0),
-    shareCount: Number(item.shareCount ?? item.shares ?? 0),
-    duration: Number(item.duration ?? 0) || undefined,
+    authorName: (item.authorName ?? author?.nickname ?? "") as string,
+    thumbnailUrl: (item.coverUrl ?? item.thumbnail ?? (video?.cover as string) ?? item.cover ?? "") as string,
+    viewCount: Number(stats?.playCount ?? item.playCount ?? item.views ?? item.viewCount ?? 0),
+    likeCount: Number(stats?.diggCount ?? item.diggCount ?? item.likes ?? item.likeCount ?? 0),
+    commentCount: Number(stats?.commentCount ?? item.commentCount ?? item.comments ?? 0),
+    shareCount: Number(stats?.shareCount ?? item.shareCount ?? item.shares ?? 0),
+    duration: Number((video?.duration as number) ?? item.duration ?? 0) || undefined,
     publishedAt: (item.createTime ?? item.publishedAt ?? undefined) as string | undefined,
-    hashtags: extractHashtags(desc),
+    hashtags,
   };
 }
 
@@ -116,15 +151,19 @@ async function searchPlatform(
   const actorId = ACTOR_IDS[platform];
   const normalize = NORMALIZERS[platform];
 
-  const run = await client.actor(actorId).call(
-    { keyword, maxResults: limit },
-    { waitSecs: 120 }
+  const encodedActor = encodeURIComponent(actorId);
+  const runData = await apifyFetch(
+    `/acts/${encodedActor}/run-sync-get-dataset-items?token=${getToken()}`,
+    {
+      method: "POST",
+      body: JSON.stringify({ keyword, maxResults: limit }),
+    }
   );
 
-  const { items } = await client.dataset(run.defaultDatasetId).listItems();
+  const items = Array.isArray(runData) ? runData : [];
 
-  return (items as Record<string, unknown>[])
-    .map((item) => {
+  return items
+    .map((item: Record<string, unknown>) => {
       try {
         return normalize(item);
       } catch {
@@ -165,6 +204,7 @@ export async function searchAllPlatforms(
   const all: TrendCandidate[] = [];
   for (const r of results) {
     if (r.status === "fulfilled") all.push(...r.value);
+    else console.error("[apify-search] Platform search failed:", r.reason);
   }
 
   const seen = new Set<string>();

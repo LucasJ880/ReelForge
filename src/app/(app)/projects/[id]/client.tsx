@@ -87,7 +87,11 @@ export function ProjectDetailClient({
     setVideoSubmitting(true);
     setVideoProgress(0);
     try {
-      const res = await fetch(`/api/projects/${project.id}/video`, { method: "POST" });
+      const res = await fetch(`/api/projects/${project.id}/video`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duration: 10 }),
+      });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "视频生成失败"); }
       toast.info("视频生成已提交");
       router.refresh();
@@ -179,7 +183,7 @@ export function ProjectDetailClient({
             )}
             {project.trendRef && (
               <p className="text-xs text-amber-400/80 mt-0.5">
-                灵感参考：{project.trendRef.title?.slice(0, 40) || "TikTok 爆款视频"}
+                灵感参考：{project.trendRef.title?.slice(0, 40) || "爆款视频参考"}
                 {project.trendRef.authorName && ` · @${project.trendRef.authorName}`}
               </p>
             )}

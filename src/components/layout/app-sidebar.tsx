@@ -52,9 +52,12 @@ export function AppSidebar() {
         <nav className="flex-1 px-3 space-y-5">
           <div className="space-y-1">
             {mainNav.map((item) => {
+              const createPaths = ["/projects/new", "/batches/new"];
               const isActive =
                 pathname === item.href ||
-                (item.href !== "/dashboard" && pathname.startsWith(item.href));
+                (item.href !== "/dashboard" &&
+                  pathname.startsWith(item.href) &&
+                  !createPaths.includes(pathname));
               return (
                 <Link
                   key={item.href}

@@ -34,7 +34,7 @@ export default function NewBatchPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>("__none");
 
-  const [duration, setDuration] = useState("5");
+  const [duration, setDuration] = useState("10");
   const [ratio, setRatio] = useState("9:16");
   const [resolution, setResolution] = useState("720p");
   const [concurrency, setConcurrency] = useState("2");
@@ -129,10 +129,10 @@ export default function NewBatchPage() {
               关联产品（所有关键词共用）
             </label>
             <Select value={selectedProductId} onValueChange={set(setSelectedProductId)}>
-              <SelectTrigger className="text-sm border-zinc-700 bg-zinc-900 text-zinc-100">
+              <SelectTrigger className="w-full text-sm border-zinc-700 bg-zinc-900 text-zinc-100">
                 <SelectValue placeholder="不关联产品" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="min-w-[320px]">
                 <SelectItem value="__none">不关联产品（通用模式）</SelectItem>
                 {Object.entries(
                   products.reduce((acc, p) => {
@@ -184,13 +184,13 @@ export default function NewBatchPage() {
           </button>
           {!showAdvanced && (
             <p className="text-[11px] text-zinc-500 mt-1">
-              默认：5秒 · 9:16竖屏 · 720p · 并发2
+              默认：10秒 · 9:16竖屏 · 720p · 并发2
             </p>
           )}
           {showAdvanced && (
             <div className="mt-4 grid grid-cols-2 gap-4">
               <FieldSelect label="视频时长" value={duration} onValueChange={set(setDuration)}
-                options={[{ v: "5", l: "5 秒" }, { v: "10", l: "10 秒" }]} />
+                options={[{ v: "5", l: "5 秒" }, { v: "10", l: "10 秒" }, { v: "15", l: "15 秒" }]} />
               <FieldSelect label="画面比例" value={ratio} onValueChange={set(setRatio)}
                 options={[{ v: "9:16", l: "9:16 竖屏" }, { v: "16:9", l: "16:9 横屏" }, { v: "1:1", l: "1:1 方形" }]} />
               <FieldSelect label="分辨率" value={resolution} onValueChange={set(setResolution)}

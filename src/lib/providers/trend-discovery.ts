@@ -59,11 +59,6 @@ export function isValidVideoUrl(url: string): boolean {
   return detectPlatform(url) !== null;
 }
 
-/** @deprecated Use isValidVideoUrl + detectPlatform instead */
-export function isValidTikTokUrl(url: string): boolean {
-  return detectPlatform(url) === "tiktok";
-}
-
 function extractHashtags(text: string): string[] {
   const matches = text.match(/#[\w\u4e00-\u9fff]+/g);
   return matches ? [...new Set(matches)] : [];

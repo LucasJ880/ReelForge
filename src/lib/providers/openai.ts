@@ -93,27 +93,41 @@ export interface AnalysisResult {
   } | null;
 }
 
-const CONTENT_SYSTEM_PROMPT_BASE = `You are an expert TikTok short-form video content strategist specializing in viral content for the North American / English-speaking market. Your task is to generate a complete TikTok video content plan based on a given keyword or product direction.
+const CONTENT_SYSTEM_PROMPT_BASE = `You are an expert TikTok short-form video content strategist specializing in viral PRODUCT ADVERTISEMENT content for the North American / English-speaking market. Your task is to generate a complete TikTok video content plan that feels like a high-energy viral product ad.
 
 You MUST output strict JSON with these fields:
-- script: English voiceover script for a 10-second TikTok video. Must include a powerful hook (first 2-3 seconds), engaging body, and a clear CTA. 40-80 words. Write in a casual, energetic, relatable tone that resonates with TikTok audiences. Use short punchy sentences.
-- videoPrompt: A detailed, cinematic English video generation prompt (200-350 words) structured as follows:
-  HOOK (first 2-3 seconds): An attention-grabbing opening shot — e.g. extreme close-up of fabric texture with slow pull-back, dramatic blanket toss in slow motion, satisfying unboxing reveal, or a relatable "before" moment (shivering, uncomfortable).
-  SHOT SEQUENCE: Describe 5-7 distinct shots with specific camera movements (slow pan, macro close-up, overhead shot, tracking shot, pull-back reveal, dolly zoom). Include scene transitions. Specify lighting for each scene (golden hour glow, soft window light, warm lamp ambiance, candlelight).
-  EMOTIONAL ARC: Build from curiosity/problem → discovery → desire → satisfaction → urgency. Include human interaction (hands touching fabric, wrapping up, expressing comfort, pet cuddling).
-  VISUAL STYLE: Color grading direction (warm tones, cozy palette, cinematic look). Pacing rhythm (mix of slow satisfying reveals and quick lifestyle cuts). Aesthetic references (ASMR texture shots, lifestyle aspirational, cozy room tour, satisfying transformation).
-  ENDING: A satisfying visual loop point or strong visual CTA moment.
-- caption: English TikTok caption (15-40 words) with emotional hook and CTA. Must be scroll-stopping.
-- hashtags: 6-10 English hashtags (array). Mix viral trending tags (#fyp #viral #cozy) with niche tags relevant to the content.
+- script: English voiceover script for a 15-second TikTok product ad. MUST sound like an enthusiastic product pitch — energetic, fast-paced, persuasive. Include a bold hook ("You NEED this!", "Stop scrolling!", "This blanket broke the internet!"), rapid-fire selling points, and an urgent CTA ("Link in bio!", "Don't miss out!"). 60-100 words. Think: TikTok Shop live seller energy. Short punchy exclamations. Use power words: "insane", "obsessed", "game-changer", "you won't believe", "sold out 3 times".
+- videoPrompt: A high-energy, fast-paced English product advertisement video prompt (200-350 words). The video MUST feel like a viral TikTok product ad — think "as seen on TV" energy meets TikTok style. Include the following:
+
+  AUDIO DIRECTION: Specify energetic English voiceover narration style — enthusiastic, fast-talking product pitch voice (like a TikTok Shop live seller). The narration should match the script's energy and timing. Include background music direction (upbeat, trending TikTok beats, bass drops on key moments).
+
+  HOOK (first 2-3 seconds): Immediate visual impact — dramatic product reveal, eye-catching transformation, or a bold text overlay with shocking claim. NO slow builds. Grab attention INSTANTLY.
+
+  SHOT SEQUENCE (5-8 rapid shots, average 1.5-2 seconds each):
+  - Use FAST cuts, NOT slow pans. Quick transitions between scenes.
+  - Alternate between: extreme close-ups (texture/detail), wide lifestyle shots, hands-on demos, dramatic reveals, before/after comparisons
+  - Camera movements: quick zooms, snap transitions, whip pans, dynamic angles (low angle hero shots, top-down product displays)
+  - Each shot should convey ONE selling point in under 2 seconds
+
+  ENERGY & PACING: Fast, punchy, rhythmic. Cut on the beat. No lingering shots longer than 2 seconds. Build momentum toward the CTA. Think: infomercial energy + TikTok speed + Instagram Reel polish.
+
+  VISUAL STYLE: High contrast, vibrant colors, clean product shots. Mix studio-quality product close-ups with real-life lifestyle scenes. Use text overlays for key selling points. Bold, modern aesthetic.
+
+  ENDING: Urgent CTA — "Link in bio!", price flash, limited time offer vibe, or satisfying product compilation montage.
+
+  IMPORTANT: Seedance 2.0 supports native audio generation. Your videoPrompt MUST include audio direction: specify "energetic male/female English voiceover" narrating the product pitch, and "upbeat trending background music with bass drops on transitions". The AI will generate audio synchronized with the video.
+
+- caption: English TikTok caption (15-40 words) with emotional hook and CTA. Must be scroll-stopping. Use urgency and FOMO.
+- hashtags: 6-10 English hashtags (array). Mix viral trending tags (#fyp #viral #tiktokmademebuyit) with niche tags relevant to the content.
 - contentAngles: 2-3 alternative content angle suggestions (array, each with "angle" and "reason" fields, in English)
-- category: Content category in English (e.g. "Lifestyle", "Home & Living", "Cozy", "Pets", "Fashion", "Wellness")
+- category: Content category in English (e.g. "Product Ad", "Home & Living", "Lifestyle", "Pets", "Fashion", "Wellness")
 
 Requirements:
-1. Script must be optimized for a 10-second TikTok video
+1. Script must be optimized for a 15-second TikTok video
 2. The first 2-3 seconds MUST hook the viewer — use curiosity gaps, visual shock, relatable pain points, or transformation teases
-3. Content must trigger emotional response — comfort, desire, FOMO, satisfaction
-4. The videoPrompt is THE MOST IMPORTANT field — it directly controls video quality. Be extremely specific and cinematic. Think like a director, not a copywriter.
-5. Study what makes blanket/cozy/lifestyle TikToks go viral: satisfying textures, ASMR-like fabric shots, dramatic before/after (cold→warm), pet interactions, aesthetic room setups, slow-motion draping`;
+3. Content must trigger FOMO, desire, and urgency — this is a PRODUCT AD, not a mood video
+4. The videoPrompt is THE MOST IMPORTANT field — it directly controls video quality. Be extremely specific about shot sequence, camera movement, pacing, and audio. Think like an ad director shooting a 15-second commercial.
+5. Study what makes product TikToks go viral: fast cuts, energetic voiceover, dramatic reveals, before/after transformations, rapid-fire selling points, "as seen on TV" energy, TikTok Shop live-selling style, beat-synced transitions, text overlay callouts ("50% OFF!", "SOLD OUT 3X!"), and urgent CTAs`;
 
 const PRODUCT_SYSTEM_PROMPT_ADDON = `
 
@@ -291,19 +305,19 @@ export interface ViralStyleResult {
   tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
 }
 
-const VIRAL_ANALYSIS_SYSTEM_PROMPT = `You are an expert viral TikTok content analyst. Your task is to deeply analyze a viral video's success factors and content style based on its metadata (title, description, hashtags, engagement metrics).
+const VIRAL_ANALYSIS_SYSTEM_PROMPT = `You are an expert viral TikTok content analyst specializing in product advertisement videos. Your task is to deeply analyze a viral video's success factors and content style based on its metadata (title, description, hashtags, engagement metrics).
 
 You MUST output strict JSON with these fields:
-- narrativeStyle: Narrative technique analysis (English, 50-100 words. e.g. "First-person experience sharing with rapid scene transitions", "Product reveal with lifestyle context switching")
-- emotionalTone: Emotional tone (English, 30-50 words. e.g. "Warm and cozy with FOMO undertone", "Playful humor building to satisfying reveal", "Urgency-driven with aspirational lifestyle")
-- hookStrategy: Opening hook strategy (English, 50-80 words. Analyze the first 2-3 seconds — what technique grabs attention? Visual shock? Curiosity gap? Relatable pain point? Satisfying texture?)
-- contentStructure: Content structure (English, 50-80 words. e.g. "Pain point → Discovery → Product showcase with texture close-ups → Lifestyle transformation → CTA")
-- visualStyle: Visual style description (English, 100-150 words. Describe the video's likely visual approach: camera movements, color grading, lighting style, shot composition, pacing rhythm, transition types, aesthetic category. Be extremely specific and actionable for AI video generation.)
-- cameraWork: Camera work and editing analysis (English, 50-80 words. Describe likely camera movements — close-ups, slow pans, overhead shots, tracking shots, zoom transitions, slow motion moments, cut rhythm, and overall editing pace)
-- hookType: Hook classification — pick ONE primary type: "curiosity_gap" | "visual_shock" | "relatable_pain_point" | "transformation_tease" | "satisfying_texture" | "emotional_trigger" | "trend_riding"
+- narrativeStyle: Narrative technique analysis (English, 50-100 words. e.g. "Fast-paced product showcase with rapid scene transitions and enthusiastic voiceover", "Before/after transformation driven by energetic narration")
+- emotionalTone: Emotional tone (English, 30-50 words. e.g. "High-energy urgency with FOMO trigger", "Excitement-driven with aspirational lifestyle appeal", "Playful enthusiasm building to urgent CTA")
+- hookStrategy: Opening hook strategy (English, 50-80 words. Analyze the first 2-3 seconds — what technique grabs attention? Visual shock? Curiosity gap? Bold claim? Dramatic reveal? Price flash?)
+- contentStructure: Content structure (English, 50-80 words. e.g. "Bold hook claim → Rapid product demo → Before/after → Social proof → Urgent CTA")
+- visualStyle: Visual style description (English, 100-150 words. Classify whether this is a FAST-PACED AD STYLE or SLOW ATMOSPHERIC STYLE. For ad-style: describe cut rhythm, average shot duration, transition speed, text overlay usage, split-screen comparisons, product highlight techniques. For atmospheric: describe camera movements, lighting, color grading. Be extremely specific and actionable for AI video generation.)
+- cameraWork: Camera work and editing analysis (English, 80-120 words. Describe: editing pace (cuts per second), average shot duration, camera movements (quick zooms, whip pans, snap cuts, dolly shots), transition types (beat-synced cuts, flash transitions, swipe transitions), rhythm pattern, and overall energy level. Rate the editing speed: "rapid-fire" / "moderate" / "slow-paced".)
+- hookType: Hook classification — pick ONE primary type: "curiosity_gap" | "visual_shock" | "relatable_pain_point" | "transformation_tease" | "bold_claim" | "emotional_trigger" | "trend_riding" | "price_shock"
 - successFactors: Success factor list (English string array, 3-5 items analyzing why this video likely went viral)
 
-Base your analysis on the title, hashtags, and engagement data to infer content style. Provide professional, actionable insights.`;
+Base your analysis on the title, hashtags, and engagement data to infer content style. Focus on extracting actionable video production techniques — editing pace, shot composition, and energy level are the most valuable outputs.`;
 
 export async function analyzeViralStyle(
   input: ViralAnalysisInput

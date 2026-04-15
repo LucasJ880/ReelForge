@@ -34,9 +34,9 @@ export default function NewBatchPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>("__none");
 
-  const [duration, setDuration] = useState("10");
+  const [duration, setDuration] = useState("15");
   const [ratio, setRatio] = useState("9:16");
-  const [resolution, setResolution] = useState("720p");
+  const [resolution, setResolution] = useState("1080p");
   const [concurrency, setConcurrency] = useState("2");
   const [autoVideo, setAutoVideo] = useState(true);
 
@@ -184,17 +184,17 @@ export default function NewBatchPage() {
           </button>
           {!showAdvanced && (
             <p className="text-[11px] text-zinc-500 mt-1">
-              默认：10秒 · 9:16竖屏 · 720p · 并发2
+              默认：15秒 · 9:16竖屏 · 1080p · 并发2
             </p>
           )}
           {showAdvanced && (
             <div className="mt-4 grid grid-cols-2 gap-4">
               <FieldSelect label="视频时长" value={duration} onValueChange={set(setDuration)}
-                options={[{ v: "5", l: "5 秒" }, { v: "10", l: "10 秒（推荐）" }]} />
+                options={[{ v: "5", l: "5 秒" }, { v: "10", l: "10 秒" }, { v: "15", l: "15 秒（推荐）" }]} />
               <FieldSelect label="画面比例" value={ratio} onValueChange={set(setRatio)}
                 options={[{ v: "9:16", l: "9:16 竖屏" }, { v: "16:9", l: "16:9 横屏" }, { v: "1:1", l: "1:1 方形" }]} />
               <FieldSelect label="分辨率" value={resolution} onValueChange={set(setResolution)}
-                options={[{ v: "720p", l: "720p" }, { v: "1080p", l: "1080p" }]} />
+                options={[{ v: "720p", l: "720p" }, { v: "1080p", l: "1080p（推荐）" }]} />
               <FieldSelect label="并发数" value={concurrency} onValueChange={set(setConcurrency)}
                 options={[{ v: "1", l: "1 保守" }, { v: "2", l: "2 推荐" }, { v: "3", l: "3 较快" }, { v: "5", l: "5 最快" }]} />
               <div className="col-span-2 flex items-center gap-2.5">

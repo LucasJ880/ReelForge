@@ -90,7 +90,7 @@ export function ProjectDetailClient({
       const res = await fetch(`/api/projects/${project.id}/video`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ duration: 10 }),
+        body: JSON.stringify({ duration: 15 }),
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "视频生成失败"); }
       toast.info("视频生成已提交");

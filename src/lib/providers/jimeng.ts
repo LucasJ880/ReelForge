@@ -108,11 +108,11 @@ async function submitReal(
   const baseUrl =
     process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
   const model =
-    process.env.ARK_VIDEO_MODEL || "doubao-seedance-1-5-pro-251215";
+    process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
 
   if (!apiKey) throw new Error("ARK_API_KEY 未配置");
 
-  const MAX_PROMPT_CHARS = 800;
+  const MAX_PROMPT_CHARS = 2000;
   const promptText = options.prompt.length > MAX_PROMPT_CHARS
     ? options.prompt.slice(0, MAX_PROMPT_CHARS).replace(/\s\S*$/, "")
     : options.prompt;
@@ -124,14 +124,21 @@ async function submitReal(
   }
   content.push({ type: "text", text: promptText });
 
-  const body = {
+  const isSeedance2 = model.includes("seedance-2");
+
+  const body: Record<string, unknown> = {
     model,
     content,
-    resolution: options.resolution || "720p",
     ratio: options.ratio || "9:16",
-    duration: options.duration || 5,
+    duration: options.duration || 15,
     watermark: false,
   };
+
+  if (isSeedance2) {
+    body.generate_audio = true;
+  } else {
+    body.resolution = options.resolution || "1080p";
+  }
 
   console.log(`[jimeng:real] 提交视频生成任务, model=${model}, prompt=${options.prompt.slice(0, 80)}...`);
 

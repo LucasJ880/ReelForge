@@ -12,8 +12,8 @@ export interface VideoParams {
 }
 
 const DEFAULT_PARAMS: Required<VideoParams> = {
-  duration: 10,
-  resolution: "720p",
+  duration: 15,
+  resolution: "1080p",
   ratio: "9:16",
 };
 

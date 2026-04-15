@@ -31,6 +31,8 @@ export interface TrendReferenceContext {
     hookStrategy: string;
     contentStructure: string;
     visualStyle: string;
+    cameraWork?: string;
+    hookType?: string;
   };
   visualAnalysis?: {
     colorPalette: string;
@@ -91,52 +93,57 @@ export interface AnalysisResult {
   } | null;
 }
 
-const CONTENT_SYSTEM_PROMPT_BASE = `你是一个专业的 TikTok 短视频内容策划专家。你的任务是根据用户给出的关键词或产品方向，生成一套完整的 TikTok 短视频内容方案。
+const CONTENT_SYSTEM_PROMPT_BASE = `You are an expert TikTok short-form video content strategist specializing in viral content for the North American / English-speaking market. Your task is to generate a complete TikTok video content plan based on a given keyword or product direction.
 
-你必须输出严格的 JSON 格式，包含以下字段：
-- script: 中文短视频脚本（包含开头吸引语、正文、行动号召，总共 150-300 字）
-- videoPrompt: 用于 AI 视频生成的英文提示词（描述画面内容、风格、氛围，50-100 词）
-- caption: TikTok 发布时的中文标题文案（20-50 字，要有吸引力）
-- hashtags: 5-8 个相关中文 hashtag（数组格式）
-- contentAngles: 2-3 个内容角度建议（数组，每个包含 angle 和 reason 字段）
-- category: 内容分类（从以下类别中选择最匹配的一个：美食、旅行、时尚、科技、文化、教育、生活、健康、娱乐、商业、宠物、运动、艺术、音乐、游戏。如果都不匹配可以自定义一个简短的中文分类名）
+You MUST output strict JSON with these fields:
+- script: English voiceover script for a 10-second TikTok video. Must include a powerful hook (first 2-3 seconds), engaging body, and a clear CTA. 40-80 words. Write in a casual, energetic, relatable tone that resonates with TikTok audiences. Use short punchy sentences.
+- videoPrompt: A detailed, cinematic English video generation prompt (200-350 words) structured as follows:
+  HOOK (first 2-3 seconds): An attention-grabbing opening shot — e.g. extreme close-up of fabric texture with slow pull-back, dramatic blanket toss in slow motion, satisfying unboxing reveal, or a relatable "before" moment (shivering, uncomfortable).
+  SHOT SEQUENCE: Describe 5-7 distinct shots with specific camera movements (slow pan, macro close-up, overhead shot, tracking shot, pull-back reveal, dolly zoom). Include scene transitions. Specify lighting for each scene (golden hour glow, soft window light, warm lamp ambiance, candlelight).
+  EMOTIONAL ARC: Build from curiosity/problem → discovery → desire → satisfaction → urgency. Include human interaction (hands touching fabric, wrapping up, expressing comfort, pet cuddling).
+  VISUAL STYLE: Color grading direction (warm tones, cozy palette, cinematic look). Pacing rhythm (mix of slow satisfying reveals and quick lifestyle cuts). Aesthetic references (ASMR texture shots, lifestyle aspirational, cozy room tour, satisfying transformation).
+  ENDING: A satisfying visual loop point or strong visual CTA moment.
+- caption: English TikTok caption (15-40 words) with emotional hook and CTA. Must be scroll-stopping.
+- hashtags: 6-10 English hashtags (array). Mix viral trending tags (#fyp #viral #cozy) with niche tags relevant to the content.
+- contentAngles: 2-3 alternative content angle suggestions (array, each with "angle" and "reason" fields, in English)
+- category: Content category in English (e.g. "Lifestyle", "Home & Living", "Cozy", "Pets", "Fashion", "Wellness")
 
-要求：
-1. 脚本必须适合 15-60 秒的短视频
-2. 开头 3 秒必须有吸引力（hook）
-3. 内容要有实用价值或情感共鸣
-4. hashtag 要包含热门标签和精准标签
-5. videoPrompt 必须是英文，描述要具体可执行`;
+Requirements:
+1. Script must be optimized for a 10-second TikTok video
+2. The first 2-3 seconds MUST hook the viewer — use curiosity gaps, visual shock, relatable pain points, or transformation teases
+3. Content must trigger emotional response — comfort, desire, FOMO, satisfaction
+4. The videoPrompt is THE MOST IMPORTANT field — it directly controls video quality. Be extremely specific and cinematic. Think like a director, not a copywriter.
+5. Study what makes blanket/cozy/lifestyle TikToks go viral: satisfying textures, ASMR-like fabric shots, dramatic before/after (cold→warm), pet interactions, aesthetic room setups, slow-motion draping`;
 
 const PRODUCT_SYSTEM_PROMPT_ADDON = `
 
-【重要约束 - 产品导向内容】
-你正在为一个具体的毛毯产品生成推广内容。所有输出必须围绕给定的产品信息：
-- 脚本中必须自然地提及产品的核心卖点（材质、特性、适用场景），但不要生硬罗列
-- videoPrompt 必须精确描述该毛毯的外观特征（颜色/图案、材质质感），确保 AI 生成的视频画面与实际产品一致
-- caption 和 hashtags 要包含产品相关标签（如 #毛毯 #法兰绒 #居家好物）
-- 创意关键词决定内容的"角度"和"场景"，产品信息决定内容的"核心主体"
-- videoPrompt 中描述毛毯时要具体：比如 "a soft black and white checkered flannel blanket" 而不是泛泛的 "a blanket"`;
+[CRITICAL CONSTRAINT — Product-Driven Content]
+You are creating promotional content for a specific blanket product. ALL outputs must revolve around the given product info:
+- Script must naturally weave in the product's key selling points (material, texture, use cases) — show, don't tell
+- videoPrompt MUST precisely describe the blanket's visual appearance (exact color/pattern, material texture, size impression) so the AI-generated video matches the real product. Be specific: "a luxuriously soft coconut cream flannel blanket with a velvety matte finish" NOT just "a blanket"
+- Caption and hashtags must include product-relevant tags (#blanket #flannel #cozy #homedecor)
+- The creative keyword sets the ANGLE and SCENE; the product info sets the HERO SUBJECT
+- In the videoPrompt, the blanket must be the visual star — shown in multiple angles, textures, and lifestyle contexts`;
 
 const TREND_SYSTEM_PROMPT_ADDON = `
 
-【重要约束 - 对标爆款风格】
-你正在参考一个 TikTok 爆款视频的风格来生成内容。你必须：
-- 模仿参考视频的叙事手法和节奏结构，但内容必须是原创的
-- 采用相似的情感基调和开头策略（hook）
-- videoPrompt 的画面风格要参考分析中的视觉描述
-- 不要直接照搬原视频内容，而是学习其成功要素并融合到新内容中
-- 这是"灵感参考"而非"搬运"，最终内容必须围绕给定的关键词/产品`;
+[CRITICAL CONSTRAINT — Viral Style Matching]
+You are referencing a viral TikTok video's style to generate content. You MUST:
+- Replicate the reference video's narrative technique and pacing structure, but content must be original
+- Adopt the same emotional tone and hook strategy (first 2-3 seconds)
+- The videoPrompt's visual style, camera work, and energy level must closely mirror the reference analysis
+- Learn from its success factors and apply them — don't copy the content, copy the FORMULA
+- This is "creative inspiration" not "reposting" — final content must center on the given keyword/product`;
 
 const MULTI_REFS_SYSTEM_PROMPT_ADDON = `
 
-【重要约束 - 多爆款参考融合】
-你正在参考多个爆款短视频的风格来生成内容。你必须：
-- 综合分析所有参考视频的共同成功要素和风格特点
-- 从中提取最佳的叙事手法、情感基调、钩子策略
-- videoPrompt 要融合参考视频中最有效的视觉风格
-- 如果不同参考之间有冲突，优先选择播放量更高的视频风格
-- 这是"灵感参考"而非"搬运"，最终内容必须原创且围绕给定的关键词/产品`;
+[CRITICAL CONSTRAINT — Multi-Viral Reference Fusion]
+You are referencing multiple viral short videos to generate content. You MUST:
+- Synthesize the common success patterns and style elements across all references
+- Extract the best narrative techniques, emotional tones, hook strategies, and camera work
+- The videoPrompt must fuse the most effective visual styles from the references — prioritize techniques from higher-view-count videos
+- If references conflict in style, lean toward the one with more views/engagement
+- This is "creative inspiration" not "reposting" — final content must be original and centered on the given keyword/product`;
 
 function buildSystemPrompt(hasProduct: boolean, hasTrend: boolean, hasMultiRefs: boolean): string {
   let prompt = CONTENT_SYSTEM_PROMPT_BASE;
@@ -147,41 +154,43 @@ function buildSystemPrompt(hasProduct: boolean, hasTrend: boolean, hasMultiRefs:
 }
 
 function buildTrendBlock(t: TrendStyleContext): string {
-  return `\n参考爆款视频风格分析：
-- 原视频标题：${t.originalTitle || "未知"}
-- 叙事手法：${t.narrativeStyle}
-- 情感基调：${t.emotionalTone}
-- 开头策略：${t.hookStrategy}
-- 内容结构：${t.contentStructure}
-- 画面风格：${t.visualStyle}
+  return `\nViral Reference Video Style Analysis:
+- Original Title: ${t.originalTitle || "Unknown"}
+- Narrative Technique: ${t.narrativeStyle}
+- Emotional Tone: ${t.emotionalTone}
+- Hook Strategy: ${t.hookStrategy}
+- Content Structure: ${t.contentStructure}
+- Visual Style: ${t.visualStyle}
 
-请模仿以上爆款风格来创作内容。`;
+Replicate this viral formula in your content — match the energy, pacing, and visual approach.`;
 }
 
 function buildMultiRefsBlock(refs: TrendReferenceContext[]): string {
   const blocks = refs.map((ref, i) => {
-    const parts: string[] = [`参考视频 ${i + 1}${ref.platform ? ` (${ref.platform})` : ""}${ref.viewCount ? ` — 播放量 ${ref.viewCount.toLocaleString()}` : ""}:`];
-    if (ref.title) parts.push(`  标题：${ref.title}`);
+    const parts: string[] = [`Reference Video ${i + 1}${ref.platform ? ` (${ref.platform})` : ""}${ref.viewCount ? ` — ${ref.viewCount.toLocaleString()} views` : ""}:`];
+    if (ref.title) parts.push(`  Title: ${ref.title}`);
     if (ref.styleAnalysis) {
       const s = ref.styleAnalysis;
-      parts.push(`  叙事手法：${s.narrativeStyle}`);
-      parts.push(`  情感基调：${s.emotionalTone}`);
-      parts.push(`  开头策略：${s.hookStrategy}`);
-      parts.push(`  内容结构：${s.contentStructure}`);
-      parts.push(`  画面风格：${s.visualStyle}`);
+      parts.push(`  Narrative Technique: ${s.narrativeStyle}`);
+      parts.push(`  Emotional Tone: ${s.emotionalTone}`);
+      parts.push(`  Hook Strategy: ${s.hookStrategy}`);
+      parts.push(`  Content Structure: ${s.contentStructure}`);
+      parts.push(`  Visual Style: ${s.visualStyle}`);
+      if (s.cameraWork) parts.push(`  Camera Work & Editing: ${s.cameraWork}`);
+      if (s.hookType) parts.push(`  Hook Type: ${s.hookType}`);
     }
     if (ref.visualAnalysis) {
       const v = ref.visualAnalysis;
-      parts.push(`  视觉色调：${v.colorPalette}`);
-      parts.push(`  整体氛围：${v.overallMood}`);
-      if (v.sceneType) parts.push(`  场景类型：${v.sceneType}`);
-      if (v.lightingStyle) parts.push(`  光线风格：${v.lightingStyle}`);
-      parts.push(`  推荐视频风格（英文）：${v.suggestedVideoStyle}`);
+      parts.push(`  Color Palette: ${v.colorPalette}`);
+      parts.push(`  Overall Mood: ${v.overallMood}`);
+      if (v.sceneType) parts.push(`  Scene Type: ${v.sceneType}`);
+      if (v.lightingStyle) parts.push(`  Lighting: ${v.lightingStyle}`);
+      parts.push(`  Suggested Video Style: ${v.suggestedVideoStyle}`);
     }
     return parts.join("\n");
   });
 
-  return `\n\n爆款视频参考分析（共 ${refs.length} 个）：\n${blocks.join("\n\n")}\n\n请综合以上爆款参考的风格来创作内容。`;
+  return `\n\nViral Video Reference Analysis (${refs.length} video${refs.length > 1 ? "s" : ""}):\n${blocks.join("\n\n")}\n\nSynthesize the winning formula from these viral references into your content. Match their energy, visual techniques, and pacing.`;
 }
 
 function buildUserMessage(input: ContentGenerationInput): string {
@@ -193,20 +202,23 @@ function buildUserMessage(input: ContentGenerationInput): string {
 
   if (input.productContext) {
     const p = input.productContext;
-    return `产品信息：
-- 名称：${p.name}
-- 产品线：${p.productLine === "sherpa" ? "Sherpa双面毛毯（法兰绒+羊羔绒）" : "法兰绒毛毯"}
-- 颜色/图案：${p.color}
-- 产品描述：${p.description}
-- 核心特点：${p.features.join("、")}
-- 可选尺寸：${p.sizes.join("、")}
+    const productLine = p.productLine === "sherpa"
+      ? "Sherpa Reversible Blanket (flannel + sherpa fleece)"
+      : "Flannel Blanket";
+    return `Product Information:
+- Name: ${p.name}
+- Product Line: ${productLine}
+- Color/Pattern: ${p.color}
+- Description: ${p.description}
+- Key Features: ${p.features.join(", ")}
+- Available Sizes: ${p.sizes.join(", ")}
 ${trendBlock}
-创意方向关键词：${input.keyword}
+Creative Direction Keyword: ${input.keyword}
 
-请围绕以上产品，以「${input.keyword}」为创意角度，生成 TikTok 短视频内容方案。请直接输出 JSON，不要包含 markdown 代码块。`;
+Create a TikTok video content plan for this product using "${input.keyword}" as the creative angle. Target audience: English-speaking North American TikTok users. Output JSON only, no markdown code blocks.`;
   }
 
-  return `请根据以下关键词/方向生成 TikTok 短视频内容方案：\n\n关键词：${input.keyword}${trendBlock}\n\n请直接输出 JSON，不要包含 markdown 代码块。`;
+  return `Create a TikTok video content plan for the following keyword/direction:\n\nKeyword: ${input.keyword}${trendBlock}\n\nTarget audience: English-speaking North American TikTok users. Output JSON only, no markdown code blocks.`;
 }
 
 export async function generateContent(
@@ -221,12 +233,12 @@ export async function generateContent(
     ],
     response_format: { type: "json_object" },
     temperature: 0.7,
-    max_tokens: 2000,
+    max_tokens: 3500,
   });
 
   const content = response.choices[0]?.message?.content;
   if (!content) {
-    throw new Error("OpenAI 返回为空");
+    throw new Error("OpenAI returned empty response");
   }
 
   const parsed = JSON.parse(content);
@@ -239,7 +251,7 @@ export async function generateContent(
     contentAngles: Array.isArray(parsed.contentAngles || parsed.content_angles)
       ? (parsed.contentAngles || parsed.content_angles)
       : [],
-    category: parsed.category || "其他",
+    category: parsed.category || "Other",
     modelUsed: model,
     tokenUsage: response.usage
       ? {
@@ -272,32 +284,36 @@ export interface ViralStyleResult {
   hookStrategy: string;
   contentStructure: string;
   visualStyle: string;
+  cameraWork: string;
+  hookType: string;
   successFactors: string[];
   modelUsed: string;
   tokenUsage: { promptTokens: number; completionTokens: number; totalTokens: number } | null;
 }
 
-const VIRAL_ANALYSIS_SYSTEM_PROMPT = `你是一个 TikTok 爆款内容分析专家。你的任务是根据一个 TikTok 视频的元数据（标题、描述、标签、数据指标），深度分析该视频的成功要素和内容风格。
+const VIRAL_ANALYSIS_SYSTEM_PROMPT = `You are an expert viral TikTok content analyst. Your task is to deeply analyze a viral video's success factors and content style based on its metadata (title, description, hashtags, engagement metrics).
 
-你必须输出严格的 JSON 格式，包含以下字段：
-- narrativeStyle: 叙事手法分析（中文，50-100字，如"第一人称体验分享"、"产品展示+使用场景切换"等）
-- emotionalTone: 情感基调（中文，30-50字，如"温馨治愈"、"搞笑幽默"、"紧迫感营造"等）
-- hookStrategy: 开头吸引策略（中文，50-80字，分析视频可能使用的前3秒吸引技巧）
-- contentStructure: 内容结构（中文，50-80字，如"痛点引入→解决方案→产品展示→行动号召"）
-- visualStyle: 画面风格描述（英文，50-80词，描述视频可能的画面风格、色调、拍摄手法，用于AI视频生成参考）
-- successFactors: 成功要素列表（中文字符串数组，3-5条，分析该视频可能爆款的原因）
+You MUST output strict JSON with these fields:
+- narrativeStyle: Narrative technique analysis (English, 50-100 words. e.g. "First-person experience sharing with rapid scene transitions", "Product reveal with lifestyle context switching")
+- emotionalTone: Emotional tone (English, 30-50 words. e.g. "Warm and cozy with FOMO undertone", "Playful humor building to satisfying reveal", "Urgency-driven with aspirational lifestyle")
+- hookStrategy: Opening hook strategy (English, 50-80 words. Analyze the first 2-3 seconds — what technique grabs attention? Visual shock? Curiosity gap? Relatable pain point? Satisfying texture?)
+- contentStructure: Content structure (English, 50-80 words. e.g. "Pain point → Discovery → Product showcase with texture close-ups → Lifestyle transformation → CTA")
+- visualStyle: Visual style description (English, 100-150 words. Describe the video's likely visual approach: camera movements, color grading, lighting style, shot composition, pacing rhythm, transition types, aesthetic category. Be extremely specific and actionable for AI video generation.)
+- cameraWork: Camera work and editing analysis (English, 50-80 words. Describe likely camera movements — close-ups, slow pans, overhead shots, tracking shots, zoom transitions, slow motion moments, cut rhythm, and overall editing pace)
+- hookType: Hook classification — pick ONE primary type: "curiosity_gap" | "visual_shock" | "relatable_pain_point" | "transformation_tease" | "satisfying_texture" | "emotional_trigger" | "trend_riding"
+- successFactors: Success factor list (English string array, 3-5 items analyzing why this video likely went viral)
 
-分析要基于标题和标签推断视频内容，给出专业、可操作的洞察。`;
+Base your analysis on the title, hashtags, and engagement data to infer content style. Provide professional, actionable insights.`;
 
 export async function analyzeViralStyle(
   input: ViralAnalysisInput
 ): Promise<ViralStyleResult> {
   const metricsBlock = (input.viewCount || input.likeCount)
-    ? `\n数据指标：
-- 播放量：${input.viewCount ?? "未知"}
-- 点赞数：${input.likeCount ?? "未知"}
-- 评论数：${input.commentCount ?? "未知"}
-- 分享数：${input.shareCount ?? "未知"}`
+    ? `\nEngagement Metrics:
+- Views: ${input.viewCount?.toLocaleString() ?? "unknown"}
+- Likes: ${input.likeCount?.toLocaleString() ?? "unknown"}
+- Comments: ${input.commentCount?.toLocaleString() ?? "unknown"}
+- Shares: ${input.shareCount?.toLocaleString() ?? "unknown"}`
     : "";
 
   const response = await openai.chat.completions.create({
@@ -306,23 +322,23 @@ export async function analyzeViralStyle(
       { role: "system", content: VIRAL_ANALYSIS_SYSTEM_PROMPT },
       {
         role: "user",
-        content: `请分析以下 TikTok 爆款视频的内容风格：
+        content: `Analyze the following viral TikTok video's content style:
 
-标题：${input.title || "无标题"}
-描述：${input.description || "无描述"}
-标签：${input.hashtags.length ? input.hashtags.join(" ") : "无标签"}
-作者：${input.authorName || "未知"}${metricsBlock}
+Title: ${input.title || "No title"}
+Description: ${input.description || "No description"}
+Hashtags: ${input.hashtags.length ? input.hashtags.join(" ") : "None"}
+Author: ${input.authorName || "Unknown"}${metricsBlock}
 
-请直接输出 JSON，不要包含 markdown 代码块。`,
+Output JSON only, no markdown code blocks.`,
       },
     ],
     response_format: { type: "json_object" },
     temperature: 0.6,
-    max_tokens: 1500,
+    max_tokens: 2000,
   });
 
   const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("OpenAI 爆款分析返回为空");
+  if (!content) throw new Error("OpenAI viral analysis returned empty");
 
   const parsed = JSON.parse(content);
 
@@ -332,6 +348,8 @@ export async function analyzeViralStyle(
     hookStrategy: parsed.hookStrategy || parsed.hook_strategy || "",
     contentStructure: parsed.contentStructure || parsed.content_structure || "",
     visualStyle: parsed.visualStyle || parsed.visual_style || "",
+    cameraWork: parsed.cameraWork || parsed.camera_work || "",
+    hookType: parsed.hookType || parsed.hook_type || "",
     successFactors: Array.isArray(parsed.successFactors || parsed.success_factors)
       ? (parsed.successFactors || parsed.success_factors)
       : [],

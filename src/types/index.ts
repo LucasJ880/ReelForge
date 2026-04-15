@@ -34,6 +34,8 @@ export interface ViralStyleAnalysis {
   hookStrategy: string;
   contentStructure: string;
   visualStyle: string;
+  cameraWork?: string;
+  hookType?: string;
   successFactors?: string[];
 }
 

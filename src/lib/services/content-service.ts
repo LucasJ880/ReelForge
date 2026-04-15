@@ -67,6 +67,8 @@ export async function generateContentPlan(projectId: string) {
                 hookStrategy: sa.hookStrategy,
                 contentStructure: sa.contentStructure,
                 visualStyle: sa.visualStyle,
+                cameraWork: sa.cameraWork,
+                hookType: sa.hookType,
               }
             : undefined,
           visualAnalysis: va

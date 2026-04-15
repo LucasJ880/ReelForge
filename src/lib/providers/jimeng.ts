@@ -112,12 +112,17 @@ async function submitReal(
 
   if (!apiKey) throw new Error("ARK_API_KEY 未配置");
 
+  const MAX_PROMPT_CHARS = 800;
+  const promptText = options.prompt.length > MAX_PROMPT_CHARS
+    ? options.prompt.slice(0, MAX_PROMPT_CHARS).replace(/\s\S*$/, "")
+    : options.prompt;
+
   const content: Array<Record<string, string>> = [];
 
   if (options.referenceImageUrl) {
     content.push({ type: "image_url", image_url: options.referenceImageUrl });
   }
-  content.push({ type: "text", text: options.prompt });
+  content.push({ type: "text", text: promptText });
 
   const body = {
     model,

@@ -190,7 +190,7 @@ export default function NewBatchPage() {
           {showAdvanced && (
             <div className="mt-4 grid grid-cols-2 gap-4">
               <FieldSelect label="视频时长" value={duration} onValueChange={set(setDuration)}
-                options={[{ v: "5", l: "5 秒" }, { v: "10", l: "10 秒" }, { v: "15", l: "15 秒" }]} />
+                options={[{ v: "5", l: "5 秒" }, { v: "10", l: "10 秒（推荐）" }]} />
               <FieldSelect label="画面比例" value={ratio} onValueChange={set(setRatio)}
                 options={[{ v: "9:16", l: "9:16 竖屏" }, { v: "16:9", l: "16:9 横屏" }, { v: "1:1", l: "1:1 方形" }]} />
               <FieldSelect label="分辨率" value={resolution} onValueChange={set(setResolution)}

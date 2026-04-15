@@ -70,6 +70,8 @@ export async function analyzeAndSave(candidate: TrendCandidate) {
             hookStrategy: style.hookStrategy,
             contentStructure: style.contentStructure,
             visualStyle: style.visualStyle,
+            cameraWork: style.cameraWork,
+            hookType: style.hookType,
             successFactors: style.successFactors,
           }
         : undefined,
@@ -159,6 +161,8 @@ export async function createTrendFromUrl(videoUrl: string) {
         hookStrategy: styleResult.hookStrategy,
         contentStructure: styleResult.contentStructure,
         visualStyle: styleResult.visualStyle,
+        cameraWork: styleResult.cameraWork,
+        hookType: styleResult.hookType,
         successFactors: styleResult.successFactors,
       },
       visualAnalysis: visualResult

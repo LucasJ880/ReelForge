@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { keyword, productId, trendRefId } = body;
+  const { keyword, productId, trendRefId, imageUrls, primaryImageUrl } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
@@ -91,11 +91,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  const validImageUrls = Array.isArray(imageUrls)
+    ? imageUrls.filter((u: unknown) => typeof u === "string" && u.startsWith("http"))
+    : [];
+
   const project = await db.project.create({
     data: {
       keyword: keyword.trim(),
       productId: productId || null,
       trendRefId: trendRefId || null,
+      imageUrls: validImageUrls,
+      primaryImageUrl: typeof primaryImageUrl === "string" ? primaryImageUrl : validImageUrls[0] || null,
     },
   });
 

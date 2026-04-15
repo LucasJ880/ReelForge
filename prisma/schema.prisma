@@ -118,18 +118,20 @@ model SearchKeyword {
 }
 
 model Project {
-  id           String        @id @default(cuid())
-  keyword      String
-  category     String?
-  status       ProjectStatus @default(DRAFT)
-  errorMessage String?
-  retryCount   Int           @default(0)
-  batchId      String?
-  batchIndex   Int?
-  productId    String?
-  trendRefId   String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id              String        @id @default(cuid())
+  keyword         String
+  category        String?
+  status          ProjectStatus @default(DRAFT)
+  errorMessage    String?
+  retryCount      Int           @default(0)
+  batchId         String?
+  batchIndex      Int?
+  productId       String?
+  trendRefId      String?
+  imageUrls       String[]
+  primaryImageUrl String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   batch          Batch?           @relation(fields: [batchId], references: [id])
   product        ProductCatalog?  @relation(fields: [productId], references: [id])
@@ -148,35 +150,40 @@ model Project {
 }
 
 model ContentPlan {
-  id            String   @id @default(cuid())
-  projectId     String   @unique
-  script        String
-  videoPrompt   String
-  caption       String
-  hashtags      String[]
-  contentAngles Json
-  modelUsed     String
-  tokenUsage    Json?
-  createdAt     DateTime @default(now())
+  id               String   @id @default(cuid())
+  projectId        String   @unique
+  script           String
+  videoPrompt      String
+  videoPromptPart2 String?
+  caption          String
+  hashtags         String[]
+  contentAngles    Json
+  modelUsed        String
+  tokenUsage       Json?
+  createdAt        DateTime @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 model VideoJob {
-  id            String         @id @default(cuid())
-  projectId     String         @unique
-  provider      String         @default("jimeng")
-  providerJobId String?
-  status        VideoJobStatus @default(PENDING)
-  videoUrl      String?
-  thumbnailUrl  String?
-  duration      Int            @default(5)
-  resolution    String         @default("720p")
-  ratio         String         @default("9:16")
-  errorMessage  String?
-  retryCount    Int            @default(0)
-  createdAt     DateTime       @default(now())
-  completedAt   DateTime?
+  id             String         @id @default(cuid())
+  projectId      String         @unique
+  provider       String         @default("jimeng")
+  providerJobId  String?
+  providerJobId2 String?
+  status         VideoJobStatus @default(PENDING)
+  videoUrl       String?
+  videoUrl2      String?
+  thumbnailUrl   String?
+  duration       Int            @default(15)
+  resolution     String         @default("1080p")
+  ratio          String         @default("9:16")
+  segment        Int?
+  lastFrameUrl   String?
+  errorMessage   String?
+  retryCount     Int            @default(0)
+  createdAt      DateTime       @default(now())
+  completedAt    DateTime?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }

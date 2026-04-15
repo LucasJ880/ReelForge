@@ -1,14 +1,16 @@
 import { db } from "@/lib/db";
 import {
   generateContent,
+  analyzeProductImages,
   type ProductContext,
+  type ProductVisualAnalysis,
   type TrendStyleContext,
   type TrendReferenceContext,
 } from "@/lib/providers/openai";
 import { Prisma, ProjectStatus } from "@prisma/client";
 import type { ViralStyleAnalysis, ThumbnailVisualAnalysis } from "@/types";
 
-export async function generateContentPlan(projectId: string) {
+export async function generateContentPlan(projectId: string, targetDuration?: number) {
   const project = await db.project.findUnique({
     where: { id: projectId },
     include: { contentPlan: true, product: true, trendRef: true },
@@ -85,11 +87,24 @@ export async function generateContentPlan(projectId: string) {
     }
   }
 
+  let productVisuals: ProductVisualAnalysis | undefined;
+  if (project.imageUrls.length > 0) {
+    try {
+      console.log(`[content-service] Analyzing ${project.imageUrls.length} product image(s) with GPT-4o Vision`);
+      productVisuals = await analyzeProductImages(project.imageUrls);
+      console.log("[content-service] Vision analysis complete");
+    } catch (e) {
+      console.warn("[content-service] Vision analysis failed, proceeding without:", e);
+    }
+  }
+
   const result = await generateContent({
     keyword: project.keyword,
     productContext,
+    productVisuals,
     trendStyle,
     trendReferences,
+    targetDuration,
   });
 
   if (project.contentPlan) {
@@ -98,6 +113,7 @@ export async function generateContentPlan(projectId: string) {
       data: {
         script: result.script,
         videoPrompt: result.videoPrompt,
+        videoPromptPart2: result.videoPromptPart2 || null,
         caption: result.caption,
         hashtags: result.hashtags,
         contentAngles: result.contentAngles,
@@ -124,6 +140,7 @@ export async function generateContentPlan(projectId: string) {
         projectId,
         script: result.script,
         videoPrompt: result.videoPrompt,
+        videoPromptPart2: result.videoPromptPart2 || null,
         caption: result.caption,
         hashtags: result.hashtags,
         contentAngles: result.contentAngles,

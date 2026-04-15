@@ -71,6 +71,8 @@ export interface ProjectWithRelations {
   retryCount: number;
   productId: string | null;
   trendRefId: string | null;
+  imageUrls: string[];
+  primaryImageUrl: string | null;
   createdAt: Date;
   updatedAt: Date;
   product: {
@@ -86,6 +88,7 @@ export interface ProjectWithRelations {
     id: string;
     script: string;
     videoPrompt: string;
+    videoPromptPart2: string | null;
     caption: string;
     hashtags: string[];
     contentAngles: ContentAngle[];
@@ -98,10 +101,12 @@ export interface ProjectWithRelations {
     providerJobId: string | null;
     status: string;
     videoUrl: string | null;
+    videoUrl2: string | null;
     thumbnailUrl: string | null;
     duration: number;
     resolution: string;
     ratio: string;
+    segment: number | null;
     errorMessage: string | null;
     retryCount: number;
     createdAt: Date;
@@ -132,6 +137,14 @@ export interface ProjectWithRelations {
     modelUsed: string;
     createdAt: Date;
   } | null;
+}
+
+export interface ProductVisualAnalysis {
+  productAppearance: string;
+  colorsAndMaterials: string;
+  brandElements: string;
+  suggestedAngles: string;
+  visualHighlights: string;
 }
 
 export const PROJECT_STATUS_LABELS: Record<string, string> = {

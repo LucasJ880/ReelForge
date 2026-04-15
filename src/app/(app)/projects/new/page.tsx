@@ -13,6 +13,9 @@ import {
   X,
   Eye,
   Heart,
+  ImagePlus,
+  Star,
+  Trash2,
 } from "lucide-react";
 
 interface Product {
@@ -82,6 +85,11 @@ export default function NewProjectPage() {
   const [selectedRefs, setSelectedRefs] = useState<TrendRef[]>([]);
   const [refPickerOpen, setRefPickerOpen] = useState(false);
 
+  const [uploadedImages, setUploadedImages] = useState<{ url: string; filename: string }[]>([]);
+  const [primaryImageUrl, setPrimaryImageUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
@@ -132,6 +140,62 @@ export default function NewProjectPage() {
     });
   }
 
+  async function uploadFiles(files: FileList | File[]) {
+    const fileArr = Array.from(files).slice(0, 5 - uploadedImages.length);
+    if (fileArr.length === 0) {
+      if (uploadedImages.length >= 5) toast.error("最多上传 5 张图片");
+      return;
+    }
+
+    setUploading(true);
+    const results: { url: string; filename: string }[] = [];
+    for (const file of fileArr) {
+      if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        toast.error(`${file.name}: 仅支持 JPEG/PNG/WebP`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name}: 超过 10MB`);
+        continue;
+      }
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        const res = await fetch("/api/upload", { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "上传失败");
+        }
+        const data = await res.json();
+        results.push({ url: data.url, filename: data.filename });
+      } catch (err) {
+        toast.error(`${file.name}: ${err instanceof Error ? err.message : "上传失败"}`);
+      }
+    }
+
+    if (results.length > 0) {
+      const newList = [...uploadedImages, ...results];
+      setUploadedImages(newList);
+      if (!primaryImageUrl) setPrimaryImageUrl(results[0].url);
+      toast.success(`已上传 ${results.length} 张图片`);
+    }
+    setUploading(false);
+  }
+
+  function removeImage(url: string) {
+    const newList = uploadedImages.filter((img) => img.url !== url);
+    setUploadedImages(newList);
+    if (primaryImageUrl === url) {
+      setPrimaryImageUrl(newList[0]?.url || null);
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    if (e.dataTransfer.files.length > 0) uploadFiles(e.dataTransfer.files);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!keyword.trim() || loading) return;
@@ -146,6 +210,8 @@ export default function NewProjectPage() {
           keyword: keyword.trim(),
           productId: selectedProductId,
           trendRefId: selectedRefs[0]?.id || null,
+          imageUrls: uploadedImages.map((img) => img.url),
+          primaryImageUrl,
         }),
       });
       if (!res.ok) throw new Error("创建失败");
@@ -338,6 +404,97 @@ export default function NewProjectPage() {
             ? `+ 添加更多参考（已选 ${selectedRefs.length}/3）`
             : "从参考库选择爆款视频..."}
         </button>
+      </div>
+
+      {/* Product Image Upload */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-zinc-400 mb-2">
+          <ImagePlus className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          产品图 / Logo（可选，最多 5 张）
+        </label>
+
+        {uploadedImages.length > 0 && (
+          <div className="grid grid-cols-5 gap-2 mb-2">
+            {uploadedImages.map((img) => (
+              <div
+                key={img.url}
+                className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                  primaryImageUrl === img.url
+                    ? "border-violet-500 ring-2 ring-violet-500/20"
+                    : "border-zinc-700 hover:border-zinc-600"
+                }`}
+                onClick={() => setPrimaryImageUrl(img.url)}
+              >
+                <img
+                  src={img.url}
+                  alt=""
+                  className="w-full aspect-square object-cover"
+                />
+                {primaryImageUrl === img.url && (
+                  <div className="absolute top-1 left-1 rounded-full bg-violet-500 p-0.5">
+                    <Star className="h-2.5 w-2.5 text-white fill-white" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImage(img.url);
+                  }}
+                  className="absolute top-1 right-1 rounded-full bg-black/60 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                >
+                  <Trash2 className="h-2.5 w-2.5 text-white" />
+                </button>
+                {primaryImageUrl !== img.url && (
+                  <div className="absolute inset-x-0 bottom-0 bg-black/50 text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[8px] text-white">设为主图</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {uploadedImages.length < 5 && (
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
+              dragOver
+                ? "border-violet-500 bg-violet-500/5"
+                : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600"
+            } ${uploading ? "pointer-events-none opacity-50" : ""}`}
+          >
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={uploading || loading}
+            />
+            {uploading ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-violet-400">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                上传中...
+              </div>
+            ) : (
+              <div className="text-sm text-zinc-500">
+                <ImagePlus className="mx-auto h-5 w-5 mb-1 text-zinc-600" />
+                拖拽或点击上传产品图 / Logo
+                <p className="text-[10px] text-zinc-600 mt-0.5">JPEG, PNG, WebP · 每张 ≤ 10MB</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {uploadedImages.length > 0 && (
+          <p className="text-[10px] text-zinc-500 mt-1.5">
+            <Star className="inline h-2.5 w-2.5 text-violet-400 fill-violet-400 -mt-0.5 mr-0.5" />
+            带紫框的为主图，将传入 Seedance 做图生视频。点击切换主图。
+          </p>
+        )}
       </div>
 
       {/* Keyword Input */}

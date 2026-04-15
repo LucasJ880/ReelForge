@@ -49,13 +49,16 @@ export interface TrendReferenceContext {
 export interface ContentGenerationInput {
   keyword: string;
   productContext?: ProductContext;
+  productVisuals?: ProductVisualAnalysis;
   trendStyle?: TrendStyleContext;
   trendReferences?: TrendReferenceContext[];
+  targetDuration?: number;
 }
 
 export interface ContentGenerationResult {
   script: string;
   videoPrompt: string;
+  videoPromptPart2?: string;
   caption: string;
   hashtags: string[];
   contentAngles: { angle: string; reason: string }[];
@@ -159,11 +162,38 @@ You are referencing multiple viral short videos to generate content. You MUST:
 - If references conflict in style, lean toward the one with more views/engagement
 - This is "creative inspiration" not "reposting" — final content must be original and centered on the given keyword/product`;
 
-function buildSystemPrompt(hasProduct: boolean, hasTrend: boolean, hasMultiRefs: boolean): string {
+const EXTENDED_DURATION_ADDON = `
+
+[EXTENDED VIDEO — TWO-PART GENERATION]
+The user wants a 30-second video. Since the AI video generator can only produce 15 seconds at a time, you MUST output TWO separate videoPrompts that form one continuous narrative:
+
+- videoPrompt: Part 1 (first 15 seconds) — the HOOK + initial product showcase + rapid selling points. End on a visually distinctive moment that can serve as a transition point.
+- videoPromptPart2: Part 2 (seconds 15-30) — continuation with lifestyle demos, before/after, social proof, and the big CTA finale. Start by describing "Continue from the previous scene..." to ensure visual continuity.
+
+Both parts MUST share the same audio direction, visual style, and energy level. The 30-second ad should feel like ONE seamless video.
+
+Script should be 120-200 words (for 30 seconds of voiceover).
+
+IMPORTANT: Both videoPrompt and videoPromptPart2 must each be 200-350 words and include their own AUDIO DIRECTION section.`;
+
+const PRODUCT_VISUALS_ADDON = `
+
+[PRODUCT VISUAL REFERENCE — AI-Analyzed from uploaded product photos]
+You have been given an AI vision analysis of the actual product photos. Use these EXACT visual details in your videoPrompt:
+- Describe the product's REAL appearance, colors, and materials as analyzed
+- Reference the actual brand elements visible on the product
+- Use the suggested camera angles for the shot sequence
+- Highlight the visual features that the analysis identified as most striking
+
+The videoPrompt MUST feel like it was written by someone who has SEEN the actual product, not a generic description.`;
+
+function buildSystemPrompt(hasProduct: boolean, hasTrend: boolean, hasMultiRefs: boolean, isExtended: boolean, hasVisuals: boolean): string {
   let prompt = CONTENT_SYSTEM_PROMPT_BASE;
   if (hasProduct) prompt += PRODUCT_SYSTEM_PROMPT_ADDON;
+  if (hasVisuals) prompt += PRODUCT_VISUALS_ADDON;
   if (hasMultiRefs) prompt += MULTI_REFS_SYSTEM_PROMPT_ADDON;
   else if (hasTrend) prompt += TREND_SYSTEM_PROMPT_ADDON;
+  if (isExtended) prompt += EXTENDED_DURATION_ADDON;
   return prompt;
 }
 
@@ -214,6 +244,15 @@ function buildUserMessage(input: ContentGenerationInput): string {
       ? buildTrendBlock(input.trendStyle)
       : "";
 
+  const visualBlock = input.productVisuals
+    ? `\n\nProduct Visual Analysis (from uploaded product photos):
+- Appearance: ${input.productVisuals.productAppearance}
+- Colors & Materials: ${input.productVisuals.colorsAndMaterials}
+- Brand Elements: ${input.productVisuals.brandElements}
+- Best Camera Angles: ${input.productVisuals.suggestedAngles}
+- Visual Highlights: ${input.productVisuals.visualHighlights}`
+    : "";
+
   if (input.productContext) {
     const p = input.productContext;
     const productLine = p.productLine === "sherpa"
@@ -226,7 +265,7 @@ function buildUserMessage(input: ContentGenerationInput): string {
 - Description: ${p.description}
 - Key Features: ${p.features.join(", ")}
 - Available Sizes: ${p.sizes.join(", ")}
-${trendBlock}
+${visualBlock}${trendBlock}
 Creative Direction Keyword: ${input.keyword}
 
 Create a TikTok video content plan for this product using "${input.keyword}" as the creative angle. Target audience: English-speaking North American TikTok users. Output JSON only, no markdown code blocks.`;
@@ -239,15 +278,16 @@ export async function generateContent(
   input: ContentGenerationInput
 ): Promise<ContentGenerationResult> {
   const hasMultiRefs = !!input.trendReferences?.length;
+  const isExtended = (input.targetDuration || 15) > 15;
   const response = await openai.chat.completions.create({
     model,
     messages: [
-      { role: "system", content: buildSystemPrompt(!!input.productContext, !!input.trendStyle, hasMultiRefs) },
+      { role: "system", content: buildSystemPrompt(!!input.productContext, !!input.trendStyle, hasMultiRefs, isExtended, !!input.productVisuals) },
       { role: "user", content: buildUserMessage(input) },
     ],
     response_format: { type: "json_object" },
     temperature: 0.7,
-    max_tokens: 3500,
+    max_tokens: isExtended ? 5000 : 3500,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -257,9 +297,31 @@ export async function generateContent(
 
   const parsed = JSON.parse(content);
 
+  let videoPrompt = "";
+  let videoPromptPart2: string | undefined;
+
+  function flattenToString(val: unknown): string {
+    if (typeof val === "string") return val;
+    if (val && typeof val === "object") {
+      return Object.entries(val as Record<string, unknown>)
+        .map(([k, v]) => `[${k}]\n${typeof v === "string" ? v : JSON.stringify(v)}`)
+        .join("\n\n");
+    }
+    return String(val ?? "");
+  }
+
+  const rawVP = parsed.videoPrompt || parsed.video_prompt;
+  videoPrompt = flattenToString(rawVP);
+
+  if (isExtended) {
+    const rawVP2 = parsed.videoPromptPart2 || parsed.video_prompt_part2;
+    videoPromptPart2 = rawVP2 ? flattenToString(rawVP2) : undefined;
+  }
+
   return {
     script: parsed.script || "",
-    videoPrompt: parsed.videoPrompt || parsed.video_prompt || "",
+    videoPrompt,
+    videoPromptPart2,
     caption: parsed.caption || "",
     hashtags: Array.isArray(parsed.hashtags) ? parsed.hashtags : [],
     contentAngles: Array.isArray(parsed.contentAngles || parsed.content_angles)
@@ -506,5 +568,65 @@ export async function generateAnalysis(
           totalTokens: response.usage.total_tokens,
         }
       : null,
+  };
+}
+
+// ============================================================
+// Product Image Vision Analysis (GPT-4o)
+// ============================================================
+
+export interface ProductVisualAnalysis {
+  productAppearance: string;
+  colorsAndMaterials: string;
+  brandElements: string;
+  suggestedAngles: string;
+  visualHighlights: string;
+}
+
+const PRODUCT_VISION_PROMPT = `You are a product photography analyst for e-commerce video ads. Analyze the provided product image(s) and extract visual details that will help an AI video generator create compelling product advertisement videos.
+
+Output STRICT JSON with these fields:
+- productAppearance: Detailed physical description of the product (shape, size impression, texture, design elements) in English, 50-100 words
+- colorsAndMaterials: Exact colors (use descriptive color names like "deep navy blue" not just "blue"), materials, finishes, patterns visible
+- brandElements: Any visible logos, text, labels, packaging branding, tags
+- suggestedAngles: Best camera angles and shot types for showcasing this product in a video ad (e.g. "dramatic overhead reveal", "close-up texture shot", "lifestyle flat-lay")
+- visualHighlights: The most visually striking features that should be emphasized in a video ad (e.g. "the shimmering sherpa texture catches light beautifully", "bold color contrast between the two reversible sides")`;
+
+export async function analyzeProductImages(
+  imageUrls: string[],
+): Promise<ProductVisualAnalysis> {
+  const visionModel = "gpt-4o";
+
+  const imageContent = imageUrls.slice(0, 5).map((url) => ({
+    type: "image_url" as const,
+    image_url: { url, detail: "low" as const },
+  }));
+
+  const response = await openai.chat.completions.create({
+    model: visionModel,
+    messages: [
+      { role: "system", content: PRODUCT_VISION_PROMPT },
+      {
+        role: "user",
+        content: [
+          ...imageContent,
+          { type: "text", text: "Analyze these product image(s) for video ad creation." },
+        ],
+      },
+    ],
+    response_format: { type: "json_object" },
+    max_tokens: 1000,
+  });
+
+  const content = response.choices[0]?.message?.content;
+  if (!content) throw new Error("Vision analysis returned empty response");
+
+  const parsed = JSON.parse(content);
+  return {
+    productAppearance: parsed.productAppearance || parsed.product_appearance || "",
+    colorsAndMaterials: parsed.colorsAndMaterials || parsed.colors_and_materials || "",
+    brandElements: parsed.brandElements || parsed.brand_elements || "",
+    suggestedAngles: parsed.suggestedAngles || parsed.suggested_angles || "",
+    visualHighlights: parsed.visualHighlights || parsed.visual_highlights || "",
   };
 }

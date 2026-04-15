@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -20,6 +20,8 @@ import {
   Heart,
   MessageCircle,
   Share2,
+  Download,
+  Scissors,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -47,6 +49,11 @@ export function ProjectDetailClient({
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ script: "", caption: "", videoPrompt: "" });
   const [saving, setSaving] = useState(false);
+  const [selectedDuration, setSelectedDuration] = useState(15);
+  const [stitching, setStitching] = useState(false);
+  const [stitchProgress, setStitchProgress] = useState(0);
+  const [stitchedUrl, setStitchedUrl] = useState<string | null>(null);
+  const stitchAttempted = useRef(false);
 
   useEffect(() => { setProject(initial); }, [initial]);
 
@@ -70,6 +77,28 @@ export function ProjectDetailClient({
     return () => clearInterval(interval);
   }, [isVideoGenerating, pollVideoStatus]);
 
+  const hasTwoSegments = !!(vj?.videoUrl && vj?.videoUrl2);
+
+  useEffect(() => {
+    if (!hasTwoSegments || stitchedUrl || stitching || stitchAttempted.current) return;
+    stitchAttempted.current = true;
+    (async () => {
+      setStitching(true);
+      setStitchProgress(0);
+      try {
+        const { stitchVideos } = await import("@/lib/video-stitcher");
+        const url = await stitchVideos(vj!.videoUrl!, vj!.videoUrl2!, setStitchProgress);
+        setStitchedUrl(url);
+        toast.success("视频拼接完成");
+      } catch (e) {
+        console.error("Stitch failed:", e);
+        toast.error("视频拼接失败，可分段查看");
+      } finally {
+        setStitching(false);
+      }
+    })();
+  }, [hasTwoSegments, stitchedUrl, stitching, vj]);
+
   async function handleGenerate() {
     if (generating) return;
     setGenerating(true);
@@ -86,14 +115,25 @@ export function ProjectDetailClient({
     if (videoSubmitting) return;
     setVideoSubmitting(true);
     setVideoProgress(0);
+    setStitchedUrl(null);
+    stitchAttempted.current = false;
     try {
+      if (selectedDuration > 15 && !project.contentPlan?.videoPromptPart2) {
+        const genRes = await fetch(`/api/projects/${project.id}/generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ targetDuration: selectedDuration }),
+        });
+        if (!genRes.ok) { const err = await genRes.json(); throw new Error(err.error || "内容生成失败"); }
+        toast.info("已生成 30 秒两段式内容方案");
+      }
       const res = await fetch(`/api/projects/${project.id}/video`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ duration: 15 }),
+        body: JSON.stringify({ duration: selectedDuration }),
       });
       if (!res.ok) { const err = await res.json(); throw new Error(err.error || "视频生成失败"); }
-      toast.info("视频生成已提交");
+      toast.info(selectedDuration > 15 ? "30 秒视频生成已提交（分两段）" : "视频生成已提交");
       router.refresh();
     } catch (e) { toast.error(e instanceof Error ? e.message : "视频生成失败"); }
     finally { setVideoSubmitting(false); }
@@ -201,6 +241,7 @@ export function ProjectDetailClient({
               deleting={deleting}
               confirmPublish={confirmPublish}
               confirmDelete={confirmDelete}
+              selectedDuration={selectedDuration}
               onGenerate={handleGenerate}
               onVideoGenerate={handleVideoGenerate}
               onPublish={handlePublish}
@@ -208,6 +249,7 @@ export function ProjectDetailClient({
               onDelete={handleDelete}
               onConfirmPublish={setConfirmPublish}
               onConfirmDelete={setConfirmDelete}
+              onDurationChange={setSelectedDuration}
             />
           </div>
         </div>
@@ -272,6 +314,34 @@ export function ProjectDetailClient({
         </div>
       )}
 
+      {/* Uploaded Product Images */}
+      {project.imageUrls && project.imageUrls.length > 0 && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
+            产品图参考 · {project.imageUrls.length} 张
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {project.imageUrls.map((url: string, i: number) => (
+              <div
+                key={i}
+                className={`relative rounded-lg overflow-hidden border-2 transition-all ${
+                  url === project.primaryImageUrl
+                    ? "border-violet-500 ring-2 ring-violet-500/20"
+                    : "border-zinc-700"
+                }`}
+              >
+                <img src={url} alt={`产品图 ${i + 1}`} className="w-16 h-16 object-cover" />
+                {url === project.primaryImageUrl && (
+                  <div className="absolute top-0.5 left-0.5 rounded-full bg-violet-500 px-1 py-0.5">
+                    <span className="text-[7px] font-bold text-white">主图</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main content area */}
       {(vj?.status === "COMPLETED" && vj.videoUrl) || cp ? (
         <div className="grid gap-8 lg:grid-cols-5">
@@ -279,22 +349,70 @@ export function ProjectDetailClient({
           {vj?.status === "COMPLETED" && vj.videoUrl && (
             <div className="lg:col-span-2">
               <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
-                视频预览
+                视频预览 {vj.videoUrl2 ? `· ${vj.duration}s` : ""}
               </p>
-              <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
-                <div className="aspect-[9/16]">
-                  <video
-                    src={vj.videoUrl}
-                    controls
-                    className="w-full h-full object-contain"
-                    poster={vj.thumbnailUrl || undefined}
-                  />
+
+              {/* Stitching progress */}
+              {stitching && (
+                <div className="rounded-xl bg-violet-500/10 p-4 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Scissors className="h-3.5 w-3.5 text-violet-400" />
+                    <span className="text-xs font-medium text-violet-400">
+                      视频拼接中 {stitchProgress}%
+                    </span>
+                  </div>
+                  <div className="h-1 w-full bg-violet-500/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-violet-500 rounded-full transition-all duration-300" style={{ width: `${stitchProgress}%` }} />
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Stitched 30s video */}
+              {stitchedUrl ? (
+                <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
+                  <div className="aspect-[9/16]">
+                    <video src={stitchedUrl} controls className="w-full h-full object-contain" />
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
+                  <div className="aspect-[9/16]">
+                    <video src={vj.videoUrl} controls className="w-full h-full object-contain" poster={vj.thumbnailUrl || undefined} />
+                  </div>
+                </div>
+              )}
+
+              {/* Download + segment info */}
               <div className="flex items-center justify-between mt-3 text-[11px] text-zinc-300">
                 <span>{vj.provider}</span>
-                {vj.completedAt && <span>{formatDate(vj.completedAt)}</span>}
+                <div className="flex items-center gap-3">
+                  {stitchedUrl && (
+                    <a href={stitchedUrl} download={`${project.keyword}-30s.mp4`} className="flex items-center gap-1 text-violet-400 hover:text-violet-300">
+                      <Download className="h-3 w-3" /> 下载 30s
+                    </a>
+                  )}
+                  {vj.completedAt && <span>{formatDate(vj.completedAt)}</span>}
+                </div>
               </div>
+
+              {/* Show both segments if stitched */}
+              {vj.videoUrl2 && stitchedUrl && (
+                <details className="mt-3">
+                  <summary className="text-[11px] text-zinc-500 cursor-pointer hover:text-zinc-400">
+                    查看分段视频
+                  </summary>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <p className="text-[10px] text-zinc-500 mb-1">Part 1</p>
+                      <video src={vj.videoUrl} controls className="w-full rounded-lg" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-zinc-500 mb-1">Part 2</p>
+                      <video src={vj.videoUrl2} controls className="w-full rounded-lg" />
+                    </div>
+                  </div>
+                </details>
+              )}
             </div>
           )}
 
@@ -550,15 +668,15 @@ function AnalysisBlock({ label, content }: { label: string; content: string }) {
 function ActionButtons({
   project,
   generating, videoSubmitting, publishing, analyzing, deleting,
-  confirmPublish, confirmDelete,
+  confirmPublish, confirmDelete, selectedDuration,
   onGenerate, onVideoGenerate, onPublish, onAnalyze, onDelete,
-  onConfirmPublish, onConfirmDelete,
+  onConfirmPublish, onConfirmDelete, onDurationChange,
 }: {
   project: ProjectWithRelations;
   generating: boolean; videoSubmitting: boolean; publishing: boolean; analyzing: boolean; deleting: boolean;
-  confirmPublish: boolean; confirmDelete: boolean;
+  confirmPublish: boolean; confirmDelete: boolean; selectedDuration: number;
   onGenerate: () => void; onVideoGenerate: () => void; onPublish: () => void; onAnalyze: () => void; onDelete: () => void;
-  onConfirmPublish: (v: boolean) => void; onConfirmDelete: (v: boolean) => void;
+  onConfirmPublish: (v: boolean) => void; onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
   const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
@@ -575,10 +693,20 @@ function ActionButtons({
         </button>
       )}
       {(project.status === "CONTENT_GENERATED" || project.status === "VIDEO_FAILED") && (
-        <button className={secondary} onClick={onVideoGenerate} disabled={videoSubmitting}>
-          {videoSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-          生成视频
-        </button>
+        <div className="flex items-center gap-1.5">
+          <select
+            value={selectedDuration}
+            onChange={(e) => onDurationChange(Number(e.target.value))}
+            className="rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-100 text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-violet-500"
+          >
+            <option value={15}>15秒</option>
+            <option value={30}>30秒</option>
+          </select>
+          <button className={secondary} onClick={onVideoGenerate} disabled={videoSubmitting}>
+            {videoSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+            生成视频
+          </button>
+        </div>
       )}
       {(project.status === "VIDEO_READY" || project.status === "PUBLISH_FAILED") && (
         !confirmPublish ? (

@@ -12,9 +12,11 @@
 export interface VideoGenerationOptions {
   prompt: string;
   referenceImageUrl?: string;
+  firstFrameUrl?: string;
   duration?: number;
   resolution?: string;
   ratio?: string;
+  returnLastFrame?: boolean;
 }
 
 export interface VideoJobResult {
@@ -22,6 +24,7 @@ export interface VideoJobResult {
   status: "pending" | "processing" | "completed" | "failed";
   videoUrl?: string;
   thumbnailUrl?: string;
+  lastFrameUrl?: string;
   errorMessage?: string;
   progress?: number;
 }
@@ -119,7 +122,9 @@ async function submitReal(
 
   const content: Array<Record<string, string>> = [];
 
-  if (options.referenceImageUrl) {
+  if (options.firstFrameUrl) {
+    content.push({ type: "image_url", image_url: options.firstFrameUrl });
+  } else if (options.referenceImageUrl) {
     content.push({ type: "image_url", image_url: options.referenceImageUrl });
   }
   content.push({ type: "text", text: promptText });
@@ -136,20 +141,37 @@ async function submitReal(
 
   if (isSeedance2) {
     body.generate_audio = true;
+    if (options.returnLastFrame) {
+      body.return_last_frame = true;
+    }
   } else {
     body.resolution = options.resolution || "1080p";
   }
 
-  console.log(`[jimeng:real] 提交视频生成任务, model=${model}, prompt=${options.prompt.slice(0, 80)}...`);
+  console.log(`[jimeng:real] 提交视频生成任务, model=${model}, hasImage=${content.some(c => c.type === "image_url")}, prompt=${options.prompt.slice(0, 80)}...`);
 
-  const res = await fetch(`${baseUrl}/contents/generations/tasks`, {
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${apiKey}`,
+  };
+
+  let res = await fetch(`${baseUrl}/contents/generations/tasks`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
+    headers,
     body: JSON.stringify(body),
   });
+
+  if (!res.ok && content.some(c => c.type === "image_url")) {
+    const errText = await res.text();
+    console.warn(`[jimeng:real] 带图提交失败 (${res.status}), 降级为纯文本重试: ${errText.slice(0, 200)}`);
+    const textOnlyContent = content.filter(c => c.type !== "image_url");
+    const fallbackBody = { ...body, content: textOnlyContent };
+    res = await fetch(`${baseUrl}/contents/generations/tasks`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(fallbackBody),
+    });
+  }
 
   if (!res.ok) {
     const err = await res.text();
@@ -194,12 +216,14 @@ async function getStatusReal(jobId: string): Promise<VideoJobResult> {
   };
 
   const videoUrl = data.content?.video_url || data.video_url;
+  const lastFrameUrl = data.content?.last_frame_url || data.last_frame_url;
 
   return {
     jobId,
     status: statusMap[data.status] || "processing",
     videoUrl,
     thumbnailUrl: data.content?.cover_url || data.thumbnail_url,
+    lastFrameUrl,
     errorMessage:
       data.status === "failed"
         ? data.error?.message || "视频生成失败"

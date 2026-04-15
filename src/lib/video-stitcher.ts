@@ -58,7 +58,7 @@ export async function stitchVideos(
 
   onProgress?.(98);
   const outputData = await ffmpeg.readFile("output.mp4");
-  const blob = new Blob([outputData], { type: "video/mp4" });
+  const blob = new Blob([outputData as unknown as BlobPart], { type: "video/mp4" });
 
   await ffmpeg.deleteFile("part1.mp4");
   await ffmpeg.deleteFile("part2.mp4");

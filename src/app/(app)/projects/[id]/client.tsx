@@ -77,28 +77,6 @@ export function ProjectDetailClient({
     return () => clearInterval(interval);
   }, [isVideoGenerating, pollVideoStatus]);
 
-  const hasTwoSegments = !!(vj?.videoUrl && vj?.videoUrl2);
-
-  useEffect(() => {
-    if (!hasTwoSegments || stitchedUrl || stitching || stitchAttempted.current) return;
-    stitchAttempted.current = true;
-    (async () => {
-      setStitching(true);
-      setStitchProgress(0);
-      try {
-        const { stitchVideos } = await import("@/lib/video-stitcher");
-        const url = await stitchVideos(vj!.videoUrl!, vj!.videoUrl2!, setStitchProgress);
-        setStitchedUrl(url);
-        toast.success("视频拼接完成");
-      } catch (e) {
-        console.error("Stitch failed:", e);
-        toast.error("视频拼接失败，可分段查看");
-      } finally {
-        setStitching(false);
-      }
-    })();
-  }, [hasTwoSegments, stitchedUrl, stitching, vj]);
-
   async function handleGenerate() {
     if (generating) return;
     setGenerating(true);
@@ -200,6 +178,28 @@ export function ProjectDetailClient({
   const vj = project.videoJob;
   const angles = (cp?.contentAngles ?? []) as ContentAngle[];
   const canEdit = cp && ["CONTENT_GENERATED", "VIDEO_FAILED"].includes(project.status);
+
+  const hasTwoSegments = !!(vj?.videoUrl && vj?.videoUrl2);
+
+  useEffect(() => {
+    if (!hasTwoSegments || stitchedUrl || stitching || stitchAttempted.current) return;
+    stitchAttempted.current = true;
+    (async () => {
+      setStitching(true);
+      setStitchProgress(0);
+      try {
+        const { stitchVideos } = await import("@/lib/video-stitcher");
+        const url = await stitchVideos(vj!.videoUrl!, vj!.videoUrl2!, setStitchProgress);
+        setStitchedUrl(url);
+        toast.success("视频拼接完成");
+      } catch (e) {
+        console.error("Stitch failed:", e);
+        toast.error("视频拼接失败，可分段查看");
+      } finally {
+        setStitching(false);
+      }
+    })();
+  }, [hasTwoSegments, stitchedUrl, stitching, vj]);
 
   return (
     <div className="space-y-8">

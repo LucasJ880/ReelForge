@@ -231,11 +231,17 @@ model AnalysisReport {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
+enum UserRole {
+  ADMIN
+  USER
+}
+
 model User {
   id             String   @id @default(cuid())
   email          String   @unique
   hashedPassword String
   name           String?
+  role           UserRole @default(USER)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

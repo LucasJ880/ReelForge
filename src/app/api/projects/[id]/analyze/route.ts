@@ -2,11 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateAnalysisReport } from "@/lib/services/analysis-service";
 import { fetchAnalyticsForProject } from "@/lib/services/analytics-service";
 import { handleApiError } from "@/lib/utils/api-error";
+import { requireAdmin } from "@/lib/api-auth";
 
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const { id } = await params;
 
   try {

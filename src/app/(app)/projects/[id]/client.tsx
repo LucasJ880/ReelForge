@@ -30,6 +30,7 @@ import { StatusBadge } from "@/components/project/status-badge";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ProjectWithRelations, ContentAngle } from "@/types";
+import { useIsAdmin } from "@/lib/hooks/use-role";
 
 export function ProjectDetailClient({
   project: initial,
@@ -37,6 +38,7 @@ export function ProjectDetailClient({
   project: ProjectWithRelations;
 }) {
   const router = useRouter();
+  const isAdmin = useIsAdmin();
   const [project, setProject] = useState(initial);
   const [generating, setGenerating] = useState(false);
   const [videoSubmitting, setVideoSubmitting] = useState(false);
@@ -232,7 +234,7 @@ export function ProjectDetailClient({
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <ActionButtons
+            {isAdmin && <ActionButtons
               project={project}
               generating={generating}
               videoSubmitting={videoSubmitting}
@@ -250,7 +252,12 @@ export function ProjectDetailClient({
               onConfirmPublish={setConfirmPublish}
               onConfirmDelete={setConfirmDelete}
               onDurationChange={setSelectedDuration}
-            />
+            />}
+            {!isAdmin && (
+              <span className="text-xs text-zinc-500 rounded-lg bg-zinc-900/60 border border-zinc-800 px-3 py-1.5">
+                浏览模式 · 生成功能需要管理员权限
+              </span>
+            )}
           </div>
         </div>
       </div>

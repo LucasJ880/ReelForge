@@ -16,7 +16,10 @@ import {
   ImagePlus,
   Star,
   Trash2,
+  Lock,
 } from "lucide-react";
+import Link from "next/link";
+import { useIsAdmin } from "@/lib/hooks/use-role";
 
 interface Product {
   id: string;
@@ -72,6 +75,7 @@ function formatCount(n: number | null | undefined): string {
 
 export default function NewProjectPage() {
   const router = useRouter();
+  const isAdmin = useIsAdmin();
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"input" | "creating" | "generating">("input");
@@ -235,6 +239,27 @@ export default function NewProjectPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-md mx-auto pt-24 text-center">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800">
+          <Lock className="h-6 w-6 text-zinc-400" />
+        </div>
+        <h1 className="text-xl font-semibold text-white mb-3">需要管理员权限</h1>
+        <p className="text-sm text-zinc-400 mb-6">
+          创建新作品与视频生成会产生 AI 调用费用，目前仅管理员可操作。
+          你可以浏览已有作品和爆款参考。
+        </p>
+        <Link
+          href="/projects"
+          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+        >
+          返回作品库
+        </Link>
+      </div>
+    );
   }
 
   return (

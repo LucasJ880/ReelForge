@@ -16,6 +16,7 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useIsAdmin } from "@/lib/hooks/use-role";
 
 interface TrendCandidate {
   sourceUrl: string;
@@ -70,6 +71,7 @@ function formatCount(n: number | null | undefined): string {
 }
 
 export default function TrendsPage() {
+  const isAdmin = useIsAdmin();
   const [keyword, setKeyword] = useState("");
   const [platforms, setPlatforms] = useState<Set<string>>(
     new Set(["tiktok", "instagram", "facebook"])
@@ -229,7 +231,13 @@ export default function TrendsPage() {
           </p>
         </div>
 
-        {/* Search Panel */}
+        {/* Search Panel — admin only */}
+        {!isAdmin && (
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4 mb-8 text-sm text-zinc-400">
+            浏览模式 · 搜索与分析功能需要管理员权限
+          </div>
+        )}
+        {isAdmin && (
         <div className="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-5 mb-8">
           <div className="flex flex-col gap-4">
             {/* Keyword input + saved keywords */}
@@ -295,6 +303,7 @@ export default function TrendsPage() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Search Results */}
         {candidates.length > 0 && (

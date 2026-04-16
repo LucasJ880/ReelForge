@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateContentPlan } from "@/lib/services/content-service";
+import { requireAdmin } from "@/lib/api-auth";
 
 const ALLOWED_FIELDS = new Set(["script", "caption", "hashtags", "videoPrompt"]);
 
@@ -7,6 +8,9 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   const { id } = await params;
   const body = await request.json();
 

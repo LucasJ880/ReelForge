@@ -7,6 +7,7 @@ import {
 import { isValidVideoUrl } from "@/lib/providers/trend-discovery";
 import { handleApiError } from "@/lib/utils/api-error";
 import type { TrendCandidate } from "@/lib/providers/apify-search";
+import { requireAdmin } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,6 +24,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await request.json();
 

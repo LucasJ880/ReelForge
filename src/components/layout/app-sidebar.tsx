@@ -18,6 +18,7 @@ import {
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
+import { useIsAdmin } from "@/lib/hooks/use-role";
 
 const mainNav = [
   { href: "/dashboard", label: "工作台", icon: LayoutDashboard },
@@ -34,6 +35,7 @@ const createNav = [
 export function AppSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const isAdmin = useIsAdmin();
 
   function NavContent() {
     return (
@@ -51,7 +53,9 @@ export function AppSidebar() {
         {/* Main nav */}
         <nav className="flex-1 px-3 space-y-5">
           <div className="space-y-1">
-            {mainNav.map((item) => {
+            {mainNav
+              .filter((item) => isAdmin || item.href !== "/batches")
+              .map((item) => {
               const createPaths = ["/projects/new", "/batches/new"];
               const isActive =
                 pathname === item.href ||
@@ -80,6 +84,7 @@ export function AppSidebar() {
             })}
           </div>
 
+          {isAdmin && (
           <div>
             <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.2em] text-zinc-600 font-medium">
               创作
@@ -109,6 +114,7 @@ export function AppSidebar() {
               })}
             </div>
           </div>
+          )}
         </nav>
 
         {/* Footer */}

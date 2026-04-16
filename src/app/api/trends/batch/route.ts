@@ -2,10 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { batchAnalyze } from "@/lib/services/trend-service";
 import { handleApiError } from "@/lib/utils/api-error";
 import type { TrendCandidate } from "@/lib/providers/apify-search";
+import { requireAdmin } from "@/lib/api-auth";
 
 export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await request.json();
     const { candidates } = body as { candidates?: TrendCandidate[] };

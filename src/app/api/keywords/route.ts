@@ -5,6 +5,7 @@ import {
   deleteKeyword,
 } from "@/lib/services/trend-service";
 import { handleApiError } from "@/lib/utils/api-error";
+import { requireAdmin } from "@/lib/api-auth";
 
 export async function GET() {
   try {
@@ -16,6 +17,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const body = await request.json();
     const { keyword } = body;
@@ -32,6 +36,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

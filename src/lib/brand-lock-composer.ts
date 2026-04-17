@@ -95,10 +95,22 @@ async function safeFetchBytes(url: string, label: string): Promise<Uint8Array> {
       `[${label}] 下载失败：${err instanceof Error ? err.message : String(err)}`,
     );
   }
-  if (!res.ok) {
-    throw new Error(`[${label}] HTTP ${res.status} - ${res.statusText}`);
-  }
   const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (!res.ok) {
+    let detail = res.statusText;
+    if (ct.includes("application/json")) {
+      try {
+        const j = (await res.json()) as {
+          error?: string;
+          reason?: string;
+        };
+        detail = `${j.error ?? ""} ${j.reason ?? ""}`.trim() || res.statusText;
+      } catch {
+        /* ignore */
+      }
+    }
+    throw new Error(`[${label}] HTTP ${res.status} - ${detail}`);
+  }
   if (ct.includes("application/json") || ct.includes("text/html")) {
     const text = await res.text().catch(() => "");
     throw new Error(

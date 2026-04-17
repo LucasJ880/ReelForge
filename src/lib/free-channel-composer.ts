@@ -97,18 +97,33 @@ async function safeFetchBytes(
     );
   }
 
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+
   if (!res.ok) {
+    // 尝试解出 JSON body（我们的 proxy 会返回 { error, reason, upstreamUrl }）
+    let detail = res.statusText;
+    if (ct.includes("application/json")) {
+      try {
+        const j = (await res.json()) as {
+          error?: string;
+          reason?: string;
+          upstreamUrl?: string;
+        };
+        detail = `${j.error ?? ""} ${j.reason ?? ""}`.trim() || res.statusText;
+      } catch {
+        /* ignore */
+      }
+    }
     throw new Error(
-      `[${label}] ${kind === "video" ? "视频素材" : "音频"} HTTP ${res.status} - ${res.statusText}`,
+      `[${label}] ${kind === "video" ? "视频素材" : "音频"} HTTP ${res.status} - ${detail}`,
     );
   }
 
-  const ct = (res.headers.get("content-type") || "").toLowerCase();
   if (ct.includes("application/json") || ct.includes("text/html")) {
-    // 上游返回了错误页 —— 读出来拼到错误里方便诊断
+    // 2xx 但仍返回 JSON/HTML —— 上游搞事
     const text = await res.text().catch(() => "");
     throw new Error(
-      `[${label}] ${kind === "video" ? "视频源" : "音频源"}返回了 ${ct || "text"} 而不是二进制（大概率上游 404 / 限流）：${text.slice(0, 200)}`,
+      `[${label}] ${kind === "video" ? "视频源" : "音频源"}返回了 ${ct || "text"} 而不是二进制：${text.slice(0, 200)}`,
     );
   }
 

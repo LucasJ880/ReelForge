@@ -8,7 +8,7 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   const label = PROJECT_STATUS_LABELS[status] || status;
-  const colors = PROJECT_STATUS_COLORS[status] || "bg-zinc-100 text-zinc-600";
+  const colors = PROJECT_STATUS_COLORS[status] || "bg-muted text-muted-foreground/70";
 
   return (
     <span

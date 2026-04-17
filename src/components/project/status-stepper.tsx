@@ -38,9 +38,9 @@ export function StatusStepper({ status }: { status: string }) {
                 className={cn(
                   "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium transition-colors",
                   done && "bg-emerald-500 text-white",
-                  active && !activeLoading && "bg-teal-600 text-white",
+                  active && !activeLoading && "bg-primary text-white",
                   activeLoading && "bg-amber-500 text-white",
-                  !done && !active && "bg-zinc-800 text-zinc-500"
+                  !done && !active && "bg-secondary text-muted-foreground"
                 )}
               >
                 {done ? (
@@ -54,7 +54,7 @@ export function StatusStepper({ status }: { status: string }) {
               <span
                 className={cn(
                   "text-[11px] hidden sm:inline",
-                  done ? "text-zinc-500" : active ? "text-zinc-100 font-medium" : "text-zinc-600"
+                  done ? "text-muted-foreground" : active ? "text-foreground font-medium" : "text-muted-foreground/70"
                 )}
               >
                 {step.label}
@@ -64,7 +64,7 @@ export function StatusStepper({ status }: { status: string }) {
               <div
                 className={cn(
                   "h-px w-4 lg:w-6",
-                  i < currentStep ? "bg-emerald-400" : "bg-zinc-700"
+                  i < currentStep ? "bg-emerald-400" : "bg-muted-foreground/40"
                 )}
               />
             )}

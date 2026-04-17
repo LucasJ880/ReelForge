@@ -386,7 +386,7 @@ export function ProjectDetailClient({
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
             作品详情
           </p>
           <StatusBadge status={project.status} />
@@ -397,11 +397,11 @@ export function ProjectDetailClient({
               {project.keyword}
             </h1>
             {project.product && (
-              <p className="text-xs text-teal-400/80 mt-0.5">
+              <p className="text-xs text-primary/80 mt-0.5">
                 {project.product.name}
               </p>
             )}
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               {formatDate(project.createdAt)}
             </p>
           </div>
@@ -431,7 +431,7 @@ export function ProjectDetailClient({
               onDurationChange={setSelectedDuration}
             />}
             {!isAdmin && (
-              <span className="text-xs text-zinc-500 rounded-lg bg-zinc-900/60 border border-zinc-800 px-3 py-1.5">
+              <span className="text-xs text-muted-foreground rounded-lg bg-card/70 border border-border px-3 py-1.5">
                 浏览模式 · 生成功能需要管理员权限
               </span>
             )}
@@ -500,20 +500,20 @@ export function ProjectDetailClient({
 
       {/* Video failed */}
       {project.status === "VIDEO_FAILED" && vj && (
-        <div className="rounded-xl border border-zinc-800 p-5">
+        <div className="rounded-xl border border-border p-5">
           <div className="flex items-center gap-2 mb-2">
             <AlertCircle className="h-4 w-4 text-red-400" />
             <span className="text-sm font-medium text-red-400">视频生成失败</span>
           </div>
           <p className="text-xs text-red-400 mb-1">{vj.errorMessage || "未知错误"}</p>
-          <p className="text-[11px] text-zinc-400">已重试 {vj.retryCount} 次</p>
+          <p className="text-[11px] text-muted-foreground">已重试 {vj.retryCount} 次</p>
         </div>
       )}
 
       {/* Uploaded Product Images */}
       {project.imageUrls && project.imageUrls.length > 0 && (
-        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
+        <div className="rounded-xl border border-border bg-card/60 p-4">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-3">
             产品图参考 · {project.imageUrls.length} 张
           </p>
           <div className="flex gap-2 flex-wrap">
@@ -522,13 +522,13 @@ export function ProjectDetailClient({
                 key={i}
                 className={`relative rounded-lg overflow-hidden border-2 transition-all ${
                   url === project.primaryImageUrl
-                    ? "border-teal-500 ring-2 ring-teal-500/20"
-                    : "border-zinc-700"
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-border"
                 }`}
               >
                 <img src={url} alt={`产品图 ${i + 1}`} className="w-16 h-16 object-cover" />
                 {url === project.primaryImageUrl && (
-                  <div className="absolute top-0.5 left-0.5 rounded-full bg-teal-500 px-1 py-0.5">
+                  <div className="absolute top-0.5 left-0.5 rounded-full bg-primary px-1 py-0.5">
                     <span className="text-[7px] font-bold text-white">主图</span>
                   </div>
                 )}
@@ -545,14 +545,14 @@ export function ProjectDetailClient({
           {vj?.status === "COMPLETED" && vj.videoUrl && (
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+                <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
                   视频预览 {vj.videoUrl2 ? `· ${vj.duration}s` : ""}
                 </p>
                 {isAdmin && needsMigrate && (
                   <button
                     onClick={handleRepersist}
                     disabled={migrating}
-                    className="text-[11px] text-teal-400 hover:text-teal-300 disabled:opacity-50 underline underline-offset-2"
+                    className="text-[11px] text-primary hover:text-primary disabled:opacity-50 underline underline-offset-2"
                     title="将视频从临时 URL 迁移到 Vercel Blob 永久存储"
                   >
                     {migrating ? "迁移中..." : "迁移到永久存储"}
@@ -562,22 +562,22 @@ export function ProjectDetailClient({
 
               {/* Stitching progress */}
               {stitching && (
-                <div className="rounded-xl bg-teal-500/10 p-4 mb-3">
+                <div className="rounded-xl bg-primary/10 p-4 mb-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <Scissors className="h-3.5 w-3.5 text-teal-400" />
-                    <span className="text-xs font-medium text-teal-400">
+                    <Scissors className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-xs font-medium text-primary">
                       视频拼接中 {stitchProgress}%
                     </span>
                   </div>
-                  <div className="h-1 w-full bg-teal-500/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-teal-500 rounded-full transition-all duration-300" style={{ width: `${stitchProgress}%` }} />
+                  <div className="h-1 w-full bg-primary/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary rounded-full transition-all duration-300" style={{ width: `${stitchProgress}%` }} />
                   </div>
                 </div>
               )}
 
               {/* Preview area with fallback chain */}
               {effectiveStitchedUrl ? (
-                <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
+                <div className="rounded-2xl overflow-hidden bg-background shadow-none">
                   <div className="aspect-[9/16]">
                     <video
                       src={effectiveStitchedUrl}
@@ -605,23 +605,23 @@ export function ProjectDetailClient({
                     </div>
                   )}
                   {!stitchFailed && !isAdmin && (
-                    <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-400">
+                    <div className="rounded-lg bg-card/80 border border-border px-3 py-2 text-[11px] text-muted-foreground">
                       30 秒完整版尚未由管理员拼接保存，下方可分段观看
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-xl overflow-hidden bg-zinc-950">
-                      <p className="px-2 py-1 text-[10px] text-zinc-500 bg-zinc-900/50">Part 1 · 15s</p>
+                    <div className="rounded-xl overflow-hidden bg-background">
+                      <p className="px-2 py-1 text-[10px] text-muted-foreground bg-card/60">Part 1 · 15s</p>
                       <video src={vj.videoUrl} controls className="w-full aspect-[9/16] object-contain" poster={vj.thumbnailUrl || undefined} />
                     </div>
-                    <div className="rounded-xl overflow-hidden bg-zinc-950">
-                      <p className="px-2 py-1 text-[10px] text-zinc-500 bg-zinc-900/50">Part 2 · 15s</p>
+                    <div className="rounded-xl overflow-hidden bg-background">
+                      <p className="px-2 py-1 text-[10px] text-muted-foreground bg-card/60">Part 2 · 15s</p>
                       <video src={vj.videoUrl2!} controls className="w-full aspect-[9/16] object-contain" />
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
+                <div className="rounded-2xl overflow-hidden bg-background shadow-none">
                   <div className="aspect-[9/16]">
                     <video src={vj.videoUrl} controls className="w-full h-full object-contain" poster={vj.thumbnailUrl || undefined} />
                   </div>
@@ -629,7 +629,7 @@ export function ProjectDetailClient({
               )}
 
               {/* Download + segment info */}
-              <div className="flex items-center justify-between mt-3 text-[11px] text-zinc-300">
+              <div className="flex items-center justify-between mt-3 text-[11px] text-foreground/90">
                 <span>{vj.provider}</span>
                 <div className="flex items-center gap-3">
                   {effectiveStitchedUrl && (
@@ -655,16 +655,16 @@ export function ProjectDetailClient({
               {/* Segments details when stitched */}
               {vj.videoUrl2 && effectiveStitchedUrl && (
                 <details className="mt-3">
-                  <summary className="text-[11px] text-zinc-500 cursor-pointer hover:text-zinc-400">
+                  <summary className="text-[11px] text-muted-foreground cursor-pointer hover:text-muted-foreground">
                     查看分段视频
                   </summary>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <div>
-                      <p className="text-[10px] text-zinc-500 mb-1">Part 1</p>
+                      <p className="text-[10px] text-muted-foreground mb-1">Part 1</p>
                       <video src={vj.videoUrl} controls className="w-full rounded-lg" />
                     </div>
                     <div>
-                      <p className="text-[10px] text-zinc-500 mb-1">Part 2</p>
+                      <p className="text-[10px] text-muted-foreground mb-1">Part 2</p>
                       <video src={vj.videoUrl2} controls className="w-full rounded-lg" />
                     </div>
                   </div>
@@ -683,17 +683,17 @@ export function ProjectDetailClient({
               {canEdit && (
                 <div className="flex justify-end">
                   {!editing ? (
-                    <button onClick={startEditing} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors">
+                    <button onClick={startEditing} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/90 transition-colors">
                       <Pencil className="h-3 w-3" />
                       编辑
                     </button>
                   ) : (
                     <div className="flex gap-2">
-                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 disabled:opacity-50">
+                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-primary hover:text-primary disabled:opacity-50">
                         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                         保存
                       </button>
-                      <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 disabled:opacity-50">
+                      <button onClick={() => setEditing(false)} disabled={saving} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/90 disabled:opacity-50">
                         <X className="h-3 w-3" />
                         取消
                       </button>
@@ -709,10 +709,10 @@ export function ProjectDetailClient({
                     value={editData.script}
                     onChange={(e) => setEditData((d) => ({ ...d, script: e.target.value }))}
                     rows={6}
-                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-teal-500 focus:ring-teal-500/20"
+                    className="text-sm border-border bg-card focus:border-primary focus:ring-primary/20"
                   />
                 ) : (
-                  <p className="text-sm leading-relaxed text-zinc-400 whitespace-pre-wrap">{cp.script}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">{cp.script}</p>
                 )}
               </ContentSection>
 
@@ -722,10 +722,10 @@ export function ProjectDetailClient({
                   <Input
                     value={editData.caption}
                     onChange={(e) => setEditData((d) => ({ ...d, caption: e.target.value }))}
-                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-teal-500 focus:ring-teal-500/20"
+                    className="text-sm border-border bg-card focus:border-primary focus:ring-primary/20"
                   />
                 ) : (
-                  <p className="text-sm text-zinc-100">{cp.caption}</p>
+                  <p className="text-sm text-foreground">{cp.caption}</p>
                 )}
               </ContentSection>
 
@@ -733,7 +733,7 @@ export function ProjectDetailClient({
               <ContentSection label="Hashtags">
                 <div className="flex flex-wrap gap-1.5">
                   {cp.hashtags.map((tag, i) => (
-                    <span key={i} className="rounded-full bg-zinc-800/50 px-2.5 py-0.5 text-[11px] text-zinc-400">
+                    <span key={i} className="rounded-full bg-accent/60 px-2.5 py-0.5 text-[11px] text-muted-foreground">
                       {tag.startsWith("#") ? tag : `#${tag}`}
                     </span>
                   ))}
@@ -747,10 +747,10 @@ export function ProjectDetailClient({
                     value={editData.videoPrompt}
                     onChange={(e) => setEditData((d) => ({ ...d, videoPrompt: e.target.value }))}
                     rows={3}
-                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-teal-500 focus:ring-teal-500/20"
+                    className="text-sm border-border bg-card focus:border-primary focus:ring-primary/20"
                   />
                 ) : (
-                  <p className="text-sm text-zinc-400 italic">{cp.videoPrompt}</p>
+                  <p className="text-sm text-muted-foreground italic">{cp.videoPrompt}</p>
                 )}
               </ContentSection>
 
@@ -760,8 +760,8 @@ export function ProjectDetailClient({
                   <div className="space-y-3">
                     {angles.map((a, i) => (
                       <div key={i}>
-                        <p className="text-sm font-medium text-zinc-100">{a.angle}</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">{a.reason}</p>
+                        <p className="text-sm font-medium text-foreground">{a.angle}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{a.reason}</p>
                       </div>
                     ))}
                   </div>
@@ -769,7 +769,7 @@ export function ProjectDetailClient({
               )}
 
               {/* Meta */}
-              <div className="flex items-center gap-4 text-[11px] text-zinc-300 pt-2">
+              <div className="flex items-center gap-4 text-[11px] text-foreground/90 pt-2">
                 <span>模型 {cp.modelUsed}</span>
                 <span>{formatDate(cp.createdAt)}</span>
               </div>
@@ -784,7 +784,7 @@ export function ProjectDetailClient({
 function ContentSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2">
+      <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2">
         {label}
       </p>
       {children}
@@ -807,8 +807,8 @@ function ActionButtons({
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
   const primary = `${btn} bg-primary text-primary-foreground hover:opacity-90`;
-  const secondary = `${btn} bg-zinc-800/50 text-zinc-100 hover:bg-white/5`;
-  const ghost = `${btn} text-zinc-400 hover:text-zinc-300 hover:bg-white/5`;
+  const secondary = `${btn} bg-accent/60 text-foreground hover:bg-white/5`;
+  const ghost = `${btn} text-muted-foreground hover:text-foreground/90 hover:bg-white/5`;
   const destructive = `${btn} bg-destructive text-white hover:opacity-90`;
 
   return (
@@ -839,7 +839,7 @@ function ActionButtons({
           <select
             value={selectedDuration}
             onChange={(e) => onDurationChange(Number(e.target.value))}
-            className="rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-100 text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            className="rounded-lg bg-accent/60 border border-border text-foreground text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-primary"
           >
             <option value={15}>15秒</option>
             <option value={30}>30秒</option>

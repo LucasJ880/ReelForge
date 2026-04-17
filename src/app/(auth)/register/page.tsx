@@ -74,7 +74,7 @@ export default function RegisterPage() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-zinc-600 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
             placeholder="你的名字"
           />
         </div>
@@ -89,7 +89,7 @@ export default function RegisterPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-zinc-600 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
             placeholder="your@email.com"
           />
         </div>
@@ -105,7 +105,7 @@ export default function RegisterPage() {
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-zinc-600 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
             placeholder="至少 6 位"
           />
         </div>
@@ -125,13 +125,13 @@ export default function RegisterPage() {
           {loading ? "注册中" : "创建账号"}
         </button>
 
-        <p className="text-center text-[11px] leading-relaxed text-zinc-600">
+        <p className="text-center text-[11px] leading-relaxed text-muted-foreground/70">
           注册即代表同意{" "}
-          <Link href="/terms" className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+          <Link href="/terms" className="text-muted-foreground hover:text-foreground underline underline-offset-2">
             服务条款
           </Link>{" "}
           和{" "}
-          <Link href="/privacy" className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+          <Link href="/privacy" className="text-muted-foreground hover:text-foreground underline underline-offset-2">
             隐私政策
           </Link>
         </p>

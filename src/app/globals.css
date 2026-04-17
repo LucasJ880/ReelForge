@@ -54,44 +54,44 @@
  * hairline neutral borders, a single cool accent.
  */
 :root {
-  /* Neutral depth (pure zinc, no hue) */
-  --background: oklch(0.09 0 0);           /* near black */
-  --foreground: oklch(0.96 0 0);           /* near white */
-  --card: oklch(0.12 0 0);                 /* surface 1 */
-  --card-foreground: oklch(0.96 0 0);
-  --popover: oklch(0.13 0 0);
-  --popover-foreground: oklch(0.96 0 0);
-  --secondary: oklch(0.17 0 0);            /* surface 2 */
-  --secondary-foreground: oklch(0.92 0 0);
-  --muted: oklch(0.17 0 0);
-  --muted-foreground: oklch(0.60 0 0);
-  --accent: oklch(0.19 0 0);               /* hover surface */
-  --accent-foreground: oklch(0.96 0 0);
-  --border: oklch(1 0 0 / 8%);             /* hairline */
-  --input: oklch(1 0 0 / 10%);
-  --destructive: oklch(0.64 0.2 25);
+  /* Neutral depth — 不再死黑；提亮整体底色，层级拉开 */
+  --background: oklch(0.16 0.002 260);     /* zinc-950 级别，不再纯黑 */
+  --foreground: oklch(0.97 0 0);           /* near white */
+  --card: oklch(0.20 0.003 260);           /* surface 1，明显高于 bg */
+  --card-foreground: oklch(0.97 0 0);
+  --popover: oklch(0.22 0.003 260);
+  --popover-foreground: oklch(0.97 0 0);
+  --secondary: oklch(0.24 0.004 260);      /* surface 2 */
+  --secondary-foreground: oklch(0.94 0 0);
+  --muted: oklch(0.24 0.004 260);
+  --muted-foreground: oklch(0.72 0.005 260); /* 更亮的辅助文字 */
+  --accent: oklch(0.28 0.005 260);         /* hover surface，够显 */
+  --accent-foreground: oklch(0.97 0 0);
+  --border: oklch(1 0 0 / 14%);            /* hairline 提清 */
+  --input: oklch(1 0 0 / 16%);
+  --destructive: oklch(0.68 0.22 24);
 
-  /* Teal accent - single color language */
-  --primary: oklch(0.74 0.13 180);         /* teal-400 like */
-  --primary-foreground: oklch(0.10 0 0);   /* dark text on teal */
-  --ring: oklch(0.74 0.13 180);
+  /* Primary — 更亮的薄荷/翡翠绿，明显从背景里跳出来 */
+  --primary: oklch(0.82 0.17 172);         /* emerald-300/teal-300 感 */
+  --primary-foreground: oklch(0.17 0.02 170); /* 深底色字，最高对比度 */
+  --ring: oklch(0.82 0.17 172);
 
-  /* Sidebar matches background, one shade darker */
-  --sidebar: oklch(0.07 0 0);
-  --sidebar-foreground: oklch(0.68 0 0);
-  --sidebar-primary: oklch(0.74 0.13 180);
-  --sidebar-primary-foreground: oklch(0.10 0 0);
-  --sidebar-accent: oklch(0.14 0 0);
-  --sidebar-accent-foreground: oklch(0.96 0 0);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.74 0.13 180);
+  /* Sidebar 比主背景稍深，但不极端 */
+  --sidebar: oklch(0.13 0.002 260);
+  --sidebar-foreground: oklch(0.78 0.003 260);
+  --sidebar-primary: oklch(0.82 0.17 172);
+  --sidebar-primary-foreground: oklch(0.17 0.02 170);
+  --sidebar-accent: oklch(0.22 0.004 260);
+  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.82 0.17 172);
 
-  /* Charts use teal/emerald family only to stay cohesive */
-  --chart-1: oklch(0.74 0.13 180);
-  --chart-2: oklch(0.70 0.15 160);
-  --chart-3: oklch(0.68 0.12 200);
-  --chart-4: oklch(0.75 0.10 140);
-  --chart-5: oklch(0.72 0.14 190);
+  /* Charts — 围绕 primary 同族，保证一致 */
+  --chart-1: oklch(0.82 0.17 172);
+  --chart-2: oklch(0.78 0.16 160);
+  --chart-3: oklch(0.74 0.14 200);
+  --chart-4: oklch(0.80 0.12 140);
+  --chart-5: oklch(0.76 0.15 188);
 
   --radius: 0.625rem;
 }

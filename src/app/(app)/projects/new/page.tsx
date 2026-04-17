@@ -189,16 +189,16 @@ export default function NewProjectPage() {
   if (!isAdmin) {
     return (
       <div className="max-w-md mx-auto pt-24 text-center">
-        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-zinc-900 border border-zinc-800">
-          <Lock className="h-6 w-6 text-zinc-400" />
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-card border border-border">
+          <Lock className="h-6 w-6 text-muted-foreground" />
         </div>
         <h1 className="text-xl font-semibold text-white mb-3">需要管理员权限</h1>
-        <p className="text-sm text-zinc-400 mb-6">
+        <p className="text-sm text-muted-foreground mb-6">
           创建新作品与视频生成会产生 AI 调用费用，目前仅管理员可操作。
         </p>
         <Link
           href="/projects"
-          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
         >
           返回作品库
         </Link>
@@ -209,20 +209,20 @@ export default function NewProjectPage() {
   return (
     <div className="max-w-2xl mx-auto pt-8 sm:pt-16">
       <div className="mb-8">
-        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-2">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2">
           新作品
         </p>
         <h1 className="text-xl font-semibold tracking-tight text-white">
           选择产品，输入创意方向
         </h1>
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           AI 将结合产品信息与创意关键词，生成针对性的脚本、标题和视频提示词
         </p>
       </div>
 
       {/* Product Selector */}
       <div className="mb-5">
-        <label className="block text-xs font-medium text-zinc-400 mb-2">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
           <Package className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
           关联产品（推荐选择）
         </label>
@@ -231,35 +231,35 @@ export default function NewProjectPage() {
             type="button"
             onClick={() => setProductDropdownOpen(!productDropdownOpen)}
             disabled={loading}
-            className="w-full flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-left transition-all hover:border-zinc-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:outline-none disabled:opacity-50"
+            className="w-full flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm text-left transition-all hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50"
           >
             {selectedProduct ? (
               <span className="text-white">
-                <span className="text-teal-400 text-xs mr-2">
+                <span className="text-primary text-xs mr-2">
                   {productLineLabels[selectedProduct.productLine]}
                 </span>
                 {selectedProduct.color}
               </span>
             ) : (
-              <span className="text-zinc-500">选择一个毛毯产品...</span>
+              <span className="text-muted-foreground">选择一个毛毯产品...</span>
             )}
             <ChevronDown
-              className={`h-4 w-4 text-zinc-500 transition-transform ${
+              className={`h-4 w-4 text-muted-foreground transition-transform ${
                 productDropdownOpen ? "rotate-180" : ""
               }`}
             />
           </button>
 
           {productDropdownOpen && (
-            <div className="absolute z-50 mt-1 w-full rounded-xl border border-zinc-700 bg-zinc-900 shadow-xl shadow-black/50 max-h-72 overflow-hidden">
-              <div className="p-2 border-b border-zinc-800">
+            <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-card shadow-xl shadow-black/50 max-h-72 overflow-hidden">
+              <div className="p-2 border-b border-border">
                 <input
                   type="text"
                   placeholder="搜索产品或花色..."
                   value={productFilter}
                   onChange={(e) => setProductFilter(e.target.value)}
                   autoFocus
-                  className="w-full bg-zinc-800/50 rounded-lg px-3 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none"
+                  className="w-full bg-accent/60 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground/70 focus:outline-none"
                 />
               </div>
               <div className="overflow-y-auto max-h-52 p-1">
@@ -270,17 +270,17 @@ export default function NewProjectPage() {
                     setProductDropdownOpen(false);
                     setProductFilter("");
                   }}
-                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors"
+                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
                 >
                   <div className="w-4 h-4 flex items-center justify-center">
-                    {!selectedProductId && <Check className="h-3.5 w-3.5 text-teal-400" />}
+                    {!selectedProductId && <Check className="h-3.5 w-3.5 text-primary" />}
                   </div>
                   不关联产品（通用模式）
                 </button>
 
                 {Object.entries(groupedProducts).map(([line, items]) => (
                   <div key={line}>
-                    <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-zinc-500 font-medium">
+                    <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
                       {productLineLabels[line] || line}
                     </div>
                     {items.map((p) => (
@@ -292,11 +292,11 @@ export default function NewProjectPage() {
                           setProductDropdownOpen(false);
                           setProductFilter("");
                         }}
-                        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white hover:bg-zinc-800 transition-colors"
+                        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white hover:bg-secondary transition-colors"
                       >
                         <div className="w-4 h-4 flex items-center justify-center">
                           {selectedProductId === p.id && (
-                            <Check className="h-3.5 w-3.5 text-teal-400" />
+                            <Check className="h-3.5 w-3.5 text-primary" />
                           )}
                         </div>
                         {p.color}
@@ -310,9 +310,9 @@ export default function NewProjectPage() {
         </div>
 
         {selectedProduct && (
-          <div className="mt-2 rounded-lg bg-teal-500/5 border border-teal-500/10 px-3 py-2">
-            <p className="text-xs text-zinc-400 leading-relaxed">
-              <span className="text-teal-400 font-medium">{selectedProduct.name}</span>
+          <div className="mt-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <span className="text-primary font-medium">{selectedProduct.name}</span>
               {" — "}
               {selectedProduct.features.slice(0, 3).join("、")}
             </p>
@@ -322,7 +322,7 @@ export default function NewProjectPage() {
 
       {/* Product Image Upload */}
       <div className="mb-5">
-        <label className="block text-xs font-medium text-zinc-400 mb-2">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
           <ImagePlus className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
           产品图 / Logo（可选，最多 5 张）
         </label>
@@ -334,8 +334,8 @@ export default function NewProjectPage() {
                 key={img.url}
                 className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                   primaryImageUrl === img.url
-                    ? "border-teal-500 ring-2 ring-teal-500/20"
-                    : "border-zinc-700 hover:border-zinc-600"
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-border hover:border-primary/40"
                 }`}
                 onClick={() => setPrimaryImageUrl(img.url)}
               >
@@ -345,7 +345,7 @@ export default function NewProjectPage() {
                   className="w-full aspect-square object-cover"
                 />
                 {primaryImageUrl === img.url && (
-                  <div className="absolute top-1 left-1 rounded-full bg-teal-500 p-0.5">
+                  <div className="absolute top-1 left-1 rounded-full bg-primary p-0.5">
                     <Star className="h-2.5 w-2.5 text-white fill-white" />
                   </div>
                 )}
@@ -376,8 +376,8 @@ export default function NewProjectPage() {
             onDragLeave={() => setDragOver(false)}
             className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
               dragOver
-                ? "border-teal-500 bg-teal-500/5"
-                : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600"
+                ? "border-primary bg-primary/10"
+                : "border-border bg-card/60 hover:border-primary/40"
             } ${uploading ? "pointer-events-none opacity-50" : ""}`}
           >
             <input
@@ -389,23 +389,23 @@ export default function NewProjectPage() {
               disabled={uploading || loading}
             />
             {uploading ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-teal-400">
+              <div className="flex items-center justify-center gap-2 text-sm text-primary">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 上传中...
               </div>
             ) : (
-              <div className="text-sm text-zinc-500">
-                <ImagePlus className="mx-auto h-5 w-5 mb-1 text-zinc-600" />
+              <div className="text-sm text-muted-foreground">
+                <ImagePlus className="mx-auto h-5 w-5 mb-1 text-muted-foreground/70" />
                 拖拽或点击上传产品图 / Logo
-                <p className="text-[10px] text-zinc-600 mt-0.5">JPEG, PNG, WebP · 每张 ≤ 10MB</p>
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">JPEG, PNG, WebP · 每张 ≤ 10MB</p>
               </div>
             )}
           </div>
         )}
 
         {uploadedImages.length > 0 && (
-          <p className="text-[10px] text-zinc-500 mt-1.5">
-            <Star className="inline h-2.5 w-2.5 text-teal-400 fill-teal-400 -mt-0.5 mr-0.5" />
+          <p className="text-[10px] text-muted-foreground mt-1.5">
+            <Star className="inline h-2.5 w-2.5 text-primary fill-primary -mt-0.5 mr-0.5" />
             带紫框的为主图，将传入 Seedance 做图生视频。点击切换主图。
           </p>
         )}
@@ -413,11 +413,11 @@ export default function NewProjectPage() {
 
       {/* Keyword Input */}
       <form onSubmit={handleSubmit}>
-        <label className="block text-xs font-medium text-zinc-400 mb-2">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
           <Sparkles className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
           创意方向关键词
         </label>
-        <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-1 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all">
+        <div className="rounded-2xl border border-border bg-card p-1 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <input
             type="text"
             placeholder={
@@ -429,7 +429,7 @@ export default function NewProjectPage() {
             onChange={(e) => setKeyword(e.target.value)}
             disabled={loading}
             autoFocus={!products.length}
-            className="w-full bg-transparent px-4 py-4 text-base text-white placeholder:text-zinc-600 focus:outline-none disabled:opacity-50"
+            className="w-full bg-transparent px-4 py-4 text-base text-white placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
           />
           <div className="flex items-center justify-between px-3 pb-2">
             <div className="flex flex-wrap gap-1.5">
@@ -438,7 +438,7 @@ export default function NewProjectPage() {
                   key={s}
                   type="button"
                   onClick={() => setKeyword(s)}
-                  className="rounded-full bg-zinc-800/50 px-2.5 py-1 text-[11px] text-zinc-400 hover:bg-teal-500/10 hover:text-teal-400 transition-colors"
+                  className="rounded-full bg-accent/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
                 >
                   {s}
                 </button>
@@ -447,7 +447,7 @@ export default function NewProjectPage() {
             <button
               type="submit"
               disabled={!keyword.trim() || loading}
-              className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -471,7 +471,7 @@ export default function NewProjectPage() {
               key={s}
               type="button"
               onClick={() => setKeyword(s)}
-              className="rounded-full bg-zinc-800/30 px-2.5 py-1 text-[11px] text-zinc-500 hover:bg-teal-500/10 hover:text-teal-400 transition-colors"
+              className="rounded-full bg-secondary/30 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
             >
               {s}
             </button>
@@ -480,7 +480,7 @@ export default function NewProjectPage() {
       )}
 
       {step === "generating" && (
-        <div className="mt-6 flex items-center gap-3 text-sm text-teal-400">
+        <div className="mt-6 flex items-center gap-3 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>
             AI 正在为

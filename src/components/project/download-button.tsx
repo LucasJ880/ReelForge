@@ -66,7 +66,7 @@ export function DownloadButton({
       title={label || "下载视频"}
       className={cn(
         "inline-flex items-center justify-center rounded-md font-medium transition",
-        "border border-white/10 bg-white/[0.04] text-zinc-200",
+        "border border-white/10 bg-white/[0.04] text-foreground",
         "hover:bg-white/[0.08] hover:border-white/20",
         "disabled:cursor-not-allowed disabled:opacity-60",
         sizeClasses,

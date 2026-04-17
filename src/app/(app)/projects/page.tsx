@@ -148,12 +148,12 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-500 font-medium mb-1">
+          <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-1">
             作品库
           </p>
-          <h1 className="text-lg font-semibold tracking-tight text-white">
+          <h1 className="text-lg font-semibold tracking-tight text-foreground">
             全部项目
-            <span className="text-sm font-normal text-zinc-500 ml-2">{total}</span>
+            <span className="text-sm font-normal text-muted-foreground ml-2">{total}</span>
           </h1>
         </div>
         <div className="flex items-center gap-2">
@@ -189,19 +189,19 @@ export default function ProjectsPage() {
       {/* Toolbar: Search + Sort + View toggle */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <form onSubmit={handleSearch} className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="搜索关键词、分类、标题..."
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-9 pr-8 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-teal-500/40 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+            className="w-full rounded-lg border border-white/[0.06] bg-card pl-9 pr-8 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-colors"
           />
           {searchInput && (
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground/90"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -214,15 +214,15 @@ export default function ProjectsPage() {
             <select
               value={sort}
               onChange={(e) => { setSort(e.target.value); setPage(1); }}
-              className="appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] pl-8 pr-6 py-2 text-xs text-zinc-300 focus:outline-none focus:border-teal-500/40 cursor-pointer"
+              className="appearance-none rounded-lg border border-white/[0.06] bg-card pl-8 pr-6 py-2 text-xs text-foreground/90 focus:outline-none focus:border-primary/50 cursor-pointer"
             >
               {SORT_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value} className="bg-zinc-900 text-zinc-300">
+                <option key={o.value} value={o.value} className="bg-card text-foreground/90">
                   {o.label}
                 </option>
               ))}
             </select>
-            <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-zinc-500 pointer-events-none" />
+            <ArrowUpDown className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground pointer-events-none" />
           </div>
 
           {/* View toggle */}
@@ -232,8 +232,8 @@ export default function ProjectsPage() {
               className={cn(
                 "p-2 transition-colors",
                 view === "grid"
-                  ? "bg-teal-500/15 text-teal-400"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground/90 hover:bg-white/[0.02]"
               )}
             >
               <LayoutGrid className="h-3.5 w-3.5" />
@@ -243,8 +243,8 @@ export default function ProjectsPage() {
               className={cn(
                 "p-2 transition-colors",
                 view === "list"
-                  ? "bg-teal-500/15 text-teal-400"
-                  : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]"
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:text-foreground/90 hover:bg-white/[0.02]"
               )}
             >
               <List className="h-3.5 w-3.5" />
@@ -261,8 +261,8 @@ export default function ProjectsPage() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors",
               !activeCategory
-                ? "bg-teal-500/15 text-teal-400 border border-teal-500/20"
-                : "bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:border-white/[0.08]"
+                ? "bg-primary/15 text-primary border border-primary/30"
+                : "bg-white/[0.02] text-muted-foreground border border-white/[0.04] hover:text-foreground/90 hover:border-white/[0.08]"
             )}
           >
             全部
@@ -275,8 +275,8 @@ export default function ProjectsPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors",
                 activeCategory === cat.name
-                  ? "bg-teal-500/15 text-teal-400 border border-teal-500/20"
-                  : "bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:border-white/[0.08]"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "bg-white/[0.02] text-muted-foreground border border-white/[0.04] hover:text-foreground/90 hover:border-white/[0.08]"
               )}
             >
               <Tag className="h-2.5 w-2.5" />
@@ -290,8 +290,8 @@ export default function ProjectsPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors",
                 activeCategory === "__none"
-                  ? "bg-teal-500/15 text-teal-400 border border-teal-500/20"
-                  : "bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:border-white/[0.08]"
+                  ? "bg-primary/15 text-primary border border-primary/30"
+                  : "bg-white/[0.02] text-muted-foreground border border-white/[0.04] hover:text-foreground/90 hover:border-white/[0.08]"
               )}
             >
               未分类
@@ -303,12 +303,12 @@ export default function ProjectsPage() {
 
       {/* Active filters summary */}
       {(search || activeCategory) && (
-        <div className="flex items-center gap-2 text-xs text-zinc-500">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span>筛选中：</span>
           {search && (
             <span className="inline-flex items-center gap-1 bg-white/[0.04] rounded-md px-2 py-0.5">
               「{search}」
-              <button onClick={clearSearch} className="text-zinc-400 hover:text-white">
+              <button onClick={clearSearch} className="text-muted-foreground hover:text-foreground">
                 <X className="h-2.5 w-2.5" />
               </button>
             </span>
@@ -316,7 +316,7 @@ export default function ProjectsPage() {
           {activeCategory && activeCategory !== "__none" && (
             <span className="inline-flex items-center gap-1 bg-white/[0.04] rounded-md px-2 py-0.5">
               {activeCategory}
-              <button onClick={() => selectCategory(null)} className="text-zinc-400 hover:text-white">
+              <button onClick={() => selectCategory(null)} className="text-muted-foreground hover:text-foreground">
                 <X className="h-2.5 w-2.5" />
               </button>
             </span>
@@ -327,7 +327,7 @@ export default function ProjectsPage() {
       {/* Content */}
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-5 w-5 animate-spin text-zinc-500" />
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         </div>
       ) : projects.length === 0 ? (
         <EmptyState search={search} category={activeCategory} />
@@ -352,14 +352,14 @@ export default function ProjectsPage() {
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-zinc-600">
+          <p className="text-xs text-muted-foreground/70">
             第 {page} / {totalPages} 页 · 共 {total} 个项目
           </p>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page <= 1}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -378,8 +378,8 @@ export default function ProjectsPage() {
                   className={cn(
                     "h-7 w-7 rounded-lg text-xs font-medium transition-colors",
                     page === pageNum
-                      ? "bg-teal-500/15 text-teal-400"
-                      : "text-zinc-500 hover:text-white hover:bg-white/[0.04]"
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/[0.04]"
                   )}
                 >
                   {pageNum}
@@ -389,7 +389,7 @@ export default function ProjectsPage() {
             <button
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page >= totalPages}
-              className="p-1.5 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/[0.04] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -438,23 +438,23 @@ function GridView({
                 )}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h3 className="text-sm font-medium text-white truncate">{p.keyword}</h3>
+                  <h3 className="text-sm font-medium text-foreground truncate">{p.keyword}</h3>
                   <StatusBadge status={p.status} />
                 </div>
 
-                <p className="text-xs text-zinc-500 truncate mb-3">
+                <p className="text-xs text-muted-foreground truncate mb-3">
                   {p.contentPlan?.caption || "尚未生成内容"}
                 </p>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {p.category && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-zinc-500">
+                      <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-muted-foreground">
                         <Tag className="h-2 w-2" />
                         {p.category}
                       </span>
                     )}
-                    <span className="text-[11px] text-zinc-600">{formatDate(p.createdAt)}</span>
+                    <span className="text-[11px] text-muted-foreground/70">{formatDate(p.createdAt)}</span>
                   </div>
                 </div>
               </div>
@@ -516,7 +516,7 @@ function ListView({
   return (
     <div className="rounded-xl border border-white/[0.05] overflow-hidden">
       {/* Header */}
-      <div className="grid grid-cols-12 gap-3 px-4 py-2.5 text-[10px] uppercase tracking-wider text-zinc-600 border-b border-white/[0.04] bg-white/[0.01]">
+      <div className="grid grid-cols-12 gap-3 px-4 py-2.5 text-[10px] uppercase tracking-wider text-muted-foreground/70 border-b border-white/[0.04] bg-white/[0.01]">
         <div className="col-span-1 flex items-center">
           {selectable && (
             <button
@@ -555,26 +555,26 @@ function ListView({
               <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
                 <div className="col-span-1" />
                 <div className="col-span-4">
-                  <p className="text-sm text-white truncate">{p.keyword}</p>
-                  <p className="text-[11px] text-zinc-600 truncate mt-0.5">
+                  <p className="text-sm text-foreground truncate">{p.keyword}</p>
+                  <p className="text-[11px] text-muted-foreground/70 truncate mt-0.5">
                     {p.contentPlan?.caption || "—"}
                   </p>
                 </div>
                 <div className="col-span-2">
                   {p.category ? (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 text-[11px] text-zinc-500">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 text-[11px] text-muted-foreground">
                       <Tag className="h-2.5 w-2.5" />
                       {p.category}
                     </span>
                   ) : (
-                    <span className="text-[11px] text-zinc-700">—</span>
+                    <span className="text-[11px] text-muted-foreground/50">—</span>
                   )}
                 </div>
                 <div className="col-span-2">
                   <StatusBadge status={p.status} />
                 </div>
                 <div className="col-span-2">
-                  <span className="text-[11px] text-zinc-500">{formatDate(p.createdAt)}</span>
+                  <span className="text-[11px] text-muted-foreground">{formatDate(p.createdAt)}</span>
                 </div>
                 <div className="col-span-1" />
               </div>
@@ -622,11 +622,11 @@ function EmptyState({ search, category }: { search: string; category: string | n
   if (search || category) {
     return (
       <div className="text-center py-16">
-        <Search className="h-6 w-6 text-zinc-600 mx-auto mb-3" />
-        <p className="text-sm text-zinc-500">
+        <Search className="h-6 w-6 text-muted-foreground/70 mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">
           没有找到匹配的项目
         </p>
-        <p className="text-xs text-zinc-600 mt-1">
+        <p className="text-xs text-muted-foreground/70 mt-1">
           试试调整搜索条件或清除筛选
         </p>
       </div>
@@ -635,10 +635,10 @@ function EmptyState({ search, category }: { search: string; category: string | n
 
   return (
     <div className="text-center py-20">
-      <p className="text-zinc-400 text-sm mb-6">还没有作品</p>
+      <p className="text-muted-foreground text-sm mb-6">还没有作品</p>
       <Link
         href="/projects/new"
-        className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
+        className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
       >
         开始创作
       </Link>

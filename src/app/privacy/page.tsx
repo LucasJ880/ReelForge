@@ -3,14 +3,14 @@ import { Logo } from "@/components/ui/logo";
 
 function LegalArticle() {
   return (
-    <article className="space-y-6 text-sm leading-relaxed text-zinc-300">
+    <article className="space-y-6 text-sm leading-relaxed text-foreground/90">
       <header>
         <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-primary">Legal</p>
         <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">Privacy Policy</h1>
         <p className="mt-1 text-xs text-muted-foreground">Last updated: April 14, 2026</p>
       </header>
 
-      <p className="text-zinc-200">
+      <p className="text-foreground">
         This Privacy Policy applies to our website Aivora (https://reelforge-delta.vercel.app)
         and describes how we collect, use, and protect your information when you use our service.
       </p>

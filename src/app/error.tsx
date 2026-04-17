@@ -25,7 +25,7 @@ export default function ErrorPage({
         系统遇到意外错误。我们已记录这个问题，你可以试着重新加载或回到工作台。
       </p>
       {error.digest && (
-        <p className="mt-3 text-[11px] text-zinc-600">
+        <p className="mt-3 text-[11px] text-muted-foreground/70">
           错误编号：<span className="font-mono">{error.digest}</span>
         </p>
       )}

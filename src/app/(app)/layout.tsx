@@ -14,11 +14,11 @@ export default function AppLayout({
           {children}
         </div>
         <footer className="border-t border-white/[0.05] py-4 px-6">
-          <div className="mx-auto max-w-6xl flex items-center justify-between text-[11px] text-zinc-600">
+          <div className="mx-auto max-w-6xl flex items-center justify-between text-[11px] text-muted-foreground/70">
             <span>© 2026 Aivora</span>
             <div className="flex gap-4">
-              <Link href="/terms" className="hover:text-zinc-400 transition-colors">Terms of Service</Link>
-              <Link href="/privacy" className="hover:text-zinc-400 transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-muted-foreground transition-colors">Terms of Service</Link>
+              <Link href="/privacy" className="hover:text-muted-foreground transition-colors">Privacy Policy</Link>
             </div>
           </div>
         </footer>

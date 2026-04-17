@@ -94,13 +94,13 @@ export default function NewBatchPage() {
   return (
     <div className="max-w-2xl mx-auto pt-4">
       <div className="mb-8">
-        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-2">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2">
           批量生成
         </p>
         <h1 className="text-xl font-semibold tracking-tight text-white">
           一次创建多个视频
         </h1>
-        <p className="text-sm text-zinc-400 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           输入多个关键词，系统将逐个生成内容和视频
         </p>
       </div>
@@ -108,7 +108,7 @@ export default function NewBatchPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Batch name */}
         <div>
-          <label className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2 block">
+          <label className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2 block">
             批次名称
           </label>
           <input
@@ -117,19 +117,19 @@ export default function NewBatchPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={loading}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
+            className="w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all"
           />
         </div>
 
         {/* Product Selector */}
         {products.length > 0 && (
           <div>
-            <label className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-2 block">
+            <label className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2 block">
               <Package className="inline h-3 w-3 mr-1 -mt-0.5" />
               关联产品（所有关键词共用）
             </label>
             <Select value={selectedProductId} onValueChange={set(setSelectedProductId)}>
-              <SelectTrigger className="w-full text-sm border-zinc-700 bg-zinc-900 text-zinc-100">
+              <SelectTrigger className="w-full text-sm border-border bg-card text-foreground">
                 <SelectValue placeholder="不关联产品" />
               </SelectTrigger>
               <SelectContent className="min-w-[320px]">
@@ -155,10 +155,10 @@ export default function NewBatchPage() {
         {/* Keywords */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium">
+            <label className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium">
               关键词列表
             </label>
-            <span className="text-[11px] text-zinc-500 tabular-nums">
+            <span className="text-[11px] text-muted-foreground tabular-nums">
               已识别 {keywords.length} 个
             </span>
           </div>
@@ -168,7 +168,7 @@ export default function NewBatchPage() {
             onChange={(e) => setKeywordsText(e.target.value)}
             disabled={loading}
             rows={8}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all resize-none"
+            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm font-mono text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
           />
         </div>
 
@@ -177,13 +177,13 @@ export default function NewBatchPage() {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-300 transition-colors"
+            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/90 transition-colors"
           >
             高级设置
             <ChevronDown className={`h-3 w-3 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
           </button>
           {!showAdvanced && (
-            <p className="text-[11px] text-zinc-500 mt-1">
+            <p className="text-[11px] text-muted-foreground mt-1">
               默认：15秒 · 9:16竖屏 · 1080p · 并发2
             </p>
           )}
@@ -203,9 +203,9 @@ export default function NewBatchPage() {
                   id="autoVideo"
                   checked={autoVideo}
                   onChange={(e) => setAutoVideo(e.target.checked)}
-                  className="rounded border-zinc-700 bg-zinc-900"
+                  className="rounded border-border bg-card"
                 />
-                <label htmlFor="autoVideo" className="text-sm text-zinc-400">
+                <label htmlFor="autoVideo" className="text-sm text-muted-foreground">
                   自动生成视频
                 </label>
               </div>
@@ -217,7 +217,7 @@ export default function NewBatchPage() {
         <button
           type="submit"
           disabled={!name.trim() || keywords.length === 0 || loading}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -241,11 +241,11 @@ function FieldSelect({
 }) {
   return (
     <div>
-      <label className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-1.5 block">
+      <label className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-1.5 block">
         {label}
       </label>
       <Select value={value} onValueChange={onValueChange}>
-        <SelectTrigger className="text-sm border-zinc-700 bg-zinc-900 text-zinc-100">
+        <SelectTrigger className="text-sm border-border bg-card text-foreground">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

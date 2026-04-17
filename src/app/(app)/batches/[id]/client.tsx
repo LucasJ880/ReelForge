@@ -89,8 +89,8 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
   }
 
   const statusDot: Record<string, string> = {
-    PENDING: "bg-zinc-300",
-    RUNNING: "bg-teal-500 animate-pulse",
+    PENDING: "bg-muted-foreground/60",
+    RUNNING: "bg-primary animate-pulse",
     PAUSED: "bg-amber-400",
     COMPLETED: "bg-emerald-500",
     FAILED: "bg-red-500",
@@ -105,8 +105,8 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
   };
 
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors";
-  const primary = `${btn} bg-teal-600 text-white hover:bg-teal-700`;
-  const secondary = `${btn} bg-zinc-800/50 text-zinc-100 hover:bg-white/5`;
+  const primary = `${btn} bg-primary text-white hover:opacity-90`;
+  const secondary = `${btn} bg-accent/60 text-foreground hover:bg-white/5`;
 
   return (
     <div className="space-y-8">
@@ -114,16 +114,16 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+            <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
               批次详情
             </p>
-            <span className={cn("h-2 w-2 rounded-full", statusDot[batch.status] || "bg-zinc-300")} />
-            <span className="text-[11px] text-zinc-400">{statusLabel[batch.status] || batch.status}</span>
+            <span className={cn("h-2 w-2 rounded-full", statusDot[batch.status] || "bg-muted-foreground/60")} />
+            <span className="text-[11px] text-muted-foreground">{statusLabel[batch.status] || batch.status}</span>
           </div>
           <h1 className="text-xl font-semibold tracking-tight text-white">
             {batch.name}
           </h1>
-          <p className="text-xs text-zinc-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {formatDate(batch.createdAt)}
             {batch.completedAt && ` · 完成于 ${formatDate(batch.completedAt)}`}
           </p>
@@ -152,13 +152,13 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
 
       {/* Progress */}
       <div>
-        <div className="flex items-center justify-between text-xs text-zinc-400 mb-2">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mb-2">
           <span>{batch.completedCount + batch.failedCount} / {batch.totalCount}</span>
           <span className="font-medium tabular-nums">{pct}%</span>
         </div>
-        <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
+        <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
           <div
-            className="h-full bg-teal-500 rounded-full transition-all duration-500"
+            className="h-full bg-primary rounded-full transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -167,7 +167,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
       {/* Stats */}
       <div className="flex flex-wrap gap-x-10 gap-y-3">
         <StatInline label="总数" value={batch.totalCount} />
-        <StatInline label="内容完成" value={contentDoneCount} color="text-teal-400" />
+        <StatInline label="内容完成" value={contentDoneCount} color="text-primary" />
         <StatInline label="视频就绪" value={videoReadyCount} color="text-emerald-400" />
         {batch.failedCount > 0 && <StatInline label="失败" value={batch.failedCount} color="text-red-500" />}
       </div>
@@ -181,7 +181,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
           batch.videoParams && `${(batch.videoParams as { resolution?: string }).resolution || "720p"}`,
           batch.autoGenerateVideo ? "内容+视频" : "仅内容",
         ].filter(Boolean).map((tag, i) => (
-          <span key={i} className="rounded-full bg-zinc-800 px-2.5 py-0.5 text-[11px] text-zinc-400">
+          <span key={i} className="rounded-full bg-secondary px-2.5 py-0.5 text-[11px] text-muted-foreground">
             {tag}
           </span>
         ))}
@@ -189,7 +189,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
 
       {/* Project list */}
       <div>
-        <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
+        <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-3">
           项目列表
         </p>
         <div className="space-y-1">
@@ -214,7 +214,7 @@ function StatInline({
   return (
     <div>
       <p className={cn("text-2xl font-extralight tabular-nums", color || "text-white")}>{value}</p>
-      <p className="text-[11px] text-zinc-400">{label}</p>
+      <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
   );
 }
@@ -235,13 +235,13 @@ function ProjectRow({ project }: { project: { id: string; keyword: string; statu
             ) : isFailed ? (
               <XCircle className="h-4 w-4 text-red-400" />
             ) : isProcessing ? (
-              <Loader2 className="h-4 w-4 text-teal-400 animate-spin" />
+              <Loader2 className="h-4 w-4 text-primary animate-spin" />
             ) : (
-              <Clock className="h-4 w-4 text-zinc-500" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-zinc-100 truncate">{project.keyword}</p>
+            <p className="text-sm text-foreground truncate">{project.keyword}</p>
             {project.errorMessage && (
               <p className="text-[11px] text-red-400 truncate max-w-[300px]">{project.errorMessage}</p>
             )}
@@ -250,11 +250,11 @@ function ProjectRow({ project }: { project: { id: string; keyword: string; statu
         <div className="flex items-center gap-2 shrink-0">
           <span className={cn(
             "text-[11px] font-medium",
-            isFailed ? "text-red-400" : isDone ? "text-emerald-400" : isProcessing ? "text-teal-400" : "text-zinc-400"
+            isFailed ? "text-red-400" : isDone ? "text-emerald-400" : isProcessing ? "text-primary" : "text-muted-foreground"
           )}>
             {statusLabel}
           </span>
-          <ExternalLink className="h-3 w-3 text-zinc-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+          <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
         </div>
       </div>
     </Link>

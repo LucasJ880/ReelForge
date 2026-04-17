@@ -54,13 +54,13 @@ export function AppSidebar() {
           "group relative flex items-center gap-3 rounded-md px-3 py-2 text-[13px] transition-colors duration-150",
           isActive
             ? "bg-white/[0.05] text-white font-medium"
-            : "text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.03]"
+            : "text-muted-foreground hover:text-foreground hover:bg-white/[0.03]"
         )}
       >
         {isActive && (
           <span className="absolute left-0 top-1/2 -translate-y-1/2 h-4 w-[2px] rounded-r-full bg-primary" />
         )}
-        <Icon className={cn("h-[17px] w-[17px] shrink-0", isActive ? "text-primary" : "text-zinc-500 group-hover:text-zinc-300")} />
+        <Icon className={cn("h-[17px] w-[17px] shrink-0", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/90")} />
         {label}
       </Link>
     );
@@ -103,7 +103,7 @@ export function AppSidebar() {
 
           {isAdmin && (
             <div>
-              <p className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.18em] text-zinc-700 font-medium">
+              <p className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50 font-medium">
                 创作
               </p>
               <div className="space-y-0.5">
@@ -130,7 +130,7 @@ export function AppSidebar() {
           />
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[13px] text-zinc-600 hover:text-zinc-300 hover:bg-white/[0.03] transition-colors duration-150"
+            className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-[13px] text-muted-foreground/70 hover:text-foreground/90 hover:bg-white/[0.03] transition-colors duration-150"
           >
             <LogOut className="h-[17px] w-[17px]" />
             退出
@@ -144,7 +144,7 @@ export function AppSidebar() {
     <>
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 md:hidden flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-zinc-900 text-white shadow-lg"
+        className="fixed top-4 left-4 z-50 md:hidden flex h-9 w-9 items-center justify-center rounded-md border border-white/10 bg-card text-white shadow-lg"
         aria-label="打开菜单"
       >
         <Menu className="h-4 w-4" />
@@ -165,7 +165,7 @@ export function AppSidebar() {
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-3 text-zinc-500 hover:text-white"
+          className="absolute top-4 right-3 text-muted-foreground hover:text-white"
           aria-label="关闭菜单"
         >
           <X className="h-4 w-4" />

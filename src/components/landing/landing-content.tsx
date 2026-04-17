@@ -172,7 +172,7 @@ export function LandingContent() {
             animate="visible"
             variants={fadeUp}
             custom={4}
-            className="mt-6 text-xs text-zinc-600"
+            className="mt-6 text-xs text-muted-foreground/70"
           >
             无需信用卡 · 免费通道完全本地合成 · 隐私至上
           </motion.p>
@@ -190,21 +190,21 @@ export function LandingContent() {
             <div className="overflow-hidden rounded-lg border border-border bg-[oklch(0.08_0_0)]">
               <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
                 <div className="flex gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
-                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
                 </div>
-                <span className="ml-3 text-[11px] font-mono text-zinc-600">aivora.app/projects/new</span>
+                <span className="ml-3 text-[11px] font-mono text-muted-foreground/70">aivora.app/projects/new</span>
               </div>
 
               <div className="grid gap-0 md:grid-cols-[1fr_420px]">
                 <div className="space-y-4 border-b border-border p-6 md:border-b-0 md:border-r">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">关键词</p>
-                    <p className="mt-2 text-sm text-zinc-300">冬天保暖护膝 · 职场女性</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">关键词</p>
+                    <p className="mt-2 text-sm text-foreground/90">冬天保暖护膝 · 职场女性</p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">通道</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">通道</p>
                     <div className="mt-2 flex gap-2">
                       <div className="rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
                         Free · Edge TTS + Pexels
@@ -215,12 +215,12 @@ export function LandingContent() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">语言</p>
-                    <p className="mt-2 text-sm text-zinc-300">中文（普通话，女声）</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">语言</p>
+                    <p className="mt-2 text-sm text-foreground/90">中文（普通话，女声）</p>
                   </div>
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">预计时长</p>
-                    <p className="mt-2 text-sm text-zinc-300">≈ 28s · 9:16 · 硬字幕</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground/70">预计时长</p>
+                    <p className="mt-2 text-sm text-foreground/90">≈ 28s · 9:16 · 硬字幕</p>
                   </div>
                   <button className="pointer-events-none mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground">
                     开始生成
@@ -228,13 +228,13 @@ export function LandingContent() {
                 </div>
 
                 <div className="flex items-center justify-center bg-[oklch(0.05_0_0)] p-6">
-                  <div className="relative aspect-[9/16] w-[180px] overflow-hidden rounded-lg border border-border bg-gradient-to-br from-zinc-900 to-black">
+                  <div className="relative aspect-[9/16] w-[180px] overflow-hidden rounded-lg border border-border bg-gradient-to-br from-card to-black">
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-5 text-center">
                       <div className="text-[10px] uppercase tracking-[0.22em] text-primary">PREVIEW</div>
-                      <p className="text-sm font-medium leading-tight text-zinc-200">
+                      <p className="text-sm font-medium leading-tight text-foreground">
                         一件能穿过整个冬天的护膝
                       </p>
-                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-2 py-0.5 text-[10px] text-zinc-400">
+                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-2 py-0.5 text-[10px] text-muted-foreground">
                         <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
                         合成中 68%
                       </div>
@@ -279,7 +279,7 @@ export function LandingContent() {
               >
                 <div className="flex items-center justify-between">
                   <span className="text-[11px] font-mono text-primary">{step.num}</span>
-                  <Sparkles className="h-3.5 w-3.5 text-zinc-700 group-hover:text-primary transition-colors" />
+                  <Sparkles className="h-3.5 w-3.5 text-muted-foreground/50 group-hover:text-primary transition-colors" />
                 </div>
                 <h3 className="mt-4 text-lg font-medium tracking-tight">{step.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -478,7 +478,7 @@ function ChannelCard({
 
       <ul className="mt-6 space-y-2.5">
         {items.map((item) => (
-          <li key={item} className="flex items-start gap-2.5 text-sm text-zinc-300">
+          <li key={item} className="flex items-start gap-2.5 text-sm text-foreground/90">
             <Check className={`mt-[3px] h-3.5 w-3.5 shrink-0 ${highlight ? "text-primary" : "text-muted-foreground"}`} />
             <span>{item}</span>
           </li>

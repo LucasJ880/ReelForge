@@ -89,14 +89,14 @@ const BRAND_LOCK_TEMPLATES: {
   {
     id: "intro_outro",
     label: "片头片尾",
-    hint: "开头 1.5s + 结尾 2s 全屏产品图（即将上线）",
-    ready: false,
+    hint: "开头 1.5s + 结尾 2s 全屏产品图",
+    ready: true,
   },
   {
     id: "full_package",
     label: "全包组合",
-    hint: "角标 + 片头片尾 + 品牌文字（即将上线）",
-    ready: false,
+    hint: "角标 + 片头片尾 + 品牌文字",
+    ready: true,
   },
 ];
 

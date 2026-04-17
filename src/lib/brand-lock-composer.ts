@@ -139,10 +139,15 @@ export async function applyBrandLock(
     return await runCornerWatermark(ffmpeg, cfg, onProgress);
   }
 
-  // TODO: intro_outro / full_package 在 Commit D 实现
-  throw new Error(
-    `Brand Lock template "${cfg.template}" 暂未实现，当前仅支持 corner_watermark`,
-  );
+  if (cfg.template === "intro_outro") {
+    return await runIntroOutro(ffmpeg, cfg, onProgress);
+  }
+
+  if (cfg.template === "full_package") {
+    return await runFullPackage(ffmpeg, cfg, onProgress);
+  }
+
+  throw new Error(`Brand Lock template "${cfg.template}" 暂未实现`);
 }
 
 async function runCornerWatermark(
@@ -199,6 +204,144 @@ async function runCornerWatermark(
   onProgress?.(100, "品牌合成完成");
 
   return new Blob([bytes as unknown as BlobPart], { type: "video/mp4" });
+}
+
+/**
+ * intro_outro 模板：
+ *   raw 视频 → 保持完整播放
+ *   片头额外塞 1.5s 全屏产品图 static clip
+ *   片尾额外塞 2s 全屏产品图 + Slogan static clip
+ *
+ * 实现：先做两段静态 clip，再和 raw 视频 concat。
+ * 为了兼容 concat demuxer，所有段必须同编码/尺寸/帧率，
+ * 所以每段都过一次 libx264/yuv420p/30fps，并规范到 1080x1920。
+ */
+async function runIntroOutro(
+  ffmpeg: FFmpeg,
+  cfg: BrandLockConfig,
+  onProgress?: ProgressCallback,
+): Promise<Blob> {
+  const productImage = cfg.productImageUrl || cfg.logoUrl;
+  if (!productImage) {
+    throw new Error("Brand Lock intro_outro 需要产品图或 Logo");
+  }
+
+  onProgress?.(18, "下载产品素材...");
+  const imgData = await fetchFile(proxy(productImage));
+  const imgExt = guessImageExt(productImage);
+  const imgFile = `product.${imgExt}`;
+  await ffmpeg.writeFile(imgFile, imgData);
+
+  onProgress?.(25, "规范原视频到 1080x1920...");
+  await ffmpeg.exec([
+    "-i", "raw.mp4",
+    "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30",
+    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "128k",
+    "-movflags", "+faststart",
+    "main.mp4",
+  ]);
+
+  onProgress?.(45, "生成片头 (1.5s)...");
+  await ffmpeg.exec([
+    "-loop", "1", "-i", imgFile,
+    "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+    "-t", "1.5",
+    "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30",
+    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "128k", "-shortest",
+    "-movflags", "+faststart",
+    "intro.mp4",
+  ]);
+
+  onProgress?.(65, "生成片尾 (2s)...");
+  const outroFilter = cfg.slogan
+    ? `scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=text='${escapeDrawText(cfg.slogan)}':fontcolor=white:fontsize=52:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y=h-text_h-140,setsar=1,fps=30`
+    : `scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30`;
+
+  await ffmpeg.exec([
+    "-loop", "1", "-i", imgFile,
+    "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+    "-t", "2",
+    "-vf", outroFilter,
+    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+    "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-b:a", "128k", "-shortest",
+    "-movflags", "+faststart",
+    "outro.mp4",
+  ]);
+
+  onProgress?.(82, "拼接 intro + main + outro...");
+  const list = "file 'intro.mp4'\nfile 'main.mp4'\nfile 'outro.mp4'\n";
+  await ffmpeg.writeFile("list.txt", new TextEncoder().encode(list));
+  await ffmpeg.exec([
+    "-f", "concat", "-safe", "0",
+    "-i", "list.txt",
+    "-c", "copy",
+    "-movflags", "+faststart",
+    "branded.mp4",
+  ]);
+
+  onProgress?.(92, "读取成品...");
+  const data = await ffmpeg.readFile("branded.mp4");
+  const bytes =
+    typeof data === "string" ? new TextEncoder().encode(data) : data;
+
+  for (const f of ["raw.mp4", imgFile, "main.mp4", "intro.mp4", "outro.mp4", "list.txt", "branded.mp4"]) {
+    try {
+      await ffmpeg.deleteFile(f);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  onProgress?.(100, "品牌合成完成");
+  return new Blob([bytes as unknown as BlobPart], { type: "video/mp4" });
+}
+
+/**
+ * full_package 模板：角标水印 + 片头片尾 + Slogan。
+ *
+ * 实现：先走 intro_outro 得到"带 intro/outro 的 blob"，
+ * 然后把这个 blob 再跑一遍 corner_watermark 得到最终成品。
+ * 两步独立逻辑，易维护。
+ */
+async function runFullPackage(
+  ffmpeg: FFmpeg,
+  cfg: BrandLockConfig,
+  onProgress?: ProgressCallback,
+): Promise<Blob> {
+  // Step 1: intro_outro（写回 raw.mp4 复用 corner_watermark）
+  onProgress?.(15, "阶段 1/2：生成片头片尾...");
+  const withIntroOutro = await runIntroOutro(ffmpeg, cfg, (pct, msg) => {
+    // 把 intro_outro 的 0-100 映射到 15-60
+    const mapped = 15 + Math.floor((pct / 100) * 45);
+    onProgress?.(mapped, msg);
+  });
+
+  // 把 with-intro-outro 回写成 raw 重新作为 corner_watermark 的输入
+  await ffmpeg.writeFile(
+    "raw.mp4",
+    new Uint8Array(await withIntroOutro.arrayBuffer()),
+  );
+
+  onProgress?.(62, "阶段 2/2：叠加品牌角标...");
+  return await runCornerWatermark(ffmpeg, cfg, (pct, msg) => {
+    const mapped = 62 + Math.floor((pct / 100) * 38);
+    onProgress?.(mapped, msg);
+  });
+}
+
+/**
+ * ffmpeg drawtext 对单引号、反斜杠、冒号有转义要求。
+ */
+function escapeDrawText(text: string): string {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\\\'")
+    .replace(/:/g, "\\:");
 }
 
 function guessImageExt(url: string): "png" | "jpg" | "webp" {

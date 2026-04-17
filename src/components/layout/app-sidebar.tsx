@@ -13,7 +13,6 @@ import {
   Menu,
   X,
   LogOut,
-  Flame,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
@@ -22,7 +21,6 @@ import { useIsAdmin } from "@/lib/hooks/use-role";
 
 const mainNav = [
   { href: "/dashboard", label: "工作台", icon: LayoutDashboard },
-  { href: "/trends", label: "爆款参考", icon: Flame },
   { href: "/projects", label: "作品库", icon: List },
   { href: "/batches", label: "批量任务", icon: Layers },
 ];

@@ -55,21 +55,12 @@ const steps = [
   },
   {
     icon: Share2,
-    title: "一键发布",
-    desc: "审核确认后直接发布到 TikTok，支持批量操作",
-    gradient: "from-cyan-500 to-blue-500",
-    bg: "bg-cyan-500/[0.08]",
-    border: "border-cyan-500/20",
-    num: "03",
-  },
-  {
-    icon: BarChart3,
-    title: "数据分析",
-    desc: "自动拉取数据，AI 分析趋势并给出优化建议",
+    title: "一键下载",
+    desc: "视频生成完成后，直接下载 mp4，自由发布到各平台",
     gradient: "from-emerald-500 to-teal-500",
     bg: "bg-emerald-500/[0.08]",
     border: "border-emerald-500/20",
-    num: "04",
+    num: "03",
   },
 ];
 
@@ -83,15 +74,15 @@ const features = [
   },
   {
     icon: Globe,
-    title: "TikTok 直连",
-    desc: "OAuth 绑定账号，无需手动上传",
+    title: "多平台就绪",
+    desc: "生成 mp4 竖屏视频，自由发布到 TikTok / 抖音 / 小红书等",
     color: "text-cyan-400",
     bg: "bg-cyan-500/10",
   },
   {
     icon: TrendingUp,
-    title: "智能分析",
-    desc: "GPT 驱动的表现分析和方向建议",
+    title: "Seedance 引擎",
+    desc: "基于即梦最新 Seedance 视频模型，画质与连贯性领先",
     color: "text-emerald-400",
     bg: "bg-emerald-500/10",
   },
@@ -169,8 +160,8 @@ export function LandingContent() {
             custom={2}
             className="mx-auto mt-6 max-w-xl text-base text-zinc-400 leading-relaxed sm:text-lg"
           >
-            输入关键词，AI 自动生成脚本和视频，一键发布到 TikTok。
-            从创意到数据分析，全流程自动化。
+            输入关键词，AI 自动生成脚本和视频。
+            一键下载 mp4，自由发布到 TikTok / 抖音 / 小红书 / Reels。
           </motion.p>
 
           <motion.div

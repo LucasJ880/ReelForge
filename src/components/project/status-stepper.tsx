@@ -6,8 +6,7 @@ import { Check, Loader2 } from "lucide-react";
 const steps = [
   { key: "content", label: "内容" },
   { key: "video", label: "视频" },
-  { key: "publish", label: "发布" },
-  { key: "analytics", label: "分析" },
+  { key: "done", label: "完成" },
 ];
 
 const statusToStep: Record<string, number> = {
@@ -16,19 +15,10 @@ const statusToStep: Record<string, number> = {
   VIDEO_GENERATING: 1,
   VIDEO_FAILED: 1,
   VIDEO_READY: 2,
-  PUBLISHING: 2,
-  PUBLISH_FAILED: 2,
-  PUBLISHED: 3,
-  ANALYTICS_PENDING: 3,
-  ANALYTICS_FETCHED: 3,
-  ANALYZED: 4,
+  DONE: 3,
 };
 
-const loadingStatuses = new Set([
-  "VIDEO_GENERATING",
-  "PUBLISHING",
-  "ANALYTICS_PENDING",
-]);
+const loadingStatuses = new Set(["VIDEO_GENERATING"]);
 
 export function StatusStepper({ status }: { status: string }) {
   const currentStep = statusToStep[status] ?? 0;

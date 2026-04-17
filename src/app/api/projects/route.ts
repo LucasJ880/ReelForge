@@ -40,11 +40,16 @@ export async function GET(request: NextRequest) {
       include: {
         product: { select: { id: true, name: true, productLine: true, color: true } },
         contentPlan: { select: { id: true, caption: true, createdAt: true } },
-        videoJob: { select: { id: true, status: true, videoUrl: true, thumbnailUrl: true } },
-        publication: {
-          select: { id: true, publishStatus: true, publishedAt: true },
+        videoJob: {
+          select: {
+            id: true,
+            status: true,
+            videoUrl: true,
+            videoUrl2: true,
+            stitchedVideoUrl: true,
+            thumbnailUrl: true,
+          },
         },
-        analysisReport: { select: { id: true, overallScore: true } },
       },
     }),
     db.project.count({ where }),
@@ -74,7 +79,7 @@ export async function POST(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const body = await request.json();
-  const { keyword, productId, trendRefId, imageUrls, primaryImageUrl } = body;
+  const { keyword, productId, imageUrls, primaryImageUrl } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
@@ -103,7 +108,6 @@ export async function POST(request: NextRequest) {
     data: {
       keyword: keyword.trim(),
       productId: productId || null,
-      trendRefId: trendRefId || null,
       imageUrls: validImageUrls,
       primaryImageUrl: typeof primaryImageUrl === "string" ? primaryImageUrl : validImageUrls[0] || null,
     },

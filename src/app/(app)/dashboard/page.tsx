@@ -3,12 +3,10 @@ import {
   ArrowRight,
   Zap,
   Video,
-  TrendingUp,
-  BarChart3,
   Layers,
   Sparkles,
-  Eye,
-  Activity,
+  FileText,
+  CheckCircle2,
 } from "lucide-react";
 import { StatusBadge } from "@/components/project/status-badge";
 import { db } from "@/lib/db";
@@ -16,22 +14,12 @@ import { BatchStatus, ProjectStatus } from "@prisma/client";
 import { formatDate } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const [totalProjects, publishedCount, analyzedCount, recentProjects, runningBatches] =
+  const [totalProjects, contentCount, videoReadyCount, doneCount, recentProjects, runningBatches] =
     await Promise.all([
       db.project.count(),
-      db.project.count({
-        where: {
-          status: {
-            in: [
-              ProjectStatus.PUBLISHED,
-              ProjectStatus.ANALYTICS_PENDING,
-              ProjectStatus.ANALYTICS_FETCHED,
-              ProjectStatus.ANALYZED,
-            ],
-          },
-        },
-      }),
-      db.project.count({ where: { status: ProjectStatus.ANALYZED } }),
+      db.project.count({ where: { status: ProjectStatus.CONTENT_GENERATED } }),
+      db.project.count({ where: { status: ProjectStatus.VIDEO_READY } }),
+      db.project.count({ where: { status: ProjectStatus.DONE } }),
       db.project.findMany({
         orderBy: { updatedAt: "desc" },
         take: 6,
@@ -46,16 +34,6 @@ export default async function DashboardPage() {
         take: 3,
       }),
     ]);
-
-  const latestSnapshots = await db.$queryRaw<{ total: bigint }[]>`
-    SELECT COALESCE(SUM(s.views), 0) as total
-    FROM (
-      SELECT DISTINCT ON ("publicationId") views
-      FROM "AnalyticsSnapshot"
-      ORDER BY "publicationId", "fetchedAt" DESC
-    ) s
-  `;
-  const totalViews = Number(latestSnapshots[0]?.total ?? 0);
 
   return (
     <div className="space-y-8">
@@ -72,7 +50,7 @@ export default async function DashboardPage() {
               创作工作台
             </div>
             <h1 className="text-[26px] font-bold tracking-tight text-white leading-snug">
-              用 AI 创作你的下一个<br className="hidden sm:inline" />爆款视频
+              用 AI 一键生成你的下一个<br className="hidden sm:inline" />爆款短视频
             </h1>
           </div>
           <div className="flex gap-2.5 shrink-0">
@@ -96,10 +74,10 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat icon={Video} label="作品" value={totalProjects} color="text-violet-400" bg="bg-violet-500/10" borderColor="border-violet-500/15" />
-        <Stat icon={TrendingUp} label="已发布" value={publishedCount} color="text-emerald-400" bg="bg-emerald-500/10" borderColor="border-emerald-500/15" />
-        <Stat icon={Eye} label="总播放" value={totalViews.toLocaleString()} color="text-cyan-400" bg="bg-cyan-500/10" borderColor="border-cyan-500/15" />
-        <Stat icon={Activity} label="已分析" value={analyzedCount} color="text-pink-400" bg="bg-pink-500/10" borderColor="border-pink-500/15" />
+        <Stat icon={Video} label="作品总数" value={totalProjects} color="text-violet-400" bg="bg-violet-500/10" borderColor="border-violet-500/15" />
+        <Stat icon={FileText} label="内容已生成" value={contentCount} color="text-sky-400" bg="bg-sky-500/10" borderColor="border-sky-500/15" />
+        <Stat icon={Video} label="视频就绪" value={videoReadyCount} color="text-amber-400" bg="bg-amber-500/10" borderColor="border-amber-500/15" />
+        <Stat icon={CheckCircle2} label="已完成" value={doneCount} color="text-emerald-400" bg="bg-emerald-500/10" borderColor="border-emerald-500/15" />
       </div>
 
       {/* Running batches */}

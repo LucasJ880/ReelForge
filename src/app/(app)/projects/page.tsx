@@ -15,8 +15,13 @@ import {
   Loader2,
 } from "lucide-react";
 import { StatusBadge } from "@/components/project/status-badge";
+import { DownloadButton } from "@/components/project/download-button";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+
+function pickDownloadUrl(p: ProjectItem): string | null {
+  return p.videoJob?.stitchedVideoUrl || p.videoJob?.videoUrl || null;
+}
 
 type ViewMode = "grid" | "list";
 
@@ -27,9 +32,14 @@ interface ProjectItem {
   status: string;
   createdAt: string;
   contentPlan: { id: string; caption: string; createdAt: string } | null;
-  videoJob: { id: string; status: string; videoUrl: string | null; thumbnailUrl: string | null } | null;
-  publication: { id: string; publishStatus: string; publishedAt: string | null } | null;
-  analysisReport: { id: string; overallScore: number | null } | null;
+  videoJob: {
+    id: string;
+    status: string;
+    videoUrl: string | null;
+    videoUrl2: string | null;
+    stitchedVideoUrl: string | null;
+    thumbnailUrl: string | null;
+  } | null;
 }
 
 interface CategoryStat {
@@ -334,41 +344,46 @@ export default function ProjectsPage() {
 function GridView({ projects }: { projects: ProjectItem[] }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {projects.map((p) => (
-        <Link key={p.id} href={`/projects/${p.id}`}>
-          <div className="group rounded-xl border border-white/[0.05] bg-white/[0.02] p-4 transition-all hover:border-white/[0.1] hover:bg-white/[0.03] h-full">
-            <div className="flex items-start justify-between gap-2 mb-2">
-              <h3 className="text-sm font-medium text-white truncate">{p.keyword}</h3>
-              <StatusBadge status={p.status} />
-            </div>
+      {projects.map((p) => {
+        const downloadUrl = pickDownloadUrl(p);
+        return (
+          <div key={p.id} className="relative group">
+            <Link href={`/projects/${p.id}`}>
+              <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4 transition-all hover:border-white/[0.1] hover:bg-white/[0.03] h-full">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="text-sm font-medium text-white truncate">{p.keyword}</h3>
+                  <StatusBadge status={p.status} />
+                </div>
 
-            <p className="text-xs text-zinc-500 truncate mb-3">
-              {p.contentPlan?.caption || "尚未生成内容"}
-            </p>
+                <p className="text-xs text-zinc-500 truncate mb-3">
+                  {p.contentPlan?.caption || "尚未生成内容"}
+                </p>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {p.category && (
-                  <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-zinc-500">
-                    <Tag className="h-2 w-2" />
-                    {p.category}
-                  </span>
-                )}
-                <span className="text-[11px] text-zinc-600">{formatDate(p.createdAt)}</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {p.category && (
+                      <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-zinc-500">
+                        <Tag className="h-2 w-2" />
+                        {p.category}
+                      </span>
+                    )}
+                    <span className="text-[11px] text-zinc-600">{formatDate(p.createdAt)}</span>
+                  </div>
+                </div>
               </div>
-              {p.analysisReport?.overallScore != null && (
-                <span className={cn(
-                  "text-[11px] font-medium tabular-nums",
-                  p.analysisReport.overallScore >= 70 ? "text-emerald-500" :
-                  p.analysisReport.overallScore >= 40 ? "text-amber-500" : "text-red-500"
-                )}>
-                  {p.analysisReport.overallScore}分
-                </span>
-              )}
-            </div>
+            </Link>
+            {downloadUrl && (
+              <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                <DownloadButton
+                  url={downloadUrl}
+                  filename={`${p.keyword.replace(/[^\w\u4e00-\u9fa5]/g, "_")}.mp4`}
+                  size="sm"
+                />
+              </div>
+            )}
           </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -378,61 +393,57 @@ function ListView({ projects }: { projects: ProjectItem[] }) {
     <div className="rounded-xl border border-white/[0.05] overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-12 gap-3 px-4 py-2.5 text-[10px] uppercase tracking-wider text-zinc-600 border-b border-white/[0.04] bg-white/[0.01]">
-        <div className="col-span-4">关键词</div>
+        <div className="col-span-5">关键词</div>
         <div className="col-span-2">分类</div>
         <div className="col-span-2">状态</div>
         <div className="col-span-2">创建时间</div>
-        <div className="col-span-1 text-right">评分</div>
         <div className="col-span-1" />
       </div>
 
       {/* Rows */}
-      {projects.map((p) => (
-        <Link key={p.id} href={`/projects/${p.id}`}>
-          <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors group">
-            <div className="col-span-4">
-              <p className="text-sm text-white truncate">{p.keyword}</p>
-              <p className="text-[11px] text-zinc-600 truncate mt-0.5">
-                {p.contentPlan?.caption || "—"}
-              </p>
-            </div>
-            <div className="col-span-2">
-              {p.category ? (
-                <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 text-[11px] text-zinc-500">
-                  <Tag className="h-2.5 w-2.5" />
-                  {p.category}
-                </span>
-              ) : (
-                <span className="text-[11px] text-zinc-700">—</span>
-              )}
-            </div>
-            <div className="col-span-2">
-              <StatusBadge status={p.status} />
-            </div>
-            <div className="col-span-2">
-              <span className="text-[11px] text-zinc-500">{formatDate(p.createdAt)}</span>
-            </div>
-            <div className="col-span-1 text-right">
-              {p.analysisReport?.overallScore != null ? (
-                <span className={cn(
-                  "text-xs font-medium tabular-nums",
-                  p.analysisReport.overallScore >= 70 ? "text-emerald-500" :
-                  p.analysisReport.overallScore >= 40 ? "text-amber-500" : "text-red-500"
-                )}>
-                  {p.analysisReport.overallScore}
-                </span>
-              ) : (
-                <span className="text-zinc-700 text-xs">—</span>
-              )}
-            </div>
-            <div className="col-span-1 text-right">
-              <span className="text-xs text-zinc-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                →
-              </span>
-            </div>
+      {projects.map((p) => {
+        const downloadUrl = pickDownloadUrl(p);
+        return (
+          <div key={p.id} className="relative group">
+            <Link href={`/projects/${p.id}`}>
+              <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
+                <div className="col-span-5">
+                  <p className="text-sm text-white truncate">{p.keyword}</p>
+                  <p className="text-[11px] text-zinc-600 truncate mt-0.5">
+                    {p.contentPlan?.caption || "—"}
+                  </p>
+                </div>
+                <div className="col-span-2">
+                  {p.category ? (
+                    <span className="inline-flex items-center gap-1 rounded-md bg-white/[0.04] px-2 py-0.5 text-[11px] text-zinc-500">
+                      <Tag className="h-2.5 w-2.5" />
+                      {p.category}
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-zinc-700">—</span>
+                  )}
+                </div>
+                <div className="col-span-2">
+                  <StatusBadge status={p.status} />
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[11px] text-zinc-500">{formatDate(p.createdAt)}</span>
+                </div>
+                <div className="col-span-1" />
+              </div>
+            </Link>
+            {downloadUrl && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <DownloadButton
+                  url={downloadUrl}
+                  filename={`${p.keyword.replace(/[^\w\u4e00-\u9fa5]/g, "_")}.mp4`}
+                  size="sm"
+                />
+              </div>
+            )}
           </div>
-        </Link>
-      ))}
+        );
+      })}
     </div>
   );
 }

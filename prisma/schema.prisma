@@ -13,24 +13,13 @@ enum ProjectStatus {
   VIDEO_GENERATING
   VIDEO_FAILED
   VIDEO_READY
-  PUBLISHING
-  PUBLISH_FAILED
-  PUBLISHED
-  ANALYTICS_PENDING
-  ANALYTICS_FETCHED
-  ANALYZED
+  DONE
 }
 
 enum VideoJobStatus {
   PENDING
   PROCESSING
   COMPLETED
-  FAILED
-}
-
-enum PublishStatus {
-  PENDING
-  PUBLISHED
   FAILED
 }
 
@@ -43,20 +32,20 @@ enum BatchStatus {
 }
 
 model Batch {
-  id              String      @id @default(cuid())
-  name            String
-  status          BatchStatus @default(PENDING)
-  totalCount      Int         @default(0)
-  completedCount  Int         @default(0)
-  failedCount     Int         @default(0)
-  videoParams     Json?
-  concurrency     Int         @default(2)
-  autoGenerateVideo Boolean   @default(true)
-  errorMessage    String?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  id                String      @id @default(cuid())
+  name              String
+  status            BatchStatus @default(PENDING)
+  totalCount        Int         @default(0)
+  completedCount    Int         @default(0)
+  failedCount       Int         @default(0)
+  videoParams       Json?
+  concurrency       Int         @default(2)
+  autoGenerateVideo Boolean     @default(true)
+  errorMessage      String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
   projects Project[]
 
@@ -82,41 +71,6 @@ model ProductCatalog {
   @@index([isActive])
 }
 
-model TrendReference {
-  id              String    @id @default(cuid())
-  sourceUrl       String?
-  platform        String    @default("tiktok")
-  title           String?
-  description     String?
-  authorName      String?
-  hashtags        String[]
-  viewCount       Int?
-  likeCount       Int?
-  commentCount    Int?
-  shareCount      Int?
-  styleAnalysis   Json?
-  visualAnalysis  Json?
-  thumbnailUrl    String?
-  duration        Int?
-  publishedAt     DateTime?
-  createdAt       DateTime  @default(now())
-
-  projects Project[]
-
-  @@index([platform])
-  @@index([createdAt(sort: Desc)])
-}
-
-model SearchKeyword {
-  id         String    @id @default(cuid())
-  keyword    String    @unique
-  isActive   Boolean   @default(true)
-  lastUsedAt DateTime?
-  createdAt  DateTime  @default(now())
-
-  @@index([isActive])
-}
-
 model Project {
   id              String        @id @default(cuid())
   keyword         String
@@ -127,25 +81,20 @@ model Project {
   batchId         String?
   batchIndex      Int?
   productId       String?
-  trendRefId      String?
   imageUrls       String[]
   primaryImageUrl String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  batch          Batch?           @relation(fields: [batchId], references: [id])
-  product        ProductCatalog?  @relation(fields: [productId], references: [id])
-  trendRef       TrendReference?  @relation(fields: [trendRefId], references: [id])
-  contentPlan    ContentPlan?
-  videoJob       VideoJob?
-  publication    Publication?
-  analysisReport AnalysisReport?
+  batch       Batch?          @relation(fields: [batchId], references: [id])
+  product     ProductCatalog? @relation(fields: [productId], references: [id])
+  contentPlan ContentPlan?
+  videoJob    VideoJob?
 
   @@index([status])
   @@index([category])
   @@index([batchId])
   @@index([productId])
-  @@index([trendRefId])
   @@index([createdAt(sort: Desc)])
 }
 
@@ -166,68 +115,25 @@ model ContentPlan {
 }
 
 model VideoJob {
-  id             String         @id @default(cuid())
-  projectId      String         @unique
-  provider       String         @default("jimeng")
-  providerJobId  String?
-  providerJobId2 String?
-  status         VideoJobStatus @default(PENDING)
-  videoUrl       String?
-  videoUrl2      String?
+  id               String         @id @default(cuid())
+  projectId        String         @unique
+  provider         String         @default("jimeng")
+  providerJobId    String?
+  providerJobId2   String?
+  status           VideoJobStatus @default(PENDING)
+  videoUrl         String?
+  videoUrl2        String?
   stitchedVideoUrl String?
-  thumbnailUrl   String?
-  duration       Int            @default(15)
-  resolution     String         @default("1080p")
-  ratio          String         @default("9:16")
-  segment        Int?
-  lastFrameUrl   String?
-  errorMessage   String?
-  retryCount     Int            @default(0)
-  createdAt      DateTime       @default(now())
-  completedAt    DateTime?
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-}
-
-model Publication {
-  id                   String        @id @default(cuid())
-  projectId            String        @unique
-  platform             String        @default("tiktok")
-  publishId            String?
-  platformVideoId      String?
-  publishStatus        PublishStatus @default(PENDING)
-  publishedAt          DateTime?
-  errorMessage         String?
-  analyticsScheduledAt DateTime?
-
-  project   Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  snapshots AnalyticsSnapshot[]
-}
-
-model AnalyticsSnapshot {
-  id            String   @id @default(cuid())
-  publicationId String
-  views         Int      @default(0)
-  likes         Int      @default(0)
-  comments      Int      @default(0)
-  shares        Int      @default(0)
-  fetchedAt     DateTime @default(now())
-
-  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-
-  @@index([publicationId])
-}
-
-model AnalysisReport {
-  id                 String   @id @default(cuid())
-  projectId          String   @unique
-  performanceSummary String
-  directionAdvice    String
-  optimizationTips   String[]
-  overallScore       Int?
-  modelUsed          String
-  tokenUsage         Json?
-  createdAt          DateTime @default(now())
+  thumbnailUrl     String?
+  duration         Int            @default(15)
+  resolution       String         @default("1080p")
+  ratio            String         @default("9:16")
+  segment          Int?
+  lastFrameUrl     String?
+  errorMessage     String?
+  retryCount       Int            @default(0)
+  createdAt        DateTime       @default(now())
+  completedAt      DateTime?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
@@ -243,18 +149,6 @@ model User {
   hashedPassword String
   name           String?
   role           UserRole @default(USER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-}
-
-model TikTokAccount {
-  id             String   @id @default(cuid())
-  openId         String   @unique
-  accessToken    String
-  refreshToken   String
-  tokenExpiresAt DateTime
-  displayName    String?
-  avatarUrl      String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 }

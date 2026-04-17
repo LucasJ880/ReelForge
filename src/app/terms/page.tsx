@@ -17,27 +17,27 @@ export default function TermsPage() {
 
       <h2>2. Description of Service</h2>
       <p>
-        Aivora is an AI-powered short video creation platform that helps users generate video content,
-        manage publishing to social media platforms (including TikTok), and analyze video performance.
+        Aivora is an AI-powered short video creation platform that helps users generate short-form video
+        content from keywords and product information. Generated videos can be downloaded as mp4 files
+        for self-publishing to the platforms of your choice.
       </p>
 
       <h2>3. User Accounts</h2>
       <p>
         You must create an account to use Aivora. You are responsible for maintaining the security of
-        your account credentials. You may connect third-party accounts (such as TikTok) to use certain
-        features. You are responsible for all activities that occur through your account and connected services.
+        your account credentials and for all activities that occur through your account.
       </p>
 
       <h2>4. Content and Intellectual Property</h2>
       <p>
         Content generated through Aivora using AI tools is provided as-is. You retain ownership of
         the keywords and creative direction you provide. You are responsible for ensuring that content
-        published to third-party platforms complies with their respective terms of service.
+        you download and publish elsewhere complies with the terms of service of the destination platforms.
       </p>
 
       <h2>5. Third-Party Services</h2>
       <p>
-        Aivora integrates with third-party APIs including OpenAI, TikTok, and video generation services.
+        Aivora integrates with third-party APIs including OpenAI and video generation services.
         Your use of these services through Aivora is also subject to their respective terms and policies.
       </p>
 

@@ -22,7 +22,6 @@
     "@ffmpeg/util": "^0.12.2",
     "@prisma/client": "^6.19.3",
     "@vercel/blob": "^2.3.3",
-    "apify-client": "^2.23.0",
     "bcryptjs": "^3.0.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -13,12 +13,7 @@ export async function GET(
     include: {
       contentPlan: true,
       videoJob: true,
-      publication: {
-        include: {
-          snapshots: { orderBy: { fetchedAt: "desc" }, take: 1 },
-        },
-      },
-      analysisReport: true,
+      product: true,
     },
   });
 

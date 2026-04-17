@@ -6,20 +6,12 @@ import { toast } from "sonner";
 import {
   Sparkles,
   Video,
-  Send,
-  BarChart3,
   Trash2,
   Loader2,
-  Play,
   AlertCircle,
-  CheckCircle2,
   Pencil,
   Save,
   X,
-  RefreshCw,
-  Heart,
-  MessageCircle,
-  Share2,
   Download,
   Scissors,
 } from "lucide-react";
@@ -43,10 +35,7 @@ export function ProjectDetailClient({
   const [generating, setGenerating] = useState(false);
   const [videoSubmitting, setVideoSubmitting] = useState(false);
   const [videoProgress, setVideoProgress] = useState(0);
-  const [publishing, setPublishing] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [confirmPublish, setConfirmPublish] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({ script: "", caption: "", videoPrompt: "" });
@@ -120,19 +109,6 @@ export function ProjectDetailClient({
     finally { setVideoSubmitting(false); }
   }
 
-  async function handlePublish() {
-    if (publishing) return;
-    setPublishing(true);
-    try {
-      const res = await fetch(`/api/projects/${project.id}/publish`, { method: "POST" });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "发布失败"); }
-      toast.success("已成功发布到 TikTok");
-      setConfirmPublish(false);
-      router.refresh();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "发布失败"); }
-    finally { setPublishing(false); }
-  }
-
   function startEditing() {
     if (!cp) return;
     setEditData({ script: cp.script, caption: cp.caption, videoPrompt: cp.videoPrompt });
@@ -155,18 +131,6 @@ export function ProjectDetailClient({
     finally { setSaving(false); }
   }
 
-  async function handleAnalyze() {
-    if (analyzing) return;
-    setAnalyzing(true);
-    try {
-      const res = await fetch(`/api/projects/${project.id}/analyze`, { method: "POST" });
-      if (!res.ok) { const err = await res.json(); throw new Error(err.error || "分析失败"); }
-      toast.success("分析报告已生成");
-      router.refresh();
-    } catch (e) { toast.error(e instanceof Error ? e.message : "分析失败"); }
-    finally { setAnalyzing(false); }
-  }
-
   async function handleDelete() {
     setDeleting(true);
     try {
@@ -177,6 +141,27 @@ export function ProjectDetailClient({
     } catch { toast.error("删除失败"); setDeleting(false); setConfirmDelete(false); }
   }
 
+  async function handleDownload(url: string, filename: string) {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = objectUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 3000);
+    } catch {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.target = "_blank";
+      a.click();
+    }
+  }
+
   const cp = project.contentPlan;
   const vj = project.videoJob;
   const angles = (cp?.contentAngles ?? []) as ContentAngle[];
@@ -185,6 +170,7 @@ export function ProjectDetailClient({
   const hasTwoSegments = !!(vj?.videoUrl && vj?.videoUrl2);
   const persistedStitchedUrl = vj?.stitchedVideoUrl ?? null;
   const effectiveStitchedUrl = persistedStitchedUrl || stitchedUrl;
+  const mainDownloadUrl = effectiveStitchedUrl || vj?.videoUrl || null;
 
   const isBlobUrl = (u: string | null | undefined) =>
     !!u && (u.includes(".public.blob.vercel-storage.com") || u.includes(".blob.vercel-storage.com"));
@@ -350,33 +336,30 @@ export function ProjectDetailClient({
                 {project.product.name}
               </p>
             )}
-            {project.trendRef && (
-              <p className="text-xs text-amber-400/80 mt-0.5">
-                灵感参考：{project.trendRef.title?.slice(0, 40) || "爆款视频参考"}
-                {project.trendRef.authorName && ` · @${project.trendRef.authorName}`}
-              </p>
-            )}
             <p className="text-xs text-zinc-400 mt-1">
               {formatDate(project.createdAt)}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            {mainDownloadUrl && (
+              <button
+                onClick={() => handleDownload(mainDownloadUrl, `${project.keyword}-${vj?.duration || 15}s.mp4`)}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+              >
+                <Download className="h-3.5 w-3.5" />
+                下载视频
+              </button>
+            )}
             {isAdmin && <ActionButtons
               project={project}
               generating={generating}
               videoSubmitting={videoSubmitting}
-              publishing={publishing}
-              analyzing={analyzing}
               deleting={deleting}
-              confirmPublish={confirmPublish}
               confirmDelete={confirmDelete}
               selectedDuration={selectedDuration}
               onGenerate={handleGenerate}
               onVideoGenerate={handleVideoGenerate}
-              onPublish={handlePublish}
-              onAnalyze={handleAnalyze}
               onDelete={handleDelete}
-              onConfirmPublish={setConfirmPublish}
               onConfirmDelete={setConfirmDelete}
               onDurationChange={setSelectedDuration}
             />}
@@ -437,14 +420,6 @@ export function ProjectDetailClient({
           </div>
           <p className="text-xs text-red-400 mb-1">{vj.errorMessage || "未知错误"}</p>
           <p className="text-[11px] text-zinc-400">已重试 {vj.retryCount} 次</p>
-        </div>
-      )}
-
-      {/* Publishing */}
-      {project.status === "PUBLISHING" && (
-        <div className="flex items-center gap-3 rounded-xl bg-violet-500/10 p-5">
-          <Loader2 className="h-4 w-4 animate-spin text-violet-400" />
-          <span className="text-sm text-violet-400">正在发布到 TikTok...</span>
         </div>
       )}
 
@@ -571,9 +546,20 @@ export function ProjectDetailClient({
                 <span>{vj.provider}</span>
                 <div className="flex items-center gap-3">
                   {effectiveStitchedUrl && (
-                    <a href={effectiveStitchedUrl} download={`${project.keyword}-30s.mp4`} className="flex items-center gap-1 text-violet-400 hover:text-violet-300">
+                    <button
+                      onClick={() => handleDownload(effectiveStitchedUrl, `${project.keyword}-30s.mp4`)}
+                      className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
+                    >
                       <Download className="h-3 w-3" /> 下载 30s
-                    </a>
+                    </button>
+                  )}
+                  {vj.videoUrl && !effectiveStitchedUrl && (
+                    <button
+                      onClick={() => handleDownload(vj.videoUrl!, `${project.keyword}-15s.mp4`)}
+                      className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
+                    >
+                      <Download className="h-3 w-3" /> 下载
+                    </button>
                   )}
                   {vj.completedAt && <span>{formatDate(vj.completedAt)}</span>}
                 </div>
@@ -644,7 +630,7 @@ export function ProjectDetailClient({
               </ContentSection>
 
               {/* Caption */}
-              <ContentSection label="TikTok 标题">
+              <ContentSection label="视频标题">
                 {editing ? (
                   <Input
                     value={editData.caption}
@@ -704,125 +690,6 @@ export function ProjectDetailClient({
           )}
         </div>
       ) : null}
-
-      {/* Published + Analytics section */}
-      {project.publication?.publishStatus === "PUBLISHED" && (
-        <div className="space-y-6">
-          {/* TikTok publish confirmation */}
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-white">已发布到 TikTok</p>
-                  <p className="text-[11px] text-zinc-500 mt-0.5">
-                    {project.publication.publishedAt && formatDate(project.publication.publishedAt)}
-                  </p>
-                </div>
-              </div>
-              <button
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium bg-zinc-800/50 text-zinc-300 hover:bg-white/5 hover:text-white transition-colors disabled:opacity-50"
-                onClick={handleAnalyze}
-                disabled={analyzing}
-              >
-                {analyzing ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3 w-3" />
-                )}
-                {project.analysisReport ? "刷新分析" : "获取分析"}
-              </button>
-            </div>
-
-            {/* Metrics cards */}
-            {project.publication.snapshots?.[0] ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label: "播放量", value: project.publication.snapshots[0].views, icon: Play, color: "text-sky-400" },
-                  { label: "点赞数", value: project.publication.snapshots[0].likes, icon: Heart, color: "text-pink-400" },
-                  { label: "评论数", value: project.publication.snapshots[0].comments, icon: MessageCircle, color: "text-amber-400" },
-                  { label: "分享数", value: project.publication.snapshots[0].shares, icon: Share2, color: "text-emerald-400" },
-                ].map((m) => (
-                  <div key={m.label} className="rounded-xl border border-white/[0.04] bg-white/[0.02] p-4">
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <m.icon className={cn("h-3.5 w-3.5", m.color)} />
-                      <span className="text-[11px] text-zinc-500">{m.label}</span>
-                    </div>
-                    <p className="text-xl font-light tabular-nums text-white">
-                      {m.value.toLocaleString()}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6">
-                <p className="text-xs text-zinc-500">暂无数据，点击「获取分析」拉取 TikTok 数据</p>
-              </div>
-            )}
-            {project.publication.snapshots?.[0] && (
-              <p className="text-[10px] text-zinc-600 mt-3">
-                数据更新于 {formatDate(project.publication.snapshots[0].fetchedAt)}
-              </p>
-            )}
-          </div>
-
-          {/* AI Analysis report */}
-          {project.analysisReport && (
-            <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-lg bg-violet-500/15 flex items-center justify-center">
-                    <BarChart3 className="h-4 w-4 text-violet-400" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">AI 数据分析</p>
-                    <p className="text-[11px] text-zinc-500 mt-0.5">
-                      {project.analysisReport.modelUsed} · {formatDate(project.analysisReport.createdAt)}
-                    </p>
-                  </div>
-                </div>
-                {project.analysisReport.overallScore !== null && (
-                  <div className="text-right">
-                    <div className="flex items-baseline gap-0.5">
-                      <span className={cn(
-                        "text-3xl font-light tabular-nums",
-                        project.analysisReport.overallScore >= 70 ? "text-emerald-400" :
-                        project.analysisReport.overallScore >= 40 ? "text-amber-400" : "text-red-400"
-                      )}>
-                        {project.analysisReport.overallScore}
-                      </span>
-                      <span className="text-xs text-zinc-500">/100</span>
-                    </div>
-                    <p className="text-[10px] text-zinc-500 mt-0.5">综合评分</p>
-                  </div>
-                )}
-              </div>
-
-              <div className="space-y-5">
-                <AnalysisBlock label="表现总结" content={project.analysisReport.performanceSummary} />
-                <AnalysisBlock label="方向建议" content={project.analysisReport.directionAdvice} />
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-3">
-                    优化建议
-                  </p>
-                  <div className="space-y-2">
-                    {project.analysisReport.optimizationTips.map((tip, i) => (
-                      <div key={i} className="flex gap-3 items-start">
-                        <span className="shrink-0 h-5 w-5 rounded-md bg-violet-500/10 flex items-center justify-center text-[10px] text-violet-400 font-medium mt-0.5">
-                          {i + 1}
-                        </span>
-                        <p className="text-sm text-zinc-400 leading-relaxed">{tip}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -838,29 +705,18 @@ function ContentSection({ label, children }: { label: string; children: React.Re
   );
 }
 
-function AnalysisBlock({ label, content }: { label: string; content: string }) {
-  return (
-    <div>
-      <p className="text-[11px] uppercase tracking-[0.1em] text-zinc-400 font-medium mb-1.5">
-        {label}
-      </p>
-      <p className="text-sm leading-relaxed text-zinc-400">{content}</p>
-    </div>
-  );
-}
-
 function ActionButtons({
   project,
-  generating, videoSubmitting, publishing, analyzing, deleting,
-  confirmPublish, confirmDelete, selectedDuration,
-  onGenerate, onVideoGenerate, onPublish, onAnalyze, onDelete,
-  onConfirmPublish, onConfirmDelete, onDurationChange,
+  generating, videoSubmitting, deleting,
+  confirmDelete, selectedDuration,
+  onGenerate, onVideoGenerate, onDelete,
+  onConfirmDelete, onDurationChange,
 }: {
   project: ProjectWithRelations;
-  generating: boolean; videoSubmitting: boolean; publishing: boolean; analyzing: boolean; deleting: boolean;
-  confirmPublish: boolean; confirmDelete: boolean; selectedDuration: number;
-  onGenerate: () => void; onVideoGenerate: () => void; onPublish: () => void; onAnalyze: () => void; onDelete: () => void;
-  onConfirmPublish: (v: boolean) => void; onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
+  generating: boolean; videoSubmitting: boolean; deleting: boolean;
+  confirmDelete: boolean; selectedDuration: number;
+  onGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
+  onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
   const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
@@ -891,30 +747,6 @@ function ActionButtons({
             生成视频
           </button>
         </div>
-      )}
-      {(project.status === "VIDEO_READY" || project.status === "PUBLISH_FAILED") && (
-        !confirmPublish ? (
-          <button className={secondary} onClick={() => onConfirmPublish(true)}>
-            <Send className="h-3.5 w-3.5" />
-            发布到 TikTok
-          </button>
-        ) : (
-          <div className="flex items-center gap-1">
-            <button className={primary} onClick={onPublish} disabled={publishing}>
-              {publishing && <Loader2 className="h-3 w-3 animate-spin" />}
-              确认发布
-            </button>
-            <button className={ghost} onClick={() => onConfirmPublish(false)} disabled={publishing}>
-              取消
-            </button>
-          </div>
-        )
-      )}
-      {["PUBLISHED", "ANALYTICS_FETCHED", "ANALYTICS_PENDING", "ANALYZED"].includes(project.status) && (
-        <button className={secondary} onClick={onAnalyze} disabled={analyzing}>
-          {analyzing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BarChart3 className="h-3.5 w-3.5" />}
-          {project.status === "ANALYZED" ? "重新分析" : "分析数据"}
-        </button>
       )}
       {!confirmDelete ? (
         <button className={`${ghost} text-red-400 hover:text-red-300 hover:bg-red-500/10`} onClick={() => onConfirmDelete(true)}>

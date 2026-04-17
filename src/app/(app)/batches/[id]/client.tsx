@@ -48,9 +48,7 @@ const projectStatusLabels: Record<string, string> = {
   VIDEO_GENERATING: "视频生成中",
   VIDEO_FAILED: "视频失败",
   VIDEO_READY: "视频就绪",
-  PUBLISHING: "发布中",
-  PUBLISHED: "已发布",
-  ANALYZED: "已分析",
+  DONE: "已完成",
 };
 
 export function BatchDetailClient({ initial }: { initial: BatchData }) {
@@ -223,9 +221,9 @@ function StatInline({
 
 function ProjectRow({ project }: { project: { id: string; keyword: string; status: string; errorMessage: string | null; contentPlan: { caption: string } | null; videoJob: { status: string } | null } }) {
   const statusLabel = projectStatusLabels[project.status] || project.status;
-  const isProcessing = ["VIDEO_GENERATING", "PUBLISHING"].includes(project.status);
+  const isProcessing = project.status === "VIDEO_GENERATING";
   const isFailed = project.status.includes("FAILED");
-  const isDone = project.videoJob?.status === "COMPLETED" || project.status === "VIDEO_READY" || project.status === "PUBLISHED";
+  const isDone = project.videoJob?.status === "COMPLETED" || project.status === "VIDEO_READY" || project.status === "DONE";
 
   return (
     <Link href={`/projects/${project.id}`}>

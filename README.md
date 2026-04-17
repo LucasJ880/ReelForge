@@ -1,164 +1,124 @@
 # Aivora
 
-AI 驱动的 TikTok 短视频自动化平台。输入关键词，自动生成内容方案、AI 视频、发布到 TikTok，并用 AI 分析表现数据。
+AI 驱动的中文短视频自动化平台。输入关键词 → AI 生成文案 → 选 Pro / Free 通道出视频 → 下载 mp4 到本地，手动发布到 TikTok / 抖音 / 视频号。
 
-## 核心流程
+## 核心理念
 
-```
-关键词 → AI 内容生成 → AI 视频生成 → 用户审核 → TikTok 发布 → 数据拉取 → AI 分析报告
-```
+- **只管生成，不管发布**。用户自行下载 mp4 到任一平台发布，平台不绑定任何社媒账户。
+- **双通道策略**：
+  - **Pro 通道**（即梦 Seedance）：质量最高，适合正式出片，需要 `ARK_API_KEY`。
+  - **Free 通道**（Pexels + Edge TTS + ffmpeg.wasm）：完全免费、浏览器本地合成，适合大规模试水。
+- **用户友好**：一键生成、音色可选（9 国 22 个音色）、可上传自带素材、项目一键批量删除。
 
 ## 技术栈
 
 | 层级 | 技术 |
-|------|------|
-| 前端 | Next.js 16, React 19, TypeScript, Tailwind CSS v4, shadcn/ui, Framer Motion |
-| 后端 | Next.js API Routes, Prisma ORM |
-| 数据库 | Neon Postgres |
-| 认证 | NextAuth.js v4 (Credentials + JWT) |
-| AI 文本 | OpenAI (gpt-4o-mini) |
-| AI 视频 | 即梦/Seedance (火山方舟 Ark API) |
-| 社媒 | TikTok Content Posting API + Video Query API |
-| 部署 | Vercel + Vercel Cron |
-
-## 项目结构
-
-```
-src/
-├── app/
-│   ├── (app)/              # 认证后页面
-│   │   ├── page.tsx        # Dashboard
-│   │   ├── projects/       # 作品库（搜索/分类/多视图）
-│   │   ├── batches/        # 批量任务
-│   │   └── settings/       # 设置（TikTok 绑定）
-│   ├── (auth)/             # 登录/注册
-│   ├── (public)/           # Landing Page
-│   └── api/                # API 路由
-│       ├── projects/       # 项目 CRUD + 生成/发布/分析
-│       ├── batches/        # 批量任务
-│       ├── auth/           # NextAuth + TikTok OAuth
-│       └── cron/           # 定时数据拉取 + 自动分析
-├── components/
-│   ├── layout/             # Sidebar, Header
-│   ├── project/            # StatusBadge, StatusStepper
-│   └── ui/                 # shadcn/ui 组件, Logo
-├── lib/
-│   ├── providers/          # 外部 API 封装
-│   │   ├── openai.ts       # 内容生成 + 数据分析
-│   │   ├── jimeng.ts       # 即梦视频生成
-│   │   ├── tiktok.ts       # TikTok 发布 + 数据拉取
-│   │   └── tiktok-auth.ts  # TikTok OAuth
-│   └── services/           # 业务逻辑
-│       ├── content-service.ts   # 内容方案生成
-│       ├── video-service.ts     # 视频生成管理
-│       ├── publish-service.ts   # TikTok 发布
-│       ├── analytics-service.ts # 数据拉取
-│       ├── analysis-service.ts  # AI 分析报告
-│       └── batch-service.ts     # 批量执行
-└── types/                  # TypeScript 类型定义
-```
+|---|---|
+| 前端 | Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui |
+| 后端 | Next.js API Routes, Prisma ORM, Neon Postgres |
+| 认证 | NextAuth.js v4（邮箱密码 + JWT） |
+| AI 文案 | OpenAI (gpt-4o-mini) |
+| AI 视频（Pro） | 即梦 Seedance（火山方舟 Ark） |
+| 免费视频（Free） | Pexels + msedge-tts + @ffmpeg/ffmpeg（wasm） |
+| 存储 | Vercel Blob |
+| 部署 | Vercel |
 
 ## 数据模型
 
 ```
 Project (关键词 + 状态)
-├── ContentPlan     (AI 生成的脚本/标题/标签/视频提示词)
-├── VideoJob        (视频生成任务状态/URL)
-├── Publication     (TikTok 发布记录)
-│   └── AnalyticsSnapshot[] (播放/点赞/评论/分享)
-└── AnalysisReport  (AI 分析: 评分/建议/优化方向)
+├── ContentPlan  (AI 生成的脚本/标题/Hashtag/视频提示词)
+└── VideoJob
+    ├── channel: "pro" | "free"
+    ├── manifest: Free 通道素材清单（Pexels URL + TTS mp3 + SRT）
+    └── variants / selectedVariant: 多变体候选
 
-Batch (批量任务)
-└── Project[]
-
-User (认证用户)
-TikTokAccount (OAuth 令牌)
+Batch → Project[]
+User
 ```
 
-### 项目状态流
+### 项目状态流（简化版）
 
 ```
-DRAFT → CONTENT_GENERATED → VIDEO_GENERATING → VIDEO_READY
-                                 ↓
-                           VIDEO_FAILED
-         ↓
-PUBLISHING → PUBLISHED → ANALYTICS_FETCHED → ANALYZED
-    ↓
-PUBLISH_FAILED
+DRAFT → CONTENT_GENERATED → VIDEO_GENERATING → VIDEO_READY → DONE
+                                      ↓
+                                VIDEO_FAILED
 ```
 
-## 功能清单
+## 两条通道对比
 
-- **AI 内容生成**: 输入关键词，GPT-4o-mini 自动生成脚本、视频提示词、TikTok 标题、Hashtags、内容角度、分类
-- **AI 视频生成**: 即梦/Seedance API 生成 AI 短视频，支持状态轮询和失败重试
-- **TikTok 发布**: FILE_UPLOAD 方式上传视频到 TikTok，支持 Sandbox 和正式模式
-- **数据分析**: 拉取 TikTok 播放/点赞/评论/分享数据，GPT-4o-mini 生成分析报告（评分 + 建议）
-- **批量生成**: 多关键词批量执行，支持并发控制和部分重试
-- **作品库管理**: 搜索、分类筛选、网格/列表视图切换、分页、排序
-- **自动分类**: 内容生成时 AI 自动分配分类（美食/旅行/时尚/科技等）
-- **定时任务**: Vercel Cron 每日自动拉取 TikTok 数据并触发 AI 分析
-- **用户认证**: NextAuth.js 邮箱密码登录，JWT 策略，路由保护
-- **TikTok OAuth**: TikTok Login Kit 授权绑定，令牌自动刷新
-- **Landing Page**: Framer Motion 动画，品牌展示页
-- **深色主题**: 全局深色 UI，glassmorphism 风格
+| 维度 | Pro 通道 | Free 通道 |
+|---|---|---|
+| 视觉素材 | 即梦 Seedance AI 生成 | Pexels 免费竖屏视频 / 用户自传 |
+| 配音 | AI 视频自带或无 | Microsoft Edge TTS（22 音色） |
+| 合成位置 | 服务端（Seedance 返回 mp4） | 浏览器（ffmpeg.wasm） |
+| 成本 | 付费（方舟 Token） | 完全免费 |
+| 速度 | ~1-2 分钟 | 视浏览器性能（通常 30-60 秒） |
+| 质量上限 | 高（SOTA） | 中（看你的脚本 + 素材） |
 
 ## 快速开始
 
-### 环境变量
-
-复制 `.env.example` 到 `.env.local`，填入以下配置：
-
-```bash
-DATABASE_URL=           # Neon Postgres 连接串
-OPENAI_API_KEY=         # OpenAI API Key
-OPENAI_MODEL=gpt-4o-mini
-ARK_API_KEY=            # 火山方舟 API Key（即梦视频）
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_VIDEO_MODEL=doubao-seedance-1-5-pro-250115
-TIKTOK_CLIENT_KEY=      # TikTok Developer Client Key
-TIKTOK_CLIENT_SECRET=   # TikTok Developer Client Secret
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-AUTH_SECRET=            # NextAuth JWT 密钥
-CRON_SECRET=            # Cron 任务认证密钥
-```
-
-### 安装运行
-
 ```bash
 npm install
+cp .env.example .env.local   # 按下面填写
 npx prisma db push
 npm run dev
 ```
 
-访问 http://localhost:3000
+### 环境变量
+
+```bash
+# 必填
+DATABASE_URL=postgresql://...        # Neon Postgres
+OPENAI_API_KEY=sk-...
+AUTH_SECRET=<openssl rand -hex 32>
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+BLOB_READ_WRITE_TOKEN=...            # Vercel Blob 读写 token
+
+# Pro 通道（可留空走 mock）
+ARK_API_KEY=
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_VIDEO_MODEL=doubao-seedance-1-5-pro-250115
+
+# Free 通道
+PEXELS_API_KEY=                      # 免费申请 https://www.pexels.com/api/
+                                      # 不填则走内置 mock 竖屏素材
+
+# 测试开关：强制所有视频走 mock（不消耗 Ark Token）
+VIDEO_ENGINE_MOCK=false
+```
 
 ### 部署
 
 ```bash
-npx vercel deploy --prod
+git push origin main    # Vercel 自动部署
 ```
 
-Vercel 环境变量需要在 Dashboard 中配置。`vercel.json` 已包含 Cron 配置（每日 12:00 UTC 执行数据拉取 + AI 分析）。
+Vercel 环境变量在 Dashboard → Settings → Environment Variables 配置。
 
-## AI Agency 团队
+首次部署或 Preview 测试时，建议：
 
-本项目集成了 [Agency AI Team](https://github.com/msitarzewski/agency-agents)，34 个专业 AI Agent 分布在 4 个 Division 中，通过 `.cursor/rules/` 提供智能辅助：
+1. 设置 `VIDEO_ENGINE_MOCK=true` 快速验证整条链路不烧 Token。
+2. 跑通 Free 通道 → 验证浏览器 ffmpeg.wasm 合成 → 确认视频下载可用。
+3. 关掉 `VIDEO_ENGINE_MOCK`，再放一个真实 Pro 任务验证即梦链路。
+4. 确认作品库批量删除 + 过期清理工作正常。
 
-| Division | Agents | 核心能力 |
-|----------|--------|----------|
-| Engineering (13) | Frontend Developer, Backend Architect, Software Architect, Code Reviewer, Database Optimizer, AI Engineer, Security Engineer, DevOps, SRE, Git Master, Tech Writer, Senior Dev, Rapid Prototyper | 代码实现、架构设计、代码质量 |
-| Design (8) | UI Designer, UX Architect, UX Researcher, Brand Guardian, Visual Storyteller, Image Prompt Engineer, Whimsy Injector, Inclusive Visuals | UI/UX 设计、品牌一致性 |
-| Testing (8) | Evidence Collector, Reality Checker, API Tester, Performance Benchmarker, Test Results Analyzer, Accessibility Auditor, Workflow Optimizer, Tool Evaluator | 质量保证、Bug 修复 |
-| Product (5) | Product Manager, Sprint Prioritizer, Trend Researcher, Feedback Synthesizer, Behavioral Nudge Engine | 产品规划、用户洞察 |
+## 主要 API
 
-### 使用方式
+| 路由 | 说明 |
+|---|---|
+| `POST /api/projects` | 创建项目 |
+| `POST /api/projects/[id]/generate` | 生成文案 |
+| `POST /api/projects/[id]/auto-generate` | 一键：文案 + 视频（Pro 通道） |
+| `POST /api/projects/[id]/free-prepare` | Free 通道准备 manifest |
+| `POST /api/projects/[id]/free-finalize` | 浏览器合成完毕回传 mp4 URL |
+| `POST /api/projects/[id]/user-assets` | 上传自带视频素材 |
+| `POST /api/projects/bulk-delete` | 批量/过期项目删除（含 Blob 清理） |
 
-```
-"启动整个 Agency 团队来实现 [功能]"
-"让 Engineering + Testing 一起优化 [页面]"
-"用 @evidence-collector 检查并修复 [bug]"
-"用 @code-reviewer 审查最近的改动"
-```
+## 文档
+
+- [docs/FREE_CHANNEL.md](./docs/FREE_CHANNEL.md) — Free 通道架构与调试
+- [docs/PRE_RELEASE_CHECKLIST.md](./docs/PRE_RELEASE_CHECKLIST.md) — 发布前核对清单
 
 ## License
 

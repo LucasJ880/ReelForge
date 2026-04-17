@@ -4,6 +4,7 @@ import {
   submitVideoGeneration,
   getVideoJobStatus,
 } from "@/lib/providers/jimeng";
+import { persistRemoteVideo, persistRemoteImage } from "@/lib/utils/persist-video";
 
 export interface VideoParams {
   duration?: number;
@@ -133,12 +134,28 @@ export async function checkVideoStatus(projectId: string) {
       }
     }
 
+    let persistedVideoUrl = result.videoUrl;
+    let persistedThumb: string | null = result.thumbnailUrl || null;
+    try {
+      persistedVideoUrl = await persistRemoteVideo(result.videoUrl, `videos/${projectId}-final`);
+      console.log(`[video-service] videoUrl persisted -> ${persistedVideoUrl}`);
+    } catch (e) {
+      console.warn("[video-service] persist video failed, keeping original URL:", e);
+    }
+    if (persistedThumb) {
+      try {
+        persistedThumb = await persistRemoteImage(persistedThumb, `thumbs/${projectId}`);
+      } catch (e) {
+        console.warn("[video-service] persist thumb failed:", e);
+      }
+    }
+
     const updated = await db.videoJob.update({
       where: { projectId },
       data: {
         status: VideoJobStatus.COMPLETED,
-        videoUrl: result.videoUrl,
-        thumbnailUrl: result.thumbnailUrl || null,
+        videoUrl: persistedVideoUrl,
+        thumbnailUrl: persistedThumb,
         completedAt: new Date(),
       },
     });
@@ -178,10 +195,18 @@ async function handleSegment1Complete(
 
   console.log(`[video-service] Segment 1 done, submitting segment 2: ${jobId2}`);
 
+  let persistedUrl = videoUrl;
+  try {
+    persistedUrl = await persistRemoteVideo(videoUrl, `videos/${videoJob.projectId}-part1`);
+    console.log(`[video-service] Segment 1 persisted -> ${persistedUrl}`);
+  } catch (e) {
+    console.warn("[video-service] persist segment 1 failed, keeping original URL:", e);
+  }
+
   const updated = await db.videoJob.update({
     where: { projectId: videoJob.projectId },
     data: {
-      videoUrl,
+      videoUrl: persistedUrl,
       lastFrameUrl: lastFrameUrl || null,
       providerJobId2: jobId2,
       segment: 2,
@@ -198,10 +223,18 @@ async function handleSegment2Poll(
   const result = await getVideoJobStatus(videoJob.providerJobId2);
 
   if (result.status === "completed" && result.videoUrl) {
+    let persistedUrl2 = result.videoUrl;
+    try {
+      persistedUrl2 = await persistRemoteVideo(result.videoUrl, `videos/${videoJob.projectId}-part2`);
+      console.log(`[video-service] Segment 2 persisted -> ${persistedUrl2}`);
+    } catch (e) {
+      console.warn("[video-service] persist segment 2 failed, keeping original URL:", e);
+    }
+
     const updated = await db.videoJob.update({
       where: { projectId: videoJob.projectId },
       data: {
-        videoUrl2: result.videoUrl,
+        videoUrl2: persistedUrl2,
         status: VideoJobStatus.COMPLETED,
         completedAt: new Date(),
       },

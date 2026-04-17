@@ -55,6 +55,7 @@ export function ProjectDetailClient({
   const [stitching, setStitching] = useState(false);
   const [stitchProgress, setStitchProgress] = useState(0);
   const [stitchedUrl, setStitchedUrl] = useState<string | null>(null);
+  const [stitchFailed, setStitchFailed] = useState(false);
   const stitchAttempted = useRef(false);
 
   useEffect(() => { setProject(initial); }, [initial]);
@@ -185,6 +186,33 @@ export function ProjectDetailClient({
   const persistedStitchedUrl = vj?.stitchedVideoUrl ?? null;
   const effectiveStitchedUrl = persistedStitchedUrl || stitchedUrl;
 
+  const isBlobUrl = (u: string | null | undefined) =>
+    !!u && (u.includes(".public.blob.vercel-storage.com") || u.includes(".blob.vercel-storage.com"));
+  const needsMigrate = !!vj && (
+    (!!vj.videoUrl && !isBlobUrl(vj.videoUrl)) ||
+    (!!vj.videoUrl2 && !isBlobUrl(vj.videoUrl2))
+  );
+  const [migrating, setMigrating] = useState(false);
+
+  async function handleRepersist() {
+    setMigrating(true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/repersist`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "迁移失败");
+      if (data.errors?.length) {
+        toast.warning(`部分失败：${data.errors.join("; ")}`);
+      } else {
+        toast.success("视频已迁移到永久存储");
+      }
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "迁移失败");
+    } finally {
+      setMigrating(false);
+    }
+  }
+
   useEffect(() => {
     if (!hasTwoSegments) return;
     if (persistedStitchedUrl) return;
@@ -237,7 +265,8 @@ export function ProjectDetailClient({
         }
       } catch (e) {
         console.error("Stitch failed:", e);
-        toast.error("视频拼接失败，可分段查看");
+        setStitchFailed(true);
+        toast.error("视频拼接失败，已为你显示分段");
       } finally {
         setStitching(false);
       }
@@ -251,6 +280,55 @@ export function ProjectDetailClient({
     vj,
     project.id,
   ]);
+
+  async function handleManualStitch() {
+    if (!vj?.videoUrl || !vj.videoUrl2) return;
+    stitchAttempted.current = false;
+    setStitchFailed(false);
+    setStitchedUrl(null);
+    setStitching(true);
+    setStitchProgress(0);
+    try {
+      const { stitchVideos } = await import("@/lib/video-stitcher");
+      const { objectUrl, blob } = await stitchVideos(
+        vj.videoUrl,
+        vj.videoUrl2,
+        setStitchProgress,
+      );
+      setStitchedUrl(objectUrl);
+
+      try {
+        const fd = new FormData();
+        fd.append(
+          "file",
+          new File([blob], `stitched-${project.id}.mp4`, { type: "video/mp4" }),
+        );
+        const res = await fetch(`/api/projects/${project.id}/stitch`, {
+          method: "POST",
+          body: fd,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.stitchedVideoUrl) {
+            setProject((p) =>
+              p.videoJob
+                ? { ...p, videoJob: { ...p.videoJob, stitchedVideoUrl: data.stitchedVideoUrl } }
+                : p,
+            );
+          }
+          toast.success("视频拼接完成并已保存");
+        }
+      } catch (e) {
+        console.warn("[stitch] persist error:", e);
+      }
+    } catch (e) {
+      console.error("Manual stitch failed:", e);
+      setStitchFailed(true);
+      toast.error("重新拼接失败");
+    } finally {
+      setStitching(false);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -404,9 +482,21 @@ export function ProjectDetailClient({
           {/* Left: Video */}
           {vj?.status === "COMPLETED" && vj.videoUrl && (
             <div className="lg:col-span-2">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium mb-3">
-                视频预览 {vj.videoUrl2 ? `· ${vj.duration}s` : ""}
-              </p>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] uppercase tracking-[0.15em] text-zinc-400 font-medium">
+                  视频预览 {vj.videoUrl2 ? `· ${vj.duration}s` : ""}
+                </p>
+                {isAdmin && needsMigrate && (
+                  <button
+                    onClick={handleRepersist}
+                    disabled={migrating}
+                    className="text-[11px] text-violet-400 hover:text-violet-300 disabled:opacity-50 underline underline-offset-2"
+                    title="将视频从临时 URL 迁移到 Vercel Blob 永久存储"
+                  >
+                    {migrating ? "迁移中..." : "迁移到永久存储"}
+                  </button>
+                )}
+              </div>
 
               {/* Stitching progress */}
               {stitching && (
@@ -423,20 +513,49 @@ export function ProjectDetailClient({
                 </div>
               )}
 
-              {/* Stitched 30s video (persisted or just produced) */}
+              {/* Preview area with fallback chain */}
               {effectiveStitchedUrl ? (
                 <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
                   <div className="aspect-[9/16]">
-                    <video src={effectiveStitchedUrl} controls className="w-full h-full object-contain" />
+                    <video
+                      src={effectiveStitchedUrl}
+                      controls
+                      className="w-full h-full object-contain"
+                      onError={() => {
+                        if (hasTwoSegments) setStitchFailed(true);
+                      }}
+                    />
                   </div>
                 </div>
-              ) : hasTwoSegments && !isAdmin ? (
-                <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
-                  <div className="aspect-[9/16]">
-                    <video src={vj.videoUrl} controls className="w-full h-full object-contain" poster={vj.thumbnailUrl || undefined} />
-                  </div>
-                  <div className="px-3 py-2 text-[11px] text-zinc-500">
-                    30 秒完整版尚未由管理员拼接保存，当前显示前 15 秒
+              ) : hasTwoSegments ? (
+                <div className="space-y-2">
+                  {stitchFailed && (
+                    <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-[11px] text-amber-300 flex items-center justify-between gap-2">
+                      <span>30 秒拼接失败，下方显示两个分段</span>
+                      {isAdmin && !stitching && (
+                        <button
+                          onClick={handleManualStitch}
+                          className="text-amber-200 hover:text-amber-100 underline underline-offset-2"
+                        >
+                          重新拼接
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {!stitchFailed && !isAdmin && (
+                    <div className="rounded-lg bg-zinc-900/80 border border-zinc-800 px-3 py-2 text-[11px] text-zinc-400">
+                      30 秒完整版尚未由管理员拼接保存，下方可分段观看
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="rounded-xl overflow-hidden bg-zinc-950">
+                      <p className="px-2 py-1 text-[10px] text-zinc-500 bg-zinc-900/50">Part 1 · 15s</p>
+                      <video src={vj.videoUrl} controls className="w-full aspect-[9/16] object-contain" poster={vj.thumbnailUrl || undefined} />
+                    </div>
+                    <div className="rounded-xl overflow-hidden bg-zinc-950">
+                      <p className="px-2 py-1 text-[10px] text-zinc-500 bg-zinc-900/50">Part 2 · 15s</p>
+                      <video src={vj.videoUrl2!} controls className="w-full aspect-[9/16] object-contain" />
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -460,7 +579,7 @@ export function ProjectDetailClient({
                 </div>
               </div>
 
-              {/* Show both segments if stitched */}
+              {/* Segments details when stitched */}
               {vj.videoUrl2 && effectiveStitchedUrl && (
                 <details className="mt-3">
                   <summary className="text-[11px] text-zinc-500 cursor-pointer hover:text-zinc-400">

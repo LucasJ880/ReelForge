@@ -39,13 +39,13 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       {/* Hero */}
       <div className="relative overflow-hidden rounded-2xl p-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-violet-600/20 via-fuchsia-600/10 to-pink-600/10" />
+        <div className="absolute inset-0 bg-gradient-to-br from-teal-600/20 via-teal-600/10 to-teal-600/10" />
         <div className="absolute inset-0 bg-[#0c0c14]/40" />
-        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-violet-500/15 blur-[80px]" />
-        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-fuchsia-500/10 blur-[60px]" />
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-teal-500/15 blur-[80px]" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-teal-500/10 blur-[60px]" />
         <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full bg-violet-500/15 border border-violet-400/25 px-3 py-1 text-[11px] text-violet-300 font-medium mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full bg-teal-500/15 border border-teal-400/25 px-3 py-1 text-[11px] text-teal-300 font-medium mb-4">
               <Sparkles className="h-3 w-3" />
               创作工作台
             </div>
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
             </Link>
             <Link
               href="/projects/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg hover:shadow-violet-500/20 hover:brightness-110"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-teal-600 px-5 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg hover:shadow-teal-500/20 hover:brightness-110"
             >
               开始创作
               <ArrowRight className="h-3.5 w-3.5" />
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat icon={Video} label="作品总数" value={totalProjects} color="text-violet-400" bg="bg-violet-500/10" borderColor="border-violet-500/15" />
+        <Stat icon={Video} label="作品总数" value={totalProjects} color="text-teal-400" bg="bg-teal-500/10" borderColor="border-teal-500/15" />
         <Stat icon={FileText} label="内容已生成" value={contentCount} color="text-sky-400" bg="bg-sky-500/10" borderColor="border-sky-500/15" />
         <Stat icon={Video} label="视频就绪" value={videoReadyCount} color="text-amber-400" bg="bg-amber-500/10" borderColor="border-amber-500/15" />
         <Stat icon={CheckCircle2} label="已完成" value={doneCount} color="text-emerald-400" bg="bg-emerald-500/10" borderColor="border-emerald-500/15" />
@@ -82,13 +82,13 @@ export default async function DashboardPage() {
 
       {/* Running batches */}
       {runningBatches.length > 0 && (
-        <div className="rounded-2xl bg-violet-500/[0.06] border border-violet-500/15 p-5">
+        <div className="rounded-2xl bg-teal-500/[0.06] border border-teal-500/15 p-5">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-violet-400 font-medium">
+            <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.15em] text-teal-400 font-medium">
               <Layers className="h-3.5 w-3.5" />
               执行中
             </div>
-            <Link href="/batches" className="text-xs text-violet-400 hover:text-violet-300 font-medium">
+            <Link href="/batches" className="text-xs text-teal-400 hover:text-teal-300 font-medium">
               全部批次
             </Link>
           </div>
@@ -103,9 +103,9 @@ export default async function DashboardPage() {
                     <span className="text-sm font-medium text-zinc-100">{b.name}</span>
                     <div className="flex items-center gap-3">
                       <div className="w-28 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-gradient-to-r from-teal-500 to-teal-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-xs text-violet-400 font-mono font-medium w-8 text-right">{pct}%</span>
+                      <span className="text-xs text-teal-400 font-mono font-medium w-8 text-right">{pct}%</span>
                     </div>
                   </div>
                 </Link>
@@ -122,14 +122,14 @@ export default async function DashboardPage() {
             <p className="text-sm font-medium text-zinc-300">
               最近作品
             </p>
-            <Link href="/projects" className="text-xs text-zinc-500 hover:text-violet-400 transition-colors">
+            <Link href="/projects" className="text-xs text-zinc-500 hover:text-teal-400 transition-colors">
               查看全部 →
             </Link>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {recentProjects.map((p) => (
               <Link key={p.id} href={`/projects/${p.id}`}>
-                <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:bg-white/[0.05] hover:border-violet-500/20 hover:shadow-lg hover:shadow-violet-500/5">
+                <div className="group relative rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 transition-all duration-300 hover:bg-white/[0.05] hover:border-teal-500/20 hover:shadow-lg hover:shadow-teal-500/5">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <h3 className="text-[15px] font-semibold text-zinc-100 truncate">
                       {p.keyword}
@@ -143,7 +143,7 @@ export default async function DashboardPage() {
                     <span className="text-[11px] text-zinc-600">
                       {formatDate(p.updatedAt)}
                     </span>
-                    <span className="text-xs text-violet-400 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
+                    <span className="text-xs text-teal-400 opacity-0 group-hover:opacity-100 transition-opacity font-medium">
                       打开 →
                     </span>
                   </div>
@@ -154,13 +154,13 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="text-center py-20 rounded-2xl border border-dashed border-white/[0.08]">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/15">
-            <Video className="h-6 w-6 text-violet-400" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-500/15">
+            <Video className="h-6 w-6 text-teal-400" />
           </div>
           <p className="text-zinc-400 text-sm mb-6">还没有作品，开始你的第一次创作</p>
           <Link
             href="/projects/new"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-6 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg hover:shadow-violet-500/20 hover:brightness-110"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-teal-600 to-teal-600 px-6 py-2.5 text-sm font-medium text-white transition-all hover:shadow-lg hover:shadow-teal-500/20 hover:brightness-110"
           >
             开始创作
             <ArrowRight className="h-3.5 w-3.5" />

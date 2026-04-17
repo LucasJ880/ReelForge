@@ -332,7 +332,7 @@ export function ProjectDetailClient({
               {project.keyword}
             </h1>
             {project.product && (
-              <p className="text-xs text-violet-400/80 mt-0.5">
+              <p className="text-xs text-teal-400/80 mt-0.5">
                 {project.product.name}
               </p>
             )}
@@ -435,13 +435,13 @@ export function ProjectDetailClient({
                 key={i}
                 className={`relative rounded-lg overflow-hidden border-2 transition-all ${
                   url === project.primaryImageUrl
-                    ? "border-violet-500 ring-2 ring-violet-500/20"
+                    ? "border-teal-500 ring-2 ring-teal-500/20"
                     : "border-zinc-700"
                 }`}
               >
                 <img src={url} alt={`产品图 ${i + 1}`} className="w-16 h-16 object-cover" />
                 {url === project.primaryImageUrl && (
-                  <div className="absolute top-0.5 left-0.5 rounded-full bg-violet-500 px-1 py-0.5">
+                  <div className="absolute top-0.5 left-0.5 rounded-full bg-teal-500 px-1 py-0.5">
                     <span className="text-[7px] font-bold text-white">主图</span>
                   </div>
                 )}
@@ -465,7 +465,7 @@ export function ProjectDetailClient({
                   <button
                     onClick={handleRepersist}
                     disabled={migrating}
-                    className="text-[11px] text-violet-400 hover:text-violet-300 disabled:opacity-50 underline underline-offset-2"
+                    className="text-[11px] text-teal-400 hover:text-teal-300 disabled:opacity-50 underline underline-offset-2"
                     title="将视频从临时 URL 迁移到 Vercel Blob 永久存储"
                   >
                     {migrating ? "迁移中..." : "迁移到永久存储"}
@@ -475,15 +475,15 @@ export function ProjectDetailClient({
 
               {/* Stitching progress */}
               {stitching && (
-                <div className="rounded-xl bg-violet-500/10 p-4 mb-3">
+                <div className="rounded-xl bg-teal-500/10 p-4 mb-3">
                   <div className="flex items-center gap-2 mb-2">
-                    <Scissors className="h-3.5 w-3.5 text-violet-400" />
-                    <span className="text-xs font-medium text-violet-400">
+                    <Scissors className="h-3.5 w-3.5 text-teal-400" />
+                    <span className="text-xs font-medium text-teal-400">
                       视频拼接中 {stitchProgress}%
                     </span>
                   </div>
-                  <div className="h-1 w-full bg-violet-500/20 rounded-full overflow-hidden">
-                    <div className="h-full bg-violet-500 rounded-full transition-all duration-300" style={{ width: `${stitchProgress}%` }} />
+                  <div className="h-1 w-full bg-teal-500/20 rounded-full overflow-hidden">
+                    <div className="h-full bg-teal-500 rounded-full transition-all duration-300" style={{ width: `${stitchProgress}%` }} />
                   </div>
                 </div>
               )}
@@ -602,7 +602,7 @@ export function ProjectDetailClient({
                     </button>
                   ) : (
                     <div className="flex gap-2">
-                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-violet-400 hover:text-violet-300 disabled:opacity-50">
+                      <button onClick={handleSaveEdit} disabled={saving} className="flex items-center gap-1.5 text-xs text-teal-400 hover:text-teal-300 disabled:opacity-50">
                         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
                         保存
                       </button>
@@ -622,7 +622,7 @@ export function ProjectDetailClient({
                     value={editData.script}
                     onChange={(e) => setEditData((d) => ({ ...d, script: e.target.value }))}
                     rows={6}
-                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-violet-500 focus:ring-violet-500/20"
+                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-teal-500 focus:ring-teal-500/20"
                   />
                 ) : (
                   <p className="text-sm leading-relaxed text-zinc-400 whitespace-pre-wrap">{cp.script}</p>
@@ -635,7 +635,7 @@ export function ProjectDetailClient({
                   <Input
                     value={editData.caption}
                     onChange={(e) => setEditData((d) => ({ ...d, caption: e.target.value }))}
-                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-violet-500 focus:ring-violet-500/20"
+                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-teal-500 focus:ring-teal-500/20"
                   />
                 ) : (
                   <p className="text-sm text-zinc-100">{cp.caption}</p>
@@ -660,7 +660,7 @@ export function ProjectDetailClient({
                     value={editData.videoPrompt}
                     onChange={(e) => setEditData((d) => ({ ...d, videoPrompt: e.target.value }))}
                     rows={3}
-                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-violet-500 focus:ring-violet-500/20"
+                    className="text-sm border-zinc-700 bg-zinc-900 focus:border-teal-500 focus:ring-teal-500/20"
                   />
                 ) : (
                   <p className="text-sm text-zinc-400 italic">{cp.videoPrompt}</p>
@@ -719,7 +719,7 @@ function ActionButtons({
   onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
-  const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
+  const primary = `${btn} bg-teal-600 text-white hover:bg-teal-700`;
   const secondary = `${btn} bg-zinc-800/50 text-zinc-100 hover:bg-white/5`;
   const ghost = `${btn} text-zinc-400 hover:text-zinc-300 hover:bg-white/5`;
   const destructive = `${btn} bg-red-600 text-white hover:bg-red-700`;
@@ -737,7 +737,7 @@ function ActionButtons({
           <select
             value={selectedDuration}
             onChange={(e) => onDurationChange(Number(e.target.value))}
-            className="rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-100 text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-violet-500"
+            className="rounded-lg bg-zinc-800/50 border border-zinc-700 text-zinc-100 text-sm px-2 py-2 focus:outline-none focus:ring-1 focus:ring-teal-500"
           >
             <option value={15}>15秒</option>
             <option value={30}>30秒</option>

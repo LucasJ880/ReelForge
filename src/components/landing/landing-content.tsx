@@ -4,139 +4,121 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   Sparkles,
-  Video,
-  BarChart3,
-  Share2,
   ArrowRight,
   Zap,
+  Download,
   Globe,
-  TrendingUp,
-  Play,
-  ChevronRight,
+  Layers,
+  Check,
+  Languages,
+  Wand2,
+  Film,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 20 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { delay: i * 0.12, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.92 },
-  visible: (i: number) => ({
-    opacity: 1,
-    scale: 1,
-    transition: { delay: i * 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { delay: i * 0.08, duration: 0.6, ease: [0.22, 1, 0.36, 1] as const },
   }),
 };
 
 const steps = [
   {
-    icon: Sparkles,
-    title: "输入关键词",
-    desc: "输入产品方向或主题，AI 生成脚本、标题和视频 Prompt",
-    gradient: "from-violet-500 to-indigo-500",
-    bg: "bg-violet-500/[0.08]",
-    border: "border-violet-500/20",
     num: "01",
+    title: "输入主题",
+    desc: "一句话描述你想要的视频方向，可选择上传产品图作为参考。",
   },
   {
-    icon: Video,
-    title: "AI 生成视频",
-    desc: "即梦 Seedance 引擎将文字转化为高质量短视频",
-    gradient: "from-pink-500 to-rose-500",
-    bg: "bg-pink-500/[0.08]",
-    border: "border-pink-500/20",
     num: "02",
+    title: "AI 生成脚本 + 视频",
+    desc: "Seedance 付费通道给出电影感镜头；Pexels + Edge TTS 的免费通道 30 秒成片。",
   },
   {
-    icon: Share2,
-    title: "一键下载",
-    desc: "视频生成完成后，直接下载 mp4，自由发布到各平台",
-    gradient: "from-emerald-500 to-teal-500",
-    bg: "bg-emerald-500/[0.08]",
-    border: "border-emerald-500/20",
     num: "03",
+    title: "下载即用",
+    desc: "导出竖屏 mp4，自由发布到 TikTok / 抖音 / 小红书 / Reels。",
   },
 ];
 
 const features = [
   {
-    icon: Zap,
-    title: "批量生成",
-    desc: "一次输入多个关键词，并行生成数十条视频",
-    color: "text-amber-400",
-    bg: "bg-amber-500/10",
+    icon: Layers,
+    title: "双通道选择",
+    desc: "Seedance 引擎（付费高质量）和浏览器合成（免费无限）共存，你可以按场景切换。",
+  },
+  {
+    icon: Languages,
+    title: "9 种语言配音",
+    desc: "Edge TTS 一键生成中 / 英 / 日 / 韩 / 西 / 法 / 德 / 越 / 印尼 9 语配音，可试听。",
+  },
+  {
+    icon: Film,
+    title: "可编辑素材",
+    desc: "生成后仍能替换片段、改字幕、换 BGM、换配音，所有改动在浏览器里实时合成。",
+  },
+  {
+    icon: Wand2,
+    title: "批量并行",
+    desc: "一次提交多个关键词，系统并行跑完所有任务，作品库支持一键下载与批量删除。",
+  },
+  {
+    icon: Download,
+    title: "本地 mp4 下载",
+    desc: "不依赖任何平台授权，生成即是你的。导出 mp4 直接分发到任意渠道。",
   },
   {
     icon: Globe,
-    title: "多平台就绪",
-    desc: "生成 mp4 竖屏视频，自由发布到 TikTok / 抖音 / 小红书等",
-    color: "text-cyan-400",
-    bg: "bg-cyan-500/10",
-  },
-  {
-    icon: TrendingUp,
-    title: "Seedance 引擎",
-    desc: "基于即梦最新 Seedance 视频模型，画质与连贯性领先",
-    color: "text-emerald-400",
-    bg: "bg-emerald-500/10",
+    title: "竖屏优先",
+    desc: "默认 9:16 竖屏、硬字幕、平台安全区适配，省掉二次剪辑。",
   },
 ];
 
 export function LandingContent() {
   return (
-    <div className="min-h-screen bg-[#08080c] text-white overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden bg-background text-foreground">
+      {/* Ambient teal glow */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[720px] ambient-glow opacity-60" />
+
       {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#08080c]/80 backdrop-blur-2xl border-b border-white/[0.06]">
+      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border/60 bg-background/75 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3.5">
           <Link href="/" className="flex items-center gap-2.5">
-            <Logo size={30} />
-            <span className="text-[15px] font-semibold tracking-tight">
-              Aivora
-            </span>
+            <Logo size={28} />
+            <span className="text-[15px] font-semibold tracking-tight">Aivora</span>
           </Link>
           <div className="flex items-center gap-2">
             <Link
               href="/login"
-              className="rounded-lg px-4 py-2 text-sm text-zinc-400 transition hover:text-white"
+              className="hidden sm:inline-flex rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               登录
             </Link>
             <Link
               href="/register"
-              className="rounded-lg bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-zinc-200"
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              免费注册
+              免费开始
+              <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero */}
-      <section className="relative pt-32 pb-20 px-6">
-        {/* Richer ambient glows */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-5%] left-1/2 -translate-x-1/2 w-[1000px] h-[600px] rounded-full bg-violet-600/20 blur-[140px]" />
-          <div className="absolute top-[10%] left-[15%] w-[400px] h-[400px] rounded-full bg-blue-500/15 blur-[120px]" />
-          <div className="absolute top-[5%] right-[10%] w-[350px] h-[350px] rounded-full bg-pink-500/12 blur-[100px]" />
-          <div className="absolute top-[30%] left-1/2 -translate-x-1/2 w-[600px] h-[200px] rounded-full bg-indigo-400/8 blur-[80px]" />
-        </div>
-
+      <section className="relative px-6 pt-40 pb-24">
         <div className="relative mx-auto max-w-4xl text-center">
           <motion.div
             initial="hidden"
             animate="visible"
             variants={fadeUp}
             custom={0}
-            className="mb-8 inline-flex items-center gap-2 rounded-full border border-violet-400/30 bg-violet-500/15 px-4 py-1.5 text-xs font-medium text-violet-200"
+            className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground"
           >
-            <Sparkles className="h-3.5 w-3.5 text-violet-300" />
-            AI 驱动的短视频创作平台
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-primary" />
+            双通道 AI 视频工厂
           </motion.div>
 
           <motion.h1
@@ -144,13 +126,12 @@ export function LandingContent() {
             animate="visible"
             variants={fadeUp}
             custom={1}
-            className="text-5xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl"
+            className="text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-[68px]"
           >
-            关键词到爆款视频
-            <br />
-            <span className="bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400 bg-clip-text text-transparent">
-              只需一步
-            </span>
+            把关键词
+            <br className="hidden sm:block" />
+            变成可直接发布的
+            <span className="block text-primary">短视频</span>
           </motion.h1>
 
           <motion.p
@@ -158,10 +139,10 @@ export function LandingContent() {
             animate="visible"
             variants={fadeUp}
             custom={2}
-            className="mx-auto mt-6 max-w-xl text-base text-zinc-400 leading-relaxed sm:text-lg"
+            className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground sm:text-[17px]"
           >
-            输入关键词，AI 自动生成脚本和视频。
-            一键下载 mp4，自由发布到 TikTok / 抖音 / 小红书 / Reels。
+            Aivora 用两套互补的生成管线，把一个想法变成带配音、字幕、BGM 的 mp4。
+            下载即用，自由发布到 TikTok、抖音、小红书、Reels。
           </motion.p>
 
           <motion.div
@@ -169,61 +150,105 @@ export function LandingContent() {
             animate="visible"
             variants={fadeUp}
             custom={3}
-            className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3"
+            className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
           >
             <Link
               href="/register"
-              className="group flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-7 py-3.5 text-sm font-semibold transition-all hover:shadow-xl hover:shadow-violet-500/25 hover:brightness-110"
+              className="group inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               免费开始创作
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link
               href="/login"
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-7 py-3.5 text-sm text-zinc-300 transition hover:bg-white/[0.1] hover:text-white"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-5 py-2.5 text-sm text-foreground transition-colors hover:bg-accent"
             >
-              <Play className="h-3.5 w-3.5" />
-              已有账号
+              已有账号 · 登录
             </Link>
           </motion.div>
+
+          <motion.p
+            initial="hidden"
+            animate="visible"
+            variants={fadeUp}
+            custom={4}
+            className="mt-6 text-xs text-zinc-600"
+          >
+            无需信用卡 · 免费通道完全本地合成 · 隐私至上
+          </motion.p>
         </div>
 
-        {/* Floating preview mockup */}
+        {/* Product preview */}
         <motion.div
           initial="hidden"
           animate="visible"
-          variants={scaleIn}
+          variants={fadeUp}
           custom={5}
-          className="relative mx-auto mt-16 max-w-3xl"
+          className="relative mx-auto mt-20 max-w-4xl"
         >
-          <div className="rounded-2xl border border-white/[0.08] bg-gradient-to-b from-white/[0.06] to-white/[0.02] p-1.5 shadow-2xl shadow-violet-500/5">
-            <div className="rounded-xl bg-[#0c0c14] p-6 space-y-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="h-3 w-3 rounded-full bg-red-500/60" />
-                <div className="h-3 w-3 rounded-full bg-yellow-500/60" />
-                <div className="h-3 w-3 rounded-full bg-green-500/60" />
-                <div className="ml-4 flex-1 h-6 rounded-md bg-white/[0.04]" />
+          <div className="rounded-xl border border-border bg-card/40 p-2 shadow-2xl shadow-black/40 backdrop-blur-sm">
+            <div className="overflow-hidden rounded-lg border border-border bg-[oklch(0.08_0_0)]">
+              <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
+                <div className="flex gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-zinc-700" />
+                </div>
+                <span className="ml-3 text-[11px] font-mono text-zinc-600">aivora.app/projects/new</span>
               </div>
-              <div className="grid grid-cols-3 gap-3">
-                {["text-violet-400 bg-violet-500/10 border-violet-500/20", "text-pink-400 bg-pink-500/10 border-pink-500/20", "text-cyan-400 bg-cyan-500/10 border-cyan-500/20"].map((cls, i) => (
-                  <div key={i} className={`rounded-lg border p-4 ${cls}`}>
-                    <div className="h-2 w-12 rounded bg-current opacity-40 mb-3" />
-                    <div className="text-2xl font-bold opacity-80">{["12", "7.8K", "96"][i]}</div>
-                    <div className="text-[10px] mt-1 opacity-50">{["作品", "播放量", "AI 评分"][i]}</div>
+
+              <div className="grid gap-0 md:grid-cols-[1fr_420px]">
+                <div className="space-y-4 border-b border-border p-6 md:border-b-0 md:border-r">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">关键词</p>
+                    <p className="mt-2 text-sm text-zinc-300">冬天保暖护膝 · 职场女性</p>
                   </div>
-                ))}
-              </div>
-              <div className="flex gap-3">
-                <div className="flex-1 h-24 rounded-lg bg-gradient-to-br from-violet-500/10 to-pink-500/5 border border-white/[0.04]" />
-                <div className="flex-1 h-24 rounded-lg bg-gradient-to-br from-cyan-500/10 to-blue-500/5 border border-white/[0.04]" />
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">通道</p>
+                    <div className="mt-2 flex gap-2">
+                      <div className="rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary">
+                        Free · Edge TTS + Pexels
+                      </div>
+                      <div className="rounded-md border border-border bg-card px-2.5 py-1 text-[11px] text-muted-foreground">
+                        Pro · Seedance
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">语言</p>
+                    <p className="mt-2 text-sm text-zinc-300">中文（普通话，女声）</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-600">预计时长</p>
+                    <p className="mt-2 text-sm text-zinc-300">≈ 28s · 9:16 · 硬字幕</p>
+                  </div>
+                  <button className="pointer-events-none mt-2 inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground">
+                    开始生成
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-center bg-[oklch(0.05_0_0)] p-6">
+                  <div className="relative aspect-[9/16] w-[180px] overflow-hidden rounded-lg border border-border bg-gradient-to-br from-zinc-900 to-black">
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-5 text-center">
+                      <div className="text-[10px] uppercase tracking-[0.22em] text-primary">PREVIEW</div>
+                      <p className="text-sm font-medium leading-tight text-zinc-200">
+                        一件能穿过整个冬天的护膝
+                      </p>
+                      <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-border bg-card/70 px-2 py-0.5 text-[10px] text-zinc-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                        合成中 68%
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </motion.div>
       </section>
 
-      {/* How it works */}
-      <section className="relative py-24 px-6">
+      {/* Pipeline */}
+      <section className="relative px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <motion.div
             initial="hidden"
@@ -231,55 +256,43 @@ export function LandingContent() {
             viewport={{ once: true, margin: "-80px" }}
             variants={fadeUp}
             custom={0}
-            className="text-center mb-16"
+            className="mb-14 text-center"
           >
-            <p className="text-xs uppercase tracking-[0.2em] text-violet-400/80 font-medium mb-3">
-              工作流程
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-primary">
+              How it works
             </p>
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              四步完成视频创作
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              三步完成一条视频
             </h2>
-            <p className="mt-3 text-zinc-500 text-sm max-w-md mx-auto">
-              从输入关键词到获得数据分析，全程 AI 自动化
-            </p>
           </motion.div>
 
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-5 md:grid-cols-3">
             {steps.map((step, i) => (
               <motion.div
-                key={step.title}
+                key={step.num}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-50px" }}
-                variants={scaleIn}
+                variants={fadeUp}
                 custom={i}
-                className={`group relative rounded-2xl border ${step.border} ${step.bg} p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg`}
+                className="group relative rounded-xl border border-border bg-card/40 p-6 transition-colors hover:border-primary/40 hover:bg-card"
               >
-                <div className="flex items-center justify-between mb-5">
-                  <div
-                    className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${step.gradient} text-white shadow-lg`}
-                  >
-                    <step.icon className="h-5 w-5" />
-                  </div>
-                  <span className="text-[11px] font-bold text-white/20">
-                    {step.num}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono text-primary">{step.num}</span>
+                  <Sparkles className="h-3.5 w-3.5 text-zinc-700 group-hover:text-primary transition-colors" />
                 </div>
-                <h3 className="mb-2 text-base font-semibold text-zinc-100">{step.title}</h3>
-                <p className="text-sm leading-relaxed text-zinc-400">
+                <h3 className="mt-4 text-lg font-medium tracking-tight">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {step.desc}
                 </p>
-                {i < 3 && (
-                  <ChevronRight className="hidden lg:block absolute -right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/10" />
-                )}
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-24 px-6">
+      {/* Features grid */}
+      <section className="relative px-6 py-24">
         <div className="mx-auto max-w-5xl">
           <motion.div
             initial="hidden"
@@ -287,62 +300,115 @@ export function LandingContent() {
             viewport={{ once: true, margin: "-80px" }}
             variants={fadeUp}
             custom={0}
-            className="text-center mb-16"
+            className="mb-14 max-w-2xl"
           >
-            <p className="text-xs uppercase tracking-[0.2em] text-pink-400/80 font-medium mb-3">
-              核心能力
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-primary">
+              What you get
             </p>
-            <h2 className="text-3xl font-bold sm:text-4xl">
-              不只是视频生成
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              为真实创作者设计的细节
             </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              我们把 MoneyPrinterTurbo 级别的开源管线与付费商业模型整合到一个干净的界面里。
+            </p>
           </motion.div>
 
-          <div className="grid gap-5 sm:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {features.map((f, i) => (
               <motion.div
                 key={f.title}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-50px" }}
-                variants={scaleIn}
+                variants={fadeUp}
                 custom={i}
-                className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-8 text-center transition-all duration-300 hover:bg-white/[0.06] hover:border-white/[0.1]"
+                className="rounded-xl border border-border bg-card/40 p-6 transition-colors hover:border-primary/30 hover:bg-card"
               >
-                <div className={`mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl ${f.bg} ${f.color}`}>
-                  <f.icon className="h-6 w-6" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-primary">
+                  <f.icon className="h-4 w-4" />
                 </div>
-                <h3 className="mb-2 text-lg font-semibold">{f.title}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{f.desc}</p>
+                <h3 className="mt-5 text-base font-medium">{f.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Channel comparison */}
+      <section className="relative px-6 py-24">
+        <div className="mx-auto max-w-5xl">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-80px" }}
+            variants={fadeUp}
+            custom={0}
+            className="mb-14 text-center"
+          >
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.22em] text-primary">
+              Two channels
+            </p>
+            <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+              免费实验，付费出圈
+            </h2>
+          </motion.div>
+
+          <div className="grid gap-5 md:grid-cols-2">
+            <ChannelCard
+              tag="FREE"
+              title="Free 通道"
+              subtitle="Pexels 素材 + Edge TTS + 浏览器合成"
+              price="¥0"
+              items={[
+                "完全免费，不烧信用卡",
+                "9 种语言配音与硬字幕",
+                "本地浏览器合成，隐私友好",
+                "适合文案型 / 口播型视频",
+              ]}
+              cta="立即体验"
+              highlight
+            />
+            <ChannelCard
+              tag="PRO"
+              title="Pro 通道"
+              subtitle="即梦 Seedance 视频生成引擎"
+              price="按次计费"
+              items={[
+                "电影感镜头与流畅运镜",
+                "支持多变体并行（N Choose 1）",
+                "高质量图生视频 / 文生视频",
+                "适合产品种草 / 品牌向内容",
+              ]}
+              cta="Pro 通道介绍"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* CTA */}
-      <section className="py-24 px-6">
+      <section className="relative px-6 py-24">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
-          variants={scaleIn}
+          variants={fadeUp}
           custom={0}
-          className="relative mx-auto max-w-3xl overflow-hidden rounded-3xl border border-violet-500/20 p-12 text-center"
+          className="relative mx-auto max-w-3xl overflow-hidden rounded-2xl border border-border bg-card/60 p-10 text-center"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-violet-600/15 via-fuchsia-600/10 to-pink-600/15" />
-          <div className="absolute inset-0 bg-[#08080c]/60" />
+          <div className="pointer-events-none absolute inset-0 ambient-glow opacity-40" />
           <div className="relative">
-            <h2 className="text-3xl font-bold sm:text-4xl mb-4">
-              开始你的 AI 视频创作
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl">
+              准备好做第一条 AI 短视频了吗？
             </h2>
-            <p className="text-zinc-400 mb-8 max-w-md mx-auto">
-              从关键词到爆款短视频，全程 AI 驱动，让创作不再困难
+            <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+              先用免费通道试一次。不满意，不花一分钱。
             </p>
             <Link
               href="/register"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 px-8 py-3.5 text-sm font-semibold transition-all hover:shadow-xl hover:shadow-violet-500/25 hover:brightness-110"
+              className="mt-7 inline-flex items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
-              免费注册
+              免费开始
               <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -350,19 +416,86 @@ export function LandingContent() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/[0.06] py-8 px-6">
-        <div className="mx-auto flex max-w-5xl items-center justify-between text-xs text-zinc-500">
-          <span>© 2026 Aivora</span>
-          <div className="flex gap-4">
-            <Link href="/terms" className="hover:text-zinc-300 transition-colors">
+      <footer className="border-t border-border px-6 py-10">
+        <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 text-xs text-muted-foreground sm:flex-row">
+          <div className="flex items-center gap-2">
+            <Logo size={18} />
+            <span>© {new Date().getFullYear()} Aivora</span>
+          </div>
+          <div className="flex items-center gap-5">
+            <Link href="/terms" className="hover:text-foreground transition-colors">
               服务条款
             </Link>
-            <Link href="/privacy" className="hover:text-zinc-300 transition-colors">
+            <Link href="/privacy" className="hover:text-foreground transition-colors">
               隐私政策
             </Link>
           </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+function ChannelCard({
+  tag,
+  title,
+  subtitle,
+  price,
+  items,
+  cta,
+  highlight,
+}: {
+  tag: string;
+  title: string;
+  subtitle: string;
+  price: string;
+  items: string[];
+  cta: string;
+  highlight?: boolean;
+}) {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-xl border p-7 transition-colors ${
+        highlight
+          ? "border-primary/40 bg-card hover:border-primary/60"
+          : "border-border bg-card/40 hover:bg-card hover:border-primary/20"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <span
+          className={`rounded-sm px-1.5 py-0.5 text-[10px] font-mono tracking-widest ${
+            highlight
+              ? "bg-primary/20 text-primary"
+              : "bg-secondary text-muted-foreground"
+          }`}
+        >
+          {tag}
+        </span>
+        <span className="text-[11px] text-muted-foreground">{price}</span>
+      </div>
+      <h3 className="mt-6 text-xl font-semibold tracking-tight">{title}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>
+
+      <ul className="mt-6 space-y-2.5">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2.5 text-sm text-zinc-300">
+            <Check className={`mt-[3px] h-3.5 w-3.5 shrink-0 ${highlight ? "text-primary" : "text-muted-foreground"}`} />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        href="/register"
+        className={`mt-7 inline-flex w-full items-center justify-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium transition-colors ${
+          highlight
+            ? "bg-primary text-primary-foreground hover:opacity-90"
+            : "border border-border bg-card text-foreground hover:bg-accent"
+        }`}
+      >
+        {cta}
+        <Zap className="h-3.5 w-3.5" />
+      </Link>
     </div>
   );
 }

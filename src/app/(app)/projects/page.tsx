@@ -132,7 +132,7 @@ export default function ProjectsPage() {
         </div>
         <Link
           href="/projects/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
         >
           <FolderPlus className="h-3.5 w-3.5" />
           新建
@@ -148,7 +148,7 @@ export default function ProjectsPage() {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="搜索关键词、分类、标题..."
-            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-9 pr-8 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-violet-500/40 focus:ring-1 focus:ring-violet-500/20 transition-colors"
+            className="w-full rounded-lg border border-white/[0.06] bg-white/[0.02] pl-9 pr-8 py-2 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-teal-500/40 focus:ring-1 focus:ring-teal-500/20 transition-colors"
           />
           {searchInput && (
             <button
@@ -167,7 +167,7 @@ export default function ProjectsPage() {
             <select
               value={sort}
               onChange={(e) => { setSort(e.target.value); setPage(1); }}
-              className="appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] pl-8 pr-6 py-2 text-xs text-zinc-300 focus:outline-none focus:border-violet-500/40 cursor-pointer"
+              className="appearance-none rounded-lg border border-white/[0.06] bg-white/[0.02] pl-8 pr-6 py-2 text-xs text-zinc-300 focus:outline-none focus:border-teal-500/40 cursor-pointer"
             >
               {SORT_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value} className="bg-zinc-900 text-zinc-300">
@@ -185,7 +185,7 @@ export default function ProjectsPage() {
               className={cn(
                 "p-2 transition-colors",
                 view === "grid"
-                  ? "bg-violet-500/15 text-violet-400"
+                  ? "bg-teal-500/15 text-teal-400"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]"
               )}
             >
@@ -196,7 +196,7 @@ export default function ProjectsPage() {
               className={cn(
                 "p-2 transition-colors",
                 view === "list"
-                  ? "bg-violet-500/15 text-violet-400"
+                  ? "bg-teal-500/15 text-teal-400"
                   : "text-zinc-500 hover:text-zinc-300 hover:bg-white/[0.02]"
               )}
             >
@@ -214,7 +214,7 @@ export default function ProjectsPage() {
             className={cn(
               "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors",
               !activeCategory
-                ? "bg-violet-500/15 text-violet-400 border border-violet-500/20"
+                ? "bg-teal-500/15 text-teal-400 border border-teal-500/20"
                 : "bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:border-white/[0.08]"
             )}
           >
@@ -228,7 +228,7 @@ export default function ProjectsPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors",
                 activeCategory === cat.name
-                  ? "bg-violet-500/15 text-violet-400 border border-violet-500/20"
+                  ? "bg-teal-500/15 text-teal-400 border border-teal-500/20"
                   : "bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:border-white/[0.08]"
               )}
             >
@@ -243,7 +243,7 @@ export default function ProjectsPage() {
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs transition-colors",
                 activeCategory === "__none"
-                  ? "bg-violet-500/15 text-violet-400 border border-violet-500/20"
+                  ? "bg-teal-500/15 text-teal-400 border border-teal-500/20"
                   : "bg-white/[0.02] text-zinc-500 border border-white/[0.04] hover:text-zinc-300 hover:border-white/[0.08]"
               )}
             >
@@ -319,7 +319,7 @@ export default function ProjectsPage() {
                   className={cn(
                     "h-7 w-7 rounded-lg text-xs font-medium transition-colors",
                     page === pageNum
-                      ? "bg-violet-500/15 text-violet-400"
+                      ? "bg-teal-500/15 text-teal-400"
                       : "text-zinc-500 hover:text-white hover:bg-white/[0.04]"
                   )}
                 >
@@ -468,7 +468,7 @@ function EmptyState({ search, category }: { search: string; category: string | n
       <p className="text-zinc-400 text-sm mb-6">还没有作品</p>
       <Link
         href="/projects/new"
-        className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+        className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
       >
         开始创作
       </Link>

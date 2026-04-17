@@ -25,7 +25,7 @@ export default function SettingsPage() {
               <p className="text-sm font-medium text-white">{session?.user?.name || "未命名"}</p>
               <p className="text-[11px] text-zinc-400 mt-0.5">{session?.user?.email}</p>
             </div>
-            <span className="rounded-full bg-violet-500/15 text-violet-300 text-[11px] px-2.5 py-0.5 font-medium">
+            <span className="rounded-full bg-teal-500/15 text-teal-300 text-[11px] px-2.5 py-0.5 font-medium">
               {session?.user?.role || "USER"}
             </span>
           </div>

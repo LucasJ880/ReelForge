@@ -38,7 +38,7 @@ export function StatusStepper({ status }: { status: string }) {
                 className={cn(
                   "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-medium transition-colors",
                   done && "bg-emerald-500 text-white",
-                  active && !activeLoading && "bg-violet-600 text-white",
+                  active && !activeLoading && "bg-teal-600 text-white",
                   activeLoading && "bg-amber-500 text-white",
                   !done && !active && "bg-zinc-800 text-zinc-500"
                 )}

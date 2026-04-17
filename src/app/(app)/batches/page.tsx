@@ -5,7 +5,7 @@ import { formatDate } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; dot: string }> = {
   PENDING: { label: "等待中", dot: "bg-zinc-300" },
-  RUNNING: { label: "执行中", dot: "bg-violet-500 animate-pulse" },
+  RUNNING: { label: "执行中", dot: "bg-teal-500 animate-pulse" },
   PAUSED: { label: "已暂停", dot: "bg-amber-400" },
   COMPLETED: { label: "已完成", dot: "bg-emerald-500" },
   FAILED: { label: "失败", dot: "bg-red-500" },
@@ -30,7 +30,7 @@ export default async function BatchListPage() {
         </div>
         <Link
           href="/batches/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
         >
           <Plus className="h-3.5 w-3.5" />
           新建批次
@@ -43,7 +43,7 @@ export default async function BatchListPage() {
           <p className="text-zinc-400 text-sm mb-6">暂无批量任务</p>
           <Link
             href="/batches/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-violet-700"
+            className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
           >
             创建批次
             <ArrowRight className="h-3.5 w-3.5" />
@@ -79,7 +79,7 @@ export default async function BatchListPage() {
                   <div className="flex items-center gap-3 shrink-0">
                     <div className="w-20 h-1 bg-zinc-800 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-violet-500 rounded-full transition-all"
+                        className="h-full bg-teal-500 rounded-full transition-all"
                         style={{ width: `${pct}%` }}
                       />
                     </div>

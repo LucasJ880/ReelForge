@@ -117,7 +117,7 @@ export default function NewBatchPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             disabled={loading}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
           />
         </div>
 
@@ -168,7 +168,7 @@ export default function NewBatchPage() {
             onChange={(e) => setKeywordsText(e.target.value)}
             disabled={loading}
             rows={8}
-            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all resize-none"
+            className="w-full rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm font-mono text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all resize-none"
           />
         </div>
 
@@ -217,7 +217,7 @@ export default function NewBatchPage() {
         <button
           type="submit"
           disabled={!name.trim() || keywords.length === 0 || loading}
-          className="w-full flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 rounded-lg bg-teal-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

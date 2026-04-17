@@ -90,7 +90,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
 
   const statusDot: Record<string, string> = {
     PENDING: "bg-zinc-300",
-    RUNNING: "bg-violet-500 animate-pulse",
+    RUNNING: "bg-teal-500 animate-pulse",
     PAUSED: "bg-amber-400",
     COMPLETED: "bg-emerald-500",
     FAILED: "bg-red-500",
@@ -105,7 +105,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
   };
 
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors";
-  const primary = `${btn} bg-violet-600 text-white hover:bg-violet-700`;
+  const primary = `${btn} bg-teal-600 text-white hover:bg-teal-700`;
   const secondary = `${btn} bg-zinc-800/50 text-zinc-100 hover:bg-white/5`;
 
   return (
@@ -158,7 +158,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
         </div>
         <div className="h-1.5 w-full bg-zinc-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-violet-500 rounded-full transition-all duration-500"
+            className="h-full bg-teal-500 rounded-full transition-all duration-500"
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -167,7 +167,7 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
       {/* Stats */}
       <div className="flex flex-wrap gap-x-10 gap-y-3">
         <StatInline label="总数" value={batch.totalCount} />
-        <StatInline label="内容完成" value={contentDoneCount} color="text-violet-400" />
+        <StatInline label="内容完成" value={contentDoneCount} color="text-teal-400" />
         <StatInline label="视频就绪" value={videoReadyCount} color="text-emerald-400" />
         {batch.failedCount > 0 && <StatInline label="失败" value={batch.failedCount} color="text-red-500" />}
       </div>
@@ -235,7 +235,7 @@ function ProjectRow({ project }: { project: { id: string; keyword: string; statu
             ) : isFailed ? (
               <XCircle className="h-4 w-4 text-red-400" />
             ) : isProcessing ? (
-              <Loader2 className="h-4 w-4 text-violet-400 animate-spin" />
+              <Loader2 className="h-4 w-4 text-teal-400 animate-spin" />
             ) : (
               <Clock className="h-4 w-4 text-zinc-500" />
             )}
@@ -250,7 +250,7 @@ function ProjectRow({ project }: { project: { id: string; keyword: string; statu
         <div className="flex items-center gap-2 shrink-0">
           <span className={cn(
             "text-[11px] font-medium",
-            isFailed ? "text-red-400" : isDone ? "text-emerald-400" : isProcessing ? "text-violet-400" : "text-zinc-400"
+            isFailed ? "text-red-400" : isDone ? "text-emerald-400" : isProcessing ? "text-teal-400" : "text-zinc-400"
           )}>
             {statusLabel}
           </span>

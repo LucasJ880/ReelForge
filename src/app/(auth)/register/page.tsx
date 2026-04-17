@@ -4,7 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Logo } from "@/components/ui/logo";
+import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -56,87 +56,93 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="relative w-full max-w-[400px] px-6">
-      <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[500px] h-[400px] rounded-full bg-violet-600/[0.12] blur-[100px] pointer-events-none" />
-
-      <div className="relative">
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-5">
-            <Logo size={44} />
-          </div>
-          <h1 className="text-[22px] font-bold text-white tracking-tight">
-            创建账号
-          </h1>
-          <p className="mt-1.5 text-sm text-zinc-500">
-            开始你的 AI 视频创作之旅
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl p-6 shadow-xl shadow-black/20">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="mb-2 block text-xs font-medium text-zinc-400">
-                名称
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
-                placeholder="你的名字"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-medium text-zinc-400">
-                邮箱地址
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
-                placeholder="your@email.com"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-xs font-medium text-zinc-400">
-                密码
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-violet-500/50 focus:outline-none focus:ring-1 focus:ring-violet-500/30 transition-colors"
-                placeholder="至少 6 位"
-              />
-            </div>
-
-            {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-3 py-2">
-                <p className="text-sm text-red-400">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-600 py-3 text-sm font-semibold text-white transition-all hover:brightness-110 disabled:opacity-50 shadow-lg shadow-violet-600/25"
-            >
-              {loading ? "注册中..." : "注册"}
-            </button>
-          </form>
-        </div>
-
-        <p className="text-center text-sm text-zinc-600 mt-6">
-          已有账号？{" "}
-          <Link href="/login" className="text-violet-400 hover:text-violet-300 font-medium">
-            登录
-          </Link>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">创建账号</h1>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          开始你的 AI 视频创作之旅，30 秒内完成注册
         </p>
       </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label htmlFor="name" className="block text-xs font-medium text-muted-foreground">
+            名称
+          </label>
+          <input
+            id="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-zinc-600 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            placeholder="你的名字"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="email" className="block text-xs font-medium text-muted-foreground">
+            邮箱地址
+          </label>
+          <input
+            id="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-zinc-600 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            placeholder="your@email.com"
+          />
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="password" className="block text-xs font-medium text-muted-foreground">
+            密码
+          </label>
+          <input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            minLength={6}
+            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-zinc-600 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
+            placeholder="至少 6 位"
+          />
+        </div>
+
+        {error && (
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
+            <p className="text-xs text-destructive">{error}</p>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        >
+          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {loading ? "注册中" : "创建账号"}
+        </button>
+
+        <p className="text-center text-[11px] leading-relaxed text-zinc-600">
+          注册即代表同意{" "}
+          <Link href="/terms" className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+            服务条款
+          </Link>{" "}
+          和{" "}
+          <Link href="/privacy" className="text-zinc-400 hover:text-zinc-200 underline underline-offset-2">
+            隐私政策
+          </Link>
+        </p>
+      </form>
+
+      <p className="text-center text-sm text-muted-foreground">
+        已有账号？{" "}
+        <Link href="/login" className="font-medium text-primary hover:underline underline-offset-2">
+          登录
+        </Link>
+      </p>
     </div>
   );
 }

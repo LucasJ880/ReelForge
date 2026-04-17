@@ -198,7 +198,7 @@ export default function NewProjectPage() {
         </p>
         <Link
           href="/projects"
-          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white hover:bg-violet-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white hover:bg-teal-700"
         >
           返回作品库
         </Link>
@@ -231,11 +231,11 @@ export default function NewProjectPage() {
             type="button"
             onClick={() => setProductDropdownOpen(!productDropdownOpen)}
             disabled={loading}
-            className="w-full flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-left transition-all hover:border-zinc-600 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 focus:outline-none disabled:opacity-50"
+            className="w-full flex items-center justify-between rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-left transition-all hover:border-zinc-600 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 focus:outline-none disabled:opacity-50"
           >
             {selectedProduct ? (
               <span className="text-white">
-                <span className="text-violet-400 text-xs mr-2">
+                <span className="text-teal-400 text-xs mr-2">
                   {productLineLabels[selectedProduct.productLine]}
                 </span>
                 {selectedProduct.color}
@@ -273,7 +273,7 @@ export default function NewProjectPage() {
                   className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-zinc-400 hover:bg-zinc-800 transition-colors"
                 >
                   <div className="w-4 h-4 flex items-center justify-center">
-                    {!selectedProductId && <Check className="h-3.5 w-3.5 text-violet-400" />}
+                    {!selectedProductId && <Check className="h-3.5 w-3.5 text-teal-400" />}
                   </div>
                   不关联产品（通用模式）
                 </button>
@@ -296,7 +296,7 @@ export default function NewProjectPage() {
                       >
                         <div className="w-4 h-4 flex items-center justify-center">
                           {selectedProductId === p.id && (
-                            <Check className="h-3.5 w-3.5 text-violet-400" />
+                            <Check className="h-3.5 w-3.5 text-teal-400" />
                           )}
                         </div>
                         {p.color}
@@ -310,9 +310,9 @@ export default function NewProjectPage() {
         </div>
 
         {selectedProduct && (
-          <div className="mt-2 rounded-lg bg-violet-500/5 border border-violet-500/10 px-3 py-2">
+          <div className="mt-2 rounded-lg bg-teal-500/5 border border-teal-500/10 px-3 py-2">
             <p className="text-xs text-zinc-400 leading-relaxed">
-              <span className="text-violet-400 font-medium">{selectedProduct.name}</span>
+              <span className="text-teal-400 font-medium">{selectedProduct.name}</span>
               {" — "}
               {selectedProduct.features.slice(0, 3).join("、")}
             </p>
@@ -334,7 +334,7 @@ export default function NewProjectPage() {
                 key={img.url}
                 className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
                   primaryImageUrl === img.url
-                    ? "border-violet-500 ring-2 ring-violet-500/20"
+                    ? "border-teal-500 ring-2 ring-teal-500/20"
                     : "border-zinc-700 hover:border-zinc-600"
                 }`}
                 onClick={() => setPrimaryImageUrl(img.url)}
@@ -345,7 +345,7 @@ export default function NewProjectPage() {
                   className="w-full aspect-square object-cover"
                 />
                 {primaryImageUrl === img.url && (
-                  <div className="absolute top-1 left-1 rounded-full bg-violet-500 p-0.5">
+                  <div className="absolute top-1 left-1 rounded-full bg-teal-500 p-0.5">
                     <Star className="h-2.5 w-2.5 text-white fill-white" />
                   </div>
                 )}
@@ -376,7 +376,7 @@ export default function NewProjectPage() {
             onDragLeave={() => setDragOver(false)}
             className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
               dragOver
-                ? "border-violet-500 bg-violet-500/5"
+                ? "border-teal-500 bg-teal-500/5"
                 : "border-zinc-700 bg-zinc-900/50 hover:border-zinc-600"
             } ${uploading ? "pointer-events-none opacity-50" : ""}`}
           >
@@ -389,7 +389,7 @@ export default function NewProjectPage() {
               disabled={uploading || loading}
             />
             {uploading ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-violet-400">
+              <div className="flex items-center justify-center gap-2 text-sm text-teal-400">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 上传中...
               </div>
@@ -405,7 +405,7 @@ export default function NewProjectPage() {
 
         {uploadedImages.length > 0 && (
           <p className="text-[10px] text-zinc-500 mt-1.5">
-            <Star className="inline h-2.5 w-2.5 text-violet-400 fill-violet-400 -mt-0.5 mr-0.5" />
+            <Star className="inline h-2.5 w-2.5 text-teal-400 fill-teal-400 -mt-0.5 mr-0.5" />
             带紫框的为主图，将传入 Seedance 做图生视频。点击切换主图。
           </p>
         )}
@@ -417,7 +417,7 @@ export default function NewProjectPage() {
           <Sparkles className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
           创意方向关键词
         </label>
-        <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-1 focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/20 transition-all">
+        <div className="rounded-2xl border border-zinc-700 bg-zinc-900 p-1 focus-within:border-teal-500 focus-within:ring-2 focus-within:ring-teal-500/20 transition-all">
           <input
             type="text"
             placeholder={
@@ -438,7 +438,7 @@ export default function NewProjectPage() {
                   key={s}
                   type="button"
                   onClick={() => setKeyword(s)}
-                  className="rounded-full bg-zinc-800/50 px-2.5 py-1 text-[11px] text-zinc-400 hover:bg-violet-500/10 hover:text-violet-400 transition-colors"
+                  className="rounded-full bg-zinc-800/50 px-2.5 py-1 text-[11px] text-zinc-400 hover:bg-teal-500/10 hover:text-teal-400 transition-colors"
                 >
                   {s}
                 </button>
@@ -447,7 +447,7 @@ export default function NewProjectPage() {
             <button
               type="submit"
               disabled={!keyword.trim() || loading}
-              className="flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex items-center gap-1.5 rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -471,7 +471,7 @@ export default function NewProjectPage() {
               key={s}
               type="button"
               onClick={() => setKeyword(s)}
-              className="rounded-full bg-zinc-800/30 px-2.5 py-1 text-[11px] text-zinc-500 hover:bg-violet-500/10 hover:text-violet-400 transition-colors"
+              className="rounded-full bg-zinc-800/30 px-2.5 py-1 text-[11px] text-zinc-500 hover:bg-teal-500/10 hover:text-teal-400 transition-colors"
             >
               {s}
             </button>
@@ -480,7 +480,7 @@ export default function NewProjectPage() {
       )}
 
       {step === "generating" && (
-        <div className="mt-6 flex items-center gap-3 text-sm text-violet-400">
+        <div className="mt-6 flex items-center gap-3 text-sm text-teal-400">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>
             AI 正在为

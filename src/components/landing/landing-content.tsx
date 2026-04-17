@@ -178,7 +178,7 @@ export function LandingContent() {
           </motion.p>
         </div>
 
-        {/* Product preview */}
+        {/* App preview */}
         <motion.div
           initial="hidden"
           animate="visible"

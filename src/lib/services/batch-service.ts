@@ -8,14 +8,15 @@ import { deleteProjectWithAssets } from "./project-service";
 export interface CreateBatchInput {
   name: string;
   keywords: string[];
-  productId?: string | null;
+  /** 批次内所有 project 共享的品牌/产品/场景描述（纯文本，可选） */
+  brandDescription?: string | null;
   videoParams?: VideoParams;
   concurrency?: number;
   autoGenerateVideo?: boolean;
 }
 
 export async function createBatch(input: CreateBatchInput) {
-  const { name, keywords, productId, videoParams, concurrency = 2, autoGenerateVideo = true } = input;
+  const { name, keywords, brandDescription, videoParams, concurrency = 2, autoGenerateVideo = true } = input;
 
   if (!keywords.length) throw new Error("至少需要一个关键词");
   if (keywords.length > 50) throw new Error("单批次最多 50 个关键词");
@@ -31,7 +32,7 @@ export async function createBatch(input: CreateBatchInput) {
         create: keywords.map((kw, i) => ({
           keyword: kw.trim(),
           batchIndex: i,
-          productId: productId || null,
+          brandDescription: brandDescription || null,
         })),
       },
     },

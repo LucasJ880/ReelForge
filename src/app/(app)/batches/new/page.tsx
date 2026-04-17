@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Zap, ChevronDown, Package } from "lucide-react";
+import { Loader2, Zap, ChevronDown, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -12,40 +12,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface Product {
-  id: string;
-  name: string;
-  productLine: string;
-  color: string;
-}
-
-const productLineLabels: Record<string, string> = {
-  flannel: "法兰绒毛毯",
-  sherpa: "Sherpa双面毛毯",
-};
-
 export default function NewBatchPage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [keywordsText, setKeywordsText] = useState("");
+  const [brandDescription, setBrandDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string>("__none");
 
   const [duration, setDuration] = useState("15");
   const [ratio, setRatio] = useState("9:16");
   const [resolution, setResolution] = useState("1080p");
   const [concurrency, setConcurrency] = useState("2");
   const [autoVideo, setAutoVideo] = useState(true);
-
-  useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then((data) => setProducts(data))
-      .catch(() => {});
-  }, []);
 
   const set = (fn: (v: string) => void) => (v: string | null) => {
     if (v !== null) fn(v);
@@ -68,7 +47,7 @@ export default function NewBatchPage() {
         body: JSON.stringify({
           name: name.trim(),
           keywords,
-          productId: selectedProductId === "__none" ? null : selectedProductId,
+          brandDescription: brandDescription.trim() || null,
           videoParams: { duration: parseInt(duration), ratio, resolution },
           concurrency: parseInt(concurrency),
           autoGenerateVideo: autoVideo,
@@ -121,36 +100,24 @@ export default function NewBatchPage() {
           />
         </div>
 
-        {/* Product Selector */}
-        {products.length > 0 && (
-          <div>
-            <label className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2 block">
-              <Package className="inline h-3 w-3 mr-1 -mt-0.5" />
-              关联产品（所有关键词共用）
-            </label>
-            <Select value={selectedProductId} onValueChange={set(setSelectedProductId)}>
-              <SelectTrigger className="w-full text-sm border-border bg-card text-foreground">
-                <SelectValue placeholder="不关联产品" />
-              </SelectTrigger>
-              <SelectContent className="min-w-[320px]">
-                <SelectItem value="__none">不关联产品（通用模式）</SelectItem>
-                {Object.entries(
-                  products.reduce((acc, p) => {
-                    if (!acc[p.productLine]) acc[p.productLine] = [];
-                    acc[p.productLine].push(p);
-                    return acc;
-                  }, {} as Record<string, Product[]>)
-                ).map(([line, items]) => (
-                  items.map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {productLineLabels[line] || line} — {p.color}
-                    </SelectItem>
-                  ))
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
+        {/* Brand description - 批次内所有项目共享 */}
+        <div>
+          <label className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-2 block">
+            <Info className="inline h-3 w-3 mr-1 -mt-0.5" />
+            品牌 / 产品 / 场景描述（可选，所有关键词共用）
+          </label>
+          <textarea
+            rows={3}
+            placeholder="例：我的品牌叫 CozyNest，主打羊羔绒毛毯，特点是超柔触感、双面亲肤、冬天保暖。"
+            value={brandDescription}
+            onChange={(e) => setBrandDescription(e.target.value)}
+            disabled={loading}
+            className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all resize-none"
+          />
+          <p className="text-[11px] text-muted-foreground/80 mt-1.5">
+            填了之后，本批次所有关键词都会围绕这段描述生成；不填则按关键词自由发挥。
+          </p>
+        </div>
 
         {/* Keywords */}
         <div>
@@ -163,7 +130,7 @@ export default function NewBatchPage() {
             </span>
           </div>
           <textarea
-            placeholder={"宠物+毛毯\n冬日居家好物\n沙发追剧神器\n助眠好物\n圣诞礼物推荐"}
+            placeholder={"冬日居家好物\n办公室午睡神器\n宠物日常\n助眠推荐\n圣诞礼物清单"}
             value={keywordsText}
             onChange={(e) => setKeywordsText(e.target.value)}
             disabled={loading}

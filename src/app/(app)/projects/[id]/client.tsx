@@ -396,9 +396,9 @@ export function ProjectDetailClient({
             <h1 className="text-xl font-semibold tracking-tight text-white">
               {project.keyword}
             </h1>
-            {project.product && (
-              <p className="text-xs text-primary/80 mt-0.5">
-                {project.product.name}
+            {project.brandDescription && (
+              <p className="text-xs text-primary/80 mt-0.5 line-clamp-1 max-w-lg">
+                {project.brandDescription}
               </p>
             )}
             <p className="text-xs text-muted-foreground mt-1">
@@ -510,11 +510,11 @@ export function ProjectDetailClient({
         </div>
       )}
 
-      {/* Uploaded Product Images */}
+      {/* Uploaded reference images */}
       {project.imageUrls && project.imageUrls.length > 0 && (
         <div className="rounded-xl border border-border bg-card/60 p-4">
           <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-3">
-            产品图参考 · {project.imageUrls.length} 张
+            参考图 · {project.imageUrls.length} 张
           </p>
           <div className="flex gap-2 flex-wrap">
             {project.imageUrls.map((url: string, i: number) => (
@@ -526,7 +526,7 @@ export function ProjectDetailClient({
                     : "border-border"
                 }`}
               >
-                <img src={url} alt={`产品图 ${i + 1}`} className="w-16 h-16 object-cover" />
+                <img src={url} alt={`参考图 ${i + 1}`} className="w-16 h-16 object-cover" />
                 {url === project.primaryImageUrl && (
                   <div className="absolute top-0.5 left-0.5 rounded-full bg-primary px-1 py-0.5">
                     <span className="text-[7px] font-bold text-white">主图</span>

@@ -38,7 +38,6 @@ export async function GET(request: NextRequest) {
       skip: (page - 1) * pageSize,
       take: pageSize,
       include: {
-        product: { select: { id: true, name: true, productLine: true, color: true } },
         contentPlan: { select: { id: true, caption: true, createdAt: true } },
         videoJob: {
           select: {
@@ -79,25 +78,13 @@ export async function POST(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const body = await request.json();
-  const { keyword, productId, imageUrls, primaryImageUrl } = body;
+  const { keyword, brandDescription, imageUrls, primaryImageUrl } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
       { error: "请输入关键词" },
       { status: 400 }
     );
-  }
-
-  if (productId) {
-    const product = await db.productCatalog.findUnique({
-      where: { id: productId },
-    });
-    if (!product || !product.isActive) {
-      return NextResponse.json(
-        { error: "所选产品不存在或已下架" },
-        { status: 400 }
-      );
-    }
   }
 
   const validImageUrls = Array.isArray(imageUrls)
@@ -107,7 +94,10 @@ export async function POST(request: NextRequest) {
   const project = await db.project.create({
     data: {
       keyword: keyword.trim(),
-      productId: productId || null,
+      brandDescription:
+        typeof brandDescription === "string" && brandDescription.trim()
+          ? brandDescription.trim()
+          : null,
       imageUrls: validImageUrls,
       primaryImageUrl: typeof primaryImageUrl === "string" ? primaryImageUrl : validImageUrls[0] || null,
     },

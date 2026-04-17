@@ -25,7 +25,7 @@ function LegalArticle() {
       <Section title="2. Description of Service">
         <p>
           Aivora is an AI-powered short video creation platform that helps users generate short-form video
-          content from keywords and product information. Generated videos can be downloaded as mp4 files
+          content from keywords, optional brand descriptions and reference images. Generated videos can be downloaded as mp4 files
           for self-publishing to the platforms of your choice.
         </p>
       </Section>

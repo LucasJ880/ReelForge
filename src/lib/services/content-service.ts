@@ -1,16 +1,16 @@
 import { db } from "@/lib/db";
 import {
   generateContent,
-  analyzeProductImages,
-  type ProductContext,
-  type ProductVisualAnalysis,
+  analyzeReferenceImages,
+  type BrandContext,
+  type ReferenceVisualAnalysis,
 } from "@/lib/providers/openai";
 import { Prisma, ProjectStatus } from "@prisma/client";
 
 export async function generateContentPlan(projectId: string, targetDuration?: number) {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: { contentPlan: true, product: true },
+    include: { contentPlan: true },
   });
 
   if (!project) throw new Error("项目不存在");
@@ -22,24 +22,15 @@ export async function generateContentPlan(projectId: string, targetDuration?: nu
     throw new Error(`当前状态 ${project.status} 不允许生成内容`);
   }
 
-  let productContext: ProductContext | undefined;
-  if (project.product) {
-    const sizes = project.product.sizes as Array<{ name: string; dimensions: string }>;
-    productContext = {
-      name: project.product.name,
-      productLine: project.product.productLine,
-      color: project.product.color,
-      description: project.product.description,
-      features: project.product.features,
-      sizes: sizes.map((s) => `${s.name} ${s.dimensions}`),
-    };
-  }
+  const brandContext: BrandContext | undefined = project.brandDescription?.trim()
+    ? { description: project.brandDescription.trim() }
+    : undefined;
 
-  let productVisuals: ProductVisualAnalysis | undefined;
+  let referenceVisuals: ReferenceVisualAnalysis | undefined;
   if (project.imageUrls.length > 0) {
     try {
-      console.log(`[content-service] Analyzing ${project.imageUrls.length} product image(s) with GPT-4o Vision`);
-      productVisuals = await analyzeProductImages(project.imageUrls);
+      console.log(`[content-service] Analyzing ${project.imageUrls.length} reference image(s) with GPT-4o Vision`);
+      referenceVisuals = await analyzeReferenceImages(project.imageUrls);
       console.log("[content-service] Vision analysis complete");
     } catch (e) {
       console.warn("[content-service] Vision analysis failed, proceeding without:", e);
@@ -48,8 +39,8 @@ export async function generateContentPlan(projectId: string, targetDuration?: nu
 
   const result = await generateContent({
     keyword: project.keyword,
-    productContext,
-    productVisuals,
+    brandContext,
+    referenceVisuals,
     targetDuration,
   });
 

@@ -53,49 +53,30 @@ model Batch {
   @@index([createdAt(sort: Desc)])
 }
 
-model ProductCatalog {
-  id          String   @id @default(cuid())
-  name        String
-  productLine String
-  color       String
-  description String
-  features    String[]
-  sizes       Json
-  imageUrl    String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  projects Project[]
-
-  @@index([productLine])
-  @@index([isActive])
-}
-
 model Project {
-  id              String        @id @default(cuid())
-  keyword         String
-  category        String?
-  status          ProjectStatus @default(DRAFT)
-  errorMessage    String?
-  retryCount      Int           @default(0)
-  batchId         String?
-  batchIndex      Int?
-  productId       String?
-  imageUrls       String[]
-  primaryImageUrl String?
-  userVideoAssets String[]      @default([])
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  id               String        @id @default(cuid())
+  keyword          String
+  category         String?
+  status           ProjectStatus @default(DRAFT)
+  errorMessage     String?
+  retryCount       Int           @default(0)
+  batchId          String?
+  batchIndex       Int?
+  /// 自由文本：用户描述自己的品牌/产品/背景信息（可选）
+  brandDescription String?
+  imageUrls        String[]
+  primaryImageUrl  String?
+  userVideoAssets  String[]      @default([])
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  batch       Batch?          @relation(fields: [batchId], references: [id])
-  product     ProductCatalog? @relation(fields: [productId], references: [id])
+  batch       Batch?       @relation(fields: [batchId], references: [id])
   contentPlan ContentPlan?
   videoJob    VideoJob?
 
   @@index([status])
   @@index([category])
   @@index([batchId])
-  @@index([productId])
   @@index([createdAt(sort: Desc)])
 }
 

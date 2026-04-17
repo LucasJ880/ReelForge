@@ -30,7 +30,7 @@ export async function submitVideoJob(
 ) {
   const project = await db.project.findUnique({
     where: { id: projectId },
-    include: { contentPlan: true, videoJob: true, product: true },
+    include: { contentPlan: true, videoJob: true },
   });
 
   if (!project) throw new Error("项目不存在");
@@ -50,7 +50,7 @@ export async function submitVideoJob(
 
   const { jobId } = await submitVideoGeneration({
     prompt: project.contentPlan.videoPrompt,
-    referenceImageUrl: project.primaryImageUrl || project.product?.imageUrl || undefined,
+    referenceImageUrl: project.primaryImageUrl || undefined,
     duration: SEGMENT_DURATION,
     resolution,
     ratio,
@@ -101,7 +101,7 @@ export async function submitVideoJob(
 export async function checkVideoStatus(projectId: string) {
   const videoJob = await db.videoJob.findUnique({
     where: { projectId },
-    include: { project: { include: { contentPlan: true, product: true } } },
+    include: { project: { include: { contentPlan: true } } },
   });
 
   if (!videoJob) throw new Error("没有视频生成任务");
@@ -180,7 +180,7 @@ export async function checkVideoStatus(projectId: string) {
 }
 
 async function handleSegment1Complete(
-  videoJob: Awaited<ReturnType<typeof db.videoJob.findUnique>> & { project: { contentPlan: { videoPromptPart2: string | null; videoPrompt: string } | null; product: { imageUrl: string | null } | null } },
+  videoJob: Awaited<ReturnType<typeof db.videoJob.findUnique>> & { project: { contentPlan: { videoPromptPart2: string | null; videoPrompt: string } | null } },
   videoUrl: string,
   lastFrameUrl?: string,
 ) {

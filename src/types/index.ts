@@ -1,6 +1,5 @@
 export type {
   Project,
-  ProductCatalog,
   ContentPlan,
   VideoJob,
 } from "@prisma/client";
@@ -37,20 +36,12 @@ export interface ProjectWithRelations {
   status: string;
   errorMessage: string | null;
   retryCount: number;
-  productId: string | null;
+  brandDescription: string | null;
   imageUrls: string[];
   primaryImageUrl: string | null;
   userVideoAssets: string[];
   createdAt: Date;
   updatedAt: Date;
-  product: {
-    id: string;
-    name: string;
-    productLine: string;
-    color: string;
-    description: string;
-    features: string[];
-  } | null;
   contentPlan: {
     id: string;
     script: string;
@@ -86,7 +77,7 @@ export interface ProjectWithRelations {
   } | null;
 }
 
-export interface ProductVisualAnalysis {
+export interface ReferenceVisualAnalysis {
   productAppearance: string;
   colorsAndMaterials: string;
   brandElements: string;

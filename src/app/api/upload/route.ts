@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const ext = file.name.split(".").pop() || "jpg";
-    const filename = `products/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const filename = `references/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const blob = await put(filename, file, { access: "public", addRandomSuffix: true });
 

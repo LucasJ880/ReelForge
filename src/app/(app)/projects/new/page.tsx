@@ -1,14 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Loader2,
   Sparkles,
-  Package,
-  ChevronDown,
-  Check,
   ImagePlus,
   Star,
   Trash2,
@@ -16,6 +13,7 @@ import {
   Zap,
   Gift,
   FileText,
+  Info,
 } from "lucide-react";
 import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/use-role";
@@ -31,7 +29,6 @@ interface ChannelOption {
   subtitle: string;
   cost: string;
   duration: string;
-  highlight: boolean;
 }
 
 const CHANNELS: ChannelOption[] = [
@@ -43,7 +40,6 @@ const CHANNELS: ChannelOption[] = [
     subtitle: "AI 文案 + Seedance 高质量视频",
     cost: "付费 · 云端生成",
     duration: "约 1–2 分钟",
-    highlight: true,
   },
   {
     id: "free",
@@ -53,7 +49,6 @@ const CHANNELS: ChannelOption[] = [
     subtitle: "AI 文案 + 浏览器合成（Pexels + TTS）",
     cost: "零成本 · 浏览器本地合成",
     duration: "约 3–5 分钟",
-    highlight: false,
   },
   {
     id: "content-only",
@@ -62,83 +57,35 @@ const CHANNELS: ChannelOption[] = [
     subtitle: "只生成脚本、标题、提示词，视频之后再做",
     cost: "极少 AI 成本",
     duration: "约 10 秒",
-    highlight: false,
   },
 ];
 
-interface Product {
-  id: string;
-  name: string;
-  productLine: string;
-  color: string;
-  description: string;
-  features: string[];
-}
-
 const suggestions = [
-  "宠物+毛毯",
   "冬日居家好物",
-  "沙发追剧神器",
-  "助眠好物",
-  "圣诞礼物推荐",
-  "办公室午睡毯",
-  "卧室氛围感",
-  "加拿大冬天生存指南",
-  "毛毯测评对比",
-  "情侣居家日常",
+  "办公室午睡神器",
+  "宠物日常",
+  "助眠推荐",
+  "圣诞礼物清单",
+  "测评对比",
+  "情侣居家",
+  "旅行打卡",
+  "健身打卡",
+  "美食探店",
 ];
-
-const productLineLabels: Record<string, string> = {
-  flannel: "法兰绒毛毯",
-  sherpa: "Sherpa双面毛毯",
-};
 
 export default function NewProjectPage() {
   const router = useRouter();
   const isAdmin = useIsAdmin();
   const [keyword, setKeyword] = useState("");
+  const [brandDescription, setBrandDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"input" | "creating" | "generating">("input");
   const [channel, setChannel] = useState<Channel>("pro");
-
-  const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
-  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
-  const [productFilter, setProductFilter] = useState<string>("");
 
   const [uploadedImages, setUploadedImages] = useState<{ url: string; filename: string }[]>([]);
   const [primaryImageUrl, setPrimaryImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/products")
-      .then((r) => r.json())
-      .then((data) => setProducts(data))
-      .catch(() => toast.error("加载产品列表失败"));
-  }, []);
-
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
-
-  const filteredProducts = products.filter((p) => {
-    if (!productFilter) return true;
-    const q = productFilter.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(q) ||
-      p.color.toLowerCase().includes(q) ||
-      p.productLine.toLowerCase().includes(q)
-    );
-  });
-
-  const groupedProducts = filteredProducts.reduce(
-    (acc, p) => {
-      const key = p.productLine;
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(p);
-      return acc;
-    },
-    {} as Record<string, Product[]>
-  );
 
   async function uploadFiles(files: FileList | File[]) {
     const fileArr = Array.from(files).slice(0, 5 - uploadedImages.length);
@@ -208,7 +155,7 @@ export default function NewProjectPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           keyword: keyword.trim(),
-          productId: selectedProductId,
+          brandDescription: brandDescription.trim() || null,
           imageUrls: uploadedImages.map((img) => img.url),
           primaryImageUrl,
         }),
@@ -228,7 +175,6 @@ export default function NewProjectPage() {
           toast.success("内容方案已生成，接下来可以生成视频");
         }
       } else if (channel === "pro") {
-        // 一键 Pro：后端自动执行文案 + Seedance 视频
         const proRes = await fetch(`/api/projects/${project.id}/auto-generate`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -241,7 +187,6 @@ export default function NewProjectPage() {
           toast.success("一键生成已启动，视频正在合成");
         }
       } else if (channel === "free") {
-        // 免费通道：后端准备 manifest，浏览器端在详情页自动开始合成
         const freeRes = await fetch(`/api/projects/${project.id}/free-prepare`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -291,202 +236,11 @@ export default function NewProjectPage() {
           新作品
         </p>
         <h1 className="text-xl font-semibold tracking-tight text-white">
-          选择产品，输入创意方向
+          用关键词 + 可选参考资料，一键生成短视频
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          AI 将结合产品信息与创意关键词，生成针对性的脚本、标题和视频提示词
+          输入创意方向，任选是否上传参考图或自由描述自己的品牌/场景 —— AI 会生成脚本、标题、提示词和视频。
         </p>
-      </div>
-
-      {/* Product Selector */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <Package className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          关联产品（推荐选择）
-        </label>
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setProductDropdownOpen(!productDropdownOpen)}
-            disabled={loading}
-            className="w-full flex items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm text-left transition-all hover:border-primary/40 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none disabled:opacity-50"
-          >
-            {selectedProduct ? (
-              <span className="text-white">
-                <span className="text-primary text-xs mr-2">
-                  {productLineLabels[selectedProduct.productLine]}
-                </span>
-                {selectedProduct.color}
-              </span>
-            ) : (
-              <span className="text-muted-foreground">选择一个毛毯产品...</span>
-            )}
-            <ChevronDown
-              className={`h-4 w-4 text-muted-foreground transition-transform ${
-                productDropdownOpen ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {productDropdownOpen && (
-            <div className="absolute z-50 mt-1 w-full rounded-xl border border-border bg-card shadow-xl shadow-black/50 max-h-72 overflow-hidden">
-              <div className="p-2 border-b border-border">
-                <input
-                  type="text"
-                  placeholder="搜索产品或花色..."
-                  value={productFilter}
-                  onChange={(e) => setProductFilter(e.target.value)}
-                  autoFocus
-                  className="w-full bg-accent/60 rounded-lg px-3 py-2 text-sm text-white placeholder:text-muted-foreground/70 focus:outline-none"
-                />
-              </div>
-              <div className="overflow-y-auto max-h-52 p-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedProductId(null);
-                    setProductDropdownOpen(false);
-                    setProductFilter("");
-                  }}
-                  className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:bg-secondary transition-colors"
-                >
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    {!selectedProductId && <Check className="h-3.5 w-3.5 text-primary" />}
-                  </div>
-                  不关联产品（通用模式）
-                </button>
-
-                {Object.entries(groupedProducts).map(([line, items]) => (
-                  <div key={line}>
-                    <div className="px-3 py-1.5 text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-                      {productLineLabels[line] || line}
-                    </div>
-                    {items.map((p) => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => {
-                          setSelectedProductId(p.id);
-                          setProductDropdownOpen(false);
-                          setProductFilter("");
-                        }}
-                        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white hover:bg-secondary transition-colors"
-                      >
-                        <div className="w-4 h-4 flex items-center justify-center">
-                          {selectedProductId === p.id && (
-                            <Check className="h-3.5 w-3.5 text-primary" />
-                          )}
-                        </div>
-                        {p.color}
-                      </button>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {selectedProduct && (
-          <div className="mt-2 rounded-lg bg-primary/10 border border-primary/20 px-3 py-2">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              <span className="text-primary font-medium">{selectedProduct.name}</span>
-              {" — "}
-              {selectedProduct.features.slice(0, 3).join("、")}
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Product Image Upload */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <ImagePlus className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          产品图 / Logo（可选，最多 5 张）
-        </label>
-
-        {uploadedImages.length > 0 && (
-          <div className="grid grid-cols-5 gap-2 mb-2">
-            {uploadedImages.map((img) => (
-              <div
-                key={img.url}
-                className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                  primaryImageUrl === img.url
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-border hover:border-primary/40"
-                }`}
-                onClick={() => setPrimaryImageUrl(img.url)}
-              >
-                <img
-                  src={img.url}
-                  alt=""
-                  className="w-full aspect-square object-cover"
-                />
-                {primaryImageUrl === img.url && (
-                  <div className="absolute top-1 left-1 rounded-full bg-primary p-0.5">
-                    <Star className="h-2.5 w-2.5 text-white fill-white" />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeImage(img.url);
-                  }}
-                  className="absolute top-1 right-1 rounded-full bg-black/60 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-                >
-                  <Trash2 className="h-2.5 w-2.5 text-white" />
-                </button>
-                {primaryImageUrl !== img.url && (
-                  <div className="absolute inset-x-0 bottom-0 bg-black/50 text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[8px] text-white">设为主图</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {uploadedImages.length < 5 && (
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
-              dragOver
-                ? "border-primary bg-primary/10"
-                : "border-border bg-card/60 hover:border-primary/40"
-            } ${uploading ? "pointer-events-none opacity-50" : ""}`}
-          >
-            <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={(e) => e.target.files && uploadFiles(e.target.files)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              disabled={uploading || loading}
-            />
-            {uploading ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-primary">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                上传中...
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                <ImagePlus className="mx-auto h-5 w-5 mb-1 text-muted-foreground/70" />
-                拖拽或点击上传产品图 / Logo
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5">JPEG, PNG, WebP · 每张 ≤ 10MB</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {uploadedImages.length > 0 && (
-          <p className="text-[10px] text-muted-foreground mt-1.5">
-            <Star className="inline h-2.5 w-2.5 text-primary fill-primary -mt-0.5 mr-0.5" />
-            带紫框的为主图，将传入 Seedance 做图生视频。点击切换主图。
-          </p>
-        )}
       </div>
 
       {/* Channel picker - 让用户在创建时就明确接下来走哪条路 */}
@@ -563,6 +317,116 @@ export default function NewProjectPage() {
         </p>
       </div>
 
+      {/* Brand / product / scene description - 可选自由文本 */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
+          <Info className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          品牌 / 产品 / 场景描述（可选）
+        </label>
+        <textarea
+          rows={3}
+          value={brandDescription}
+          onChange={(e) => setBrandDescription(e.target.value)}
+          disabled={loading}
+          placeholder="例：我的品牌叫 CozyNest，主打羊羔绒毛毯，特点是超柔触感、双面亲肤、冬天保暖。预算档位：¥199–299。/ 或者：我在做自媒体副业，这条视频想走治愈系居家风格。"
+          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all resize-none disabled:opacity-50"
+        />
+        <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">
+          空着也行，留白时 AI 会按关键词自由发挥。填上之后，脚本和视频会围绕你描述的信息展开。
+        </p>
+      </div>
+
+      {/* Reference image upload */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
+          <ImagePlus className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          参考图 / Logo / 产品图（可选，最多 5 张）
+        </label>
+
+        {uploadedImages.length > 0 && (
+          <div className="grid grid-cols-5 gap-2 mb-2">
+            {uploadedImages.map((img) => (
+              <div
+                key={img.url}
+                className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                  primaryImageUrl === img.url
+                    ? "border-primary ring-2 ring-primary/20"
+                    : "border-border hover:border-primary/40"
+                }`}
+                onClick={() => setPrimaryImageUrl(img.url)}
+              >
+                <img
+                  src={img.url}
+                  alt=""
+                  className="w-full aspect-square object-cover"
+                />
+                {primaryImageUrl === img.url && (
+                  <div className="absolute top-1 left-1 rounded-full bg-primary p-0.5">
+                    <Star className="h-2.5 w-2.5 text-white fill-white" />
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeImage(img.url);
+                  }}
+                  className="absolute top-1 right-1 rounded-full bg-black/60 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
+                >
+                  <Trash2 className="h-2.5 w-2.5 text-white" />
+                </button>
+                {primaryImageUrl !== img.url && (
+                  <div className="absolute inset-x-0 bottom-0 bg-black/50 text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[8px] text-white">设为主图</span>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {uploadedImages.length < 5 && (
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
+              dragOver
+                ? "border-primary bg-primary/10"
+                : "border-border bg-card/60 hover:border-primary/40"
+            } ${uploading ? "pointer-events-none opacity-50" : ""}`}
+          >
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              multiple
+              onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              disabled={uploading || loading}
+            />
+            {uploading ? (
+              <div className="flex items-center justify-center gap-2 text-sm text-primary">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                上传中...
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                <ImagePlus className="mx-auto h-5 w-5 mb-1 text-muted-foreground/70" />
+                拖拽或点击上传参考图
+                <p className="text-[10px] text-muted-foreground/70 mt-0.5">JPEG, PNG, WebP · 每张 ≤ 10MB</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {uploadedImages.length > 0 && (
+          <p className="text-[10px] text-muted-foreground mt-1.5">
+            <Star className="inline h-2.5 w-2.5 text-primary fill-primary -mt-0.5 mr-0.5" />
+            带框的是主图，将传入 Seedance 做图生视频；并且所有上传图都会被 GPT-4o Vision 分析，自动注入脚本和视频提示词。
+          </p>
+        )}
+      </div>
+
       {/* Keyword Input */}
       <form onSubmit={handleSubmit}>
         <label className="block text-xs font-medium text-muted-foreground mb-2">
@@ -572,15 +436,11 @@ export default function NewProjectPage() {
         <div className="rounded-2xl border border-border bg-card p-1 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
           <input
             type="text"
-            placeholder={
-              selectedProduct
-                ? `为「${selectedProduct.color}」想一个创意角度...`
-                : "描述你想创作的视频方向..."
-            }
+            placeholder="描述你想创作的视频方向，如『冬日居家好物』『宠物日常』..."
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             disabled={loading}
-            autoFocus={!products.length}
+            autoFocus
             className="w-full bg-transparent px-4 py-4 text-base text-white placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
           />
           <div className="flex items-center justify-between px-3 pb-2">

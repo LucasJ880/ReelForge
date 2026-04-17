@@ -19,7 +19,7 @@ function LegalArticle() {
         <p>When you use Aivora, we may collect the following information:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li><strong className="text-foreground">Account Data:</strong> Email address and name you provide during registration.</li>
-          <li><strong className="text-foreground">Content Data:</strong> Keywords and product images you input, and AI-generated content (scripts, captions, video prompts, videos) are stored to provide the Service.</li>
+          <li><strong className="text-foreground">Content Data:</strong> Keywords, brand/product descriptions and reference images you input, and AI-generated content (scripts, captions, video prompts, videos) are stored to provide the Service.</li>
         </ul>
       </Section>
 

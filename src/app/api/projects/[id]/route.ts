@@ -14,7 +14,6 @@ export async function GET(
     include: {
       contentPlan: true,
       videoJob: true,
-      product: true,
     },
   });
 
@@ -25,7 +24,7 @@ export async function GET(
   return NextResponse.json(project);
 }
 
-const ALLOWED_PATCH_FIELDS = new Set(["keyword"]);
+const ALLOWED_PATCH_FIELDS = new Set(["keyword", "brandDescription"]);
 
 export async function PATCH(
   request: NextRequest,

@@ -59,6 +59,7 @@ export async function submitVideoJob(
 
   const jobData = {
     provider: "jimeng",
+    channel: "pro",
     providerJobId: jobId,
     providerJobId2: null as string | null,
     status: VideoJobStatus.PROCESSING,

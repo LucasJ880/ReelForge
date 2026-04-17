@@ -118,6 +118,7 @@ model VideoJob {
   id               String         @id @default(cuid())
   projectId        String         @unique
   provider         String         @default("jimeng")
+  channel          String         @default("pro") // "pro" (Seedance) | "free" (Pexels+FFmpeg)
   providerJobId    String?
   providerJobId2   String?
   status           VideoJobStatus @default(PENDING)
@@ -130,6 +131,11 @@ model VideoJob {
   ratio            String         @default("9:16")
   segment          Int?
   lastFrameUrl     String?
+  /// 多变体: [{ jobId, videoUrl, thumbnailUrl, status, selected? }]
+  variants         Json?
+  selectedVariant  Int            @default(0)
+  /// Free 通道的素材 manifest: { scenes, audio, subtitles, bgm }
+  manifest         Json?
   errorMessage     String?
   retryCount       Int            @default(0)
   createdAt        DateTime       @default(now())

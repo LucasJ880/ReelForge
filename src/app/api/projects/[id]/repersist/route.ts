@@ -24,7 +24,11 @@ export async function POST(
   }
 
   const vj = project.videoJob;
-  const updates: Partial<typeof vj> = {};
+  const updates: {
+    videoUrl?: string;
+    videoUrl2?: string;
+    thumbnailUrl?: string;
+  } = {};
   const errors: string[] = [];
 
   if (vj.videoUrl) {

@@ -81,6 +81,34 @@ export function ProjectDetailClient({
     finally { setGenerating(false); }
   }
 
+  async function handleAutoGenerate() {
+    if (generating || videoSubmitting) return;
+    setGenerating(true);
+    setVideoSubmitting(true);
+    try {
+      toast.info("一键生成启动：正在生成文案 + 视频");
+      const res = await fetch(`/api/projects/${project.id}/auto-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          channel: "pro",
+          duration: selectedDuration,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "一键生成失败");
+      }
+      toast.success("已提交一键生成，正在合成视频...");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "一键生成失败");
+    } finally {
+      setGenerating(false);
+      setVideoSubmitting(false);
+    }
+  }
+
   async function handleVideoGenerate() {
     if (videoSubmitting) return;
     setVideoSubmitting(true);
@@ -358,6 +386,7 @@ export function ProjectDetailClient({
               confirmDelete={confirmDelete}
               selectedDuration={selectedDuration}
               onGenerate={handleGenerate}
+              onAutoGenerate={handleAutoGenerate}
               onVideoGenerate={handleVideoGenerate}
               onDelete={handleDelete}
               onConfirmDelete={setConfirmDelete}
@@ -709,27 +738,38 @@ function ActionButtons({
   project,
   generating, videoSubmitting, deleting,
   confirmDelete, selectedDuration,
-  onGenerate, onVideoGenerate, onDelete,
+  onGenerate, onAutoGenerate, onVideoGenerate, onDelete,
   onConfirmDelete, onDurationChange,
 }: {
   project: ProjectWithRelations;
   generating: boolean; videoSubmitting: boolean; deleting: boolean;
   confirmDelete: boolean; selectedDuration: number;
-  onGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
+  onGenerate: () => void; onAutoGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
   onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
-  const primary = `${btn} bg-teal-600 text-white hover:bg-teal-700`;
+  const primary = `${btn} bg-primary text-primary-foreground hover:opacity-90`;
   const secondary = `${btn} bg-zinc-800/50 text-zinc-100 hover:bg-white/5`;
   const ghost = `${btn} text-zinc-400 hover:text-zinc-300 hover:bg-white/5`;
-  const destructive = `${btn} bg-red-600 text-white hover:bg-red-700`;
+  const destructive = `${btn} bg-destructive text-white hover:opacity-90`;
 
   return (
     <>
-      {(project.status === "DRAFT" || project.status === "CONTENT_GENERATED") && (
-        <button className={primary} onClick={onGenerate} disabled={generating}>
+      {project.status === "DRAFT" && (
+        <>
+          <button className={primary} onClick={onAutoGenerate} disabled={generating || videoSubmitting}>
+            {(generating || videoSubmitting) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+            一键生成
+          </button>
+          <button className={ghost} onClick={onGenerate} disabled={generating}>
+            仅生成文案
+          </button>
+        </>
+      )}
+      {project.status === "CONTENT_GENERATED" && (
+        <button className={ghost} onClick={onGenerate} disabled={generating}>
           {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-          {project.status === "DRAFT" ? "生成内容" : "重新生成"}
+          重新生成文案
         </button>
       )}
       {(project.status === "CONTENT_GENERATED" || project.status === "VIDEO_FAILED") && (

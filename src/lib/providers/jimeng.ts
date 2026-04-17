@@ -36,8 +36,15 @@ const mockJobs = new Map<
 
 const MOCK_PROCESSING_TIME_MS = 15_000;
 
+/**
+ * Mock 模式触发条件（任一即启用 Mock）：
+ *   1. 未配置 ARK_API_KEY
+ *   2. VIDEO_ENGINE_MOCK=1 / true（即使有 API key 也走 Mock；用于预览/测试环境避免扣费）
+ */
 function isMockMode(): boolean {
-  return !process.env.ARK_API_KEY;
+  if (!process.env.ARK_API_KEY) return true;
+  const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
+  return flag === "1" || flag === "true" || flag === "yes";
 }
 
 export async function submitVideoGeneration(

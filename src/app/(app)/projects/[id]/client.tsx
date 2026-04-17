@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { StatusStepper } from "@/components/project/status-stepper";
 import { StatusBadge } from "@/components/project/status-badge";
+import { FreeChannelPanel } from "@/components/project/free-channel-panel";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ProjectWithRelations, ContentAngle } from "@/types";
@@ -103,6 +104,31 @@ export function ProjectDetailClient({
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "一键生成失败");
+    } finally {
+      setGenerating(false);
+      setVideoSubmitting(false);
+    }
+  }
+
+  async function handleFreeGenerate() {
+    if (generating || videoSubmitting) return;
+    setGenerating(true);
+    setVideoSubmitting(true);
+    try {
+      toast.info("Free 通道：正在准备素材（Pexels + Edge TTS）...");
+      const res = await fetch(`/api/projects/${project.id}/free-prepare`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Free 通道准备失败");
+      }
+      toast.success("素材就绪，即将在浏览器里合成视频");
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Free 通道失败");
     } finally {
       setGenerating(false);
       setVideoSubmitting(false);
@@ -387,6 +413,7 @@ export function ProjectDetailClient({
               selectedDuration={selectedDuration}
               onGenerate={handleGenerate}
               onAutoGenerate={handleAutoGenerate}
+              onFreeGenerate={handleFreeGenerate}
               onVideoGenerate={handleVideoGenerate}
               onDelete={handleDelete}
               onConfirmDelete={setConfirmDelete}
@@ -422,8 +449,17 @@ export function ProjectDetailClient({
         </div>
       )}
 
-      {/* Video generating */}
-      {isVideoGenerating && (
+      {vj?.channel === "free" && vj.manifest ? (
+        <FreeChannelPanel
+          projectId={project.id}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          manifest={vj.manifest as any}
+          currentVideoUrl={vj.status === "COMPLETED" ? vj.videoUrl : null}
+        />
+      ) : null}
+
+      {/* Pro channel generating */}
+      {isVideoGenerating && vj?.channel !== "free" && (
         <div className="rounded-xl bg-amber-500/10 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
@@ -738,13 +774,13 @@ function ActionButtons({
   project,
   generating, videoSubmitting, deleting,
   confirmDelete, selectedDuration,
-  onGenerate, onAutoGenerate, onVideoGenerate, onDelete,
+  onGenerate, onAutoGenerate, onFreeGenerate, onVideoGenerate, onDelete,
   onConfirmDelete, onDurationChange,
 }: {
   project: ProjectWithRelations;
   generating: boolean; videoSubmitting: boolean; deleting: boolean;
   confirmDelete: boolean; selectedDuration: number;
-  onGenerate: () => void; onAutoGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
+  onGenerate: () => void; onAutoGenerate: () => void; onFreeGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
   onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
@@ -759,7 +795,11 @@ function ActionButtons({
         <>
           <button className={primary} onClick={onAutoGenerate} disabled={generating || videoSubmitting}>
             {(generating || videoSubmitting) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            一键生成
+            一键生成 · Pro
+          </button>
+          <button className={secondary} onClick={onFreeGenerate} disabled={generating || videoSubmitting}>
+            {(generating || videoSubmitting) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
+            免费生成 · Free
           </button>
           <button className={ghost} onClick={onGenerate} disabled={generating}>
             仅生成文案

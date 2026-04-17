@@ -78,6 +78,10 @@ export interface ProjectWithRelations {
     retryCount: number;
     createdAt: Date;
     completedAt: Date | null;
+    channel: string;
+    variants: unknown;
+    selectedVariant: number;
+    manifest: unknown;
   } | null;
 }
 

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const body = await request.json();
-  const { keyword, brandDescription, imageUrls, primaryImageUrl } = body;
+  const { keyword, brandDescription, imageUrls, primaryImageUrl, tone, language } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
@@ -86,6 +86,9 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  const VALID_TONES = ["auto", "promo", "narrative", "educational", "vlog", "news", "humor", "cinematic", "testimonial"];
+  const VALID_LANGUAGES = ["auto", "en", "zh", "ja", "ko", "es", "fr", "de"];
 
   const validImageUrls = Array.isArray(imageUrls)
     ? imageUrls.filter((u: unknown) => typeof u === "string" && u.startsWith("http"))
@@ -98,6 +101,8 @@ export async function POST(request: NextRequest) {
         typeof brandDescription === "string" && brandDescription.trim()
           ? brandDescription.trim()
           : null,
+      tone: typeof tone === "string" && VALID_TONES.includes(tone) ? tone : "auto",
+      language: typeof language === "string" && VALID_LANGUAGES.includes(language) ? language : "auto",
       imageUrls: validImageUrls,
       primaryImageUrl: typeof primaryImageUrl === "string" ? primaryImageUrl : validImageUrls[0] || null,
     },

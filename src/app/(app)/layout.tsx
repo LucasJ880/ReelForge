@@ -7,9 +7,9 @@ export default function AppLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-full bg-[#0a0a10]">
+    <div className="flex h-full bg-sidebar">
       <AppSidebar />
-      <main className="flex-1 overflow-y-auto bg-[#0c0c14] flex flex-col min-h-screen">
+      <main className="flex-1 overflow-y-auto bg-background flex flex-col min-h-screen">
         <div className="mx-auto max-w-6xl px-6 lg:px-10 py-8 flex-1 w-full">
           {children}
         </div>

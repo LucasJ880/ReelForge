@@ -54,35 +54,40 @@
  * hairline neutral borders, a single cool accent.
  */
 :root {
-  /* Neutral depth — 不再死黑；提亮整体底色，层级拉开 */
-  --background: oklch(0.16 0.002 260);     /* zinc-950 级别，不再纯黑 */
-  --foreground: oklch(0.97 0 0);           /* near white */
-  --card: oklch(0.20 0.003 260);           /* surface 1，明显高于 bg */
-  --card-foreground: oklch(0.97 0 0);
-  --popover: oklch(0.22 0.003 260);
-  --popover-foreground: oklch(0.97 0 0);
-  --secondary: oklch(0.24 0.004 260);      /* surface 2 */
-  --secondary-foreground: oklch(0.94 0 0);
-  --muted: oklch(0.24 0.004 260);
-  --muted-foreground: oklch(0.72 0.005 260); /* 更亮的辅助文字 */
-  --accent: oklch(0.28 0.005 260);         /* hover surface，够显 */
-  --accent-foreground: oklch(0.97 0 0);
-  --border: oklch(1 0 0 / 14%);            /* hairline 提清 */
+  /* Neutral depth —— 对标 zinc 色谱，肉眼明显区别于纯黑
+   * bg     ~ zinc-900 视感
+   * card   ~ zinc-850
+   * sec    ~ zinc-800
+   * accent ~ zinc-750
+   */
+  --background: oklch(0.205 0.003 260);    /* 底色：中深灰，明显不是黑 */
+  --foreground: oklch(0.98 0 0);
+  --card: oklch(0.245 0.004 260);          /* 卡片层：比底色清楚高一档 */
+  --card-foreground: oklch(0.98 0 0);
+  --popover: oklch(0.265 0.004 260);
+  --popover-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.285 0.005 260);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.285 0.005 260);
+  --muted-foreground: oklch(0.74 0.005 260);
+  --accent: oklch(0.325 0.006 260);        /* hover 足够跳 */
+  --accent-foreground: oklch(0.98 0 0);
+  --border: oklch(1 0 0 / 12%);
   --input: oklch(1 0 0 / 16%);
   --destructive: oklch(0.68 0.22 24);
 
-  /* Primary — 更亮的薄荷/翡翠绿，明显从背景里跳出来 */
-  --primary: oklch(0.82 0.17 172);         /* emerald-300/teal-300 感 */
-  --primary-foreground: oklch(0.17 0.02 170); /* 深底色字，最高对比度 */
+  /* Primary —— 薄荷/翡翠绿，与中灰底色高对比 */
+  --primary: oklch(0.82 0.17 172);
+  --primary-foreground: oklch(0.17 0.02 170);
   --ring: oklch(0.82 0.17 172);
 
-  /* Sidebar 比主背景稍深，但不极端 */
-  --sidebar: oklch(0.13 0.002 260);
-  --sidebar-foreground: oklch(0.78 0.003 260);
+  /* Sidebar 比主背景深一档，形成明显分区 */
+  --sidebar: oklch(0.165 0.003 260);
+  --sidebar-foreground: oklch(0.80 0.003 260);
   --sidebar-primary: oklch(0.82 0.17 172);
   --sidebar-primary-foreground: oklch(0.17 0.02 170);
-  --sidebar-accent: oklch(0.22 0.004 260);
-  --sidebar-accent-foreground: oklch(0.97 0 0);
+  --sidebar-accent: oklch(0.265 0.005 260);
+  --sidebar-accent-foreground: oklch(0.98 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.82 0.17 172);
 

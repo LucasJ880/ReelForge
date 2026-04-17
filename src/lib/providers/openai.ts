@@ -14,11 +14,41 @@ export interface BrandContext {
   description: string;
 }
 
+/**
+ * 语气 —— 用户可显式选择创作调性。
+ * "auto" = 让 AI 根据 subject 自己判断最合适的语气
+ */
+export type ContentTone =
+  | "auto"
+  | "promo"       // 带货 / 产品广告
+  | "narrative"   // 故事叙述
+  | "educational" // 教程 / 科普
+  | "vlog"        // Vlog / 日常记录
+  | "news"        // 资讯 / 新闻口播
+  | "humor"       // 搞笑 / 段子
+  | "cinematic"   // 电影感 / 氛围片
+  | "testimonial";// 测评 / 开箱
+
+/**
+ * 语言 —— 脚本和视频中 voiceover 使用的语言。
+ */
+export type ContentLanguage =
+  | "auto"
+  | "en"  // English
+  | "zh"  // 中文
+  | "ja"  // 日本語
+  | "ko"  // 한국어
+  | "es"  // Español
+  | "fr"  // Français
+  | "de"; // Deutsch
+
 export interface ContentGenerationInput {
   keyword: string;
   brandContext?: BrandContext;
   referenceVisuals?: ReferenceVisualAnalysis;
   targetDuration?: number;
+  tone?: ContentTone;
+  language?: ContentLanguage;
 }
 
 export interface ContentGenerationResult {
@@ -37,65 +67,80 @@ export interface ContentGenerationResult {
   } | null;
 }
 
-const CONTENT_SYSTEM_PROMPT_BASE = `You are an expert short-form video content strategist specializing in viral content for TikTok / Reels / Shorts. Your task is to generate a complete short video content plan optimized for high engagement, completion rate, and virality.
+const TONE_INSTRUCTIONS: Record<Exclude<ContentTone, "auto">, string> = {
+  promo:
+    "Tone: PROMOTIONAL / PRODUCT AD. Energetic, persuasive, selling-point driven. Hooks and CTAs are welcome. Fast cuts, text overlays with key features, urgent calls to action.",
+  narrative:
+    "Tone: NARRATIVE / STORYTELLING. A short emotional or thought-provoking story. Quiet opening is fine; build tension and end on a meaningful beat. Speak like a narrator, NOT a salesperson.",
+  educational:
+    "Tone: EDUCATIONAL / EXPLAINER. Clear, informative, confident. Lead with a useful insight or a question. Explain like a teacher — NO sales language, NO hype words. Facts and clarity matter more than energy.",
+  vlog:
+    "Tone: VLOG / CASUAL LIFESTYLE. First-person, conversational, natural pacing. Feels like you're sharing something with a friend. No marketing energy.",
+  news:
+    "Tone: NEWS / INFORMATIONAL. Neutral, factual, professional voiceover. Straightforward reporting structure. No slang, no sales pitch, no hype words.",
+  humor:
+    "Tone: HUMOROUS / COMEDIC. Witty, playful, punchline-driven. Timing matters. Can be absurdist, self-aware, or use relatable irony. Avoid heavy-handed selling.",
+  cinematic:
+    "Tone: CINEMATIC / ATMOSPHERIC. Poetic, mood-first, visual-forward. Slow builds, ambient sound design, sparse or contemplative narration are welcome. Prioritize atmosphere over information density.",
+  testimonial:
+    "Tone: TESTIMONIAL / HONEST REVIEW. First-person evaluative voice. Mix pros and cons, be authentic. Credibility > excitement.",
+};
 
-You MUST output strict JSON with these fields:
-- script: English voiceover script for a 15-second short video. Energetic, fast-paced, and hook-driven. Open with a bold hook ("Stop scrolling!", "You NEED to see this!", "Wait until the end!"), pack in rapid-fire value or a compelling narrative, and end with an urgent CTA ("Follow for more!", "Save this!", "Link in bio!"). 60-100 words. Short punchy sentences. Power words allowed: "insane", "obsessed", "game-changer", "you won't believe".
-- videoPrompt: A high-energy, fast-paced English video prompt (200-350 words). The video should feel like a viral short — whether it's product, lifestyle, educational, or narrative. Include the following:
+const LANGUAGE_NAMES: Record<Exclude<ContentLanguage, "auto">, string> = {
+  en: "English",
+  zh: "Simplified Chinese (简体中文)",
+  ja: "Japanese (日本語)",
+  ko: "Korean (한국어)",
+  es: "Spanish (Español)",
+  fr: "French (Français)",
+  de: "German (Deutsch)",
+};
 
-  AUDIO DIRECTION: Specify energetic English voiceover style matching the script's tone and pace. Include background music direction (upbeat, trending beats, bass drops on key beats).
+const CONTENT_SYSTEM_PROMPT_BASE = `You are a short-form video scriptwriter and director for platforms like TikTok, Instagram Reels, and YouTube Shorts. Your job is to produce a complete content plan for ONE short video.
 
-  HOOK (first 2-3 seconds): Immediate visual impact — dramatic reveal, visual shock, curiosity gap, or bold text overlay. NO slow builds. Grab attention INSTANTLY.
+You are neutral and adaptive — the TONE, STYLE, and PACING of the video should be determined by the subject, the user's creative keyword, and any explicit tone instruction provided. You are NOT a marketing copywriter by default. Do NOT inject sales language, hype words, or urgent CTAs unless the subject or tone clearly calls for it.
 
-  SHOT SEQUENCE (5-8 rapid shots, average 1.5-2 seconds each):
-  - Use FAST cuts, quick transitions
-  - Mix wide lifestyle shots, close-ups, hands-on demos, dramatic reveals, before/after
-  - Camera movements: quick zooms, snap transitions, whip pans, dynamic angles
-  - Each shot conveys ONE idea in under 2 seconds
+Output STRICT JSON with these fields:
 
-  ENERGY & PACING: Fast, punchy, rhythmic. Cut on the beat. No lingering shots. Build toward the CTA.
+- script: The spoken voiceover / on-screen narration for the video. Natural, flowing, and appropriate to the subject. No markdown, no stage directions (no "voiceover:", no "narrator:"), no meta commentary. Just the words to be spoken. Length should match the target duration at a normal speaking pace (roughly 2.5 words per second). DO NOT start with filler like "welcome to this video" or "in this video we will".
 
-  VISUAL STYLE: High contrast, vibrant, clean. Mix polished shots with real-life scenes. Use text overlays for key points. Modern short-form aesthetic.
+- videoPrompt: A detailed English director's prompt for an AI video generator (200-350 words). Describe the SHOT SEQUENCE, VISUAL STYLE, CAMERA MOVEMENT, LIGHTING, and AUDIO DIRECTION. Match the tone of the subject — a cinematic landscape short gets long lingering shots and ambient music; a comedy bit gets snappy cuts; an educational explainer gets clean compositions with text overlays; a product ad gets rapid cuts and demo shots. Adapt. DO NOT default to "fast cuts + energetic voiceover + bass drops" unless the tone calls for it.
 
-  ENDING: Urgent CTA, payoff moment, or satisfying compilation.
+  AUDIO DIRECTION: Always specify (a) voiceover gender/tone matching the script's mood, (b) background music direction matching the video's mood — this can be ambient, cinematic, lo-fi, upbeat, dramatic, minimal, or none at all.
 
-  IMPORTANT: Seedance 2.0 supports native audio generation. Your videoPrompt MUST include audio direction: specify "energetic male/female English voiceover" narrating the script, and "upbeat trending background music with bass drops on transitions".
+  IMPORTANT: Seedance 2.0 supports native audio generation; the videoPrompt MUST include an explicit AUDIO DIRECTION section so the generated clip has synchronized sound.
 
-- caption: English caption (15-40 words) with emotional hook and CTA. Scroll-stopping. Urgency/FOMO welcome.
-- hashtags: 6-10 English hashtags (array). Mix viral tags (#fyp #viral #trending) with niche tags relevant to the content.
-- contentAngles: 2-3 alternative content angle suggestions (array, each with "angle" and "reason" fields, in English)
-- category: Content category in English (e.g. "Product Ad", "Home & Living", "Lifestyle", "Pets", "Fashion", "Wellness", "Education", "Storytelling")
+- caption: A platform caption (15-40 words) in the SAME language as the script. Style matches the tone — informative for educational, punchy for promo, reflective for narrative, etc.
+
+- hashtags: 6-10 relevant hashtags (array of strings). Mix broad discovery tags with niche topic tags. Do not force #fyp #viral style tags unless appropriate to the content.
+
+- contentAngles: 2-3 alternative angle suggestions (array, each with "angle" and "reason" fields), in English.
+
+- category: A short English content category label (e.g. "Education", "Storytelling", "Product Ad", "Vlog", "Lifestyle", "Travel", "Food", "Tech Review", "Pets", "Wellness", "News", "Comedy", "Cinematic").
 
 Requirements:
-1. Script must be optimized for a 15-second short video
-2. The first 2-3 seconds MUST hook the viewer — curiosity gaps, visual shock, relatable pain points, or transformation teases
-3. Content must trigger curiosity, desire, or emotional response
-4. videoPrompt is THE MOST IMPORTANT field — it directly controls video quality. Be extremely specific about shot sequence, camera movement, pacing, and audio. Think like a director shooting a 15-second commercial.
-5. Study what makes shorts go viral: fast cuts, energetic voiceover, dramatic reveals, before/after, rapid-fire points, beat-synced transitions, text overlay callouts, urgent CTAs.`;
+1. The first 2-3 seconds should be compelling for the subject — this does NOT always mean shouting a hook; a striking visual, intriguing line, or atmospheric opening all count.
+2. Adapt the density, pacing, and language to the subject. A philosophical short and a 15s product ad should NOT read the same.
+3. videoPrompt is the most important field — it directly drives video quality. Be specific about composition and motion, but faithful to the chosen tone.
+4. Never invent facts or claims that are not implied by the user input.
+5. Output JSON only. No markdown fences, no commentary outside the JSON.`;
 
 const BRAND_CONTEXT_ADDON = `
 
-[BRAND / PRODUCT CONTEXT — user-provided description]
-The user provided free-form text describing their brand, product, or scene context. Use this information to:
-- Ensure the script and videoPrompt revolve around what they're actually promoting or showcasing
-- Weave the key attributes described by the user into the visual direction naturally
-- Make the video feel tailored to their specific brand/product/scene, not generic
-
-Treat the description as the authoritative source of truth. Do NOT invent attributes that are not implied by either the description or the creative keyword.`;
+[BRAND / PRODUCT / SCENE CONTEXT — user-provided free-text description]
+The user provided background text describing their brand, product, scene, or subject matter. Treat this as the authoritative source of truth about what's being depicted. Weave its key attributes into the script and videoPrompt naturally. Do NOT invent attributes beyond what's stated or clearly implied by it and the creative keyword.`;
 
 const EXTENDED_DURATION_ADDON = `
 
 [EXTENDED VIDEO — TWO-PART GENERATION]
-The user wants a 30-second video. Since the AI video generator can only produce 15 seconds at a time, you MUST output TWO separate videoPrompts that form one continuous narrative:
+The user wants a video longer than 15 seconds. Since the AI video generator produces up to 15s per clip, output TWO videoPrompts that form ONE continuous piece:
 
-- videoPrompt: Part 1 (first 15 seconds) — the HOOK + initial showcase + rapid selling points. End on a visually distinctive moment that can serve as a transition point.
-- videoPromptPart2: Part 2 (seconds 15-30) — continuation with lifestyle demos, before/after, social proof, and the big CTA finale. Start by describing "Continue from the previous scene..." to ensure visual continuity.
+- videoPrompt: Part 1 (first 15 seconds) — the opening + initial development. End on a visually distinctive moment that serves as a natural transition.
+- videoPromptPart2: Part 2 (seconds 15 onward) — the continuation and resolution. Start with "Continue from the previous scene..." to ensure visual continuity.
 
-Both parts MUST share the same audio direction, visual style, and energy level. The 30-second ad should feel like ONE seamless video.
+Both parts MUST share the same tone, visual style, lighting, color palette, and audio direction — the final video should feel like ONE seamless piece. Adjust the script length to match the target duration at ~2.5 words/sec.
 
-Script should be 120-200 words (for 30 seconds of voiceover).
-
-IMPORTANT: Both videoPrompt and videoPromptPart2 must each be 200-350 words and include their own AUDIO DIRECTION section.`;
+Both videoPrompt and videoPromptPart2 must each be 200-350 words and include their own AUDIO DIRECTION section.`;
 
 const REFERENCE_VISUALS_ADDON = `
 
@@ -108,8 +153,46 @@ You have been given an AI vision analysis of the user's uploaded reference image
 
 The videoPrompt MUST feel like it was written by someone who has SEEN the actual references.`;
 
-function buildSystemPrompt(hasBrand: boolean, isExtended: boolean, hasVisuals: boolean): string {
+function buildToneAddon(tone: ContentTone | undefined): string {
+  if (!tone || tone === "auto") {
+    return `
+
+[TONE]
+No explicit tone was chosen by the user. Infer the most appropriate tone from the subject and keyword. If the subject is clearly a product, lean promo/testimonial. If it's a piece of information, lean educational/news. If it's a story, lean narrative/cinematic. If it's a personal moment, lean vlog. Pick ONE tone and commit to it consistently across script, videoPrompt, caption.`;
+  }
+  return `
+
+[TONE — REQUIRED]
+${TONE_INSTRUCTIONS[tone]}
+Commit to this tone consistently across script, videoPrompt, caption, and hashtags.`;
+}
+
+function buildLanguageAddon(language: ContentLanguage | undefined): string {
+  if (!language || language === "auto") {
+    return `
+
+[LANGUAGE]
+No explicit output language was chosen. Infer language from the keyword / brand context (if the user writes in Chinese, output script/caption in Chinese; if in English, output in English; and so on). The videoPrompt itself must ALWAYS be written in English (it's a director prompt for the video model), but its AUDIO DIRECTION must specify voiceover in the inferred output language.`;
+  }
+  const name = LANGUAGE_NAMES[language];
+  return `
+
+[LANGUAGE — REQUIRED]
+The script and caption MUST be written in ${name}.
+The videoPrompt itself MUST be written in English (it's a director prompt for the video model), but its AUDIO DIRECTION section MUST specify the voiceover in ${name}.
+Hashtags may stay in English for discoverability unless ${name} hashtags are clearly more natural for the subject.`;
+}
+
+function buildSystemPrompt(
+  hasBrand: boolean,
+  isExtended: boolean,
+  hasVisuals: boolean,
+  tone: ContentTone | undefined,
+  language: ContentLanguage | undefined,
+): string {
   let prompt = CONTENT_SYSTEM_PROMPT_BASE;
+  prompt += buildToneAddon(tone);
+  prompt += buildLanguageAddon(language);
   if (hasBrand) prompt += BRAND_CONTEXT_ADDON;
   if (hasVisuals) prompt += REFERENCE_VISUALS_ADDON;
   if (isExtended) prompt += EXTENDED_DURATION_ADDON;
@@ -157,6 +240,8 @@ export async function generateContent(
           !!input.brandContext?.description?.trim(),
           isExtended,
           !!input.referenceVisuals,
+          input.tone,
+          input.language,
         ),
       },
       { role: "user", content: buildUserMessage(input) },
@@ -226,7 +311,7 @@ export interface ReferenceVisualAnalysis {
   visualHighlights: string;
 }
 
-const REFERENCE_VISION_PROMPT = `You are a visual reference analyst for short-video ad creation. Analyze the provided reference image(s) — which may include product shots, scene references, brand visuals, or lifestyle images — and extract visual details that will help an AI video generator create compelling content.
+const REFERENCE_VISION_PROMPT = `You are a visual reference analyst for short video creation (any genre — product, lifestyle, travel, education, narrative, etc.). Analyze the provided reference image(s) and extract visual details that will help an AI video generator create compelling content. Stay neutral about genre; describe what you see.
 
 Output STRICT JSON with these fields:
 - productAppearance: Detailed physical description of the main subject (shape, size impression, texture, design elements) in English, 50-100 words. If there's no clear product, describe the dominant visual element or scene.

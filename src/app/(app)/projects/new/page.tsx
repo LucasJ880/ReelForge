@@ -14,12 +14,50 @@ import {
   Gift,
   FileText,
   Info,
+  Mic,
+  Languages,
 } from "lucide-react";
 import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/use-role";
 import { cn } from "@/lib/utils";
 
 type Channel = "pro" | "free" | "content-only";
+
+type Tone =
+  | "auto"
+  | "promo"
+  | "narrative"
+  | "educational"
+  | "vlog"
+  | "news"
+  | "humor"
+  | "cinematic"
+  | "testimonial";
+
+type Language = "auto" | "en" | "zh" | "ja" | "ko" | "es" | "fr" | "de";
+
+const TONE_OPTIONS: { id: Tone; label: string; hint: string }[] = [
+  { id: "auto", label: "AI 自选", hint: "让 AI 根据关键词挑最合适的语气" },
+  { id: "promo", label: "带货广告", hint: "卖点驱动、快节奏、带 CTA" },
+  { id: "narrative", label: "故事叙述", hint: "情感线、有起承转合" },
+  { id: "educational", label: "教程科普", hint: "信息清晰、老师口吻、不煽情" },
+  { id: "vlog", label: "Vlog 日常", hint: "第一人称、生活感、不推销" },
+  { id: "news", label: "新闻口播", hint: "中立、专业、事实陈述" },
+  { id: "humor", label: "搞笑段子", hint: "俏皮、包袱、自嘲或反差" },
+  { id: "cinematic", label: "电影氛围", hint: "诗意、氛围优先、慢节奏" },
+  { id: "testimonial", label: "测评开箱", hint: "第一人称评测、讲优缺点" },
+];
+
+const LANGUAGE_OPTIONS: { id: Language; label: string }[] = [
+  { id: "auto", label: "AI 自选" },
+  { id: "zh", label: "中文" },
+  { id: "en", label: "English" },
+  { id: "ja", label: "日本語" },
+  { id: "ko", label: "한국어" },
+  { id: "es", label: "Español" },
+  { id: "fr", label: "Français" },
+  { id: "de", label: "Deutsch" },
+];
 
 interface ChannelOption {
   id: Channel;
@@ -81,6 +119,8 @@ export default function NewProjectPage() {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"input" | "creating" | "generating">("input");
   const [channel, setChannel] = useState<Channel>("pro");
+  const [tone, setTone] = useState<Tone>("auto");
+  const [language, setLanguage] = useState<Language>("auto");
 
   const [uploadedImages, setUploadedImages] = useState<{ url: string; filename: string }[]>([]);
   const [primaryImageUrl, setPrimaryImageUrl] = useState<string | null>(null);
@@ -156,6 +196,8 @@ export default function NewProjectPage() {
         body: JSON.stringify({
           keyword: keyword.trim(),
           brandDescription: brandDescription.trim() || null,
+          tone,
+          language,
           imageUrls: uploadedImages.map((img) => img.url),
           primaryImageUrl,
         }),
@@ -315,6 +357,68 @@ export default function NewProjectPage() {
           {channel === "content-only" &&
             "只跑文案，适合先过一轮脚本再决定是否生成视频。"}
         </p>
+      </div>
+
+      {/* Tone picker - 让用户显式选创作语气，避免 AI 总默认带货广告 */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
+          <Mic className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          内容语气
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {TONE_OPTIONS.map((opt) => {
+            const active = tone === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={loading}
+                onClick={() => setTone(opt.id)}
+                title={opt.hint}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border disabled:opacity-50",
+                  active
+                    ? "border-primary/60 bg-primary/[0.12] text-primary"
+                    : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[10px] text-muted-foreground/80 leading-relaxed">
+          {TONE_OPTIONS.find((o) => o.id === tone)?.hint}
+        </p>
+      </div>
+
+      {/* Language picker */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
+          <Languages className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          脚本 / 配音语言
+        </label>
+        <div className="flex flex-wrap gap-1.5">
+          {LANGUAGE_OPTIONS.map((opt) => {
+            const active = language === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                disabled={loading}
+                onClick={() => setLanguage(opt.id)}
+                className={cn(
+                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border disabled:opacity-50",
+                  active
+                    ? "border-primary/60 bg-primary/[0.12] text-primary"
+                    : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                )}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Brand / product / scene description - 可选自由文本 */}

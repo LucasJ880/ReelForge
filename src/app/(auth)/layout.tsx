@@ -28,7 +28,7 @@ export default function AuthLayout({
         </main>
 
         {/* Right: marketing column (desktop only) */}
-        <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden border-l border-border bg-[oklch(0.11_0_0)] px-12 pt-24 pb-12">
+        <aside className="relative hidden lg:flex flex-col justify-between overflow-hidden border-l border-border bg-sidebar px-12 pt-24 pb-12">
           <div className="pointer-events-none absolute inset-0 ambient-glow opacity-60" />
           <div className="relative">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">

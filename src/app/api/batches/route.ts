@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, keywords, brandDescription, videoParams, concurrency, autoGenerateVideo, autoStart } = body;
+    const { name, keywords, brandDescription, tone, language, videoParams, concurrency, autoGenerateVideo, autoStart } = body;
+
+    const VALID_TONES = ["auto", "promo", "narrative", "educational", "vlog", "news", "humor", "cinematic", "testimonial"];
+    const VALID_LANGUAGES = ["auto", "en", "zh", "ja", "ko", "es", "fr", "de"];
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "请输入批次名称" }, { status: 400 });
@@ -43,6 +46,8 @@ export async function POST(request: NextRequest) {
         typeof brandDescription === "string" && brandDescription.trim()
           ? brandDescription.trim()
           : null,
+      tone: typeof tone === "string" && VALID_TONES.includes(tone) ? tone : "auto",
+      language: typeof language === "string" && VALID_LANGUAGES.includes(language) ? language : "auto",
       videoParams,
       concurrency: concurrency ?? 2,
       autoGenerateVideo: autoGenerateVideo ?? true,

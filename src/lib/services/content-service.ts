@@ -3,8 +3,39 @@ import {
   generateContent,
   analyzeReferenceImages,
   type BrandContext,
+  type ContentLanguage,
+  type ContentTone,
   type ReferenceVisualAnalysis,
 } from "@/lib/providers/openai";
+
+const VALID_TONES: ContentTone[] = [
+  "auto",
+  "promo",
+  "narrative",
+  "educational",
+  "vlog",
+  "news",
+  "humor",
+  "cinematic",
+  "testimonial",
+];
+const VALID_LANGUAGES: ContentLanguage[] = [
+  "auto",
+  "en",
+  "zh",
+  "ja",
+  "ko",
+  "es",
+  "fr",
+  "de",
+];
+
+function coerceTone(v: string | null | undefined): ContentTone {
+  return v && (VALID_TONES as string[]).includes(v) ? (v as ContentTone) : "auto";
+}
+function coerceLanguage(v: string | null | undefined): ContentLanguage {
+  return v && (VALID_LANGUAGES as string[]).includes(v) ? (v as ContentLanguage) : "auto";
+}
 import { Prisma, ProjectStatus } from "@prisma/client";
 
 export async function generateContentPlan(projectId: string, targetDuration?: number) {
@@ -42,6 +73,8 @@ export async function generateContentPlan(projectId: string, targetDuration?: nu
     brandContext,
     referenceVisuals,
     targetDuration,
+    tone: coerceTone(project.tone),
+    language: coerceLanguage(project.language),
   });
 
   if (project.contentPlan) {

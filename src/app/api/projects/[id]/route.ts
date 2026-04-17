@@ -24,7 +24,7 @@ export async function GET(
   return NextResponse.json(project);
 }
 
-const ALLOWED_PATCH_FIELDS = new Set(["keyword", "brandDescription"]);
+const ALLOWED_PATCH_FIELDS = new Set(["keyword", "brandDescription", "tone", "language"]);
 
 export async function PATCH(
   request: NextRequest,

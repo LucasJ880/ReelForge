@@ -64,6 +64,10 @@ model Project {
   batchIndex       Int?
   /// 自由文本：用户描述自己的品牌/产品/背景信息（可选）
   brandDescription String?
+  /// 内容语气：auto | promo | narrative | educational | vlog | news | humor | cinematic | testimonial
+  tone             String?       @default("auto")
+  /// 脚本/配音语言：auto | en | zh | ja | ko | es | fr | de
+  language         String?       @default("auto")
   imageUrls        String[]
   primaryImageUrl  String?
   userVideoAssets  String[]      @default([])

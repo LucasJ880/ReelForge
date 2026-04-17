@@ -25,6 +25,8 @@ export default function NewBatchPage() {
   const [resolution, setResolution] = useState("1080p");
   const [concurrency, setConcurrency] = useState("2");
   const [autoVideo, setAutoVideo] = useState(true);
+  const [tone, setTone] = useState("auto");
+  const [language, setLanguage] = useState("auto");
 
   const set = (fn: (v: string) => void) => (v: string | null) => {
     if (v !== null) fn(v);
@@ -48,6 +50,8 @@ export default function NewBatchPage() {
           name: name.trim(),
           keywords,
           brandDescription: brandDescription.trim() || null,
+          tone,
+          language,
           videoParams: { duration: parseInt(duration), ratio, resolution },
           concurrency: parseInt(concurrency),
           autoGenerateVideo: autoVideo,
@@ -117,6 +121,41 @@ export default function NewBatchPage() {
           <p className="text-[11px] text-muted-foreground/80 mt-1.5">
             填了之后，本批次所有关键词都会围绕这段描述生成；不填则按关键词自由发挥。
           </p>
+        </div>
+
+        {/* Tone & Language - 批次内所有项目共享 */}
+        <div className="grid grid-cols-2 gap-4">
+          <FieldSelect
+            label="内容语气"
+            value={tone}
+            onValueChange={set(setTone)}
+            options={[
+              { v: "auto", l: "AI 自选" },
+              { v: "promo", l: "带货广告" },
+              { v: "narrative", l: "故事叙述" },
+              { v: "educational", l: "教程科普" },
+              { v: "vlog", l: "Vlog 日常" },
+              { v: "news", l: "新闻口播" },
+              { v: "humor", l: "搞笑段子" },
+              { v: "cinematic", l: "电影氛围" },
+              { v: "testimonial", l: "测评开箱" },
+            ]}
+          />
+          <FieldSelect
+            label="脚本 / 配音语言"
+            value={language}
+            onValueChange={set(setLanguage)}
+            options={[
+              { v: "auto", l: "AI 自选" },
+              { v: "zh", l: "中文" },
+              { v: "en", l: "English" },
+              { v: "ja", l: "日本語" },
+              { v: "ko", l: "한국어" },
+              { v: "es", l: "Español" },
+              { v: "fr", l: "Français" },
+              { v: "de", l: "Deutsch" },
+            ]}
+          />
         </div>
 
         {/* Keywords */}

@@ -29,7 +29,7 @@ const steps = [
   {
     num: "01",
     title: "输入主题",
-    desc: "一句话描述你想要的视频方向，可选择上传产品图作为参考。",
+    desc: "一句话描述你想要的视频方向，可选上传参考图或填写品牌/场景描述。",
   },
   {
     num: "02",
@@ -187,7 +187,7 @@ export function LandingContent() {
           className="relative mx-auto mt-20 max-w-4xl"
         >
           <div className="rounded-xl border border-border bg-card/40 p-2 shadow-2xl shadow-black/40 backdrop-blur-sm">
-            <div className="overflow-hidden rounded-lg border border-border bg-[oklch(0.08_0_0)]">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
                 <div className="flex gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />
@@ -227,8 +227,8 @@ export function LandingContent() {
                   </button>
                 </div>
 
-                <div className="flex items-center justify-center bg-[oklch(0.05_0_0)] p-6">
-                  <div className="relative aspect-[9/16] w-[180px] overflow-hidden rounded-lg border border-border bg-gradient-to-br from-card to-black">
+                <div className="flex items-center justify-center bg-background p-6">
+                  <div className="relative aspect-[9/16] w-[180px] overflow-hidden rounded-lg border border-border bg-gradient-to-br from-card to-background">
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 p-5 text-center">
                       <div className="text-[10px] uppercase tracking-[0.22em] text-primary">PREVIEW</div>
                       <p className="text-sm font-medium leading-tight text-foreground">

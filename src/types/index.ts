@@ -102,6 +102,7 @@ export interface ProjectWithRelations {
     status: string;
     videoUrl: string | null;
     videoUrl2: string | null;
+    stitchedVideoUrl: string | null;
     thumbnailUrl: string | null;
     duration: number;
     resolution: string;

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/providers/session-provider";
+import { authOptions } from "@/lib/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,18 +21,20 @@ export const metadata: Metadata = {
   description: "AI 驱动的短视频内容生成、发布和数据分析平台",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html
       lang="zh-CN"
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="h-full antialiased">
-        <AuthProvider>
+        <AuthProvider session={session}>
           {children}
           <Toaster richColors position="top-right" />
         </AuthProvider>

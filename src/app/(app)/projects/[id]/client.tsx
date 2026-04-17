@@ -182,18 +182,59 @@ export function ProjectDetailClient({
   const canEdit = cp && ["CONTENT_GENERATED", "VIDEO_FAILED"].includes(project.status);
 
   const hasTwoSegments = !!(vj?.videoUrl && vj?.videoUrl2);
+  const persistedStitchedUrl = vj?.stitchedVideoUrl ?? null;
+  const effectiveStitchedUrl = persistedStitchedUrl || stitchedUrl;
 
   useEffect(() => {
-    if (!hasTwoSegments || stitchedUrl || stitching || stitchAttempted.current) return;
+    if (!hasTwoSegments) return;
+    if (persistedStitchedUrl) return;
+    if (!isAdmin) return;
+    if (stitchedUrl || stitching || stitchAttempted.current) return;
+
     stitchAttempted.current = true;
     (async () => {
       setStitching(true);
       setStitchProgress(0);
       try {
         const { stitchVideos } = await import("@/lib/video-stitcher");
-        const url = await stitchVideos(vj!.videoUrl!, vj!.videoUrl2!, setStitchProgress);
-        setStitchedUrl(url);
-        toast.success("视频拼接完成");
+        const { objectUrl, blob } = await stitchVideos(
+          vj!.videoUrl!,
+          vj!.videoUrl2!,
+          setStitchProgress,
+        );
+        setStitchedUrl(objectUrl);
+
+        try {
+          const fd = new FormData();
+          fd.append(
+            "file",
+            new File([blob], `stitched-${project.id}.mp4`, { type: "video/mp4" }),
+          );
+          const res = await fetch(`/api/projects/${project.id}/stitch`, {
+            method: "POST",
+            body: fd,
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data?.stitchedVideoUrl) {
+              setProject((p) =>
+                p.videoJob
+                  ? {
+                      ...p,
+                      videoJob: { ...p.videoJob, stitchedVideoUrl: data.stitchedVideoUrl },
+                    }
+                  : p,
+              );
+            }
+            toast.success("视频拼接完成并已保存");
+          } else {
+            console.warn("[stitch] persist failed:", await res.text());
+            toast.success("视频拼接完成（未保存，刷新后需重新拼接）");
+          }
+        } catch (persistErr) {
+          console.warn("[stitch] persist error:", persistErr);
+          toast.success("视频拼接完成（未保存）");
+        }
       } catch (e) {
         console.error("Stitch failed:", e);
         toast.error("视频拼接失败，可分段查看");
@@ -201,7 +242,15 @@ export function ProjectDetailClient({
         setStitching(false);
       }
     })();
-  }, [hasTwoSegments, stitchedUrl, stitching, vj]);
+  }, [
+    hasTwoSegments,
+    persistedStitchedUrl,
+    isAdmin,
+    stitchedUrl,
+    stitching,
+    vj,
+    project.id,
+  ]);
 
   return (
     <div className="space-y-8">
@@ -374,11 +423,20 @@ export function ProjectDetailClient({
                 </div>
               )}
 
-              {/* Stitched 30s video */}
-              {stitchedUrl ? (
+              {/* Stitched 30s video (persisted or just produced) */}
+              {effectiveStitchedUrl ? (
                 <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
                   <div className="aspect-[9/16]">
-                    <video src={stitchedUrl} controls className="w-full h-full object-contain" />
+                    <video src={effectiveStitchedUrl} controls className="w-full h-full object-contain" />
+                  </div>
+                </div>
+              ) : hasTwoSegments && !isAdmin ? (
+                <div className="rounded-2xl overflow-hidden bg-zinc-950 shadow-none">
+                  <div className="aspect-[9/16]">
+                    <video src={vj.videoUrl} controls className="w-full h-full object-contain" poster={vj.thumbnailUrl || undefined} />
+                  </div>
+                  <div className="px-3 py-2 text-[11px] text-zinc-500">
+                    30 秒完整版尚未由管理员拼接保存，当前显示前 15 秒
                   </div>
                 </div>
               ) : (
@@ -393,8 +451,8 @@ export function ProjectDetailClient({
               <div className="flex items-center justify-between mt-3 text-[11px] text-zinc-300">
                 <span>{vj.provider}</span>
                 <div className="flex items-center gap-3">
-                  {stitchedUrl && (
-                    <a href={stitchedUrl} download={`${project.keyword}-30s.mp4`} className="flex items-center gap-1 text-violet-400 hover:text-violet-300">
+                  {effectiveStitchedUrl && (
+                    <a href={effectiveStitchedUrl} download={`${project.keyword}-30s.mp4`} className="flex items-center gap-1 text-violet-400 hover:text-violet-300">
                       <Download className="h-3 w-3" /> 下载 30s
                     </a>
                   )}
@@ -403,7 +461,7 @@ export function ProjectDetailClient({
               </div>
 
               {/* Show both segments if stitched */}
-              {vj.videoUrl2 && stitchedUrl && (
+              {vj.videoUrl2 && effectiveStitchedUrl && (
                 <details className="mt-3">
                   <summary className="text-[11px] text-zinc-500 cursor-pointer hover:text-zinc-400">
                     查看分段视频

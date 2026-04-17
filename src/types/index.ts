@@ -92,6 +92,7 @@ export interface ReferenceVisualAnalysis {
   brandElements: string;
   suggestedAngles: string;
   visualHighlights: string;
+  logoVisualFingerprint: string;
 }
 
 export const PROJECT_STATUS_LABELS: Record<string, string> = {

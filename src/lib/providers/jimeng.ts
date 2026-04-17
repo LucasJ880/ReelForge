@@ -13,6 +13,12 @@ export interface VideoGenerationOptions {
   prompt: string;
   referenceImageUrl?: string;
   firstFrameUrl?: string;
+  /**
+   * Brand Lock 软约束：指定视频"最后一帧"参考图，让模型尽量收束回这张图。
+   * Seedance 2.0 支持 image_url + role="last_frame"。
+   * 若 Pro 的主图传进来做首尾帧，可以帮助 logo 在开头和结尾都清晰出现。
+   */
+  lastFrameUrl?: string;
   duration?: number;
   resolution?: string;
   ratio?: string;
@@ -127,16 +133,33 @@ async function submitReal(
     ? options.prompt.slice(0, MAX_PROMPT_CHARS).replace(/\s\S*$/, "")
     : options.prompt;
 
-  const content: Array<Record<string, string>> = [];
-
-  if (options.firstFrameUrl) {
-    content.push({ type: "image_url", image_url: options.firstFrameUrl });
-  } else if (options.referenceImageUrl) {
-    content.push({ type: "image_url", image_url: options.referenceImageUrl });
-  }
-  content.push({ type: "text", text: promptText });
-
   const isSeedance2 = model.includes("seedance-2");
+
+  // Seedance 2.0 支持多图 role（first_frame / last_frame）；旧模型只接受单图。
+  type ImageSpec = { url: string; role?: "first_frame" | "last_frame" };
+  type ContentPart =
+    | { type: "image_url"; image_url: ImageSpec | string }
+    | { type: "text"; text: string };
+  const content: ContentPart[] = [];
+
+  const primaryImage = options.firstFrameUrl || options.referenceImageUrl;
+  if (primaryImage) {
+    content.push({
+      type: "image_url",
+      image_url: isSeedance2
+        ? { url: primaryImage, role: "first_frame" }
+        : primaryImage,
+    });
+  }
+
+  if (isSeedance2 && options.lastFrameUrl && options.lastFrameUrl !== primaryImage) {
+    content.push({
+      type: "image_url",
+      image_url: { url: options.lastFrameUrl, role: "last_frame" },
+    });
+  }
+
+  content.push({ type: "text", text: promptText });
 
   const body: Record<string, unknown> = {
     model,

@@ -51,6 +51,13 @@ export async function submitVideoJob(
   const { jobId } = await submitVideoGeneration({
     prompt: project.contentPlan.videoPrompt,
     referenceImageUrl: project.primaryImageUrl || undefined,
+    // Brand Lock 软约束：当有主图 + 启用 brand lock 时，把主图同时作为首帧和尾帧参考，
+    // 让 AI 在开头和结尾尽量"回到"主图状态（logo/产品形态稳定）。
+    // 单段短视频（15s）下这是成本最低的软约束。
+    lastFrameUrl:
+      project.brandLockEnabled && project.primaryImageUrl
+        ? project.primaryImageUrl
+        : undefined,
     duration: SEGMENT_DURATION,
     resolution,
     ratio,

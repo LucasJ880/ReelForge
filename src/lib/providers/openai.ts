@@ -151,7 +151,13 @@ You have been given an AI vision analysis of the user's uploaded reference image
 - Use the suggested camera angles for the shot sequence
 - Highlight the visual features the analysis identified as most striking
 
-The videoPrompt MUST feel like it was written by someone who has SEEN the actual references.`;
+The videoPrompt MUST feel like it was written by someone who has SEEN the actual references.
+
+IMPORTANT (Brand Lock soft constraint): If a "Logo Fingerprint" is provided in the visual analysis, you MUST:
+1. Place it VERBATIM into the opening and closing shot descriptions of videoPrompt.
+2. Explicitly instruct the camera/motion NOT to blur, crop, rotate past 20°, or obscure the logo area.
+3. Prefer stable hero shots (product on clean surface, slow push-in, gentle parallax) over chaotic motion when the logo needs to stay legible.
+Note: The system will also hard-overlay the logo after generation, but your job is to give the AI the best chance to render it naturally.`;
 
 function buildToneAddon(tone: ContentTone | undefined): string {
   if (!tone || tone === "auto") {
@@ -200,13 +206,17 @@ function buildSystemPrompt(
 }
 
 function buildUserMessage(input: ContentGenerationInput): string {
-  const visualBlock = input.referenceVisuals
+  const rv = input.referenceVisuals;
+  const logoLine = rv?.logoVisualFingerprint?.trim()
+    ? `\n- Logo Fingerprint (MUST appear stable & legible throughout the video): ${rv.logoVisualFingerprint.trim()}`
+    : "";
+  const visualBlock = rv
     ? `\n\nVisual Reference Analysis (from uploaded images):
-- Appearance: ${input.referenceVisuals.productAppearance}
-- Colors & Materials: ${input.referenceVisuals.colorsAndMaterials}
-- Brand Elements: ${input.referenceVisuals.brandElements}
-- Best Camera Angles: ${input.referenceVisuals.suggestedAngles}
-- Visual Highlights: ${input.referenceVisuals.visualHighlights}`
+- Appearance: ${rv.productAppearance}
+- Colors & Materials: ${rv.colorsAndMaterials}
+- Brand Elements: ${rv.brandElements}
+- Best Camera Angles: ${rv.suggestedAngles}
+- Visual Highlights: ${rv.visualHighlights}${logoLine}`
     : "";
 
   if (input.brandContext?.description?.trim()) {
@@ -309,6 +319,12 @@ export interface ReferenceVisualAnalysis {
   brandElements: string;
   suggestedAngles: string;
   visualHighlights: string;
+  /**
+   * Brand Lock 软约束用：对可见 logo / 品牌文字的紧凑"视觉指纹"描述。
+   * 用于直接注入视频生成 prompt 头部，引导模型尽量稳住 logo 形态。
+   * 当图里没有 logo 时为空字符串。
+   */
+  logoVisualFingerprint: string;
 }
 
 const REFERENCE_VISION_PROMPT = `You are a visual reference analyst for short video creation (any genre — product, lifestyle, travel, education, narrative, etc.). Analyze the provided reference image(s) and extract visual details that will help an AI video generator create compelling content. Stay neutral about genre; describe what you see.
@@ -318,7 +334,8 @@ Output STRICT JSON with these fields:
 - colorsAndMaterials: Exact colors (use descriptive color names like "deep navy blue" not just "blue"), materials, finishes, patterns visible.
 - brandElements: Any visible logos, text, labels, packaging branding, tags (empty string if none).
 - suggestedAngles: Best camera angles and shot types for showcasing this subject in a video (e.g. "dramatic overhead reveal", "close-up texture shot", "lifestyle flat-lay").
-- visualHighlights: The most visually striking features that should be emphasized in a video (e.g. "shimmering texture catches light beautifully", "bold color contrast between two sides").`;
+- visualHighlights: The most visually striking features that should be emphasized in a video (e.g. "shimmering texture catches light beautifully", "bold color contrast between two sides").
+- logoVisualFingerprint: Compact fingerprint of any visible logo/brand-mark: describe its shape, color, exact letter/word spelling, typography style, and where it sits on the product. 30-60 words. This will be injected verbatim into the video prompt to help the AI keep the logo stable. Empty string if no logo/text is visible.`;
 
 export async function analyzeReferenceImages(
   imageUrls: string[],
@@ -356,5 +373,7 @@ export async function analyzeReferenceImages(
     brandElements: parsed.brandElements || parsed.brand_elements || "",
     suggestedAngles: parsed.suggestedAngles || parsed.suggested_angles || "",
     visualHighlights: parsed.visualHighlights || parsed.visual_highlights || "",
+    logoVisualFingerprint:
+      parsed.logoVisualFingerprint || parsed.logo_visual_fingerprint || "",
   };
 }

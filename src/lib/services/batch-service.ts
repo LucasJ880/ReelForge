@@ -3,6 +3,7 @@ import { BatchStatus, ProjectStatus } from "@prisma/client";
 import { generateContentPlan } from "./content-service";
 import { submitVideoJob, checkVideoStatus } from "./video-service";
 import type { VideoParams } from "./video-service";
+import { deleteProjectWithAssets } from "./project-service";
 
 export interface CreateBatchInput {
   name: string;
@@ -260,6 +261,46 @@ export async function retryFailedInBatch(batchId: string) {
   });
 
   return { retried, retrFailed };
+}
+
+/**
+ * 删除批次。
+ * - cascade=false（默认）：只删 batch 本身，把 projects 解绑（batchId=null），
+ *   已完成的作品会继续留在「作品库」里。适合清理失败批次时保留尚可用的作品。
+ * - cascade=true：连同 batch 下所有 project + Blob 资产一并删除。
+ */
+export async function deleteBatch(
+  batchId: string,
+  options: { cascade?: boolean } = {},
+) {
+  const batch = await db.batch.findUnique({
+    where: { id: batchId },
+    include: { projects: { select: { id: true } } },
+  });
+  if (!batch) throw new Error("批次不存在");
+
+  if (options.cascade) {
+    for (const p of batch.projects) {
+      try {
+        await deleteProjectWithAssets(p.id);
+      } catch (err) {
+        console.error(`[batch:${batchId}] 级联删除 project ${p.id} 失败:`, err);
+      }
+    }
+  } else {
+    await db.project.updateMany({
+      where: { batchId },
+      data: { batchId: null },
+    });
+  }
+
+  await db.batch.delete({ where: { id: batchId } });
+
+  return {
+    deletedBatch: batchId,
+    projectsHandled: batch.projects.length,
+    mode: options.cascade ? "cascade" : "unlink",
+  };
 }
 
 // --- helpers ---

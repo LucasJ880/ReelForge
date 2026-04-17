@@ -13,9 +13,58 @@ import {
   Star,
   Trash2,
   Lock,
+  Zap,
+  Gift,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/use-role";
+import { cn } from "@/lib/utils";
+
+type Channel = "pro" | "free" | "content-only";
+
+interface ChannelOption {
+  id: Channel;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  title: string;
+  subtitle: string;
+  cost: string;
+  duration: string;
+  highlight: boolean;
+}
+
+const CHANNELS: ChannelOption[] = [
+  {
+    id: "pro",
+    icon: Zap,
+    badge: "推荐",
+    title: "一键 Pro",
+    subtitle: "AI 文案 + Seedance 高质量视频",
+    cost: "付费 · 云端生成",
+    duration: "约 1–2 分钟",
+    highlight: true,
+  },
+  {
+    id: "free",
+    icon: Gift,
+    badge: "免费",
+    title: "一键 Free",
+    subtitle: "AI 文案 + 浏览器合成（Pexels + TTS）",
+    cost: "零成本 · 浏览器本地合成",
+    duration: "约 3–5 分钟",
+    highlight: false,
+  },
+  {
+    id: "content-only",
+    icon: FileText,
+    title: "仅生成文案",
+    subtitle: "只生成脚本、标题、提示词，视频之后再做",
+    cost: "极少 AI 成本",
+    duration: "约 10 秒",
+    highlight: false,
+  },
+];
 
 interface Product {
   id: string;
@@ -50,6 +99,7 @@ export default function NewProjectPage() {
   const [keyword, setKeyword] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"input" | "creating" | "generating">("input");
+  const [channel, setChannel] = useState<Channel>("pro");
 
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -167,14 +217,42 @@ export default function NewProjectPage() {
       const project = await res.json();
 
       setStep("generating");
-      const genRes = await fetch(`/api/projects/${project.id}/generate`, {
-        method: "POST",
-      });
 
-      if (!genRes.ok) {
-        toast.warning("项目已创建，但内容生成失败，请在详情页重试");
-      } else {
-        toast.success("内容方案已生成");
+      if (channel === "content-only") {
+        const genRes = await fetch(`/api/projects/${project.id}/generate`, {
+          method: "POST",
+        });
+        if (!genRes.ok) {
+          toast.warning("项目已创建，但内容生成失败，请在详情页重试");
+        } else {
+          toast.success("内容方案已生成，接下来可以生成视频");
+        }
+      } else if (channel === "pro") {
+        // 一键 Pro：后端自动执行文案 + Seedance 视频
+        const proRes = await fetch(`/api/projects/${project.id}/auto-generate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel: "pro" }),
+        });
+        if (!proRes.ok) {
+          const err = await proRes.json().catch(() => ({}));
+          toast.warning(err.error || "项目已创建，视频提交失败，可去详情页手动重试");
+        } else {
+          toast.success("一键生成已启动，视频正在合成");
+        }
+      } else if (channel === "free") {
+        // 免费通道：后端准备 manifest，浏览器端在详情页自动开始合成
+        const freeRes = await fetch(`/api/projects/${project.id}/free-prepare`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        });
+        if (!freeRes.ok) {
+          const err = await freeRes.json().catch(() => ({}));
+          toast.warning(err.error || "项目已创建，Free 通道准备失败，可去详情页手动重试");
+        } else {
+          toast.success("已为免费通道准备素材，接下来浏览器会自动合成视频");
+        }
       }
 
       router.push(`/projects/${project.id}`);
@@ -411,6 +489,80 @@ export default function NewProjectPage() {
         )}
       </div>
 
+      {/* Channel picker - 让用户在创建时就明确接下来走哪条路 */}
+      <div className="mb-5">
+        <label className="block text-xs font-medium text-muted-foreground mb-2">
+          <Zap className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
+          生成通道
+        </label>
+        <div className="grid gap-2 sm:grid-cols-3">
+          {CHANNELS.map((opt) => {
+            const Icon = opt.icon;
+            const active = channel === opt.id;
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => setChannel(opt.id)}
+                disabled={loading}
+                className={cn(
+                  "relative text-left rounded-xl border p-3.5 transition-all disabled:opacity-50",
+                  active
+                    ? "border-primary/60 bg-primary/[0.08] ring-2 ring-primary/30"
+                    : "border-border bg-card/60 hover:border-primary/30 hover:bg-accent/40",
+                )}
+              >
+                {opt.badge && (
+                  <span
+                    className={cn(
+                      "absolute right-2.5 top-2.5 rounded-full px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider",
+                      opt.id === "pro"
+                        ? "bg-primary/20 text-primary"
+                        : "bg-emerald-500/15 text-emerald-400",
+                    )}
+                  >
+                    {opt.badge}
+                  </span>
+                )}
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div
+                    className={cn(
+                      "flex h-7 w-7 items-center justify-center rounded-md",
+                      active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground",
+                    )}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </div>
+                  <span
+                    className={cn(
+                      "text-sm font-medium",
+                      active ? "text-foreground" : "text-foreground/90",
+                    )}
+                  >
+                    {opt.title}
+                  </span>
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted-foreground mb-2">
+                  {opt.subtitle}
+                </p>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground/80">
+                  <span>{opt.duration}</span>
+                  <span className={active ? "text-primary" : ""}>{opt.cost}</span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground/80">
+          {channel === "pro" &&
+            "付费通道：使用 Seedance 引擎直接生成高画质商业级视频，质量最稳定。"}
+          {channel === "free" &&
+            "免费通道：参考 MoneyPrinterTurbo 思路，基于 Pexels 素材 + Edge TTS 在你的浏览器里本地合成，不花钱，但画面质量受素材库限制。"}
+          {channel === "content-only" &&
+            "只跑文案，适合先过一轮脚本再决定是否生成视频。"}
+        </p>
+      </div>
+
       {/* Keyword Input */}
       <form onSubmit={handleSubmit}>
         <label className="block text-xs font-medium text-muted-foreground mb-2">
@@ -457,8 +609,16 @@ export default function NewProjectPage() {
               {loading
                 ? step === "creating"
                   ? "创建中..."
-                  : "生成中..."
-                : "生成"}
+                  : channel === "pro"
+                    ? "提交 Pro 任务..."
+                    : channel === "free"
+                      ? "准备免费素材..."
+                      : "生成文案中..."
+                : channel === "pro"
+                  ? "一键 Pro 生成"
+                  : channel === "free"
+                    ? "一键 Free 生成"
+                    : "生成文案"}
             </button>
           </div>
         </div>
@@ -483,9 +643,15 @@ export default function NewProjectPage() {
         <div className="mt-6 flex items-center gap-3 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>
-            AI 正在为
-            {selectedProduct && `「${selectedProduct.color}」× `}
-            「{keyword}」构思内容方案...
+            {channel === "pro" && (
+              <>为「{keyword}」自动生成文案并提交 Seedance 视频任务...</>
+            )}
+            {channel === "free" && (
+              <>为「{keyword}」准备免费素材（文案 + Pexels + TTS）...</>
+            )}
+            {channel === "content-only" && (
+              <>为「{keyword}」构思内容方案...</>
+            )}
           </span>
         </div>
       )}

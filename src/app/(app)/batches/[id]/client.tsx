@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
   Loader2,
@@ -12,9 +13,11 @@ import {
   XCircle,
   Clock,
   ExternalLink,
+  Trash2,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/lib/hooks/use-role";
 
 interface BatchProject {
   id: string;
@@ -52,7 +55,10 @@ const projectStatusLabels: Record<string, string> = {
 };
 
 export function BatchDetailClient({ initial }: { initial: BatchData }) {
+  const router = useRouter();
+  const isAdmin = useIsAdmin();
   const [batch, setBatch] = useState(initial);
+  const [deleting, setDeleting] = useState(false);
   const isRunning = batch.status === "RUNNING";
 
   const refresh = useCallback(async () => {
@@ -86,6 +92,29 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
       toast.success(action === "pause" ? "批次已暂停" : "批次已启动");
       setTimeout(refresh, 1000);
     } catch (e) { toast.error(e instanceof Error ? e.message : "操作失败"); }
+  }
+
+  async function handleDelete(cascade: boolean) {
+    const msg = cascade
+      ? `确定级联删除该批次及其下 ${batch.totalCount} 个项目（含视频资产）？此操作不可撤销。`
+      : `确定删除该批次？其下已生成的作品会保留在作品库。`;
+    if (!window.confirm(msg)) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `/api/batches/${batch.id}${cascade ? "?cascade=true" : ""}`,
+        { method: "DELETE" },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "删除失败");
+      }
+      toast.success(cascade ? "批次及作品已删除" : "批次已清理");
+      router.push("/batches");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "删除失败");
+      setDeleting(false);
+    }
   }
 
   const statusDot: Record<string, string> = {
@@ -146,6 +175,31 @@ export function BatchDetailClient({ initial }: { initial: BatchData }) {
               <RotateCcw className="h-3.5 w-3.5" />
               重试失败项 ({batch.failedCount})
             </button>
+          )}
+          {isAdmin && !isRunning && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handleDelete(false)}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-50"
+                title="只删批次本身，作品保留"
+              >
+                {deleting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                清理
+              </button>
+              <button
+                onClick={() => handleDelete(true)}
+                disabled={deleting}
+                className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300 disabled:opacity-50"
+                title="连同批次下所有项目和视频一并删除"
+              >
+                级联删除
+              </button>
+            </div>
           )}
         </div>
       </div>

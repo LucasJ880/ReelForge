@@ -4,6 +4,7 @@ import {
   executeBatch,
   pauseBatch,
   retryFailedInBatch,
+  deleteBatch,
 } from "@/lib/services/batch-service";
 import { handleApiError } from "@/lib/utils/api-error";
 import { requireAdmin } from "@/lib/api-auth";
@@ -63,5 +64,29 @@ export async function POST(
     }
   } catch (error) {
     return handleApiError(error, "批次操作");
+  }
+}
+
+/**
+ * DELETE /api/batches/[id]?cascade=true
+ * - 默认：解绑 projects（保留已生成作品），删 batch 本体
+ * - cascade=true：级联删 projects + Blob
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+
+  const { id } = await params;
+  const url = new URL(request.url);
+  const cascade = url.searchParams.get("cascade") === "true";
+
+  try {
+    const result = await deleteBatch(id, { cascade });
+    return NextResponse.json({ success: true, ...result });
+  } catch (error) {
+    return handleApiError(error, "批次删除");
   }
 }

@@ -20,6 +20,12 @@ import { Input } from "@/components/ui/input";
 import { StatusStepper } from "@/components/project/status-stepper";
 import { StatusBadge } from "@/components/project/status-badge";
 import { FreeChannelPanel } from "@/components/project/free-channel-panel";
+import {
+  FreeChannelOptions,
+  DEFAULT_FREE_OPTIONS,
+  type FreeChannelOptionsValue,
+} from "@/components/project/free-channel-options";
+import { UserAssetsManager } from "@/components/project/user-assets-manager";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ProjectWithRelations, ContentAngle } from "@/types";
@@ -42,6 +48,8 @@ export function ProjectDetailClient({
   const [editData, setEditData] = useState({ script: "", caption: "", videoPrompt: "" });
   const [saving, setSaving] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(15);
+  const [freeOptions, setFreeOptions] =
+    useState<FreeChannelOptionsValue>(DEFAULT_FREE_OPTIONS);
   const [stitching, setStitching] = useState(false);
   const [stitchProgress, setStitchProgress] = useState(0);
   const [stitchedUrl, setStitchedUrl] = useState<string | null>(null);
@@ -119,7 +127,10 @@ export function ProjectDetailClient({
       const res = await fetch(`/api/projects/${project.id}/free-prepare`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          voiceId: freeOptions.voiceId,
+          rate: freeOptions.rate,
+        }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -441,11 +452,22 @@ export function ProjectDetailClient({
 
       {/* DRAFT empty state */}
       {project.status === "DRAFT" && !cp && (
-        <div className="text-center py-16">
-          <Sparkles className="h-8 w-8 text-zinc-500 mx-auto mb-4" />
-          <p className="text-sm text-zinc-400">
-            点击「生成内容」，AI 将为「{project.keyword}」创建完整的内容方案
-          </p>
+        <div className="space-y-4">
+          <div className="text-center py-10 rounded-xl border border-dashed border-border bg-card/40">
+            <Sparkles className="h-8 w-8 text-muted-foreground mx-auto mb-4" />
+            <p className="text-sm text-muted-foreground">
+              点击顶部按钮开始，AI 将为「<span className="text-foreground">{project.keyword}</span>」生成完整的文案 + 视频
+            </p>
+          </div>
+          {isAdmin && (
+            <>
+              <FreeChannelOptions value={freeOptions} onChange={setFreeOptions} />
+              <UserAssetsManager
+                projectId={project.id}
+                initialAssets={project.userVideoAssets ?? []}
+              />
+            </>
+          )}
         </div>
       )}
 

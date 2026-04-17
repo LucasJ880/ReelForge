@@ -74,6 +74,11 @@ export interface BuildFreeManifestInput {
   voiceId?: string;
   rate?: number;
   resolution?: { width: number; height: number };
+  /**
+   * 用户自己上传的视频素材池（mp4 public URL）
+   * 提供时按顺序/循环优先使用，不够再用 Pexels 补齐
+   */
+  userVideoAssets?: string[];
 }
 
 /**
@@ -89,6 +94,7 @@ export async function buildFreeChannelManifest(
     voiceId = DEFAULT_VOICE_ID,
     rate = 0,
     resolution = { width: 1080, height: 1920 },
+    userVideoAssets = [],
   } = input;
 
   const sentences = splitIntoSentences(script);
@@ -100,10 +106,14 @@ export async function buildFreeChannelManifest(
   const perSentence = await Promise.all(
     sentences.map(async (sentence, i) => {
       const query = extractQuery(sentence, keyword);
+      const userAsset = userVideoAssets[i % Math.max(userVideoAssets.length, 1)];
+      const needPexels = !userAsset;
 
       const [ttsRes, pexelsVideos] = await Promise.all([
         synthesizeSpeech(sentence, voiceId, rate),
-        searchPexelsVideos(query, 3).catch(() => [] as PexelsVideo[]),
+        needPexels
+          ? searchPexelsVideos(query, 3).catch(() => [] as PexelsVideo[])
+          : Promise.resolve([] as PexelsVideo[]),
       ]);
 
       const audioUrl = await uploadAudio(
@@ -111,19 +121,29 @@ export async function buildFreeChannelManifest(
         `free/${projectId}/audio-${i}`,
       );
 
-      // 找不到对应 Pexels 素材时降级到 mock 列表
-      const video =
-        pexelsVideos[0] ?? (await searchPexelsVideos("abstract", 1))[0];
-      if (!video) {
-        throw new Error(`无法为第 ${i + 1} 句获取素材（keyword=${query}）`);
+      let videoUrl: string;
+      let videoThumb: string;
+
+      if (userAsset) {
+        // 用户上传素材优先
+        videoUrl = userAsset;
+        videoThumb = userAsset;
+      } else {
+        const video =
+          pexelsVideos[0] ?? (await searchPexelsVideos("abstract", 1))[0];
+        if (!video) {
+          throw new Error(`无法为第 ${i + 1} 句获取素材（keyword=${query}）`);
+        }
+        videoUrl = video.url;
+        videoThumb = video.thumbnail;
       }
 
       return {
         sentence,
         durationMs: ttsRes.durationEstimateMs,
         audioUrl,
-        videoUrl: video.url,
-        videoThumb: video.thumbnail,
+        videoUrl,
+        videoThumb,
       } satisfies FreeChannelClip;
     }),
   );

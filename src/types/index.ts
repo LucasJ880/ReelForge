@@ -40,6 +40,7 @@ export interface ProjectWithRelations {
   productId: string | null;
   imageUrls: string[];
   primaryImageUrl: string | null;
+  userVideoAssets: string[];
   createdAt: Date;
   updatedAt: Date;
   product: {

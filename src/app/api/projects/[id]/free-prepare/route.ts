@@ -61,6 +61,7 @@ export async function POST(
       keyword: refreshed.keyword,
       voiceId: body.voiceId,
       rate: body.rate,
+      userVideoAssets: refreshed.userVideoAssets ?? [],
     });
 
     // Step 3: persist to VideoJob (channel=free)

@@ -21,11 +21,14 @@ export async function POST(request: NextRequest) {
       body,
       request,
       onBeforeGenerateToken: async (pathname) => {
-        if (!pathname.startsWith("free-output/")) {
-          throw new Error("仅允许上传到 free-output/ 目录");
+        const allowed =
+          pathname.startsWith("free-output/") ||
+          pathname.startsWith("user-assets/");
+        if (!allowed) {
+          throw new Error("仅允许上传到 free-output/ 或 user-assets/ 目录");
         }
         return {
-          allowedContentTypes: ["video/mp4", "video/webm"],
+          allowedContentTypes: ["video/mp4", "video/webm", "video/quicktime"],
           maximumSizeInBytes: 100 * 1024 * 1024, // 100MB
           addRandomSuffix: true,
         };

@@ -15,7 +15,7 @@
  */
 
 import { FFmpeg } from "@ffmpeg/ffmpeg";
-import { fetchFile, toBlobURL } from "@ffmpeg/util";
+import { toBlobURL } from "@ffmpeg/util";
 
 export type BrandLockTemplate =
   | "none"
@@ -47,6 +47,7 @@ export type ProgressCallback = (pct: number, message?: string) => void;
 
 let ffmpegInstance: FFmpeg | null = null;
 let ffmpegLoadPromise: Promise<FFmpeg> | null = null;
+let lastLogLines: string[] = [];
 
 async function getFFmpeg(): Promise<FFmpeg> {
   if (ffmpegInstance?.loaded) return ffmpegInstance;
@@ -55,6 +56,10 @@ async function getFFmpeg(): Promise<FFmpeg> {
   ffmpegLoadPromise = (async () => {
     const ffmpeg = new FFmpeg();
     const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.10/dist/umd";
+    ffmpeg.on("log", ({ message }) => {
+      lastLogLines.push(message);
+      if (lastLogLines.length > 30) lastLogLines.shift();
+    });
     await ffmpeg.load({
       coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, "text/javascript"),
       wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, "application/wasm"),
@@ -67,6 +72,69 @@ async function getFFmpeg(): Promise<FFmpeg> {
     return await ffmpegLoadPromise;
   } finally {
     ffmpegLoadPromise = null;
+  }
+}
+
+function resetFFmpeg() {
+  try {
+    ffmpegInstance?.terminate();
+  } catch {
+    /* ignore */
+  }
+  ffmpegInstance = null;
+  ffmpegLoadPromise = null;
+  lastLogLines = [];
+}
+
+async function safeFetchBytes(url: string, label: string): Promise<Uint8Array> {
+  let res: Response;
+  try {
+    res = await fetch(url);
+  } catch (err) {
+    throw new Error(
+      `[${label}] 下载失败：${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+  if (!res.ok) {
+    throw new Error(`[${label}] HTTP ${res.status} - ${res.statusText}`);
+  }
+  const ct = (res.headers.get("content-type") || "").toLowerCase();
+  if (ct.includes("application/json") || ct.includes("text/html")) {
+    const text = await res.text().catch(() => "");
+    throw new Error(
+      `[${label}] 上游返回 ${ct} 而非二进制：${text.slice(0, 200)}`,
+    );
+  }
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.byteLength === 0) {
+    throw new Error(`[${label}] 响应体为空`);
+  }
+  return buf;
+}
+
+async function execWithGuard(
+  ffmpeg: FFmpeg,
+  args: string[],
+  stepLabel: string,
+  onProgress?: (pct: number) => void,
+) {
+  lastLogLines = [];
+  const h = ({ progress }: { progress: number }) => {
+    onProgress?.(Math.max(0, Math.min(1, progress)) * 100);
+  };
+  ffmpeg.on("progress", h);
+  try {
+    const code = await ffmpeg.exec(args);
+    if (code !== 0) {
+      const tail = lastLogLines.slice(-8).join("\n");
+      throw new Error(`[${stepLabel}] ffmpeg 退出码 ${code}\n${tail}`);
+    }
+  } catch (err) {
+    const tail = lastLogLines.slice(-8).join("\n");
+    const detail = err instanceof Error ? err.message : String(err);
+    throw new Error(`[${stepLabel}] ${detail}${tail ? `\n${tail}` : ""}`);
+  } finally {
+    ffmpeg.off("progress", h);
   }
 }
 
@@ -128,26 +196,45 @@ export async function applyBrandLock(
   }
 
   onProgress?.(1, "加载 FFmpeg 核心...");
-  const ffmpeg = await getFFmpeg();
+  let ffmpeg: FFmpeg;
+  try {
+    ffmpeg = await getFFmpeg();
+  } catch (err) {
+    throw new Error(
+      `FFmpeg 核心加载失败：${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
   onProgress?.(8, "FFmpeg 就绪");
 
-  onProgress?.(12, "下载视频和品牌素材...");
-  const videoData = await fetchFile(proxy(rawVideoUrl));
-  await ffmpeg.writeFile("raw.mp4", videoData);
+  try {
+    onProgress?.(12, "下载视频和品牌素材...");
+    const videoData = await safeFetchBytes(proxy(rawVideoUrl), "AI 原版视频");
+    // 清残留
+    try {
+      await ffmpeg.deleteFile("raw.mp4");
+    } catch {
+      /* ignore */
+    }
+    await ffmpeg.writeFile("raw.mp4", videoData);
 
-  if (cfg.template === "corner_watermark") {
-    return await runCornerWatermark(ffmpeg, cfg, onProgress);
+    if (cfg.template === "corner_watermark") {
+      return await runCornerWatermark(ffmpeg, cfg, onProgress);
+    }
+
+    if (cfg.template === "intro_outro") {
+      return await runIntroOutro(ffmpeg, cfg, onProgress);
+    }
+
+    if (cfg.template === "full_package") {
+      return await runFullPackage(ffmpeg, cfg, onProgress);
+    }
+
+    throw new Error(`Brand Lock template "${cfg.template}" 暂未实现`);
+  } catch (err) {
+    // 失败重置，保证下次重试干净
+    resetFFmpeg();
+    throw err;
   }
-
-  if (cfg.template === "intro_outro") {
-    return await runIntroOutro(ffmpeg, cfg, onProgress);
-  }
-
-  if (cfg.template === "full_package") {
-    return await runFullPackage(ffmpeg, cfg, onProgress);
-  }
-
-  throw new Error(`Brand Lock template "${cfg.template}" 暂未实现`);
 }
 
 async function runCornerWatermark(
@@ -161,32 +248,38 @@ async function runCornerWatermark(
   }
 
   onProgress?.(18, "下载 Logo 素材...");
-  const logoData = await fetchFile(proxy(logoSource));
-  // ffmpeg.wasm 需要识别后缀来选解码器；PNG/JPG 都按 .png 写入没问题（libpng 通用）
+  const logoData = await safeFetchBytes(proxy(logoSource), "品牌 Logo");
   const logoExt = guessImageExt(logoSource);
   const logoFile = `logo.${logoExt}`;
+  try {
+    await ffmpeg.deleteFile(logoFile);
+  } catch {
+    /* ignore */
+  }
   await ffmpeg.writeFile(logoFile, logoData);
 
   const filter = buildCornerWatermarkFilter(cfg);
 
   onProgress?.(25, "叠加品牌水印...");
-  ffmpeg.on("progress", ({ progress }) => {
-    const pct = Math.max(0, Math.min(1, progress));
-    onProgress?.(25 + Math.floor(pct * 65));
-  });
-
-  await ffmpeg.exec([
-    "-i", "raw.mp4",
-    "-i", logoFile,
-    "-filter_complex", filter,
-    "-c:v", "libx264",
-    "-preset", "ultrafast",
-    "-crf", "22",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "copy",
-    "-movflags", "+faststart",
-    "branded.mp4",
-  ]);
+  await execWithGuard(
+    ffmpeg,
+    [
+      "-i", "raw.mp4",
+      "-i", logoFile,
+      "-filter_complex", filter,
+      "-c:v", "libx264",
+      "-preset", "ultrafast",
+      "-crf", "22",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "copy",
+      "-movflags", "+faststart",
+      "branded.mp4",
+    ],
+    "品牌角标叠加",
+    (pct) => {
+      onProgress?.(25 + Math.floor((pct / 100) * 65));
+    },
+  );
 
   onProgress?.(92, "读取成品...");
   const data = await ffmpeg.readFile("branded.mp4");
@@ -227,62 +320,85 @@ async function runIntroOutro(
   }
 
   onProgress?.(18, "下载产品素材...");
-  const imgData = await fetchFile(proxy(productImage));
+  const imgData = await safeFetchBytes(proxy(productImage), "产品素材");
   const imgExt = guessImageExt(productImage);
   const imgFile = `product.${imgExt}`;
+  for (const f of [imgFile, "main.mp4", "intro.mp4", "outro.mp4", "list.txt", "branded.mp4"]) {
+    try {
+      await ffmpeg.deleteFile(f);
+    } catch {
+      /* ignore */
+    }
+  }
   await ffmpeg.writeFile(imgFile, imgData);
 
   onProgress?.(25, "规范原视频到 1080x1920...");
-  await ffmpeg.exec([
-    "-i", "raw.mp4",
-    "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30",
-    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-b:a", "128k",
-    "-movflags", "+faststart",
-    "main.mp4",
-  ]);
+  await execWithGuard(
+    ffmpeg,
+    [
+      "-i", "raw.mp4",
+      "-vf", "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1,fps=30",
+      "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "aac", "-b:a", "128k",
+      "-movflags", "+faststart",
+      "main.mp4",
+    ],
+    "规范原视频",
+  );
 
   onProgress?.(45, "生成片头 (1.5s)...");
-  await ffmpeg.exec([
-    "-loop", "1", "-i", imgFile,
-    "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-    "-t", "1.5",
-    "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30",
-    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-b:a", "128k", "-shortest",
-    "-movflags", "+faststart",
-    "intro.mp4",
-  ]);
+  await execWithGuard(
+    ffmpeg,
+    [
+      "-loop", "1", "-i", imgFile,
+      "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+      "-t", "1.5",
+      "-vf", "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30",
+      "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "aac", "-b:a", "128k", "-shortest",
+      "-movflags", "+faststart",
+      "intro.mp4",
+    ],
+    "生成片头",
+  );
 
   onProgress?.(65, "生成片尾 (2s)...");
   const outroFilter = cfg.slogan
     ? `scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,drawtext=text='${escapeDrawText(cfg.slogan)}':fontcolor=white:fontsize=52:box=1:boxcolor=black@0.5:boxborderw=20:x=(w-text_w)/2:y=h-text_h-140,setsar=1,fps=30`
     : `scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=black,setsar=1,fps=30`;
 
-  await ffmpeg.exec([
-    "-loop", "1", "-i", imgFile,
-    "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
-    "-t", "2",
-    "-vf", outroFilter,
-    "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-b:a", "128k", "-shortest",
-    "-movflags", "+faststart",
-    "outro.mp4",
-  ]);
+  await execWithGuard(
+    ffmpeg,
+    [
+      "-loop", "1", "-i", imgFile,
+      "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000",
+      "-t", "2",
+      "-vf", outroFilter,
+      "-c:v", "libx264", "-preset", "ultrafast", "-crf", "22",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "aac", "-b:a", "128k", "-shortest",
+      "-movflags", "+faststart",
+      "outro.mp4",
+    ],
+    "生成片尾",
+  );
 
   onProgress?.(82, "拼接 intro + main + outro...");
   const list = "file 'intro.mp4'\nfile 'main.mp4'\nfile 'outro.mp4'\n";
   await ffmpeg.writeFile("list.txt", new TextEncoder().encode(list));
-  await ffmpeg.exec([
-    "-f", "concat", "-safe", "0",
-    "-i", "list.txt",
-    "-c", "copy",
-    "-movflags", "+faststart",
-    "branded.mp4",
-  ]);
+  await execWithGuard(
+    ffmpeg,
+    [
+      "-f", "concat", "-safe", "0",
+      "-i", "list.txt",
+      "-c", "copy",
+      "-movflags", "+faststart",
+      "branded.mp4",
+    ],
+    "拼接 intro+main+outro",
+  );
 
   onProgress?.(92, "读取成品...");
   const data = await ffmpeg.readFile("branded.mp4");

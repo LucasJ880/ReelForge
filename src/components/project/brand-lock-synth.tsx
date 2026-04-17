@@ -172,7 +172,9 @@ export function BrandLockSynth({
       )}
 
       {state === "error" && errorMsg && (
-        <p className="text-[11px] text-red-400 mt-1">{errorMsg}</p>
+        <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded bg-black/20 p-2 text-[10px] leading-relaxed text-red-400">
+{errorMsg}
+        </pre>
       )}
 
       {state === "idle" && (

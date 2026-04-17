@@ -7,6 +7,7 @@ import { upload } from "@vercel/blob/client";
 import { useRouter } from "next/navigation";
 import {
   composeFreeChannelVideo,
+  resetFFmpeg,
   type FreeClipInput,
 } from "@/lib/free-channel-composer";
 
@@ -108,6 +109,7 @@ export function FreeChannelPanel({
   }, [state, localUrl, startRender]);
 
   function handleRetry() {
+    resetFFmpeg();
     triggeredRef.current = false;
     setState("idle");
     setProgress(0);
@@ -146,14 +148,22 @@ export function FreeChannelPanel({
 
       {state === "failed" && (
         <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 space-y-2">
-          <p className="text-sm text-destructive">{error ?? "合成失败"}</p>
-          <button
-            onClick={handleRetry}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
-          >
-            <RotateCcw className="h-3 w-3" />
-            重试
-          </button>
+          <p className="text-[11px] font-medium text-destructive">浏览器合成失败</p>
+          <pre className="max-h-40 overflow-auto whitespace-pre-wrap rounded bg-black/20 p-2 text-[10px] leading-relaxed text-destructive/90">
+{error ?? "未知错误"}
+          </pre>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleRetry}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:opacity-90"
+            >
+              <RotateCcw className="h-3 w-3" />
+              重新合成
+            </button>
+            <span className="text-[10px] text-muted-foreground">
+              会自动重置 FFmpeg 环境；如果反复失败请换 Pro 通道或联系管理员
+            </span>
+          </div>
         </div>
       )}
 

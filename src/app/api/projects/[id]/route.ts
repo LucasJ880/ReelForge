@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireAdmin } from "@/lib/api-auth";
+import { deleteProjectWithAssets } from "@/lib/services/project-service";
 
 export async function GET(
   _request: NextRequest,
@@ -64,7 +65,11 @@ export async function DELETE(
 
   const { id } = await params;
 
-  await db.project.delete({ where: { id } });
-
-  return NextResponse.json({ success: true });
+  try {
+    const result = await deleteProjectWithAssets(id);
+    return NextResponse.json({ success: true, ...result });
+  } catch (err) {
+    console.error("[DELETE project]", err);
+    return NextResponse.json({ error: "删除失败" }, { status: 500 });
+  }
 }

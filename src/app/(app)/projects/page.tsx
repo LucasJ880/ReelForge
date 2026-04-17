@@ -13,11 +13,15 @@ import {
   Tag,
   X,
   Loader2,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import { StatusBadge } from "@/components/project/status-badge";
 import { DownloadButton } from "@/components/project/download-button";
+import { BulkActionBar } from "@/components/projects/bulk-action-bar";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { useIsAdmin } from "@/lib/hooks/use-role";
 
 function pickDownloadUrl(p: ProjectItem): string | null {
   return p.videoJob?.stitchedVideoUrl || p.videoJob?.videoUrl || null;
@@ -57,6 +61,7 @@ const SORT_OPTIONS = [
 const PAGE_SIZE = 18;
 
 export default function ProjectsPage() {
+  const isAdmin = useIsAdmin();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [categories, setCategories] = useState<CategoryStat[]>([]);
   const [total, setTotal] = useState(0);
@@ -69,6 +74,27 @@ export default function ProjectsPage() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
+  function selectAllInPage() {
+    setSelectedIds(new Set(projects.map((p) => p.id)));
+  }
+
+  const allSelected =
+    projects.length > 0 && projects.every((p) => selectedIds.has(p.id));
 
   const fetchProjects = useCallback(async () => {
     setLoading(true);
@@ -130,13 +156,34 @@ export default function ProjectsPage() {
             <span className="text-sm font-normal text-zinc-500 ml-2">{total}</span>
           </h1>
         </div>
-        <Link
-          href="/projects/new"
-          className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-teal-700"
-        >
-          <FolderPlus className="h-3.5 w-3.5" />
-          新建
-        </Link>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <button
+              onClick={() => (allSelected ? clearSelection() : selectAllInPage())}
+              disabled={projects.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-md border border-border bg-card px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {allSelected ? (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                  取消全选
+                </>
+              ) : (
+                <>
+                  <Circle className="h-3.5 w-3.5" />
+                  全选当前页
+                </>
+              )}
+            </button>
+          )}
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          >
+            <FolderPlus className="h-3.5 w-3.5" />
+            新建
+          </Link>
+        </div>
       </div>
 
       {/* Toolbar: Search + Sort + View toggle */}
@@ -285,9 +332,21 @@ export default function ProjectsPage() {
       ) : projects.length === 0 ? (
         <EmptyState search={search} category={activeCategory} />
       ) : view === "grid" ? (
-        <GridView projects={projects} />
+        <GridView
+          projects={projects}
+          selectedIds={selectedIds}
+          onToggle={toggleSelect}
+          selectable={isAdmin}
+        />
       ) : (
-        <ListView projects={projects} />
+        <ListView
+          projects={projects}
+          selectedIds={selectedIds}
+          onToggle={toggleSelect}
+          allSelected={allSelected}
+          onToggleAll={() => (allSelected ? clearSelection() : selectAllInPage())}
+          selectable={isAdmin}
+        />
       )}
 
       {/* Pagination */}
@@ -337,19 +396,47 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
+
+      {isAdmin && (
+        <BulkActionBar
+          selectedIds={Array.from(selectedIds)}
+          onClear={clearSelection}
+          onDeleted={() => {
+            fetchProjects();
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function GridView({ projects }: { projects: ProjectItem[] }) {
+function GridView({
+  projects,
+  selectedIds,
+  onToggle,
+  selectable,
+}: {
+  projects: ProjectItem[];
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
+  selectable: boolean;
+}) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {projects.map((p) => {
         const downloadUrl = pickDownloadUrl(p);
+        const checked = selectedIds.has(p.id);
         return (
           <div key={p.id} className="relative group">
             <Link href={`/projects/${p.id}`}>
-              <div className="rounded-xl border border-white/[0.05] bg-white/[0.02] p-4 transition-all hover:border-white/[0.1] hover:bg-white/[0.03] h-full">
+              <div
+                className={cn(
+                  "rounded-xl border bg-white/[0.02] p-4 pl-11 transition-all h-full",
+                  checked
+                    ? "border-primary/40 bg-primary/[0.04]"
+                    : "border-white/[0.05] hover:border-white/[0.1] hover:bg-white/[0.03]",
+                )}
+              >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <h3 className="text-sm font-medium text-white truncate">{p.keyword}</h3>
                   <StatusBadge status={p.status} />
@@ -372,6 +459,29 @@ function GridView({ projects }: { projects: ProjectItem[] }) {
                 </div>
               </div>
             </Link>
+            {selectable && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle(p.id);
+                }}
+                aria-label={checked ? "取消选择" : "选择"}
+                className={cn(
+                  "absolute left-3 top-3 flex h-5 w-5 items-center justify-center rounded-md border transition-all",
+                  checked
+                    ? "border-primary bg-primary text-primary-foreground opacity-100"
+                    : "border-border bg-card/60 text-transparent opacity-0 group-hover:opacity-100",
+                )}
+              >
+                {checked && (
+                  <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path d="M3 8l3.5 3.5L13 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            )}
             {downloadUrl && (
               <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
                 <DownloadButton
@@ -388,12 +498,47 @@ function GridView({ projects }: { projects: ProjectItem[] }) {
   );
 }
 
-function ListView({ projects }: { projects: ProjectItem[] }) {
+function ListView({
+  projects,
+  selectedIds,
+  onToggle,
+  allSelected,
+  onToggleAll,
+  selectable,
+}: {
+  projects: ProjectItem[];
+  selectedIds: Set<string>;
+  onToggle: (id: string) => void;
+  allSelected: boolean;
+  onToggleAll: () => void;
+  selectable: boolean;
+}) {
   return (
     <div className="rounded-xl border border-white/[0.05] overflow-hidden">
       {/* Header */}
       <div className="grid grid-cols-12 gap-3 px-4 py-2.5 text-[10px] uppercase tracking-wider text-zinc-600 border-b border-white/[0.04] bg-white/[0.01]">
-        <div className="col-span-5">关键词</div>
+        <div className="col-span-1 flex items-center">
+          {selectable && (
+            <button
+              type="button"
+              onClick={onToggleAll}
+              aria-label={allSelected ? "取消全选" : "全选"}
+              className={cn(
+                "flex h-4 w-4 items-center justify-center rounded-sm border transition-all",
+                allSelected
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-card/60 text-transparent hover:border-primary/60",
+              )}
+            >
+              {allSelected && (
+                <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth={3}>
+                  <path d="M3 8l3.5 3.5L13 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </button>
+          )}
+        </div>
+        <div className="col-span-4">关键词</div>
         <div className="col-span-2">分类</div>
         <div className="col-span-2">状态</div>
         <div className="col-span-2">创建时间</div>
@@ -403,11 +548,13 @@ function ListView({ projects }: { projects: ProjectItem[] }) {
       {/* Rows */}
       {projects.map((p) => {
         const downloadUrl = pickDownloadUrl(p);
+        const checked = selectedIds.has(p.id);
         return (
-          <div key={p.id} className="relative group">
+          <div key={p.id} className={cn("relative group", checked && "bg-primary/[0.04]")}>
             <Link href={`/projects/${p.id}`}>
               <div className="grid grid-cols-12 gap-3 px-4 py-3 items-center border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors">
-                <div className="col-span-5">
+                <div className="col-span-1" />
+                <div className="col-span-4">
                   <p className="text-sm text-white truncate">{p.keyword}</p>
                   <p className="text-[11px] text-zinc-600 truncate mt-0.5">
                     {p.contentPlan?.caption || "—"}
@@ -432,6 +579,29 @@ function ListView({ projects }: { projects: ProjectItem[] }) {
                 <div className="col-span-1" />
               </div>
             </Link>
+            {selectable && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onToggle(p.id);
+                }}
+                aria-label={checked ? "取消选择" : "选择"}
+                className={cn(
+                  "absolute left-4 top-1/2 -translate-y-1/2 flex h-4 w-4 items-center justify-center rounded-sm border transition-all",
+                  checked
+                    ? "border-primary bg-primary text-primary-foreground opacity-100"
+                    : "border-border bg-card/60 text-transparent opacity-0 group-hover:opacity-100 hover:border-primary/60",
+                )}
+              >
+                {checked && (
+                  <svg viewBox="0 0 16 16" className="h-2.5 w-2.5" fill="none" stroke="currentColor" strokeWidth={3}>
+                    <path d="M3 8l3.5 3.5L13 4.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            )}
             {downloadUrl && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <DownloadButton

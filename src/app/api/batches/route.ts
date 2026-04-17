@@ -18,10 +18,12 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name, keywords, brandDescription, tone, language, videoParams, concurrency, autoGenerateVideo, autoStart } = body;
+    const { name, keywords, brandDescription, tone, language, brandLock, videoParams, concurrency, autoGenerateVideo, autoStart } = body;
 
     const VALID_TONES = ["auto", "promo", "narrative", "educational", "vlog", "news", "humor", "cinematic", "testimonial"];
     const VALID_LANGUAGES = ["auto", "en", "zh", "ja", "ko", "es", "fr", "de"];
+    const VALID_TEMPLATES = ["none", "corner_watermark", "intro_outro", "full_package"];
+    const VALID_POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"];
 
     if (!name || typeof name !== "string" || !name.trim()) {
       return NextResponse.json({ error: "请输入批次名称" }, { status: 400 });
@@ -39,6 +41,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "请输入有效关键词" }, { status: 400 });
     }
 
+    const bl = brandLock && typeof brandLock === "object" ? brandLock : {};
+    const brandLockInput = {
+      logoUrl:
+        typeof bl.logoUrl === "string" && bl.logoUrl.startsWith("http")
+          ? bl.logoUrl
+          : null,
+      enabled: bl.enabled !== false,
+      template:
+        typeof bl.template === "string" && VALID_TEMPLATES.includes(bl.template)
+          ? bl.template
+          : "corner_watermark",
+      position:
+        typeof bl.position === "string" && VALID_POSITIONS.includes(bl.position)
+          ? bl.position
+          : "bottom-right",
+      opacity:
+        typeof bl.opacity === "number"
+          ? Math.max(0, Math.min(100, Math.round(bl.opacity)))
+          : 85,
+    };
+
     const batch = await createBatch({
       name,
       keywords: validKeywords,
@@ -48,6 +71,7 @@ export async function POST(request: NextRequest) {
           : null,
       tone: typeof tone === "string" && VALID_TONES.includes(tone) ? tone : "auto",
       language: typeof language === "string" && VALID_LANGUAGES.includes(language) ? language : "auto",
+      brandLock: brandLockInput,
       videoParams,
       concurrency: concurrency ?? 2,
       autoGenerateVideo: autoGenerateVideo ?? true,

@@ -78,7 +78,20 @@ export async function POST(request: NextRequest) {
   if (!guard.ok) return guard.response;
 
   const body = await request.json();
-  const { keyword, brandDescription, imageUrls, primaryImageUrl, tone, language } = body;
+  const {
+    keyword,
+    brandDescription,
+    imageUrls,
+    primaryImageUrl,
+    tone,
+    language,
+    logoUrl,
+    brandLockEnabled,
+    brandLockTemplate,
+    brandLockPosition,
+    brandLockOpacity,
+    brandLockSlogan,
+  } = body;
 
   if (!keyword || typeof keyword !== "string" || !keyword.trim()) {
     return NextResponse.json(
@@ -89,10 +102,17 @@ export async function POST(request: NextRequest) {
 
   const VALID_TONES = ["auto", "promo", "narrative", "educational", "vlog", "news", "humor", "cinematic", "testimonial"];
   const VALID_LANGUAGES = ["auto", "en", "zh", "ja", "ko", "es", "fr", "de"];
+  const VALID_TEMPLATES = ["none", "corner_watermark", "intro_outro", "full_package"];
+  const VALID_POSITIONS = ["bottom-right", "bottom-left", "top-right", "top-left"];
 
   const validImageUrls = Array.isArray(imageUrls)
     ? imageUrls.filter((u: unknown) => typeof u === "string" && u.startsWith("http"))
     : [];
+
+  const opacity =
+    typeof brandLockOpacity === "number"
+      ? Math.max(0, Math.min(100, Math.round(brandLockOpacity)))
+      : 85;
 
   const project = await db.project.create({
     data: {
@@ -105,6 +125,21 @@ export async function POST(request: NextRequest) {
       language: typeof language === "string" && VALID_LANGUAGES.includes(language) ? language : "auto",
       imageUrls: validImageUrls,
       primaryImageUrl: typeof primaryImageUrl === "string" ? primaryImageUrl : validImageUrls[0] || null,
+      logoUrl: typeof logoUrl === "string" && logoUrl.startsWith("http") ? logoUrl : null,
+      brandLockEnabled: brandLockEnabled !== false,
+      brandLockTemplate:
+        typeof brandLockTemplate === "string" && VALID_TEMPLATES.includes(brandLockTemplate)
+          ? brandLockTemplate
+          : "corner_watermark",
+      brandLockPosition:
+        typeof brandLockPosition === "string" && VALID_POSITIONS.includes(brandLockPosition)
+          ? brandLockPosition
+          : "bottom-right",
+      brandLockOpacity: opacity,
+      brandLockSlogan:
+        typeof brandLockSlogan === "string" && brandLockSlogan.trim()
+          ? brandLockSlogan.trim().slice(0, 100)
+          : null,
     },
   });
 

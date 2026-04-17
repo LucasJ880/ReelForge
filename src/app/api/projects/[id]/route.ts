@@ -24,7 +24,18 @@ export async function GET(
   return NextResponse.json(project);
 }
 
-const ALLOWED_PATCH_FIELDS = new Set(["keyword", "brandDescription", "tone", "language"]);
+const ALLOWED_PATCH_FIELDS = new Set([
+  "keyword",
+  "brandDescription",
+  "tone",
+  "language",
+  "logoUrl",
+  "brandLockEnabled",
+  "brandLockTemplate",
+  "brandLockPosition",
+  "brandLockOpacity",
+  "brandLockSlogan",
+]);
 
 export async function PATCH(
   request: NextRequest,

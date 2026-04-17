@@ -37,9 +37,17 @@ export interface ProjectWithRelations {
   errorMessage: string | null;
   retryCount: number;
   brandDescription: string | null;
+  tone: string | null;
+  language: string | null;
   imageUrls: string[];
   primaryImageUrl: string | null;
   userVideoAssets: string[];
+  logoUrl: string | null;
+  brandLockEnabled: boolean;
+  brandLockTemplate: string;
+  brandLockPosition: string;
+  brandLockOpacity: number;
+  brandLockSlogan: string | null;
   createdAt: Date;
   updatedAt: Date;
   contentPlan: {
@@ -61,6 +69,7 @@ export interface ProjectWithRelations {
     videoUrl: string | null;
     videoUrl2: string | null;
     stitchedVideoUrl: string | null;
+    brandedVideoUrl: string | null;
     thumbnailUrl: string | null;
     duration: number;
     resolution: string;

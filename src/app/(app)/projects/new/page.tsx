@@ -16,6 +16,9 @@ import {
   Info,
   Mic,
   Languages,
+  Shield,
+  Upload,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useIsAdmin } from "@/lib/hooks/use-role";
@@ -57,6 +60,51 @@ const LANGUAGE_OPTIONS: { id: Language; label: string }[] = [
   { id: "es", label: "Español" },
   { id: "fr", label: "Français" },
   { id: "de", label: "Deutsch" },
+];
+
+type BrandLockTemplate =
+  | "none"
+  | "corner_watermark"
+  | "intro_outro"
+  | "full_package";
+
+type BrandLockPosition =
+  | "bottom-right"
+  | "bottom-left"
+  | "top-right"
+  | "top-left";
+
+const BRAND_LOCK_TEMPLATES: {
+  id: BrandLockTemplate;
+  label: string;
+  hint: string;
+  ready: boolean;
+}[] = [
+  {
+    id: "corner_watermark",
+    label: "角标水印",
+    hint: "画面角落持续小 logo，不打扰观感",
+    ready: true,
+  },
+  {
+    id: "intro_outro",
+    label: "片头片尾",
+    hint: "开头 1.5s + 结尾 2s 全屏产品图（即将上线）",
+    ready: false,
+  },
+  {
+    id: "full_package",
+    label: "全包组合",
+    hint: "角标 + 片头片尾 + 品牌文字（即将上线）",
+    ready: false,
+  },
+];
+
+const POSITION_OPTIONS: { id: BrandLockPosition; label: string }[] = [
+  { id: "bottom-right", label: "右下" },
+  { id: "bottom-left", label: "左下" },
+  { id: "top-right", label: "右上" },
+  { id: "top-left", label: "左上" },
 ];
 
 interface ChannelOption {
@@ -122,6 +170,18 @@ export default function NewProjectPage() {
   const [tone, setTone] = useState<Tone>("auto");
   const [language, setLanguage] = useState<Language>("auto");
 
+  // Brand Lock —— 品牌保真合成
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [brandLockEnabled, setBrandLockEnabled] = useState(true);
+  const [brandLockTemplate, setBrandLockTemplate] =
+    useState<BrandLockTemplate>("corner_watermark");
+  const [brandLockPosition, setBrandLockPosition] =
+    useState<BrandLockPosition>("bottom-right");
+  const [brandLockOpacity, setBrandLockOpacity] = useState(85);
+  const [brandLockSlogan, setBrandLockSlogan] = useState("");
+  const [showBrandLockAdvanced, setShowBrandLockAdvanced] = useState(false);
+
   const [uploadedImages, setUploadedImages] = useState<{ url: string; filename: string }[]>([]);
   const [primaryImageUrl, setPrimaryImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -169,6 +229,34 @@ export default function NewProjectPage() {
     setUploading(false);
   }
 
+  async function uploadLogo(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Logo 仅支持 PNG / JPEG / WebP");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Logo 不能超过 10MB");
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "上传失败");
+      }
+      const data = await res.json();
+      setLogoUrl(data.url);
+      toast.success("Logo 已上传");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Logo 上传失败");
+    } finally {
+      setLogoUploading(false);
+    }
+  }
+
   function removeImage(url: string) {
     const newList = uploadedImages.filter((img) => img.url !== url);
     setUploadedImages(newList);
@@ -200,6 +288,12 @@ export default function NewProjectPage() {
           language,
           imageUrls: uploadedImages.map((img) => img.url),
           primaryImageUrl,
+          logoUrl,
+          brandLockEnabled,
+          brandLockTemplate,
+          brandLockPosition,
+          brandLockOpacity,
+          brandLockSlogan: brandLockSlogan.trim() || null,
         }),
       });
       if (!res.ok) throw new Error("创建失败");
@@ -528,6 +622,190 @@ export default function NewProjectPage() {
             <Star className="inline h-2.5 w-2.5 text-primary fill-primary -mt-0.5 mr-0.5" />
             带框的是主图，将传入 Seedance 做图生视频；并且所有上传图都会被 GPT-4o Vision 分析，自动注入脚本和视频提示词。
           </p>
+        )}
+      </div>
+
+      {/* Brand Lock —— 品牌保真合成 */}
+      <div className="mb-5 rounded-xl border border-primary/30 bg-primary/[0.04] p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+              <Shield className="h-4 w-4 text-primary" />
+              Brand Lock · 品牌保真合成
+            </label>
+            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+              AI 生成后自动叠加你的 logo / 产品图，保证品牌 100% 清晰出现在视频里。
+              <br />
+              <span className="text-muted-foreground/80">
+                （AI 视频模型无法保证 logo 文字不变形，这是全行业硬限制，所以我们用 FFmpeg 最后一步硬叠加兜底）
+              </span>
+            </p>
+          </div>
+          <label className="flex items-center gap-1.5 cursor-pointer ml-3 shrink-0">
+            <input
+              type="checkbox"
+              checked={brandLockEnabled}
+              onChange={(e) => setBrandLockEnabled(e.target.checked)}
+              disabled={loading}
+              className="rounded border-border"
+            />
+            <span className="text-[11px] text-muted-foreground">启用</span>
+          </label>
+        </div>
+
+        {brandLockEnabled && (
+          <>
+            {/* Logo 上传 */}
+            <div className="mb-3">
+              <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                品牌 Logo（推荐透明背景 PNG）
+              </label>
+              {logoUrl ? (
+                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
+                  <div className="h-12 w-12 rounded-md bg-zinc-900/40 bg-[linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%),linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px] flex items-center justify-center overflow-hidden">
+                    <img src={logoUrl} alt="logo" className="max-w-full max-h-full object-contain" />
+                  </div>
+                  <div className="flex-1 text-[11px] text-muted-foreground truncate">
+                    Logo 已就绪
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLogoUrl(null)}
+                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                    title="移除 Logo"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative rounded-lg border border-dashed border-border bg-card/60 px-3 py-3 text-center hover:border-primary/40 transition-all">
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                    disabled={logoUploading || loading}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  {logoUploading ? (
+                    <div className="flex items-center justify-center gap-2 text-[11px] text-primary">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      上传中...
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-muted-foreground">
+                      <Upload className="inline h-3 w-3 mr-1 -mt-0.5" />
+                      点击上传 Logo（可选，不传就用主图当 logo 叠加）
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 模板选择 */}
+            <div className="mb-3">
+              <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                合成模板
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {BRAND_LOCK_TEMPLATES.map((t) => {
+                  const active = brandLockTemplate === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      disabled={loading || !t.ready}
+                      onClick={() => t.ready && setBrandLockTemplate(t.id)}
+                      title={t.hint}
+                      className={cn(
+                        "rounded-lg border p-2.5 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed",
+                        active
+                          ? "border-primary/60 bg-primary/[0.10]"
+                          : "border-border bg-card/60 hover:border-primary/30",
+                      )}
+                    >
+                      <div className={cn("text-[11px] font-medium mb-0.5", active ? "text-primary" : "text-foreground")}>
+                        {t.label}
+                        {!t.ready && <span className="ml-1 text-[9px] text-muted-foreground/70">（即将）</span>}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">
+                        {t.hint}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* 高级设置 */}
+            <button
+              type="button"
+              onClick={() => setShowBrandLockAdvanced((v) => !v)}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {showBrandLockAdvanced ? "收起" : "展开"}高级设置（位置 · 透明度 · Slogan）
+            </button>
+
+            {showBrandLockAdvanced && (
+              <div className="mt-3 space-y-3 border-t border-border pt-3">
+                <div>
+                  <label className="block text-[11px] text-muted-foreground mb-1.5">水印位置</label>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {POSITION_OPTIONS.map((p) => {
+                      const active = brandLockPosition === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          disabled={loading}
+                          onClick={() => setBrandLockPosition(p.id)}
+                          className={cn(
+                            "rounded-full border px-3 py-1 text-[11px] transition-all",
+                            active
+                              ? "border-primary/60 bg-primary/[0.12] text-primary"
+                              : "border-border bg-card/60 text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {p.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[11px] text-muted-foreground mb-1.5">
+                    不透明度：<span className="text-foreground">{brandLockOpacity}%</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={20}
+                    max={100}
+                    step={5}
+                    value={brandLockOpacity}
+                    onChange={(e) => setBrandLockOpacity(parseInt(e.target.value))}
+                    disabled={loading}
+                    className="w-full accent-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-muted-foreground mb-1.5">
+                    Slogan 文字（可选，叠加到画面底部）
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={100}
+                    value={brandLockSlogan}
+                    onChange={(e) => setBrandLockSlogan(e.target.value)}
+                    disabled={loading}
+                    placeholder="如：CozyNest · 冬日温暖伴你入眠"
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-muted-foreground/70 mt-1">
+                    仅在「全包组合」模板下生效
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

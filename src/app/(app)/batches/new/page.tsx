@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Zap, ChevronDown, Info } from "lucide-react";
+import { Loader2, Zap, ChevronDown, Info, Shield, Upload, X } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -27,6 +27,43 @@ export default function NewBatchPage() {
   const [autoVideo, setAutoVideo] = useState(true);
   const [tone, setTone] = useState("auto");
   const [language, setLanguage] = useState("auto");
+
+  // Brand Lock（批次内所有 project 共享）
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [brandLockEnabled, setBrandLockEnabled] = useState(true);
+  const [brandLockTemplate, setBrandLockTemplate] = useState<
+    "none" | "corner_watermark" | "intro_outro" | "full_package"
+  >("corner_watermark");
+  const [brandLockPosition, setBrandLockPosition] = useState<
+    "bottom-right" | "bottom-left" | "top-right" | "top-left"
+  >("bottom-right");
+  const [brandLockOpacity, setBrandLockOpacity] = useState(85);
+
+  async function uploadLogo(file: File) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Logo 仅支持 PNG / JPEG / WebP");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Logo 不能超过 10MB");
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("上传失败");
+      const data = await res.json();
+      setLogoUrl(data.url);
+      toast.success("Logo 已上传");
+    } catch {
+      toast.error("Logo 上传失败");
+    } finally {
+      setLogoUploading(false);
+    }
+  }
 
   const set = (fn: (v: string) => void) => (v: string | null) => {
     if (v !== null) fn(v);
@@ -52,6 +89,13 @@ export default function NewBatchPage() {
           brandDescription: brandDescription.trim() || null,
           tone,
           language,
+          brandLock: {
+            logoUrl,
+            enabled: brandLockEnabled,
+            template: brandLockTemplate,
+            position: brandLockPosition,
+            opacity: brandLockOpacity,
+          },
           videoParams: { duration: parseInt(duration), ratio, resolution },
           concurrency: parseInt(concurrency),
           autoGenerateVideo: autoVideo,
@@ -156,6 +200,120 @@ export default function NewBatchPage() {
               { v: "de", l: "Deutsch" },
             ]}
           />
+        </div>
+
+        {/* Brand Lock —— 批次内所有项目共享 */}
+        <div className="rounded-xl border border-primary/30 bg-primary/[0.04] p-4">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <label className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Shield className="h-4 w-4 text-primary" />
+                Brand Lock · 品牌保真合成
+              </label>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                生成完成后自动给每个视频叠加你的 logo，保证品牌 100% 清晰出现
+              </p>
+            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer ml-3 shrink-0">
+              <input
+                type="checkbox"
+                checked={brandLockEnabled}
+                onChange={(e) => setBrandLockEnabled(e.target.checked)}
+                disabled={loading}
+                className="rounded border-border"
+              />
+              <span className="text-[11px] text-muted-foreground">启用</span>
+            </label>
+          </div>
+
+          {brandLockEnabled && (
+            <div className="space-y-3">
+              {/* Logo */}
+              <div>
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                  品牌 Logo（推荐透明 PNG）
+                </label>
+                {logoUrl ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
+                    <div className="h-12 w-12 rounded-md bg-[linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%),linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px] flex items-center justify-center overflow-hidden">
+                      <img src={logoUrl} alt="logo" className="max-w-full max-h-full object-contain" />
+                    </div>
+                    <div className="flex-1 text-[11px] text-muted-foreground truncate">Logo 就绪</div>
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl(null)}
+                      className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative rounded-lg border border-dashed border-border bg-card/60 px-3 py-3 text-center hover:border-primary/40 transition-all">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                      disabled={logoUploading || loading}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    {logoUploading ? (
+                      <div className="flex items-center justify-center gap-2 text-[11px] text-primary">
+                        <Loader2 className="h-3 w-3 animate-spin" /> 上传中...
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground">
+                        <Upload className="inline h-3 w-3 mr-1 -mt-0.5" />
+                        点击上传 Logo
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {/* 位置 */}
+              <div>
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                  水印位置
+                </label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { v: "bottom-right", l: "右下" },
+                    { v: "bottom-left", l: "左下" },
+                    { v: "top-right", l: "右上" },
+                    { v: "top-left", l: "左上" },
+                  ].map((p) => (
+                    <button
+                      key={p.v}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setBrandLockPosition(p.v as typeof brandLockPosition)}
+                      className={`rounded-full border px-3 py-1 text-[11px] transition-all ${
+                        brandLockPosition === p.v
+                          ? "border-primary/60 bg-primary/[0.12] text-primary"
+                          : "border-border bg-card/60 text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {p.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                  不透明度：<span className="text-foreground">{brandLockOpacity}%</span>
+                </label>
+                <input
+                  type="range"
+                  min={20}
+                  max={100}
+                  step={5}
+                  value={brandLockOpacity}
+                  onChange={(e) => setBrandLockOpacity(parseInt(e.target.value))}
+                  disabled={loading}
+                  className="w-full accent-primary"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Keywords */}

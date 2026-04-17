@@ -14,6 +14,14 @@ export interface CreateBatchInput {
   tone?: string | null;
   /** 批次内所有 project 共享的语言 */
   language?: string | null;
+  /** 批次内所有 project 共享的 Brand Lock 合成配置 */
+  brandLock?: {
+    logoUrl?: string | null;
+    enabled?: boolean;
+    template?: string;
+    position?: string;
+    opacity?: number;
+  };
   videoParams?: VideoParams;
   concurrency?: number;
   autoGenerateVideo?: boolean;
@@ -26,6 +34,7 @@ export async function createBatch(input: CreateBatchInput) {
     brandDescription,
     tone,
     language,
+    brandLock,
     videoParams,
     concurrency = 2,
     autoGenerateVideo = true,
@@ -33,6 +42,15 @@ export async function createBatch(input: CreateBatchInput) {
 
   if (!keywords.length) throw new Error("至少需要一个关键词");
   if (keywords.length > 50) throw new Error("单批次最多 50 个关键词");
+
+  const brandLockDefaults = {
+    logoUrl: brandLock?.logoUrl || null,
+    brandLockEnabled: brandLock?.enabled !== false,
+    brandLockTemplate: brandLock?.template || "corner_watermark",
+    brandLockPosition: brandLock?.position || "bottom-right",
+    brandLockOpacity:
+      typeof brandLock?.opacity === "number" ? brandLock.opacity : 85,
+  };
 
   const batch = await db.batch.create({
     data: {
@@ -48,6 +66,7 @@ export async function createBatch(input: CreateBatchInput) {
           brandDescription: brandDescription || null,
           tone: tone || "auto",
           language: language || "auto",
+          ...brandLockDefaults,
         })),
       },
     },

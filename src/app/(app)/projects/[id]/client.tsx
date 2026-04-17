@@ -26,6 +26,7 @@ import {
   type FreeChannelOptionsValue,
 } from "@/components/project/free-channel-options";
 import { UserAssetsManager } from "@/components/project/user-assets-manager";
+import { BrandLockSynth } from "@/components/project/brand-lock-synth";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ProjectWithRelations, ContentAngle } from "@/types";
@@ -235,7 +236,11 @@ export function ProjectDetailClient({
   const hasTwoSegments = !!(vj?.videoUrl && vj?.videoUrl2);
   const persistedStitchedUrl = vj?.stitchedVideoUrl ?? null;
   const effectiveStitchedUrl = persistedStitchedUrl || stitchedUrl;
-  const mainDownloadUrl = effectiveStitchedUrl || vj?.videoUrl || null;
+  // Branded 版本优先级最高 —— 它是 AI 原版叠加了用户 logo/产品后的最终成品
+  const brandedUrl = vj?.brandedVideoUrl ?? null;
+  const rawVideoUrl = effectiveStitchedUrl || vj?.videoUrl || null;
+  const primaryPreviewUrl = brandedUrl || rawVideoUrl;
+  const mainDownloadUrl = primaryPreviewUrl;
 
   const isBlobUrl = (u: string | null | undefined) =>
     !!u && (u.includes(".public.blob.vercel-storage.com") || u.includes(".blob.vercel-storage.com"));
@@ -576,7 +581,21 @@ export function ProjectDetailClient({
               )}
 
               {/* Preview area with fallback chain */}
-              {effectiveStitchedUrl ? (
+              {brandedUrl ? (
+                <div className="rounded-2xl overflow-hidden bg-background shadow-none">
+                  <div className="aspect-[9/16] relative">
+                    <video
+                      src={brandedUrl}
+                      controls
+                      className="w-full h-full object-contain"
+                      poster={vj.thumbnailUrl || undefined}
+                    />
+                    <span className="absolute top-2 left-2 rounded-md bg-primary/90 px-2 py-0.5 text-[10px] font-medium text-primary-foreground">
+                      品牌版
+                    </span>
+                  </div>
+                </div>
+              ) : effectiveStitchedUrl ? (
                 <div className="rounded-2xl overflow-hidden bg-background shadow-none">
                   <div className="aspect-[9/16]">
                     <video
@@ -632,7 +651,15 @@ export function ProjectDetailClient({
               <div className="flex items-center justify-between mt-3 text-[11px] text-foreground/90">
                 <span>{vj.provider}</span>
                 <div className="flex items-center gap-3">
-                  {effectiveStitchedUrl && (
+                  {brandedUrl && (
+                    <button
+                      onClick={() => handleDownload(brandedUrl, `${project.keyword}-branded.mp4`)}
+                      className="flex items-center gap-1 text-primary hover:opacity-80 font-medium"
+                    >
+                      <Download className="h-3 w-3" /> 下载品牌版
+                    </button>
+                  )}
+                  {effectiveStitchedUrl && !brandedUrl && (
                     <button
                       onClick={() => handleDownload(effectiveStitchedUrl, `${project.keyword}-30s.mp4`)}
                       className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
@@ -640,7 +667,7 @@ export function ProjectDetailClient({
                       <Download className="h-3 w-3" /> 下载 30s
                     </button>
                   )}
-                  {vj.videoUrl && !effectiveStitchedUrl && (
+                  {vj.videoUrl && !effectiveStitchedUrl && !brandedUrl && (
                     <button
                       onClick={() => handleDownload(vj.videoUrl!, `${project.keyword}-15s.mp4`)}
                       className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300"
@@ -651,6 +678,43 @@ export function ProjectDetailClient({
                   {vj.completedAt && <span>{formatDate(vj.completedAt)}</span>}
                 </div>
               </div>
+
+              {/* Brand Lock 合成面板 —— 视频就绪时展示，自动触发首次合成 */}
+              {isAdmin && rawVideoUrl && project.brandLockEnabled && project.brandLockTemplate !== "none" && (
+                <div className="mt-4">
+                  <BrandLockSynth
+                    projectId={project.id}
+                    rawVideoUrl={rawVideoUrl}
+                    existingBrandedUrl={brandedUrl}
+                    autoTrigger={!brandedUrl}
+                    onBranded={(url) => {
+                      setProject((p) =>
+                        p.videoJob
+                          ? { ...p, videoJob: { ...p.videoJob, brandedVideoUrl: url } }
+                          : p,
+                      );
+                    }}
+                  />
+                </div>
+              )}
+
+              {/* AI 原版展开（当有 branded 版本时，原版收进 details） */}
+              {brandedUrl && rawVideoUrl && (
+                <details className="mt-3">
+                  <summary className="text-[11px] text-muted-foreground cursor-pointer hover:text-foreground transition-colors">
+                    查看 AI 原版（无品牌叠加）
+                  </summary>
+                  <div className="mt-2 rounded-xl overflow-hidden bg-background">
+                    <video src={rawVideoUrl} controls className="w-full aspect-[9/16] object-contain" />
+                  </div>
+                  <button
+                    onClick={() => handleDownload(rawVideoUrl, `${project.keyword}-raw.mp4`)}
+                    className="mt-2 inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+                  >
+                    <Download className="h-3 w-3" /> 下载 AI 原版
+                  </button>
+                </details>
+              )}
 
               {/* Segments details when stitched */}
               {vj.videoUrl2 && effectiveStitchedUrl && (

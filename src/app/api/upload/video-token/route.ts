@@ -23,9 +23,10 @@ export async function POST(request: NextRequest) {
       onBeforeGenerateToken: async (pathname) => {
         const allowed =
           pathname.startsWith("free-output/") ||
+          pathname.startsWith("branded/") ||
           pathname.startsWith("user-assets/");
         if (!allowed) {
-          throw new Error("仅允许上传到 free-output/ 或 user-assets/ 目录");
+          throw new Error("仅允许上传到 free-output/、branded/ 或 user-assets/ 目录");
         }
         return {
           allowedContentTypes: ["video/mp4", "video/webm", "video/quicktime"],

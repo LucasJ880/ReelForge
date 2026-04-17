@@ -71,6 +71,20 @@ model Project {
   imageUrls        String[]
   primaryImageUrl  String?
   userVideoAssets  String[]      @default([])
+
+  // --- Brand Lock 品牌保真合成配置 ---
+  /// 单独上传的品牌 Logo (PNG 优先，透明背景最佳)
+  logoUrl           String?
+  /// 是否启用 Brand Lock 合成
+  brandLockEnabled  Boolean  @default(true)
+  /// 合成模板：none | corner_watermark | intro_outro | full_package
+  brandLockTemplate String   @default("corner_watermark")
+  /// 角标水印位置：bottom-right | bottom-left | top-right | top-left
+  brandLockPosition String   @default("bottom-right")
+  /// 水印不透明度 0-100
+  brandLockOpacity  Int      @default(85)
+  /// 叠加的 Slogan / 品牌文字 (full_package 使用)
+  brandLockSlogan   String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
@@ -111,6 +125,8 @@ model VideoJob {
   videoUrl         String?
   videoUrl2        String?
   stitchedVideoUrl String?
+  /// Brand Lock 后的最终品牌版视频（硬叠加 logo/产品/slogan 后的成品）
+  brandedVideoUrl  String?
   thumbnailUrl     String?
   duration         Int            @default(15)
   resolution       String         @default("1080p")

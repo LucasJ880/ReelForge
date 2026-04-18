@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 import { persistRemoteVideo, persistRemoteImage } from "@/lib/utils/persist-video";
 
 export const maxDuration = 60;
@@ -9,7 +9,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;

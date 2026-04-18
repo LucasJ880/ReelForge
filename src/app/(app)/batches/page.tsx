@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Plus, Layers, ArrowRight, Trash2, Loader2, MoreHorizontal } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { useIsAdmin } from "@/lib/hooks/use-role";
+import { useIsPro } from "@/lib/hooks/use-role";
 
 interface BatchItem {
   id: string;
@@ -28,7 +28,7 @@ const statusConfig: Record<string, { label: string; dot: string; textClass: stri
 };
 
 export default function BatchListPage() {
-  const isAdmin = useIsAdmin();
+  const isPro = useIsPro();
   const [batches, setBatches] = useState<BatchItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export default function BatchListPage() {
           </p>
           <h1 className="text-lg font-semibold tracking-tight text-foreground">批量任务</h1>
         </div>
-        {isAdmin && (
+        {isPro && (
           <Link
             href="/batches/new"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
@@ -90,7 +90,7 @@ export default function BatchListPage() {
         <div className="text-center py-20">
           <Layers className="h-8 w-8 text-muted-foreground/70 mx-auto mb-4" />
           <p className="text-muted-foreground text-sm mb-6">暂无批量任务</p>
-          {isAdmin && (
+          {isPro && (
             <Link
               href="/batches/new"
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
@@ -106,7 +106,7 @@ export default function BatchListPage() {
             <BatchRow
               key={batch.id}
               batch={batch}
-              canManage={isAdmin}
+              canManage={isPro}
               menuOpen={menuOpenId === batch.id}
               onMenuToggle={(next) => setMenuOpenId(next ? batch.id : null)}
               onDeleted={load}

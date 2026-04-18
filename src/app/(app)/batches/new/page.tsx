@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Loader2, Zap, ChevronDown, Info, Shield, Upload, X } from "lucide-react";
+import { Loader2, Zap, ChevronDown, Info, Shield, Upload, X, Lock } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -11,9 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useIsPro } from "@/lib/hooks/use-role";
 
 export default function NewBatchPage() {
   const router = useRouter();
+  const isPro = useIsPro();
   const [name, setName] = useState("");
   const [keywordsText, setKeywordsText] = useState("");
   const [brandDescription, setBrandDescription] = useState("");
@@ -104,6 +107,11 @@ export default function NewBatchPage() {
       });
 
       if (!res.ok) {
+        if (res.status === 402) {
+          toast.error("订阅已过期，请续费或联系管理员");
+          router.push("/pricing");
+          return;
+        }
         const err = await res.json();
         throw new Error(err.error || "创建失败");
       }
@@ -116,6 +124,26 @@ export default function NewBatchPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  if (!isPro) {
+    return (
+      <div className="max-w-md mx-auto pt-24 text-center">
+        <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-card border border-border">
+          <Lock className="h-6 w-6 text-muted-foreground" />
+        </div>
+        <h1 className="text-xl font-semibold text-white mb-3">批量生成需要 Pro 订阅</h1>
+        <p className="text-sm text-muted-foreground mb-6">
+          批量生成会同时消耗多条 Seedance 视频配额，已限定为 Pro 权益。订阅后即可解锁。
+        </p>
+        <Link
+          href="/pricing"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        >
+          查看订阅方案
+        </Link>
+      </div>
+    );
   }
 
   return (

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 import { deleteProjectWithAssets } from "@/lib/services/project-service";
 
 export async function GET(
@@ -24,6 +24,9 @@ export async function GET(
   return NextResponse.json(project);
 }
 
+// 仅 ADMIN 可切换的字段（业务安全：私有化是发布动作）
+const ADMIN_ONLY_PATCH_FIELDS = new Set(["isPublic"]);
+
 const ALLOWED_PATCH_FIELDS = new Set([
   "keyword",
   "brandDescription",
@@ -35,13 +38,14 @@ const ALLOWED_PATCH_FIELDS = new Set([
   "brandLockPosition",
   "brandLockOpacity",
   "brandLockSlogan",
+  "isPublic",
 ]);
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;
@@ -49,9 +53,17 @@ export async function PATCH(
 
   const data: Record<string, unknown> = {};
   for (const key of Object.keys(body)) {
-    if (ALLOWED_PATCH_FIELDS.has(key)) {
-      data[key] = body[key];
+    if (!ALLOWED_PATCH_FIELDS.has(key)) continue;
+    if (
+      ADMIN_ONLY_PATCH_FIELDS.has(key) &&
+      guard.session.user.role !== "ADMIN"
+    ) {
+      return NextResponse.json(
+        { error: `字段 ${key} 仅管理员可修改` },
+        { status: 403 },
+      );
     }
+    data[key] = body[key];
   }
 
   if (Object.keys(data).length === 0) {
@@ -70,7 +82,8 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireAdmin();
+  // 删除视为写操作 —— 需要 PRO；ADMIN 自动满足
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;
@@ -83,3 +96,4 @@ export async function DELETE(
     return NextResponse.json({ error: "删除失败" }, { status: 500 });
   }
 }
+

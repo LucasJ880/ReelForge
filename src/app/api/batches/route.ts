@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createBatch, listBatches, executeBatch } from "@/lib/services/batch-service";
 import { handleApiError } from "@/lib/utils/api-error";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   try {

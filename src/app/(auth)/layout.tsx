@@ -43,15 +43,16 @@ export default function AuthLayout({
               <span className="text-primary">短视频</span>
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Aivora 自动生成脚本、配音、字幕、素材，并在浏览器端合成 mp4。
+              Aivora 用即梦 Seedance 商业级视频模型一键产出竖屏短片。
               下载即用，随意发布到 TikTok / 抖音 / 小红书 / Reels。
             </p>
 
             <ul className="mt-10 space-y-3 text-sm text-muted-foreground">
               {[
-                "基于 Seedance 的付费高质量通道",
-                "零成本的免费通道（Pexels + Edge TTS + 浏览器合成）",
-                "支持 9 种语言配音、批量生成、一键下载",
+                "Seedance 商业级 AI 视频引擎",
+                "Brand Lock 品牌叠加，Logo 100% 清晰",
+                "批量并行生成 · 作品库一键下载",
+                "公开画廊免费浏览，Pro 订阅解锁创作",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
                   <svg viewBox="0 0 16 16" className="mt-[3px] h-3.5 w-3.5 shrink-0 text-primary" fill="none" stroke="currentColor" strokeWidth={2}>

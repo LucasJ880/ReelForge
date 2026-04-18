@@ -48,6 +48,7 @@ export interface ProjectWithRelations {
   brandLockPosition: string;
   brandLockOpacity: number;
   brandLockSlogan: string | null;
+  isPublic: boolean;
   createdAt: Date;
   updatedAt: Date;
   contentPlan: {

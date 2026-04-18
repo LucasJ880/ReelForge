@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Link from "next/link";
 import {
   Sparkles,
   Video,
@@ -14,23 +15,19 @@ import {
   X,
   Download,
   Scissors,
+  Eye,
+  EyeOff,
+  Lock,
 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { StatusStepper } from "@/components/project/status-stepper";
 import { StatusBadge } from "@/components/project/status-badge";
-import { FreeChannelPanel } from "@/components/project/free-channel-panel";
-import {
-  FreeChannelOptions,
-  DEFAULT_FREE_OPTIONS,
-  type FreeChannelOptionsValue,
-} from "@/components/project/free-channel-options";
-import { UserAssetsManager } from "@/components/project/user-assets-manager";
 import { BrandLockSynth } from "@/components/project/brand-lock-synth";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { ProjectWithRelations, ContentAngle } from "@/types";
-import { useIsAdmin } from "@/lib/hooks/use-role";
+import { useIsAdmin, useIsPro } from "@/lib/hooks/use-role";
 
 export function ProjectDetailClient({
   project: initial,
@@ -39,6 +36,7 @@ export function ProjectDetailClient({
 }) {
   const router = useRouter();
   const isAdmin = useIsAdmin();
+  const isPro = useIsPro();
   const [project, setProject] = useState(initial);
   const [generating, setGenerating] = useState(false);
   const [videoSubmitting, setVideoSubmitting] = useState(false);
@@ -49,12 +47,11 @@ export function ProjectDetailClient({
   const [editData, setEditData] = useState({ script: "", caption: "", videoPrompt: "" });
   const [saving, setSaving] = useState(false);
   const [selectedDuration, setSelectedDuration] = useState(15);
-  const [freeOptions, setFreeOptions] =
-    useState<FreeChannelOptionsValue>(DEFAULT_FREE_OPTIONS);
   const [stitching, setStitching] = useState(false);
   const [stitchProgress, setStitchProgress] = useState(0);
   const [stitchedUrl, setStitchedUrl] = useState<string | null>(null);
   const [stitchFailed, setStitchFailed] = useState(false);
+  const [togglingPublic, setTogglingPublic] = useState(false);
   const stitchAttempted = useRef(false);
 
   useEffect(() => { setProject(initial); }, [initial]);
@@ -100,10 +97,7 @@ export function ProjectDetailClient({
       const res = await fetch(`/api/projects/${project.id}/auto-generate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          channel: "pro",
-          duration: selectedDuration,
-        }),
+        body: JSON.stringify({ duration: selectedDuration }),
       });
       if (!res.ok) {
         const err = await res.json();
@@ -113,34 +107,6 @@ export function ProjectDetailClient({
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "一键生成失败");
-    } finally {
-      setGenerating(false);
-      setVideoSubmitting(false);
-    }
-  }
-
-  async function handleFreeGenerate() {
-    if (generating || videoSubmitting) return;
-    setGenerating(true);
-    setVideoSubmitting(true);
-    try {
-      toast.info("Free 通道：正在准备素材（Pexels + Edge TTS）...");
-      const res = await fetch(`/api/projects/${project.id}/free-prepare`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          voiceId: freeOptions.voiceId,
-          rate: freeOptions.rate,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || "Free 通道准备失败");
-      }
-      toast.success("素材就绪，即将在浏览器里合成视频");
-      router.refresh();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Free 通道失败");
     } finally {
       setGenerating(false);
       setVideoSubmitting(false);
@@ -228,6 +194,29 @@ export function ProjectDetailClient({
     }
   }
 
+  async function handleTogglePublic() {
+    if (togglingPublic) return;
+    setTogglingPublic(true);
+    const next = !project.isPublic;
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: next }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "切换失败");
+      }
+      setProject((p) => ({ ...p, isPublic: next }));
+      toast.success(next ? "已设为公开" : "已设为私有");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "切换失败");
+    } finally {
+      setTogglingPublic(false);
+    }
+  }
+
   const cp = project.contentPlan;
   const vj = project.videoJob;
   const angles = (cp?.contentAngles ?? []) as ContentAngle[];
@@ -272,7 +261,7 @@ export function ProjectDetailClient({
   useEffect(() => {
     if (!hasTwoSegments) return;
     if (persistedStitchedUrl) return;
-    if (!isAdmin) return;
+    if (!isPro) return;
     if (stitchedUrl || stitching || stitchAttempted.current) return;
 
     stitchAttempted.current = true;
@@ -330,7 +319,7 @@ export function ProjectDetailClient({
   }, [
     hasTwoSegments,
     persistedStitchedUrl,
-    isAdmin,
+    isPro,
     stitchedUrl,
     stitching,
     vj,
@@ -395,6 +384,28 @@ export function ProjectDetailClient({
             作品详情
           </p>
           <StatusBadge status={project.status} />
+          {isAdmin && (
+            <button
+              onClick={handleTogglePublic}
+              disabled={togglingPublic}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors disabled:opacity-50",
+                project.isPublic
+                  ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/15"
+                  : "bg-zinc-500/10 text-zinc-400 hover:bg-zinc-500/15",
+              )}
+              title={project.isPublic ? "当前公开；点击设为私有" : "当前私有；点击设为公开"}
+            >
+              {togglingPublic ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : project.isPublic ? (
+                <Eye className="h-3 w-3" />
+              ) : (
+                <EyeOff className="h-3 w-3" />
+              )}
+              {project.isPublic ? "公开" : "私有"}
+            </button>
+          )}
         </div>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
@@ -420,7 +431,7 @@ export function ProjectDetailClient({
                 下载视频
               </button>
             )}
-            {isAdmin && <ActionButtons
+            {isPro && <ActionButtons
               project={project}
               generating={generating}
               videoSubmitting={videoSubmitting}
@@ -429,16 +440,19 @@ export function ProjectDetailClient({
               selectedDuration={selectedDuration}
               onGenerate={handleGenerate}
               onAutoGenerate={handleAutoGenerate}
-              onFreeGenerate={handleFreeGenerate}
               onVideoGenerate={handleVideoGenerate}
               onDelete={handleDelete}
               onConfirmDelete={setConfirmDelete}
               onDurationChange={setSelectedDuration}
             />}
-            {!isAdmin && (
-              <span className="text-xs text-muted-foreground rounded-lg bg-card/70 border border-border px-3 py-1.5">
-                浏览模式 · 生成功能需要管理员权限
-              </span>
+            {!isPro && (
+              <Link
+                href="/pricing"
+                className="inline-flex items-center gap-1.5 text-xs text-amber-300 rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 hover:bg-amber-500/15 transition-colors"
+              >
+                <Lock className="h-3 w-3" />
+                浏览模式 · 订阅 Pro 以开启创作
+              </Link>
             )}
           </div>
         </div>
@@ -464,29 +478,11 @@ export function ProjectDetailClient({
               点击顶部按钮开始，AI 将为「<span className="text-foreground">{project.keyword}</span>」生成完整的文案 + 视频
             </p>
           </div>
-          {isAdmin && (
-            <>
-              <FreeChannelOptions value={freeOptions} onChange={setFreeOptions} />
-              <UserAssetsManager
-                projectId={project.id}
-                initialAssets={project.userVideoAssets ?? []}
-              />
-            </>
-          )}
         </div>
       )}
 
-      {vj?.channel === "free" && vj.manifest ? (
-        <FreeChannelPanel
-          projectId={project.id}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          manifest={vj.manifest as any}
-          currentVideoUrl={vj.status === "COMPLETED" ? vj.videoUrl : null}
-        />
-      ) : null}
-
       {/* Pro channel generating */}
-      {isVideoGenerating && vj?.channel !== "free" && (
+      {isVideoGenerating && (
         <div className="rounded-xl bg-amber-500/10 p-5">
           <div className="flex items-center gap-2 mb-3">
             <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
@@ -553,7 +549,7 @@ export function ProjectDetailClient({
                 <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium">
                   视频预览 {vj.videoUrl2 ? `· ${vj.duration}s` : ""}
                 </p>
-                {isAdmin && needsMigrate && (
+                {isPro && needsMigrate && (
                   <button
                     onClick={handleRepersist}
                     disabled={migrating}
@@ -613,7 +609,7 @@ export function ProjectDetailClient({
                   {stitchFailed && (
                     <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-[11px] text-amber-300 flex items-center justify-between gap-2">
                       <span>30 秒拼接失败，下方显示两个分段</span>
-                      {isAdmin && !stitching && (
+                      {isPro && !stitching && (
                         <button
                           onClick={handleManualStitch}
                           className="text-amber-200 hover:text-amber-100 underline underline-offset-2"
@@ -623,9 +619,9 @@ export function ProjectDetailClient({
                       )}
                     </div>
                   )}
-                  {!stitchFailed && !isAdmin && (
+                  {!stitchFailed && !isPro && (
                     <div className="rounded-lg bg-card/80 border border-border px-3 py-2 text-[11px] text-muted-foreground">
-                      30 秒完整版尚未由管理员拼接保存，下方可分段观看
+                      30 秒完整版尚未拼接保存，下方可分段观看
                     </div>
                   )}
                   <div className="grid grid-cols-2 gap-2">
@@ -679,8 +675,8 @@ export function ProjectDetailClient({
                 </div>
               </div>
 
-              {/* Brand Lock 合成面板 —— 视频就绪时展示，自动触发首次合成 */}
-              {isAdmin && rawVideoUrl && project.brandLockEnabled && project.brandLockTemplate !== "none" && (
+              {/* Brand Lock 合成面板 */}
+              {isPro && rawVideoUrl && project.brandLockEnabled && project.brandLockTemplate !== "none" && (
                 <div className="mt-4">
                   <BrandLockSynth
                     projectId={project.id}
@@ -744,7 +740,7 @@ export function ProjectDetailClient({
               vj?.status === "COMPLETED" && vj.videoUrl ? "lg:col-span-3" : "lg:col-span-5"
             )}>
               {/* Edit toggle */}
-              {canEdit && (
+              {canEdit && isPro && (
                 <div className="flex justify-end">
                   {!editing ? (
                     <button onClick={startEditing} className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground/90 transition-colors">
@@ -860,13 +856,13 @@ function ActionButtons({
   project,
   generating, videoSubmitting, deleting,
   confirmDelete, selectedDuration,
-  onGenerate, onAutoGenerate, onFreeGenerate, onVideoGenerate, onDelete,
+  onGenerate, onAutoGenerate, onVideoGenerate, onDelete,
   onConfirmDelete, onDurationChange,
 }: {
   project: ProjectWithRelations;
   generating: boolean; videoSubmitting: boolean; deleting: boolean;
   confirmDelete: boolean; selectedDuration: number;
-  onGenerate: () => void; onAutoGenerate: () => void; onFreeGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
+  onGenerate: () => void; onAutoGenerate: () => void; onVideoGenerate: () => void; onDelete: () => void;
   onConfirmDelete: (v: boolean) => void; onDurationChange: (v: number) => void;
 }) {
   const btn = "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50";
@@ -881,11 +877,7 @@ function ActionButtons({
         <>
           <button className={primary} onClick={onAutoGenerate} disabled={generating || videoSubmitting}>
             {(generating || videoSubmitting) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
-            一键生成 · Pro
-          </button>
-          <button className={secondary} onClick={onFreeGenerate} disabled={generating || videoSubmitting}>
-            {(generating || videoSubmitting) ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Video className="h-3.5 w-3.5" />}
-            免费生成 · Free
+            一键生成
           </button>
           <button className={ghost} onClick={onGenerate} disabled={generating}>
             仅生成文案

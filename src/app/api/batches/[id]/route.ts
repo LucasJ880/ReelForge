@@ -7,7 +7,7 @@ import {
   deleteBatch,
 } from "@/lib/services/batch-service";
 import { handleApiError } from "@/lib/utils/api-error";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 
 export async function GET(
   _request: NextRequest,
@@ -27,7 +27,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;
@@ -76,7 +76,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;

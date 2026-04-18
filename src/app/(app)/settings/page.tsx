@@ -1,9 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useSession } from "next-auth/react";
+import { Crown, ArrowRight } from "lucide-react";
+import { useSubscription } from "@/lib/hooks/use-role";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
+  const sub = useSubscription();
 
   return (
     <div className="max-w-xl mx-auto space-y-8">
@@ -30,6 +34,46 @@ export default function SettingsPage() {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Subscription */}
+      <div>
+        <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-3">
+          订阅
+        </p>
+        <Link
+          href="/settings/billing"
+          className="flex items-center justify-between rounded-xl border border-white/5 bg-card/60 px-4 py-4 hover:border-primary/30 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                sub.isActive
+                  ? "bg-primary/15 text-primary"
+                  : "bg-muted-foreground/10 text-muted-foreground"
+              }`}
+            >
+              <Crown className="h-4 w-4" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-white">
+                {sub.tier === "ADMIN"
+                  ? "管理员"
+                  : sub.tier === "PRO"
+                    ? "Pro 订阅中"
+                    : "免费用户"}
+              </p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {sub.tier === "FREE"
+                  ? "点击查看订阅方案解锁创作功能"
+                  : sub.daysLeft != null
+                    ? `剩余 ${sub.daysLeft} 天 · 点击管理订阅`
+                    : "点击管理订阅"}
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+        </Link>
       </div>
 
       {/* API Status */}

@@ -7,9 +7,13 @@ const publicPaths = [
   "/landing",
   "/terms",
   "/privacy",
+  "/gallery",
+  "/pricing",
   "/api/auth",
   "/api/cron",
   "/api/proxy-video",
+  "/api/gallery",
+  "/api/webhooks",
 ];
 
 export async function middleware(req: NextRequest) {

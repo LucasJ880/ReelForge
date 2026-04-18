@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 import {
   bulkDeleteProjects,
   countExpiredProjects,
@@ -12,7 +12,7 @@ export const maxDuration = 60;
  * 预览模式：返回符合过期条件的项目数量（不删除）
  */
 export async function GET(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { searchParams } = new URL(request.url);
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
  * }
  */
 export async function POST(request: NextRequest) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const body = await request.json().catch(() => ({}));

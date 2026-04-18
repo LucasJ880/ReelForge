@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { cn } from "@/lib/utils";
-import { useIsAdmin } from "@/lib/hooks/use-role";
+import { useIsPro } from "@/lib/hooks/use-role";
 
 interface BatchProject {
   id: string;
@@ -56,7 +56,7 @@ const projectStatusLabels: Record<string, string> = {
 
 export function BatchDetailClient({ initial }: { initial: BatchData }) {
   const router = useRouter();
-  const isAdmin = useIsAdmin();
+  const isAdmin = useIsPro();
   const [batch, setBatch] = useState(initial);
   const [deleting, setDeleting] = useState(false);
   const isRunning = batch.status === "RUNNING";

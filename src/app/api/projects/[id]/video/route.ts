@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { submitVideoJob, checkVideoStatus } from "@/lib/services/video-service";
 import { handleApiError } from "@/lib/utils/api-error";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;

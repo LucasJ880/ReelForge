@@ -1,60 +1,72 @@
 # Aivora
 
-AI 驱动的中文短视频自动化平台。输入关键词 → AI 生成文案 → 选 Pro / Free 通道出视频 → 下载 mp4 到本地，手动发布到 TikTok / 抖音 / 视频号。
+AI 驱动的中文短视频自动化平台。输入关键词 → AI 生成脚本 / 标题 / Hashtag → 即梦 Seedance 产出 mp4 → 浏览器端 Brand Lock 叠加 Logo → 下载到本地，手动发布到 TikTok / 抖音 / 视频号。
 
 ## 核心理念
 
 - **只管生成，不管发布**。用户自行下载 mp4 到任一平台发布，平台不绑定任何社媒账户。
-- **双通道策略**：
-  - **Pro 通道**（即梦 Seedance）：质量最高，适合正式出片，需要 `ARK_API_KEY`。
-  - **Free 通道**（Pexels + Edge TTS + ffmpeg.wasm）：完全免费、浏览器本地合成，适合大规模试水。
-- **用户友好**：一键生成、音色可选（9 国 22 个音色）、可上传自带素材、项目一键批量删除。
+- **单通道极简**：MVP 阶段只保留 Pro（即梦 Seedance）路径，避免 Pexels/TTS 免费通道的稳定性陷阱。
+- **Brand Lock 品牌保真**：AI 模型无法稳定出 Logo —— 用 ffmpeg.wasm 最后一步硬叠加兜底，品牌 100% 清晰。
+- **订阅驱动**：
+  - **免费用户**：只能浏览公开画廊、下载公开作品。
+  - **Pro 用户**：解锁 AI 生成、批量任务、Brand Lock、私有化作品等全部能力。
+  - **ADMIN**：权限等同 Pro，且可在后台手动为用户开通 / 撤销订阅。
 
 ## 技术栈
 
-| 层级 | 技术 |
-|---|---|
-| 前端 | Next.js 16 App Router, React 19, TypeScript, Tailwind v4, shadcn/ui |
-| 后端 | Next.js API Routes, Prisma ORM, Neon Postgres |
-| 认证 | NextAuth.js v4（邮箱密码 + JWT） |
-| AI 文案 | OpenAI (gpt-4o-mini) |
-| AI 视频（Pro） | 即梦 Seedance（火山方舟 Ark） |
-| 免费视频（Free） | Pexels + msedge-tts + @ffmpeg/ffmpeg（wasm） |
-| 存储 | Vercel Blob |
-| 部署 | Vercel |
+| 层级           | 技术                                                       |
+| -------------- | ---------------------------------------------------------- |
+| 前端           | Next.js 16 App Router, React 19, TypeScript, Tailwind v4   |
+| 后端           | Next.js API Routes, Prisma ORM, Neon Postgres              |
+| 认证           | NextAuth.js v4（邮箱密码 + JWT）                           |
+| AI 文案        | OpenAI (gpt-4o-mini)                                       |
+| AI 视频        | 即梦 Seedance（火山方舟 Ark）                              |
+| Brand Lock     | ffmpeg.wasm（浏览器侧硬叠加 Logo / Slogan / 片头片尾）     |
+| 存储           | Vercel Blob                                                |
+| 部署           | Vercel                                                     |
 
 ## 数据模型
 
 ```
-Project (关键词 + 状态)
-├── ContentPlan  (AI 生成的脚本/标题/Hashtag/视频提示词)
-└── VideoJob
-    ├── channel: "pro" | "free"
-    ├── manifest: Free 通道素材清单（Pexels URL + TTS mp3 + SRT）
-    └── variants / selectedVariant: 多变体候选
+User
+└── planTier: FREE | PRO  +  planExpiresAt / planSource（审计字段）
+
+Project (关键词 + 状态 + isPublic)
+├── ContentPlan  (AI 生成的脚本 / 标题 / Hashtag / 视频提示词)
+└── VideoJob     (Pro 通道提交 Seedance 任务，返回 mp4)
 
 Batch → Project[]
-User
 ```
 
-### 项目状态流（简化版）
+### 项目状态流
 
 ```
 DRAFT → CONTENT_GENERATED → VIDEO_GENERATING → VIDEO_READY → DONE
-                                      ↓
-                                VIDEO_FAILED
+                                     ↓
+                              VIDEO_FAILED
 ```
 
-## 两条通道对比
+## 订阅模型（MVP）
 
-| 维度 | Pro 通道 | Free 通道 |
-|---|---|---|
-| 视觉素材 | 即梦 Seedance AI 生成 | Pexels 免费竖屏视频 / 用户自传 |
-| 配音 | AI 视频自带或无 | Microsoft Edge TTS（22 音色） |
-| 合成位置 | 服务端（Seedance 返回 mp4） | 浏览器（ffmpeg.wasm） |
-| 成本 | 付费（方舟 Token） | 完全免费 |
-| 速度 | ~1-2 分钟 | 视浏览器性能（通常 30-60 秒） |
-| 质量上限 | 高（SOTA） | 中（看你的脚本 + 素材） |
+| 能力                         | Free | Pro | Admin |
+| ---------------------------- | :--: | :-: | :---: |
+| 浏览公开画廊 / 下载公开作品  |  ✓   |  ✓  |   ✓   |
+| 注册账号 / 个人设置          |  ✓   |  ✓  |   ✓   |
+| AI 一键生成视频              |  —   |  ✓  |   ✓   |
+| 批量并行生成                 |  —   |  ✓  |   ✓   |
+| Brand Lock 品牌叠加          |  —   |  ✓  |   ✓   |
+| 切换作品是否进入公开画廊     |  —   |  —  |   ✓   |
+| 为其他用户开通 / 撤销 Pro    |  —   |  —  |   ✓   |
+
+### 如何升级 Pro
+
+MVP 阶段订阅为**人工开通**：
+
+1. 用户访问 `/settings/billing` → 点击"联系管理员开通"发送 `mailto:` 邮件；
+2. 管理员进入 `/admin/users` 后台，搜索用户 → 点击「开通 Pro」→ 输入天数（默认 30）；
+3. 用户刷新页面即可看到生效（Session 下次 `update()` 自动刷新 `planTier`）。
+
+V2 接入支付（详见下方 Roadmap）后，用户可以直接 `/pricing` → Checkout → 自动开通。
 
 ## 快速开始
 
@@ -80,12 +92,10 @@ ARK_API_KEY=
 ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
 ARK_VIDEO_MODEL=doubao-seedance-1-5-pro-250115
 
-# Free 通道
-PEXELS_API_KEY=                      # 免费申请 https://www.pexels.com/api/
-                                      # 不填则走内置 mock 竖屏素材
-
-# 测试开关：强制所有视频走 mock（不消耗 Ark Token）
-VIDEO_ENGINE_MOCK=false
+# V2：支付（暂不启用）
+# STRIPE_SECRET_KEY=
+# STRIPE_WEBHOOK_SECRET=
+# CREEM_WEBHOOK_SECRET=
 ```
 
 ### 部署
@@ -96,29 +106,44 @@ git push origin main    # Vercel 自动部署
 
 Vercel 环境变量在 Dashboard → Settings → Environment Variables 配置。
 
-首次部署或 Preview 测试时，建议：
+## 权限守卫一览
 
-1. 设置 `VIDEO_ENGINE_MOCK=true` 快速验证整条链路不烧 Token。
-2. 跑通 Free 通道 → 验证浏览器 ffmpeg.wasm 合成 → 确认视频下载可用。
-3. 关掉 `VIDEO_ENGINE_MOCK`，再放一个真实 Pro 任务验证即梦链路。
-4. 确认作品库批量删除 + 过期清理工作正常。
+| 守卫            | 作用                                                       | 失败码  |
+| --------------- | ---------------------------------------------------------- | ------- |
+| `requireAuth`   | 已登录即可                                                 | 401     |
+| `requirePro`    | ADMIN 直接放行；普通用户必须 `planTier=PRO` 且未过期       | 402     |
+| `requireAdmin`  | 必须 `role=ADMIN`                                          | 403     |
+
+前端对应 hook：`useIsAdmin()` / `useIsPro()` / `useSubscription()`。
 
 ## 主要 API
 
-| 路由 | 说明 |
-|---|---|
-| `POST /api/projects` | 创建项目 |
-| `POST /api/projects/[id]/generate` | 生成文案 |
-| `POST /api/projects/[id]/auto-generate` | 一键：文案 + 视频（Pro 通道） |
-| `POST /api/projects/[id]/free-prepare` | Free 通道准备 manifest |
-| `POST /api/projects/[id]/free-finalize` | 浏览器合成完毕回传 mp4 URL |
-| `POST /api/projects/[id]/user-assets` | 上传自带视频素材 |
-| `POST /api/projects/bulk-delete` | 批量/过期项目删除（含 Blob 清理） |
+| 路由                                         | 守卫           | 说明                           |
+| -------------------------------------------- | -------------- | ------------------------------ |
+| `POST /api/projects`                         | `requirePro`   | 创建项目                       |
+| `POST /api/projects/[id]/generate`           | `requirePro`   | 生成文案                       |
+| `POST /api/projects/[id]/auto-generate`      | `requirePro`   | 一键：文案 + Seedance 视频     |
+| `POST /api/projects/[id]/brand-lock`         | `requirePro`   | 回写 Brand Lock 结果           |
+| `POST /api/projects/bulk-delete`             | `requirePro`   | 批量 / 过期项目删除            |
+| `PATCH /api/projects/[id]` (`isPublic`)      | `requireAdmin` | 调整作品公开 / 私有            |
+| `GET  /api/admin/users`                      | `requireAdmin` | 列出所有用户                   |
+| `POST /api/admin/users/[id]/grant-pro`       | `requireAdmin` | 手动开通 / 续期 Pro（天数可选）|
+| `POST /api/admin/users/[id]/revoke-pro`      | `requireAdmin` | 立即撤销 Pro                   |
+| `POST /api/webhooks/stripe`                  | public         | V2 占位：未配置时返回 503      |
+| `POST /api/webhooks/creem`                   | public         | V2 占位：未配置时返回 503      |
 
-## 文档
+## 公开路由（无需登录）
 
-- [docs/FREE_CHANNEL.md](./docs/FREE_CHANNEL.md) — Free 通道架构与调试
-- [docs/PRE_RELEASE_CHECKLIST.md](./docs/PRE_RELEASE_CHECKLIST.md) — 发布前核对清单
+- `/` 落地页
+- `/gallery` 公开画廊 + `/gallery/[id]` 作品详情
+- `/pricing` 订阅方案
+- `/login` / `/register`
+
+## Roadmap (V2)
+
+- 接入 Stripe（海外）/ Creem（国内支付宝 / 微信）webhook，让 `/api/webhooks/*` 真正把事件翻译成 `grantPro` / `revokePro`。
+- `/pricing` 直接挂 Checkout 链接，取消 mailto 人工流程。
+- 团队席位（Team Plan）与共享作品库。
 
 ## License
 

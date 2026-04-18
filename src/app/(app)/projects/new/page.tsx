@@ -10,21 +10,17 @@ import {
   Star,
   Trash2,
   Lock,
-  Zap,
-  Gift,
-  FileText,
   Info,
   Mic,
   Languages,
   Shield,
   Upload,
   X,
+  Clock,
 } from "lucide-react";
 import Link from "next/link";
-import { useIsAdmin } from "@/lib/hooks/use-role";
+import { useIsPro } from "@/lib/hooks/use-role";
 import { cn } from "@/lib/utils";
-
-type Channel = "pro" | "free" | "content-only";
 
 type Tone =
   | "auto"
@@ -78,25 +74,21 @@ const BRAND_LOCK_TEMPLATES: {
   id: BrandLockTemplate;
   label: string;
   hint: string;
-  ready: boolean;
 }[] = [
   {
     id: "corner_watermark",
     label: "角标水印",
     hint: "画面角落持续小 logo，不打扰观感",
-    ready: true,
   },
   {
     id: "intro_outro",
     label: "片头片尾",
     hint: "开头 1.5s + 结尾 2s 全屏产品图",
-    ready: true,
   },
   {
     id: "full_package",
     label: "全包组合",
     hint: "角标 + 片头片尾 + 品牌文字",
-    ready: true,
   },
 ];
 
@@ -107,43 +99,9 @@ const POSITION_OPTIONS: { id: BrandLockPosition; label: string }[] = [
   { id: "top-left", label: "左上" },
 ];
 
-interface ChannelOption {
-  id: Channel;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: string;
-  title: string;
-  subtitle: string;
-  cost: string;
-  duration: string;
-}
-
-const CHANNELS: ChannelOption[] = [
-  {
-    id: "pro",
-    icon: Zap,
-    badge: "推荐",
-    title: "一键 Pro",
-    subtitle: "AI 文案 + Seedance 高质量视频",
-    cost: "付费 · 云端生成",
-    duration: "约 1–2 分钟",
-  },
-  {
-    id: "free",
-    icon: Gift,
-    badge: "免费",
-    title: "一键 Free",
-    subtitle: "AI 文案 + 浏览器合成（Pexels + TTS）",
-    cost: "零成本 · 浏览器本地合成",
-    duration: "约 3–5 分钟",
-  },
-  {
-    id: "content-only",
-    icon: FileText,
-    title: "仅生成文案",
-    subtitle: "只生成脚本、标题、提示词，视频之后再做",
-    cost: "极少 AI 成本",
-    duration: "约 10 秒",
-  },
+const DURATION_OPTIONS = [
+  { id: 15, label: "15 秒", hint: "推荐 · 标准 TikTok 短视频" },
+  { id: 30, label: "30 秒", hint: "分两段拼接，信息量更大" },
 ];
 
 const suggestions = [
@@ -161,16 +119,15 @@ const suggestions = [
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const isAdmin = useIsAdmin();
+  const isPro = useIsPro();
   const [keyword, setKeyword] = useState("");
   const [brandDescription, setBrandDescription] = useState("");
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"input" | "creating" | "generating">("input");
-  const [channel, setChannel] = useState<Channel>("pro");
   const [tone, setTone] = useState<Tone>("auto");
   const [language, setLanguage] = useState<Language>("auto");
+  const [duration, setDuration] = useState<number>(15);
 
-  // Brand Lock —— 品牌保真合成
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [brandLockEnabled, setBrandLockEnabled] = useState(true);
@@ -182,7 +139,9 @@ export default function NewProjectPage() {
   const [brandLockSlogan, setBrandLockSlogan] = useState("");
   const [showBrandLockAdvanced, setShowBrandLockAdvanced] = useState(false);
 
-  const [uploadedImages, setUploadedImages] = useState<{ url: string; filename: string }[]>([]);
+  const [uploadedImages, setUploadedImages] = useState<
+    { url: string; filename: string }[]
+  >([]);
   const [primaryImageUrl, setPrimaryImageUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
@@ -296,44 +255,28 @@ export default function NewProjectPage() {
           brandLockSlogan: brandLockSlogan.trim() || null,
         }),
       });
-      if (!res.ok) throw new Error("创建失败");
+      if (!res.ok) {
+        if (res.status === 402) {
+          toast.error("订阅已过期，请续费或联系管理员");
+          router.push("/pricing");
+          return;
+        }
+        throw new Error("创建失败");
+      }
       const project = await res.json();
 
       setStep("generating");
 
-      if (channel === "content-only") {
-        const genRes = await fetch(`/api/projects/${project.id}/generate`, {
-          method: "POST",
-        });
-        if (!genRes.ok) {
-          toast.warning("项目已创建，但内容生成失败，请在详情页重试");
-        } else {
-          toast.success("内容方案已生成，接下来可以生成视频");
-        }
-      } else if (channel === "pro") {
-        const proRes = await fetch(`/api/projects/${project.id}/auto-generate`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channel: "pro" }),
-        });
-        if (!proRes.ok) {
-          const err = await proRes.json().catch(() => ({}));
-          toast.warning(err.error || "项目已创建，视频提交失败，可去详情页手动重试");
-        } else {
-          toast.success("一键生成已启动，视频正在合成");
-        }
-      } else if (channel === "free") {
-        const freeRes = await fetch(`/api/projects/${project.id}/free-prepare`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({}),
-        });
-        if (!freeRes.ok) {
-          const err = await freeRes.json().catch(() => ({}));
-          toast.warning(err.error || "项目已创建，Free 通道准备失败，可去详情页手动重试");
-        } else {
-          toast.success("已为免费通道准备素材，接下来浏览器会自动合成视频");
-        }
+      const autoRes = await fetch(`/api/projects/${project.id}/auto-generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ duration }),
+      });
+      if (!autoRes.ok) {
+        const err = await autoRes.json().catch(() => ({}));
+        toast.warning(err.error || "项目已创建，视频提交失败，可去详情页手动重试");
+      } else {
+        toast.success("一键生成已启动，视频正在合成");
       }
 
       router.push(`/projects/${project.id}`);
@@ -345,22 +288,31 @@ export default function NewProjectPage() {
     }
   }
 
-  if (!isAdmin) {
+  if (!isPro) {
     return (
       <div className="max-w-md mx-auto pt-24 text-center">
         <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-card border border-border">
           <Lock className="h-6 w-6 text-muted-foreground" />
         </div>
-        <h1 className="text-xl font-semibold text-white mb-3">需要管理员权限</h1>
+        <h1 className="text-xl font-semibold text-white mb-3">需要 Pro 订阅</h1>
         <p className="text-sm text-muted-foreground mb-6">
-          创建新作品与视频生成会产生 AI 调用费用，目前仅管理员可操作。
+          视频生成由 Seedance 付费模型驱动，订阅 Pro 后即可解锁全部创作功能。
+          免费账号可浏览和下载公开画廊里的已生成视频。
         </p>
-        <Link
-          href="/projects"
-          className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          返回作品库
-        </Link>
+        <div className="flex items-center justify-center gap-3">
+          <Link
+            href="/pricing"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            查看订阅方案
+          </Link>
+          <Link
+            href="/gallery"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:border-primary/40"
+          >
+            浏览画廊
+          </Link>
+        </div>
       </div>
     );
   }
@@ -372,531 +324,507 @@ export default function NewProjectPage() {
           新作品
         </p>
         <h1 className="text-xl font-semibold tracking-tight text-white">
-          用关键词 + 可选参考资料，一键生成短视频
+          输入关键词，一键生成完整短视频
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
-          输入创意方向，任选是否上传参考图或自由描述自己的品牌/场景 —— AI 会生成脚本、标题、提示词和视频。
+          填写关键词与品牌描述，AI 自动生成脚本、Seedance 合成视频，Brand Lock 兜底叠加 logo —— 一路到出片。
         </p>
       </div>
 
-      {/* Channel picker - 让用户在创建时就明确接下来走哪条路 */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <Zap className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          生成通道
-        </label>
-        <div className="grid gap-2 sm:grid-cols-3">
-          {CHANNELS.map((opt) => {
-            const Icon = opt.icon;
-            const active = channel === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setChannel(opt.id)}
-                disabled={loading}
-                className={cn(
-                  "relative text-left rounded-xl border p-3.5 transition-all disabled:opacity-50",
-                  active
-                    ? "border-primary/60 bg-primary/[0.08] ring-2 ring-primary/30"
-                    : "border-border bg-card/60 hover:border-primary/30 hover:bg-accent/40",
-                )}
-              >
-                {opt.badge && (
-                  <span
-                    className={cn(
-                      "absolute right-2.5 top-2.5 rounded-full px-1.5 py-[1px] text-[9px] font-medium uppercase tracking-wider",
-                      opt.id === "pro"
-                        ? "bg-primary/20 text-primary"
-                        : "bg-emerald-500/15 text-emerald-400",
-                    )}
-                  >
-                    {opt.badge}
-                  </span>
-                )}
-                <div className="flex items-center gap-2 mb-1.5">
-                  <div
-                    className={cn(
-                      "flex h-7 w-7 items-center justify-center rounded-md",
-                      active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground",
-                    )}
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                  </div>
-                  <span
-                    className={cn(
-                      "text-sm font-medium",
-                      active ? "text-foreground" : "text-foreground/90",
-                    )}
-                  >
-                    {opt.title}
-                  </span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground mb-2">
-                  {opt.subtitle}
-                </p>
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground/80">
-                  <span>{opt.duration}</span>
-                  <span className={active ? "text-primary" : ""}>{opt.cost}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-[11px] text-muted-foreground/80">
-          {channel === "pro" &&
-            "付费通道：使用 Seedance 引擎直接生成高画质商业级视频，质量最稳定。"}
-          {channel === "free" &&
-            "免费通道：参考 MoneyPrinterTurbo 思路，基于 Pexels 素材 + Edge TTS 在你的浏览器里本地合成，不花钱，但画面质量受素材库限制。"}
-          {channel === "content-only" &&
-            "只跑文案，适合先过一轮脚本再决定是否生成视频。"}
-        </p>
-      </div>
-
-      {/* Tone picker - 让用户显式选创作语气，避免 AI 总默认带货广告 */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <Mic className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          内容语气
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {TONE_OPTIONS.map((opt) => {
-            const active = tone === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                disabled={loading}
-                onClick={() => setTone(opt.id)}
-                title={opt.hint}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border disabled:opacity-50",
-                  active
-                    ? "border-primary/60 bg-primary/[0.12] text-primary"
-                    : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
-                )}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-        <p className="mt-2 text-[10px] text-muted-foreground/80 leading-relaxed">
-          {TONE_OPTIONS.find((o) => o.id === tone)?.hint}
-        </p>
-      </div>
-
-      {/* Language picker */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <Languages className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          脚本 / 配音语言
-        </label>
-        <div className="flex flex-wrap gap-1.5">
-          {LANGUAGE_OPTIONS.map((opt) => {
-            const active = language === opt.id;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                disabled={loading}
-                onClick={() => setLanguage(opt.id)}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border disabled:opacity-50",
-                  active
-                    ? "border-primary/60 bg-primary/[0.12] text-primary"
-                    : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
-                )}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Brand / product / scene description - 可选自由文本 */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <Info className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          品牌 / 产品 / 场景描述（可选）
-        </label>
-        <textarea
-          rows={3}
-          value={brandDescription}
-          onChange={(e) => setBrandDescription(e.target.value)}
-          disabled={loading}
-          placeholder="例：我的品牌叫 CozyNest，主打羊羔绒毛毯，特点是超柔触感、双面亲肤、冬天保暖。预算档位：¥199–299。/ 或者：我在做自媒体副业，这条视频想走治愈系居家风格。"
-          className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all resize-none disabled:opacity-50"
-        />
-        <p className="text-[10px] text-muted-foreground/70 mt-1.5 leading-relaxed">
-          空着也行，留白时 AI 会按关键词自由发挥。填上之后，脚本和视频会围绕你描述的信息展开。
-        </p>
-      </div>
-
-      {/* Reference image upload */}
-      <div className="mb-5">
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <ImagePlus className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          参考图 / Logo / 产品图（可选，最多 5 张）
-        </label>
-
-        {uploadedImages.length > 0 && (
-          <div className="grid grid-cols-5 gap-2 mb-2">
-            {uploadedImages.map((img) => (
-              <div
-                key={img.url}
-                className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
-                  primaryImageUrl === img.url
-                    ? "border-primary ring-2 ring-primary/20"
-                    : "border-border hover:border-primary/40"
-                }`}
-                onClick={() => setPrimaryImageUrl(img.url)}
-              >
-                <img
-                  src={img.url}
-                  alt=""
-                  className="w-full aspect-square object-cover"
-                />
-                {primaryImageUrl === img.url && (
-                  <div className="absolute top-1 left-1 rounded-full bg-primary p-0.5">
-                    <Star className="h-2.5 w-2.5 text-white fill-white" />
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeImage(img.url);
-                  }}
-                  className="absolute top-1 right-1 rounded-full bg-black/60 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
-                >
-                  <Trash2 className="h-2.5 w-2.5 text-white" />
-                </button>
-                {primaryImageUrl !== img.url && (
-                  <div className="absolute inset-x-0 bottom-0 bg-black/50 text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span className="text-[8px] text-white">设为主图</span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {uploadedImages.length < 5 && (
-          <div
-            onDrop={handleDrop}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-            onDragLeave={() => setDragOver(false)}
-            className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
-              dragOver
-                ? "border-primary bg-primary/10"
-                : "border-border bg-card/60 hover:border-primary/40"
-            } ${uploading ? "pointer-events-none opacity-50" : ""}`}
-          >
+      {/* Step 1: Keyword */}
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <StepBox index={1} label="创意关键词" icon={<Sparkles className="h-3.5 w-3.5" />}>
+          <div className="rounded-2xl border border-border bg-card p-1 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
             <input
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              multiple
-              onChange={(e) => e.target.files && uploadFiles(e.target.files)}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              disabled={uploading || loading}
-            />
-            {uploading ? (
-              <div className="flex items-center justify-center gap-2 text-sm text-primary">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                上传中...
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                <ImagePlus className="mx-auto h-5 w-5 mb-1 text-muted-foreground/70" />
-                拖拽或点击上传参考图
-                <p className="text-[10px] text-muted-foreground/70 mt-0.5">JPEG, PNG, WebP · 每张 ≤ 10MB</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {uploadedImages.length > 0 && (
-          <p className="text-[10px] text-muted-foreground mt-1.5">
-            <Star className="inline h-2.5 w-2.5 text-primary fill-primary -mt-0.5 mr-0.5" />
-            带框的是主图，将传入 Seedance 做图生视频；并且所有上传图都会被 GPT-4o Vision 分析，自动注入脚本和视频提示词。
-          </p>
-        )}
-      </div>
-
-      {/* Brand Lock —— 品牌保真合成 */}
-      <div className="mb-5 rounded-xl border border-primary/30 bg-primary/[0.04] p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <label className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <Shield className="h-4 w-4 text-primary" />
-              Brand Lock · 品牌保真合成
-            </label>
-            <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
-              AI 生成后自动叠加你的 logo / 产品图，保证品牌 100% 清晰出现在视频里。
-              <br />
-              <span className="text-muted-foreground/80">
-                （AI 视频模型无法保证 logo 文字不变形，这是全行业硬限制，所以我们用 FFmpeg 最后一步硬叠加兜底）
-              </span>
-            </p>
-          </div>
-          <label className="flex items-center gap-1.5 cursor-pointer ml-3 shrink-0">
-            <input
-              type="checkbox"
-              checked={brandLockEnabled}
-              onChange={(e) => setBrandLockEnabled(e.target.checked)}
+              type="text"
+              placeholder="如『冬日居家好物』『宠物日常』..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
               disabled={loading}
-              className="rounded border-border"
+              autoFocus
+              className="w-full bg-transparent px-4 py-4 text-base text-white placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
             />
-            <span className="text-[11px] text-muted-foreground">启用</span>
-          </label>
-        </div>
+            <div className="flex flex-wrap gap-1.5 px-3 pb-2">
+              {suggestions.slice(0, 6).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setKeyword(s)}
+                  disabled={loading}
+                  className="rounded-full bg-accent/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors disabled:opacity-50"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        </StepBox>
 
-        {brandLockEnabled && (
-          <>
-            {/* Logo 上传 */}
-            <div className="mb-3">
-              <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
-                品牌 Logo（推荐透明背景 PNG）
-              </label>
-              {logoUrl ? (
-                <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
-                  <div className="h-12 w-12 rounded-md bg-zinc-900/40 bg-[linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%),linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px] flex items-center justify-center overflow-hidden">
-                    <img src={logoUrl} alt="logo" className="max-w-full max-h-full object-contain" />
-                  </div>
-                  <div className="flex-1 text-[11px] text-muted-foreground truncate">
-                    Logo 已就绪
-                  </div>
+        {/* Step 2: Brand description */}
+        <StepBox
+          index={2}
+          label="品牌 / 产品 / 场景描述（可选）"
+          icon={<Info className="h-3.5 w-3.5" />}
+        >
+          <textarea
+            rows={3}
+            value={brandDescription}
+            onChange={(e) => setBrandDescription(e.target.value)}
+            disabled={loading}
+            placeholder="例：我的品牌叫 CozyNest，主打羊羔绒毛毯。/ 或者：我在做治愈系居家自媒体。"
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-white placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-primary/20 focus:outline-none transition-all resize-none disabled:opacity-50"
+          />
+          <p className="text-[10px] text-muted-foreground/70 mt-1.5">
+            空着也行。填上后 AI 会围绕你描述的品牌信息展开。
+          </p>
+        </StepBox>
+
+        {/* Step 3: Reference images */}
+        <StepBox
+          index={3}
+          label={`参考图 / 产品图（可选，已上传 ${uploadedImages.length}/5）`}
+          icon={<ImagePlus className="h-3.5 w-3.5" />}
+        >
+          {uploadedImages.length > 0 && (
+            <div className="grid grid-cols-5 gap-2 mb-2">
+              {uploadedImages.map((img) => (
+                <div
+                  key={img.url}
+                  className={`group relative rounded-lg overflow-hidden border-2 transition-all cursor-pointer ${
+                    primaryImageUrl === img.url
+                      ? "border-primary ring-2 ring-primary/20"
+                      : "border-border hover:border-primary/40"
+                  }`}
+                  onClick={() => setPrimaryImageUrl(img.url)}
+                >
+                  <img
+                    src={img.url}
+                    alt=""
+                    className="w-full aspect-square object-cover"
+                  />
+                  {primaryImageUrl === img.url && (
+                    <div className="absolute top-1 left-1 rounded-full bg-primary p-0.5">
+                      <Star className="h-2.5 w-2.5 text-white fill-white" />
+                    </div>
+                  )}
                   <button
                     type="button"
-                    onClick={() => setLogoUrl(null)}
-                    className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
-                    title="移除 Logo"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeImage(img.url);
+                    }}
+                    className="absolute top-1 right-1 rounded-full bg-black/60 p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <Trash2 className="h-2.5 w-2.5 text-white" />
                   </button>
-                </div>
-              ) : (
-                <div className="relative rounded-lg border border-dashed border-border bg-card/60 px-3 py-3 text-center hover:border-primary/40 transition-all">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
-                    disabled={logoUploading || loading}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  {logoUploading ? (
-                    <div className="flex items-center justify-center gap-2 text-[11px] text-primary">
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                      上传中...
-                    </div>
-                  ) : (
-                    <div className="text-[11px] text-muted-foreground">
-                      <Upload className="inline h-3 w-3 mr-1 -mt-0.5" />
-                      点击上传 Logo（可选，不传就用主图当 logo 叠加）
+                  {primaryImageUrl !== img.url && (
+                    <div className="absolute inset-x-0 bottom-0 bg-black/50 text-center py-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[8px] text-white">设为主图</span>
                     </div>
                   )}
                 </div>
+              ))}
+            </div>
+          )}
+
+          {uploadedImages.length < 5 && (
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              className={`relative rounded-xl border border-dashed px-4 py-4 text-center transition-all ${
+                dragOver
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-card/60 hover:border-primary/40"
+              } ${uploading ? "pointer-events-none opacity-50" : ""}`}
+            >
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                disabled={uploading || loading}
+              />
+              {uploading ? (
+                <div className="flex items-center justify-center gap-2 text-sm text-primary">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  上传中...
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">
+                  <ImagePlus className="mx-auto h-5 w-5 mb-1 text-muted-foreground/70" />
+                  拖拽或点击上传参考图
+                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                    JPEG, PNG, WebP · 每张 ≤ 10MB
+                  </p>
+                </div>
               )}
             </div>
+          )}
 
-            {/* 模板选择 */}
-            <div className="mb-3">
-              <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
-                合成模板
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {BRAND_LOCK_TEMPLATES.map((t) => {
-                  const active = brandLockTemplate === t.id;
+          {uploadedImages.length > 0 && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              <Star className="inline h-2.5 w-2.5 text-primary fill-primary -mt-0.5 mr-0.5" />
+              带框的是主图，会传入 Seedance 做图生视频；所有图都会被 Vision 分析注入脚本和提示词。
+            </p>
+          )}
+        </StepBox>
+
+        {/* Step 4: Tone + Language + Duration */}
+        <StepBox index={4} label="风格设置" icon={<Mic className="h-3.5 w-3.5" />}>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">
+                语气
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {TONE_OPTIONS.map((opt) => {
+                  const active = tone === opt.id;
                   return (
                     <button
-                      key={t.id}
+                      key={opt.id}
                       type="button"
-                      disabled={loading || !t.ready}
-                      onClick={() => t.ready && setBrandLockTemplate(t.id)}
-                      title={t.hint}
+                      disabled={loading}
+                      onClick={() => setTone(opt.id)}
+                      title={opt.hint}
                       className={cn(
-                        "rounded-lg border p-2.5 text-left transition-all disabled:opacity-40 disabled:cursor-not-allowed",
+                        "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border disabled:opacity-50",
                         active
-                          ? "border-primary/60 bg-primary/[0.10]"
-                          : "border-border bg-card/60 hover:border-primary/30",
+                          ? "border-primary/60 bg-primary/[0.12] text-primary"
+                          : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
                       )}
                     >
-                      <div className={cn("text-[11px] font-medium mb-0.5", active ? "text-primary" : "text-foreground")}>
-                        {t.label}
-                        {!t.ready && <span className="ml-1 text-[9px] text-muted-foreground/70">（即将）</span>}
-                      </div>
-                      <div className="text-[10px] text-muted-foreground leading-tight">
-                        {t.hint}
-                      </div>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mt-1.5 text-[10px] text-muted-foreground/80 leading-relaxed">
+                {TONE_OPTIONS.find((o) => o.id === tone)?.hint}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">
+                <Languages className="inline h-3 w-3 mr-1 -mt-0.5" />
+                脚本语言
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {LANGUAGE_OPTIONS.map((opt) => {
+                  const active = language === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setLanguage(opt.id)}
+                      className={cn(
+                        "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all border disabled:opacity-50",
+                        active
+                          ? "border-primary/60 bg-primary/[0.12] text-primary"
+                          : "border-border bg-card/60 text-muted-foreground hover:border-primary/30 hover:text-foreground",
+                      )}
+                    >
+                      {opt.label}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* 高级设置 */}
-            <button
-              type="button"
-              onClick={() => setShowBrandLockAdvanced((v) => !v)}
-              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {showBrandLockAdvanced ? "收起" : "展开"}高级设置（位置 · 透明度 · Slogan）
-            </button>
+            <div>
+              <p className="text-[11px] font-medium text-muted-foreground mb-1.5">
+                <Clock className="inline h-3 w-3 mr-1 -mt-0.5" />
+                视频时长
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {DURATION_OPTIONS.map((opt) => {
+                  const active = duration === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setDuration(opt.id)}
+                      className={cn(
+                        "rounded-lg border p-2.5 text-left transition-all disabled:opacity-50",
+                        active
+                          ? "border-primary/60 bg-primary/[0.10]"
+                          : "border-border bg-card/60 hover:border-primary/30",
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "text-[12px] font-medium mb-0.5",
+                          active ? "text-primary" : "text-foreground",
+                        )}
+                      >
+                        {opt.label}
+                      </div>
+                      <div className="text-[10px] text-muted-foreground leading-tight">
+                        {opt.hint}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </StepBox>
 
-            {showBrandLockAdvanced && (
-              <div className="mt-3 space-y-3 border-t border-border pt-3">
-                <div>
-                  <label className="block text-[11px] text-muted-foreground mb-1.5">水印位置</label>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {POSITION_OPTIONS.map((p) => {
-                      const active = brandLockPosition === p.id;
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          disabled={loading}
-                          onClick={() => setBrandLockPosition(p.id)}
+        {/* Step 5: Brand Lock */}
+        <StepBox
+          index={5}
+          label="Brand Lock · 品牌保真合成"
+          icon={<Shield className="h-3.5 w-3.5" />}
+          right={
+            <label className="flex items-center gap-1.5 cursor-pointer ml-3 shrink-0">
+              <input
+                type="checkbox"
+                checked={brandLockEnabled}
+                onChange={(e) => setBrandLockEnabled(e.target.checked)}
+                disabled={loading}
+                className="rounded border-border"
+              />
+              <span className="text-[11px] text-muted-foreground">启用</span>
+            </label>
+          }
+        >
+          <p className="text-[11px] text-muted-foreground mb-3 leading-relaxed">
+            AI 生成后自动叠加你的 logo / 产品图，保证品牌 100% 清晰出现在视频里。AI 视频模型无法保证 logo 不变形 —— 我们用 FFmpeg 最后一步硬叠加兜底。
+          </p>
+
+          {brandLockEnabled && (
+            <>
+              <div className="mb-3">
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                  品牌 Logo（推荐透明背景 PNG）
+                </label>
+                {logoUrl ? (
+                  <div className="flex items-center gap-3 rounded-lg border border-border bg-card p-2">
+                    <div className="h-12 w-12 rounded-md bg-zinc-900/40 bg-[linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%),linear-gradient(45deg,rgba(255,255,255,0.04)_25%,transparent_25%,transparent_75%,rgba(255,255,255,0.04)_75%)] bg-[length:8px_8px] bg-[position:0_0,4px_4px] flex items-center justify-center overflow-hidden">
+                      <img
+                        src={logoUrl}
+                        alt="logo"
+                        className="max-w-full max-h-full object-contain"
+                      />
+                    </div>
+                    <div className="flex-1 text-[11px] text-muted-foreground truncate">
+                      Logo 已就绪
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl(null)}
+                      className="rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      title="移除 Logo"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative rounded-lg border border-dashed border-border bg-card/60 px-3 py-3 text-center hover:border-primary/40 transition-all">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={(e) =>
+                        e.target.files?.[0] && uploadLogo(e.target.files[0])
+                      }
+                      disabled={logoUploading || loading}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    {logoUploading ? (
+                      <div className="flex items-center justify-center gap-2 text-[11px] text-primary">
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                        上传中...
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-muted-foreground">
+                        <Upload className="inline h-3 w-3 mr-1 -mt-0.5" />
+                        点击上传 Logo（可选；不传会用主图当 logo 叠加）
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="mb-3">
+                <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
+                  合成模板
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {BRAND_LOCK_TEMPLATES.map((t) => {
+                    const active = brandLockTemplate === t.id;
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        disabled={loading}
+                        onClick={() => setBrandLockTemplate(t.id)}
+                        title={t.hint}
+                        className={cn(
+                          "rounded-lg border p-2.5 text-left transition-all disabled:opacity-50",
+                          active
+                            ? "border-primary/60 bg-primary/[0.10]"
+                            : "border-border bg-card/60 hover:border-primary/30",
+                        )}
+                      >
+                        <div
                           className={cn(
-                            "rounded-full border px-3 py-1 text-[11px] transition-all",
-                            active
-                              ? "border-primary/60 bg-primary/[0.12] text-primary"
-                              : "border-border bg-card/60 text-muted-foreground hover:text-foreground",
+                            "text-[11px] font-medium mb-0.5",
+                            active ? "text-primary" : "text-foreground",
                           )}
                         >
-                          {p.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-[11px] text-muted-foreground mb-1.5">
-                    不透明度：<span className="text-foreground">{brandLockOpacity}%</span>
-                  </label>
-                  <input
-                    type="range"
-                    min={20}
-                    max={100}
-                    step={5}
-                    value={brandLockOpacity}
-                    onChange={(e) => setBrandLockOpacity(parseInt(e.target.value))}
-                    disabled={loading}
-                    className="w-full accent-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-muted-foreground mb-1.5">
-                    Slogan 文字（可选，叠加到画面底部）
-                  </label>
-                  <input
-                    type="text"
-                    maxLength={100}
-                    value={brandLockSlogan}
-                    onChange={(e) => setBrandLockSlogan(e.target.value)}
-                    disabled={loading}
-                    placeholder="如：CozyNest · 冬日温暖伴你入眠"
-                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none"
-                  />
-                  <p className="text-[10px] text-muted-foreground/70 mt-1">
-                    仅在「全包组合」模板下生效
-                  </p>
+                          {t.label}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground leading-tight">
+                          {t.hint}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
-            )}
-          </>
-        )}
-      </div>
 
-      {/* Keyword Input */}
-      <form onSubmit={handleSubmit}>
-        <label className="block text-xs font-medium text-muted-foreground mb-2">
-          <Sparkles className="inline h-3.5 w-3.5 mr-1 -mt-0.5" />
-          创意方向关键词
-        </label>
-        <div className="rounded-2xl border border-border bg-card p-1 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 transition-all">
-          <input
-            type="text"
-            placeholder="描述你想创作的视频方向，如『冬日居家好物』『宠物日常』..."
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            disabled={loading}
-            autoFocus
-            className="w-full bg-transparent px-4 py-4 text-base text-white placeholder:text-muted-foreground/70 focus:outline-none disabled:opacity-50"
-          />
-          <div className="flex items-center justify-between px-3 pb-2">
-            <div className="flex flex-wrap gap-1.5">
-              {suggestions.slice(0, 4).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setKeyword(s)}
-                  className="rounded-full bg-accent/60 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-            <button
-              type="submit"
-              disabled={!keyword.trim() || loading}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="h-3.5 w-3.5" />
+              <button
+                type="button"
+                onClick={() => setShowBrandLockAdvanced((v) => !v)}
+                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showBrandLockAdvanced ? "收起" : "展开"}高级设置（位置 · 透明度 · Slogan）
+              </button>
+
+              {showBrandLockAdvanced && (
+                <div className="mt-3 space-y-3 border-t border-border pt-3">
+                  <div>
+                    <label className="block text-[11px] text-muted-foreground mb-1.5">
+                      水印位置
+                    </label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {POSITION_OPTIONS.map((p) => {
+                        const active = brandLockPosition === p.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            disabled={loading}
+                            onClick={() => setBrandLockPosition(p.id)}
+                            className={cn(
+                              "rounded-full border px-3 py-1 text-[11px] transition-all",
+                              active
+                                ? "border-primary/60 bg-primary/[0.12] text-primary"
+                                : "border-border bg-card/60 text-muted-foreground hover:text-foreground",
+                            )}
+                          >
+                            {p.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-muted-foreground mb-1.5">
+                      不透明度：<span className="text-foreground">{brandLockOpacity}%</span>
+                    </label>
+                    <input
+                      type="range"
+                      min={20}
+                      max={100}
+                      step={5}
+                      value={brandLockOpacity}
+                      onChange={(e) => setBrandLockOpacity(parseInt(e.target.value))}
+                      disabled={loading}
+                      className="w-full accent-primary"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-muted-foreground mb-1.5">
+                      Slogan 文字（可选，叠加到画面底部）
+                    </label>
+                    <input
+                      type="text"
+                      maxLength={100}
+                      value={brandLockSlogan}
+                      onChange={(e) => setBrandLockSlogan(e.target.value)}
+                      disabled={loading}
+                      placeholder="如：CozyNest · 冬日温暖伴你入眠"
+                      className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground placeholder:text-muted-foreground focus:border-primary focus:ring-1 focus:ring-primary/20 focus:outline-none"
+                    />
+                    <p className="text-[10px] text-muted-foreground/70 mt-1">
+                      仅在「全包组合」模板下生效
+                    </p>
+                  </div>
+                </div>
               )}
-              {loading
-                ? step === "creating"
-                  ? "创建中..."
-                  : channel === "pro"
-                    ? "提交 Pro 任务..."
-                    : channel === "free"
-                      ? "准备免费素材..."
-                      : "生成文案中..."
-                : channel === "pro"
-                  ? "一键 Pro 生成"
-                  : channel === "free"
-                    ? "一键 Free 生成"
-                    : "生成文案"}
-            </button>
-          </div>
+            </>
+          )}
+        </StepBox>
+
+        {/* CTA */}
+        <div className="pt-2">
+          <button
+            type="submit"
+            disabled={!keyword.trim() || loading}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-4 text-base font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+            {loading
+              ? step === "creating"
+                ? "创建项目..."
+                : "提交视频任务..."
+              : "开始生成"}
+          </button>
+          <p className="text-center text-[11px] text-muted-foreground mt-2">
+            生成约耗时 1–2 分钟 · 完成后会自动进入项目详情页
+          </p>
         </div>
       </form>
-
-      {!loading && (
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {suggestions.slice(4).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => setKeyword(s)}
-              className="rounded-full bg-secondary/30 px-2.5 py-1 text-[11px] text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-            >
-              {s}
-            </button>
-          ))}
-        </div>
-      )}
 
       {step === "generating" && (
         <div className="mt-6 flex items-center gap-3 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>
-            {channel === "pro" && (
-              <>为「{keyword}」自动生成文案并提交 Seedance 视频任务...</>
-            )}
-            {channel === "free" && (
-              <>为「{keyword}」准备免费素材（文案 + Pexels + TTS）...</>
-            )}
-            {channel === "content-only" && (
-              <>为「{keyword}」构思内容方案...</>
-            )}
-          </span>
+          <span>为「{keyword}」生成文案并提交 Seedance 视频任务...</span>
         </div>
       )}
     </div>
+  );
+}
+
+function StepBox({
+  index,
+  label,
+  icon,
+  right,
+  children,
+}: {
+  index: number;
+  label: string;
+  icon?: React.ReactNode;
+  right?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-border bg-card/40 p-4 sm:p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/15 text-[10px] font-semibold text-primary">
+            {index}
+          </span>
+          <label className="text-sm font-medium text-foreground flex items-center gap-1.5">
+            {icon}
+            {label}
+          </label>
+        </div>
+        {right}
+      </div>
+      {children}
+    </section>
   );
 }

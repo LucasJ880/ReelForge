@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdmin } from "@/lib/api-auth";
+import { requirePro } from "@/lib/api-auth";
 import { handleApiError } from "@/lib/utils/api-error";
 import { del } from "@vercel/blob";
 
 /**
- * 用户视频素材池（Free 通道备选素材）
+ * 用户视频素材池（保留接口，供未来 b-roll 混剪用）。
+ * 当前 Pro 主流程不再消费这里的素材，但数据字段 `userVideoAssets` 仍保留。
  *
  * GET    列出当前素材 URL
  * POST   追加素材 URL（先由浏览器用 /api/upload/video-token 直传 Blob）
@@ -15,7 +16,7 @@ export async function GET(
   _request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;
@@ -33,7 +34,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;
@@ -67,7 +68,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireAdmin();
+  const guard = await requirePro();
   if (!guard.ok) return guard.response;
 
   const { id } = await params;

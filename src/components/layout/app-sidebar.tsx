@@ -13,11 +13,13 @@ import {
   Menu,
   X,
   LogOut,
+  Users,
+  Crown,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/ui/logo";
-import { useIsAdmin } from "@/lib/hooks/use-role";
+import { useIsAdmin, useIsPro } from "@/lib/hooks/use-role";
 
 const mainNav = [
   { href: "/dashboard", label: "工作台", icon: LayoutDashboard },
@@ -34,6 +36,7 @@ export function AppSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const isAdmin = useIsAdmin();
+  const isPro = useIsPro();
 
   function NavItem({
     href,
@@ -81,7 +84,7 @@ export function AppSidebar() {
         <nav className="flex-1 px-3 space-y-5">
           <div className="space-y-0.5">
             {mainNav
-              .filter((item) => isAdmin || item.href !== "/batches")
+              .filter((item) => isPro || item.href !== "/batches")
               .map((item) => {
                 const createPaths = ["/projects/new", "/batches/new"];
                 const isActive =
@@ -101,7 +104,7 @@ export function AppSidebar() {
               })}
           </div>
 
-          {isAdmin && (
+          {isPro && (
             <div>
               <p className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50 font-medium">
                 创作
@@ -116,6 +119,38 @@ export function AppSidebar() {
                     isActive={pathname === item.href}
                   />
                 ))}
+              </div>
+            </div>
+          )}
+
+          {!isPro && !isAdmin && (
+            <div>
+              <p className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50 font-medium">
+                升级
+              </p>
+              <div className="space-y-0.5">
+                <NavItem
+                  href="/pricing"
+                  label="订阅 Pro"
+                  icon={Crown}
+                  isActive={pathname === "/pricing"}
+                />
+              </div>
+            </div>
+          )}
+
+          {isAdmin && (
+            <div>
+              <p className="px-3 mb-1.5 text-[10px] uppercase tracking-[0.18em] text-muted-foreground/50 font-medium">
+                管理后台
+              </p>
+              <div className="space-y-0.5">
+                <NavItem
+                  href="/admin/users"
+                  label="用户与订阅"
+                  icon={Users}
+                  isActive={pathname.startsWith("/admin/users")}
+                />
               </div>
             </div>
           )}

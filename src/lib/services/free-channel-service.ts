@@ -17,6 +17,7 @@
 import { put } from "@vercel/blob";
 import {
   searchPexelsVideos,
+  isPexelsMockMode,
   type PexelsVideo,
 } from "@/lib/providers/pexels";
 import {
@@ -42,6 +43,10 @@ export interface FreeChannelManifest {
   segments: SrtSegment[];
   srt: string;
   createdAt: string;
+  /** 素材来源：真实 Pexels API / 占位 mock */
+  materialSource: "pexels" | "mock" | "user-upload";
+  /** 人类可读的提示信息，前端直接展示 */
+  materialNotice?: string;
 }
 
 /**
@@ -152,6 +157,25 @@ export async function buildFreeChannelManifest(
   const { srt, segments } = buildSrt(sentences, durations);
   const totalDurationMs = durations.reduce((a, b) => a + b, 0);
 
+  const hasUserAssets = userVideoAssets.length > 0;
+  const inMock = isPexelsMockMode();
+  let materialSource: "pexels" | "mock" | "user-upload";
+  let materialNotice: string | undefined;
+
+  if (hasUserAssets && !inMock) {
+    materialSource = "user-upload";
+  } else if (hasUserAssets) {
+    materialSource = "user-upload";
+    materialNotice =
+      "部分分镜使用用户上传素材；未上传的部分用占位样片（未配置 PEXELS_API_KEY）";
+  } else if (inMock) {
+    materialSource = "mock";
+    materialNotice =
+      "⚠️ 当前使用占位样片（Big Buck Bunny 等 Google 公开测试视频），画面与关键词无关。想要真实匹配的素材请在 Vercel 环境变量里配置 PEXELS_API_KEY（免费申请：https://www.pexels.com/api/）。";
+  } else {
+    materialSource = "pexels";
+  }
+
   return {
     channel: "free",
     voiceId,
@@ -161,5 +185,7 @@ export async function buildFreeChannelManifest(
     segments,
     srt,
     createdAt: new Date().toISOString(),
+    materialSource,
+    materialNotice,
   };
 }

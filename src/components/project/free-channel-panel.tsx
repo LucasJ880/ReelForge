@@ -18,6 +18,8 @@ interface FreeManifest {
   resolution: { width: number; height: number };
   clips: FreeClipInput[];
   srt: string;
+  materialSource?: "pexels" | "mock" | "user-upload";
+  materialNotice?: string;
 }
 
 export function FreeChannelPanel({
@@ -127,6 +129,18 @@ export function FreeChannelPanel({
           {manifest.clips.length} 个分镜 · {Math.round(manifest.totalDurationMs / 1000)} 秒
         </span>
       </div>
+
+      {manifest.materialNotice && (
+        <div
+          className={
+            manifest.materialSource === "mock"
+              ? "rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-200"
+              : "rounded-md border border-border bg-muted/40 px-3 py-2 text-[11px] leading-relaxed text-muted-foreground"
+          }
+        >
+          {manifest.materialNotice}
+        </div>
+      )}
 
       {state === "rendering" || state === "uploading" ? (
         <>

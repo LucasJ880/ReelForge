@@ -15,41 +15,66 @@ export interface PexelsVideo {
   user: string;
 }
 
+/**
+ * Mock 模式使用 Google 公共 GCS bucket 的经典测试 mp4 ——
+ * 这些素材存在已超过 10 年、任何 IP 都能直接裸访问，不会 403/404。
+ * 虽然不是竖屏，但我们的 ffmpeg composer 会强制 scale + crop 到 1080x1920，
+ * 所以视觉上不影响（而且 mock 本就只是跑通流程用的占位）。
+ *
+ * 想要真实的竖屏素材？请在 Vercel 环境变量里配置 PEXELS_API_KEY
+ * （免费申请：https://www.pexels.com/api/ ）。
+ */
 const MOCK_VIDEOS: PexelsVideo[] = [
-  // Pexels 官方公开样片（竖屏 9:16，适合 TikTok/抖音尺寸）
   {
-    id: "mock-1",
-    url: "https://videos.pexels.com/video-files/3209828/3209828-hd_1080_1920_25fps.mp4",
-    thumbnail: "https://images.pexels.com/videos/3209828/pictures/preview-0.jpg",
-    width: 1080,
-    height: 1920,
-    duration: 10,
-    user: "Pexels",
+    id: "mock-bbb",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+    thumbnail:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg",
+    width: 1280,
+    height: 720,
+    duration: 596,
+    user: "Blender Foundation",
   },
   {
-    id: "mock-2",
-    url: "https://videos.pexels.com/video-files/4763824/4763824-hd_1080_1920_30fps.mp4",
-    thumbnail: "https://images.pexels.com/videos/4763824/pictures/preview-0.jpg",
-    width: 1080,
-    height: 1920,
-    duration: 8,
-    user: "Pexels",
+    id: "mock-ed",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+    thumbnail:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ElephantsDream.jpg",
+    width: 1280,
+    height: 720,
+    duration: 653,
+    user: "Blender Foundation",
   },
   {
-    id: "mock-3",
-    url: "https://videos.pexels.com/video-files/5752729/5752729-hd_1080_1920_25fps.mp4",
-    thumbnail: "https://images.pexels.com/videos/5752729/pictures/preview-0.jpg",
-    width: 1080,
-    height: 1920,
-    duration: 12,
-    user: "Pexels",
+    id: "mock-fbb",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+    thumbnail:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerBlazes.jpg",
+    width: 640,
+    height: 360,
+    duration: 15,
+    user: "Google",
+  },
+  {
+    id: "mock-fbj",
+    url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+    thumbnail:
+      "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/ForBiggerJoyrides.jpg",
+    width: 640,
+    height: 360,
+    duration: 15,
+    user: "Google",
   },
 ];
 
-function isMockMode(): boolean {
+export function isPexelsMockMode(): boolean {
   if (process.env.VIDEO_ENGINE_MOCK === "true") return true;
   if (!process.env.PEXELS_API_KEY) return true;
   return false;
+}
+
+function isMockMode(): boolean {
+  return isPexelsMockMode();
 }
 
 /**

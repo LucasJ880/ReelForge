@@ -70,17 +70,57 @@ vercel --prod
 
 ## 4. Vercel Cron
 
-`vercel.json` 已配置：
+### 4.1 Hobby（当前）：cron 被禁用
+
+Vercel Hobby 套餐**禁止**每分钟 / 每小时的 cron（只允许 `0 X * * *` 每天 1 次），`*/2 * * * *` 会直接让整个部署失败报 "Hobby accounts are limited to daily cron jobs"。
+
+因此 `vercel.json` 在 Hobby 下**没有 crons 配置**。Seedance 任务状态需要外部触发：
+
+**方案 A：本地后台跑（最简单）**
+
+```bash
+# 在开发机开一个 tmux / screen 长期跑
+CRON_SECRET=<your secret> DOMAIN=https://reelforge-delta.vercel.app \
+  bash -c 'while true; do \
+    curl -s -X POST "$DOMAIN/api/cron/poll-videos" \
+         -H "Authorization: Bearer $CRON_SECRET" | head -1; \
+    sleep 120; \
+  done'
+```
+
+**方案 B：GitHub Actions（免费，每 5 分钟）**
+
+在仓库添加 `.github/workflows/poll-videos.yml`：
+
+```yaml
+name: poll-videos
+on:
+  schedule: [ { cron: "*/5 * * * *" } ]
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/poll-videos" \
+               -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}"
+```
+
+仓库 Secrets 里加 `APP_URL` 和 `CRON_SECRET`。
+
+### 4.2 升级到 Pro 之后
+
+把 `vercel.json` 改回：
 
 ```json
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     { "path": "/api/cron/poll-videos", "schedule": "*/2 * * * *" }
   ]
 }
 ```
 
-Cron 调用会带 `Authorization: Bearer <CRON_SECRET>`（Vercel 自动注入），需与环境变量一致。
+Pro 下 Vercel 自动给 cron 请求带 `Authorization: Bearer <CRON_SECRET>`（需与环境变量一致）。
 
 ## 5. 部署后冒烟（5 分钟）
 

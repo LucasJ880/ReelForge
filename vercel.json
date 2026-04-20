@@ -1,9 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "crons": [
-    {
-      "path": "/api/cron/poll-videos",
-      "schedule": "*/2 * * * *"
-    }
-  ]
+  "_comment_cron": "升级到 Vercel Pro 后把 crons 数组加回来：[{\"path\":\"/api/cron/poll-videos\",\"schedule\":\"*/2 * * * *\"}]。Hobby 套餐限制 cron 最小间隔 1 天，任何 */n 写法都会导致部署失败；在升级之前请用外部触发（见 docs/DEPLOYMENT.md 第 4 节）。"
 }

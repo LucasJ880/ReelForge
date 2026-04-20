@@ -17,8 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aivora — AI 视频创作工作台",
-  description: "AI 驱动的短视频内容生成、发布和数据分析平台",
+  title: "ReelForge — 外贸电商视频闭环交付系统",
+  description:
+    "面向外贸电商卖家的闭环视频增长系统：产品分析 → 卖点提炼 → 多版本视频 → 数据赛马 → 自动优化",
 };
 
 export default async function RootLayout({

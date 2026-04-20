@@ -1,275 +1,226 @@
+import { VideoBriefStatus, VideoJobStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
-import { ProjectStatus, VideoJobStatus } from "@prisma/client";
 import {
-  submitVideoGeneration,
-  getVideoJobStatus,
-} from "@/lib/providers/jimeng";
-import { persistRemoteVideo, persistRemoteImage } from "@/lib/utils/persist-video";
+  getSeedanceStatus,
+  submitSeedanceJob,
+} from "@/lib/providers/seedance";
+import { processReferenceImages } from "@/lib/providers/remove-bg";
 
-export interface VideoParams {
-  duration?: number;
-  resolution?: string;
-  ratio?: string;
-}
+const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
-const DEFAULT_PARAMS: Required<VideoParams> = {
-  duration: 15,
-  resolution: "1080p",
-  ratio: "9:16",
-};
-
-const SEGMENT_DURATION = 15;
-
-function isChainedVideo(duration: number): boolean {
-  return duration > SEGMENT_DURATION;
-}
-
-export async function submitVideoJob(
-  projectId: string,
-  params?: VideoParams
-) {
-  const project = await db.project.findUnique({
-    where: { id: projectId },
-    include: { contentPlan: true, videoJob: true },
-  });
-
-  if (!project) throw new Error("项目不存在");
-  if (!project.contentPlan) throw new Error("请先生成内容方案");
-
-  if (
-    project.status !== ProjectStatus.CONTENT_GENERATED &&
-    project.status !== ProjectStatus.VIDEO_FAILED
-  ) {
-    throw new Error(`当前状态 ${project.status} 不允许生成视频`);
-  }
-
-  const duration = params?.duration || DEFAULT_PARAMS.duration;
-  const resolution = params?.resolution || DEFAULT_PARAMS.resolution;
-  const ratio = params?.ratio || DEFAULT_PARAMS.ratio;
-  const chained = isChainedVideo(duration);
-
-  const { jobId } = await submitVideoGeneration({
-    prompt: project.contentPlan.videoPrompt,
-    referenceImageUrl: project.primaryImageUrl || undefined,
-    // Brand Lock 软约束：当有主图 + 启用 brand lock 时，把主图同时作为首帧和尾帧参考，
-    // 让 AI 在开头和结尾尽量"回到"主图状态（logo/产品形态稳定）。
-    // 单段短视频（15s）下这是成本最低的软约束。
-    lastFrameUrl:
-      project.brandLockEnabled && project.primaryImageUrl
-        ? project.primaryImageUrl
-        : undefined,
-    duration: SEGMENT_DURATION,
-    resolution,
-    ratio,
-    returnLastFrame: chained,
-  });
-
-  const jobData = {
-    provider: "jimeng",
-    channel: "pro",
-    providerJobId: jobId,
-    providerJobId2: null as string | null,
-    status: VideoJobStatus.PROCESSING,
-    videoUrl: null as string | null,
-    videoUrl2: null as string | null,
-    thumbnailUrl: null as string | null,
-    lastFrameUrl: null as string | null,
-    duration,
-    resolution,
-    ratio,
-    segment: chained ? 1 : null,
-    errorMessage: null as string | null,
-    completedAt: null as Date | null,
-  };
-
-  if (project.videoJob) {
-    const updated = await db.videoJob.update({
-      where: { projectId },
-      data: { ...jobData, retryCount: { increment: 1 } },
-    });
-    await db.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.VIDEO_GENERATING, errorMessage: null },
-    });
-    return updated;
-  }
-
-  const [videoJob] = await db.$transaction([
-    db.videoJob.create({ data: { projectId, ...jobData } }),
-    db.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.VIDEO_GENERATING, errorMessage: null },
-    }),
-  ]);
-
-  return videoJob;
-}
-
-export async function checkVideoStatus(projectId: string) {
-  const videoJob = await db.videoJob.findUnique({
-    where: { projectId },
-    include: { project: { include: { contentPlan: true } } },
-  });
-
-  if (!videoJob) throw new Error("没有视频生成任务");
-
-  if (
-    videoJob.status === VideoJobStatus.COMPLETED ||
-    videoJob.status === VideoJobStatus.FAILED
-  ) {
-    return videoJob;
-  }
-
-  const chained = videoJob.segment !== null;
-
-  if (chained && videoJob.segment === 2 && videoJob.providerJobId2) {
-    return handleSegment2Poll(videoJob);
-  }
-
-  if (!videoJob.providerJobId) throw new Error("缺少 providerJobId");
-  const result = await getVideoJobStatus(videoJob.providerJobId);
-
-  if (result.status === "completed" && result.videoUrl) {
-    if (chained) {
-      try {
-        return await handleSegment1Complete(videoJob, result.videoUrl, result.lastFrameUrl);
-      } catch (e) {
-        console.error("[video-service] Segment 2 submission failed, falling back:", e);
-        return markFailed(
-          videoJob.projectId,
-          `第二段提交失败: ${e instanceof Error ? e.message : String(e)}`,
-        );
-      }
-    }
-
-    let persistedVideoUrl = result.videoUrl;
-    let persistedThumb: string | null = result.thumbnailUrl || null;
-    try {
-      persistedVideoUrl = await persistRemoteVideo(result.videoUrl, `videos/${projectId}-final`);
-      console.log(`[video-service] videoUrl persisted -> ${persistedVideoUrl}`);
-    } catch (e) {
-      console.warn("[video-service] persist video failed, keeping original URL:", e);
-    }
-    if (persistedThumb) {
-      try {
-        persistedThumb = await persistRemoteImage(persistedThumb, `thumbs/${projectId}`);
-      } catch (e) {
-        console.warn("[video-service] persist thumb failed:", e);
-      }
-    }
-
-    const updated = await db.videoJob.update({
-      where: { projectId },
-      data: {
-        status: VideoJobStatus.COMPLETED,
-        videoUrl: persistedVideoUrl,
-        thumbnailUrl: persistedThumb,
-        completedAt: new Date(),
-      },
-    });
-    await db.project.update({
-      where: { id: projectId },
-      data: { status: ProjectStatus.VIDEO_READY },
-    });
-    return { ...updated, progress: 100 };
-  }
-
-  if (result.status === "failed") {
-    return markFailed(videoJob.projectId, result.errorMessage || "视频生成失败");
-  }
-
-  const segmentProgress = result.progress || 0;
-  const overallProgress = chained
-    ? Math.floor(segmentProgress / 2)
-    : segmentProgress;
-
-  return { ...videoJob, status: "PROCESSING" as const, progress: overallProgress };
-}
-
-async function handleSegment1Complete(
-  videoJob: Awaited<ReturnType<typeof db.videoJob.findUnique>> & { project: { contentPlan: { videoPromptPart2: string | null; videoPrompt: string } | null } },
-  videoUrl: string,
-  lastFrameUrl?: string,
-) {
-  const part2Prompt = videoJob.project.contentPlan?.videoPromptPart2
-    || `Continue from the previous scene. ${videoJob.project.contentPlan?.videoPrompt || ""}`;
-
-  const { jobId: jobId2 } = await submitVideoGeneration({
-    prompt: part2Prompt,
-    firstFrameUrl: lastFrameUrl || undefined,
-    duration: SEGMENT_DURATION,
-    ratio: videoJob.ratio,
-  });
-
-  console.log(`[video-service] Segment 1 done, submitting segment 2: ${jobId2}`);
-
-  let persistedUrl = videoUrl;
-  try {
-    persistedUrl = await persistRemoteVideo(videoUrl, `videos/${videoJob.projectId}-part1`);
-    console.log(`[video-service] Segment 1 persisted -> ${persistedUrl}`);
-  } catch (e) {
-    console.warn("[video-service] persist segment 1 failed, keeping original URL:", e);
-  }
-
-  const updated = await db.videoJob.update({
-    where: { projectId: videoJob.projectId },
-    data: {
-      videoUrl: persistedUrl,
-      lastFrameUrl: lastFrameUrl || null,
-      providerJobId2: jobId2,
-      segment: 2,
+/**
+ * 触发一个 VideoBrief 的视频生成：把每个 scene 的 prompt 提交成一个 VideoJob。
+ * 第一个 scene 若包含 I2V 参考图，会先经过抠图预处理。
+ */
+export async function dispatchVideoGeneration(briefId: string) {
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    include: {
+      scripts: { where: { isCurrent: true }, take: 1 },
     },
   });
+  if (!brief) throw new Error("Brief 不存在");
+  const script = brief.scripts[0];
+  if (!script) throw new Error("Brief 尚未有脚本");
 
-  return { ...updated, status: "PROCESSING" as const, progress: 50 };
+  const scenes = await db.scenePlan.findMany({
+    where: { scriptId: script.id },
+    orderBy: { sceneIndex: "asc" },
+    include: { videoPrompts: true },
+  });
+  if (scenes.length === 0) throw new Error("请先生成分镜/Prompt");
+
+  await db.videoBrief.update({
+    where: { id: briefId },
+    data: { status: VideoBriefStatus.RENDER_QUEUED, errorMessage: null },
+  });
+
+  // 预处理参考图
+  const processed = brief.referenceImageUrls?.length
+    ? (await processReferenceImages(brief.referenceImageUrls)).map((p) => p.url)
+    : [];
+
+  // 清理旧的 queued/running job（重新发起时）
+  await db.videoJob.updateMany({
+    where: {
+      videoBriefId: briefId,
+      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
+    },
+    data: { status: VideoJobStatus.CANCELLED },
+  });
+
+  const created = await Promise.all(
+    scenes.map(async (scene) => {
+      const prompt = scene.videoPrompts[0];
+      if (!prompt) throw new Error(`Scene #${scene.sceneIndex} 没有 prompt`);
+
+      const job = await db.videoJob.create({
+        data: {
+          videoBriefId: briefId,
+          provider: prompt.provider,
+          status: VideoJobStatus.QUEUED,
+        },
+      });
+
+      try {
+        const { jobId } = await submitSeedanceJob({
+          prompt: prompt.promptText,
+          referenceImageUrls:
+            prompt.provider === VideoProvider.SEEDANCE_I2V
+              ? prompt.referenceImageUrl
+                ? [prompt.referenceImageUrl, ...processed.slice(1)]
+                : processed
+              : undefined,
+          duration: scene.durationSec,
+          ratio: (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio,
+          model:
+            prompt.provider === VideoProvider.SEEDANCE_I2V
+              ? I2V_MODEL_OVERRIDE
+              : undefined,
+        });
+        return db.videoJob.update({
+          where: { id: job.id },
+          data: {
+            externalJobId: jobId,
+            status: VideoJobStatus.RUNNING,
+            startedAt: new Date(),
+          },
+        });
+      } catch (err) {
+        return db.videoJob.update({
+          where: { id: job.id },
+          data: {
+            status: VideoJobStatus.FAILED,
+            errorMessage: (err as Error).message,
+            finishedAt: new Date(),
+          },
+        });
+      }
+    }),
+  );
+
+  await syncBriefStatus(briefId);
+  return created;
 }
 
-async function handleSegment2Poll(
-  videoJob: NonNullable<Awaited<ReturnType<typeof db.videoJob.findUnique>>>,
-) {
-  if (!videoJob.providerJobId2) throw new Error("缺少 providerJobId2");
-  const result = await getVideoJobStatus(videoJob.providerJobId2);
+/**
+ * 轮询并更新所有 RUNNING 状态的 VideoJob。由 Vercel Cron 调用。
+ */
+export async function pollRunningJobs(limit = 30) {
+  const running = await db.videoJob.findMany({
+    where: { status: VideoJobStatus.RUNNING },
+    orderBy: { startedAt: "asc" },
+    take: limit,
+  });
 
-  if (result.status === "completed" && result.videoUrl) {
-    let persistedUrl2 = result.videoUrl;
-    try {
-      persistedUrl2 = await persistRemoteVideo(result.videoUrl, `videos/${videoJob.projectId}-part2`);
-      console.log(`[video-service] Segment 2 persisted -> ${persistedUrl2}`);
-    } catch (e) {
-      console.warn("[video-service] persist segment 2 failed, keeping original URL:", e);
-    }
+  const results = await Promise.all(
+    running.map(async (job) => {
+      if (!job.externalJobId) return null;
+      try {
+        const r = await getSeedanceStatus(job.externalJobId);
+        if (r.status === "completed") {
+          return db.videoJob.update({
+            where: { id: job.id },
+            data: {
+              status: VideoJobStatus.SUCCEEDED,
+              outputVideoUrl: r.videoUrl,
+              outputThumbUrl: r.thumbnailUrl,
+              finishedAt: new Date(),
+            },
+          });
+        }
+        if (r.status === "failed") {
+          return db.videoJob.update({
+            where: { id: job.id },
+            data: {
+              status: VideoJobStatus.FAILED,
+              errorMessage: r.errorMessage ?? "Seedance 返回失败",
+              finishedAt: new Date(),
+            },
+          });
+        }
+        return null;
+      } catch (err) {
+        return db.videoJob.update({
+          where: { id: job.id },
+          data: {
+            errorMessage: `轮询异常: ${(err as Error).message}`,
+          },
+        });
+      }
+    }),
+  );
 
-    const updated = await db.videoJob.update({
-      where: { projectId: videoJob.projectId },
+  const affectedBriefs = Array.from(
+    new Set(
+      running
+        .filter((_, i) => results[i] !== null)
+        .map((j) => j.videoBriefId),
+    ),
+  );
+  await Promise.all(affectedBriefs.map((id) => syncBriefStatus(id)));
+  return { polled: running.length, updated: results.filter(Boolean).length };
+}
+
+/**
+ * 根据所有 scene 的 VideoJob 状态聚合成 Brief 级状态。
+ * - 所有 succeeded  → RENDER_SUCCEEDED → QA_PENDING（自动入审）
+ * - 任意 failed    → RENDER_FAILED
+ * - 仍有 queued/running → RENDERING
+ */
+export async function syncBriefStatus(briefId: string) {
+  const jobs = await db.videoJob.findMany({
+    where: { videoBriefId: briefId },
+  });
+  if (jobs.length === 0) return;
+
+  const succeeded = jobs.filter((j) => j.status === VideoJobStatus.SUCCEEDED);
+  const failed = jobs.filter((j) => j.status === VideoJobStatus.FAILED);
+  const busy = jobs.filter(
+    (j) => j.status === VideoJobStatus.QUEUED || j.status === VideoJobStatus.RUNNING,
+  );
+
+  if (busy.length > 0) {
+    await db.videoBrief.update({
+      where: { id: briefId },
+      data: { status: VideoBriefStatus.RENDERING },
+    });
+    return;
+  }
+
+  if (failed.length > 0) {
+    await db.videoBrief.update({
+      where: { id: briefId },
       data: {
-        videoUrl2: persistedUrl2,
-        status: VideoJobStatus.COMPLETED,
-        completedAt: new Date(),
+        status: VideoBriefStatus.RENDER_FAILED,
+        errorMessage: failed[0]?.errorMessage ?? "部分 scene 渲染失败",
       },
     });
-    await db.project.update({
-      where: { id: videoJob.projectId },
-      data: { status: ProjectStatus.VIDEO_READY },
+    return;
+  }
+
+  if (succeeded.length > 0) {
+    // MVP 阶段不做拼接，直接把第一个 scene 的成片作为 finalVideoUrl
+    const first = succeeded[0];
+    await db.videoBrief.update({
+      where: { id: briefId },
+      data: {
+        status: VideoBriefStatus.QA_PENDING,
+        finalVideoUrl: first.outputVideoUrl,
+        finalThumbnailUrl: first.outputThumbUrl,
+      },
     });
-    return { ...updated, progress: 100 };
+    // 自动创建 QA pending 记录（若尚未有 PENDING）
+    await ensureQAPendingStub(briefId);
   }
-
-  if (result.status === "failed") {
-    return markFailed(videoJob.projectId, result.errorMessage || "第二段视频生成失败");
-  }
-
-  const segmentProgress = result.progress || 0;
-  return { ...videoJob, status: "PROCESSING" as const, progress: 50 + Math.floor(segmentProgress / 2) };
 }
 
-async function markFailed(projectId: string, errorMessage: string) {
-  const updated = await db.videoJob.update({
-    where: { projectId },
-    data: { status: VideoJobStatus.FAILED, errorMessage },
+async function ensureQAPendingStub(briefId: string) {
+  const existing = await db.qAReview.findFirst({
+    where: { videoBriefId: briefId, status: "PENDING" },
   });
-  await db.project.update({
-    where: { id: projectId },
-    data: { status: ProjectStatus.VIDEO_FAILED, errorMessage },
+  if (existing) return;
+  await db.qAReview.create({
+    data: { videoBriefId: briefId, status: "PENDING" },
   });
-  return updated;
 }

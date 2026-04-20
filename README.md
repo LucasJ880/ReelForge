@@ -1,150 +1,98 @@
-# Aivora
+# ReelForge
 
-AI 驱动的中文短视频自动化平台。输入关键词 → AI 生成脚本 / 标题 / Hashtag → 即梦 Seedance 产出 mp4 → 浏览器端 Brand Lock 叠加 Logo → 下载到本地，手动发布到 TikTok / 抖音 / 视频号。
+**外贸电商视频闭环交付系统** · 面向内部运营团队，第一阶段聚焦毛毯 / blanket 类目。
 
-## 核心理念
+核心闭环：
+`产品输入 → 市场分析 → 卖点提炼 → 多版本视频 → 发布 → 数据回流 → 赛马打分 → 特征蒸馏 → 下一轮`
 
-- **只管生成，不管发布**。用户自行下载 mp4 到任一平台发布，平台不绑定任何社媒账户。
-- **单通道极简**：MVP 阶段只保留 Pro（即梦 Seedance）路径，避免 Pexels/TTS 免费通道的稳定性陷阱。
-- **Brand Lock 品牌保真**：AI 模型无法稳定出 Logo —— 用 ffmpeg.wasm 最后一步硬叠加兜底，品牌 100% 清晰。
-- **订阅驱动**：
-  - **免费用户**：只能浏览公开画廊、下载公开作品。
-  - **Pro 用户**：解锁 AI 生成、批量任务、Brand Lock、私有化作品等全部能力。
-  - **ADMIN**：权限等同 Pro，且可在后台手动为用户开通 / 撤销订阅。
+---
 
 ## 技术栈
 
-| 层级           | 技术                                                       |
-| -------------- | ---------------------------------------------------------- |
-| 前端           | Next.js 16 App Router, React 19, TypeScript, Tailwind v4   |
-| 后端           | Next.js API Routes, Prisma ORM, Neon Postgres              |
-| 认证           | NextAuth.js v4（邮箱密码 + JWT）                           |
-| AI 文案        | OpenAI (gpt-4o-mini)                                       |
-| AI 视频        | 即梦 Seedance（火山方舟 Ark）                              |
-| Brand Lock     | ffmpeg.wasm（浏览器侧硬叠加 Logo / Slogan / 片头片尾）     |
-| 存储           | Vercel Blob                                                |
-| 部署           | Vercel                                                     |
-
-## 数据模型
-
-```
-User
-└── planTier: FREE | PRO  +  planExpiresAt / planSource（审计字段）
-
-Project (关键词 + 状态 + isPublic)
-├── ContentPlan  (AI 生成的脚本 / 标题 / Hashtag / 视频提示词)
-└── VideoJob     (Pro 通道提交 Seedance 任务，返回 mp4)
-
-Batch → Project[]
-```
-
-### 项目状态流
-
-```
-DRAFT → CONTENT_GENERATED → VIDEO_GENERATING → VIDEO_READY → DONE
-                                     ↓
-                              VIDEO_FAILED
-```
-
-## 订阅模型（MVP）
-
-| 能力                         | Free | Pro | Admin |
-| ---------------------------- | :--: | :-: | :---: |
-| 浏览公开画廊 / 下载公开作品  |  ✓   |  ✓  |   ✓   |
-| 注册账号 / 个人设置          |  ✓   |  ✓  |   ✓   |
-| AI 一键生成视频              |  —   |  ✓  |   ✓   |
-| 批量并行生成                 |  —   |  ✓  |   ✓   |
-| Brand Lock 品牌叠加          |  —   |  ✓  |   ✓   |
-| 切换作品是否进入公开画廊     |  —   |  —  |   ✓   |
-| 为其他用户开通 / 撤销 Pro    |  —   |  —  |   ✓   |
-
-### 如何升级 Pro
-
-MVP 阶段订阅为**人工开通**：
-
-1. 用户访问 `/settings/billing` → 点击"联系管理员开通"发送 `mailto:` 邮件；
-2. 管理员进入 `/admin/users` 后台，搜索用户 → 点击「开通 Pro」→ 输入天数（默认 30）；
-3. 用户刷新页面即可看到生效（Session 下次 `update()` 自动刷新 `planTier`）。
-
-V2 接入支付（详见下方 Roadmap）后，用户可以直接 `/pricing` → Checkout → 自动开通。
+- Next.js 16 App Router + React 19 + TypeScript
+- Tailwind CSS v4 + shadcn/ui
+- Prisma + Neon Postgres
+- NextAuth v4 Credentials（仅 Admin 登录）
+- OpenAI（LLM 管线）+ 即梦/Seedance（T2V/I2V via 火山方舟 Ark）
+- Vercel Blob + Vercel Cron
 
 ## 快速开始
 
 ```bash
+# 1. 装依赖
 npm install
-cp .env.example .env.local   # 按下面填写
-npx prisma db push
+
+# 2. 配置环境变量
+cp .env.example .env.local
+# 填入 DATABASE_URL / OPENAI_API_KEY / AUTH_SECRET / BLOB_READ_WRITE_TOKEN
+# （可选）ARK_API_KEY（不填走 mock）
+
+# 3. 建库 + 种子管理员
+npm run db:push
+SEED_ADMIN_EMAIL=admin@reelforge.local SEED_ADMIN_PASSWORD=your-strong-pass npm run db:seed
+
+# 4. 启动
 npm run dev
 ```
 
-### 环境变量
+打开 http://localhost:3000 → 自动跳 `/login` → 用 seed 账号登录 → 进入 `/orders`。
 
-```bash
-# 必填
-DATABASE_URL=postgresql://...        # Neon Postgres
-OPENAI_API_KEY=sk-...
-AUTH_SECRET=<openssl rand -hex 32>
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-BLOB_READ_WRITE_TOKEN=...            # Vercel Blob 读写 token
+## 目录结构
 
-# Pro 通道（可留空走 mock）
-ARK_API_KEY=
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_VIDEO_MODEL=doubao-seedance-1-5-pro-250115
-
-# V2：支付（暂不启用）
-# STRIPE_SECRET_KEY=
-# STRIPE_WEBHOOK_SECRET=
-# CREEM_WEBHOOK_SECRET=
+```
+src/
+├── app/
+│   ├── (app)/           # 登录后运营页面
+│   │   ├── orders/      # 交付单
+│   │   ├── rounds/      # 赛马轮次
+│   │   ├── qa/          # QA 审核
+│   │   ├── publish/     # 发布队列
+│   │   ├── metrics/     # 数据回流
+│   │   ├── distillation/# 创意蒸馏
+│   │   └── settings/    # 管理员设置
+│   ├── (auth)/login/
+│   └── api/
+├── lib/
+│   ├── services/        # 15 个业务 service
+│   ├── providers/       # 外部 API 封装
+│   └── validators/      # zod schemas
+├── components/
+│   ├── ui/              # shadcn
+│   ├── layout/          # sidebar
+│   └── features/        # 业务组件
+└── types/
+prisma/
+├── schema.prisma        # 15 个实体 + 3 个状态机
+└── seed.ts
 ```
 
-### 部署
+## 角色
 
-```bash
-git push origin main    # Vercel 自动部署
-```
+- `SUPER_ADMIN` — 全权限 + 管理员账号管理
+- `OPERATOR` — 创建交付单、执行流程、发布
+- `REVIEWER` — QA 审核
 
-Vercel 环境变量在 Dashboard → Settings → Environment Variables 配置。
+## 发布链路（MVP 半自动）
 
-## 权限守卫一览
+1. 系统生成 5 条视频（3 优化 + 2 探索）
+2. AI + 人工 QA 双打分
+3. 运营在 `/publish` 下载成片
+4. 人工上传到 TikTok 后在 UI 回填 post_id
+5. 12h / 24h / 48h 后运营上传 CSV 数据
+6. 系统自动打分、选 top3、蒸馏特征
+7. 进入下一轮
 
-| 守卫            | 作用                                                       | 失败码  |
-| --------------- | ---------------------------------------------------------- | ------- |
-| `requireAuth`   | 已登录即可                                                 | 401     |
-| `requirePro`    | ADMIN 直接放行；普通用户必须 `planTier=PRO` 且未过期       | 402     |
-| `requireAdmin`  | 必须 `role=ADMIN`                                          | 403     |
+## 文档
 
-前端对应 hook：`useIsAdmin()` / `useIsPro()` / `useSubscription()`。
+- [TESTING.md](./docs/TESTING.md) — 端到端冒烟脚本、真实 UAT、PRD §3 对齐矩阵
+- [DEPLOYMENT.md](./docs/DEPLOYMENT.md) — Vercel 部署、环境变量、Cron、冒烟
 
-## 主要 API
+## V2 路线图
 
-| 路由                                         | 守卫           | 说明                           |
-| -------------------------------------------- | -------------- | ------------------------------ |
-| `POST /api/projects`                         | `requirePro`   | 创建项目                       |
-| `POST /api/projects/[id]/generate`           | `requirePro`   | 生成文案                       |
-| `POST /api/projects/[id]/auto-generate`      | `requirePro`   | 一键：文案 + Seedance 视频     |
-| `POST /api/projects/[id]/brand-lock`         | `requirePro`   | 回写 Brand Lock 结果           |
-| `POST /api/projects/bulk-delete`             | `requirePro`   | 批量 / 过期项目删除            |
-| `PATCH /api/projects/[id]` (`isPublic`)      | `requireAdmin` | 调整作品公开 / 私有            |
-| `GET  /api/admin/users`                      | `requireAdmin` | 列出所有用户                   |
-| `POST /api/admin/users/[id]/grant-pro`       | `requireAdmin` | 手动开通 / 续期 Pro（天数可选）|
-| `POST /api/admin/users/[id]/revoke-pro`      | `requireAdmin` | 立即撤销 Pro                   |
-| `POST /api/webhooks/stripe`                  | public         | V2 占位：未配置时返回 503      |
-| `POST /api/webhooks/creem`                   | public         | V2 占位：未配置时返回 503      |
-
-## 公开路由（无需登录）
-
-- `/` 落地页
-- `/gallery` 公开画廊 + `/gallery/[id]` 作品详情
-- `/pricing` 订阅方案
-- `/login` / `/register`
-
-## Roadmap (V2)
-
-- 接入 Stripe（海外）/ Creem（国内支付宝 / 微信）webhook，让 `/api/webhooks/*` 真正把事件翻译成 `grantPro` / `revokePro`。
-- `/pricing` 直接挂 Checkout 链接，取消 mailto 人工流程。
-- 团队席位（Team Plan）与共享作品库。
+- 接 TikTok Content Posting API 做全自动发布
+- 接 TikTok Shop API 拿商业分（CTR / ROAS）
+- 扩展到更多类目
 
 ## License
 
-Private project.
+Internal use only.

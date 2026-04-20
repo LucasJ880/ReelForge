@@ -7,180 +7,507 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum ProjectStatus {
+// =========================================================
+// 1. 身份（仅内部 Admin）
+// =========================================================
+
+enum AdminRole {
+  SUPER_ADMIN
+  OPERATOR
+  REVIEWER
+}
+
+model AdminUser {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  hashedPassword String
+  name           String?
+  role           AdminRole @default(OPERATOR)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  createdOrders   DeliveryOrder[]
+  qaReviews       QAReview[]
+  publishRecords  PublishRecord[]
+}
+
+// =========================================================
+// 2. 交付单 DeliveryOrder（替代旧 Project）
+// =========================================================
+
+enum DeliveryOrderStatus {
   DRAFT
-  CONTENT_GENERATED
-  VIDEO_GENERATING
-  VIDEO_FAILED
-  VIDEO_READY
-  DONE
+  RESEARCHING
+  SELLING_POINTS_READY
+  ROUND_ACTIVE
+  AWAITING_DISTILLATION
+  NEXT_ROUND_SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+model DeliveryOrder {
+  id               String               @id @default(cuid())
+  title            String
+  status           DeliveryOrderStatus  @default(DRAFT)
+
+  /// 第一阶段仅 "blanket"；后续可扩展
+  productCategory  String               @default("blanket")
+  /// 第一阶段仅 "tiktok"
+  targetPlatform   String               @default("tiktok")
+
+  /// 目标国家，例：US, CA_QC, DE
+  targetCountry    String
+  /// 目标语言，例：en, fr, de
+  targetLanguage   String
+  /// 区域变体（可选），例：en-US, fr-CA
+  targetRegionVariant String?
+
+  /// 产品结构化输入：sku、材质、尺寸、价格、卖点提示、URL、图片、竞品链接等
+  productInput     Json
+
+  /// 终止策略：默认 3 轮 + 支持 Admin 手动提前结算
+  maxRounds        Int                  @default(3)
+  errorMessage     String?
+
+  createdById      String?
+  createdBy        AdminUser?           @relation(fields: [createdById], references: [id])
+
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  marketResearch   MarketResearch?
+  sellingPoints    SellingPoint[]
+  rounds           Round[]
+  distillations    DistillationFeature[]
+
+  @@index([status])
+  @@index([productCategory])
+  @@index([createdAt(sort: Desc)])
+}
+
+// =========================================================
+// 3. 市场分析 / 卖点
+// =========================================================
+
+enum ResearchStatus {
+  PENDING
+  RUNNING
+  READY
+  FAILED
+}
+
+model MarketResearch {
+  id              String          @id @default(cuid())
+  deliveryOrderId String          @unique
+  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  status          ResearchStatus  @default(PENDING)
+  /// LLM 生成的结构化调研：trend, keywords, competitors, hot_hooks, audience_notes, timing
+  structured      Json?
+  /// LLM 自然语言摘要
+  summary         String?
+  /// Token 用量等调试信息
+  debug           Json?
+  errorMessage    String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+}
+
+model SellingPoint {
+  id              String          @id @default(cuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  /// 分类：core / scene / emotional / localization
+  kind            String
+  rank            Int
+  title           String
+  body            String
+  /// 来源证据（研究片段、产品事实）
+  evidence        Json?
+  /// 本地化表达变体：{ "en-US": "...", "fr-CA": "..." }
+  localizations   Json?
+
+  createdAt       DateTime        @default(now())
+
+  @@index([deliveryOrderId])
+}
+
+// =========================================================
+// 4. 赛马 Round + ContentAngle
+// =========================================================
+
+enum RoundStatus {
+  PLANNED
+  ANGLES_READY
+  VIDEOS_IN_FLIGHT
+  AWAITING_PUBLISH
+  LIVE
+  METRICS_WINDOWS_PENDING
+  SCORING
+  RANKED
+  DISTILLATION_PENDING
+  CLOSED
+}
+
+model Round {
+  id                  String          @id @default(cuid())
+  deliveryOrderId     String
+  deliveryOrder       DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  roundIndex          Int
+  status              RoundStatus     @default(PLANNED)
+
+  /// 该轮绑定的主卖点 id（可选，冗余字段便于展示）
+  primarySellingPointId String?
+  /// 赛马槽位：默认 3 优化 + 2 探索 = 5 条
+  optimizationSlots   Int             @default(3)
+  explorationSlots    Int             @default(2)
+
+  /// 首轮没有上一轮可蒸馏，所以可空；非首轮须指向上一轮
+  baseDistillationId  String?
+  baseDistillation    DistillationFeature? @relation("RoundBaseDistillation", fields: [baseDistillationId], references: [id])
+
+  startedAt           DateTime?
+  closedAt            DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  angles              ContentAngle[]
+  scoreReports        ScoreReport[]
+
+  @@unique([deliveryOrderId, roundIndex])
+  @@index([status])
+}
+
+enum AngleType {
+  OPTIMIZATION
+  EXPLORATION
+}
+
+model ContentAngle {
+  id              String          @id @default(cuid())
+  roundId         String
+  round           Round           @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  sortOrder       Int
+  type            AngleType
+  title           String
+  /// 钩子/视频叙事概念
+  hook            String?
+  narrative       String?
+  /// 探索型 angle 所采用的主题池 key（如 "asmr"、"pet_steal"、"room_makeover"）
+  explorationTheme String?
+  /// 优化型引用的上一轮蒸馏特征 id
+  sourceDistillationId String?
+  sourceDistillation   DistillationFeature? @relation("AngleSourceDistillation", fields: [sourceDistillationId], references: [id])
+
+  /// 本地化备注（语言、文化、on-camera 形式建议）
+  localeNotes     Json?
+
+  createdAt       DateTime        @default(now())
+
+  videoBrief      VideoBrief?
+
+  @@index([roundId])
+}
+
+// =========================================================
+// 5. VideoBrief / Script / ScenePlan / VideoPrompt / VideoJob
+// =========================================================
+
+enum VideoBriefStatus {
+  BRIEF_PENDING
+  SCRIPT_DRAFTING
+  SCRIPT_READY
+  SCENE_PROMPT_READY
+  RENDER_QUEUED
+  RENDERING
+  RENDER_SUCCEEDED
+  RENDER_FAILED
+  QA_PENDING
+  QA_APPROVED
+  QA_REJECTED
+  PUBLISH_PENDING
+  PUBLISHED
+  METRICS_COLLECTING
+  SCORED
+  ARCHIVED
+  DROPPED
+}
+
+enum OnCameraMode {
+  NONE
+  SELF_RAW
+  SELF_VOICE_REPLACED
+  SELF_SUBTITLED
+  UGC_AVATAR
+  PRODUCT_ONLY
+}
+
+model VideoBrief {
+  id                String            @id @default(cuid())
+  contentAngleId    String            @unique
+  contentAngle      ContentAngle      @relation(fields: [contentAngleId], references: [id], onDelete: Cascade)
+
+  status            VideoBriefStatus  @default(BRIEF_PENDING)
+
+  durationSec       Int               @default(20)
+  aspectRatio       String            @default("9:16")
+  tone              String?
+  onCameraMode      OnCameraMode      @default(PRODUCT_ONLY)
+
+  /// I2V 参考图（Vercel Blob URL）；支持 1-5 张
+  referenceImageUrls String[]         @default([])
+  /// 最终送审/发布的成片 URL
+  finalVideoUrl     String?
+  /// 最终封面
+  finalThumbnailUrl String?
+
+  errorMessage      String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  scripts           Script[]
+  videoJobs         VideoJob[]
+  qaReviews         QAReview[]
+  publishRecords    PublishRecord[]
+
+  @@index([status])
+}
+
+model Script {
+  id              String          @id @default(cuid())
+  videoBriefId    String
+  videoBrief      VideoBrief      @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+
+  version         Int             @default(1)
+  language        String
+  fullText        String
+  hook            String?
+  cta             String?
+  isCurrent       Boolean         @default(true)
+
+  createdAt       DateTime        @default(now())
+
+  scenePlans      ScenePlan[]
+
+  @@index([videoBriefId, isCurrent])
+}
+
+model ScenePlan {
+  id              String          @id @default(cuid())
+  scriptId        String
+  script          Script          @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+
+  sceneIndex      Int
+  durationSec     Int
+  visualIntent    String
+  onCameraNote    String?
+
+  videoPrompts    VideoPrompt[]
+
+  @@index([scriptId])
+}
+
+enum VideoProvider {
+  SEEDANCE_T2V
+  SEEDANCE_I2V
+}
+
+model VideoPrompt {
+  id                String        @id @default(cuid())
+  scenePlanId       String
+  scenePlan         ScenePlan     @relation(fields: [scenePlanId], references: [id], onDelete: Cascade)
+
+  provider          VideoProvider
+  promptText        String
+  negativePrompt    String?
+  params            Json?
+  /// I2V 时指向已处理好的参考图 URL
+  referenceImageUrl String?
+
+  createdAt         DateTime      @default(now())
+
+  @@index([scenePlanId])
 }
 
 enum VideoJobStatus {
-  PENDING
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
-enum BatchStatus {
-  PENDING
+  QUEUED
   RUNNING
-  PAUSED
-  COMPLETED
+  SUCCEEDED
   FAILED
-}
-
-model Batch {
-  id                String      @id @default(cuid())
-  name              String
-  status            BatchStatus @default(PENDING)
-  totalCount        Int         @default(0)
-  completedCount    Int         @default(0)
-  failedCount       Int         @default(0)
-  videoParams       Json?
-  concurrency       Int         @default(2)
-  autoGenerateVideo Boolean     @default(true)
-  errorMessage      String?
-  startedAt         DateTime?
-  completedAt       DateTime?
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
-
-  projects Project[]
-
-  @@index([status])
-  @@index([createdAt(sort: Desc)])
-}
-
-model Project {
-  id               String        @id @default(cuid())
-  keyword          String
-  category         String?
-  status           ProjectStatus @default(DRAFT)
-  errorMessage     String?
-  retryCount       Int           @default(0)
-  batchId          String?
-  batchIndex       Int?
-  /// 是否在公共画廊展示；默认公开，ADMIN 可手动私有化
-  isPublic         Boolean       @default(true)
-  /// 自由文本：用户描述自己的品牌/产品/背景信息（可选）
-  brandDescription String?
-  /// 内容语气：auto | promo | narrative | educational | vlog | news | humor | cinematic | testimonial
-  tone             String?       @default("auto")
-  /// 脚本/配音语言：auto | en | zh | ja | ko | es | fr | de
-  language         String?       @default("auto")
-  imageUrls        String[]
-  primaryImageUrl  String?
-  userVideoAssets  String[]      @default([])
-
-  // --- Brand Lock 品牌保真合成配置 ---
-  /// 单独上传的品牌 Logo (PNG 优先，透明背景最佳)
-  logoUrl           String?
-  /// 是否启用 Brand Lock 合成
-  brandLockEnabled  Boolean  @default(true)
-  /// 合成模板：none | corner_watermark | intro_outro | full_package
-  brandLockTemplate String   @default("corner_watermark")
-  /// 角标水印位置：bottom-right | bottom-left | top-right | top-left
-  brandLockPosition String   @default("bottom-right")
-  /// 水印不透明度 0-100
-  brandLockOpacity  Int      @default(85)
-  /// 叠加的 Slogan / 品牌文字 (full_package 使用)
-  brandLockSlogan   String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-
-  batch       Batch?       @relation(fields: [batchId], references: [id])
-  contentPlan ContentPlan?
-  videoJob    VideoJob?
-
-  @@index([status])
-  @@index([category])
-  @@index([batchId])
-  @@index([isPublic, status])
-  @@index([createdAt(sort: Desc)])
-}
-
-model ContentPlan {
-  id               String   @id @default(cuid())
-  projectId        String   @unique
-  script           String
-  videoPrompt      String
-  videoPromptPart2 String?
-  caption          String
-  hashtags         String[]
-  contentAngles    Json
-  modelUsed        String
-  tokenUsage       Json?
-  createdAt        DateTime @default(now())
-
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  CANCELLED
 }
 
 model VideoJob {
-  id               String         @id @default(cuid())
-  projectId        String         @unique
-  provider         String         @default("jimeng")
-  /// 历史字段；当前仅使用 "pro"（Seedance）。保留以兼容旧数据。
-  channel          String         @default("pro")
-  providerJobId    String?
-  providerJobId2   String?
-  status           VideoJobStatus @default(PENDING)
-  videoUrl         String?
-  videoUrl2        String?
-  stitchedVideoUrl String?
-  /// Brand Lock 后的最终品牌版视频（硬叠加 logo/产品/slogan 后的成品）
-  brandedVideoUrl  String?
-  thumbnailUrl     String?
-  duration         Int            @default(15)
-  resolution       String         @default("1080p")
-  ratio            String         @default("9:16")
-  segment          Int?
-  lastFrameUrl     String?
-  /// 多变体: [{ jobId, videoUrl, thumbnailUrl, status, selected? }]
-  variants         Json?
-  selectedVariant  Int            @default(0)
-  /// 历史字段：旧 Free 通道的素材 manifest；新流程不再使用
-  manifest         Json?
-  errorMessage     String?
-  retryCount       Int            @default(0)
-  createdAt        DateTime       @default(now())
-  completedAt      DateTime?
+  id              String          @id @default(cuid())
+  videoBriefId    String
+  videoBrief      VideoBrief      @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  provider        VideoProvider
+  externalJobId   String?
+  status          VideoJobStatus  @default(QUEUED)
+
+  outputVideoUrl  String?
+  outputThumbUrl  String?
+  errorMessage    String?
+  retryCount      Int             @default(0)
+
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status])
+  @@index([externalJobId])
 }
 
-enum UserRole {
-  ADMIN
-  USER
+// =========================================================
+// 6. QA Review
+// =========================================================
+
+enum QAStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
 }
 
-enum UserPlanTier {
-  FREE
-  PRO
+model QAReview {
+  id              String     @id @default(cuid())
+  videoBriefId    String
+  videoBrief      VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+
+  /// AI QA 产出（独立于人工审核，先跑一次供审核员参考）
+  aiOverallScore    Float?
+  /// JSON：hook_quality / topic_alignment / angle_alignment / format_alignment / cta_quality / duration_fitness / brief_alignment / technical_completeness
+  aiScoreBreakdown  Json?
+  aiIssues          Json?
+  aiSuggestions     Json?
+  /// AI 建议的路由：auto_pass / needs_review / reject
+  aiReviewRoute     String?
+
+  /// 人工最终结论
+  status            QAStatus   @default(PENDING)
+  reviewerId        String?
+  reviewer          AdminUser? @relation(fields: [reviewerId], references: [id])
+  reviewerComment   String?
+  reviewedAt        DateTime?
+
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  @@index([status])
 }
 
-model User {
-  id             String       @id @default(cuid())
-  email          String       @unique
-  hashedPassword String
-  name           String?
-  role           UserRole     @default(USER)
+// =========================================================
+// 7. Publish + Metrics
+// =========================================================
 
-  // --- 订阅 / 付费计划 ---
-  /// 当前套餐。ADMIN 始终视同 PRO，不以该字段为准
-  planTier       UserPlanTier @default(FREE)
-  /// 到期时间；当前时间晚于该值则自动降回 FREE（纯查询判断，不需要 cron）
-  planExpiresAt  DateTime?
-  /// 本次订阅由哪个 ADMIN 手动开通；未来 Stripe/Creem 回写时填系统标识
-  planGrantedBy  String?
-  /// 本次订阅开通时间
-  planGrantedAt  DateTime?
-  /// 来源：none / admin-manual / stripe / creem（V2 用）
-  planSource     String       @default("none")
+enum PublishStatus {
+  PENDING
+  DOWNLOADED
+  UPLOADED
+  PUBLISHED
+  FAILED
+  CANCELLED
+}
 
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+model PublishRecord {
+  id                String         @id @default(cuid())
+  videoBriefId      String
+  videoBrief        VideoBrief     @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
-  @@index([planTier, planExpiresAt])
+  platform          String         @default("tiktok")
+  /// TikTok 侧的贴文/视频 id；运营人工上传成功后回填
+  externalPostId    String?
+  publishUrl        String?
+
+  status            PublishStatus  @default(PENDING)
+  publishedAt       DateTime?
+  publishedById     String?
+  publishedBy       AdminUser?     @relation(fields: [publishedById], references: [id])
+
+  /// 运营上传时的备注
+  operatorNote      String?
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  metricsSnapshots  MetricsSnapshot[]
+
+  @@index([status])
+  @@index([externalPostId])
+}
+
+model MetricsSnapshot {
+  id                String         @id @default(cuid())
+  publishRecordId   String
+  publishRecord     PublishRecord  @relation(fields: [publishRecordId], references: [id], onDelete: Cascade)
+
+  /// 12 | 24 | 48
+  windowHours       Int
+  capturedAt        DateTime
+  /// 数据来源：csv_manual / api（V2）
+  source            String         @default("csv_manual")
+
+  /// 内容指标：views, completion_rate, retention_3s, shares, saves, likes, comments
+  metrics           Json
+
+  createdAt         DateTime       @default(now())
+
+  @@unique([publishRecordId, windowHours])
+  @@index([capturedAt])
+}
+
+// =========================================================
+// 8. Scoring + Distillation
+// =========================================================
+
+model ScoreReport {
+  id              String     @id @default(cuid())
+  roundId         String
+  round           Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  /// 当为 null 时表示轮次级汇总；否则对应某条 VideoBrief
+  videoBriefId    String?
+
+  contentScore    Float?
+  /// MVP 阶段不计算，预留 V2
+  commerceScore   Float?
+  compositeScore  Float?
+  /// 记录当时权重，方便复盘
+  weights         Json?
+  /// AI 解释：为什么得了这个分；并给出蒸馏建议的自然语言
+  explanation     String?
+
+  /// 若为轮次级 rank 榜：[{videoBriefId, rank, score}]
+  ranking         Json?
+
+  createdAt       DateTime   @default(now())
+
+  @@index([roundId])
+  @@index([videoBriefId])
+}
+
+model DistillationFeature {
+  id               String          @id @default(cuid())
+  deliveryOrderId  String
+  deliveryOrder    DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  sourceRoundId    String?
+  /// 自然语言总结（供 Admin 阅读）
+  summary          String
+  /// 结构化特征：{ hook_type, title_structure, selling_point_order, cta_position, format, duration, scene_rhythm }
+  structured       Json
+
+  createdAt        DateTime        @default(now())
+
+  basedRounds      Round[]         @relation("RoundBaseDistillation")
+  angles           ContentAngle[]  @relation("AngleSourceDistillation")
+
+  @@index([deliveryOrderId])
 }

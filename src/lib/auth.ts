@@ -14,7 +14,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await db.user.findUnique({
+        const user = await db.adminUser.findUnique({
           where: { email: credentials.email },
         });
         if (!user) return null;
@@ -30,8 +30,6 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
-          planTier: user.planTier,
-          planExpiresAt: user.planExpiresAt ? user.planExpiresAt.toISOString() : null,
         };
       },
     }),
@@ -39,31 +37,22 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-  session: { strategy: "jwt", maxAge: 6 * 60 * 60 },
+  session: { strategy: "jwt", maxAge: 12 * 60 * 60 },
   secret: process.env.AUTH_SECRET,
   callbacks: {
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: "ADMIN" | "USER" }).role;
-        token.planTier = (user as { planTier?: "FREE" | "PRO" }).planTier ?? "FREE";
-        token.planExpiresAt =
-          (user as { planExpiresAt?: string | null }).planExpiresAt ?? null;
+        token.role = (user as { role?: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" }).role;
       }
 
-      // 主动刷新 —— 当前端调用 useSession().update() 时走这里，
-      // 让 ADMIN 新开通的订阅能立即生效而不需要重新登录。
       if (trigger === "update" && token.id) {
-        const fresh = await db.user.findUnique({
+        const fresh = await db.adminUser.findUnique({
           where: { id: token.id as string },
-          select: { role: true, planTier: true, planExpiresAt: true },
+          select: { role: true },
         });
         if (fresh) {
           token.role = fresh.role;
-          token.planTier = fresh.planTier;
-          token.planExpiresAt = fresh.planExpiresAt
-            ? fresh.planExpiresAt.toISOString()
-            : null;
         }
       }
 
@@ -72,9 +61,8 @@ export const authOptions: NextAuthOptions = {
     session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
-        session.user.role = (token.role as "ADMIN" | "USER") || "USER";
-        session.user.planTier = (token.planTier as "FREE" | "PRO") || "FREE";
-        session.user.planExpiresAt = (token.planExpiresAt as string | null) ?? null;
+        session.user.role =
+          (token.role as "SUPER_ADMIN" | "OPERATOR" | "REVIEWER") || "OPERATOR";
       }
       return session;
     },

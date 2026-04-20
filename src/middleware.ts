@@ -1,27 +1,16 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 
-const publicPaths = [
-  "/login",
-  "/register",
-  "/landing",
-  "/terms",
-  "/privacy",
-  "/gallery",
-  "/pricing",
-  "/api/auth",
-  "/api/cron",
-  "/api/proxy-video",
-  "/api/gallery",
-  "/api/webhooks",
-];
+const publicPaths = ["/login", "/api/auth"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  if (pathname === "/") return NextResponse.next();
+  const isPublic =
+    pathname === "/" ||
+    publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
+    pathname.startsWith("/api/cron");
 
-  const isPublic = publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/"));
   if (isPublic) return NextResponse.next();
 
   const token = await getToken({
@@ -43,5 +32,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)).*)",
+  ],
 };

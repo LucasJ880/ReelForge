@@ -1,44 +1,89 @@
 ---
-description: "ReelForge 项目技术规范和编码约定 - 适用于所有代码文件"
+description: "ReelForge 项目技术规范（外贸电商视频闭环交付系统）"
 globs: "src/**/*.{ts,tsx}"
 alwaysApply: false
 ---
 
-# Aivora (原 ReelForge) 编码规范
+# ReelForge 编码规范
+
+## 产品定位
+面向外贸电商卖家的闭环视频增长系统。核心闭环：**产品输入 → 市场分析 → 卖点提炼 → 多版本视频 → 发布 → 数据回流 → 赛马打分 → 特征蒸馏 → 下一轮**。第一阶段仅内部团队（Admin）使用，聚焦毛毯 / blanket 类目，优先平台 TikTok。
 
 ## 技术栈
-- Next.js 16 App Router (Server Components + Client Components)
+- Next.js 16 App Router（Server + Client Components）
 - React 19, TypeScript strict
 - Tailwind CSS v4, shadcn/ui
 - Prisma ORM + Neon Postgres
-- NextAuth.js v4 (Credentials Provider, JWT strategy)
-- OpenAI SDK, 即梦/Seedance API (via 火山方舟 Ark)
-- Vercel deployment
+- NextAuth v4（Credentials Provider，JWT，仅 Admin 登录）
+- OpenAI SDK（LLM 管线）+ 即梦/Seedance（T2V / I2V via 火山方舟 Ark）
+- Vercel Blob（视频/图片/CSV 存储）
+- Vercel Cron（异步超时扫描 + 数据窗口触发）
+
+## 用户模型
+只有 AdminUser，三种角色：
+- `SUPER_ADMIN`：全权限，可管理 Admin 账号
+- `OPERATOR`：创建交付单、跑流程、发布
+- `REVIEWER`：仅 QA 审核
+
+**不再有面向外部卖家的注册/订阅/付费。**
 
 ## 目录约定
-- `src/app/(app)/` — 认证后页面，使用 AppSidebar 布局
-- `src/app/(auth)/` — 登录/注册页，最小布局
-- `src/app/(public)/` — 公开页（Landing）
+- `src/app/(app)/` — 认证后运营页面，使用 AppSidebar 布局
+- `src/app/(auth)/` — 登录页
 - `src/app/api/` — API 路由，保持精简，委托给 services
-- `src/lib/services/` — 业务逻辑（content-service, video-service, publish-service, analytics-service, analysis-service, batch-service）
-- `src/lib/providers/` — 外部 API 封装（openai.ts, tiktok.ts, tiktok-auth.ts, jimeng.ts）
-- `src/components/ui/` — shadcn/ui 组件
+- `src/lib/services/` — 15 个业务 service：`discovery / selling-point / angle / localization / brief / script / scene / prompt / video / qa / publish / metrics / scoring / distillation / round`
+- `src/lib/providers/` — 外部 API 封装：`openai.ts / seedance.ts / seedance-i2v.ts / remove-bg.ts`
+- `src/lib/validators/` — zod schemas
+- `src/components/ui/` — shadcn/ui 基础组件
+- `src/components/layout/` — sidebar 等布局组件
+- `src/components/features/` — 按业务模块组织的前端组件
 - `src/types/` — TypeScript 类型
+- `prisma/` — Prisma schema + seed
 
 ## 编码规则
-- 页面默认中文（UI 文案、提示、按钮文字）
+- 页面默认中文（UI 文案、提示、按钮）
 - API 路由不塞业务逻辑，委托给 service 层
-- Provider 层封装所有外部 API 调用
-- 所有核心实体有 status 字段和 timestamps
+- Provider 层封装所有外部 API 调用，不直接写 Prisma
+- 所有核心实体都有 status + timestamps
 - 使用 `sonner` 做 toast 通知
 - 使用 `lucide-react` 做图标
-- Dark theme 为默认主题（bg-zinc-950 基底）
+- Dark theme 默认（bg-zinc-950 / bg-sidebar 基底）
 - 组件使用 `cn()` 合并 class names
-- Prisma 的 JSON 字段空值用 `Prisma.JsonNull`
+- Prisma JSON 字段空值用 `Prisma.JsonNull`
 
-## 状态流
+## 核心状态机
+
+### DeliveryOrder
 ```
-DRAFT → CONTENT_GENERATED → VIDEO_GENERATING → VIDEO_READY → PUBLISHING → PUBLISHED → ANALYTICS_FETCHED → ANALYZED
-                                ↓                                ↓
-                          VIDEO_FAILED                    PUBLISH_FAILED
+DRAFT → RESEARCHING → SELLING_POINTS_READY → ROUND_ACTIVE
+      → AWAITING_DISTILLATION → NEXT_ROUND_SCHEDULED → ROUND_ACTIVE …
+      → COMPLETED | CANCELLED
 ```
+
+### Round
+```
+PLANNED → ANGLES_READY → VIDEOS_IN_FLIGHT → AWAITING_PUBLISH → LIVE
+        → METRICS_WINDOWS_PENDING → SCORING → RANKED
+        → DISTILLATION_PENDING → CLOSED
+```
+
+### VideoBrief
+```
+BRIEF_PENDING → SCRIPT_DRAFTING → SCRIPT_READY → SCENE_PROMPT_READY
+  → RENDER_QUEUED → RENDERING → RENDER_SUCCEEDED | RENDER_FAILED
+  → QA_PENDING → QA_APPROVED | QA_REJECTED
+  → PUBLISH_PENDING → PUBLISHED → METRICS_COLLECTING → SCORED
+  → ARCHIVED | DROPPED
+```
+
+## 赛马机制约束
+- 每轮 5 条：3 条 `OPTIMIZATION` + 2 条 `EXPLORATION`
+- `OPTIMIZATION` 型必须引用 `DistillationFeature`（首轮除外）
+- `EXPLORATION` 型必须从固定主题池抽取（毛毯主题池：`asmr_texture / room_makeover / movie_night / winter_essential / giftable / pet_steal`）
+- 每轮结束后保留 top3 → 蒸馏 → 下一轮
+- 默认 3 轮，支持 Admin 提前结算
+
+## 数据源（MVP）
+- **视频指标**：CSV 人工导入（12/24/48h 三个窗口）；无 TikTok API
+- **发布**：半自动（系统生成成片 → 运营下载 → 人工上传 → 回填 post_id）
+- **商业分**（CTR/加购/下单/ROAS）：MVP 不做，V2 再接

@@ -1,8 +1,9 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
-      "path": "/api/cron/fetch-analytics",
-      "schedule": "0 12 * * *"
+      "path": "/api/cron/poll-videos",
+      "schedule": "*/2 * * * *"
     }
   ]
 }

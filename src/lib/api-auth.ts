@@ -6,6 +6,8 @@ export type AuthGuardResult =
   | { ok: true; session: Session }
   | { ok: false; response: NextResponse };
 
+type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER";
+
 export async function requireAuth(): Promise<AuthGuardResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -17,7 +19,9 @@ export async function requireAuth(): Promise<AuthGuardResult> {
   return { ok: true, session };
 }
 
-export async function requireAdmin(): Promise<AuthGuardResult> {
+export async function requireRole(
+  allowed: readonly Role[],
+): Promise<AuthGuardResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return {
@@ -25,11 +29,11 @@ export async function requireAdmin(): Promise<AuthGuardResult> {
       response: NextResponse.json({ error: "未登录" }, { status: 401 }),
     };
   }
-  if (session.user.role !== "ADMIN") {
+  if (!allowed.includes(session.user.role)) {
     return {
       ok: false,
       response: NextResponse.json(
-        { error: "此操作需要管理员权限" },
+        { error: "权限不足" },
         { status: 403 },
       ),
     };
@@ -37,41 +41,14 @@ export async function requireAdmin(): Promise<AuthGuardResult> {
   return { ok: true, session };
 }
 
-/**
- * 创作类 API 守卫：ADMIN 直接放行；普通用户必须有活跃 PRO 订阅。
- * 返回 402 Payment Required，前端可识别并跳转到 /pricing。
- */
-export async function requirePro(): Promise<AuthGuardResult> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "未登录" }, { status: 401 }),
-    };
-  }
-  if (session.user.role === "ADMIN") {
-    return { ok: true, session };
-  }
+export async function requireSuperAdmin(): Promise<AuthGuardResult> {
+  return requireRole(["SUPER_ADMIN"]);
+}
 
-  const expiresAtStr = session.user.planExpiresAt;
-  const isActivePro =
-    session.user.planTier === "PRO" &&
-    !!expiresAtStr &&
-    new Date(expiresAtStr).getTime() > Date.now();
+export async function requireOperator(): Promise<AuthGuardResult> {
+  return requireRole(["SUPER_ADMIN", "OPERATOR"]);
+}
 
-  if (!isActivePro) {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        {
-          error: "需要 Pro 订阅才能执行此操作",
-          code: "SUBSCRIPTION_REQUIRED",
-          upgradeUrl: "/pricing",
-        },
-        { status: 402 },
-      ),
-    };
-  }
-
-  return { ok: true, session };
+export async function requireReviewer(): Promise<AuthGuardResult> {
+  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
 }

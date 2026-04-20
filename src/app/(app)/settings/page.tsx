@@ -1,116 +1,76 @@
-"use client";
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
+import { PageHeader } from "@/components/features/page-header";
+import { Card, CardContent } from "@/components/ui/card";
+import { ROLE_LABELS } from "@/lib/labels";
+import { formatDate } from "@/lib/utils";
+import { CreateAdminForm } from "./create-admin-form";
+import { AdminRow } from "./admin-row";
 
-import Link from "next/link";
-import { useSession } from "next-auth/react";
-import { Crown, ArrowRight } from "lucide-react";
-import { useSubscription } from "@/lib/hooks/use-role";
+export const dynamic = "force-dynamic";
 
-export default function SettingsPage() {
-  const { data: session } = useSession();
-  const sub = useSubscription();
+export default async function SettingsPage() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user.role !== "SUPER_ADMIN") {
+    redirect("/orders");
+  }
+  const users = await db.adminUser.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      role: true,
+      createdAt: true,
+    },
+  });
 
   return (
-    <div className="max-w-xl mx-auto space-y-8">
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground font-medium mb-2">
-          配置
-        </p>
-        <h1 className="text-lg font-semibold tracking-tight text-white">设置</h1>
-      </div>
+    <div>
+      <PageHeader
+        title="设置 / 账号管理"
+        description="仅 SUPER_ADMIN 可管理内部账号"
+      />
 
-      {/* Account */}
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-3">
-          账户
-        </p>
-        <div className="rounded-xl border border-white/5 bg-card/60 px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">{session?.user?.name || "未命名"}</p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">{session?.user?.email}</p>
-            </div>
-            <span className="rounded-full bg-primary/15 text-primary text-[11px] px-2.5 py-0.5 font-medium">
-              {session?.user?.role || "USER"}
-            </span>
-          </div>
-        </div>
-      </div>
+      <Card className="mb-6">
+        <CardContent className="pt-4">
+          <CreateAdminForm />
+        </CardContent>
+      </Card>
 
-      {/* Subscription */}
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-3">
-          订阅
-        </p>
-        <Link
-          href="/settings/billing"
-          className="flex items-center justify-between rounded-xl border border-white/5 bg-card/60 px-4 py-4 hover:border-primary/30 transition-colors group"
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                sub.isActive
-                  ? "bg-primary/15 text-primary"
-                  : "bg-muted-foreground/10 text-muted-foreground"
-              }`}
-            >
-              <Crown className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-white">
-                {sub.tier === "ADMIN"
-                  ? "管理员"
-                  : sub.tier === "PRO"
-                    ? "Pro 订阅中"
-                    : "免费用户"}
-              </p>
-              <p className="text-[11px] text-muted-foreground mt-0.5">
-                {sub.tier === "FREE"
-                  ? "点击查看订阅方案解锁创作功能"
-                  : sub.daysLeft != null
-                    ? `剩余 ${sub.daysLeft} 天 · 点击管理订阅`
-                    : "点击管理订阅"}
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
-        </Link>
-      </div>
-
-      {/* API Status */}
-      <div>
-        <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium mb-3">
-          API 连接状态
-        </p>
-        <div className="rounded-xl border border-white/5 divide-y divide-border px-4">
-          <EnvRow name="OpenAI" status={true} />
-          <EnvRow name="即梦 / 火山方舟" status={true} />
-          <EnvRow name="Vercel Blob" status={true} />
-          <EnvRow name="数据库 (Neon)" status={true} />
-        </div>
-        <p className="text-[11px] text-muted-foreground mt-2">
-          API Key 状态在服务端检查，此处显示简化状态
-        </p>
-      </div>
-
-      <div className="rounded-xl border border-border bg-card/60 p-4">
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          生成完成的视频可以直接从详情页下载 mp4 文件，自行发布到抖音 / TikTok / 小红书 / Instagram Reels 等平台。
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function EnvRow({ name, status, hint }: { name: string; status: boolean; hint?: string }) {
-  return (
-    <div className="flex items-center justify-between py-2.5">
-      <div className="flex items-center gap-2.5">
-        <span className={`h-1.5 w-1.5 rounded-full ${status ? "bg-emerald-500" : "bg-muted-foreground/50"}`} />
-        <span className="text-sm text-foreground">{name}</span>
-      </div>
-      <span className={status ? "text-xs text-emerald-400" : "text-xs text-muted-foreground"}>
-        {status ? "已配置" : hint || "未配置"}
-      </span>
+      <Card>
+        <CardContent className="pt-4">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-muted-foreground">
+                <th className="py-2">邮箱</th>
+                <th>姓名</th>
+                <th>角色</th>
+                <th>创建时间</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <AdminRow
+                  key={u.id}
+                  user={{
+                    id: u.id,
+                    email: u.email,
+                    name: u.name,
+                    role: u.role,
+                    createdAtText: formatDate(u.createdAt),
+                  }}
+                  isSelf={u.id === session.user.id}
+                  roleLabel={ROLE_LABELS[u.role]}
+                />
+              ))}
+            </tbody>
+          </table>
+        </CardContent>
+      </Card>
     </div>
   );
 }

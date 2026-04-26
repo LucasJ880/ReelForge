@@ -1,19 +1,23 @@
 /**
- * 生成 /demo/ai-video 首屏种子数据：
+ * 生成 /demo/ai-video 首屏种子数据：Seedance 豪宅 B-roll + HeyGen 商务数字人合成。
  *
  *   1. 调真实 Apify+OpenAI 分析 DEMO_SEED_INPUT.tiktokUrl
- *   2. 用分析得出的脚本提交 HeyGen 真实数字人生成
- *   3. 轮询 HeyGen 直到 completed
- *   4. 把成片 mp4 下载下来上传到 Vercel Blob 拿永久 URL
- *   5. 把 1+4 的结果写回 src/lib/data/demo-seed.ts
+ *   2. 调 Seedance (火山方舟) 生成豪宅内景 9:16 背景视频
+ *   3. 把 Seedance 视频 mirror 到 Vercel Blob 拿永久 URL
+ *   4. 选择一个职业风 avatar（默认 Brandon in Grey Suit），用 Blob BG URL 提交 HeyGen
+ *   5. 轮询 HeyGen 直到 completed
+ *   6. 把 HeyGen 成片下载并 mirror 到 Vercel Blob
+ *   7. 把所有结果写回 src/lib/data/demo-seed.ts
  *
  * 跑法：
  *   npx tsx scripts/generate-demo-seed.ts
  *
- * 这个脚本会消耗一次 HeyGen 额度（~$0.5）+ 一次 Apify+OpenAI（<$0.05）。
+ * 复用环境变量：
+ *   REUSE_HEYGEN_VIDEO_ID  跳过 HeyGen 提交，复用已有 video_id
+ *   REUSE_BG_BLOB_URL      跳过 Seedance，复用已有背景 mp4 URL
+ *   SEED_AVATAR_ID         覆盖 avatar，默认 Brandon_expressive2_public
  *
- * 注意：用 dynamic import 来确保 `@next/env` 先把 .env.local 加载进 process.env
- * 之后，才让 openai client / providers 被实例化。
+ * 一次完整 run 大致消耗：HeyGen ≈ $0.5 + Seedance ≈ ¥1 + Apify+OpenAI < $0.05。
  */
 import { loadEnvConfig } from "@next/env";
 import { writeFileSync } from "node:fs";
@@ -21,8 +25,14 @@ import { resolve } from "node:path";
 
 loadEnvConfig(process.cwd());
 
-const POLL_INTERVAL_MS = 10000;
-const POLL_TIMEOUT_MS = 15 * 60 * 1000;
+const HEYGEN_POLL_INTERVAL_MS = 10_000;
+const HEYGEN_POLL_TIMEOUT_MS = 15 * 60 * 1000;
+const SEEDANCE_POLL_INTERVAL_MS = 8_000;
+const SEEDANCE_POLL_TIMEOUT_MS = 8 * 60 * 1000;
+
+const DEFAULT_AVATAR_ID = "Brandon_expressive2_public";
+const SEEDANCE_BG_PROMPT =
+  "Slow cinematic dolly forward through a luxury modern living room. Floor-to-ceiling glass windows showing golden hour sunset over Los Angeles hillside. Polished marble floors, minimalist designer sofa, soft warm natural light. Premium real estate photography mood. 9:16 vertical, ultra HD, cinematic, no people, gentle smooth camera push-in.";
 
 async function main() {
   const { put } = await import("@vercel/blob");
@@ -32,46 +42,82 @@ async function main() {
   const { getHeyGenProofStatus, submitHeyGenProof } = await import(
     "../src/lib/providers/digital-human"
   );
+  const { submitSeedanceJob, getSeedanceStatus } = await import(
+    "../src/lib/providers/seedance"
+  );
   const { DEMO_SEED_INPUT } = await import("../src/lib/data/demo-seed");
 
   banner("Step 1: 调 Apify + OpenAI 分析参考视频");
   console.log("OPENAI_API_KEY loaded =", !!process.env.OPENAI_API_KEY);
   console.log("APIFY_TOKEN loaded =", !!process.env.APIFY_TOKEN);
   console.log("HEYGEN_API_KEY loaded =", !!process.env.HEYGEN_API_KEY);
+  console.log("ARK_API_KEY loaded =", !!process.env.ARK_API_KEY);
   console.log("BLOB_READ_WRITE_TOKEN loaded =", !!process.env.BLOB_READ_WRITE_TOKEN);
   const analysis = await analyzeDemoReferenceVideo(DEMO_SEED_INPUT);
   console.log("source =", analysis.source);
-  console.log("reference plays =", analysis.reference.metrics.plays);
   console.log("scene plan length =", analysis.clientVersion.scenePlan.length);
 
-  banner("Step 2: 提交 HeyGen 真实数字人生成");
+  banner("Step 2: 用 Seedance 生成豪宅内景背景视频");
+  let bgBlobUrl = process.env.REUSE_BG_BLOB_URL?.trim() || "";
+  if (bgBlobUrl) {
+    console.log("reusing background:", bgBlobUrl);
+  } else {
+    console.log("seedance prompt:", SEEDANCE_BG_PROMPT.slice(0, 90) + "…");
+    const submitted = await submitSeedanceJob({
+      prompt: SEEDANCE_BG_PROMPT,
+      duration: 10,
+      ratio: "9:16",
+    });
+    console.log("seedance jobId =", submitted.jobId);
+    const seedanceResult = await pollSeedanceUntilDone(getSeedanceStatus, submitted.jobId);
+    if (!seedanceResult.videoUrl) {
+      throw new Error("Seedance completed 但没有 video_url");
+    }
+    console.log("seedance video_url:", seedanceResult.videoUrl.slice(0, 80) + "…");
+
+    banner("Step 3: 把 Seedance 视频 mirror 到 Vercel Blob");
+    const bgResp = await fetch(seedanceResult.videoUrl);
+    if (!bgResp.ok) throw new Error(`下载 Seedance mp4 失败 status=${bgResp.status}`);
+    const bgBuffer = Buffer.from(await bgResp.arrayBuffer());
+    const bgBlob = await put(`demo-seed/seedance-bg-${submitted.jobId}.mp4`, bgBuffer, {
+      access: "public",
+      contentType: "video/mp4",
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
+    bgBlobUrl = bgBlob.url;
+    console.log("BG Blob URL =", bgBlobUrl);
+  }
+
+  banner("Step 4: 提交 HeyGen 商务数字人 + Seedance 背景");
   const reuseId = process.env.REUSE_HEYGEN_VIDEO_ID?.trim();
   const proof = reuseId
     ? {
         provider: "heygen" as const,
         status: "submitted" as const,
         jobId: reuseId,
-        avatarId: process.env.HEYGEN_AVATAR_ID || "",
+        avatarId: process.env.SEED_AVATAR_ID || DEFAULT_AVATAR_ID,
         voiceId: process.env.HEYGEN_VOICE_ID || "",
       }
     : await submitHeyGenProof({
         title: analysis.clientVersion.title,
         script: analysis.clientVersion.digitalHumanScript,
+        avatarId: process.env.SEED_AVATAR_ID || DEFAULT_AVATAR_ID,
+        backgroundVideoUrl: bgBlobUrl,
       });
-  console.log(
-    reuseId ? "reused video_id =" : "submitted video_id =",
-    proof.jobId,
-  );
+  console.log(reuseId ? "reused video_id =" : "submitted video_id =", proof.jobId);
+  console.log("avatar_id =", proof.avatarId);
 
-  banner("Step 3: 轮询 HeyGen 状态");
-  const completed = await pollUntilCompleted(getHeyGenProofStatus, proof.jobId);
+  banner("Step 5: 轮询 HeyGen 状态");
+  const completed = await pollHeyGenUntilCompleted(getHeyGenProofStatus, proof.jobId);
   if (!completed.videoUrl) {
     throw new Error("HeyGen completed 但没有 video_url");
   }
-  console.log("HeyGen video_url =", completed.videoUrl);
+  console.log("HeyGen video_url =", completed.videoUrl.slice(0, 80) + "…");
   console.log("duration =", completed.duration, "s");
 
-  banner("Step 4: 下载成片并上传 Vercel Blob");
+  banner("Step 6: 下载 HeyGen 成片并上传 Vercel Blob");
   const mp4 = await fetch(completed.videoUrl);
   if (!mp4.ok) throw new Error("下载 HeyGen mp4 失败 status=" + mp4.status);
   const buffer = Buffer.from(await mp4.arrayBuffer());
@@ -82,7 +128,7 @@ async function main() {
     addRandomSuffix: false,
     allowOverwrite: true,
   });
-  console.log("Vercel Blob URL =", blob.url);
+  console.log("HeyGen Blob URL =", blob.url);
 
   let thumbnailUrl = completed.thumbnailUrl ?? "";
   if (thumbnailUrl) {
@@ -109,22 +155,49 @@ async function main() {
     }
   }
 
-  banner("Step 5: 写入 src/lib/data/demo-seed.ts");
+  banner("Step 7: 写入 src/lib/data/demo-seed.ts");
   const seedFile = renderSeedFile({
     input: DEMO_SEED_INPUT,
     result: analysis,
     videoUrl: blob.url,
     thumbnailUrl,
     durationSec: Number((completed.duration ?? 0).toFixed(2)),
+    backgroundVideoUrl: bgBlobUrl,
+    avatarId: proof.avatarId,
   });
   const seedPath = resolve(__dirname, "..", "src/lib/data/demo-seed.ts");
   writeFileSync(seedPath, seedFile, "utf8");
   console.log("written:", seedPath);
 
-  banner("Done. 客户首屏现在就是真实数据 + 真实数字人成片");
+  banner("Done. 现在的首屏视频是：经纪在豪宅前讲解");
 }
 
-async function pollUntilCompleted(
+async function pollSeedanceUntilDone(
+  getStatus: (id: string) => Promise<{
+    status: string;
+    videoUrl?: string;
+    errorMessage?: string;
+    progress?: number;
+  }>,
+  jobId: string,
+) {
+  const start = Date.now();
+  while (Date.now() - start < SEEDANCE_POLL_TIMEOUT_MS) {
+    const r = await getStatus(jobId);
+    console.log(
+      `[seedance ${new Date().toLocaleTimeString()}] status=${r.status}` +
+        (r.progress ? ` progress=${r.progress}%` : ""),
+    );
+    if (r.status === "completed") return r;
+    if (r.status === "failed") {
+      throw new Error("Seedance 失败: " + (r.errorMessage ?? "unknown"));
+    }
+    await sleep(SEEDANCE_POLL_INTERVAL_MS);
+  }
+  throw new Error("Seedance 轮询超时");
+}
+
+async function pollHeyGenUntilCompleted(
   getStatus: (id: string) => Promise<{
     status: string;
     videoUrl?: string;
@@ -135,19 +208,19 @@ async function pollUntilCompleted(
   videoId: string,
 ) {
   const start = Date.now();
-  while (Date.now() - start < POLL_TIMEOUT_MS) {
+  while (Date.now() - start < HEYGEN_POLL_TIMEOUT_MS) {
     const status = await getStatus(videoId);
     console.log(
-      `[${new Date().toLocaleTimeString()}] status=${status.status}` +
+      `[heygen ${new Date().toLocaleTimeString()}] status=${status.status}` +
         (status.videoUrl ? " video_url=ready" : ""),
     );
     if (status.status === "completed") return status;
     if (status.status === "failed") {
       throw new Error("HeyGen 生成失败: " + (status.error ?? "unknown"));
     }
-    await sleep(POLL_INTERVAL_MS);
+    await sleep(HEYGEN_POLL_INTERVAL_MS);
   }
-  throw new Error("HeyGen 轮询超时（6 分钟仍未完成）");
+  throw new Error("HeyGen 轮询超时（15 分钟仍未完成）");
 }
 
 function renderSeedFile(args: {
@@ -156,6 +229,8 @@ function renderSeedFile(args: {
   videoUrl: string;
   thumbnailUrl: string;
   durationSec: number;
+  backgroundVideoUrl: string;
+  avatarId: string;
 }): string {
   const sourceField = (args.result as { source?: string })?.source ?? "unknown";
   return `/**
@@ -165,6 +240,8 @@ function renderSeedFile(args: {
  *
  * 生成时间：${new Date().toISOString()}
  * 数据源：${sourceField}
+ * Avatar: ${args.avatarId}
+ * Background: Seedance 豪宅内景 (mirrored to Blob)
  * HeyGen video_id 已下载并 mirrored 到 Vercel Blob，避免 7 天过期。
  */
 import type {
@@ -172,23 +249,19 @@ import type {
   DemoVideoAnalysisResult,
 } from "@/lib/services/demo-video-analysis-service";
 
-export const DEMO_SEED_INPUT: DemoVideoAnalysisInput = ${JSON.stringify(
-    args.input,
-    null,
-    2,
-  )};
+export const DEMO_SEED_INPUT: DemoVideoAnalysisInput = ${JSON.stringify(args.input, null, 2)};
 
-export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = ${JSON.stringify(
-    args.result,
-    null,
-    2,
-  )};
+export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = ${JSON.stringify(args.result, null, 2)};
 
 export const DEMO_SEED_VIDEO_URL = ${JSON.stringify(args.videoUrl)};
 
 export const DEMO_SEED_VIDEO_THUMBNAIL = ${JSON.stringify(args.thumbnailUrl)};
 
 export const DEMO_SEED_VIDEO_DURATION_SEC = ${args.durationSec};
+
+export const DEMO_SEED_BACKGROUND_VIDEO_URL = ${JSON.stringify(args.backgroundVideoUrl)};
+
+export const DEMO_SEED_AVATAR_ID = ${JSON.stringify(args.avatarId)};
 `;
 }
 

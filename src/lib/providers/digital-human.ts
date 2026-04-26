@@ -40,6 +40,12 @@ export interface HeyGenProofInput {
    * 否则走默认 avatar。
    */
   talkingPhotoUrl?: string;
+  /**
+   * 数字人背景视频/图片 URL（公网可访问，最好是 Vercel Blob）。
+   * 给数字人换景，比如把豪宅 B-roll 当作背景叠在身后。
+   */
+  backgroundVideoUrl?: string;
+  backgroundImageUrl?: string;
 }
 
 export interface HeyGenProofResult {
@@ -249,6 +255,27 @@ export async function submitHeyGenProof(
     process.env.HEYGEN_VOICE_ID ||
     (await listDefaultVoice(apiKey));
 
+  const background = input.backgroundVideoUrl
+    ? {
+        type: "video",
+        url: input.backgroundVideoUrl,
+        play_style: "loop",
+        fit: "cover",
+      }
+    : input.backgroundImageUrl
+      ? { type: "image", url: input.backgroundImageUrl, fit: "cover" }
+      : undefined;
+
+  const videoInput: Record<string, unknown> = {
+    character,
+    voice: {
+      type: "text",
+      input_text: proofScript,
+      voice_id: voiceId,
+    },
+  };
+  if (background) videoInput.background = background;
+
   const response = await fetch("https://api.heygen.com/v2/video/generate", {
     method: "POST",
     headers: {
@@ -258,16 +285,7 @@ export async function submitHeyGenProof(
     body: JSON.stringify({
       title: input.title || "Aivora client proof",
       caption: true,
-      video_inputs: [
-        {
-          character,
-          voice: {
-            type: "text",
-            input_text: proofScript,
-            voice_id: voiceId,
-          },
-        },
-      ],
+      video_inputs: [videoInput],
       dimension: {
         width: 720,
         height: 1280,
@@ -278,11 +296,11 @@ export async function submitHeyGenProof(
   const data = (await response.json().catch(() => ({}))) as {
     data?: { video_id?: string };
     message?: string;
-    error?: string;
+    error?: string | { message?: string; code?: string } | null;
   };
 
   if (!response.ok || !data.data?.video_id) {
-    throw new Error(data.message || data.error || "HeyGen proof 任务提交失败");
+    throw new Error(formatHeyGenError(data, "HeyGen proof 任务提交失败"));
   }
 
   return {
@@ -450,6 +468,29 @@ async function listDefaultVoice(apiKey: string): Promise<string> {
     voices.find((v) => v.voice_id);
   if (!preferred?.voice_id) throw new Error("HeyGen 账号没有可用 voice");
   return preferred.voice_id;
+}
+
+function formatHeyGenError(
+  data: {
+    message?: string;
+    error?: string | { message?: string; code?: string } | null;
+  },
+  fallback: string,
+): string {
+  if (typeof data.error === "string" && data.error) return data.error;
+  if (data.error && typeof data.error === "object") {
+    const parts: string[] = [];
+    if (data.error.message) parts.push(data.error.message);
+    if (data.error.code) parts.push(`(${data.error.code})`);
+    if (parts.length > 0) return parts.join(" ");
+    try {
+      return JSON.stringify(data.error);
+    } catch {
+      // ignore
+    }
+  }
+  if (data.message) return data.message;
+  return fallback;
 }
 
 function compactProofScript(script: string): string {

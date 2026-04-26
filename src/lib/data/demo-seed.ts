@@ -3,8 +3,10 @@
  *
  * 由 scripts/generate-demo-seed.ts 自动生成；不要手动改动。
  *
- * 生成时间：2026-04-26T17:24:47.826Z
+ * 生成时间：2026-04-26T18:29:46.851Z
  * 数据源：apify+llm
+ * Avatar: Brandon_expressive2_public
+ * Background: Seedance 豪宅内景 (mirrored to Blob)
  * HeyGen video_id 已下载并 mirrored 到 Vercel Blob，避免 7 天过期。
  */
 import type {
@@ -40,83 +42,88 @@ export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = {
       "shares": 6644,
       "engagementRate": 11.69
     },
-    "coverUrl": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/o0VDuPufEzqDQ5FAmw6ASQ0f9OrRBWEzPIECny~tplv-tiktokx-origin.image?dr=9636&x-expires=1777395600&x-signature=E1RzzZf9KZx1t%2BjO8xwfjXl94DQ%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    "coverUrl": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/o0VDuPufEzqDQ5FAmw6ASQ0f9OrRBWEzPIECny~tplv-tiktokx-origin.image?dr=9636&x-expires=1777399200&x-signature=z55BaiiBdWSUh9Gp6jSWcigM%2Ftc%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
   },
   "intelligence": {
-    "viralFormula": "展示高端住宅的独特魅力与梦想生活方式，引发高净值买家共鸣。",
-    "hook": "前 3 秒展示绝美外观和引人入胜的问句：'想象一下，这里就是您的梦想家园。'",
+    "viralFormula": "展示奢华生活方式与情感连接，吸引高净值买家。",
+    "hook": "想象一下，您和家人在这片梦幻庄园中度过的每一天。",
     "retentionMechanics": [
-      "使用快速切换的镜头展示不同房间和景观",
-      "增加与环境互动的镜头，比如在花园中散步",
-      "在关键时刻使用情感充沛的背景音乐"
+      "快速切换不同的房间和景观，保持视觉新鲜感。",
+      "使用令人惊叹的背景音乐，增强情感共鸣。",
+      "提供具体的生活场景描述，引发观众的想象力。",
+      "展示房产的独特卖点，如私人游泳池、花园等。",
+      "在视频中加入客户的成功故事，建立信任感。"
     ],
     "visualPattern": [
-      "从空中俯瞰整个物业的美丽画面",
-      "细致展示室内设计和装潢",
-      "展示周边自然环境的宁静与优雅"
+      "航拍全景，展示房产整体布局与周边环境。",
+      "室内细节特写，突出高端装修与设计。",
+      "生活场景再现，展示家庭聚会或休闲时光。",
+      "自然光照射下的房间，营造温馨氛围。",
+      "夜景灯光下的外观，展现房产的魅力。"
     ],
     "audienceTriggers": [
-      "对奢华生活方式的向往",
-      "渴望拥有一个完美的家庭聚会场所",
-      "对投资高端房地产的兴趣与好奇"
+      "渴望拥有理想生活的情感共鸣。",
+      "对奢华与舒适的向往。",
+      "对高端品牌信任的心理认同。",
+      "对未来生活愿景的憧憬。",
+      "寻求社交认可与生活品质的期望。"
     ],
     "commentSignals": [
-      "观众对价格的震惊与幽默反应",
-      "对物业用途（如婚礼场地）的询问",
-      "对梦幻生活的表达与赞叹"
+      "对生活梦想的表达与期待。",
+      "对房产价值的好奇与讨论。",
+      "对独特属性的赞美与询问。",
+      "对个人故事或情感连接的共鸣。",
+      "对视频内容的分享欲望。"
     ],
     "riskNotes": [
-      "避免过于奢华的表现导致观众疏离",
-      "确保信息传达清晰，避免复杂的价格或功能说明",
-      "注意视频时长，保持在20-30秒之间"
+      "避免过于复杂的剪辑，影响观看体验。",
+      "注意音频质量，确保背景音乐不干扰旁白。",
+      "确保内容真实，避免夸大房产特色。",
+      "避免使用低质量的视觉素材，影响品牌形象。"
     ]
   },
   "clientVersion": {
-    "positioning": "展现高端住宅的生活方式和投资价值，吸引高净值客户的注意。",
-    "title": "您的梦幻家园，豪华生活的完美选择",
-    "digitalHumanScript": "欢迎来到这个令人惊叹的豪华住宅，坐落在宁静的自然环境中。这里是您理想中的家，不仅是一个住所，更是生活的艺术。想象一下，您和家人在这片美丽的土地上共享生活的每一个瞬间。现在就来体验这一切吧。",
+    "positioning": "高端住宅经纪团队专属视频，展示奢华生活方式，吸引高净值买家。",
+    "title": "您梦想中的奢华家园，尽在这片庄园",
+    "digitalHumanScript": "欢迎来到您理想中的家园。在这里，您不仅拥有一处住所，更是生活方式的象征。想象一下，您和家人在这个梦幻庄园中共享每一个美好瞬间。无论是晨曦中的花园，还是夜晚的星空，都会让您感受到生活的格调与品质。今天，您愿意迈出这一步，去拥抱属于您的奢华生活吗？",
     "scenePlan": [
       {
         "time": "0-3s",
-        "visual": "空中俯瞰房产全景",
-        "narration": "想象一下，这里就是您的梦想家园。",
-        "overlay": "您的梦想家园"
+        "visual": "航拍庄园全景，展示房产外观与环境",
+        "narration": "欢迎来到您理想中的家园。",
+        "overlay": "梦想中的家园"
       },
       {
         "time": "4-10s",
-        "visual": "展示豪华客厅的细节",
-        "narration": "宽敞的客厅，完美的社交空间。",
-        "overlay": "完美的社交空间"
+        "visual": "室内镜头，展示豪华装修与生活场景",
+        "narration": "在这里，您不仅拥有一处住所，更是生活方式的象征。",
+        "overlay": "奢华生活方式"
       },
       {
         "time": "11-20s",
-        "visual": "展示花园和周边自然环境",
-        "narration": "在这里，您可以尽享宁静与美好。",
-        "overlay": "享受宁静与美好"
-      },
-      {
-        "time": "21-30s",
-        "visual": "展示物业外观与周围设施",
-        "narration": "这不仅是家，更是生活的艺术。",
-        "overlay": "生活的艺术"
+        "visual": "夜景灯光下的外观，营造浪漫氛围",
+        "narration": "今天，您愿意迈出这一步，去拥抱属于您的奢华生活吗？",
+        "overlay": "拥抱奢华生活"
       }
     ],
     "captions": [
-      "梦想家园，尽在眼前",
-      "奢华与宁静的完美结合",
-      "为生活增添一抹色彩",
-      "在这里，生活是一种享受",
-      "与家人共享美好的时光",
-      "您的投资之选，未来的希望",
-      "每个角落都散发着优雅",
-      "让梦想成为现实"
+      "您梦想中的家园",
+      "奢华生活方式的象征",
+      "共享每一个美好瞬间",
+      "今天就来体验吧",
+      "无与伦比的舒适与优雅",
+      "让生活更具品质",
+      "您的理想家园就在这里",
+      "别错过这个机会"
     ],
     "brollPrompts": [
-      "展示豪华住宅的外观与庭院",
-      "拍摄室内装饰与家居风格",
-      "捕捉自然环境中的宁静时光"
+      "航拍高端住宅的全景画面",
+      "展示室内豪华装潢与细节特写",
+      "家庭聚会的温馨场景",
+      "夜景灯光点缀下的庄园外观",
+      "自然光照下的花园与泳池"
     ],
-    "cta": "立即联系我们，开启您的豪华生活之旅。"
+    "cta": "立即联系我们，开启您的奢华生活之旅。"
   },
   "providerPlan": {
     "digitalHuman": "heygen-ready",
@@ -133,8 +140,12 @@ export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = {
   }
 };
 
-export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/heygen-d0e0c3c6680d473daa7bb01bc33a4145.mp4";
+export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/heygen-451915a8f6234006b5d012b18005399f.mp4";
 
-export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/heygen-d0e0c3c6680d473daa7bb01bc33a4145.jpg";
+export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/heygen-451915a8f6234006b5d012b18005399f.jpg";
 
-export const DEMO_SEED_VIDEO_DURATION_SEC = 23.72;
+export const DEMO_SEED_VIDEO_DURATION_SEC = 34.95;
+
+export const DEMO_SEED_BACKGROUND_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/seedance-bg-cgt-20260427021423-dwwcc.mp4";
+
+export const DEMO_SEED_AVATAR_ID = "Brandon_expressive2_public";

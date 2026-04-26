@@ -165,7 +165,7 @@ export function AiVideoDemoClient() {
         <section className="grid flex-1 gap-6 py-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
           <div className="space-y-6">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs text-muted-foreground">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/3 px-3 py-1 text-xs text-muted-foreground">
                 <Sparkles className="h-3.5 w-3.5 text-primary" />
                 1 段实拍 + 1 段声音 + 1 个数字人形象
               </div>
@@ -229,7 +229,7 @@ export function AiVideoDemoClient() {
                       className={`rounded-2xl border p-3 text-left transition ${
                         style === item.id
                           ? "border-primary/50 bg-primary/10"
-                          : "border-white/10 bg-white/[0.03] hover:border-white/20"
+                          : "border-white/10 bg-white/3 hover:border-white/20"
                       }`}
                     >
                       <div className="text-sm font-medium">{item.title}</div>
@@ -311,7 +311,7 @@ export function AiVideoDemoClient() {
                     {result.headline}
                   </h2>
                 </div>
-                <div className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] text-muted-foreground">
+                <div className="rounded-full border border-white/10 bg-white/4 px-2.5 py-1 text-[11px] text-muted-foreground">
                   {result.provider === "heygen" ? "HeyGen" : "Mock"}
                 </div>
               </div>
@@ -322,11 +322,13 @@ export function AiVideoDemoClient() {
                     src={result.previewVideoUrl}
                     controls
                     playsInline
-                    className="aspect-[9/16] w-full object-cover"
+                    className="aspect-9/16 w-full object-cover"
                   />
                 ) : (
-                  <div className="flex aspect-[9/16] items-center justify-center p-8 text-center text-sm text-muted-foreground">
-                    HeyGen 任务已提交。生成完成后将在 provider dashboard 查看，下一步可接轮询回写。
+                  <div className="flex aspect-9/16 items-center justify-center p-8 text-center text-sm text-muted-foreground">
+                    {result.status === "submitted"
+                      ? "HeyGen 任务已提交。生成完成后将在 provider dashboard 查看，下一步可接轮询回写。"
+                      : "点击「生成 Demo 流程」后，这里会展示 mock 成片或真实 provider 返回结果。"}
                   </div>
                 )}
               </div>
@@ -342,7 +344,7 @@ export function AiVideoDemoClient() {
                 {result.timeline.map((item) => (
                   <div
                     key={item.label}
-                    className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+                    className="flex gap-3 rounded-2xl border border-white/10 bg-white/3 p-3"
                   >
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
                     <div>
@@ -373,7 +375,7 @@ export function AiVideoDemoClient() {
 
 function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-2xl border border-white/10 bg-white/3 p-4">
       <div className="text-2xl font-semibold text-primary">{value}</div>
       <div className="mt-1 text-xs text-muted-foreground">{label}</div>
     </div>
@@ -394,7 +396,7 @@ function UploadCard({
   onChange: (file: File | null) => void;
 }) {
   return (
-    <label className="group cursor-pointer rounded-2xl border border-dashed border-white/15 bg-white/[0.03] p-3 transition hover:border-primary/40 hover:bg-primary/5">
+    <label className="group cursor-pointer rounded-2xl border border-dashed border-white/15 bg-white/3 p-3 transition hover:border-primary/40 hover:bg-primary/5">
       <input
         type="file"
         accept={accept}
@@ -428,7 +430,7 @@ function PreviewPanel({
       <div className="border-b border-white/10 px-4 py-3 text-sm font-medium">
         {title}
       </div>
-      <div className="flex aspect-[9/16] items-center justify-center bg-black/40">
+      <div className="flex aspect-9/16 items-center justify-center bg-black/40">
         {videoUrl ? (
           <video
             src={videoUrl}

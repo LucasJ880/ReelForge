@@ -41,7 +41,7 @@ export default function LoginPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">运营登录</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">
-          ReelForge 内部交付系统 · 仅限授权账号
+          Aivora 内部交付系统 · 仅限授权账号
         </p>
       </div>
 
@@ -60,7 +60,7 @@ export default function LoginPage() {
             onChange={(e) => setEmail(e.target.value)}
             required
             className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            placeholder="your@reelforge.internal"
+            placeholder="your@aivora.internal"
           />
         </div>
 

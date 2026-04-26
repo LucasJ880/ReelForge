@@ -1,4 +1,4 @@
-# ReelForge 部署指南（Vercel + Neon Postgres）
+# Aivora 部署指南（Vercel + Neon Postgres）
 
 ## 1. 所需外部服务
 
@@ -18,8 +18,8 @@
 # === 必填 ===
 DATABASE_URL=postgresql://...neon.tech/...?sslmode=require
 AUTH_SECRET=$(openssl rand -hex 32)
-NEXTAUTH_URL=https://reelforge.your.domain
-NEXT_PUBLIC_APP_URL=https://reelforge.your.domain
+NEXTAUTH_URL=https://aivora.your.domain
+NEXT_PUBLIC_APP_URL=https://aivora.your.domain
 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_...
 CRON_SECRET=$(openssl rand -hex 16)
 
@@ -40,6 +40,12 @@ VIDEO_ENGINE_MOCK=false
 
 # === 强烈推荐（让市场调研变"真实"） ===
 APIFY_TOKEN=apify_api_...      # 不填则 discovery 仅走 LLM 常识模式
+
+# === 客户 Demo：数字人 Provider（默认 mock） ===
+DIGITAL_HUMAN_PROVIDER=mock     # 拿到 HeyGen key 后改为 heygen
+HEYGEN_API_KEY=
+HEYGEN_AVATAR_ID=
+HEYGEN_VOICE_ID=
 
 # === 可选 ===
 REMOVE_BG_API_KEY=             # V2 抠图，MVP 不用
@@ -124,6 +130,8 @@ Pro 下 Vercel 自动给 cron 请求带 `Authorization: Bearer <CRON_SECRET>`（
 
 ## 5. 部署后冒烟（5 分钟）
 
+### 5.1 内部闭环冒烟
+
 1. 访问 `/login`，用 seed 账号登录 → 应自动跳转 `/orders`
 2. 新建一个测试交付单（任何 SKU）
 3. 点击「执行调研 + 卖点」→ 若 `OPENAI_API_KEY` 未配置，应看到 mock 提示但仍写入数据库
@@ -134,6 +142,14 @@ Pro 下 Vercel 自动给 cron 请求带 `Authorization: Bearer <CRON_SECRET>`（
 8. 通过 → `/publish` 出现待发布记录
 9. 模拟回填 post_id → 确认上线 → `/metrics` 上传一条 CSV
 10. 回 Round 详情 → 打分 + 排名 → 蒸馏
+
+### 5.2 客户 Demo 冒烟
+
+1. 访问 `/demo/ai-video`（公开隐藏入口，无需登录）
+2. 在 iPad 竖屏尺寸下确认页面单列展示正常
+3. 选择实拍视频、经纪人音频和数字人形象文件
+4. 点击「生成 Demo 流程」→ 应返回 mock 结果、脚本、流程时间线和预览视频
+5. 如果 `DIGITAL_HUMAN_PROVIDER=heygen`，确认缺少 HeyGen 凭证时自动降级为可演示 mock，不影响客户演示
 
 如果 1–10 都能顺畅跑完，部署即完成。
 

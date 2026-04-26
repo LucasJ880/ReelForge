@@ -1,4 +1,4 @@
-# ReelForge 测试 & 验证手册
+# Aivora 测试 & 验证手册
 
 本文档覆盖：
 - 静态检查（typecheck / build）

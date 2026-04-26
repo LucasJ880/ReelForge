@@ -46,7 +46,7 @@ export function AppSidebar() {
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/[0.05]">
         <Logo size={24} />
         <div className="flex flex-col leading-tight">
-          <span className="text-sm font-semibold tracking-tight">ReelForge</span>
+          <span className="text-sm font-semibold tracking-tight">Aivora</span>
           <span className="text-[10px] text-muted-foreground">内部交付系统</span>
         </div>
       </div>

@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = process.env.SEED_ADMIN_EMAIL || "admin@reelforge.local";
+  const email = process.env.SEED_ADMIN_EMAIL || "admin@aivora.internal";
   const password = process.env.SEED_ADMIN_PASSWORD;
 
   if (!password) {

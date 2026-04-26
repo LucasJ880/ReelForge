@@ -1,4 +1,4 @@
-# ReelForge
+# Aivora
 
 **外贸电商视频闭环交付系统** · 面向内部运营团队，第一阶段聚焦毛毯 / blanket 类目。
 
@@ -29,13 +29,15 @@ cp .env.example .env.local
 
 # 3. 建库 + 种子管理员
 npm run db:push
-SEED_ADMIN_EMAIL=admin@reelforge.local SEED_ADMIN_PASSWORD=your-strong-pass npm run db:seed
+SEED_ADMIN_EMAIL=admin@aivora.internal SEED_ADMIN_PASSWORD=your-strong-pass npm run db:seed
 
 # 4. 启动
 npm run dev
 ```
 
 打开 http://localhost:3000 → 自动跳 `/login` → 用 seed 账号登录 → 进入 `/orders`。
+
+客户演示页：`/demo/ai-video`。这是公开隐藏入口，不需要登录，用于展示 Aivora 的 AI 视频生成流程（实拍素材 + 经纪人声音 + 数字人形象）。默认走 mock provider；拿到 HeyGen API key 后配置 `DIGITAL_HUMAN_PROVIDER=heygen`、`HEYGEN_API_KEY`、`HEYGEN_AVATAR_ID`、`HEYGEN_VOICE_ID` 即可切到真实 provider。
 
 ## 目录结构
 

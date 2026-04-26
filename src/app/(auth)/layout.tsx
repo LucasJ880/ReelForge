@@ -10,7 +10,7 @@ export default function AuthLayout({
       <header className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-6 py-5 md:px-10">
         <div className="flex items-center gap-2.5">
           <Logo size={26} />
-          <span className="text-sm font-semibold tracking-tight">ReelForge</span>
+          <span className="text-sm font-semibold tracking-tight">Aivora</span>
         </div>
         <div className="text-xs text-muted-foreground">内部交付系统</div>
       </header>
@@ -35,7 +35,7 @@ export default function AuthLayout({
               <span className="text-primary">全流程闭环</span>
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
-              ReelForge 为外贸电商卖家做产品分析 → 卖点提炼 → 多角度视频
+              Aivora 为外贸电商卖家做产品分析 → 卖点提炼 → 多角度视频
               → 数据赛马 → 特征蒸馏 → 自动进入下一轮。第一阶段聚焦毛毯类目。
             </p>
 
@@ -67,7 +67,7 @@ export default function AuthLayout({
           </div>
 
           <div className="relative text-xs text-muted-foreground">
-            © {new Date().getFullYear()} ReelForge · Internal
+            © {new Date().getFullYear()} Aivora · Internal
           </div>
         </aside>
       </div>

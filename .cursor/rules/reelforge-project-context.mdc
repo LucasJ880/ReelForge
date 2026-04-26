@@ -1,13 +1,13 @@
 ---
-description: "ReelForge 项目技术规范（外贸电商视频闭环交付系统）"
+description: "Aivora 项目技术规范（外贸电商视频闭环交付系统）"
 globs: "src/**/*.{ts,tsx}"
 alwaysApply: false
 ---
 
-# ReelForge 编码规范
+# Aivora 编码规范
 
 ## 产品定位
-面向外贸电商卖家的闭环视频增长系统。核心闭环：**产品输入 → 市场分析 → 卖点提炼 → 多版本视频 → 发布 → 数据回流 → 赛马打分 → 特征蒸馏 → 下一轮**。第一阶段仅内部团队（Admin）使用，聚焦毛毯 / blanket 类目，优先平台 TikTok。
+面向外贸电商卖家和服务型销售团队的 AI 视频增长系统。核心闭环：**产品输入 → 市场分析 → 卖点提炼 → 多版本视频 → 发布 → 数据回流 → 赛马打分 → 特征蒸馏 → 下一轮**。第一阶段仅内部团队（Admin）使用，电商闭环聚焦毛毯 / blanket 类目，客户 Demo 独立在 `/demo/ai-video`。
 
 ## 技术栈
 - Next.js 16 App Router（Server + Client Components）
@@ -30,6 +30,7 @@ alwaysApply: false
 ## 目录约定
 - `src/app/(app)/` — 认证后运营页面，使用 AppSidebar 布局
 - `src/app/(auth)/` — 登录页
+- `src/app/demo/` — 公开隐藏的客户演示页，不走 AppSidebar，不影响内部闭环
 - `src/app/api/` — API 路由，保持精简，委托给 services
 - `src/lib/services/` — 15 个业务 service：`discovery / selling-point / angle / localization / brief / script / scene / prompt / video / qa / publish / metrics / scoring / distillation / round`
 - `src/lib/providers/` — 外部 API 封装：`openai.ts / seedance.ts / seedance-i2v.ts / remove-bg.ts`

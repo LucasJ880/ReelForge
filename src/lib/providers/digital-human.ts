@@ -30,6 +30,38 @@ export interface DigitalHumanDemoResult {
   notes: string[];
 }
 
+export interface HeyGenProofInput {
+  title: string;
+  script: string;
+  avatarId?: string;
+  voiceId?: string;
+  /**
+   * 客户上传到 Vercel Blob 的人像 URL；存在时走 talking_photo 路线，
+   * 否则走默认 avatar。
+   */
+  talkingPhotoUrl?: string;
+}
+
+export interface HeyGenProofResult {
+  provider: "heygen";
+  status: "submitted";
+  jobId: string;
+  avatarId: string;
+  voiceId: string;
+  dashboardUrl: string;
+  notes: string[];
+}
+
+export interface HeyGenProofStatus {
+  provider: "heygen";
+  jobId: string;
+  status: "waiting" | "processing" | "completed" | "failed" | "unknown";
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  error?: string | null;
+}
+
 const MOCK_PREVIEW_URL =
   "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4";
 
@@ -180,6 +212,258 @@ async function createHeyGenDemo(
       "返回 video_id 后，下一步可加轮询接口把结果同步回 Aivora。",
     ],
   };
+}
+
+export async function submitHeyGenProof(
+  input: HeyGenProofInput,
+): Promise<HeyGenProofResult> {
+  const apiKey = process.env.HEYGEN_API_KEY;
+  if (!apiKey) {
+    throw new Error("HEYGEN_API_KEY 未配置");
+  }
+
+  const proofScript = compactProofScript(input.script);
+
+  let character: Record<string, unknown>;
+  let avatarId = input.avatarId || process.env.HEYGEN_AVATAR_ID || "";
+  if (input.talkingPhotoUrl) {
+    const talkingPhotoId = await uploadTalkingPhoto(apiKey, input.talkingPhotoUrl);
+    character = {
+      type: "talking_photo",
+      talking_photo_id: talkingPhotoId,
+      talking_photo_style: "normal",
+    };
+    avatarId = `talking_photo:${talkingPhotoId}`;
+  } else {
+    const resolved = await resolveHeyGenAssets(apiKey, input);
+    avatarId = resolved.avatarId;
+    character = {
+      type: "avatar",
+      avatar_id: resolved.avatarId,
+      avatar_style: "normal",
+    };
+  }
+
+  const voiceId =
+    input.voiceId ||
+    process.env.HEYGEN_VOICE_ID ||
+    (await listDefaultVoice(apiKey));
+
+  const response = await fetch("https://api.heygen.com/v2/video/generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Api-Key": apiKey,
+    },
+    body: JSON.stringify({
+      title: input.title || "Aivora client proof",
+      caption: true,
+      video_inputs: [
+        {
+          character,
+          voice: {
+            type: "text",
+            input_text: proofScript,
+            voice_id: voiceId,
+          },
+        },
+      ],
+      dimension: {
+        width: 720,
+        height: 1280,
+      },
+    }),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    data?: { video_id?: string };
+    message?: string;
+    error?: string;
+  };
+
+  if (!response.ok || !data.data?.video_id) {
+    throw new Error(data.message || data.error || "HeyGen proof 任务提交失败");
+  }
+
+  return {
+    provider: "heygen",
+    status: "submitted",
+    jobId: data.data.video_id,
+    avatarId,
+    voiceId,
+    dashboardUrl: "https://app.heygen.com/videos",
+    notes: input.talkingPhotoUrl
+      ? [
+          "已用客户上传的人像生成 talking_photo 数字人。",
+          "生成是异步任务，可在 HeyGen dashboard 查看结果。",
+        ]
+      : [
+          "已提交一条短脚本 proof，控制成本。",
+          "生成是异步任务，可在 HeyGen dashboard 查看结果。",
+          "下一步可接 /v1/video_status.get 或 v3 videos 轮询，把结果回写到 Aivora。",
+        ],
+  };
+}
+
+/**
+ * 把公网图片（例如客户刚上传到 Vercel Blob 的人像）上传到 HeyGen，
+ * 返回可在 v2/video/generate 中直接用的 talking_photo_id。
+ */
+async function uploadTalkingPhoto(
+  apiKey: string,
+  imageUrl: string,
+): Promise<string> {
+  const sourceResp = await fetch(imageUrl);
+  if (!sourceResp.ok) {
+    throw new Error(`下载客户人像失败 status=${sourceResp.status}`);
+  }
+  const contentType = sourceResp.headers.get("content-type") || "image/jpeg";
+  if (!/^image\/(jpeg|jpg|png)$/i.test(contentType)) {
+    throw new Error(`不支持的人像格式：${contentType}`);
+  }
+  const body = Buffer.from(await sourceResp.arrayBuffer());
+
+  const upload = await fetch("https://upload.heygen.com/v1/talking_photo", {
+    method: "POST",
+    headers: {
+      "X-Api-Key": apiKey,
+      "Content-Type": contentType,
+    },
+    body,
+  });
+  const data = (await upload.json().catch(() => ({}))) as {
+    data?: { talking_photo_id?: string };
+    message?: string;
+    error?: string;
+  };
+  if (!upload.ok || !data.data?.talking_photo_id) {
+    throw new Error(
+      data.message || data.error || "HeyGen 人像上传失败，请稍后再试",
+    );
+  }
+  return data.data.talking_photo_id;
+}
+
+export async function getHeyGenProofStatus(
+  videoId: string,
+): Promise<HeyGenProofStatus> {
+  const apiKey = process.env.HEYGEN_API_KEY;
+  if (!apiKey) {
+    throw new Error("HEYGEN_API_KEY 未配置");
+  }
+
+  const response = await fetch(
+    `https://api.heygen.com/v1/video_status.get?video_id=${encodeURIComponent(videoId)}`,
+    { headers: { "X-Api-Key": apiKey } },
+  );
+  const data = (await response.json().catch(() => ({}))) as {
+    data?: {
+      status?: string;
+      video_url?: string;
+      thumbnail_url?: string;
+      duration?: number;
+      error?: string | null;
+    };
+    message?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(data.message || "读取 HeyGen 生成状态失败");
+  }
+
+  const rawStatus = data.data?.status ?? "unknown";
+  const status = normalizeHeyGenStatus(rawStatus);
+
+  return {
+    provider: "heygen",
+    jobId: videoId,
+    status,
+    videoUrl: data.data?.video_url,
+    thumbnailUrl: data.data?.thumbnail_url,
+    duration: data.data?.duration,
+    error: data.data?.error ?? null,
+  };
+}
+
+async function resolveHeyGenAssets(
+  apiKey: string,
+  input: HeyGenProofInput,
+): Promise<{ avatarId: string; voiceId: string }> {
+  const configuredAvatar = input.avatarId || process.env.HEYGEN_AVATAR_ID;
+  const configuredVoice = input.voiceId || process.env.HEYGEN_VOICE_ID;
+  if (configuredAvatar && configuredVoice) {
+    return { avatarId: configuredAvatar, voiceId: configuredVoice };
+  }
+
+  const [avatarId, voiceId] = await Promise.all([
+    configuredAvatar ?? listDefaultAvatar(apiKey),
+    configuredVoice ?? listDefaultVoice(apiKey),
+  ]);
+
+  if (!avatarId || !voiceId) {
+    throw new Error("无法自动解析 HeyGen avatar_id / voice_id，请在环境变量中显式配置");
+  }
+  return { avatarId, voiceId };
+}
+
+async function listDefaultAvatar(apiKey: string): Promise<string> {
+  const response = await fetch("https://api.heygen.com/v2/avatars", {
+    headers: { "X-Api-Key": apiKey },
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    data?: {
+      avatars?: Array<{
+        avatar_id?: string;
+        premium?: boolean;
+        default_voice_id?: string | null;
+      }>;
+    };
+    message?: string;
+  };
+  if (!response.ok) throw new Error(data.message || "读取 HeyGen avatars 失败");
+  const avatar =
+    data.data?.avatars?.find((a) => a.avatar_id && !a.premium) ??
+    data.data?.avatars?.find((a) => a.avatar_id);
+  if (!avatar?.avatar_id) throw new Error("HeyGen 账号没有可用 avatar");
+  return avatar.avatar_id;
+}
+
+async function listDefaultVoice(apiKey: string): Promise<string> {
+  const response = await fetch("https://api.heygen.com/v2/voices", {
+    headers: { "X-Api-Key": apiKey },
+  });
+  const data = (await response.json().catch(() => ({}))) as {
+    data?: {
+      voices?: Array<{
+        voice_id?: string;
+        language?: string;
+        locale?: string;
+        support_pause?: boolean;
+      }>;
+    };
+    message?: string;
+  };
+  if (!response.ok) throw new Error(data.message || "读取 HeyGen voices 失败");
+  const voices = data.data?.voices ?? [];
+  const preferred =
+    voices.find((v) => v.voice_id && /zh|chinese|mandarin/i.test(`${v.language} ${v.locale}`)) ??
+    voices.find((v) => v.voice_id);
+  if (!preferred?.voice_id) throw new Error("HeyGen 账号没有可用 voice");
+  return preferred.voice_id;
+}
+
+function compactProofScript(script: string): string {
+  const cleaned = script.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= 180) return cleaned;
+  return `${cleaned.slice(0, 178)}。`;
+}
+
+function normalizeHeyGenStatus(status: string): HeyGenProofStatus["status"] {
+  if (status === "completed") return "completed";
+  if (status === "failed") return "failed";
+  if (status === "waiting") return "waiting";
+  if (status === "processing" || status === "pending") return "processing";
+  return "unknown";
 }
 
 function buildDemoScript(input: DigitalHumanDemoInput): string {

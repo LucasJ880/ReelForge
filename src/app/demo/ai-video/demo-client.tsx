@@ -1,163 +1,151 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Bot,
   CheckCircle2,
-  Copy,
   ExternalLink,
+  Film,
+  Image as ImageIcon,
   Loader2,
+  Pencil,
   Play,
-  Radio,
+  RefreshCcw,
   Sparkles,
-  TrendingUp,
-  WandSparkles,
+  Upload,
+  Video,
+  Wand2,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
+import {
+  DEMO_SEED_INPUT,
+  DEMO_SEED_RESULT,
+  DEMO_SEED_VIDEO_DURATION_SEC,
+  DEMO_SEED_VIDEO_THUMBNAIL,
+  DEMO_SEED_VIDEO_URL,
+} from "@/lib/data/demo-seed";
+import type { DemoVideoAnalysisResult } from "@/lib/services/demo-video-analysis-service";
 
-type Tone = "premium" | "friendly" | "expert" | "bold";
+type Tone = DemoVideoAnalysisResult extends never
+  ? never
+  : "premium" | "friendly" | "expert" | "bold";
 
-interface AnalysisResult {
-  source: "apify+llm" | "llm-only" | "mock";
-  reference: {
-    url: string;
-    author?: string;
-    caption: string;
-    hashtags: string[];
-    music?: string;
-    durationSec?: number;
-    metrics: {
-      plays: number;
-      likes: number;
-      comments: number;
-      shares: number;
-      engagementRate: number;
-    };
-    coverUrl?: string;
-    downloadUrl?: string;
-  };
-  intelligence: {
-    viralFormula: string;
-    hook: string;
-    retentionMechanics: string[];
-    visualPattern: string[];
-    audienceTriggers: string[];
-    commentSignals: string[];
-    riskNotes: string[];
-  };
-  clientVersion: {
-    positioning: string;
-    title: string;
-    digitalHumanScript: string;
-    scenePlan: {
-      time: string;
-      visual: string;
-      narration: string;
-      overlay: string;
-    }[];
-    captions: string[];
-    brollPrompts: string[];
-    cta: string;
-  };
-  providerPlan: {
-    digitalHuman: "mock" | "heygen-ready";
-    seedance: string[];
-    nextKeys: string[];
-  };
+type AnalysisResult = DemoVideoAnalysisResult;
+
+interface ProofStatus {
+  provider: "heygen";
+  jobId: string;
+  status: "waiting" | "processing" | "completed" | "failed" | "unknown";
+  videoUrl?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+  error?: string | null;
 }
 
-const DEFAULT_RESULT: AnalysisResult = {
-  source: "mock",
-  reference: {
-    url: "https://www.tiktok.com/@reference/video/0000000000000000000",
-    author: "reference.creator",
-    caption:
-      "POV: you found a smarter way to turn one client story into a full video campaign.",
-    hashtags: ["aivideo", "digitalhuman", "clientgrowth"],
-    music: "Original sound",
-    durationSec: 28,
-    metrics: {
-      plays: 1240000,
-      likes: 86400,
-      comments: 2300,
-      shares: 9800,
-      engagementRate: 7.94,
-    },
-  },
-  intelligence: {
-    viralFormula:
-      "用一个强情境开场制造代入感，再用快速反差和具体结果让观众愿意停留。",
-    hook: "先抛出客户正在经历的痛点，再马上展示一个更轻松的解决方式。",
-    retentionMechanics: [
-      "3 秒内给出明确冲突",
-      "每 4-5 秒切一次信息点",
-      "用评论区疑问做转场",
-    ],
-    visualPattern: ["真实场景开头", "数字人叠加讲解", "关键字幕卡", "品牌化 CTA"],
-    audienceTriggers: ["节省时间", "提高可信度", "减少真人反复出镜"],
-    commentSignals: ["观众会追问具体做法", "真实案例更容易建立信任"],
-    riskNotes: ["不要直接复制原脚本", "数字人必须保持专业可信"],
-  },
-  clientVersion: {
-    positioning: "服务型客户的高信任 AI 视频获客样片",
-    title: "把一次拍摄变成一套持续获客的视频资产",
-    digitalHumanScript:
-      "如果你的客户正在比较不同方案，第一眼看到的内容就决定了他们是否愿意继续了解。Aivora 会先分析一条已经验证过的爆款视频结构，再把它改写成适合客户业务的数字人讲解。",
-    scenePlan: [
-      {
-        time: "0-3s",
-        visual: "真实业务场景快速出现",
-        narration: "客户为什么会停下来，往往发生在前三秒。",
-        overlay: "3 秒决定是否继续看",
-      },
-      {
-        time: "4-12s",
-        visual: "客户数字人出现在画面侧边",
-        narration: "我们不是复制爆款，而是拆解它背后的成交逻辑。",
-        overlay: "Hook / Trust / CTA",
-      },
-      {
-        time: "13-24s",
-        visual: "服务流程和成果 B-roll",
-        narration: "再把这套逻辑重建成适合客户自己的视频资产。",
-        overlay: "一套素材，多条视频",
-      },
-    ],
-    captions: [
-      "不是复制爆款，是复制增长结构",
-      "真实素材 + 数字人 + AI 脚本",
-      "客户不用反复出镜",
-      "一套素材生成多条内容",
-    ],
-    brollPrompts: [
-      "高端服务顾问在现代办公室与客户沟通，竖屏，真实商业纪录片风格",
-      "手机上播放专业短视频数据看板，柔和霓虹光，浅景深",
-    ],
-    cta: "把你喜欢的爆款链接发给我们，我们现场拆给你看。",
-  },
-  providerPlan: {
-    digitalHuman: "mock",
-    seedance: ["客户业务场景化 B-roll", "服务流程视觉补充镜头"],
-    nextKeys: ["HEYGEN_API_KEY", "HEYGEN_AVATAR_ID", "HEYGEN_VOICE_ID"],
-  },
-};
+interface UploadedFile {
+  url: string;
+  name: string;
+  mime: string;
+  size: number;
+}
+
+interface FinalVideoState {
+  source: "seed" | "client";
+  videoUrl: string;
+  thumbnailUrl?: string;
+  durationSec?: number;
+  jobId?: string;
+  status: ProofStatus["status"] | "ready";
+}
+
+const SEED_FINAL_VIDEO: FinalVideoState | null = DEMO_SEED_VIDEO_URL
+  ? {
+      source: "seed",
+      videoUrl: DEMO_SEED_VIDEO_URL,
+      thumbnailUrl: DEMO_SEED_VIDEO_THUMBNAIL || undefined,
+      durationSec: DEMO_SEED_VIDEO_DURATION_SEC || undefined,
+      status: "ready",
+    }
+  : null;
 
 export function AiVideoDemoClient() {
-  const [tiktokUrl, setTiktokUrl] = useState(
-    "https://www.tiktok.com/@reference/video/0000000000000000000",
+  const [tiktokUrl, setTiktokUrl] = useState(DEMO_SEED_INPUT.tiktokUrl);
+  const [clientIndustry, setClientIndustry] = useState(
+    DEMO_SEED_INPUT.clientIndustry,
   );
-  const [clientIndustry, setClientIndustry] = useState("地产 / 顾问型服务");
-  const [clientOffer, setClientOffer] = useState("客户专属 AI 数字人讲解视频");
+  const [clientOffer, setClientOffer] = useState(DEMO_SEED_INPUT.clientOffer);
   const [targetAudience, setTargetAudience] = useState(
-    "正在比较服务方案、需要快速建立信任的潜在客户",
+    DEMO_SEED_INPUT.targetAudience,
   );
-  const [tone, setTone] = useState<Tone>("premium");
-  const [result, setResult] = useState<AnalysisResult>(DEFAULT_RESULT);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [tone, setTone] = useState<Tone>(DEMO_SEED_INPUT.tone);
+  const [result, setResult] = useState<AnalysisResult>(DEMO_SEED_RESULT);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showInputs, setShowInputs] = useState(false);
+
+  const [portrait, setPortrait] = useState<UploadedFile | null>(null);
+  const [brolls, setBrolls] = useState<UploadedFile[]>([]);
+  const [uploadingPortrait, setUploadingPortrait] = useState(false);
+  const [uploadingBroll, setUploadingBroll] = useState(false);
+
+  const [finalVideo, setFinalVideo] = useState<FinalVideoState | null>(
+    SEED_FINAL_VIDEO,
+  );
+  const [proofJobId, setProofJobId] = useState<string | null>(null);
+  const [isRendering, setIsRendering] = useState(false);
+
   const [error, setError] = useState("");
 
-  async function generateDemo() {
-    setIsGenerating(true);
+  useEffect(() => {
+    if (!proofJobId) return;
+    if (
+      finalVideo?.source === "client" &&
+      (finalVideo.status === "completed" ||
+        finalVideo.status === "ready" ||
+        finalVideo.status === "failed")
+    ) {
+      return;
+    }
+    let cancelled = false;
+    async function tick() {
+      try {
+        const res = await fetch("/api/demo/ai-video", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "render-status", videoId: proofJobId }),
+        });
+        const data = (await res.json()) as ProofStatus & { error?: string };
+        if (!res.ok) throw new Error(data.error || "读取生成状态失败");
+        if (cancelled) return;
+        setFinalVideo({
+          source: "client",
+          videoUrl: data.videoUrl ?? "",
+          thumbnailUrl: data.thumbnailUrl,
+          durationSec: data.duration,
+          jobId: data.jobId,
+          status: data.status,
+        });
+      } catch (err) {
+        if (cancelled) return;
+        setError((err as Error).message);
+      }
+    }
+    void tick();
+    const interval = window.setInterval(tick, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [proofJobId, finalVideo?.source, finalVideo?.status]);
+
+  const reanalyze = useCallback(async () => {
+    setIsAnalyzing(true);
     setError("");
     try {
       const res = await fetch("/api/demo/ai-video", {
@@ -177,34 +165,120 @@ export function AiVideoDemoClient() {
     } catch (err) {
       setError((err as Error).message);
     } finally {
-      setIsGenerating(false);
+      setIsAnalyzing(false);
     }
-  }
+  }, [tiktokUrl, clientIndustry, clientOffer, targetAudience, tone]);
+
+  const uploadFile = useCallback(
+    async (kind: "portrait" | "broll", file: File): Promise<UploadedFile> => {
+      const form = new FormData();
+      form.set("kind", kind);
+      form.set("file", file);
+      const res = await fetch("/api/demo/ai-video", {
+        method: "POST",
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "上传失败");
+      return {
+        url: data.url,
+        name: data.name || file.name,
+        mime: data.mime || file.type,
+        size: data.size || file.size,
+      };
+    },
+    [],
+  );
+
+  const onPickPortrait = useCallback(
+    async (file: File) => {
+      setUploadingPortrait(true);
+      setError("");
+      try {
+        const uploaded = await uploadFile("portrait", file);
+        setPortrait(uploaded);
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setUploadingPortrait(false);
+      }
+    },
+    [uploadFile],
+  );
+
+  const onPickBroll = useCallback(
+    async (files: FileList | File[]) => {
+      const arr = Array.from(files).slice(0, 3 - brolls.length);
+      if (arr.length === 0) return;
+      setUploadingBroll(true);
+      setError("");
+      try {
+        const uploaded = await Promise.all(
+          arr.map((f) => uploadFile("broll", f)),
+        );
+        setBrolls((prev) => [...prev, ...uploaded].slice(0, 3));
+      } catch (err) {
+        setError((err as Error).message);
+      } finally {
+        setUploadingBroll(false);
+      }
+    },
+    [brolls.length, uploadFile],
+  );
+
+  const renderClientVideo = useCallback(async () => {
+    setIsRendering(true);
+    setError("");
+    try {
+      const res = await fetch("/api/demo/ai-video", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "render-proof",
+          title: result.clientVersion.title,
+          script: result.clientVersion.digitalHumanScript,
+          talkingPhotoUrl: portrait?.url,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "数字人生成提交失败");
+      setProofJobId(data.jobId);
+      setFinalVideo({
+        source: "client",
+        videoUrl: "",
+        jobId: data.jobId,
+        status: "processing",
+      });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsRendering(false);
+    }
+  }, [
+    portrait?.url,
+    result.clientVersion.digitalHumanScript,
+    result.clientVersion.title,
+  ]);
+
+  const sourceText = useMemo(() => sourceLabel(result.source), [result.source]);
+  const hasClientVideo =
+    finalVideo?.source === "client" &&
+    !!finalVideo.videoUrl &&
+    finalVideo.status === "completed";
+  const showPreviewReel = brolls.length > 0 && !!finalVideo?.videoUrl;
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#080b10] text-white">
-      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(45,212,191,0.20),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.18),transparent_30%),linear-gradient(180deg,#080b10_0%,#111827_100%)]" />
-      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-size-[56px_56px] opacity-30" />
+    <main className="min-h-screen bg-[#070b12] text-white">
+      <BackgroundDecor />
+      <div className="relative mx-auto w-full max-w-[1180px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
+        <TopBar
+          sourceText={sourceText}
+          onToggleInputs={() => setShowInputs((v) => !v)}
+          showInputs={showInputs}
+          isAnalyzing={isAnalyzing}
+        />
 
-      <div className="relative mx-auto min-h-screen w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
-        <header className="mb-8 flex items-center justify-between rounded-full border border-white/10 bg-white/5 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <Logo size={30} />
-            <div>
-              <div className="text-sm font-semibold tracking-tight">Aivora</div>
-              <div className="text-[11px] text-white/45">
-                Viral Intelligence Console
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-            Live Demo
-          </div>
-        </header>
-
-        <section className="mb-5 grid gap-4 xl:grid-cols-[0.9fr_390px_0.9fr]">
-          <HeroNarrative result={result} />
+        {showInputs ? (
           <ControlPanel
             tiktokUrl={tiktokUrl}
             setTiktokUrl={setTiktokUrl}
@@ -216,242 +290,949 @@ export function AiVideoDemoClient() {
             setTargetAudience={setTargetAudience}
             tone={tone}
             setTone={setTone}
-            isGenerating={isGenerating}
-            error={error}
-            onGenerate={generateDemo}
+            isAnalyzing={isAnalyzing}
+            onAnalyze={reanalyze}
           />
-          <HeroOutput result={result} />
-        </section>
+        ) : null}
 
-        <section className="grid gap-4 xl:grid-cols-[0.86fr_1.14fr]">
-          <ReferenceCard result={result} />
-          <IntelligenceCard result={result} />
-        </section>
+        <Hero result={result} />
 
-        <section className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-          <ClientPlanCard result={result} />
-          <ProviderCard result={result} />
-        </section>
+        {error ? (
+          <div className="mx-auto mt-6 max-w-3xl rounded-2xl border border-red-400/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+            {error}
+          </div>
+        ) : null}
+
+        <Step
+          index="01"
+          title="我们抓到了这条爆款"
+          subtitle="Aivora 通过 Apify 实时抓取 TikTok 视频与高赞评论，作为这次拆解的真实素材。"
+        >
+          <ReferenceVideoPanel result={result} sourceText={sourceText} />
+        </Step>
+
+        <Step
+          index="02"
+          title="我们看出来它为什么火"
+          subtitle="OpenAI 基于真实评论与播放数据，提炼出可迁移到你业务的爆款结构。"
+        >
+          <IntelligencePanel result={result} />
+        </Step>
+
+        <Step
+          index="03"
+          title="我们为你重写了这个脚本"
+          subtitle="结构保留爆款逻辑，文案完全为你的客户业务量身改写——不是搬运，不是抄袭。"
+        >
+          <RewriteScriptPanel result={result} />
+        </Step>
+
+        <Step
+          index="04"
+          title="数字人成片"
+          subtitle={
+            hasClientVideo
+              ? "这是用你上传的人像 + 上面这段脚本生成的数字人讲解视频。"
+              : "这是 Aivora 用上面这段脚本生成的真实数字人讲解视频，30 秒可发布。"
+          }
+        >
+          <DigitalHumanPanel
+            finalVideo={finalVideo}
+            portrait={portrait}
+            brolls={brolls}
+            isRendering={isRendering}
+            uploadingPortrait={uploadingPortrait}
+            uploadingBroll={uploadingBroll}
+            onPickPortrait={onPickPortrait}
+            onPickBroll={onPickBroll}
+            onRemovePortrait={() => setPortrait(null)}
+            onRemoveBroll={(idx) =>
+              setBrolls((prev) => prev.filter((_, i) => i !== idx))
+            }
+            onRender={renderClientVideo}
+          />
+        </Step>
+
+        {showPreviewReel ? (
+          <Step
+            index="05"
+            title="成片预演"
+            subtitle="客户实拍 → 数字人讲解 → 客户实拍：这就是你发到主页的视频体验。"
+          >
+            <PreviewReel
+              brolls={brolls}
+              digitalHumanUrl={finalVideo?.videoUrl ?? ""}
+            />
+          </Step>
+        ) : null}
+
+        <FooterCTA cta={result.clientVersion.cta} onAnalyze={() => setShowInputs(true)} />
       </div>
     </main>
   );
 }
 
-function Metric({ value, label }: { value: string; label: string }) {
+function BackgroundDecor() {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur-xl">
-      <div className="text-2xl font-semibold text-cyan-100">{value}</div>
-      <div className="mt-1 text-xs text-white/45">{label}</div>
+    <>
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_15%_-5%,rgba(45,212,191,0.18),transparent_30%),radial-gradient(circle_at_85%_8%,rgba(99,102,241,0.16),transparent_32%),linear-gradient(180deg,#070b12_0%,#0e1320_100%)]" />
+      <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-size-[64px_64px] opacity-25" />
+    </>
+  );
+}
+
+function TopBar({
+  sourceText,
+  onToggleInputs,
+  showInputs,
+  isAnalyzing,
+}: {
+  sourceText: string;
+  onToggleInputs: () => void;
+  showInputs: boolean;
+  isAnalyzing: boolean;
+}) {
+  return (
+    <header className="relative flex flex-wrap items-center justify-between gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
+      <div className="flex items-center gap-3">
+        <Logo size={30} />
+        <div>
+          <div className="text-sm font-semibold tracking-tight">Aivora</div>
+          <div className="text-[11px] text-white/45">
+            爆款拆解 · 数字人成片 · 客户专属
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="hidden items-center gap-1.5 rounded-full border border-emerald-400/25 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-100 sm:inline-flex">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
+          {sourceText}
+        </span>
+        <button
+          type="button"
+          onClick={onToggleInputs}
+          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs text-white/85 transition hover:border-white/30 hover:bg-white/15"
+        >
+          {isAnalyzing ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Pencil className="h-3.5 w-3.5" />
+          )}
+          {showInputs ? "收起参数" : "换一条 TikTok 链接"}
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function Hero({ result }: { result: AnalysisResult }) {
+  return (
+    <section className="relative mt-8 overflow-hidden rounded-[2rem] border border-white/10 bg-white/4 p-6 shadow-2xl shadow-black/30 backdrop-blur-2xl sm:p-10">
+      <div className="absolute -right-24 -top-24 h-72 w-72 rounded-full bg-cyan-300/10 blur-3xl" />
+      <div className="relative">
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
+          <Sparkles className="h-3.5 w-3.5" />
+          地产经纪 · AI 视频获客闭环演示
+        </div>
+        <h1 className="max-w-3xl text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[3.2rem]">
+          把别人的爆款，
+          <span className="block bg-linear-to-r from-cyan-200 via-emerald-200 to-white bg-clip-text text-transparent">
+            变成你团队 7 天可发的客户视频
+          </span>
+        </h1>
+        <p className="mt-5 max-w-2xl text-base leading-7 text-white/64">
+          Aivora 抓取一条 TikTok 爆款 → 用 OpenAI 拆解它为什么火 → 为你的经纪业务重写脚本
+          → 用 HeyGen 数字人直接出片。下面这一整页就是真实闭环，往下滑你能直接看到数字人成片。
+        </p>
+        <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <KPI value={formatCompact(result.reference.metrics.plays)} label="参考播放" />
+          <KPI value={formatCompact(result.reference.metrics.likes)} label="参考点赞" />
+          <KPI
+            value={`${result.reference.metrics.engagementRate}%`}
+            label="参考互动率"
+          />
+          <KPI
+            value={DEMO_SEED_VIDEO_URL ? "已生成" : "可生成"}
+            label="数字人成片"
+          />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function KPI({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/25 p-3.5">
+      <div className="text-2xl font-semibold text-white sm:text-3xl">{value}</div>
+      <div className="mt-1 text-[11px] uppercase tracking-[0.2em] text-white/45">
+        {label}
+      </div>
     </div>
   );
 }
 
-function HeroNarrative({ result }: { result: AnalysisResult }) {
+function Step({
+  index,
+  title,
+  subtitle,
+  children,
+}: {
+  index: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-white/5.5 p-6 shadow-2xl shadow-black/30 backdrop-blur-2xl">
-      <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl" />
-      <div className="relative">
-        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
-          <Radio className="h-3.5 w-3.5" />
-          TikTok-first Viral Intelligence
+    <section className="mt-12">
+      <div className="mb-5 flex items-end gap-4">
+        <div className="font-mono text-sm text-cyan-200/70">STEP {index}</div>
+        <div className="h-px flex-1 bg-linear-to-r from-cyan-200/30 via-white/10 to-transparent" />
+      </div>
+      <h2 className="text-2xl font-semibold tracking-[-0.02em] text-white sm:text-3xl">
+        {title}
+      </h2>
+      <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+        {subtitle}
+      </p>
+      <div className="mt-6">{children}</div>
+    </section>
+  );
+}
+
+function ReferenceVideoPanel({
+  result,
+  sourceText,
+}: {
+  result: AnalysisResult;
+  sourceText: string;
+}) {
+  const ref = result.reference;
+  const playable = ref.downloadUrl;
+  return (
+    <div className="grid gap-5 lg:grid-cols-[minmax(280px,360px)_1fr]">
+      <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl shadow-black/40">
+        {playable ? (
+          <video
+            src={playable}
+            poster={ref.coverUrl}
+            controls
+            playsInline
+            className="aspect-9/16 w-full bg-black object-cover"
+          />
+        ) : ref.coverUrl ? (
+          <div
+            className="aspect-9/16 w-full bg-cover bg-center"
+            style={{ backgroundImage: `url(${ref.coverUrl})` }}
+          />
+        ) : (
+          <div className="flex aspect-9/16 w-full flex-col items-center justify-center bg-linear-to-br from-cyan-500/10 via-transparent to-emerald-500/10 p-6 text-center">
+            <Video className="mb-3 h-10 w-10 text-cyan-200" />
+            <div className="text-base font-medium">原片在 TikTok</div>
+            <p className="mt-1 text-xs leading-5 text-white/50">
+              我们默认不下载原片，避免版权与热链问题；点击下方链接打开原视频。
+            </p>
+          </div>
+        )}
+        <a
+          href={ref.url}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs text-white/65 transition hover:bg-black/60 hover:text-white"
+        >
+          <span>在 TikTok 打开原片</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="rounded-full border border-emerald-300/30 bg-emerald-300/10 px-3 py-1 text-[11px] text-emerald-100">
+            数据来源 · {sourceText}
+          </span>
+          {ref.author ? (
+            <span className="text-xs text-white/45">@{ref.author}</span>
+          ) : null}
         </div>
 
-        <h1 className="max-w-xl text-[2.45rem] font-semibold leading-[0.98] tracking-[-0.055em] text-white sm:text-5xl">
-          Turn viral videos into
-          <span className="block bg-linear-to-r from-cyan-200 via-emerald-200 to-white bg-clip-text text-transparent">
-            client-ready avatar scripts.
-          </span>
-        </h1>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Metric label="播放" value={formatCompact(ref.metrics.plays)} />
+          <Metric label="点赞" value={formatCompact(ref.metrics.likes)} />
+          <Metric label="评论" value={formatCompact(ref.metrics.comments)} />
+          <Metric label="分享" value={formatCompact(ref.metrics.shares)} />
+        </div>
 
-        <p className="mt-5 max-w-lg text-sm leading-7 text-white/58">
-          Aivora 不复制爆款，而是拆解它背后的 hook、留存、信任机制和 CTA，
-          再重建为客户自己的数字人视频方案。
+        <div className="rounded-2xl border border-white/10 bg-black/25 p-4">
+          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">
+            原视频文案
+          </div>
+          <p className="mt-2 text-sm leading-6 text-white/82">
+            {ref.caption || "（无文案）"}
+          </p>
+          {ref.hashtags.length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {ref.hashtags.slice(0, 10).map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-cyan-100/80"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+
+        <div className="rounded-2xl border border-cyan-200/15 bg-cyan-300/8 p-4 text-xs leading-5 text-cyan-50/85">
+          这一切都是真实抓取与真实模型分析的结果。下一步，AI 会告诉你它到底为什么有效。
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+      <div className="text-xl font-semibold text-white">{value}</div>
+      <div className="text-[10px] uppercase tracking-[0.2em] text-white/40">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+function IntelligencePanel({ result }: { result: AnalysisResult }) {
+  const items: { title: string; body: string; tone?: "highlight" }[] = [
+    {
+      title: "前 3 秒 hook",
+      body: result.intelligence.hook,
+      tone: "highlight",
+    },
+    { title: "爆款公式", body: result.intelligence.viralFormula },
+  ];
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-3 md:grid-cols-2">
+        {items.map((it) => (
+          <div
+            key={it.title}
+            className={`rounded-2xl border p-5 ${
+              it.tone === "highlight"
+                ? "border-cyan-200/30 bg-cyan-300/8"
+                : "border-white/10 bg-white/5"
+            }`}
+          >
+            <div className="mb-2 text-[11px] uppercase tracking-[0.22em] text-white/40">
+              {it.title}
+            </div>
+            <p className="text-sm leading-6 text-white/85">{it.body}</p>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <PillList
+          title="留存机制"
+          icon="dot"
+          items={result.intelligence.retentionMechanics}
+        />
+        <PillList
+          title="视觉模式"
+          icon="dot"
+          items={result.intelligence.visualPattern}
+        />
+        <PillList
+          title="观众心理触发"
+          icon="dot"
+          items={result.intelligence.audienceTriggers}
+        />
+        <PillList
+          title="评论信号"
+          icon="dot"
+          items={result.intelligence.commentSignals}
+        />
+      </div>
+
+      {result.intelligence.riskNotes.length > 0 ? (
+        <div className="rounded-2xl border border-amber-300/25 bg-amber-300/8 p-4">
+          <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-amber-100/80">
+            复刻时要规避
+          </div>
+          <ul className="space-y-1.5 text-sm leading-6 text-amber-50/85">
+            {result.intelligence.riskNotes.map((note) => (
+              <li key={note} className="flex gap-2">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-200/80" />
+                {note}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function PillList({
+  title,
+  items,
+}: {
+  title: string;
+  icon?: "dot";
+  items: string[];
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/4 p-4">
+      <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white/40">
+        {title}
+      </div>
+      <ul className="space-y-2">
+        {items.slice(0, 6).map((item) => (
+          <li
+            key={item}
+            className="flex gap-2.5 rounded-xl bg-black/15 px-3 py-2 text-sm leading-5 text-white/76"
+          >
+            <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-200/80" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function RewriteScriptPanel({ result }: { result: AnalysisResult }) {
+  return (
+    <div className="space-y-5">
+      <div className="rounded-3xl border border-cyan-200/20 bg-cyan-200/8 p-6 shadow-2xl shadow-cyan-950/15">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-100/80">
+          客户视频定位
+        </div>
+        <h3 className="mt-2 text-2xl font-semibold tracking-[-0.02em] text-white">
+          {result.clientVersion.title}
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-white/65">
+          {result.clientVersion.positioning}
         </p>
 
-        <div className="mt-7 grid grid-cols-3 gap-2.5">
-          <Metric value={formatCompact(result.reference.metrics.plays)} label="参考播放" />
-          <Metric value={`${result.reference.metrics.engagementRate}%`} label="互动率" />
-          <Metric value={result.source === "apify+llm" ? "Live" : "Mock"} label="数据源" />
-        </div>
-
-        <div className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-4">
-          <div className="mb-3 text-[11px] uppercase tracking-[0.22em] text-white/35">
-            Operating flow
+        <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+          <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-white/40">
+            <Bot className="h-3.5 w-3.5" />
+            数字人完整口播脚本
           </div>
-          {[
-            ["01", "Reference video", "抓取真实 TikTok 数据与评论"],
-            ["02", "Viral teardown", "拆解爆点公式与镜头节奏"],
-            ["03", "Client rebuild", "生成客户数字人脚本与成片方案"],
-          ].map(([num, title, desc]) => (
-            <div key={num} className="flex gap-3 border-t border-white/8 py-3 first:border-t-0 first:pt-0 last:pb-0">
-              <div className="font-mono text-xs text-cyan-200/80">{num}</div>
-              <div>
-                <div className="text-sm font-medium text-white">{title}</div>
-                <div className="mt-0.5 text-xs text-white/42">{desc}</div>
+          <p className="whitespace-pre-line text-base leading-8 text-white/90">
+            {result.clientVersion.digitalHumanScript}
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-3 text-[11px] uppercase tracking-[0.2em] text-white/40">
+          镜头方案
+        </div>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {result.clientVersion.scenePlan.map((scene) => (
+            <div
+              key={`${scene.time}-${scene.overlay}`}
+              className="rounded-2xl border border-white/10 bg-white/5 p-4"
+            >
+              <div className="font-mono text-xs text-cyan-200">{scene.time}</div>
+              <div className="mt-2 text-sm font-medium leading-6 text-white">
+                {scene.visual}
+              </div>
+              <p className="mt-2 text-xs leading-5 text-white/50">
+                {scene.narration}
+              </p>
+              <div className="mt-3 inline-block rounded-full bg-black/30 px-2.5 py-1 text-[11px] text-white/60">
+                {scene.overlay}
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <PillList title="字幕建议" items={result.clientVersion.captions} />
+        <PillList
+          title="补充镜头方向 (Seedance B-roll)"
+          items={result.clientVersion.brollPrompts}
+        />
+      </div>
     </div>
   );
 }
 
-function HeroOutput({ result }: { result: AnalysisResult }) {
+function DigitalHumanPanel({
+  finalVideo,
+  portrait,
+  brolls,
+  isRendering,
+  uploadingPortrait,
+  uploadingBroll,
+  onPickPortrait,
+  onPickBroll,
+  onRemovePortrait,
+  onRemoveBroll,
+  onRender,
+}: {
+  finalVideo: FinalVideoState | null;
+  portrait: UploadedFile | null;
+  brolls: UploadedFile[];
+  isRendering: boolean;
+  uploadingPortrait: boolean;
+  uploadingBroll: boolean;
+  onPickPortrait: (file: File) => void;
+  onPickBroll: (files: FileList | File[]) => void;
+  onRemovePortrait: () => void;
+  onRemoveBroll: (idx: number) => void;
+  onRender: () => void;
+}) {
+  const showVideo =
+    !!finalVideo?.videoUrl &&
+    (finalVideo.status === "completed" || finalVideo.status === "ready");
+  const isClientProcessing =
+    finalVideo?.source === "client" &&
+    (finalVideo.status === "processing" ||
+      finalVideo.status === "waiting" ||
+      finalVideo.status === "unknown");
+
   return (
-    <div className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-[#0d1320]/80 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
-      <div className="absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-cyan-200/70 to-transparent" />
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-emerald-200/70">
-            Live Output
-          </div>
-          <h2 className="mt-1 text-xl font-semibold">Client video blueprint</h2>
-        </div>
-        <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-[11px] text-emerald-100">
-          HeyGen-ready
-        </div>
-      </div>
-
-      <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-[11px] uppercase tracking-[0.2em] text-white/35">
-            Generated title
-          </div>
-          <Sparkles className="h-4 w-4 text-cyan-200" />
-        </div>
-        <p className="text-lg font-semibold leading-7 text-white">
-          {result.clientVersion.title}
-        </p>
-        <p className="mt-3 text-xs leading-5 text-white/48">
-          {result.clientVersion.positioning}
-        </p>
-      </div>
-
-      <div className="mt-3 grid gap-3">
-        {result.clientVersion.scenePlan.slice(0, 3).map((scene) => (
-          <div
-            key={`${scene.time}-${scene.overlay}`}
-            className="grid grid-cols-[58px_1fr] gap-3 rounded-2xl border border-white/10 bg-white/4.5 p-3"
-          >
-            <div className="font-mono text-xs text-cyan-100">{scene.time}</div>
-            <div>
-              <div className="text-sm font-medium text-white/88">{scene.overlay}</div>
-              <div className="mt-1 text-xs leading-5 text-white/45">{scene.visual}</div>
+    <div className="grid gap-5 lg:grid-cols-[1fr_minmax(320px,420px)]">
+      <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/45 shadow-2xl shadow-black/40">
+        {showVideo ? (
+          <video
+            key={finalVideo!.videoUrl}
+            src={finalVideo!.videoUrl}
+            poster={finalVideo!.thumbnailUrl}
+            controls
+            playsInline
+            className="aspect-9/16 w-full bg-black object-contain"
+          />
+        ) : isClientProcessing ? (
+          <div className="flex aspect-9/16 w-full flex-col items-center justify-center gap-3 bg-linear-to-br from-cyan-500/10 to-emerald-500/5 p-8 text-center">
+            <Loader2 className="h-10 w-10 animate-spin text-cyan-200" />
+            <div className="text-base font-medium">数字人正在生成中</div>
+            <p className="max-w-xs text-xs leading-5 text-white/55">
+              通常 1-3 分钟出片。期间页面会自动刷新状态，你可以继续往下看。
+            </p>
+            <div className="text-[11px] text-white/40 font-mono">
+              video_id: {finalVideo?.jobId}
             </div>
           </div>
-        ))}
+        ) : (
+          <div className="flex aspect-9/16 w-full flex-col items-center justify-center gap-3 bg-linear-to-br from-slate-900/60 to-black/30 p-8 text-center">
+            <Film className="h-10 w-10 text-white/40" />
+            <div className="text-base font-medium">尚未生成数字人成片</div>
+            <p className="max-w-xs text-xs leading-5 text-white/55">
+              上传客户人像后点右侧「用我的素材生成」即可开始 HeyGen 真实生成。
+            </p>
+          </div>
+        )}
+        <div className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs">
+          <span className="text-white/55">
+            {finalVideo?.source === "seed"
+              ? "Aivora 预生成的真实样片（HeyGen + 默认 avatar）"
+              : finalVideo?.source === "client"
+              ? finalVideo.status === "completed"
+                ? "你的客户专属数字人成片"
+                : "你的客户专属生成任务"
+              : "尚未生成"}
+          </span>
+          {finalVideo?.durationSec ? (
+            <span className="text-white/45">
+              {finalVideo.durationSec.toFixed(1)}s
+            </span>
+          ) : null}
+        </div>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-white/10 bg-white/4.5 p-3">
-        <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/35">
-          Digital-human line
+      <div className="space-y-4">
+        <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-white/40">
+            用你自己的素材重做
+          </div>
+          <h3 className="mt-1.5 text-lg font-semibold">
+            上传客户人像 + 你拍的实景
+          </h3>
+          <p className="mt-1.5 text-xs leading-5 text-white/50">
+            人像决定数字人的脸；实拍片段会出现在数字人前后的镜头里。
+          </p>
+
+          <div className="mt-4 space-y-3">
+            <PortraitDrop
+              file={portrait}
+              isUploading={uploadingPortrait}
+              onPick={onPickPortrait}
+              onRemove={onRemovePortrait}
+            />
+            <BrollDrop
+              files={brolls}
+              isUploading={uploadingBroll}
+              onPick={onPickBroll}
+              onRemove={onRemoveBroll}
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={onRender}
+            disabled={isRendering || !portrait}
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isRendering ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Wand2 className="h-4 w-4" />
+            )}
+            {isRendering
+              ? "正在提交到 HeyGen..."
+              : portrait
+              ? "用我的人像生成数字人"
+              : "请先上传客户人像"}
+          </button>
+          <p className="mt-2 text-[11px] leading-5 text-white/40">
+            生成会消耗一次 HeyGen 额度（约 0.5 美元）。生成时长 1-3 分钟。
+          </p>
         </div>
-        <p className="line-clamp-3 text-xs leading-5 text-white/58">
-          {result.clientVersion.digitalHumanScript}
-        </p>
       </div>
+    </div>
+  );
+}
+
+function PortraitDrop({
+  file,
+  isUploading,
+  onPick,
+  onRemove,
+}: {
+  file: UploadedFile | null;
+  isUploading: boolean;
+  onPick: (f: File) => void;
+  onRemove: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-white/40">
+        <ImageIcon className="h-3.5 w-3.5" />
+        客户人像（jpg/png）
+      </div>
+      {file ? (
+        <div className="flex items-center gap-3 rounded-2xl border border-emerald-300/25 bg-emerald-300/10 px-3 py-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={file.url}
+            alt={file.name}
+            className="h-12 w-12 rounded-xl object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-sm text-white/90">{file.name}</div>
+            <div className="text-[11px] text-white/45">
+              {formatBytes(file.size)} · 已上传
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="rounded-full p-1 text-white/55 transition hover:bg-white/10 hover:text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploading}
+          className="flex w-full items-center gap-3 rounded-2xl border border-dashed border-white/20 bg-black/15 px-3 py-3 text-left text-sm text-white/65 transition hover:border-cyan-300/50 hover:bg-cyan-300/5 hover:text-white disabled:opacity-60"
+        >
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+          ) : (
+            <Upload className="h-4 w-4 text-cyan-200" />
+          )}
+          <span>{isUploading ? "正在上传人像..." : "点击或拖入人像照片"}</span>
+        </button>
+      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/jpg"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onPick(f);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+function BrollDrop({
+  files,
+  isUploading,
+  onPick,
+  onRemove,
+}: {
+  files: UploadedFile[];
+  isUploading: boolean;
+  onPick: (files: FileList) => void;
+  onRemove: (idx: number) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const canAdd = files.length < 3;
+  return (
+    <div>
+      <div className="mb-1.5 flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-white/40">
+        <Film className="h-3.5 w-3.5" />
+        实拍片段（mp4，最多 3 段，可选）
+      </div>
+      {files.length > 0 ? (
+        <div className="space-y-2">
+          {files.map((f, idx) => (
+            <div
+              key={f.url}
+              className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2"
+            >
+              <Video className="h-4 w-4 text-cyan-200" />
+              <div className="min-w-0 flex-1 text-sm">
+                <div className="truncate text-white/90">{f.name}</div>
+                <div className="text-[11px] text-white/45">
+                  {formatBytes(f.size)} · 段 {idx + 1}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                className="rounded-full p-1 text-white/55 transition hover:bg-white/10 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {canAdd ? (
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={isUploading}
+          className="mt-2 flex w-full items-center gap-3 rounded-2xl border border-dashed border-white/15 bg-black/15 px-3 py-2.5 text-left text-sm text-white/55 transition hover:border-cyan-300/40 hover:text-white disabled:opacity-60"
+        >
+          {isUploading ? (
+            <Loader2 className="h-4 w-4 animate-spin text-cyan-200" />
+          ) : (
+            <Upload className="h-4 w-4 text-cyan-200" />
+          )}
+          <span>
+            {isUploading
+              ? "正在上传实拍片段..."
+              : `点击添加实拍片段（已选 ${files.length}/3）`}
+          </span>
+        </button>
+      ) : null}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="video/mp4,video/quicktime"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          if (e.target.files?.length) onPick(e.target.files);
+          e.target.value = "";
+        }}
+      />
+    </div>
+  );
+}
+
+function PreviewReel({
+  brolls,
+  digitalHumanUrl,
+}: {
+  brolls: UploadedFile[];
+  digitalHumanUrl: string;
+}) {
+  const sequence = useMemo(() => {
+    const head = brolls[0]?.url;
+    const middle = digitalHumanUrl;
+    const tail = brolls.slice(1).map((b) => b.url);
+    return [head, middle, ...tail].filter(Boolean) as string[];
+  }, [brolls, digitalHumanUrl]);
+
+  const [activeIdx, setActiveIdx] = useState(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [sequence.length]);
+
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1fr_minmax(280px,360px)]">
+      <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/45 shadow-2xl shadow-black/40">
+        {sequence[activeIdx] ? (
+          <video
+            key={`${sequence[activeIdx]}-${activeIdx}`}
+            ref={videoRef}
+            src={sequence[activeIdx]}
+            controls
+            autoPlay
+            playsInline
+            onEnded={() =>
+              setActiveIdx((idx) =>
+                idx + 1 < sequence.length ? idx + 1 : 0,
+              )
+            }
+            className="aspect-9/16 w-full bg-black object-contain"
+          />
+        ) : (
+          <div className="flex aspect-9/16 items-center justify-center text-sm text-white/45">
+            等待数字人成片完成后自动播放预演
+          </div>
+        )}
+        <div className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs">
+          <span className="text-white/55">
+            正在预演第 {activeIdx + 1} / {sequence.length} 段
+          </span>
+          <span className="text-white/35">
+            导出阶段会合成单一 mp4 文件
+          </span>
+        </div>
+      </div>
+
+      <ol className="space-y-2">
+        {sequence.map((url, idx) => {
+          const isClientFootage = idx !== 1;
+          return (
+            <li
+              key={`${url}-${idx}`}
+              className={`flex items-center gap-3 rounded-2xl border px-3 py-3 transition ${
+                idx === activeIdx
+                  ? "border-cyan-300/50 bg-cyan-300/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              }`}
+            >
+              <div className="font-mono text-xs text-cyan-200/80">
+                #{idx + 1}
+              </div>
+              <div className="flex-1 text-sm">
+                <div className="font-medium text-white">
+                  {idx === 1 && url === digitalHumanUrl
+                    ? "数字人讲解"
+                    : isClientFootage
+                    ? `客户实拍片段 ${
+                        idx > 1 ? idx - 1 : idx + 1
+                      }`
+                    : `镜头 ${idx + 1}`}
+                </div>
+                <div className="text-[11px] text-white/45">
+                  {idx === 1 && url === digitalHumanUrl
+                    ? "HeyGen 数字人成片"
+                    : "Vercel Blob"}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveIdx(idx)}
+                className="rounded-full bg-black/30 p-1.5 text-white/70 transition hover:bg-black/50 hover:text-white"
+              >
+                <Play className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
 
 function ControlPanel(props: {
   tiktokUrl: string;
-  setTiktokUrl: (value: string) => void;
+  setTiktokUrl: (v: string) => void;
   clientIndustry: string;
-  setClientIndustry: (value: string) => void;
+  setClientIndustry: (v: string) => void;
   clientOffer: string;
-  setClientOffer: (value: string) => void;
+  setClientOffer: (v: string) => void;
   targetAudience: string;
-  setTargetAudience: (value: string) => void;
+  setTargetAudience: (v: string) => void;
   tone: Tone;
-  setTone: (value: Tone) => void;
-  isGenerating: boolean;
-  error: string;
-  onGenerate: () => void;
+  setTone: (v: Tone) => void;
+  isAnalyzing: boolean;
+  onAnalyze: () => void;
 }) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/6 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
+    <div className="mt-5 rounded-3xl border border-white/10 bg-white/5 p-5 shadow-2xl shadow-black/30 backdrop-blur-2xl">
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-cyan-200/70">
-            Input
+          <div className="text-[11px] uppercase tracking-[0.22em] text-cyan-200/70">
+            参数
           </div>
-          <h2 className="mt-1 text-xl font-semibold">Reference Video</h2>
+          <h3 className="mt-1 text-lg font-semibold">
+            参考视频 + 客户业务输入
+          </h3>
         </div>
-        <WandSparkles className="h-5 w-5 text-cyan-200" />
+        <RefreshCcw className="h-5 w-5 text-cyan-200" />
       </div>
-
-      <div className="space-y-3">
-        <Field label="TikTok 爆款链接">
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="TikTok 爆款链接" full>
           <input
             value={props.tiktokUrl}
             onChange={(e) => props.setTiktokUrl(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-cyan-300/50"
-            placeholder="https://www.tiktok.com/@.../video/..."
+            className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-300/50"
           />
         </Field>
         <Field label="客户行业">
           <input
             value={props.clientIndustry}
             onChange={(e) => props.setClientIndustry(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-cyan-300/50"
+            className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-300/50"
           />
         </Field>
         <Field label="客户产品 / 服务">
-          <textarea
+          <input
             value={props.clientOffer}
             onChange={(e) => props.setClientOffer(e.target.value)}
-            rows={2}
-            className="w-full resize-none rounded-2xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-cyan-300/50"
+            className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-300/50"
           />
         </Field>
-        <Field label="目标客户">
-          <textarea
+        <Field label="目标客户" full>
+          <input
             value={props.targetAudience}
             onChange={(e) => props.setTargetAudience(e.target.value)}
-            rows={2}
-            className="w-full resize-none rounded-2xl border border-white/10 bg-black/25 px-3 py-3 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-cyan-300/50"
+            className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-300/50"
           />
         </Field>
-
-        <div className="grid grid-cols-2 gap-2">
-          {(["premium", "expert", "friendly", "bold"] as Tone[]).map((tone) => (
-            <button
-              key={tone}
-              type="button"
-              onClick={() => props.setTone(tone)}
-              className={`rounded-2xl border px-3 py-2 text-left text-xs capitalize transition ${
-                props.tone === tone
-                  ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
-                  : "border-white/10 bg-white/5 text-white/55 hover:border-white/20"
-              }`}
-            >
-              {tone}
-            </button>
-          ))}
-        </div>
-
-        {props.error ? (
-          <div className="rounded-2xl border border-red-400/25 bg-red-400/10 px-3 py-2 text-xs text-red-100">
-            {props.error}
-          </div>
-        ) : null}
-
-        <button
-          type="button"
-          onClick={props.onGenerate}
-          disabled={props.isGenerating}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/15 transition hover:bg-white disabled:opacity-60"
-        >
-          {props.isGenerating ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Play className="h-4 w-4" />
-          )}
-          {props.isGenerating ? "Analyzing viral signal..." : "Analyze & Rebuild"}
-        </button>
       </div>
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        {(["premium", "expert", "friendly", "bold"] as Tone[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => props.setTone(t)}
+            className={`rounded-xl border px-3 py-2 text-xs transition ${
+              props.tone === t
+                ? "border-cyan-300/50 bg-cyan-300/10 text-cyan-100"
+                : "border-white/10 bg-white/5 text-white/55 hover:border-white/20"
+            }`}
+          >
+            {toneLabel(t)}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={props.onAnalyze}
+        disabled={props.isAnalyzing}
+        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 transition hover:bg-white disabled:opacity-60"
+      >
+        {props.isAnalyzing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <Play className="h-4 w-4" />
+        )}
+        {props.isAnalyzing ? "正在拆解爆款结构..." : "重新分析这条 TikTok"}
+      </button>
     </div>
   );
 }
@@ -459,12 +1240,14 @@ function ControlPanel(props: {
 function Field({
   label,
   children,
+  full,
 }: {
   label: string;
   children: React.ReactNode;
+  full?: boolean;
 }) {
   return (
-    <label className="space-y-1.5">
+    <label className={`space-y-1.5 ${full ? "md:col-span-2" : ""}`}>
       <span className="text-[11px] font-medium uppercase tracking-[0.18em] text-white/38">
         {label}
       </span>
@@ -473,236 +1256,33 @@ function Field({
   );
 }
 
-function ReferenceCard({ result }: { result: AnalysisResult }) {
-  const ref = result.reference;
+function FooterCTA({
+  cta,
+  onAnalyze,
+}: {
+  cta: string;
+  onAnalyze: () => void;
+}) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/6 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-emerald-200/70">
-            Reference
-          </div>
-          <h2 className="mt-1 text-xl font-semibold">TikTok Intelligence</h2>
-        </div>
-        <a
-          href={ref.url}
-          target="_blank"
-          rel="noreferrer"
-          className="rounded-full border border-white/10 bg-white/5 p-2 text-white/65 transition hover:text-white"
-        >
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </div>
-
-      <div className="mb-4 overflow-hidden rounded-3xl border border-white/10 bg-black/30">
-        {ref.downloadUrl ? (
-          <video
-            src={ref.downloadUrl}
-            controls
-            playsInline
-            className="aspect-9/16 w-full object-cover"
-          />
-        ) : (
-          <div className="flex aspect-9/16 items-center justify-center p-8 text-center">
-            <div>
-              <TrendingUp className="mx-auto mb-4 h-10 w-10 text-cyan-200" />
-              <div className="text-lg font-semibold">Viral structure, not raw copy.</div>
-              <p className="mt-2 text-sm leading-6 text-white/45">
-                Aivora 默认不下载原视频，优先抓取 metadata、评论和创意结构，降低版权和热链风险。
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        <MiniStat label="Plays" value={formatCompact(ref.metrics.plays)} />
-        <MiniStat label="Likes" value={formatCompact(ref.metrics.likes)} />
-        <MiniStat label="Comments" value={formatCompact(ref.metrics.comments)} />
-        <MiniStat label="Shares" value={formatCompact(ref.metrics.shares)} />
-      </div>
-
-      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-        <div className="text-xs text-white/35">@{ref.author || "unknown"}</div>
-        <p className="mt-2 line-clamp-4 text-sm leading-6 text-white/72">
-          {ref.caption}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {ref.hashtags.slice(0, 8).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-cyan-100/80"
-            >
-              #{tag}
-            </span>
-          ))}
+    <section className="mt-16 rounded-[2rem] border border-emerald-300/20 bg-emerald-300/8 p-6 sm:p-8">
+      <div className="flex flex-wrap items-center gap-3 text-emerald-100">
+        <CheckCircle2 className="h-5 w-5" />
+        <div className="text-sm font-semibold tracking-wide">
+          这套闭环每条链路都是真实运行的
         </div>
       </div>
-    </div>
-  );
-}
-
-function IntelligenceCard({ result }: { result: AnalysisResult }) {
-  const items = [
-    ["Hook", result.intelligence.hook],
-    ["Formula", result.intelligence.viralFormula],
-    ["Audience", result.intelligence.audienceTriggers.join(" / ")],
-    ["Signal", result.intelligence.commentSignals.join(" / ")],
-  ];
-  return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/8 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
-      <div className="mb-5 flex items-center justify-between">
-        <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-cyan-200/70">
-            Analysis
-          </div>
-          <h2 className="mt-1 text-xl font-semibold">Why It Works</h2>
-        </div>
-        <div className="rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] text-white/45">
-          {result.source}
-        </div>
-      </div>
-
-      <div className="space-y-3">
-        {items.map(([label, text]) => (
-          <div key={label} className="rounded-3xl border border-white/10 bg-black/20 p-4">
-            <div className="mb-2 text-xs font-medium uppercase tracking-[0.22em] text-white/32">
-              {label}
-            </div>
-            <p className="text-sm leading-6 text-white/78">{text}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <PillList title="Retention" items={result.intelligence.retentionMechanics} />
-        <PillList title="Visual" items={result.intelligence.visualPattern} />
-      </div>
-    </div>
-  );
-}
-
-function ClientPlanCard({ result }: { result: AnalysisResult }) {
-  return (
-    <div className="rounded-[2rem] border border-cyan-200/15 bg-cyan-200/8 p-4 shadow-2xl shadow-cyan-950/20 backdrop-blur-2xl">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <div className="text-xs uppercase tracking-[0.28em] text-cyan-100/70">
-            Rebuilt For Client
-          </div>
-          <h2 className="mt-2 text-2xl font-semibold">{result.clientVersion.title}</h2>
-          <p className="mt-2 text-sm leading-6 text-white/55">
-            {result.clientVersion.positioning}
-          </p>
-        </div>
-        <Bot className="h-7 w-7 shrink-0 text-cyan-200" />
-      </div>
-
-      <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-white/35">
-          <Copy className="h-3.5 w-3.5" />
-          Digital-human script
-        </div>
-        <p className="text-base leading-8 text-white/84">
-          {result.clientVersion.digitalHumanScript}
-        </p>
-      </div>
-
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {result.clientVersion.scenePlan.slice(0, 3).map((scene) => (
-          <div
-            key={`${scene.time}-${scene.overlay}`}
-            className="rounded-3xl border border-white/10 bg-white/5 p-4"
-          >
-            <div className="mb-3 text-xs text-cyan-100">{scene.time}</div>
-            <div className="text-sm font-medium">{scene.visual}</div>
-            <p className="mt-2 text-xs leading-5 text-white/48">{scene.narration}</p>
-            <div className="mt-3 rounded-full bg-black/25 px-2.5 py-1 text-[11px] text-white/58">
-              {scene.overlay}
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ProviderCard({ result }: { result: AnalysisResult }) {
-  return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/6 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
-      <div className="mb-5">
-        <div className="text-xs uppercase tracking-[0.28em] text-emerald-200/70">
-          Production Stack
-        </div>
-        <h2 className="mt-1 text-xl font-semibold">HeyGen-ready pipeline</h2>
-      </div>
-
-      <div className="space-y-3">
-        <StackRow
-          label="Digital Human"
-          value={
-            result.providerPlan.digitalHuman === "heygen-ready"
-              ? "HeyGen selected"
-              : "Mock now, HeyGen next"
-          }
-        />
-        <StackRow label="Script" value="OpenAI strategy rewrite" />
-        <StackRow label="B-roll" value="Seedance visual prompts" />
-        <StackRow label="Output" value="Vertical client-ready video" />
-      </div>
-
-      <div className="mt-4">
-        <PillList title="Seedance B-roll prompts" items={result.clientVersion.brollPrompts} />
-      </div>
-
-      <div className="mt-4 rounded-3xl border border-emerald-300/15 bg-emerald-300/10 p-4">
-        <div className="mb-2 flex items-center gap-2 text-sm font-medium text-emerald-100">
-          <CheckCircle2 className="h-4 w-4" />
-          Client CTA
-        </div>
-        <p className="text-sm leading-6 text-white/72">{result.clientVersion.cta}</p>
-      </div>
-    </div>
-  );
-}
-
-function MiniStat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-      <div className="text-lg font-semibold text-white">{value}</div>
-      <div className="text-[11px] uppercase tracking-[0.16em] text-white/35">
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function PillList({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-black/15 p-3">
-      <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/35">
-        {title}
-      </div>
-      <div className="space-y-1.5">
-        {items.slice(0, 5).map((item) => (
-          <div
-            key={item}
-            className="rounded-2xl bg-white/5 px-3 py-2 text-xs leading-5 text-white/64"
-          >
-            {item}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function StackRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5">
-      <span className="text-xs text-white/42">{label}</span>
-      <span className="text-xs font-medium text-white/80">{value}</span>
-    </div>
+      <h3 className="mt-3 max-w-2xl text-2xl font-semibold tracking-[-0.02em] text-white sm:text-3xl">
+        {cta}
+      </h3>
+      <button
+        type="button"
+        onClick={onAnalyze}
+        className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-100"
+      >
+        <Play className="h-4 w-4" />
+        换一条链接，再拆一次给我看
+      </button>
+    </section>
   );
 }
 
@@ -711,4 +1291,37 @@ function formatCompact(value: number) {
     notation: "compact",
     maximumFractionDigits: 1,
   }).format(value || 0);
+}
+
+function formatBytes(bytes: number) {
+  if (!bytes) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v = v / 1024;
+    i += 1;
+  }
+  return `${v.toFixed(v < 10 ? 1 : 0)} ${units[i]}`;
+}
+
+function toneLabel(tone: Tone) {
+  return (
+    {
+      premium: "高级克制",
+      expert: "专家可信",
+      friendly: "亲和自然",
+      bold: "强势吸睛",
+    } as Record<Tone, string>
+  )[tone];
+}
+
+function sourceLabel(source: AnalysisResult["source"]) {
+  return (
+    {
+      "apify+llm": "真实抓取 + AI 拆解",
+      "llm-only": "AI 拆解",
+      mock: "演示数据",
+    } as Record<AnalysisResult["source"], string>
+  )[source];
 }

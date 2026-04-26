@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { analyzeDemoReferenceVideo } from "@/lib/services/demo-video-analysis-service";
 
+export const maxDuration = 60;
+
 const demoInputSchema = z.object({
   tiktokUrl: z.string().url().max(500),
   clientIndustry: z.string().min(1).max(120),

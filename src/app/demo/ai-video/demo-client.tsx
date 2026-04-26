@@ -186,7 +186,7 @@ export function AiVideoDemoClient() {
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(45,212,191,0.20),transparent_32%),radial-gradient(circle_at_80%_10%,rgba(59,130,246,0.18),transparent_30%),linear-gradient(180deg,#080b10_0%,#111827_100%)]" />
       <div className="pointer-events-none fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-size-[56px_56px] opacity-30" />
 
-      <div className="relative mx-auto min-h-screen w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+      <div className="relative mx-auto min-h-screen w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
         <header className="mb-8 flex items-center justify-between rounded-full border border-white/10 bg-white/5 px-4 py-3 shadow-2xl shadow-black/30 backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <Logo size={30} />
@@ -203,32 +203,8 @@ export function AiVideoDemoClient() {
           </div>
         </header>
 
-        <section className="mb-8 grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-end">
-          <div>
-            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
-              <Radio className="h-3.5 w-3.5" />
-              TikTok-first Viral Intelligence
-            </div>
-            <h1 className="max-w-3xl text-5xl font-semibold leading-[0.95] tracking-tight text-white sm:text-6xl lg:text-7xl">
-              Clone the strategy.
-              <span className="block bg-linear-to-r from-cyan-200 via-emerald-200 to-white bg-clip-text text-transparent">
-                Rebuild it for your client.
-              </span>
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/58">
-              输入客户喜欢的 TikTok 爆款链接，Aivora 抓取真实数据和评论，
-              拆解 hook、留存、信任机制，再生成客户专属数字人视频脚本。
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            <Metric value={formatCompact(result.reference.metrics.plays)} label="参考播放" />
-            <Metric value={`${result.reference.metrics.engagementRate}%`} label="互动率" />
-            <Metric value={result.source === "apify+llm" ? "Live" : "Mock"} label="数据源" />
-          </div>
-        </section>
-
-        <section className="grid gap-4 lg:grid-cols-[360px_1fr]">
+        <section className="mb-5 grid gap-4 xl:grid-cols-[0.9fr_390px_0.9fr]">
+          <HeroNarrative result={result} />
           <ControlPanel
             tiktokUrl={tiktokUrl}
             setTiktokUrl={setTiktokUrl}
@@ -244,11 +220,12 @@ export function AiVideoDemoClient() {
             error={error}
             onGenerate={generateDemo}
           />
+          <HeroOutput result={result} />
+        </section>
 
-          <div className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-            <ReferenceCard result={result} />
-            <IntelligenceCard result={result} />
-          </div>
+        <section className="grid gap-4 xl:grid-cols-[0.86fr_1.14fr]">
+          <ReferenceCard result={result} />
+          <IntelligenceCard result={result} />
         </section>
 
         <section className="mt-4 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
@@ -265,6 +242,115 @@ function Metric({ value, label }: { value: string; label: string }) {
     <div className="rounded-3xl border border-white/10 bg-white/5 p-4 shadow-xl shadow-black/20 backdrop-blur-xl">
       <div className="text-2xl font-semibold text-cyan-100">{value}</div>
       <div className="mt-1 text-xs text-white/45">{label}</div>
+    </div>
+  );
+}
+
+function HeroNarrative({ result }: { result: AnalysisResult }) {
+  return (
+    <div className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-white/5.5 p-6 shadow-2xl shadow-black/30 backdrop-blur-2xl">
+      <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-cyan-300/10 blur-3xl" />
+      <div className="relative">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
+          <Radio className="h-3.5 w-3.5" />
+          TikTok-first Viral Intelligence
+        </div>
+
+        <h1 className="max-w-xl text-[2.45rem] font-semibold leading-[0.98] tracking-[-0.055em] text-white sm:text-5xl">
+          Turn viral videos into
+          <span className="block bg-linear-to-r from-cyan-200 via-emerald-200 to-white bg-clip-text text-transparent">
+            client-ready avatar scripts.
+          </span>
+        </h1>
+
+        <p className="mt-5 max-w-lg text-sm leading-7 text-white/58">
+          Aivora 不复制爆款，而是拆解它背后的 hook、留存、信任机制和 CTA，
+          再重建为客户自己的数字人视频方案。
+        </p>
+
+        <div className="mt-7 grid grid-cols-3 gap-2.5">
+          <Metric value={formatCompact(result.reference.metrics.plays)} label="参考播放" />
+          <Metric value={`${result.reference.metrics.engagementRate}%`} label="互动率" />
+          <Metric value={result.source === "apify+llm" ? "Live" : "Mock"} label="数据源" />
+        </div>
+
+        <div className="mt-6 rounded-3xl border border-white/10 bg-black/20 p-4">
+          <div className="mb-3 text-[11px] uppercase tracking-[0.22em] text-white/35">
+            Operating flow
+          </div>
+          {[
+            ["01", "Reference video", "抓取真实 TikTok 数据与评论"],
+            ["02", "Viral teardown", "拆解爆点公式与镜头节奏"],
+            ["03", "Client rebuild", "生成客户数字人脚本与成片方案"],
+          ].map(([num, title, desc]) => (
+            <div key={num} className="flex gap-3 border-t border-white/8 py-3 first:border-t-0 first:pt-0 last:pb-0">
+              <div className="font-mono text-xs text-cyan-200/80">{num}</div>
+              <div>
+                <div className="text-sm font-medium text-white">{title}</div>
+                <div className="mt-0.5 text-xs text-white/42">{desc}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroOutput({ result }: { result: AnalysisResult }) {
+  return (
+    <div className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-[#0d1320]/80 p-4 shadow-2xl shadow-black/30 backdrop-blur-2xl">
+      <div className="absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-cyan-200/70 to-transparent" />
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <div className="text-xs uppercase tracking-[0.28em] text-emerald-200/70">
+            Live Output
+          </div>
+          <h2 className="mt-1 text-xl font-semibold">Client video blueprint</h2>
+        </div>
+        <div className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2.5 py-1 text-[11px] text-emerald-100">
+          HeyGen-ready
+        </div>
+      </div>
+
+      <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-[11px] uppercase tracking-[0.2em] text-white/35">
+            Generated title
+          </div>
+          <Sparkles className="h-4 w-4 text-cyan-200" />
+        </div>
+        <p className="text-lg font-semibold leading-7 text-white">
+          {result.clientVersion.title}
+        </p>
+        <p className="mt-3 text-xs leading-5 text-white/48">
+          {result.clientVersion.positioning}
+        </p>
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        {result.clientVersion.scenePlan.slice(0, 3).map((scene) => (
+          <div
+            key={`${scene.time}-${scene.overlay}`}
+            className="grid grid-cols-[58px_1fr] gap-3 rounded-2xl border border-white/10 bg-white/4.5 p-3"
+          >
+            <div className="font-mono text-xs text-cyan-100">{scene.time}</div>
+            <div>
+              <div className="text-sm font-medium text-white/88">{scene.overlay}</div>
+              <div className="mt-1 text-xs leading-5 text-white/45">{scene.visual}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-white/10 bg-white/4.5 p-3">
+        <div className="mb-2 text-[11px] uppercase tracking-[0.18em] text-white/35">
+          Digital-human line
+        </div>
+        <p className="line-clamp-3 text-xs leading-5 text-white/58">
+          {result.clientVersion.digitalHumanScript}
+        </p>
+      </div>
     </div>
   );
 }

@@ -1,23 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createDigitalHumanDemo } from "@/lib/providers/digital-human";
+import { analyzeDemoReferenceVideo } from "@/lib/services/demo-video-analysis-service";
 
 const demoInputSchema = z.object({
-  goal: z.string().min(1).max(240),
-  audience: z.string().min(1).max(120),
-  footageName: z.string().max(160).optional(),
-  audioName: z.string().max(160).optional(),
-  avatarName: z.string().max(160).optional(),
-  style: z
-    .enum(["real-estate", "product-demo", "founder-intro"])
-    .default("real-estate"),
+  tiktokUrl: z.string().url().max(500),
+  clientIndustry: z.string().min(1).max(120),
+  clientOffer: z.string().min(1).max(220),
+  targetAudience: z.string().min(1).max(160),
+  tone: z.enum(["premium", "friendly", "expert", "bold"]).default("premium"),
 });
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const input = demoInputSchema.parse(body);
-    const result = await createDigitalHumanDemo(input);
+    const result = await analyzeDemoReferenceVideo(input);
     return NextResponse.json(result);
   } catch (err) {
     const message =

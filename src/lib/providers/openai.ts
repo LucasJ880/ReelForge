@@ -1,7 +1,7 @@
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "missing-openai-api-key",
 });
 
 const DEFAULT_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";

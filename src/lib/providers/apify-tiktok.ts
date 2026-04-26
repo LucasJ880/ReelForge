@@ -27,6 +27,8 @@ export interface TikTokVideoSample {
   musicName?: string;
   durationSec?: number;
   createdAt?: string;
+  coverUrl?: string;
+  downloadUrl?: string;
 }
 
 export interface TikTokCommentSample {
@@ -43,6 +45,7 @@ export interface TikTokResearchSignals {
 }
 
 const DEFAULT_VIDEO_ACTOR = "clockworks/tiktok-scraper";
+const DEFAULT_POST_VIDEO_ACTOR = "clockworks/tiktok-video-scraper";
 const DEFAULT_COMMENTS_ACTOR = "clockworks/tiktok-comments-scraper";
 
 export function isApifyAvailable(): boolean {
@@ -105,6 +108,94 @@ export async function fetchTikTokSignals(
   }
 
   return { videos, comments, source: "apify" };
+}
+
+/**
+ * 客户 Demo 专用：按单条 TikTok 爆款 URL 抓 metadata + 评论。
+ * 不默认下载视频，避免版权/热链导致现场演示不稳定；若 actor 返回可播放地址则透传。
+ */
+export async function fetchTikTokPostSignals(
+  postUrl: string,
+  options: {
+    maxComments?: number;
+  } = {},
+): Promise<TikTokResearchSignals> {
+  const client = getClient();
+  if (!client || !postUrl) {
+    return { videos: [], comments: [], source: "none" };
+  }
+
+  let videos: TikTokVideoSample[] = [];
+  try {
+    videos = await fetchPostVideos(client, [postUrl]);
+  } catch (err) {
+    console.warn("[apify-tiktok] post video fetch failed:", (err as Error).message);
+  }
+
+  let comments: TikTokCommentSample[] = [];
+  try {
+    comments = await fetchComments(
+      client,
+      [postUrl],
+      Math.min(options.maxComments ?? 60, 100),
+    );
+  } catch (err) {
+    console.warn("[apify-tiktok] post comments fetch failed:", (err as Error).message);
+  }
+
+  return { videos, comments, source: videos.length || comments.length ? "apify" : "none" };
+}
+
+async function fetchPostVideos(
+  client: ApifyClient,
+  postUrls: string[],
+): Promise<TikTokVideoSample[]> {
+  const actor = process.env.APIFY_TIKTOK_VIDEO_ACTOR || DEFAULT_POST_VIDEO_ACTOR;
+  const input: Record<string, unknown> = {
+    postURLs: postUrls,
+    shouldDownloadVideos: false,
+    shouldDownloadCovers: false,
+    shouldDownloadSlideshowImages: false,
+    shouldDownloadSubtitles: false,
+    scrapeRelatedVideos: false,
+  };
+
+  const run = await client.actor(actor).call(input, {
+    timeout: 180,
+    memory: 1024,
+  });
+
+  const { items } = await client
+    .dataset(run.defaultDatasetId)
+    .listItems({ limit: postUrls.length });
+
+  return items
+    .map((it): TikTokVideoSample | null => {
+      const i = it as Record<string, unknown>;
+      const id = pickStr(i, ["id", "videoId"]);
+      const url = pickStr(i, ["webVideoUrl", "videoUrl", "url"]) ?? postUrls[0];
+      if (!id || !url) return null;
+      return {
+        id,
+        url,
+        caption: pickStr(i, ["text", "desc", "description"]) ?? "",
+        hashtags: extractHashtags(i),
+        playCount: pickNum(i, ["playCount", "stats.playCount", "viewCount"]) ?? 0,
+        likeCount: pickNum(i, ["diggCount", "likes", "stats.diggCount", "heartCount"]) ?? 0,
+        commentCount: pickNum(i, ["commentCount", "stats.commentCount"]) ?? 0,
+        shareCount: pickNum(i, ["shareCount", "stats.shareCount"]) ?? 0,
+        authorName:
+          pickStr(i, ["authorMeta.name", "authorMeta.uniqueId", "author"]) ?? undefined,
+        musicName: pickStr(i, ["musicMeta.musicName", "music.title"]) ?? undefined,
+        durationSec: pickNum(i, ["videoMeta.duration", "duration"]) ?? undefined,
+        createdAt: pickStr(i, ["createTimeISO", "createTime"]) ?? undefined,
+        coverUrl:
+          pickStr(i, ["videoMeta.coverUrl", "coverUrl", "covers.default"]) ?? undefined,
+        downloadUrl:
+          pickStr(i, ["videoUrl", "downloadUrl", "videoMeta.downloadAddr"]) ?? undefined,
+      };
+    })
+    .filter((v): v is TikTokVideoSample => !!v);
 }
 
 async function searchVideos(

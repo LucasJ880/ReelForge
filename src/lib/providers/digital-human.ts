@@ -60,8 +60,8 @@ function createMockDemo(input: DigitalHumanDemoInput): DigitalHumanDemoResult {
     script,
     assets: {
       footage: input.footageName || "现场实拍视频（demo placeholder）",
-      voice: input.audioName || "经纪人录音 / voice clone slot",
-      avatar: input.avatarName || "数字人形象 / avatar slot",
+      voice: input.audioName || "客户声音 / voice clone slot",
+      avatar: input.avatarName || "客户数字人形象 / avatar slot",
     },
     timeline: [
       {
@@ -76,7 +76,7 @@ function createMockDemo(input: DigitalHumanDemoInput): DigitalHumanDemoResult {
       },
       {
         label: "声音绑定",
-        detail: "保留经纪人/顾问的真实声音资产，后续可接 HeyGen voice 或自建 TTS。",
+        detail: "保留客户/顾问的真实声音资产，后续可接 HeyGen voice 或自建 TTS。",
         status: "queued",
       },
       {

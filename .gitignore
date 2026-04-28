@@ -35,6 +35,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local build artifacts (Seedance/HeyGen renders, ffmpeg intermediates)
+/tmp/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

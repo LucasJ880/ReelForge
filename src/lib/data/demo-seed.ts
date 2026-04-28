@@ -1,11 +1,12 @@
 /**
  * Demo 种子数据：客户打开 /demo/ai-video 第一眼看到的真实样例。
  *
- * 由 scripts/build-pet-demo-seed.ts 自动生成；不要手动改动。
+ * 由 scripts/build-pet-demo-no-text.ts 自动生成；不要手动改动。
  *
- * 生成时间：2026-04-28T01:04:26.026Z
- * 数据源：pet-store-real-assets + seedance + openai
- * Seedance jobs: s1:cgt-20260428084426-278wc, s2:cgt-20260428084721-x6md5, s3:cgt-20260428085213-pfrmw, s4:cgt-20260428085813-fxcr2
+ * 生成时间：2026-04-28T21:04:23.431Z
+ * 数据源：pet-store-real-assets + seedance（无字幕/无旁白版）
+ * Seedance jobs: s1:cgt-20260429044816-9nhm4(seedance), s2:cgt-20260429045358-4slhf(seedance), s3:cgt-20260429045852-pv9qx(seedance)
+ * BGM: synth（ffmpeg warm-pad fallback）
  */
 import type {
   DemoVideoAnalysisInput,
@@ -13,9 +14,9 @@ import type {
 } from "@/lib/services/demo-video-analysis-service";
 
 export const DEMO_SEED_INPUT: DemoVideoAnalysisInput = {
-  tiktokUrl: "https://example.com/pet-store-demo-reference",
+  tiktokUrl: "https://example.com/pet-store-no-text-demo",
   clientIndustry: "宠物店 / 宠物生活馆",
-  clientOffer: "门店日常服务、宠物护理、商品零售与会员服务",
+  clientOffer: "门店日常服务、宠物护理、商品零售",
   targetAudience: "附近 3-5 公里养宠家庭与年轻白领用户",
   tone: "friendly",
 };
@@ -23,93 +24,103 @@ export const DEMO_SEED_INPUT: DemoVideoAnalysisInput = {
 export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = {
   source: "llm-only",
   reference: {
-    url: "https://example.com/pet-store-demo-reference",
+    url: "https://example.com/pet-store-no-text-demo",
     author: "pet_store_demo",
-    caption: "真实宠物店素材 + Seedance AI 镜头，生成可发布中文宣传片。",
-    hashtags: ["宠物店", "猫咪", "Seedance", "AI视频"],
-    music: "ambient",
-    durationSec: 60.03,
+    caption: "真实素材锚点 + Seedance 宠物店主镜头，纯画面 + 治愈背景音乐。",
+    hashtags: ["宠物店", "Seedance", "AI视频", "宣传片"],
+    music: "warm-acoustic",
+    durationSec: 31,
     metrics: {
-      plays: 162000,
-      likes: 12400,
-      comments: 728,
-      shares: 2430,
-      engagementRate: 9.58,
+      plays: 184000,
+      likes: 14600,
+      comments: 812,
+      shares: 2680,
+      engagementRate: 9.83,
     },
-    coverUrl: "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_video.jpg",
+    coverUrl: "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text.jpg",
   },
   intelligence: {
-    viralFormula: "真实门店镜头负责信任，Seedance AI 镜头负责高级质感，组合后更容易转化。",
-    hook: "开场先给猫咪和店内氛围，再快速拉到AI质感镜头，3秒内建立兴趣。",
+    viralFormula: "真实素材锚点 + Seedance 3 个主镜头 + 治愈BGM，让客户一眼看到 AI 出片质感。",
+    hook: "前 4 秒先用真实门店画面建立可信度，再切入 AI 优化镜头制造质感惊喜。",
     retentionMechanics: [
-      "真实镜头和 AI 镜头交替，节奏更有层次",
-      "每屏一句短字幕，手机端一眼可读",
-      "口语化旁白降低广告感，提升亲和度",
-      "结尾 CTA 明确，便于客户理解产品价值",
+      "真实素材开场降低距离感",
+      "Seedance 3 段镜头：氛围 / 商品 / 宠物可爱",
+      "无字幕无配音，靠画面节奏与BGM驱动",
+      "结尾自然温暖，避免广告腔",
     ],
     visualPattern: [
-      "猫咪特写 + 门店环境",
-      "商品/服务区信息镜头",
-      "Seedance 生成的电影感补充镜头",
-      "温暖色调与轻快节奏统一",
+      "真实门店锚点",
+      "AI 生成温暖室内推进",
+      "AI 商品广告级展示",
+      "AI 宠物可爱 + 整体氛围收尾",
     ],
     audienceTriggers: [
-      "宠物可爱瞬间带来的情绪连接",
-      "真实门店画面带来的信任感",
-      "AI 质感画面带来的专业感",
+      "宠物可爱瞬间带来情绪连接",
+      "干净商品陈列建立专业信任",
+      "温暖治愈背景音乐缓解广告感",
     ],
     commentSignals: [
-      "看起来真实又高级",
-      "门店靠谱，愿意到店体验",
-      "这种视频很适合发社媒",
+      "看起来真实又有质感",
+      "想去门店逛逛",
+      "这种短视频很适合发本地号",
     ],
     riskNotes: [
-      "AI 镜头占比不宜过高，避免失真感",
-      "旁白避免官腔，保持口语化",
-      "字幕继续控制短句，防止信息过载",
+      "AI 镜头避免畸形与文字幻觉",
+      "BGM 控制在中低音量，避免盖过画面",
+      "不出现旁白与字幕，保持纯视觉",
     ],
   },
   clientVersion: {
-    positioning: "基于真实素材+Seedance生成镜头，快速输出适合中文社媒发布的宠物店宣传片。",
-    title: "真实素材 + Seedance AI 镜头，一分钟生成宠物店宣传片",
-    digitalHumanScript: "嘿，你看看这只小猫，真的是太有趣了，特别喜欢窗外的世界！在猫爬架上探索，真是它的乐趣啊，每个角落都想去看看！你看窗户反射着外面的景色，家里也被装饰得温馨又好看，真不错！这只猫咪坐在窗边，眼神超专注，仿佛在思考人生呢！有这样的小伙伴，每天都充满乐趣，生活变得更有意思了！这条视频包含Seedance生成镜头，带给你不一样的体验，快来看看吧！",
+    positioning: "纯画面 + 治愈背景音乐，约 31 秒，适合直接发布到社媒主页。",
+    title: "约 31 秒宠物店宣传片：真实锚点 + Seedance 3 段主镜头",
+    digitalHumanScript: "",
     scenePlan: [
-      { time: "0-10s", visual: "Seedance猫咪氛围镜头", narration: "先抓情绪", overlay: "真实感开场" },
-      { time: "10-20s", visual: "Seedance门店生活感镜头", narration: "建立空间信任", overlay: "温暖门店氛围" },
-      { time: "20-30s", visual: "Seedance商品与服务镜头", narration: "传达可消费信息", overlay: "服务价值可视化" },
-      { time: "30-40s", visual: "真实门店猫咪镜头", narration: "强化真实可信", overlay: "真实素材承接" },
-      { time: "40-50s", visual: "Seedance高级质感镜头", narration: "提升整体质感", overlay: "AI镜头增强记忆" },
-      { time: "50-60s", visual: "真实素材收尾", narration: "明确行动引导", overlay: "上传素材即可出片" },
-    ],
-    captions: [
-  "这条视频真可爱！",
-  "猫咪真是好奇宝宝！",
-  "窗外的风景太美了！",
-  "猫咪的专注力真强！",
-  "和猫咪一起享受生活！",
-  "快来一起分享吧！"
+  {
+    "time": "0-4s",
+    "visual": "真实门店素材开场（c5）",
+    "narration": "无字幕、无旁白，仅画面建立可信度",
+    "overlay": "真实素材锚点"
+  },
+  {
+    "time": "4-11s",
+    "visual": "Seedance s1 · 门店氛围镜头（基于 c5）",
+    "narration": "纯画面，无字幕、无配音",
+    "overlay": "AI 生成宠物店镜头"
+  },
+  {
+    "time": "11-21s",
+    "visual": "Seedance s2 · 宠物用品广告镜头（基于 c4）",
+    "narration": "纯画面，无字幕、无配音",
+    "overlay": "AI 生成宠物店镜头"
+  },
+  {
+    "time": "21-31s",
+    "visual": "Seedance s3 · 宠物可爱瞬间 + 温暖收尾（基于 c1）",
+    "narration": "纯画面，无字幕、无配音",
+    "overlay": "AI 生成宠物店镜头"
+  }
 ],
+    captions: [],
     brollPrompts: [
-  "Vertical 9:16 cinematic shot inside a cozy pet store. A playful cat walks toward camera then pauses near the glass window. Warm afternoon sunlight, soft film texture, realistic style, lively but natural.",
-  "Vertical 9:16 close-up sequence of cat climbing a wooden cat tree and looking at the lens. Smooth handheld motion, warm home-like lighting, premium pet store atmosphere, realistic details.",
-  "Vertical 9:16 dynamic shot of pet products shelf and service area in a modern pet shop. Subtle camera push-in, clean composition, warm colors, realistic commercial quality, no text watermark.",
-  "Vertical 9:16 emotional hero shot: a cute cat near the storefront with soft evening light, slight slow motion feeling, gentle bokeh, heartwarming and trustworthy tone, highly realistic."
+  "Shot 1（门店氛围）：从真实推门进入宠物店后，自然过渡到温暖明亮的店内。货架整齐，宠物用品丰富，真实手机短视频拍摄质感，轻微商业广告感。镜头缓慢推进。竖屏 9:16，避免任何文字、招牌乱码、卡通风格、豪华商场感。",
+  "Shot 2（商品广告）：宠物食品、零食、玩具、护理用品货架的高质量广告展示镜头。镜头缓慢扫过货架与商品细节，干净有层次，宠物店宣传片质感。竖屏 9:16，禁止文字、漂浮商品、奇怪 logo、畸形人手。",
+  "Shot 3（宠物可爱瞬间 + 温暖收尾）：宠物在店内自然互动、回头、靠近玩具或货架，最后画面收在温暖明亮的宠物店整体氛围。竖屏 9:16，宠物动作真实自然，禁止拟人化、畸形、卡通、屏幕文字、CTA、水印。"
 ],
     cta: "上传真实素材，Aivora 帮你快速生成可发布宣传片。",
   },
   providerPlan: {
     digitalHuman: "heygen-ready",
     seedance: [
-      "Seedance 4段 AI 主镜头已实拍融合",
+      "Shot 1-3 已用 Seedance 真实生成（含失败时 Ken Burns 真实素材补位）",
       "可继续按行业扩展生成镜头模板",
     ],
-    nextKeys: ["ARK_API_KEY", "OPENAI_API_KEY", "BLOB_READ_WRITE_TOKEN"],
+    nextKeys: ["ARK_API_KEY", "BLOB_READ_WRITE_TOKEN"],
   },
 };
 
-export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_video.mp4";
-export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_video.jpg";
-export const DEMO_SEED_VIDEO_DURATION_SEC = 60.03;
-export const DEMO_SEED_VIDEO_SUBTITLE_URL = "/demo/pet-store/pet_store_subtitles.vtt";
+export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text.mp4";
+export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text.jpg";
+export const DEMO_SEED_VIDEO_DURATION_SEC = 31;
+export const DEMO_SEED_VIDEO_SUBTITLE_URL = "";
 export const DEMO_SEED_BACKGROUND_VIDEO_URL = "";
 export const DEMO_SEED_AVATAR_ID = "";

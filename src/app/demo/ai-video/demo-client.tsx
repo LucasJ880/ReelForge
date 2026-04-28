@@ -333,7 +333,7 @@ export function AiVideoDemoClient() {
         <Step
           index="04"
           title="最终成片展示"
-          subtitle="下方是基于真实宠物店素材生成的约 1 分钟中文宣传片，可直接用于对外演示。"
+          subtitle="下方为约 30 秒纯画面成片：真实门店开场 + Seedance AI 镜头 + 治愈背景音乐，无字幕、无配音、无屏幕文字。"
         >
           <DigitalHumanPanel
             finalVideo={finalVideo}
@@ -720,15 +720,21 @@ function RewriteScriptPanel({ result }: { result: AnalysisResult }) {
           {result.clientVersion.positioning}
         </p>
 
-        <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
-          <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-white/40">
-            <Bot className="h-3.5 w-3.5" />
-            数字人完整口播脚本
+        {result.clientVersion.digitalHumanScript ? (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4">
+            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-white/40">
+              <Bot className="h-3.5 w-3.5" />
+              数字人完整口播脚本
+            </div>
+            <p className="whitespace-pre-line text-base leading-8 text-white/90">
+              {result.clientVersion.digitalHumanScript}
+            </p>
           </div>
-          <p className="whitespace-pre-line text-base leading-8 text-white/90">
-            {result.clientVersion.digitalHumanScript}
-          </p>
-        </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-sm leading-7 text-white/65">
+            本次样片为「纯画面 + 治愈 BGM」演示版，未使用旁白与字幕。Aivora 同时支持中文 AI 配音、数字人讲解与字幕版输出，可在客户实际项目中按需开启。
+          </div>
+        )}
       </div>
 
       <div>
@@ -756,10 +762,16 @@ function RewriteScriptPanel({ result }: { result: AnalysisResult }) {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
-        <PillList title="字幕建议" items={result.clientVersion.captions} />
+      <div
+        className={`grid gap-3 ${
+          result.clientVersion.captions.length > 0 ? "md:grid-cols-2" : ""
+        }`}
+      >
+        {result.clientVersion.captions.length > 0 ? (
+          <PillList title="字幕建议" items={result.clientVersion.captions} />
+        ) : null}
         <PillList
-          title="补充镜头方向 (Seedance B-roll)"
+          title="Seedance 镜头提示词（本次成片实际生成）"
           items={result.clientVersion.brollPrompts}
         />
       </div>
@@ -864,17 +876,19 @@ function DigitalHumanPanel({
       <div className="space-y-4">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="text-[11px] uppercase tracking-[0.2em] text-white/40">
-            Aivora 能力展示
+            本次样片亮点
           </div>
-          <h3 className="mt-1.5 text-lg font-semibold">真实素材即可快速生成成片</h3>
+          <h3 className="mt-1.5 text-lg font-semibold">真实素材锚点 + Seedance 3 段主镜头</h3>
           <ul className="mt-3 space-y-2 text-sm text-white/70">
-            <li>• 上传真实人物形象，可生成数字人口播讲解</li>
-            <li>• 上传客户声音样本，可生成中文 AI 配音</li>
-            <li>• 上传街道/门店/服务素材，可自动整合场景叙事</li>
-            <li>• 自动输出适配抖音、小红书、视频号的成片版本</li>
+            <li>• 0–4 秒：真实门店素材开场，先建立「这是真实商家」的可信度</li>
+            <li>• 4–11 秒：Seedance 生成温暖明亮的店内氛围镜头</li>
+            <li>• 11–21 秒：Seedance 生成宠物用品货架广告级展示</li>
+            <li>• 21–31 秒：Seedance 生成宠物可爱瞬间 + 温暖收尾</li>
+            <li>• 仅治愈背景音乐，无旁白、无字幕、无屏幕文字</li>
+            <li>• 9:16 竖屏 1080×1920，可直发抖音 / 小红书 / 视频号</li>
           </ul>
           <p className="mt-4 text-xs leading-5 text-white/45">
-            当前页面为对外演示模式：重点展示成片效果与能力闭环。
+            当前页面为对外演示模式：重点展示 AI 镜头质感与成片闭环；Aivora 同时支持字幕版、配音版与数字人版按需开启。
           </p>
         </div>
       </div>

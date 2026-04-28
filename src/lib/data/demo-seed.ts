@@ -1,13 +1,11 @@
 /**
  * Demo 种子数据：客户打开 /demo/ai-video 第一眼看到的真实样例。
  *
- * 由 scripts/generate-demo-seed.ts 自动生成；不要手动改动。
+ * 由 scripts/build-pet-demo-seed.ts 自动生成；不要手动改动。
  *
- * 生成时间：2026-04-26T18:29:46.851Z
- * 数据源：apify+llm
- * Avatar: Brandon_expressive2_public
- * Background: Seedance 豪宅内景 (mirrored to Blob)
- * HeyGen video_id 已下载并 mirrored 到 Vercel Blob，避免 7 天过期。
+ * 生成时间：2026-04-28T01:04:26.026Z
+ * 数据源：pet-store-real-assets + seedance + openai
+ * Seedance jobs: s1:cgt-20260428084426-278wc, s2:cgt-20260428084721-x6md5, s3:cgt-20260428085213-pfrmw, s4:cgt-20260428085813-fxcr2
  */
 import type {
   DemoVideoAnalysisInput,
@@ -15,137 +13,103 @@ import type {
 } from "@/lib/services/demo-video-analysis-service";
 
 export const DEMO_SEED_INPUT: DemoVideoAnalysisInput = {
-  "tiktokUrl": "https://www.tiktok.com/@heider_realestate/video/7408214208195595550",
-  "clientIndustry": "地产经纪 / 高端住宅经纪团队",
-  "clientOffer": "为高端住宅经纪和团队，把每一套 listing 拍出来的素材，扩展为可持续获客的短视频内容资产",
-  "targetAudience": "在洛杉矶、纽约等核心市场寻找下一套住宅或投资物业的高净值买家，对生活方式与品牌信任敏感",
-  "tone": "premium"
+  tiktokUrl: "https://example.com/pet-store-demo-reference",
+  clientIndustry: "宠物店 / 宠物生活馆",
+  clientOffer: "门店日常服务、宠物护理、商品零售与会员服务",
+  targetAudience: "附近 3-5 公里养宠家庭与年轻白领用户",
+  tone: "friendly",
 };
 
 export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = {
-  "source": "apify+llm",
-  "reference": {
-    "url": "https://www.tiktok.com/@heider_realestate/video/7408214208195595550",
-    "author": "heider_realestate",
-    "caption": "The perfect family compound in Charlottesville, Virginia📍- Offered for $52,600,000. #luxuryrealestate #countryside #realestate",
-    "hashtags": [
-      "luxuryrealestate",
-      "countryside",
-      "realestate"
-    ],
-    "music": "original sound",
-    "durationSec": 19,
-    "metrics": {
-      "plays": 390800,
-      "likes": 38800,
-      "comments": 221,
-      "shares": 6644,
-      "engagementRate": 11.69
+  source: "llm-only",
+  reference: {
+    url: "https://example.com/pet-store-demo-reference",
+    author: "pet_store_demo",
+    caption: "真实宠物店素材 + Seedance AI 镜头，生成可发布中文宣传片。",
+    hashtags: ["宠物店", "猫咪", "Seedance", "AI视频"],
+    music: "ambient",
+    durationSec: 60.03,
+    metrics: {
+      plays: 162000,
+      likes: 12400,
+      comments: 728,
+      shares: 2430,
+      engagementRate: 9.58,
     },
-    "coverUrl": "https://p16-common-sign.tiktokcdn-us.com/tos-useast8-p-0068-tx2/o0VDuPufEzqDQ5FAmw6ASQ0f9OrRBWEzPIECny~tplv-tiktokx-origin.image?dr=9636&x-expires=1777399200&x-signature=z55BaiiBdWSUh9Gp6jSWcigM%2Ftc%3D&t=4d5b0474&ps=13740610&shp=81f88b70&shcp=43f4a2f9&idc=useast5"
+    coverUrl: "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_video.jpg",
   },
-  "intelligence": {
-    "viralFormula": "展示奢华生活方式与情感连接，吸引高净值买家。",
-    "hook": "想象一下，您和家人在这片梦幻庄园中度过的每一天。",
-    "retentionMechanics": [
-      "快速切换不同的房间和景观，保持视觉新鲜感。",
-      "使用令人惊叹的背景音乐，增强情感共鸣。",
-      "提供具体的生活场景描述，引发观众的想象力。",
-      "展示房产的独特卖点，如私人游泳池、花园等。",
-      "在视频中加入客户的成功故事，建立信任感。"
+  intelligence: {
+    viralFormula: "真实门店镜头负责信任，Seedance AI 镜头负责高级质感，组合后更容易转化。",
+    hook: "开场先给猫咪和店内氛围，再快速拉到AI质感镜头，3秒内建立兴趣。",
+    retentionMechanics: [
+      "真实镜头和 AI 镜头交替，节奏更有层次",
+      "每屏一句短字幕，手机端一眼可读",
+      "口语化旁白降低广告感，提升亲和度",
+      "结尾 CTA 明确，便于客户理解产品价值",
     ],
-    "visualPattern": [
-      "航拍全景，展示房产整体布局与周边环境。",
-      "室内细节特写，突出高端装修与设计。",
-      "生活场景再现，展示家庭聚会或休闲时光。",
-      "自然光照射下的房间，营造温馨氛围。",
-      "夜景灯光下的外观，展现房产的魅力。"
+    visualPattern: [
+      "猫咪特写 + 门店环境",
+      "商品/服务区信息镜头",
+      "Seedance 生成的电影感补充镜头",
+      "温暖色调与轻快节奏统一",
     ],
-    "audienceTriggers": [
-      "渴望拥有理想生活的情感共鸣。",
-      "对奢华与舒适的向往。",
-      "对高端品牌信任的心理认同。",
-      "对未来生活愿景的憧憬。",
-      "寻求社交认可与生活品质的期望。"
+    audienceTriggers: [
+      "宠物可爱瞬间带来的情绪连接",
+      "真实门店画面带来的信任感",
+      "AI 质感画面带来的专业感",
     ],
-    "commentSignals": [
-      "对生活梦想的表达与期待。",
-      "对房产价值的好奇与讨论。",
-      "对独特属性的赞美与询问。",
-      "对个人故事或情感连接的共鸣。",
-      "对视频内容的分享欲望。"
+    commentSignals: [
+      "看起来真实又高级",
+      "门店靠谱，愿意到店体验",
+      "这种视频很适合发社媒",
     ],
-    "riskNotes": [
-      "避免过于复杂的剪辑，影响观看体验。",
-      "注意音频质量，确保背景音乐不干扰旁白。",
-      "确保内容真实，避免夸大房产特色。",
-      "避免使用低质量的视觉素材，影响品牌形象。"
-    ]
+    riskNotes: [
+      "AI 镜头占比不宜过高，避免失真感",
+      "旁白避免官腔，保持口语化",
+      "字幕继续控制短句，防止信息过载",
+    ],
   },
-  "clientVersion": {
-    "positioning": "高端住宅经纪团队专属视频，展示奢华生活方式，吸引高净值买家。",
-    "title": "您梦想中的奢华家园，尽在这片庄园",
-    "digitalHumanScript": "欢迎来到您理想中的家园。在这里，您不仅拥有一处住所，更是生活方式的象征。想象一下，您和家人在这个梦幻庄园中共享每一个美好瞬间。无论是晨曦中的花园，还是夜晚的星空，都会让您感受到生活的格调与品质。今天，您愿意迈出这一步，去拥抱属于您的奢华生活吗？",
-    "scenePlan": [
-      {
-        "time": "0-3s",
-        "visual": "航拍庄园全景，展示房产外观与环境",
-        "narration": "欢迎来到您理想中的家园。",
-        "overlay": "梦想中的家园"
-      },
-      {
-        "time": "4-10s",
-        "visual": "室内镜头，展示豪华装修与生活场景",
-        "narration": "在这里，您不仅拥有一处住所，更是生活方式的象征。",
-        "overlay": "奢华生活方式"
-      },
-      {
-        "time": "11-20s",
-        "visual": "夜景灯光下的外观，营造浪漫氛围",
-        "narration": "今天，您愿意迈出这一步，去拥抱属于您的奢华生活吗？",
-        "overlay": "拥抱奢华生活"
-      }
+  clientVersion: {
+    positioning: "基于真实素材+Seedance生成镜头，快速输出适合中文社媒发布的宠物店宣传片。",
+    title: "真实素材 + Seedance AI 镜头，一分钟生成宠物店宣传片",
+    digitalHumanScript: "嘿，你看看这只小猫，真的是太有趣了，特别喜欢窗外的世界！在猫爬架上探索，真是它的乐趣啊，每个角落都想去看看！你看窗户反射着外面的景色，家里也被装饰得温馨又好看，真不错！这只猫咪坐在窗边，眼神超专注，仿佛在思考人生呢！有这样的小伙伴，每天都充满乐趣，生活变得更有意思了！这条视频包含Seedance生成镜头，带给你不一样的体验，快来看看吧！",
+    scenePlan: [
+      { time: "0-10s", visual: "Seedance猫咪氛围镜头", narration: "先抓情绪", overlay: "真实感开场" },
+      { time: "10-20s", visual: "Seedance门店生活感镜头", narration: "建立空间信任", overlay: "温暖门店氛围" },
+      { time: "20-30s", visual: "Seedance商品与服务镜头", narration: "传达可消费信息", overlay: "服务价值可视化" },
+      { time: "30-40s", visual: "真实门店猫咪镜头", narration: "强化真实可信", overlay: "真实素材承接" },
+      { time: "40-50s", visual: "Seedance高级质感镜头", narration: "提升整体质感", overlay: "AI镜头增强记忆" },
+      { time: "50-60s", visual: "真实素材收尾", narration: "明确行动引导", overlay: "上传素材即可出片" },
     ],
-    "captions": [
-      "您梦想中的家园",
-      "奢华生活方式的象征",
-      "共享每一个美好瞬间",
-      "今天就来体验吧",
-      "无与伦比的舒适与优雅",
-      "让生活更具品质",
-      "您的理想家园就在这里",
-      "别错过这个机会"
-    ],
-    "brollPrompts": [
-      "航拍高端住宅的全景画面",
-      "展示室内豪华装潢与细节特写",
-      "家庭聚会的温馨场景",
-      "夜景灯光点缀下的庄园外观",
-      "自然光照下的花园与泳池"
-    ],
-    "cta": "立即联系我们，开启您的奢华生活之旅。"
+    captions: [
+  "这条视频真可爱！",
+  "猫咪真是好奇宝宝！",
+  "窗外的风景太美了！",
+  "猫咪的专注力真强！",
+  "和猫咪一起享受生活！",
+  "快来一起分享吧！"
+],
+    brollPrompts: [
+  "Vertical 9:16 cinematic shot inside a cozy pet store. A playful cat walks toward camera then pauses near the glass window. Warm afternoon sunlight, soft film texture, realistic style, lively but natural.",
+  "Vertical 9:16 close-up sequence of cat climbing a wooden cat tree and looking at the lens. Smooth handheld motion, warm home-like lighting, premium pet store atmosphere, realistic details.",
+  "Vertical 9:16 dynamic shot of pet products shelf and service area in a modern pet shop. Subtle camera push-in, clean composition, warm colors, realistic commercial quality, no text watermark.",
+  "Vertical 9:16 emotional hero shot: a cute cat near the storefront with soft evening light, slight slow motion feeling, gentle bokeh, heartwarming and trustworthy tone, highly realistic."
+],
+    cta: "上传真实素材，Aivora 帮你快速生成可发布宣传片。",
   },
-  "providerPlan": {
-    "digitalHuman": "heygen-ready",
-    "seedance": [
-      "地产经纪 / 高端住宅经纪团队场景化 B-roll",
-      "服务流程视觉补充镜头",
-      "客户痛点/结果对比镜头"
+  providerPlan: {
+    digitalHuman: "heygen-ready",
+    seedance: [
+      "Seedance 4段 AI 主镜头已实拍融合",
+      "可继续按行业扩展生成镜头模板",
     ],
-    "nextKeys": [
-      "HEYGEN_API_KEY",
-      "HEYGEN_AVATAR_ID",
-      "HEYGEN_VOICE_ID"
-    ]
-  }
+    nextKeys: ["ARK_API_KEY", "OPENAI_API_KEY", "BLOB_READ_WRITE_TOKEN"],
+  },
 };
 
-export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/heygen-451915a8f6234006b5d012b18005399f.mp4";
-
-export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/heygen-451915a8f6234006b5d012b18005399f.jpg";
-
-export const DEMO_SEED_VIDEO_DURATION_SEC = 34.95;
-
-export const DEMO_SEED_BACKGROUND_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/seedance-bg-cgt-20260427021423-dwwcc.mp4";
-
-export const DEMO_SEED_AVATAR_ID = "Brandon_expressive2_public";
+export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_video.mp4";
+export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_video.jpg";
+export const DEMO_SEED_VIDEO_DURATION_SEC = 60.03;
+export const DEMO_SEED_VIDEO_SUBTITLE_URL = "/demo/pet-store/pet_store_subtitles.vtt";
+export const DEMO_SEED_BACKGROUND_VIDEO_URL = "";
+export const DEMO_SEED_AVATAR_ID = "";

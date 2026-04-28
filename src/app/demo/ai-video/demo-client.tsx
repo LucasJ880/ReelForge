@@ -28,6 +28,7 @@ import {
   DEMO_SEED_INPUT,
   DEMO_SEED_RESULT,
   DEMO_SEED_VIDEO_DURATION_SEC,
+  DEMO_SEED_VIDEO_SUBTITLE_URL,
   DEMO_SEED_VIDEO_THUMBNAIL,
   DEMO_SEED_VIDEO_URL,
 } from "@/lib/data/demo-seed";
@@ -74,6 +75,8 @@ const SEED_FINAL_VIDEO: FinalVideoState | null = DEMO_SEED_VIDEO_URL
       status: "ready",
     }
   : null;
+
+const PRESENTATION_ONLY = true;
 
 export function AiVideoDemoClient() {
   const [tiktokUrl, setTiktokUrl] = useState(DEMO_SEED_INPUT.tiktokUrl);
@@ -278,7 +281,7 @@ export function AiVideoDemoClient() {
           isAnalyzing={isAnalyzing}
         />
 
-        {showInputs ? (
+        {!PRESENTATION_ONLY && showInputs ? (
           <ControlPanel
             tiktokUrl={tiktokUrl}
             setTiktokUrl={setTiktokUrl}
@@ -305,36 +308,32 @@ export function AiVideoDemoClient() {
 
         <Step
           index="01"
-          title="我们抓到了这条爆款"
-          subtitle="Aivora 通过 Apify 实时抓取 TikTok 视频与高赞评论，作为这次拆解的真实素材。"
+          title="真实宠物店素材输入"
+          subtitle="这不是模板视频，而是基于客户真实门店与宠物素材做的成片演示。"
         >
           <ReferenceVideoPanel result={result} sourceText={sourceText} />
         </Step>
 
         <Step
           index="02"
-          title="我们看出来它为什么火"
-          subtitle="OpenAI 基于真实评论与播放数据，提炼出可迁移到你业务的爆款结构。"
+          title="AI 自动理解素材价值"
+          subtitle="系统会识别门店环境、宠物互动、商品与服务信息，并提炼可发布叙事。"
         >
           <IntelligencePanel result={result} />
         </Step>
 
         <Step
           index="03"
-          title="我们为你重写了这个脚本"
-          subtitle="结构保留爆款逻辑，文案完全为你的客户业务量身改写——不是搬运，不是抄袭。"
+          title="AI 生成中文脚本与发布文案"
+          subtitle="按中文客户阅读习惯自动输出旁白、字幕与镜头节奏，可直接用于短视频发布。"
         >
           <RewriteScriptPanel result={result} />
         </Step>
 
         <Step
           index="04"
-          title="数字人成片"
-          subtitle={
-            hasClientVideo
-              ? "这是用你上传的人像 + 上面这段脚本生成的数字人讲解视频。"
-              : "这是 Aivora 用上面这段脚本生成的真实数字人讲解视频，30 秒可发布。"
-          }
+          title="最终成片展示"
+          subtitle="下方是基于真实宠物店素材生成的约 1 分钟中文宣传片，可直接用于对外演示。"
         >
           <DigitalHumanPanel
             finalVideo={finalVideo}
@@ -399,7 +398,7 @@ function TopBar({
         <div>
           <div className="text-sm font-semibold tracking-tight">Aivora</div>
           <div className="text-[11px] text-white/45">
-            爆款拆解 · 数字人成片 · 客户专属
+            真实素材 · 中文成片 · 对外演示版
           </div>
         </div>
       </div>
@@ -408,18 +407,24 @@ function TopBar({
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
           {sourceText}
         </span>
-        <button
-          type="button"
-          onClick={onToggleInputs}
-          className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs text-white/85 transition hover:border-white/30 hover:bg-white/15"
-        >
-          {isAnalyzing ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Pencil className="h-3.5 w-3.5" />
-          )}
-          {showInputs ? "收起参数" : "换一条 TikTok 链接"}
-        </button>
+        {!PRESENTATION_ONLY ? (
+          <button
+            type="button"
+            onClick={onToggleInputs}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs text-white/85 transition hover:border-white/30 hover:bg-white/15"
+          >
+            {isAnalyzing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Pencil className="h-3.5 w-3.5" />
+            )}
+            {showInputs ? "收起参数" : "换一条 TikTok 链接"}
+          </button>
+        ) : (
+          <span className="inline-flex items-center rounded-full border border-white/15 bg-white/8 px-3 py-1.5 text-xs text-white/70">
+            演示模式
+          </span>
+        )}
       </div>
     </header>
   );
@@ -432,17 +437,17 @@ function Hero({ result }: { result: AnalysisResult }) {
       <div className="relative">
         <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/10 px-3 py-1 text-xs text-cyan-100">
           <Sparkles className="h-3.5 w-3.5" />
-          地产经纪 · AI 视频获客闭环演示
+          宠物店真实案例 · AI 宣传片演示
         </div>
         <h1 className="max-w-3xl text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.045em] text-white sm:text-[3.2rem]">
-          把别人的爆款，
+          把真实门店素材，
           <span className="block bg-linear-to-r from-cyan-200 via-emerald-200 to-white bg-clip-text text-transparent">
-            变成你团队 7 天可发的客户视频
+            变成一条可直接发布的中文宣传片
           </span>
         </h1>
         <p className="mt-5 max-w-2xl text-base leading-7 text-white/64">
-          Aivora 抓取一条 TikTok 爆款 → 用 OpenAI 拆解它为什么火 → 为你的经纪业务重写脚本
-          → 用 HeyGen 数字人直接出片。下面这一整页就是真实闭环，往下滑你能直接看到数字人成片。
+          Aivora 会理解你上传的真实门店视频，自动生成中文文案、旁白与镜头节奏，输出可用于抖音、小红书、朋友圈、视频号的宣传内容。
+          下面展示的是宠物店真实素材生成的完整样片。
         </p>
         <div className="mt-7 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <KPI value={formatCompact(result.reference.metrics.plays)} label="参考播放" />
@@ -453,7 +458,7 @@ function Hero({ result }: { result: AnalysisResult }) {
           />
           <KPI
             value={DEMO_SEED_VIDEO_URL ? "已生成" : "可生成"}
-            label="数字人成片"
+            label="宣传片样片"
           />
         </div>
       </div>
@@ -807,7 +812,17 @@ function DigitalHumanPanel({
             controls
             playsInline
             className="aspect-9/16 w-full bg-black object-contain"
-          />
+          >
+            {DEMO_SEED_VIDEO_SUBTITLE_URL ? (
+              <track
+                kind="subtitles"
+                srcLang="zh-CN"
+                label="中文字幕"
+                src={DEMO_SEED_VIDEO_SUBTITLE_URL}
+                default
+              />
+            ) : null}
+          </video>
         ) : isClientProcessing ? (
           <div className="flex aspect-9/16 w-full flex-col items-center justify-center gap-3 bg-linear-to-br from-cyan-500/10 to-emerald-500/5 p-8 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-cyan-200" />
@@ -831,7 +846,7 @@ function DigitalHumanPanel({
         <div className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs">
           <span className="text-white/55">
             {finalVideo?.source === "seed"
-              ? "Aivora 预生成的真实样片（HeyGen + 默认 avatar）"
+              ? "Aivora 预生成的真实宠物店样片"
               : finalVideo?.source === "client"
               ? finalVideo.status === "completed"
                 ? "你的客户专属数字人成片"
@@ -849,49 +864,17 @@ function DigitalHumanPanel({
       <div className="space-y-4">
         <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="text-[11px] uppercase tracking-[0.2em] text-white/40">
-            用你自己的素材重做
+            Aivora 能力展示
           </div>
-          <h3 className="mt-1.5 text-lg font-semibold">
-            上传客户人像 + 你拍的实景
-          </h3>
-          <p className="mt-1.5 text-xs leading-5 text-white/50">
-            人像决定数字人的脸；实拍片段会出现在数字人前后的镜头里。
-          </p>
-
-          <div className="mt-4 space-y-3">
-            <PortraitDrop
-              file={portrait}
-              isUploading={uploadingPortrait}
-              onPick={onPickPortrait}
-              onRemove={onRemovePortrait}
-            />
-            <BrollDrop
-              files={brolls}
-              isUploading={uploadingBroll}
-              onPick={onPickBroll}
-              onRemove={onRemoveBroll}
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={onRender}
-            disabled={isRendering || !portrait}
-            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-200 px-4 py-3 text-sm font-semibold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {isRendering ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Wand2 className="h-4 w-4" />
-            )}
-            {isRendering
-              ? "正在提交到 HeyGen..."
-              : portrait
-              ? "用我的人像生成数字人"
-              : "请先上传客户人像"}
-          </button>
-          <p className="mt-2 text-[11px] leading-5 text-white/40">
-            生成会消耗一次 HeyGen 额度（约 0.5 美元）。生成时长 1-3 分钟。
+          <h3 className="mt-1.5 text-lg font-semibold">真实素材即可快速生成成片</h3>
+          <ul className="mt-3 space-y-2 text-sm text-white/70">
+            <li>• 上传真实人物形象，可生成数字人口播讲解</li>
+            <li>• 上传客户声音样本，可生成中文 AI 配音</li>
+            <li>• 上传街道/门店/服务素材，可自动整合场景叙事</li>
+            <li>• 自动输出适配抖音、小红书、视频号的成片版本</li>
+          </ul>
+          <p className="mt-4 text-xs leading-5 text-white/45">
+            当前页面为对外演示模式：重点展示成片效果与能力闭环。
           </p>
         </div>
       </div>

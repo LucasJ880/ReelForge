@@ -20,6 +20,8 @@ import {
   Sparkles,
   Upload,
   Video,
+  Volume2,
+  VolumeX,
   Wand2,
   X,
 } from "lucide-react";
@@ -779,6 +781,96 @@ function RewriteScriptPanel({ result }: { result: AnalysisResult }) {
   );
 }
 
+function DemoVideoPlayer({
+  videoUrl,
+  posterUrl,
+}: {
+  videoUrl: string;
+  posterUrl?: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+  const [hintDismissed, setHintDismissed] = useState(false);
+
+  const toggleSound = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    const next = !el.muted;
+    el.muted = next;
+    if (!next) {
+      el.volume = 0.85;
+      void el.play().catch(() => {});
+    }
+    setMuted(next);
+    setHintDismissed(true);
+  }, []);
+
+  const onLoadedMeta = useCallback(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.volume = 0.85;
+  }, []);
+
+  return (
+    <>
+      <video
+        ref={videoRef}
+        src={videoUrl}
+        poster={posterUrl}
+        controls
+        playsInline
+        autoPlay
+        loop
+        muted={muted}
+        onLoadedMetadata={onLoadedMeta}
+        className="aspect-9/16 w-full bg-black object-contain"
+      >
+        {DEMO_SEED_VIDEO_SUBTITLE_URL ? (
+          <track
+            kind="subtitles"
+            srcLang="zh-CN"
+            label="中文字幕"
+            src={DEMO_SEED_VIDEO_SUBTITLE_URL}
+            default
+          />
+        ) : null}
+      </video>
+
+      <button
+        type="button"
+        onClick={toggleSound}
+        aria-label={muted ? "开启背景音乐" : "静音"}
+        className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/55 px-3 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md transition hover:border-cyan-300/40 hover:bg-cyan-300/15 ${
+          muted ? "" : "border-cyan-300/40 bg-cyan-300/20 text-cyan-50"
+        }`}
+      >
+        {muted ? (
+          <>
+            <VolumeX className="h-3.5 w-3.5" />
+            <span>开启声音</span>
+          </>
+        ) : (
+          <>
+            <Volume2 className="h-3.5 w-3.5" />
+            <span>已开启</span>
+          </>
+        )}
+      </button>
+
+      {muted && !hintDismissed ? (
+        <button
+          type="button"
+          onClick={toggleSound}
+          className="absolute bottom-14 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-cyan-300/40 bg-cyan-300/15 px-4 py-2 text-xs font-medium text-cyan-50 shadow-lg shadow-cyan-900/40 backdrop-blur-md transition hover:bg-cyan-300/25"
+        >
+          <Volume2 className="h-3.5 w-3.5" />
+          点击开启背景音乐
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 function DigitalHumanPanel({
   finalVideo,
   portrait,
@@ -815,26 +907,13 @@ function DigitalHumanPanel({
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_minmax(320px,420px)]">
-      <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/45 shadow-2xl shadow-black/40">
+      <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-black/45 shadow-2xl shadow-black/40">
         {showVideo ? (
-          <video
+          <DemoVideoPlayer
             key={finalVideo!.videoUrl}
-            src={finalVideo!.videoUrl}
-            poster={finalVideo!.thumbnailUrl}
-            controls
-            playsInline
-            className="aspect-9/16 w-full bg-black object-contain"
-          >
-            {DEMO_SEED_VIDEO_SUBTITLE_URL ? (
-              <track
-                kind="subtitles"
-                srcLang="zh-CN"
-                label="中文字幕"
-                src={DEMO_SEED_VIDEO_SUBTITLE_URL}
-                default
-              />
-            ) : null}
-          </video>
+            videoUrl={finalVideo!.videoUrl}
+            posterUrl={finalVideo!.thumbnailUrl}
+          />
         ) : isClientProcessing ? (
           <div className="flex aspect-9/16 w-full flex-col items-center justify-center gap-3 bg-linear-to-br from-cyan-500/10 to-emerald-500/5 p-8 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-cyan-200" />

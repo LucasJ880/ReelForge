@@ -498,12 +498,13 @@ async function prepareBackgroundMusic(targetSec: number) {
       console.warn("BGM URL 失败:", (err as Error).message);
     }
   }
-  synthWarmPad(targetSec, bgOut);
-  return {
-    source: "synth",
-    detail: "ffmpeg warm-pad fallback",
-    localPath: bgOut,
-  };
+  // Hard fail: 严禁再用 ffmpeg sine / synth pad 拼背景音乐——听起来像噪点，不能给客户看。
+  // 必须提供真实的免版税音乐素材，例如：
+  //   BG_MUSIC_PATH=tmp/pet-demo-no-text/bgm-candidates/wholesome.mp3
+  //   BG_MUSIC_URL=https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wholesome.mp3
+  throw new Error(
+    "未提供真实 BGM 素材：请设置 BG_MUSIC_PATH 或 BG_MUSIC_URL（已禁用 synth 兜底，避免噪点输出）",
+  );
 }
 
 function loopAndShape(input: string, targetSec: number, output: string) {
@@ -513,25 +514,12 @@ function loopAndShape(input: string, targetSec: number, output: string) {
   );
 }
 
-function synthWarmPad(targetSec: number, output: string) {
-  const fadeOutStart = Math.max(0, targetSec - 2.5).toFixed(2);
-  const dur = targetSec.toFixed(2);
-  const filterParts = [
-    "[0:a]volume=0.16,tremolo=f=1.6:d=0.30[c]",
-    "[1:a]volume=0.13,tremolo=f=1.6:d=0.30[e]",
-    "[2:a]volume=0.11,tremolo=f=1.4:d=0.30[g]",
-    "[3:a]volume=0.07,tremolo=f=1.2:d=0.35[c5]",
-    `[c][e][g][c5]amix=inputs=4:duration=longest,aphaser=type=t:speed=0.35:decay=0.4,lowpass=f=1900,highpass=f=80,afade=t=in:st=0:d=2,afade=t=out:st=${fadeOutStart}:d=2.5,volume=0.7`,
-  ].join(";");
-  const cmd =
-    `ffmpeg -y ` +
-    `-f lavfi -i "sine=frequency=261.63:duration=${dur}" ` +
-    `-f lavfi -i "sine=frequency=329.63:duration=${dur}" ` +
-    `-f lavfi -i "sine=frequency=392.00:duration=${dur}" ` +
-    `-f lavfi -i "sine=frequency=523.25:duration=${dur}" ` +
-    `-filter_complex "${filterParts}" ` +
-    `-ac 2 -c:a libmp3lame -b:a 192k "${output}"`;
-  sh(cmd);
+// 已弃用：ffmpeg 合成的 sine + tremolo "warm pad" 在客户视频里听起来像噪点，
+// 不能再作为兜底输出。保留函数签名仅为兼容历史调用，调用即抛错。
+function synthWarmPad(_targetSec: number, _output: string): never {
+  throw new Error(
+    "synthWarmPad 已弃用：禁止使用 ffmpeg sine / synth pad 作为 BGM。请提供真实的免版税音乐（BG_MUSIC_PATH 或 BG_MUSIC_URL）。",
+  );
 }
 
 function muxNoTextWithBgm(baseVideo: string, bgMusic: string, output: string) {

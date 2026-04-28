@@ -6,7 +6,11 @@
  * 生成时间：2026-04-28T21:04:23.431Z
  * 数据源：pet-store-real-assets + seedance（无字幕/无旁白版）
  * Seedance jobs: s1:cgt-20260429044816-9nhm4(seedance), s2:cgt-20260429045358-4slhf(seedance), s3:cgt-20260429045852-pv9qx(seedance)
- * BGM: synth（ffmpeg warm-pad fallback）
+ * BGM v2: real royalty-free music — "Wholesome" by Kevin MacLeod
+ *   (incompetech.com, CC BY 4.0, ISRC USUAN1900022),
+ *   trimmed 4–35s, fade in 0.4s / fade out 1.2s,
+ *   ffmpeg loudnorm I=-16 LUFS / TP=-1.5 / LRA=11,
+ *   muxed via stream copy (video unchanged) into *_bgm_v2.mp4.
  */
 import type {
   DemoVideoAnalysisInput,
@@ -118,7 +122,7 @@ export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = {
   },
 };
 
-export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text.mp4";
+export const DEMO_SEED_VIDEO_URL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text_bgm_v2.mp4";
 export const DEMO_SEED_VIDEO_THUMBNAIL = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text.jpg";
 export const DEMO_SEED_VIDEO_DURATION_SEC = 31;
 export const DEMO_SEED_VIDEO_SUBTITLE_URL = "";

@@ -515,22 +515,30 @@ function ReferenceVideoPanel({
   sourceText: string;
 }) {
   const ref = result.reference;
-  const playable = ref.downloadUrl;
+  // 先用真实抓取下来的原片；没有就回退到 Aivora 演示成片，避免占位空白 + 死链接。
+  const playable = ref.downloadUrl || DEMO_SEED_VIDEO_URL;
+  const posterUrl = ref.coverUrl || DEMO_SEED_VIDEO_THUMBNAIL;
+  const isRealTiktokUrl =
+    /^https?:\/\/(www\.|m\.|vm\.)?tiktok\.com\//i.test(ref.url);
+  const isShowingDemoSeedFallback = !ref.downloadUrl && !!DEMO_SEED_VIDEO_URL;
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(280px,360px)_1fr]">
       <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/40 shadow-2xl shadow-black/40">
         {playable ? (
           <video
             src={playable}
-            poster={ref.coverUrl}
+            poster={posterUrl}
             controls
             playsInline
+            autoPlay
+            muted
+            loop
             className="aspect-9/16 w-full bg-black object-cover"
           />
-        ) : ref.coverUrl ? (
+        ) : posterUrl ? (
           <div
             className="aspect-9/16 w-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${ref.coverUrl})` }}
+            style={{ backgroundImage: `url(${posterUrl})` }}
           />
         ) : (
           <div className="flex aspect-9/16 w-full flex-col items-center justify-center bg-linear-to-br from-cyan-500/10 via-transparent to-emerald-500/10 p-6 text-center">
@@ -541,15 +549,30 @@ function ReferenceVideoPanel({
             </p>
           </div>
         )}
-        <a
-          href={ref.url}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs text-white/65 transition hover:bg-black/60 hover:text-white"
-        >
-          <span>在 TikTok 打开原片</span>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
+        {isRealTiktokUrl ? (
+          <a
+            href={ref.url}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs text-white/65 transition hover:bg-black/60 hover:text-white"
+          >
+            <span>在 TikTok 打开原片</span>
+            <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        ) : (
+          <div className="flex items-center justify-between border-t border-white/10 bg-black/40 px-4 py-3 text-xs">
+            <span className="text-white/65">
+              {isShowingDemoSeedFallback
+                ? "Aivora 演示成片 · 静音预览"
+                : "Aivora 演示成片"}
+            </span>
+            {ref.durationSec ? (
+              <span className="text-white/40">
+                {ref.durationSec.toFixed(0)}s
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

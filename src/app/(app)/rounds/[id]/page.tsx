@@ -34,6 +34,7 @@ export default async function RoundDetailPage({
               videoJobs: { orderBy: { createdAt: "desc" }, take: 1 },
               qaReviews: { orderBy: { createdAt: "desc" }, take: 1 },
               publishRecords: { orderBy: { createdAt: "desc" }, take: 1 },
+              adEditPlans: { orderBy: { createdAt: "desc" }, take: 1 },
             },
           },
         },
@@ -85,6 +86,7 @@ export default async function RoundDetailPage({
           {round.angles.map((a) => {
             const brief = a.videoBrief;
             const latestJob = brief?.videoJobs[0];
+            const latestPlan = brief?.adEditPlans[0];
             const qa = brief?.qaReviews[0];
             const pub = brief?.publishRecords[0];
             return (
@@ -130,6 +132,11 @@ export default async function RoundDetailPage({
                       {latestJob.errorMessage && (
                         <span className="text-destructive"> · {latestJob.errorMessage}</span>
                       )}
+                    </div>
+                  )}
+                  {latestPlan && (
+                    <div>
+                      剪辑计划: {latestPlan.status} · {latestPlan.title}
                     </div>
                   )}
                   {qa && (

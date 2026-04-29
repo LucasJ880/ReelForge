@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
 import type { ResearchStructured } from "./discovery-service";
 
-const SYSTEM_PROMPT = `你是一名短视频卖点提炼专家。基于市场调研 + 产品事实，为一个外贸电商产品产出一组结构化卖点，面向 TikTok 短视频制作团队使用。只输出 JSON。
+const SYSTEM_PROMPT = `你是一名短视频广告卖点提炼专家。基于市场调研 + 产品/服务事实 + 客户上传的真实素材清单，为一个真实素材广告项目产出一组结构化卖点，面向剪辑和脚本团队使用。只输出 JSON。
 
 输出 JSON:
 {
@@ -27,7 +27,9 @@ const SYSTEM_PROMPT = `你是一名短视频卖点提炼专家。基于市场调
 - 共 6-10 条。
 - rank 按在视频中应出现的重要程度从 1 开始递增。
 - localizations 必须包含目标语言的变体；其它语言可为空。
-- 不编造产品事实；每条 evidence 都必须在产品输入或调研中能找到依据。`;
+- 不编造产品事实；每条 evidence 都必须在产品输入、素材说明或调研中能找到依据。
+- 优先提炼“真实素材能够证明”的卖点，例如宠物反应、before/after、使用过程、人物口播、门店真实环境、产品特写。
+- 如果关键卖点缺少可用素材，在 evidence 中标注 missing_footage:...，方便运营补拍。`;
 
 export async function extractSellingPoints(deliveryOrderId: string) {
   const order = await db.deliveryOrder.findUnique({
@@ -124,10 +126,10 @@ function mockSellingPoints(): SellingPointLLM[] {
     {
       kind: "scene",
       rank: 2,
-      title: "Movie-night essential",
-      body: "The go-to blanket for every cozy streaming night.",
-      evidence: ["scene=movie_night"],
-      localizations: { "en-US": "movie-night essential" },
+      title: "Real usage proof",
+      body: "Uses customer footage to show the product or service working in a believable everyday situation.",
+      evidence: ["footage_assets", "footage_notes"],
+      localizations: { "en-US": "real usage proof" },
     },
     {
       kind: "emotional",

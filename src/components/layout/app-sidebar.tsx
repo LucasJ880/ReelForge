@@ -10,6 +10,7 @@ import {
   Send,
   BarChart3,
   Sparkles,
+  UsersRound,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -28,6 +29,7 @@ const NAV: {
   { href: "/publish", label: "发布队列", icon: Send },
   { href: "/metrics", label: "数据回流", icon: BarChart3 },
   { href: "/distillation", label: "创意蒸馏", icon: Sparkles },
+  { href: "/demo-leads", label: "Demo 线索", icon: UsersRound },
   {
     href: "/settings",
     label: "设置",
@@ -42,8 +44,8 @@ export function AppSidebar() {
   const role = session?.user.role ?? "OPERATOR";
 
   return (
-    <aside className="hidden md:flex flex-col w-60 border-r border-white/[0.05] bg-sidebar shrink-0">
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/[0.05]">
+    <aside className="hidden md:flex flex-col w-60 border-r border-white/5 bg-sidebar shrink-0">
+      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/5">
         <Logo size={24} />
         <div className="flex flex-col leading-tight">
           <span className="text-sm font-semibold tracking-tight">Aivora</span>
@@ -74,7 +76,7 @@ export function AppSidebar() {
         })}
       </nav>
 
-      <div className="border-t border-white/[0.05] px-3 py-3 space-y-1">
+      <div className="border-t border-white/5 px-3 py-3 space-y-1">
         <div className="px-3 py-1.5 text-[11px] text-muted-foreground">
           <div className="truncate">{session?.user.email}</div>
           <div className="text-[10px] text-muted-foreground/60">

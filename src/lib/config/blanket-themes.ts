@@ -1,5 +1,5 @@
 /**
- * 毛毯类目的"探索型 angle"主题池。
+ * 真实素材广告的"探索型 angle"主题池。
  *
  * 赛马规则：每轮 5 条 = 3 优化型 + 2 探索型。
  * 探索型必须从本池中抽取，避免创意塌缩。
@@ -15,46 +15,46 @@ export interface ExplorationTheme {
 
 export const BLANKET_THEME_POOL: ExplorationTheme[] = [
   {
-    key: "asmr_texture",
-    label: "ASMR 触感特写",
-    description: "极近距离捕捉毛毯绒毛/面料的触感与质感",
+    key: "proof_closeup",
+    label: "真实细节特写",
+    description: "极近距离捕捉产品材质、质感、功能细节或服务过程证据",
     prompt:
-      "超近景 ASMR 风格，手指缓慢划过毛毯表面，灯光柔和，背景音乐以布料摩擦的 ASMR 声为主，让观众感受到触觉的柔软温暖。",
+      "从客户真实素材中挑选最有说服力的产品/服务细节特写，用快速字幕指出一个具体证据点，避免空泛形容。",
   },
   {
-    key: "room_makeover",
-    label: "房间焕新",
-    description: "一秒房间改造：一条毛毯改变卧室/沙发氛围",
+    key: "before_after",
+    label: "Before / After",
+    description: "用真实对比镜头展示使用前后、服务前后或问题解决前后",
     prompt:
-      "before/after 房间改造对比：裸床/旧沙发 → 毛毯铺上后 → 整体审美升级。过渡用快速 whip cut。",
+      "把真实素材剪成 before/after 对比：先展示痛点或未使用状态，再展示改善结果，用同屏或快速转场强化差异。",
   },
   {
-    key: "movie_night",
-    label: "追剧场景",
-    description: "追剧、电影夜、窝在沙发里的温馨场景",
+    key: "ugc_review",
+    label: "UGC 测评",
+    description: "真人或拟真人口吻的真实测评，强调第一人称体验",
     prompt:
-      "暗调客厅，电视屏光映在人身上，盖着毛毯窝在沙发里，手里有爆米花。强调情绪与慢节奏的放松感。",
+      "以 UGC 测评结构组织真实镜头：我为什么买/试、最意外的一点、真实使用画面、是否推荐。口吻自然，不像硬广。",
   },
   {
-    key: "winter_essential",
-    label: "冬季刚需",
-    description: "冬季必备，强调温暖与实用性",
+    key: "problem_solution",
+    label: "痛点解决",
+    description: "先放大用户痛点，再用真实素材证明解决方案",
     prompt:
-      "室外冷色调 vs 室内暖色调的强对比，突出毛毯作为冬季必需品的抵御寒冷功能。",
+      "前三秒直接点出目标用户的具体痛点，中段用真实素材展示产品/服务如何解决，结尾给出低门槛 CTA。",
   },
   {
-    key: "giftable",
-    label: "礼物推荐",
-    description: "作为情人节/圣诞/生日礼物的场景",
+    key: "emotional_moment",
+    label: "情绪价值",
+    description: "从宠物反应、顾客表情、家庭场景或门店氛围中提炼情绪价值",
     prompt:
-      "节日氛围布置（圣诞树/情人节红色），礼盒打开瞬间展示毛毯，收礼人表情惊喜。适合节日营销节点。",
+      "选择真实素材里最有情绪感染力的瞬间，例如宠物反应、顾客满意表情、家庭使用场景或门店服务细节，做轻广告化表达。",
   },
   {
-    key: "pet_steal",
-    label: "宠物抢毛毯",
-    description: "猫狗抢毛毯的搞笑场景，天然高互动",
+    key: "pattern_interrupt",
+    label: "反差 Hook",
+    description: "用出乎意料、搞笑或反差镜头打断滑动，提升前三秒停留",
     prompt:
-      "主人刚铺好毛毯，宠物（猫/狗）立刻抢占躺上去。人物表情 = 无奈 + 宠溺。高 relatable 高互动。",
+      "从真实素材中挑选最反常、搞笑、可爱或意外的镜头作为开头，随后迅速连接到产品/服务卖点。",
   },
 ];
 

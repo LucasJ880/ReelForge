@@ -1,8 +1,7 @@
-import { VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
 
-const SYSTEM_PROMPT = `你是一名短视频分镜师。给你脚本全文和目标时长，请把脚本切成 3-6 个 scene，每个 scene 给出时长、视觉意图（英文）和出镜备注（英文）。只输出 JSON。
+const SYSTEM_PROMPT = `你是一名真实素材广告短视频分镜师。给你脚本全文、目标时长和客户上传素材清单，请把脚本切成 3-6 个 scene，每个 scene 给出时长、视觉意图（英文）和出镜备注（英文）。只输出 JSON。
 
 输出 JSON:
 {
@@ -19,7 +18,9 @@ const SYSTEM_PROMPT = `你是一名短视频分镜师。给你脚本全文和目
 要求：
 - 所有 scene duration 之和 = 输入的 duration_sec。
 - 第 1 个 scene 就是 hook，要最抓人。
-- 最后一个 scene 要承载 CTA。`;
+- 最后一个 scene 要承载 CTA。
+- visual_intent 必须说明应该匹配哪类真实素材，例如 product close-up、pet reaction、store walkthrough、before/after、UGC talking head、packaging shot。
+- 不要写无法由客户素材实现的虚构镜头；如果缺素材，在 visual_intent 中写 "Needs reshoot: ..."。`;
 
 interface ScenesLLM {
   scenes: Array<{
@@ -35,6 +36,15 @@ export async function generateScenesForBrief(briefId: string) {
     where: { id: briefId },
     include: {
       scripts: { where: { isCurrent: true }, orderBy: { version: "desc" }, take: 1 },
+      contentAngle: {
+        include: {
+          round: {
+            include: {
+              deliveryOrder: true,
+            },
+          },
+        },
+      },
     },
   });
   if (!brief) throw new Error("Brief 不存在");
@@ -46,6 +56,8 @@ export async function generateScenesForBrief(briefId: string) {
         fullText: script.fullText,
         durationSec: brief.durationSec,
         onCameraMode: brief.onCameraMode,
+        productInput: brief.contentAngle.round.deliveryOrder.productInput,
+        angleLocaleNotes: brief.contentAngle.localeNotes,
       })
     : mockScenes(brief.durationSec);
 
@@ -74,9 +86,17 @@ async function llmScenes(ctx: {
   fullText: string;
   durationSec: number;
   onCameraMode: string;
+  productInput: unknown;
+  angleLocaleNotes: unknown;
 }): Promise<ScenesLLM> {
   const user = `目标时长: ${ctx.durationSec} 秒
 出镜模式: ${ctx.onCameraMode}
+
+Angle 素材建议:
+${JSON.stringify(ctx.angleLocaleNotes, null, 2)}
+
+产品/服务输入与真实素材:
+${JSON.stringify(ctx.productInput, null, 2)}
 
 脚本全文:
 """
@@ -102,21 +122,21 @@ function mockScenes(durationSec: number): ScenesLLM {
         scene_index: 1,
         duration_sec: Math.max(3, Math.floor(durationSec * 0.25)),
         visual_intent:
-          "Hook: extreme close-up of blanket texture, fingers running across the surface, warm lamp light.",
+          "Hook: use the strongest real footage moment first, such as product close-up, pet reaction, before/after, or store action.",
         on_camera_note: "",
       },
       {
         scene_index: 2,
         duration_sec: half,
         visual_intent:
-          "Mid-shot: person wraps themselves in the blanket on a sofa, soft smile, cozy lighting.",
+          "Proof: match real usage footage that shows the product or service solving the stated customer pain point.",
         on_camera_note: "",
       },
       {
         scene_index: 3,
         duration_sec: durationSec - Math.max(3, Math.floor(durationSec * 0.25)) - half,
         visual_intent:
-          "Wide product hero shot with on-screen CTA text; warm-to-amber color grade.",
+          "CTA: end on the clearest product, storefront, result, or offer shot with bold on-screen call to action.",
         on_camera_note: "",
       },
     ],

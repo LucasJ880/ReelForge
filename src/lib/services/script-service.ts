@@ -2,7 +2,7 @@ import { Prisma, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
 
-const SYSTEM_PROMPT = `你是一名 TikTok 短视频脚本专家。基于 angle + 卖点 + 产品 + 目标语言，输出一条 15-30 秒的短视频脚本。只输出 JSON。
+const SYSTEM_PROMPT = `你是一名真实素材短视频广告脚本专家。基于 angle + 卖点 + 产品/服务 + 客户上传素材 + 目标语言，输出一条 15-30 秒的短视频脚本。只输出 JSON。
 
 输出 JSON:
 {
@@ -14,7 +14,9 @@ const SYSTEM_PROMPT = `你是一名 TikTok 短视频脚本专家。基于 angle 
 
 要求：
 - 严格使用目标语言，语气与 angle 的 locale_notes / on-camera 模式匹配。
-- 不编造产品事实。`;
+- 不编造产品事实。
+- 脚本必须能用客户已有真实素材剪出来；如果 angle.locale_notes.footage_pick 或 productInput.footage_notes 提到可用镜头，脚本要围绕这些镜头展开。
+- 口吻偏真实 UGC/广告本地化，不要像传统电视广告。`;
 
 interface ScriptLLM {
   language: string;
@@ -136,11 +138,11 @@ ${JSON.stringify(ctx.order.productInput, null, 2)}
 
 function mockScript(targetLanguage: string, durationSec: number): ScriptLLM {
   const wordCount = Math.max(20, Math.round(durationSec * 2.3));
-  const body = new Array(wordCount).fill("cozy").join(" ");
+  const body = new Array(wordCount).fill("proof").join(" ");
   return {
     language: `${targetLanguage}-XX`,
-    full_text: `POV: you just got the softest blanket ever. ${body}. Get yours before they're gone.`,
-    hook: "POV: you just got the softest blanket ever.",
-    cta: "Get yours before they're gone.",
+    full_text: `POV: you finally found the real-life fix your customers keep asking for. ${body}. Watch the real footage and try it today.`,
+    hook: "POV: you finally found the real-life fix your customers keep asking for.",
+    cta: "Watch the real footage and try it today.",
   };
 }

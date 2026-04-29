@@ -16,13 +16,13 @@ export default async function OrdersPage() {
   return (
     <div>
       <PageHeader
-        title="交付单"
-        description={`共 ${total} 个交付单`}
+        title="广告项目"
+        description={`共 ${total} 个真实素材广告项目`}
         actions={
           <Link href="/orders/new">
             <Button>
               <Plus className="h-4 w-4" />
-              新建交付单
+              新建广告项目
             </Button>
           </Link>
         }
@@ -31,7 +31,7 @@ export default async function OrdersPage() {
       {items.length === 0 ? (
         <Card className="p-10 text-center">
           <p className="text-sm text-muted-foreground">
-            还没有交付单。点击「新建交付单」开始第一个产品。
+            还没有广告项目。点击「新建广告项目」开始第一个真实素材测试。
           </p>
         </Card>
       ) : (
@@ -51,6 +51,7 @@ export default async function OrdersPage() {
                       </div>
                       <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
                         <span>{order.productCategory}</span>
+                        <span>{order.targetPlatform}</span>
                         <span>
                           {order.targetCountry} · {order.targetLanguage}
                         </span>

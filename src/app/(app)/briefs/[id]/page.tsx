@@ -38,6 +38,7 @@ export default async function BriefPage({
         },
       },
       videoJobs: { orderBy: { createdAt: "desc" } },
+      adEditPlans: { orderBy: [{ version: "desc" }, { createdAt: "desc" }] },
       qaReviews: { orderBy: { createdAt: "desc" } },
       publishRecords: {
         orderBy: { createdAt: "desc" },
@@ -184,6 +185,39 @@ export default async function BriefPage({
                 {j.errorMessage && (
                   <span className="text-destructive">{j.errorMessage}</span>
                 )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {brief.adEditPlans.length > 0 && (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>真实素材剪辑计划</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 text-xs">
+            {brief.adEditPlans.map((plan) => (
+              <div key={plan.id} className="rounded border border-border/60 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusBadge tone="info">v{plan.version}</StatusBadge>
+                  <span className="font-medium">{plan.title}</span>
+                  <span className="text-muted-foreground">{plan.status}</span>
+                  {plan.outputVideoUrl && (
+                    <a href={plan.outputVideoUrl} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                      输出
+                    </a>
+                  )}
+                </div>
+                {plan.objective && (
+                  <p className="mt-1 text-muted-foreground">{plan.objective}</p>
+                )}
+                {plan.reviewSummary && (
+                  <p className="mt-2 rounded bg-secondary/40 p-2">{plan.reviewSummary}</p>
+                )}
+                <pre className="mt-2 max-h-48 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                  {JSON.stringify(plan.timeline, null, 2)}
+                </pre>
               </div>
             ))}
           </CardContent>

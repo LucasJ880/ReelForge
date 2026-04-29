@@ -2,7 +2,7 @@ import { Prisma, VideoBriefStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
 
-const SYSTEM_PROMPT = `你是一名 AI 视频生成 prompt 工程师（Seedance 2.0）。基于 scene 分镜，产出每个 scene 的 Seedance prompt。只输出 JSON。
+const SYSTEM_PROMPT = `你是一名 AI 视频补画面 prompt 工程师（Seedance 2.0）。基于真实素材广告的 scene 分镜，只有在客户素材缺少过渡镜头、氛围镜头或产品补充镜头时，才产出可用于 Seedance 的补画面 prompt。只输出 JSON。
 
 输出 JSON:
 {
@@ -18,9 +18,10 @@ const SYSTEM_PROMPT = `你是一名 AI 视频生成 prompt 工程师（Seedance 
 }
 
 要求：
-- provider 的选择：如果 scene 的 visual_intent 强调产品真实外观（特写、品牌标识清晰可见），用 SEEDANCE_I2V；若是纯场景创意，用 SEEDANCE_T2V。
+- provider 的选择：如果 scene 的 visual_intent 强调产品真实外观（特写、品牌标识清晰可见），用 SEEDANCE_I2V；若是缺少的氛围/转场补画面，用 SEEDANCE_T2V。
 - prompt 必须包含 AUDIO DIRECTION 段落（Seedance 2.0 原生支持音频，需要明确背景音乐/voiceover 语言与情绪）。
 - 时长严格遵守输入的 scene duration。
+- 不要把真实素材中已经存在的镜头重新想象成假画面；prompt 应服务于补画面或 I2V 延展。
 - 不要在 prompt_text 中加入 JSON 之外的任何字符。`;
 
 interface PromptsLLM {

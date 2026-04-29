@@ -2,7 +2,8 @@ import { z } from "zod";
 
 export const createDeliveryOrderSchema = z.object({
   title: z.string().min(2).max(120),
-  productCategory: z.string().default("blanket"),
+  productCategory: z.string().default("pet_products"),
+  targetPlatform: z.string().default("tiktok"),
   targetCountry: z.string().min(2).max(12),
   targetLanguage: z.string().min(2).max(12),
   targetRegionVariant: z.string().optional(),
@@ -43,6 +44,41 @@ export const metricsRowSchema = z.object({
     likes: z.number().nonnegative().optional(),
     comments: z.number().nonnegative().optional(),
   }),
+});
+
+export const registerRawAssetSchema = z.object({
+  type: z.enum(["VIDEO", "IMAGE", "AUDIO"]).default("VIDEO"),
+  name: z.string().min(1).max(180),
+  url: z.string().url(),
+  mimeType: z.string().optional(),
+  durationMs: z.number().int().positive().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  fileSizeBytes: z.number().int().nonnegative().optional(),
+  checksum: z.string().max(180).optional(),
+  notes: z.string().max(2000).optional(),
+  tags: z.array(z.string().min(1).max(40)).max(20).optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const preprocessRawAssetSchema = z.object({
+  silenceThresholdDb: z.number().min(-80).max(0).default(-28),
+  motionThreshold: z.number().min(0).max(1).default(0.02),
+  marginBeforeMs: z.number().int().min(0).max(5000).default(300),
+  marginAfterMs: z.number().int().min(0).max(5000).default(500),
+  targetShotMs: z.number().int().min(1500).max(12000).default(4500),
+  minShotMs: z.number().int().min(500).max(5000).default(1200),
+  transcript: z.string().max(10000).optional(),
+  visualSummary: z.string().max(2000).optional(),
+});
+
+export const generateAdEditPlansSchema = z.object({
+  count: z.number().int().min(1).max(8).default(5),
+  retryThreshold: z.number().min(0).max(1).default(0.65),
+});
+
+export const renderAdEditPlanSchema = z.object({
+  planId: z.string().optional(),
 });
 
 export const createAdminSchema = z.object({

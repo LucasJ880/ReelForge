@@ -32,6 +32,33 @@ model AdminUser {
 }
 
 // =========================================================
+// 1.1 GTM Demo Leads
+// =========================================================
+
+enum RealFootageDemoLeadStatus {
+  NEW
+  CONTACTED
+  DEMO_BOOKED
+  NOT_FIT
+}
+
+model RealFootageDemoLead {
+  id            String                    @id @default(cuid())
+  name          String
+  email         String
+  businessType  String
+  monthlyVolume String
+  painPoint     String
+  source        String                    @default("demo/real-footage-ads")
+  status        RealFootageDemoLeadStatus @default(NEW)
+  createdAt     DateTime                  @default(now())
+
+  @@index([email])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+// =========================================================
 // 2. 交付单 DeliveryOrder（替代旧 Project）
 // =========================================================
 
@@ -80,10 +107,91 @@ model DeliveryOrder {
   sellingPoints    SellingPoint[]
   rounds           Round[]
   distillations    DistillationFeature[]
+  rawAssets        RawAsset[]
 
   @@index([status])
   @@index([productCategory])
   @@index([createdAt(sort: Desc)])
+}
+
+// =========================================================
+// 2.1 真实素材库 RawAsset / FootageShot
+// =========================================================
+
+enum RawAssetType {
+  VIDEO
+  IMAGE
+  AUDIO
+}
+
+enum RawAssetStatus {
+  UPLOADED
+  PROCESSING
+  INDEXED
+  FAILED
+}
+
+enum FootageShotStatus {
+  CANDIDATE
+  SELECTED
+  REJECTED
+}
+
+model RawAsset {
+  id              String          @id @default(cuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  type            RawAssetType
+  status          RawAssetStatus  @default(UPLOADED)
+  name            String
+  url             String
+  mimeType        String?
+  durationMs      Int?
+  width           Int?
+  height          Int?
+  fileSizeBytes   Int?
+  checksum        String?
+
+  notes           String?
+  tags            Json?
+  metadata        Json?
+  errorMessage    String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  shots           FootageShot[]
+
+  @@index([deliveryOrderId])
+  @@index([status])
+  @@index([type])
+}
+
+model FootageShot {
+  id              String            @id @default(cuid())
+  rawAssetId      String
+  rawAsset        RawAsset          @relation(fields: [rawAssetId], references: [id], onDelete: Cascade)
+
+  status          FootageShotStatus @default(CANDIDATE)
+  shotIndex       Int
+  startMs         Int
+  endMs           Int
+  durationMs      Int
+  thumbnailUrl    String?
+  transcript      String?
+  visualSummary   String?
+  tags            String[]          @default([])
+  qualityScore    Float?
+  usabilityNotes  String?
+  technical       Json?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([rawAssetId, shotIndex])
+  @@index([rawAssetId])
+  @@index([status])
 }
 
 // =========================================================
@@ -272,9 +380,48 @@ model VideoBrief {
 
   scripts           Script[]
   videoJobs         VideoJob[]
+  adEditPlans       AdEditPlan[]
   qaReviews         QAReview[]
   publishRecords    PublishRecord[]
 
+  @@index([status])
+}
+
+enum AdEditPlanStatus {
+  DRAFT
+  READY
+  RENDERING
+  RENDERED
+  REVIEWED
+  FAILED
+}
+
+model AdEditPlan {
+  id                String            @id @default(cuid())
+  videoBriefId      String
+  videoBrief        VideoBrief        @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+
+  version           Int               @default(1)
+  status            AdEditPlanStatus  @default(DRAFT)
+  title             String
+  objective         String?
+  durationMs        Int
+  aspectRatio       String            @default("9:16")
+
+  /// JSON 时间线：clips / overlays / captions / music / render hints
+  timeline          Json
+  /// JSON Reviewer 打分：hook / pacing / visual_match / offer_clarity / technical_quality
+  reviewScores      Json?
+  reviewSummary     String?
+  reviewerFeedback  Json?
+  outputVideoUrl    String?
+  outputThumbnailUrl String?
+  errorMessage      String?
+
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  @@index([videoBriefId])
   @@index([status])
 }
 
@@ -315,6 +462,7 @@ model ScenePlan {
 enum VideoProvider {
   SEEDANCE_T2V
   SEEDANCE_I2V
+  FFMPEG_EDIT
 }
 
 model VideoPrompt {

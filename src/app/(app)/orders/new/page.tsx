@@ -6,8 +6,8 @@ export default function NewOrderPage() {
   return (
     <div className="max-w-3xl">
       <PageHeader
-        title="新建交付单"
-        description="输入产品基础信息，系统将依次产出市场调研 → 卖点 → 多轮赛马视频"
+        title="新建广告项目"
+        description="上传真实素材，系统将产出市场分析、卖点、脚本、分镜和多轮广告赛马方案"
       />
       <Card>
         <CardContent className="pt-4">

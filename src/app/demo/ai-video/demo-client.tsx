@@ -1160,12 +1160,24 @@ function PreviewReel({
     return [head, middle, ...tail].filter(Boolean) as string[];
   }, [brolls, digitalHumanUrl]);
 
+  return (
+    <PreviewReelSequence
+      key={sequence.length}
+      sequence={sequence}
+      digitalHumanUrl={digitalHumanUrl}
+    />
+  );
+}
+
+function PreviewReelSequence({
+  sequence,
+  digitalHumanUrl,
+}: {
+  sequence: string[];
+  digitalHumanUrl: string;
+}) {
   const [activeIdx, setActiveIdx] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    setActiveIdx(0);
-  }, [sequence.length]);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[1fr_minmax(280px,360px)]">

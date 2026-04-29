@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, Play, Sparkles, Swords, XCircle, Check } from "lucide-react";
+import { Loader2, Sparkles, Swords, XCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -71,7 +71,7 @@ export function OrderActions({ order }: Props) {
           ) : (
             <Sparkles className="h-3.5 w-3.5" />
           )}
-          执行调研 + 卖点
+          生成策略 + 卖点
         </Button>
       )}
 
@@ -100,7 +100,7 @@ export function OrderActions({ order }: Props) {
           ) : (
             <Swords className="h-3.5 w-3.5" />
           )}
-          开启新一轮
+          开启视频赛马
         </Button>
       )}
 
@@ -130,7 +130,7 @@ export function OrderActions({ order }: Props) {
           size="sm"
           disabled={!!busy}
           onClick={() =>
-            call("取消交付单", () =>
+            call("取消项目", () =>
               fetch(`/api/delivery-orders/${order.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },

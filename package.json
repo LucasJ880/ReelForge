@@ -14,7 +14,9 @@
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "postinstall": "prisma generate",
-    "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts"
+    "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "demo:seed:real-footage": "dotenv -e .env.local -- tsx scripts/seed-real-footage-demo.ts",
+    "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

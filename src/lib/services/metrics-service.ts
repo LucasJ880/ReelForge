@@ -49,9 +49,14 @@ export async function recordMetricsSnapshot(params: {
     select: { videoBriefId: true },
   });
   if (record) {
-    await db.videoBrief.update({
+    const brief = await db.videoBrief.update({
       where: { id: record.videoBriefId },
       data: { status: VideoBriefStatus.METRICS_COLLECTING },
+      include: { contentAngle: true },
+    });
+    await db.round.update({
+      where: { id: brief.contentAngle.roundId },
+      data: { status: "METRICS_WINDOWS_PENDING" },
     });
   }
 
@@ -75,9 +80,23 @@ export interface CsvRow {
  */
 export function parseMetricsCsv(csv: string): CsvRow[] {
   const lines = csv.split(/\r?\n/).filter((l) => l.trim().length > 0);
-  if (lines.length < 2) return [];
+  if (lines.length < 2) {
+    throw new Error(
+      "Metrics CSV 无有效数据：请保留表头，并至少提供 1 行指标。必需列为 external_post_id 和 window_hours。",
+    );
+  }
   const header = lines[0].split(",").map((h) => h.trim().toLowerCase());
+  const requiredHeaders = ["external_post_id", "window_hours"];
+  const missingHeaders = requiredHeaders.filter(
+    (headerName) => !header.includes(headerName),
+  );
+  if (missingHeaders.length > 0) {
+    throw new Error(
+      `Metrics CSV 缺少必需列：${missingHeaders.join(", ")}。请使用页面模板重新导入。`,
+    );
+  }
   const rows: CsvRow[] = [];
+  const rejectedRows: string[] = [];
   for (let i = 1; i < lines.length; i++) {
     const cells = lines[i].split(",").map((c) => c.trim());
     const rec: Record<string, string> = {};
@@ -85,6 +104,9 @@ export function parseMetricsCsv(csv: string): CsvRow[] {
     const externalPostId = rec["external_post_id"] || rec["post_id"];
     const windowHours = Number(rec["window_hours"]);
     if (!externalPostId || !(windowHours === 12 || windowHours === 24 || windowHours === 48)) {
+      rejectedRows.push(
+        `第 ${i + 1} 行缺少 external_post_id，或 window_hours 不是 12/24/48`,
+      );
       continue;
     }
     rows.push({
@@ -98,6 +120,11 @@ export function parseMetricsCsv(csv: string): CsvRow[] {
       likes: toNum(rec["likes"]),
       comments: toNum(rec["comments"]),
     });
+  }
+  if (rows.length === 0) {
+    throw new Error(
+      `Metrics CSV 没有可导入行。${rejectedRows.slice(0, 3).join("；") || "请检查 external_post_id 和 window_hours。"}。`,
+    );
   }
   return rows;
 }

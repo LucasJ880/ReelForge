@@ -25,24 +25,23 @@ export default function AuthLayout({
           <div className="relative">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              外贸电商视频闭环交付
+              真实素材广告增长系统
             </div>
             <h2 className="max-w-md text-3xl font-semibold leading-tight tracking-tight">
-              从一个产品
+              从真实素材
               <br />
-              到一轮爆款赛马
+              到多版广告赛马
               <br />
               <span className="text-primary">全流程闭环</span>
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Aivora 为外贸电商卖家做产品分析 → 卖点提炼 → 多角度视频
-              → 数据赛马 → 特征蒸馏 → 自动进入下一轮。第一阶段聚焦毛毯类目。
+              Aivora Ads 把客户上传的产品、门店、人物或使用场景素材，转成可测试、可复盘、可持续优化的短视频广告。
             </p>
 
             <ul className="mt-10 space-y-3 text-sm text-muted-foreground">
               {[
-                "产品输入 → 市场分析 → 卖点提炼",
-                "单卖点 5 条赛马（3 优化型 + 2 探索型）",
+                "真实素材上传 → 市场分析 → 卖点提炼",
+                "单卖点 5 条广告赛马（3 优化型 + 2 探索型）",
                 "QA 八维打分 + 人工审核双把关",
                 "12/24/48h 数据回流 + 特征蒸馏",
               ].map((item) => (

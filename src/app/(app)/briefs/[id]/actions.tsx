@@ -13,6 +13,7 @@ export function BriefActions({
     id: string;
     status: string;
     scripts: { id: string }[];
+    adEditPlans?: { id: string; status: string }[];
   };
 }) {
   const router = useRouter();
@@ -40,6 +41,7 @@ export function BriefActions({
   }
 
   const hasScript = brief.scripts.length > 0;
+  const hasAdEditPlan = (brief.adEditPlans?.length ?? 0) > 0;
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -68,6 +70,24 @@ export function BriefActions({
       >
         {busy === "渲染视频" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
         触发渲染
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!!busy}
+        onClick={() => call("生成剪辑计划", `/api/briefs/${brief.id}/ad-plan`)}
+      >
+        {busy === "生成剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        真实素材计划
+      </Button>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={!!busy || !hasAdEditPlan}
+        onClick={() => call("渲染剪辑计划", `/api/briefs/${brief.id}/render`, { mode: "ad_edit_plan" })}
+      >
+        {busy === "渲染剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        渲染剪辑计划
       </Button>
       <Button
         size="sm"

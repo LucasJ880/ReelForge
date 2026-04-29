@@ -36,6 +36,7 @@ export function RoundActions({
   }
 
   const canGenerateAngles = round.angles.length === 0;
+  const canGenerateAdPlans = round.angles.length > 0;
   const canScore = round.status === "LIVE" || round.status === "METRICS_WINDOWS_PENDING";
   const canDistill = round.status === "RANKED";
 
@@ -53,6 +54,17 @@ export function RoundActions({
           生成 5 条 Angle
         </Button>
       )}
+      {canGenerateAdPlans && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!!busy}
+          onClick={() => call("生成广告剪辑计划", `/api/rounds/${round.id}/ad-plans`, { count: 5 })}
+        >
+          {busy === "生成广告剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          生成 5 条广告
+        </Button>
+      )}
       {canScore && (
         <Button
           size="sm"
@@ -62,6 +74,17 @@ export function RoundActions({
         >
           {busy === "打分" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           打分 + 排名
+        </Button>
+      )}
+      {canScore && (
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={!!busy}
+          onClick={() => call("复盘 + 下一轮", `/api/rounds/${round.id}/iteration`)}
+        >
+          {busy === "复盘 + 下一轮" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          复盘 + 下一轮
         </Button>
       )}
       {canDistill && (

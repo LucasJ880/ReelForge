@@ -17,7 +17,7 @@ export async function createDeliveryOrder(args: CreateOrderArgs) {
   return db.deliveryOrder.create({
     data: {
       title: args.title,
-      productCategory: args.productCategory ?? "blanket",
+      productCategory: args.productCategory ?? "pet_products",
       targetPlatform: args.targetPlatform ?? "tiktok",
       targetCountry: args.targetCountry,
       targetLanguage: args.targetLanguage,
@@ -74,8 +74,13 @@ export async function getDeliveryOrderDetail(id: string) {
               videoBrief: {
                 include: {
                   scripts: { where: { isCurrent: true } },
+                  adEditPlans: { orderBy: { createdAt: "desc" } },
                   qaReviews: { orderBy: { createdAt: "desc" }, take: 1 },
-                  publishRecords: { orderBy: { createdAt: "desc" }, take: 1 },
+                  publishRecords: {
+                    orderBy: { createdAt: "desc" },
+                    take: 1,
+                    include: { metricsSnapshots: true },
+                  },
                   videoJobs: { orderBy: { createdAt: "desc" } },
                 },
               },
@@ -86,6 +91,10 @@ export async function getDeliveryOrderDetail(id: string) {
         },
       },
       distillations: { orderBy: { createdAt: "desc" } },
+      rawAssets: {
+        orderBy: { createdAt: "desc" },
+        include: { shots: { orderBy: { shotIndex: "asc" } } },
+      },
       createdBy: { select: { email: true, name: true } },
     },
   });

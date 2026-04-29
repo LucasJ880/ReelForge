@@ -12,10 +12,11 @@ export function RealFootageWaitlistForm() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setState("submitting");
     setMessage("");
 
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const payload = {
       name: String(form.get("name") || ""),
       businessType: String(form.get("businessType") || ""),
@@ -34,10 +35,16 @@ export function RealFootageWaitlistForm() {
       if (!res.ok) throw new Error(data.error || "提交失败，请稍后重试。");
       setState("success");
       setMessage(data.message || "已收到，我们会联系你安排 demo。");
-      event.currentTarget.reset();
     } catch (err) {
       setState("error");
       setMessage((err as Error).message);
+      return;
+    }
+
+    try {
+      formElement.reset();
+    } catch {
+      // Reset is a UI convenience; a successful lead submission should remain successful.
     }
   }
 

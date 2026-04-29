@@ -60,6 +60,18 @@ The RC demo readiness pass validates an end-to-end real-footage workflow:
 
 This is enough to show the product loop and customer value without introducing heavy backend architecture.
 
+## Proof Checklist
+
+Use this checklist to move from technical demo readiness to investor/customer proof readiness:
+
+- [ ] 3 real customer trials using customer-provided raw footage.
+- [ ] 10 discovery conversations across DTC, local services, agencies, or creator commerce teams.
+- [ ] 3 pricing-positive signals, such as budget mentioned, paid pilot interest, or procurement next step.
+- [ ] 1 repeat-use signal where a customer asks for another creative round after seeing the first output.
+- [ ] 1 real campaign metrics case connecting generated ads to views, retention, engagement, or conversion proxy metrics.
+
+Do not claim generalized performance lift until the real campaign metrics case exists. The current proof target is narrower: customers understand the workflow, are willing to upload footage, and see enough value to discuss pricing or repeat use.
+
 ## Target customer
 
 Initial target customers:

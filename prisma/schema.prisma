@@ -40,6 +40,7 @@ enum RealFootageDemoLeadStatus {
   CONTACTED
   DEMO_BOOKED
   NOT_FIT
+  TEST
 }
 
 model RealFootageDemoLead {
@@ -51,10 +52,12 @@ model RealFootageDemoLead {
   painPoint     String
   source        String                    @default("demo/real-footage-ads")
   status        RealFootageDemoLeadStatus @default(NEW)
+  hiddenAt      DateTime?
   createdAt     DateTime                  @default(now())
 
   @@index([email])
   @@index([status])
+  @@index([hiddenAt])
   @@index([createdAt(sort: Desc)])
 }
 

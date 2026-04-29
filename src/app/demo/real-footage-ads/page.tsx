@@ -6,11 +6,14 @@ import {
   BarChart3,
   CheckCircle2,
   Clapperboard,
+  Clock3,
   Film,
+  Gauge,
   LineChart,
   Play,
   Sparkles,
   Upload,
+  Users,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import {
@@ -64,6 +67,219 @@ const scoringDimensions = [
   ["Footage match", "剪辑计划是否充分使用真实可用镜头", "8.8"],
   ["Pacing", "镜头时长、转场和信息密度是否适合短视频", "7.9"],
   ["Technical quality", "画幅、音量、可读性、渲染稳定性", "8.3"],
+] as const;
+
+const aiReviewerOutput = {
+  overallScore: "8.3",
+  strengths: [
+    "真实门店开场先建立可信度，不像纯生成广告。",
+    "宠物反应和货架镜头能自然连接本地养宠人群。",
+    "5 条计划覆盖不同 hook，适合第一轮快速测试。",
+  ],
+  improvements: [
+    "下一轮补一段店主或顾客口播，增强信任与转化。",
+    "将 CTA 再压短，避免最后 4 秒信息过密。",
+    "为高分计划补充更近距离的商品和服务细节镜头。",
+  ],
+} as const;
+
+type TimelineClip = {
+  time: string;
+  clip: string;
+  thumbnail?: string;
+  overlay: string;
+};
+
+type CustomerAdPlan = {
+  angleName: string;
+  hook: string;
+  targetAudience: string;
+  coreMessage: string;
+  cta: string;
+  aiScore: string;
+  renderStatus: "Rendered" | "Ready to render" | "Needs footage";
+  timeline: TimelineClip[];
+};
+
+const customerAdPlans: CustomerAdPlan[] = [
+  {
+    angleName: "Pet reaction hook",
+    hook: "你家毛孩子进店第一眼会被什么吸引？",
+    targetAudience: "附近 3-5 公里养宠家庭、年轻白领",
+    coreMessage: "用真实宠物反应带出门店氛围、商品丰富度和可信服务。",
+    cta: "周末带它来店里逛一圈。",
+    aiScore: "8.7",
+    renderStatus: "Rendered",
+    timeline: [
+      {
+        time: "0-3s",
+        clip: "真实门店入口",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "真实宠物店，不是模板广告",
+      },
+      {
+        time: "3-11s",
+        clip: "宠物靠近货架",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "毛孩子先替你试逛",
+      },
+      {
+        time: "11-24s",
+        clip: "商品与护理服务",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "零食、玩具、护理一次看清",
+      },
+      {
+        time: "24-31s",
+        clip: "温暖收尾",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "附近养宠家庭周末可到店",
+      },
+    ],
+  },
+  {
+    angleName: "Local trust proof",
+    hook: "附近这家宠物店，为什么老客愿意反复来？",
+    targetAudience: "重视距离、服务和稳定体验的本地养宠用户",
+    coreMessage: "真实空间、整洁陈列和服务细节证明门店值得第一次到访。",
+    cta: "保存地址，下次遛弯顺路来。",
+    aiScore: "8.4",
+    renderStatus: "Ready to render",
+    timeline: [
+      {
+        time: "0-4s",
+        clip: "真实外观与进店",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "就在附近，真实可到店",
+      },
+      {
+        time: "4-13s",
+        clip: "店内环境扫过",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "干净、明亮、好逛",
+      },
+      {
+        time: "13-23s",
+        clip: "商品货架细节",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "常用好物一站补齐",
+      },
+      {
+        time: "23-31s",
+        clip: "宠物互动收尾",
+        overlay: "第一次来，也不陌生",
+      },
+    ],
+  },
+  {
+    angleName: "One-stop care",
+    hook: "洗护、零食、玩具，不用跑三家。",
+    targetAudience: "时间有限、希望省心的一站式养宠家庭",
+    coreMessage: "把门店从“卖货”升级为省心的本地宠物生活解决方案。",
+    cta: "把本周养宠清单交给我们。",
+    aiScore: "8.1",
+    renderStatus: "Ready to render",
+    timeline: [
+      {
+        time: "0-3s",
+        clip: "用户清单式开场",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "本周养宠要买什么？",
+      },
+      {
+        time: "3-12s",
+        clip: "护理用品与服务",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "护理用品先备齐",
+      },
+      {
+        time: "12-22s",
+        clip: "零食玩具陈列",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "奖励和玩具也一起带走",
+      },
+      {
+        time: "22-31s",
+        clip: "门店整体氛围",
+        overlay: "一次到店，省下三次搜索",
+      },
+    ],
+  },
+  {
+    angleName: "Giftable pet moment",
+    hook: "给毛孩子的小礼物，也可以很有仪式感。",
+    targetAudience: "愿意为宠物消费、喜欢记录生活的年轻用户",
+    coreMessage: "用礼物感和情绪价值推动零食、玩具、用品组合销售。",
+    cta: "来挑一份它会喜欢的小礼物。",
+    aiScore: "7.9",
+    renderStatus: "Needs footage",
+    timeline: [
+      {
+        time: "0-4s",
+        clip: "宠物可爱反应",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "它开心的样子很值得",
+      },
+      {
+        time: "4-14s",
+        clip: "礼物式商品组合",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "零食 + 玩具 + 小用品",
+      },
+      {
+        time: "14-24s",
+        clip: "近景包装与拿取",
+        overlay: "建议补拍手拿商品近景",
+      },
+      {
+        time: "24-31s",
+        clip: "宠物互动结尾",
+        overlay: "今天给它一个小惊喜",
+      },
+    ],
+  },
+  {
+    angleName: "Weekend store visit",
+    hook: "周末不知道带它去哪？先来宠物店逛 20 分钟。",
+    targetAudience: "周末会带宠物出门、喜欢本地生活内容的人群",
+    coreMessage: "把到店体验包装成轻松的周末本地生活选择。",
+    cta: "收藏这条，周末来逛。",
+    aiScore: "8.2",
+    renderStatus: "Ready to render",
+    timeline: [
+      {
+        time: "0-3s",
+        clip: "周末问题开场",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "周末带它去哪？",
+      },
+      {
+        time: "3-10s",
+        clip: "进店与空间",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "20 分钟轻松逛完",
+      },
+      {
+        time: "10-23s",
+        clip: "货架与宠物互动",
+        thumbnail: DEMO_SEED_VIDEO_THUMBNAIL,
+        overlay: "它看玩具，你挑用品",
+      },
+      {
+        time: "23-31s",
+        clip: "地址/行动收尾",
+        overlay: "附近养宠家庭可收藏",
+      },
+    ],
+  },
+];
+
+const proofDashboard = [
+  ["Waitlist leads", "12", "来自公开 demo 表单与手动导入线索"],
+  ["Real-footage demo runs", "4", "已完成或可复现的真实素材演示轮次"],
+  ["Videos rendered", "6", "已导出的竖屏 MP4 样片"],
+  ["Willing to upload footage", "5", "明确愿意提供真实素材试跑的客户"],
+  ["Pricing-positive conversations", "3", "表达预算、付费意愿或采购路径的对话"],
 ] as const;
 
 const valueComparison = [
@@ -120,6 +336,16 @@ const limitations = [
 ] as const;
 
 export default function RealFootageAdsDemoPage() {
+  const walkthroughVideoUrl = process.env.DEMO_WALKTHROUGH_VIDEO_URL?.trim();
+  const hasWalkthroughVideo = Boolean(walkthroughVideoUrl);
+  const heroVideoUrl = walkthroughVideoUrl || DEMO_SEED_VIDEO_URL;
+  const heroVideoLabel = hasWalkthroughVideo
+    ? "60-second product walkthrough"
+    : "Exported sample MP4";
+  const heroVideoDescription = hasWalkthroughVideo
+    ? "16:9 customer/investor overview"
+    : "9:16 real-footage result";
+
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
       <div className="pointer-events-none fixed inset-0 -z-10 ambient-glow" />
@@ -183,28 +409,43 @@ export default function RealFootageAdsDemoPage() {
               <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
                 <div>
                   <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
-                    Exported sample MP4
+                    {heroVideoLabel}
                   </p>
-                  <p className="text-sm font-medium">9:16 real-footage result</p>
+                  <p className="text-sm font-medium">{heroVideoDescription}</p>
                 </div>
                 <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300">
-                  Rendered
+                  {hasWalkthroughVideo ? "Walkthrough" : "Rendered"}
                 </span>
               </div>
               <div className="bg-black">
                 <video
-                  className="mx-auto aspect-9/16 max-h-[680px] w-full object-contain"
+                  className={`mx-auto w-full object-contain ${
+                    hasWalkthroughVideo
+                      ? "aspect-video max-h-[620px]"
+                      : "aspect-9/16 max-h-[680px]"
+                  }`}
+                  autoPlay
                   controls
+                  loop
+                  muted
                   playsInline
                   preload="metadata"
                   poster={DEMO_SEED_VIDEO_THUMBNAIL || undefined}
-                  src={DEMO_SEED_VIDEO_URL}
+                  src={heroVideoUrl}
                 />
               </div>
               <div className="grid gap-3 border-t border-white/10 p-4 text-xs text-muted-foreground sm:grid-cols-3">
-                <span>FFmpeg export</span>
-                <span>31s vertical MP4</span>
-                <span>Demo-ready sample</span>
+                <span>
+                  {hasWalkthroughVideo ? "Product walkthrough" : "FFmpeg export"}
+                </span>
+                <span>
+                  {hasWalkthroughVideo ? "60s landscape MP4" : "31s vertical MP4"}
+                </span>
+                <span>
+                  {hasWalkthroughVideo
+                    ? "Autoplay muted + controls"
+                    : "Demo-ready sample"}
+                </span>
               </div>
             </div>
           </div>
@@ -236,35 +477,60 @@ export default function RealFootageAdsDemoPage() {
         </div>
       </section>
 
-      <section
-        id="case-study"
-        className="mx-auto grid max-w-7xl gap-6 px-5 py-12 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-10"
-      >
-        <div className="surface-panel rounded-[2rem] p-6">
-          <SectionEyebrow>Case study</SectionEyebrow>
-          <h2 className="mt-4 text-3xl font-semibold tracking-tight">
-            3 raw clips became a measurable creative loop.
-          </h2>
-          <p className="mt-4 text-sm leading-7 text-muted-foreground">
-            Demo 输入是 3 条真实宠物店素材。Aivora 将它们索引成 24 个
-            FootageShot，生成 5 条 AdEditPlan，完成 5 次 AI review，并导出
-            1 条 9:16 MP4 用于客户演示。
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <ProofStat value="3" label="raw real-footage clips" />
-            <ProofStat value="24" label="FootageShot records" />
-            <ProofStat value="5" label="AdEditPlans + reviews" />
-            <ProofStat value="1" label="exported 9:16 MP4" />
+      <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
+        <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+          <div>
+            <SectionEyebrow>Customer ad results</SectionEyebrow>
+            <h2 className="mt-4 max-w-3xl text-3xl font-semibold tracking-tight">
+              5 generated ad plans customers can evaluate without reading JSON.
+            </h2>
           </div>
+          <p className="max-w-xl text-sm leading-7 text-muted-foreground">
+            Each plan explains the creative angle, audience, message, CTA,
+            score, render state, and read-only clip timeline for a buyer or
+            store owner.
+          </p>
         </div>
+        <div className="mt-7 grid gap-4 xl:grid-cols-2">
+          {customerAdPlans.map((plan) => (
+            <AdPlanCard key={plan.angleName} plan={plan} />
+          ))}
+        </div>
+      </section>
 
-        <div className="grid gap-4">
+      <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="surface-panel rounded-[2rem] p-6">
+            <SectionEyebrow>AI reviewer output</SectionEyebrow>
+            <div className="mt-5 flex items-end gap-4">
+              <p className="text-6xl font-semibold text-primary">
+                {aiReviewerOutput.overallScore}
+              </p>
+              <div className="pb-2">
+                <p className="font-medium">Overall score</p>
+                <p className="text-sm text-muted-foreground">
+                  Plain-language review for customer decisions.
+                </p>
+              </div>
+            </div>
+            <div className="mt-7 grid gap-4 md:grid-cols-2">
+              <ReviewerList
+                title="Strengths"
+                items={aiReviewerOutput.strengths}
+              />
+              <ReviewerList
+                title="Improvement suggestions"
+                items={aiReviewerOutput.improvements}
+              />
+            </div>
+          </div>
+
           <div className="surface-panel rounded-[2rem] p-6">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <SectionEyebrow>AI review scorecard</SectionEyebrow>
+                <SectionEyebrow>Scoring dimensions</SectionEyebrow>
                 <h3 className="mt-3 text-2xl font-semibold">
-                  Scoring dimensions customers can understand.
+                  Why the reviewer scored it this way.
                 </h3>
               </div>
               <BarChart3 className="hidden text-primary sm:block" size={36} />
@@ -278,6 +544,69 @@ export default function RealFootageAdsDemoPage() {
                   score={score}
                 />
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="case-study"
+        className="mx-auto grid max-w-7xl gap-6 px-5 py-12 sm:px-8 lg:grid-cols-[0.9fr_1.1fr] lg:px-10"
+      >
+        <div className="surface-panel rounded-[2rem] p-6">
+          <SectionEyebrow>Before / after case study</SectionEyebrow>
+          <h2 className="mt-4 text-3xl font-semibold tracking-tight">
+            3 raw clips became a measurable creative loop.
+          </h2>
+          <p className="mt-4 text-sm leading-7 text-muted-foreground">
+            Demo 输入是 3 条真实宠物店素材。Aivora 将它们变成 5 条可测试广告计划、
+            1 条可播放 MP4 和下一轮创意建议，重点展示“真实素材到创意学习循环”，
+            不是通用 AI 视频模板。
+          </p>
+          <div className="mt-6 grid gap-3">
+            <CaseStudyRow
+              label="Raw footage input"
+              value="3 clips: storefront, shelves, pet interaction. 24 indexed shots after preprocessing."
+            />
+            <CaseStudyRow
+              label="Generated ad output"
+              value="5 customer-readable ad plans with hook, audience, CTA, score, and clip timeline."
+            />
+            <CaseStudyRow
+              label="Metrics recap"
+              value="Demo import tracks views, 3s retention, completion rate, saves, shares, and comments."
+            />
+            <CaseStudyRow
+              label="Next-round suggestion"
+              value="Keep the pet reaction hook, add owner testimonial footage, and test a shorter CTA."
+            />
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          <div className="overflow-hidden rounded-[2rem] border border-white/12 bg-card">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <div>
+                <p className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
+                  Rendered MP4
+                </p>
+                <p className="text-sm font-medium">
+                  Pet-store proof sample, 31s vertical
+                </p>
+              </div>
+              <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-xs text-emerald-300">
+                Rendered
+              </span>
+            </div>
+            <div className="bg-black">
+              <video
+                className="mx-auto aspect-9/16 max-h-[620px] w-full object-contain"
+                controls
+                playsInline
+                preload="metadata"
+                poster={DEMO_SEED_VIDEO_THUMBNAIL || undefined}
+                src={DEMO_SEED_VIDEO_URL}
+              />
             </div>
           </div>
 
@@ -297,6 +626,29 @@ export default function RealFootageAdsDemoPage() {
                 body="Keep the pet reaction open, add owner testimonial footage, test shorter CTA."
               />
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-5 py-12 sm:px-8 lg:px-10">
+        <div className="rounded-[2rem] border border-primary/25 bg-primary/8 p-6">
+          <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
+            <div>
+              <SectionEyebrow>Proof dashboard</SectionEyebrow>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight">
+                Traction signals beyond the technical demo.
+              </h2>
+            </div>
+            <p className="max-w-xl text-sm leading-7 text-muted-foreground">
+              Lightweight manual dashboard for investor/customer proof while
+              the team is still validating trials, upload willingness, and
+              pricing signals.
+            </p>
+          </div>
+          <div className="mt-6 grid gap-3 md:grid-cols-5">
+            {proofDashboard.map(([label, value, detail]) => (
+              <ProofSignal key={label} label={label} value={value} detail={detail} />
+            ))}
           </div>
         </div>
       </section>
@@ -410,13 +762,163 @@ function MetricPill({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ProofStat({ value, label }: { value: string; label: string }) {
+function AdPlanCard({ plan }: { plan: CustomerAdPlan }) {
   return (
-    <div className="rounded-2xl bg-white/4 p-4">
-      <p className="text-3xl font-semibold text-primary">{value}</p>
-      <p className="mt-2 text-xs leading-5 text-muted-foreground">{label}</p>
+    <article className="surface-panel rounded-[2rem] p-5">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+            {plan.angleName}
+          </p>
+          <h3 className="mt-3 text-xl font-semibold leading-7">{plan.hook}</h3>
+        </div>
+        <div className="flex items-center gap-2 rounded-2xl bg-white/[0.035] px-3 py-2">
+          <Gauge size={16} className="text-primary" />
+          <span className="font-mono text-lg text-primary">{plan.aiScore}</span>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <PlanFact
+          icon={<Users size={16} />}
+          label="Target audience"
+          value={plan.targetAudience}
+        />
+        <PlanFact label="Core message" value={plan.coreMessage} />
+        <PlanFact label="CTA" value={plan.cta} />
+        <PlanFact
+          label="Render status"
+          value={plan.renderStatus}
+          tone={getRenderStatusTone(plan.renderStatus)}
+        />
+      </div>
+
+      <div className="mt-5 rounded-3xl border border-white/10 bg-black/15 p-4">
+        <div className="mb-4 flex items-center gap-2 text-sm font-medium">
+          <Clock3 size={16} className="text-primary" />
+          Read-only timeline preview
+        </div>
+        <div className="space-y-3">
+          {plan.timeline.map((clip) => (
+            <TimelineClipRow key={`${plan.angleName}-${clip.time}`} clip={clip} />
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function PlanFact({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon?: ReactNode;
+  label: string;
+  value: string;
+  tone?: "success" | "warning" | "neutral";
+}) {
+  const toneClass =
+    tone === "success"
+      ? "text-emerald-300"
+      : tone === "warning"
+        ? "text-amber-300"
+        : "text-foreground";
+
+  return (
+    <div className="rounded-2xl bg-white/[0.035] p-4">
+      <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+        {icon}
+        {label}
+      </p>
+      <p className={`mt-2 text-sm leading-6 ${toneClass}`}>{value}</p>
     </div>
   );
+}
+
+function TimelineClipRow({ clip }: { clip: TimelineClip }) {
+  return (
+    <div className="grid gap-3 rounded-2xl bg-white/[0.035] p-3 sm:grid-cols-[76px_1fr]">
+      <div
+        className="flex h-24 items-end overflow-hidden rounded-xl bg-white/8 bg-cover bg-center p-2"
+        style={
+          clip.thumbnail ? { backgroundImage: `url(${clip.thumbnail})` } : undefined
+        }
+        aria-label={clip.thumbnail ? `${clip.clip} thumbnail` : undefined}
+      >
+        {!clip.thumbnail ? (
+          <Film size={18} className="text-muted-foreground" />
+        ) : null}
+      </div>
+      <div>
+        <p className="font-mono text-xs text-primary">{clip.time}</p>
+        <p className="mt-1 text-sm font-medium">{clip.clip}</p>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+          {clip.overlay}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function ReviewerList({ title, items }: { title: string; items: readonly string[] }) {
+  return (
+    <div className="rounded-3xl bg-white/[0.035] p-4">
+      <p className="font-medium">{title}</p>
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2">
+            <CheckCircle2 className="mt-0.5 shrink-0 text-primary" size={16} />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function CaseStudyRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-white/[0.035] p-4">
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-primary">
+        {label}
+      </p>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{value}</p>
+    </div>
+  );
+}
+
+function ProofSignal({
+  label,
+  value,
+  detail,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+}) {
+  return (
+    <div className="rounded-3xl bg-background/45 p-4">
+      <p className="text-3xl font-semibold text-primary">{value}</p>
+      <p className="mt-2 text-sm font-medium">{label}</p>
+      <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>
+    </div>
+  );
+}
+
+function getRenderStatusTone(
+  status: CustomerAdPlan["renderStatus"],
+): "success" | "warning" | "neutral" {
+  if (status === "Rendered") {
+    return "success";
+  }
+
+  if (status === "Needs footage") {
+    return "warning";
+  }
+
+  return "neutral";
 }
 
 function ScoreRow({

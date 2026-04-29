@@ -16,6 +16,9 @@
     "postinstall": "prisma generate",
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
     "demo:seed:real-footage": "dotenv -e .env.local -- tsx scripts/seed-real-footage-demo.ts",
+    "demo:generate:walkthrough": "tsx scripts/generate-real-footage-walkthrough-video.ts",
+    "demo:check:walkthrough": "tsx scripts/check-real-footage-walkthrough-video.ts",
+    "demo:stitch:walkthrough": "tsx scripts/stitch-real-footage-walkthrough-video.ts",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "prisma": {

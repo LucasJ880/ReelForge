@@ -27,13 +27,13 @@ Supporting message:
 
 | Time | Scene | Purpose | On-screen text |
 | --- | --- | --- | --- |
-| 0-5s | Messy product clips floating on screen | Problem hook | Messy real footage. No clear ad structure. |
-| 5-12s | Upload interface with raw clips | Show starting point | Upload your product clips. |
-| 12-22s | Footage index with thumbnails, tags, usable moments | Explain organization step | Aivora finds the usable moments. |
-| 22-35s | 5 ad concept cards with hook, audience, CTA, AI score | Show main customer value | Generate 5 testable ad concepts. |
+| 0-5s | Messy product clips floating on screen | Problem hook | Messy footage in |
+| 5-12s | Upload interface with raw clips | Show starting point | Upload raw clips |
+| 12-22s | Footage index with thumbnails and abstract tags | Explain organization step | Find usable moments |
+| 22-35s | 5 ad concept cards using icons, shapes, and large tags | Show main customer value | Create 5 ad concepts |
 | 35-45s | Vertical 9:16 ad render preview | Show concrete output | Render 9:16 ads ready for testing. |
-| 45-53s | Metrics dashboard and next-round recommendation | Show learning loop | Learn from performance data. |
-| 53-60s | Landing page CTA | Convert interest | Bring your own messy footage. Request demo access. |
+| 45-53s | Abstract metrics dashboard and next-round recommendation | Show learning loop | Learn from metrics |
+| 53-60s | Landing page CTA | Convert interest | Request demo access |
 
 ## Scene-by-scene Seedance prompt
 
@@ -46,60 +46,60 @@ Camera:
 Slow push-in through floating clips. Subtle parallax. Clean neon teal interface glow in the background.
 
 Overlay:
-“Messy real footage. No clear ad structure.”
+“Messy footage in”
 
 Prompt:
-Premium B2B SaaS product walkthrough, dark interface, clean neon teal accents, floating messy phone-shot product clips, realistic small business footage, unstructured videos, no logos, no brand names, cinematic slow push-in, clean modern UI atmosphere, subtle particles, confident but restrained.
+Premium B2B SaaS product walkthrough, dark interface, clean neon teal accents, floating messy phone-shot product clips, realistic small business footage, unstructured videos, no logos, no brand names, no small UI text, cinematic slow push-in, clean modern UI atmosphere, subtle particles, confident but restrained. Use only large overlay text: “Messy footage in”.
 
 ### Scene 2: Upload, 5-12s
 
 Visual:
-A clean Aivora-style dashboard mockup appears. A drag-and-drop upload panel receives several raw clips. File cards show neutral placeholder names such as `store_clip_01.mp4`, `product_closeup_02.mp4`, `customer_moment_03.mp4`.
+A clean dark dashboard mockup appears. A drag-and-drop upload panel receives several raw clips. File cards are generic visual cards with thumbnails, icons, and shapes, not readable filenames or detailed UI copy.
 
 Camera:
 Smooth lateral slide from the messy clip grid into the upload UI. Light UI transitions as files land in the upload area.
 
 Overlay:
-“Upload your product clips.”
+“Upload raw clips”
 
 Prompt:
-Modern SaaS upload interface, dark dashboard, teal accent buttons, drag and drop raw video clips, realistic UI mockup, placeholder file names only, no real brands, no copyrighted logos, smooth UI transitions, clear product-led walkthrough.
+Modern SaaS upload interface, dark dashboard, teal accent buttons, drag and drop raw video clips, abstract file cards, no detailed UI text, no fake filenames, no brand name, no real brands, no copyrighted logos, smooth UI transitions, clear product-led walkthrough. Use only large overlay text: “Upload raw clips”.
 
 ### Scene 3: Footage indexing, 12-22s
 
 Visual:
-The uploaded clips transform into a shot index. Show thumbnail tiles with simple tags: `product close-up`, `storefront`, `customer moment`, `service detail`, `strong hook`, `good CTA moment`. Some clips receive quality badges such as `usable`, `needs crop`, `best opening`.
+The uploaded clips transform into a shot index. Show thumbnail tiles with simple abstract tags and visual highlights. Avoid tiny labels, detailed copy, scores, or pseudo-readable text.
 
 Camera:
 Top-down dashboard view, then a gentle zoom into the best thumbnails. Use animated highlight rings around selected moments.
 
 Overlay:
-“Aivora finds the usable moments.”
+“Find usable moments”
 
 Prompt:
-AI organizes raw footage into reusable shots, thumbnail grid, tags, usable moments, clean SaaS dashboard, dark mode, teal highlights, realistic product interface, shot index, video analysis, calm confident motion, no fake brand data.
+Raw footage becomes reusable shots, thumbnail grid, simple abstract tags, usable moments, clean SaaS dashboard, dark mode, teal highlights, realistic product interface, shot index, video analysis, calm confident motion, no brand name, no fake brand data, no tiny text. Use only large overlay text: “Find usable moments”.
 
 ### Scene 4: Five ad concepts, 22-35s
 
 Visual:
-Five polished ad concept cards appear side by side. Each card includes a short hook, target audience, CTA, and AI score. Use placeholder concepts:
+Five polished ad concept cards appear side by side. Cards use mostly icons, shapes, thumbnails, and large simple tags. Do not render hook, audience, CTA, or score copy. Allowed large tags:
 
-- “Local trust proof”
-- “Product close-up hook”
-- “Customer reaction”
-- “Weekend visit”
-- “Before and after”
+- “Hook”
+- “Demo”
+- “Trust”
+- “Offer”
+- “CTA”
 
-Cards should look customer-readable, not like raw JSON. Avoid technical schema fields.
+Cards should look customer-readable, not like raw JSON. Avoid technical schema fields, tiny text, numbers, or fake performance claims.
 
 Camera:
 Cards fan in from left to right. The camera settles on the highest-scoring card, then briefly shows all five together.
 
 Overlay:
-“Generate 5 testable ad concepts.”
+“Create 5 ad concepts”
 
 Prompt:
-Five customer-facing ad concept cards in a premium SaaS dashboard, each card shows hook, audience, CTA, AI score, clean visual hierarchy, no raw JSON, dark UI, teal accents, realistic mockup, smooth card animation, product-led, no exaggerated claims.
+Five customer-facing ad concept cards in a premium SaaS dashboard, mostly visual cards with icons, shapes, thumbnails, and five large tags only: “Hook”, “Demo”, “Trust”, “Offer”, “CTA”. No brand name, no tiny hook/audience/CTA text, no scores, no raw JSON, no percentages, no ROI, no fake performance claims, dark UI, teal accents, realistic mockup, smooth card animation, product-led. Use only large overlay text: “Create 5 ad concepts”.
 
 ### Scene 5: Rendered 9:16 ad, 35-45s
 
@@ -118,44 +118,44 @@ Vertical 9:16 short-form ad preview rendering inside SaaS dashboard, realistic p
 ### Scene 6: Metrics loop, 45-53s
 
 Visual:
-A metrics panel appears with neutral numbers and labels only: views, 3-second retention, completion rate, saves, shares. Show a highlighted winner angle and a next-round recommendation card.
+A metrics panel appears with abstract bars, dots, and restrained trend lines. Show a highlighted winner card and a next-round recommendation card using abstract UI only.
 
-Do not show dramatic growth percentages or performance lift claims.
+Do not show percentages, ROI, growth numbers, dramatic growth charts, or performance lift claims. If any numeric UI appears, use neutral labels only and no numbers.
 
 Camera:
 Smooth transition from rendered ad to metrics dashboard. Animated lines connect the winning angle to the recommendation card.
 
 Overlay:
-“Learn from performance data.”
+“Learn from metrics”
 
 Prompt:
-Clean metrics dashboard for short-form ad testing, neutral placeholder metrics, winner angle highlighted, next-round recommendations, CSV or API import visual cue, no fake performance claims, no growth chart exaggeration, dark SaaS UI, teal accents, confident pacing.
+Clean metrics dashboard for short-form ad testing, abstract bars, dots, restrained trend lines, winner card highlighted, next-round recommendation card, neutral labels only, no numbers, no percentages, no ROI, no growth numbers, no dramatic growth chart, no fake performance claims, dark SaaS UI, teal accents, confident pacing. Use only large overlay text: “Learn from metrics”.
 
 ### Scene 7: CTA, 53-60s
 
 Visual:
-Return to the public landing page hero area. Show Aivora Real-Footage Ads headline, waitlist form preview, and a final CTA button. Keep the layout clean and premium.
+Return to a clean public landing page CTA area. The brand name may appear only once if it is large, simple, and spelled exactly “Aivora”. Keep the layout clean and premium, with no detailed form text.
 
 Camera:
 Slow zoom out to reveal the full landing page hero. End on the CTA.
 
 Overlay:
-“Bring your own messy footage. Request demo access.”
+“Request demo access”
 
 Prompt:
-Modern SaaS landing page hero for Aivora Real-Footage Ads, dark premium interface, neon teal accents, waitlist request demo CTA, clean product-led composition, investor/customer ready, no copyrighted logos, no fake brand names, calm confident ending.
+Modern SaaS landing page CTA, dark premium interface, neon teal accents, request demo access CTA, clean product-led composition, investor/customer ready, no copyrighted logos, no fake brand names, no tiny form text, calm confident ending. The brand name may appear only once if large and spelled exactly “Aivora”. Use only large overlay text: “Request demo access”.
 
 ## On-screen text overlays
 
 Use these exact overlays unless the editor needs minor timing adjustments:
 
-1. 0-5s: “Messy real footage. No clear ad structure.”
-2. 5-12s: “Upload your product clips.”
-3. 12-22s: “Aivora finds the usable moments.”
-4. 22-35s: “Generate 5 testable ad concepts.”
+1. 0-5s: “Messy footage in”
+2. 5-12s: “Upload raw clips”
+3. 12-22s: “Find usable moments”
+4. 22-35s: “Create 5 ad concepts”
 5. 35-45s: “Render 9:16 ads ready for testing.”
-6. 45-53s: “Learn from performance data.”
-7. 53-60s: “Bring your own messy footage. Request demo access.”
+6. 45-53s: “Learn from metrics”
+7. 53-60s: “Request demo access”
 
 Short alternate copy for tighter cuts:
 
@@ -225,19 +225,19 @@ Narrative: Small businesses already have messy real product footage, but turning
 
 Scene flow:
 
-0-5s: Show messy phone-shot product clips floating on a dark SaaS background. Overlay: “Messy real footage. No clear ad structure.”
+0-5s: Show messy phone-shot product clips floating on a dark SaaS background. No brand name, no small UI text. Overlay: “Messy footage in”
 
-5-12s: Show clean upload interface receiving raw product clips. Overlay: “Upload your product clips.”
+5-12s: Show clean upload interface receiving raw product clips as generic visual cards with thumbnails, icons, and shapes. No fake filenames or detailed UI copy. Overlay: “Upload raw clips”
 
-12-22s: Show AI indexing footage into thumbnails, tags, quality notes, and usable shots. Overlay: “Aivora finds the usable moments.”
+12-22s: Show footage indexing into thumbnails, simple abstract tags, quality highlights, and usable shots. Do not render the brand name. Overlay: “Find usable moments”
 
-22-35s: Show 5 ad concept cards with hook, audience, CTA, and AI score. The cards should be customer-readable, not raw JSON. Overlay: “Generate 5 testable ad concepts.”
+22-35s: Show 5 ad concept cards with mostly icons, shapes, thumbnails, and large simple tags only: “Hook”, “Demo”, “Trust”, “Offer”, “CTA”. Do not render tiny hook, audience, CTA, or score text. Overlay: “Create 5 ad concepts”
 
 35-45s: Show a vertical 9:16 short-form ad being rendered inside the dashboard, with clean captions and CTA. Overlay: “Render 9:16 ads ready for testing.”
 
-45-53s: Show metrics dashboard with neutral placeholder metrics, winning angle, and next-round recommendations. Overlay: “Learn from performance data.”
+45-53s: Show metrics dashboard with abstract bars, dots, restrained trend lines, a winner card, and next-round recommendations. No percentages, ROI, growth numbers, dramatic growth charts, or fake performance claims. Overlay: “Learn from metrics”
 
-53-60s: Show landing page CTA and waitlist request access section. Overlay: “Bring your own messy footage. Request demo access.”
+53-60s: Show landing page CTA and request access section. The brand name may appear only once if large, simple, and spelled exactly “Aivora”. Overlay: “Request demo access”
 
 Camera movement: smooth push-ins, lateral slides, gentle zooms, subtle parallax, restrained UI transitions, no chaotic cuts.
 
@@ -245,7 +245,7 @@ Music mood: modern light electronic, clean, confident, premium SaaS, no aggressi
 
 Format: primary output 16:9 landing page hero video, approximately 60 seconds, high quality. Optional cutdown: 9:16 social version using the same scene order with tighter UI framing.
 
-Constraints: no copyrighted logos, no real brand names, no fake customer names, no fake performance lift claims, no exaggerated ROI claims, no TikTok logo, no platform logo lockups, no claims that publishing is fully automated.
+Constraints: avoid detailed small UI text, pseudo-readable copy, tiny tables, fake filenames, percentages, ROI numbers, growth numbers, dramatic performance charts, copyrighted logos, real brand names, fake customer names, fake performance lift claims, exaggerated ROI claims, TikTok logo, platform logo lockups, and claims that publishing is fully automated. Do not render “Aivora” unless it is large, simple, spelled exactly, and shown only once.
 
 Voiceover:
 “Small businesses already have the footage. What they don’t have is a fast way to turn it into ads they can test. Aivora organizes raw clips into usable shots, generates five ad concepts, reviews them with AI, and renders short-form videos ready for testing. After publishing, metrics come back into the system, so the next round gets smarter. Bring your own messy footage, and see what Aivora can create.”
@@ -293,19 +293,19 @@ Narrative: Small businesses already have messy real product footage, but turning
 
 Scene flow and timing:
 
-0-5s: Show messy phone-shot product clips floating on a dark SaaS background: storefront, product close-up, food or service clip, customer/pet reaction, shelf or counter detail. The clips should feel real, imperfect, and unstructured. Overlay: “Messy real footage. No clear ad structure.”
+0-5s: Show messy phone-shot product clips floating on a dark SaaS background: storefront, product close-up, food or service clip, customer/pet reaction, shelf or counter detail. The clips should feel real, imperfect, and unstructured. Do not render the brand name or small UI text. Overlay: “Messy footage in”
 
-5-12s: Transition into a clean upload dashboard. Show raw clips being added to an upload panel with neutral placeholder file names like store_clip_01.mp4, product_closeup_02.mp4, customer_moment_03.mp4. Overlay: “Upload your product clips.”
+5-12s: Transition into a clean upload dashboard. Show raw clips being added to an upload panel as generic video file cards made from thumbnails, icons, and shapes. Do not render detailed UI text, fake filenames, or generated labels. Overlay: “Upload raw clips”
 
-12-22s: Show Aivora indexing the footage into reusable shots. Display thumbnail tiles, tags, and quality notes such as product close-up, storefront, customer moment, usable, needs crop, best opening. Overlay: “Aivora finds the usable moments.”
+12-22s: Show the footage becoming reusable shots. Display thumbnail tiles, simple abstract tags, and quality highlights. Do not render the brand name Aivora. Do not render detailed small copy. Overlay: “Find usable moments”
 
-22-35s: Show 5 customer-facing ad concept cards. Each card includes hook, target audience, CTA, and AI score. Example card titles: Local trust proof, Product close-up hook, Customer reaction, Weekend visit, Before and after. The cards must look simple and understandable, not like raw JSON or developer tools. Overlay: “Generate 5 testable ad concepts.”
+22-35s: Show 5 customer-facing ad concept cards. Cards use mostly icons, shapes, thumbnails, and five large simple tags only: “Hook”, “Demo”, “Trust”, “Offer”, “CTA”. Do not render tiny hook, audience, CTA, or score text. The cards must look simple and understandable, not like raw JSON or developer tools. Overlay: “Create 5 ad concepts”
 
 35-45s: Show one vertical 9:16 short-form ad preview being rendered inside the dashboard. Include clean captions, product/store footage, a simple CTA, and a progress state moving from Rendering to Ready. Overlay: “Render 9:16 ads ready for testing.”
 
-45-53s: Show a clean metrics dashboard with neutral placeholder metrics: views, 3-second retention, completion rate, saves, shares. Highlight a winner angle and show a next-round recommendation card. Overlay: “Learn from performance data.”
+45-53s: Show a clean metrics dashboard with abstract bars, dots, restrained trend lines, neutral labels, a winner card, and a next-round recommendation card. Do not show percentages, ROI, growth numbers, dramatic growth charts, or fake performance claims. If any numeric UI appears, use neutral labels only and no numbers. Overlay: “Learn from metrics”
 
-53-60s: Show the Aivora Real-Footage Ads landing page CTA and waitlist request access area. End cleanly on the CTA. Overlay: “Bring your own messy footage. Request demo access.”
+53-60s: Show a clean landing page CTA and request access area. The brand name may appear only once if it is large, simple, and spelled exactly “Aivora”. End cleanly on the CTA. Overlay: “Request demo access”
 
 Camera movement: smooth push-ins, lateral slides, gentle zooms, subtle parallax, calm dashboard transitions, restrained success states. Keep all movement polished and readable.
 
@@ -314,7 +314,7 @@ Music mood: modern light electronic, confident, clean, premium SaaS, medium temp
 Voiceover:
 “Small businesses already have the footage. What they don’t have is a fast way to turn it into ads they can test. Aivora organizes raw clips into usable shots, generates five ad concepts, reviews them with AI, and renders short-form videos ready for testing. After publishing, metrics come back into the system, so the next round gets smarter. Bring your own messy footage, and see what Aivora can create.”
 
-Constraints: no copyrighted logos, no TikTok logo, no platform logo lockups, no real brand names, no fake customer names, no fake performance lift claims, no exaggerated ROI claims, no claims that publishing is fully automated. Use placeholder UI data only. Keep the product story focused on speed, repeatable testing, and the learning loop.
+Constraints: avoid detailed small UI text, pseudo-readable copy, tiny tables, fake filenames, percentages, ROI numbers, growth numbers, dramatic performance charts, copyrighted logos, TikTok logo, platform logo lockups, real brand names, fake customer names, fake performance lift claims, exaggerated ROI claims, and claims that publishing is fully automated. Do not render “Aivora” unless it is large, simple, spelled exactly, and shown only once. Use abstract placeholder UI only. Keep the product story focused on speed, repeatable testing, and the learning loop.
 ```
 
 ### Prompt 2: 9:16 social cutdown version
@@ -404,6 +404,19 @@ Export settings:
 
 Do not update `/demo/real-footage-ads` until the actual final walkthrough video URL is available.
 
+### Temporary preview upload
+
+The currently uploaded walkthrough is a temporary preview, not the final marketing version.
+
+Known visual quality issues:
+
+- Segment 1 text typo: “Mussy”
+- Segment 2 text typo: “Aivari”
+- Segment 4 contains unsafe or overclaim-looking numbers such as `43.9%` and `224%`
+- Some UI pseudo-text / gibberish is visible
+
+Final version should regenerate segments 1, 2, and 4 after the Ark / Seedance account is restored. Keep Segment 3 only if visual QA still accepts it.
+
 Once the final video is generated:
 
 1. Upload `aivora-real-footage-ads-walkthrough-60s-16x9.mp4` to Vercel Blob or the chosen storage provider.
@@ -425,3 +438,108 @@ const heroVideoLabel = walkthroughVideoUrl
   ? "60-second product walkthrough"
   : "Exported sample MP4";
 ```
+
+## Automated Seedance Submission
+
+Use the one-off walkthrough script when the app should submit the 16:9 landing page hero prompt to Seedance instead of manually copying it into a provider console.
+
+Command:
+
+```bash
+npm run demo:generate:walkthrough
+```
+
+Selective regeneration command:
+
+```bash
+npm run demo:generate:walkthrough -- --segments=1,2,4
+```
+
+What it does:
+
+- Uses a provider-safe segmented approach because Seedance may reject a single `duration: 60` T2V request.
+- Submits four Seedance T2V jobs, each representing one 15-second walkthrough segment.
+- Uses `ratio: "16:9"` and `duration: 15` per segment by default.
+- Writes a local tracking record to `tmp/real-footage-walkthrough-video/submission.json`.
+- With `--segments=1,2,4`, preserves completed Segment 3 and replaces only the selected segment job IDs.
+- Does not update `/demo/real-footage-ads`.
+- Does not set `DEMO_WALKTHROUGH_VIDEO_URL`.
+
+Segment plan:
+
+1. Segment 1, `0-15s`: Problem + Upload.
+2. Segment 2, `15-30s`: Footage Index + 5 Concepts.
+3. Segment 3, `30-45s`: AI Review + Render.
+4. Segment 4, `45-60s`: Metrics + Next Round + CTA.
+
+Required env vars:
+
+- `ARK_API_KEY`: required for real Seedance submission.
+- `ARK_BASE_URL`: optional; defaults to `https://ark.cn-beijing.volces.com/api/v3`.
+- `ARK_VIDEO_MODEL`: optional; defaults through the provider to `doubao-seedance-2-0-260128`.
+- `VIDEO_ENGINE_MOCK`: must be unset or `false` for a real submission.
+
+Optional env vars:
+
+- `WALKTHROUGH_SEEDANCE_DURATION_SEC`: override the per-segment submitted duration. Default is `15`.
+- `ALLOW_WALKTHROUGH_MOCK=true` or `-- --mock`: explicitly allow mock submission for local smoke testing only. Mock jobs are not persistent across processes.
+- `-- --segments=1,2,4`: regenerate only selected segments while keeping existing tracking data for the other segments.
+
+If the selected Seedance model rejects `duration: 15`, retry with a provider-supported per-segment duration. Do not auto-fallback to a different final walkthrough length without reviewing the output:
+
+```bash
+WALKTHROUGH_SEEDANCE_DURATION_SEC=10 npm run demo:generate:walkthrough
+```
+
+Where to find the job ID:
+
+- The submission command prints one `externalJobId` per segment.
+- All four segment job IDs are stored in `tmp/real-footage-walkthrough-video/submission.json`.
+
+Check completion:
+
+```bash
+npm run demo:check:walkthrough
+```
+
+The check command:
+
+- Checks all four segment jobs.
+- Prints status for each segment.
+- Writes completed `videoUrl` values back to `tmp/real-footage-walkthrough-video/submission.json`.
+- Does not claim the walkthrough is ready until all four segments are complete.
+
+Stitch the final 60-second MP4:
+
+```bash
+npm run demo:stitch:walkthrough
+```
+
+The stitching command:
+
+- Reads four completed segment URLs from `tmp/real-footage-walkthrough-video/submission.json`.
+- Downloads remote segment MP4s when needed.
+- Normalizes resolution, frame rate, and audio stream shape with FFmpeg.
+- Concats the four normalized clips into one final MP4.
+- Writes the output to `public/generated/aivora-real-footage-ads-walkthrough-60s-16x9.mp4`.
+
+You can also pass four segment MP4 URLs or local files explicitly:
+
+```bash
+npm run demo:stitch:walkthrough -- <segment1.mp4> <segment2.mp4> <segment3.mp4> <segment4.mp4>
+```
+
+Optional upload:
+
+```bash
+UPLOAD_WALKTHROUGH_TO_BLOB=true npm run demo:stitch:walkthrough
+```
+
+This requires `BLOB_READ_WRITE_TOKEN` and prints a final Blob URL.
+
+After completion:
+
+1. Use the stitched MP4 at `public/generated/aivora-real-footage-ads-walkthrough-60s-16x9.mp4`, or upload it to Vercel Blob / chosen storage.
+2. Set `DEMO_WALKTHROUGH_VIDEO_URL` to the final public stitched MP4 URL.
+3. Keep `DEMO_SEED_VIDEO_URL` lower on `/demo/real-footage-ads` as the proof/case-study rendered sample MP4.
+4. Do not introduce Remotion, TTS, TikTok API publishing, or a new video platform pipeline for this one-off asset.

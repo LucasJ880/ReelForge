@@ -49,6 +49,18 @@ export function StoryboardGrid() {
         </code>{" "}
         （Phase 2）。
       </p>
+
+      <p className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
+        The selected direction, script, storyboard and approved footage lead to
+        this final concept output ——{" "}
+        <a
+          href="#final-output"
+          className="font-semibold underline decoration-dotted underline-offset-4 hover:text-primary"
+        >
+          直接看最终成片
+        </a>
+        。
+      </p>
     </DemoSection>
   );
 }

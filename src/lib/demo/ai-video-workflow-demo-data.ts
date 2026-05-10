@@ -33,6 +33,52 @@ export const PRODUCT_WALKTHROUGH_VIDEO_URL =
   "/generated/aivora-real-footage-ads-walkthrough-60s-16x9.mp4";
 
 /* ------------------------------------------------------------------ */
+/* Main Concept Video                                                  */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 主概念广告片（concept sample）。
+ *
+ * 这是 CEO 拍板的当前主 Demo Page 主视觉证明：客户输入 → 创意证据卡 →
+ * AI 脚本 → 分镜/拍摄指导 → 素材质检 → 这条最终输出。
+ *
+ * 文案边界（必须遵守）：允许的措辞是 concept sample / demo output /
+ * draft output example / what the workflow is designed to produce。
+ * 禁用的过度承诺措辞清单见
+ * tests/ai-video-workflow-demo-data.test.ts 中的
+ * CONCEPT_DEMO_OVER_PROMISE_PHRASES（测试会扫描所有 demo 源文件，包括
+ * 注释；不要把禁用短语原样粘贴回来）。
+ *
+ * 视频规格：720x1280（9:16 竖屏）、约 30 秒、H.264 mp4，可直接放入
+ * PhoneVideoMockup 播放，无需重新编码。
+ */
+export interface MainConceptVideoConfig {
+  title: string;
+  url: string;
+  type: "concept_demo";
+  durationLabel: string;
+  durationSec: number;
+  aspectRatio: "9:16" | "1:1" | "16:9";
+  width: number;
+  height: number;
+  posterUrl: string | null;
+  note: string;
+}
+
+export const mainConceptVideo: MainConceptVideoConfig = {
+  title: "Aivora Concept Workflow Demo",
+  url: "/generated/aivora-main-demo-concept-2026-05-10.mp4",
+  type: "concept_demo",
+  durationLabel: "Concept sample · 约 30 秒",
+  durationSec: 30,
+  aspectRatio: "9:16",
+  width: 720,
+  height: 1280,
+  posterUrl: null,
+  note: "Concept video used to show the final output experience.",
+};
+
+/* ------------------------------------------------------------------ */
 /* Customer Input Panel                                                */
 /* ------------------------------------------------------------------ */
 
@@ -762,26 +808,26 @@ export interface FinalOutputDemo {
 export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
   {
     variant: "main_30s",
-    title: "30 秒主版本视频",
+    title: "30 秒主版本视频 · Concept sample",
     description:
-      "按选定方向的 6 个分镜串联生成的 30 秒主版本；竖屏 9:16，可直接用于 TikTok / Reels / Shorts 主帖。",
-    durationSec: 30,
-    aspectRatio: "9:16",
-    videoUrl: null,
-    posterUrl: null,
+      "按所选方向、AI 脚本、分镜与审核通过的素材自动拼装成的 concept 概念样片。竖屏 9:16，约 30 秒，展示 Aivora 工作流走完后的成片质感。",
+    durationSec: mainConceptVideo.durationSec,
+    aspectRatio: mainConceptVideo.aspectRatio,
+    videoUrl: mainConceptVideo.url,
+    posterUrl: mainConceptVideo.posterUrl,
     notes: [
-      "脚本 + 分镜 + 客户素材自动拼接",
+      "Concept sample：展示工作流跑完后能产出的成片风格",
       "首帧 = 经纪人开场 / Hook 字幕",
       "尾帧 = CTA 字幕 + 联系方式",
     ],
-    badge: "示例预览",
-    isPlaceholder: true,
+    badge: "Concept sample",
+    isPlaceholder: false,
   },
   {
     variant: "ad_15s",
     title: "15 秒广告版（投流剪辑）",
     description:
-      "广告版本：删掉社区 B-roll，前置 hook 与房源关键卖点；竖屏 9:16，适合付费投流。",
+      "广告版本：删掉社区 B-roll，前置 hook 与房源关键卖点；竖屏 9:16，适合付费投流。Coming next · sample variant。",
     durationSec: 15,
     aspectRatio: "9:16",
     videoUrl: null,
@@ -791,14 +837,14 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
       "把 CTA 提前 2 秒",
       "字幕加大、字距加宽，便于无声播放",
     ],
-    badge: "示例预览",
+    badge: "Coming next · sample variant",
     isPlaceholder: true,
   },
   {
     variant: "cover",
     title: "封面图 · 竖屏 9:16",
     description:
-      "封面图自动从可用的外观 / 客厅镜头中选取最稳一帧；支持手动替换。",
+      "封面图自动从可用的外观 / 客厅镜头中选取最稳一帧；支持手动替换。Coming next · sample variant。",
     aspectRatio: "9:16",
     videoUrl: null,
     posterUrl: null,
@@ -807,7 +853,7 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
       "标题文字使用脚本 hook 句",
       "支持手动指定其它候选封面",
     ],
-    badge: "示例占位",
+    badge: "Coming next · sample variant",
     isPlaceholder: true,
   },
   {

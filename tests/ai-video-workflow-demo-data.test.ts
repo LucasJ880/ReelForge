@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 import test from "node:test";
 import {
   COMPLIANCE_NOTES,
@@ -12,6 +14,7 @@ import {
   demoProject,
   finalOutputs,
   generatedScript,
+  mainConceptVideo,
   petGroomingSample,
   referencePreviews,
   storyboardShots,
@@ -71,6 +74,86 @@ test("finalOutputs include 30s main / 15s ad / cover", () => {
   assert.ok(variants.has("main_30s"));
   assert.ok(variants.has("ad_15s"));
   assert.ok(variants.has("cover"));
+});
+
+/* ------------------------------------------------------------------ */
+/* Main Concept Video tests                                            */
+/* ------------------------------------------------------------------ */
+
+const MAIN_CONCEPT_VIDEO_RE = /^\/generated\/.+\.mp4$/;
+
+test("mainConceptVideo exists with required fields", () => {
+  assert.ok(mainConceptVideo, "mainConceptVideo must be exported");
+  assert.equal(mainConceptVideo.type, "concept_demo");
+  assert.ok(mainConceptVideo.title.length > 0, "title must not be empty");
+  assert.ok(
+    mainConceptVideo.note.length > 0,
+    "note must not be empty (acts as concept-sample disclaimer)",
+  );
+  assert.ok(
+    mainConceptVideo.durationSec > 0,
+    "durationSec must be a positive number",
+  );
+  assert.equal(
+    mainConceptVideo.aspectRatio,
+    "9:16",
+    "concept video is expected to be vertical 9:16 (matches the captured 720x1280 source)",
+  );
+});
+
+test("mainConceptVideo.url points to /generated/*.mp4 (local concept asset)", () => {
+  assert.match(
+    mainConceptVideo.url,
+    MAIN_CONCEPT_VIDEO_RE,
+    `mainConceptVideo.url must live under /generated/ as a local mp4, got ${mainConceptVideo.url}`,
+  );
+});
+
+test("mainConceptVideo file actually exists in public/generated/", () => {
+  const repoRoot = process.cwd();
+  const localPath = join(repoRoot, "public", mainConceptVideo.url);
+  assert.ok(
+    existsSync(localPath),
+    `Expected concept video file to exist on disk at ${localPath}. ` +
+      "If you renamed it, update mainConceptVideo.url accordingly.",
+  );
+});
+
+test("finalOutputs main_30s uses the mainConceptVideo and is not a placeholder", () => {
+  const main = finalOutputs.find((o) => o.variant === "main_30s");
+  assert.ok(main, "main_30s output must exist");
+  assert.equal(
+    main!.videoUrl,
+    mainConceptVideo.url,
+    "main_30s.videoUrl must point to mainConceptVideo.url so the demo page shows the concept sample.",
+  );
+  assert.equal(
+    main!.isPlaceholder,
+    false,
+    "main_30s must no longer be flagged as placeholder once the concept video is wired in.",
+  );
+});
+
+test("finalOutputs ad_15s / cover variants stay flagged as placeholder with status note", () => {
+  for (const variant of ["ad_15s", "cover"] as const) {
+    const o = finalOutputs.find((x) => x.variant === variant);
+    assert.ok(o, `${variant} output must exist`);
+    assert.equal(
+      o!.isPlaceholder,
+      true,
+      `${variant} should remain placeholder until a real variant is wired in.`,
+    );
+    assert.ok(
+      o!.videoUrl === null,
+      `${variant} must keep videoUrl=null while it is still a placeholder.`,
+    );
+    assert.ok(
+      /coming next|sample variant|placeholder|示例占位|示例预览/i.test(
+        `${o!.badge} ${o!.description}`,
+      ),
+      `${variant} must visibly be marked as a coming-next / sample variant.`,
+    );
+  }
 });
 
 test("petGroomingSample exists with 4 beats and CTA", () => {
@@ -140,6 +223,45 @@ test("demo marketing surface does NOT contain forbidden phrases", () => {
       !haystack.includes(phrase.toLowerCase()),
       `Forbidden phrase "${phrase}" appeared in demo marketing data — review for compliance.`,
     );
+  }
+});
+
+/* ------------------------------------------------------------------ */
+/* Concept-demo over-promise wording guard                             */
+/* ------------------------------------------------------------------ */
+
+const CONCEPT_DEMO_OVER_PROMISE_PHRASES: ReadonlyArray<string> = [
+  "automatically generated end-to-end with no human review",
+  "guaranteed viral video",
+  "fully autonomous ad creation",
+  "fully autonomous viral video",
+  "this exact video was generated from the live wizard",
+  "ai copied a trending video",
+  "one-click finished commercial",
+];
+
+const DEMO_PAGE_FILES_TO_SCAN: ReadonlyArray<string> = [
+  "src/app/demo/real-footage-ads/page.tsx",
+  "src/app/demo/real-footage-ads/experience-client.tsx",
+  "src/components/demo/demo-hero.tsx",
+  "src/components/demo/final-output-section.tsx",
+  "src/components/demo/storyboard-grid.tsx",
+  "src/components/demo/phone-video-mockup.tsx",
+  "src/lib/demo/ai-video-workflow-demo-data.ts",
+];
+
+test("demo page source files do NOT contain over-promise concept-demo wording", () => {
+  const repoRoot = process.cwd();
+  for (const rel of DEMO_PAGE_FILES_TO_SCAN) {
+    const full = join(repoRoot, rel);
+    if (!existsSync(full)) continue;
+    const content = readFileSync(full, "utf8").toLowerCase();
+    for (const phrase of CONCEPT_DEMO_OVER_PROMISE_PHRASES) {
+      assert.ok(
+        !content.includes(phrase),
+        `Over-promise phrase "${phrase}" appeared in ${rel} — concept-demo wording must stay honest.`,
+      );
+    }
   }
 });
 

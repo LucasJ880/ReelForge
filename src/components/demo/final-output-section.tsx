@@ -22,12 +22,31 @@ export function FinalOutputSection() {
     <DemoSection
       id="final-output"
       eyebrow="第 7 步 · 最终输出"
-      title="基于你确认的脚本、分镜与上传素材自动生成的成片初稿。"
-      description="第一版展示的是预生成示例（sample preview）。所有视频位允许是占位（不会因为缺 mp4 崩页），后续接入 wizard 真实输出后会自动替换。"
+      title="Final concept video generated from the workflow"
+      description={
+        <>
+          <p>
+            This concept sample shows the kind of polished draft Aivora is
+            designed to produce after the customer confirms the script,
+            storyboard, footage, and QA results.
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground/85">
+            主视频是 concept sample，用来展示工作流走完后的成片质感；其它输出位
+            （15 秒广告版、封面图、平台文案）目前仍是 sample variant，会随
+            wizard 真实输出接入逐步替换。
+          </p>
+        </>
+      }
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        {main ? <FinalVideoCard output={main} accent="primary" /> : null}
+        {main ? (
+          <FinalVideoCard
+            output={main}
+            accent="primary"
+            primaryHighlight="Main concept video"
+          />
+        ) : null}
         {ad15 ? <FinalVideoCard output={ad15} accent="secondary" /> : null}
       </div>
 
@@ -67,9 +86,11 @@ export function FinalOutputSection() {
 function FinalVideoCard({
   output,
   accent,
+  primaryHighlight,
 }: {
   output: FinalOutputDemo;
   accent: "primary" | "secondary";
+  primaryHighlight?: string;
 }) {
   return (
     <div
@@ -84,6 +105,7 @@ function FinalVideoCard({
         size="md"
         videoUrl={output.videoUrl}
         posterUrl={output.posterUrl}
+        videoMode="preview"
         statusBadge={`${output.aspectRatio} · ${output.durationSec ?? "—"}s`}
         fallbackGradient={
           output.variant === "main_30s"
@@ -94,13 +116,26 @@ function FinalVideoCard({
         fallbackSubtitle={output.description.split(";")[0]}
       />
       <div className="flex flex-1 flex-col">
-        <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          {output.badge}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          {primaryHighlight ? (
+            <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              {primaryHighlight}
+            </span>
+          ) : null}
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            {output.badge}
+          </span>
+        </div>
         <h3 className="mt-3 text-xl font-semibold leading-snug">{output.title}</h3>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
           {output.description}
         </p>
+        {output.variant === "main_30s" && !output.isPlaceholder ? (
+          <p className="mt-2 text-xs text-muted-foreground/85">
+            The selected direction, script, storyboard and approved footage
+            lead to this final concept output.
+          </p>
+        ) : null}
         <ul className="mt-4 space-y-1.5 text-xs leading-5 text-muted-foreground">
           {output.notes.map((n) => (
             <li key={n} className="flex gap-2">

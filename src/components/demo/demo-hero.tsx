@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import {
   PRODUCT_WALKTHROUGH_VIDEO_URL,
+  mainConceptVideo,
   storyboardShots,
 } from "@/lib/demo/ai-video-workflow-demo-data";
 import { PhoneVideoMockup } from "./phone-video-mockup";
@@ -24,12 +25,17 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
             产品工作流体验 · 实时预览
           </div>
           <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-            把高表现的内容方向，翻译成你拿手机就能拍的原创视频。
+            Turn real footage into video drafts that local businesses can
+            actually use.
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
+            Aivora helps local businesses choose a proven creative direction,
+            generate scripts and storyboards, check their footage, and produce
+            a draft video faster.
+          </p>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground/85">
             输入目标，选择方向，按 AI 分镜拍摄素材，系统帮你质检并生成可发布的
-            视频初稿。这条页面是一次完整的产品体验：从客户输入到最终视频，按真实
-            生产步骤一步步走完。
+            视频初稿。
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -39,16 +45,16 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               {ctaPrimaryLabel} <ArrowRight size={16} />
             </Link>
             <a
-              href="#workflow"
+              href="#final-output"
               className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-white/5"
             >
-              查看生成流程
+              Watch the demo
             </a>
             <a
-              href="#final-output"
+              href="#workflow"
               className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-white/5"
             >
-              直接看最终成片
+              See the workflow
             </a>
           </div>
 
@@ -80,16 +86,18 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
           <div className="flex flex-col items-center gap-4">
             <PhoneVideoMockup
               size="lg"
-              videoUrl={null}
-              caption="North York 公寓 · 30 秒预览"
-              statusBadge="9:16 · 30 秒 · 示例预览"
+              videoUrl={mainConceptVideo.url}
+              posterUrl={mainConceptVideo.posterUrl}
+              videoMode="autoplay"
+              caption="Concept sample · 工作流走完后的成片质感"
+              statusBadge={`${mainConceptVideo.aspectRatio} · ${mainConceptVideo.durationLabel}`}
               fallbackGradient="from-emerald-500/30 via-sky-500/20 to-violet-500/25"
               fallbackTitle={heroShot.captionText}
               fallbackSubtitle={heroShot.voiceoverSegment}
             />
             <p className="max-w-xs text-center text-xs leading-5 text-muted-foreground">
-              首帧展示分镜 01 的画面意向。最终成片由你的脚本、分镜和审核通过的
-              素材自动拼装。
+              Concept sample · {mainConceptVideo.note} 最终成片由你的脚本、分镜
+              和审核通过的素材决定。
             </p>
           </div>
         </div>

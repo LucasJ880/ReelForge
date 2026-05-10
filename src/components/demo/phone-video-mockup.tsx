@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useState, type ReactNode } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +21,10 @@ interface PhoneVideoMockupProps {
   fallbackContent?: ReactNode;
   className?: string;
   size?: "sm" | "md" | "lg";
+  /// 视频展示模式：
+  ///   - "preview"（默认）：controls + 用户主动播放，适合 Final Output；
+  ///   - "autoplay"：muted + loop + autoPlay + 无控件，适合 Hero 静音环播。
+  videoMode?: "preview" | "autoplay";
 }
 
 const SIZE_CLASS = {
@@ -38,7 +44,12 @@ export function PhoneVideoMockup({
   fallbackContent,
   className,
   size = "md",
+  videoMode = "preview",
 }: PhoneVideoMockupProps) {
+  const [hasVideoError, setHasVideoError] = useState(false);
+  const showVideo = Boolean(videoUrl) && !hasVideoError;
+  const isAutoplay = videoMode === "autoplay";
+
   return (
     <div
       className={cn(
@@ -49,16 +60,22 @@ export function PhoneVideoMockup({
     >
       <div className="absolute inset-x-1/2 top-2 z-10 flex h-5 w-24 -translate-x-1/2 items-center justify-center rounded-full bg-black/70" />
       <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-black">
-        {videoUrl ? (
+        {showVideo ? (
           <video
+            key={videoUrl ?? "video"}
             className="h-full w-full object-cover"
-            src={videoUrl}
+            src={videoUrl ?? undefined}
             poster={posterUrl ?? undefined}
-            controls
+            controls={!isAutoplay}
             playsInline
             preload="metadata"
-            muted
-          />
+            muted={isAutoplay}
+            loop={isAutoplay}
+            autoPlay={isAutoplay}
+            onError={() => setHasVideoError(true)}
+          >
+            <track kind="captions" />
+          </video>
         ) : (
           <div
             className={cn(
@@ -95,8 +112,15 @@ export function PhoneVideoMockup({
                 </>
               )}
             </div>
-            <div className="w-full text-left text-[10px] uppercase tracking-[0.28em] text-white/55">
-              示例预览
+            <div className="w-full text-left">
+              <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">
+                {hasVideoError ? "Video preview unavailable" : "示例预览"}
+              </p>
+              {hasVideoError ? (
+                <p className="mt-2 text-[11px] leading-5 text-white/70">
+                  Use the workflow below to see how this output is produced.
+                </p>
+              ) : null}
             </div>
           </div>
         )}

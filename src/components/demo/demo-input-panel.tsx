@@ -17,9 +17,9 @@ const HUMAN_OPTIONS: ReadonlyArray<{
   key: DemoProjectInput["humanOnCamera"];
   label: string;
 }> = [
-  { key: "agent", label: "Agent on camera" },
-  { key: "ai_avatar", label: "AI avatar (with consent)" },
-  { key: "voiceover_only", label: "Voice-over only" },
+  { key: "agent", label: "经纪人本人出镜" },
+  { key: "ai_avatar", label: "AI 数字人（需授权）" },
+  { key: "voiceover_only", label: "仅画外音" },
 ];
 
 export function DemoInputPanel() {
@@ -33,12 +33,12 @@ export function DemoInputPanel() {
   return (
     <DemoSection
       id="input"
-      eyebrow="Step 1 · Customer input"
-      title="Tell the system what you want this video to do."
+      eyebrow="第 1 步 · 客户输入"
+      title="告诉系统这条视频要做什么、给谁看。"
       description={
         <span>
           这一步对应 <code className="rounded bg-white/5 px-1.5 py-0.5">/wizard/new</code>{" "}
-          的客户输入面板。下面是一组示例输入，点击 chip 仅切换 active 状态，
+          的客户输入面板。下面是一组示例输入，点击选项仅切换高亮状态，
           不会真正触发后端生成。
         </span>
       }
@@ -48,22 +48,22 @@ export function DemoInputPanel() {
         <div className="grid gap-4">
           <Field
             icon={<Building2 size={16} />}
-            label="Industry"
+            label="行业"
             value={demoProject.industryLabel}
           />
           <Field
             icon={<Target size={16} />}
-            label="Goal"
+            label="推广目标"
             value={demoProject.goalLabel}
           />
           <Field
             icon={<MapPin size={16} />}
-            label="City"
+            label="所在城市"
             value={demoProject.city}
           />
           <Field
             icon={<Sparkles size={16} />}
-            label="Key message"
+            label="核心信息"
             value={demoProject.keyMessage}
           />
         </div>
@@ -71,7 +71,7 @@ export function DemoInputPanel() {
         <div className="grid gap-5">
           <ChipsRow
             icon={<Globe2 size={16} />}
-            label="Platforms"
+            label="发布平台"
             chips={demoProject.platforms.map((p) => ({
               key: p.key,
               label: p.label,
@@ -84,10 +84,10 @@ export function DemoInputPanel() {
 
           <ChipsRow
             icon={<Camera size={16} />}
-            label="Has footage"
+            label="是否已有素材"
             chips={[
-              { key: "yes", label: "Yes", active: demoProject.hasFootage },
-              { key: "no", label: "No, plan a shoot", active: !demoProject.hasFootage },
+              { key: "yes", label: "已有素材", active: demoProject.hasFootage },
+              { key: "no", label: "暂无，需要安排拍摄", active: !demoProject.hasFootage },
             ]}
             onSelect={() => {
               /* visual only */
@@ -96,7 +96,7 @@ export function DemoInputPanel() {
 
           <ChipsRow
             icon={<Sparkles size={16} />}
-            label="Human on camera"
+            label="出镜方式"
             chips={HUMAN_OPTIONS.map((opt) => ({
               key: opt.key,
               label: opt.label,
@@ -107,10 +107,10 @@ export function DemoInputPanel() {
 
           <ChipsRow
             icon={<Sparkles size={16} />}
-            label="Video length"
+            label="视频时长"
             chips={VIDEO_LENGTH_OPTIONS.map((sec) => ({
               key: String(sec),
-              label: `${sec}s`,
+              label: `${sec} 秒`,
               active: length === sec,
             }))}
             onSelect={(key) =>
@@ -123,7 +123,7 @@ export function DemoInputPanel() {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        交互仅切换 UI active 状态 —— 第一版不接后端，避免误导客户认为已经在生成。
+        点击只会切换演示页的高亮状态 —— 第一版不接后端，避免误导客户以为已经在生成。
       </p>
     </DemoSection>
   );

@@ -7,9 +7,9 @@ export function PetGroomingExtensionSection() {
   return (
     <DemoSection
       id="pet-grooming"
-      eyebrow="Bonus · Industry extension"
-      title="Same workflow, different industry — pet grooming."
-      description="同一套流程也适用于 pet business / local services。下面的样片是真实合规的宠物店素材，仅用作行业扩展示例，不抢地产主线。"
+      eyebrow="行业扩展 · 不抢主线"
+      title="同一套工作流，换个行业：宠物美容。"
+      description="同样的流程也适用于宠物店、本地服务。下面的样片是真实合规的宠物店素材，仅用作行业扩展示例，不抢地产主线。"
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -17,15 +17,15 @@ export function PetGroomingExtensionSection() {
           size="lg"
           videoUrl={petGroomingSample.videoUrl}
           posterUrl={petGroomingSample.thumbnailUrl}
-          statusBadge={`${petGroomingSample.aspectRatio} · ${petGroomingSample.durationSec}s`}
+          statusBadge={`${petGroomingSample.aspectRatio} · ${petGroomingSample.durationSec} 秒`}
           fallbackGradient="from-amber-400/30 via-rose-500/20 to-violet-500/20"
           fallbackTitle={petGroomingSample.industryLabel}
-          fallbackSubtitle="Before / process / after / booking CTA"
+          fallbackSubtitle="洗护前 / 洗护流程 / 洗护后 / 预约 CTA"
         />
 
         <div className="rounded-3xl border border-white/10 bg-card/60 p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Storyboard beats
+            分镜节奏
           </p>
           <ol className="mt-3 space-y-3">
             {petGroomingSample.beats.map((beat) => (

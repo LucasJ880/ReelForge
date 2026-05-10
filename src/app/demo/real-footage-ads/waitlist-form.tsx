@@ -51,9 +51,9 @@ export function RealFootageWaitlistForm() {
   return (
     <form onSubmit={onSubmit} className="mt-6 grid gap-3">
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Name" name="name" placeholder="Evan Chen" required />
+        <Field label="姓名" name="name" placeholder="如：陈先生" required />
         <Field
-          label="Email"
+          label="邮箱"
           name="email"
           type="email"
           placeholder="you@company.com"
@@ -62,13 +62,13 @@ export function RealFootageWaitlistForm() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field
-          label="Business type"
+          label="行业 / 业务类型"
           name="businessType"
-          placeholder="DTC brand, local service, agency..."
+          placeholder="例如：地产经纪、宠物店、本地服务、代运营机构…"
           required
         />
         <label className="grid gap-2 text-sm">
-          <span className="text-muted-foreground">Monthly ad/video volume</span>
+          <span className="text-muted-foreground">每月发布的视频量</span>
           <select
             name="monthlyVolume"
             required
@@ -76,23 +76,23 @@ export function RealFootageWaitlistForm() {
             defaultValue=""
           >
             <option value="" disabled>
-              Select range
+              选择范围
             </option>
-            <option value="1-10">1-10 videos/month</option>
-            <option value="11-50">11-50 videos/month</option>
-            <option value="51-200">51-200 videos/month</option>
-            <option value="200+">200+ videos/month</option>
+            <option value="1-10">每月 1-10 条</option>
+            <option value="11-50">每月 11-50 条</option>
+            <option value="51-200">每月 51-200 条</option>
+            <option value="200+">每月 200 条以上</option>
           </select>
         </label>
       </div>
       <label className="grid gap-2 text-sm">
-        <span className="text-muted-foreground">Biggest pain point</span>
+        <span className="text-muted-foreground">最大的痛点是什么？</span>
         <textarea
           name="painPoint"
           required
           rows={4}
           maxLength={800}
-          placeholder="What makes short-form ad production slow or expensive today?"
+          placeholder="目前是什么环节最拖慢或最贵？例如：脚本拖太久、剪辑师排不开、不知道怎么拍。"
           className="resize-none rounded-2xl border border-white/12 bg-background/70 px-3 py-3 text-sm outline-none transition placeholder:text-muted-foreground/60 focus:border-primary"
         />
       </label>
@@ -102,7 +102,7 @@ export function RealFootageWaitlistForm() {
         className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
       >
         {state === "submitting" && <Loader2 size={16} className="animate-spin" />}
-        Request demo access
+        提交体验申请
       </button>
       {message && (
         <p

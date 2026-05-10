@@ -28,9 +28,9 @@ export function StoryboardGrid() {
   return (
     <DemoSection
       id="storyboard"
-      eyebrow="Step 5 · Storyboard / shooting guide"
-      title="6 shots a real estate agent can hand to a phone shooter."
-      description="每一张分镜卡都是一条可以直接打印出去拍的指令。包含拍什么、怎么拍、必拍 vs 可选、容易踩的坑。"
+      eyebrow="第 5 步 · 分镜与拍摄指导"
+      title="6 张可以直接交给经纪人或助理去拍的分镜卡。"
+      description="每张分镜卡都是一条可以打印出去对照拍的指令：拍什么、怎么拍、是否必拍、容易踩哪些坑。"
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -40,15 +40,14 @@ export function StoryboardGrid() {
       </div>
 
       <p className="mt-6 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-xs leading-5 text-muted-foreground">
-        Total: {storyboardShots.length} shots ·{" "}
-        {storyboardShots.reduce((sum, s) => sum + s.durationSec, 0)}s ·
-        {storyboardShots.filter((s) => s.requiredFlag).length} required ·
-        {storyboardShots.filter((s) => !s.requiredFlag).length} optional. Output
-        format aligned with{" "}
+        合计 {storyboardShots.length} 个镜头 · 总时长{" "}
+        {storyboardShots.reduce((sum, s) => sum + s.durationSec, 0)} 秒 · 必拍{" "}
+        {storyboardShots.filter((s) => s.requiredFlag).length} · 可选{" "}
+        {storyboardShots.filter((s) => !s.requiredFlag).length}。输出结构对齐{" "}
         <code className="rounded bg-white/5 px-1.5 py-0.5">
           ShootingGuideDoc
         </code>{" "}
-        (Phase 2).
+        （Phase 2）。
       </p>
     </DemoSection>
   );
@@ -84,7 +83,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
                 : "bg-white/10 text-white/85",
             )}
           >
-            {shot.requiredFlag ? "Required" : "Optional"}
+            {shot.requiredFlag ? "必拍" : "可选"}
           </span>
         </div>
 
@@ -98,7 +97,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
           <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
-            Shot {String(shot.sceneIndex).padStart(2, "0")} ·{" "}
+            镜头 {String(shot.sceneIndex).padStart(2, "0")} ·{" "}
             {shot.shotTypeLabel}
           </p>
           <h3 className="mt-1 text-sm font-semibold leading-snug">
@@ -107,13 +106,13 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
         </div>
 
         <div className="rounded-2xl bg-white/[0.04] p-3 text-xs leading-5">
-          <p className="font-medium text-foreground">Camera instruction</p>
+          <p className="font-medium text-foreground">运镜指令</p>
           <p className="mt-1 text-muted-foreground">{shot.cameraInstruction}</p>
         </div>
 
         {shot.voiceoverSegment ? (
           <div className="rounded-2xl bg-white/[0.04] p-3 text-xs leading-5">
-            <p className="font-medium text-foreground">Spoken line</p>
+            <p className="font-medium text-foreground">对应口播</p>
             <p className="mt-1 italic text-muted-foreground">
               “{shot.voiceoverSegment}”
             </p>
@@ -122,7 +121,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
 
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            Shooting requirements
+            拍摄要点
           </p>
           <ul className="mt-1.5 space-y-1 text-xs leading-5 text-muted-foreground">
             {shot.shootingRequirements.map((req) => (
@@ -138,14 +137,49 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
         </div>
 
         <div className="mt-auto flex flex-wrap gap-1.5 text-[10px]">
-          <Tag>{`${shot.composition.replace(/_/g, " ")}`}</Tag>
-          <Tag>{`${shot.cameraMovement.replace(/_/g, " ")}`}</Tag>
-          <Tag>{shot.orientation}</Tag>
-          {shot.humanRequired ? <Tag tone="primary">human required</Tag> : null}
+          <Tag>{compositionZh(shot.composition)}</Tag>
+          <Tag>{movementZh(shot.cameraMovement)}</Tag>
+          <Tag>{orientationZh(shot.orientation)}</Tag>
+          {shot.humanRequired ? <Tag tone="primary">需要真人出镜</Tag> : null}
         </div>
       </div>
     </article>
   );
+}
+
+const COMPOSITION_ZH: Record<string, string> = {
+  rule_of_thirds: "三分构图",
+  centered: "居中构图",
+  symmetrical: "对称构图",
+  leading_lines: "引导线",
+  frame_within_frame: "画中画",
+  negative_space: "留白",
+};
+
+const MOVEMENT_ZH: Record<string, string> = {
+  static: "静止",
+  pan: "横摇",
+  tilt: "俯仰",
+  push_in: "推进",
+  pull_out: "拉远",
+  tracking: "跟拍",
+  handheld: "手持",
+  gimbal: "稳定器",
+};
+
+function compositionZh(c: string): string {
+  return COMPOSITION_ZH[c] ?? c.replace(/_/g, " ");
+}
+
+function movementZh(m: string): string {
+  return MOVEMENT_ZH[m] ?? m.replace(/_/g, " ");
+}
+
+function orientationZh(o: string): string {
+  if (o === "portrait") return "竖屏";
+  if (o === "landscape") return "横屏";
+  if (o === "square") return "方屏";
+  return o;
 }
 
 function Tag({

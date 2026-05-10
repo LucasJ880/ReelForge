@@ -145,16 +145,21 @@ test("demo marketing surface does NOT contain forbidden phrases", () => {
 
 test("compliance disclaimers explicitly negate forbidden actions", () => {
   const disclaimers = [
-    ...COMPLIANCE_NOTES.map((n) => n.toLowerCase()),
-    REFERENCE_COMPLIANCE_TEXT.toLowerCase(),
+    ...COMPLIANCE_NOTES,
+    REFERENCE_COMPLIANCE_TEXT,
   ].join("\n");
-  /// 必须明确说明不做这些动作之一（rehost / copy third-party videos / take watermarks off）
+  /// 必须明确以否定形式提到 forbidden 动作（中文「不会 / 不复制 / 绝不照搬」均可）
   const negatedAtLeastOne =
-    disclaimers.includes("we do not download") ||
-    disclaimers.includes("we do not copy or rehost");
+    /不会下载/.test(disclaimers) ||
+    /不会自托管/.test(disclaimers) ||
+    /不会去水印/.test(disclaimers) ||
+    /不复制/.test(disclaimers) ||
+    /绝不照搬/.test(disclaimers) ||
+    /we do not download/i.test(disclaimers) ||
+    /we do not copy or rehost/i.test(disclaimers);
   assert.ok(
     negatedAtLeastOne,
-    "Compliance disclaimer must explicitly negate forbidden actions.",
+    "合规声明必须以否定形式明确说明不做哪些动作（如「不会下载/自托管/去水印/复制」）。",
   );
 });
 

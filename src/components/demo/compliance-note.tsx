@@ -14,10 +14,10 @@ export function ComplianceNote() {
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-emerald-300">
-              Compliance &amp; scope
+              合规边界
             </p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-              How we treat references, footage, and AI likeness.
+              关于参考视频、客户素材、AI 数字人的使用边界。
             </h2>
             <ul className="mt-5 grid gap-3 text-sm leading-6 text-muted-foreground sm:grid-cols-2">
               {COMPLIANCE_NOTES.map((note) => (

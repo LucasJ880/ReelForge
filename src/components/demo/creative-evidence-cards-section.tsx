@@ -18,8 +18,8 @@ export function CreativeEvidenceCardsSection({ selectedSlug, onSelect }: Props) 
   return (
     <DemoSection
       id="evidence-cards"
-      eyebrow="Step 2 · Creative direction"
-      title="3 data-backed directions, not random AI suggestions."
+      eyebrow="第 2 步 · 创意方向"
+      title="3 张「有数据支撑」的方向卡，不是 AI 拍脑袋的建议。"
       description="每张方向卡都基于一组高表现参考视频的结构信号生成。点击卡片切换默认方向，下方脚本与分镜的标签会跟着更新。"
       rightSlot={<SampleDataBadge />}
     >
@@ -78,11 +78,11 @@ function CardOption({
 
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
         <Stat
-          label="References"
+          label="参考视频数"
           value={`${card.publicMetrics.references}`}
         />
         <Stat
-          label={card.publicMetrics.averageViews ? "Avg views" : "Highest views"}
+          label={card.publicMetrics.averageViews ? "平均播放" : "最高播放"}
           value={
             card.publicMetrics.averageViews
               ? formatViews(card.publicMetrics.averageViews)
@@ -90,20 +90,20 @@ function CardOption({
           }
         />
         <Stat
-          label="Engagement"
+          label="互动率"
           value={`${card.publicMetrics.engagementRate?.toFixed(1) ?? "—"}%`}
         />
-        <Stat label="Hook type" value={card.hookPattern.hookType} />
+        <Stat label="Hook 类型" value={hookTypeZh(card.hookPattern.hookType)} />
       </div>
 
       <div className="mt-4 flex flex-wrap gap-1.5">
-        <Tag label={`Shoot · ${card.shootingDifficulty}`} tone="neutral" />
+        <Tag label={`拍摄难度 · ${zhDifficulty(card.shootingDifficulty)}`} tone="neutral" />
         <Tag
-          label={`Convert · ${card.conversionPotential}`}
+          label={`转化潜力 · ${zhDifficulty(card.conversionPotential)}`}
           tone={card.conversionPotential === "High" ? "positive" : "neutral"}
         />
         <Tag
-          label={`Trust · ${card.trustFactor}`}
+          label={`信任度 · ${zhDifficulty(card.trustFactor)}`}
           tone={card.trustFactor === "High" ? "positive" : "neutral"}
         />
       </div>
@@ -115,11 +115,32 @@ function CardOption({
       {selected ? (
         <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
           <CheckCircle2 size={12} />
-          Selected
+          已选中
         </span>
       ) : null}
     </button>
   );
+}
+
+function zhDifficulty(level: "Low" | "Medium" | "High"): string {
+  if (level === "Low") return "低";
+  if (level === "Medium") return "中";
+  return "高";
+}
+
+const HOOK_TYPE_ZH: Record<string, string> = {
+  POV: "第一视角",
+  Curiosity: "好奇心",
+  Stat: "数据反差",
+  Reveal: "结果揭晓",
+  Pain: "痛点",
+  Demo: "演示",
+  Question: "提问",
+  Authority: "权威背书",
+};
+
+function hookTypeZh(t: string): string {
+  return HOOK_TYPE_ZH[t] ?? t;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {

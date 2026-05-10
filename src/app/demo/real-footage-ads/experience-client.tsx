@@ -34,8 +34,8 @@ export function RealFootageDemoExperience({
 
   const ctaPrimaryHref = isAuthenticated ? "/wizard/new" : "#book-demo";
   const ctaPrimaryLabel = isAuthenticated
-    ? "Try the workflow"
-    : "Try the workflow";
+    ? "去试一遍真实流程"
+    : "申请体验";
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -74,14 +74,14 @@ export function RealFootageDemoExperience({
       >
         <div className="rounded-[2rem] border border-primary/25 bg-primary/[0.07] p-6 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-            Try it with your own footage
+            带上你的素材，让系统帮你跑一遍
           </p>
           <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-            Bring a goal and your real footage. We will run this workflow for you.
+            告诉我们你的目标，我们用这套流程帮你把素材跑成可发布的初稿。
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            告诉我们你做的是什么、你已经有多少素材，我们会把你加入下一轮 demo
-            cohort，按这个流程跑一遍真实输出。
+            告诉我们你做的是什么、你已经有多少素材，我们会把你加入下一轮 demo 队列，
+            按这个流程跑一遍真实输出。
           </p>
           {isAuthenticated ? (
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -89,13 +89,13 @@ export function RealFootageDemoExperience({
                 href="/wizard/new"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >
-                Start a real wizard run <ArrowRight size={14} />
+                直接开一个真实 wizard 项目 <ArrowRight size={14} />
               </Link>
               <a
                 href="#book-demo"
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
-                Or just leave us a note below.
+                或者在下方表单里留个联系方式。
               </a>
             </div>
           ) : null}
@@ -117,7 +117,7 @@ function NavBar() {
           <div>
             <p className="text-sm font-semibold leading-none">Aivora</p>
             <p className="text-[11px] text-muted-foreground">
-              AI video workflow demo
+              AI 视频工作流 · 产品体验
             </p>
           </div>
         </Link>
@@ -126,19 +126,19 @@ function NavBar() {
             href="#workflow"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
           >
-            Workflow
+            生成流程
           </a>
           <a
             href="#final-output"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
           >
-            Final output
+            最终成片
           </a>
           <a
             href="#book-demo"
             className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-[0_0_35px_rgba(92,255,214,0.16)] transition hover:opacity-90"
           >
-            Book demo
+            申请体验
           </a>
         </div>
       </nav>

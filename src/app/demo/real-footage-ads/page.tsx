@@ -4,9 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { RealFootageDemoExperience } from "./experience-client";
 
 export const metadata: Metadata = {
-  title: "Aivora · AI video workflow demo",
+  title: "Aivora · AI 视频工作流体验",
   description:
-    "Walk through Aivora's data-backed creative direction → AI script → storyboard / shooting guide → asset QA → final video draft. Sample data, no real client account.",
+    "完整体验一遍 Aivora 的生产工作流：客户输入 → 数据支撑的创意方向 → AI 脚本 → 分镜与拍摄指导 → 素材质检 → 最终成片。页面数据均为示例（sample data），不代表任何真实客户。",
 };
 
 /**

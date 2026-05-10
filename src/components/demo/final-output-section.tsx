@@ -21,9 +21,9 @@ export function FinalOutputSection() {
   return (
     <DemoSection
       id="final-output"
-      eyebrow="Step 7 · Final output"
-      title="Final draft generated from your approved script, storyboard and uploaded footage."
-      description="第一版主体验展示的是预生成 sample preview。所有视频位都允许是 placeholder（不会因为缺 mp4 崩页），后续接入 wizard 真实输出后会自动替换。"
+      eyebrow="第 7 步 · 最终输出"
+      title="基于你确认的脚本、分镜与上传素材自动生成的成片初稿。"
+      description="第一版展示的是预生成示例（sample preview）。所有视频位允许是占位（不会因为缺 mp4 崩页），后续接入 wizard 真实输出后会自动替换。"
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
@@ -35,7 +35,7 @@ export function FinalOutputSection() {
         {cover ? <CoverCard output={cover} /> : null}
         <div className="rounded-3xl border border-white/10 bg-card/60 p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            Platform variants
+            各平台版本
           </p>
           <ul className="mt-3 grid gap-3 sm:grid-cols-3">
             {captionVariants.map((variant) => (
@@ -120,13 +120,13 @@ function CoverCard({ output }: { output: FinalOutputDemo }) {
       <div className="aspect-9/16 max-h-72 w-full bg-gradient-to-br from-emerald-400/30 via-sky-500/15 to-transparent">
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-white">
           <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">
-            Cover · 9:16
+            封面 · 9:16
           </p>
           <p className="text-base font-semibold leading-snug">
-            北 York Condo · Sample cover
+            North York 公寓 · 示例封面
           </p>
           <p className="text-[10px] text-white/70">
-            Auto-pulled from Shot 02 frame
+            自动取自镜头 02 静帧
           </p>
         </div>
       </div>

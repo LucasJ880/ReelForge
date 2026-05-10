@@ -96,7 +96,7 @@ export function PhoneVideoMockup({
               )}
             </div>
             <div className="w-full text-left text-[10px] uppercase tracking-[0.28em] text-white/55">
-              Sample render preview
+              示例预览
             </div>
           </div>
         )}

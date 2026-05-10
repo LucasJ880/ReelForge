@@ -21,11 +21,10 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles size={14} />
-            Live product workflow preview
+            产品工作流体验 · 实时预览
           </div>
           <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-            Turn proven creative patterns into original videos using your real
-            footage.
+            把高表现的内容方向，翻译成你拿手机就能拍的原创视频。
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
             输入目标，选择方向，按 AI 分镜拍摄素材，系统帮你质检并生成可发布的
@@ -43,26 +42,26 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               href="#workflow"
               className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-white/5"
             >
-              See the generation flow
+              查看生成流程
             </a>
             <a
               href="#final-output"
               className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-white/5"
             >
-              Jump to final video
+              直接看最终成片
             </a>
           </div>
 
           <dl className="mt-10 grid max-w-xl grid-cols-3 gap-3">
-            <HeroStat label="Creative directions" value="3" />
-            <HeroStat label="Storyboard shots" value="6" />
-            <HeroStat label="Output variants" value="6" />
+            <HeroStat label="创意方向" value="3" />
+            <HeroStat label="分镜镜头" value="6" />
+            <HeroStat label="输出版本" value="6" />
           </dl>
 
           {PRODUCT_WALKTHROUGH_VIDEO_URL ? (
             <div className="mt-8 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
-                Optional 60s product walkthrough video
+                可选 · 60 秒产品 walkthrough
               </span>
               <a
                 href={PRODUCT_WALKTHROUGH_VIDEO_URL}
@@ -70,7 +69,7 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
                 rel="noreferrer"
                 className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition hover:bg-white/10"
               >
-                Watch <ArrowRight size={12} />
+                播放 <ArrowRight size={12} />
               </a>
             </div>
           ) : null}
@@ -82,15 +81,15 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
             <PhoneVideoMockup
               size="lg"
               videoUrl={null}
-              caption="North York condo · 30s preview"
-              statusBadge="9:16 · 30s · sample render"
+              caption="North York 公寓 · 30 秒预览"
+              statusBadge="9:16 · 30 秒 · 示例预览"
               fallbackGradient="from-emerald-500/30 via-sky-500/20 to-violet-500/25"
               fallbackTitle={heroShot.captionText}
               fallbackSubtitle={heroShot.voiceoverSegment}
             />
             <p className="max-w-xs text-center text-xs leading-5 text-muted-foreground">
-              First frame previews Shot 01 of the storyboard. Final video is
-              assembled from your script, storyboard, and approved footage.
+              首帧展示分镜 01 的画面意向。最终成片由你的脚本、分镜和审核通过的
+              素材自动拼装。
             </p>
           </div>
         </div>

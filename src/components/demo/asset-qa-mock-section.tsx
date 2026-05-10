@@ -19,22 +19,22 @@ const STATUS_CONFIG: Record<
   { label: string; color: string; icon: React.ReactNode }
 > = {
   USABLE: {
-    label: "Usable",
+    label: "可用",
     color: "bg-emerald-500/15 text-emerald-200 border-emerald-400/30",
     icon: <CheckCircle2 size={14} />,
   },
   BARELY_USABLE: {
-    label: "Barely usable",
+    label: "勉强可用",
     color: "bg-amber-500/15 text-amber-200 border-amber-400/30",
     icon: <AlertCircle size={14} />,
   },
   RETAKE_RECOMMENDED: {
-    label: "Retake recommended",
+    label: "建议重拍",
     color: "bg-orange-500/15 text-orange-200 border-orange-400/30",
     icon: <AlertCircle size={14} />,
   },
   MISSING: {
-    label: "Missing",
+    label: "缺失",
     color: "bg-rose-500/15 text-rose-200 border-rose-400/30",
     icon: <XCircle size={14} />,
   },
@@ -44,20 +44,20 @@ export function AssetQAMockSection() {
   return (
     <DemoSection
       id="asset-qa"
-      eyebrow="Step 6 · Asset QA"
-      title="Each clip is checked against the storyboard before render."
-      description="规则 + AI vision 的混合质检：分辨率、方向、抖动、亮度、是否匹配必拍镜头。这里展示的是 mock 结果，第一版 UI 不接真实上传。"
+      eyebrow="第 6 步 · 素材质检"
+      title="每段素材在出片前都会按分镜核对一次。"
+      description="规则 + AI vision 的混合质检：分辨率、方向、抖动、亮度，以及是否匹配必拍镜头。下面是 mock 结果，第一版 UI 不接真实上传。"
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
         <UploadDropzone />
         <div className="overflow-hidden rounded-3xl border border-white/10 bg-card/60">
           <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_1.5fr] gap-3 border-b border-white/10 bg-white/[0.03] px-4 py-3 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <span>Asset · matched shot</span>
-            <span>Status</span>
-            <span>Orientation</span>
-            <span>Scores</span>
-            <span>Reason / suggestion</span>
+            <span>素材 · 匹配镜头</span>
+            <span>状态</span>
+            <span>方向</span>
+            <span>评分</span>
+            <span>原因 / 建议</span>
           </div>
           <ul className="divide-y divide-white/5">
             {assetQAResults.map((row) => (
@@ -78,9 +78,9 @@ function UploadDropzone() {
           <CloudUpload size={22} />
         </div>
         <div>
-          <p className="text-sm font-semibold">Upload your real footage</p>
+          <p className="text-sm font-semibold">上传你拍的真实素材</p>
           <p className="text-xs text-muted-foreground">
-            Drop clips per storyboard shot. Mock UI — does not actually upload.
+            按分镜逐个上传素材。当前为示例 UI，不会真正上传。
           </p>
         </div>
       </div>
@@ -111,7 +111,7 @@ function UploadDropzone() {
                     : "bg-emerald-500/15 text-emerald-200",
                 )}
               >
-                {isMissing ? "Required · missing" : "Uploaded"}
+                {isMissing ? "必拍 · 缺失" : "已上传"}
               </span>
             </li>
           );
@@ -131,12 +131,12 @@ function QARow({ row }: { row: AssetQAResultDemo }) {
         <p className="font-medium">{row.assetName}</p>
         <p className="mt-1 text-[11px] text-muted-foreground">
           {row.matchedSceneIndex
-            ? `Matched · Shot ${String(row.matchedSceneIndex).padStart(2, "0")}`
-            : "No matched shot"}
+            ? `匹配 · 镜头 ${String(row.matchedSceneIndex).padStart(2, "0")}`
+            : "未匹配到分镜"}
         </p>
         {row.isCoverCandidate ? (
           <span className="mt-1 inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] text-primary">
-            <ImageIcon size={10} /> Cover candidate
+            <ImageIcon size={10} /> 候选封面
           </span>
         ) : null}
       </div>
@@ -153,16 +153,18 @@ function QARow({ row }: { row: AssetQAResultDemo }) {
         </span>
       </div>
 
-      <div className="capitalize text-muted-foreground">{row.orientation}</div>
+      <div className="capitalize text-muted-foreground">
+        {orientationZh(row.orientation)}
+      </div>
 
       <div>
         {isMissing ? (
           <span className="text-muted-foreground">—</span>
         ) : (
           <div className="space-y-1.5">
-            <ScoreBar label="Clarity" value={row.scores.clarity} />
-            <ScoreBar label="Lighting" value={row.scores.lighting} />
-            <ScoreBar label="Stability" value={row.scores.stability} />
+            <ScoreBar label="清晰度" value={row.scores.clarity} />
+            <ScoreBar label="光线" value={row.scores.lighting} />
+            <ScoreBar label="稳定度" value={row.scores.stability} />
           </div>
         )}
       </div>
@@ -184,6 +186,13 @@ function QARow({ row }: { row: AssetQAResultDemo }) {
       </div>
     </li>
   );
+}
+
+function orientationZh(o: AssetQAResultDemo["orientation"]): string {
+  if (o === "portrait") return "竖屏";
+  if (o === "landscape") return "横屏";
+  if (o === "square") return "方屏";
+  return "未知";
 }
 
 function ScoreBar({ label, value }: { label: string; value: number }) {

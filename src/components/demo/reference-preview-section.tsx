@@ -19,8 +19,8 @@ export function ReferencePreviewSection({ selectedSlug }: Props) {
   return (
     <DemoSection
       id="references"
-      eyebrow="Step 3 · Reference signals"
-      title="High-performing reference patterns we learned from."
+      eyebrow="第 3 步 · 参考视频信号"
+      title="我们学习的「高表现内容模式」。"
       description={
         <span>
           {REFERENCE_COMPLIANCE_TEXT}
@@ -67,22 +67,22 @@ function ReferenceCard({
             {preview.thumbnailPlaceholderLabel}
           </p>
           <p className="text-[10px] leading-4 text-muted-foreground/70">
-            Thumbnail intentionally not rehosted.
+            缩略图不做自托管，仅显示占位。
           </p>
         </div>
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur">
           {preview.platform}
         </span>
-        <SampleDataBadge label="Sample" />
+        <SampleDataBadge label="示例" />
       </div>
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <p className="text-sm leading-6">{preview.caption}</p>
 
         <div className="grid grid-cols-3 gap-2 text-xs">
-          <Metric icon={<Eye size={12} />} label="Views" value={formatNum(preview.metrics.views)} />
-          <Metric icon={<Heart size={12} />} label="Likes" value={formatNum(preview.metrics.likes)} />
-          <Metric icon={<Share2 size={12} />} label="Shares" value={formatNum(preview.metrics.shares)} />
+          <Metric icon={<Eye size={12} />} label="播放" value={formatNum(preview.metrics.views)} />
+          <Metric icon={<Heart size={12} />} label="点赞" value={formatNum(preview.metrics.likes)} />
+          <Metric icon={<Share2 size={12} />} label="分享" value={formatNum(preview.metrics.shares)} />
         </div>
 
         <ul className="mt-1 space-y-1.5 text-xs leading-5 text-muted-foreground">
@@ -134,9 +134,9 @@ function DisabledViewOriginal({
     return (
       <span
         className="inline-flex cursor-not-allowed items-center gap-1 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[11px] font-medium text-muted-foreground/70"
-        title="External link disabled in sample preview."
+        title="示例预览中外链已禁用"
       >
-        <ExternalLink size={12} /> View original
+        <ExternalLink size={12} /> 查看原视频
       </span>
     );
   }
@@ -147,7 +147,7 @@ function DisabledViewOriginal({
       rel="noreferrer noopener"
       className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-foreground transition hover:bg-white/10"
     >
-      <ExternalLink size={12} /> View original
+      <ExternalLink size={12} /> 查看原视频
     </a>
   );
 }

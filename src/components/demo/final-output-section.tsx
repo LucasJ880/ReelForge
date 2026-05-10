@@ -1,3 +1,4 @@
+import { Hourglass } from "lucide-react";
 import {
   finalOutputs,
   type FinalOutputDemo,
@@ -5,141 +6,106 @@ import {
 import { DemoSection, SampleDataBadge } from "./demo-section";
 import { PhoneVideoMockup } from "./phone-video-mockup";
 
-const VIDEO_VARIANTS: ReadonlyArray<FinalOutputDemo["variant"]> = [
-  "main_30s",
-  "ad_15s",
-];
+const VARIANT_LABEL: Record<FinalOutputDemo["variant"], string> = {
+  main_30s: "30 秒主版本",
+  ad_15s: "15 秒广告版",
+  cover: "封面图",
+  tiktok_caption: "TikTok 文案",
+  reels_caption: "Reels 文案",
+  shorts_caption: "Shorts 文案",
+};
 
+/**
+ * 房地产工作流的最终输出区。
+ *
+ * 当前状态：房地产真实成片仍在制作中，整个 final output 区都按 placeholder
+ * 渲染。30 秒主版本（main_30s）作为视觉焦点占据主卡；15 秒广告版、封面图、
+ * 平台文案降级为小号 secondary chips 列在主卡下方，避免和主卡同等视觉权重。
+ *
+ * 房地产样片做好后只要把 main_30s.videoUrl 接上即可，UI 不需要改。
+ *
+ * 注意：本地毛毯 / 家居用品的概念样片不应该出现在这一段，它属于下方的
+ * LocalProductSampleSection。
+ */
 export function FinalOutputSection() {
   const main = finalOutputs.find((o) => o.variant === "main_30s");
-  const ad15 = finalOutputs.find((o) => o.variant === "ad_15s");
-  const cover = finalOutputs.find((o) => o.variant === "cover");
-  const captionVariants = finalOutputs.filter(
-    (o) => !VIDEO_VARIANTS.includes(o.variant) && o.variant !== "cover",
-  );
+  const secondary = finalOutputs.filter((o) => o.variant !== "main_30s");
 
   return (
     <DemoSection
       id="final-output"
-      eyebrow="第 7 步 · 最终输出"
-      title="工作流走完后产出的概念样片。"
+      eyebrow="第 7 步 · 房地产工作流 · 最终输出"
+      title="房地产样片位：North York Condo 视频即将接入。"
       description={
         <>
           <p>
-            这条概念样片（concept sample）展示的是：客户在工作流里确认完
-            脚本、分镜、素材与质检结果之后，Aivora 设计目标要产出的成片质感。
+            当前页面先展示完整的房地产工作流：从客户输入、创意证据卡、参考结构、
+            AI 脚本、分镜，到素材质检。最终的房地产 30 秒主版本仍在制作中，
+            做好后会直接替换下方占位卡。
           </p>
           <p className="mt-2 text-xs text-muted-foreground/85">
-            主视频是概念样片，用来展示工作流跑完后的成片风格；其它输出位
-            （15 秒广告版、封面图、平台文案）目前仍是占位 sample，会随 wizard
-            真实输出接入逐步替换。
+            想先看一段「同一套工作流跑完后能产出的成片风格」？往下滑一段，看
+            本地毛毯产品商家的真实概念样片。
           </p>
         </>
       }
-      rightSlot={<SampleDataBadge />}
+      rightSlot={<SampleDataBadge label="Coming next" />}
     >
-      <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-        {main ? (
-          <FinalVideoCard
-            output={main}
-            accent="primary"
-            primaryHighlight="主概念样片"
-          />
-        ) : null}
-        {ad15 ? <FinalVideoCard output={ad15} accent="secondary" /> : null}
-      </div>
+      {main ? <MainPlaceholderCard output={main} /> : null}
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-[0.9fr_2.1fr]">
-        {cover ? <CoverCard output={cover} /> : null}
-        <div className="rounded-3xl border border-white/10 bg-card/60 p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            各平台版本
+      <div className="mt-6 rounded-3xl border border-white/10 bg-card/50 p-5 sm:p-6">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            其它配套输出 · 同样 Coming next
           </p>
-          <ul className="mt-3 grid gap-3 sm:grid-cols-3">
-            {captionVariants.map((variant) => (
-              <li
-                key={variant.variant}
-                className="rounded-2xl bg-white/[0.04] p-4 text-xs leading-5"
-              >
-                <p className="text-sm font-semibold">{variant.title}</p>
-                <p className="mt-1 text-muted-foreground">
-                  {variant.description}
-                </p>
-                <ul className="mt-2 space-y-1 text-muted-foreground">
-                  {variant.notes.map((n) => (
-                    <li key={n} className="flex gap-1.5">
-                      <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
-                      <span>{n}</span>
-                    </li>
-                  ))}
-                </ul>
-              </li>
-            ))}
-          </ul>
+          <p className="text-[11px] text-muted-foreground/80">
+            主版本接入后，下列配套输出会按相同方向自动生成
+          </p>
         </div>
+        <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+          {secondary.map((variant) => (
+            <SecondaryChip key={variant.variant} output={variant} />
+          ))}
+        </ul>
       </div>
     </DemoSection>
   );
 }
 
-function FinalVideoCard({
-  output,
-  accent,
-  primaryHighlight,
-}: {
-  output: FinalOutputDemo;
-  accent: "primary" | "secondary";
-  primaryHighlight?: string;
-}) {
+function MainPlaceholderCard({ output }: { output: FinalOutputDemo }) {
   return (
-    <div
-      className={
-        "flex flex-col gap-5 overflow-hidden rounded-[2rem] border bg-card/70 p-6 sm:flex-row " +
-        (accent === "primary"
-          ? "border-primary/40 ring-1 ring-primary/20"
-          : "border-white/10")
-      }
-    >
+    <div className="flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-primary/40 bg-card/70 p-5 ring-1 ring-primary/20 sm:p-6 lg:grid lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
       <PhoneVideoMockup
         size="md"
         videoUrl={output.videoUrl}
         posterUrl={output.posterUrl}
         videoMode="preview"
         statusBadge={`${output.aspectRatio} · ${output.durationSec ?? "—"}s`}
-        fallbackGradient={
-          output.variant === "main_30s"
-            ? "from-emerald-400/30 via-sky-500/20 to-violet-500/25"
-            : "from-rose-500/25 via-amber-400/15 to-emerald-400/20"
-        }
+        fallbackGradient="from-emerald-400/30 via-sky-500/20 to-violet-500/25"
         fallbackTitle={output.title}
-        fallbackSubtitle={output.description.split(";")[0]}
+        fallbackSubtitle="房地产样片做好后会直接接入这里"
       />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-2">
-          {primaryHighlight ? (
-            <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              {primaryHighlight}
-            </span>
-          ) : null}
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-white/[0.05] px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+            房地产主版本 · Coming next
+          </span>
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-400/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-200">
+            <Hourglass size={11} />
             {output.badge}
           </span>
         </div>
-        <h3 className="mt-3 text-xl font-semibold leading-snug">{output.title}</h3>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+        <h3 className="mt-3 text-lg font-semibold leading-snug sm:text-xl">
+          {output.title}
+        </h3>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground wrap-break-word">
           {output.description}
         </p>
-        {output.variant === "main_30s" && !output.isPlaceholder ? (
-          <p className="mt-2 text-xs text-muted-foreground/85">
-            选定方向、确认脚本、生成分镜、质检素材——工作流走完，产出的就是
-            这条概念样片。
-          </p>
-        ) : null}
         <ul className="mt-4 space-y-1.5 text-xs leading-5 text-muted-foreground">
           {output.notes.map((n) => (
             <li key={n} className="flex gap-2">
               <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
-              <span>{n}</span>
+              <span className="wrap-break-word">{n}</span>
             </li>
           ))}
         </ul>
@@ -148,28 +114,24 @@ function FinalVideoCard({
   );
 }
 
-function CoverCard({ output }: { output: FinalOutputDemo }) {
+function SecondaryChip({ output }: { output: FinalOutputDemo }) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-white/10 bg-card/70">
-      <div className="aspect-9/16 max-h-72 w-full bg-gradient-to-br from-emerald-400/30 via-sky-500/15 to-transparent">
-        <div className="flex h-full w-full flex-col items-center justify-center gap-2 p-4 text-white">
-          <p className="text-[10px] uppercase tracking-[0.28em] text-white/55">
-            封面 · 9:16
-          </p>
-          <p className="text-base font-semibold leading-snug">
-            North York 公寓 · 示例封面
-          </p>
-          <p className="text-[10px] text-white/70">
-            自动取自镜头 02 静帧
-          </p>
-        </div>
+    <li className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/90">
+          {VARIANT_LABEL[output.variant]}
+        </span>
+        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-200">
+          <Hourglass size={9} />
+          Coming next
+        </span>
       </div>
-      <div className="p-4">
-        <p className="text-sm font-semibold">{output.title}</p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          {output.description}
-        </p>
-      </div>
-    </div>
+      <p className="text-[11px] font-medium leading-snug text-foreground/90 wrap-break-word">
+        {output.title}
+      </p>
+      <p className="text-[11px] leading-4 text-muted-foreground wrap-break-word">
+        {output.notes[0] ?? output.description}
+      </p>
+    </li>
   );
 }

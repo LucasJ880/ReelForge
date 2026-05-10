@@ -3,7 +3,6 @@ import { ArrowRight, Sparkles } from "lucide-react";
 import {
   PRODUCT_WALKTHROUGH_VIDEO_URL,
   mainConceptVideo,
-  storyboardShots,
 } from "@/lib/demo/ai-video-workflow-demo-data";
 import { PhoneVideoMockup } from "./phone-video-mockup";
 
@@ -13,8 +12,6 @@ interface DemoHeroProps {
 }
 
 export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
-  const heroShot = storyboardShots[0];
-
   return (
     <section className="relative isolate overflow-hidden">
       <div className="pointer-events-none absolute inset-0 -z-10 ambient-glow" />
@@ -32,8 +29,9 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
             质检你的素材，把工作流跑完——产出右边这种风格的成片初稿。
           </p>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground/85">
-            输入目标，选择方向，按 AI 分镜拍摄素材，系统帮你质检并生成可发布的
-            视频初稿。
+            页面包含两个案例：上半段走完整的房地产 North York condo workflow（最终
+            房地产样片做好后会接入页面中段）；下半段展示一段本地毛毯产品商家的
+            真实概念样片，证明同一套流程也能服务本地产品商家。
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -43,16 +41,16 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               {ctaPrimaryLabel} <ArrowRight size={16} />
             </Link>
             <a
-              href="#final-output"
+              href="#local-product-sample"
               className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-white/5"
             >
-              先看 Demo 样片
+              观看样片
             </a>
             <a
               href="#workflow"
               className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-white/5"
             >
-              查看完整流程
+              查看生成流程
             </a>
           </div>
 
@@ -63,7 +61,7 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
           </dl>
 
           {PRODUCT_WALKTHROUGH_VIDEO_URL ? (
-            <div className="mt-8 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-muted-foreground">
+            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
                 可选 · 60 秒产品 walkthrough
               </span>
@@ -87,15 +85,16 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               videoUrl={mainConceptVideo.url}
               posterUrl={mainConceptVideo.posterUrl}
               videoMode="autoplay"
-              caption="概念样片 · 工作流走完后的成片质感"
+              caption="本地毛毯概念样片 · 同一套工作流的成片质感"
               statusBadge={`${mainConceptVideo.aspectRatio} · ${mainConceptVideo.durationLabel}`}
-              fallbackGradient="from-emerald-500/30 via-sky-500/20 to-violet-500/25"
-              fallbackTitle={heroShot.captionText}
-              fallbackSubtitle={heroShot.voiceoverSegment}
+              fallbackGradient="from-amber-400/30 via-rose-500/20 to-violet-500/25"
+              fallbackTitle={mainConceptVideo.title}
+              fallbackSubtitle="痛点 · 材质 · 使用场景 · 卖点 · CTA"
             />
             <p className="max-w-xs text-center text-xs leading-5 text-muted-foreground">
-              概念样片（concept sample）：用来展示工作流跑完后的成片风格。最终
-              成片由你的脚本、分镜和审核通过的素材决定。
+              这条概念样片来自本地毛毯 / 家居用品商家方向，展示工作流跑完后能产出
+              的成片风格。房地产 North York condo 的最终样片仍在制作中，做好后会
+              接入页面中段的「房地产 · 最终输出」位。
             </p>
           </div>
         </div>

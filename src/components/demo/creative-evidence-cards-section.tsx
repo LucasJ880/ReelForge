@@ -60,13 +60,31 @@ function CardOption({
       )}
       aria-pressed={selected}
     >
+      {/* Top header row：左 = 标签 + 选中态徽标（独立 flex 容器，避免与右侧 score chip 重叠）；右 = score chip。 */}
       <div className="flex items-start justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-          {card.tags[0]}
-        </p>
-        <div className="flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-200">
+        <div
+          data-testid="evidence-card-left-badges"
+          className="flex min-w-0 flex-wrap items-center gap-2"
+        >
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+            {card.tags[0]}
+          </p>
+          {selected ? (
+            <span
+              data-testid="evidence-card-selected-badge"
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary"
+            >
+              <CheckCircle2 size={11} />
+              已选中
+            </span>
+          ) : null}
+        </div>
+        <div
+          data-testid="evidence-card-score-chip"
+          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-200"
+        >
           <Sparkles size={12} />
-          {card.recommendationScore}
+          <span className="font-mono tabular-nums">{card.recommendationScore}</span>
         </div>
       </div>
 
@@ -108,16 +126,12 @@ function CardOption({
         />
       </div>
 
-      <p className="mt-4 rounded-2xl bg-white/[0.04] p-3 text-xs leading-5 text-muted-foreground">
-        <TrendingUp size={12} className="mb-1 inline text-primary" /> {card.whyItWorks}
-      </p>
-
-      {selected ? (
-        <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary">
-          <CheckCircle2 size={12} />
-          已选中
+      <p className="mt-auto pt-4">
+        <span className="block rounded-2xl bg-white/[0.04] p-3 text-xs leading-5 text-muted-foreground">
+          <TrendingUp size={12} className="mb-0.5 mr-1 inline text-primary" />
+          {card.whyItWorks}
         </span>
-      ) : null}
+      </p>
     </button>
   );
 }

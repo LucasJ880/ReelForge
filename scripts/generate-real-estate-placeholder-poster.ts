@@ -1,0 +1,151 @@
+/**
+ * 生成房地产 final output placeholder 的 9:16 静态 poster。
+ *
+ * - 源：内嵌 SVG（中文 utf-8）
+ * - 输出：
+ *     public/generated/aivora-real-estate-main-30s-placeholder-2026-05.svg
+ *     public/generated/aivora-real-estate-main-30s-placeholder-2026-05.jpg
+ *
+ * 用法：
+ *   tsx scripts/generate-real-estate-placeholder-poster.ts
+ *
+ * 这是 demo page UI polish 的一次性生成脚本。Demo data 里的 posterUrl 指向
+ * 生成出来的 jpg；svg 也保留为可读源，方便后续修文案时直接编辑后重新跑。
+ */
+
+import { mkdirSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import sharp from "sharp";
+
+const REPO_ROOT = resolve(__dirname, "..");
+const OUT_BASENAME = "aivora-real-estate-main-30s-placeholder-2026-05";
+const SVG_PATH = resolve(
+  REPO_ROOT,
+  `public/generated/${OUT_BASENAME}.svg`,
+);
+const JPG_PATH = resolve(
+  REPO_ROOT,
+  `public/generated/${OUT_BASENAME}.jpg`,
+);
+
+const SVG = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="1280" viewBox="0 0 720 1280" role="img" aria-label="North York Condo · 30 秒主版本即将接入">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0a1a2a"/>
+      <stop offset="0.45" stop-color="#0e2a3a"/>
+      <stop offset="1" stop-color="#1a1330"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="38%" r="55%">
+      <stop offset="0" stop-color="#5cffd6" stop-opacity="0.32"/>
+      <stop offset="0.55" stop-color="#5cffd6" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#5cffd6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="14"/>
+    </filter>
+    <style>
+      .zh { font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans CN", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; }
+      .en { font-family: "Inter", "SF Pro Display", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif; letter-spacing: -0.01em; }
+      .mono { font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace; }
+    </style>
+  </defs>
+
+  <rect width="720" height="1280" fill="url(#bg)"/>
+  <circle cx="360" cy="430" r="360" fill="url(#halo)" filter="url(#soft)"/>
+
+  <g transform="translate(48,56)">
+    <rect rx="999" ry="999" width="170" height="44" fill="#000" fill-opacity="0.45"/>
+    <text x="22" y="29" class="mono" font-size="16" fill="#e7eaf2" letter-spacing="2.4">9:16 · 30s</text>
+  </g>
+
+  <g transform="translate(420,56)">
+    <rect rx="999" ry="999" width="252" height="44" fill="#f59e0b" fill-opacity="0.18" stroke="#f4c430" stroke-opacity="0.55"/>
+    <circle cx="22" cy="22" r="6" fill="#f4c430"/>
+    <text x="40" y="29" class="en" font-size="14" fill="#f4d36e" letter-spacing="3.5" font-weight="600">COMING NEXT</text>
+  </g>
+
+  <g transform="translate(72,200)">
+    <rect rx="36" ry="36" width="576" height="880" fill="url(#card)" stroke="#ffffff" stroke-opacity="0.10"/>
+
+    <g transform="translate(48,68)">
+      <rect rx="6" ry="6" width="12" height="12" fill="#5cffd6"/>
+      <text x="26" y="11" class="zh" font-size="14" fill="#5cffd6" letter-spacing="3.4" font-weight="600">房地产工作流 · 最终样片位</text>
+    </g>
+
+    <g transform="translate(48,170)">
+      <text class="en" font-size="64" font-weight="700" fill="#f5f7fa">
+        <tspan x="0" dy="0">North York</tspan>
+        <tspan x="0" dy="76">Condo</tspan>
+      </text>
+    </g>
+
+    <rect x="48" y="370" width="72" height="3" rx="2" fill="#5cffd6"/>
+
+    <g transform="translate(48,420)">
+      <text class="zh" font-size="34" font-weight="600" fill="#e7eaf2">
+        <tspan x="0" dy="0">30 秒主版本</tspan>
+        <tspan x="0" dy="48">即将接入</tspan>
+      </text>
+    </g>
+
+    <g transform="translate(48,558)">
+      <text class="zh" font-size="18" fill="#c2cad8" font-weight="400">
+        <tspan x="0" dy="0">价格反差走房方向已写完脚本、分镜与素材清单。</tspan>
+        <tspan x="0" dy="32">房地产最终样片做好后，会直接接入此位置，</tspan>
+        <tspan x="0" dy="32">形成从证据卡到最终成片的完整闭环。</tspan>
+      </text>
+    </g>
+
+    <g transform="translate(48,712)">
+      <g transform="translate(0,0)">
+        <circle cx="9" cy="9" r="9" fill="#5cffd6" fill-opacity="0.18" stroke="#5cffd6" stroke-opacity="0.7"/>
+        <path d="M5 9.5 L8 12 L13 6.5" fill="none" stroke="#5cffd6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="32" y="15" class="zh" font-size="16" fill="#c2cad8">客户输入 · 创意证据卡 · AI 脚本</text>
+      </g>
+      <g transform="translate(0,38)">
+        <circle cx="9" cy="9" r="9" fill="#5cffd6" fill-opacity="0.18" stroke="#5cffd6" stroke-opacity="0.7"/>
+        <path d="M5 9.5 L8 12 L13 6.5" fill="none" stroke="#5cffd6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="32" y="15" class="zh" font-size="16" fill="#c2cad8">6 镜头分镜 · 拍摄指导</text>
+      </g>
+      <g transform="translate(0,76)">
+        <circle cx="9" cy="9" r="9" fill="#5cffd6" fill-opacity="0.18" stroke="#5cffd6" stroke-opacity="0.7"/>
+        <path d="M5 9.5 L8 12 L13 6.5" fill="none" stroke="#5cffd6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="32" y="15" class="zh" font-size="16" fill="#c2cad8">素材质检 · 必拍 / 重拍清单</text>
+      </g>
+      <g transform="translate(0,114)">
+        <circle cx="9" cy="9" r="9" fill="#f4c430" fill-opacity="0.18" stroke="#f4c430" stroke-opacity="0.7"/>
+        <text x="9" y="14" class="mono" font-size="14" fill="#f4d36e" text-anchor="middle">…</text>
+        <text x="32" y="15" class="zh" font-size="16" fill="#f4d36e">30 秒主版本 · 即将接入</text>
+      </g>
+    </g>
+  </g>
+
+  <g transform="translate(48,1196)">
+    <text class="en" font-size="14" fill="#8892a6" letter-spacing="6">AIVORA · CONCEPT PLACEHOLDER</text>
+  </g>
+</svg>
+`;
+
+async function main(): Promise<void> {
+  mkdirSync(dirname(SVG_PATH), { recursive: true });
+
+  writeFileSync(SVG_PATH, SVG, { encoding: "utf8" });
+  const stats = await sharp(Buffer.from(SVG, "utf8"), { density: 300 })
+    .resize(720, 1280, { fit: "cover" })
+    .jpeg({ quality: 86, progressive: true })
+    .toFile(JPG_PATH);
+
+  console.log(
+    `[poster] svg → ${SVG_PATH}\n[poster] jpg → ${JPG_PATH} (${stats.width}x${stats.height}, ${stats.size}B)`,
+  );
+}
+
+main().catch((err) => {
+  console.error("[poster] failed:", err);
+  process.exit(1);
+});

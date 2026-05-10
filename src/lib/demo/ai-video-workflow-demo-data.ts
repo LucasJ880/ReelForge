@@ -22,7 +22,7 @@ import { DEMO_SEED_VIDEO_THUMBNAIL, DEMO_SEED_VIDEO_URL } from "@/lib/data/demo-
 /** 统一的 sample 标签，组件里直接使用这个文案 */
 export const SAMPLE_DATA_BADGE_LABEL = "示例数据";
 export const SAMPLE_DATA_DISCLAIMER =
-  "页面上的所有数据、脚本与分镜均为示例（sample data），不代表任何真实客户账号或在售房源。";
+  "页面上的所有数据、脚本、分镜与样片均为示例（sample data），不代表任何真实客户账号、在售房源或在售商品。";
 
 /** 默认选中的 card slug —— 与 storyboard / script demo 完全对齐 */
 export const SELECTED_CARD_DEFAULT_SLUG =
@@ -37,10 +37,12 @@ export const PRODUCT_WALKTHROUGH_VIDEO_URL =
 /* ------------------------------------------------------------------ */
 
 /**
- * 主概念广告片（concept sample）。
+ * 主概念广告片（concept sample）—— 当前接入的是本地毛毯 / 家居用品商家
+ * 的概念样片，作为「同一套工作流也能服务本地产品商家」的真实样片证明。
  *
- * 这是 CEO 拍板的当前主 Demo Page 主视觉证明：客户输入 → 创意证据卡 →
- * AI 脚本 → 分镜/拍摄指导 → 素材质检 → 这条最终输出。
+ * 注意：这不是房地产 North York condo 的最终成片。房地产最终样片仍在
+ * 制作中，做好后会接入 FinalOutputSection 的 main_30s 槽位；当前
+ * Demo Page 用这条概念样片来证明工作流能产出什么质感的成片。
  *
  * 文案边界（必须遵守）：允许的措辞是 concept sample / demo output /
  * draft output example / what the workflow is designed to produce。
@@ -56,6 +58,7 @@ export interface MainConceptVideoConfig {
   title: string;
   url: string;
   type: "concept_demo";
+  industryLabel: string;
   durationLabel: string;
   durationSec: number;
   aspectRatio: "9:16" | "1:1" | "16:9";
@@ -66,17 +69,31 @@ export interface MainConceptVideoConfig {
 }
 
 export const mainConceptVideo: MainConceptVideoConfig = {
-  title: "Aivora 概念工作流样片",
+  title: "本地毛毯产品广告 · 概念样片",
   url: "/generated/aivora-main-demo-concept-2026-05-10.mp4",
   type: "concept_demo",
+  industryLabel: "本地家居用品 / 毛毯产品",
   durationLabel: "概念样片 · 约 30 秒",
   durationSec: 30,
   aspectRatio: "9:16",
   width: 720,
   height: 1280,
-  posterUrl: null,
-  note: "用来展示工作流走完后的成片风格的概念样片。",
+  posterUrl: "/generated/aivora-main-demo-concept-2026-05-10-poster.jpg",
+  note: "本地毛毯 / 家居用品商家的概念样片，用来展示同一套工作流跑完后的成片风格；不是房地产 North York condo 的最终成片。",
 };
+
+/**
+ * 房地产 final output placeholder 用的 9:16 静态海报。
+ *
+ * 现状：房地产真实成片仍在制作中。这张静态 poster（720x1280 JPG，配套
+ * 同名 SVG 源）作为 main_30s placeholder 的视觉底图，配合「Coming next」
+ * 徽标向观众说明：房地产 30 秒主版本即将接入。
+ *
+ * 该资源由 `scripts/generate-real-estate-placeholder-poster.ts` 生成；
+ * 如需修文案，直接改脚本里的 SVG 字符串后重新跑即可。
+ */
+export const REAL_ESTATE_MAIN_30S_PLACEHOLDER_POSTER_URL =
+  "/generated/aivora-real-estate-main-30s-placeholder-2026-05.jpg";
 
 /* ------------------------------------------------------------------ */
 /* Customer Input Panel                                                */
@@ -808,24 +825,25 @@ export interface FinalOutputDemo {
 export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
   {
     variant: "main_30s",
-    title: "30 秒主版本视频 · 概念样片",
+    title: "North York Condo · 30 秒主版本（即将接入）",
     description:
-      "按所选方向、AI 脚本、分镜与审核通过的素材自动拼装成的概念样片。竖屏 9:16，约 30 秒，展示 Aivora 工作流走完后的成片质感。",
-    durationSec: mainConceptVideo.durationSec,
-    aspectRatio: mainConceptVideo.aspectRatio,
-    videoUrl: mainConceptVideo.url,
-    posterUrl: mainConceptVideo.posterUrl,
+      "房地产工作流的最终样片位：按所选方向、AI 脚本、分镜与审核通过的素材拼装的 30 秒主版本视频。当前为占位，房地产样片制作完成后会直接替换到这里。",
+    durationSec: 30,
+    aspectRatio: "9:16",
+    videoUrl: null,
+    posterUrl: REAL_ESTATE_MAIN_30S_PLACEHOLDER_POSTER_URL,
     notes: [
-      "概念样片：展示工作流跑完后能产出的成片风格",
+      "对应方向：价格反差型房源展示",
       "首帧 = 经纪人开场 / Hook 字幕",
       "尾帧 = CTA 字幕 + 联系方式",
+      "房地产成片接入后，将替换本占位",
     ],
-    badge: "概念样片",
-    isPlaceholder: false,
+    badge: "Coming next · 示例占位",
+    isPlaceholder: true,
   },
   {
     variant: "ad_15s",
-    title: "15 秒广告版（投流剪辑）",
+    title: "North York Condo · 15 秒广告版（即将接入）",
     description:
       "广告版本：删掉社区 B-roll，前置 hook 与房源关键卖点；竖屏 9:16，适合付费投流。即将上线，当前为示例占位。",
     durationSec: 15,
@@ -837,12 +855,12 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
       "把 CTA 提前 2 秒",
       "字幕加大、字距加宽，便于无声播放",
     ],
-    badge: "即将上线 · 示例占位",
+    badge: "Coming next · 示例占位",
     isPlaceholder: true,
   },
   {
     variant: "cover",
-    title: "封面图 · 竖屏 9:16",
+    title: "North York Condo · 封面图（即将接入）",
     description:
       "封面图自动从可用的外观 / 客厅镜头中选取最稳一帧；支持手动替换。即将上线，当前为示例占位。",
     aspectRatio: "9:16",
@@ -853,7 +871,7 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
       "标题文字使用脚本 hook 句",
       "支持手动指定其它候选封面",
     ],
-    badge: "即将上线 · 示例占位",
+    badge: "Coming next · 示例占位",
     isPlaceholder: true,
   },
   {
@@ -907,63 +925,102 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
 ] as const;
 
 /* ------------------------------------------------------------------ */
-/* Pet Grooming Extension Sample                                       */
+/* Local Product Sample —— 真实商家概念样片（本地家居用品 / 毛毯商家）  */
 /* ------------------------------------------------------------------ */
 
-export interface PetGroomingBeat {
+/**
+ * 真实商家案例 · 本地产品商家样片。
+ *
+ * 作用：作为「同一套工作流也能服务本地产品商家」的真实样片证明，
+ * 放在房地产 workflow 之后，使用已接入的 mainConceptVideo 播放。
+ *
+ * 与房地产 final output 的区别：
+ * - 房地产 main_30s 是 placeholder，等待真实房地产成片接入；
+ * - 本地产品概念样片是 ready，当前展示的就是工作流可产出的成片风格。
+ *
+ * 历史命名：以前命名为面向本地宠物服务的样片字段，现已彻底重命名为
+ * localProductSample，内容改成本地毛毯 / 家居用品方向。
+ */
+export interface LocalProductBeat {
   time: string;
   label: string;
   visual: string;
   caption?: string;
 }
 
-export interface PetGroomingSampleDemo {
+export interface LocalProductSampleDemo {
   industryLabel: string;
+  title: string;
+  description: string;
   durationSec: number;
   aspectRatio: "9:16";
-  beats: ReadonlyArray<PetGroomingBeat>;
-  /// 复用 demo-seed 里宠物店真实样片（合规、自有、已存在）
-  videoUrl: string | null;
+  beats: ReadonlyArray<LocalProductBeat>;
+  /// 指向本地 /generated/ 概念样片，与 mainConceptVideo.url 同一文件
+  videoUrl: string;
   thumbnailUrl: string | null;
+  badge: string;
   cta: string;
   isPlaceholder: boolean;
 }
 
-export const petGroomingSample: PetGroomingSampleDemo = {
-  industryLabel: "宠物美容 · 洗护前后",
-  durationSec: 20,
+export const localProductSample: LocalProductSampleDemo = {
+  industryLabel: "本地家居用品 / 毛毯产品",
+  title: "本地毛毯产品广告样片",
+  description:
+    "把客户现有的产品素材，整理成一个有痛点、有卖点、有生活感、有 CTA 的短视频样片。",
+  durationSec: 30,
   aspectRatio: "9:16",
   beats: [
     {
       time: "0-3s",
-      label: "洗护前",
-      visual: "宠物洗护前的真实毛发状态，竖屏静态特写。",
-      caption: "今天的小客人是不是有点凌乱？",
+      label: "痛点开场",
+      visual: "顾客拿起毯子，强调“不够舒服 / 不好打理”的问题。",
+      caption: "家里的毯子是不是总是不够舒服，还难清洗？",
     },
     {
-      time: "3-12s",
-      label: "洗护流程",
-      visual: "洗澡 / 吹毛 / 修剪过程，3 段快剪。",
-      caption: "店家手法专业、流程稳定。",
+      time: "3-8s",
+      label: "材质特写",
+      visual: "手摸毛毯，展示绒面、厚度、柔软质感。",
+      caption: "柔软、厚实，日常使用也舒服。",
     },
     {
-      time: "12-17s",
-      label: "洗护后揭晓",
-      visual: "洗护后反差对比，宠物精神状态明显改善。",
-      caption: "前后对比就是最好的广告。",
+      time: "8-13s",
+      label: "使用场景",
+      visual: "毛毯铺在沙发或床上，营造温暖生活感。",
+      caption: "沙发、卧室、礼物场景都适合。",
     },
     {
-      time: "17-20s",
-      label: "预约 CTA",
-      visual: "门店外观 + 联系方式 + 预约引导。",
-      caption: "周末约我们，给毛孩子一次清爽。",
+      time: "13-18s",
+      label: "卖点证明",
+      visual: "可机洗、抖开、整理后仍然蓬松。",
+      caption: "可机洗，容易打理。",
+    },
+    {
+      time: "18-23s",
+      label: "产品展示",
+      visual: "不同颜色、包装或细节展示。",
+      caption: "多种颜色可选。",
+    },
+    {
+      time: "23-30s",
+      label: "CTA",
+      visual: "店铺门口、产品陈列或手机下单。",
+      caption: "想看现货颜色，私信我们或到店看看。",
     },
   ],
-  videoUrl: DEMO_SEED_VIDEO_URL || null,
-  thumbnailUrl: DEMO_SEED_VIDEO_THUMBNAIL || null,
-  cta: "宠物店 / 本地服务行业也能用同一套生产工作流。",
+  videoUrl: mainConceptVideo.url,
+  thumbnailUrl: mainConceptVideo.posterUrl,
+  badge: "Concept sample",
+  cta: "同一套工作流也能扩展到本地零售 / 产品类商家。",
   isPlaceholder: false,
 };
+
+/**
+ * 备用：第三方托管的宠物店示例视频 URL（不再用于 demo 页面叙事，
+ * 仅在合规扫描里保留以确认未被错误绑定到房地产 final output 上）。
+ */
+export const LEGACY_PET_STORE_VIDEO_URL = DEMO_SEED_VIDEO_URL || null;
+export const LEGACY_PET_STORE_THUMBNAIL_URL = DEMO_SEED_VIDEO_THUMBNAIL || null;
 
 /* ------------------------------------------------------------------ */
 /* Compliance / Forbidden wording                                      */

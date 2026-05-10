@@ -48,6 +48,7 @@ export function PhoneVideoMockup({
 }: PhoneVideoMockupProps) {
   const [hasVideoError, setHasVideoError] = useState(false);
   const showVideo = Boolean(videoUrl) && !hasVideoError;
+  const showStaticPoster = !showVideo && Boolean(posterUrl);
   const isAutoplay = videoMode === "autoplay";
 
   return (
@@ -76,6 +77,26 @@ export function PhoneVideoMockup({
           >
             <track kind="captions" />
           </video>
+        ) : showStaticPoster ? (
+          // 静态 poster 模式：videoUrl=null 但 posterUrl 存在时，把 poster
+          // 当成 placeholder 主视觉铺满；只叠加可选的 statusBadge / caption。
+          <div className="relative h-full w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={posterUrl ?? undefined}
+              alt={fallbackTitle ?? "placeholder poster"}
+              className="h-full w-full object-cover"
+              loading="lazy"
+              draggable={false}
+            />
+            {statusBadge ? (
+              <div className="absolute left-3 top-3">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium tracking-wide text-white/85 backdrop-blur">
+                  {statusBadge}
+                </span>
+              </div>
+            ) : null}
+          </div>
         ) : (
           <div
             className={cn(

@@ -12,10 +12,13 @@ export const metadata: Metadata = {
 /**
  * 主对外 demo 页面 —— /demo/real-footage-ads。
  *
- * CEO 重做后，这里展示的是“客户模拟产品体验页”：
- * 客户输入 → 创意证据卡 → 参考视频 preview → AI 脚本 → AI 分镜 / 拍摄指导 →
- * 素材质检 mock → 最终输出（30s / 15s / 封面 / 多平台 caption） → 宠物美容
- * 行业扩展 → 合规边界。
+ * 页面叙事分两个清晰的案例层级：
+ *   案例 A · 房地产 / North York condo —— 主 workflow 示例，
+ *           展示客户输入 → 创意证据卡 → 参考结构 → AI 脚本 → 分镜 →
+ *           素材质检；最终输出位为 placeholder，房地产成片做好后接入。
+ *   案例 B · 本地家居用品 / 毛毯商家 —— 真实商家概念样片，
+ *           用当前已接入的 mainConceptVideo 证明同一套工作流也能
+ *           扩展到本地零售 / 产品类商家。
  *
  * 第一版完全用 sample mock data，不调用 /api/wizard/*；
  * CTA 在登录用户面前直接指向 /wizard/new，否则保留 lead form。

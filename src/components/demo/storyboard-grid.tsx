@@ -51,12 +51,14 @@ export function StoryboardGrid() {
       </p>
 
       <p className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
-        选定方向、AI 脚本、分镜与质检通过的素材，最终汇成下面这条概念样片 ——{" "}
+        选定方向、AI 脚本、分镜与质检通过的素材，会汇成房地产 final output —— 当前
+        该位置为占位，房地产样片做好后会直接接入；想先看一段同一套工作流可产出的
+        成片，{" "}
         <a
-          href="#final-output"
+          href="#local-product-sample"
           className="font-semibold underline decoration-dotted underline-offset-4 hover:text-primary"
         >
-          直接看最终成片
+          观看本地商家概念样片
         </a>
         。
       </p>

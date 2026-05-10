@@ -11,7 +11,7 @@ import { CreativeEvidenceCardsSection } from "@/components/demo/creative-evidenc
 import { DemoHero } from "@/components/demo/demo-hero";
 import { DemoInputPanel } from "@/components/demo/demo-input-panel";
 import { FinalOutputSection } from "@/components/demo/final-output-section";
-import { PetGroomingExtensionSection } from "@/components/demo/pet-grooming-extension-section";
+import { LocalProductSampleSection } from "@/components/demo/local-product-sample-section";
 import { ReferencePreviewSection } from "@/components/demo/reference-preview-section";
 import { StoryboardGrid } from "@/components/demo/storyboard-grid";
 import {
@@ -66,7 +66,7 @@ export function RealFootageDemoExperience({
 
       <FinalOutputSection />
 
-      <PetGroomingExtensionSection />
+      <LocalProductSampleSection />
 
       <section
         id="book-demo"
@@ -126,13 +126,13 @@ function NavBar() {
             href="#workflow"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
           >
-            生成流程
+            查看生成流程
           </a>
           <a
-            href="#final-output"
+            href="#local-product-sample"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
           >
-            最终成片
+            观看样片
           </a>
           <a
             href="#book-demo"

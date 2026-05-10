@@ -15,10 +15,12 @@
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "postinstall": "prisma generate",
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "db:seed:creative-cards": "dotenv -e .env.local -- tsx scripts/seed-creative-evidence-cards.ts",
     "demo:seed:real-footage": "dotenv -e .env.local -- tsx scripts/seed-real-footage-demo.ts",
     "demo:generate:walkthrough": "tsx scripts/generate-real-footage-walkthrough-video.ts",
     "demo:check:walkthrough": "tsx scripts/check-real-footage-walkthrough-video.ts",
     "demo:stitch:walkthrough": "tsx scripts/stitch-real-footage-walkthrough-video.ts",
+    "smoke:wizard": "dotenv -e .env.local -- tsx scripts/smoke-wizard-release.ts",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "prisma": {

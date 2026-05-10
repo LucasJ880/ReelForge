@@ -32,7 +32,79 @@ model AdminUser {
 }
 
 // =========================================================
-// 1.1 GTM Demo Leads
+// 1.1 Creative Evidence Card（创意证据卡 · 案例库一等公民）
+// =========================================================
+//
+// 设计原则：
+// - 不下载/不自托管第三方视频，referenceUrl 仅记录原平台链接 + thumbnailUrl 仅
+//   记录原平台缩略图（来自公开嵌入接口或运营手动收集的合规缩略图）。
+// - publicMetricsJson 存的是「在哪个时间点观察到的公开指标」，不承诺实时。
+// - structureBreakdown / hookPattern / clientPreviewSummary 是 Aivora 的「原创解读」，
+//   不复制原视频字幕、原配音、原镜头脚本。
+// - status 用于发布门禁：草稿 → 已审核 → 已发布 → 已归档。
+
+enum CreativeEvidenceStatus {
+  DRAFT
+  REVIEWED
+  PUBLISHED
+  ARCHIVED
+}
+
+model CreativeEvidenceCard {
+  id                 String                 @id @default(cuid())
+  /// 稳定 slug，便于 seed 重复执行（upsert by slug）
+  slug               String                 @unique
+
+  title              String
+  /// 行业枚举字符串：real_estate / pet_business / local_service / restaurant / general
+  industry           String
+  /// 平台：tiktok / instagram_reels / youtube_shorts / facebook / mixed
+  platform           String
+  /// 业务目标：get_leads / promote_listing / increase_bookings / announce_offer / brand_awareness
+  objective          String
+
+  /// 来源平台名（人类可读，如 TikTok / Instagram / YouTube Shorts）
+  sourcePlatform     String?
+  /// 原平台公开链接（不下载、不自托管）
+  referenceUrl       String?
+  /// 缩略图 URL（来自原平台公开 oEmbed 或运营录入的合规图）
+  thumbnailUrl       String?
+
+  /// 公开指标快照：{ observedAt, views, likes, comments, shares, saves, isPaidAd, paidAdNote }
+  publicMetricsJson  Json?
+
+  /// hook 模式：{ pattern, openingSeconds, hookType: "POV|Curiosity|Stat|Reveal|Pain|Demo", whyItStops }
+  hookPattern        Json?
+  /// 结构拆解：{ segments:[{ from, to, role, narrative }], pacingNotes }
+  structureBreakdownJson Json?
+
+  whyItWorks         String?
+  visualStyle        String?
+  suggestedUseCase   String?
+  /// 风险/合规备注：版权、行业合规（地产/金融/医疗）、未授权数字人/克隆声音禁用等
+  riskNotes          String?
+
+  /// 0-100 系统推荐分（按行业/目标加权）
+  recommendationScore Int?
+  /// 客户预览友好摘要（中文，2-3 句话能让商家秒懂这个卡为啥适合自己）
+  clientPreviewSummary String?
+
+  status             CreativeEvidenceStatus @default(DRAFT)
+
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  selectedByOrders   DeliveryOrder[]        @relation("DeliveryOrderSelectedCard")
+
+  @@index([industry])
+  @@index([platform])
+  @@index([objective])
+  @@index([status])
+  @@index([recommendationScore(sort: Desc)])
+}
+
+// =========================================================
+// 1.2 GTM Demo Leads
 // =========================================================
 
 enum RealFootageDemoLeadStatus {
@@ -96,6 +168,18 @@ model DeliveryOrder {
   /// 产品结构化输入：sku、材质、尺寸、价格、卖点提示、URL、图片、竞品链接等
   productInput     Json
 
+  /// Client Project Wizard 输入（北美本地商家版）：
+  /// {
+  ///   businessName, industry, objective, targetPlatforms, videoLengthSec,
+  ///   brandTone, brandAssets:{ logoUrl, primaryColor, accentColor, websiteUrl, phone, ctaText }
+  /// }
+  /// 与 productInput 解耦，便于商家友好向导单独维护，不影响现有 admin 流程。
+  clientBrief      Json?
+
+  /// Wizard 阶段选中的创意证据卡 id；多卡选择请放 clientBrief.candidateCardIds
+  selectedCreativeCardId String?
+  selectedCreativeCard   CreativeEvidenceCard? @relation("DeliveryOrderSelectedCard", fields: [selectedCreativeCardId], references: [id])
+
   /// 终止策略：默认 3 轮 + 支持 Admin 手动提前结算
   maxRounds        Int                  @default(3)
   errorMessage     String?
@@ -111,9 +195,12 @@ model DeliveryOrder {
   rounds           Round[]
   distillations    DistillationFeature[]
   rawAssets        RawAsset[]
+  aiUsageLogs      AIUsageLog[]
+  wizardRenderJobs WizardRenderJob[]    @relation("DeliveryOrderWizardRenders")
 
   @@index([status])
   @@index([productCategory])
+  @@index([selectedCreativeCardId])
   @@index([createdAt(sort: Desc)])
 }
 
@@ -140,6 +227,20 @@ enum FootageShotStatus {
   REJECTED
 }
 
+/// Asset QA 业务判断（规则引擎/AI 都会写入）：
+/// - PENDING: 已上传但未跑 QA
+/// - USABLE: 直接可用
+/// - BARELY_USABLE: 需要剪/调色/降噪后可用
+/// - RETAKE_RECOMMENDED: 建议重拍（理由写入 qaResult.reasons[]）
+/// - MISSING_SHOT: 客户没有提供该镜头（仅在批量 missing-shot 检测时挂在虚拟 RawAsset 上，MVP 不创建虚拟行）
+enum AssetQAStatus {
+  PENDING
+  USABLE
+  BARELY_USABLE
+  RETAKE_RECOMMENDED
+  MISSING_SHOT
+}
+
 model RawAsset {
   id              String          @id @default(cuid())
   deliveryOrderId String
@@ -161,6 +262,20 @@ model RawAsset {
   metadata        Json?
   errorMessage    String?
 
+  /// 业务级 QA 判断（与 RawAssetStatus 区分：status 是处理流水线状态，qaStatus 是「能不能进剪辑」业务结论）
+  qaStatus        AssetQAStatus   @default(PENDING)
+  /// QA 结果详情：{ checks:[{rule,passed,severity,message}], reasons:[], retakeSuggestions:[], orientation, aspectRatio, score }
+  qaResult        Json?
+  /// 客户标注的镜头用途：hook / proof / demo / lifestyle / cta / b_roll
+  assetRole       String?
+  /// 关联到具体的 ScenePlan.id（外键，cuid）。
+  /// 注意：这里是真实 FK，不是 storyboard JSON 内部的 "shot-1" 字符串；
+  /// 如果想引用 storyboard 内部 shot 索引，请用 metadata.storyboardShotIndex 字段。
+  /// onDelete: SetNull —— 当 ScenePlan 因为重新生成 storyboard 被删除时，
+  /// 这里自动置空，由 detectMissingShotsForBrief 再次报缺。
+  matchedShotId   String?
+  matchedShot     ScenePlan?      @relation("AssetMatchedShot", fields: [matchedShotId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
@@ -168,7 +283,9 @@ model RawAsset {
 
   @@index([deliveryOrderId])
   @@index([status])
+  @@index([qaStatus])
   @@index([type])
+  @@index([matchedShotId])
 }
 
 model FootageShot {
@@ -439,6 +556,9 @@ model Script {
   hook            String?
   cta             String?
   isCurrent       Boolean         @default(true)
+  /// Wizard 流程下保存完整 ScriptOutput（包含 voiceover/captions/complianceNotes/...）。
+  /// Admin 流程不依赖该字段，旧 Script 行此字段为 NULL，service 层会兜底。
+  metadata        Json?
 
   createdAt       DateTime        @default(now())
 
@@ -457,7 +577,21 @@ model ScenePlan {
   visualIntent    String
   onCameraNote    String?
 
+  /// 客户拍摄指导（商家版 storyboard 字段）：
+  /// {
+  ///   shotType, composition, cameraMovement, requiredProps:[],
+  ///   commonMistakes:[], lightingNote, audioNote, captionText, voiceoverSegment,
+  ///   uploadHints:[]
+  /// }
+  /// 设计为可空 + JSON，便于现有 ScenePlan 数据完全向后兼容。
+  shootingGuide   Json?
+  /// 是否为必拍镜头（false=可选/B-roll）
+  requiredFlag    Boolean         @default(true)
+  /// 是否需要真人出镜（与 onCameraNote 互补：onCameraNote 是给 director；humanRequired 是给 wizard UI）
+  humanRequired   Boolean         @default(false)
+
   videoPrompts    VideoPrompt[]
+  matchedAssets   RawAsset[]      @relation("AssetMatchedShot")
 
   @@index([scriptId])
 }
@@ -661,4 +795,131 @@ model DistillationFeature {
   angles           ContentAngle[]  @relation("AngleSourceDistillation")
 
   @@index([deliveryOrderId])
+}
+
+// =========================================================
+// 9. AI Usage Log（每次 AI 调用都要可追踪）
+// =========================================================
+
+enum AIUsageStatus {
+  SUCCESS
+  FAILED
+  MOCK
+}
+
+model AIUsageLog {
+  id                String          @id @default(cuid())
+
+  /// 业务功能 key，例：creative_evidence_breakdown / client_script /
+  /// storyboard / shooting_guide / asset_qa / director / reviewer / qa
+  feature           String
+  provider          String          @default("openai")
+  model             String?
+
+  /// 关联到具体 DeliveryOrder（可选；后台 seed/breakdown 调用可为空）
+  deliveryOrderId   String?
+  deliveryOrder     DeliveryOrder?  @relation(fields: [deliveryOrderId], references: [id], onDelete: SetNull)
+  /// 关联到 CreativeEvidenceCard（可选，用于 breakdown 流程）
+  creativeCardId    String?
+
+  /// 用户/Admin id（可选，未登录脚本/cron 可空）
+  actorUserId       String?
+
+  /// LLM 调用上下文摘要（裁剪后），不写入完整 prompt 以免泄露 PII
+  inputSummary      String?
+  /// 模型输出摘要（裁剪后）；完整结果由对应业务表保存
+  outputSummary     String?
+
+  promptTokens      Int?
+  completionTokens  Int?
+  totalTokens       Int?
+  /// 估算成本（USD）；当 provider 不暴露价格时由 service 层按 model 估算
+  costEstimateUsd   Float?
+
+  /// prompt 模板版本号（与 src/lib/prompts/* 中的 PROMPT_VERSION 对应）
+  promptVersion     String?
+
+  status            AIUsageStatus   @default(SUCCESS)
+  errorMessage      String?
+  durationMs        Int?
+
+  createdAt         DateTime        @default(now())
+
+  @@index([feature])
+  @@index([provider])
+  @@index([deliveryOrderId])
+  @@index([creativeCardId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+}
+
+// =========================================================
+// 10. Wizard Render Job（客户向导版渲染任务）
+// =========================================================
+//
+// 与现有 VideoJob（admin pipeline 用）刻意保持隔离：
+// - VideoJob   依赖 VideoBrief / ContentAngle / AdEditPlan，是赛马流程产物；
+// - WizardRenderJob 直接挂在 DeliveryOrder 上，输入是客户上传的 RawAsset + 客户自己挑的脚本/分镜，
+//   输出可以是 REAL / DRAFT / MOCK 三种模式之一。
+// 这样 wizard MVP 不会因为 admin pipeline 的复杂度被卡住，
+// 也不会污染 admin 的 VideoJob 状态机。
+
+enum WizardRenderJobStatus {
+  QUEUED
+  RUNNING
+  /// 真 FFmpeg 渲染成功，outputVideoUrl 是真实 MP4
+  SUCCEEDED
+  /// 半成品：不是完整成片，但 UI 可以预览（首个素材 + manifest）
+  DRAFT_READY
+  /// 完全占位：连素材都没准备好，只能给 UI 一个 placeholder
+  MOCK
+  FAILED
+}
+
+enum WizardRenderJobMode {
+  /// 真 FFmpeg 渲染（要求 ENABLE_WIZARD_FFMPEG_RENDER=true 且素材就绪）
+  REAL
+  /// 草稿渲染（首个素材 + manifest fallback；UI 应明示 "Draft Preview"）
+  DRAFT
+  /// 模拟渲染（完全 placeholder；UI 应明示 "Mock Preview"）
+  MOCK
+}
+
+model WizardRenderJob {
+  id                  String                @id @default(cuid())
+
+  deliveryOrderId     String
+  deliveryOrder       DeliveryOrder         @relation("DeliveryOrderWizardRenders", fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  status              WizardRenderJobStatus @default(QUEUED)
+  mode                WizardRenderJobMode   @default(DRAFT)
+
+  aspectRatio         String                @default("9:16")
+  durationSec         Int                   @default(30)
+
+  /// 输入快照：根据 ScenePlan/Script/RawAsset 派生出的 timeline，便于复盘
+  /// { clips:[{ sceneIndex, sourceUrl, startMs, endMs, captionText }], cta, brand: { logoUrl, primaryColor }, ... }
+  timeline            Json
+  /// 触发渲染时的 ClientBrief 快照（zod-parsed）
+  briefSnapshot       Json?
+
+  /// 输出
+  outputVideoUrl      String?
+  outputThumbnailUrl  String?
+  /// 当走 DRAFT/MOCK fallback 时，把 manifest 存到 Blob 或 data: URL
+  manifestUrl         String?
+
+  /// 解释为什么走了 DRAFT/MOCK，UI 直接展示给客户看
+  fallbackReason      String?
+  errorMessage        String?
+
+  startedAt           DateTime?
+  finishedAt          DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  @@index([deliveryOrderId])
+  @@index([status])
+  @@index([mode])
+  @@index([createdAt(sort: Desc)])
 }

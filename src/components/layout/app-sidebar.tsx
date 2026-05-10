@@ -13,6 +13,8 @@ import {
   UsersRound,
   Settings,
   LogOut,
+  Wand2,
+  Activity,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,14 @@ const NAV: {
   icon: React.ComponentType<{ className?: string }>;
   roles?: readonly ("SUPER_ADMIN" | "OPERATOR" | "REVIEWER")[];
 }[] = [
+  // Client Wizard 内部调用 /api/wizard/* 走 requireOperator，
+  // 显式限制 sidebar 可见角色，避免 REVIEWER 点击后看到 403
+  {
+    href: "/wizard",
+    label: "Client Wizard",
+    icon: Wand2,
+    roles: ["SUPER_ADMIN", "OPERATOR"],
+  },
   { href: "/orders", label: "交付单", icon: Package },
   { href: "/rounds", label: "赛马轮次", icon: Swords },
   { href: "/qa", label: "QA 审核", icon: ClipboardCheck },
@@ -30,6 +40,12 @@ const NAV: {
   { href: "/metrics", label: "数据回流", icon: BarChart3 },
   { href: "/distillation", label: "创意蒸馏", icon: Sparkles },
   { href: "/demo-leads", label: "Demo 线索", icon: UsersRound },
+  {
+    href: "/admin/ai-usage",
+    label: "AI 用量",
+    icon: Activity,
+    roles: ["SUPER_ADMIN", "OPERATOR"],
+  },
   {
     href: "/settings",
     label: "设置",

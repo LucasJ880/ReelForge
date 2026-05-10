@@ -148,7 +148,7 @@ test("finalOutputs ad_15s / cover variants stay flagged as placeholder with stat
       `${variant} must keep videoUrl=null while it is still a placeholder.`,
     );
     assert.ok(
-      /coming next|sample variant|placeholder|示例占位|示例预览/i.test(
+      /coming next|sample variant|placeholder|示例占位|示例预览|即将上线/i.test(
         `${o!.badge} ${o!.description}`,
       ),
       `${variant} must visibly be marked as a coming-next / sample variant.`,

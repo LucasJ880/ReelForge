@@ -25,13 +25,11 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
             产品工作流体验 · 实时预览
           </div>
           <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-            Turn real footage into video drafts that local businesses can
-            actually use.
+            把真实素材跑成本地商家能直接用的视频初稿。
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
-            Aivora helps local businesses choose a proven creative direction,
-            generate scripts and storyboards, check their footage, and produce
-            a draft video faster.
+            Aivora 帮本地商家选定一个有效果的内容方向，自动生成脚本与分镜，
+            质检你的素材，把工作流跑完——产出右边这种风格的成片初稿。
           </p>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground/85">
             输入目标，选择方向，按 AI 分镜拍摄素材，系统帮你质检并生成可发布的
@@ -48,13 +46,13 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               href="#final-output"
               className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-white/5"
             >
-              Watch the demo
+              先看 Demo 样片
             </a>
             <a
               href="#workflow"
               className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-white/5"
             >
-              See the workflow
+              查看完整流程
             </a>
           </div>
 
@@ -89,15 +87,15 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               videoUrl={mainConceptVideo.url}
               posterUrl={mainConceptVideo.posterUrl}
               videoMode="autoplay"
-              caption="Concept sample · 工作流走完后的成片质感"
+              caption="概念样片 · 工作流走完后的成片质感"
               statusBadge={`${mainConceptVideo.aspectRatio} · ${mainConceptVideo.durationLabel}`}
               fallbackGradient="from-emerald-500/30 via-sky-500/20 to-violet-500/25"
               fallbackTitle={heroShot.captionText}
               fallbackSubtitle={heroShot.voiceoverSegment}
             />
             <p className="max-w-xs text-center text-xs leading-5 text-muted-foreground">
-              Concept sample · {mainConceptVideo.note} 最终成片由你的脚本、分镜
-              和审核通过的素材决定。
+              概念样片（concept sample）：用来展示工作流跑完后的成片风格。最终
+              成片由你的脚本、分镜和审核通过的素材决定。
             </p>
           </div>
         </div>

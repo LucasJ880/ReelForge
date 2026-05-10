@@ -66,16 +66,16 @@ export interface MainConceptVideoConfig {
 }
 
 export const mainConceptVideo: MainConceptVideoConfig = {
-  title: "Aivora Concept Workflow Demo",
+  title: "Aivora 概念工作流样片",
   url: "/generated/aivora-main-demo-concept-2026-05-10.mp4",
   type: "concept_demo",
-  durationLabel: "Concept sample · 约 30 秒",
+  durationLabel: "概念样片 · 约 30 秒",
   durationSec: 30,
   aspectRatio: "9:16",
   width: 720,
   height: 1280,
   posterUrl: null,
-  note: "Concept video used to show the final output experience.",
+  note: "用来展示工作流走完后的成片风格的概念样片。",
 };
 
 /* ------------------------------------------------------------------ */
@@ -808,26 +808,26 @@ export interface FinalOutputDemo {
 export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
   {
     variant: "main_30s",
-    title: "30 秒主版本视频 · Concept sample",
+    title: "30 秒主版本视频 · 概念样片",
     description:
-      "按所选方向、AI 脚本、分镜与审核通过的素材自动拼装成的 concept 概念样片。竖屏 9:16，约 30 秒，展示 Aivora 工作流走完后的成片质感。",
+      "按所选方向、AI 脚本、分镜与审核通过的素材自动拼装成的概念样片。竖屏 9:16，约 30 秒，展示 Aivora 工作流走完后的成片质感。",
     durationSec: mainConceptVideo.durationSec,
     aspectRatio: mainConceptVideo.aspectRatio,
     videoUrl: mainConceptVideo.url,
     posterUrl: mainConceptVideo.posterUrl,
     notes: [
-      "Concept sample：展示工作流跑完后能产出的成片风格",
+      "概念样片：展示工作流跑完后能产出的成片风格",
       "首帧 = 经纪人开场 / Hook 字幕",
       "尾帧 = CTA 字幕 + 联系方式",
     ],
-    badge: "Concept sample",
+    badge: "概念样片",
     isPlaceholder: false,
   },
   {
     variant: "ad_15s",
     title: "15 秒广告版（投流剪辑）",
     description:
-      "广告版本：删掉社区 B-roll，前置 hook 与房源关键卖点；竖屏 9:16，适合付费投流。Coming next · sample variant。",
+      "广告版本：删掉社区 B-roll，前置 hook 与房源关键卖点；竖屏 9:16，适合付费投流。即将上线，当前为示例占位。",
     durationSec: 15,
     aspectRatio: "9:16",
     videoUrl: null,
@@ -837,14 +837,14 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
       "把 CTA 提前 2 秒",
       "字幕加大、字距加宽，便于无声播放",
     ],
-    badge: "Coming next · sample variant",
+    badge: "即将上线 · 示例占位",
     isPlaceholder: true,
   },
   {
     variant: "cover",
     title: "封面图 · 竖屏 9:16",
     description:
-      "封面图自动从可用的外观 / 客厅镜头中选取最稳一帧；支持手动替换。Coming next · sample variant。",
+      "封面图自动从可用的外观 / 客厅镜头中选取最稳一帧；支持手动替换。即将上线，当前为示例占位。",
     aspectRatio: "9:16",
     videoUrl: null,
     posterUrl: null,
@@ -853,7 +853,7 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
       "标题文字使用脚本 hook 句",
       "支持手动指定其它候选封面",
     ],
-    badge: "Coming next · sample variant",
+    badge: "即将上线 · 示例占位",
     isPlaceholder: true,
   },
   {

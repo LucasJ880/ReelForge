@@ -22,18 +22,17 @@ export function FinalOutputSection() {
     <DemoSection
       id="final-output"
       eyebrow="第 7 步 · 最终输出"
-      title="Final concept video generated from the workflow"
+      title="工作流走完后产出的概念样片。"
       description={
         <>
           <p>
-            This concept sample shows the kind of polished draft Aivora is
-            designed to produce after the customer confirms the script,
-            storyboard, footage, and QA results.
+            这条概念样片（concept sample）展示的是：客户在工作流里确认完
+            脚本、分镜、素材与质检结果之后，Aivora 设计目标要产出的成片质感。
           </p>
           <p className="mt-2 text-xs text-muted-foreground/85">
-            主视频是 concept sample，用来展示工作流走完后的成片质感；其它输出位
-            （15 秒广告版、封面图、平台文案）目前仍是 sample variant，会随
-            wizard 真实输出接入逐步替换。
+            主视频是概念样片，用来展示工作流跑完后的成片风格；其它输出位
+            （15 秒广告版、封面图、平台文案）目前仍是占位 sample，会随 wizard
+            真实输出接入逐步替换。
           </p>
         </>
       }
@@ -44,7 +43,7 @@ export function FinalOutputSection() {
           <FinalVideoCard
             output={main}
             accent="primary"
-            primaryHighlight="Main concept video"
+            primaryHighlight="主概念样片"
           />
         ) : null}
         {ad15 ? <FinalVideoCard output={ad15} accent="secondary" /> : null}
@@ -132,8 +131,8 @@ function FinalVideoCard({
         </p>
         {output.variant === "main_30s" && !output.isPlaceholder ? (
           <p className="mt-2 text-xs text-muted-foreground/85">
-            The selected direction, script, storyboard and approved footage
-            lead to this final concept output.
+            选定方向、确认脚本、生成分镜、质检素材——工作流走完，产出的就是
+            这条概念样片。
           </p>
         ) : null}
         <ul className="mt-4 space-y-1.5 text-xs leading-5 text-muted-foreground">

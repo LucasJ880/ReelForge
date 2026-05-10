@@ -1,5 +1,8 @@
 import { Sparkles } from "lucide-react";
-import { petGroomingSample } from "@/lib/demo/ai-video-workflow-demo-data";
+import {
+  mainConceptVideo,
+  petGroomingSample,
+} from "@/lib/demo/ai-video-workflow-demo-data";
 import { DemoSection, SampleDataBadge } from "./demo-section";
 import { PhoneVideoMockup } from "./phone-video-mockup";
 
@@ -7,17 +10,19 @@ export function PetGroomingExtensionSection() {
   return (
     <DemoSection
       id="pet-grooming"
-      eyebrow="行业扩展 · 不抢主线"
-      title="同一套工作流，换个行业：宠物美容。"
-      description="同样的流程也适用于宠物店、本地服务。下面的样片是真实合规的宠物店素材，仅用作行业扩展示例，不抢地产主线。"
+      eyebrow="行业扩展 · 同一套工作流"
+      title="换个行业：宠物美容也能跑出同样质感的样片。"
+      description="同一套工作流——选方向、写脚本、出分镜、质检素材、出片——只要换上行业素材，就能跑出右上角这种风格的成片。下面是宠物美容行业的分镜节奏示例，最终成片仍由你的脚本、分镜和审核通过的素材决定。"
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
         <PhoneVideoMockup
           size="lg"
-          videoUrl={petGroomingSample.videoUrl}
-          posterUrl={petGroomingSample.thumbnailUrl}
-          statusBadge={`${petGroomingSample.aspectRatio} · ${petGroomingSample.durationSec} 秒`}
+          videoUrl={mainConceptVideo.url}
+          posterUrl={mainConceptVideo.posterUrl}
+          videoMode="autoplay"
+          caption="概念样片 · 同一套工作流的成片质感"
+          statusBadge={`${mainConceptVideo.aspectRatio} · ${mainConceptVideo.durationLabel}`}
           fallbackGradient="from-amber-400/30 via-rose-500/20 to-violet-500/20"
           fallbackTitle={petGroomingSample.industryLabel}
           fallbackSubtitle="洗护前 / 洗护流程 / 洗护后 / 预约 CTA"
@@ -25,7 +30,11 @@ export function PetGroomingExtensionSection() {
 
         <div className="rounded-3xl border border-white/10 bg-card/60 p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
-            分镜节奏
+            宠物美容 · 分镜节奏示例
+          </p>
+          <p className="mt-2 text-xs leading-5 text-muted-foreground">
+            把素材换成宠物店的门店、洗护过程与宠物镜头，工作流跑完后能产出与左侧
+            概念样片相同质感的成片初稿。
           </p>
           <ol className="mt-3 space-y-3">
             {petGroomingSample.beats.map((beat) => (

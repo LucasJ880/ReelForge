@@ -51,8 +51,7 @@ export function StoryboardGrid() {
       </p>
 
       <p className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
-        The selected direction, script, storyboard and approved footage lead to
-        this final concept output ——{" "}
+        选定方向、AI 脚本、分镜与质检通过的素材，最终汇成下面这条概念样片 ——{" "}
         <a
           href="#final-output"
           className="font-semibold underline decoration-dotted underline-offset-4 hover:text-primary"

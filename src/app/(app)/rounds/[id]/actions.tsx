@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ACTION_BUTTON_LABELS } from "@/lib/labels-user";
 
 export function RoundActions({
   round,
@@ -47,11 +48,11 @@ export function RoundActions({
           size="sm"
           disabled={!!busy}
           onClick={() =>
-            call("生成 Angles", `/api/rounds/${round.id}/angles`, {})
+            call("生成创意方向", `/api/rounds/${round.id}/angles`, {})
           }
         >
-          {busy === "生成 Angles" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-          生成 5 条 Angle
+          {busy === "生成创意方向" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {ACTION_BUTTON_LABELS.generateAngles}
         </Button>
       )}
       {canGenerateAdPlans && (
@@ -59,10 +60,10 @@ export function RoundActions({
           size="sm"
           variant="outline"
           disabled={!!busy}
-          onClick={() => call("生成广告剪辑计划", `/api/rounds/${round.id}/ad-plans`, { count: 5 })}
+          onClick={() => call("生成创意版本", `/api/rounds/${round.id}/ad-plans`, { count: 5 })}
         >
-          {busy === "生成广告剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          生成 5 条广告
+          {busy === "生成创意版本" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {ACTION_BUTTON_LABELS.generateAds}
         </Button>
       )}
       {canScore && (

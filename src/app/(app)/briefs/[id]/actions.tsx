@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ACTION_BUTTON_LABELS } from "@/lib/labels-user";
 
 export function BriefActions({
   brief,
@@ -42,6 +43,8 @@ export function BriefActions({
 
   const hasScript = brief.scripts.length > 0;
   const hasAdEditPlan = (brief.adEditPlans?.length ?? 0) > 0;
+  const isInflight =
+    brief.status === "RENDERING" || brief.status === "RENDER_QUEUED";
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -49,27 +52,34 @@ export function BriefActions({
         size="sm"
         variant={hasScript ? "outline" : "default"}
         disabled={!!busy}
-        onClick={() => call("生成脚本", `/api/briefs/${brief.id}/script`)}
+        onClick={() => call("生成视频脚本", `/api/briefs/${brief.id}/script`)}
       >
-        {busy === "生成脚本" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        {hasScript ? "重写脚本" : "生成脚本"}
+        {busy === "生成视频脚本" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {hasScript ? ACTION_BUTTON_LABELS.rewriteScript : ACTION_BUTTON_LABELS.generateScript}
       </Button>
       <Button
         size="sm"
         variant="outline"
         disabled={!!busy || !hasScript}
-        onClick={() => call("分镜+Prompt", `/api/briefs/${brief.id}/scenes`, { generatePrompts: true })}
+        onClick={() =>
+          call("生成分镜", `/api/briefs/${brief.id}/scenes`, { generatePrompts: true })
+        }
       >
-        {busy === "分镜+Prompt" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        分镜 + Prompt
+        {busy === "生成分镜" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {ACTION_BUTTON_LABELS.generateScenes}
       </Button>
       <Button
         size="sm"
-        disabled={!!busy}
-        onClick={() => call("渲染视频", `/api/briefs/${brief.id}/render`)}
+        disabled={!!busy || isInflight}
+        title={
+          isInflight
+            ? "已经有视频生成请求在处理中，请等结果出来或先点「刷新状态」"
+            : undefined
+        }
+        onClick={() => call("生成视频", `/api/briefs/${brief.id}/render`)}
       >
-        {busy === "渲染视频" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        触发渲染
+        {busy === "生成视频" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {ACTION_BUTTON_LABELS.generateVideo}
       </Button>
       <Button
         size="sm"
@@ -78,25 +88,27 @@ export function BriefActions({
         onClick={() => call("生成剪辑计划", `/api/briefs/${brief.id}/ad-plan`)}
       >
         {busy === "生成剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        真实素材计划
+        {ACTION_BUTTON_LABELS.generateAdEditPlan}
       </Button>
       <Button
         size="sm"
         variant="outline"
         disabled={!!busy || !hasAdEditPlan}
-        onClick={() => call("渲染剪辑计划", `/api/briefs/${brief.id}/render`, { mode: "ad_edit_plan" })}
+        onClick={() =>
+          call("渲染剪辑计划", `/api/briefs/${brief.id}/render`, { mode: "ad_edit_plan" })
+        }
       >
         {busy === "渲染剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        渲染剪辑计划
+        {ACTION_BUTTON_LABELS.renderAdEditPlan}
       </Button>
       <Button
         size="sm"
         variant="outline"
         disabled={!!busy}
-        onClick={() => call("AI 初审", `/api/briefs/${brief.id}/qa`)}
+        onClick={() => call("质量检查", `/api/briefs/${brief.id}/qa`)}
       >
-        {busy === "AI 初审" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-        AI 初审
+        {busy === "质量检查" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {ACTION_BUTTON_LABELS.runQA}
       </Button>
     </div>
   );

@@ -1,6 +1,6 @@
 import { AdEditPlanStatus, Prisma, QAStatus, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 import {
   parseAdEditTimeline,
   parseDirectorOutput,
@@ -253,7 +253,9 @@ async function llmDirector(ctx: Awaited<ReturnType<typeof loadDirectorContext>>)
     null,
     2,
   );
-  const { data } = await chatJson<DirectorOutput>({
+  const { data } = await chatJsonByTier<DirectorOutput>({
+    tier: "creative",
+    stage: "director_agent",
     system: DIRECTOR_SYSTEM,
     user,
     temperature: 0.55,
@@ -265,7 +267,9 @@ async function llmDirector(ctx: Awaited<ReturnType<typeof loadDirectorContext>>)
 async function llmReview(
   plan: NonNullable<Awaited<ReturnType<typeof db.adEditPlan.findUnique>>>,
 ) {
-  const { data } = await chatJson<ReviewerOutput>({
+  const { data } = await chatJsonByTier<ReviewerOutput>({
+    tier: "qa",
+    stage: "reviewer_agent",
     system: REVIEWER_SYSTEM,
     user: JSON.stringify(
       {

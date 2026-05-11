@@ -1,22 +1,31 @@
 import { Prisma, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 
-const SYSTEM_PROMPT = `你是一名真实素材短视频广告脚本专家。基于 angle + 卖点 + 产品/服务 + 客户上传素材 + 目标语言，输出一条 15-30 秒的短视频脚本。只输出 JSON。
+const SYSTEM_PROMPT = `You are a senior short-form ad scriptwriter for vertical video (TikTok / Reels / Shorts).
+Your job: write the spoken script for ONE 15–30 second ad based on the supplied angle, selling point, product input, real footage list, and target language.
 
-输出 JSON:
+OUTPUT JSON ONLY:
 {
-  "language": "BCP47 语言代码，如 en-US / fr-CA / de-DE",
-  "full_text": "逐字口播稿，不含任何舞台指示（不要写 '旁白：'、'镜头：' 等），只有要被说出来的字。自然语速每秒约 2.5 词。",
-  "hook": "脚本开头 1-3 秒那句必定抓人的句子（从 full_text 中抽出）",
-  "cta": "结尾的 CTA 句（从 full_text 中抽出；若不出现 CTA 则为空字符串）"
+  "language": "BCP47 code, e.g. en-US / fr-CA / de-DE",
+  "full_text": "Verbatim voiceover. No stage directions, no '[Narrator]:', no scene labels — only words to be spoken. Natural pace ~2.5 words/sec.",
+  "hook": "The first 1–3 second line that stops the scroll (must be a sub-string of full_text)",
+  "cta": "The closing call-to-action line (sub-string of full_text). Empty string if the angle deliberately has no CTA."
 }
 
-要求：
-- 严格使用目标语言，语气与 angle 的 locale_notes / on-camera 模式匹配。
-- 不编造产品事实。
-- 脚本必须能用客户已有真实素材剪出来；如果 angle.locale_notes.footage_pick 或 productInput.footage_notes 提到可用镜头，脚本要围绕这些镜头展开。
-- 口吻偏真实 UGC/广告本地化，不要像传统电视广告。`;
+WRITING REQUIREMENTS — failing any of these is a failure:
+1. Match the angle's hook exactly in spirit. The first line of full_text must be the hook line.
+2. STAY ON the angle's pain point. Do NOT widen into "comfort for everyone" / "perfect for any home" / etc. Generic widening is the #1 failure.
+3. Be visually tied to actual real footage. If angle.locale_notes.footage_pick mentions specific shots, the script must reference those moments naturally.
+4. Concrete > abstract. Use sensory specifics: "press one button", "blinds glide down", "toddler walks in", "morning sun hits the wall". Avoid: "amazing", "premium", "next-level", "revolutionary", "transform your life".
+5. Keep the script tight — leave breathing room. 15s ≈ 35–40 words; 30s ≈ 70–80 words.
+6. CTA verb must match the angle's locale_notes.primary_cta. Don't override.
+7. If on_camera_mode is PRODUCT_ONLY, write a voiceover-friendly script (no first-person stories about the speaker themselves). If SELF_RAW / SELF_SUBTITLED, write in first person.
+8. Use the target language and locale variant. For en-US, sound like a small US business owner — friendly, concrete, not over-polished.
+9. Do NOT fabricate product facts (price, GSM, battery life, certifications) that aren't in productInput. If you need a fact you don't have, say "see product page" or stay in the sensory/lifestyle frame.
+10. For home / smart-home / accessibility products (e.g. motorized blinds): emphasize the small everyday moment, not the technology spec sheet.
+
+Output JSON only — no markdown.`;
 
 interface ScriptLLM {
   language: string;
@@ -127,7 +136,9 @@ ${JSON.stringify(ctx.order.productInput, null, 2)}
 
 请输出 JSON 脚本。language 字段要精确到 BCP47，例如 en-US / fr-CA / de-DE。`;
 
-  const { data } = await chatJson<ScriptLLM>({
+  const { data } = await chatJsonByTier<ScriptLLM>({
+    tier: "creative",
+    stage: "client_script",
     system: SYSTEM_PROMPT,
     user,
     temperature: 0.8,

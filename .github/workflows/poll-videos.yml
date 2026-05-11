@@ -1,0 +1,32 @@
+name: poll-videos
+
+# 外部 cron：每 5 分钟调用一次 /api/cron/poll-videos，让 Seedance 生成结果能及时回写 DB。
+# 这是 Vercel Hobby 套餐下唯一可靠的轮询渠道；Pro 套餐请把 vercel.json 的 crons 写回去。
+#
+# 仓库 Secrets 需配置：
+#   APP_URL       — 例如 https://reelforge-delta.vercel.app（不带尾斜杠）
+#   CRON_SECRET   — 与 Vercel 环境变量中 CRON_SECRET 完全一致
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger Seedance lifecycle reconciliation
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "Missing APP_URL / CRON_SECRET secrets"
+            exit 1
+          fi
+          curl -fsS -X POST "$APP_URL/api/cron/poll-videos" \
+               -H "Authorization: Bearer $CRON_SECRET" \
+            | tee /tmp/poll-result.json
+          jq -e '.polled >= 0' /tmp/poll-result.json

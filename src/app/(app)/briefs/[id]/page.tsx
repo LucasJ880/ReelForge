@@ -5,13 +5,21 @@ import { PageHeader } from "@/components/features/page-header";
 import { StatusBadge, briefTone, qaTone, publishTone } from "@/components/features/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  ANGLE_TYPE_LABELS,
-  BRIEF_LABELS,
   ON_CAMERA_LABELS,
   PUBLISH_LABELS,
-  QA_LABELS,
-  VIDEO_JOB_LABELS,
 } from "@/lib/labels";
+import {
+  ANGLE_TYPE_USER_LABELS,
+  BRIEF_USER_LABELS,
+  COMMON_USER_TERMS,
+  QA_USER_LABELS,
+  QA_ROUTE_USER_LABELS,
+} from "@/lib/labels-user";
+import {
+  RenderProgress,
+  type RenderSummaryView,
+} from "@/components/features/render-progress";
+import { summarizeBriefRender } from "@/lib/services/video-service";
 import { BriefActions } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -51,17 +59,20 @@ export default async function BriefPage({
   const angle = brief.contentAngle;
   const round = angle.round;
   const currentScript = brief.scripts.find((s) => s.isCurrent);
+  const renderSummary = serializeRenderSummary(
+    await summarizeBriefRender(brief.id),
+  );
 
   return (
     <div>
       <PageHeader
         title={angle.title}
-        description={`${round.deliveryOrder.title} · 第 ${round.roundIndex} 轮 · ${ANGLE_TYPE_LABELS[angle.type]}`}
+        description={`${round.deliveryOrder.title} · 第 ${round.roundIndex} 组创意 · ${ANGLE_TYPE_USER_LABELS[angle.type]}`}
         actions={<BriefActions brief={brief} />}
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <StatusBadge tone={briefTone(brief.status)}>{BRIEF_LABELS[brief.status]}</StatusBadge>
+        <StatusBadge tone={briefTone(brief.status)}>{BRIEF_USER_LABELS[brief.status]}</StatusBadge>
         <span className="text-xs text-muted-foreground">
           时长 {brief.durationSec}s · {brief.aspectRatio} · {ON_CAMERA_LABELS[brief.onCameraMode]}
         </span>
@@ -69,59 +80,62 @@ export default async function BriefPage({
           href={`/rounds/${round.id}`}
           className="text-xs text-muted-foreground hover:text-foreground"
         >
-          ← 返回轮次
+          ← 返回创意版本组
         </Link>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Angle</CardTitle>
+            <CardTitle>{COMMON_USER_TERMS.angle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {angle.hook && (
               <p>
-                <span className="text-xs text-muted-foreground">Hook: </span>
+                <span className="text-xs text-muted-foreground">开场钩子：</span>
                 {angle.hook}
               </p>
             )}
             {angle.narrative && (
               <p>
-                <span className="text-xs text-muted-foreground">Narrative: </span>
+                <span className="text-xs text-muted-foreground">叙事：</span>
                 {angle.narrative}
               </p>
             )}
             {angle.explorationTheme && (
               <p className="text-xs text-muted-foreground">
-                探索主题: {angle.explorationTheme}
+                探索主题：{angle.explorationTheme}
               </p>
             )}
-            <pre className="max-h-40 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
-              {JSON.stringify(angle.localeNotes, null, 2)}
-            </pre>
+            <details className="mt-2">
+              <summary className="cursor-pointer text-[10px] text-muted-foreground">开发者信息（locale_notes）</summary>
+              <pre className="mt-1 max-h-40 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                {JSON.stringify(angle.localeNotes, null, 2)}
+              </pre>
+            </details>
           </CardContent>
         </Card>
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>当前脚本 (v{currentScript?.version ?? "—"})</CardTitle>
+            <CardTitle>{COMMON_USER_TERMS.currentScript} (v{currentScript?.version ?? "—"})</CardTitle>
           </CardHeader>
           <CardContent className="text-sm">
             {currentScript ? (
               <>
-                <p className="text-[11px] text-muted-foreground">语言: {currentScript.language}</p>
+                <p className="text-[11px] text-muted-foreground">语言：{currentScript.language}</p>
                 <p className="mt-2 whitespace-pre-wrap">{currentScript.fullText}</p>
                 {currentScript.hook && (
                   <p className="mt-3 text-xs text-muted-foreground">
-                    Hook 句: {currentScript.hook}
+                    开场钩子：{currentScript.hook}
                   </p>
                 )}
                 {currentScript.cta && (
-                  <p className="text-xs text-muted-foreground">CTA: {currentScript.cta}</p>
+                  <p className="text-xs text-muted-foreground">行动号召：{currentScript.cta}</p>
                 )}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">尚未生成脚本</p>
+              <p className="text-xs text-muted-foreground">尚未生成视频脚本</p>
             )}
           </CardContent>
         </Card>
@@ -130,26 +144,25 @@ export default async function BriefPage({
       {currentScript && currentScript.scenePlans.length > 0 && (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle>分镜 + Prompt</CardTitle>
+            <CardTitle>分镜与画面 Prompt</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {currentScript.scenePlans.map((scene) => (
               <div key={scene.id} className="rounded border border-border/60 p-3 text-xs">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold">Scene #{scene.sceneIndex}</span>
+                  <span className="font-semibold">分镜 #{scene.sceneIndex}</span>
                   <StatusBadge tone="neutral">{scene.durationSec}s</StatusBadge>
                 </div>
                 <p className="mt-1 text-muted-foreground">{scene.visualIntent}</p>
                 {scene.videoPrompts.map((p) => (
-                  <div key={p.id} className="mt-2 rounded bg-secondary/40 p-2">
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                      <span>{p.provider}</span>
-                      {p.referenceImageUrl && <span>· 有参考图</span>}
-                    </div>
+                  <details key={p.id} className="mt-2 rounded bg-secondary/40 p-2">
+                    <summary className="cursor-pointer text-[10px] text-muted-foreground">
+                      画面 Prompt（开发者信息）{p.referenceImageUrl ? " · 含参考图" : ""}
+                    </summary>
                     <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[11px]">
                       {p.promptText}
                     </pre>
-                  </div>
+                  </details>
                 ))}
               </div>
             ))}
@@ -157,36 +170,19 @@ export default async function BriefPage({
         </Card>
       )}
 
-      {brief.videoJobs.length > 0 && (
+      {(brief.videoJobs.length > 0 ||
+        ["RENDER_QUEUED", "RENDERING", "RENDER_FAILED", "RENDER_SUCCEEDED"].includes(
+          brief.status,
+        )) && (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle>渲染任务</CardTitle>
+            <CardTitle>{COMMON_USER_TERMS.videoJobsSection}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs">
-            {brief.videoJobs.map((j) => (
-              <div key={j.id} className="flex items-center justify-between rounded bg-secondary/30 p-2">
-                <div>
-                  <span className="font-medium">{j.provider}</span>
-                  <span className="ml-2 text-muted-foreground">
-                    {VIDEO_JOB_LABELS[j.status]}
-                    {j.externalJobId && ` · ${j.externalJobId.slice(0, 16)}…`}
-                  </span>
-                </div>
-                {j.outputVideoUrl && (
-                  <a
-                    href={j.outputVideoUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    查看视频
-                  </a>
-                )}
-                {j.errorMessage && (
-                  <span className="text-destructive">{j.errorMessage}</span>
-                )}
-              </div>
-            ))}
+          <CardContent>
+            <RenderProgress
+              briefId={brief.id}
+              initial={renderSummary}
+            />
           </CardContent>
         </Card>
       )}
@@ -244,27 +240,34 @@ export default async function BriefPage({
       {brief.qaReviews.length > 0 && (
         <Card className="mt-4">
           <CardHeader>
-            <CardTitle>QA 审核</CardTitle>
+            <CardTitle>质量检查</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-xs">
             {brief.qaReviews.map((q) => (
               <div key={q.id} className="rounded border border-border/60 p-3">
                 <div className="flex items-center gap-2">
-                  <StatusBadge tone={qaTone(q.status)}>{QA_LABELS[q.status]}</StatusBadge>
+                  <StatusBadge tone={qaTone(q.status)}>{QA_USER_LABELS[q.status]}</StatusBadge>
                   {q.aiOverallScore != null && (
-                    <StatusBadge tone="info">AI 分 {q.aiOverallScore}</StatusBadge>
+                    <StatusBadge tone="info">综合评分 {q.aiOverallScore}</StatusBadge>
                   )}
                   {q.aiReviewRoute && (
-                    <span className="text-muted-foreground">路由 {q.aiReviewRoute}</span>
+                    <span className="text-muted-foreground">
+                      推荐路径：{QA_ROUTE_USER_LABELS[q.aiReviewRoute] ?? q.aiReviewRoute}
+                    </span>
                   )}
                 </div>
                 {q.reviewerComment && (
                   <p className="mt-2 text-muted-foreground">{q.reviewerComment}</p>
                 )}
                 {q.aiScoreBreakdown && (
-                  <pre className="mt-2 max-h-32 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
-                    {JSON.stringify(q.aiScoreBreakdown, null, 2)}
-                  </pre>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-[10px] text-muted-foreground">
+                      详细打分（开发者信息）
+                    </summary>
+                    <pre className="mt-1 max-h-32 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                      {JSON.stringify(q.aiScoreBreakdown, null, 2)}
+                    </pre>
+                  </details>
                 )}
               </div>
             ))}
@@ -310,4 +313,32 @@ export default async function BriefPage({
       )}
     </div>
   );
+}
+
+/// 把后端 BriefRenderSummary 序列化成前端 client component 友好的形态（Date → string）。
+function serializeRenderSummary(
+  summary: Awaited<ReturnType<typeof summarizeBriefRender>>,
+): RenderSummaryView {
+  return {
+    briefId: summary.briefId,
+    briefStatus: summary.briefStatus,
+    totalJobs: summary.totalJobs,
+    succeeded: summary.succeeded,
+    running: summary.running,
+    queued: summary.queued,
+    failed: summary.failed,
+    cancelled: summary.cancelled,
+    finalVideoUrl: summary.finalVideoUrl,
+    finalThumbnailUrl: summary.finalThumbnailUrl,
+    hasStuckJob: summary.hasStuckJob,
+    lastCheckedAt: summary.lastCheckedAt
+      ? summary.lastCheckedAt.toISOString()
+      : null,
+    jobs: summary.jobs.map((j) => ({
+      ...j,
+      submittedAt: j.submittedAt ? j.submittedAt.toISOString() : null,
+      lastCheckedAt: j.lastCheckedAt ? j.lastCheckedAt.toISOString() : null,
+      finishedAt: j.finishedAt ? j.finishedAt.toISOString() : null,
+    })),
+  };
 }

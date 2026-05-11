@@ -1,6 +1,6 @@
 import { Prisma, QAStatus, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 import {
   QA_CRITERIA,
   calcOverallScore,
@@ -56,12 +56,14 @@ ${script.fullText}
 
 请按 8 个维度打分。`;
 
-    const { data } = await chatJson<{
+    const { data } = await chatJsonByTier<{
       score_breakdown: QAScoreBreakdown;
       issues: string[];
       suggestions: string[];
       reasoning: string;
     }>({
+      tier: "qa",
+      stage: "ai_qa_review",
       system: SYSTEM_PROMPT,
       user,
       temperature: 0.3,

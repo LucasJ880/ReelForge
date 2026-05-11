@@ -5,12 +5,15 @@ import { PageHeader } from "@/components/features/page-header";
 import { StatusBadge, deliveryTone, briefTone } from "@/components/features/status-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  BRIEF_LABELS,
   DELIVERY_ORDER_LABELS,
   RESEARCH_LABELS,
   ROUND_LABELS,
-  ANGLE_TYPE_LABELS,
 } from "@/lib/labels";
+import {
+  ANGLE_TYPE_USER_LABELS,
+  BRIEF_USER_LABELS,
+  COMMON_USER_TERMS,
+} from "@/lib/labels-user";
 import { getDeliveryOrderDetail } from "@/lib/services/order-service";
 import { formatDate } from "@/lib/utils";
 import { AssetActions } from "./asset-actions";
@@ -157,7 +160,7 @@ export default async function OrderDetailPage({
 
       <div className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">赛马轮次 ({order.rounds.length}/{order.maxRounds})</h2>
+          <h2 className="text-lg font-semibold">{COMMON_USER_TERMS.raceRound}（{order.rounds.length}/{order.maxRounds}）</h2>
         </div>
         {order.rounds.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
@@ -174,7 +177,7 @@ export default async function OrderDetailPage({
                         href={`/rounds/${round.id}`}
                         className="inline-flex items-center gap-2 hover:text-primary"
                       >
-                        第 {round.roundIndex} 轮
+                        第 {round.roundIndex} 组创意
                         <ArrowRight className="h-3.5 w-3.5" />
                       </Link>
                     </CardTitle>
@@ -200,7 +203,7 @@ export default async function OrderDetailPage({
                                 : "text-[10px] text-amber-400"
                             }
                           >
-                            {ANGLE_TYPE_LABELS[a.type]}
+                            {ANGLE_TYPE_USER_LABELS[a.type]}
                           </span>
                         </div>
                         <p className="mt-1 line-clamp-2 font-medium">{a.title}</p>
@@ -209,7 +212,7 @@ export default async function OrderDetailPage({
                             tone={briefTone(a.videoBrief.status)}
                             className="mt-1.5"
                           >
-                            {BRIEF_LABELS[a.videoBrief.status]}
+                            {BRIEF_USER_LABELS[a.videoBrief.status]}
                           </StatusBadge>
                         )}
                       </Link>

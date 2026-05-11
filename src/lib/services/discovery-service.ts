@@ -1,6 +1,6 @@
 import { Prisma, ResearchStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 import {
   fetchTikTokSignals,
   isApifyAvailable,
@@ -132,7 +132,9 @@ export async function startMarketResearch(deliveryOrderId: string) {
       comments: signals.comments,
     });
 
-    const { data, modelUsed, tokenUsage } = await chatJson<ResearchStructured>({
+    const { data, modelUsed, tokenUsage } = await chatJsonByTier<ResearchStructured>({
+      tier: "research",
+      stage: "market_research",
       system: SYSTEM_PROMPT,
       user: userMessage,
       temperature: 0.5,

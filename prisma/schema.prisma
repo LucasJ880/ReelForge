@@ -638,16 +638,33 @@ model VideoJob {
 
   outputVideoUrl  String?
   outputThumbUrl  String?
+  /// 内部/管理员错误（包含原始 Provider 错误，仅 debug 区可见）
   errorMessage    String?
+  /// 用户安全的错误描述（已脱敏的中文友好提示，可直接展示给客户）
+  userSafeError   String?
   retryCount      Int             @default(0)
 
+  /// 我们调用 Provider 提交时间
+  submittedAt     DateTime?
+  /// Provider 第一次确认 RUNNING/processing 的时间（可空）
   startedAt       DateTime?
+  /// 终态时间
   finishedAt      DateTime?
+  /// 上次成功调用 Provider 状态接口的时间
+  lastCheckedAt   DateTime?
+  /// Provider 原始 status（如 "queued" / "running" / "succeeded" / "failed" / "expired"）
+  lastProviderStatus String?
+  /// 视频生成超过该时间仍未终态时，UI 显示「用时较长」
+  timeoutAt       DateTime?
+  /// 累计轮询次数（用于「3 连错败下线」逻辑）
+  pollErrors      Int             @default(0)
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   @@index([status])
   @@index([externalJobId])
+  @@index([videoBriefId])
 }
 
 // =========================================================

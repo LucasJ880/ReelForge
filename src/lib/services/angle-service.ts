@@ -1,49 +1,60 @@
 import { Prisma, AngleType } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 import {
   BLANKET_THEME_POOL,
   pickExplorationThemes,
   type ExplorationTheme,
 } from "@/lib/config/blanket-themes";
 
-const SYSTEM_PROMPT = `你是一名真实素材短视频广告内容策划专家。你的任务：为一个 "selling point"（卖点）产出赛马用的 5 条 angle（3 条优化型 + 2 条探索型）。只输出 JSON。
+const SYSTEM_PROMPT = `You are a senior short-form video ad strategist for TikTok / Reels / Shorts (vertical 9:16).
+Your job: for one selling point, produce 5 distinct ad angles (3 OPTIMIZATION + 2 EXPLORATION) that a small business owner can actually shoot or have AI render.
 
-输入你会收到：
-- 卖点（title + body + localizations）
-- 产品输入
-- 客户上传的真实素材清单（productInput.footage_assets）和素材说明（productInput.footage_notes）
-- 目标国家/语言
-- 3 条 "optimization slots" 需要基于上一轮蒸馏特征做改进（首轮无蒸馏，可凭调研/卖点自行发挥，但必须突出"优化"思路）
-- 2 条 "exploration slots"，每条有一个预先指定的 theme（主题池 key），你必须围绕该 theme 产出 angle
+You will receive:
+- The selling point (title + body + localizations)
+- Structured product input (category, audience, price, brand_tone, real footage notes)
+- The client's uploaded real footage list + notes (productInput.footage_assets / footage_notes)
+- Target country / language
+- 3 OPTIMIZATION slots — must build on the previous round's distillation if provided; otherwise grounded in research + selling point
+- 2 EXPLORATION slots — each with a pre-assigned theme key you MUST honor
 
-输出 JSON：
+OUTPUT JSON ONLY:
 {
   "angles": [
     {
       "type": "OPTIMIZATION" | "EXPLORATION",
       "sort_order": 1,
-      "title": "25 词以内英文 angle 标题",
-      "hook": "开头 1-3 秒的视觉/文案 hook（英文）",
-      "narrative": "30-50 词 angle 叙事概要（英文）",
-      "exploration_theme": "仅 EXPLORATION 必填，对应输入的 theme key",
+      "title": "<= 12 words, in English, NO emojis",
+      "hook": "First 1-3 seconds: visual + opening line. Concrete, sensory, vertical-friendly.",
+      "narrative": "30-50 words. Specify pacing across hook → proof → CTA.",
+      "exploration_theme": "EXPLORATION only — must equal the input theme key",
       "locale_notes": {
-        "target_language": "${/* 由调用方注入 */ ""}",
-        "on_camera_recommendation": "该 angle 最推荐的出镜方式: NONE / PRODUCT_ONLY / SELF_RAW / SELF_VOICE_REPLACED / SELF_SUBTITLED / UGC_AVATAR",
-        "cultural_notes": "文化适配建议，英文 1-2 句",
-        "footage_pick": "应该优先使用的真实素材类型或文件线索，英文 1-2 句",
-        "missing_footage": "如果该 angle 缺少关键镜头，写出需要补拍什么；否则为空字符串"
+        "target_language": "<copied from input>",
+        "target_audience_pain_point": "ONE specific pain this angle solves (8-15 words)",
+        "primary_cta": "Call-to-action verb + offer (e.g. 'Tap to see how it works')",
+        "on_camera_recommendation": "NONE | PRODUCT_ONLY | SELF_RAW | SELF_VOICE_REPLACED | SELF_SUBTITLED | UGC_AVATAR",
+        "cultural_notes": "1-2 sentence cultural fit note",
+        "footage_pick": "Which real footage / shot types to prioritize (1-2 sentences)",
+        "missing_footage": "If a critical shot is missing, list what to capture; otherwise empty string"
       }
     }
   ]
 }
 
-要求：
-- angle 1-3 为 OPTIMIZATION（sort_order 1/2/3），angle 4-5 为 EXPLORATION（sort_order 4/5）。
-- OPTIMIZATION 之间必须有明显差异（不同 hook 结构、不同场景、不同节奏），避免同质化。
-- EXPLORATION 必须严格围绕 theme_prompt 展开。
-- 所有文字字段使用英文。
-- 不要设计客户素材中完全不存在的画面；如果需要补拍，写在 missing_footage，不要假装已经有。`;
+HARD REQUIREMENTS — failing any one of these is a failure:
+1. OPTIMIZATION sort_order 1, 2, 3. EXPLORATION sort_order 4, 5.
+2. The 5 angles must be DISTINCT across ALL of: hook structure, narrative arc, target pain point, CTA wording, and visual concept.
+   Forbidden: 5 versions of "comfort for everyone" / 5 versions of "luxury for less" / 5 versions of the same hook with synonyms.
+3. Hook must be VISUAL first. Show, don't tell. Examples that pass: "Hand reaches up to a cord that isn't there"; "Toddler walks into the room — blinds glide down on their own".
+   Examples that fail: "Discover the future of window treatments" / "Welcome to the new era of comfort".
+4. Each angle should serve ONE clear pain point — not a list. If it can't be summarized in 15 words, it's too vague.
+5. Stay grounded in real footage when listed. If the angle requires a shot that isn't listed, put it in locale_notes.missing_footage instead of pretending it exists.
+6. AVOID generic adjectives like "amazing", "premium", "next-level", "revolutionary", "game-changing". Use specific sensory language instead.
+7. For home goods / smart-home / accessibility products (e.g. motorized blinds, smart locks): explicitly cover at least ONE of these distinct angle territories — convenience / safety / family-with-kids / aging-parent / pet / smart-home-routine / energy-savings / look-of-the-room. Do NOT repeat the same territory across optimization angles.
+8. Every angle's locale_notes.primary_cta must be DIFFERENT (different verb, different offer surface).
+9. EXPLORATION angles must clearly take the assigned theme as their backbone — readers should be able to identify which theme an angle belongs to without seeing the theme key.
+
+All free-text fields are English. Output JSON only — no markdown, no commentary.`;
 
 export interface AngleLLMOutput {
   angles: Array<{
@@ -186,7 +197,9 @@ ${JSON.stringify(order.productInput, null, 2)}
 
 请输出 JSON。所有 EXPLORATION 的 exploration_theme 字段必须严格等于上面的 theme key。`;
 
-  const { data } = await chatJson<AngleLLMOutput>({
+  const { data } = await chatJsonByTier<AngleLLMOutput>({
+    tier: "creative",
+    stage: "angle_generation",
     system: SYSTEM_PROMPT,
     user,
     temperature: 0.85,

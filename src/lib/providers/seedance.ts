@@ -7,6 +7,12 @@
  * API 文档: https://www.volcengine.com/docs/82379/1520757
  *   POST /contents/generations/tasks        (提交)
  *   GET  /contents/generations/tasks/{id}   (查询)
+ *
+ * 设计要点（Phase Lifecycle Hardening · 2026-05）：
+ * - 状态结果必须额外携带 rawProviderStatus，供调和层做决策（不要丢掉原始字符串）。
+ * - 提交时若配置了 SEEDANCE_CALLBACK_URL，主动带上回调 URL（双保险：cron 轮询 + webhook）。
+ * - getStatusReal 永远不抛出非业务异常—网络/解析问题统一抛 Error，
+ *   方便调和函数把它当成「轮询失败、未到终态」处理而不是误终结任务。
  */
 
 export interface SeedanceSubmitOptions {
@@ -21,6 +27,8 @@ export interface SeedanceSubmitOptions {
   ratio?: string;
   model?: string;
   returnLastFrame?: boolean;
+  /// 公网可达的 webhook 回调 URL；为空则不携带（仅依赖轮询）
+  callbackUrl?: string;
 }
 
 export type SeedanceStatus =
@@ -31,12 +39,17 @@ export type SeedanceStatus =
 
 export interface SeedanceJobResult {
   jobId: string;
+  /// 我们规约后的 4 态
   status: SeedanceStatus;
+  /// Provider 原始状态字符串：queued / running / succeeded / failed / expired / cancelled / ...
+  rawProviderStatus: string;
   videoUrl?: string;
   thumbnailUrl?: string;
   lastFrameUrl?: string;
   errorMessage?: string;
   progress?: number;
+  /// 完整 Provider 响应（仅 admin/debug 区使用，不要直接展示给客户）
+  rawProviderResponse?: unknown;
 }
 
 const mockJobs = new Map<
@@ -50,6 +63,10 @@ function isMockMode(): boolean {
   if (!process.env.ARK_API_KEY) return true;
   const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
   return flag === "1" || flag === "true" || flag === "yes";
+}
+
+export function isSeedanceConfigured(): boolean {
+  return !!process.env.ARK_API_KEY && !isMockMode();
 }
 
 export async function submitSeedanceJob(
@@ -80,13 +97,19 @@ function submitMock(options: SeedanceSubmitOptions): { jobId: string } {
 function getStatusMock(jobId: string): SeedanceJobResult {
   const job = mockJobs.get(jobId);
   if (!job) {
-    return { jobId, status: "failed", errorMessage: "Mock 任务不存在" };
+    return {
+      jobId,
+      status: "failed",
+      rawProviderStatus: "not_found",
+      errorMessage: "Mock 任务不存在",
+    };
   }
   const elapsed = Date.now() - job.createdAt;
   if (elapsed < MOCK_PROCESSING_TIME_MS) {
     return {
       jobId,
       status: "processing",
+      rawProviderStatus: "running",
       progress: Math.min(95, Math.floor((elapsed / MOCK_PROCESSING_TIME_MS) * 100)),
     };
   }
@@ -94,6 +117,7 @@ function getStatusMock(jobId: string): SeedanceJobResult {
   return {
     jobId,
     status: "completed",
+    rawProviderStatus: "succeeded",
     videoUrl: `https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4`,
     thumbnailUrl: `https://picsum.photos/seed/${jobId}/400/720`,
     progress: 100,
@@ -157,6 +181,11 @@ async function submitReal(
     body.resolution = options.resolution || "1080p";
   }
 
+  const callbackUrl = options.callbackUrl || process.env.SEEDANCE_CALLBACK_URL;
+  if (callbackUrl) {
+    body.callback_url = callbackUrl;
+  }
+
   const res = await fetch(`${baseUrl}/contents/generations/tasks`, {
     method: "POST",
     headers: {
@@ -172,7 +201,13 @@ async function submitReal(
   }
 
   const data = await res.json();
-  return { jobId: data.id || data.task_id };
+  const taskId = data.id || data.task_id;
+  if (!taskId) {
+    throw new Error(
+      `Seedance 响应未携带任务 ID（数据形态变更？）: ${JSON.stringify(data).slice(0, 300)}`,
+    );
+  }
+  return { jobId: taskId };
 }
 
 async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
@@ -189,23 +224,45 @@ async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
     throw new Error(`Seedance 查询失败: ${res.status} ${err.slice(0, 300)}`);
   }
   const data = await res.json();
-  const statusMap: Record<string, SeedanceStatus> = {
-    queued: "pending",
-    running: "processing",
-    succeeded: "completed",
-    failed: "failed",
-    expired: "failed",
-    cancelled: "failed",
-  };
+  const rawStatus: string = typeof data.status === "string" ? data.status : "unknown";
+
   return {
     jobId,
-    status: statusMap[data.status] || "processing",
+    status: mapProviderStatus(rawStatus),
+    rawProviderStatus: rawStatus,
     videoUrl: data.content?.video_url || data.video_url,
     thumbnailUrl: data.content?.cover_url || data.thumbnail_url,
     lastFrameUrl: data.content?.last_frame_url || data.last_frame_url,
-    errorMessage:
-      data.status === "failed"
-        ? data.error?.message || "Seedance 视频生成失败"
-        : undefined,
+    errorMessage: isFailureStatus(rawStatus)
+      ? data.error?.message ||
+        data.error?.code ||
+        `Seedance 视频生成失败 (${rawStatus})`
+      : undefined,
+    rawProviderResponse: data,
   };
 }
+
+/// Provider 原始状态映射：保留所有可能的字符串，未知字符串归到 processing 以避免误终结
+function mapProviderStatus(raw: string): SeedanceStatus {
+  const normalized = raw.toLowerCase();
+  if (["succeeded", "success", "completed", "done"].includes(normalized)) {
+    return "completed";
+  }
+  if (["failed", "error", "expired", "cancelled", "canceled"].includes(normalized)) {
+    return "failed";
+  }
+  if (["queued", "pending", "waiting"].includes(normalized)) {
+    return "pending";
+  }
+  /// running / processing / unknown → 都视作仍在生成
+  return "processing";
+}
+
+function isFailureStatus(raw: string): boolean {
+  return ["failed", "error", "expired", "cancelled", "canceled"].includes(
+    raw.toLowerCase(),
+  );
+}
+
+/// 仅供测试导入：纯函数版本的状态映射
+export const __test__ = { mapProviderStatus, isFailureStatus };

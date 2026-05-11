@@ -1,28 +1,47 @@
 import { Prisma, VideoBriefStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 
-const SYSTEM_PROMPT = `你是一名 AI 视频补画面 prompt 工程师（Seedance 2.0）。基于真实素材广告的 scene 分镜，只有在客户素材缺少过渡镜头、氛围镜头或产品补充镜头时，才产出可用于 Seedance 的补画面 prompt。只输出 JSON。
+const SYSTEM_PROMPT = `You are a Seedance 2.0 (Volcengine Ark) director-prompt engineer.
+Your job: turn each scene plan into a single, cinematic, ready-to-render prompt that produces a vertical 9:16 short-form ad shot.
 
-输出 JSON:
+OUTPUT JSON ONLY:
 {
   "prompts": [
     {
       "scene_index": 1,
       "provider": "SEEDANCE_T2V" | "SEEDANCE_I2V",
-      "prompt_text": "英文 200-350 词的 director prompt，覆盖 shot / camera / lighting / color / motion / AUDIO DIRECTION",
-      "negative_prompt": "可留空",
-      "params": { "duration": 秒数, "ratio": "9:16" }
+      "prompt_text": "200-350 English words. MUST follow the section template below.",
+      "negative_prompt": "Optional, comma-separated terms to avoid",
+      "params": { "duration": <seconds>, "ratio": "9:16" }
     }
   ]
 }
 
-要求：
-- provider 的选择：如果 scene 的 visual_intent 强调产品真实外观（特写、品牌标识清晰可见），用 SEEDANCE_I2V；若是缺少的氛围/转场补画面，用 SEEDANCE_T2V。
-- prompt 必须包含 AUDIO DIRECTION 段落（Seedance 2.0 原生支持音频，需要明确背景音乐/voiceover 语言与情绪）。
-- 时长严格遵守输入的 scene duration。
-- 不要把真实素材中已经存在的镜头重新想象成假画面；prompt 应服务于补画面或 I2V 延展。
-- 不要在 prompt_text 中加入 JSON 之外的任何字符。`;
+PROMPT TEMPLATE — every prompt_text must include these sections, in order, with these labels:
+SHOT: <subject + framing + composition (e.g. tight close-up of hand on a smart-home control)>
+CAMERA: <move + lens (e.g. slow dolly-in, 35mm look)>
+ENVIRONMENT: <location + props + light + time of day, anchored to the product's real-world setting>
+MOTION: <what changes during the shot>
+COLOR & MOOD: <palette + emotional tone, 1 line>
+ACTION & TIMING: <beat-by-beat for the shot's duration>
+AUDIO DIRECTION: <music style + voiceover language + voiceover tone (Seedance 2.0 generates audio; required)>
+
+PROVIDER SELECTION:
+- Use SEEDANCE_I2V if the scene needs the actual product look-and-brand fidelity AND a reference image is available (has_reference_image = true).
+- Otherwise use SEEDANCE_T2V (atmosphere, transitions, B-roll, lifestyle).
+
+HARD REQUIREMENTS:
+1. duration MUST equal the input scene duration_sec exactly. ratio = "9:16".
+2. Be concrete and sensory. Avoid: "amazing", "premium look", "professional grade", "ultra-realistic". Prefer: "morning light slants across hardwood", "shutter blades roll closed in 1.5 seconds".
+3. Stay feasible. Don't ask for shots that the model can't reliably render in 5–10s clips (no 50-person crowds, no dialogue lip-sync).
+4. Stay TRUE to the product. For motorized blinds: the visible mechanism / cord-free window / smart speaker on a shelf / hand on remote. Do NOT default to "luxury hotel suite" stock-footage cliches.
+5. Avoid showing recognizable celebrities, brand logos that aren't ours, copyrighted characters.
+6. negative_prompt should include common Seedance 2.0 failures: "warped hands, distorted text, watermarks, glitching faces, unnatural fingers".
+7. AUDIO DIRECTION is required. Specify music tempo / mood / whether there's a VO and in what language. Match the Brief on-camera mode.
+8. No JSON outside the single output object.
+
+Output JSON only — no markdown, no commentary.`;
 
 interface PromptsLLM {
   prompts: Array<{
@@ -124,7 +143,9 @@ has_reference_image: ${ctx.hasReference}
 
 请按 scene 顺序输出 JSON prompts。`;
 
-  const { data } = await chatJson<PromptsLLM>({
+  const { data } = await chatJsonByTier<PromptsLLM>({
+    tier: "creative",
+    stage: "video_prompt_generation",
     system: SYSTEM_PROMPT,
     user,
     temperature: 0.6,

@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 import type { ResearchStructured } from "./discovery-service";
 
 const SYSTEM_PROMPT = `你是一名短视频广告卖点提炼专家。基于市场调研 + 产品/服务事实 + 客户上传的真实素材清单，为一个真实素材广告项目产出一组结构化卖点，面向剪辑和脚本团队使用。只输出 JSON。
@@ -104,7 +104,9 @@ ${research ? JSON.stringify(research, null, 2) : "（无）"}
 
 请输出 JSON 卖点清单。`;
 
-  const { data } = await chatJson<{ selling_points: SellingPointLLM[] }>({
+  const { data } = await chatJsonByTier<{ selling_points: SellingPointLLM[] }>({
+    tier: "creative",
+    stage: "selling_points",
     system: SYSTEM_PROMPT,
     user,
     temperature: 0.5,

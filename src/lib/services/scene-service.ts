@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 
 const SYSTEM_PROMPT = `你是一名真实素材广告短视频分镜师。给你脚本全文、目标时长和客户上传素材清单，请把脚本切成 3-6 个 scene，每个 scene 给出时长、视觉意图（英文）和出镜备注（英文）。只输出 JSON。
 
@@ -105,7 +105,9 @@ ${ctx.fullText}
 
 请输出 JSON 分镜。scene 数量 3-6 个，duration_sec 合计必须 = ${ctx.durationSec}。`;
 
-  const { data } = await chatJson<ScenesLLM>({
+  const { data } = await chatJsonByTier<ScenesLLM>({
+    tier: "creative",
+    stage: "scene_breakdown",
     system: SYSTEM_PROMPT,
     user,
     temperature: 0.6,

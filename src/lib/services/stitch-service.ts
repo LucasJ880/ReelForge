@@ -1,12 +1,14 @@
 import { execFile } from "child_process";
 import { promisify } from "util";
-import { mkdir, readFile, rm, writeFile } from "fs/promises";
+import { copyFile, mkdir, readFile, rm, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
+import { fileURLToPath } from "url";
 import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 
 const execFileAsync = promisify(execFile);
+const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
 
 /**
  * Stitch Service —— 多段 Seedance 段拼接为完整 MP4 的状态机。
@@ -137,6 +139,39 @@ export async function stitchFinalVideo(
     };
   }
 
+  /// Phase 2：如果 brief 有 unified VideoGenerationPlan（assemblyPlan 描述了
+  /// AI clips + uploaded clips + end card 的完整顺序），交给 assembly-executor 处理。
+  /// 旧 brief（含 Sunny Shutter / 单纯 AI 多段无 unified plan）继续走下面 legacy 路径。
+  if (await briefHasUnifiedAssembly(fv.brief?.id)) {
+    /// external runtime 仍然不在本进程跑 ffmpeg —— 保留占位让外部 runner 拉
+    if (stitchRuntimeMode() === "external") {
+      await db.finalVideo.updateMany({
+        where: { id: fv.id, status: FinalVideoStatus.PENDING },
+        data: { ffmpegError: AWAITING_EXTERNAL_STITCHER },
+      });
+      return {
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.PENDING,
+        awaitingExternal: true,
+        error: AWAITING_EXTERNAL_STITCHER,
+      };
+    }
+    const { executeAssembly } = await import(
+      "@/lib/video-generation/assembly-executor"
+    );
+    const r = await executeAssembly(finalVideoId);
+    return {
+      finalVideoId,
+      ok: r.ok,
+      status: r.status,
+      stitchedVideoUrl: r.stitchedVideoUrl ?? null,
+      error: r.error ?? null,
+      awaitingExternal: r.awaitingExternal,
+      skipped: r.skipped,
+    };
+  }
+
   /// 单段：直接复用首段 URL，不走外部拼接
   if (fv.segmentCount === 1) {
     const single = fv.segments[0];
@@ -216,11 +251,13 @@ export async function stitchFinalVideo(
 
   const segmentUrls = fv.segments.map((s) => s.outputVideoUrl as string);
   const thumbnailUrl: string | null = fv.segments[0]?.outputThumbUrl ?? null;
+  /// legacy 路径：不知道 aspectRatio 就用 brief.aspectRatio（旧 brief 也有该字段）
+  const briefAspect = await briefAspectRatio(fv.brief?.id);
 
   let stitchedUrl: string | null = null;
   let error: string | null = null;
   try {
-    stitchedUrl = await runFfmpegConcat(fv.id, segmentUrls);
+    stitchedUrl = await runFfmpegConcat(fv.id, segmentUrls, briefAspect);
   } catch (err) {
     error = (err as Error).message;
   }
@@ -439,11 +476,63 @@ function stitchRuntimeMode(): "local" | "external" {
 /**
  * 用 ffmpeg concat demuxer 把 N 段 mp4 拼成 1 段。
  * 仅 stitchRuntimeMode() === "local" 时走这条路径。
+ *
+ * 旧 legacy 入口（无 unified plan 的 brief 走这里）。新 brief 走
+ * runFfmpegNormalizeAndConcat（aspect-aware + 支持 trim）。
  */
 async function runFfmpegConcat(
   finalVideoId: string,
   urls: string[],
+  aspectRatio: string,
 ): Promise<string> {
+  return runFfmpegNormalizeAndConcat({
+    finalVideoId,
+    aspectRatio,
+    clips: urls.map((u) => ({ url: u, intendedDurationSec: null, trimToFit: false })),
+  });
+}
+
+interface AspectDimensions {
+  width: number;
+  height: number;
+}
+
+const ASPECT_RESOLUTION: Record<string, AspectDimensions> = {
+  "9:16": { width: 1080, height: 1920 },
+  "16:9": { width: 1920, height: 1080 },
+  "1:1": { width: 1080, height: 1080 },
+};
+
+function resolveAspectResolution(aspectRatio: string): AspectDimensions {
+  return ASPECT_RESOLUTION[aspectRatio] ?? ASPECT_RESOLUTION["9:16"];
+}
+
+export interface NormalizeAndConcatClip {
+  url: string;
+  /// 期望该 clip 在最终视频里的时长；非 null 时配合 trimToFit 决定是否截断
+  intendedDurationSec: number | null;
+  /// true = 该 clip 长度可能超出，按 intendedDurationSec 裁剪；false = 用原长
+  trimToFit: boolean;
+}
+
+/**
+ * Phase 2 · L4 — aspect-aware normalize + concat。
+ *
+ * 输入混合 URL（http(s)/file://）+ 期望时长，输出 stitched MP4 的 Blob URL。
+ * 每个 clip：
+ *   1. download/copy 到本地 tmp
+ *   2. ffmpeg scale+pad 到 target resolution（按 aspectRatio 决定 1080x1920/1920x1080/1080x1080）
+ *   3. （trimToFit 且 intendedDurationSec）→ -t N 强制截断；缺音轨补 anullsrc
+ *   4. 全部 normalized 后 concat demuxer 拼成最终 MP4
+ *   5. persistStitchedFile 上传 Blob 返回 URL
+ */
+export async function runFfmpegNormalizeAndConcat(params: {
+  finalVideoId: string;
+  aspectRatio: string;
+  clips: NormalizeAndConcatClip[];
+}): Promise<string> {
+  const { finalVideoId, aspectRatio, clips } = params;
+  const { width, height } = resolveAspectResolution(aspectRatio);
   const tmpDir = path.join(
     os.tmpdir(),
     `aivora-stitch-${finalVideoId}-${Date.now()}`,
@@ -451,47 +540,120 @@ async function runFfmpegConcat(
   await mkdir(tmpDir, { recursive: true });
 
   try {
-    const segments: string[] = [];
-    for (const [i, url] of urls.entries()) {
-      const localInput = path.join(tmpDir, `seg-${i}.input`);
+    const normalizedFiles: string[] = [];
+    for (const [i, clip] of clips.entries()) {
+      const ext = path.extname(safePathFromUrl(clip.url) ?? ".mp4") || ".mp4";
+      const localInput = path.join(tmpDir, `in-${i}${ext}`);
       const normalized = path.join(tmpDir, `seg-${i}.mp4`);
-      await downloadToFile(url, localInput);
-      await execFileAsync(
-        "ffmpeg",
-        [
+      await downloadToFile(clip.url, localInput);
+
+      const args: string[] = [
+        "-y",
+        "-loglevel",
+        "error",
+        "-i",
+        localInput,
+        /// 静音 anullsrc 兜底：如果输入没有音轨也保证输出有，方便 concat
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=channel_layout=stereo:sample_rate=44100",
+        "-filter_complex",
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v];[0:a?][1:a]amerge=inputs=2,pan=stereo|c0=c0|c1=c1[a]`,
+        "-map",
+        "[v]",
+        "-map",
+        "[a]",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-preset",
+        "ultrafast",
+        "-c:a",
+        "aac",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
+      ];
+      if (clip.trimToFit && clip.intendedDurationSec) {
+        args.push("-t", String(Math.max(1, clip.intendedDurationSec)));
+      }
+      args.push("-shortest", normalized);
+
+      try {
+        await execFileAsync(FFMPEG_BIN, args, {
+          maxBuffer: 1024 * 1024 * 50,
+          timeout: 60_000,
+        });
+      } catch (err) {
+        /// amerge 在「输入完全没有音轨」时也会报错（没有 a? 流）；
+        /// 重试一次：丢弃原音、强制 anullsrc 充当静音轨
+        const fallbackArgs: string[] = [
           "-y",
+          "-loglevel",
+          "error",
           "-i",
           localInput,
+          "-f",
+          "lavfi",
+          "-t",
+          String(Math.max(1, clip.intendedDurationSec ?? 60)),
+          "-i",
+          "anullsrc=channel_layout=stereo:sample_rate=44100",
+          "-vf",
+          `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30`,
+          "-map",
+          "0:v:0",
+          "-map",
+          "1:a:0",
           "-c:v",
           "libx264",
           "-pix_fmt",
           "yuv420p",
+          "-preset",
+          "ultrafast",
           "-c:a",
           "aac",
-          "-r",
-          "30",
-          "-vf",
-          "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2",
-          normalized,
-        ],
-        { maxBuffer: 1024 * 1024 * 50 },
-      );
-      segments.push(normalized);
+          "-ar",
+          "44100",
+          "-ac",
+          "2",
+        ];
+        if (clip.trimToFit && clip.intendedDurationSec) {
+          fallbackArgs.push("-t", String(Math.max(1, clip.intendedDurationSec)));
+        }
+        fallbackArgs.push("-shortest", normalized);
+        try {
+          await execFileAsync(FFMPEG_BIN, fallbackArgs, {
+            maxBuffer: 1024 * 1024 * 50,
+            timeout: 60_000,
+          });
+        } catch (innerErr) {
+          throw new Error(
+            `ffmpeg normalize failed for clip #${i} (${clip.url.slice(0, 80)}): ${(innerErr as Error).message || (err as Error).message}`,
+          );
+        }
+      }
+      normalizedFiles.push(normalized);
     }
 
     const concatList = path.join(tmpDir, "concat.txt");
     await writeFile(
       concatList,
-      segments
+      normalizedFiles
         .map((s) => `file '${s.replaceAll("'", "'\\''")}'`)
         .join("\n"),
       "utf8",
     );
     const finalOut = path.join(tmpDir, "final.mp4");
     await execFileAsync(
-      "ffmpeg",
+      FFMPEG_BIN,
       [
         "-y",
+        "-loglevel",
+        "error",
         "-f",
         "concat",
         "-safe",
@@ -502,11 +664,13 @@ async function runFfmpegConcat(
         "libx264",
         "-pix_fmt",
         "yuv420p",
+        "-c:a",
+        "aac",
         "-movflags",
         "+faststart",
         finalOut,
       ],
-      { maxBuffer: 1024 * 1024 * 50 },
+      { maxBuffer: 1024 * 1024 * 50, timeout: 120_000 },
     );
 
     const url = await persistStitchedFile(
@@ -519,7 +683,27 @@ async function runFfmpegConcat(
   }
 }
 
+function safePathFromUrl(url: string): string | null {
+  try {
+    if (url.startsWith("file://")) return fileURLToPath(url);
+    const u = new URL(url);
+    return u.pathname;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 支持 http(s) 和 file:// 两种 URL：
+ *  - http(s) → fetch 下载到 dest
+ *  - file:// → copyFile 复制到 dest（dev/local mock 路径常用）
+ */
 async function downloadToFile(url: string, dest: string) {
+  if (url.startsWith("file://")) {
+    const localPath = fileURLToPath(url);
+    await copyFile(localPath, dest);
+    return;
+  }
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(
@@ -528,6 +712,34 @@ async function downloadToFile(url: string, dest: string) {
   }
   const buf = Buffer.from(await res.arrayBuffer());
   await writeFile(dest, buf);
+}
+
+/**
+ * 检查 brief 是否带有 unified VideoGenerationPlan.assemblyPlan，是 → 走 assembly-executor。
+ * 旧 Sunny Shutter / 没经过 unified-input dispatch 的 brief 返回 false → 走 legacy stitch。
+ */
+async function briefAspectRatio(
+  briefId: string | null | undefined,
+): Promise<string> {
+  if (!briefId) return "9:16";
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: { aspectRatio: true },
+  });
+  return brief?.aspectRatio || "9:16";
+}
+
+async function briefHasUnifiedAssembly(briefId: string | null | undefined): Promise<boolean> {
+  if (!briefId) return false;
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: { videoGenerationPlan: true },
+  });
+  const plan = brief?.videoGenerationPlan as
+    | { assemblyPlan?: { clips?: unknown[] } }
+    | null
+    | undefined;
+  return Array.isArray(plan?.assemblyPlan?.clips) && (plan?.assemblyPlan?.clips?.length ?? 0) > 0;
 }
 
 /**
@@ -560,4 +772,7 @@ export const __test__ = {
   stitchRuntimeMode,
   persistStitchedFile,
   AWAITING_EXTERNAL_STITCHER,
+  resolveAspectResolution,
+  briefHasUnifiedAssembly,
+  briefAspectRatio,
 };

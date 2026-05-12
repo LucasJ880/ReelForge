@@ -12,10 +12,39 @@
  *   ffmpeg loudnorm I=-16 LUFS / TP=-1.5 / LRA=11,
  *   muxed via stream copy (video unchanged) into *_bgm_v2.mp4.
  */
-import type {
-  DemoVideoAnalysisInput,
-  DemoVideoAnalysisResult,
-} from "@/lib/services/demo-video-analysis-service";
+/**
+ * Phase 5 — `demo-video-analysis-service` was deleted as part of the wizard/demo purge.
+ * The seed data file is kept (it still feeds /showcase + a handful of marketing surfaces),
+ * so we inline the types it relied on here. Treat these as frozen shapes.
+ */
+interface DemoVideoAnalysisInput {
+  tiktokUrl: string;
+  clientIndustry: string;
+  clientOffer: string;
+  targetAudience: string;
+  tone: string;
+}
+
+interface DemoVideoAnalysisResult {
+  source: string;
+  reference: {
+    url: string;
+    author: string;
+    caption: string;
+    hashtags: string[];
+    music: string;
+    durationSec: number;
+    metrics: {
+      plays: number;
+      likes: number;
+      comments: number;
+      shares: number;
+      [k: string]: unknown;
+    };
+    [k: string]: unknown;
+  };
+  [k: string]: unknown;
+}
 
 export const DEMO_SEED_INPUT: DemoVideoAnalysisInput = {
   tiktokUrl: "https://example.com/pet-store-no-text-demo",

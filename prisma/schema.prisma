@@ -23,12 +23,17 @@ model AdminUser {
   hashedPassword String
   name           String?
   role           AdminRole @default(OPERATOR)
+  /// Phase 5（Unified Input）：persona discriminator
+  /// 取值："BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN"
+  /// 未填写时 src/app/page.tsx 强制跳转 /persona 选择。
+  /// 不做成 enum：存量账号默认 "OPERATOR" 走 internal shell。
+  userType       String?   @default("OPERATOR")
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  createdOrders   DeliveryOrder[]
-  qaReviews       QAReview[]
-  publishRecords  PublishRecord[]
+  createdOrders  DeliveryOrder[]
+  qaReviews      QAReview[]
+  publishRecords PublishRecord[]
 }
 
 // =========================================================
@@ -51,50 +56,50 @@ enum CreativeEvidenceStatus {
 }
 
 model CreativeEvidenceCard {
-  id                 String                 @id @default(cuid())
+  id   String @id @default(cuid())
   /// 稳定 slug，便于 seed 重复执行（upsert by slug）
-  slug               String                 @unique
+  slug String @unique
 
-  title              String
+  title     String
   /// 行业枚举字符串：real_estate / pet_business / local_service / restaurant / general
-  industry           String
+  industry  String
   /// 平台：tiktok / instagram_reels / youtube_shorts / facebook / mixed
-  platform           String
+  platform  String
   /// 业务目标：get_leads / promote_listing / increase_bookings / announce_offer / brand_awareness
-  objective          String
+  objective String
 
   /// 来源平台名（人类可读，如 TikTok / Instagram / YouTube Shorts）
-  sourcePlatform     String?
+  sourcePlatform String?
   /// 原平台公开链接（不下载、不自托管）
-  referenceUrl       String?
+  referenceUrl   String?
   /// 缩略图 URL（来自原平台公开 oEmbed 或运营录入的合规图）
-  thumbnailUrl       String?
+  thumbnailUrl   String?
 
   /// 公开指标快照：{ observedAt, views, likes, comments, shares, saves, isPaidAd, paidAdNote }
-  publicMetricsJson  Json?
+  publicMetricsJson Json?
 
   /// hook 模式：{ pattern, openingSeconds, hookType: "POV|Curiosity|Stat|Reveal|Pain|Demo", whyItStops }
-  hookPattern        Json?
+  hookPattern            Json?
   /// 结构拆解：{ segments:[{ from, to, role, narrative }], pacingNotes }
   structureBreakdownJson Json?
 
-  whyItWorks         String?
-  visualStyle        String?
-  suggestedUseCase   String?
+  whyItWorks       String?
+  visualStyle      String?
+  suggestedUseCase String?
   /// 风险/合规备注：版权、行业合规（地产/金融/医疗）、未授权数字人/克隆声音禁用等
-  riskNotes          String?
+  riskNotes        String?
 
   /// 0-100 系统推荐分（按行业/目标加权）
-  recommendationScore Int?
+  recommendationScore  Int?
   /// 客户预览友好摘要（中文，2-3 句话能让商家秒懂这个卡为啥适合自己）
   clientPreviewSummary String?
 
-  status             CreativeEvidenceStatus @default(DRAFT)
+  status CreativeEvidenceStatus @default(DRAFT)
 
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  selectedByOrders   DeliveryOrder[]        @relation("DeliveryOrderSelectedCard")
+  selectedByOrders DeliveryOrder[] @relation("DeliveryOrderSelectedCard")
 
   @@index([industry])
   @@index([platform])
@@ -149,24 +154,24 @@ enum DeliveryOrderStatus {
 }
 
 model DeliveryOrder {
-  id               String               @id @default(cuid())
-  title            String
-  status           DeliveryOrderStatus  @default(DRAFT)
+  id     String              @id @default(cuid())
+  title  String
+  status DeliveryOrderStatus @default(DRAFT)
 
   /// 第一阶段仅 "blanket"；后续可扩展
-  productCategory  String               @default("blanket")
+  productCategory String @default("blanket")
   /// 第一阶段仅 "tiktok"
-  targetPlatform   String               @default("tiktok")
+  targetPlatform  String @default("tiktok")
 
   /// 目标国家，例：US, CA_QC, DE
-  targetCountry    String
+  targetCountry       String
   /// 目标语言，例：en, fr, de
-  targetLanguage   String
+  targetLanguage      String
   /// 区域变体（可选），例：en-US, fr-CA
   targetRegionVariant String?
 
   /// 产品结构化输入：sku、材质、尺寸、价格、卖点提示、URL、图片、竞品链接等
-  productInput     Json
+  productInput Json
 
   /// Client Project Wizard 输入（北美本地商家版）：
   /// {
@@ -174,21 +179,21 @@ model DeliveryOrder {
   ///   brandTone, brandAssets:{ logoUrl, primaryColor, accentColor, websiteUrl, phone, ctaText }
   /// }
   /// 与 productInput 解耦，便于商家友好向导单独维护，不影响现有 admin 流程。
-  clientBrief      Json?
+  clientBrief Json?
 
   /// Wizard 阶段选中的创意证据卡 id；多卡选择请放 clientBrief.candidateCardIds
   selectedCreativeCardId String?
   selectedCreativeCard   CreativeEvidenceCard? @relation("DeliveryOrderSelectedCard", fields: [selectedCreativeCardId], references: [id])
 
   /// 终止策略：默认 3 轮 + 支持 Admin 手动提前结算
-  maxRounds        Int                  @default(3)
-  errorMessage     String?
+  maxRounds    Int     @default(3)
+  errorMessage String?
 
-  createdById      String?
-  createdBy        AdminUser?           @relation(fields: [createdById], references: [id])
+  createdById String?
+  createdBy   AdminUser? @relation(fields: [createdById], references: [id])
 
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   marketResearch   MarketResearch?
   sellingPoints    SellingPoint[]
@@ -196,7 +201,7 @@ model DeliveryOrder {
   distillations    DistillationFeature[]
   rawAssets        RawAsset[]
   aiUsageLogs      AIUsageLog[]
-  wizardRenderJobs WizardRenderJob[]    @relation("DeliveryOrderWizardRenders")
+  wizardRenderJobs WizardRenderJob[]     @relation("DeliveryOrderWizardRenders")
   logoGenerations  LogoGeneration[]
 
   @@index([status])
@@ -243,44 +248,51 @@ enum AssetQAStatus {
 }
 
 model RawAsset {
-  id              String          @id @default(cuid())
+  id              String        @id @default(cuid())
   deliveryOrderId String
-  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
-  type            RawAssetType
-  status          RawAssetStatus  @default(UPLOADED)
-  name            String
-  url             String
-  mimeType        String?
-  durationMs      Int?
-  width           Int?
-  height          Int?
-  fileSizeBytes   Int?
-  checksum        String?
+  type          RawAssetType
+  status        RawAssetStatus @default(UPLOADED)
+  name          String
+  url           String
+  mimeType      String?
+  durationMs    Int?
+  width         Int?
+  height        Int?
+  fileSizeBytes Int?
+  checksum      String?
 
-  notes           String?
-  tags            Json?
-  metadata        Json?
-  errorMessage    String?
+  notes        String?
+  tags         Json?
+  metadata     Json?
+  errorMessage String?
 
   /// 业务级 QA 判断（与 RawAssetStatus 区分：status 是处理流水线状态，qaStatus 是「能不能进剪辑」业务结论）
-  qaStatus        AssetQAStatus   @default(PENDING)
+  qaStatus       AssetQAStatus @default(PENDING)
   /// QA 结果详情：{ checks:[{rule,passed,severity,message}], reasons:[], retakeSuggestions:[], orientation, aspectRatio, score }
-  qaResult        Json?
+  qaResult       Json?
   /// 客户标注的镜头用途：hook / proof / demo / lifestyle / cta / b_roll
-  assetRole       String?
+  assetRole      String?
+  /// Phase 5（Unified Input）：asset-classifier 推断角色
+  /// 取值："product_image" | "reference_image" | "logo" | "intro_clip" | "outro_clip"
+  ///       | "ad_clip" | "store_clip" | "product_demo_clip" | "logo_animation" | "existing_commercial"
+  /// 未填写表示尚未跑过分类；与 assetRole 分开（assetRole 是客户手动标记）。
+  inferredRole   String?
+  /// inferredRole 置信度（0..1）；低置信度 UI 应展示「请确认」
+  roleConfidence Float?
   /// 关联到具体的 ScenePlan.id（外键，cuid）。
   /// 注意：这里是真实 FK，不是 storyboard JSON 内部的 "shot-1" 字符串；
   /// 如果想引用 storyboard 内部 shot 索引，请用 metadata.storyboardShotIndex 字段。
   /// onDelete: SetNull —— 当 ScenePlan 因为重新生成 storyboard 被删除时，
   /// 这里自动置空，由 detectMissingShotsForBrief 再次报缺。
-  matchedShotId   String?
-  matchedShot     ScenePlan?      @relation("AssetMatchedShot", fields: [matchedShotId], references: [id], onDelete: SetNull)
+  matchedShotId  String?
+  matchedShot    ScenePlan?    @relation("AssetMatchedShot", fields: [matchedShotId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  shots           FootageShot[]
+  shots FootageShot[]
 
   @@index([deliveryOrderId])
   @@index([status])
@@ -290,25 +302,25 @@ model RawAsset {
 }
 
 model FootageShot {
-  id              String            @id @default(cuid())
-  rawAssetId      String
-  rawAsset        RawAsset          @relation(fields: [rawAssetId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  rawAssetId String
+  rawAsset   RawAsset @relation(fields: [rawAssetId], references: [id], onDelete: Cascade)
 
-  status          FootageShotStatus @default(CANDIDATE)
-  shotIndex       Int
-  startMs         Int
-  endMs           Int
-  durationMs      Int
-  thumbnailUrl    String?
-  transcript      String?
-  visualSummary   String?
-  tags            String[]          @default([])
-  qualityScore    Float?
-  usabilityNotes  String?
-  technical       Json?
+  status         FootageShotStatus @default(CANDIDATE)
+  shotIndex      Int
+  startMs        Int
+  endMs          Int
+  durationMs     Int
+  thumbnailUrl   String?
+  transcript     String?
+  visualSummary  String?
+  tags           String[]          @default([])
+  qualityScore   Float?
+  usabilityNotes String?
+  technical      Json?
 
-  createdAt       DateTime          @default(now())
-  updatedAt       DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([rawAssetId, shotIndex])
   @@index([rawAssetId])
@@ -327,39 +339,39 @@ enum ResearchStatus {
 }
 
 model MarketResearch {
-  id              String          @id @default(cuid())
-  deliveryOrderId String          @unique
-  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  deliveryOrderId String        @unique
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
-  status          ResearchStatus  @default(PENDING)
+  status       ResearchStatus @default(PENDING)
   /// LLM 生成的结构化调研：trend, keywords, competitors, hot_hooks, audience_notes, timing
-  structured      Json?
+  structured   Json?
   /// LLM 自然语言摘要
-  summary         String?
+  summary      String?
   /// Token 用量等调试信息
-  debug           Json?
-  errorMessage    String?
+  debug        Json?
+  errorMessage String?
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SellingPoint {
-  id              String          @id @default(cuid())
+  id              String        @id @default(cuid())
   deliveryOrderId String
-  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
   /// 分类：core / scene / emotional / localization
-  kind            String
-  rank            Int
-  title           String
-  body            String
+  kind          String
+  rank          Int
+  title         String
+  body          String
   /// 来源证据（研究片段、产品事实）
-  evidence        Json?
+  evidence      Json?
   /// 本地化表达变体：{ "en-US": "...", "fr-CA": "..." }
-  localizations   Json?
+  localizations Json?
 
-  createdAt       DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([deliveryOrderId])
 }
@@ -382,30 +394,30 @@ enum RoundStatus {
 }
 
 model Round {
-  id                  String          @id @default(cuid())
-  deliveryOrderId     String
-  deliveryOrder       DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
-  roundIndex          Int
-  status              RoundStatus     @default(PLANNED)
+  roundIndex Int
+  status     RoundStatus @default(PLANNED)
 
   /// 该轮绑定的主卖点 id（可选，冗余字段便于展示）
   primarySellingPointId String?
   /// 赛马槽位：默认 3 优化 + 2 探索 = 5 条
-  optimizationSlots   Int             @default(3)
-  explorationSlots    Int             @default(2)
+  optimizationSlots     Int     @default(3)
+  explorationSlots      Int     @default(2)
 
   /// 首轮没有上一轮可蒸馏，所以可空；非首轮须指向上一轮
-  baseDistillationId  String?
-  baseDistillation    DistillationFeature? @relation("RoundBaseDistillation", fields: [baseDistillationId], references: [id])
+  baseDistillationId String?
+  baseDistillation   DistillationFeature? @relation("RoundBaseDistillation", fields: [baseDistillationId], references: [id])
 
-  startedAt           DateTime?
-  closedAt            DateTime?
-  createdAt           DateTime        @default(now())
-  updatedAt           DateTime        @updatedAt
+  startedAt DateTime?
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  angles              ContentAngle[]
-  scoreReports        ScoreReport[]
+  angles       ContentAngle[]
+  scoreReports ScoreReport[]
 
   @@unique([deliveryOrderId, roundIndex])
   @@index([status])
@@ -417,28 +429,28 @@ enum AngleType {
 }
 
 model ContentAngle {
-  id              String          @id @default(cuid())
-  roundId         String
-  round           Round           @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  roundId String
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
-  sortOrder       Int
-  type            AngleType
-  title           String
+  sortOrder            Int
+  type                 AngleType
+  title                String
   /// 钩子/视频叙事概念
-  hook            String?
-  narrative       String?
+  hook                 String?
+  narrative            String?
   /// 探索型 angle 所采用的主题池 key（如 "asmr"、"pet_steal"、"room_makeover"）
-  explorationTheme String?
+  explorationTheme     String?
   /// 优化型引用的上一轮蒸馏特征 id
   sourceDistillationId String?
   sourceDistillation   DistillationFeature? @relation("AngleSourceDistillation", fields: [sourceDistillationId], references: [id])
 
   /// 本地化备注（语言、文化、on-camera 形式建议）
-  localeNotes     Json?
+  localeNotes Json?
 
-  createdAt       DateTime        @default(now())
+  createdAt DateTime @default(now())
 
-  videoBrief      VideoBrief?
+  videoBrief VideoBrief?
 
   @@index([roundId])
 }
@@ -477,43 +489,50 @@ enum OnCameraMode {
 }
 
 model VideoBrief {
-  id                String            @id @default(cuid())
-  contentAngleId    String            @unique
-  contentAngle      ContentAngle      @relation(fields: [contentAngleId], references: [id], onDelete: Cascade)
+  id             String       @id @default(cuid())
+  contentAngleId String       @unique
+  contentAngle   ContentAngle @relation(fields: [contentAngleId], references: [id], onDelete: Cascade)
 
-  status            VideoBriefStatus  @default(BRIEF_PENDING)
+  status VideoBriefStatus @default(BRIEF_PENDING)
 
-  durationSec       Int               @default(20)
-  aspectRatio       String            @default("9:16")
-  tone              String?
-  onCameraMode      OnCameraMode      @default(PRODUCT_ONLY)
+  durationSec  Int          @default(20)
+  aspectRatio  String       @default("9:16")
+  tone         String?
+  onCameraMode OnCameraMode @default(PRODUCT_ONLY)
 
   /// 用户选择的目标成片时长（15/30/60）。
   /// MVP 阶段允许其他值（如 20）以兼容历史数据；分段计划由 segment-planner 兜底。
-  targetDurationSec Int               @default(30)
+  targetDurationSec Int   @default(30)
   /// AI Video Director 输出的完整 DirectorPlan JSON（zod schema: src/lib/schemas/director-plan.ts）
   directorPlan      Json?
 
+  /// Phase 5（Unified Input）：persona discriminator，便于后续按 Business / Personal 做 analytics
+  /// 取值："BUSINESS" | "PERSONAL"，null 表示未知（历史 brief）
+  persona             String?
+  /// Phase 5：完整的 VideoGenerationPlan 快照（unified input 生成时落库；DirectorPlan 是子集）
+  /// zod schema: src/lib/schemas/unified-input.ts:videoGenerationPlanSchema
+  videoGenerationPlan Json?
+
   /// I2V 参考图（Vercel Blob URL）；支持 1-5 张
-  referenceImageUrls String[]         @default([])
+  referenceImageUrls String[] @default([])
   /// 最终送审/发布的成片 URL（兼容旧 Sunny Shutter：单段 brief 这里就是 finalVideo URL）
-  finalVideoUrl     String?
+  finalVideoUrl      String?
   /// 最终封面
-  finalThumbnailUrl String?
+  finalThumbnailUrl  String?
 
   /// 多段拼接成片的关联（只在 30s/60s 多段流程下创建）
-  finalVideoId      String?           @unique
-  finalVideo        FinalVideo?       @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
+  finalVideoId String?     @unique
+  finalVideo   FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
 
-  errorMessage      String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  scripts           Script[]
-  videoJobs         VideoJob[]
-  adEditPlans       AdEditPlan[]
-  qaReviews         QAReview[]
-  publishRecords    PublishRecord[]
+  scripts        Script[]
+  videoJobs      VideoJob[]
+  adEditPlans    AdEditPlan[]
+  qaReviews      QAReview[]
+  publishRecords PublishRecord[]
 
   @@index([status])
   @@index([finalVideoId])
@@ -529,65 +548,65 @@ enum AdEditPlanStatus {
 }
 
 model AdEditPlan {
-  id                String            @id @default(cuid())
-  videoBriefId      String
-  videoBrief        VideoBrief        @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  videoBriefId String
+  videoBrief   VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
-  version           Int               @default(1)
-  status            AdEditPlanStatus  @default(DRAFT)
-  title             String
-  objective         String?
-  durationMs        Int
-  aspectRatio       String            @default("9:16")
+  version     Int              @default(1)
+  status      AdEditPlanStatus @default(DRAFT)
+  title       String
+  objective   String?
+  durationMs  Int
+  aspectRatio String           @default("9:16")
 
   /// JSON 时间线：clips / overlays / captions / music / render hints
-  timeline          Json
+  timeline           Json
   /// JSON Reviewer 打分：hook / pacing / visual_match / offer_clarity / technical_quality
-  reviewScores      Json?
-  reviewSummary     String?
-  reviewerFeedback  Json?
-  outputVideoUrl    String?
+  reviewScores       Json?
+  reviewSummary      String?
+  reviewerFeedback   Json?
+  outputVideoUrl     String?
   outputThumbnailUrl String?
-  errorMessage      String?
+  errorMessage       String?
 
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([videoBriefId])
   @@index([status])
 }
 
 model Script {
-  id              String          @id @default(cuid())
-  videoBriefId    String
-  videoBrief      VideoBrief      @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  videoBriefId String
+  videoBrief   VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
-  version         Int             @default(1)
-  language        String
-  fullText        String
-  hook            String?
-  cta             String?
-  isCurrent       Boolean         @default(true)
+  version   Int     @default(1)
+  language  String
+  fullText  String
+  hook      String?
+  cta       String?
+  isCurrent Boolean @default(true)
   /// Wizard 流程下保存完整 ScriptOutput（包含 voiceover/captions/complianceNotes/...）。
   /// Admin 流程不依赖该字段，旧 Script 行此字段为 NULL，service 层会兜底。
-  metadata        Json?
+  metadata  Json?
 
-  createdAt       DateTime        @default(now())
+  createdAt DateTime @default(now())
 
-  scenePlans      ScenePlan[]
+  scenePlans ScenePlan[]
 
   @@index([videoBriefId, isCurrent])
 }
 
 model ScenePlan {
-  id              String          @id @default(cuid())
-  scriptId        String
-  script          Script          @relation(fields: [scriptId], references: [id], onDelete: Cascade)
+  id       String @id @default(cuid())
+  scriptId String
+  script   Script @relation(fields: [scriptId], references: [id], onDelete: Cascade)
 
-  sceneIndex      Int
-  durationSec     Int
-  visualIntent    String
-  onCameraNote    String?
+  sceneIndex   Int
+  durationSec  Int
+  visualIntent String
+  onCameraNote String?
 
   /// 客户拍摄指导（商家版 storyboard 字段）：
   /// {
@@ -596,14 +615,14 @@ model ScenePlan {
   ///   uploadHints:[]
   /// }
   /// 设计为可空 + JSON，便于现有 ScenePlan 数据完全向后兼容。
-  shootingGuide   Json?
+  shootingGuide Json?
   /// 是否为必拍镜头（false=可选/B-roll）
-  requiredFlag    Boolean         @default(true)
+  requiredFlag  Boolean @default(true)
   /// 是否需要真人出镜（与 onCameraNote 互补：onCameraNote 是给 director；humanRequired 是给 wizard UI）
-  humanRequired   Boolean         @default(false)
+  humanRequired Boolean @default(false)
 
-  videoPrompts    VideoPrompt[]
-  matchedAssets   RawAsset[]      @relation("AssetMatchedShot")
+  videoPrompts  VideoPrompt[]
+  matchedAssets RawAsset[]    @relation("AssetMatchedShot")
 
   @@index([scriptId])
 }
@@ -615,9 +634,9 @@ enum VideoProvider {
 }
 
 model VideoPrompt {
-  id                String        @id @default(cuid())
-  scenePlanId       String
-  scenePlan         ScenePlan     @relation(fields: [scenePlanId], references: [id], onDelete: Cascade)
+  id          String    @id @default(cuid())
+  scenePlanId String
+  scenePlan   ScenePlan @relation(fields: [scenePlanId], references: [id], onDelete: Cascade)
 
   provider          VideoProvider
   promptText        String
@@ -626,7 +645,7 @@ model VideoPrompt {
   /// I2V 时指向已处理好的参考图 URL
   referenceImageUrl String?
 
-  createdAt         DateTime      @default(now())
+  createdAt DateTime @default(now())
 
   @@index([scenePlanId])
 }
@@ -640,47 +659,47 @@ enum VideoJobStatus {
 }
 
 model VideoJob {
-  id              String          @id @default(cuid())
-  videoBriefId    String
-  videoBrief      VideoBrief      @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  videoBriefId String
+  videoBrief   VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
-  provider        VideoProvider
-  externalJobId   String?
-  status          VideoJobStatus  @default(QUEUED)
+  provider      VideoProvider
+  externalJobId String?
+  status        VideoJobStatus @default(QUEUED)
 
-  outputVideoUrl  String?
-  outputThumbUrl  String?
+  outputVideoUrl String?
+  outputThumbUrl String?
   /// 内部/管理员错误（包含原始 Provider 错误，仅 debug 区可见）
-  errorMessage    String?
+  errorMessage   String?
   /// 用户安全的错误描述（已脱敏的中文友好提示，可直接展示给客户）
-  userSafeError   String?
-  retryCount      Int             @default(0)
+  userSafeError  String?
+  retryCount     Int     @default(0)
 
   /// 我们调用 Provider 提交时间
-  submittedAt     DateTime?
+  submittedAt        DateTime?
   /// Provider 第一次确认 RUNNING/processing 的时间（可空）
-  startedAt       DateTime?
+  startedAt          DateTime?
   /// 终态时间
-  finishedAt      DateTime?
+  finishedAt         DateTime?
   /// 上次成功调用 Provider 状态接口的时间
-  lastCheckedAt   DateTime?
+  lastCheckedAt      DateTime?
   /// Provider 原始 status（如 "queued" / "running" / "succeeded" / "failed" / "expired"）
   lastProviderStatus String?
   /// 视频生成超过该时间仍未终态时，UI 显示「用时较长」
-  timeoutAt       DateTime?
+  timeoutAt          DateTime?
   /// 累计轮询次数（用于「3 连错败下线」逻辑）
-  pollErrors      Int             @default(0)
+  pollErrors         Int       @default(0)
 
   /// 段索引（NULL = 旧的单段 / 兼容 Sunny Shutter；多段流程中从 0 开始）
-  segmentIndex        Int?
+  segmentIndex       Int?
   /// 该段实际请求的时长（一般 15s）
-  segmentDurationSec  Int?
+  segmentDurationSec Int?
   /// 多段流程下指向同一 FinalVideo 的所有段
-  finalVideoId        String?
-  finalVideo          FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
+  finalVideoId       String?
+  finalVideo         FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
   @@index([externalJobId])
@@ -706,26 +725,26 @@ enum FinalVideoStatus {
 }
 
 model FinalVideo {
-  id                String           @id @default(cuid())
+  id String @id @default(cuid())
 
   targetDurationSec Int
   segmentCount      Int
 
-  status            FinalVideoStatus @default(PENDING)
-  stitchedVideoUrl  String?
-  thumbnailUrl      String?
-  ffmpegError       String?
+  status           FinalVideoStatus @default(PENDING)
+  stitchedVideoUrl String?
+  thumbnailUrl     String?
+  ffmpegError      String?
   /// 累计 ffmpeg 失败次数（>= 3 时停止自动重试）
-  stitchAttempts    Int              @default(0)
+  stitchAttempts   Int              @default(0)
 
-  startedAt         DateTime?
-  finishedAt        DateTime?
+  startedAt  DateTime?
+  finishedAt DateTime?
 
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  brief             VideoBrief?
-  segments          VideoJob[]
+  brief    VideoBrief?
+  segments VideoJob[]
 
   @@index([status])
 }
@@ -735,25 +754,25 @@ model FinalVideo {
 // =========================================================
 
 model LogoGeneration {
-  id              String          @id @default(cuid())
+  id              String        @id @default(cuid())
   deliveryOrderId String
-  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
-  prompt          String
+  prompt    String
   /// 用户选择的风格标签：modern / minimal / luxury / playful / tech / natural / local
-  styleHint       String?
+  styleHint String?
   /// 实际使用的 image 模型（默认 gpt-image-1，mock 模式为 "mock"）
-  model           String
+  model     String
 
   /// 候选图 URL 数组（已上传到 Vercel Blob）
-  generatedUrls   String[]        @default([])
+  generatedUrls String[] @default([])
   /// 用户最终选中的 URL（同时会写回 DeliveryOrder.clientBrief.brandAssets.logoUrl）
-  selectedUrl     String?
+  selectedUrl   String?
 
-  errorMessage    String?
+  errorMessage String?
 
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([deliveryOrderId])
   @@index([createdAt(sort: Desc)])
@@ -771,28 +790,28 @@ enum QAStatus {
 }
 
 model QAReview {
-  id              String     @id @default(cuid())
-  videoBriefId    String
-  videoBrief      VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  videoBriefId String
+  videoBrief   VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
   /// AI QA 产出（独立于人工审核，先跑一次供审核员参考）
-  aiOverallScore    Float?
+  aiOverallScore   Float?
   /// JSON：hook_quality / topic_alignment / angle_alignment / format_alignment / cta_quality / duration_fitness / brief_alignment / technical_completeness
-  aiScoreBreakdown  Json?
-  aiIssues          Json?
-  aiSuggestions     Json?
+  aiScoreBreakdown Json?
+  aiIssues         Json?
+  aiSuggestions    Json?
   /// AI 建议的路由：auto_pass / needs_review / reject
-  aiReviewRoute     String?
+  aiReviewRoute    String?
 
   /// 人工最终结论
-  status            QAStatus   @default(PENDING)
-  reviewerId        String?
-  reviewer          AdminUser? @relation(fields: [reviewerId], references: [id])
-  reviewerComment   String?
-  reviewedAt        DateTime?
+  status          QAStatus   @default(PENDING)
+  reviewerId      String?
+  reviewer        AdminUser? @relation(fields: [reviewerId], references: [id])
+  reviewerComment String?
+  reviewedAt      DateTime?
 
-  createdAt         DateTime   @default(now())
-  updatedAt         DateTime   @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([status])
 }
@@ -811,47 +830,47 @@ enum PublishStatus {
 }
 
 model PublishRecord {
-  id                String         @id @default(cuid())
-  videoBriefId      String
-  videoBrief        VideoBrief     @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  id           String     @id @default(cuid())
+  videoBriefId String
+  videoBrief   VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
 
-  platform          String         @default("tiktok")
+  platform       String  @default("tiktok")
   /// TikTok 侧的贴文/视频 id；运营人工上传成功后回填
-  externalPostId    String?
-  publishUrl        String?
+  externalPostId String?
+  publishUrl     String?
 
-  status            PublishStatus  @default(PENDING)
-  publishedAt       DateTime?
-  publishedById     String?
-  publishedBy       AdminUser?     @relation(fields: [publishedById], references: [id])
+  status        PublishStatus @default(PENDING)
+  publishedAt   DateTime?
+  publishedById String?
+  publishedBy   AdminUser?    @relation(fields: [publishedById], references: [id])
 
   /// 运营上传时的备注
-  operatorNote      String?
+  operatorNote String?
 
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  metricsSnapshots  MetricsSnapshot[]
+  metricsSnapshots MetricsSnapshot[]
 
   @@index([status])
   @@index([externalPostId])
 }
 
 model MetricsSnapshot {
-  id                String         @id @default(cuid())
-  publishRecordId   String
-  publishRecord     PublishRecord  @relation(fields: [publishRecordId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  publishRecordId String
+  publishRecord   PublishRecord @relation(fields: [publishRecordId], references: [id], onDelete: Cascade)
 
   /// 12 | 24 | 48
-  windowHours       Int
-  capturedAt        DateTime
+  windowHours Int
+  capturedAt  DateTime
   /// 数据来源：csv_manual / api（V2）
-  source            String         @default("csv_manual")
+  source      String   @default("csv_manual")
 
   /// 内容指标：views, completion_rate, retention_3s, shares, saves, likes, comments
-  metrics           Json
+  metrics Json
 
-  createdAt         DateTime       @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([publishRecordId, windowHours])
   @@index([capturedAt])
@@ -862,46 +881,46 @@ model MetricsSnapshot {
 // =========================================================
 
 model ScoreReport {
-  id              String     @id @default(cuid())
-  roundId         String
-  round           Round      @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  id      String @id @default(cuid())
+  roundId String
+  round   Round  @relation(fields: [roundId], references: [id], onDelete: Cascade)
 
   /// 当为 null 时表示轮次级汇总；否则对应某条 VideoBrief
-  videoBriefId    String?
+  videoBriefId String?
 
-  contentScore    Float?
+  contentScore   Float?
   /// MVP 阶段不计算，预留 V2
-  commerceScore   Float?
-  compositeScore  Float?
+  commerceScore  Float?
+  compositeScore Float?
   /// 记录当时权重，方便复盘
-  weights         Json?
+  weights        Json?
   /// AI 解释：为什么得了这个分；并给出蒸馏建议的自然语言
-  explanation     String?
+  explanation    String?
 
   /// 若为轮次级 rank 榜：[{videoBriefId, rank, score}]
-  ranking         Json?
+  ranking Json?
 
-  createdAt       DateTime   @default(now())
+  createdAt DateTime @default(now())
 
   @@index([roundId])
   @@index([videoBriefId])
 }
 
 model DistillationFeature {
-  id               String          @id @default(cuid())
-  deliveryOrderId  String
-  deliveryOrder    DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  id              String        @id @default(cuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
-  sourceRoundId    String?
+  sourceRoundId String?
   /// 自然语言总结（供 Admin 阅读）
-  summary          String
+  summary       String
   /// 结构化特征：{ hook_type, title_structure, selling_point_order, cta_position, format, duration, scene_rhythm }
-  structured       Json
+  structured    Json
 
-  createdAt        DateTime        @default(now())
+  createdAt DateTime @default(now())
 
-  basedRounds      Round[]         @relation("RoundBaseDistillation")
-  angles           ContentAngle[]  @relation("AngleSourceDistillation")
+  basedRounds Round[]        @relation("RoundBaseDistillation")
+  angles      ContentAngle[] @relation("AngleSourceDistillation")
 
   @@index([deliveryOrderId])
 }
@@ -917,42 +936,42 @@ enum AIUsageStatus {
 }
 
 model AIUsageLog {
-  id                String          @id @default(cuid())
+  id String @id @default(cuid())
 
   /// 业务功能 key，例：creative_evidence_breakdown / client_script /
   /// storyboard / shooting_guide / asset_qa / director / reviewer / qa
-  feature           String
-  provider          String          @default("openai")
-  model             String?
+  feature  String
+  provider String  @default("openai")
+  model    String?
 
   /// 关联到具体 DeliveryOrder（可选；后台 seed/breakdown 调用可为空）
-  deliveryOrderId   String?
-  deliveryOrder     DeliveryOrder?  @relation(fields: [deliveryOrderId], references: [id], onDelete: SetNull)
+  deliveryOrderId String?
+  deliveryOrder   DeliveryOrder? @relation(fields: [deliveryOrderId], references: [id], onDelete: SetNull)
   /// 关联到 CreativeEvidenceCard（可选，用于 breakdown 流程）
-  creativeCardId    String?
+  creativeCardId  String?
 
   /// 用户/Admin id（可选，未登录脚本/cron 可空）
-  actorUserId       String?
+  actorUserId String?
 
   /// LLM 调用上下文摘要（裁剪后），不写入完整 prompt 以免泄露 PII
-  inputSummary      String?
+  inputSummary  String?
   /// 模型输出摘要（裁剪后）；完整结果由对应业务表保存
-  outputSummary     String?
+  outputSummary String?
 
-  promptTokens      Int?
-  completionTokens  Int?
-  totalTokens       Int?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
   /// 估算成本（USD）；当 provider 不暴露价格时由 service 层按 model 估算
-  costEstimateUsd   Float?
+  costEstimateUsd  Float?
 
   /// prompt 模板版本号（与 src/lib/prompts/* 中的 PROMPT_VERSION 对应）
-  promptVersion     String?
+  promptVersion String?
 
-  status            AIUsageStatus   @default(SUCCESS)
-  errorMessage      String?
-  durationMs        Int?
+  status       AIUsageStatus @default(SUCCESS)
+  errorMessage String?
+  durationMs   Int?
 
-  createdAt         DateTime        @default(now())
+  createdAt DateTime @default(now())
 
   @@index([feature])
   @@index([provider])
@@ -995,37 +1014,37 @@ enum WizardRenderJobMode {
 }
 
 model WizardRenderJob {
-  id                  String                @id @default(cuid())
+  id String @id @default(cuid())
 
-  deliveryOrderId     String
-  deliveryOrder       DeliveryOrder         @relation("DeliveryOrderWizardRenders", fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder @relation("DeliveryOrderWizardRenders", fields: [deliveryOrderId], references: [id], onDelete: Cascade)
 
-  status              WizardRenderJobStatus @default(QUEUED)
-  mode                WizardRenderJobMode   @default(DRAFT)
+  status WizardRenderJobStatus @default(QUEUED)
+  mode   WizardRenderJobMode   @default(DRAFT)
 
-  aspectRatio         String                @default("9:16")
-  durationSec         Int                   @default(30)
+  aspectRatio String @default("9:16")
+  durationSec Int    @default(30)
 
   /// 输入快照：根据 ScenePlan/Script/RawAsset 派生出的 timeline，便于复盘
   /// { clips:[{ sceneIndex, sourceUrl, startMs, endMs, captionText }], cta, brand: { logoUrl, primaryColor }, ... }
-  timeline            Json
+  timeline      Json
   /// 触发渲染时的 ClientBrief 快照（zod-parsed）
-  briefSnapshot       Json?
+  briefSnapshot Json?
 
   /// 输出
-  outputVideoUrl      String?
-  outputThumbnailUrl  String?
+  outputVideoUrl     String?
+  outputThumbnailUrl String?
   /// 当走 DRAFT/MOCK fallback 时，把 manifest 存到 Blob 或 data: URL
-  manifestUrl         String?
+  manifestUrl        String?
 
   /// 解释为什么走了 DRAFT/MOCK，UI 直接展示给客户看
-  fallbackReason      String?
-  errorMessage        String?
+  fallbackReason String?
+  errorMessage   String?
 
-  startedAt           DateTime?
-  finishedAt          DateTime?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   @@index([deliveryOrderId])
   @@index([status])

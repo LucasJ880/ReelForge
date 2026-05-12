@@ -37,8 +37,9 @@ export function DemoInputPanel() {
       title="告诉系统这条视频要做什么、给谁看。"
       description={
         <span>
-          这一步对应 <code className="rounded bg-white/5 px-1.5 py-0.5">/wizard/new</code>{" "}
-          的客户输入面板。下面是一组示例输入，点击选项仅切换高亮状态，
+          这一步对应{" "}
+          <code className="rounded bg-white/5 px-1.5 py-0.5">/business/create-ad-video</code>{" "}
+          的 Unified Creative Input。下面是一组示例输入，点击选项仅切换高亮状态，
           不会真正触发后端生成。
         </span>
       }

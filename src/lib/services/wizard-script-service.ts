@@ -1,12 +1,19 @@
 import {
   AIUsageStatus,
-  AngleType,
   Prisma,
-  RoundStatus,
   VideoBriefStatus,
 } from "@prisma/client";
+import { z } from "zod";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import {
+  chatJsonByTier,
+  isLLMAvailable,
+  isLLMForcedMock,
+} from "@/lib/providers/openai";
+import {
+  SINGLE_DIRECTION_ANGLE_TITLE,
+  ensureSingleDirectionRound,
+} from "./angle-service";
 import {
   CLIENT_SCRIPT_SYSTEM,
   PROMPT_VERSION as CLIENT_SCRIPT_PROMPT_VERSION,
@@ -15,8 +22,9 @@ import {
   mockClientScript,
 } from "@/lib/prompts/client-script";
 import {
-  parseScriptOutput,
+  scriptOutputSchema,
   type ScriptOutput,
+  parseScriptOutput,
 } from "@/lib/schemas/script-output";
 import {
   recordAIUsage,
@@ -30,19 +38,23 @@ import {
 } from "@/lib/schemas/creative-evidence";
 import {
   WIZARD_FALLBACK,
-  fallbackReasonWithError,
 } from "./wizard-fallback-messages";
+import {
+  LLMSchemaError,
+  llmSchemaErrorToAPIResponse,
+} from "./llm-schema-error";
 
 /**
  * Wizard Script Service —— Phase 2 step 3。
  *
- * 设计要点（满足 Phase 2 边界）：
- * - **mock fallback**：无 OPENAI_API_KEY 或 LLM 调用/解析失败 → 自动 fallback 到 mockClientScript，
- *   并写入 AIUsageLog，status=MOCK 或 FAILED；wizard 永不被 LLM 卡住。
+ * 设计要点（2026-05 P0-1 follow-up 更新后）：
+ * - **mock 路径仅在显式条件下触发**：`!isLLMAvailable()`（无 API key）或 `isLLMForcedMock()`
+ *   （LLM_FORCE_MOCK / DIRECTOR_FORCE_MOCK / SCRIPT_FORCE_MOCK 任一为 true）。
+ *   其它情况一律走真 LLM。
+ * - **schema 失败必抛 WizardScriptSchemaError**：与 director-service 对齐，再也不静默回退 mock
+ *   写占位脚本给客户 —— 否则 UI 不会感知问题、客户继续往下走。
  * - **不创建并行表**：Script/ScenePlan 仍走现有 VideoBrief→Script→ScenePlan 路径，
  *   wizard 第一次生成时自动创建占位 Round/ContentAngle/VideoBrief 脚手架。
- * - **每次重新生成会把旧 Script.isCurrent=false**，老 ScenePlan 在重新生成 storyboard 时整体 deleteMany
- *   （由 wizard-storyboard-service 负责），wizard-script-service 这里只负责脚本。
  */
 
 export type WizardScriptResult = {
@@ -54,12 +66,90 @@ export type WizardScriptResult = {
 };
 
 /**
+ * WizardScriptSchemaError —— LLM 调用成功但 ScriptOutput zod 校验失败时抛出。
+ *
+ * 与 DirectorSchemaError 同设计：调用方应捕获并返回 422 + retryable=true，
+ * UI 走重试入口，**不**让客户拿到占位脚本然后继续往下流转。
+ */
+export class WizardScriptSchemaError extends LLMSchemaError {
+  readonly code = "script_schema_failed" as const;
+
+  constructor(args: {
+    cause: z.ZodError;
+    modelUsed: string;
+    /// wizard 第一次生成脚本时 brief 尚未创建，这里用 deliveryOrderId 作占位标识；
+    /// 重新生成场景下传 VideoBrief.id。
+    briefId: string;
+  }) {
+    super({
+      cause: args.cause,
+      modelUsed: args.modelUsed,
+      briefId: args.briefId,
+      userSafeMessage:
+        "AI 视频脚本输出格式异常，请点击「重试」重新生成。",
+      contextLabel: "[wizard-script]",
+    });
+  }
+}
+
+export function isWizardScriptSchemaError(
+  err: unknown,
+): err is WizardScriptSchemaError {
+  return err instanceof WizardScriptSchemaError;
+}
+
+/**
+ * Thin wrapper around llmSchemaErrorToAPIResponse — 保留独立函数以保持
+ * API route 调用点的类型 narrowing 和 code literal。
+ */
+export function wizardScriptSchemaErrorToAPIResponse(
+  err: WizardScriptSchemaError,
+): {
+  body: {
+    ok: false;
+    error: string;
+    code: "script_schema_failed";
+    retryable: true;
+  };
+  status: 422;
+} {
+  const { body, status } = llmSchemaErrorToAPIResponse(err);
+  return {
+    body: {
+      ok: false,
+      error: body.error,
+      code: "script_schema_failed",
+      retryable: true,
+    },
+    status,
+  };
+}
+
+/**
+ * LLM 调用器（DI seam）：测试通过 deps.invokeLLM 注入；
+ * 生产默认走 chatJsonByTier(script tier, gpt-5.5)。
+ *
+ * 返回 { data: unknown, modelUsed: string }，与 director-service 一致。
+ */
+export type WizardScriptLLMInvoker = (params: {
+  systemPrompt: string;
+  userPrompt: string;
+}) => Promise<{ data: unknown; modelUsed: string }>;
+
+/**
  * 入口：生成或重新生成脚本，返回 ScriptOutput + 持久化的 scriptId。
+ *
+ * @param params.deps  仅供测试注入；生产路径不要传。
+ *                     `invokeLLM` 替换真 OpenAI 调用；`forceMock` 覆盖 isLLMForcedMock() 判定。
  */
 export async function generateAndPersistWizardScript(params: {
   deliveryOrderId: string;
   /// 选填：覆盖默认目标语言
   targetLanguage?: string;
+  deps?: {
+    invokeLLM?: WizardScriptLLMInvoker;
+    forceMock?: boolean;
+  };
 }): Promise<WizardScriptResult> {
   const { deliveryOrderId } = params;
   const brief = await requireClientBrief(deliveryOrderId);
@@ -81,6 +171,7 @@ export async function generateAndPersistWizardScript(params: {
     selectedCard,
     selectedCardId,
     targetLanguage: params.targetLanguage,
+    deps: params.deps,
   });
 
   /// 确保有脚手架（Round/ContentAngle/VideoBrief）
@@ -146,18 +237,65 @@ interface GenerateScriptParams {
   /// CreativeEvidenceCard.id（不在 Core schema 上），用于 AIUsageLog 关联
   selectedCardId: string | null;
   targetLanguage?: string;
+  deps?: {
+    invokeLLM?: WizardScriptLLMInvoker;
+    forceMock?: boolean;
+  };
+}
+
+const defaultWizardScriptLLMInvoker: WizardScriptLLMInvoker = async ({
+  systemPrompt,
+  userPrompt,
+}) => {
+  /// 走 script tier（GPT-5.5 → gpt-4.1 → gpt-4o）—— 从不退到 mini，
+  /// 因为这是客户最终看到的视频脚本。openai.ts 内部已根据 model family
+  /// 自动选 max_completion_tokens vs max_tokens。
+  const { data, modelUsed } = await chatJsonByTier<unknown>({
+    tier: "script",
+    stage: "client_script",
+    system: systemPrompt,
+    user: userPrompt,
+    temperature: 0.7,
+  });
+  return { data, modelUsed };
+};
+
+/**
+ * 把 LLM 原始输出过 zod，失败时**抛 WizardScriptSchemaError**（不再静默回退 mock）。
+ * 与 director-service 的 validateDirectorLLMOutput 完全镜像。
+ */
+export function validateScriptLLMOutput(
+  rawOutput: unknown,
+  meta: { modelUsed: string; briefId: string },
+): ScriptOutput {
+  const parsed = scriptOutputSchema.safeParse(rawOutput);
+  if (!parsed.success) {
+    throw new WizardScriptSchemaError({
+      cause: parsed.error,
+      modelUsed: meta.modelUsed,
+      briefId: meta.briefId,
+    });
+  }
+  return parsed.data;
 }
 
 /**
- * 纯生成（不落库）：尝试真 LLM，失败则 mock。
- * 始终返回 { scriptOutput, fromMock, reason }。
+ * 纯生成（不落库）：mock 路径 = 「无 API key」 或 「isLLMForcedMock()」；
+ * 真 LLM 路径 schema 失败必抛 WizardScriptSchemaError，**不**再静默回退 mock。
  */
 async function generateScript(params: GenerateScriptParams): Promise<{
   scriptOutput: ScriptOutput;
   fromMock: boolean;
   reason?: string;
 }> {
-  const { brief, selectedCard, selectedCardId, targetLanguage, deliveryOrderId } = params;
+  const {
+    brief,
+    selectedCard,
+    selectedCardId,
+    targetLanguage,
+    deliveryOrderId,
+    deps,
+  } = params;
   const promptInput = {
     brief,
     selectedCard,
@@ -165,66 +303,65 @@ async function generateScript(params: GenerateScriptParams): Promise<{
       targetLanguage ?? defaultLanguageForIndustry(brief.industry),
   };
 
-  if (!isLLMAvailable()) {
+  const forceMock = deps?.forceMock ?? isLLMForcedMock();
+
+  /// Mock 路径：仅这两种情况触发
+  ///  1) 无 OPENAI_API_KEY —— 本地开发 / CI；
+  ///  2) isLLMForcedMock() —— LLM_FORCE_MOCK / DIRECTOR_FORCE_MOCK / SCRIPT_FORCE_MOCK 任一为 true。
+  /// 其它一律走真 LLM；schema 失败时**直接 throw**，让 UI 走重试，绝不写占位脚本。
+  if (forceMock || !isLLMAvailable()) {
     const mock = mockClientScript(promptInput);
+    const reason = forceMock
+      ? "LLM_FORCE_MOCK env enabled — skipping real OpenAI call (forced mock mode)"
+      : WIZARD_FALLBACK.scriptMissingKey;
     await recordAIUsage({
       feature: "client_script",
       promptVersion: CLIENT_SCRIPT_PROMPT_VERSION,
       deliveryOrderId,
       creativeCardId: selectedCardId,
       status: AIUsageStatus.MOCK,
-      inputSummary: `mock fallback (no OPENAI_API_KEY) for ${brief.businessName}`,
+      inputSummary: forceMock
+        ? `mock fallback (LLM_FORCE_MOCK) for ${brief.businessName}`
+        : `mock fallback (no OPENAI_API_KEY) for ${brief.businessName}`,
       outputSummary: mock.title,
       durationMs: 0,
     });
     return {
       scriptOutput: parseScriptOutput(mock),
       fromMock: true,
-      reason: WIZARD_FALLBACK.scriptMissingKey,
+      reason,
     };
   }
 
+  const systemPrompt = CLIENT_SCRIPT_SYSTEM;
   const userPrompt = buildClientScriptUser(promptInput);
-  try {
-    const data = await withAIUsageTracking(
-      {
-        feature: "client_script",
-        promptVersion: CLIENT_SCRIPT_PROMPT_VERSION,
-        model: "gpt-4o-mini",
-        deliveryOrderId,
-        creativeCardId: selectedCardId,
-        inputForLog: userPrompt.slice(0, 1024),
-      },
-      () =>
-        chatJson<unknown>({
-          system: CLIENT_SCRIPT_SYSTEM,
-          user: userPrompt,
-          model: "gpt-4o-mini",
-          temperature: 0.7,
-        }),
-    );
-    const validated = parseScriptOutput(data);
-    return { scriptOutput: validated, fromMock: false };
-  } catch (err) {
-    /// LLM 调用或 schema 校验失败 —— withAIUsageTracking 已写入 FAILED log，
-    /// 这里再补一条 MOCK fallback 记录。
-    const mock = mockClientScript(promptInput);
-    await recordAIUsage({
+  const invokeLLM = deps?.invokeLLM ?? defaultWizardScriptLLMInvoker;
+
+  /// withAIUsageTracking 已封装：成功写 SUCCESS，调用层异常写 FAILED + errorMessage。
+  /// 我们额外在 schema 失败处把通用 Error wrap 成 WizardScriptSchemaError 再 throw。
+  let modelUsed: string | undefined;
+  const data = await withAIUsageTracking(
+    {
       feature: "client_script",
       promptVersion: CLIENT_SCRIPT_PROMPT_VERSION,
       deliveryOrderId,
       creativeCardId: selectedCardId,
-      status: AIUsageStatus.MOCK,
-      inputSummary: `mock fallback after LLM error: ${(err as Error).message.slice(0, 200)}`,
-      outputSummary: mock.title,
-      durationMs: 0,
-    });
-    return {
-      scriptOutput: parseScriptOutput(mock),
-      fromMock: true,
-      reason: fallbackReasonWithError(WIZARD_FALLBACK.scriptLlmFailedPrefix, err),
-    };
-  }
+      inputForLog: userPrompt.slice(0, 1024),
+    },
+    async () => {
+      const result = await invokeLLM({ systemPrompt, userPrompt });
+      modelUsed = result.modelUsed;
+      return { data: result.data, modelUsed: result.modelUsed };
+    },
+  );
+
+  const validated = validateScriptLLMOutput(data, {
+    modelUsed: modelUsed ?? "unknown",
+    /// 这里 brief 尚未持久化（generateAndPersistWizardScript 后才创建 VideoBrief），
+    /// 用 deliveryOrderId 当 briefId 占位，方便日志关联。
+    briefId: deliveryOrderId,
+  });
+  return { scriptOutput: validated, fromMock: false };
 }
 
 /**
@@ -309,7 +446,11 @@ export async function patchWizardScript(params: {
 
 /// ---------- 内部：脚手架 ----------
 
-const WIZARD_ANGLE_TITLE = "Wizard primary angle";
+/**
+ * 与 angle-service.SINGLE_DIRECTION_ANGLE_TITLE 共享同一常量，
+ * 让 wizard 与 director 服务都识别同一条 angle 是「单方向 wizard angle」。
+ */
+const WIZARD_ANGLE_TITLE = SINGLE_DIRECTION_ANGLE_TITLE;
 
 async function findWizardVideoBrief(deliveryOrderId: string) {
   const round = await db.round.findFirst({
@@ -336,48 +477,22 @@ async function ensureWizardVideoBrief(
   const existing = await findWizardVideoBrief(deliveryOrderId);
   if (existing) return existing;
 
-  /// 找/建 Round（roundIndex=1）
-  let round = await db.round.findFirst({
-    where: { deliveryOrderId, roundIndex: 1 },
-  });
-  if (!round) {
-    round = await db.round.create({
-      data: {
-        deliveryOrderId,
-        roundIndex: 1,
-        status: RoundStatus.ANGLES_READY,
-        optimizationSlots: 1,
-        explorationSlots: 0,
-      },
-    });
-  }
+  /// 委托给 angle-service.ensureSingleDirectionRound：单创意方向 + 1 Round + 1 ContentAngle，
+  /// 不进赛马。两处共享同一 helper 避免双套 Round 创建逻辑漂移。
+  const { angleId } = await ensureSingleDirectionRound(deliveryOrderId);
 
-  /// 找/建 ContentAngle
-  let angle = await db.contentAngle.findFirst({
-    where: { roundId: round.id, title: WIZARD_ANGLE_TITLE },
-  });
-  if (!angle) {
-    angle = await db.contentAngle.create({
-      data: {
-        roundId: round.id,
-        sortOrder: 1,
-        type: AngleType.OPTIMIZATION,
-        title: WIZARD_ANGLE_TITLE,
-        hook: null,
-        narrative: "Auto-created by wizard for client-facing flow.",
-      },
-    });
-  }
+  /// 双保险：如果该 angle 标题不是 WIZARD_ANGLE_TITLE（可能由 admin 创建），
+  /// 仍然继续在这条 angle 上挂 VideoBrief —— 我们不抢占 admin angle。
+  void WIZARD_ANGLE_TITLE;
 
-  /// 找/建 VideoBrief
   const existingBrief = await db.videoBrief.findUnique({
-    where: { contentAngleId: angle.id },
+    where: { contentAngleId: angleId },
   });
   if (existingBrief) return existingBrief;
 
   return db.videoBrief.create({
     data: {
-      contentAngleId: angle.id,
+      contentAngleId: angleId,
       status: VideoBriefStatus.SCRIPT_DRAFTING,
       durationSec: defaults.durationSec,
       aspectRatio: defaults.aspectRatio,
@@ -429,3 +544,9 @@ function composeFullText(script: ScriptOutput): string {
     .filter(Boolean)
     .join("\n");
 }
+
+/// 仅供测试导入
+export const __test__ = {
+  defaultWizardScriptLLMInvoker,
+  validateScriptLLMOutput,
+};

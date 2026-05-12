@@ -22,13 +22,29 @@ import OpenAI from "openai";
  * 此时 chatJsonByTier 会按 Tier 的 fallback chain 自动重试到下一档（可观测性日志会标 fallbackUsed=true）。
  */
 
-const openai = new OpenAI({
+/**
+ * 注：导出仅为方便 unit test 用 `node:test` mock `chat.completions.create`
+ * （没有现成 SDK 注入 seam）。**业务代码不要直接访问** —— 用 chatJson / chatJsonByTier / analyzeImages。
+ */
+export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "missing-openai-api-key",
 });
 
-export type OpenAITier = "creative" | "qa" | "fast" | "research" | "vision";
+export type OpenAITier =
+  | "director"
+  | "script"
+  | "videoPrompt"
+  | "creative"
+  | "qa"
+  | "fast"
+  | "research"
+  | "vision";
 
 const DEFAULTS: Record<OpenAITier, string> = {
+  /// 最强的视频导演 / 脚本 / Seedance prompt 阶段 — 客户最终看到的输出
+  director: "gpt-5.5",
+  script: "gpt-5.5",
+  videoPrompt: "gpt-5.5",
   creative: "gpt-4.1",
   qa: "gpt-4.1-mini",
   fast: "gpt-4o-mini",
@@ -36,8 +52,15 @@ const DEFAULTS: Record<OpenAITier, string> = {
   vision: "gpt-4o",
 };
 
-/// 当首选模型不可用时按顺序回退（必须含至少一个我们账号里 100% 可用的模型）
+/**
+ * 当首选模型不可用时按顺序回退。
+ * 关键规则：director / script / videoPrompt 永远不能退到 mini —
+ * 这些 tier 是客户最终看到的脚本和 Seedance prompt，必须保持高质量。
+ */
 const FALLBACK_CHAIN: Record<OpenAITier, string[]> = {
+  director: ["gpt-5.5", "gpt-4.1", "gpt-4o"],
+  script: ["gpt-5.5", "gpt-4.1", "gpt-4o"],
+  videoPrompt: ["gpt-5.5", "gpt-4.1", "gpt-4o"],
   creative: ["gpt-4.1", "gpt-4o", "gpt-4o-mini"],
   qa: ["gpt-4.1-mini", "gpt-4o-mini"],
   fast: ["gpt-4o-mini"],
@@ -45,14 +68,31 @@ const FALLBACK_CHAIN: Record<OpenAITier, string[]> = {
   vision: ["gpt-4o"],
 };
 
+/**
+ * 客户最终看到的 tier（director / script / videoPrompt）必须避免 mini —
+ * 即使旧部署在 OPENAI_MODEL 设了 mini 也要保留 DEFAULTS。
+ */
+const NO_MINI_TIERS: ReadonlySet<OpenAITier> = new Set([
+  "director",
+  "script",
+  "videoPrompt",
+]);
+
 export function resolveModelForTier(tier: OpenAITier): string {
   /// 优先 Tier 专属 env，其次通用 OPENAI_MODEL（向后兼容旧部署），最后默认值
   const tierEnv = `OPENAI_${tier.toUpperCase()}_MODEL`;
-  return (
-    process.env[tierEnv] ||
-    process.env.OPENAI_MODEL ||
-    DEFAULTS[tier]
-  );
+  const explicit = process.env[tierEnv];
+  if (explicit) return explicit;
+
+  const legacy = process.env.OPENAI_MODEL;
+  if (legacy) {
+    /// 客户面向 tier 不允许退化到 mini；其它 tier 仍可沿用旧 OPENAI_MODEL
+    if (NO_MINI_TIERS.has(tier) && /mini/i.test(legacy)) {
+      return DEFAULTS[tier];
+    }
+    return legacy;
+  }
+  return DEFAULTS[tier];
 }
 
 export function resolveFallbackChain(tier: OpenAITier): string[] {
@@ -99,17 +139,94 @@ export interface ChatJsonByTierOptions extends Omit<ChatJsonOptions, "model"> {
 }
 
 /**
+ * GPT-5.x / o-series reasoning 模型只接受 `max_completion_tokens`；
+ * GPT-4.x / GPT-4o 系列接受 `max_tokens`（同字段 deprecated 但仍受理）。
+ *
+ * 历史 bug：之前 chatJson 硬编码 `max_tokens` → 调 gpt-5.5 时 OpenAI 直接 400
+ * 返回 `Unsupported parameter: 'max_tokens'`，导致 director / script tier 100% 失败
+ * 然后 wizard-script-service 静默回退到 mock。
+ *
+ * 在导出，方便 tests 直接断言。
+ */
+export function buildTokenLimitParam(
+  model: string,
+  limit: number,
+): { max_tokens?: number; max_completion_tokens?: number } {
+  if (/^(gpt-5|gpt-6|o1|o3|o4)/i.test(model)) {
+    return { max_completion_tokens: limit };
+  }
+  return { max_tokens: limit };
+}
+
+/**
+ * 根据 model family 决定是否透传 temperature。
+ *
+ * 背景：
+ * - GPT-5.x / GPT-6.x / o1 / o3 / o4 系列模型的 chat completions API 仅支持
+ *   `temperature=1`（默认值），任何非 1 的值都会被 OpenAI 直接 4xx 拒绝：
+ *   `Unsupported value: 'temperature' does not support 0.7 with this model. Only the default (1) value is supported.`
+ * - 这是 OpenAI 在 GPT-5 系列引入的服务端硬约束，无法从客户端绕过。
+ * - 业务代码遍布 `temperature: 0.5/0.7/0.85` 之类的调用，没法（也不该）逐个修；
+ *   在 provider 层根据 model family 静默丢弃即可，让旧模型仍能受益。
+ *
+ * 行为：
+ * - 5.x / 6.x / o-series：返回 `{}`（不下发 temperature 参数 → API 用默认 1）
+ * - 其它 (gpt-4*, gpt-3.5)：返回 `{ temperature: requested }`
+ *
+ * @example
+ *   buildTemperatureParam("gpt-5.5", 0.7)   // → {}
+ *   buildTemperatureParam("gpt-4o", 0.7)    // → { temperature: 0.7 }
+ *   buildTemperatureParam("o3-mini", 0.5)   // → {}
+ */
+export function buildTemperatureParam(
+  model: string,
+  requested: number | undefined,
+): { temperature?: number } {
+  if (/^(gpt-5|gpt-6|o1|o3|o4)/i.test(model)) {
+    return {};
+  }
+  if (requested == null) return {};
+  return { temperature: requested };
+}
+
+/**
+ * 「LLM_FORCE_MOCK / DIRECTOR_FORCE_MOCK / SCRIPT_FORCE_MOCK」任一为 "true" → 全 LLM mock。
+ *
+ * 设计意图：
+ * - 一个统一开关（LLM_FORCE_MOCK）覆盖整个 AI 管线，避免遗漏新 service 漏配 mock。
+ * - 同时向后兼容已经写进 .env / docs 的 DIRECTOR_FORCE_MOCK 与 SCRIPT_FORCE_MOCK 别名。
+ * - 任何 service 都应在调用 chatJsonByTier 之前先调本函数，决定是否走自家 mock 输出。
+ */
+export function isLLMForcedMock(): boolean {
+  return (
+    process.env.LLM_FORCE_MOCK === "true" ||
+    process.env.DIRECTOR_FORCE_MOCK === "true" ||
+    process.env.SCRIPT_FORCE_MOCK === "true"
+  );
+}
+
+/**
  * 通用 JSON 模式 LLM 调用：系统提示 + 用户提示 → 强制返回 JSON。
  * 如果 OPENAI_API_KEY 未配置则抛错（调用方应自行 mock）。
+ *
+ * 防御性守门：当 isLLMForcedMock() 为 true 时**主动 throw**，
+ * 让任何漏掉自家 mock 短路的 service 在调用站点立刻爆栈 —— 而不是悄悄发出真实请求。
  */
 export async function chatJson<T = unknown>(
   options: ChatJsonOptions,
 ): Promise<ChatJsonResult<T>> {
+  if (isLLMForcedMock()) {
+    throw new Error(
+      "LLM_FORCE_MOCK is true; refusing to send real OpenAI request — caller must short-circuit to mock before invoking chatJson.",
+    );
+  }
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY 未配置");
   }
 
   const model = options.model || resolveModelForTier("fast");
+  const tokenLimit = buildTokenLimitParam(model, options.maxTokens ?? 3500);
+  const temperatureParam = buildTemperatureParam(model, options.temperature ?? 0.7);
   const response = await openai.chat.completions.create({
     model,
     messages: [
@@ -117,8 +234,8 @@ export async function chatJson<T = unknown>(
       { role: "user", content: options.user },
     ],
     response_format: { type: "json_object" },
-    temperature: options.temperature ?? 0.7,
-    max_tokens: options.maxTokens ?? 3500,
+    ...temperatureParam,
+    ...tokenLimit,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -160,6 +277,12 @@ export async function chatJson<T = unknown>(
 export async function chatJsonByTier<T = unknown>(
   options: ChatJsonByTierOptions,
 ): Promise<ChatJsonResult<T>> {
+  /// 提前 fast-fail：让漏配 mock 的 service 看到清晰栈
+  if (isLLMForcedMock()) {
+    throw new Error(
+      `LLM_FORCE_MOCK is true; refusing to send real OpenAI request for tier=${options.tier} — caller must short-circuit to mock.`,
+    );
+  }
   const chain = resolveFallbackChain(options.tier);
   const stageLabel = options.stage ?? options.tier;
   let lastErr: unknown = null;
@@ -213,6 +336,11 @@ export async function analyzeImages(
   system: string,
   userPrompt: string,
 ): Promise<ChatJsonResult<Record<string, unknown>>> {
+  if (isLLMForcedMock()) {
+    throw new Error(
+      "LLM_FORCE_MOCK is true; refusing to send real OpenAI vision request — caller must short-circuit to mock.",
+    );
+  }
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY 未配置");
   }
@@ -223,6 +351,7 @@ export async function analyzeImages(
     image_url: { url, detail: "low" as const },
   }));
 
+  const tokenLimit = buildTokenLimitParam(visionModel, 1200);
   const response = await openai.chat.completions.create({
     model: visionModel,
     messages: [
@@ -236,7 +365,7 @@ export async function analyzeImages(
       },
     ],
     response_format: { type: "json_object" },
-    max_tokens: 1200,
+    ...tokenLimit,
   });
 
   const content = response.choices[0]?.message?.content;
@@ -266,4 +395,7 @@ export const __test__ = {
   resolveModelForTier,
   resolveFallbackChain,
   isModelMissingError,
+  buildTokenLimitParam,
+  buildTemperatureParam,
+  isLLMForcedMock,
 };

@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { WizardMockBanner } from "@/components/wizard/wizard-mock-banner";
+import { useTranslation } from "@/i18n/useTranslation";
 import type { WizardRenderJob } from "@prisma/client";
 
 const MODE_BADGE: Record<string, { className: string; label: string }> = {
@@ -64,6 +65,7 @@ export function RenderStepClient({
   realModeOn: boolean;
   ffmpegOk: boolean;
 }) {
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState(initialJobs);
   const [aspect, setAspect] = useState<"9:16" | "1:1" | "16:9">("9:16");
   const [pending, startRender] = useTransition();
@@ -86,7 +88,10 @@ export function RenderStepClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message ?? `请求失败 (${res.status})`);
+        setError(
+          data.message ??
+            t("wizard.step1.errorRequestFailed", { status: res.status }),
+        );
         await refresh();
         return;
       }
@@ -101,14 +106,20 @@ export function RenderStepClient({
         level="info"
         message={
           realModeOn
-            ? "REAL 模式已启用：ENABLE_WIZARD_FFMPEG_RENDER=true 且检测到 FFmpeg。会按 storyboard 顺序拼接 9:16 / 1:1 / 16:9 真视频；任一环节出错会自动降级为 Draft 草稿，wizard 不会卡住。"
-            : `当前是 Draft / Mock 草稿模式（${ffmpegOk ? "FFmpeg 已安装但 ENABLE_WIZARD_FFMPEG_RENDER 未开启" : "服务器未安装 FFmpeg"}）。系统会用首个可用素材 + 完整 timeline manifest 给出可审核的草稿——这是设计内的安全 fallback，不是 error。`
+            ? t("wizard.step6.bannerLive")
+            : t("wizard.step6.bannerDraft", {
+                reason: ffmpegOk
+                  ? t("wizard.step6.reason.previewModeDisabled")
+                  : t("wizard.step6.reason.assemblyUnavailable"),
+              })
         }
       />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
-          <CardTitle className="text-sm">触发新一次渲染</CardTitle>
+          <CardTitle className="text-sm">
+            {t("wizard.step6.triggerCardTitle")}
+          </CardTitle>
           <div className="flex items-center gap-2">
             <Select
               value={aspect}
@@ -131,22 +142,26 @@ export function RenderStepClient({
               ) : (
                 <Sparkles className="h-3.5 w-3.5 mr-2" />
               )}
-              生成预览
+              {t("wizard.step6.triggerButton")}
             </Button>
           </div>
         </CardHeader>
         <CardContent className="text-xs text-muted-foreground">
-          点击「生成预览」会基于当前 storyboard + 已上传素材构建 timeline，并立即执行（不依赖队列）。
+          {t("wizard.step6.triggerHelp")}
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">最近 5 次渲染</CardTitle>
+          <CardTitle className="text-sm">
+            {t("wizard.step6.recentTitle")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {jobs.length === 0 && (
-            <p className="text-xs text-muted-foreground">还没有渲染记录。</p>
+            <p className="text-xs text-muted-foreground">
+              {t("wizard.step6.recentEmpty")}
+            </p>
           )}
           {jobs.map((job) => (
             <RenderJobCard key={job.id} job={job} />
@@ -159,7 +174,7 @@ export function RenderStepClient({
       <div className="flex justify-end gap-2">
         <Link href={`/wizard/${orderId}/step-5-upload`}>
           <Button variant="outline">
-            <ArrowLeft className="h-4 w-4 mr-2" /> 返回 Step 5
+            <ArrowLeft className="h-4 w-4 mr-2" /> {t("wizard.step6.back")}
           </Button>
         </Link>
       </div>

@@ -27,9 +27,10 @@ import {
 } from "@/lib/schemas/creative-evidence";
 import {
   BRAND_TONES,
-  VIDEO_LENGTHS,
   type ClientBrief,
 } from "@/lib/schemas/client-brief";
+import { DURATION_OPTIONS } from "@/lib/duration/segment-planner";
+import { useTranslation } from "@/i18n/useTranslation";
 
 type FormState = {
   businessName: string;
@@ -73,6 +74,7 @@ const DEFAULT_STATE: FormState = {
 
 export function WizardNewClient() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [state, setState] = useState<FormState>(DEFAULT_STATE);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -85,11 +87,11 @@ export function WizardNewClient() {
   const submit = () => {
     setError(null);
     if (!allConsentsChecked) {
-      setError("请勾选三项合规承诺后再创建项目。");
+      setError(t("wizard.step1.errorConsentsRequired"));
       return;
     }
     if (state.businessName.trim().length < 2) {
-      setError("商家名称至少 2 个字符。");
+      setError(t("wizard.step1.errorBusinessNameTooShort"));
       return;
     }
     startTransition(async () => {
@@ -102,7 +104,11 @@ export function WizardNewClient() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message ?? data.error ?? `请求失败 (${res.status})`);
+        setError(
+          data.message ??
+            data.error ??
+            t("wizard.step1.errorRequestFailed", { status: res.status }),
+        );
         return;
       }
       const json = (await res.json()) as { id: string };
@@ -114,39 +120,41 @@ export function WizardNewClient() {
     <div className="grid gap-5 lg:grid-cols-3">
       <Card className="lg:col-span-2">
         <CardHeader>
-          <CardTitle className="text-sm">基本信息</CardTitle>
+          <CardTitle className="text-sm">{t("wizard.step1.basicInfo")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <Field label="商家名称">
+          <Field label={t("wizard.step1.businessName")}>
             <Input
               value={state.businessName}
-              placeholder="e.g. Sunrise Realty"
+              placeholder={t("wizard.step1.businessNamePlaceholder")}
               onChange={(e) =>
                 setState((s) => ({ ...s, businessName: e.target.value }))
               }
             />
           </Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="行业">
+            <Field label={t("wizard.step1.industry")}>
               <SelectControl
                 value={state.industry}
                 options={CREATIVE_INDUSTRIES}
                 onChange={(v) =>
                   setState((s) => ({ ...s, industry: v as FormState["industry"] }))
                 }
+                renderLabel={(v) => t(`industry.${v}`)}
               />
             </Field>
-            <Field label="目标">
+            <Field label={t("wizard.step1.objective")}>
               <SelectControl
                 value={state.objective}
                 options={CREATIVE_OBJECTIVES}
                 onChange={(v) =>
                   setState((s) => ({ ...s, objective: v as FormState["objective"] }))
                 }
+                renderLabel={(v) => t(`objective.${v}`)}
               />
             </Field>
           </div>
-          <Field label="目标平台 (可多选)">
+          <Field label={t("wizard.step1.platforms")}>
             <div className="flex flex-wrap gap-1.5">
               {CREATIVE_PLATFORMS.map((p) => {
                 const active = state.targetPlatforms.includes(p);
@@ -169,41 +177,62 @@ export function WizardNewClient() {
                         : "border-white/15 text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {p}
+                    {t(`platform.${p}`)}
                   </button>
                 );
               })}
             </div>
           </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="视频时长">
-              <SelectControl
-                value={String(state.videoLengthSec)}
-                options={VIDEO_LENGTHS.map((v) => String(v))}
-                renderLabel={(v) => `${v}s`}
-                onChange={(v) =>
-                  setState((s) => ({
-                    ...s,
-                    videoLengthSec: Number(v) as FormState["videoLengthSec"],
-                  }))
-                }
-              />
-            </Field>
-            <Field label="品牌口吻">
-              <SelectControl
-                value={state.brandTone}
-                options={BRAND_TONES}
-                onChange={(v) =>
-                  setState((s) => ({ ...s, brandTone: v as FormState["brandTone"] }))
-                }
-              />
-            </Field>
-          </div>
-          <Field label="关键信息（可选，<= 400 字符）">
+          <Field label={t("project.duration.label")}>
+            <p className="-mt-0.5 text-[11px] text-muted-foreground">
+              {t("project.duration.sublabel")}
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {DURATION_OPTIONS.map((opt) => {
+                const active = state.videoLengthSec === opt.durationSec;
+                return (
+                  <button
+                    type="button"
+                    key={opt.durationSec}
+                    onClick={() =>
+                      setState((s) => ({
+                        ...s,
+                        videoLengthSec: opt.durationSec as FormState["videoLengthSec"],
+                      }))
+                    }
+                    className={cn(
+                      "rounded-md border px-3 py-2.5 text-left transition-colors",
+                      active
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/5",
+                    )}
+                  >
+                    <div className="text-sm font-semibold">
+                      {t(`project.duration.${opt.labelKey}`)}
+                    </div>
+                    <div className="text-[11px] text-muted-foreground/80">
+                      {t(`project.duration.${opt.subKey}`)}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+          <Field label={t("wizard.step1.brandTone")}>
+            <SelectControl
+              value={state.brandTone}
+              options={BRAND_TONES}
+              onChange={(v) =>
+                setState((s) => ({ ...s, brandTone: v as FormState["brandTone"] }))
+              }
+              renderLabel={(v) => t(`brandTone.${v}`)}
+            />
+          </Field>
+          <Field label={t("wizard.step1.keyMessage")}>
             <Textarea
               value={state.keyMessage}
               maxLength={400}
-              placeholder="本周末开放参观、限时报名、新装修体验……"
+              placeholder={t("wizard.step1.keyMessagePlaceholder")}
               onChange={(e) =>
                 setState((s) => ({ ...s, keyMessage: e.target.value }))
               }
@@ -214,13 +243,15 @@ export function WizardNewClient() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">品牌资产 (可选)</CardTitle>
+          <CardTitle className="text-sm">
+            {t("wizard.step1.brandAssetsCard")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Field label="Logo URL">
+          <Field label={t("wizard.step1.brandLogoUrl")}>
             <Input
               value={state.brand.logoUrl}
-              placeholder="https://..."
+              placeholder={t("wizard.step1.brandLogoUrlPlaceholder")}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
@@ -229,10 +260,10 @@ export function WizardNewClient() {
               }
             />
           </Field>
-          <Field label="官网">
+          <Field label={t("wizard.step1.brandWebsite")}>
             <Input
               value={state.brand.websiteUrl}
-              placeholder="https://..."
+              placeholder={t("wizard.step1.brandWebsitePlaceholder")}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
@@ -241,10 +272,10 @@ export function WizardNewClient() {
               }
             />
           </Field>
-          <Field label="电话">
+          <Field label={t("wizard.step1.brandPhone")}>
             <Input
               value={state.brand.phone}
-              placeholder="(555) 123-4567"
+              placeholder={t("wizard.step1.brandPhonePlaceholder")}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
@@ -253,10 +284,10 @@ export function WizardNewClient() {
               }
             />
           </Field>
-          <Field label="CTA 文案">
+          <Field label={t("wizard.step1.brandCta")}>
             <Input
               value={state.brand.ctaText}
-              placeholder="DM us today"
+              placeholder={t("wizard.step1.brandCtaPlaceholder")}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
@@ -265,10 +296,10 @@ export function WizardNewClient() {
               }
             />
           </Field>
-          <Field label="主色 (HEX)">
+          <Field label={t("wizard.step1.brandPrimaryColor")}>
             <Input
               value={state.brand.primaryColor}
-              placeholder="#1E40AF"
+              placeholder={t("wizard.step1.brandPrimaryColorPlaceholder")}
               onChange={(e) =>
                 setState((s) => ({
                   ...s,
@@ -282,7 +313,9 @@ export function WizardNewClient() {
 
       <Card className="lg:col-span-3">
         <CardHeader>
-          <CardTitle className="text-sm">合规承诺（必须三项全部勾选）</CardTitle>
+          <CardTitle className="text-sm">
+            {t("wizard.step1.consentsTitle")}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-xs">
           <ConsentBox
@@ -293,7 +326,7 @@ export function WizardNewClient() {
                 consents: { ...s.consents, ownsFootage: v },
               }))
             }
-            label="我拥有或获得授权使用所有上传的素材，且素材中出现的真人/宠物已知情同意。"
+            label={t("wizard.step1.consentOwnsFootage")}
           />
           <ConsentBox
             checked={state.consents.noUnauthorizedAvatar}
@@ -303,7 +336,7 @@ export function WizardNewClient() {
                 consents: { ...s.consents, noUnauthorizedAvatar: v },
               }))
             }
-            label="我不会要求平台生成未经授权的数字人或冒充他人形象的视频。"
+            label={t("wizard.step1.consentNoUnauthorizedAvatar")}
           />
           <ConsentBox
             checked={state.consents.noUnauthorizedVoiceClone}
@@ -316,7 +349,7 @@ export function WizardNewClient() {
                 },
               }))
             }
-            label="我不会要求平台克隆未经授权的真人声音。"
+            label={t("wizard.step1.consentNoUnauthorizedVoiceClone")}
           />
         </CardContent>
       </Card>
@@ -334,7 +367,7 @@ export function WizardNewClient() {
           ) : (
             <ArrowRight className="h-4 w-4 mr-2" />
           )}
-          创建项目并进入 Step 2
+          {t("wizard.step1.continueButton")}
         </Button>
       </div>
     </div>

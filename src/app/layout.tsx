@@ -3,6 +3,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/providers/session-provider";
+import { I18nProvider } from "@/i18n/I18nProvider";
+import { getServerLocale } from "@/i18n/server";
 import { authOptions } from "@/lib/auth";
 import "./globals.css";
 
@@ -17,9 +19,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aivora — AI 视频增长与交付系统",
+  title: "Aivora — AI Video Growth Platform",
   description:
-    "面向外贸电商与服务型销售团队的 AI 视频增长系统：产品分析 → 视频生成 → 数据赛马 → 自动优化",
+    "AI-powered short-form video creation: project setup, brand assets, AI direction, multi-segment video generation, preview and publish.",
 };
 
 export default async function RootLayout({
@@ -27,17 +29,22 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await getServerSession(authOptions);
+  const [session, locale] = await Promise.all([
+    getServerSession(authOptions),
+    getServerLocale(),
+  ]);
 
   return (
     <html
-      lang="zh-CN"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full`}
     >
       <body className="h-full antialiased">
         <AuthProvider session={session}>
-          {children}
-          <Toaster richColors position="top-right" />
+          <I18nProvider initialLocale={locale}>
+            {children}
+            <Toaster richColors position="top-right" />
+          </I18nProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,16 +1,18 @@
 import { requireWizardPage } from "@/lib/api-auth";
+import { getServerTranslator } from "@/i18n/server";
 import { WizardNewClient } from "./wizard-new-client";
 
 export default async function WizardNewPage() {
   await requireWizardPage();
+  const { t } = await getServerTranslator();
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold tracking-tight">
-          Client Wizard · Step 1 / 6 · 项目目标
+          {t("wizard.step1.pageTitle")}
         </h1>
         <p className="text-xs text-muted-foreground mt-1">
-          告诉我们这个项目是给谁拍的、要达到什么目标。所有字段都会进入 Wizard 后续步骤的 AI 输入。
+          {t("wizard.step1.pageSubtitle")}
         </p>
       </div>
       <WizardNewClient />

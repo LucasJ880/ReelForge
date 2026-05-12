@@ -32,6 +32,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { WizardMockBanner } from "@/components/wizard/wizard-mock-banner";
+import { useTranslation } from "@/i18n/useTranslation";
 import type { MissingShotReport } from "@/lib/schemas/asset-qa";
 
 const ACCEPT_DIRECT = "video/mp4,video/quicktime,video/webm,image/png,image/jpeg,image/webp";
@@ -98,6 +99,7 @@ export function UploadStepClient({
   blobReady: boolean;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [assets, setAssets] = useState<AssetRow[]>(initialAssets);
   const [report, setReport] = useState<MissingShotReport>(initialMissingReport);
   const [adding, startAdd] = useTransition();
@@ -281,14 +283,13 @@ export function UploadStepClient({
     });
   };
 
-  /// 允许 0 素材也进入 Step 6 —— Step 6 会生成 MOCK render job，
-  /// 这样客户即便没素材也能看到完整流程的输出（满足 wizard 不被卡住）
+  /// 允许 0 素材也进入下一步（会生成示例预览，让客户看到完整流程的输出）
   const allShotsCovered = report.missingRequired === 0 && assets.length > 0;
   const advanceLabel = allShotsCovered
-    ? "前往 Step 6 · 生成 Draft"
+    ? t("wizard.step5.continueAllCovered")
     : assets.length === 0
-      ? "前往 Step 6 · 生成 Mock 预览"
-      : "跳过缺镜头去试 Draft";
+      ? t("wizard.step5.continueMockOnly")
+      : t("wizard.step5.continueSkipMissing");
 
   return (
     <div className="space-y-5">
@@ -296,8 +297,8 @@ export function UploadStepClient({
         level="info"
         message={
           blobReady
-            ? "支持直接上传 ≤100MB 的视频/图片，或粘贴公网 URL。任一方式失败会自动切换到另一种，不会阻塞 wizard。"
-            : "服务器暂未配置 Vercel Blob (BLOB_READ_WRITE_TOKEN)，当前仅支持公网 URL 注册。配置后会自动启用直接上传。"
+            ? t("wizard.step5.bannerBlobReady")
+            : t("wizard.step5.bannerBlobMissing")
         }
       />
 
@@ -318,7 +319,7 @@ export function UploadStepClient({
                   : "text-muted-foreground hover:text-foreground") +
                 (!blobReady ? " opacity-50 cursor-not-allowed" : "")
               }
-              title={!blobReady ? "服务器未配置 BLOB_READ_WRITE_TOKEN" : undefined}
+              title={!blobReady ? t("wizard.step5.uploadDisabledHint") : undefined}
             >
               <CloudUpload className="h-3.5 w-3.5" /> 直接上传
             </button>
@@ -557,7 +558,7 @@ export function UploadStepClient({
 
       <div className="flex justify-end gap-2">
         <Link href={`/wizard/${orderId}/step-4-storyboard`}>
-          <Button variant="outline">返回 Step 4</Button>
+          <Button variant="outline">{t("wizard.step5.back")}</Button>
         </Link>
         <Button
           onClick={() => router.push(`/wizard/${orderId}/step-6-render`)}

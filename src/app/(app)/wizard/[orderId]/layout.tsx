@@ -3,10 +3,8 @@ import { db } from "@/lib/db";
 import { requireWizardPage } from "@/lib/api-auth";
 import { getClientProject } from "@/lib/services/client-project-service";
 import { WizardBriefSummary } from "@/components/wizard/wizard-brief-summary";
-import {
-  WizardStepIndicator,
-  buildWizardSteps,
-} from "@/components/wizard/wizard-step-indicator";
+import { WizardStepIndicator } from "@/components/wizard/wizard-step-indicator";
+import { buildWizardSteps } from "@/components/wizard/wizard-steps";
 
 export default async function WizardOrderLayout({
   children,
@@ -28,9 +26,9 @@ export default async function WizardOrderLayout({
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <h1 className="text-xl font-semibold tracking-tight">
-            Client Wizard · {project.order.title}
+            {project.order.title}
           </h1>
-          {/* currentStep 由 client 端 indicator 用 usePathname 自动推断（Phase 3B-A） */}
+          {/* currentStep 由 client 端 indicator 用 usePathname 自动推断 */}
           <WizardStepIndicator steps={steps} />
         </div>
         <WizardBriefSummary

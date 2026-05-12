@@ -25,25 +25,25 @@ export default function AuthLayout({
           <div className="relative">
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-[11px] font-medium text-muted-foreground">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-              真实素材广告增长系统
+              本地商家短视频生成平台
             </div>
             <h2 className="max-w-md text-3xl font-semibold leading-tight tracking-tight">
-              从真实素材
+              上传素材
               <br />
-              到多版广告赛马
+              AI 自动出片
               <br />
-              <span className="text-primary">全流程闭环</span>
+              <span className="text-primary">直发短视频平台</span>
             </h2>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Aivora Ads 把客户上传的产品、门店、人物或使用场景素材，转成可测试、可复盘、可持续优化的短视频广告。
+              Aivora 把商家上传的产品、门店、人物或使用场景素材，转成可发布、可复用、可持续优化的竖屏短视频。
             </p>
 
             <ul className="mt-10 space-y-3 text-sm text-muted-foreground">
               {[
-                "真实素材上传 → 市场分析 → 卖点提炼",
-                "单卖点 5 条广告赛马（3 优化型 + 2 探索型）",
-                "QA 八维打分 + 人工审核双把关",
-                "12/24/48h 数据回流 + 特征蒸馏",
+                "上传素材，AI 自动出 30s / 60s 成片",
+                "支持 TikTok / Instagram Reels / YouTube Shorts 竖屏 9:16",
+                "自动生成脚本、分镜、拍摄指导，商家照拍即可",
+                "AI QA 把关素材质量 + 人工审核双保险",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-2.5">
                   <svg

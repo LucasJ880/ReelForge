@@ -4,6 +4,7 @@ import {
   recommendCreativeCards,
 } from "@/lib/services/creative-evidence-service";
 import { getClientProject } from "@/lib/services/client-project-service";
+import { getServerTranslator } from "@/i18n/server";
 import { CardPickerClient } from "./card-picker-client";
 
 export default async function WizardStep2Page({
@@ -12,6 +13,7 @@ export default async function WizardStep2Page({
   params: Promise<{ orderId: string }>;
 }) {
   const { orderId } = await params;
+  const { t } = await getServerTranslator();
   const project = await getClientProject(orderId);
   if (!project || !project.brief) notFound();
   const { brief } = project;
@@ -47,10 +49,10 @@ export default async function WizardStep2Page({
     <div className="space-y-6">
       <header>
         <h2 className="text-lg font-semibold tracking-tight">
-          Step 2 · 选一张创意证据卡
+          {t("wizard.step2.pageTitle")}
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          这些卡片会作为「结构灵感」喂给 AI 写脚本和分镜，但不会复制原视频字幕、镜头或配音。
+          {t("wizard.step2.pageSubtitle")}
         </p>
       </header>
 

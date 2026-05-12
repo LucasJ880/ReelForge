@@ -19,6 +19,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { WizardMockBanner } from "@/components/wizard/wizard-mock-banner";
+import { useTranslation } from "@/i18n/useTranslation";
 
 type CurrentStoryboard = Awaited<
   ReturnType<typeof import("@/lib/services/wizard-storyboard-service").getCurrentWizardStoryboard>
@@ -49,6 +50,7 @@ export function StoryboardStepClient({
   initialStoryboard: CurrentStoryboard;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [storyboard, setStoryboard] = useState(initialStoryboard);
   const [generating, startGenerate] = useTransition();
   const [bannerMsg, setBannerMsg] = useState<string | null>(null);
@@ -64,7 +66,10 @@ export function StoryboardStepClient({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message ?? `请求失败 (${res.status})`);
+        setError(
+          data.message ??
+            t("wizard.step1.errorRequestFailed", { status: res.status }),
+        );
         return;
       }
       const data = (await res.json()) as {
@@ -76,7 +81,6 @@ export function StoryboardStepClient({
         reason?: string | null;
         durationConsistencyIssues: string[];
       };
-      /// 把 storyboard 转成 ScenePlan 形式给 UI 复用
       const newScenePlans = data.storyboard.shots.map((shot, i) => ({
         id: data.scenePlanIds[i] ?? `tmp-${i}`,
         sceneIndex: shot.sceneIndex,
@@ -94,17 +98,19 @@ export function StoryboardStepClient({
       if (data.fromMock) {
         setBannerLevel("info");
         setBannerMsg(
-          `已生成 mock 分镜 + 拍摄指导草稿（${data.reason ?? "未启用 OpenAI"}）。结构、必拍标记、上传提示都是真实可用的——客户照拍即可。`,
+          t("wizard.step4.bannerMockGenerated", {
+            reason: data.reason ?? "OpenAI not configured",
+          }),
         );
       } else {
         setBannerLevel("info");
         setBannerMsg(
-          `已生成 ${data.storyboard.shots.length} 个镜头（来自 OpenAI）。${
-            data.durationConsistencyIssues.length
-              ? "时长有偏差：" +
-                data.durationConsistencyIssues.join("；")
-              : ""
-          }`,
+          t("wizard.step4.bannerLiveGenerated", {
+            count: data.storyboard.shots.length,
+            note: data.durationConsistencyIssues.length
+              ? " " + data.durationConsistencyIssues.join("; ")
+              : "",
+          }),
         );
       }
     });
@@ -115,7 +121,7 @@ export function StoryboardStepClient({
       {!scriptReady && (
         <WizardMockBanner
           level="warn"
-          message="还没有生成脚本：请先回到 Step 3 生成或编辑脚本。"
+          message={t("wizard.step4.noScriptWarning")}
         />
       )}
       {bannerMsg && (
@@ -126,8 +132,10 @@ export function StoryboardStepClient({
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-sm">
             {storyboard
-              ? `当前分镜 · ${storyboard.scenePlans.length} 镜头`
-              : "尚未生成分镜"}
+              ? t("wizard.step4.cardTitleCount", {
+                  count: storyboard.scenePlans.length,
+                })
+              : t("wizard.step4.cardTitleEmpty")}
           </CardTitle>
           <Button onClick={generate} disabled={generating || !scriptReady} size="sm">
             {generating ? (
@@ -135,13 +143,15 @@ export function StoryboardStepClient({
             ) : (
               <Sparkles className="h-3.5 w-3.5 mr-2" />
             )}
-            {storyboard ? "重新生成" : "生成分镜"}
+            {storyboard
+              ? t("wizard.step4.regenerateButton")
+              : t("wizard.step4.generateButton")}
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
           {!storyboard ? (
             <p className="text-xs text-muted-foreground">
-              点击「生成分镜」开始。生成会清掉旧的 ScenePlan 并新建一组。
+              {t("wizard.step4.intro")}
             </p>
           ) : (
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
@@ -157,13 +167,14 @@ export function StoryboardStepClient({
 
       <div className="flex justify-end gap-2">
         <Link href={`/wizard/${orderId}/step-3-script`}>
-          <Button variant="outline">返回 Step 3</Button>
+          <Button variant="outline">{t("wizard.step4.back")}</Button>
         </Link>
         <Button
           onClick={() => router.push(`/wizard/${orderId}/step-5-upload`)}
           disabled={!storyboard}
         >
-          前往 Step 5 · 上传素材 <ArrowRight className="h-4 w-4 ml-2" />
+          {t("wizard.step4.continueButton")}
+          <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
     </div>
@@ -193,29 +204,30 @@ function ShotCard({
     shootingGuide: unknown;
   };
 }) {
+  const { t } = useTranslation();
   const guide = (shot.shootingGuide ?? {}) as ShootingGuideShape;
   return (
     <div className="rounded-lg border border-white/10 bg-card/40 p-3 space-y-2 text-xs">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Badge className="bg-foreground text-background border-foreground text-[10px]">
-            Shot {shot.sceneIndex}
+            {t("wizard.step4.shotLabel", { index: shot.sceneIndex })}
           </Badge>
           <span className="text-muted-foreground">{shot.durationSec}s</span>
         </div>
         <div className="flex items-center gap-1">
           {shot.requiredFlag ? (
             <Badge className="bg-rose-500/15 text-rose-200 border border-rose-400/30 text-[10px]">
-              必拍
+              {t("wizard.step4.requiredBadge")}
             </Badge>
           ) : (
             <Badge className="bg-white/5 text-muted-foreground border border-white/10 text-[10px]">
-              可选
+              {t("wizard.step4.optionalBadge")}
             </Badge>
           )}
           {shot.humanRequired && (
             <Badge className="bg-sky-500/15 text-sky-200 border border-sky-400/30 text-[10px]">
-              <Users className="h-2.5 w-2.5 mr-1" /> 真人
+              <Users className="h-2.5 w-2.5 mr-1" /> {t("wizard.step4.humanBadge")}
             </Badge>
           )}
         </div>
@@ -229,12 +241,12 @@ function ShotCard({
       </div>
       {guide.requiredProps && guide.requiredProps.length > 0 && (
         <p className="text-muted-foreground">
-          道具：{guide.requiredProps.join(" · ")}
+          {t("wizard.step4.propsLabel")}：{guide.requiredProps.join(" · ")}
         </p>
       )}
       {guide.captionText && (
         <p className="text-emerald-200/90">
-          字幕：{guide.captionText}
+          {t("wizard.step4.captionLabel")}：{guide.captionText}
         </p>
       )}
       {guide.commonMistakes && guide.commonMistakes.length > 0 && (

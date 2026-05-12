@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, ExternalLink, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n/useTranslation";
 import type { CreativeEvidenceCard } from "@prisma/client";
 
 type CardLike = CreativeEvidenceCard & {
@@ -32,6 +33,7 @@ export function CardPickerClient({
   published: CreativeEvidenceCard[];
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [selectedSlug, setSelectedSlug] = useState<string | null>(
     currentSelectedSlug,
   );
@@ -40,7 +42,7 @@ export function CardPickerClient({
 
   const submit = () => {
     if (!selectedSlug) {
-      setError("请先选择一张证据卡");
+      setError(t("wizard.step2.selectionRequired"));
       return;
     }
     setError(null);
@@ -52,7 +54,10 @@ export function CardPickerClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message ?? `请求失败 (${res.status})`);
+        setError(
+          data.message ??
+            t("wizard.step1.errorRequestFailed", { status: res.status }),
+        );
         return;
       }
       router.push(`/wizard/${orderId}/step-3-script`);
@@ -63,8 +68,8 @@ export function CardPickerClient({
     <div className="space-y-8">
       {recommended.length > 0 && (
         <Section
-          title="为你的目标推荐"
-          subtitle="按行业 + 目标 + 平台综合打分"
+          title={t("wizard.step2.recommendedTitle")}
+          subtitle={t("wizard.step2.recommendedSubtitle")}
         >
           <Grid>
             {recommended.map((c) => (
@@ -82,8 +87,8 @@ export function CardPickerClient({
       )}
 
       <Section
-        title="完整库（PUBLISHED）"
-        subtitle={`${published.length} 张`}
+        title={t("wizard.step2.libraryTitle")}
+        subtitle={t("wizard.step2.libraryCount", { count: published.length })}
       >
         <Grid>
           {published.map((c) => (
@@ -96,11 +101,7 @@ export function CardPickerClient({
           ))}
           {published.length === 0 && (
             <p className="col-span-full text-xs text-muted-foreground">
-              当前还没有 PUBLISHED 状态的证据卡。请先运行{" "}
-              <code className="text-foreground">
-                npm run db:seed:creative-cards
-              </code>
-              。
+              {t("wizard.step2.libraryEmpty")}
             </p>
           )}
         </Grid>
@@ -112,7 +113,7 @@ export function CardPickerClient({
 
       <div className="flex justify-end gap-2">
         <Link href={`/wizard/${orderId}`}>
-          <Button variant="outline">返回</Button>
+          <Button variant="outline">{t("wizard.step2.back")}</Button>
         </Link>
         <Button onClick={submit} disabled={pending || !selectedSlug}>
           {pending ? (
@@ -120,7 +121,7 @@ export function CardPickerClient({
           ) : (
             <ArrowRight className="h-4 w-4 mr-2" />
           )}
-          确认并进入 Step 3
+          {t("wizard.step2.confirmAndContinue")}
         </Button>
       </div>
     </div>
@@ -170,6 +171,7 @@ function CardOption({
   recommendedScore?: number;
   recommendedReasons?: string[];
 }) {
+  const { t } = useTranslation();
   return (
     <Card
       onClick={onSelect}
@@ -192,13 +194,13 @@ function CardOption({
         </div>
         <div className="flex flex-wrap gap-1">
           <Badge variant="secondary" className="text-[10px] bg-white/5 border border-white/10">
-            {card.industry}
+            {t(`industry.${card.industry}`)}
           </Badge>
           <Badge variant="secondary" className="text-[10px] bg-white/5 border border-white/10">
-            {card.platform}
+            {t(`platform.${card.platform}`)}
           </Badge>
           <Badge variant="secondary" className="text-[10px] bg-white/5 border border-white/10">
-            {card.objective}
+            {t(`objective.${card.objective}`)}
           </Badge>
         </div>
       </CardHeader>
@@ -229,7 +231,7 @@ function CardOption({
             onClick={(e) => e.stopPropagation()}
           >
             <ExternalLink className="h-3 w-3" />
-            原平台参考
+            {t("wizard.step2.referenceLink")}
           </a>
         )}
       </CardContent>

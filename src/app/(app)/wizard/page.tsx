@@ -12,9 +12,11 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { requireWizardPage } from "@/lib/api-auth";
 import { readClientBrief } from "@/lib/services/client-project-service";
+import { getServerTranslator } from "@/i18n/server";
 
 export default async function WizardIndexPage() {
   await requireWizardPage();
+  const { t } = await getServerTranslator();
   const orders = await db.deliveryOrder.findMany({
     // 避免使用字面量 null（Prisma 6 已废弃且语义为 JSON null 字面量）
     where: { NOT: { clientBrief: { equals: Prisma.DbNull } } },
@@ -27,26 +29,30 @@ export default async function WizardIndexPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Client Wizard</h1>
+          <h1 className="text-xl font-semibold tracking-tight">
+            {t("wizard.index.pageTitle")}
+          </h1>
           <p className="text-xs text-muted-foreground mt-1">
-            北美本地商家半自动短视频工作流：目标 → 创意证据卡 → AI 脚本 → 分镜 → 上传素材 → Draft 渲染。
+            {t("wizard.index.pageSubtitle")}
           </p>
         </div>
         <Link href="/wizard/new">
           <Button>
-            <Plus className="h-4 w-4 mr-2" /> 新建 Wizard 项目
+            <Plus className="h-4 w-4 mr-2" /> {t("wizard.index.newButton")}
           </Button>
         </Link>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">已有 Wizard 项目（{orders.length}）</CardTitle>
+          <CardTitle className="text-sm">
+            {t("wizard.index.existingTitle", { count: orders.length })}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {orders.length === 0 ? (
             <p className="text-xs text-muted-foreground">
-              还没有任何 Wizard 项目。点击右上角「新建 Wizard 项目」开始第一个。
+              {t("wizard.index.empty")}
             </p>
           ) : (
             orders.map((o) => {
@@ -62,8 +68,19 @@ export default async function WizardIndexPage() {
                       <div className="text-sm font-medium">{o.title}</div>
                       <div className="text-[10px] text-muted-foreground mt-0.5">
                         {brief
-                          ? `${brief.industry} · ${brief.objective} · ${brief.videoLengthSec}s · ${brief.targetPlatforms.join(", ")}`
-                          : "Brief 数据不完整"}
+                          ? [
+                              safeT(t, `industry.${brief.industry}`, brief.industry),
+                              safeT(
+                                t,
+                                `objective.${brief.objective}`,
+                                brief.objective,
+                              ),
+                              `${brief.videoLengthSec}s`,
+                              brief.targetPlatforms
+                                .map((p) => safeT(t, `platform.${p}`, p))
+                                .join(", "),
+                            ].join(" · ")
+                          : t("wizard.index.briefIncomplete")}
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -88,4 +105,16 @@ export default async function WizardIndexPage() {
       </Card>
     </div>
   );
+}
+
+/**
+ * Translator 缺 key 时返回 key 自身；这里在那种情况下回退到 fallback。
+ */
+function safeT(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  key: string,
+  fallback: string,
+): string {
+  const value = t(key);
+  return value === key ? fallback : value;
 }

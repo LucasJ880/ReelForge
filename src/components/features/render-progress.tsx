@@ -7,15 +7,24 @@ import { Loader2, RefreshCw, RotateCcw, ChevronDown, ChevronRight } from "lucide
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/features/status-badge";
 import {
-  VIDEO_JOB_USER_LABELS,
-  VIDEO_JOB_USER_HELPER,
-  VIDEO_PROGRESS_STEPS,
-  ACTION_BUTTON_LABELS,
   videoJobStatusTone,
   briefStatusToProgressIndex,
 } from "@/lib/labels-user";
+import { useTranslation } from "@/i18n/useTranslation";
 import type { BriefRenderUserStatus } from "@/lib/services/video-service";
-import type { VideoBriefStatus, VideoJobStatus, VideoProvider } from "@prisma/client";
+import type {
+  FinalVideoStatus,
+  VideoBriefStatus,
+  VideoJobStatus,
+  VideoProvider,
+} from "@prisma/client";
+
+const PROGRESS_STEP_KEYS = [
+  "video.progress.scriptReady",
+  "video.progress.submitted",
+  "video.progress.generating",
+  "video.progress.ready",
+] as const;
 
 /**
  * 用户视角的视频生成进度面板。
@@ -32,6 +41,8 @@ import type { VideoBriefStatus, VideoJobStatus, VideoProvider } from "@prisma/cl
 export interface RenderJobView {
   id: string;
   sceneIndex?: number | null;
+  segmentIndex?: number | null;
+  segmentDurationSec?: number | null;
   status: VideoJobStatus;
   userStatusKey: BriefRenderUserStatus;
   outputVideoUrl: string | null;
@@ -49,6 +60,17 @@ export interface RenderJobView {
   };
 }
 
+export interface FinalVideoView {
+  id: string;
+  status: FinalVideoStatus;
+  targetDurationSec: number;
+  segmentCount: number;
+  segmentsCompleted: number;
+  stitchedVideoUrl: string | null;
+  thumbnailUrl: string | null;
+  ffmpegError: string | null;
+}
+
 export interface RenderSummaryView {
   briefId: string;
   briefStatus: VideoBriefStatus;
@@ -62,6 +84,7 @@ export interface RenderSummaryView {
   finalThumbnailUrl: string | null;
   hasStuckJob: boolean;
   lastCheckedAt: string | null;
+  finalVideo?: FinalVideoView | null;
   jobs: RenderJobView[];
 }
 
@@ -82,6 +105,7 @@ export function RenderProgress({
   onRegenerateAll,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [summary, setSummary] = useState<RenderSummaryView>(initial);
   const [isPending, startTransition] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
@@ -108,9 +132,9 @@ export function RenderProgress({
         method: "POST",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "刷新失败");
+      if (!res.ok) throw new Error(data.error || t("error.generic"));
       setSummary(data);
-      toast.success("已刷新视频生成状态");
+      toast.success(t("video.actions.refreshStatus"));
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error((err as Error).message);
@@ -129,9 +153,9 @@ export function RenderProgress({
         body: JSON.stringify(jobId ? { jobId } : { all: true }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "重试失败");
+      if (!res.ok) throw new Error(data.error || t("error.generic"));
       setSummary(data);
-      toast.success(jobId ? "已重新生成该任务" : "已重新生成全部失败任务");
+      toast.success(t("video.actions.retryFailed"));
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error((err as Error).message);
@@ -142,13 +166,13 @@ export function RenderProgress({
 
   async function regenerateAll() {
     if (!allowRegenerate || !onRegenerateAll) return;
-    if (!confirm("确认重新生成全部视频？已经在生成中的请求不会被重复扣费，但若最后失败需要重新发起将产生新的视频生成费用。")) {
+    if (!confirm(t("video.actions.regenerateConfirm"))) {
       return;
     }
     setBusy("regen");
     try {
       await onRegenerateAll();
-      toast.success("已发起重新生成");
+      toast.success(t("video.actions.regenerate"));
       startTransition(() => router.refresh());
     } catch (err) {
       toast.error((err as Error).message);
@@ -159,17 +183,23 @@ export function RenderProgress({
 
   const progressIndex = briefStatusToProgressIndex(summary.briefStatus);
   const hasFailed = summary.failed > 0;
+  const fv = summary.finalVideo ?? null;
+  const isStitching = fv?.status === "STITCHING" || (
+    fv?.status === "PENDING" &&
+    fv.segmentsCompleted === fv.segmentCount &&
+    fv.segmentCount > 1
+  );
 
   return (
     <div className="space-y-3">
       {/* 4 步进度 */}
       <ol className="grid gap-2 md:grid-cols-4">
-        {VIDEO_PROGRESS_STEPS.map((step, idx) => {
+        {PROGRESS_STEP_KEYS.map((stepKey, idx) => {
           const reached = idx < progressIndex;
           const active = idx === progressIndex;
           return (
             <li
-              key={step.key}
+              key={stepKey}
               className={[
                 "rounded-md border px-3 py-2 text-xs",
                 reached
@@ -192,32 +222,52 @@ export function RenderProgress({
                 >
                   {reached ? "✓" : idx + 1}
                 </span>
-                <span className="font-medium">{step.label}</span>
+                <span className="font-medium">{t(stepKey)}</span>
               </div>
             </li>
           );
         })}
       </ol>
 
+      {/* 多段拼接信息 */}
+      {fv && fv.segmentCount > 1 && (
+        <div className="rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-200">
+          {isStitching
+            ? t("video.progress.stitching")
+            : fv.status === "READY"
+              ? t("video.progress.ready")
+              : t("video.progress.segments", {
+                  done: fv.segmentsCompleted,
+                  total: fv.segmentCount,
+                })}
+          {fv.ffmpegError && (
+            <span className="ml-2 text-destructive">· {fv.ffmpegError}</span>
+          )}
+        </div>
+      )}
+
       {/* 父级聚合 */}
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        <StatusBadge tone="success">{summary.succeeded}/{summary.totalJobs} 视频已生成</StatusBadge>
+        <StatusBadge tone="success">
+          {summary.succeeded}/{summary.totalJobs} {t("video.states.ready")}
+        </StatusBadge>
         {summary.running + summary.queued > 0 && (
-          <StatusBadge tone="info">{summary.running + summary.queued} 正在生成</StatusBadge>
+          <StatusBadge tone="info">
+            {summary.running + summary.queued} {t("video.states.generating")}
+          </StatusBadge>
         )}
         {summary.failed > 0 && (
-          <StatusBadge tone="danger">{summary.failed} 失败</StatusBadge>
+          <StatusBadge tone="danger">
+            {summary.failed} {t("video.states.failed")}
+          </StatusBadge>
         )}
         {summary.cancelled > 0 && (
-          <StatusBadge tone="neutral">{summary.cancelled} 已取消</StatusBadge>
+          <StatusBadge tone="neutral">
+            {summary.cancelled} {t("video.states.cancelled")}
+          </StatusBadge>
         )}
         {summary.hasStuckJob && (
-          <StatusBadge tone="warning">部分任务时间较长</StatusBadge>
-        )}
-        {summary.lastCheckedAt && (
-          <span className="text-muted-foreground">
-            上次检查：{new Date(summary.lastCheckedAt).toLocaleString("zh-CN")}
-          </span>
+          <StatusBadge tone="warning">{t("video.states.stuck")}</StatusBadge>
         )}
       </div>
 
@@ -234,7 +284,7 @@ export function RenderProgress({
           ) : (
             <RefreshCw className="h-3.5 w-3.5" />
           )}
-          {ACTION_BUTTON_LABELS.refreshStatus}
+          {t("video.actions.refreshStatus")}
         </Button>
         {hasFailed && (
           <Button
@@ -248,7 +298,7 @@ export function RenderProgress({
             ) : (
               <RotateCcw className="h-3.5 w-3.5" />
             )}
-            {ACTION_BUTTON_LABELS.retryAll}
+            {t("video.actions.retryFailed")}
           </Button>
         )}
         {allowRegenerate && (
@@ -259,7 +309,7 @@ export function RenderProgress({
             onClick={regenerateAll}
           >
             {busy === "regen" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {ACTION_BUTTON_LABELS.regenerateVideo}
+            {t("video.actions.regenerate")}
           </Button>
         )}
       </div>
@@ -279,7 +329,7 @@ export function RenderProgress({
         </div>
       )}
 
-      {/* Debug 抽屉 */}
+      {/* Debug 抽屉（默认折叠 — 只在用户主动展开时露出 provider / jobId / 原始状态） */}
       {summary.jobs.length > 0 && (
         <button
           type="button"
@@ -291,7 +341,7 @@ export function RenderProgress({
           ) : (
             <ChevronRight className="h-3 w-3" />
           )}
-          {showDebug ? "隐藏开发者信息" : "显示开发者信息（Provider / 任务 ID / 原始状态）"}
+          {showDebug ? t("common.hideAdvanced") : t("common.showAdvanced")}
         </button>
       )}
     </div>
@@ -309,17 +359,25 @@ function JobRow({
   onRetry: () => void;
   showDebug: boolean;
 }) {
+  const { t } = useTranslation();
   const tone = videoJobStatusTone(job.userStatusKey);
-  const helper = VIDEO_JOB_USER_HELPER[job.userStatusKey];
+  const stateKey = `video.states.${job.userStatusKey}`;
+  const helperKey = `video.helpers.${job.userStatusKey}`;
   const isFailed = job.userStatusKey === "failed";
 
   return (
     <div className="rounded border border-border/60 bg-secondary/30 p-3">
       <div className="flex flex-wrap items-center gap-2">
-        <StatusBadge tone={tone}>{VIDEO_JOB_USER_LABELS[job.userStatusKey]}</StatusBadge>
-        {typeof job.sceneIndex === "number" && (
+        <StatusBadge tone={tone}>{t(stateKey)}</StatusBadge>
+        {typeof job.segmentIndex === "number" && (
           <span className="text-[11px] text-muted-foreground">
-            分镜 #{job.sceneIndex}
+            #{job.segmentIndex + 1}
+            {job.segmentDurationSec ? ` · ${job.segmentDurationSec}s` : ""}
+          </span>
+        )}
+        {typeof job.sceneIndex === "number" && job.segmentIndex == null && (
+          <span className="text-[11px] text-muted-foreground">
+            #{job.sceneIndex}
           </span>
         )}
         {job.outputVideoUrl && (
@@ -329,7 +387,7 @@ function JobRow({
             rel="noreferrer"
             className="text-xs text-primary hover:underline"
           >
-            预览视频
+            {t("video.actions.preview")}
           </a>
         )}
         {isFailed && (
@@ -341,27 +399,21 @@ function JobRow({
             className="ml-auto"
           >
             {busy === "retry-one" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-            {ACTION_BUTTON_LABELS.retry}
+            {t("common.retry")}
           </Button>
         )}
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{helper}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t(helperKey)}</p>
       {job.userSafeError && (
         <p className="mt-1 text-xs text-destructive">{job.userSafeError}</p>
-      )}
-      {job.submittedAt && (
-        <p className="mt-1 text-[11px] text-muted-foreground">
-          提交时间：{new Date(job.submittedAt).toLocaleString("zh-CN")}
-          {job.finishedAt && ` · 完成时间：${new Date(job.finishedAt).toLocaleString("zh-CN")}`}
-        </p>
       )}
 
       {showDebug && (
         <pre className="mt-2 max-h-40 overflow-auto rounded bg-secondary/60 p-2 text-[10px] text-muted-foreground">
-{`provider:           ${job.debug.provider}
-external_job_id:    ${job.debug.externalJobId ?? "—"}
-last_provider_state: ${job.debug.lastProviderStatus ?? "—"}
-admin_error:        ${job.debug.adminError ?? "—"}`}
+{`${t("debug.provider")}: ${job.debug.provider}
+${t("debug.externalJobId")}: ${job.debug.externalJobId ?? "—"}
+${t("debug.rawStatus")}: ${job.debug.lastProviderStatus ?? "—"}
+admin_error: ${job.debug.adminError ?? "—"}`}
         </pre>
       )}
     </div>

@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { WizardMockBanner } from "@/components/wizard/wizard-mock-banner";
+import { useTranslation } from "@/i18n/useTranslation";
 
 type CurrentScript = Awaited<
   ReturnType<typeof import("@/lib/services/wizard-script-service").getCurrentWizardScript>
@@ -29,6 +30,7 @@ export function ScriptStepClient({
   cardSelected: boolean;
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [script, setScript] = useState(initialScript);
   const [hook, setHook] = useState(initialScript?.hook ?? "");
   const [cta, setCta] = useState(initialScript?.cta ?? "");
@@ -52,7 +54,10 @@ export function ScriptStepClient({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message ?? `请求失败 (${res.status})`);
+        setError(
+          data.message ??
+            t("wizard.step1.errorRequestFailed", { status: res.status }),
+        );
         return;
       }
       const data = (await res.json()) as {
@@ -79,8 +84,6 @@ export function ScriptStepClient({
         hook: data.scriptOutput.hook,
         cta: data.scriptOutput.cta,
         version: (script?.version ?? 0) + 1,
-        /// scriptOutput 由 server 写到 Script.metadata；UI 仅展示 hook/cta/fullText，
-        /// 不需要在 client 持有完整对象。下次 server-side reload 会用 metadata 重建。
         scriptOutput: null,
       });
       setHook(data.scriptOutput.hook);
@@ -89,11 +92,13 @@ export function ScriptStepClient({
       if (data.fromMock) {
         setBannerLevel("info");
         setBannerMsg(
-          `已生成 mock 脚本草稿（${data.reason ?? "未启用 OpenAI"}）。可以继续编辑文案后进入 Step 4——后续接入真 LLM 后会自动升级为高质量脚本。`,
+          t("wizard.step3.bannerMockGenerated", {
+            reason: data.reason ?? "OpenAI not configured",
+          }),
         );
       } else {
         setBannerLevel("info");
-        setBannerMsg("已生成新脚本（来自 OpenAI）。可以微调 hook / cta 后再进入 Step 4。");
+        setBannerMsg(t("wizard.step3.bannerLiveGenerated"));
       }
     });
   };
@@ -108,11 +113,14 @@ export function ScriptStepClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.message ?? `请求失败 (${res.status})`);
+        setError(
+          data.message ??
+            t("wizard.step1.errorRequestFailed", { status: res.status }),
+        );
         return;
       }
       setBannerLevel("info");
-      setBannerMsg("已保存编辑。");
+      setBannerMsg(t("wizard.step3.bannerSaved"));
     });
   };
 
@@ -121,7 +129,7 @@ export function ScriptStepClient({
       {!cardSelected && (
         <WizardMockBanner
           level="warn"
-          message="还未选择证据卡：脚本会基于商家 brief 自由生成。建议先回到 Step 2 选一张卡，效果更好。"
+          message={t("wizard.step3.noDirectionWarning")}
         />
       )}
       {bannerMsg && (
@@ -131,7 +139,9 @@ export function ScriptStepClient({
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
           <CardTitle className="text-sm">
-            当前脚本{script ? ` · v${script.version}` : "（尚未生成）"}
+            {script
+              ? t("wizard.step3.cardTitleVersion", { version: script.version })
+              : t("wizard.step3.cardTitleEmpty")}
           </CardTitle>
           <Button onClick={generate} disabled={generating} size="sm">
             {generating ? (
@@ -139,25 +149,27 @@ export function ScriptStepClient({
             ) : (
               <Sparkles className="h-3.5 w-3.5 mr-2" />
             )}
-            {script ? "重新生成" : "生成脚本"}
+            {script
+              ? t("wizard.step3.regenerateButton")
+              : t("wizard.step3.generateButton")}
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           {!script ? (
             <p className="text-xs text-muted-foreground">
-              点击「生成脚本」开始。即使没有 OPENAI_API_KEY 也能继续。
+              {t("wizard.step3.intro")}
             </p>
           ) : (
             <>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Hook（前 3 秒）">
+                <Field label={t("wizard.step3.hookField")}>
                   <Input value={hook} onChange={(e) => setHook(e.target.value)} />
                 </Field>
-                <Field label="CTA（结尾）">
+                <Field label={t("wizard.step3.ctaField")}>
                   <Input value={cta} onChange={(e) => setCta(e.target.value)} />
                 </Field>
               </div>
-              <Field label="脚本全文（Markdown 可编辑）">
+              <Field label={t("wizard.step3.fullTextField")}>
                 <Textarea
                   value={fullText}
                   rows={18}
@@ -172,7 +184,7 @@ export function ScriptStepClient({
                   ) : (
                     <Save className="h-3.5 w-3.5 mr-2" />
                   )}
-                  保存编辑
+                  {t("wizard.step3.saveButton")}
                 </Button>
               </div>
             </>
@@ -184,13 +196,14 @@ export function ScriptStepClient({
 
       <div className="flex justify-end gap-2">
         <Link href={`/wizard/${orderId}/step-2-card`}>
-          <Button variant="outline">返回 Step 2</Button>
+          <Button variant="outline">{t("wizard.step3.back")}</Button>
         </Link>
         <Button
           onClick={() => router.push(`/wizard/${orderId}/step-4-storyboard`)}
           disabled={!script}
         >
-          前往 Step 4 · 生成分镜 <ArrowRight className="h-4 w-4 ml-2" />
+          {t("wizard.step3.continueButton")}
+          <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       </div>
     </div>

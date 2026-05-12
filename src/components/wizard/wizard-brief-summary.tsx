@@ -2,6 +2,7 @@
 
 import { Badge } from "@/components/ui/badge";
 import type { ClientBrief } from "@/lib/schemas/client-brief";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export function WizardBriefSummary({
   brief,
@@ -12,10 +13,11 @@ export function WizardBriefSummary({
   selectedCardTitle?: string | null;
   status?: string;
 }) {
+  const { t } = useTranslation();
   if (!brief) {
     return (
       <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
-        未检测到合法的 Client Brief —— 请回到 Step 1 重新填写。
+        {t("wizard.summary.briefMissing")}
       </div>
     );
   }
@@ -27,8 +29,10 @@ export function WizardBriefSummary({
             {brief.businessName}
           </div>
           <div className="text-xs text-muted-foreground">
-            {labelFor(brief.industry)} · {labelFor(brief.objective)} ·{" "}
-            {brief.videoLengthSec}s · {labelFor(brief.brandTone)}
+            {labelFor(t, "industry", brief.industry)} ·{" "}
+            {labelFor(t, "objective", brief.objective)} ·{" "}
+            {brief.videoLengthSec}s ·{" "}
+            {labelFor(t, "brandTone", brief.brandTone)}
           </div>
         </div>
         {status && (
@@ -44,12 +48,14 @@ export function WizardBriefSummary({
             variant="secondary"
             className="text-[10px] bg-white/5 border-white/10"
           >
-            {labelFor(p)}
+            {labelFor(t, "platform", p)}
           </Badge>
         ))}
         {selectedCardTitle && (
           <Badge className="text-[10px] bg-emerald-500/15 border-emerald-400/30 text-emerald-200 border">
-            参考卡：{selectedCardTitle}
+            {t("wizard.summary.referenceDirection", {
+              title: selectedCardTitle,
+            })}
           </Badge>
         )}
       </div>
@@ -62,31 +68,18 @@ export function WizardBriefSummary({
   );
 }
 
-function labelFor(key: string) {
-  const map: Record<string, string> = {
-    real_estate: "Real Estate",
-    pet_business: "Pet Business",
-    local_service: "Local Service",
-    restaurant: "Restaurant",
-    general: "General",
-    get_leads: "Get Leads",
-    promote_listing: "Promote Listing",
-    increase_bookings: "Increase Bookings",
-    announce_offer: "Announce Offer",
-    brand_awareness: "Brand Awareness",
-    professional: "Professional",
-    warm: "Warm",
-    luxury: "Luxury",
-    playful: "Playful",
-    educational: "Educational",
-    direct_response: "Direct Response",
-    tiktok: "TikTok",
-    instagram_reels: "IG Reels",
-    instagram_feed: "IG Feed",
-    youtube_shorts: "YT Shorts",
-    youtube: "YouTube",
-    facebook: "Facebook",
-    website: "Website",
-  };
-  return map[key] ?? key;
+/**
+ * 安全 i18n 取值：industry / objective / platform / brandTone 都有对应 namespace；
+ * 找不到 key 时回退原始 enum 字符串，避免 UI 显示空白。
+ */
+function labelFor(
+  t: (key: string, params?: Record<string, string | number>) => string,
+  ns: "industry" | "objective" | "platform" | "brandTone",
+  key: string,
+): string {
+  const fullKey = `${ns}.${key}`;
+  const translated = t(fullKey);
+  /// translator 在 key 缺失时返回 fullKey；用这个判定是否回退
+  if (translated === fullKey) return key;
+  return translated;
 }

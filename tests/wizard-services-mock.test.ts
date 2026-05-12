@@ -165,3 +165,78 @@ test("Phase 3A: reconstructScriptOutputForPrompt 缺失 metadata 时回退 markd
   assert.equal(result.cta, "Legacy CTA");
   assert.equal(result.captions.length, 0, "回退路径 captions 仍应为空（行为兼容）");
 });
+
+/// ---------- Phase 4: Multi-segment director plan mock ----------
+
+test("Phase 4: 30s mock director plan → 2 段 × 15s 与 segment-planner 对齐", async () => {
+  const { __test__: directorTest } = await import("../src/lib/services/director-service");
+  const { planSegments } = await import("../src/lib/duration/segment-planner");
+  const { parseDirectorPlan } = await import("../src/lib/schemas/director-plan");
+  const segs = planSegments(30);
+  const plan = parseDirectorPlan(
+    directorTest.mockDirectorPlan({
+      targetDurationSec: 30,
+      segmentSlots: segs,
+      clientBrief: {
+        businessName: "Pawsitive Pet Spa",
+        productName: "Pawsitive grooming",
+      },
+      productInput: {},
+      targetCountry: "US",
+      targetLanguage: "en-US",
+      targetPlatform: "tiktok",
+      angle: {
+        title: "Calm grooming routine",
+        hook: "Watch your pet relax instantly",
+        narrative: null,
+        type: "OPTIMIZATION",
+        explorationTheme: null,
+        localeNotes: null,
+      },
+    }),
+  );
+  assert.equal(plan.targetDurationSec, 30);
+  assert.equal(plan.segmentPlan.length, 2);
+  assert.deepEqual(
+    plan.segmentPlan.map((s) => s.durationSec),
+    [15, 15],
+  );
+});
+
+test("Phase 4: 60s mock director plan → 4 段 × 15s 与 segment-planner 对齐", async () => {
+  const { __test__: directorTest } = await import("../src/lib/services/director-service");
+  const { planSegments } = await import("../src/lib/duration/segment-planner");
+  const { parseDirectorPlan } = await import("../src/lib/schemas/director-plan");
+  const segs = planSegments(60);
+  const plan = parseDirectorPlan(
+    directorTest.mockDirectorPlan({
+      targetDurationSec: 60,
+      segmentSlots: segs,
+      clientBrief: {
+        businessName: "Pawsitive Pet Spa",
+        productName: "Pawsitive grooming",
+        brandAssets: { logoUrl: "https://example.com/logo.png" },
+      },
+      productInput: {},
+      targetCountry: "US",
+      targetLanguage: "en-US",
+      targetPlatform: "tiktok",
+      angle: {
+        title: "Full story arc",
+        hook: "Most pet spas miss this",
+        narrative: null,
+        type: "OPTIMIZATION",
+        explorationTheme: null,
+        localeNotes: null,
+      },
+    }),
+  );
+  assert.equal(plan.targetDurationSec, 60);
+  assert.equal(plan.segmentPlan.length, 4);
+  for (let i = 0; i < 4; i++) {
+    assert.equal(plan.segmentPlan[i].fromSec, i * 15);
+    assert.equal(plan.segmentPlan[i].toSec, i * 15 + 15);
+  }
+  /// stitchOrder 必须按段顺序排列
+  assert.deepEqual(plan.editingPlan.stitchOrder, [0, 1, 2, 3]);
+});

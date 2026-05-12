@@ -1,4 +1,5 @@
 import {
+  FinalVideoStatus,
   Prisma,
   VideoBriefStatus,
   VideoJobStatus,
@@ -11,6 +12,12 @@ import {
   type SeedanceJobResult,
 } from "@/lib/providers/seedance";
 import { processReferenceImages } from "@/lib/providers/remove-bg";
+import {
+  parseDirectorPlan,
+  type DirectorPlan,
+  type SegmentPlan,
+} from "@/lib/schemas/director-plan";
+import { planSegments } from "@/lib/duration/segment-planner";
 
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
@@ -22,6 +29,194 @@ const DEFAULT_TIMEOUT_MIN = Number(
 const POLL_ERROR_THRESHOLD = Number(
   process.env.SEEDANCE_POLL_ERROR_THRESHOLD ?? "3",
 );
+
+/**
+ * 总入口：根据 brief 配置自动选择单段 / 多段流水线。
+ *
+ * - 有 directorPlan + targetDurationSec > 15 → 走 dispatchMultiSegmentGeneration（PART 4）
+ * - 否则（旧流程，含 Sunny Shutter）→ 走 dispatchVideoGeneration（基于 ScenePlan / VideoPrompt）
+ *
+ * 调用方应优先用 dispatchVideoForBrief，让 video-service 自己决定路径，
+ * 避免在路由里重复判断逻辑。
+ */
+export async function dispatchVideoForBrief(briefId: string) {
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: {
+      id: true,
+      targetDurationSec: true,
+      directorPlan: true,
+    },
+  });
+  if (!brief) throw new Error("Brief 不存在");
+
+  const segments = planSegments(brief.targetDurationSec);
+  const useMultiSegment =
+    segments.length > 1 && brief.directorPlan != null;
+
+  if (useMultiSegment) {
+    return dispatchMultiSegmentGeneration(briefId);
+  }
+  return dispatchVideoGeneration(briefId);
+}
+
+/**
+ * PART 4：多段视频生成 —— 基于 DirectorPlan.segmentPlan。
+ *
+ * 流程：
+ * 1. 创建 FinalVideo 行（status=PENDING）
+ * 2. 为每段创建 1 条 VideoJob（segmentIndex / segmentDurationSec / finalVideoId）
+ * 3. 把每段 segmentPlan.seedancePrompt 直接发给 Seedance（不依赖 ScenePlan / VideoPrompt）
+ * 4. 后续 reconcileVideoJob 在最后一段成功时触发 stitch（见 stitch-service）
+ *
+ * 幂等保护：
+ * - 已经有 RUNNING 的多段任务时（finalVideoId 关联），不重新提交，直接 reconcile。
+ */
+export async function dispatchMultiSegmentGeneration(briefId: string) {
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+  });
+  if (!brief) throw new Error("Brief 不存在");
+  if (!brief.directorPlan) {
+    throw new Error("Brief 尚未生成 DirectorPlan，无法分段生成");
+  }
+
+  let plan: DirectorPlan;
+  try {
+    plan = parseDirectorPlan(brief.directorPlan);
+  } catch (err) {
+    throw new Error(`DirectorPlan 解析失败: ${(err as Error).message}`);
+  }
+
+  /// 幂等：已有同 brief 的多段 inflight job → reconcile 后返回
+  const inflightExisting = await db.videoJob.findMany({
+    where: {
+      videoBriefId: briefId,
+      finalVideoId: { not: null },
+      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
+      externalJobId: { not: null },
+    },
+  });
+  if (inflightExisting.length > 0) {
+    await reconcileBriefRenderStatus(briefId);
+    return inflightExisting;
+  }
+
+  /// 创建（或重置）FinalVideo
+  let finalVideoId = brief.finalVideoId;
+  if (finalVideoId) {
+    /// 旧 FinalVideo 重置为 PENDING（重新生成场景）
+    await db.finalVideo.update({
+      where: { id: finalVideoId },
+      data: {
+        status: FinalVideoStatus.PENDING,
+        stitchedVideoUrl: null,
+        thumbnailUrl: null,
+        ffmpegError: null,
+        startedAt: null,
+        finishedAt: null,
+        segmentCount: plan.segmentPlan.length,
+        targetDurationSec: brief.targetDurationSec,
+      },
+    });
+  } else {
+    const finalVideo = await db.finalVideo.create({
+      data: {
+        targetDurationSec: brief.targetDurationSec,
+        segmentCount: plan.segmentPlan.length,
+        status: FinalVideoStatus.PENDING,
+      },
+    });
+    finalVideoId = finalVideo.id;
+    await db.videoBrief.update({
+      where: { id: briefId },
+      data: { finalVideoId },
+    });
+  }
+
+  await db.videoBrief.update({
+    where: { id: briefId },
+    data: {
+      status: VideoBriefStatus.RENDER_QUEUED,
+      errorMessage: null,
+    },
+  });
+
+  /// 把上次该 brief 残留的孤立 QUEUED/RUNNING（externalJobId 为空）→ CANCELLED
+  await db.videoJob.updateMany({
+    where: {
+      videoBriefId: briefId,
+      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
+      externalJobId: null,
+    },
+    data: { status: VideoJobStatus.CANCELLED },
+  });
+
+  const created: Awaited<ReturnType<typeof submitSegmentJob>>[] = [];
+  for (const segment of plan.segmentPlan) {
+    const result = await submitSegmentJob({
+      briefId,
+      finalVideoId,
+      aspectRatio: brief.aspectRatio,
+      segment,
+    });
+    created.push(result);
+  }
+
+  await syncBriefStatus(briefId);
+  return created;
+}
+
+async function submitSegmentJob(params: {
+  briefId: string;
+  finalVideoId: string;
+  aspectRatio: string;
+  segment: SegmentPlan;
+}) {
+  const { briefId, finalVideoId, aspectRatio, segment } = params;
+
+  const job = await db.videoJob.create({
+    data: {
+      videoBriefId: briefId,
+      provider: VideoProvider.SEEDANCE_T2V,
+      status: VideoJobStatus.QUEUED,
+      segmentIndex: segment.segmentIndex,
+      segmentDurationSec: segment.durationSec,
+      finalVideoId,
+    },
+  });
+
+  try {
+    const submittedAt = new Date();
+    const { jobId } = await submitSeedanceJob({
+      prompt: segment.seedancePrompt,
+      duration: segment.durationSec,
+      ratio: aspectRatio,
+    });
+    return db.videoJob.update({
+      where: { id: job.id },
+      data: {
+        externalJobId: jobId,
+        status: VideoJobStatus.RUNNING,
+        submittedAt,
+        startedAt: submittedAt,
+        timeoutAt: new Date(submittedAt.getTime() + DEFAULT_TIMEOUT_MIN * 60_000),
+        lastProviderStatus: "queued",
+      },
+    });
+  } catch (err) {
+    const message = (err as Error).message;
+    return db.videoJob.update({
+      where: { id: job.id },
+      data: {
+        status: VideoJobStatus.FAILED,
+        errorMessage: message,
+        userSafeError: friendlySubmitError(message),
+        finishedAt: new Date(),
+      },
+    });
+  }
+}
 
 /**
  * 触发一个 VideoBrief 的视频生成：把每个 scene 的 prompt 提交成一个 VideoJob。
@@ -185,7 +380,7 @@ export async function reconcileVideoJob(jobId: string) {
   }
 
   if (result.status === "completed") {
-    return db.videoJob.update({
+    const updated = await db.videoJob.update({
       where: { id: jobId },
       data: {
         status: VideoJobStatus.SUCCEEDED,
@@ -197,6 +392,11 @@ export async function reconcileVideoJob(jobId: string) {
         pollErrors: 0,
       },
     });
+    /// 多段流的 fast-path：本段成功且是该 brief 最后一段时立即触发 stitch（无需等下一轮 cron）
+    if (updated.finalVideoId) {
+      await maybeTriggerStitch(updated.finalVideoId);
+    }
+    return updated;
   }
 
   if (result.status === "failed") {
@@ -299,6 +499,75 @@ export async function retryFailedVideoJob(jobId: string) {
   }
 
   /// Provider 端确认失败 / 不存在 → 重新提交
+  /// 多段流：优先用 directorPlan.segmentPlan 的对应段（防双重计费的关键 — 只重试该段）
+  if (job.segmentIndex != null && job.finalVideoId) {
+    const briefForRetry = await db.videoBrief.findUnique({
+      where: { id: job.videoBriefId },
+      select: { aspectRatio: true, directorPlan: true },
+    });
+    if (!briefForRetry?.directorPlan) {
+      throw new Error("Brief 缺少 DirectorPlan，无法重试该段");
+    }
+    let plan: DirectorPlan;
+    try {
+      plan = parseDirectorPlan(briefForRetry.directorPlan);
+    } catch (err) {
+      throw new Error(`DirectorPlan 解析失败: ${(err as Error).message}`);
+    }
+    const segment = plan.segmentPlan.find(
+      (s) => s.segmentIndex === job.segmentIndex,
+    );
+    if (!segment) {
+      throw new Error(`找不到 segmentIndex=${job.segmentIndex} 的段计划`);
+    }
+
+    const submittedAt = new Date();
+    try {
+      const { jobId: newExternalId } = await submitSeedanceJob({
+        prompt: segment.seedancePrompt,
+        duration: segment.durationSec,
+        ratio: briefForRetry.aspectRatio,
+      });
+      const updated = await db.videoJob.update({
+        where: { id: job.id },
+        data: {
+          externalJobId: newExternalId,
+          status: VideoJobStatus.RUNNING,
+          retryCount: (job.retryCount ?? 0) + 1,
+          submittedAt,
+          startedAt: submittedAt,
+          finishedAt: null,
+          timeoutAt: new Date(
+            submittedAt.getTime() + DEFAULT_TIMEOUT_MIN * 60_000,
+          ),
+          errorMessage: null,
+          userSafeError: null,
+          lastProviderStatus: "queued",
+          pollErrors: 0,
+        },
+      });
+      /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试
+      await db.finalVideo.update({
+        where: { id: job.finalVideoId },
+        data: {
+          status: FinalVideoStatus.PENDING,
+          ffmpegError: null,
+        },
+      });
+      return updated;
+    } catch (err) {
+      const message = (err as Error).message;
+      return db.videoJob.update({
+        where: { id: job.id },
+        data: {
+          errorMessage: message,
+          userSafeError: friendlySubmitError(message),
+        },
+      });
+    }
+  }
+
+  /// 单段流（旧路径，含 Sunny Shutter）：从 ScenePlan/VideoPrompt 重新读取并提交
   const scene = await db.scenePlan.findFirst({
     where: { script: { videoBriefId: job.videoBriefId } },
     include: { videoPrompts: true },
@@ -344,6 +613,65 @@ export async function retryFailedVideoJob(jobId: string) {
 }
 
 /**
+ * Fast-path：当一段刚成功时，检查是否所有段都成功 → 立即触发 stitch。
+ * 不直接 import stitch-service 避免循环；用动态 import。
+ */
+async function maybeTriggerStitch(finalVideoId: string): Promise<void> {
+  const fv = await db.finalVideo.findUnique({
+    where: { id: finalVideoId },
+    include: {
+      segments: { select: { status: true } },
+    },
+  });
+  if (!fv) return;
+  if (fv.status !== FinalVideoStatus.PENDING) return;
+  const allDone =
+    fv.segments.length === fv.segmentCount &&
+    fv.segments.every((s) => s.status === VideoJobStatus.SUCCEEDED);
+  if (!allDone) return;
+  try {
+    const { stitchFinalVideo } = await import("./stitch-service");
+    await stitchFinalVideo(finalVideoId);
+  } catch (err) {
+    console.warn(
+      "[video-service] inline stitch trigger failed, will rely on cron",
+      (err as Error).message,
+    );
+  }
+}
+
+/**
+ * 段感知重试：只重提同 finalVideo 的 FAILED 段，不动其它段。
+ * UI 的「重试失败片段」按钮调这个。
+ */
+export async function retryFailedSegmentsForBrief(briefId: string) {
+  const failed = await db.videoJob.findMany({
+    where: {
+      videoBriefId: briefId,
+      status: VideoJobStatus.FAILED,
+    },
+    orderBy: { segmentIndex: "asc" },
+  });
+  if (failed.length === 0) return [];
+
+  const results = [];
+  for (const job of failed) {
+    try {
+      const updated = await retryFailedVideoJob(job.id);
+      results.push({ jobId: job.id, ok: true, status: updated?.status });
+    } catch (err) {
+      results.push({
+        jobId: job.id,
+        ok: false,
+        error: (err as Error).message,
+      });
+    }
+  }
+  await syncBriefStatus(briefId);
+  return results;
+}
+
+/**
  * 轮询并更新所有 RUNNING 状态的 VideoJob。由 Vercel Cron 调用。
  */
 export async function pollRunningJobs(limit = 30) {
@@ -375,11 +703,22 @@ export async function pollRunningJobs(limit = 30) {
 
 /**
  * 根据所有 scene 的 VideoJob 状态聚合成 Brief 级状态。
- * - 所有 succeeded  → RENDER_SUCCEEDED → QA_PENDING（自动入审）
- * - 任意 failed    → RENDER_FAILED
- * - 仍有 queued/running → RENDERING
+ *
+ * 双流兼容：
+ * - 多段流（brief.finalVideoId != null）：等所有段 SUCCEEDED → 触发 stitch；
+ *   FinalVideo 状态机驱动 brief 状态。
+ * - 旧单段流（brief.finalVideoId == null，含 Sunny Shutter）：
+ *   首段 SUCCEEDED 即把 outputVideoUrl 写到 brief.finalVideoUrl，与改造前完全一致。
+ *
+ * 失败 / busy 行为对两条流都一样。
  */
 export async function syncBriefStatus(briefId: string) {
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: { id: true, finalVideoId: true },
+  });
+  if (!brief) return;
+
   const jobs = await db.videoJob.findMany({
     where: { videoBriefId: briefId },
   });
@@ -405,25 +744,56 @@ export async function syncBriefStatus(briefId: string) {
       data: {
         status: VideoBriefStatus.RENDER_FAILED,
         errorMessage:
-          failed[0]?.userSafeError ?? failed[0]?.errorMessage ?? "部分 scene 渲染失败",
+          failed[0]?.userSafeError ?? failed[0]?.errorMessage ?? "部分片段生成失败",
       },
     });
     return;
   }
 
-  if (succeeded.length > 0) {
-    /// MVP 阶段不做拼接，直接把第一个 scene 的成片作为 finalVideoUrl
-    const first = succeeded[0];
-    await db.videoBrief.update({
-      where: { id: briefId },
-      data: {
-        status: VideoBriefStatus.QA_PENDING,
-        finalVideoUrl: first.outputVideoUrl,
-        finalThumbnailUrl: first.outputThumbUrl,
-      },
-    });
-    await ensureQAPendingStub(briefId);
+  if (succeeded.length === 0) return;
+
+  /// 多段流：通知 stitch
+  if (brief.finalVideoId) {
+    await onAllSegmentsSucceeded(brief.finalVideoId, briefId);
+    return;
   }
+
+  /// 单段流（旧路径，Sunny Shutter 兼容）
+  const first = succeeded[0];
+  await db.videoBrief.update({
+    where: { id: briefId },
+    data: {
+      status: VideoBriefStatus.QA_PENDING,
+      finalVideoUrl: first.outputVideoUrl,
+      finalThumbnailUrl: first.outputThumbUrl,
+    },
+  });
+  await ensureQAPendingStub(briefId);
+}
+
+/**
+ * 多段流成片：所有段 SUCCEEDED 后调用。
+ * - 把 FinalVideo 标记为 PENDING（待拼接 / cron 拾取）
+ * - VideoBrief.status → RENDERING（语义：所有片段就绪，正在合成完整视频）
+ * - 真正的 ffmpeg 拼接由 stitch-service 异步执行（cron 或显式触发）
+ *
+ * 这里之所以不直接同步拼接：ffmpeg 在 Vercel serverless 中可能跑较久，
+ * 应放到独立 cron / 后台任务避免阻塞 reconcileVideoJob。
+ */
+async function onAllSegmentsSucceeded(finalVideoId: string, briefId: string) {
+  /// 仅在 PENDING 状态下推进；STITCHING / READY / FAILED 不动
+  await db.finalVideo.updateMany({
+    where: { id: finalVideoId, status: FinalVideoStatus.PENDING },
+    data: {
+      /// 保持 PENDING 等 cron 拾取；UI 文案显示「正在合成完整视频」
+      status: FinalVideoStatus.PENDING,
+    },
+  });
+  /// brief 仍标 RENDERING（用户视角：「正在合成完整视频」）
+  await db.videoBrief.update({
+    where: { id: briefId },
+    data: { status: VideoBriefStatus.RENDERING },
+  });
 }
 
 /**
@@ -445,9 +815,22 @@ export type BriefRenderSummary = {
   hasStuckJob: boolean;
   /// 最近一次有效检查的时间
   lastCheckedAt: Date | null;
+  /// 多段拼接信息（单段流为 null，与 Sunny Shutter 兼容）
+  finalVideo: {
+    id: string;
+    status: FinalVideoStatus;
+    targetDurationSec: number;
+    segmentCount: number;
+    segmentsCompleted: number;
+    stitchedVideoUrl: string | null;
+    thumbnailUrl: string | null;
+    ffmpegError: string | null;
+  } | null;
   jobs: Array<{
     id: string;
     sceneIndex?: number | null;
+    segmentIndex: number | null;
+    segmentDurationSec: number | null;
     status: VideoJobStatus;
     /// 用户安全的状态文本（不含 provider 名）
     userStatusKey: BriefRenderUserStatus;
@@ -489,12 +872,14 @@ export async function summarizeBriefRender(
       status: true,
       finalVideoUrl: true,
       finalThumbnailUrl: true,
+      finalVideoId: true,
+      finalVideo: true,
     },
   });
   if (!brief) throw new Error("Brief 不存在");
   const jobs = await db.videoJob.findMany({
     where: { videoBriefId: briefId },
-    orderBy: { createdAt: "asc" },
+    orderBy: [{ segmentIndex: "asc" }, { createdAt: "asc" }],
   });
   const now = Date.now();
 
@@ -529,6 +914,8 @@ export async function summarizeBriefRender(
     return {
       id: j.id,
       sceneIndex: null as number | null,
+      segmentIndex: j.segmentIndex,
+      segmentDurationSec: j.segmentDurationSec,
       status: j.status,
       userStatusKey: classifyUserStatus(j, isStuck),
       outputVideoUrl: j.outputVideoUrl,
@@ -547,6 +934,30 @@ export async function summarizeBriefRender(
     };
   });
 
+  /// 多段拼接信息：仅当存在 FinalVideo（新流程）时填，旧 brief 留 null
+  const finalVideo = brief.finalVideo
+    ? {
+        id: brief.finalVideo.id,
+        status: brief.finalVideo.status,
+        targetDurationSec: brief.finalVideo.targetDurationSec,
+        segmentCount: brief.finalVideo.segmentCount,
+        segmentsCompleted: jobs.filter(
+          (j) =>
+            j.finalVideoId === brief.finalVideoId &&
+            j.status === VideoJobStatus.SUCCEEDED,
+        ).length,
+        stitchedVideoUrl: brief.finalVideo.stitchedVideoUrl,
+        thumbnailUrl: brief.finalVideo.thumbnailUrl,
+        ffmpegError: brief.finalVideo.ffmpegError,
+      }
+    : null;
+
+  /// 用户视角的 final URL：优先 stitched（新流程），否则 brief.finalVideoUrl（旧流程，含 Sunny Shutter）
+  const exposedFinalUrl =
+    finalVideo?.stitchedVideoUrl ?? brief.finalVideoUrl ?? null;
+  const exposedFinalThumb =
+    finalVideo?.thumbnailUrl ?? brief.finalThumbnailUrl ?? null;
+
   return {
     briefId: brief.id,
     briefStatus: brief.status,
@@ -556,10 +967,11 @@ export async function summarizeBriefRender(
     queued: counts.queued,
     failed: counts.failed,
     cancelled: counts.cancelled,
-    finalVideoUrl: brief.finalVideoUrl,
-    finalThumbnailUrl: brief.finalThumbnailUrl,
+    finalVideoUrl: exposedFinalUrl,
+    finalThumbnailUrl: exposedFinalThumb,
     hasStuckJob,
     lastCheckedAt,
+    finalVideo,
     jobs: mapped,
   };
 }

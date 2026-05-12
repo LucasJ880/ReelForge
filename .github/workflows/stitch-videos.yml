@@ -1,0 +1,70 @@
+name: stitch-videos
+
+# 外部 stitch runner —— 把多段 Seedance 视频拼成完整 MP4 后上传 Vercel Blob。
+#
+# 设计动机：
+#   Vercel Serverless 函数（Node 20 runtime）没有 ffmpeg 二进制，在函数里
+#   `execFile("ffmpeg", ...)` 必然 ENOENT。所以把真实拼接搬到 GitHub Action runner
+#   （Ubuntu 自带 apt ffmpeg）执行；API 层只负责状态机和回调。
+#
+# 流程：
+#   每 5 分钟触发 → 安装 ffmpeg → 调 /api/internal/stitch/claim 拉任务 →
+#   下载段 → ffmpeg concat → 上传 Blob → 调 /api/internal/stitch/complete 写 URL。
+#
+# 仓库 Secrets 必填（GitHub → Settings → Secrets and variables → Actions）：
+#   APP_URL                  — e.g. https://aivora.vercel.app（不带尾斜杠）
+#   CRON_SECRET              — 与 Vercel 环境变量 CRON_SECRET 完全一致
+#   BLOB_READ_WRITE_TOKEN    — Vercel Blob R/W token（同 Vercel 环境）
+#
+# 排错：
+#   - 在 Actions 页面手动 workflow_dispatch 触发查日志即可
+#   - runner 失败时不会卡死 finalVideo —— stitch-service 会把 attempts++ 后让 UI 暴露重试
+#   - 任何任务在 stitchAttempts >= 3 时会被 claim 跳过，需要人工 retryStitch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: stitch-videos
+  cancel-in-progress: false
+
+jobs:
+  stitch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install ffmpeg (apt)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -n 1
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install minimal deps
+        # 只装 runner 需要的 @vercel/blob + tsx，跳过 postinstall (prisma generate) /
+        # next build。stitch-runner.ts 是 standalone，不依赖 Next/Prisma。
+        run: |
+          npm install --no-save --ignore-scripts --silent @vercel/blob@^2 tsx@^4
+
+      - name: Run stitch runner
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          STITCH_RUNNER_LOOP_LIMIT: "5"
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ] || [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
+            echo "Missing required secrets: APP_URL / CRON_SECRET / BLOB_READ_WRITE_TOKEN"
+            exit 1
+          fi
+          node_modules/.bin/tsx scripts/stitch-runner.ts

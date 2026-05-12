@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
+import { deriveBusinessStatus } from "@/lib/video-generation/business-status";
 import {
   unifiedVideoGenerationRequestSchema,
   videoGenerationPlanSchema,
@@ -169,12 +170,25 @@ export async function POST(req: NextRequest) {
     /// 调 Seedance（multi-segment 或 single-segment 自动选）
     const dispatched = await dispatchVideoForBrief(briefId);
 
+    /// 给前端一个明确「下一步去哪」+ user-facing status，避免 hardcode 路径
+    const nextUrl =
+      request.userType === "business"
+        ? `/business/products?highlight=${deliveryOrderId}`
+        : `/personal/videos?highlight=${deliveryOrderId}`;
+    const userStatus = deriveBusinessStatus({
+      briefStatus: VideoBriefStatus.RENDER_QUEUED,
+      segmentsTotal: Array.isArray(dispatched) ? dispatched.length : 1,
+      segmentsSucceeded: 0,
+    });
+
     return NextResponse.json({
       ok: true,
       deliveryOrderId,
       briefId,
       videoJobs: Array.isArray(dispatched) ? dispatched : [dispatched],
       planPreview: plan.planPreview,
+      nextUrl,
+      userStatus,
     });
   } catch (err) {
     console.error("[/api/video-generation/dispatch]", err);

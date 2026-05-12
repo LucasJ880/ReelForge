@@ -97,15 +97,17 @@ export function UnifiedCreativeInput({ userType }: UnifiedCreativeInputProps) {
             ok: true;
             deliveryOrderId: string;
             briefId: string;
+            nextUrl?: string;
+            userStatus?: { status: string; label: string };
           }
         | { ok: false; error: string };
       if (!res.ok || !j.ok) {
         throw new Error(("error" in j && j.error) || "Dispatch failed");
       }
+      /// 优先用服务端给的 nextUrl；fallback 到旧 hardcoded 路径，避免前端解析失败时卡住
       const target =
-        userType === "business"
-          ? `/business/products`
-          : `/personal/videos`;
+        j.nextUrl ??
+        (userType === "business" ? `/business/products` : `/personal/videos`);
       router.push(target);
       router.refresh();
     } catch (e) {

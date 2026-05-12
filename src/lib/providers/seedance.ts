@@ -29,6 +29,18 @@ export interface SeedanceSubmitOptions {
   returnLastFrame?: boolean;
   /// 公网可达的 webhook 回调 URL；为空则不携带（仅依赖轮询）
   callbackUrl?: string;
+  /**
+   * 仅在 VIDEO_ENGINE_MOCK=true 时生效；real Seedance payload 永远不会包含此字段。
+   * 用于让 mock 路径渲染出「每段都不一样、肉眼可辨、可拼接」的占位 MP4。
+   */
+  mockHints?: {
+    briefId: string;
+    segmentIndex: number;
+    segmentCount: number;
+    durationSec: number;
+    aspectRatio: string;
+    purpose?: string;
+  };
 }
 
 export type SeedanceStatus =
@@ -52,17 +64,32 @@ export interface SeedanceJobResult {
   rawProviderResponse?: unknown;
 }
 
-const mockJobs = new Map<
-  string,
-  { status: string; createdAt: number; prompt: string }
->();
+type MockJobRecord = {
+  status: string;
+  createdAt: number;
+  prompt: string;
+  mockHints?: SeedanceSubmitOptions["mockHints"];
+};
 
-const MOCK_PROCESSING_TIME_MS = 10_000;
+const mockJobs = new Map<string, MockJobRecord>();
 
+const MOCK_PROCESSING_TIME_MS = Number(
+  process.env.VIDEO_ENGINE_MOCK_LATENCY_MS ?? "1500",
+);
+
+/**
+ * Mock 模式判定（Phase 2 收紧）：
+ *   - VIDEO_ENGINE_MOCK 显式 true/1/yes  → mock
+ *   - VIDEO_ENGINE_MOCK 显式 false/0/no  → real（即便 ARK_API_KEY 缺失也走 real，
+ *       让 submitReal/getStatusReal 抛清晰错误，避免 silent fall-back to mock 导致
+ *       生产误以为「在跑真实任务」）
+ *   - 未设置                              → 缺 ARK_API_KEY 时退回 mock（dev 便利）
+ */
 function isMockMode(): boolean {
-  if (!process.env.ARK_API_KEY) return true;
   const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
-  return flag === "1" || flag === "true" || flag === "yes";
+  if (flag === "1" || flag === "true" || flag === "yes") return true;
+  if (flag === "0" || flag === "false" || flag === "no") return false;
+  return !process.env.ARK_API_KEY;
 }
 
 export function isSeedanceConfigured(): boolean {
@@ -89,12 +116,21 @@ function submitMock(options: SeedanceSubmitOptions): { jobId: string } {
     status: "processing",
     createdAt: Date.now(),
     prompt: options.prompt,
+    mockHints: options.mockHints,
   });
-  console.log(`[seedance:mock] 提交任务: ${jobId}`);
+  if (options.mockHints) {
+    console.log(
+      `[seedance:mock] 提交任务: ${jobId} (seg ${
+        options.mockHints.segmentIndex + 1
+      }/${options.mockHints.segmentCount}, ${options.mockHints.durationSec}s, ${options.mockHints.aspectRatio})`,
+    );
+  } else {
+    console.log(`[seedance:mock] 提交任务: ${jobId}`);
+  }
   return { jobId };
 }
 
-function getStatusMock(jobId: string): SeedanceJobResult {
+async function getStatusMock(jobId: string): Promise<SeedanceJobResult> {
   const job = mockJobs.get(jobId);
   if (!job) {
     return {
@@ -113,13 +149,40 @@ function getStatusMock(jobId: string): SeedanceJobResult {
       progress: Math.min(95, Math.floor((elapsed / MOCK_PROCESSING_TIME_MS) * 100)),
     };
   }
+
+  /// 优先用 mockHints 渲染唯一可拼接 MP4；缺失则回退到通用 9:16 静态占位
+  const fallbackHints: NonNullable<SeedanceSubmitOptions["mockHints"]> = {
+    briefId: "unknown",
+    segmentIndex: 0,
+    segmentCount: 1,
+    durationSec: 5,
+    aspectRatio: "9:16",
+    purpose: "fallback",
+  };
+  const hints = job.mockHints ?? fallbackHints;
+  let videoUrl: string;
+  try {
+    const { generateMockClip } = await import(
+      "@/lib/video-generation/mock-clip-generator"
+    );
+    const clip = await generateMockClip(hints);
+    videoUrl = clip.url;
+  } catch (err) {
+    /// 渲染失败：返回 failed 让上层走重试 / 用户可见错误，不要 silent fall back to bunny URL
+    return {
+      jobId,
+      status: "failed",
+      rawProviderStatus: "mock_render_failed",
+      errorMessage: `Mock 视频渲染失败: ${(err as Error).message}`,
+    };
+  }
   mockJobs.delete(jobId);
   return {
     jobId,
     status: "completed",
     rawProviderStatus: "succeeded",
-    videoUrl: `https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4`,
-    thumbnailUrl: `https://picsum.photos/seed/${jobId}/400/720`,
+    videoUrl,
+    thumbnailUrl: undefined,
     progress: 100,
   };
 }
@@ -127,7 +190,12 @@ function getStatusMock(jobId: string): SeedanceJobResult {
 async function submitReal(
   options: SeedanceSubmitOptions,
 ): Promise<{ jobId: string }> {
-  const apiKey = process.env.ARK_API_KEY!;
+  const apiKey = process.env.ARK_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Seedance 真实模式已开启（VIDEO_ENGINE_MOCK=false），但 ARK_API_KEY 未配置；请配置密钥或将 VIDEO_ENGINE_MOCK 设为 true。",
+    );
+  }
   const baseUrl =
     process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
   const model = options.model || process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
@@ -211,7 +279,12 @@ async function submitReal(
 }
 
 async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
-  const apiKey = process.env.ARK_API_KEY!;
+  const apiKey = process.env.ARK_API_KEY;
+  if (!apiKey) {
+    throw new Error(
+      "Seedance 真实模式已开启（VIDEO_ENGINE_MOCK=false），但 ARK_API_KEY 未配置；无法查询任务状态。",
+    );
+  }
   const baseUrl =
     process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
 

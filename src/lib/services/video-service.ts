@@ -159,6 +159,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
       finalVideoId,
       aspectRatio: brief.aspectRatio,
       segment,
+      segmentCount: plan.segmentPlan.length,
     });
     created.push(result);
   }
@@ -172,8 +173,9 @@ async function submitSegmentJob(params: {
   finalVideoId: string;
   aspectRatio: string;
   segment: SegmentPlan;
+  segmentCount: number;
 }) {
-  const { briefId, finalVideoId, aspectRatio, segment } = params;
+  const { briefId, finalVideoId, aspectRatio, segment, segmentCount } = params;
 
   const job = await db.videoJob.create({
     data: {
@@ -192,6 +194,14 @@ async function submitSegmentJob(params: {
       prompt: segment.seedancePrompt,
       duration: segment.durationSec,
       ratio: aspectRatio,
+      mockHints: {
+        briefId,
+        segmentIndex: segment.segmentIndex,
+        segmentCount,
+        durationSec: segment.durationSec,
+        aspectRatio,
+        purpose: segment.role,
+      },
     });
     return db.videoJob.update({
       where: { id: job.id },
@@ -291,6 +301,8 @@ export async function dispatchVideoGeneration(briefId: string) {
 
       try {
         const submittedAt = new Date();
+        const ratio =
+          (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio;
         const { jobId } = await submitSeedanceJob({
           prompt: prompt.promptText,
           referenceImageUrls:
@@ -300,11 +312,19 @@ export async function dispatchVideoGeneration(briefId: string) {
                 : processed
               : undefined,
           duration: scene.durationSec,
-          ratio: (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio,
+          ratio,
           model:
             prompt.provider === VideoProvider.SEEDANCE_I2V
               ? I2V_MODEL_OVERRIDE
               : undefined,
+          mockHints: {
+            briefId,
+            segmentIndex: scene.sceneIndex,
+            segmentCount: scenes.length,
+            durationSec: scene.durationSec,
+            aspectRatio: ratio,
+            purpose: "scene",
+          },
         });
         return db.videoJob.update({
           where: { id: job.id },
@@ -527,6 +547,14 @@ export async function retryFailedVideoJob(jobId: string) {
         prompt: segment.seedancePrompt,
         duration: segment.durationSec,
         ratio: briefForRetry.aspectRatio,
+        mockHints: {
+          briefId: job.videoBriefId,
+          segmentIndex: segment.segmentIndex,
+          segmentCount: plan.segmentPlan.length,
+          durationSec: segment.durationSec,
+          aspectRatio: briefForRetry.aspectRatio,
+          purpose: segment.role,
+        },
       });
       const updated = await db.videoJob.update({
         where: { id: job.id },
@@ -579,10 +607,19 @@ export async function retryFailedVideoJob(jobId: string) {
 
   const submittedAt = new Date();
   try {
+    const ratio = (prompt.params as { ratio?: string } | null)?.ratio;
     const { jobId: newExternalId } = await submitSeedanceJob({
       prompt: prompt.promptText,
       duration: scene.durationSec,
-      ratio: (prompt.params as { ratio?: string } | null)?.ratio,
+      ratio,
+      mockHints: {
+        briefId: job.videoBriefId,
+        segmentIndex: scene.sceneIndex,
+        segmentCount: 1,
+        durationSec: scene.durationSec,
+        aspectRatio: ratio ?? "9:16",
+        purpose: "scene-retry",
+      },
     });
     return db.videoJob.update({
       where: { id: job.id },

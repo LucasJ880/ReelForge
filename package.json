@@ -22,6 +22,7 @@
     "codemap:build": "tsx scripts/build-codemap.ts",
     "context:find": "tsx scripts/context-router.ts",
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
+    "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "prisma": {

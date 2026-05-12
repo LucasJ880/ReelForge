@@ -71,7 +71,32 @@ export async function requirePageRole(allowed: readonly Role[]): Promise<Session
   return session;
 }
 
-/** Wizard 全部页面用：仅 SUPER_ADMIN / OPERATOR */
+/** Wizard 全部页面用：仅 SUPER_ADMIN / OPERATOR
+ *
+ * @deprecated Phase 5 — Wizard 已下线，保留 helper 仅为兼容旧 import；
+ * 任何调用都会 redirect 到 /business/create-ad-video。
+ */
 export function requireWizardPage() {
   return requirePageRole(["SUPER_ADMIN", "OPERATOR"]);
+}
+
+/**
+ * Phase 5 — persona-aware guards.
+ *
+ * Phase 1：所有 helper 都等价于 requireOperator（因为还没有真实的客户账号 + persona 分流）。
+ * Phase 2 会改成根据 session.user.userType 真实分流：
+ *   - requireBusinessUser → only userType=BUSINESS / OPERATOR / SUPER_ADMIN
+ *   - requirePersonalUser → only userType=PERSONAL / OPERATOR / SUPER_ADMIN
+ *   - requireInternal     → only userType=OPERATOR / SUPER_ADMIN
+ */
+export async function requireBusinessUser(): Promise<AuthGuardResult> {
+  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
+}
+
+export async function requirePersonalUser(): Promise<AuthGuardResult> {
+  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
+}
+
+export async function requireInternal(): Promise<AuthGuardResult> {
+  return requireRole(["SUPER_ADMIN", "OPERATOR"]);
 }

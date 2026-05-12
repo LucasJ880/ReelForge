@@ -27,13 +27,13 @@ export function AIScriptSection({ selectedSlug }: Props) {
           <strong className="text-foreground">{selectedCard?.title}</strong>。
           {isDefault ? (
             <span>
-              下面是默认方向的完整脚本草稿。其它方向的完整草稿会在 wizard 流程
-              中实时生成。
+              下面是默认方向的完整脚本草稿。其它方向的完整草稿会在 Aivora
+              的 Unified Creative Input 中实时生成。
             </span>
           ) : (
             <span className="text-amber-300">
-              其它方向的完整脚本会在 /wizard/[orderId]/step-3-script 真实生成；
-              这里展示默认方向的样例。
+              其它方向的完整脚本会由 Aivora 的 prompt intelligence
+              引擎在生成时实时产出；这里展示默认方向的样例。
             </span>
           )}
         </span>

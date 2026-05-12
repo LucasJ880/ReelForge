@@ -197,6 +197,7 @@ model DeliveryOrder {
   rawAssets        RawAsset[]
   aiUsageLogs      AIUsageLog[]
   wizardRenderJobs WizardRenderJob[]    @relation("DeliveryOrderWizardRenders")
+  logoGenerations  LogoGeneration[]
 
   @@index([status])
   @@index([productCategory])
@@ -487,12 +488,22 @@ model VideoBrief {
   tone              String?
   onCameraMode      OnCameraMode      @default(PRODUCT_ONLY)
 
+  /// 用户选择的目标成片时长（15/30/60）。
+  /// MVP 阶段允许其他值（如 20）以兼容历史数据；分段计划由 segment-planner 兜底。
+  targetDurationSec Int               @default(30)
+  /// AI Video Director 输出的完整 DirectorPlan JSON（zod schema: src/lib/schemas/director-plan.ts）
+  directorPlan      Json?
+
   /// I2V 参考图（Vercel Blob URL）；支持 1-5 张
   referenceImageUrls String[]         @default([])
-  /// 最终送审/发布的成片 URL
+  /// 最终送审/发布的成片 URL（兼容旧 Sunny Shutter：单段 brief 这里就是 finalVideo URL）
   finalVideoUrl     String?
   /// 最终封面
   finalThumbnailUrl String?
+
+  /// 多段拼接成片的关联（只在 30s/60s 多段流程下创建）
+  finalVideoId      String?           @unique
+  finalVideo        FinalVideo?       @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
 
   errorMessage      String?
   createdAt         DateTime          @default(now())
@@ -505,6 +516,7 @@ model VideoBrief {
   publishRecords    PublishRecord[]
 
   @@index([status])
+  @@index([finalVideoId])
 }
 
 enum AdEditPlanStatus {
@@ -659,12 +671,92 @@ model VideoJob {
   /// 累计轮询次数（用于「3 连错败下线」逻辑）
   pollErrors      Int             @default(0)
 
+  /// 段索引（NULL = 旧的单段 / 兼容 Sunny Shutter；多段流程中从 0 开始）
+  segmentIndex        Int?
+  /// 该段实际请求的时长（一般 15s）
+  segmentDurationSec  Int?
+  /// 多段流程下指向同一 FinalVideo 的所有段
+  finalVideoId        String?
+  finalVideo          FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   @@index([status])
   @@index([externalJobId])
   @@index([videoBriefId])
+  @@index([finalVideoId, segmentIndex])
+}
+
+// =========================================================
+// 5.1 FinalVideo（多段拼接结果）
+// =========================================================
+//
+// 设计原则（Sunny Shutter 兼容铁律）：
+// - 旧 brief（segmentIndex IS NULL 的 VideoJob）不创建 FinalVideo 记录，
+//   syncBriefStatus 会沿用「首段 SUCCEEDED 就把 outputVideoUrl 写到 VideoBrief.finalVideoUrl」的旧逻辑。
+// - 新流程（30s/60s）会先创建 FinalVideo (status=PENDING)，再为每段创建 VideoJob 指向它。
+// - 当所有段 SUCCEEDED → status=STITCHING → ffmpeg → status=READY/FAILED。
+
+enum FinalVideoStatus {
+  PENDING
+  STITCHING
+  READY
+  FAILED
+}
+
+model FinalVideo {
+  id                String           @id @default(cuid())
+
+  targetDurationSec Int
+  segmentCount      Int
+
+  status            FinalVideoStatus @default(PENDING)
+  stitchedVideoUrl  String?
+  thumbnailUrl      String?
+  ffmpegError       String?
+  /// 累计 ffmpeg 失败次数（>= 3 时停止自动重试）
+  stitchAttempts    Int              @default(0)
+
+  startedAt         DateTime?
+  finishedAt        DateTime?
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  brief             VideoBrief?
+  segments          VideoJob[]
+
+  @@index([status])
+}
+
+// =========================================================
+// 5.2 LogoGeneration（AI 生成 Logo 候选）
+// =========================================================
+
+model LogoGeneration {
+  id              String          @id @default(cuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder   @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+
+  prompt          String
+  /// 用户选择的风格标签：modern / minimal / luxury / playful / tech / natural / local
+  styleHint       String?
+  /// 实际使用的 image 模型（默认 gpt-image-1，mock 模式为 "mock"）
+  model           String
+
+  /// 候选图 URL 数组（已上传到 Vercel Blob）
+  generatedUrls   String[]        @default([])
+  /// 用户最终选中的 URL（同时会写回 DeliveryOrder.clientBrief.brandAssets.logoUrl）
+  selectedUrl     String?
+
+  errorMessage    String?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([deliveryOrderId])
+  @@index([createdAt(sort: Desc)])
 }
 
 // =========================================================

@@ -1,0 +1,7088 @@
+{
+  "generatedAt": "2026-05-12T15:09:53.053Z",
+  "files": [
+    {
+      "path": ".cursor/rules/agency-coordinator.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 150,
+      "sizeBytes": 7942,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/ai-context-workflow.mdc",
+      "type": "unknown",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 92,
+      "sizeBytes": 4554,
+      "notes": "area=media-processing"
+    },
+    {
+      "path": ".cursor/rules/design/design-brand-guardian.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 327,
+      "sizeBytes": 11920,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-image-prompt-engineer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 242,
+      "sizeBytes": 11434,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-inclusive-visuals-specialist.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "generateInclusiveVideoPrompt"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "generateInclusiveVideoPrompt"
+      ],
+      "lineCount": 77,
+      "sizeBytes": 6917,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-ui-designer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 388,
+      "sizeBytes": 13615,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-ux-architect.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 474,
+      "sizeBytes": 16034,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-ux-researcher.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 334,
+      "sizeBytes": 13308,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-visual-storyteller.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 154,
+      "sizeBytes": 7687,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/design/design-whimsy-injector.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 443,
+      "sizeBytes": 16131,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-ai-engineer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 151,
+      "sizeBytes": 7647,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-backend-architect.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [
+        "express",
+        "helmet",
+        "express-rate-limit",
+        "./middleware/auth"
+      ],
+      "importantSymbols": [],
+      "lineCount": 240,
+      "sizeBytes": 9824,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-code-reviewer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 82,
+      "sizeBytes": 3338,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-database-optimizer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [
+        "@supabase/supabase-js"
+      ],
+      "importantSymbols": [],
+      "lineCount": 182,
+      "sizeBytes": 5806,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-devops-automator.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 381,
+      "sizeBytes": 13160,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-frontend-developer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "DataTable"
+      ],
+      "imports": [
+        "react",
+        "@tanstack/react-virtual"
+      ],
+      "importantSymbols": [
+        "DataTable"
+      ],
+      "lineCount": 230,
+      "sizeBytes": 9566,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-git-workflow-master.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 90,
+      "sizeBytes": 3614,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-rapid-prototyper.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "AuthLayout",
+        "FeedbackForm",
+        "trackEvent",
+        "useABTest",
+        "LandingPageHero",
+        "default"
+      ],
+      "imports": [
+        "@clerk/nextjs",
+        "react-hook-form",
+        "@hookform/resolvers/zod",
+        "zod",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
+        "@/components/ui/use-toast",
+        "react"
+      ],
+      "importantSymbols": [
+        "AuthLayout",
+        "FeedbackForm",
+        "useABTest",
+        "LandingPageHero",
+        "trackEvent",
+        "default"
+      ],
+      "lineCount": 468,
+      "sizeBytes": 15773,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-security-engineer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 310,
+      "sizeBytes": 18001,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-senior-developer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 182,
+      "sizeBytes": 6490,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-software-architect.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 87,
+      "sizeBytes": 3990,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-sre.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 96,
+      "sizeBytes": 4166,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/engineering/engineering-technical-writer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [
+        "your-package"
+      ],
+      "importantSymbols": [],
+      "lineCount": 399,
+      "sizeBytes": 14479,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/product/product-behavioral-nudge-engine.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "generateSprintNudge"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "generateSprintNudge"
+      ],
+      "lineCount": 86,
+      "sizeBytes": 5448,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/product/product-feedback-synthesizer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 124,
+      "sizeBytes": 7541,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/product/product-manager.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 475,
+      "sizeBytes": 22960,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/product/product-sprint-prioritizer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 159,
+      "sizeBytes": 9743,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/product/product-trend-researcher.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 164,
+      "sizeBytes": 10759,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/reelforge-project-context.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 91,
+      "sizeBytes": 3960,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-accessibility-auditor.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 322,
+      "sizeBytes": 15586,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-api-tester.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [
+        "@playwright/test",
+        "perf_hooks"
+      ],
+      "importantSymbols": [],
+      "lineCount": 311,
+      "sizeBytes": 12801,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-evidence-collector.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 216,
+      "sizeBytes": 8567,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-performance-benchmarker.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "options",
+        "handleSummary",
+        "default"
+      ],
+      "imports": [
+        "k6/http",
+        "k6",
+        "k6/metrics"
+      ],
+      "importantSymbols": [
+        "options",
+        "handleSummary",
+        "default"
+      ],
+      "lineCount": 273,
+      "sizeBytes": 12501,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-reality-checker.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 242,
+      "sizeBytes": 10207,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-test-results-analyzer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 310,
+      "sizeBytes": 14888,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-tool-evaluator.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 399,
+      "sizeBytes": 17821,
+      "notes": ""
+    },
+    {
+      "path": ".cursor/rules/testing/testing-workflow-optimizer.mdc",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 455,
+      "sizeBytes": 22333,
+      "notes": ""
+    },
+    {
+      "path": ".env.example",
+      "type": "unknown",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 5120,
+      "notes": "area=config"
+    },
+    {
+      "path": ".env.production.example",
+      "type": "unknown",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 651,
+      "notes": "area=config"
+    },
+    {
+      "path": ".github/workflows/poll-videos.yml",
+      "type": "workflow",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 33,
+      "sizeBytes": 1117,
+      "notes": "GitHub Actions workflow; area=config"
+    },
+    {
+      "path": ".github/workflows/stitch-videos.yml",
+      "type": "workflow",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 71,
+      "sizeBytes": 2643,
+      "notes": "GitHub Actions workflow; area=config"
+    },
+    {
+      "path": ".gitignore",
+      "type": "config",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 591,
+      "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": ".vercelignore",
+      "type": "config",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 50,
+      "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": "components.json",
+      "type": "config",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 26,
+      "sizeBytes": 520,
+      "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": "docs/AI_CONTEXT_WORKFLOW.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 302,
+      "sizeBytes": 10989,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/AI_VIDEO_DEMO_PAGE_AND_VIDEO_PLAN.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 210,
+      "sizeBytes": 9599,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/DEPLOYMENT.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 179,
+      "sizeBytes": 5860,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/duplicate-charge-protection.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 184,
+      "sizeBytes": 9592,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_60S_DEMO_VIDEO.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [
+        "Rendering"
+      ],
+      "importantSymbols": [],
+      "lineCount": 546,
+      "sizeBytes": 30838,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_CUSTOMER_TRIAL_TEMPLATE.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 107,
+      "sizeBytes": 2418,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_DEMO_CHECKLIST.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 11,
+      "sizeBytes": 433,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_DEMO_SCRIPT.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 118,
+      "sizeBytes": 5897,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_GTM_VALIDATION.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 138,
+      "sizeBytes": 6514,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_INVESTOR_DEMO.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 150,
+      "sizeBytes": 7354,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_MVP_RUNBOOK.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 216,
+      "sizeBytes": 7829,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/REAL_FOOTAGE_AD_AGENT_REFERENCES.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 84,
+      "sizeBytes": 2807,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/RELEASE_HARDENING_CHECKLIST.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [
+        "./src/lib/db.js"
+      ],
+      "importantSymbols": [],
+      "lineCount": 144,
+      "sizeBytes": 4293,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/TESTING.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 101,
+      "sizeBytes": 6102,
+      "notes": "Documentation"
+    },
+    {
+      "path": "eslint.config.mjs",
+      "type": "config",
+      "area": "unknown",
+      "exports": [
+        "default"
+      ],
+      "imports": [
+        "eslint-config-next/core-web-vitals",
+        "eslint-config-next/typescript"
+      ],
+      "importantSymbols": [
+        "default"
+      ],
+      "lineCount": 10,
+      "sizeBytes": 230,
+      "notes": "Build / runtime config"
+    },
+    {
+      "path": "next.config.ts",
+      "type": "config",
+      "area": "unknown",
+      "exports": [
+        "default"
+      ],
+      "imports": [
+        "next"
+      ],
+      "importantSymbols": [
+        "default"
+      ],
+      "lineCount": 50,
+      "sizeBytes": 2975,
+      "notes": "Build / runtime config"
+    },
+    {
+      "path": "package.json",
+      "type": "config",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 67,
+      "sizeBytes": 2245,
+      "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": "postcss.config.mjs",
+      "type": "config",
+      "area": "unknown",
+      "exports": [
+        "default"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "default"
+      ],
+      "lineCount": 8,
+      "sizeBytes": 94,
+      "notes": "Build / runtime config"
+    },
+    {
+      "path": "prisma/migrations/20260510_phase1_phase2_wizard_baseline/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 183,
+      "sizeBytes": 6197,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/20260510154031_phase3a_script_metadata/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 4,
+      "sizeBytes": 69,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/20260511_video_job_lifecycle/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 11,
+      "sizeBytes": 491,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/20260512_phase4_productization/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 88,
+      "sizeBytes": 3707,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/20260512_phase5_unified_input/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 25,
+      "sizeBytes": 1217,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/migration_lock.toml",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 128,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "type": "prisma",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1054,
+      "sizeBytes": 32592,
+      "notes": "Prisma schema (database source of truth); area=prisma"
+    },
+    {
+      "path": "prisma/seed.ts",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [
+        "@prisma/client",
+        "bcryptjs"
+      ],
+      "importantSymbols": [],
+      "lineCount": 43,
+      "sizeBytes": 1115,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "public/file.svg",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 391,
+      "notes": ""
+    },
+    {
+      "path": "public/globe.svg",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 1035,
+      "notes": ""
+    },
+    {
+      "path": "public/next.svg",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 1375,
+      "notes": ""
+    },
+    {
+      "path": "public/tiktokspTMDk4tfsdecinKCtSok8lruzVXdLei.txt",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 68,
+      "notes": ""
+    },
+    {
+      "path": "public/vercel.svg",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 128,
+      "notes": ""
+    },
+    {
+      "path": "public/window.svg",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 385,
+      "notes": ""
+    },
+    {
+      "path": "README.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 156,
+      "sizeBytes": 6615,
+      "notes": "Documentation"
+    },
+    {
+      "path": "scripts/build-codemap.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "node:fs",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 883,
+      "sizeBytes": 33097,
+      "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
+    },
+    {
+      "path": "scripts/check-real-footage-walkthrough-video.ts",
+      "type": "script",
+      "area": "real-footage-ads",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 145,
+      "sizeBytes": 4204,
+      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=real-footage-ads"
+    },
+    {
+      "path": "scripts/context-router.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "node:fs",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 425,
+      "sizeBytes": 13170,
+      "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
+    },
+    {
+      "path": "scripts/generate-real-estate-placeholder-poster.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "node:fs",
+        "node:path",
+        "sharp"
+      ],
+      "importantSymbols": [],
+      "lineCount": 152,
+      "sizeBytes": 6928,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/generate-real-footage-walkthrough-video.ts",
+      "type": "script",
+      "area": "real-footage-ads",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 407,
+      "sizeBytes": 16091,
+      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=real-footage-ads"
+    },
+    {
+      "path": "scripts/seed-creative-evidence-cards.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "../src/lib/db",
+        "../src/lib/services/creative-evidence-service",
+        "../src/lib/schemas/creative-evidence"
+      ],
+      "importantSymbols": [],
+      "lineCount": 613,
+      "sizeBytes": 27937,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/smoke-closed-loop.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@prisma/client",
+        "../src/lib/services/discovery-service",
+        "../src/lib/services/selling-point-service",
+        "../src/lib/services/round-service",
+        "../src/lib/services/angle-service",
+        "../src/lib/services/brief-service",
+        "../src/lib/services/script-service",
+        "../src/lib/services/scene-service",
+        "../src/lib/services/prompt-service",
+        "../src/lib/services/video-service",
+        "../src/lib/services/qa-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 197,
+      "sizeBytes": 7473,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
+    },
+    {
+      "path": "scripts/stitch-real-footage-walkthrough-video.ts",
+      "type": "script",
+      "area": "real-footage-ads",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [],
+      "lineCount": 277,
+      "sizeBytes": 7166,
+      "notes": "Maintenance / one-off script (run via tsx); area=real-footage-ads"
+    },
+    {
+      "path": "scripts/stitch-runner.ts",
+      "type": "script",
+      "area": "ffmpeg",
+      "exports": [],
+      "imports": [
+        "node:child_process",
+        "node:util",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [],
+      "lineCount": 262,
+      "sizeBytes": 7749,
+      "notes": "Maintenance / one-off script (run via tsx); area=ffmpeg"
+    },
+    {
+      "path": "scripts/sunny-shutter-reconcile.ts",
+      "type": "script",
+      "area": "real-footage-ads",
+      "exports": [],
+      "imports": [
+        "@prisma/client",
+        "../src/lib/services/video-service",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 421,
+      "sizeBytes": 14867,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; calls Seedance video generator; area=real-footage-ads"
+    },
+    {
+      "path": "scripts/sunny-shutter-ui-check.ts",
+      "type": "script",
+      "area": "real-footage-ads",
+      "exports": [],
+      "imports": [
+        "@prisma/client",
+        "../src/lib/services/video-service",
+        "../src/lib/labels-user"
+      ],
+      "importantSymbols": [],
+      "lineCount": 127,
+      "sizeBytes": 4468,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=real-footage-ads"
+    },
+    {
+      "path": "scripts/upload-pet-demo-bgm-v2.ts",
+      "type": "script",
+      "area": "demo",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "@vercel/blob",
+        "node:fs",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 54,
+      "sizeBytes": 1635,
+      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; area=demo"
+    },
+    {
+      "path": "scripts/verify-phase4-schema.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 357,
+      "sizeBytes": 11847,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
+    },
+    {
+      "path": "src/app/(auth)/layout.tsx",
+      "type": "layout",
+      "area": "auth",
+      "exports": [
+        "AuthLayout",
+        "default"
+      ],
+      "imports": [
+        "@/components/ui/logo"
+      ],
+      "importantSymbols": [
+        "AuthLayout",
+        "default"
+      ],
+      "lineCount": 76,
+      "sizeBytes": 3207,
+      "notes": "Next.js App Router layout; area=auth"
+    },
+    {
+      "path": "src/app/(auth)/login/page.tsx",
+      "type": "page",
+      "area": "auth",
+      "exports": [
+        "LoginPage",
+        "default"
+      ],
+      "imports": [
+        "react",
+        "next-auth/react",
+        "next/navigation",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "LoginPage",
+        "default"
+      ],
+      "lineCount": 107,
+      "sizeBytes": 3501,
+      "notes": "Next.js App Router page; NextAuth session check; client component; area=auth"
+    },
+    {
+      "path": "src/app/(business)/business/create-ad-video/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "CreateAdVideoPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/video-generation/unified-creative-input-shell"
+      ],
+      "importantSymbols": [
+        "CreateAdVideoPage",
+        "default"
+      ],
+      "lineCount": 16,
+      "sizeBytes": 560,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/creative-studio/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "CreativeStudioPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/coming-soon-hero"
+      ],
+      "importantSymbols": [
+        "CreativeStudioPage",
+        "default"
+      ],
+      "lineCount": 17,
+      "sizeBytes": 525,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/integrations/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "IntegrationsPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/coming-soon-hero"
+      ],
+      "importantSymbols": [
+        "IntegrationsPage",
+        "default"
+      ],
+      "lineCount": 17,
+      "sizeBytes": 524,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "BusinessHomePage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "BusinessHomePage",
+        "default"
+      ],
+      "lineCount": 77,
+      "sizeBytes": 3279,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/performance/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "PerformancePage",
+        "default"
+      ],
+      "imports": [
+        "@/components/coming-soon-hero"
+      ],
+      "importantSymbols": [
+        "PerformancePage",
+        "default"
+      ],
+      "lineCount": 17,
+      "sizeBytes": 503,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/products/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "dynamic",
+        "BusinessProductsPage",
+        "default"
+      ],
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "next/link",
+        "@/lib/auth",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "BusinessProductsPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 93,
+      "sizeBytes": 3147,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/recommendations/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "RecommendationsPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/coming-soon-hero"
+      ],
+      "importantSymbols": [
+        "RecommendationsPage",
+        "default"
+      ],
+      "lineCount": 17,
+      "sizeBytes": 514,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/layout.tsx",
+      "type": "layout",
+      "area": "marketing-site",
+      "exports": [
+        "BusinessLayout",
+        "default"
+      ],
+      "imports": [
+        "@/components/layout/business-sidebar",
+        "@/lib/api-auth",
+        "next/navigation"
+      ],
+      "importantSymbols": [
+        "BusinessLayout",
+        "default"
+      ],
+      "lineCount": 25,
+      "sizeBytes": 658,
+      "notes": "Next.js App Router layout; area=marketing-site"
+    },
+    {
+      "path": "src/app/(internal)/internal/ai-usage/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "AdminAIUsagePage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "@/lib/api-auth",
+        "@/components/ui/card",
+        "@/components/ui/badge",
+        "@/lib/services/ai-usage-stats-service",
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "AdminAIUsagePage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 331,
+      "sizeBytes": 12609,
+      "notes": "Next.js App Router page; hits Prisma DB; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/briefs/[id]/actions.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "BriefActions"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/lib/labels-user"
+      ],
+      "importantSymbols": [
+        "BriefActions"
+      ],
+      "lineCount": 116,
+      "sizeBytes": 3723,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/briefs/[id]/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "BriefPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "@/lib/db",
+        "@/components/features/page-header",
+        "@/components/features/status-badge",
+        "@/components/ui/card",
+        "@/lib/labels",
+        "@/lib/labels-user",
+        "@/components/features/render-progress",
+        "@/lib/services/video-service",
+        "./actions"
+      ],
+      "importantSymbols": [
+        "BriefPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 345,
+      "sizeBytes": 13192,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/demo-leads/page.tsx",
+      "type": "page",
+      "area": "demo",
+      "exports": [
+        "dynamic",
+        "DemoLeadsPage",
+        "default"
+      ],
+      "imports": [
+        "react",
+        "next/cache",
+        "@/components/ui/card",
+        "@/components/features/page-header",
+        "@/components/features/status-badge",
+        "@/lib/db",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "DemoLeadsPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 308,
+      "sizeBytes": 10617,
+      "notes": "Next.js App Router page; area=demo"
+    },
+    {
+      "path": "src/app/(internal)/internal/distillation/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "DistillationPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "@/lib/db",
+        "@/components/features/page-header",
+        "@/components/ui/card",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "DistillationPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 67,
+      "sizeBytes": 2393,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/metrics/metrics-import.tsx",
+      "type": "unknown",
+      "area": "metrics",
+      "exports": [
+        "MetricsImport"
+      ],
+      "imports": [
+        "react",
+        "sonner",
+        "next/navigation",
+        "lucide-react",
+        "@/components/ui/button"
+      ],
+      "importantSymbols": [
+        "MetricsImport"
+      ],
+      "lineCount": 88,
+      "sizeBytes": 2890,
+      "notes": "area=metrics"
+    },
+    {
+      "path": "src/app/(internal)/internal/metrics/page.tsx",
+      "type": "page",
+      "area": "metrics",
+      "exports": [
+        "dynamic",
+        "MetricsPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/features/page-header",
+        "@/components/ui/card",
+        "@/lib/db",
+        "@/lib/utils",
+        "./metrics-import"
+      ],
+      "importantSymbols": [
+        "MetricsPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 95,
+      "sizeBytes": 3334,
+      "notes": "Next.js App Router page; area=metrics"
+    },
+    {
+      "path": "src/app/(internal)/internal/orders/[id]/actions.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "OrderActions"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button"
+      ],
+      "importantSymbols": [
+        "OrderActions"
+      ],
+      "lineCount": 149,
+      "sizeBytes": 4272,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/orders/[id]/asset-actions.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "AssetActions"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/input"
+      ],
+      "importantSymbols": [
+        "AssetActions"
+      ],
+      "lineCount": 150,
+      "sizeBytes": 4520,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/orders/[id]/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "OrderDetailPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "lucide-react",
+        "@/components/features/page-header",
+        "@/components/features/status-badge",
+        "@/components/ui/card",
+        "@/lib/labels",
+        "@/lib/labels-user",
+        "@/lib/services/order-service",
+        "@/lib/utils",
+        "./asset-actions",
+        "./actions"
+      ],
+      "importantSymbols": [
+        "OrderDetailPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 380,
+      "sizeBytes": 15148,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/orders/new/new-order-form.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "NewOrderForm"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/lib/services/localization-service"
+      ],
+      "importantSymbols": [
+        "NewOrderForm"
+      ],
+      "lineCount": 420,
+      "sizeBytes": 14961,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/orders/new/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "NewOrderPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/features/page-header",
+        "@/components/ui/card",
+        "./new-order-form"
+      ],
+      "importantSymbols": [
+        "NewOrderPage",
+        "default"
+      ],
+      "lineCount": 20,
+      "sizeBytes": 577,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/orders/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "OrdersPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/features/page-header",
+        "@/components/features/status-badge",
+        "@/lib/labels",
+        "@/lib/services/order-service",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "OrdersPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 80,
+      "sizeBytes": 3093,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "InternalIndexPage",
+        "default"
+      ],
+      "imports": [
+        "next/navigation"
+      ],
+      "importantSymbols": [
+        "InternalIndexPage",
+        "default"
+      ],
+      "lineCount": 12,
+      "sizeBytes": 343,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/publish/page.tsx",
+      "type": "page",
+      "area": "publishing",
+      "exports": [
+        "dynamic",
+        "PublishPage",
+        "default"
+      ],
+      "imports": [
+        "@/lib/services/publish-service",
+        "@/components/features/page-header",
+        "./publish-list"
+      ],
+      "importantSymbols": [
+        "PublishPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 18,
+      "sizeBytes": 595,
+      "notes": "Next.js App Router page; area=publishing"
+    },
+    {
+      "path": "src/app/(internal)/internal/publish/publish-list.tsx",
+      "type": "unknown",
+      "area": "publishing",
+      "exports": [
+        "PublishList"
+      ],
+      "imports": [
+        "next/link",
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/card",
+        "@/components/ui/button",
+        "@/components/features/status-badge",
+        "@/lib/labels",
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "PublishList"
+      ],
+      "lineCount": 208,
+      "sizeBytes": 7639,
+      "notes": "area=publishing"
+    },
+    {
+      "path": "src/app/(internal)/internal/qa/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "QAPage",
+        "default"
+      ],
+      "imports": [
+        "@/lib/db",
+        "@/components/features/page-header",
+        "./qa-list"
+      ],
+      "importantSymbols": [
+        "QAPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 32,
+      "sizeBytes": 833,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/qa/qa-list.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "QAList"
+      ],
+      "imports": [
+        "next/link",
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/card",
+        "@/components/ui/button",
+        "@/components/features/status-badge"
+      ],
+      "importantSymbols": [
+        "QAList"
+      ],
+      "lineCount": 183,
+      "sizeBytes": 6089,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/rounds/[id]/actions.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "RoundActions"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/lib/labels-user"
+      ],
+      "importantSymbols": [
+        "RoundActions"
+      ],
+      "lineCount": 104,
+      "sizeBytes": 3209,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/rounds/[id]/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "RoundDetailPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "@/lib/db",
+        "@/components/features/page-header",
+        "@/components/features/status-badge",
+        "@/components/ui/card",
+        "@/lib/labels",
+        "@/lib/labels-user",
+        "./actions"
+      ],
+      "importantSymbols": [
+        "RoundDetailPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 230,
+      "sizeBytes": 9002,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/rounds/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "RoundsPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "@/lib/db",
+        "@/components/features/page-header",
+        "@/components/features/status-badge",
+        "@/components/ui/card",
+        "@/lib/labels",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "RoundsPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 55,
+      "sizeBytes": 1961,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/settings/admin-row.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "AdminRow"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button"
+      ],
+      "importantSymbols": [
+        "AdminRow"
+      ],
+      "lineCount": 98,
+      "sizeBytes": 2713,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/settings/create-admin-form.tsx",
+      "type": "unknown",
+      "area": "admin",
+      "exports": [
+        "CreateAdminForm"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button"
+      ],
+      "importantSymbols": [
+        "CreateAdminForm"
+      ],
+      "lineCount": 91,
+      "sizeBytes": 2799,
+      "notes": "area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/settings/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "SettingsPage",
+        "default"
+      ],
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "@/lib/auth",
+        "@/lib/db",
+        "@/components/features/page-header",
+        "@/components/ui/card",
+        "@/lib/labels",
+        "@/lib/utils",
+        "./create-admin-form",
+        "./admin-row"
+      ],
+      "importantSymbols": [
+        "SettingsPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 77,
+      "sizeBytes": 2174,
+      "notes": "Next.js App Router page; NextAuth session check; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/internal/videos/page.tsx",
+      "type": "page",
+      "area": "admin",
+      "exports": [
+        "dynamic",
+        "VideosPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "@/components/ui/card",
+        "@/components/features/page-header",
+        "@/lib/db",
+        "@/i18n/server"
+      ],
+      "importantSymbols": [
+        "VideosPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 131,
+      "sizeBytes": 3992,
+      "notes": "Next.js App Router page; area=admin"
+    },
+    {
+      "path": "src/app/(internal)/layout.tsx",
+      "type": "layout",
+      "area": "admin",
+      "exports": [
+        "InternalLayout",
+        "default"
+      ],
+      "imports": [
+        "@/components/layout/internal-sidebar",
+        "@/lib/api-auth",
+        "next/navigation"
+      ],
+      "importantSymbols": [
+        "InternalLayout",
+        "default"
+      ],
+      "lineCount": 25,
+      "sizeBytes": 650,
+      "notes": "Next.js App Router layout; area=admin"
+    },
+    {
+      "path": "src/app/(personal)/layout.tsx",
+      "type": "layout",
+      "area": "marketing-site",
+      "exports": [
+        "PersonalLayout",
+        "default"
+      ],
+      "imports": [
+        "@/components/layout/personal-sidebar",
+        "@/lib/api-auth",
+        "next/navigation"
+      ],
+      "importantSymbols": [
+        "PersonalLayout",
+        "default"
+      ],
+      "lineCount": 25,
+      "sizeBytes": 658,
+      "notes": "Next.js App Router layout; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/personal/billing/page.tsx",
+      "type": "page",
+      "area": "payments",
+      "exports": [
+        "BillingPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/coming-soon-hero"
+      ],
+      "importantSymbols": [
+        "BillingPage",
+        "default"
+      ],
+      "lineCount": 17,
+      "sizeBytes": 430,
+      "notes": "Next.js App Router page; area=payments"
+    },
+    {
+      "path": "src/app/(personal)/personal/create-video/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "CreateVideoPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/video-generation/unified-creative-input-shell"
+      ],
+      "importantSymbols": [
+        "CreateVideoPage",
+        "default"
+      ],
+      "lineCount": 16,
+      "sizeBytes": 533,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/personal/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "PersonalHomePage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "PersonalHomePage",
+        "default"
+      ],
+      "lineCount": 52,
+      "sizeBytes": 1874,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/personal/templates/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "TemplatesPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/coming-soon-hero"
+      ],
+      "importantSymbols": [
+        "TemplatesPage",
+        "default"
+      ],
+      "lineCount": 17,
+      "sizeBytes": 464,
+      "notes": "Next.js App Router page; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/personal/videos/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "dynamic",
+        "PersonalVideosPage",
+        "default"
+      ],
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "next/link",
+        "@/lib/auth",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "PersonalVideosPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 93,
+      "sizeBytes": 2960,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(public)/layout.tsx",
+      "type": "layout",
+      "area": "marketing-site",
+      "exports": [
+        "PublicLayout",
+        "default"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "PublicLayout",
+        "default"
+      ],
+      "lineCount": 16,
+      "sizeBytes": 315,
+      "notes": "Next.js App Router layout; area=marketing-site"
+    },
+    {
+      "path": "src/app/(public)/persona/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "PersonaPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "next-auth",
+        "@/lib/auth",
+        "@/components/ui/logo",
+        "./persona-card"
+      ],
+      "importantSymbols": [
+        "PersonaPage",
+        "default"
+      ],
+      "lineCount": 82,
+      "sizeBytes": 3235,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(public)/persona/persona-card.tsx",
+      "type": "unknown",
+      "area": "marketing-site",
+      "exports": [
+        "PersonaCard"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "react",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "PersonaCard"
+      ],
+      "lineCount": 96,
+      "sizeBytes": 2887,
+      "notes": "area=marketing-site"
+    },
+    {
+      "path": "src/app/(public)/showcase/experience-client.tsx",
+      "type": "unknown",
+      "area": "marketing-site",
+      "exports": [
+        "RealFootageDemoExperience"
+      ],
+      "imports": [
+        "react",
+        "next/link",
+        "lucide-react",
+        "@/components/ui/logo",
+        "@/components/demo/ai-script-section",
+        "@/components/demo/asset-qa-mock-section",
+        "@/components/demo/compliance-note",
+        "@/components/demo/creative-evidence-cards-section",
+        "@/components/demo/demo-hero",
+        "@/components/demo/demo-input-panel",
+        "@/components/demo/final-output-section",
+        "@/components/demo/local-product-sample-section",
+        "@/components/demo/reference-preview-section",
+        "@/components/demo/storyboard-grid",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./waitlist-form"
+      ],
+      "importantSymbols": [
+        "RealFootageDemoExperience"
+      ],
+      "lineCount": 148,
+      "sizeBytes": 5540,
+      "notes": "area=marketing-site"
+    },
+    {
+      "path": "src/app/(public)/showcase/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "metadata",
+        "RealFootageAdsDemoPage",
+        "default"
+      ],
+      "imports": [
+        "next",
+        "next-auth",
+        "@/lib/auth",
+        "./experience-client"
+      ],
+      "importantSymbols": [
+        "RealFootageAdsDemoPage",
+        "metadata",
+        "default"
+      ],
+      "lineCount": 30,
+      "sizeBytes": 1519,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(public)/showcase/waitlist-form.tsx",
+      "type": "unknown",
+      "area": "marketing-site",
+      "exports": [
+        "RealFootageWaitlistForm"
+      ],
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "RealFootageWaitlistForm"
+      ],
+      "lineCount": 149,
+      "sizeBytes": 4974,
+      "notes": "area=marketing-site"
+    },
+    {
+      "path": "src/app/api/ad-plans/[id]/render/route.ts",
+      "type": "api",
+      "area": "media-processing",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/ad-render-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 23,
+      "sizeBytes": 608,
+      "notes": "Next.js API route handler; area=media-processing"
+    },
+    {
+      "path": "src/app/api/admin/users/[id]/route.ts",
+      "type": "api",
+      "area": "admin",
+      "exports": [
+        "PATCH",
+        "DELETE"
+      ],
+      "imports": [
+        "next/server",
+        "bcryptjs",
+        "@/lib/api-auth",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "PATCH",
+        "DELETE"
+      ],
+      "lineCount": 47,
+      "sizeBytes": 1552,
+      "notes": "Next.js API route handler; area=admin"
+    },
+    {
+      "path": "src/app/api/admin/users/route.ts",
+      "type": "api",
+      "area": "admin",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "bcryptjs",
+        "@/lib/api-auth",
+        "@/lib/db",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 52,
+      "sizeBytes": 1582,
+      "notes": "Next.js API route handler; area=admin"
+    },
+    {
+      "path": "src/app/api/auth/[...nextauth]/route.ts",
+      "type": "api",
+      "area": "auth",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next-auth",
+        "@/lib/auth"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 7,
+      "sizeBytes": 161,
+      "notes": "Next.js API route handler; NextAuth session check; area=auth"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/ad-plan/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/ad-agent-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 23,
+      "sizeBytes": 627,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/qa/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/qa-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 586,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/render-retry/route.ts",
+      "type": "api",
+      "area": "media-processing",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/db",
+        "@/lib/services/video-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 64,
+      "sizeBytes": 2044,
+      "notes": "Next.js API route handler; area=media-processing"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/render-status/route.ts",
+      "type": "api",
+      "area": "media-processing",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/video-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 52,
+      "sizeBytes": 1505,
+      "notes": "Next.js API route handler; area=media-processing"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/render/route.ts",
+      "type": "api",
+      "area": "media-processing",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/ad-render-service",
+        "@/lib/services/video-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 39,
+      "sizeBytes": 1400,
+      "notes": "Next.js API route handler; area=media-processing"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "PATCH"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/db",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "GET",
+        "PATCH"
+      ],
+      "lineCount": 61,
+      "sizeBytes": 1774,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/scenes/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/scene-service",
+        "@/lib/services/prompt-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 27,
+      "sizeBytes": 835,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/briefs/[id]/script/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/script-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 620,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/cron/poll-videos/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/services/video-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 27,
+      "sizeBytes": 765,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/cron/stitch-videos/route.ts",
+      "type": "api",
+      "area": "ffmpeg",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/services/stitch-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 48,
+      "sizeBytes": 1786,
+      "notes": "Next.js API route handler; area=ffmpeg"
+    },
+    {
+      "path": "src/app/api/delivery-orders/[id]/assets/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@prisma/client",
+        "@/lib/api-auth",
+        "@/lib/services/asset-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 85,
+      "sizeBytes": 2374,
+      "notes": "Next.js API route handler; hits Prisma DB"
+    },
+    {
+      "path": "src/app/api/delivery-orders/[id]/research/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/discovery-service",
+        "@/lib/services/selling-point-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 31,
+      "sizeBytes": 944,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/delivery-orders/[id]/rounds/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/round-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 1122,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/delivery-orders/[id]/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "PATCH"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/order-service",
+        "@/lib/services/round-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "PATCH"
+      ],
+      "lineCount": 40,
+      "sizeBytes": 1322,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/delivery-orders/[id]/selling-points/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/selling-point-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 634,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/delivery-orders/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/order-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 37,
+      "sizeBytes": 1265,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
+      "type": "api",
+      "area": "real-footage-ads",
+      "exports": [
+        "runtime",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@prisma/client",
+        "zod",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "POST",
+        "runtime"
+      ],
+      "lineCount": 59,
+      "sizeBytes": 1640,
+      "notes": "Next.js API route handler; hits Prisma DB; area=real-footage-ads"
+    },
+    {
+      "path": "src/app/api/internal/stitch/claim/route.ts",
+      "type": "api",
+      "area": "ffmpeg",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/services/stitch-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 1194,
+      "notes": "Next.js API route handler; area=ffmpeg"
+    },
+    {
+      "path": "src/app/api/internal/stitch/complete/route.ts",
+      "type": "api",
+      "area": "ffmpeg",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/services/stitch-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 62,
+      "sizeBytes": 1865,
+      "notes": "Next.js API route handler; area=ffmpeg"
+    },
+    {
+      "path": "src/app/api/metrics/import/route.ts",
+      "type": "api",
+      "area": "metrics",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/metrics-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 61,
+      "sizeBytes": 1849,
+      "notes": "Next.js API route handler; area=metrics"
+    },
+    {
+      "path": "src/app/api/persona/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 40,
+      "sizeBytes": 1190,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/projects/[id]/logo/generate/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/services/logo-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 58,
+      "sizeBytes": 1714,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/projects/[id]/logo/select/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/services/logo-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 43,
+      "sizeBytes": 1064,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/publish/[id]/route.ts",
+      "type": "api",
+      "area": "publishing",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/publish-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 65,
+      "sizeBytes": 1852,
+      "notes": "Next.js API route handler; area=publishing"
+    },
+    {
+      "path": "src/app/api/publish/route.ts",
+      "type": "api",
+      "area": "publishing",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/publish-service"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 11,
+      "sizeBytes": 390,
+      "notes": "Next.js API route handler; area=publishing"
+    },
+    {
+      "path": "src/app/api/qa/[id]/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/qa-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 994,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/qa/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 30,
+      "sizeBytes": 817,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/raw-assets/[id]/preprocess/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/asset-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 32,
+      "sizeBytes": 948,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/rounds/[id]/ad-plans/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/ad-agent-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 32,
+      "sizeBytes": 981,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/rounds/[id]/angles/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/angle-service",
+        "@/lib/services/brief-service",
+        "@/lib/validators"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 1126,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/rounds/[id]/distill/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/distillation-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 618,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/rounds/[id]/iteration/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/iteration-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 23,
+      "sizeBytes": 636,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/rounds/[id]/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 49,
+      "sizeBytes": 1483,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/rounds/[id]/score/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/scoring-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 597,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/upload/blob/route.ts",
+      "type": "api",
+      "area": "blob-storage",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@vercel/blob",
+        "@/lib/api-auth"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 58,
+      "sizeBytes": 1964,
+      "notes": "Next.js API route handler; uses Vercel Blob storage; area=blob-storage"
+    },
+    {
+      "path": "src/app/api/video-generation/classify-asset/route.ts",
+      "type": "api",
+      "area": "video-generation",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/video-generation/asset-classifier",
+        "@/lib/schemas/unified-input"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 45,
+      "sizeBytes": 1582,
+      "notes": "Next.js API route handler; area=video-generation"
+    },
+    {
+      "path": "src/app/api/video-generation/dispatch/route.ts",
+      "type": "api",
+      "area": "video-generation",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@prisma/client",
+        "@/lib/api-auth",
+        "@/lib/db",
+        "@/lib/video-generation/generation-supervisor",
+        "@/lib/video-generation/plan-to-director",
+        "@/lib/services/video-service",
+        "@/lib/schemas/unified-input"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 222,
+      "sizeBytes": 7228,
+      "notes": "Next.js API route handler; hits Prisma DB; area=video-generation"
+    },
+    {
+      "path": "src/app/api/video-generation/plan/route.ts",
+      "type": "api",
+      "area": "video-generation",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/video-generation/generation-supervisor",
+        "@/lib/schemas/unified-input"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 49,
+      "sizeBytes": 1582,
+      "notes": "Next.js API route handler; area=video-generation"
+    },
+    {
+      "path": "src/app/error.tsx",
+      "type": "page",
+      "area": "unknown",
+      "exports": [
+        "ErrorPage",
+        "default"
+      ],
+      "imports": [
+        "react",
+        "next/link",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "ErrorPage",
+        "default"
+      ],
+      "lineCount": 50,
+      "sizeBytes": 1792,
+      "notes": "Next.js App Router page; client component"
+    },
+    {
+      "path": "src/app/globals.css",
+      "type": "style",
+      "area": "unknown",
+      "exports": [],
+      "imports": [
+        "tailwindcss",
+        "tw-animate-css",
+        "shadcn/tailwind.css"
+      ],
+      "importantSymbols": [],
+      "lineCount": 138,
+      "sizeBytes": 4618,
+      "notes": "Stylesheet"
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "type": "layout",
+      "area": "unknown",
+      "exports": [
+        "metadata",
+        "RootLayout",
+        "default"
+      ],
+      "imports": [
+        "next",
+        "next/font/google",
+        "next-auth",
+        "@/components/ui/sonner",
+        "@/components/providers/session-provider",
+        "@/i18n/I18nProvider",
+        "@/i18n/server",
+        "@/lib/auth",
+        "./globals.css"
+      ],
+      "importantSymbols": [
+        "RootLayout",
+        "metadata",
+        "default"
+      ],
+      "lineCount": 53,
+      "sizeBytes": 1479,
+      "notes": "Next.js App Router layout; NextAuth session check"
+    },
+    {
+      "path": "src/app/not-found.tsx",
+      "type": "page",
+      "area": "unknown",
+      "exports": [
+        "NotFoundPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "@/components/ui/logo"
+      ],
+      "importantSymbols": [
+        "NotFoundPage",
+        "default"
+      ],
+      "lineCount": 31,
+      "sizeBytes": 1229,
+      "notes": "Next.js App Router page"
+    },
+    {
+      "path": "src/app/page.tsx",
+      "type": "page",
+      "area": "unknown",
+      "exports": [
+        "HomePage",
+        "default"
+      ],
+      "imports": [
+        "next-auth",
+        "@/lib/auth",
+        "next/navigation"
+      ],
+      "importantSymbols": [
+        "HomePage",
+        "default"
+      ],
+      "lineCount": 33,
+      "sizeBytes": 860,
+      "notes": "Next.js App Router page; NextAuth session check"
+    },
+    {
+      "path": "src/components/coming-soon-hero.tsx",
+      "type": "component",
+      "area": "marketing-site",
+      "exports": [
+        "ComingSoonHero"
+      ],
+      "imports": [
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "ComingSoonHero"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 981,
+      "notes": "React component; area=marketing-site"
+    },
+    {
+      "path": "src/components/demo/ai-script-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "AIScriptSection"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "importantSymbols": [
+        "AIScriptSection"
+      ],
+      "lineCount": 153,
+      "sizeBytes": 6115,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/asset-qa-mock-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "AssetQAMockSection"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/utils",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "importantSymbols": [
+        "AssetQAMockSection"
+      ],
+      "lineCount": 223,
+      "sizeBytes": 7434,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/compliance-note.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "ComplianceNote"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data"
+      ],
+      "importantSymbols": [
+        "ComplianceNote"
+      ],
+      "lineCount": 39,
+      "sizeBytes": 1474,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/creative-evidence-cards-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "CreativeEvidenceCardsSection"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/utils",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "importantSymbols": [
+        "CreativeEvidenceCardsSection"
+      ],
+      "lineCount": 197,
+      "sizeBytes": 6167,
+      "notes": "React component; client component; area=demo"
+    },
+    {
+      "path": "src/components/demo/demo-hero.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "DemoHero"
+      ],
+      "imports": [
+        "next/link",
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./phone-video-mockup"
+      ],
+      "importantSymbols": [
+        "DemoHero"
+      ],
+      "lineCount": 116,
+      "sizeBytes": 5571,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/demo-input-panel.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "DemoInputPanel"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/lib/utils",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "importantSymbols": [
+        "DemoInputPanel"
+      ],
+      "lineCount": 191,
+      "sizeBytes": 5579,
+      "notes": "React component; client component; area=demo"
+    },
+    {
+      "path": "src/components/demo/demo-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "DemoSection",
+        "SampleDataBadge"
+      ],
+      "imports": [
+        "react",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "DemoSection",
+        "SampleDataBadge"
+      ],
+      "lineCount": 62,
+      "sizeBytes": 1685,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/final-output-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "FinalOutputSection"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section",
+        "./phone-video-mockup"
+      ],
+      "importantSymbols": [
+        "FinalOutputSection"
+      ],
+      "lineCount": 138,
+      "sizeBytes": 5857,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/local-product-sample-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "LocalProductSampleSection"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section",
+        "./phone-video-mockup"
+      ],
+      "importantSymbols": [
+        "LocalProductSampleSection"
+      ],
+      "lineCount": 103,
+      "sizeBytes": 4887,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/phone-video-mockup.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "PhoneVideoMockup"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "PhoneVideoMockup"
+      ],
+      "lineCount": 157,
+      "sizeBytes": 5820,
+      "notes": "React component; client component; area=demo"
+    },
+    {
+      "path": "src/components/demo/reference-preview-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "ReferencePreviewSection"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "importantSymbols": [
+        "ReferencePreviewSection"
+      ],
+      "lineCount": 161,
+      "sizeBytes": 5151,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/storyboard-grid.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "StoryboardGrid"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/lib/utils",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "importantSymbols": [
+        "StoryboardGrid"
+      ],
+      "lineCount": 218,
+      "sizeBytes": 7274,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/features/page-header.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "PageHeader"
+      ],
+      "imports": [
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "PageHeader"
+      ],
+      "lineCount": 23,
+      "sizeBytes": 631,
+      "notes": "React component"
+    },
+    {
+      "path": "src/components/features/render-progress.tsx",
+      "type": "component",
+      "area": "media-processing",
+      "exports": [
+        "RenderJobView",
+        "FinalVideoView",
+        "RenderSummaryView",
+        "RenderProgress"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "sonner",
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/features/status-badge",
+        "@/lib/labels-user",
+        "@/i18n/useTranslation",
+        "@/lib/services/video-service",
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "RenderJobView",
+        "FinalVideoView",
+        "RenderSummaryView",
+        "RenderProgress"
+      ],
+      "lineCount": 422,
+      "sizeBytes": 13356,
+      "notes": "React component; hits Prisma DB; client component; area=media-processing"
+    },
+    {
+      "path": "src/components/features/status-badge.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "StatusBadge",
+        "deliveryTone",
+        "briefTone",
+        "qaTone",
+        "publishTone"
+      ],
+      "imports": [
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "StatusBadge",
+        "deliveryTone",
+        "briefTone",
+        "qaTone",
+        "publishTone"
+      ],
+      "lineCount": 58,
+      "sizeBytes": 1899,
+      "notes": "React component"
+    },
+    {
+      "path": "src/components/layout/business-sidebar.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "BusinessSidebar"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "next-auth/react",
+        "lucide-react",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "BusinessSidebar"
+      ],
+      "lineCount": 98,
+      "sizeBytes": 3635,
+      "notes": "React component; NextAuth session check; client component"
+    },
+    {
+      "path": "src/components/layout/internal-sidebar.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "InternalSidebar"
+      ],
+      "imports": [
+        "react",
+        "next/link",
+        "next/navigation",
+        "next-auth/react",
+        "lucide-react",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
+        "@/i18n/I18nProvider",
+        "@/i18n/types",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "InternalSidebar"
+      ],
+      "lineCount": 174,
+      "sizeBytes": 6228,
+      "notes": "React component; NextAuth session check; client component"
+    },
+    {
+      "path": "src/components/layout/language-switcher.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "LanguageSwitcherProps",
+        "LanguageSwitcher"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/i18n/I18nProvider",
+        "@/i18n/config",
+        "@/lib/utils",
+        "@/components/ui/dropdown-menu"
+      ],
+      "importantSymbols": [
+        "LanguageSwitcherProps",
+        "LanguageSwitcher"
+      ],
+      "lineCount": 58,
+      "sizeBytes": 1713,
+      "notes": "React component; client component"
+    },
+    {
+      "path": "src/components/layout/personal-sidebar.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "PersonalSidebar"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "next-auth/react",
+        "lucide-react",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "PersonalSidebar"
+      ],
+      "lineCount": 87,
+      "sizeBytes": 3379,
+      "notes": "React component; NextAuth session check; client component"
+    },
+    {
+      "path": "src/components/providers/session-provider.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "AuthProvider"
+      ],
+      "imports": [
+        "next-auth/react",
+        "next-auth"
+      ],
+      "importantSymbols": [
+        "AuthProvider"
+      ],
+      "lineCount": 15,
+      "sizeBytes": 306,
+      "notes": "React component; NextAuth session check; client component"
+    },
+    {
+      "path": "src/components/ui/badge.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Badge",
+        "badgeVariants"
+      ],
+      "imports": [
+        "@base-ui/react/merge-props",
+        "@base-ui/react/use-render",
+        "class-variance-authority",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Badge",
+        "badgeVariants"
+      ],
+      "lineCount": 53,
+      "sizeBytes": 1925,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/button.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Button",
+        "buttonVariants"
+      ],
+      "imports": [
+        "@base-ui/react/button",
+        "class-variance-authority",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Button",
+        "buttonVariants"
+      ],
+      "lineCount": 59,
+      "sizeBytes": 3197,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/card.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Card",
+        "CardHeader",
+        "CardFooter",
+        "CardTitle",
+        "CardAction",
+        "CardDescription",
+        "CardContent"
+      ],
+      "imports": [
+        "react",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Card",
+        "CardHeader",
+        "CardFooter",
+        "CardTitle",
+        "CardAction",
+        "CardDescription",
+        "CardContent"
+      ],
+      "lineCount": 104,
+      "sizeBytes": 2641,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/dialog.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Dialog",
+        "DialogClose",
+        "DialogContent",
+        "DialogDescription",
+        "DialogFooter",
+        "DialogHeader",
+        "DialogOverlay",
+        "DialogPortal",
+        "DialogTitle",
+        "DialogTrigger"
+      ],
+      "imports": [
+        "react",
+        "@base-ui/react/dialog",
+        "@/lib/utils",
+        "@/components/ui/button",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "Dialog",
+        "DialogClose",
+        "DialogContent",
+        "DialogDescription",
+        "DialogFooter",
+        "DialogHeader",
+        "DialogOverlay",
+        "DialogPortal"
+      ],
+      "lineCount": 161,
+      "sizeBytes": 4075,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/dropdown-menu.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "DropdownMenu",
+        "DropdownMenuPortal",
+        "DropdownMenuTrigger",
+        "DropdownMenuContent",
+        "DropdownMenuGroup",
+        "DropdownMenuLabel",
+        "DropdownMenuItem",
+        "DropdownMenuCheckboxItem",
+        "DropdownMenuRadioGroup",
+        "DropdownMenuRadioItem",
+        "DropdownMenuSeparator",
+        "DropdownMenuShortcut",
+        "DropdownMenuSub",
+        "DropdownMenuSubTrigger",
+        "DropdownMenuSubContent"
+      ],
+      "imports": [
+        "react",
+        "@base-ui/react/menu",
+        "@/lib/utils",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "DropdownMenu",
+        "DropdownMenuPortal",
+        "DropdownMenuTrigger",
+        "DropdownMenuContent",
+        "DropdownMenuGroup",
+        "DropdownMenuLabel",
+        "DropdownMenuItem",
+        "DropdownMenuCheckboxItem"
+      ],
+      "lineCount": 269,
+      "sizeBytes": 8736,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/input.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Input"
+      ],
+      "imports": [
+        "react",
+        "@base-ui/react/input",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Input"
+      ],
+      "lineCount": 21,
+      "sizeBytes": 1040,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/logo.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Logo"
+      ],
+      "imports": [
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Logo"
+      ],
+      "lineCount": 41,
+      "sizeBytes": 1102,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/progress.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Progress",
+        "ProgressTrack",
+        "ProgressIndicator",
+        "ProgressLabel",
+        "ProgressValue"
+      ],
+      "imports": [
+        "@base-ui/react/progress",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Progress",
+        "ProgressTrack",
+        "ProgressIndicator",
+        "ProgressLabel",
+        "ProgressValue"
+      ],
+      "lineCount": 84,
+      "sizeBytes": 1740,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/scroll-area.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "ScrollArea",
+        "ScrollBar"
+      ],
+      "imports": [
+        "react",
+        "@base-ui/react/scroll-area",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "ScrollArea",
+        "ScrollBar"
+      ],
+      "lineCount": 56,
+      "sizeBytes": 1624,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/select.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Select",
+        "SelectContent",
+        "SelectGroup",
+        "SelectItem",
+        "SelectLabel",
+        "SelectScrollDownButton",
+        "SelectScrollUpButton",
+        "SelectSeparator",
+        "SelectTrigger",
+        "SelectValue"
+      ],
+      "imports": [
+        "react",
+        "@base-ui/react/select",
+        "@/lib/utils",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "Select",
+        "SelectContent",
+        "SelectGroup",
+        "SelectItem",
+        "SelectLabel",
+        "SelectScrollDownButton",
+        "SelectScrollUpButton",
+        "SelectSeparator"
+      ],
+      "lineCount": 202,
+      "sizeBytes": 6655,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/separator.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Separator"
+      ],
+      "imports": [
+        "@base-ui/react/separator",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Separator"
+      ],
+      "lineCount": 26,
+      "sizeBytes": 545,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/sheet.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Sheet",
+        "SheetTrigger",
+        "SheetClose",
+        "SheetContent",
+        "SheetHeader",
+        "SheetFooter",
+        "SheetTitle",
+        "SheetDescription"
+      ],
+      "imports": [
+        "react",
+        "@base-ui/react/dialog",
+        "@/lib/utils",
+        "@/components/ui/button",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "Sheet",
+        "SheetTrigger",
+        "SheetClose",
+        "SheetContent",
+        "SheetHeader",
+        "SheetFooter",
+        "SheetTitle",
+        "SheetDescription"
+      ],
+      "lineCount": 139,
+      "sizeBytes": 4433,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/skeleton.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Skeleton"
+      ],
+      "imports": [
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Skeleton"
+      ],
+      "lineCount": 14,
+      "sizeBytes": 275,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/sonner.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Toaster"
+      ],
+      "imports": [
+        "next-themes",
+        "sonner",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "Toaster"
+      ],
+      "lineCount": 50,
+      "sizeBytes": 1226,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/textarea.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Textarea"
+      ],
+      "imports": [
+        "react",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Textarea"
+      ],
+      "lineCount": 19,
+      "sizeBytes": 842,
+      "notes": "React component; area=shared-ui"
+    },
+    {
+      "path": "src/components/ui/tooltip.tsx",
+      "type": "component",
+      "area": "shared-ui",
+      "exports": [
+        "Tooltip",
+        "TooltipTrigger",
+        "TooltipContent",
+        "TooltipProvider"
+      ],
+      "imports": [
+        "@base-ui/react/tooltip",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "Tooltip",
+        "TooltipTrigger",
+        "TooltipContent",
+        "TooltipProvider"
+      ],
+      "lineCount": 67,
+      "sizeBytes": 2846,
+      "notes": "React component; client component; area=shared-ui"
+    },
+    {
+      "path": "src/components/video-generation/attachment-uploader.tsx",
+      "type": "component",
+      "area": "upload",
+      "exports": [
+        "AttachmentUploader"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "AttachmentUploader"
+      ],
+      "lineCount": 291,
+      "sizeBytes": 9695,
+      "notes": "React component; client component; area=upload"
+    },
+    {
+      "path": "src/components/video-generation/plan-preview-card.tsx",
+      "type": "component",
+      "area": "video-generation",
+      "exports": [
+        "PlanPreviewCard"
+      ],
+      "imports": [
+        "lucide-react",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "PlanPreviewCard"
+      ],
+      "lineCount": 153,
+      "sizeBytes": 5535,
+      "notes": "React component; client component; area=video-generation"
+    },
+    {
+      "path": "src/components/video-generation/unified-creative-input-shell.tsx",
+      "type": "component",
+      "area": "video-generation",
+      "exports": [
+        "UnifiedCreativeInputShell"
+      ],
+      "imports": [
+        "@/components/video-generation/unified-creative-input"
+      ],
+      "importantSymbols": [
+        "UnifiedCreativeInputShell"
+      ],
+      "lineCount": 14,
+      "sizeBytes": 460,
+      "notes": "React component; area=video-generation"
+    },
+    {
+      "path": "src/components/video-generation/unified-creative-input.tsx",
+      "type": "component",
+      "area": "video-generation",
+      "exports": [
+        "UnifiedCreativeInput"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react",
+        "@/components/video-generation/attachment-uploader",
+        "@/components/video-generation/plan-preview-card",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "UnifiedCreativeInput"
+      ],
+      "lineCount": 293,
+      "sizeBytes": 10567,
+      "notes": "React component; client component; area=video-generation"
+    },
+    {
+      "path": "src/components/wizard/logo-generator-dialog.tsx",
+      "type": "component",
+      "area": "wizard",
+      "exports": [
+        "LogoGeneratorDialogProps",
+        "LogoGeneratorDialog"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/i18n/useTranslation",
+        "@/components/ui/dialog",
+        "@/components/ui/button",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
+        "@/lib/services/logo-service",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "LogoGeneratorDialogProps",
+        "LogoGeneratorDialog"
+      ],
+      "lineCount": 311,
+      "sizeBytes": 10224,
+      "notes": "React component; client component; area=wizard"
+    },
+    {
+      "path": "src/i18n/__fixtures__/copy-audit.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "CopyAuditEntry",
+        "COPY_AUDIT_TABLE",
+        "collectForbidden",
+        "PRIMARY_UI_PATHS"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "CopyAuditEntry",
+        "COPY_AUDIT_TABLE",
+        "PRIMARY_UI_PATHS",
+        "collectForbidden"
+      ],
+      "lineCount": 142,
+      "sizeBytes": 4690,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/config.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "LOCALES",
+        "Locale",
+        "DEFAULT_LOCALE",
+        "LOCALE_COOKIE",
+        "LOCALE_STORAGE_KEY",
+        "LOCALE_LABELS",
+        "isLocale",
+        "normalizeLocale"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "LOCALES",
+        "Locale",
+        "DEFAULT_LOCALE",
+        "LOCALE_COOKIE",
+        "LOCALE_STORAGE_KEY",
+        "LOCALE_LABELS",
+        "isLocale",
+        "normalizeLocale"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 682,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/dictionaries/en-US.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "enUS",
+        "default"
+      ],
+      "imports": [
+        "../types"
+      ],
+      "importantSymbols": [
+        "enUS",
+        "default"
+      ],
+      "lineCount": 566,
+      "sizeBytes": 19796,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/dictionaries/index.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "DICTIONARIES",
+        "getDictionary"
+      ],
+      "imports": [
+        "../types",
+        "./zh-CN",
+        "./en-US",
+        "../config"
+      ],
+      "importantSymbols": [
+        "DICTIONARIES",
+        "getDictionary"
+      ],
+      "lineCount": 14,
+      "sizeBytes": 364,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/dictionaries/zh-CN.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "zhCN",
+        "default"
+      ],
+      "imports": [
+        "../types"
+      ],
+      "importantSymbols": [
+        "zhCN",
+        "default"
+      ],
+      "lineCount": 551,
+      "sizeBytes": 19614,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/I18nProvider.tsx",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "I18nProviderProps",
+        "I18nProvider",
+        "useI18n"
+      ],
+      "imports": [
+        "react",
+        "./config",
+        "./dictionaries",
+        "./translate",
+        "./types"
+      ],
+      "importantSymbols": [
+        "I18nProviderProps",
+        "I18nProvider",
+        "useI18n"
+      ],
+      "lineCount": 123,
+      "sizeBytes": 3309,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/index.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "I18nProvider",
+        "useI18n",
+        "useTranslation",
+        "DEFAULT_LOCALE",
+        "LOCALE_COOKIE",
+        "LOCALE_LABELS",
+        "LOCALE_STORAGE_KEY",
+        "LOCALES",
+        "isLocale",
+        "normalizeLocale",
+        "translate",
+        "lookup",
+        "interpolate",
+        "getDictionary",
+        "DICTIONARIES"
+      ],
+      "imports": [
+        "./I18nProvider",
+        "./useTranslation",
+        "./config",
+        "./translate",
+        "./dictionaries"
+      ],
+      "importantSymbols": [
+        "I18nProvider",
+        "useI18n",
+        "useTranslation",
+        "DEFAULT_LOCALE",
+        "LOCALE_COOKIE",
+        "LOCALE_LABELS",
+        "LOCALE_STORAGE_KEY",
+        "LOCALES"
+      ],
+      "lineCount": 16,
+      "sizeBytes": 474,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/server.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "getServerLocale",
+        "getServerTranslator"
+      ],
+      "imports": [
+        "next/headers",
+        "./config",
+        "./dictionaries",
+        "./translate",
+        "./types"
+      ],
+      "importantSymbols": [
+        "getServerLocale",
+        "getServerTranslator"
+      ],
+      "lineCount": 32,
+      "sizeBytes": 955,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/translate.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "lookup",
+        "interpolate",
+        "translate"
+      ],
+      "imports": [
+        "./types"
+      ],
+      "importantSymbols": [
+        "lookup",
+        "interpolate",
+        "translate"
+      ],
+      "lineCount": 36,
+      "sizeBytes": 1084,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/types.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "Dictionary",
+        "DotPath",
+        "TranslationKey"
+      ],
+      "imports": [
+        "./dictionaries/zh-CN"
+      ],
+      "importantSymbols": [
+        "Dictionary",
+        "DotPath",
+        "TranslationKey"
+      ],
+      "lineCount": 464,
+      "sizeBytes": 10786,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/i18n/useTranslation.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "exports": [
+        "useTranslation"
+      ],
+      "imports": [
+        "./I18nProvider"
+      ],
+      "importantSymbols": [
+        "useTranslation"
+      ],
+      "lineCount": 9,
+      "sizeBytes": 176,
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/lib/api-auth.ts",
+      "type": "util",
+      "area": "auth",
+      "exports": [
+        "AuthGuardResult",
+        "requireAuth",
+        "requireRole",
+        "requireSuperAdmin",
+        "requireOperator",
+        "requireReviewer",
+        "requirePageRole",
+        "requireWizardPage",
+        "requireBusinessUser",
+        "requirePersonalUser",
+        "requireInternal"
+      ],
+      "imports": [
+        "next-auth",
+        "next/server",
+        "next/navigation",
+        "@/lib/auth"
+      ],
+      "importantSymbols": [
+        "AuthGuardResult",
+        "requireAuth",
+        "requireRole",
+        "requireSuperAdmin",
+        "requireOperator",
+        "requireReviewer",
+        "requirePageRole",
+        "requireWizardPage"
+      ],
+      "lineCount": 103,
+      "sizeBytes": 3225,
+      "notes": "Utility / helper module; NextAuth session check; area=auth"
+    },
+    {
+      "path": "src/lib/auth.ts",
+      "type": "util",
+      "area": "auth",
+      "exports": [
+        "authOptions"
+      ],
+      "imports": [
+        "next-auth",
+        "next-auth/providers/credentials",
+        "bcryptjs",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "authOptions"
+      ],
+      "lineCount": 102,
+      "sizeBytes": 3099,
+      "notes": "Utility / helper module; NextAuth session check; area=auth"
+    },
+    {
+      "path": "src/lib/config/blanket-themes.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "ExplorationTheme",
+        "BLANKET_THEME_POOL",
+        "getThemeByKey",
+        "pickExplorationThemes"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "ExplorationTheme",
+        "BLANKET_THEME_POOL",
+        "getThemeByKey",
+        "pickExplorationThemes"
+      ],
+      "lineCount": 78,
+      "sizeBytes": 2972,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/config/industry-defaults.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "getDefaultThemesForIndustry",
+        "getTopThemeKeysForIndustry"
+      ],
+      "imports": [
+        "@/lib/config/blanket-themes",
+        "@/lib/schemas/creative-evidence"
+      ],
+      "importantSymbols": [
+        "getDefaultThemesForIndustry",
+        "getTopThemeKeysForIndustry"
+      ],
+      "lineCount": 120,
+      "sizeBytes": 3948,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/config/qa-criteria.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "QA_CRITERIA",
+        "QACriterionKey",
+        "QAScoreBreakdown",
+        "calcOverallScore",
+        "deriveReviewRoute"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "QA_CRITERIA",
+        "QACriterionKey",
+        "QAScoreBreakdown",
+        "calcOverallScore",
+        "deriveReviewRoute"
+      ],
+      "lineCount": 41,
+      "sizeBytes": 1350,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/config/scoring-weights.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "CONTENT_SCORE_WEIGHTS",
+        "ContentMetricKey",
+        "normalizeContentMetrics",
+        "calcContentScore",
+        "calcCompositeScore"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "CONTENT_SCORE_WEIGHTS",
+        "ContentMetricKey",
+        "normalizeContentMetrics",
+        "calcContentScore",
+        "calcCompositeScore"
+      ],
+      "lineCount": 80,
+      "sizeBytes": 2556,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/data/demo-seed.ts",
+      "type": "util",
+      "area": "demo",
+      "exports": [
+        "DEMO_SEED_INPUT",
+        "DEMO_SEED_RESULT",
+        "DEMO_SEED_VIDEO_URL",
+        "DEMO_SEED_VIDEO_THUMBNAIL",
+        "DEMO_SEED_VIDEO_DURATION_SEC",
+        "DEMO_SEED_VIDEO_SUBTITLE_URL",
+        "DEMO_SEED_BACKGROUND_VIDEO_URL",
+        "DEMO_SEED_AVATAR_ID"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "DEMO_SEED_INPUT",
+        "DEMO_SEED_RESULT",
+        "DEMO_SEED_VIDEO_URL",
+        "DEMO_SEED_VIDEO_THUMBNAIL",
+        "DEMO_SEED_VIDEO_DURATION_SEC",
+        "DEMO_SEED_VIDEO_SUBTITLE_URL",
+        "DEMO_SEED_BACKGROUND_VIDEO_URL",
+        "DEMO_SEED_AVATAR_ID"
+      ],
+      "lineCount": 160,
+      "sizeBytes": 6469,
+      "notes": "Utility / helper module; area=demo"
+    },
+    {
+      "path": "src/lib/db.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "db"
+      ],
+      "imports": [
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "db"
+      ],
+      "lineCount": 14,
+      "sizeBytes": 351,
+      "notes": "Utility / helper module; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/demo/ai-video-workflow-demo-data.ts",
+      "type": "util",
+      "area": "demo",
+      "exports": [
+        "SAMPLE_DATA_BADGE_LABEL",
+        "SAMPLE_DATA_DISCLAIMER",
+        "SELECTED_CARD_DEFAULT_SLUG",
+        "PRODUCT_WALKTHROUGH_VIDEO_URL",
+        "MainConceptVideoConfig",
+        "mainConceptVideo",
+        "REAL_ESTATE_MAIN_30S_PLACEHOLDER_POSTER_URL",
+        "DemoProjectInput",
+        "demoProject",
+        "CreativeEvidenceCardDemo",
+        "creativeEvidenceCards",
+        "CreativeEvidenceCardSlug",
+        "ReferencePreviewDemo",
+        "referencePreviews",
+        "REFERENCE_COMPLIANCE_TEXT",
+        "REFERENCE_COMPLIANCE_TEXT_EN",
+        "ScriptCaptionDemo",
+        "GeneratedScriptDemo",
+        "generatedScript",
+        "StoryboardShotDemo",
+        "storyboardShots",
+        "AssetQAResultDemo",
+        "assetQAResults",
+        "FinalOutputDemo",
+        "finalOutputs",
+        "LocalProductBeat",
+        "LocalProductSampleDemo",
+        "localProductSample",
+        "LEGACY_PET_STORE_VIDEO_URL",
+        "LEGACY_PET_STORE_THUMBNAIL_URL"
+      ],
+      "imports": [
+        "@/lib/data/demo-seed"
+      ],
+      "importantSymbols": [
+        "SAMPLE_DATA_BADGE_LABEL",
+        "SAMPLE_DATA_DISCLAIMER",
+        "SELECTED_CARD_DEFAULT_SLUG",
+        "PRODUCT_WALKTHROUGH_VIDEO_URL",
+        "MainConceptVideoConfig",
+        "REAL_ESTATE_MAIN_30S_PLACEHOLDER_POSTER_URL",
+        "DemoProjectInput",
+        "CreativeEvidenceCardDemo"
+      ],
+      "lineCount": 1054,
+      "sizeBytes": 37403,
+      "notes": "Utility / helper module; area=demo"
+    },
+    {
+      "path": "src/lib/duration/segment-planner.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "SUPPORTED_DURATIONS_SEC",
+        "SupportedDurationSec",
+        "SEEDANCE_SEGMENT_MAX_SEC",
+        "DEFAULT_TARGET_DURATION_SEC",
+        "SegmentSlot",
+        "SegmentRole",
+        "planSegments",
+        "requiresStitching",
+        "normalizeDuration",
+        "DurationOption",
+        "DURATION_OPTIONS"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "SUPPORTED_DURATIONS_SEC",
+        "SupportedDurationSec",
+        "SEEDANCE_SEGMENT_MAX_SEC",
+        "DEFAULT_TARGET_DURATION_SEC",
+        "SegmentSlot",
+        "SegmentRole",
+        "DurationOption",
+        "DURATION_OPTIONS"
+      ],
+      "lineCount": 139,
+      "sizeBytes": 4448,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/labels-user.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "BRIEF_USER_LABELS",
+        "VIDEO_JOB_USER_LABELS",
+        "VIDEO_JOB_USER_HELPER",
+        "VIDEO_PROGRESS_STEPS",
+        "QA_USER_LABELS",
+        "QA_ROUTE_USER_LABELS",
+        "ANGLE_TYPE_USER_LABELS",
+        "ACTION_BUTTON_LABELS",
+        "COMMON_USER_TERMS",
+        "briefStatusToProgressIndex",
+        "AngleProgressBucket",
+        "bucketBriefForParentSummary",
+        "VIDEO_JOB_STATUS_USER_LABELS",
+        "videoJobStatusTone"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/services/video-service"
+      ],
+      "importantSymbols": [
+        "BRIEF_USER_LABELS",
+        "VIDEO_JOB_USER_LABELS",
+        "VIDEO_JOB_USER_HELPER",
+        "VIDEO_PROGRESS_STEPS",
+        "QA_USER_LABELS",
+        "QA_ROUTE_USER_LABELS",
+        "ANGLE_TYPE_USER_LABELS",
+        "ACTION_BUTTON_LABELS"
+      ],
+      "lineCount": 216,
+      "sizeBytes": 7126,
+      "notes": "Utility / helper module; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/labels.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "DELIVERY_ORDER_LABELS",
+        "ROUND_LABELS",
+        "BRIEF_LABELS",
+        "QA_LABELS",
+        "PUBLISH_LABELS",
+        "RESEARCH_LABELS",
+        "VIDEO_JOB_LABELS",
+        "ROLE_LABELS",
+        "ANGLE_TYPE_LABELS",
+        "ON_CAMERA_LABELS",
+        "briefStatusTone"
+      ],
+      "imports": [
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "DELIVERY_ORDER_LABELS",
+        "ROUND_LABELS",
+        "BRIEF_LABELS",
+        "QA_LABELS",
+        "PUBLISH_LABELS",
+        "RESEARCH_LABELS",
+        "VIDEO_JOB_LABELS",
+        "ROLE_LABELS"
+      ],
+      "lineCount": 121,
+      "sizeBytes": 3163,
+      "notes": "Utility / helper module; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/prompts/client-script.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "PROMPT_VERSION",
+        "CLIENT_SCRIPT_SYSTEM",
+        "ClientScriptInput",
+        "buildClientScriptUser",
+        "defaultLanguageForIndustry",
+        "mockClientScript"
+      ],
+      "imports": [
+        "./index",
+        "@/lib/schemas/client-brief",
+        "@/lib/schemas/creative-evidence",
+        "@/lib/schemas/script-output"
+      ],
+      "importantSymbols": [
+        "PROMPT_VERSION",
+        "CLIENT_SCRIPT_SYSTEM",
+        "ClientScriptInput",
+        "buildClientScriptUser",
+        "defaultLanguageForIndustry",
+        "mockClientScript"
+      ],
+      "lineCount": 191,
+      "sizeBytes": 7366,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/prompts/creative-evidence-breakdown.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "PROMPT_VERSION",
+        "CREATIVE_EVIDENCE_BREAKDOWN_SYSTEM",
+        "CreativeEvidenceBreakdownInput",
+        "buildCreativeEvidenceBreakdownUser",
+        "mockCreativeEvidenceBreakdown"
+      ],
+      "imports": [
+        "./index",
+        "@/lib/schemas/creative-evidence"
+      ],
+      "importantSymbols": [
+        "PROMPT_VERSION",
+        "CREATIVE_EVIDENCE_BREAKDOWN_SYSTEM",
+        "CreativeEvidenceBreakdownInput",
+        "buildCreativeEvidenceBreakdownUser",
+        "mockCreativeEvidenceBreakdown"
+      ],
+      "lineCount": 134,
+      "sizeBytes": 5828,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/prompts/index.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "PROMPT_VERSIONS",
+        "PromptKey"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "PROMPT_VERSIONS",
+        "PromptKey"
+      ],
+      "lineCount": 15,
+      "sizeBytes": 413,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/providers/apify-tiktok.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "TikTokVideoSample",
+        "TikTokCommentSample",
+        "TikTokResearchSignals",
+        "isApifyAvailable",
+        "fetchTikTokSignals",
+        "fetchTikTokPostSignals"
+      ],
+      "imports": [
+        "apify-client"
+      ],
+      "importantSymbols": [
+        "TikTokVideoSample",
+        "TikTokCommentSample",
+        "TikTokResearchSignals",
+        "isApifyAvailable",
+        "fetchTikTokSignals",
+        "fetchTikTokPostSignals"
+      ],
+      "lineCount": 343,
+      "sizeBytes": 11154,
+      "notes": "External API provider wrapper; area=ai-providers"
+    },
+    {
+      "path": "src/lib/providers/openai-image.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "ImageSize",
+        "GenerateImagesArgs",
+        "GenerateImagesResult",
+        "isImageGenAvailable",
+        "generateImages",
+        "buildLogoPrompt",
+        "__test__"
+      ],
+      "imports": [
+        "openai",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [
+        "ImageSize",
+        "GenerateImagesArgs",
+        "GenerateImagesResult",
+        "isImageGenAvailable",
+        "generateImages",
+        "buildLogoPrompt",
+        "__test__"
+      ],
+      "lineCount": 174,
+      "sizeBytes": 5094,
+      "notes": "External API provider wrapper; uses OpenAI SDK; uses Vercel Blob storage; area=ai-providers"
+    },
+    {
+      "path": "src/lib/providers/openai.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "openai",
+        "OpenAITier",
+        "resolveModelForTier",
+        "resolveFallbackChain",
+        "TokenUsage",
+        "ChatJsonOptions",
+        "ChatJsonResult",
+        "ChatJsonByTierOptions",
+        "buildTokenLimitParam",
+        "buildTemperatureParam",
+        "isLLMForcedMock",
+        "chatJson",
+        "chatJsonByTier",
+        "analyzeImages",
+        "isLLMAvailable",
+        "__test__"
+      ],
+      "imports": [
+        "openai"
+      ],
+      "importantSymbols": [
+        "OpenAITier",
+        "TokenUsage",
+        "ChatJsonOptions",
+        "ChatJsonResult",
+        "ChatJsonByTierOptions",
+        "openai",
+        "resolveModelForTier",
+        "resolveFallbackChain"
+      ],
+      "lineCount": 402,
+      "sizeBytes": 13386,
+      "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
+    },
+    {
+      "path": "src/lib/providers/remove-bg.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "ProcessImageResult",
+        "processReferenceImage",
+        "processReferenceImages"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "ProcessImageResult",
+        "processReferenceImage",
+        "processReferenceImages"
+      ],
+      "lineCount": 40,
+      "sizeBytes": 959,
+      "notes": "External API provider wrapper; area=ai-providers"
+    },
+    {
+      "path": "src/lib/providers/seedance.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "SeedanceSubmitOptions",
+        "SeedanceStatus",
+        "SeedanceJobResult",
+        "isSeedanceConfigured",
+        "submitSeedanceJob",
+        "getSeedanceStatus",
+        "__test__"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "SeedanceSubmitOptions",
+        "SeedanceStatus",
+        "SeedanceJobResult",
+        "isSeedanceConfigured",
+        "submitSeedanceJob",
+        "getSeedanceStatus",
+        "__test__"
+      ],
+      "lineCount": 269,
+      "sizeBytes": 8284,
+      "notes": "External API provider wrapper; calls Seedance video generator; area=ai-providers"
+    },
+    {
+      "path": "src/lib/schemas/ad-edit-plan.ts",
+      "type": "schema",
+      "area": "media-processing",
+      "exports": [
+        "timelineClipRoleSchema",
+        "timelineClipSchema",
+        "timelineTextSchema",
+        "timelineOverlaySchema",
+        "adEditTimelineSchema",
+        "directorOutputSchema",
+        "reviewerOutputSchema",
+        "TimelineClip",
+        "AdEditTimeline",
+        "DirectorOutput",
+        "ReviewerOutput",
+        "parseAdEditTimeline",
+        "parseDirectorOutput",
+        "parseReviewerOutput"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "TimelineClip",
+        "AdEditTimeline",
+        "DirectorOutput",
+        "ReviewerOutput",
+        "timelineClipRoleSchema",
+        "timelineClipSchema",
+        "timelineTextSchema",
+        "timelineOverlaySchema"
+      ],
+      "lineCount": 124,
+      "sizeBytes": 4275,
+      "notes": "Schema / validation; area=media-processing"
+    },
+    {
+      "path": "src/lib/schemas/asset-qa.ts",
+      "type": "schema",
+      "area": "shared",
+      "exports": [
+        "QA_CHECK_RULES",
+        "QACheckRule",
+        "qaCheckSchema",
+        "qaResultSchema",
+        "QAResult",
+        "QACheck",
+        "missingShotSchema",
+        "missingShotReportSchema",
+        "MissingShotReport",
+        "MissingShotRow",
+        "parseQAResult",
+        "parseMissingShotReport"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "QA_CHECK_RULES",
+        "QACheckRule",
+        "QAResult",
+        "QACheck",
+        "MissingShotReport",
+        "MissingShotRow",
+        "qaCheckSchema",
+        "qaResultSchema"
+      ],
+      "lineCount": 107,
+      "sizeBytes": 3574,
+      "notes": "Schema / validation"
+    },
+    {
+      "path": "src/lib/schemas/client-brief.ts",
+      "type": "schema",
+      "area": "shared",
+      "exports": [
+        "VIDEO_LENGTHS",
+        "VideoLength",
+        "BRAND_TONES",
+        "BrandTone",
+        "brandAssetsSchema",
+        "clientBriefSchema",
+        "ClientBrief",
+        "clientBriefPatchSchema",
+        "ClientBriefPatch",
+        "parseClientBrief",
+        "parseClientBriefPatch"
+      ],
+      "imports": [
+        "zod",
+        "./creative-evidence"
+      ],
+      "importantSymbols": [
+        "VIDEO_LENGTHS",
+        "VideoLength",
+        "BRAND_TONES",
+        "BrandTone",
+        "ClientBrief",
+        "ClientBriefPatch",
+        "brandAssetsSchema",
+        "clientBriefSchema"
+      ],
+      "lineCount": 119,
+      "sizeBytes": 3611,
+      "notes": "Schema / validation"
+    },
+    {
+      "path": "src/lib/schemas/creative-evidence.ts",
+      "type": "schema",
+      "area": "shared",
+      "exports": [
+        "CREATIVE_INDUSTRIES",
+        "CreativeIndustry",
+        "CREATIVE_PLATFORMS",
+        "CreativePlatform",
+        "CREATIVE_OBJECTIVES",
+        "CreativeObjective",
+        "HOOK_TYPES",
+        "HookType",
+        "publicMetricsSchema",
+        "hookPatternSchema",
+        "structureSegmentSchema",
+        "structureBreakdownSchema",
+        "creativeEvidenceCardCoreSchema",
+        "CreativeEvidenceCardCore",
+        "creativeEvidenceBreakdownLLMSchema",
+        "CreativeEvidenceBreakdownLLM",
+        "parseCreativeEvidenceCardCore",
+        "parseCreativeEvidenceBreakdown"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "CREATIVE_INDUSTRIES",
+        "CreativeIndustry",
+        "CREATIVE_PLATFORMS",
+        "CreativePlatform",
+        "CREATIVE_OBJECTIVES",
+        "CreativeObjective",
+        "HOOK_TYPES",
+        "HookType"
+      ],
+      "lineCount": 176,
+      "sizeBytes": 5766,
+      "notes": "Schema / validation"
+    },
+    {
+      "path": "src/lib/schemas/director-plan.ts",
+      "type": "schema",
+      "area": "shared",
+      "exports": [
+        "DIRECTOR_PROMPT_VERSION",
+        "timelineBlockSchema",
+        "segmentPlanSchema",
+        "editingPlanSchema",
+        "directorPlanSchema",
+        "TimelineBlock",
+        "SegmentPlan",
+        "EditingPlan",
+        "DirectorPlan",
+        "parseDirectorPlan",
+        "safeParseDirectorPlan"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "DIRECTOR_PROMPT_VERSION",
+        "TimelineBlock",
+        "SegmentPlan",
+        "EditingPlan",
+        "DirectorPlan",
+        "timelineBlockSchema",
+        "segmentPlanSchema",
+        "editingPlanSchema"
+      ],
+      "lineCount": 107,
+      "sizeBytes": 4002,
+      "notes": "Schema / validation"
+    },
+    {
+      "path": "src/lib/schemas/script-output.ts",
+      "type": "schema",
+      "area": "shared",
+      "exports": [
+        "scriptCaptionSchema",
+        "scriptOutputSchema",
+        "ScriptOutput",
+        "ScriptCaption",
+        "parseScriptOutput"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "ScriptOutput",
+        "ScriptCaption",
+        "scriptCaptionSchema",
+        "scriptOutputSchema",
+        "parseScriptOutput"
+      ],
+      "lineCount": 59,
+      "sizeBytes": 2107,
+      "notes": "Schema / validation"
+    },
+    {
+      "path": "src/lib/schemas/unified-input.ts",
+      "type": "schema",
+      "area": "media-processing",
+      "exports": [
+        "SUPPORTED_DURATIONS",
+        "supportedDurationSchema",
+        "userTypeSchema",
+        "generationModeSchema",
+        "videoGoalSchema",
+        "targetPlatformSchema",
+        "aspectRatioSchema",
+        "brandEndingModeSchema",
+        "assetRoleSchema",
+        "uploadedAssetSchema",
+        "brandKitSchema",
+        "unifiedVideoGenerationRequestSchema",
+        "UnifiedVideoGenerationRequestInput",
+        "inputClassificationSchema",
+        "creativeBriefSchema",
+        "segmentTypeSchema",
+        "segmentRoleSchema",
+        "videoSegmentSchema",
+        "brandRenderStrategySchema",
+        "brandPackagingPlanSchema",
+        "clipPositionSchema",
+        "clipPlacementDecisionSchema",
+        "clipPlacementPlanSchema",
+        "assemblyClipSchema",
+        "assemblyPlanSchema",
+        "qualityIssueSchema",
+        "qualityReviewSchema",
+        "planPreviewSchema",
+        "videoGenerationPlanSchema",
+        "VideoGenerationPlanParsed"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "SUPPORTED_DURATIONS",
+        "UnifiedVideoGenerationRequestInput",
+        "VideoGenerationPlanParsed",
+        "ClassifyAssetRequest",
+        "supportedDurationSchema",
+        "userTypeSchema",
+        "generationModeSchema",
+        "videoGoalSchema"
+      ],
+      "lineCount": 310,
+      "sizeBytes": 9202,
+      "notes": "Schema / validation; area=media-processing"
+    },
+    {
+      "path": "src/lib/schemas/wizard-render.ts",
+      "type": "schema",
+      "area": "wizard",
+      "exports": [
+        "ASPECT_RATIOS",
+        "AspectRatio",
+        "wizardClipSchema",
+        "WizardClip",
+        "wizardBrandSchema",
+        "WizardBrand",
+        "wizardTimelineSchema",
+        "WizardTimeline",
+        "parseWizardTimeline",
+        "safeParseWizardTimeline"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "ASPECT_RATIOS",
+        "AspectRatio",
+        "WizardClip",
+        "WizardBrand",
+        "WizardTimeline",
+        "wizardClipSchema",
+        "wizardBrandSchema",
+        "wizardTimelineSchema"
+      ],
+      "lineCount": 61,
+      "sizeBytes": 2466,
+      "notes": "Schema / validation; area=wizard"
+    },
+    {
+      "path": "src/lib/services/ad-agent-service.ts",
+      "type": "service",
+      "area": "media-processing",
+      "exports": [
+        "generateAdEditPlansForRound",
+        "generateAdEditPlanForBrief",
+        "runAdPlanReviewer"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "@/lib/schemas/ad-edit-plan",
+        "@/lib/services/brief-service"
+      ],
+      "importantSymbols": [
+        "generateAdEditPlansForRound",
+        "generateAdEditPlanForBrief",
+        "runAdPlanReviewer"
+      ],
+      "lineCount": 448,
+      "sizeBytes": 13257,
+      "notes": "Business logic service; hits Prisma DB; area=media-processing"
+    },
+    {
+      "path": "src/lib/services/ad-render-service.ts",
+      "type": "service",
+      "area": "media-processing",
+      "exports": [
+        "renderAdEditPlan",
+        "renderLatestPlanForBrief",
+        "buildRenderFallbackManifest"
+      ],
+      "imports": [
+        "crypto",
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "@vercel/blob",
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/schemas/ad-edit-plan"
+      ],
+      "importantSymbols": [
+        "renderAdEditPlan",
+        "renderLatestPlanForBrief",
+        "buildRenderFallbackManifest"
+      ],
+      "lineCount": 349,
+      "sizeBytes": 11811,
+      "notes": "Business logic service; uses Vercel Blob storage; hits Prisma DB; area=media-processing"
+    },
+    {
+      "path": "src/lib/services/ai-usage-log-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "RecordAIUsageInput",
+        "recordAIUsage",
+        "estimateOpenAICostUsd",
+        "withAIUsageTracking"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "RecordAIUsageInput",
+        "recordAIUsage",
+        "estimateOpenAICostUsd",
+        "withAIUsageTracking"
+      ],
+      "lineCount": 152,
+      "sizeBytes": 5039,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/ai-usage-stats-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "AIUsageStatsFilter",
+        "AIUsageStats",
+        "AIUsageRowForStats",
+        "aggregateAIUsageRows",
+        "getAIUsageStats",
+        "AIUsageRecentRow",
+        "getRecentAIUsage",
+        "KNOWN_AI_FEATURES"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "AIUsageStatsFilter",
+        "AIUsageStats",
+        "AIUsageRowForStats",
+        "AIUsageRecentRow",
+        "KNOWN_AI_FEATURES",
+        "aggregateAIUsageRows",
+        "getAIUsageStats",
+        "getRecentAIUsage"
+      ],
+      "lineCount": 233,
+      "sizeBytes": 6151,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/angle-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "SINGLE_DIRECTION_ANGLE_TITLE",
+        "AngleLLMOutput",
+        "GenerateAnglesArgs",
+        "generateAnglesForRound",
+        "listThemePool",
+        "EnsureSingleDirectionRoundResult",
+        "SingleDirectionDBClient",
+        "ensureSingleDirectionRound",
+        "ensureSingleDirectionRoundWith"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "@/lib/config/blanket-themes"
+      ],
+      "importantSymbols": [
+        "SINGLE_DIRECTION_ANGLE_TITLE",
+        "AngleLLMOutput",
+        "GenerateAnglesArgs",
+        "EnsureSingleDirectionRoundResult",
+        "SingleDirectionDBClient",
+        "generateAnglesForRound",
+        "listThemePool",
+        "ensureSingleDirectionRound"
+      ],
+      "lineCount": 398,
+      "sizeBytes": 15077,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/asset-qa-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "AssetQAOptions",
+        "RunAssetQARowInput",
+        "evaluateAssetQA",
+        "runAssetQAForRawAsset",
+        "detectMissingShotsForBrief",
+        "ASSET_QA_DEFAULTS"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/schemas/asset-qa"
+      ],
+      "importantSymbols": [
+        "AssetQAOptions",
+        "RunAssetQARowInput",
+        "ASSET_QA_DEFAULTS",
+        "evaluateAssetQA",
+        "runAssetQAForRawAsset",
+        "detectMissingShotsForBrief"
+      ],
+      "lineCount": 400,
+      "sizeBytes": 13113,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/asset-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "RegisterRawAssetInput",
+        "PreprocessRawAssetOptions",
+        "registerRawAsset",
+        "listRawAssets",
+        "preprocessRawAsset",
+        "preprocessDeliveryOrderAssets"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "RegisterRawAssetInput",
+        "PreprocessRawAssetOptions",
+        "registerRawAsset",
+        "listRawAssets",
+        "preprocessRawAsset",
+        "preprocessDeliveryOrderAssets"
+      ],
+      "lineCount": 340,
+      "sizeBytes": 10083,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/brief-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "ensureBriefForAngle",
+        "ensureBriefsForRound",
+        "updateBriefStatus",
+        "setReferenceImages",
+        "ON_CAMERA_LABELS",
+        "getBriefInclude"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "ON_CAMERA_LABELS",
+        "ensureBriefForAngle",
+        "ensureBriefsForRound",
+        "updateBriefStatus",
+        "setReferenceImages",
+        "getBriefInclude"
+      ],
+      "lineCount": 104,
+      "sizeBytes": 2961,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/creative-evidence-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "UpsertCreativeEvidenceCardInput",
+        "ListCreativeEvidenceCardsParams",
+        "listCreativeEvidenceCards",
+        "getCreativeEvidenceCard",
+        "upsertCreativeEvidenceCard",
+        "publishCreativeEvidenceCard",
+        "archiveCreativeEvidenceCard",
+        "cardRowToCore",
+        "CreativeRecommendationScore",
+        "RecommendCreativeCardsInput",
+        "recommendCreativeCards",
+        "runCreativeEvidenceBreakdown",
+        "CREATIVE_ENUMS"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "@/lib/schemas/creative-evidence",
+        "@/lib/prompts/creative-evidence-breakdown",
+        "./ai-usage-log-service"
+      ],
+      "importantSymbols": [
+        "UpsertCreativeEvidenceCardInput",
+        "ListCreativeEvidenceCardsParams",
+        "CreativeRecommendationScore",
+        "RecommendCreativeCardsInput",
+        "CREATIVE_ENUMS",
+        "listCreativeEvidenceCards",
+        "getCreativeEvidenceCard",
+        "upsertCreativeEvidenceCard"
+      ],
+      "lineCount": 326,
+      "sizeBytes": 11134,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/director-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "DIRECTOR_SYSTEM_PROMPT",
+        "GenerateDirectorPlanArgs",
+        "GenerateDirectorPlanResult",
+        "DirectorSchemaError",
+        "isDirectorSchemaError",
+        "directorSchemaErrorToAPIResponse",
+        "generateAndPersistDirectorPlan",
+        "DirectorLLMInvoker",
+        "buildDirectorPlanResult",
+        "validateDirectorLLMOutput",
+        "mockDirectorPlan",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client",
+        "zod",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "@/lib/duration/segment-planner",
+        "@/lib/schemas/director-plan",
+        "@/lib/config/industry-defaults",
+        "./ai-usage-log-service",
+        "./llm-schema-error"
+      ],
+      "importantSymbols": [
+        "DIRECTOR_SYSTEM_PROMPT",
+        "GenerateDirectorPlanArgs",
+        "GenerateDirectorPlanResult",
+        "DirectorSchemaError",
+        "DirectorLLMInvoker",
+        "isDirectorSchemaError",
+        "directorSchemaErrorToAPIResponse",
+        "generateAndPersistDirectorPlan"
+      ],
+      "lineCount": 619,
+      "sizeBytes": 24056,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/discovery-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "ResearchStructured",
+        "ResearchDebug",
+        "startMarketResearch"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "@/lib/providers/apify-tiktok"
+      ],
+      "importantSymbols": [
+        "ResearchStructured",
+        "ResearchDebug",
+        "startMarketResearch"
+      ],
+      "lineCount": 326,
+      "sizeBytes": 11879,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/distillation-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "distillRound"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "distillRound"
+      ],
+      "lineCount": 133,
+      "sizeBytes": 4003,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/iteration-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "generateRoundIterationReport"
+      ],
+      "imports": [
+        "@/lib/db",
+        "@/lib/services/distillation-service",
+        "@/lib/services/scoring-service"
+      ],
+      "importantSymbols": [
+        "generateRoundIterationReport"
+      ],
+      "lineCount": 45,
+      "sizeBytes": 1275,
+      "notes": "Business logic service"
+    },
+    {
+      "path": "src/lib/services/llm-schema-error.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "isLLMSchemaError",
+        "summarizeZodIssues",
+        "llmSchemaErrorToAPIResponse"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "isLLMSchemaError",
+        "summarizeZodIssues",
+        "llmSchemaErrorToAPIResponse"
+      ],
+      "lineCount": 94,
+      "sizeBytes": 3143,
+      "notes": "Business logic service"
+    },
+    {
+      "path": "src/lib/services/localization-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "LocaleCheckInput",
+        "LocaleCheckIssue",
+        "checkLocaleConsistency",
+        "SUPPORTED_LOCALES"
+      ],
+      "imports": [
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "LocaleCheckInput",
+        "LocaleCheckIssue",
+        "SUPPORTED_LOCALES",
+        "checkLocaleConsistency"
+      ],
+      "lineCount": 62,
+      "sizeBytes": 2164,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/logo-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "LOGO_STYLE_KEYS",
+        "LogoStyleKey",
+        "GenerateLogoArgs",
+        "GenerateLogoResult",
+        "generateLogoCandidates",
+        "selectLogo",
+        "listLogoGenerationsForOrder",
+        "mergeLogoUrlIntoClientBrief",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai-image",
+        "./ai-usage-log-service"
+      ],
+      "importantSymbols": [
+        "LOGO_STYLE_KEYS",
+        "LogoStyleKey",
+        "GenerateLogoArgs",
+        "GenerateLogoResult",
+        "generateLogoCandidates",
+        "selectLogo",
+        "listLogoGenerationsForOrder",
+        "mergeLogoUrlIntoClientBrief"
+      ],
+      "lineCount": 211,
+      "sizeBytes": 5861,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/metrics-service.ts",
+      "type": "service",
+      "area": "metrics",
+      "exports": [
+        "ContentMetricsInput",
+        "recordMetricsSnapshot",
+        "CsvRow",
+        "parseMetricsCsv",
+        "importMetricsCsv",
+        "METRICS_CSV_TEMPLATE"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "ContentMetricsInput",
+        "CsvRow",
+        "METRICS_CSV_TEMPLATE",
+        "recordMetricsSnapshot",
+        "parseMetricsCsv",
+        "importMetricsCsv"
+      ],
+      "lineCount": 183,
+      "sizeBytes": 5725,
+      "notes": "Business logic service; hits Prisma DB; area=metrics"
+    },
+    {
+      "path": "src/lib/services/order-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "CreateOrderArgs",
+        "createDeliveryOrder",
+        "listDeliveryOrders",
+        "getDeliveryOrderDetail"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "CreateOrderArgs",
+        "createDeliveryOrder",
+        "listDeliveryOrders",
+        "getDeliveryOrderDetail"
+      ],
+      "lineCount": 102,
+      "sizeBytes": 3049,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/prompt-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "generatePromptsForBrief"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "generatePromptsForBrief"
+      ],
+      "lineCount": 171,
+      "sizeBytes": 6462,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/publish-service.ts",
+      "type": "service",
+      "area": "publishing",
+      "exports": [
+        "markDownloaded",
+        "submitExternalPost",
+        "confirmPublished",
+        "failPublish",
+        "listPendingPublish",
+        "tryTransitionRoundToLive"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "markDownloaded",
+        "submitExternalPost",
+        "confirmPublished",
+        "failPublish",
+        "listPendingPublish",
+        "tryTransitionRoundToLive"
+      ],
+      "lineCount": 124,
+      "sizeBytes": 3200,
+      "notes": "Business logic service; hits Prisma DB; area=publishing"
+    },
+    {
+      "path": "src/lib/services/qa-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "runAIQA",
+        "decideQA"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "@/lib/config/qa-criteria"
+      ],
+      "importantSymbols": [
+        "runAIQA",
+        "decideQA"
+      ],
+      "lineCount": 178,
+      "sizeBytes": 5408,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/round-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "CreateRoundArgs",
+        "createRound",
+        "finalizeDeliveryOrder",
+        "cancelDeliveryOrder"
+      ],
+      "imports": [
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "CreateRoundArgs",
+        "createRound",
+        "finalizeDeliveryOrder",
+        "cancelDeliveryOrder"
+      ],
+      "lineCount": 88,
+      "sizeBytes": 2279,
+      "notes": "Business logic service"
+    },
+    {
+      "path": "src/lib/services/scene-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "generateScenesForBrief"
+      ],
+      "imports": [
+        "@/lib/db",
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "generateScenesForBrief"
+      ],
+      "lineCount": 147,
+      "sizeBytes": 4430,
+      "notes": "Business logic service"
+    },
+    {
+      "path": "src/lib/services/scoring-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "scoreRound",
+        "briefCompositeFromSnapshots",
+        "normalizeContentMetrics"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/config/scoring-weights"
+      ],
+      "importantSymbols": [
+        "scoreRound",
+        "briefCompositeFromSnapshots",
+        "normalizeContentMetrics"
+      ],
+      "lineCount": 171,
+      "sizeBytes": 4522,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/script-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "generateScriptForBrief"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "generateScriptForBrief"
+      ],
+      "lineCount": 160,
+      "sizeBytes": 6003,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/selling-point-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "extractSellingPoints"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/openai",
+        "./discovery-service"
+      ],
+      "importantSymbols": [
+        "extractSellingPoints"
+      ],
+      "lineCount": 154,
+      "sizeBytes": 5255,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/stitch-service.ts",
+      "type": "service",
+      "area": "ffmpeg",
+      "exports": [
+        "StitchResult",
+        "ClaimedStitchTask",
+        "processPendingFinalVideos",
+        "stitchFinalVideo",
+        "claimStitchTask",
+        "finishStitchTask",
+        "retryStitch",
+        "__test__"
+      ],
+      "imports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "@prisma/client",
+        "@/lib/db",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [
+        "StitchResult",
+        "ClaimedStitchTask",
+        "processPendingFinalVideos",
+        "stitchFinalVideo",
+        "claimStitchTask",
+        "finishStitchTask",
+        "retryStitch",
+        "__test__"
+      ],
+      "lineCount": 564,
+      "sizeBytes": 16663,
+      "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
+    },
+    {
+      "path": "src/lib/services/video-service.ts",
+      "type": "service",
+      "area": "media-processing",
+      "exports": [
+        "dispatchVideoForBrief",
+        "dispatchMultiSegmentGeneration",
+        "dispatchVideoGeneration",
+        "reconcileVideoJob",
+        "reconcileBriefRenderStatus",
+        "retryFailedVideoJob",
+        "retryFailedSegmentsForBrief",
+        "pollRunningJobs",
+        "syncBriefStatus",
+        "BriefRenderSummary",
+        "BriefRenderUserStatus",
+        "summarizeBriefRender",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/providers/seedance",
+        "@/lib/providers/remove-bg",
+        "@/lib/schemas/director-plan",
+        "@/lib/duration/segment-planner",
+        "./stitch-service"
+      ],
+      "importantSymbols": [
+        "BriefRenderSummary",
+        "BriefRenderUserStatus",
+        "dispatchVideoForBrief",
+        "dispatchMultiSegmentGeneration",
+        "dispatchVideoGeneration",
+        "reconcileVideoJob",
+        "reconcileBriefRenderStatus",
+        "retryFailedVideoJob"
+      ],
+      "lineCount": 1058,
+      "sizeBytes": 33438,
+      "notes": "Business logic service; hits Prisma DB; calls Seedance video generator; area=media-processing"
+    },
+    {
+      "path": "src/lib/services/wizard-fallback-messages.ts",
+      "type": "service",
+      "area": "wizard",
+      "exports": [
+        "WIZARD_FALLBACK",
+        "WizardFallbackKey",
+        "fallbackReasonWithError"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "WIZARD_FALLBACK",
+        "WizardFallbackKey",
+        "fallbackReasonWithError"
+      ],
+      "lineCount": 53,
+      "sizeBytes": 2383,
+      "notes": "Business logic service; area=wizard"
+    },
+    {
+      "path": "src/lib/services/wizard-smoke-helpers.ts",
+      "type": "service",
+      "area": "wizard",
+      "exports": [
+        "SmokeStepStatus",
+        "SmokeStepResult",
+        "SmokeWizardResult",
+        "evaluateSmokeResult",
+        "parseSmokeArgs",
+        "shouldRefuseDueToProduction"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "SmokeStepStatus",
+        "SmokeStepResult",
+        "SmokeWizardResult",
+        "evaluateSmokeResult",
+        "parseSmokeArgs",
+        "shouldRefuseDueToProduction"
+      ],
+      "lineCount": 108,
+      "sizeBytes": 3367,
+      "notes": "Business logic service; area=wizard"
+    },
+    {
+      "path": "src/lib/utils.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "cn",
+        "formatDate",
+        "formatDateShort",
+        "formatNumber",
+        "formatPercent"
+      ],
+      "imports": [
+        "clsx",
+        "tailwind-merge"
+      ],
+      "importantSymbols": [
+        "cn",
+        "formatDate",
+        "formatDateShort",
+        "formatNumber",
+        "formatPercent"
+      ],
+      "lineCount": 39,
+      "sizeBytes": 992,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/validators/index.ts",
+      "type": "schema",
+      "area": "shared",
+      "exports": [
+        "createDeliveryOrderSchema",
+        "createRoundSchema",
+        "generateAnglesSchema",
+        "qaDecisionSchema",
+        "submitPostSchema",
+        "metricsRowSchema",
+        "registerRawAssetSchema",
+        "preprocessRawAssetSchema",
+        "generateAdEditPlansSchema",
+        "renderAdEditPlanSchema",
+        "createAdminSchema",
+        "updateBriefSchema"
+      ],
+      "imports": [
+        "zod"
+      ],
+      "importantSymbols": [
+        "createDeliveryOrderSchema",
+        "createRoundSchema",
+        "generateAnglesSchema",
+        "qaDecisionSchema",
+        "submitPostSchema",
+        "metricsRowSchema",
+        "registerRawAssetSchema",
+        "preprocessRawAssetSchema"
+      ],
+      "lineCount": 107,
+      "sizeBytes": 3698,
+      "notes": "Schema / validation"
+    },
+    {
+      "path": "src/lib/video-generation/asset-classifier.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "ClassifyAssetInput",
+        "AssetClassification",
+        "classifyAsset"
+      ],
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "ClassifyAssetInput",
+        "AssetClassification",
+        "classifyAsset"
+      ],
+      "lineCount": 221,
+      "sizeBytes": 7009,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/brand-packaging.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "BuildBrandPackagingArgs",
+        "buildBrandPackagingPlan"
+      ],
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "BuildBrandPackagingArgs",
+        "buildBrandPackagingPlan"
+      ],
+      "lineCount": 131,
+      "sizeBytes": 3843,
+      "notes": "Utility / helper module; area=media-processing"
+    },
+    {
+      "path": "src/lib/video-generation/clip-placement-planner.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BuildClipPlacementArgs",
+        "buildClipPlacementPlan"
+      ],
+      "imports": [
+        "@/types/video-generation",
+        "@/lib/video-generation/segment-planner-adapter"
+      ],
+      "importantSymbols": [
+        "BuildClipPlacementArgs",
+        "buildClipPlacementPlan"
+      ],
+      "lineCount": 119,
+      "sizeBytes": 3886,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/creative-strategist.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BuildCreativeBriefArgs",
+        "buildCreativeBrief",
+        "heuristicBrief",
+        "__test__"
+      ],
+      "imports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "BuildCreativeBriefArgs",
+        "buildCreativeBrief",
+        "heuristicBrief",
+        "__test__"
+      ],
+      "lineCount": 211,
+      "sizeBytes": 7910,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/generation-supervisor.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "buildPlan",
+        "__test__"
+      ],
+      "imports": [
+        "node:crypto",
+        "@/lib/video-generation/input-classifier",
+        "@/lib/video-generation/asset-classifier",
+        "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/brand-packaging",
+        "@/lib/video-generation/clip-placement-planner",
+        "@/lib/video-generation/segment-planner-adapter",
+        "@/lib/video-generation/prompt-intelligence",
+        "@/lib/video-generation/video-assembly-plan",
+        "@/lib/video-generation/quality-reviewer",
+        "@/lib/video-generation/plan-preview",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "buildPlan",
+        "__test__"
+      ],
+      "lineCount": 171,
+      "sizeBytes": 5717,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/input-classifier.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "classifyInput"
+      ],
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "classifyInput"
+      ],
+      "lineCount": 126,
+      "sizeBytes": 4132,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/plan-preview.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BuildPlanPreviewArgs",
+        "buildPlanPreview"
+      ],
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "BuildPlanPreviewArgs",
+        "buildPlanPreview"
+      ],
+      "lineCount": 119,
+      "sizeBytes": 3062,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/plan-to-director.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "MapToDirectorArgs",
+        "mapPlanToDirectorPlan"
+      ],
+      "imports": [
+        "@/lib/schemas/director-plan",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "MapToDirectorArgs",
+        "mapPlanToDirectorPlan"
+      ],
+      "lineCount": 150,
+      "sizeBytes": 5696,
+      "notes": "Utility / helper module; area=media-processing"
+    },
+    {
+      "path": "src/lib/video-generation/prompt-intelligence.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BuildSegmentPromptsArgs",
+        "SegmentPromptResult",
+        "buildVideoSegments",
+        "heuristicSegmentPrompts",
+        "__test__"
+      ],
+      "imports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation",
+        "@/lib/video-generation/segment-planner-adapter"
+      ],
+      "importantSymbols": [
+        "BuildSegmentPromptsArgs",
+        "SegmentPromptResult",
+        "buildVideoSegments",
+        "heuristicSegmentPrompts",
+        "__test__"
+      ],
+      "lineCount": 387,
+      "sizeBytes": 13608,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/quality-reviewer.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BuildQualityReviewArgs",
+        "buildQualityReview",
+        "checkSeedancePromptStatic",
+        "__test__"
+      ],
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "BuildQualityReviewArgs",
+        "buildQualityReview",
+        "checkSeedancePromptStatic",
+        "__test__"
+      ],
+      "lineCount": 216,
+      "sizeBytes": 6433,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/segment-planner-adapter.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "UnifiedSegmentSlot",
+        "PlanUnifiedSegmentsArgs",
+        "planUnifiedSegments",
+        "resolutionForAspectRatio",
+        "planRawSegments"
+      ],
+      "imports": [
+        "@/lib/duration/segment-planner",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "UnifiedSegmentSlot",
+        "PlanUnifiedSegmentsArgs",
+        "planUnifiedSegments",
+        "resolutionForAspectRatio",
+        "planRawSegments"
+      ],
+      "lineCount": 125,
+      "sizeBytes": 4264,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/video-assembly-plan.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "BuildAssemblyPlanArgs",
+        "buildAssemblyPlan"
+      ],
+      "imports": [
+        "@/lib/video-generation/segment-planner-adapter",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "BuildAssemblyPlanArgs",
+        "buildAssemblyPlan"
+      ],
+      "lineCount": 78,
+      "sizeBytes": 2470,
+      "notes": "Utility / helper module; area=media-processing"
+    },
+    {
+      "path": "src/middleware.ts",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "middleware",
+        "config"
+      ],
+      "imports": [
+        "next-auth/jwt",
+        "next/server"
+      ],
+      "importantSymbols": [
+        "middleware",
+        "config"
+      ],
+      "lineCount": 64,
+      "sizeBytes": 2158,
+      "notes": ""
+    },
+    {
+      "path": "src/types/next-auth.d.ts",
+      "type": "type",
+      "area": "auth",
+      "exports": [],
+      "imports": [
+        "next-auth",
+        "next-auth/jwt"
+      ],
+      "importantSymbols": [],
+      "lineCount": 38,
+      "sizeBytes": 829,
+      "notes": "Shared TypeScript types; area=auth"
+    },
+    {
+      "path": "src/types/video-generation.ts",
+      "type": "type",
+      "area": "media-processing",
+      "exports": [
+        "UserType",
+        "GenerationMode",
+        "VideoGoal",
+        "TargetPlatform",
+        "AspectRatio",
+        "BrandEndingMode",
+        "AssetRole",
+        "UploadedAsset",
+        "effectiveAssetRole",
+        "BrandKit",
+        "UnifiedVideoGenerationRequest",
+        "InputClassification",
+        "CreativeBrief",
+        "SegmentType",
+        "SegmentRole",
+        "VideoSegment",
+        "BrandRenderStrategy",
+        "BrandPackagingPlan",
+        "ClipPosition",
+        "ClipPlacementDecision",
+        "ClipPlacementPlan",
+        "AssemblyClip",
+        "AssemblyPlan",
+        "QualityIssue",
+        "QualityReview",
+        "PlanPreview",
+        "VideoGenerationPlan"
+      ],
+      "imports": [
+        "@/lib/duration/segment-planner"
+      ],
+      "importantSymbols": [
+        "UserType",
+        "GenerationMode",
+        "VideoGoal",
+        "TargetPlatform",
+        "AspectRatio",
+        "BrandEndingMode",
+        "AssetRole",
+        "UploadedAsset"
+      ],
+      "lineCount": 338,
+      "sizeBytes": 10005,
+      "notes": "Shared TypeScript types; area=media-processing"
+    },
+    {
+      "path": "tests/_aiusage_check.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 63,
+      "sizeBytes": 1516,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/_videojob_check.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 108,
+      "sizeBytes": 3562,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/ad-edit-plan-validation.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/schemas/ad-edit-plan"
+      ],
+      "importantSymbols": [],
+      "lineCount": 80,
+      "sizeBytes": 2020,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/ad-render-fallback.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/ad-render-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 33,
+      "sizeBytes": 922,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/ai-usage-stats.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/ai-usage-stats-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 99,
+      "sizeBytes": 2701,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/asset-qa-rules.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/asset-qa-service",
+        "../src/lib/schemas/asset-qa"
+      ],
+      "importantSymbols": [],
+      "lineCount": 113,
+      "sizeBytes": 3550,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/client-brief-schema.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/schemas/client-brief"
+      ],
+      "importantSymbols": [],
+      "lineCount": 69,
+      "sizeBytes": 2045,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/client-brief-write.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/schemas/client-brief"
+      ],
+      "importantSymbols": [],
+      "lineCount": 73,
+      "sizeBytes": 2391,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/creative-evidence-schema.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/schemas/creative-evidence"
+      ],
+      "importantSymbols": [],
+      "lineCount": 97,
+      "sizeBytes": 3227,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/director-plan-schema.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/schemas/director-plan",
+        "../src/lib/services/director-service",
+        "../src/lib/duration/segment-planner"
+      ],
+      "importantSymbols": [],
+      "lineCount": 459,
+      "sizeBytes": 15473,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/i18n-coverage.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:path",
+        "../src/i18n/dictionaries/zh-CN",
+        "../src/i18n/dictionaries/en-US",
+        "../src/i18n/translate",
+        "../src/i18n/__fixtures__/copy-audit",
+        ")) return false;\n      if (t.startsWith("
+      ],
+      "importantSymbols": [],
+      "lineCount": 170,
+      "sizeBytes": 5754,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/industry-defaults.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/industry-defaults",
+        "../src/lib/config/blanket-themes"
+      ],
+      "importantSymbols": [],
+      "lineCount": 88,
+      "sizeBytes": 3129,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/logo-generation-mock.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/openai-image",
+        "../src/lib/services/logo-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 147,
+      "sizeBytes": 4999,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/metrics-iteration.integration.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/db",
+        "../src/lib/services/iteration-service",
+        "../src/lib/services/metrics-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 71,
+      "sizeBytes": 2032,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/multi-segment-lifecycle.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/video-service",
+        "../src/lib/duration/segment-planner",
+        "../src/lib/services/director-service",
+        "../src/lib/schemas/director-plan"
+      ],
+      "importantSymbols": [],
+      "lineCount": 158,
+      "sizeBytes": 5561,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/multi-segment-retry.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/video-service",
+        "../src/lib/duration/segment-planner",
+        "../src/lib/services/director-service",
+        "../src/lib/schemas/director-plan"
+      ],
+      "importantSymbols": [],
+      "lineCount": 140,
+      "sizeBytes": 5077,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/openai-model-tiering.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/openai"
+      ],
+      "importantSymbols": [],
+      "lineCount": 90,
+      "sizeBytes": 2790,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/openai-tier-director.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/openai"
+      ],
+      "importantSymbols": [],
+      "lineCount": 97,
+      "sizeBytes": 2934,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/script-output-schema.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/schemas/script-output",
+        "../src/lib/prompts/client-script",
+        "../src/lib/schemas/client-brief"
+      ],
+      "importantSymbols": [],
+      "lineCount": 65,
+      "sizeBytes": 1869,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/seedance-status-mapping.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 44,
+      "sizeBytes": 1910,
+      "notes": "Unit / integration test; calls Seedance video generator; area=tests"
+    },
+    {
+      "path": "tests/segment-planning.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/duration/segment-planner"
+      ],
+      "importantSymbols": [],
+      "lineCount": 100,
+      "sizeBytes": 3003,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/single-direction-flow.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/angle-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 204,
+      "sizeBytes": 7083,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/stitch-service-runtime.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 479,
+      "sizeBytes": 16092,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/sunny-shutter-regression.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/video-service",
+        "../src/lib/duration/segment-planner"
+      ],
+      "importantSymbols": [],
+      "lineCount": 120,
+      "sizeBytes": 4831,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/unified-assembly-plan.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/video-assembly-plan",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 158,
+      "sizeBytes": 4614,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-asset-classifier.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/asset-classifier"
+      ],
+      "importantSymbols": [],
+      "lineCount": 100,
+      "sizeBytes": 2839,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-brand-packaging.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/brand-packaging",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 153,
+      "sizeBytes": 4781,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-creative-strategist.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/creative-strategist",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 126,
+      "sizeBytes": 4128,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-duration-mapping.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/types/video-generation",
+        "../src/lib/duration/segment-planner"
+      ],
+      "importantSymbols": [],
+      "lineCount": 86,
+      "sizeBytes": 2941,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-input-classifier.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/input-classifier",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 105,
+      "sizeBytes": 3128,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-plan-preview.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/plan-preview",
+        "../src/lib/video-generation/video-assembly-plan",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 172,
+      "sizeBytes": 4791,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-prompt-intelligence.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/prompt-intelligence",
+        "../src/lib/video-generation/segment-planner-adapter",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 174,
+      "sizeBytes": 5113,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-quality-reviewer.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/quality-reviewer",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 194,
+      "sizeBytes": 6030,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-segment-placement.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/clip-placement-planner",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 101,
+      "sizeBytes": 3088,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/unified-supervisor.integration.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 176,
+      "sizeBytes": 6507,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/video-job-user-status.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/video-service",
+        "../src/lib/labels-user"
+      ],
+      "importantSymbols": [],
+      "lineCount": 119,
+      "sizeBytes": 4335,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/wizard-smoke-helpers.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/wizard-smoke-helpers"
+      ],
+      "importantSymbols": [],
+      "lineCount": 112,
+      "sizeBytes": 3362,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tsconfig.json",
+      "type": "config",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 35,
+      "sizeBytes": 670,
+      "notes": "Build / runtime config"
+    },
+    {
+      "path": "vercel.json",
+      "type": "config",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 4,
+      "sizeBytes": 57,
+      "notes": "Build / runtime config; area=config"
+    }
+  ]
+}

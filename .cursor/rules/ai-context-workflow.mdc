@@ -1,0 +1,91 @@
+---
+description: "AI Context Workflow — 强制 codemap / context-router 工作流，降低 token 消耗"
+alwaysApply: true
+---
+
+# AI Context Workflow（必读 / 硬性要求）
+
+> 这条 rule **永远生效**。它的目标只有一个：在你（Cursor / Claude / Opus / 任何 AI agent）开始写代码或回答代码问题之前，先用项目的 **codemap** 定位文件，避免无脑全 repo 扫描和重复读大文件。
+
+## 你必须遵守的 5 条铁律
+
+### 1. **第一份永远先读** `ai-context/agent-entry.md`
+
+任何代码任务（feature / bug fix / 审查 / 解释代码）开始前，先用 Read 工具读这个文件。这份文件本身只有 ~3 KB，但能让你不用扫整个 repo 就知道项目结构和 token 预算规则。
+
+### 2. **改代码前，先跑 / 看 `context-router`**
+
+```bash
+npm run context:find -- "<你的任务关键词>"
+```
+
+它会基于 `ai-context/file-summary-map.json` + `area-map.json` + `route-map.json`，给你 top 10 相关文件 + 阅读顺序 + 文件大小警告。**优先读它推荐的 top files 和指出的 line range**，不要直接 grep 整个 repo。
+
+如果用户的需求里没有清晰关键词，先想清楚关键词，**再**跑 `context:find`，再读源码。
+
+### 3. **以下路径绝对禁止读取**
+
+无论用什么工具（Read / Grep / Glob / Shell），都不要去读：
+
+- `node_modules/`、`.next/`、`.git/`、`.vercel/`、`.turbo/`
+- `public/generated/`（视频/图片成品，50 MB+ 二进制）
+- `tmp/`（FFmpeg 中间产物 / QA 截图，500 MB+）
+- `logs/`、`coverage/`、`dist/`、`build/`、`out/`
+- 任何 `.mp4 / .mov / .webm / .mkv / .mp3 / .wav / .jpg / .png / .gif / .webp / .pdf / .zip / .woff* / .ttf / .otf` 等媒体/字体二进制文件
+- 任何 `.env` / `.env.local` / `.env.production.local`（绝对不要把任何 env 内容放进 prompt 或 commit message）
+- `package-lock.json`（特大且对任务无价值）
+- `*.tsbuildinfo`
+
+如果发现自己快要读这些路径——**立即停下**，回到 `ai-context/area-map.json` 重新定位。
+
+### 4. **优先读 context-router 给出的 top files + 行号区间**
+
+- 先读最高分的 3-5 个文件
+- 读大文件（标了 `large file (… lines)`）时**一定要用行号区间**，不要整文件吞
+- 用 `dependency-map.json` 看跨文件影响，不要再 `grep -r`
+- 同一轮对话里**不重读已读过的大文件**
+
+### 5. **禁止"先全 repo 扫描再说"**
+
+错误模式：
+- ❌ 一上来就 `Glob "**/*.ts"` 列出所有 TS 文件
+- ❌ 一上来就 `Grep` 整个 src 找关键字
+- ❌ 一上来就读 `prisma/schema.prisma` 全文（1100+ 行）
+
+正确模式：
+- ✅ Read `ai-context/agent-entry.md`
+- ✅ Run `npm run context:find -- "<task>"`（或 cat `ai-context/area-map.json` 取相关 area）
+- ✅ Read 推荐的 top 文件，必要时配合行号区间
+- ✅ 只有当窄上下文不足以解决问题时，才 fallback 到全文件读取或更大范围 grep
+
+## 常见任务速查表
+
+| 任务类型 | 直接命令或入口 |
+|----------|----------------|
+| 视频生成 / Seedance / 即梦相关 | `npm run context:find -- "video generation seedance"` |
+| FFmpeg / 拼接 / loudness | `npm run context:find -- "ffmpeg stitching audio"` |
+| Demo 页面 / Real Footage Ads | `npm run context:find -- "demo real footage walkthrough"` |
+| Demo Leads / Waitlist | `npm run context:find -- "demo leads waitlist"` |
+| Vercel Blob 上传 / URL | `npm run context:find -- "vercel blob upload"` |
+| Prisma schema 改动 | 读 `prisma/schema.prisma`（先查 `docs/` 中相关 spec） |
+| Next.js 路由 / API endpoint | 直接 cat `ai-context/route-map.json` |
+| 不知道改什么 | `npm run context:find -- "<最相关的 2-4 个词>"` |
+
+> 详细场景与示例见 [docs/AI_CONTEXT_WORKFLOW.md](mdc:docs/AI_CONTEXT_WORKFLOW.md)。
+
+## 何时重建 codemap
+
+下面任一情况后，跑 `npm run codemap:build`（耗时 ~50ms，幂等）：
+
+- 新增/删除大量文件（路由、组件、service）
+- 重构了某个目录结构
+- 改了 `package.json` 的 dependencies
+- 把某个 area 的文件挪到了别处
+- `ai-context/repo-map.json` 顶部的 `generatedAt` 超过 2 周
+
+## 紧急刹车
+
+- 即将读 `public/generated/` / `tmp/` / `.next/` 任何东西 → **停下**，重读 `ai-context/area-map.json`。
+- 反复 `grep` 整个 repo → **停下**，跑 `npm run context:find`。
+- 跨多个文件理解流程 → 先读 `dependency-map.json`，再按图谱顺序最小化读取。
+- 想读 `.env*` → **永远不要**，禁止任何理由。

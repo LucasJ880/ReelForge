@@ -19,6 +19,9 @@
     "demo:generate:walkthrough": "tsx scripts/generate-real-footage-walkthrough-video.ts",
     "demo:check:walkthrough": "tsx scripts/check-real-footage-walkthrough-video.ts",
     "demo:stitch:walkthrough": "tsx scripts/stitch-real-footage-walkthrough-video.ts",
+    "codemap:build": "tsx scripts/build-codemap.ts",
+    "context:find": "tsx scripts/context-router.ts",
+    "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "prisma": {

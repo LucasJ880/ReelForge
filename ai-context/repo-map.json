@@ -1,0 +1,241 @@
+{
+  "generatedAt": "2026-05-12T15:09:53.052Z",
+  "package": {
+    "name": "aivora",
+    "version": "0.2.0"
+  },
+  "topLevelDirs": [
+    ".cursor",
+    ".github",
+    "docs",
+    "prisma",
+    "public",
+    "scripts",
+    "src",
+    "tests"
+  ],
+  "stack": [
+    "Next.js (16.2.2)",
+    "React (19.2.4)",
+    "Prisma ORM (^6.19.3)",
+    "Vercel Blob (^2.3.3)",
+    "NextAuth.js (^4.24.13)",
+    "OpenAI SDK (^6.33.0)",
+    "Tailwind CSS (^4)",
+    "Framer Motion (^12.38.0)",
+    "Zod schemas (^3.25.76)",
+    "bcryptjs (^3.0.3)",
+    "Apify TikTok scraper (^2.23.0)"
+  ],
+  "fileTotals": {
+    "total": 352,
+    "byType": {
+      "unknown": 59,
+      "workflow": 2,
+      "config": 9,
+      "doc": 15,
+      "schema": 16,
+      "prisma": 1,
+      "script": 13,
+      "layout": 6,
+      "page": 33,
+      "api": 42,
+      "style": 1,
+      "component": 42,
+      "i18n": 11,
+      "util": 28,
+      "provider": 5,
+      "service": 30,
+      "type": 2,
+      "test": 37
+    },
+    "byArea": {
+      "unknown": 76,
+      "media-processing": 17,
+      "config": 9,
+      "shared": 62,
+      "prisma": 8,
+      "real-footage-ads": 6,
+      "scripts": 4,
+      "ffmpeg": 5,
+      "demo": 16,
+      "auth": 6,
+      "marketing-site": 20,
+      "admin": 23,
+      "metrics": 4,
+      "publishing": 5,
+      "payments": 1,
+      "blob-storage": 1,
+      "video-generation": 15,
+      "shared-ui": 16,
+      "upload": 1,
+      "wizard": 4,
+      "i18n": 11,
+      "ai-providers": 5,
+      "tests": 37
+    }
+  },
+  "routes": {
+    "total": 81,
+    "byKind": {
+      "error": 1,
+      "layout": 6,
+      "not-found": 1,
+      "page": 31,
+      "api": 42
+    }
+  },
+  "importantFiles": [
+    {
+      "path": "next.config.ts",
+      "type": "config",
+      "area": "unknown",
+      "notes": "Build / runtime config"
+    },
+    {
+      "path": "package.json",
+      "type": "config",
+      "area": "config",
+      "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": "prisma/schema.prisma",
+      "type": "prisma",
+      "area": "prisma",
+      "notes": "Prisma schema (database source of truth); area=prisma"
+    },
+    {
+      "path": "README.md",
+      "type": "doc",
+      "area": "shared",
+      "notes": "Documentation"
+    },
+    {
+      "path": "scripts/stitch-runner.ts",
+      "type": "script",
+      "area": "ffmpeg",
+      "notes": "Maintenance / one-off script (run via tsx); area=ffmpeg"
+    },
+    {
+      "path": "src/app/layout.tsx",
+      "type": "layout",
+      "area": "unknown",
+      "notes": "Next.js App Router layout; NextAuth session check"
+    },
+    {
+      "path": "src/i18n/index.ts",
+      "type": "i18n",
+      "area": "i18n",
+      "notes": "i18n / localization; area=i18n"
+    },
+    {
+      "path": "src/lib/auth.ts",
+      "type": "util",
+      "area": "auth",
+      "notes": "Utility / helper module; NextAuth session check; area=auth"
+    },
+    {
+      "path": "src/lib/db.ts",
+      "type": "util",
+      "area": "shared",
+      "notes": "Utility / helper module; hits Prisma DB"
+    },
+    {
+      "path": "src/middleware.ts",
+      "type": "unknown",
+      "area": "unknown",
+      "notes": ""
+    }
+  ],
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
+    "db:migrate:deploy": "dotenv -e .env.local -- prisma migrate deploy",
+    "db:push": "dotenv -e .env.local -- prisma db push",
+    "db:studio": "dotenv -e .env.local -- prisma studio",
+    "postinstall": "prisma generate",
+    "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
+    "db:seed:creative-cards": "dotenv -e .env.local -- tsx scripts/seed-creative-evidence-cards.ts",
+    "demo:generate:walkthrough": "tsx scripts/generate-real-footage-walkthrough-video.ts",
+    "demo:check:walkthrough": "tsx scripts/check-real-footage-walkthrough-video.ts",
+    "demo:stitch:walkthrough": "tsx scripts/stitch-real-footage-walkthrough-video.ts",
+    "codemap:build": "tsx scripts/build-codemap.ts",
+    "context:find": "tsx scripts/context-router.ts",
+    "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
+    "test": "node --import tsx --test tests/**/*.test.ts"
+  },
+  "excluded": {
+    "dirs": [
+      ".cache",
+      ".git",
+      ".idea",
+      ".next",
+      ".turbo",
+      ".vercel",
+      ".vscode",
+      "_legacy",
+      "ai-context",
+      "build",
+      "coverage",
+      "dist",
+      "logs",
+      "node_modules",
+      "out",
+      "tmp"
+    ],
+    "subpaths": [
+      "public/generated"
+    ],
+    "mediaExtensions": [
+      ".7z",
+      ".avi",
+      ".avif",
+      ".bin",
+      ".bmp",
+      ".dat",
+      ".db",
+      ".eot",
+      ".flac",
+      ".gif",
+      ".gz",
+      ".ico",
+      ".jpeg",
+      ".jpg",
+      ".m4a",
+      ".mkv",
+      ".mov",
+      ".mp3",
+      ".mp4",
+      ".ogg",
+      ".otf",
+      ".pdf",
+      ".png",
+      ".rar",
+      ".sqlite",
+      ".sqlite3",
+      ".tar",
+      ".tiff",
+      ".tsbuildinfo",
+      ".ttf",
+      ".wav",
+      ".webm",
+      ".webp",
+      ".woff",
+      ".woff2",
+      ".zip"
+    ],
+    "filenames": [
+      ".DS_Store",
+      "next-env.d.ts",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock"
+    ],
+    "secretsPolicy": "Files matching .env*, secret*, credential*, *private-key* are skipped entirely."
+  }
+}

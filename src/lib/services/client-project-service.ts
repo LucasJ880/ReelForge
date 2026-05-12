@@ -231,6 +231,10 @@ function mapIndustryToCategory(industry: ClientBrief["industry"]) {
       return "local_service";
     case "local_service":
       return "local_service";
+    case "home_goods":
+    case "home_decor":
+      /// admin pipeline 的 productCategory 已有 "home_goods"（discovery-service 会注入家居关键词）
+      return "home_goods";
     default:
       return "other_real_footage_ads";
   }

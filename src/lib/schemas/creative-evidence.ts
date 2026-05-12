@@ -15,6 +15,10 @@ export const CREATIVE_INDUSTRIES = [
   "pet_business",
   "local_service",
   "restaurant",
+  /// 家居用品（毛毯、家纺、五金、智能家居硬件等实物商品）
+  "home_goods",
+  /// 家居装饰（窗帘、地毯、灯饰、墙面装饰等软装类目）
+  "home_decor",
   "general",
 ] as const;
 export type CreativeIndustry = (typeof CREATIVE_INDUSTRIES)[number];

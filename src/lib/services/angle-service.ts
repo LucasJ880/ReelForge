@@ -1,4 +1,4 @@
-import { Prisma, AngleType } from "@prisma/client";
+import { Prisma, AngleType, RoundStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
 import {
@@ -6,6 +6,13 @@ import {
   pickExplorationThemes,
   type ExplorationTheme,
 } from "@/lib/config/blanket-themes";
+
+/**
+ * Wizard / 客户向导默认 angle 标题。
+ * 用于 ensureSingleDirectionRound + wizard-script-service 共享同一个标识，
+ * 避免误把它当成「赛马 angle」生成第二条。
+ */
+export const SINGLE_DIRECTION_ANGLE_TITLE = "Wizard primary angle";
 
 const SYSTEM_PROMPT = `You are a senior short-form video ad strategist for TikTok / Reels / Shorts (vertical 9:16).
 Your job: for one selling point, produce 5 distinct ad angles (3 OPTIMIZATION + 2 EXPLORATION) that a small business owner can actually shoot or have AI render.
@@ -231,4 +238,160 @@ function mockAngles(themes: ExplorationTheme[]): AngleLLMOutput["angles"] {
 
 export function listThemePool() {
   return BLANKET_THEME_POOL;
+}
+
+export interface EnsureSingleDirectionRoundResult {
+  roundId: string;
+  angleId: string;
+  /// true → 本次调用真的写库；false → 复用了已有 Round + Angle
+  created: boolean;
+}
+
+/**
+ * 最小 DB 客户端接口，便于把 ensureSingleDirectionRoundWith 拆成纯逻辑 + 注入测试。
+ * 使用 unknown[] 而不是具体 Prisma 类型避免 angle-service 测试需要拉 Prisma client。
+ */
+export interface SingleDirectionDBClient {
+  round: {
+    findFirst(args: {
+      where: { deliveryOrderId: string };
+      orderBy: { roundIndex: "asc" };
+      include: { angles: { orderBy: { sortOrder: "asc" }; take: number } };
+    }): Promise<{ id: string; angles: { id: string }[] } | null>;
+    create(args: {
+      data: {
+        deliveryOrderId: string;
+        roundIndex: number;
+        status: RoundStatus;
+        optimizationSlots: number;
+        explorationSlots: number;
+      };
+    }): Promise<{ id: string }>;
+  };
+  contentAngle: {
+    create(args: {
+      data: {
+        roundId: string;
+        sortOrder: number;
+        type: AngleType;
+        title: string;
+        hook: string | null;
+        narrative: string;
+      };
+    }): Promise<{ id: string }>;
+  };
+  $transaction<T>(fn: (tx: SingleDirectionDBClient) => Promise<T>): Promise<T>;
+}
+
+/**
+ * Wizard / 客户向导专用 helper：保证某 DeliveryOrder 有「1 个 Round + 1 个 ContentAngle」可用，
+ * 不强制赛马 5 条。幂等：多次调用返回同一 roundId / angleId。
+ *
+ * 行为合约：
+ * 1. 已有 Round（任意 roundIndex）→ 复用 roundIndex 最小的那个；
+ * 2. 该 Round 已有 ContentAngle → 复用 sortOrder 最小的那个；
+ * 3. 都不存在 → 在事务中创建 Round{ optimizationSlots: 1, explorationSlots: 0 } + 1 ContentAngle；
+ * 4. 不会触发 LLM；不会修改已存在的 Round 槽位（即使是赛马 5 槽）。
+ *
+ * 这是「30s blanket 单创意方向 + 单 final video + 2 段 Seedance」的入口前置步骤：
+ * Wizard 在 step-3-script 之前可以先 ensureSingleDirectionRound，再让
+ * wizard-script-service.ensureWizardVideoBrief 复用同一个 roundId/angleId。
+ */
+export async function ensureSingleDirectionRound(
+  deliveryOrderId: string,
+): Promise<EnsureSingleDirectionRoundResult> {
+  return ensureSingleDirectionRoundWith(
+    deliveryOrderId,
+    db as unknown as SingleDirectionDBClient,
+  );
+}
+
+/**
+ * 注入版本：把 db 客户端作为参数传入，便于纯单元测试用 fake DB 验证幂等性。
+ * 业务调用应使用 `ensureSingleDirectionRound`；测试可以直接调这个并传入 in-memory mock。
+ */
+export async function ensureSingleDirectionRoundWith(
+  deliveryOrderId: string,
+  client: SingleDirectionDBClient,
+): Promise<EnsureSingleDirectionRoundResult> {
+  /// 1. 复用已有
+  const existingRound = await client.round.findFirst({
+    where: { deliveryOrderId },
+    orderBy: { roundIndex: "asc" },
+    include: { angles: { orderBy: { sortOrder: "asc" }, take: 1 } },
+  });
+  if (existingRound && existingRound.angles[0]) {
+    return {
+      roundId: existingRound.id,
+      angleId: existingRound.angles[0].id,
+      created: false,
+    };
+  }
+
+  /// 2. 已有 Round 但没 angle → 在该 Round 补一条 angle
+  if (existingRound) {
+    const angle = await client.contentAngle.create({
+      data: {
+        roundId: existingRound.id,
+        sortOrder: 1,
+        type: AngleType.OPTIMIZATION,
+        title: SINGLE_DIRECTION_ANGLE_TITLE,
+        hook: null,
+        narrative: "Auto-created by wizard for single-direction flow.",
+      },
+    });
+    return { roundId: existingRound.id, angleId: angle.id, created: true };
+  }
+
+  /// 3. 全新创建：transaction 保证原子（Round + ContentAngle 必须同时存在）
+  return client.$transaction(async (tx) => {
+    /// 双保险：transaction 内部再确认一次（防并发：另一个请求可能刚刚也走到这里）
+    const racedRound = await tx.round.findFirst({
+      where: { deliveryOrderId },
+      orderBy: { roundIndex: "asc" },
+      include: { angles: { orderBy: { sortOrder: "asc" }, take: 1 } },
+    });
+    if (racedRound && racedRound.angles[0]) {
+      return {
+        roundId: racedRound.id,
+        angleId: racedRound.angles[0].id,
+        created: false,
+      };
+    }
+    if (racedRound) {
+      const angle = await tx.contentAngle.create({
+        data: {
+          roundId: racedRound.id,
+          sortOrder: 1,
+          type: AngleType.OPTIMIZATION,
+          title: SINGLE_DIRECTION_ANGLE_TITLE,
+          hook: null,
+          narrative: "Auto-created by wizard for single-direction flow.",
+        },
+      });
+      return { roundId: racedRound.id, angleId: angle.id, created: true };
+    }
+
+    const round = await tx.round.create({
+      data: {
+        deliveryOrderId,
+        roundIndex: 1,
+        status: RoundStatus.ANGLES_READY,
+        /// 关键：单创意方向，不进赛马
+        optimizationSlots: 1,
+        explorationSlots: 0,
+      },
+    });
+    const angle = await tx.contentAngle.create({
+      data: {
+        roundId: round.id,
+        sortOrder: 1,
+        type: AngleType.OPTIMIZATION,
+        title: SINGLE_DIRECTION_ANGLE_TITLE,
+        hook: null,
+        narrative: "Auto-created by wizard for single-direction flow.",
+      },
+    });
+    return { roundId: round.id, angleId: angle.id, created: true };
+  });
 }

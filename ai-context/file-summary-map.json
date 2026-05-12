@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T15:09:53.053Z",
+  "generatedAt": "2026-05-12T16:10:54.098Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -748,8 +748,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 67,
-      "sizeBytes": 2245,
+      "lineCount": 68,
+      "sizeBytes": 2269,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -879,6 +879,17 @@
       "lineCount": 0,
       "sizeBytes": 1035,
       "notes": ""
+    },
+    {
+      "path": "public/mock-clips/README.md",
+      "type": "doc",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 21,
+      "sizeBytes": 697,
+      "notes": "Documentation; area=media-processing"
     },
     {
       "path": "public/next.svg",
@@ -1294,16 +1305,18 @@
         "next-auth",
         "next/link",
         "@/lib/auth",
-        "@/lib/db"
+        "@/lib/db",
+        "@/lib/video-generation/business-status",
+        "@prisma/client"
       ],
       "importantSymbols": [
         "BusinessProductsPage",
         "dynamic",
         "default"
       ],
-      "lineCount": 93,
-      "sizeBytes": 3147,
-      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+      "lineCount": 251,
+      "sizeBytes": 9300,
+      "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
       "path": "src/app/(business)/business/recommendations/page.tsx",
@@ -3059,13 +3072,14 @@
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
         "@/lib/services/video-service",
+        "@/lib/video-generation/business-status",
         "@/lib/schemas/unified-input"
       ],
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 222,
-      "sizeBytes": 7228,
+      "lineCount": 236,
+      "sizeBytes": 7819,
       "notes": "Next.js API route handler; hits Prisma DB; area=video-generation"
     },
     {
@@ -4107,8 +4121,8 @@
       "importantSymbols": [
         "UnifiedCreativeInput"
       ],
-      "lineCount": 293,
-      "sizeBytes": 10567,
+      "lineCount": 295,
+      "sizeBytes": 10774,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -4945,7 +4959,9 @@
         "getSeedanceStatus",
         "__test__"
       ],
-      "imports": [],
+      "imports": [
+        "@/lib/video-generation/mock-clip-generator"
+      ],
       "importantSymbols": [
         "SeedanceSubmitOptions",
         "SeedanceStatus",
@@ -4955,8 +4971,8 @@
         "getSeedanceStatus",
         "__test__"
       ],
-      "lineCount": 269,
-      "sizeBytes": 8284,
+      "lineCount": 342,
+      "sizeBytes": 10808,
       "notes": "External API provider wrapper; calls Seedance video generator; area=ai-providers"
     },
     {
@@ -5944,6 +5960,8 @@
         "claimStitchTask",
         "finishStitchTask",
         "retryStitch",
+        "NormalizeAndConcatClip",
+        "runFfmpegNormalizeAndConcat",
         "__test__"
       ],
       "imports": [
@@ -5952,22 +5970,24 @@
         "fs/promises",
         "os",
         "path",
+        "url",
         "@prisma/client",
         "@/lib/db",
+        "@/lib/video-generation/assembly-executor",
         "@vercel/blob"
       ],
       "importantSymbols": [
         "StitchResult",
         "ClaimedStitchTask",
+        "NormalizeAndConcatClip",
         "processPendingFinalVideos",
         "stitchFinalVideo",
         "claimStitchTask",
         "finishStitchTask",
-        "retryStitch",
-        "__test__"
+        "retryStitch"
       ],
-      "lineCount": 564,
-      "sizeBytes": 16663,
+      "lineCount": 779,
+      "sizeBytes": 24029,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -6008,8 +6028,8 @@
         "reconcileBriefRenderStatus",
         "retryFailedVideoJob"
       ],
-      "lineCount": 1058,
-      "sizeBytes": 33438,
+      "lineCount": 1095,
+      "sizeBytes": 34553,
       "notes": "Business logic service; hits Prisma DB; calls Seedance video generator; area=media-processing"
     },
     {
@@ -6118,6 +6138,33 @@
       "notes": "Schema / validation"
     },
     {
+      "path": "src/lib/video-generation/assembly-executor.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "AssemblyClipInput",
+        "AssembleResult",
+        "executeAssembly",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/video-generation/brand-end-card-renderer",
+        "@/types/video-generation",
+        "@/lib/services/stitch-service"
+      ],
+      "importantSymbols": [
+        "AssemblyClipInput",
+        "AssembleResult",
+        "executeAssembly",
+        "__test__"
+      ],
+      "lineCount": 448,
+      "sizeBytes": 12218,
+      "notes": "Utility / helper module; hits Prisma DB; area=media-processing"
+    },
+    {
       "path": "src/lib/video-generation/asset-classifier.ts",
       "type": "util",
       "area": "video-generation",
@@ -6139,6 +6186,40 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/brand-end-card-renderer.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "EndCardSource",
+        "BrandEndCardRenderInput",
+        "BrandEndCardRenderResult",
+        "renderBrandEndCard",
+        "__test__"
+      ],
+      "imports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url",
+        "@/types/video-generation",
+        "sharp",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [
+        "EndCardSource",
+        "BrandEndCardRenderInput",
+        "BrandEndCardRenderResult",
+        "renderBrandEndCard",
+        "__test__"
+      ],
+      "lineCount": 504,
+      "sizeBytes": 16473,
+      "notes": "Utility / helper module; area=media-processing"
+    },
+    {
       "path": "src/lib/video-generation/brand-packaging.ts",
       "type": "util",
       "area": "media-processing",
@@ -6156,6 +6237,31 @@
       "lineCount": 131,
       "sizeBytes": 3843,
       "notes": "Utility / helper module; area=media-processing"
+    },
+    {
+      "path": "src/lib/video-generation/business-status.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "BusinessVideoStatus",
+        "BusinessStatusInput",
+        "BusinessStatusOutput",
+        "deriveBusinessStatus",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client"
+      ],
+      "importantSymbols": [
+        "BusinessVideoStatus",
+        "BusinessStatusInput",
+        "BusinessStatusOutput",
+        "deriveBusinessStatus",
+        "__test__"
+      ],
+      "lineCount": 159,
+      "sizeBytes": 4553,
+      "notes": "Utility / helper module; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/lib/video-generation/clip-placement-planner.ts",
@@ -6247,6 +6353,36 @@
       "lineCount": 126,
       "sizeBytes": 4132,
       "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/mock-clip-generator.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "MockClipHints",
+        "MockClipResult",
+        "generateMockClip",
+        "__test__"
+      ],
+      "imports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [
+        "MockClipHints",
+        "MockClipResult",
+        "generateMockClip",
+        "__test__"
+      ],
+      "lineCount": 306,
+      "sizeBytes": 10000,
+      "notes": "Utility / helper module; area=media-processing"
     },
     {
       "path": "src/lib/video-generation/plan-preview.ts",
@@ -6539,6 +6675,21 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/assembly-executor.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/assembly-executor"
+      ],
+      "importantSymbols": [],
+      "lineCount": 43,
+      "sizeBytes": 1407,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/asset-qa-rules.test.ts",
       "type": "test",
       "area": "tests",
@@ -6553,6 +6704,38 @@
       "importantSymbols": [],
       "lineCount": 113,
       "sizeBytes": 3550,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/brand-end-card-renderer.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 136,
+      "sizeBytes": 4296,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/business-status-adapter.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status"
+      ],
+      "importantSymbols": [],
+      "lineCount": 128,
+      "sizeBytes": 4393,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -6688,6 +6871,21 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/mock-clip-generator.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/mock-clip-generator"
+      ],
+      "importantSymbols": [],
+      "lineCount": 103,
+      "sizeBytes": 2805,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/multi-segment-lifecycle.test.ts",
       "type": "test",
       "area": "tests",
@@ -6773,6 +6971,24 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/seedance-mock-hints.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:url",
+        "node:child_process",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 130,
+      "sizeBytes": 4264,
+      "notes": "Unit / integration test; calls Seedance video generator; area=tests"
+    },
+    {
       "path": "tests/seedance-status-mapping.test.ts",
       "type": "test",
       "area": "tests",
@@ -6817,6 +7033,21 @@
       "lineCount": 204,
       "sizeBytes": 7083,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/stitch-service-aspect.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/stitch-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 30,
+      "sizeBytes": 952,
+      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/stitch-service-runtime.test.ts",

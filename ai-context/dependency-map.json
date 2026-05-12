@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T15:09:53.054Z",
+  "generatedAt": "2026-05-12T16:10:54.099Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -456,16 +456,20 @@
         "next-auth",
         "next/link",
         "@/lib/auth",
-        "@/lib/db"
+        "@/lib/db",
+        "@/lib/video-generation/business-status",
+        "@prisma/client"
       ],
       "localImports": [
         "@/lib/auth",
-        "@/lib/db"
+        "@/lib/db",
+        "@/lib/video-generation/business-status"
       ],
       "externalImports": [
         "next/navigation",
         "next-auth",
-        "next/link"
+        "next/link",
+        "@prisma/client"
       ]
     },
     {
@@ -1877,6 +1881,7 @@
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
         "@/lib/services/video-service",
+        "@/lib/video-generation/business-status",
         "@/lib/schemas/unified-input"
       ],
       "localImports": [
@@ -1885,6 +1890,7 @@
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
         "@/lib/services/video-service",
+        "@/lib/video-generation/business-status",
         "@/lib/schemas/unified-input"
       ],
       "externalImports": [
@@ -2940,6 +2946,16 @@
       ]
     },
     {
+      "file": "src/lib/providers/seedance.ts",
+      "imports": [
+        "@/lib/video-generation/mock-clip-generator"
+      ],
+      "localImports": [
+        "@/lib/video-generation/mock-clip-generator"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/schemas/ad-edit-plan.ts",
       "imports": [
         "zod"
@@ -3433,12 +3449,15 @@
         "fs/promises",
         "os",
         "path",
+        "url",
         "@prisma/client",
         "@/lib/db",
+        "@/lib/video-generation/assembly-executor",
         "@vercel/blob"
       ],
       "localImports": [
-        "@/lib/db"
+        "@/lib/db",
+        "@/lib/video-generation/assembly-executor"
       ],
       "externalImports": [
         "child_process",
@@ -3446,6 +3465,7 @@
         "fs/promises",
         "os",
         "path",
+        "url",
         "@prisma/client",
         "@vercel/blob"
       ]
@@ -3496,6 +3516,25 @@
       ]
     },
     {
+      "file": "src/lib/video-generation/assembly-executor.ts",
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/video-generation/brand-end-card-renderer",
+        "@/types/video-generation",
+        "@/lib/services/stitch-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/video-generation/brand-end-card-renderer",
+        "@/types/video-generation",
+        "@/lib/services/stitch-service"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "src/lib/video-generation/asset-classifier.ts",
       "imports": [
         "@/types/video-generation"
@@ -3506,6 +3545,35 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/brand-end-card-renderer.ts",
+      "imports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url",
+        "@/types/video-generation",
+        "sharp",
+        "@vercel/blob"
+      ],
+      "localImports": [
+        "@/types/video-generation"
+      ],
+      "externalImports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url",
+        "sharp",
+        "@vercel/blob"
+      ]
+    },
+    {
       "file": "src/lib/video-generation/brand-packaging.ts",
       "imports": [
         "@/types/video-generation"
@@ -3514,6 +3582,16 @@
         "@/types/video-generation"
       ],
       "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/business-status.ts",
+      "imports": [
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@prisma/client"
+      ]
     },
     {
       "file": "src/lib/video-generation/clip-placement-planner.ts",
@@ -3581,6 +3659,30 @@
         "@/types/video-generation"
       ],
       "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/mock-clip-generator.ts",
+      "imports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url",
+        "@vercel/blob"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url",
+        "@vercel/blob"
+      ]
     },
     {
       "file": "src/lib/video-generation/plan-preview.ts",
@@ -3752,6 +3854,21 @@
       ]
     },
     {
+      "file": "tests/assembly-executor.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/assembly-executor"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/assembly-executor"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/asset-qa-rules.test.ts",
       "imports": [
         "node:assert/strict",
@@ -3763,6 +3880,40 @@
       "localImports": [
         "../src/lib/services/asset-qa-service",
         "../src/lib/schemas/asset-qa"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/brand-end-card-renderer.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/business-status-adapter.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-status"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -3915,6 +4066,21 @@
       ]
     },
     {
+      "file": "tests/mock-clip-generator.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/mock-clip-generator"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/mock-clip-generator"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/multi-segment-lifecycle.test.ts",
       "imports": [
         "node:assert/strict",
@@ -4010,6 +4176,27 @@
       ]
     },
     {
+      "file": "tests/seedance-mock-hints.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:url",
+        "node:child_process",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:url",
+        "node:child_process"
+      ]
+    },
+    {
       "file": "tests/seedance-status-mapping.test.ts",
       "imports": [
         "node:assert/strict",
@@ -4054,6 +4241,21 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/stitch-service-aspect.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/stitch-service"
+      ],
+      "localImports": [
+        "../src/lib/services/stitch-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {

@@ -1,0 +1,154 @@
+# Aivora Roadmap Status — 进度看板
+
+> 这份文件是**单一事实来源（SSOT）**：任何时候想知道"我们走到哪了 / 下一步该干什么"，
+> 直接读这一份，不要再去翻 chat 历史或 commit log。
+> 任何 phase 推进时（开始 / 完成 / 阻塞）必须同步更新本文件，并在同一个 commit 里。
+
+---
+
+## 一句话现状
+
+**正在做：** Phase 4 完成，Phase 5（persona-aware auth + 公开个人注册）准备启动
+**最后一次代码同步：** 见底部「Recent commits & status」
+**下一动作：** 见「Next session resume hook」
+
+---
+
+## 路线图总览
+
+```
+Phase 1   ✅ Foundation：unified video generation pipeline + multi-segment + stitch
+Phase 2   ✅ B2B demo flow infrastructure（mock-clip / brand-end-card / assembly）
+Phase 2.5 ✅ B2B demo flow hardening（status mapping / dead-link guard / failed CTA）
+Phase 3   ✅ C-side personal MVP hardening（personal-status / dead-link guard / friendly copy）
+Phase 4   🟡 Real provider readiness + first real C-side E2E
+   4a     ✅ Mock E2E 已被 325 项单测覆盖；本 phase 增加 dev-mode safety + real-test runbook
+   4b     ✅ Dev `VIDEO_ENGINE_MOCK` 显式安全检查 + predev 警告
+   4c     ⏳ 由用户在本机/staging 手动执行真实场景 A/B/C（见 PHASE_4_REAL_TEST_RUNBOOK.md）
+Phase 5   🔜 Persona-aware auth + 公开个人注册（PERSONAL only） + B-side full E2E
+   5a     ⏳ 把 `requirePersonalUser` / `requireBusinessUser` 接到 session.user.userType
+   5b     ⏳ 新增 /api/auth/register + /register 页面（仅 PERSONAL；BUSINESS 留 invite-only）
+   5c     ⏳ B-side 真实 E2E（依赖 4c 跑通）
+Phase 6   ⏳ Upload assets UI 完善 + edit/regenerate 控件 + 段感知重试 UI
+Phase 7a  ⏳ Quota / rate-limit / Seedance & Blob & OpenAI 按 user 记账
+Phase 7b  ⏳ Stripe / 微信支付 / 套餐 / billing 页
+Phase 8   ⏳ 公开 demo / landing / sales packaging
+Phase 8.5 ⏳ 法律 / 内容安全 / 监控告警 / 域名 + 备案
+Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
+```
+
+图例：✅ 已完成 · 🟡 进行中 · 🔜 即将开始 · ⏳ 待启动
+
+---
+
+## 每个 Phase 的目标 + 验收 + 退出条件
+
+### Phase 4 — Real provider readiness + first real C-side E2E
+
+**目标**：在真实烧 Seedance / OpenAI 额度之前，把 dev 环境调教到「不会静默扣费」+ 写好可复用的 real-test 跑法。
+
+**已完成**
+- 真实 mock 全链路覆盖度 = 325 项单测 + audit 测试（覆盖 status / customer-safe strings / plan / supervisor）
+- `npm run mode:check` 显式打印当前 LLM / 视频 / 拼接 / Image 4 个 provider 的 mock-or-real 状态 + 预估每段成本
+- `predev` 钩子：`npm run dev` 之前自动打印安全提示，提醒 dev 是否在烧真钱
+- `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 三档场景（A=15s personal / B=30s personal / C=30s business with end card），每档明确成本 + 风险 + 验证点
+
+**退出条件（4c 由用户执行）**
+- [ ] 场景 A 跑通（15s personal，~$0.6），UI 拿到可播放 finalVideoUrl
+- [ ] 场景 B 跑通（30s personal，~$1.2），GH Action stitch + Blob 上传链路验证
+- [ ] 场景 C 跑通（30s business with auto end card，~$1.3）
+- [ ] 任何一档失败时 `/personal/videos` 或 `/business/products` 看到友好的「重新生成」CTA
+
+---
+
+### Phase 5 — Persona-aware auth + 公开 PERSONAL 注册
+
+**目标**：把"PERSONAL 用户"从 stub 升级成真实可注册账号，为 Phase 7 的 quota / billing 打底。
+
+**计划**
+- 5a：`requirePersonalUser` / `requireBusinessUser` 真正读 `session.user.userType`，OPERATOR/SUPER_ADMIN 仍 bypass
+- 5b：新增 `POST /api/auth/register`（仅创建 `userType=PERSONAL` 的账号，role=OPERATOR 复用现有 enum）+ `/register` 页面 + `/login` 添加 "Don't have an account?" 链接
+- 5c：B-side 真实 E2E（同 4c 但 persona=BUSINESS）
+
+**退出条件**
+- [ ] 一个未登录访客能在 `/register` 自助创建 PERSONAL 账号 → 自动跳 `/personal`
+- [ ] BUSINESS 仍是 invite-only（admin 在 `/settings` 创建并指定 userType=BUSINESS）
+- [ ] PERSONAL 用户访问 `/business/*` 被拒；BUSINESS 用户访问 `/personal/*` 被拒
+- [ ] OPERATOR/SUPER_ADMIN 访问任何路径仍 OK（运维需要）
+- [ ] 测试覆盖 4 类用户 × 3 类路径的访问矩阵
+
+---
+
+### Phase 6 — Upload + edit/regenerate UI
+
+**目标**：把已有但没有 UI 的能力（按段重试 / regenerate / 素材管理）暴露出来。
+
+**已就绪的后端**：`retryFailedVideoJob`、`retryFailedSegmentsForBrief`、`/api/upload/blob`、`AttachmentUploader`
+
+**计划**
+- `personal/videos/[id]` 详情页：每段 thumbnail + 失败重试按钮 + edit prompt
+- `business/products/[id]` 同上 + brand kit edit
+- 上传素材后 inline 显示分类（AssetClassifier 已实现）
+
+---
+
+### Phase 7a — Quota / 用量记账
+
+**目标**：上线公开注册之前必须有的"防护栏"——单用户不能无限烧 Seedance。
+
+**计划**
+- Prisma schema：`UsageQuota` + `UsageLog`（按 user × resource × period）
+- Middleware：`/api/video-generation/dispatch` 进入前查 quota，超额返 429 + 友好文案
+- 资源粒度：Seedance 段数 / OpenAI tokens / Blob bytes / 视频条数 / 月
+- 默认套餐：free / starter / pro
+
+---
+
+### Phase 7b — 支付
+
+依赖 Phase 7a 完成。可能用 Stripe Checkout（海外）+ 微信/支付宝（国内）。
+
+---
+
+### Phase 8 — 公开 demo + landing + sales
+
+依赖 Phase 5+6+7 全部完成。
+
+---
+
+### Phase 8.5 — 法务 / 安全 / 监控
+
+并行可做：ToS / Privacy / Cookie banner / Sentry / NSFW 检测 / 域名 ICP 备案。
+
+---
+
+## Recent commits & status
+
+| 日期 | Commit | Phase | 备注 |
+|---|---|---|---|
+| 2026-05-12 | `4ef8993 chore(b2b): add demo:mock-business-flow probe script` | Phase 2.5 prep | |
+| 2026-05-12 | `4da7201 chore(b2b): harden demo flow polish` | Phase 2.5 ✅ | |
+| 2026-05-13 | `3ea1fcd chore(personal): harden c-side mvp flow` | Phase 3 ✅ | C 端 status / dead-link / lint / 19 新单测 |
+| 2026-05-13 | _next: feat(phase-4)_ | Phase 4 ✅ | dev-mode safety + roadmap tracker |
+
+---
+
+## Next session resume hook
+
+> 你重启 session / 找新一个 agent 接手时，让它先做这两件事，就能立刻知道在哪里：
+>
+> 1. `cat docs/ROADMAP_STATUS.md` — 读这一份
+> 2. `npm run roadmap` — 终端一行打印「上一个 commit / 当前 Phase / 下一动作」
+>
+> 然后按「Phase X — 计划」执行。所有计划都已经拆好，无需再设计。
+
+**当前推荐的下一动作**：开 Phase 5a，把 persona-aware auth 接到 `userType`。详见上面的「Phase 5 计划」。
+
+---
+
+## 维护规则
+
+- 每完成一个 Phase（或一个 4a / 5a 这样的子阶段），**同一个 commit 里**更新本文件
+- 任何 blocker / 决策 / 取消的功能，写进对应 Phase 的「备注」一行
+- 不要堆积 TODO 在源码里；规划性的 TODO 全部进本文件
+- commit message 用 `feat(phase-X): ...` / `feat(phase-Xa): ...` 前缀，方便 `git log --grep='phase-'` 查史

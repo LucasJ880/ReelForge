@@ -3,6 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "scripts": {
+    "predev": "tsx scripts/check-real-mode.ts || true",
     "dev": "next dev",
     "build": "prisma generate && next build",
     "start": "next start",
@@ -23,6 +24,9 @@
     "context:find": "tsx scripts/context-router.ts",
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
     "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
+    "mode:check": "tsx scripts/check-real-mode.ts",
+    "mode:check:strict": "tsx scripts/check-real-mode.ts -- --strict",
+    "roadmap": "tsx scripts/roadmap.ts",
     "test": "node --import tsx --test tests/**/*.test.ts"
   },
   "prisma": {

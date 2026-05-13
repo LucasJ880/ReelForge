@@ -1,16 +1,12 @@
 import { PersonalSidebar } from "@/components/layout/personal-sidebar";
-import { requirePersonalUser } from "@/lib/api-auth";
-import { redirect } from "next/navigation";
+import { requirePersonaPage } from "@/lib/api-auth";
 
 export default async function PersonalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const guard = await requirePersonalUser();
-  if (!guard.ok) {
-    redirect("/login?from=/personal");
-  }
+  await requirePersonaPage(["PERSONAL"], "/personal");
   return (
     <div className="flex h-full bg-sidebar">
       <PersonalSidebar />

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
-import { requireOperator } from "@/lib/api-auth";
+import { requireAuth } from "@/lib/api-auth";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const SUPPORTED_UPLOAD_TYPES = /^(video\/(mp4|quicktime|webm|x-m4v)|image\/(png|jpe?g|webp)|audio\/(mpeg|mp4|x-m4a|wav|aac))$/i;
@@ -8,9 +8,12 @@ const SUPPORTED_UPLOAD_TYPES = /^(video\/(mp4|quicktime|webm|x-m4v)|image\/(png|
 /**
  * 简易 Vercel Blob 上传：前端以 POST multipart/form-data 上传单文件。
  * 用于产品参考图、自定义参考图等。
+ *
+ * Phase 5 鉴权：任何已登录账号（含 BUSINESS / PERSONAL / 内部 staff）均可调用，
+ * 由 size + MIME 白名单 + 文件名 prefix 兜底防滥用。后续 Phase 7a 加单用户配额。
  */
 export async function POST(req: NextRequest) {
-  const guard = await requireOperator();
+  const guard = await requireAuth();
   if (!guard.ok) return guard.response;
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {

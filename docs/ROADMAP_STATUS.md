@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 4 完成，Phase 5（persona-aware auth + 公开个人注册）准备启动
+**正在做：** Phase 5a + 5b 完成（persona-aware auth + 公开 PERSONAL 注册）；Phase 5c（B-side 真实 E2E）依赖你跑 Phase 4c 后再开。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -25,9 +25,13 @@ Phase 4   🟡 Real provider readiness + first real C-side E2E
    4a     ✅ Mock E2E 已被 325 项单测覆盖；本 phase 增加 dev-mode safety + real-test runbook
    4b     ✅ Dev `VIDEO_ENGINE_MOCK` 显式安全检查 + predev 警告
    4c     ⏳ 由用户在本机/staging 手动执行真实场景 A/B/C（见 PHASE_4_REAL_TEST_RUNBOOK.md）
-Phase 5   🔜 Persona-aware auth + 公开个人注册（PERSONAL only） + B-side full E2E
-   5a     ⏳ 把 `requirePersonalUser` / `requireBusinessUser` 接到 session.user.userType
-   5b     ⏳ 新增 /api/auth/register + /register 页面（仅 PERSONAL；BUSINESS 留 invite-only）
+Phase 5   🟡 Persona-aware auth + 公开个人注册（PERSONAL only） + B-side full E2E
+   5a     ✅ requirePersonalUser / requireBusinessUser / requireOperator 接 userType
+          + 新增 requireUserOfPersona / requirePersonaPage / requireUserOfTypeForGeneration
+          + dispatch 加 persona 与 request.userType 一致性校验（防越权）
+   5b     ✅ POST /api/auth/register（仅 PERSONAL，role default=OPERATOR + ut=PERSONAL）
+          + /register 页面 + /login 加「创建个人账号」入口
+          + 17 新单测（persona 访问矩阵 + register schema 契约）
    5c     ⏳ B-side 真实 E2E（依赖 4c 跑通）
 Phase 6   ⏳ Upload assets UI 完善 + edit/regenerate 控件 + 段感知重试 UI
 Phase 7a  ⏳ Quota / rate-limit / Seedance & Blob & OpenAI 按 user 记账
@@ -129,7 +133,8 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 | 2026-05-12 | `4ef8993 chore(b2b): add demo:mock-business-flow probe script` | Phase 2.5 prep | |
 | 2026-05-12 | `4da7201 chore(b2b): harden demo flow polish` | Phase 2.5 ✅ | |
 | 2026-05-13 | `3ea1fcd chore(personal): harden c-side mvp flow` | Phase 3 ✅ | C 端 status / dead-link / lint / 19 新单测 |
-| 2026-05-13 | _next: feat(phase-4)_ | Phase 4 ✅ | dev-mode safety + roadmap tracker |
+| 2026-05-13 | `ada0a4a feat(phase-4): real-mode safety + roadmap tracker` | Phase 4 ✅ | mode:check / roadmap / runbook |
+| 2026-05-13 | _next: feat(phase-5)_ | Phase 5a+5b ✅ | persona-aware auth + 公开 PERSONAL 注册 / 17 新单测 |
 
 ---
 
@@ -142,7 +147,17 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 >
 > 然后按「Phase X — 计划」执行。所有计划都已经拆好，无需再设计。
 
-**当前推荐的下一动作**：开 Phase 5a，把 persona-aware auth 接到 `userType`。详见上面的「Phase 5 计划」。
+**当前推荐的下一动作**：
+
+1. （**强烈建议先做**）跑 `npm run mode:check` 看一眼。如果显示 5/5 REAL 但你不打算
+   烧真钱，先在 `.env.local` 加 `VIDEO_ENGINE_MOCK=true`、`LLM_FORCE_MOCK=true`、
+   `IMAGE_ENGINE_MOCK=true`。这是 Phase 4 Runbook 第 1 节的硬性预检。
+2. 在浏览器走一次「公开注册 → /personal → 创建 15s 视频」的 mock 走查，确认 Phase 5
+   端到端通畅。
+3. 如准备烧真钱：按 `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 的场景 A（≈ $0.6）开第一发。
+4. 跑通后开 **Phase 6**（详情页 + 段感知重试 UI + 上传素材分类 inline）。
+5. 如果 Phase 5 想做 5c（B-side 真实 E2E），需要 admin 在 `/settings` 创建一个
+   `userType=BUSINESS` 的账号 → 用它登录跑场景 C。
 
 ---
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AngleType, DeliveryOrderStatus, RoundStatus, VideoBriefStatus } from "@prisma/client";
-import { requireOperator } from "@/lib/api-auth";
+import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
@@ -30,7 +30,7 @@ import {
  * 失败时：HTTP 400 + 详细错误（不静默回退）。
  */
 export async function POST(req: NextRequest) {
-  const guard = await requireOperator();
+  const guard = await requireUserOfTypeForGeneration();
   if (!guard.ok) return guard.response;
   const session = guard.session;
 
@@ -42,6 +42,27 @@ export async function POST(req: NextRequest) {
       { ok: false, error: "request 参数不合法", issues: reqParsed.error.flatten() },
       { status: 400 },
     );
+  }
+
+  /// Phase 5 — persona consistency 校验：
+  /// 客户用户（非内部 staff）只能以自己的 persona 调度。
+  /// 内部 staff（OPERATOR/SUPER_ADMIN）可代任意 persona 调用，便于客服 / debug。
+  const sessionPersona = session.user.userType;
+  const isInternalStaff =
+    sessionPersona === "OPERATOR" || sessionPersona === "SUPER_ADMIN";
+  if (!isInternalStaff) {
+    const expected =
+      sessionPersona === "BUSINESS"
+        ? "business"
+        : sessionPersona === "PERSONAL"
+          ? "personal"
+          : null;
+    if (!expected || expected !== reqParsed.data.userType) {
+      return NextResponse.json(
+        { ok: false, error: "权限不足：persona 与 request.userType 不一致" },
+        { status: 403 },
+      );
+    }
   }
 
   /// Phase 1：始终服务端重建 plan 防 UI tamper

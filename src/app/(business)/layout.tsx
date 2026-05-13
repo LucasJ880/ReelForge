@@ -1,16 +1,12 @@
 import { BusinessSidebar } from "@/components/layout/business-sidebar";
-import { requireBusinessUser } from "@/lib/api-auth";
-import { redirect } from "next/navigation";
+import { requirePersonaPage } from "@/lib/api-auth";
 
 export default async function BusinessLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const guard = await requireBusinessUser();
-  if (!guard.ok) {
-    redirect("/login?from=/business");
-  }
+  await requirePersonaPage(["BUSINESS"], "/business");
   return (
     <div className="flex h-full bg-sidebar">
       <BusinessSidebar />

@@ -9,6 +9,15 @@ export type AuthGuardResult =
 
 type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER";
 
+/**
+ * Persona discriminator on AdminUser.userType.
+ * - "OPERATOR" / "SUPER_ADMIN"  → 内部员工，通常 bypass persona 校验
+ * - "BUSINESS"                   → 商家用户，访问 /business/*
+ * - "PERSONAL"                   → 个人用户，访问 /personal/*
+ * - null                         → 老账号或未选 persona，需要走 /persona 选一次
+ */
+export type UserPersona = "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN";
+
 export async function requireAuth(): Promise<AuthGuardResult> {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -46,12 +55,41 @@ export async function requireSuperAdmin(): Promise<AuthGuardResult> {
   return requireRole(["SUPER_ADMIN"]);
 }
 
+/**
+ * 内部 admin 端点专用（delivery-orders / qa / publish / metrics 等）。
+ *
+ * Phase 5 收紧：除了原本的 role 检查，还要确保 userType 是内部 persona
+ * （OPERATOR / SUPER_ADMIN），防止 PERSONAL/BUSINESS 自助注册账号
+ * 因 default role=OPERATOR 而误得到管理员权限。
+ *
+ * 旧账号兼容：normalizeUserType 在 src/lib/auth.ts 会把 userType=null
+ * 的旧 OPERATOR/SUPER_ADMIN 账号 normalize 成 "OPERATOR" / "SUPER_ADMIN"，
+ * 因此对存量数据无副作用。
+ */
 export async function requireOperator(): Promise<AuthGuardResult> {
-  return requireRole(["SUPER_ADMIN", "OPERATOR"]);
+  const auth = await requireRole(["SUPER_ADMIN", "OPERATOR"]);
+  if (!auth.ok) return auth;
+  const userType = auth.session.user.userType;
+  if (userType === "PERSONAL" || userType === "BUSINESS") {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
+    };
+  }
+  return auth;
 }
 
 export async function requireReviewer(): Promise<AuthGuardResult> {
-  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
+  const auth = await requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
+  if (!auth.ok) return auth;
+  const userType = auth.session.user.userType;
+  if (userType === "PERSONAL" || userType === "BUSINESS") {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
+    };
+  }
+  return auth;
 }
 
 /**
@@ -81,22 +119,139 @@ export function requireWizardPage() {
 }
 
 /**
- * Phase 5 — persona-aware guards.
+ * Server Component / Page 层的 persona guard。
  *
- * Phase 1：所有 helper 都等价于 requireOperator（因为还没有真实的客户账号 + persona 分流）。
- * Phase 2 会改成根据 session.user.userType 真实分流：
- *   - requireBusinessUser → only userType=BUSINESS / OPERATOR / SUPER_ADMIN
- *   - requirePersonalUser → only userType=PERSONAL / OPERATOR / SUPER_ADMIN
- *   - requireInternal     → only userType=OPERATOR / SUPER_ADMIN
+ * - 未登录          → /login?from=<intended>
+ * - 登录但 persona 不匹配（且非内部 staff） → 跳到他自己 persona 的根页面，
+ *   避免「BUSINESS 用户跑去 /personal 被踢回 /login，看到登录框，懵」。
+ * - 内部 staff     → 直接放行
+ *
+ * 使用方式：在 layout.tsx 顶部 await，函数永不 return 给错误用户。
  */
+export async function requirePersonaPage(
+  allowed: readonly ("BUSINESS" | "PERSONAL")[],
+  intendedPath: string,
+): Promise<Session> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
+  }
+  const userType = session.user.userType;
+
+  if (userType === "OPERATOR" || userType === "SUPER_ADMIN") {
+    return session;
+  }
+
+  if (
+    (userType === "BUSINESS" || userType === "PERSONAL") &&
+    allowed.includes(userType)
+  ) {
+    return session;
+  }
+
+  /// 已登录但 persona 不在允许列表 → 跳他自己的家
+  if (userType === "BUSINESS") {
+    redirect("/business");
+  }
+  if (userType === "PERSONAL") {
+    redirect("/personal");
+  }
+  /// 没选过 persona → /persona 选一次
+  redirect("/persona");
+}
+
+/**
+ * Phase 5 — Persona-aware guards.
+ *
+ * 通用模型：
+ *   - 内部 staff（userType=OPERATOR / SUPER_ADMIN）拥有"全通行"权限，可以
+ *     访问 BUSINESS / PERSONAL 表面。这是工程必要：运维 / 客服 / QA 都要能
+ *     进客户视图调试。
+ *   - 客户用户（userType=BUSINESS / PERSONAL）只能访问对应 persona 的表面。
+ *   - 没有 userType 的账号（理论上不应该出现，session 已 normalize）按拒绝处理。
+ *
+ * Phase 6+ 想要的"客服 view-as 用户"等更细的能力另做。
+ */
+export async function requireUserOfPersona(
+  allowed: readonly ("BUSINESS" | "PERSONAL")[],
+): Promise<AuthGuardResult> {
+  const auth = await requireAuth();
+  if (!auth.ok) return auth;
+  const userType = auth.session.user.userType;
+
+  /// 内部 staff 永远 bypass
+  if (userType === "OPERATOR" || userType === "SUPER_ADMIN") {
+    return auth;
+  }
+
+  if (
+    userType === "BUSINESS" ||
+    userType === "PERSONAL"
+  ) {
+    if (allowed.includes(userType)) return auth;
+  }
+
+  return {
+    ok: false,
+    response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
+  };
+}
+
 export async function requireBusinessUser(): Promise<AuthGuardResult> {
-  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
+  return requireUserOfPersona(["BUSINESS"]);
 }
 
 export async function requirePersonalUser(): Promise<AuthGuardResult> {
-  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
+  return requireUserOfPersona(["PERSONAL"]);
 }
 
+/**
+ * 内部 only 入口（与 requireOperator 等价；保留命名做意图区分）。
+ */
 export async function requireInternal(): Promise<AuthGuardResult> {
-  return requireRole(["SUPER_ADMIN", "OPERATOR"]);
+  return requireOperator();
 }
+
+/**
+ * 共享 video generation 端点专用（plan / dispatch / classify-asset / blob upload）。
+ *
+ * 任何已选 persona 的客户用户（BUSINESS 或 PERSONAL）都可调用；内部 staff bypass。
+ * 调用方拿到 guard.ok=true 后，应再把请求 body 里的 `request.userType` 与
+ * session.user.userType 做一致性校验（内部 staff 可代任意 persona 调用）。
+ */
+export async function requireUserOfTypeForGeneration(): Promise<AuthGuardResult> {
+  return requireUserOfPersona(["BUSINESS", "PERSONAL"]);
+}
+
+/// 仅供测试 / 文档用：暴露内部判定逻辑给单测无 IO 时使用。
+export const __test__ = {
+  /// pure：只看 role + userType，不做 db / network；和实际 require* 同步演变
+  classifyAccess(args: {
+    role: Role | null | undefined;
+    userType: UserPersona | null | undefined;
+    expecting: "operator" | "reviewer" | "business" | "personal" | "generation" | "internal";
+  }): "allow" | "deny-not-logged-in" | "deny-forbidden" {
+    if (!args.role) return "deny-not-logged-in";
+    const isInternalRole = args.role === "OPERATOR" || args.role === "SUPER_ADMIN";
+    const isReviewerRole = args.role === "REVIEWER" || isInternalRole;
+    const isCustomerType = args.userType === "BUSINESS" || args.userType === "PERSONAL";
+    const isInternalType = args.userType === "OPERATOR" || args.userType === "SUPER_ADMIN";
+
+    switch (args.expecting) {
+      case "operator":
+      case "internal":
+        return isInternalRole && !isCustomerType ? "allow" : "deny-forbidden";
+      case "reviewer":
+        return isReviewerRole && !isCustomerType ? "allow" : "deny-forbidden";
+      case "business":
+        if (isInternalType) return "allow";
+        return args.userType === "BUSINESS" ? "allow" : "deny-forbidden";
+      case "personal":
+        if (isInternalType) return "allow";
+        return args.userType === "PERSONAL" ? "allow" : "deny-forbidden";
+      case "generation":
+        if (isInternalType) return "allow";
+        return isCustomerType ? "allow" : "deny-forbidden";
+    }
+  },
+};

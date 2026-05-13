@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOperator } from "@/lib/api-auth";
+import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { unifiedVideoGenerationRequestSchema } from "@/lib/schemas/unified-input";
 
@@ -11,11 +11,11 @@ import { unifiedVideoGenerationRequestSchema } from "@/lib/schemas/unified-input
  *
  * 无副作用：不写 DB，不调 Seedance。UI 拿到 plan + planPreview 后再决定是否 dispatch。
  *
- * Phase 1 鉴权：复用 requireOperator（所有登录账号当前都被授予 operator 等价权限）。
- * Phase 2 会换成 requireBusinessUser / requirePersonalUser 区分。
+ * Phase 5 鉴权：BUSINESS / PERSONAL 任一客户用户均可调用；内部 staff bypass。
+ * dispatch 路由会做 persona 与 request.userType 的一致性二次校验。
  */
 export async function POST(req: NextRequest) {
-  const guard = await requireOperator();
+  const guard = await requireUserOfTypeForGeneration();
   if (!guard.ok) return guard.response;
 
   const body = await req.json().catch(() => null);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOperator } from "@/lib/api-auth";
+import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import {
   classifyAsset,
   type AssetClassification,
@@ -18,7 +18,7 @@ import { classifyAssetRequestSchema } from "@/lib/schemas/unified-input";
  * 纯规则推断，无 LLM 调用；返回快。
  */
 export async function POST(req: NextRequest) {
-  const guard = await requireOperator();
+  const guard = await requireUserOfTypeForGeneration();
   if (!guard.ok) return guard.response;
 
   const body = await req.json().catch(() => null);

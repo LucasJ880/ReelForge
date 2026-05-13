@@ -12,7 +12,7 @@ export default function AuthLayout({
           <Logo size={26} />
           <span className="text-sm font-semibold tracking-tight">Aivora</span>
         </div>
-        <div className="text-xs text-muted-foreground">内部交付系统</div>
+        <div className="text-xs text-muted-foreground">AI 短视频生成平台</div>
       </header>
 
       <div className="grid min-h-screen lg:grid-cols-2">

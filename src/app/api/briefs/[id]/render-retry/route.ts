@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireOperator } from "@/lib/api-auth";
+import { requireAuth } from "@/lib/api-auth";
+import { checkBriefAccess } from "@/lib/services/brief-access";
 import { db } from "@/lib/db";
 import {
   retryFailedVideoJob,
@@ -13,7 +14,10 @@ import {
  *   { "all": true }               // 重试当前 brief 下所有 FAILED job
  *
  * 安全门禁（与 Seedance 计费安全相关）：
- * 1. 调用方必须是该 brief 关联的运营员（requireOperator 已保证 admin 身份）
+ * 1. 调用方必须是该 brief 的 owner（unified-input 流程：DeliveryOrder.createdById），
+ *    或内部 staff（OPERATOR/SUPER_ADMIN）—— Phase 6 收紧，不再允许任意 OPERATOR
+ *    因为 PERSONAL 用户也是 role=OPERATOR + userType=PERSONAL，
+ *    必须用 brief 归属权而不是单纯 role 来判断
  * 2. retryFailedVideoJob 内部会先 GET Provider 状态，确认确实失败 / 不存在再扣费重交
  *    —— 防止用户在已完成 job 上误点重试再次扣费
  */
@@ -21,9 +25,18 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const guard = await requireOperator();
+  const guard = await requireAuth();
   if (!guard.ok) return guard.response;
   const { id: briefId } = await params;
+
+  const access = await checkBriefAccess(briefId, guard.session);
+  if (!access.allowed) {
+    if (access.reason === "not-found") {
+      return NextResponse.json({ error: "Brief 不存在" }, { status: 404 });
+    }
+    return NextResponse.json({ error: "权限不足" }, { status: 403 });
+  }
+
   const body = await req.json().catch(() => ({}));
 
   try {

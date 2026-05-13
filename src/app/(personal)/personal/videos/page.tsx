@@ -204,9 +204,12 @@ export default async function PersonalVideosPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold tracking-tight truncate">
+                      <Link
+                        href={`/personal/videos/${r.id}`}
+                        className="text-base font-semibold tracking-tight truncate hover:underline underline-offset-4"
+                      >
                         {r.title}
-                      </h3>
+                      </Link>
                       <span
                         className={
                           "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
@@ -248,14 +251,12 @@ export default async function PersonalVideosPage() {
 
                     {isReady && r.finalVideoUrl ? (
                       <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <a
-                          href={r.finalVideoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          href={`/personal/videos/${r.id}`}
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
                         >
                           {r.cta ?? "查看视频"}
-                        </a>
+                        </Link>
                         <a
                           href={r.finalVideoUrl}
                           download
@@ -272,8 +273,23 @@ export default async function PersonalVideosPage() {
                       </div>
                     ) : null}
 
+                    {!isReady && !isFailed ? (
+                      <Link
+                        href={`/personal/videos/${r.id}`}
+                        className="mt-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                      >
+                        查看分镜进度 →
+                      </Link>
+                    ) : null}
+
                     {isFailed ? (
                       <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <Link
+                          href={`/personal/videos/${r.id}`}
+                          className="inline-flex items-center rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors"
+                        >
+                          重试失败片段
+                        </Link>
                         <Link
                           href="/personal/create-video"
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"

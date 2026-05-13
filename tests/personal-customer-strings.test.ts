@@ -16,6 +16,8 @@ const ROOT = path.resolve(__dirname, "..");
 const FILES_TO_AUDIT = [
   "src/app/(personal)/personal/page.tsx",
   "src/app/(personal)/personal/videos/page.tsx",
+  "src/app/(personal)/personal/videos/[id]/page.tsx",
+  "src/app/(personal)/personal/videos/[id]/video-actions.tsx",
   "src/app/(personal)/personal/create-video/page.tsx",
   "src/components/video-generation/plan-preview-card.tsx",
   "src/components/video-generation/unified-creative-input.tsx",
@@ -195,4 +197,80 @@ test.test("audit: plan-preview-card 不出现 'Segment' 这种内部术语（用
     /Scene/.test(src),
     "plan-preview-card 应使用 'Scene' 这种用户友好术语",
   );
+});
+
+test.test("audit: personal video detail 使用 derivePersonalStatus + customerSafeFinalVideoUrl", async () => {
+  const abs = path.join(
+    ROOT,
+    "src/app/(personal)/personal/videos/[id]/page.tsx",
+  );
+  const src = await readFile(abs, "utf-8");
+  assert.ok(
+    /derivePersonalStatus/.test(src),
+    "personal video detail 必须用 derivePersonalStatus 做状态映射",
+  );
+  assert.ok(
+    /customerSafeFinalVideoUrl/.test(src),
+    "personal video detail 必须用 customerSafeFinalVideoUrl 守 finalVideoUrl",
+  );
+  /// 不应直接渲染 brief.status / videoJob.status 等 enum 值
+  assert.ok(
+    !/\{\s*brief\.status\s*\}/.test(src) &&
+      !/\{\s*j\.status\s*\}/.test(src) &&
+      !/\{\s*r\.status\s*\}/.test(src),
+    "personal video detail 不应直接渲染 prisma enum 状态",
+  );
+});
+
+test.test("audit: personal video detail 有 ownership 守门（避免 IDOR）", async () => {
+  const abs = path.join(
+    ROOT,
+    "src/app/(personal)/personal/videos/[id]/page.tsx",
+  );
+  const src = await readFile(abs, "utf-8");
+  /// 必须 check createdById 与 session.user.id 是否一致（或 internal staff）
+  assert.ok(
+    /createdById/.test(src),
+    "detail page 必须读 createdById 做归属校验",
+  );
+  assert.ok(
+    /isInternalStaff|OPERATOR|SUPER_ADMIN/.test(src),
+    "detail page 必须给内部 staff 留 bypass",
+  );
+});
+
+test.test("audit: video-actions 客户文案友好；调用正确 endpoint", async () => {
+  const abs = path.join(
+    ROOT,
+    "src/app/(personal)/personal/videos/[id]/video-actions.tsx",
+  );
+  const src = await readFile(abs, "utf-8");
+  assert.ok(/刷新进度/.test(src), "应有'刷新进度'按钮");
+  assert.ok(/重试失败片段/.test(src), "应有'重试失败片段'按钮");
+  assert.ok(
+    /\/api\/briefs\/\$\{briefId\}\/render-status/.test(src),
+    "刷新调用 render-status",
+  );
+  assert.ok(
+    /\/api\/briefs\/\$\{briefId\}\/render-retry/.test(src),
+    "重试调用 render-retry",
+  );
+  assert.ok(/all:\s*true/.test(src), "重试默认 all:true");
+});
+
+test.test("audit: render-retry / render-status 使用 brief 归属校验而非 requireOperator", async () => {
+  for (const rel of [
+    "src/app/api/briefs/[id]/render-retry/route.ts",
+    "src/app/api/briefs/[id]/render-status/route.ts",
+  ]) {
+    const src = await readFile(path.join(ROOT, rel), "utf-8");
+    assert.ok(
+      /checkBriefAccess/.test(src),
+      `${rel} 必须用 checkBriefAccess 做归属校验`,
+    );
+    assert.ok(
+      !/requireOperator/.test(src),
+      `${rel} 不应再用 requireOperator（PERSONAL/BUSINESS 也是 role=OPERATOR，会误放行）`,
+    );
+  }
 });

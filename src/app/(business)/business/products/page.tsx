@@ -29,6 +29,8 @@ interface ProductRow {
   jobStatuses: VideoJobStatus[];
   businessStatus: BusinessVideoStatus;
   businessLabel: string;
+  businessShortLabel: string;
+  progressHint: number;
 }
 
 const STATUS_CHIP_CLASS: Record<BusinessVideoStatus, string> = {
@@ -38,6 +40,30 @@ const STATUS_CHIP_CLASS: Record<BusinessVideoStatus, string> = {
   ready: "bg-emerald-500/15 text-emerald-300",
   failed: "bg-rose-500/15 text-rose-300",
 };
+
+const PROGRESS_BAR_CLASS: Record<BusinessVideoStatus, string> = {
+  planning: "bg-slate-400/60",
+  generating: "bg-amber-400/70",
+  assembling: "bg-sky-400/70",
+  ready: "bg-emerald-400/80",
+  failed: "bg-rose-400/60",
+};
+
+/**
+ * 客户友好的进度提示，避免使用「段」「片段」等内部术语。
+ * "正在生成 2 / 3 个画面" 比 "2/3 段已完成" 更易理解，且不暗示底层多段拼接结构。
+ */
+function progressDescription(row: ProductRow): string | null {
+  if (row.businessStatus === "ready" || row.businessStatus === "failed") return null;
+  if (row.segmentCount <= 0) return null;
+  if (row.businessStatus === "generating") {
+    return `已完成 ${row.segmentsSucceeded} / ${row.segmentCount} 个画面`;
+  }
+  if (row.businessStatus === "assembling") {
+    return "正在合成最终视频";
+  }
+  return null;
+}
 
 async function loadProductRows(userId: string): Promise<ProductRow[]> {
   const orders = await db.deliveryOrder.findMany({
@@ -98,6 +124,11 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
       segmentsTotal: segmentCount,
       jobStatuses,
     });
+    const finalUrl = finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null;
+    /// 防御：file:// 不能直接给客户用浏览器打开（Phase 2 dev 模式才会出现），
+    /// 也不应该作为 ready 视频的 link。视为「视频未就绪」。
+    const customerSafeUrl =
+      finalUrl && /^https?:\/\//i.test(finalUrl) ? finalUrl : null;
     return {
       id: o.id,
       title: o.title,
@@ -106,10 +137,8 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
       briefId: brief?.id ?? null,
       briefStatus: brief?.status ?? null,
       finalVideoStatus: finalVideo?.status ?? null,
-      finalVideoUrl:
-        finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null,
-      finalThumbnailUrl:
-        finalVideo?.thumbnailUrl ?? brief?.finalThumbnailUrl ?? null,
+      finalVideoUrl: customerSafeUrl,
+      finalThumbnailUrl: finalVideo?.thumbnailUrl ?? brief?.finalThumbnailUrl ?? null,
       aspectRatio: brief?.aspectRatio ?? null,
       durationSec: brief?.durationSec ?? null,
       segmentCount,
@@ -117,6 +146,8 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
       jobStatuses,
       businessStatus: status.status,
       businessLabel: status.label,
+      businessShortLabel: status.shortLabel,
+      progressHint: status.progressHint,
     } satisfies ProductRow;
   });
 }
@@ -168,6 +199,13 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
         <ul className="space-y-3">
           {products.map((p) => {
             const isHighlighted = highlight && p.id === highlight;
+            const isReady = p.businessStatus === "ready";
+            const isFailed = p.businessStatus === "failed";
+            const isReadyButLinkPending = isReady && !p.finalVideoUrl;
+            const progressLine = progressDescription(p);
+            const showProgressBar =
+              p.businessStatus === "generating" || p.businessStatus === "assembling";
+
             return (
               <li
                 key={p.id}
@@ -186,27 +224,42 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                       </h3>
                       <span
                         className={
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider " +
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
                           STATUS_CHIP_CLASS[p.businessStatus]
                         }
                       >
-                        {p.businessStatus}
+                        {p.businessShortLabel}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {p.businessLabel}
+                      {isReadyButLinkPending
+                        ? "正在准备视频链接，请稍候刷新"
+                        : p.businessLabel}
                       {p.aspectRatio && p.durationSec ? (
                         <span className="ml-2 opacity-70">
                           · {p.aspectRatio} · {p.durationSec}s
                         </span>
                       ) : null}
-                      {p.segmentCount > 0 && p.businessStatus !== "ready" ? (
-                        <span className="ml-2 opacity-70">
-                          · {p.segmentsSucceeded}/{p.segmentCount} 段已完成
-                        </span>
+                      {progressLine ? (
+                        <span className="ml-2 opacity-70">· {progressLine}</span>
                       ) : null}
                     </p>
-                    {p.businessStatus === "ready" && p.finalVideoUrl ? (
+
+                    {showProgressBar ? (
+                      <div className="mt-3 h-1 w-full max-w-[260px] overflow-hidden rounded-full bg-white/5">
+                        <div
+                          className={
+                            "h-full rounded-full transition-all " +
+                            PROGRESS_BAR_CLASS[p.businessStatus]
+                          }
+                          style={{
+                            width: `${Math.round(p.progressHint * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    ) : null}
+
+                    {isReady && p.finalVideoUrl ? (
                       <div className="mt-3 flex flex-wrap items-center gap-3">
                         <a
                           href={p.finalVideoUrl}
@@ -214,15 +267,35 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                           rel="noopener noreferrer"
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
                         >
-                          预览视频
+                          查看最终视频
                         </a>
                         <a
                           href={p.finalVideoUrl}
                           download
                           className="inline-flex items-center rounded-md border border-white/15 bg-card/60 px-3 py-1.5 text-xs hover:bg-card/90 transition-colors"
                         >
-                          下载 MP4
+                          下载视频
                         </a>
+                        <Link
+                          href="/business/create-ad-video"
+                          className="inline-flex items-center rounded-md border border-white/10 bg-card/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-card/70 hover:text-foreground transition-colors"
+                        >
+                          再生成一版
+                        </Link>
+                      </div>
+                    ) : null}
+
+                    {isFailed ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <Link
+                          href="/business/create-ad-video"
+                          className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
+                        >
+                          重新生成
+                        </Link>
+                        <span className="text-[11px] text-muted-foreground">
+                          仍然遇到问题？请联系客服。
+                        </span>
                       </div>
                     ) : null}
                   </div>

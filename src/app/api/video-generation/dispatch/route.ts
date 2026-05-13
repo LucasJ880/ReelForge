@@ -49,8 +49,17 @@ export async function POST(req: NextRequest) {
   try {
     plan = await buildPlan(reqParsed.data);
   } catch (err) {
+    /// 客户可见 error 走友好文案；详细 message 仅写日志 / dev 调试
+    console.error("[/api/video-generation/dispatch] buildPlan failed", err);
     return NextResponse.json(
-      { ok: false, error: "Plan 重建失败", message: (err as Error).message },
+      {
+        ok: false,
+        error: "无法生成视频方案，请稍后重试",
+        debugMessage:
+          process.env.NODE_ENV !== "production"
+            ? (err as Error).message
+            : undefined,
+      },
       { status: 500 },
     );
   }
@@ -62,8 +71,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "传入 plan 不合法（你可以省略该字段，让服务端自动重建）",
-          issues: optParse.error.flatten(),
+          error: "提交内容有误，请刷新页面后重试",
+          debugIssues:
+            process.env.NODE_ENV !== "production"
+              ? optParse.error.flatten()
+              : undefined,
         },
         { status: 400 },
       );
@@ -75,7 +87,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Plan 未通过质量审核，请修改 prompt 或资产后重试",
+        error: "您的描述还需要更多细节才能生成视频，请补充后重试",
         blockers: plan.qualityReview.blockers,
       },
       { status: 422 },
@@ -195,8 +207,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: "Dispatch 失败",
-        message: (err as Error).message,
+        error: "无法开始生成视频，请稍后重试",
+        debugMessage:
+          process.env.NODE_ENV !== "production"
+            ? (err as Error).message
+            : undefined,
       },
       { status: 500 },
     );

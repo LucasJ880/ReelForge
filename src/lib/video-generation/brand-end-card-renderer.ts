@@ -89,22 +89,51 @@ function escapeXml(unsafe: string): string {
   });
 }
 
-/// 简单换行：超过给定 maxChars 切到下一行（中文/英文混排足够用）
+/// 简单换行：超过给定 maxChars 切到下一行（中文/英文混排足够用）。
+/// 若单 token 自身就超长（极长品牌名 / 拼写无空格），会被强制按字符切行；
+/// 最多保留 2 行；最后一行如果还超长，截断并加 "…" 防止溢出画布。
 function wrapText(text: string, maxChars: number): string[] {
-  if (text.length <= maxChars) return [text];
-  const words = text.split(/\s+/);
+  if (!text) return [];
+  const trimmed = text.trim();
+  if (!trimmed) return [];
+  if (trimmed.length <= maxChars) return [trimmed];
+
+  const tokens = trimmed.split(/\s+/).filter(Boolean);
+  /// 把超长 token 强制切成 maxChars 大小的小段（拼写无空格的极端品牌名）
+  const expanded: string[] = [];
+  for (const t of tokens) {
+    if (t.length <= maxChars) {
+      expanded.push(t);
+    } else {
+      for (let i = 0; i < t.length; i += maxChars) {
+        expanded.push(t.slice(i, i + maxChars));
+      }
+    }
+  }
+
   const lines: string[] = [];
   let cur = "";
-  for (const w of words) {
-    if ((cur + " " + w).trim().length > maxChars) {
+  for (const w of expanded) {
+    const next = cur ? `${cur} ${w}` : w;
+    if (next.length > maxChars) {
       if (cur) lines.push(cur);
       cur = w;
     } else {
-      cur = (cur + " " + w).trim();
+      cur = next;
     }
   }
   if (cur) lines.push(cur);
-  return lines.slice(0, 2); /// 最多 2 行
+
+  const truncated = lines.slice(0, 2);
+  /// 最后一行若仍超过 maxChars（前面的强制切片已覆盖大多数情况，这里是双保险）
+  if (truncated.length === 2 && lines.length > 2) {
+    const last = truncated[1];
+    truncated[1] =
+      last.length > maxChars - 1
+        ? `${last.slice(0, Math.max(1, maxChars - 1))}…`
+        : `${last}…`;
+  }
+  return truncated;
 }
 
 interface BackgroundGradient {

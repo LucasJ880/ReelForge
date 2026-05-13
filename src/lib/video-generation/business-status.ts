@@ -30,18 +30,38 @@ export interface BusinessStatusInput {
 
 export interface BusinessStatusOutput {
   status: BusinessVideoStatus;
-  /// 客户可见的中文文案（不含「渲染」「ffmpeg」「seedance」）
+  /// 客户可见的中文长文案（不含任何内部术语）
   label: string;
+  /// 客户可见的中文短标签（≤4 字，给状态徽章用）
+  shortLabel: string;
   /// 0..1，仅作进度条参考（不精确）
   progressHint: number;
+  /// 客户可执行的下一步动作文案（null 表示无 CTA，状态本身就是终态展示）
+  cta: string | null;
 }
 
 const LABELS: Record<BusinessVideoStatus, string> = {
-  planning: "正在规划广告创意",
+  planning: "正在准备您的视频",
   generating: "AI 正在生成画面",
   assembling: "正在合成最终视频",
-  ready: "已就绪，可下载",
-  failed: "生成失败，可点击重试",
+  ready: "视频已就绪",
+  failed: "视频未能成功生成，请重新生成或联系客服",
+};
+
+const SHORT_LABELS: Record<BusinessVideoStatus, string> = {
+  planning: "筹备中",
+  generating: "生成中",
+  assembling: "合成中",
+  ready: "已完成",
+  failed: "未成功",
+};
+
+const CTAS: Record<BusinessVideoStatus, string | null> = {
+  planning: null,
+  generating: null,
+  assembling: null,
+  ready: "查看最终视频",
+  failed: "重新生成",
 };
 
 const PROGRESS_HINT: Record<BusinessVideoStatus, number> = {
@@ -51,6 +71,26 @@ const PROGRESS_HINT: Record<BusinessVideoStatus, number> = {
   ready: 1,
   failed: 0,
 };
+
+/// 凡是出现在客户可见字符串里就视为 leak 的内部术语。
+/// 用于自检和测试，确保我们不会把内部模块名/技术词暴露给 B 端用户。
+const BANNED_CUSTOMER_TERMS = [
+  "渲染",
+  "拼接",
+  "拉流",
+  "ffmpeg",
+  "seedance",
+  "provider",
+  "stitch",
+  "concat",
+  "blob",
+  "mock",
+  "adapter",
+  "debug",
+  "json",
+  "executor",
+  "pipeline",
+] as const;
 
 /**
  * 主入口：综合 brief / finalVideo / jobs 三层状态决定 user-facing status。
@@ -71,8 +111,19 @@ export function deriveBusinessStatus(
   return {
     status,
     label: LABELS[status],
+    shortLabel: SHORT_LABELS[status],
     progressHint: PROGRESS_HINT[status],
+    cta: CTAS[status],
   };
+}
+
+/**
+ * 判断字符串是否含有 customer 不应该看到的内部术语。
+ * 仅用于测试和 CI 守门，不在运行时调用。
+ */
+export function containsBannedCustomerTerm(input: string): boolean {
+  const lower = input.toLowerCase();
+  return BANNED_CUSTOMER_TERMS.some((t) => lower.includes(t.toLowerCase()));
 }
 
 function pickStatus(input: BusinessStatusInput): BusinessVideoStatus {
@@ -155,4 +206,11 @@ function pickStatus(input: BusinessStatusInput): BusinessVideoStatus {
   return "planning";
 }
 
-export const __test__ = { pickStatus, LABELS, PROGRESS_HINT };
+export const __test__ = {
+  pickStatus,
+  LABELS,
+  SHORT_LABELS,
+  CTAS,
+  PROGRESS_HINT,
+  BANNED_CUSTOMER_TERMS,
+};

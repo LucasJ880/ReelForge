@@ -16,6 +16,8 @@ const ROOT = path.resolve(__dirname, "..");
  */
 const FILES_TO_AUDIT = [
   "src/app/(business)/business/products/page.tsx",
+  "src/app/(business)/business/products/[id]/page.tsx",
+  "src/app/(business)/business/products/[id]/video-actions.tsx",
   "src/app/(business)/business/create-ad-video/page.tsx",
   "src/components/video-generation/unified-creative-input.tsx",
 ];
@@ -129,5 +131,77 @@ test.test("audit: 产品列表页 failed 状态提供 retry / support CTA", asyn
   assert.ok(
     /联系客服/.test(src),
     "products page failed 状态应提示「联系客服」",
+  );
+});
+
+test.test("audit: 产品列表页过滤掉 PERSONAL persona 视频，避免跨 persona 泄漏", async () => {
+  const abs = path.join(ROOT, "src/app/(business)/business/products/page.tsx");
+  const src = await readFile(abs, "utf-8");
+  assert.ok(
+    /persona !== "PERSONAL"|persona\s*===\s*"BUSINESS"/.test(src),
+    "products page 必须过滤掉 PERSONAL persona 的 brief（不应在商家面板展示个人视频）",
+  );
+});
+
+test.test("audit: BUSINESS 详情页 使用 deriveBusinessStatus + customerSafeUrl 守门", async () => {
+  const abs = path.join(
+    ROOT,
+    "src/app/(business)/business/products/[id]/page.tsx",
+  );
+  const src = await readFile(abs, "utf-8");
+  assert.ok(
+    /deriveBusinessStatus/.test(src),
+    "business detail 必须用 deriveBusinessStatus 做状态映射",
+  );
+  assert.ok(
+    /customerSafeUrl/.test(src),
+    "business detail 必须用 customerSafeUrl 守 finalVideoUrl（不暴露 file://）",
+  );
+  /// 不应直接渲染 brief.status 等 prisma enum 值
+  assert.ok(
+    !/\{\s*brief\.status\s*\}/.test(src) &&
+      !/\{\s*j\.status\s*\}/.test(src) &&
+      !/\{\s*p\.status\s*\}/.test(src),
+    "business detail 不应直接渲染 prisma enum 状态",
+  );
+});
+
+test.test("audit: BUSINESS 详情页 有 ownership 守门 + 跨 persona 重定向", async () => {
+  const abs = path.join(
+    ROOT,
+    "src/app/(business)/business/products/[id]/page.tsx",
+  );
+  const src = await readFile(abs, "utf-8");
+  assert.ok(
+    /createdById/.test(src),
+    "detail page 必须读 createdById 做归属校验",
+  );
+  assert.ok(
+    /isInternalStaff|OPERATOR|SUPER_ADMIN/.test(src),
+    "detail page 必须给内部 staff 留 bypass",
+  );
+  /// PERSONAL persona 的 brief 不应该出现在 business 详情页 → 应 redirect 到 personal
+  assert.ok(
+    /persona\s*===\s*"PERSONAL"/.test(src) &&
+      /\/personal\/videos\/\$\{order\.id\}/.test(src),
+    "PERSONAL persona 的 brief 应 redirect 到 /personal/videos/[id]",
+  );
+});
+
+test.test("audit: BUSINESS video-actions 客户文案友好；调用正确 endpoint", async () => {
+  const abs = path.join(
+    ROOT,
+    "src/app/(business)/business/products/[id]/video-actions.tsx",
+  );
+  const src = await readFile(abs, "utf-8");
+  assert.ok(/刷新进度/.test(src), "应有'刷新进度'按钮");
+  assert.ok(/重试失败片段/.test(src), "应有'重试失败片段'按钮");
+  assert.ok(
+    /\/api\/briefs\/\$\{briefId\}\/render-status/.test(src),
+    "刷新调用 render-status",
+  );
+  assert.ok(
+    /\/api\/briefs\/\$\{briefId\}\/render-retry/.test(src),
+    "重试调用 render-retry",
   );
 });

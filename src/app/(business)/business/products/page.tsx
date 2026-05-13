@@ -31,6 +31,7 @@ interface ProductRow {
   businessLabel: string;
   businessShortLabel: string;
   progressHint: number;
+  isPersonal: boolean;
 }
 
 const STATUS_CHIP_CLASS: Record<BusinessVideoStatus, string> = {
@@ -86,6 +87,7 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
               videoBrief: {
                 select: {
                   id: true,
+                  persona: true,
                   status: true,
                   aspectRatio: true,
                   durationSec: true,
@@ -111,45 +113,53 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
     },
   });
 
-  return orders.map((o) => {
-    const brief = o.rounds[0]?.angles[0]?.videoBrief ?? null;
-    const finalVideo = brief?.finalVideo ?? null;
-    const jobStatuses = brief?.videoJobs?.map((j) => j.status) ?? [];
-    const segmentsSucceeded = jobStatuses.filter((s) => s === "SUCCEEDED").length;
-    const segmentCount = finalVideo?.segmentCount ?? jobStatuses.length;
-    const status = deriveBusinessStatus({
-      briefStatus: brief?.status ?? null,
-      finalVideoStatus: finalVideo?.status ?? null,
-      segmentsSucceeded,
-      segmentsTotal: segmentCount,
-      jobStatuses,
+  return orders
+    /// Phase 6 fix：仅展示 BUSINESS 视频，避免 PERSONAL（unified-input persona=PERSONAL）泄漏到商家面板
+    .filter((o) => {
+      const persona = o.rounds[0]?.angles[0]?.videoBrief?.persona ?? null;
+      /// 老 brief 没标 persona（productCategory != 'unified_input' 的历史数据）也允许展示
+      return persona !== "PERSONAL";
+    })
+    .map((o) => {
+      const brief = o.rounds[0]?.angles[0]?.videoBrief ?? null;
+      const finalVideo = brief?.finalVideo ?? null;
+      const jobStatuses = brief?.videoJobs?.map((j) => j.status) ?? [];
+      const segmentsSucceeded = jobStatuses.filter((s) => s === "SUCCEEDED").length;
+      const segmentCount = finalVideo?.segmentCount ?? jobStatuses.length;
+      const status = deriveBusinessStatus({
+        briefStatus: brief?.status ?? null,
+        finalVideoStatus: finalVideo?.status ?? null,
+        segmentsSucceeded,
+        segmentsTotal: segmentCount,
+        jobStatuses,
+      });
+      const finalUrl = finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null;
+      /// 防御：file:// 不能直接给客户用浏览器打开（Phase 2 dev 模式才会出现），
+      /// 也不应该作为 ready 视频的 link。视为「视频未就绪」。
+      const customerSafeUrl =
+        finalUrl && /^https?:\/\//i.test(finalUrl) ? finalUrl : null;
+      return {
+        id: o.id,
+        title: o.title,
+        productCategory: o.productCategory,
+        updatedAt: o.updatedAt,
+        briefId: brief?.id ?? null,
+        briefStatus: brief?.status ?? null,
+        finalVideoStatus: finalVideo?.status ?? null,
+        finalVideoUrl: customerSafeUrl,
+        finalThumbnailUrl: finalVideo?.thumbnailUrl ?? brief?.finalThumbnailUrl ?? null,
+        aspectRatio: brief?.aspectRatio ?? null,
+        durationSec: brief?.durationSec ?? null,
+        segmentCount,
+        segmentsSucceeded,
+        jobStatuses,
+        businessStatus: status.status,
+        businessLabel: status.label,
+        businessShortLabel: status.shortLabel,
+        progressHint: status.progressHint,
+        isPersonal: brief?.persona === "PERSONAL",
+      } satisfies ProductRow;
     });
-    const finalUrl = finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null;
-    /// 防御：file:// 不能直接给客户用浏览器打开（Phase 2 dev 模式才会出现），
-    /// 也不应该作为 ready 视频的 link。视为「视频未就绪」。
-    const customerSafeUrl =
-      finalUrl && /^https?:\/\//i.test(finalUrl) ? finalUrl : null;
-    return {
-      id: o.id,
-      title: o.title,
-      productCategory: o.productCategory,
-      updatedAt: o.updatedAt,
-      briefId: brief?.id ?? null,
-      briefStatus: brief?.status ?? null,
-      finalVideoStatus: finalVideo?.status ?? null,
-      finalVideoUrl: customerSafeUrl,
-      finalThumbnailUrl: finalVideo?.thumbnailUrl ?? brief?.finalThumbnailUrl ?? null,
-      aspectRatio: brief?.aspectRatio ?? null,
-      durationSec: brief?.durationSec ?? null,
-      segmentCount,
-      segmentsSucceeded,
-      jobStatuses,
-      businessStatus: status.status,
-      businessLabel: status.label,
-      businessShortLabel: status.shortLabel,
-      progressHint: status.progressHint,
-    } satisfies ProductRow;
-  });
 }
 
 export default async function BusinessProductsPage({ searchParams }: PageProps) {
@@ -219,9 +229,12 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold tracking-tight truncate">
+                      <Link
+                        href={`/business/products/${p.id}`}
+                        className="text-base font-semibold tracking-tight truncate hover:underline underline-offset-4"
+                      >
                         {p.title}
-                      </h3>
+                      </Link>
                       <span
                         className={
                           "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
@@ -261,14 +274,12 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
 
                     {isReady && p.finalVideoUrl ? (
                       <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <a
-                          href={p.finalVideoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          href={`/business/products/${p.id}`}
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
                         >
                           查看最终视频
-                        </a>
+                        </Link>
                         <a
                           href={p.finalVideoUrl}
                           download
@@ -285,8 +296,23 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                       </div>
                     ) : null}
 
+                    {!isReady && !isFailed ? (
+                      <Link
+                        href={`/business/products/${p.id}`}
+                        className="mt-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                      >
+                        查看分镜进度 →
+                      </Link>
+                    ) : null}
+
                     {isFailed ? (
                       <div className="mt-3 flex flex-wrap items-center gap-3">
+                        <Link
+                          href={`/business/products/${p.id}`}
+                          className="inline-flex items-center rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors"
+                        >
+                          重试失败片段
+                        </Link>
                         <Link
                           href="/business/create-ad-video"
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"

@@ -24,12 +24,20 @@ export default async function PersonaPage() {
           <span className="text-base font-semibold tracking-tight">Aivora</span>
         </div>
         {!isAuthed && (
-          <Link
-            href="/login"
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Sign in
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/login"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/register"
+              className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-sm font-medium hover:bg-foreground/90 transition-colors"
+            >
+              Get started
+            </Link>
+          </div>
         )}
       </header>
 
@@ -55,7 +63,14 @@ export default async function PersonaPage() {
               "Performance-driven creative recommendations (coming Phase 2)",
             ]}
             isAuthed={isAuthed}
+            /// Business 仍是 invite-only：未登录访客点这卡 → /login
             ctaHref={isAuthed ? undefined : "/login?from=/business"}
+            ctaLabel={isAuthed ? undefined : "Sign in"}
+            secondaryNote={
+              !isAuthed
+                ? "Business accounts are invite-only — contact us for early access."
+                : undefined
+            }
           />
           <PersonaCard
             persona="PERSONAL"
@@ -68,7 +83,14 @@ export default async function PersonaPage() {
               "Templates and easy sharing (coming Phase 2)",
             ]}
             isAuthed={isAuthed}
-            ctaHref={isAuthed ? undefined : "/login?from=/personal"}
+            /// Personal 公开自助注册：未登录访客点这卡 → /register
+            ctaHref={isAuthed ? undefined : "/register"}
+            ctaLabel={isAuthed ? undefined : "Get started"}
+            secondaryNote={
+              !isAuthed
+                ? "Free to start. Already have an account? Sign in above."
+                : undefined
+            }
           />
         </div>
       </section>

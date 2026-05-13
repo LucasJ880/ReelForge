@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 6 完成（PERSONAL 视频详情页 + 段感知重试 + brief 归属访问控制）；Phase 5c / 4c 仍依赖你跑真测。
+**正在做：** Phase 6.5 完成 — **双端 user flow 已对齐**（C 端公开注册、B 端商家邀请、两端详情页 + 重试 + 跨 persona 防护、5min 自检 runbook）。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -33,13 +33,19 @@ Phase 5   🟡 Persona-aware auth + 公开个人注册（PERSONAL only） + B-si
           + /register 页面 + /login 加「创建个人账号」入口
           + 17 新单测（persona 访问矩阵 + register schema 契约）
    5c     ⏳ B-side 真实 E2E（依赖 4c 跑通）
-Phase 6   🟡 Upload assets UI（已就绪）+ 详情页 + 段感知重试 UI
-   6a     ✅ PERSONAL /personal/videos/[id] 详情页（成片预览 + 分镜进度 + 友好重试）
-   6b     ✅ render-retry / render-status 端点改用 brief 归属校验（PERSONAL 也能调）
+Phase 6   ✅ Upload assets UI + 双端详情页 + 段感知重试
+   6a     ✅ PERSONAL /personal/videos/[id] 详情页
+   6b     ✅ render-retry / render-status 端点改用 brief 归属校验
           + 新 lib/services/brief-access.ts 的纯决策矩阵 + IO wrapper
-   6c     ✅ AttachmentUploader 已 inline 显示分类 + 角色下拉 + 警告（无需改）
-   6d     ⏳ BUSINESS /business/products/[id] 详情页（与 6a 同构，留给 5c 一起做）
-   6e     ⏳ create-video 页面把"重新生成"路径改成基于上一次 brief 的快速重试（可选优化）
+   6c     ✅ AttachmentUploader 已 inline 显示分类 + 角色下拉 + 警告
+   6d     ✅ BUSINESS /business/products/[id] 详情页（与 6a 同构）
+          + products list 过滤掉 PERSONAL persona 视频，避免跨 persona 泄漏
+   6e     ⏳ create-video「基于上一次 brief 的快速重试」（可选；当前重试入口已够用）
+
+Phase 6.5 ✅ 双端 user flow 收敛（onboarding + audit + walkthrough）
+   - 持久化 PERSONAL 自助注册的 onboarding 入口（/persona 卡片走 /register；/login 链接 /register；BUSINESS 卡片明示 invite-only）
+   - 修了 business/page.tsx 的历史 react/no-unescaped-entities 错误 —— **lint 现在 0 error**
+   - docs/MANUAL_WALKTHROUGH.md：5 分钟双端自检清单（含跨 persona 防护、故障路径、ownership）
 Phase 7a  ⏳ Quota / rate-limit / Seedance & Blob & OpenAI 按 user 记账
 Phase 7b  ⏳ Stripe / 微信支付 / 套餐 / billing 页
 Phase 8   ⏳ 公开 demo / landing / sales packaging
@@ -141,7 +147,8 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 | 2026-05-13 | `3ea1fcd chore(personal): harden c-side mvp flow` | Phase 3 ✅ | C 端 status / dead-link / lint / 19 新单测 |
 | 2026-05-13 | `ada0a4a feat(phase-4): real-mode safety + roadmap tracker` | Phase 4 ✅ | mode:check / roadmap / runbook |
 | 2026-05-13 | `0579ed4 feat(phase-5): persona-aware auth + public PERSONAL signup` | Phase 5a+5b ✅ | 公开注册 / 17 新单测 |
-| 2026-05-13 | _next: feat(phase-6)_ | Phase 6 ✅ | personal 详情页 + 段感知重试 + brief 归属 / 13 新单测 |
+| 2026-05-13 | `(prev) feat(phase-6): personal detail + brief ownership` | Phase 6a+6b+6c ✅ | personal 详情页 + 段感知重试 + brief 归属 / 13 新单测 |
+| 2026-05-13 | _next: feat(phase-6.5)_ | Phase 6d + 6.5 ✅ | business 详情页 + persona onboarding + 0-error lint + walkthrough doc / 8 新单测 |
 
 ---
 
@@ -156,21 +163,21 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 
 **当前推荐的下一动作**：
 
-1. （**强烈建议先做**）跑 `npm run mode:check` 看一眼。如果显示 5/5 REAL 但你不打算
-   烧真钱，先在 `.env.local` 加 `VIDEO_ENGINE_MOCK=true`、`LLM_FORCE_MOCK=true`、
-   `IMAGE_ENGINE_MOCK=true`。这是 Phase 4 Runbook 第 1 节的硬性预检。
-2. 在浏览器走一次完整的 mock 链路验证 Phase 5+6：
-   - `/register` 注册一个新邮箱 → 自动登录 → `/personal`
-   - `/personal/create-video` 描述一个 15s 想法 → 生成
-   - 跳到 `/personal/videos?highlight=...` → 点标题进 `/personal/videos/[id]` 详情页
-   - 看到分镜进度 + 「刷新进度」+ 视频成片预览
-3. 如准备烧真钱：按 `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 的场景 A（≈ $0.6）开第一发。
-4. 跑通后开 **Phase 7a**（quota / rate-limit / per-user 用量记账）—— 这是公开 demo
-   之前**最关键**的一道护栏，避免任意注册账户无限烧 Seedance。
-5. 如果 Phase 5 想做 5c（B-side 真实 E2E），需要 admin 在 `/settings` 创建一个
-   `userType=BUSINESS` 的账号 → 用它登录跑场景 C。
-6. 如果 6d 想做（business 详情页）—— 直接复用 6a 的结构改 brief.persona === "BUSINESS"
-   分支即可，~150 行。
+1. （**强烈建议先做**）跑 `npm run mode:check`。期望 4/5 MOCK；如果 5/5 REAL，按
+   `.env.example` 的 DEV WARNING 加 mock 三件套。
+2. **直接打开 `docs/MANUAL_WALKTHROUGH.md` 跑 5 分钟双端自检**。这份文档把以前散落
+   在脑子里的所有 user-flow 检查一次性钉死，包括：
+   - C 端公开注册 → 详情页（90s）
+   - C 端故障路径 + 重试（30s）
+   - B 端商家创建 → 详情页（90s）
+   - 跨 persona 防护（PERSONAL/BUSINESS/OPERATOR 三向 redirect 都要对）
+3. 双端跑通后选下一程：
+   - **想上线**：开 Phase 7a（quota / rate-limit），是公开 demo 之前的最关键护栏
+   - **想做真测**：按 `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 场景 A（≈ $0.6）跑第一发真生成
+   - **想优化体验**：开 Phase 6e（基于上一次 brief 的快速重试）或 Phase 8 landing 美化
+4. 创建 BUSINESS 测试账号的最快办法：用任意已有 OPERATOR 账号登录 → 访问 `/persona`
+   → 点 BUSINESS 卡 → 它会 POST `/api/persona` 把 userType 改成 BUSINESS。然后这个
+   账号就能走 `/business/create-ad-video` 全流程。
 
 ---
 

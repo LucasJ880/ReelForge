@@ -40,7 +40,7 @@ export default function BusinessHomePage() {
             Your products
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Every video you've created, grouped by product line.
+            Every video you&apos;ve created, grouped by product line.
           </p>
         </Link>
       </section>

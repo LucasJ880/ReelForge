@@ -13,6 +13,10 @@ interface PersonaCardProps {
   bullets: string[];
   isAuthed: boolean;
   ctaHref?: string;
+  /// 自定义未登录态的按钮文案；默认是 "Sign in as {title}"
+  ctaLabel?: string;
+  /// 卡片底部的小字补充说明（如 "invite-only" / "free to start"）
+  secondaryNote?: string;
 }
 
 export function PersonaCard({
@@ -23,6 +27,8 @@ export function PersonaCard({
   bullets,
   isAuthed,
   ctaHref,
+  ctaLabel,
+  secondaryNote,
 }: PersonaCardProps) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +75,7 @@ export function PersonaCard({
         ))}
       </ul>
 
-      <div className="mt-7">
+      <div className="mt-7 space-y-2">
         {isAuthed ? (
           <button
             type="button"
@@ -85,10 +91,13 @@ export function PersonaCard({
             href={ctaHref ?? "/login"}
             className="inline-flex items-center gap-2 rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
           >
-            Sign in as {title}
+            {ctaLabel ?? `Sign in as ${title}`}
             <ArrowRight className="h-4 w-4" />
           </Link>
         )}
+        {secondaryNote ? (
+          <p className="text-[11px] text-muted-foreground">{secondaryNote}</p>
+        ) : null}
       </div>
     </div>
   );

@@ -25,21 +25,29 @@ interface UnifiedCreativeInputProps {
  * 把任意错误转成客户可读的中文提示。
  * 服务端会返回内部话术（"Dispatch 失败"、"Plan 重建失败"），
  * 这些不该直接给 B/C 端用户看，统一兜底为简洁可执行的提示。
+ *
+ * Phase 3：根据 userType 微调口吻 —— 个人用户用更轻、更口语化的文案。
  */
 function toCustomerSafeError(
   err: unknown,
   scope: "preview" | "dispatch",
+  userType: "business" | "personal" = "business",
 ): string {
   const fallback =
-    scope === "preview"
-      ? "暂时无法生成预览，请稍后再试。"
-      : "无法开始生成视频，请稍后重试。";
+    userType === "personal"
+      ? scope === "preview"
+        ? "暂时没法准备预览，稍后再试一次。"
+        : "暂时没法开始生成，稍后再试一次。"
+      : scope === "preview"
+        ? "暂时无法生成预览，请稍后再试。"
+        : "无法开始生成视频，请稍后重试。";
   if (!err) return fallback;
   const msg = err instanceof Error ? err.message : String(err);
   /// 已经是中文且不含明显内部术语的短消息可以直接显示。
-  const looksInternal = /(plan|dispatch|stitch|seedance|provider|ffmpeg|json|adapter)/i.test(
-    msg,
-  );
+  const looksInternal =
+    /(plan|dispatch|stitch|seedance|provider|ffmpeg|json|adapter|blob|mock|executor|pipeline|debug|concat)/i.test(
+      msg,
+    );
   if (looksInternal || msg.length > 80) return fallback;
   return msg;
 }
@@ -96,15 +104,15 @@ export function UnifiedCreativeInput({ userType }: UnifiedCreativeInputProps) {
         | { ok: true; plan: VideoGenerationPlan }
         | { ok: false; error: string; issues?: unknown };
       if (!res.ok || !j.ok) {
-        throw new Error(
-          "ok" in j && j.ok === false
-            ? "暂时无法生成预览，请稍后再试。"
-            : "暂时无法生成预览，请稍后再试。",
-        );
+        const friendly =
+          userType === "personal"
+            ? "暂时没法准备预览，稍后再试一次。"
+            : "暂时无法生成预览，请稍后再试。";
+        throw new Error(friendly);
       }
       setPlan(j.plan);
     } catch (e) {
-      setError(toCustomerSafeError(e, "preview"));
+      setError(toCustomerSafeError(e, "preview", userType));
     } finally {
       setPreviewing(false);
     }
@@ -129,7 +137,11 @@ export function UnifiedCreativeInput({ userType }: UnifiedCreativeInputProps) {
           }
         | { ok: false; error: string };
       if (!res.ok || !j.ok) {
-        throw new Error("无法开始生成视频，请稍后重试。");
+        const friendly =
+          userType === "personal"
+            ? "暂时没法开始生成，稍后再试一次。"
+            : "无法开始生成视频，请稍后重试。";
+        throw new Error(friendly);
       }
       /// 优先用服务端给的 nextUrl；fallback 到旧 hardcoded 路径，避免前端解析失败时卡住
       const target =
@@ -138,7 +150,7 @@ export function UnifiedCreativeInput({ userType }: UnifiedCreativeInputProps) {
       router.push(target);
       router.refresh();
     } catch (e) {
-      setError(toCustomerSafeError(e, "dispatch"));
+      setError(toCustomerSafeError(e, "dispatch", userType));
       setGenerating(false);
     }
   }

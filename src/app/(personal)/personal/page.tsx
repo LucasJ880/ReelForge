@@ -9,7 +9,7 @@ export default function PersonalHomePage() {
           What do you want to make today?
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Type a prompt, pick a duration, generate. That's it.
+          Type a prompt, pick a duration, generate. That&apos;s it.
         </p>
       </header>
 
@@ -42,7 +42,7 @@ export default function PersonalHomePage() {
             My videos
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Everything you've made.
+            Everything you&apos;ve made.
           </p>
         </Link>
       </section>

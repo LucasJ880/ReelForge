@@ -164,13 +164,16 @@ function pickPaletteFromBriefId(briefId: string): BackgroundGradient {
  *   - 80-90%        : website 文字
  */
 function buildSvg(input: BrandEndCardRenderInput): string {
-  const { width, height, label } = resolveAspect(input.aspectRatio);
+  const { width, height } = resolveAspect(input.aspectRatio);
   const palette = pickPaletteFromBriefId(input.briefId);
 
   const brandName = input.plan.brandName?.trim() ?? "";
   const slogan = input.plan.slogan?.trim() ?? "";
   const cta = input.plan.cta?.trim() ?? "";
   const website = input.plan.website?.trim() ?? "";
+  /// V2 投资人/品牌片：hideCta=true 时跳过按钮形 CTA。
+  /// 旧 brief（hideCta 缺省）保留原行为以避免回归。
+  const hideCta = input.plan.hideCta === true;
 
   /// 字号：以画布短边为基准换算（保证 1:1 / 16:9 都不会爆出去）
   const base = Math.min(width, height);
@@ -203,6 +206,21 @@ function buildSvg(input: BrandEndCardRenderInput): string {
 
   const lineGap = brandSize * 1.05;
 
+  /// CTA 按钮 SVG（仅 hideCta=false 时渲染）。hideCta=true 时整段 CTA 区不出现，
+  /// website 也会上移以保持视觉重心稳定。
+  const ctaButtonSvg = hideCta
+    ? ""
+    : `
+  <rect x="${ctaX}" y="${ctaRectY}" width="${ctaApproxW}" height="${ctaH}"
+        rx="${Math.round(ctaH / 2)}" ry="${Math.round(ctaH / 2)}"
+        fill="#fbbf24" filter="url(#softShadow)"/>
+  <text x="${width / 2}" y="${ctaY + ctaSize * 0.32}" font-family="Helvetica, Arial, sans-serif"
+        font-size="${ctaSize}" font-weight="700" fill="#0f172a" text-anchor="middle">${escapeXml(ctaText)}</text>`;
+  /// hideCta 模式下 website 上提到原 CTA 之上的位置，避免底部空荡。
+  const finalWebsiteY = hideCta
+    ? Math.round(height * (isVertical ? 0.78 : 0.75))
+    : websiteY;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
@@ -217,10 +235,6 @@ function buildSvg(input: BrandEndCardRenderInput): string {
   <rect width="${width}" height="${height}" fill="url(#bg)"/>
   <!-- 顶部 accent 条 -->
   <rect x="0" y="0" width="${width}" height="${Math.max(6, Math.round(base / 90))}" fill="#fbbf24"/>
-  <!-- aspect badge（左下角，给开发期辨识用，不显眼） -->
-  <text x="${Math.round(width * 0.04)}" y="${height - Math.round(base * 0.025)}"
-        font-family="Helvetica, Arial, sans-serif" font-size="${Math.round(base * 0.022)}"
-        fill="#94a3b8" opacity="0.6">${label}</text>
   ${brandLines
     .map(
       (line, i) =>
@@ -232,16 +246,10 @@ function buildSvg(input: BrandEndCardRenderInput): string {
       (line, i) =>
         `<text x="${width / 2}" y="${sloganY + i * sloganSize * 1.2}" font-family="Helvetica, Arial, sans-serif" font-size="${sloganSize}" fill="#cbd5e1" text-anchor="middle">${escapeXml(line)}</text>`,
     )
-    .join("\n  ")}
-  <!-- CTA 按钮 -->
-  <rect x="${ctaX}" y="${ctaRectY}" width="${ctaApproxW}" height="${ctaH}"
-        rx="${Math.round(ctaH / 2)}" ry="${Math.round(ctaH / 2)}"
-        fill="#fbbf24" filter="url(#softShadow)"/>
-  <text x="${width / 2}" y="${ctaY + ctaSize * 0.32}" font-family="Helvetica, Arial, sans-serif"
-        font-size="${ctaSize}" font-weight="700" fill="#0f172a" text-anchor="middle">${escapeXml(ctaText)}</text>
+    .join("\n  ")}${ctaButtonSvg}
   ${
     website
-      ? `<text x="${width / 2}" y="${websiteY}" font-family="Helvetica, Arial, sans-serif" font-size="${websiteSize}" fill="#cbd5e1" text-anchor="middle" opacity="0.85">${escapeXml(website)}</text>`
+      ? `<text x="${width / 2}" y="${finalWebsiteY}" font-family="Helvetica, Arial, sans-serif" font-size="${websiteSize}" fill="#cbd5e1" text-anchor="middle" opacity="0.85">${escapeXml(website)}</text>`
       : ""
   }
 </svg>`;

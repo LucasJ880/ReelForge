@@ -19,18 +19,28 @@ const DEFAULT_IMAGE_MODEL = "gpt-image-1";
 const DEFAULT_SIZE: ImageSize = "1024x1024";
 const DEFAULT_N = 3;
 
-/// gpt-image-1 支持的尺寸；其它尺寸会被 OpenAI 拒绝
+/// 旧版 gpt-image-1 / gpt-image-1-mini 严格支持的尺寸（保留为联合类型作为
+/// 现网 logo-generator 的默认 / 文档化「安全选项」）。gpt-image-2 接受任意
+/// 满足约束的分辨率（详见 OpenAI 文档），所以 size 入参类型放宽为
+/// `ImageSize | string`，调用方可以对新模型直接传 "1080x1920" 之类的 9:16 串。
 export type ImageSize = "1024x1024" | "1024x1536" | "1536x1024";
 
 export interface GenerateImagesArgs {
   prompt: string;
   /// 候选张数；默认 3，最多 10
   n?: number;
-  size?: ImageSize;
+  /// 旧严格联合类型 + 任意自定义字符串（仅 gpt-image-2 等新模型支持任意分辨率）
+  size?: ImageSize | string;
   /// 用于在 Vercel Blob 上落盘的前缀（如 logos/{orderId}/）
   blobPrefix?: string;
   /// 强制 mock，便于测试调用
   forceMock?: boolean;
+  /**
+   * 显式覆盖模型 ID。优先级：args.model > OPENAI_IMAGE_MODEL > "gpt-image-1"。
+   * 注意：传 "gpt-image-2" 等新模型时，size 可以是任意满足模型约束的分辨率
+   * （例如 9:16 demo 分镜帧用 "1080x1920"）。
+   */
+  model?: string;
 }
 
 export interface GenerateImagesResult {
@@ -59,15 +69,17 @@ export async function generateImages(
     };
   }
 
-  const model = process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
+  const model = args.model || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
 
-  /// gpt-image-1 一次最多 10 张；同步调用即可
+  /// gpt-image-1/2 单次最多 10 张；同步调用即可。
+  /// 注意：size 入参在新模型（gpt-image-2）下可以是任意满足约束的分辨率字符串，
+  /// SDK 类型对其它字符串可能严格 → 这里用 unknown 强转避开类型墙，运行时由 OpenAI 校验。
   const response = await openai.images.generate({
     model,
     prompt: args.prompt,
     n,
-    size,
+    size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
   });
 
   /// gpt-image-1 默认返回 b64_json（不返回 url），需要我们把 base64 持久化成 Blob 拿到稳定 URL

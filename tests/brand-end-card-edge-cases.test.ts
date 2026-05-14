@@ -61,7 +61,9 @@ test("brand-end-card edge: 未知 aspect ratio 不抛异常（兜底 9:16）", (
     plan: baseplan,
   });
   assert.ok(svg.includes("<svg"), "未知 aspect 应仍能产出 SVG");
-  assert.ok(svg.includes("9:16"), "应兜底到 9:16");
+  /// V2 移除了 aspect 调试角标，所以改用 9:16 的真实画布尺寸 (720x1280) 来验证兜底
+  assert.ok(svg.includes('width="720"'), "应兜底到 9:16 的宽度 720");
+  assert.ok(svg.includes('height="1280"'), "应兜底到 9:16 的高度 1280");
 });
 
 test("brand-end-card edge: brandName 含 emoji / 中文 不破坏 SVG", () => {

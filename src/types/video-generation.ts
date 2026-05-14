@@ -224,6 +224,10 @@ export interface BrandPackagingPlan {
   /// 用户选用上传 clip 作为结尾时，引用对应 attachment id
   uploadedEndingClipAssetId?: string | null;
   renderStrategy: BrandRenderStrategy;
+  /// 投资人/品牌片场景：true 时 end card 不渲染按钮形 CTA（无 "Learn more" 块），
+  /// 只保留 brandName + slogan + website 这种最简洁的高端排版。
+  /// 默认（undefined / false）保持向后兼容的按钮 CTA 渲染。
+  hideCta?: boolean;
   /// supervisor 收集的 warnings（如 "no logo, will defer to manual review"）
   warnings: string[];
 }

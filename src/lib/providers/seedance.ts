@@ -27,6 +27,14 @@ export interface SeedanceSubmitOptions {
   ratio?: string;
   model?: string;
   returnLastFrame?: boolean;
+  /**
+   * Seedance 2 only。是否要求模型生成原生音频。
+   * 默认 `true`（与 wrapper 既有行为一致；不传不会破坏现网调用）。
+   * 设为 `false` 时会在请求体里显式带 `generate_audio: false`，适合
+   * 投资人 demo 这类「后期会铺自家音乐床或干脆静音」的场景，避免 5 段
+   * 段间 ambience 不一致拉低质感。Seedance-1 模型不存在该字段，会被忽略。
+   */
+  generateAudio?: boolean;
   /// 公网可达的 webhook 回调 URL；为空则不携带（仅依赖轮询）
   callbackUrl?: string;
   /**
@@ -243,7 +251,9 @@ async function submitReal(
     watermark: false,
   };
   if (isSeedance2) {
-    body.generate_audio = true;
+    /// 默认 true 保持向后兼容（旧调用方不传该字段时，原本就硬编码 true）；
+    /// 显式传 false 才关闭，便于投资人 demo 用静音 + 自家音乐床。
+    body.generate_audio = options.generateAudio ?? true;
     if (options.returnLastFrame) body.return_last_frame = true;
   } else {
     body.resolution = options.resolution || "1080p";

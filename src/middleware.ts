@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
  *  - `/persona`, `/showcase` → public landing
  *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
+ *  - `/api/internal/stitch/*` → 外部 stitch runner 回调（同样带 cron secret 鉴权，不走 NextAuth）
  *
  * 旧路由迁移（Step 7 才落地实际页面，这里先准备 redirect）：
  *  - `/orders`, `/rounds`, `/briefs`, `/qa`, `/publish`, `/metrics`, `/distillation`,
@@ -34,7 +35,8 @@ export async function middleware(req: NextRequest) {
   const isPublic =
     pathname === "/" ||
     publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
-    pathname.startsWith("/api/cron");
+    pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/internal/stitch");
 
   if (isPublic) return NextResponse.next();
 

@@ -3,9 +3,13 @@ name: poll-videos
 # 外部 cron：每 5 分钟调用一次 /api/cron/poll-videos，让 Seedance 生成结果能及时回写 DB。
 # 这是 Vercel Hobby 套餐下唯一可靠的轮询渠道；Pro 套餐请把 vercel.json 的 crons 写回去。
 #
-# 仓库 Secrets 需配置：
+# 仓库 Secrets 需配置（GitHub → Settings → Secrets and variables → Actions）：
 #   APP_URL       — 例如 https://reelforge-delta.vercel.app（不带尾斜杠）
 #   CRON_SECRET   — 与 Vercel 环境变量中 CRON_SECRET 完全一致
+#
+# 注意：如果两个 Secrets 都没配置（未部署 / fork 仓库），workflow 会打印 warning
+# 后 exit 0，避免每 5 分钟刷屏失败通知。配置完任一 Secret 之后，缺失另一个仍
+# 会真正 fail，便于排错。
 
 on:
   schedule:
@@ -22,8 +26,12 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
+          if [ -z "$APP_URL" ] && [ -z "$CRON_SECRET" ]; then
+            echo "::warning::APP_URL / CRON_SECRET 都未配置，跳过本次 poll。请在仓库 Settings → Secrets and variables → Actions 配置后启用。"
+            exit 0
+          fi
           if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "Missing APP_URL / CRON_SECRET secrets"
+            echo "::error::APP_URL / CRON_SECRET 只配置了其中一个，请补齐另一个 secret。"
             exit 1
           fi
           curl -fsS -X POST "$APP_URL/api/cron/poll-videos" \

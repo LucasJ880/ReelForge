@@ -63,8 +63,12 @@ jobs:
           BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
           STITCH_RUNNER_LOOP_LIMIT: "5"
         run: |
+          if [ -z "$APP_URL" ] && [ -z "$CRON_SECRET" ] && [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
+            echo "::warning::APP_URL / CRON_SECRET / BLOB_READ_WRITE_TOKEN 都未配置，跳过本次 stitch。请在仓库 Settings → Secrets and variables → Actions 配置后启用。"
+            exit 0
+          fi
           if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ] || [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
-            echo "Missing required secrets: APP_URL / CRON_SECRET / BLOB_READ_WRITE_TOKEN"
+            echo "::error::APP_URL / CRON_SECRET / BLOB_READ_WRITE_TOKEN 只配置了部分 secret，请补齐其余项。"
             exit 1
           fi
           node_modules/.bin/tsx scripts/stitch-runner.ts

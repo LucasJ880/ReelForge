@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 import { ArrowRight, Sparkles, Briefcase } from "lucide-react";
 
 interface PersonaCardProps {
@@ -31,6 +32,7 @@ export function PersonaCard({
   secondaryNote,
 }: PersonaCardProps) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [submitting, setSubmitting] = useState(false);
   const Icon = persona === "BUSINESS" ? Briefcase : Sparkles;
 
@@ -45,6 +47,8 @@ export function PersonaCard({
       if (!res.ok) {
         throw new Error(await res.text());
       }
+      /// 刷新 JWT 里的 userType（auth.ts jwt callback trigger=update）
+      await updateSession();
       router.push(persona === "BUSINESS" ? "/business" : "/personal");
       router.refresh();
     } catch (err) {

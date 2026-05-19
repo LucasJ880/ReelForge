@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { BriefRenderAutoRefresh } from "@/components/video-generation/brief-render-auto-refresh";
 import { deriveBusinessStatus, type BusinessVideoStatus } from "@/lib/video-generation/business-status";
 import type { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 
@@ -173,8 +174,19 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
     () => [] as ProductRow[],
   );
 
+  const pollTargets = products
+    .filter((p) => p.briefId)
+    .map((p) => ({
+      briefId: p.briefId!,
+      active:
+        p.businessStatus === "planning" ||
+        p.businessStatus === "generating" ||
+        p.businessStatus === "assembling",
+    }));
+
   return (
     <div className="space-y-8">
+      <BriefRenderAutoRefresh targets={pollTargets} />
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">Products</h1>

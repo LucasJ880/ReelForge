@@ -5,6 +5,7 @@
   "scripts": {
     "predev": "tsx scripts/check-real-mode.ts || true",
     "dev": "next dev",
+    "dev:mock": "LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true npm run dev",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",

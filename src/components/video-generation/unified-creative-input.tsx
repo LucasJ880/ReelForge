@@ -56,7 +56,7 @@ function planBlockerMessage(
   plan: VideoGenerationPlan,
   userType: "business" | "personal",
 ): string {
-  const first = plan.qualityReview.blockers[0];
+  const first = plan.qualityReview.blockers[0]?.message;
   if (first && !/(plan|seedance|provider|ffmpeg)/i.test(first)) return first;
   return userType === "personal"
     ? "描述还差一点细节，补充场景、风格和时长后再试一次。"

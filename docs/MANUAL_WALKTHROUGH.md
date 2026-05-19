@@ -21,7 +21,8 @@ EOF
 npm run mode:check   # 期望 4/5 MOCK（Blob 仍是 REAL，只在 stitch 时上传）
 
 # 3. 重启 dev（让 predev 钩子打印新模式）
-npm run dev
+npm run dev:mock
+# 等价于：LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true npm run dev
 ```
 
 ---

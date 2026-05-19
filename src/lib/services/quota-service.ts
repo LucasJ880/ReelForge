@@ -56,7 +56,12 @@ export function currentUsagePeriodKey(date = new Date()): string {
   return `${y}-${m}`;
 }
 
-export function resolveQuotaPlan(_userId: string): QuotaPlanId {
+export async function resolveQuotaPlan(userId: string): Promise<QuotaPlanId> {
+  const user = await db.adminUser.findUnique({
+    where: { id: userId },
+    select: { subscriptionTier: true },
+  });
+  if (user?.subscriptionTier === "pro") return "pro";
   return "free";
 }
 
@@ -80,9 +85,9 @@ export async function getUsageSummary(userId: string): Promise<{
   periodKey: string;
   meters: UsageMeterSnapshot[];
 }> {
-  const plan = resolveQuotaPlan(userId);
+  const plan = await resolveQuotaPlan(userId);
   const periodKey = currentUsagePeriodKey();
-  const resources = Object.keys(QUOTA_LIMITS.free) as UsageResource[];
+  const resources = Object.keys(QUOTA_LIMITS[plan]) as UsageResource[];
 
   const rows = await db.userUsagePeriod.findMany({
     where: { userId, periodKey },
@@ -116,7 +121,7 @@ export async function consumeUsage(params: {
 }): Promise<UsageMeterSnapshot> {
   const amount = params.amount ?? 1;
   const enforce = params.enforce ?? isQuotaEnforced();
-  const plan = resolveQuotaPlan(params.userId);
+  const plan = await resolveQuotaPlan(params.userId);
   const periodKey = currentUsagePeriodKey();
   const limit = getLimitForResource(plan, params.resource);
 
@@ -218,7 +223,7 @@ export async function assertQuotaBatchForSession(
   if (!enforce) return;
 
   const userId = session.user.id;
-  const plan = resolveQuotaPlan(userId);
+  const plan = await resolveQuotaPlan(userId);
   const periodKey = currentUsagePeriodKey();
 
   await db.$transaction(async (tx) => {

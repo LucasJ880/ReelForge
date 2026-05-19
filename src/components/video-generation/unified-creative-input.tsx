@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { AttachmentUploader } from "@/components/video-generation/attachment-uploader";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
+import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
 import type {
   AspectRatio,
   BrandEndingMode,
@@ -19,6 +20,7 @@ const BRAND_ENDING_MODES: BrandEndingMode[] = ["auto_end_card", "uploaded_clip",
 
 interface UnifiedCreativeInputProps {
   userType: "business" | "personal";
+  initialDraft?: OrderCreativeDraft;
 }
 
 /**
@@ -63,21 +65,28 @@ function planBlockerMessage(
     : "您的描述还需要更多细节才能生成视频，请补充后重试。";
 }
 
-export function UnifiedCreativeInput({ userType }: UnifiedCreativeInputProps) {
+export function UnifiedCreativeInput({
+  userType,
+  initialDraft,
+}: UnifiedCreativeInputProps) {
   const router = useRouter();
   const isPersonal = userType === "personal";
-  const [rawPrompt, setRawPrompt] = useState("");
+  const [rawPrompt, setRawPrompt] = useState(initialDraft?.rawPrompt ?? "");
   const [attachments, setAttachments] = useState<UploadedAsset[]>([]);
   const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(
-    isPersonal ? 15 : 30,
+    initialDraft?.selectedDuration ?? (isPersonal ? 15 : 30),
   );
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("9:16");
-  const [selectedBrandEndingMode, setSelectedBrandEndingMode] = useState<BrandEndingMode>(
-    userType === "business" ? "auto_end_card" : "none",
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(
+    initialDraft?.selectedAspectRatio ?? "9:16",
   );
-  const [cta, setCta] = useState("");
-  const [brandName, setBrandName] = useState("");
-  const [website, setWebsite] = useState("");
+  const [selectedBrandEndingMode, setSelectedBrandEndingMode] =
+    useState<BrandEndingMode>(
+      initialDraft?.selectedBrandEndingMode ??
+        (userType === "business" ? "auto_end_card" : "none"),
+    );
+  const [cta, setCta] = useState(initialDraft?.cta ?? "");
+  const [brandName, setBrandName] = useState(initialDraft?.brandName ?? "");
+  const [website, setWebsite] = useState(initialDraft?.website ?? "");
 
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);

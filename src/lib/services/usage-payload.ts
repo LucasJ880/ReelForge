@@ -1,6 +1,9 @@
 import type { Session } from "next-auth";
 import type { UsageResource } from "@prisma/client";
+import { QUOTA_LIMITS, type QuotaPlanId } from "@/lib/config/quota-tiers";
 import {
+  currentUsagePeriodKey,
+  getLimitForResource,
   getUsageSummary,
   isQuotaEnforced,
   isQuotaExemptSession,
@@ -23,14 +26,49 @@ export type UsagePayload = {
   meters: UsageMeterPayload[];
 };
 
-export async function loadUsagePayloadForSession(
-  session: Session,
-): Promise<UsagePayload> {
-  const summary = await getUsageSummary(session.user.id);
+/** DB 不可用时仍展示免费档限额（used=0），避免 Billing 白屏 */
+export function buildDefaultUsagePayload(session: Session): UsagePayload {
+  const plan: QuotaPlanId = "free";
+  const periodKey = currentUsagePeriodKey();
+  const resources = Object.keys(QUOTA_LIMITS.free) as UsageResource[];
+  const meters = resources.map((resource) => {
+    const limit = getLimitForResource(plan, resource);
+    return {
+      resource,
+      used: 0,
+      limit,
+      remaining: limit,
+      periodKey,
+    };
+  });
   return {
     ok: true,
     enforced: isQuotaEnforced(),
     exempt: isQuotaExemptSession(session),
-    ...summary,
+    plan,
+    periodKey,
+    meters,
   };
+}
+
+export async function loadUsagePayloadForSession(
+  session: Session,
+): Promise<UsagePayload> {
+  const userId = session.user?.id;
+  if (!userId) {
+    throw new Error("会话缺少用户 ID，请退出后重新登录");
+  }
+
+  try {
+    const summary = await getUsageSummary(userId);
+    return {
+      ok: true,
+      enforced: isQuotaEnforced(),
+      exempt: isQuotaExemptSession(session),
+      ...summary,
+    };
+  } catch (err) {
+    console.error("[loadUsagePayloadForSession]", err);
+    return buildDefaultUsagePayload(session);
+  }
 }

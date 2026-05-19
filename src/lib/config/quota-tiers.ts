@@ -1,8 +1,8 @@
 import type { UsageResource } from "@prisma/client";
 
-export type QuotaPlanId = "free";
+export type QuotaPlanId = "free" | "pro";
 
-/** 免费档月度限额（PERSONAL / BUSINESS 共用；Phase 7b 再分套餐） */
+/** 月度限额（PERSONAL / BUSINESS 共用） */
 export const QUOTA_LIMITS: Record<
   QuotaPlanId,
   Record<UsageResource, number>
@@ -13,7 +13,15 @@ export const QUOTA_LIMITS: Record<
     BLOB_UPLOAD_BYTES: 1024 * 1024 * 1024, // 1 GiB / month
     SEEDANCE_SEGMENT: 60,
   },
+  pro: {
+    VIDEO_DISPATCH: 200,
+    PLAN_PREVIEW: 600,
+    BLOB_UPLOAD_BYTES: 10 * 1024 * 1024 * 1024, // 10 GiB / month
+    SEEDANCE_SEGMENT: 400,
+  },
 };
+
+export const STRIPE_PRO_PRICE_LABEL = "Aivora Pro — monthly";
 
 export const REGISTER_RATE_LIMIT = {
   perIpPerHour: 8,

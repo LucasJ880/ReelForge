@@ -2,22 +2,31 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { UsageDashboard } from "@/components/billing/usage-dashboard";
 import { authOptions } from "@/lib/auth";
-import { loadUsagePayloadForSession } from "@/lib/services/usage-payload";
+import {
+  buildDefaultUsagePayload,
+  loadUsagePayloadForSession,
+} from "@/lib/services/usage-payload";
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
+type PageProps = {
+  searchParams: Promise<{ upgraded?: string }>;
+};
+
+export default async function BillingPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login?from=/personal/billing");
 
-  const initial = await loadUsagePayloadForSession(session).catch(() => null);
-  if (!initial) {
-    return (
-      <p className="text-sm text-destructive">
-        暂时无法加载用量，请稍后刷新页面。
-      </p>
-    );
-  }
+  const sp = await searchParams;
+  const initial = session.user?.id
+    ? await loadUsagePayloadForSession(session)
+    : buildDefaultUsagePayload(session);
 
-  return <UsageDashboard persona="personal" initial={initial} />;
+  return (
+    <UsageDashboard
+      persona="personal"
+      initial={initial}
+      upgraded={sp.upgraded === "1"}
+    />
+  );
 }

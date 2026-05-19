@@ -32,6 +32,21 @@ export const submitPostSchema = z.object({
   operatorNote: z.string().max(500).optional(),
 });
 
+export const businessMetricsImportSchema = z.object({
+  briefId: z.string().min(1),
+  windowHours: z.union([z.literal(12), z.literal(24), z.literal(48)]),
+  publishUrl: z.string().url().optional().nullable(),
+  metrics: z.object({
+    views: z.number().nonnegative().optional(),
+    completion_rate: z.number().min(0).max(1).optional(),
+    retention_3s: z.number().min(0).max(1).optional(),
+    shares: z.number().nonnegative().optional(),
+    saves: z.number().nonnegative().optional(),
+    likes: z.number().nonnegative().optional(),
+    comments: z.number().nonnegative().optional(),
+  }),
+});
+
 export const metricsRowSchema = z.object({
   publishRecordId: z.string(),
   windowHours: z.union([z.literal(12), z.literal(24), z.literal(48)]),

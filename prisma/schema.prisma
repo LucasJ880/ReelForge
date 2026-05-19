@@ -28,6 +28,10 @@ model AdminUser {
   /// 未填写时 src/app/page.tsx 强制跳转 /persona 选择。
   /// 不做成 enum：存量账号默认 "OPERATOR" 走 internal shell。
   userType       String?   @default("OPERATOR")
+  /// Phase 7b：free | pro（Stripe 订阅成功后写入）
+  subscriptionTier     String    @default("free")
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { BusinessMetricsForm } from "@/components/business/business-metrics-form";
 import { authOptions } from "@/lib/auth";
+import { listBusinessVideosForMetrics } from "@/lib/services/business-metrics-import";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +13,7 @@ const PLATFORMS = [
     name: "TikTok",
     status: "manual" as const,
     description:
-      "Import view / completion metrics via CSV after you publish. OAuth auto-sync is planned.",
+      "Publish on TikTok, then enter views and completion below — no internal console required.",
   },
   {
     id: "shopify",
@@ -31,6 +33,11 @@ export default async function IntegrationsPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login?from=/business/integrations");
 
+  const videos =
+    session.user?.id != null
+      ? await listBusinessVideosForMetrics(session.user.id)
+      : [];
+
   return (
     <div className="space-y-8">
       <header>
@@ -45,6 +52,17 @@ export default async function IntegrationsPage() {
           ROAS and view-through data.
         </p>
       </header>
+
+      <section className="rounded-xl border border-white/10 bg-card/30 p-6">
+        <h2 className="text-lg font-semibold">TikTok 表现数据（自助录入）</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          发布后在 TikTok 后台查看数据，在此填写即可驱动 Performance 与
+          Recommendations。
+        </p>
+        <div className="mt-6">
+          <BusinessMetricsForm videos={videos} />
+        </div>
+      </section>
 
       <ul className="space-y-3">
         {PLATFORMS.map((p) => (
@@ -66,7 +84,7 @@ export default async function IntegrationsPage() {
                     : "bg-slate-500/15 text-slate-400"
                 }`}
               >
-                {p.status === "manual" ? "CSV import" : "Coming soon"}
+                {p.status === "manual" ? "Self-serve" : "Coming soon"}
               </span>
             </div>
           </li>
@@ -75,24 +93,21 @@ export default async function IntegrationsPage() {
 
       <div className="rounded-xl border border-dashed border-white/15 bg-card/20 p-6 text-sm text-muted-foreground">
         <p>
-          <strong className="text-foreground">Today:</strong> after posting on
-          TikTok, ask your operator to import metrics CSV in the internal
-          console, or paste publish URLs on the product detail page when that
-          flow is enabled.
-        </p>
-        <p className="mt-3">
-          Once metrics appear in{" "}
-          <Link href="/business/performance" className="text-primary hover:underline">
+          录入后可在{" "}
+          <Link
+            href="/business/performance"
+            className="text-primary hover:underline"
+          >
             Performance
-          </Link>
-          ,{" "}
+          </Link>{" "}
+          查看汇总，{" "}
           <Link
             href="/business/recommendations"
             className="text-primary hover:underline"
           >
             Recommendations
           </Link>{" "}
-          will prioritize winning hooks automatically.
+          会优先推荐高表现 hook。
         </p>
       </div>
     </div>

@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 7a 配额护栏 **已完成**；下一程 Phase 7b 支付或真钱 4c（暂缓）。
+**正在做：** Phase 7b Stripe Pro MVP **已完成**（Checkout + webhook + 自助 metrics + Creative Studio 预填）；下一程真钱 4c 或 Phase 8。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -47,7 +47,7 @@ Phase 6.5 ✅ 双端 user flow 收敛（onboarding + audit + walkthrough）
    - 修了 business/page.tsx 的历史 react/no-unescaped-entities 错误 —— **lint 现在 0 error**
    - docs/MANUAL_WALKTHROUGH.md：5 分钟双端自检清单（含跨 persona 防护、故障路径、ownership）
 Phase 7a  ✅ Quota / rate-limit / 月度用量 + Billing 用量页
-Phase 7b  ⏳ Stripe / 微信支付 / 套餐 / billing 页
+Phase 7b  ✅ Stripe Checkout Pro + webhook + Billing 升级 CTA（需 env：STRIPE_*）
 Phase 8   ⏳ 公开 demo / landing / sales packaging
 Phase 8.5 ⏳ 法律 / 内容安全 / 监控告警 / 域名 + 备案
 Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
@@ -124,9 +124,17 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 
 ---
 
-### Phase 7b — 支付
+### Phase 7b — 支付 ✅（Stripe MVP）
 
-依赖 Phase 7a 完成。可能用 Stripe Checkout（海外）+ 微信/支付宝（国内）。
+**已落地**
+- `AdminUser.subscriptionTier` + Stripe customer/subscription 字段
+- `POST /api/billing/checkout` → Stripe Checkout（Pro 月付，`STRIPE_PRO_PRICE_ID`）
+- `POST /api/webhooks/stripe` → 订阅状态写回 `pro` / `free`
+- Billing 页「升级到 Pro」+ `quota-tiers` pro 档限额
+- B 端 Integrations 自助录入 TikTok metrics（`POST /api/business/metrics`）
+- Creative Studio → `create-ad-video?from=<orderId>` 预填 `productInput` / brand
+
+**待办**：微信/支付宝；发票；生产 Stripe webhook 端点配置。
 
 ---
 

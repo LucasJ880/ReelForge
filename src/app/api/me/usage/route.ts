@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
-import { loadUsagePayloadForSession } from "@/lib/services/usage-payload";
+import {
+  buildDefaultUsagePayload,
+  loadUsagePayloadForSession,
+} from "@/lib/services/usage-payload";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +15,9 @@ export async function GET() {
     const guard = await requireAuth();
     if (!guard.ok) return guard.response;
 
-    const payload = await loadUsagePayloadForSession(guard.session);
+    const payload = guard.session.user?.id
+      ? await loadUsagePayloadForSession(guard.session)
+      : buildDefaultUsagePayload(guard.session);
     return NextResponse.json(payload);
   } catch (err) {
     console.error("[GET /api/me/usage]", err);

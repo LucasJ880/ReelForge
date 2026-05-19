@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getServerTranslator } from "@/i18n/server";
 import type { TranslationKey } from "@/i18n/types";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { BriefRenderAutoRefresh } from "@/components/video-generation/brief-render-auto-refresh";
 import { deriveBusinessStatus, type BusinessVideoStatus } from "@/lib/video-generation/business-status";
 import type { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
@@ -197,22 +198,19 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
   return (
     <div className="space-y-8">
       <BriefRenderAutoRefresh targets={pollTargets} />
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            {t("shell.productsPage.title")}
-          </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {t("shell.productsPage.subtitle")}
-          </p>
-        </div>
-        <Link
-          href="/business/create-ad-video"
-          className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
-        >
-          {t("shell.productsPage.newAd")}
-        </Link>
-      </header>
+      <BusinessPageHeader
+        kicker={t("shell.productsPage.kicker")}
+        title={t("shell.productsPage.title")}
+        subtitle={t("shell.productsPage.subtitle")}
+        action={
+          <Link
+            href="/business/create-ad-video"
+            className="inline-flex items-center rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-colors hover:bg-foreground/90"
+          >
+            {t("shell.productsPage.newAd")}
+          </Link>
+        }
+      />
 
       {products.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/10 bg-card/30 p-12 text-center">
@@ -245,14 +243,31 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
               <li
                 key={p.id}
                 className={
-                  "rounded-lg border p-5 transition-colors " +
+                  "rounded-xl border p-4 transition-colors sm:p-5 " +
                   (isHighlighted
-                    ? "border-emerald-400/40 bg-emerald-500/5"
-                    : "border-white/10 bg-card hover:bg-card/80")
+                    ? "border-emerald-400/40 bg-emerald-500/5 ring-1 ring-emerald-400/20"
+                    : "border-white/10 bg-card/40 hover:border-white/20 hover:bg-card/70")
                 }
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-4">
+                  {p.finalThumbnailUrl ? (
+                    <Link
+                      href={`/business/products/${p.id}`}
+                      className="relative shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/40"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.finalThumbnailUrl}
+                        alt=""
+                        className="h-[88px] w-[66px] object-cover"
+                      />
+                    </Link>
+                  ) : (
+                    <div className="flex h-[88px] w-[66px] shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/5 text-[10px] text-muted-foreground">
+                      9:16
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <Link
                         href={`/business/products/${p.id}`}
@@ -281,6 +296,9 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                       {progressLine ? (
                         <span className="ml-2 opacity-70">· {progressLine}</span>
                       ) : null}
+                      <span className="ml-2 opacity-50">
+                        · {new Date(p.updatedAt).toLocaleDateString("zh-CN")}
+                      </span>
                     </p>
 
                     {showProgressBar ? (
@@ -349,19 +367,6 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                         </span>
                       </div>
                     ) : null}
-                  </div>
-                  <div className="text-right shrink-0">
-                    {p.finalThumbnailUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={p.finalThumbnailUrl}
-                        alt=""
-                        className="h-16 w-12 rounded object-cover border border-white/10"
-                      />
-                    ) : null}
-                    <span className="mt-2 block text-[10px] text-muted-foreground/60 uppercase tracking-wider">
-                      {new Date(p.updatedAt).toLocaleDateString()}
-                    </span>
                   </div>
                 </div>
               </li>

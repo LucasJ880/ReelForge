@@ -21,6 +21,7 @@ import {
   reconcileBriefRenderStatus,
 } from "../src/lib/services/video-service";
 import type { UnifiedVideoGenerationRequest } from "../src/types/video-generation";
+import { deriveBusinessOrderTitle } from "../src/lib/video-generation/business-display-title";
 
 process.env.LLM_FORCE_MOCK = "true";
 process.env.VIDEO_ENGINE_MOCK = "true";
@@ -58,9 +59,20 @@ async function persistAndDispatch(
   const persona = request.userType === "business" ? "BUSINESS" : "PERSONAL";
 
   const { briefId } = await db.$transaction(async (tx) => {
+    const orderTitle =
+      request.userType === "business"
+        ? deriveBusinessOrderTitle({
+            rawPrompt: request.rawPrompt,
+            language: request.language,
+            brandKit: request.brandKit,
+            durationSec: request.selectedDuration,
+            platform: request.platform,
+          })
+        : request.rawPrompt.slice(0, 120) || "Harness video";
+
     const order = await tx.deliveryOrder.create({
       data: {
-        title: request.rawPrompt.slice(0, 120) || "Harness video",
+        title: orderTitle,
         status: DeliveryOrderStatus.ROUND_ACTIVE,
         productCategory: "unified_input",
         targetPlatform: plan.inputClassification.targetPlatform,

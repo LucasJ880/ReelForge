@@ -749,6 +749,7 @@ export const enUS: Dictionary = {
       saveError: "Could not save",
     },
     productsPage: {
+      kicker: "Library",
       title: "Products",
       subtitle: "All ad videos you have created, grouped by product line.",
       newAd: "New ad video",

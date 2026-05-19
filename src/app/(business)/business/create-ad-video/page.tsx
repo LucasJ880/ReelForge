@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { UnifiedCreativeInputShell } from "@/components/video-generation/unified-creative-input-shell";
 import { authOptions } from "@/lib/auth";
 import { getServerTranslator } from "@/i18n/server";
@@ -25,21 +26,17 @@ export default async function CreateAdVideoPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          {t("shell.creative.pageTitleBusiness")}
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {t("shell.creative.pageSubtitleBusiness")}
-        </p>
-        {initialDraft && (
-          <p className="mt-2 text-sm text-sky-300">
-            {t("shell.creative.prefilledVariant", {
-              title: initialDraft.sourceTitle,
-            })}
-          </p>
-        )}
-      </header>
+      <BusinessPageHeader
+        kicker={t("shell.businessHome.createKicker")}
+        title={t("shell.creative.pageTitleBusiness")}
+        subtitle={
+          initialDraft
+            ? t("shell.creative.prefilledVariant", {
+                title: initialDraft.sourceTitle,
+              })
+            : t("shell.creative.pageSubtitleBusiness")
+        }
+      />
       <UnifiedCreativeInputShell
         userType="business"
         initialDraft={initialDraft ?? undefined}

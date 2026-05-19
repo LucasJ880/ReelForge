@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { getServerTranslator } from "@/i18n/server";
 import { loadBusinessInsights } from "@/lib/services/business-insights-service";
 
@@ -20,19 +21,13 @@ export default async function CreativeStudioPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          {t("shell.studio.kicker")}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {t("shell.studio.title")}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          {t("shell.studio.subtitle")}
-        </p>
-      </header>
+      <BusinessPageHeader
+        kicker={t("shell.studio.kicker")}
+        title={t("shell.studio.title")}
+        subtitle={t("shell.studio.subtitle")}
+      />
 
-      <div className="rounded-xl border border-white/10 bg-card/30 p-6">
+      <div className="rounded-xl border border-white/10 bg-card/30 p-6 shadow-sm">
         <h2 className="font-semibold">{t("shell.studio.quickActions")}</h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
@@ -63,7 +58,7 @@ export default async function CreativeStudioPage() {
             {recent.map((v) => (
               <li
                 key={v.orderId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-card/20 px-4 py-3"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-card/20 px-4 py-3 transition-colors hover:border-white/15 hover:bg-card/35"
               >
                 <div>
                   <p className="max-w-md truncate font-medium">{v.title}</p>

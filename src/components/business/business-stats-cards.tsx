@@ -39,7 +39,7 @@ export function BusinessStatsCards({
       {cards.map((c) => (
         <div
           key={c.label}
-          className="rounded-xl border border-white/10 bg-card/30 px-4 py-4"
+          className="rounded-xl border border-white/10 bg-card/30 px-4 py-4 transition-colors hover:border-white/15 hover:bg-card/50"
         >
           <p className="text-xs uppercase tracking-wider text-muted-foreground">
             {c.label}

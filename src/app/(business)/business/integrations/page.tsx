@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { BusinessMetricsForm } from "@/components/business/business-metrics-form";
 import { authOptions } from "@/lib/auth";
 import { getServerTranslator } from "@/i18n/server";
@@ -41,19 +42,13 @@ export default async function IntegrationsPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          {t("shell.integrations.kicker")}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {t("shell.integrations.title")}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          {t("shell.integrations.subtitle")}
-        </p>
-      </header>
+      <BusinessPageHeader
+        kicker={t("shell.integrations.kicker")}
+        title={t("shell.integrations.title")}
+        subtitle={t("shell.integrations.subtitle")}
+      />
 
-      <section className="rounded-xl border border-white/10 bg-card/30 p-6">
+      <section className="rounded-xl border border-white/10 bg-card/30 p-6 shadow-sm">
         <h2 className="text-lg font-semibold">
           {t("shell.integrations.metricsTitle")}
         </h2>

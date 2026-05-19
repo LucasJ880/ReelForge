@@ -8,6 +8,7 @@ import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
 import { deriveBusinessStatus } from "@/lib/video-generation/business-status";
+import { deriveBusinessOrderTitle } from "@/lib/video-generation/business-display-title";
 import {
   unifiedVideoGenerationRequestSchema,
   videoGenerationPlanSchema,
@@ -145,11 +146,20 @@ export async function POST(req: NextRequest) {
       let orderId = request.deliveryOrderId ?? null;
 
       if (!orderId) {
+        const orderTitle =
+          request.userType === "business"
+            ? deriveBusinessOrderTitle({
+                rawPrompt: request.rawPrompt,
+                language: request.language,
+                brandKit: request.brandKit,
+                durationSec: request.selectedDuration,
+                platform: request.platform,
+              })
+            : firstLine(request.rawPrompt) || "Untitled video";
+
         const order = await tx.deliveryOrder.create({
           data: {
-            title:
-              firstLine(request.rawPrompt) ||
-              (request.userType === "business" ? "Untitled ad" : "Untitled video"),
+            title: orderTitle,
             status: DeliveryOrderStatus.ROUND_ACTIVE,
             productCategory: "unified_input",
             targetPlatform: plan.inputClassification.targetPlatform,

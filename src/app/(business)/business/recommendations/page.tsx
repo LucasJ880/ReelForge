@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { RecommendationList } from "@/components/business/recommendation-list";
 import { getServerTranslator } from "@/i18n/server";
 import { loadBusinessInsights } from "@/lib/services/business-insights-service";
@@ -25,17 +26,11 @@ export default async function RecommendationsPage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          {t("shell.recommendationsPage.kicker")}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {t("shell.recommendationsPage.title")}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          {t("shell.recommendationsPage.subtitle")}
-        </p>
-      </header>
+      <BusinessPageHeader
+        kicker={t("shell.recommendationsPage.kicker")}
+        title={t("shell.recommendationsPage.title")}
+        subtitle={t("shell.recommendationsPage.subtitle")}
+      />
 
       {insights ? (
         <RecommendationList

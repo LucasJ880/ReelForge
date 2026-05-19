@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { BusinessStatsCards } from "@/components/business/business-stats-cards";
 import { VideoPerformanceTable } from "@/components/business/video-performance-table";
 import { getServerTranslator } from "@/i18n/server";
@@ -19,17 +20,11 @@ export default async function PerformancePage() {
 
   return (
     <div className="space-y-8">
-      <header>
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">
-          {t("shell.performancePage.kicker")}
-        </p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-          {t("shell.performancePage.title")}
-        </h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          {t("shell.performancePage.subtitle")}
-        </p>
-      </header>
+      <BusinessPageHeader
+        kicker={t("shell.performancePage.kicker")}
+        title={t("shell.performancePage.title")}
+        subtitle={t("shell.performancePage.subtitle")}
+      />
 
       {insights ? (
         <>

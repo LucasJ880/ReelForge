@@ -25,6 +25,7 @@ import {
 import { importBusinessVideoMetrics } from "../src/lib/services/business-metrics-import";
 import { loadBusinessInsights } from "../src/lib/services/business-insights-service";
 import type { UnifiedVideoGenerationRequest } from "../src/types/video-generation";
+import { deriveBusinessOrderTitle } from "../src/lib/video-generation/business-display-title";
 
 process.env.LLM_FORCE_MOCK = "true";
 process.env.VIDEO_ENGINE_MOCK = "true";
@@ -218,7 +219,18 @@ async function main() {
       brandKit,
       language: "zh",
     };
-    const { briefId, orderId } = await persistAndDispatch(request, user.id, ad.title);
+    const displayTitle = deriveBusinessOrderTitle({
+      rawPrompt: ad.rawPrompt,
+      language: request.language,
+      brandKit,
+      durationSec: request.selectedDuration,
+      platform: request.platform,
+    });
+    const { briefId, orderId } = await persistAndDispatch(
+      request,
+      user.id,
+      displayTitle,
+    );
     await waitUntilReady(ad.label, briefId);
     created.push({ label: ad.label, briefId, orderId });
   }

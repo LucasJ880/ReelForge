@@ -723,6 +723,7 @@ export const zhCN: Dictionary = {
       saveError: "保存失败",
     },
     productsPage: {
+      kicker: "资产",
       title: "产品库",
       subtitle: "你创建的全部广告视频，按产品线分组管理。",
       newAd: "新建广告视频",

@@ -609,6 +609,7 @@ export type Dictionary = {
       saveError: string;
     };
     productsPage: {
+      kicker: string;
       title: string;
       subtitle: string;
       newAd: string;

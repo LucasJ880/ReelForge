@@ -41,7 +41,7 @@ export function RecommendationList({
       {items.map((item) => (
         <li
           key={item.id}
-          className="rounded-xl border border-white/10 bg-card/30 p-5"
+          className="rounded-xl border border-white/10 bg-card/30 p-5 transition-colors hover:border-white/15 hover:bg-card/45"
         >
           <div className="flex flex-wrap items-center gap-2">
             <span

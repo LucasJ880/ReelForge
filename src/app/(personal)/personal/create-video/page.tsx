@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { UnifiedCreativeInputShell } from "@/components/video-generation/unified-creative-input-shell";
 import { authOptions } from "@/lib/auth";
+import { getServerTranslator } from "@/i18n/server";
 import { loadLastCreativeDraft } from "@/lib/services/order-creative-draft";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,7 @@ export default async function CreateVideoPage({ searchParams }: PageProps) {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login?from=/personal/create-video");
 
+  const { t } = await getServerTranslator();
   const sp = await searchParams;
   const userId = session.user?.id;
   const initialDraft =
@@ -25,13 +27,17 @@ export default async function CreateVideoPage({ searchParams }: PageProps) {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-semibold tracking-tight">生成你的视频</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {t("shell.creative.pageTitlePersonal")}
+        </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          用一句话描述画面，选好时长，一键生成。有参考图可以上传，没有也能直接开拍。
+          {t("shell.creative.pageSubtitlePersonal")}
         </p>
         {initialDraft ? (
           <p className="mt-2 text-sm text-sky-300">
-            已载入上次创意「{initialDraft.sourceTitle}」，可直接修改后再次生成。
+            {t("shell.creative.prefilledLast", {
+              title: initialDraft.sourceTitle,
+            })}
           </p>
         ) : userId ? (
           <p className="mt-2 text-sm text-muted-foreground">
@@ -39,7 +45,7 @@ export default async function CreateVideoPage({ searchParams }: PageProps) {
               href="/personal/create-video?from=last"
               className="text-primary hover:underline"
             >
-              沿用上一次描述
+              {t("shell.creative.useLastPrompt")}
             </Link>
           </p>
         ) : null}

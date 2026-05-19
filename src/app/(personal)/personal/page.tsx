@@ -1,15 +1,18 @@
 import Link from "next/link";
 import { Sparkles, Film } from "lucide-react";
+import { getServerTranslator } from "@/i18n/server";
 
-export default function PersonalHomePage() {
+export default async function PersonalHomePage() {
+  const { t } = await getServerTranslator();
+
   return (
     <div className="space-y-10">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">
-          What do you want to make today?
+          {t("shell.personalHome.title")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Type a prompt, pick a duration, generate. That&apos;s it.
+          {t("shell.personalHome.subtitle")}
         </p>
       </header>
 
@@ -20,13 +23,15 @@ export default function PersonalHomePage() {
         >
           <div className="flex items-center gap-3 text-muted-foreground">
             <Sparkles className="h-5 w-5" />
-            <span className="text-xs uppercase tracking-wider">Create</span>
+            <span className="text-xs uppercase tracking-wider">
+              {t("shell.personalHome.createKicker")}
+            </span>
           </div>
           <h3 className="mt-3 text-lg font-semibold tracking-tight">
-            New video
+            {t("shell.personalHome.createTitle")}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Text-to-video, image-to-video, or stitch your own clips together.
+            {t("shell.personalHome.createBody")}
           </p>
         </Link>
 
@@ -36,13 +41,15 @@ export default function PersonalHomePage() {
         >
           <div className="flex items-center gap-3 text-muted-foreground">
             <Film className="h-5 w-5" />
-            <span className="text-xs uppercase tracking-wider">Library</span>
+            <span className="text-xs uppercase tracking-wider">
+              {t("shell.personalHome.libraryKicker")}
+            </span>
           </div>
           <h3 className="mt-3 text-lg font-semibold tracking-tight">
-            My videos
+            {t("shell.personalHome.libraryTitle")}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Everything you&apos;ve made.
+            {t("shell.personalHome.libraryBody")}
           </p>
         </Link>
       </section>

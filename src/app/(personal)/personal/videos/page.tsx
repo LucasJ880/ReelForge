@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getServerTranslator } from "@/i18n/server";
 import { PersonalVideosAutoRefresh } from "@/components/personal/personal-videos-auto-refresh";
 import {
   customerSafeFinalVideoUrl,
@@ -155,6 +156,7 @@ export default async function PersonalVideosPage() {
   const session = await getServerSession(authOptions);
   if (!session) redirect("/login?from=/personal/videos");
 
+  const { t } = await getServerTranslator();
   const rows = await loadPersonalVideoRows(session.user.id).catch(
     () => [] as PersonalVideoRow[],
   );
@@ -174,9 +176,11 @@ export default async function PersonalVideosPage() {
       <PersonalVideosAutoRefresh targets={pollTargets} />
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">My videos</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {t("shell.personalNav.myVideos")}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Everything you&apos;ve made on Aivora.
+            {t("shell.personalVideos.subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -184,14 +188,14 @@ export default async function PersonalVideosPage() {
             href="/personal/create-video"
             className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
           >
-            New video
+            {t("shell.personalHome.createTitle")}
           </Link>
           {rows.length > 0 && (
             <Link
               href="/personal/create-video?from=last"
               className="inline-flex items-center rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
             >
-              沿用上次描述
+              {t("shell.creative.useLastPrompt")}
             </Link>
           )}
         </div>
@@ -200,16 +204,16 @@ export default async function PersonalVideosPage() {
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/10 bg-card/30 p-12 text-center">
           <h2 className="text-lg font-semibold tracking-tight">
-            还没有视频
+            {t("shell.personalVideos.emptyTitle")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            点击右上角 New video，描述你想要的画面，几分钟就能拿到一支属于你的短片。
+            {t("shell.personalVideos.emptyBody")}
           </p>
           <Link
             href="/personal/create-video"
             className="mt-6 inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
           >
-            生成第一支视频
+            {t("shell.personalVideos.emptyCta")}
           </Link>
         </div>
       ) : (

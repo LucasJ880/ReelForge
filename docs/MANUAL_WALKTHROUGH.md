@@ -116,11 +116,24 @@ npm run dev:mock
 
 ---
 
+## 4c. 语言切换（20s）
+
+| 步骤 | 操作 | 期望 |
+|---|---|---|
+| 4c.1 | 登录 B 或 C 端，侧栏底部点语言（简体中文 / English） | 导航、首页卡片、创建页、Billing 用量文案**整页切换** |
+| 4c.2 | 刷新页面 | 语言偏好保持（localStorage + cookie） |
+| 4c.3 | 切到 English 走一遍 C 端创建页 | 表单标签为英文；个人端错误提示为英文 |
+
+**通过标准**：无「侧栏英文 + 正文中文」明显混搭（统一输入区与 Billing 已 i18n 化）。
+
+---
+
 ## 5. 自动化补充（30s）
 
 ```bash
 # 无浏览器：C 15s + B 30s 服务层全链路（推荐每次改 video/stitch 后跑）
 npm run walkthrough:mock
+npm run acceptance:mock   # typecheck + 客户文案审计 + i18n + C/B mock 管线
 
 # 这些每次大改后都该跑
 npm run typecheck   # 0 错误

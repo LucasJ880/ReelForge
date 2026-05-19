@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { quotaErrorResponse } from "@/lib/api-quota";
+import { assertRegisterRateLimit } from "@/lib/services/quota-service";
 
 /**
  * POST /api/auth/register
@@ -61,6 +63,18 @@ export async function POST(req: NextRequest) {
   }
 
   const { email, password, name } = parsed.data;
+
+  try {
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+      req.headers.get("x-real-ip") ??
+      null;
+    await assertRegisterRateLimit({ ip, email });
+  } catch (err) {
+    const quotaRes = quotaErrorResponse(err);
+    if (quotaRes) return quotaRes;
+    throw err;
+  }
 
   const existing = await db.adminUser.findUnique({ where: { email } });
   if (existing) {

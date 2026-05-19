@@ -104,6 +104,18 @@ npm run dev:mock
 
 ---
 
+## 4b. 配额（Phase 7a，可选 30s）
+
+| 步骤 | 操作 | 期望 |
+|---|---|---|
+| 4b.1 | 登录 PERSONAL → `/personal/billing` | 看到本月四项用量进度条 |
+| 4b.2 | 本地设 `QUOTA_ENFORCE=true` 重启 dev，连续 dispatch 直到超额 | API 返回 429 + 中文友好文案；UI 显示限额提示 |
+| 4b.3 | 内部 OPERATOR 账号 | `/api/me/usage` 显示 `exempt: true`，不限额 |
+
+生产环境默认强制配额；dev mock 默认**不**扣配额（`walkthrough:mock` 不受影响）。
+
+---
+
 ## 5. 自动化补充（30s）
 
 ```bash

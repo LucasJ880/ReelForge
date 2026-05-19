@@ -1,16 +1,12 @@
 import { InternalSidebar } from "@/components/layout/internal-sidebar";
-import { requireInternal } from "@/lib/api-auth";
-import { redirect } from "next/navigation";
+import { requireInternalPage } from "@/lib/api-auth";
 
 export default async function InternalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const guard = await requireInternal();
-  if (!guard.ok) {
-    redirect("/login?from=/internal");
-  }
+  await requireInternalPage("/internal");
   return (
     <div className="flex h-full bg-sidebar">
       <InternalSidebar />

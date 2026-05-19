@@ -6,9 +6,9 @@ import { loadUsagePayloadForSession } from "@/lib/services/usage-payload";
 
 export const dynamic = "force-dynamic";
 
-export default async function BillingPage() {
+export default async function BusinessBillingPage() {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login?from=/personal/billing");
+  if (!session) redirect("/login?from=/business/billing");
 
   const initial = await loadUsagePayloadForSession(session).catch(() => null);
   if (!initial) {
@@ -19,5 +19,5 @@ export default async function BillingPage() {
     );
   }
 
-  return <UsageDashboard persona="personal" initial={initial} />;
+  return <UsageDashboard persona="business" initial={initial} />;
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
 import { requireAuth } from "@/lib/api-auth";
+import { quotaErrorResponse } from "@/lib/api-quota";
+import { assertQuotaForSession } from "@/lib/services/quota-service";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const SUPPORTED_UPLOAD_TYPES = /^(video\/(mp4|quicktime|webm|x-m4v)|image\/(png|jpe?g|webp)|audio\/(mpeg|mp4|x-m4a|wav|aac))$/i;
@@ -51,6 +53,14 @@ export async function POST(req: NextRequest) {
   }
   const prefix = (form.get("prefix") as string | null) ?? "uploads";
   const filename = `${prefix}/${Date.now()}-${file.name}`;
+
+  try {
+    await assertQuotaForSession(guard.session, "BLOB_UPLOAD_BYTES", file.size);
+  } catch (err) {
+    const quotaRes = quotaErrorResponse(err);
+    if (quotaRes) return quotaRes;
+    throw err;
+  }
 
   const blob = await put(filename, file, {
     access: "public",

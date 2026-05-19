@@ -20,7 +20,7 @@ const PERSONAL_NAV: NavItem[] = [
   { href: "/personal/create-video", label: "Create Video", icon: Sparkles },
   { href: "/personal/videos", label: "My Videos", icon: Film },
   { href: "/personal/templates", label: "Templates", icon: BookOpen, badge: "Soon" },
-  { href: "/personal/billing", label: "Billing", icon: CreditCard, badge: "Soon" },
+  { href: "/personal/billing", label: "Billing", icon: CreditCard },
 ];
 
 export function PersonalSidebar() {

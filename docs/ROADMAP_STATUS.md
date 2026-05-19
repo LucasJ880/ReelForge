@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Mock 双端验收收尾（浏览器 §4 跨 persona）— **服务层 `npm run walkthrough:mock` C+B 已绿**；真钱 E2E 暂缓。
+**正在做：** Phase 7a 配额护栏 **已完成**；下一程 Phase 7b 支付或真钱 4c（暂缓）。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -32,7 +32,7 @@ Phase 5   🟡 Persona-aware auth + 公开个人注册（PERSONAL only） + B-si
    5b     ✅ POST /api/auth/register（仅 PERSONAL，role default=OPERATOR + ut=PERSONAL）
           + /register 页面 + /login 加「创建个人账号」入口
           + 17 新单测（persona 访问矩阵 + register schema 契约）
-   5c     ✅ B-side mock 服务层 §3（`walkthrough:mock`）；浏览器 §3–§4 待人工点验
+   5c     ✅ B-side mock 服务层 + 浏览器 §3–§4（2026-05-20）；`requireInternalPage` 已登录 PERSONAL→/personal
 Phase 6   ✅ Upload assets UI + 双端详情页 + 段感知重试
    6a     ✅ PERSONAL /personal/videos/[id] 详情页
    6b     ✅ render-retry / render-status 端点改用 brief 归属校验
@@ -46,7 +46,7 @@ Phase 6.5 ✅ 双端 user flow 收敛（onboarding + audit + walkthrough）
    - 持久化 PERSONAL 自助注册的 onboarding 入口（/persona 卡片走 /register；/login 链接 /register；BUSINESS 卡片明示 invite-only）
    - 修了 business/page.tsx 的历史 react/no-unescaped-entities 错误 —— **lint 现在 0 error**
    - docs/MANUAL_WALKTHROUGH.md：5 分钟双端自检清单（含跨 persona 防护、故障路径、ownership）
-Phase 7a  ⏳ Quota / rate-limit / Seedance & Blob & OpenAI 按 user 记账
+Phase 7a  ✅ Quota / rate-limit / 月度用量 + Billing 用量页
 Phase 7b  ⏳ Stripe / 微信支付 / 套餐 / billing 页
 Phase 8   ⏳ 公开 demo / landing / sales packaging
 Phase 8.5 ⏳ 法律 / 内容安全 / 监控告警 / 域名 + 备案
@@ -88,11 +88,12 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 - 5c：B-side 真实 E2E（同 4c 但 persona=BUSINESS）
 
 **退出条件**
-- [ ] 一个未登录访客能在 `/register` 自助创建 PERSONAL 账号 → 自动跳 `/personal`
-- [ ] BUSINESS 仍是 invite-only（admin 在 `/settings` 创建并指定 userType=BUSINESS）
-- [ ] PERSONAL 用户访问 `/business/*` 被拒；BUSINESS 用户访问 `/personal/*` 被拒
-- [ ] OPERATOR/SUPER_ADMIN 访问任何路径仍 OK（运维需要）
-- [ ] 测试覆盖 4 类用户 × 3 类路径的访问矩阵
+- [x] 一个未登录访客能在 `/register` 自助创建 PERSONAL 账号 → 自动跳 `/personal`
+- [x] BUSINESS 仍是 invite-only（admin 在 `/settings` 创建；dev 可用 `/persona` 切换）
+- [x] PERSONAL 用户访问 `/business/*` → `/personal`；BUSINESS 访问 `/personal/*` → `/business`
+- [x] PERSONAL 访问 `/internal/*` → `/personal`（非踢回 login）
+- [ ] OPERATOR/SUPER_ADMIN 访问任何路径仍 OK（运维需要；单测矩阵已覆盖）
+- [x] 测试覆盖 persona 访问矩阵（`api-auth-persona-matrix.test.ts`）
 
 ---
 
@@ -109,15 +110,17 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 
 ---
 
-### Phase 7a — Quota / 用量记账
+### Phase 7a — Quota / 用量记账 ✅
 
 **目标**：上线公开注册之前必须有的"防护栏"——单用户不能无限烧 Seedance。
 
-**计划**
-- Prisma schema：`UsageQuota` + `UsageLog`（按 user × resource × period）
-- Middleware：`/api/video-generation/dispatch` 进入前查 quota，超额返 429 + 友好文案
-- 资源粒度：Seedance 段数 / OpenAI tokens / Blob bytes / 视频条数 / 月
-- 默认套餐：free / starter / pro
+**已落地**
+- Prisma：`UserUsagePeriod` + `UsageLog` + `RateLimitBucket`
+- `src/lib/services/quota-service.ts` + `src/lib/config/quota-tiers.ts`（免费档月度限额）
+- 守门：`/api/video-generation/dispatch`（视频 + Seedance 段）、`/plan`（预览）、`/api/upload/blob`（字节）
+- 注册限流：IP/小时 + 邮箱/天
+- `GET /api/me/usage` + `/personal/billing` + `/business/billing` 用量仪表盘
+- 生产环境默认 `QUOTA_ENFORCE`；dev 默认关闭（`QUOTA_ENFORCE=true` 可本地测）
 
 ---
 
@@ -150,6 +153,8 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 | 2026-05-13 | `0579ed4 feat(phase-5): persona-aware auth + public PERSONAL signup` | Phase 5a+5b ✅ | 公开注册 / 17 新单测 |
 | 2026-05-13 | `(prev) feat(phase-6): personal detail + brief ownership` | Phase 6a+6b+6c ✅ | personal 详情页 + 段感知重试 + brief 归属 / 13 新单测 |
 | 2026-05-13 | _next: feat(phase-6.5)_ | Phase 6d + 6.5 ✅ | business 详情页 + persona onboarding + 0-error lint + walkthrough doc / 8 新单测 |
+| 2026-05-20 | _(local)_ | Phase 4c+5c mock | 浏览器 MANUAL §1–§4 全绿；`requireInternalPage`；`walkthrough:mock` 加载 `.env.local` |
+| 2026-05-20 | _(local)_ | Phase 7a quota | UserUsagePeriod/UsageLog；dispatch/plan/blob/register 限流；Billing 用量页 |
 
 ---
 
@@ -162,19 +167,18 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 >
 > 然后按「Phase X — 计划」执行。所有计划都已经拆好，无需再设计。
 
-**当前推荐的下一动作**（日常一律 mock，见 `docs/MANUAL_WALKTHROUGH.md` §0）：
+**当前推荐的下一动作**（mock 双端验收已闭环，见 `docs/MANUAL_WALKTHROUGH.md`）：
 
-1. `LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true npm run dev`
-2. `npm run e2e:phase4:mock` — 守门单测。
-3. `npm run walkthrough:mock` — C 15s + B 30s 服务层 ✅；浏览器：`docs/MANUAL_WALKTHROUGH.md` §1–§4。
-4. 真钱场景 A/B/C：**暂缓**（`docs/PHASE_4_REAL_TEST_RUNBOOK.md`）。
-2. **直接打开 `docs/MANUAL_WALKTHROUGH.md` 跑 5 分钟双端自检**。这份文档把以前散落
-   在脑子里的所有 user-flow 检查一次性钉死，包括：
-   - C 端公开注册 → 详情页（90s）
-   - C 端故障路径 + 重试（30s）
-   - B 端商家创建 → 详情页（90s）
-   - 跨 persona 防护（PERSONAL/BUSINESS/OPERATOR 三向 redirect 都要对）
-3. 双端跑通后选下一程：
+1. **开 Phase 7a**（quota / rate-limit）— 公开注册前的护栏。
+2. 或按 `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 跑真钱场景 A（**暂缓**时可跳过）。
+3. 日常回归：`npm run dev:mock` → `npm run walkthrough:mock` → `npm run e2e:phase4:mock`。
+
+双端 mock 验收（2026-05-20 已绿）：
+   - C 端注册 → 15s 出片 → 列表/详情
+   - B 端 persona 切换 → 30s + end card → 列表/详情
+   - 跨 persona redirect + internal 防护
+
+选下一程：
    - **想上线**：开 Phase 7a（quota / rate-limit），是公开 demo 之前的最关键护栏
    - **想做真测**：按 `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 场景 A（≈ $0.6）跑第一发真生成
    - **想优化体验**：开 Phase 6e（基于上一次 brief 的快速重试）或 Phase 8 landing 美化

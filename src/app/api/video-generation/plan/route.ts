@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
+import { quotaErrorResponse } from "@/lib/api-quota";
+import { assertQuotaForSession } from "@/lib/services/quota-service";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { unifiedVideoGenerationRequestSchema } from "@/lib/schemas/unified-input";
 
@@ -32,9 +34,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    await assertQuotaForSession(guard.session, "PLAN_PREVIEW", 1);
     const plan = await buildPlan(parsed.data);
     return NextResponse.json({ ok: true, plan });
   } catch (err) {
+    const quotaRes = quotaErrorResponse(err);
+    if (quotaRes) return quotaRes;
     console.error("[/api/video-generation/plan]", err);
     return NextResponse.json(
       {

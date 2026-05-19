@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Lightbulb,
   LogOut,
+  CreditCard,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -28,10 +29,11 @@ const BUSINESS_NAV: NavItem[] = [
   { href: "/business", label: "Home", icon: Home },
   { href: "/business/create-ad-video", label: "Create Ad Video", icon: Wand2 },
   { href: "/business/products", label: "Products", icon: PackageOpen },
-  { href: "/business/creative-studio", label: "Creative Studio", icon: Sparkles, badge: "Soon" },
-  { href: "/business/integrations", label: "Integrations", icon: Plug, badge: "Soon" },
-  { href: "/business/performance", label: "Performance", icon: TrendingUp, badge: "Soon" },
-  { href: "/business/recommendations", label: "Recommendations", icon: Lightbulb, badge: "Soon" },
+  { href: "/business/creative-studio", label: "Creative Studio", icon: Sparkles },
+  { href: "/business/integrations", label: "Integrations", icon: Plug },
+  { href: "/business/performance", label: "Performance", icon: TrendingUp },
+  { href: "/business/recommendations", label: "Recommendations", icon: Lightbulb },
+  { href: "/business/billing", label: "Billing", icon: CreditCard },
 ];
 
 export function BusinessSidebar() {

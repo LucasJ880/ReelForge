@@ -213,6 +213,30 @@ export async function requireInternal(): Promise<AuthGuardResult> {
 }
 
 /**
+ * Server Component / Page 层的 internal guard。
+ * - 未登录 → /login?from=…
+ * - PERSONAL / BUSINESS 已登录但无 internal 权限 → 各自 persona 首页（与 requirePersonaPage 对称）
+ * - 内部 staff → 放行
+ */
+export async function requireInternalPage(
+  intendedPath = "/internal",
+): Promise<Session> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
+  }
+  const userType = session.user.userType;
+  if (userType === "PERSONAL") redirect("/personal");
+  if (userType === "BUSINESS") redirect("/business");
+
+  const guard = await requireOperator();
+  if (!guard.ok) {
+    redirect("/persona");
+  }
+  return guard.session;
+}
+
+/**
  * 共享 video generation 端点专用（plan / dispatch / classify-asset / blob upload）。
  *
  * 任何已选 persona 的客户用户（BUSINESS 或 PERSONAL）都可调用；内部 staff bypass。

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AngleType, DeliveryOrderStatus, RoundStatus, VideoBriefStatus } from "@prisma/client";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
+import { quotaErrorResponse } from "@/lib/api-quota";
+import { assertQuotaBatchForSession } from "@/lib/services/quota-service";
 import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
@@ -113,6 +115,23 @@ export async function POST(req: NextRequest) {
       },
       { status: 422 },
     );
+  }
+
+  const seedanceSegmentCount = plan.segments.filter(
+    (s) => s.type === "ai_generated_clip",
+  ).length;
+  try {
+    await assertQuotaBatchForSession(session, [
+      { resource: "VIDEO_DISPATCH", amount: 1 },
+      {
+        resource: "SEEDANCE_SEGMENT",
+        amount: Math.max(1, seedanceSegmentCount),
+      },
+    ]);
+  } catch (err) {
+    const quotaRes = quotaErrorResponse(err);
+    if (quotaRes) return quotaRes;
+    throw err;
   }
 
   const request = reqParsed.data;

@@ -34,6 +34,8 @@ model AdminUser {
   createdOrders  DeliveryOrder[]
   qaReviews      QAReview[]
   publishRecords PublishRecord[]
+  usagePeriods   UserUsagePeriod[]
+  usageLogs      UsageLog[]
 }
 
 // =========================================================
@@ -1050,4 +1052,57 @@ model WizardRenderJob {
   @@index([status])
   @@index([mode])
   @@index([createdAt(sort: Desc)])
+}
+
+// =========================================================
+// 11. Phase 7a — Per-user usage quota (monthly meters)
+// =========================================================
+
+enum UsageResource {
+  VIDEO_DISPATCH
+  PLAN_PREVIEW
+  BLOB_UPLOAD_BYTES
+  SEEDANCE_SEGMENT
+}
+
+/// 按月聚合的用量计数（UTC YYYY-MM）。内部 staff 不走限额。
+model UserUsagePeriod {
+  id        String        @id @default(cuid())
+  userId    String
+  user      AdminUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodKey String
+  resource  UsageResource
+  amount    Int           @default(0)
+  updatedAt DateTime      @updatedAt
+  createdAt DateTime      @default(now())
+
+  @@unique([userId, periodKey, resource])
+  @@index([userId, periodKey])
+}
+
+/// 单次消费审计（便于客服查账；聚合以 UserUsagePeriod 为准）
+model UsageLog {
+  id        String        @id @default(cuid())
+  userId    String
+  user      AdminUser     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource  UsageResource
+  amount    Int           @default(1)
+  metadata  Json?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([resource, createdAt(sort: Desc)])
+}
+
+/// 注册 / 敏感端点滑动窗口限流（按 bucketKey + windowKey）
+model RateLimitBucket {
+  id        String   @id @default(cuid())
+  bucketKey String
+  windowKey String
+  count     Int      @default(0)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([bucketKey, windowKey])
+  @@index([bucketKey])
 }

@@ -6,7 +6,7 @@
     "predev": "tsx scripts/check-real-mode.ts || true",
     "dev": "next dev",
     "dev:mock": "LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true VIDEO_ENGINE_MOCK_LATENCY_MS=0 npm run dev",
-    "walkthrough:mock": "tsx scripts/mock-walkthrough-harness.ts",
+    "walkthrough:mock": "tsx --env-file=.env.local scripts/mock-walkthrough-harness.ts",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",

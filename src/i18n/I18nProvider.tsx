@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -34,45 +35,46 @@ export interface I18nProviderProps {
 }
 
 export function I18nProvider({ initialLocale, children }: I18nProviderProps) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(
     initialLocale ?? DEFAULT_LOCALE,
   );
 
-  // 客户端水合时优先 localStorage，再 cookie，再默认值
+  // 与 RSC 一致：以 cookie（= 服务端 initialLocale）为准，避免 localStorage 与页面语言错位
   useEffect(() => {
     if (typeof window === "undefined") return;
-    let next: Locale | null = null;
+    const cookie = readCookie(LOCALE_COOKIE);
+    const resolved: Locale = isLocale(cookie)
+      ? cookie
+      : (initialLocale ?? DEFAULT_LOCALE);
     try {
-      const stored = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-      if (isLocale(stored)) next = stored;
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, resolved);
     } catch {
       /// localStorage 可能被禁用
     }
-    if (!next) {
-      const cookie = readCookie(LOCALE_COOKIE);
-      if (isLocale(cookie)) next = cookie;
+    if (resolved !== locale) {
+      setLocaleState(resolved);
     }
-    if (next && next !== locale) {
-      setLocaleState(next);
-      syncHtmlLang(next);
-    } else {
-      syncHtmlLang(locale);
-    }
+    syncHtmlLang(resolved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initialLocale]);
 
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    if (typeof window !== "undefined") {
-      try {
-        window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
-      } catch {
-        /// ignore
+  const setLocale = useCallback(
+    (next: Locale) => {
+      setLocaleState(next);
+      if (typeof window !== "undefined") {
+        try {
+          window.localStorage.setItem(LOCALE_STORAGE_KEY, next);
+        } catch {
+          /// ignore
+        }
+        writeCookie(LOCALE_COOKIE, next);
+        syncHtmlLang(next);
+        router.refresh();
       }
-      writeCookie(LOCALE_COOKIE, next);
-      syncHtmlLang(next);
-    }
-  }, []);
+    },
+    [router],
+  );
 
   const dict = useMemo(() => getDictionary(locale), [locale]);
 

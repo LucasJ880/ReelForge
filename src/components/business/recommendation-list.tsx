@@ -1,22 +1,38 @@
 import Link from "next/link";
 import type { BusinessRecommendation } from "@/lib/services/business-insights-service";
 
+export type RecommendationListLabels = {
+  empty: string;
+  priorityHigh: string;
+  priorityMedium: string;
+  priorityLow: string;
+};
+
 const PRIORITY_CLASS: Record<BusinessRecommendation["priority"], string> = {
   high: "bg-rose-500/15 text-rose-300",
   medium: "bg-amber-500/15 text-amber-300",
   low: "bg-slate-500/15 text-slate-300",
 };
 
+function priorityLabel(
+  priority: BusinessRecommendation["priority"],
+  labels: RecommendationListLabels,
+): string {
+  if (priority === "high") return labels.priorityHigh;
+  if (priority === "medium") return labels.priorityMedium;
+  return labels.priorityLow;
+}
+
 export function RecommendationList({
   items,
+  labels,
 }: {
   items: BusinessRecommendation[];
+  labels: RecommendationListLabels;
 }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        No recommendations yet — create a video to get started.
-      </p>
+      <p className="text-sm text-muted-foreground">{labels.empty}</p>
     );
   }
 
@@ -31,7 +47,7 @@ export function RecommendationList({
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase ${PRIORITY_CLASS[item.priority]}`}
             >
-              {item.priority}
+              {priorityLabel(item.priority, labels)}
             </span>
             <h3 className="font-medium">{item.title}</h3>
           </div>

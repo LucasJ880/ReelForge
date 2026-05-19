@@ -166,14 +166,15 @@ async function main() {
 
   const businessReq: UnifiedVideoGenerationRequest = {
     userType: "business",
-    rawPrompt: "hydration sports drink, energetic vertical ad",
+    rawPrompt:
+      "Sunny Shutter blackout curtains, cozy bedroom morning light, 30s vertical TikTok ad, 9:16",
     attachments: [],
     selectedDuration: 30,
     selectedAspectRatio: "9:16",
     selectedBrandEndingMode: "auto_end_card",
-    cta: "Tap to shop",
-    platform: null,
-    brandKit: { brandName: "AcmeHydrate", website: null },
+    cta: "Shop curtains",
+    platform: "tiktok",
+    brandKit: { brandName: "Sunny Shutter", website: "https://sunnyshutter.example" },
     language: null,
   };
 

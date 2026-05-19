@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getServerTranslator } from "@/i18n/server";
+import type { TranslationKey } from "@/i18n/types";
 import { BriefRenderAutoRefresh } from "@/components/video-generation/brief-render-auto-refresh";
 import { deriveBusinessStatus, type BusinessVideoStatus } from "@/lib/video-generation/business-status";
 import type { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
@@ -55,14 +57,21 @@ const PROGRESS_BAR_CLASS: Record<BusinessVideoStatus, string> = {
  * 客户友好的进度提示，避免使用「段」「片段」等内部术语。
  * "正在生成 2 / 3 个画面" 比 "2/3 段已完成" 更易理解，且不暗示底层多段拼接结构。
  */
-function progressDescription(row: ProductRow): string | null {
-  if (row.businessStatus === "ready" || row.businessStatus === "failed") return null;
+function progressDescription(
+  row: ProductRow,
+  t: (key: TranslationKey, params?: Record<string, string | number>) => string,
+): string | null {
+  if (row.businessStatus === "ready" || row.businessStatus === "failed")
+    return null;
   if (row.segmentCount <= 0) return null;
   if (row.businessStatus === "generating") {
-    return `已完成 ${row.segmentsSucceeded} / ${row.segmentCount} 个画面`;
+    return t("shell.productsPage.progressScenes", {
+      done: row.segmentsSucceeded,
+      total: row.segmentCount,
+    });
   }
   if (row.businessStatus === "assembling") {
-    return "正在合成最终视频";
+    return t("shell.productsPage.assembling");
   }
   return null;
 }
@@ -169,6 +178,7 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
 
   const sp = await searchParams;
   const highlight = sp?.highlight ?? null;
+  const { t } = await getServerTranslator();
 
   const products = await loadProductRows(session.user.id).catch(
     () => [] as ProductRow[],
@@ -189,32 +199,34 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
       <BriefRenderAutoRefresh targets={pollTargets} />
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Products</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {t("shell.productsPage.title")}
+          </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            All ad videos you have created, grouped by product line.
+            {t("shell.productsPage.subtitle")}
           </p>
         </div>
         <Link
           href="/business/create-ad-video"
           className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
         >
-          New ad video
+          {t("shell.productsPage.newAd")}
         </Link>
       </header>
 
       {products.length === 0 ? (
         <div className="rounded-xl border border-dashed border-white/10 bg-card/30 p-12 text-center">
           <h2 className="text-lg font-semibold tracking-tight">
-            No products yet
+            {t("shell.productsPage.emptyTitle")}
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start with the unified creative input. Aivora will group your videos by product automatically.
+            {t("shell.productsPage.emptyBody")}
           </p>
           <Link
             href="/business/create-ad-video"
             className="mt-6 inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
           >
-            Create your first video
+            {t("shell.productsPage.emptyCta")}
           </Link>
         </div>
       ) : (
@@ -224,7 +236,8 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
             const isReady = p.businessStatus === "ready";
             const isFailed = p.businessStatus === "failed";
             const isReadyButLinkPending = isReady && !p.finalVideoUrl;
-            const progressLine = progressDescription(p);
+            const progressLine = progressDescription(p, t);
+            const statusKey = p.businessStatus;
             const showProgressBar =
               p.businessStatus === "generating" || p.businessStatus === "assembling";
 
@@ -253,13 +266,13 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                           STATUS_CHIP_CLASS[p.businessStatus]
                         }
                       >
-                        {p.businessShortLabel}
+                        {t(`shell.businessStatus.${statusKey}.short`)}
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {isReadyButLinkPending
-                        ? "正在准备视频链接，请稍候刷新"
-                        : p.businessLabel}
+                        ? t("shell.productsPage.linkPending")
+                        : t(`shell.businessStatus.${statusKey}.label`)}
                       {p.aspectRatio && p.durationSec ? (
                         <span className="ml-2 opacity-70">
                           · {p.aspectRatio} · {p.durationSec}s
@@ -290,20 +303,20 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                           href={`/business/products/${p.id}`}
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
                         >
-                          查看最终视频
+                          {t("shell.productsPage.viewFinal")}
                         </Link>
                         <a
                           href={p.finalVideoUrl}
                           download
                           className="inline-flex items-center rounded-md border border-white/15 bg-card/60 px-3 py-1.5 text-xs hover:bg-card/90 transition-colors"
                         >
-                          下载视频
+                          {t("shell.productsPage.download")}
                         </a>
                         <Link
                           href="/business/create-ad-video"
                           className="inline-flex items-center rounded-md border border-white/10 bg-card/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-card/70 hover:text-foreground transition-colors"
                         >
-                          再生成一版
+                          {t("shell.productsPage.regenerate")}
                         </Link>
                       </div>
                     ) : null}
@@ -313,7 +326,7 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                         href={`/business/products/${p.id}`}
                         className="mt-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
                       >
-                        查看分镜进度 →
+                        {t("shell.productsPage.viewProgress")}
                       </Link>
                     ) : null}
 
@@ -323,16 +336,16 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                           href={`/business/products/${p.id}`}
                           className="inline-flex items-center rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors"
                         >
-                          重试失败片段
+                          {t("shell.productsPage.retryFailed")}
                         </Link>
                         <Link
                           href="/business/create-ad-video"
                           className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
                         >
-                          重新生成
+                          {t("shell.productsPage.regen")}
                         </Link>
                         <span className="text-[11px] text-muted-foreground">
-                          仍然遇到问题？请联系客服。
+                          {t("shell.productsPage.supportHint")}
                         </span>
                       </div>
                     ) : null}

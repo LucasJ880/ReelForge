@@ -8,6 +8,7 @@ const SHELL_CLIENT_FILES = [
   "src/components/layout/personal-sidebar.tsx",
   "src/components/billing/usage-dashboard.tsx",
   "src/components/video-generation/unified-creative-input.tsx",
+  "src/components/business/business-metrics-form.tsx",
 ];
 
 test("shell: B/C 侧栏与核心表单使用 useTranslation", () => {

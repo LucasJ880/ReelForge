@@ -1,6 +1,16 @@
 import Link from "next/link";
 import type { BusinessVideoInsight } from "@/lib/services/business-insights-service";
 
+export type PerfTableLabels = {
+  empty: string;
+  createFirst: string;
+  colVideo: string;
+  colStatus: string;
+  colViews: string;
+  colCompletion: string;
+  open: string;
+};
+
 const STATUS_CLASS: Record<string, string> = {
   ready: "bg-emerald-500/15 text-emerald-300",
   failed: "bg-rose-500/15 text-rose-300",
@@ -11,15 +21,20 @@ const STATUS_CLASS: Record<string, string> = {
 
 export function VideoPerformanceTable({
   videos,
+  labels,
 }: {
   videos: BusinessVideoInsight[];
+  labels: PerfTableLabels;
 }) {
   if (videos.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        No business videos yet.{" "}
-        <Link href="/business/create-ad-video" className="text-primary hover:underline">
-          Create your first ad
+        {labels.empty}{" "}
+        <Link
+          href="/business/create-ad-video"
+          className="text-primary hover:underline"
+        >
+          {labels.createFirst}
         </Link>
         .
       </p>
@@ -31,16 +46,19 @@ export function VideoPerformanceTable({
       <table className="w-full min-w-[640px] text-left text-sm">
         <thead className="border-b border-white/10 bg-card/50 text-muted-foreground">
           <tr>
-            <th className="px-4 py-3 font-medium">Video</th>
-            <th className="px-4 py-3 font-medium">Status</th>
-            <th className="px-4 py-3 font-medium">Views</th>
-            <th className="px-4 py-3 font-medium">Completion</th>
+            <th className="px-4 py-3 font-medium">{labels.colVideo}</th>
+            <th className="px-4 py-3 font-medium">{labels.colStatus}</th>
+            <th className="px-4 py-3 font-medium">{labels.colViews}</th>
+            <th className="px-4 py-3 font-medium">{labels.colCompletion}</th>
             <th className="px-4 py-3 font-medium" />
           </tr>
         </thead>
         <tbody>
           {videos.map((v) => (
-            <tr key={v.orderId} className="border-b border-white/5 last:border-0">
+            <tr
+              key={v.orderId}
+              className="border-b border-white/5 last:border-0"
+            >
               <td className="max-w-xs truncate px-4 py-3 font-medium">
                 {v.title}
               </td>
@@ -64,7 +82,7 @@ export function VideoPerformanceTable({
                   href={`/business/products/${v.orderId}`}
                   className="text-primary hover:underline"
                 >
-                  Open
+                  {labels.open}
                 </Link>
               </td>
             </tr>

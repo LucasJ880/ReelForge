@@ -1,4 +1,8 @@
 import type { VideoJobStatus } from "@prisma/client";
+import type { Locale } from "@/i18n/config";
+import { DEFAULT_LOCALE } from "@/i18n/config";
+import { getDictionary } from "@/i18n/dictionaries";
+import { translate } from "@/i18n/translate";
 import { db } from "@/lib/db";
 import {
   deriveBusinessStatus,
@@ -48,8 +52,17 @@ function parseMetrics(raw: unknown): ContentMetricsInput | null {
   return raw as ContentMetricsInput;
 }
 
+function shellT(
+  locale: Locale,
+  key: string,
+  params?: Record<string, string | number>,
+): string {
+  return translate(getDictionary(locale), key, params);
+}
+
 export async function loadBusinessInsights(
   userId: string,
+  locale: Locale = DEFAULT_LOCALE,
 ): Promise<BusinessInsightsBundle> {
   const orders = await db.deliveryOrder.findMany({
     where: { createdById: userId },
@@ -141,7 +154,7 @@ export async function loadBusinessInsights(
       title: order.title,
       briefId: brief?.id ?? null,
       status: biz.status,
-      statusLabel: biz.shortLabel,
+      statusLabel: shellT(locale, `shell.businessStatus.${biz.status}.short`),
       updatedAt: order.updatedAt,
       views,
       completionRate,
@@ -165,11 +178,12 @@ export async function loadBusinessInsights(
   return {
     summary,
     videos,
-    recommendations: buildRecommendations(summary, videos),
+    recommendations: buildRecommendations(locale, summary, videos),
   };
 }
 
 export function buildRecommendations(
+  locale: Locale,
   summary: BusinessInsightsSummary,
   videos: BusinessVideoInsight[],
 ): BusinessRecommendation[] {
@@ -179,9 +193,9 @@ export function buildRecommendations(
     out.push({
       id: "first-ad",
       priority: "high",
-      title: "Create your first ad video",
-      body: "Start with a 30s vertical ad and an auto end card. Aivora will split it into scenes and stitch the final cut.",
-      actionLabel: "New ad video",
+      title: shellT(locale, "shell.rec.firstAdTitle"),
+      body: shellT(locale, "shell.rec.firstAdBody"),
+      actionLabel: shellT(locale, "shell.rec.actionNewAd"),
       actionHref: "/business/create-ad-video",
     });
     return out;
@@ -193,9 +207,9 @@ export function buildRecommendations(
     out.push({
       id: "retry-failed",
       priority: "high",
-      title: "Retry a failed video",
-      body: `"${target.title}" did not finish. Open the product detail and retry failed segments, or create a fresh variant.`,
-      actionLabel: "View product",
+      title: shellT(locale, "shell.rec.retryTitle"),
+      body: shellT(locale, "shell.rec.retryBody", { title: target.title }),
+      actionLabel: shellT(locale, "shell.rec.actionViewProduct"),
       actionHref: target.briefId
         ? `/business/products/${target.orderId}`
         : "/business/products",
@@ -209,9 +223,11 @@ export function buildRecommendations(
     out.push({
       id: "add-metrics",
       priority: "medium",
-      title: "Connect performance data",
-      body: `${readyNoMetrics.length} ready video(s) have no view metrics yet. Link TikTok or import CSV so Recommendations can learn what works.`,
-      actionLabel: "Integrations",
+      title: shellT(locale, "shell.rec.metricsTitle"),
+      body: shellT(locale, "shell.rec.metricsBody", {
+        count: readyNoMetrics.length,
+      }),
+      actionLabel: shellT(locale, "shell.rec.actionIntegrations"),
       actionHref: "/business/integrations",
     });
   }
@@ -223,11 +239,13 @@ export function buildRecommendations(
     out.push({
       id: "double-down-hook",
       priority: "medium",
-      title: "Double down on a winning hook",
+      title: shellT(locale, "shell.rec.winningTitle"),
       body: top.hook
-        ? `Your best completion rate uses this opening: "${top.hook.slice(0, 120)}". Try a variant in Creative Studio.`
-        : "Your top video has strong completion. Generate a hook variant in Creative Studio.",
-      actionLabel: "Creative Studio",
+        ? shellT(locale, "shell.rec.winningBodyHook", {
+            hook: top.hook.slice(0, 120),
+          })
+        : shellT(locale, "shell.rec.winningBodyGeneric"),
+      actionLabel: shellT(locale, "shell.rec.actionStudio"),
       actionHref: "/business/creative-studio",
     });
   }
@@ -242,9 +260,9 @@ export function buildRecommendations(
     out.push({
       id: "check-progress",
       priority: "low",
-      title: "Videos still rendering",
-      body: `${inProgress.length} video(s) are in progress. Check Products for live segment progress.`,
-      actionLabel: "Your products",
+      title: shellT(locale, "shell.rec.progressTitle"),
+      body: shellT(locale, "shell.rec.progressBody", { count: inProgress.length }),
+      actionLabel: shellT(locale, "shell.rec.actionProducts"),
       actionHref: "/business/products",
     });
   }
@@ -253,9 +271,9 @@ export function buildRecommendations(
     out.push({
       id: "new-variant",
       priority: "low",
-      title: "Test a new creative angle",
-      body: "Ship another 30s ad with a different hook or CTA to compare performance once metrics are in.",
-      actionLabel: "New ad video",
+      title: shellT(locale, "shell.rec.angleTitle"),
+      body: shellT(locale, "shell.rec.angleBody"),
+      actionLabel: shellT(locale, "shell.rec.actionNewAd"),
       actionHref: "/business/create-ad-video",
     });
   }

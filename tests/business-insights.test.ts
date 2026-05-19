@@ -17,7 +17,7 @@ const emptySummary: BusinessInsightsSummary = {
 };
 
 test("buildRecommendations: 无视频时建议创建首支广告", () => {
-  const recs = buildRecommendations(emptySummary, []);
+  const recs = buildRecommendations("zh-CN", emptySummary, []);
   assert.equal(recs[0]?.id, "first-ad");
 });
 
@@ -36,6 +36,6 @@ test("buildRecommendations: 失败视频优先提示重试", () => {
     },
   ];
   const summary = { ...emptySummary, totalVideos: 1, failedCount: 1 };
-  const recs = buildRecommendations(summary, videos);
+  const recs = buildRecommendations("zh-CN", summary, videos);
   assert.ok(recs.some((r) => r.id === "retry-failed"));
 });

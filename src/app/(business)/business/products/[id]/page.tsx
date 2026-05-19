@@ -12,6 +12,8 @@ import type {
   VideoBriefStatus,
   VideoJobStatus,
 } from "@prisma/client";
+import { getServerTranslator } from "@/i18n/server";
+import type { TranslationKey } from "@/i18n/types";
 import { VideoActions } from "./video-actions";
 
 export const dynamic = "force-dynamic";
@@ -59,6 +61,8 @@ export default async function BusinessProductDetailPage({
   const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session) redirect(`/login?from=/business/products/${id}`);
+
+  const { t } = await getServerTranslator();
 
   const order = await db.deliveryOrder
     .findUnique({
@@ -157,27 +161,29 @@ export default async function BusinessProductDetailPage({
   const finalThumb =
     finalVideo?.thumbnailUrl ?? brief.finalThumbnailUrl ?? null;
 
+  const sceneLabel = (key: TranslationKey) => t(key);
+
   const scenes: SceneRow[] = brief.videoJobs.map((j, idx) => {
     let state: SceneRow["state"];
     let stateLabel: string;
     switch (j.status) {
       case "SUCCEEDED":
         state = "ready";
-        stateLabel = "已完成";
+        stateLabel = sceneLabel("shell.productDetail.sceneReady");
         break;
       case "RUNNING":
       case "QUEUED":
         state = "generating";
-        stateLabel = "生成中";
+        stateLabel = sceneLabel("shell.productDetail.sceneGenerating");
         break;
       case "FAILED":
       case "CANCELLED":
         state = "failed";
-        stateLabel = "未通过";
+        stateLabel = sceneLabel("shell.productDetail.sceneFailed");
         break;
       default:
         state = "pending";
-        stateLabel = "等待开始";
+        stateLabel = sceneLabel("shell.productDetail.scenePending");
     }
     return {
       id: j.id,
@@ -204,7 +210,7 @@ export default async function BusinessProductDetailPage({
             href="/business/products"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           >
-            ← Back to products
+            {t("shell.productDetail.backToProducts")}
           </Link>
           <h1 className="mt-2 text-2xl font-semibold tracking-tight truncate">
             {order.title}
@@ -216,9 +222,9 @@ export default async function BusinessProductDetailPage({
                 STATUS_CHIP_CLASS[status.status]
               }
             >
-              {status.shortLabel}
+              {t(`shell.businessStatus.${status.status}.short`)}
             </span>
-            <span>{status.label}</span>
+            <span>{t(`shell.businessStatus.${status.status}.label`)}</span>
             {brief.aspectRatio && brief.durationSec ? (
               <span className="opacity-70">
                 · {brief.aspectRatio} · {brief.durationSec}s
@@ -231,7 +237,7 @@ export default async function BusinessProductDetailPage({
         </div>
         <div className="text-right shrink-0">
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
-            最近更新
+            {t("shell.productDetail.lastUpdated")}
           </span>
           <p className="mt-1 text-xs text-muted-foreground">
             {new Date(order.updatedAt).toLocaleString()}
@@ -242,7 +248,7 @@ export default async function BusinessProductDetailPage({
       {showProgress ? (
         <div className="rounded-xl border border-white/10 bg-card/50 p-5">
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-            <span>{status.label}</span>
+            <span>{t(`shell.businessStatus.${status.status}.label`)}</span>
             <span className="opacity-70">
               {Math.round(status.progressHint * 100)}%
             </span>
@@ -254,7 +260,7 @@ export default async function BusinessProductDetailPage({
             />
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            视频生成大约需要几分钟。点下方按钮可手动刷新进度。
+            {t("shell.productDetail.progressRefreshHint")}
           </p>
         </div>
       ) : null}
@@ -262,7 +268,7 @@ export default async function BusinessProductDetailPage({
       {isReady && finalUrl ? (
         <section className="rounded-xl border border-white/10 bg-card/40 p-6">
           <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            最终视频
+            {t("shell.productDetail.finalVideo")}
           </h2>
           <div className="mt-4 grid gap-5 md:grid-cols-[1fr_auto] items-start">
             <div className="aspect-9/16 max-h-[420px] overflow-hidden rounded-lg border border-white/10 bg-black">
@@ -281,20 +287,20 @@ export default async function BusinessProductDetailPage({
                 rel="noopener noreferrer"
                 className="inline-flex items-center justify-center rounded-md bg-foreground text-background px-3 py-2 text-xs font-medium hover:bg-foreground/90 transition-colors"
               >
-                查看最终视频
+                {t("shell.productDetail.viewFinal")}
               </a>
               <a
                 href={finalUrl}
                 download
                 className="inline-flex items-center justify-center rounded-md border border-white/15 bg-card/60 px-3 py-2 text-xs hover:bg-card/90 transition-colors"
               >
-                下载视频
+                {t("shell.productDetail.download")}
               </a>
               <Link
                 href="/business/create-ad-video"
                 className="inline-flex items-center justify-center rounded-md border border-white/10 bg-card/40 px-3 py-2 text-xs text-muted-foreground hover:bg-card/70 hover:text-foreground transition-colors"
               >
-                再生成一版
+                {t("shell.productDetail.regenerate")}
               </Link>
             </div>
           </div>
@@ -303,14 +309,17 @@ export default async function BusinessProductDetailPage({
 
       {isReady && !finalUrl ? (
         <div className="rounded-xl border border-white/10 bg-card/40 p-5 text-sm text-muted-foreground">
-          视频已就绪，正在准备播放链接。请点击下方「刷新进度」。
+          {t("shell.productDetail.linkPending")}
         </div>
       ) : null}
 
       <section className="space-y-3">
         <div className="flex items-end justify-between">
           <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            分镜进度（{segmentsSucceeded}/{segmentCount}）
+            {t("shell.productDetail.scenesTitle", {
+              done: segmentsSucceeded,
+              total: segmentCount,
+            })}
           </h2>
           <VideoActions
             briefId={brief.id}
@@ -321,7 +330,7 @@ export default async function BusinessProductDetailPage({
 
         {scenes.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            还没有分镜数据。视频开始生成后这里会更新。
+            {t("shell.productDetail.scenesEmpty")}
           </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -340,13 +349,13 @@ export default async function BusinessProductDetailPage({
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-[11px] text-muted-foreground/60">
-                      暂无预览图
+                      {t("shell.productDetail.sceneNoThumb")}
                     </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-xs font-medium">
-                    分镜 {s.index + 1}
+                    {t("shell.productDetail.sceneIndex", { index: s.index + 1 })}
                     {s.durationSec ? (
                       <span className="ml-1.5 text-muted-foreground">
                         · {s.durationSec}s
@@ -370,15 +379,15 @@ export default async function BusinessProductDetailPage({
 
       {isFailed ? (
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-5 text-sm">
-          <p className="font-medium">这次没生成出来。</p>
+          <p className="font-medium">{t("shell.productDetail.failedTitle")}</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            点上面的「重试失败片段」会只重新跑失败的部分，不会重复扣已生成的分镜额度。仍然遇到问题请联系客服。
+            {t("shell.productDetail.failedBody")}
           </p>
           <Link
             href="/business/create-ad-video"
             className="mt-3 inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
           >
-            重新生成
+            {t("shell.productDetail.failedRegenerate")}
           </Link>
         </div>
       ) : null}

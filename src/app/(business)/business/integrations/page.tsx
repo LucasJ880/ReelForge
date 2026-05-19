@@ -23,20 +23,19 @@ export default async function IntegrationsPage() {
       id: "tiktok",
       name: "TikTok",
       status: "manual" as const,
-      description:
-        "Publish on TikTok, then enter views and completion below — no internal console required.",
+      description: t("shell.integrations.tiktokDesc"),
     },
     {
       id: "shopify",
       name: "Shopify",
       status: "planned" as const,
-      description: "Pull product catalog and UTM-tagged landing pages.",
+      description: t("shell.integrations.shopifyDesc"),
     },
     {
       id: "meta",
       name: "Meta Ads",
       status: "planned" as const,
-      description: "Reels and Ads performance for cross-channel creative.",
+      description: t("shell.integrations.metaDesc"),
     },
   ];
 
@@ -86,7 +85,9 @@ export default async function IntegrationsPage() {
                     : "bg-slate-500/15 text-slate-400"
                 }`}
               >
-                {p.status === "manual" ? "Self-serve" : t("shell.badgeSoon")}
+                {p.status === "manual"
+                  ? t("shell.integrations.statusSelfServe")
+                  : t("shell.badgeSoon")}
               </span>
             </div>
           </li>

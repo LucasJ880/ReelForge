@@ -7,6 +7,7 @@
     "dev": "next dev",
     "dev:mock": "LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true VIDEO_ENGINE_MOCK_LATENCY_MS=0 npm run dev",
     "walkthrough:mock": "tsx --env-file=.env.local scripts/mock-walkthrough-harness.ts",
+    "sunny:merchant-journey": "tsx --env-file=.env.local scripts/sunny-shutter-merchant-journey.ts",
     "acceptance:mock": "npm run typecheck && npm run e2e:phase4:mock && node --import tsx --test tests/i18n-coverage.test.ts tests/shell-i18n-wiring.test.ts && npm run walkthrough:mock",
     "build": "prisma generate && next build",
     "start": "next start",

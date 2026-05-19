@@ -133,6 +133,7 @@ npm run dev:mock
 ```bash
 # 无浏览器：C 15s + B 30s 服务层全链路（推荐每次改 video/stitch 后跑）
 npm run walkthrough:mock
+npm run sunny:merchant-journey   # Sunny Shutter 商家：2 条窗帘广告 + TikTok 流量 + 智能建议种子
 npm run acceptance:mock   # typecheck + 客户文案审计 + i18n + C/B mock 管线
 
 # 这些每次大改后都该跑

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useTranslation } from "@/i18n/useTranslation";
 
 export type BusinessVideoMetricOption = {
   orderId: string;
@@ -15,6 +16,7 @@ export function BusinessMetricsForm({
   videos: BusinessVideoMetricOption[];
 }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [briefId, setBriefId] = useState(videos[0]?.briefId ?? "");
   const [windowHours, setWindowHours] = useState<12 | 24 | 48>(24);
   const [publishUrl, setPublishUrl] = useState("");
@@ -30,7 +32,7 @@ export function BusinessMetricsForm({
   if (videos.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        还没有可录入数据的已出片视频。先在 Create Ad Video 完成一条视频。
+        {t("shell.metricsForm.empty")}
       </p>
     );
   }
@@ -60,8 +62,8 @@ export function BusinessMetricsForm({
         }),
       });
       const j = (await res.json()) as { error?: string; ok?: boolean };
-      if (!res.ok) throw new Error(j.error ?? "保存失败");
-      setMessage("数据已保存，Performance 与 Recommendations 将自动更新。");
+      if (!res.ok) throw new Error(j.error ?? t("shell.metricsForm.saveError"));
+      setMessage(t("shell.metricsForm.saveSuccess"));
       router.refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -73,7 +75,9 @@ export function BusinessMetricsForm({
   return (
     <form onSubmit={(e) => void onSubmit(e)} className="space-y-4">
       <div>
-        <label className="text-xs text-muted-foreground">视频</label>
+        <label className="text-xs text-muted-foreground">
+          {t("shell.metricsForm.video")}
+        </label>
         <select
           value={briefId}
           onChange={(e) => setBriefId(e.target.value)}
@@ -89,7 +93,9 @@ export function BusinessMetricsForm({
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="text-xs text-muted-foreground">统计窗口</label>
+          <label className="text-xs text-muted-foreground">
+            {t("shell.metricsForm.window")}
+          </label>
           <select
             value={windowHours}
             onChange={(e) =>
@@ -97,20 +103,20 @@ export function BusinessMetricsForm({
             }
             className="mt-1 w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm"
           >
-            <option value={12}>发布后 12 小时</option>
-            <option value={24}>发布后 24 小时</option>
-            <option value={48}>发布后 48 小时</option>
+            <option value={12}>{t("shell.metricsForm.window12")}</option>
+            <option value={24}>{t("shell.metricsForm.window24")}</option>
+            <option value={48}>{t("shell.metricsForm.window48")}</option>
           </select>
         </div>
         <div>
           <label className="text-xs text-muted-foreground">
-            TikTok 链接（可选）
+            {t("shell.metricsForm.tiktokUrl")}
           </label>
           <input
             type="url"
             value={publishUrl}
             onChange={(e) => setPublishUrl(e.target.value)}
-            placeholder="https://www.tiktok.com/@…/video/…"
+            placeholder={t("shell.metricsForm.tiktokPlaceholder")}
             className="mt-1 w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm"
           />
         </div>
@@ -118,7 +124,9 @@ export function BusinessMetricsForm({
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div>
-          <label className="text-xs text-muted-foreground">播放量</label>
+          <label className="text-xs text-muted-foreground">
+            {t("shell.metricsForm.views")}
+          </label>
           <input
             type="number"
             min={0}
@@ -129,7 +137,7 @@ export function BusinessMetricsForm({
         </div>
         <div>
           <label className="text-xs text-muted-foreground">
-            完播率 (0–1)
+            {t("shell.metricsForm.completion")}
           </label>
           <input
             type="number"
@@ -143,7 +151,7 @@ export function BusinessMetricsForm({
         </div>
         <div>
           <label className="text-xs text-muted-foreground">
-            3 秒留存 (0–1)
+            {t("shell.metricsForm.retention3s")}
           </label>
           <input
             type="number"
@@ -156,7 +164,9 @@ export function BusinessMetricsForm({
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">点赞</label>
+          <label className="text-xs text-muted-foreground">
+            {t("shell.metricsForm.likes")}
+          </label>
           <input
             type="number"
             min={0}
@@ -166,7 +176,9 @@ export function BusinessMetricsForm({
           />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground">评论</label>
+          <label className="text-xs text-muted-foreground">
+            {t("shell.metricsForm.comments")}
+          </label>
           <input
             type="number"
             min={0}
@@ -185,7 +197,7 @@ export function BusinessMetricsForm({
         disabled={saving}
         className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
-        {saving ? "保存中…" : "保存指标"}
+        {saving ? t("shell.metricsForm.saving") : t("shell.metricsForm.save")}
       </button>
     </form>
   );

@@ -1,21 +1,32 @@
 import type { BusinessInsightsSummary } from "@/lib/services/business-insights-service";
 
+export type StatsCardLabels = {
+  totalVideos: string;
+  ready: string;
+  inProgress: string;
+  withMetrics: string;
+  totalViews: string;
+  avgCompletion: string;
+};
+
 export function BusinessStatsCards({
   summary,
+  labels,
 }: {
   summary: BusinessInsightsSummary;
+  labels: StatsCardLabels;
 }) {
   const cards = [
-    { label: "Total videos", value: summary.totalVideos },
-    { label: "Ready", value: summary.readyCount },
-    { label: "In progress", value: summary.inProgressCount },
-    { label: "With metrics", value: summary.withMetricsCount },
+    { label: labels.totalVideos, value: summary.totalVideos },
+    { label: labels.ready, value: summary.readyCount },
+    { label: labels.inProgress, value: summary.inProgressCount },
+    { label: labels.withMetrics, value: summary.withMetricsCount },
     {
-      label: "Total views",
+      label: labels.totalViews,
       value: summary.totalViews > 0 ? summary.totalViews.toLocaleString() : "—",
     },
     {
-      label: "Avg completion",
+      label: labels.avgCompletion,
       value:
         summary.avgCompletionRate != null
           ? `${Math.round(summary.avgCompletionRate * 100)}%`

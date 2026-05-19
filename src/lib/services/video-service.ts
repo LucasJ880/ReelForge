@@ -8,7 +8,7 @@ import {
 import { db } from "@/lib/db";
 import {
   getSeedanceStatus,
-  submitSeedanceJob,
+  submitSeedanceJobResilient,
   type SeedanceJobResult,
 } from "@/lib/providers/seedance";
 import { processReferenceImages } from "@/lib/providers/remove-bg";
@@ -190,7 +190,7 @@ async function submitSegmentJob(params: {
 
   try {
     const submittedAt = new Date();
-    const { jobId } = await submitSeedanceJob({
+    const { jobId } = await submitSeedanceJobResilient({
       prompt: segment.seedancePrompt,
       duration: segment.durationSec,
       ratio: aspectRatio,
@@ -303,7 +303,7 @@ export async function dispatchVideoGeneration(briefId: string) {
         const submittedAt = new Date();
         const ratio =
           (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio;
-        const { jobId } = await submitSeedanceJob({
+        const { jobId } = await submitSeedanceJobResilient({
           prompt: prompt.promptText,
           referenceImageUrls:
             prompt.provider === VideoProvider.SEEDANCE_I2V
@@ -543,7 +543,7 @@ export async function retryFailedVideoJob(jobId: string) {
 
     const submittedAt = new Date();
     try {
-      const { jobId: newExternalId } = await submitSeedanceJob({
+      const { jobId: newExternalId } = await submitSeedanceJobResilient({
         prompt: segment.seedancePrompt,
         duration: segment.durationSec,
         ratio: briefForRetry.aspectRatio,
@@ -608,10 +608,29 @@ export async function retryFailedVideoJob(jobId: string) {
   const submittedAt = new Date();
   try {
     const ratio = (prompt.params as { ratio?: string } | null)?.ratio;
-    const { jobId: newExternalId } = await submitSeedanceJob({
+    const briefForRefs = await db.videoBrief.findUnique({
+      where: { id: job.videoBriefId },
+      select: { referenceImageUrls: true },
+    });
+    const processed = briefForRefs?.referenceImageUrls?.length
+      ? (await processReferenceImages(briefForRefs.referenceImageUrls)).map(
+          (p) => p.url,
+        )
+      : [];
+    const { jobId: newExternalId } = await submitSeedanceJobResilient({
       prompt: prompt.promptText,
+      referenceImageUrls:
+        prompt.provider === VideoProvider.SEEDANCE_I2V
+          ? prompt.referenceImageUrl
+            ? [prompt.referenceImageUrl, ...processed.slice(1)]
+            : processed
+          : undefined,
       duration: scene.durationSec,
       ratio,
+      model:
+        prompt.provider === VideoProvider.SEEDANCE_I2V
+          ? I2V_MODEL_OVERRIDE
+          : undefined,
       mockHints: {
         briefId: job.videoBriefId,
         segmentIndex: scene.sceneIndex,

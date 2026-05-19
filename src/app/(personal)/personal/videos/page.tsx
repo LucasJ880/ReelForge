@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { PersonalVideosAutoRefresh } from "@/components/personal/personal-videos-auto-refresh";
 import {
   customerSafeFinalVideoUrl,
   derivePersonalStatus,
@@ -18,6 +19,7 @@ export const dynamic = "force-dynamic";
 
 interface PersonalVideoRow {
   id: string;
+  briefId: string | null;
   title: string;
   updatedAt: Date;
   briefStatus: VideoBriefStatus | null;
@@ -77,6 +79,7 @@ async function loadPersonalVideoRows(
               select: {
                 videoBrief: {
                   select: {
+                    id: true,
                     persona: true,
                     status: true,
                     aspectRatio: true,
@@ -126,6 +129,7 @@ async function loadPersonalVideoRows(
         finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null;
       return {
         id: o.id,
+        briefId: brief?.id ?? null,
         title: o.title,
         updatedAt: o.updatedAt,
         briefStatus: brief?.status ?? null,
@@ -155,8 +159,19 @@ export default async function PersonalVideosPage() {
     () => [] as PersonalVideoRow[],
   );
 
+  const pollTargets = rows
+    .filter((r) => r.briefId)
+    .map((r) => ({
+      briefId: r.briefId!,
+      active:
+        r.status === "planning" ||
+        r.status === "generating" ||
+        r.status === "assembling",
+    }));
+
   return (
     <div className="space-y-8">
+      <PersonalVideosAutoRefresh targets={pollTargets} />
       <header className="flex items-end justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">My videos</h1>

@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 6.5 完成 — **双端 user flow 已对齐**（C 端公开注册、B 端商家邀请、两端详情页 + 重试 + 跨 persona 防护、5min 自检 runbook）。
+**正在做：** Phase 4c（真实 Provider E2E）+ C 端 P0/P1 — **个人用户一键生成 + 列表自动轮询 + Seedance 隐私 I2V 回退**。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -22,9 +22,9 @@ Phase 2   ✅ B2B demo flow infrastructure（mock-clip / brand-end-card / assemb
 Phase 2.5 ✅ B2B demo flow hardening（status mapping / dead-link guard / failed CTA）
 Phase 3   ✅ C-side personal MVP hardening（personal-status / dead-link guard / friendly copy）
 Phase 4   🟡 Real provider readiness + first real C-side E2E
-   4a     ✅ Mock E2E 已被 325 项单测覆盖；本 phase 增加 dev-mode safety + real-test runbook
+   4a     ✅ Mock E2E 已被 325+ 项单测覆盖；`npm run e2e:phase4:mock` 守门 personal 文案/策略
    4b     ✅ Dev `VIDEO_ENGINE_MOCK` 显式安全检查 + predev 警告
-   4c     ⏳ 由用户在本机/staging 手动执行真实场景 A/B/C（见 PHASE_4_REAL_TEST_RUNBOOK.md）
+   4c     🟡 本地 dev 已加 `/personal/videos` 自动 reconcile 轮询（不依赖 cron）；真实场景 A 待本机 REAL 跑通
 Phase 5   🟡 Persona-aware auth + 公开个人注册（PERSONAL only） + B-side full E2E
    5a     ✅ requirePersonalUser / requireBusinessUser / requireOperator 接 userType
           + 新增 requireUserOfPersona / requirePersonaPage / requireUserOfTypeForGeneration
@@ -70,9 +70,10 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 - `docs/PHASE_4_REAL_TEST_RUNBOOK.md` 三档场景（A=15s personal / B=30s personal / C=30s business with end card），每档明确成本 + 风险 + 验证点
 
 **退出条件（4c 由用户执行）**
-- [ ] 场景 A 跑通（15s personal，~$0.6），UI 拿到可播放 finalVideoUrl
+- [ ] 场景 A 跑通（15s personal，~$0.6），UI 拿到可播放 finalVideoUrl（**国内：Seedance 关 VPN；OpenAI 开 VPN**）
 - [ ] 场景 B 跑通（30s personal，~$1.2），GH Action stitch + Blob 上传链路验证
 - [ ] 场景 C 跑通（30s business with auto end card，~$1.3）
+- [x] 本地 dev 无需手动 `curl cron`：列表/详情页自动 POST `render-status` 调和 Provider
 - [ ] 任何一档失败时 `/personal/videos` 或 `/business/products` 看到友好的「重新生成」CTA
 
 ---
@@ -163,8 +164,11 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 
 **当前推荐的下一动作**：
 
-1. （**强烈建议先做**）跑 `npm run mode:check`。期望 4/5 MOCK；如果 5/5 REAL，按
-   `.env.example` 的 DEV WARNING 加 mock 三件套。
+1. `npm run e2e:phase4:mock` — 确认 C 端守门测试全绿。
+2. Mock 全链路：`docs/MANUAL_WALKTHROUGH.md` §1（注册 → create-video 一键生成 → videos 列表）。
+3. Real 场景 A：`docs/PHASE_4_REAL_TEST_RUNBOOK.md` §2.3（`mode:check` 全 REAL 后跑一遍）。
+4. （**强烈建议**）日常开发跑 `npm run mode:check`。期望 4/5 MOCK；如果 5/5 REAL，按
+   `.env.example` 加 mock 三件套，避免静默扣费。
 2. **直接打开 `docs/MANUAL_WALKTHROUGH.md` 跑 5 分钟双端自检**。这份文档把以前散落
    在脑子里的所有 user-flow 检查一次性钉死，包括：
    - C 端公开注册 → 详情页（90s）

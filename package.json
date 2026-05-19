@@ -33,6 +33,7 @@
     "demo:sunny-investor:v21:publish": "tsx scripts/sunny-shutter-investor-demo-v21.ts --phase=publish",
     "demo:sunny-investor:v21:add-bgm": "tsx scripts/sunny-shutter-investor-demo-v21.ts --phase=add-bgm",
     "demo:sunny-investor:v21:resume": "bash scripts/sunny-shutter-investor-demo-v21-resume.sh",
+    "e2e:phase4:mock": "node --import tsx --test tests/personal-status-customer-safe.test.ts tests/personal-customer-strings.test.ts tests/unified-creative-strategist.test.ts tests/seedance-privacy-fallback.test.ts",
     "mode:check": "tsx scripts/check-real-mode.ts",
     "mode:check:strict": "tsx scripts/check-real-mode.ts -- --strict",
     "roadmap": "tsx scripts/roadmap.ts",

@@ -121,7 +121,7 @@ export function RenderProgress({
           if (data) setSummary(data);
         })
         .catch(() => {});
-    }, 60_000);
+    }, 15_000);
     return () => clearInterval(t);
   }, [briefId, summary.running, summary.queued]);
 

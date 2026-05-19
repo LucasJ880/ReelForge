@@ -111,6 +111,32 @@ export async function submitSeedanceJob(
   return submitReal(options);
 }
 
+/** Seedance I2V first_frame blocked for photorealistic persons / privacy. */
+export function isSeedancePrivacyBlockError(message: string): boolean {
+  return /SensitiveContent|real person|PrivacyInformation/i.test(message);
+}
+
+/**
+ * Submit to Seedance; on I2V privacy rejection, retry once as T2V (no reference images).
+ */
+export async function submitSeedanceJobResilient(
+  options: SeedanceSubmitOptions,
+): Promise<{ jobId: string }> {
+  const hadRef = (options.referenceImageUrls?.filter(Boolean).length ?? 0) > 0;
+  try {
+    return await submitSeedanceJob(options);
+  } catch (err) {
+    const msg = (err as Error).message;
+    if (hadRef && isSeedancePrivacyBlockError(msg)) {
+      return submitSeedanceJob({
+        ...options,
+        referenceImageUrls: undefined,
+      });
+    }
+    throw err;
+  }
+}
+
 export async function getSeedanceStatus(
   jobId: string,
 ): Promise<SeedanceJobResult> {

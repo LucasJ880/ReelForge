@@ -103,12 +103,14 @@ npm run dev
 - 第 5 步 Preview plan 现在会真烧 LLM（~$0.10）
 - 第 6 步 Generate 真提交 Seedance（~$0.50）
 - 等 30-90s（不是几秒），列表状态会停在「生成中」一段时间
-- **本地 dev 不会自动 poll Seedance**（Vercel cron 才会），需要手动触发：
+- **本地 dev（2026-05 起）**：`/personal/videos` 会对进行中的任务每 15s 自动 POST
+  `/api/briefs/:id/render-status` 并刷新页面，一般**不必**再手动 curl cron。
+- 若列表长时间卡在「生成中」，可手动触发 cron 双保险：
   ```bash
   curl -X POST http://localhost:3000/api/cron/poll-videos \
        -H "Authorization: Bearer $CRON_SECRET"
   ```
-  或者直接在浏览器开发者控制台等几次手动刷新页面，看 `await reconcileBriefRenderStatus(briefId)` 是否被前端调用（视当前 UI 而定）。
+- **回国开发网络**：火山方舟（Seedance）建议**关 VPN 直连**；OpenAI 生图/LLM 建议**开 VPN**。
 
 **验收**：列表显示「视频已完成」+ 真实 Seedance 视频可下载。
 

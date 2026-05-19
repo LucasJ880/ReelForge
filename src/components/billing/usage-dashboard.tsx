@@ -3,7 +3,6 @@
 import { useCallback, useState } from "react";
 import type { UsageResource } from "@prisma/client";
 import { USAGE_RESOURCE_LABELS } from "@/lib/config/quota-tiers";
-import { UpgradeProButton } from "@/components/billing/upgrade-pro-button";
 import type { UsagePayload } from "@/lib/services/usage-payload";
 
 function formatAmount(resource: UsageResource, value: number): string {
@@ -49,10 +48,13 @@ export function UsageDashboard({
   persona,
   initial,
   upgraded,
+  stripeEnabled = false,
 }: {
   persona: "personal" | "business";
   initial: UsagePayload;
   upgraded?: boolean;
+  /** 投资人前暂不启用 Stripe 时传 false */
+  stripeEnabled?: boolean;
 }) {
   const [data, setData] = useState<UsagePayload>(initial);
   const [error, setError] = useState<string | null>(null);
@@ -144,20 +146,23 @@ export function UsageDashboard({
         </p>
       )}
 
-      {data.plan !== "pro" && persona === "business" && (
+      {stripeEnabled && data.plan !== "pro" && persona === "business" && (
         <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
           <h2 className="font-semibold">Aivora Pro</h2>
           <p className="mt-1 text-sm text-muted-foreground">
             更高月度额度：200 次视频生成、600 次方案预览、10GB 上传、400 段 AI 画面。
           </p>
-          <div className="mt-4">
-            <UpgradeProButton />
-          </div>
         </div>
       )}
 
-      {data.plan === "pro" && (
+      {stripeEnabled && data.plan === "pro" && (
         <p className="text-sm text-muted-foreground">您当前为 Pro 套餐。</p>
+      )}
+
+      {!stripeEnabled && (
+        <p className="max-w-xl text-xs text-muted-foreground">
+          Pro 付费套餐将在正式上线时开放；当前为免费档月度额度。
+        </p>
       )}
     </div>
   );

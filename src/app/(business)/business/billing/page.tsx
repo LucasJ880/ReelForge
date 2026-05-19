@@ -6,6 +6,7 @@ import {
   buildDefaultUsagePayload,
   loadUsagePayloadForSession,
 } from "@/lib/services/usage-payload";
+import { isStripeConfigured } from "@/lib/services/stripe-billing-service";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,7 @@ export default async function BusinessBillingPage({ searchParams }: PageProps) {
       persona="business"
       initial={initial}
       upgraded={sp.upgraded === "1"}
+      stripeEnabled={isStripeConfigured()}
     />
   );
 }

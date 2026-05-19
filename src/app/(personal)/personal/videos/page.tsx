@@ -179,12 +179,22 @@ export default async function PersonalVideosPage() {
             Everything you&apos;ve made on Aivora.
           </p>
         </div>
-        <Link
-          href="/personal/create-video"
-          className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
-        >
-          New video
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/personal/create-video"
+            className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
+          >
+            New video
+          </Link>
+          {rows.length > 0 && (
+            <Link
+              href="/personal/create-video?from=last"
+              className="inline-flex items-center rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
+            >
+              沿用上次描述
+            </Link>
+          )}
+        </div>
       </header>
 
       {rows.length === 0 ? (

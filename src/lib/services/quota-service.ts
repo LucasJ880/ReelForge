@@ -2,6 +2,7 @@ import type { Prisma, UsageResource } from "@prisma/client";
 import type { Session } from "next-auth";
 import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
+import { isStripeConfigured } from "@/lib/services/stripe-billing-service";
 
 export class QuotaExceededError extends Error {
   readonly code = "QUOTA_EXCEEDED" as const;
@@ -57,11 +58,16 @@ export function currentUsagePeriodKey(date = new Date()): string {
 }
 
 export async function resolveQuotaPlan(userId: string): Promise<QuotaPlanId> {
-  const user = await db.adminUser.findUnique({
-    where: { id: userId },
-    select: { subscriptionTier: true },
-  });
-  if (user?.subscriptionTier === "pro") return "pro";
+  if (!isStripeConfigured()) return "free";
+  try {
+    const user = await db.adminUser.findUnique({
+      where: { id: userId },
+      select: { subscriptionTier: true },
+    });
+    if (user?.subscriptionTier === "pro") return "pro";
+  } catch (err) {
+    console.warn("[resolveQuotaPlan] using free tier fallback", err);
+  }
   return "free";
 }
 

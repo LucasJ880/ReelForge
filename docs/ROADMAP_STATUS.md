@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 7b Stripe Pro MVP **已完成**（Checkout + webhook + 自助 metrics + Creative Studio 预填）；下一程真钱 4c 或 Phase 8。
+**正在做：** B 端自助 metrics + Creative Studio 预填 + Phase 6e 已完成；Stripe 付费暂缓；下一程 Phase 8 或真钱 4c。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -40,14 +40,14 @@ Phase 6   ✅ Upload assets UI + 双端详情页 + 段感知重试
    6c     ✅ AttachmentUploader 已 inline 显示分类 + 角色下拉 + 警告
    6d     ✅ BUSINESS /business/products/[id] 详情页（与 6a 同构）
           + products list 过滤掉 PERSONAL persona 视频，避免跨 persona 泄漏
-   6e     ⏳ create-video「基于上一次 brief 的快速重试」（可选；当前重试入口已够用）
+   6e     ✅ create-video「沿用上次描述」`?from=last` + 列表快捷入口
 
 Phase 6.5 ✅ 双端 user flow 收敛（onboarding + audit + walkthrough）
    - 持久化 PERSONAL 自助注册的 onboarding 入口（/persona 卡片走 /register；/login 链接 /register；BUSINESS 卡片明示 invite-only）
    - 修了 business/page.tsx 的历史 react/no-unescaped-entities 错误 —— **lint 现在 0 error**
    - docs/MANUAL_WALKTHROUGH.md：5 分钟双端自检清单（含跨 persona 防护、故障路径、ownership）
 Phase 7a  ✅ Quota / rate-limit / 月度用量 + Billing 用量页
-Phase 7b  ✅ Stripe Checkout Pro + webhook + Billing 升级 CTA（需 env：STRIPE_*）
+Phase 7b  🟡 Stripe 代码已就绪，**投资人前不启用**（无 STRIPE_* 时 Billing 仅免费档）
 Phase 8   ⏳ 公开 demo / landing / sales packaging
 Phase 8.5 ⏳ 法律 / 内容安全 / 监控告警 / 域名 + 备案
 Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）

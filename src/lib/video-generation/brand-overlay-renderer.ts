@@ -399,8 +399,14 @@ export async function applyBrandOverlay(
         "yuv420p",
         "-preset",
         "ultrafast",
+        /// Re-encode audio — `-c:a copy` can produce duplicate-channel AAC that
+        /// breaks downstream normalize/concat (seen on silent Seedance segments).
         "-c:a",
-        "copy",
+        "aac",
+        "-ar",
+        "44100",
+        "-ac",
+        "2",
         "-movflags",
         "+faststart",
         outputPath,

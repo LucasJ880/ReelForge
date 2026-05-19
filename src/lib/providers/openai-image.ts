@@ -24,6 +24,7 @@ const DEFAULT_N = 3;
 /// 满足约束的分辨率（详见 OpenAI 文档），所以 size 入参类型放宽为
 /// `ImageSize | string`，调用方可以对新模型直接传 "1080x1920" 之类的 9:16 串。
 export type ImageSize = "1024x1024" | "1024x1536" | "1536x1024";
+export type ImageQuality = "auto" | "low" | "medium" | "high";
 
 export interface GenerateImagesArgs {
   prompt: string;
@@ -31,6 +32,8 @@ export interface GenerateImagesArgs {
   n?: number;
   /// 旧严格联合类型 + 任意自定义字符串（仅 gpt-image-2 等新模型支持任意分辨率）
   size?: ImageSize | string;
+  /// gpt-image-2 支持 low / medium / high / auto；旧调用方不传则保持 SDK 默认。
+  quality?: ImageQuality;
   /// 用于在 Vercel Blob 上落盘的前缀（如 logos/{orderId}/）
   blobPrefix?: string;
   /// 强制 mock，便于测试调用
@@ -80,6 +83,7 @@ export async function generateImages(
     prompt: args.prompt,
     n,
     size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
+    quality: args.quality,
   });
 
   /// gpt-image-1 默认返回 b64_json（不返回 url），需要我们把 base64 持久化成 Blob 拿到稳定 URL

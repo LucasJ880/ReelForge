@@ -84,7 +84,13 @@
  *     --phase=storyboard|submit|wait|assemble|publish|all
  */
 
-import { execFile } from "node:child_process";
+import { loadEnvConfig } from "@next/env";
+loadEnvConfig(process.cwd());
+/// brand-end-card-renderer chooses local vs deferred-external by NODE_ENV; for
+/// this script we always want LOCAL ffmpeg so the end card actually renders.
+process.env.STITCH_RUNTIME = process.env.STITCH_RUNTIME || "local";
+
+import { execFile, execFileSync } from "node:child_process";
 import {
   copyFileSync,
   existsSync,
@@ -144,11 +150,12 @@ const TARGET_WIDTH = 720;
 const TARGET_HEIGHT = 1280;
 const FPS = 30;
 
-/// Storyboard image dimensions: true 9:16 at full HD vertical. gpt-image-2
-/// accepts arbitrary sizes; this is well above the 720x1280 video target so
-/// downscaling at I2V time stays sharp.
-const STORYBOARD_WIDTH = 1080;
-const STORYBOARD_HEIGHT = 1920;
+/// Storyboard image dimensions: true 9:16, high-resolution vertical.
+/// gpt-image-2 requires width and height to both be divisible by 16; 1080x1920
+/// is visually nice but invalid because 1080 is not divisible by 16.
+/// 1152x2048 is exact 9:16, higher than 1080p vertical, and valid for gpt-image-2.
+const STORYBOARD_WIDTH = 1152;
+const STORYBOARD_HEIGHT = 2048;
 const STORYBOARD_SIZE = `${STORYBOARD_WIDTH}x${STORYBOARD_HEIGHT}`;
 const STORYBOARD_MODEL = process.env.OPENAI_STORYBOARD_MODEL || "gpt-image-2";
 
@@ -209,6 +216,10 @@ const SHARED_NEGATIVE_GUIDANCE = [
   "warm, restrained, human-centered",
 ].join(", ");
 
+/// Seedance I2V rejects some photorealistic person first_frames (privacy).
+/// These shots use T2V (prompt-only) while 1 + 4 stay image-anchored.
+const T2V_ONLY_SEGMENT_INDICES = new Set([2, 3, 5]);
+
 // =============================================================
 // V2.1 storyboard + segment plan (verbatim from user spec)
 // =============================================================
@@ -245,9 +256,9 @@ const STORYBOARD_PLAN: StoryboardSegment[] = [
     filename: "02-human-need.png",
     durationSec: BASE_SEGMENT_DURATION_SEC,
     imagePrompt:
-      "An elderly man in his early 70s with silver hair and a kind face sits in the same armchair wearing a soft beige knit cardigan or sweater and dark comfortable pants. He holds an open book. Bright morning light touches his face and the page. He is calm, thoughtful, and dignified, slightly affected by the brightness but not helpless. Premium cinematic realism, warm natural light, realistic skin texture, shallow depth of field.",
+      "Same armchair, three-quarter rear angle. An elderly figure in a soft beige cardigan sits reading — seen from behind and slightly to the side so the face is not visible (back of silver hair and shoulders only). Bright morning light on the book and chair. Calm, dignified mood. Premium cinematic realism, warm natural light, shallow depth of field. No identifiable facial features, no portrait, no eye contact with camera.",
     videoMotionPrompt:
-      "The elderly man gently pauses reading and looks toward the bright window. His expression remains calm and composed, with subtle natural acting. No exaggerated emotion.",
+      "From behind, the figure gently pauses reading and turns slightly toward the bright window. Only subtle shoulder and head movement — face stays off-camera. Calm, composed body language. No exaggerated emotion.",
   },
   {
     index: 3,
@@ -256,7 +267,7 @@ const STORYBOARD_PLAN: StoryboardSegment[] = [
     filename: "03-quiet-act-of-control.png",
     durationSec: BASE_SEGMENT_DURATION_SEC,
     imagePrompt:
-      "Over-the-shoulder cinematic close shot from beside the same armchair. The same elderly man's hand rests near the open book and reaches toward a smartphone on the side table or armrest. The phone screen is softly blurred and unreadable. The gesture feels simple, calm, and confident. Natural realistic hands, realistic fingers, no distortion.",
+      "Extreme close-up macro: only elderly hands and forearms on a side table, an open book edge, and a softly blurred smartphone. No face, no head, no torso, no identifiable portrait — hands and props only. The phone screen is unreadable. Calm, confident gesture. Natural realistic hands, no distortion.",
     videoMotionPrompt:
       "He gently reaches for the smartphone and taps once. Keep the screen blurred and unreadable. The motion should be slow, natural, and confident. Avoid hand artifacts.",
   },
@@ -278,9 +289,9 @@ const STORYBOARD_PLAN: StoryboardSegment[] = [
     filename: "05-independence-noticed.png",
     durationSec: BASE_SEGMENT_DURATION_SEC,
     imagePrompt:
-      "Same living room, same elderly man, same armchair, but the morning light is now softer and more diffused. The elderly man is reading comfortably. In the nearby kitchen area or background, an adult family member notices him and gives a small warm smile. They do not rush to help. Warm human-centered cinematic realism, natural acting, soft light, restrained emotion.",
+      "Same living room with softer diffused morning light. The elderly figure sits in the same armchair seen from behind, reading peacefully — no visible face. In the distant kitchen background, a family member appears only as a soft blurred silhouette with a small warm gesture; no clear faces anywhere in frame. Warm cinematic realism, restrained emotion, privacy-safe composition.",
     videoMotionPrompt:
-      "The elderly man continues reading peacefully. The family member gives a subtle warm smile in the background, then lets the moment be. The emotional meaning is comfort, dignity, and independence.",
+      "The figure continues reading peacefully from behind. The distant silhouette gives a subtle warm gesture, then stillness. Comfort, dignity, independence — no identifiable faces on screen.",
   },
 ];
 
@@ -380,6 +391,7 @@ const PHASE = (flagValue("phase") ?? "all") as
   | "submit"
   | "wait"
   | "assemble"
+  | "add-bgm"
   | "publish";
 
 const DRY_RUN = hasFlag("dry-run");
@@ -389,6 +401,12 @@ const REASSEMBLE = hasFlag("reassemble");
 const REGENERATE_STORYBOARDS = hasFlag("regenerate-storyboards");
 const LOGO_ON_BLINDS = hasFlag("logo-on-blinds");
 const KEEP_AUDIO = hasFlag("keep-audio");
+const SKIP_WARM_BGM = hasFlag("no-bgm");
+/// Kevin MacLeod "Wholesome" (CC BY 4.0) — same warm acoustic bed as pet demo seed.
+const WARM_BGM_SOURCE_URL =
+  process.env.SUNNY_INVESTOR_BGM_URL ||
+  "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/demo-seed/pet_store_chinese_demo_30s_no_text_bgm_v2.mp4";
+const WARM_BGM_SOURCE_OFFSET_SEC = 4;
 
 const STORYBOARD_SOURCE = (flagValue("storyboard-source") ?? "openai") as
   | "openai"
@@ -441,7 +459,7 @@ async function main() {
   );
   console.log(`logoOnBlinds    = ${LOGO_ON_BLINDS}`);
   console.log(
-    `audio           = ${KEEP_AUDIO ? "keep Seedance ambience" : "strip + replace with clean silent track (default V2.1)"}`,
+    `audio           = ${KEEP_AUDIO ? "keep Seedance ambience" : SKIP_WARM_BGM ? "silent (no-bgm)" : "warm acoustic BGM bed (Kevin MacLeod Wholesome, -16 LUFS)"}`,
   );
   console.log(`reassemble      = ${REASSEMBLE}`);
   console.log(`regenSboards    = ${REGENERATE_STORYBOARDS}`);
@@ -493,6 +511,9 @@ async function main() {
   }
   if (PHASE === "all" || PHASE === "assemble") {
     await phaseAssemble();
+  }
+  if (PHASE === "add-bgm") {
+    await phaseAddBgm();
   }
 
   /// Publish gate — same shape as V1 design. PHASE=publish always runs.
@@ -584,7 +605,58 @@ function preflight() {
       `Sunny logo not found at ${LOGO_PATH}. Drop the real logo PNG there and re-run.`,
     );
   }
+  if (
+    !DRY_RUN &&
+    (PHASE === "all" || PHASE === "submit" || PHASE === "wait")
+  ) {
+    assertSeedanceReachable();
+  }
   console.log("preflight = ok");
+}
+
+/** Fail fast when ark.cn-beijing (or custom ARK_BASE_URL) is unreachable from this network. */
+function assertSeedanceReachable() {
+  const base =
+    process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
+  let origin: string;
+  try {
+    origin = new URL(base).origin;
+  } catch {
+    throw new Error(`ARK_BASE_URL is not a valid URL: ${base}`);
+  }
+  let httpCode = "000";
+  try {
+    httpCode = execFileSync(
+      "curl",
+      [
+        "-4",
+        "-sS",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "--connect-timeout",
+        "10",
+        "--max-time",
+        "15",
+        origin,
+      ],
+      { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+    ).trim();
+  } catch {
+    /* curl exit non-zero — treat as unreachable */
+  }
+  if (httpCode === "000") {
+    throw new Error(
+      [
+        `无法连接 Seedance API（${origin}，HTTP ${httpCode}）。`,
+        "当前网络通常需要可访问中国大陆节点的 VPN 才能调用火山方舟北京区。",
+        "连上 VPN 后重试：npm run demo:sunny-investor:v21:resume",
+        "若使用 BytePlus 国际区，请在 .env.local 配置国际区 ARK_API_KEY + ARK_BASE_URL=https://ark.ap-southeast.bytepluses.com/api/v3。",
+      ].join("\n"),
+    );
+  }
+  console.log(`seedanceReachable = ${origin} (HTTP ${httpCode})`);
 }
 
 // =============================================================
@@ -669,7 +741,7 @@ async function phaseStoryboard() {
         continue;
       }
       console.log(
-        `  segment ${seg.index} ${seg.title}: calling ${STORYBOARD_MODEL} @ ${STORYBOARD_SIZE}`,
+        `  segment ${seg.index} ${seg.title}: calling ${STORYBOARD_MODEL} @ ${STORYBOARD_SIZE} quality=${STORYBOARD_QUALITY}`,
       );
       /// generateImages handles the b64_json → Blob upload path internally
       /// when blobPrefix is provided; we pin n=1 since we want a single,
@@ -679,6 +751,7 @@ async function phaseStoryboard() {
         prompt,
         n: 1,
         size: STORYBOARD_SIZE,
+        quality: STORYBOARD_QUALITY,
         model: STORYBOARD_MODEL,
         blobPrefix: `personal-demos/sunny-shutter-storyboards-v21/${seg.index}-`,
       });
@@ -742,9 +815,9 @@ async function phaseSubmit() {
     );
   }
 
-  /// Validate storyboard completeness before any submission.
+  /// I2V segments need Blob URLs; T2V-only segments (2/3/5) can omit them.
   for (const s of storyboard.segments) {
-    if (!s.blobUrl) {
+    if (!s.blobUrl && !T2V_ONLY_SEGMENT_INDICES.has(s.index)) {
       throw new Error(
         `Storyboard segment ${s.index} has no Blob URL. Re-run --phase=storyboard.`,
       );
@@ -789,33 +862,58 @@ async function phaseSubmit() {
     }
 
     const sboard = storyboard.segments.find((s) => s.index === plan.index);
-    if (!sboard?.blobUrl) {
+    const useI2v =
+      !T2V_ONLY_SEGMENT_INDICES.has(plan.index) && !!sboard?.blobUrl;
+    if (!useI2v && !T2V_ONLY_SEGMENT_INDICES.has(plan.index)) {
       throw new Error(
         `Storyboard Blob URL for segment ${plan.index} is missing — re-run --phase=storyboard.`,
       );
     }
 
     const fullPrompt = buildSeedanceVideoPrompt(plan);
-    slot.storyboardBlobUrl = sboard.blobUrl;
+    if (sboard?.blobUrl) slot.storyboardBlobUrl = sboard.blobUrl;
 
     if (DRY_RUN) {
       console.log(
-        `  segment ${plan.index} [DRY RUN]: would submit I2V ${plan.durationSec}s @ 9:16 — promptChars=${fullPrompt.length} firstFrame=${shorten(sboard.blobUrl, 60)} generate_audio=${KEEP_AUDIO}`,
+        `  segment ${plan.index} [DRY RUN]: would submit ${useI2v ? "I2V" : "T2V"} ${plan.durationSec}s @ 9:16 — promptChars=${fullPrompt.length}${useI2v ? ` firstFrame=${shorten(sboard!.blobUrl!, 60)}` : ""} generate_audio=${KEEP_AUDIO}`,
       );
       continue;
     }
-    const submission = await submitSeedanceJob({
+
+    const submitOpts = {
       prompt: fullPrompt,
       duration: plan.durationSec,
       ratio: ASPECT_RATIO,
-      referenceImageUrls: [sboard.blobUrl],
+      referenceImageUrls: useI2v ? [sboard!.blobUrl!] : undefined,
       generateAudio: KEEP_AUDIO ? true : false,
-    });
+    };
+
+    let submission: { jobId: string };
+    try {
+      submission = await submitSeedanceJob(submitOpts);
+    } catch (err) {
+      const msg = (err as Error).message;
+      if (
+        useI2v &&
+        /SensitiveContent|real person|PrivacyInformation/i.test(msg)
+      ) {
+        console.warn(
+          `  segment ${plan.index}: I2V blocked (privacy) — retrying as T2V without first_frame`,
+        );
+        submission = await submitSeedanceJob({
+          ...submitOpts,
+          referenceImageUrls: undefined,
+        });
+      } else {
+        throw err;
+      }
+    }
+
     slot.externalJobId = submission.jobId;
     slot.submittedAt = new Date().toISOString();
     writeSubmission(record);
     console.log(
-      `  segment ${plan.index} submitted: externalJobId=${submission.jobId} firstFrame=${shorten(sboard.blobUrl, 60)}`,
+      `  segment ${plan.index} submitted: externalJobId=${submission.jobId} mode=${useI2v ? "I2V" : "T2V"}${useI2v ? ` firstFrame=${shorten(sboard!.blobUrl!, 60)}` : ""}`,
     );
   }
 }
@@ -1067,6 +1165,16 @@ async function phaseAssemble() {
   state.finalLocal = finalLocal;
   writeState(state);
 
+  /// 4.6b Warm acoustic BGM (default when Seedance audio is stripped).
+  if (!KEEP_AUDIO && !SKIP_WARM_BGM) {
+    console.log(
+      "  muxing warm acoustic BGM (Wholesome / CC BY 4.0, trimmed + faded + loudnorm -16 LUFS)",
+    );
+    await applyWarmInvestorBgm(finalLocal);
+  } else if (!KEEP_AUDIO && SKIP_WARM_BGM) {
+    console.log("  warm BGM: skipped (--no-bgm)");
+  }
+
   /// 4.7 Generate poster (first-frame JPG)
   const posterLocal = path.join(WORK_DIR, "poster.jpg");
   if (!existsSync(posterLocal) || statSync(posterLocal).size === 0) {
@@ -1099,6 +1207,32 @@ async function phaseAssemble() {
   }
   console.log(`  finalBlobUrl  = ${state.finalBlobUrl}`);
   console.log(`  posterBlobUrl = ${state.posterBlobUrl}`);
+}
+
+// =============================================================
+// Phase 4b — Add warm BGM to an existing final.mp4
+// =============================================================
+
+async function phaseAddBgm() {
+  banner("Phase 4b — Warm acoustic BGM");
+  await ensureFfmpeg();
+  const finalLocal = path.join(WORK_DIR, "final.mp4");
+  if (!existsSync(finalLocal) || statSync(finalLocal).size === 0) {
+    throw new Error(`final.mp4 missing at ${finalLocal} — run --phase=assemble first`);
+  }
+  await applyWarmInvestorBgm(finalLocal);
+  const state = readState();
+  state.finalLocal = finalLocal;
+  delete state.finalBlobUrl;
+  writeState(state);
+  console.log("  uploading final.mp4 to Vercel Blob");
+  state.finalBlobUrl = await uploadToBlob(
+    finalLocal,
+    `personal-demos/sunny-shutter-investor-demo-v21-${nowStamp()}.mp4`,
+    "video/mp4",
+  );
+  writeState(state);
+  console.log(`  finalBlobUrl = ${state.finalBlobUrl}`);
 }
 
 // =============================================================
@@ -1539,6 +1673,96 @@ async function materializeUrl(url: string, dest: string): Promise<string> {
     return dest;
   }
   throw new Error(`unsupported url scheme: ${url}`);
+}
+
+/**
+ * Replace silent AAC with a warm acoustic bed extracted from the pet-demo seed
+ * (Kevin MacLeod "Wholesome"). Overwrites `videoPath` in place.
+ */
+async function applyWarmInvestorBgm(videoPath: string) {
+  const audioDir = path.join(WORK_DIR, "audio");
+  mkdirSync(audioDir, { recursive: true });
+  const refMp4 = path.join(audioDir, "bgm-source-ref.mp4");
+  const srcWav = path.join(audioDir, "bgm-src.wav");
+  const bedAac = path.join(audioDir, "bgm-bed.aac");
+  const outMp4 = path.join(audioDir, "final-with-bgm.mp4");
+
+  if (!existsSync(refMp4) || statSync(refMp4).size === 0) {
+    console.log(`  downloading BGM reference: ${shorten(WARM_BGM_SOURCE_URL, 72)}`);
+    await downloadHttpToFile(WARM_BGM_SOURCE_URL, refMp4);
+  }
+  if (!existsSync(srcWav) || statSync(srcWav).size === 0) {
+    await execFileAsync(
+      FFMPEG_BIN,
+      ["-y", "-loglevel", "error", "-i", refMp4, "-vn", "-ac", "2", "-ar", "44100", srcWav],
+      { timeout: 120_000, maxBuffer: 1024 * 1024 * 50 },
+    );
+  }
+
+  const durationSec = Number(
+    (
+      await execFileAsync(FFPROBE_BIN, [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "csv=p=0",
+        videoPath,
+      ])
+    ).stdout.trim(),
+  );
+  if (!Number.isFinite(durationSec) || durationSec <= 0) {
+    throw new Error(`could not probe duration for ${videoPath}`);
+  }
+  const fadeOutStart = Math.max(0, durationSec - 1.2).toFixed(3);
+
+  await execFileAsync(
+    FFMPEG_BIN,
+    [
+      "-y",
+      "-loglevel",
+      "error",
+      "-ss",
+      String(WARM_BGM_SOURCE_OFFSET_SEC),
+      "-t",
+      String(durationSec),
+      "-i",
+      srcWav,
+      "-af",
+      `afade=t=in:st=0:d=0.6,afade=t=out:st=${fadeOutStart}:d=1.2,volume=0.30,loudnorm=I=-16:TP=-1.5:LRA=11`,
+      bedAac,
+    ],
+    { timeout: 120_000, maxBuffer: 1024 * 1024 * 50 },
+  );
+
+  await execFileAsync(
+    FFMPEG_BIN,
+    [
+      "-y",
+      "-loglevel",
+      "error",
+      "-i",
+      videoPath,
+      "-i",
+      bedAac,
+      "-map",
+      "0:v:0",
+      "-map",
+      "1:a:0",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      "-shortest",
+      outMp4,
+    ],
+    { timeout: 120_000, maxBuffer: 1024 * 1024 * 50 },
+  );
+
+  copyFileSync(outMp4, videoPath);
 }
 
 async function uploadToBlob(

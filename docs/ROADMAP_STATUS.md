@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 4c（真实 Provider E2E）+ C 端 P0/P1 — **个人用户一键生成 + 列表自动轮询 + Seedance 隐私 I2V 回退**。
+**正在做：** Phase 5c（B 端 mock 全链路）+ Phase 6e / 7a 预备 — **C 端 mock 浏览器 E2E 已跑通**；真钱 E2E 暂缓。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -24,7 +24,7 @@ Phase 3   ✅ C-side personal MVP hardening（personal-status / dead-link guard 
 Phase 4   🟡 Real provider readiness + first real C-side E2E
    4a     ✅ Mock E2E 已被 325+ 项单测覆盖；`npm run e2e:phase4:mock` 守门 personal 文案/策略
    4b     ✅ Dev `VIDEO_ENGINE_MOCK` 显式安全检查 + predev 警告
-   4c     🟡 本地 dev 已加 `/personal/videos` 自动 reconcile 轮询（不依赖 cron）；真实场景 A 待本机 REAL 跑通
+   4c     🟡 本地 dev 自动 reconcile 轮询 ✅；**浏览器 mock 全链路 §1 已跑通**（2026-05-20）；真实场景 A/B/C 暂缓（按 mock 开发）
 Phase 5   🟡 Persona-aware auth + 公开个人注册（PERSONAL only） + B-side full E2E
    5a     ✅ requirePersonalUser / requireBusinessUser / requireOperator 接 userType
           + 新增 requireUserOfPersona / requirePersonaPage / requireUserOfTypeForGeneration
@@ -162,13 +162,12 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 >
 > 然后按「Phase X — 计划」执行。所有计划都已经拆好，无需再设计。
 
-**当前推荐的下一动作**：
+**当前推荐的下一动作**（日常一律 mock，见 `docs/MANUAL_WALKTHROUGH.md` §0）：
 
-1. `npm run e2e:phase4:mock` — 确认 C 端守门测试全绿。
-2. Mock 全链路：`docs/MANUAL_WALKTHROUGH.md` §1（注册 → create-video 一键生成 → videos 列表）。
-3. Real 场景 A：`docs/PHASE_4_REAL_TEST_RUNBOOK.md` §2.3（`mode:check` 全 REAL 后跑一遍）。
-4. （**强烈建议**）日常开发跑 `npm run mode:check`。期望 4/5 MOCK；如果 5/5 REAL，按
-   `.env.example` 加 mock 三件套，避免静默扣费。
+1. `LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true npm run dev`
+2. `npm run e2e:phase4:mock` — 守门单测。
+3. Mock 全链路：`docs/MANUAL_WALKTHROUGH.md` §1 ✅ · **§3 B 端待跑** · §4 跨 persona。
+4. 真钱场景 A/B/C：**暂缓**（`docs/PHASE_4_REAL_TEST_RUNBOOK.md`）。
 2. **直接打开 `docs/MANUAL_WALKTHROUGH.md` 跑 5 分钟双端自检**。这份文档把以前散落
    在脑子里的所有 user-flow 检查一次性钉死，包括：
    - C 端公开注册 → 详情页（90s）

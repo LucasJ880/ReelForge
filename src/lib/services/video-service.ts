@@ -17,8 +17,6 @@ import {
   type DirectorPlan,
   type SegmentPlan,
 } from "@/lib/schemas/director-plan";
-import { planSegments } from "@/lib/duration/segment-planner";
-
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// 触发渲染默认 15 分钟超时（用户友好上限；不强制 fail，只用于 UI「用时较长」提示）
@@ -50,11 +48,9 @@ export async function dispatchVideoForBrief(briefId: string) {
   });
   if (!brief) throw new Error("Brief 不存在");
 
-  const segments = planSegments(brief.targetDurationSec);
-  const useMultiSegment =
-    segments.length > 1 && brief.directorPlan != null;
-
-  if (useMultiSegment) {
+  /// Unified-input / DirectorPlan 管线：有 directorPlan 就用 segmentPlan 直发 Seedance
+  ///（含 15s 单段；旧 Sunny Shutter / ScenePlan brief 无 directorPlan，仍走下方 legacy 路径）
+  if (brief.directorPlan != null) {
     return dispatchMultiSegmentGeneration(briefId);
   }
   return dispatchVideoGeneration(briefId);

@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * Phase 5 — middleware whitelist:
  *
- *  - `/login`, `/api/auth/*` → 登录页 / NextAuth
+ *  - `/login`, `/register`, `/api/auth/*` → 登录 / 公开注册 / NextAuth
  *  - `/persona`, `/showcase` → public landing
  *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
@@ -17,7 +17,15 @@ import { NextRequest, NextResponse } from "next/server";
  *
  *  - `/wizard/*` 在 Step 8 被删除；这里先返回 410 Gone 提示用户。
  */
-const publicPaths = ["/login", "/api/auth", "/persona", "/showcase", "/demo", "/api/demo"];
+const publicPaths = [
+  "/login",
+  "/register",
+  "/api/auth",
+  "/persona",
+  "/showcase",
+  "/demo",
+  "/api/demo",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

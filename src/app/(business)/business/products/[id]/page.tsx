@@ -12,6 +12,7 @@ import type {
   VideoBriefStatus,
   VideoJobStatus,
 } from "@prisma/client";
+import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { getServerTranslator } from "@/i18n/server";
 import type { TranslationKey } from "@/i18n/types";
 import { VideoActions } from "./video-actions";
@@ -202,20 +203,23 @@ export default async function BusinessProductDetailPage({
   const showProgress =
     status.status === "generating" || status.status === "assembling";
 
+  const metaParts: string[] = [];
+  if (brief.aspectRatio && brief.durationSec) {
+    metaParts.push(`${brief.aspectRatio} · ${brief.durationSec}s`);
+  }
+  if (order.targetPlatform) metaParts.push(order.targetPlatform);
+
   return (
     <div className="space-y-8">
-      <header className="flex items-start justify-between gap-6">
-        <div className="min-w-0">
-          <Link
-            href="/business/products"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {t("shell.productDetail.backToProducts")}
-          </Link>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight truncate">
-            {order.title}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+      <BusinessPageHeader
+        backLink={{
+          href: "/business/products",
+          label: t("shell.productDetail.backToProducts"),
+        }}
+        kicker={t("shell.productDetail.kicker")}
+        title={order.title}
+        meta={
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span
               className={
                 "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
@@ -225,28 +229,35 @@ export default async function BusinessProductDetailPage({
               {t(`shell.businessStatus.${status.status}.short`)}
             </span>
             <span>{t(`shell.businessStatus.${status.status}.label`)}</span>
-            {brief.aspectRatio && brief.durationSec ? (
-              <span className="opacity-70">
-                · {brief.aspectRatio} · {brief.durationSec}s
-              </span>
-            ) : null}
-            {order.targetPlatform ? (
-              <span className="opacity-70">· {order.targetPlatform}</span>
+            {metaParts.length > 0 ? (
+              <span className="opacity-70">· {metaParts.join(" · ")}</span>
             ) : null}
           </div>
-        </div>
-        <div className="text-right shrink-0">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
-            {t("shell.productDetail.lastUpdated")}
-          </span>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {new Date(order.updatedAt).toLocaleString()}
-          </p>
-        </div>
-      </header>
+        }
+        action={
+          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+            {isReady ? (
+              <Link
+                href={`/business/create-ad-video?from=${encodeURIComponent(order.id)}`}
+                className="inline-flex rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+              >
+                {t("shell.productDetail.variantCta")} →
+              </Link>
+            ) : null}
+            <div className="text-right">
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+                {t("shell.productDetail.lastUpdated")}
+              </span>
+              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+                {new Date(order.updatedAt).toLocaleString("zh-CN")}
+              </p>
+            </div>
+          </div>
+        }
+      />
 
       {showProgress ? (
-        <div className="rounded-xl border border-white/10 bg-card/50 p-5">
+        <div className="rounded-xl border border-white/10 bg-card/50 p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
             <span>{t(`shell.businessStatus.${status.status}.label`)}</span>
             <span className="opacity-70">
@@ -266,7 +277,7 @@ export default async function BusinessProductDetailPage({
       ) : null}
 
       {isReady && finalUrl ? (
-        <section className="rounded-xl border border-white/10 bg-card/40 p-6">
+        <section className="rounded-xl border border-white/10 bg-card/40 p-6 shadow-sm">
           <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             {t("shell.productDetail.finalVideo")}
           </h2>
@@ -313,8 +324,8 @@ export default async function BusinessProductDetailPage({
         </div>
       ) : null}
 
-      <section className="space-y-3">
-        <div className="flex items-end justify-between">
+      <section className="space-y-3 rounded-xl border border-white/10 bg-card/20 p-5 shadow-sm">
+        <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
             {t("shell.productDetail.scenesTitle", {
               done: segmentsSucceeded,
@@ -337,7 +348,7 @@ export default async function BusinessProductDetailPage({
             {scenes.map((s) => (
               <li
                 key={s.id}
-                className="rounded-lg border border-white/10 bg-card/60 p-4"
+                className="rounded-lg border border-white/10 bg-card/60 p-4 transition-colors hover:border-white/15 hover:bg-card/80"
               >
                 <div className="aspect-video overflow-hidden rounded-md bg-black/40 mb-3">
                   {s.thumbnailUrl ? (

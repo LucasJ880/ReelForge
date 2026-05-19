@@ -8,6 +8,16 @@
 npm run sunny:merchant-journey
 ```
 
+## 历史订单标题中文化（可选）
+
+若产品库仍显示英文 prompt 标题（如 `hydration sports drink...`）：
+
+```bash
+npm run backfill:business-titles -- --dry-run
+npm run backfill:business-titles
+# 仅某账号：npm run backfill:business-titles -- --email=mock-full-20260520@aivora.test
+```
+
 会创建商家账号、生成 2 条 30s 竖屏窗帘广告（mock 引擎）、写入模拟 TikTok 播放量/完播率，并在终端打印 **智能建议** 与浏览器路径。
 
 | 字段 | 值 |

@@ -705,7 +705,9 @@ export const enUS: Dictionary = {
       newVariant: "New variant →",
     },
     productDetail: {
+      kicker: "Product detail",
       backToProducts: "← Back to products",
+      variantCta: "New variant from this video",
       lastUpdated: "Last updated",
       progressRefreshHint:
         "Generation usually takes a few minutes. Use the buttons below to refresh progress.",
@@ -727,6 +729,14 @@ export const enUS: Dictionary = {
       failedBody:
         "Retry failed scenes re-runs only the failed parts. Contact support if you are still stuck.",
       failedRegenerate: "Regenerate",
+    },
+    videoActions: {
+      refresh: "Refresh progress",
+      retryFailed: "Retry failed scenes",
+      refreshFailed: "Could not refresh — try again",
+      retryFailedMsg: "Retry failed — try again or regenerate",
+      retryStarted: "Retry started — refresh to see progress",
+      networkError: "Network error — try again",
     },
     metricsForm: {
       empty: "No ready videos to attach metrics to. Create an ad first.",

@@ -569,7 +569,9 @@ export type Dictionary = {
       newVariant: string;
     };
     productDetail: {
+      kicker: string;
       backToProducts: string;
+      variantCta: string;
       lastUpdated: string;
       progressRefreshHint: string;
       finalVideo: string;
@@ -588,6 +590,14 @@ export type Dictionary = {
       failedTitle: string;
       failedBody: string;
       failedRegenerate: string;
+    };
+    videoActions: {
+      refresh: string;
+      retryFailed: string;
+      refreshFailed: string;
+      retryFailedMsg: string;
+      retryStarted: string;
+      networkError: string;
     };
     metricsForm: {
       empty: string;

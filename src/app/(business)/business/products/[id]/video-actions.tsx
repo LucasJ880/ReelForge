@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { useTranslation } from "@/i18n/useTranslation";
 
 interface VideoActionsProps {
   briefId: string;
@@ -10,17 +11,13 @@ interface VideoActionsProps {
   canRetry: boolean;
 }
 
-/**
- * Phase 6d — BUSINESS 端的客户操作（与 personal 同构）：
- *   1. 刷新进度：POST /api/briefs/:id/render-status，主动调和 Provider，再 router.refresh
- *   2. 重试失败片段：POST /api/briefs/:id/render-retry { all: true }
- */
 export function VideoActions({
   briefId,
   failedSceneCount,
   canRetry,
 }: VideoActionsProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [refreshing, setRefreshing] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -34,12 +31,12 @@ export function VideoActions({
         method: "POST",
       });
       if (!res.ok) {
-        setFeedback("刷新失败，请稍后再试");
+        setFeedback(t("shell.videoActions.refreshFailed"));
       } else {
         startTransition(() => router.refresh());
       }
     } catch {
-      setFeedback("网络异常，请稍后再试");
+      setFeedback(t("shell.videoActions.networkError"));
     } finally {
       setRefreshing(false);
     }
@@ -55,13 +52,13 @@ export function VideoActions({
         body: JSON.stringify({ all: true }),
       });
       if (!res.ok) {
-        setFeedback("重试失败，请稍后再试或重新生成");
+        setFeedback(t("shell.videoActions.retryFailedMsg"));
       } else {
-        setFeedback("已开始重试，刷新一下进度看看");
+        setFeedback(t("shell.videoActions.retryStarted"));
         startTransition(() => router.refresh());
       }
     } catch {
-      setFeedback("网络异常，请稍后再试");
+      setFeedback(t("shell.videoActions.networkError"));
     } finally {
       setRetrying(false);
     }
@@ -71,33 +68,33 @@ export function VideoActions({
   const retryDisabled = retrying || pending || !canRetry;
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button
         type="button"
         onClick={handleRefresh}
         disabled={refreshDisabled}
-        className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-card/60 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground hover:bg-card/90 transition-colors disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-card/60 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-card/90 hover:text-foreground disabled:opacity-60"
       >
         {refreshing ? (
           <Loader2 className="h-3 w-3 animate-spin" />
         ) : (
           <RefreshCw className="h-3 w-3" />
         )}
-        刷新进度
+        {t("shell.videoActions.refresh")}
       </button>
       {canRetry ? (
         <button
           type="button"
           onClick={handleRetry}
           disabled={retryDisabled}
-          className="inline-flex items-center gap-1.5 rounded-md bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-60"
         >
           {retrying ? (
             <Loader2 className="h-3 w-3 animate-spin" />
           ) : (
             <RotateCcw className="h-3 w-3" />
           )}
-          重试失败片段
+          {t("shell.videoActions.retryFailed")}
           {failedSceneCount > 0 ? (
             <span className="ml-1 text-[10px] opacity-70">
               ({failedSceneCount})
@@ -116,3 +113,4 @@ export function VideoActions({
     </div>
   );
 }
+

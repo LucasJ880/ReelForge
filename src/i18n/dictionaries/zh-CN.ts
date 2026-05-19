@@ -682,7 +682,9 @@ export const zhCN: Dictionary = {
       newVariant: "新建变体 →",
     },
     productDetail: {
+      kicker: "产品详情",
       backToProducts: "← 返回产品库",
+      variantCta: "基于此视频做变体",
       lastUpdated: "最近更新",
       progressRefreshHint: "视频生成大约需要几分钟。点下方按钮可手动刷新进度。",
       finalVideo: "最终视频",
@@ -702,6 +704,14 @@ export const zhCN: Dictionary = {
       failedBody:
         "点上面的「重试失败片段」会只重新跑失败的部分，不会重复扣已生成的分镜额度。仍然遇到问题请联系客服。",
       failedRegenerate: "重新生成",
+    },
+    videoActions: {
+      refresh: "刷新进度",
+      retryFailed: "重试失败片段",
+      refreshFailed: "刷新失败，请稍后再试",
+      retryFailedMsg: "重试失败，请稍后再试或重新生成",
+      retryStarted: "已开始重试，刷新一下进度看看",
+      networkError: "网络异常，请稍后再试",
     },
     metricsForm: {
       empty: "还没有可录入数据的已出片视频。请先创建一条广告视频。",

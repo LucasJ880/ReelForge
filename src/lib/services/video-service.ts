@@ -460,6 +460,17 @@ export async function reconcileBriefRenderStatus(briefId: string) {
     await reconcileVideoJob(job.id);
   }
   await syncBriefStatus(briefId);
+
+  /// 兜底：HMR 后 maybeTriggerStitch 可能已在单段 reconcile 时错过，此处再试一次 stitch
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: { finalVideoId: true },
+  });
+  if (brief?.finalVideoId) {
+    await maybeTriggerStitch(brief.finalVideoId);
+    await syncBriefStatus(briefId);
+  }
+
   return summarizeBriefRender(briefId);
 }
 

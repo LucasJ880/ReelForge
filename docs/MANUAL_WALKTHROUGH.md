@@ -107,10 +107,14 @@ npm run dev:mock
 ## 5. 自动化补充（30s）
 
 ```bash
+# 无浏览器：C 15s + B 30s 服务层全链路（推荐每次改 video/stitch 后跑）
+npm run walkthrough:mock
+
 # 这些每次大改后都该跑
 npm run typecheck   # 0 错误
 npm run lint        # 0 错误（仅 6 个无关 warnings 是历史遗留）
 npm test            # 350+ ✅
+npm run e2e:phase4:mock
 npm run mode:check  # 确认 mock 状态没漂
 npm run roadmap     # 看进度 hook
 ```

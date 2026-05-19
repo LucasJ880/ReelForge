@@ -164,8 +164,58 @@ function submitMock(options: SeedanceSubmitOptions): { jobId: string } {
   return { jobId };
 }
 
+/**
+ * Dev mock：Next.js HMR 会清空进程内 mockJobs。按 externalJobId 从 DB 恢复 hints，
+ * 避免轮询误判「任务不存在」→ 整单 RENDER_FAILED。
+ */
+async function recoverMockJobRecord(jobId: string): Promise<MockJobRecord | null> {
+  if (!jobId.startsWith("mock_")) return null;
+  try {
+    const { db } = await import("@/lib/db");
+    const row = await db.videoJob.findFirst({
+      where: { externalJobId: jobId },
+      select: {
+        videoBriefId: true,
+        segmentIndex: true,
+        segmentDurationSec: true,
+        submittedAt: true,
+        startedAt: true,
+        videoBrief: {
+          select: {
+            aspectRatio: true,
+            finalVideo: { select: { segmentCount: true } },
+          },
+        },
+      },
+    });
+    if (!row || row.segmentIndex == null) return null;
+    const segmentCount = row.videoBrief.finalVideo?.segmentCount ?? 1;
+    return {
+      status: "processing",
+      createdAt: (row.submittedAt ?? row.startedAt ?? new Date()).getTime(),
+      prompt: "",
+      mockHints: {
+        briefId: row.videoBriefId,
+        segmentIndex: row.segmentIndex,
+        segmentCount,
+        durationSec: row.segmentDurationSec ?? 15,
+        aspectRatio: row.videoBrief.aspectRatio ?? "9:16",
+      },
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function getStatusMock(jobId: string): Promise<SeedanceJobResult> {
-  const job = mockJobs.get(jobId);
+  let job = mockJobs.get(jobId);
+  if (!job) {
+    const recovered = await recoverMockJobRecord(jobId);
+    if (recovered) {
+      job = recovered;
+      mockJobs.set(jobId, recovered);
+    }
+  }
   if (!job) {
     return {
       jobId,

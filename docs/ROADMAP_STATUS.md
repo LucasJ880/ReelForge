@@ -8,7 +8,7 @@
 
 ## 一句话现状
 
-**正在做：** Phase 5c（B 端 mock 全链路）+ Phase 6e / 7a 预备 — **C 端 mock 浏览器 E2E 已跑通**；真钱 E2E 暂缓。
+**正在做：** Mock 双端验收收尾（浏览器 §4 跨 persona）— **服务层 `npm run walkthrough:mock` C+B 已绿**；真钱 E2E 暂缓。
 **最后一次代码同步：** 见底部「Recent commits & status」
 **下一动作：** 见「Next session resume hook」
 
@@ -32,7 +32,7 @@ Phase 5   🟡 Persona-aware auth + 公开个人注册（PERSONAL only） + B-si
    5b     ✅ POST /api/auth/register（仅 PERSONAL，role default=OPERATOR + ut=PERSONAL）
           + /register 页面 + /login 加「创建个人账号」入口
           + 17 新单测（persona 访问矩阵 + register schema 契约）
-   5c     🟡 B-side mock 全链路 §3（persona JWT 刷新 + products 列表轮询已补）
+   5c     ✅ B-side mock 服务层 §3（`walkthrough:mock`）；浏览器 §3–§4 待人工点验
 Phase 6   ✅ Upload assets UI + 双端详情页 + 段感知重试
    6a     ✅ PERSONAL /personal/videos/[id] 详情页
    6b     ✅ render-retry / render-status 端点改用 brief 归属校验
@@ -166,7 +166,7 @@ Phase 9   ⏳ Templates / 视频编辑 / 协作（上线后迭代）
 
 1. `LLM_FORCE_MOCK=true VIDEO_ENGINE_MOCK=true IMAGE_ENGINE_MOCK=true npm run dev`
 2. `npm run e2e:phase4:mock` — 守门单测。
-3. Mock 全链路：`docs/MANUAL_WALKTHROUGH.md` §1 ✅ · §3 B 端 🟡（dispatch 已通，等列表轮询成片）· §4 跨 persona。
+3. `npm run walkthrough:mock` — C 15s + B 30s 服务层 ✅；浏览器：`docs/MANUAL_WALKTHROUGH.md` §1–§4。
 4. 真钱场景 A/B/C：**暂缓**（`docs/PHASE_4_REAL_TEST_RUNBOOK.md`）。
 2. **直接打开 `docs/MANUAL_WALKTHROUGH.md` 跑 5 分钟双端自检**。这份文档把以前散落
    在脑子里的所有 user-flow 检查一次性钉死，包括：

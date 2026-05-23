@@ -49,6 +49,15 @@ export default async function PersonaPage() {
           <p className="mt-4 text-lg text-muted-foreground">
             One unified AI video studio, tuned for two very different jobs.
           </p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            投资人 / 孵化器 / 战略合作？{" "}
+            <Link
+              href="/showcase"
+              className="font-medium text-foreground underline decoration-dotted underline-offset-4 hover:text-primary"
+            >
+              查看真实客户案例展示 →
+            </Link>
+          </p>
         </div>
 
         <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-4xl">

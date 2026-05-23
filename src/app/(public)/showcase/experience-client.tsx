@@ -11,6 +11,7 @@ import { CreativeEvidenceCardsSection } from "@/components/demo/creative-evidenc
 import { DemoHero } from "@/components/demo/demo-hero";
 import { DemoInputPanel } from "@/components/demo/demo-input-panel";
 import { FinalOutputSection } from "@/components/demo/final-output-section";
+import { InvestorHighlightsSection } from "@/components/demo/investor-highlights-section";
 import { LocalProductSampleSection } from "@/components/demo/local-product-sample-section";
 import { ReferencePreviewSection } from "@/components/demo/reference-preview-section";
 import { StoryboardGrid } from "@/components/demo/storyboard-grid";
@@ -35,7 +36,7 @@ export function RealFootageDemoExperience({
   const ctaPrimaryHref = isAuthenticated ? "/business/create-ad-video" : "#book-demo";
   const ctaPrimaryLabel = isAuthenticated
     ? "去试一遍真实流程"
-    : "申请体验";
+    : "申请深度演示";
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -44,7 +45,7 @@ export function RealFootageDemoExperience({
       <DemoHero ctaPrimaryHref={ctaPrimaryHref} ctaPrimaryLabel={ctaPrimaryLabel} />
 
       <div id="workflow" className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
-        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] px-4 py-3 text-xs leading-5 text-amber-200/90">
+        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 text-xs leading-5 text-amber-200/90">
           {SAMPLE_DATA_DISCLAIMER}
         </div>
       </div>
@@ -68,20 +69,23 @@ export function RealFootageDemoExperience({
 
       <LocalProductSampleSection />
 
+      <InvestorHighlightsSection />
+
       <section
         id="book-demo"
         className="mx-auto w-full max-w-7xl px-5 py-14 sm:px-8 lg:px-10"
       >
-        <div className="rounded-[2rem] border border-primary/25 bg-primary/[0.07] p-6 sm:p-8">
+        <div className="rounded-[2rem] border border-primary/25 bg-linear-to-br from-primary/10 via-card/40 to-card/60 p-6 sm:p-10">
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-            带上你的素材，让系统帮你跑一遍
+            投资人 / 孵化器 / 战略合作
           </p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight">
-            告诉我们你的目标，我们用这套流程帮你把素材跑成可发布的初稿。
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+            想看 Aivora 跑你那条赛道的客户？
           </h2>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-muted-foreground">
-            告诉我们你做的是什么、你已经有多少素材，我们会把你加入下一轮 demo 队列，
-            按这个流程跑一遍真实输出。
+            留下品牌或基金信息，我们会安排创始人 1:1 深度演示：
+            用你的真实素材跑一遍完整工作流，并给出投放与产品差异化建议。
+            北美华人创业项目、加拿大本地中小品牌、孵化器项目优先安排档期。
           </p>
           {isAuthenticated ? (
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -89,7 +93,7 @@ export function RealFootageDemoExperience({
                 href="/business/create-ad-video"
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
               >
-                创建广告视频 <ArrowRight size={14} />
+                直接进入创意工作室 <ArrowRight size={14} />
               </Link>
               <a
                 href="#book-demo"
@@ -111,37 +115,76 @@ export function RealFootageDemoExperience({
 function NavBar() {
   return (
     <header className="mx-auto w-full max-w-7xl px-5 pt-6 sm:px-8 lg:px-10">
-      <nav className="flex items-center justify-between rounded-full border border-white/10 bg-white/3 px-4 py-3 backdrop-blur">
+      <nav className="flex items-center justify-between gap-3 rounded-full border border-white/10 bg-white/3 px-4 py-3 backdrop-blur">
         <Link href="/" className="flex items-center gap-3">
           <Logo size={34} />
-          <div>
+          <div className="min-w-0">
             <p className="text-sm font-semibold leading-none">Aivora</p>
-            <p className="text-[11px] text-muted-foreground">
-              AI 视频工作流 · 产品体验
+            <p className="hidden text-[11px] text-muted-foreground sm:block">
+              AI 视频工作流 · 投资人版本案例展示
             </p>
           </div>
         </Link>
         <div className="flex items-center gap-2">
           <a
             href="#workflow"
-            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
           >
-            查看生成流程
+            完整工作流
           </a>
           <a
-            href="#local-product-sample"
-            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground sm:inline-flex"
+            href="#final-output"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
           >
-            观看样片
+            播放成片
           </a>
+          <a
+            href="#investor"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
+          >
+            投资亮点
+          </a>
+          <LocaleToggle />
           <a
             href="#book-demo"
             className="rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground shadow-[0_0_35px_rgba(92,255,214,0.16)] transition hover:opacity-90"
           >
-            申请体验
+            申请演示
           </a>
         </div>
       </nav>
     </header>
+  );
+}
+
+/**
+ * 语言切换器（当前阶段：默认中文，英文版下一阶段上线）。
+ *
+ * 设计思路：本页所有客户案例、脚本、分镜都使用中文叙事，给中国投资人 / 孵化器
+ * 看；英文版需要把案例文案全量翻译并保证术语一致性，作为下一阶段独立交付。
+ * 在 NavBar 上保留可见但不可点的 EN 占位，是为了让投资人知道国际化在路线图里，
+ * 而不是假装一个会让切换出 bug 的功能。
+ */
+function LocaleToggle() {
+  return (
+    <div
+      className="hidden items-center gap-0.5 rounded-full border border-white/10 bg-white/3 p-0.5 text-[11px] font-semibold sm:inline-flex"
+      role="group"
+      aria-label="界面语言"
+    >
+      <span
+        className="rounded-full bg-primary/15 px-2.5 py-1 text-primary"
+        aria-current="true"
+      >
+        中文
+      </span>
+      <span
+        className="cursor-not-allowed rounded-full px-2.5 py-1 text-muted-foreground/60"
+        title="英文版即将上线"
+        aria-disabled="true"
+      >
+        EN
+      </span>
+    </div>
   );
 }

@@ -1,9 +1,9 @@
-import { Hourglass } from "lucide-react";
+import { CheckCircle2, Hourglass } from "lucide-react";
 import {
   finalOutputs,
   type FinalOutputDemo,
 } from "@/lib/demo/ai-video-workflow-demo-data";
-import { DemoSection, SampleDataBadge } from "./demo-section";
+import { DemoSection } from "./demo-section";
 import { PhoneVideoMockup } from "./phone-video-mockup";
 
 const VARIANT_LABEL: Record<FinalOutputDemo["variant"], string> = {
@@ -16,16 +16,12 @@ const VARIANT_LABEL: Record<FinalOutputDemo["variant"], string> = {
 };
 
 /**
- * 房地产工作流的最终输出区。
+ * Sunny Shutter 工作流的最终输出区。
  *
- * 当前状态：房地产真实成片仍在制作中，整个 final output 区都按 placeholder
- * 渲染。30 秒主版本（main_30s）作为视觉焦点占据主卡；15 秒广告版、封面图、
- * 平台文案降级为小号 secondary chips 列在主卡下方，避免和主卡同等视觉权重。
- *
- * 房地产样片做好后只要把 main_30s.videoUrl 接上即可，UI 不需要改。
- *
- * 注意：本地毛毯 / 家居用品的概念样片不应该出现在这一段，它属于下方的
- * LocalProductSampleSection。
+ * 与早期版本不同：30 秒主版本已经是真实交付的成片（V2.1 image-storyboard-guided I2V
+ * 产出，存放在 Vercel Blob），点击主卡上的视频可以直接播放完整 30 秒视频。
+ * 其它输出版本（15 秒广告、封面图、平台文案）作为同一支视频的配套交付，
+ * 视觉上降级为 secondary chips 列在主卡下方。
  */
 export function FinalOutputSection() {
   const main = finalOutputs.find((o) => o.variant === "main_30s");
@@ -34,32 +30,42 @@ export function FinalOutputSection() {
   return (
     <DemoSection
       id="final-output"
-      eyebrow="第 7 步 · 房地产工作流 · 最终输出"
-      title="房地产样片位：North York Condo 视频即将接入。"
+      eyebrow="第 7 步 · 最终输出 · 已交付"
+      title="Sunny Shutter · 30 秒投资人版本成片。"
       description={
         <>
           <p>
-            当前页面先展示完整的房地产工作流：从客户输入、创意证据卡、参考结构、
-            AI 脚本、分镜，到素材质检。最终的房地产 30 秒主版本仍在制作中，
-            做好后会直接替换下方占位卡。
+            5 段 image-storyboard-guided I2V + 5 秒真实品牌 end card，由 Aivora V2.1
+            管线一次跑出。点击下方手机里的视频即可播放完整 30 秒成片——这就是同一套工作流跑完后真实交付的样子。
           </p>
           <p className="mt-2 text-xs text-muted-foreground/85">
-            想先看一段「同一套工作流跑完后能产出的成片风格」？往下滑一段，看
-            本地毛毯产品商家的真实概念样片。
+            想看本地零售商家场景下同一套工作流的成片？继续往下滑，看
+            <a
+              href="#local-product-sample"
+              className="ml-1 font-semibold text-primary underline decoration-dotted underline-offset-4 hover:text-primary"
+            >
+              Mapleside Living
+            </a>
+            的概念样片。
           </p>
         </>
       }
-      rightSlot={<SampleDataBadge label="Coming next" />}
+      rightSlot={
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] text-emerald-200">
+          <CheckCircle2 size={11} />
+          已交付 · 可播放
+        </span>
+      }
     >
-      {main ? <MainPlaceholderCard output={main} /> : null}
+      {main ? <MainDeliveredCard output={main} /> : null}
 
       <div className="mt-6 rounded-3xl border border-white/10 bg-card/50 p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-            其它配套输出 · 同样 Coming next
+            配套交付 · 同一组镜头自动派生
           </p>
           <p className="text-[11px] text-muted-foreground/80">
-            主版本接入后，下列配套输出会按相同方向自动生成
+            投放素材、封面图与平台文案均按同一方向自动生成
           </p>
         </div>
         <ul className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
@@ -72,7 +78,7 @@ export function FinalOutputSection() {
   );
 }
 
-function MainPlaceholderCard({ output }: { output: FinalOutputDemo }) {
+function MainDeliveredCard({ output }: { output: FinalOutputDemo }) {
   return (
     <div className="flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-primary/40 bg-card/70 p-5 ring-1 ring-primary/20 sm:p-6 lg:grid lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
       <PhoneVideoMockup
@@ -81,17 +87,17 @@ function MainPlaceholderCard({ output }: { output: FinalOutputDemo }) {
         posterUrl={output.posterUrl}
         videoMode="preview"
         statusBadge={`${output.aspectRatio} · ${output.durationSec ?? "—"}s`}
-        fallbackGradient="from-emerald-400/30 via-sky-500/20 to-violet-500/25"
+        fallbackGradient="from-amber-400/30 via-rose-400/15 to-violet-500/20"
         fallbackTitle={output.title}
-        fallbackSubtitle="房地产样片做好后会直接接入这里"
+        fallbackSubtitle="点击播放完整 30 秒成片"
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-            房地产主版本 · Coming next
+          <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-semibold tracking-[0.18em] text-primary">
+            投资级品牌叙事
           </span>
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-amber-400/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-amber-200">
-            <Hourglass size={11} />
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] tracking-[0.18em] text-emerald-200">
+            <CheckCircle2 size={11} />
             {output.badge}
           </span>
         </div>
@@ -115,15 +121,22 @@ function MainPlaceholderCard({ output }: { output: FinalOutputDemo }) {
 }
 
 function SecondaryChip({ output }: { output: FinalOutputDemo }) {
+  const isReady = !output.isPlaceholder;
   return (
-    <li className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-3">
+    <li className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-white/3 px-3 py-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/90">
           {VARIANT_LABEL[output.variant]}
         </span>
-        <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider text-amber-200">
-          <Hourglass size={9} />
-          Coming next
+        <span
+          className={
+            isReady
+              ? "inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200"
+              : "inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-200"
+          }
+        >
+          {isReady ? <CheckCircle2 size={9} /> : <Hourglass size={9} />}
+          {output.badge}
         </span>
       </div>
       <p className="text-[11px] font-medium leading-snug text-foreground/90 wrap-break-word">

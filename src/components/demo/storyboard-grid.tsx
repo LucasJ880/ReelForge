@@ -1,11 +1,11 @@
 import {
-  Camera,
+  Award,
+  BookOpen,
   Clock,
-  Home,
-  ImageIcon,
-  ChefHat,
-  Bed,
-  User,
+  Heart,
+  PanelTopOpen,
+  Smartphone,
+  Users,
   CheckCircle2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,12 +16,12 @@ import {
 import { DemoSection, SampleDataBadge } from "./demo-section";
 
 const ICON_MAP: Record<StoryboardShotDemo["visualPlaceholder"]["iconKey"], React.ReactNode> = {
-  agent: <User size={32} />,
-  exterior: <Home size={32} />,
-  living: <ImageIcon size={32} />,
-  kitchen: <ChefHat size={32} />,
-  bedroom: <Bed size={32} />,
-  cta: <Camera size={32} />,
+  opener: <BookOpen size={32} />,
+  figure: <Users size={32} />,
+  tap: <Smartphone size={32} />,
+  window: <PanelTopOpen size={32} />,
+  family: <Heart size={32} />,
+  endcard: <Award size={32} />,
 };
 
 export function StoryboardGrid() {
@@ -29,8 +29,8 @@ export function StoryboardGrid() {
     <DemoSection
       id="storyboard"
       eyebrow="第 5 步 · 分镜与拍摄指导"
-      title="6 张可以直接交给经纪人或助理去拍的分镜卡。"
-      description="每张分镜卡都是一条可以打印出去对照拍的指令：拍什么、怎么拍、是否必拍、容易踩哪些坑。"
+      title="6 张可以直接交给摄影或 AI 管线的分镜卡。"
+      description="每张分镜卡都是一条可执行指令：拍什么、怎么拍、是否必拍、常见踩坑。同样的结构既能传给真人摄影团队，也能直接喂给 image-to-video 引擎。"
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -51,14 +51,19 @@ export function StoryboardGrid() {
       </p>
 
       <p className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
-        选定方向、AI 脚本、分镜与质检通过的素材，会汇成房地产 final output —— 当前
-        该位置为占位，房地产样片做好后会直接接入；想先看一段同一套工作流可产出的
-        成片，{" "}
+        选定方向、AI 脚本、分镜与质检通过的素材，会汇成 Sunny Shutter 30 秒主版本——下方
+        <a
+          href="#final-output"
+          className="ml-1 font-semibold underline decoration-dotted underline-offset-4 hover:text-primary"
+        >
+          直接播放成片
+        </a>
+        ，或往下滑看
         <a
           href="#local-product-sample"
-          className="font-semibold underline decoration-dotted underline-offset-4 hover:text-primary"
+          className="ml-1 font-semibold underline decoration-dotted underline-offset-4 hover:text-primary"
         >
-          观看本地商家概念样片
+          Mapleside Living 的本地零售样片
         </a>
         。
       </p>

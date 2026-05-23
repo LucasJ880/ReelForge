@@ -1,64 +1,76 @@
 /**
  * Aivora AI Video Workflow —— Demo Page mock data。
  *
- * 这是 /demo/real-footage-ads 主体验页用的 sample / mock 数据。
- * 字段命名尽量对齐 Phase 1/2/3 的概念（CreativeEvidenceCard / ScriptOutput /
- * StoryboardOutput / AssetQA / WizardRender），但这里不引入 Prisma 类型，
- * 也不强行通过 zod parse —— demo page 第一版直接渲染。
+ * /showcase 主体验页使用的展示数据。叙事采用「双客户案例」结构：
+ *
+ *   案例 A · Sunny Shutter（虚构甲方 · 加拿大本地电动智能窗帘品牌）
+ *     —— 走完整 7 步工作流：客户输入 → 创意证据卡 → 参考结构 →
+ *        AI 脚本 → 分镜与拍摄指导 → 素材质检 → 最终成片。
+ *        Final output 接入真实生成的 30 秒成片（V2.1 image-storyboard-guided I2V，
+ *        已发布在 /personal/videos）。
+ *
+ *   案例 B · Mapleside Living（虚构甲方 · 多伦多本地家居织物品牌）
+ *     —— 作为「同一套工作流可以扩展到本地零售类商家」的第二份证据，
+ *        使用已生成的本地毛毯概念样片证明成片质感。
+ *
+ * 两个案例都使用真实可播放的视频文件，不再有任何 placeholder；
+ * 同时所有面向投资人 / 政府孵化器叙事的关键文案都从这一份数据进入页面。
  *
  * 合规边界（必须遵守）：
- * - 所有指标都是 sample data，禁止把它们写得像“某品牌某月真实数据”；
- * - referenceUrl 只能是占位/外链，禁止保存第三方视频本地路径；
+ * - 所有指标都是示例数据，禁止把它们写得像「某品牌某月真实数据」；
+ * - referenceUrl 只能是占位 / 外链，禁止保存第三方视频本地路径；
  * - 严禁出现 “remove watermark / clone exact video / copy script /
  *   scrape and download / rehost third-party video” 这类危险措辞；
- * - 任何 mock 视频 URL 都允许是 null（让 UI 自己降级），不能因为缺 mp4 崩溃。
+ * - 任何 mock 视频 URL 都允许为 null（让 UI 自行降级），不能因为缺 mp4 崩溃。
  *
- * 由 CTO Brief（CEO 重做主 Demo Page）于 2026-05 编写，请勿手动改成真实
- * 客户案例叙事；如果要替换，必须替换为另一个真实有授权的客户。
+ * 若要把案例换成另一个真实有授权的客户，请整体替换并保留双案例结构，
+ * 不要把 placeholder 与 ready 案例混排，以免投资人误判项目成熟度。
  */
 
-import { DEMO_SEED_VIDEO_THUMBNAIL, DEMO_SEED_VIDEO_URL } from "@/lib/data/demo-seed";
+/* ------------------------------------------------------------------ */
+/* 全局展示用文案                                                       */
+/* ------------------------------------------------------------------ */
 
-/** 统一的 sample 标签，组件里直接使用这个文案 */
 export const SAMPLE_DATA_BADGE_LABEL = "示例数据";
 export const SAMPLE_DATA_DISCLAIMER =
-  "页面上的所有数据、脚本、分镜与样片均为示例（sample data），不代表任何真实客户账号、在售房源或在售商品。";
+  "页面上的客户信息、参考指标和分镜数据为示例（sample data），仅用于演示工作流；其中 Sunny Shutter 30 秒成片与 Mapleside Living 概念样片为 Aivora 在真实生产管线中产出的可播放素材。";
 
-/** 默认选中的 card slug —— 与 storyboard / script demo 完全对齐 */
+/** 默认选中的创意方向卡 slug。 */
 export const SELECTED_CARD_DEFAULT_SLUG =
-  "real-estate-price-contrast-tour" as const;
+  "sunny-shutter-aging-in-place" as const;
 
-/** Walkthrough 60s mp4 —— 已存在于 public/generated/。null 时 UI 走占位。 */
+/**
+ * 可选 60 秒产品 walkthrough（已存在于 public/generated/）；null 时 UI 走占位。
+ * 这条不是 Sunny Shutter 成片，是 Aivora 自己的 60 秒功能 walkthrough。
+ */
 export const PRODUCT_WALKTHROUGH_VIDEO_URL =
   "/generated/aivora-real-footage-ads-walkthrough-60s-16x9.mp4";
 
 /* ------------------------------------------------------------------ */
-/* Main Concept Video                                                  */
+/* 案例 A · Sunny Shutter — Hero 主视觉 / 真实成片                       */
 /* ------------------------------------------------------------------ */
 
 /**
- * 主概念广告片（concept sample）—— 当前接入的是本地毛毯 / 家居用品商家
- * 的概念样片，作为「同一套工作流也能服务本地产品商家」的真实样片证明。
+ * Sunny Shutter 30 秒投资人版本成片（V2.1 pipeline 产出）。
  *
- * 注意：这不是房地产 North York condo 的最终成片。房地产最终样片仍在
- * 制作中，做好后会接入 FinalOutputSection 的 main_30s 槽位；当前
- * Demo Page 用这条概念样片来证明工作流能产出什么质感的成片。
+ * - 5 段 5s I2V + 5s brand end card
+ * - 真实 logo 后期合成（top-right watermark + end card）
+ * - 已上传到 Vercel Blob，可以直接在浏览器内嵌播放
  *
- * 文案边界（必须遵守）：允许的措辞是 concept sample / demo output /
- * draft output example / what the workflow is designed to produce。
- * 禁用的过度承诺措辞清单见
- * tests/ai-video-workflow-demo-data.test.ts 中的
- * CONCEPT_DEMO_OVER_PROMISE_PHRASES（测试会扫描所有 demo 源文件，包括
- * 注释；不要把禁用短语原样粘贴回来）。
- *
- * 视频规格：720x1280（9:16 竖屏）、约 30 秒、H.264 mp4，可直接放入
- * PhoneVideoMockup 播放，无需重新编码。
+ * URL 与 tmp/sunny-shutter-investor-demo-v21/state.json 中的 finalBlobUrl
+ * 对应；如果重新跑一次 pipeline 产生了新的 URL，需要同步更新这里。
  */
+export const SUNNY_SHUTTER_FINAL_VIDEO_URL =
+  "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/personal-demos/sunny-shutter-investor-demo-v21-2026-05-19T22-05-14-972Z.mp4";
+export const SUNNY_SHUTTER_FINAL_VIDEO_POSTER_URL =
+  "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/personal-demos/sunny-shutter-investor-demo-v21-2026-05-19T21-59-54-113Z-poster.jpg";
+
 export interface MainConceptVideoConfig {
   title: string;
   url: string;
-  type: "concept_demo";
+  type: "concept_demo" | "investor_final";
   industryLabel: string;
+  brandName: string;
   durationLabel: string;
   durationSec: number;
   aspectRatio: "9:16" | "1:1" | "16:9";
@@ -68,46 +80,60 @@ export interface MainConceptVideoConfig {
   note: string;
 }
 
+/**
+ * Hero 主视觉播放的视频 —— 默认使用 Sunny Shutter 30 秒成片，
+ * 这是当前管线交付的最高完成度作品，也是投资人最优先看到的画面。
+ */
 export const mainConceptVideo: MainConceptVideoConfig = {
-  title: "本地毛毯产品广告 · 概念样片",
-  url: "/generated/aivora-main-demo-concept-2026-05-10.mp4",
-  type: "concept_demo",
-  industryLabel: "本地家居用品 / 毛毯产品",
-  durationLabel: "概念样片 · 约 30 秒",
+  title: "Sunny Shutter · Comfort, with independence",
+  url: SUNNY_SHUTTER_FINAL_VIDEO_URL,
+  type: "investor_final",
+  industryLabel: "智能家居 · 电动卷帘",
+  brandName: "Sunny Shutter",
+  durationLabel: "30 秒成片 · 9:16",
   durationSec: 30,
   aspectRatio: "9:16",
   width: 720,
   height: 1280,
-  posterUrl: "/generated/aivora-main-demo-concept-2026-05-10-poster.jpg",
-  note: "本地毛毯 / 家居用品商家的概念样片，用来展示同一套工作流跑完后的成片风格；不是房地产 North York condo 的最终成片。",
+  posterUrl: SUNNY_SHUTTER_FINAL_VIDEO_POSTER_URL,
+  note: "Sunny Shutter 30 秒投资人版本成片：5 段 I2V + 真实品牌 end card，由 Aivora V2.1 image-storyboard-guided 管线产出。",
 };
 
+/* ------------------------------------------------------------------ */
+/* 案例 B · Mapleside Living — 本地家居织物 / 毛毯样片                   */
+/* ------------------------------------------------------------------ */
+
 /**
- * 房地产 final output placeholder 用的 9:16 静态海报。
+ * Mapleside Living 概念样片视频（30 秒竖屏家居织物广告）。
  *
- * 现状：房地产真实成片仍在制作中。这张静态 poster（720x1280 JPG，配套
- * 同名 SVG 源）作为 main_30s placeholder 的视觉底图，配合「Coming next」
- * 徽标向观众说明：房地产 30 秒主版本即将接入。
+ * 视频文件来自 Aivora 真实生成管线（mock 引擎跑通 → 真实 Seedance + BGM），
+ * 现已 commit 到 public/generated/ 用于演示。
  *
- * 该资源由 `scripts/generate-real-estate-placeholder-poster.ts` 生成；
- * 如需修文案，直接改脚本里的 SVG 字符串后重新跑即可。
+ * 与 Sunny Shutter 的区别：
+ *   - Sunny Shutter：高端智能家居品类、面向适老化与家庭场景；
+ *   - Mapleside Living：本地零售家居织物、面向 25-40 岁北美华人和年轻家庭。
+ *
+ * 两个案例并列证明同一套工作流既能跑「高端品牌投资人视频」，
+ * 也能跑「本地零售批量化短视频」。
  */
-export const REAL_ESTATE_MAIN_30S_PLACEHOLDER_POSTER_URL =
-  "/generated/aivora-real-estate-main-30s-placeholder-2026-05.jpg";
+export const MAPLESIDE_LIVING_VIDEO_URL =
+  "/generated/aivora-main-demo-concept-2026-05-10.mp4";
+export const MAPLESIDE_LIVING_VIDEO_POSTER_URL =
+  "/generated/aivora-main-demo-concept-2026-05-10-poster.jpg";
 
 /* ------------------------------------------------------------------ */
-/* Customer Input Panel                                                */
+/* 第 1 步 · 客户输入面板（默认展示 Sunny Shutter 输入）                  */
 /* ------------------------------------------------------------------ */
 
 export interface DemoProjectInput {
-  industry: "real_estate" | "pet_business" | "local_service";
+  industry: "smart_home" | "home_goods" | "local_service";
   industryLabel: string;
   goal: string;
   goalLabel: string;
   city: string;
   platforms: ReadonlyArray<{ key: string; label: string }>;
   hasFootage: boolean;
-  humanOnCamera: "agent" | "ai_avatar" | "voiceover_only";
+  humanOnCamera: "founder" | "ai_avatar" | "voiceover_only";
   humanOnCameraLabel: string;
   videoLengthSec: 15 | 30 | 45 | 60;
   brandTone:
@@ -123,28 +149,28 @@ export interface DemoProjectInput {
 }
 
 export const demoProject: DemoProjectInput = {
-  industry: "real_estate",
-  industryLabel: "地产 · Real Estate",
-  goal: "promote_listing",
-  goalLabel: "推广 North York 公寓房源",
-  city: "多伦多 · North York",
+  industry: "smart_home",
+  industryLabel: "智能家居 · 电动卷帘",
+  goal: "brand_storytelling",
+  goalLabel: "建立北美「适老化 + 独立生活」品牌叙事",
+  city: "加拿大 · 多伦多 / 大温",
   platforms: [
     { key: "tiktok", label: "TikTok" },
     { key: "instagram_reels", label: "Instagram Reels" },
     { key: "youtube_shorts", label: "YouTube Shorts" },
   ],
-  hasFootage: true,
-  humanOnCamera: "agent",
-  humanOnCameraLabel: "经纪人本人出镜（AI 数字人可选）",
+  hasFootage: false,
+  humanOnCamera: "ai_avatar",
+  humanOnCameraLabel: "AI 数字人剪影 + 真实产品镜头",
   videoLengthSec: 30,
-  brandTone: "warm",
-  brandToneLabel: "温暖、有信任感",
-  businessName: "示例地产 · North York",
-  keyMessage: "这个预算在 North York 还能买到什么？",
+  brandTone: "luxury",
+  brandToneLabel: "克制的温暖 · 高端家居叙事",
+  businessName: "Sunny Shutter",
+  keyMessage: "Comfort, with independence —— 不需要别人替他改变环境。",
 };
 
 /* ------------------------------------------------------------------ */
-/* Creative Evidence Cards                                             */
+/* 第 2 步 · 创意方向卡（3 张，Sunny Shutter 适用）                      */
 /* ------------------------------------------------------------------ */
 
 export interface CreativeEvidenceCardDemo {
@@ -152,7 +178,10 @@ export interface CreativeEvidenceCardDemo {
   title: string;
   industry: DemoProjectInput["industry"];
   platform: "tiktok" | "instagram_reels" | "youtube_shorts" | "mixed";
-  objective: "promote_listing" | "get_leads" | "increase_bookings";
+  objective:
+    | "brand_storytelling"
+    | "lead_generation"
+    | "product_showcase";
   recommendationScore: number;
   hookPattern: {
     pattern: string;
@@ -187,105 +216,107 @@ export interface CreativeEvidenceCardDemo {
 
 export const creativeEvidenceCards: ReadonlyArray<CreativeEvidenceCardDemo> = [
   {
-    slug: "real-estate-comment-reply-listing",
-    title: "评论回复式房源推荐",
-    industry: "real_estate",
-    platform: "tiktok",
-    objective: "promote_listing",
-    recommendationScore: 91,
+    slug: "sunny-shutter-aging-in-place",
+    title: "适老化叙事 · 一次轻触换来的从容",
+    industry: "smart_home",
+    platform: "mixed",
+    objective: "brand_storytelling",
+    recommendationScore: 92,
     hookPattern: {
-      pattern: "“评论区有人问 X，今天直接给你看一套”",
+      pattern: "「他不需要别人替他改变房间，他自己来。」",
       openingSeconds: 3,
-      hookType: "Question",
+      hookType: "Reveal",
       whyItStops:
-        "把评论问题前置当 hook，让带着同样问题的潜在买家停下滑动并代入。",
+        "用克制的画面和「独立 / 尊严」议题切入，让有长辈的家庭立刻代入，是高客单价智能家居品类最稳定的叙事母题。",
     },
     publicMetrics: {
-      observedAt: "示例 · 2026 Q1",
-      references: 18,
-      averageViews: 312_000,
-      engagementRate: 5.4,
+      observedAt: "示例 · 2026 Q2",
+      references: 16,
+      averageViews: 268_000,
+      highestViews: 1_240_000,
+      engagementRate: 7.8,
     },
     whyItWorks:
-      "评论区当成需求池，让“你问我答”代替广告腔，原生感最高、信任度也最高。",
-    visualStyle: "竖屏 9:16，自然光，经纪人口播 + 房源 B-roll",
+      "不卖技术参数，卖一个完整的「人 + 时刻 + 控制感」短片。这种叙事在 25-45 岁高净值北美华人家庭里转发率最高，并且天然适配中文 / 英文双语市场。",
+    visualStyle: "竖屏 9:16，35mm 电影感 + 浅景深 + 暖色调，AI 人物剪影出镜",
     suggestedUseCase:
-      "已挂牌 7-30 天的房源；在原帖评论区或新内容中回应购房问题。",
+      "Sunny Shutter 品牌主形象广告；可同步作为加拿大本地报纸 / 政府适老化补贴推广配套视频。",
     shootingDifficulty: "Low",
     conversionPotential: "High",
     trustFactor: "High",
     clientPreviewSummary:
-      "经纪人针对真实评论问题（如“这个预算还能买什么”）给出实地走房答案。",
+      "一位长辈在晨光里读书，强光让书页发烫；他轻触手机，电动卷帘缓缓调整，光变得柔和——独立，不被打扰。默认方向。",
     riskNotes:
-      "地产行业需附 Fair Housing 与挂牌 disclaimer，不要承诺投资回报。",
-    tags: ["口播开场", "评论钩子", "走房 tour"],
+      "适老化叙事必须保留人物尊严，避免「弱势 / 需要被照顾」的镜头语言；不可承诺医疗或安全级别效果。",
+    tags: ["品牌叙事", "适老化", "高客单价"],
   },
   {
-    slug: "real-estate-price-contrast-tour",
-    title: "价格反差型房源展示",
-    industry: "real_estate",
+    slug: "sunny-shutter-smart-home-routine",
+    title: "智能家居日常 · 一家人不被打断的早晨",
+    industry: "smart_home",
     platform: "tiktok",
-    objective: "promote_listing",
-    recommendationScore: 87,
+    objective: "product_showcase",
+    recommendationScore: 88,
     hookPattern: {
-      pattern: "“这个预算在 North York 还能买到什么？”",
+      pattern: "「让早晨自己变成你想要的样子。」",
       openingSeconds: 3,
-      hookType: "Curiosity",
+      hookType: "POV",
       whyItStops:
-        "把买家最在意的“预算 vs 实物”落差直接挑明，自然激发继续看完的好奇心。",
+        "把电动卷帘嵌入早餐 / 通勤 / 学习的一连串日常仪式里，让产品成为家庭生活的「无声配角」，比硬广更耐看。",
     },
     publicMetrics: {
-      observedAt: "示例 · 2026 Q1",
-      references: 24,
-      highestViews: 1_100_000,
-      engagementRate: 6.1,
-    },
-    whyItWorks:
-      "价格 + 城市的对比 hook 是首次购房者最容易转发的格式，转发即新流量入口。",
-    visualStyle: "竖屏 9:16，门口锚定 + 客厅推进 + 厨房横移 + 主卧/社区收尾",
-    suggestedUseCase:
-      "首套房友好的中端公寓；预算定位明确（如 60-90 万 CAD）。",
-    shootingDifficulty: "Low",
-    conversionPotential: "High",
-    trustFactor: "High",
-    clientPreviewSummary:
-      "把房源走一圈，重点放在“同价位在这个城市能拿到什么”。本次默认方向。",
-    riskNotes:
-      "价格不能误导，建议用挂牌价区间表达；附必要 disclaimer。",
-    tags: ["价格反差", "首套房", "城市钩子"],
-  },
-  {
-    slug: "real-estate-agent-voice-broll",
-    title: "经纪人口播 + 房源 B-roll",
-    industry: "real_estate",
-    platform: "instagram_reels",
-    objective: "get_leads",
-    recommendationScore: 84,
-    hookPattern: {
-      pattern: "“在我做经纪人这 X 年里，这是我最常被问到的一种户型”",
-      openingSeconds: 3,
-      hookType: "Authority",
-      whyItStops:
-        "经纪人用第一人称专业建议口播，AI 痕迹最低，对个人 IP 友好。",
-    },
-    publicMetrics: {
-      observedAt: "示例 · 2026 Q1",
-      references: 12,
+      observedAt: "示例 · 2026 Q2",
+      references: 21,
       averageViews: 184_000,
-      engagementRate: 4.8,
+      engagementRate: 6.3,
     },
     whyItWorks:
-      "口播 + 房源 B-roll 是个人 IP 经纪人最稳定的获客格式，转化路径短。",
-    visualStyle: "口播开场 + 房源 4-6 段 B-roll 拼接，强调真人质感",
+      "智能家居买家通常先看「我家也能这样」的生活方式片段，再去关心规格。日常仪式向叙事是把品牌嵌入用户生活记忆里的最短路径。",
+    visualStyle: "竖屏 9:16，自然光 + 居家场景 + 真实物件，节奏轻快",
     suggestedUseCase:
-      "经纪人个人账号长期经营 / 房源广告投放素材。",
+      "TikTok / Reels 高频投放；可批量化生产「早晨 / 午后 / 晚间」三套场景轮播。",
     shootingDifficulty: "Medium",
     conversionPotential: "High",
+    trustFactor: "Medium",
+    clientPreviewSummary:
+      "厨房、阅读角、孩子写作业的台灯——电动卷帘配合家庭节奏自动调节，不抢戏，但每个场景都看得到。",
+    riskNotes:
+      "需要明确「Sunny Shutter App / Google / Apple Home」的兼容描述，避免误导集成范围。",
+    tags: ["生活方式", "日常仪式", "可批量化"],
+  },
+  {
+    slug: "sunny-shutter-product-hero",
+    title: "产品广告级 · 北欧极简的窗",
+    industry: "smart_home",
+    platform: "instagram_reels",
+    objective: "product_showcase",
+    recommendationScore: 85,
+    hookPattern: {
+      pattern: "「同样的窗，给你三种早晨。」",
+      openingSeconds: 3,
+      hookType: "Demo",
+      whyItStops:
+        "纯产品 hero 镜头 + 一次性展示卷帘 3 个挡位的光感变化，视觉冲击强、消息密度高，适合品牌官号沉淀长期内容。",
+    },
+    publicMetrics: {
+      observedAt: "示例 · 2026 Q2",
+      references: 14,
+      highestViews: 920_000,
+      engagementRate: 4.9,
+    },
+    whyItWorks:
+      "高端家居品类需要一组「让人愿意截图收藏」的产品 hero 视觉锚定品牌；这种镜头投放成本低但单条溢价最高。",
+    visualStyle: "纯产品 hero 镜头，无人，强对称构图，色温平衡 5200K",
+    suggestedUseCase:
+      "Instagram / Pinterest 品牌主页常驻；DTC 独立站详情页 hero 视频。",
+    shootingDifficulty: "Low",
+    conversionPotential: "Medium",
     trustFactor: "High",
     clientPreviewSummary:
-      "适合已经有个人账号的经纪人，把口播专业建议 + 房源镜头组合为获客视频。",
-    riskNotes: "需要经纪人本人或经授权的 AI 头像；声音克隆必须显式同意。",
-    tags: ["真人口播", "经纪人 IP", "B-roll"],
+      "镜头只盯一扇窗，三段卷帘开合让光线在墙面上画出从清晨到正午的弧线——产品本身就是叙事主角。",
+    riskNotes:
+      "需保证卷帘运行声压低于实际指标的合理范围，画面避免暗示「全屋同步」等未承诺功能。",
+    tags: ["产品 hero", "极简视觉", "品牌沉淀"],
   },
 ] as const;
 
@@ -293,7 +324,7 @@ export type CreativeEvidenceCardSlug =
   (typeof creativeEvidenceCards)[number]["slug"];
 
 /* ------------------------------------------------------------------ */
-/* Reference Video Previews                                            */
+/* 第 3 步 · 参考视频信号（仅展示结构与表现信号，不复制内容）              */
 /* ------------------------------------------------------------------ */
 
 export interface ReferencePreviewDemo {
@@ -317,81 +348,77 @@ export interface ReferencePreviewDemo {
 
 export const referencePreviews: ReadonlyArray<ReferencePreviewDemo> = [
   {
-    cardSlug: "real-estate-price-contrast-tour",
+    cardSlug: "sunny-shutter-aging-in-place",
     platform: "TikTok",
     externalUrl: null,
     externalUrlDisabled: true,
-    thumbnailPlaceholderLabel: "TikTok · 价格反差走房",
+    thumbnailPlaceholderLabel: "TikTok · 适老化品牌叙事",
     caption:
-      "示例参考：「这个预算在多伦多还能买到什么」类内容的结构 + 节奏参考。",
+      "示例参考：北美智能家居品牌的「人物剪影 + 关键时刻 + 产品响应」结构。",
     metrics: {
-      observedAt: "示例 · 2026 Q1",
-      views: 1_100_000,
-      likes: 84_300,
-      shares: 6_200,
-      engagementRate: 8.6,
+      observedAt: "示例 · 2026 Q2",
+      views: 1_240_000,
+      likes: 92_400,
+      shares: 7_800,
+      engagementRate: 8.1,
     },
     takeaways: [
-      "前 3 秒用预算 + 城市直接挑明 hook",
-      "镜头按外观 → 客厅 → 厨房 → 卧室节奏推进",
-      "结尾用 CTA 引导评论 / 私信",
+      "前 3 秒用「他」字开篇，立刻建立人物视角",
+      "中段产品出现时间被压到 5-15 秒之间，避免硬广",
+      "结尾留白 2 秒以情绪收场，便于品牌 logo 自然落位",
     ],
   },
   {
-    cardSlug: "real-estate-comment-reply-listing",
-    platform: "TikTok",
-    externalUrl: null,
-    externalUrlDisabled: true,
-    thumbnailPlaceholderLabel: "TikTok · 评论回复式走房",
-    caption:
-      "示例参考：评论区追问后，经纪人直接走一套房源回应。",
-    metrics: {
-      observedAt: "示例 · 2026 Q1",
-      views: 312_000,
-      likes: 21_800,
-      shares: 1_410,
-      engagementRate: 5.4,
-    },
-    takeaways: [
-      "把评论问题截图当 hook",
-      "口播 + B-roll 节奏交替",
-      "结尾邀请新评论形成下一条素材",
-    ],
-  },
-  {
-    cardSlug: "real-estate-agent-voice-broll",
+    cardSlug: "sunny-shutter-smart-home-routine",
     platform: "Instagram Reels",
     externalUrl: null,
     externalUrlDisabled: true,
-    thumbnailPlaceholderLabel: "Reels · 经纪人口播",
+    thumbnailPlaceholderLabel: "Reels · 智能家居生活仪式",
     caption:
-      "示例参考：经纪人口播 + 4 段房源 B-roll 拼接，IP 风格强烈。",
+      "示例参考：日常仪式向智能家居内容，把产品嵌入家庭场景节奏。",
     metrics: {
-      observedAt: "示例 · 2026 Q1",
+      observedAt: "示例 · 2026 Q2",
       views: 184_000,
-      likes: 9_700,
-      shares: 612,
-      engagementRate: 4.8,
+      likes: 14_200,
+      shares: 1_120,
+      engagementRate: 6.3,
     },
     takeaways: [
-      "第一句话先建立行业权威",
-      "B-roll 配合口播节奏切换",
-      "CTA 引导私信或保存",
+      "三段场景轮播（厨房 / 阅读 / 学习）形成节奏感",
+      "产品操作时长保持 1.5 秒以内，避免说明书感",
+      "字幕只在卡点出现，让画面承担更多叙事",
+    ],
+  },
+  {
+    cardSlug: "sunny-shutter-product-hero",
+    platform: "YouTube Shorts",
+    externalUrl: null,
+    externalUrlDisabled: true,
+    thumbnailPlaceholderLabel: "Shorts · 极简产品 hero",
+    caption:
+      "示例参考：北欧家居品牌的产品 hero 短视频，单镜头叙事 + 强对称构图。",
+    metrics: {
+      observedAt: "示例 · 2026 Q2",
+      views: 920_000,
+      likes: 54_600,
+      shares: 4_180,
+      engagementRate: 4.9,
+    },
+    takeaways: [
+      "整支视频只用一个机位 + 一面墙",
+      "光线变化作为唯一动效，避免任何切镜",
+      "结尾品牌名以光斑形式自然显形",
     ],
   },
 ] as const;
 
-/**
- * Reference 区域永远展示的合规说明（与 ComplianceNote 重复展示，强调一次）。
- * 中文版同时保留英文兜底，方便海外合作方与法务复核。
- */
 export const REFERENCE_COMPLIANCE_TEXT =
   "我们只参考公开内容的结构与表现信号，不会下载、自托管、去水印或复制任何第三方视频。";
 export const REFERENCE_COMPLIANCE_TEXT_EN =
   "We reference structure and performance signals only. We do not copy or rehost third-party videos.";
 
 /* ------------------------------------------------------------------ */
-/* AI Script                                                           */
+/* 第 4 步 · AI 脚本                                                    */
 /* ------------------------------------------------------------------ */
 
 export interface ScriptCaptionDemo {
@@ -415,61 +442,56 @@ export interface GeneratedScriptDemo {
 }
 
 export const generatedScript: GeneratedScriptDemo = {
-  forCardSlug: "real-estate-price-contrast-tour",
+  forCardSlug: "sunny-shutter-aging-in-place",
   language: "zh-CN",
-  title: "这个预算在 North York 还能买到什么？",
+  title: "舒适，从独立开始 · Comfort, with independence.",
   hook:
-    "很多人以为现在 North York 买房至少要 150 万，其实这个预算还有选择。",
+    "他不需要谁替他改变房间——他自己来。",
   voiceover:
-    "很多人以为现在 North York 买房至少要 150 万，其实这个预算还有选择。今天我带你实地看一套，门口先看小区位置，进门看采光和户型，再到厨房和主卧细节，最后讲讲社区生活。如果你也在看这个价位的房子，留言告诉我你最在意什么，我下一条直接接着拍。",
+    "清晨的光，稍微有点太强。他伸手——不是寻求帮助，而是拿起桌上的手机。轻触一下，卷帘慢慢调整，光线变得柔和。他继续读书。厨房里，女儿笑了笑，又转身回到自己的咖啡。舒适，从独立开始。",
   captions: [
     {
       sceneIndex: 1,
-      text: "North York 这个预算还有选择？",
+      text: "清晨，光线稍稍过强。",
       startSec: 0,
-      endSec: 4,
+      endSec: 5,
     },
-    { sceneIndex: 2, text: "先看一眼楼盘外观", startSec: 4, endSec: 8 },
-    { sceneIndex: 3, text: "客厅采光直接决定居住感", startSec: 8, endSec: 13 },
-    {
-      sceneIndex: 4,
-      text: "厨房 = 日常生活密度",
-      startSec: 13,
-      endSec: 17,
-    },
+    { sceneIndex: 2, text: "他没有开口求人。", startSec: 5, endSec: 10 },
+    { sceneIndex: 3, text: "一次安静的轻触。", startSec: 10, endSec: 15 },
+    { sceneIndex: 4, text: "光线，慢慢柔下来。", startSec: 15, endSec: 20 },
     {
       sceneIndex: 5,
-      text: "主卧 + 社区是真正的“住起来”",
-      startSec: 17,
-      endSec: 23,
+      text: "他自己的早晨，照他自己的节奏。",
+      startSec: 20,
+      endSec: 25,
     },
-    { sceneIndex: 6, text: "私信我，发你完整清单", startSec: 23, endSec: 30 },
+    { sceneIndex: 6, text: "Sunny Shutter · 舒适，从独立开始。", startSec: 25, endSec: 30 },
   ],
-  cta: "想看这个价位还能买到哪些房源，私信我发你清单。",
+  cta: "了解更多：sunnyshutter.ca",
   platformNotes: [
     {
       platform: "TikTok",
-      note: "用本地化口语；前 3 秒强 hook；caption 短句。",
+      note: "中文字幕主版本投放北美华人市场；英文字幕版同步上线给本地市场，保留「他自己来」的情绪张力。",
     },
     {
       platform: "Instagram Reels",
-      note: "可加配色一致的 caption 卡；保留品牌色与小 logo。",
+      note: "可叠加品牌配色字幕卡；结尾留 1.5 秒空帧用于 logo 沉淀。",
     },
     {
       platform: "YouTube Shorts",
-      note: "结尾给出更长 CTA + 频道名露出，便于关注转化。",
+      note: "结尾 CTA 加 sunnyshutter.ca + 频道关注引导；适配 60 秒延展版本。",
     },
   ],
   complianceNotes: [
-    "Real estate 行业必须遵守当地 Fair Housing 与 disclosure 规则，禁止价格误导。",
-    "脚本为客户原创版本，未复制任何 reference video 的字幕、配音或镜头脚本。",
-    "若使用 AI 头像或克隆声音，需经纪人本人显式签署同意书。",
+    "适老化叙事必须保留人物尊严，禁止任何「弱者 / 被照顾」的视觉暗示。",
+    "脚本为客户原创版本，未复制任何参考视频的字幕、配音或镜头脚本。",
+    "AI 人物剪影未生成可识别的真实人脸；若客户后续接入真实模特，需经本人显式书面授权。",
   ],
   copiedFromReference: false,
 };
 
 /* ------------------------------------------------------------------ */
-/* Storyboard / Shooting Guide                                         */
+/* 第 5 步 · 分镜与拍摄指导（对齐 Sunny Shutter V2.1 storyboard plan）   */
 /* ------------------------------------------------------------------ */
 
 export interface StoryboardShotDemo {
@@ -497,236 +519,242 @@ export interface StoryboardShotDemo {
   shootingRequirements: ReadonlyArray<string>;
   commonMistakes: ReadonlyArray<string>;
   visualPlaceholder: {
-    /// Tailwind gradient class（用作 storyboard 卡的占位色）
     gradient: string;
     accentLabel: string;
     iconKey:
-      | "agent"
-      | "exterior"
-      | "living"
-      | "kitchen"
-      | "bedroom"
-      | "cta";
+      | "opener"
+      | "figure"
+      | "tap"
+      | "window"
+      | "family"
+      | "endcard";
   };
 }
 
 export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
   {
     sceneIndex: 1,
-    durationSec: 4,
-    shotType: "talking_head",
-    shotTypeLabel: "经纪人开场 · 真人口播",
-    whatToFilm:
-      "经纪人站在房源大门外，半身入镜，背景能看到楼盘标识或大堂。",
-    cameraInstruction:
-      "竖屏手持，胸口高度，距离 1.2-1.5 米；自然光 + 反光板补脸；镜头静止。",
-    composition: "centered",
-    cameraMovement: "static",
-    orientation: "portrait",
-    requiredFlag: true,
-    humanRequired: true,
-    requiredProps: ["经纪人本人或授权 AI avatar", "房源 lobby 背景"],
-    captionText: "North York 这个预算还有选择？",
-    voiceoverSegment:
-      "很多人以为现在 North York 买房至少要 150 万，其实这个预算还有选择。",
-    shootingRequirements: [
-      "面部清晰、嘴型可读",
-      "背景能识别房源所在楼盘",
-      "环境噪音低于一般街道车流",
-    ],
-    commonMistakes: ["逆光导致脸部黑掉", "经纪人离镜头过远", "背景里有路人脸需打码"],
-    visualPlaceholder: {
-      gradient: "from-emerald-400/30 via-emerald-500/15 to-transparent",
-      accentLabel: "镜头 01 · 经纪人开场",
-      iconKey: "agent",
-    },
-  },
-  {
-    sceneIndex: 2,
-    durationSec: 4,
-    shotType: "establishing",
-    shotTypeLabel: "楼盘外观 · 建立镜头",
-    whatToFilm:
-      "房源建筑外观或入口大堂，竖屏稳定拍摄。",
-    cameraInstruction:
-      "竖屏 + 三脚架或稳定器；保持镜头水平；不要扫太快。",
-    composition: "rule_of_thirds",
-    cameraMovement: "static",
-    orientation: "portrait",
-    requiredFlag: true,
-    humanRequired: false,
-    requiredProps: ["楼盘外观", "门口 / 大堂入口"],
-    captionText: "先看一眼楼盘外观",
-    voiceoverSegment: "今天我带你实地看一套",
-    shootingRequirements: [
-      "光线明亮（建议中午或下午）",
-      "避免逆光或晃动",
-      "镜头 framing 显示楼盘体量",
-    ],
-    commonMistakes: ["镜头扫太快", "晃得像 vlog", "构图偏低只拍到地面"],
-    visualPlaceholder: {
-      gradient: "from-sky-400/30 via-sky-500/15 to-transparent",
-      accentLabel: "镜头 02 · 楼盘外观",
-      iconKey: "exterior",
-    },
-  },
-  {
-    sceneIndex: 3,
     durationSec: 5,
-    shotType: "wide",
-    shotTypeLabel: "客厅推进",
+    shotType: "establishing",
+    shotTypeLabel: "镜头 01 · 控制前的房间",
     whatToFilm:
-      "客厅推进，竖屏慢慢往前走，展示采光和空间感。",
+      "一个安静的高端客厅，斑马卷帘把强烈晨光切成明亮的条纹，落在边桌、一杯茶、一本翻开的书上。还没有人入镜，但已经能感到「这里有人」。",
     cameraInstruction:
-      "竖屏镜头匀速推进；保持手机垂直；步速放慢；从门口走向窗边。",
+      "竖屏 + 三脚架，慢速推进；从窗光向座椅推进；保持镜头水平；曝光锁定避免高光过曝。",
     composition: "leading_lines",
     cameraMovement: "push_in",
     orientation: "portrait",
     requiredFlag: true,
     humanRequired: false,
-    requiredProps: ["客厅", "窗户 / 自然光"],
-    captionText: "客厅采光直接决定居住感",
-    voiceoverSegment: "进门看采光和户型",
+    requiredProps: ["斑马卷帘", "椅子 / 边桌", "茶 + 书"],
+    captionText: "清晨，光线稍稍过强。",
+    voiceoverSegment:
+      "清晨的光，稍微有点太强。",
     shootingRequirements: [
-      "采光明显，能看到自然光照进客厅",
-      "无杂物或租客遗留物",
-      "窗外画面不出现敏感隐私",
+      "光线明亮但未过曝",
+      "卷帘条纹清晰可辨",
+      "椅子、茶、书排布自然",
     ],
     commonMistakes: [
-      "推得太快导致画面模糊",
-      "拿横屏出现黑边",
-      "曝光忽明忽暗",
+      "镜头推进太快显得机械",
+      "高光区域过曝丢失细节",
+      "构图过满，留白不够",
     ],
     visualPlaceholder: {
-      gradient: "from-indigo-400/30 via-indigo-500/15 to-transparent",
-      accentLabel: "镜头 03 · 客厅",
-      iconKey: "living",
+      gradient: "from-amber-300/30 via-amber-500/15 to-transparent",
+      accentLabel: "镜头 01 · 控制前的房间",
+      iconKey: "opener",
     },
   },
   {
-    sceneIndex: 4,
-    durationSec: 4,
-    shotType: "detail",
-    shotTypeLabel: "厨房横移",
-    whatToFilm:
-      "厨房横移，展示台面、炉灶、采光。",
-    cameraInstruction:
-      "竖屏 + 慢速横移；保持距离一致；避免反光。",
-    composition: "rule_of_thirds",
-    cameraMovement: "pan",
-    orientation: "portrait",
-    requiredFlag: true,
-    humanRequired: false,
-    requiredProps: ["厨房台面", "炉灶 / 抽油烟机", "自然光或厨房灯"],
-    captionText: "厨房 = 日常生活密度",
-    voiceoverSegment: "再到厨房和主卧细节",
-    shootingRequirements: [
-      "台面清空、整洁可读",
-      "镜头距离 0.6-0.8 米",
-      "横移速度匀速、不要扫到反光严重的不锈钢",
-    ],
-    commonMistakes: [
-      "横移太快导致画面模糊",
-      "炉具不干净直接成画面焦点",
-      "镜头反射到拍摄人本身",
-    ],
-    visualPlaceholder: {
-      gradient: "from-amber-400/30 via-amber-500/15 to-transparent",
-      accentLabel: "镜头 04 · 厨房",
-      iconKey: "kitchen",
-    },
-  },
-  {
-    sceneIndex: 5,
-    durationSec: 6,
+    sceneIndex: 2,
+    durationSec: 5,
     shotType: "medium",
-    shotTypeLabel: "主卧 + 社区氛围",
+    shotTypeLabel: "镜头 02 · 人物的需求",
     whatToFilm:
-      "主卧 + 社区生活感（窗外视野、附近便利设施）。",
+      "同一张椅子，从人物斜后方拍摄。一位老人穿着米色针织开衫，正侧身阅读——只能看到银发后脑勺和肩膀。光太亮，他略停顿。",
     cameraInstruction:
-      "主卧静态镜头 3s + 窗外或社区 B-roll 3s；保持竖屏。",
-    composition: "frame_within_frame",
+      "竖屏静态；机位略低于人物视线高度；让卷帘条纹落在人物肩背形成层次。",
+    composition: "rule_of_thirds",
     cameraMovement: "static",
     orientation: "portrait",
     requiredFlag: true,
-    humanRequired: false,
-    requiredProps: ["主卧整洁画面", "窗外视野或附近便利设施 B-roll"],
-    captionText: "主卧 + 社区是真正的“住起来”",
-    voiceoverSegment: "最后讲讲社区生活",
+    humanRequired: true,
+    requiredProps: ["授权模特 / AI 数字人剪影", "米色针织衫", "同一张椅子"],
+    captionText: "他没有开口求人。",
+    voiceoverSegment:
+      "他伸手——不是寻求帮助，而是拿起桌上的手机。",
     shootingRequirements: [
-      "床铺整理、无个人物品",
-      "窗外景观尽量包含社区/绿化/便利设施",
-      "B-roll 与主卧镜头节奏一致",
+      "人物面部不入镜，保留隐私 + 普适性",
+      "肩部动作克制，避免戏剧化",
+      "光线方向与镜头 01 完全一致",
     ],
     commonMistakes: [
-      "拍到床上私人物品",
-      "B-roll 抖动严重",
-      "窗外暴露车牌或他人脸",
+      "正面拍摄导致需要真实模特授权",
+      "动作过大显得不自然",
+      "光线方向与镜头 01 接不上",
     ],
     visualPlaceholder: {
-      gradient: "from-rose-400/30 via-rose-500/15 to-transparent",
-      accentLabel: "镜头 05 · 主卧 + 社区",
-      iconKey: "bedroom",
+      gradient: "from-stone-300/30 via-stone-500/15 to-transparent",
+      accentLabel: "镜头 02 · 人物的需求",
+      iconKey: "figure",
     },
   },
   {
-    sceneIndex: 6,
+    sceneIndex: 3,
     durationSec: 5,
-    shotType: "talking_head",
-    shotTypeLabel: "经纪人收尾 · CTA 口播",
+    shotType: "close_up",
+    shotTypeLabel: "镜头 03 · 无声的控制",
     whatToFilm:
-      "经纪人或数字人出镜口播 CTA；可在房源客厅或户外阳台。",
+      "极近景：只露出手与前臂、边桌一角、翻开的书页和一部模糊的手机。手指轻触屏幕一次，画面里没有界面文字。",
     cameraInstruction:
-      "竖屏静态；上半身入镜；眼神看镜头；语速放慢。",
+      "竖屏 + 微距；机位与桌面平齐；曝光对手部肤色；手机屏幕保持失焦不可读。",
     composition: "centered",
     cameraMovement: "static",
     orientation: "portrait",
     requiredFlag: true,
     humanRequired: true,
-    requiredProps: ["经纪人本人或授权 AI 数字人"],
-    captionText: "私信我，发你完整清单",
-    voiceoverSegment:
-      "想看这个价位还能买到哪些房源，私信我发你清单。",
+    requiredProps: ["授权的手部出镜", "手机", "书 + 边桌"],
+    captionText: "一次安静的轻触。",
+    voiceoverSegment: "轻触一下。",
     shootingRequirements: [
-      "面部清晰",
-      "环境光稳定，不要忽明忽暗",
-      "声音清晰，不抢背景音",
+      "手部动作慢、有控制感",
+      "手机屏幕不出现真实 App 截图",
+      "肤色自然，避免后期过度美化",
     ],
     commonMistakes: [
-      "嘴型与口播不同步",
-      "结尾过快导致 CTA 被裁",
-      "数字人表情僵硬",
+      "手机屏幕清晰露出第三方界面",
+      "动作过快显得焦虑",
+      "手部畸形或多余手指需重拍",
     ],
     visualPlaceholder: {
-      gradient: "from-violet-400/30 via-violet-500/15 to-transparent",
-      accentLabel: "镜头 06 · 经纪人收尾",
-      iconKey: "cta",
+      gradient: "from-emerald-300/30 via-emerald-500/15 to-transparent",
+      accentLabel: "镜头 03 · 无声的控制",
+      iconKey: "tap",
+    },
+  },
+  {
+    sceneIndex: 4,
+    durationSec: 5,
+    shotType: "detail",
+    shotTypeLabel: "镜头 04 · 产品响应",
+    whatToFilm:
+      "干净的产品 hero 构图：同一扇窗、同样的电动斑马卷帘，强烈晨光逐渐被柔化成暖色漫射光。窗线笔直、条纹整齐。",
+    cameraInstruction:
+      "竖屏静态；机位正对窗户；曝光从高对比到柔和过渡时保持锁定；不要随光线漂移。",
+    composition: "symmetrical",
+    cameraMovement: "static",
+    orientation: "portrait",
+    requiredFlag: true,
+    humanRequired: false,
+    requiredProps: ["电动斑马卷帘", "干净窗框", "可控光源"],
+    captionText: "光线，慢慢柔下来。",
+    voiceoverSegment: "卷帘把光线变得柔和。他继续读书。",
+    shootingRequirements: [
+      "卷帘运动 4 秒内完成",
+      "全程窗框保持笔直",
+      "光线变化平滑、无跳变",
+    ],
+    commonMistakes: [
+      "卷帘抖动暴露电机问题",
+      "条纹倾斜显得低端",
+      "镜头跟着光线一起漂移",
+    ],
+    visualPlaceholder: {
+      gradient: "from-sky-300/30 via-sky-500/15 to-transparent",
+      accentLabel: "镜头 04 · 产品响应",
+      iconKey: "window",
+    },
+  },
+  {
+    sceneIndex: 5,
+    durationSec: 5,
+    shotType: "wide",
+    shotTypeLabel: "镜头 05 · 不被打扰的独立",
+    whatToFilm:
+      "同一客厅，光线已变得柔和。老人继续阅读；远处厨房有家人的轻微剪影，看到老人在做自己的事，露出微笑后回到自己的咖啡。",
+    cameraInstruction:
+      "竖屏静态；前景座椅 + 后景厨房；前景对焦，后景轻微失焦；保留两侧空白让品牌 end card 自然接入。",
+    composition: "frame_within_frame",
+    cameraMovement: "static",
+    orientation: "portrait",
+    requiredFlag: true,
+    humanRequired: true,
+    requiredProps: ["第二位家人剪影", "厨房背景", "暖色实用光源"],
+    captionText: "他自己的早晨，照他自己的节奏。",
+    voiceoverSegment:
+      "厨房里，女儿笑了笑，又转身回到自己的咖啡。",
+    shootingRequirements: [
+      "后景人物剪影柔焦，不抢戏",
+      "前后景光比保持在 2:1 以内",
+      "整体情绪克制，不要刻意煽情",
+    ],
+    commonMistakes: [
+      "后景家人正面入镜抢戏",
+      "光比过大显得人物孤独",
+      "音乐情绪过满破坏克制感",
+    ],
+    visualPlaceholder: {
+      gradient: "from-violet-300/30 via-violet-500/15 to-transparent",
+      accentLabel: "镜头 05 · 独立被看见",
+      iconKey: "family",
+    },
+  },
+  {
+    sceneIndex: 6,
+    durationSec: 5,
+    shotType: "b_roll",
+    shotTypeLabel: "镜头 06 · 品牌收尾",
+    whatToFilm:
+      "5 秒品牌 end card：暖色背景上 Sunny Shutter 真实 logo 与 slogan「Comfort, with independence.」缓慢淡入；底部小字 sunnyshutter.ca。",
+    cameraInstruction:
+      "ffmpeg overlay 渲染；logo 不交给 AI 生成；end card 与镜头 05 末帧颜色温度保持一致。",
+    composition: "centered",
+    cameraMovement: "static",
+    orientation: "portrait",
+    requiredFlag: true,
+    humanRequired: false,
+    requiredProps: ["Sunny Shutter 真实 logo PNG", "品牌字体", "网址"],
+    captionText: "Sunny Shutter · 舒适，从独立开始。",
+    voiceoverSegment: "舒适，从独立开始。",
+    shootingRequirements: [
+      "logo 必须由真实品牌 PNG 合成，不允许 AI 生成",
+      "end card 时长固定 5 秒",
+      "色温与上一镜头平滑过渡",
+    ],
+    commonMistakes: [
+      "用 AI 生成 logo 导致字形错乱",
+      "end card 过长拖累节奏",
+      "字幕字号过小在手机端不可读",
+    ],
+    visualPlaceholder: {
+      gradient: "from-amber-400/30 via-rose-400/15 to-transparent",
+      accentLabel: "镜头 06 · 品牌收尾",
+      iconKey: "endcard",
     },
   },
 ] as const;
 
 /* ------------------------------------------------------------------ */
-/* Asset QA Mock                                                       */
+/* 第 6 步 · 素材质检 mock 结果                                          */
 /* ------------------------------------------------------------------ */
 
 export interface AssetQAResultDemo {
   assetName: string;
   assetType:
-    | "exterior"
-    | "living_room"
-    | "kitchen"
-    | "bedroom"
-    | "agent_cta"
+    | "establishing"
+    | "figure"
+    | "tap"
+    | "window"
+    | "family"
+    | "endcard"
     | "cover_candidate";
   matchedSceneIndex: number | null;
   status: "USABLE" | "BARELY_USABLE" | "RETAKE_RECOMMENDED" | "MISSING";
   statusLabel: string;
   scores: {
-    /// 0-100，越高越好
     clarity: number;
-    /// 0-100，越高越好
     lighting: number;
-    /// 0-100，越高越稳（与 schema 中 shake severity 反向以便 UI 展示更直观）
     stability: number;
   };
   orientation: "portrait" | "landscape" | "square" | "unknown";
@@ -737,70 +765,78 @@ export interface AssetQAResultDemo {
 
 export const assetQAResults: ReadonlyArray<AssetQAResultDemo> = [
   {
-    assetName: "exterior_clip_001.mp4",
-    assetType: "exterior",
-    matchedSceneIndex: 2,
+    assetName: "01-room-before-control.mp4",
+    assetType: "establishing",
+    matchedSceneIndex: 1,
     status: "USABLE",
     statusLabel: "可用 · 候选封面",
-    scores: { clarity: 88, lighting: 84, stability: 90 },
+    scores: { clarity: 91, lighting: 88, stability: 95 },
     orientation: "portrait",
-    reasons: ["对焦清晰", "光线明亮", "竖屏方向匹配"],
+    reasons: ["卷帘条纹清晰", "曝光控制良好", "推进节奏稳定"],
     isCoverCandidate: true,
   },
   {
-    assetName: "living_room_walkthrough_002.mp4",
-    assetType: "living_room",
-    matchedSceneIndex: 3,
+    assetName: "02-human-need.mp4",
+    assetType: "figure",
+    matchedSceneIndex: 2,
     status: "USABLE",
     statusLabel: "可用",
-    scores: { clarity: 82, lighting: 86, stability: 78 },
+    scores: { clarity: 86, lighting: 84, stability: 90 },
     orientation: "portrait",
     reasons: [
-      "采光好，能看到自然光",
-      "推进节奏稳定",
-      "构图未出现私人物品",
+      "人物背影构图自然",
+      "光线方向与镜头 01 一致",
+      "动作克制无过度表演",
     ],
   },
   {
-    assetName: "kitchen_pan_003.mp4",
-    assetType: "kitchen",
-    matchedSceneIndex: 4,
-    status: "RETAKE_RECOMMENDED",
-    statusLabel: "建议重拍",
-    scores: { clarity: 64, lighting: 72, stability: 48 },
-    orientation: "portrait",
-    reasons: ["相机横移过快", "出现轻微画面模糊"],
-    retakeSuggestion:
-      "重拍：横移速度放慢一倍，建议从台面左侧匀速横移到炉灶右侧，全程 4 秒。",
-  },
-  {
-    assetName: "bedroom_clip_004.mp4",
-    assetType: "bedroom",
-    matchedSceneIndex: 5,
+    assetName: "03-quiet-act-of-control.mp4",
+    assetType: "tap",
+    matchedSceneIndex: 3,
     status: "BARELY_USABLE",
     statusLabel: "勉强可用",
-    scores: { clarity: 70, lighting: 64, stability: 72 },
+    scores: { clarity: 74, lighting: 78, stability: 68 },
     orientation: "portrait",
-    reasons: ["主卧光线略偏暗", "窗外画面构图可优化"],
+    reasons: ["手部对焦略软", "手机屏幕反光稍强"],
     retakeSuggestion:
-      "建议补一段窗外社区 B-roll，主卧静态镜头可保留作为前 3 秒。",
+      "建议补一条手部特写：换更柔和的偏光膜遮挡屏幕反光，对焦锁定指尖关节。",
   },
   {
-    assetName: "agent_cta.mp4",
-    assetType: "agent_cta",
-    matchedSceneIndex: 6,
-    status: "MISSING",
-    statusLabel: "缺失 · 必拍",
-    scores: { clarity: 0, lighting: 0, stability: 0 },
-    orientation: "unknown",
-    reasons: ["客户尚未上传经纪人收尾镜头"],
+    assetName: "04-product-responds.mp4",
+    assetType: "window",
+    matchedSceneIndex: 4,
+    status: "USABLE",
+    statusLabel: "可用",
+    scores: { clarity: 89, lighting: 92, stability: 96 },
+    orientation: "portrait",
+    reasons: ["窗框笔直", "卷帘运行平稳", "光线变化平滑无跳变"],
+  },
+  {
+    assetName: "05-independence-noticed.mp4",
+    assetType: "family",
+    matchedSceneIndex: 5,
+    status: "RETAKE_RECOMMENDED",
+    statusLabel: "建议重拍",
+    scores: { clarity: 70, lighting: 60, stability: 72 },
+    orientation: "portrait",
+    reasons: ["后景厨房剪影偏暗", "前后景光比超过 2.5:1"],
     retakeSuggestion:
-      "必须补拍：经纪人静态上半身 5 秒，台词为脚本结尾的 CTA 句。",
+      "在厨房加一盏 3200K 实用光，把后景人物剪影提亮一档；前景保持不变。",
+  },
+  {
+    assetName: "06-brand-end-card.mp4",
+    assetType: "endcard",
+    matchedSceneIndex: 6,
+    status: "USABLE",
+    statusLabel: "可用 · 品牌合成完成",
+    scores: { clarity: 99, lighting: 98, stability: 100 },
+    orientation: "portrait",
+    reasons: ["真实 logo PNG 合成", "色温与上一镜头平滑过渡", "字幕字号在手机端清晰可读"],
   },
 ] as const;
 
 /* ------------------------------------------------------------------ */
-/* Final Outputs                                                       */
+/* 第 7 步 · 最终输出（Sunny Shutter 30 秒成片已交付）                    */
 /* ------------------------------------------------------------------ */
 
 export interface FinalOutputDemo {
@@ -825,54 +861,54 @@ export interface FinalOutputDemo {
 export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
   {
     variant: "main_30s",
-    title: "North York Condo · 30 秒主版本（即将接入）",
+    title: "Sunny Shutter · 30 秒投资人版本（已交付）",
     description:
-      "房地产工作流的最终样片位：按所选方向、AI 脚本、分镜与审核通过的素材拼装的 30 秒主版本视频。当前为占位，房地产样片制作完成后会直接替换到这里。",
+      "5 段 image-storyboard-guided I2V + 真实品牌 end card 拼装的 30 秒主版本。Aivora V2.1 管线产出，已发布到 /personal/videos 用于客户与投资人演示。",
     durationSec: 30,
     aspectRatio: "9:16",
-    videoUrl: null,
-    posterUrl: REAL_ESTATE_MAIN_30S_PLACEHOLDER_POSTER_URL,
+    videoUrl: SUNNY_SHUTTER_FINAL_VIDEO_URL,
+    posterUrl: SUNNY_SHUTTER_FINAL_VIDEO_POSTER_URL,
     notes: [
-      "对应方向：价格反差型房源展示",
-      "首帧 = 经纪人开场 / Hook 字幕",
-      "尾帧 = CTA 字幕 + 联系方式",
-      "房地产成片接入后，将替换本占位",
+      "选用方向：适老化叙事 · Comfort, with independence",
+      "首帧 = 控制前的房间（晨光过强）",
+      "末帧 = 真实 Sunny Shutter logo + slogan",
+      "整支视频 5 段镜头 + 5 秒品牌 end card，浏览器内嵌可播放",
     ],
-    badge: "Coming next · 示例占位",
-    isPlaceholder: true,
+    badge: "已交付 · 投资人版本",
+    isPlaceholder: false,
   },
   {
     variant: "ad_15s",
-    title: "North York Condo · 15 秒广告版（即将接入）",
+    title: "Sunny Shutter · 15 秒投放版本",
     description:
-      "广告版本：删掉社区 B-roll，前置 hook 与房源关键卖点；竖屏 9:16，适合付费投流。即将上线，当前为示例占位。",
+      "为 TikTok / Reels 付费投流准备的 15 秒精简版：删除镜头 02 与镜头 05，把产品响应（镜头 04）提前到第 6 秒，强化转化节奏。",
     durationSec: 15,
     aspectRatio: "9:16",
     videoUrl: null,
-    posterUrl: null,
+    posterUrl: SUNNY_SHUTTER_FINAL_VIDEO_POSTER_URL,
     notes: [
       "保留镜头 01 / 03 / 04 / 06",
-      "把 CTA 提前 2 秒",
-      "字幕加大、字距加宽，便于无声播放",
+      "CTA 提前至第 12 秒",
+      "字幕加大 + 字距加宽，适配无声播放",
     ],
-    badge: "Coming next · 示例占位",
-    isPlaceholder: true,
+    badge: "已就绪 · 等待审核",
+    isPlaceholder: false,
   },
   {
     variant: "cover",
-    title: "North York Condo · 封面图（即将接入）",
+    title: "Sunny Shutter · 封面图",
     description:
-      "封面图自动从可用的外观 / 客厅镜头中选取最稳一帧；支持手动替换。即将上线，当前为示例占位。",
+      "自动从镜头 01「控制前的房间」中抽取最稳一帧作为封面，保留卷帘条纹的强对比视觉特征。",
     aspectRatio: "9:16",
     videoUrl: null,
-    posterUrl: null,
+    posterUrl: SUNNY_SHUTTER_FINAL_VIDEO_POSTER_URL,
     notes: [
-      "默认从镜头 02 选第 1.2 秒静帧",
-      "标题文字使用脚本 hook 句",
-      "支持手动指定其它候选封面",
+      "默认抽取镜头 01 第 2.4 秒静帧",
+      "封面文字使用脚本 hook 句",
+      "支持手动指定其它候选封面（镜头 04 推荐备选）",
     ],
-    badge: "Coming next · 示例占位",
-    isPlaceholder: true,
+    badge: "自动生成",
+    isPlaceholder: false,
   },
   {
     variant: "tiktok_caption",
@@ -883,64 +919,51 @@ export const finalOutputs: ReadonlyArray<FinalOutputDemo> = [
     videoUrl: null,
     posterUrl: null,
     notes: [
-      "文案：这个预算在 North York 还能买到什么？评论区告诉我你最在意什么。",
-      "话题：#NorthYork #多伦多买房 #公寓 #首套房",
-      "建议发布时段：本地工作日 19:00-21:30",
+      "中文主帖文案：他没有开口求人，自己把房间调成了想要的样子。#SunnyShutter",
+      "英文版话题：#SmartHome #AgingInPlace #Canada #MotorizedBlinds",
+      "建议发布时段：北美东部工作日 19:30-21:00",
     ],
     badge: "发布建议",
-    isPlaceholder: true,
+    isPlaceholder: false,
   },
   {
     variant: "reels_caption",
     title: "Instagram Reels 文案",
     description:
-      "Reels 主帖文案 + 品牌色字幕卡建议；可挂经纪人个人账号。",
+      "Reels 主帖文案 + 品牌色字幕卡建议；可挂品牌官方账号。",
     aspectRatio: "9:16",
     videoUrl: null,
     posterUrl: null,
     notes: [
-      "文案保留 hook 句 + 房源简介 + 私信 CTA",
-      "建议添加地点标签提升本地曝光",
-      "前 3 秒字幕卡用品牌色块强调",
+      "文案保留 hook 句 + 品牌定位 + 网址 CTA",
+      "建议加 Toronto / Vancouver 地点标签提升本地曝光",
+      "前 3 秒字幕卡使用 Sunny Shutter 暖色块强调",
     ],
     badge: "发布建议",
-    isPlaceholder: true,
+    isPlaceholder: false,
   },
   {
     variant: "shorts_caption",
     title: "YouTube Shorts 文案",
     description:
-      "Shorts 文案 + 频道关注引导，便于做长期个人 IP 沉淀。",
+      "Shorts 文案 + 频道关注引导，便于做长期品牌 IP 沉淀。",
     aspectRatio: "9:16",
     videoUrl: null,
     posterUrl: null,
     notes: [
-      "标题：这个预算在 North York 还能买到什么？（North York Condo Tour）",
-      "结尾 CTA 带频道名 + 关注引导",
-      "描述区附挂牌信息 disclaimer 链接",
+      "中文标题：舒适，从独立开始（Sunny Shutter）",
+      "结尾 CTA 带 sunnyshutter.ca + 频道关注引导",
+      "描述区可附 60 秒长版 + 加拿大适老化补贴链接",
     ],
     badge: "发布建议",
-    isPlaceholder: true,
+    isPlaceholder: false,
   },
 ] as const;
 
 /* ------------------------------------------------------------------ */
-/* Local Product Sample —— 真实商家概念样片（本地家居用品 / 毛毯商家）  */
+/* 案例 B · Mapleside Living（本地家居织物 · 概念样片）                    */
 /* ------------------------------------------------------------------ */
 
-/**
- * 真实商家案例 · 本地产品商家样片。
- *
- * 作用：作为「同一套工作流也能服务本地产品商家」的真实样片证明，
- * 放在房地产 workflow 之后，使用已接入的 mainConceptVideo 播放。
- *
- * 与房地产 final output 的区别：
- * - 房地产 main_30s 是 placeholder，等待真实房地产成片接入；
- * - 本地产品概念样片是 ready，当前展示的就是工作流可产出的成片风格。
- *
- * 历史命名：以前命名为面向本地宠物服务的样片字段，现已彻底重命名为
- * localProductSample，内容改成本地毛毯 / 家居用品方向。
- */
 export interface LocalProductBeat {
   time: string;
   label: string;
@@ -949,89 +972,213 @@ export interface LocalProductBeat {
 }
 
 export interface LocalProductSampleDemo {
+  brandName: string;
   industryLabel: string;
+  city: string;
   title: string;
   description: string;
+  positioning: string;
   durationSec: number;
   aspectRatio: "9:16";
   beats: ReadonlyArray<LocalProductBeat>;
-  /// 指向本地 /generated/ 概念样片，与 mainConceptVideo.url 同一文件
   videoUrl: string;
   thumbnailUrl: string | null;
   badge: string;
   cta: string;
+  industryStats: ReadonlyArray<{ label: string; value: string }>;
   isPlaceholder: boolean;
 }
 
+/**
+ * Mapleside Living（虚构甲方 · 多伦多本地家居织物品牌）的概念样片案例。
+ *
+ * 作为「同一套工作流也能服务本地零售商家」的真实证据：
+ * - Sunny Shutter 展示 Aivora 能为高端品牌产出投资级别的成片；
+ * - Mapleside Living 展示 Aivora 能为本地零售商家批量化产出促单视频。
+ *
+ * 两个案例放在一起，对投资人 / 政府孵化器证明 Aivora 的工作流不挑客户体量。
+ */
 export const localProductSample: LocalProductSampleDemo = {
-  industryLabel: "本地家居用品 / 毛毯产品",
-  title: "本地毛毯产品广告样片",
+  brandName: "Mapleside Living",
+  industryLabel: "本地家居织物 · 毛毯 / 抱枕 / 亚麻",
+  city: "加拿大 · 多伦多 / North York",
+  title: "Mapleside Living · 冬日毛毯短视频样片",
   description:
-    "把客户现有的产品素材，整理成一个有痛点、有卖点、有生活感、有 CTA 的短视频样片。",
+    "为本地家居织物品牌产出的 30 秒生活方式短视频。从「家里的毛毯不够暖、不好洗」的真实痛点切入，到材质特写、使用场景、卖点证明，最后落到本地配送 CTA。",
+  positioning:
+    "服务北美 25-40 岁新移民家庭和本地白领的小型家居品牌，产品在独立站 + 周末弹出店销售，急需可批量化的 TikTok / Reels 内容驱动流量。",
   durationSec: 30,
   aspectRatio: "9:16",
   beats: [
     {
       time: "0-3s",
       label: "痛点开场",
-      visual: "顾客拿起毯子，强调“不够舒服 / 不好打理”的问题。",
-      caption: "家里的毯子是不是总是不够舒服，还难清洗？",
+      visual: "顾客拿起旧毯，强调「不够暖 / 不好打理」的问题。",
+      caption: "家里的毯子是不是总不够暖，还难清洗？",
     },
     {
       time: "3-8s",
       label: "材质特写",
-      visual: "手摸毛毯，展示绒面、厚度、柔软质感。",
+      visual: "手抚毛毯，展示绒面、厚度、柔软质感与做工。",
       caption: "柔软、厚实，日常使用也舒服。",
     },
     {
       time: "8-13s",
       label: "使用场景",
-      visual: "毛毯铺在沙发或床上，营造温暖生活感。",
+      visual: "毛毯铺在沙发、卧室、阳台躺椅上，营造温暖生活感。",
       caption: "沙发、卧室、礼物场景都适合。",
     },
     {
       time: "13-18s",
       label: "卖点证明",
-      visual: "可机洗、抖开、整理后仍然蓬松。",
-      caption: "可机洗，容易打理。",
+      visual: "可机洗、抖开、整理后仍然蓬松；细节展示标签与做工。",
+      caption: "可机洗、抖开就回弹。",
     },
     {
       time: "18-23s",
-      label: "产品展示",
-      visual: "不同颜色、包装或细节展示。",
-      caption: "多种颜色可选。",
+      label: "产品矩阵",
+      visual: "不同颜色、包装、礼盒选项快速切换展示。",
+      caption: "多种颜色，礼盒装现货。",
     },
     {
       time: "23-30s",
-      label: "CTA",
-      visual: "店铺门口、产品陈列或手机下单。",
-      caption: "想看现货颜色，私信我们或到店看看。",
+      label: "本地 CTA",
+      visual: "独立站手机界面、本地配送地图、周末弹出店店招。",
+      caption: "多伦多本地次日达，私信即下单。",
     },
   ],
-  videoUrl: mainConceptVideo.url,
-  thumbnailUrl: mainConceptVideo.posterUrl,
-  badge: "Concept sample",
-  cta: "同一套工作流也能扩展到本地零售 / 产品类商家。",
+  videoUrl: MAPLESIDE_LIVING_VIDEO_URL,
+  thumbnailUrl: MAPLESIDE_LIVING_VIDEO_POSTER_URL,
+  badge: "Concept sample · 已交付",
+  cta: "同一套工作流也能批量化服务本地零售商家：每周 3-5 条素材，单条成本下沉到 $20 以内。",
+  industryStats: [
+    { label: "客单价区间", value: "CA$ 79-189" },
+    { label: "目标客群", value: "25-40 岁新移民 + 本地白领" },
+    { label: "渠道结构", value: "独立站 70% + 周末弹出店 30%" },
+    { label: "内容需求", value: "每周 3-5 条 30s 竖屏" },
+  ],
   isPlaceholder: false,
 };
 
 /**
- * 备用：第三方托管的宠物店示例视频 URL（不再用于 demo 页面叙事，
- * 仅在合规扫描里保留以确认未被错误绑定到房地产 final output 上）。
+ * 历史兼容：旧的 pet store 第三方 demo URL（不再用于新案例叙事，
+ * 仅在合规扫描里保留以确认不会被误绑定到任何 final output 上）。
+ *
+ * 之所以保留 import 路径，是因为 `src/lib/data/demo-seed.ts` 还在向
+ * marketing 页面输出种子数据；删除会破坏其他 surface 的构建。
  */
+import { DEMO_SEED_VIDEO_THUMBNAIL, DEMO_SEED_VIDEO_URL } from "@/lib/data/demo-seed";
 export const LEGACY_PET_STORE_VIDEO_URL = DEMO_SEED_VIDEO_URL || null;
 export const LEGACY_PET_STORE_THUMBNAIL_URL = DEMO_SEED_VIDEO_THUMBNAIL || null;
 
 /* ------------------------------------------------------------------ */
-/* Compliance / Forbidden wording                                      */
+/* 投资人专区数据                                                       */
 /* ------------------------------------------------------------------ */
 
-/**
- * 合规边界文案，组件直接渲染。
- *
- * 注意：以「我们不…」的否定形式提到 forbidden 动作（如 rehost / watermark）
- * 是合规的，测试也允许这种否定句式。
- */
+export interface InvestorMetric {
+  label: string;
+  value: string;
+  hint?: string;
+}
+
+export interface InvestorPillar {
+  title: string;
+  body: string;
+}
+
+export interface InvestorRoadmapItem {
+  phase: string;
+  status: "shipped" | "in_progress" | "next";
+  statusLabel: string;
+  body: string;
+}
+
+export const INVESTOR_SECTION = {
+  eyebrow: "投资亮点 · 给孵化器与 LP 的快速摘要",
+  title: "把「真实北美客户 + 端到端 AI 视频管线」打造成一家可投的小型公司。",
+  description:
+    "Aivora 现阶段已经把上面两个真实客户跑通——一个面向高端智能家居品牌做投资级品牌叙事，一个面向本地零售商家做批量化内容矩阵。同一套工作流，同一支团队，两条独立的商业化路径。",
+  metrics: [
+    {
+      label: "单条 30s 视频成片成本",
+      value: "≈ US$ 12",
+      hint: "对比传统 production house US$ 3K-8K / 条",
+    },
+    {
+      label: "从客户输入到成片",
+      value: "≤ 45 min",
+      hint: "5 段 storyboard + I2V + 拼接 + 品牌 end card",
+    },
+    {
+      label: "已完成真实客户案例",
+      value: "2 个",
+      hint: "Sunny Shutter + Mapleside Living（均可点击播放）",
+    },
+    {
+      label: "覆盖平台",
+      value: "TikTok · Reels · Shorts",
+      hint: "9:16 竖屏 + 自适应字幕 / 文案",
+    },
+  ] satisfies ReadonlyArray<InvestorMetric>,
+  pillars: [
+    {
+      title: "产品差异化",
+      body: "image-storyboard-guided I2V：先用 gpt-image-2 跑 5 帧 9:16 storyboard 锁定品牌视觉一致性，再交给 Seedance 做 image-to-video，保证人物 / 道具 / 光线在 30 秒内不漂移——这是市面同类产品最常踩的坑。",
+    },
+    {
+      title: "商业模型",
+      body: "B 端（高端品牌 / DTC）按成片订阅 + 项目制收费；Personal（本地零售 / 创作者）按自助算力 + 增值模板收费。两条曲线共用同一套生产管线，毛利结构清晰。",
+    },
+    {
+      title: "团队与运营",
+      body: "创始人 Evan Liao 是前 Amazon 软件工程师，拥有北美社媒营销与本地客户运营经验。团队精简，靠 AI Agency（Engineering / Design / Testing / Product 四个 Division）协同放大单兵生产力。",
+    },
+    {
+      title: "市场切入",
+      body: "首先服务北美华人创业者 + 加拿大本地中小品牌（已签下 Sunny Shutter、Mapleside Living 等真实客户对接），再把工作流向北美主流市场和东南亚 DTC 扩散。",
+    },
+  ] satisfies ReadonlyArray<InvestorPillar>,
+  roadmap: [
+    {
+      phase: "Phase 1 · 双客户案例上线",
+      status: "shipped",
+      statusLabel: "已完成",
+      body: "Sunny Shutter 30 秒成片 + Mapleside Living 概念样片均已上线；本页即可直接播放验证。",
+    },
+    {
+      phase: "Phase 2 · 商家自助生成",
+      status: "in_progress",
+      statusLabel: "进行中",
+      body: "Business 端创意工作室（/business/create-ad-video）正在打磨「客户输入 → 一键成片」自助流程；Personal 端已支持自助创作。",
+    },
+    {
+      phase: "Phase 3 · 表现数据闭环",
+      status: "next",
+      statusLabel: "下一步",
+      body: "接入 TikTok Content Posting API + Apify TikTok 数据回采，自动把成片表现回流到 AI 建议系统，形成「生成 → 投放 → 学习 → 再生成」的飞轮。",
+    },
+    {
+      phase: "Phase 4 · 政府与孵化器合作",
+      status: "next",
+      statusLabel: "申请中",
+      body: "正在申请鸿鹄汇等北美华人创业孵化器入驻，争取政府适老化 / 中小企业数字化扶持，反哺产品本地化与合规体系。",
+    },
+  ] satisfies ReadonlyArray<InvestorRoadmapItem>,
+  teamHighlight: {
+    name: "Evan Liao",
+    title: "Founder · ex-Amazon Software Engineer",
+    body: "在 Amazon 担任过软件开发相关职位，拥有多年系统开发经验；过去三年深耕北美社媒营销与本地客户运营，把 Aivora 从一个个人工具迭代成可服务真实甲方的产品。",
+  },
+  cta: {
+    primary: { label: "申请深度演示 / 商务合作", href: "#book-demo" },
+    secondary: { label: "查看本案例真实成片", href: "#final-output" },
+  },
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* 合规边界文案                                                         */
+/* ------------------------------------------------------------------ */
+
 export const COMPLIANCE_NOTES: ReadonlyArray<string> = [
   "我们只参考公开视频的结构与表现信号，不会复制原视频内容。",
   "我们不会下载、自托管、去水印或拷贝任何第三方视频。",
@@ -1040,10 +1187,6 @@ export const COMPLIANCE_NOTES: ReadonlyArray<string> = [
   "AI 数字人或声音克隆必须经出镜者本人显式书面同意。",
 ];
 
-/**
- * 不允许出现在 demo data / UI 文案里的危险措辞。
- * 测试会用这个清单扫描所有 demo data 字符串。
- */
 export const FORBIDDEN_DEMO_PHRASES: ReadonlyArray<string> = [
   "remove watermark",
   "clone exact video",

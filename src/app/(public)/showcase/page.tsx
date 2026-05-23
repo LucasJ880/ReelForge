@@ -4,24 +4,31 @@ import { authOptions } from "@/lib/auth";
 import { RealFootageDemoExperience } from "./experience-client";
 
 export const metadata: Metadata = {
-  title: "Aivora · AI 视频工作流体验",
+  title: "Aivora · 投资人版本案例展示",
   description:
-    "完整体验一遍 Aivora 的生产工作流：客户输入 → 数据支撑的创意方向 → AI 脚本 → 分镜与拍摄指导 → 素材质检 → 最终成片。页面数据均为示例（sample data），不代表任何真实客户。",
+    "用两个真实北美客户案例完整演示 Aivora 的 AI 视频工作流：Sunny Shutter（加拿大电动智能卷帘 · 投资级品牌叙事）+ Mapleside Living（多伦多本地家居织物 · 批量化零售样片）。两个案例都可直接播放成片。",
 };
 
 /**
- * 主对外 demo 页面 —— /demo/real-footage-ads。
+ * 主对外 demo 页面 —— /showcase（旧路径 /demo/real-footage-ads 兼容保留）。
  *
- * 页面叙事分两个清晰的案例层级：
- *   案例 A · 房地产 / North York condo —— 主 workflow 示例，
- *           展示客户输入 → 创意证据卡 → 参考结构 → AI 脚本 → 分镜 →
- *           素材质检；最终输出位为 placeholder，房地产成片做好后接入。
- *   案例 B · 本地家居用品 / 毛毯商家 —— 真实商家概念样片，
- *           用当前已接入的 mainConceptVideo 证明同一套工作流也能
- *           扩展到本地零售 / 产品类商家。
+ * 当前版本面向投资人 / 政府孵化器，采用双客户案例并列叙事：
  *
- * 第一版完全用 sample mock data，不调用任何生成 API；
- * CTA 在登录用户面前直接指向 /business/create-ad-video，否则保留 lead form。
+ *   案例 A · Sunny Shutter（加拿大电动智能卷帘品牌 · 投资级叙事）
+ *     —— 走完整 7 步工作流：客户输入 → 创意方向 → 参考结构 →
+ *        AI 脚本 → 分镜 → 素材质检 → 最终成片。最终输出位接入真实
+ *        生成的 30 秒投资人版本成片（V2.1 image-storyboard-guided I2V）。
+ *
+ *   案例 B · Mapleside Living（多伦多本地家居织物品牌 · 批量化零售）
+ *     —— 证明同一套工作流也能服务本地零售商家，使用已生成的本地家居
+ *        毛毯样片（30 秒竖屏）作为真实可播放证据。
+ *
+ *   投资亮点专区 —— 把页面叙事拉高到「这是一家可投的小型公司」：
+ *     4 关键指标、4 个核心支柱、4 阶段 roadmap、创始人介绍 + CTA。
+ *
+ * 数据全部从 src/lib/demo/ai-video-workflow-demo-data.ts 进来；
+ * 修改时只改 data，不改组件结构。CTA 对登录用户指向 /business/create-ad-video，
+ * 否则保留 lead form（提交到 /api/demo/real-footage-ads/waitlist）。
  */
 export default async function RealFootageAdsDemoPage() {
   const session = await getServerSession(authOptions);

@@ -17,9 +17,9 @@ const HUMAN_OPTIONS: ReadonlyArray<{
   key: DemoProjectInput["humanOnCamera"];
   label: string;
 }> = [
-  { key: "agent", label: "经纪人本人出镜" },
-  { key: "ai_avatar", label: "AI 数字人（需授权）" },
-  { key: "voiceover_only", label: "仅画外音" },
+  { key: "founder", label: "品牌创始人 / 真人出镜" },
+  { key: "ai_avatar", label: "AI 数字人剪影（需授权）" },
+  { key: "voiceover_only", label: "仅画外音 · 无人出镜" },
 ];
 
 export function DemoInputPanel() {

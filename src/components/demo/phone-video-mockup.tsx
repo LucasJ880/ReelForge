@@ -21,6 +21,13 @@ interface PhoneVideoMockupProps {
   fallbackContent?: ReactNode;
   className?: string;
   size?: "sm" | "md" | "lg";
+  /**
+   * 自定义 size 类名，传入后会覆盖 `size` preset。
+   * 用于 hero 这种需要 responsive 尺寸的场景（例如 lg viewport 下需要双 phone
+   * 并排，要把单个 phone 缩到 ~210px 才能避免与隔壁卡 overlap）。
+   * 期望传入 h-* + w-* 的 utility 字符串，可以带 lg:/xl: 前缀做响应式。
+   */
+  sizeClassName?: string;
   /// 视频展示模式：
   ///   - "preview"（默认）：controls + 用户主动播放，适合 Final Output；
   ///   - "autoplay"：muted + loop + autoPlay + 无控件，适合 Hero 静音环播。
@@ -44,6 +51,7 @@ export function PhoneVideoMockup({
   fallbackContent,
   className,
   size = "md",
+  sizeClassName,
   videoMode = "preview",
 }: PhoneVideoMockupProps) {
   const [hasVideoError, setHasVideoError] = useState(false);
@@ -90,7 +98,7 @@ export function PhoneVideoMockup({
     <div
       className={cn(
         "relative mx-auto rounded-[2.4rem] border border-white/10 bg-black/85 p-2 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.65)]",
-        SIZE_CLASS[size],
+        sizeClassName ?? SIZE_CLASS[size],
         className,
       )}
     >
@@ -153,7 +161,7 @@ export function PhoneVideoMockup({
         ) : (
           <div
             className={cn(
-              "flex h-full w-full flex-col items-center justify-between bg-gradient-to-br p-5 text-center text-white",
+              "flex h-full w-full flex-col items-center justify-between bg-linear-to-br p-5 text-center text-white",
               fallbackGradient ??
                 "from-emerald-500/30 via-indigo-500/20 to-rose-500/20",
             )}

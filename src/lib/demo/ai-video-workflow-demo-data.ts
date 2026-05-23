@@ -528,6 +528,12 @@ export interface StoryboardShotDemo {
       | "window"
       | "family"
       | "endcard";
+    /**
+     * 真实视频帧截图路径（来自 Sunny Shutter 30s 成片的 6 个关键时刻），
+     * 用来替代 icon + 渐变 placeholder，让分镜卡看起来像真实交付物。
+     * 路径相对 `/public`，例如 `/generated/storyboard-frames/sunny-shot-01.jpg`。
+     */
+    thumbnailUrl?: string;
   };
 }
 
@@ -564,6 +570,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       gradient: "from-amber-300/30 via-amber-500/15 to-transparent",
       accentLabel: "镜头 01 · 控制前的房间",
       iconKey: "opener",
+      thumbnailUrl: "/generated/storyboard-frames/sunny-shot-01.jpg",
     },
   },
   {
@@ -598,6 +605,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       gradient: "from-stone-300/30 via-stone-500/15 to-transparent",
       accentLabel: "镜头 02 · 人物的需求",
       iconKey: "figure",
+      thumbnailUrl: "/generated/storyboard-frames/sunny-shot-02.jpg",
     },
   },
   {
@@ -631,6 +639,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       gradient: "from-emerald-300/30 via-emerald-500/15 to-transparent",
       accentLabel: "镜头 03 · 无声的控制",
       iconKey: "tap",
+      thumbnailUrl: "/generated/storyboard-frames/sunny-shot-03.jpg",
     },
   },
   {
@@ -664,6 +673,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       gradient: "from-sky-300/30 via-sky-500/15 to-transparent",
       accentLabel: "镜头 04 · 产品响应",
       iconKey: "window",
+      thumbnailUrl: "/generated/storyboard-frames/sunny-shot-04.jpg",
     },
   },
   {
@@ -698,6 +708,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       gradient: "from-violet-300/30 via-violet-500/15 to-transparent",
       accentLabel: "镜头 05 · 独立被看见",
       iconKey: "family",
+      thumbnailUrl: "/generated/storyboard-frames/sunny-shot-05.jpg",
     },
   },
   {
@@ -731,6 +742,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       gradient: "from-amber-400/30 via-rose-400/15 to-transparent",
       accentLabel: "镜头 06 · 品牌收尾",
       iconKey: "endcard",
+      thumbnailUrl: "/generated/storyboard-frames/sunny-shot-06.jpg",
     },
   },
 ] as const;

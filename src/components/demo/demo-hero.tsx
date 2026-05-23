@@ -23,19 +23,26 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
             投资人版本 · 两个真实北美客户案例
           </div>
           {/*
-           * 中文标题排版：
-           *   1. `word-break: keep-all + line-break: strict` 禁止中文按字符断行；
-           *   2. 数字 + 中文短语（"30 秒成片"、"AI 视频管线"）用 whitespace-nowrap 锁定，
-           *      避免浏览器在「数字+空格+中文」处把它们拆开变成「30 / 秒成片」；
-           *   3. lg 字号控制在 2.5rem（40px），确保 hero 双 column 布局下左侧 ~570px
-           *      宽度能完整装下「从客户输入到 30 秒成片，」整行，break 只发生在 "，" 后；
-           *   4. xl 屏放宽到 3.25rem，给投资人更强的视觉冲击力。
+           * 中文标题排版（mobile-first，desktop 也要可控）：
+           *   1. `break-keep + line-break: strict` 禁止中文按字符 break；
+           *   2. nowrap span 锁住数字短语（"30 秒成片"/"AI 视频管线"），永远不被
+           *      拆成"30 / 秒成片"；
+           *   3. 用**普通空格**而非 `&nbsp;` 连接「从客户输入到」与「30 秒成片，」
+           *      —— mobile 390 viewport 下 nbsp 会让整段 432px 不可 break 触发
+           *      horizontal overflow（截掉右边），普通空格在 mobile 自然 break；
+           *   4. desktop 端 `<br className="hidden sm:inline" />` 显式换行，sm+
+           *      左 column 容器宽度（lg≈448 / xl≈576）配合下方字号：
+           *      - lg:text-[2.125rem]（34px）→ 12 char × 34 = 408 ≤ 448 ✓
+           *      - xl:text-[2.875rem]（46px）→ 12 char × 46 = 552 ≤ 576 ✓
+           *      保证 "从客户输入到 30 秒成片，" 在 sm+ 整段一行不 break；
+           *   5. 不再追求 3.25rem 极大字号——hero 双 phone 占了一半视宽，文字 column
+           *      留给标题的实际宽度有限，硬塞大字号只会让 wrap 不可控。
            */}
-          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[2.5rem] lg:leading-[1.15] xl:text-[3.25rem] [word-break:keep-all] [line-break:strict]">
-            从客户输入到&nbsp;
+          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.15] lg:text-[2.125rem] lg:leading-[1.2] xl:text-[2.875rem] xl:leading-[1.18] break-keep [line-break:strict]">
+            从客户输入到{" "}
             <span className="whitespace-nowrap">30 秒成片，</span>
             <br className="hidden sm:inline" />
-            把整支&nbsp;
+            把整支{" "}
             <span className="whitespace-nowrap">AI 视频管线</span>
             跑一遍。
           </h1>
@@ -161,8 +168,17 @@ function CaseColumn({
       >
         {eyebrow}
       </p>
+      {/*
+       * Responsive sizing —— hero 右侧需要两个 phone 并排，但 flex-1 容器在
+       * lg viewport (1024) 下只有 ~470px 宽，装不下两个 260px md phone（536px
+       * 含 gap）。所以：
+       *   - 默认 (mobile + sm)：h-[520px] w-[260px]（单列，与 md 一致）
+       *   - lg (1024-1279)：h-[460px] w-[210px]（双列并排刚好装下，~436px）
+       *   - xl (1280+)：h-[540px] w-[250px]（更大屏幕用大 phone，~516px）
+       * 不再依赖 size="md" preset，由父级直接通过 sizeClassName 控制响应式。
+       */}
       <PhoneVideoMockup
-        size="md"
+        sizeClassName="h-[520px] w-[260px] lg:h-[460px] lg:w-[210px] xl:h-[540px] xl:w-[250px]"
         videoUrl={videoUrl}
         posterUrl={posterUrl}
         videoMode="autoplay"

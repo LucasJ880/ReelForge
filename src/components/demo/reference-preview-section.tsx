@@ -51,13 +51,23 @@ function ReferenceCard({
   preview: ReferencePreviewDemo;
   highlighted: boolean;
 }) {
+  /*
+   * 之前用 `ring-1 ring-primary/30` 做 selected 状态的 outline，但 ring 本质是
+   * 绘制在 element 边界**外**的 box-shadow；当 article 自身又是 `overflow-hidden`
+   * 加上 grid container 在某些 viewport 下贴近 section padding 边缘时，会出现
+   * 「ring 在上/左/下被裁掉」的视觉残缺。
+   *
+   * 解决：把 outset ring 全部换成 **inset 视觉信号**（粗 border + 背景色 tint），
+   * 这样 selected 状态完全画在 article 内部，永远不会被 overflow / parent 裁切；
+   * 同时把 border 在两种状态都升到 border-2，避免选中切换时 layout 抖 1px。
+   */
   return (
     <article
       className={
-        "flex h-full flex-col overflow-hidden rounded-3xl border bg-card/60 transition " +
+        "flex h-full flex-col overflow-hidden rounded-3xl border-2 transition " +
         (highlighted
-          ? "border-primary/40 ring-1 ring-primary/30"
-          : "border-white/10")
+          ? "border-primary/55 bg-primary/[0.06]"
+          : "border-white/10 bg-card/60")
       }
     >
       <div className="relative aspect-9/16 max-h-72 w-full bg-gradient-to-br from-white/5 via-white/[0.03] to-transparent">
@@ -73,6 +83,11 @@ function ReferenceCard({
         <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium text-white backdrop-blur">
           {preview.platform}
         </span>
+        {highlighted ? (
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-primary/85 px-2.5 py-1 text-[10px] font-semibold text-primary-foreground shadow-sm">
+            当前选中
+          </span>
+        ) : null}
         <SampleDataBadge label="示例" />
       </div>
 

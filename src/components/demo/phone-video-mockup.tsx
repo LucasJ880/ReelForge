@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -50,6 +50,41 @@ export function PhoneVideoMockup({
   const showVideo = Boolean(videoUrl) && !hasVideoError;
   const showStaticPoster = !showVideo && Boolean(posterUrl);
   const isAutoplay = videoMode === "autoplay";
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  /*
+   * autoplay 模式下浏览器有时会拒绝 muted autoplay（Chrome incognito、Safari 节能
+   * 模式、低电量、隐私权限等场景）。如果 play() promise reject 了，我们记录失败
+   * 状态并在 video 上叠一层「点击播放」覆盖层，让用户能手动启动播放，避免投资人
+   * 看到一个永远静止的 hero phone。
+   */
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+
+  useEffect(() => {
+    if (!isAutoplay || !videoRef.current) return;
+    const el = videoRef.current;
+    const tryPlay = () => {
+      const promise = el.play();
+      if (promise && typeof promise.then === "function") {
+        promise
+          .then(() => setAutoplayBlocked(false))
+          .catch(() => setAutoplayBlocked(true));
+      }
+    };
+    tryPlay();
+  }, [isAutoplay, videoUrl]);
+
+  const handleManualPlay = () => {
+    const el = videoRef.current;
+    if (!el) return;
+    const promise = el.play();
+    if (promise && typeof promise.then === "function") {
+      promise
+        .then(() => setAutoplayBlocked(false))
+        .catch(() => {
+          /* 用户点击触发也失败极少见，保持 overlay 让用户重试 */
+        });
+    }
+  };
 
   return (
     <div
@@ -62,21 +97,39 @@ export function PhoneVideoMockup({
       <div className="absolute inset-x-1/2 top-2 z-10 flex h-5 w-24 -translate-x-1/2 items-center justify-center rounded-full bg-black/70" />
       <div className="relative h-full w-full overflow-hidden rounded-[2rem] bg-black">
         {showVideo ? (
-          <video
-            key={videoUrl ?? "video"}
-            className="h-full w-full object-cover"
-            src={videoUrl ?? undefined}
-            poster={posterUrl ?? undefined}
-            controls={!isAutoplay}
-            playsInline
-            preload="metadata"
-            muted={isAutoplay}
-            loop={isAutoplay}
-            autoPlay={isAutoplay}
-            onError={() => setHasVideoError(true)}
-          >
-            <track kind="captions" />
-          </video>
+          <>
+            <video
+              key={videoUrl ?? "video"}
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              src={videoUrl ?? undefined}
+              poster={posterUrl ?? undefined}
+              controls={!isAutoplay}
+              playsInline
+              preload="metadata"
+              muted={isAutoplay}
+              loop={isAutoplay}
+              autoPlay={isAutoplay}
+              onError={() => setHasVideoError(true)}
+            >
+              <track kind="captions" />
+            </video>
+            {isAutoplay && autoplayBlocked ? (
+              <button
+                type="button"
+                onClick={handleManualPlay}
+                aria-label="点击播放视频"
+                className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 backdrop-blur-[1px] transition hover:bg-black/30"
+              >
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border border-white/40 bg-black/55 backdrop-blur">
+                  <Play className="ml-0.5" size={24} />
+                </span>
+                <span className="rounded-full bg-black/55 px-2.5 py-1 text-[10px] font-medium tracking-wide text-white/90 backdrop-blur">
+                  点击播放
+                </span>
+              </button>
+            ) : null}
+          </>
         ) : showStaticPoster ? (
           // 静态 poster 模式：videoUrl=null 但 posterUrl 存在时，把 poster
           // 当成 placeholder 主视觉铺满；只叠加可选的 statusBadge / caption。

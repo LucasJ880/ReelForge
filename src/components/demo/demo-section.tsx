@@ -35,7 +35,12 @@ export function DemoSection({
               {eyebrow}
             </p>
           ) : null}
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+          {/*
+           * `word-break: keep-all + line-break: strict` 让中文标题在 wrap 时优先在标点
+           * （"、" "，" "。" "·"）后断行，而不是按字符 break，避免出现「成 / 片，」这种
+           * 不专业的换行。CJK 短语会被当成整体处理。
+           */}
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl [word-break:keep-all] [line-break:strict]">
             {title}
           </h2>
           {description ? (

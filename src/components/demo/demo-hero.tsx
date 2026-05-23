@@ -22,9 +22,22 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
             <Sparkles size={14} />
             投资人版本 · 两个真实北美客户案例
           </div>
-          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.5rem] lg:leading-[1.05]">
-            从客户输入到 30 秒成片，<br className="hidden sm:inline" />
-            把整支 AI 视频管线跑一遍。
+          {/*
+           * 中文标题排版：
+           *   1. `word-break: keep-all + line-break: strict` 禁止中文按字符断行；
+           *   2. 数字 + 中文短语（"30 秒成片"、"AI 视频管线"）用 whitespace-nowrap 锁定，
+           *      避免浏览器在「数字+空格+中文」处把它们拆开变成「30 / 秒成片」；
+           *   3. lg 字号控制在 2.5rem（40px），确保 hero 双 column 布局下左侧 ~570px
+           *      宽度能完整装下「从客户输入到 30 秒成片，」整行，break 只发生在 "，" 后；
+           *   4. xl 屏放宽到 3.25rem，给投资人更强的视觉冲击力。
+           */}
+          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[2.5rem] lg:leading-[1.15] xl:text-[3.25rem] [word-break:keep-all] [line-break:strict]">
+            从客户输入到&nbsp;
+            <span className="whitespace-nowrap">30 秒成片，</span>
+            <br className="hidden sm:inline" />
+            把整支&nbsp;
+            <span className="whitespace-nowrap">AI 视频管线</span>
+            跑一遍。
           </h1>
           <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground">
             Aivora 把客户输入、创意方向、AI 脚本、分镜、素材质检与成片拼装合在同一个工作流里。

@@ -68,6 +68,17 @@ export async function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp)).*)",
+    /**
+     * 排除以下路径不进入 middleware：
+     *   - Next.js 内部资源（_next/static / _next/image / favicon.ico）
+     *   - 图片扩展名（png/jpg/jpeg/svg/ico/webp/gif）—— 自带公开访问语义
+     *   - 视频 / 音频扩展名（mp4/webm/mov/m4v/mp3/wav/ogg）—— public/generated/
+     *     下的 demo 视频是公开素材，未登录用户也应能直接播放；如果不排除，
+     *     <video> 标签会被 NextAuth 重定向到 /login，浏览器静默失败
+     *
+     * 注意：personal / business 用户自己的私人视频必须走 Vercel Blob 私有 token 或
+     *      签名 API 路径，不会用 public/ 直链，因此放开静态视频扩展不会泄漏私密资源。
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|ico|webp|gif|mp4|webm|mov|m4v|mp3|wav|ogg)).*)",
   ],
 };

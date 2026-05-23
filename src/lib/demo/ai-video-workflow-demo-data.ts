@@ -1060,17 +1060,6 @@ export const localProductSample: LocalProductSampleDemo = {
   isPlaceholder: false,
 };
 
-/**
- * 历史兼容：旧的 pet store 第三方 demo URL（不再用于新案例叙事，
- * 仅在合规扫描里保留以确认不会被误绑定到任何 final output 上）。
- *
- * 之所以保留 import 路径，是因为 `src/lib/data/demo-seed.ts` 还在向
- * marketing 页面输出种子数据；删除会破坏其他 surface 的构建。
- */
-import { DEMO_SEED_VIDEO_THUMBNAIL, DEMO_SEED_VIDEO_URL } from "@/lib/data/demo-seed";
-export const LEGACY_PET_STORE_VIDEO_URL = DEMO_SEED_VIDEO_URL || null;
-export const LEGACY_PET_STORE_THUMBNAIL_URL = DEMO_SEED_VIDEO_THUMBNAIL || null;
-
 /* ------------------------------------------------------------------ */
 /* 投资人专区数据                                                       */
 /* ------------------------------------------------------------------ */

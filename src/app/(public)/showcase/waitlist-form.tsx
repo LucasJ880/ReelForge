@@ -64,7 +64,7 @@ export function RealFootageWaitlistForm() {
         <Field
           label="行业 / 业务类型"
           name="businessType"
-          placeholder="例如：地产经纪、宠物店、本地服务、代运营机构…"
+          placeholder="例如：智能家居、本地家居零售、北美华人创业品牌、代运营机构…"
           required
         />
         <label className="grid gap-2 text-sm">

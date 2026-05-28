@@ -1,0 +1,98 @@
+# Aivora · 中国大陆部署 Docker Compose
+#
+# 用法：
+#   docker compose --env-file .env.production.cn build
+#   docker compose --env-file .env.production.cn up -d
+#   docker compose logs -f web worker
+#
+# 生产环境**不**默认拉本地 Postgres（实际用火山 RDS）；
+# 想本地开发时跑 `docker compose --profile dev up -d` 启动可选的 db service。
+#
+# 注意：
+# - .env.production.cn 必须存在并 chmod 600
+# - 路径 ./tmp 用作 ffmpeg 中间产物（在 host 上保留方便排查）
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: aivora-cn:latest
+    container_name: aivora-web
+    restart: unless-stopped
+    env_file:
+      - .env.production.cn
+    ports:
+      - "127.0.0.1:3000:3000"  # 只对本机暴露，通过 Nginx 反代上公网
+    volumes:
+      - ./tmp:/app/tmp  # ffmpeg 中间产物 (StitchService / brand-end-card)
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  worker:
+    image: aivora-cn:latest
+    container_name: aivora-worker
+    restart: unless-stopped
+    env_file:
+      - .env.production.cn
+    depends_on:
+      web:
+        condition: service_healthy
+    # 简单 polling worker：每 2 分钟调一次内部 API
+    # 真实生产建议把这部分换成自定义 worker entry（script）
+    command: >
+      sh -c '
+        echo "[worker] starting polling loop (CRON_SECRET=${CRON_SECRET:+set})";
+        while true; do
+          curl -fsS -m 60 -X POST \
+            -H "Authorization: Bearer $${CRON_SECRET}" \
+            http://web:3000/api/cron/poll-videos > /dev/null \
+            && echo "[worker] $(date -Is) poll-videos ok" \
+            || echo "[worker] $(date -Is) poll-videos FAIL";
+          curl -fsS -m 60 -X POST \
+            -H "Authorization: Bearer $${CRON_SECRET}" \
+            http://web:3000/api/cron/stitch-videos > /dev/null \
+            && echo "[worker] $(date -Is) stitch-videos ok" \
+            || echo "[worker] $(date -Is) stitch-videos FAIL";
+          sleep 120;
+        done
+      '
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  # 仅本地 dev 用；生产环境不启动
+  # docker compose --profile dev up -d
+  db:
+    image: postgres:15-alpine
+    container_name: aivora-postgres-dev
+    profiles:
+      - dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aivora
+      POSTGRES_PASSWORD: aivora_dev
+      POSTGRES_DB: aivora
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - aivora-pgdata-dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aivora"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  aivora-pgdata-dev:

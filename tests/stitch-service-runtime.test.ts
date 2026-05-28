@@ -94,13 +94,30 @@ test("stitchRuntimeMode：STITCH_RUNTIME=external 覆盖一切（即使 dev）",
   assert.equal(stitchRuntimeMode(), "external");
 });
 
-/// ---------- BLOB 强约束 ----------
+/// ---------- Storage 强约束 ----------
+/// Phase 2A：错误信息从 "BLOB_READ_WRITE_TOKEN not configured" 改为
+/// "Storage provider \"<id>\" not configured ..."，但语义不变：缺配置 → 直接 throw，
+/// 绝不再静默写 file://（旧 bug 会让 DB 里存 file:///tmp/... 导致前端永远播不出）。
 
-test("persistStitchedFile：缺 BLOB_READ_WRITE_TOKEN → throw（不再写 file://）", async (t) => {
-  withEnv(t, { BLOB_READ_WRITE_TOKEN: undefined });
+test("persistStitchedFile：storage provider 未配置 → throw（不再写 file://）", async (t) => {
+  withEnv(t, {
+    BLOB_READ_WRITE_TOKEN: undefined,
+    /// 同时清掉 TOS env，确保不会因为 STORAGE_PROVIDER 默认推断到 TOS 而走另一分支
+    VOLCENGINE_ACCESS_KEY_ID: undefined,
+    VOLCENGINE_TOS_ENDPOINT: undefined,
+  });
+  /// 重置 provider/env cache，让我们的 env 改动生效（其它测试可能已经缓存了）
+  const { __resetAppEnvForTests } = await import("../src/lib/config/env");
+  const { __resetStorageProviderForTests } = await import("../src/lib/storage");
+  __resetAppEnvForTests();
+  __resetStorageProviderForTests();
+  t.after(() => {
+    __resetAppEnvForTests();
+    __resetStorageProviderForTests();
+  });
   await assert.rejects(
     () => persistStitchedFile("/tmp/fake.mp4", "final-videos/fake.mp4"),
-    /BLOB_READ_WRITE_TOKEN not configured/,
+    /Storage provider .* not configured/,
   );
 });
 

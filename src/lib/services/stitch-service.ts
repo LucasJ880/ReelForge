@@ -743,28 +743,31 @@ async function briefHasUnifiedAssembly(briefId: string | null | undefined): Prom
 }
 
 /**
- * 把本地 mp4 上传到 Vercel Blob，返回公网 URL。
- * 强约束：缺 BLOB_READ_WRITE_TOKEN → 直接 throw，绝不再回退到 file:// 静默兜底
+ * 把本地 mp4 上传到对象存储（Vercel Blob / 火山 TOS，按 STORAGE_PROVIDER 自动选择），
+ * 返回可在 DB 中持久化的 URL。
+ *
+ * 强约束：storage provider 必须已配置 → 直接 throw，绝不再回退到 file:// 静默兜底
  * （旧逻辑会写 `file:///tmp/...mp4` 进数据库，导致前端永远播不出）。
  */
 async function persistStitchedFile(
   filePath: string,
   blobPath: string,
 ): Promise<string> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
     throw new Error(
-      "BLOB_READ_WRITE_TOKEN not configured; refusing to silently persist to file://",
+      `Storage provider "${storage.id}" not configured; refusing to silently persist stitched mp4 to file://`,
     );
   }
-  const { put } = await import("@vercel/blob");
   const buffer = await readFile(filePath);
-  const blob = await put(blobPath, buffer, {
+  const obj = await storage.uploadBuffer("renders", buffer, {
+    key: blobPath,
     access: "public",
     contentType: "video/mp4",
-    token,
+    overwrite: true,
   });
-  return blob.url;
+  return obj.url;
 }
 
 /// 仅供测试导入

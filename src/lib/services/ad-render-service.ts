@@ -4,9 +4,9 @@ import { promisify } from "util";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
-import { put } from "@vercel/blob";
 import { AdEditPlanStatus, Prisma, VideoBriefStatus, VideoJobStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
+import { getStorageProvider } from "@/lib/storage";
 import {
   parseAdEditTimeline,
   type AdEditTimeline,
@@ -218,15 +218,21 @@ async function renderManifestFallback(plan: {
     }),
   };
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(`renders/${plan.id}.json`, JSON.stringify(manifest, null, 2), {
-      access: "public",
-      contentType: "application/json",
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-    });
+  const storage = getStorageProvider();
+  if (storage.isConfigured()) {
+    const obj = await storage.uploadBuffer(
+      "renders",
+      Buffer.from(JSON.stringify(manifest, null, 2)),
+      {
+        key: `renders/${plan.id}.json`,
+        access: "public",
+        contentType: "application/json",
+        overwrite: true,
+      },
+    );
     return {
-      videoUrl: firstClip?.sourceUrl ?? blob.url,
-      thumbnailUrl: blob.url,
+      videoUrl: firstClip?.sourceUrl ?? obj.url,
+      thumbnailUrl: obj.url,
       fallbackReason: manifest.fallbackReason,
     };
   }
@@ -256,17 +262,18 @@ export function buildRenderFallbackManifest(params: {
 }
 
 async function persistRenderedFile(filePath: string, blobPath: string) {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
     return `file://${filePath}`;
   }
-
   const buffer = await readFile(filePath);
-  const blob = await put(blobPath, buffer, {
+  const obj = await storage.uploadBuffer("renders", buffer, {
+    key: blobPath,
     access: "public",
     contentType: "video/mp4",
-    token: process.env.BLOB_READ_WRITE_TOKEN,
+    overwrite: true,
   });
-  return blob.url;
+  return obj.url;
 }
 
 function validateRenderableClips(clips: TimelineClip[]) {

@@ -16,7 +16,7 @@ import { pathToFileURL } from "url";
  *     主路径 → 本机 ffmpeg 动态生成（每段独特的颜色 + drawbox 组合，肉眼可辨）
  *     fallback → public/mock-clips/{aspect}.mp4 静态占位（ffmpeg 缺失时）
  * - 终态 URL：
- *     若配置了 BLOB_READ_WRITE_TOKEN，把 mp4 上传到 Vercel Blob，返回 https URL；
+ *     若 storage provider 已配置（Vercel Blob / 火山 TOS），把 mp4 上传，返回 https URL；
  *     否则返回 file:// URL（dev/local 调用方 stitch-service 已被同步扩展为支持 file://）。
  *
  * 不依赖 Big Buck Bunny 或任何远程 sample video URL（Phase 2 显式约束）。
@@ -194,7 +194,8 @@ async function renderClipWithFfmpeg(
 }
 
 /**
- * 把本地 mp4 上传到 Vercel Blob；缺 token → 返回 file:// URL（dev/local fallback）。
+ * 把本地 mp4 上传到对象存储（Vercel Blob / 火山 TOS）；
+ * 未配置 storage provider → 返回 file:// URL（dev/local fallback）。
  *
  * 注意：返回 file:// URL 时调用方（stitch-service.downloadToFile）必须支持 file:// scheme，
  *   否则后续拼接会失败。Phase 2 的 stitch-service 改造会同步增加 file:// 支持。
@@ -203,28 +204,28 @@ async function persistMockClipFile(
   filePath: string,
   cacheKey: string,
 ): Promise<{ url: string; uploaded: boolean }> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
     return {
       url: pathToFileURL(filePath).toString(),
       uploaded: false,
     };
   }
   try {
-    const { put } = await import("@vercel/blob");
     const buffer = await readFile(filePath);
-    const blob = await put(`mock-ai-clips/${cacheKey}.mp4`, buffer, {
+    const obj = await storage.uploadBuffer("renders", buffer, {
+      key: `mock-ai-clips/${cacheKey}.mp4`,
       access: "public",
       contentType: "video/mp4",
-      token,
       addRandomSuffix: false,
-      allowOverwrite: true,
+      overwrite: true,
     });
-    return { url: blob.url, uploaded: true };
+    return { url: obj.url, uploaded: true };
   } catch (err) {
     /// 上传失败不让 mock 流程整体崩 —— 退回 file:// URL，stitch 会读本地文件
     console.warn(
-      `[mock-clip-generator] Blob 上传失败，退回 file:// URL：${(err as Error).message}`,
+      `[mock-clip-generator] 对象存储上传失败，退回 file:// URL：${(err as Error).message}`,
     );
     return {
       url: pathToFileURL(filePath).toString(),
@@ -253,9 +254,11 @@ export async function generateMockClip(
   const cacheKey = computeCacheKey(hints);
   const cachedPath = path.join(DEFAULT_CACHE_DIR, `${cacheKey}.mp4`);
 
-  /// 命中缓存（且非 Blob 模式）：直接复用 file:// URL
-  /// Blob 模式下我们也优先重新上传，因为 cacheKey 已稳定，put + allowOverwrite 是幂等的
-  if (await fileExists(cachedPath) && !process.env.BLOB_READ_WRITE_TOKEN) {
+  /// 命中缓存（且对象存储未配置）：直接复用 file:// URL
+  /// 对象存储模式下我们也优先重新上传，因为 cacheKey 已稳定，put + overwrite 是幂等的
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storageConfigured = getStorageProvider().isConfigured();
+  if (await fileExists(cachedPath) && !storageConfigured) {
     return {
       url: pathToFileURL(cachedPath).toString(),
       thumbnailUrl: null,

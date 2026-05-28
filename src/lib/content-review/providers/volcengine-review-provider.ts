@@ -1,0 +1,58 @@
+/**
+ * 火山引擎内容安全 Provider（Phase 1 占位）。
+ *
+ * 计划接入：
+ * - 火山引擎内容审核（Content Moderation）
+ *   - 文本审核：POST 业务接口（OpenAPI 签名 SigV4）
+ *   - 图片审核：image moderation API
+ *   - 视频审核：异步任务接口（提交 → 轮询结果）
+ *
+ * Phase 1 阶段：
+ * - 任何调用都会抛 NotImplementedError，明确告诉调用方 "需要接入"
+ * - 不允许静默放行，避免上线后才发现没真正在审核
+ *
+ * 实施清单（公开测试前）：
+ * 1. npm i @volcengine/openapi（或自实现 SigV4 签名）
+ * 2. 申请火山内容审核服务（控制台 → 内容审核）
+ * 3. 在 .env.production.cn 配置：
+ *    CONTENT_REVIEW_ENABLED=true
+ *    CONTENT_REVIEW_PROVIDER=volcengine
+ *    VOLCENGINE_CONTENT_REVIEW_BIZ_TYPE=...
+ * 4. 实现 reviewText / reviewMedia 调用真实接口，映射 verdict
+ * 5. 在 generation-supervisor / upload route / video-service finalize 接入审核
+ */
+
+import type {
+  ContentReviewProvider,
+  MediaReviewInput,
+  ReviewResult,
+  TextReviewInput,
+} from "../types";
+
+function notImplemented(method: string): never {
+  throw new Error(
+    `[content-review:volcengine] ${method} 尚未实现。\n` +
+      `→ Phase 1 仅完成接口骨架与调用点预留。\n` +
+      `→ 请按 docs/CHINA_COMPLIANCE_READINESS.md 接入火山内容审核（OpenAPI + SigV4）。\n` +
+      `→ 临时方案：将 CONTENT_REVIEW_ENABLED=false（走 noop provider 跳过审核），仅 demo 阶段允许。`,
+  );
+}
+
+export class VolcengineReviewProvider implements ContentReviewProvider {
+  readonly id = "volcengine" as const;
+  readonly displayName = "火山引擎内容安全";
+
+  isConfigured(): boolean {
+    return Boolean(
+      process.env.VOLCENGINE_ACCESS_KEY_ID && process.env.VOLCENGINE_SECRET_ACCESS_KEY,
+    );
+  }
+
+  async reviewText(_input: TextReviewInput): Promise<ReviewResult> {
+    notImplemented("reviewText");
+  }
+
+  async reviewMedia(_input: MediaReviewInput): Promise<ReviewResult> {
+    notImplemented("reviewMedia");
+  }
+}

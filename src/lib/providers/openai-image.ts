@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { put } from "@vercel/blob";
+import { getStorageProvider } from "@/lib/storage";
 
 /**
  * OpenAI 图像生成 Provider —— 内部代号「Image 2」。
@@ -101,20 +101,23 @@ export async function generateImages(
       throw new Error("OpenAI 图像返回缺少 url / b64_json");
     }
     const buffer = Buffer.from(item.b64_json, "base64");
-    const blobPath = `${args.blobPrefix || "ai-images/"}${Date.now()}-${i}.png`;
-    /// 强约束：缺 BLOB_READ_WRITE_TOKEN 时直接 throw，不再静默写 data URL。
+    const key = `${args.blobPrefix || "ai-images/"}${Date.now()}-${i}.png`;
+    /// 强约束：storage provider 必须已配置；不再静默写 data URL。
     /// 历史问题：data:image/png;base64,... 写进 DB 会膨胀行 + 前端没办法分享。
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const storage = getStorageProvider();
+    if (!storage.isConfigured()) {
       throw new Error(
-        "BLOB_READ_WRITE_TOKEN not configured; cannot persist generated logo",
+        `Storage provider "${storage.id}" 未配置；无法持久化生成的 logo。` +
+          ` 请配置 ${storage.id === "vercel_blob" ? "BLOB_READ_WRITE_TOKEN" : "VOLCENGINE_ACCESS_KEY_ID/SECRET/ENDPOINT/BUCKET_RENDERS"}。`,
       );
     }
-    const blob = await put(blobPath, buffer, {
+    /// AI 生成产物 → renders bucket（与用户上传素材的 uploads bucket 隔离）
+    const obj = await storage.uploadBuffer("renders", buffer, {
+      key,
       access: "public",
       contentType: "image/png",
-      token: process.env.BLOB_READ_WRITE_TOKEN,
     });
-    urls.push(blob.url);
+    urls.push(obj.url);
   }
 
   return {

@@ -20,7 +20,7 @@ import type { BrandPackagingPlan } from "@/types/video-generation";
  *  1. 由 BrandPackagingPlan + aspectRatio 拼一份内联 SVG（背景渐变 + 文字 + 留洞给 logo）。
  *  2. 用 sharp 把 SVG 栅格化成 PNG。如果有 logo URL，下载、resize、composite 到 PNG 中央。
  *  3. ffmpeg 把 PNG 当静帧 + 静音音轨打包成 MP4（duration = endCardDurationSeconds）。
- *  4. 配 BLOB_READ_WRITE_TOKEN → 上传 Blob 返回 https URL，否则返回 file:// URL。
+ *  4. storage provider 已配置 → 上传对象存储（Blob/TOS）返回 https URL，否则返回 file:// URL。
  *
  * 失败策略（dev/local 模式）：
  *  - sharp 报错 → 退回纯色 + 简化版 SVG（无文字，仅色块），仍输出 MP4
@@ -423,24 +423,24 @@ async function persistEndCardFile(
   filePath: string,
   cacheKey: string,
 ): Promise<{ url: string; uploaded: boolean }> {
-  const token = process.env.BLOB_READ_WRITE_TOKEN;
-  if (!token) {
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
     return { url: pathToFileURL(filePath).toString(), uploaded: false };
   }
   try {
-    const { put } = await import("@vercel/blob");
     const buf = await readFile(filePath);
-    const blob = await put(`brand-end-cards/${cacheKey}.mp4`, buf, {
+    const obj = await storage.uploadBuffer("renders", buf, {
+      key: `brand-end-cards/${cacheKey}.mp4`,
       access: "public",
       contentType: "video/mp4",
-      token,
       addRandomSuffix: false,
-      allowOverwrite: true,
+      overwrite: true,
     });
-    return { url: blob.url, uploaded: true };
+    return { url: obj.url, uploaded: true };
   } catch (err) {
     console.warn(
-      `[brand-end-card-renderer] Blob 上传失败，退回 file:// URL：${(err as Error).message}`,
+      `[brand-end-card-renderer] 对象存储上传失败，退回 file:// URL：${(err as Error).message}`,
     );
     return { url: pathToFileURL(filePath).toString(), uploaded: false };
   }

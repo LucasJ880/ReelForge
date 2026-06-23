@@ -305,7 +305,7 @@ export interface DailyClipDemo {
 export const dailyClip: DailyClipDemo = {
   title: "今日份可爱 · 自动合成",
   durationLabel: "30 秒 · 9:16",
-  videoUrl: null,
+  videoUrl: "/generated/pet-evidence-highlight.mp4",
   posterUrl: "/demo/pet/moment-tilt.png",
   caption: "把今天的高光瞬间自动剪成一条，每天打开都有惊喜。",
 };
@@ -380,7 +380,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     caption: "歪头、干饭、打滚，一个都没落下。每天的份可爱已送达 🐾",
     hashtags: ["#萌宠日常", "#我家有猫", "#治愈瞬间", "#Aivora"],
     posterUrl: "/demo/pet/moment-greeting.png",
-    videoUrl: null,
+    videoUrl: "/generated/pet-evidence-highlight.mp4",
     recommended: true,
   },
   {
@@ -394,7 +394,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     caption: "AI 自动挑出最萌的歪头瞬间，做成最容易爆的封面。",
     hashtags: ["#歪头杀", "#萌宠", "#每日一萌"],
     posterUrl: "/demo/pet/moment-tilt.png",
-    videoUrl: null,
+    videoUrl: "/generated/pet-evidence-headtilt.mp4",
     recommended: false,
   },
   {
@@ -408,7 +408,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     caption: "真实使用场景：宠物主动接触并长时间使用，可作为产品种草素材。",
     hashtags: ["#宠物好物", "#真实测评", "#宠物垫"],
     posterUrl: "/demo/pet/moment-product.png",
-    videoUrl: null,
+    videoUrl: "/generated/pet-evidence-mat.mp4",
     recommended: false,
   },
 ];
@@ -1072,6 +1072,210 @@ export const BENCHMARK_MATRIX = {
   ],
   sourceNote:
     "对比与参考价格来自公开渠道与同类产品资料，仅用于 Demo / 投资人沟通的市场参照，实际以各品牌官方为准。",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* 真实产品输出证据短片（由 Seedance 生成 + 烧字幕 + 纯音乐）             */
+/* ------------------------------------------------------------------ */
+
+/**
+ * 这些竖版 9:16 成片由 `npm run demo:gen:evidence` 生成，放在 public/generated/。
+ * 它们是「产品真的能自动产出可分享视频」的证据——文件不存在时，所有引用处都会
+ * 优雅降级回退到 poster 图（PhoneVideoMockup / video fallback），不影响页面。
+ */
+export const PET_EVIDENCE_CLIP = {
+  highlight: "/generated/pet-evidence-highlight.mp4",
+  headtilt: "/generated/pet-evidence-headtilt.mp4",
+  mat: "/generated/pet-evidence-mat.mp4",
+  raw: "/generated/pet-evidence-raw.mp4",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* Demo Story · 一日闭环叙事                                            */
+/* ------------------------------------------------------------------ */
+
+export type StoryActor = "owner" | "camera" | "collar" | "mat" | "ai" | "brand";
+
+export interface DemoStoryStepDemo {
+  time: string;
+  actor: StoryActor;
+  actorLabel: string;
+  title: string;
+  body: string;
+  output?: string;
+}
+
+export const DEMO_STORY = {
+  eyebrow: "Demo Story · 一天里发生了什么",
+  title: "主人出门上班的一天，Aivora 如何把真实瞬间变成内容与证据",
+  description:
+    "跟着「奶豆」的一天，看硬件、AI 与增长如何在一条闭环里协作——主人几乎什么都不用做，下班就收到可发布的视频、宠物日记，品牌端则收到一份真实使用证据。",
+  steps: [
+    {
+      time: "08:10",
+      actor: "owner",
+      actorLabel: "主人",
+      title: "出门上班，留奶豆一个人在家",
+      body: "出门前对着 App 说了句「乖乖的」。从这一刻起，采集与成片全部自动进行。",
+    },
+    {
+      time: "10:30",
+      actor: "camera",
+      actorLabel: "360° 摄像头",
+      title: "捕捉到窗边晒太阳的睡颜",
+      body: "AI 识别到「睡觉 / 放松」高情绪价值场景，自动追踪并录下最可爱的片段。",
+      output: "高光片段 · 睡颜",
+    },
+    {
+      time: "13:00",
+      actor: "mat",
+      actorLabel: "智能宠物垫",
+      title: "奶豆主动趴上新垫子 3 小时",
+      body: "压力传感器记录到真实使用：主动接触、长时间停留，并联动摄像头拍下使用画面。",
+      output: "产品使用证据 · 时长 / 频次",
+    },
+    {
+      time: "18:40",
+      actor: "ai",
+      actorLabel: "AI 成片",
+      title: "下班路上，收到今日份可爱",
+      body: "AI 自动把当天高光剪成一条 30s 竖版视频，配好宠物语气字幕、标题、话题标签，并写好今日宠物日记。",
+      output: "可发布短视频 + 宠物日记",
+    },
+    {
+      time: "21:15",
+      actor: "owner",
+      actorLabel: "主人",
+      title: "一键分享到朋友圈 / 抖音",
+      body: "视频自带 Aivora 水印与体验链接，朋友点开就能上传自家宠物试用——分享即获客。",
+      output: "自然裂变 · 内容获客",
+    },
+    {
+      time: "次日",
+      actor: "brand",
+      actorLabel: "品牌端",
+      title: "宠物垫品牌收到一份真实使用证据",
+      body: "近 14 天的真实使用数据 + 使用画面自动汇成 Product Proof Report，成为品牌愿意付费的种草素材。",
+      output: "B2B · Product Proof Report",
+    },
+  ] satisfies ReadonlyArray<DemoStoryStepDemo>,
+  closing:
+    "一天下来，主人几乎零操作，却收获了内容、记忆与陪伴；品牌收获了真实证据；Aivora 收获了数据与传播。",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* Before / After · 原始素材 → AI 成片                                  */
+/* ------------------------------------------------------------------ */
+
+export const BEFORE_AFTER = {
+  eyebrow: "Before / After · 产品真的能跑",
+  title: "同一段真实素材，AI 自动剪成可以马上发的可爱视频",
+  description:
+    "左边是主人随手录的、平淡冗长的原始素材；右边是 Aivora 自动产出的成片。没有人工剪辑，全流程自动完成——这正是产品每天为每位用户做的事。",
+  before: {
+    label: "原始素材 · 主人随手录",
+    durationLabel: "10s · 未剪辑",
+    videoUrl: PET_EVIDENCE_CLIP.raw,
+    posterUrl: "/demo/pet/moment-sleeping.png",
+    caption: null as string | null,
+    notes: ["平淡、冗长、没有重点", "画面晃、没有字幕和配乐", "主人没时间也没精力剪"],
+  },
+  after: {
+    label: "AI 成片 · 自动产出",
+    durationLabel: "8s · 9:16 可发布",
+    videoUrl: PET_EVIDENCE_CLIP.highlight,
+    posterUrl: "/demo/pet/moment-greeting.png",
+    caption: "今天的我，可爱依旧 🐾",
+    notes: [
+      "自动挑出最可爱、最值得分享的瞬间",
+      "自动配宠物语气字幕 + 纯音乐 + 节奏",
+      "自动生成标题、话题标签，一键可发",
+    ],
+  },
+  aiSteps: ["识别高光", "智能剪辑", "字幕配乐", "标题标签", "一键发布"],
+  note: "示例成片由 Aivora 视频管线自动生成，用于演示产品输出能力。",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* Collar POV · 远程发声 → 自动成片                                     */
+/* ------------------------------------------------------------------ */
+
+export interface CollarPovStepDemo {
+  step: number;
+  title: string;
+  detail: string;
+}
+
+export const COLLAR_POV = {
+  eyebrow: "宠物第一视角 · 远程发声成片",
+  title: "在公司喊一声，项圈摄影机自动剪出它听到你的反应",
+  description:
+    "Aivora 第一视角项圈摄影机从宠物视角记录世界。主人远程发声，AI 自动捕捉宠物听到声音后的反应并剪成短片——记忆点强、传播性高，是未来差异化的内容入口。",
+  povImage: PET_RENDER.collarCam,
+  steps: [
+    {
+      step: 1,
+      title: "主人远程发声",
+      detail: "在 App 里点一下或说句话，声音通过项圈实时传到宠物耳边。",
+    },
+    {
+      step: 2,
+      title: "捕捉第一视角反应",
+      detail: "项圈摄影机从宠物视角记录它抬头、找你、奔跑的瞬间。",
+    },
+    {
+      step: 3,
+      title: "AI 自动剪成短片",
+      detail: "自动挑出「听到主人声音的反应」高光，配字幕音乐生成可分享冒险短片。",
+    },
+  ] satisfies ReadonlyArray<CollarPovStepDemo>,
+  challengeLabel: "模板挑战 · 听到主人声音的反应",
+  futureNote: "第一视角项圈为扩展阶段产品，此处为体验概念演示。",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* 品牌 Product Proof 场景化流程（垫子触发 → 摄像头 → 报告）             */
+/* ------------------------------------------------------------------ */
+
+export interface BrandProofStepDemo {
+  step: number;
+  actorLabel: string;
+  title: string;
+  detail: string;
+}
+
+export const BRAND_PROOF_SCENARIO = {
+  eyebrow: "B2B 闭环 · 从真实使用到品牌付费",
+  title: "宠物垫被踩上的那一刻，一条品牌证据链自动启动",
+  description:
+    "品牌最想知道的不是「投放曝光」，而是「宠物真的用了我的产品吗」。Aivora 把真实使用变成可交付、可信的证据链——这是商家愿意付费的根本理由。",
+  steps: [
+    {
+      step: 1,
+      actorLabel: "智能宠物垫",
+      title: "传感器感知到真实使用",
+      detail: "压力 / 存在感应判断宠物主动趴上产品，并记录时长、频次、时段。",
+    },
+    {
+      step: 2,
+      actorLabel: "360° 摄像头",
+      title: "联动拍下使用画面",
+      detail: "传感器触发摄像头，捕捉宠物真实使用产品的可用画面（非摆拍）。",
+    },
+    {
+      step: 3,
+      actorLabel: "AI 内容引擎",
+      title: "生成种草素材 + 证据报告",
+      detail: "自动剪出产品使用短片，并汇总真实使用数据，生成 Product Proof Report。",
+    },
+    {
+      step: 4,
+      actorLabel: "品牌方",
+      title: "付费获取真实证据与素材",
+      detail: "品牌用它做投放素材、做产品测评、做 Campaign——为「被验证的真实使用」付费。",
+    },
+  ] satisfies ReadonlyArray<BrandProofStepDemo>,
+  pricingHint: "示例 · 品牌真实使用证据报告 + 素材包：3-15 万 / 次（按品类与规模）",
 } as const;
 
 /* ------------------------------------------------------------------ */

@@ -29,6 +29,7 @@
     "demo:check:petkit": "tsx scripts/check-pet-kit-walkthrough-video.ts",
     "demo:vo:petkit": "tsx scripts/generate-pet-kit-voiceover.ts",
     "demo:stitch:petkit": "tsx scripts/stitch-pet-kit-walkthrough-video.ts",
+    "demo:gen:evidence": "tsx scripts/generate-pet-evidence-clips.ts",
     "codemap:build": "tsx scripts/build-codemap.ts",
     "context:find": "tsx scripts/context-router.ts",
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",

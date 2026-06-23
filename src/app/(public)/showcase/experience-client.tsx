@@ -5,12 +5,16 @@ import { ArrowRight, PawPrint } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { PetHero } from "@/components/demo/pet/pet-hero";
 import { HardwareKit } from "@/components/demo/pet/hardware-kit";
+import { DemoStory } from "@/components/demo/pet/demo-story";
 import { DeviceDashboard } from "@/components/demo/pet/device-dashboard";
 import { ActivityTimeline } from "@/components/demo/pet/activity-timeline";
 import { DetectedMoments } from "@/components/demo/pet/detected-moments";
 import { CompanionMode } from "@/components/demo/pet/companion-mode";
+import { CollarPov } from "@/components/demo/pet/collar-pov";
 import { AutoVideos } from "@/components/demo/pet/auto-videos";
+import { BeforeAfter } from "@/components/demo/pet/before-after";
 import { ViralSharing } from "@/components/demo/pet/viral-sharing";
+import { BrandProofScenario } from "@/components/demo/pet/brand-proof-scenario";
 import { ProductProofReport } from "@/components/demo/pet/product-proof-report";
 import { CommunityPreview } from "@/components/demo/pet/community-preview";
 import { BenchmarkComparison } from "@/components/demo/pet/benchmark-comparison";
@@ -55,12 +59,16 @@ export function RealFootageDemoExperience({
       </div>
 
       <HardwareKit />
+      <DemoStory />
       <DeviceDashboard />
       <ActivityTimeline />
       <DetectedMoments />
       <CompanionMode />
+      <CollarPov />
       <AutoVideos />
+      <BeforeAfter />
       <ViralSharing />
+      <BrandProofScenario />
       <ProductProofReport />
       <CommunityPreview />
       <BenchmarkComparison />
@@ -133,14 +141,20 @@ function NavBar() {
             硬件套装
           </a>
           <a
-            href="#devices"
+            href="#demo-story"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
           >
-            设备
+            一日故事
+          </a>
+          <a
+            href="#before-after"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
+          >
+            成片对比
           </a>
           <a
             href="#auto-videos"
-            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground xl:inline-flex"
           >
             自动生成
           </a>

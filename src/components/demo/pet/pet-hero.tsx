@@ -53,16 +53,16 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
               {ctaPrimaryLabel} <ArrowRight size={16} />
             </Link>
             <a
-              href="#auto-videos"
-              className="inline-flex items-center justify-center rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary"
+              href="#before-after"
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-secondary"
             >
-              看自动生成的视频
+              <Sparkles size={15} /> 看真实成片对比
             </a>
             <a
-              href="#investor"
+              href="#proof-report"
               className="inline-flex items-center justify-center rounded-full px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:text-foreground"
             >
-              投资亮点摘要
+              查看品牌证据 Demo
             </a>
           </div>
 

@@ -1,12 +1,27 @@
 /**
- * 拼接 Aivora 宠物套件讲解视频成片。
+ * 拼接 Aivora 宠物套件讲解视频成片（纯音乐版 · 渲染图 × 真实画面交替剪辑）。
  *
- * 流程：下载各段 → 归一化到 1920x1080/30fps → 烧录中文字幕(drawtext) →
- *       concat 拼接 → 可选叠加 BGM。
+ * 创意方向（已锁定）：「价值时刻 × 产品」交替剪辑——每个真实宠物画面（讲价值）
+ * 紧跟一个对应设备的精修产品渲染图（讲靠哪个硬件实现），产品始终出现在它创造
+ * 价值的语境里。全程纯音乐 + 中文字幕，不再有 AI 配音旁白。
+ *
+ * 9 段分镜（约 58s，16:9）：
+ *   1. 全家福渲染图（开场揭幕）
+ *   2. Seedance① 家中宠物日常
+ *   3. 360° 摄像头渲染图
+ *   4. Seedance② 高光可爱瞬间
+ *   5. 第一视角项圈渲染图
+ *   6. Seedance③ 手机播放成片 + 宠物日记
+ *   7. 智能宠物垫渲染图
+ *   8. Seedance④ 分享裂变 montage
+ *   9. 信息图海报（收尾）
+ *
+ * 流程：渲染图 → Ken Burns 镜头clip（ffmpeg zoompan）；Seedance 源 → 归一化 + 裁到约 9s；
+ *       统一烧录中文字幕 → 按分镜顺序 concat → 叠加 BGM（纯音乐）。
  *
  * 用法：
  *   npm run demo:stitch:petkit
- *   PET_WALKTHROUGH_BGM=/abs/bgm.mp3 npm run demo:stitch:petkit   # 叠加 BGM
+ *   PET_WALKTHROUGH_BGM=/abs/bgm.mp3 npm run demo:stitch:petkit   # 自定义 BGM
  *   UPLOAD_PETKIT_TO_BLOB=true npm run demo:stitch:petkit         # 同时上传 Blob
  *
  * 中文字体默认 /System/Library/Fonts/PingFang.ttc，可用 PET_CAPTION_FONT 覆盖。
@@ -32,14 +47,16 @@ const FINAL_OUTPUT_PATH = resolve(
   "aivora-pet-content-kit-walkthrough-60s-16x9.mp4",
 );
 const CAPTION_RENDERER = resolve(process.cwd(), "scripts/render-caption-png.py");
+const RENDER_DIR = resolve(process.cwd(), "public/demo/pet");
 // 随仓库内置的默认 BGM（"Wholesome" by Kevin MacLeod, CC BY 4.0）。
 const DEFAULT_BGM_PATH = resolve(process.cwd(), "scripts/assets/pet-kit-bgm.mp3");
 
-// 输出分辨率：对齐 Seedance 720p 源素材，避免无谓上采样、显著加速编码。
+// 输出分辨率：对齐 Seedance 720p 源素材。
 const OUT_W = 1280;
 const OUT_H = 720;
+const FPS = 30;
 
-// 视频编码：默认走 macOS 硬件编码器 h264_videotoolbox（远快于 libx264 medium）。
+// 视频编码：默认走 macOS 硬件编码器 h264_videotoolbox（远快于 libx264）。
 // 设置 PET_USE_X264=true 可回退到 libx264（跨平台、无硬件加速时使用）。
 const VIDEO_ENCODE_ARGS = isTruthy(process.env.PET_USE_X264)
   ? ["-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p"]
@@ -61,6 +78,98 @@ type SubmissionRecord = {
   }>;
 };
 
+/** 渲染图镜头（Ken Burns）。 */
+type RenderClip = {
+  kind: "render";
+  id: string;
+  image: string;
+  caption: string;
+  durationSec: number;
+};
+
+/** Seedance 真实画面（归一化 + 裁切）。 */
+type SeedanceClip = {
+  kind: "seedance";
+  id: string;
+  sourceIndex: number;
+  caption: string;
+  trimStartSec: number;
+  durationSec: number;
+};
+
+type StoryboardClip = RenderClip | SeedanceClip;
+
+/** 9 段分镜：渲染图与真实画面交替，把产品焊进它创造价值的语境。 */
+const STORYBOARD: StoryboardClip[] = [
+  {
+    kind: "render",
+    id: "01-kit-open",
+    image: "kit-group.png",
+    caption: "Aivora · 宠物内容智能采集套件",
+    durationSec: 6,
+  },
+  {
+    kind: "seedance",
+    id: "02-life",
+    sourceIndex: 1,
+    caption: "真实瞬间，自动被记录",
+    trimStartSec: 2.5,
+    durationSec: 9,
+  },
+  {
+    kind: "render",
+    id: "03-cam360",
+    image: "cam-360.png",
+    caption: "360° AI 追踪，不打扰地捕捉",
+    durationSec: 3.5,
+  },
+  {
+    kind: "seedance",
+    id: "04-highlight",
+    sourceIndex: 2,
+    caption: "AI 自动挑出最可爱、最值得分享的片段",
+    trimStartSec: 2.5,
+    durationSec: 9,
+  },
+  {
+    kind: "render",
+    id: "05-collar",
+    image: "collar-cam.png",
+    caption: "第一视角，记录它眼里的世界",
+    durationSec: 3.5,
+  },
+  {
+    kind: "seedance",
+    id: "06-autoclip",
+    sourceIndex: 3,
+    caption: "一键生成可爱视频和宠物日记",
+    trimStartSec: 2.5,
+    durationSec: 9,
+  },
+  {
+    kind: "render",
+    id: "07-mat",
+    image: "smart-mat.png",
+    caption: "真实使用，成为品牌可信证据",
+    durationSec: 3.5,
+  },
+  {
+    kind: "seedance",
+    id: "08-share",
+    sourceIndex: 4,
+    caption: "分享带来增长，真实使用成为品牌证据",
+    trimStartSec: 2.5,
+    durationSec: 9,
+  },
+  {
+    kind: "render",
+    id: "09-poster-close",
+    image: "hardware-kit-poster.png",
+    caption: "把真实宠物瞬间，变成可分享内容与品牌证据",
+    durationSec: 6,
+  },
+];
+
 async function main() {
   ensureTools();
   ensureDir(SEGMENT_DIR);
@@ -69,23 +178,26 @@ async function main() {
   ensureDir(PUBLIC_OUTPUT_DIR);
 
   const font = resolveFont();
-  const segments = readSegments();
+  const seedanceSegments = readSegments();
+  const seedanceByIndex = new Map(seedanceSegments.map((s) => [s.index, s]));
 
-  banner("准备各段输入");
-  const localInputs: Array<{ path: string; caption: string; index: number }> = [];
-  for (const segment of segments) {
-    const localPath = await prepareInput(segment.videoUrl as string, segment.index);
-    localInputs.push({ path: localPath, caption: segment.caption, index: segment.index });
-    console.log(`segment ${segment.index} input = ${localPath}`);
+  banner("逐段生成归一化片段（渲染图 Ken Burns + Seedance 裁切）");
+  const normalizedPaths: string[] = [];
+  for (const clip of STORYBOARD) {
+    const out = resolve(NORMALIZED_DIR, `clip-${clip.id}.mp4`);
+    if (clip.kind === "render") {
+      buildRenderClip(clip, out, font);
+    } else {
+      const seg = seedanceByIndex.get(clip.sourceIndex);
+      if (!seg?.videoUrl) {
+        throw new Error(`缺少 Seedance 第 ${clip.sourceIndex} 段的 videoUrl。`);
+      }
+      const localPath = await prepareInput(seg.videoUrl, clip.sourceIndex);
+      buildSeedanceClip(clip, localPath, out, font);
+    }
+    console.log(`clip ${clip.id} (${clip.kind}) = ${out}`);
+    normalizedPaths.push(out);
   }
-
-  banner("归一化 + 烧录中文字幕");
-  const normalizedPaths = localInputs.map((input) => {
-    const out = resolve(NORMALIZED_DIR, `segment-${input.index}.mp4`);
-    normalizeAndCaption(input.path, out, input.caption, input.index, font);
-    console.log(`segment ${input.index} normalized = ${out}`);
-    return out;
-  });
 
   banner("拼接片段");
   writeConcatList(normalizedPaths);
@@ -97,65 +209,19 @@ async function main() {
 
   const bgm = resolveBgm();
   const totalSec = probeDurationSec(CONCAT_OUTPUT_PATH);
-  const voiceover = resolveVoiceover(normalizedPaths.length, normalizedPaths);
 
-  if (voiceover.length > 0) {
-    banner("混音：中文配音旁白（主） + 压低 BGM（垫底）");
-    mixVoiceoverAndBgm({ voiceover, bgm, totalSec });
-    console.log(
-      `voiceover segments = ${voiceover.map((v) => v.index).join(",")}`,
-      bgm ? `| bgm = ${bgm}` : "| 无 BGM",
-    );
-  } else if (bgm) {
-    banner("叠加 BGM（无配音旁白）");
-    const fadeOutStart = Math.max(0, totalSec - 2);
-    // 可调整整体音量（默认 0.85，给「字幕承载信息」留出克制感）。
-    const gain = readBgmGain(0.85);
-    // -stream_loop -1 让较短的 BGM 自动循环铺满整支视频；
-    // atrim 精确截到视频时长，再做整体淡入淡出，避免循环接缝处突兀。
-    const audioFilter = [
-      "aformat=sample_rates=44100:channel_layouts=stereo",
-      `atrim=0:${totalSec.toFixed(2)}`,
-      "loudnorm=I=-18:TP=-1.5:LRA=11",
-      `volume=${gain}`,
-      "afade=t=in:st=0:d=1.2",
-      `afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2`,
-    ].join(",");
-    execFileSync(
-      "ffmpeg",
-      [
-        "-y",
-        "-i",
-        CONCAT_OUTPUT_PATH,
-        "-stream_loop",
-        "-1",
-        "-i",
-        bgm,
-        "-filter_complex",
-        `[1:a]${audioFilter}[a]`,
-        "-map",
-        "0:v:0",
-        "-map",
-        "[a]",
-        "-shortest",
-        "-c:v",
-        "copy",
-        "-c:a",
-        "aac",
-        "-b:a",
-        "192k",
-        FINAL_OUTPUT_PATH,
-      ],
-      { stdio: "inherit" },
-    );
-    console.log("bgm =", bgm, "| gain =", gain);
+  if (bgm) {
+    banner("叠加纯音乐 BGM（无配音旁白）");
+    addBgmOnly({ bgm, totalSec });
+    console.log("bgm =", bgm);
   } else {
-    console.log("未提供配音旁白与 BGM，输出无声版本。");
+    console.log("未提供 BGM，输出无声版本。");
     execFileSync("ffmpeg", ["-y", "-i", CONCAT_OUTPUT_PATH, "-c", "copy", FINAL_OUTPUT_PATH], {
       stdio: "inherit",
     });
   }
 
+  console.log("totalSec ≈", totalSec.toFixed(1));
   console.log("finalLocalPath =", FINAL_OUTPUT_PATH);
   console.log("publicUrl =", "/generated/aivora-pet-content-kit-walkthrough-60s-16x9.mp4");
 
@@ -165,7 +231,7 @@ async function main() {
     console.log("把该 URL 填入 PET_WALKTHROUGH_VIDEO_URL。");
   } else {
     console.log(
-      "把 /generated/aivora-pet-content-kit-walkthrough-60s-16x9.mp4 填入 src/lib/demo/pet-content-kit-demo-data.ts 的 PET_WALKTHROUGH_VIDEO_URL。",
+      "成片已覆盖 public/generated/aivora-pet-content-kit-walkthrough-60s-16x9.mp4（demo 已指向该路径）。",
     );
   }
 }
@@ -219,38 +285,100 @@ async function prepareInput(input: string, index: number) {
   return resolved;
 }
 
-function normalizeAndCaption(
-  input: string,
-  output: string,
-  caption: string,
-  index: number,
-  font: string,
-) {
-  const captionFile = resolve(CAPTION_DIR, `caption-${index}.txt`);
+/** 渲染一张全屏透明字幕 PNG（PIL），返回路径。 */
+function renderCaptionPng(caption: string, id: string, font: string) {
+  const captionFile = resolve(CAPTION_DIR, `caption-${id}.txt`);
+  const captionPng = resolve(CAPTION_DIR, `caption-${id}.png`);
   writeFileSync(captionFile, caption, "utf8");
-
-  // 本机 ffmpeg 未编译 libfreetype（drawtext 不可用），改为 PIL 渲染字幕 PNG
-  // 再用核心 overlay 滤镜叠加，保证中文字幕正确显示。
-  const captionPng = resolve(CAPTION_DIR, `caption-${index}.png`);
   execFileSync(
     "python3",
     [CAPTION_RENDERER, font, captionFile, captionPng, `${OUT_W}`, `${OUT_H}`, "0"],
     { stdio: "inherit" },
   );
+  return captionPng;
+}
 
+/**
+ * 把一张产品渲染图做成带缓慢推镜（Ken Burns）的 16:9 clip，并烧录字幕。
+ * 4:3 渲染图会被居中放大裁切到 16:9（产品居中、留白充足，裁切不影响主体）。
+ */
+function buildRenderClip(clip: RenderClip, output: string, font: string) {
+  const captionPng = renderCaptionPng(clip.caption, clip.id, font);
+  const image = resolve(RENDER_DIR, clip.image);
+  if (!existsSync(image)) throw new Error(`渲染图不存在：${image}`);
+
+  const frames = Math.round(clip.durationSec * FPS);
+  // 单张静态图 + zoompan：放大到大尺寸保证推镜平滑，d=总帧数，z 逐帧累积。
   const filterComplex = [
-    `[0:v]fps=30,scale=${OUT_W}:${OUT_H}:force_original_aspect_ratio=decrease,` +
-      `pad=${OUT_W}:${OUT_H}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p[base]`,
-    "[base][1:v]overlay=0:0:format=auto[v]",
+    `[0:v]scale=6400:-1,` +
+      `zoompan=z='min(zoom+0.0004,1.10)':d=${frames}:` +
+      `x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${OUT_W}x${OUT_H}:fps=${FPS},` +
+      `setsar=1,format=yuv420p[bg]`,
+    `[bg][1:v]overlay=0:0:format=auto,format=yuv420p[v]`,
   ].join(";");
-
-  // 用源时长显式限定输出长度，避免 looped 字幕图 + anullsrc 导致 -shortest 不终止。
-  const durationSec = probeDurationSec(input);
 
   execFileSync(
     "ffmpeg",
     [
       "-y",
+      "-loop",
+      "1",
+      "-i",
+      image,
+      "-loop",
+      "1",
+      "-i",
+      captionPng,
+      "-f",
+      "lavfi",
+      "-i",
+      "anullsrc=channel_layout=stereo:sample_rate=44100",
+      "-filter_complex",
+      filterComplex,
+      "-map",
+      "[v]",
+      "-map",
+      "2:a:0",
+      "-t",
+      clip.durationSec.toFixed(2),
+      "-r",
+      `${FPS}`,
+      ...VIDEO_ENCODE_ARGS,
+      "-c:a",
+      "aac",
+      "-ar",
+      "44100",
+      "-ac",
+      "2",
+      output,
+    ],
+    { stdio: "inherit" },
+  );
+}
+
+/** 归一化一段 Seedance 真实画面：裁到指定区间、缩放铺满 16:9、烧录字幕。 */
+function buildSeedanceClip(
+  clip: SeedanceClip,
+  input: string,
+  output: string,
+  font: string,
+) {
+  const captionPng = renderCaptionPng(clip.caption, clip.id, font);
+
+  const filterComplex = [
+    `[0:v]fps=${FPS},scale=${OUT_W}:${OUT_H}:force_original_aspect_ratio=decrease,` +
+      `pad=${OUT_W}:${OUT_H}:(ow-iw)/2:(oh-ih)/2,setsar=1,format=yuv420p[base]`,
+    "[base][1:v]overlay=0:0:format=auto[v]",
+  ].join(";");
+
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-ss",
+      clip.trimStartSec.toFixed(2),
+      "-t",
+      clip.durationSec.toFixed(2),
       "-i",
       input,
       "-loop",
@@ -268,7 +396,7 @@ function normalizeAndCaption(
       "-map",
       "2:a:0",
       "-t",
-      durationSec.toFixed(2),
+      clip.durationSec.toFixed(2),
       ...VIDEO_ENCODE_ARGS,
       "-c:a",
       "aac",
@@ -280,6 +408,50 @@ function normalizeAndCaption(
     ],
     { stdio: "inherit" },
   );
+}
+
+/** 给成片叠加纯音乐 BGM：循环铺满、loudnorm、整体淡入淡出。 */
+function addBgmOnly(opts: { bgm: string; totalSec: number }) {
+  const { bgm, totalSec } = opts;
+  const fadeOutStart = Math.max(0, totalSec - 2);
+  const gain = readBgmGain(0.85);
+  const audioFilter = [
+    "aformat=sample_rates=44100:channel_layouts=stereo",
+    `atrim=0:${totalSec.toFixed(2)}`,
+    "loudnorm=I=-18:TP=-1.5:LRA=11",
+    `volume=${gain}`,
+    "afade=t=in:st=0:d=1.2",
+    `afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2`,
+  ].join(",");
+
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      "-i",
+      CONCAT_OUTPUT_PATH,
+      "-stream_loop",
+      "-1",
+      "-i",
+      bgm,
+      "-filter_complex",
+      `[1:a]${audioFilter}[a]`,
+      "-map",
+      "0:v:0",
+      "-map",
+      "[a]",
+      "-shortest",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      FINAL_OUTPUT_PATH,
+    ],
+    { stdio: "inherit" },
+  );
+  console.log("gain =", gain);
 }
 
 function probeDurationSec(input: string) {
@@ -324,139 +496,6 @@ function readBgmGain(fallback: number) {
   return parsed;
 }
 
-const VOICEOVER_DIR = resolve(WORK_DIR, "voiceover");
-
-type VoiceoverClip = { index: number; path: string; offsetSec: number };
-
-/**
- * 读取已生成的中文配音旁白（vo-{index}.mp3），并按各段在成片中的起始
- * 时间计算偏移，供 mix 阶段用 adelay 精确对齐到对应分镜。
- */
-function resolveVoiceover(count: number, normalizedPaths: string[]): VoiceoverClip[] {
-  if (!existsSync(VOICEOVER_DIR)) return [];
-  if (isTruthy(process.env.PET_DISABLE_VOICEOVER)) return [];
-
-  // 各段在成片里的起始秒数 = 前面所有段时长之和。
-  const segDurations = normalizedPaths.map((p) => probeDurationSec(p));
-  const offsets: number[] = [];
-  let acc = 0;
-  for (const d of segDurations) {
-    offsets.push(acc);
-    acc += d;
-  }
-
-  const clips: VoiceoverClip[] = [];
-  for (let i = 1; i <= count; i++) {
-    const path = resolve(VOICEOVER_DIR, `vo-${i}.mp3`);
-    if (existsSync(path) && statSync(path).size > 0) {
-      clips.push({ index: i, path, offsetSec: offsets[i - 1] ?? 0 });
-    }
-  }
-  return clips;
-}
-
-/**
- * 把配音旁白（主声轨）与 BGM（压低垫底）混入成片：
- *  - 每段旁白用 adelay 对齐到对应分镜起点；
- *  - BGM 循环铺满、loudnorm 后压到很低音量，仅作氛围垫底；
- *  - 末端 alimiter 防止叠加削顶。
- */
-function mixVoiceoverAndBgm(opts: {
-  voiceover: VoiceoverClip[];
-  bgm: string | null;
-  totalSec: number;
-}) {
-  const { voiceover, bgm, totalSec } = opts;
-  const fadeOutStart = Math.max(0, totalSec - 2);
-  // 旁白整体音量（可用 PET_VOICEOVER_GAIN 微调）。
-  const voGain = readPositiveEnv(process.env.PET_VOICEOVER_GAIN, 1.15);
-  // 有旁白时 BGM 默认压到很低，避免盖住人声。
-  const bgGain = bgm ? readBgmGain(0.16) : 0;
-
-  const inputs: string[] = ["-i", CONCAT_OUTPUT_PATH];
-  voiceover.forEach((clip) => {
-    inputs.push("-i", clip.path);
-  });
-  if (bgm) {
-    inputs.push("-stream_loop", "-1", "-i", bgm);
-  }
-
-  const filterParts: string[] = [];
-  const voLabels: string[] = [];
-  voiceover.forEach((clip, idx) => {
-    const ff = idx + 1; // ffmpeg 输入序号（0 是视频）
-    const delayMs = Math.round(clip.offsetSec * 1000);
-    const label = `vo${idx}`;
-    filterParts.push(
-      `[${ff}:a]aresample=44100,aformat=channel_layouts=stereo,` +
-        `adelay=${delayMs}|${delayMs}[${label}]`,
-    );
-    voLabels.push(`[${label}]`);
-  });
-
-  // 合并所有旁白片段为一条人声轨（不重叠，normalize=0 保持各自音量）。
-  if (voLabels.length === 1) {
-    filterParts.push(`${voLabels[0]}volume=${voGain}[voice]`);
-  } else {
-    filterParts.push(
-      `${voLabels.join("")}amix=inputs=${voLabels.length}:normalize=0,` +
-        `volume=${voGain}[voice]`,
-    );
-  }
-  const voiceMix = "[voice]";
-
-  let finalAudio: string;
-  if (bgm) {
-    const bgIdx = voiceover.length + 1;
-    filterParts.push(
-      `[${bgIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,` +
-        `atrim=0:${totalSec.toFixed(2)},loudnorm=I=-20:TP=-2:LRA=11,` +
-        `volume=${bgGain},afade=t=in:st=0:d=1.2,` +
-        `afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2[bg]`,
-    );
-    filterParts.push(
-      `${voiceMix}[bg]amix=inputs=2:normalize=0,alimiter=limit=0.95[mix]`,
-    );
-    finalAudio = "[mix]";
-  } else {
-    filterParts.push(`${voiceMix}alimiter=limit=0.95[mix]`);
-    finalAudio = "[mix]";
-  }
-
-  execFileSync(
-    "ffmpeg",
-    [
-      "-y",
-      ...inputs,
-      "-filter_complex",
-      filterParts.join(";"),
-      "-map",
-      "0:v:0",
-      "-map",
-      finalAudio,
-      "-t",
-      totalSec.toFixed(2),
-      "-c:v",
-      "copy",
-      "-c:a",
-      "aac",
-      "-b:a",
-      "192k",
-      FINAL_OUTPUT_PATH,
-    ],
-    { stdio: "inherit" },
-  );
-
-  console.log("voiceGain =", voGain, "| bgGain =", bgGain);
-}
-
-function readPositiveEnv(raw: string | undefined, fallback: number) {
-  if (!raw) return fallback;
-  const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
-  return parsed;
-}
-
 function resolveBgm() {
   const raw = process.env.PET_WALKTHROUGH_BGM;
   // 设置 PET_WALKTHROUGH_BGM=none 可强制输出无配乐版本。
@@ -492,6 +531,7 @@ async function uploadToBlob(path: string) {
 function ensureTools() {
   execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
   execFileSync("ffprobe", ["-version"], { stdio: "ignore" });
+  execFileSync("python3", ["--version"], { stdio: "ignore" });
 }
 
 function ensureDir(path: string) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight, PawPrint } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { PetHero } from "@/components/demo/pet/pet-hero";
+import { HardwareKit } from "@/components/demo/pet/hardware-kit";
 import { DeviceDashboard } from "@/components/demo/pet/device-dashboard";
 import { ActivityTimeline } from "@/components/demo/pet/activity-timeline";
 import { DetectedMoments } from "@/components/demo/pet/detected-moments";
@@ -12,7 +13,9 @@ import { AutoVideos } from "@/components/demo/pet/auto-videos";
 import { ViralSharing } from "@/components/demo/pet/viral-sharing";
 import { ProductProofReport } from "@/components/demo/pet/product-proof-report";
 import { CommunityPreview } from "@/components/demo/pet/community-preview";
+import { BenchmarkComparison } from "@/components/demo/pet/benchmark-comparison";
 import { MarketOpportunity } from "@/components/demo/pet/market-opportunity";
+import { GrowthFlywheel } from "@/components/demo/pet/growth-flywheel";
 import { PetInvestorHighlights } from "@/components/demo/pet/pet-investor-highlights";
 import { BusinessModel } from "@/components/demo/pet/business-model";
 import { TeamSection } from "@/components/demo/pet/team-section";
@@ -51,6 +54,7 @@ export function RealFootageDemoExperience({
         </div>
       </div>
 
+      <HardwareKit />
       <DeviceDashboard />
       <ActivityTimeline />
       <DetectedMoments />
@@ -59,7 +63,9 @@ export function RealFootageDemoExperience({
       <ViralSharing />
       <ProductProofReport />
       <CommunityPreview />
+      <BenchmarkComparison />
       <MarketOpportunity />
+      <GrowthFlywheel />
       <PetInvestorHighlights />
       <BusinessModel />
       <TeamSection />
@@ -120,6 +126,12 @@ function NavBar() {
           </div>
         </Link>
         <div className="flex items-center gap-2">
+          <a
+            href="#hardware-kit"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
+          >
+            硬件套装
+          </a>
           <a
             href="#devices"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"

@@ -51,6 +51,20 @@ export const PET_WALKTHROUGH_VIDEO_URL: string | null =
 export const PET_WALKTHROUGH_VIDEO_POSTER: string | null =
   "/demo/pet/walkthrough-poster.jpg";
 
+/**
+ * Aivora 自有硬件套装的精修产品渲染图（/public/demo/pet/）。
+ *
+ * 用于「自有硬件套装」展示区与 hero 点缀。奶白/米色 studio 风，统一放在干净
+ * 卡片里呈现，强化「这是一家有自有硬件品牌的公司」的实感。缺图时 PetImage 降级。
+ */
+export const PET_RENDER = {
+  cam360: "/demo/pet/cam-360.png",
+  collarCam: "/demo/pet/collar-cam.png",
+  smartMat: "/demo/pet/smart-mat.png",
+  kitGroup: "/demo/pet/kit-group.png",
+  poster: "/demo/pet/hardware-kit-poster.png",
+} as const;
+
 export interface HeroStat {
   label: string;
   value: string;
@@ -820,6 +834,244 @@ export const TEAM_SECTION = {
     },
   ] satisfies ReadonlyArray<TeamMember>,
   note: "我们正在寻找在宠物供应链、品牌 BD 与社区运营上互补的早期伙伴。",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* Aivora 自有硬件套装                                                  */
+/* ------------------------------------------------------------------ */
+
+export type HardwareStageTag = "mvp" | "b2b" | "future";
+
+export interface HardwareProductDemo {
+  key: "camera" | "collar" | "mat";
+  image: string;
+  name: string;
+  englishName: string;
+  /** 路线图定位标签 */
+  stage: HardwareStageTag;
+  stageLabel: string;
+  /** 一句话定位 */
+  tagline: string;
+  /** 核心能力 */
+  capabilities: ReadonlyArray<string>;
+  /** 市场验证参考（不是「我们接入这些设备」，而是市场已被验证） */
+  marketReferences: ReadonlyArray<string>;
+  /** Aivora 在参考品类之上的差异化 */
+  aivoraDifference: ReadonlyArray<string>;
+  cta: { label: string; href: string };
+}
+
+export const HARDWARE_KIT_SECTION = {
+  eyebrow: "Aivora 自有硬件套装",
+  title: "不是接在别人摄像头上的软件层，而是 Aivora 自有的宠物内容采集套装",
+  description:
+    "三类智能采集入口协同工作，把真实宠物行为转化为主人愿意分享的内容，和品牌愿意付费的产品使用证据。它们共同服务一个闭环，构成 Aivora 的数据入口与品牌壁垒。",
+  /** 策略文档的投资人核心话术（中英双语，中文先行）。 */
+  investorLine:
+    "Aivora 要做的是自有 AI 宠物内容硬件套装，而不是依附在现有摄像头上的软件层。",
+  investorLineEn:
+    "Aivora is building its own AI pet content hardware kit, not just a software layer on top of existing cameras.",
+  /** 顶部主视觉：信息图海报。 */
+  heroImage: PET_RENDER.poster,
+  heroImageAlt: "Aivora Pet Content Intelligence Kit 产品全景",
+  products: [
+    {
+      key: "camera",
+      image: PET_RENDER.cam360,
+      name: "Aivora 360° 宠物内容摄像头",
+      englishName: "Aivora Smart Pet Content Cam",
+      stage: "mvp",
+      stageLabel: "MVP 优先 · 核心设备",
+      tagline:
+        "360° AI 追踪宠物、捕捉可爱瞬间，并自动生成可分享视频——最容易落地、最适合 AI 宠物识别与自动成片的核心产品。",
+      capabilities: [
+        "360° 可旋转 · AI 宠物识别与自动追踪",
+        "双向语音 / 主人远程发声",
+        "自动捕捉吃饭、睡觉、玩耍、撒娇、使用产品",
+        "每天自动生成 3–5 条短视频 + 宠物日记",
+        "自动生成标题、字幕、话题标签，可触发 Product Proof",
+      ],
+      marketReferences: [
+        "Petlibro Scout",
+        "Furbo 360",
+        "Petcube Cam 360",
+        "eufy Pet D605",
+      ],
+      aivoraDifference: [
+        "从「监控回顾」升级为「可发布内容」",
+        "AI 自动成片 + 宠物日记 + 主人陪伴",
+        "病毒式分享裂变 + 品牌 UGC 证据",
+      ],
+      cta: { label: "生成一条可爱视频", href: "#auto-videos" },
+    },
+    {
+      key: "mat",
+      image: PET_RENDER.smartMat,
+      name: "Aivora 智能宠物垫传感器",
+      englishName: "Aivora Smart Pet Mat Sensor",
+      stage: "b2b",
+      stageLabel: "B2B 变现关键 · 产品使用传感器",
+      tagline:
+        "记录宠物是否真实使用产品，并把真实使用转化为品牌可用的视频内容与 Product Proof Report——最容易讲清楚商家为什么付费。",
+      capabilities: [
+        "压力 / 存在感应，判断宠物是否主动使用产品",
+        "记录使用频率、时长与常用时段",
+        "与摄像头联动触发拍摄",
+        "自动生成 Product Proof Report",
+        "适配宠物毯、窝、垫子、玩具等品类测试",
+      ],
+      marketReferences: [
+        "Carepet Smart Bed",
+        "Sensor Pet Bed",
+        "压力感应宠物垫",
+        "ODM Smart Mat",
+      ],
+      aivoraDifference: [
+        "不是「智能床」，而是「产品使用证据传感器」",
+        "把使用数据转化为 AI 视频 + 品牌报告",
+        "为品牌证明「宠物真的主动使用了产品」",
+      ],
+      cta: { label: "查看 Product Proof Demo", href: "#proof-report" },
+    },
+    {
+      key: "collar",
+      image: PET_RENDER.collarCam,
+      name: "Aivora 宠物第一视角项圈摄影机",
+      englishName: "Aivora Pet POV Collar Cam",
+      stage: "future",
+      stageLabel: "未来差异化 · 第一视角内容入口",
+      tagline:
+        "从宠物第一视角记录它看到的世界，并自动生成可爱的 AI 冒险视频——传播性与记忆点最强，作为未来愿景逐步落地。",
+      capabilities: [
+        "宠物第一视角拍摄 · 户外散步 POV",
+        "GPS / 活动状态记录",
+        "主人远程发声，捕捉宠物听到声音后的反应",
+        "AI 自动生成宠物冒险日记与短视频",
+        "未来接入宠物社区分享",
+      ],
+      marketReferences: [
+        "Enabot ROLA PetTracker",
+        "FetchLink C10",
+        "Fi Smart Collar",
+        "Invoxia Minitailz",
+      ],
+      aivoraDifference: [
+        "不是 GPS 训练项圈，而是「宠物 POV 内容入口」",
+        "AI 生成第一视角冒险视频与回忆短片",
+        "远程语音反应成片 + 社交分享",
+      ],
+      cta: { label: "查看宠物第一视角愿景", href: "#community" },
+    },
+  ] satisfies ReadonlyArray<HardwareProductDemo>,
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* 产品落地路线：Demo → MVP → Expansion                                 */
+/* ------------------------------------------------------------------ */
+
+export interface RoadmapStageDemo {
+  stage: string;
+  status: "now" | "next" | "later";
+  statusLabel: string;
+  title: string;
+  body: string;
+}
+
+export const ROADMAP_STAGES = {
+  eyebrow: "产品落地路线",
+  title: "先用市场成熟硬件验证体验，再推出 Aivora 自有套装",
+  description:
+    "我们不假装「三款硬件马上量产」。Demo 阶段用第三方设备、上传视频和模拟传感器数据跑通闭环；中期先打通 360° 摄像头与 AI 内容管线；后期再逐步加入宠物垫与第一视角项圈，形成完整套装。",
+  stages: [
+    {
+      stage: "Demo Stage",
+      status: "now",
+      statusLabel: "当前阶段",
+      title: "第三方设备 + 上传视频 + 模拟数据",
+      body: "用现有设备、上传素材和模拟传感器数据展示完整闭环，验证：宠物视频能否自动成片、主人是否愿意分享、品牌是否理解 Product Proof、投资人是否看懂软硬件一体化故事。",
+    },
+    {
+      stage: "MVP Stage",
+      status: "next",
+      statusLabel: "下一步",
+      title: "Aivora 360° 摄像头 + AI 内容管线",
+      body: "先确定第一款自有核心硬件——360° 宠物内容摄像头，打通 AI 识别、自动成片与宠物日记。它最容易落地、最容易被用户理解，可同时服务 B2C 与 B2B。",
+    },
+    {
+      stage: "Expansion Stage",
+      status: "later",
+      statusLabel: "扩展阶段",
+      title: "智能宠物垫 + 第一视角项圈",
+      body: "摄像头跑通后，加入智能宠物垫（Product Proof 与品牌试用）与第一视角项圈（户外内容与差异化传播），形成完整的 Aivora Pet Content Intelligence Kit。",
+    },
+  ] satisfies ReadonlyArray<RoadmapStageDemo>,
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* 增长飞轮                                                            */
+/* ------------------------------------------------------------------ */
+
+export interface FlywheelNodeDemo {
+  label: string;
+  hint: string;
+}
+
+export const GROWTH_FLYWHEEL = {
+  eyebrow: "增长飞轮",
+  title: "硬件采集真实行为 → AI 内容 → 分享裂变 → 社区与品牌付费 → 更多数据",
+  description:
+    "每一次真实宠物行为都被转化为内容与数据资产：主人主动分享带来近乎零成本的获客，社区沉淀关系链，品牌为真实使用证据付费，反过来又带来更多硬件与更多真实数据，形成复利。",
+  nodes: [
+    { label: "智能摄像头 / 项圈 / 宠物垫", hint: "三类采集入口" },
+    { label: "真实宠物行为数据", hint: "自有数据壁垒" },
+    { label: "AI 可爱视频 + 宠物日记", hint: "全自动成片" },
+    { label: "主人主动分享", hint: "高情绪价值、低门槛" },
+    { label: "病毒式低成本获客", hint: "CAC 趋近于零" },
+    { label: "宠物社区", hint: "关系链与数据资产" },
+    { label: "品牌 Campaign + Product Proof", hint: "B2B 付费" },
+  ] satisfies ReadonlyArray<FlywheelNodeDemo>,
+  closingNote: "→ 更多硬件、更多真实数据，飞轮持续转动。",
+} as const;
+
+/* ------------------------------------------------------------------ */
+/* 对标痛点对比矩阵                                                      */
+/* ------------------------------------------------------------------ */
+
+export type BenchmarkCell = "yes" | "partial" | "no" | "core";
+
+export interface BenchmarkRowDemo {
+  feature: string;
+  ordinary: BenchmarkCell;
+  aiCamera: BenchmarkCell;
+  wearableMat: BenchmarkCell;
+  aivora: BenchmarkCell;
+}
+
+export const BENCHMARK_MATRIX = {
+  eyebrow: "对标对比 · 为什么是 Aivora",
+  title: "现有产品只解决单点需求，Aivora 把真实行为变成内容资产与商业资产",
+  description:
+    "现有宠物摄像头只是「看宠物、互动、追踪或健康监测」。我们不跟 Furbo、Petlibro、Petcube 比摄像头参数，而是比谁能把宠物真实行为转化成主人愿意分享的内容、品牌愿意付费的证据。",
+  columns: ["普通宠物摄像头", "AI 宠物摄像头", "智能项圈 / 床垫", "Aivora Kit"],
+  rows: [
+    { feature: "看宠物", ordinary: "yes", aiCamera: "yes", wearableMat: "partial", aivora: "yes" },
+    { feature: "远程发声", ordinary: "yes", aiCamera: "yes", wearableMat: "partial", aivora: "yes" },
+    { feature: "自动追踪", ordinary: "partial", aiCamera: "yes", wearableMat: "no", aivora: "yes" },
+    { feature: "AI 行为识别", ordinary: "no", aiCamera: "yes", wearableMat: "partial", aivora: "yes" },
+    { feature: "自动生成短视频", ordinary: "no", aiCamera: "partial", wearableMat: "no", aivora: "core" },
+    { feature: "宠物语气字幕", ordinary: "no", aiCamera: "partial", wearableMat: "no", aivora: "yes" },
+    { feature: "一键社交分享", ordinary: "partial", aiCamera: "partial", wearableMat: "no", aivora: "core" },
+    { feature: "产品使用证据", ordinary: "no", aiCamera: "no", wearableMat: "partial", aivora: "core" },
+    { feature: "品牌报告", ordinary: "no", aiCamera: "no", wearableMat: "no", aivora: "core" },
+    { feature: "硬件套装", ordinary: "no", aiCamera: "no", wearableMat: "no", aivora: "yes" },
+  ] satisfies ReadonlyArray<BenchmarkRowDemo>,
+  painPoints: [
+    "订阅贵但价值感不强 → Aivora 的订阅价值很直接：每日可爱视频、宠物日记、字幕、Product Proof。",
+    "AI 不稳定、隐私担忧 → 强调稳定成片、内容归主人所有、品牌商用需二次授权、可删除、可不上云。",
+    "硬件之间彼此孤立 → 摄像头负责室内、项圈负责户外第一视角、宠物垫负责使用证据，AI 后台统一成片与分发。",
+  ],
+  sourceNote:
+    "对比与参考价格来自公开渠道与同类产品资料，仅用于 Demo / 投资人沟通的市场参照，实际以各品牌官方为准。",
 } as const;
 
 /* ------------------------------------------------------------------ */

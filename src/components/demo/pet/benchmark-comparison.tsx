@@ -1,0 +1,109 @@
+import { Check, Minus, X, Star } from "lucide-react";
+import { PetSection } from "./pet-section";
+import {
+  BENCHMARK_MATRIX,
+  type BenchmarkCell,
+} from "@/lib/demo/pet-content-kit-demo-data";
+
+function CellMark({ value }: { value: BenchmarkCell }) {
+  if (value === "core") {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-full bg-(--pet-orange)/15 px-2 py-0.5 text-[10px] font-semibold text-(--pet-orange)">
+        <Star size={11} className="fill-current" /> 核心
+      </span>
+    );
+  }
+  if (value === "yes") {
+    return <Check size={16} className="text-(--pet-teal)" aria-label="有" />;
+  }
+  if (value === "partial") {
+    return <Minus size={16} className="text-amber-500" aria-label="部分" />;
+  }
+  return <X size={15} className="text-muted-foreground/40" aria-label="无" />;
+}
+
+export function BenchmarkComparison() {
+  const b = BENCHMARK_MATRIX;
+  const aivoraIdx = b.columns.length - 1;
+  return (
+    <PetSection
+      id="benchmark"
+      eyebrow={b.eyebrow}
+      title={b.title}
+      description={b.description}
+    >
+      <div className="pet-surface overflow-hidden rounded-3xl">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="p-4 text-left text-xs font-semibold text-muted-foreground">
+                  能力
+                </th>
+                {b.columns.map((col, idx) => (
+                  <th
+                    key={col}
+                    className={`p-4 text-center text-xs font-semibold ${
+                      idx === aivoraIdx
+                        ? "bg-(--pet-orange)/10 text-(--pet-orange)"
+                        : "text-foreground/70"
+                    }`}
+                  >
+                    {col}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {b.rows.map((row) => (
+                <tr
+                  key={row.feature}
+                  className="border-b border-border/60 last:border-0"
+                >
+                  <td className="p-4 text-xs font-medium text-foreground/85">
+                    {row.feature}
+                  </td>
+                  <td className="p-4 text-center">
+                    <div className="flex justify-center">
+                      <CellMark value={row.ordinary} />
+                    </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <div className="flex justify-center">
+                      <CellMark value={row.aiCamera} />
+                    </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <div className="flex justify-center">
+                      <CellMark value={row.wearableMat} />
+                    </div>
+                  </td>
+                  <td className="bg-(--pet-orange)/6 p-4 text-center">
+                    <div className="flex justify-center">
+                      <CellMark value={row.aivora} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-3 lg:grid-cols-3">
+        {b.painPoints.map((p) => (
+          <div
+            key={p}
+            className="rounded-2xl border border-border bg-card/60 p-4 text-xs leading-6 text-muted-foreground"
+          >
+            {p}
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-5 text-[11px] leading-5 text-muted-foreground/80">
+        {b.sourceNote}
+      </p>
+    </PetSection>
+  );
+}

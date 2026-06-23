@@ -21,9 +21,9 @@ export function DeviceDashboard() {
   return (
     <PetSection
       id="devices"
-      eyebrow="设备 Dashboard"
-      title="智能硬件，自动采集真实宠物场景"
-      description="摄像头、智能项圈与宠物垫传感器协同工作，自动捕捉宠物的真实瞬间，并为 AI 内容生产提供原始素材。硬件入口清晰，未来可持续扩展。"
+      eyebrow="实时采集状态 · Demo 模拟"
+      title="三类硬件同时在线，自动采集真实宠物场景"
+      description="摄像头、智能项圈与宠物垫传感器协同工作，自动捕捉宠物的真实瞬间，并为 AI 内容生产提供原始素材。以下设备状态为 demo 模拟数据，演示套装如何持续产生可用素材。"
     >
       <div className="grid gap-5 md:grid-cols-3">
         {petDevices.map((device) => (

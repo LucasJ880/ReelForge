@@ -1,13 +1,21 @@
 import Link from "next/link";
 import { ArrowRight, PawPrint, Sparkles } from "lucide-react";
+import { PetImage } from "./pet-image";
 import {
   PET_HERO_OPENING,
+  PET_RENDER,
   PET_SLOGAN,
   PET_WALKTHROUGH_VIDEO_POSTER,
   PET_WALKTHROUGH_VIDEO_URL,
   heroStats,
   type HeroStat,
 } from "@/lib/demo/pet-content-kit-demo-data";
+
+const HERO_DEVICE_THUMBS = [
+  { src: PET_RENDER.cam360, label: "360° 摄像头" },
+  { src: PET_RENDER.collarCam, label: "第一视角项圈" },
+  { src: PET_RENDER.smartMat, label: "智能宠物垫" },
+] as const;
 
 interface PetHeroProps {
   ctaPrimaryHref: string;
@@ -69,7 +77,7 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
           <div className="absolute -inset-10 -z-10 rounded-[3rem] bg-[var(--pet-orange)]/15 blur-3xl" />
           <div className="flex flex-col items-center gap-4">
             <p className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pet-teal)]/30 bg-[var(--pet-teal)]/10 px-3 py-1 text-[11px] font-semibold text-[color:var(--pet-teal)]">
-              <Sparkles size={13} /> 60 秒看懂 Aivora · 中文字幕 + 配音讲解
+              <Sparkles size={13} /> 60 秒看懂 Aivora · 中文字幕 + 纯音乐
             </p>
             {PET_WALKTHROUGH_VIDEO_URL ? (
               <figure className="w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-card p-2 shadow-xl shadow-[var(--pet-orange)]/10">
@@ -90,8 +98,37 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
               </div>
             )}
             <p className="max-w-md text-center text-xs leading-5 text-muted-foreground">
-              点开有声播放 · 讲清我们做什么、怎么自动生产可裂变的宠物视频、为什么要用我们
+              纯音乐播放 · 讲清我们做什么、怎么自动生产可裂变的宠物视频、为什么要用我们
             </p>
+
+            <a
+              href="#hardware-kit"
+              className="group mt-2 w-full max-w-xl rounded-3xl border border-border bg-card/70 p-3 transition hover:border-[var(--pet-orange)]/40"
+            >
+              <div className="flex items-center justify-between px-1 pb-2">
+                <span className="text-[11px] font-semibold text-foreground">
+                  Aivora 自有硬件套装
+                </span>
+                <span className="inline-flex items-center gap-1 text-[11px] text-[color:var(--pet-orange)]">
+                  查看套装 <ArrowRight size={12} />
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {HERO_DEVICE_THUMBS.map((thumb) => (
+                  <figure key={thumb.label} className="overflow-hidden rounded-2xl">
+                    <PetImage
+                      src={thumb.src}
+                      alt={thumb.label}
+                      className="aspect-4/3 object-cover transition group-hover:scale-[1.03]"
+                      fallbackLabel={thumb.label}
+                    />
+                    <figcaption className="mt-1 text-center text-[10px] text-muted-foreground">
+                      {thumb.label}
+                    </figcaption>
+                  </figure>
+                ))}
+              </div>
+            </a>
           </div>
         </div>
       </div>

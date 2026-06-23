@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T16:10:54.099Z",
+  "generatedAt": "2026-06-23T02:34:08.393Z",
   "routes": [
     {
       "routePath": "/",
@@ -97,6 +97,24 @@
       "isDynamic": true
     },
     {
+      "routePath": "/api/auth/register",
+      "filePath": "src/app/api/auth/register/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/billing/checkout",
+      "filePath": "src/app/api/billing/checkout/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/briefs/[id]",
       "filePath": "src/app/api/briefs/[id]/route.ts",
       "kind": "api",
@@ -169,6 +187,15 @@
         "POST"
       ],
       "isDynamic": true
+    },
+    {
+      "routePath": "/api/business/metrics",
+      "filePath": "src/app/api/business/metrics/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
     },
     {
       "routePath": "/api/cron/poll-videos",
@@ -257,6 +284,16 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/health",
+      "filePath": "src/app/api/health/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "HEAD"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/internal/stitch/claim",
       "filePath": "src/app/api/internal/stitch/claim/route.ts",
       "kind": "api",
@@ -272,6 +309,15 @@
       "kind": "api",
       "httpMethods": [
         "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/me/usage",
+      "filePath": "src/app/api/me/usage/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
       ],
       "isDynamic": false
     },
@@ -448,8 +494,24 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/webhooks/stripe",
+      "filePath": "src/app/api/webhooks/stripe/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/business",
       "filePath": "src/app/(business)/business/page.tsx",
+      "kind": "page",
+      "group": "business",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/business/billing",
+      "filePath": "src/app/(business)/business/billing/page.tsx",
       "kind": "page",
       "group": "business",
       "isDynamic": false
@@ -488,6 +550,13 @@
       "kind": "page",
       "group": "business",
       "isDynamic": false
+    },
+    {
+      "routePath": "/business/products/[id]",
+      "filePath": "src/app/(business)/business/products/[id]/page.tsx",
+      "kind": "page",
+      "group": "business",
+      "isDynamic": true
     },
     {
       "routePath": "/business/recommendations",
@@ -649,6 +718,20 @@
       "filePath": "src/app/(personal)/personal/videos/page.tsx",
       "kind": "page",
       "group": "personal",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/personal/videos/[id]",
+      "filePath": "src/app/(personal)/personal/videos/[id]/page.tsx",
+      "kind": "page",
+      "group": "personal",
+      "isDynamic": true
+    },
+    {
+      "routePath": "/register",
+      "filePath": "src/app/(auth)/register/page.tsx",
+      "kind": "page",
+      "group": "auth",
       "isDynamic": false
     },
     {

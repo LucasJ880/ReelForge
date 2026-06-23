@@ -135,3 +135,70 @@
     );
   }
 }
+
+/*
+ * Aivora Pet Content Kit —— 投资人 Demo 暖色作用域主题。
+ *
+ * 仅作用于 /showcase 宠物 demo（最外层 <main class="aivora-pet-demo">）。
+ * 通过覆盖语义化 CSS token 实现整页换肤，不污染全局 :root（其余 app 仍是暗色）。
+ * 风格按 CEO brief：暖米色底 + 奶油白卡片 + 深青绿(teal) primary + 浅橙 accent。
+ */
+.aivora-pet-demo {
+  --background: oklch(0.972 0.014 76);      /* 暖米色底 */
+  --foreground: oklch(0.30 0.03 56);        /* 深暖棕文字 */
+  --card: oklch(0.992 0.008 86);            /* 奶油白卡片 */
+  --card-foreground: oklch(0.30 0.03 56);
+  --popover: oklch(0.995 0.006 86);
+  --popover-foreground: oklch(0.30 0.03 56);
+  --secondary: oklch(0.93 0.022 72);
+  --secondary-foreground: oklch(0.34 0.03 56);
+  --muted: oklch(0.935 0.02 72);
+  --muted-foreground: oklch(0.52 0.035 58);
+  --accent: oklch(0.90 0.05 64);            /* 浅橙 hover */
+  --accent-foreground: oklch(0.34 0.04 50);
+  --border: oklch(0.45 0.05 60 / 16%);
+  --input: oklch(0.45 0.05 60 / 22%);
+  --destructive: oklch(0.62 0.20 26);
+
+  /* Primary —— 深青绿科技感辅助色 */
+  --primary: oklch(0.55 0.085 192);
+  --primary-foreground: oklch(0.985 0.01 190);
+  --ring: oklch(0.55 0.085 192);
+
+  /* Demo 专用点缀色（浅橙 / 暖琥珀 / 奶油），组件里用 var() 引用 */
+  --pet-orange: oklch(0.74 0.15 56);
+  --pet-orange-soft: oklch(0.86 0.09 60);
+  --pet-amber: oklch(0.80 0.13 78);
+  --pet-cream: oklch(0.96 0.03 84);
+  --pet-teal: oklch(0.55 0.085 192);
+  --pet-teal-soft: oklch(0.80 0.06 192);
+
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* 暖色环境光（橙 + 青绿双色），供宠物 hero 使用 */
+.aivora-pet-demo .pet-ambient-glow {
+  background:
+    radial-gradient(
+      circle at 18% 0%,
+      color-mix(in oklab, var(--pet-orange) 26%, transparent) 0%,
+      transparent 48%
+    ),
+    radial-gradient(
+      circle at 88% 12%,
+      color-mix(in oklab, var(--pet-teal) 20%, transparent) 0%,
+      transparent 46%
+    );
+}
+
+/* 暖色柔光卡片表面 */
+.aivora-pet-demo .pet-surface {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--pet-cream) 80%, var(--card)) 0%,
+      var(--card) 100%
+    );
+  border: 1px solid var(--border);
+}

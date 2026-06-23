@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-05-12T16:10:54.099Z",
+  "generatedAt": "2026-06-23T02:34:08.393Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -104,6 +104,50 @@
       ]
     },
     {
+      "file": "docs/CHINA_DEPLOYMENT.md",
+      "imports": [
+        "@/lib/storage/providers/volcengine-tos-provider",
+        "@/lib/storage"
+      ],
+      "localImports": [
+        "@/lib/storage/providers/volcengine-tos-provider",
+        "@/lib/storage"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "docs/CHINA_MIGRATION_AUDIT.md",
+      "imports": [
+        "@vercel/blob",
+        "seedance.ts"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@vercel/blob",
+        "seedance.ts"
+      ]
+    },
+    {
+      "file": "docs/CHINA_MIGRATION_PHASE_1_REPORT.md",
+      "imports": [
+        "@vercel/blob"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@vercel/blob"
+      ]
+    },
+    {
+      "file": "docs/CHINA_MIGRATION_PHASE_2A_REPORT.md",
+      "imports": [
+        "@vercel/blob"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@vercel/blob"
+      ]
+    },
+    {
       "file": "docs/REAL_FOOTAGE_AD_AGENT_60S_DEMO_VIDEO.md",
       "imports": [
         "Rendering"
@@ -158,6 +202,18 @@
       ]
     },
     {
+      "file": "scripts/backfill-business-order-titles.ts",
+      "imports": [
+        "../src/lib/db",
+        "../src/lib/services/business-order-title-service"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/business-order-title-service"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "scripts/build-codemap.ts",
       "imports": [
         "node:fs",
@@ -165,6 +221,23 @@
       ],
       "localImports": [],
       "externalImports": [
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/check-pet-kit-walkthrough-video.ts",
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "@next/env",
         "node:fs",
         "node:path"
       ]
@@ -187,6 +260,18 @@
       ]
     },
     {
+      "file": "scripts/check-real-mode.ts",
+      "imports": [
+        "node:fs",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
       "file": "scripts/context-router.ts",
       "imports": [
         "node:fs",
@@ -194,6 +279,63 @@
       ],
       "localImports": [],
       "externalImports": [
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/demo-brand-overlay.ts",
+      "imports": [
+        "node:fs",
+        "node:path",
+        "../src/lib/video-generation/brand-overlay-renderer",
+        "sharp",
+        "node:fs/promises"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/brand-overlay-renderer"
+      ],
+      "externalImports": [
+        "node:fs",
+        "node:path",
+        "sharp",
+        "node:fs/promises"
+      ]
+    },
+    {
+      "file": "scripts/demo-mock-business-flow.ts",
+      "imports": [
+        "node:url",
+        "node:child_process",
+        "node:util",
+        "../src/lib/video-generation/mock-clip-generator",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/mock-clip-generator",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:url",
+        "node:child_process",
+        "node:util"
+      ]
+    },
+    {
+      "file": "scripts/generate-pet-kit-walkthrough-video.ts",
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "@next/env",
         "node:fs",
         "node:path"
       ]
@@ -225,6 +367,45 @@
       ],
       "externalImports": [
         "@next/env",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/mock-walkthrough-harness.ts",
+      "imports": [
+        "bcryptjs",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/services/video-service",
+        "../src/types/video-generation",
+        "../src/lib/video-generation/business-display-title"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/services/video-service",
+        "../src/types/video-generation",
+        "../src/lib/video-generation/business-display-title"
+      ],
+      "externalImports": [
+        "bcryptjs",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "scripts/roadmap.ts",
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:child_process",
         "node:fs",
         "node:path"
       ]
@@ -278,6 +459,24 @@
       ]
     },
     {
+      "file": "scripts/stitch-pet-kit-walkthrough-video.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob"
+      ]
+    },
+    {
       "file": "scripts/stitch-real-footage-walkthrough-video.ts",
       "imports": [
         "@next/env",
@@ -313,6 +512,111 @@
         "node:os",
         "node:path",
         "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/sunny-shutter-investor-demo-v21.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "node:url",
+        "node:util",
+        "@vercel/blob",
+        "bcryptjs",
+        "@prisma/client",
+        "@/lib/video-generation/brand-end-card-renderer",
+        "@/lib/video-generation/brand-overlay-renderer",
+        "@/lib/providers/openai-image",
+        "@/lib/providers/seedance",
+        "@/types/video-generation"
+      ],
+      "localImports": [
+        "@/lib/video-generation/brand-end-card-renderer",
+        "@/lib/video-generation/brand-overlay-renderer",
+        "@/lib/providers/openai-image",
+        "@/lib/providers/seedance",
+        "@/types/video-generation"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:fs/promises",
+        "node:path",
+        "node:url",
+        "node:util",
+        "@vercel/blob",
+        "bcryptjs",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "scripts/sunny-shutter-investor-demo.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:util",
+        "node:fs",
+        "node:fs/promises",
+        "node:url",
+        "node:path",
+        "bcryptjs",
+        "@vercel/blob",
+        "@prisma/client",
+        "../src/lib/providers/seedance",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/lib/video-generation/brand-overlay-renderer",
+        "../src/types/video-generation"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/lib/video-generation/brand-overlay-renderer",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:util",
+        "node:fs",
+        "node:fs/promises",
+        "node:url",
+        "node:path",
+        "bcryptjs",
+        "@vercel/blob",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "scripts/sunny-shutter-merchant-journey.ts",
+      "imports": [
+        "bcryptjs",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/services/video-service",
+        "../src/lib/services/business-metrics-import",
+        "../src/lib/services/business-insights-service",
+        "../src/types/video-generation",
+        "../src/lib/video-generation/business-display-title"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/lib/video-generation/plan-to-director",
+        "../src/lib/services/video-service",
+        "../src/lib/services/business-metrics-import",
+        "../src/lib/services/business-insights-service",
+        "../src/types/video-generation",
+        "../src/lib/video-generation/business-display-title"
+      ],
+      "externalImports": [
+        "bcryptjs",
+        "@prisma/client"
       ]
     },
     {
@@ -385,6 +689,7 @@
       "file": "src/app/(auth)/login/page.tsx",
       "imports": [
         "react",
+        "next/link",
         "next-auth/react",
         "next/navigation",
         "lucide-react"
@@ -392,48 +697,132 @@
       "localImports": [],
       "externalImports": [
         "react",
+        "next/link",
         "next-auth/react",
         "next/navigation",
         "lucide-react"
       ]
     },
     {
-      "file": "src/app/(business)/business/create-ad-video/page.tsx",
+      "file": "src/app/(auth)/register/page.tsx",
       "imports": [
-        "@/components/video-generation/unified-creative-input-shell"
+        "react",
+        "next/link",
+        "next-auth/react",
+        "next/navigation",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "next/link",
+        "next-auth/react",
+        "next/navigation",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/app/(business)/business/billing/page.tsx",
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "@/components/billing/usage-dashboard",
+        "@/lib/auth",
+        "@/lib/services/usage-payload",
+        "@/lib/services/stripe-billing-service"
       ],
       "localImports": [
-        "@/components/video-generation/unified-creative-input-shell"
+        "@/components/billing/usage-dashboard",
+        "@/lib/auth",
+        "@/lib/services/usage-payload",
+        "@/lib/services/stripe-billing-service"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/navigation",
+        "next-auth"
+      ]
+    },
+    {
+      "file": "src/app/(business)/business/create-ad-video/page.tsx",
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "@/components/business/business-page-header",
+        "@/components/video-generation/unified-creative-input-shell",
+        "@/lib/auth",
+        "@/i18n/server",
+        "@/lib/services/order-creative-draft"
+      ],
+      "localImports": [
+        "@/components/business/business-page-header",
+        "@/components/video-generation/unified-creative-input-shell",
+        "@/lib/auth",
+        "@/i18n/server",
+        "@/lib/services/order-creative-draft"
+      ],
+      "externalImports": [
+        "next/navigation",
+        "next-auth"
+      ]
     },
     {
       "file": "src/app/(business)/business/creative-studio/page.tsx",
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/link",
+        "next/navigation",
+        "next-auth",
+        "@/lib/auth",
+        "@/components/business/business-page-header",
+        "@/i18n/server",
+        "@/lib/services/business-insights-service"
       ],
       "localImports": [
-        "@/components/coming-soon-hero"
+        "@/lib/auth",
+        "@/components/business/business-page-header",
+        "@/i18n/server",
+        "@/lib/services/business-insights-service"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/link",
+        "next/navigation",
+        "next-auth"
+      ]
     },
     {
       "file": "src/app/(business)/business/integrations/page.tsx",
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/link",
+        "next/navigation",
+        "next-auth",
+        "@/components/business/business-page-header",
+        "@/components/business/business-metrics-form",
+        "@/lib/auth",
+        "@/i18n/server",
+        "@/lib/services/business-metrics-import"
       ],
       "localImports": [
-        "@/components/coming-soon-hero"
+        "@/components/business/business-page-header",
+        "@/components/business/business-metrics-form",
+        "@/lib/auth",
+        "@/i18n/server",
+        "@/lib/services/business-metrics-import"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/link",
+        "next/navigation",
+        "next-auth"
+      ]
     },
     {
       "file": "src/app/(business)/business/page.tsx",
       "imports": [
         "next/link",
-        "lucide-react"
+        "lucide-react",
+        "@/i18n/server"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/i18n/server"
+      ],
       "externalImports": [
         "next/link",
         "lucide-react"
@@ -442,12 +831,75 @@
     {
       "file": "src/app/(business)/business/performance/page.tsx",
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/navigation",
+        "next-auth",
+        "@/lib/auth",
+        "@/components/business/business-page-header",
+        "@/components/business/business-stats-cards",
+        "@/components/business/video-performance-table",
+        "@/i18n/server",
+        "@/lib/services/business-insights-service"
       ],
       "localImports": [
-        "@/components/coming-soon-hero"
+        "@/lib/auth",
+        "@/components/business/business-page-header",
+        "@/components/business/business-stats-cards",
+        "@/components/business/video-performance-table",
+        "@/i18n/server",
+        "@/lib/services/business-insights-service"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/navigation",
+        "next-auth"
+      ]
+    },
+    {
+      "file": "src/app/(business)/business/products/[id]/page.tsx",
+      "imports": [
+        "next/navigation",
+        "next/link",
+        "next-auth",
+        "@/lib/auth",
+        "@/lib/db",
+        "@/lib/video-generation/business-status",
+        "@prisma/client",
+        "@/components/business/business-page-header",
+        "@/i18n/server",
+        "@/i18n/types",
+        "./video-actions"
+      ],
+      "localImports": [
+        "@/lib/auth",
+        "@/lib/db",
+        "@/lib/video-generation/business-status",
+        "@/components/business/business-page-header",
+        "@/i18n/server",
+        "@/i18n/types",
+        "./video-actions"
+      ],
+      "externalImports": [
+        "next/navigation",
+        "next/link",
+        "next-auth",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/app/(business)/business/products/[id]/video-actions.tsx",
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react",
+        "@/i18n/useTranslation"
+      ],
+      "localImports": [
+        "@/i18n/useTranslation"
+      ],
+      "externalImports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ]
     },
     {
       "file": "src/app/(business)/business/products/page.tsx",
@@ -457,12 +909,20 @@
         "next/link",
         "@/lib/auth",
         "@/lib/db",
+        "@/i18n/server",
+        "@/i18n/types",
+        "@/components/business/business-page-header",
+        "@/components/video-generation/brief-render-auto-refresh",
         "@/lib/video-generation/business-status",
         "@prisma/client"
       ],
       "localImports": [
         "@/lib/auth",
         "@/lib/db",
+        "@/i18n/server",
+        "@/i18n/types",
+        "@/components/business/business-page-header",
+        "@/components/video-generation/brief-render-auto-refresh",
         "@/lib/video-generation/business-status"
       ],
       "externalImports": [
@@ -475,27 +935,37 @@
     {
       "file": "src/app/(business)/business/recommendations/page.tsx",
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/navigation",
+        "next-auth",
+        "@/lib/auth",
+        "@/components/business/business-page-header",
+        "@/components/business/recommendation-list",
+        "@/i18n/server",
+        "@/lib/services/business-insights-service"
       ],
       "localImports": [
-        "@/components/coming-soon-hero"
+        "@/lib/auth",
+        "@/components/business/business-page-header",
+        "@/components/business/recommendation-list",
+        "@/i18n/server",
+        "@/lib/services/business-insights-service"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/navigation",
+        "next-auth"
+      ]
     },
     {
       "file": "src/app/(business)/layout.tsx",
       "imports": [
         "@/components/layout/business-sidebar",
-        "@/lib/api-auth",
-        "next/navigation"
+        "@/lib/api-auth"
       ],
       "localImports": [
         "@/components/layout/business-sidebar",
         "@/lib/api-auth"
       ],
-      "externalImports": [
-        "next/navigation"
-      ]
+      "externalImports": []
     },
     {
       "file": "src/app/(internal)/internal/ai-usage/page.tsx",
@@ -1037,59 +1507,80 @@
       "file": "src/app/(internal)/layout.tsx",
       "imports": [
         "@/components/layout/internal-sidebar",
-        "@/lib/api-auth",
-        "next/navigation"
+        "@/lib/api-auth"
       ],
       "localImports": [
         "@/components/layout/internal-sidebar",
         "@/lib/api-auth"
       ],
-      "externalImports": [
-        "next/navigation"
-      ]
+      "externalImports": []
     },
     {
       "file": "src/app/(personal)/layout.tsx",
       "imports": [
         "@/components/layout/personal-sidebar",
-        "@/lib/api-auth",
-        "next/navigation"
+        "@/lib/api-auth"
       ],
       "localImports": [
         "@/components/layout/personal-sidebar",
         "@/lib/api-auth"
       ],
-      "externalImports": [
-        "next/navigation"
-      ]
+      "externalImports": []
     },
     {
       "file": "src/app/(personal)/personal/billing/page.tsx",
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/navigation",
+        "next-auth",
+        "@/components/billing/usage-dashboard",
+        "@/lib/auth",
+        "@/lib/services/usage-payload",
+        "@/lib/services/stripe-billing-service"
       ],
       "localImports": [
-        "@/components/coming-soon-hero"
+        "@/components/billing/usage-dashboard",
+        "@/lib/auth",
+        "@/lib/services/usage-payload",
+        "@/lib/services/stripe-billing-service"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/navigation",
+        "next-auth"
+      ]
     },
     {
       "file": "src/app/(personal)/personal/create-video/page.tsx",
       "imports": [
-        "@/components/video-generation/unified-creative-input-shell"
+        "next/link",
+        "next/navigation",
+        "next-auth",
+        "@/components/video-generation/unified-creative-input-shell",
+        "@/lib/auth",
+        "@/i18n/server",
+        "@/lib/services/order-creative-draft"
       ],
       "localImports": [
-        "@/components/video-generation/unified-creative-input-shell"
+        "@/components/video-generation/unified-creative-input-shell",
+        "@/lib/auth",
+        "@/i18n/server",
+        "@/lib/services/order-creative-draft"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/link",
+        "next/navigation",
+        "next-auth"
+      ]
     },
     {
       "file": "src/app/(personal)/personal/page.tsx",
       "imports": [
         "next/link",
-        "lucide-react"
+        "lucide-react",
+        "@/i18n/server"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/i18n/server"
+      ],
       "externalImports": [
         "next/link",
         "lucide-react"
@@ -1106,22 +1597,69 @@
       "externalImports": []
     },
     {
+      "file": "src/app/(personal)/personal/videos/[id]/page.tsx",
+      "imports": [
+        "next/navigation",
+        "next/link",
+        "next-auth",
+        "@/lib/auth",
+        "@/lib/db",
+        "@/lib/video-generation/personal-status",
+        "@prisma/client",
+        "./video-actions"
+      ],
+      "localImports": [
+        "@/lib/auth",
+        "@/lib/db",
+        "@/lib/video-generation/personal-status",
+        "./video-actions"
+      ],
+      "externalImports": [
+        "next/navigation",
+        "next/link",
+        "next-auth",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/app/(personal)/personal/videos/[id]/video-actions.tsx",
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/app/(personal)/personal/videos/page.tsx",
       "imports": [
         "next/navigation",
         "next-auth",
         "next/link",
         "@/lib/auth",
-        "@/lib/db"
+        "@/lib/db",
+        "@/i18n/server",
+        "@/components/personal/personal-videos-auto-refresh",
+        "@/lib/video-generation/personal-status",
+        "@prisma/client"
       ],
       "localImports": [
         "@/lib/auth",
-        "@/lib/db"
+        "@/lib/db",
+        "@/i18n/server",
+        "@/components/personal/personal-videos-auto-refresh",
+        "@/lib/video-generation/personal-status"
       ],
       "externalImports": [
         "next/navigation",
         "next-auth",
-        "next/link"
+        "next/link",
+        "@prisma/client"
       ]
     },
     {
@@ -1149,6 +1687,7 @@
         "next/link",
         "next/navigation",
         "react",
+        "next-auth/react",
         "lucide-react"
       ],
       "localImports": [],
@@ -1156,46 +1695,45 @@
         "next/link",
         "next/navigation",
         "react",
+        "next-auth/react",
         "lucide-react"
       ]
     },
     {
       "file": "src/app/(public)/showcase/experience-client.tsx",
       "imports": [
-        "react",
         "next/link",
         "lucide-react",
         "@/components/ui/logo",
-        "@/components/demo/ai-script-section",
-        "@/components/demo/asset-qa-mock-section",
-        "@/components/demo/compliance-note",
-        "@/components/demo/creative-evidence-cards-section",
-        "@/components/demo/demo-hero",
-        "@/components/demo/demo-input-panel",
-        "@/components/demo/final-output-section",
-        "@/components/demo/local-product-sample-section",
-        "@/components/demo/reference-preview-section",
-        "@/components/demo/storyboard-grid",
-        "@/lib/demo/ai-video-workflow-demo-data",
-        "./waitlist-form"
+        "@/components/demo/pet/pet-hero",
+        "@/components/demo/pet/device-dashboard",
+        "@/components/demo/pet/activity-timeline",
+        "@/components/demo/pet/detected-moments",
+        "@/components/demo/pet/companion-mode",
+        "@/components/demo/pet/auto-videos",
+        "@/components/demo/pet/viral-sharing",
+        "@/components/demo/pet/product-proof-report",
+        "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/pet-investor-highlights",
+        "@/lib/demo/pet-content-kit-demo-data",
+        "./pet-waitlist-form"
       ],
       "localImports": [
         "@/components/ui/logo",
-        "@/components/demo/ai-script-section",
-        "@/components/demo/asset-qa-mock-section",
-        "@/components/demo/compliance-note",
-        "@/components/demo/creative-evidence-cards-section",
-        "@/components/demo/demo-hero",
-        "@/components/demo/demo-input-panel",
-        "@/components/demo/final-output-section",
-        "@/components/demo/local-product-sample-section",
-        "@/components/demo/reference-preview-section",
-        "@/components/demo/storyboard-grid",
-        "@/lib/demo/ai-video-workflow-demo-data",
-        "./waitlist-form"
+        "@/components/demo/pet/pet-hero",
+        "@/components/demo/pet/device-dashboard",
+        "@/components/demo/pet/activity-timeline",
+        "@/components/demo/pet/detected-moments",
+        "@/components/demo/pet/companion-mode",
+        "@/components/demo/pet/auto-videos",
+        "@/components/demo/pet/viral-sharing",
+        "@/components/demo/pet/product-proof-report",
+        "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/pet-investor-highlights",
+        "@/lib/demo/pet-content-kit-demo-data",
+        "./pet-waitlist-form"
       ],
       "externalImports": [
-        "react",
         "next/link",
         "lucide-react"
       ]
@@ -1215,6 +1753,18 @@
       "externalImports": [
         "next",
         "next-auth"
+      ]
+    },
+    {
+      "file": "src/app/(public)/showcase/pet-waitlist-form.tsx",
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "lucide-react"
       ]
     },
     {
@@ -1294,6 +1844,42 @@
       ]
     },
     {
+      "file": "src/app/api/auth/register/route.ts",
+      "imports": [
+        "next/server",
+        "zod",
+        "bcryptjs",
+        "@/lib/db",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service"
+      ],
+      "externalImports": [
+        "next/server",
+        "zod",
+        "bcryptjs"
+      ]
+    },
+    {
+      "file": "src/app/api/billing/checkout/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/stripe-billing-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/stripe-billing-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
       "file": "src/app/api/briefs/[id]/ad-plan/route.ts",
       "imports": [
         "next/server",
@@ -1328,11 +1914,13 @@
       "imports": [
         "next/server",
         "@/lib/api-auth",
+        "@/lib/services/brief-access",
         "@/lib/db",
         "@/lib/services/video-service"
       ],
       "localImports": [
         "@/lib/api-auth",
+        "@/lib/services/brief-access",
         "@/lib/db",
         "@/lib/services/video-service"
       ],
@@ -1345,10 +1933,12 @@
       "imports": [
         "next/server",
         "@/lib/api-auth",
+        "@/lib/services/brief-access",
         "@/lib/services/video-service"
       ],
       "localImports": [
         "@/lib/api-auth",
+        "@/lib/services/brief-access",
         "@/lib/services/video-service"
       ],
       "externalImports": [
@@ -1416,6 +2006,23 @@
       "localImports": [
         "@/lib/api-auth",
         "@/lib/services/script-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/business/metrics/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/business-metrics-import",
+        "@/lib/validators"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/business-metrics-import",
+        "@/lib/validators"
       ],
       "externalImports": [
         "next/server"
@@ -1567,6 +2174,29 @@
       ]
     },
     {
+      "file": "src/app/api/health/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/db",
+        "@/lib/config/env",
+        "@/lib/ai",
+        "@/lib/storage",
+        "@/lib/storage/providers/volcengine-tos-provider",
+        "@/lib/video-generation/providers"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/config/env",
+        "@/lib/ai",
+        "@/lib/storage",
+        "@/lib/storage/providers/volcengine-tos-provider",
+        "@/lib/video-generation/providers"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
       "file": "src/app/api/internal/stitch/claim/route.ts",
       "imports": [
         "next/server",
@@ -1592,6 +2222,21 @@
       "externalImports": [
         "next/server",
         "zod"
+      ]
+    },
+    {
+      "file": "src/app/api/me/usage/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/usage-payload"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/usage-payload"
+      ],
+      "externalImports": [
+        "next/server"
       ]
     },
     {
@@ -1843,15 +2488,19 @@
       "file": "src/app/api/upload/blob/route.ts",
       "imports": [
         "next/server",
-        "@vercel/blob",
-        "@/lib/api-auth"
+        "@/lib/api-auth",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service",
+        "@/lib/storage"
       ],
       "localImports": [
-        "@/lib/api-auth"
+        "@/lib/api-auth",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service",
+        "@/lib/storage"
       ],
       "externalImports": [
-        "next/server",
-        "@vercel/blob"
+        "next/server"
       ]
     },
     {
@@ -1877,20 +2526,26 @@
         "next/server",
         "@prisma/client",
         "@/lib/api-auth",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service",
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
         "@/lib/services/video-service",
         "@/lib/video-generation/business-status",
+        "@/lib/video-generation/business-display-title",
         "@/lib/schemas/unified-input"
       ],
       "localImports": [
         "@/lib/api-auth",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service",
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
         "@/lib/services/video-service",
         "@/lib/video-generation/business-status",
+        "@/lib/video-generation/business-display-title",
         "@/lib/schemas/unified-input"
       ],
       "externalImports": [
@@ -1903,13 +2558,30 @@
       "imports": [
         "next/server",
         "@/lib/api-auth",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/schemas/unified-input"
       ],
       "localImports": [
         "@/lib/api-auth",
+        "@/lib/api-quota",
+        "@/lib/services/quota-service",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/schemas/unified-input"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/webhooks/stripe/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/services/stripe-billing-service"
+      ],
+      "localImports": [
+        "@/lib/services/stripe-billing-service"
       ],
       "externalImports": [
         "next/server"
@@ -1996,6 +2668,99 @@
       "externalImports": [
         "next-auth",
         "next/navigation"
+      ]
+    },
+    {
+      "file": "src/components/billing/upgrade-pro-button.tsx",
+      "imports": [
+        "react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react"
+      ]
+    },
+    {
+      "file": "src/components/billing/usage-dashboard.tsx",
+      "imports": [
+        "react",
+        "@prisma/client",
+        "@/i18n/useTranslation",
+        "@/lib/services/usage-payload"
+      ],
+      "localImports": [
+        "@/i18n/useTranslation",
+        "@/lib/services/usage-payload"
+      ],
+      "externalImports": [
+        "react",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/components/business/business-metrics-form.tsx",
+      "imports": [
+        "next/navigation",
+        "react",
+        "@/i18n/useTranslation"
+      ],
+      "localImports": [
+        "@/i18n/useTranslation"
+      ],
+      "externalImports": [
+        "next/navigation",
+        "react"
+      ]
+    },
+    {
+      "file": "src/components/business/business-page-header.tsx",
+      "imports": [
+        "next/link",
+        "react",
+        "@/lib/utils"
+      ],
+      "localImports": [
+        "@/lib/utils"
+      ],
+      "externalImports": [
+        "next/link",
+        "react"
+      ]
+    },
+    {
+      "file": "src/components/business/business-stats-cards.tsx",
+      "imports": [
+        "@/lib/services/business-insights-service"
+      ],
+      "localImports": [
+        "@/lib/services/business-insights-service"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/components/business/recommendation-list.tsx",
+      "imports": [
+        "next/link",
+        "@/lib/services/business-insights-service"
+      ],
+      "localImports": [
+        "@/lib/services/business-insights-service"
+      ],
+      "externalImports": [
+        "next/link"
+      ]
+    },
+    {
+      "file": "src/components/business/video-performance-table.tsx",
+      "imports": [
+        "next/link",
+        "@/lib/services/business-insights-service"
+      ],
+      "localImports": [
+        "@/lib/services/business-insights-service"
+      ],
+      "externalImports": [
+        "next/link"
       ]
     },
     {
@@ -2137,6 +2902,21 @@
       ]
     },
     {
+      "file": "src/components/demo/investor-highlights-section.tsx",
+      "imports": [
+        "lucide-react",
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "localImports": [
+        "@/lib/demo/ai-video-workflow-demo-data",
+        "./demo-section"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/demo/local-product-sample-section.tsx",
       "imports": [
         "lucide-react",
@@ -2148,6 +2928,193 @@
         "@/lib/demo/ai-video-workflow-demo-data",
         "./demo-section",
         "./phone-video-mockup"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/activity-timeline.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/auto-videos.tsx",
+      "imports": [
+        "@/components/demo/phone-video-mockup",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "@/components/demo/phone-video-mockup",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/components/demo/pet/community-preview.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/companion-mode.tsx",
+      "imports": [
+        "lucide-react",
+        "@/components/demo/phone-video-mockup",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "@/components/demo/phone-video-mockup",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/detected-moments.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/device-dashboard.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/pet-hero.tsx",
+      "imports": [
+        "next/link",
+        "lucide-react",
+        "@/components/demo/phone-video-mockup",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "@/components/demo/phone-video-mockup",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "next/link",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/pet-image.tsx",
+      "imports": [
+        "react",
+        "@/lib/utils"
+      ],
+      "localImports": [
+        "@/lib/utils"
+      ],
+      "externalImports": [
+        "react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/pet-investor-highlights.tsx",
+      "imports": [
+        "next/link",
+        "lucide-react",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "next/link",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/pet-section.tsx",
+      "imports": [
+        "react",
+        "@/lib/utils"
+      ],
+      "localImports": [
+        "@/lib/utils"
+      ],
+      "externalImports": [
+        "react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/product-proof-report.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/viral-sharing.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
       ],
       "externalImports": [
         "lucide-react"
@@ -2258,11 +3225,13 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "localImports": [
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "externalImports": [
@@ -2329,11 +3298,13 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "localImports": [
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "externalImports": [
@@ -2342,6 +3313,16 @@
         "next-auth/react",
         "lucide-react"
       ]
+    },
+    {
+      "file": "src/components/personal/personal-videos-auto-refresh.tsx",
+      "imports": [
+        "@/components/video-generation/brief-render-auto-refresh"
+      ],
+      "localImports": [
+        "@/components/video-generation/brief-render-auto-refresh"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/components/providers/session-provider.tsx",
@@ -2604,6 +3585,18 @@
       ]
     },
     {
+      "file": "src/components/video-generation/brief-render-auto-refresh.tsx",
+      "imports": [
+        "react",
+        "next/navigation"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "next/navigation"
+      ]
+    },
+    {
       "file": "src/components/video-generation/plan-preview-card.tsx",
       "imports": [
         "lucide-react",
@@ -2619,10 +3612,12 @@
     {
       "file": "src/components/video-generation/unified-creative-input-shell.tsx",
       "imports": [
-        "@/components/video-generation/unified-creative-input"
+        "@/components/video-generation/unified-creative-input",
+        "@/lib/services/order-creative-draft"
       ],
       "localImports": [
-        "@/components/video-generation/unified-creative-input"
+        "@/components/video-generation/unified-creative-input",
+        "@/lib/services/order-creative-draft"
       ],
       "externalImports": []
     },
@@ -2632,13 +3627,17 @@
         "react",
         "next/navigation",
         "lucide-react",
+        "@/i18n/useTranslation",
         "@/components/video-generation/attachment-uploader",
         "@/components/video-generation/plan-preview-card",
+        "@/lib/services/order-creative-draft",
         "@/types/video-generation"
       ],
       "localImports": [
+        "@/i18n/useTranslation",
         "@/components/video-generation/attachment-uploader",
         "@/components/video-generation/plan-preview-card",
+        "@/lib/services/order-creative-draft",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -2713,6 +3712,7 @@
     {
       "file": "src/i18n/I18nProvider.tsx",
       "imports": [
+        "next/navigation",
         "react",
         "./config",
         "./dictionaries",
@@ -2726,6 +3726,7 @@
         "./types"
       ],
       "externalImports": [
+        "next/navigation",
         "react"
       ]
     },
@@ -2797,6 +3798,48 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/ai/index.ts",
+      "imports": [
+        "@/lib/ai",
+        "@/lib/config/env",
+        "./providers/openai-provider",
+        "./providers/volcengine-provider",
+        "./types"
+      ],
+      "localImports": [
+        "@/lib/ai",
+        "@/lib/config/env",
+        "./providers/openai-provider",
+        "./providers/volcengine-provider",
+        "./types"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/ai/providers/openai-provider.ts",
+      "imports": [
+        "@/lib/providers/openai",
+        "@/lib/providers/openai-image",
+        "../types"
+      ],
+      "localImports": [
+        "@/lib/providers/openai",
+        "@/lib/providers/openai-image",
+        "../types"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/ai/providers/volcengine-provider.ts",
+      "imports": [
+        "../types"
+      ],
+      "localImports": [
+        "../types"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/api-auth.ts",
       "imports": [
         "next-auth",
@@ -2811,6 +3854,19 @@
         "next-auth",
         "next/server",
         "next/navigation"
+      ]
+    },
+    {
+      "file": "src/lib/api-quota.ts",
+      "imports": [
+        "next/server",
+        "@/lib/services/quota-service"
+      ],
+      "localImports": [
+        "@/lib/services/quota-service"
+      ],
+      "externalImports": [
+        "next/server"
       ]
     },
     {
@@ -2843,6 +3899,54 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/config/quota-tiers.ts",
+      "imports": [
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/content-review/index.ts",
+      "imports": [
+        "@/lib/content-review",
+        "@/lib/config/env",
+        "./providers/noop-review-provider",
+        "./providers/volcengine-review-provider",
+        "./types"
+      ],
+      "localImports": [
+        "@/lib/content-review",
+        "@/lib/config/env",
+        "./providers/noop-review-provider",
+        "./providers/volcengine-review-provider",
+        "./types"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/content-review/providers/noop-review-provider.ts",
+      "imports": [
+        "../types"
+      ],
+      "localImports": [
+        "../types"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/content-review/providers/volcengine-review-provider.ts",
+      "imports": [
+        "../types"
+      ],
+      "localImports": [
+        "../types"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/db.ts",
       "imports": [
         "@prisma/client"
@@ -2853,7 +3957,7 @@
       ]
     },
     {
-      "file": "src/lib/demo/ai-video-workflow-demo-data.ts",
+      "file": "src/lib/demo/pet-content-kit-demo-data.ts",
       "imports": [
         "@/lib/data/demo-seed"
       ],
@@ -2927,12 +4031,13 @@
       "file": "src/lib/providers/openai-image.ts",
       "imports": [
         "openai",
-        "@vercel/blob"
+        "@/lib/storage"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/lib/storage"
+      ],
       "externalImports": [
-        "openai",
-        "@vercel/blob"
+        "openai"
       ]
     },
     {
@@ -2948,9 +4053,11 @@
     {
       "file": "src/lib/providers/seedance.ts",
       "imports": [
+        "@/lib/db",
         "@/lib/video-generation/mock-clip-generator"
       ],
       "localImports": [
+        "@/lib/db",
         "@/lib/video-generation/mock-clip-generator"
       ],
       "externalImports": []
@@ -3066,13 +4173,14 @@
         "fs/promises",
         "os",
         "path",
-        "@vercel/blob",
         "@prisma/client",
         "@/lib/db",
+        "@/lib/storage",
         "@/lib/schemas/ad-edit-plan"
       ],
       "localImports": [
         "@/lib/db",
+        "@/lib/storage",
         "@/lib/schemas/ad-edit-plan"
       ],
       "externalImports": [
@@ -3082,7 +4190,6 @@
         "fs/promises",
         "os",
         "path",
-        "@vercel/blob",
         "@prisma/client"
       ]
     },
@@ -3158,6 +4265,19 @@
       ]
     },
     {
+      "file": "src/lib/services/brief-access.ts",
+      "imports": [
+        "next-auth",
+        "@/lib/db"
+      ],
+      "localImports": [
+        "@/lib/db"
+      ],
+      "externalImports": [
+        "next-auth"
+      ]
+    },
+    {
       "file": "src/lib/services/brief-service.ts",
       "imports": [
         "@prisma/client",
@@ -3169,6 +4289,51 @@
       "externalImports": [
         "@prisma/client"
       ]
+    },
+    {
+      "file": "src/lib/services/business-insights-service.ts",
+      "imports": [
+        "@prisma/client",
+        "@/i18n/config",
+        "@/i18n/dictionaries",
+        "@/i18n/translate",
+        "@/lib/db",
+        "@/lib/video-generation/business-status",
+        "@/lib/services/metrics-service"
+      ],
+      "localImports": [
+        "@/i18n/config",
+        "@/i18n/dictionaries",
+        "@/i18n/translate",
+        "@/lib/db",
+        "@/lib/video-generation/business-status",
+        "@/lib/services/metrics-service"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/services/business-metrics-import.ts",
+      "imports": [
+        "@/lib/db",
+        "@/lib/services/metrics-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/services/metrics-service"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/services/business-order-title-service.ts",
+      "imports": [
+        "@/lib/video-generation/business-display-title"
+      ],
+      "localImports": [
+        "@/lib/video-generation/business-display-title"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/lib/services/creative-evidence-service.ts",
@@ -3315,6 +4480,18 @@
       ]
     },
     {
+      "file": "src/lib/services/order-creative-draft.ts",
+      "imports": [
+        "@/lib/db",
+        "@/types/video-generation"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/types/video-generation"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/services/order-service.ts",
       "imports": [
         "@prisma/client",
@@ -3370,6 +4547,25 @@
       ],
       "externalImports": [
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/services/quota-service.ts",
+      "imports": [
+        "@prisma/client",
+        "next-auth",
+        "@/lib/config/quota-tiers",
+        "@/lib/db",
+        "@/lib/services/stripe-billing-service"
+      ],
+      "localImports": [
+        "@/lib/config/quota-tiers",
+        "@/lib/db",
+        "@/lib/services/stripe-billing-service"
+      ],
+      "externalImports": [
+        "@prisma/client",
+        "next-auth"
       ]
     },
     {
@@ -3453,11 +4649,12 @@
         "@prisma/client",
         "@/lib/db",
         "@/lib/video-generation/assembly-executor",
-        "@vercel/blob"
+        "@/lib/storage"
       ],
       "localImports": [
         "@/lib/db",
-        "@/lib/video-generation/assembly-executor"
+        "@/lib/video-generation/assembly-executor",
+        "@/lib/storage"
       ],
       "externalImports": [
         "child_process",
@@ -3466,8 +4663,37 @@
         "os",
         "path",
         "url",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/services/stripe-billing-service.ts",
+      "imports": [
+        "stripe",
+        "@/lib/db"
+      ],
+      "localImports": [
+        "@/lib/db"
+      ],
+      "externalImports": [
+        "stripe"
+      ]
+    },
+    {
+      "file": "src/lib/services/usage-payload.ts",
+      "imports": [
+        "next-auth",
         "@prisma/client",
-        "@vercel/blob"
+        "@/lib/config/quota-tiers",
+        "@/lib/services/quota-service"
+      ],
+      "localImports": [
+        "@/lib/config/quota-tiers",
+        "@/lib/services/quota-service"
+      ],
+      "externalImports": [
+        "next-auth",
+        "@prisma/client"
       ]
     },
     {
@@ -3478,7 +4704,6 @@
         "@/lib/providers/seedance",
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
-        "@/lib/duration/segment-planner",
         "./stitch-service"
       ],
       "localImports": [
@@ -3486,11 +4711,56 @@
         "@/lib/providers/seedance",
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
-        "@/lib/duration/segment-planner",
         "./stitch-service"
       ],
       "externalImports": [
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/storage/index.ts",
+      "imports": [
+        "@/lib/storage",
+        "@/lib/config/env",
+        "./providers/vercel-blob-provider",
+        "./providers/volcengine-tos-provider",
+        "./types"
+      ],
+      "localImports": [
+        "@/lib/storage",
+        "@/lib/config/env",
+        "./providers/vercel-blob-provider",
+        "./providers/volcengine-tos-provider",
+        "./types"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/storage/providers/vercel-blob-provider.ts",
+      "imports": [
+        "../types",
+        "@vercel/blob"
+      ],
+      "localImports": [
+        "../types"
+      ],
+      "externalImports": [
+        "@vercel/blob"
+      ]
+    },
+    {
+      "file": "src/lib/storage/providers/volcengine-tos-provider.ts",
+      "imports": [
+        "node:crypto",
+        "../types",
+        "@volcengine/tos-sdk"
+      ],
+      "localImports": [
+        "../types"
+      ],
+      "externalImports": [
+        "node:crypto",
+        "@volcengine/tos-sdk"
       ]
     },
     {
@@ -3556,10 +4826,11 @@
         "url",
         "@/types/video-generation",
         "sharp",
-        "@vercel/blob"
+        "@/lib/storage"
       ],
       "localImports": [
-        "@/types/video-generation"
+        "@/types/video-generation",
+        "@/lib/storage"
       ],
       "externalImports": [
         "child_process",
@@ -3569,8 +4840,29 @@
         "path",
         "crypto",
         "url",
-        "sharp",
-        "@vercel/blob"
+        "sharp"
+      ]
+    },
+    {
+      "file": "src/lib/video-generation/brand-overlay-renderer.ts",
+      "imports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "child_process",
+        "util",
+        "fs/promises",
+        "os",
+        "path",
+        "crypto",
+        "url"
       ]
     },
     {
@@ -3670,9 +4962,11 @@
         "path",
         "crypto",
         "url",
-        "@vercel/blob"
+        "@/lib/storage"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/lib/storage"
+      ],
       "externalImports": [
         "child_process",
         "util",
@@ -3680,9 +4974,18 @@
         "os",
         "path",
         "crypto",
-        "url",
-        "@vercel/blob"
+        "url"
       ]
+    },
+    {
+      "file": "src/lib/video-generation/personal-status.ts",
+      "imports": [
+        "./business-status"
+      ],
+      "localImports": [
+        "./business-status"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/lib/video-generation/plan-preview.ts",
@@ -3717,6 +5020,34 @@
         "@/lib/providers/openai",
         "@/types/video-generation",
         "@/lib/video-generation/segment-planner-adapter"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/providers/index.ts",
+      "imports": [
+        "@/lib/video-generation/providers",
+        "@/lib/config/env",
+        "./volcengine-video-provider",
+        "./types"
+      ],
+      "localImports": [
+        "@/lib/video-generation/providers",
+        "@/lib/config/env",
+        "./volcengine-video-provider",
+        "./types"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/providers/volcengine-video-provider.ts",
+      "imports": [
+        "@/lib/providers/seedance",
+        "./types"
+      ],
+      "localImports": [
+        "@/lib/providers/seedance",
+        "./types"
       ],
       "externalImports": []
     },
@@ -3854,6 +5185,21 @@
       ]
     },
     {
+      "file": "tests/api-auth-persona-matrix.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/api-auth"
+      ],
+      "localImports": [
+        "../src/lib/api-auth"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/assembly-executor.test.ts",
       "imports": [
         "node:assert/strict",
@@ -3888,6 +5234,41 @@
       ]
     },
     {
+      "file": "tests/auth-register-validation.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "zod",
+        "node:fs",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "zod",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "tests/brand-end-card-edge-cases.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/brand-end-card-renderer",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/brand-end-card-renderer.test.ts",
       "imports": [
         "node:assert/strict",
@@ -3905,6 +5286,127 @@
       ]
     },
     {
+      "file": "tests/brand-overlay-renderer.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:os",
+        "node:path",
+        "../src/lib/video-generation/brand-overlay-renderer",
+        "../src/lib/video-generation/business-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/brand-overlay-renderer",
+        "../src/lib/video-generation/business-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:os",
+        "node:path"
+      ]
+    },
+    {
+      "file": "tests/brief-access-ownership.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/brief-access"
+      ],
+      "localImports": [
+        "../src/lib/services/brief-access"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/business-display-title.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/business-display-title"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-display-title"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/business-insights.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/business-insights-service"
+      ],
+      "localImports": [
+        "../src/lib/services/business-insights-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/business-locale-regression.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:path",
+        "../src/i18n/dictionaries/zh-CN",
+        "../src/i18n/dictionaries/en-US"
+      ],
+      "localImports": [
+        "../src/i18n/dictionaries/zh-CN",
+        "../src/i18n/dictionaries/en-US"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "tests/business-order-title-service.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/business-order-title-service"
+      ],
+      "localImports": [
+        "../src/lib/services/business-order-title-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/business-products-customer-strings.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs/promises",
+        "node:path",
+        "../src/lib/video-generation/business-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs/promises",
+        "node:path"
+      ]
+    },
+    {
       "file": "tests/business-status-adapter.test.ts",
       "imports": [
         "node:assert/strict",
@@ -3919,6 +5421,98 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/business-status-customer-safe.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/china-env-validation.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/env"
+      ],
+      "localImports": [
+        "../src/lib/config/env"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/china-health-endpoint.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/china-provider-selection.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/env",
+        "../src/lib/ai",
+        "../src/lib/storage",
+        "../src/lib/video-generation/providers",
+        "../src/lib/content-review",
+        "../src/lib/video-generation/providers/volcengine-video-provider"
+      ],
+      "localImports": [
+        "../src/lib/config/env",
+        "../src/lib/ai",
+        "../src/lib/storage",
+        "../src/lib/video-generation/providers",
+        "../src/lib/content-review",
+        "../src/lib/video-generation/providers/volcengine-video-provider"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/china-storage-tos.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:module",
+        "@volcengine/tos-sdk",
+        "../src/lib/config/env",
+        "../src/lib/storage",
+        "../src/lib/storage/providers/volcengine-tos-provider"
+      ],
+      "localImports": [
+        "../src/lib/config/env",
+        "../src/lib/storage",
+        "../src/lib/storage/providers/volcengine-tos-provider"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:module",
+        "@volcengine/tos-sdk"
       ]
     },
     {
@@ -4157,6 +5751,75 @@
       ]
     },
     {
+      "file": "tests/persona-page-onboarding.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs/promises",
+        "node:path"
+      ]
+    },
+    {
+      "file": "tests/personal-customer-strings.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs/promises",
+        "node:path",
+        "../src/lib/video-generation/business-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs/promises",
+        "node:path"
+      ]
+    },
+    {
+      "file": "tests/personal-status-customer-safe.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/personal-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/quota-service.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/quota-tiers",
+        "../src/lib/services/quota-service"
+      ],
+      "localImports": [
+        "../src/lib/config/quota-tiers",
+        "../src/lib/services/quota-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/script-output-schema.test.ts",
       "imports": [
         "node:assert/strict",
@@ -4169,6 +5832,21 @@
         "../src/lib/schemas/script-output",
         "../src/lib/prompts/client-script",
         "../src/lib/schemas/client-brief"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/seedance-generate-audio.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -4194,6 +5872,21 @@
         "node:fs",
         "node:url",
         "node:child_process"
+      ]
+    },
+    {
+      "file": "tests/seedance-privacy-fallback.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {
@@ -4224,6 +5917,22 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
+      ]
+    },
+    {
+      "file": "tests/shell-i18n-wiring.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "node:fs",
+        "node:path"
       ]
     },
     {
@@ -4265,11 +5974,15 @@
         "node:test",
         "@prisma/client",
         "../src/lib/services/stitch-service",
-        "../src/lib/db"
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/storage"
       ],
       "localImports": [
         "../src/lib/services/stitch-service",
-        "../src/lib/db"
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/storage"
       ],
       "externalImports": [
         "node:assert/strict",

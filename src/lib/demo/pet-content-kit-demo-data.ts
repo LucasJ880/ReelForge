@@ -644,28 +644,28 @@ export const INVESTOR_SECTION = {
   ] satisfies ReadonlyArray<InvestorPillar>,
   roadmap: [
     {
-      phase: "P0 · 投资人 Demo",
+      phase: "P0 · Demo",
       status: "shipped",
       statusLabel: "已完成",
-      body: "宠物素材输入 + AI 识别 + 自动成片 + 宠物日记/可爱视频 + Product Proof Report demo + 分享与社区 UI 雏形，本页即可演示。",
+      body: "围绕核心产品闭环，已完成可演示版本：支持宠物素材输入、AI 识别、自动成片、宠物日记与 Product Proof Report 展示，并初步呈现分享与社区化界面。重点：展示 Aivora 的产品价值与商业路径。",
     },
     {
-      phase: "P1 · 增强说服力",
+      phase: "P1 · 产品力，硬件 Demo",
       status: "in_progress",
       statusLabel: "进行中",
-      body: "项圈数据与主人远程发声、宠物垫传感器模拟、心情卡/每周回忆视频/桌面小宠物、挑战模板与品牌试用页。",
+      body: "加入更具体验感的功能模块，包括项目数据、主人远程发声、宠物垫传感器模拟、心情卡 / 每周回顾 / 桌面小宠物，以及挑战模板与品牌试用页。重点：提升产品真实感、感染力与记忆点。",
     },
     {
       phase: "P2 · 真实产品化",
       status: "next",
       statusLabel: "下一步",
-      body: "接入真实摄像头/项圈/宠物垫硬件，打通社媒发布与数据回收，根据表现自动优化下一轮内容。",
+      body: "逐步接入真实摄像头、项圈与宠物垫硬件，打通内容采集、社媒分发与效果回收链路，并建立基于结果的自动优化能力。重点：从 Demo 走向可落地的软硬件一体化产品。",
     },
     {
       phase: "P3 · 平台与生态",
       status: "next",
       statusLabel: "规划中",
-      body: "搭建宠物社区、品牌 Campaign Hub 与产品试用中心，形成「内容 → 增长 → 社区 → 品牌付费」的飞轮。",
+      body: "拓展宠物社区、品牌 Campaign Hub 与产品试用中心，形成「内容生产 — 用户增长 — 社区沉淀 — 品牌付费」的长期飞轮。重点：从产品升级为平台，建立持续增长的生态价值。",
     },
   ] satisfies ReadonlyArray<InvestorRoadmapItem>,
   cta: {
@@ -744,6 +744,110 @@ export const MARKET_SECTION = {
 } as const;
 
 /* ------------------------------------------------------------------ */
+/* Why Now · 为什么是现在                                              */
+/* ------------------------------------------------------------------ */
+
+export interface WhyNowShiftItem {
+  index: string;
+  title: string;
+  body: string;
+}
+
+export const WHY_NOW_SECTION = {
+  eyebrow: "Why Now · 为什么是现在",
+  title: "宠物，正在成为新一代情绪消费入口",
+  intro:
+    "在经济不确定的周期里，消费者会减少大额支出，但不会停止寻找情绪安慰。过去，人们用一支口红获得即时满足；今天，越来越多年轻人把这种情绪价值，投向每天陪伴自己的毛孩子。宠物不只是宠物——它们正在成为家庭成员、社交内容、生活方式和情绪消费的核心入口。",
+  lipstick: {
+    eyebrow: "The New Lipstick Effect",
+    title: "新一代「口红效应」",
+    body: "经济下行时，用户并不是不消费，而是更倾向于选择：",
+    bullets: ["更低门槛的消费", "更高频的陪伴", "更即时的情绪满足", "更值得分享的生活片段"],
+    footer:
+      "宠物消费正好符合这些特征。一只宠物带来的价值，不只是食品、用品和护理，而是每天持续发生的陪伴感、治愈感和分享欲。这也是为什么宠物赛道在消费承压的环境下，依然具备韧性。",
+  },
+  emotion: {
+    eyebrow: "From Pet Care to Pet Emotion",
+    title: "从「养宠」到「宠物情绪经济」",
+    body: "中国宠物市场正在从功能型消费，进入情绪型消费阶段。",
+    from: {
+      label: "过去 · 功能型消费",
+      items: ["食品", "清洁", "护理", "基础用品"],
+    },
+    to: {
+      label: "现在 · 情绪型消费",
+      items: ["陪伴", "记录", "分享", "智能硬件", "内容表达", "社交身份", "品牌体验"],
+    },
+    footer:
+      "用户不只是想「照顾好宠物」，而是希望记录它、理解它、分享它，并通过它获得持续的情绪价值。",
+  },
+  whyAivora: {
+    eyebrow: "Why Aivora",
+    title: "为什么是 Aivora",
+    body: "Aivora 切入的不是普通宠物用品市场，也不是单纯的宠物摄像头市场，而是一个正在形成的新场景：",
+    formula: "真实宠物日常 × AI 内容生成 × 智能硬件 × 社交分享 × 品牌证据",
+    generates: [
+      "可爱短视频",
+      "宠物日记",
+      "主人陪伴内容",
+      "社交分享素材",
+      "品牌 Product Proof Report",
+    ],
+    footer:
+      "我们通过自有硬件套装捕捉宠物真实行为，再用 AI 自动生成上述内容，让宠物日常不再只是被记录，而是被转化成内容资产和商业价值。",
+  },
+  marketShift: {
+    eyebrow: "The Market Shift",
+    title: "市场正在发生的变化",
+    items: [
+      {
+        index: "01",
+        title: "宠物主人更愿意为情绪价值付费",
+        body: "宠物已经成为年轻人、独居人群和城市家庭的重要陪伴对象。用户愿意为毛孩子购买更好的产品，也愿意为「被治愈」「被陪伴」「被理解」的体验付费。",
+      },
+      {
+        index: "02",
+        title: "宠物内容天然适合传播",
+        body: "宠物视频低门槛、高接受度、强情绪价值，用户分享宠物不需要复杂理由。一个表情、一次撒娇、一个睡姿、一次听到主人声音后的反应，都可能成为愿意主动发布的内容。Aivora 的机会，是把这种天然分享欲自动化、产品化。",
+      },
+      {
+        index: "03",
+        title: "品牌越来越需要真实 UGC",
+        body: "宠物品牌最难证明的不是「产品有没有功能」，而是宠物真的喜欢吗、真实家庭里会不会用、用户看到后会不会相信。Aivora 用摄像头、项圈与宠物垫捕捉真实使用场景，生成品牌可用的 Product Proof Report——不只是视频，而是真实、可验证、可传播的内容证据。",
+      },
+      {
+        index: "04",
+        title: "AI 正在降低内容生产成本",
+        body: "过去品牌要一条高质量宠物视频，需要达人、拍摄、剪辑、脚本和投放团队。Aivora 把它变成：采集真实行为 → AI 识别高光 → 自动成片 → 自动标题字幕 → 自动报告 → 自动分享，让宠物内容规模化生产，也让普通宠物主人变成内容节点。",
+      },
+    ] satisfies ReadonlyArray<WhyNowShiftItem>,
+  },
+  timing: {
+    eyebrow: "Aivora's Timing",
+    title: "为什么现在切入",
+    intro: "现在是 Aivora 的窗口期，因为五个趋势正在同时发生：",
+    trends: [
+      "宠物陪伴正在成为年轻人的情绪出口",
+      "短视频仍是消费品牌获客的核心渠道",
+      "AI 正在重构内容生产方式",
+      "智能硬件正在成为真实场景的数据入口",
+      "品牌越来越需要真实 UGC 和产品使用证据",
+    ],
+    closing: "Aivora 正好站在这些趋势的交汇点。",
+  },
+  positioning: {
+    en: "Aivora is not just a pet camera. It is an AI-powered pet content and product proof platform.",
+    zh: "Aivora 不是宠物摄像头，而是一个由 AI 和自有硬件驱动的宠物内容与产品证据平台。",
+  },
+  highlights: [
+    "经济下行时，情绪需求不会消失，只会转向更轻、更高频、更有陪伴感的消费。",
+    "过去的口红效应是一次小额安慰；今天的宠物经济，是每天持续发生的治愈陪伴。",
+    "Aivora 把宠物日常变成可分享的内容，也变成品牌愿意付费的真实证据。",
+    "我们不只是记录宠物，而是在重构宠物内容、陪伴与品牌营销的连接方式。",
+  ],
+} as const;
+
+/* ------------------------------------------------------------------ */
 /* 商业模式（暂定）                                                     */
 /* ------------------------------------------------------------------ */
 
@@ -801,12 +905,16 @@ export interface TeamMember {
   role: string;
   initials: string;
   focus: string;
+  /** 较长的个人简介段落（可选）。 */
+  bio?: string;
   bullets: ReadonlyArray<string>;
+  /** 这个人在 Aivora 的价值（可选）。 */
+  value?: string;
 }
 
 export const TEAM_SECTION = {
   eyebrow: "团队",
-  title: "懂 AI 落地，也懂增长与品牌",
+  title: "核心团队",
   description:
     "小而精的双核创始团队，工程与商业互补：一端把 AI 内容与软硬件真正落地，一端把产品变成可增长、可变现的生意。",
   members: [
@@ -814,25 +922,48 @@ export const TEAM_SECTION = {
       name: "Lucas Jiang",
       role: "联合创始人 & CEO",
       initials: "LJ",
-      focus: "战略 · 商业化 · 品牌与生态",
+      focus: "北美社媒增长 · 商业化 · 品牌生态",
+      bio: "Lucas 多年深耕北美社媒推广与品牌营销，熟悉本地消费品牌从内容定位、用户触达到商业转化的完整路径。他长期接触北美市场客户，理解品牌在 TikTok、Instagram、Amazon 和本地渠道推广时遇到的真实问题：内容生产成本高、真实 UGC 难获取、产品卖点难验证、跨语言和跨文化表达不够本地化。在 Aivora 中，Lucas 负责整体战略、商业模式、品牌定位、市场合作和 B2B/B2C 增长路径。",
       bullets: [
-        "负责整体战略、商业模式设计与资本/品牌生态合作",
-        "深耕消费与宠物赛道的增长与品牌建设",
-        "主导从 0 到 1 的市场进入与 B2B/B2C 商业化落地",
+        "北美社媒推广与品牌营销，懂本地消费品牌增长路径",
+        "负责整体战略、商业模式、品牌定位与市场合作",
+        "主导 B2B/B2C 增长与商业化落地",
       ],
+      value:
+        "Aivora 不只是一个 AI 工具，而是一个连接宠物主人、内容创作者和品牌方的商业系统。Lucas 负责把「用户为什么愿意分享」和「品牌为什么愿意付费」这两个关键问题跑通。",
     },
     {
       name: "Evan Liao",
       role: "联合创始人 & CTO",
       initials: "EL",
-      focus: "技术架构 · AI 内容管线 · 软硬件打通",
+      focus: "AI 产品工程化 · 系统架构 · 软硬件闭环",
+      bio: "Evan 拥有多年软件工程经验，曾在 Amazon 担任开发相关工作，具备复杂系统架构、AI 产品落地和服务化交付经验。他理解一个 AI 产品从 Demo 到真实可用系统所需要解决的关键问题，包括视频处理、AI 识别、自动剪辑、云端架构、硬件数据接入和多端产品体验。在 Aivora 中，Evan 负责 AI 内容管线、视频生成流程、硬件数据接入、系统架构和从 Demo 到 MVP 的产品化落地。",
       bullets: [
-        "加拿大 10 年资深工程师，长期深耕 AI 产品落地与服务化交付",
+        "多年软件工程经验，曾在 Amazon 担任开发相关工作",
         "主导即梦/Seedance 视频生成、AI 识别与自动成片管线",
-        "负责硬件采集—云端 AI—内容分发的端到端技术架构",
+        "负责硬件采集—云端 AI—内容分发的端到端架构",
       ],
+      value:
+        "Aivora 不是简单的 AI 生成页面，而是需要连接摄像头、项圈、宠物垫、视频识别、内容生成、报告输出和用户端应用的端到端系统。Evan 负责把这个复杂系统真正做出来。",
     },
   ] satisfies ReadonlyArray<TeamMember>,
+  whyFit: {
+    title: "为什么这个团队适合做 Aivora",
+    intro:
+      "Aivora 处在五个领域的交叉点：宠物消费、AI 内容生成、智能硬件、社交分享、品牌营销。这个项目要同时具备两种能力：",
+    points: [
+      {
+        title: "懂市场",
+        body: "知道宠物主人为什么愿意分享，什么内容易传播，品牌为什么需要真实 UGC 和 Product Proof。",
+      },
+      {
+        title: "能落地",
+        body: "能把硬件采集、AI 识别、视频生成、数据报告和产品体验连接成完整系统。",
+      },
+    ],
+    closing:
+      "Lucas 负责市场、品牌、增长和商业化，Evan 负责 AI、系统、工程和产品落地。这让 Aivora 不只是一个概念 Demo，而是具备从 Demo 到 MVP、再到平台化发展的团队基础。",
+  },
   note: "我们正在寻找在宠物供应链、品牌 BD 与社区运营上互补的早期伙伴。",
 } as const;
 
@@ -881,9 +1012,9 @@ export const HARDWARE_KIT_SECTION = {
       name: "Aivora 360° 宠物内容摄像头",
       englishName: "Aivora Smart Pet Content Cam",
       stage: "mvp",
-      stageLabel: "MVP 优先 · 核心设备",
+      stageLabel: "核心设备",
       tagline:
-        "360° AI 追踪宠物、捕捉可爱瞬间，并自动生成可分享视频——最容易落地、最适合 AI 宠物识别与自动成片的核心产品。",
+        "360° AI 追踪宠物、捕捉可爱瞬间，并自动生成可分享视频。",
       capabilities: [
         "360° 可旋转 · AI 宠物识别与自动追踪",
         "双向语音 / 主人远程发声",
@@ -910,9 +1041,9 @@ export const HARDWARE_KIT_SECTION = {
       name: "Aivora 智能宠物垫传感器",
       englishName: "Aivora Smart Pet Mat Sensor",
       stage: "b2b",
-      stageLabel: "B2B 变现关键 · 产品使用传感器",
+      stageLabel: "记录宠物身体数据",
       tagline:
-        "记录宠物是否真实使用产品，并把真实使用转化为品牌可用的视频内容与 Product Proof Report——最容易讲清楚商家为什么付费。",
+        "记录宠物是否真实使用产品，并把真实使用转化为品牌可用的视频内容与 Product Proof Report。",
       capabilities: [
         "压力 / 存在感应，判断宠物是否主动使用产品",
         "记录使用频率、时长与常用时段",
@@ -941,7 +1072,7 @@ export const HARDWARE_KIT_SECTION = {
       stage: "future",
       stageLabel: "未来差异化 · 第一视角内容入口",
       tagline:
-        "从宠物第一视角记录它看到的世界，并自动生成可爱的 AI 冒险视频——传播性与记忆点最强，作为未来愿景逐步落地。",
+        "从宠物第一视角记录它看到的世界，并自动生成可爱的 AI 冒险视频。",
       capabilities: [
         "宠物第一视角拍摄 · 户外散步 POV",
         "GPS / 活动状态记录",
@@ -963,48 +1094,6 @@ export const HARDWARE_KIT_SECTION = {
       cta: { label: "查看宠物第一视角愿景", href: "#community" },
     },
   ] satisfies ReadonlyArray<HardwareProductDemo>,
-} as const;
-
-/* ------------------------------------------------------------------ */
-/* 产品落地路线：Demo → MVP → Expansion                                 */
-/* ------------------------------------------------------------------ */
-
-export interface RoadmapStageDemo {
-  stage: string;
-  status: "now" | "next" | "later";
-  statusLabel: string;
-  title: string;
-  body: string;
-}
-
-export const ROADMAP_STAGES = {
-  eyebrow: "产品落地路线",
-  title: "先用市场成熟硬件验证体验，再推出 Aivora 自有套装",
-  description:
-    "我们不假装「三款硬件马上量产」。Demo 阶段用第三方设备、上传视频和模拟传感器数据跑通闭环；中期先打通 360° 摄像头与 AI 内容管线；后期再逐步加入宠物垫与第一视角项圈，形成完整套装。",
-  stages: [
-    {
-      stage: "Demo Stage",
-      status: "now",
-      statusLabel: "当前阶段",
-      title: "第三方设备 + 上传视频 + 模拟数据",
-      body: "用现有设备、上传素材和模拟传感器数据展示完整闭环，验证：宠物视频能否自动成片、主人是否愿意分享、品牌是否理解 Product Proof、投资人是否看懂软硬件一体化故事。",
-    },
-    {
-      stage: "MVP Stage",
-      status: "next",
-      statusLabel: "下一步",
-      title: "Aivora 360° 摄像头 + AI 内容管线",
-      body: "先确定第一款自有核心硬件——360° 宠物内容摄像头，打通 AI 识别、自动成片与宠物日记。它最容易落地、最容易被用户理解，可同时服务 B2C 与 B2B。",
-    },
-    {
-      stage: "Expansion Stage",
-      status: "later",
-      statusLabel: "扩展阶段",
-      title: "智能宠物垫 + 第一视角项圈",
-      body: "摄像头跑通后，加入智能宠物垫（Product Proof 与品牌试用）与第一视角项圈（户外内容与差异化传播），形成完整的 Aivora Pet Content Intelligence Kit。",
-    },
-  ] satisfies ReadonlyArray<RoadmapStageDemo>,
 } as const;
 
 /* ------------------------------------------------------------------ */
@@ -1066,9 +1155,9 @@ export const BENCHMARK_MATRIX = {
     { feature: "硬件套装", ordinary: "no", aiCamera: "no", wearableMat: "no", aivora: "yes" },
   ] satisfies ReadonlyArray<BenchmarkRowDemo>,
   painPoints: [
-    "订阅贵但价值感不强 → Aivora 的订阅价值很直接：每日可爱视频、宠物日记、字幕、Product Proof。",
-    "AI 不稳定、隐私担忧 → 强调稳定成片、内容归主人所有、品牌商用需二次授权、可删除、可不上云。",
-    "硬件之间彼此孤立 → 摄像头负责室内、项圈负责户外第一视角、宠物垫负责使用证据，AI 后台统一成片与分发。",
+    "每日可爱视频、宠物日记、字幕，Aivora 给到客户每日的及时反馈。",
+    "稳定成片、内容归主人所有、品牌商用需二次授权、可删除、可不上云。",
+    "摄像头负责室内、项圈负责户外第一视角、宠物垫负责使用证据，AI 后台统一成片与分发。",
   ],
   sourceNote:
     "对比与参考价格来自公开渠道与同类产品资料，仅用于 Demo / 投资人沟通的市场参照，实际以各品牌官方为准。",

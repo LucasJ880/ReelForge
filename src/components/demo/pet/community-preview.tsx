@@ -18,11 +18,11 @@ export function CommunityPreview() {
       <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
         {/* 宠物主页 */}
         <div className="pet-surface overflow-hidden rounded-3xl">
-          <div className="relative h-28 w-full overflow-hidden">
+          <div className="relative h-28 w-full overflow-hidden bg-linear-to-br from-(--pet-orange-soft) via-(--pet-cream) to-(--pet-teal-soft)">
             <PetImage src={profile.coverUrl} alt="主页封面" fallbackLabel="" />
           </div>
           <div className="-mt-8 px-5 pb-5">
-            <div className="h-16 w-16 overflow-hidden rounded-2xl border-4 border-card bg-card">
+            <div className="h-16 w-16 overflow-hidden rounded-2xl border-4 border-card bg-linear-to-br from-(--pet-orange-soft) to-(--pet-teal-soft)">
               <PetImage
                 src={profile.avatarUrl}
                 alt={profile.petName}
@@ -123,7 +123,7 @@ export function CommunityPreview() {
 function FeedCard({ post }: { post: CommunityPostDemo }) {
   return (
     <div className="pet-surface overflow-hidden rounded-3xl">
-      <div className="relative aspect-square w-full overflow-hidden">
+      <div className="relative aspect-square w-full overflow-hidden bg-linear-to-br from-(--pet-orange-soft) via-(--pet-cream) to-(--pet-teal-soft)">
         <PetImage src={post.coverUrl} alt={post.caption} fallbackLabel="" />
         {post.badge ? (
           <span className="absolute left-2 top-2 rounded-full bg-[var(--pet-orange)] px-2 py-0.5 text-[10px] font-semibold text-white">
@@ -133,7 +133,7 @@ function FeedCard({ post }: { post: CommunityPostDemo }) {
       </div>
       <div className="p-3">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 overflow-hidden rounded-full bg-secondary">
+          <div className="h-6 w-6 overflow-hidden rounded-full bg-linear-to-br from-(--pet-orange-soft) to-(--pet-teal-soft)">
             <PetImage src={post.avatarUrl} alt={post.petName} fallbackEmoji="🐾" />
           </div>
           <span className="truncate text-[11px] font-medium text-foreground">

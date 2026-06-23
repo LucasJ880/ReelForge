@@ -97,9 +97,6 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
                 产品讲解视频即将上线
               </div>
             )}
-            <p className="max-w-md text-center text-xs leading-5 text-muted-foreground">
-              纯音乐播放 · 讲清我们做什么、怎么自动生产可裂变的宠物视频、为什么要用我们
-            </p>
 
             <a
               href="#hardware-kit"

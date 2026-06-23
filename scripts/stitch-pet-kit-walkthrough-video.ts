@@ -99,15 +99,11 @@ type SeedanceClip = {
 
 type StoryboardClip = RenderClip | SeedanceClip;
 
-/** 9 段分镜：渲染图与真实画面交替，把产品焊进它创造价值的语境。 */
+/**
+ * 分镜：开场直接进真实画面，渲染图与真实画面交替，把产品焊进它创造价值的语境，
+ * 结尾用 Aivora 品牌 logo 端卡收束（去掉旧片头全家福图与片尾信息图海报）。
+ */
 const STORYBOARD: StoryboardClip[] = [
-  {
-    kind: "render",
-    id: "01-kit-open",
-    image: "kit-group.png",
-    caption: "Aivora · 宠物内容智能采集套件",
-    durationSec: 6,
-  },
   {
     kind: "seedance",
     id: "02-life",
@@ -163,10 +159,11 @@ const STORYBOARD: StoryboardClip[] = [
   },
   {
     kind: "render",
-    id: "09-poster-close",
-    image: "hardware-kit-poster.png",
-    caption: "把真实宠物瞬间，变成可分享内容与品牌证据",
-    durationSec: 6,
+    id: "09-logo-close",
+    image: "aivora-logo-endcard.png",
+    // 空字幕：端卡本身已含品牌字标，buildRenderClip 会跳过字幕叠加。
+    caption: "",
+    durationSec: 5,
   },
 ];
 
@@ -303,42 +300,46 @@ function renderCaptionPng(caption: string, id: string, font: string) {
  * 4:3 渲染图会被居中放大裁切到 16:9（产品居中、留白充足，裁切不影响主体）。
  */
 function buildRenderClip(clip: RenderClip, output: string, font: string) {
-  const captionPng = renderCaptionPng(clip.caption, clip.id, font);
   const image = resolve(RENDER_DIR, clip.image);
   if (!existsSync(image)) throw new Error(`渲染图不存在：${image}`);
 
   const frames = Math.round(clip.durationSec * FPS);
   // 单张静态图 + zoompan：放大到大尺寸保证推镜平滑，d=总帧数，z 逐帧累积。
-  const filterComplex = [
+  const hasCaption = clip.caption.trim().length > 0;
+  const kenBurns =
     `[0:v]scale=6400:-1,` +
-      `zoompan=z='min(zoom+0.0004,1.10)':d=${frames}:` +
-      `x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${OUT_W}x${OUT_H}:fps=${FPS},` +
-      `setsar=1,format=yuv420p[bg]`,
-    `[bg][1:v]overlay=0:0:format=auto,format=yuv420p[v]`,
-  ].join(";");
+    `zoompan=z='min(zoom+0.0004,1.10)':d=${frames}:` +
+    `x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s=${OUT_W}x${OUT_H}:fps=${FPS},` +
+    `setsar=1,format=yuv420p`;
+
+  // 有字幕时叠加字幕 PNG；空字幕（如品牌 logo 端卡）则直接输出推镜画面。
+  const filterComplex = hasCaption
+    ? [`${kenBurns}[bg]`, `[bg][1:v]overlay=0:0:format=auto,format=yuv420p[v]`].join(";")
+    : `${kenBurns}[v]`;
+
+  const inputArgs = hasCaption
+    ? [
+        "-loop", "1", "-i", image,
+        "-loop", "1", "-i", renderCaptionPng(clip.caption, clip.id, font),
+        "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+      ]
+    : [
+        "-loop", "1", "-i", image,
+        "-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100",
+      ];
+  const audioMap = hasCaption ? "2:a:0" : "1:a:0";
 
   execFileSync(
     "ffmpeg",
     [
       "-y",
-      "-loop",
-      "1",
-      "-i",
-      image,
-      "-loop",
-      "1",
-      "-i",
-      captionPng,
-      "-f",
-      "lavfi",
-      "-i",
-      "anullsrc=channel_layout=stereo:sample_rate=44100",
+      ...inputArgs,
       "-filter_complex",
       filterComplex,
       "-map",
       "[v]",
       "-map",
-      "2:a:0",
+      audioMap,
       "-t",
       clip.durationSec.toFixed(2),
       "-r",

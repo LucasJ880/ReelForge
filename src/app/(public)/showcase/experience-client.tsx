@@ -18,6 +18,7 @@ import { BrandProofScenario } from "@/components/demo/pet/brand-proof-scenario";
 import { ProductProofReport } from "@/components/demo/pet/product-proof-report";
 import { CommunityPreview } from "@/components/demo/pet/community-preview";
 import { BenchmarkComparison } from "@/components/demo/pet/benchmark-comparison";
+import { WhyNow } from "@/components/demo/pet/why-now";
 import { MarketOpportunity } from "@/components/demo/pet/market-opportunity";
 import { GrowthFlywheel } from "@/components/demo/pet/growth-flywheel";
 import { PetInvestorHighlights } from "@/components/demo/pet/pet-investor-highlights";
@@ -72,6 +73,7 @@ export function RealFootageDemoExperience({
       <ProductProofReport />
       <CommunityPreview />
       <BenchmarkComparison />
+      <WhyNow />
       <MarketOpportunity />
       <GrowthFlywheel />
       <PetInvestorHighlights />
@@ -157,6 +159,12 @@ function NavBar() {
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground xl:inline-flex"
           >
             自动生成
+          </a>
+          <a
+            href="#why-now"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
+          >
+            为什么是现在
           </a>
           <a
             href="#market"

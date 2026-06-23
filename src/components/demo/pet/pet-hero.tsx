@@ -32,9 +32,9 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
             <PawPrint size={14} />
             Aivora 宠物内容智能采集套件
           </div>
-          <h1 className="mt-6 max-w-3xl text-3xl font-semibold tracking-tight text-foreground sm:text-5xl sm:leading-[1.15] break-keep [line-break:strict]">
+          <h1 className="mt-6 max-w-3xl text-[1.7rem] font-semibold leading-snug tracking-tight text-foreground sm:text-5xl sm:leading-[1.15] break-keep [line-break:strict]">
             把每一个真实宠物瞬间，
-            <br className="hidden sm:inline" />
+            <br />
             变成<span className="text-[color:var(--pet-orange)]">可以马上分享</span>的可爱视频。
           </h1>
           <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">

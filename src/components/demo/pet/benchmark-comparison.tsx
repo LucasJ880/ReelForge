@@ -32,18 +32,21 @@ export function BenchmarkComparison() {
       title={b.title}
       description={b.description}
     >
+      <p className="mb-2 text-[11px] font-medium text-muted-foreground/80 lg:hidden">
+        ← 左右滑动查看完整对比（含 Aivora Kit）→
+      </p>
       <div className="pet-surface overflow-hidden rounded-3xl">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
+          <table className="w-full min-w-[600px] border-collapse text-sm">
             <thead>
               <tr className="border-b border-border">
-                <th className="p-4 text-left text-xs font-semibold text-muted-foreground">
+                <th className="px-2 py-3 text-left text-xs font-semibold text-muted-foreground sm:p-4">
                   能力
                 </th>
                 {b.columns.map((col, idx) => (
                   <th
                     key={col}
-                    className={`p-4 text-center text-xs font-semibold ${
+                    className={`px-2 py-3 text-center sm:p-4 text-xs font-semibold ${
                       idx === aivoraIdx
                         ? "bg-(--pet-orange)/10 text-(--pet-orange)"
                         : "text-foreground/70"
@@ -60,25 +63,25 @@ export function BenchmarkComparison() {
                   key={row.feature}
                   className="border-b border-border/60 last:border-0"
                 >
-                  <td className="p-4 text-xs font-medium text-foreground/85">
+                  <td className="px-2 py-3 text-xs font-medium text-foreground/85 sm:p-4">
                     {row.feature}
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="px-2 py-3 text-center sm:p-4">
                     <div className="flex justify-center">
                       <CellMark value={row.ordinary} />
                     </div>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="px-2 py-3 text-center sm:p-4">
                     <div className="flex justify-center">
                       <CellMark value={row.aiCamera} />
                     </div>
                   </td>
-                  <td className="p-4 text-center">
+                  <td className="px-2 py-3 text-center sm:p-4">
                     <div className="flex justify-center">
                       <CellMark value={row.wearableMat} />
                     </div>
                   </td>
-                  <td className="bg-(--pet-orange)/6 p-4 text-center">
+                  <td className="bg-(--pet-orange)/6 px-2 py-3 text-center sm:p-4">
                     <div className="flex justify-center">
                       <CellMark value={row.aivora} />
                     </div>

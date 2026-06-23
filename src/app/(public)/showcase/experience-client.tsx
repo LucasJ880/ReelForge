@@ -12,7 +12,10 @@ import { AutoVideos } from "@/components/demo/pet/auto-videos";
 import { ViralSharing } from "@/components/demo/pet/viral-sharing";
 import { ProductProofReport } from "@/components/demo/pet/product-proof-report";
 import { CommunityPreview } from "@/components/demo/pet/community-preview";
+import { MarketOpportunity } from "@/components/demo/pet/market-opportunity";
 import { PetInvestorHighlights } from "@/components/demo/pet/pet-investor-highlights";
+import { BusinessModel } from "@/components/demo/pet/business-model";
+import { TeamSection } from "@/components/demo/pet/team-section";
 import {
   COMPLIANCE_NOTES,
   SAMPLE_DATA_DISCLAIMER,
@@ -56,7 +59,10 @@ export function RealFootageDemoExperience({
       <ViralSharing />
       <ProductProofReport />
       <CommunityPreview />
+      <MarketOpportunity />
       <PetInvestorHighlights />
+      <BusinessModel />
+      <TeamSection />
 
       <section
         id="book-demo"
@@ -127,16 +133,28 @@ function NavBar() {
             自动生成
           </a>
           <a
-            href="#community"
+            href="#market"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
           >
-            社区
+            市场
           </a>
           <a
             href="#investor"
             className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
           >
             投资亮点
+          </a>
+          <a
+            href="#business-model"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground lg:inline-flex"
+          >
+            商业模式
+          </a>
+          <a
+            href="#team"
+            className="hidden rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition hover:text-foreground xl:inline-flex"
+          >
+            团队
           </a>
           <a
             href="#book-demo"

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T02:34:08.392Z",
+  "generatedAt": "2026-06-23T03:34:58.744Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -1334,6 +1334,17 @@
       "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=demo"
     },
     {
+      "path": "scripts/render-caption-png.py",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 1890,
+      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
       "path": "scripts/roadmap.ts",
       "type": "script",
       "area": "scripts",
@@ -1400,8 +1411,8 @@
         "@vercel/blob"
       ],
       "importantSymbols": [],
-      "lineCount": 335,
-      "sizeBytes": 10110,
+      "lineCount": 377,
+      "sizeBytes": 12318,
       "notes": "Maintenance / one-off script (run via tsx); FFmpeg / audio loudness pipeline; area=demo"
     },
     {
@@ -2839,15 +2850,18 @@
         "@/components/demo/pet/viral-sharing",
         "@/components/demo/pet/product-proof-report",
         "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/market-opportunity",
         "@/components/demo/pet/pet-investor-highlights",
+        "@/components/demo/pet/business-model",
+        "@/components/demo/pet/team-section",
         "@/lib/demo/pet-content-kit-demo-data",
         "./pet-waitlist-form"
       ],
       "importantSymbols": [
         "RealFootageDemoExperience"
       ],
-      "lineCount": 173,
-      "sizeBytes": 6939,
+      "lineCount": 191,
+      "sizeBytes": 7696,
       "notes": "area=marketing-site"
     },
     {
@@ -4397,6 +4411,25 @@
       "notes": "React component; area=demo"
     },
     {
+      "path": "src/components/demo/pet/business-model.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "BusinessModel"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "BusinessModel"
+      ],
+      "lineCount": 70,
+      "sizeBytes": 2132,
+      "notes": "React component; area=demo"
+    },
+    {
       "path": "src/components/demo/pet/community-preview.tsx",
       "type": "component",
       "area": "demo",
@@ -4474,6 +4507,25 @@
       ],
       "lineCount": 97,
       "sizeBytes": 3185,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/market-opportunity.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "MarketOpportunity"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "MarketOpportunity"
+      ],
+      "lineCount": 87,
+      "sizeBytes": 2979,
       "notes": "React component; area=demo"
     },
     {
@@ -4569,6 +4621,24 @@
       ],
       "lineCount": 105,
       "sizeBytes": 4091,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/team-section.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "TeamSection"
+      ],
+      "imports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "TeamSection"
+      ],
+      "lineCount": 53,
+      "sizeBytes": 1706,
       "notes": "React component; area=demo"
     },
     {
@@ -6198,8 +6268,8 @@
         "PET_WALKTHROUGH_VIDEO_URL",
         "PET_SAMPLE_VIDEO_URL"
       ],
-      "lineCount": 678,
-      "sizeBytes": 23903,
+      "lineCount": 841,
+      "sizeBytes": 30732,
       "notes": "Utility / helper module; area=demo"
     },
     {

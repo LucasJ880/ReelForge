@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T02:34:08.393Z",
+  "generatedAt": "2026-06-23T03:34:58.750Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -1714,7 +1714,10 @@
         "@/components/demo/pet/viral-sharing",
         "@/components/demo/pet/product-proof-report",
         "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/market-opportunity",
         "@/components/demo/pet/pet-investor-highlights",
+        "@/components/demo/pet/business-model",
+        "@/components/demo/pet/team-section",
         "@/lib/demo/pet-content-kit-demo-data",
         "./pet-waitlist-form"
       ],
@@ -1729,7 +1732,10 @@
         "@/components/demo/pet/viral-sharing",
         "@/components/demo/pet/product-proof-report",
         "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/market-opportunity",
         "@/components/demo/pet/pet-investor-highlights",
+        "@/components/demo/pet/business-model",
+        "@/components/demo/pet/team-section",
         "@/lib/demo/pet-content-kit-demo-data",
         "./pet-waitlist-form"
       ],
@@ -2963,6 +2969,21 @@
       "externalImports": []
     },
     {
+      "file": "src/components/demo/pet/business-model.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/demo/pet/community-preview.tsx",
       "imports": [
         "lucide-react",
@@ -3017,6 +3038,21 @@
     },
     {
       "file": "src/components/demo/pet/device-dashboard.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/market-opportunity.tsx",
       "imports": [
         "lucide-react",
         "./pet-section",
@@ -3104,6 +3140,18 @@
       "externalImports": [
         "lucide-react"
       ]
+    },
+    {
+      "file": "src/components/demo/pet/team-section.tsx",
+      "imports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/components/demo/pet/viral-sharing.tsx",

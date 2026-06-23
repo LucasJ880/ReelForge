@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T02:34:08.394Z",
+  "generatedAt": "2026-06-23T03:34:58.752Z",
   "areas": {
     "unknown": [
       ".cursor/rules/agency-coordinator.mdc",
@@ -90,6 +90,7 @@
       "scripts/build-codemap.ts",
       "scripts/check-real-mode.ts",
       "scripts/context-router.ts",
+      "scripts/render-caption-png.py",
       "src/app/api/ad-plans/[id]/render/route.ts",
       "src/app/api/briefs/[id]/render-retry/route.ts",
       "src/app/api/briefs/[id]/render-status/route.ts",
@@ -268,15 +269,18 @@
       "src/components/demo/local-product-sample-section.tsx",
       "src/components/demo/pet/activity-timeline.tsx",
       "src/components/demo/pet/auto-videos.tsx",
+      "src/components/demo/pet/business-model.tsx",
       "src/components/demo/pet/community-preview.tsx",
       "src/components/demo/pet/companion-mode.tsx",
       "src/components/demo/pet/detected-moments.tsx",
       "src/components/demo/pet/device-dashboard.tsx",
+      "src/components/demo/pet/market-opportunity.tsx",
       "src/components/demo/pet/pet-hero.tsx",
       "src/components/demo/pet/pet-image.tsx",
       "src/components/demo/pet/pet-investor-highlights.tsx",
       "src/components/demo/pet/pet-section.tsx",
       "src/components/demo/pet/product-proof-report.tsx",
+      "src/components/demo/pet/team-section.tsx",
       "src/components/demo/pet/viral-sharing.tsx",
       "src/components/demo/phone-video-mockup.tsx",
       "src/components/demo/reference-preview-section.tsx",

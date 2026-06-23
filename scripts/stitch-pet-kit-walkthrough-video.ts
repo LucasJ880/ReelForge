@@ -96,12 +96,21 @@ async function main() {
   );
 
   const bgm = resolveBgm();
-  if (bgm) {
-    banner("叠加 BGM");
-    const totalSec = probeDurationSec(CONCAT_OUTPUT_PATH);
+  const totalSec = probeDurationSec(CONCAT_OUTPUT_PATH);
+  const voiceover = resolveVoiceover(normalizedPaths.length, normalizedPaths);
+
+  if (voiceover.length > 0) {
+    banner("混音：中文配音旁白（主） + 压低 BGM（垫底）");
+    mixVoiceoverAndBgm({ voiceover, bgm, totalSec });
+    console.log(
+      `voiceover segments = ${voiceover.map((v) => v.index).join(",")}`,
+      bgm ? `| bgm = ${bgm}` : "| 无 BGM",
+    );
+  } else if (bgm) {
+    banner("叠加 BGM（无配音旁白）");
     const fadeOutStart = Math.max(0, totalSec - 2);
-    // 可调整整体音量（默认 0.85，给「无旁白、字幕承载信息」留出克制感）。
-    const gain = readBgmGain();
+    // 可调整整体音量（默认 0.85，给「字幕承载信息」留出克制感）。
+    const gain = readBgmGain(0.85);
     // -stream_loop -1 让较短的 BGM 自动循环铺满整支视频；
     // atrim 精确截到视频时长，再做整体淡入淡出，避免循环接缝处突兀。
     const audioFilter = [
@@ -141,7 +150,7 @@ async function main() {
     );
     console.log("bgm =", bgm, "| gain =", gain);
   } else {
-    console.log("未提供 PET_WALKTHROUGH_BGM，输出无配乐版本（静音）。");
+    console.log("未提供配音旁白与 BGM，输出无声版本。");
     execFileSync("ffmpeg", ["-y", "-i", CONCAT_OUTPUT_PATH, "-c", "copy", FINAL_OUTPUT_PATH], {
       stdio: "inherit",
     });
@@ -307,11 +316,144 @@ function resolveFont() {
   return found;
 }
 
-function readBgmGain() {
+function readBgmGain(fallback: number) {
   const raw = process.env.PET_WALKTHROUGH_BGM_GAIN;
-  if (!raw) return 0.85;
+  if (!raw) return fallback;
   const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) return 0.85;
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+  return parsed;
+}
+
+const VOICEOVER_DIR = resolve(WORK_DIR, "voiceover");
+
+type VoiceoverClip = { index: number; path: string; offsetSec: number };
+
+/**
+ * 读取已生成的中文配音旁白（vo-{index}.mp3），并按各段在成片中的起始
+ * 时间计算偏移，供 mix 阶段用 adelay 精确对齐到对应分镜。
+ */
+function resolveVoiceover(count: number, normalizedPaths: string[]): VoiceoverClip[] {
+  if (!existsSync(VOICEOVER_DIR)) return [];
+  if (isTruthy(process.env.PET_DISABLE_VOICEOVER)) return [];
+
+  // 各段在成片里的起始秒数 = 前面所有段时长之和。
+  const segDurations = normalizedPaths.map((p) => probeDurationSec(p));
+  const offsets: number[] = [];
+  let acc = 0;
+  for (const d of segDurations) {
+    offsets.push(acc);
+    acc += d;
+  }
+
+  const clips: VoiceoverClip[] = [];
+  for (let i = 1; i <= count; i++) {
+    const path = resolve(VOICEOVER_DIR, `vo-${i}.mp3`);
+    if (existsSync(path) && statSync(path).size > 0) {
+      clips.push({ index: i, path, offsetSec: offsets[i - 1] ?? 0 });
+    }
+  }
+  return clips;
+}
+
+/**
+ * 把配音旁白（主声轨）与 BGM（压低垫底）混入成片：
+ *  - 每段旁白用 adelay 对齐到对应分镜起点；
+ *  - BGM 循环铺满、loudnorm 后压到很低音量，仅作氛围垫底；
+ *  - 末端 alimiter 防止叠加削顶。
+ */
+function mixVoiceoverAndBgm(opts: {
+  voiceover: VoiceoverClip[];
+  bgm: string | null;
+  totalSec: number;
+}) {
+  const { voiceover, bgm, totalSec } = opts;
+  const fadeOutStart = Math.max(0, totalSec - 2);
+  // 旁白整体音量（可用 PET_VOICEOVER_GAIN 微调）。
+  const voGain = readPositiveEnv(process.env.PET_VOICEOVER_GAIN, 1.15);
+  // 有旁白时 BGM 默认压到很低，避免盖住人声。
+  const bgGain = bgm ? readBgmGain(0.16) : 0;
+
+  const inputs: string[] = ["-i", CONCAT_OUTPUT_PATH];
+  voiceover.forEach((clip) => {
+    inputs.push("-i", clip.path);
+  });
+  if (bgm) {
+    inputs.push("-stream_loop", "-1", "-i", bgm);
+  }
+
+  const filterParts: string[] = [];
+  const voLabels: string[] = [];
+  voiceover.forEach((clip, idx) => {
+    const ff = idx + 1; // ffmpeg 输入序号（0 是视频）
+    const delayMs = Math.round(clip.offsetSec * 1000);
+    const label = `vo${idx}`;
+    filterParts.push(
+      `[${ff}:a]aresample=44100,aformat=channel_layouts=stereo,` +
+        `adelay=${delayMs}|${delayMs}[${label}]`,
+    );
+    voLabels.push(`[${label}]`);
+  });
+
+  // 合并所有旁白片段为一条人声轨（不重叠，normalize=0 保持各自音量）。
+  if (voLabels.length === 1) {
+    filterParts.push(`${voLabels[0]}volume=${voGain}[voice]`);
+  } else {
+    filterParts.push(
+      `${voLabels.join("")}amix=inputs=${voLabels.length}:normalize=0,` +
+        `volume=${voGain}[voice]`,
+    );
+  }
+  const voiceMix = "[voice]";
+
+  let finalAudio: string;
+  if (bgm) {
+    const bgIdx = voiceover.length + 1;
+    filterParts.push(
+      `[${bgIdx}:a]aformat=sample_rates=44100:channel_layouts=stereo,` +
+        `atrim=0:${totalSec.toFixed(2)},loudnorm=I=-20:TP=-2:LRA=11,` +
+        `volume=${bgGain},afade=t=in:st=0:d=1.2,` +
+        `afade=t=out:st=${fadeOutStart.toFixed(2)}:d=2[bg]`,
+    );
+    filterParts.push(
+      `${voiceMix}[bg]amix=inputs=2:normalize=0,alimiter=limit=0.95[mix]`,
+    );
+    finalAudio = "[mix]";
+  } else {
+    filterParts.push(`${voiceMix}alimiter=limit=0.95[mix]`);
+    finalAudio = "[mix]";
+  }
+
+  execFileSync(
+    "ffmpeg",
+    [
+      "-y",
+      ...inputs,
+      "-filter_complex",
+      filterParts.join(";"),
+      "-map",
+      "0:v:0",
+      "-map",
+      finalAudio,
+      "-t",
+      totalSec.toFixed(2),
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-b:a",
+      "192k",
+      FINAL_OUTPUT_PATH,
+    ],
+    { stdio: "inherit" },
+  );
+
+  console.log("voiceGain =", voGain, "| bgGain =", bgGain);
+}
+
+function readPositiveEnv(raw: string | undefined, fallback: number) {
+  if (!raw) return fallback;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return parsed;
 }
 

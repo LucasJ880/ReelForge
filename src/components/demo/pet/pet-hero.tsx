@@ -1,11 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, PawPrint, Play, Sparkles } from "lucide-react";
-import { PhoneVideoMockup } from "@/components/demo/phone-video-mockup";
+import { ArrowRight, PawPrint, Sparkles } from "lucide-react";
 import {
   PET_HERO_OPENING,
-  PET_SAMPLE_VIDEO_POSTER,
-  PET_SAMPLE_VIDEO_URL,
   PET_SLOGAN,
+  PET_WALKTHROUGH_VIDEO_POSTER,
   PET_WALKTHROUGH_VIDEO_URL,
   heroStats,
   type HeroStat,
@@ -65,43 +63,34 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
               <HeroStatCard key={stat.label} stat={stat} />
             ))}
           </dl>
-
-          {PET_WALKTHROUGH_VIDEO_URL ? (
-            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-              <span className="font-medium text-foreground">
-                可选 · 60 秒产品讲解
-              </span>
-              <a
-                href={PET_WALKTHROUGH_VIDEO_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-foreground transition hover:opacity-80"
-              >
-                <Play size={12} /> 播放
-              </a>
-            </div>
-          ) : null}
         </div>
 
         <div className="relative flex-1">
           <div className="absolute -inset-10 -z-10 rounded-[3rem] bg-[var(--pet-orange)]/15 blur-3xl" />
           <div className="flex flex-col items-center gap-4">
-            <p className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pet-teal)]/30 bg-[var(--pet-teal)]/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[color:var(--pet-teal)]">
-              自动生成 · 真实可播放
+            <p className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pet-teal)]/30 bg-[var(--pet-teal)]/10 px-3 py-1 text-[11px] font-semibold text-[color:var(--pet-teal)]">
+              <Sparkles size={13} /> 60 秒看懂 Aivora · 中文字幕 + 配音讲解
             </p>
-            <PhoneVideoMockup
-              sizeClassName="h-[520px] w-[260px] xl:h-[560px] xl:w-[280px]"
-              videoUrl={PET_SAMPLE_VIDEO_URL}
-              posterUrl={PET_SAMPLE_VIDEO_POSTER}
-              videoMode="autoplay"
-              caption="今日份可爱 · AI 自动剪辑"
-              statusBadge="30s · 9:16"
-              fallbackGradient="from-amber-300/40 via-orange-200/30 to-emerald-300/30"
-              fallbackTitle="今日份可爱"
-              fallbackSubtitle="Aivora 自动生成"
-            />
-            <p className="text-center text-xs leading-5 text-muted-foreground">
-              从宠物的真实瞬间，到一条可以发出去的视频
+            {PET_WALKTHROUGH_VIDEO_URL ? (
+              <figure className="w-full max-w-xl overflow-hidden rounded-3xl border border-border bg-card p-2 shadow-xl shadow-[var(--pet-orange)]/10">
+                {/* 投资人最先看到的视频：产品讲解片，可播放、有声。 */}
+                <video
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster={PET_WALKTHROUGH_VIDEO_POSTER ?? undefined}
+                  className="aspect-video w-full rounded-2xl bg-black object-cover"
+                >
+                  <source src={PET_WALKTHROUGH_VIDEO_URL} type="video/mp4" />
+                </video>
+              </figure>
+            ) : (
+              <div className="flex aspect-video w-full max-w-xl items-center justify-center rounded-3xl border border-border bg-linear-to-br from-amber-300/40 via-orange-200/30 to-emerald-300/30 text-sm font-medium text-foreground">
+                产品讲解视频即将上线
+              </div>
+            )}
+            <p className="max-w-md text-center text-xs leading-5 text-muted-foreground">
+              点开有声播放 · 讲清我们做什么、怎么自动生产可裂变的宠物视频、为什么要用我们
             </p>
           </div>
         </div>

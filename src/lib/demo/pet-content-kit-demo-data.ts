@@ -11,16 +11,12 @@
  * - 面向国内中文客户与投资人，全部文案中文；
  * - 所有指标均为「示例数据」，禁止写成「某真实账号某月真实数据」；
  * - 硬件 demo 阶段允许用 UI + 模拟数据展示，不要求真实硬件打通；
- * - 图片走 /public/demo/pet/ 下的 AI 生成素材；视频可复用已上线的宠物样片；
+ * - 图片走 /public/demo/pet/ 下的 AI 生成素材；
+ *   视频用本项目专门生成的「60s 产品讲解片」，不复用任何旧样片；
  * - 任何 URL 允许为 null，组件需自行降级，不能因缺素材崩溃。
  *
  * 修改时只改这份 data，不改组件结构。
  */
-
-import {
-  DEMO_SEED_VIDEO_URL,
-  DEMO_SEED_VIDEO_THUMBNAIL,
-} from "@/lib/data/demo-seed";
 
 /* ------------------------------------------------------------------ */
 /* 全局品牌文案                                                          */
@@ -43,18 +39,17 @@ export const SAMPLE_DATA_DISCLAIMER =
   "本页所有设备状态、行为数据、识别瞬间与传播指标均为示例（demo 模拟数据），用于演示产品闭环；硬件采集部分在 demo 阶段以 UI + 模拟数据呈现，不代表已量产的真实硬件数据。";
 
 /**
- * 可选 · 60 秒产品讲解视频（即梦/Seedance 管线产出，16:9 中文字幕）。
- * 生成完成后把成片 URL 填到这里；为 null 时 hero 区不展示该入口。
+ * 60 秒产品讲解片（即梦/Seedance 管线 + 中文字幕 + 中文配音旁白 + BGM）。
+ *
+ * 这是 hero 区投资人最先看到的视频：讲清「我们做什么 / 怎么自动生产可裂变的
+ * 宠物视频 / 为什么要用我们」，而不是展示任何旧的样片。为 null 时 hero 降级。
  */
 export const PET_WALKTHROUGH_VIDEO_URL: string | null =
   "/generated/aivora-pet-content-kit-walkthrough-60s-16x9.mp4";
 
-/**
- * Hero 主视觉里手机内播放的「自动生成宠物视频」样片。
- * 复用已上线的宠物样片（30s 竖屏，可直接浏览器内嵌播放）。
- */
-export const PET_SAMPLE_VIDEO_URL = DEMO_SEED_VIDEO_URL;
-export const PET_SAMPLE_VIDEO_POSTER = DEMO_SEED_VIDEO_THUMBNAIL;
+/** 讲解片封面（从成片抽帧），未生成时回退到 AI 宠物素材。 */
+export const PET_WALKTHROUGH_VIDEO_POSTER: string | null =
+  "/demo/pet/walkthrough-poster.jpg";
 
 export interface HeroStat {
   label: string;
@@ -296,8 +291,8 @@ export interface DailyClipDemo {
 export const dailyClip: DailyClipDemo = {
   title: "今日份可爱 · 自动合成",
   durationLabel: "30 秒 · 9:16",
-  videoUrl: PET_SAMPLE_VIDEO_URL,
-  posterUrl: PET_SAMPLE_VIDEO_POSTER,
+  videoUrl: null,
+  posterUrl: "/demo/pet/moment-tilt.png",
   caption: "把今天的高光瞬间自动剪成一条，每天打开都有惊喜。",
 };
 
@@ -370,8 +365,8 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     postTitle: "我家主子今天的高光时刻",
     caption: "歪头、干饭、打滚，一个都没落下。每天的份可爱已送达 🐾",
     hashtags: ["#萌宠日常", "#我家有猫", "#治愈瞬间", "#Aivora"],
-    posterUrl: PET_SAMPLE_VIDEO_POSTER,
-    videoUrl: PET_SAMPLE_VIDEO_URL,
+    posterUrl: "/demo/pet/moment-greeting.png",
+    videoUrl: null,
     recommended: true,
   },
   {

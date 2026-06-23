@@ -27,6 +27,7 @@
     "demo:stitch:walkthrough": "tsx scripts/stitch-real-footage-walkthrough-video.ts",
     "demo:gen:petkit": "tsx scripts/generate-pet-kit-walkthrough-video.ts",
     "demo:check:petkit": "tsx scripts/check-pet-kit-walkthrough-video.ts",
+    "demo:vo:petkit": "tsx scripts/generate-pet-kit-voiceover.ts",
     "demo:stitch:petkit": "tsx scripts/stitch-pet-kit-walkthrough-video.ts",
     "codemap:build": "tsx scripts/build-codemap.ts",
     "context:find": "tsx scripts/context-router.ts",

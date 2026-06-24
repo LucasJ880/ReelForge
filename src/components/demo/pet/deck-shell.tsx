@@ -46,6 +46,9 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
   const [active, setActive] = useState(0);
   // 已揭示的最大页码：保证翻过的页保持可见，回滚不会变空白。
   const [maxRevealed, setMaxRevealed] = useState(0);
+  // 翻页方向：决定内容入场的位移正负，营造方向感。
+  const [direction, setDirection] = useState<"down" | "up">("down");
+  const prevActiveRef = useRef(0);
   const reduceMotion = useReducedMotion();
   const total = slides.length;
   const showHint = active === 0;
@@ -74,6 +77,8 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
             const idx = Number(
               (entry.target as HTMLElement).dataset.index ?? "0",
             );
+            setDirection(idx >= prevActiveRef.current ? "down" : "up");
+            prevActiveRef.current = idx;
             setActive(idx);
             setMaxRevealed((prev) => (idx > prev ? idx : prev));
           }
@@ -182,6 +187,7 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
             <DeckSlideBody
               revealed={index <= maxRevealed}
               justReached={index === active}
+              direction={direction}
               reduceMotion={Boolean(reduceMotion)}
             >
               {slide.node}
@@ -206,13 +212,16 @@ function DeckSlideBody({
   children,
   revealed,
   justReached,
+  direction,
   reduceMotion,
 }: {
   children: ReactNode;
   /// 该幻灯片是否应可见（当前页或已翻过的页）。可见性不依赖 whileInView，杜绝空白。
   revealed: boolean;
-  /// 是否正好是当前激活页（用于播放上移入场动画）。
+  /// 是否正好是当前激活页（用于播放入场动画）。
   justReached: boolean;
+  /// 翻页方向，决定未揭示态的位移正负，营造方向感。
+  direction: "down" | "up";
   reduceMotion: boolean;
 }) {
   if (reduceMotion) {
@@ -222,17 +231,20 @@ function DeckSlideBody({
       </div>
     );
   }
+  // 未揭示态：按翻页方向从下/上方略缩入场；揭示态恒为完全可见，杜绝空白。
+  const hiddenOffset = direction === "up" ? -36 : 36;
   return (
     <div data-deck-inner className="deck-slide-inner">
       <motion.div
         className="deck-slide-content"
         initial={false}
-        animate={{
-          opacity: revealed ? 1 : 0,
-          y: revealed ? 0 : 28,
-        }}
+        animate={
+          revealed
+            ? { opacity: 1, y: 0, scale: 1 }
+            : { opacity: 0, y: hiddenOffset, scale: 0.965 }
+        }
         transition={{
-          duration: justReached ? 0.55 : 0.3,
+          duration: justReached ? 0.6 : 0.32,
           ease: [0.22, 0.61, 0.36, 1],
         }}
       >

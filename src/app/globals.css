@@ -432,8 +432,11 @@
   margin-left: 0.35rem;
 }
 
-/* 移动端：放宽吸附为自然滚动体验，隐藏圆点文字标签 */
-@media (max-width: 768px) {
+/* ---- 响应式：手机 / 平板 ---- */
+
+/* 触屏设备（手机 + 平板）：放宽为自然滚动，避免「翻页 vs 页内滚动」的手势冲突；
+ * 加大可点区域。无论宽度，只要是触屏就走这套，最稳。 */
+@media (hover: none) and (pointer: coarse) {
   .aivora-deck .deck-scroller {
     scroll-snap-type: y proximity;
   }
@@ -445,12 +448,64 @@
     height: auto;
     min-height: 100svh;
     overflow-y: visible;
+    padding-block: calc(var(--deck-topbar-h) + 0.5rem) 5rem;
+  }
+  .aivora-deck .deck-dot {
+    padding: 0.3rem;
+  }
+  .aivora-deck .deck-dot-mark {
+    width: 10px;
+    height: 10px;
+  }
+  .aivora-deck .deck-pager-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .aivora-deck .deck-hint {
+    display: none;
+  }
+}
+
+/* 平板尺寸：略收紧头部与圆点标签 */
+@media (max-width: 1024px) {
+  .aivora-deck {
+    --deck-topbar-h: 3.9rem;
+  }
+  .aivora-deck .deck-dot-label {
+    font-size: 0.66rem;
+    padding: 0.12rem 0.5rem;
+  }
+  .aivora-deck .deck-slide-content {
+    gap: clamp(1.5rem, 4vh, 2.75rem);
+  }
+}
+
+/* 手机尺寸：隐藏圆点文字标签、收紧头部，圆点更贴边 */
+@media (max-width: 768px) {
+  .aivora-deck {
+    --deck-topbar-h: 3.5rem;
   }
   .aivora-deck .deck-dot-label {
     display: none;
   }
   .aivora-deck .deck-dots {
-    right: 0.45rem;
+    right: 0.4rem;
+  }
+  .aivora-deck .deck-dots ol {
+    gap: 0.45rem;
+  }
+  .aivora-deck .deck-pager {
+    bottom: 0.9rem;
+  }
+  .aivora-deck .deck-progress {
+    height: 2px;
+  }
+}
+
+/* 超窄屏：页码让位给 CTA */
+@media (max-width: 380px) {
+  .aivora-deck .deck-counter {
+    display: none;
   }
 }
 

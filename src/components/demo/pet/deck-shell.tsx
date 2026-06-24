@@ -44,6 +44,8 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
+  // 已揭示的最大页码：保证翻过的页保持可见，回滚不会变空白。
+  const [maxRevealed, setMaxRevealed] = useState(0);
   const reduceMotion = useReducedMotion();
   const total = slides.length;
   const showHint = active === 0;
@@ -73,6 +75,7 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
               (entry.target as HTMLElement).dataset.index ?? "0",
             );
             setActive(idx);
+            setMaxRevealed((prev) => (idx > prev ? idx : prev));
           }
         }
       },
@@ -177,7 +180,8 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
             aria-label={slide.label}
           >
             <DeckSlideBody
-              scrollerRef={scrollerRef}
+              revealed={index <= maxRevealed}
+              justReached={index === active}
               reduceMotion={Boolean(reduceMotion)}
             >
               {slide.node}
@@ -200,25 +204,37 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
 
 function DeckSlideBody({
   children,
-  scrollerRef,
+  revealed,
+  justReached,
   reduceMotion,
 }: {
   children: ReactNode;
-  scrollerRef: React.RefObject<HTMLDivElement | null>;
+  /// 该幻灯片是否应可见（当前页或已翻过的页）。可见性不依赖 whileInView，杜绝空白。
+  revealed: boolean;
+  /// 是否正好是当前激活页（用于播放上移入场动画）。
+  justReached: boolean;
   reduceMotion: boolean;
 }) {
+  if (reduceMotion) {
+    return (
+      <div data-deck-inner className="deck-slide-inner">
+        <div className="deck-slide-content">{children}</div>
+      </div>
+    );
+  }
   return (
     <div data-deck-inner className="deck-slide-inner">
       <motion.div
         className="deck-slide-content"
-        initial={reduceMotion ? false : { opacity: 0, y: 28 }}
-        whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }}
-        viewport={{
-          root: scrollerRef,
-          amount: 0.35,
-          margin: "0px 0px -10% 0px",
+        initial={false}
+        animate={{
+          opacity: revealed ? 1 : 0,
+          y: revealed ? 0 : 28,
         }}
-        transition={{ duration: 0.55, ease: [0.22, 0.61, 0.36, 1], delay: 0.05 }}
+        transition={{
+          duration: justReached ? 0.55 : 0.3,
+          ease: [0.22, 0.61, 0.36, 1],
+        }}
       >
         {children}
       </motion.div>

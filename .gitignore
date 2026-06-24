@@ -15,6 +15,9 @@
 /.next/
 /out/
 
+# 投资人 demo 静态导出产物（由 scripts/build-showcase-static.sh 生成，体积大、勿提交）
+/showcase-static/
+
 # production
 /build
 

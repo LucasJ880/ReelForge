@@ -7,6 +7,13 @@ import { Loader2 } from "lucide-react";
 type SubmitState = "idle" | "submitting" | "success" | "error";
 
 /**
+ * 静态 demo 模式：导出到对象存储/CDN 的纯静态站点没有后端，
+ * 构建时注入 NEXT_PUBLIC_STATIC_DEMO=true 即只 mock 提交（保留 UI、假成功），
+ * 不设此变量时（线上 Vercel）走真实接口，行为不变。
+ */
+const STATIC_DEMO = process.env.NEXT_PUBLIC_STATIC_DEMO === "true";
+
+/**
  * 宠物套件体验申请表单。
  *
  * 复用现有 /api/demo/real-footage-ads/waitlist 接口（不改后端），
@@ -30,6 +37,19 @@ export function PetWaitlistForm() {
       painPoint: String(form.get("painPoint") || ""),
       email: String(form.get("email") || ""),
     };
+
+    // 静态 demo：不连后端，模拟一次成功提交以保留完整交互体验。
+    if (STATIC_DEMO) {
+      await new Promise((r) => setTimeout(r, 600));
+      setState("success");
+      setMessage("已收到，我们会尽快联系你安排体验。");
+      try {
+        formElement.reset();
+      } catch {
+        /* reset 失败不影响提交成功状态 */
+      }
+      return;
+    }
 
     try {
       const res = await fetch("/api/demo/real-footage-ads/waitlist", {

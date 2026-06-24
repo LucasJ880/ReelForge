@@ -202,3 +202,264 @@
     );
   border: 1px solid var(--border);
 }
+
+/* ============================================================
+ * Aivora 网页幻灯片外壳（.aivora-deck，配合 deck-shell.tsx）
+ * 纯原生 scroll-snap 整屏吸附 + 圆点导航 + 进度条。
+ * 仅作用于 /showcase，与 .aivora-pet-demo 暖色主题叠加使用。
+ * ============================================================ */
+.aivora-deck {
+  --deck-topbar-h: 4.25rem;
+}
+
+.deck-root {
+  position: relative;
+}
+
+/* 滚动容器：整屏吸附 + 隐藏滚动条 */
+.aivora-deck .deck-scroller {
+  height: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-y: contain;
+}
+.aivora-deck .deck-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+/* 单张幻灯片：固定一屏高，吸附到顶 */
+.aivora-deck .deck-slide {
+  position: relative;
+  height: 100svh;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* 一屏内的滚动区：内容多于一屏时在屏内滚动，垂直居中（safe 防裁切） */
+.aivora-deck .deck-slide-inner {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+  padding-block: calc(var(--deck-topbar-h) + 1rem) 4.5rem;
+}
+.aivora-deck .deck-slide-inner::-webkit-scrollbar {
+  display: none;
+}
+
+/* 多区块章节：纵向堆叠并留间距；中和既有 section 的上下内边距以更紧凑 */
+.aivora-deck .deck-slide-content {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(2rem, 5vh, 3.5rem);
+  width: 100%;
+}
+.aivora-deck .deck-slide-content > section {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* 顶部进度条 */
+.aivora-deck .deck-progress {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 40;
+  background: color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+.aivora-deck .deck-progress-bar {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--pet-orange),
+    var(--pet-teal)
+  );
+  transition: width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/* 固定头：品牌 + 页码 + CTA */
+.aivora-deck .deck-topbar {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: var(--deck-topbar-h);
+  padding-inline: clamp(1rem, 4vw, 2.5rem);
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--background) 92%, transparent) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+.aivora-deck .deck-topbar > * {
+  pointer-events: auto;
+}
+.aivora-deck .deck-counter {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: var(--foreground);
+}
+.aivora-deck .deck-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  transition: opacity 0.2s ease;
+}
+.aivora-deck .deck-cta:hover {
+  opacity: 0.9;
+}
+
+/* 右侧圆点导航 */
+.aivora-deck .deck-dots {
+  position: absolute;
+  top: 50%;
+  right: clamp(0.6rem, 1.6vw, 1.4rem);
+  transform: translateY(-50%);
+  z-index: 36;
+}
+.aivora-deck .deck-dots ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.aivora-deck .deck-dot {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-direction: row-reverse;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  padding: 0.15rem;
+}
+.aivora-deck .deck-dot-mark {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--foreground) 26%, transparent);
+  transition: all 0.3s ease;
+}
+.aivora-deck .deck-dot:hover .deck-dot-mark {
+  background: var(--pet-orange);
+  transform: scale(1.15);
+}
+.aivora-deck .deck-dot.is-active .deck-dot-mark {
+  width: 11px;
+  height: 11px;
+  background: var(--pet-orange);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--pet-orange) 18%, transparent);
+}
+.aivora-deck .deck-dot-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--foreground);
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(6px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+}
+.aivora-deck .deck-dot:hover .deck-dot-label,
+.aivora-deck .deck-dot.is-active .deck-dot-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* 上下翻页按钮 + 引导提示 */
+.aivora-deck .deck-pager {
+  position: absolute;
+  bottom: clamp(1rem, 3vh, 1.75rem);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 36;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.aivora-deck .deck-pager-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--card) 86%, transparent);
+  color: var(--foreground);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+.aivora-deck .deck-pager-btn:hover:not(:disabled) {
+  border-color: color-mix(in oklab, var(--pet-orange) 50%, var(--border));
+  color: var(--pet-orange);
+}
+.aivora-deck .deck-pager-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.aivora-deck .deck-hint {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  margin-left: 0.35rem;
+}
+
+/* 移动端：放宽吸附为自然滚动体验，隐藏圆点文字标签 */
+@media (max-width: 768px) {
+  .aivora-deck .deck-scroller {
+    scroll-snap-type: y proximity;
+  }
+  .aivora-deck .deck-slide {
+    height: auto;
+    min-height: 100svh;
+  }
+  .aivora-deck .deck-slide-inner {
+    height: auto;
+    min-height: 100svh;
+    overflow-y: visible;
+  }
+  .aivora-deck .deck-dot-label {
+    display: none;
+  }
+  .aivora-deck .deck-dots {
+    right: 0.45rem;
+  }
+}
+
+/* 尊重「减少动态效果」系统设置 */
+@media (prefers-reduced-motion: reduce) {
+  .aivora-deck .deck-scroller {
+    scroll-behavior: auto;
+  }
+  .aivora-deck .deck-progress-bar {
+    transition: none;
+  }
+}

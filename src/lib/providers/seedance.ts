@@ -22,6 +22,16 @@ export interface SeedanceSubmitOptions {
    * 支持 1-5 张；第 2 张以后会作为 last_frame 或内容辅助（按顺序）。
    */
   referenceImageUrls?: string[];
+  /**
+   * 生成模式（Seedance 2.0）：
+   * - 不传 / "i2v"  → 既有行为：第 1 张 referenceImageUrls 作 first_frame、第 2 张作 last_frame；
+   * - "reference"   → 多模态参考生视频（Omni-Reference）：referenceImageUrls 全部以
+   *                   `role: reference_image` 注入（最多 9 张），prompt 里用「图片1/图片2」按
+   *                   顺序引用。与 first_frame/last_frame 互斥，用于数字人/主体跨镜头一致性。
+   *
+   * 仅 Seedance 2 模型支持 reference；Seedance-1 会忽略并按 first_frame 处理。
+   */
+  mode?: "i2v" | "reference";
   duration?: number;
   resolution?: string;
   ratio?: string;
@@ -292,6 +302,8 @@ async function submitReal(
 
   const isSeedance2 = model.includes("seedance-2");
   const images = options.referenceImageUrls?.filter(Boolean) ?? [];
+  /// reference 模式仅在 Seedance 2 上有意义（多模态参考生视频）。
+  const useReferenceMode = options.mode === "reference" && isSeedance2;
 
   type ContentPart =
     | {
@@ -299,23 +311,36 @@ async function submitReal(
         image_url:
           | string
           | { url: string; role?: "first_frame" | "last_frame" };
+        /// Seedance 2.0 多模态参考：role 作为 content item 的同级字段（官方原生格式）
+        role?: "reference_image";
       }
     | { type: "text"; text: string };
   const content: ContentPart[] = [];
 
-  if (images[0]) {
-    content.push({
-      type: "image_url",
-      image_url: isSeedance2
-        ? { url: images[0], role: "first_frame" }
-        : images[0],
-    });
-  }
-  if (isSeedance2 && images[1]) {
-    content.push({
-      type: "image_url",
-      image_url: { url: images[1], role: "last_frame" },
-    });
+  if (useReferenceMode) {
+    /// 最多 9 张 reference_image（Omni-Reference）；role 为 content item 同级字段。
+    for (const url of images.slice(0, 9)) {
+      content.push({
+        type: "image_url",
+        image_url: { url },
+        role: "reference_image",
+      });
+    }
+  } else {
+    if (images[0]) {
+      content.push({
+        type: "image_url",
+        image_url: isSeedance2
+          ? { url: images[0], role: "first_frame" }
+          : images[0],
+      });
+    }
+    if (isSeedance2 && images[1]) {
+      content.push({
+        type: "image_url",
+        image_url: { url: images[1], role: "last_frame" },
+      });
+    }
   }
   content.push({ type: "text", text: promptText });
 
@@ -331,6 +356,8 @@ async function submitReal(
     /// 显式传 false 才关闭，便于投资人 demo 用静音 + 自家音乐床。
     body.generate_audio = options.generateAudio ?? true;
     if (options.returnLastFrame) body.return_last_frame = true;
+    /// Seedance 2.0 支持 resolution（720p/1080p）；仅在显式提供时下发，避免改动既有默认行为。
+    if (options.resolution) body.resolution = options.resolution;
   } else {
     body.resolution = options.resolution || "1080p";
   }

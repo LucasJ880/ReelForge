@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { toFile } from "openai/uploads";
 import { getStorageProvider } from "@/lib/storage";
 
 /**
@@ -125,6 +126,112 @@ export async function generateImages(
     modelUsed: model,
     fromMock: false,
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* 多图参考合成（数字人 / 模特 × 门店场景关键帧）                          */
+/* ------------------------------------------------------------------ */
+
+export interface ReferenceImageInput {
+  /// 图片二进制
+  data: Buffer | Uint8Array;
+  /// MIME 类型（默认 image/png）
+  mimeType?: string;
+  /// 文件名（仅用于 multipart 标识）
+  fileName?: string;
+}
+
+export interface ComposeReferenceImageArgs {
+  /// 编辑指令：描述要合成的画面（如「把图1里的女生放进图2的宠物店货架前，自然站姿，微笑」）
+  prompt: string;
+  /**
+   * 参考图（按顺序对应 prompt 里的「图1 / 图2 ...」）。
+   * gpt-image-1 的 images.edit 支持多张输入图，第一张通常作为主体/身份锚点。
+   */
+  referenceImages: ReferenceImageInput[];
+  /// 输出分辨率；9:16 竖版关键帧用 "1024x1536"
+  size?: ImageSize | string;
+  quality?: ImageQuality;
+  /// Blob 落盘前缀（如 "digital-human/{run}/keyframes/"）
+  blobPrefix?: string;
+  /// 覆盖模型；默认 OPENAI_IMAGE_MODEL > gpt-image-1
+  model?: string;
+  forceMock?: boolean;
+}
+
+export interface ComposeReferenceImageResult {
+  url: string;
+  modelUsed: string;
+  fromMock: boolean;
+}
+
+/**
+ * 用 gpt-image-1 的 images.edit 做「多图参考合成」：把模特图 + 门店/产品图合成成
+ * 一张身份一致的关键帧（数字人探店管线的核心）。
+ *
+ * 与 generateImages（纯文生图）的区别：这里把若干参考图作为输入，模型在保持
+ * 主体（人脸/服装/场景）一致的前提下重绘整图——是把「同一个模特放进不同门店
+ * 场景」的关键能力。
+ *
+ * Mock：缺 OPENAI_API_KEY 或 IMAGE_ENGINE_MOCK=true / forceMock → 返回占位图。
+ */
+export async function composeReferenceImage(
+  args: ComposeReferenceImageArgs,
+): Promise<ComposeReferenceImageResult> {
+  const useMock = args.forceMock || !isImageGenAvailable();
+  if (useMock) {
+    return { url: mockUrls(1)[0], modelUsed: "mock", fromMock: true };
+  }
+  if (!args.referenceImages.length) {
+    throw new Error("composeReferenceImage 至少需要一张参考图");
+  }
+
+  const model = args.model || process.env.OPENAI_IMAGE_MODEL || DEFAULT_IMAGE_MODEL;
+  const size = args.size ?? "1024x1536";
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+
+  /// 把参考图转成 SDK 可上传的 File（multipart）。
+  const files = await Promise.all(
+    args.referenceImages.map((img, i) =>
+      toFile(Buffer.from(img.data), img.fileName ?? `ref-${i}.png`, {
+        type: img.mimeType ?? "image/png",
+      }),
+    ),
+  );
+
+  const response = await openai.images.edit({
+    model,
+    image: files,
+    prompt: args.prompt,
+    size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
+    quality: args.quality,
+  });
+
+  const item = (response.data ?? []).filter(Boolean)[0];
+  if (!item) throw new Error("OpenAI 图像合成返回空结果");
+
+  if (item.url) {
+    return { url: item.url, modelUsed: model, fromMock: false };
+  }
+  if (!item.b64_json) {
+    throw new Error("OpenAI 图像合成返回缺少 url / b64_json");
+  }
+
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
+    throw new Error(
+      `Storage provider "${storage.id}" 未配置；无法持久化合成的关键帧。`,
+    );
+  }
+  const buffer = Buffer.from(item.b64_json, "base64");
+  const key = `${args.blobPrefix || "ai-images/compose/"}${Date.now()}.png`;
+  const obj = await storage.uploadBuffer("renders", buffer, {
+    key,
+    access: "public",
+    contentType: "image/png",
+    overwrite: true,
+  });
+  return { url: obj.url, modelUsed: model, fromMock: false };
 }
 
 /**

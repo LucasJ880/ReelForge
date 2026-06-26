@@ -27,14 +27,27 @@ def main() -> None:
     draw = ImageDraw.Draw(img)
 
     font_size = max(28, int(height * 0.052))
-    try:
-        font = ImageFont.truetype(font_path, font_size, index=font_index)
-    except Exception:
-        font = ImageFont.truetype(font_path, font_size)
 
+    def load_font(size: int):
+        try:
+            return ImageFont.truetype(font_path, size, index=font_index)
+        except Exception:
+            return ImageFont.truetype(font_path, size)
+
+    font = load_font(font_size)
     bbox = draw.textbbox((0, 0), text, font=font)
     text_w = bbox[2] - bbox[0]
     text_h = bbox[3] - bbox[1]
+
+    # 按宽度自动缩字号：竖版（9:16）下字号偏大 + 字幕较长时会横向溢出画面，
+    # 逐步缩小直到单行能放进 90% 画面宽度（下限 28px）。已能放下的不受影响。
+    max_text_w = int(width * 0.9)
+    while text_w > max_text_w and font_size > 28:
+        font_size -= 2
+        font = load_font(font_size)
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_w = bbox[2] - bbox[0]
+        text_h = bbox[3] - bbox[1]
 
     center_x = width // 2
     center_y = int(height * 0.84)

@@ -28,6 +28,9 @@ const publicPaths = [
   "/showcase",
   "/demo",
   "/api/demo",
+  // 健康检查端点：设计上无鉴权、已脱敏（见 src/app/api/health/route.ts 安全约定），
+  // 供监控 / Vercel 探活直接拉，否则会被当作未登录 401 拦截。
+  "/api/health",
 ];
 
 export async function middleware(req: NextRequest) {

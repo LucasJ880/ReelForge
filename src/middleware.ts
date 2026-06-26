@@ -8,7 +8,10 @@ import { NextRequest, NextResponse } from "next/server";
  *  - `/persona`, `/showcase` → public landing
  *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
- *  - `/api/internal/stitch/*` → 外部 stitch runner 回调（同样带 cron secret 鉴权，不走 NextAuth）
+ *  - `/api/internal/*` → 外部 runner（stitch / digital-human 等）回调与领单。
+ *    这些路由统一不走 NextAuth，而是各自在 handler 内用 `Bearer ${CRON_SECRET}` 自鉴权
+ *    （见 src/app/api/internal/**\/route.ts）。新增 internal runner 路由时务必保持这一约定，
+ *    否则放行后会绕过鉴权。
  *
  * 旧路由迁移（Step 7 才落地实际页面，这里先准备 redirect）：
  *  - `/orders`, `/rounds`, `/briefs`, `/qa`, `/publish`, `/metrics`, `/distillation`,
@@ -44,7 +47,7 @@ export async function middleware(req: NextRequest) {
     pathname === "/" ||
     publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
     pathname.startsWith("/api/cron") ||
-    pathname.startsWith("/api/internal/stitch");
+    pathname.startsWith("/api/internal/");
 
   if (isPublic) return NextResponse.next();
 

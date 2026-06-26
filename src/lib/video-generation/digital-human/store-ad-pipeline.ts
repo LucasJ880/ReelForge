@@ -80,6 +80,9 @@ const ARK_MODEL = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
 const CAPTION_RENDERER = resolve(process.cwd(), "scripts/render-caption-png.py");
 const DEFAULT_BGM_PATH = resolve(process.cwd(), "scripts/assets/pet-kit-bgm.mp3");
 
+/// 是否烧录中文字幕（默认关闭；需要时设 STORE_AD_BURN_CAPTION=1）
+const BURN_CAPTION = isTruthy(process.env.STORE_AD_BURN_CAPTION);
+
 /// Linux runner 用 libx264（videotoolbox 仅 mac）。设 STORE_AD_USE_VIDEOTOOLBOX=true 走硬编。
 const VIDEO_ENCODE_ARGS = isTruthy(process.env.STORE_AD_USE_VIDEOTOOLBOX)
   ? ["-c:v", "h264_videotoolbox", "-b:v", "8M", "-pix_fmt", "yuv420p"]
@@ -143,7 +146,7 @@ export async function runDigitalHumanAdPipeline(
   log(`  → ${shots.length} 个镜头，总时长 ${shots.reduce((a, s) => a + s.durationSec, 0)}s`);
 
   /* --- 阶段 2：Seedance reference 生视频 --- */
-  log("阶段 2/4 · 提交 Seedance 2.0（asset 虚拟人 + 门店图，静音）");
+  log("阶段 2/4 · 提交 Seedance 2.0（asset 虚拟人 + 门店图，开口型说话）");
   const jobIds: Record<string, string> = {};
   for (const shot of shots) {
     const storeUrl = input.storeImageUrls[shot.storeImageIndex] ?? input.storeImageUrls[0];
@@ -155,7 +158,8 @@ export async function runDigitalHumanAdPipeline(
       duration: shot.durationSec,
       ratio: aspect as "9:16",
       resolution: "1080p",
-      generateAudio: false,
+      // 开口型：让 Seedance 生成「说话」动作（其自带音轨后续会被中文口播覆盖丢弃）
+      generateAudio: true,
       model: ARK_MODEL,
     });
     jobIds[shot.id] = jobId;
@@ -171,6 +175,12 @@ export async function runDigitalHumanAdPipeline(
   const voPaths: Record<string, string> = {};
   for (const line of lines) {
     const out = resolve(voDir, `vo-${line.id}.mp3`);
+    // 复用已有配音：若工作目录里已存在该镜头的 mp3，则直接沿用（无需重跑 TTS）
+    if (existsSync(out)) {
+      voPaths[line.id] = out;
+      log(`  · vo-${line.id}.mp3 复用已有配音`);
+      continue;
+    }
     const audio = await synthesizeSpeech({
       text: line.text,
       voiceType: input.voiceType,
@@ -352,7 +362,7 @@ function renderCaptionPng(
   outH: number,
   capDir: string,
 ): string | null {
-  if (!caption.trim()) return null;
+  if (!BURN_CAPTION || !caption.trim()) return null;
   const captionFile = resolve(capDir, `caption-${id}.txt`);
   const captionPng = resolve(capDir, `caption-${id}.png`);
   writeFileSync(captionFile, caption, "utf8");

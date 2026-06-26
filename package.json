@@ -36,6 +36,7 @@
     "demo:store-ad:submit": "tsx scripts/generate-digital-human-store-ad.ts --phase=submit",
     "demo:store-ad:wait": "tsx scripts/generate-digital-human-store-ad.ts --phase=wait",
     "demo:store-ad:stitch": "tsx scripts/generate-digital-human-store-ad.ts --phase=stitch",
+    "omnihuman:ping": "tsx scripts/omnihuman-ping.ts",
     "demo:omnihuman": "tsx scripts/generate-omnihuman-store-ad.ts",
     "demo:omnihuman:keyframes": "tsx scripts/generate-omnihuman-store-ad.ts --phase=keyframes",
     "demo:omnihuman:submit": "tsx scripts/generate-omnihuman-store-ad.ts --phase=submit",

@@ -72,7 +72,12 @@ async function main() {
       durationSec: 28,
       aspectRatio: "9:16",
     },
-    { logger: (m) => console.log(m) },
+    {
+      // 复用既有工作目录：含上次的中文配音 mp3（vo-*.mp3）与门店图缓存，
+      // 因此无需火山 TTS 凭证即可保留原配音，仅重跑 Seedance 出「开口型」新片段。
+      workDir: resolve(process.cwd(), "tmp/digital-human-store-ad"),
+      logger: (m) => console.log(m),
+    },
   );
 
   ensureDir(resolve(process.cwd(), "public/generated"));

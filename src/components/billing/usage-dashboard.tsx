@@ -11,11 +11,13 @@ const RESOURCE_I18N: Record<
   | "shell.billing.resources.planPreview"
   | "shell.billing.resources.blobUploadBytes"
   | "shell.billing.resources.seedanceSegment"
+  | "shell.billing.resources.digitalHumanAd"
 > = {
   VIDEO_DISPATCH: "shell.billing.resources.videoDispatch",
   PLAN_PREVIEW: "shell.billing.resources.planPreview",
   BLOB_UPLOAD_BYTES: "shell.billing.resources.blobUploadBytes",
   SEEDANCE_SEGMENT: "shell.billing.resources.seedanceSegment",
+  DIGITAL_HUMAN_AD: "shell.billing.resources.digitalHumanAd",
 };
 
 function formatAmount(resource: UsageResource, value: number): string {

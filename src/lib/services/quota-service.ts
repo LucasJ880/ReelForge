@@ -351,6 +351,8 @@ function userMessageForQuota(resource: UsageResource): string {
       return "本月素材上传流量已达上限，请压缩文件或下月再试。";
     case "SEEDANCE_SEGMENT":
       return "本月 AI 画面生成额度已用完，请下月再试或联系客服。";
+    case "DIGITAL_HUMAN_AD":
+      return "本月数字人探店广告生成次数已用完，请下月再试或升级套餐。";
     default:
       return "本月用量已达上限，请稍后再试。";
   }

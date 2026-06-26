@@ -428,6 +428,7 @@ export type Dictionary = {
     businessNav: {
       home: string;
       createAd: string;
+      digitalHuman: string;
       products: string;
       creativeStudio: string;
       integrations: string;
@@ -499,6 +500,7 @@ export type Dictionary = {
         planPreview: string;
         blobUploadBytes: string;
         seedanceSegment: string;
+        digitalHumanAd: string;
       };
     };
     creative: {

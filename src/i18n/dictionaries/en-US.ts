@@ -547,6 +547,7 @@ export const enUS: Dictionary = {
     businessNav: {
       home: "Home",
       createAd: "Create Ad Video",
+      digitalHuman: "Digital Human Store Ad",
       products: "Products",
       creativeStudio: "Creative Studio",
       integrations: "Integrations",
@@ -622,6 +623,7 @@ export const enUS: Dictionary = {
         planPreview: "Plan previews",
         blobUploadBytes: "Upload bandwidth",
         seedanceSegment: "AI scene segments",
+        digitalHumanAd: "Digital human store ads",
       },
     },
     creative: {

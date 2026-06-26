@@ -532,6 +532,7 @@ export const zhCN: Dictionary = {
     businessNav: {
       home: "首页",
       createAd: "创建广告视频",
+      digitalHuman: "数字人探店广告",
       products: "产品库",
       creativeStudio: "创意工作室",
       integrations: "集成",
@@ -604,6 +605,7 @@ export const zhCN: Dictionary = {
         planPreview: "方案预览次数",
         blobUploadBytes: "素材上传流量",
         seedanceSegment: "AI 画面段数",
+        digitalHumanAd: "数字人探店广告",
       },
     },
     creative: {

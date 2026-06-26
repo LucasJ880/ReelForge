@@ -1,0 +1,85 @@
+name: digital-human-render
+
+# 外部数字人探店广告 runner —— 跑完整管线（Seedance + 火山 TTS + ffmpeg 拼接）后
+# 上传成片到 Vercel Blob 并回调 complete。
+#
+# 动机：Vercel Serverless 没有 ffmpeg，且整条管线（Seedance 轮询 + TTS + 拼接）耗时长，
+# 不适合函数运行。放到 GitHub Action runner（Ubuntu，自带/可装 ffmpeg）执行。
+#
+# 与 stitch-videos.yml 的区别：这条 runner 需要项目的 providers（seedance / volc-tts /
+# openai），所以走完整 `npm ci`（而非 stitch 的最小依赖）。
+#
+# 仓库 Secrets 必填：
+#   APP_URL                — e.g. https://aivora.vercel.app（不带尾斜杠）
+#   CRON_SECRET            — 与 Vercel 环境一致
+#   BLOB_READ_WRITE_TOKEN  — Vercel Blob R/W token
+#   ARK_API_KEY            — 火山方舟（Seedance）
+#   OPENAI_API_KEY         — gpt-5.5 写文案/旁白
+#   VOLC_TTS_APPID / VOLC_TTS_ACCESS_TOKEN (或 VOLC_TTS_API_KEY) — 火山语音合成
+# 可选：
+#   VOLC_TTS_RESOURCE_ID（默认 seed-tts-2.0）、VOLC_TTS_VOICE_TYPE
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: digital-human-render
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install ffmpeg + Noto CJK fonts (apt)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-noto-cjk
+          ffmpeg -version | head -n 1
+
+      - name: Setup Python + Pillow (字幕渲染)
+        run: |
+          python3 -m pip install --quiet --upgrade pip
+          python3 -m pip install --quiet Pillow
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        # 完整依赖：runner 通过 pipeline 引用 seedance / volc-tts / openai providers。
+        # prisma generate (postinstall) 离线可跑、不需要 DB。
+        run: npm ci
+
+      - name: Run digital-human runner
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+          ARK_API_KEY: ${{ secrets.ARK_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          VOLC_TTS_APPID: ${{ secrets.VOLC_TTS_APPID }}
+          VOLC_TTS_ACCESS_TOKEN: ${{ secrets.VOLC_TTS_ACCESS_TOKEN }}
+          VOLC_TTS_API_KEY: ${{ secrets.VOLC_TTS_API_KEY }}
+          VOLC_TTS_RESOURCE_ID: ${{ secrets.VOLC_TTS_RESOURCE_ID }}
+          VOLC_TTS_VOICE_TYPE: ${{ secrets.VOLC_TTS_VOICE_TYPE }}
+          STORE_AD_CAPTION_FONT: /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+          DH_RUNNER_LOOP_LIMIT: "2"
+        run: |
+          if [ -z "$APP_URL" ] && [ -z "$CRON_SECRET" ] && [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
+            echo "::warning::APP_URL / CRON_SECRET / BLOB_READ_WRITE_TOKEN 都未配置，跳过本次数字人渲染。"
+            exit 0
+          fi
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ] || [ -z "$BLOB_READ_WRITE_TOKEN" ]; then
+            echo "::error::APP_URL / CRON_SECRET / BLOB_READ_WRITE_TOKEN 只配置了部分，请补齐。"
+            exit 1
+          fi
+          node_modules/.bin/tsx scripts/digital-human-runner.ts

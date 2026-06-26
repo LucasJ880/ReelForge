@@ -40,6 +40,7 @@ model AdminUser {
   publishRecords PublishRecord[]
   usagePeriods   UserUsagePeriod[]
   usageLogs      UsageLog[]
+  digitalHumanAdJobs DigitalHumanAdJob[]
 }
 
 // =========================================================
@@ -998,6 +999,81 @@ model AIUsageLog {
 // 这样 wizard MVP 不会因为 admin pipeline 的复杂度被卡住，
 // 也不会污染 admin 的 VideoJob 状态机。
 
+// =========================================================
+// 数字人探店广告（Digital Human Store Ad）· 商家自助生成任务
+// =========================================================
+//
+// 商家登录后：选预置虚拟数字人(asset://) + 选预置中文音色 + 上传店铺实景图 +
+// 填行业/卖点/CTA → 创建一条 QUEUED 任务。Vercel 函数不跑 ffmpeg/长任务，
+// 由外部 GitHub Actions runner（scripts/digital-human-runner.ts）claim 后跑完整
+// 管线（分镜 → Seedance reference → 轮询 → 火山 TTS 口播 → ffmpeg 烧字幕+混音+拼接），
+// 上传成片到 Blob 后回调 complete。与 VideoJob/FinalVideo 状态机刻意隔离。
+
+enum DigitalHumanAdJobStatus {
+  QUEUED
+  RENDERING
+  SUCCEEDED
+  FAILED
+}
+
+model DigitalHumanAdJob {
+  id String @id @default(cuid())
+
+  /// 归属商家用户
+  adminUserId String
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  /// 可选：关联到某个 DeliveryOrder（MVP 不强制，纯记录用，不做 FK 关系）
+  deliveryOrderId String?
+
+  status DigitalHumanAdJobStatus @default(QUEUED)
+
+  // ---- 输入 ----
+  /// 选中的虚拟人资产引用：asset://asset-xxxxx
+  avatarAssetUri String
+  /// 火山音色 ID（speaker）
+  voiceType String
+  /// 火山音色资源版本（默认 seed-tts-2.0）
+  voiceResourceId String @default("seed-tts-2.0")
+  /// 店铺实景图公网 URL（2-5 张）
+  storeImageUrls String[]
+  /// 行业 / 店铺类型（如「宠物店 / 猫咪主题店」）
+  industry String
+  /// 一句话门店描述（喂给 LLM 写文案）
+  storeDescription String?
+  /// 卖点列表（逐条，喂给 LLM）
+  sellingPoints String[]
+  /// 行动号召（地址 / 关注引导）
+  cta String?
+  /// 品牌名（可选，字幕 / 口播用）
+  brandName String?
+  durationSec Int    @default(28)
+  aspectRatio String @default("9:16")
+
+  // ---- 外部 runner 协作 ----
+  /// CAS 领取时间（QUEUED → RENDERING 时写入，防多 runner 抢同一条）
+  claimedAt DateTime?
+  /// 尝试次数；>=3 不再自动重试
+  attempts Int @default(0)
+  /// 管理员可见的原始错误
+  lastError String?
+  /// 用户可见的中文错误
+  userSafeError String?
+
+  // ---- 输出 ----
+  outputVideoUrl     String?
+  outputThumbnailUrl String?
+  /// 落库的分镜快照，便于复盘
+  storyboard Json?
+
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  startedAt  DateTime?
+  finishedAt DateTime?
+
+  @@index([status, attempts])
+  @@index([adminUserId, createdAt])
+}
+
 enum WizardRenderJobStatus {
   QUEUED
   RUNNING
@@ -1067,6 +1143,7 @@ enum UsageResource {
   PLAN_PREVIEW
   BLOB_UPLOAD_BYTES
   SEEDANCE_SEGMENT
+  DIGITAL_HUMAN_AD
 }
 
 /// 按月聚合的用量计数（UTC YYYY-MM）。内部 staff 不走限额。

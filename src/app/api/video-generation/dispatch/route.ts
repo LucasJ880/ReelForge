@@ -13,6 +13,24 @@ import {
   unifiedVideoGenerationRequestSchema,
   videoGenerationPlanSchema,
 } from "@/lib/schemas/unified-input";
+import { z } from "zod";
+
+/**
+ * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
+ * 服务端仍然 buildPlan 防 tamper，但会把用户确认的 prompt 文本
+ * 应用到对应 segmentOrder 的 AI 段（这是同行工作流的关键一步：
+ * 脚本先给用户看 → 用户可改 → 再出片）。
+ */
+const confirmedPromptsSchema = z
+  .array(
+    z.object({
+      segmentOrder: z.number().int().min(0),
+      prompt: z.string().min(1).max(4000),
+    }),
+  )
+  .max(20);
+
+const batchCountSchema = z.number().int().min(1).max(3);
 
 /**
  * POST /api/video-generation/dispatch
@@ -69,7 +87,7 @@ export async function POST(req: NextRequest) {
   }
 
   /// Phase 1：始终服务端重建 plan 防 UI tamper
-  let plan;
+  let plan: Awaited<ReturnType<typeof buildPlan>>;
   try {
     plan = await buildPlan(reqParsed.data);
   } catch (err) {
@@ -106,6 +124,45 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  /// 用户确认过的脚本覆盖：只替换对应 AI 段的 prompt 文本，其余结构保持 server plan
+  if (body?.confirmedPrompts != null) {
+    const cpParse = confirmedPromptsSchema.safeParse(body.confirmedPrompts);
+    if (!cpParse.success) {
+      return NextResponse.json(
+        { ok: false, error: "确认的脚本内容不合法，请刷新后重试" },
+        { status: 400 },
+      );
+    }
+    const byOrder = new Map(
+      cpParse.data.map((c) => [c.segmentOrder, c.prompt.trim()]),
+    );
+    for (const seg of plan.segments) {
+      const override = byOrder.get(seg.order);
+      if (override && seg.type === "ai_generated_clip") {
+        seg.prompt = override;
+      }
+    }
+    for (const sp of plan.seedancePrompts) {
+      const override = byOrder.get(sp.segmentOrder);
+      if (override) {
+        sp.prompt = override;
+      }
+    }
+  }
+
+  /// 多批量出片：一次确认可同时出 1-3 支（同 plan 不同种子，提升可用率）
+  let batchCount = 1;
+  if (body?.batchCount != null) {
+    const bcParse = batchCountSchema.safeParse(body.batchCount);
+    if (!bcParse.success) {
+      return NextResponse.json(
+        { ok: false, error: "batchCount 参数不合法（1-3）" },
+        { status: 400 },
+      );
+    }
+    batchCount = bcParse.data;
+  }
+
   /// quality blocker 守门：blocker > 0 → 拒绝
   if (!plan.qualityReview.canDispatch) {
     return NextResponse.json(
@@ -123,10 +180,10 @@ export async function POST(req: NextRequest) {
   ).length;
   try {
     await assertQuotaBatchForSession(session, [
-      { resource: "VIDEO_DISPATCH", amount: 1 },
+      { resource: "VIDEO_DISPATCH", amount: batchCount },
       {
         resource: "SEEDANCE_SEGMENT",
-        amount: Math.max(1, seedanceSegmentCount),
+        amount: Math.max(1, seedanceSegmentCount) * batchCount,
       },
     ]);
   } catch (err) {
@@ -140,13 +197,15 @@ export async function POST(req: NextRequest) {
     request.userType === "business" ? "BUSINESS" : "PERSONAL";
   const directorPlanJson = mapPlanToDirectorPlan({ plan, language: request.language ?? "en" });
 
-  try {
-    /// 事务：创建 DeliveryOrder + Round + ContentAngle + VideoBrief
-    const { briefId, deliveryOrderId } = await db.$transaction(async (tx) => {
-      let orderId = request.deliveryOrderId ?? null;
+  /// 单次「事务：创建 DeliveryOrder + Round + ContentAngle + VideoBrief」，
+  /// 供 batch 循环复用。batchIndex > 0 时永远新建 order（多支成片各自独立）。
+  async function createBriefTransaction(batchIndex: number) {
+    return db.$transaction(async (tx) => {
+      let orderId =
+        batchIndex === 0 ? (request.deliveryOrderId ?? null) : null;
 
       if (!orderId) {
-        const orderTitle =
+        const baseTitle =
           request.userType === "business"
             ? deriveBusinessOrderTitle({
                 rawPrompt: request.rawPrompt,
@@ -156,6 +215,8 @@ export async function POST(req: NextRequest) {
                 platform: request.platform,
               })
             : firstLine(request.rawPrompt) || "Untitled video";
+        const orderTitle =
+          batchCount > 1 ? `${baseTitle}（第 ${batchIndex + 1} 支）` : baseTitle;
 
         const order = await tx.deliveryOrder.create({
           data: {
@@ -228,26 +289,48 @@ export async function POST(req: NextRequest) {
 
       return { briefId: brief.id, deliveryOrderId: orderId! };
     });
+  }
 
-    /// 调 Seedance（multi-segment 或 single-segment 自动选）
-    const dispatched = await dispatchVideoForBrief(briefId);
+  try {
+    /// batch 循环：逐支创建 + 调度（Seedance 侧仍是每段一个 job）。
+    /// 单支失败即中断并向用户报错 —— 已成功的支保留（用户可在成片库看到）。
+    const batchResults: Array<{
+      briefId: string;
+      deliveryOrderId: string;
+      videoJobs: unknown[];
+    }> = [];
+    for (let i = 0; i < batchCount; i++) {
+      const { briefId, deliveryOrderId } = await createBriefTransaction(i);
+      /// 调 Seedance（multi-segment 或 single-segment 自动选）
+      const dispatched = await dispatchVideoForBrief(briefId);
+      batchResults.push({
+        briefId,
+        deliveryOrderId,
+        videoJobs: Array.isArray(dispatched) ? dispatched : [dispatched],
+      });
+    }
 
+    const first = batchResults[0];
     /// 给前端一个明确「下一步去哪」+ user-facing status，避免 hardcode 路径
     const nextUrl =
       request.userType === "business"
-        ? `/business/products?highlight=${deliveryOrderId}`
-        : `/personal/videos?highlight=${deliveryOrderId}`;
+        ? `/business/products?highlight=${first.deliveryOrderId}`
+        : `/personal/videos?highlight=${first.deliveryOrderId}`;
     const userStatus = deriveBusinessStatus({
       briefStatus: VideoBriefStatus.RENDER_QUEUED,
-      segmentsTotal: Array.isArray(dispatched) ? dispatched.length : 1,
+      segmentsTotal: first.videoJobs.length,
       segmentsSucceeded: 0,
     });
 
     return NextResponse.json({
       ok: true,
-      deliveryOrderId,
-      briefId,
-      videoJobs: Array.isArray(dispatched) ? dispatched : [dispatched],
+      deliveryOrderId: first.deliveryOrderId,
+      briefId: first.briefId,
+      videoJobs: first.videoJobs,
+      batch: batchResults.map((b) => ({
+        briefId: b.briefId,
+        deliveryOrderId: b.deliveryOrderId,
+      })),
       planPreview: plan.planPreview,
       nextUrl,
       userStatus,

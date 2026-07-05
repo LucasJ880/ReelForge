@@ -176,25 +176,19 @@ export default async function PersonalVideosPage() {
       <PersonalVideosAutoRefresh targets={pollTargets} />
       <header className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="text-lg font-semibold tracking-tight text-white">
             {t("shell.personalNav.myVideos")}
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-1 text-xs text-white/55">
             {t("shell.personalVideos.subtitle")}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/personal/create-video"
-            className="inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
-          >
+          <Link href="/personal/create-video" className="glass-btn-primary text-xs">
             {t("shell.personalHome.createTitle")}
           </Link>
           {rows.length > 0 && (
-            <Link
-              href="/personal/create-video?from=last"
-              className="inline-flex items-center rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
-            >
+            <Link href="/personal/create-video?from=last" className="glass-btn text-xs">
               {t("shell.creative.useLastPrompt")}
             </Link>
           )}
@@ -202,16 +196,16 @@ export default async function PersonalVideosPage() {
       </header>
 
       {rows.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 bg-card/30 p-12 text-center">
-          <h2 className="text-lg font-semibold tracking-tight">
+        <div className="glass-card border-dashed p-12 text-center">
+          <h2 className="text-lg font-semibold tracking-tight text-white">
             {t("shell.personalVideos.emptyTitle")}
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-white/55">
             {t("shell.personalVideos.emptyBody")}
           </p>
           <Link
             href="/personal/create-video"
-            className="mt-6 inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
+            className="glass-btn-primary mt-6 inline-flex text-xs"
           >
             {t("shell.personalVideos.emptyCta")}
           </Link>
@@ -226,10 +220,7 @@ export default async function PersonalVideosPage() {
               r.status === "generating" || r.status === "assembling";
 
             return (
-              <li
-                key={r.id}
-                className="rounded-lg border border-white/10 bg-card p-5 hover:bg-card/80 transition-colors"
-              >
+              <li key={r.id} className="glass-card p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

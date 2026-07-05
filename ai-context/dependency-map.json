@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T03:34:58.750Z",
+  "generatedAt": "2026-07-05T03:54:05.592Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -324,6 +324,112 @@
       ]
     },
     {
+      "file": "scripts/digital-human-runner.ts",
+      "imports": [
+        "@next/env",
+        "node:fs/promises",
+        "node:path",
+        "../src/lib/video-generation/digital-human/store-ad-pipeline",
+        "@vercel/blob"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/digital-human/store-ad-pipeline"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:fs/promises",
+        "node:path",
+        "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/generate-digital-human-store-ad.ts",
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/video-generation/digital-human/store-ad-pipeline",
+        "../src/lib/video-generation/digital-human/avatar-catalog",
+        "../src/lib/video-generation/digital-human/voice-catalog",
+        "../src/lib/storage"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/digital-human/store-ad-pipeline",
+        "../src/lib/video-generation/digital-human/avatar-catalog",
+        "../src/lib/video-generation/digital-human/voice-catalog",
+        "../src/lib/storage"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/generate-omnihuman-store-ad.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/omnihuman",
+        "../src/lib/storage",
+        "../src/lib/video-generation/digital-human/store-ad-director",
+        "../src/lib/providers/openai-image",
+        "@vercel/blob"
+      ],
+      "localImports": [
+        "../src/lib/providers/omnihuman",
+        "../src/lib/storage",
+        "../src/lib/video-generation/digital-human/store-ad-director",
+        "../src/lib/providers/openai-image"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/generate-pet-evidence-clips.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/generate-pet-kit-voiceover.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "openai"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "openai"
+      ]
+    },
+    {
       "file": "scripts/generate-pet-kit-walkthrough-video.ts",
       "imports": [
         "@next/env",
@@ -372,6 +478,27 @@
       ]
     },
     {
+      "file": "scripts/generate-store-ad-voiceover.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/volc-tts",
+        "../src/lib/providers/openai"
+      ],
+      "localImports": [
+        "../src/lib/providers/volc-tts",
+        "../src/lib/providers/openai"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
       "file": "scripts/mock-walkthrough-harness.ts",
       "imports": [
         "bcryptjs",
@@ -394,6 +521,35 @@
       "externalImports": [
         "bcryptjs",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "scripts/omnihuman-ping.ts",
+      "imports": [
+        "@next/env",
+        "../src/lib/providers/omnihuman"
+      ],
+      "localImports": [
+        "../src/lib/providers/omnihuman"
+      ],
+      "externalImports": [
+        "@next/env"
+      ]
+    },
+    {
+      "file": "scripts/qa-responsive-screenshots.ts",
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "puppeteer-core"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "puppeteer-core"
       ]
     },
     {
@@ -678,10 +834,10 @@
     {
       "file": "src/app/(auth)/layout.tsx",
       "imports": [
-        "@/components/ui/logo"
+        "@/components/glass/glass-background"
       ],
       "localImports": [
-        "@/components/ui/logo"
+        "@/components/glass/glass-background"
       ],
       "externalImports": []
     },
@@ -784,6 +940,25 @@
       ],
       "externalImports": [
         "next/link",
+        "next/navigation",
+        "next-auth"
+      ]
+    },
+    {
+      "file": "src/app/(business)/business/digital-human-store-ad/page.tsx",
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "@/components/business/business-page-header",
+        "@/components/digital-human/digital-human-wizard",
+        "@/lib/auth"
+      ],
+      "localImports": [
+        "@/components/business/business-page-header",
+        "@/components/digital-human/digital-human-wizard",
+        "@/lib/auth"
+      ],
+      "externalImports": [
         "next/navigation",
         "next-auth"
       ]
@@ -1518,14 +1693,35 @@
     {
       "file": "src/app/(personal)/layout.tsx",
       "imports": [
-        "@/components/layout/personal-sidebar",
+        "@/components/glass/glass-background",
+        "@/components/personal/personal-glass-shell",
         "@/lib/api-auth"
       ],
       "localImports": [
-        "@/components/layout/personal-sidebar",
+        "@/components/glass/glass-background",
+        "@/components/personal/personal-glass-shell",
         "@/lib/api-auth"
       ],
       "externalImports": []
+    },
+    {
+      "file": "src/app/(personal)/personal/agent/page.tsx",
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react",
+        "@/types/video-generation",
+        "@/components/personal/upload-assets"
+      ],
+      "localImports": [
+        "@/types/video-generation",
+        "@/components/personal/upload-assets"
+      ],
+      "externalImports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ]
     },
     {
       "file": "src/app/(personal)/personal/billing/page.tsx",
@@ -1551,22 +1747,16 @@
     {
       "file": "src/app/(personal)/personal/create-video/page.tsx",
       "imports": [
-        "next/link",
         "next/navigation",
         "next-auth",
-        "@/components/video-generation/unified-creative-input-shell",
         "@/lib/auth",
-        "@/i18n/server",
-        "@/lib/services/order-creative-draft"
+        "@/components/personal/glass-create-workflow"
       ],
       "localImports": [
-        "@/components/video-generation/unified-creative-input-shell",
         "@/lib/auth",
-        "@/i18n/server",
-        "@/lib/services/order-creative-draft"
+        "@/components/personal/glass-create-workflow"
       ],
       "externalImports": [
-        "next/link",
         "next/navigation",
         "next-auth"
       ]
@@ -1574,27 +1764,25 @@
     {
       "file": "src/app/(personal)/personal/page.tsx",
       "imports": [
-        "next/link",
-        "lucide-react",
-        "@/i18n/server"
+        "next/navigation"
       ],
-      "localImports": [
-        "@/i18n/server"
-      ],
+      "localImports": [],
       "externalImports": [
-        "next/link",
-        "lucide-react"
+        "next/navigation"
       ]
     },
     {
       "file": "src/app/(personal)/personal/templates/page.tsx",
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/navigation",
+        "@/components/personal/upload-assets"
       ],
       "localImports": [
-        "@/components/coming-soon-hero"
+        "@/components/personal/upload-assets"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/navigation"
+      ]
     },
     {
       "file": "src/app/(personal)/personal/videos/[id]/page.tsx",
@@ -1706,36 +1894,54 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/demo/pet/pet-hero",
+        "@/components/demo/pet/hardware-kit",
+        "@/components/demo/pet/demo-story",
         "@/components/demo/pet/device-dashboard",
         "@/components/demo/pet/activity-timeline",
         "@/components/demo/pet/detected-moments",
         "@/components/demo/pet/companion-mode",
+        "@/components/demo/pet/collar-pov",
         "@/components/demo/pet/auto-videos",
+        "@/components/demo/pet/before-after",
         "@/components/demo/pet/viral-sharing",
+        "@/components/demo/pet/brand-proof-scenario",
         "@/components/demo/pet/product-proof-report",
         "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/benchmark-comparison",
+        "@/components/demo/pet/why-now",
         "@/components/demo/pet/market-opportunity",
+        "@/components/demo/pet/growth-flywheel",
         "@/components/demo/pet/pet-investor-highlights",
         "@/components/demo/pet/business-model",
         "@/components/demo/pet/team-section",
+        "@/components/demo/pet/deck-shell",
         "@/lib/demo/pet-content-kit-demo-data",
         "./pet-waitlist-form"
       ],
       "localImports": [
         "@/components/ui/logo",
         "@/components/demo/pet/pet-hero",
+        "@/components/demo/pet/hardware-kit",
+        "@/components/demo/pet/demo-story",
         "@/components/demo/pet/device-dashboard",
         "@/components/demo/pet/activity-timeline",
         "@/components/demo/pet/detected-moments",
         "@/components/demo/pet/companion-mode",
+        "@/components/demo/pet/collar-pov",
         "@/components/demo/pet/auto-videos",
+        "@/components/demo/pet/before-after",
         "@/components/demo/pet/viral-sharing",
+        "@/components/demo/pet/brand-proof-scenario",
         "@/components/demo/pet/product-proof-report",
         "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/benchmark-comparison",
+        "@/components/demo/pet/why-now",
         "@/components/demo/pet/market-opportunity",
+        "@/components/demo/pet/growth-flywheel",
         "@/components/demo/pet/pet-investor-highlights",
         "@/components/demo/pet/business-model",
         "@/components/demo/pet/team-section",
+        "@/components/demo/pet/deck-shell",
         "@/lib/demo/pet-content-kit-demo-data",
         "./pet-waitlist-form"
       ],
@@ -2180,6 +2386,74 @@
       ]
     },
     {
+      "file": "src/app/api/digital-human/avatars/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/video-generation/digital-human/avatar-catalog"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/video-generation/digital-human/avatar-catalog"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/digital-human/jobs/[id]/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/digital-human-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/digital-human-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/digital-human/jobs/route.ts",
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/services/quota-service",
+        "@/lib/services/digital-human-service",
+        "@/lib/video-generation/digital-human/avatar-catalog",
+        "@/lib/video-generation/digital-human/voice-catalog"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/quota-service",
+        "@/lib/services/digital-human-service",
+        "@/lib/video-generation/digital-human/avatar-catalog",
+        "@/lib/video-generation/digital-human/voice-catalog"
+      ],
+      "externalImports": [
+        "next/server",
+        "zod"
+      ]
+    },
+    {
+      "file": "src/app/api/digital-human/voices/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/video-generation/digital-human/voice-catalog"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/video-generation/digital-human/voice-catalog"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
       "file": "src/app/api/health/route.ts",
       "imports": [
         "next/server",
@@ -2200,6 +2474,34 @@
       ],
       "externalImports": [
         "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/internal/digital-human/claim/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/services/digital-human-service"
+      ],
+      "localImports": [
+        "@/lib/services/digital-human-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/internal/digital-human/complete/route.ts",
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/services/digital-human-service"
+      ],
+      "localImports": [
+        "@/lib/services/digital-human-service"
+      ],
+      "externalImports": [
+        "next/server",
+        "zod"
       ]
     },
     {
@@ -2273,6 +2575,23 @@
       "localImports": [
         "@/lib/api-auth",
         "@/lib/db"
+      ],
+      "externalImports": [
+        "next/server",
+        "zod"
+      ]
+    },
+    {
+      "file": "src/app/api/personal/agent-chat/route.ts",
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/providers/openai"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/providers/openai"
       ],
       "externalImports": [
         "next/server",
@@ -2540,7 +2859,8 @@
         "@/lib/services/video-service",
         "@/lib/video-generation/business-status",
         "@/lib/video-generation/business-display-title",
-        "@/lib/schemas/unified-input"
+        "@/lib/schemas/unified-input",
+        "zod"
       ],
       "localImports": [
         "@/lib/api-auth",
@@ -2556,7 +2876,8 @@
       ],
       "externalImports": [
         "next/server",
-        "@prisma/client"
+        "@prisma/client",
+        "zod"
       ]
     },
     {
@@ -2969,6 +3290,53 @@
       "externalImports": []
     },
     {
+      "file": "src/components/demo/pet/before-after.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/components/demo/phone-video-mockup",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/components/demo/phone-video-mockup",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/benchmark-comparison.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/brand-proof-scenario.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/demo/pet/business-model.tsx",
       "imports": [
         "lucide-react",
@@ -2977,6 +3345,23 @@
       ],
       "localImports": [
         "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/collar-pov.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "./pet-image",
         "@/lib/demo/pet-content-kit-demo-data"
       ],
       "externalImports": [
@@ -3020,6 +3405,35 @@
       ]
     },
     {
+      "file": "src/components/demo/pet/deck-shell.tsx",
+      "imports": [
+        "react",
+        "framer-motion",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "framer-motion",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/demo-story.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/demo/pet/detected-moments.tsx",
       "imports": [
         "lucide-react",
@@ -3052,6 +3466,59 @@
       ]
     },
     {
+      "file": "src/components/demo/pet/growth-flywheel.tsx",
+      "imports": [
+        "react",
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "react",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/hardware-kit.tsx",
+      "imports": [
+        "next/link",
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "./image-lightbox",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "./pet-image",
+        "./image-lightbox",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "next/link",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/demo/pet/image-lightbox.tsx",
+      "imports": [
+        "react",
+        "lucide-react",
+        "./pet-image"
+      ],
+      "localImports": [
+        "./pet-image"
+      ],
+      "externalImports": [
+        "react",
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/demo/pet/market-opportunity.tsx",
       "imports": [
         "lucide-react",
@@ -3071,11 +3538,11 @@
       "imports": [
         "next/link",
         "lucide-react",
-        "@/components/demo/phone-video-mockup",
+        "./pet-image",
         "@/lib/demo/pet-content-kit-demo-data"
       ],
       "localImports": [
-        "@/components/demo/phone-video-mockup",
+        "./pet-image",
         "@/lib/demo/pet-content-kit-demo-data"
       ],
       "externalImports": [
@@ -3169,6 +3636,21 @@
       ]
     },
     {
+      "file": "src/components/demo/pet/why-now.tsx",
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "localImports": [
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/demo/phone-video-mockup.tsx",
       "imports": [
         "react",
@@ -3212,6 +3694,21 @@
         "./demo-section"
       ],
       "externalImports": [
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/digital-human/digital-human-wizard.tsx",
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "localImports": [
+        "@/lib/utils"
+      ],
+      "externalImports": [
+        "react",
         "lucide-react"
       ]
     },
@@ -3363,12 +3860,60 @@
       ]
     },
     {
+      "file": "src/components/personal/glass-create-workflow.tsx",
+      "imports": [
+        "react",
+        "next/link",
+        "lucide-react",
+        "@/types/video-generation",
+        "@/components/personal/upload-assets"
+      ],
+      "localImports": [
+        "@/types/video-generation",
+        "@/components/personal/upload-assets"
+      ],
+      "externalImports": [
+        "react",
+        "next/link",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/personal/personal-glass-shell.tsx",
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "next-auth/react",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "localImports": [
+        "@/lib/utils"
+      ],
+      "externalImports": [
+        "next/link",
+        "next/navigation",
+        "next-auth/react",
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/components/personal/personal-videos-auto-refresh.tsx",
       "imports": [
         "@/components/video-generation/brief-render-auto-refresh"
       ],
       "localImports": [
         "@/components/video-generation/brief-render-auto-refresh"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/components/personal/upload-assets.ts",
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "localImports": [
+        "@/types/video-generation"
       ],
       "externalImports": []
     },
@@ -4005,16 +4550,6 @@
       ]
     },
     {
-      "file": "src/lib/demo/pet-content-kit-demo-data.ts",
-      "imports": [
-        "@/lib/data/demo-seed"
-      ],
-      "localImports": [
-        "@/lib/data/demo-seed"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/labels-user.ts",
       "imports": [
         "@prisma/client",
@@ -4076,16 +4611,28 @@
       ]
     },
     {
+      "file": "src/lib/providers/omnihuman.ts",
+      "imports": [
+        "node:crypto"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:crypto"
+      ]
+    },
+    {
       "file": "src/lib/providers/openai-image.ts",
       "imports": [
         "openai",
+        "openai/uploads",
         "@/lib/storage"
       ],
       "localImports": [
         "@/lib/storage"
       ],
       "externalImports": [
-        "openai"
+        "openai",
+        "openai/uploads"
       ]
     },
     {
@@ -4109,6 +4656,16 @@
         "@/lib/video-generation/mock-clip-generator"
       ],
       "externalImports": []
+    },
+    {
+      "file": "src/lib/providers/volc-tts.ts",
+      "imports": [
+        "node:crypto"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:crypto"
+      ]
     },
     {
       "file": "src/lib/schemas/ad-edit-plan.ts",
@@ -4399,6 +4956,19 @@
         "@/lib/schemas/creative-evidence",
         "@/lib/prompts/creative-evidence-breakdown",
         "./ai-usage-log-service"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/services/digital-human-service.ts",
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "localImports": [
+        "@/lib/db"
       ],
       "externalImports": [
         "@prisma/client"
@@ -4956,6 +5526,37 @@
         "@/types/video-generation"
       ],
       "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/digital-human/store-ad-director.ts",
+      "imports": [
+        "@/lib/providers/openai"
+      ],
+      "localImports": [
+        "@/lib/providers/openai"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/digital-human/store-ad-pipeline.ts",
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@/lib/providers/seedance",
+        "@/lib/providers/volc-tts",
+        "@/lib/video-generation/digital-human/store-ad-director"
+      ],
+      "localImports": [
+        "@/lib/providers/seedance",
+        "@/lib/providers/volc-tts",
+        "@/lib/video-generation/digital-human/store-ad-director"
+      ],
+      "externalImports": [
+        "node:child_process",
+        "node:fs",
+        "node:path"
+      ]
     },
     {
       "file": "src/lib/video-generation/generation-supervisor.ts",
@@ -5924,6 +6525,21 @@
     },
     {
       "file": "tests/seedance-privacy-fallback.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/seedance-reference-mode.test.ts",
       "imports": [
         "node:assert/strict",
         "node:test",

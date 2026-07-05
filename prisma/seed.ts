@@ -3,13 +3,13 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-async function main() {
+async function seedAdmin() {
   const email = process.env.SEED_ADMIN_EMAIL || "admin@aivora.internal";
   const password = process.env.SEED_ADMIN_PASSWORD;
 
   if (!password) {
     console.log(
-      "⚠️  SEED_ADMIN_PASSWORD 未设置，跳过 seed。请在 .env.local 中配置 SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD 再运行 npm run db:seed。",
+      "⚠️  SEED_ADMIN_PASSWORD 未设置，跳过 admin seed。请在 .env.local 中配置 SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD 再运行 npm run db:seed。",
     );
     return;
   }
@@ -27,9 +27,52 @@ async function main() {
       name: "Super Admin",
       hashedPassword,
       role: AdminRole.SUPER_ADMIN,
+      userType: "SUPER_ADMIN",
     },
   });
   console.log(`✅ 已创建超级管理员：${admin.email}`);
+}
+
+/**
+ * Demo 个人演示账号（客户端到端展示用）。
+ * 登录页「一键体验」按钮使用同一组默认凭据；可用
+ * SEED_DEMO_EMAIL / SEED_DEMO_PASSWORD 覆盖。
+ */
+async function seedDemoPersonalUser() {
+  const email = process.env.SEED_DEMO_EMAIL || "demo@aivora.app";
+  const password = process.env.SEED_DEMO_PASSWORD || "aivora2026";
+
+  const existing = await prisma.adminUser.findUnique({ where: { email } });
+  if (existing) {
+    /// 幂等：demo 账号每次 seed 都重置为已知凭据 + PERSONAL persona，
+    /// 保证「一键体验」按钮永远能登录（demo 账号无真实数据，重置无风险）。
+    await prisma.adminUser.update({
+      where: { email },
+      data: {
+        userType: "PERSONAL",
+        hashedPassword: await bcrypt.hash(password, 10),
+      },
+    });
+    console.log(`✅ Demo 账号已重置凭据：${email}（密码：${password}）`);
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const demo = await prisma.adminUser.create({
+    data: {
+      email,
+      name: "Aivora Demo",
+      hashedPassword,
+      role: AdminRole.OPERATOR,
+      userType: "PERSONAL",
+    },
+  });
+  console.log(`✅ 已创建 Demo 个人账号：${demo.email}（密码：${password}）`);
+}
+
+async function main() {
+  await seedAdmin();
+  await seedDemoPersonalUser();
 }
 
 main()

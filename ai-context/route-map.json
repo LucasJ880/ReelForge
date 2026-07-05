@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T03:34:58.750Z",
+  "generatedAt": "2026-07-05T03:54:05.592Z",
   "routes": [
     {
       "routePath": "/",
@@ -284,12 +284,68 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/digital-human/avatars",
+      "filePath": "src/app/api/digital-human/avatars/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/digital-human/jobs",
+      "filePath": "src/app/api/digital-human/jobs/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/digital-human/jobs/[id]",
+      "filePath": "src/app/api/digital-human/jobs/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/digital-human/voices",
+      "filePath": "src/app/api/digital-human/voices/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/health",
       "filePath": "src/app/api/health/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET",
         "HEAD"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/internal/digital-human/claim",
+      "filePath": "src/app/api/internal/digital-human/claim/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/internal/digital-human/complete",
+      "filePath": "src/app/api/internal/digital-human/complete/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
       ],
       "isDynamic": false
     },
@@ -334,6 +390,15 @@
     {
       "routePath": "/api/persona",
       "filePath": "src/app/api/persona/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/personal/agent-chat",
+      "filePath": "src/app/api/personal/agent-chat/route.ts",
       "kind": "api",
       "httpMethods": [
         "POST"
@@ -531,6 +596,13 @@
       "isDynamic": false
     },
     {
+      "routePath": "/business/digital-human-store-ad",
+      "filePath": "src/app/(business)/business/digital-human-store-ad/page.tsx",
+      "kind": "page",
+      "group": "business",
+      "isDynamic": false
+    },
+    {
       "routePath": "/business/integrations",
       "filePath": "src/app/(business)/business/integrations/page.tsx",
       "kind": "page",
@@ -688,6 +760,13 @@
     {
       "routePath": "/personal",
       "filePath": "src/app/(personal)/personal/page.tsx",
+      "kind": "page",
+      "group": "personal",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/personal/agent",
+      "filePath": "src/app/(personal)/personal/agent/page.tsx",
       "kind": "page",
       "group": "personal",
       "isDynamic": false

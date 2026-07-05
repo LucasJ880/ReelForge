@@ -3,8 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 /**
- * Phase 5 routing matrix:
- *  - 未登录 → /persona（public landing）
+ * Phase 5 routing matrix（Demo 版调整：落地起始界面 = 登录门）:
+ *  - 未登录 → /login（玻璃登录门，对齐同行）
  *  - userType=BUSINESS → /business
  *  - userType=PERSONAL → /personal
  *  - userType=OPERATOR / SUPER_ADMIN → /internal/orders
@@ -14,7 +14,7 @@ export default async function HomePage() {
   const session = await getServerSession(authOptions);
 
   if (!session) {
-    redirect("/persona");
+    redirect("/login");
   }
 
   const userType = session.user.userType;

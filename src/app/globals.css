@@ -518,3 +518,252 @@
     transition: none;
   }
 }
+
+/* ============================================================
+ * Aivora Liquid Glass —— iOS 26 液态玻璃暗色主题（个人通道 + 登录门）
+ * 作用域类：.aivora-glass（外壳容器加上即可整区换肤）
+ * 设计对标：深色多彩极光底 + 高斯模糊玻璃卡片 + 高光描边 + 蓝色主按钮
+ * ============================================================ */
+.aivora-glass {
+  --glass-bg: #0a0a12;
+  --glass-card: rgba(255, 255, 255, 0.055);
+  --glass-card-strong: rgba(255, 255, 255, 0.09);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-border-strong: rgba(255, 255, 255, 0.22);
+  --glass-text: rgba(255, 255, 255, 0.92);
+  --glass-text-dim: rgba(255, 255, 255, 0.55);
+  --glass-blue: #3b82f6;
+  --glass-blue-deep: #2563eb;
+  color: var(--glass-text);
+}
+
+/* ---- 极光动态背景（fixed 全屏，放在外壳最底层） ---- */
+.aivora-glass .lg-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background:
+    radial-gradient(1100px 700px at 82% 12%, rgba(190, 24, 93, 0.32), transparent 60%),
+    radial-gradient(900px 650px at 12% 85%, rgba(29, 78, 216, 0.30), transparent 62%),
+    radial-gradient(760px 520px at 30% 20%, rgba(126, 34, 206, 0.26), transparent 60%),
+    radial-gradient(680px 500px at 68% 78%, rgba(8, 145, 178, 0.18), transparent 62%),
+    #08080f;
+  pointer-events: none;
+}
+.aivora-glass .lg-aurora::before,
+.aivora-glass .lg-aurora::after {
+  content: "";
+  position: absolute;
+  width: 55vmax;
+  height: 55vmax;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  will-change: transform;
+}
+.aivora-glass .lg-aurora::before {
+  left: -12vmax;
+  top: -14vmax;
+  background: radial-gradient(circle at 40% 40%, rgba(147, 51, 234, 0.4), transparent 65%);
+  animation: lg-drift-a 26s ease-in-out infinite alternate;
+}
+.aivora-glass .lg-aurora::after {
+  right: -14vmax;
+  bottom: -16vmax;
+  background: radial-gradient(circle at 55% 55%, rgba(236, 72, 153, 0.32), transparent 65%);
+  animation: lg-drift-b 32s ease-in-out infinite alternate;
+}
+@keyframes lg-drift-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(9vmax, 7vmax) scale(1.15); }
+}
+@keyframes lg-drift-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-8vmax, -6vmax) scale(0.95); }
+}
+
+/* ---- 锦鲤（纯 CSS 游动，轻量不占 CPU） ---- */
+.aivora-glass .lg-koi {
+  position: absolute;
+  font-size: 34px;
+  opacity: 0.85;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+  animation: lg-koi-swim 38s linear infinite;
+  will-change: transform;
+}
+.aivora-glass .lg-koi.koi-2 {
+  font-size: 24px;
+  opacity: 0.6;
+  animation-duration: 52s;
+  animation-delay: -20s;
+}
+@keyframes lg-koi-swim {
+  0%   { transform: translate(-8vw, 18vh) rotate(12deg); }
+  25%  { transform: translate(30vw, 34vh) rotate(-6deg); }
+  50%  { transform: translate(70vw, 22vh) rotate(10deg); }
+  75%  { transform: translate(45vw, 60vh) rotate(176deg); }
+  100% { transform: translate(-8vw, 18vh) rotate(192deg); }
+}
+
+/* ---- 玻璃卡片 / 面板 ---- */
+.aivora-glass .glass-card {
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.09) 0%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(255, 255, 255, 0.02) 100%
+  );
+  border: 1px solid var(--glass-border);
+  border-radius: 1.35rem;
+  backdrop-filter: blur(22px) saturate(150%);
+  -webkit-backdrop-filter: blur(22px) saturate(150%);
+  box-shadow:
+    0 18px 48px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
+}
+.aivora-glass .glass-panel {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 1rem;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+/* ---- 玻璃按钮 ---- */
+.aivora-glass .glass-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--glass-text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.aivora-glass .glass-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: var(--glass-border-strong);
+  transform: translateY(-1px);
+}
+.aivora-glass .glass-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.aivora-glass .glass-btn.is-active {
+  background: rgba(59, 130, 246, 0.22);
+  border-color: rgba(96, 165, 250, 0.55);
+  color: #dbeafe;
+}
+.aivora-glass .glass-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(147, 197, 253, 0.45);
+  background: linear-gradient(180deg, #4f96f7 0%, var(--glass-blue-deep) 100%);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.55rem 1.25rem;
+  cursor: pointer;
+  box-shadow:
+    0 10px 26px rgba(37, 99, 235, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+.aivora-glass .glass-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+.aivora-glass .glass-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- 玻璃输入框 ---- */
+.aivora-glass .glass-input {
+  width: 100%;
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--glass-text);
+  font-size: 0.875rem;
+  padding: 0.65rem 0.9rem;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.aivora-glass .glass-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+.aivora-glass .glass-input:focus {
+  outline: none;
+  border-color: rgba(96, 165, 250, 0.7);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+}
+
+/* ---- 小徽章 / chip ---- */
+.aivora-glass .glass-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--glass-text-dim);
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.22rem 0.6rem;
+  white-space: nowrap;
+}
+
+/* ---- 步骤编号圆点 ---- */
+.aivora-glass .glass-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.25);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  color: #bfdbfe;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ---- 日志控制台 ---- */
+.aivora-glass .glass-console {
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.9rem;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  line-height: 1.7;
+  color: rgba(148, 233, 176, 0.9);
+  padding: 0.8rem 1rem;
+  max-height: 220px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aivora-glass .lg-aurora::before,
+  .aivora-glass .lg-aurora::after,
+  .aivora-glass .lg-koi {
+    animation: none;
+  }
+}

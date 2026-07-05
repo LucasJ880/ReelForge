@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-23T03:34:58.744Z",
+  "generatedAt": "2026-07-05T03:54:05.590Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -490,7 +490,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 6590,
+      "sizeBytes": 9611,
       "notes": "area=config"
     },
     {
@@ -503,6 +503,17 @@
       "lineCount": 0,
       "sizeBytes": 651,
       "notes": "area=config"
+    },
+    {
+      "path": ".github/workflows/digital-human-render.yml",
+      "type": "workflow",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 86,
+      "sizeBytes": 3430,
+      "notes": "GitHub Actions workflow; area=config"
     },
     {
       "path": ".github/workflows/poll-videos.yml",
@@ -534,7 +545,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 692,
+      "sizeBytes": 820,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -612,6 +623,17 @@
       "importantSymbols": [],
       "lineCount": 169,
       "sizeBytes": 6702,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/CHINA_DEMO_DEPLOY_OPTIONS.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 100,
+      "sizeBytes": 8226,
       "notes": "Documentation"
     },
     {
@@ -836,6 +858,17 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/reference/competitor-video-generator.html",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 343053,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/RELEASE_HARDENING_CHECKLIST.md",
       "type": "doc",
       "area": "shared",
@@ -923,8 +956,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 93,
-      "sizeBytes": 4649,
+      "lineCount": 109,
+      "sizeBytes": 5887,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1037,8 +1070,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 1113,
-      "sizeBytes": 34430,
+      "lineCount": 1190,
+      "sizeBytes": 37092,
       "notes": "Prisma schema (database source of truth); area=prisma"
     },
     {
@@ -1051,8 +1084,8 @@
         "bcryptjs"
       ],
       "importantSymbols": [],
-      "lineCount": 43,
-      "sizeBytes": 1115,
+      "lineCount": 86,
+      "sizeBytes": 2520,
       "notes": "Schema / validation; area=prisma"
     },
     {
@@ -1172,6 +1205,17 @@
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=media-processing"
     },
     {
+      "path": "scripts/build-showcase-static.sh",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 67,
+      "sizeBytes": 2516,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
       "path": "scripts/check-pet-kit-walkthrough-video.ts",
       "type": "script",
       "area": "demo",
@@ -1267,6 +1311,97 @@
       "notes": "Maintenance / one-off script (run via tsx); area=demo"
     },
     {
+      "path": "scripts/digital-human-runner.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs/promises",
+        "node:path",
+        "../src/lib/video-generation/digital-human/store-ad-pipeline",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [],
+      "lineCount": 188,
+      "sizeBytes": 5952,
+      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
+      "path": "scripts/generate-digital-human-store-ad.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/video-generation/digital-human/store-ad-pipeline",
+        "../src/lib/video-generation/digital-human/avatar-catalog",
+        "../src/lib/video-generation/digital-human/voice-catalog",
+        "../src/lib/storage"
+      ],
+      "importantSymbols": [],
+      "lineCount": 131,
+      "sizeBytes": 4955,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/generate-omnihuman-store-ad.ts",
+      "type": "script",
+      "area": "ffmpeg",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/omnihuman",
+        "../src/lib/storage",
+        "../src/lib/video-generation/digital-human/store-ad-director",
+        "../src/lib/providers/openai-image",
+        "@vercel/blob"
+      ],
+      "importantSymbols": [],
+      "lineCount": 752,
+      "sizeBytes": 25489,
+      "notes": "Maintenance / one-off script (run via tsx); FFmpeg / audio loudness pipeline; area=ffmpeg"
+    },
+    {
+      "path": "scripts/generate-pet-evidence-clips.ts",
+      "type": "script",
+      "area": "ffmpeg",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 363,
+      "sizeBytes": 12044,
+      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; FFmpeg / audio loudness pipeline; area=ffmpeg"
+    },
+    {
+      "path": "scripts/generate-pet-kit-voiceover.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "openai"
+      ],
+      "importantSymbols": [],
+      "lineCount": 135,
+      "sizeBytes": 4296,
+      "notes": "Maintenance / one-off script (run via tsx); uses OpenAI SDK; area=scripts"
+    },
+    {
       "path": "scripts/generate-pet-kit-walkthrough-video.ts",
       "type": "script",
       "area": "demo",
@@ -1314,6 +1449,24 @@
       "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=real-footage-ads"
     },
     {
+      "path": "scripts/generate-store-ad-voiceover.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/volc-tts",
+        "../src/lib/providers/openai"
+      ],
+      "importantSymbols": [],
+      "lineCount": 213,
+      "sizeBytes": 7909,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
       "path": "scripts/mock-walkthrough-harness.ts",
       "type": "script",
       "area": "demo",
@@ -1334,6 +1487,36 @@
       "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=demo"
     },
     {
+      "path": "scripts/omnihuman-ping.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "../src/lib/providers/omnihuman"
+      ],
+      "importantSymbols": [],
+      "lineCount": 74,
+      "sizeBytes": 3185,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/qa-responsive-screenshots.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "puppeteer-core"
+      ],
+      "importantSymbols": [],
+      "lineCount": 128,
+      "sizeBytes": 3543,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
       "path": "scripts/render-caption-png.py",
       "type": "script",
       "area": "media-processing",
@@ -1341,7 +1524,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 1890,
+      "sizeBytes": 2441,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -1411,8 +1594,8 @@
         "@vercel/blob"
       ],
       "importantSymbols": [],
-      "lineCount": 377,
-      "sizeBytes": 12318,
+      "lineCount": 560,
+      "sizeBytes": 17347,
       "notes": "Maintenance / one-off script (run via tsx); FFmpeg / audio loudness pipeline; area=demo"
     },
     {
@@ -1596,6 +1779,501 @@
       "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
     },
     {
+      "path": "showcase-static/_next/static/9uBLf1S26pHO4LbTYl9-_/_buildManifest.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 11,
+      "sizeBytes": 219,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/9uBLf1S26pHO4LbTYl9-_/_clientMiddlewareManifest.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 6,
+      "sizeBytes": 441,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/9uBLf1S26pHO4LbTYl9-_/_ssgManifest.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 80,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0~j8v0ppkogg_.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 9989,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0~n264qio3x7z.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 2718,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/00zxu6~fihx5n.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 30902,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/012_p7rqaugf7.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 227651,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/03~yq9q893hmn.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 2,
+      "sizeBytes": 112594,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/03unq_-.a4f79.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 30960,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/04bvmrwx1lhp_.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 4511,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/066jf0nk75nic.css",
+      "type": "style",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 3,
+      "sizeBytes": 3713,
+      "notes": "Stylesheet"
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/067k08~j-8fzt.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 5853,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/06pfllo-79j5o.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 8784,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/080-qv2k5mqt7.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 18689,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/08n--yy_zjsl1.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 599,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0c09zm6uu8dpk.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 510,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0fxbrgwzaz8st.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 8955,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0g3d97~_-v9ug.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 12,
+      "sizeBytes": 151627,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0hpnrek~99o9g.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 31,
+      "sizeBytes": 5372,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0i.l9589uvx0j.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 54763,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0if0i36~iy-4x.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 9,
+      "sizeBytes": 243985,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0jo.4j4vfzk62.css",
+      "type": "style",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 2,
+      "sizeBytes": 156477,
+      "notes": "Stylesheet"
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0jtz1x.u9nvfp.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 2786,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0n0.bto3zi7.~.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 36187,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0nzqsbkominjh.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 7735,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0ocs.j_cva1_b.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 26556,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0oz804rxx277t.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 8296,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0pg870j~gkjm~.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 14819,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0pxq11m3h73jm.js",
+      "type": "unknown",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 20097,
+      "notes": "area=media-processing"
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0qml23sgf6mss.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 9891,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0r~i59lkk.9lq.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 34431,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0rmzhhz06deqh.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 7069,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0vw.wbmqzyv7l.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 31968,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0wra8hd7iqhmt.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 8948,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0x.73w57rn4ou.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 3380,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0xb1tyxb5rlcs.js",
+      "type": "unknown",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 4,
+      "sizeBytes": 15642,
+      "notes": "area=media-processing"
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/0ye4-fzsr94.l.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 93631,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/10tir7ilb1fj6.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 4660,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/128aahewwf1we.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 4,
+      "sizeBytes": 44491,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/153.a5pcepw78.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 4089,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/178a4ynnpox30.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 2,
+      "sizeBytes": 137472,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/17swu5qs3za77.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 2,
+      "sizeBytes": 6320,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/17zm2lfqn7_j6.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 10024,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/_next/static/chunks/turbopack-0j3qjs1egod17.js",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 1,
+      "sizeBytes": 10614,
+      "notes": ""
+    },
+    {
+      "path": "showcase-static/index.html",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 231628,
+      "notes": ""
+    },
+    {
       "path": "src/app/(auth)/layout.tsx",
       "type": "layout",
       "area": "auth",
@@ -1604,14 +2282,14 @@
         "default"
       ],
       "imports": [
-        "@/components/ui/logo"
+        "@/components/glass/glass-background"
       ],
       "importantSymbols": [
         "AuthLayout",
         "default"
       ],
-      "lineCount": 76,
-      "sizeBytes": 3213,
+      "lineCount": 23,
+      "sizeBytes": 662,
       "notes": "Next.js App Router layout; area=auth"
     },
     {
@@ -1633,8 +2311,8 @@
         "LoginPage",
         "default"
       ],
-      "lineCount": 117,
-      "sizeBytes": 3765,
+      "lineCount": 122,
+      "sizeBytes": 3746,
       "notes": "Next.js App Router page; NextAuth session check; client component; area=auth"
     },
     {
@@ -1738,6 +2416,31 @@
       ],
       "lineCount": 93,
       "sizeBytes": 3596,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(business)/business/digital-human-store-ad/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "dynamic",
+        "DigitalHumanStoreAdPage",
+        "default"
+      ],
+      "imports": [
+        "next/navigation",
+        "next-auth",
+        "@/components/business/business-page-header",
+        "@/components/digital-human/digital-human-wizard",
+        "@/lib/auth"
+      ],
+      "importantSymbols": [
+        "DigitalHumanStoreAdPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 32,
+      "sizeBytes": 1194,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2589,16 +3292,40 @@
         "default"
       ],
       "imports": [
-        "@/components/layout/personal-sidebar",
+        "@/components/glass/glass-background",
+        "@/components/personal/personal-glass-shell",
         "@/lib/api-auth"
       ],
       "importantSymbols": [
         "PersonalLayout",
         "default"
       ],
-      "lineCount": 21,
-      "sizeBytes": 561,
+      "lineCount": 20,
+      "sizeBytes": 598,
       "notes": "Next.js App Router layout; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/personal/agent/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "AgentDirectorPage",
+        "default"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react",
+        "@/types/video-generation",
+        "@/components/personal/upload-assets"
+      ],
+      "importantSymbols": [
+        "AgentDirectorPage",
+        "default"
+      ],
+      "lineCount": 300,
+      "sizeBytes": 10177,
+      "notes": "Next.js App Router page; client component; area=marketing-site"
     },
     {
       "path": "src/app/(personal)/personal/billing/page.tsx",
@@ -2636,21 +3363,18 @@
         "default"
       ],
       "imports": [
-        "next/link",
         "next/navigation",
         "next-auth",
-        "@/components/video-generation/unified-creative-input-shell",
         "@/lib/auth",
-        "@/i18n/server",
-        "@/lib/services/order-creative-draft"
+        "@/components/personal/glass-create-workflow"
       ],
       "importantSymbols": [
         "CreateVideoPage",
         "dynamic",
         "default"
       ],
-      "lineCount": 60,
-      "sizeBytes": 1938,
+      "lineCount": 25,
+      "sizeBytes": 888,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2662,16 +3386,14 @@
         "default"
       ],
       "imports": [
-        "next/link",
-        "lucide-react",
-        "@/i18n/server"
+        "next/navigation"
       ],
       "importantSymbols": [
         "PersonalHomePage",
         "default"
       ],
-      "lineCount": 59,
-      "sizeBytes": 2123,
+      "lineCount": 7,
+      "sizeBytes": 212,
       "notes": "Next.js App Router page; area=marketing-site"
     },
     {
@@ -2683,15 +3405,16 @@
         "default"
       ],
       "imports": [
-        "@/components/coming-soon-hero"
+        "next/navigation",
+        "@/components/personal/upload-assets"
       ],
       "importantSymbols": [
         "TemplatesPage",
         "default"
       ],
-      "lineCount": 17,
-      "sizeBytes": 464,
-      "notes": "Next.js App Router page; area=marketing-site"
+      "lineCount": 176,
+      "sizeBytes": 6503,
+      "notes": "Next.js App Router page; client component; area=marketing-site"
     },
     {
       "path": "src/app/(personal)/personal/videos/[id]/page.tsx",
@@ -2765,8 +3488,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 356,
-      "sizeBytes": 13494,
+      "lineCount": 347,
+      "sizeBytes": 12990,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -2842,26 +3565,35 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/demo/pet/pet-hero",
+        "@/components/demo/pet/hardware-kit",
+        "@/components/demo/pet/demo-story",
         "@/components/demo/pet/device-dashboard",
         "@/components/demo/pet/activity-timeline",
         "@/components/demo/pet/detected-moments",
         "@/components/demo/pet/companion-mode",
+        "@/components/demo/pet/collar-pov",
         "@/components/demo/pet/auto-videos",
+        "@/components/demo/pet/before-after",
         "@/components/demo/pet/viral-sharing",
+        "@/components/demo/pet/brand-proof-scenario",
         "@/components/demo/pet/product-proof-report",
         "@/components/demo/pet/community-preview",
+        "@/components/demo/pet/benchmark-comparison",
+        "@/components/demo/pet/why-now",
         "@/components/demo/pet/market-opportunity",
+        "@/components/demo/pet/growth-flywheel",
         "@/components/demo/pet/pet-investor-highlights",
         "@/components/demo/pet/business-model",
         "@/components/demo/pet/team-section",
+        "@/components/demo/pet/deck-shell",
         "@/lib/demo/pet-content-kit-demo-data",
         "./pet-waitlist-form"
       ],
       "importantSymbols": [
         "RealFootageDemoExperience"
       ],
-      "lineCount": 191,
-      "sizeBytes": 7696,
+      "lineCount": 236,
+      "sizeBytes": 8132,
       "notes": "area=marketing-site"
     },
     {
@@ -2902,8 +3634,8 @@
       "importantSymbols": [
         "PetWaitlistForm"
       ],
-      "lineCount": 155,
-      "sizeBytes": 5218,
+      "lineCount": 175,
+      "sizeBytes": 5956,
       "notes": "area=marketing-site"
     },
     {
@@ -3420,6 +4152,88 @@
       "notes": "Next.js API route handler; hits Prisma DB; area=real-footage-ads"
     },
     {
+      "path": "src/app/api/digital-human/avatars/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/video-generation/digital-human/avatar-catalog"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 20,
+      "sizeBytes": 634,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/digital-human/jobs/[id]/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/digital-human-service"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 23,
+      "sizeBytes": 851,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/digital-human/jobs/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST",
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/services/quota-service",
+        "@/lib/services/digital-human-service",
+        "@/lib/video-generation/digital-human/avatar-catalog",
+        "@/lib/video-generation/digital-human/voice-catalog"
+      ],
+      "importantSymbols": [
+        "POST",
+        "GET"
+      ],
+      "lineCount": 110,
+      "sizeBytes": 3536,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/digital-human/voices/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/video-generation/digital-human/voice-catalog"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 22,
+      "sizeBytes": 603,
+      "notes": "Next.js API route handler"
+    },
+    {
       "path": "src/app/api/health/route.ts",
       "type": "api",
       "area": "unknown",
@@ -3444,6 +4258,45 @@
       ],
       "lineCount": 181,
       "sizeBytes": 5959,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/internal/digital-human/claim/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/services/digital-human-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 31,
+      "sizeBytes": 1044,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/internal/digital-human/complete/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/services/digital-human-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 51,
+      "sizeBytes": 1604,
       "notes": "Next.js API route handler"
     },
     {
@@ -3546,6 +4399,26 @@
       ],
       "lineCount": 40,
       "sizeBytes": 1190,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/personal/agent-chat/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 128,
+      "sizeBytes": 5359,
       "notes": "Next.js API route handler"
     },
     {
@@ -3863,13 +4736,14 @@
         "@/lib/services/video-service",
         "@/lib/video-generation/business-status",
         "@/lib/video-generation/business-display-title",
-        "@/lib/schemas/unified-input"
+        "@/lib/schemas/unified-input",
+        "zod"
       ],
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 301,
-      "sizeBytes": 10098,
+      "lineCount": 384,
+      "sizeBytes": 13073,
       "notes": "Next.js API route handler; hits Prisma DB; area=video-generation"
     },
     {
@@ -3946,8 +4820,8 @@
         "shadcn/tailwind.css"
       ],
       "importantSymbols": [],
-      "lineCount": 205,
-      "sizeBytes": 6920,
+      "lineCount": 770,
+      "sizeBytes": 21780,
       "notes": "Stylesheet"
     },
     {
@@ -4017,7 +4891,7 @@
         "default"
       ],
       "lineCount": 33,
-      "sizeBytes": 860,
+      "sizeBytes": 925,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -4053,8 +4927,8 @@
       "importantSymbols": [
         "UsageDashboard"
       ],
-      "lineCount": 184,
-      "sizeBytes": 6093,
+      "lineCount": 186,
+      "sizeBytes": 6200,
       "notes": "React component; hits Prisma DB; client component; area=payments"
     },
     {
@@ -4411,6 +5285,64 @@
       "notes": "React component; area=demo"
     },
     {
+      "path": "src/components/demo/pet/before-after.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "BeforeAfter"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/components/demo/phone-video-mockup",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "BeforeAfter"
+      ],
+      "lineCount": 104,
+      "sizeBytes": 4115,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/benchmark-comparison.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "BenchmarkComparison"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "BenchmarkComparison"
+      ],
+      "lineCount": 113,
+      "sizeBytes": 3978,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/brand-proof-scenario.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "BrandProofScenario"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "BrandProofScenario"
+      ],
+      "lineCount": 76,
+      "sizeBytes": 2288,
+      "notes": "React component; area=demo"
+    },
+    {
       "path": "src/components/demo/pet/business-model.tsx",
       "type": "component",
       "area": "demo",
@@ -4430,6 +5362,26 @@
       "notes": "React component; area=demo"
     },
     {
+      "path": "src/components/demo/pet/collar-pov.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "CollarPov"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "CollarPov"
+      ],
+      "lineCount": 82,
+      "sizeBytes": 3121,
+      "notes": "React component; area=demo"
+    },
+    {
       "path": "src/components/demo/pet/community-preview.tsx",
       "type": "component",
       "area": "demo",
@@ -4446,7 +5398,7 @@
         "CommunityPreview"
       ],
       "lineCount": 153,
-      "sizeBytes": 5811,
+      "sizeBytes": 6074,
       "notes": "React component; area=demo"
     },
     {
@@ -4468,6 +5420,46 @@
       ],
       "lineCount": 115,
       "sizeBytes": 4894,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/deck-shell.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "DeckSlideDef",
+        "DeckShell"
+      ],
+      "imports": [
+        "react",
+        "framer-motion",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "DeckSlideDef",
+        "DeckShell"
+      ],
+      "lineCount": 339,
+      "sizeBytes": 9861,
+      "notes": "React component; client component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/demo-story.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "DemoStory"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "DemoStory"
+      ],
+      "lineCount": 101,
+      "sizeBytes": 2892,
       "notes": "React component; area=demo"
     },
     {
@@ -4506,8 +5498,69 @@
         "DeviceDashboard"
       ],
       "lineCount": 97,
-      "sizeBytes": 3185,
+      "sizeBytes": 3256,
       "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/growth-flywheel.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "GrowthFlywheel"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "GrowthFlywheel"
+      ],
+      "lineCount": 61,
+      "sizeBytes": 2626,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/hardware-kit.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "HardwareKit"
+      ],
+      "imports": [
+        "next/link",
+        "lucide-react",
+        "./pet-section",
+        "./pet-image",
+        "./image-lightbox",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "HardwareKit"
+      ],
+      "lineCount": 143,
+      "sizeBytes": 5129,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/image-lightbox.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "ImageLightbox"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "./pet-image"
+      ],
+      "importantSymbols": [
+        "ImageLightbox"
+      ],
+      "lineCount": 92,
+      "sizeBytes": 2893,
+      "notes": "React component; client component; area=demo"
     },
     {
       "path": "src/components/demo/pet/market-opportunity.tsx",
@@ -4538,14 +5591,14 @@
       "imports": [
         "next/link",
         "lucide-react",
-        "@/components/demo/phone-video-mockup",
+        "./pet-image",
         "@/lib/demo/pet-content-kit-demo-data"
       ],
       "importantSymbols": [
         "PetHero"
       ],
-      "lineCount": 130,
-      "sizeBytes": 5681,
+      "lineCount": 153,
+      "sizeBytes": 6853,
       "notes": "React component; area=demo"
     },
     {
@@ -4637,8 +5690,8 @@
       "importantSymbols": [
         "TeamSection"
       ],
-      "lineCount": 53,
-      "sizeBytes": 1706,
+      "lineCount": 93,
+      "sizeBytes": 3150,
       "notes": "React component; area=demo"
     },
     {
@@ -4658,6 +5711,25 @@
       ],
       "lineCount": 86,
       "sizeBytes": 3292,
+      "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/demo/pet/why-now.tsx",
+      "type": "component",
+      "area": "demo",
+      "exports": [
+        "WhyNow"
+      ],
+      "imports": [
+        "lucide-react",
+        "./pet-section",
+        "@/lib/demo/pet-content-kit-demo-data"
+      ],
+      "importantSymbols": [
+        "WhyNow"
+      ],
+      "lineCount": 204,
+      "sizeBytes": 7667,
       "notes": "React component; area=demo"
     },
     {
@@ -4717,6 +5789,25 @@
       "lineCount": 255,
       "sizeBytes": 9118,
       "notes": "React component; area=demo"
+    },
+    {
+      "path": "src/components/digital-human/digital-human-wizard.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "DigitalHumanWizard"
+      ],
+      "imports": [
+        "react",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "DigitalHumanWizard"
+      ],
+      "lineCount": 628,
+      "sizeBytes": 21371,
+      "notes": "React component; client component"
     },
     {
       "path": "src/components/features/page-header.tsx",
@@ -4793,6 +5884,21 @@
       "notes": "React component"
     },
     {
+      "path": "src/components/glass/glass-background.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "GlassBackground"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "GlassBackground"
+      ],
+      "lineCount": 18,
+      "sizeBytes": 481,
+      "notes": "React component"
+    },
+    {
       "path": "src/components/layout/business-sidebar.tsx",
       "type": "component",
       "area": "shared",
@@ -4812,8 +5918,8 @@
       "importantSymbols": [
         "BusinessSidebar"
       ],
-      "lineCount": 122,
-      "sizeBytes": 3715,
+      "lineCount": 128,
+      "sizeBytes": 3862,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -4890,6 +5996,48 @@
       "notes": "React component; NextAuth session check; client component"
     },
     {
+      "path": "src/components/personal/glass-create-workflow.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "GlassCreateWorkflow"
+      ],
+      "imports": [
+        "react",
+        "next/link",
+        "lucide-react",
+        "@/types/video-generation",
+        "@/components/personal/upload-assets"
+      ],
+      "importantSymbols": [
+        "GlassCreateWorkflow"
+      ],
+      "lineCount": 580,
+      "sizeBytes": 21431,
+      "notes": "React component; client component"
+    },
+    {
+      "path": "src/components/personal/personal-glass-shell.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "PersonalGlassShell"
+      ],
+      "imports": [
+        "next/link",
+        "next/navigation",
+        "next-auth/react",
+        "lucide-react",
+        "@/lib/utils"
+      ],
+      "importantSymbols": [
+        "PersonalGlassShell"
+      ],
+      "lineCount": 142,
+      "sizeBytes": 4859,
+      "notes": "React component; NextAuth session check; client component"
+    },
+    {
       "path": "src/components/personal/personal-videos-auto-refresh.tsx",
       "type": "component",
       "area": "shared",
@@ -4907,6 +6055,29 @@
       "lineCount": 5,
       "sizeBytes": 187,
       "notes": "React component"
+    },
+    {
+      "path": "src/components/personal/upload-assets.ts",
+      "type": "component",
+      "area": "upload",
+      "exports": [
+        "uploadFilesToAssets",
+        "CreatePrefill",
+        "saveCreatePrefill",
+        "consumeCreatePrefill"
+      ],
+      "imports": [
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "CreatePrefill",
+        "uploadFilesToAssets",
+        "saveCreatePrefill",
+        "consumeCreatePrefill"
+      ],
+      "lineCount": 165,
+      "sizeBytes": 4839,
+      "notes": "React component; client component; area=upload"
     },
     {
       "path": "src/components/providers/session-provider.tsx",
@@ -5518,8 +6689,8 @@
         "enUS",
         "default"
       ],
-      "lineCount": 876,
-      "sizeBytes": 33030,
+      "lineCount": 878,
+      "sizeBytes": 33127,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -5559,8 +6730,8 @@
         "zhCN",
         "default"
       ],
-      "lineCount": 848,
-      "sizeBytes": 33140,
+      "lineCount": 850,
+      "sizeBytes": 33234,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -5692,8 +6863,8 @@
         "DotPath",
         "TranslationKey"
       ],
-      "lineCount": 743,
-      "sizeBytes": 17773,
+      "lineCount": 745,
+      "sizeBytes": 17833,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -6005,8 +7176,8 @@
         "REGISTER_RATE_LIMIT",
         "USAGE_RESOURCE_LABELS"
       ],
-      "lineCount": 37,
-      "sizeBytes": 932,
+      "lineCount": 40,
+      "sizeBytes": 1029,
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
@@ -6231,8 +7402,8 @@
         "SAMPLE_DATA_BADGE_LABEL",
         "SAMPLE_DATA_DISCLAIMER",
         "PET_WALKTHROUGH_VIDEO_URL",
-        "PET_SAMPLE_VIDEO_URL",
-        "PET_SAMPLE_VIDEO_POSTER",
+        "PET_WALKTHROUGH_VIDEO_POSTER",
+        "PET_RENDER",
         "HeroStat",
         "heroStats",
         "PetDeviceDemo",
@@ -6255,9 +7426,7 @@
         "ProofMetricDemo",
         "productProofReport"
       ],
-      "imports": [
-        "@/lib/data/demo-seed"
-      ],
+      "imports": [],
       "importantSymbols": [
         "PET_BRAND_NAME",
         "PET_POSITIONING",
@@ -6266,10 +7435,10 @@
         "SAMPLE_DATA_BADGE_LABEL",
         "SAMPLE_DATA_DISCLAIMER",
         "PET_WALKTHROUGH_VIDEO_URL",
-        "PET_SAMPLE_VIDEO_URL"
+        "PET_WALKTHROUGH_VIDEO_POSTER"
       ],
-      "lineCount": 841,
-      "sizeBytes": 30732,
+      "lineCount": 1381,
+      "sizeBytes": 58018,
       "notes": "Utility / helper module; area=demo"
     },
     {
@@ -6477,6 +7646,35 @@
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
+      "path": "src/lib/providers/omnihuman.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "OmniHumanStatus",
+        "OmniHumanSubmitOptions",
+        "OmniHumanJobResult",
+        "isOmniHumanConfigured",
+        "submitOmniHumanJob",
+        "getOmniHumanStatus",
+        "__test__"
+      ],
+      "imports": [
+        "node:crypto"
+      ],
+      "importantSymbols": [
+        "OmniHumanStatus",
+        "OmniHumanSubmitOptions",
+        "OmniHumanJobResult",
+        "isOmniHumanConfigured",
+        "submitOmniHumanJob",
+        "getOmniHumanStatus",
+        "__test__"
+      ],
+      "lineCount": 342,
+      "sizeBytes": 11361,
+      "notes": "External API provider wrapper; area=ai-providers"
+    },
+    {
       "path": "src/lib/providers/openai-image.ts",
       "type": "provider",
       "area": "ai-providers",
@@ -6487,11 +7685,16 @@
         "GenerateImagesResult",
         "isImageGenAvailable",
         "generateImages",
+        "ReferenceImageInput",
+        "ComposeReferenceImageArgs",
+        "ComposeReferenceImageResult",
+        "composeReferenceImage",
         "buildLogoPrompt",
         "__test__"
       ],
       "imports": [
         "openai",
+        "openai/uploads",
         "@/lib/storage"
       ],
       "importantSymbols": [
@@ -6499,13 +7702,13 @@
         "ImageQuality",
         "GenerateImagesArgs",
         "GenerateImagesResult",
-        "isImageGenAvailable",
-        "generateImages",
-        "buildLogoPrompt",
-        "__test__"
+        "ReferenceImageInput",
+        "ComposeReferenceImageArgs",
+        "ComposeReferenceImageResult",
+        "isImageGenAvailable"
       ],
-      "lineCount": 193,
-      "sizeBytes": 6591,
+      "lineCount": 300,
+      "sizeBytes": 10404,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -6595,9 +7798,30 @@
         "submitSeedanceJobResilient",
         "getSeedanceStatus"
       ],
-      "lineCount": 428,
-      "sizeBytes": 13794,
+      "lineCount": 455,
+      "sizeBytes": 15243,
       "notes": "External API provider wrapper; calls Seedance video generator; area=ai-providers"
+    },
+    {
+      "path": "src/lib/providers/volc-tts.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "VolcTtsOptions",
+        "isVolcTtsConfigured",
+        "synthesizeSpeech"
+      ],
+      "imports": [
+        "node:crypto"
+      ],
+      "importantSymbols": [
+        "VolcTtsOptions",
+        "isVolcTtsConfigured",
+        "synthesizeSpeech"
+      ],
+      "lineCount": 320,
+      "sizeBytes": 12080,
+      "notes": "External API provider wrapper; area=ai-providers"
     },
     {
       "path": "src/lib/schemas/ad-edit-plan.ts",
@@ -7267,6 +8491,39 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
+      "path": "src/lib/services/digital-human-service.ts",
+      "type": "service",
+      "area": "media-processing",
+      "exports": [
+        "MAX_DH_ATTEMPTS",
+        "CreateDigitalHumanAdJobInput",
+        "createDigitalHumanAdJob",
+        "DigitalHumanAdJobDTO",
+        "getDigitalHumanAdJobForUser",
+        "listDigitalHumanAdJobsForUser",
+        "ClaimedDigitalHumanAdJob",
+        "claimDigitalHumanAdJob",
+        "completeDigitalHumanAdJob"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db"
+      ],
+      "importantSymbols": [
+        "MAX_DH_ATTEMPTS",
+        "CreateDigitalHumanAdJobInput",
+        "DigitalHumanAdJobDTO",
+        "ClaimedDigitalHumanAdJob",
+        "createDigitalHumanAdJob",
+        "getDigitalHumanAdJobForUser",
+        "listDigitalHumanAdJobsForUser",
+        "claimDigitalHumanAdJob"
+      ],
+      "lineCount": 206,
+      "sizeBytes": 6563,
+      "notes": "Business logic service; hits Prisma DB; area=media-processing"
+    },
+    {
       "path": "src/lib/services/director-service.ts",
       "type": "service",
       "area": "shared",
@@ -7630,8 +8887,8 @@
         "resolveQuotaPlan",
         "getLimitForResource"
       ],
-      "lineCount": 366,
-      "sizeBytes": 9915,
+      "lineCount": 368,
+      "sizeBytes": 10045,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
     },
     {
@@ -8307,6 +9564,111 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/digital-human/avatar-catalog.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DigitalHumanAvatar",
+        "AVATARS",
+        "getAvatarById",
+        "listAvatars"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "DigitalHumanAvatar",
+        "AVATARS",
+        "getAvatarById",
+        "listAvatars"
+      ],
+      "lineCount": 66,
+      "sizeBytes": 2582,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/digital-human/store-ad-director.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "StoreRefKey",
+        "StoreAdShot",
+        "StoreAdBrief",
+        "buildStoreAdStoryboard",
+        "DynamicStoreAdBrief",
+        "DynamicStoreAdShot",
+        "buildDynamicStoreAdStoryboard",
+        "buildStoreAdNarration",
+        "KEYFRAME_STYLE",
+        "MOTION_STYLE"
+      ],
+      "imports": [
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "StoreRefKey",
+        "StoreAdShot",
+        "StoreAdBrief",
+        "DynamicStoreAdBrief",
+        "DynamicStoreAdShot",
+        "KEYFRAME_STYLE",
+        "MOTION_STYLE",
+        "buildStoreAdStoryboard"
+      ],
+      "lineCount": 438,
+      "sizeBytes": 18455,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/digital-human/store-ad-pipeline.ts",
+      "type": "util",
+      "area": "ffmpeg",
+      "exports": [
+        "DigitalHumanAdInput",
+        "DigitalHumanAdResult",
+        "PipelineOptions",
+        "runDigitalHumanAdPipeline"
+      ],
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@/lib/providers/seedance",
+        "@/lib/providers/volc-tts",
+        "@/lib/video-generation/digital-human/store-ad-director"
+      ],
+      "importantSymbols": [
+        "DigitalHumanAdInput",
+        "DigitalHumanAdResult",
+        "PipelineOptions",
+        "runDigitalHumanAdPipeline"
+      ],
+      "lineCount": 554,
+      "sizeBytes": 19163,
+      "notes": "Utility / helper module; calls Seedance video generator; FFmpeg / audio loudness pipeline; area=ffmpeg"
+    },
+    {
+      "path": "src/lib/video-generation/digital-human/voice-catalog.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "DigitalHumanVoice",
+        "VOICES",
+        "DEFAULT_VOICE_ID",
+        "getVoiceById",
+        "listVoices"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "DigitalHumanVoice",
+        "VOICES",
+        "DEFAULT_VOICE_ID",
+        "getVoiceById",
+        "listVoices"
+      ],
+      "lineCount": 73,
+      "sizeBytes": 2346,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/lib/video-generation/generation-supervisor.ts",
       "type": "util",
       "area": "video-generation",
@@ -8632,8 +9994,8 @@
         "middleware",
         "config"
       ],
-      "lineCount": 85,
-      "sizeBytes": 3158,
+      "lineCount": 91,
+      "sizeBytes": 3599,
       "notes": ""
     },
     {
@@ -9427,6 +10789,21 @@
       "importantSymbols": [],
       "lineCount": 15,
       "sizeBytes": 453,
+      "notes": "Unit / integration test; calls Seedance video generator; area=tests"
+    },
+    {
+      "path": "tests/seedance-reference-mode.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 129,
+      "sizeBytes": 4497,
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {

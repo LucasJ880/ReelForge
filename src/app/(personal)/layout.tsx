@@ -1,4 +1,5 @@
-import { PersonalSidebar } from "@/components/layout/personal-sidebar";
+import { GlassBackground } from "@/components/glass/glass-background";
+import { PersonalGlassShell } from "@/components/personal/personal-glass-shell";
 import { requirePersonaPage } from "@/lib/api-auth";
 
 export default async function PersonalLayout({
@@ -6,15 +7,13 @@ export default async function PersonalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requirePersonaPage(["PERSONAL"], "/personal");
+  const session = await requirePersonaPage(["PERSONAL"], "/personal");
   return (
-    <div className="flex h-full bg-sidebar">
-      <PersonalSidebar />
-      <main className="flex-1 overflow-y-auto bg-background">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-8 w-full">
-          {children}
-        </div>
-      </main>
+    <div className="aivora-glass relative min-h-screen">
+      <GlassBackground />
+      <PersonalGlassShell email={session?.user?.email ?? null}>
+        {children}
+      </PersonalGlassShell>
     </div>
   );
 }

@@ -4,7 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Clapperboard, Loader2 } from "lucide-react";
+
+const DEMO_EMAIL = "demo@aivora.app";
+const DEMO_PASSWORD = "aivora2026";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,102 +18,104 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function doLogin(loginEmail: string, loginPassword: string) {
     setError("");
     setLoading(true);
-
     const result = await signIn("credentials", {
-      email,
-      password,
+      email: loginEmail,
+      password: loginPassword,
       redirect: false,
     });
-
     setLoading(false);
-
     if (result?.error) {
-      setError("邮箱或密码错误");
+      setError("账号或密码错误");
       return;
     }
-
     router.push(from);
     router.refresh();
   }
 
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    await doLogin(email, password);
+  }
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">登录</h1>
-        <p className="mt-1.5 text-sm text-muted-foreground">
-          Aivora · AI 短视频
-        </p>
+    <div className="space-y-7 text-center">
+      <div className="space-y-4">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+          <Clapperboard className="h-7 w-7 text-white" />
+        </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight text-white">
+            Aivora · 产品视频生成器
+          </h1>
+          <p className="mt-1.5 text-xs" style={{ color: "var(--glass-text-dim)" }}>
+            AI 创作工具 · 请登录后使用
+          </p>
+        </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-1.5">
-          <label
-            htmlFor="email"
-            className="block text-xs font-medium text-muted-foreground"
-          >
-            邮箱地址
-          </label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            placeholder="your@aivora.internal"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label
-            htmlFor="password"
-            className="flex items-center justify-between text-xs font-medium text-muted-foreground"
-          >
-            <span>密码</span>
-          </label>
-          <input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full rounded-md border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 transition-colors focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            placeholder="••••••••"
-          />
-        </div>
+      <form onSubmit={handleSubmit} className="space-y-3 text-left">
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+          className="glass-input"
+          placeholder="账号（邮箱）"
+        />
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="current-password"
+          className="glass-input"
+          placeholder="密码"
+        />
 
         {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2">
-            <p className="text-xs text-destructive">{error}</p>
-          </div>
+          <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
+            {error}
+          </p>
         )}
 
         <button
           type="submit"
           disabled={loading}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-primary py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="glass-btn-primary w-full py-2.5 text-sm tracking-[0.3em]"
         >
-          {loading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          {loading ? "登录中" : "登录"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {loading ? "登录中" : "登 录"}
         </button>
       </form>
 
-      <p className="text-center text-xs text-muted-foreground">
-        还没有账号？{" "}
-        <Link
-          href="/register"
-          className="text-primary underline-offset-4 hover:underline"
+      <div className="space-y-2">
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => doLogin(DEMO_EMAIL, DEMO_PASSWORD)}
+          className="glass-btn w-full text-xs"
         >
-          创建个人账号
-        </Link>
-      </p>
-      <p className="text-center text-[11px] text-muted-foreground">
-        商家账号请联系我们获得邀请
-      </p>
+          使用演示账号一键体验（{DEMO_EMAIL}）
+        </button>
+        <p className="text-[11px]" style={{ color: "var(--glass-text-dim)" }}>
+          登录后 7 天内免登录 · 账号问题请联系管理员
+        </p>
+        <p className="text-[11px]" style={{ color: "var(--glass-text-dim)" }}>
+          还没有账号？{" "}
+          <Link
+            href="/register"
+            className="text-sky-300 underline-offset-4 hover:underline"
+          >
+            创建个人账号
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

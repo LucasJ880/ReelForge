@@ -294,13 +294,15 @@ async function submitReal(
     process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
   const model = options.model || process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
 
-  const MAX = 2000;
+  const isSeedance2 = model.includes("seedance-2");
+
+  /// Seedance 2.0 官方建议英文 ≤1000 词（约 6000 字符）；多分镜时间轴 prompt 通常 2500-3300 字符。
+  /// Seedance 1.x 维持旧 2000 上限。
+  const MAX = isSeedance2 ? 4000 : 2000;
   const promptText =
     options.prompt.length > MAX
       ? options.prompt.slice(0, MAX).replace(/\s\S*$/, "")
       : options.prompt;
-
-  const isSeedance2 = model.includes("seedance-2");
   const images = options.referenceImageUrls?.filter(Boolean) ?? [];
   /// reference 模式仅在 Seedance 2 上有意义（多模态参考生视频）。
   const useReferenceMode = options.mode === "reference" && isSeedance2;

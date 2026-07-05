@@ -19,6 +19,7 @@ import {
   consumeCreatePrefill,
   uploadFilesToAssets,
 } from "@/components/personal/upload-assets";
+import { getStyleTemplate } from "@/lib/video-generation/style-templates";
 
 type CreateMode = "fast" | "director";
 type Duration = 15 | 30 | 60;
@@ -41,6 +42,9 @@ export function GlassCreateWorkflow({
   const [duration, setDuration] = useState<Duration>(15);
   const [ratio, setRatio] = useState<Ratio>("9:16");
   const [batchCount, setBatchCount] = useState(1);
+  const [styleTemplateId, setStyleTemplateId] = useState<string | null>(null);
+  const [lockIds, setLockIds] = useState<string[]>([]);
+  const [language, setLanguage] = useState("zh-CN");
 
   const [uploadingImages, setUploadingImages] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
@@ -72,6 +76,9 @@ export function GlassCreateWorkflow({
     if (prefill.prompt) setPrompt(prefill.prompt);
     if (prefill.duration) setDuration(prefill.duration);
     if (prefill.mode) setMode(prefill.mode);
+    if (prefill.styleTemplateId) setStyleTemplateId(prefill.styleTemplateId);
+    if (prefill.consistencyLockIds?.length) setLockIds(prefill.consistencyLockIds);
+    if (prefill.language) setLanguage(prefill.language);
     if (prefill.attachments?.length) {
       setImages(prefill.attachments.filter((a) => a.type === "IMAGE"));
       const video = prefill.attachments.find((a) => a.type === "VIDEO");
@@ -137,7 +144,9 @@ export function GlassCreateWorkflow({
       selectedAspectRatio: ratio,
       selectedBrandEndingMode: "none" as const,
       platform: "tiktok" as const,
-      language: "zh-CN",
+      language,
+      styleTemplateId,
+      consistencyLockIds: lockIds.length > 0 ? lockIds : null,
     };
   }
 
@@ -208,6 +217,7 @@ export function GlassCreateWorkflow({
   }
 
   const aiSegments = plan?.segments.filter((s) => s.type === "ai_generated_clip") ?? [];
+  const appliedTemplate = getStyleTemplate(styleTemplateId);
 
   return (
     <div className="space-y-4 pb-24">
@@ -377,6 +387,24 @@ export function GlassCreateWorkflow({
             <Clapperboard className="h-3.5 w-3.5" />
             导演分镜
           </button>
+          {appliedTemplate && (
+            <span className="glass-chip text-xs text-sky-200">
+              {appliedTemplate.icon} 风格模版：{appliedTemplate.name}
+              {lockIds.length > 0 && ` · ${lockIds.length} 项一致性锁`}
+              <button
+                type="button"
+                onClick={() => {
+                  setStyleTemplateId(null);
+                  setLockIds([]);
+                  log("已移除风格模版，回到自由创作");
+                }}
+                className="ml-1 text-white/60 hover:text-white"
+                aria-label="移除风格模版"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
         </div>
 
         <textarea

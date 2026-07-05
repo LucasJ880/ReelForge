@@ -22,6 +22,11 @@ import { randomUUID } from "node:crypto";
 import { classifyInput } from "@/lib/video-generation/input-classifier";
 import { classifyAsset } from "@/lib/video-generation/asset-classifier";
 import { buildCreativeBrief } from "@/lib/video-generation/creative-strategist";
+import { buildConsistencyBible } from "@/lib/video-generation/consistency-bible";
+import {
+  getConsistencyLocks,
+  getStyleTemplate,
+} from "@/lib/video-generation/style-templates";
 import { buildBrandPackagingPlan } from "@/lib/video-generation/brand-packaging";
 import { buildClipPlacementPlan } from "@/lib/video-generation/clip-placement-planner";
 import { planUnifiedSegments } from "@/lib/video-generation/segment-planner-adapter";
@@ -83,6 +88,21 @@ export async function buildPlan(
     brandPackaging: brandPackagingPlan,
   });
 
+  /// 5.4 风格模版（skill 模式）：后端固化的风格底盘 + 可叠加一致性锁
+  const styleTemplate = getStyleTemplate(request.styleTemplateId);
+  const consistencyLocks = getConsistencyLocks(request.consistencyLockIds);
+
+  /// 5.5 Consistency bible（跨镜头一致性锚：角色/场景/产品/光线弧，一次生成逐段复用）
+  const aiSlotCount = segmentSlots.filter((s) => s.source === "ai").length;
+  const consistencyBible = await buildConsistencyBible({
+    creativeBrief,
+    classification,
+    classifiedAssets,
+    aiSegmentCount: Math.max(1, aiSlotCount),
+    language: request.language ?? "en-US",
+    styleTemplate,
+  });
+
   /// 6. Per-segment prompts → VideoSegment[]
   const segments = await buildVideoSegments({
     creativeBrief,
@@ -90,6 +110,10 @@ export async function buildPlan(
     classifiedAssets,
     classification,
     aspectRatio: request.selectedAspectRatio,
+    consistencyBible,
+    language: request.language ?? "en-US",
+    styleTemplate,
+    consistencyLocks,
   });
 
   /// 7. Assembly plan
@@ -134,6 +158,7 @@ export async function buildPlan(
     inputClassification: classification,
     classifiedAssets,
     creativeBrief,
+    consistencyBible,
     segments,
     seedancePrompts,
     brandPackagingPlan,

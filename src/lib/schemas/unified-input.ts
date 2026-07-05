@@ -105,6 +105,10 @@ export const unifiedVideoGenerationRequestSchema = z.object({
   platform: targetPlatformSchema.nullable().optional(),
   brandKit: brandKitSchema.nullable().optional(),
   language: z.string().max(20).nullable().optional(),
+  /// 风格模版 ID（style-templates.ts；2026-07 skill 模式对齐同行）
+  styleTemplateId: z.string().max(60).nullable().optional(),
+  /// 一致性锁 ID 列表（可叠加）
+  consistencyLockIds: z.array(z.string().max(60)).max(8).nullable().optional(),
   advancedOptions: z.record(z.string(), z.unknown()).nullable().optional(),
   deliveryOrderId: z.string().nullable().optional(),
 });
@@ -268,11 +272,22 @@ export const planPreviewSchema = z.object({
   }),
 });
 
+/** 跨镜头一致性圣经（2026-07 质量对齐新增；旧 plan 缺省兼容） */
+export const consistencyBibleSchema = z.object({
+  characterProfile: z.string(),
+  environmentProfile: z.string(),
+  productDescription: z.string(),
+  lightingArc: z.array(z.string()),
+  voiceProfile: z.string().nullable(),
+  styleKeywords: z.string(),
+});
+
 export const videoGenerationPlanSchema = z.object({
   id: z.string(),
   inputClassification: inputClassificationSchema,
   classifiedAssets: z.array(uploadedAssetSchema),
   creativeBrief: creativeBriefSchema,
+  consistencyBible: consistencyBibleSchema.nullable().optional(),
   segments: z.array(videoSegmentSchema),
   seedancePrompts: z.array(
     z.object({

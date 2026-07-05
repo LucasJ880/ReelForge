@@ -119,6 +119,10 @@ export interface UnifiedVideoGenerationRequest {
   brandKit?: BrandKit | null;
   /// 可选：language hint，例如 "zh-CN" / "en-US"；默认走 platform 推断
   language?: string | null;
+  /// 风格模版 ID（style-templates.ts；skill 模式，后端注入视觉/镜头/台词风格）
+  styleTemplateId?: string | null;
+  /// 一致性锁 ID 列表（可叠加追加 prompt 约束）
+  consistencyLockIds?: string[] | null;
   /// Phase 1 不开放高级选项；保留字段
   advancedOptions?: Record<string, unknown> | null;
   /// 关联到已有 DeliveryOrder（continuation 场景）；缺省时 supervisor 会新建
@@ -140,6 +144,29 @@ export interface InputClassification {
   /// 缺失但建议补齐的字段（如 "missing logo for auto end card"）
   missingFields: string[];
   warnings: string[];
+}
+
+// ---------- Consistency bible（跨镜头一致性锚点） ----------
+
+/**
+ * 全片一致性圣经：在 plan 阶段生成一次，之后逐段 prompt 里**逐字复用**，
+ * 保证多镜头/多段生成时人物、场景、产品、光线弧完全一致。
+ * 这是对齐同行成片质量的核心机制（同行用「角色板+产品板」，我们用
+ * 文字锚 + Omni-Reference 参考图双保险）。
+ */
+export interface ConsistencyBible {
+  /// 主角完整外观描述（性别/年龄/发型/肤色/服装/气质），每段 prompt 逐字引用
+  characterProfile: string;
+  /// 场景环境描述（空间/家具/窗景/色调），每段 prompt 逐字引用
+  environmentProfile: string;
+  /// 产品视觉描述（颜色/材质/形态/尺寸感），与参考图互为锚定
+  productDescription: string;
+  /// 光线叙事弧：按 segment 顺序描述光线如何推进故事（如「刺眼晨光→全黑→柔和晨光」）
+  lightingArc: string[];
+  /// 口播语言与声线（如 "en-US, casual excited female voice"）；null = 无口播
+  voiceProfile: string | null;
+  /// 全片统一风格关键词（如 "authentic handheld phone footage, realistic skin texture"）
+  styleKeywords: string;
 }
 
 // ---------- Creative brief ----------
@@ -323,6 +350,8 @@ export interface VideoGenerationPlan {
   /// 资产分类副本（asset-classifier 输出，UI 也展示）
   classifiedAssets: UploadedAsset[];
   creativeBrief: CreativeBrief;
+  /// 跨镜头一致性圣经（2026-07 质量对齐新增；旧 plan 可能缺省）
+  consistencyBible?: ConsistencyBible | null;
   segments: VideoSegment[];
   /// supervisor 维护的"最终发给 Seedance 的 prompts"快照（按 segment 顺序）
   seedancePrompts: Array<{

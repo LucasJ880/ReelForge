@@ -95,6 +95,12 @@ export interface CreatePrefill {
   duration?: 15 | 30 | 60;
   attachments?: UploadedAsset[];
   mode?: "fast" | "director";
+  /// 风格模版 ID（style-templates.ts；后端 skill 模式）
+  styleTemplateId?: string;
+  /// 一致性锁 ID 列表
+  consistencyLockIds?: string[];
+  /// 口播语言（如 "zh-CN"）
+  language?: string;
 }
 
 const PREFILL_KEY = "aivora.createPrefill";

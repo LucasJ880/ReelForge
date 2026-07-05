@@ -1,8 +1,17 @@
 /**
- * Phase 5 — Prompt Intelligence Engine.
+ * Phase 5 — Prompt Intelligence Engine（2026-07 质量对齐重写）。
  *
- * 输入：CreativeBrief + UnifiedSegmentSlot[] + classifiedAssets + brandKit + classification
+ * 输入：CreativeBrief + ConsistencyBible + UnifiedSegmentSlot[] + classifiedAssets + classification
  * 输出：VideoSegment[]
+ *
+ * 对齐同行成片质量的核心改造：
+ *  1. 单段 prompt 不再是「一个镜头晃 15 秒」，而是 Seedance 2.0 官方推荐的
+ *     **时间戳分镜格式**（0-3s / 3-5s / ...），一个 15s 段内含 4-6 个剪辑点，
+ *     叙事结构 = 痛点钩子 → 引入 → 展示 → 反差/高光 → 卖点 → 收尾。
+ *  2. 每段 prompt 头部**逐字注入** ConsistencyBible（角色/场景/产品锚），
+ *     跨段人物、场景、产品完全一致（同行用角色板/产品板，我们文字锚+参考图双保险）。
+ *  3. 每个分镜可带台词（Dialogue），配合 Seedance 2.0 generate_audio 产出原生口播。
+ *  4. 光线弧（lightingArc）按段推进，光线本身讲故事。
  *
  * 路径：
  *  - isLLMForcedMock() / isLLMAvailable()==false → 启发式
@@ -17,11 +26,14 @@ import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/providers
 import { effectiveAssetRole } from "@/types/video-generation";
 import type {
   AspectRatio,
+  ConsistencyBible,
   CreativeBrief,
   InputClassification,
   UploadedAsset,
   VideoSegment,
 } from "@/types/video-generation";
+import { heuristicBible } from "@/lib/video-generation/consistency-bible";
+import type { ConsistencyLock, StyleTemplate } from "@/lib/video-generation/style-templates";
 import { resolutionForAspectRatio, type UnifiedSegmentSlot } from "@/lib/video-generation/segment-planner-adapter";
 
 const SEEDANCE_BRAND_GUARD_RULE = `
@@ -33,33 +45,45 @@ ABSOLUTE BRAND CONSTRAINT (most important rule, never violate):
 - Negative prompts MUST include: "no logo, no brand text, no URLs, no readable text, no QR codes, no watermarks".
 `.trim();
 
-const PROMPT_INTELLIGENCE_SYSTEM_PROMPT = `You are an AI video prompt engineer for short-form ads.
+const PROMPT_INTELLIGENCE_SYSTEM_PROMPT = `You are a short-form ad director writing shot lists for an AI video model (Seedance 2.0). Each video segment (max 15s) is generated as ONE task, but must contain MULTIPLE quick cuts told with timestamps — this is what makes the result feel like a real edited ad instead of one boring continuous shot.
 
-Given a CreativeBrief and a list of segment slots (each with a role and duration), produce a JSON array of segment prompts:
+You are given a consistency bible (character / location / product / lighting arc). The bible is injected into the final prompt automatically — do NOT restate it inside shot descriptions; just make sure your shots are consistent with it.
 
-[
-  {
-    "segmentOrder": 0,
-    "seedancePrompt": "concrete, sensory description of what is on screen during this segment",
-    "negativePrompt": "things to avoid",
-    "cameraDirection": "static | dolly-in | handheld | tracking | overhead | crane",
-    "visualDirection": "lighting + color grade + mood",
-    "continuityNotes": "what visual elements must stay consistent with previous segment"
-  }
-]
+For EACH segment slot, return:
 
-PROMPT QUALITY RULES:
-1. Each seedancePrompt MUST be specific: subject + setting + lighting + camera + texture + emotional cue.
-2. Never use vague filler: amazing, revolutionary, premium, next-level, transform.
-3. Each segment is at most 15 seconds; keep prompts tight.
-4. Reference uploaded product images by saying "the uploaded product photo" — do NOT include URLs.
+{
+  "segmentOrder": 0,
+  "shots": [
+    { "fromSec": 0, "toSec": 3, "visual": "concrete action + framing, max 22 words", "camera": "handheld selfie | phone propped on desk | close-up pan | whip cut | slow push-in | overhead", "dialogue": "spoken line in the target language, or empty string" }
+  ],
+  "negativePrompt": "things to avoid",
+  "cameraDirection": "dominant camera style of this segment",
+  "visualDirection": "lighting + color grade + mood",
+  "continuityNotes": "what must stay identical with the previous segment"
+}
+
+SHOT LIST RULES (critical for quality):
+1. A 15s segment needs 4-6 shots; a 10s segment 3-4; a 5s segment 2-3. Timestamps must tile the full duration exactly, no gaps.
+2. Story structure inside each segment: pain-point hook (first 2s MUST grab attention) → product enters → demonstration/transformation → payoff. Use before/after contrast where possible.
+3. dialogue: natural spoken language, like a real person talking to camera — contractions, casual, NEVER ad-copy. Total spoken words per segment must fit the duration (~2.3 words/sec English, ~3.5 chars/sec Chinese). Some shots can have empty dialogue for visual beats.
+4. visual: concrete and physical — what the viewer literally sees (subject + action + framing). Never abstract ("shows the benefit") or vague filler (amazing, premium, revolutionary).
+5. If product reference images are provided, at least half the shots must feature the product; write "the product (match the reference images exactly)" when it appears.
+6. Emotion on the character's face matters: annoyed, surprised, delighted, relieved — direct it explicitly.
 
 ${SEEDANCE_BRAND_GUARD_RULE}
 
-Output JSON only. Array length MUST match the number of segment slots provided.`;
+Output JSON only, in this exact envelope: {"segments": [ ...one entry per segment slot, same order... ]}`;
 
 const DEFAULT_NEGATIVE_PROMPT =
-  "low quality, blurry, distorted hands, text artifacts, watermark, no logo, no brand text, no URLs, no readable text, no QR codes";
+  "low quality, blurry, distorted hands, extra fingers, morphing face, inconsistent character, text artifacts, watermark, no logo, no brand text, no URLs, no readable text, no QR codes";
+
+export interface ShotLine {
+  fromSec: number;
+  toSec: number;
+  visual: string;
+  camera: string;
+  dialogue: string;
+}
 
 export interface BuildSegmentPromptsArgs {
   creativeBrief: CreativeBrief;
@@ -67,6 +91,14 @@ export interface BuildSegmentPromptsArgs {
   classifiedAssets: UploadedAsset[];
   classification: InputClassification;
   aspectRatio: AspectRatio;
+  /// 跨镜头一致性圣经；缺省时用启发式兜底（兼容旧调用方/测试）
+  consistencyBible?: ConsistencyBible | null;
+  /// 口播/台词语言（如 "zh-CN" / "en-US"），默认英文
+  language?: string;
+  /// 风格模版（skill 模式）：约束分镜结构/镜头语言/台词口吻
+  styleTemplate?: StyleTemplate | null;
+  /// 一致性锁：逐字追加到每段 prompt 的约束行
+  consistencyLocks?: ConsistencyLock[];
 }
 
 export interface SegmentPromptResult {
@@ -86,12 +118,22 @@ export async function buildVideoSegments(
 ): Promise<VideoSegment[]> {
   const aiSlots = args.segmentSlots.filter((s) => s.source === "ai");
 
+  const bible =
+    args.consistencyBible ??
+    heuristicBible({
+      creativeBrief: args.creativeBrief,
+      classification: args.classification,
+      classifiedAssets: args.classifiedAssets,
+      aiSegmentCount: Math.max(1, aiSlots.length),
+      language: args.language ?? "en-US",
+    });
+
   const aiPrompts =
     aiSlots.length === 0
       ? []
       : isLLMForcedMock() || !isLLMAvailable()
-        ? heuristicSegmentPrompts(args, aiSlots)
-        : await tryLLMSegmentPrompts(args, aiSlots);
+        ? heuristicSegmentPrompts(args, aiSlots, bible)
+        : await tryLLMSegmentPrompts(args, aiSlots, bible);
 
   const segments: VideoSegment[] = [];
 
@@ -155,8 +197,19 @@ export async function buildVideoSegments(
       role: roleFromSlot(slot.role),
       durationSeconds: slot.durationSec,
       purpose: descriptionForRole(slot.role, args.creativeBrief),
-      prompt: promptRow?.seedancePrompt ?? heuristicSinglePrompt(slot, args),
-      negativePrompt: promptRow?.negativePrompt ?? DEFAULT_NEGATIVE_PROMPT,
+      prompt:
+        promptRow?.seedancePrompt ??
+        composeSeedancePrompt({
+          bible,
+          shots: heuristicShotList(slot, args, bible),
+          slot,
+          args,
+          segIdxInAi: Math.max(0, aiOrderInSlots),
+        }),
+      negativePrompt: withLockNegatives(
+        promptRow?.negativePrompt ?? DEFAULT_NEGATIVE_PROMPT,
+        args.consistencyLocks,
+      ),
       sourceAssetIds: relevantReferenceAssetIds(args),
       uploadedAssetId: null,
       cameraDirection: promptRow?.cameraDirection ?? "handheld",
@@ -168,34 +221,137 @@ export async function buildVideoSegments(
   return segments;
 }
 
+// ---------------------------------------------------------------------------
+// 最终 prompt 组装（确定性代码，保证 bible 逐字一致，不依赖 LLM 抄写）
+// ---------------------------------------------------------------------------
+
+/// Seedance 英文建议 ≤1000 词；这里给最终 prompt 一个安全字符预算
+const PROMPT_CHAR_BUDGET = 3300;
+
+function orientationLabel(aspect: AspectRatio): string {
+  return aspect === "9:16"
+    ? "9:16 vertical"
+    : aspect === "16:9"
+      ? "16:9 horizontal"
+      : "1:1 square";
+}
+
+function composeSeedancePrompt(params: {
+  bible: ConsistencyBible;
+  shots: ShotLine[];
+  slot: UnifiedSegmentSlot;
+  args: BuildSegmentPromptsArgs;
+  /// 该段在 AI 段序列中的序号（取 lightingArc 用）
+  segIdxInAi: number;
+}): string {
+  const { bible, shots, slot, args, segIdxInAi } = params;
+  const orientation = orientationLabel(args.aspectRatio);
+  const hasProductRefs = args.classifiedAssets.some((a) => {
+    const r = effectiveAssetRole(a);
+    return r === "product_image" || r === "reference_image";
+  });
+  const lighting =
+    bible.lightingArc[segIdxInAi] ?? bible.lightingArc[bible.lightingArc.length - 1] ?? "";
+
+  const shotLines = shots
+    .map((s) => {
+      const dialogue = s.dialogue.trim()
+        ? ` Dialogue (spoken to camera): "${s.dialogue.trim()}"`
+        : "";
+      const camera = s.camera.trim() ? ` Camera: ${s.camera.trim()}.` : "";
+      return `${s.fromSec}-${s.toSec}s: ${s.visual.trim().replace(/\.*$/, "")}.${camera}${dialogue}`;
+    })
+    .join("\n");
+
+  const hasDialogue = shots.some((s) => s.dialogue.trim().length > 0);
+  const audioLine = hasDialogue
+    ? `Audio: natural voiceover speaking the quoted dialogue lines (${bible.voiceProfile ?? "casual natural voice"}), real room ambience, no background music.`
+    : "Audio: real environment ambience only, no background music, no narration.";
+
+  const productLine = hasProductRefs
+    ? `PRODUCT (must exactly match the reference images): ${bible.productDescription}`
+    : `PRODUCT: ${bible.productDescription}`;
+
+  /// 风格模版决定「片头定性句」：商业质感模版不再自称 UGC 手机拍摄
+  const isCommercialStyle =
+    params.args.styleTemplate != null && params.args.styleTemplate.scaffold.dialogueStyle == null;
+  const openingLine = isCommercialStyle
+    ? `${orientation} premium commercial product video, ${slot.durationSec}s story told in ${shots.length} precisely edited cuts.`
+    : `${orientation} UGC-style short video shot on a phone, ${slot.durationSec}s continuous story told in ${shots.length} quick cuts.`;
+
+  const lockLines = (params.args.consistencyLocks ?? [])
+    .map((l) => l.promptFragment)
+    .join("\n");
+
+  /// 纯产品质感模版（无角色 hint 且无口播）→ 不写 CHARACTER 行，产品即唯一主角
+  const productOnly =
+    params.args.styleTemplate != null &&
+    !params.args.styleTemplate.scaffold.characterHint &&
+    params.args.styleTemplate.scaffold.dialogueStyle == null;
+  const characterLine = productOnly
+    ? "NO on-camera person: the product is the only hero of every shot."
+    : `CHARACTER (keep 100% identical in every cut): ${bible.characterProfile}`;
+
+  const prompt = [
+    openingLine,
+    "",
+    characterLine,
+    `LOCATION: ${bible.environmentProfile}`,
+    productLine,
+    `LIGHTING: ${lighting}`,
+    ...(lockLines ? ["", lockLines] : []),
+    "",
+    shotLines,
+    "",
+    audioLine,
+    `Style: ${bible.styleKeywords}`,
+  ].join("\n");
+
+  return prompt.length > PROMPT_CHAR_BUDGET
+    ? prompt.slice(0, PROMPT_CHAR_BUDGET).replace(/\s\S*$/, "")
+    : prompt;
+}
+
+// ---------------------------------------------------------------------------
+// LLM 路径
+// ---------------------------------------------------------------------------
+
 async function tryLLMSegmentPrompts(
   args: BuildSegmentPromptsArgs,
   aiSlots: UnifiedSegmentSlot[],
+  bible: ConsistencyBible,
 ): Promise<SegmentPromptResult[]> {
   try {
-    const userPrompt = buildLLMUserPrompt(args, aiSlots);
+    const userPrompt = buildLLMUserPrompt(args, aiSlots, bible);
     const { data } = await chatJsonByTier<unknown>({
       tier: "videoPrompt",
       stage: "unified_segment_prompts",
       system: PROMPT_INTELLIGENCE_SYSTEM_PROMPT,
       user: userPrompt,
       temperature: 0.7,
-      maxTokens: 3000,
+      maxTokens: 4000,
     });
 
     /// LLM 可能直接返回 array 也可能包裹在 { prompts: [...] }
     const arr = extractArray(data);
     if (!arr) {
       console.warn("[prompt-intelligence] LLM did not return array; falling back");
-      return heuristicSegmentPrompts(args, aiSlots);
+      return heuristicSegmentPrompts(args, aiSlots, bible);
     }
 
     return aiSlots.map((slot, i) => {
       const raw = arr[i] && typeof arr[i] === "object" ? (arr[i] as Record<string, unknown>) : {};
+      const shots = normalizeShots(raw.shots, slot.durationSec);
       const seedancePrompt =
-        typeof raw.seedancePrompt === "string" && raw.seedancePrompt.trim().length > 0
-          ? raw.seedancePrompt
-          : heuristicSinglePrompt(slot, args);
+        shots.length > 0
+          ? composeSeedancePrompt({ bible, shots, slot, args, segIdxInAi: i })
+          : composeSeedancePrompt({
+              bible,
+              shots: heuristicShotList(slot, args, bible),
+              slot,
+              args,
+              segIdxInAi: i,
+            });
       return {
         segmentOrder: i,
         seedancePrompt,
@@ -218,16 +374,59 @@ async function tryLLMSegmentPrompts(
       "[prompt-intelligence] LLM failed; falling back to heuristic:",
       (err as Error).message,
     );
-    return heuristicSegmentPrompts(args, aiSlots);
+    return heuristicSegmentPrompts(args, aiSlots, bible);
   }
+}
+
+/** 校验 + 修正 LLM 返回的 shot list：时间轴必须铺满时长、字段齐全 */
+function normalizeShots(raw: unknown, durationSec: number): ShotLine[] {
+  if (!Array.isArray(raw) || raw.length === 0) return [];
+  const shots: ShotLine[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const o = item as Record<string, unknown>;
+    const visual = typeof o.visual === "string" ? o.visual.trim() : "";
+    if (!visual) continue;
+    shots.push({
+      fromSec: Number(o.fromSec) || 0,
+      toSec: Number(o.toSec) || 0,
+      visual,
+      camera: typeof o.camera === "string" ? o.camera : "",
+      dialogue: typeof o.dialogue === "string" ? o.dialogue : "",
+    });
+  }
+  if (shots.length === 0) return [];
+
+  /// 重铺时间轴：按 LLM 给的相对时长比例归一到 [0, durationSec]，杜绝缺口/溢出
+  const weights = shots.map((s) => Math.max(1, s.toSec - s.fromSec));
+  const total = weights.reduce((a, b) => a + b, 0);
+  let cursor = 0;
+  for (let i = 0; i < shots.length; i++) {
+    const span =
+      i === shots.length - 1
+        ? durationSec - cursor
+        : Math.max(1, Math.round((weights[i] / total) * durationSec));
+    shots[i].fromSec = cursor;
+    shots[i].toSec = Math.min(durationSec, cursor + span);
+    cursor = shots[i].toSec;
+  }
+  shots[shots.length - 1].toSec = durationSec;
+  return shots.filter((s) => s.toSec > s.fromSec);
 }
 
 function extractArray(data: unknown): unknown[] | null {
   if (Array.isArray(data)) return data;
   if (data && typeof data === "object") {
     const obj = data as Record<string, unknown>;
-    if (Array.isArray(obj.prompts)) return obj.prompts as unknown[];
-    if (Array.isArray(obj.segments)) return obj.segments as unknown[];
+    /// 单 segment 时 LLM 常直接返回一个 entry 对象（含 shots 字段）
+    if (Array.isArray(obj.shots)) return [obj];
+    for (const key of ["prompts", "segments", "segmentPrompts", "results", "entries", "output"]) {
+      if (Array.isArray(obj[key])) return obj[key] as unknown[];
+    }
+    /// 兜底：对象里第一个「对象数组」值
+    for (const v of Object.values(obj)) {
+      if (Array.isArray(v) && v.length > 0 && typeof v[0] === "object") return v;
+    }
   }
   return null;
 }
@@ -235,11 +434,12 @@ function extractArray(data: unknown): unknown[] | null {
 function buildLLMUserPrompt(
   args: BuildSegmentPromptsArgs,
   aiSlots: UnifiedSegmentSlot[],
+  bible: ConsistencyBible,
 ): string {
   const slotSummary = aiSlots
     .map(
       (s, i) =>
-        `  - slot ${i}: role=${s.role} duration=${s.durationSec}s`,
+        `  - slot ${i}: role=${s.role} duration=${s.durationSec}s lighting="${bible.lightingArc[i] ?? ""}"`,
     )
     .join("\n");
 
@@ -251,72 +451,172 @@ function buildLLMUserPrompt(
     .map((a) => `  - ${a.fileName} (${effectiveAssetRole(a)})`)
     .join("\n");
 
+  const tpl = args.styleTemplate;
+  const templateSection = tpl
+    ? `
+# LOCKED STYLE TEMPLATE: "${tpl.name}" (obey strictly)
+- shot pattern to follow (adapt to the brief, keep the structure): ${tpl.scaffold.shotPattern}
+- camera language to use: ${tpl.scaffold.cameraLanguage}
+- ${tpl.scaffold.dialogueStyle ? `dialogue style: ${tpl.scaffold.dialogueStyle}` : "NO dialogue in any shot (pure visual style): every shot's dialogue must be an empty string"}
+`
+    : "";
+
   return `# Creative brief
 ${JSON.stringify(args.creativeBrief, null, 2)}
+${templateSection}
+# Consistency bible (already injected into the final prompt — keep your shots consistent with it)
+${JSON.stringify(bible, null, 2)}
 
 # Segment slots to fill (return one entry per slot, in the same order)
 ${slotSummary}
 
-# Reference assets (passed to Seedance as first-frame references; do NOT include URLs)
+# Product reference images (passed to the video model; do NOT include URLs)
 ${referenceAssets || "  (none)"}
 
 # Output spec
 aspect_ratio: ${args.aspectRatio}
 generation_mode: ${args.classification.generationMode}
+dialogue_language: ${args.language ?? "en-US"}
 
-Return a JSON array now.`;
+Return the JSON array now.`;
 }
+
+// ---------------------------------------------------------------------------
+// 启发式路径（mock / LLM 故障兜底）
+// ---------------------------------------------------------------------------
 
 /** 启发式 prompt 生成器 —— 无 LLM / mock / LLM 失败时使用 */
 export function heuristicSegmentPrompts(
   args: BuildSegmentPromptsArgs,
   aiSlots: UnifiedSegmentSlot[],
+  bible?: ConsistencyBible,
 ): SegmentPromptResult[] {
+  const b =
+    bible ??
+    heuristicBible({
+      creativeBrief: args.creativeBrief,
+      classification: args.classification,
+      classifiedAssets: args.classifiedAssets,
+      aiSegmentCount: Math.max(1, aiSlots.length),
+      language: args.language ?? "en-US",
+    });
   return aiSlots.map((slot, i) => ({
     segmentOrder: i,
-    seedancePrompt: heuristicSinglePrompt(slot, args),
+    seedancePrompt: composeSeedancePrompt({
+      bible: b,
+      shots: heuristicShotList(slot, args, b),
+      slot,
+      args,
+      segIdxInAi: i,
+    }),
     negativePrompt: DEFAULT_NEGATIVE_PROMPT,
-    cameraDirection: i === 0 ? "slow dolly-in" : "handheld over-the-shoulder",
-    visualDirection: "warm natural light, real setting, soft color grade",
+    cameraDirection: i === 0 ? "handheld selfie" : "handheld over-the-shoulder",
+    visualDirection: b.lightingArc[i] ?? "warm natural light, real setting",
     continuityNotes:
       i === 0 ? "Establish look and tone" : `Continue look from slot ${i - 1}`,
   }));
 }
 
-function heuristicSinglePrompt(
+/** 按 role + 时长生成一个合理的多分镜列表（结构对齐同行：钩子→引入→展示→反差→收尾） */
+function heuristicShotList(
   slot: UnifiedSegmentSlot,
   args: BuildSegmentPromptsArgs,
-): string {
-  const productAsset = args.classifiedAssets.find(
-    (a) => effectiveAssetRole(a) === "product_image",
-  );
-  const subject =
-    productAsset?.fileName.replace(/\.[a-z0-9]+$/i, "").replace(/[-_]/g, " ") ??
-    subjectFromBrief(args.creativeBrief);
+  bible: ConsistencyBible,
+): ShotLine[] {
+  const subject = subjectFromBrief(args.creativeBrief);
+  const d = slot.durationSec;
 
-  const orientation =
-    args.aspectRatio === "9:16"
-      ? "9:16 vertical"
-      : args.aspectRatio === "16:9"
-        ? "16:9 horizontal"
-        : "1:1 square";
-
-  switch (slot.role) {
-    case "hook":
-      return `${orientation} cinematic close-up that captures attention in the first 2 seconds. ${args.creativeBrief.hook} Real environment, warm natural light, shallow depth of field.`;
-    case "demo":
-      return `${orientation} clean demonstration of ${subject} in real use. Hands of a real person interacting naturally, eye-level handheld camera, soft daylight.`;
-    case "lifestyle":
-      return `${orientation} lifestyle moment featuring ${subject} integrated into a daily routine. Natural environment, candid framing, warm color grade.`;
-    case "benefit":
-      return `${orientation} visual proof of the core benefit: ${args.creativeBrief.corePainPoint}. Concrete, sensory, no taglines.`;
-    case "cta":
-      return `${orientation} clean closing shot with negative space on the right for caption overlay. Subject framed centrally, soft spotlight, calm energy.`;
-    case "intro":
-      return `${orientation} establishing shot setting the scene. Wide framing, gentle motion, warm light.`;
-    default:
-      return `${orientation} cinematic shot of ${subject}, real setting, warm light.`;
+  /// 短段（≤6s）：2-3 镜；标准 15s：5 镜
+  if (d <= 6) {
+    return retile(
+      [
+        {
+          visual: `close-up of the character reacting with visible emotion to ${args.creativeBrief.corePainPoint}`,
+          camera: "handheld selfie",
+          dialogue: "",
+        },
+        {
+          visual: `the character holds up the product to camera, genuine delighted expression`,
+          camera: "phone propped at eye level",
+          dialogue: "",
+        },
+      ],
+      d,
+    );
   }
+
+  const base: Array<Omit<ShotLine, "fromSec" | "toSec">> = [
+    {
+      visual: `tight close-up on the character's face showing frustration with ${args.creativeBrief.corePainPoint}, mid-reaction`,
+      camera: "handheld selfie, slightly shaky",
+      dialogue: hookLine(args),
+    },
+    {
+      visual: "the character grabs the product and shows it to camera, quick natural move",
+      camera: "whip cut to phone propped on furniture",
+      dialogue: "",
+    },
+    {
+      visual: `the character uses the product exactly as intended, hands clearly visible interacting with it`,
+      camera: "close-up pan following the hands",
+      dialogue: benefitLine(args),
+    },
+    {
+      visual: `the visible before/after payoff of using ${subject}, character reacts with surprise and relief`,
+      camera: "slow push-in on the result",
+      dialogue: "",
+    },
+    {
+      visual: "the character settles back relaxed and satisfied, natural smile at camera, calm closing energy",
+      camera: "static phone framing, centered",
+      dialogue: closeLine(args),
+    },
+  ];
+  void bible;
+  return retile(base, d);
+}
+
+/** 把无时间戳的镜头列表按均匀权重铺满 duration */
+function retile(
+  shots: Array<Omit<ShotLine, "fromSec" | "toSec">>,
+  durationSec: number,
+): ShotLine[] {
+  const out: ShotLine[] = [];
+  let cursor = 0;
+  for (let i = 0; i < shots.length; i++) {
+    const remaining = shots.length - i;
+    const span =
+      i === shots.length - 1
+        ? durationSec - cursor
+        : Math.max(1, Math.round((durationSec - cursor) / remaining));
+    out.push({ ...shots[i], fromSec: cursor, toSec: cursor + span });
+    cursor += span;
+  }
+  return out.filter((s) => s.toSec > s.fromSec);
+}
+
+function isZh(args: BuildSegmentPromptsArgs): boolean {
+  return (args.language ?? "").toLowerCase().startsWith("zh");
+}
+
+function hookLine(args: BuildSegmentPromptsArgs): string {
+  return isZh(args)
+    ? "又来了，真的受不了了"
+    : "okay this was driving me CRAZY";
+}
+
+function benefitLine(args: BuildSegmentPromptsArgs): string {
+  const point = args.creativeBrief.keySellingPoints[0] ?? "it just works";
+  return isZh(args) ? `就这一下，问题直接解决` : `look at this — ${truncateWords(point, 8)}`;
+}
+
+function closeLine(args: BuildSegmentPromptsArgs): string {
+  return isZh(args) ? "早点买就好了" : "why did I wait so long for this";
+}
+
+function truncateWords(text: string, maxWords: number): string {
+  const words = text.split(/\s+/);
+  return words.length <= maxWords ? text : words.slice(0, maxWords).join(" ");
 }
 
 function subjectFromBrief(brief: CreativeBrief): string {
@@ -324,6 +624,15 @@ function subjectFromBrief(brief: CreativeBrief): string {
     return brief.keySellingPoints[0];
   }
   return "the product";
+}
+
+/** 一致性锁的 negative 片段追加（去重靠简单包含判断） */
+function withLockNegatives(negative: string, locks?: ConsistencyLock[]): string {
+  const frags = (locks ?? [])
+    .map((l) => l.negativeFragment)
+    .filter((f): f is string => !!f && !negative.includes(f));
+  if (frags.length === 0) return negative;
+  return `${negative}, ${frags.join(", ")}`;
 }
 
 function appendBrandGuard(negative: string): string {
@@ -378,7 +687,9 @@ function estimateUploadedDuration(
 
 export const __test__ = {
   heuristicSegmentPrompts,
-  heuristicSinglePrompt,
+  composeSeedancePrompt,
+  heuristicShotList,
+  normalizeShots,
   appendBrandGuard,
   subjectFromBrief,
   DEFAULT_NEGATIVE_PROMPT,

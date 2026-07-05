@@ -148,6 +148,10 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
     data: { status: VideoJobStatus.CANCELLED },
   });
 
+  /// 产品/参考图以 Seedance 2.0 Omni-Reference 模式随每段下发（跨镜头产品一致性锚）。
+  /// 同行靠「产品板」图片锚定产品外观；我们等价传用户上传的产品图（最多 4 张）。
+  const referenceImageUrls = (brief.referenceImageUrls ?? []).slice(0, 4);
+
   const created: Awaited<ReturnType<typeof submitSegmentJob>>[] = [];
   for (const segment of plan.segmentPlan) {
     const result = await submitSegmentJob({
@@ -156,6 +160,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
       aspectRatio: brief.aspectRatio,
       segment,
       segmentCount: plan.segmentPlan.length,
+      referenceImageUrls,
     });
     created.push(result);
   }
@@ -170,8 +175,11 @@ async function submitSegmentJob(params: {
   aspectRatio: string;
   segment: SegmentPlan;
   segmentCount: number;
+  /// 产品参考图（Omni-Reference 模式传给 Seedance 2.0，产品外观跨镜头一致）
+  referenceImageUrls?: string[];
 }) {
-  const { briefId, finalVideoId, aspectRatio, segment, segmentCount } = params;
+  const { briefId, finalVideoId, aspectRatio, segment, segmentCount, referenceImageUrls } =
+    params;
 
   const job = await db.videoJob.create({
     data: {
@@ -186,10 +194,16 @@ async function submitSegmentJob(params: {
 
   try {
     const submittedAt = new Date();
+    const hasRefs = (referenceImageUrls?.length ?? 0) > 0;
     const { jobId } = await submitSeedanceJobResilient({
       prompt: segment.seedancePrompt,
       duration: segment.durationSec,
       ratio: aspectRatio,
+      /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
+      referenceImageUrls: hasRefs ? referenceImageUrls : undefined,
+      mode: hasRefs ? "reference" : undefined,
+      /// 质量对齐：显式要求 1080p（Seedance 2.0 默认更低档位）
+      resolution: "1080p",
       mockHints: {
         briefId,
         segmentIndex: segment.segmentIndex,

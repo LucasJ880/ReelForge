@@ -6,7 +6,6 @@ import { signOut, useSession } from "next-auth/react";
 import {
   Bot,
   Clapperboard,
-  Zap,
   Film,
   NotebookText,
   LogOut,
@@ -24,12 +23,6 @@ interface NavItem {
 const NAV: NavItem[] = [
   { href: "/personal/agent", label: "Agent", icon: Bot },
   { href: "/personal/create-video", label: "创作", icon: Clapperboard },
-  {
-    href: "/personal/create-video?mode=director",
-    match: "__never__",
-    label: "导演分镜",
-    icon: Zap,
-  },
   { href: "/personal/videos", label: "成片库", icon: Film },
   { href: "/personal/templates", label: "提示词库", icon: NotebookText },
 ];

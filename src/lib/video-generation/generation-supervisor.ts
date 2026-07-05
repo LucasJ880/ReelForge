@@ -27,6 +27,7 @@ import {
   getConsistencyLocks,
   getStyleTemplate,
 } from "@/lib/video-generation/style-templates";
+import { analyzeVisualReferences } from "@/lib/video-generation/visual-reference-analysis";
 import { buildBrandPackagingPlan } from "@/lib/video-generation/brand-packaging";
 import { buildClipPlacementPlan } from "@/lib/video-generation/clip-placement-planner";
 import { planUnifiedSegments } from "@/lib/video-generation/segment-planner-adapter";
@@ -92,6 +93,10 @@ export async function buildPlan(
   const styleTemplate = getStyleTemplate(request.styleTemplateId);
   const consistencyLocks = getConsistencyLocks(request.consistencyLockIds);
 
+  /// 5.45 参考图视觉分析：GPT-4o 真正「看」参考图，提取真实门店/产品实拍细节，
+  /// 让文字锚（bible/prompt）和 Omni-Reference 图片锚描述同一个真实场景
+  const visualRefs = await analyzeVisualReferences(classifiedAssets, request.rawPrompt);
+
   /// 5.5 Consistency bible（跨镜头一致性锚：角色/场景/产品/光线弧，一次生成逐段复用）
   const aiSlotCount = segmentSlots.filter((s) => s.source === "ai").length;
   const consistencyBible = await buildConsistencyBible({
@@ -101,6 +106,7 @@ export async function buildPlan(
     aiSegmentCount: Math.max(1, aiSlotCount),
     language: request.language ?? "en-US",
     styleTemplate,
+    visualRefs,
   });
 
   /// 6. Per-segment prompts → VideoSegment[]
@@ -114,6 +120,7 @@ export async function buildPlan(
     language: request.language ?? "en-US",
     styleTemplate,
     consistencyLocks,
+    visualRefs,
   });
 
   /// 7. Assembly plan

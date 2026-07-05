@@ -21,6 +21,7 @@ import type {
   UploadedAsset,
 } from "@/types/video-generation";
 import type { StyleTemplate } from "@/lib/video-generation/style-templates";
+import type { VisualReferenceAnalysis } from "@/lib/video-generation/visual-reference-analysis";
 
 const SYSTEM_PROMPT = `You are a film production designer creating a "consistency bible" for an AI-generated short-form video ad. Every shot of the video will be generated separately, so your job is to lock down EVERY visual detail that must stay identical across shots.
 
@@ -51,6 +52,8 @@ export interface BuildConsistencyBibleArgs {
   language: string;
   /// 选中的风格模版（skill 模式）；其 scaffold 强约束 bible 的风格底盘
   styleTemplate?: StyleTemplate | null;
+  /// 参考图视觉分析（真实门店/产品实拍）；有真实场所时 environmentProfile 逐字采用实拍描述
+  visualRefs?: VisualReferenceAnalysis | null;
 }
 
 export async function buildConsistencyBible(
@@ -71,6 +74,18 @@ export async function buildConsistencyBible(
             .join("\n")
         : "(no product photos uploaded — infer product from the brief)";
 
+    const refs = args.visualRefs;
+    const realLocationSection =
+      refs?.isRealLocation && refs.locationDescription
+        ? `
+# REAL LOCATION (from the client's actual photos — these photos are ALSO fed to the video model as visual references)
+The video takes place in this REAL place. environmentProfile MUST be this description verbatim or near-verbatim — do NOT invent a different place:
+"${refs.locationDescription}"
+${refs.signageText ? `Storefront signage reads exactly: "${refs.signageText}" — the sign may appear in establishing shots.` : ""}
+${refs.keyFeatures.length > 0 ? `Signature features to keep recognizable: ${refs.keyFeatures.join("; ")}.` : ""}
+`
+        : "";
+
     const tpl = args.styleTemplate;
     const templateSection = tpl
       ? `
@@ -90,9 +105,9 @@ ${tpl.scaffold.dialogueStyle ? `- voiceover style: ${tpl.scaffold.dialogueStyle}
       system: SYSTEM_PROMPT,
       user: `# Creative brief
 ${JSON.stringify(args.creativeBrief, null, 2)}
-${templateSection}
+${realLocationSection}${templateSection}
 # Product photos (will also be passed to the video model as visual references)
-${productNotes}
+${refs?.productDescription ? `Analyzed product from photos: ${refs.productDescription}\n` : ""}${productNotes}
 
 # Video structure
 - number of segments: ${args.aiSegmentCount}
@@ -112,8 +127,12 @@ Return the JSON now.`,
 
     return {
       characterProfile: str(data.characterProfile) ?? fallback.characterProfile,
-      environmentProfile: str(data.environmentProfile) ?? fallback.environmentProfile,
-      productDescription: str(data.productDescription) ?? fallback.productDescription,
+      environmentProfile:
+        str(data.environmentProfile) ??
+        (refs?.isRealLocation ? refs.locationDescription : null) ??
+        fallback.environmentProfile,
+      productDescription:
+        str(data.productDescription) ?? refs?.productDescription ?? fallback.productDescription,
       lightingArc,
       voiceProfile:
         tpl && !tpl.scaffold.dialogueStyle
@@ -150,17 +169,20 @@ function normalizeArc(arc: string[], count: number): string[] {
 export function heuristicBible(args: BuildConsistencyBibleArgs): ConsistencyBible {
   const langIsZh = args.language.toLowerCase().startsWith("zh");
   const tpl = args.styleTemplate;
+  const refs = args.visualRefs;
   return {
     characterProfile:
       tpl?.scaffold.characterHint ??
       "One woman in her late 20s, shoulder-length dark brown hair loosely tied, warm light-tan skin, oval face, wearing an oat-colored long-sleeve loungewear set, friendly relatable everyday vibe (not a model).",
     environmentProfile:
+      (refs?.isRealLocation ? refs.locationDescription : null) ??
       tpl?.scaffold.environmentHint ??
       "A bright modern city apartment bedroom: warm white walls, light-oak floor, queen bed with beige linen bedding, one large floor-to-ceiling window with a city view, small potted plant on a wooden side table.",
     productDescription:
-      args.classifiedAssets.some((a) => effectiveAssetRole(a) === "product_image")
+      refs?.productDescription ??
+      (args.classifiedAssets.some((a) => effectiveAssetRole(a) === "product_image")
         ? "The exact product shown in the uploaded reference photos — match its color, material, proportions and details faithfully."
-        : `The product implied by the brief: ${args.creativeBrief.keySellingPoints[0] ?? "the featured product"}, realistic consumer-grade design.`,
+        : `The product implied by the brief: ${args.creativeBrief.keySellingPoints[0] ?? "the featured product"}, realistic consumer-grade design.`),
     lightingArc: normalizeArc(
       tpl?.scaffold.lightingHint
         ? [tpl.scaffold.lightingHint]

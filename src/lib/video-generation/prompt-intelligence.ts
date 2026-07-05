@@ -34,6 +34,7 @@ import type {
 } from "@/types/video-generation";
 import { heuristicBible } from "@/lib/video-generation/consistency-bible";
 import type { ConsistencyLock, StyleTemplate } from "@/lib/video-generation/style-templates";
+import type { VisualReferenceAnalysis } from "@/lib/video-generation/visual-reference-analysis";
 import { resolutionForAspectRatio, type UnifiedSegmentSlot } from "@/lib/video-generation/segment-planner-adapter";
 
 const SEEDANCE_BRAND_GUARD_RULE = `
@@ -99,6 +100,8 @@ export interface BuildSegmentPromptsArgs {
   styleTemplate?: StyleTemplate | null;
   /// 一致性锁：逐字追加到每段 prompt 的约束行
   consistencyLocks?: ConsistencyLock[];
+  /// 参考图视觉分析：真实门店场景时注入实景匹配指令 + 放开招牌文字渲染
+  visualRefs?: VisualReferenceAnalysis | null;
 }
 
 export interface SegmentPromptResult {
@@ -206,9 +209,12 @@ export async function buildVideoSegments(
           args,
           segIdxInAi: Math.max(0, aiOrderInSlots),
         }),
-      negativePrompt: withLockNegatives(
-        promptRow?.negativePrompt ?? DEFAULT_NEGATIVE_PROMPT,
-        args.consistencyLocks,
+      negativePrompt: adjustNegativeForRealSignage(
+        withLockNegatives(
+          promptRow?.negativePrompt ?? DEFAULT_NEGATIVE_PROMPT,
+          args.consistencyLocks,
+        ),
+        args.visualRefs,
       ),
       sourceAssetIds: relevantReferenceAssetIds(args),
       uploadedAssetId: null,
@@ -272,6 +278,23 @@ function composeSeedancePrompt(params: {
     ? `PRODUCT (must exactly match the reference images): ${bible.productDescription}`
     : `PRODUCT: ${bible.productDescription}`;
 
+  /// 真实场所参考图 → 强制画面复现实拍场景（与 Omni-Reference 图片锚配合）
+  const refs = args.visualRefs;
+  const realLocationLine =
+    refs?.isRealLocation
+      ? [
+          "REAL LOCATION (the reference images are actual photos of this place): reproduce the photographed location faithfully — same layout, same furniture, same materials and colors. Do not redesign or restyle the space.",
+          refs.signageText
+            ? `The storefront sign reads exactly "${refs.signageText}" — when the sign is visible, render this text accurately, correctly spelled.`
+            : "",
+          refs.keyFeatures.length > 0
+            ? `Signature features that must stay recognizable: ${refs.keyFeatures.join("; ")}.`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" ")
+      : null;
+
   /// 风格模版决定「片头定性句」：商业质感模版不再自称 UGC 手机拍摄
   const isCommercialStyle =
     params.args.styleTemplate != null && params.args.styleTemplate.scaffold.dialogueStyle == null;
@@ -297,6 +320,7 @@ function composeSeedancePrompt(params: {
     "",
     characterLine,
     `LOCATION: ${bible.environmentProfile}`,
+    ...(realLocationLine ? [realLocationLine] : []),
     productLine,
     `LIGHTING: ${lighting}`,
     ...(lockLines ? ["", lockLines] : []),
@@ -451,6 +475,17 @@ function buildLLMUserPrompt(
     .map((a) => `  - ${a.fileName} (${effectiveAssetRole(a)})`)
     .join("\n");
 
+  const refs = args.visualRefs;
+  const locationSection =
+    refs?.isRealLocation && refs.locationDescription
+      ? `
+# REAL LOCATION (client's actual photos, also fed to the video model as references)
+This video takes place in a real place: ${refs.locationDescription}
+${refs.signageText ? `- storefront sign reads exactly: "${refs.signageText}" (use it in the establishing shot)` : ""}
+${refs.keyFeatures.length > 0 ? `- weave these real features into your shots: ${refs.keyFeatures.join("; ")}` : ""}
+`
+      : "";
+
   const tpl = args.styleTemplate;
   const templateSection = tpl
     ? `
@@ -463,7 +498,7 @@ function buildLLMUserPrompt(
 
   return `# Creative brief
 ${JSON.stringify(args.creativeBrief, null, 2)}
-${templateSection}
+${locationSection}${templateSection}
 # Consistency bible (already injected into the final prompt — keep your shots consistent with it)
 ${JSON.stringify(bible, null, 2)}
 
@@ -624,6 +659,31 @@ function subjectFromBrief(brief: CreativeBrief): string {
     return brief.keySellingPoints[0];
   }
   return "the product";
+}
+
+/**
+ * 真实门店有招牌文字时，放开 negative 里的「禁一切可读文字/logo」，
+ * 否则 Seedance 会主动抹掉客户的真实招牌；改为只禁「乱码/拼错的文字」。
+ */
+function adjustNegativeForRealSignage(
+  negative: string,
+  refs?: VisualReferenceAnalysis | null,
+): string {
+  if (!refs?.isRealLocation || !refs.signageText) return negative;
+  const cleaned = negative
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => {
+      const l = s.toLowerCase();
+      return !(
+        l === "no logo" ||
+        l === "no brand text" ||
+        l === "no readable text" ||
+        l === "text artifacts"
+      );
+    })
+    .join(", ");
+  return `${cleaned}, misspelled signage, gibberish lettering, warped text`;
 }
 
 /** 一致性锁的 negative 片段追加（去重靠简单包含判断） */

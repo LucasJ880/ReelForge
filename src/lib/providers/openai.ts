@@ -346,7 +346,7 @@ export async function analyzeImages(
   }
 
   const visionModel = resolveModelForTier("vision");
-  const imageContent = imageUrls.slice(0, 5).map((url) => ({
+  const imageContent = imageUrls.slice(0, 8).map((url) => ({
     type: "image_url" as const,
     image_url: { url, detail: "low" as const },
   }));

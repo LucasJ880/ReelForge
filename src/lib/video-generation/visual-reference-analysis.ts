@@ -27,6 +27,10 @@ export interface VisualReferenceAnalysis {
   keyFeatures: string[];
   /// 产品的精确英文描述（如参考图里有产品）；null = 无产品图
   productDescription: string | null;
+  /// 每张照片覆盖的视角（如 "storefront exterior at night", "interior seating area"）
+  viewsCovered: string[];
+  /// 参与分析的照片张数（决定空间边界收紧程度）
+  photoCount: number;
 }
 
 const SYSTEM_PROMPT = `You are a location scout and product analyst for an AI video production. You will see reference photos uploaded by a client. Extract a precise visual inventory so that a video generator can faithfully reproduce what is in the photos.
@@ -37,19 +41,22 @@ Return strict JSON:
   "locationDescription": "if isRealLocation: one dense English paragraph (50-90 words) describing the place exactly as photographed: storefront facade (materials, colors, sign), interior layout, furniture with materials and colors, flooring, lighting fixtures, decor. Be faithful — never invent items not visible. null if not a location",
   "signageText": "the exact readable text on the storefront sign or logo, verbatim (e.g. 'Meow Club'), null if none",
   "keyFeatures": ["3-6 distinctive photographable features of the place or product, each 2-6 words, e.g. 'natural wood cat climbing tree'"],
-  "productDescription": "if any photo shows a product for sale: its exact color/material/shape/details in 25-50 words, else null"
+  "productDescription": "if any photo shows a product for sale: its exact color/material/shape/details in 25-50 words, else null",
+  "viewsCovered": ["one short entry PER PHOTO describing the view it covers, in photo order, e.g. 'storefront exterior at night', 'interior: cat cabin wall and seating corner'"]
 }
 
 RULES:
 - Describe only what is actually visible in the photos.
 - Ignore any social-media watermarks or usernames overlaid on the photos — they are not part of the location.
-- signageText must be verbatim, keep original language and capitalization.`;
+- signageText must be verbatim, keep original language and capitalization.
+- viewsCovered must have exactly one entry per photo, in the same order as the photos.`;
 
 export async function analyzeVisualReferences(
   assets: UploadedAsset[],
   briefHint: string,
 ): Promise<VisualReferenceAnalysis | null> {
-  const images = assets.filter((a) => a.type === "IMAGE").slice(0, 5);
+  /// GPT-4o 一次最多看 8 张（低清模式）；Seedance Omni-Reference 同样吃得下 8 张
+  const images = assets.filter((a) => a.type === "IMAGE").slice(0, 8);
   if (images.length === 0) return null;
   if (isLLMForcedMock() || !isLLMAvailable()) return null;
 
@@ -71,6 +78,10 @@ export async function analyzeVisualReferences(
         ? data.keyFeatures.map(String).filter((s) => s.trim().length > 0).slice(0, 6)
         : [],
       productDescription: str(data.productDescription),
+      viewsCovered: Array.isArray(data.viewsCovered)
+        ? data.viewsCovered.map(String).filter((s) => s.trim().length > 0).slice(0, 8)
+        : [],
+      photoCount: images.length,
     };
   } catch (err) {
     console.warn(

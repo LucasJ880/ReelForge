@@ -285,7 +285,7 @@ function composeSeedancePrompt(params: {
       ? [
           "REAL LOCATION (the reference images are actual photos of this place): reproduce the photographed location faithfully — same layout, same furniture, same materials and colors. Do not redesign or restyle the space.",
           refs.signageText
-            ? `The storefront sign reads exactly "${refs.signageText}" — when the sign is visible, render this text accurately, correctly spelled.`
+            ? `The storefront sign reads exactly "${refs.signageText}" — render this text accurately ONLY on the exterior storefront facade; the signage must NEVER appear inside the store, reflected, mirrored or duplicated on interior walls or glass.`
             : "",
           refs.keyFeatures.length > 0
             ? `Signature features that must stay recognizable: ${refs.keyFeatures.join("; ")}.`
@@ -294,6 +294,14 @@ function composeSeedancePrompt(params: {
           .filter(Boolean)
           .join(" ")
       : null;
+
+  /// 空间边界控制（防「视觉延伸」）：照片覆盖不到的区域一律不准脑补。
+  /// 照片越少边界越紧：≤3 张 → 只拍照片视角 + 中近景为主；≥4 张 → 允许照片视角间的自然衔接。
+  const boundaryLine = refs?.isRealLocation
+    ? refs.photoCount <= 3
+      ? `SPATIAL BOUNDARY (only ${refs.photoCount} reference photo(s) provided${refs.viewsCovered.length > 0 ? `, covering: ${refs.viewsCovered.join(" / ")}` : ""}): every shot must stay within these photographed views. Favor medium shots and close-ups of people, pets and photographed features; avoid wide establishing shots of unphotographed areas; NEVER invent adjacent rooms, corridors, extra aisles or unseen exterior angles.`
+      : `SPATIAL BOUNDARY: the ${refs.photoCount} reference photos define the full visible space${refs.viewsCovered.length > 0 ? ` (${refs.viewsCovered.join(" / ")})` : ""}. Move the camera freely between these photographed views, but never extend the space beyond what the photos show.`
+    : null;
 
   /// 风格模版决定「片头定性句」：商业质感模版不再自称 UGC 手机拍摄
   const isCommercialStyle =
@@ -321,6 +329,7 @@ function composeSeedancePrompt(params: {
     characterLine,
     `LOCATION: ${bible.environmentProfile}`,
     ...(realLocationLine ? [realLocationLine] : []),
+    ...(boundaryLine ? [boundaryLine] : []),
     productLine,
     `LIGHTING: ${lighting}`,
     ...(lockLines ? ["", lockLines] : []),
@@ -481,8 +490,10 @@ function buildLLMUserPrompt(
       ? `
 # REAL LOCATION (client's actual photos, also fed to the video model as references)
 This video takes place in a real place: ${refs.locationDescription}
-${refs.signageText ? `- storefront sign reads exactly: "${refs.signageText}" (use it in the establishing shot)` : ""}
+${refs.signageText ? `- storefront sign reads exactly: "${refs.signageText}" (exterior establishing shot ONLY — never show signage from inside)` : ""}
 ${refs.keyFeatures.length > 0 ? `- weave these real features into your shots: ${refs.keyFeatures.join("; ")}` : ""}
+- photo coverage (${refs.photoCount} photo(s)): ${refs.viewsCovered.join(" / ") || "unspecified"}
+- CRITICAL: design shots ONLY within these photographed views. ${refs.photoCount <= 3 ? "Coverage is limited — use medium shots / close-ups of people, pets and photographed features instead of wide shots of unseen areas." : "You may cut between photographed views freely."} Never invent unseen rooms or angles.
 `
       : "";
 
@@ -683,7 +694,7 @@ function adjustNegativeForRealSignage(
       );
     })
     .join(", ");
-  return `${cleaned}, misspelled signage, gibberish lettering, warped text`;
+  return `${cleaned}, misspelled signage, gibberish lettering, warped text, signage visible indoors, duplicated signage, mirrored signage text, invented rooms, space extending beyond reference photos`;
 }
 
 /** 一致性锁的 negative 片段追加（去重靠简单包含判断） */

@@ -367,17 +367,17 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     featured: true,
     scaffold: {
       characterHint:
-        "one gentle young woman vlogger in a cream knit outfit, soft warm presence, PLUS one signature shop cat (same breed, same fur pattern in every cat shot) as the second recurring character",
+        "one gentle young woman vlogger in a cream knit outfit, soft warm presence, PLUS one signature shop cat (same breed, same fur pattern in every cat shot) as the second recurring character; additional resident cats and one or two happy customers appear naturally in the background",
       environmentHint:
-        "a cozy modern cat cafe / pet store: light wood shelving, transparent acrylic cat cabins, cream rugs, soft plush textures, big storefront windows",
+        "a cozy modern cat cafe / pet store buzzing with gentle life: light wood shelving, transparent acrylic cat cabins with several cats lounging inside, cream rugs, soft plush textures, big storefront windows, a couple of customers browsing quietly",
       lightingHint:
-        "soft warm healing light throughout: bright daylight at the storefront, warm cozy glow inside, gentle golden tone in the closing cuddle shot",
+        "bright warm inviting light throughout: airy bright daylight feel inside, no dim or moody corners, gentle golden warmth in the closing cuddle shot",
       styleKeywords:
-        "healing pet-store vlog, cozy warm color grade, adorable cat close-ups, soft plush textures, consistent host and consistent cat across all shots, gentle handheld motion, wholesome atmosphere",
+        "lively healing pet-store vlog, bright warm inviting color grade, multiple adorable cats, adorable cat close-ups, soft plush textures, consistent host and consistent hero cat across all shots, gentle handheld motion, wholesome bustling atmosphere",
       cameraLanguage:
         "handheld follow, selfie walk-and-talk, low-angle cat close-up, slow push-in on cute moments",
       shotPattern:
-        "host introduces the store at the entrance → walks in past transparent cat cabins reacting warmly → signature cat eating close-up (adorable) → cat being cute on the rug → host at the counter sharing a practical tip → closing shot petting the cat on her lap",
+        "host introduces the store at the entrance → walks in past transparent cat cabins where several cats lounge and play → signature cat eating close-up (adorable) → cats playing on the cat tree / exercise wheel while a customer smiles nearby → host shares a practical tip → closing shot petting the hero cat on her lap",
       dialogueStyle:
         "soft healing vlogger tone, affectionate words for the cats, short warm sentences",
     },

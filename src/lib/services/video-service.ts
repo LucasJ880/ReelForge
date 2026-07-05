@@ -149,8 +149,9 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
   });
 
   /// 产品/参考图以 Seedance 2.0 Omni-Reference 模式随每段下发（跨镜头产品一致性锚）。
-  /// 同行靠「产品板」图片锚定产品外观；我们等价传用户上传的产品图（最多 4 张）。
-  const referenceImageUrls = (brief.referenceImageUrls ?? []).slice(0, 4);
+  /// 同行靠「产品板」图片锚定产品外观；我们等价传用户上传的产品/实景图。
+  /// Seedance 2 Omni-Reference 上限 9 张，留 1 张余量传 8 张——客户给的真实素材越多越贴。
+  const referenceImageUrls = (brief.referenceImageUrls ?? []).slice(0, 8);
 
   const created: Awaited<ReturnType<typeof submitSegmentJob>>[] = [];
   for (const segment of plan.segmentPlan) {

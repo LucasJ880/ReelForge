@@ -52,6 +52,7 @@
     "demo:curtain:publish": "tsx scripts/publish-curtain-videos-to-library.ts",
     "demo:curtain:v2": "tsx scripts/regenerate-curtain-videos-v2.ts",
     "demo:curtain:replace": "tsx scripts/replace-curtain-videos-in-library.ts",
+    "frame:qa": "tsx scripts/frame-qa.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:08:39.407Z",
+  "generatedAt": "2026-07-06T02:18:48.790Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -956,8 +956,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 114,
-      "sizeBytes": 6241,
+      "lineCount": 115,
+      "sizeBytes": 6284,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1337,6 +1337,20 @@
       "lineCount": 188,
       "sizeBytes": 5952,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
+      "path": "scripts/frame-qa.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "importantSymbols": [],
+      "lineCount": 62,
+      "sizeBytes": 2008,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
       "path": "scripts/generate-curtain-viral-ads.ts",
@@ -9194,6 +9208,7 @@
         "@/lib/providers/seedance",
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
+        "@/lib/video-generation/frame-qa",
         "./stitch-service"
       ],
       "importantSymbols": [
@@ -9206,8 +9221,8 @@
         "reconcileBriefRenderStatus",
         "retryFailedVideoJob"
       ],
-      "lineCount": 1144,
-      "sizeBytes": 37111,
+      "lineCount": 1179,
+      "sizeBytes": 38639,
       "notes": "Business logic service; hits Prisma DB; calls Seedance video generator; area=media-processing"
     },
     {
@@ -9774,6 +9789,41 @@
       "lineCount": 73,
       "sizeBytes": 2346,
       "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/frame-qa.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "FrameQaIssue",
+        "FrameQaVerdict",
+        "isFrameQaEnabled",
+        "decideVerdict",
+        "runFrameTextQa",
+        "FRAME_QA_ERROR_PREFIX",
+        "__test__"
+      ],
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:util",
+        "@/lib/providers/openai"
+      ],
+      "importantSymbols": [
+        "FrameQaIssue",
+        "FrameQaVerdict",
+        "FRAME_QA_ERROR_PREFIX",
+        "isFrameQaEnabled",
+        "decideVerdict",
+        "runFrameTextQa",
+        "__test__"
+      ],
+      "lineCount": 240,
+      "sizeBytes": 9051,
+      "notes": "Utility / helper module; area=media-processing"
     },
     {
       "path": "src/lib/video-generation/generation-supervisor.ts",
@@ -10672,6 +10722,21 @@
       "importantSymbols": [],
       "lineCount": 459,
       "sizeBytes": 15473,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/frame-qa-gate.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "importantSymbols": [],
+      "lineCount": 132,
+      "sizeBytes": 4319,
       "notes": "Unit / integration test; area=tests"
     },
     {

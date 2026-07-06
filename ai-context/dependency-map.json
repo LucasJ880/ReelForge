@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:08:39.408Z",
+  "generatedAt": "2026-07-06T02:18:48.791Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -340,6 +340,19 @@
         "node:fs/promises",
         "node:path",
         "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/frame-qa.ts",
+      "imports": [
+        "@next/env",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "externalImports": [
+        "@next/env"
       ]
     },
     {
@@ -5404,6 +5417,7 @@
         "@/lib/providers/seedance",
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
+        "@/lib/video-generation/frame-qa",
         "./stitch-service"
       ],
       "localImports": [
@@ -5411,6 +5425,7 @@
         "@/lib/providers/seedance",
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
+        "@/lib/video-generation/frame-qa",
         "./stitch-service"
       ],
       "externalImports": [
@@ -5654,6 +5669,29 @@
         "node:child_process",
         "node:fs",
         "node:path"
+      ]
+    },
+    {
+      "file": "src/lib/video-generation/frame-qa.ts",
+      "imports": [
+        "node:child_process",
+        "node:fs",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:util",
+        "@/lib/providers/openai"
+      ],
+      "localImports": [
+        "@/lib/providers/openai"
+      ],
+      "externalImports": [
+        "node:child_process",
+        "node:fs",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:util"
       ]
     },
     {
@@ -6344,6 +6382,21 @@
         "../src/lib/schemas/director-plan",
         "../src/lib/services/director-service",
         "../src/lib/duration/segment-planner"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/frame-qa-gate.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/frame-qa"
       ],
       "externalImports": [
         "node:assert/strict",

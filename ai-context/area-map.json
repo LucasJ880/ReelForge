@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:08:39.409Z",
+  "generatedAt": "2026-07-06T02:18:48.792Z",
   "areas": {
     "unknown": [
       ".cursor/rules/agency-coordinator.mdc",
@@ -164,6 +164,7 @@
       "src/lib/video-generation/brand-overlay-renderer.ts",
       "src/lib/video-generation/brand-packaging.ts",
       "src/lib/video-generation/business-status.ts",
+      "src/lib/video-generation/frame-qa.ts",
       "src/lib/video-generation/mock-clip-generator.ts",
       "src/lib/video-generation/personal-status.ts",
       "src/lib/video-generation/plan-to-director.ts",
@@ -306,6 +307,7 @@
     "scripts": [
       "scripts/backfill-business-order-titles.ts",
       "scripts/build-showcase-static.sh",
+      "scripts/frame-qa.ts",
       "scripts/generate-digital-human-store-ad.ts",
       "scripts/generate-pet-kit-voiceover.ts",
       "scripts/generate-real-estate-placeholder-poster.ts",
@@ -589,6 +591,7 @@
       "tests/client-brief-write.test.ts",
       "tests/creative-evidence-schema.test.ts",
       "tests/director-plan-schema.test.ts",
+      "tests/frame-qa-gate.test.ts",
       "tests/i18n-coverage.test.ts",
       "tests/industry-defaults.test.ts",
       "tests/logo-generation-mock.test.ts",

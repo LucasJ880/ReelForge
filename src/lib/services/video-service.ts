@@ -17,6 +17,10 @@ import {
   type DirectorPlan,
   type SegmentPlan,
 } from "@/lib/schemas/director-plan";
+import {
+  FRAME_QA_ERROR_PREFIX,
+  runFrameTextQa,
+} from "@/lib/video-generation/frame-qa";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// 触发渲染默认 15 分钟超时（用户友好上限；不强制 fail，只用于 UI「用时较长」提示）
@@ -411,6 +415,33 @@ export async function reconcileVideoJob(jobId: string) {
   }
 
   if (result.status === "completed") {
+    /// 发片前自动 QA 门禁：抽帧 + 画面文字/错字检测。
+    /// 检出烧录字幕/畸形字形 → 该段直接判 FAILED，走既有单段重试闭环，
+    /// 废段永远到不了 stitch / 成片库。门禁自身异常一律 fail-open 不阻塞。
+    if (result.videoUrl) {
+      const qa = await runFrameTextQa(result.videoUrl);
+      if (!qa.ok) {
+        return db.videoJob.update({
+          where: { id: jobId },
+          data: {
+            status: VideoJobStatus.FAILED,
+            outputVideoUrl: result.videoUrl,
+            outputThumbUrl: result.thumbnailUrl ?? null,
+            errorMessage: `${FRAME_QA_ERROR_PREFIX} ${qa.summary}`,
+            userSafeError:
+              "画面质检未通过（检测到异常文字），已自动拦截。点击「重试」可重新生成本段。",
+            finishedAt: new Date(),
+            lastCheckedAt: new Date(),
+            lastProviderStatus: result.rawProviderStatus,
+            pollErrors: 0,
+          },
+        });
+      }
+      if (!qa.checked) {
+        console.warn(`[frame-qa] job ${jobId} 门禁跳过: ${qa.skipReason}`);
+      }
+    }
+
     const updated = await db.videoJob.update({
       where: { id: jobId },
       data: {
@@ -504,8 +535,12 @@ export async function retryFailedVideoJob(jobId: string) {
     throw new Error("只允许重试已失败的视频任务");
   }
 
+  /// frame-qa 拦截的段：Provider 端是 completed，但产物已被判废 →
+  /// 跳过下方「查状态发现已成功就直接翻回 SUCCEEDED」的捷径，必须重新生成
+  const failedByFrameQa = !!job.errorMessage?.startsWith(FRAME_QA_ERROR_PREFIX);
+
   /// 双保险：如果 externalJobId 还在，先去查一遍真实状态
-  if (job.externalJobId) {
+  if (job.externalJobId && !failedByFrameQa) {
     try {
       const r = await getSeedanceStatus(job.externalJobId);
       if (r.status === "completed") {

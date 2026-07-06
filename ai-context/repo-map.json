@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:08:39.406Z",
+  "generatedAt": "2026-07-06T02:18:48.789Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -29,7 +29,7 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 582,
+    "total": 585,
     "byType": {
       "unknown": 108,
       "workflow": 3,
@@ -37,26 +37,26 @@
       "doc": 30,
       "schema": 18,
       "prisma": 1,
-      "script": 41,
+      "script": 42,
       "style": 3,
       "layout": 6,
       "page": 39,
       "api": 55,
       "component": 82,
       "i18n": 11,
-      "util": 61,
+      "util": 62,
       "provider": 7,
       "service": 39,
       "type": 2,
-      "test": 67
+      "test": 68
     },
     "byArea": {
       "unknown": 130,
-      "media-processing": 36,
+      "media-processing": 37,
       "config": 10,
       "shared": 106,
       "prisma": 10,
-      "scripts": 13,
+      "scripts": 14,
       "demo": 50,
       "real-footage-ads": 10,
       "blob-storage": 4,
@@ -73,7 +73,7 @@
       "wizard": 4,
       "i18n": 11,
       "ai-providers": 7,
-      "tests": 67
+      "tests": 68
     }
   },
   "routes": {
@@ -198,6 +198,7 @@
     "demo:curtain:publish": "tsx scripts/publish-curtain-videos-to-library.ts",
     "demo:curtain:v2": "tsx scripts/regenerate-curtain-videos-v2.ts",
     "demo:curtain:replace": "tsx scripts/replace-curtain-videos-in-library.ts",
+    "frame:qa": "tsx scripts/frame-qa.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",

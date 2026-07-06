@@ -43,7 +43,15 @@ ABSOLUTE BRAND CONSTRAINT (most important rule, never violate):
 - These are post-processed by Aivora's overlay layer, not by the AI video model.
 - You MAY describe spatial regions that will receive overlays later (e.g., "leave a clean lower-third area for caption overlay").
 - For end-card / CTA moments, focus on visual atmosphere, NOT the literal text.
-- Negative prompts MUST include: "no logo, no brand text, no URLs, no readable text, no QR codes, no watermarks".
+- Dialogue is VOICE ONLY: the model must never burn subtitles/captions into the frame. AI video models misrender CJK glyphs (wrong or archaic characters), so all captions are added by the post-production overlay layer instead.
+- Negative prompts MUST include: "no logo, no brand text, no URLs, no readable text, no QR codes, no watermarks, no subtitles, no captions, no on-screen text".
+`.trim();
+
+const SEEDANCE_CONTINUITY_RULE = `
+HARD CONTINUITY CONSTRAINTS (violating any of these ruins the whole video):
+- ONE segment = ONE physical space. If the reference images show different rooms, anchor the entire segment in a single room; NEVER blend rooms or cut between different reference spaces inside one segment.
+- If a person appears, it is the SAME person in every shot: identical face, hair, wardrobe. NEVER cut to a disembodied hand, a different person, or different clothing performing the action — show the established character doing it in frame.
+- The product keeps ONE identity for the whole segment: same color, same shape, same hardware. When the character interacts with the product, it must be the exact same product instance already shown.
 `.trim();
 
 const PROMPT_INTELLIGENCE_SYSTEM_PROMPT = `You are a short-form ad director writing shot lists for an AI video model (Seedance 2.0). Each video segment (max 15s) is generated as ONE task, but must contain MULTIPLE quick cuts told with timestamps — this is what makes the result feel like a real edited ad instead of one boring continuous shot.
@@ -71,12 +79,14 @@ SHOT LIST RULES (critical for quality):
 5. If product reference images are provided, at least half the shots must feature the product; write "the product (match the reference images exactly)" when it appears.
 6. Emotion on the character's face matters: annoyed, surprised, delighted, relieved — direct it explicitly.
 
+${SEEDANCE_CONTINUITY_RULE}
+
 ${SEEDANCE_BRAND_GUARD_RULE}
 
 Output JSON only, in this exact envelope: {"segments": [ ...one entry per segment slot, same order... ]}`;
 
 const DEFAULT_NEGATIVE_PROMPT =
-  "low quality, blurry, distorted hands, extra fingers, morphing face, inconsistent character, text artifacts, watermark, no logo, no brand text, no URLs, no readable text, no QR codes";
+  "low quality, blurry, distorted hands, extra fingers, morphing face, inconsistent character, text artifacts, watermark, no logo, no brand text, no URLs, no readable text, no QR codes, no subtitles, no captions, no on-screen text";
 
 export interface ShotLine {
   fromSec: number;
@@ -707,9 +717,15 @@ function withLockNegatives(negative: string, locks?: ConsistencyLock[]): string 
 }
 
 function appendBrandGuard(negative: string): string {
-  if (negative.toLowerCase().includes("no logo")) return negative;
-  const guard = "no logo, no brand text, no URLs, no readable text, no QR codes";
-  return `${negative.trim().replace(/[,\s]+$/, "")}, ${guard}`;
+  let out = negative.trim().replace(/[,\s]+$/, "");
+  if (!out.toLowerCase().includes("no logo")) {
+    out = `${out}, no logo, no brand text, no URLs, no readable text, no QR codes`;
+  }
+  /// AI 模型烧录的中文字幕常出现错字/异体字（如「晒」→「曬」），字幕一律走后期 overlay
+  if (!out.toLowerCase().includes("no subtitles")) {
+    out = `${out}, no subtitles, no captions, no on-screen text`;
+  }
+  return out;
 }
 
 function descriptionForRole(

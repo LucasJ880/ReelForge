@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:19:21.241Z",
+  "generatedAt": "2026-07-06T02:08:39.409Z",
   "areas": {
     "unknown": [
       ".cursor/rules/agency-coordinator.mdc",
@@ -143,6 +143,7 @@
       "scripts/digital-human-runner.ts",
       "scripts/publish-curtain-videos-to-library.ts",
       "scripts/render-caption-png.py",
+      "scripts/replace-curtain-videos-in-library.ts",
       "showcase-static/_next/static/chunks/0pxq11m3h73jm.js",
       "showcase-static/_next/static/chunks/0xb1tyxb5rlcs.js",
       "src/app/api/ad-plans/[id]/render/route.ts",
@@ -311,6 +312,7 @@
       "scripts/generate-store-ad-voiceover.ts",
       "scripts/omnihuman-ping.ts",
       "scripts/qa-responsive-screenshots.ts",
+      "scripts/regenerate-curtain-videos-v2.ts",
       "scripts/roadmap.ts",
       "scripts/seed-creative-evidence-cards.ts",
       "scripts/smoke-closed-loop.ts",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:19:21.239Z",
+  "generatedAt": "2026-07-06T02:08:39.407Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -956,8 +956,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 112,
-      "sizeBytes": 6091,
+      "lineCount": 114,
+      "sizeBytes": 6241,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1563,6 +1563,22 @@
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
+      "path": "scripts/regenerate-curtain-videos-v2.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 330,
+      "sizeBytes": 17081,
+      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; area=scripts"
+    },
+    {
       "path": "scripts/render-caption-png.py",
       "type": "script",
       "area": "media-processing",
@@ -1572,6 +1588,24 @@
       "lineCount": 0,
       "sizeBytes": 2441,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
+      "path": "scripts/replace-curtain-videos-in-library.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 163,
+      "sizeBytes": 5898,
+      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; area=media-processing"
     },
     {
       "path": "scripts/roadmap.ts",
@@ -9915,8 +9949,8 @@
         "heuristicSegmentPrompts",
         "__test__"
       ],
-      "lineCount": 769,
-      "sizeBytes": 30691,
+      "lineCount": 785,
+      "sizeBytes": 32046,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -10066,7 +10100,7 @@
         "getStyleTemplate"
       ],
       "lineCount": 541,
-      "sizeBytes": 29092,
+      "sizeBytes": 29461,
       "notes": "Utility / helper module; area=video-generation"
     },
     {

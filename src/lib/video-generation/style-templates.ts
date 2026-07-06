@@ -148,7 +148,7 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     viral: true,
     scaffold: {
       environmentHint:
-        "one real aspirational living space that shows the product installed and styled at its absolute best",
+        "ONE real aspirational living space that shows the product installed and styled at its absolute best; every shot stays inside this single space",
       lightingHint:
         "opening: golden-hour glow flattering the finished result; middle: honest neutral daylight during the process; closing: return to the warm glow",
       styleKeywords:
@@ -200,9 +200,9 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     viral: true,
     scaffold: {
       characterHint:
-        "one relatable everyday homeowner, natural imperfect look, genuinely annoyed at first and genuinely relieved at the end",
+        "one relatable everyday homeowner, natural imperfect look, genuinely annoyed at first and genuinely relieved at the end; the SAME person with identical face, hair and outfit performs every action on camera — never a disembodied hand or a second person",
       environmentHint:
-        "a believable lived-in home where the pain point is physically visible and the product visibly fixes it",
+        "ONE believable lived-in room where the pain point is physically visible and the product visibly fixes it; the whole video stays inside this single space",
       lightingHint:
         "pain phase: harsh uncomfortable light dramatizing the problem; solution phase: the light instantly turns soft and controlled the moment the product works",
       styleKeywords:
@@ -212,7 +212,7 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
       shotPattern:
         "cold open on the character suffering the exact pain point mid-reaction → POV shot making the viewer feel the problem → product enters frame naturally → the one decisive action that solves it → visible relief reaction close-up → calm satisfied closing with the product quietly doing its job",
       dialogueStyle:
-        "first-person venting then relieved testimonial, casual spoken language like complaining to a friend, never ad-copy",
+        "first-person venting then relieved testimonial, casual spoken language like complaining to a friend, never ad-copy; VOICE ONLY — absolutely no burned-in subtitles or on-screen text (captions are added in post)",
     },
   },
   {
@@ -229,7 +229,7 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     viral: true,
     scaffold: {
       environmentHint:
-        "a serene sunlit interior where daylight interacts with the product's material — light pouring through, gliding across surfaces, casting soft moving shadows",
+        "ONE serene sunlit interior where daylight interacts with the product's material — light pouring through, gliding across surfaces, casting soft moving shadows; every shot stays inside this single space",
       lightingHint:
         "backlit golden daylight as the main storyteller: rays diffusing through the material, slow-moving light patches, dusk-to-warm lamp glow in the closing shot",
       styleKeywords:

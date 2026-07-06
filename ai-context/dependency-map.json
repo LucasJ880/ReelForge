@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:19:21.241Z",
+  "generatedAt": "2026-07-06T02:08:39.408Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -589,6 +589,43 @@
         "node:fs",
         "node:path",
         "puppeteer-core"
+      ]
+    },
+    {
+      "file": "scripts/regenerate-curtain-videos-v2.ts",
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/replace-curtain-videos-in-library.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "@prisma/client"
       ]
     },
     {

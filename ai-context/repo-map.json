@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-05T03:54:05.589Z",
+  "generatedAt": "2026-07-06T01:02:59.160Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -29,7 +29,7 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 573,
+    "total": 579,
     "byType": {
       "unknown": 108,
       "workflow": 3,
@@ -37,18 +37,18 @@
       "doc": 30,
       "schema": 18,
       "prisma": 1,
-      "script": 36,
+      "script": 38,
       "style": 3,
       "layout": 6,
       "page": 39,
       "api": 55,
       "component": 82,
       "i18n": 11,
-      "util": 58,
+      "util": 61,
       "provider": 7,
       "service": 39,
       "type": 2,
-      "test": 66
+      "test": 67
     },
     "byArea": {
       "unknown": 130,
@@ -57,8 +57,9 @@
       "shared": 106,
       "prisma": 10,
       "scripts": 12,
-      "demo": 49,
+      "demo": 50,
       "real-footage-ads": 10,
+      "blob-storage": 4,
       "ffmpeg": 8,
       "auth": 8,
       "payments": 7,
@@ -66,14 +67,13 @@
       "admin": 23,
       "metrics": 5,
       "publishing": 5,
-      "blob-storage": 3,
-      "video-generation": 20,
+      "video-generation": 23,
       "upload": 2,
       "shared-ui": 16,
       "wizard": 4,
       "i18n": 11,
       "ai-providers": 7,
-      "tests": 66
+      "tests": 67
     }
   },
   "routes": {
@@ -194,6 +194,8 @@
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
     "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
     "demo:brand-overlay": "tsx scripts/demo-brand-overlay.ts",
+    "demo:curtain": "tsx scripts/generate-curtain-viral-ads.ts",
+    "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",
     "demo:sunny-investor:v21:submit": "tsx scripts/sunny-shutter-investor-demo-v21.ts --phase=submit",

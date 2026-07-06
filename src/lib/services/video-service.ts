@@ -545,7 +545,7 @@ export async function retryFailedVideoJob(jobId: string) {
   if (job.segmentIndex != null && job.finalVideoId) {
     const briefForRetry = await db.videoBrief.findUnique({
       where: { id: job.videoBriefId },
-      select: { aspectRatio: true, directorPlan: true },
+      select: { aspectRatio: true, directorPlan: true, referenceImageUrls: true },
     });
     if (!briefForRetry?.directorPlan) {
       throw new Error("Brief 缺少 DirectorPlan，无法重试该段");
@@ -563,12 +563,20 @@ export async function retryFailedVideoJob(jobId: string) {
       throw new Error(`找不到 segmentIndex=${job.segmentIndex} 的段计划`);
     }
 
+    /// 与首次 dispatch 完全同参：参考图 Omni-Reference + 1080p。
+    /// 此前重试丢失这两项 → 重试段产品外观漂移、分辨率降档，成片段间质量不一致。
+    const retryRefs = (briefForRetry.referenceImageUrls ?? []).slice(0, 8);
+    const retryHasRefs = retryRefs.length > 0;
+
     const submittedAt = new Date();
     try {
       const { jobId: newExternalId } = await submitSeedanceJobResilient({
         prompt: segment.seedancePrompt,
         duration: segment.durationSec,
         ratio: briefForRetry.aspectRatio,
+        referenceImageUrls: retryHasRefs ? retryRefs : undefined,
+        mode: retryHasRefs ? "reference" : undefined,
+        resolution: "1080p",
         mockHints: {
           briefId: job.videoBriefId,
           segmentIndex: segment.segmentIndex,

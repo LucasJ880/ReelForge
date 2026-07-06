@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-05T03:54:05.593Z",
+  "generatedAt": "2026-07-06T01:02:59.165Z",
   "areas": {
     "unknown": [
       ".cursor/rules/agency-coordinator.mdc",
@@ -319,6 +319,7 @@
       "scripts/check-pet-kit-walkthrough-video.ts",
       "scripts/demo-brand-overlay.ts",
       "scripts/demo-mock-business-flow.ts",
+      "scripts/demo-rehearsal-e2e.ts",
       "scripts/generate-pet-kit-walkthrough-video.ts",
       "scripts/mock-walkthrough-harness.ts",
       "scripts/stitch-pet-kit-walkthrough-video.ts",
@@ -377,6 +378,12 @@
       "scripts/sunny-shutter-reconcile.ts",
       "scripts/sunny-shutter-ui-check.ts",
       "src/app/api/demo/real-footage-ads/waitlist/route.ts"
+    ],
+    "blob-storage": [
+      "scripts/generate-curtain-viral-ads.ts",
+      "src/app/api/upload/blob/route.ts",
+      "src/lib/storage/providers/vercel-blob-provider.ts",
+      "src/lib/storage/types.ts"
     ],
     "ffmpeg": [
       "scripts/generate-omnihuman-store-ad.ts",
@@ -475,11 +482,6 @@
       "src/app/api/publish/route.ts",
       "src/lib/services/publish-service.ts"
     ],
-    "blob-storage": [
-      "src/app/api/upload/blob/route.ts",
-      "src/lib/storage/providers/vercel-blob-provider.ts",
-      "src/lib/storage/types.ts"
-    ],
     "video-generation": [
       "src/app/api/video-generation/classify-asset/route.ts",
       "src/app/api/video-generation/dispatch/route.ts",
@@ -489,6 +491,7 @@
       "src/lib/video-generation/asset-classifier.ts",
       "src/lib/video-generation/business-display-title.ts",
       "src/lib/video-generation/clip-placement-planner.ts",
+      "src/lib/video-generation/consistency-bible.ts",
       "src/lib/video-generation/creative-strategist.ts",
       "src/lib/video-generation/digital-human/avatar-catalog.ts",
       "src/lib/video-generation/digital-human/store-ad-director.ts",
@@ -500,7 +503,9 @@
       "src/lib/video-generation/providers/index.ts",
       "src/lib/video-generation/providers/volcengine-video-provider.ts",
       "src/lib/video-generation/quality-reviewer.ts",
-      "src/lib/video-generation/segment-planner-adapter.ts"
+      "src/lib/video-generation/segment-planner-adapter.ts",
+      "src/lib/video-generation/style-templates.ts",
+      "src/lib/video-generation/visual-reference-analysis.ts"
     ],
     "upload": [
       "src/components/personal/upload-assets.ts",
@@ -618,6 +623,7 @@
       "tests/unified-segment-placement.test.ts",
       "tests/unified-supervisor.integration.test.ts",
       "tests/video-job-user-status.test.ts",
+      "tests/viral-style-templates.test.ts",
       "tests/wizard-smoke-helpers.test.ts"
     ]
   }

@@ -90,7 +90,12 @@ export default function TemplatesPage() {
             <div className="flex items-start justify-between">
               <span className="text-2xl">{tpl.icon}</span>
               <div className="flex items-center gap-1.5">
-                {tpl.featured && (
+                {tpl.viral && (
+                  <span className="glass-chip text-[10px] font-semibold text-rose-300">
+                    🔥 爆款
+                  </span>
+                )}
+                {tpl.featured && !tpl.viral && (
                   <span className="glass-chip text-[10px] text-amber-300">⭐ 推荐</span>
                 )}
                 <span className="glass-chip text-[10px]">{tpl.category}</span>

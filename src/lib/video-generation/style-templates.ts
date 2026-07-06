@@ -17,6 +17,7 @@
  */
 
 export type StyleTemplateCategory =
+  | "爆款广告"
   | "电商产品"
   | "UGC达人"
   | "探店种草"
@@ -61,6 +62,8 @@ export interface StyleTemplate {
   scaffold: StyleTemplateScaffold;
   /// 是否在库中标注「推荐」
   featured?: boolean;
+  /// 爆款标签：按平台爆款广告数据反推的结构模版，UI 置顶展示 + 优先推荐
+  viral?: boolean;
 }
 
 export interface ConsistencyLock {
@@ -130,6 +133,114 @@ export const CONSISTENCY_LOCKS: ConsistencyLock[] = [
 // ---------------------------------------------------------------------------
 
 export const STYLE_TEMPLATES: StyleTemplate[] = [
+  // ---- 爆款广告（按 TikTok 家居/产品广告爆款数据反推的结构模版）----
+  {
+    id: "tpl_viral_result_first",
+    name: "成果前置爆款",
+    category: "爆款广告",
+    icon: "🔥",
+    description:
+      "前 2 秒直接甩成品效果（TikTok 数据第一的钩子结构），再倒叙揭秘过程，完播率杀手",
+    samplePrompt:
+      "爆款结构产品广告：开头 2 秒先给最终效果的震撼镜头，再倒叙展示安装/使用过程，结尾回到成品全景。",
+    defaults: { durationSec: 15, language: "zh-CN" },
+    featured: true,
+    viral: true,
+    scaffold: {
+      environmentHint:
+        "one real aspirational living space that shows the product installed and styled at its absolute best",
+      lightingHint:
+        "opening: golden-hour glow flattering the finished result; middle: honest neutral daylight during the process; closing: return to the warm glow",
+      styleKeywords:
+        "result-first reveal edit, cinematic hero opening shot, reverse-chronology storytelling, satisfying process montage, warm aspirational home tones, crisp product detail close-ups, high retention pacing with a cut every 2-3 seconds",
+      cameraLanguage:
+        "slow push-in hero shot, whip cut to handheld process shots, macro detail insert, final wide pull-back",
+      shotPattern:
+        "0-2s finished result hero shot (the wow moment, nothing else) → quick rewind transition → raw before state → fast process/installation montage → detail close-up of texture and craftsmanship → return to the hero result with styled space",
+      dialogueStyle: null,
+    },
+  },
+  {
+    id: "tpl_viral_before_after_room",
+    name: "空间焕新对比爆款",
+    category: "爆款广告",
+    icon: "🏠",
+    description:
+      "同机位空间 before/after 硬对比（家居类互动量 4 倍结构），换装瞬间强冲击",
+    samplePrompt:
+      "空间改造爆款：同一房间同一机位，产品安装前的平淡 vs 安装后的高级感，一刀切换的换装冲击。",
+    defaults: { durationSec: 15, language: "zh-CN" },
+    featured: true,
+    viral: true,
+    scaffold: {
+      environmentHint:
+        "one single real room shot from a locked-off camera position: identical framing for the before state and the after state, only the product changes",
+      lightingHint:
+        "before: flat dull overcast light making the room feel unfinished; after: the exact same room bathed in soft warm layered light that makes it feel expensive",
+      styleKeywords:
+        "locked-off before/after match cut, same-angle room transformation, instant makeover impact, expensive-look upgrade, soft layered home lighting, believable lived-in space, dramatic yet realistic contrast",
+      cameraLanguage:
+        "locked-off tripod matching frames, hard match cut on the transformation beat, slow orbit after the reveal, detail close-ups",
+      shotPattern:
+        "before: static wide of the plain room lingering on the bare problem area → tension beat close-up of the unfinished spot → HARD MATCH CUT to the identical framing fully transformed → slow orbit soaking in the upgraded space → macro of the product texture → final styled wide with cozy life details",
+      dialogueStyle: null,
+    },
+  },
+  {
+    id: "tpl_viral_pain_solution",
+    name: "痛点狙击爆款",
+    category: "爆款广告",
+    icon: "🎯",
+    description:
+      "首帧直击真实痛点（刺眼阳光/邻居视线/廉价感），产品一步到位解决，口播种草收尾",
+    samplePrompt:
+      "痛点解决爆款：开头演真实困扰场景（比如清晨阳光刺眼睡不好），产品出场一步解决，真人口播讲感受。",
+    defaults: { durationSec: 15, language: "zh-CN" },
+    featured: true,
+    viral: true,
+    scaffold: {
+      characterHint:
+        "one relatable everyday homeowner, natural imperfect look, genuinely annoyed at first and genuinely relieved at the end",
+      environmentHint:
+        "a believable lived-in home where the pain point is physically visible and the product visibly fixes it",
+      lightingHint:
+        "pain phase: harsh uncomfortable light dramatizing the problem; solution phase: the light instantly turns soft and controlled the moment the product works",
+      styleKeywords:
+        "pain-point dramatization, authentic UGC realism, visible problem visibly solved, satisfying instant relief moment, natural handheld energy, true-to-life color, emotional expression close-ups",
+      cameraLanguage:
+        "handheld selfie reaction, POV of the problem, quick reframe cuts, slow push-in on the relief moment",
+      shotPattern:
+        "cold open on the character suffering the exact pain point mid-reaction → POV shot making the viewer feel the problem → product enters frame naturally → the one decisive action that solves it → visible relief reaction close-up → calm satisfied closing with the product quietly doing its job",
+      dialogueStyle:
+        "first-person venting then relieved testimonial, casual spoken language like complaining to a friend, never ad-copy",
+    },
+  },
+  {
+    id: "tpl_viral_sensory_texture",
+    name: "光影质感沉浸爆款",
+    category: "爆款广告",
+    icon: "🌅",
+    description:
+      "逆光织物/材质微距 + 光影流动的沉浸式氛围片，无口播纯质感，高级感拉满",
+    samplePrompt:
+      "光影质感爆款：逆光下材质纹理微距、光线在表面流动、织物随风轻摆的沉浸式氛围大片。",
+    defaults: { durationSec: 15, language: "zh-CN" },
+    featured: true,
+    viral: true,
+    scaffold: {
+      environmentHint:
+        "a serene sunlit interior where daylight interacts with the product's material — light pouring through, gliding across surfaces, casting soft moving shadows",
+      lightingHint:
+        "backlit golden daylight as the main storyteller: rays diffusing through the material, slow-moving light patches, dusk-to-warm lamp glow in the closing shot",
+      styleKeywords:
+        "sensory macro texture film, backlit fabric translucency, light and shadow choreography, gentle fabric motion in a breeze, dreamy premium atmosphere, slow cinematic movement, tactile close-ups you can almost feel, muted elegant color grade",
+      cameraLanguage:
+        "macro glide along the texture, slow dolly through light rays, rack focus between material layers, static wide letting light move",
+      shotPattern:
+        "extreme macro of the material catching backlight → light rays diffuse through it in slow motion → the material sways gently in a breeze → rack focus revealing the full room bathed in filtered light → hand brushes the texture → tranquil closing wide at dusk with warm lamps",
+      dialogueStyle: null,
+    },
+  },
   // ---- 电商产品 ----
   {
     id: "tpl_perfume_macro",
@@ -421,6 +532,7 @@ export function getConsistencyLocks(ids: string[] | null | undefined): Consisten
 }
 
 export const STYLE_TEMPLATE_CATEGORIES: StyleTemplateCategory[] = [
+  "爆款广告",
   "电商产品",
   "UGC达人",
   "探店种草",

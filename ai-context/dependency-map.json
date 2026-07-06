@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-05T03:54:05.592Z",
+  "generatedAt": "2026-07-06T01:02:59.164Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -338,6 +338,25 @@
       "externalImports": [
         "@next/env",
         "node:fs/promises",
+        "node:path",
+        "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/generate-curtain-viral-ads.ts",
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:fs",
         "node:path",
         "@vercel/blob"
       ]
@@ -1774,13 +1793,17 @@
     {
       "file": "src/app/(personal)/personal/templates/page.tsx",
       "imports": [
+        "react",
         "next/navigation",
-        "@/components/personal/upload-assets"
+        "@/components/personal/upload-assets",
+        "@/lib/video-generation/style-templates"
       ],
       "localImports": [
-        "@/components/personal/upload-assets"
+        "@/components/personal/upload-assets",
+        "@/lib/video-generation/style-templates"
       ],
       "externalImports": [
+        "react",
         "next/navigation"
       ]
     },
@@ -3866,11 +3889,13 @@
         "next/link",
         "lucide-react",
         "@/types/video-generation",
-        "@/components/personal/upload-assets"
+        "@/components/personal/upload-assets",
+        "@/lib/video-generation/style-templates"
       ],
       "localImports": [
         "@/types/video-generation",
-        "@/components/personal/upload-assets"
+        "@/components/personal/upload-assets",
+        "@/lib/video-generation/style-templates"
       ],
       "externalImports": [
         "react",
@@ -5516,6 +5541,22 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/consistency-bible.ts",
+      "imports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis"
+      ],
+      "localImports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/video-generation/creative-strategist.ts",
       "imports": [
         "@/lib/providers/openai",
@@ -5565,6 +5606,9 @@
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/consistency-bible",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/brand-packaging",
         "@/lib/video-generation/clip-placement-planner",
         "@/lib/video-generation/segment-planner-adapter",
@@ -5578,6 +5622,9 @@
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/consistency-bible",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/brand-packaging",
         "@/lib/video-generation/clip-placement-planner",
         "@/lib/video-generation/segment-planner-adapter",
@@ -5663,11 +5710,17 @@
       "imports": [
         "@/lib/providers/openai",
         "@/types/video-generation",
+        "@/lib/video-generation/consistency-bible",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/segment-planner-adapter"
       ],
       "localImports": [
         "@/lib/providers/openai",
         "@/types/video-generation",
+        "@/lib/video-generation/consistency-bible",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/segment-planner-adapter"
       ],
       "externalImports": []
@@ -5730,6 +5783,18 @@
       ],
       "localImports": [
         "@/lib/video-generation/segment-planner-adapter",
+        "@/types/video-generation"
+      ],
+      "externalImports": []
+    },
+    {
+      "file": "src/lib/video-generation/visual-reference-analysis.ts",
+      "imports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation"
+      ],
+      "localImports": [
+        "@/lib/providers/openai",
         "@/types/video-generation"
       ],
       "externalImports": []
@@ -6881,6 +6946,25 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/viral-style-templates.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/style-templates",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/types/video-generation"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/style-templates",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/types/video-generation"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-05T03:54:05.590Z",
+  "generatedAt": "2026-07-06T01:02:59.161Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -956,8 +956,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 109,
-      "sizeBytes": 5887,
+      "lineCount": 111,
+      "sizeBytes": 6011,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1311,6 +1311,17 @@
       "notes": "Maintenance / one-off script (run via tsx); area=demo"
     },
     {
+      "path": "scripts/demo-rehearsal-e2e.ts",
+      "type": "script",
+      "area": "demo",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 217,
+      "sizeBytes": 7769,
+      "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=demo"
+    },
+    {
       "path": "scripts/digital-human-runner.ts",
       "type": "script",
       "area": "media-processing",
@@ -1326,6 +1337,23 @@
       "lineCount": 188,
       "sizeBytes": 5952,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
+      "path": "scripts/generate-curtain-viral-ads.ts",
+      "type": "script",
+      "area": "blob-storage",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 380,
+      "sizeBytes": 20661,
+      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; calls Seedance video generator; area=blob-storage"
     },
     {
       "path": "scripts/generate-digital-human-store-ad.ts",
@@ -3405,15 +3433,17 @@
         "default"
       ],
       "imports": [
+        "react",
         "next/navigation",
-        "@/components/personal/upload-assets"
+        "@/components/personal/upload-assets",
+        "@/lib/video-generation/style-templates"
       ],
       "importantSymbols": [
         "TemplatesPage",
         "default"
       ],
-      "lineCount": 176,
-      "sizeBytes": 6503,
+      "lineCount": 180,
+      "sizeBytes": 6409,
       "notes": "Next.js App Router page; client component; area=marketing-site"
     },
     {
@@ -6007,13 +6037,14 @@
         "next/link",
         "lucide-react",
         "@/types/video-generation",
-        "@/components/personal/upload-assets"
+        "@/components/personal/upload-assets",
+        "@/lib/video-generation/style-templates"
       ],
       "importantSymbols": [
         "GlassCreateWorkflow"
       ],
-      "lineCount": 580,
-      "sizeBytes": 21431,
+      "lineCount": 608,
+      "sizeBytes": 22777,
       "notes": "React component; client component"
     },
     {
@@ -6033,8 +6064,8 @@
       "importantSymbols": [
         "PersonalGlassShell"
       ],
-      "lineCount": 142,
-      "sizeBytes": 4859,
+      "lineCount": 135,
+      "sizeBytes": 4727,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -6075,8 +6106,8 @@
         "saveCreatePrefill",
         "consumeCreatePrefill"
       ],
-      "lineCount": 165,
-      "sizeBytes": 4839,
+      "lineCount": 171,
+      "sizeBytes": 5054,
       "notes": "React component; client component; area=upload"
     },
     {
@@ -7798,8 +7829,8 @@
         "submitSeedanceJobResilient",
         "getSeedanceStatus"
       ],
-      "lineCount": 455,
-      "sizeBytes": 15243,
+      "lineCount": 457,
+      "sizeBytes": 15434,
       "notes": "External API provider wrapper; calls Seedance video generator; area=ai-providers"
     },
     {
@@ -8063,8 +8094,8 @@
         "qualityIssueSchema",
         "qualityReviewSchema",
         "planPreviewSchema",
-        "videoGenerationPlanSchema",
-        "VideoGenerationPlanParsed"
+        "consistencyBibleSchema",
+        "videoGenerationPlanSchema"
       ],
       "imports": [
         "zod"
@@ -8079,8 +8110,8 @@
         "generationModeSchema",
         "videoGoalSchema"
       ],
-      "lineCount": 310,
-      "sizeBytes": 9202,
+      "lineCount": 325,
+      "sizeBytes": 9880,
       "notes": "Schema / validation; area=media-processing"
     },
     {
@@ -9123,8 +9154,8 @@
         "reconcileBriefRenderStatus",
         "retryFailedVideoJob"
       ],
-      "lineCount": 1121,
-      "sizeBytes": 35646,
+      "lineCount": 1144,
+      "sizeBytes": 37111,
       "notes": "Business logic service; hits Prisma DB; calls Seedance video generator; area=media-processing"
     },
     {
@@ -9540,6 +9571,30 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/consistency-bible.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BuildConsistencyBibleArgs",
+        "buildConsistencyBible",
+        "heuristicBible"
+      ],
+      "imports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis"
+      ],
+      "importantSymbols": [
+        "BuildConsistencyBibleArgs",
+        "buildConsistencyBible",
+        "heuristicBible"
+      ],
+      "lineCount": 208,
+      "sizeBytes": 10480,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/lib/video-generation/creative-strategist.ts",
       "type": "util",
       "area": "video-generation",
@@ -9681,6 +9736,9 @@
         "@/lib/video-generation/input-classifier",
         "@/lib/video-generation/asset-classifier",
         "@/lib/video-generation/creative-strategist",
+        "@/lib/video-generation/consistency-bible",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/brand-packaging",
         "@/lib/video-generation/clip-placement-planner",
         "@/lib/video-generation/segment-planner-adapter",
@@ -9694,8 +9752,8 @@
         "buildPlan",
         "__test__"
       ],
-      "lineCount": 171,
-      "sizeBytes": 5717,
+      "lineCount": 203,
+      "sizeBytes": 7107,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -9816,6 +9874,7 @@
       "type": "util",
       "area": "video-generation",
       "exports": [
+        "ShotLine",
         "BuildSegmentPromptsArgs",
         "SegmentPromptResult",
         "buildVideoSegments",
@@ -9825,17 +9884,21 @@
       "imports": [
         "@/lib/providers/openai",
         "@/types/video-generation",
+        "@/lib/video-generation/consistency-bible",
+        "@/lib/video-generation/style-templates",
+        "@/lib/video-generation/visual-reference-analysis",
         "@/lib/video-generation/segment-planner-adapter"
       ],
       "importantSymbols": [
+        "ShotLine",
         "BuildSegmentPromptsArgs",
         "SegmentPromptResult",
         "buildVideoSegments",
         "heuristicSegmentPrompts",
         "__test__"
       ],
-      "lineCount": 387,
-      "sizeBytes": 13608,
+      "lineCount": 769,
+      "sizeBytes": 30691,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -9959,6 +10022,36 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/style-templates.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "StyleTemplateCategory",
+        "StyleTemplateScaffold",
+        "StyleTemplate",
+        "ConsistencyLock",
+        "CONSISTENCY_LOCKS",
+        "STYLE_TEMPLATES",
+        "getStyleTemplate",
+        "getConsistencyLocks",
+        "STYLE_TEMPLATE_CATEGORIES"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "StyleTemplateCategory",
+        "StyleTemplateScaffold",
+        "StyleTemplate",
+        "ConsistencyLock",
+        "CONSISTENCY_LOCKS",
+        "STYLE_TEMPLATES",
+        "STYLE_TEMPLATE_CATEGORIES",
+        "getStyleTemplate"
+      ],
+      "lineCount": 541,
+      "sizeBytes": 29092,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/lib/video-generation/video-assembly-plan.ts",
       "type": "util",
       "area": "media-processing",
@@ -9977,6 +10070,26 @@
       "lineCount": 78,
       "sizeBytes": 2470,
       "notes": "Utility / helper module; area=media-processing"
+    },
+    {
+      "path": "src/lib/video-generation/visual-reference-analysis.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "VisualReferenceAnalysis",
+        "analyzeVisualReferences"
+      ],
+      "imports": [
+        "@/lib/providers/openai",
+        "@/types/video-generation"
+      ],
+      "importantSymbols": [
+        "VisualReferenceAnalysis",
+        "analyzeVisualReferences"
+      ],
+      "lineCount": 94,
+      "sizeBytes": 4987,
+      "notes": "Utility / helper module; area=video-generation"
     },
     {
       "path": "src/middleware.ts",
@@ -10029,6 +10142,7 @@
         "BrandKit",
         "UnifiedVideoGenerationRequest",
         "InputClassification",
+        "ConsistencyBible",
         "CreativeBrief",
         "SegmentType",
         "SegmentRole",
@@ -10058,8 +10172,8 @@
         "AssetRole",
         "UploadedAsset"
       ],
-      "lineCount": 342,
-      "sizeBytes": 10286,
+      "lineCount": 371,
+      "sizeBytes": 11890,
       "notes": "Shared TypeScript types; area=media-processing"
     },
     {
@@ -11113,6 +11227,23 @@
       "lineCount": 119,
       "sizeBytes": 4335,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/viral-style-templates.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/style-templates",
+        "../src/lib/video-generation/generation-supervisor",
+        "../src/types/video-generation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 96,
+      "sizeBytes": 3887,
+      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/wizard-smoke-helpers.test.ts",

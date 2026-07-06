@@ -48,6 +48,8 @@
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
     "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
     "demo:brand-overlay": "tsx scripts/demo-brand-overlay.ts",
+    "demo:curtain": "tsx scripts/generate-curtain-viral-ads.ts",
+    "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",
     "demo:sunny-investor:v21:submit": "tsx scripts/sunny-shutter-investor-demo-v21.ts --phase=submit",

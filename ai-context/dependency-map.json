@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:02:59.164Z",
+  "generatedAt": "2026-07-06T01:19:21.241Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -553,6 +553,26 @@
       ],
       "externalImports": [
         "@next/env"
+      ]
+    },
+    {
+      "file": "scripts/publish-curtain-videos-to-library.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "@prisma/client"
       ]
     },
     {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:02:59.161Z",
+  "generatedAt": "2026-07-06T01:19:21.239Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -956,8 +956,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 111,
-      "sizeBytes": 6011,
+      "lineCount": 112,
+      "sizeBytes": 6091,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1527,6 +1527,24 @@
       "lineCount": 74,
       "sizeBytes": 3185,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/publish-curtain-videos-to-library.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs",
+        "node:path",
+        "@vercel/blob",
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 242,
+      "sizeBytes": 7915,
+      "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; hits Prisma DB; area=media-processing"
     },
     {
       "path": "scripts/qa-responsive-screenshots.ts",

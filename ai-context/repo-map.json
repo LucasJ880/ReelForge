@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:02:59.160Z",
+  "generatedAt": "2026-07-06T01:19:21.238Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -29,7 +29,7 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 579,
+    "total": 580,
     "byType": {
       "unknown": 108,
       "workflow": 3,
@@ -37,7 +37,7 @@
       "doc": 30,
       "schema": 18,
       "prisma": 1,
-      "script": 38,
+      "script": 39,
       "style": 3,
       "layout": 6,
       "page": 39,
@@ -52,7 +52,7 @@
     },
     "byArea": {
       "unknown": 130,
-      "media-processing": 34,
+      "media-processing": 35,
       "config": 10,
       "shared": 106,
       "prisma": 10,
@@ -195,6 +195,7 @@
     "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
     "demo:brand-overlay": "tsx scripts/demo-brand-overlay.ts",
     "demo:curtain": "tsx scripts/generate-curtain-viral-ads.ts",
+    "demo:curtain:publish": "tsx scripts/publish-curtain-videos-to-library.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",

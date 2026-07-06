@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T01:02:59.165Z",
+  "generatedAt": "2026-07-06T01:19:21.241Z",
   "areas": {
     "unknown": [
       ".cursor/rules/agency-coordinator.mdc",
@@ -141,6 +141,7 @@
       "scripts/check-real-mode.ts",
       "scripts/context-router.ts",
       "scripts/digital-human-runner.ts",
+      "scripts/publish-curtain-videos-to-library.ts",
       "scripts/render-caption-png.py",
       "showcase-static/_next/static/chunks/0pxq11m3h73jm.js",
       "showcase-static/_next/static/chunks/0xb1tyxb5rlcs.js",

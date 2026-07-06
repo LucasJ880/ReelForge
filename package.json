@@ -49,6 +49,7 @@
     "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
     "demo:brand-overlay": "tsx scripts/demo-brand-overlay.ts",
     "demo:curtain": "tsx scripts/generate-curtain-viral-ads.ts",
+    "demo:curtain:publish": "tsx scripts/publish-curtain-videos-to-library.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { isDryRun } from "@/lib/config/dry-run";
 
 /**
  * OpenAI 模型分层（2026-05 Phase Lifecycle Hardening）：
@@ -199,6 +200,7 @@ export function buildTemperatureParam(
  */
 export function isLLMForcedMock(): boolean {
   return (
+    isDryRun() ||
     process.env.LLM_FORCE_MOCK === "true" ||
     process.env.DIRECTOR_FORCE_MOCK === "true" ||
     process.env.SCRIPT_FORCE_MOCK === "true"

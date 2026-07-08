@@ -13,6 +13,7 @@
  * 单次总成本 < $0.10，MVP 阶段完全可承受。
  */
 import { ApifyClient } from "apify-client";
+import { isDryRun } from "@/lib/config/dry-run";
 
 export interface TikTokVideoSample {
   id: string;
@@ -49,10 +50,12 @@ const DEFAULT_POST_VIDEO_ACTOR = "clockworks/tiktok-video-scraper";
 const DEFAULT_COMMENTS_ACTOR = "clockworks/tiktok-comments-scraper";
 
 export function isApifyAvailable(): boolean {
+  if (isDryRun()) return false;
   return !!process.env.APIFY_TOKEN;
 }
 
 function getClient(): ApifyClient | null {
+  if (isDryRun()) return null;
   const token = process.env.APIFY_TOKEN;
   if (!token) return null;
   return new ApifyClient({ token });

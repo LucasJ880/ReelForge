@@ -15,6 +15,8 @@
  *   方便调和函数把它当成「轮询失败、未到终态」处理而不是误终结任务。
  */
 
+import { isDryRun } from "@/lib/config/dry-run";
+
 export interface SeedanceSubmitOptions {
   prompt: string;
   /**
@@ -104,6 +106,7 @@ const MOCK_PROCESSING_TIME_MS = Number(
  *   - 未设置                              → 缺 ARK_API_KEY 时退回 mock（dev 便利）
  */
 function isMockMode(): boolean {
+  if (isDryRun()) return true;
   const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
   if (flag === "1" || flag === "true" || flag === "yes") return true;
   if (flag === "0" || flag === "false" || flag === "no") return false;

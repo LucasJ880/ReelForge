@@ -11,6 +11,7 @@
  * 不复制业务逻辑，避免双线维护。
  */
 
+import { isDryRun } from "@/lib/config/dry-run";
 import {
   getSeedanceStatus,
   isSeedanceConfigured,
@@ -33,8 +34,9 @@ export class VolcengineVideoProvider implements VideoProvider {
     return isSeedanceConfigured();
   }
 
-  /// VIDEO_ENGINE_MOCK 显式 true，或 ARK_API_KEY 缺失且未显式 false
+  /// AIVORA_DRY_RUN / VIDEO_ENGINE_MOCK 显式 true，或 ARK_API_KEY 缺失且未显式 false
   isMockMode(): boolean {
+    if (isDryRun()) return true;
     const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
     if (flag === "1" || flag === "true" || flag === "yes") return true;
     if (flag === "0" || flag === "false" || flag === "no") return false;

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { toFile } from "openai/uploads";
+import { isDryRun } from "@/lib/config/dry-run";
 import { getStorageProvider } from "@/lib/storage";
 
 /**
@@ -54,6 +55,7 @@ export interface GenerateImagesResult {
 }
 
 export function isImageGenAvailable(): boolean {
+  if (isDryRun()) return false;
   if (process.env.IMAGE_ENGINE_MOCK === "true") return false;
   return !!process.env.OPENAI_API_KEY;
 }

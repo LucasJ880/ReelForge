@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { FinalVideoStatus, VideoJobStatus } from "@prisma/client";
 import { requireAuth } from "@/lib/api-auth";
 import { checkBriefAccess } from "@/lib/services/brief-access";
 import { db } from "@/lib/db";
@@ -8,10 +9,14 @@ import {
 } from "@/lib/services/video-service";
 
 /**
- * 仅允许重试该 brief 下的失败 job（FAILED）。
+ * 重试该 brief 下的失败环节。重试永远是「续跑」：
+ *   - FAILED 的 VideoJob → 重新提交该段（retryFailedVideoJob 有防重复扣费双保险）
+ *   - 段全部成功但合成失败（FinalVideo FAILED）→ retryStitch 从已付费段继续合成，
+ *     **绝不重新生成**（零生成计费）
+ *
  * Body:
  *   { "jobId": "videojob_id" }    // 重试单个 job
- *   { "all": true }               // 重试当前 brief 下所有 FAILED job
+ *   { "all": true }               // 重试当前 brief 下所有失败环节（段 + 合成）
  *
  * 安全门禁（与 Seedance 计费安全相关）：
  * 1. 调用方必须是该 brief 的 owner（unified-input 流程：DeliveryOrder.createdById），
@@ -46,6 +51,39 @@ export async function POST(
       });
       for (const job of failed) {
         await retryFailedVideoJob(job.id);
+      }
+
+      /// 合成失败续跑：段全部成功但 FinalVideo FAILED（含 sweep 超时失败化的）
+      /// → retryStitch 从已付费段继续合成，零生成计费。
+      /// 历史 bug：这里曾只重试 FAILED job —— 合成失败时没有任何 FAILED job，
+      /// 「重试」按钮等于空操作，用户永远卡在失败态。
+      if (failed.length === 0) {
+        const brief = await db.videoBrief.findUnique({
+          where: { id: briefId },
+          select: {
+            finalVideoId: true,
+            finalVideo: {
+              select: {
+                status: true,
+                segmentCount: true,
+                segments: { select: { status: true } },
+              },
+            },
+          },
+        });
+        const fv = brief?.finalVideo;
+        const allSegmentsSucceeded =
+          !!fv &&
+          fv.segments.length === fv.segmentCount &&
+          fv.segments.every((s) => s.status === VideoJobStatus.SUCCEEDED);
+        if (
+          brief?.finalVideoId &&
+          fv?.status === FinalVideoStatus.FAILED &&
+          allSegmentsSucceeded
+        ) {
+          const { retryStitch } = await import("@/lib/services/stitch-service");
+          await retryStitch(brief.finalVideoId);
+        }
       }
     } else if (typeof body.jobId === "string") {
       const job = await db.videoJob.findUnique({

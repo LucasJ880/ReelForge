@@ -173,8 +173,17 @@ export async function executeAssembly(
   /// 单 clip 直通：不需要拼接，直接复用该 clip URL
   if (resolvedClips.length === 1) {
     const only = resolvedClips[0];
-    /// 单 clip 是 AI 段且 URL 是公网 https 时直接复用；其他情况仍要走 stitch 来归一化
-    if (only.type === "ai_generated_clip" && /^https?:\/\//.test(only.url)) {
+    const { isEphemeralSignedUrl } = await import(
+      "@/lib/services/stitch-service"
+    );
+    /// 单 clip 是 AI 段且 URL 是公网 https 时直接复用；其他情况仍要走 stitch 来归一化。
+    /// 临时签名 URL（Seedance TOS 24h 过期）除外 —— 必须走 stitch 转存持久存储，
+    /// 否则成片链接一天后 403。
+    if (
+      only.type === "ai_generated_clip" &&
+      /^https?:\/\//.test(only.url) &&
+      !isEphemeralSignedUrl(only.url)
+    ) {
       await db.finalVideo.update({
         where: { id: fv.id },
         data: {

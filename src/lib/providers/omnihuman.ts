@@ -25,6 +25,7 @@
  */
 
 import { createHash, createHmac } from "node:crypto";
+import { dryRunRefusalError, isDryRun } from "@/lib/config/dry-run";
 
 const DEFAULT_HOST = "visual.volcengineapi.com";
 const DEFAULT_REGION = "cn-north-1";
@@ -238,6 +239,7 @@ async function visualRequest(
 export async function submitOmniHumanJob(
   opts: OmniHumanSubmitOptions,
 ): Promise<{ jobId: string }> {
+  if (isDryRun()) throw dryRunRefusalError("omnihuman");
   if (!opts.imageUrl || !opts.audioUrl) {
     throw new Error("OmniHuman 提交需要 imageUrl 与 audioUrl（均为公网可达 URL）");
   }

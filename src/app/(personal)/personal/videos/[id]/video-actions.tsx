@@ -101,7 +101,7 @@ export function VideoActions({
           ) : (
             <RotateCcw className="h-3 w-3" />
           )}
-          重试失败片段
+          {failedSceneCount > 0 ? "重试失败片段" : "重试"}
           {failedSceneCount > 0 ? (
             <span className="ml-1 text-[10px] opacity-70">
               ({failedSceneCount})

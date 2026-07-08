@@ -30,6 +30,7 @@ import type {
   AiVisionAnalyzeOptions,
 } from "../types";
 import { ProviderCapabilityNotImplementedError } from "../types";
+import { isDryRun } from "@/lib/config/dry-run";
 
 const DEFAULT_BASE_URL = "https://ark.cn-beijing.volces.com/api/v3";
 const DEFAULT_TEXT_MODEL = "doubao-pro-32k";
@@ -68,6 +69,7 @@ function resolveTextModel(tier: AiTier): string {
 
 function isForceMock(): boolean {
   return (
+    isDryRun() ||
     process.env.LLM_FORCE_MOCK === "true" ||
     process.env.DIRECTOR_FORCE_MOCK === "true" ||
     process.env.SCRIPT_FORCE_MOCK === "true"

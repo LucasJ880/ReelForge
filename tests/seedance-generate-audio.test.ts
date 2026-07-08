@@ -8,6 +8,9 @@ import test from "node:test";
 /// Real-mode env (must be set BEFORE importing the module, since module
 /// top-level reads env at import time via isMockMode()):
 process.env.VIDEO_ENGINE_MOCK = "false";
+/// 本文件 stub 了 globalThis.fetch（零计费），需要真实请求组装路径 →
+/// 显式退出 AIVORA_DRY_RUN 的强制 mock。假 key + 假 base URL 双保险。
+process.env.AIVORA_DRY_RUN = "0";
 process.env.ARK_API_KEY = "test-key-not-real";
 process.env.ARK_BASE_URL = "https://test.example/api/v3";
 process.env.ARK_VIDEO_MODEL = "doubao-seedance-2-0-260128";

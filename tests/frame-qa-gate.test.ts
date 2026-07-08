@@ -74,11 +74,19 @@ test("[frame-qa] 畸形/错误字形（错字）单独也拦截", () => {
 });
 
 test("[frame-qa] FRAME_QA_DISABLED / mock 引擎 / 无 API key 时门禁关闭", () => {
+  const prevDryRun = process.env.AIVORA_DRY_RUN;
   process.env.OPENAI_API_KEY = "sk-test";
   delete process.env.FRAME_QA_DISABLED;
   delete process.env.VIDEO_ENGINE_MOCK;
   delete process.env.LLM_FORCE_MOCK;
+  delete process.env.AIVORA_DRY_RUN;
   assert.equal(isFrameQaEnabled(), true);
+
+  /// AIVORA_DRY_RUN=1 强制关闭（frame QA 走 OpenAI Vision，计费）
+  process.env.AIVORA_DRY_RUN = "1";
+  assert.equal(isFrameQaEnabled(), false);
+  if (prevDryRun === undefined) delete process.env.AIVORA_DRY_RUN;
+  else process.env.AIVORA_DRY_RUN = prevDryRun;
 
   process.env.FRAME_QA_DISABLED = "true";
   assert.equal(isFrameQaEnabled(), false);

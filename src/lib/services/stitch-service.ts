@@ -38,7 +38,7 @@ const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
  *       * Sunny Shutter 旧 brief（finalVideoId IS NULL）不进入本服务。
  */
 
-const MAX_STITCH_ATTEMPTS = 3;
+export const MAX_STITCH_ATTEMPTS = 3;
 const AWAITING_EXTERNAL_STITCHER = "awaiting external stitcher";
 
 export interface StitchResult {
@@ -172,8 +172,14 @@ export async function stitchFinalVideo(
     };
   }
 
-  /// 单段：直接复用首段 URL，不走外部拼接
-  if (fv.segmentCount === 1) {
+  /// 单段：直接复用首段 URL，不走外部拼接。
+  /// 例外：临时签名 URL（Seedance TOS 24h 过期）不能直接当成片 —— 过期后 403，
+  /// 用户视角等于视频丢失；这类必须落到下面的真实 stitch 路径转存持久存储。
+  if (
+    fv.segmentCount === 1 &&
+    fv.segments[0]?.outputVideoUrl &&
+    !isEphemeralSignedUrl(fv.segments[0].outputVideoUrl)
+  ) {
     const single = fv.segments[0];
     await db.finalVideo.update({
       where: { id: fv.id },
@@ -328,7 +334,11 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
         (s) => s.status === VideoJobStatus.SUCCEEDED && !!s.outputVideoUrl,
       );
     if (!allSucceeded) continue;
-    if (fv.segmentCount <= 1) continue; // 单段不需要外部 runner
+    /// 注意：不再跳过单段任务（历史 bug：带 unified assemblyPlan 的单段 brief 在
+    /// 生产环境被 stitchFinalVideo 打上「awaiting external stitcher」占位 —— 该判定
+    /// 先于单段捷径 —— 而这里又跳过 segmentCount<=1，导致没有任何 worker 认领，
+    /// 任务永久卡在「正在合成 85%」）。单段走 runner 会被归一化并转存持久存储，
+    /// 顺带避免把 24h 过期的 Seedance 签名 URL 直接当成片 URL。
 
     /// CAS：从 PENDING → STITCHING；若已被别的 runner 抢走则跳过下一个
     const claim = await db.finalVideo.updateMany({
@@ -427,6 +437,11 @@ export async function retryStitch(finalVideoId: string) {
     data: {
       status: FinalVideoStatus.PENDING,
       ffmpegError: null,
+      /// 用户主动重试 → 重置尝试预算，否则 attempts>=MAX 的任务重试后
+      /// 永远不会被 runner 领取（claim 过滤 attempts < MAX），又回到死区
+      stitchAttempts: 0,
+      startedAt: null,
+      finishedAt: null,
     },
   });
   return stitchFinalVideo(finalVideoId);
@@ -680,6 +695,26 @@ export async function runFfmpegNormalizeAndConcat(params: {
     return url;
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
+  }
+}
+
+/**
+ * 判断 URL 是否为「带过期签名的临时地址」（如火山 TOS / S3 预签名，24h 失效）。
+ * 这类 URL 绝不能直接写进 stitchedVideoUrl —— 过期后成片 403，用户视角等于视频丢失。
+ */
+export function isEphemeralSignedUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    const params = u.searchParams;
+    return (
+      params.has("X-Tos-Expires") ||
+      params.has("X-Amz-Expires") ||
+      params.has("X-Tos-Signature") ||
+      params.has("X-Amz-Signature") ||
+      params.has("Expires")
+    );
+  } catch {
+    return false;
   }
 }
 

@@ -124,14 +124,21 @@ test.test("audit: 产品列表页 failed 状态提供 retry / support CTA", asyn
     /isFailed/.test(src),
     "products page 应显式分支 failed 状态",
   );
+  /// i18n 化后 CTA 文案在字典里；页面必须引用对应 key，字典必须给出人话中文
   assert.ok(
-    /重新生成/.test(src),
-    "products page failed 状态应提供「重新生成」CTA",
+    /productsPage\.regenerate/.test(src),
+    "products page failed 状态应提供「重新生成」CTA（productsPage.regenerate）",
   );
   assert.ok(
-    /联系客服/.test(src),
-    "products page failed 状态应提示「联系客服」",
+    /productsPage\.supportHint/.test(src),
+    "products page failed 状态应提示「联系客服」（productsPage.supportHint）",
   );
+  const zh = await readFile(
+    path.join(ROOT, "src/i18n/dictionaries/zh-CN.ts"),
+    "utf-8",
+  );
+  assert.ok(/重新生成|再生成/.test(zh), "zh 字典应有重新生成类 CTA 文案");
+  assert.ok(/联系客服/.test(zh), "zh 字典应有联系客服提示");
 });
 
 test.test("audit: 产品列表页过滤掉 PERSONAL persona 视频，避免跨 persona 泄漏", async () => {
@@ -194,8 +201,21 @@ test.test("audit: BUSINESS video-actions 客户文案友好；调用正确 endpo
     "src/app/(business)/business/products/[id]/video-actions.tsx",
   );
   const src = await readFile(abs, "utf-8");
-  assert.ok(/刷新进度/.test(src), "应有'刷新进度'按钮");
-  assert.ok(/重试失败片段/.test(src), "应有'重试失败片段'按钮");
+  /// i18n 化后按钮文案走字典 key；这里校验 key 引用 + zh 字典给出对应人话文案
+  assert.ok(
+    /videoActions\.refresh/.test(src),
+    "应有'刷新进度'按钮（videoActions.refresh）",
+  );
+  assert.ok(
+    /videoActions\.retryFailed/.test(src),
+    "应有'重试失败片段'按钮（videoActions.retryFailed）",
+  );
+  const zh = await readFile(
+    path.join(ROOT, "src/i18n/dictionaries/zh-CN.ts"),
+    "utf-8",
+  );
+  assert.ok(/刷新进度/.test(zh), "zh 字典应有'刷新进度'文案");
+  assert.ok(/重试失败片段/.test(zh), "zh 字典应有'重试失败片段'文案");
   assert.ok(
     /\/api\/briefs\/\$\{briefId\}\/render-status/.test(src),
     "刷新调用 render-status",

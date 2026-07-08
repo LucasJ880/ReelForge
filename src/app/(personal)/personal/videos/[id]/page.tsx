@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
+  containsBannedPersonalTerm,
   customerSafeFinalVideoUrl,
   derivePersonalStatus,
   type PersonalVideoStatus,
@@ -79,6 +80,7 @@ export default async function PersonalVideoDetailPage({
                     status: true,
                     aspectRatio: true,
                     durationSec: true,
+                    errorMessage: true,
                     finalVideoUrl: true,
                     finalThumbnailUrl: true,
                     finalVideo: {
@@ -187,6 +189,14 @@ export default async function PersonalVideoDetailPage({
   const failedSceneCount = scenes.filter((s) => s.isFailed).length;
   const isReady = personal.status === "ready";
   const isFailed = personal.status === "failed";
+  /// 错误上浮：只展示「人话版」错误（sweep / sync 写入的用户安全文案）。
+  /// 含内部术语的技术错误一律不给客户看，退回通用文案。
+  const failureDetail =
+    isFailed &&
+    brief.errorMessage &&
+    !containsBannedPersonalTerm(brief.errorMessage)
+      ? brief.errorMessage
+      : null;
   const showProgress =
     personal.status === "generating" || personal.status === "assembling";
 
@@ -369,7 +379,8 @@ export default async function PersonalVideoDetailPage({
         <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-5 text-sm">
           <p className="font-medium">这次没生成出来。</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            换个描述、换个画面或者直接点上面的「重试失败片段」再试一次，效果通常会好很多。
+            {failureDetail ??
+              "换个描述、换个画面或者直接点上面的「重试失败片段」再试一次，效果通常会好很多。"}
           </p>
           <Link
             href="/personal/create-video"

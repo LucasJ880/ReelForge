@@ -86,7 +86,10 @@ export function derivePersonalStatus(
     shortLabel: SHORT_LABELS[status],
     progressHint: business.progressHint,
     cta: CTAS[status],
-    progressHint_text: PROGRESS_HINT_TEXT[status],
+    progressHint_text:
+      status === "assembling" && business.assemblingPhase === "waiting"
+        ? "画面已生成，正在排队合成"
+        : PROGRESS_HINT_TEXT[status],
   };
 }
 

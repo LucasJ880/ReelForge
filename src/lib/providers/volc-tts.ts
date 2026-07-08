@@ -35,6 +35,7 @@
  *       V3 https://docs.volcengine.com/docs/6561/1598757
  */
 import { randomUUID } from "node:crypto";
+import { dryRunRefusalError, isDryRun } from "@/lib/config/dry-run";
 
 const DEFAULT_ENDPOINT_V1 = "https://openspeech.bytedance.com/api/v1/tts";
 const DEFAULT_ENDPOINT_V3 =
@@ -83,6 +84,7 @@ function useV3(): boolean {
 }
 
 export function isVolcTtsConfigured(): boolean {
+  if (isDryRun()) return false;
   const hasApiKey = !!process.env.VOLC_TTS_API_KEY?.trim();
   const hasAppPair =
     !!process.env.VOLC_TTS_APPID?.trim() &&
@@ -94,6 +96,7 @@ export function isVolcTtsConfigured(): boolean {
  * 合成一段中文语音，返回音频 Buffer（默认 mp3）。
  */
 export async function synthesizeSpeech(opts: VolcTtsOptions): Promise<Buffer> {
+  if (isDryRun()) throw dryRunRefusalError("volc-tts");
   if (!isVolcTtsConfigured()) {
     throw new Error(
       "缺少火山语音合成凭证：请在 .env.local 配置 VOLC_TTS_API_KEY，或 VOLC_TTS_APPID + VOLC_TTS_ACCESS_TOKEN。",

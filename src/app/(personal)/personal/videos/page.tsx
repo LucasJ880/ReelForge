@@ -187,7 +187,7 @@ export default async function PersonalVideosPage() {
     }));
 
   return (
-    <main className="min-w-0 space-y-10 [&_svg]:stroke-[1.5]">
+    <div className="editorial-page-stack min-w-0 [&_svg]:stroke-[1.5]">
       <PersonalVideosAutoRefresh targets={pollTargets} />
       <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl space-y-3">
@@ -377,6 +377,6 @@ export default async function PersonalVideosPage() {
           })}
         </ul>
       )}
-    </main>
+    </div>
   );
 }

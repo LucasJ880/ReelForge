@@ -10,8 +10,8 @@ import {
   Layers3,
   LogOut,
   NotebookText,
+  UserRound,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -24,12 +24,27 @@ interface NavItem {
   match?: string;
 }
 
-const NAV: NavItem[] = [
-  { href: "/personal/agent", label: "Agent", icon: Bot },
-  { href: "/personal/create-video", label: "创作", icon: Clapperboard },
-  { href: "/batch-create", label: "批量", icon: Layers3, match: "/batch" },
-  { href: "/personal/videos", label: "成片库", icon: Film },
-  { href: "/personal/templates", label: "模板", icon: NotebookText },
+interface NavGroup {
+  title: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: "创作",
+    items: [
+      { href: "/personal/agent", label: "Agent", icon: Bot },
+      { href: "/personal/create-video", label: "创作", icon: Clapperboard },
+      { href: "/batch-create", label: "批量", icon: Layers3, match: "/batch" },
+    ],
+  },
+  {
+    title: "资产",
+    items: [
+      { href: "/personal/videos", label: "成片库", icon: Film },
+      { href: "/personal/templates", label: "模板", icon: NotebookText },
+    ],
+  },
 ];
 
 const PAGE_TITLES: Array<[string, string]> = [
@@ -66,42 +81,73 @@ function Navigation({
   pathname: string;
   mobile?: boolean;
 }) {
+  if (mobile) {
+    const flat = NAV_GROUPS.flatMap((group) => group.items);
+    return (
+      <nav
+        aria-label="个人移动导航"
+        className="grid h-16 grid-cols-5 border-t border-border bg-card"
+      >
+        {flat.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(pathname, item);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={active ? "page" : undefined}
+              className={cn(
+                "flex min-w-0 flex-col items-center justify-center gap-1 overflow-hidden px-1 text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
+                active
+                  ? "bg-accent-soft text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <Icon className="size-4 stroke-[1.5]" aria-hidden />
+              <span className="w-full truncate text-center">{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+    );
+  }
+
   return (
-    <nav
-      aria-label={mobile ? "个人移动导航" : "个人主导航"}
-      className={cn(
-        mobile
-          ? "grid h-16 grid-cols-5 border-t border-border bg-card"
-          : "flex flex-1 flex-col gap-1 px-3 py-5",
-      )}
-    >
-      {NAV.map((item) => {
-        const Icon = item.icon;
-        const active = isActive(pathname, item);
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "flex items-center text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
-              mobile
-                ? "min-w-0 flex-col justify-center gap-1 overflow-hidden px-1"
-                : "h-10 gap-3 rounded-(--radius-md) px-3",
-              active
-                ? "bg-accent-soft text-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <Icon className="size-4 stroke-[1.5]" aria-hidden />
-            <span className={cn(mobile && "w-full truncate text-center")}>
-              {item.label}
-            </span>
-          </Link>
-        );
-      })}
+    <nav aria-label="个人主导航" className="flex flex-1 flex-col gap-6 px-3 py-5">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.title} className="space-y-1">
+          <p className="px-3 text-meta font-semibold text-muted-foreground">
+            {group.title}
+          </p>
+          {group.items.map((item) => {
+            const Icon = item.icon;
+            const active = isActive(pathname, item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "flex h-10 items-center gap-3 rounded-(--radius-md) px-3 text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
+                  active
+                    ? "bg-accent-soft text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                )}
+              >
+                <Icon className="size-4 stroke-[1.5]" aria-hidden />
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
     </nav>
   );
+}
+
+function emailInitial(email: string): string {
+  const local = email.split("@")[0]?.trim();
+  return local ? local.slice(0, 1).toUpperCase() : "创";
 }
 
 export function PersonalEditorialShell({
@@ -132,11 +178,26 @@ export function PersonalEditorialShell({
           </span>
         </Link>
         <Navigation pathname={pathname} />
-        <div className="space-y-3 border-t border-border p-4">
-          <LanguageSwitcher variant="sidebar" />
-          <p className="truncate text-meta text-muted-foreground" title={userEmail}>
-            {userEmail || "个人创作者"}
+        <div className="mt-auto space-y-3 border-t border-border p-4">
+          <p className="px-1 text-meta font-semibold text-muted-foreground">
+            系统
           </p>
+          <LanguageSwitcher variant="sidebar" />
+          <div className="flex items-center gap-3 px-1">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-accent-soft text-meta font-semibold text-foreground">
+              {userEmail ? (
+                emailInitial(userEmail)
+              ) : (
+                <UserRound className="size-4 stroke-[1.5]" aria-hidden />
+              )}
+            </span>
+            <p
+              className="min-w-0 flex-1 truncate text-meta text-muted-foreground"
+              title={userEmail}
+            >
+              {userEmail || "个人创作者"}
+            </p>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -163,19 +224,19 @@ export function PersonalEditorialShell({
               {pageTitle(pathname)}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <Badge variant="success">服务就绪</Badge>
-            <Link
-              href="/personal/billing"
-              className="hidden text-meta font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:inline"
-            >
+          <div className="flex items-center gap-2">
+            <span className="hidden items-center gap-2 text-meta text-muted-foreground sm:flex">
+              <span className="size-2 rounded-full bg-success" aria-hidden />
+              服务就绪
+            </span>
+            <Button variant="ghost" size="sm" render={<Link href="/personal/billing" />}>
               用量与账单
-            </Link>
+            </Button>
           </div>
         </header>
 
         <main className="min-w-0 flex-1">
-          <div className="editorial-page">{children}</div>
+          <div className="editorial-page editorial-page-enter">{children}</div>
         </main>
       </div>
 

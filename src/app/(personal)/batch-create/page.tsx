@@ -8,7 +8,7 @@ export default async function BatchCreatePage() {
   if (!session?.user?.id) redirect("/login?from=/batch-create");
 
   return (
-    <main className="space-y-10">
+    <div className="editorial-page-stack">
       <header className="max-w-4xl space-y-4">
         <p className="text-meta font-semibold uppercase tracking-[0.16em] text-muted-foreground">
           Editorial Batch Studio
@@ -22,6 +22,6 @@ export default async function BatchCreatePage() {
         </p>
       </header>
       <BatchCreateWizard />
-    </main>
+    </div>
   );
 }

@@ -7,12 +7,12 @@ import {
   Check,
   Clapperboard,
   Film,
-  ImagePlus,
   Loader2,
   Sparkles,
   X,
   Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { FileDropzone } from "@/components/ui/dropzone";
+import { EditorialStepper } from "@/components/editorial/editorial-stepper";
 import type {
   UploadedAsset,
   VideoGenerationPlan,
@@ -68,7 +70,6 @@ export function EditorialCreateWorkflow({
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<DispatchResult | null>(null);
 
-  const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const logRef = useRef<HTMLPreElement>(null);
 
@@ -114,12 +115,13 @@ export function EditorialCreateWorkflow({
       });
       setImages((prev) => [...prev, ...assets].slice(0, 10));
       log(`产品图上传完成（共 ${Math.min(images.length + list.length, 10)} 张）`);
+      toast.success(`已上传 ${assets.length} 张产品图`);
     } catch (e) {
       setError((e as Error).message);
       log(`产品图上传失败：${(e as Error).message}`);
+      toast.error((e as Error).message);
     } finally {
       setUploadingImages(false);
-      if (imageInputRef.current) imageInputRef.current.value = "";
     }
   }
 
@@ -232,15 +234,7 @@ export function EditorialCreateWorkflow({
   const appliedTemplate = getStyleTemplate(styleTemplateId);
 
   return (
-    <div className="space-y-8 pb-16">
-      <input
-        ref={imageInputRef}
-        type="file"
-        multiple
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => handleImageFiles(e.target.files)}
-      />
+    <div className="editorial-page-stack pb-16">
       <input
         ref={videoInputRef}
         type="file"
@@ -252,13 +246,30 @@ export function EditorialCreateWorkflow({
       <header className="max-w-4xl space-y-4">
         <Badge variant="secondary">Creative Workflow</Badge>
         <h1 className="editorial-display">
-          创作你的<em>下一支视频</em>
+          创作你的下一支<span className="editorial-display-latin"> video</span>
         </h1>
         <p className="max-w-2xl text-body text-muted-foreground">
           从素材、参考到脚本确认，按编辑台顺序完成每一步，所有生成设置保持可回看、可调整。
         </p>
       </header>
 
+      <div className="grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)]">
+        <aside className="hidden lg:block">
+          <EditorialStepper
+            currentIndex={
+              done ? 4 : plan ? 3 : images.length > 0 ? 1 : 0
+            }
+            steps={[
+              { id: "images", title: "产品图片" },
+              { id: "reference", title: "参考视频" },
+              { id: "brief", title: "创作需求" },
+              { id: "plan", title: "脚本确认" },
+              { id: "dispatch", title: "提交生成" },
+            ]}
+          />
+        </aside>
+
+        <div className="space-y-8">
       <Card>
         <CardHeader className="border-b border-border">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -273,34 +284,15 @@ export function EditorialCreateWorkflow({
           </div>
         </CardHeader>
         <CardContent className="pt-2">
-        <div
-          onDragOver={(e) => e.preventDefault()}
-          onDrop={(e) => {
-            e.preventDefault();
-            handleImageFiles(e.dataTransfer.files);
-          }}
-          className="rounded-(--radius-lg) border border-dashed border-border bg-muted px-4 py-8 text-center sm:px-6"
-        >
-          {images.length === 0 ? (
-            <button
-              type="button"
-              onClick={() => imageInputRef.current?.click()}
-              className="w-full space-y-2 rounded-(--radius-md) transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
-            >
-              {uploadingImages ? (
-                <Loader2 className="mx-auto size-6 animate-spin stroke-[1.5] text-muted-foreground" aria-hidden />
-              ) : (
-                <ImagePlus className="mx-auto size-6 stroke-[1.5] text-muted-foreground" aria-hidden />
-              )}
-              <p className="text-body font-medium">
-                拖拽或点击上传产品图片
-              </p>
-              <p className="text-meta text-muted-foreground">
-                建议上传 3-5 张，包含正面/侧面/细节
-              </p>
-            </button>
-          ) : (
-            <div className="space-y-4">
+        <FileDropzone
+          title="拖拽或点击上传产品图片"
+          description="建议上传 3-5 张，包含正面/侧面/细节"
+          uploading={uploadingImages}
+          disabled={images.length >= 10}
+          onFiles={(files) => void handleImageFiles(files)}
+        />
+        {images.length > 0 ? (
+            <div className="mt-4 space-y-4">
               <div className="flex flex-wrap items-center justify-center gap-3">
                 {images.map((img, idx) => (
                   <div key={img.id} className="group relative">
@@ -324,19 +316,16 @@ export function EditorialCreateWorkflow({
                 ))}
               </div>
               {images.length < 10 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => imageInputRef.current?.click()}
-                  disabled={uploadingImages}
-                >
-                  {uploadingImages ? <Loader2 className="animate-spin" /> : <ImagePlus />}
-                  继续上传
-                </Button>
+                <FileDropzone
+                  title="继续上传产品图片"
+                  description="还可添加更多角度与细节"
+                  uploading={uploadingImages}
+                  className="py-4"
+                  onFiles={(files) => void handleImageFiles(files)}
+                />
               )}
             </div>
-          )}
-        </div>
+        ) : null}
         </CardContent>
       </Card>
 
@@ -680,6 +669,8 @@ export function EditorialCreateWorkflow({
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }

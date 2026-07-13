@@ -7,6 +7,8 @@
   --surface: #ffffff;
   --surface-sunken: #f1f0eb;
   --border: #e4e2da;
+  --border-strong: #d4d1c7;
+  --content-max-width: 75rem;
   --text-primary: #16150f;
   --text-secondary: #6e6b60;
   --accent: #ff4d00;
@@ -125,6 +127,7 @@
   --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-destructive: var(--destructive);

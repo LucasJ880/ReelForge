@@ -1,12 +1,22 @@
 import type { Page, TestInfo } from "@playwright/test";
 
 export interface EditorialRoute {
-  key: "design" | "batch-create" | "batch-monitor" | "videos" | "templates" | "login";
+  key:
+    | "design"
+    | "agent"
+    | "create-video"
+    | "batch-create"
+    | "batch-monitor"
+    | "videos"
+    | "templates"
+    | "login";
   path: string;
 }
 
 export const EDITORIAL_ROUTES: EditorialRoute[] = [
   { key: "design", path: "/design" },
+  { key: "agent", path: "/personal/agent" },
+  { key: "create-video", path: "/personal/create-video" },
   { key: "batch-create", path: "/batch-create" },
   { key: "batch-monitor", path: "/batches/__fixture__" },
   { key: "videos", path: "/personal/videos" },

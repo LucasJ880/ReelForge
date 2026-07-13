@@ -25,7 +25,7 @@ export default async function BatchMonitorPage({
   if (!batch) notFound();
 
   return (
-    <main className="min-w-0 space-y-8">
+    <div className="editorial-page-stack min-w-0">
       <nav
         aria-label="批次监控导航"
         className="flex flex-wrap items-center justify-between gap-3"
@@ -44,6 +44,6 @@ export default async function BatchMonitorPage({
         </Button>
       </nav>
       <BatchMonitor initialBatch={batch as unknown as BatchMonitorData} />
-    </main>
+    </div>
   );
 }

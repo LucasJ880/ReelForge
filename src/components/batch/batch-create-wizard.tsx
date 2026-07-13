@@ -9,9 +9,9 @@ import {
   Images,
   Loader2,
   RefreshCw,
-  UploadCloud,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,6 +23,8 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { FileDropzone } from "@/components/ui/dropzone";
+import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
@@ -31,6 +33,7 @@ interface UploadItem {
   file: File;
   previewUrl: string;
   status: UploadStatus;
+  progress?: number;
   assetId?: string;
   url?: string;
   error?: string;
@@ -62,7 +65,6 @@ function formatEstimate(seconds: number): string {
 
 export function BatchCreateWizard() {
   const router = useRouter();
-  const inputRef = useRef<HTMLInputElement>(null);
   const uploadControllersRef = useRef(new Map<string, AbortController>());
   const [step, setStep] = useState(0);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
@@ -70,7 +72,6 @@ export function BatchCreateWizard() {
   const [templateId, setTemplateId] = useState("");
   const [count, setCount] = useState(100);
   const [productName, setProductName] = useState("");
-  const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -128,27 +129,20 @@ export function BatchCreateWizard() {
     uploadControllersRef.current.set(item.localId, controller);
     updateUpload(item.localId, {
       status: "uploading",
+      progress: 0,
       error: undefined,
     });
     try {
-      const form = new FormData();
-      form.append("file", item.file);
-      form.append("prefix", "batch-products");
-      const response = await fetch("/api/upload/blob", {
-        method: "POST",
-        body: form,
+      const data = await uploadBlobWithProgress({
+        file: item.file,
+        prefix: "batch-products",
         signal: controller.signal,
+        onProgress: (progress) =>
+          updateUpload(item.localId, { progress }),
       });
-      const data = (await response.json().catch(() => ({}))) as {
-        url?: string;
-        pathname?: string;
-        error?: string;
-      };
-      if (!response.ok || !data.url) {
-        throw new Error(data.error ?? `上传失败 (${response.status})`);
-      }
       updateUpload(item.localId, {
         status: "uploaded",
+        progress: 100,
         assetId: data.pathname ?? item.localId,
         url: data.url,
       });
@@ -237,8 +231,11 @@ export function BatchCreateWizard() {
         throw new Error(data.error ?? "创建批次失败");
       }
       router.push(`/batches/${data.batch.id}`);
+      toast.success("批次已创建，正在跳转监控页");
     } catch (reason) {
-      setError((reason as Error).message);
+      const message = (reason as Error).message;
+      setError(message);
+      toast.error(message);
       setSubmitting(false);
     }
   }
@@ -308,51 +305,12 @@ export function BatchCreateWizard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
-              <Card
-                size="sm"
-                className={
-                  dragging ? "border-primary bg-accent-soft" : "border-dashed"
-                }
-              >
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => inputRef.current?.click()}
-                  onDragEnter={(event) => {
-                    event.preventDefault();
-                    setDragging(true);
-                  }}
-                  onDragOver={(event) => event.preventDefault()}
-                  onDragLeave={() => setDragging(false)}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    setDragging(false);
-                    addFiles(Array.from(event.dataTransfer.files));
-                  }}
-                  className="h-auto w-full flex-col whitespace-normal px-6 py-10 text-center motion-reduce:transition-none"
-                >
-                  <UploadCloud
-                    className="mb-1 size-7 text-muted-foreground"
-                    aria-hidden
-                  />
-                  <span className="text-body text-foreground">
-                    拖入产品图片，或点击选择
-                  </span>
-                  <span className="text-meta font-normal text-muted-foreground">
-                    文件会在选择后立即上传
-                  </span>
-                </Button>
-              </Card>
-              <input
-                ref={inputRef}
-                hidden
-                multiple
-                accept="image/png,image/jpeg,image/webp"
-                type="file"
-                onChange={(event) => {
-                  addFiles(Array.from(event.target.files ?? []));
-                  event.target.value = "";
-                }}
+              <FileDropzone
+                title="拖入产品图片，或点击选择"
+                description="文件会在选择后立即上传，最多 50 张"
+                uploading={hasPendingUploads}
+                disabled={uploads.length >= 50}
+                onFiles={addFiles}
               />
               <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
                 <span>{uploads.length}/50 张</span>
@@ -380,12 +338,15 @@ export function BatchCreateWizard() {
                     <div className="absolute inset-x-0 bottom-0 bg-overlay px-1.5 py-1 text-[10px] text-primary-foreground">
                       {item.status === "queued" && <span>等待上传</span>}
                       {item.status === "uploading" && (
-                        <span className="flex items-center gap-1">
-                          <Loader2
-                            className="size-3 animate-spin motion-reduce:animate-none"
-                            aria-hidden
-                          />
-                          上传中
+                        <span className="flex flex-col gap-1">
+                          <span className="flex items-center gap-1">
+                            <Loader2
+                              className="size-3 animate-spin motion-reduce:animate-none"
+                              aria-hidden
+                            />
+                            上传中 {item.progress ?? 0}%
+                          </span>
+                          <Progress value={item.progress ?? 0} className="h-0.5" />
                         </span>
                       )}
                       {item.status === "uploaded" && (

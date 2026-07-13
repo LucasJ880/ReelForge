@@ -17,6 +17,7 @@ import {
   UserRound,
   type LucideIcon,
 } from "lucide-react";
+import { CardAnchor } from "@/components/editorial/card-anchor";
 import { saveCreatePrefill } from "@/components/personal/upload-assets";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export default function TemplatesPage() {
   }
 
   return (
-    <main className="min-w-0 space-y-10">
+    <div className="editorial-page-stack min-w-0">
       <header className="max-w-3xl space-y-3">
         <p className="text-meta font-semibold uppercase tracking-widest text-muted-foreground">
           Editorial Template Library
@@ -161,11 +162,7 @@ export default function TemplatesPage() {
                 <Card size="sm" className="h-full">
                   <CardHeader>
                     <div className="flex items-start justify-between gap-3">
-                      <TemplateIcon
-                        className="size-5 shrink-0 text-primary"
-                        strokeWidth={1.5}
-                        aria-hidden
-                      />
+                      <CardAnchor icon={TemplateIcon} label={tpl.category} />
                       <div className="flex min-w-0 flex-wrap justify-end gap-x-3 gap-y-2">
                         {tpl.viral ? (
                           <Badge variant="destructive">爆款</Badge>
@@ -270,6 +267,6 @@ export default function TemplatesPage() {
           </CardContent>
         </Card>
       </section>
-    </main>
+    </div>
   );
 }

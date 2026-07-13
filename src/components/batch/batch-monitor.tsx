@@ -20,6 +20,15 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { KpiCard } from "@/components/editorial/kpi-card";
+import { toast } from "sonner";
 
 export interface BatchMonitorJob {
   id: string;
@@ -137,6 +146,7 @@ export function BatchMonitor({
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [columns, setColumns] = useState(4);
+  const [detailJob, setDetailJob] = useState<BatchMonitorJob | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
@@ -211,8 +221,11 @@ export function BatchMonitor({
         throw new Error(data.error ?? "操作失败");
       }
       setBatch(data.batch);
+      toast.success("批次状态已更新");
     } catch (reason) {
-      setError((reason as Error).message);
+      const message = (reason as Error).message;
+      setError(message);
+      toast.error(message);
     } finally {
       setBusy(null);
     }
@@ -331,37 +344,21 @@ export function BatchMonitor({
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <dl className="grid grid-cols-2 border-y border-border sm:grid-cols-5">
-            {[
-              ["总数", batch.requestedCount],
-              ["完成", batch.completedCount],
-              ["进行中", batch.runningCount],
-              ["排队/暂停", batch.queuedCount + batch.pausedCount],
-              ["失败", batch.failedCount],
-            ].map(([label, value]) => (
-              <div
-                key={String(label)}
-                className="min-w-0 border-b border-border py-3 last:border-b-0 sm:border-b-0"
-              >
-                <dt className="text-meta text-muted-foreground">{label}</dt>
-                <dd className="mt-1 font-heading text-subhead tabular-nums text-foreground">
-                  {value}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <div className="space-y-2">
-            <div className="flex justify-between gap-4 text-meta">
-              <span className="font-medium text-foreground">总进度</span>
-              <span className="tabular-nums text-muted-foreground">
-                {totalProgress}%
-              </span>
-            </div>
-            <Progress
-              value={totalProgress}
-              aria-label={`批次总进度 ${totalProgress}%`}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            <KpiCard label="总数" value={batch.requestedCount} />
+            <KpiCard label="完成" value={batch.completedCount} />
+            <KpiCard label="进行中" value={batch.runningCount} />
+            <KpiCard
+              label="排队/暂停"
+              value={batch.queuedCount + batch.pausedCount}
             />
+            <KpiCard label="失败" value={batch.failedCount} />
           </div>
+          <KpiCard
+            label="总进度"
+            value={`${totalProgress}%`}
+            progress={totalProgress}
+          />
         </CardContent>
       </Card>
 
@@ -430,6 +427,17 @@ export function BatchMonitor({
                       size="sm"
                       className="min-w-0 gap-0 py-0"
                       data-batch-video-card
+                      onClick={() => {
+                        if (columns === 1) setDetailJob(job);
+                      }}
+                      onKeyDown={(event) => {
+                        if (columns === 1 && (event.key === "Enter" || event.key === " ")) {
+                          event.preventDefault();
+                          setDetailJob(job);
+                        }
+                      }}
+                      role={columns === 1 ? "button" : undefined}
+                      tabIndex={columns === 1 ? 0 : undefined}
                     >
                       <div className="relative aspect-9/12 bg-muted">
                         {job.outputVideoUrl ? (
@@ -539,6 +547,61 @@ export function BatchMonitor({
           })}
         </div>
       </div>
+
+      <Sheet
+        open={detailJob != null}
+        onOpenChange={(open) => {
+          if (!open) setDetailJob(null);
+        }}
+      >
+        <SheetContent side="bottom" className="md:hidden">
+          {detailJob ? (
+            <>
+              <SheetHeader>
+                <SheetTitle>视频 #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
+                <SheetDescription>
+                  {JOB_LABELS[detailJob.status]}
+                  {detailJob.userSafeError ? ` · ${detailJob.userSafeError}` : ""}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="space-y-4 px-6 pb-6">
+                {detailJob.outputVideoUrl ? (
+                  <video
+                    src={detailJob.outputVideoUrl}
+                    poster={detailJob.outputThumbUrl ?? undefined}
+                    controls
+                    preload="metadata"
+                    className="aspect-9/12 w-full rounded-(--radius-md) border border-border object-cover"
+                  />
+                ) : null}
+                {detailJob.status === "RUNNING" && (
+                  <Progress
+                    value={detailJob.lastProgress ?? 8}
+                    aria-label={`视频 ${(detailJob.batchIndex ?? 0) + 1} 生成进度`}
+                  />
+                )}
+                {detailJob.status === "FAILED" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={busy != null}
+                    onClick={() =>
+                      void action(
+                        `retry-${detailJob.id}`,
+                        `/api/batches/${batch.id}/jobs/${detailJob.id}/retry`,
+                      )
+                    }
+                  >
+                    <RefreshCw aria-hidden />
+                    单条重试
+                  </Button>
+                )}
+              </div>
+            </>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

@@ -36,22 +36,44 @@ for (const route of EDITORIAL_ROUTES) {
     });
     expect(blocking, "axe critical/serious 必须为 0").toEqual([]);
 
-    await page.keyboard.press("Tab");
-    const focus = await page.evaluate(() => {
-      const element = document.activeElement as HTMLElement | null;
-      if (!element || element === document.body) return null;
-      const style = getComputedStyle(element);
-      return {
-        tag: element.tagName,
-        outlineStyle: style.outlineStyle,
-        outlineWidth: style.outlineWidth,
-      };
-    });
-    expect(focus, "页面必须有可键盘聚焦元素").not.toBeNull();
-    expect(focus?.outlineStyle).not.toBe("none");
-    expect(focus?.outlineWidth).not.toBe("0px");
+    const focusable = page.locator(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    const focusCount = await focusable.count();
+    expect(focusCount, "页面必须有可键盘聚焦元素").toBeGreaterThan(0);
+
+    const tabChecks = Math.min(focusCount, 8);
+    for (let index = 0; index < tabChecks; index += 1) {
+      await page.keyboard.press("Tab");
+      const focus = await page.evaluate(() => {
+        const element = document.activeElement as HTMLElement | null;
+        if (!element || element === document.body) return null;
+        const style = getComputedStyle(element);
+        return {
+          tag: element.tagName,
+          outlineStyle: style.outlineStyle,
+          outlineWidth: style.outlineWidth,
+        };
+      });
+      expect(focus, `第 ${index + 1} 次 Tab 必须聚焦可见元素`).not.toBeNull();
+      expect(focus?.outlineStyle).not.toBe("none");
+      expect(focus?.outlineWidth).not.toBe("0px");
+    }
+
+    const cjkItalic = await page.evaluate(() =>
+      [...document.querySelectorAll("em, i, .italic")].some((element) =>
+        /[\u3400-\u9fff\uf900-\ufaff]/.test(element.textContent ?? ""),
+      ),
+    );
+    expect(cjkItalic, "中文不得使用斜体").toBe(false);
 
     if (testInfo.project.name === "desktop") {
+      const container = page.locator(".editorial-page").first();
+      if ((await container.count()) > 0) {
+        const width = await container.evaluate((element) => element.clientWidth);
+        expect(width).toBeLessThanOrEqual(1200);
+      }
+
       await page.setViewportSize({ width: 720, height: 1000 });
       await page.waitForTimeout(50);
       const reflow = await page.evaluate(() => ({

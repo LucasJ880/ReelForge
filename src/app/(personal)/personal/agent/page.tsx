@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import {
   Bot,
   ArrowRight,
-  ImagePlus,
   Loader2,
   Send,
   Clapperboard,
@@ -13,6 +12,7 @@ import {
   Flame,
   Wand2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { FileDropzone } from "@/components/ui/dropzone";
+import { CardAnchor } from "@/components/editorial/card-anchor";
+import { EditorialStepper } from "@/components/editorial/editorial-stepper";
 import { Textarea } from "@/components/ui/textarea";
 import type { UploadedAsset } from "@/types/video-generation";
 import {
@@ -59,7 +62,6 @@ export default function AgentDirectorPage() {
     prompt: string;
     duration: 15 | 30 | 60;
   } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,24 +71,27 @@ export default function AgentDirectorPage() {
     });
   }, [messages, sending]);
 
-  async function handleUpload(files: FileList | null) {
-    if (!files || files.length === 0) return;
+  async function handleUpload(files: File[] | FileList | null) {
+    if (!files || (files instanceof FileList ? files.length === 0 : files.length === 0))
+      return;
     setError(null);
     setUploading(true);
     try {
       const capacity = 10 - images.length;
-      const list = Array.from(files)
+      const list = Array.from(files instanceof FileList ? files : files)
         .filter((f) => f.type.startsWith("image/"))
         .slice(0, capacity);
       const assets = await uploadFilesToAssets(list, {
         forceRole: "product_image",
       });
       setImages((prev) => [...prev, ...assets]);
+      toast.success(`已上传 ${assets.length} 张产品图`);
     } catch (e) {
-      setError((e as Error).message);
+      const message = (e as Error).message;
+      setError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -147,16 +152,7 @@ export default function AgentDirectorPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <input
-        ref={fileRef}
-        type="file"
-        multiple
-        accept="image/png,image/jpeg,image/webp"
-        className="hidden"
-        onChange={(e) => handleUpload(e.target.files)}
-      />
-
+    <div className="editorial-page-stack">
       <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
         <div className="max-w-3xl space-y-4">
           <Badge variant="secondary">AI Creative Director</Badge>
@@ -180,9 +176,7 @@ export default function AgentDirectorPage() {
         <CardHeader className="border-b border-border py-5">
           <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) border border-border bg-accent-soft text-foreground">
-                <Bot className="size-5 stroke-[1.5]" aria-hidden />
-              </span>
+              <CardAnchor icon={Bot} label="创意对话" />
               <div className="min-w-0">
                 <CardTitle>创意对话</CardTitle>
                 <CardDescription>从模糊想法到可执行脚本，一次聊清楚。</CardDescription>
@@ -208,16 +202,13 @@ export default function AgentDirectorPage() {
                   上传 1–10 张清晰产品图，导演会优先参考。
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full bg-card"
-                disabled={uploading || images.length >= 10}
-                onClick={() => fileRef.current?.click()}
-              >
-                {uploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
-                上传产品图
-              </Button>
+              <FileDropzone
+                title="上传产品图"
+                description="支持 JPG / PNG / WebP，最多 10 张"
+                uploading={uploading}
+                disabled={images.length >= 10}
+                onFiles={(files) => void handleUpload(files)}
+              />
               {images.length > 0 ? (
                 <div className="grid grid-cols-4 gap-2 xl:grid-cols-3">
                   {images.map((img, index) => (
@@ -249,18 +240,14 @@ export default function AgentDirectorPage() {
               <h2 id="agent-flow-heading" className="text-meta font-semibold text-foreground">
                 本次创作
               </h2>
-              <ol className="space-y-3 text-meta text-muted-foreground">
-                {["上传产品素材", "说明受众与卖点", "确认脚本并开始创作"].map(
-                  (step, index) => (
-                    <li key={step} className="flex items-center gap-3">
-                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card font-medium text-foreground">
-                        {index + 1}
-                      </span>
-                      {step}
-                    </li>
-                  ),
-                )}
-              </ol>
+              <EditorialStepper
+                currentIndex={brief ? 2 : images.length > 0 ? 1 : 0}
+                steps={[
+                  { id: "assets", title: "上传产品素材" },
+                  { id: "brief", title: "说明受众与卖点" },
+                  { id: "script", title: "确认脚本并开始创作" },
+                ]}
+              />
             </section>
           </aside>
 

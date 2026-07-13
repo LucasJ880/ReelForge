@@ -10,9 +10,12 @@
  *
  * 设计要点（Phase Lifecycle Hardening · 2026-05）：
  * - 状态结果必须额外携带 rawProviderStatus，供调和层做决策（不要丢掉原始字符串）。
- * - 提交时若配置了 SEEDANCE_CALLBACK_URL，主动带上回调 URL（双保险：cron 轮询 + webhook）。
  * - getStatusReal 永远不抛出非业务异常—网络/解析问题统一抛 Error，
  *   方便调和函数把它当成「轮询失败、未到终态」处理而不是误终结任务。
+ * - 所有对外 fetch 必须带显式超时（INV-3，2026-07 卡死事故加固）：
+ *   SEEDANCE_HTTP_TIMEOUT_MS 可配置，默认 30s。超时抛带 "timeout" 字样的 Error。
+ * - webhook 回调通道已删除（2026-07）：此前 SEEDANCE_CALLBACK_URL 只在提交时
+ *   携带，仓库里从未有接收路由，是假通道。回调留到下一轮作为独立功能实现。
  */
 
 import { isDryRun } from "@/lib/config/dry-run";
@@ -47,8 +50,6 @@ export interface SeedanceSubmitOptions {
    * 段间 ambience 不一致拉低质感。Seedance-1 模型不存在该字段，会被忽略。
    */
   generateAudio?: boolean;
-  /// 公网可达的 webhook 回调 URL；为空则不携带（仅依赖轮询）
-  callbackUrl?: string;
   /**
    * 仅在 VIDEO_ENGINE_MOCK=true 时生效；real Seedance payload 永远不会包含此字段。
    * 用于让 mock 路径渲染出「每段都不一样、肉眼可辨、可拼接」的占位 MP4。
@@ -96,6 +97,31 @@ const mockJobs = new Map<string, MockJobRecord>();
 const MOCK_PROCESSING_TIME_MS = Number(
   process.env.VIDEO_ENGINE_MOCK_LATENCY_MS ?? "1500",
 );
+
+/// 对外 HTTP 显式超时（INV-3）：请求悬挂时抛错走「轮询失败」路径，绝不无限等待
+function seedanceHttpTimeoutMs(): number {
+  return Number(process.env.SEEDANCE_HTTP_TIMEOUT_MS ?? "30000");
+}
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  label: string,
+): Promise<Response> {
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: AbortSignal.timeout(seedanceHttpTimeoutMs()),
+    });
+  } catch (err) {
+    if ((err as Error).name === "TimeoutError" || (err as Error).name === "AbortError") {
+      throw new Error(
+        `Seedance ${label} timeout: 超过 ${seedanceHttpTimeoutMs()}ms 未响应`,
+      );
+    }
+    throw err;
+  }
+}
 
 /**
  * Mock 模式判定（Phase 2 收紧）：
@@ -367,19 +393,18 @@ async function submitReal(
     body.resolution = options.resolution || "1080p";
   }
 
-  const callbackUrl = options.callbackUrl || process.env.SEEDANCE_CALLBACK_URL;
-  if (callbackUrl) {
-    body.callback_url = callbackUrl;
-  }
-
-  const res = await fetch(`${baseUrl}/contents/generations/tasks`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
+  const res = await fetchWithTimeout(
+    `${baseUrl}/contents/generations/tasks`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(body),
     },
-    body: JSON.stringify(body),
-  });
+    "提交",
+  );
 
   if (!res.ok) {
     const err = await res.text();
@@ -406,9 +431,10 @@ async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
   const baseUrl =
     process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
 
-  const res = await fetch(
+  const res = await fetchWithTimeout(
     `${baseUrl}/contents/generations/tasks/${jobId}`,
     { headers: { Authorization: `Bearer ${apiKey}` } },
+    "查询",
   );
   if (!res.ok) {
     const err = await res.text();

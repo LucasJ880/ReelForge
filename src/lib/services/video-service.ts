@@ -21,12 +21,27 @@ import {
   FRAME_QA_ERROR_PREFIX,
   runFrameTextQa,
 } from "@/lib/video-generation/frame-qa";
+import {
+  WATCHDOG_STALLED_PREFIX,
+  WATCHDOG_STALLED_USER_ERROR,
+  WATCHDOG_TIMEOUT_PREFIX,
+  WATCHDOG_TIMEOUT_USER_ERROR,
+  detectProviderStall,
+  isPastHardDeadline,
+  logStatusTransition,
+  videoJobDeadlineMin,
+  watchdogGraceMin,
+} from "./video-watchdog";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
-/// 触发渲染默认 15 分钟超时（用户友好上限；不强制 fail，只用于 UI「用时较长」提示）
-const DEFAULT_TIMEOUT_MIN = Number(
-  process.env.SEEDANCE_TIMEOUT_MIN ?? "15",
-);
+/// Provider 状态查询的可注入 seam：生产恒为 getSeedanceStatus；
+/// 故障注入测试（AC-1/AC-3/AC-6）通过 __setStatusFetcherForTests 替换。
+let statusFetcher: typeof getSeedanceStatus = getSeedanceStatus;
+
+/// 全局 deadline（INV-1，2026-07 事故后收紧为强制终态）：
+/// 提交时写入 timeoutAt = now + deadline；watchdog 双信号内联在每次 reconcile 里执行，
+/// 不再依赖外部 cron 的调度精度（cron + sweep 降级为纯兜底）。
+const deadlineMs = () => videoJobDeadlineMin() * 60_000;
 /// 连续 N 次轮询都失败 → 标记 FAILED，提供 retry。默认 3
 const POLL_ERROR_THRESHOLD = Number(
   process.env.SEEDANCE_POLL_ERROR_THRESHOLD ?? "3",
@@ -218,6 +233,12 @@ async function submitSegmentJob(params: {
         purpose: segment.role,
       },
     });
+    logStatusTransition({
+      taskId: job.id,
+      from: VideoJobStatus.QUEUED,
+      to: VideoJobStatus.RUNNING,
+      reason: `submitted (external=${jobId})`,
+    });
     return db.videoJob.update({
       where: { id: job.id },
       data: {
@@ -225,12 +246,18 @@ async function submitSegmentJob(params: {
         status: VideoJobStatus.RUNNING,
         submittedAt,
         startedAt: submittedAt,
-        timeoutAt: new Date(submittedAt.getTime() + DEFAULT_TIMEOUT_MIN * 60_000),
+        timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
         lastProviderStatus: "queued",
       },
     });
   } catch (err) {
     const message = (err as Error).message;
+    logStatusTransition({
+      taskId: job.id,
+      from: VideoJobStatus.QUEUED,
+      to: VideoJobStatus.FAILED,
+      reason: `submit_failed: ${message}`,
+    });
     return db.videoJob.update({
       where: { id: job.id },
       data: {
@@ -349,7 +376,7 @@ export async function dispatchVideoGeneration(briefId: string) {
             submittedAt,
             startedAt: submittedAt,
             timeoutAt: new Date(
-              submittedAt.getTime() + DEFAULT_TIMEOUT_MIN * 60_000,
+              submittedAt.getTime() + deadlineMs(),
             ),
             lastProviderStatus: "queued",
           },
@@ -378,6 +405,12 @@ export async function dispatchVideoGeneration(briefId: string) {
  * - 调用方负责处理批量、聚合到 brief 状态。
  * - 容错：Provider 查询失败时不会把 job 直接判 FAILED，
  *   而是累加 pollErrors，超过阈值才下线。
+ *
+ * Watchdog 双信号内联（INV-1/INV-2 等价物，2026-07 事故加固）：
+ *   信号 A（硬超时）在调 Provider **之前**判定 —— 即使 Provider 悬挂也能终态化；
+ *   信号 B（provider 僵死）在拿到 Provider 响应后判定。
+ * 两个信号都走 CAS（仍在 RUNNING/QUEUED 才写 FAILED，INV-6 幂等），
+ * 并记录结构化状态迁移日志（AC-5）。
  */
 export async function reconcileVideoJob(jobId: string) {
   const job = await db.videoJob.findUnique({ where: { id: jobId } });
@@ -390,12 +423,34 @@ export async function reconcileVideoJob(jobId: string) {
     return job;
   }
 
+  const now = new Date();
+
+  /// ---- 信号 A：硬超时（不依赖 Provider 可达性） ----
+  if (isPastHardDeadline(job, now)) {
+    const failed = await failJobIdempotent(job, {
+      reason: "timeout",
+      errorMessage: `${WATCHDOG_TIMEOUT_PREFIX} 超过全局 deadline（timeoutAt=${job.timeoutAt?.toISOString()} + ${watchdogGraceMin()}min 宽限）仍未终态`,
+      userSafeError: WATCHDOG_TIMEOUT_USER_ERROR,
+      now,
+    });
+    if (failed) return failed;
+    return db.videoJob.findUnique({ where: { id: jobId } });
+  }
+
   let result: SeedanceJobResult;
   try {
-    result = await getSeedanceStatus(job.externalJobId);
+    result = await statusFetcher(job.externalJobId);
   } catch (err) {
     const newErrors = (job.pollErrors ?? 0) + 1;
     const exceeded = newErrors >= POLL_ERROR_THRESHOLD;
+    if (exceeded) {
+      logStatusTransition({
+        taskId: job.id,
+        from: job.status,
+        to: VideoJobStatus.FAILED,
+        reason: `poll_errors_exceeded (#${newErrors}): ${(err as Error).message}`,
+      });
+    }
     return db.videoJob.update({
       where: { id: jobId },
       data: {
@@ -421,8 +476,18 @@ export async function reconcileVideoJob(jobId: string) {
     if (result.videoUrl) {
       const qa = await runFrameTextQa(result.videoUrl);
       if (!qa.ok) {
-        return db.videoJob.update({
-          where: { id: jobId },
+        logStatusTransition({
+          taskId: job.id,
+          from: job.status,
+          to: VideoJobStatus.FAILED,
+          reason: `frame_qa_rejected: ${qa.summary}`,
+        });
+        /// CAS：仍在 RUNNING/QUEUED 才写终态（INV-6）
+        await db.videoJob.updateMany({
+          where: {
+            id: jobId,
+            status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+          },
           data: {
             status: VideoJobStatus.FAILED,
             outputVideoUrl: result.videoUrl,
@@ -436,14 +501,25 @@ export async function reconcileVideoJob(jobId: string) {
             pollErrors: 0,
           },
         });
+        return db.videoJob.findUnique({ where: { id: jobId } });
       }
       if (!qa.checked) {
         console.warn(`[frame-qa] job ${jobId} 门禁跳过: ${qa.skipReason}`);
       }
     }
 
-    const updated = await db.videoJob.update({
-      where: { id: jobId },
+    logStatusTransition({
+      taskId: job.id,
+      from: job.status,
+      to: VideoJobStatus.SUCCEEDED,
+      reason: `provider_completed (${result.rawProviderStatus})`,
+    });
+    /// CAS 成功迁移（INV-6：并发的另一次 reconcile 已写终态时这里 count=0，不覆盖）
+    const succeeded = await db.videoJob.updateMany({
+      where: {
+        id: jobId,
+        status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+      },
       data: {
         status: VideoJobStatus.SUCCEEDED,
         outputVideoUrl: result.videoUrl ?? null,
@@ -454,16 +530,26 @@ export async function reconcileVideoJob(jobId: string) {
         pollErrors: 0,
       },
     });
+    const updated = await db.videoJob.findUnique({ where: { id: jobId } });
     /// 多段流的 fast-path：本段成功且是该 brief 最后一段时立即触发 stitch（无需等下一轮 cron）
-    if (updated.finalVideoId) {
+    if (succeeded.count > 0 && updated?.finalVideoId) {
       await maybeTriggerStitch(updated.finalVideoId);
     }
     return updated;
   }
 
   if (result.status === "failed") {
-    return db.videoJob.update({
-      where: { id: jobId },
+    logStatusTransition({
+      taskId: job.id,
+      from: job.status,
+      to: VideoJobStatus.FAILED,
+      reason: `provider_failed (${result.rawProviderStatus}): ${result.errorMessage ?? ""}`,
+    });
+    await db.videoJob.updateMany({
+      where: {
+        id: jobId,
+        status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+      },
       data: {
         status: VideoJobStatus.FAILED,
         errorMessage: result.errorMessage ?? "Seedance 返回失败",
@@ -477,9 +563,25 @@ export async function reconcileVideoJob(jobId: string) {
         pollErrors: 0,
       },
     });
+    return db.videoJob.findUnique({ where: { id: jobId } });
   }
 
-  /// 仍在 pending / processing —— 只更新观察字段
+  /// ---- 信号 B：provider 僵死（status 仍 running/pending 但 updated_at 从未推进） ----
+  const stall = detectProviderStall(result, now);
+  if (stall.stalled) {
+    const failed = await failJobIdempotent(job, {
+      reason: "provider_stalled",
+      errorMessage: `${WATCHDOG_STALLED_PREFIX} ${stall.detail}`,
+      userSafeError: WATCHDOG_STALLED_USER_ERROR,
+      now,
+      snapshot: result.rawProviderResponse,
+      lastProviderStatus: result.rawProviderStatus,
+    });
+    if (failed) return failed;
+    return db.videoJob.findUnique({ where: { id: jobId } });
+  }
+
+  /// 仍在 pending / processing —— 只更新观察字段（含 provider 真实进度）
   return db.videoJob.update({
     where: { id: jobId },
     data: {
@@ -488,6 +590,49 @@ export async function reconcileVideoJob(jobId: string) {
       pollErrors: 0,
     },
   });
+}
+
+/**
+ * watchdog 终态化的统一出口：CAS 写 FAILED（仍在 RUNNING/QUEUED 才写，INV-6），
+ * 并输出结构化状态迁移日志（AC-5，provider 僵死时附原始响应快照）。
+ * 返回更新后的 job；CAS 落空（已被并发路径终态化）返回 null。
+ */
+async function failJobIdempotent(
+  job: { id: string; status: VideoJobStatus; videoBriefId: string },
+  opts: {
+    reason: "timeout" | "provider_stalled";
+    errorMessage: string;
+    userSafeError: string;
+    now: Date;
+    snapshot?: unknown;
+    lastProviderStatus?: string;
+  },
+) {
+  const updated = await db.videoJob.updateMany({
+    where: {
+      id: job.id,
+      status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+    },
+    data: {
+      status: VideoJobStatus.FAILED,
+      errorMessage: opts.errorMessage,
+      userSafeError: opts.userSafeError,
+      finishedAt: opts.now,
+      lastCheckedAt: opts.now,
+      ...(opts.lastProviderStatus
+        ? { lastProviderStatus: opts.lastProviderStatus }
+        : {}),
+    },
+  });
+  if (updated.count === 0) return null;
+  logStatusTransition({
+    taskId: job.id,
+    from: job.status,
+    to: VideoJobStatus.FAILED,
+    reason: opts.reason,
+    snapshot: opts.snapshot,
+  });
+  return db.videoJob.findUnique({ where: { id: job.id } });
 }
 
 /**
@@ -542,8 +687,14 @@ export async function retryFailedVideoJob(jobId: string) {
   /// 双保险：如果 externalJobId 还在，先去查一遍真实状态
   if (job.externalJobId && !failedByFrameQa) {
     try {
-      const r = await getSeedanceStatus(job.externalJobId);
+      const r = await statusFetcher(job.externalJobId);
       if (r.status === "completed") {
+        logStatusTransition({
+          taskId: job.id,
+          from: job.status,
+          to: VideoJobStatus.SUCCEEDED,
+          reason: "retry_found_provider_completed（不重复扣费）",
+        });
         return db.videoJob.update({
           where: { id: job.id },
           data: {
@@ -559,6 +710,12 @@ export async function retryFailedVideoJob(jobId: string) {
       }
       if (r.status === "processing" || r.status === "pending") {
         /// Provider 还在跑 → 把 DB 状态恢复成 RUNNING，不重复扣费
+        logStatusTransition({
+          taskId: job.id,
+          from: job.status,
+          to: VideoJobStatus.RUNNING,
+          reason: "retry_found_provider_still_running（不重复扣费）",
+        });
         return db.videoJob.update({
           where: { id: job.id },
           data: {
@@ -621,6 +778,12 @@ export async function retryFailedVideoJob(jobId: string) {
           purpose: segment.role,
         },
       });
+      logStatusTransition({
+        taskId: job.id,
+        from: job.status,
+        to: VideoJobStatus.RUNNING,
+        reason: `retry_resubmitted (external=${newExternalId}, attempt=${(job.retryCount ?? 0) + 1})`,
+      });
       const updated = await db.videoJob.update({
         where: { id: job.id },
         data: {
@@ -631,7 +794,7 @@ export async function retryFailedVideoJob(jobId: string) {
           startedAt: submittedAt,
           finishedAt: null,
           timeoutAt: new Date(
-            submittedAt.getTime() + DEFAULT_TIMEOUT_MIN * 60_000,
+            submittedAt.getTime() + deadlineMs(),
           ),
           errorMessage: null,
           userSafeError: null,
@@ -705,6 +868,12 @@ export async function retryFailedVideoJob(jobId: string) {
         purpose: "scene-retry",
       },
     });
+    logStatusTransition({
+      taskId: job.id,
+      from: job.status,
+      to: VideoJobStatus.RUNNING,
+      reason: `retry_resubmitted_legacy (external=${newExternalId}, attempt=${(job.retryCount ?? 0) + 1})`,
+    });
     return db.videoJob.update({
       where: { id: job.id },
       data: {
@@ -714,7 +883,7 @@ export async function retryFailedVideoJob(jobId: string) {
         submittedAt,
         startedAt: submittedAt,
         finishedAt: null,
-        timeoutAt: new Date(submittedAt.getTime() + DEFAULT_TIMEOUT_MIN * 60_000),
+        timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
         errorMessage: null,
         userSafeError: null,
         lastProviderStatus: "queued",
@@ -1171,6 +1340,9 @@ export const __test__ = {
   classifyUserStatus,
   friendlySubmitError,
   friendlyProviderError,
+  __setStatusFetcherForTests(fn: typeof getSeedanceStatus | null): void {
+    statusFetcher = fn ?? getSeedanceStatus;
+  },
 };
 
 /// 让 TypeScript 知道 Prisma 重导出（避免 unused import 报错）

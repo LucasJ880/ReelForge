@@ -3,6 +3,10 @@ import { AngleType, DeliveryOrderStatus, RoundStatus, VideoBriefStatus } from "@
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { assertQuotaBatchForSession } from "@/lib/services/quota-service";
+import {
+  BREAKER_USER_MESSAGE,
+  evaluateDispatchBreaker,
+} from "@/lib/services/dispatch-breaker";
 import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
@@ -172,6 +176,21 @@ export async function POST(req: NextRequest) {
         blockers: plan.qualityReview.blockers,
       },
       { status: 422 },
+    );
+  }
+
+  /// 入口熔断（2026-07 事故加固）：最近窗口内已提交任务僵死率超阈值时，
+  /// 不再把用户额度/等待时间浪费在必死任务上。半开探测自动恢复。
+  /// 熔断检查放在扣配额之前 —— 被拒绝的请求不消耗任何额度。
+  const breaker = await evaluateDispatchBreaker().catch((err) => {
+    /// 熔断器自身故障不阻塞主流程（fail-open）
+    console.warn("[dispatch] breaker evaluation failed:", (err as Error).message);
+    return null;
+  });
+  if (breaker && !breaker.allowed) {
+    return NextResponse.json(
+      { ok: false, error: BREAKER_USER_MESSAGE, retryable: true },
+      { status: 503 },
     );
   }
 

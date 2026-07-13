@@ -59,7 +59,6 @@ export class VolcengineVideoProvider implements VideoProvider {
       model: options.model,
       generateAudio: options.generateAudio,
       returnLastFrame: options.returnLastFrame,
-      callbackUrl: options.callbackUrl,
       mockHints: options.mockHints,
     });
     return { providerJobId: jobId, providerId: this.id };

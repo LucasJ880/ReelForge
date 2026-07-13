@@ -38,8 +38,6 @@ export interface CreateVideoJobOptions {
   generateAudio?: boolean;
   /// 是否返回末帧（用于段间衔接）
   returnLastFrame?: boolean;
-  /// 公网可达回调（如有）
-  callbackUrl?: string;
 
   /**
    * Mock 模式下渲染唯一 placeholder 视频的提示（briefId / segmentIndex 等）。

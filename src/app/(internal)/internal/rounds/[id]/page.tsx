@@ -58,7 +58,7 @@ export default async function RoundDetailPage({
   const totalAngles = round.angles.length;
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title={`${round.deliveryOrder.title} · 第 ${round.roundIndex} 组创意`}
         description={`${ROUND_LABELS[round.status]} · ${round.angles.length} 个${COMMON_USER_TERMS.angle}`}
@@ -68,7 +68,7 @@ export default async function RoundDetailPage({
       <div className="mb-4">
         <Link
           href={`/orders/${round.deliveryOrderId}`}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="text-meta text-muted-foreground hover:text-foreground"
         >
           ← 返回交付单
         </Link>
@@ -77,9 +77,9 @@ export default async function RoundDetailPage({
       {totalAngles > 0 && (
         <Card className="mb-4">
           <CardHeader>
-            <CardTitle className="text-sm">视频生成进度</CardTitle>
+            <CardTitle>视频生成进度</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-2 text-xs">
+          <CardContent className="flex flex-wrap items-center gap-2 text-meta">
             <StatusBadge tone="success">{summaryCounts.ready}/{totalAngles} 视频已生成</StatusBadge>
             {summaryCounts.generating > 0 && (
               <StatusBadge tone="info">{summaryCounts.generating}/{totalAngles} 正在生成</StatusBadge>
@@ -98,17 +98,17 @@ export default async function RoundDetailPage({
       )}
 
       {round.baseDistillation && (
-        <Card className="mb-4 bg-secondary/30">
+        <Card className="mb-4 bg-secondary">
           <CardHeader>
-            <CardTitle className="text-sm">上一组蒸馏特征（本组优化方向应遵循）</CardTitle>
+            <CardTitle>上一组蒸馏特征（本组优化方向应遵循）</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs">
+          <CardContent className="text-meta">
             <p className="whitespace-pre-wrap text-muted-foreground">
               {round.baseDistillation.summary}
             </p>
             <details className="mt-2">
-              <summary className="cursor-pointer text-[10px] text-muted-foreground">详细结构（开发者信息）</summary>
-              <pre className="mt-1 max-h-40 overflow-auto rounded bg-secondary/60 p-2 text-[11px]">
+              <summary className="cursor-pointer text-meta text-muted-foreground">详细结构（开发者信息）</summary>
+              <pre className="mt-1 max-h-40 overflow-auto rounded-(--radius-md) bg-card p-3 font-mono text-meta">
                 {JSON.stringify(round.baseDistillation.structured, null, 2)}
               </pre>
             </details>
@@ -117,7 +117,7 @@ export default async function RoundDetailPage({
       )}
 
       {round.angles.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
+        <Card className="p-8 text-center text-body text-muted-foreground">
           尚未生成创意方向。点击右上「生成 5 个创意方向」。
         </Card>
       ) : (
@@ -132,18 +132,18 @@ export default async function RoundDetailPage({
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">#{a.sortOrder}</span>
+                      <span className="text-meta text-muted-foreground">#{a.sortOrder}</span>
                       <span
                         className={
                           a.type === "OPTIMIZATION"
-                            ? "text-[10px] text-emerald-400"
-                            : "text-[10px] text-amber-400"
+                            ? "text-meta text-success"
+                            : "text-meta text-warning"
                         }
                       >
                         {ANGLE_TYPE_USER_LABELS[a.type]}
                       </span>
                       {a.explorationTheme && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-meta text-muted-foreground">
                           · {a.explorationTheme}
                         </span>
                       )}
@@ -154,9 +154,9 @@ export default async function RoundDetailPage({
                       </StatusBadge>
                     )}
                   </div>
-                  <CardTitle className="text-sm">{a.title}</CardTitle>
+                  <CardTitle>{a.title}</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-xs text-muted-foreground">
+                <CardContent className="space-y-2 text-meta text-muted-foreground">
                   {a.hook && (
                     <p className="line-clamp-2">
                       <span className="text-foreground">开场钩子：</span> {a.hook}
@@ -164,7 +164,7 @@ export default async function RoundDetailPage({
                   )}
                   {a.narrative && <p className="line-clamp-2">{a.narrative}</p>}
                   {brief && brief.scripts.length > 0 && (
-                    <p className="rounded bg-secondary/40 p-2 line-clamp-3">
+                    <p className="line-clamp-3 rounded-(--radius-md) bg-secondary p-3">
                       {brief.scripts[0].fullText.slice(0, 140)}…
                     </p>
                   )}
@@ -194,11 +194,11 @@ export default async function RoundDetailPage({
 
       {round.scoreReports.length > 0 && (
         <div className="mt-8">
-          <h2 className="mb-3 text-lg font-semibold">打分与排名</h2>
+          <h2 className="mb-3 font-heading text-title">打分与排名</h2>
           <div className="space-y-3">
             {round.scoreReports.map((sr) => (
               <Card key={sr.id}>
-                <CardContent className="pt-4 text-xs">
+                <CardContent className="text-meta">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
                       {sr.videoBriefId ? `Brief ${sr.videoBriefId.slice(-6)}` : "轮次级汇总"}
@@ -214,7 +214,7 @@ export default async function RoundDetailPage({
                     <p className="mt-1 text-muted-foreground">{sr.explanation}</p>
                   )}
                   {sr.ranking ? (
-                    <pre className="mt-2 max-h-40 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                    <pre className="mt-2 max-h-40 overflow-auto rounded-(--radius-md) bg-secondary p-3 font-mono text-meta">
                       {JSON.stringify(sr.ranking, null, 2)}
                     </pre>
                   ) : null}

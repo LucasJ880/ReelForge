@@ -42,7 +42,7 @@ export function RoundActions({
   const canDistill = round.status === "RANKED";
 
   return (
-    <div className="flex gap-2">
+    <div className="flex min-w-0 flex-wrap gap-2">
       {canGenerateAngles && (
         <Button
           size="sm"
@@ -51,7 +51,7 @@ export function RoundActions({
             call("生成创意方向", `/api/rounds/${round.id}/angles`, {})
           }
         >
-          {busy === "生成创意方向" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {busy === "生成创意方向" ? <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden /> : null}
           {ACTION_BUTTON_LABELS.generateAngles}
         </Button>
       )}
@@ -62,7 +62,7 @@ export function RoundActions({
           disabled={!!busy}
           onClick={() => call("生成创意版本", `/api/rounds/${round.id}/ad-plans`, { count: 5 })}
         >
-          {busy === "生成创意版本" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {busy === "生成创意版本" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
           {ACTION_BUTTON_LABELS.generateAds}
         </Button>
       )}
@@ -73,7 +73,7 @@ export function RoundActions({
           disabled={!!busy}
           onClick={() => call("打分", `/api/rounds/${round.id}/score`)}
         >
-          {busy === "打分" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {busy === "打分" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
           打分 + 排名
         </Button>
       )}
@@ -84,7 +84,7 @@ export function RoundActions({
           disabled={!!busy}
           onClick={() => call("复盘 + 下一轮", `/api/rounds/${round.id}/iteration`)}
         >
-          {busy === "复盘 + 下一轮" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {busy === "复盘 + 下一轮" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
           复盘 + 下一轮
         </Button>
       )}
@@ -94,7 +94,7 @@ export function RoundActions({
           disabled={!!busy}
           onClick={() => call("蒸馏", `/api/rounds/${round.id}/distill`)}
         >
-          {busy === "蒸馏" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {busy === "蒸馏" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
           蒸馏特征
         </Button>
       )}

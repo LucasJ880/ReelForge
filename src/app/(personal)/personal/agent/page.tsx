@@ -147,7 +147,7 @@ export default function AgentDirectorPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <input
         ref={fileRef}
         type="file"
@@ -157,26 +157,35 @@ export default function AgentDirectorPage() {
         onChange={(e) => handleUpload(e.target.files)}
       />
 
-      <header className="max-w-4xl space-y-4">
-        <Badge variant="secondary">AI Creative Director</Badge>
-        <h1 className="editorial-display">
-          Agent <em>导演</em>
-        </h1>
-        <p className="max-w-2xl text-body text-muted-foreground">
-          上传产品图，说清创意方向，再由导演与你一起整理成可执行的短视频脚本。
-        </p>
+      <header className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+        <div className="max-w-3xl space-y-4">
+          <Badge variant="secondary">AI Creative Director</Badge>
+          <h1 className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <span className="editorial-display">Agent</span>
+            <span className="font-sans text-section font-medium tracking-normal text-foreground">
+              创意导演
+            </span>
+          </h1>
+          <p className="max-w-2xl text-body text-muted-foreground">
+            上传产品素材，用自然语言说清目标。导演会与你一起收敛创意，并整理成可以直接执行的短视频脚本。
+          </p>
+        </div>
+        <div className="hidden items-center gap-2 text-meta text-muted-foreground lg:flex">
+          <span className="size-2 rounded-full bg-success" aria-hidden />
+          对话工作台已就绪
+        </div>
       </header>
 
-      <Card className="min-w-0">
-        <CardHeader className="border-b border-border">
-          <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+      <Card className="min-w-0 gap-0 py-0">
+        <CardHeader className="border-b border-border py-5">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) bg-accent-soft text-foreground">
-                <Bot className="size-4 stroke-[1.5]" aria-hidden />
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) border border-border bg-accent-soft text-foreground">
+                <Bot className="size-5 stroke-[1.5]" aria-hidden />
               </span>
               <div className="min-w-0">
                 <CardTitle>创意对话</CardTitle>
-                <CardDescription>剧本、UGC 口播或爆款节奏，都可以直接描述。</CardDescription>
+                <CardDescription>从模糊想法到可执行脚本，一次聊清楚。</CardDescription>
               </div>
             </div>
             <Badge variant={brief ? "success" : "secondary"}>
@@ -185,48 +194,80 @@ export default function AgentDirectorPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="space-y-5 pt-2">
-          <section aria-labelledby="agent-assets-heading" className="space-y-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+        <CardContent className="grid min-w-0 p-0 xl:grid-cols-[18rem_minmax(0,1fr)]">
+          <aside
+            aria-label="产品素材与创作流程"
+            className="grid gap-6 border-b border-border bg-muted p-5 sm:grid-cols-[minmax(0,1fr)_18rem] sm:p-6 xl:block xl:space-y-6 xl:border-r xl:border-b-0"
+          >
+            <section aria-labelledby="agent-assets-heading" className="space-y-4">
+              <div className="space-y-1">
                 <h2 id="agent-assets-heading" className="text-subhead font-medium">
                   产品素材
                 </h2>
                 <p className="text-meta text-muted-foreground">
-                  最多 10 张，也可以先聊需求。
+                  上传 1–10 张清晰产品图，导演会优先参考。
                 </p>
               </div>
               <Button
                 type="button"
                 variant="outline"
-                size="sm"
+                className="w-full bg-card"
                 disabled={uploading || images.length >= 10}
                 onClick={() => fileRef.current?.click()}
               >
                 {uploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
                 上传产品图
               </Button>
-            </div>
-            {images.length > 0 && (
-              <div className="flex min-w-0 flex-wrap items-center gap-2">
-                {images.map((img, index) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    key={img.id}
-                    src={img.url}
-                    alt={`产品素材 ${index + 1}`}
-                    className="size-12 rounded-(--radius-md) border border-border object-cover"
-                  />
-                ))}
-                <Badge variant="secondary">{images.length}/10</Badge>
-              </div>
-            )}
-          </section>
+              {images.length > 0 ? (
+                <div className="grid grid-cols-4 gap-2 xl:grid-cols-3">
+                  {images.map((img, index) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={img.id}
+                      src={img.url}
+                      alt={`产品素材 ${index + 1}`}
+                      className="aspect-square w-full rounded-(--radius-md) border border-border object-cover"
+                    />
+                  ))}
+                  <div className="flex aspect-square items-center justify-center rounded-(--radius-md) border border-dashed border-border bg-card text-meta text-muted-foreground">
+                    {images.length}/10
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-(--radius-md) border border-dashed border-border bg-card p-4">
+                  <p className="text-meta text-muted-foreground">
+                    暂无素材。你也可以先描述想法，稍后再补充图片。
+                  </p>
+                </div>
+              )}
+            </section>
 
-          <section aria-label="与 AI 导演的对话" className="space-y-4 border-y border-border py-5">
+            <section
+              className="hidden space-y-3 border-l border-border pl-6 sm:block xl:border-t xl:border-l-0 xl:pt-5 xl:pl-0"
+              aria-labelledby="agent-flow-heading"
+            >
+              <h2 id="agent-flow-heading" className="text-meta font-semibold text-foreground">
+                本次创作
+              </h2>
+              <ol className="space-y-3 text-meta text-muted-foreground">
+                {["上传产品素材", "说明受众与卖点", "确认脚本并开始创作"].map(
+                  (step, index) => (
+                    <li key={step} className="flex items-center gap-3">
+                      <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-card font-medium text-foreground">
+                        {index + 1}
+                      </span>
+                      {step}
+                    </li>
+                  ),
+                )}
+              </ol>
+            </section>
+          </aside>
+
+          <section aria-label="与 AI 导演的对话" className="flex min-w-0 flex-col">
             <div
               ref={scrollRef}
-              className="max-h-96 min-h-64 space-y-3 overflow-y-auto"
+              className="max-h-[32rem] min-h-80 flex-1 space-y-4 overflow-y-auto p-5 sm:p-6 xl:min-h-[28rem]"
               role="region"
               aria-label="创意对话记录"
               aria-live="polite"
@@ -240,8 +281,8 @@ export default function AgentDirectorPage() {
                   <div
                     className={
                       message.role === "user"
-                        ? "max-w-[85%] rounded-(--radius-lg) border border-primary bg-accent-soft px-4 py-3 text-body text-foreground sm:max-w-[70%]"
-                        : "max-w-[90%] rounded-(--radius-lg) border border-border bg-muted px-4 py-3 text-body text-foreground sm:max-w-[75%]"
+                        ? "max-w-[88%] rounded-(--radius-lg) border border-primary bg-accent-soft px-4 py-3 text-body text-foreground sm:max-w-[72%]"
+                        : "max-w-[92%] rounded-(--radius-lg) border border-border bg-card px-4 py-3 text-body text-foreground sm:max-w-[78%]"
                     }
                   >
                     {message.content}
@@ -258,72 +299,76 @@ export default function AgentDirectorPage() {
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2" aria-label="快捷创意方向">
-              {QUICK_CHIPS.map((chip) => {
-                const Icon = chip.icon;
-                return (
-                  <Button
-                    key={chip.label}
-                    type="button"
-                    variant="outline"
-                    size="xs"
-                    disabled={sending}
-                    onClick={() => send(chip.text)}
-                  >
-                    <Icon />
-                    {chip.label}
-                  </Button>
-                );
-              })}
-            </div>
+            <div className="space-y-4 border-t border-border bg-muted p-5 sm:p-6">
+              <div className="flex flex-wrap gap-2" aria-label="快捷创意方向">
+                {QUICK_CHIPS.map((chip) => {
+                  const Icon = chip.icon;
+                  return (
+                    <Button
+                      key={chip.label}
+                      type="button"
+                      variant="outline"
+                      size="xs"
+                      className="bg-card"
+                      disabled={sending}
+                      onClick={() => send(chip.text)}
+                    >
+                      <Icon />
+                      {chip.label}
+                    </Button>
+                  );
+                })}
+              </div>
 
-            <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-end">
-              <label className="min-w-0 flex-1 space-y-2 text-meta font-medium">
-                创意需求
-                <Textarea
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      send(input);
-                    }
-                  }}
-                  rows={2}
-                  placeholder="例如：15 秒 UGC 口播，美国市场，突出防摔。"
-                  className="resize-none"
-                />
-              </label>
-              <Button
-                type="button"
-                onClick={() => send(input)}
-                disabled={sending || !input.trim()}
-                aria-label="发送创意需求"
-              >
-                <Send />
-                发送
-              </Button>
+              <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-end">
+                <label className="min-w-0 flex-1 space-y-2 text-meta font-medium">
+                  告诉导演你想做什么
+                  <Textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        send(input);
+                      }
+                    }}
+                    rows={2}
+                    placeholder="例如：15 秒 UGC 口播，面向美国市场，重点突出防摔。"
+                    className="resize-none"
+                  />
+                </label>
+                <Button
+                  type="button"
+                  onClick={() => send(input)}
+                  disabled={sending || !input.trim()}
+                  aria-label="发送创意需求"
+                  className="sm:self-end"
+                >
+                  <Send />
+                  发送
+                </Button>
+              </div>
             </div>
           </section>
+        </CardContent>
 
-          {error && (
+        <div className="flex min-w-0 flex-col gap-4 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          {error ? (
             <p role="alert" className="text-meta text-danger">
               {error}
             </p>
-          )}
-
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          ) : (
             <p className="text-meta text-muted-foreground">
               {brief
-                ? "需求已就绪，可以进入脚本与出片流程。"
-                : "聊清楚需求后，可随时进入创作流程继续编辑。"}
+                ? "需求已整理完成，可以进入脚本与出片流程。"
+                : "也可以跳过对话，直接进入创作页继续编辑。"}
             </p>
-            <Button type="button" onClick={goCreate}>
-              {brief ? "进入脚本创作" : "直接开始创作"}
-              <ArrowRight />
-            </Button>
-          </div>
-        </CardContent>
+          )}
+          <Button type="button" onClick={goCreate}>
+            {brief ? "进入脚本创作" : "直接开始创作"}
+            <ArrowRight />
+          </Button>
+        </div>
       </Card>
     </div>
   );

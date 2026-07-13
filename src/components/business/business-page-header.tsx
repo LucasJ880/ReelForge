@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 export interface BusinessPageHeaderProps {
@@ -28,50 +30,34 @@ export function BusinessPageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 border-b border-white/10 pb-8 sm:flex-row sm:items-end sm:justify-between",
+        "flex min-w-0 flex-col gap-6 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between",
         className,
       )}
     >
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 max-w-3xl flex-1 space-y-3">
         {backLink ? (
           <Link
             href={backLink.href}
-            className="inline-flex text-xs text-muted-foreground transition-colors hover:text-foreground"
+            className="inline-flex items-center gap-2 text-meta text-muted-foreground transition-colors duration-fast ease-out hover:text-foreground motion-reduce:transition-none"
           >
+            <ArrowLeft className="size-4" strokeWidth={1.5} aria-hidden />
             {backLink.label}
           </Link>
         ) : null}
         {kicker ? (
-          <p
-            className={cn(
-              "text-xs font-medium uppercase tracking-wider text-primary/90",
-              backLink ? "mt-3" : "",
-            )}
-          >
+          <Badge variant="default">
             {kicker}
-          </p>
+          </Badge>
         ) : null}
-        <h1
-          className={cn(
-            "font-semibold tracking-tight text-3xl",
-            kicker || backLink ? "mt-2" : "",
-          )}
-        >
-          {title}
-        </h1>
-        {meta ? <div className="mt-3">{meta}</div> : null}
+        <h1 className="editorial-display">{title}</h1>
+        {meta ? <div>{meta}</div> : null}
         {subtitle ? (
-          <p
-            className={cn(
-              "max-w-2xl text-sm leading-relaxed text-muted-foreground",
-              meta ? "mt-2" : "mt-2",
-            )}
-          >
+          <p className="max-w-2xl text-body text-muted-foreground">
             {subtitle}
           </p>
         ) : null}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="w-full shrink-0 sm:w-auto">{action}</div> : null}
     </header>
   );
 }

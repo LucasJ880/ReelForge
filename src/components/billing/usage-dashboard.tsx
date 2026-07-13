@@ -2,6 +2,17 @@
 
 import { useCallback, useState } from "react";
 import type { UsageResource } from "@prisma/client";
+import { RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Progress, ProgressLabel, ProgressValue } from "@/components/ui/progress";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { UsagePayload } from "@/lib/services/usage-payload";
 
@@ -94,89 +105,86 @@ export function UsageDashboard({
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-muted-foreground">
-            {t("shell.billing.kicker")}
-          </p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-tight">
-            {t("shell.billing.title")}
-          </h1>
-          <p className="mt-2 max-w-xl text-muted-foreground">{subtitle}</p>
+      <header className="flex flex-wrap items-end justify-between gap-6">
+        <div className="max-w-3xl space-y-4">
+          <Badge variant="secondary">{t("shell.billing.kicker")}</Badge>
+          <h1 className="editorial-display">{t("shell.billing.title")}</h1>
+          <p className="max-w-2xl text-body text-muted-foreground">{subtitle}</p>
         </div>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => void refresh()}
           disabled={refreshing}
-          className="rounded-md border border-white/10 px-3 py-1.5 text-sm hover:bg-white/5 disabled:opacity-50"
         >
+          <RefreshCw className={refreshing ? "animate-spin motion-reduce:animate-none" : undefined} />
           {refreshing ? t("shell.billing.refreshing") : t("shell.billing.refresh")}
-        </button>
-      </div>
+        </Button>
+      </header>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p role="alert" className="text-meta text-danger">{error}</p>}
 
-      <div className="rounded-lg border border-white/10 bg-card/40 px-4 py-3 text-sm">
-        <p>
-          {t("shell.billing.period")}：
-          <span className="font-medium">{data.periodKey}</span>（UTC）
-        </p>
-        <p className="mt-1 text-muted-foreground">
-          {t("shell.billing.plan")}：
-          <span className="text-foreground">{data.plan}</span>
-          {data.exempt && t("shell.billing.exempt")}
-          {!data.enforced && !data.exempt && t("shell.billing.devNotEnforced")}
-        </p>
-      </div>
-
-      <ul className="space-y-4">
-        {data.meters.map((m) => (
-          <li
-            key={m.resource}
-            className="rounded-xl border border-white/10 bg-card/30 p-5"
-          >
-            <div className="flex items-center justify-between gap-4">
-              <span className="font-medium">{t(RESOURCE_I18N[m.resource])}</span>
-              <span className="text-sm text-muted-foreground">
-                {formatAmount(m.resource, m.used)} /{" "}
-                {formatAmount(m.resource, m.limit)}
-              </span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/5">
-              <div
-                className="h-full rounded-full bg-primary transition-all"
-                style={{ width: `${meterPercent(m.used, m.limit)}%` }}
-              />
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              {t("shell.billing.remaining")}{" "}
-              {formatAmount(m.resource, m.remaining)}
+      <Card size="sm">
+        <CardContent className="grid gap-4 pt-2 sm:grid-cols-2">
+          <div>
+            <p className="text-meta text-muted-foreground">{t("shell.billing.period")}</p>
+            <p className="text-body font-medium">{data.periodKey}（UTC）</p>
+          </div>
+          <div>
+            <p className="text-meta text-muted-foreground">{t("shell.billing.plan")}</p>
+            <p className="text-body font-medium">
+              {data.plan}
+              {data.exempt && t("shell.billing.exempt")}
+              {!data.enforced && !data.exempt && t("shell.billing.devNotEnforced")}
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <ul className="grid gap-5 lg:grid-cols-2">
+        {data.meters.map((m) => (
+          <li key={m.resource}>
+            <Card className="h-full" size="sm">
+              <CardHeader>
+                <CardTitle>{t(RESOURCE_I18N[m.resource])}</CardTitle>
+                <CardDescription>
+                  {t("shell.billing.remaining")} {formatAmount(m.resource, m.remaining)}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Progress value={meterPercent(m.used, m.limit)}>
+                  <ProgressLabel>
+                    {formatAmount(m.resource, m.used)} / {formatAmount(m.resource, m.limit)}
+                  </ProgressLabel>
+                  <ProgressValue />
+                </Progress>
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ul>
 
       {upgraded && (
-        <p className="text-sm text-emerald-400">{t("shell.billing.upgraded")}</p>
+        <Badge variant="success">{t("shell.billing.upgraded")}</Badge>
       )}
 
       {stripeEnabled && data.plan !== "pro" && persona === "business" && (
-        <div className="rounded-xl border border-primary/30 bg-primary/5 p-5">
-          <h2 className="font-semibold">{t("shell.billing.proTitle")}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("shell.billing.proBody")}
-          </p>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("shell.billing.proTitle")}</CardTitle>
+            <CardDescription>{t("shell.billing.proBody")}</CardDescription>
+          </CardHeader>
+        </Card>
       )}
 
       {stripeEnabled && data.plan === "pro" && (
-        <p className="text-sm text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           {t("shell.billing.onProPlan")}
         </p>
       )}
 
       {!stripeEnabled && (
-        <p className="max-w-xl text-xs text-muted-foreground">
+        <p className="max-w-xl text-meta text-muted-foreground">
           {t("shell.billing.freeTierNote")}
         </p>
       )}

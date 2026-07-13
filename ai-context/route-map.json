@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T02:56:12.179Z",
+  "generatedAt": "2026-07-13T04:20:03.667Z",
   "routes": [
     {
       "routePath": "/",
@@ -724,6 +724,13 @@
       "filePath": "src/app/(business)/business/recommendations/page.tsx",
       "kind": "page",
       "group": "business",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/design",
+      "filePath": "src/app/(personal)/design/page.tsx",
+      "kind": "page",
+      "group": "personal",
       "isDynamic": false
     },
     {

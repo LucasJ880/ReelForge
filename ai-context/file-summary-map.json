@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T02:56:12.177Z",
+  "generatedAt": "2026-07-13T04:20:03.665Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -556,7 +556,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 820,
+      "sizeBytes": 873,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -937,6 +937,17 @@
       "notes": "Documentation"
     },
     {
+      "path": "editorial-design-tokens.generated.json",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 33,
+      "sizeBytes": 1201,
+      "notes": ""
+    },
+    {
       "path": "eslint.config.mjs",
       "type": "config",
       "area": "unknown",
@@ -989,9 +1000,37 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 116,
-      "sizeBytes": 6326,
+      "lineCount": 122,
+      "sizeBytes": 6705,
       "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": "playwright-report/index.html",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 829066,
+      "notes": ""
+    },
+    {
+      "path": "playwright.config.ts",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [
+        "default"
+      ],
+      "imports": [
+        "@playwright/test"
+      ],
+      "importantSymbols": [
+        "default"
+      ],
+      "lineCount": 58,
+      "sizeBytes": 1585,
+      "notes": ""
     },
     {
       "path": "postcss.config.mjs",
@@ -1529,6 +1568,20 @@
       "lineCount": 380,
       "sizeBytes": 20661,
       "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; calls Seedance video generator; area=blob-storage"
+    },
+    {
+      "path": "scripts/generate-design-tokens.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 43,
+      "sizeBytes": 1240,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
       "path": "scripts/generate-digital-human-store-ad.ts",
@@ -2626,14 +2679,16 @@
         "default"
       ],
       "imports": [
-        "@/components/glass/glass-background"
+        "@/components/ui/card",
+        "@/components/ui/logo",
+        "next/link"
       ],
       "importantSymbols": [
         "AuthLayout",
         "default"
       ],
-      "lineCount": 23,
-      "sizeBytes": 662,
+      "lineCount": 33,
+      "sizeBytes": 1064,
       "notes": "Next.js App Router layout; area=auth"
     },
     {
@@ -2649,14 +2704,17 @@
         "next/link",
         "next-auth/react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input"
       ],
       "importantSymbols": [
         "LoginPage",
         "default"
       ],
-      "lineCount": 122,
-      "sizeBytes": 3746,
+      "lineCount": 138,
+      "sizeBytes": 4187,
       "notes": "Next.js App Router page; NextAuth session check; client component; area=auth"
     },
     {
@@ -2672,14 +2730,17 @@
         "next/link",
         "next-auth/react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input"
       ],
       "importantSymbols": [
         "RegisterPage",
         "default"
       ],
-      "lineCount": 158,
-      "sizeBytes": 5288,
+      "lineCount": 162,
+      "sizeBytes": 4919,
       "notes": "Next.js App Router page; NextAuth session check; client component; area=auth"
     },
     {
@@ -2750,6 +2811,8 @@
         "next-auth",
         "@/lib/auth",
         "@/components/business/business-page-header",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/i18n/server",
         "@/lib/services/business-insights-service"
       ],
@@ -2758,8 +2821,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 93,
-      "sizeBytes": 3596,
+      "lineCount": 108,
+      "sizeBytes": 3805,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2776,6 +2839,7 @@
         "next-auth",
         "@/components/business/business-page-header",
         "@/components/digital-human/digital-human-wizard",
+        "@/components/ui/card",
         "@/lib/auth"
       ],
       "importantSymbols": [
@@ -2783,8 +2847,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 32,
-      "sizeBytes": 1194,
+      "lineCount": 35,
+      "sizeBytes": 1273,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2802,6 +2866,9 @@
         "next-auth",
         "@/components/business/business-page-header",
         "@/components/business/business-metrics-form",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/lib/auth",
         "@/i18n/server",
         "@/lib/services/business-metrics-import"
@@ -2811,8 +2878,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 113,
-      "sizeBytes": 3582,
+      "lineCount": 115,
+      "sizeBytes": 3439,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2826,14 +2893,16 @@
       "imports": [
         "next/link",
         "lucide-react",
+        "@/components/business/business-page-header",
+        "@/components/ui/card",
         "@/i18n/server"
       ],
       "importantSymbols": [
         "BusinessHomePage",
         "default"
       ],
-      "lineCount": 97,
-      "sizeBytes": 3732,
+      "lineCount": 90,
+      "sizeBytes": 3128,
       "notes": "Next.js App Router page; area=marketing-site"
     },
     {
@@ -2861,7 +2930,7 @@
         "default"
       ],
       "lineCount": 68,
-      "sizeBytes": 2507,
+      "sizeBytes": 2533,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2882,6 +2951,10 @@
         "@/lib/video-generation/business-status",
         "@prisma/client",
         "@/components/business/business-page-header",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/i18n/server",
         "@/i18n/types",
         "./video-actions"
@@ -2891,8 +2964,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 413,
-      "sizeBytes": 15054,
+      "lineCount": 429,
+      "sizeBytes": 14157,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -2906,13 +2979,14 @@
         "react",
         "next/navigation",
         "lucide-react",
+        "@/components/ui/button",
         "@/i18n/useTranslation"
       ],
       "importantSymbols": [
         "VideoActions"
       ],
-      "lineCount": 117,
-      "sizeBytes": 3487,
+      "lineCount": 120,
+      "sizeBytes": 3237,
       "notes": "area=marketing-site"
     },
     {
@@ -2934,6 +3008,10 @@
         "@/i18n/types",
         "@/components/business/business-page-header",
         "@/components/video-generation/brief-render-auto-refresh",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/business-status",
         "@prisma/client"
       ],
@@ -2942,8 +3020,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 390,
-      "sizeBytes": 15698,
+      "lineCount": 381,
+      "sizeBytes": 14409,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -2970,7 +3048,7 @@
         "default"
       ],
       "lineCount": 48,
-      "sizeBytes": 1600,
+      "sizeBytes": 1610,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -2989,8 +3067,8 @@
         "BusinessLayout",
         "default"
       ],
-      "lineCount": 21,
-      "sizeBytes": 561,
+      "lineCount": 19,
+      "sizeBytes": 559,
       "notes": "Next.js App Router layout; area=marketing-site"
     },
     {
@@ -3015,8 +3093,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 331,
-      "sizeBytes": 12609,
+      "lineCount": 353,
+      "sizeBytes": 13431,
       "notes": "Next.js App Router page; hits Prisma DB; area=admin"
     },
     {
@@ -3038,7 +3116,7 @@
         "BriefActions"
       ],
       "lineCount": 116,
-      "sizeBytes": 3723,
+      "sizeBytes": 3831,
       "notes": "area=admin"
     },
     {
@@ -3069,7 +3147,7 @@
         "default"
       ],
       "lineCount": 345,
-      "sizeBytes": 13192,
+      "sizeBytes": 13390,
       "notes": "Next.js App Router page; area=admin"
     },
     {
@@ -3085,6 +3163,7 @@
         "react",
         "next/cache",
         "@/components/ui/card",
+        "@/components/ui/button",
         "@/components/features/page-header",
         "@/components/features/status-badge",
         "@/lib/db",
@@ -3095,8 +3174,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 308,
-      "sizeBytes": 10617,
+      "lineCount": 314,
+      "sizeBytes": 10649,
       "notes": "Next.js App Router page; area=demo"
     },
     {
@@ -3121,7 +3200,7 @@
         "default"
       ],
       "lineCount": 67,
-      "sizeBytes": 2393,
+      "sizeBytes": 2430,
       "notes": "Next.js App Router page; area=admin"
     },
     {
@@ -3136,13 +3215,14 @@
         "sonner",
         "next/navigation",
         "lucide-react",
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/components/ui/textarea"
       ],
       "importantSymbols": [
         "MetricsImport"
       ],
-      "lineCount": 88,
-      "sizeBytes": 2890,
+      "lineCount": 90,
+      "sizeBytes": 2990,
       "notes": "area=metrics"
     },
     {
@@ -3166,8 +3246,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 95,
-      "sizeBytes": 3334,
+      "lineCount": 102,
+      "sizeBytes": 3605,
       "notes": "Next.js App Router page; area=metrics"
     },
     {
@@ -3188,7 +3268,7 @@
         "OrderActions"
       ],
       "lineCount": 149,
-      "sizeBytes": 4272,
+      "sizeBytes": 4350,
       "notes": "area=admin"
     },
     {
@@ -3210,7 +3290,7 @@
         "AssetActions"
       ],
       "lineCount": 150,
-      "sizeBytes": 4520,
+      "sizeBytes": 4562,
       "notes": "area=admin"
     },
     {
@@ -3242,7 +3322,7 @@
         "default"
       ],
       "lineCount": 380,
-      "sizeBytes": 15148,
+      "sizeBytes": 15496,
       "notes": "Next.js App Router page; area=admin"
     },
     {
@@ -3264,7 +3344,7 @@
         "NewOrderForm"
       ],
       "lineCount": 420,
-      "sizeBytes": 14961,
+      "sizeBytes": 15536,
       "notes": "area=admin"
     },
     {
@@ -3313,8 +3393,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 80,
-      "sizeBytes": 3093,
+      "lineCount": 84,
+      "sizeBytes": 3376,
       "notes": "Next.js App Router page; area=admin"
     },
     {
@@ -3374,6 +3454,7 @@
         "lucide-react",
         "@/components/ui/card",
         "@/components/ui/button",
+        "@/components/ui/input",
         "@/components/features/status-badge",
         "@/lib/labels",
         "@prisma/client"
@@ -3381,8 +3462,8 @@
       "importantSymbols": [
         "PublishList"
       ],
-      "lineCount": 208,
-      "sizeBytes": 7639,
+      "lineCount": 209,
+      "sizeBytes": 7666,
       "notes": "area=publishing"
     },
     {
@@ -3423,13 +3504,14 @@
         "lucide-react",
         "@/components/ui/card",
         "@/components/ui/button",
+        "@/components/ui/textarea",
         "@/components/features/status-badge"
       ],
       "importantSymbols": [
         "QAList"
       ],
-      "lineCount": 183,
-      "sizeBytes": 6089,
+      "lineCount": 184,
+      "sizeBytes": 6240,
       "notes": "area=admin"
     },
     {
@@ -3451,7 +3533,7 @@
         "RoundActions"
       ],
       "lineCount": 104,
-      "sizeBytes": 3209,
+      "sizeBytes": 3317,
       "notes": "area=admin"
     },
     {
@@ -3506,8 +3588,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 55,
-      "sizeBytes": 1961,
+      "lineCount": 59,
+      "sizeBytes": 2250,
       "notes": "Next.js App Router page; area=admin"
     },
     {
@@ -3527,8 +3609,8 @@
       "importantSymbols": [
         "AdminRow"
       ],
-      "lineCount": 98,
-      "sizeBytes": 2713,
+      "lineCount": 100,
+      "sizeBytes": 2907,
       "notes": "area=admin"
     },
     {
@@ -3543,13 +3625,14 @@
         "next/navigation",
         "sonner",
         "lucide-react",
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/components/ui/input"
       ],
       "importantSymbols": [
         "CreateAdminForm"
       ],
-      "lineCount": 91,
-      "sizeBytes": 2799,
+      "lineCount": 93,
+      "sizeBytes": 2864,
       "notes": "area=admin"
     },
     {
@@ -3578,8 +3661,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 77,
-      "sizeBytes": 2174,
+      "lineCount": 84,
+      "sizeBytes": 2420,
       "notes": "Next.js App Router page; NextAuth session check; area=admin"
     },
     {
@@ -3604,7 +3687,7 @@
         "default"
       ],
       "lineCount": 131,
-      "sizeBytes": 3992,
+      "sizeBytes": 4121,
       "notes": "Next.js App Router page; area=admin"
     },
     {
@@ -3623,8 +3706,8 @@
         "InternalLayout",
         "default"
       ],
-      "lineCount": 21,
-      "sizeBytes": 549,
+      "lineCount": 19,
+      "sizeBytes": 547,
       "notes": "Next.js App Router layout; area=admin"
     },
     {
@@ -3646,7 +3729,7 @@
         "default"
       ],
       "lineCount": 28,
-      "sizeBytes": 1019,
+      "sizeBytes": 1043,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -3662,18 +3745,49 @@
         "next/link",
         "next-auth",
         "next/navigation",
+        "lucide-react",
         "@/lib/auth",
         "@/lib/services/batch-service",
-        "@/components/batch/batch-monitor"
+        "@/components/batch/batch-monitor",
+        "@/components/ui/button"
       ],
       "importantSymbols": [
         "BatchMonitorPage",
         "dynamic",
         "default"
       ],
-      "lineCount": 42,
-      "sizeBytes": 1211,
+      "lineCount": 50,
+      "sizeBytes": 1461,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/design/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "metadata",
+        "DesignSystemPage",
+        "default"
+      ],
+      "imports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/dialog",
+        "@/components/ui/input",
+        "@/components/ui/progress",
+        "@/components/ui/select",
+        "@/components/ui/textarea",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "DesignSystemPage",
+        "metadata",
+        "default"
+      ],
+      "lineCount": 177,
+      "sizeBytes": 6383,
+      "notes": "Next.js App Router page; area=marketing-site"
     },
     {
       "path": "src/app/(personal)/layout.tsx",
@@ -3684,7 +3798,6 @@
         "default"
       ],
       "imports": [
-        "@/components/glass/glass-background",
         "@/components/personal/personal-glass-shell",
         "@/lib/api-auth"
       ],
@@ -3692,8 +3805,8 @@
         "PersonalLayout",
         "default"
       ],
-      "lineCount": 20,
-      "sizeBytes": 598,
+      "lineCount": 18,
+      "sizeBytes": 505,
       "notes": "Next.js App Router layout; area=marketing-site"
     },
     {
@@ -3708,6 +3821,10 @@
         "react",
         "next/navigation",
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/textarea",
         "@/types/video-generation",
         "@/components/personal/upload-assets"
       ],
@@ -3715,8 +3832,8 @@
         "AgentDirectorPage",
         "default"
       ],
-      "lineCount": 300,
-      "sizeBytes": 10177,
+      "lineCount": 331,
+      "sizeBytes": 11773,
       "notes": "Next.js App Router page; client component; area=marketing-site"
     },
     {
@@ -3766,7 +3883,7 @@
         "default"
       ],
       "lineCount": 25,
-      "sizeBytes": 888,
+      "sizeBytes": 896,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -3799,15 +3916,19 @@
       "imports": [
         "react",
         "next/navigation",
+        "lucide-react",
         "@/components/personal/upload-assets",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/lib/video-generation/style-templates"
       ],
       "importantSymbols": [
         "TemplatesPage",
         "default"
       ],
-      "lineCount": 180,
-      "sizeBytes": 6409,
+      "lineCount": 276,
+      "sizeBytes": 9967,
       "notes": "Next.js App Router page; client component; area=marketing-site"
     },
     {
@@ -3823,8 +3944,13 @@
         "next/navigation",
         "next/link",
         "next-auth",
+        "lucide-react",
         "@/lib/auth",
         "@/lib/db",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/personal-status",
         "@/lib/video-generation/business-status",
         "@prisma/client",
@@ -3835,8 +3961,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 401,
-      "sizeBytes": 14413,
+      "lineCount": 449,
+      "sizeBytes": 15468,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -3849,13 +3975,14 @@
       "imports": [
         "react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/button"
       ],
       "importantSymbols": [
         "VideoActions"
       ],
-      "lineCount": 123,
-      "sizeBytes": 3859,
+      "lineCount": 126,
+      "sizeBytes": 3645,
       "notes": "area=marketing-site"
     },
     {
@@ -3871,10 +3998,15 @@
         "next/navigation",
         "next-auth",
         "next/link",
+        "lucide-react",
         "@/lib/auth",
         "@/lib/db",
         "@/i18n/server",
         "@/components/personal/personal-videos-auto-refresh",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/personal-status",
         "@/lib/video-generation/business-status",
         "@prisma/client"
@@ -3884,8 +4016,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 359,
-      "sizeBytes": 13514,
+      "lineCount": 383,
+      "sizeBytes": 13869,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -3918,14 +4050,16 @@
         "next-auth",
         "@/lib/auth",
         "@/components/ui/logo",
+        "@/components/ui/button",
+        "@/components/ui/badge",
         "./persona-card"
       ],
       "importantSymbols": [
         "PersonaPage",
         "default"
       ],
-      "lineCount": 113,
-      "sizeBytes": 4596,
+      "lineCount": 121,
+      "sizeBytes": 5041,
       "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
@@ -3940,13 +4074,16 @@
         "next/navigation",
         "react",
         "next-auth/react",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card"
       ],
       "importantSymbols": [
         "PersonaCard"
       ],
-      "lineCount": 109,
-      "sizeBytes": 3474,
+      "lineCount": 133,
+      "sizeBytes": 3887,
       "notes": "area=marketing-site"
     },
     {
@@ -3988,8 +4125,8 @@
       "importantSymbols": [
         "RealFootageDemoExperience"
       ],
-      "lineCount": 236,
-      "sizeBytes": 8132,
+      "lineCount": 242,
+      "sizeBytes": 8491,
       "notes": "area=marketing-site"
     },
     {
@@ -4030,8 +4167,8 @@
       "importantSymbols": [
         "PetWaitlistForm"
       ],
-      "lineCount": 175,
-      "sizeBytes": 5956,
+      "lineCount": 176,
+      "sizeBytes": 5978,
       "notes": "area=marketing-site"
     },
     {
@@ -4048,8 +4185,8 @@
       "importantSymbols": [
         "RealFootageWaitlistForm"
       ],
-      "lineCount": 149,
-      "sizeBytes": 4995,
+      "lineCount": 150,
+      "sizeBytes": 5059,
       "notes": "area=marketing-site"
     },
     {
@@ -5365,7 +5502,7 @@
         "default"
       ],
       "lineCount": 50,
-      "sizeBytes": 1792,
+      "sizeBytes": 1814,
       "notes": "Next.js App Router page; client component"
     },
     {
@@ -5376,11 +5513,12 @@
       "imports": [
         "tailwindcss",
         "tw-animate-css",
-        "shadcn/tailwind.css"
+        "shadcn/tailwind.css",
+        "../styles/tokens.css"
       ],
       "importantSymbols": [],
-      "lineCount": 770,
-      "sizeBytes": 21780,
+      "lineCount": 96,
+      "sizeBytes": 1856,
       "notes": "Stylesheet"
     },
     {
@@ -5408,8 +5546,8 @@
         "metadata",
         "default"
       ],
-      "lineCount": 53,
-      "sizeBytes": 1479,
+      "lineCount": 76,
+      "sizeBytes": 1950,
       "notes": "Next.js App Router layout; NextAuth session check"
     },
     {
@@ -5428,8 +5566,8 @@
         "NotFoundPage",
         "default"
       ],
-      "lineCount": 31,
-      "sizeBytes": 1229,
+      "lineCount": 30,
+      "sizeBytes": 1135,
       "notes": "Next.js App Router page"
     },
     {
@@ -5463,13 +5601,18 @@
       "imports": [
         "react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/progress"
       ],
       "importantSymbols": [
         "BatchCreateWizard"
       ],
-      "lineCount": 521,
-      "sizeBytes": 18747,
+      "lineCount": 629,
+      "sizeBytes": 23072,
       "notes": "React component; client component"
     },
     {
@@ -5484,15 +5627,19 @@
       "imports": [
         "react",
         "@tanstack/react-virtual",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress"
       ],
       "importantSymbols": [
         "BatchMonitorJob",
         "BatchMonitorData",
         "BatchMonitor"
       ],
-      "lineCount": 476,
-      "sizeBytes": 17016,
+      "lineCount": 545,
+      "sizeBytes": 19121,
       "notes": "React component; client component"
     },
     {
@@ -5509,7 +5656,7 @@
         "UpgradeProButton"
       ],
       "lineCount": 39,
-      "sizeBytes": 1133,
+      "sizeBytes": 1144,
       "notes": "React component; client component; area=payments"
     },
     {
@@ -5522,14 +5669,19 @@
       "imports": [
         "react",
         "@prisma/client",
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/i18n/useTranslation",
         "@/lib/services/usage-payload"
       ],
       "importantSymbols": [
         "UsageDashboard"
       ],
-      "lineCount": 186,
-      "sizeBytes": 6200,
+      "lineCount": 194,
+      "sizeBytes": 6352,
       "notes": "React component; hits Prisma DB; client component; area=payments"
     },
     {
@@ -5543,14 +5695,16 @@
       "imports": [
         "next/navigation",
         "react",
+        "@/components/ui/button",
+        "@/components/ui/input",
         "@/i18n/useTranslation"
       ],
       "importantSymbols": [
         "BusinessVideoMetricOption",
         "BusinessMetricsForm"
       ],
-      "lineCount": 205,
-      "sizeBytes": 6834,
+      "lineCount": 206,
+      "sizeBytes": 6914,
       "notes": "React component; client component"
     },
     {
@@ -5564,14 +5718,16 @@
       "imports": [
         "next/link",
         "react",
+        "lucide-react",
+        "@/components/ui/badge",
         "@/lib/utils"
       ],
       "importantSymbols": [
         "BusinessPageHeaderProps",
         "BusinessPageHeader"
       ],
-      "lineCount": 78,
-      "sizeBytes": 1960,
+      "lineCount": 64,
+      "sizeBytes": 1835,
       "notes": "React component"
     },
     {
@@ -5583,14 +5739,15 @@
         "BusinessStatsCards"
       ],
       "imports": [
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/card"
       ],
       "importantSymbols": [
         "StatsCardLabels",
         "BusinessStatsCards"
       ],
       "lineCount": 53,
-      "sizeBytes": 1500,
+      "sizeBytes": 1488,
       "notes": "React component"
     },
     {
@@ -5603,14 +5760,18 @@
       ],
       "imports": [
         "next/link",
-        "@/lib/services/business-insights-service"
+        "lucide-react",
+        "@/lib/services/business-insights-service",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card"
       ],
       "importantSymbols": [
         "RecommendationListLabels",
         "RecommendationList"
       ],
-      "lineCount": 66,
-      "sizeBytes": 1916,
+      "lineCount": 76,
+      "sizeBytes": 2188,
       "notes": "React component"
     },
     {
@@ -5623,14 +5784,16 @@
       ],
       "imports": [
         "next/link",
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/badge",
+        "@/components/ui/button"
       ],
       "importantSymbols": [
         "PerfTableLabels",
         "VideoPerformanceTable"
       ],
-      "lineCount": 95,
-      "sizeBytes": 2979,
+      "lineCount": 107,
+      "sizeBytes": 3344,
       "notes": "React component"
     },
     {
@@ -5647,7 +5810,7 @@
         "ComingSoonHero"
       ],
       "lineCount": 36,
-      "sizeBytes": 981,
+      "sizeBytes": 992,
       "notes": "React component; area=marketing-site"
     },
     {
@@ -5666,7 +5829,7 @@
         "AIScriptSection"
       ],
       "lineCount": 153,
-      "sizeBytes": 6115,
+      "sizeBytes": 6130,
       "notes": "React component; area=demo"
     },
     {
@@ -5686,7 +5849,7 @@
         "AssetQAMockSection"
       ],
       "lineCount": 223,
-      "sizeBytes": 7434,
+      "sizeBytes": 7385,
       "notes": "React component; area=demo"
     },
     {
@@ -5704,7 +5867,7 @@
         "ComplianceNote"
       ],
       "lineCount": 39,
-      "sizeBytes": 1474,
+      "sizeBytes": 1473,
       "notes": "React component; area=demo"
     },
     {
@@ -5724,7 +5887,7 @@
         "CreativeEvidenceCardsSection"
       ],
       "lineCount": 197,
-      "sizeBytes": 6167,
+      "sizeBytes": 6132,
       "notes": "React component; client component; area=demo"
     },
     {
@@ -5743,8 +5906,8 @@
       "importantSymbols": [
         "DemoHero"
       ],
-      "lineCount": 209,
-      "sizeBytes": 9711,
+      "lineCount": 187,
+      "sizeBytes": 7937,
       "notes": "React component; area=demo"
     },
     {
@@ -5765,7 +5928,7 @@
         "DemoInputPanel"
       ],
       "lineCount": 191,
-      "sizeBytes": 5612,
+      "sizeBytes": 5586,
       "notes": "React component; client component; area=demo"
     },
     {
@@ -5785,7 +5948,7 @@
         "SampleDataBadge"
       ],
       "lineCount": 67,
-      "sizeBytes": 2045,
+      "sizeBytes": 2030,
       "notes": "React component; area=demo"
     },
     {
@@ -5804,8 +5967,8 @@
       "importantSymbols": [
         "FinalOutputSection"
       ],
-      "lineCount": 151,
-      "sizeBytes": 6352,
+      "lineCount": 150,
+      "sizeBytes": 6234,
       "notes": "React component; area=demo"
     },
     {
@@ -5824,7 +5987,7 @@
         "InvestorHighlightsSection"
       ],
       "lineCount": 181,
-      "sizeBytes": 6665,
+      "sizeBytes": 6603,
       "notes": "React component; area=demo"
     },
     {
@@ -5843,8 +6006,8 @@
       "importantSymbols": [
         "LocalProductSampleSection"
       ],
-      "lineCount": 123,
-      "sizeBytes": 5445,
+      "lineCount": 122,
+      "sizeBytes": 5386,
       "notes": "React component; area=demo"
     },
     {
@@ -5863,7 +6026,7 @@
         "ActivityTimeline"
       ],
       "lineCount": 79,
-      "sizeBytes": 2727,
+      "sizeBytes": 2699,
       "notes": "React component; area=demo"
     },
     {
@@ -5881,8 +6044,8 @@
       "importantSymbols": [
         "AutoVideos"
       ],
-      "lineCount": 79,
-      "sizeBytes": 2680,
+      "lineCount": 78,
+      "sizeBytes": 2540,
       "notes": "React component; area=demo"
     },
     {
@@ -5901,8 +6064,8 @@
       "importantSymbols": [
         "BeforeAfter"
       ],
-      "lineCount": 104,
-      "sizeBytes": 4115,
+      "lineCount": 102,
+      "sizeBytes": 3920,
       "notes": "React component; area=demo"
     },
     {
@@ -5921,7 +6084,7 @@
         "BenchmarkComparison"
       ],
       "lineCount": 113,
-      "sizeBytes": 3978,
+      "sizeBytes": 3982,
       "notes": "React component; area=demo"
     },
     {
@@ -5940,7 +6103,7 @@
         "BrandProofScenario"
       ],
       "lineCount": 76,
-      "sizeBytes": 2288,
+      "sizeBytes": 2305,
       "notes": "React component; area=demo"
     },
     {
@@ -5959,7 +6122,7 @@
         "BusinessModel"
       ],
       "lineCount": 70,
-      "sizeBytes": 2132,
+      "sizeBytes": 2116,
       "notes": "React component; area=demo"
     },
     {
@@ -5979,7 +6142,7 @@
         "CollarPov"
       ],
       "lineCount": 82,
-      "sizeBytes": 3121,
+      "sizeBytes": 3098,
       "notes": "React component; area=demo"
     },
     {
@@ -5998,8 +6161,8 @@
       "importantSymbols": [
         "CommunityPreview"
       ],
-      "lineCount": 153,
-      "sizeBytes": 6074,
+      "lineCount": 152,
+      "sizeBytes": 5903,
       "notes": "React component; area=demo"
     },
     {
@@ -6019,8 +6182,8 @@
       "importantSymbols": [
         "CompanionMode"
       ],
-      "lineCount": 115,
-      "sizeBytes": 4894,
+      "lineCount": 111,
+      "sizeBytes": 4643,
       "notes": "React component; area=demo"
     },
     {
@@ -6033,15 +6196,14 @@
       ],
       "imports": [
         "react",
-        "framer-motion",
         "lucide-react"
       ],
       "importantSymbols": [
         "DeckSlideDef",
         "DeckShell"
       ],
-      "lineCount": 339,
-      "sizeBytes": 9861,
+      "lineCount": 300,
+      "sizeBytes": 9233,
       "notes": "React component; client component; area=demo"
     },
     {
@@ -6060,7 +6222,7 @@
         "DemoStory"
       ],
       "lineCount": 101,
-      "sizeBytes": 2892,
+      "sizeBytes": 2873,
       "notes": "React component; area=demo"
     },
     {
@@ -6079,8 +6241,8 @@
       "importantSymbols": [
         "DetectedMoments"
       ],
-      "lineCount": 64,
-      "sizeBytes": 2328,
+      "lineCount": 63,
+      "sizeBytes": 2256,
       "notes": "React component; area=demo"
     },
     {
@@ -6099,7 +6261,7 @@
         "DeviceDashboard"
       ],
       "lineCount": 97,
-      "sizeBytes": 3256,
+      "sizeBytes": 3229,
       "notes": "React component; area=demo"
     },
     {
@@ -6119,7 +6281,7 @@
         "GrowthFlywheel"
       ],
       "lineCount": 61,
-      "sizeBytes": 2626,
+      "sizeBytes": 2616,
       "notes": "React component; area=demo"
     },
     {
@@ -6141,7 +6303,7 @@
         "HardwareKit"
       ],
       "lineCount": 143,
-      "sizeBytes": 5129,
+      "sizeBytes": 4998,
       "notes": "React component; area=demo"
     },
     {
@@ -6159,8 +6321,8 @@
       "importantSymbols": [
         "ImageLightbox"
       ],
-      "lineCount": 92,
-      "sizeBytes": 2893,
+      "lineCount": 93,
+      "sizeBytes": 2914,
       "notes": "React component; client component; area=demo"
     },
     {
@@ -6179,7 +6341,7 @@
         "MarketOpportunity"
       ],
       "lineCount": 87,
-      "sizeBytes": 2979,
+      "sizeBytes": 2968,
       "notes": "React component; area=demo"
     },
     {
@@ -6198,8 +6360,8 @@
       "importantSymbols": [
         "PetHero"
       ],
-      "lineCount": 153,
-      "sizeBytes": 6853,
+      "lineCount": 151,
+      "sizeBytes": 6339,
       "notes": "React component; area=demo"
     },
     {
@@ -6211,13 +6373,14 @@
       ],
       "imports": [
         "react",
+        "lucide-react",
         "@/lib/utils"
       ],
       "importantSymbols": [
         "PetImage"
       ],
-      "lineCount": 63,
-      "sizeBytes": 1563,
+      "lineCount": 60,
+      "sizeBytes": 1346,
       "notes": "React component; client component; area=demo"
     },
     {
@@ -6235,8 +6398,8 @@
       "importantSymbols": [
         "PetInvestorHighlights"
       ],
-      "lineCount": 111,
-      "sizeBytes": 3807,
+      "lineCount": 110,
+      "sizeBytes": 3808,
       "notes": "React component; area=demo"
     },
     {
@@ -6254,7 +6417,7 @@
         "PetSection"
       ],
       "lineCount": 56,
-      "sizeBytes": 1607,
+      "sizeBytes": 1568,
       "notes": "React component; area=demo"
     },
     {
@@ -6274,7 +6437,7 @@
         "ProductProofReport"
       ],
       "lineCount": 105,
-      "sizeBytes": 4091,
+      "sizeBytes": 4017,
       "notes": "React component; area=demo"
     },
     {
@@ -6292,7 +6455,7 @@
         "TeamSection"
       ],
       "lineCount": 93,
-      "sizeBytes": 3150,
+      "sizeBytes": 3142,
       "notes": "React component; area=demo"
     },
     {
@@ -6311,7 +6474,7 @@
         "ViralSharing"
       ],
       "lineCount": 86,
-      "sizeBytes": 3292,
+      "sizeBytes": 3315,
       "notes": "React component; area=demo"
     },
     {
@@ -6330,7 +6493,7 @@
         "WhyNow"
       ],
       "lineCount": 204,
-      "sizeBytes": 7667,
+      "sizeBytes": 7698,
       "notes": "React component; area=demo"
     },
     {
@@ -6348,8 +6511,8 @@
       "importantSymbols": [
         "PhoneVideoMockup"
       ],
-      "lineCount": 218,
-      "sizeBytes": 8425,
+      "lineCount": 209,
+      "sizeBytes": 8108,
       "notes": "React component; client component; area=demo"
     },
     {
@@ -6367,8 +6530,8 @@
       "importantSymbols": [
         "ReferencePreviewSection"
       ],
-      "lineCount": 296,
-      "sizeBytes": 10304,
+      "lineCount": 284,
+      "sizeBytes": 9738,
       "notes": "React component; area=demo"
     },
     {
@@ -6387,8 +6550,8 @@
       "importantSymbols": [
         "StoryboardGrid"
       ],
-      "lineCount": 255,
-      "sizeBytes": 9118,
+      "lineCount": 248,
+      "sizeBytes": 8738,
       "notes": "React component; area=demo"
     },
     {
@@ -6401,13 +6564,17 @@
       "imports": [
         "react",
         "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
         "@/lib/utils"
       ],
       "importantSymbols": [
         "DigitalHumanWizard"
       ],
-      "lineCount": 628,
-      "sizeBytes": 21371,
+      "lineCount": 615,
+      "sizeBytes": 20861,
       "notes": "React component; client component"
     },
     {
@@ -6423,8 +6590,8 @@
       "importantSymbols": [
         "PageHeader"
       ],
-      "lineCount": 23,
-      "sizeBytes": 631,
+      "lineCount": 30,
+      "sizeBytes": 798,
       "notes": "React component"
     },
     {
@@ -6456,7 +6623,7 @@
         "RenderProgress"
       ],
       "lineCount": 422,
-      "sizeBytes": 13356,
+      "sizeBytes": 13677,
       "notes": "React component; hits Prisma DB; client component; area=media-processing"
     },
     {
@@ -6481,22 +6648,7 @@
         "publishTone"
       ],
       "lineCount": 58,
-      "sizeBytes": 1899,
-      "notes": "React component"
-    },
-    {
-      "path": "src/components/glass/glass-background.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "GlassBackground"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "GlassBackground"
-      ],
-      "lineCount": 18,
-      "sizeBytes": 481,
+      "sizeBytes": 1829,
       "notes": "React component"
     },
     {
@@ -6513,14 +6665,16 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/button",
+        "@/components/ui/dialog",
         "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "importantSymbols": [
         "BusinessSidebar"
       ],
-      "lineCount": 128,
-      "sizeBytes": 3862,
+      "lineCount": 227,
+      "sizeBytes": 7620,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -6538,6 +6692,8 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/button",
+        "@/components/ui/dialog",
         "@/i18n/I18nProvider",
         "@/i18n/types",
         "@/lib/utils"
@@ -6545,8 +6701,8 @@
       "importantSymbols": [
         "InternalSidebar"
       ],
-      "lineCount": 174,
-      "sizeBytes": 6228,
+      "lineCount": 287,
+      "sizeBytes": 10358,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -6569,7 +6725,7 @@
         "LanguageSwitcher"
       ],
       "lineCount": 58,
-      "sizeBytes": 1713,
+      "sizeBytes": 1899,
       "notes": "React component; client component"
     },
     {
@@ -6586,14 +6742,16 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/badge",
+        "@/components/ui/button",
         "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "importantSymbols": [
         "PersonalSidebar"
       ],
-      "lineCount": 118,
-      "sizeBytes": 3768,
+      "lineCount": 124,
+      "sizeBytes": 3941,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -6601,21 +6759,27 @@
       "type": "component",
       "area": "shared",
       "exports": [
+        "EditorialCreateWorkflow",
         "GlassCreateWorkflow"
       ],
       "imports": [
         "react",
         "next/link",
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/textarea",
         "@/types/video-generation",
         "@/components/personal/upload-assets",
         "@/lib/video-generation/style-templates"
       ],
       "importantSymbols": [
+        "EditorialCreateWorkflow",
         "GlassCreateWorkflow"
       ],
-      "lineCount": 608,
-      "sizeBytes": 22777,
+      "lineCount": 689,
+      "sizeBytes": 25243,
       "notes": "React component; client component"
     },
     {
@@ -6623,6 +6787,7 @@
       "type": "component",
       "area": "shared",
       "exports": [
+        "PersonalEditorialShell",
         "PersonalGlassShell"
       ],
       "imports": [
@@ -6630,13 +6795,18 @@
         "next/navigation",
         "next-auth/react",
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
         "@/lib/utils"
       ],
       "importantSymbols": [
+        "PersonalEditorialShell",
         "PersonalGlassShell"
       ],
-      "lineCount": 135,
-      "sizeBytes": 4727,
+      "lineCount": 191,
+      "sizeBytes": 6297,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -6717,8 +6887,8 @@
         "Badge",
         "badgeVariants"
       ],
-      "lineCount": 53,
-      "sizeBytes": 1925,
+      "lineCount": 51,
+      "sizeBytes": 1490,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -6738,8 +6908,8 @@
         "Button",
         "buttonVariants"
       ],
-      "lineCount": 59,
-      "sizeBytes": 3197,
+      "lineCount": 61,
+      "sizeBytes": 2126,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -6769,7 +6939,7 @@
         "CardContent"
       ],
       "lineCount": 104,
-      "sizeBytes": 2641,
+      "sizeBytes": 2587,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -6806,7 +6976,7 @@
         "DialogPortal"
       ],
       "lineCount": 161,
-      "sizeBytes": 4075,
+      "sizeBytes": 4100,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -6847,7 +7017,7 @@
         "DropdownMenuCheckboxItem"
       ],
       "lineCount": 269,
-      "sizeBytes": 8736,
+      "sizeBytes": 8565,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -6866,7 +7036,7 @@
         "Input"
       ],
       "lineCount": 21,
-      "sizeBytes": 1040,
+      "sizeBytes": 963,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -6877,13 +7047,14 @@
         "Logo"
       ],
       "imports": [
-        "@/lib/utils"
+        "@/lib/utils",
+        "lucide-react"
       ],
       "importantSymbols": [
         "Logo"
       ],
-      "lineCount": 41,
-      "sizeBytes": 1102,
+      "lineCount": 28,
+      "sizeBytes": 580,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -6908,8 +7079,8 @@
         "ProgressLabel",
         "ProgressValue"
       ],
-      "lineCount": 84,
-      "sizeBytes": 1740,
+      "lineCount": 87,
+      "sizeBytes": 1817,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -6966,7 +7137,7 @@
         "SelectSeparator"
       ],
       "lineCount": 202,
-      "sizeBytes": 6655,
+      "sizeBytes": 6437,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -7019,7 +7190,7 @@
         "SheetDescription"
       ],
       "lineCount": 139,
-      "sizeBytes": 4433,
+      "sizeBytes": 4420,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -7036,7 +7207,7 @@
         "Skeleton"
       ],
       "lineCount": 14,
-      "sizeBytes": 275,
+      "sizeBytes": 286,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -7047,15 +7218,14 @@
         "Toaster"
       ],
       "imports": [
-        "next-themes",
         "sonner",
         "lucide-react"
       ],
       "importantSymbols": [
         "Toaster"
       ],
-      "lineCount": 50,
-      "sizeBytes": 1226,
+      "lineCount": 47,
+      "sizeBytes": 1181,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -7073,7 +7243,7 @@
         "Textarea"
       ],
       "lineCount": 19,
-      "sizeBytes": 842,
+      "sizeBytes": 762,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -7097,7 +7267,7 @@
         "TooltipProvider"
       ],
       "lineCount": 67,
-      "sizeBytes": 2846,
+      "sizeBytes": 2899,
       "notes": "React component; client component; area=shared-ui"
     },
     {
@@ -7110,13 +7280,14 @@
       "imports": [
         "react",
         "lucide-react",
+        "@/components/ui/button",
         "@/types/video-generation"
       ],
       "importantSymbols": [
         "AttachmentUploader"
       ],
-      "lineCount": 291,
-      "sizeBytes": 9695,
+      "lineCount": 293,
+      "sizeBytes": 9774,
       "notes": "React component; client component; area=upload"
     },
     {
@@ -7148,13 +7319,15 @@
       ],
       "imports": [
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/card",
         "@/types/video-generation"
       ],
       "importantSymbols": [
         "PlanPreviewCard"
       ],
-      "lineCount": 204,
-      "sizeBytes": 6907,
+      "lineCount": 208,
+      "sizeBytes": 7161,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -7189,14 +7362,18 @@
         "@/i18n/useTranslation",
         "@/components/video-generation/attachment-uploader",
         "@/components/video-generation/plan-preview-card",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
         "@/lib/services/order-creative-draft",
         "@/types/video-generation"
       ],
       "importantSymbols": [
         "UnifiedCreativeInput"
       ],
-      "lineCount": 461,
-      "sizeBytes": 17111,
+      "lineCount": 471,
+      "sizeBytes": 16164,
       "notes": "React component; client component; area=media-processing"
     },
     {
@@ -7223,7 +7400,7 @@
         "LogoGeneratorDialog"
       ],
       "lineCount": 311,
-      "sizeBytes": 10224,
+      "sizeBytes": 10246,
       "notes": "React component; client component; area=wizard"
     },
     {
@@ -7285,14 +7462,15 @@
         "default"
       ],
       "imports": [
+        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "importantSymbols": [
         "enUS",
         "default"
       ],
-      "lineCount": 878,
-      "sizeBytes": 33127,
+      "lineCount": 880,
+      "sizeBytes": 33262,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -7326,14 +7504,15 @@
         "default"
       ],
       "imports": [
+        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "importantSymbols": [
         "zhCN",
         "default"
       ],
-      "lineCount": 850,
-      "sizeBytes": 33234,
+      "lineCount": 852,
+      "sizeBytes": 33369,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -8007,7 +8186,7 @@
         "MAPLESIDE_LIVING_VIDEO_URL"
       ],
       "lineCount": 1198,
-      "sizeBytes": 46387,
+      "sizeBytes": 46166,
       "notes": "Utility / helper module; area=demo"
     },
     {
@@ -8058,7 +8237,7 @@
         "PET_WALKTHROUGH_VIDEO_POSTER"
       ],
       "lineCount": 1381,
-      "sizeBytes": 58018,
+      "sizeBytes": 58015,
       "notes": "Utility / helper module; area=demo"
     },
     {
@@ -8540,6 +8719,7 @@
       ],
       "imports": [
         "zod",
+        "../../../editorial-design-tokens.generated.json",
         "./creative-evidence"
       ],
       "importantSymbols": [
@@ -8552,8 +8732,8 @@
         "brandAssetsSchema",
         "clientBriefSchema"
       ],
-      "lineCount": 119,
-      "sizeBytes": 3611,
+      "lineCount": 123,
+      "sizeBytes": 3762,
       "notes": "Schema / validation"
     },
     {
@@ -10234,6 +10414,7 @@
         "crypto",
         "url",
         "@/types/video-generation",
+        "../../../editorial-design-tokens.generated.json",
         "sharp",
         "@/lib/storage"
       ],
@@ -10244,8 +10425,8 @@
         "renderBrandEndCard",
         "__test__"
       ],
-      "lineCount": 541,
-      "sizeBytes": 17836,
+      "lineCount": 555,
+      "sizeBytes": 18279,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -10643,6 +10824,7 @@
         "path",
         "crypto",
         "url",
+        "../../../editorial-design-tokens.generated.json",
         "@/lib/storage"
       ],
       "importantSymbols": [
@@ -10651,8 +10833,8 @@
         "generateMockClip",
         "__test__"
       ],
-      "lineCount": 309,
-      "sizeBytes": 10229,
+      "lineCount": 329,
+      "sizeBytes": 10556,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -10925,7 +11107,7 @@
         "getStyleTemplate"
       ],
       "lineCount": 541,
-      "sizeBytes": 29461,
+      "sizeBytes": 29432,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -10987,6 +11169,17 @@
       "lineCount": 91,
       "sizeBytes": 3599,
       "notes": ""
+    },
+    {
+      "path": "src/styles/tokens.css",
+      "type": "style",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 161,
+      "sizeBytes": 5592,
+      "notes": "Stylesheet"
     },
     {
       "path": "src/types/next-auth.d.ts",
@@ -11052,6 +11245,17 @@
       "lineCount": 371,
       "sizeBytes": 11890,
       "notes": "Shared TypeScript types; area=media-processing"
+    },
+    {
+      "path": "test-results/playwright/.last-run.json",
+      "type": "unknown",
+      "area": "unknown",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 4,
+      "sizeBytes": 45,
+      "notes": ""
     },
     {
       "path": "tests/_aiusage_check.ts",
@@ -11624,6 +11828,120 @@
       "lineCount": 161,
       "sizeBytes": 5682,
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
+    },
+    {
+      "path": "tests/e2e/.auth/personal.json",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 14,
+      "sizeBytes": 206,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/e2e/auth.setup.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "@playwright/test"
+      ],
+      "importantSymbols": [],
+      "lineCount": 13,
+      "sizeBytes": 544,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/e2e/editorial-fixtures.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [
+        "EditorialRoute",
+        "EDITORIAL_ROUTES",
+        "ensureAuthenticated",
+        "createBatchFixture",
+        "resolveRoute",
+        "stabilizePage",
+        "attachDomAudit"
+      ],
+      "imports": [
+        "@playwright/test"
+      ],
+      "importantSymbols": [
+        "EditorialRoute",
+        "EDITORIAL_ROUTES",
+        "ensureAuthenticated",
+        "createBatchFixture",
+        "resolveRoute",
+        "stabilizePage",
+        "attachDomAudit"
+      ],
+      "lineCount": 152,
+      "sizeBytes": 5149,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/e2e/editorial.a11y.spec.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "@axe-core/playwright",
+        "@playwright/test",
+        "./editorial-fixtures"
+      ],
+      "importantSymbols": [],
+      "lineCount": 98,
+      "sizeBytes": 3515,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/e2e/editorial.visual.spec.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "@playwright/test",
+        "./editorial-fixtures"
+      ],
+      "importantSymbols": [],
+      "lineCount": 39,
+      "sizeBytes": 1121,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/e2e/seed-visual-fixture.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "bcryptjs",
+        "@prisma/client",
+        "../../src/lib/db",
+        "../../src/lib/video-generation/batch-style-templates"
+      ],
+      "importantSymbols": [],
+      "lineCount": 52,
+      "sizeBytes": 1411,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/editorial-source-compliance.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:fs",
+        "node:path",
+        "node:assert/strict",
+        "node:test"
+      ],
+      "importantSymbols": [],
+      "lineCount": 85,
+      "sizeBytes": 3190,
+      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/frame-qa-gate.test.ts",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-13T02:56:12.179Z",
+  "generatedAt": "2026-07-13T04:20:03.667Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -187,6 +187,16 @@
       "localImports": [],
       "externalImports": [
         "next"
+      ]
+    },
+    {
+      "file": "playwright.config.ts",
+      "imports": [
+        "@playwright/test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@playwright/test"
       ]
     },
     {
@@ -446,6 +456,18 @@
         "node:fs",
         "node:path",
         "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/generate-design-tokens.ts",
+      "imports": [
+        "node:fs/promises",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:fs/promises",
+        "node:path"
       ]
     },
     {
@@ -1098,12 +1120,17 @@
     {
       "file": "src/app/(auth)/layout.tsx",
       "imports": [
-        "@/components/glass/glass-background"
+        "@/components/ui/card",
+        "@/components/ui/logo",
+        "next/link"
       ],
       "localImports": [
-        "@/components/glass/glass-background"
+        "@/components/ui/card",
+        "@/components/ui/logo"
       ],
-      "externalImports": []
+      "externalImports": [
+        "next/link"
+      ]
     },
     {
       "file": "src/app/(auth)/login/page.tsx",
@@ -1112,9 +1139,16 @@
         "next/link",
         "next-auth/react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input"
+      ],
       "externalImports": [
         "react",
         "next/link",
@@ -1130,9 +1164,16 @@
         "next/link",
         "next-auth/react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input"
+      ],
       "externalImports": [
         "react",
         "next/link",
@@ -1193,12 +1234,16 @@
         "next-auth",
         "@/lib/auth",
         "@/components/business/business-page-header",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/i18n/server",
         "@/lib/services/business-insights-service"
       ],
       "localImports": [
         "@/lib/auth",
         "@/components/business/business-page-header",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/i18n/server",
         "@/lib/services/business-insights-service"
       ],
@@ -1215,11 +1260,13 @@
         "next-auth",
         "@/components/business/business-page-header",
         "@/components/digital-human/digital-human-wizard",
+        "@/components/ui/card",
         "@/lib/auth"
       ],
       "localImports": [
         "@/components/business/business-page-header",
         "@/components/digital-human/digital-human-wizard",
+        "@/components/ui/card",
         "@/lib/auth"
       ],
       "externalImports": [
@@ -1235,6 +1282,9 @@
         "next-auth",
         "@/components/business/business-page-header",
         "@/components/business/business-metrics-form",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/lib/auth",
         "@/i18n/server",
         "@/lib/services/business-metrics-import"
@@ -1242,6 +1292,9 @@
       "localImports": [
         "@/components/business/business-page-header",
         "@/components/business/business-metrics-form",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/lib/auth",
         "@/i18n/server",
         "@/lib/services/business-metrics-import"
@@ -1257,9 +1310,13 @@
       "imports": [
         "next/link",
         "lucide-react",
+        "@/components/business/business-page-header",
+        "@/components/ui/card",
         "@/i18n/server"
       ],
       "localImports": [
+        "@/components/business/business-page-header",
+        "@/components/ui/card",
         "@/i18n/server"
       ],
       "externalImports": [
@@ -1303,6 +1360,10 @@
         "@/lib/video-generation/business-status",
         "@prisma/client",
         "@/components/business/business-page-header",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/i18n/server",
         "@/i18n/types",
         "./video-actions"
@@ -1312,6 +1373,10 @@
         "@/lib/db",
         "@/lib/video-generation/business-status",
         "@/components/business/business-page-header",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/i18n/server",
         "@/i18n/types",
         "./video-actions"
@@ -1329,9 +1394,11 @@
         "react",
         "next/navigation",
         "lucide-react",
+        "@/components/ui/button",
         "@/i18n/useTranslation"
       ],
       "localImports": [
+        "@/components/ui/button",
         "@/i18n/useTranslation"
       ],
       "externalImports": [
@@ -1352,6 +1419,10 @@
         "@/i18n/types",
         "@/components/business/business-page-header",
         "@/components/video-generation/brief-render-auto-refresh",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/business-status",
         "@prisma/client"
       ],
@@ -1362,6 +1433,10 @@
         "@/i18n/types",
         "@/components/business/business-page-header",
         "@/components/video-generation/brief-render-auto-refresh",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/business-status"
       ],
       "externalImports": [
@@ -1485,6 +1560,7 @@
         "react",
         "next/cache",
         "@/components/ui/card",
+        "@/components/ui/button",
         "@/components/features/page-header",
         "@/components/features/status-badge",
         "@/lib/db",
@@ -1492,6 +1568,7 @@
       ],
       "localImports": [
         "@/components/ui/card",
+        "@/components/ui/button",
         "@/components/features/page-header",
         "@/components/features/status-badge",
         "@/lib/db",
@@ -1528,10 +1605,12 @@
         "sonner",
         "next/navigation",
         "lucide-react",
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/components/ui/textarea"
       ],
       "localImports": [
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/components/ui/textarea"
       ],
       "externalImports": [
         "react",
@@ -1727,6 +1806,7 @@
         "lucide-react",
         "@/components/ui/card",
         "@/components/ui/button",
+        "@/components/ui/input",
         "@/components/features/status-badge",
         "@/lib/labels",
         "@prisma/client"
@@ -1734,6 +1814,7 @@
       "localImports": [
         "@/components/ui/card",
         "@/components/ui/button",
+        "@/components/ui/input",
         "@/components/features/status-badge",
         "@/lib/labels"
       ],
@@ -1770,11 +1851,13 @@
         "lucide-react",
         "@/components/ui/card",
         "@/components/ui/button",
+        "@/components/ui/textarea",
         "@/components/features/status-badge"
       ],
       "localImports": [
         "@/components/ui/card",
         "@/components/ui/button",
+        "@/components/ui/textarea",
         "@/components/features/status-badge"
       ],
       "externalImports": [
@@ -1882,10 +1965,12 @@
         "next/navigation",
         "sonner",
         "lucide-react",
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/components/ui/input"
       ],
       "localImports": [
-        "@/components/ui/button"
+        "@/components/ui/button",
+        "@/components/ui/input"
       ],
       "externalImports": [
         "react",
@@ -1977,30 +2062,59 @@
         "next/link",
         "next-auth",
         "next/navigation",
+        "lucide-react",
         "@/lib/auth",
         "@/lib/services/batch-service",
-        "@/components/batch/batch-monitor"
+        "@/components/batch/batch-monitor",
+        "@/components/ui/button"
       ],
       "localImports": [
         "@/lib/auth",
         "@/lib/services/batch-service",
-        "@/components/batch/batch-monitor"
+        "@/components/batch/batch-monitor",
+        "@/components/ui/button"
       ],
       "externalImports": [
         "next/link",
         "next-auth",
-        "next/navigation"
+        "next/navigation",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/app/(personal)/design/page.tsx",
+      "imports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/dialog",
+        "@/components/ui/input",
+        "@/components/ui/progress",
+        "@/components/ui/select",
+        "@/components/ui/textarea",
+        "lucide-react"
+      ],
+      "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/dialog",
+        "@/components/ui/input",
+        "@/components/ui/progress",
+        "@/components/ui/select",
+        "@/components/ui/textarea"
+      ],
+      "externalImports": [
+        "lucide-react"
       ]
     },
     {
       "file": "src/app/(personal)/layout.tsx",
       "imports": [
-        "@/components/glass/glass-background",
         "@/components/personal/personal-glass-shell",
         "@/lib/api-auth"
       ],
       "localImports": [
-        "@/components/glass/glass-background",
         "@/components/personal/personal-glass-shell",
         "@/lib/api-auth"
       ],
@@ -2012,10 +2126,18 @@
         "react",
         "next/navigation",
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/textarea",
         "@/types/video-generation",
         "@/components/personal/upload-assets"
       ],
       "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/textarea",
         "@/types/video-generation",
         "@/components/personal/upload-assets"
       ],
@@ -2078,16 +2200,24 @@
       "imports": [
         "react",
         "next/navigation",
+        "lucide-react",
         "@/components/personal/upload-assets",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/lib/video-generation/style-templates"
       ],
       "localImports": [
         "@/components/personal/upload-assets",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
         "@/lib/video-generation/style-templates"
       ],
       "externalImports": [
         "react",
-        "next/navigation"
+        "next/navigation",
+        "lucide-react"
       ]
     },
     {
@@ -2096,8 +2226,13 @@
         "next/navigation",
         "next/link",
         "next-auth",
+        "lucide-react",
         "@/lib/auth",
         "@/lib/db",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/personal-status",
         "@/lib/video-generation/business-status",
         "@prisma/client",
@@ -2106,6 +2241,10 @@
       "localImports": [
         "@/lib/auth",
         "@/lib/db",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/personal-status",
         "@/lib/video-generation/business-status",
         "./video-actions"
@@ -2114,6 +2253,7 @@
         "next/navigation",
         "next/link",
         "next-auth",
+        "lucide-react",
         "@prisma/client"
       ]
     },
@@ -2122,9 +2262,12 @@
       "imports": [
         "react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/button"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/components/ui/button"
+      ],
       "externalImports": [
         "react",
         "next/navigation",
@@ -2137,10 +2280,15 @@
         "next/navigation",
         "next-auth",
         "next/link",
+        "lucide-react",
         "@/lib/auth",
         "@/lib/db",
         "@/i18n/server",
         "@/components/personal/personal-videos-auto-refresh",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/personal-status",
         "@/lib/video-generation/business-status",
         "@prisma/client"
@@ -2150,6 +2298,10 @@
         "@/lib/db",
         "@/i18n/server",
         "@/components/personal/personal-videos-auto-refresh",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/lib/video-generation/personal-status",
         "@/lib/video-generation/business-status"
       ],
@@ -2157,6 +2309,7 @@
         "next/navigation",
         "next-auth",
         "next/link",
+        "lucide-react",
         "@prisma/client"
       ]
     },
@@ -2167,11 +2320,15 @@
         "next-auth",
         "@/lib/auth",
         "@/components/ui/logo",
+        "@/components/ui/button",
+        "@/components/ui/badge",
         "./persona-card"
       ],
       "localImports": [
         "@/lib/auth",
         "@/components/ui/logo",
+        "@/components/ui/button",
+        "@/components/ui/badge",
         "./persona-card"
       ],
       "externalImports": [
@@ -2186,9 +2343,16 @@
         "next/navigation",
         "react",
         "next-auth/react",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card"
+      ],
       "externalImports": [
         "next/link",
         "next/navigation",
@@ -3373,9 +3537,12 @@
       "imports": [
         "tailwindcss",
         "tw-animate-css",
-        "shadcn/tailwind.css"
+        "shadcn/tailwind.css",
+        "../styles/tokens.css"
       ],
-      "localImports": [],
+      "localImports": [
+        "../styles/tokens.css"
+      ],
       "externalImports": [
         "tailwindcss",
         "tw-animate-css",
@@ -3442,9 +3609,20 @@
       "imports": [
         "react",
         "next/navigation",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/progress"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/progress"
+      ],
       "externalImports": [
         "react",
         "next/navigation",
@@ -3456,9 +3634,18 @@
       "imports": [
         "react",
         "@tanstack/react-virtual",
-        "lucide-react"
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress"
+      ],
       "externalImports": [
         "react",
         "@tanstack/react-virtual",
@@ -3480,16 +3667,26 @@
       "imports": [
         "react",
         "@prisma/client",
+        "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/i18n/useTranslation",
         "@/lib/services/usage-payload"
       ],
       "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/progress",
         "@/i18n/useTranslation",
         "@/lib/services/usage-payload"
       ],
       "externalImports": [
         "react",
-        "@prisma/client"
+        "@prisma/client",
+        "lucide-react"
       ]
     },
     {
@@ -3497,9 +3694,13 @@
       "imports": [
         "next/navigation",
         "react",
+        "@/components/ui/button",
+        "@/components/ui/input",
         "@/i18n/useTranslation"
       ],
       "localImports": [
+        "@/components/ui/button",
+        "@/components/ui/input",
         "@/i18n/useTranslation"
       ],
       "externalImports": [
@@ -3512,23 +3713,29 @@
       "imports": [
         "next/link",
         "react",
+        "lucide-react",
+        "@/components/ui/badge",
         "@/lib/utils"
       ],
       "localImports": [
+        "@/components/ui/badge",
         "@/lib/utils"
       ],
       "externalImports": [
         "next/link",
-        "react"
+        "react",
+        "lucide-react"
       ]
     },
     {
       "file": "src/components/business/business-stats-cards.tsx",
       "imports": [
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/card"
       ],
       "localImports": [
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/card"
       ],
       "externalImports": []
     },
@@ -3536,23 +3743,35 @@
       "file": "src/components/business/recommendation-list.tsx",
       "imports": [
         "next/link",
-        "@/lib/services/business-insights-service"
+        "lucide-react",
+        "@/lib/services/business-insights-service",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card"
       ],
       "localImports": [
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card"
       ],
       "externalImports": [
-        "next/link"
+        "next/link",
+        "lucide-react"
       ]
     },
     {
       "file": "src/components/business/video-performance-table.tsx",
       "imports": [
         "next/link",
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/badge",
+        "@/components/ui/button"
       ],
       "localImports": [
-        "@/lib/services/business-insights-service"
+        "@/lib/services/business-insights-service",
+        "@/components/ui/badge",
+        "@/components/ui/button"
       ],
       "externalImports": [
         "next/link"
@@ -3876,13 +4095,11 @@
       "file": "src/components/demo/pet/deck-shell.tsx",
       "imports": [
         "react",
-        "framer-motion",
         "lucide-react"
       ],
       "localImports": [],
       "externalImports": [
         "react",
-        "framer-motion",
         "lucide-react"
       ]
     },
@@ -4022,13 +4239,15 @@
       "file": "src/components/demo/pet/pet-image.tsx",
       "imports": [
         "react",
+        "lucide-react",
         "@/lib/utils"
       ],
       "localImports": [
         "@/lib/utils"
       ],
       "externalImports": [
-        "react"
+        "react",
+        "lucide-react"
       ]
     },
     {
@@ -4170,9 +4389,17 @@
       "imports": [
         "react",
         "lucide-react",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
         "@/lib/utils"
       ],
       "localImports": [
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
         "@/lib/utils"
       ],
       "externalImports": [
@@ -4238,12 +4465,16 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/button",
+        "@/components/ui/dialog",
         "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "localImports": [
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/button",
+        "@/components/ui/dialog",
         "@/i18n/useTranslation",
         "@/lib/utils"
       ],
@@ -4264,6 +4495,8 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/button",
+        "@/components/ui/dialog",
         "@/i18n/I18nProvider",
         "@/i18n/types",
         "@/lib/utils"
@@ -4271,6 +4504,8 @@
       "localImports": [
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/button",
+        "@/components/ui/dialog",
         "@/i18n/I18nProvider",
         "@/i18n/types",
         "@/lib/utils"
@@ -4311,12 +4546,16 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/badge",
+        "@/components/ui/button",
         "@/i18n/useTranslation",
         "@/lib/utils"
       ],
       "localImports": [
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
+        "@/components/ui/badge",
+        "@/components/ui/button",
         "@/i18n/useTranslation",
         "@/lib/utils"
       ],
@@ -4333,11 +4572,19 @@
         "react",
         "next/link",
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/textarea",
         "@/types/video-generation",
         "@/components/personal/upload-assets",
         "@/lib/video-generation/style-templates"
       ],
       "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/textarea",
         "@/types/video-generation",
         "@/components/personal/upload-assets",
         "@/lib/video-generation/style-templates"
@@ -4355,9 +4602,17 @@
         "next/navigation",
         "next-auth/react",
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
         "@/lib/utils"
       ],
       "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/button",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
         "@/lib/utils"
       ],
       "externalImports": [
@@ -4498,12 +4753,15 @@
     {
       "file": "src/components/ui/logo.tsx",
       "imports": [
-        "@/lib/utils"
+        "@/lib/utils",
+        "lucide-react"
       ],
       "localImports": [
         "@/lib/utils"
       ],
-      "externalImports": []
+      "externalImports": [
+        "lucide-react"
+      ]
     },
     {
       "file": "src/components/ui/progress.tsx",
@@ -4595,13 +4853,11 @@
     {
       "file": "src/components/ui/sonner.tsx",
       "imports": [
-        "next-themes",
         "sonner",
         "lucide-react"
       ],
       "localImports": [],
       "externalImports": [
-        "next-themes",
         "sonner",
         "lucide-react"
       ]
@@ -4637,9 +4893,11 @@
       "imports": [
         "react",
         "lucide-react",
+        "@/components/ui/button",
         "@/types/video-generation"
       ],
       "localImports": [
+        "@/components/ui/button",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -4663,9 +4921,13 @@
       "file": "src/components/video-generation/plan-preview-card.tsx",
       "imports": [
         "lucide-react",
+        "@/components/ui/badge",
+        "@/components/ui/card",
         "@/types/video-generation"
       ],
       "localImports": [
+        "@/components/ui/badge",
+        "@/components/ui/card",
         "@/types/video-generation"
       ],
       "externalImports": [
@@ -4693,6 +4955,10 @@
         "@/i18n/useTranslation",
         "@/components/video-generation/attachment-uploader",
         "@/components/video-generation/plan-preview-card",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
         "@/lib/services/order-creative-draft",
         "@/types/video-generation"
       ],
@@ -4700,6 +4966,10 @@
         "@/i18n/useTranslation",
         "@/components/video-generation/attachment-uploader",
         "@/components/video-generation/plan-preview-card",
+        "@/components/ui/button",
+        "@/components/ui/card",
+        "@/components/ui/input",
+        "@/components/ui/textarea",
         "@/lib/services/order-creative-draft",
         "@/types/video-generation"
       ],
@@ -4739,9 +5009,11 @@
     {
       "file": "src/i18n/dictionaries/en-US.ts",
       "imports": [
+        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "localImports": [
+        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "externalImports": []
@@ -4765,9 +5037,11 @@
     {
       "file": "src/i18n/dictionaries/zh-CN.ts",
       "imports": [
+        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "localImports": [
+        "../../../editorial-design-tokens.generated.json",
         "../types"
       ],
       "externalImports": []
@@ -5179,9 +5453,11 @@
       "file": "src/lib/schemas/client-brief.ts",
       "imports": [
         "zod",
+        "../../../editorial-design-tokens.generated.json",
         "./creative-evidence"
       ],
       "localImports": [
+        "../../../editorial-design-tokens.generated.json",
         "./creative-evidence"
       ],
       "externalImports": [
@@ -6038,11 +6314,13 @@
         "crypto",
         "url",
         "@/types/video-generation",
+        "../../../editorial-design-tokens.generated.json",
         "sharp",
         "@/lib/storage"
       ],
       "localImports": [
         "@/types/video-generation",
+        "../../../editorial-design-tokens.generated.json",
         "@/lib/storage"
       ],
       "externalImports": [
@@ -6251,9 +6529,11 @@
         "path",
         "crypto",
         "url",
+        "../../../editorial-design-tokens.generated.json",
         "@/lib/storage"
       ],
       "localImports": [
+        "../../../editorial-design-tokens.generated.json",
         "@/lib/storage"
       ],
       "externalImports": [
@@ -7047,6 +7327,87 @@
         "../src/lib/video-generation/frame-qa"
       ],
       "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/e2e/auth.setup.ts",
+      "imports": [
+        "@playwright/test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@playwright/test"
+      ]
+    },
+    {
+      "file": "tests/e2e/editorial-fixtures.ts",
+      "imports": [
+        "@playwright/test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@playwright/test"
+      ]
+    },
+    {
+      "file": "tests/e2e/editorial.a11y.spec.ts",
+      "imports": [
+        "@axe-core/playwright",
+        "@playwright/test",
+        "./editorial-fixtures"
+      ],
+      "localImports": [
+        "./editorial-fixtures"
+      ],
+      "externalImports": [
+        "@axe-core/playwright",
+        "@playwright/test"
+      ]
+    },
+    {
+      "file": "tests/e2e/editorial.visual.spec.ts",
+      "imports": [
+        "@playwright/test",
+        "./editorial-fixtures"
+      ],
+      "localImports": [
+        "./editorial-fixtures"
+      ],
+      "externalImports": [
+        "@playwright/test"
+      ]
+    },
+    {
+      "file": "tests/e2e/seed-visual-fixture.ts",
+      "imports": [
+        "bcryptjs",
+        "@prisma/client",
+        "../../src/lib/db",
+        "../../src/lib/video-generation/batch-style-templates"
+      ],
+      "localImports": [
+        "../../src/lib/db",
+        "../../src/lib/video-generation/batch-style-templates"
+      ],
+      "externalImports": [
+        "bcryptjs",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/editorial-source-compliance.test.ts",
+      "imports": [
+        "node:fs",
+        "node:path",
+        "node:assert/strict",
+        "node:test"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:fs",
+        "node:path",
         "node:assert/strict",
         "node:test"
       ]

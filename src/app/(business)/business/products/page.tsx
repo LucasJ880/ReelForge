@@ -7,6 +7,10 @@ import { getServerTranslator } from "@/i18n/server";
 import type { TranslationKey } from "@/i18n/types";
 import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { BriefRenderAutoRefresh } from "@/components/video-generation/brief-render-auto-refresh";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   deriveBusinessStatus,
   summarizeRunningJobs,
@@ -42,20 +46,15 @@ interface ProductRow {
   isPersonal: boolean;
 }
 
-const STATUS_CHIP_CLASS: Record<BusinessVideoStatus, string> = {
-  planning: "bg-slate-500/15 text-slate-300",
-  generating: "bg-amber-500/15 text-amber-300",
-  assembling: "bg-sky-500/15 text-sky-300",
-  ready: "bg-emerald-500/15 text-emerald-300",
-  failed: "bg-rose-500/15 text-rose-300",
-};
-
-const PROGRESS_BAR_CLASS: Record<BusinessVideoStatus, string> = {
-  planning: "bg-slate-400/60",
-  generating: "bg-amber-400/70",
-  assembling: "bg-sky-400/70",
-  ready: "bg-emerald-400/80",
-  failed: "bg-rose-400/60",
+const STATUS_VARIANT: Record<
+  BusinessVideoStatus,
+  "secondary" | "warning" | "default" | "success" | "destructive"
+> = {
+  planning: "secondary",
+  generating: "warning",
+  assembling: "default",
+  ready: "success",
+  failed: "destructive",
 };
 
 /**
@@ -213,32 +212,33 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
         title={t("shell.productsPage.title")}
         subtitle={t("shell.productsPage.subtitle")}
         action={
-          <Link
-            href="/business/create-ad-video"
-            className="inline-flex items-center rounded-md bg-foreground px-4 py-2.5 text-sm font-medium text-background shadow-sm transition-colors hover:bg-foreground/90"
+          <Button
+            render={<Link href="/business/create-ad-video" />}
+            className="w-full sm:w-auto"
           >
             {t("shell.productsPage.newAd")}
-          </Link>
+          </Button>
         }
       />
 
       {products.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-white/10 bg-card/30 p-12 text-center">
-          <h2 className="text-lg font-semibold tracking-tight">
+        <Card>
+          <CardContent className="space-y-4 text-center">
+          <h2 className="font-heading text-subhead font-normal">
             {t("shell.productsPage.emptyTitle")}
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {t("shell.productsPage.emptyBody")}
           </p>
-          <Link
-            href="/business/create-ad-video"
-            className="mt-6 inline-flex items-center rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
+          <Button
+            render={<Link href="/business/create-ad-video" />}
           >
             {t("shell.productsPage.emptyCta")}
-          </Link>
-        </div>
+          </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4">
           {products.map((p) => {
             const isHighlighted = highlight && p.id === highlight;
             const isReady = p.businessStatus === "ready";
@@ -252,18 +252,14 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
             return (
               <li
                 key={p.id}
-                className={
-                  "rounded-xl border p-4 transition-colors sm:p-5 " +
-                  (isHighlighted
-                    ? "border-emerald-400/40 bg-emerald-500/5 ring-1 ring-emerald-400/20"
-                    : "border-white/10 bg-card/40 hover:border-white/20 hover:bg-card/70")
-                }
               >
-                <div className="flex items-start gap-4">
+                <Card className={isHighlighted ? "border-success" : undefined} size="sm">
+                  <CardContent className="pt-2">
+                <div className="flex min-w-0 items-start gap-4">
                   {p.finalThumbnailUrl ? (
                     <Link
                       href={`/business/products/${p.id}`}
-                      className="relative shrink-0 overflow-hidden rounded-lg border border-white/10 bg-black/40"
+                      className="relative shrink-0 overflow-hidden rounded-(--radius-md) border border-border bg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
@@ -273,28 +269,23 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                       />
                     </Link>
                   ) : (
-                    <div className="flex h-[88px] w-[66px] shrink-0 items-center justify-center rounded-lg border border-dashed border-white/15 bg-white/5 text-[10px] text-muted-foreground">
+                    <div className="flex h-[88px] w-[66px] shrink-0 items-center justify-center rounded-(--radius-md) border border-dashed border-border bg-muted text-meta text-muted-foreground">
                       9:16
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Link
                         href={`/business/products/${p.id}`}
-                        className="text-base font-semibold tracking-tight truncate hover:underline underline-offset-4"
+                        className="min-w-0 truncate text-body font-medium underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                       >
                         {p.title}
                       </Link>
-                      <span
-                        className={
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
-                          STATUS_CHIP_CLASS[p.businessStatus]
-                        }
-                      >
+                      <Badge variant={STATUS_VARIANT[p.businessStatus]}>
                         {t(`shell.businessStatus.${statusKey}.short`)}
-                      </span>
+                      </Badge>
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-meta text-muted-foreground">
                       {isReadyButLinkPending
                         ? t("shell.productsPage.linkPending")
                         : t(`shell.businessStatus.${statusKey}.label`)}
@@ -312,73 +303,73 @@ export default async function BusinessProductsPage({ searchParams }: PageProps) 
                     </p>
 
                     {showProgressBar ? (
-                      <div className="mt-3 h-1 w-full max-w-[260px] overflow-hidden rounded-full bg-white/5">
-                        <div
-                          className={
-                            "h-full rounded-full transition-all " +
-                            PROGRESS_BAR_CLASS[p.businessStatus]
-                          }
-                          style={{
-                            width: `${Math.round(p.progressHint * 100)}%`,
-                          }}
-                        />
-                      </div>
+                      <Progress
+                        className="mt-3 w-full max-w-xs"
+                        value={Math.round(p.progressHint * 100)}
+                        aria-label={t(`shell.businessStatus.${statusKey}.label`)}
+                      />
                     ) : null}
 
                     {isReady && p.finalVideoUrl ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <Link
-                          href={`/business/products/${p.id}`}
-                          className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                          render={<Link href={`/business/products/${p.id}`} />}
+                          size="sm"
                         >
                           {t("shell.productsPage.viewFinal")}
-                        </Link>
-                        <a
-                          href={p.finalVideoUrl}
-                          download
-                          className="inline-flex items-center rounded-md border border-white/15 bg-card/60 px-3 py-1.5 text-xs hover:bg-card/90 transition-colors"
+                        </Button>
+                        <Button
+                          render={<a href={p.finalVideoUrl} download />}
+                          variant="outline"
+                          size="sm"
                         >
                           {t("shell.productsPage.download")}
-                        </a>
-                        <Link
-                          href="/business/create-ad-video"
-                          className="inline-flex items-center rounded-md border border-white/10 bg-card/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-card/70 hover:text-foreground transition-colors"
+                        </Button>
+                        <Button
+                          render={<Link href="/business/create-ad-video" />}
+                          variant="ghost"
+                          size="sm"
                         >
                           {t("shell.productsPage.regenerate")}
-                        </Link>
+                        </Button>
                       </div>
                     ) : null}
 
                     {!isReady && !isFailed ? (
-                      <Link
-                        href={`/business/products/${p.id}`}
-                        className="mt-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                      <Button
+                        render={<Link href={`/business/products/${p.id}`} />}
+                        variant="link"
+                        size="sm"
+                        className="mt-3 px-0"
                       >
                         {t("shell.productsPage.viewProgress")}
-                      </Link>
+                      </Button>
                     ) : null}
 
                     {isFailed ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <Link
-                          href={`/business/products/${p.id}`}
-                          className="inline-flex items-center rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors"
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Button
+                          render={<Link href={`/business/products/${p.id}`} />}
+                          variant="destructive"
+                          size="sm"
                         >
                           {t("shell.productsPage.retryFailed")}
-                        </Link>
-                        <Link
-                          href="/business/create-ad-video"
-                          className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
+                        </Button>
+                        <Button
+                          render={<Link href="/business/create-ad-video" />}
+                          size="sm"
                         >
                           {t("shell.productsPage.regen")}
-                        </Link>
-                        <span className="text-[11px] text-muted-foreground">
+                        </Button>
+                        <span className="text-meta text-muted-foreground">
                           {t("shell.productsPage.supportHint")}
                         </span>
                       </div>
                     ) : null}
                   </div>
                 </div>
+                  </CardContent>
+                </Card>
               </li>
             );
           })}

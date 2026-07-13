@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import type { BusinessRecommendation } from "@/lib/services/business-insights-service";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export type RecommendationListLabels = {
   empty: string;
@@ -8,10 +12,13 @@ export type RecommendationListLabels = {
   priorityLow: string;
 };
 
-const PRIORITY_CLASS: Record<BusinessRecommendation["priority"], string> = {
-  high: "bg-rose-500/15 text-rose-300",
-  medium: "bg-amber-500/15 text-amber-300",
-  low: "bg-slate-500/15 text-slate-300",
+const PRIORITY_VARIANT: Record<
+  BusinessRecommendation["priority"],
+  "destructive" | "warning" | "secondary"
+> = {
+  high: "destructive",
+  medium: "warning",
+  low: "secondary",
 };
 
 function priorityLabel(
@@ -32,32 +39,35 @@ export function RecommendationList({
 }) {
   if (items.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">{labels.empty}</p>
+      <p className="text-body text-muted-foreground">{labels.empty}</p>
     );
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="grid gap-4 lg:grid-cols-2">
       {items.map((item) => (
-        <li
-          key={item.id}
-          className="rounded-xl border border-white/10 bg-card/30 p-5 transition-colors hover:border-white/15 hover:bg-card/45"
-        >
-          <div className="flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase ${PRIORITY_CLASS[item.priority]}`}
-            >
-              {priorityLabel(item.priority, labels)}
-            </span>
-            <h3 className="font-medium">{item.title}</h3>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">{item.body}</p>
-          <Link
-            href={item.actionHref}
-            className="mt-4 inline-flex text-sm font-medium text-primary hover:underline"
-          >
-            {item.actionLabel} →
-          </Link>
+        <li key={item.id}>
+          <Card className="h-full" size="sm">
+            <CardContent className="flex h-full flex-col gap-4 pt-2">
+              <div className="space-y-3">
+                <Badge variant={PRIORITY_VARIANT[item.priority]}>
+                  {priorityLabel(item.priority, labels)}
+                </Badge>
+                <h3 className="font-heading text-subhead font-normal">
+                  {item.title}
+                </h3>
+                <p className="text-body text-muted-foreground">{item.body}</p>
+              </div>
+              <Button
+                render={<Link href={item.actionHref} />}
+                variant="link"
+                className="mt-auto w-fit px-0"
+              >
+                {item.actionLabel}
+                <ArrowRight strokeWidth={1.5} aria-hidden />
+              </Button>
+            </CardContent>
+          </Card>
         </li>
       ))}
     </ul>

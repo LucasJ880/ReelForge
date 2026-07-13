@@ -38,7 +38,7 @@ export default async function RecommendationsPage() {
           labels={listLabels}
         />
       ) : (
-        <p className="text-sm text-destructive">
+        <p role="alert" className="text-body text-danger">
           {t("shell.recommendationsPage.loadError")}
         </p>
       )}

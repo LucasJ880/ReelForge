@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 import type { Dictionary } from "../types";
 
 export const zhCN: Dictionary = {
@@ -165,7 +166,8 @@ export const zhCN: Dictionary = {
       brandCta: "CTA 文案",
       brandCtaPlaceholder: "立即私信我们",
       brandPrimaryColor: "主色（HEX）",
-      brandPrimaryColorPlaceholder: "#1E40AF",
+      brandPrimaryColorPlaceholder:
+        editorialDesignTokens.colors.brandInputColorExample,
       consentsTitle: "合规承诺（必须全部勾选）",
       consentOwnsFootage:
         "我拥有或获得授权使用所有上传的素材，且素材中出现的真人 / 宠物已知情同意。",

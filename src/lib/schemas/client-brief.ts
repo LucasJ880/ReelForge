@@ -1,4 +1,5 @@
 import { z } from "zod";
+import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 import {
   CREATIVE_INDUSTRIES,
   CREATIVE_OBJECTIVES,
@@ -30,7 +31,10 @@ export const brandAssetsSchema = z.object({
   logoUrl: z.string().url().optional(),
   primaryColor: z
     .string()
-    .regex(/^#?[0-9a-fA-F]{6}$/, "颜色应为 6 位 HEX，例如 #1E40AF")
+    .regex(
+      /^#?[0-9a-fA-F]{6}$/,
+      `颜色应为 6 位 HEX，例如 ${editorialDesignTokens.colors.brandInputColorExample}`,
+    )
     .optional(),
   accentColor: z
     .string()

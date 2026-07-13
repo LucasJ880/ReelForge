@@ -6,6 +6,7 @@ import path from "path";
 import crypto from "crypto";
 import { pathToFileURL } from "url";
 import type { BrandPackagingPlan } from "@/types/video-generation";
+import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 
 /**
  * Brand End Card Renderer —— Phase 2 · L2
@@ -31,6 +32,7 @@ import type { BrandPackagingPlan } from "@/types/video-generation";
  */
 
 const execFileAsync = promisify(execFile);
+const { colors } = editorialDesignTokens;
 
 interface AspectDims {
   width: number;
@@ -142,10 +144,22 @@ interface BackgroundGradient {
 }
 
 const BG_PALETTES: BackgroundGradient[] = [
-  { from: "#0f172a", to: "#1e293b" }, // slate
-  { from: "#1e1b4b", to: "#312e81" }, // indigo
-  { from: "#0c4a6e", to: "#075985" }, // sky
-  { from: "#3a0f0f", to: "#7f1d1d" }, // rose
+  {
+    from: colors.mediaEndCardSlateFrom,
+    to: colors.mediaEndCardSlateTo,
+  },
+  {
+    from: colors.mediaEndCardIndigoFrom,
+    to: colors.mediaEndCardIndigoTo,
+  },
+  {
+    from: colors.mediaEndCardSkyFrom,
+    to: colors.mediaEndCardSkyTo,
+  },
+  {
+    from: colors.mediaEndCardRoseFrom,
+    to: colors.mediaEndCardRoseTo,
+  },
 ];
 
 function pickPaletteFromBriefId(briefId: string): BackgroundGradient {
@@ -213,9 +227,9 @@ function buildSvg(input: BrandEndCardRenderInput): string {
     : `
   <rect x="${ctaX}" y="${ctaRectY}" width="${ctaApproxW}" height="${ctaH}"
         rx="${Math.round(ctaH / 2)}" ry="${Math.round(ctaH / 2)}"
-        fill="#fbbf24" filter="url(#softShadow)"/>
+        fill="${colors.mediaEndCardCta}" filter="url(#softShadow)"/>
   <text x="${width / 2}" y="${ctaY + ctaSize * 0.32}" font-family="Helvetica, Arial, sans-serif"
-        font-size="${ctaSize}" font-weight="700" fill="#0f172a" text-anchor="middle">${escapeXml(ctaText)}</text>`;
+        font-size="${ctaSize}" font-weight="700" fill="${colors.mediaEndCardCtaForeground}" text-anchor="middle">${escapeXml(ctaText)}</text>`;
   /// hideCta 模式下 website 上提到原 CTA 之上的位置，避免底部空荡。
   const finalWebsiteY = hideCta
     ? Math.round(height * (isVertical ? 0.78 : 0.75))
@@ -229,27 +243,27 @@ function buildSvg(input: BrandEndCardRenderInput): string {
       <stop offset="100%" stop-color="${palette.to}"/>
     </linearGradient>
     <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="${colors.mediaEndCardShadow}" flood-opacity="0.35"/>
     </filter>
   </defs>
   <rect width="${width}" height="${height}" fill="url(#bg)"/>
   <!-- 顶部 accent 条 -->
-  <rect x="0" y="0" width="${width}" height="${Math.max(6, Math.round(base / 90))}" fill="#fbbf24"/>
+  <rect x="0" y="0" width="${width}" height="${Math.max(6, Math.round(base / 90))}" fill="${colors.mediaEndCardCta}"/>
   ${brandLines
     .map(
       (line, i) =>
-        `<text x="${width / 2}" y="${brandY + i * lineGap}" font-family="Helvetica, Arial, sans-serif" font-size="${brandSize}" font-weight="700" fill="#f8fafc" text-anchor="middle">${escapeXml(line)}</text>`,
+        `<text x="${width / 2}" y="${brandY + i * lineGap}" font-family="Helvetica, Arial, sans-serif" font-size="${brandSize}" font-weight="700" fill="${colors.mediaEndCardHeading}" text-anchor="middle">${escapeXml(line)}</text>`,
     )
     .join("\n  ")}
   ${sloganLines
     .map(
       (line, i) =>
-        `<text x="${width / 2}" y="${sloganY + i * sloganSize * 1.2}" font-family="Helvetica, Arial, sans-serif" font-size="${sloganSize}" fill="#cbd5e1" text-anchor="middle">${escapeXml(line)}</text>`,
+        `<text x="${width / 2}" y="${sloganY + i * sloganSize * 1.2}" font-family="Helvetica, Arial, sans-serif" font-size="${sloganSize}" fill="${colors.mediaEndCardSecondaryText}" text-anchor="middle">${escapeXml(line)}</text>`,
     )
     .join("\n  ")}${ctaButtonSvg}
   ${
     website
-      ? `<text x="${width / 2}" y="${finalWebsiteY}" font-family="Helvetica, Arial, sans-serif" font-size="${websiteSize}" fill="#cbd5e1" text-anchor="middle" opacity="0.85">${escapeXml(website)}</text>`
+      ? `<text x="${width / 2}" y="${finalWebsiteY}" font-family="Helvetica, Arial, sans-serif" font-size="${websiteSize}" fill="${colors.mediaEndCardSecondaryText}" text-anchor="middle" opacity="0.85">${escapeXml(website)}</text>`
       : ""
   }
 </svg>`;

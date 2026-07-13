@@ -49,6 +49,7 @@
     "codemap:build": "tsx scripts/build-codemap.ts",
     "context:find": "tsx scripts/context-router.ts",
     "context:video": "tsx scripts/context-router.ts video generation ffmpeg demo blob",
+    "tokens:generate": "tsx scripts/generate-design-tokens.ts",
     "demo:mock-business-flow": "tsx scripts/demo-mock-business-flow.ts",
     "demo:brand-overlay": "tsx scripts/demo-brand-overlay.ts",
     "demo:curtain": "tsx scripts/generate-curtain-viral-ads.ts",

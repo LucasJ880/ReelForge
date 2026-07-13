@@ -16,6 +16,34 @@
   --danger: #c4320a;
   --overlay: rgba(22, 21, 15, 0.22);
 
+  /* 非 DOM 渲染与输入示例；由 scripts/generate-design-tokens.ts 派生为 JSON。 */
+  --brand-input-color-example: #1E40AF;
+  --media-end-card-slate-from: #0f172a;
+  --media-end-card-slate-to: #1e293b;
+  --media-end-card-indigo-from: #1e1b4b;
+  --media-end-card-indigo-to: #312e81;
+  --media-end-card-sky-from: #0c4a6e;
+  --media-end-card-sky-to: #075985;
+  --media-end-card-rose-from: #3a0f0f;
+  --media-end-card-rose-to: #7f1d1d;
+  --media-end-card-cta: #fbbf24;
+  --media-end-card-cta-foreground: #0f172a;
+  --media-end-card-shadow: #000;
+  --media-end-card-heading: #f8fafc;
+  --media-end-card-secondary-text: #cbd5e1;
+  --media-mock-indigo-background: #1e1b4b;
+  --media-mock-indigo-accent: #a78bfa;
+  --media-mock-teal-background: #0f3a3a;
+  --media-mock-teal-accent: #34d399;
+  --media-mock-burnt-background: #3a1a0c;
+  --media-mock-burnt-accent: #fb923c;
+  --media-mock-wine-background: #3a0c2a;
+  --media-mock-wine-accent: #f472b6;
+  --media-mock-navy-background: #0c2a3a;
+  --media-mock-navy-accent: #60a5fa;
+  --media-mock-olive-background: #2a3a0c;
+  --media-mock-olive-accent: #a3e635;
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;

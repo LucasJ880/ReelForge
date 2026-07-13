@@ -1,0 +1,32 @@
+{
+  "$comment": "由 scripts/generate-design-tokens.ts 从 src/styles/tokens.css 生成；请勿手动编辑。",
+  "source": "src/styles/tokens.css",
+  "colors": {
+    "brandInputColorExample": "#1E40AF",
+    "mediaEndCardSlateFrom": "#0f172a",
+    "mediaEndCardSlateTo": "#1e293b",
+    "mediaEndCardIndigoFrom": "#1e1b4b",
+    "mediaEndCardIndigoTo": "#312e81",
+    "mediaEndCardSkyFrom": "#0c4a6e",
+    "mediaEndCardSkyTo": "#075985",
+    "mediaEndCardRoseFrom": "#3a0f0f",
+    "mediaEndCardRoseTo": "#7f1d1d",
+    "mediaEndCardCta": "#fbbf24",
+    "mediaEndCardCtaForeground": "#0f172a",
+    "mediaEndCardShadow": "#000",
+    "mediaEndCardHeading": "#f8fafc",
+    "mediaEndCardSecondaryText": "#cbd5e1",
+    "mediaMockIndigoBackground": "#1e1b4b",
+    "mediaMockIndigoAccent": "#a78bfa",
+    "mediaMockTealBackground": "#0f3a3a",
+    "mediaMockTealAccent": "#34d399",
+    "mediaMockBurntBackground": "#3a1a0c",
+    "mediaMockBurntAccent": "#fb923c",
+    "mediaMockWineBackground": "#3a0c2a",
+    "mediaMockWineAccent": "#f472b6",
+    "mediaMockNavyBackground": "#0c2a3a",
+    "mediaMockNavyAccent": "#60a5fa",
+    "mediaMockOliveBackground": "#2a3a0c",
+    "mediaMockOliveAccent": "#a3e635"
+  }
+}

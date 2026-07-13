@@ -5,6 +5,7 @@ import os from "os";
 import path from "path";
 import crypto from "crypto";
 import { pathToFileURL } from "url";
+import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 
 /**
  * Mock Clip Generator —— 仅在 VIDEO_ENGINE_MOCK=true 下被 seedance provider 调用。
@@ -23,6 +24,7 @@ import { pathToFileURL } from "url";
  */
 
 const execFileAsync = promisify(execFile);
+const { colors } = editorialDesignTokens;
 
 export interface MockClipHints {
   briefId: string;
@@ -56,12 +58,30 @@ const ASPECT_DIMS: Record<string, AspectDimensions> = {
 
 /// 6 个高对比色，循环用作每段背景，肉眼能分辨「第几段」
 const SEGMENT_COLORS = [
-  { bg: "#1e1b4b", accent: "#a78bfa" }, // indigo / lavender
-  { bg: "#0f3a3a", accent: "#34d399" }, // teal / emerald
-  { bg: "#3a1a0c", accent: "#fb923c" }, // burnt / orange
-  { bg: "#3a0c2a", accent: "#f472b6" }, // wine / pink
-  { bg: "#0c2a3a", accent: "#60a5fa" }, // navy / sky
-  { bg: "#2a3a0c", accent: "#a3e635" }, // olive / lime
+  {
+    bg: colors.mediaMockIndigoBackground,
+    accent: colors.mediaMockIndigoAccent,
+  },
+  {
+    bg: colors.mediaMockTealBackground,
+    accent: colors.mediaMockTealAccent,
+  },
+  {
+    bg: colors.mediaMockBurntBackground,
+    accent: colors.mediaMockBurntAccent,
+  },
+  {
+    bg: colors.mediaMockWineBackground,
+    accent: colors.mediaMockWineAccent,
+  },
+  {
+    bg: colors.mediaMockNavyBackground,
+    accent: colors.mediaMockNavyAccent,
+  },
+  {
+    bg: colors.mediaMockOliveBackground,
+    accent: colors.mediaMockOliveAccent,
+  },
 ];
 
 const DEFAULT_CACHE_DIR =

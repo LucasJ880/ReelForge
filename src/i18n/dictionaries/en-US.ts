@@ -1,3 +1,4 @@
+import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 import type { Dictionary } from "../types";
 
 export const enUS: Dictionary = {
@@ -165,7 +166,8 @@ export const enUS: Dictionary = {
       brandCta: "CTA copy",
       brandCtaPlaceholder: "DM us today",
       brandPrimaryColor: "Primary color (HEX)",
-      brandPrimaryColorPlaceholder: "#1E40AF",
+      brandPrimaryColorPlaceholder:
+        editorialDesignTokens.colors.brandInputColorExample,
       consentsTitle: "Compliance commitments (all required)",
       consentOwnsFootage:
         "I own or have permission to use all uploaded assets, and any people or pets shown have given consent.",

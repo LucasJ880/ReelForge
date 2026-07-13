@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Clapperboard } from "lucide-react";
 
 export function Logo({
   size = 32,
@@ -8,33 +9,19 @@ export function Logo({
   className?: string;
 }) {
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 40 40"
-      fill="none"
-      className={cn("shrink-0", className)}
+    <span
+      aria-hidden
+      className={cn(
+        "inline-flex shrink-0 items-center justify-center rounded-(--radius-md) border border-primary bg-primary text-primary-foreground",
+        className,
+      )}
+      style={{ width: size, height: size }}
     >
-      <defs>
-        <linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#7c3aed" />
-          <stop offset="100%" stopColor="#c026d3" />
-        </linearGradient>
-        <linearGradient id="logo-spark" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#e879f9" />
-          <stop offset="100%" stopColor="#f9a8d4" />
-        </linearGradient>
-      </defs>
-      <rect width="40" height="40" rx="10" fill="url(#logo-bg)" />
-      {/* Play triangle */}
-      <path
-        d="M16 12.5V27.5L28 20L16 12.5Z"
-        fill="white"
-        fillOpacity="0.95"
+      <Clapperboard
+        width={size / 2}
+        height={size / 2}
+        strokeWidth={1.5}
       />
-      {/* Spark accent */}
-      <circle cx="30" cy="11" r="2.5" fill="url(#logo-spark)" />
-      <circle cx="33" cy="15" r="1.2" fill="url(#logo-spark)" opacity="0.6" />
-    </svg>
+    </span>
   );
 }

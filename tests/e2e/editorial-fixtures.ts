@@ -17,7 +17,7 @@ export const EDITORIAL_ROUTES: EditorialRoute[] = [
 export async function ensureAuthenticated(page: Page): Promise<void> {
   await page.goto("/personal/videos");
   if (new URL(page.url()).pathname === "/login") {
-    await page.getByRole("button", { name: /使用演示账号一键体验/ }).click();
+    await page.getByRole("button", { name: /使用演示账号体验/ }).click();
     await page.waitForURL(/\/personal\/videos/, { timeout: 20_000 });
   }
 }
@@ -40,7 +40,7 @@ export async function createBatchFixture(
   const template = templates[0];
   if (!template) throw new Error("模板 fixture 为空");
 
-  const idempotencyKey = `editorial-${projectName}-${Date.now()}`;
+  const idempotencyKey = `editorial-${projectName}-stable-v1`;
   const result = await page.evaluate(
     async ({ template, idempotencyKey }) => {
       const response = await fetch("/api/batches", {
@@ -68,6 +68,25 @@ export async function createBatchFixture(
     throw new Error(`批次 fixture 创建失败：${result.status} ${result.body}`);
   }
   const payload = JSON.parse(result.body) as { batch: { id: string } };
+  await page.evaluate(async (batchId) => {
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const response = await fetch(`/api/batches/${batchId}/status`, {
+        method: "POST",
+      });
+      const payload = (await response.json()) as {
+        batch?: { status?: string };
+      };
+      if (
+        payload.batch?.status &&
+        ["COMPLETED", "PARTIAL_FAILED", "FAILED", "CANCELLED"].includes(
+          payload.batch.status,
+        )
+      ) {
+        break;
+      }
+      await new Promise((resolve) => window.setTimeout(resolve, 50));
+    }
+  }, payload.batch.id);
   return payload.batch.id;
 }
 

@@ -4,7 +4,17 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Sparkles, Briefcase } from "lucide-react";
+import { ArrowRight, Briefcase, Check, Loader2, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 interface PersonaCardProps {
   persona: "BUSINESS" | "PERSONAL";
@@ -34,9 +44,11 @@ export function PersonaCard({
   const router = useRouter();
   const { update: updateSession } = useSession();
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const Icon = persona === "BUSINESS" ? Briefcase : Sparkles;
 
   async function handleContinue() {
+    setError("");
     setSubmitting(true);
     try {
       const res = await fetch("/api/persona", {
@@ -53,56 +65,68 @@ export function PersonaCard({
       router.refresh();
     } catch (err) {
       console.error("[persona] failed to set userType:", err);
+      setError("暂时无法保存选择，请稍后再试。");
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="group rounded-xl border border-white/10 bg-card p-7 hover:border-white/20 hover:bg-card/80 transition-colors">
-      <div className="flex items-center gap-3 text-foreground">
-        <Icon className="h-5 w-5 text-muted-foreground" />
-        <span className="text-sm uppercase tracking-wider text-muted-foreground">
+    <Card className="h-full">
+      <CardHeader>
+        <Badge variant="secondary">
+          <Icon strokeWidth={1.5} aria-hidden />
           {title}
-        </span>
-      </div>
-      <h2 className="mt-4 text-2xl font-semibold tracking-tight">
-        {tagline}
-      </h2>
-      <p className="mt-3 text-sm text-muted-foreground">{description}</p>
-
-      <ul className="mt-6 space-y-2 text-sm">
-        {bullets.map((b) => (
-          <li key={b} className="flex items-start gap-2">
-            <span className="text-muted-foreground mt-1">·</span>
-            <span>{b}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="mt-7 space-y-2">
+        </Badge>
+        <CardTitle className="mt-3">{tagline}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent className="flex-1">
+        <ul className="space-y-3 text-body">
+          {bullets.map((bullet) => (
+            <li key={bullet} className="flex items-start gap-3">
+              <Check
+                className="mt-1 size-4 shrink-0 text-success"
+                strokeWidth={1.5}
+                aria-hidden
+              />
+              <span>{bullet}</span>
+            </li>
+          ))}
+        </ul>
+        {error ? (
+          <p role="alert" className="mt-4 text-meta text-danger">
+            {error}
+          </p>
+        ) : null}
+      </CardContent>
+      <CardFooter className="flex-col items-stretch gap-2">
         {isAuthed ? (
-          <button
+          <Button
             type="button"
             disabled={submitting}
             onClick={handleContinue}
-            className="inline-flex items-center gap-2 rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors disabled:opacity-60"
+            className="w-full"
           >
+            {submitting ? (
+              <Loader2
+                className="animate-spin motion-reduce:animate-none"
+                strokeWidth={1.5}
+                aria-hidden
+              />
+            ) : null}
             Continue as {title}
-            <ArrowRight className="h-4 w-4" />
-          </button>
+            {!submitting ? <ArrowRight strokeWidth={1.5} aria-hidden /> : null}
+          </Button>
         ) : (
-          <Link
-            href={ctaHref ?? "/login"}
-            className="inline-flex items-center gap-2 rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors"
-          >
+          <Button render={<Link href={ctaHref ?? "/login"} />} className="w-full">
             {ctaLabel ?? `Sign in as ${title}`}
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+            <ArrowRight strokeWidth={1.5} aria-hidden />
+          </Button>
         )}
         {secondaryNote ? (
-          <p className="text-[11px] text-muted-foreground">{secondaryNote}</p>
+          <p className="text-meta text-muted-foreground">{secondaryNote}</p>
         ) : null}
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }

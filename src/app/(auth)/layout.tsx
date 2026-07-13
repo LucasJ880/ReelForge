@@ -1,21 +1,31 @@
-import { GlassBackground } from "@/components/glass/glass-background";
+import { Card } from "@/components/ui/card";
+import { Logo } from "@/components/ui/logo";
+import Link from "next/link";
 
-/**
- * 落地起始界面 = 登录门（对齐同行）：
- * 全屏暗色极光玻璃背景 + 居中玻璃卡片。login / register 共用。
- */
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <div className="aivora-glass relative min-h-screen overflow-hidden">
-      <GlassBackground koi={false} />
-      <main className="relative z-10 flex min-h-screen items-center justify-center px-4 py-10">
-        <div className="glass-card w-full max-w-[400px] px-8 py-10">
-          {children}
-        </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <header className="flex h-20 items-center border-b border-border bg-card px-4 sm:px-8">
+        <Link
+          href="/"
+          className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label="Aivora 首页"
+        >
+          <Logo size={40} />
+          <span>
+            <span className="block font-heading text-subhead">Aivora</span>
+            <span className="block text-meta text-muted-foreground">
+              Editorial Studio
+            </span>
+          </span>
+        </Link>
+      </header>
+      <main className="grid min-h-[calc(100vh-5rem)] place-items-center px-4 py-10 sm:px-6">
+        <Card className="w-full max-w-md">{children}</Card>
       </main>
     </div>
   );

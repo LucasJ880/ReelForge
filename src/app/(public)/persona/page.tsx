@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { Logo } from "@/components/ui/logo";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PersonaCard } from "./persona-card";
 
 /**
@@ -17,94 +19,100 @@ export default async function PersonaPage() {
   const isAuthed = Boolean(session);
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="px-6 lg:px-12 py-6 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Logo size={28} />
-          <span className="text-base font-semibold tracking-tight">Aivora</span>
-        </div>
+    <div className="flex min-h-screen flex-col bg-background text-foreground">
+      <header className="flex h-20 items-center justify-between border-b border-border bg-card px-4 sm:px-8">
+        <Link
+          href="/"
+          className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label="Aivora 首页"
+        >
+          <Logo size={40} />
+          <span>
+            <span className="block font-heading text-subhead">Aivora</span>
+            <span className="hidden text-meta text-muted-foreground sm:block">
+              Editorial Studio
+            </span>
+          </span>
+        </Link>
         {!isAuthed && (
-          <div className="flex items-center gap-4">
-            <Link
-              href="/login"
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
+          <div className="flex items-center gap-2">
+            <Button render={<Link href="/login" />} variant="ghost">
               Sign in
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-sm font-medium hover:bg-foreground/90 transition-colors"
-            >
+            </Button>
+            <Button render={<Link href="/register" />}>
               Get started
-            </Link>
+            </Button>
           </div>
         )}
       </header>
 
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16">
-        <div className="max-w-3xl text-center">
-          <h1 className="text-4xl lg:text-5xl font-semibold tracking-tight">
+      <main className="flex flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
+        <section className="w-full max-w-5xl">
+          <div className="mx-auto max-w-3xl text-center">
+            <Badge className="mx-auto">Choose your studio</Badge>
+            <h1 className="editorial-display mt-5">
             What are you here to make?
-          </h1>
-          <p className="mt-4 text-lg text-muted-foreground">
-            One unified AI video studio, tuned for two very different jobs.
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            投资人 / 孵化器 / 战略合作？{" "}
-            <Link
-              href="/showcase"
-              className="font-medium text-foreground underline decoration-dotted underline-offset-4 hover:text-primary"
-            >
-              查看真实客户案例展示 →
-            </Link>
-          </p>
-        </div>
+            </h1>
+            <p className="mt-4 text-body text-muted-foreground">
+              One unified AI video studio, tuned for two very different jobs.
+            </p>
+            <p className="mt-3 text-meta text-muted-foreground">
+              投资人 / 孵化器 / 战略合作？{" "}
+              <Link
+                href="/showcase"
+                className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+              >
+                查看真实客户案例展示
+              </Link>
+            </p>
+          </div>
 
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-4xl">
-          <PersonaCard
-            persona="BUSINESS"
-            title="Business"
-            tagline="Ship ad videos that perform."
-            description="Generate product ads, repurpose footage, package brand overlays, and tune creative based on real platform performance."
-            bullets={[
-              "Unified creative input for prompts + uploaded clips + logos",
-              "Brand packaging: end card, CTA, watermark — automated",
-              "Performance-driven creative recommendations (coming Phase 2)",
-            ]}
-            isAuthed={isAuthed}
-            /// Business 仍是 invite-only：未登录访客点这卡 → /login
-            ctaHref={isAuthed ? undefined : "/login?from=/business"}
-            ctaLabel={isAuthed ? undefined : "Sign in"}
-            secondaryNote={
-              !isAuthed
-                ? "Business accounts are invite-only — contact us for early access."
-                : undefined
-            }
-          />
-          <PersonaCard
-            persona="PERSONAL"
-            title="Personal"
-            tagline="Make videos for fun."
-            description="Type a prompt, pick a duration and ratio, and generate clips in seconds. No brand jargon, no business analytics — just creation."
-            bullets={[
-              "Same powerful AI engine, simplified UI",
-              "Text-to-video, image-to-video, and uploaded-clip stitching",
-              "Templates and easy sharing (coming Phase 2)",
-            ]}
-            isAuthed={isAuthed}
-            /// Personal 公开自助注册：未登录访客点这卡 → /register
-            ctaHref={isAuthed ? undefined : "/register"}
-            ctaLabel={isAuthed ? undefined : "Get started"}
-            secondaryNote={
-              !isAuthed
-                ? "Free to start. Already have an account? Sign in above."
-                : undefined
-            }
-          />
-        </div>
-      </section>
+          <div className="mt-10 grid w-full grid-cols-1 gap-5 md:grid-cols-2">
+            <PersonaCard
+              persona="BUSINESS"
+              title="Business"
+              tagline="Ship ad videos that perform."
+              description="Generate product ads, repurpose footage, package brand overlays, and tune creative based on real platform performance."
+              bullets={[
+                "Unified creative input for prompts + uploaded clips + logos",
+                "Brand packaging: end card, CTA, watermark — automated",
+                "Performance-driven creative recommendations (coming Phase 2)",
+              ]}
+              isAuthed={isAuthed}
+              /// Business 仍是 invite-only：未登录访客点这卡 → /login
+              ctaHref={isAuthed ? undefined : "/login?from=/business"}
+              ctaLabel={isAuthed ? undefined : "Sign in"}
+              secondaryNote={
+                !isAuthed
+                  ? "Business accounts are invite-only — contact us for early access."
+                  : undefined
+              }
+            />
+            <PersonaCard
+              persona="PERSONAL"
+              title="Personal"
+              tagline="Make videos for fun."
+              description="Type a prompt, pick a duration and ratio, and generate clips in seconds. No brand jargon, no business analytics — just creation."
+              bullets={[
+                "Same powerful AI engine, simplified UI",
+                "Text-to-video, image-to-video, and uploaded-clip stitching",
+                "Templates and easy sharing (coming Phase 2)",
+              ]}
+              isAuthed={isAuthed}
+              /// Personal 公开自助注册：未登录访客点这卡 → /register
+              ctaHref={isAuthed ? undefined : "/register"}
+              ctaLabel={isAuthed ? undefined : "Get started"}
+              secondaryNote={
+                !isAuthed
+                  ? "Free to start. Already have an account? Sign in above."
+                  : undefined
+              }
+            />
+          </div>
+        </section>
+      </main>
 
-      <footer className="px-6 lg:px-12 py-6 text-xs text-muted-foreground">
+      <footer className="border-t border-border px-4 py-5 text-meta text-muted-foreground sm:px-8">
         © {new Date().getFullYear()} Aivora · AI Video Growth Platform
       </footer>
     </div>

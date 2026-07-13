@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/logo";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
@@ -84,7 +86,7 @@ function Navigation({
             className={cn(
               "flex items-center text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
               mobile
-                ? "flex-col justify-center gap-1 px-1"
+                ? "min-w-0 flex-col justify-center gap-1 overflow-hidden px-1"
                 : "h-10 gap-3 rounded-(--radius-md) px-3",
               active
                 ? "bg-accent-soft text-foreground"
@@ -92,7 +94,9 @@ function Navigation({
             )}
           >
             <Icon className="size-4 stroke-[1.5]" aria-hidden />
-            <span>{item.label}</span>
+            <span className={cn(mobile && "w-full truncate text-center")}>
+              {item.label}
+            </span>
           </Link>
         );
       })}
@@ -116,12 +120,10 @@ export function PersonalGlassShell({
       <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-card md:flex">
         <Link
           href="/personal/agent"
-          className="flex h-20 items-center gap-3 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+          className="flex h-20 items-center gap-3 border-b border-border px-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           aria-label="Aivora 首页"
         >
-          <span className="flex size-10 items-center justify-center rounded-(--radius-md) border border-primary bg-primary text-primary-foreground">
-            <Clapperboard className="size-5 stroke-[1.5]" aria-hidden />
-          </span>
+          <Logo size={40} />
           <span>
             <span className="block font-heading text-subhead">Aivora</span>
             <span className="block text-meta text-muted-foreground">
@@ -131,6 +133,7 @@ export function PersonalGlassShell({
         </Link>
         <Navigation pathname={pathname} />
         <div className="space-y-3 border-t border-border p-4">
+          <LanguageSwitcher variant="sidebar" />
           <p className="truncate text-meta text-muted-foreground" title={userEmail}>
             {userEmail || "个人创作者"}
           </p>
@@ -151,10 +154,10 @@ export function PersonalGlassShell({
           <div className="flex min-w-0 items-center gap-3">
             <Link
               href="/personal/agent"
-              className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) border border-primary bg-primary text-primary-foreground md:hidden"
+              className="md:hidden"
               aria-label="Aivora 首页"
             >
-              <Clapperboard className="size-5 stroke-[1.5]" aria-hidden />
+              <Logo size={40} />
             </Link>
             <p className="truncate font-heading text-subhead">
               {pageTitle(pathname)}

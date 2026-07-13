@@ -37,7 +37,7 @@ export default function DesignSystemPage() {
   return (
     <main className="editorial-page space-y-12">
       <header className="max-w-4xl space-y-4">
-        <p className="text-meta font-semibold tracking-[0.16em] text-primary uppercase">
+        <p className="text-meta font-semibold tracking-[0.16em] text-muted-foreground uppercase">
           Aivora Design System
         </p>
         <h1 className="editorial-display">

@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/useTranslation";
 import { cn } from "@/lib/utils";
 
@@ -53,18 +55,18 @@ export function PersonalSidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex flex-col w-60 border-r border-white/5 bg-sidebar shrink-0">
-      <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/5">
-        <Logo size={24} />
-        <div className="flex flex-col leading-tight">
-          <span className="text-sm font-semibold tracking-tight">Aivora</span>
-          <span className="text-[10px] text-muted-foreground">
+    <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+      <div className="flex h-20 items-center gap-3 border-b border-border px-5">
+        <Logo size={40} />
+        <div className="min-w-0">
+          <span className="block font-heading text-subhead">Aivora</span>
+          <span className="block truncate text-meta text-muted-foreground">
             {t("shell.personaPersonal")}
           </span>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-5">
         {nav.map((item) => {
           const Icon = item.icon;
           const active =
@@ -74,43 +76,47 @@ export function PersonalSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex items-center justify-between gap-2.5 rounded-md px-3 py-2 text-sm transition-colors",
+                "flex h-10 items-center justify-between gap-3 rounded-(--radius-md) px-3 text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
                 active
                   ? "bg-sidebar-accent text-foreground"
-                  : "text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60",
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
               )}
             >
-              <span className="flex items-center gap-2.5">
-                <Icon className="h-4 w-4" />
-                {item.label}
+              <span className="flex min-w-0 items-center gap-3">
+                <Icon className="size-4 shrink-0" strokeWidth={1.5} aria-hidden />
+                <span className="truncate">{item.label}</span>
               </span>
               {item.badge && (
-                <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70 border border-white/10 rounded px-1 py-0.5">
+                <Badge variant="secondary">
                   {item.badge}
-                </span>
+                </Badge>
               )}
             </Link>
           );
         })}
       </nav>
 
-      <div className="border-t border-white/5 px-3 py-3 space-y-1">
+      <div className="space-y-2 border-t border-border p-4">
         <LanguageSwitcher variant="sidebar" />
-        <div className="px-3 py-1.5 text-[11px] text-muted-foreground">
-          <div className="truncate">{session?.user.email}</div>
-          <div className="text-[10px] text-muted-foreground/60">
+        <div className="px-3 text-meta text-muted-foreground">
+          <div className="truncate" title={session?.user.email ?? ""}>
+            {session?.user.email}
+          </div>
+          <div>
             {t("shell.personaPersonal")}
           </div>
         </div>
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60 transition-colors"
+          className="w-full justify-start"
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut strokeWidth={1.5} aria-hidden />
           {t("shell.signOut")}
-        </button>
+        </Button>
       </div>
     </aside>
   );

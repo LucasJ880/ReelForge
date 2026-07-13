@@ -49,7 +49,7 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "npx dotenv -e .env.local -- tsx tests/e2e/seed-visual-fixture.ts && VIDEO_PROVIDER=mock MOCK_LATENCY_MS=250 npm run dev",
+      "npx dotenv -e .env.local -- tsx tests/e2e/seed-visual-fixture.ts && VIDEO_PROVIDER=mock MOCK_LATENCY_MS=25 MOCK_FAILURE_RATE=0 MOCK_STALL_RATE=0 npm run dev",
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

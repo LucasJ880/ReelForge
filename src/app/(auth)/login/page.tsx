@@ -4,7 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Clapperboard, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 const DEMO_EMAIL = "demo@aivora.app";
 const DEMO_PASSWORD = "aivora2026";
@@ -41,81 +49,89 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="space-y-7 text-center">
-      <div className="space-y-4">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-          <Clapperboard className="h-7 w-7 text-white" />
-        </div>
-        <div>
-          <h1 className="text-xl font-semibold tracking-tight text-white">
-            Aivora · 产品视频生成器
-          </h1>
-          <p className="mt-1.5 text-xs" style={{ color: "var(--glass-text-dim)" }}>
-            AI 创作工具 · 请登录后使用
-          </p>
-        </div>
-      </div>
+    <>
+      <CardHeader className="border-b border-border pb-5">
+        <CardTitle>欢迎回到创作室</CardTitle>
+        <CardDescription>登录 Aivora，继续制作下一支短视频。</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-meta font-medium">
+              邮箱
+            </label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+              autoComplete="email"
+              placeholder="you@example.com"
+              aria-invalid={Boolean(error)}
+            />
+          </div>
+          <div className="space-y-2">
+            <label htmlFor="password" className="text-meta font-medium">
+              密码
+            </label>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="输入密码"
+              aria-invalid={Boolean(error)}
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-3 text-left">
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-          autoComplete="email"
-          className="glass-input"
-          placeholder="账号（邮箱）"
-        />
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          className="glass-input"
-          placeholder="密码"
-        />
+          {error ? (
+            <p
+              role="alert"
+              className="rounded-(--radius-md) border border-danger bg-muted px-3 py-2 text-meta text-danger"
+            >
+              {error}
+            </p>
+          ) : null}
 
-        {error && (
-          <p className="rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">
-            {error}
-          </p>
-        )}
+          <Button type="submit" disabled={loading} className="w-full">
+            {loading ? (
+              <Loader2
+                className="animate-spin motion-reduce:animate-none"
+                strokeWidth={1.5}
+                aria-hidden
+              />
+            ) : null}
+            {loading ? "登录中" : "登录"}
+          </Button>
+        </form>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="glass-btn-primary w-full py-2.5 text-sm tracking-[0.3em]"
-        >
-          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {loading ? "登录中" : "登 录"}
-        </button>
-      </form>
-
-      <div className="space-y-2">
-        <button
-          type="button"
-          disabled={loading}
-          onClick={() => doLogin(DEMO_EMAIL, DEMO_PASSWORD)}
-          className="glass-btn w-full text-xs"
-        >
-          使用演示账号一键体验（{DEMO_EMAIL}）
-        </button>
-        <p className="text-[11px]" style={{ color: "var(--glass-text-dim)" }}>
-          登录后 7 天内免登录 · 账号问题请联系管理员
-        </p>
-        <p className="text-[11px]" style={{ color: "var(--glass-text-dim)" }}>
-          还没有账号？{" "}
-          <Link
-            href="/register"
-            className="text-sky-300 underline-offset-4 hover:underline"
+        <div className="space-y-3 border-t border-border pt-5 text-center">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={loading}
+            onClick={() => doLogin(DEMO_EMAIL, DEMO_PASSWORD)}
+            className="w-full"
           >
-            创建个人账号
-          </Link>
-        </p>
-      </div>
-    </div>
+            使用演示账号体验
+          </Button>
+          <p className="text-meta text-muted-foreground">
+            登录后 7 天内免登录 · 账号问题请联系管理员
+          </p>
+          <p className="text-meta text-muted-foreground">
+            还没有账号？{" "}
+            <Link
+              href="/register"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              创建个人账号
+            </Link>
+          </p>
+        </div>
+      </CardContent>
+    </>
   );
 }

@@ -27,15 +27,15 @@ export function LanguageSwitcher({
     <DropdownMenu>
       <DropdownMenuTrigger
         className={cn(
-          "flex w-full items-center gap-2.5 rounded-md text-sm transition-colors",
+          "flex h-10 w-full items-center gap-3 rounded-(--radius-md) text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
           variant === "sidebar"
-            ? "px-3 py-2 text-muted-foreground hover:text-foreground hover:bg-sidebar-accent/60"
-            : "px-2.5 py-1.5 border border-white/10 hover:bg-white/5",
+            ? "px-3 text-muted-foreground hover:bg-muted hover:text-foreground"
+            : "border border-border bg-card px-3 text-foreground hover:bg-muted",
           className,
         )}
         aria-label={t("language.switch")}
       >
-        <Globe className="h-4 w-4" />
+        <Globe className="size-4" strokeWidth={1.5} aria-hidden />
         <span className="flex-1 text-left">{currentLabel}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={6} className="min-w-[160px]">

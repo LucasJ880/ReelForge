@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { BusinessPageHeader } from "@/components/business/business-page-header";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getServerTranslator } from "@/i18n/server";
 import { loadBusinessInsights } from "@/lib/services/business-insights-service";
 
@@ -27,60 +29,73 @@ export default async function CreativeStudioPage() {
         subtitle={t("shell.studio.subtitle")}
       />
 
-      <div className="rounded-xl border border-white/10 bg-card/30 p-6 shadow-sm">
-        <h2 className="font-semibold">{t("shell.studio.quickActions")}</h2>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Link
-            href="/business/create-ad-video"
-            className="inline-flex rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background hover:bg-foreground/90"
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle>{t("shell.studio.quickActions")}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3">
+          <Button
+            render={<Link href="/business/create-ad-video" />}
           >
             {t("shell.studio.newFromScratch")}
-          </Link>
+          </Button>
           {ready[0] && (
-            <Link
-              href={`/business/create-ad-video?from=${encodeURIComponent(ready[0].orderId)}`}
-              className="inline-flex rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
+            <Button
+              render={
+                <Link
+                  href={`/business/create-ad-video?from=${encodeURIComponent(ready[0].orderId)}`}
+                />
+              }
+              variant="outline"
             >
               {t("shell.studio.variantLatest")}
-            </Link>
+            </Button>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">{t("shell.studio.recentProducts")}</h2>
+      <section className="space-y-4">
+        <h2 className="font-heading text-subhead font-normal">
+          {t("shell.studio.recentProducts")}
+        </h2>
         {recent.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-body text-muted-foreground">
             {t("shell.studio.emptyRecent")}
           </p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="divide-y divide-border rounded-(--radius-lg) border border-border bg-card shadow-editorial">
             {recent.map((v) => (
               <li
                 key={v.orderId}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-card/20 px-4 py-3 transition-colors hover:border-white/15 hover:bg-card/35"
+                className="flex min-w-0 flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div>
-                  <p className="max-w-md truncate font-medium">{v.title}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-body font-medium">{v.title}</p>
                   {v.hook ? (
-                    <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
+                    <p className="mt-1 line-clamp-1 text-meta text-muted-foreground">
                       {t("shell.studio.hookPrefix")}: {v.hook}
                     </p>
                   ) : null}
                 </div>
-                <div className="flex gap-3 text-sm">
-                  <Link
-                    href={`/business/products/${v.orderId}`}
-                    className="text-muted-foreground hover:text-foreground"
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    render={<Link href={`/business/products/${v.orderId}`} />}
+                    variant="ghost"
+                    size="sm"
                   >
                     {t("shell.studio.view")}
-                  </Link>
-                  <Link
-                    href={`/business/create-ad-video?from=${encodeURIComponent(v.orderId)}`}
-                    className="text-primary hover:underline"
+                  </Button>
+                  <Button
+                    render={
+                      <Link
+                        href={`/business/create-ad-video?from=${encodeURIComponent(v.orderId)}`}
+                      />
+                    }
+                    variant="link"
+                    size="sm"
                   >
                     {t("shell.studio.newVariant")}
-                  </Link>
+                  </Button>
                 </div>
               </li>
             ))}

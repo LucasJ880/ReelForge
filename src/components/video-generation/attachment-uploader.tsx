@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Image as ImageIcon, Video, X, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import type { AssetRole, UploadedAsset } from "@/types/video-generation";
 
 const ASSET_ROLE_LABELS: Record<AssetRole, string> = {
@@ -159,12 +160,12 @@ export function AttachmentUploader({
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
-      <div className="flex items-center gap-3">
-        <button
+      <div className="flex flex-wrap items-center gap-3">
+        <Button
           type="button"
+          variant="outline"
           disabled={uploading}
           onClick={() => inputRef.current?.click()}
-          className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-card/60 px-3 py-2 text-sm hover:bg-card/90 transition-colors disabled:opacity-60"
         >
           {uploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -172,13 +173,13 @@ export function AttachmentUploader({
             <ImageIcon className="h-4 w-4" />
           )}
           {uploading ? "Uploading…" : "Attach images or clips"}
-        </button>
-        <span className="text-xs text-muted-foreground">
+        </Button>
+        <span className="text-meta text-muted-foreground">
           Up to 100MB per file · PNG / JPG / WebP / MP4 / MOV / WebM
         </span>
       </div>
       {error && (
-        <p className="text-xs text-red-400">{error}</p>
+        <p role="alert" className="text-meta text-danger">{error}</p>
       )}
 
       {attachments.length > 0 && (
@@ -189,55 +190,56 @@ export function AttachmentUploader({
             return (
               <li
                 key={a.id}
-                className="flex items-start gap-3 rounded-lg border border-white/10 bg-card/60 p-3"
+                className="flex min-w-0 items-start gap-3 rounded-(--radius-md) border border-border bg-card p-3"
               >
-                <Icon className="h-5 w-5 text-muted-foreground mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium truncate">
+                <Icon className="mt-0.5 size-5 shrink-0 text-muted-foreground" strokeWidth={1.5} aria-hidden />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-body font-medium">
                       {a.fileName}
                     </span>
-                    <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+                    <span className="text-meta text-muted-foreground">
                       {Math.round(a.roleConfidence * 100)}% confidence
                     </span>
                   </div>
                   {a.suggestedUse && (
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-meta text-muted-foreground">
                       {a.suggestedUse}
                     </p>
                   )}
                   <div className="mt-2">
-                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <label className="text-meta font-medium text-muted-foreground">
                       Role
+                      <select
+                        value={role}
+                        onChange={(e) => setRole(idx, e.target.value as AssetRole)}
+                        className="mt-1 block h-10 w-full max-w-xs rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        {supportedRoles.map((r) => (
+                          <option key={r} value={r}>
+                            {ASSET_ROLE_LABELS[r]}
+                          </option>
+                        ))}
+                      </select>
                     </label>
-                    <select
-                      value={role}
-                      onChange={(e) => setRole(idx, e.target.value as AssetRole)}
-                      className="mt-1 block w-full max-w-xs rounded-md border border-white/10 bg-background px-2 py-1 text-sm"
-                    >
-                      {supportedRoles.map((r) => (
-                        <option key={r} value={r}>
-                          {ASSET_ROLE_LABELS[r]}
-                        </option>
-                      ))}
-                    </select>
                   </div>
                   {(a.warnings ?? []).length > 0 && (
-                    <ul className="mt-2 text-[11px] text-amber-300/80 space-y-0.5">
+                    <ul className="mt-2 space-y-1 text-meta text-warning">
                       {(a.warnings ?? []).map((w) => (
                         <li key={w}>· {w}</li>
                       ))}
                     </ul>
                   )}
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => removeAt(idx)}
-                  className="text-muted-foreground hover:text-foreground transition-colors"
                   aria-label="Remove attachment"
                 >
-                  <X className="h-4 w-4" />
-                </button>
+                  <X strokeWidth={1.5} aria-hidden />
+                </Button>
               </li>
             );
           })}

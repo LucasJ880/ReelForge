@@ -6,6 +6,10 @@ import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import { AttachmentUploader } from "@/components/video-generation/attachment-uploader";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
 import type {
   AspectRatio,
@@ -18,6 +22,9 @@ import type {
 const DURATIONS = [15, 30, 60] as const;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
 const BRAND_ENDING_MODES: BrandEndingMode[] = ["auto_end_card", "uploaded_clip", "none"];
+const LABEL_CLASS = "text-meta font-medium text-muted-foreground";
+const SELECT_CLASS =
+  "mt-1 block h-10 w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 interface UnifiedCreativeInputProps {
   userType: "business" | "personal";
@@ -231,34 +238,35 @@ export function UnifiedCreativeInput({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-white/10 bg-card p-6 space-y-5">
+      <Card>
+        <CardContent className="space-y-5">
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <label className={LABEL_CLASS}>
             {t("shell.creative.promptLabel")}
-          </label>
-          <textarea
-            value={rawPrompt}
-            onChange={(e) => {
-              setRawPrompt(e.target.value);
-              if (planRequestKey !== null) {
-                setPlan(null);
-                setPlanRequestKey(null);
+            <Textarea
+              value={rawPrompt}
+              onChange={(e) => {
+                setRawPrompt(e.target.value);
+                if (planRequestKey !== null) {
+                  setPlan(null);
+                  setPlanRequestKey(null);
+                }
+              }}
+              placeholder={
+                userType === "business"
+                  ? t("shell.creative.promptPlaceholderBusiness")
+                  : t("shell.creative.promptPlaceholderPersonal")
               }
-            }}
-            placeholder={
-              userType === "business"
-                ? t("shell.creative.promptPlaceholderBusiness")
-                : t("shell.creative.promptPlaceholderPersonal")
-            }
-            rows={4}
-            className="mt-2 block w-full rounded-md border border-white/10 bg-background px-3 py-2 text-sm focus:outline-none focus:border-white/30 transition-colors"
-          />
+              rows={4}
+              className="mt-2"
+            />
+          </label>
         </div>
 
         <div>
-          <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <p className={LABEL_CLASS}>
             {t("shell.creative.attachmentsLabel")}
-          </label>
+          </p>
           <div className="mt-2">
             <AttachmentUploader
               userType={userType}
@@ -270,67 +278,67 @@ export function UnifiedCreativeInput({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+            <label className={LABEL_CLASS}>
               {t("shell.creative.durationLabel")}
-            </label>
-            <select
-              value={selectedDuration}
-              onChange={(e) =>
-                setSelectedDuration(Number(e.target.value) as 15 | 30 | 60)
-              }
-              className="mt-1 block w-full rounded-md border border-white/10 bg-background px-2 py-2 text-sm"
-            >
-              {DURATIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}s
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-              {t("shell.creative.aspectLabel")}
-            </label>
-            <select
-              value={selectedAspectRatio}
-              onChange={(e) =>
-                setSelectedAspectRatio(e.target.value as AspectRatio)
-              }
-              className="mt-1 block w-full rounded-md border border-white/10 bg-background px-2 py-2 text-sm"
-            >
-              {ASPECT_RATIOS.map((r) => (
-                <option key={r} value={r}>
-                  {r === "9:16"
-                    ? t("shell.creative.aspect916")
-                    : r === "16:9"
-                      ? t("shell.creative.aspect169")
-                      : t("shell.creative.aspect11")}
-                </option>
-              ))}
-            </select>
-          </div>
-          {userType === "business" && (
-            <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {t("shell.creative.endingLabel")}
-              </label>
               <select
-                value={selectedBrandEndingMode}
+                value={selectedDuration}
                 onChange={(e) =>
-                  setSelectedBrandEndingMode(e.target.value as BrandEndingMode)
+                  setSelectedDuration(Number(e.target.value) as 15 | 30 | 60)
                 }
-                className="mt-1 block w-full rounded-md border border-white/10 bg-background px-2 py-2 text-sm"
+                className={SELECT_CLASS}
               >
-                {BRAND_ENDING_MODES.map((m) => (
-                  <option key={m} value={m}>
-                    {m === "auto_end_card"
-                      ? t("shell.creative.endingAuto")
-                      : m === "uploaded_clip"
-                        ? t("shell.creative.endingUploaded")
-                        : t("shell.creative.endingNone")}
+                {DURATIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}s
                   </option>
                 ))}
               </select>
+            </label>
+          </div>
+          <div>
+            <label className={LABEL_CLASS}>
+              {t("shell.creative.aspectLabel")}
+              <select
+                value={selectedAspectRatio}
+                onChange={(e) =>
+                  setSelectedAspectRatio(e.target.value as AspectRatio)
+                }
+                className={SELECT_CLASS}
+              >
+                {ASPECT_RATIOS.map((r) => (
+                  <option key={r} value={r}>
+                    {r === "9:16"
+                      ? t("shell.creative.aspect916")
+                      : r === "16:9"
+                        ? t("shell.creative.aspect169")
+                        : t("shell.creative.aspect11")}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {userType === "business" && (
+            <div>
+              <label className={LABEL_CLASS}>
+                {t("shell.creative.endingLabel")}
+                <select
+                  value={selectedBrandEndingMode}
+                  onChange={(e) =>
+                    setSelectedBrandEndingMode(e.target.value as BrandEndingMode)
+                  }
+                  className={SELECT_CLASS}
+                >
+                  {BRAND_ENDING_MODES.map((m) => (
+                    <option key={m} value={m}>
+                      {m === "auto_end_card"
+                        ? t("shell.creative.endingAuto")
+                        : m === "uploaded_clip"
+                          ? t("shell.creative.endingUploaded")
+                          : t("shell.creative.endingNone")}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
           )}
         </div>
@@ -338,53 +346,53 @@ export function UnifiedCreativeInput({
         {userType === "business" && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className={LABEL_CLASS}>
                 {t("shell.creative.ctaLabel")}
+                <Input
+                  type="text"
+                  value={cta}
+                  onChange={(e) => setCta(e.target.value)}
+                  placeholder={t("shell.creative.ctaPlaceholder")}
+                  className="mt-1"
+                />
               </label>
-              <input
-                type="text"
-                value={cta}
-                onChange={(e) => setCta(e.target.value)}
-                placeholder={t("shell.creative.ctaPlaceholder")}
-                className="mt-1 block w-full rounded-md border border-white/10 bg-background px-2 py-2 text-sm"
-              />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className={LABEL_CLASS}>
                 {t("shell.creative.brandNameLabel")}
+                <Input
+                  type="text"
+                  value={brandName}
+                  onChange={(e) => setBrandName(e.target.value)}
+                  placeholder={t("shell.creative.brandNamePlaceholder")}
+                  className="mt-1"
+                />
               </label>
-              <input
-                type="text"
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                placeholder={t("shell.creative.brandNamePlaceholder")}
-                className="mt-1 block w-full rounded-md border border-white/10 bg-background px-2 py-2 text-sm"
-              />
             </div>
             <div>
-              <label className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <label className={LABEL_CLASS}>
                 {t("shell.creative.websiteLabel")}
+                <Input
+                  type="text"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  placeholder={t("shell.creative.websitePlaceholder")}
+                  className="mt-1"
+                />
               </label>
-              <input
-                type="text"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                placeholder={t("shell.creative.websitePlaceholder")}
-                className="mt-1 block w-full rounded-md border border-white/10 bg-background px-2 py-2 text-sm"
-              />
             </div>
           </div>
         )}
 
-        {error && <p className="text-xs text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-meta text-danger">{error}</p>}
 
         {isPersonal ? (
           <div className="space-y-3">
-            <button
+            <Button
               type="button"
               disabled={!canQuickGenerate}
               onClick={() => void handleQuickGenerate()}
-              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-md bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:bg-foreground/90 transition-colors disabled:opacity-60"
+              className="w-full sm:w-auto"
             >
               {generating || previewing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -394,41 +402,43 @@ export function UnifiedCreativeInput({
               {generating
                 ? t("shell.creative.generating")
                 : t("shell.creative.quickGenerate")}
-            </button>
-            <p className="text-xs text-muted-foreground">
+            </Button>
+            <p className="text-meta text-muted-foreground">
               {t("shell.creative.quickHint")}
             </p>
-            <button
+            <Button
               type="button"
+              variant="link"
               disabled={!canPreview}
               onClick={() => setShowPlanDetails((v) => !v)}
-              className="text-xs text-muted-foreground underline-offset-4 hover:underline disabled:opacity-50"
+              className="px-0"
             >
               {showPlanDetails
                 ? t("shell.creative.togglePlanHide")
                 : t("shell.creative.togglePlanShow")}
-            </button>
+            </Button>
             {showPlanDetails ? (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 disabled={!canPreview || previewing}
                 onClick={() => void handlePreview()}
-                className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-card/60 px-3 py-1.5 text-xs hover:bg-card/90 transition-colors disabled:opacity-60"
               >
                 {previewing ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 ) : null}
                 {t("shell.creative.refreshPlan")}
-              </button>
+              </Button>
             ) : null}
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <button
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
               type="button"
+              variant="outline"
               disabled={!canPreview}
               onClick={() => void handlePreview()}
-              className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-card/60 px-4 py-2 text-sm hover:bg-card/90 transition-colors disabled:opacity-60"
             >
               {previewing ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -436,23 +446,23 @@ export function UnifiedCreativeInput({
                 <Sparkles className="h-4 w-4" />
               )}
               {t("shell.creative.previewPlan")}
-            </button>
+            </Button>
             {plan && planRequestKey === requestFingerprint() ? (
-              <button
+              <Button
                 type="button"
                 disabled={!canGenerate}
                 onClick={() => void handleGenerate(plan)}
-                className="inline-flex items-center gap-2 rounded-md bg-foreground text-background px-4 py-2 text-sm font-medium hover:bg-foreground/90 transition-colors disabled:opacity-60"
               >
                 {generating ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : null}
                 {t("shell.creative.generateVideo")}
-              </button>
+              </Button>
             ) : null}
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {plan && showPlanDetails ? <PlanPreviewCard plan={plan} /> : null}
     </div>

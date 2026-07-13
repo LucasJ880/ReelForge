@@ -1,6 +1,8 @@
 "use client";
 
 import { AlertTriangle, CheckCircle2, Info, Sparkles } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import type {
   PlanPreview,
   QualityReview,
@@ -21,15 +23,16 @@ interface PlanPreviewCardProps {
 export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
   const { planPreview, qualityReview } = plan;
   return (
-    <div className="rounded-xl border border-white/10 bg-card p-6 space-y-5">
-      <header>
+    <Card>
+      <CardContent className="space-y-5">
+      <header className="space-y-3">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Sparkles className="h-4 w-4" />
-          <span className="text-xs uppercase tracking-wider">
+          <Sparkles className="size-4" strokeWidth={1.5} aria-hidden />
+          <span className="text-meta font-medium">
             Generation plan
           </span>
         </div>
-        <p className="mt-3 text-base font-medium text-foreground">
+        <p className="text-body font-medium text-foreground">
           {planPreview.summary}
         </p>
       </header>
@@ -41,7 +44,8 @@ export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
       <SceneList plan={plan} />
 
       <NextStepHint canDispatch={qualityReview.canDispatch} />
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -57,16 +61,16 @@ function PlanBreakdown({ preview }: { preview: PlanPreview }) {
     { label: "Format", value: orientationLabel(preview.breakdown.aspectRatio) },
   ];
   return (
-    <ul className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+    <ul className="grid grid-cols-2 gap-3 text-meta sm:grid-cols-5">
       {items.map((it) => (
         <li
           key={it.label}
-          className="rounded-md border border-white/10 bg-background px-3 py-2"
+          className="rounded-(--radius-md) border border-border bg-muted px-3 py-2"
         >
-          <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+          <div className="text-meta text-muted-foreground">
             {it.label}
           </div>
-          <div className="mt-1 text-sm font-medium">{it.value}</div>
+          <div className="mt-1 text-body font-medium">{it.value}</div>
         </li>
       ))}
     </ul>
@@ -87,9 +91,9 @@ function QualityBlock({ review }: { review: QualityReview }) {
     review.suggestions.length === 0
   ) {
     return (
-      <div className="flex items-start gap-2 rounded-md border border-emerald-400/20 bg-emerald-400/5 p-3 text-sm">
-        <CheckCircle2 className="h-4 w-4 text-emerald-400 mt-0.5" />
-        <span className="text-emerald-200">
+      <div className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-muted p-3 text-body">
+        <CheckCircle2 className="mt-0.5 size-4 text-success" strokeWidth={1.5} aria-hidden />
+        <span className="text-foreground">
           Ready to generate. Quality score {review.score}/100.
         </span>
       </div>
@@ -98,12 +102,12 @@ function QualityBlock({ review }: { review: QualityReview }) {
   return (
     <div className="space-y-2">
       {review.blockers.length > 0 && (
-        <div className="rounded-md border border-red-500/30 bg-red-500/5 p-3">
-          <div className="flex items-center gap-2 text-sm text-red-300">
-            <AlertTriangle className="h-4 w-4" />
+        <div className="rounded-(--radius-md) border border-danger bg-card p-3">
+          <div className="flex items-center gap-2 text-body text-danger">
+            <AlertTriangle className="size-4" strokeWidth={1.5} aria-hidden />
             <strong>Please fix before generating:</strong>
           </div>
-          <ul className="mt-2 space-y-1 text-xs text-red-200/90">
+          <ul className="mt-2 space-y-1 text-meta text-danger">
             {review.blockers.map((b, i) => (
               <li key={i}>· {b.message}</li>
             ))}
@@ -111,12 +115,12 @@ function QualityBlock({ review }: { review: QualityReview }) {
         </div>
       )}
       {review.warnings.length > 0 && (
-        <div className="rounded-md border border-amber-400/20 bg-amber-400/5 p-3">
-          <div className="flex items-center gap-2 text-sm text-amber-200">
-            <Info className="h-4 w-4" />
+        <div className="rounded-(--radius-md) border border-warning bg-card p-3">
+          <div className="flex items-center gap-2 text-body text-warning">
+            <Info className="size-4" strokeWidth={1.5} aria-hidden />
             <strong>Heads up</strong>
           </div>
-          <ul className="mt-2 space-y-1 text-xs text-amber-100/80">
+          <ul className="mt-2 space-y-1 text-meta text-warning">
             {review.warnings.map((w, i) => (
               <li key={i}>· {w.message}</li>
             ))}
@@ -124,12 +128,12 @@ function QualityBlock({ review }: { review: QualityReview }) {
         </div>
       )}
       {review.suggestions.length > 0 && (
-        <div className="rounded-md border border-white/10 bg-card/60 p-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Info className="h-4 w-4" />
+        <div className="rounded-(--radius-md) border border-border bg-muted p-3">
+          <div className="flex items-center gap-2 text-body text-muted-foreground">
+            <Info className="size-4" strokeWidth={1.5} aria-hidden />
             <strong>Suggestions</strong>
           </div>
-          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+          <ul className="mt-2 space-y-1 text-meta text-muted-foreground">
             {review.suggestions.map((s, i) => (
               <li key={i}>· {s.message}</li>
             ))}
@@ -137,7 +141,7 @@ function QualityBlock({ review }: { review: QualityReview }) {
         </div>
       )}
       {review.canDispatch && review.warnings.length > 0 && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-meta text-muted-foreground">
           Score {review.score}/100. You can still continue &mdash; the notes above are
           friendly suggestions, not blockers.
         </p>
@@ -148,22 +152,22 @@ function QualityBlock({ review }: { review: QualityReview }) {
 
 function SceneList({ plan }: { plan: VideoGenerationPlan }) {
   return (
-    <details className="rounded-md border border-white/10 bg-background/50">
-      <summary className="cursor-pointer px-3 py-2 text-xs uppercase tracking-wider text-muted-foreground hover:text-foreground">
+    <details className="rounded-(--radius-md) border border-border bg-card">
+      <summary className="cursor-pointer px-3 py-2 text-meta font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         Scene breakdown ({plan.segments.length})
       </summary>
-      <ul className="px-3 py-3 space-y-3 text-xs">
+      <ul className="space-y-3 px-3 py-3 text-meta">
         {plan.segments.map((s, idx) => (
-          <li key={s.id} className="border-l-2 border-white/10 pl-3">
+          <li key={s.id} className="border-l-2 border-border pl-3">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+              <Badge variant="secondary">
                 Scene {idx + 1} &middot; {humanSceneType(s.type)}
-              </span>
-              <span className="text-[10px] text-muted-foreground/70">
+              </Badge>
+              <span className="text-meta text-muted-foreground">
                 {s.durationSeconds}s
               </span>
             </div>
-            <p className="mt-1 text-foreground/80">{s.purpose}</p>
+            <p className="mt-1 text-foreground">{s.purpose}</p>
           </li>
         ))}
       </ul>
@@ -189,14 +193,14 @@ function humanSceneType(type: string): string {
 function NextStepHint({ canDispatch }: { canDispatch: boolean }) {
   if (canDispatch) {
     return (
-      <p className="text-xs text-muted-foreground">
+      <p className="text-meta text-muted-foreground">
         Looks good. Hit <strong>Generate video</strong> when you&apos;re ready &mdash;
         we&apos;ll keep you posted on progress in your video list.
       </p>
     );
   }
   return (
-    <p className="text-xs text-muted-foreground">
+    <p className="text-meta text-muted-foreground">
       Update the prompt or attachments above, then re-run preview to continue.
     </p>
   );

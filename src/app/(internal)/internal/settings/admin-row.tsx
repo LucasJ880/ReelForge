@@ -59,18 +59,19 @@ export function AdminRow({ user, isSelf, roleLabel }: Props) {
   }
 
   return (
-    <tr className="border-t border-border/40">
+    <tr className="border-t border-border">
       <td className="py-2">{user.email}</td>
       <td>{user.name ?? "—"}</td>
       <td>
         {isSelf ? (
-          <span className="text-xs text-muted-foreground">{roleLabel} (自己)</span>
+          <span className="text-meta text-muted-foreground">{roleLabel} (自己)</span>
         ) : (
           <select
             disabled={busy}
             value={user.role}
             onChange={(e) => changeRole(e.target.value)}
-            className="rounded border border-input bg-card px-2 py-1 text-xs"
+            className="h-10 rounded-(--radius-md) border border-input bg-card px-3 text-meta focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            aria-label={`${user.email} 的角色`}
           >
             <option value="OPERATOR">运营</option>
             <option value="REVIEWER">审核员</option>
@@ -78,7 +79,7 @@ export function AdminRow({ user, isSelf, roleLabel }: Props) {
           </select>
         )}
       </td>
-      <td className="text-xs text-muted-foreground">{user.createdAtText}</td>
+      <td className="text-meta text-muted-foreground">{user.createdAtText}</td>
       <td className="text-right">
         {!isSelf && (
           <Button
@@ -86,9 +87,10 @@ export function AdminRow({ user, isSelf, roleLabel }: Props) {
             variant="ghost"
             disabled={busy}
             onClick={remove}
-            className="text-destructive hover:text-destructive"
+            className="text-danger hover:text-danger"
+            aria-label={`删除 ${user.email}`}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <Trash2 strokeWidth={1.5} aria-hidden />
           </Button>
         )}
       </td>

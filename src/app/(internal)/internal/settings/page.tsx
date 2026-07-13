@@ -28,23 +28,29 @@ export default async function SettingsPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title="设置 / 账号管理"
         description="仅 SUPER_ADMIN 可管理内部账号"
       />
 
-      <Card className="mb-6">
-        <CardContent className="pt-4">
+      <Card>
+        <CardContent>
           <CreateAdminForm />
         </CardContent>
       </Card>
 
       <Card>
-        <CardContent className="pt-4">
-          <table className="w-full text-sm">
+        <CardContent>
+          <div
+            className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            role="region"
+            aria-label="内部账号列表"
+            tabIndex={0}
+          >
+          <table className="min-w-160 w-full text-body">
             <thead>
-              <tr className="text-left text-xs text-muted-foreground">
+              <tr className="text-left text-meta text-muted-foreground">
                 <th className="py-2">邮箱</th>
                 <th>姓名</th>
                 <th>角色</th>
@@ -69,6 +75,7 @@ export default async function SettingsPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </CardContent>
       </Card>
     </div>

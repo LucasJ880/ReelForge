@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export function CreateAdminForm() {
   const router = useRouter();
@@ -40,30 +41,30 @@ export function CreateAdminForm() {
   }
 
   return (
-    <form onSubmit={submit} className="grid gap-3 md:grid-cols-4">
-      <input
+    <form onSubmit={submit} className="grid min-w-0 gap-3 md:grid-cols-4">
+      <Input
         type="email"
         required
+        aria-label="邮箱"
         placeholder="邮箱"
         value={form.email}
         onChange={(e) => setForm({ ...form, email: e.target.value })}
-        className="rounded-md border border-input bg-card px-3 py-2 text-sm"
       />
-      <input
+      <Input
         type="text"
+        aria-label="姓名"
         placeholder="姓名（可选）"
         value={form.name}
         onChange={(e) => setForm({ ...form, name: e.target.value })}
-        className="rounded-md border border-input bg-card px-3 py-2 text-sm"
       />
-      <input
+      <Input
         type="password"
         required
+        aria-label="密码"
         minLength={8}
         placeholder="密码（≥8 位）"
         value={form.password}
         onChange={(e) => setForm({ ...form, password: e.target.value })}
-        className="rounded-md border border-input bg-card px-3 py-2 text-sm"
       />
       <div className="flex gap-2">
         <select
@@ -74,14 +75,15 @@ export function CreateAdminForm() {
               role: e.target.value as typeof form.role,
             })
           }
-          className="flex-1 rounded-md border border-input bg-card px-3 py-2 text-sm"
+          className="h-10 min-w-0 flex-1 rounded-(--radius-md) border border-input bg-card px-3 text-body focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+          aria-label="角色"
         >
           <option value="OPERATOR">运营</option>
           <option value="REVIEWER">审核员</option>
           <option value="SUPER_ADMIN">超级管理员</option>
         </select>
         <Button type="submit" disabled={busy}>
-          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+          {busy ? <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden /> : <UserPlus strokeWidth={1.5} aria-hidden />}
           新建
         </Button>
       </div>

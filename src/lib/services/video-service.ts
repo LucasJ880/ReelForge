@@ -581,13 +581,16 @@ export async function reconcileVideoJob(jobId: string) {
     return db.videoJob.findUnique({ where: { id: jobId } });
   }
 
-  /// 仍在 pending / processing —— 只更新观察字段（含 provider 真实进度）
+  /// 仍在 pending / processing —— 只更新观察字段（含 provider 真实进度，INV-5）
   return db.videoJob.update({
     where: { id: jobId },
     data: {
       lastCheckedAt: new Date(),
       lastProviderStatus: result.rawProviderStatus,
       pollErrors: 0,
+      ...(typeof result.progress === "number"
+        ? { lastProgress: Math.max(0, Math.min(100, Math.round(result.progress))) }
+        : {}),
     },
   });
 }

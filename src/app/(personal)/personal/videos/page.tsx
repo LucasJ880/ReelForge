@@ -10,6 +10,7 @@ import {
   derivePersonalStatus,
   type PersonalVideoStatus,
 } from "@/lib/video-generation/personal-status";
+import { summarizeRunningJobs } from "@/lib/video-generation/business-status";
 import type {
   FinalVideoStatus,
   VideoBriefStatus,
@@ -95,7 +96,13 @@ async function loadPersonalVideoRows(
                         segmentCount: true,
                       },
                     },
-                    videoJobs: { select: { status: true } },
+                    videoJobs: {
+                      select: {
+                        status: true,
+                        lastProgress: true,
+                        submittedAt: true,
+                      },
+                    },
                   },
                 },
               },
@@ -125,6 +132,8 @@ async function loadPersonalVideoRows(
         segmentsSucceeded,
         segmentsTotal: segmentCount,
         jobStatuses,
+        /// INV-5：段内进度 = provider 真实 progress 优先，缺失时按运行时长估算
+        ...summarizeRunningJobs(brief?.videoJobs ?? []),
       });
       const finalUrl =
         finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null;

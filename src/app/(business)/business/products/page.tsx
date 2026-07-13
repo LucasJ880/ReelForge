@@ -7,7 +7,11 @@ import { getServerTranslator } from "@/i18n/server";
 import type { TranslationKey } from "@/i18n/types";
 import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { BriefRenderAutoRefresh } from "@/components/video-generation/brief-render-auto-refresh";
-import { deriveBusinessStatus, type BusinessVideoStatus } from "@/lib/video-generation/business-status";
+import {
+  deriveBusinessStatus,
+  summarizeRunningJobs,
+  type BusinessVideoStatus,
+} from "@/lib/video-generation/business-status";
 import type { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +117,11 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
                     },
                   },
                   videoJobs: {
-                    select: { status: true },
+                    select: {
+                      status: true,
+                      lastProgress: true,
+                      submittedAt: true,
+                    },
                   },
                 },
               },
@@ -143,6 +151,8 @@ async function loadProductRows(userId: string): Promise<ProductRow[]> {
         segmentsSucceeded,
         segmentsTotal: segmentCount,
         jobStatuses,
+        /// INV-5：段内进度 = provider 真实 progress 优先，缺失时按运行时长估算
+        ...summarizeRunningJobs(brief?.videoJobs ?? []),
       });
       const finalUrl = finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null;
       /// 防御：file:// 不能直接给客户用浏览器打开（Phase 2 dev 模式才会出现），

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import {
   deriveBusinessStatus,
+  summarizeRunningJobs,
   type BusinessVideoStatus,
 } from "@/lib/video-generation/business-status";
 import type {
@@ -112,6 +113,8 @@ export default async function BusinessProductDetailPage({
                         segmentDurationSec: true,
                         status: true,
                         outputThumbUrl: true,
+                        lastProgress: true,
+                        submittedAt: true,
                       },
                     },
                   },
@@ -154,6 +157,8 @@ export default async function BusinessProductDetailPage({
     segmentsSucceeded,
     segmentsTotal: segmentCount,
     jobStatuses,
+    /// INV-5：段内进度 = provider 真实 progress 优先，缺失时按运行时长估算
+    ...summarizeRunningJobs(brief.videoJobs),
   });
 
   const finalUrl = customerSafeUrl(

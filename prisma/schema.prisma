@@ -692,7 +692,9 @@ model VideoJob {
   lastCheckedAt      DateTime?
   /// Provider 原始 status（如 "queued" / "running" / "succeeded" / "failed" / "expired"）
   lastProviderStatus String?
-  /// 视频生成超过该时间仍未终态时，UI 显示「用时较长」
+  /// Provider 上报的真实进度（0-100）；provider 不给时为 null，UI 回退到阶段估算
+  lastProgress       Int?
+  /// 全局 deadline：超过该时间 + 宽限仍非终态 → watchdog 强制 FAILED（INV-1）
   timeoutAt          DateTime?
   /// 累计轮询次数（用于「3 连错败下线」逻辑）
   pollErrors         Int       @default(0)

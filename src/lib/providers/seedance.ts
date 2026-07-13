@@ -443,10 +443,20 @@ async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
   const data = await res.json();
   const rawStatus: string = typeof data.status === "string" ? data.status : "unknown";
 
+  /// Provider 真实进度（0-100）。Ark 部分模型/版本在任务体里带 progress；
+  /// 缺失时返回 undefined，调和层保持 lastProgress 不变、UI 走阶段估算。
+  const rawProgress =
+    typeof data.progress === "number"
+      ? data.progress
+      : typeof data.content?.progress === "number"
+        ? data.content.progress
+        : undefined;
+
   return {
     jobId,
     status: mapProviderStatus(rawStatus),
     rawProviderStatus: rawStatus,
+    progress: rawProgress,
     videoUrl: data.content?.video_url || data.video_url,
     thumbnailUrl: data.content?.cover_url || data.thumbnail_url,
     lastFrameUrl: data.content?.last_frame_url || data.last_frame_url,

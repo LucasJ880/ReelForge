@@ -13,6 +13,7 @@
 /playwright-report/
 /test-results/
 /tests/e2e/.auth/
+/tests/final-acceptance/.auth/
 
 # next.js
 /.next/

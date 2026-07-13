@@ -17,6 +17,8 @@
     "test:visual": "playwright test tests/e2e/editorial.visual.spec.ts",
     "test:visual:update": "playwright test tests/e2e/editorial.visual.spec.ts --update-snapshots",
     "test:a11y": "playwright test tests/e2e/editorial.a11y.spec.ts",
+    "test:final-acceptance": "dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
+    "test:final-acceptance:soak": "FINAL_ACCEPTANCE_SOAK_MS=300000 FINAL_ACCEPTANCE_MONITOR_DELAY_MS=30000 dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
     "db:migrate:deploy": "dotenv -e .env.local -- prisma migrate deploy",

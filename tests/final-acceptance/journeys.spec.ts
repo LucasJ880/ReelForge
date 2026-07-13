@@ -1,0 +1,592 @@
+import {
+  browserFetch,
+  createBatch,
+  expect,
+  getAcceptanceTemplate,
+  getBatch,
+  imageUrls,
+  registerBatch,
+  runKey,
+  sampleFps,
+  test,
+  tickBatch,
+  waitForTerminal,
+  type Batch,
+} from "./framework";
+
+test("J1：20 图 100 条的分配、93/7 终态、虚拟化、播放与批量下载", async ({
+  page,
+  evidence,
+}, testInfo) => {
+  await page.goto("/batch-create");
+  const batch = await createBatch(page, {
+    imageCount: 20,
+    requestedCount: 100,
+    key: runKey(testInfo, "j1"),
+  });
+
+  const initialUsage = new Map<string, number>();
+  for (const job of batch.videoJobs) {
+    const assets = job.assignedAssets?.assets ?? [];
+    expect(assets, `视频 ${job.batchIndex} 必须恰好分配一张图`).toHaveLength(1);
+    const imageId = assets[0].id;
+    initialUsage.set(imageId, (initialUsage.get(imageId) ?? 0) + 1);
+  }
+  expect([...initialUsage.values()].sort((a, b) => a - b)).toEqual(
+    Array.from({ length: 20 }, () => 5),
+  );
+
+  const terminal = await waitForTerminal(page, batch.id, testInfo);
+  expect(terminal.batch.completedCount).toBe(93);
+  expect(terminal.batch.failedCount).toBe(7);
+  const failedJobs = terminal.batch.videoJobs.filter(
+    (job) => job.status === "FAILED",
+  );
+  expect(failedJobs).toHaveLength(7);
+  for (const job of failedJobs) {
+    expect(job.errorMessage, `失败任务 ${job.id} 必须保留机器可读原因`).toMatch(
+      /\[(?:provider|watchdog):/,
+    );
+    expect(job.userSafeError, `失败任务 ${job.id} 必须提供用户可见原因`).toMatch(
+      /失败|超时|无响应/,
+    );
+  }
+
+  await page.goto(`/batches/${batch.id}`);
+  const grid = page.getByRole("region", { name: "批次视频任务列表" });
+  await expect(grid).toHaveAttribute("data-virtualized", "true");
+  await expect(grid).toHaveAttribute("data-total-cards", "100");
+  await expect(page.locator("[data-batch-poll-connections]")).toHaveAttribute(
+    "data-batch-poll-connections",
+    "1",
+  );
+  expect(await page.locator("[data-batch-video-card]").count()).toBeLessThan(100);
+
+  const videos = page.locator("video");
+  await expect.poll(() => videos.count()).toBeGreaterThanOrEqual(3);
+  for (let index = 0; index < 3; index += 1) {
+    const playback = await videos.nth(index).evaluate(async (video) => {
+      const media = video as HTMLVideoElement;
+      media.muted = true;
+      try {
+        await media.play();
+        return { ok: true, currentTime: media.currentTime, error: null };
+      } catch (error) {
+        return { ok: false, currentTime: media.currentTime, error: String(error) };
+      }
+    });
+    expect(playback.ok, `第 ${index + 1} 个 mock 视频必须可播放：${playback.error}`).toBe(
+      true,
+    );
+  }
+
+  await page.evaluate(() => {
+    const state = { clicks: 0, downloads: [] as string[] };
+    Object.defineProperty(window, "__finalAcceptanceDownloads", { value: state });
+    const original = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function click() {
+      state.clicks += 1;
+      state.downloads.push(this.download);
+      void original;
+    };
+  });
+  await page.getByRole("button", { name: "全选已完成" }).click();
+  await expect(page.getByRole("button", { name: "下载所选 (93)" })).toBeEnabled();
+  await page.getByRole("button", { name: "下载所选 (93)" }).click();
+  const downloads = await page.evaluate(
+    () =>
+      (
+        window as unknown as Window & {
+          __finalAcceptanceDownloads: { clicks: number; downloads: string[] };
+        }
+      ).__finalAcceptanceDownloads,
+  );
+  expect(downloads.clicks).toBe(93);
+  expect(new Set(downloads.downloads).size).toBe(93);
+
+  const statusRequests = evidence.network.filter(
+    (entry) =>
+      entry.kind === "response" &&
+      String(entry.url).includes(`/api/batches/${batch.id}/status`),
+  );
+  expect(statusRequests.length).toBeGreaterThan(0);
+  expect(
+    evidence.network.filter((entry) =>
+      /\/api\/batches\/[^/]+\/jobs\/[^/]+\/status/.test(String(entry.url)),
+    ),
+    "禁止每卡单独轮询",
+  ).toEqual([]);
+});
+
+test("J2：刷新、历史导航、上下文重开、持续采样与幂等", async ({
+  page,
+  context,
+}, testInfo) => {
+  await page.goto("/batch-create");
+  const key = runKey(testInfo, "j2");
+  const first = await createBatch(page, {
+    imageCount: 4,
+    requestedCount: 20,
+    key,
+  });
+  const duplicate = await createBatch(page, {
+    imageCount: 4,
+    requestedCount: 20,
+    key,
+  });
+  expect(duplicate.id).toBe(first.id);
+  expect(duplicate.videoJobs).toHaveLength(20);
+
+  await page.goto(`/batches/${first.id}`);
+  for (let index = 0; index < 3; index += 1) {
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByText(`批次 ${first.id}`, { exact: false })).toBeVisible();
+  }
+
+  await page.goto("/batch-create");
+  await page.goBack();
+  await expect(page).toHaveURL(new RegExp(`/batches/${first.id}$`));
+  await page.goForward();
+  await expect(page).toHaveURL(/\/batch-create$/);
+
+  const reopened = await context.newPage();
+  await reopened.goto(`/batches/${first.id}`);
+  await expect(reopened.getByText(`批次 ${first.id}`, { exact: false })).toBeVisible();
+  await reopened.close();
+
+  const soakMs = Number(process.env.FINAL_ACCEPTANCE_SOAK_MS ?? "5000");
+  const deadline = Date.now() + soakMs;
+  let previous = -1;
+  const samples: Array<Record<string, unknown>> = [];
+  while (Date.now() < deadline) {
+    const current = await tickBatch(page, first.id);
+    const progress = Math.round(
+      ((current.completedCount + current.failedCount + current.cancelledCount) /
+        current.requestedCount) *
+        100,
+    );
+    expect(progress, "刷新与重连期间进度不得回退").toBeGreaterThanOrEqual(previous);
+    previous = progress;
+    samples.push({
+      ts: new Date().toISOString(),
+      status: current.status,
+      progress,
+      jobs: current.videoJobs.length,
+    });
+    await page.waitForTimeout(Math.min(250, Math.max(10, deadline - Date.now())));
+  }
+  expect(samples.length, "持续状态采样必须产生多个真实样本").toBeGreaterThan(2);
+  expect(samples.every((sample) => sample.jobs === 20)).toBe(true);
+  await testInfo.attach("j2-continuous-state-samples", {
+    body: Buffer.from(JSON.stringify({ configuredDurationMs: soakMs, samples }, null, 2)),
+    contentType: "application/json",
+  });
+});
+
+test("J3：单条重试与全部重试均通过 UI 回到真实状态机", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/batch-create");
+  const batch = await createBatch(page, {
+    imageCount: 2,
+    requestedCount: 20,
+    key: runKey(testInfo, "j3"),
+  });
+  const firstTerminal = await waitForTerminal(page, batch.id, testInfo);
+  expect(firstTerminal.batch.failedCount).toBeGreaterThan(0);
+
+  await page.goto(`/batches/${batch.id}`);
+  const singleRetryResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().includes(`/api/batches/${batch.id}/jobs/`) &&
+      response.url().endsWith("/retry"),
+  );
+  await page.getByRole("button", { name: "单条重试" }).first().click();
+  expect((await singleRetryResponse).status()).toBe(200);
+  await waitForTerminal(page, batch.id, testInfo);
+  let current = await getBatch(page, batch.id);
+  expect(current.videoJobs.some((job) => job.retryCount >= 1)).toBe(true);
+
+  await page.reload();
+  const retryAll = page.getByRole("button", { name: /重试全部失败/ });
+  await expect(retryAll).toBeVisible();
+  const retryAllResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith(`/api/batches/${batch.id}/retry`),
+  );
+  await retryAll.click();
+  expect((await retryAllResponse).status()).toBe(200);
+  await waitForTerminal(page, batch.id, testInfo);
+  current = await getBatch(page, batch.id);
+  expect(
+    current.videoJobs.filter((job) => job.retryCount >= 1).length,
+    "单条重试和全部重试应分别留下可审计的 retryCount",
+  ).toBeGreaterThanOrEqual(2);
+  expect(current.status, "全部失败重试后批次必须转为 completed").toBe("COMPLETED");
+  expect(current.completedCount).toBe(current.requestedCount);
+});
+
+test("J4：UI 边界、API 非法输入、双击幂等、真实上传、50 图与取消", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/batch-create");
+  const template = await getAcceptanceTemplate(page);
+  const validBody = {
+    templateId: template.id,
+    templateVersion: template.version,
+    images: imageUrls(2, runKey(testInfo, "j4-valid")),
+    requestedCount: 2,
+  };
+  const invalidCases = [
+    {
+      name: "51 images",
+      body: { ...validBody, images: imageUrls(51, runKey(testInfo, "j4-51")) },
+      status: 400,
+    },
+    { name: "N=201", body: { ...validBody, requestedCount: 201 }, status: 400 },
+    { name: "decimal", body: { ...validBody, requestedCount: 1.5 }, status: 400 },
+    { name: "negative", body: { ...validBody, requestedCount: -1 }, status: 400 },
+    {
+      name: "duplicate image id",
+      body: {
+        ...validBody,
+        images: [
+          { id: "duplicate", url: "https://example.com/a.png" },
+          { id: "duplicate", url: "https://example.com/b.png" },
+        ],
+      },
+      status: 409,
+    },
+  ];
+  for (const invalid of invalidCases) {
+    const response = await page.request.post("/api/batches", {
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": `${runKey(testInfo, "j4-invalid")}-${invalid.name}`,
+      },
+      data: invalid.body,
+    });
+    const body = (await response.json()) as { error?: string };
+    expect(response.status(), `${invalid.name}: ${JSON.stringify(body)}`).toBe(
+      invalid.status,
+    );
+    expect(body.error, `${invalid.name} 必须给出明确错误`).toBeTruthy();
+  }
+
+  const doubleKey = runKey(testInfo, "j4-double-click");
+  const double = await page.evaluate(
+    async ({ body, key }) => {
+      const submit = async () => {
+        const response = await fetch("/api/batches", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "idempotency-key": key,
+          },
+          body: JSON.stringify(body),
+        });
+        return { status: response.status, body: await response.json() };
+      };
+      return Promise.all([submit(), submit()]);
+    },
+    { body: validBody, key: doubleKey },
+  );
+  expect(double.map((result) => result.status)).toEqual([201, 201]);
+  const doubleIds = double.map(
+    (result) => (result.body as { batch: { id: string } }).batch.id,
+  );
+  expect(new Set(doubleIds).size).toBe(1);
+  await registerBatch(doubleIds[0]);
+
+  const input = page.locator('input[type="file"]');
+  await input.setInputFiles({
+    name: "not-an-image.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("not an image"),
+  });
+  await expect(
+    page.getByRole("alert").filter({ hasText: "仅支持 PNG、JPG、WEBP" }),
+  ).toBeVisible();
+
+  const tinyPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+  let uploadCancelled = false;
+  page.on("requestfailed", (request) => {
+    if (
+      request.url().includes("/api/upload/blob") &&
+      /ERR_ABORTED|cancelled|canceled/i.test(request.failure()?.errorText ?? "")
+    ) {
+      uploadCancelled = true;
+    }
+  });
+  await page.route("**/api/upload/blob", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3_000));
+    await route.continue().catch(() => undefined);
+  });
+  await input.setInputFiles({
+    name: "cancel-during-upload.png",
+    mimeType: "image/png",
+    buffer: tinyPng,
+  });
+  await expect(page.getByText(/上传中 1/)).toBeVisible();
+  await page
+    .getByRole("button", { name: "删除 cancel-during-upload.png" })
+    .click();
+  await expect(page.getByText("0/50 张")).toBeVisible();
+  await expect
+    .poll(() => uploadCancelled, {
+      timeout: 5_000,
+      message: "删除上传中的图片必须中止底层网络请求",
+    })
+    .toBe(true);
+  await page.unroute("**/api/upload/blob");
+
+  await input.setInputFiles(
+    Array.from({ length: 50 }, (_, index) => ({
+      name: `final-acceptance-${index + 1}.png`,
+      mimeType: "image/png",
+      buffer: tinyPng,
+    })),
+  );
+  await expect(
+    page.getByText(/已完成 50 · 上传中 0 · 失败 0/),
+    "真实 storage provider 必须接收 50 个 1x1 PNG；若 Blob/TOS 未配置，此断言应明确失败",
+  ).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText("50/50 张")).toBeVisible();
+
+  await page.getByRole("button", { name: /下一步/ }).click();
+  await page.getByRole("button", { name: /下一步/ }).click();
+  const countInput = page.getByLabel("生成数量输入");
+  await expect(countInput).toHaveAttribute("min", "1");
+  await expect(countInput).toHaveAttribute("max", "200");
+  await countInput.fill("-1");
+  await expect(countInput).toHaveValue("1");
+  await countInput.fill("201");
+  await expect(countInput).toHaveValue("200");
+
+  const nonImage = await page.request.post("/api/upload/blob", {
+    multipart: {
+      file: {
+        name: "plain.txt",
+        mimeType: "text/plain",
+        buffer: Buffer.from("plain"),
+      },
+    },
+  });
+  expect(nonImage.status(), await nonImage.text()).toBe(415);
+
+  const cancellable = await createBatch(page, {
+    imageCount: 2,
+    requestedCount: 200,
+    key: runKey(testInfo, "j4-cancel"),
+  });
+  const cancelled = await browserFetch<{ cancelled?: number; batch?: Batch; error?: string }>(
+    page,
+    `/api/batches/${cancellable.id}/cancel`,
+    { method: "POST" },
+  );
+  expect(cancelled.status, cancelled.text).toBe(200);
+  expect(cancelled.body.cancelled).toBeGreaterThan(0);
+  expect(cancelled.body.batch?.cancelledCount).toBeGreaterThan(0);
+});
+
+test("J5：两个批次并行推进且各自通过 HTTP UI 验证", async ({
+  page,
+  context,
+}, testInfo) => {
+  await page.goto("/batch-create");
+  const template = await getAcceptanceTemplate(page);
+  const keys = [runKey(testInfo, "j5-a"), runKey(testInfo, "j5-b")];
+  const created = await page.evaluate(
+    async ({ templateId, templateVersion, requestKeys, imagesByBatch }) =>
+      Promise.all(
+        requestKeys.map(async (key, batchIndex) => {
+          const response = await fetch("/api/batches", {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "idempotency-key": key,
+            },
+            body: JSON.stringify({
+              templateId,
+              templateVersion,
+              images: imagesByBatch[batchIndex],
+              requestedCount: 12,
+            }),
+          });
+          return { status: response.status, text: await response.text() };
+        }),
+      ),
+    {
+      templateId: template.id,
+      templateVersion: template.version,
+      requestKeys: keys,
+      imagesByBatch: keys.map((key) => imageUrls(3, key)),
+    },
+  );
+  const batches = created.map((result) => {
+    expect(result.status, result.text).toBe(201);
+    return (JSON.parse(result.text) as { batch: Batch }).batch;
+  });
+  for (const batch of batches) await registerBatch(batch.id);
+
+  const [left, right] = await Promise.all([context.newPage(), context.newPage()]);
+  await Promise.all([left.goto("/batch-create"), right.goto("/batch-create")]);
+  const [leftResult, rightResult] = await Promise.all([
+    waitForTerminal(left, batches[0].id, testInfo),
+    waitForTerminal(right, batches[1].id, testInfo),
+  ]);
+  expect(leftResult.batch.id).not.toBe(rightResult.batch.id);
+  expect(leftResult.batch.videoJobs).toHaveLength(12);
+  expect(rightResult.batch.videoJobs).toHaveLength(12);
+
+  await Promise.all([
+    left.goto(`/batches/${batches[0].id}`),
+    right.goto(`/batches/${batches[1].id}`),
+  ]);
+  await Promise.all([
+    expect(left.getByText(`批次 ${batches[0].id}`, { exact: false })).toBeVisible(),
+    expect(right.getByText(`批次 ${batches[1].id}`, { exact: false })).toBeVisible(),
+  ]);
+  await Promise.all([left.close(), right.close()]);
+});
+
+test("J8：CDP Slow 3G、监控路由延迟、LCP/FPS/route 预算", async ({
+  page,
+  context,
+}, testInfo) => {
+  await page.goto("/personal/videos");
+  const routeStarted = performance.now();
+  await page.getByRole("button", { name: /批量生成/ }).first().click();
+  await expect(page).toHaveURL((url) => url.pathname === "/batch-create");
+  const routeSwitchMs = performance.now() - routeStarted;
+  await page.waitForTimeout(500);
+  const normalLcpMs = await page.evaluate(
+    () =>
+      (
+        window as Window & {
+          __finalAcceptancePerf?: { lcp: number };
+        }
+      ).__finalAcceptancePerf?.lcp ?? 0,
+  );
+
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Network.enable");
+  await cdp.send("Network.emulateNetworkConditions", {
+    offline: false,
+    latency: 400,
+    downloadThroughput: (50 * 1024) / 8,
+    uploadThroughput: (20 * 1024) / 8,
+    connectionType: "cellular3g",
+  });
+
+  const tinyPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+  const input = page.locator('input[type="file"]');
+  await input.setInputFiles({
+    name: "slow-3g-product.png",
+    mimeType: "image/png",
+    buffer: tinyPng,
+  });
+  await expect(
+    page.getByText(/已完成 1 · 上传中 0 · 失败 0/),
+    "Slow 3G 下单图上传必须最终完成且不假死",
+  ).toBeVisible({ timeout: 120_000 });
+  await page.getByRole("button", { name: "下一步" }).click();
+  await page
+    .getByRole("button")
+    .filter({ hasText: "最终验收单图模板" })
+    .click();
+  await page.getByRole("button", { name: "下一步" }).click();
+  const countInput = page.getByLabel("生成数量输入");
+  await countInput.fill("1");
+  await page.getByRole("button", { name: "下一步" }).click();
+  const submit = page.getByRole("button", { name: /创建 1 条视频/ });
+  const submitStarted = performance.now();
+  await submit.click();
+  await expect(submit).toBeDisabled({ timeout: 200 });
+  const submitFeedbackMs = performance.now() - submitStarted;
+  await expect(page).toHaveURL(/\/batches\/[^/]+$/, { timeout: 120_000 });
+  const batchId = new URL(page.url()).pathname.split("/").at(-1)!;
+  await registerBatch(batchId);
+
+  await cdp.send("Network.emulateNetworkConditions", {
+    offline: false,
+    latency: 0,
+    downloadThroughput: -1,
+    uploadThroughput: -1,
+    connectionType: "none",
+  });
+
+  const delayMs = Number(process.env.FINAL_ACCEPTANCE_MONITOR_DELAY_MS ?? "30000");
+  await page.route(`**/api/batches/${batchId}/status`, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    await route.continue();
+  });
+  const statusStarted = performance.now();
+  const pendingStatus = tickBatch(page, batchId);
+  await expect(page.getByRole("progressbar", { name: /批次总进度/ })).toBeVisible({
+    timeout: 200,
+  });
+  const response = await pendingStatus;
+  const statusResponseMs = performance.now() - statusStarted;
+  expect(response.id).toBe(batchId);
+  expect(statusResponseMs, "监控延迟证据必须覆盖 30 秒配置").toBeGreaterThanOrEqual(
+    delayMs,
+  );
+
+  const fps = await sampleFps(page);
+  const perf = await page.evaluate(() => {
+    const state = (
+      window as Window & {
+        __finalAcceptancePerf?: { lcp: number; longTasks: number[] };
+      }
+    ).__finalAcceptancePerf;
+    return { lcpMs: state?.lcp ?? 0, longTasksMs: state?.longTasks ?? [] };
+  });
+  const budgets = {
+    lcpMs: Number(process.env.FINAL_ACCEPTANCE_LCP_BUDGET_MS ?? "2500"),
+    routeSwitchMs: Number(process.env.FINAL_ACCEPTANCE_ROUTE_BUDGET_MS ?? "1000"),
+    feedbackMs: 200,
+    maxLongTaskMs: 100,
+    fps: Number(process.env.FINAL_ACCEPTANCE_FPS_BUDGET ?? "55"),
+  };
+  await testInfo.attach("j8-slow-3g-performance", {
+    body: Buffer.from(
+      JSON.stringify(
+        {
+          emulation: "Slow 3G upload + 30s monitor response",
+          delayMs,
+          routeSwitchMs,
+          submitFeedbackMs,
+          statusResponseMs,
+          normalLcpMs,
+          fps,
+          perf,
+          budgets,
+        },
+        null,
+        2,
+      ),
+    ),
+    contentType: "application/json",
+  });
+  expect(normalLcpMs, "正常网络必须采集到 LCP").toBeGreaterThan(0);
+  expect(normalLcpMs, "正常网络 LCP 超预算").toBeLessThanOrEqual(budgets.lcpMs);
+  expect(routeSwitchMs, "路由切换超预算").toBeLessThanOrEqual(
+    budgets.routeSwitchMs,
+  );
+  expect(submitFeedbackMs, "提交按钮反馈超过 200ms").toBeLessThanOrEqual(
+    budgets.feedbackMs,
+  );
+  expect(Math.max(0, ...perf.longTasksMs), "主线程冻结超过 100ms").toBeLessThanOrEqual(
+    budgets.maxLongTaskMs,
+  );
+  expect(fps, "监控页动画帧率低于预算").toBeGreaterThanOrEqual(budgets.fps);
+});

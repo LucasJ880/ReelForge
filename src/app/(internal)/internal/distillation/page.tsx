@@ -28,32 +28,32 @@ export default async function DistillationPage() {
   }));
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader title="创意蒸馏" description="被 Top3 视频提炼的可复用创意特征" />
       {items.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
+        <Card className="p-8 text-center text-body text-muted-foreground">
           还没有蒸馏记录，需要至少跑完一轮打分后才能蒸馏。
         </Card>
       ) : (
         <div className="space-y-3">
           {items.map((d) => (
-            <Card key={d.id}>
+            <Card key={d.id} size="sm">
               <CardHeader>
-                <CardTitle className="text-sm">
+                <CardTitle>
                   <Link
                     href={`/orders/${d.deliveryOrderId}`}
                     className="hover:text-primary"
                   >
                     {d.deliveryOrder.title}
                   </Link>
-                  <span className="ml-2 text-xs text-muted-foreground">
+                  <span className="ml-2 text-meta text-muted-foreground">
                     来源：第 {d.sourceRound?.roundIndex ?? "?"} 轮 · {formatDate(d.createdAt)}
                   </span>
                 </CardTitle>
               </CardHeader>
-              <CardContent className="text-sm">
+              <CardContent className="text-body">
                 <p className="whitespace-pre-wrap text-muted-foreground">{d.summary}</p>
-                <pre className="mt-2 max-h-60 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                <pre className="mt-3 max-h-60 overflow-auto rounded-(--radius-md) bg-secondary p-3 font-mono text-meta">
                   {JSON.stringify(d.structured, null, 2)}
                 </pre>
               </CardContent>

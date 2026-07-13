@@ -28,10 +28,10 @@ export default async function MetricsPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader title="数据导入" description="通过 CSV 上传 TikTok 12/24/48h 数据窗口" />
 
-      <div className="mb-6">
+      <div>
         <Card>
           <CardHeader>
             <CardTitle>CSV 上传</CardTitle>
@@ -42,15 +42,21 @@ export default async function MetricsPage() {
         </Card>
       </div>
 
-      <h2 className="mb-3 text-lg font-semibold">最近数据快照</h2>
+      <h2 className="font-heading text-title">最近数据快照</h2>
       {recent.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
+        <Card className="p-8 text-center text-body text-muted-foreground">
           还没有数据快照
         </Card>
       ) : (
         <Card>
-          <CardContent className="pt-4">
-            <table className="w-full text-xs">
+          <CardContent>
+            <div
+              className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              role="region"
+              aria-label="最近数据快照"
+              tabIndex={0}
+            >
+            <table className="min-w-180 w-full text-meta">
               <thead>
                 <tr className="text-left text-muted-foreground">
                   <th className="py-2">时间</th>
@@ -69,7 +75,7 @@ export default async function MetricsPage() {
                     s.publishRecord.videoBrief.contentAngle.round.deliveryOrder;
                   const round = s.publishRecord.videoBrief.contentAngle.round;
                   return (
-                    <tr key={s.id} className="border-t border-border/40">
+                    <tr key={s.id} className="border-t border-border">
                       <td className="py-2">{formatDateShort(s.capturedAt)}</td>
                       <td className="truncate">{order.title} · 第 {round.roundIndex} 轮</td>
                       <td className="font-mono">{s.publishRecord.externalPostId ?? "—"}</td>
@@ -86,6 +92,7 @@ export default async function MetricsPage() {
                 })}
               </tbody>
             </table>
+            </div>
           </CardContent>
         </Card>
       )}

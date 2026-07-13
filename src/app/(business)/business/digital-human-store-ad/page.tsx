@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { DigitalHumanWizard } from "@/components/digital-human/digital-human-wizard";
+import { Card, CardContent } from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -22,9 +23,11 @@ export default async function DigitalHumanStoreAdPage() {
       {enabled ? (
         <DigitalHumanWizard />
       ) : (
-        <div className="rounded-xl border border-white/10 bg-card/60 p-8 text-sm text-muted-foreground">
-          该功能正在灰度中，暂未对你的账号开放。
-        </div>
+        <Card size="sm">
+          <CardContent className="pt-2 text-body text-muted-foreground">
+            该功能正在灰度中，暂未对你的账号开放。
+          </CardContent>
+        </Card>
       )}
     </div>
   );

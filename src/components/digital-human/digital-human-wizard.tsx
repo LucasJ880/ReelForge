@@ -14,6 +14,10 @@ import {
   Volume2,
   X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------- 类型 ------------------------------- */
@@ -225,7 +229,7 @@ export function DigitalHumanWizard() {
       <Stepper step={step} />
 
       {catalogError && (
-        <p className="text-sm text-red-400">目录加载失败：{catalogError}</p>
+        <p role="alert" className="text-body text-danger">目录加载失败：{catalogError}</p>
       )}
 
       {/* Step 1 · 数字人 */}
@@ -236,34 +240,35 @@ export function DigitalHumanWizard() {
               key={a.id}
               type="button"
               onClick={() => setAvatarId(a.id)}
+              aria-pressed={avatarId === a.id}
               className={cn(
-                "group relative flex flex-col overflow-hidden rounded-xl border bg-card/60 text-left transition-all",
+                "group relative flex min-w-0 flex-col overflow-hidden rounded-(--radius-lg) border bg-card text-left shadow-editorial transition-[border-color] duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
                 avatarId === a.id
-                  ? "border-primary ring-2 ring-primary/40"
-                  : "border-white/10 hover:border-white/25",
+                  ? "border-primary"
+                  : "border-border hover:border-muted-foreground",
               )}
             >
-              <div className="flex aspect-3/4 items-center justify-center bg-linear-to-br from-white/5 to-white/0">
+              <div className="flex aspect-3/4 items-center justify-center bg-muted">
                 {a.thumbnailUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={a.thumbnailUrl} alt={a.name} className="h-full w-full object-cover" />
                 ) : (
-                  <UserRound className="h-12 w-12 text-muted-foreground/50" />
+                  <UserRound className="size-12 text-muted-foreground" strokeWidth={1.5} aria-hidden />
                 )}
               </div>
               <div className="p-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium">{a.name}</span>
-                  {avatarId === a.id && <Check className="h-4 w-4 text-primary" />}
+                  <span className="truncate text-body font-medium">{a.name}</span>
+                  {avatarId === a.id && <Check className="size-4 shrink-0 text-primary" strokeWidth={1.5} aria-hidden />}
                 </div>
                 {a.style && (
-                  <span className="text-[11px] text-muted-foreground">{a.style}</span>
+                  <span className="text-meta text-muted-foreground">{a.style}</span>
                 )}
               </div>
             </button>
           ))}
           {avatars.length === 0 && !catalogError && (
-            <p className="col-span-full text-sm text-muted-foreground">加载中…</p>
+            <p className="col-span-full text-body text-muted-foreground">加载中…</p>
           )}
         </div>
       )}
@@ -275,39 +280,41 @@ export function DigitalHumanWizard() {
             <div
               key={v.id}
               className={cn(
-                "flex items-start gap-3 rounded-xl border bg-card/60 p-4 transition-colors",
+                "flex min-w-0 items-start gap-3 rounded-(--radius-lg) border bg-card p-4 shadow-editorial transition-[border-color] duration-fast ease-out motion-reduce:transition-none",
                 voiceId === v.id
-                  ? "border-primary ring-2 ring-primary/40"
-                  : "border-white/10 hover:border-white/25",
+                  ? "border-primary"
+                  : "border-border hover:border-muted-foreground",
               )}
             >
               <button
                 type="button"
                 onClick={() => setVoiceId(v.id)}
-                className="flex flex-1 items-start gap-3 text-left"
+                aria-pressed={voiceId === v.id}
+                className="flex min-w-0 flex-1 items-start gap-3 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
                 <span
                   className={cn(
-                    "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border",
-                    voiceId === v.id ? "border-primary bg-primary text-white" : "border-white/30",
+                    "mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-(--radius-lg) border",
+                    voiceId === v.id ? "border-primary bg-primary text-primary-foreground" : "border-border",
                   )}
                 >
-                  {voiceId === v.id && <Check className="h-3 w-3" />}
+                  {voiceId === v.id && <Check className="size-3" strokeWidth={1.5} aria-hidden />}
                 </span>
-                <div>
-                  <div className="text-sm font-medium">{v.name}</div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{v.description}</p>
+                <div className="min-w-0">
+                  <div className="text-body font-medium">{v.name}</div>
+                  <p className="mt-1 text-meta text-muted-foreground">{v.description}</p>
                 </div>
               </button>
               {v.sampleUrl && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={() => new Audio(v.sampleUrl!).play()}
-                  className="rounded-md border border-white/15 p-2 text-muted-foreground hover:text-foreground"
                   aria-label="试听"
                 >
-                  <Volume2 className="h-4 w-4" />
-                </button>
+                  <Volume2 strokeWidth={1.5} aria-hidden />
+                </Button>
               )}
             </div>
           ))}
@@ -325,12 +332,12 @@ export function DigitalHumanWizard() {
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
-          <div className="flex items-center gap-3">
-            <button
+          <div className="flex flex-wrap items-center gap-3">
+            <Button
               type="button"
+              variant="outline"
               disabled={uploading || storeImages.length >= 5}
               onClick={() => fileRef.current?.click()}
-              className="inline-flex items-center gap-2 rounded-md border border-white/15 bg-card/60 px-3 py-2 text-sm hover:bg-card/90 disabled:opacity-60"
             >
               {uploading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -338,28 +345,30 @@ export function DigitalHumanWizard() {
                 <ImagePlus className="h-4 w-4" />
               )}
               {uploading ? "上传中…" : "上传店铺实景图"}
-            </button>
-            <span className="text-xs text-muted-foreground">
+            </Button>
+            <span className="text-meta text-muted-foreground">
               2–5 张更佳 · PNG / JPG / WebP（{storeImages.length}/5）
             </span>
           </div>
-          {uploadError && <p className="text-xs text-red-400">{uploadError}</p>}
-          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-5">
+          {uploadError && <p role="alert" className="text-meta text-danger">{uploadError}</p>}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-5">
             {storeImages.map((img) => (
               <div
                 key={img.id}
-                className="group relative aspect-3/4 overflow-hidden rounded-lg border border-white/10"
+                className="group relative aspect-3/4 overflow-hidden rounded-(--radius-md) border border-border bg-muted"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={img.url} alt={img.fileName} className="h-full w-full object-cover" />
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="icon-sm"
                   onClick={() => setStoreImages((p) => p.filter((x) => x.id !== img.id))}
-                  className="absolute right-1 top-1 rounded-full bg-black/60 p-1 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                  className="absolute right-1 top-1"
                   aria-label="移除"
                 >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                  <X strokeWidth={1.5} aria-hidden />
+                </Button>
               </div>
             ))}
           </div>
@@ -370,69 +379,61 @@ export function DigitalHumanWizard() {
       {step === 3 && (
         <div className="grid max-w-2xl gap-5">
           <Field label="行业 / 店铺类型" required>
-            <input
+            <Input
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
               placeholder="如：宠物店 / 猫咪主题店、精品咖啡馆、美甲店"
-              className="input"
             />
           </Field>
           <Field label="门店一句话描述">
-            <textarea
+            <Textarea
               value={storeDescription}
               onChange={(e) => setStoreDescription(e.target.value)}
               rows={2}
               placeholder="风格、环境、特色，越具体文案越好。"
-              className="input"
             />
           </Field>
           <Field label="主打卖点（每行一个）">
-            <textarea
+            <Textarea
               value={sellingPoints}
               onChange={(e) => setSellingPoints(e.target.value)}
               rows={3}
               placeholder={"透明玻璃猫舍随时看主子\n店主精挑好物\n会员洗护打折"}
-              className="input"
             />
           </Field>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="行动号召 (CTA)">
-              <input
+              <Input
                 value={cta}
                 onChange={(e) => setCta(e.target.value)}
                 placeholder="地址放评论区，周末冲～"
-                className="input"
               />
             </Field>
             <Field label="品牌名（可选）">
-              <input
+              <Input
                 value={brandName}
                 onChange={(e) => setBrandName(e.target.value)}
                 placeholder="Aivora"
-                className="input"
               />
             </Field>
           </div>
           <Field label="时长">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               {DURATION_OPTIONS.map((d) => (
-                <button
+                <Button
                   key={d}
                   type="button"
+                  variant={durationSec === d ? "default" : "outline"}
+                  size="sm"
+                  aria-pressed={durationSec === d}
                   onClick={() => setDurationSec(d)}
-                  className={cn(
-                    "rounded-md border px-4 py-2 text-sm",
-                    durationSec === d
-                      ? "border-primary bg-primary/10 text-foreground"
-                      : "border-white/15 text-muted-foreground hover:text-foreground",
-                  )}
                 >
                   {d}s
-                </button>
+                </Button>
               ))}
             </div>
           </Field>
-          {submitError && <p className="text-sm text-red-400">{submitError}</p>}
+          {submitError && <p role="alert" className="text-body text-danger">{submitError}</p>}
         </div>
       )}
 
@@ -442,67 +443,50 @@ export function DigitalHumanWizard() {
       )}
 
       {/* 导航 */}
-      <div className="flex items-center justify-between border-t border-white/10 pt-5">
-        <button
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+        <Button
           type="button"
+          variant="ghost"
           disabled={step === 0 || (step === 4 && (job?.status === "QUEUED" || job?.status === "RENDERING"))}
           onClick={() => setStep((s) => Math.max(0, s - 1))}
-          className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm text-muted-foreground hover:text-foreground disabled:opacity-40"
         >
-          <ChevronLeft className="h-4 w-4" />
+          <ChevronLeft strokeWidth={1.5} aria-hidden />
           上一步
-        </button>
+        </Button>
 
         {step < 3 && (
-          <button
+          <Button
             type="button"
             disabled={!canNext}
             onClick={() => setStep((s) => s + 1)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
           >
             下一步
-            <ChevronRight className="h-4 w-4" />
-          </button>
+            <ChevronRight strokeWidth={1.5} aria-hidden />
+          </Button>
         )}
         {step === 3 && (
-          <button
+          <Button
             type="button"
             disabled={!canNext || submitting}
             onClick={submit}
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-40"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
             开始生成
-          </button>
+          </Button>
         )}
         {step === 4 && (job?.status === "SUCCEEDED" || job?.status === "FAILED") && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={() => {
               resetForRetry();
               setStep(0);
             }}
-            className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-4 py-2 text-sm hover:bg-card/60"
           >
             再做一条
-          </button>
+          </Button>
         )}
       </div>
-
-      <style jsx>{`
-        :global(.input) {
-          width: 100%;
-          border-radius: 0.5rem;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          background: rgba(255, 255, 255, 0.03);
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          outline: none;
-        }
-        :global(.input:focus) {
-          border-color: hsl(var(--primary));
-        }
-      `}</style>
     </div>
   );
 }
@@ -511,25 +495,26 @@ export function DigitalHumanWizard() {
 
 function Stepper({ step }: { step: number }) {
   return (
-    <ol className="flex flex-wrap items-center gap-2 text-xs">
+    <ol className="flex flex-wrap items-center gap-2 text-meta" aria-label="生成步骤">
       {STEPS.map((label, i) => (
         <li key={label} className="flex items-center gap-2">
           <span
+            aria-current={i === step ? "step" : undefined}
             className={cn(
-              "flex h-6 w-6 items-center justify-center rounded-full border text-[11px]",
+              "flex size-6 items-center justify-center rounded-(--radius-lg) border text-meta",
               i < step
                 ? "border-primary bg-primary text-primary-foreground"
                 : i === step
                   ? "border-primary text-primary"
-                  : "border-white/20 text-muted-foreground",
+                  : "border-border text-muted-foreground",
             )}
           >
-            {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
+            {i < step ? <Check className="size-3" strokeWidth={1.5} aria-hidden /> : i + 1}
           </span>
           <span className={cn(i === step ? "text-foreground" : "text-muted-foreground")}>
             {label}
           </span>
-          {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-white/15" />}
+          {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-border" aria-hidden />}
         </li>
       ))}
     </ol>
@@ -547,9 +532,9 @@ function Field({
 }) {
   return (
     <label className="block space-y-1.5">
-      <span className="text-xs font-medium text-muted-foreground">
+      <span className="text-meta font-medium text-muted-foreground">
         {label}
-        {required && <span className="ml-0.5 text-red-400">*</span>}
+        {required && <span className="ml-0.5 text-danger" aria-hidden>*</span>}
       </span>
       {children}
     </label>
@@ -568,26 +553,24 @@ function GenerationPanel({
   if (job.status === "SUCCEEDED" && job.outputVideoUrl) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-sm text-emerald-400">
-          <Check className="h-4 w-4" /> 生成完成！
+        <div className="flex items-center gap-2 text-body text-success" role="status">
+          <Check className="size-4" strokeWidth={1.5} aria-hidden /> 生成完成！
         </div>
-        <div className="mx-auto max-w-[320px] overflow-hidden rounded-xl border border-white/10">
+        <div className="mx-auto max-w-[320px] overflow-hidden rounded-(--radius-lg) border border-border">
           <video
             src={job.outputVideoUrl}
             poster={job.outputThumbnailUrl ?? undefined}
             controls
-            className="aspect-9/16 w-full bg-black"
+            className="aspect-9/16 w-full bg-muted"
           />
         </div>
         <div className="flex justify-center">
-          <a
-            href={job.outputVideoUrl}
-            download
-            className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          <Button
+            render={<a href={job.outputVideoUrl} download />}
           >
-            <Download className="h-4 w-4" />
+            <Download strokeWidth={1.5} aria-hidden />
             下载视频
-          </a>
+          </Button>
         </div>
       </div>
     );
@@ -595,33 +578,37 @@ function GenerationPanel({
 
   if (job.status === "FAILED") {
     return (
-      <div className="space-y-4 rounded-xl border border-red-500/30 bg-red-500/5 p-6">
-        <p className="text-sm text-red-300">
+      <Card className="border-danger" size="sm">
+        <CardContent className="space-y-4 pt-2">
+        <p role="alert" className="text-body text-danger">
           {job.userSafeError ?? "生成失败了，请稍后重试。"}
         </p>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={onRetry}
-          className="inline-flex items-center gap-1.5 rounded-md border border-white/15 px-4 py-2 text-sm hover:bg-card/60"
         >
-          <RefreshCw className="h-4 w-4" />
+          <RefreshCw strokeWidth={1.5} aria-hidden />
           重新发起
-        </button>
-      </div>
+        </Button>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-white/10 bg-card/60 py-16">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+    <Card size="sm">
+      <CardContent className="flex flex-col items-center justify-center gap-4 py-16" role="status">
+      <Loader2 className="size-10 animate-spin text-primary motion-reduce:animate-none" strokeWidth={1.5} aria-hidden />
       <div className="text-center">
-        <p className="text-sm font-medium">
+        <p className="text-body font-medium">
           {job.status === "QUEUED" ? "已排队，等待出片机器…" : "正在生成你的探店广告…"}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-meta text-muted-foreground">
           整个流程大约 5–8 分钟（分镜 → AI 画面 → 中文口播 → 字幕拼接），可以先去忙别的，完成后这里会自动刷新。
         </p>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import type { BusinessVideoInsight } from "@/lib/services/business-insights-service";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export type PerfTableLabels = {
   empty: string;
@@ -11,12 +13,15 @@ export type PerfTableLabels = {
   open: string;
 };
 
-const STATUS_CLASS: Record<string, string> = {
-  ready: "bg-emerald-500/15 text-emerald-300",
-  failed: "bg-rose-500/15 text-rose-300",
-  generating: "bg-amber-500/15 text-amber-300",
-  assembling: "bg-sky-500/15 text-sky-300",
-  planning: "bg-slate-500/15 text-slate-300",
+const STATUS_VARIANT: Record<
+  string,
+  "success" | "destructive" | "warning" | "default" | "secondary"
+> = {
+  ready: "success",
+  failed: "destructive",
+  generating: "warning",
+  assembling: "default",
+  planning: "secondary",
 };
 
 export function VideoPerformanceTable({
@@ -28,7 +33,7 @@ export function VideoPerformanceTable({
 }) {
   if (videos.length === 0) {
     return (
-      <p className="text-sm text-muted-foreground">
+      <p className="text-body text-muted-foreground">
         {labels.empty}{" "}
         <Link
           href="/business/create-ad-video"
@@ -42,32 +47,37 @@ export function VideoPerformanceTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-white/10">
-      <table className="w-full min-w-[640px] text-left text-sm">
-        <thead className="border-b border-white/10 bg-card/50 text-muted-foreground">
+    <div
+      className="overflow-x-auto rounded-(--radius-lg) border border-border bg-card shadow-editorial focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      role="region"
+      aria-label={labels.colVideo}
+      tabIndex={0}
+    >
+      <table className="w-full min-w-160 text-left text-body">
+        <thead className="border-b border-border bg-muted text-muted-foreground">
           <tr>
-            <th className="px-4 py-3 font-medium">{labels.colVideo}</th>
-            <th className="px-4 py-3 font-medium">{labels.colStatus}</th>
-            <th className="px-4 py-3 font-medium">{labels.colViews}</th>
-            <th className="px-4 py-3 font-medium">{labels.colCompletion}</th>
-            <th className="px-4 py-3 font-medium" />
+            <th scope="col" className="px-4 py-3 font-medium">{labels.colVideo}</th>
+            <th scope="col" className="px-4 py-3 font-medium">{labels.colStatus}</th>
+            <th scope="col" className="px-4 py-3 font-medium">{labels.colViews}</th>
+            <th scope="col" className="px-4 py-3 font-medium">{labels.colCompletion}</th>
+            <th scope="col" className="px-4 py-3 font-medium">
+              <span className="sr-only">{labels.open}</span>
+            </th>
           </tr>
         </thead>
         <tbody>
           {videos.map((v) => (
             <tr
               key={v.orderId}
-              className="border-b border-white/5 last:border-0"
+              className="border-b border-border last:border-0"
             >
               <td className="max-w-xs truncate px-4 py-3 font-medium">
                 {v.title}
               </td>
               <td className="px-4 py-3">
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs ${STATUS_CLASS[v.status] ?? STATUS_CLASS.planning}`}
-                >
+                <Badge variant={STATUS_VARIANT[v.status] ?? "secondary"}>
                   {v.statusLabel}
-                </span>
+                </Badge>
               </td>
               <td className="px-4 py-3 tabular-nums text-muted-foreground">
                 {v.views != null ? v.views.toLocaleString() : "—"}
@@ -78,12 +88,14 @@ export function VideoPerformanceTable({
                   : "—"}
               </td>
               <td className="px-4 py-3 text-right">
-                <Link
-                  href={`/business/products/${v.orderId}`}
-                  className="text-primary hover:underline"
+                <Button
+                  render={<Link href={`/business/products/${v.orderId}`} />}
+                  variant="link"
+                  size="sm"
+                  className="px-0"
                 >
                   {labels.open}
-                </Link>
+                </Button>
               </td>
             </tr>
           ))}

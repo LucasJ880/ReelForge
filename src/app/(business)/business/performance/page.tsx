@@ -39,8 +39,8 @@ export default async function PerformancePage() {
               avgCompletion: t("shell.statsCards.avgCompletion"),
             }}
           />
-          <section className="space-y-3">
-            <h2 className="text-lg font-semibold">
+          <section className="space-y-4">
+            <h2 className="font-heading text-subhead font-normal">
               {t("shell.performancePage.videosSection")}
             </h2>
             <VideoPerformanceTable
@@ -58,7 +58,7 @@ export default async function PerformancePage() {
           </section>
         </>
       ) : (
-        <p className="text-sm text-destructive">
+        <p role="alert" className="text-body text-danger">
           {t("shell.performancePage.loadError")}
         </p>
       )}

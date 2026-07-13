@@ -55,7 +55,8 @@
   --popover: var(--surface);
   --popover-foreground: var(--text-primary);
   --primary: var(--accent);
-  --primary-foreground: var(--surface);
+  /* #FF4D00 与白字仅 3.32:1；深色前景满足 WCAG AA。 */
+  --primary-foreground: var(--text-primary);
   --secondary: var(--surface-sunken);
   --secondary-foreground: var(--text-primary);
   --muted: var(--surface-sunken);

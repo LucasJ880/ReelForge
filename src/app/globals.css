@@ -101,7 +101,7 @@
   .deck-cta {
     border: 1px solid var(--accent);
     background: var(--accent);
-    color: var(--surface);
+    color: var(--text-primary);
   }
 
   .glass-btn:hover,

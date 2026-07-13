@@ -16,18 +16,21 @@ import type { AIUsageStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<AIUsageStatus, { label: string; cls: string }> = {
+const STATUS_LABEL: Record<
+  AIUsageStatus,
+  { label: string; variant: "success" | "destructive" | "warning" }
+> = {
   SUCCESS: {
     label: "SUCCESS",
-    cls: "bg-emerald-500/15 border border-emerald-400/30 text-emerald-200",
+    variant: "success",
   },
   FAILED: {
     label: "FAILED",
-    cls: "bg-rose-500/15 border border-rose-400/30 text-rose-200",
+    variant: "destructive",
   },
   MOCK: {
     label: "MOCK",
-    cls: "bg-amber-500/15 border border-amber-400/30 text-amber-200",
+    variant: "warning",
   },
 };
 
@@ -51,12 +54,12 @@ export default async function AdminAIUsagePage({
   ]);
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="text-xl font-semibold tracking-tight">AI Usage Dashboard</h1>
-        <p className="text-xs text-muted-foreground">
+    <div className="space-y-8">
+      <header className="space-y-3 border-b border-border pb-6">
+        <h1 className="editorial-display">AI Usage Dashboard</h1>
+        <p className="max-w-3xl text-body text-muted-foreground">
           内部只读 · 最近 {stats.windowDays} 天 OpenAI 调用统计（{stats.totals.calls} 条记录）。
-          数据来源 <code className="text-[10px]">AIUsageLog</code>，不参与计费，仅做可观测。
+          数据来源 <code className="font-mono text-meta">AIUsageLog</code>，不参与计费，仅做可观测。
         </p>
       </header>
 
@@ -78,14 +81,20 @@ export default async function AdminAIUsagePage({
       <section className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Calls by Feature</CardTitle>
+            <CardTitle>Calls by Feature</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs">
+          <CardContent className="text-meta">
             {stats.byFeature.length === 0 ? (
               <p className="text-muted-foreground">所选窗口内无调用记录。</p>
             ) : (
-              <table className="w-full">
-                <thead className="text-[10px] text-muted-foreground">
+              <div
+                className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                role="region"
+                aria-label="按功能统计的 AI 调用"
+                tabIndex={0}
+              >
+              <table className="min-w-160 w-full">
+                <thead className="text-meta text-muted-foreground">
                   <tr className="text-left">
                     <th className="py-1.5">Feature</th>
                     <th className="py-1.5 text-right">Calls</th>
@@ -99,19 +108,19 @@ export default async function AdminAIUsagePage({
                   {stats.byFeature.map((row) => (
                     <tr
                       key={row.feature}
-                      className="border-t border-white/5"
+                      className="border-t border-border"
                     >
-                      <td className="py-1.5 font-mono text-[11px]">
+                      <td className="py-1.5 font-mono text-meta">
                         {row.feature}
                       </td>
                       <td className="py-1.5 text-right">{row.calls}</td>
-                      <td className="py-1.5 text-right text-emerald-300">
+                      <td className="py-1.5 text-right text-success">
                         {row.successCalls}
                       </td>
-                      <td className="py-1.5 text-right text-rose-300">
+                      <td className="py-1.5 text-right text-danger">
                         {row.failedCalls}
                       </td>
-                      <td className="py-1.5 text-right text-amber-300">
+                      <td className="py-1.5 text-right text-warning">
                         {row.mockCalls}
                       </td>
                       <td className="py-1.5 text-right">
@@ -121,20 +130,27 @@ export default async function AdminAIUsagePage({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Calls by Model</CardTitle>
+            <CardTitle>Calls by Model</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs">
+          <CardContent className="text-meta">
             {stats.byModel.length === 0 ? (
               <p className="text-muted-foreground">所选窗口内无调用记录。</p>
             ) : (
-              <table className="w-full">
-                <thead className="text-[10px] text-muted-foreground">
+              <div
+                className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                role="region"
+                aria-label="按模型统计的 AI 调用"
+                tabIndex={0}
+              >
+              <table className="min-w-128 w-full">
+                <thead className="text-meta text-muted-foreground">
                   <tr className="text-left">
                     <th className="py-1.5">Model</th>
                     <th className="py-1.5 text-right">Calls</th>
@@ -145,8 +161,8 @@ export default async function AdminAIUsagePage({
                 </thead>
                 <tbody>
                   {stats.byModel.map((row) => (
-                    <tr key={row.model} className="border-t border-white/5">
-                      <td className="py-1.5 font-mono text-[11px]">
+                    <tr key={row.model} className="border-t border-border">
+                      <td className="py-1.5 font-mono text-meta">
                         {row.model}
                       </td>
                       <td className="py-1.5 text-right">{row.calls}</td>
@@ -161,6 +177,7 @@ export default async function AdminAIUsagePage({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -168,15 +185,20 @@ export default async function AdminAIUsagePage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Recent 50 Calls</CardTitle>
+          <CardTitle>Recent 50 Calls</CardTitle>
         </CardHeader>
         <CardContent>
           {recent.length === 0 ? (
-            <p className="text-xs text-muted-foreground">所选窗口内没有调用记录。</p>
+            <p className="text-meta text-muted-foreground">所选窗口内没有调用记录。</p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[720px]">
-                <thead className="text-[10px] text-muted-foreground">
+            <div
+              className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              role="region"
+              aria-label="最近 50 次 AI 调用"
+              tabIndex={0}
+            >
+              <table className="min-w-180 w-full text-meta">
+                <thead className="text-meta text-muted-foreground">
                   <tr className="text-left">
                     <th className="py-1.5">Time</th>
                     <th className="py-1.5">Feature</th>
@@ -192,20 +214,20 @@ export default async function AdminAIUsagePage({
                   {recent.map((r) => {
                     const s = STATUS_LABEL[r.status];
                     return (
-                      <tr key={r.id} className="border-t border-white/5 align-top">
+                      <tr key={r.id} className="border-t border-border align-top">
                         <td className="py-1.5 text-muted-foreground whitespace-nowrap">
                           {r.createdAt.toLocaleString()}
                         </td>
-                        <td className="py-1.5 font-mono text-[11px]">
+                        <td className="py-1.5 font-mono text-meta">
                           {r.feature}
                         </td>
-                        <td className="py-1.5 font-mono text-[11px]">
+                        <td className="py-1.5 font-mono text-meta">
                           {r.model ?? "-"}
                         </td>
                         <td className="py-1.5">
-                          <Badge className={`${s.cls} text-[10px]`}>{s.label}</Badge>
+                          <Badge variant={s.variant}>{s.label}</Badge>
                           {r.errorMessage && (
-                            <div className="text-[10px] text-rose-300/80 mt-0.5 max-w-[28ch] truncate">
+                            <div className="mt-1 max-w-[28ch] truncate text-meta text-danger">
                               {r.errorMessage}
                             </div>
                           )}
@@ -223,7 +245,7 @@ export default async function AdminAIUsagePage({
                           {r.deliveryOrderId ? (
                             <Link
                               href={`/internal/orders/${r.deliveryOrderId}`}
-                              className="text-sky-300 hover:underline"
+                              className="text-primary hover:underline"
                             >
                               {r.deliveryOrderTitle ?? r.deliveryOrderId.slice(0, 6)}
                             </Link>
@@ -246,12 +268,12 @@ export default async function AdminAIUsagePage({
 
 function KpiCard({ label, value }: { label: string; value: string }) {
   return (
-    <Card>
-      <CardContent className="p-4 space-y-1">
-        <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
+    <Card size="sm">
+      <CardContent className="space-y-1">
+        <div className="text-meta font-medium uppercase tracking-wide text-muted-foreground">
           {label}
         </div>
-        <div className="text-xl font-semibold">{value}</div>
+        <div className="font-heading text-title">{value}</div>
       </CardContent>
     </Card>
   );
@@ -279,7 +301,7 @@ function FilterBar({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 text-xs">
+    <div className="flex flex-wrap items-center gap-2 text-meta">
       <span className="text-muted-foreground">Feature：</span>
       <Link
         href={buildHref({ feature: null })}
@@ -315,10 +337,10 @@ function FilterBar({
 
 function chip(active: boolean) {
   return [
-    "rounded px-2 py-0.5 border text-[11px]",
+    "inline-flex min-h-10 items-center rounded-(--radius-md) border px-3 text-meta font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
     active
       ? "bg-foreground text-background border-foreground"
-      : "border-white/10 text-muted-foreground hover:text-foreground hover:border-white/30",
+      : "border-border bg-card text-muted-foreground hover:border-foreground hover:text-foreground",
   ].join(" ");
 }
 

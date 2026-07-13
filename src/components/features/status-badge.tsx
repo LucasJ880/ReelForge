@@ -8,16 +8,16 @@ interface Props {
 
 export function StatusBadge({ children, tone = "neutral", className }: Props) {
   const toneClass = {
-    neutral: "bg-secondary text-muted-foreground",
-    success: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    danger: "bg-destructive/10 text-destructive border-destructive/30",
-    info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    neutral: "text-muted-foreground before:bg-muted-foreground",
+    success: "text-success before:bg-success",
+    danger: "text-danger before:bg-danger",
+    info: "text-foreground before:bg-primary",
+    warning: "text-warning before:bg-warning",
   }[tone];
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border border-transparent px-2 py-0.5 text-[11px] font-medium",
+        "inline-flex w-fit shrink-0 items-center gap-2 text-meta font-medium before:size-1.5 before:rounded-full",
         toneClass,
         className,
       )}

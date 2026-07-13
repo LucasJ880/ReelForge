@@ -54,7 +54,7 @@
   .editorial-page {
     margin-inline: auto;
     width: min(100%, 88rem);
-    padding: var(--space-8) var(--space-6) var(--space-16);
+    padding: var(--space-6) var(--space-4) var(--space-16);
   }
 
   .editorial-card,
@@ -164,6 +164,13 @@
   .lg-aurora,
   .lg-koi {
     background: var(--bg);
+  }
+}
+
+@media (min-width: 640px) {
+  .editorial-page {
+    padding-inline: var(--space-6);
+    padding-top: var(--space-8);
   }
 }
 

@@ -4,7 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border text-meta font-semibold transition-[filter,background-color,border-color,color] duration-fast ease-out select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:stroke-[1.5]",
+  "group/button inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border text-meta font-semibold transition-[filter,background-color,border-color,color] duration-fast ease-out select-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-danger [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:stroke-[1.5]",
   {
     variants: {
       variant: {

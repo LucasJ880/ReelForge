@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, RefreshCw, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
+import { Check, Loader2, RefreshCw, RotateCcw, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/features/status-badge";
 import {
@@ -201,26 +201,26 @@ export function RenderProgress({
             <li
               key={stepKey}
               className={[
-                "rounded-md border px-3 py-2 text-xs",
+                "rounded-(--radius-md) border px-3 py-2 text-meta",
                 reached
-                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-300"
+                  ? "border-success bg-card text-success"
                   : active
-                    ? "border-blue-500/30 bg-blue-500/10 text-blue-200"
-                    : "border-border/60 bg-secondary/30 text-muted-foreground",
+                    ? "border-primary bg-card text-foreground"
+                    : "border-border bg-secondary text-muted-foreground",
               ].join(" ")}
             >
               <div className="flex items-center gap-2">
                 <span
                   className={[
-                    "flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                    "flex size-5 items-center justify-center rounded-full text-meta font-bold",
                     reached
-                      ? "bg-emerald-500/30"
+                      ? "bg-success text-card"
                       : active
-                        ? "bg-blue-500/30"
+                        ? "bg-primary text-primary-foreground"
                         : "bg-secondary",
                   ].join(" ")}
                 >
-                  {reached ? "✓" : idx + 1}
+                  {reached ? <Check className="size-3" strokeWidth={1.5} aria-hidden /> : idx + 1}
                 </span>
                 <span className="font-medium">{t(stepKey)}</span>
               </div>
@@ -231,7 +231,7 @@ export function RenderProgress({
 
       {/* 多段拼接信息 */}
       {fv && fv.segmentCount > 1 && (
-        <div className="rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-xs text-blue-200">
+        <div className="rounded-(--radius-md) border border-primary bg-card px-3 py-2 text-meta text-foreground">
           {isStitching
             ? t("video.progress.stitching")
             : fv.status === "READY"
@@ -247,7 +247,7 @@ export function RenderProgress({
       )}
 
       {/* 父级聚合 */}
-      <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div className="flex flex-wrap items-center gap-2 text-meta">
         <StatusBadge tone="success">
           {summary.succeeded}/{summary.totalJobs} {t("video.states.ready")}
         </StatusBadge>
@@ -280,9 +280,9 @@ export function RenderProgress({
           onClick={refreshStatus}
         >
           {busy === "refresh" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
           ) : (
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw strokeWidth={1.5} aria-hidden />
           )}
           {t("video.actions.refreshStatus")}
         </Button>
@@ -294,9 +294,9 @@ export function RenderProgress({
             onClick={() => retryJob()}
           >
             {busy === "retry-all" ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
             ) : (
-              <RotateCcw className="h-3.5 w-3.5" />
+              <RotateCcw strokeWidth={1.5} aria-hidden />
             )}
             {t("video.actions.retryFailed")}
           </Button>
@@ -308,7 +308,7 @@ export function RenderProgress({
             disabled={!!busy || isPending}
             onClick={regenerateAll}
           >
-            {busy === "regen" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {busy === "regen" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
             {t("video.actions.regenerate")}
           </Button>
         )}
@@ -333,13 +333,13 @@ export function RenderProgress({
       {summary.jobs.length > 0 && (
         <button
           type="button"
-          className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+          className="flex min-h-10 items-center gap-1 rounded-(--radius-md) px-2 text-meta text-muted-foreground hover:bg-secondary hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           onClick={() => setShowDebug((v) => !v)}
         >
           {showDebug ? (
-            <ChevronDown className="h-3 w-3" />
+            <ChevronDown strokeWidth={1.5} aria-hidden />
           ) : (
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight strokeWidth={1.5} aria-hidden />
           )}
           {showDebug ? t("common.hideAdvanced") : t("common.showAdvanced")}
         </button>
@@ -366,17 +366,17 @@ function JobRow({
   const isFailed = job.userStatusKey === "failed";
 
   return (
-    <div className="rounded border border-border/60 bg-secondary/30 p-3">
+    <div className="rounded-(--radius-md) border border-border bg-secondary p-3">
       <div className="flex flex-wrap items-center gap-2">
         <StatusBadge tone={tone}>{t(stateKey)}</StatusBadge>
         {typeof job.segmentIndex === "number" && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-meta text-muted-foreground">
             #{job.segmentIndex + 1}
             {job.segmentDurationSec ? ` · ${job.segmentDurationSec}s` : ""}
           </span>
         )}
         {typeof job.sceneIndex === "number" && job.segmentIndex == null && (
-          <span className="text-[11px] text-muted-foreground">
+          <span className="text-meta text-muted-foreground">
             #{job.sceneIndex}
           </span>
         )}
@@ -385,7 +385,7 @@ function JobRow({
             href={job.outputVideoUrl}
             target="_blank"
             rel="noreferrer"
-            className="text-xs text-primary hover:underline"
+            className="text-meta text-primary hover:underline"
           >
             {t("video.actions.preview")}
           </a>
@@ -398,18 +398,18 @@ function JobRow({
             onClick={onRetry}
             className="ml-auto"
           >
-            {busy === "retry-one" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+            {busy === "retry-one" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
             {t("common.retry")}
           </Button>
         )}
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">{t(helperKey)}</p>
+      <p className="mt-1 text-meta text-muted-foreground">{t(helperKey)}</p>
       {job.userSafeError && (
-        <p className="mt-1 text-xs text-destructive">{job.userSafeError}</p>
+        <p className="mt-1 text-meta text-danger">{job.userSafeError}</p>
       )}
 
       {showDebug && (
-        <pre className="mt-2 max-h-40 overflow-auto rounded bg-secondary/60 p-2 text-[10px] text-muted-foreground">
+        <pre className="mt-2 max-h-40 overflow-auto rounded-(--radius-md) bg-card p-3 font-mono text-meta text-muted-foreground">
 {`${t("debug.provider")}: ${job.debug.provider}
 ${t("debug.externalJobId")}: ${job.debug.externalJobId ?? "—"}
 ${t("debug.rawStatus")}: ${job.debug.lastProviderStatus ?? "—"}

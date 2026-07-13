@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
-import { access, readFile } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import { db } from "../src/lib/db";
 import {
   isDigitalHumanFeatureEnabled,
@@ -118,6 +118,20 @@ test("digital human：旧 provider、runner、workflow 与 demo 已归档，活�
   await access("deploy/china-future/code/volc-tts.ts");
   await access("deploy/china-future/code/omnihuman.ts");
   await access("deploy/china-future/workflows/digital-human-render.yml");
+  await assert.rejects(
+    () => access(".github/workflows/digital-human-render.yml"),
+    { code: "ENOENT" },
+    "sealed digital-human workflow must not be active under .github/workflows",
+  );
+  const activeWorkflowFiles = await readdir(".github/workflows");
+  for (const workflowFile of activeWorkflowFiles) {
+    const workflow = await readFile(`.github/workflows/${workflowFile}`, "utf8");
+    assert.doesNotMatch(
+      workflow,
+      /digital-human-runner|internal\/digital-human/,
+      `${workflowFile} must not schedule the sealed digital-human pipeline`,
+    );
+  }
   const activeTts = await readFile("src/lib/providers/volc-tts.ts", "utf8");
   const activeOmni = await readFile("src/lib/providers/omnihuman.ts", "utf8");
   assert.doesNotMatch(activeTts, /fetch\s*\(/);

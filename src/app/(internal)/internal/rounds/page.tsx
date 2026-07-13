@@ -19,28 +19,32 @@ export default async function RoundsPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader title="赛马轮次" description="所有进行中及历史轮次" />
       {rounds.length === 0 ? (
-        <Card className="p-8 text-center text-sm text-muted-foreground">
+        <Card className="p-8 text-center text-body text-muted-foreground">
           尚无轮次。在交付单详情页启动第一轮。
         </Card>
       ) : (
         <div className="space-y-3">
           {rounds.map((r) => (
-            <Link key={r.id} href={`/rounds/${r.id}`}>
-              <Card size="sm" className="hover:ring-foreground/20 transition">
-                <div className="flex items-center justify-between px-4">
-                  <div>
+            <Link
+              key={r.id}
+              href={`/rounds/${r.id}`}
+              className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <Card size="sm" className="transition-colors duration-fast hover:border-foreground motion-reduce:transition-none">
+                <div className="flex min-w-0 flex-col gap-3 px-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium">第 {r.roundIndex} 轮</span>
                       <StatusBadge tone="info">{ROUND_LABELS[r.status]}</StatusBadge>
                     </div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
+                    <div className="mt-1 text-meta text-muted-foreground">
                       {r.deliveryOrder.title} · {r._count.angles} 条 angle
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground/70">
+                  <div className="text-meta text-muted-foreground">
                     {formatDate(r.updatedAt)}
                   </div>
                 </div>

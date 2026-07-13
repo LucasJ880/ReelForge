@@ -40,6 +40,11 @@ const ALLOWED_RESOURCE_CANCELLATIONS = [
     error: /ERR_ABORTED|cancelled|canceled/i,
   },
   {
+    label: "注册完成后的受保护页验收导航替换登录回跳",
+    url: /\/login\?from=%2Fapp%2Fcreate(?:&|$)/i,
+    error: /ERR_ABORTED|cancelled|canceled/i,
+  },
+  {
     label: "用户主动取消单图上传",
     url: /\/api\/upload\/blob(?:\?|$)/i,
     error: /ERR_ABORTED|cancelled|canceled/i,

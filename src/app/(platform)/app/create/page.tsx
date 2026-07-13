@@ -1,11 +1,14 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
-import { UnifiedCreativeInputShell } from "@/components/video-generation/unified-creative-input-shell";
+import {
+  AgentCreativeStudio,
+  type AgentTemplateRecommendation,
+  type QualityTemplateSkill,
+} from "@/components/video-generation/agent-creative-studio";
 import { authOptions } from "@/lib/auth";
 import { findProductImageJobForUser } from "@/lib/services/product-image-service";
+import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
 import type { UploadedAsset } from "@/types/video-generation";
-import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 
 export default async function PlatformCreatePage({
@@ -15,8 +18,11 @@ export default async function PlatformCreatePage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageJobId, styleTemplate }, locale] = await Promise.all([searchParams, getServerLocale()]);
-  const copy = getPlatformCopy(locale).create;
+  const [{ productImageJobId, styleTemplate }, locale, templates] = await Promise.all([
+    searchParams,
+    getServerLocale(),
+    listActiveStyleTemplates().catch(() => []),
+  ]);
   const job = productImageJobId
     ? await findProductImageJobForUser(productImageJobId, session.user.id)
     : null;
@@ -38,17 +44,60 @@ export default async function PlatformCreatePage({
           warnings: [],
         }]
       : [];
+  const recommendations = buildAgentRecommendations(templates);
   return (
-    <div className="editorial-page-stack">
-      <header className="studio-hero max-w-5xl space-y-4">
-        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
-        <h1 className="editorial-display">{copy.title}</h1>
-        <p className="max-w-2xl text-body text-muted-foreground">{copy.subtitle}</p>
-        <CreateModeTabs active="video" />
-      </header>
-      <UnifiedCreativeInputShell userType="platform" initialAssets={initialAssets} initialStyleTemplateId={styleTemplate} />
-    </div>
+    <AgentCreativeStudio
+      initialAssets={initialAssets}
+      initialStyleTemplateId={styleTemplate}
+      recommendations={recommendations}
+    />
   );
+}
+
+function buildAgentRecommendations(
+  templates: Awaited<ReturnType<typeof listActiveStyleTemplates>>,
+): AgentTemplateRecommendation[] {
+  const specs: Array<{
+    skillId: QualityTemplateSkill;
+    slug: string;
+    fallback: Omit<AgentTemplateRecommendation, "skillId" | "batchTemplateId">;
+  }> = [
+    {
+      skillId: "tpl_event_watch_party",
+      slug: "lifestyle-use-demo",
+      fallback: { name: "Watch Party Story", nameZh: "赛事观看稳定叙事", coverImage: "/template-previews/lifestyle-use-demo.jpg" },
+    },
+    {
+      skillId: "tpl_viral_result_first",
+      slug: "fast-commerce-beats",
+      fallback: { name: "Result-First Hook", nameZh: "成果前置强钩子", coverImage: "/template-previews/fast-commerce-beats.jpg" },
+    },
+    {
+      skillId: "tpl_viral_pain_solution",
+      slug: "before-after-reversal",
+      fallback: { name: "Pain to Proof", nameZh: "痛点到证明", coverImage: "/template-previews/before-after-reversal.jpg" },
+    },
+    {
+      skillId: "tpl_ugc_review",
+      slug: "ugc-handheld-review",
+      fallback: { name: "Grounded UGC Review", nameZh: "真实 UGC 手持测评", coverImage: "/template-previews/ugc-handheld-review.jpg" },
+    },
+    {
+      skillId: "tpl_viral_sensory_texture",
+      slug: "macro-material-study",
+      fallback: { name: "Material and Light", nameZh: "材质与光影特写", coverImage: "/template-previews/macro-material-study.jpg" },
+    },
+  ];
+  return specs.map((spec) => {
+    const template = templates.find((candidate) => candidate.slug === spec.slug);
+    return {
+      skillId: spec.skillId,
+      batchTemplateId: template?.id ?? null,
+      name: template?.name ?? spec.fallback.name,
+      nameZh: template?.nameZh ?? spec.fallback.nameZh,
+      coverImage: template?.coverImage ?? spec.fallback.coverImage,
+    };
+  });
 }
 
 function absoluteAssetUrl(url: string): string {

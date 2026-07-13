@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { CheckCircle2, Download, Loader2, Send, XCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { StatusBadge, publishTone } from "@/components/features/status-badge";
 import { PUBLISH_LABELS } from "@/lib/labels";
 import type { PublishStatus } from "@prisma/client";
@@ -59,7 +60,7 @@ export function PublishList({ items }: { items: PublishItem[] }) {
 
   if (items.length === 0) {
     return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
+      <Card className="p-8 text-center text-body text-muted-foreground">
         发布队列为空
       </Card>
     );
@@ -73,11 +74,11 @@ export function PublishList({ items }: { items: PublishItem[] }) {
           setForms({ ...forms, [r.id]: { ...f, ...patch } });
         return (
           <Card key={r.id}>
-            <CardContent className="grid gap-4 pt-4 md:grid-cols-[260px_1fr]">
+            <CardContent className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,260px)_minmax(0,1fr)]">
               {r.videoBrief.finalVideoUrl ? (
-                <video src={r.videoBrief.finalVideoUrl} controls className="w-full rounded" />
+                <video src={r.videoBrief.finalVideoUrl} controls className="w-full rounded-(--radius-md)" />
               ) : (
-                <div className="flex aspect-[9/16] items-center justify-center rounded bg-secondary/40 text-xs text-muted-foreground">
+                <div className="flex aspect-9/16 items-center justify-center rounded-(--radius-md) bg-secondary text-meta text-muted-foreground">
                   无成片
                 </div>
               )}
@@ -94,7 +95,7 @@ export function PublishList({ items }: { items: PublishItem[] }) {
                     {PUBLISH_LABELS[r.status]}
                   </StatusBadge>
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-meta text-muted-foreground">
                   {r.videoBrief.contentAngle.round.deliveryOrder.title} · 第{" "}
                   {r.videoBrief.contentAngle.round.roundIndex} 轮
                 </div>
@@ -113,41 +114,41 @@ export function PublishList({ items }: { items: PublishItem[] }) {
                         disabled={busyId === r.id}
                         onClick={() => call(r.id, { action: "download" })}
                       >
-                        <Download className="h-3.5 w-3.5" />
+                        <Download strokeWidth={1.5} aria-hidden />
                         下载并标记
                       </Button>
                     </a>
                   )}
                 </div>
 
-                <div className="space-y-2 rounded border border-border/60 p-3 text-xs">
-                  <div className="text-[11px] font-medium text-muted-foreground">
+                <div className="space-y-3 rounded-(--radius-md) border border-border p-4 text-meta">
+                  <div className="text-meta font-medium text-muted-foreground">
                     上传 TikTok 后回填
                   </div>
                   <div className="grid gap-2 md:grid-cols-2">
-                    <input
+                    <Input
                       type="text"
                       placeholder="external_post_id（必填）"
                       value={f.postId}
                       onChange={(e) => setForm({ postId: e.target.value })}
-                      className="rounded-md border border-input bg-card px-2 py-1.5 text-xs"
+                      aria-label="TikTok external post ID"
                     />
-                    <input
+                    <Input
                       type="url"
                       placeholder="TikTok URL（可选）"
                       value={f.url}
                       onChange={(e) => setForm({ url: e.target.value })}
-                      className="rounded-md border border-input bg-card px-2 py-1.5 text-xs"
+                      aria-label="TikTok URL"
                     />
                   </div>
-                  <input
+                  <Input
                     type="text"
                     placeholder="运营备注"
                     value={f.note}
                     onChange={(e) => setForm({ note: e.target.value })}
-                    className="w-full rounded-md border border-input bg-card px-2 py-1.5 text-xs"
+                    aria-label="运营备注"
                   />
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       disabled={busyId === r.id || !f.postId}
@@ -161,9 +162,9 @@ export function PublishList({ items }: { items: PublishItem[] }) {
                       }
                     >
                       {busyId === r.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
                       ) : (
-                        <Send className="h-3.5 w-3.5" />
+                        <Send strokeWidth={1.5} aria-hidden />
                       )}
                       提交 post_id
                     </Button>
@@ -173,7 +174,7 @@ export function PublishList({ items }: { items: PublishItem[] }) {
                       disabled={busyId === r.id || r.status !== "UPLOADED"}
                       onClick={() => call(r.id, { action: "confirm" })}
                     >
-                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      <CheckCircle2 strokeWidth={1.5} aria-hidden />
                       确认已上线
                     </Button>
                     <Button
@@ -187,12 +188,12 @@ export function PublishList({ items }: { items: PublishItem[] }) {
                         })
                       }
                     >
-                      <XCircle className="h-3.5 w-3.5" />
+                      <XCircle strokeWidth={1.5} aria-hidden />
                       失败
                     </Button>
                   </div>
                   {r.externalPostId && (
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="text-meta text-muted-foreground">
                       当前 post_id: {r.externalPostId}
                     </div>
                   )}

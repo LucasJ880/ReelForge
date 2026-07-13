@@ -19,8 +19,8 @@ export function CompanionMode() {
     >
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         {/* 每日可爱视频 */}
-        <div className="pet-surface flex flex-col items-center gap-4 rounded-3xl p-5">
-          <p className="self-start inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--pet-orange)]">
+        <div className="border border-border bg-card shadow-editorial flex flex-col items-center gap-4 rounded-lg p-5">
+          <p className="self-start inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
             <Sparkles size={14} /> 每日可爱视频
           </p>
           <PhoneVideoMockup
@@ -29,7 +29,6 @@ export function CompanionMode() {
             posterUrl={dailyClip.posterUrl}
             videoMode="preview"
             statusBadge={dailyClip.durationLabel}
-            fallbackGradient="from-amber-300/40 via-orange-200/30 to-emerald-300/30"
             fallbackTitle={dailyClip.title}
           />
           <p className="text-center text-xs leading-5 text-muted-foreground">
@@ -39,26 +38,25 @@ export function CompanionMode() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           {/* 宠物日记 */}
-          <div className="pet-surface flex flex-col overflow-hidden rounded-3xl sm:col-span-2">
+          <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-lg sm:col-span-2">
             <div className="flex flex-col sm:flex-row">
               <div className="relative h-44 w-full overflow-hidden sm:h-auto sm:w-48 sm:shrink-0">
                 <PetImage
                   src={petDiary.imageUrl}
                   alt="宠物日记配图"
                   fallbackLabel="宠物日记"
-                  fallbackEmoji="📔"
                 />
               </div>
               <div className="flex-1 p-5">
-                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--pet-orange)]">
+                <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                   <BookHeart size={14} /> 宠物日记 · 以宠物口吻自动撰写
                 </p>
                 <div className="mt-2 flex items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">
                     {petDiary.date}
                   </span>
-                  <span className="rounded-full bg-[var(--pet-teal)]/10 px-2 py-0.5 text-[11px] font-medium text-[color:var(--pet-teal)]">
-                    {petDiary.moodEmoji} {petDiary.mood}
+                  <span className="rounded-full bg-success/10 px-2 py-0.5 text-meta font-medium text-success">
+                    {petDiary.mood}
                   </span>
                 </div>
                 <p className="mt-2 text-xs leading-6 text-muted-foreground">
@@ -68,7 +66,7 @@ export function CompanionMode() {
                   {petDiary.highlights.map((h) => (
                     <span
                       key={h}
-                      className="rounded-full border border-border bg-background/60 px-2.5 py-1 text-[11px] text-foreground/80"
+                      className="rounded-full border border-border bg-background px-2.5 py-1 text-meta text-foreground/80"
                     >
                       {h}
                     </span>
@@ -79,13 +77,11 @@ export function CompanionMode() {
           </div>
 
           {/* 心情卡 */}
-          <div className="pet-surface relative overflow-hidden rounded-3xl p-5">
-            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-[var(--pet-orange)]/15 blur-2xl" />
-            <p className="text-xs font-semibold text-[color:var(--pet-orange)]">
+          <div className="border border-border bg-card shadow-editorial relative overflow-hidden rounded-lg p-5">
+            <p className="text-xs font-semibold text-primary">
               心情卡
             </p>
-            <p className="mt-3 text-2xl">{moodCard.emoji}</p>
-            <p className="mt-2 text-sm font-semibold text-foreground">
+            <p className="mt-3 text-sm font-semibold text-foreground">
               {moodCard.mood}
             </p>
             <p className="mt-2 text-xs leading-6 text-muted-foreground">
@@ -94,16 +90,16 @@ export function CompanionMode() {
           </div>
 
           {/* 桌面小宠物 */}
-          <div className="pet-surface flex flex-col justify-between rounded-3xl p-5">
+          <div className="border border-border bg-card shadow-editorial flex flex-col justify-between rounded-lg p-5">
             <div>
-              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--pet-teal)]">
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
                 <MonitorSmartphone size={14} /> {desktopPet.title}
               </p>
               <p className="mt-3 text-xs leading-6 text-muted-foreground">
                 {desktopPet.description}
               </p>
             </div>
-            <span className="mt-4 self-start rounded-full bg-secondary px-3 py-1 text-[11px] font-medium text-muted-foreground">
+            <span className="mt-4 self-start rounded-full bg-secondary px-3 py-1 text-meta font-medium text-muted-foreground">
               {desktopPet.comingSoonLabel}
             </span>
           </div>

@@ -26,7 +26,7 @@ export function InvestorHighlightsSection() {
       title={INVESTOR_SECTION.title}
       description={INVESTOR_SECTION.description}
       rightSlot={
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-primary">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-meta font-semibold uppercase tracking-[0.2em] text-primary">
           <Target size={12} />
           投资人 / 孵化器视角
         </span>
@@ -37,9 +37,9 @@ export function InvestorHighlightsSection() {
         {INVESTOR_SECTION.metrics.map((metric) => (
           <div
             key={metric.label}
-            className="rounded-3xl border border-primary/20 bg-linear-to-br from-primary/8 via-card/50 to-card/60 p-5"
+            className="rounded-lg border border-primary/20 bg-card p-5"
           >
-            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary/85">
+            <p className="text-meta font-semibold uppercase tracking-[0.22em] text-primary/85">
               {metric.label}
             </p>
             <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground">
@@ -59,10 +59,10 @@ export function InvestorHighlightsSection() {
         {INVESTOR_SECTION.pillars.map((pillar, idx) => (
           <div
             key={pillar.title}
-            className="rounded-3xl border border-white/10 bg-card/60 p-6"
+            className="rounded-lg border border-border bg-card p-6"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 <span className="font-mono text-sm font-semibold">
                   {String(idx + 1).padStart(2, "0")}
                 </span>
@@ -79,7 +79,7 @@ export function InvestorHighlightsSection() {
       </div>
 
       {/* Roadmap — 4 阶段 */}
-      <div className="mt-10 rounded-[2rem] border border-white/10 bg-card/55 p-6 sm:p-8">
+      <div className="mt-10 rounded-lg border border-border bg-card p-6 sm:p-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
@@ -101,7 +101,7 @@ export function InvestorHighlightsSection() {
       </div>
 
       {/* Bottom — 创始人 + CTA */}
-      <div className="mt-8 grid gap-4 rounded-[2rem] border border-primary/25 bg-primary/5 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+      <div className="mt-8 grid gap-4 rounded-lg border border-primary/25 bg-primary/5 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
             创始人 · Founder
@@ -119,7 +119,7 @@ export function InvestorHighlightsSection() {
         <div className="flex flex-col gap-3">
           <a
             href={INVESTOR_SECTION.cta.primary.href}
-            className="inline-flex items-center justify-between gap-3 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+            className="inline-flex items-center justify-between gap-3 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <span className="flex items-center gap-2">
               <Sparkles size={14} />
@@ -129,7 +129,7 @@ export function InvestorHighlightsSection() {
           </a>
           <a
             href={INVESTOR_SECTION.cta.secondary.href}
-            className="inline-flex items-center justify-between gap-3 rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-white/5"
+            className="inline-flex items-center justify-between gap-3 rounded-full border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted"
           >
             <span className="flex items-center gap-2">
               <CheckCircle2 size={14} />
@@ -148,7 +148,7 @@ const STATUS_STYLES: Record<
   { tone: string; icon: React.ReactNode }
 > = {
   shipped: {
-    tone: "border-emerald-400/30 bg-emerald-400/10 text-emerald-200",
+    tone: "border-success bg-success/10 text-success",
     icon: <CheckCircle2 size={11} />,
   },
   in_progress: {
@@ -156,7 +156,7 @@ const STATUS_STYLES: Record<
     icon: <Clock size={11} />,
   },
   next: {
-    tone: "border-white/15 bg-white/[0.05] text-muted-foreground",
+    tone: "border-border bg-muted text-muted-foreground",
     icon: <Target size={11} />,
   },
 };
@@ -164,9 +164,9 @@ const STATUS_STYLES: Record<
 function RoadmapCard({ item }: { item: InvestorRoadmapItem }) {
   const style = STATUS_STYLES[item.status];
   return (
-    <li className="flex h-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/3 p-4">
+    <li className="flex h-full flex-col gap-3 rounded-lg border border-border bg-muted p-4">
       <span
-        className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${style.tone}`}
+        className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-meta font-semibold uppercase tracking-[0.18em] ${style.tone}`}
       >
         {style.icon}
         {item.statusLabel}

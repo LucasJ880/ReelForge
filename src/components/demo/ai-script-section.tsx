@@ -31,7 +31,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               的 Unified Creative Input 中实时生成。
             </span>
           ) : (
-            <span className="text-amber-300">
+            <span className="text-warning">
               其它方向的完整脚本会由 Aivora 的 prompt intelligence
               引擎在生成时实时产出；这里展示默认方向的样例。
             </span>
@@ -41,7 +41,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-3xl border border-white/10 bg-card/70 p-6">
+        <div className="rounded-lg border border-border bg-card p-6">
           <div className="flex flex-col gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -52,7 +52,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               </h3>
             </div>
 
-            <div className="rounded-2xl border border-primary/25 bg-primary/[0.06] p-4">
+            <div className="rounded-lg border border-primary/25 bg-primary/[0.06] p-4">
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                 <MessageSquare size={14} /> 前 3 秒 Hook
               </p>
@@ -65,7 +65,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 <Mic size={14} /> 完整口播
               </p>
-              <p className="mt-2 whitespace-pre-line rounded-2xl bg-white/[0.03] p-4 text-sm leading-7">
+              <p className="mt-2 whitespace-pre-line rounded-lg bg-muted p-4 text-sm leading-7">
                 {generatedScript.voiceover}
               </p>
             </div>
@@ -78,7 +78,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
                 {generatedScript.captions.map((c) => (
                   <li
                     key={c.sceneIndex}
-                    className="flex items-start gap-3 rounded-2xl bg-white/[0.03] px-3 py-2 text-sm"
+                    className="flex items-start gap-3 rounded-lg bg-muted px-3 py-2 text-sm"
                   >
                     <span className="font-mono text-xs text-primary">
                       镜头 {String(c.sceneIndex).padStart(2, "0")}
@@ -92,7 +92,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               </ul>
             </div>
 
-            <div className="rounded-2xl bg-white/[0.04] p-4">
+            <div className="rounded-lg bg-muted p-4">
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 CTA
               </p>
@@ -104,7 +104,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
         </div>
 
         <div className="grid gap-4">
-          <div className="rounded-3xl border border-white/10 bg-card/60 p-5">
+          <div className="rounded-lg border border-border bg-card p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               各平台改写建议
             </p>
@@ -120,27 +120,27 @@ export function AIScriptSection({ selectedSlug }: Props) {
             </ul>
           </div>
 
-          <div className="rounded-3xl border border-amber-400/20 bg-amber-400/[0.05] p-5">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300">
+          <div className="rounded-lg border border-warning bg-warning/10 p-5">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-warning">
               <AlertTriangle size={14} /> 合规提示
             </p>
             <ul className="mt-3 space-y-2 text-xs leading-5 text-muted-foreground">
               {generatedScript.complianceNotes.map((note) => (
                 <li key={note} className="flex gap-2">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-300" />
+                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-warning" />
                   <span>{note}</span>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="rounded-3xl border border-emerald-400/20 bg-emerald-400/[0.05] p-5">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-300">
+          <div className="rounded-lg border border-success bg-success/[0.05] p-5">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-success">
               原创性自检
             </p>
             <p className="mt-2 text-xs leading-5 text-muted-foreground">
               copiedFromReference ={" "}
-              <code className="rounded bg-white/5 px-1.5 py-0.5">false</code>
+              <code className="rounded bg-muted px-1.5 py-0.5">false</code>
               {" "}— 模型在生成时显式声明本脚本为客户原创版本，与任何参考视频的字幕、
               配音或镜头脚本均不相同。
             </p>

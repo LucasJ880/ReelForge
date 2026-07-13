@@ -20,7 +20,7 @@ export function TeamSection() {
       </div>
 
       {s.whyFit ? (
-        <div className="mt-6 rounded-3xl border border-(--pet-teal)/25 bg-(--pet-teal)/6 p-6">
+        <div className="mt-6 rounded-lg border border-success bg-success/10 p-6">
           <h3 className="text-base font-semibold text-foreground">
             {s.whyFit.title}
           </h3>
@@ -31,9 +31,9 @@ export function TeamSection() {
             {s.whyFit.points.map((point) => (
               <div
                 key={point.title}
-                className="rounded-2xl border border-border bg-card/60 p-4"
+                className="rounded-lg border border-border bg-card p-4"
               >
-                <p className="text-sm font-semibold text-(--pet-teal)">
+                <p className="text-sm font-semibold text-success">
                   {point.title}
                 </p>
                 <p className="mt-1.5 text-xs leading-6 text-muted-foreground">
@@ -55,13 +55,13 @@ export function TeamSection() {
 
 function MemberCard({ member }: { member: TeamMember }) {
   return (
-    <div className="pet-surface flex flex-col gap-4 rounded-3xl p-6 sm:flex-row sm:items-start">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-linear-to-br from-[var(--pet-orange)] to-[var(--pet-teal)] text-xl font-bold text-white shadow-sm">
+    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-lg p-6 sm:flex-row sm:items-start">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-primary text-xl font-bold text-primary-foreground shadow-editorial">
         {member.initials}
       </div>
       <div className="min-w-0">
         <h3 className="text-lg font-semibold text-foreground">{member.name}</h3>
-        <p className="text-sm font-medium text-[color:var(--pet-teal)]">
+        <p className="text-sm font-medium text-success">
           {member.role}
         </p>
         <p className="mt-1 text-xs text-muted-foreground">{member.focus}</p>
@@ -76,13 +76,13 @@ function MemberCard({ member }: { member: TeamMember }) {
               key={b}
               className="flex items-start gap-2 text-xs leading-6 text-foreground/80"
             >
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--pet-orange)]" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               {b}
             </li>
           ))}
         </ul>
         {member.value ? (
-          <p className="mt-3 rounded-2xl border border-(--pet-orange)/25 bg-(--pet-orange)/6 p-3 text-xs leading-6 text-foreground/85">
+          <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 p-3 text-xs leading-6 text-foreground/85">
             {member.value}
           </p>
         ) : null}

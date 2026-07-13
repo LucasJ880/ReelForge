@@ -14,7 +14,7 @@ interface PetSectionProps {
 
 /**
  * 宠物 demo 通用区块外壳：统一的容器宽度、留白与标题排版。
- * 全部使用语义化 token，配合 .aivora-pet-demo 作用域呈现暖色风格。
+ * 全部使用语义化 token，配合 Editorial Studio 语义 token呈现暖色风格。
  */
 export function PetSection({
   id,
@@ -29,13 +29,13 @@ export function PetSection({
     <section
       id={id}
       className={cn(
-        "mx-auto w-full max-w-7xl px-5 py-12 sm:px-8 sm:py-16 lg:px-10",
+        "mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-10",
         className,
       )}
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-3xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-[var(--pet-orange)]/30 bg-[var(--pet-orange)]/10 px-3 py-1 text-xs font-semibold text-[color:var(--pet-orange)]">
+          <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
             {eyebrow}
           </p>
           <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">

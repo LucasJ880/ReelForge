@@ -55,7 +55,7 @@ export function ImageLightbox({
           className={thumbClassName}
           fallbackLabel={fallbackLabel}
         />
-        <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-medium text-white opacity-0 backdrop-blur transition group-hover:opacity-100">
+        <span className="pointer-events-none absolute bottom-3 right-3 inline-flex items-center gap-1.5 rounded-full bg-foreground px-3 py-1.5 text-meta font-medium text-background opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">
           <Maximize2 size={12} /> {zoomHint}
         </span>
       </button>
@@ -66,13 +66,14 @@ export function ImageLightbox({
           aria-modal="true"
           aria-label={alt}
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-100 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm sm:p-8"
+          className="fixed inset-0 z-100 flex items-center justify-center bg-overlay p-4 sm:p-8"
         >
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/20"
+            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-card text-foreground shadow-editorial"
             aria-label="关闭"
+            autoFocus
           >
             <X size={20} />
           </button>
@@ -81,7 +82,7 @@ export function ImageLightbox({
             src={src ?? undefined}
             alt={alt}
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[95vw] cursor-zoom-out rounded-2xl object-contain shadow-2xl"
+            className="max-h-[90vh] max-w-[95vw] cursor-zoom-out rounded-lg object-contain shadow-editorial"
             draggable={false}
           />
         </div>

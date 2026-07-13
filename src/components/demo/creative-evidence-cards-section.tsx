@@ -53,10 +53,10 @@ function CardOption({
       type="button"
       onClick={onSelect}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-3xl border bg-card/70 p-5 text-left transition",
+        "group relative flex h-full flex-col overflow-hidden rounded-lg border bg-card p-5 text-left",
         selected
           ? "border-primary/60 ring-2 ring-primary/40"
-          : "border-white/10 hover:border-white/30 hover:bg-card/90",
+          : "border-border hover:border-border hover:bg-card",
       )}
       aria-pressed={selected}
     >
@@ -66,13 +66,13 @@ function CardOption({
           data-testid="evidence-card-left-badges"
           className="flex min-w-0 flex-wrap items-center gap-2"
         >
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          <p className="text-meta font-semibold uppercase tracking-[0.2em] text-primary">
             {card.tags[0]}
           </p>
           {selected ? (
             <span
               data-testid="evidence-card-selected-badge"
-              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary"
+              className="inline-flex items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-meta font-semibold uppercase tracking-wide text-primary"
             >
               <CheckCircle2 size={11} />
               已选中
@@ -81,7 +81,7 @@ function CardOption({
         </div>
         <div
           data-testid="evidence-card-score-chip"
-          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-xs text-emerald-200"
+          className="inline-flex shrink-0 items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-xs text-success"
         >
           <Sparkles size={12} />
           <span className="font-mono tabular-nums">{card.recommendationScore}</span>
@@ -127,7 +127,7 @@ function CardOption({
       </div>
 
       <p className="mt-auto pt-4">
-        <span className="block rounded-2xl bg-white/[0.04] p-3 text-xs leading-5 text-muted-foreground">
+        <span className="block rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
           <TrendingUp size={12} className="mb-0.5 mr-1 inline text-primary" />
           {card.whyItWorks}
         </span>
@@ -159,8 +159,8 @@ function hookTypeZh(t: string): string {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl bg-white/[0.03] px-3 py-2">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+    <div className="rounded-md bg-muted px-3 py-2">
+      <p className="text-meta uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </p>
       <p className="mt-0.5 text-sm font-semibold">{value}</p>
@@ -178,10 +178,10 @@ function Tag({
   return (
     <span
       className={cn(
-        "rounded-full px-2 py-0.5 text-[10px] font-medium",
+        "rounded-full px-2 py-0.5 text-meta font-medium",
         tone === "positive"
-          ? "bg-emerald-500/10 text-emerald-200"
-          : "bg-white/[0.05] text-muted-foreground",
+          ? "bg-success/10 text-success"
+          : "bg-muted text-muted-foreground",
       )}
     >
       {label}

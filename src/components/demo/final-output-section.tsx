@@ -51,7 +51,7 @@ export function FinalOutputSection() {
         </>
       }
       rightSlot={
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] font-semibold tracking-[0.18em] text-emerald-200">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-success bg-success/10 px-2.5 py-1 text-meta font-semibold tracking-[0.18em] text-success">
           <CheckCircle2 size={11} />
           已交付 · 可播放
         </span>
@@ -59,12 +59,12 @@ export function FinalOutputSection() {
     >
       {main ? <MainDeliveredCard output={main} /> : null}
 
-      <div className="mt-6 rounded-3xl border border-white/10 bg-card/50 p-5 sm:p-6">
+      <div className="mt-6 rounded-lg border border-border bg-card p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="text-meta font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             配套交付 · 同一组镜头自动派生
           </p>
-          <p className="text-[11px] text-muted-foreground/80">
+          <p className="text-meta text-muted-foreground/80">
             投放素材、封面图与平台文案均按同一方向自动生成
           </p>
         </div>
@@ -80,23 +80,22 @@ export function FinalOutputSection() {
 
 function MainDeliveredCard({ output }: { output: FinalOutputDemo }) {
   return (
-    <div className="flex flex-col gap-6 overflow-hidden rounded-[2rem] border border-primary/40 bg-card/70 p-5 ring-1 ring-primary/20 sm:p-6 lg:grid lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
+    <div className="flex flex-col gap-6 overflow-hidden rounded-lg border border-primary/40 bg-card p-5 ring-1 ring-primary/20 sm:p-6 lg:grid lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
       <PhoneVideoMockup
         size="md"
         videoUrl={output.videoUrl}
         posterUrl={output.posterUrl}
         videoMode="preview"
         statusBadge={`${output.aspectRatio} · ${output.durationSec ?? "—"}s`}
-        fallbackGradient="from-amber-400/30 via-rose-400/15 to-violet-500/20"
         fallbackTitle={output.title}
         fallbackSubtitle="点击播放完整 30 秒成片"
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-[11px] font-semibold tracking-[0.18em] text-primary">
+          <span className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-primary/15 px-2.5 py-1 text-meta font-semibold tracking-[0.18em] text-primary">
             投资级品牌叙事
           </span>
-          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-emerald-400/10 px-2.5 py-1 text-[11px] tracking-[0.18em] text-emerald-200">
+          <span className="inline-flex w-fit items-center gap-1 rounded-full bg-success/10 px-2.5 py-1 text-meta tracking-[0.18em] text-success">
             <CheckCircle2 size={11} />
             {output.badge}
           </span>
@@ -123,26 +122,26 @@ function MainDeliveredCard({ output }: { output: FinalOutputDemo }) {
 function SecondaryChip({ output }: { output: FinalOutputDemo }) {
   const isReady = !output.isPlaceholder;
   return (
-    <li className="flex flex-col gap-1.5 rounded-2xl border border-white/10 bg-white/3 px-3 py-3">
+    <li className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted px-3 py-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[10px] font-mono uppercase tracking-[0.18em] text-primary/90">
+        <span className="text-meta font-mono uppercase tracking-[0.18em] text-primary/90">
           {VARIANT_LABEL[output.variant]}
         </span>
         <span
           className={
             isReady
-              ? "inline-flex items-center gap-1 rounded-full bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-emerald-200"
-              : "inline-flex items-center gap-1 rounded-full bg-amber-400/10 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-amber-200"
+              ? "inline-flex items-center gap-1 rounded-full bg-success/10 px-1.5 py-0.5 text-meta font-medium tracking-wide text-success"
+              : "inline-flex items-center gap-1 rounded-full bg-warning/10 px-1.5 py-0.5 text-meta font-medium tracking-wide text-warning"
           }
         >
           {isReady ? <CheckCircle2 size={9} /> : <Hourglass size={9} />}
           {output.badge}
         </span>
       </div>
-      <p className="text-[11px] font-medium leading-snug text-foreground/90 wrap-break-word">
+      <p className="text-meta font-medium leading-snug text-foreground/90 wrap-break-word">
         {output.title}
       </p>
-      <p className="text-[11px] leading-4 text-muted-foreground wrap-break-word">
+      <p className="text-meta leading-4 text-muted-foreground wrap-break-word">
         {output.notes[0] ?? output.description}
       </p>
     </li>

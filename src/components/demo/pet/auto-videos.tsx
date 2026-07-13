@@ -25,19 +25,19 @@ export function AutoVideos() {
 function DraftCard({ draft }: { draft: AutoVideoDraftDemo }) {
   const audienceStyle =
     draft.audience === "brand"
-      ? "border-[var(--pet-teal)]/30 bg-[var(--pet-teal)]/10 text-[color:var(--pet-teal)]"
-      : "border-[var(--pet-orange)]/30 bg-[var(--pet-orange)]/10 text-[color:var(--pet-orange)]";
+      ? "border-success bg-success/10 text-success"
+      : "border-primary/30 bg-primary/10 text-primary";
 
   return (
-    <div className="pet-surface flex flex-col gap-4 rounded-3xl p-4">
+    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-lg p-4">
       <div className="flex items-center justify-between gap-2">
         <span
-          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${audienceStyle}`}
+          className={`rounded-full border px-2.5 py-1 text-meta font-semibold ${audienceStyle}`}
         >
           {draft.audienceLabel}
         </span>
         {draft.recommended ? (
-          <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+          <span className="rounded-full bg-primary px-2.5 py-1 text-meta font-semibold text-primary-foreground">
             推荐发布
           </span>
         ) : null}
@@ -50,7 +50,6 @@ function DraftCard({ draft }: { draft: AutoVideoDraftDemo }) {
         videoMode="preview"
         statusBadge={draft.durationLabel}
         caption={draft.petVoiceCaption}
-        fallbackGradient="from-amber-300/40 via-orange-200/30 to-emerald-300/30"
         fallbackTitle={draft.title}
         fallbackSubtitle="点击下方查看文案"
       />
@@ -66,7 +65,7 @@ function DraftCard({ draft }: { draft: AutoVideoDraftDemo }) {
           {draft.hashtags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-secondary px-2 py-0.5 text-[11px] font-medium text-[color:var(--pet-teal)]"
+              className="rounded-full bg-secondary px-2 py-0.5 text-meta font-medium text-success"
             >
               {tag}
             </span>

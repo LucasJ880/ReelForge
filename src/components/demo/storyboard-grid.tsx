@@ -39,18 +39,18 @@ export function StoryboardGrid() {
         ))}
       </div>
 
-      <p className="mt-6 rounded-2xl border border-white/10 bg-white/3 px-4 py-3 text-xs leading-5 text-muted-foreground">
+      <p className="mt-6 rounded-lg border border-border bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground">
         合计 {storyboardShots.length} 个镜头 · 总时长{" "}
         {storyboardShots.reduce((sum, s) => sum + s.durationSec, 0)} 秒 · 必拍{" "}
         {storyboardShots.filter((s) => s.requiredFlag).length} · 可选{" "}
         {storyboardShots.filter((s) => !s.requiredFlag).length}。输出结构对齐{" "}
-        <code className="rounded bg-white/5 px-1.5 py-0.5">
+        <code className="rounded bg-muted px-1.5 py-0.5">
           ShootingGuideDoc
         </code>{" "}
         （Phase 2）。
       </p>
 
-      <p className="mt-3 rounded-2xl border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
+      <p className="mt-3 rounded-lg border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
         选定方向、AI 脚本、分镜与质检通过的素材，会汇成 Sunny Shutter 30 秒主版本——下方
         <a
           href="#final-output"
@@ -80,14 +80,8 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
    */
   const thumbnailUrl = shot.visualPlaceholder.thumbnailUrl;
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-card/70">
-      <div
-        className={cn(
-          "relative aspect-9/12 w-full overflow-hidden",
-          !thumbnailUrl && "bg-linear-to-br",
-          !thumbnailUrl && shot.visualPlaceholder.gradient,
-        )}
-      >
+    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card">
+      <div className="relative aspect-9/12 w-full overflow-hidden bg-muted">
         {thumbnailUrl ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -98,13 +92,12 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
               loading="lazy"
               draggable={false}
             />
-            {/* 顶部渐变让左上角 chip 与底部 label 在任何画面上都可读 */}
-            <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/55 via-black/15 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/75 via-black/30 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-24 bg-overlay" />
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-overlay" />
           </>
         ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-black/30 backdrop-blur">
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-card">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-overlay ">
               {ICON_MAP[shot.visualPlaceholder.iconKey]}
             </div>
             <p className="mt-3 text-sm font-semibold tracking-wide">
@@ -114,15 +107,15 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
         )}
 
         <div className="absolute left-3 top-3 flex flex-col gap-1.5">
-          <span className="inline-flex items-center gap-1 rounded-full bg-black/65 px-2 py-1 text-[10px] font-mono text-white backdrop-blur">
+          <span className="inline-flex items-center gap-1 rounded-full bg-overlay px-2 py-1 text-meta font-mono text-card ">
             <Clock size={10} /> {shot.durationSec}s
           </span>
           <span
             className={cn(
-              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium backdrop-blur",
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-meta font-medium ",
               shot.requiredFlag
-                ? "bg-rose-500/55 text-white"
-                : "bg-white/15 text-white/90",
+                ? "bg-danger text-card"
+                : "bg-muted text-foreground",
             )}
           >
             {shot.requiredFlag ? "必拍" : "可选"}
@@ -132,13 +125,13 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
         {/* 真实视频帧 → 把镜头标题叠加在右下角，icon 缩小成小徽标；
             placeholder 模式（无 thumbnail）由上方居中渲染负责，这里不重复显示 */}
         {thumbnailUrl ? (
-          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-emerald-400/85 px-2 py-1 text-[10px] font-semibold text-emerald-950 backdrop-blur">
+          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-success px-2 py-1 text-meta font-semibold text-card ">
             真实成片帧
           </span>
         ) : null}
 
         {shot.captionText ? (
-          <div className="absolute inset-x-3 bottom-3 rounded-xl bg-black/65 px-3 py-2 text-center text-xs leading-5 text-white backdrop-blur">
+          <div className="absolute inset-x-3 bottom-3 rounded-md bg-foreground px-3 py-2 text-center text-xs leading-5 text-background ">
             {shot.captionText}
           </div>
         ) : null}
@@ -146,7 +139,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
 
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
+          <p className="text-meta font-mono uppercase tracking-[0.2em] text-primary">
             镜头 {String(shot.sceneIndex).padStart(2, "0")} ·{" "}
             {shot.shotTypeLabel}
           </p>
@@ -155,13 +148,13 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
           </h3>
         </div>
 
-        <div className="rounded-2xl bg-white/4 p-3 text-xs leading-5">
+        <div className="rounded-lg bg-muted p-3 text-xs leading-5">
           <p className="font-medium text-foreground">运镜指令</p>
           <p className="mt-1 text-muted-foreground">{shot.cameraInstruction}</p>
         </div>
 
         {shot.voiceoverSegment ? (
-          <div className="rounded-2xl bg-white/4 p-3 text-xs leading-5">
+          <div className="rounded-lg bg-muted p-3 text-xs leading-5">
             <p className="font-medium text-foreground">对应口播</p>
             <p className="mt-1 italic text-muted-foreground">
               “{shot.voiceoverSegment}”
@@ -170,7 +163,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
         ) : null}
 
         <div>
-          <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="text-meta font-medium uppercase tracking-[0.18em] text-muted-foreground">
             拍摄要点
           </p>
           <ul className="mt-1.5 space-y-1 text-xs leading-5 text-muted-foreground">
@@ -178,7 +171,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
               <li key={req} className="flex items-start gap-2">
                 <CheckCircle2
                   size={11}
-                  className="mt-1 shrink-0 text-emerald-300"
+                  className="mt-1 shrink-0 text-success"
                 />
                 <span>{req}</span>
               </li>
@@ -186,7 +179,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
           </ul>
         </div>
 
-        <div className="mt-auto flex flex-wrap gap-1.5 text-[10px]">
+        <div className="mt-auto flex flex-wrap gap-1.5 text-meta">
           <Tag>{compositionZh(shot.composition)}</Tag>
           <Tag>{movementZh(shot.cameraMovement)}</Tag>
           <Tag>{orientationZh(shot.orientation)}</Tag>
@@ -245,7 +238,7 @@ function Tag({
         "rounded-full px-2 py-0.5 font-medium",
         tone === "primary"
           ? "bg-primary/15 text-primary"
-          : "bg-white/5 text-muted-foreground",
+          : "bg-muted text-muted-foreground",
       )}
     >
       {children}

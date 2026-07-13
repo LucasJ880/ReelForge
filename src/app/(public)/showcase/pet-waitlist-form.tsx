@@ -98,7 +98,7 @@ export function PetWaitlistForm() {
           <select
             name="monthlyVolume"
             required
-            className="h-11 rounded-2xl border border-border bg-background/70 px-3 text-sm text-foreground outline-none transition focus:border-primary"
+            className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground focus-visible:border-ring"
             defaultValue=""
           >
             <option value="" disabled>
@@ -119,23 +119,24 @@ export function PetWaitlistForm() {
           rows={4}
           maxLength={800}
           placeholder="例如：想给自家宠物每天自动生成可爱视频；品牌想要真实使用证据素材；想了解投资机会。"
-          className="resize-none rounded-2xl border border-border bg-background/70 px-3 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary"
+          className="resize-none rounded-md border border-input bg-background px-3 py-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring"
         />
       </label>
       <button
         type="submit"
         disabled={state === "submitting"}
-        className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+        className="mt-2 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-70"
       >
-        {state === "submitting" && <Loader2 size={16} className="animate-spin" />}
+        {state === "submitting" && <Loader2 size={16} aria-hidden />}
         提交体验申请
       </button>
       {message && (
         <p
-          className={`rounded-2xl px-4 py-3 text-sm ${
+          role={state === "error" ? "alert" : "status"}
+          className={`rounded-lg px-4 py-3 text-sm ${
             state === "success"
-              ? "bg-emerald-500/12 text-emerald-700"
-              : "bg-red-500/12 text-red-700"
+              ? "border border-success bg-success/10 text-success"
+              : "border border-danger bg-danger/10 text-danger"
           }`}
         >
           {message}
@@ -167,7 +168,7 @@ function Field({
         required={required}
         maxLength={160}
         placeholder={placeholder}
-        className="h-11 rounded-2xl border border-border bg-background/70 px-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary"
+        className="h-11 rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring"
       />
     </label>
   );

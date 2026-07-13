@@ -17,15 +17,15 @@ export function CollarPov() {
       title={c.title}
       description={c.description}
       aside={
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-700">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-warning bg-warning/10 px-3 py-1.5 text-xs font-semibold text-warning">
           扩展阶段 · 概念演示
         </span>
       }
     >
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         {/* 产品 + 模拟交互 */}
-        <div className="pet-surface flex flex-col overflow-hidden rounded-3xl">
-          <div className="bg-linear-to-br from-(--pet-cream) to-background">
+        <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-lg">
+          <div className="bg-muted">
             <PetImage
               src={c.povImage}
               alt="Aivora 第一视角项圈摄影机"
@@ -34,11 +34,11 @@ export function CollarPov() {
             />
           </div>
           <div className="flex items-center justify-between gap-3 p-4">
-            <span className="inline-flex items-center gap-2 rounded-full bg-(--pet-orange)/12 px-3 py-2 text-xs font-semibold text-(--pet-orange)">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-2 text-xs font-semibold text-primary">
               <Mic size={14} /> 远程发声「奶豆～」
             </span>
             <ArrowRight size={16} className="text-muted-foreground" />
-            <span className="inline-flex items-center gap-2 rounded-full bg-(--pet-teal)/12 px-3 py-2 text-xs font-semibold text-(--pet-teal)">
+            <span className="inline-flex items-center gap-2 rounded-full bg-success/10 px-3 py-2 text-xs font-semibold text-success">
               <Sparkles size={14} /> 自动成片
             </span>
           </div>
@@ -49,10 +49,10 @@ export function CollarPov() {
           {c.steps.map((step, idx) => (
             <PovStep key={step.step} step={step} index={idx} />
           ))}
-          <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-(--pet-orange)/25 bg-(--pet-orange)/8 px-3 py-1.5 text-[11px] font-semibold text-(--pet-orange)">
+          <span className="mt-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-meta font-semibold text-primary">
             <Sparkles size={12} /> {c.challengeLabel}
           </span>
-          <p className="text-[11px] leading-5 text-muted-foreground/80">
+          <p className="text-meta leading-5 text-muted-foreground/80">
             {c.futureNote}
           </p>
         </div>
@@ -64,8 +64,8 @@ export function CollarPov() {
 function PovStep({ step, index }: { step: CollarPovStepDemo; index: number }) {
   const Icon = STEP_ICON[index] ?? Sparkles;
   return (
-    <div className="pet-surface flex items-start gap-3 rounded-2xl p-4">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-(--pet-orange)/12 text-(--pet-orange)">
+    <div className="border border-border bg-card shadow-editorial flex items-start gap-3 rounded-lg p-4">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Icon size={16} />
       </span>
       <div>

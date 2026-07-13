@@ -14,31 +14,15 @@ interface DemoHeroProps {
 
 export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
   return (
-    <section className="relative isolate overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 -z-10 ambient-glow" />
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-5 pb-14 pt-10 sm:px-8 lg:flex-row lg:items-center lg:gap-12 lg:px-10 lg:pb-24 lg:pt-16">
+    <section className="relative isolate overflow-hidden bg-background">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 pb-14 pt-10 sm:px-6 lg:flex-row lg:items-center lg:gap-12 lg:px-10 lg:pb-24 lg:pt-16">
         <div className="flex-1">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles size={14} />
             投资人版本 · 两个真实北美客户案例
           </div>
-          {/*
-           * 中文标题排版（mobile-first，desktop 也要可控）：
-           *   1. `break-keep + line-break: strict` 禁止中文按字符 break；
-           *   2. nowrap span 锁住数字短语（"30 秒成片"/"AI 视频管线"），永远不被
-           *      拆成"30 / 秒成片"；
-           *   3. 用**普通空格**而非 `&nbsp;` 连接「从客户输入到」与「30 秒成片，」
-           *      —— mobile 390 viewport 下 nbsp 会让整段 432px 不可 break 触发
-           *      horizontal overflow（截掉右边），普通空格在 mobile 自然 break；
-           *   4. desktop 端 `<br className="hidden sm:inline" />` 显式换行，sm+
-           *      左 column 容器宽度（lg≈448 / xl≈576）配合下方字号：
-           *      - lg:text-[2.125rem]（34px）→ 12 char × 34 = 408 ≤ 448 ✓
-           *      - xl:text-[2.875rem]（46px）→ 12 char × 46 = 552 ≤ 576 ✓
-           *      保证 "从客户输入到 30 秒成片，" 在 sm+ 整段一行不 break；
-           *   5. 不再追求 3.25rem 极大字号——hero 双 phone 占了一半视宽，文字 column
-           *      留给标题的实际宽度有限，硬塞大字号只会让 wrap 不可控。
-           */}
-          <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight sm:text-5xl sm:leading-[1.15] lg:text-[2.125rem] lg:leading-[1.2] xl:text-[2.875rem] xl:leading-[1.18] break-keep [line-break:strict]">
+          {/* 中文按短语换行；390px 下允许自然折行，数字短语保持完整。 */}
+          <h1 className="editorial-display mt-6 max-w-3xl break-keep [line-break:strict]">
             从客户输入到{" "}
             <span className="whitespace-nowrap">30 秒成片，</span>
             <br className="hidden sm:inline" />
@@ -59,19 +43,19 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
               href={ctaPrimaryHref}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
             >
               {ctaPrimaryLabel} <ArrowRight size={16} />
             </Link>
             <a
               href="#final-output"
-              className="inline-flex items-center justify-center rounded-full border border-white/15 px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-white/5"
+              className="inline-flex items-center justify-center rounded-full border border-border px-5 py-3 text-sm font-semibold text-foreground hover:bg-muted"
             >
               直接看成片
             </a>
             <a
               href="#investor"
-              className="inline-flex items-center justify-center rounded-full border border-white/10 bg-white/3 px-5 py-3 text-sm font-semibold text-muted-foreground transition hover:bg-white/5"
+              className="inline-flex items-center justify-center rounded-full border border-border bg-muted px-5 py-3 text-sm font-semibold text-muted-foreground hover:bg-muted"
             >
               投资亮点摘要
             </a>
@@ -84,7 +68,7 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
           </dl>
 
           {PRODUCT_WALKTHROUGH_VIDEO_URL ? (
-            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-white/4 px-4 py-3 text-sm text-muted-foreground">
+            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
                 可选 · 60 秒产品 walkthrough
               </span>
@@ -92,7 +76,7 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
                 href={PRODUCT_WALKTHROUGH_VIDEO_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-xs font-medium text-foreground transition hover:bg-white/10"
+                className="inline-flex items-center gap-1 rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground hover:bg-muted"
               >
                 播放 <ArrowRight size={12} />
               </a>
@@ -101,7 +85,6 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
         </div>
 
         <div className="relative flex-1">
-          <div className="absolute -inset-10 -z-10 rounded-[3rem] bg-primary/15 blur-3xl" />
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-4">
             <CaseColumn
               eyebrow="案例 A · 投资级品牌叙事"
@@ -111,7 +94,6 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               posterUrl={mainConceptVideo.posterUrl}
               statusBadge={`${mainConceptVideo.aspectRatio} · ${mainConceptVideo.durationLabel}`}
               caption="加拿大电动智能卷帘 · 投资人版本"
-              fallbackGradient="from-amber-400/30 via-rose-400/15 to-violet-500/20"
               fallbackTitle={mainConceptVideo.title}
               tone="primary"
             />
@@ -123,7 +105,6 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
               posterUrl={localProductSample.thumbnailUrl}
               statusBadge={`${localProductSample.aspectRatio} · 30 秒成片`}
               caption="多伦多本地家居织物 · 批量化样片"
-              fallbackGradient="from-amber-300/30 via-amber-500/15 to-emerald-500/20"
               fallbackTitle={localProductSample.title}
               tone="neutral"
             />
@@ -142,7 +123,6 @@ function CaseColumn({
   posterUrl,
   statusBadge,
   caption,
-  fallbackGradient,
   fallbackTitle,
   tone,
 }: {
@@ -153,18 +133,17 @@ function CaseColumn({
   posterUrl?: string | null;
   statusBadge?: string;
   caption?: string;
-  fallbackGradient?: string;
   fallbackTitle?: string;
   tone: "primary" | "neutral";
 }) {
   const tonePill =
     tone === "primary"
       ? "border-primary/40 bg-primary/15 text-primary"
-      : "border-white/15 bg-white/5 text-foreground/85";
+      : "border-border bg-muted text-foreground/85";
   return (
     <div className="flex flex-col items-center gap-3">
       <p
-        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] ${tonePill}`}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-meta font-semibold uppercase tracking-[0.2em] ${tonePill}`}
       >
         {eyebrow}
       </p>
@@ -184,7 +163,6 @@ function CaseColumn({
         videoMode="autoplay"
         caption={caption}
         statusBadge={statusBadge}
-        fallbackGradient={fallbackGradient}
         fallbackTitle={fallbackTitle}
         fallbackSubtitle="Aivora 工作流 · 真实成片"
       />
@@ -198,7 +176,7 @@ function CaseColumn({
 
 function HeroStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/4 p-4">
+    <div className="rounded-lg border border-border bg-muted p-4">
       <dt className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </dt>

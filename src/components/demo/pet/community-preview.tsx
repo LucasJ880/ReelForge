@@ -17,16 +17,15 @@ export function CommunityPreview() {
     >
       <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
         {/* 宠物主页 */}
-        <div className="pet-surface overflow-hidden rounded-3xl">
-          <div className="relative h-28 w-full overflow-hidden bg-linear-to-br from-(--pet-orange-soft) via-(--pet-cream) to-(--pet-teal-soft)">
+        <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-lg">
+          <div className="relative h-28 w-full overflow-hidden bg-muted">
             <PetImage src={profile.coverUrl} alt="主页封面" fallbackLabel="" />
           </div>
           <div className="-mt-8 px-5 pb-5">
-            <div className="h-16 w-16 overflow-hidden rounded-2xl border-4 border-card bg-linear-to-br from-(--pet-orange-soft) to-(--pet-teal-soft)">
+            <div className="h-16 w-16 overflow-hidden rounded-lg border-4 border-card bg-muted">
               <PetImage
                 src={profile.avatarUrl}
                 alt={profile.petName}
-                fallbackEmoji="🐱"
               />
             </div>
             <h3 className="mt-3 text-lg font-semibold text-foreground">
@@ -39,12 +38,12 @@ export function CommunityPreview() {
               {profile.stats.map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-2xl border border-border bg-background/60 p-2.5 text-center"
+                  className="rounded-lg border border-border bg-background p-2.5 text-center"
                 >
                   <dd className="text-sm font-semibold text-foreground">
                     {s.value}
                   </dd>
-                  <dt className="text-[10px] text-muted-foreground">
+                  <dt className="text-meta text-muted-foreground">
                     {s.label}
                   </dt>
                 </div>
@@ -68,25 +67,25 @@ export function CommunityPreview() {
 
           <div className="grid gap-5 sm:grid-cols-[1fr_1fr]">
             {/* 挑战赛 */}
-            <div className="pet-surface rounded-3xl p-5">
-              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--pet-orange)]">
+            <div className="border border-border bg-card shadow-editorial rounded-lg p-5">
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                 <Trophy size={14} /> 热门挑战赛
               </p>
               <ul className="mt-3 space-y-2.5">
                 {community.challenges.map((c) => (
                   <li
                     key={c.title}
-                    className="flex items-center justify-between gap-2 rounded-2xl border border-border bg-background/60 px-3 py-2.5"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2.5"
                   >
                     <div>
                       <p className="text-xs font-semibold text-foreground">
                         {c.title}
                       </p>
-                      <p className="text-[11px] text-[color:var(--pet-teal)]">
+                      <p className="text-meta text-success">
                         {c.tag}
                       </p>
                     </div>
-                    <span className="text-[11px] text-muted-foreground">
+                    <span className="text-meta text-muted-foreground">
                       {c.participants}
                     </span>
                   </li>
@@ -95,8 +94,8 @@ export function CommunityPreview() {
             </div>
 
             {/* 品牌试用 */}
-            <div className="pet-surface rounded-3xl p-5">
-              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--pet-teal)]">
+            <div className="border border-border bg-card shadow-editorial rounded-lg p-5">
+              <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
                 <Gift size={14} /> {community.brandTrial.title}
               </p>
               <p className="mt-3 text-xs leading-6 text-muted-foreground">
@@ -106,7 +105,7 @@ export function CommunityPreview() {
                 {community.brandTrial.examples.map((e) => (
                   <span
                     key={e}
-                    className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-foreground/80"
+                    className="rounded-full bg-secondary px-2.5 py-1 text-meta font-medium text-foreground/80"
                   >
                     {e}
                   </span>
@@ -122,28 +121,28 @@ export function CommunityPreview() {
 
 function FeedCard({ post }: { post: CommunityPostDemo }) {
   return (
-    <div className="pet-surface overflow-hidden rounded-3xl">
-      <div className="relative aspect-square w-full overflow-hidden bg-linear-to-br from-(--pet-orange-soft) via-(--pet-cream) to-(--pet-teal-soft)">
+    <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-lg">
+      <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <PetImage src={post.coverUrl} alt={post.caption} fallbackLabel="" />
         {post.badge ? (
-          <span className="absolute left-2 top-2 rounded-full bg-[var(--pet-orange)] px-2 py-0.5 text-[10px] font-semibold text-white">
+          <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-meta font-semibold text-primary-foreground">
             {post.badge}
           </span>
         ) : null}
       </div>
       <div className="p-3">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 overflow-hidden rounded-full bg-linear-to-br from-(--pet-orange-soft) to-(--pet-teal-soft)">
-            <PetImage src={post.avatarUrl} alt={post.petName} fallbackEmoji="🐾" />
+          <div className="h-6 w-6 overflow-hidden rounded-full bg-muted">
+            <PetImage src={post.avatarUrl} alt={post.petName} />
           </div>
-          <span className="truncate text-[11px] font-medium text-foreground">
+          <span className="truncate text-meta font-medium text-foreground">
             {post.ownerHandle}
           </span>
         </div>
         <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
           {post.caption}
         </p>
-        <p className="mt-2 inline-flex items-center gap-1 text-[11px] text-rose-500">
+        <p className="mt-2 inline-flex items-center gap-1 text-meta text-danger">
           <Heart size={11} /> {post.likes.toLocaleString("zh-CN")}
         </p>
       </div>

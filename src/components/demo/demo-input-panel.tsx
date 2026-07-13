@@ -38,14 +38,14 @@ export function DemoInputPanel() {
       description={
         <span>
           这一步对应{" "}
-          <code className="rounded bg-white/5 px-1.5 py-0.5">/business/create-ad-video</code>{" "}
+          <code className="rounded bg-muted px-1.5 py-0.5">/business/create-ad-video</code>{" "}
           的 Unified Creative Input。下面是一组示例输入，点击选项仅切换高亮状态，
           不会真正触发后端生成。
         </span>
       }
       rightSlot={<SampleDataBadge />}
     >
-      <div className="grid gap-6 rounded-[2rem] border border-white/10 bg-card/60 p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 rounded-lg border border-border bg-card p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-4">
           <Field
             icon={<Building2 size={16} />}
@@ -140,7 +140,7 @@ function Field({
   value: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+    <div className="rounded-lg border border-border bg-muted p-4">
       <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {icon}
         {label}
@@ -174,10 +174,10 @@ function ChipsRow({
             type="button"
             onClick={() => onSelect(chip.key)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+              "rounded-full border px-3 py-1.5 text-xs font-medium",
               chip.active
                 ? "border-primary/50 bg-primary/15 text-primary"
-                : "border-white/10 bg-white/[0.02] text-muted-foreground hover:bg-white/[0.05]",
+                : "border-border bg-muted text-muted-foreground hover:bg-muted",
             )}
             aria-pressed={chip.active}
           >

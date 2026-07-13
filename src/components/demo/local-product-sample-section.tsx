@@ -38,27 +38,26 @@ export function LocalProductSampleSection() {
             posterUrl={localProductSample.thumbnailUrl}
             videoMode="preview"
             statusBadge={`${localProductSample.aspectRatio} · ${localProductSample.durationSec}s`}
-            fallbackGradient="from-amber-300/30 via-rose-400/15 to-emerald-500/20"
             fallbackTitle={localProductSample.title}
             fallbackSubtitle="痛点 · 材质 · 场景 · 卖点 · CTA"
           />
-          <div className="flex flex-wrap items-center justify-center gap-2 text-[11px]">
-            <span className="inline-flex items-center gap-1 rounded-full bg-amber-400/15 px-2.5 py-1 font-medium uppercase tracking-[0.18em] text-amber-200">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-meta">
+            <span className="inline-flex items-center gap-1 rounded-full bg-warning/10 px-2.5 py-1 font-medium uppercase tracking-[0.18em] text-warning">
               <Sparkles size={11} />
               {localProductSample.badge}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <Store size={11} />
               {localProductSample.industryLabel}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-2.5 py-1 font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 font-medium uppercase tracking-[0.18em] text-muted-foreground">
               <MapPin size={11} />
               {localProductSample.city}
             </span>
           </div>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-card/60 p-5 sm:p-6">
+        <div className="rounded-lg border border-border bg-card p-5 sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             {localProductSample.brandName} · 分镜节奏
           </p>
@@ -73,18 +72,18 @@ export function LocalProductSampleSection() {
             {localProductSample.beats.map((beat) => (
               <li
                 key={beat.time}
-                className="grid grid-cols-[68px_1fr] gap-3 rounded-2xl bg-white/3 p-3 sm:grid-cols-[88px_1fr]"
+                className="grid grid-cols-[68px_1fr] gap-3 rounded-lg bg-muted p-3 sm:grid-cols-[88px_1fr]"
               >
                 <div>
                   <p className="font-mono text-xs text-primary">{beat.time}</p>
-                  <p className="mt-0.5 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                  <p className="mt-0.5 text-meta uppercase tracking-[0.16em] text-muted-foreground">
                     {beat.label}
                   </p>
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm leading-6 wrap-break-word">{beat.visual}</p>
                   {beat.caption ? (
-                    <p className="mt-1 rounded-xl bg-white/4 px-2.5 py-1 text-xs italic leading-5 text-muted-foreground wrap-break-word">
+                    <p className="mt-1 rounded-md bg-muted px-2.5 py-1 text-xs italic leading-5 text-muted-foreground wrap-break-word">
                       “{beat.caption}”
                     </p>
                   ) : null}
@@ -97,9 +96,9 @@ export function LocalProductSampleSection() {
             {localProductSample.industryStats.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-2xl border border-white/10 bg-white/3 px-3 py-3"
+                className="rounded-lg border border-border bg-muted px-3 py-3"
               >
-                <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <p className="text-meta uppercase tracking-[0.18em] text-muted-foreground">
                   {stat.label}
                 </p>
                 <p className="mt-1 text-sm font-semibold leading-tight">
@@ -109,7 +108,7 @@ export function LocalProductSampleSection() {
             ))}
           </div>
 
-          <div className="mt-5 flex items-start gap-3 rounded-2xl border border-primary/25 bg-primary/6 px-4 py-3">
+          <div className="mt-5 flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/6 px-4 py-3">
             <Sparkles size={16} className="mt-0.5 shrink-0 text-primary" />
             <p className="text-sm leading-6 text-foreground">
               {localProductSample.cta}

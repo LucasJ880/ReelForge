@@ -45,26 +45,26 @@ function TimelineRow({ event }: { event: ActivityEventDemo }) {
       <span className="hidden w-12 shrink-0 pt-2 text-right text-xs font-semibold tabular-nums text-muted-foreground sm:block">
         {event.time}
       </span>
-      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-border bg-card text-[color:var(--pet-teal)]">
+      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-success">
         <Icon size={18} />
       </span>
-      <div className="pet-surface flex-1 rounded-2xl p-4">
+      <div className="border border-border bg-card shadow-editorial flex-1 rounded-lg p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold tabular-nums text-muted-foreground sm:hidden">
             {event.time}
           </span>
-          <span className="rounded-full bg-[var(--pet-orange)]/10 px-2 py-0.5 text-[11px] font-semibold text-[color:var(--pet-orange)]">
+          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-meta font-semibold text-primary">
             {event.typeLabel}
           </span>
           <h3 className="text-sm font-semibold text-foreground">
             {event.title}
           </h3>
           {event.captured ? (
-            <span className="ml-auto rounded-full bg-[var(--pet-teal)]/10 px-2 py-0.5 text-[11px] font-medium text-[color:var(--pet-teal)]">
+            <span className="ml-auto rounded-full bg-success/10 px-2 py-0.5 text-meta font-medium text-success">
               已采集片段
             </span>
           ) : (
-            <span className="ml-auto rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+            <span className="ml-auto rounded-full bg-warning/10 px-2 py-0.5 text-meta font-medium text-warning">
               提醒留意
             </span>
           )}

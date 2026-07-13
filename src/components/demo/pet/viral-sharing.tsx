@@ -18,9 +18,9 @@ export function ViralSharing() {
           {viralSharing.steps.map((step, i) => {
             const Icon = STEP_ICON[i] ?? Sparkles;
             return (
-              <div key={step.step} className="pet-surface rounded-3xl p-5">
+              <div key={step.step} className="border border-border bg-card shadow-editorial rounded-lg p-5">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--pet-orange)]/12 text-[color:var(--pet-orange)]">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Icon size={18} />
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground">
@@ -39,16 +39,16 @@ export function ViralSharing() {
         </div>
 
         {/* 平台 + 水印 + 指标 */}
-        <div className="pet-surface flex flex-col gap-5 rounded-3xl p-5">
+        <div className="border border-border bg-card shadow-editorial flex flex-col gap-5 rounded-lg p-5">
           <div>
-            <p className="text-xs font-semibold text-[color:var(--pet-teal)]">
+            <p className="text-xs font-semibold text-success">
               一键分享到
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
               {viralSharing.platforms.map((p) => (
                 <span
                   key={p}
-                  className="rounded-full border border-border bg-background/60 px-3 py-1 text-xs font-medium text-foreground/80"
+                  className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-foreground/80"
                 >
                   {p}
                 </span>
@@ -56,8 +56,8 @@ export function ViralSharing() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-[var(--pet-orange)]/25 bg-[var(--pet-orange)]/8 p-4">
-            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-[color:var(--pet-orange)]">
+          <div className="rounded-lg border border-primary/25 bg-primary/10 p-4">
+            <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
               <Droplet size={13} /> 自带水印 · 传播即获客
             </p>
             <p className="mt-2 text-xs leading-6 text-muted-foreground">
@@ -69,9 +69,9 @@ export function ViralSharing() {
             {viralSharing.metrics.map((m) => (
               <div
                 key={m.label}
-                className="flex items-center justify-between rounded-2xl border border-border bg-background/60 px-3 py-2.5"
+                className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5"
               >
-                <dt className="text-[11px] text-muted-foreground">{m.label}</dt>
+                <dt className="text-meta text-muted-foreground">{m.label}</dt>
                 <dd className="text-sm font-semibold text-foreground">
                   {m.value}
                 </dd>

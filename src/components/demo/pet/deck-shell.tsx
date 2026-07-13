@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
 /**
@@ -36,7 +35,7 @@ interface DeckShellProps {
  *   - IntersectionObserver 追踪当前页 → 驱动右侧圆点导航 / 顶部进度条 / 页码
  *   - 键盘导航（↑↓ / PgUp PgDn / Space / Home / End），并在超高幻灯片内
  *     先消费内部滚动、到边界再翻页
- *   - Framer Motion 入场动画，prefers-reduced-motion 时降级为瞬切
+ *   - 不使用装饰动画，滚动行为自动遵循 prefers-reduced-motion
  *
  * 不改动任何既有区块组件：把它们按章节分组塞进 slides 即可。
  */
@@ -44,12 +43,6 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const slideRefs = useRef<(HTMLElement | null)[]>([]);
   const [active, setActive] = useState(0);
-  // 已揭示的最大页码：保证翻过的页保持可见，回滚不会变空白。
-  const [maxRevealed, setMaxRevealed] = useState(0);
-  // 翻页方向：决定内容入场的位移正负，营造方向感。
-  const [direction, setDirection] = useState<"down" | "up">("down");
-  const prevActiveRef = useRef(0);
-  const reduceMotion = useReducedMotion();
   const total = slides.length;
   const showHint = active === 0;
 
@@ -58,12 +51,15 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
       const clamped = Math.max(0, Math.min(total - 1, index));
       const el = slideRefs.current[clamped];
       if (!el) return;
+      const reduceMotion = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
       el.scrollIntoView({
         behavior: reduceMotion ? "auto" : "smooth",
         block: "start",
       });
     },
-    [total, reduceMotion],
+    [total],
   );
 
   // 追踪当前激活的幻灯片
@@ -77,10 +73,7 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
             const idx = Number(
               (entry.target as HTMLElement).dataset.index ?? "0",
             );
-            setDirection(idx >= prevActiveRef.current ? "down" : "up");
-            prevActiveRef.current = idx;
             setActive(idx);
-            setMaxRevealed((prev) => (idx > prev ? idx : prev));
           }
         }
       },
@@ -143,26 +136,26 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
   }, [active, total, scrollToIndex]);
 
   return (
-    <div className="deck-root relative h-svh w-full overflow-hidden">
+    <div className="relative h-svh w-full overflow-hidden bg-background">
       {/* 顶部进度条 */}
-      <div className="deck-progress" aria-hidden>
+      <div className="absolute inset-x-0 top-0 z-40 h-0.5 bg-border" aria-hidden>
         <div
-          className="deck-progress-bar"
+          className="h-full bg-primary"
           style={{ width: `${((active + 1) / total) * 100}%` }}
         />
       </div>
 
       {/* 固定的品牌 + CTA 头 */}
-      <div className="deck-topbar">
+      <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-border bg-card px-4 sm:px-6 lg:px-10">
         <div className="min-w-0">{brand}</div>
-        <div className="flex items-center gap-3">
-          <span className="deck-counter" aria-live="polite">
+        <div className="pointer-events-auto flex items-center gap-2 sm:gap-3">
+          <span className="hidden text-meta tabular-nums text-muted-foreground min-[390px]:inline" aria-live="polite">
             {String(active + 1).padStart(2, "0")}
             <span className="text-muted-foreground/50"> / {String(total).padStart(2, "0")}</span>
           </span>
           {cta}
         </div>
-      </div>
+      </header>
 
       {/* 右侧圆点导航 */}
       <DeckDots
@@ -172,7 +165,10 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
       />
 
       {/* 滚动容器 */}
-      <div ref={scrollerRef} className="deck-scroller">
+      <div
+        ref={scrollerRef}
+        className="h-full snap-y snap-mandatory overflow-x-hidden overflow-y-auto overscroll-y-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
         {slides.map((slide, index) => (
           <section
             key={slide.id}
@@ -181,15 +177,10 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
             ref={(el) => {
               slideRefs.current[index] = el;
             }}
-            className="deck-slide"
+            className="relative h-svh snap-start snap-always"
             aria-label={slide.label}
           >
-            <DeckSlideBody
-              revealed={index <= maxRevealed}
-              justReached={index === active}
-              direction={direction}
-              reduceMotion={Boolean(reduceMotion)}
-            >
+            <DeckSlideBody>
               {slide.node}
             </DeckSlideBody>
           </section>
@@ -210,46 +201,17 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
 
 function DeckSlideBody({
   children,
-  revealed,
-  justReached,
-  direction,
-  reduceMotion,
 }: {
   children: ReactNode;
-  /// 该幻灯片是否应可见（当前页或已翻过的页）。可见性不依赖 whileInView，杜绝空白。
-  revealed: boolean;
-  /// 是否正好是当前激活页（用于播放入场动画）。
-  justReached: boolean;
-  /// 翻页方向，决定未揭示态的位移正负，营造方向感。
-  direction: "down" | "up";
-  reduceMotion: boolean;
 }) {
-  if (reduceMotion) {
-    return (
-      <div data-deck-inner className="deck-slide-inner">
-        <div className="deck-slide-content">{children}</div>
-      </div>
-    );
-  }
-  // 未揭示态：按翻页方向从下/上方略缩入场；揭示态恒为完全可见，杜绝空白。
-  const hiddenOffset = direction === "up" ? -36 : 36;
   return (
-    <div data-deck-inner className="deck-slide-inner">
-      <motion.div
-        className="deck-slide-content"
-        initial={false}
-        animate={
-          revealed
-            ? { opacity: 1, y: 0, scale: 1 }
-            : { opacity: 0, y: hiddenOffset, scale: 0.965 }
-        }
-        transition={{
-          duration: justReached ? 0.6 : 0.32,
-          ease: [0.22, 0.61, 0.36, 1],
-        }}
-      >
+    <div
+      data-deck-inner
+      className="flex h-full flex-col justify-center overflow-y-auto pb-16 pt-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+    >
+      <div className="flex w-full flex-col gap-8 [&>section]:py-0 sm:gap-12">
         {children}
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -264,19 +226,26 @@ function DeckDots({
   onSelect: (index: number) => void;
 }) {
   return (
-    <nav className="deck-dots" aria-label="幻灯片导航">
-      <ol>
+    <nav className="absolute right-3 top-1/2 z-20 hidden -translate-y-1/2 lg:block" aria-label="幻灯片导航">
+      <ol className="flex flex-col items-end gap-1">
         {slides.map((slide, index) => (
           <li key={slide.id}>
             <button
               type="button"
               onClick={() => onSelect(index)}
-              className={`deck-dot ${index === active ? "is-active" : ""}`}
+              className="group flex min-h-8 items-center gap-2 rounded-md px-2 text-meta text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-current={index === active ? "true" : undefined}
               aria-label={`${index + 1}. ${slide.label}`}
             >
-              <span className="deck-dot-mark" aria-hidden />
-              <span className="deck-dot-label">{slide.label}</span>
+              <span
+                className={`h-1.5 w-1.5 rounded-full ${
+                  index === active ? "bg-primary" : "bg-border"
+                }`}
+                aria-hidden
+              />
+              <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-40 group-hover:opacity-100">
+                {slide.label}
+              </span>
             </button>
           </li>
         ))}
@@ -301,12 +270,12 @@ function DeckPager({
   const isFirst = active === 0;
   const isLast = active === total - 1;
   return (
-    <div className="deck-pager" aria-hidden={false}>
+    <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2 sm:bottom-4 sm:right-4" aria-hidden={false}>
       <button
         type="button"
         onClick={onPrev}
         disabled={isFirst}
-        className="deck-pager-btn"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="上一页"
       >
         <ChevronUp size={18} />
@@ -315,24 +284,16 @@ function DeckPager({
         type="button"
         onClick={onNext}
         disabled={isLast}
-        className="deck-pager-btn"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="下一页"
       >
         <ChevronDown size={18} />
       </button>
-      <AnimatePresence>
-        {showHint ? (
-          <motion.span
-            className="deck-hint"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 6 }}
-            transition={{ duration: 0.4 }}
-          >
-            滚动 / 方向键翻页
-          </motion.span>
-        ) : null}
-      </AnimatePresence>
+      {showHint ? (
+        <span className="hidden text-meta text-muted-foreground sm:inline">
+          滚动 / 方向键翻页
+        </span>
+      ) : null}
     </div>
   );
 }

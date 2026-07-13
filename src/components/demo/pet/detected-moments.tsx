@@ -30,30 +30,29 @@ export function DetectedMoments() {
 
 function MomentCard({ moment }: { moment: DetectedMomentDemo }) {
   return (
-    <div className="pet-surface group overflow-hidden rounded-3xl">
+    <div className="border border-border bg-card shadow-editorial group overflow-hidden rounded-lg">
       <div className="relative aspect-[4/5] w-full overflow-hidden">
         <PetImage
           src={moment.imageUrl}
           alt={moment.title}
           fallbackLabel={moment.title}
-          className="transition duration-500 group-hover:scale-105"
         />
         {moment.forBrand ? (
-          <span className="absolute left-2.5 top-2.5 rounded-full bg-[var(--pet-teal)] px-2 py-0.5 text-[10px] font-semibold text-primary-foreground">
+          <span className="absolute left-2.5 top-2.5 rounded-full bg-success px-2 py-0.5 text-meta font-semibold text-card">
             产品证据
           </span>
         ) : null}
       </div>
       <div className="p-3.5">
         <h3 className="text-sm font-semibold text-foreground">{moment.title}</h3>
-        <p className="mt-0.5 text-[11px] text-muted-foreground">
+        <p className="mt-0.5 text-meta text-muted-foreground">
           {moment.behaviorLabel}
         </p>
-        <div className="mt-3 flex items-center gap-3 text-[11px] font-medium">
-          <span className="inline-flex items-center gap-1 text-rose-500">
+        <div className="mt-3 flex items-center gap-3 text-meta font-medium">
+          <span className="inline-flex items-center gap-1 text-danger">
             <Heart size={12} /> 可爱 {moment.cuteScore}
           </span>
-          <span className="inline-flex items-center gap-1 text-[color:var(--pet-teal)]">
+          <span className="inline-flex items-center gap-1 text-success">
             <Share2 size={12} /> 传播 {moment.shareScore}
           </span>
         </div>

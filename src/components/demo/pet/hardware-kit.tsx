@@ -10,9 +10,9 @@ import {
 } from "@/lib/demo/pet-content-kit-demo-data";
 
 const STAGE_CHIP: Record<HardwareStageTag, string> = {
-  mvp: "border-(--pet-teal)/30 bg-(--pet-teal)/12 text-(--pet-teal)",
-  b2b: "border-[var(--pet-orange)]/30 bg-(--pet-orange)/12 text-(--pet-orange)",
-  future: "border-amber-500/30 bg-amber-500/12 text-amber-700",
+  mvp: "border-success bg-success/10 text-success",
+  b2b: "border-primary/30 bg-primary/10 text-primary",
+  future: "border-warning bg-warning/10 text-warning",
 };
 
 export function HardwareKit() {
@@ -26,7 +26,7 @@ export function HardwareKit() {
     >
       {/* 主视觉海报 + 投资人核心话术 */}
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
-        <figure className="overflow-hidden rounded-3xl border border-border bg-card shadow-xl shadow-(--pet-orange)/10">
+        <figure className="overflow-hidden rounded-lg border border-border bg-card shadow-editorial">
           <ImageLightbox
             src={s.heroImage}
             alt={s.heroImageAlt}
@@ -35,8 +35,8 @@ export function HardwareKit() {
             zoomHint="点击放大看数据细节"
           />
         </figure>
-        <div className="flex flex-col justify-center rounded-3xl border border-(--pet-teal)/25 bg-(--pet-teal)/8 p-6">
-          <Quote size={26} className="text-(--pet-teal)" />
+        <div className="flex flex-col justify-center rounded-lg border border-success bg-success/10 p-6">
+          <Quote size={26} className="text-success" />
           <p className="mt-3 text-lg font-semibold leading-8 text-foreground">
             {s.investorLine}
           </p>
@@ -58,8 +58,8 @@ export function HardwareKit() {
 
 function ProductCard({ product }: { product: HardwareProductDemo }) {
   return (
-    <div className="pet-surface flex flex-col overflow-hidden rounded-3xl">
-      <div className="relative bg-linear-to-br from-(--pet-cream) to-background">
+    <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-lg">
+      <div className="relative bg-muted">
         <PetImage
           src={product.image}
           alt={product.name}
@@ -67,7 +67,7 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
           fallbackLabel={product.name}
         />
         <span
-          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold backdrop-blur ${STAGE_CHIP[product.stage]}`}
+          className={`absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-meta font-semibold  ${STAGE_CHIP[product.stage]}`}
         >
           <span className="h-1.5 w-1.5 rounded-full bg-current" />
           {product.stageLabel}
@@ -78,7 +78,7 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
         <h3 className="text-base font-semibold text-foreground">
           {product.name}
         </h3>
-        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">
+        <p className="text-meta font-medium uppercase tracking-wide text-muted-foreground/80">
           {product.englishName}
         </p>
         <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -91,21 +91,21 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
               key={c}
               className="flex items-start gap-2 text-xs leading-5 text-foreground/80"
             >
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-(--pet-orange)" />
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               {c}
             </li>
           ))}
         </ul>
 
-        <div className="mt-4 rounded-2xl border border-border bg-background/60 p-3">
-          <p className="text-[11px] font-semibold text-foreground/70">
+        <div className="mt-4 rounded-lg border border-border bg-background p-3">
+          <p className="text-meta font-semibold text-foreground/70">
             市场验证参考（Market References）
           </p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {product.marketReferences.map((ref) => (
               <span
                 key={ref}
-                className="rounded-full border border-border bg-card px-2 py-0.5 text-[10px] text-muted-foreground"
+                className="rounded-full border border-border bg-card px-2 py-0.5 text-meta text-muted-foreground"
               >
                 {ref}
               </span>
@@ -113,8 +113,8 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
           </div>
         </div>
 
-        <div className="mt-3 rounded-2xl border border-(--pet-teal)/25 bg-(--pet-teal)/6 p-3">
-          <p className="text-[11px] font-semibold text-(--pet-teal)">
+        <div className="mt-3 rounded-lg border border-success bg-success/10 p-3">
+          <p className="text-meta font-semibold text-success">
             Aivora 的差异化
           </p>
           <ul className="mt-2 space-y-1.5">
@@ -123,7 +123,7 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
                 key={d}
                 className="flex items-start gap-2 text-xs leading-5 text-foreground/85"
               >
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-(--pet-teal)" />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
                 {d}
               </li>
             ))}
@@ -132,7 +132,7 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
 
         <Link
           href={product.cta.href}
-          className="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs font-semibold text-(--pet-orange) transition hover:gap-2.5"
+          className="mt-auto inline-flex items-center gap-1.5 pt-4 text-xs font-semibold text-primary"
         >
           {product.cta.label} <ArrowRight size={13} />
         </Link>

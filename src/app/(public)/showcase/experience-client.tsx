@@ -60,8 +60,8 @@ export function RealFootageDemoExperience({
             }
             ctaPrimaryLabel={isAuthenticated ? "进入创意工作室" : "申请套件体验"}
           />
-          <div className="mx-auto w-full max-w-7xl px-5 sm:px-8 lg:px-10">
-            <div className="rounded-2xl border border-(--pet-orange)/25 bg-(--pet-orange)/8 px-4 py-3 text-xs leading-5 text-foreground/75">
+          <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10">
+            <div className="rounded-lg border border-primary/25 bg-accent-soft px-4 py-3 text-meta leading-5 text-foreground">
               {SAMPLE_DATA_DISCLAIMER}
             </div>
           </div>
@@ -144,17 +144,23 @@ export function RealFootageDemoExperience({
   ];
 
   return (
-    <main className="aivora-pet-demo aivora-deck text-foreground">
+    <main className="min-h-screen bg-background text-foreground">
       <DeckShell
         slides={slides}
         brand={<BrandMark />}
         cta={
           isAuthenticated ? (
-            <Link href="/business/create-ad-video" className="deck-cta">
+            <Link
+              href="/business/create-ad-video"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-meta font-semibold text-primary-foreground"
+            >
               <PawPrint size={13} /> 进入工作室
             </Link>
           ) : (
-            <a href="#book-demo" className="deck-cta">
+            <a
+              href="#book-demo"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-meta font-semibold text-primary-foreground"
+            >
               <PawPrint size={13} /> 申请体验
             </a>
           )
@@ -172,7 +178,7 @@ function BrandMark() {
         <p className="text-sm font-semibold leading-none text-foreground">
           Aivora
         </p>
-        <p className="hidden text-[11px] leading-tight text-muted-foreground sm:block">
+        <p className="hidden text-meta leading-tight text-muted-foreground sm:block">
           宠物内容智能采集套件 · 投资人 Demo
         </p>
       </div>
@@ -184,10 +190,10 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
   return (
     <section
       id="book-demo"
-      className="mx-auto w-full max-w-5xl px-5 sm:px-8 lg:px-10"
+      className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10"
     >
-      <div className="rounded-[2rem] border border-primary/25 bg-linear-to-br from-(--pet-orange)/12 via-card to-card p-6 sm:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-(--pet-orange)">
+      <div className="rounded-lg border border-primary/25 bg-card p-5 shadow-editorial sm:p-8">
+        <p className="text-meta font-semibold uppercase tracking-widest text-primary">
           投资人 / 宠物品牌 / 战略合作
         </p>
         <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
@@ -201,7 +207,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
               href="/business/create-ad-video"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
             >
               直接进入创意工作室 <ArrowRight size={14} />
             </Link>
@@ -216,15 +222,15 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
         <PetWaitlistForm />
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border bg-card/60 p-5">
-        <p className="text-xs font-semibold text-foreground">合规说明</p>
+      <div className="mt-6 rounded-lg border border-border bg-card p-5 shadow-editorial">
+        <p className="text-meta font-semibold text-foreground">合规说明</p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {COMPLIANCE_NOTES.map((note) => (
             <li
               key={note}
-              className="flex items-start gap-2 text-[11px] leading-5 text-muted-foreground"
+              className="flex items-start gap-2 text-meta leading-5 text-muted-foreground"
             >
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-(--pet-orange)" />
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
               {note}
             </li>
           ))}

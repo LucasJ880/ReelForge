@@ -40,6 +40,10 @@
     background: var(--accent-soft);
     color: var(--text-primary);
   }
+
+  .lucide {
+    stroke-width: 1.5;
+  }
 }
 
 @layer components {
@@ -58,112 +62,11 @@
   }
 
   .editorial-card,
-  .glass-card,
-  .glass-panel,
-  .surface-panel,
-  .pet-surface {
+  .surface-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: var(--surface);
     box-shadow: var(--shadow-card);
-  }
-
-  .glass-card,
-  .glass-panel {
-    padding: var(--space-6);
-  }
-
-  .glass-btn,
-  .glass-btn-primary,
-  .deck-cta {
-    display: inline-flex;
-    min-height: 40px;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    border-radius: var(--radius-md);
-    padding-inline: var(--space-4);
-    font-size: var(--font-size-meta);
-    font-weight: 600;
-    transition:
-      filter var(--motion-fast) var(--ease-out),
-      background-color var(--motion-fast) var(--ease-out),
-      border-color var(--motion-fast) var(--ease-out);
-  }
-
-  .glass-btn {
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--text-primary);
-  }
-
-  .glass-btn-primary,
-  .deck-cta {
-    border: 1px solid var(--accent);
-    background: var(--accent);
-    color: var(--text-primary);
-  }
-
-  .glass-btn:hover,
-  .glass-btn-primary:hover,
-  .deck-cta:hover {
-    filter: brightness(0.94);
-  }
-
-  .glass-input {
-    min-height: 40px;
-    width: 100%;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: var(--surface);
-    padding-inline: var(--space-3);
-    color: var(--text-primary);
-    font-size: var(--font-size-body);
-  }
-
-  .glass-input::placeholder {
-    color: var(--text-secondary);
-  }
-
-  .glass-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2);
-    color: var(--text-secondary);
-    font-size: var(--font-size-meta);
-  }
-
-  .glass-chip::before {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: currentColor;
-    content: "";
-  }
-
-  .glass-step,
-  .glass-step-active {
-    border-bottom: 2px solid var(--border);
-    color: var(--text-secondary);
-  }
-
-  .glass-step-active {
-    border-color: var(--accent);
-    color: var(--text-primary);
-  }
-
-  .aivora-glass,
-  .aivora-pet-demo {
-    min-height: 100%;
-    background: var(--bg);
-    color: var(--text-primary);
-  }
-
-  .ambient-glow,
-  .pet-ambient-glow,
-  .lg-aurora,
-  .lg-koi {
-    background: var(--bg);
   }
 }
 
@@ -172,96 +75,6 @@
     padding-inline: var(--space-6);
     padding-top: var(--space-8);
   }
-}
-
-/* Showcase deck 保留布局行为，视觉完全由 Editorial tokens 驱动。 */
-.aivora-deck {
-  --deck-topbar-h: 4.25rem;
-}
-
-.deck-root {
-  position: relative;
-}
-
-.aivora-deck .deck-scroller {
-  height: 100%;
-  overflow-x: hidden;
-  overflow-y: scroll;
-  overscroll-behavior-y: contain;
-  scroll-snap-type: y mandatory;
-  scrollbar-width: none;
-}
-
-.aivora-deck .deck-scroller::-webkit-scrollbar,
-.aivora-deck .deck-slide-inner::-webkit-scrollbar {
-  display: none;
-}
-
-.aivora-deck .deck-slide {
-  position: relative;
-  height: 100svh;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-}
-
-.aivora-deck .deck-slide-inner {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  justify-content: safe center;
-  overflow-y: auto;
-  padding-block: calc(var(--deck-topbar-h) + var(--space-4)) var(--space-16);
-  scrollbar-width: none;
-}
-
-.aivora-deck .deck-slide-content {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  gap: clamp(var(--space-8), 5vh, var(--space-16));
-}
-
-.aivora-deck .deck-slide-content > section {
-  padding-block: 0;
-}
-
-.aivora-deck .deck-progress {
-  position: absolute;
-  z-index: 40;
-  inset: 0 0 auto;
-  height: 2px;
-  background: var(--border);
-}
-
-.aivora-deck .deck-progress-bar {
-  height: 100%;
-  background: var(--accent);
-  transition: width var(--motion-base) var(--ease-out);
-}
-
-.aivora-deck .deck-topbar {
-  position: absolute;
-  z-index: 35;
-  inset: 0 0 auto;
-  display: flex;
-  height: var(--deck-topbar-h);
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  padding-inline: clamp(var(--space-4), 4vw, var(--space-10));
-  pointer-events: none;
-}
-
-.aivora-deck .deck-topbar > * {
-  pointer-events: auto;
-}
-
-.aivora-deck .deck-counter {
-  color: var(--text-secondary);
-  font-size: var(--font-size-meta);
-  font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 640px) {

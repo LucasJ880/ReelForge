@@ -1,0 +1,131 @@
+/*
+ * Aivora Editorial Studio
+ * 全站唯一视觉 token 来源。组件与页面不得声明颜色、圆角或阴影字面量。
+ */
+:root {
+  --bg: #fafaf7;
+  --surface: #ffffff;
+  --surface-sunken: #f1f0eb;
+  --border: #e4e2da;
+  --text-primary: #16150f;
+  --text-secondary: #6e6b60;
+  --accent: #ff4d00;
+  --accent-soft: #ffede5;
+  --success: #1a7f4e;
+  --warning: #b7791f;
+  --danger: #c4320a;
+  --overlay: rgba(22, 21, 15, 0.22);
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-card: 0 1px 2px rgba(22, 21, 15, 0.06);
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-body-family: var(--font-inter), var(--font-noto-sans-sc), system-ui, sans-serif;
+  --font-display-family: var(--font-instrument-serif), var(--font-noto-serif-sc), Georgia, serif;
+  --font-mono-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-size-meta: 13px;
+  --font-size-body: 15px;
+  --font-size-subhead: 18px;
+  --font-size-title: 24px;
+  --font-size-section: 32px;
+  --text-display: clamp(32px, 5vw, 56px);
+  --leading-body: 1.6;
+  --leading-display: 1.1;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* shadcn/Base UI 语义桥接 */
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent);
+  --primary-foreground: var(--surface);
+  --secondary: var(--surface-sunken);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-secondary);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--accent);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--surface);
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--accent);
+  --chart-1: var(--accent);
+  --chart-2: var(--success);
+  --chart-3: var(--warning);
+  --chart-4: var(--danger);
+  --chart-5: var(--text-secondary);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-overlay: var(--overlay);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --font-sans: var(--font-body-family);
+  --font-heading: var(--font-display-family);
+  --font-mono: var(--font-mono-family);
+  --text-meta: var(--font-size-meta);
+  --text-body: var(--font-size-body);
+  --text-subhead: var(--font-size-subhead);
+  --text-title: var(--font-size-title);
+  --text-section: var(--font-size-section);
+  --shadow-editorial: var(--shadow-card);
+  --duration-fast: var(--motion-fast);
+  --duration-base: var(--motion-base);
+}

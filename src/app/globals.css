@@ -1,213 +1,173 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
-
-@custom-variant dark (&:is(.dark *));
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-/*
- * Aivora Design System - Neutral Depth + Teal Accent
- * Inspired by Onlook (onlook-dev/onlook): pure near-black surface,
- * hairline neutral borders, a single cool accent.
- */
-:root {
-  /* Neutral depth —— 对标 zinc 色谱，肉眼明显区别于纯黑
-   * bg     ~ zinc-900 视感
-   * card   ~ zinc-850
-   * sec    ~ zinc-800
-   * accent ~ zinc-750
-   */
-  --background: oklch(0.205 0.003 260);    /* 底色：中深灰，明显不是黑 */
-  --foreground: oklch(0.98 0 0);
-  --card: oklch(0.245 0.004 260);          /* 卡片层：比底色清楚高一档 */
-  --card-foreground: oklch(0.98 0 0);
-  --popover: oklch(0.265 0.004 260);
-  --popover-foreground: oklch(0.98 0 0);
-  --secondary: oklch(0.285 0.005 260);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.285 0.005 260);
-  --muted-foreground: oklch(0.74 0.005 260);
-  --accent: oklch(0.325 0.006 260);        /* hover 足够跳 */
-  --accent-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 16%);
-  --destructive: oklch(0.68 0.22 24);
-
-  /* Primary —— 薄荷/翡翠绿，与中灰底色高对比 */
-  --primary: oklch(0.82 0.17 172);
-  --primary-foreground: oklch(0.17 0.02 170);
-  --ring: oklch(0.82 0.17 172);
-
-  /* Sidebar 比主背景深一档，形成明显分区 */
-  --sidebar: oklch(0.165 0.003 260);
-  --sidebar-foreground: oklch(0.80 0.003 260);
-  --sidebar-primary: oklch(0.82 0.17 172);
-  --sidebar-primary-foreground: oklch(0.17 0.02 170);
-  --sidebar-accent: oklch(0.265 0.005 260);
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.82 0.17 172);
-
-  /* Charts — 围绕 primary 同族，保证一致 */
-  --chart-1: oklch(0.82 0.17 172);
-  --chart-2: oklch(0.78 0.16 160);
-  --chart-3: oklch(0.74 0.14 200);
-  --chart-4: oklch(0.80 0.12 140);
-  --chart-5: oklch(0.76 0.15 188);
-
-  --radius: 0.625rem;
-}
+@import "../styles/tokens.css";
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    border-color: var(--border);
   }
-  body {
-    @apply bg-background text-foreground;
-    font-feature-settings: "cv11", "ss01";
+
+  html {
+    min-height: 100%;
+    background: var(--bg);
+    font-family: var(--font-body-family);
+    color: var(--text-primary);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
-  html {
-    @apply font-sans;
+
+  body {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-size: var(--font-size-body);
+    line-height: var(--leading-body);
   }
 
-  /* Reusable hairline gradient - common Onlook pattern */
-  .surface-panel {
-    background:
-      linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--foreground) 3%, transparent) 0%,
-        color-mix(in oklab, var(--foreground) 1%, transparent) 100%
-      );
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: var(--accent-soft);
+    color: var(--text-primary);
+  }
+}
+
+@layer components {
+  .editorial-display {
+    font-family: var(--font-display-family);
+    font-size: var(--text-display);
+    font-weight: 400;
+    line-height: var(--leading-display);
+    letter-spacing: -0.025em;
+  }
+
+  .editorial-page {
+    margin-inline: auto;
+    width: min(100%, 88rem);
+    padding: var(--space-8) var(--space-6) var(--space-16);
+  }
+
+  .editorial-card,
+  .glass-card,
+  .glass-panel,
+  .surface-panel,
+  .pet-surface {
     border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
   }
 
-  /* Soft radial ambient glow (teal only) */
-  .ambient-glow {
-    background: radial-gradient(
-      circle at 50% 0%,
-      color-mix(in oklab, var(--primary) 15%, transparent) 0%,
-      transparent 60%
-    );
+  .glass-card,
+  .glass-panel {
+    padding: var(--space-6);
+  }
+
+  .glass-btn,
+  .glass-btn-primary,
+  .deck-cta {
+    display: inline-flex;
+    min-height: 40px;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    border-radius: var(--radius-md);
+    padding-inline: var(--space-4);
+    font-size: var(--font-size-meta);
+    font-weight: 600;
+    transition:
+      filter var(--motion-fast) var(--ease-out),
+      background-color var(--motion-fast) var(--ease-out),
+      border-color var(--motion-fast) var(--ease-out);
+  }
+
+  .glass-btn {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-primary);
+  }
+
+  .glass-btn-primary,
+  .deck-cta {
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: var(--surface);
+  }
+
+  .glass-btn:hover,
+  .glass-btn-primary:hover,
+  .deck-cta:hover {
+    filter: brightness(0.94);
+  }
+
+  .glass-input {
+    min-height: 40px;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    padding-inline: var(--space-3);
+    color: var(--text-primary);
+    font-size: var(--font-size-body);
+  }
+
+  .glass-input::placeholder {
+    color: var(--text-secondary);
+  }
+
+  .glass-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    color: var(--text-secondary);
+    font-size: var(--font-size-meta);
+  }
+
+  .glass-chip::before {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+  }
+
+  .glass-step,
+  .glass-step-active {
+    border-bottom: 2px solid var(--border);
+    color: var(--text-secondary);
+  }
+
+  .glass-step-active {
+    border-color: var(--accent);
+    color: var(--text-primary);
+  }
+
+  .aivora-glass,
+  .aivora-pet-demo {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text-primary);
+  }
+
+  .ambient-glow,
+  .pet-ambient-glow,
+  .lg-aurora,
+  .lg-koi {
+    background: var(--bg);
   }
 }
 
-/*
- * Aivora Pet Content Kit —— 投资人 Demo 暖色作用域主题。
- *
- * 仅作用于 /showcase 宠物 demo（最外层 <main class="aivora-pet-demo">）。
- * 通过覆盖语义化 CSS token 实现整页换肤，不污染全局 :root（其余 app 仍是暗色）。
- * 风格按 CEO brief：暖米色底 + 奶油白卡片 + 深青绿(teal) primary + 浅橙 accent。
- */
-.aivora-pet-demo {
-  --background: oklch(0.972 0.014 76);      /* 暖米色底 */
-  --foreground: oklch(0.30 0.03 56);        /* 深暖棕文字 */
-  --card: oklch(0.992 0.008 86);            /* 奶油白卡片 */
-  --card-foreground: oklch(0.30 0.03 56);
-  --popover: oklch(0.995 0.006 86);
-  --popover-foreground: oklch(0.30 0.03 56);
-  --secondary: oklch(0.93 0.022 72);
-  --secondary-foreground: oklch(0.34 0.03 56);
-  --muted: oklch(0.935 0.02 72);
-  --muted-foreground: oklch(0.52 0.035 58);
-  --accent: oklch(0.90 0.05 64);            /* 浅橙 hover */
-  --accent-foreground: oklch(0.34 0.04 50);
-  --border: oklch(0.45 0.05 60 / 16%);
-  --input: oklch(0.45 0.05 60 / 22%);
-  --destructive: oklch(0.62 0.20 26);
-
-  /* Primary —— 深青绿科技感辅助色 */
-  --primary: oklch(0.55 0.085 192);
-  --primary-foreground: oklch(0.985 0.01 190);
-  --ring: oklch(0.55 0.085 192);
-
-  /* Demo 专用点缀色（浅橙 / 暖琥珀 / 奶油），组件里用 var() 引用 */
-  --pet-orange: oklch(0.74 0.15 56);
-  --pet-orange-soft: oklch(0.86 0.09 60);
-  --pet-amber: oklch(0.80 0.13 78);
-  --pet-cream: oklch(0.96 0.03 84);
-  --pet-teal: oklch(0.55 0.085 192);
-  --pet-teal-soft: oklch(0.80 0.06 192);
-
-  background: var(--background);
-  color: var(--foreground);
-}
-
-/* 暖色环境光（橙 + 青绿双色），供宠物 hero 使用 */
-.aivora-pet-demo .pet-ambient-glow {
-  background:
-    radial-gradient(
-      circle at 18% 0%,
-      color-mix(in oklab, var(--pet-orange) 26%, transparent) 0%,
-      transparent 48%
-    ),
-    radial-gradient(
-      circle at 88% 12%,
-      color-mix(in oklab, var(--pet-teal) 20%, transparent) 0%,
-      transparent 46%
-    );
-}
-
-/* 暖色柔光卡片表面 */
-.aivora-pet-demo .pet-surface {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--pet-cream) 80%, var(--card)) 0%,
-      var(--card) 100%
-    );
-  border: 1px solid var(--border);
-}
-
-/* ============================================================
- * Aivora 网页幻灯片外壳（.aivora-deck，配合 deck-shell.tsx）
- * 纯原生 scroll-snap 整屏吸附 + 圆点导航 + 进度条。
- * 仅作用于 /showcase，与 .aivora-pet-demo 暖色主题叠加使用。
- * ============================================================ */
+/* Showcase deck 保留布局行为，视觉完全由 Editorial tokens 驱动。 */
 .aivora-deck {
   --deck-topbar-h: 4.25rem;
 }
@@ -216,22 +176,20 @@
   position: relative;
 }
 
-/* 滚动容器：整屏吸附 + 隐藏滚动条 */
 .aivora-deck .deck-scroller {
   height: 100%;
-  overflow-y: scroll;
   overflow-x: hidden;
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
+  overflow-y: scroll;
   overscroll-behavior-y: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
 }
-.aivora-deck .deck-scroller::-webkit-scrollbar {
+
+.aivora-deck .deck-scroller::-webkit-scrollbar,
+.aivora-deck .deck-slide-inner::-webkit-scrollbar {
   display: none;
 }
 
-/* 单张幻灯片：固定一屏高，吸附到顶 */
 .aivora-deck .deck-slide {
   position: relative;
   height: 100svh;
@@ -239,531 +197,79 @@
   scroll-snap-stop: always;
 }
 
-/* 一屏内的滚动区：内容多于一屏时在屏内滚动，垂直居中（safe 防裁切） */
 .aivora-deck .deck-slide-inner {
-  height: 100%;
-  overflow-y: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
   display: flex;
+  height: 100%;
   flex-direction: column;
   justify-content: safe center;
-  padding-block: calc(var(--deck-topbar-h) + 1rem) 4.5rem;
-}
-.aivora-deck .deck-slide-inner::-webkit-scrollbar {
-  display: none;
+  overflow-y: auto;
+  padding-block: calc(var(--deck-topbar-h) + var(--space-4)) var(--space-16);
+  scrollbar-width: none;
 }
 
-/* 多区块章节：纵向堆叠并留间距；中和既有 section 的上下内边距以更紧凑 */
 .aivora-deck .deck-slide-content {
   display: flex;
-  flex-direction: column;
-  gap: clamp(2rem, 5vh, 3.5rem);
   width: 100%;
-}
-.aivora-deck .deck-slide-content > section {
-  padding-top: 0;
-  padding-bottom: 0;
+  flex-direction: column;
+  gap: clamp(var(--space-8), 5vh, var(--space-16));
 }
 
-/* 顶部进度条 */
+.aivora-deck .deck-slide-content > section {
+  padding-block: 0;
+}
+
 .aivora-deck .deck-progress {
   position: absolute;
-  inset: 0 0 auto 0;
-  height: 3px;
   z-index: 40;
-  background: color-mix(in oklab, var(--foreground) 8%, transparent);
-}
-.aivora-deck .deck-progress-bar {
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--pet-orange),
-    var(--pet-teal)
-  );
-  transition: width 0.45s cubic-bezier(0.22, 0.61, 0.36, 1);
+  inset: 0 0 auto;
+  height: 2px;
+  background: var(--border);
 }
 
-/* 固定头：品牌 + 页码 + CTA */
+.aivora-deck .deck-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--motion-base) var(--ease-out);
+}
+
 .aivora-deck .deck-topbar {
   position: absolute;
-  inset: 0 0 auto 0;
   z-index: 35;
+  inset: 0 0 auto;
   display: flex;
+  height: var(--deck-topbar-h);
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  height: var(--deck-topbar-h);
-  padding-inline: clamp(1rem, 4vw, 2.5rem);
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklab, var(--background) 92%, transparent) 0%,
-    transparent 100%
-  );
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  padding-inline: clamp(var(--space-4), 4vw, var(--space-10));
   pointer-events: none;
 }
+
 .aivora-deck .deck-topbar > * {
   pointer-events: auto;
 }
+
 .aivora-deck .deck-counter {
+  color: var(--text-secondary);
+  font-size: var(--font-size-meta);
   font-variant-numeric: tabular-nums;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  color: var(--foreground);
-}
-.aivora-deck .deck-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  border-radius: 999px;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.5rem 1rem;
-  transition: opacity 0.2s ease;
-}
-.aivora-deck .deck-cta:hover {
-  opacity: 0.9;
 }
 
-/* 右侧圆点导航 */
-.aivora-deck .deck-dots {
-  position: absolute;
-  top: 50%;
-  right: clamp(0.6rem, 1.6vw, 1.4rem);
-  transform: translateY(-50%);
-  z-index: 36;
-}
-.aivora-deck .deck-dots ol {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-.aivora-deck .deck-dot {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-direction: row-reverse;
-  background: none;
-  border: 0;
-  cursor: pointer;
-  padding: 0.15rem;
-}
-.aivora-deck .deck-dot-mark {
-  display: block;
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--foreground) 26%, transparent);
-  transition: all 0.3s ease;
-}
-.aivora-deck .deck-dot:hover .deck-dot-mark {
-  background: var(--pet-orange);
-  transform: scale(1.15);
-}
-.aivora-deck .deck-dot.is-active .deck-dot-mark {
-  width: 11px;
-  height: 11px;
-  background: var(--pet-orange);
-  box-shadow: 0 0 0 4px color-mix(in oklab, var(--pet-orange) 18%, transparent);
-}
-.aivora-deck .deck-dot-label {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--foreground);
-  background: color-mix(in oklab, var(--card) 88%, transparent);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.15rem 0.6rem;
-  white-space: nowrap;
-  opacity: 0;
-  transform: translateX(6px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
-  pointer-events: none;
-}
-.aivora-deck .deck-dot:hover .deck-dot-label,
-.aivora-deck .deck-dot.is-active .deck-dot-label {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-/* 上下翻页按钮 + 引导提示 */
-.aivora-deck .deck-pager {
-  position: absolute;
-  bottom: clamp(1rem, 3vh, 1.75rem);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 36;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.aivora-deck .deck-pager-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.1rem;
-  height: 2.1rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--card) 86%, transparent);
-  color: var(--foreground);
-  backdrop-filter: blur(8px);
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-.aivora-deck .deck-pager-btn:hover:not(:disabled) {
-  border-color: color-mix(in oklab, var(--pet-orange) 50%, var(--border));
-  color: var(--pet-orange);
-}
-.aivora-deck .deck-pager-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-.aivora-deck .deck-hint {
-  font-size: 0.7rem;
-  font-weight: 500;
-  color: var(--muted-foreground);
-  margin-left: 0.35rem;
-}
-
-/* ---- 响应式：手机 / 平板 ---- */
-
-/* 触屏设备（手机 + 平板）：放宽为自然滚动，避免「翻页 vs 页内滚动」的手势冲突；
- * 加大可点区域。无论宽度，只要是触屏就走这套，最稳。 */
-@media (hover: none) and (pointer: coarse) {
-  .aivora-deck .deck-scroller {
-    scroll-snap-type: y proximity;
+@media (max-width: 640px) {
+  .editorial-page {
+    padding: var(--space-6) var(--space-4) var(--space-12);
   }
-  .aivora-deck .deck-slide {
-    height: auto;
-    min-height: 100svh;
-  }
-  .aivora-deck .deck-slide-inner {
-    height: auto;
-    min-height: 100svh;
-    overflow-y: visible;
-    padding-block: calc(var(--deck-topbar-h) + 0.5rem) 5rem;
-  }
-  .aivora-deck .deck-dot {
-    padding: 0.3rem;
-  }
-  .aivora-deck .deck-dot-mark {
-    width: 10px;
-    height: 10px;
-  }
-  .aivora-deck .deck-pager-btn {
-    width: 2.5rem;
-    height: 2.5rem;
-  }
-  .aivora-deck .deck-hint {
-    display: none;
-  }
-}
-
-/* 平板尺寸：略收紧头部与圆点标签 */
-@media (max-width: 1024px) {
-  .aivora-deck {
-    --deck-topbar-h: 3.9rem;
-  }
-  .aivora-deck .deck-dot-label {
-    font-size: 0.66rem;
-    padding: 0.12rem 0.5rem;
-  }
-  .aivora-deck .deck-slide-content {
-    gap: clamp(1.5rem, 4vh, 2.75rem);
-  }
-}
-
-/* 手机尺寸：隐藏圆点文字标签、收紧头部，圆点更贴边 */
-@media (max-width: 768px) {
-  .aivora-deck {
-    --deck-topbar-h: 3.5rem;
-  }
-  .aivora-deck .deck-dot-label {
-    display: none;
-  }
-  .aivora-deck .deck-dots {
-    right: 0.4rem;
-  }
-  .aivora-deck .deck-dots ol {
-    gap: 0.45rem;
-  }
-  .aivora-deck .deck-pager {
-    bottom: 0.9rem;
-  }
-  .aivora-deck .deck-progress {
-    height: 2px;
-  }
-}
-
-/* 超窄屏：页码让位给 CTA */
-@media (max-width: 380px) {
-  .aivora-deck .deck-counter {
-    display: none;
-  }
-}
-
-/* 尊重「减少动态效果」系统设置 */
-@media (prefers-reduced-motion: reduce) {
-  .aivora-deck .deck-scroller {
-    scroll-behavior: auto;
-  }
-  .aivora-deck .deck-progress-bar {
-    transition: none;
-  }
-}
-
-/* ============================================================
- * Aivora Liquid Glass —— iOS 26 液态玻璃暗色主题（个人通道 + 登录门）
- * 作用域类：.aivora-glass（外壳容器加上即可整区换肤）
- * 设计对标：深色多彩极光底 + 高斯模糊玻璃卡片 + 高光描边 + 蓝色主按钮
- * ============================================================ */
-.aivora-glass {
-  --glass-bg: #0a0a12;
-  --glass-card: rgba(255, 255, 255, 0.055);
-  --glass-card-strong: rgba(255, 255, 255, 0.09);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-strong: rgba(255, 255, 255, 0.22);
-  --glass-text: rgba(255, 255, 255, 0.92);
-  --glass-text-dim: rgba(255, 255, 255, 0.55);
-  --glass-blue: #3b82f6;
-  --glass-blue-deep: #2563eb;
-  color: var(--glass-text);
-}
-
-/* ---- 极光动态背景（fixed 全屏，放在外壳最底层） ---- */
-.aivora-glass .lg-aurora {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  background:
-    radial-gradient(1100px 700px at 82% 12%, rgba(190, 24, 93, 0.32), transparent 60%),
-    radial-gradient(900px 650px at 12% 85%, rgba(29, 78, 216, 0.30), transparent 62%),
-    radial-gradient(760px 520px at 30% 20%, rgba(126, 34, 206, 0.26), transparent 60%),
-    radial-gradient(680px 500px at 68% 78%, rgba(8, 145, 178, 0.18), transparent 62%),
-    #08080f;
-  pointer-events: none;
-}
-.aivora-glass .lg-aurora::before,
-.aivora-glass .lg-aurora::after {
-  content: "";
-  position: absolute;
-  width: 55vmax;
-  height: 55vmax;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.5;
-  will-change: transform;
-}
-.aivora-glass .lg-aurora::before {
-  left: -12vmax;
-  top: -14vmax;
-  background: radial-gradient(circle at 40% 40%, rgba(147, 51, 234, 0.4), transparent 65%);
-  animation: lg-drift-a 26s ease-in-out infinite alternate;
-}
-.aivora-glass .lg-aurora::after {
-  right: -14vmax;
-  bottom: -16vmax;
-  background: radial-gradient(circle at 55% 55%, rgba(236, 72, 153, 0.32), transparent 65%);
-  animation: lg-drift-b 32s ease-in-out infinite alternate;
-}
-@keyframes lg-drift-a {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(9vmax, 7vmax) scale(1.15); }
-}
-@keyframes lg-drift-b {
-  from { transform: translate(0, 0) scale(1.1); }
-  to   { transform: translate(-8vmax, -6vmax) scale(0.95); }
-}
-
-/* ---- 锦鲤（纯 CSS 游动，轻量不占 CPU） ---- */
-.aivora-glass .lg-koi {
-  position: absolute;
-  font-size: 34px;
-  opacity: 0.85;
-  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
-  animation: lg-koi-swim 38s linear infinite;
-  will-change: transform;
-}
-.aivora-glass .lg-koi.koi-2 {
-  font-size: 24px;
-  opacity: 0.6;
-  animation-duration: 52s;
-  animation-delay: -20s;
-}
-@keyframes lg-koi-swim {
-  0%   { transform: translate(-8vw, 18vh) rotate(12deg); }
-  25%  { transform: translate(30vw, 34vh) rotate(-6deg); }
-  50%  { transform: translate(70vw, 22vh) rotate(10deg); }
-  75%  { transform: translate(45vw, 60vh) rotate(176deg); }
-  100% { transform: translate(-8vw, 18vh) rotate(192deg); }
-}
-
-/* ---- 玻璃卡片 / 面板 ---- */
-.aivora-glass .glass-card {
-  background: linear-gradient(
-    160deg,
-    rgba(255, 255, 255, 0.09) 0%,
-    rgba(255, 255, 255, 0.04) 45%,
-    rgba(255, 255, 255, 0.02) 100%
-  );
-  border: 1px solid var(--glass-border);
-  border-radius: 1.35rem;
-  backdrop-filter: blur(22px) saturate(150%);
-  -webkit-backdrop-filter: blur(22px) saturate(150%);
-  box-shadow:
-    0 18px 48px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14);
-}
-.aivora-glass .glass-panel {
-  background: rgba(255, 255, 255, 0.045);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 1rem;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-/* ---- 玻璃按钮 ---- */
-.aivora-glass .glass-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  border-radius: 999px;
-  border: 1px solid var(--glass-border);
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--glass-text);
-  font-size: 0.82rem;
-  font-weight: 500;
-  padding: 0.5rem 1rem;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.aivora-glass .glass-btn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.13);
-  border-color: var(--glass-border-strong);
-  transform: translateY(-1px);
-}
-.aivora-glass .glass-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-.aivora-glass .glass-btn.is-active {
-  background: rgba(59, 130, 246, 0.22);
-  border-color: rgba(96, 165, 250, 0.55);
-  color: #dbeafe;
-}
-.aivora-glass .glass-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  border-radius: 999px;
-  border: 1px solid rgba(147, 197, 253, 0.45);
-  background: linear-gradient(180deg, #4f96f7 0%, var(--glass-blue-deep) 100%);
-  color: #fff;
-  font-size: 0.85rem;
-  font-weight: 600;
-  padding: 0.55rem 1.25rem;
-  cursor: pointer;
-  box-shadow:
-    0 10px 26px rgba(37, 99, 235, 0.45),
-    inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: all 0.2s ease;
-  white-space: nowrap;
-}
-.aivora-glass .glass-btn-primary:hover:not(:disabled) {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-}
-.aivora-glass .glass-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* ---- 玻璃输入框 ---- */
-.aivora-glass .glass-input {
-  width: 100%;
-  border-radius: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(0, 0, 0, 0.28);
-  color: var(--glass-text);
-  font-size: 0.875rem;
-  padding: 0.65rem 0.9rem;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-.aivora-glass .glass-input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
-}
-.aivora-glass .glass-input:focus {
-  outline: none;
-  border-color: rgba(96, 165, 250, 0.7);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
-}
-
-/* ---- 小徽章 / chip ---- */
-.aivora-glass .glass-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--glass-text-dim);
-  font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.22rem 0.6rem;
-  white-space: nowrap;
-}
-
-/* ---- 步骤编号圆点 ---- */
-.aivora-glass .glass-step-num {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 999px;
-  background: rgba(59, 130, 246, 0.25);
-  border: 1px solid rgba(96, 165, 250, 0.5);
-  color: #bfdbfe;
-  font-size: 0.75rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-/* ---- 日志控制台 ---- */
-.aivora-glass .glass-console {
-  background: rgba(0, 0, 0, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.9rem;
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
-  font-size: 0.72rem;
-  line-height: 1.7;
-  color: rgba(148, 233, 176, 0.9);
-  padding: 0.8rem 1rem;
-  max-height: 220px;
-  overflow-y: auto;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .aivora-glass .lg-aurora::before,
-  .aivora-glass .lg-aurora::after,
-  .aivora-glass .lg-koi {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
 }

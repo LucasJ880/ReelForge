@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Check, Loader2, X, RotateCw } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { StatusBadge } from "@/components/features/status-badge";
 
 interface QAItem {
@@ -59,7 +60,7 @@ export function QAList({ items }: { items: QAItem[] }) {
 
   if (items.length === 0) {
     return (
-      <Card className="p-8 text-center text-sm text-muted-foreground">
+      <Card className="p-8 text-center text-body text-muted-foreground">
         审核队列为空
       </Card>
     );
@@ -71,15 +72,15 @@ export function QAList({ items }: { items: QAItem[] }) {
         const issues = Array.isArray(q.aiIssues) ? (q.aiIssues as string[]) : [];
         return (
           <Card key={q.id}>
-            <CardContent className="grid gap-4 pt-4 md:grid-cols-[300px_1fr]">
+            <CardContent className="grid min-w-0 gap-6 md:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
               {q.videoBrief.finalVideoUrl ? (
                 <video
                   src={q.videoBrief.finalVideoUrl}
                   controls
-                  className="w-full rounded"
+                  className="w-full rounded-(--radius-md)"
                 />
               ) : (
-                <div className="flex aspect-[9/16] items-center justify-center rounded bg-secondary/40 text-xs text-muted-foreground">
+                <div className="flex aspect-9/16 items-center justify-center rounded-(--radius-md) bg-secondary text-meta text-muted-foreground">
                   无成片 URL
                 </div>
               )}
@@ -110,46 +111,46 @@ export function QAList({ items }: { items: QAItem[] }) {
                       </StatusBadge>
                     )}
                   </div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
+                  <div className="mt-1 text-meta text-muted-foreground">
                     {q.videoBrief.contentAngle.round.deliveryOrder.title} · 第{" "}
                     {q.videoBrief.contentAngle.round.roundIndex} 轮
                   </div>
                 </div>
 
                 {q.reviewerComment && (
-                  <p className="rounded bg-secondary/40 p-2 text-xs text-muted-foreground">
+                  <p className="rounded-(--radius-md) bg-secondary p-3 text-meta text-muted-foreground">
                     {q.reviewerComment}
                   </p>
                 )}
 
                 {issues.length > 0 && (
-                  <ul className="list-disc space-y-0.5 pl-4 text-xs text-muted-foreground">
+                  <ul className="list-disc space-y-1 pl-4 text-meta text-muted-foreground">
                     {issues.map((i, idx) => (
                       <li key={idx}>{i}</li>
                     ))}
                   </ul>
                 )}
 
-                <textarea
+                <Textarea
                   rows={2}
                   placeholder="审核意见（可选）"
                   value={comments[q.id] ?? ""}
                   onChange={(e) =>
                     setComments({ ...comments, [q.id]: e.target.value })
                   }
-                  className="w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
+                  aria-label={`审核意见：${q.videoBrief.contentAngle.title}`}
                 />
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
                     disabled={busyId === q.id}
                     onClick={() => decide(q.id, "APPROVED")}
                   >
                     {busyId === q.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
                     ) : (
-                      <Check className="h-3.5 w-3.5" />
+                      <Check strokeWidth={1.5} aria-hidden />
                     )}
                     通过
                   </Button>
@@ -159,7 +160,7 @@ export function QAList({ items }: { items: QAItem[] }) {
                     disabled={busyId === q.id}
                     onClick={() => decide(q.id, "CHANGES_REQUESTED")}
                   >
-                    <RotateCw className="h-3.5 w-3.5" />
+                    <RotateCw strokeWidth={1.5} aria-hidden />
                     要求修改
                   </Button>
                   <Button
@@ -168,7 +169,7 @@ export function QAList({ items }: { items: QAItem[] }) {
                     disabled={busyId === q.id}
                     onClick={() => decide(q.id, "REJECTED")}
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X strokeWidth={1.5} aria-hidden />
                     驳回
                   </Button>
                 </div>

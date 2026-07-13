@@ -50,7 +50,7 @@ export function OrderActions({ order }: Props) {
   const canFinalize = !["COMPLETED", "CANCELLED"].includes(order.status);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex min-w-0 flex-wrap items-center gap-2">
       {canResearch && (
         <Button
           variant="outline"
@@ -67,9 +67,9 @@ export function OrderActions({ order }: Props) {
           }
         >
           {busy === "调研 + 卖点" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
           ) : (
-            <Sparkles className="h-3.5 w-3.5" />
+            <Sparkles strokeWidth={1.5} aria-hidden />
           )}
           生成策略 + 卖点
         </Button>
@@ -96,9 +96,9 @@ export function OrderActions({ order }: Props) {
           }
         >
           {busy === "开启新一轮" ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
           ) : (
-            <Swords className="h-3.5 w-3.5" />
+            <Swords strokeWidth={1.5} aria-hidden />
           )}
           开启视频赛马
         </Button>
@@ -119,7 +119,7 @@ export function OrderActions({ order }: Props) {
             )
           }
         >
-          <Check className="h-3.5 w-3.5" />
+          <Check strokeWidth={1.5} aria-hidden />
           提前结算
         </Button>
       )}
@@ -139,7 +139,7 @@ export function OrderActions({ order }: Props) {
             )
           }
         >
-          <XCircle className="h-3.5 w-3.5" />
+          <XCircle strokeWidth={1.5} aria-hidden />
           取消
         </Button>
       )}

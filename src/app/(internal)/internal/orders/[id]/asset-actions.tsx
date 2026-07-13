@@ -125,15 +125,15 @@ export function AssetActions({ orderId }: { orderId: string }) {
           onChange={(event) => setUrl(event.target.value)}
         />
         <Button size="sm" variant="outline" disabled={!!busy || !url} onClick={addUrl}>
-          {busy === "url" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {busy === "url" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
           登记
         </Button>
       </div>
       <Button size="sm" disabled={!!busy} onClick={preprocessAll}>
         {busy === "preprocess" ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />
         ) : (
-          <Upload className="h-3.5 w-3.5" />
+          <Upload strokeWidth={1.5} aria-hidden />
         )}
         预处理并打标签
       </Button>

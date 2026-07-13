@@ -33,7 +33,7 @@ export default async function OrderDetailPage({
   const footageAssets = order.rawAssets;
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title={order.title}
         description={`${order.productCategory} · ${order.targetPlatform} · ${order.targetCountry} / ${order.targetLanguage}${order.targetRegionVariant ? ` (${order.targetRegionVariant})` : ""}`}
@@ -49,7 +49,7 @@ export default async function OrderDetailPage({
             调研: {RESEARCH_LABELS[order.marketResearch.status]}
           </StatusBadge>
         )}
-        <span className="text-xs text-muted-foreground">
+        <span className="text-meta text-muted-foreground">
           创建于 {formatDate(order.createdAt)}
           {order.createdBy && ` · ${order.createdBy.email}`}
         </span>
@@ -62,7 +62,7 @@ export default async function OrderDetailPage({
           <CardHeader>
             <CardTitle>产品输入</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-xs">
+          <CardContent className="space-y-2 text-meta">
             <InfoRow label="名称" value={productInput.product_name} />
             <InfoRow label="目标客户" value={productInput.target_audience} />
             <InfoRow label="价格" value={productInput.price_range} />
@@ -84,7 +84,7 @@ export default async function OrderDetailPage({
           <CardHeader>
             <CardTitle>市场调研</CardTitle>
           </CardHeader>
-          <CardContent className="text-xs">
+          <CardContent className="text-meta">
             {order.marketResearch?.summary ? (
               <p className="whitespace-pre-wrap text-muted-foreground">
                 {order.marketResearch.summary}
@@ -99,7 +99,7 @@ export default async function OrderDetailPage({
           <CardHeader>
             <CardTitle>真实素材 ({footageAssets.length})</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
+          <CardContent className="space-y-3 text-meta">
             <AssetActions orderId={order.id} />
             {footageAssets.length === 0 ? (
               <p className="text-muted-foreground">未上传素材。可上传文件或粘贴素材 URL。</p>
@@ -110,9 +110,9 @@ export default async function OrderDetailPage({
                   href={asset.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="block rounded border border-border/60 bg-card/60 p-2 hover:ring-1 hover:ring-foreground/20"
+                  className="block rounded-(--radius-md) border border-border bg-card p-3 transition-colors duration-fast hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                 >
-                  <span className="mr-2 rounded bg-secondary px-1.5 py-0.5 uppercase">
+                  <span className="mr-2 rounded-(--radius-sm) bg-secondary px-2 py-1 uppercase">
                     {asset.type.toLowerCase()}
                   </span>
                   <span className="break-all">{asset.name}</span>
@@ -126,7 +126,7 @@ export default async function OrderDetailPage({
               ))
             )}
             {typeof productInput.footage_notes === "string" && (
-              <p className="whitespace-pre-wrap rounded bg-secondary/40 p-2 text-muted-foreground">
+              <p className="whitespace-pre-wrap rounded-(--radius-md) bg-secondary p-3 text-muted-foreground">
                 {productInput.footage_notes}
               </p>
             )}
@@ -138,20 +138,20 @@ export default async function OrderDetailPage({
         <CardHeader>
           <CardTitle>卖点 ({order.sellingPoints.length})</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-3 text-sm md:grid-cols-2 lg:grid-cols-3">
+        <CardContent className="grid gap-3 text-body md:grid-cols-2 lg:grid-cols-3">
             {order.sellingPoints.length === 0 ? (
-              <p className="text-xs text-muted-foreground">未生成</p>
+              <p className="text-meta text-muted-foreground">未生成</p>
             ) : (
               order.sellingPoints.map((sp) => (
-                <div key={sp.id} className="rounded border border-border/60 bg-card/60 p-3">
+                <div key={sp.id} className="rounded-(--radius-md) border border-border bg-card p-3">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-muted-foreground">#{sp.rank}</span>
-                    <span className="text-[10px] uppercase tracking-wider text-primary">
+                    <span className="text-meta text-muted-foreground">#{sp.rank}</span>
+                    <span className="text-meta uppercase tracking-wider text-primary">
                       {sp.kind}
                     </span>
-                    <span className="text-sm font-medium">{sp.title}</span>
+                    <span className="text-body font-medium">{sp.title}</span>
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{sp.body}</p>
+                  <p className="mt-1 text-meta text-muted-foreground">{sp.body}</p>
                 </div>
               ))
             )}
@@ -160,10 +160,10 @@ export default async function OrderDetailPage({
 
       <div className="mt-8">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">{COMMON_USER_TERMS.raceRound}（{order.rounds.length}/{order.maxRounds}）</h2>
+          <h2 className="font-heading text-title">{COMMON_USER_TERMS.raceRound}（{order.rounds.length}/{order.maxRounds}）</h2>
         </div>
         {order.rounds.length === 0 ? (
-          <Card className="p-8 text-center text-sm text-muted-foreground">
+          <Card className="p-8 text-center text-body text-muted-foreground">
             尚未开启任何轮次。卖点就绪后可在右上角「启动第一轮」。
           </Card>
         ) : (
@@ -178,7 +178,7 @@ export default async function OrderDetailPage({
                         className="inline-flex items-center gap-2 hover:text-primary"
                       >
                         第 {round.roundIndex} 组创意
-                        <ArrowRight className="h-3.5 w-3.5" />
+                        <ArrowRight strokeWidth={1.5} aria-hidden />
                       </Link>
                     </CardTitle>
                     <StatusBadge tone="info">{ROUND_LABELS[round.status]}</StatusBadge>
@@ -190,17 +190,17 @@ export default async function OrderDetailPage({
                       <Link
                         key={a.id}
                         href={a.videoBrief ? `/briefs/${a.videoBrief.id}` : `/rounds/${round.id}`}
-                        className="rounded-md border border-border/60 bg-card/60 p-3 text-xs hover:ring-1 hover:ring-foreground/20"
+                        className="rounded-(--radius-md) border border-border bg-card p-3 text-meta transition-colors duration-fast hover:border-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
                       >
                         <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-meta text-muted-foreground">
                             #{a.sortOrder}
                           </span>
                           <span
                             className={
                               a.type === "OPTIMIZATION"
-                                ? "text-[10px] text-emerald-400"
-                                : "text-[10px] text-amber-400"
+                                ? "text-meta text-success"
+                                : "text-meta text-warning"
                             }
                           >
                             {ANGLE_TYPE_USER_LABELS[a.type]}
@@ -227,13 +227,13 @@ export default async function OrderDetailPage({
 
       {order.distillations.length > 0 && (
         <div className="mt-8">
-          <h2 className="mb-3 text-lg font-semibold">创意蒸馏 ({order.distillations.length})</h2>
+          <h2 className="mb-3 font-heading text-title">创意蒸馏 ({order.distillations.length})</h2>
           <div className="space-y-3">
             {order.distillations.map((d) => (
               <Card key={d.id}>
-                <CardContent className="pt-4 text-sm">
+                <CardContent className="text-body">
                   <p className="whitespace-pre-wrap text-muted-foreground">{d.summary}</p>
-                  <pre className="mt-2 max-h-40 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                  <pre className="mt-3 max-h-40 overflow-auto rounded-(--radius-md) bg-secondary p-3 font-mono text-meta">
                     {JSON.stringify(d.structured, null, 2)}
                   </pre>
                 </CardContent>
@@ -337,14 +337,14 @@ function PipelineStatus({ order }: { order: NonNullable<Awaited<ReturnType<typeo
       <CardHeader>
         <CardTitle>MVP Demo Pipeline</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-2 text-xs md:grid-cols-4">
+      <CardContent className="grid gap-2 text-meta md:grid-cols-4">
         {stages.map((stage) => (
           <div
             key={stage.label}
-            className={`rounded border p-3 ${
+            className={`rounded-(--radius-md) border p-3 ${
               stage.done
-                ? "border-emerald-500/30 bg-emerald-500/10"
-                : "border-border bg-secondary/25"
+                ? "border-success bg-card"
+                : "border-border bg-secondary"
             }`}
           >
             <div className="flex items-center justify-between gap-2">

@@ -63,6 +63,7 @@ function formatEstimate(seconds: number): string {
 export function BatchCreateWizard() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadControllersRef = useRef(new Map<string, AbortController>());
   const [step, setStep] = useState(0);
   const [uploads, setUploads] = useState<UploadItem[]>([]);
   const [templates, setTemplates] = useState<StyleTemplateDto[]>([]);
@@ -85,6 +86,14 @@ export function BatchCreateWizard() {
       })
       .catch((reason) => setError((reason as Error).message));
   }, []);
+
+  useEffect(
+    () => () => {
+      uploadControllersRef.current.forEach((controller) => controller.abort());
+      uploadControllersRef.current.clear();
+    },
+    [],
+  );
 
   const selectedTemplate = templates.find(
     (template) => template.id === templateId,
@@ -114,6 +123,9 @@ export function BatchCreateWizard() {
   }
 
   async function uploadOne(item: UploadItem) {
+    uploadControllersRef.current.get(item.localId)?.abort();
+    const controller = new AbortController();
+    uploadControllersRef.current.set(item.localId, controller);
     updateUpload(item.localId, {
       status: "uploading",
       error: undefined,
@@ -125,6 +137,7 @@ export function BatchCreateWizard() {
       const response = await fetch("/api/upload/blob", {
         method: "POST",
         body: form,
+        signal: controller.signal,
       });
       const data = (await response.json().catch(() => ({}))) as {
         url?: string;
@@ -144,6 +157,10 @@ export function BatchCreateWizard() {
         status: "failed",
         error: (reason as Error).message,
       });
+    } finally {
+      if (uploadControllersRef.current.get(item.localId) === controller) {
+        uploadControllersRef.current.delete(item.localId);
+      }
     }
   }
 
@@ -181,6 +198,8 @@ export function BatchCreateWizard() {
   }
 
   function removeUpload(localId: string) {
+    uploadControllersRef.current.get(localId)?.abort();
+    uploadControllersRef.current.delete(localId);
     setUploads((current) => {
       const target = current.find((item) => item.localId === localId);
       if (target) URL.revokeObjectURL(target.previewUrl);

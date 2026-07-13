@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
+  ArrowRight,
+  Check,
   Clapperboard,
   Film,
   ImagePlus,
@@ -11,6 +13,16 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import type {
   UploadedAsset,
   VideoGenerationPlan,
@@ -30,7 +42,7 @@ interface DispatchResult {
   batch: Array<{ briefId: string; deliveryOrderId: string }>;
 }
 
-export function GlassCreateWorkflow({
+export function EditorialCreateWorkflow({
   initialMode,
 }: {
   initialMode: CreateMode;
@@ -58,7 +70,7 @@ export function GlassCreateWorkflow({
 
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
-  const logRef = useRef<HTMLDivElement>(null);
+  const logRef = useRef<HTMLPreElement>(null);
 
   const log = useCallback((line: string) => {
     const ts = new Date().toLocaleTimeString("zh-CN", { hour12: false });
@@ -104,7 +116,7 @@ export function GlassCreateWorkflow({
       log(`产品图上传完成（共 ${Math.min(images.length + list.length, 10)} 张）`);
     } catch (e) {
       setError((e as Error).message);
-      log(`✗ 产品图上传失败：${(e as Error).message}`);
+      log(`产品图上传失败：${(e as Error).message}`);
     } finally {
       setUploadingImages(false);
       if (imageInputRef.current) imageInputRef.current.value = "";
@@ -126,7 +138,7 @@ export function GlassCreateWorkflow({
       log("参考视频上传完成");
     } catch (e) {
       setError((e as Error).message);
-      log(`✗ 参考视频上传失败：${(e as Error).message}`);
+      log(`参考视频上传失败：${(e as Error).message}`);
     } finally {
       setUploadingVideo(false);
       if (videoInputRef.current) videoInputRef.current.value = "";
@@ -171,15 +183,15 @@ export function GlassCreateWorkflow({
       const p = j.plan as VideoGenerationPlan;
       setPlan(p);
       const aiSegs = p.segments.filter((s) => s.type === "ai_generated_clip");
-      log(`✓ 脚本已生成：${aiSegs.length} 个镜头 · 共 ${p.planPreview.breakdown.finalDurationSec}s`);
+      log(`脚本已生成：${aiSegs.length} 个镜头 · 共 ${p.planPreview.breakdown.finalDurationSec}s`);
       if (!p.qualityReview.canDispatch) {
-        log("⚠ 描述还需补充细节才能出片，请查看下方提示");
+        log("描述还需补充细节才能出片，请查看下方提示");
       } else {
         log("请检查/编辑每个镜头的脚本，然后点「确认出片」");
       }
     } catch (e) {
       setError((e as Error).message);
-      log(`✗ 脚本生成失败：${(e as Error).message}`);
+      log(`脚本生成失败：${(e as Error).message}`);
     } finally {
       setPlanning(false);
     }
@@ -205,12 +217,12 @@ export function GlassCreateWorkflow({
       });
       const j = await res.json();
       if (!res.ok || !j.ok) throw new Error(j.error ?? "出片任务提交失败");
-      log(`✓ 已提交 ${j.batch?.length ?? 1} 支成片任务，AI 正在逐镜头生成画面`);
+      log(`已提交 ${j.batch?.length ?? 1} 支成片任务，AI 正在逐镜头生成画面`);
       log("成片完成后可在「成片库」查看和下载（页面会自动刷新进度）");
       setDone({ nextUrl: j.nextUrl as string, batch: j.batch ?? [] });
     } catch (e) {
       setError((e as Error).message);
-      log(`✗ 出片提交失败：${(e as Error).message}`);
+      log(`出片提交失败：${(e as Error).message}`);
     } finally {
       setDispatching(false);
     }
@@ -220,7 +232,7 @@ export function GlassCreateWorkflow({
   const appliedTemplate = getStyleTemplate(styleTemplateId);
 
   return (
-    <div className="space-y-4 pb-24">
+    <div className="space-y-8 pb-16">
       <input
         ref={imageInputRef}
         type="file"
@@ -237,271 +249,319 @@ export function GlassCreateWorkflow({
         onChange={(e) => handleVideoFile(e.target.files)}
       />
 
-      {/* 步骤 1：产品图片 */}
-      <section className="glass-card p-5">
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="glass-step-num">1</span>
-            <h2 className="text-sm font-semibold text-white">选择产品图片</h2>
+      <header className="max-w-4xl space-y-4">
+        <Badge variant="secondary">Creative Workflow</Badge>
+        <h1 className="editorial-display">
+          创作你的<em>下一支视频</em>
+        </h1>
+        <p className="max-w-2xl text-body text-muted-foreground">
+          从素材、参考到脚本确认，按编辑台顺序完成每一步，所有生成设置保持可回看、可调整。
+        </p>
+      </header>
+
+      <Card>
+        <CardHeader className="border-b border-border">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Badge>01</Badge>
+              <div>
+                <CardTitle>选择产品图片</CardTitle>
+                <CardDescription>建议上传正面、侧面与细节素材。</CardDescription>
+              </div>
+            </div>
+            <Badge variant="secondary">JPG / PNG / WebP · 最多 10 张</Badge>
           </div>
-          <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-            JPG/PNG/WebP · 最多10张
-          </span>
-        </div>
+        </CardHeader>
+        <CardContent className="pt-2">
         <div
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
             e.preventDefault();
             handleImageFiles(e.dataTransfer.files);
           }}
-          onClick={() => imageInputRef.current?.click()}
-          className="cursor-pointer rounded-2xl border border-dashed border-white/20 bg-white/4 px-6 py-8 text-center transition-colors hover:border-sky-300/40 hover:bg-white/6"
+          className="rounded-(--radius-lg) border border-dashed border-border bg-muted px-4 py-8 text-center sm:px-6"
         >
           {images.length === 0 ? (
-            <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              className="w-full space-y-2 rounded-(--radius-md) transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+            >
               {uploadingImages ? (
-                <Loader2 className="mx-auto h-7 w-7 animate-spin text-white/60" />
+                <Loader2 className="mx-auto size-6 animate-spin stroke-[1.5] text-muted-foreground" aria-hidden />
               ) : (
-                <ImagePlus className="mx-auto h-7 w-7 text-white/50" />
+                <ImagePlus className="mx-auto size-6 stroke-[1.5] text-muted-foreground" aria-hidden />
               )}
-              <p className="text-sm font-medium text-white/85">
+              <p className="text-body font-medium">
                 拖拽或点击上传产品图片
               </p>
-              <p className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
+              <p className="text-meta text-muted-foreground">
                 建议上传 3-5 张，包含正面/侧面/细节
               </p>
-            </div>
+            </button>
           ) : (
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {images.map((img, idx) => (
-                <div key={img.id} className="group relative">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.url}
-                    alt=""
-                    className="h-20 w-20 rounded-xl border border-white/15 object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setImages((prev) => prev.filter((_, i) => i !== idx));
-                    }}
-                    className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-white group-hover:flex"
-                    aria-label="移除"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-4">
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                {images.map((img, idx) => (
+                  <div key={img.id} className="group relative">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={img.url}
+                      alt={`产品图片 ${idx + 1}`}
+                      className="size-20 rounded-(--radius-md) border border-border object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon-xs"
+                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute -right-2 -top-2 hidden group-hover:inline-flex group-focus-within:inline-flex"
+                      aria-label={`移除产品图片 ${idx + 1}`}
+                    >
+                      <X />
+                    </Button>
+                  </div>
+                ))}
+              </div>
               {images.length < 10 && (
-                <div className="flex h-20 w-20 items-center justify-center rounded-xl border border-dashed border-white/20 text-white/40">
-                  {uploadingImages ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <ImagePlus className="h-5 w-5" />
-                  )}
-                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={uploadingImages}
+                >
+                  {uploadingImages ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+                  继续上传
+                </Button>
               )}
             </div>
           )}
         </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      {/* 步骤 2：爆款参考视频 */}
-      <section className="glass-card p-5">
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="glass-step-num">2</span>
-            <h2 className="text-sm font-semibold text-white">
-              爆款参考视频（可选）
-            </h2>
+      <Card>
+        <CardHeader className="border-b border-border">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Badge>02</Badge>
+              <div>
+                <CardTitle>爆款参考视频</CardTitle>
+                <CardDescription>可选，用于提供节奏与风格参考。</CardDescription>
+              </div>
+            </div>
+            <Badge variant={refVideo ? "success" : "secondary"}>
+              {refVideo ? "已选择" : "可选"}
+            </Badge>
           </div>
-          <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-            提供节奏与风格参考
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <button
+        </CardHeader>
+        <CardContent className="space-y-4 pt-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+          <Button
             type="button"
-            className="glass-btn text-xs"
+            variant="outline"
+            size="sm"
             disabled={uploadingVideo}
             onClick={() => videoInputRef.current?.click()}
           >
             {uploadingVideo ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <Loader2 className="animate-spin" />
             ) : (
-              <Film className="h-3.5 w-3.5" />
+              <Film />
             )}
             选择爆款视频
-          </button>
+          </Button>
           {refVideo ? (
-            <span className="glass-chip">
-              {refVideo.fileName}
-              <button
+            <span className="flex min-w-0 items-center gap-2 text-meta text-muted-foreground">
+              <span className="max-w-full truncate">{refVideo.fileName}</span>
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => setRefVideo(null)}
-                className="ml-1 text-white/60 hover:text-white"
                 aria-label="移除参考视频"
               >
-                <X className="h-3 w-3" />
-              </button>
+                <X />
+              </Button>
             </span>
           ) : (
-            <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
+            <span className="text-meta text-muted-foreground">
               未选择 — AI 将按你的描述自行设计节奏
             </span>
           )}
-        </div>
-        <p className="mt-3 rounded-xl border border-sky-300/25 bg-sky-500/12 px-3 py-2 text-xs text-sky-100/90">
-          💡 上传参考视频后，AI 会解析它的镜头结构并把你的产品嵌入每一镜，复制爆款打法。
-        </p>
-      </section>
-
-      {/* 步骤 3：创作模式 + 需求 */}
-      <section className="glass-card p-5">
-        <div className="flex items-center justify-between pb-3">
-          <div className="flex items-center gap-2.5">
-            <span className="glass-step-num">3</span>
-            <h2 className="text-sm font-semibold text-white">创作模式与需求</h2>
           </div>
-          <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-            快速=脚本直出视频 · 导演=分镜可打磨
-          </span>
-        </div>
+          <p className="border-l-2 border-primary pl-4 text-meta text-muted-foreground">
+            上传后，AI 会参考镜头结构与节奏，并将你的产品融入每一镜。
+          </p>
+        </CardContent>
+      </Card>
 
-        <div className="flex flex-wrap gap-2 pb-4">
-          <button
+      <Card>
+        <CardHeader className="border-b border-border">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Badge>03</Badge>
+              <div>
+                <CardTitle>创作模式与需求</CardTitle>
+                <CardDescription>快速成片适合直出，导演分镜适合逐镜打磨。</CardDescription>
+              </div>
+            </div>
+            <Badge variant={mode === "fast" ? "success" : "secondary"}>
+              {mode === "fast" ? "快速成片" : "导演分镜"}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5 pt-2">
+
+        <div className="flex flex-wrap gap-2">
+          <Button
             type="button"
             onClick={() => setMode("fast")}
-            className={`glass-btn text-xs ${mode === "fast" ? "is-active" : ""}`}
+            variant={mode === "fast" ? "default" : "outline"}
+            aria-pressed={mode === "fast"}
           >
-            <Zap className="h-3.5 w-3.5" />
+            <Zap />
             快速成片
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => setMode("director")}
-            className={`glass-btn text-xs ${mode === "director" ? "is-active" : ""}`}
+            variant={mode === "director" ? "default" : "outline"}
+            aria-pressed={mode === "director"}
           >
-            <Clapperboard className="h-3.5 w-3.5" />
+            <Clapperboard />
             导演分镜
-          </button>
+          </Button>
           {appliedTemplate && (
-            <span className="glass-chip text-xs text-sky-200">
-              {appliedTemplate.icon} 风格模版：{appliedTemplate.name}
+            <span className="flex min-w-0 items-center gap-2 text-meta text-muted-foreground">
+              <span className="truncate">风格模版：{appliedTemplate.name}</span>
               {lockIds.length > 0 && ` · ${lockIds.length} 项一致性锁`}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon-xs"
                 onClick={() => {
                   setStyleTemplateId(null);
                   setLockIds([]);
                   log("已移除风格模版，回到自由创作");
                 }}
-                className="ml-1 text-white/60 hover:text-white"
                 aria-label="移除风格模版"
               >
-                <X className="h-3 w-3" />
-              </button>
+                <X />
+              </Button>
             </span>
           )}
         </div>
 
-        <textarea
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          rows={3}
-          placeholder="描述你要的视频…例：15秒 UGC 口播，突出防摔卖点，美国市场，真人实拍感"
-          className="glass-input resize-none"
-        />
+        <label className="block space-y-2 text-meta font-medium">
+          创意需求
+          <Textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            rows={3}
+            placeholder="例如：15 秒 UGC 口播，突出防摔卖点，美国市场，真人实拍感。"
+            className="resize-none"
+          />
+        </label>
 
-        <div className="flex flex-wrap items-center gap-4 pt-4">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-              时长
-            </span>
+        <div className="grid gap-5 md:grid-cols-3">
+          <fieldset className="min-w-0 space-y-2">
+            <legend className="text-meta font-medium">时长</legend>
+            <div className="flex flex-wrap gap-2">
             {([15, 30, 60] as Duration[]).map((d) => (
-              <button
+              <Button
                 key={d}
                 type="button"
+                size="xs"
+                variant={duration === d ? "default" : "outline"}
                 onClick={() => setDuration(d)}
-                className={`glass-btn px-3 py-1 text-xs ${duration === d ? "is-active" : ""}`}
+                aria-pressed={duration === d}
               >
                 {d}s
-              </button>
+              </Button>
             ))}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-              画幅
-            </span>
+            </div>
+          </fieldset>
+          <fieldset className="min-w-0 space-y-2">
+            <legend className="text-meta font-medium">画幅</legend>
+            <div className="flex flex-wrap gap-2">
             {(["9:16", "16:9", "1:1"] as Ratio[]).map((r) => (
-              <button
+              <Button
                 key={r}
                 type="button"
+                size="xs"
+                variant={ratio === r ? "default" : "outline"}
                 onClick={() => setRatio(r)}
-                className={`glass-btn px-3 py-1 text-xs ${ratio === r ? "is-active" : ""}`}
+                aria-pressed={ratio === r}
               >
                 {r}
-              </button>
+              </Button>
             ))}
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-              出片数
-            </span>
+            </div>
+          </fieldset>
+          <fieldset className="min-w-0 space-y-2">
+            <legend className="text-meta font-medium">出片数</legend>
+            <div className="flex flex-wrap gap-2">
             {[1, 2, 3].map((n) => (
-              <button
+              <Button
                 key={n}
                 type="button"
+                size="xs"
+                variant={batchCount === n ? "default" : "outline"}
                 onClick={() => setBatchCount(n)}
-                className={`glass-btn px-3 py-1 text-xs ${batchCount === n ? "is-active" : ""}`}
+                aria-pressed={batchCount === n}
               >
                 {n}支
-              </button>
+              </Button>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 脚本确认区 */}
-      {plan && (
-        <section className="glass-card p-5">
-          <div className="flex items-center justify-between pb-3">
-            <div className="flex items-center gap-2.5">
-              <span className="glass-step-num">4</span>
-              <h2 className="text-sm font-semibold text-white">
-                镜头脚本（可编辑）
-              </h2>
             </div>
-            <span className="glass-chip">
-              {plan.planPreview.breakdown.finalDurationSec}s ·{" "}
-              {plan.planPreview.breakdown.aspectRatio} · {aiSegments.length} 镜
-            </span>
-          </div>
+          </fieldset>
+        </div>
+        </CardContent>
+      </Card>
 
-          <p className="pb-3 text-xs text-white/70">{plan.planPreview.summary}</p>
+      {plan && (
+        <Card>
+          <CardHeader className="border-b border-border">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Badge>04</Badge>
+                <div>
+                  <CardTitle>镜头脚本</CardTitle>
+                  <CardDescription>逐镜检查并编辑生成内容。</CardDescription>
+                </div>
+              </div>
+              <Badge variant="secondary">
+                {plan.planPreview.breakdown.finalDurationSec}s ·{" "}
+                {plan.planPreview.breakdown.aspectRatio} · {aiSegments.length} 镜
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-5 pt-2">
+
+          <p className="text-body text-muted-foreground">{plan.planPreview.summary}</p>
 
           {!plan.qualityReview.canDispatch && (
-            <div className="mb-3 rounded-xl border border-amber-300/30 bg-amber-500/12 px-3 py-2 text-xs text-amber-100">
+            <div role="alert" className="border-l-2 border-warning pl-4 text-meta text-foreground">
               {plan.qualityReview.blockers.map((b) => (
-                <p key={b.code}>⚠ {b.message}</p>
+                <p key={b.code}>{b.message}</p>
               ))}
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {aiSegments.map((seg, idx) => (
-              <div key={seg.id} className="glass-panel p-3.5">
-                <div className="flex items-center justify-between pb-2">
-                  <span className="text-xs font-semibold text-sky-200">
+              <section key={seg.id} className="rounded-(--radius-md) border border-border bg-muted p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3">
+                  <span className="text-meta font-semibold">
                     镜头 {idx + 1} · {seg.durationSeconds}s
                   </span>
-                  <span className="text-[11px]" style={{ color: "var(--glass-text-dim)" }}>
+                  <span className="text-meta text-muted-foreground">
                     {seg.purpose}
                   </span>
                 </div>
-                <textarea
+                <Textarea
+                  aria-label={`镜头 ${idx + 1} 脚本`}
                   value={editedPrompts[seg.order] ?? seg.prompt ?? ""}
                   onChange={(e) =>
                     setEditedPrompts((prev) => ({
@@ -510,46 +570,66 @@ export function GlassCreateWorkflow({
                     }))
                   }
                   rows={mode === "director" ? 4 : 2}
-                  className="glass-input resize-y text-xs leading-relaxed"
+                  className="resize-y"
                 />
-              </div>
+              </section>
             ))}
           </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
 
-      {/* 日志控制台 */}
       {logs.length > 0 && (
-        <div ref={logRef} className="glass-console">
-          {logs.join("\n")}
-        </div>
+        <Card size="sm">
+          <CardHeader>
+            <CardTitle>创作记录</CardTitle>
+            <CardDescription>当前页面的处理进度。</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <pre
+              ref={logRef}
+              className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word font-mono text-meta text-muted-foreground"
+              aria-live="polite"
+            >
+              {logs.join("\n")}
+            </pre>
+          </CardContent>
+        </Card>
       )}
 
       {error && (
-        <p className="rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">
+        <p role="alert" className="border-l-2 border-danger pl-4 text-meta text-danger">
           {error}
         </p>
       )}
 
-      {/* 成功卡 */}
       {done && (
-        <div className="glass-card border-emerald-300/30 p-5 text-center">
-          <p className="text-sm font-semibold text-emerald-200">
-            ✓ {done.batch.length || 1} 支成片任务已开始生成
-          </p>
-          <p className="mt-1 text-xs" style={{ color: "var(--glass-text-dim)" }}>
-            AI 正在逐镜头出画面，完成后自动合成成片，可随时离开此页
-          </p>
-          <Link href={done.nextUrl} className="glass-btn-primary mt-4 inline-flex text-xs">
-            前往成片库查看进度
-          </Link>
-        </div>
+        <Card>
+          <CardHeader>
+            <div className="flex items-start gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) bg-muted text-success">
+                <Check className="size-4 stroke-[1.5]" aria-hidden />
+              </span>
+              <div>
+                <CardTitle>{done.batch.length || 1} 支成片任务已开始生成</CardTitle>
+                <CardDescription>
+                  AI 正在逐镜头生成画面，完成后自动合成成片，可随时离开此页。
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Button render={<Link href={done.nextUrl} />}>
+              前往成片库查看进度
+              <ArrowRight />
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {/* 底部固定操作条 */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-black/45 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-8 md:pl-[100px]">
-          <span className="truncate text-xs" style={{ color: "var(--glass-text-dim)" }}>
+      <Card className="sticky bottom-16 z-10 md:bottom-4">
+        <CardContent className="flex min-w-0 flex-col gap-4 pt-2 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-meta text-muted-foreground" aria-live="polite">
             {dispatching
               ? "出片任务提交中…"
               : planning
@@ -558,50 +638,51 @@ export function GlassCreateWorkflow({
                   ? "脚本已就绪 — 检查后确认出片"
                   : "就绪 — 填写需求后点「第一步：生成脚本」"}
           </span>
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
             {plan ? (
               <>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={generateScript}
                   disabled={planning || dispatching}
-                  className="glass-btn text-xs"
                 >
-                  {planning && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  {planning && <Loader2 className="animate-spin" />}
                   重新生成脚本
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={confirmAndDispatch}
                   disabled={dispatching || planning || !plan.qualityReview.canDispatch}
-                  className="glass-btn-primary text-xs"
                 >
                   {dispatching ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <Loader2 className="animate-spin" />
                   ) : (
-                    <Sparkles className="h-3.5 w-3.5" />
+                    <Sparkles />
                   )}
                   确认出片（{batchCount} 支）
-                </button>
+                </Button>
               </>
             ) : (
-              <button
+              <Button
                 type="button"
                 onClick={generateScript}
                 disabled={!canPlan}
-                className="glass-btn-primary text-xs"
               >
                 {planning ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <Loader2 className="animate-spin" />
                 ) : (
-                  <>▶</>
+                  <Clapperboard />
                 )}
                 第一步：生成脚本
-              </button>
+              </Button>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
+
+/** @deprecated 使用 EditorialCreateWorkflow；保留旧导出避免调用方断裂。 */
+export const GlassCreateWorkflow = EditorialCreateWorkflow;

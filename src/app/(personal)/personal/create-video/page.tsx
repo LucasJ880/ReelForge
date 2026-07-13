@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { GlassCreateWorkflow } from "@/components/personal/glass-create-workflow";
+import { EditorialCreateWorkflow } from "@/components/personal/glass-create-workflow";
 
 export const dynamic = "force-dynamic";
 
@@ -20,5 +20,5 @@ export default async function CreateVideoPage({ searchParams }: PageProps) {
   const sp = await searchParams;
   const initialMode = sp.mode === "director" ? "director" : "fast";
 
-  return <GlassCreateWorkflow initialMode={initialMode} />;
+  return <EditorialCreateWorkflow initialMode={initialMode} />;
 }

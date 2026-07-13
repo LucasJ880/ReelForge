@@ -14,14 +14,14 @@ export default async function OrdersPage() {
   const { items, total } = await listDeliveryOrders();
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title="广告项目"
         description={`共 ${total} 个真实素材广告项目`}
         actions={
           <Link href="/orders/new">
             <Button>
-              <Plus className="h-4 w-4" />
+            <Plus strokeWidth={1.5} aria-hidden />
               新建广告项目
             </Button>
           </Link>
@@ -29,8 +29,8 @@ export default async function OrdersPage() {
       />
 
       {items.length === 0 ? (
-        <Card className="p-10 text-center">
-          <p className="text-sm text-muted-foreground">
+        <Card className="p-8 text-center">
+          <p className="text-body text-muted-foreground">
             还没有广告项目。点击「新建广告项目」开始第一个真实素材测试。
           </p>
         </Card>
@@ -39,9 +39,13 @@ export default async function OrdersPage() {
           {items.map((order) => {
             const latestRound = order.rounds[0];
             return (
-              <Link key={order.id} href={`/orders/${order.id}`}>
-                <Card size="sm" className="hover:ring-foreground/20 transition">
-                  <div className="flex items-center justify-between gap-4 px-4">
+              <Link
+                key={order.id}
+                href={`/orders/${order.id}`}
+                className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <Card size="sm" className="transition-colors duration-fast hover:border-foreground motion-reduce:transition-none">
+                  <div className="flex min-w-0 flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="truncate font-medium">{order.title}</h3>
@@ -49,7 +53,7 @@ export default async function OrdersPage() {
                           {DELIVERY_ORDER_LABELS[order.status]}
                         </StatusBadge>
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap gap-3 text-meta text-muted-foreground">
                         <span>{order.productCategory}</span>
                         <span>{order.targetPlatform}</span>
                         <span>
@@ -64,7 +68,7 @@ export default async function OrdersPage() {
                         )}
                       </div>
                     </div>
-                    <div className="text-right text-xs text-muted-foreground/70">
+                    <div className="text-meta text-muted-foreground sm:text-right">
                       {formatDate(order.createdAt)}
                     </div>
                   </div>

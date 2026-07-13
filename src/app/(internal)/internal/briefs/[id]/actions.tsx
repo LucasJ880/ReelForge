@@ -54,7 +54,7 @@ export function BriefActions({
         disabled={!!busy}
         onClick={() => call("生成视频脚本", `/api/briefs/${brief.id}/script`)}
       >
-        {busy === "生成视频脚本" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {busy === "生成视频脚本" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
         {hasScript ? ACTION_BUTTON_LABELS.rewriteScript : ACTION_BUTTON_LABELS.generateScript}
       </Button>
       <Button
@@ -65,7 +65,7 @@ export function BriefActions({
           call("生成分镜", `/api/briefs/${brief.id}/scenes`, { generatePrompts: true })
         }
       >
-        {busy === "生成分镜" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {busy === "生成分镜" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
         {ACTION_BUTTON_LABELS.generateScenes}
       </Button>
       <Button
@@ -78,7 +78,7 @@ export function BriefActions({
         }
         onClick={() => call("生成视频", `/api/briefs/${brief.id}/render`)}
       >
-        {busy === "生成视频" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {busy === "生成视频" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
         {ACTION_BUTTON_LABELS.generateVideo}
       </Button>
       <Button
@@ -87,7 +87,7 @@ export function BriefActions({
         disabled={!!busy}
         onClick={() => call("生成剪辑计划", `/api/briefs/${brief.id}/ad-plan`)}
       >
-        {busy === "生成剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {busy === "生成剪辑计划" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
         {ACTION_BUTTON_LABELS.generateAdEditPlan}
       </Button>
       <Button
@@ -98,7 +98,7 @@ export function BriefActions({
           call("渲染剪辑计划", `/api/briefs/${brief.id}/render`, { mode: "ad_edit_plan" })
         }
       >
-        {busy === "渲染剪辑计划" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {busy === "渲染剪辑计划" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
         {ACTION_BUTTON_LABELS.renderAdEditPlan}
       </Button>
       <Button
@@ -107,7 +107,7 @@ export function BriefActions({
         disabled={!!busy}
         onClick={() => call("质量检查", `/api/briefs/${brief.id}/qa`)}
       >
-        {busy === "质量检查" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+        {busy === "质量检查" && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
         {ACTION_BUTTON_LABELS.runQA}
       </Button>
     </div>

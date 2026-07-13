@@ -64,7 +64,7 @@ export default async function BriefPage({
   );
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title={angle.title}
         description={`${round.deliveryOrder.title} · 第 ${round.roundIndex} 组创意 · ${ANGLE_TYPE_USER_LABELS[angle.type]}`}
@@ -73,12 +73,12 @@ export default async function BriefPage({
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <StatusBadge tone={briefTone(brief.status)}>{BRIEF_USER_LABELS[brief.status]}</StatusBadge>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-meta text-muted-foreground">
           时长 {brief.durationSec}s · {brief.aspectRatio} · {ON_CAMERA_LABELS[brief.onCameraMode]}
         </span>
         <Link
           href={`/rounds/${round.id}`}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="text-meta text-muted-foreground hover:text-foreground"
         >
           ← 返回创意版本组
         </Link>
@@ -89,27 +89,27 @@ export default async function BriefPage({
           <CardHeader>
             <CardTitle>{COMMON_USER_TERMS.angle}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm">
+          <CardContent className="space-y-2 text-body">
             {angle.hook && (
               <p>
-                <span className="text-xs text-muted-foreground">开场钩子：</span>
+                <span className="text-meta text-muted-foreground">开场钩子：</span>
                 {angle.hook}
               </p>
             )}
             {angle.narrative && (
               <p>
-                <span className="text-xs text-muted-foreground">叙事：</span>
+                <span className="text-meta text-muted-foreground">叙事：</span>
                 {angle.narrative}
               </p>
             )}
             {angle.explorationTheme && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-meta text-muted-foreground">
                 探索主题：{angle.explorationTheme}
               </p>
             )}
             <details className="mt-2">
-              <summary className="cursor-pointer text-[10px] text-muted-foreground">开发者信息（locale_notes）</summary>
-              <pre className="mt-1 max-h-40 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+              <summary className="cursor-pointer text-meta text-muted-foreground">开发者信息（locale_notes）</summary>
+              <pre className="mt-1 max-h-40 overflow-auto rounded-(--radius-md) bg-secondary p-3 font-mono text-meta">
                 {JSON.stringify(angle.localeNotes, null, 2)}
               </pre>
             </details>
@@ -120,22 +120,22 @@ export default async function BriefPage({
           <CardHeader>
             <CardTitle>{COMMON_USER_TERMS.currentScript} (v{currentScript?.version ?? "—"})</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm">
+          <CardContent className="text-body">
             {currentScript ? (
               <>
-                <p className="text-[11px] text-muted-foreground">语言：{currentScript.language}</p>
+                <p className="text-meta text-muted-foreground">语言：{currentScript.language}</p>
                 <p className="mt-2 whitespace-pre-wrap">{currentScript.fullText}</p>
                 {currentScript.hook && (
-                  <p className="mt-3 text-xs text-muted-foreground">
+                  <p className="mt-3 text-meta text-muted-foreground">
                     开场钩子：{currentScript.hook}
                   </p>
                 )}
                 {currentScript.cta && (
-                  <p className="text-xs text-muted-foreground">行动号召：{currentScript.cta}</p>
+                  <p className="text-meta text-muted-foreground">行动号召：{currentScript.cta}</p>
                 )}
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">尚未生成视频脚本</p>
+              <p className="text-meta text-muted-foreground">尚未生成视频脚本</p>
             )}
           </CardContent>
         </Card>
@@ -148,18 +148,18 @@ export default async function BriefPage({
           </CardHeader>
           <CardContent className="space-y-3">
             {currentScript.scenePlans.map((scene) => (
-              <div key={scene.id} className="rounded border border-border/60 p-3 text-xs">
+              <div key={scene.id} className="rounded-(--radius-md) border border-border p-3 text-meta">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">分镜 #{scene.sceneIndex}</span>
                   <StatusBadge tone="neutral">{scene.durationSec}s</StatusBadge>
                 </div>
                 <p className="mt-1 text-muted-foreground">{scene.visualIntent}</p>
                 {scene.videoPrompts.map((p) => (
-                  <details key={p.id} className="mt-2 rounded bg-secondary/40 p-2">
-                    <summary className="cursor-pointer text-[10px] text-muted-foreground">
+                  <details key={p.id} className="mt-2 rounded-(--radius-md) bg-secondary p-3">
+                    <summary className="cursor-pointer text-meta text-muted-foreground">
                       画面 Prompt（开发者信息）{p.referenceImageUrl ? " · 含参考图" : ""}
                     </summary>
-                    <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap text-[11px]">
+                    <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-meta">
                       {p.promptText}
                     </pre>
                   </details>
@@ -192,9 +192,9 @@ export default async function BriefPage({
           <CardHeader>
             <CardTitle>真实素材剪辑计划</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
+          <CardContent className="space-y-3 text-meta">
             {brief.adEditPlans.map((plan) => (
-              <div key={plan.id} className="rounded border border-border/60 p-3">
+              <div key={plan.id} className="rounded-(--radius-md) border border-border p-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <StatusBadge tone="info">v{plan.version}</StatusBadge>
                   <span className="font-medium">{plan.title}</span>
@@ -209,9 +209,9 @@ export default async function BriefPage({
                   <p className="mt-1 text-muted-foreground">{plan.objective}</p>
                 )}
                 {plan.reviewSummary && (
-                  <p className="mt-2 rounded bg-secondary/40 p-2">{plan.reviewSummary}</p>
+                  <p className="mt-2 rounded-(--radius-md) bg-secondary p-3">{plan.reviewSummary}</p>
                 )}
-                <pre className="mt-2 max-h-48 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                <pre className="mt-2 max-h-48 overflow-auto rounded-(--radius-md) bg-secondary p-3 font-mono text-meta">
                   {JSON.stringify(plan.timeline, null, 2)}
                 </pre>
               </div>
@@ -230,9 +230,9 @@ export default async function BriefPage({
               src={brief.finalVideoUrl}
               controls
               poster={brief.finalThumbnailUrl ?? undefined}
-              className="max-h-[480px] rounded"
+              className="max-h-120 rounded-(--radius-md)"
             />
-            <p className="mt-2 text-[11px] text-muted-foreground break-all">{brief.finalVideoUrl}</p>
+            <p className="mt-2 break-all text-meta text-muted-foreground">{brief.finalVideoUrl}</p>
           </CardContent>
         </Card>
       )}
@@ -242,9 +242,9 @@ export default async function BriefPage({
           <CardHeader>
             <CardTitle>质量检查</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
+          <CardContent className="space-y-3 text-meta">
             {brief.qaReviews.map((q) => (
-              <div key={q.id} className="rounded border border-border/60 p-3">
+              <div key={q.id} className="rounded-(--radius-md) border border-border p-3">
                 <div className="flex items-center gap-2">
                   <StatusBadge tone={qaTone(q.status)}>{QA_USER_LABELS[q.status]}</StatusBadge>
                   {q.aiOverallScore != null && (
@@ -261,10 +261,10 @@ export default async function BriefPage({
                 )}
                 {q.aiScoreBreakdown && (
                   <details className="mt-2">
-                    <summary className="cursor-pointer text-[10px] text-muted-foreground">
+                    <summary className="cursor-pointer text-meta text-muted-foreground">
                       详细打分（开发者信息）
                     </summary>
-                    <pre className="mt-1 max-h-32 overflow-auto rounded bg-secondary/40 p-2 text-[11px]">
+                    <pre className="mt-1 max-h-32 overflow-auto rounded-(--radius-md) bg-secondary p-3 font-mono text-meta">
                       {JSON.stringify(q.aiScoreBreakdown, null, 2)}
                     </pre>
                   </details>
@@ -280,9 +280,9 @@ export default async function BriefPage({
           <CardHeader>
             <CardTitle>发布 + 数据</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-xs">
+          <CardContent className="space-y-3 text-meta">
             {brief.publishRecords.map((r) => (
-              <div key={r.id} className="rounded border border-border/60 p-3">
+              <div key={r.id} className="rounded-(--radius-md) border border-border p-3">
                 <div className="flex items-center gap-2">
                   <StatusBadge tone={publishTone(r.status)}>
                     {PUBLISH_LABELS[r.status]}
@@ -295,11 +295,11 @@ export default async function BriefPage({
                   )}
                 </div>
                 {r.metricsSnapshots.length > 0 && (
-                  <div className="mt-2 grid gap-1 text-[11px] md:grid-cols-3">
+                  <div className="mt-2 grid gap-1 text-meta md:grid-cols-3">
                     {r.metricsSnapshots.map((snap) => (
-                      <div key={snap.id} className="rounded bg-secondary/40 p-2">
+                      <div key={snap.id} className="rounded-(--radius-md) bg-secondary p-3">
                         <div className="font-medium">+{snap.windowHours}h</div>
-                        <pre className="mt-1 overflow-auto text-[10px]">
+                        <pre className="mt-1 overflow-auto font-mono text-meta">
                           {JSON.stringify(snap.metrics, null, 2)}
                         </pre>
                       </div>

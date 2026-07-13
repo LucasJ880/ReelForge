@@ -41,9 +41,11 @@ export interface BreakerDecision {
     windowMin: number;
     terminal: number;
     stalled: number;
+    providerFailed: number;
     succeeded: number;
     inflight: number;
     stallRate: number;
+    unhealthyRate: number;
   };
   reason: string;
 }
@@ -56,7 +58,11 @@ function windowMin(): number {
   return Number(process.env.DISPATCH_BREAKER_WINDOW_MIN ?? "60");
 }
 function stallRateThreshold(): number {
-  return Number(process.env.DISPATCH_BREAKER_STALL_RATE ?? "0.8");
+  return Number(
+    process.env.DISPATCH_BREAKER_UNHEALTHY_RATE ??
+      process.env.DISPATCH_BREAKER_STALL_RATE ??
+      "0.8",
+  );
 }
 function minSamples(): number {
   return Number(process.env.DISPATCH_BREAKER_MIN_SAMPLES ?? "3");
@@ -91,9 +97,11 @@ export async function evaluateDispatchBreaker(
         windowMin: win,
         terminal: 0,
         stalled: 0,
+        providerFailed: 0,
         succeeded: 0,
         inflight: 0,
         stallRate: 0,
+        unhealthyRate: 0,
       },
       reason: "breaker disabled by env",
     };
@@ -115,6 +123,9 @@ export async function evaluateDispatchBreaker(
       j.status === VideoJobStatus.FAILED,
   );
   const stalled = terminalJobs.filter(isStalledFailure).length;
+  const providerFailed = terminalJobs.filter(
+    (job) => job.errorMessage?.startsWith("[provider:failed]") ?? false,
+  ).length;
   const succeeded = recent.filter(
     (j) => j.status === VideoJobStatus.SUCCEEDED,
   ).length;
@@ -124,37 +135,41 @@ export async function evaluateDispatchBreaker(
   ).length;
   const terminal = terminalJobs.length;
   const stallRate = terminal > 0 ? stalled / terminal : 0;
+  const unhealthyRate =
+    terminal > 0 ? (stalled + providerFailed) / terminal : 0;
 
   const sample = {
     windowMin: win,
     terminal,
     stalled,
+    providerFailed,
     succeeded,
     inflight,
     stallRate,
+    unhealthyRate,
   };
 
   let decision: BreakerDecision;
-  if (terminal < minSamples() || stallRate < stallRateThreshold()) {
+  if (terminal < minSamples() || unhealthyRate < stallRateThreshold()) {
     decision = {
       state: "closed",
       allowed: true,
       sample,
-      reason: `stallRate=${stallRate.toFixed(2)} < ${stallRateThreshold()} 或样本不足(${terminal}/${minSamples()})`,
+      reason: `unhealthyRate=${unhealthyRate.toFixed(2)} < ${stallRateThreshold()} 或样本不足(${terminal}/${minSamples()})`,
     };
   } else if (inflight === 0) {
     decision = {
       state: "half_open_probe",
       allowed: true,
       sample,
-      reason: `僵死率 ${stallRate.toFixed(2)} 超阈值但无在飞任务 → 放行 1 个探测任务`,
+      reason: `异常率 ${unhealthyRate.toFixed(2)} 超阈值但无在飞任务 → 放行 1 个探测任务`,
     };
   } else {
     decision = {
       state: "open",
       allowed: false,
       sample,
-      reason: `僵死率 ${stallRate.toFixed(2)} 超阈值且已有 ${inflight} 个在飞任务（含探测）→ 拒绝`,
+      reason: `异常率 ${unhealthyRate.toFixed(2)} 超阈值且已有 ${inflight} 个在飞任务（含探测）→ 拒绝`,
     };
   }
 

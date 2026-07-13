@@ -1,0 +1,31 @@
+name: process-batches
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: process-batches
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Process batch video queue
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] && [ -z "$CRON_SECRET" ]; then
+            echo "::warning::APP_URL / CRON_SECRET 未配置，跳过批量队列 tick。"
+            exit 0
+          fi
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::APP_URL / CRON_SECRET 必须同时配置。"
+            exit 1
+          fi
+          curl -fsS -X POST "$APP_URL/api/cron/process-batches" \
+            -H "Authorization: Bearer $CRON_SECRET"

@@ -44,6 +44,7 @@ async function main() {
 
   const stuck = await db.videoJob.findMany({
     where: {
+      videoBriefId: { not: null },
       status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
       OR: [
         { timeoutAt: { not: null, lt: graceCutoff } },
@@ -69,6 +70,7 @@ async function main() {
   }
 
   for (const j of stuck) {
+    if (!j.videoBrief) continue;
     console.log("-".repeat(78));
     console.log(`VideoJob   ${j.id}  (${j.status})`);
     console.log(`  brief          ${j.videoBrief.id}  (${j.videoBrief.status}, ${j.videoBrief.persona})`);
@@ -92,6 +94,7 @@ async function main() {
   const fixedJobIds: string[] = [];
   const briefIds = new Set<string>();
   for (const j of stuck) {
+    if (!j.videoBrief) continue;
     const updated = await db.videoJob.updateMany({
       where: {
         id: j.id,

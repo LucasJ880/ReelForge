@@ -1,5 +1,11 @@
-import { PrismaClient, AdminRole } from "@prisma/client";
+import {
+  Prisma,
+  PrismaClient,
+  AdminRole,
+  StyleTemplateStatus,
+} from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { BATCH_STYLE_TEMPLATE_SEEDS } from "../src/lib/video-generation/batch-style-templates";
 
 const prisma = new PrismaClient();
 
@@ -70,9 +76,27 @@ async function seedDemoPersonalUser() {
   console.log(`✅ 已创建 Demo 个人账号：${demo.email}（密码：${password}）`);
 }
 
+async function seedStyleTemplates() {
+  const result = await prisma.styleTemplate.createMany({
+    data: BATCH_STYLE_TEMPLATE_SEEDS.map((template) => ({
+      ...template,
+      lockedParams: template.lockedParams as unknown as Prisma.InputJsonValue,
+      imagesPerVideo:
+        template.imagesPerVideo as unknown as Prisma.InputJsonValue,
+      status: StyleTemplateStatus.ACTIVE,
+      activatedAt: new Date(),
+    })),
+    skipDuplicates: true,
+  });
+  console.log(
+    `✅ 批量风格模板：新增 ${result.count}，总定义 ${BATCH_STYLE_TEMPLATE_SEEDS.length}`,
+  );
+}
+
 async function main() {
   await seedAdmin();
   await seedDemoPersonalUser();
+  await seedStyleTemplates();
 }
 
 main()

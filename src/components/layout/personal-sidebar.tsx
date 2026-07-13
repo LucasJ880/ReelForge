@@ -3,7 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
-import { Home, Sparkles, Film, BookOpen, CreditCard, LogOut } from "lucide-react";
+import {
+  Home,
+  Sparkles,
+  Film,
+  Layers3,
+  BookOpen,
+  CreditCard,
+  LogOut,
+} from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -25,6 +33,11 @@ export function PersonalSidebar() {
       href: "/personal/videos",
       label: t("shell.personalNav.myVideos"),
       icon: Film,
+    },
+    {
+      href: "/batch-create",
+      label: "批量生产",
+      icon: Layers3,
     },
     {
       href: "/personal/templates",

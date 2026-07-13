@@ -54,9 +54,13 @@ async function main() {
     console.log(`  lastProviderStatus=${j.lastProviderStatus}`);
     console.log(`  errorMessage=${JSON.stringify(j.errorMessage)?.slice(0, 200)}`);
     console.log(
-      `  brief=${j.videoBrief.id} persona=${j.videoBrief.persona} briefStatus=${j.videoBrief.status} briefError=${JSON.stringify(j.videoBrief.errorMessage)?.slice(0, 120)}`,
+      j.videoBrief
+        ? `  brief=${j.videoBrief.id} persona=${j.videoBrief.persona} briefStatus=${j.videoBrief.status} briefError=${JSON.stringify(j.videoBrief.errorMessage)?.slice(0, 120)}`
+        : `  batch=${j.batchJobId ?? "unknown"}（批量任务，无 VideoBrief）`,
     );
-    console.log(`  brief.createdAt=${fmt(j.videoBrief.createdAt)} brief.updatedAt=${fmt(j.videoBrief.updatedAt)}`);
+    if (j.videoBrief) {
+      console.log(`  brief.createdAt=${fmt(j.videoBrief.createdAt)} brief.updatedAt=${fmt(j.videoBrief.updatedAt)}`);
+    }
   }
 
   // 最近 24h 内到达终态的 job 统计（了解正常任务耗时基线）

@@ -322,7 +322,11 @@ async function main() {
   /// 调和后刷新所有相关 brief 的聚合状态（finalVideoUrl / status）
   if (!inspectOnly) {
     const briefIds = Array.from(
-      new Set(before.map((j) => j.videoBriefId).filter(Boolean)),
+      new Set(
+        before
+          .map((j) => j.videoBriefId)
+          .filter((id): id is string => id != null),
+      ),
     );
     console.log(`\n>> (c) 刷新 ${briefIds.length} 个 brief 的聚合状态`);
     for (const briefId of briefIds) {

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:18:48.790Z",
+  "generatedAt": "2026-07-13T02:56:12.177Z",
   "files": [
     {
       "path": ".cursor/rules/agency-coordinator.mdc",
@@ -490,7 +490,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 9611,
+      "sizeBytes": 10375,
       "notes": "area=config"
     },
     {
@@ -524,6 +524,17 @@
       "importantSymbols": [],
       "lineCount": 41,
       "sizeBytes": 1734,
+      "notes": "GitHub Actions workflow; area=config"
+    },
+    {
+      "path": ".github/workflows/process-batches.yml",
+      "type": "workflow",
+      "area": "config",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 32,
+      "sizeBytes": 861,
       "notes": "GitHub Actions workflow; area=config"
     },
     {
@@ -569,6 +580,17 @@
       "lineCount": 26,
       "sizeBytes": 520,
       "notes": "Build / runtime config; area=config"
+    },
+    {
+      "path": "DIAGNOSIS.md",
+      "type": "doc",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 86,
+      "sizeBytes": 5299,
+      "notes": "Documentation; area=media-processing"
     },
     {
       "path": "docker-compose.yml",
@@ -933,6 +955,17 @@
       "notes": "Build / runtime config"
     },
     {
+      "path": "KNOWN_ISSUES.md",
+      "type": "doc",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 46,
+      "sizeBytes": 2855,
+      "notes": "Documentation; area=media-processing"
+    },
+    {
       "path": "next.config.ts",
       "type": "config",
       "area": "unknown",
@@ -956,8 +989,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 115,
-      "sizeBytes": 6284,
+      "lineCount": 116,
+      "sizeBytes": 6326,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1053,6 +1086,39 @@
       "notes": "Schema / validation; area=prisma"
     },
     {
+      "path": "prisma/migrations/20260713_batch_style_templates/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 28,
+      "sizeBytes": 940,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/20260713_batch_video_pipeline/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 80,
+      "sizeBytes": 2756,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "prisma/migrations/20260713_video_job_last_progress/migration.sql",
+      "type": "schema",
+      "area": "prisma",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 4,
+      "sizeBytes": 181,
+      "notes": "Schema / validation; area=prisma"
+    },
+    {
       "path": "prisma/migrations/migration_lock.toml",
       "type": "schema",
       "area": "prisma",
@@ -1070,8 +1136,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 1190,
-      "sizeBytes": 37092,
+      "lineCount": 1283,
+      "sizeBytes": 39839,
       "notes": "Prisma schema (database source of truth); area=prisma"
     },
     {
@@ -1081,12 +1147,24 @@
       "exports": [],
       "imports": [
         "@prisma/client",
-        "bcryptjs"
+        "bcryptjs",
+        "../src/lib/video-generation/batch-style-templates"
       ],
       "importantSymbols": [],
-      "lineCount": 86,
-      "sizeBytes": 2520,
+      "lineCount": 110,
+      "sizeBytes": 3267,
       "notes": "Schema / validation; area=prisma"
+    },
+    {
+      "path": "PROGRESS.md",
+      "type": "doc",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 100,
+      "sizeBytes": 7196,
+      "notes": "Documentation; area=media-processing"
     },
     {
       "path": "public/file.svg",
@@ -1322,6 +1400,61 @@
       "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=demo"
     },
     {
+      "path": "scripts/diagnose-seedance-raw-status.ts",
+      "type": "script",
+      "area": "video-generation",
+      "exports": [],
+      "imports": [
+        "@next/env"
+      ],
+      "importantSymbols": [],
+      "lineCount": 60,
+      "sizeBytes": 1739,
+      "notes": "Maintenance / one-off script (run via tsx); area=video-generation"
+    },
+    {
+      "path": "scripts/diagnose-stuck-brief-detail.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 102,
+      "sizeBytes": 3001,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
+    },
+    {
+      "path": "scripts/diagnose-stuck-final-videos.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 90,
+      "sizeBytes": 3284,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=media-processing"
+    },
+    {
+      "path": "scripts/diagnose-stuck-video-jobs.ts",
+      "type": "script",
+      "area": "video-generation",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 101,
+      "sizeBytes": 3769,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=video-generation"
+    },
+    {
       "path": "scripts/digital-human-runner.ts",
       "type": "script",
       "area": "media-processing",
@@ -1337,6 +1470,34 @@
       "lineCount": 188,
       "sizeBytes": 5952,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
+      "path": "scripts/find-brief-owner.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 36,
+      "sizeBytes": 893,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/fix-stuck-video-jobs.ts",
+      "type": "script",
+      "area": "video-generation",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "importantSymbols": [],
+      "lineCount": 159,
+      "sizeBytes": 5821,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=video-generation"
     },
     {
       "path": "scripts/frame-qa.ts",
@@ -1543,6 +1704,39 @@
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
+      "path": "scripts/persist-recovered-segment.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:fs/promises",
+        "node:url",
+        "../src/lib/db",
+        "../src/lib/storage"
+      ],
+      "importantSymbols": [],
+      "lineCount": 48,
+      "sizeBytes": 1593,
+      "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/preserve-paid-segment.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "@prisma/client",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 39,
+      "sizeBytes": 1364,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
+    },
+    {
       "path": "scripts/publish-curtain-videos-to-library.ts",
       "type": "script",
       "area": "media-processing",
@@ -1575,6 +1769,28 @@
       "lineCount": 128,
       "sizeBytes": 3543,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/recover-stuck-final-video.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/stitch-service",
+        "../src/lib/storage"
+      ],
+      "importantSymbols": [],
+      "lineCount": 218,
+      "sizeBytes": 8867,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=media-processing"
     },
     {
       "path": "scripts/regenerate-curtain-videos-v2.ts",
@@ -1635,6 +1851,22 @@
       "lineCount": 106,
       "sizeBytes": 2988,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
+    },
+    {
+      "path": "scripts/screenshot-recovered-brief.mjs",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "puppeteer-core",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 78,
+      "sizeBytes": 2130,
+      "notes": "Maintenance / one-off script (run via tsx); NextAuth session check; area=scripts"
     },
     {
       "path": "scripts/seed-creative-evidence-cards.ts",
@@ -1824,8 +2056,8 @@
         "../src/lib/providers/seedance"
       ],
       "importantSymbols": [],
-      "lineCount": 421,
-      "sizeBytes": 14867,
+      "lineCount": 425,
+      "sizeBytes": 14931,
       "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; calls Seedance video generator; area=real-footage-ads"
     },
     {
@@ -1858,6 +2090,24 @@
       "lineCount": 54,
       "sizeBytes": 1635,
       "notes": "Maintenance / one-off script (run via tsx); uses Vercel Blob storage; area=demo"
+    },
+    {
+      "path": "scripts/validate-batch-pipeline.ts",
+      "type": "script",
+      "area": "scripts",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/services/batch-service",
+        "../src/lib/video-generation/asset-allocator"
+      ],
+      "importantSymbols": [],
+      "lineCount": 215,
+      "sizeBytes": 6833,
+      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
     },
     {
       "path": "scripts/verify-phase4-schema.ts",
@@ -2641,8 +2891,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 408,
-      "sizeBytes": 14801,
+      "lineCount": 413,
+      "sizeBytes": 15054,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -2692,8 +2942,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 380,
-      "sizeBytes": 15386,
+      "lineCount": 390,
+      "sizeBytes": 15698,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -3378,6 +3628,54 @@
       "notes": "Next.js App Router layout; area=admin"
     },
     {
+      "path": "src/app/(personal)/batch-create/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "BatchCreatePage",
+        "default"
+      ],
+      "imports": [
+        "next-auth",
+        "next/navigation",
+        "@/lib/auth",
+        "@/components/batch/batch-create-wizard"
+      ],
+      "importantSymbols": [
+        "BatchCreatePage",
+        "default"
+      ],
+      "lineCount": 28,
+      "sizeBytes": 1019,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
+      "path": "src/app/(personal)/batches/[id]/page.tsx",
+      "type": "page",
+      "area": "marketing-site",
+      "exports": [
+        "dynamic",
+        "BatchMonitorPage",
+        "default"
+      ],
+      "imports": [
+        "next/link",
+        "next-auth",
+        "next/navigation",
+        "@/lib/auth",
+        "@/lib/services/batch-service",
+        "@/components/batch/batch-monitor"
+      ],
+      "importantSymbols": [
+        "BatchMonitorPage",
+        "dynamic",
+        "default"
+      ],
+      "lineCount": 42,
+      "sizeBytes": 1211,
+      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
+    },
+    {
       "path": "src/app/(personal)/layout.tsx",
       "type": "layout",
       "area": "marketing-site",
@@ -3528,6 +3826,7 @@
         "@/lib/auth",
         "@/lib/db",
         "@/lib/video-generation/personal-status",
+        "@/lib/video-generation/business-status",
         "@prisma/client",
         "./video-actions"
       ],
@@ -3536,8 +3835,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 385,
-      "sizeBytes": 13658,
+      "lineCount": 401,
+      "sizeBytes": 14413,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -3556,7 +3855,7 @@
         "VideoActions"
       ],
       "lineCount": 123,
-      "sizeBytes": 3821,
+      "sizeBytes": 3859,
       "notes": "area=marketing-site"
     },
     {
@@ -3577,6 +3876,7 @@
         "@/i18n/server",
         "@/components/personal/personal-videos-auto-refresh",
         "@/lib/video-generation/personal-status",
+        "@/lib/video-generation/business-status",
         "@prisma/client"
       ],
       "importantSymbols": [
@@ -3584,8 +3884,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 347,
-      "sizeBytes": 12990,
+      "lineCount": 359,
+      "sizeBytes": 13514,
       "notes": "Next.js App Router page; hits Prisma DB; NextAuth session check; area=marketing-site"
     },
     {
@@ -3859,6 +4159,123 @@
       "notes": "Next.js API route handler; NextAuth session check; area=auth"
     },
     {
+      "path": "src/app/api/batch-style-templates/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/style-template-service"
+      ],
+      "importantSymbols": [
+        "GET"
+      ],
+      "lineCount": 11,
+      "sizeBytes": 379,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/batches/[id]/cancel/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 26,
+      "sizeBytes": 738,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/batches/[id]/jobs/[jobId]/retry/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 35,
+      "sizeBytes": 955,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/batches/[id]/retry/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 28,
+      "sizeBytes": 782,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/batches/[id]/status/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 43,
+      "sizeBytes": 1487,
+      "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/batches/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "importantSymbols": [
+        "POST"
+      ],
+      "lineCount": 70,
+      "sizeBytes": 2032,
+      "notes": "Next.js API route handler"
+    },
+    {
       "path": "src/app/api/billing/checkout/route.ts",
       "type": "api",
       "area": "payments",
@@ -3924,17 +4341,19 @@
       ],
       "imports": [
         "next/server",
+        "@prisma/client",
         "@/lib/api-auth",
         "@/lib/services/brief-access",
         "@/lib/db",
-        "@/lib/services/video-service"
+        "@/lib/services/video-service",
+        "@/lib/services/stitch-service"
       ],
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 77,
-      "sizeBytes": 2633,
-      "notes": "Next.js API route handler; area=media-processing"
+      "lineCount": 115,
+      "sizeBytes": 4263,
+      "notes": "Next.js API route handler; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/app/api/briefs/[id]/render-status/route.ts",
@@ -4069,15 +4488,38 @@
       ],
       "imports": [
         "next/server",
-        "@/lib/services/video-service"
+        "@/lib/services/video-service",
+        "@/lib/services/sweep-service"
       ],
       "importantSymbols": [
         "GET",
         "POST"
       ],
-      "lineCount": 27,
-      "sizeBytes": 765,
+      "lineCount": 35,
+      "sizeBytes": 1217,
       "notes": "Next.js API route handler"
+    },
+    {
+      "path": "src/app/api/cron/process-batches/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "@prisma/client",
+        "next/server",
+        "@/lib/db",
+        "@/lib/services/batch-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 38,
+      "sizeBytes": 1101,
+      "notes": "Next.js API route handler; hits Prisma DB"
     },
     {
       "path": "src/app/api/cron/stitch-videos/route.ts",
@@ -4098,6 +4540,26 @@
       "lineCount": 48,
       "sizeBytes": 1786,
       "notes": "Next.js API route handler; area=ffmpeg"
+    },
+    {
+      "path": "src/app/api/cron/sweep-stuck-tasks/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "GET",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/services/sweep-service"
+      ],
+      "importantSymbols": [
+        "GET",
+        "POST"
+      ],
+      "lineCount": 30,
+      "sizeBytes": 959,
+      "notes": "Next.js API route handler"
     },
     {
       "path": "src/app/api/delivery-orders/[id]/assets/route.ts",
@@ -4826,6 +5288,7 @@
         "@/lib/api-auth",
         "@/lib/api-quota",
         "@/lib/services/quota-service",
+        "@/lib/services/dispatch-breaker",
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
@@ -4838,8 +5301,8 @@
       "importantSymbols": [
         "POST"
       ],
-      "lineCount": 384,
-      "sizeBytes": 13073,
+      "lineCount": 403,
+      "sizeBytes": 13867,
       "notes": "Next.js API route handler; hits Prisma DB; area=video-generation"
     },
     {
@@ -4989,6 +5452,48 @@
       "lineCount": 33,
       "sizeBytes": 925,
       "notes": "Next.js App Router page; NextAuth session check"
+    },
+    {
+      "path": "src/components/batch/batch-create-wizard.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "BatchCreateWizard"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "BatchCreateWizard"
+      ],
+      "lineCount": 521,
+      "sizeBytes": 18747,
+      "notes": "React component; client component"
+    },
+    {
+      "path": "src/components/batch/batch-monitor.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "BatchMonitorJob",
+        "BatchMonitorData",
+        "BatchMonitor"
+      ],
+      "imports": [
+        "react",
+        "@tanstack/react-virtual",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "BatchMonitorJob",
+        "BatchMonitorData",
+        "BatchMonitor"
+      ],
+      "lineCount": 476,
+      "sizeBytes": 17016,
+      "notes": "React component; client component"
     },
     {
       "path": "src/components/billing/upgrade-pro-button.tsx",
@@ -6087,8 +6592,8 @@
       "importantSymbols": [
         "PersonalSidebar"
       ],
-      "lineCount": 105,
-      "sizeBytes": 3652,
+      "lineCount": 118,
+      "sizeBytes": 3768,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -7035,13 +7540,14 @@
         "VolcengineProvider"
       ],
       "imports": [
-        "../types"
+        "../types",
+        "@/lib/config/dry-run"
       ],
       "importantSymbols": [
         "VolcengineProvider"
       ],
-      "lineCount": 282,
-      "sizeBytes": 8693,
+      "lineCount": 284,
+      "sizeBytes": 8760,
       "notes": "Utility / helper module"
     },
     {
@@ -7178,6 +7684,23 @@
       "notes": "Utility / helper module"
     },
     {
+      "path": "src/lib/config/dry-run.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "isDryRun",
+        "dryRunRefusalError"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "isDryRun",
+        "dryRunRefusalError"
+      ],
+      "lineCount": 35,
+      "sizeBytes": 1582,
+      "notes": "Utility / helper module; area=media-processing"
+    },
+    {
       "path": "src/lib/config/env.ts",
       "type": "util",
       "area": "shared",
@@ -7206,7 +7729,7 @@
         "getAppEnv"
       ],
       "lineCount": 218,
-      "sizeBytes": 7336,
+      "sizeBytes": 7353,
       "notes": "Utility / helper module"
     },
     {
@@ -7433,7 +7956,7 @@
         "db"
       ],
       "lineCount": 36,
-      "sizeBytes": 952,
+      "sizeBytes": 965,
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
@@ -7604,8 +8127,8 @@
         "ANGLE_TYPE_USER_LABELS",
         "ACTION_BUTTON_LABELS"
       ],
-      "lineCount": 216,
-      "sizeBytes": 7126,
+      "lineCount": 217,
+      "sizeBytes": 7170,
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
@@ -7638,8 +8161,8 @@
         "VIDEO_JOB_LABELS",
         "ROLE_LABELS"
       ],
-      "lineCount": 121,
-      "sizeBytes": 3163,
+      "lineCount": 122,
+      "sizeBytes": 3186,
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
@@ -7728,7 +8251,8 @@
         "fetchTikTokPostSignals"
       ],
       "imports": [
-        "apify-client"
+        "apify-client",
+        "@/lib/config/dry-run"
       ],
       "importantSymbols": [
         "TikTokVideoSample",
@@ -7738,8 +8262,8 @@
         "fetchTikTokSignals",
         "fetchTikTokPostSignals"
       ],
-      "lineCount": 343,
-      "sizeBytes": 11154,
+      "lineCount": 346,
+      "sizeBytes": 11266,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -7756,7 +8280,8 @@
         "__test__"
       ],
       "imports": [
-        "node:crypto"
+        "node:crypto",
+        "@/lib/config/dry-run"
       ],
       "importantSymbols": [
         "OmniHumanStatus",
@@ -7767,8 +8292,8 @@
         "getOmniHumanStatus",
         "__test__"
       ],
-      "lineCount": 342,
-      "sizeBytes": 11361,
+      "lineCount": 344,
+      "sizeBytes": 11487,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -7792,6 +8317,7 @@
       "imports": [
         "openai",
         "openai/uploads",
+        "@/lib/config/dry-run",
         "@/lib/storage"
       ],
       "importantSymbols": [
@@ -7804,8 +8330,8 @@
         "ComposeReferenceImageResult",
         "isImageGenAvailable"
       ],
-      "lineCount": 300,
-      "sizeBytes": 10404,
+      "lineCount": 302,
+      "sizeBytes": 10485,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -7831,7 +8357,8 @@
         "__test__"
       ],
       "imports": [
-        "openai"
+        "openai",
+        "@/lib/config/dry-run"
       ],
       "importantSymbols": [
         "OpenAITier",
@@ -7843,8 +8370,8 @@
         "resolveModelForTier",
         "resolveFallbackChain"
       ],
-      "lineCount": 402,
-      "sizeBytes": 13386,
+      "lineCount": 404,
+      "sizeBytes": 13453,
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
@@ -7882,6 +8409,7 @@
         "__test__"
       ],
       "imports": [
+        "@/lib/config/dry-run",
         "@/lib/db",
         "@/lib/video-generation/mock-clip-generator"
       ],
@@ -7895,8 +8423,8 @@
         "submitSeedanceJobResilient",
         "getSeedanceStatus"
       ],
-      "lineCount": 457,
-      "sizeBytes": 15434,
+      "lineCount": 503,
+      "sizeBytes": 16825,
       "notes": "External API provider wrapper; calls Seedance video generator; area=ai-providers"
     },
     {
@@ -7909,15 +8437,16 @@
         "synthesizeSpeech"
       ],
       "imports": [
-        "node:crypto"
+        "node:crypto",
+        "@/lib/config/dry-run"
       ],
       "importantSymbols": [
         "VolcTtsOptions",
         "isVolcTtsConfigured",
         "synthesizeSpeech"
       ],
-      "lineCount": 320,
-      "sizeBytes": 12080,
+      "lineCount": 323,
+      "sizeBytes": 12237,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -8417,6 +8946,51 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
+      "path": "src/lib/services/batch-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "CreateBatchInput",
+        "buildBatchVideoRows",
+        "createBatchJob",
+        "deriveBatchStatus",
+        "isTerminalBatchStatus",
+        "syncBatchCounts",
+        "processBatchTick",
+        "retryFailedBatchJobs",
+        "retryFailedBatchJob",
+        "cancelPendingBatchJobs",
+        "getBatchStatus",
+        "runBatchUntilTerminal",
+        "__test__"
+      ],
+      "imports": [
+        "node:crypto",
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/config/env",
+        "@/lib/video-generation/asset-allocator",
+        "@/lib/video-generation/batch-style-templates",
+        "@/lib/video-generation/providers",
+        "./dispatch-breaker",
+        "./video-service",
+        "./video-watchdog"
+      ],
+      "importantSymbols": [
+        "CreateBatchInput",
+        "buildBatchVideoRows",
+        "createBatchJob",
+        "deriveBatchStatus",
+        "isTerminalBatchStatus",
+        "syncBatchCounts",
+        "processBatchTick",
+        "retryFailedBatchJobs"
+      ],
+      "lineCount": 768,
+      "sizeBytes": 22824,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
       "path": "src/lib/services/brief-access.ts",
       "type": "service",
       "area": "shared",
@@ -8685,6 +9259,31 @@
       ],
       "lineCount": 326,
       "sizeBytes": 11879,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/dispatch-breaker.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "BREAKER_USER_MESSAGE",
+        "BreakerState",
+        "BreakerDecision",
+        "evaluateDispatchBreaker"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "./video-watchdog"
+      ],
+      "importantSymbols": [
+        "BREAKER_USER_MESSAGE",
+        "BreakerState",
+        "BreakerDecision",
+        "evaluateDispatchBreaker"
+      ],
+      "lineCount": 191,
+      "sizeBytes": 5983,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -9096,6 +9695,7 @@
       "type": "service",
       "area": "ffmpeg",
       "exports": [
+        "MAX_STITCH_ATTEMPTS",
         "StitchResult",
         "ClaimedStitchTask",
         "processPendingFinalVideos",
@@ -9105,6 +9705,7 @@
         "retryStitch",
         "NormalizeAndConcatClip",
         "runFfmpegNormalizeAndConcat",
+        "isEphemeralSignedUrl",
         "__test__"
       ],
       "imports": [
@@ -9120,17 +9721,17 @@
         "@/lib/storage"
       ],
       "importantSymbols": [
+        "MAX_STITCH_ATTEMPTS",
         "StitchResult",
         "ClaimedStitchTask",
         "NormalizeAndConcatClip",
         "processPendingFinalVideos",
         "stitchFinalVideo",
         "claimStitchTask",
-        "finishStitchTask",
-        "retryStitch"
+        "finishStitchTask"
       ],
-      "lineCount": 782,
-      "sizeBytes": 24219,
+      "lineCount": 817,
+      "sizeBytes": 25841,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -9156,6 +9757,64 @@
       "lineCount": 125,
       "sizeBytes": 3634,
       "notes": "Business logic service; area=payments"
+    },
+    {
+      "path": "src/lib/services/style-template-service.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "StyleTemplateValues",
+        "seedBatchStyleTemplates",
+        "listActiveStyleTemplates",
+        "getExactStyleTemplate",
+        "updateStyleTemplateDraft",
+        "activateStyleTemplate",
+        "createStyleTemplateVersion",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client",
+        "zod",
+        "@/lib/db",
+        "@/lib/video-generation/batch-style-templates"
+      ],
+      "importantSymbols": [
+        "StyleTemplateValues",
+        "seedBatchStyleTemplates",
+        "listActiveStyleTemplates",
+        "getExactStyleTemplate",
+        "updateStyleTemplateDraft",
+        "activateStyleTemplate",
+        "createStyleTemplateVersion",
+        "__test__"
+      ],
+      "lineCount": 173,
+      "sizeBytes": 5356,
+      "notes": "Business logic service; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/services/sweep-service.ts",
+      "type": "service",
+      "area": "media-processing",
+      "exports": [
+        "SweepResult",
+        "sweepStuckTasks",
+        "__test__"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "./stitch-service",
+        "./video-service"
+      ],
+      "importantSymbols": [
+        "SweepResult",
+        "sweepStuckTasks",
+        "__test__"
+      ],
+      "lineCount": 241,
+      "sizeBytes": 9096,
+      "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/lib/services/usage-payload.ts",
@@ -9209,6 +9868,8 @@
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/frame-qa",
+        "@/lib/video-generation/providers",
+        "./video-watchdog",
         "./stitch-service"
       ],
       "importantSymbols": [
@@ -9221,9 +9882,45 @@
         "reconcileBriefRenderStatus",
         "retryFailedVideoJob"
       ],
-      "lineCount": 1179,
-      "sizeBytes": 38639,
+      "lineCount": 1398,
+      "sizeBytes": 46501,
       "notes": "Business logic service; hits Prisma DB; calls Seedance video generator; area=media-processing"
+    },
+    {
+      "path": "src/lib/services/video-watchdog.ts",
+      "type": "service",
+      "area": "shared",
+      "exports": [
+        "WATCHDOG_TIMEOUT_PREFIX",
+        "WATCHDOG_STALLED_PREFIX",
+        "WATCHDOG_FAIL_PREFIXES",
+        "WatchdogFailReason",
+        "WATCHDOG_TIMEOUT_USER_ERROR",
+        "WATCHDOG_STALLED_USER_ERROR",
+        "videoJobDeadlineMin",
+        "watchdogGraceMin",
+        "providerStallMin",
+        "isPastHardDeadline",
+        "ProviderStallVerdict",
+        "detectProviderStall",
+        "logStatusTransition"
+      ],
+      "imports": [
+        "@/lib/providers/seedance"
+      ],
+      "importantSymbols": [
+        "WATCHDOG_TIMEOUT_PREFIX",
+        "WATCHDOG_STALLED_PREFIX",
+        "WATCHDOG_FAIL_PREFIXES",
+        "WatchdogFailReason",
+        "WATCHDOG_TIMEOUT_USER_ERROR",
+        "WATCHDOG_STALLED_USER_ERROR",
+        "ProviderStallVerdict",
+        "videoJobDeadlineMin"
+      ],
+      "lineCount": 138,
+      "sizeBytes": 5355,
+      "notes": "Business logic service; calls Seedance video generator"
     },
     {
       "path": "src/lib/services/wizard-fallback-messages.ts",
@@ -9441,9 +10138,37 @@
         "executeAssembly",
         "__test__"
       ],
-      "lineCount": 448,
-      "sizeBytes": 12218,
+      "lineCount": 457,
+      "sizeBytes": 12525,
       "notes": "Utility / helper module; hits Prisma DB; area=media-processing"
+    },
+    {
+      "path": "src/lib/video-generation/asset-allocator.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "AllocatableAsset",
+        "AssetAssignment",
+        "AllocateAssetsInput",
+        "allocateAssets",
+        "countAssetUsage",
+        "__test__"
+      ],
+      "imports": [
+        "node:crypto",
+        "./batch-style-templates"
+      ],
+      "importantSymbols": [
+        "AllocatableAsset",
+        "AssetAssignment",
+        "AllocateAssetsInput",
+        "allocateAssets",
+        "countAssetUsage",
+        "__test__"
+      ],
+      "lineCount": 139,
+      "sizeBytes": 4500,
+      "notes": "Utility / helper module; area=video-generation"
     },
     {
       "path": "src/lib/video-generation/asset-classifier.ts",
@@ -9464,6 +10189,29 @@
       ],
       "lineCount": 221,
       "sizeBytes": 7009,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/batch-style-templates.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BatchStyleLockedParams",
+        "BatchStyleImagesPerVideo",
+        "BatchStyleTemplateSeed",
+        "BATCH_STYLE_TEMPLATE_SEEDS",
+        "renderBatchTemplatePrompt"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "BatchStyleLockedParams",
+        "BatchStyleImagesPerVideo",
+        "BatchStyleTemplateSeed",
+        "BATCH_STYLE_TEMPLATE_SEEDS",
+        "renderBatchTemplatePrompt"
+      ],
+      "lineCount": 207,
+      "sizeBytes": 12900,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -9599,6 +10347,7 @@
         "BusinessStatusInput",
         "BusinessStatusOutput",
         "deriveBusinessStatus",
+        "summarizeRunningJobs",
         "containsBannedCustomerTerm",
         "__test__"
       ],
@@ -9610,11 +10359,12 @@
         "BusinessStatusInput",
         "BusinessStatusOutput",
         "deriveBusinessStatus",
+        "summarizeRunningJobs",
         "containsBannedCustomerTerm",
         "__test__"
       ],
-      "lineCount": 217,
-      "sizeBytes": 5989,
+      "lineCount": 334,
+      "sizeBytes": 11315,
       "notes": "Utility / helper module; hits Prisma DB; area=media-processing"
     },
     {
@@ -9928,8 +10678,8 @@
         "containsBannedPersonalTerm",
         "__test__"
       ],
-      "lineCount": 122,
-      "sizeBytes": 3776,
+      "lineCount": 125,
+      "sizeBytes": 3907,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -10010,24 +10760,48 @@
       "exports": [
         "getVideoProvider",
         "createVideoProvider",
+        "createVideoProviderById",
         "__resetVideoProviderForTests",
         "normalizeStatusBuiltin"
       ],
       "imports": [
         "@/lib/video-generation/providers",
         "@/lib/config/env",
+        "./mock-video-provider",
         "./volcengine-video-provider",
         "./types"
       ],
       "importantSymbols": [
         "getVideoProvider",
         "createVideoProvider",
+        "createVideoProviderById",
         "__resetVideoProviderForTests",
         "normalizeStatusBuiltin"
       ],
-      "lineCount": 52,
-      "sizeBytes": 1440,
+      "lineCount": 63,
+      "sizeBytes": 1736,
       "notes": "Utility / helper module; area=video-generation"
+    },
+    {
+      "path": "src/lib/video-generation/providers/mock-video-provider.ts",
+      "type": "util",
+      "area": "media-processing",
+      "exports": [
+        "MockVideoProvider",
+        "__test__"
+      ],
+      "imports": [
+        "node:crypto",
+        "@/lib/video-generation/mock-clip-generator",
+        "./types"
+      ],
+      "importantSymbols": [
+        "MockVideoProvider",
+        "__test__"
+      ],
+      "lineCount": 229,
+      "sizeBytes": 6897,
+      "notes": "Utility / helper module; area=media-processing"
     },
     {
       "path": "src/lib/video-generation/providers/types.ts",
@@ -10052,8 +10826,8 @@
         "VideoProvider",
         "normalizeStatusBuiltin"
       ],
-      "lineCount": 121,
-      "sizeBytes": 4001,
+      "lineCount": 123,
+      "sizeBytes": 4169,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -10064,14 +10838,15 @@
         "VolcengineVideoProvider"
       ],
       "imports": [
+        "@/lib/config/dry-run",
         "@/lib/providers/seedance",
         "./types"
       ],
       "importantSymbols": [
         "VolcengineVideoProvider"
       ],
-      "lineCount": 101,
-      "sizeBytes": 3253,
+      "lineCount": 105,
+      "sizeBytes": 3454,
       "notes": "Utility / helper module; calls Seedance video generator; area=video-generation"
     },
     {
@@ -10380,6 +11155,21 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/asset-allocator.property.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/asset-allocator"
+      ],
+      "importantSymbols": [],
+      "lineCount": 163,
+      "sizeBytes": 5082,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/asset-qa-rules.test.ts",
       "type": "test",
       "area": "tests",
@@ -10416,6 +11206,76 @@
       "lineCount": 118,
       "sizeBytes": 3745,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
+    },
+    {
+      "path": "tests/batch-breaker-integration.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/dispatch-breaker",
+        "../src/lib/services/batch-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 101,
+      "sizeBytes": 3506,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/batch-frontend-contract.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "node:path"
+      ],
+      "importantSymbols": [],
+      "lineCount": 53,
+      "sizeBytes": 1774,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/batch-pipeline.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/services/batch-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 302,
+      "sizeBytes": 8677,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/batch-style-templates.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/batch-style-templates",
+        "../src/lib/services/style-template-service",
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 156,
+      "sizeBytes": 5449,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/brand-end-card-edge-cases.test.ts",
@@ -10558,8 +11418,8 @@
         "../src/lib/video-generation/business-status"
       ],
       "importantSymbols": [],
-      "lineCount": 208,
-      "sizeBytes": 8347,
+      "lineCount": 228,
+      "sizeBytes": 9277,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -10725,6 +11585,47 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/dispatch-breaker.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/dispatch-breaker",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "importantSymbols": [],
+      "lineCount": 128,
+      "sizeBytes": 4414,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/dry-run-guard.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/dry-run",
+        "../src/lib/providers/seedance",
+        "../src/lib/providers/openai",
+        "../src/lib/providers/openai-image",
+        "../src/lib/providers/volc-tts",
+        "../src/lib/providers/omnihuman",
+        "../src/lib/providers/apify-tiktok",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "importantSymbols": [],
+      "lineCount": 161,
+      "sizeBytes": 5682,
+      "notes": "Unit / integration test; calls Seedance video generator; area=tests"
+    },
+    {
       "path": "tests/frame-qa-gate.test.ts",
       "type": "test",
       "area": "tests",
@@ -10735,9 +11636,29 @@
         "../src/lib/video-generation/frame-qa"
       ],
       "importantSymbols": [],
-      "lineCount": 132,
-      "sizeBytes": 4319,
+      "lineCount": 140,
+      "sizeBytes": 4677,
       "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/generation-status-sequence.integration.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/business-status",
+        "../src/lib/video-generation/personal-status",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 230,
+      "sizeBytes": 7861,
+      "notes": "Unit / integration test; hits Prisma DB; calls Seedance video generator; area=tests"
     },
     {
       "path": "tests/i18n-coverage.test.ts",
@@ -10822,6 +11743,21 @@
       "importantSymbols": [],
       "lineCount": 103,
       "sizeBytes": 2805,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/mock-video-provider.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/providers/mock-video-provider"
+      ],
+      "importantSymbols": [],
+      "lineCount": 121,
+      "sizeBytes": 3710,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -10942,6 +11878,39 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/progress-live-estimation.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status"
+      ],
+      "importantSymbols": [],
+      "lineCount": 162,
+      "sizeBytes": 5572,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/progress-truthfulness.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "importantSymbols": [],
+      "lineCount": 119,
+      "sizeBytes": 4031,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
       "path": "tests/quota-service.test.ts",
       "type": "test",
       "area": "tests",
@@ -10956,6 +11925,42 @@
       "lineCount": 44,
       "sizeBytes": 1161,
       "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/reconcile-watchdog-fault-injection.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/video-service",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/providers/seedance"
+      ],
+      "importantSymbols": [],
+      "lineCount": 347,
+      "sizeBytes": 12310,
+      "notes": "Unit / integration test; hits Prisma DB; calls Seedance video generator; area=tests"
+    },
+    {
+      "path": "tests/retry-stitch-resume.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 104,
+      "sizeBytes": 3798,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/script-output-schema.test.ts",
@@ -10985,8 +11990,8 @@
         "../src/lib/providers/seedance"
       ],
       "importantSymbols": [],
-      "lineCount": 160,
-      "sizeBytes": 5035,
+      "lineCount": 163,
+      "sizeBytes": 5246,
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {
@@ -11033,8 +12038,8 @@
         "../src/lib/providers/seedance"
       ],
       "importantSymbols": [],
-      "lineCount": 129,
-      "sizeBytes": 4497,
+      "lineCount": 132,
+      "sizeBytes": 4708,
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {
@@ -11100,6 +12105,23 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/stitch-orphan-regression.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "importantSymbols": [],
+      "lineCount": 247,
+      "sizeBytes": 8154,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
       "path": "tests/stitch-service-aspect.test.ts",
       "type": "test",
       "area": "tests",
@@ -11129,8 +12151,8 @@
         "../src/lib/storage"
       ],
       "importantSymbols": [],
-      "lineCount": 496,
-      "sizeBytes": 16987,
+      "lineCount": 503,
+      "sizeBytes": 17604,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -11148,6 +12170,25 @@
       "importantSymbols": [],
       "lineCount": 120,
       "sizeBytes": 4831,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/sweep-service.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/sweep-service",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "importantSymbols": [],
+      "lineCount": 358,
+      "sizeBytes": 12112,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -11344,6 +12385,22 @@
       "lineCount": 119,
       "sizeBytes": 4335,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/video-watchdog.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "importantSymbols": [],
+      "lineCount": 169,
+      "sizeBytes": 5248,
+      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/viral-style-templates.test.ts",

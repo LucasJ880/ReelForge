@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:18:48.791Z",
+  "generatedAt": "2026-07-13T02:56:12.179Z",
   "routes": [
     {
       "routePath": "/",
@@ -106,6 +106,61 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/batch-style-templates",
+      "filePath": "src/app/api/batch-style-templates/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/batches",
+      "filePath": "src/app/api/batches/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/batches/[id]/cancel",
+      "filePath": "src/app/api/batches/[id]/cancel/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/batches/[id]/jobs/[jobId]/retry",
+      "filePath": "src/app/api/batches/[id]/jobs/[jobId]/retry/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/batches/[id]/retry",
+      "filePath": "src/app/api/batches/[id]/retry/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/batches/[id]/status",
+      "filePath": "src/app/api/batches/[id]/status/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/billing/checkout",
       "filePath": "src/app/api/billing/checkout/route.ts",
       "kind": "api",
@@ -208,8 +263,28 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/cron/process-batches",
+      "filePath": "src/app/api/cron/process-batches/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/cron/stitch-videos",
       "filePath": "src/app/api/cron/stitch-videos/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/cron/sweep-stuck-tasks",
+      "filePath": "src/app/api/cron/sweep-stuck-tasks/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET",
@@ -566,6 +641,20 @@
         "POST"
       ],
       "isDynamic": false
+    },
+    {
+      "routePath": "/batch-create",
+      "filePath": "src/app/(personal)/batch-create/page.tsx",
+      "kind": "page",
+      "group": "personal",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/batches/[id]",
+      "filePath": "src/app/(personal)/batches/[id]/page.tsx",
+      "kind": "page",
+      "group": "personal",
+      "isDynamic": true
     },
     {
       "routePath": "/business",

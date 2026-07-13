@@ -117,7 +117,7 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
     });
     if (updated.count > 0) {
       result.timedOutJobs.push(job.id);
-      briefIds.add(job.videoBriefId);
+      if (job.videoBriefId) briefIds.add(job.videoBriefId);
     }
   }
 

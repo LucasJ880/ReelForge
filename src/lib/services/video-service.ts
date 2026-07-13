@@ -21,6 +21,7 @@ import {
   FRAME_QA_ERROR_PREFIX,
   runFrameTextQa,
 } from "@/lib/video-generation/frame-qa";
+import { createVideoProviderById } from "@/lib/video-generation/providers";
 import {
   WATCHDOG_STALLED_PREFIX,
   WATCHDOG_STALLED_USER_ERROR,
@@ -34,9 +35,42 @@ import {
 } from "./video-watchdog";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
-/// Provider 状态查询的可注入 seam：生产恒为 getSeedanceStatus；
+/// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
 /// 故障注入测试（AC-1/AC-3/AC-6）通过 __setStatusFetcherForTests 替换。
-let statusFetcher: typeof getSeedanceStatus = getSeedanceStatus;
+let statusFetcherOverride: typeof getSeedanceStatus | null = null;
+
+async function fetchVideoJobStatus(
+  job: { provider: VideoProvider; externalJobId: string },
+): Promise<SeedanceJobResult> {
+  if (statusFetcherOverride) {
+    return statusFetcherOverride(job.externalJobId);
+  }
+  if (job.provider !== VideoProvider.MOCK) {
+    return getSeedanceStatus(job.externalJobId);
+  }
+  const result = await createVideoProviderById("mock").getVideoJobStatus(
+    job.externalJobId,
+  );
+  return {
+    jobId: result.providerJobId,
+    status:
+      result.normalizedStatus === "succeeded"
+        ? "completed"
+        : result.normalizedStatus === "failed" ||
+            result.normalizedStatus === "cancelled"
+          ? "failed"
+          : result.normalizedStatus === "queued"
+            ? "pending"
+            : "processing",
+    rawProviderStatus: result.rawProviderStatus,
+    videoUrl: result.videoUrl,
+    thumbnailUrl: result.thumbnailUrl,
+    lastFrameUrl: result.lastFrameUrl,
+    errorMessage: result.errorMessage,
+    progress: result.progress,
+    rawProviderResponse: result.rawProviderResponse,
+  };
+}
 
 /// 全局 deadline（INV-1，2026-07 事故后收紧为强制终态）：
 /// 提交时写入 timeoutAt = now + deadline；watchdog 双信号内联在每次 reconcile 里执行，
@@ -439,7 +473,10 @@ export async function reconcileVideoJob(jobId: string) {
 
   let result: SeedanceJobResult;
   try {
-    result = await statusFetcher(job.externalJobId);
+    result = await fetchVideoJobStatus({
+      provider: job.provider,
+      externalJobId: job.externalJobId,
+    });
   } catch (err) {
     const newErrors = (job.pollErrors ?? 0) + 1;
     const exceeded = newErrors >= POLL_ERROR_THRESHOLD;
@@ -473,7 +510,7 @@ export async function reconcileVideoJob(jobId: string) {
     /// 发片前自动 QA 门禁：抽帧 + 画面文字/错字检测。
     /// 检出烧录字幕/畸形字形 → 该段直接判 FAILED，走既有单段重试闭环，
     /// 废段永远到不了 stitch / 成片库。门禁自身异常一律 fail-open 不阻塞。
-    if (result.videoUrl) {
+    if (result.videoUrl && job.provider !== VideoProvider.MOCK) {
       const qa = await runFrameTextQa(result.videoUrl);
       if (!qa.ok) {
         logStatusTransition({
@@ -552,7 +589,7 @@ export async function reconcileVideoJob(jobId: string) {
       },
       data: {
         status: VideoJobStatus.FAILED,
-        errorMessage: result.errorMessage ?? "Seedance 返回失败",
+        errorMessage: `[provider:failed] ${result.errorMessage ?? "视频生成 Provider 返回失败"}`,
         userSafeError: friendlyProviderError(
           result.rawProviderStatus,
           result.errorMessage,
@@ -601,7 +638,7 @@ export async function reconcileVideoJob(jobId: string) {
  * 返回更新后的 job；CAS 落空（已被并发路径终态化）返回 null。
  */
 async function failJobIdempotent(
-  job: { id: string; status: VideoJobStatus; videoBriefId: string },
+  job: { id: string; status: VideoJobStatus; videoBriefId: string | null },
   opts: {
     reason: "timeout" | "provider_stalled";
     errorMessage: string;
@@ -682,6 +719,10 @@ export async function retryFailedVideoJob(jobId: string) {
   if (job.status !== VideoJobStatus.FAILED) {
     throw new Error("只允许重试已失败的视频任务");
   }
+  if (!job.videoBriefId) {
+    throw new Error("批量 VideoJob 请使用 batch retry 接口");
+  }
+  const videoBriefId = job.videoBriefId;
 
   /// frame-qa 拦截的段：Provider 端是 completed，但产物已被判废 →
   /// 跳过下方「查状态发现已成功就直接翻回 SUCCEEDED」的捷径，必须重新生成
@@ -690,7 +731,10 @@ export async function retryFailedVideoJob(jobId: string) {
   /// 双保险：如果 externalJobId 还在，先去查一遍真实状态
   if (job.externalJobId && !failedByFrameQa) {
     try {
-      const r = await statusFetcher(job.externalJobId);
+      const r = await fetchVideoJobStatus({
+        provider: job.provider,
+        externalJobId: job.externalJobId,
+      });
       if (r.status === "completed") {
         logStatusTransition({
           taskId: job.id,
@@ -739,7 +783,7 @@ export async function retryFailedVideoJob(jobId: string) {
   /// 多段流：优先用 directorPlan.segmentPlan 的对应段（防双重计费的关键 — 只重试该段）
   if (job.segmentIndex != null && job.finalVideoId) {
     const briefForRetry = await db.videoBrief.findUnique({
-      where: { id: job.videoBriefId },
+      where: { id: videoBriefId },
       select: { aspectRatio: true, directorPlan: true, referenceImageUrls: true },
     });
     if (!briefForRetry?.directorPlan) {
@@ -773,7 +817,7 @@ export async function retryFailedVideoJob(jobId: string) {
         mode: retryHasRefs ? "reference" : undefined,
         resolution: "1080p",
         mockHints: {
-          briefId: job.videoBriefId,
+          briefId: videoBriefId,
           segmentIndex: segment.segmentIndex,
           segmentCount: plan.segmentPlan.length,
           durationSec: segment.durationSec,
@@ -828,7 +872,7 @@ export async function retryFailedVideoJob(jobId: string) {
 
   /// 单段流（旧路径，含 Sunny Shutter）：从 ScenePlan/VideoPrompt 重新读取并提交
   const scene = await db.scenePlan.findFirst({
-    where: { script: { videoBriefId: job.videoBriefId } },
+    where: { script: { videoBriefId } },
     include: { videoPrompts: true },
     orderBy: { sceneIndex: "asc" },
   });
@@ -840,7 +884,7 @@ export async function retryFailedVideoJob(jobId: string) {
   try {
     const ratio = (prompt.params as { ratio?: string } | null)?.ratio;
     const briefForRefs = await db.videoBrief.findUnique({
-      where: { id: job.videoBriefId },
+      where: { id: videoBriefId },
       select: { referenceImageUrls: true },
     });
     const processed = briefForRefs?.referenceImageUrls?.length
@@ -863,7 +907,7 @@ export async function retryFailedVideoJob(jobId: string) {
           ? I2V_MODEL_OVERRIDE
           : undefined,
       mockHints: {
-        briefId: job.videoBriefId,
+        briefId: videoBriefId,
         segmentIndex: scene.sceneIndex,
         segmentCount: 1,
         durationSec: scene.durationSec,
@@ -984,7 +1028,7 @@ export async function pollRunningJobs(limit = 30) {
     const after = await reconcileVideoJob(job.id);
     if (after && after.status !== before) {
       updated += 1;
-      affectedBriefs.add(job.videoBriefId);
+      if (job.videoBriefId) affectedBriefs.add(job.videoBriefId);
     }
   }
 
@@ -1344,7 +1388,7 @@ export const __test__ = {
   friendlySubmitError,
   friendlyProviderError,
   __setStatusFetcherForTests(fn: typeof getSeedanceStatus | null): void {
-    statusFetcher = fn ?? getSeedanceStatus;
+    statusFetcherOverride = fn;
   },
 };
 

@@ -193,6 +193,9 @@ export default async function PersonalVideosPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link href="/batch-create" className="glass-btn text-xs">
+            批量生成
+          </Link>
           <Link href="/personal/create-video" className="glass-btn-primary text-xs">
             {t("shell.personalHome.createTitle")}
           </Link>

@@ -41,6 +41,7 @@ model AdminUser {
   usagePeriods   UserUsagePeriod[]
   usageLogs      UsageLog[]
   digitalHumanAdJobs DigitalHumanAdJob[]
+  batchJobs      BatchJob[]
 }
 
 // =========================================================
@@ -638,6 +639,37 @@ enum VideoProvider {
   SEEDANCE_T2V
   SEEDANCE_I2V
   FFMPEG_EDIT
+  MOCK
+}
+
+enum StyleTemplateStatus {
+  DRAFT
+  ACTIVE
+}
+
+/// 批量视频风格模板。每一行代表一个不可变版本：
+/// ACTIVE 后禁止原地修改，变更必须复制为 version + 1 的新 DRAFT。
+model StyleTemplate {
+  id             String              @id @default(cuid())
+  slug           String
+  version        Int
+  name           String
+  nameZh         String
+  category       String
+  coverImage     String
+  promptSkeleton String
+  negativePrompt String
+  lockedParams   Json
+  imagesPerVideo Json
+  status         StyleTemplateStatus @default(DRAFT)
+  activatedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  batchJobs BatchJob[]
+
+  @@unique([slug, version])
+  @@index([status, category])
 }
 
 model VideoPrompt {
@@ -659,16 +691,73 @@ model VideoPrompt {
 
 enum VideoJobStatus {
   QUEUED
+  PAUSED
   RUNNING
   SUCCEEDED
   FAILED
   CANCELLED
 }
 
+enum BatchJobStatus {
+  EXPANDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  PARTIAL_FAILED
+  FAILED
+  CANCELLED
+}
+
+model BatchJob {
+  id               String         @id @default(cuid())
+  userId           String
+  user             AdminUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId       String
+  template         StyleTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateVersion  Int
+  imageIds         String[]
+  imageUrls        String[]
+  productName      String?
+  requestedCount   Int
+  idempotencyKey   String
+  status           BatchJobStatus @default(EXPANDING)
+  queuedCount      Int            @default(0)
+  pausedCount      Int            @default(0)
+  runningCount     Int            @default(0)
+  completedCount   Int            @default(0)
+  failedCount      Int            @default(0)
+  cancelledCount   Int            @default(0)
+  statusReason     String?
+  breakerPausedAt  DateTime?
+  finishedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  videoJobs VideoJob[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
+}
+
 model VideoJob {
   id           String     @id @default(cuid())
-  videoBriefId String
-  videoBrief   VideoBrief @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  videoBriefId String?
+  videoBrief   VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  batchJobId   String?
+  batchJob     BatchJob?   @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
+  batchIndex   Int?
+  batchItemKey String?     @unique
+  assignedAssets Json?
+  templateSnapshot Json?
+  promptText       String?
+  negativePrompt   String?
+  seed             Int?
+  submitAttempts   Int      @default(0)
+  availableAt      DateTime?
+  leaseOwner       String?
+  leaseExpiresAt   DateTime?
+  heartbeatAt      DateTime?
 
   provider      VideoProvider
   externalJobId String?
@@ -713,6 +802,8 @@ model VideoJob {
   @@index([status])
   @@index([externalJobId])
   @@index([videoBriefId])
+  @@index([batchJobId, status, batchIndex])
+  @@index([status, availableAt])
   @@index([finalVideoId, segmentIndex])
 }
 

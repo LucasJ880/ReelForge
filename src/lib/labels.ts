@@ -80,6 +80,7 @@ export const RESEARCH_LABELS: Record<ResearchStatus, string> = {
 
 export const VIDEO_JOB_LABELS: Record<VideoJobStatus, string> = {
   QUEUED: "排队",
+  PAUSED: "已暂停",
   RUNNING: "运行中",
   SUCCEEDED: "成功",
   FAILED: "失败",

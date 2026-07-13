@@ -227,7 +227,14 @@ async function recoverMockJobRecord(jobId: string): Promise<MockJobRecord | null
         },
       },
     });
-    if (!row || row.segmentIndex == null) return null;
+    if (
+      !row ||
+      row.segmentIndex == null ||
+      row.videoBriefId == null ||
+      row.videoBrief == null
+    ) {
+      return null;
+    }
     const segmentCount = row.videoBrief.finalVideo?.segmentCount ?? 1;
     return {
       status: "processing",

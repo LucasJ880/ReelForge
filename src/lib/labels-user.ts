@@ -188,6 +188,7 @@ export function bucketBriefForParentSummary(
 /// 客户友好的 VideoJobStatus 标签（保留旧 admin 标签以便兼容）
 export const VIDEO_JOB_STATUS_USER_LABELS: Record<VideoJobStatus, string> = {
   QUEUED: "等待开始",
+  PAUSED: "服务拥堵，已暂停等待",
   RUNNING: "正在生成视频",
   SUCCEEDED: "视频已生成",
   FAILED: "生成失败",

@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-06T02:18:48.791Z",
+  "generatedAt": "2026-07-13T02:56:12.179Z",
   "entries": [
     {
       "file": ".cursor/rules/engineering/engineering-backend-architect.mdc",
@@ -193,9 +193,12 @@
       "file": "prisma/seed.ts",
       "imports": [
         "@prisma/client",
-        "bcryptjs"
+        "bcryptjs",
+        "../src/lib/video-generation/batch-style-templates"
       ],
-      "localImports": [],
+      "localImports": [
+        "../src/lib/video-generation/batch-style-templates"
+      ],
       "externalImports": [
         "@prisma/client",
         "bcryptjs"
@@ -324,6 +327,52 @@
       ]
     },
     {
+      "file": "scripts/diagnose-seedance-raw-status.ts",
+      "imports": [
+        "@next/env"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env"
+      ]
+    },
+    {
+      "file": "scripts/diagnose-stuck-brief-detail.ts",
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "scripts/diagnose-stuck-final-videos.ts",
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "scripts/diagnose-stuck-video-jobs.ts",
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "scripts/digital-human-runner.ts",
       "imports": [
         "@next/env",
@@ -340,6 +389,31 @@
         "node:fs/promises",
         "node:path",
         "@vercel/blob"
+      ]
+    },
+    {
+      "file": "scripts/find-brief-owner.ts",
+      "imports": [
+        "@next/env",
+        "../src/lib/db"
+      ],
+      "localImports": [
+        "../src/lib/db"
+      ],
+      "externalImports": [
+        "@next/env"
+      ]
+    },
+    {
+      "file": "scripts/fix-stuck-video-jobs.ts",
+      "imports": [
+        "@next/env",
+        "@prisma/client"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "@prisma/client"
       ]
     },
     {
@@ -569,6 +643,41 @@
       ]
     },
     {
+      "file": "scripts/persist-recovered-segment.ts",
+      "imports": [
+        "@next/env",
+        "node:fs/promises",
+        "node:url",
+        "../src/lib/db",
+        "../src/lib/storage"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/storage"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:fs/promises",
+        "node:url"
+      ]
+    },
+    {
+      "file": "scripts/preserve-paid-segment.ts",
+      "imports": [
+        "@next/env",
+        "@prisma/client",
+        "node:fs/promises",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "@next/env",
+        "@prisma/client",
+        "node:fs/promises",
+        "node:path"
+      ]
+    },
+    {
       "file": "scripts/publish-curtain-videos-to-library.ts",
       "imports": [
         "@next/env",
@@ -602,6 +711,35 @@
         "node:fs",
         "node:path",
         "puppeteer-core"
+      ]
+    },
+    {
+      "file": "scripts/recover-stuck-final-video.ts",
+      "imports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/stitch-service",
+        "../src/lib/storage"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/stitch-service",
+        "../src/lib/storage"
+      ],
+      "externalImports": [
+        "@next/env",
+        "node:child_process",
+        "node:fs/promises",
+        "node:os",
+        "node:path",
+        "node:url",
+        "@prisma/client"
       ]
     },
     {
@@ -652,6 +790,22 @@
       "externalImports": [
         "node:child_process",
         "node:fs",
+        "node:path"
+      ]
+    },
+    {
+      "file": "scripts/screenshot-recovered-brief.mjs",
+      "imports": [
+        "puppeteer-core",
+        "node:fs",
+        "node:os",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "puppeteer-core",
+        "node:fs",
+        "node:os",
         "node:path"
       ]
     },
@@ -908,6 +1062,27 @@
         "@vercel/blob",
         "node:fs",
         "node:path"
+      ]
+    },
+    {
+      "file": "scripts/validate-batch-pipeline.ts",
+      "imports": [
+        "node:assert/strict",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/services/batch-service",
+        "../src/lib/video-generation/asset-allocator"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/services/batch-service",
+        "../src/lib/video-generation/asset-allocator"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "@prisma/client"
       ]
     },
     {
@@ -1780,6 +1955,44 @@
       "externalImports": []
     },
     {
+      "file": "src/app/(personal)/batch-create/page.tsx",
+      "imports": [
+        "next-auth",
+        "next/navigation",
+        "@/lib/auth",
+        "@/components/batch/batch-create-wizard"
+      ],
+      "localImports": [
+        "@/lib/auth",
+        "@/components/batch/batch-create-wizard"
+      ],
+      "externalImports": [
+        "next-auth",
+        "next/navigation"
+      ]
+    },
+    {
+      "file": "src/app/(personal)/batches/[id]/page.tsx",
+      "imports": [
+        "next/link",
+        "next-auth",
+        "next/navigation",
+        "@/lib/auth",
+        "@/lib/services/batch-service",
+        "@/components/batch/batch-monitor"
+      ],
+      "localImports": [
+        "@/lib/auth",
+        "@/lib/services/batch-service",
+        "@/components/batch/batch-monitor"
+      ],
+      "externalImports": [
+        "next/link",
+        "next-auth",
+        "next/navigation"
+      ]
+    },
+    {
       "file": "src/app/(personal)/layout.tsx",
       "imports": [
         "@/components/glass/glass-background",
@@ -1886,6 +2099,7 @@
         "@/lib/auth",
         "@/lib/db",
         "@/lib/video-generation/personal-status",
+        "@/lib/video-generation/business-status",
         "@prisma/client",
         "./video-actions"
       ],
@@ -1893,6 +2107,7 @@
         "@/lib/auth",
         "@/lib/db",
         "@/lib/video-generation/personal-status",
+        "@/lib/video-generation/business-status",
         "./video-actions"
       ],
       "externalImports": [
@@ -1927,6 +2142,7 @@
         "@/i18n/server",
         "@/components/personal/personal-videos-auto-refresh",
         "@/lib/video-generation/personal-status",
+        "@/lib/video-generation/business-status",
         "@prisma/client"
       ],
       "localImports": [
@@ -1934,7 +2150,8 @@
         "@/lib/db",
         "@/i18n/server",
         "@/components/personal/personal-videos-auto-refresh",
-        "@/lib/video-generation/personal-status"
+        "@/lib/video-generation/personal-status",
+        "@/lib/video-generation/business-status"
       ],
       "externalImports": [
         "next/navigation",
@@ -2170,6 +2387,98 @@
       ]
     },
     {
+      "file": "src/app/api/batch-style-templates/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/style-template-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/style-template-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/batches/[id]/cancel/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/batches/[id]/jobs/[jobId]/retry/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/batches/[id]/retry/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/batches/[id]/status/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/batches/route.ts",
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "next/server",
+        "zod"
+      ]
+    },
+    {
       "file": "src/app/api/billing/checkout/route.ts",
       "imports": [
         "next/server",
@@ -2218,19 +2527,23 @@
       "file": "src/app/api/briefs/[id]/render-retry/route.ts",
       "imports": [
         "next/server",
+        "@prisma/client",
         "@/lib/api-auth",
         "@/lib/services/brief-access",
         "@/lib/db",
-        "@/lib/services/video-service"
+        "@/lib/services/video-service",
+        "@/lib/services/stitch-service"
       ],
       "localImports": [
         "@/lib/api-auth",
         "@/lib/services/brief-access",
         "@/lib/db",
-        "@/lib/services/video-service"
+        "@/lib/services/video-service",
+        "@/lib/services/stitch-service"
       ],
       "externalImports": [
-        "next/server"
+        "next/server",
+        "@prisma/client"
       ]
     },
     {
@@ -2337,12 +2650,31 @@
       "file": "src/app/api/cron/poll-videos/route.ts",
       "imports": [
         "next/server",
-        "@/lib/services/video-service"
+        "@/lib/services/video-service",
+        "@/lib/services/sweep-service"
       ],
       "localImports": [
-        "@/lib/services/video-service"
+        "@/lib/services/video-service",
+        "@/lib/services/sweep-service"
       ],
       "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/cron/process-batches/route.ts",
+      "imports": [
+        "@prisma/client",
+        "next/server",
+        "@/lib/db",
+        "@/lib/services/batch-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "@prisma/client",
         "next/server"
       ]
     },
@@ -2354,6 +2686,19 @@
       ],
       "localImports": [
         "@/lib/services/stitch-service"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/cron/sweep-stuck-tasks/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/services/sweep-service"
+      ],
+      "localImports": [
+        "@/lib/services/sweep-service"
       ],
       "externalImports": [
         "next/server"
@@ -2946,6 +3291,7 @@
         "@/lib/api-auth",
         "@/lib/api-quota",
         "@/lib/services/quota-service",
+        "@/lib/services/dispatch-breaker",
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
@@ -2959,6 +3305,7 @@
         "@/lib/api-auth",
         "@/lib/api-quota",
         "@/lib/services/quota-service",
+        "@/lib/services/dispatch-breaker",
         "@/lib/db",
         "@/lib/video-generation/generation-supervisor",
         "@/lib/video-generation/plan-to-director",
@@ -3088,6 +3435,34 @@
       "externalImports": [
         "next-auth",
         "next/navigation"
+      ]
+    },
+    {
+      "file": "src/components/batch/batch-create-wizard.tsx",
+      "imports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "next/navigation",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/batch/batch-monitor.tsx",
+      "imports": [
+        "react",
+        "@tanstack/react-virtual",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "@tanstack/react-virtual",
+        "lucide-react"
       ]
     },
     {
@@ -4520,10 +4895,12 @@
     {
       "file": "src/lib/ai/providers/volcengine-provider.ts",
       "imports": [
-        "../types"
+        "../types",
+        "@/lib/config/dry-run"
       ],
       "localImports": [
-        "../types"
+        "../types",
+        "@/lib/config/dry-run"
       ],
       "externalImports": []
     },
@@ -4698,9 +5075,12 @@
     {
       "file": "src/lib/providers/apify-tiktok.ts",
       "imports": [
-        "apify-client"
+        "apify-client",
+        "@/lib/config/dry-run"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/lib/config/dry-run"
+      ],
       "externalImports": [
         "apify-client"
       ]
@@ -4708,9 +5088,12 @@
     {
       "file": "src/lib/providers/omnihuman.ts",
       "imports": [
-        "node:crypto"
+        "node:crypto",
+        "@/lib/config/dry-run"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/lib/config/dry-run"
+      ],
       "externalImports": [
         "node:crypto"
       ]
@@ -4720,9 +5103,11 @@
       "imports": [
         "openai",
         "openai/uploads",
+        "@/lib/config/dry-run",
         "@/lib/storage"
       ],
       "localImports": [
+        "@/lib/config/dry-run",
         "@/lib/storage"
       ],
       "externalImports": [
@@ -4733,9 +5118,12 @@
     {
       "file": "src/lib/providers/openai.ts",
       "imports": [
-        "openai"
+        "openai",
+        "@/lib/config/dry-run"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/lib/config/dry-run"
+      ],
       "externalImports": [
         "openai"
       ]
@@ -4743,10 +5131,12 @@
     {
       "file": "src/lib/providers/seedance.ts",
       "imports": [
+        "@/lib/config/dry-run",
         "@/lib/db",
         "@/lib/video-generation/mock-clip-generator"
       ],
       "localImports": [
+        "@/lib/config/dry-run",
         "@/lib/db",
         "@/lib/video-generation/mock-clip-generator"
       ],
@@ -4755,9 +5145,12 @@
     {
       "file": "src/lib/providers/volc-tts.ts",
       "imports": [
-        "node:crypto"
+        "node:crypto",
+        "@/lib/config/dry-run"
       ],
-      "localImports": [],
+      "localImports": [
+        "@/lib/config/dry-run"
+      ],
       "externalImports": [
         "node:crypto"
       ]
@@ -4965,6 +5358,35 @@
       ]
     },
     {
+      "file": "src/lib/services/batch-service.ts",
+      "imports": [
+        "node:crypto",
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/config/env",
+        "@/lib/video-generation/asset-allocator",
+        "@/lib/video-generation/batch-style-templates",
+        "@/lib/video-generation/providers",
+        "./dispatch-breaker",
+        "./video-service",
+        "./video-watchdog"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/config/env",
+        "@/lib/video-generation/asset-allocator",
+        "@/lib/video-generation/batch-style-templates",
+        "@/lib/video-generation/providers",
+        "./dispatch-breaker",
+        "./video-service",
+        "./video-watchdog"
+      ],
+      "externalImports": [
+        "node:crypto",
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "src/lib/services/brief-access.ts",
       "imports": [
         "next-auth",
@@ -5108,6 +5530,21 @@
         "@/lib/db",
         "@/lib/providers/openai",
         "@/lib/providers/apify-tiktok"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/services/dispatch-breaker.ts",
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "./video-watchdog"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "./video-watchdog"
       ],
       "externalImports": [
         "@prisma/client"
@@ -5393,6 +5830,40 @@
       ]
     },
     {
+      "file": "src/lib/services/style-template-service.ts",
+      "imports": [
+        "@prisma/client",
+        "zod",
+        "@/lib/db",
+        "@/lib/video-generation/batch-style-templates"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/video-generation/batch-style-templates"
+      ],
+      "externalImports": [
+        "@prisma/client",
+        "zod"
+      ]
+    },
+    {
+      "file": "src/lib/services/sweep-service.ts",
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "./stitch-service",
+        "./video-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "./stitch-service",
+        "./video-service"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "src/lib/services/usage-payload.ts",
       "imports": [
         "next-auth",
@@ -5418,6 +5889,8 @@
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/frame-qa",
+        "@/lib/video-generation/providers",
+        "./video-watchdog",
         "./stitch-service"
       ],
       "localImports": [
@@ -5426,11 +5899,23 @@
         "@/lib/providers/remove-bg",
         "@/lib/schemas/director-plan",
         "@/lib/video-generation/frame-qa",
+        "@/lib/video-generation/providers",
+        "./video-watchdog",
         "./stitch-service"
       ],
       "externalImports": [
         "@prisma/client"
       ]
+    },
+    {
+      "file": "src/lib/services/video-watchdog.ts",
+      "imports": [
+        "@/lib/providers/seedance"
+      ],
+      "localImports": [
+        "@/lib/providers/seedance"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/lib/storage/index.ts",
@@ -5517,6 +6002,19 @@
       ],
       "externalImports": [
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "src/lib/video-generation/asset-allocator.ts",
+      "imports": [
+        "node:crypto",
+        "./batch-style-templates"
+      ],
+      "localImports": [
+        "./batch-style-templates"
+      ],
+      "externalImports": [
+        "node:crypto"
       ]
     },
     {
@@ -5825,24 +6323,43 @@
       "imports": [
         "@/lib/video-generation/providers",
         "@/lib/config/env",
+        "./mock-video-provider",
         "./volcengine-video-provider",
         "./types"
       ],
       "localImports": [
         "@/lib/video-generation/providers",
         "@/lib/config/env",
+        "./mock-video-provider",
         "./volcengine-video-provider",
         "./types"
       ],
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/providers/mock-video-provider.ts",
+      "imports": [
+        "node:crypto",
+        "@/lib/video-generation/mock-clip-generator",
+        "./types"
+      ],
+      "localImports": [
+        "@/lib/video-generation/mock-clip-generator",
+        "./types"
+      ],
+      "externalImports": [
+        "node:crypto"
+      ]
+    },
+    {
       "file": "src/lib/video-generation/providers/volcengine-video-provider.ts",
       "imports": [
+        "@/lib/config/dry-run",
         "@/lib/providers/seedance",
         "./types"
       ],
       "localImports": [
+        "@/lib/config/dry-run",
         "@/lib/providers/seedance",
         "./types"
       ],
@@ -6024,6 +6541,21 @@
       ]
     },
     {
+      "file": "tests/asset-allocator.property.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/asset-allocator"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/asset-allocator"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/asset-qa-rules.test.ts",
       "imports": [
         "node:assert/strict",
@@ -6058,6 +6590,85 @@
         "zod",
         "node:fs",
         "node:path"
+      ]
+    },
+    {
+      "file": "tests/batch-breaker-integration.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/dispatch-breaker",
+        "../src/lib/services/batch-service"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/dispatch-breaker",
+        "../src/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/batch-frontend-contract.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "node:path"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "node:path"
+      ]
+    },
+    {
+      "file": "tests/batch-pipeline.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/services/batch-service"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/config/env",
+        "../src/lib/services/batch-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/batch-style-templates.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/batch-style-templates",
+        "../src/lib/services/style-template-service",
+        "../src/lib/db"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/batch-style-templates",
+        "../src/lib/services/style-template-service",
+        "../src/lib/db"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
       ]
     },
     {
@@ -6389,6 +7000,58 @@
       ]
     },
     {
+      "file": "tests/dispatch-breaker.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/dispatch-breaker",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/dispatch-breaker",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/dry-run-guard.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/config/dry-run",
+        "../src/lib/providers/seedance",
+        "../src/lib/providers/openai",
+        "../src/lib/providers/openai-image",
+        "../src/lib/providers/volc-tts",
+        "../src/lib/providers/omnihuman",
+        "../src/lib/providers/apify-tiktok",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "localImports": [
+        "../src/lib/config/dry-run",
+        "../src/lib/providers/seedance",
+        "../src/lib/providers/openai",
+        "../src/lib/providers/openai-image",
+        "../src/lib/providers/volc-tts",
+        "../src/lib/providers/omnihuman",
+        "../src/lib/providers/apify-tiktok",
+        "../src/lib/video-generation/frame-qa"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/frame-qa-gate.test.ts",
       "imports": [
         "node:assert/strict",
@@ -6401,6 +7064,31 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
+      ]
+    },
+    {
+      "file": "tests/generation-status-sequence.integration.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/business-status",
+        "../src/lib/video-generation/personal-status",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/business-status",
+        "../src/lib/video-generation/personal-status",
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
       ]
     },
     {
@@ -6492,6 +7180,21 @@
       ],
       "localImports": [
         "../src/lib/video-generation/mock-clip-generator"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/mock-video-provider.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/providers/mock-video-provider"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/providers/mock-video-provider"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -6627,6 +7330,42 @@
       ]
     },
     {
+      "file": "tests/progress-live-estimation.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/progress-truthfulness.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/video-generation/business-status",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/business-status",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "tests/quota-service.test.ts",
       "imports": [
         "node:assert/strict",
@@ -6641,6 +7380,48 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
+      ]
+    },
+    {
+      "file": "tests/reconcile-watchdog-fault-injection.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/video-service",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/providers/seedance"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/video-service",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/providers/seedance"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/retry-stitch-resume.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "localImports": [
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
       ]
     },
     {
@@ -6792,6 +7573,25 @@
       ]
     },
     {
+      "file": "tests/stitch-orphan-regression.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "localImports": [
+        "../src/lib/services/stitch-service",
+        "../src/lib/db"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "tests/stitch-service-aspect.test.ts",
       "imports": [
         "node:assert/strict",
@@ -6841,6 +7641,29 @@
       "localImports": [
         "../src/lib/services/video-service",
         "../src/lib/duration/segment-planner"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/sweep-service.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/services/sweep-service",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "localImports": [
+        "../src/lib/services/sweep-service",
+        "../src/lib/services/stitch-service",
+        "../src/lib/db",
+        "../src/lib/video-generation/personal-status"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -7056,6 +7879,23 @@
         "node:assert/strict",
         "node:test",
         "@prisma/client"
+      ]
+    },
+    {
+      "file": "tests/video-watchdog.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/services/video-watchdog",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "localImports": [
+        "../src/lib/services/video-watchdog",
+        "../src/lib/video-generation/personal-status"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {

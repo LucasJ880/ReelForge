@@ -26,6 +26,8 @@ export interface VideoJobReferenceImage {
 
 export interface CreateVideoJobOptions {
   prompt: string;
+  /// 模板锁定的固定负面词；Provider 不支持独立字段时应确定性并入 prompt
+  negativePrompt?: string;
   referenceImages?: VideoJobReferenceImage[];
   durationSec?: number;
   /// "9:16" | "16:9" | "1:1" | "21:9"...
@@ -38,6 +40,8 @@ export interface CreateVideoJobOptions {
   generateAudio?: boolean;
   /// 是否返回末帧（用于段间衔接）
   returnLastFrame?: boolean;
+  /// 确定性变体 seed；批量分配器持久化后原样传给 provider
+  seed?: number;
 
   /**
    * Mock 模式下渲染唯一 placeholder 视频的提示（briefId / segmentIndex 等）。
@@ -75,7 +79,7 @@ export interface VideoJobStatusResult {
 }
 
 export interface VideoProvider {
-  readonly id: "volcengine";
+  readonly id: "volcengine" | "mock";
   readonly displayName: string;
 
   isConfigured(): boolean;

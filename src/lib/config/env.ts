@@ -17,7 +17,7 @@ export type Region = "global" | "cn";
 export type DeploymentTarget = "vercel" | "china" | "selfhosted";
 export type AiProviderId = "openai" | "volcengine";
 export type StorageProviderId = "vercel_blob" | "volcengine_tos";
-export type VideoProviderId = "volcengine";
+export type VideoProviderId = "volcengine" | "mock";
 export type ContentReviewProviderId = "noop" | "volcengine";
 
 export interface AppEnv {
@@ -42,7 +42,7 @@ const STORAGE_PROVIDER_VALUES: StorageProviderId[] = [
   "vercel_blob",
   "volcengine_tos",
 ];
-const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["volcengine"];
+const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["volcengine", "mock"];
 const REVIEW_PROVIDER_VALUES: ContentReviewProviderId[] = ["noop", "volcengine"];
 
 function parseEnum<T extends string>(

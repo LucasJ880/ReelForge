@@ -11,6 +11,7 @@
  */
 
 import { getAppEnv } from "@/lib/config/env";
+import { MockVideoProvider } from "./mock-video-provider";
 import { VolcengineVideoProvider } from "./volcengine-video-provider";
 import type { VideoProvider } from "./types";
 
@@ -25,6 +26,8 @@ export function getVideoProvider(): VideoProvider {
 export function createVideoProvider(): VideoProvider {
   const env = getAppEnv();
   switch (env.videoProvider) {
+    case "mock":
+      return new MockVideoProvider();
     case "volcengine":
       return new VolcengineVideoProvider();
     default: {
@@ -34,6 +37,14 @@ export function createVideoProvider(): VideoProvider {
       );
     }
   }
+}
+
+export function createVideoProviderById(
+  id: "volcengine" | "mock",
+): VideoProvider {
+  return id === "mock"
+    ? new MockVideoProvider()
+    : new VolcengineVideoProvider();
 }
 
 export function __resetVideoProviderForTests(): void {

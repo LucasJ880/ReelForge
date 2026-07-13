@@ -49,9 +49,12 @@ export class VolcengineVideoProvider implements VideoProvider {
     const refUrls = (options.referenceImages ?? [])
       .map((r) => r.url)
       .filter(Boolean);
+    const prompt = options.negativePrompt?.trim()
+      ? `${options.prompt}\nNegative constraints: ${options.negativePrompt.trim()}`
+      : options.prompt;
 
     const { jobId } = await submitSeedanceJobResilient({
-      prompt: options.prompt,
+      prompt,
       referenceImageUrls: refUrls.length > 0 ? refUrls : undefined,
       duration: options.durationSec,
       resolution: options.resolution,

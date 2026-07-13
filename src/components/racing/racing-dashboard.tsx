@@ -99,6 +99,10 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
     const raw = round.latestReport?.ranking;
     return Array.isArray(raw) ? raw as Array<{ videoBriefId: string; rank: number; score: number }> : [];
   }, [round.latestReport]);
+  const limitations = english ? englishLimitations(round.confidence) : round.confidence.limitations;
+  const recommendation = english && round.generatedDistillation
+    ? englishRecommendation(round, ranked)
+    : round.generatedDistillation?.summary;
 
   async function post(path: string, body?: unknown) {
     setError(null);
@@ -180,7 +184,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
         aria-expanded={expanded}
       >
         <div className="min-w-0">
-          <p className="studio-label text-muted-foreground">Round {round.roundIndex} · {statusLabel[round.status] ?? round.status}</p>
+          <p className="studio-label text-muted-foreground">{english ? "Round" : "轮次"} {round.roundIndex} · {statusLabel[round.status] ?? round.status}</p>
           <h2 className="mt-2 truncate font-heading text-title font-semibold">{round.deliveryOrder.title}</h2>
           <p className="mt-2 break-all font-mono text-meta text-muted-foreground">{round.id}</p>
         </div>
@@ -201,7 +205,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-180 text-left text-body">
               <thead className="studio-label text-muted-foreground">
-                <tr><th className="pb-3">{english ? "Variant" : "变体"}</th><th className="pb-3">Placement</th><th className="pb-3">{english ? "Window" : "窗口"}</th><th className="pb-3 text-right">{english ? "Rank / score" : "排名 / 分数"}</th></tr>
+                <tr><th className="pb-3">{english ? "Variant" : "变体"}</th><th className="pb-3">{english ? "Placement" : "投放"}</th><th className="pb-3">{english ? "Window" : "窗口"}</th><th className="pb-3 text-right">{english ? "Rank / score" : "排名 / 分数"}</th></tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {round.variants.map((variant) => {
@@ -221,7 +225,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
 
           <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
             <form onSubmit={saveMetrics} className="space-y-4 rounded-(--radius-md) border border-border bg-secondary/30 p-4">
-              <div><p className="studio-label text-muted-foreground">Manual placement import</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Import placement metrics" : "录入投放与指标"}</h3></div>
+              <div><p className="studio-label text-muted-foreground">{english ? "MANUAL PLACEMENT IMPORT" : "手动投放导入"}</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Import placement metrics" : "录入投放与指标"}</h3></div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label={english ? "Video variant" : "视频变体"}><select required value={briefId} onChange={(event) => setBriefId(event.target.value)} className="studio-select">{round.variants.map((variant) => <option key={variant.videoBriefId} value={variant.videoBriefId}>{variant.title}</option>)}</select></Field>
                 <Field label={english ? "Platform" : "平台"}><select value={platform} onChange={(event) => setPlatform(event.target.value)} className="studio-select"><option value="tiktok">TikTok</option><option value="instagram_reels">Instagram Reels</option><option value="youtube_shorts">YouTube Shorts</option><option value="facebook">Facebook</option></select></Field>
@@ -238,9 +242,9 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
             </form>
 
             <section className="space-y-4 rounded-(--radius-md) border border-border bg-secondary/30 p-4">
-              <div><p className="studio-label text-muted-foreground">Evidence-aware analysis</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Round findings" : "本轮结论"}</h3></div>
-              {round.confidence.limitations.map((limitation) => <p key={limitation} className="text-meta text-muted-foreground">{limitation}</p>)}
-              {round.generatedDistillation && <div className="border-l-2 border-accent pl-3"><p className="studio-label text-muted-foreground">{english ? "Next-round recommendation" : "下一轮建议"}</p><p className="mt-2 text-body">{round.generatedDistillation.summary}</p></div>}
+              <div><p className="studio-label text-muted-foreground">{english ? "EVIDENCE-AWARE ANALYSIS" : "证据约束分析"}</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Round findings" : "本轮结论"}</h3></div>
+              {limitations.map((limitation) => <p key={limitation} className="text-meta text-muted-foreground">{limitation}</p>)}
+              {round.generatedDistillation && <div className="border-l-2 border-accent pl-3"><p className="studio-label text-muted-foreground">{english ? "Next-round recommendation" : "下一轮建议"}</p><p className="mt-2 text-body">{recommendation}</p></div>}
               <Button type="button" variant="outline" onClick={analyze} disabled={busy || round.confidence.observedSnapshots === 0} className="w-full"><BarChart3 aria-hidden />{english ? "Generate ranking and recommendations" : "生成排名与建议"}</Button>
               {round.generatedDistillation && round.roundIndex < round.deliveryOrder.maxRounds && <Button type="button" onClick={scheduleNext} disabled={busy} className="w-full"><FlaskConical aria-hidden />{english ? "Create next round" : "建立下一轮"}<ArrowRight aria-hidden /></Button>}
             </section>
@@ -265,6 +269,33 @@ function numberOrUndefined(value: string) {
   if (!value.trim()) return undefined;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function englishLimitations(confidence: RacingRound["confidence"]): string[] {
+  const limitations: string[] = [];
+  if (confidence.variantCount < 5) {
+    limitations.push(`Only ${confidence.variantCount} variant${confidence.variantCount === 1 ? "" : "s"}; directional findings do not establish statistical significance.`);
+  }
+  if (confidence.snapshotCoverage < 1) {
+    limitations.push(`12/24/48-hour metric coverage is ${Math.round(confidence.snapshotCoverage * 100)}%.`);
+  }
+  if (confidence.observedSnapshots < confidence.expectedSnapshots && confidence.variantCount > 0) {
+    limitations.push("At least one variant is missing a mature 48-hour window, so the ranking may still change.");
+  }
+  if (confidence.variantCount === 0) limitations.push("No comparable placement variants yet.");
+  return limitations;
+}
+
+function englishRecommendation(
+  round: RacingRound,
+  ranked: Array<{ videoBriefId: string; rank: number; score: number }>,
+): string {
+  const leader = ranked.find((item) => item.rank === 1) ?? ranked[0];
+  const title = round.variants.find((variant) => variant.videoBriefId === leader?.videoBriefId)?.title;
+  if (!leader || !title) {
+    return "Import placement metrics and analyze the round before scheduling the next experiment.";
+  }
+  return `${title} currently leads at ${leader.score.toFixed(3)}. Keep the next round focused on this direction while reserving exploration slots until all mature windows are complete.`;
 }
 
 function ratioOrUndefined(value: string) {

@@ -3,9 +3,8 @@ import { Logo } from "@/components/ui/logo";
 
 export default function NotFoundPage() {
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center bg-background px-6 text-foreground">
-      <div className="pointer-events-none absolute inset-0 ambient-glow opacity-40" />
-      <div className="relative flex flex-col items-center text-center">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background px-6 text-foreground">
+      <div className="flex flex-col items-center text-center">
         <Logo size={32} />
         <p className="mt-8 text-[11px] font-medium uppercase tracking-[0.24em] text-primary">
           404 · Not Found

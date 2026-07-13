@@ -11,6 +11,15 @@ import {
   RefreshCw,
   XCircle,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 
 export interface BatchMonitorJob {
   id: string;
@@ -72,6 +81,16 @@ const JOB_LABELS: Record<BatchMonitorJob["status"], string> = {
   CANCELLED: "已取消",
 };
 
+const BATCH_LABELS: Record<BatchMonitorData["status"], string> = {
+  EXPANDING: "正在展开",
+  RUNNING: "生成中",
+  PAUSED: "已暂停",
+  COMPLETED: "已完成",
+  PARTIAL_FAILED: "部分失败",
+  FAILED: "失败",
+  CANCELLED: "已取消",
+};
+
 function firstAssetUrl(value: unknown): string | null {
   const assignment = value as
     | { assets?: Array<{ url?: unknown }> }
@@ -81,12 +100,31 @@ function firstAssetUrl(value: unknown): string | null {
   return typeof url === "string" ? url : null;
 }
 
-function statusTone(status: BatchMonitorJob["status"]): string {
-  if (status === "SUCCEEDED") return "bg-emerald-500/15 text-emerald-200";
-  if (status === "FAILED") return "bg-red-500/15 text-red-200";
-  if (status === "RUNNING") return "bg-violet-500/15 text-violet-200";
-  if (status === "PAUSED") return "bg-amber-500/15 text-amber-200";
-  return "bg-white/10 text-white/60";
+type StatusVariant =
+  | "default"
+  | "secondary"
+  | "destructive"
+  | "success"
+  | "warning";
+
+function jobStatusVariant(
+  status: BatchMonitorJob["status"],
+): StatusVariant {
+  if (status === "SUCCEEDED") return "success";
+  if (status === "FAILED") return "destructive";
+  if (status === "RUNNING") return "default";
+  if (status === "PAUSED") return "warning";
+  return "secondary";
+}
+
+function batchStatusVariant(
+  status: BatchMonitorData["status"],
+): StatusVariant {
+  if (status === "COMPLETED") return "success";
+  if (status === "FAILED" || status === "CANCELLED") return "destructive";
+  if (status === "PAUSED" || status === "PARTIAL_FAILED") return "warning";
+  if (status === "RUNNING") return "default";
+  return "secondary";
 }
 
 export function BatchMonitor({
@@ -203,139 +241,164 @@ export function BatchMonitor({
 
   return (
     <div
-      className="space-y-6"
+      className="min-w-0 space-y-8 [&_svg]:stroke-[1.5]"
       data-batch-poll-connections="1"
       data-batch-poll-endpoint={`/api/batches/${batch.id}/status`}
     >
       {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100"
-        >
-          {error}
-        </div>
+        <Card size="sm" role="alert" className="border-danger">
+          <CardContent className="text-meta text-danger">{error}</CardContent>
+        </Card>
       )}
 
-      <section className="glass-card space-y-5 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-semibold text-white">
-                {batch.template.nameZh}
-              </h1>
-              <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] text-white/45">
-                v{batch.template.version}
+      <Card>
+        <CardHeader className="gap-5">
+          <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 space-y-3">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+                <p className="text-meta font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Editorial Batch Monitor
+                </p>
+                <Badge variant={batchStatusVariant(batch.status)}>
+                  {BATCH_LABELS[batch.status]}
+                </Badge>
+              </div>
+              <div className="space-y-2">
+                <h1 className="editorial-display wrap-break-word">
+                  {batch.template.nameZh}
+                </h1>
+                <CardDescription className="break-all">
+                  批次 {batch.id} · 模板版本 v{batch.template.version}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              {batch.failedCount > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy != null}
+                  onClick={() =>
+                    void action(
+                      "retry-all",
+                      `/api/batches/${batch.id}/retry`,
+                    )
+                  }
+                >
+                  {busy === "retry-all" ? (
+                    <Loader2
+                      className="animate-spin motion-reduce:animate-none"
+                      aria-hidden
+                    />
+                  ) : (
+                    <RefreshCw aria-hidden />
+                  )}
+                  重试全部失败 ({batch.failedCount})
+                </Button>
+              )}
+              {batch.queuedCount + batch.pausedCount > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy != null}
+                  onClick={() =>
+                    void action(
+                      "cancel",
+                      `/api/batches/${batch.id}/cancel`,
+                    )
+                  }
+                >
+                  取消未开始
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {batch.status === "PAUSED" && (
+            <div className="flex items-start gap-3 border-l-2 border-warning pl-4 text-meta text-foreground">
+              <PauseCircle
+                className="mt-0.5 size-4 shrink-0 text-warning"
+                aria-hidden
+              />
+              <span>
+                生成服务暂时拥堵，剩余 {batch.pausedCount} 条已安全暂停。
+                熔断恢复后会自动续跑。{batch.statusReason}
               </span>
             </div>
-            <p className="mt-1 text-xs text-white/45">批次 {batch.id}</p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {batch.failedCount > 0 && (
-              <button
-                type="button"
-                disabled={busy != null}
-                onClick={() =>
-                  void action(
-                    "retry-all",
-                    `/api/batches/${batch.id}/retry`,
-                  )
-                }
-                className="glass-btn inline-flex items-center gap-1.5 text-xs"
-              >
-                {busy === "retry-all" ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-3.5" />
-                )}
-                重试全部失败 ({batch.failedCount})
-              </button>
-            )}
-            {batch.queuedCount + batch.pausedCount > 0 && (
-              <button
-                type="button"
-                disabled={busy != null}
-                onClick={() =>
-                  void action(
-                    "cancel",
-                    `/api/batches/${batch.id}/cancel`,
-                  )
-                }
-                className="glass-btn text-xs"
-              >
-                取消未开始
-              </button>
-            )}
-          </div>
-        </div>
+          )}
+        </CardHeader>
 
-        {batch.status === "PAUSED" && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-sm text-amber-100">
-            <PauseCircle className="mt-0.5 size-4 shrink-0" />
-            <span>
-              生成服务暂时拥堵，剩余 {batch.pausedCount} 条已安全暂停。
-              熔断恢复后会自动续跑。{batch.statusReason}
-            </span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {[
-            ["总数", batch.requestedCount, "text-white"],
-            ["完成", batch.completedCount, "text-emerald-300"],
-            ["进行中", batch.runningCount, "text-violet-300"],
-            ["排队/暂停", batch.queuedCount + batch.pausedCount, "text-amber-200"],
-            ["失败", batch.failedCount, "text-red-300"],
-          ].map(([label, value, tone]) => (
-            <div key={String(label)} className="rounded-xl bg-white/4 p-3">
-              <p className="text-[11px] text-white/45">{label}</p>
-              <p className={`mt-1 text-xl font-semibold ${tone}`}>{value}</p>
+        <CardContent className="space-y-6">
+          <dl className="grid grid-cols-2 border-y border-border sm:grid-cols-5">
+            {[
+              ["总数", batch.requestedCount],
+              ["完成", batch.completedCount],
+              ["进行中", batch.runningCount],
+              ["排队/暂停", batch.queuedCount + batch.pausedCount],
+              ["失败", batch.failedCount],
+            ].map(([label, value]) => (
+              <div
+                key={String(label)}
+                className="min-w-0 border-b border-border py-3 last:border-b-0 sm:border-b-0"
+              >
+                <dt className="text-meta text-muted-foreground">{label}</dt>
+                <dd className="mt-1 font-heading text-subhead tabular-nums text-foreground">
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <div className="space-y-2">
+            <div className="flex justify-between gap-4 text-meta">
+              <span className="font-medium text-foreground">总进度</span>
+              <span className="tabular-nums text-muted-foreground">
+                {totalProgress}%
+              </span>
             </div>
-          ))}
-        </div>
-        <div>
-          <div className="mb-2 flex justify-between text-xs text-white/50">
-            <span>总进度</span>
-            <span>{totalProgress}%</span>
-          </div>
-          <div className="h-2 overflow-hidden rounded-full bg-white/10">
-            <div
-              className="h-full rounded-full bg-linear-to-r from-violet-500 to-emerald-400 transition-[width]"
-              style={{ width: `${totalProgress}%` }}
+            <Progress
+              value={totalProgress}
+              aria-label={`批次总进度 ${totalProgress}%`}
             />
           </div>
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-white/45">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-meta text-muted-foreground">
           虚拟网格仅渲染可视区域 · 当前 {batch.videoJobs.length} 条
         </p>
-        <div className="flex gap-2">
-          <button
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
             onClick={toggleAllCompleted}
-            className="glass-btn text-xs"
           >
             {completedJobs.every((job) => selected.has(job.id)) &&
             completedJobs.length > 0
               ? "取消全选"
               : "全选已完成"}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            size="sm"
             disabled={selected.size === 0}
             onClick={downloadSelected}
-            className="glass-btn-primary inline-flex items-center gap-1.5 text-xs disabled:opacity-40"
           >
-            <Download className="size-3.5" />
+            <Download aria-hidden />
             下载所选 ({selected.size})
-          </button>
+          </Button>
         </div>
       </div>
 
       <div
         ref={viewportRef}
-        className="h-[720px] overflow-auto rounded-2xl border border-white/10 bg-black/20 p-2"
+        role="region"
+        aria-label="批次视频任务列表"
+        tabIndex={0}
+        className="h-[min(720px,70vh)] min-w-0 overflow-auto rounded-(--radius-lg) border border-border bg-muted p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:p-3"
         data-virtualized="true"
         data-total-cards={batch.videoJobs.length}
       >
@@ -351,7 +414,7 @@ export function BatchMonitor({
                 key={virtualRow.key}
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
-                className="absolute left-0 top-0 grid w-full gap-3 pb-3"
+                className="absolute left-0 top-0 grid w-full min-w-0 gap-3 pb-3"
                 style={{
                   gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
                   transform: `translateY(${virtualRow.start}px)`,
@@ -362,12 +425,13 @@ export function BatchMonitor({
                     job.outputThumbUrl ?? firstAssetUrl(job.assignedAssets);
                   const checked = selected.has(job.id);
                   return (
-                    <article
+                    <Card
                       key={job.id}
-                      className="overflow-hidden rounded-xl border border-white/10 bg-white/4"
+                      size="sm"
+                      className="min-w-0 gap-0 py-0"
                       data-batch-video-card
                     >
-                      <div className="relative aspect-9/12 bg-black/40">
+                      <div className="relative aspect-9/12 bg-muted">
                         {job.outputVideoUrl ? (
                           <video
                             src={job.outputVideoUrl}
@@ -383,10 +447,13 @@ export function BatchMonitor({
                           />
                         ) : (
                           <div className="flex size-full items-center justify-center">
-                            <PlayCircle className="size-8 text-white/20" />
+                            <PlayCircle
+                              className="size-8 text-muted-foreground"
+                              aria-hidden
+                            />
                           </div>
                         )}
-                        <label className="absolute left-2 top-2">
+                        <label className="absolute left-2 top-2 rounded-(--radius-sm) bg-card p-1">
                           <input
                             type="checkbox"
                             disabled={job.status !== "SUCCEEDED"}
@@ -399,40 +466,38 @@ export function BatchMonitor({
                                 return next;
                               })
                             }
-                            className="size-4 accent-violet-500"
+                            className="size-4 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                             aria-label={`选择视频 ${(job.batchIndex ?? 0) + 1}`}
                           />
                         </label>
                       </div>
-                      <div className="space-y-2 p-3">
+                      <CardContent className="space-y-3 p-4">
                         <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-medium text-white">
+                          <span className="text-meta font-semibold text-foreground">
                             视频 #{(job.batchIndex ?? 0) + 1}
                           </span>
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] ${statusTone(job.status)}`}
-                          >
+                          <Badge variant={jobStatusVariant(job.status)}>
                             {JOB_LABELS[job.status]}
-                          </span>
+                          </Badge>
                         </div>
                         {job.status === "RUNNING" && (
-                          <div className="h-1 overflow-hidden rounded-full bg-white/10">
-                            <div
-                              className="h-full bg-violet-400"
-                              style={{ width: `${job.lastProgress ?? 8}%` }}
-                            />
-                          </div>
+                          <Progress
+                            value={job.lastProgress ?? 8}
+                            aria-label={`视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`}
+                          />
                         )}
                         {job.status === "FAILED" && (
                           <div className="space-y-2">
                             <p
-                              className="line-clamp-2 text-[11px] text-red-200/75"
+                              className="line-clamp-2 text-meta text-danger"
                               title={job.errorMessage ?? undefined}
                             >
                               {job.userSafeError ?? "生成失败，可重试"}
                             </p>
-                            <button
+                            <Button
                               type="button"
+                              variant="outline"
+                              size="xs"
                               disabled={busy != null}
                               onClick={() =>
                                 void action(
@@ -440,29 +505,33 @@ export function BatchMonitor({
                                   `/api/batches/${batch.id}/jobs/${job.id}/retry`,
                                 )
                               }
-                              className="inline-flex items-center gap-1 text-[11px] text-violet-200 hover:text-white"
                             >
                               {busy === `retry-${job.id}` ? (
-                                <Loader2 className="size-3 animate-spin" />
+                                <Loader2
+                                  className="animate-spin motion-reduce:animate-none"
+                                  aria-hidden
+                                />
                               ) : (
-                                <RefreshCw className="size-3" />
+                                <RefreshCw aria-hidden />
                               )}
                               单条重试
-                            </button>
+                            </Button>
                           </div>
                         )}
                         {job.status === "SUCCEEDED" && (
-                          <p className="flex items-center gap-1 text-[11px] text-emerald-300/75">
-                            <CheckCircle2 className="size-3" /> 可播放与下载
+                          <p className="flex items-center gap-1.5 text-meta text-success">
+                            <CheckCircle2 className="size-3" aria-hidden />{" "}
+                            可播放与下载
                           </p>
                         )}
                         {job.status === "CANCELLED" && (
-                          <p className="flex items-center gap-1 text-[11px] text-white/40">
-                            <XCircle className="size-3" /> 未提交 Provider
+                          <p className="flex items-center gap-1.5 text-meta text-muted-foreground">
+                            <XCircle className="size-3" aria-hidden /> 未提交
+                            Provider
                           </p>
                         )}
-                      </div>
-                    </article>
+                      </CardContent>
+                    </Card>
                   );
                 })}
               </div>

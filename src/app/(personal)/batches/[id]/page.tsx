@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
+import { ArrowLeft, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { getBatchStatus } from "@/lib/services/batch-service";
 import {
   BatchMonitor,
   type BatchMonitorData,
 } from "@/components/batch/batch-monitor";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -23,19 +25,25 @@ export default async function BatchMonitorPage({
   if (!batch) notFound();
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <Link
-          href="/personal/videos"
-          className="text-xs text-white/45 hover:text-white"
+    <main className="min-w-0 space-y-8">
+      <nav
+        aria-label="批次监控导航"
+        className="flex flex-wrap items-center justify-between gap-3"
+      >
+        <Button
+          render={<Link href="/personal/videos" />}
+          variant="ghost"
+          size="sm"
         >
-          ← 返回我的视频
-        </Link>
-        <Link href="/batch-create" className="glass-btn text-xs">
+          <ArrowLeft aria-hidden />
+          返回我的视频
+        </Button>
+        <Button render={<Link href="/batch-create" />} size="sm">
+          <Plus aria-hidden />
           新建批次
-        </Link>
-      </div>
+        </Button>
+      </nav>
       <BatchMonitor initialBatch={batch as unknown as BatchMonitorData} />
-    </div>
+    </main>
   );
 }

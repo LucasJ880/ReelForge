@@ -124,7 +124,10 @@ export class MockVideoProvider implements VideoProvider {
     const payload: EncodedMockJob = {
       c: Date.now(),
       l: latencyForSeed(seed),
-      o: chooseOutcome(seed, options.mockHints?.segmentIndex),
+      o:
+        (options.mockHints?.retryAttempt ?? 0) > 0
+          ? "success"
+          : chooseOutcome(seed, options.mockHints?.segmentIndex),
       s: seed,
       i: options.mockHints?.segmentIndex ?? 0,
       d: options.durationSec ?? 10,

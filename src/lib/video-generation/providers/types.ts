@@ -54,6 +54,8 @@ export interface CreateVideoJobOptions {
     durationSec: number;
     aspectRatio: string;
     purpose?: string;
+    /// Mock 故障注入用于模拟“首次失败、用户重试后恢复”；真实 Provider 忽略。
+    retryAttempt?: number;
   };
 }
 

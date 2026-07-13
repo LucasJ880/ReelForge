@@ -452,6 +452,7 @@ async function submitClaimedJob(
         durationSec: snapshot.lockedParams.duration,
         aspectRatio: snapshot.lockedParams.aspectRatio,
         purpose: "batch-template",
+        retryAttempt: job.retryCount,
       },
     });
     const updated = await db.videoJob.updateMany({

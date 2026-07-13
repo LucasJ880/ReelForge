@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, RefreshCw, RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/useTranslation";
 
 interface VideoActionsProps {
@@ -69,43 +70,45 @@ export function VideoActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={handleRefresh}
         disabled={refreshDisabled}
-        className="inline-flex items-center gap-1.5 rounded-md border border-white/10 bg-card/60 px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-card/90 hover:text-foreground disabled:opacity-60"
       >
         {refreshing ? (
-          <Loader2 className="h-3 w-3 animate-spin" />
+          <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
         ) : (
-          <RefreshCw className="h-3 w-3" />
+          <RefreshCw aria-hidden />
         )}
         {t("shell.videoActions.refresh")}
-      </button>
+      </Button>
       {canRetry ? (
-        <button
+        <Button
           type="button"
+          variant="destructive"
+          size="sm"
           onClick={handleRetry}
           disabled={retryDisabled}
-          className="inline-flex items-center gap-1.5 rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-200 transition-colors hover:bg-rose-500/20 disabled:opacity-60"
         >
           {retrying ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
           ) : (
-            <RotateCcw className="h-3 w-3" />
+            <RotateCcw aria-hidden />
           )}
           {t("shell.videoActions.retryFailed")}
           {failedSceneCount > 0 ? (
-            <span className="ml-1 text-[10px] opacity-70">
+            <span className="ml-1 text-meta">
               ({failedSceneCount})
             </span>
           ) : null}
-        </button>
+        </Button>
       ) : null}
       {feedback ? (
         <span
           role="status"
-          className="ml-2 text-[11px] text-muted-foreground"
+          className="text-meta text-muted-foreground"
         >
           {feedback}
         </span>

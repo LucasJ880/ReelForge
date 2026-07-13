@@ -14,25 +14,35 @@ import type {
   VideoJobStatus,
 } from "@prisma/client";
 import { BusinessPageHeader } from "@/components/business/business-page-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { getServerTranslator } from "@/i18n/server";
 import type { TranslationKey } from "@/i18n/types";
 import { VideoActions } from "./video-actions";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_CHIP_CLASS: Record<BusinessVideoStatus, string> = {
-  planning: "bg-slate-500/15 text-slate-300",
-  generating: "bg-amber-500/15 text-amber-300",
-  assembling: "bg-sky-500/15 text-sky-300",
-  ready: "bg-emerald-500/15 text-emerald-300",
-  failed: "bg-rose-500/15 text-rose-300",
+const STATUS_VARIANT: Record<
+  BusinessVideoStatus,
+  "secondary" | "warning" | "default" | "success" | "destructive"
+> = {
+  planning: "secondary",
+  generating: "warning",
+  assembling: "default",
+  ready: "success",
+  failed: "destructive",
 };
 
-const SCENE_STATUS_CLASS: Record<string, string> = {
-  ready: "bg-emerald-500/15 text-emerald-300",
-  generating: "bg-amber-500/15 text-amber-300",
-  failed: "bg-rose-500/15 text-rose-300",
-  pending: "bg-slate-500/15 text-slate-300",
+const SCENE_STATUS_VARIANT: Record<
+  string,
+  "success" | "warning" | "destructive" | "secondary"
+> = {
+  ready: "success",
+  generating: "warning",
+  failed: "destructive",
+  pending: "secondary",
 };
 
 interface SceneRow {
@@ -224,15 +234,10 @@ export default async function BusinessProductDetailPage({
         kicker={t("shell.productDetail.kicker")}
         title={order.title}
         meta={
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <span
-              className={
-                "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
-                STATUS_CHIP_CLASS[status.status]
-              }
-            >
+          <div className="flex flex-wrap items-center gap-2 text-meta text-muted-foreground">
+            <Badge variant={STATUS_VARIANT[status.status]}>
               {t(`shell.businessStatus.${status.status}.short`)}
-            </span>
+            </Badge>
             <span>{t(`shell.businessStatus.${status.status}.label`)}</span>
             {metaParts.length > 0 ? (
               <span className="opacity-70">· {metaParts.join(" · ")}</span>
@@ -240,20 +245,25 @@ export default async function BusinessProductDetailPage({
           </div>
         }
         action={
-          <div className="flex flex-col items-end gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
             {isReady ? (
-              <Link
-                href={`/business/create-ad-video?from=${encodeURIComponent(order.id)}`}
-                className="inline-flex rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/15"
+              <Button
+                render={
+                  <Link
+                    href={`/business/create-ad-video?from=${encodeURIComponent(order.id)}`}
+                  />
+                }
+                variant="outline"
+                size="sm"
               >
                 {t("shell.productDetail.variantCta")} →
-              </Link>
+              </Button>
             ) : null}
-            <div className="text-right">
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60">
+            <div>
+              <span className="text-meta text-muted-foreground">
                 {t("shell.productDetail.lastUpdated")}
               </span>
-              <p className="mt-1 text-xs tabular-nums text-muted-foreground">
+              <p className="mt-1 text-meta tabular-nums text-muted-foreground">
                 {new Date(order.updatedAt).toLocaleString("zh-CN")}
               </p>
             </div>
@@ -262,32 +272,32 @@ export default async function BusinessProductDetailPage({
       />
 
       {showProgress ? (
-        <div className="rounded-xl border border-white/10 bg-card/50 p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+        <Card size="sm">
+          <CardContent className="space-y-3 pt-2">
+          <div className="flex items-center justify-between gap-3 text-meta text-muted-foreground">
             <span>{t(`shell.businessStatus.${status.status}.label`)}</span>
             <span className="opacity-70">
               {Math.round(status.progressHint * 100)}%
             </span>
           </div>
-          <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-white/5">
-            <div
-              className="h-full rounded-full bg-amber-400/70 transition-all"
-              style={{ width: `${Math.round(status.progressHint * 100)}%` }}
-            />
-          </div>
-          <p className="mt-3 text-[11px] text-muted-foreground">
+          <Progress
+            value={Math.round(status.progressHint * 100)}
+            aria-label={t(`shell.businessStatus.${status.status}.label`)}
+          />
+          <p className="text-meta text-muted-foreground">
             {t("shell.productDetail.progressRefreshHint")}
           </p>
-        </div>
+          </CardContent>
+        </Card>
       ) : null}
 
       {isReady && finalUrl ? (
-        <section className="rounded-xl border border-white/10 bg-card/40 p-6 shadow-sm">
-          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-            {t("shell.productDetail.finalVideo")}
-          </h2>
-          <div className="mt-4 grid gap-5 md:grid-cols-[1fr_auto] items-start">
-            <div className="aspect-9/16 max-h-[420px] overflow-hidden rounded-lg border border-white/10 bg-black">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("shell.productDetail.finalVideo")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid items-start gap-5 md:grid-cols-[1fr_auto]">
+            <div className="aspect-9/16 max-h-[420px] overflow-hidden rounded-(--radius-md) border border-border bg-muted">
               <video
                 src={finalUrl}
                 controls
@@ -296,42 +306,50 @@ export default async function BusinessProductDetailPage({
                 className="h-full w-full object-contain"
               />
             </div>
-            <div className="flex flex-col gap-2 text-xs">
-              <a
-                href={finalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md bg-foreground text-background px-3 py-2 text-xs font-medium hover:bg-foreground/90 transition-colors"
+            <div className="flex flex-col gap-2">
+              <Button
+                render={
+                  <a
+                    href={finalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  />
+                }
+                size="sm"
               >
                 {t("shell.productDetail.viewFinal")}
-              </a>
-              <a
-                href={finalUrl}
-                download
-                className="inline-flex items-center justify-center rounded-md border border-white/15 bg-card/60 px-3 py-2 text-xs hover:bg-card/90 transition-colors"
+              </Button>
+              <Button
+                render={<a href={finalUrl} download />}
+                variant="outline"
+                size="sm"
               >
                 {t("shell.productDetail.download")}
-              </a>
-              <Link
-                href="/business/create-ad-video"
-                className="inline-flex items-center justify-center rounded-md border border-white/10 bg-card/40 px-3 py-2 text-xs text-muted-foreground hover:bg-card/70 hover:text-foreground transition-colors"
+              </Button>
+              <Button
+                render={<Link href="/business/create-ad-video" />}
+                variant="ghost"
+                size="sm"
               >
                 {t("shell.productDetail.regenerate")}
-              </Link>
+              </Button>
             </div>
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       ) : null}
 
       {isReady && !finalUrl ? (
-        <div className="rounded-xl border border-white/10 bg-card/40 p-5 text-sm text-muted-foreground">
-          {t("shell.productDetail.linkPending")}
-        </div>
+        <Card size="sm">
+          <CardContent className="pt-2 text-body text-muted-foreground">
+            {t("shell.productDetail.linkPending")}
+          </CardContent>
+        </Card>
       ) : null}
 
-      <section className="space-y-3 rounded-xl border border-white/10 bg-card/20 p-5 shadow-sm">
+      <Card>
+        <CardContent className="space-y-4">
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+          <h2 className="font-heading text-subhead font-normal">
             {t("shell.productDetail.scenesTitle", {
               done: segmentsSucceeded,
               total: segmentCount,
@@ -345,7 +363,7 @@ export default async function BusinessProductDetailPage({
         </div>
 
         {scenes.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-meta text-muted-foreground">
             {t("shell.productDetail.scenesEmpty")}
           </p>
         ) : (
@@ -353,9 +371,9 @@ export default async function BusinessProductDetailPage({
             {scenes.map((s) => (
               <li
                 key={s.id}
-                className="rounded-lg border border-white/10 bg-card/60 p-4 transition-colors hover:border-white/15 hover:bg-card/80"
+                className="rounded-(--radius-md) border border-border bg-card p-4"
               >
-                <div className="aspect-video overflow-hidden rounded-md bg-black/40 mb-3">
+                <div className="mb-3 aspect-video overflow-hidden rounded-(--radius-sm) bg-muted">
                   {s.thumbnailUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -364,13 +382,13 @@ export default async function BusinessProductDetailPage({
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <div className="h-full w-full flex items-center justify-center text-[11px] text-muted-foreground/60">
+                    <div className="flex h-full w-full items-center justify-center text-meta text-muted-foreground">
                       {t("shell.productDetail.sceneNoThumb")}
                     </div>
                   )}
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-xs font-medium">
+                  <span className="text-meta font-medium">
                     {t("shell.productDetail.sceneIndex", { index: s.index + 1 })}
                     {s.durationSec ? (
                       <span className="ml-1.5 text-muted-foreground">
@@ -378,34 +396,32 @@ export default async function BusinessProductDetailPage({
                       </span>
                     ) : null}
                   </span>
-                  <span
-                    className={
-                      "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
-                      SCENE_STATUS_CLASS[s.state]
-                    }
-                  >
+                  <Badge variant={SCENE_STATUS_VARIANT[s.state] ?? "secondary"}>
                     {s.stateLabel}
-                  </span>
+                  </Badge>
                 </div>
               </li>
             ))}
           </ul>
         )}
-      </section>
+        </CardContent>
+      </Card>
 
       {isFailed ? (
-        <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-5 text-sm">
-          <p className="font-medium">{t("shell.productDetail.failedTitle")}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
+        <Card className="border-danger" size="sm">
+          <CardContent className="space-y-3 pt-2 text-body">
+          <p className="font-medium text-danger">{t("shell.productDetail.failedTitle")}</p>
+          <p className="text-meta text-muted-foreground">
             {t("shell.productDetail.failedBody")}
           </p>
-          <Link
-            href="/business/create-ad-video"
-            className="mt-3 inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
+          <Button
+            render={<Link href="/business/create-ad-video" />}
+            size="sm"
           >
             {t("shell.productDetail.failedRegenerate")}
-          </Link>
-        </div>
+          </Button>
+          </CardContent>
+        </Card>
       ) : null}
     </div>
   );

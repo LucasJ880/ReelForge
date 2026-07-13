@@ -12,7 +12,7 @@ export function ComingSoonHero({
   bullets: string[];
 }) {
   return (
-    <div className="rounded-xl border border-white/10 bg-card/40 p-10">
+    <div className="rounded-(--radius-lg) border border-white/10 bg-card/40 p-10">
       <div className="flex items-center gap-3 text-muted-foreground">
         <Sparkles className="h-5 w-5" />
         <span className="text-xs uppercase tracking-wider">{eyebrow}</span>

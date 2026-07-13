@@ -41,7 +41,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
       rightSlot={<SampleDataBadge />}
     >
       <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-lg border border-border bg-card p-6">
+        <div className="rounded-(--radius-lg) border border-border bg-card p-6">
           <div className="flex flex-col gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
@@ -52,7 +52,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               </h3>
             </div>
 
-            <div className="rounded-lg border border-primary/25 bg-primary/[0.06] p-4">
+            <div className="rounded-(--radius-lg) border border-primary/25 bg-primary/[0.06] p-4">
               <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                 <MessageSquare size={14} /> 前 3 秒 Hook
               </p>
@@ -65,7 +65,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 <Mic size={14} /> 完整口播
               </p>
-              <p className="mt-2 whitespace-pre-line rounded-lg bg-muted p-4 text-sm leading-7">
+              <p className="mt-2 whitespace-pre-line rounded-(--radius-lg) bg-muted p-4 text-sm leading-7">
                 {generatedScript.voiceover}
               </p>
             </div>
@@ -78,7 +78,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
                 {generatedScript.captions.map((c) => (
                   <li
                     key={c.sceneIndex}
-                    className="flex items-start gap-3 rounded-lg bg-muted px-3 py-2 text-sm"
+                    className="flex items-start gap-3 rounded-(--radius-lg) bg-muted px-3 py-2 text-sm"
                   >
                     <span className="font-mono text-xs text-primary">
                       镜头 {String(c.sceneIndex).padStart(2, "0")}
@@ -92,7 +92,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
               </ul>
             </div>
 
-            <div className="rounded-lg bg-muted p-4">
+            <div className="rounded-(--radius-lg) bg-muted p-4">
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 CTA
               </p>
@@ -104,7 +104,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
         </div>
 
         <div className="grid gap-4">
-          <div className="rounded-lg border border-border bg-card p-5">
+          <div className="rounded-(--radius-lg) border border-border bg-card p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
               各平台改写建议
             </p>
@@ -120,7 +120,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
             </ul>
           </div>
 
-          <div className="rounded-lg border border-warning bg-warning/10 p-5">
+          <div className="rounded-(--radius-lg) border border-warning bg-warning/10 p-5">
             <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-warning">
               <AlertTriangle size={14} /> 合规提示
             </p>
@@ -134,7 +134,7 @@ export function AIScriptSection({ selectedSlug }: Props) {
             </ul>
           </div>
 
-          <div className="rounded-lg border border-success bg-success/[0.05] p-5">
+          <div className="rounded-(--radius-lg) border border-success bg-success/[0.05] p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-success">
               原创性自检
             </p>

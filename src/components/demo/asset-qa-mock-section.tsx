@@ -51,7 +51,7 @@ export function AssetQAMockSection() {
     >
       <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
         <UploadDropzone />
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-(--radius-lg) border border-border bg-card">
           <div className="grid min-w-[760px] grid-cols-[1.4fr_1fr_1fr_1fr_1.5fr] gap-3 border-b border-border bg-muted px-4 py-3 text-meta font-medium uppercase tracking-widest text-muted-foreground">
             <span>素材 · 匹配镜头</span>
             <span>状态</span>
@@ -72,9 +72,9 @@ export function AssetQAMockSection() {
 
 function UploadDropzone() {
   return (
-    <div className="flex flex-col gap-4 rounded-lg border border-dashed border-border bg-muted p-6">
+    <div className="flex flex-col gap-4 rounded-(--radius-lg) border border-dashed border-border bg-muted p-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <div className="flex h-12 w-12 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
           <CloudUpload size={22} />
         </div>
         <div>
@@ -94,7 +94,7 @@ function UploadDropzone() {
           return (
             <li
               key={shot.sceneIndex}
-              className="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-xs"
+              className="flex items-center justify-between rounded-(--radius-lg) bg-muted px-3 py-2 text-xs"
             >
               <span className="flex items-center gap-2">
                 <Clapperboard size={12} className="text-muted-foreground" />
@@ -179,7 +179,7 @@ function QARow({ row }: { row: AssetQAResultDemo }) {
           ))}
         </ul>
         {row.retakeSuggestion ? (
-          <p className="rounded-md bg-warning/10 px-2.5 py-1.5 text-meta leading-4 text-warning">
+          <p className="rounded-(--radius-md) bg-warning/10 px-2.5 py-1.5 text-meta leading-4 text-warning">
             {row.retakeSuggestion}
           </p>
         ) : null}

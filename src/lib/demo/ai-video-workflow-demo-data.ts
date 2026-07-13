@@ -567,7 +567,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       "构图过满，留白不够",
     ],
     visualPlaceholder: {
-      gradient: "from-amber-300/30 via-amber-500/15 to-transparent",
+      gradient: "bg-accent-soft",
       accentLabel: "镜头 01 · 控制前的房间",
       iconKey: "opener",
       thumbnailUrl: "/generated/storyboard-frames/sunny-shot-01.jpg",
@@ -602,7 +602,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       "光线方向与镜头 01 接不上",
     ],
     visualPlaceholder: {
-      gradient: "from-stone-300/30 via-stone-500/15 to-transparent",
+      gradient: "bg-muted",
       accentLabel: "镜头 02 · 人物的需求",
       iconKey: "figure",
       thumbnailUrl: "/generated/storyboard-frames/sunny-shot-02.jpg",
@@ -636,7 +636,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       "手部畸形或多余手指需重拍",
     ],
     visualPlaceholder: {
-      gradient: "from-emerald-300/30 via-emerald-500/15 to-transparent",
+      gradient: "bg-success/10",
       accentLabel: "镜头 03 · 无声的控制",
       iconKey: "tap",
       thumbnailUrl: "/generated/storyboard-frames/sunny-shot-03.jpg",
@@ -670,7 +670,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       "镜头跟着光线一起漂移",
     ],
     visualPlaceholder: {
-      gradient: "from-sky-300/30 via-sky-500/15 to-transparent",
+      gradient: "bg-secondary",
       accentLabel: "镜头 04 · 产品响应",
       iconKey: "window",
       thumbnailUrl: "/generated/storyboard-frames/sunny-shot-04.jpg",
@@ -705,7 +705,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       "音乐情绪过满破坏克制感",
     ],
     visualPlaceholder: {
-      gradient: "from-violet-300/30 via-violet-500/15 to-transparent",
+      gradient: "bg-accent-soft",
       accentLabel: "镜头 05 · 独立被看见",
       iconKey: "family",
       thumbnailUrl: "/generated/storyboard-frames/sunny-shot-05.jpg",
@@ -739,7 +739,7 @@ export const storyboardShots: ReadonlyArray<StoryboardShotDemo> = [
       "字幕字号过小在手机端不可读",
     ],
     visualPlaceholder: {
-      gradient: "from-amber-400/30 via-rose-400/15 to-transparent",
+      gradient: "bg-primary/10",
       accentLabel: "镜头 06 · 品牌收尾",
       iconKey: "endcard",
       thumbnailUrl: "/generated/storyboard-frames/sunny-shot-06.jpg",

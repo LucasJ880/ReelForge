@@ -57,7 +57,7 @@ export function LocalProductSampleSection() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-border bg-card p-5 sm:p-6">
+        <div className="rounded-(--radius-lg) border border-border bg-card p-5 sm:p-6">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
             {localProductSample.brandName} · 分镜节奏
           </p>
@@ -72,7 +72,7 @@ export function LocalProductSampleSection() {
             {localProductSample.beats.map((beat) => (
               <li
                 key={beat.time}
-                className="grid grid-cols-[68px_1fr] gap-3 rounded-lg bg-muted p-3 sm:grid-cols-[88px_1fr]"
+                className="grid grid-cols-[68px_1fr] gap-3 rounded-(--radius-lg) bg-muted p-3 sm:grid-cols-[88px_1fr]"
               >
                 <div>
                   <p className="font-mono text-xs text-primary">{beat.time}</p>
@@ -83,7 +83,7 @@ export function LocalProductSampleSection() {
                 <div className="min-w-0">
                   <p className="text-sm leading-6 wrap-break-word">{beat.visual}</p>
                   {beat.caption ? (
-                    <p className="mt-1 rounded-md bg-muted px-2.5 py-1 text-xs italic leading-5 text-muted-foreground wrap-break-word">
+                    <p className="mt-1 rounded-(--radius-md) bg-muted px-2.5 py-1 text-xs italic leading-5 text-muted-foreground wrap-break-word">
                       “{beat.caption}”
                     </p>
                   ) : null}
@@ -96,7 +96,7 @@ export function LocalProductSampleSection() {
             {localProductSample.industryStats.map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-lg border border-border bg-muted px-3 py-3"
+                className="rounded-(--radius-lg) border border-border bg-muted px-3 py-3"
               >
                 <p className="text-meta uppercase tracking-[0.18em] text-muted-foreground">
                   {stat.label}
@@ -108,7 +108,7 @@ export function LocalProductSampleSection() {
             ))}
           </div>
 
-          <div className="mt-5 flex items-start gap-3 rounded-lg border border-primary/25 bg-primary/6 px-4 py-3">
+          <div className="mt-5 flex items-start gap-3 rounded-(--radius-lg) border border-primary/25 bg-primary/6 px-4 py-3">
             <Sparkles size={16} className="mt-0.5 shrink-0 text-primary" />
             <p className="text-sm leading-6 text-foreground">
               {localProductSample.cta}

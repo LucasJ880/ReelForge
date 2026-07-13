@@ -12,7 +12,7 @@ export function BeforeAfter() {
       title={b.title}
       description={b.description}
     >
-      <div className="border border-border bg-card shadow-editorial rounded-lg p-5 sm:p-6">
+      <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5 sm:p-6">
         <div className="grid items-center gap-5 lg:grid-cols-[1fr_auto_1fr]">
           {/* Before */}
           <div className="flex flex-col items-center gap-3">

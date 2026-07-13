@@ -68,7 +68,7 @@ export function DemoHero({ ctaPrimaryHref, ctaPrimaryLabel }: DemoHeroProps) {
           </dl>
 
           {PRODUCT_WALKTHROUGH_VIDEO_URL ? (
-            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
+            <div className="mt-8 inline-flex flex-wrap items-center gap-3 rounded-(--radius-lg) border border-border bg-muted px-4 py-3 text-sm text-muted-foreground">
               <span className="font-medium text-foreground">
                 可选 · 60 秒产品 walkthrough
               </span>
@@ -176,7 +176,7 @@ function CaseColumn({
 
 function HeroStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-border bg-muted p-4">
+    <div className="rounded-(--radius-lg) border border-border bg-muted p-4">
       <dt className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
         {label}
       </dt>

@@ -61,7 +61,7 @@ export function RealFootageDemoExperience({
             ctaPrimaryLabel={isAuthenticated ? "进入创意工作室" : "申请套件体验"}
           />
           <div className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-10">
-            <div className="rounded-lg border border-primary/25 bg-accent-soft px-4 py-3 text-meta leading-5 text-foreground">
+            <div className="rounded-(--radius-lg) border border-primary/25 bg-accent-soft px-4 py-3 text-meta leading-5 text-foreground">
               {SAMPLE_DATA_DISCLAIMER}
             </div>
           </div>
@@ -152,14 +152,14 @@ export function RealFootageDemoExperience({
           isAuthenticated ? (
             <Link
               href="/business/create-ad-video"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-meta font-semibold text-primary-foreground"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-(--radius-md) border border-primary bg-primary px-3 text-meta font-semibold text-primary-foreground"
             >
               <PawPrint size={13} /> 进入工作室
             </Link>
           ) : (
             <a
               href="#book-demo"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md border border-primary bg-primary px-3 text-meta font-semibold text-primary-foreground"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-(--radius-md) border border-primary bg-primary px-3 text-meta font-semibold text-primary-foreground"
             >
               <PawPrint size={13} /> 申请体验
             </a>
@@ -192,7 +192,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
       id="book-demo"
       className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10"
     >
-      <div className="rounded-lg border border-primary/25 bg-card p-5 shadow-editorial sm:p-8">
+      <div className="rounded-(--radius-lg) border border-primary/25 bg-card p-5 shadow-editorial sm:p-8">
         <p className="text-meta font-semibold uppercase tracking-widest text-primary">
           投资人 / 宠物品牌 / 战略合作
         </p>
@@ -207,7 +207,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link
               href="/business/create-ad-video"
-              className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
+              className="inline-flex min-h-11 items-center gap-2 rounded-(--radius-md) bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground"
             >
               直接进入创意工作室 <ArrowRight size={14} />
             </Link>
@@ -222,7 +222,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
         <PetWaitlistForm />
       </div>
 
-      <div className="mt-6 rounded-lg border border-border bg-card p-5 shadow-editorial">
+      <div className="mt-6 rounded-(--radius-lg) border border-border bg-card p-5 shadow-editorial">
         <p className="text-meta font-semibold text-foreground">合规说明</p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {COMPLIANCE_NOTES.map((note) => (

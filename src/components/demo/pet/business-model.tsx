@@ -22,7 +22,7 @@ export function BusinessModel() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-lg border border-success bg-success/10 p-6">
+      <div className="mt-6 rounded-(--radius-lg) border border-success bg-success/10 p-6">
         <h3 className="text-sm font-semibold text-foreground">单位经济逻辑</h3>
         <p className="mt-2 text-sm leading-7 text-muted-foreground">
           {s.unitEconomics}
@@ -40,8 +40,8 @@ function RevenueCard({
   icon: typeof Coins;
 }) {
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col rounded-lg p-6">
-      <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
+    <div className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-6">
+      <div className="flex h-11 w-11 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
         <Icon size={20} />
       </div>
       <span className="mt-4 inline-flex w-fit rounded-full bg-secondary px-2.5 py-1 text-meta font-semibold text-success">

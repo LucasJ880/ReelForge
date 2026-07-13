@@ -17,7 +17,7 @@ export function ProductProofReport() {
         </span>
       }
     >
-      <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-lg">
+      <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
         <div className="grid lg:grid-cols-[320px_1fr]">
           {/* 封面 + 概要 */}
           <div className="relative min-h-56 overflow-hidden border-b border-border lg:border-b-0 lg:border-r">
@@ -43,7 +43,7 @@ export function ProductProofReport() {
               {report.metrics.map((m) => (
                 <div
                   key={m.label}
-                  className="rounded-lg border border-border bg-background p-3 text-center"
+                  className="rounded-(--radius-lg) border border-border bg-background p-3 text-center"
                 >
                   <dt className="text-meta leading-4 text-muted-foreground">
                     {m.label}
@@ -93,7 +93,7 @@ export function ProductProofReport() {
               </div>
             </div>
 
-            <p className="mt-5 rounded-lg border border-success bg-success/10 px-4 py-3 text-xs leading-6 text-foreground/80">
+            <p className="mt-5 rounded-(--radius-lg) border border-success bg-success/10 px-4 py-3 text-xs leading-6 text-foreground/80">
               {report.whyPay}
             </p>
           </div>

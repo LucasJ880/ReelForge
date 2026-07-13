@@ -57,7 +57,7 @@ export function DemoStory() {
           <StoryStep key={`${step.time}-${step.title}`} step={step} />
         ))}
       </ol>
-      <p className="mt-6 rounded-lg border border-success bg-success/10 px-4 py-3 text-xs leading-6 text-foreground/80 sm:text-sm">
+      <p className="mt-6 rounded-(--radius-lg) border border-success bg-success/10 px-4 py-3 text-xs leading-6 text-foreground/80 sm:text-sm">
         {s.closing}
       </p>
     </PetSection>
@@ -72,7 +72,7 @@ function StoryStep({ step }: { step: DemoStoryStepDemo }) {
       <span
         className={`absolute -left-[1.78rem] top-1.5 h-3 w-3 rounded-full ring-4 ring-background ${actor.dot}`}
       />
-      <div className="border border-border bg-card shadow-editorial rounded-lg p-4">
+      <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-background px-2.5 py-1 text-xs font-bold tabular-nums text-foreground">
             {step.time}

@@ -59,7 +59,7 @@ export function FinalOutputSection() {
     >
       {main ? <MainDeliveredCard output={main} /> : null}
 
-      <div className="mt-6 rounded-lg border border-border bg-card p-5 sm:p-6">
+      <div className="mt-6 rounded-(--radius-lg) border border-border bg-card p-5 sm:p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <p className="text-meta font-semibold uppercase tracking-[0.22em] text-muted-foreground">
             配套交付 · 同一组镜头自动派生
@@ -80,7 +80,7 @@ export function FinalOutputSection() {
 
 function MainDeliveredCard({ output }: { output: FinalOutputDemo }) {
   return (
-    <div className="flex flex-col gap-6 overflow-hidden rounded-lg border border-primary/40 bg-card p-5 ring-1 ring-primary/20 sm:p-6 lg:grid lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
+    <div className="flex flex-col gap-6 overflow-hidden rounded-(--radius-lg) border border-primary/40 bg-card p-5 ring-1 ring-primary/20 sm:p-6 lg:grid lg:grid-cols-[auto_1fr] lg:items-start lg:gap-8">
       <PhoneVideoMockup
         size="md"
         videoUrl={output.videoUrl}
@@ -122,7 +122,7 @@ function MainDeliveredCard({ output }: { output: FinalOutputDemo }) {
 function SecondaryChip({ output }: { output: FinalOutputDemo }) {
   const isReady = !output.isPlaceholder;
   return (
-    <li className="flex flex-col gap-1.5 rounded-lg border border-border bg-muted px-3 py-3">
+    <li className="flex flex-col gap-1.5 rounded-(--radius-lg) border border-border bg-muted px-3 py-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-meta font-mono uppercase tracking-[0.18em] text-primary/90">
           {VARIANT_LABEL[output.variant]}

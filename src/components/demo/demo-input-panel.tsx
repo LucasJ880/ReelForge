@@ -45,7 +45,7 @@ export function DemoInputPanel() {
       }
       rightSlot={<SampleDataBadge />}
     >
-      <div className="grid gap-6 rounded-lg border border-border bg-card p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-6 rounded-(--radius-lg) border border-border bg-card p-6 sm:p-8 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="grid gap-4">
           <Field
             icon={<Building2 size={16} />}
@@ -140,7 +140,7 @@ function Field({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-muted p-4">
+    <div className="rounded-(--radius-lg) border border-border bg-muted p-4">
       <p className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
         {icon}
         {label}

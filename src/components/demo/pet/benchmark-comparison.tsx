@@ -35,7 +35,7 @@ export function BenchmarkComparison() {
       <p className="mb-2 text-meta font-medium text-muted-foreground/80 lg:hidden">
         ← 左右滑动查看完整对比（含 Aivora Kit）→
       </p>
-      <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-lg">
+      <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px] border-collapse text-sm">
             <thead>
@@ -97,7 +97,7 @@ export function BenchmarkComparison() {
         {b.painPoints.map((p) => (
           <div
             key={p}
-            className="rounded-lg border border-border bg-card p-4 text-xs leading-6 text-muted-foreground"
+            className="rounded-(--radius-lg) border border-border bg-card p-4 text-xs leading-6 text-muted-foreground"
           >
             {p}
           </div>

@@ -39,7 +39,7 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
           <p className="mt-6 max-w-2xl text-base leading-8 text-muted-foreground sm:text-lg">
             {PET_HERO_OPENING}
           </p>
-          <p className="mt-4 inline-flex items-center gap-2 rounded-lg border border-success bg-success/10 px-4 py-2 text-sm font-medium text-success">
+          <p className="mt-4 inline-flex items-center gap-2 rounded-(--radius-lg) border border-success bg-success/10 px-4 py-2 text-sm font-medium text-success">
             <Sparkles size={15} />
             {PET_SLOGAN}
           </p>
@@ -78,27 +78,27 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
               <Sparkles size={13} /> 60 秒看懂 Aivora · 中文字幕 + 纯音乐
             </p>
             {PET_WALKTHROUGH_VIDEO_URL ? (
-              <figure className="w-full max-w-xl overflow-hidden rounded-lg border border-border bg-card p-2 shadow-editorial">
+              <figure className="w-full max-w-xl overflow-hidden rounded-(--radius-lg) border border-border bg-card p-2 shadow-editorial">
                 {/* 投资人最先看到的视频：产品讲解片，可播放、有声。 */}
                 <video
                   controls
                   playsInline
                   preload="metadata"
                   poster={PET_WALKTHROUGH_VIDEO_POSTER ?? undefined}
-                  className="aspect-video w-full rounded-lg bg-foreground object-cover"
+                  className="aspect-video w-full rounded-(--radius-lg) bg-foreground object-cover"
                 >
                   <source src={PET_WALKTHROUGH_VIDEO_URL} type="video/mp4" />
                 </video>
               </figure>
             ) : (
-              <div className="flex aspect-video w-full max-w-xl items-center justify-center rounded-lg border border-border bg-muted text-sm font-medium text-foreground">
+              <div className="flex aspect-video w-full max-w-xl items-center justify-center rounded-(--radius-lg) border border-border bg-muted text-sm font-medium text-foreground">
                 产品讲解视频即将上线
               </div>
             )}
 
             <a
               href="#hardware-kit"
-              className="group mt-2 w-full max-w-xl rounded-lg border border-border bg-card p-3 hover:border-primary/40"
+              className="group mt-2 w-full max-w-xl rounded-(--radius-lg) border border-border bg-card p-3 hover:border-primary/40"
             >
               <div className="flex items-center justify-between px-1 pb-2">
                 <span className="text-meta font-semibold text-foreground">
@@ -110,7 +110,7 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {HERO_DEVICE_THUMBS.map((thumb) => (
-                  <figure key={thumb.label} className="overflow-hidden rounded-lg">
+                  <figure key={thumb.label} className="overflow-hidden rounded-(--radius-lg)">
                     <PetImage
                       src={thumb.src}
                       alt={thumb.label}
@@ -133,7 +133,7 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
 
 function HeroStatCard({ stat }: { stat: HeroStat }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-(--radius-lg) border border-border bg-card p-4">
       <dt className="text-xs tracking-wide text-muted-foreground">
         {stat.label}
       </dt>

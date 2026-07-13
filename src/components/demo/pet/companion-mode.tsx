@@ -19,7 +19,7 @@ export function CompanionMode() {
     >
       <div className="grid gap-5 lg:grid-cols-[280px_1fr]">
         {/* 每日可爱视频 */}
-        <div className="border border-border bg-card shadow-editorial flex flex-col items-center gap-4 rounded-lg p-5">
+        <div className="border border-border bg-card shadow-editorial flex flex-col items-center gap-4 rounded-(--radius-lg) p-5">
           <p className="self-start inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
             <Sparkles size={14} /> 每日可爱视频
           </p>
@@ -38,7 +38,7 @@ export function CompanionMode() {
 
         <div className="grid gap-5 sm:grid-cols-2">
           {/* 宠物日记 */}
-          <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-lg sm:col-span-2">
+          <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-(--radius-lg) sm:col-span-2">
             <div className="flex flex-col sm:flex-row">
               <div className="relative h-44 w-full overflow-hidden sm:h-auto sm:w-48 sm:shrink-0">
                 <PetImage
@@ -77,7 +77,7 @@ export function CompanionMode() {
           </div>
 
           {/* 心情卡 */}
-          <div className="border border-border bg-card shadow-editorial relative overflow-hidden rounded-lg p-5">
+          <div className="border border-border bg-card shadow-editorial relative overflow-hidden rounded-(--radius-lg) p-5">
             <p className="text-xs font-semibold text-primary">
               心情卡
             </p>
@@ -90,7 +90,7 @@ export function CompanionMode() {
           </div>
 
           {/* 桌面小宠物 */}
-          <div className="border border-border bg-card shadow-editorial flex flex-col justify-between rounded-lg p-5">
+          <div className="border border-border bg-card shadow-editorial flex flex-col justify-between rounded-(--radius-lg) p-5">
             <div>
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
                 <MonitorSmartphone size={14} /> {desktopPet.title}

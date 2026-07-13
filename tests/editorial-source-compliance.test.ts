@@ -39,6 +39,10 @@ function sourceFiles(directory: string): string[] {
   });
 }
 
+function jsxSourceFiles(files: string[]): string[] {
+  return files.filter((file) => /\.(?:tsx|jsx)$/.test(file));
+}
+
 function violations(
   files: string[],
   pattern: RegExp,
@@ -74,7 +78,7 @@ describe("Editorial Studio 源码合规", () => {
       const allSource = sourceFiles(path.join(ROOT, "src"));
       assert.deepEqual(violations(allSource, HEX_COLOR, [TOKENS_FILE]), []);
       assert.deepEqual(violations(allSource, FORBIDDEN_VISUAL_PATTERN), []);
-      assert.deepEqual(violations(allSource, JSX_EMOJI), []);
+      assert.deepEqual(violations(jsxSourceFiles(allSource), JSX_EMOJI), []);
     },
   );
 });

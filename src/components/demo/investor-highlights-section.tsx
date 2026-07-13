@@ -37,7 +37,7 @@ export function InvestorHighlightsSection() {
         {INVESTOR_SECTION.metrics.map((metric) => (
           <div
             key={metric.label}
-            className="rounded-lg border border-primary/20 bg-card p-5"
+            className="rounded-(--radius-lg) border border-primary/20 bg-card p-5"
           >
             <p className="text-meta font-semibold uppercase tracking-[0.22em] text-primary/85">
               {metric.label}
@@ -59,10 +59,10 @@ export function InvestorHighlightsSection() {
         {INVESTOR_SECTION.pillars.map((pillar, idx) => (
           <div
             key={pillar.title}
-            className="rounded-lg border border-border bg-card p-6"
+            className="rounded-(--radius-lg) border border-border bg-card p-6"
           >
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <div className="flex h-10 w-10 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
                 <span className="font-mono text-sm font-semibold">
                   {String(idx + 1).padStart(2, "0")}
                 </span>
@@ -79,7 +79,7 @@ export function InvestorHighlightsSection() {
       </div>
 
       {/* Roadmap — 4 阶段 */}
-      <div className="mt-10 rounded-lg border border-border bg-card p-6 sm:p-8">
+      <div className="mt-10 rounded-(--radius-lg) border border-border bg-card p-6 sm:p-8">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
@@ -101,7 +101,7 @@ export function InvestorHighlightsSection() {
       </div>
 
       {/* Bottom — 创始人 + CTA */}
-      <div className="mt-8 grid gap-4 rounded-lg border border-primary/25 bg-primary/5 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
+      <div className="mt-8 grid gap-4 rounded-(--radius-lg) border border-primary/25 bg-primary/5 p-6 sm:p-8 lg:grid-cols-[1.4fr_1fr] lg:items-center">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
             创始人 · Founder
@@ -164,7 +164,7 @@ const STATUS_STYLES: Record<
 function RoadmapCard({ item }: { item: InvestorRoadmapItem }) {
   const style = STATUS_STYLES[item.status];
   return (
-    <li className="flex h-full flex-col gap-3 rounded-lg border border-border bg-muted p-4">
+    <li className="flex h-full flex-col gap-3 rounded-(--radius-lg) border border-border bg-muted p-4">
       <span
         className={`inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-1 text-meta font-semibold uppercase tracking-[0.18em] ${style.tone}`}
       >

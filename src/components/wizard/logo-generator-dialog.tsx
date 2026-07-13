@@ -171,7 +171,7 @@ export function LogoGeneratorDialog({
                   type="button"
                   onClick={() => setStyle(key)}
                   className={cn(
-                    "rounded-md border px-3 py-1.5 text-xs transition-colors",
+                    "rounded-(--radius-md) border px-3 py-1.5 text-xs transition-colors",
                     style === key
                       ? "border-primary bg-primary/10 text-foreground"
                       : "border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/5",
@@ -228,7 +228,7 @@ export function LogoGeneratorDialog({
                     type="button"
                     onClick={() => setPickedUrl(url)}
                     className={cn(
-                      "group relative aspect-square overflow-hidden rounded-lg border-2 transition-all",
+                      "group relative aspect-square overflow-hidden rounded-(--radius-lg) border-2 transition-all",
                       picked
                         ? "border-primary ring-2 ring-primary/40"
                         : "border-white/10 hover:border-white/30",

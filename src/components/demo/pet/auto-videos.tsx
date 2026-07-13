@@ -29,7 +29,7 @@ function DraftCard({ draft }: { draft: AutoVideoDraftDemo }) {
       : "border-primary/30 bg-primary/10 text-primary";
 
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-lg p-4">
+    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-(--radius-lg) p-4">
       <div className="flex items-center justify-between gap-2">
         <span
           className={`rounded-full border px-2.5 py-1 text-meta font-semibold ${audienceStyle}`}

@@ -21,7 +21,7 @@ export function WhyNow() {
       {/* 口红效应 + 从养宠到情绪经济 */}
       <div className="grid gap-5 lg:grid-cols-2">
         {/* The New Lipstick Effect */}
-        <article className="border border-border bg-card shadow-editorial flex flex-col rounded-lg p-6">
+        <article className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-6">
           <BlockEyebrow en={s.lipstick.eyebrow} zh={s.lipstick.title} />
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             {s.lipstick.body}
@@ -30,7 +30,7 @@ export function WhyNow() {
             {s.lipstick.bullets.map((b) => (
               <div
                 key={b}
-                className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-2.5 text-xs font-medium text-foreground/85"
+                className="rounded-(--radius-lg) border border-primary/20 bg-primary/10 px-3 py-2.5 text-xs font-medium text-foreground/85"
               >
                 {b}
               </div>
@@ -42,7 +42,7 @@ export function WhyNow() {
         </article>
 
         {/* From Pet Care to Pet Emotion */}
-        <article className="border border-border bg-card shadow-editorial flex flex-col rounded-lg p-6">
+        <article className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-6">
           <BlockEyebrow en={s.emotion.eyebrow} zh={s.emotion.title} />
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             {s.emotion.body}
@@ -62,7 +62,7 @@ export function WhyNow() {
       </div>
 
       {/* Why Aivora */}
-      <article className="mt-5 rounded-lg border border-success bg-success/10 p-6 sm:p-8">
+      <article className="mt-5 rounded-(--radius-lg) border border-success bg-success/10 p-6 sm:p-8">
         <BlockEyebrow en={s.whyAivora.eyebrow} zh={s.whyAivora.title} />
         <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
           {s.whyAivora.body}
@@ -91,7 +91,7 @@ export function WhyNow() {
         <BlockEyebrow en={s.marketShift.eyebrow} zh={s.marketShift.title} />
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {s.marketShift.items.map((item) => (
-            <div key={item.index} className="border border-border bg-card shadow-editorial rounded-lg p-5">
+            <div key={item.index} className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl font-bold text-primary/70">
                   {item.index}
@@ -109,7 +109,7 @@ export function WhyNow() {
       </div>
 
       {/* Aivora's Timing · 五个趋势 */}
-      <div className="mt-8 rounded-lg border border-border bg-card p-6 sm:p-8">
+      <div className="mt-8 rounded-(--radius-lg) border border-border bg-card p-6 sm:p-8">
         <BlockEyebrow en={s.timing.eyebrow} zh={s.timing.title} />
         <p className="mt-3 text-sm leading-7 text-muted-foreground">
           {s.timing.intro}
@@ -118,7 +118,7 @@ export function WhyNow() {
           {s.timing.trends.map((t, i) => (
             <li
               key={t}
-              className="flex items-start gap-2.5 rounded-lg border border-border bg-background p-3 text-xs leading-6 text-foreground/85"
+              className="flex items-start gap-2.5 rounded-(--radius-lg) border border-border bg-background p-3 text-xs leading-6 text-foreground/85"
             >
               <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-meta font-bold text-primary">
                 {i + 1}
@@ -133,7 +133,7 @@ export function WhyNow() {
       </div>
 
       {/* Positioning Statement */}
-      <div className="mt-8 rounded-lg border border-primary/25 bg-card p-6 sm:p-10">
+      <div className="mt-8 rounded-(--radius-lg) border border-primary/25 bg-card p-6 sm:p-10">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
           Positioning Statement
         </p>
@@ -150,7 +150,7 @@ export function WhyNow() {
         {s.highlights.map((line) => (
           <p
             key={line}
-            className="flex items-start gap-2.5 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-7 text-foreground/85"
+            className="flex items-start gap-2.5 rounded-(--radius-lg) border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-7 text-foreground/85"
           >
             <Sparkles size={15} className="mt-1 shrink-0 text-primary" />
             {line}
@@ -182,7 +182,7 @@ function TagGroup({
   tone: "muted" | "accent";
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background p-3">
+    <div className="rounded-(--radius-lg) border border-border bg-background p-3">
       <p className="text-meta font-semibold text-muted-foreground">{label}</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         {items.map((it) => (

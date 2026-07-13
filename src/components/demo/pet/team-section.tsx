@@ -20,7 +20,7 @@ export function TeamSection() {
       </div>
 
       {s.whyFit ? (
-        <div className="mt-6 rounded-lg border border-success bg-success/10 p-6">
+        <div className="mt-6 rounded-(--radius-lg) border border-success bg-success/10 p-6">
           <h3 className="text-base font-semibold text-foreground">
             {s.whyFit.title}
           </h3>
@@ -31,7 +31,7 @@ export function TeamSection() {
             {s.whyFit.points.map((point) => (
               <div
                 key={point.title}
-                className="rounded-lg border border-border bg-card p-4"
+                className="rounded-(--radius-lg) border border-border bg-card p-4"
               >
                 <p className="text-sm font-semibold text-success">
                   {point.title}
@@ -55,8 +55,8 @@ export function TeamSection() {
 
 function MemberCard({ member }: { member: TeamMember }) {
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-lg p-6 sm:flex-row sm:items-start">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-primary text-xl font-bold text-primary-foreground shadow-editorial">
+    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-(--radius-lg) p-6 sm:flex-row sm:items-start">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-(--radius-lg) bg-primary text-xl font-bold text-primary-foreground shadow-editorial">
         {member.initials}
       </div>
       <div className="min-w-0">
@@ -82,7 +82,7 @@ function MemberCard({ member }: { member: TeamMember }) {
           ))}
         </ul>
         {member.value ? (
-          <p className="mt-3 rounded-lg border border-primary/25 bg-primary/10 p-3 text-xs leading-6 text-foreground/85">
+          <p className="mt-3 rounded-(--radius-lg) border border-primary/25 bg-primary/10 p-3 text-xs leading-6 text-foreground/85">
             {member.value}
           </p>
         ) : null}

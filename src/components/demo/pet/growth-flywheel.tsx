@@ -18,7 +18,7 @@ export function GrowthFlywheel() {
         </span>
       }
     >
-      <div className="border border-border bg-card shadow-editorial rounded-lg p-5 sm:p-6">
+      <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5 sm:p-6">
         {/*
           移动端：纵向流（节点之间用向下箭头）；xl 及以上：单行横向流（向右箭头）。
           连接箭头只在节点之间出现，避免在换行处出现指向空白的悬空箭头。
@@ -26,7 +26,7 @@ export function GrowthFlywheel() {
         <ol className="flex flex-col items-stretch gap-2 xl:flex-row xl:items-stretch xl:gap-1">
           {f.nodes.map((node, idx) => (
             <Fragment key={node.label}>
-              <li className="flex flex-col justify-center rounded-lg border border-border bg-background p-3 xl:min-w-0 xl:flex-1">
+              <li className="flex flex-col justify-center rounded-(--radius-lg) border border-border bg-background p-3 xl:min-w-0 xl:flex-1">
                 <div className="flex items-center gap-2">
                   <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-meta font-bold text-primary">
                     {idx + 1}

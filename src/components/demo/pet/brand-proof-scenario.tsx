@@ -27,7 +27,7 @@ export function BrandProofScenario() {
           />
         ))}
       </div>
-      <p className="mt-6 inline-flex items-center gap-2 rounded-lg border border-success bg-success/10 px-4 py-3 text-xs leading-6 text-foreground/80 sm:text-sm">
+      <p className="mt-6 inline-flex items-center gap-2 rounded-(--radius-lg) border border-success bg-success/10 px-4 py-3 text-xs leading-6 text-foreground/80 sm:text-sm">
         <Building2 size={16} className="shrink-0 text-success" />
         {s.pricingHint}
       </p>
@@ -46,9 +46,9 @@ function ScenarioStep({
 }) {
   const Icon = STEP_ICON[index] ?? Sparkles;
   return (
-    <div className="relative border border-border bg-card shadow-editorial flex flex-col rounded-lg p-5">
+    <div className="relative border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-5">
       <div className="flex items-center gap-2">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <span className="flex h-10 w-10 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
           <Icon size={18} />
         </span>
         <span className="text-meta font-semibold text-muted-foreground">

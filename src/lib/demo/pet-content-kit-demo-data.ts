@@ -322,7 +322,7 @@ export interface PetDiaryEntryDemo {
 export const petDiary: PetDiaryEntryDemo = {
   date: "今天 · 晴",
   mood: "元气满满",
-  moodEmoji: "🐾",
+  moodEmoji: "活力",
   imageUrl: "/demo/pet/diary-cover.png",
   body: "今天我七点就起来催饭啦！上午和逗猫棒大战三百回合，中午在窗边晒着太阳睡了好久。下午赖在我的新垫子上打滚，软软的好舒服～晚上听到你的声音，我抬头找了你好久。",
   highlights: ["催饭成功 1 次", "玩耍 48 分钟", "在智能垫上待了 3 小时"],
@@ -337,7 +337,7 @@ export interface MoodCardDemo {
 
 export const moodCard: MoodCardDemo = {
   mood: "今日心情：被宠爱",
-  emoji: "🧡",
+  emoji: "温暖",
   line: "“有人记得我的每一个可爱瞬间，真好。”",
   imageUrl: "/demo/pet/mood-card.png",
 };
@@ -377,7 +377,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     durationLabel: "30s · 9:16",
     petVoiceCaption: "今天的我，可爱依旧～",
     postTitle: "我家主子今天的高光时刻",
-    caption: "歪头、干饭、打滚，一个都没落下。每天的份可爱已送达 🐾",
+    caption: "歪头、干饭、打滚，一个都没落下。每天的份可爱已送达。",
     hashtags: ["#萌宠日常", "#我家有猫", "#治愈瞬间", "#Aivora"],
     posterUrl: "/demo/pet/moment-greeting.png",
     videoUrl: "/generated/pet-evidence-highlight.mp4",
@@ -1274,7 +1274,7 @@ export const BEFORE_AFTER = {
     durationLabel: "8s · 9:16 可发布",
     videoUrl: PET_EVIDENCE_CLIP.highlight,
     posterUrl: "/demo/pet/moment-greeting.png",
-    caption: "今天的我，可爱依旧 🐾",
+    caption: "今天的我，可爱依旧",
     notes: [
       "自动挑出最可爱、最值得分享的瞬间",
       "自动配宠物语气字幕 + 纯音乐 + 节奏",

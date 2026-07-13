@@ -17,12 +17,12 @@ export function CommunityPreview() {
     >
       <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
         {/* 宠物主页 */}
-        <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-lg">
+        <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
           <div className="relative h-28 w-full overflow-hidden bg-muted">
             <PetImage src={profile.coverUrl} alt="主页封面" fallbackLabel="" />
           </div>
           <div className="-mt-8 px-5 pb-5">
-            <div className="h-16 w-16 overflow-hidden rounded-lg border-4 border-card bg-muted">
+            <div className="h-16 w-16 overflow-hidden rounded-(--radius-lg) border-4 border-card bg-muted">
               <PetImage
                 src={profile.avatarUrl}
                 alt={profile.petName}
@@ -38,7 +38,7 @@ export function CommunityPreview() {
               {profile.stats.map((s) => (
                 <div
                   key={s.label}
-                  className="rounded-lg border border-border bg-background p-2.5 text-center"
+                  className="rounded-(--radius-lg) border border-border bg-background p-2.5 text-center"
                 >
                   <dd className="text-sm font-semibold text-foreground">
                     {s.value}
@@ -67,7 +67,7 @@ export function CommunityPreview() {
 
           <div className="grid gap-5 sm:grid-cols-[1fr_1fr]">
             {/* 挑战赛 */}
-            <div className="border border-border bg-card shadow-editorial rounded-lg p-5">
+            <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                 <Trophy size={14} /> 热门挑战赛
               </p>
@@ -75,7 +75,7 @@ export function CommunityPreview() {
                 {community.challenges.map((c) => (
                   <li
                     key={c.title}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2.5"
+                    className="flex items-center justify-between gap-2 rounded-(--radius-lg) border border-border bg-background px-3 py-2.5"
                   >
                     <div>
                       <p className="text-xs font-semibold text-foreground">
@@ -94,7 +94,7 @@ export function CommunityPreview() {
             </div>
 
             {/* 品牌试用 */}
-            <div className="border border-border bg-card shadow-editorial rounded-lg p-5">
+            <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
                 <Gift size={14} /> {community.brandTrial.title}
               </p>
@@ -121,7 +121,7 @@ export function CommunityPreview() {
 
 function FeedCard({ post }: { post: CommunityPostDemo }) {
   return (
-    <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-lg">
+    <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
       <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <PetImage src={post.coverUrl} alt={post.caption} fallbackLabel="" />
         {post.badge ? (

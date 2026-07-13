@@ -24,7 +24,7 @@ export function CollarPov() {
     >
       <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
         {/* 产品 + 模拟交互 */}
-        <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-lg">
+        <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-(--radius-lg)">
           <div className="bg-muted">
             <PetImage
               src={c.povImage}
@@ -64,7 +64,7 @@ export function CollarPov() {
 function PovStep({ step, index }: { step: CollarPovStepDemo; index: number }) {
   const Icon = STEP_ICON[index] ?? Sparkles;
   return (
-    <div className="border border-border bg-card shadow-editorial flex items-start gap-3 rounded-lg p-4">
+    <div className="border border-border bg-card shadow-editorial flex items-start gap-3 rounded-(--radius-lg) p-4">
       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
         <Icon size={16} />
       </span>

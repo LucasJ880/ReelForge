@@ -30,7 +30,7 @@ export function DetectedMoments() {
 
 function MomentCard({ moment }: { moment: DetectedMomentDemo }) {
   return (
-    <div className="border border-border bg-card shadow-editorial group overflow-hidden rounded-lg">
+    <div className="border border-border bg-card shadow-editorial group overflow-hidden rounded-(--radius-lg)">
       <div className="relative aspect-[4/5] w-full overflow-hidden">
         <PetImage
           src={moment.imageUrl}

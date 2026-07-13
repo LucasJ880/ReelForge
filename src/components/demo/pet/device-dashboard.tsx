@@ -37,9 +37,9 @@ export function DeviceDashboard() {
 function DeviceCard({ device }: { device: PetDeviceDemo }) {
   const Icon = DEVICE_ICON[device.key];
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col rounded-lg p-5">
+    <div className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-success/10 text-success">
+        <div className="flex h-12 w-12 items-center justify-center rounded-(--radius-lg) bg-success/10 text-success">
           <Icon size={22} />
         </div>
         <span
@@ -68,7 +68,7 @@ function DeviceCard({ device }: { device: PetDeviceDemo }) {
         {device.metrics.map((m) => (
           <div
             key={m.label}
-            className="rounded-lg border border-border bg-background p-3 text-center"
+            className="rounded-(--radius-lg) border border-border bg-background p-3 text-center"
           >
             <dt className="text-meta leading-4 text-muted-foreground">
               {m.label}

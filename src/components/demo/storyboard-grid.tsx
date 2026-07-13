@@ -39,7 +39,7 @@ export function StoryboardGrid() {
         ))}
       </div>
 
-      <p className="mt-6 rounded-lg border border-border bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground">
+      <p className="mt-6 rounded-(--radius-lg) border border-border bg-muted px-4 py-3 text-xs leading-5 text-muted-foreground">
         合计 {storyboardShots.length} 个镜头 · 总时长{" "}
         {storyboardShots.reduce((sum, s) => sum + s.durationSec, 0)} 秒 · 必拍{" "}
         {storyboardShots.filter((s) => s.requiredFlag).length} · 可选{" "}
@@ -50,7 +50,7 @@ export function StoryboardGrid() {
         （Phase 2）。
       </p>
 
-      <p className="mt-3 rounded-lg border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
+      <p className="mt-3 rounded-(--radius-lg) border border-primary/25 bg-primary/[0.07] px-4 py-3 text-xs leading-5 text-primary/90">
         选定方向、AI 脚本、分镜与质检通过的素材，会汇成 Sunny Shutter 30 秒主版本——下方
         <a
           href="#final-output"
@@ -80,7 +80,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
    */
   const thumbnailUrl = shot.visualPlaceholder.thumbnailUrl;
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-card">
+    <article className="flex h-full flex-col overflow-hidden rounded-(--radius-lg) border border-border bg-card">
       <div className="relative aspect-9/12 w-full overflow-hidden bg-muted">
         {thumbnailUrl ? (
           <>
@@ -131,7 +131,7 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
         ) : null}
 
         {shot.captionText ? (
-          <div className="absolute inset-x-3 bottom-3 rounded-md bg-foreground px-3 py-2 text-center text-xs leading-5 text-background ">
+          <div className="absolute inset-x-3 bottom-3 rounded-(--radius-md) bg-foreground px-3 py-2 text-center text-xs leading-5 text-background ">
             {shot.captionText}
           </div>
         ) : null}
@@ -148,13 +148,13 @@ function ShotCard({ shot }: { shot: StoryboardShotDemo }) {
           </h3>
         </div>
 
-        <div className="rounded-lg bg-muted p-3 text-xs leading-5">
+        <div className="rounded-(--radius-lg) bg-muted p-3 text-xs leading-5">
           <p className="font-medium text-foreground">运镜指令</p>
           <p className="mt-1 text-muted-foreground">{shot.cameraInstruction}</p>
         </div>
 
         {shot.voiceoverSegment ? (
-          <div className="rounded-lg bg-muted p-3 text-xs leading-5">
+          <div className="rounded-(--radius-lg) bg-muted p-3 text-xs leading-5">
             <p className="font-medium text-foreground">对应口播</p>
             <p className="mt-1 italic text-muted-foreground">
               “{shot.voiceoverSegment}”

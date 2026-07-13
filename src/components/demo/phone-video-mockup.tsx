@@ -94,13 +94,13 @@ export function PhoneVideoMockup({
   return (
     <div
       className={cn(
-        "relative mx-auto rounded-lg border border-border bg-foreground p-2 shadow-editorial",
+        "relative mx-auto rounded-(--radius-lg) border border-border bg-foreground p-2 shadow-editorial",
         sizeClassName ?? SIZE_CLASS[size],
         className,
       )}
     >
       <div className="absolute inset-x-1/2 top-2 z-10 flex h-5 w-24 -translate-x-1/2 items-center justify-center rounded-full bg-overlay" />
-      <div className="relative h-full w-full overflow-hidden rounded-lg bg-foreground">
+      <div className="relative h-full w-full overflow-hidden rounded-(--radius-lg) bg-foreground">
         {showVideo ? (
           <>
             <video
@@ -198,7 +198,7 @@ export function PhoneVideoMockup({
           </div>
         )}
         {caption ? (
-          <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-lg bg-foreground px-3 py-2 text-center text-xs leading-5 text-background ">
+          <div className="pointer-events-none absolute inset-x-3 bottom-3 rounded-(--radius-lg) bg-foreground px-3 py-2 text-center text-xs leading-5 text-background ">
             {caption}
           </div>
         ) : null}

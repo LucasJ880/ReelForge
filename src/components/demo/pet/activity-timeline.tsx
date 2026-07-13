@@ -45,10 +45,10 @@ function TimelineRow({ event }: { event: ActivityEventDemo }) {
       <span className="hidden w-12 shrink-0 pt-2 text-right text-xs font-semibold tabular-nums text-muted-foreground sm:block">
         {event.time}
       </span>
-      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-success">
+      <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-(--radius-lg) border border-border bg-card text-success">
         <Icon size={18} />
       </span>
-      <div className="border border-border bg-card shadow-editorial flex-1 rounded-lg p-4">
+      <div className="border border-border bg-card shadow-editorial flex-1 rounded-(--radius-lg) p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold tabular-nums text-muted-foreground sm:hidden">
             {event.time}

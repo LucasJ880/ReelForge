@@ -53,7 +53,7 @@ function CardOption({
       type="button"
       onClick={onSelect}
       className={cn(
-        "group relative flex h-full flex-col overflow-hidden rounded-lg border bg-card p-5 text-left",
+        "group relative flex h-full flex-col overflow-hidden rounded-(--radius-lg) border bg-card p-5 text-left",
         selected
           ? "border-primary/60 ring-2 ring-primary/40"
           : "border-border hover:border-border hover:bg-card",
@@ -127,7 +127,7 @@ function CardOption({
       </div>
 
       <p className="mt-auto pt-4">
-        <span className="block rounded-lg bg-muted p-3 text-xs leading-5 text-muted-foreground">
+        <span className="block rounded-(--radius-lg) bg-muted p-3 text-xs leading-5 text-muted-foreground">
           <TrendingUp size={12} className="mb-0.5 mr-1 inline text-primary" />
           {card.whyItWorks}
         </span>
@@ -159,7 +159,7 @@ function hookTypeZh(t: string): string {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-muted px-3 py-2">
+    <div className="rounded-(--radius-md) bg-muted px-3 py-2">
       <p className="text-meta uppercase tracking-[0.18em] text-muted-foreground">
         {label}
       </p>

@@ -82,7 +82,7 @@ export function ImageLightbox({
             src={src ?? undefined}
             alt={alt}
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[95vw] cursor-zoom-out rounded-lg object-contain shadow-editorial"
+            className="max-h-[90vh] max-w-[95vw] cursor-zoom-out rounded-(--radius-lg) object-contain shadow-editorial"
             draggable={false}
           />
         </div>

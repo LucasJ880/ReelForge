@@ -233,7 +233,7 @@ function DeckDots({
             <button
               type="button"
               onClick={() => onSelect(index)}
-              className="group flex min-h-8 items-center gap-2 rounded-md px-2 text-meta text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="group flex min-h-8 items-center gap-2 rounded-(--radius-md) px-2 text-meta text-muted-foreground hover:bg-muted hover:text-foreground"
               aria-current={index === active ? "true" : undefined}
               aria-label={`${index + 1}. ${slide.label}`}
             >
@@ -275,7 +275,7 @@ function DeckPager({
         type="button"
         onClick={onPrev}
         disabled={isFirst}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-(--radius-md) border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="上一页"
       >
         <ChevronUp size={18} />
@@ -284,7 +284,7 @@ function DeckPager({
         type="button"
         onClick={onNext}
         disabled={isLast}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-(--radius-md) border border-border bg-card text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         aria-label="下一页"
       >
         <ChevronDown size={18} />

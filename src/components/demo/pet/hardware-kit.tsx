@@ -26,7 +26,7 @@ export function HardwareKit() {
     >
       {/* 主视觉海报 + 投资人核心话术 */}
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
-        <figure className="overflow-hidden rounded-lg border border-border bg-card shadow-editorial">
+        <figure className="overflow-hidden rounded-(--radius-lg) border border-border bg-card shadow-editorial">
           <ImageLightbox
             src={s.heroImage}
             alt={s.heroImageAlt}
@@ -35,7 +35,7 @@ export function HardwareKit() {
             zoomHint="点击放大看数据细节"
           />
         </figure>
-        <div className="flex flex-col justify-center rounded-lg border border-success bg-success/10 p-6">
+        <div className="flex flex-col justify-center rounded-(--radius-lg) border border-success bg-success/10 p-6">
           <Quote size={26} className="text-success" />
           <p className="mt-3 text-lg font-semibold leading-8 text-foreground">
             {s.investorLine}
@@ -58,7 +58,7 @@ export function HardwareKit() {
 
 function ProductCard({ product }: { product: HardwareProductDemo }) {
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-lg">
+    <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-(--radius-lg)">
       <div className="relative bg-muted">
         <PetImage
           src={product.image}
@@ -97,7 +97,7 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
           ))}
         </ul>
 
-        <div className="mt-4 rounded-lg border border-border bg-background p-3">
+        <div className="mt-4 rounded-(--radius-lg) border border-border bg-background p-3">
           <p className="text-meta font-semibold text-foreground/70">
             市场验证参考（Market References）
           </p>
@@ -113,7 +113,7 @@ function ProductCard({ product }: { product: HardwareProductDemo }) {
           </div>
         </div>
 
-        <div className="mt-3 rounded-lg border border-success bg-success/10 p-3">
+        <div className="mt-3 rounded-(--radius-lg) border border-success bg-success/10 p-3">
           <p className="text-meta font-semibold text-success">
             Aivora 的差异化
           </p>

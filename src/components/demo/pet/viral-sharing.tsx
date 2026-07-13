@@ -18,9 +18,9 @@ export function ViralSharing() {
           {viralSharing.steps.map((step, i) => {
             const Icon = STEP_ICON[i] ?? Sparkles;
             return (
-              <div key={step.step} className="border border-border bg-card shadow-editorial rounded-lg p-5">
+              <div key={step.step} className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
                 <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
                     <Icon size={18} />
                   </span>
                   <span className="text-xs font-semibold text-muted-foreground">
@@ -39,7 +39,7 @@ export function ViralSharing() {
         </div>
 
         {/* 平台 + 水印 + 指标 */}
-        <div className="border border-border bg-card shadow-editorial flex flex-col gap-5 rounded-lg p-5">
+        <div className="border border-border bg-card shadow-editorial flex flex-col gap-5 rounded-(--radius-lg) p-5">
           <div>
             <p className="text-xs font-semibold text-success">
               一键分享到
@@ -56,7 +56,7 @@ export function ViralSharing() {
             </div>
           </div>
 
-          <div className="rounded-lg border border-primary/25 bg-primary/10 p-4">
+          <div className="rounded-(--radius-lg) border border-primary/25 bg-primary/10 p-4">
             <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
               <Droplet size={13} /> 自带水印 · 传播即获客
             </p>
@@ -69,7 +69,7 @@ export function ViralSharing() {
             {viralSharing.metrics.map((m) => (
               <div
                 key={m.label}
-                className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5"
+                className="flex items-center justify-between rounded-(--radius-lg) border border-border bg-background px-3 py-2.5"
               >
                 <dt className="text-meta text-muted-foreground">{m.label}</dt>
                 <dd className="text-sm font-semibold text-foreground">

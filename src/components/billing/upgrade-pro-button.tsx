@@ -28,7 +28,7 @@ export function UpgradeProButton({ disabled }: { disabled?: boolean }) {
         type="button"
         onClick={() => void onUpgrade()}
         disabled={disabled || loading}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
+        className="rounded-(--radius-md) bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50"
       >
         {loading ? "跳转中…" : "升级到 Pro"}
       </button>

@@ -112,7 +112,7 @@ function ReferenceCard({
   return (
     <article
       className={
-        "flex h-full flex-col overflow-hidden rounded-lg border-2 " +
+        "flex h-full flex-col overflow-hidden rounded-(--radius-lg) border-2 " +
         (highlighted
           ? "border-primary/55 bg-primary/6"
           : "border-border bg-card")
@@ -236,7 +236,7 @@ function Metric({
   value: string;
 }) {
   return (
-    <div className="rounded-md bg-muted px-2 py-1.5">
+    <div className="rounded-(--radius-md) bg-muted px-2 py-1.5">
       <p className="flex items-center gap-1 text-meta uppercase tracking-[0.18em] text-muted-foreground">
         {icon}
         {label}

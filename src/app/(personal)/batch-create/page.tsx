@@ -8,20 +8,20 @@ export default async function BatchCreatePage() {
   if (!session?.user?.id) redirect("/login?from=/batch-create");
 
   return (
-    <div className="space-y-6">
-      <header>
-        <p className="text-xs font-medium uppercase tracking-[0.18em] text-violet-300">
-          Batch Studio
+    <main className="space-y-10">
+      <header className="max-w-4xl space-y-4">
+        <p className="text-meta font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          Editorial Batch Studio
         </p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-white">
+        <h1 className="editorial-display">
           批量生成产品视频
         </h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+        <p className="max-w-2xl text-body leading-7 text-muted-foreground">
           一次上传最多 50 张产品图，锁定一个风格模板，并发生产最多 200
           条视频。全程可监控，失败任务可保留原素材单独重试。
         </p>
       </header>
       <BatchCreateWizard />
-    </div>
+    </main>
   );
 }

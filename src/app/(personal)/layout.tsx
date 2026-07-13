@@ -1,4 +1,3 @@
-import { GlassBackground } from "@/components/glass/glass-background";
 import { PersonalGlassShell } from "@/components/personal/personal-glass-shell";
 import { requirePersonaPage } from "@/lib/api-auth";
 
@@ -9,8 +8,7 @@ export default async function PersonalLayout({
 }) {
   const session = await requirePersonaPage(["PERSONAL"], "/personal");
   return (
-    <div className="aivora-glass relative min-h-screen">
-      <GlassBackground />
+    <div className="min-h-screen bg-background">
       <PersonalGlassShell email={session?.user?.email ?? null}>
         {children}
       </PersonalGlassShell>

@@ -5,17 +5,17 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex w-fit shrink-0 items-center gap-2 whitespace-nowrap text-meta font-medium text-muted-foreground before:size-1.5 before:rounded-full before:bg-current focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&>svg]:pointer-events-none [&>svg]:size-3 [&>svg]:stroke-[1.5]",
+  "group/badge inline-flex w-fit shrink-0 items-center gap-2 whitespace-nowrap text-meta font-medium text-foreground before:size-1.5 before:rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&>svg]:pointer-events-none [&>svg]:size-3 [&>svg]:stroke-[1.5]",
   {
     variants: {
       variant: {
-        default: "text-primary",
-        secondary: "text-muted-foreground",
-        destructive: "text-danger",
-        success: "text-success",
-        warning: "text-warning",
-        outline: "text-foreground",
-        ghost: "text-muted-foreground",
+        default: "before:bg-primary",
+        secondary: "text-muted-foreground before:bg-muted-foreground",
+        destructive: "before:bg-danger",
+        success: "before:bg-success",
+        warning: "before:bg-warning",
+        outline: "before:bg-foreground",
+        ghost: "text-muted-foreground before:bg-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
     },

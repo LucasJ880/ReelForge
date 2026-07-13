@@ -7,24 +7,27 @@ import {
   Bot,
   Clapperboard,
   Film,
-  NotebookText,
+  Layers3,
   LogOut,
+  NotebookText,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface NavItem {
   href: string;
   label: string;
   icon: typeof Bot;
-  /// 高亮匹配用的路径前缀；"__never__" 表示永不高亮（query 变体入口）
   match?: string;
 }
 
 const NAV: NavItem[] = [
   { href: "/personal/agent", label: "Agent", icon: Bot },
   { href: "/personal/create-video", label: "创作", icon: Clapperboard },
+  { href: "/batch-create", label: "批量", icon: Layers3, match: "/batch" },
   { href: "/personal/videos", label: "成片库", icon: Film },
-  { href: "/personal/templates", label: "提示词库", icon: NotebookText },
+  { href: "/personal/templates", label: "模板", icon: NotebookText },
 ];
 
 const PAGE_TITLES: Array<[string, string]> = [
@@ -33,20 +36,70 @@ const PAGE_TITLES: Array<[string, string]> = [
   ["/personal/videos", "成片库"],
   ["/personal/templates", "提示词库"],
   ["/personal/billing", "用量与账单"],
+  ["/batch-create", "批量生产"],
+  ["/batches", "批次监控"],
+  ["/design", "设计系统"],
   ["/personal", "创作"],
 ];
 
 function pageTitle(pathname: string): string {
   for (const [prefix, title] of PAGE_TITLES) {
-    if (pathname === prefix || pathname.startsWith(prefix + "/")) return title;
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return title;
   }
   return "创作";
 }
 
-/**
- * 个人通道液态玻璃外壳（对齐同行）：
- * 左侧 64px 图标导航栏 + 顶栏（版本 / 今日余额 / 状态 / 退出）+ 内容区。
- */
+function isActive(pathname: string, item: NavItem): boolean {
+  if (item.match === "/batch") {
+    return pathname === "/batch-create" || pathname.startsWith("/batches/");
+  }
+  const base = item.match ?? item.href;
+  return pathname === base || pathname.startsWith(`${base}/`);
+}
+
+function Navigation({
+  pathname,
+  mobile = false,
+}: {
+  pathname: string;
+  mobile?: boolean;
+}) {
+  return (
+    <nav
+      aria-label={mobile ? "个人移动导航" : "个人主导航"}
+      className={cn(
+        mobile
+          ? "grid h-16 grid-cols-5 border-t border-border bg-card"
+          : "flex flex-1 flex-col gap-1 px-3 py-5",
+      )}
+    >
+      {NAV.map((item) => {
+        const Icon = item.icon;
+        const active = isActive(pathname, item);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "flex items-center text-meta font-medium transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
+              mobile
+                ? "flex-col justify-center gap-1 px-1"
+                : "h-10 gap-3 rounded-(--radius-md) px-3",
+              active
+                ? "bg-accent-soft text-foreground"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4 stroke-[1.5]" aria-hidden />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function PersonalGlassShell({
   children,
   email,
@@ -59,75 +112,72 @@ export function PersonalGlassShell({
   const userEmail = email ?? session?.user?.email ?? "";
 
   return (
-    <div className="relative z-10 flex min-h-screen">
-      {/* 左侧图标导航栏 */}
-      <aside className="sticky top-0 flex h-screen w-[68px] shrink-0 flex-col items-center gap-1.5 border-r border-white/8 bg-black/35 py-3 backdrop-blur-xl">
+    <div className="relative z-10 flex min-h-screen bg-background text-foreground">
+      <aside className="sticky top-0 hidden h-screen w-56 shrink-0 flex-col border-r border-border bg-card md:flex">
         <Link
           href="/personal/agent"
-          className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/40 bg-gradient-to-b from-sky-400/50 to-blue-600/50 shadow-[0_6px_18px_rgba(37,99,235,0.45)]"
-          title="Aivora"
+          className="flex h-20 items-center gap-3 border-b border-border px-5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring"
+          aria-label="Aivora 首页"
         >
-          <Clapperboard className="h-5 w-5 text-white" />
+          <span className="flex size-10 items-center justify-center rounded-(--radius-md) border border-primary bg-primary text-primary-foreground">
+            <Clapperboard className="size-5 stroke-[1.5]" aria-hidden />
+          </span>
+          <span>
+            <span className="block font-heading text-subhead">Aivora</span>
+            <span className="block text-meta text-muted-foreground">
+              Editorial Studio
+            </span>
+          </span>
         </Link>
-        {NAV.map((item) => {
-          const Icon = item.icon;
-          const matchBase = item.match ?? item.href;
-          const active =
-            matchBase !== "__never__" &&
-            (pathname === matchBase || pathname.startsWith(matchBase + "/"));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex w-[58px] flex-col items-center gap-1 rounded-xl px-1 py-2 text-center transition-colors",
-                active
-                  ? "border border-white/15 bg-white/12 text-white"
-                  : "border border-transparent text-white/45 hover:bg-white/8 hover:text-white/85",
-              )}
-            >
-              <Icon className="h-[18px] w-[18px]" />
-              <span className="text-[10px] leading-tight">{item.label}</span>
-            </Link>
-          );
-        })}
+        <Navigation pathname={pathname} />
+        <div className="space-y-3 border-t border-border p-4">
+          <p className="truncate text-meta text-muted-foreground" title={userEmail}>
+            {userEmail || "个人创作者"}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full justify-start"
+            onClick={() => signOut({ callbackUrl: "/login" })}
+          >
+            <LogOut aria-hidden />
+            退出登录
+          </Button>
+        </div>
       </aside>
 
-      {/* 右侧：顶栏 + 内容 */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-white/8 bg-black/30 px-4 backdrop-blur-xl">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-semibold tracking-tight text-white">
+      <div className="flex min-w-0 flex-1 flex-col pb-16 md:pb-0">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-border bg-card px-4 md:px-8">
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/personal/agent"
+              className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) border border-primary bg-primary text-primary-foreground md:hidden"
+              aria-label="Aivora 首页"
+            >
+              <Clapperboard className="size-5 stroke-[1.5]" aria-hidden />
+            </Link>
+            <p className="truncate font-heading text-subhead">
               {pageTitle(pathname)}
-            </span>
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="glass-chip">v1.0</span>
-            <Link href="/personal/billing" className="glass-chip hover:bg-white/12">
+          <div className="flex items-center gap-3">
+            <Badge variant="success">服务就绪</Badge>
+            <Link
+              href="/personal/billing"
+              className="hidden text-meta font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:inline"
+            >
               用量与账单
             </Link>
-            <span className="glass-chip">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              就绪
-            </span>
-            <span className="glass-chip hidden sm:inline-flex" title={userEmail}>
-              {userEmail.split("@")[0] || "trial"}
-            </span>
-            <button
-              type="button"
-              onClick={() => signOut({ callbackUrl: "/login" })}
-              className="glass-chip cursor-pointer text-sky-300 hover:bg-white/12"
-            >
-              <LogOut className="h-3 w-3" />
-              退出
-            </button>
           </div>
         </header>
-        <main className="min-w-0 flex-1 overflow-y-auto">
-          <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8">
-            {children}
-          </div>
+
+        <main className="min-w-0 flex-1">
+          <div className="editorial-page">{children}</div>
         </main>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-30 md:hidden">
+        <Navigation pathname={pathname} mobile />
       </div>
     </div>
   );

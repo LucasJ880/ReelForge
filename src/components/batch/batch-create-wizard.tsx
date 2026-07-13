@@ -12,6 +12,17 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
@@ -221,298 +232,395 @@ export function BatchCreateWizard() {
         : true;
 
   return (
-    <div className="space-y-6">
-      <ol className="grid grid-cols-4 gap-2" aria-label="批量创建步骤">
-        {STEPS.map((label, index) => (
-          <li
-            key={label}
-            className={`rounded-xl border px-3 py-3 text-center text-xs ${
-              index === step
-                ? "border-violet-400/50 bg-violet-500/15 text-white"
-                : index < step
-                  ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
-                : "border-white/10 bg-white/3 text-white/45"
-            }`}
-          >
-            <span className="mr-1.5">{index < step ? "✓" : index + 1}</span>
-            {label}
-          </li>
-        ))}
-      </ol>
+    <div className="space-y-8 [&_svg]:stroke-[1.5]">
+      <div className="space-y-4">
+        <Progress
+          value={((step + 1) / STEPS.length) * 100}
+          aria-label={`批量创建进度：第 ${step + 1} 步，共 ${STEPS.length} 步`}
+        />
+        <ol
+          className="grid grid-cols-2 gap-2 sm:grid-cols-4"
+          aria-label="批量创建步骤"
+        >
+          {STEPS.map((label, index) => {
+            const isCurrent = index === step;
+            const isComplete = index < step;
+
+            return (
+              <li
+                key={label}
+                aria-current={isCurrent ? "step" : undefined}
+                className={`flex min-w-0 items-center gap-2 rounded-(--radius-md) border px-3 py-3 text-meta transition-colors duration-fast motion-reduce:transition-none ${
+                  isCurrent
+                    ? "border-primary bg-accent-soft text-foreground"
+                    : "border-border bg-card text-muted-foreground"
+                }`}
+              >
+                {isComplete ? (
+                  <Check className="size-4 shrink-0 text-success" aria-hidden />
+                ) : (
+                  <span className="w-4 shrink-0 text-center tabular-nums">
+                    {index + 1}
+                  </span>
+                )}
+                <span className="truncate">{label}</span>
+                {isCurrent && (
+                  <Badge className="ml-auto hidden sm:inline-flex">当前</Badge>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      </div>
 
       {error && (
-        <div
-          role="alert"
-          className="rounded-xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm text-red-100"
-        >
-          {error}
-        </div>
+        <Card size="sm" role="alert" className="border-danger">
+          <CardContent className="text-meta text-danger">{error}</CardContent>
+        </Card>
       )}
 
-      <section className="glass-card min-h-[480px] p-6">
+      <Card>
         {step === 0 && (
-          <div className="space-y-5">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              onDragEnter={(event) => {
-                event.preventDefault();
-                setDragging(true);
-              }}
-              onDragOver={(event) => event.preventDefault()}
-              onDragLeave={() => setDragging(false)}
-              onDrop={(event) => {
-                event.preventDefault();
-                setDragging(false);
-                addFiles(Array.from(event.dataTransfer.files));
-              }}
-              className={`flex w-full flex-col items-center justify-center rounded-2xl border border-dashed px-6 py-12 transition ${
-                dragging
-                  ? "border-violet-300 bg-violet-500/15"
-                  : "border-white/20 bg-white/3 hover:bg-white/6"
-              }`}
-            >
-              <UploadCloud className="mb-3 size-8 text-violet-300" />
-              <span className="text-sm font-medium text-white">
-                拖入产品图片，或点击选择
-              </span>
-              <span className="mt-1 text-xs text-white/45">
-                PNG / JPG / WEBP，最多 50 张，并发上传 4 张
-              </span>
-            </button>
-            <input
-              ref={inputRef}
-              hidden
-              multiple
-              accept="image/png,image/jpeg,image/webp"
-              type="file"
-              onChange={(event) => {
-                addFiles(Array.from(event.target.files ?? []));
-                event.target.value = "";
-              }}
-            />
-            <div className="flex items-center justify-between text-xs text-white/55">
-              <span>{uploads.length}/50 张</span>
-              <span>
-                已完成 {uploaded.length} · 上传中{" "}
-                {
-                  uploads.filter((item) => item.status === "uploading").length
-                }{" "}
-                · 失败{" "}
-                {uploads.filter((item) => item.status === "failed").length}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
-              {uploads.map((item) => (
-                <div
-                  key={item.localId}
-                  className="group relative aspect-square overflow-hidden rounded-xl border border-white/10 bg-black/30"
+          <>
+            <CardHeader>
+              <CardTitle>添加产品素材</CardTitle>
+              <CardDescription>
+                支持 PNG、JPG、WEBP，最多 50 张，并发上传 4 张。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <Card
+                size="sm"
+                className={
+                  dragging ? "border-primary bg-accent-soft" : "border-dashed"
+                }
+              >
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => inputRef.current?.click()}
+                  onDragEnter={(event) => {
+                    event.preventDefault();
+                    setDragging(true);
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    setDragging(false);
+                    addFiles(Array.from(event.dataTransfer.files));
+                  }}
+                  className="h-auto w-full flex-col whitespace-normal px-6 py-10 text-center motion-reduce:transition-none"
                 >
-                  <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url("${item.previewUrl}")` }}
+                  <UploadCloud
+                    className="mb-1 size-7 text-muted-foreground"
+                    aria-hidden
                   />
-                  <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1.5 py-1 text-[10px] text-white">
-                    {item.status === "uploading" && (
-                      <span className="flex items-center gap-1">
-                        <Loader2 className="size-3 animate-spin" /> 上传中
-                      </span>
-                    )}
-                    {item.status === "uploaded" && (
-                      <span className="flex items-center gap-1 text-emerald-300">
-                        <Check className="size-3" /> 已上传
-                      </span>
-                    )}
-                    {item.status === "failed" && (
-                      <button
-                        type="button"
-                        className="flex items-center gap-1 text-red-300"
-                        onClick={() => void uploadOne(item)}
-                      >
-                        <RefreshCw className="size-3" /> 重传
-                      </button>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    aria-label={`删除 ${item.file.name}`}
-                    onClick={() => removeUpload(item.localId)}
-                    className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                  <span className="text-body text-foreground">
+                    拖入产品图片，或点击选择
+                  </span>
+                  <span className="text-meta font-normal text-muted-foreground">
+                    文件会在选择后立即上传
+                  </span>
+                </Button>
+              </Card>
+              <input
+                ref={inputRef}
+                hidden
+                multiple
+                accept="image/png,image/jpeg,image/webp"
+                type="file"
+                onChange={(event) => {
+                  addFiles(Array.from(event.target.files ?? []));
+                  event.target.value = "";
+                }}
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
+                <span>{uploads.length}/50 张</span>
+                <span>
+                  已完成 {uploaded.length} · 上传中{" "}
+                  {
+                    uploads.filter((item) => item.status === "uploading").length
+                  }{" "}
+                  · 失败{" "}
+                  {uploads.filter((item) => item.status === "failed").length}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-5 lg:grid-cols-8">
+                {uploads.map((item) => (
+                  <div
+                    key={item.localId}
+                    className="group relative aspect-square overflow-hidden rounded-(--radius-md) border border-border bg-muted"
                   >
-                    <X className="size-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+                    <div
+                      role="img"
+                      aria-label={item.file.name}
+                      className="absolute inset-0 bg-cover bg-center"
+                      style={{ backgroundImage: `url("${item.previewUrl}")` }}
+                    />
+                    <div className="absolute inset-x-0 bottom-0 bg-overlay px-1.5 py-1 text-[10px] text-primary-foreground">
+                      {item.status === "queued" && <span>等待上传</span>}
+                      {item.status === "uploading" && (
+                        <span className="flex items-center gap-1">
+                          <Loader2
+                            className="size-3 animate-spin motion-reduce:animate-none"
+                            aria-hidden
+                          />
+                          上传中
+                        </span>
+                      )}
+                      {item.status === "uploaded" && (
+                        <span className="flex items-center gap-1">
+                          <Check className="size-3" aria-hidden />
+                          已上传
+                        </span>
+                      )}
+                      {item.status === "failed" && (
+                        <button
+                          type="button"
+                          className="flex items-center gap-1 text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          onClick={() => void uploadOne(item)}
+                        >
+                          <RefreshCw className="size-3" aria-hidden />
+                          重传
+                        </button>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      aria-label={`删除 ${item.file.name}`}
+                      onClick={() => removeUpload(item.localId)}
+                      className="absolute right-1 top-1 rounded-(--radius-sm) bg-overlay p-1 text-primary-foreground opacity-100 transition-opacity duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+                    >
+                      <X className="size-3" aria-hidden />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </>
         )}
 
         {step === 1 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {templates.map((template) => (
-              <button
-                type="button"
-                key={template.id}
-                onClick={() => setTemplateId(template.id)}
-                className={`overflow-hidden rounded-2xl border text-left transition ${
-                  template.id === templateId
-                    ? "border-violet-400/60 bg-violet-500/15 ring-2 ring-violet-400/20"
-                    : "border-white/10 bg-white/3 hover:border-white/25"
-                }`}
-              >
-                <div
-                  className="h-32 bg-cover bg-center"
-                  style={{ backgroundImage: `url("${template.coverImage}")` }}
-                />
-                <div className="space-y-2 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium text-white">
-                      {template.nameZh}
-                    </span>
-                    <span className="text-[10px] text-white/40">
-                      v{template.version}
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/50">{template.category}</p>
-                  <p className="text-xs text-violet-200/80">
-                    每条 {template.imagesPerVideo.min}
-                    {template.imagesPerVideo.max !==
-                      template.imagesPerVideo.min &&
-                      `-${template.imagesPerVideo.max}`}{" "}
-                    张 · {template.lockedParams.duration}s ·{" "}
-                    {template.lockedParams.aspectRatio}
-                  </p>
-                </div>
-              </button>
-            ))}
-          </div>
+          <>
+            <CardHeader>
+              <CardTitle>选择统一风格</CardTitle>
+              <CardDescription>
+                一个批次锁定一个模板版本，确保输出视觉一致。
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {templates.map((template) => {
+                  const isSelected = template.id === templateId;
+
+                  return (
+                    <Card
+                      key={template.id}
+                      size="sm"
+                      className={
+                        isSelected ? "border-primary bg-accent-soft" : ""
+                      }
+                    >
+                      <button
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => setTemplateId(template.id)}
+                        className="text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                      >
+                        <div
+                          role="img"
+                          aria-label={`${template.nameZh}模板预览`}
+                          className="h-32 bg-muted bg-cover bg-center"
+                          style={{
+                            backgroundImage: `url("${template.coverImage}")`,
+                          }}
+                        />
+                        <div className="space-y-2 p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="font-heading text-subhead text-foreground">
+                              {template.nameZh}
+                            </span>
+                            <Badge
+                              variant={isSelected ? "default" : "secondary"}
+                            >
+                              v{template.version}
+                            </Badge>
+                          </div>
+                          <p className="text-meta text-muted-foreground">
+                            {template.category}
+                          </p>
+                          <p className="text-meta text-foreground">
+                            每条 {template.imagesPerVideo.min}
+                            {template.imagesPerVideo.max !==
+                              template.imagesPerVideo.min &&
+                              `-${template.imagesPerVideo.max}`}{" "}
+                            张 · {template.lockedParams.duration}s ·{" "}
+                            {template.lockedParams.aspectRatio}
+                          </p>
+                        </div>
+                      </button>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </>
         )}
 
         {step === 2 && (
-          <div className="mx-auto max-w-2xl space-y-8 py-10">
-            <div>
+          <>
+            <CardHeader>
+              <CardTitle>设定生产规模</CardTitle>
+              <CardDescription>
+                可选填产品名称，并确认本批次需要生成的视频数量。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mx-auto w-full max-w-2xl space-y-8">
               <label
                 htmlFor="product-name"
-                className="mb-2 block text-sm font-medium text-white"
+                className="grid gap-2 text-meta font-medium text-foreground"
               >
                 产品名称（可选）
+                <Input
+                  id="product-name"
+                  value={productName}
+                  maxLength={200}
+                  onChange={(event) => setProductName(event.target.value)}
+                  placeholder="例如：Aivora 智能水杯"
+                />
               </label>
-              <input
-                id="product-name"
-                value={productName}
-                maxLength={200}
-                onChange={(event) => setProductName(event.target.value)}
-                placeholder="例如：Aivora 智能水杯"
-                className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-violet-400"
-              />
-            </div>
-            <div>
-              <div className="mb-3 flex items-center justify-between">
-                <label htmlFor="batch-count" className="text-sm text-white">
-                  生成数量
-                </label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <label
+                    htmlFor="batch-count"
+                    className="text-meta font-medium text-foreground"
+                  >
+                    生成数量
+                  </label>
+                  <Input
+                    aria-label="生成数量输入"
+                    type="number"
+                    min={1}
+                    max={200}
+                    value={count}
+                    onChange={(event) =>
+                      setCount(
+                        Math.min(
+                          200,
+                          Math.max(1, Number(event.target.value) || 1),
+                        ),
+                      )
+                    }
+                    className="w-24 text-right tabular-nums"
+                  />
+                </div>
                 <input
-                  aria-label="生成数量输入"
-                  type="number"
+                  id="batch-count"
+                  type="range"
                   min={1}
                   max={200}
                   value={count}
-                  onChange={(event) =>
-                    setCount(
-                      Math.min(
-                        200,
-                        Math.max(1, Number(event.target.value) || 1),
-                      ),
-                    )
-                  }
-                  className="w-24 rounded-lg border border-white/15 bg-white/5 px-3 py-2 text-right text-lg font-semibold text-white"
+                  onChange={(event) => setCount(Number(event.target.value))}
+                  className="w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 />
               </div>
-              <input
-                id="batch-count"
-                type="range"
-                min={1}
-                max={200}
-                value={count}
-                onChange={(event) => setCount(Number(event.target.value))}
-                className="w-full accent-violet-500"
-              />
-            </div>
-            <div className="rounded-2xl border border-violet-400/20 bg-violet-500/10 p-5">
-              <div className="flex items-center gap-3">
-                <Images className="size-6 text-violet-300" />
-                <div>
-                  <p className="font-medium text-white">
-                    {uploaded.length} 张图 × {count} 条视频
-                  </p>
-                  <p className="mt-1 text-sm text-white/55">
-                    每张图约使用 {perImage} 次 ·{" "}
-                    {formatEstimate(estimateSeconds)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+              <Card size="sm">
+                <CardContent className="flex items-start gap-3">
+                  <Images
+                    className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      {uploaded.length} 张图 × {count} 条视频
+                    </p>
+                    <p className="mt-1 text-meta text-muted-foreground">
+                      每张图约使用 {perImage} 次 ·{" "}
+                      {formatEstimate(estimateSeconds)}
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </CardContent>
+          </>
         )}
 
         {step === 3 && selectedTemplate && (
-          <div className="mx-auto max-w-2xl space-y-5 py-8">
-            <h2 className="text-xl font-semibold text-white">确认批次</h2>
-            {[
-              ["产品图片", `${uploaded.length} 张（已全部上传 CDN）`],
-              [
-                "风格模板",
-                `${selectedTemplate.nameZh} · v${selectedTemplate.version}`,
-              ],
-              ["生成数量", `${count} 条`],
-              ["平均覆盖", `每张图片约 ${perImage} 次`],
-              ["预计耗时", formatEstimate(estimateSeconds)],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between border-b border-white/10 py-3 text-sm"
-              >
-                <span className="text-white/50">{label}</span>
-                <span className="font-medium text-white">{value}</span>
-              </div>
-            ))}
-            <p className="rounded-xl bg-white/4 p-4 text-xs leading-6 text-white/45">
-              提交后素材分配、模板版本和 seed 将被持久化。单条失败不会阻塞其他视频，可在监控页单独或批量重试。
-            </p>
-          </div>
+          <>
+            <CardHeader>
+              <CardTitle>确认批次</CardTitle>
+              <CardDescription>
+                提交前复核素材、模板与生产规模。
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="mx-auto w-full max-w-2xl space-y-5">
+              <dl className="divide-y divide-border">
+                {[
+                  ["产品图片", `${uploaded.length} 张（已全部上传 CDN）`],
+                  [
+                    "风格模板",
+                    `${selectedTemplate.nameZh} · v${selectedTemplate.version}`,
+                  ],
+                  ["生成数量", `${count} 条`],
+                  ["平均覆盖", `每张图片约 ${perImage} 次`],
+                  ["预计耗时", formatEstimate(estimateSeconds)],
+                ].map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="grid gap-1 py-3 text-meta sm:grid-cols-[8rem_1fr] sm:items-center"
+                  >
+                    <dt className="text-muted-foreground">{label}</dt>
+                    <dd className="font-medium text-foreground sm:text-right">
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <p className="rounded-(--radius-md) bg-muted p-4 text-meta leading-6 text-muted-foreground">
+                提交后素材分配、模板版本和 seed
+                将被持久化。单条失败不会阻塞其他视频，可在监控页单独或批量重试。
+              </p>
+            </CardContent>
+          </>
         )}
-      </section>
+      </Card>
 
-      <div className="flex items-center justify-between">
-        <button
+      <div className="flex items-center justify-between gap-4">
+        <Button
           type="button"
+          variant="outline"
           disabled={step === 0 || submitting}
           onClick={() => setStep((current) => Math.max(0, current - 1))}
-          className="glass-btn inline-flex items-center gap-1 text-xs disabled:opacity-40"
         >
-          <ChevronLeft className="size-4" /> 上一步
-        </button>
+          <ChevronLeft aria-hidden />
+          上一步
+        </Button>
         {step < STEPS.length - 1 ? (
-          <button
+          <Button
             type="button"
             disabled={!canContinue}
             onClick={() =>
               setStep((current) => Math.min(STEPS.length - 1, current + 1))
             }
-            className="glass-btn-primary inline-flex items-center gap-1 text-xs disabled:opacity-40"
           >
-            下一步 <ChevronRight className="size-4" />
-          </button>
+            下一步
+            <ChevronRight aria-hidden />
+          </Button>
         ) : (
-          <button
+          <Button
             type="button"
             disabled={submitting}
             onClick={() => void submit()}
-            className="glass-btn-primary inline-flex items-center gap-2 text-xs disabled:opacity-50"
           >
-            {submitting && <Loader2 className="size-4 animate-spin" />}
+            {submitting && (
+              <Loader2
+                className="animate-spin motion-reduce:animate-none"
+                aria-hidden
+              />
+            )}
             创建 {count} 条视频
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -3,6 +3,15 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { BusinessPageHeader } from "@/components/business/business-page-header";
 import { BusinessMetricsForm } from "@/components/business/business-metrics-form";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { authOptions } from "@/lib/auth";
 import { getServerTranslator } from "@/i18n/server";
 import { listBusinessVideosForMetrics } from "@/lib/services/business-metrics-import";
@@ -48,65 +57,58 @@ export default async function IntegrationsPage() {
         subtitle={t("shell.integrations.subtitle")}
       />
 
-      <section className="rounded-xl border border-white/10 bg-card/30 p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">
-          {t("shell.integrations.metricsTitle")}
-        </h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {t("shell.integrations.metricsSubtitle")}
-        </p>
-        <div className="mt-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>{t("shell.integrations.metricsTitle")}</CardTitle>
+          <CardDescription>
+            {t("shell.integrations.metricsSubtitle")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <BusinessMetricsForm videos={videos} />
-        </div>
-      </section>
+        </CardContent>
+      </Card>
 
-      <ul className="space-y-3">
+      <ul className="grid gap-4 lg:grid-cols-3">
         {platforms.map((p) => (
-          <li
-            key={p.id}
-            className="rounded-xl border border-white/10 bg-card/30 p-5"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="font-semibold">{p.name}</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {p.description}
-                </p>
-              </div>
-              <span
-                className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  p.status === "manual"
-                    ? "bg-sky-500/15 text-sky-300"
-                    : "bg-slate-500/15 text-slate-400"
-                }`}
-              >
+          <li key={p.id}>
+            <Card className="h-full" size="sm">
+              <CardHeader>
+                <CardTitle>{p.name}</CardTitle>
+                <CardDescription>{p.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Badge variant={p.status === "manual" ? "default" : "secondary"}>
                 {p.status === "manual"
                   ? t("shell.integrations.statusSelfServe")
                   : t("shell.badgeSoon")}
-              </span>
-            </div>
+                </Badge>
+              </CardContent>
+            </Card>
           </li>
         ))}
       </ul>
 
-      <div className="rounded-xl border border-dashed border-white/15 bg-card/20 p-6 text-sm text-muted-foreground">
-        <p>
+      <Card size="sm">
+        <CardContent className="pt-2 text-body text-muted-foreground">
           {t("shell.integrations.footer")}{" "}
-          <Link
-            href="/business/performance"
-            className="text-primary hover:underline"
+          <Button
+            render={<Link href="/business/performance" />}
+            variant="link"
+            className="h-auto px-1"
           >
             {t("shell.businessNav.performance")}
-          </Link>
+          </Button>
           {" · "}
-          <Link
-            href="/business/recommendations"
-            className="text-primary hover:underline"
+          <Button
+            render={<Link href="/business/recommendations" />}
+            variant="link"
+            className="h-auto px-1"
           >
             {t("shell.businessNav.recommendations")}
-          </Link>
-        </p>
-      </div>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

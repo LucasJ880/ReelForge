@@ -477,6 +477,38 @@ export async function sampleFps(page: Page, durationMs = 1_000): Promise<number>
   );
 }
 
+export async function sampleScrollFps(
+  page: Page,
+  selector: string,
+  durationMs = 1_000,
+): Promise<number> {
+  return page.evaluate(
+    ({ targetSelector, duration }) =>
+      new Promise<number>((resolve, reject) => {
+        const target = document.querySelector<HTMLElement>(targetSelector);
+        if (!target) {
+          reject(new Error(`滚动目标不存在：${targetSelector}`));
+          return;
+        }
+        let frames = 0;
+        const started = performance.now();
+        const maxScroll = Math.max(0, target.scrollHeight - target.clientHeight);
+        const frame = (now: number) => {
+          frames += 1;
+          const elapsed = now - started;
+          target.scrollTop = maxScroll * Math.min(1, elapsed / duration);
+          if (elapsed >= duration) {
+            resolve((frames * 1_000) / elapsed);
+            return;
+          }
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      }),
+    { targetSelector: selector, duration: durationMs },
+  );
+}
+
 export function runKey(testInfo: TestInfo, journey: string): string {
   const runId = process.env.FINAL_ACCEPTANCE_RUN_ID ?? "missing-run-id";
   return `${runId}-${journey}-${testInfo.project.name}`;

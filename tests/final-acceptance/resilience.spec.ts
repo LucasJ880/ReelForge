@@ -38,7 +38,7 @@ test.afterEach(() => {
   delete process.env.DISPATCH_BREAKER_UNHEALTHY_RATE;
 });
 
-test("J6：无需 cron，UI 可见 watchdog timeout 与 provider stall", async ({
+test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async ({
   page,
   evidence,
 }, testInfo) => {
@@ -93,7 +93,7 @@ test("J6：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
   ).toEqual([]);
 });
 
-test("J7：高失败夹具触发 open/paused/half-open/resume 并清理", async ({
+test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async ({
   page,
 }, testInfo) => {
   process.env.DISPATCH_BREAKER_ENABLED = "true";

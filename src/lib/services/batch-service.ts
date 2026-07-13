@@ -38,6 +38,29 @@ import {
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
 const PROVIDER_FAILURE_PREFIX = "[provider:failed]";
+const SERIALIZABLE_RETRY_LIMIT = 3;
+
+function isSerializableConflict(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    return error.code === "P2034";
+  }
+  const message = error instanceof Error ? error.message : String(error);
+  return /write conflict|deadlock/i.test(message);
+}
+
+async function withSerializableRetry<T>(
+  operation: () => Promise<T>,
+  retryLimit = SERIALIZABLE_RETRY_LIMIT,
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!isSerializableConflict(error) || attempt >= retryLimit) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
+    }
+  }
+}
 
 function providerConcurrency(): number {
   return Math.max(1, Math.floor(Number(process.env.PROVIDER_CONCURRENCY ?? "10")));
@@ -342,53 +365,55 @@ async function claimJobs(args: {
 }): Promise<Array<VideoJob & { claimOwner: string }>> {
   if (args.maxClaims <= 0) return [];
   const owner = randomUUID();
-  return db.$transaction(
-    async (tx) => {
-      const batchProvider = await tx.videoJob.findFirst({
-        where: { batchJobId: args.batchId },
-        select: { provider: true },
-      });
-      if (!batchProvider) return [];
-      // active provider jobs（已提交 + 正在提交）共同占用并发槽。
-      const active = await tx.videoJob.count({
-        where: {
-          status: VideoJobStatus.RUNNING,
-          provider: batchProvider.provider,
-        },
-      });
-      const slots = Math.max(
-        0,
-        Math.min(args.maxClaims, providerConcurrency() - active),
-      );
-      if (slots === 0) return [];
-      const candidates = await tx.videoJob.findMany({
-        where: {
-          batchJobId: args.batchId,
-          status: VideoJobStatus.QUEUED,
-          OR: [{ availableAt: null }, { availableAt: { lte: args.now } }],
-        },
-        orderBy: { batchIndex: "asc" },
-        take: slots,
-      });
-      const claimed: Array<VideoJob & { claimOwner: string }> = [];
-      for (const job of candidates) {
-        const result = await tx.videoJob.updateMany({
-          where: { id: job.id, status: VideoJobStatus.QUEUED },
-          data: {
+  return withSerializableRetry(() =>
+    db.$transaction(
+      async (tx) => {
+        const batchProvider = await tx.videoJob.findFirst({
+          where: { batchJobId: args.batchId },
+          select: { provider: true },
+        });
+        if (!batchProvider) return [];
+        // active provider jobs（已提交 + 正在提交）共同占用并发槽。
+        const active = await tx.videoJob.count({
+          where: {
             status: VideoJobStatus.RUNNING,
-            leaseOwner: owner,
-            leaseExpiresAt: new Date(args.now.getTime() + LEASE_MS),
-            heartbeatAt: args.now,
-            timeoutAt: new Date(
-              args.now.getTime() + videoJobDeadlineMin() * 60_000,
-            ),
+            provider: batchProvider.provider,
           },
         });
-        if (result.count > 0) claimed.push({ ...job, claimOwner: owner });
-      }
-      return claimed;
-    },
-    { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        const slots = Math.max(
+          0,
+          Math.min(args.maxClaims, providerConcurrency() - active),
+        );
+        if (slots === 0) return [];
+        const candidates = await tx.videoJob.findMany({
+          where: {
+            batchJobId: args.batchId,
+            status: VideoJobStatus.QUEUED,
+            OR: [{ availableAt: null }, { availableAt: { lte: args.now } }],
+          },
+          orderBy: { batchIndex: "asc" },
+          take: slots,
+        });
+        const claimed: Array<VideoJob & { claimOwner: string }> = [];
+        for (const job of candidates) {
+          const result = await tx.videoJob.updateMany({
+            where: { id: job.id, status: VideoJobStatus.QUEUED },
+            data: {
+              status: VideoJobStatus.RUNNING,
+              leaseOwner: owner,
+              leaseExpiresAt: new Date(args.now.getTime() + LEASE_MS),
+              heartbeatAt: args.now,
+              timeoutAt: new Date(
+                args.now.getTime() + videoJobDeadlineMin() * 60_000,
+              ),
+            },
+          });
+          if (result.count > 0) claimed.push({ ...job, claimOwner: owner });
+        }
+        return claimed;
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    ),
   );
 }
 
@@ -764,4 +789,6 @@ export const __test__ = {
   recoverExpiredLeases,
   claimJobs,
   applyBreaker,
+  isSerializableConflict,
+  withSerializableRetry,
 };

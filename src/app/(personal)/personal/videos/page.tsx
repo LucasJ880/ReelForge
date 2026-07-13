@@ -1,10 +1,21 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import Link from "next/link";
+import {
+  ArrowRight,
+  Download,
+  Layers3,
+  Plus,
+  RotateCcw,
+} from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getServerTranslator } from "@/i18n/server";
 import { PersonalVideosAutoRefresh } from "@/components/personal/personal-videos-auto-refresh";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import {
   customerSafeFinalVideoUrl,
   derivePersonalStatus,
@@ -40,20 +51,15 @@ interface PersonalVideoRow {
   cta: string | null;
 }
 
-const STATUS_CHIP_CLASS: Record<PersonalVideoStatus, string> = {
-  planning: "bg-slate-500/15 text-slate-300",
-  generating: "bg-amber-500/15 text-amber-300",
-  assembling: "bg-sky-500/15 text-sky-300",
-  ready: "bg-emerald-500/15 text-emerald-300",
-  failed: "bg-rose-500/15 text-rose-300",
-};
-
-const PROGRESS_BAR_CLASS: Record<PersonalVideoStatus, string> = {
-  planning: "bg-slate-400/60",
-  generating: "bg-amber-400/70",
-  assembling: "bg-sky-400/70",
-  ready: "bg-emerald-400/80",
-  failed: "bg-rose-400/60",
+const STATUS_BADGE_VARIANT: Record<
+  PersonalVideoStatus,
+  "default" | "secondary" | "destructive" | "success" | "warning"
+> = {
+  planning: "secondary",
+  generating: "warning",
+  assembling: "default",
+  ready: "success",
+  failed: "destructive",
 };
 
 async function loadPersonalVideoRows(
@@ -181,49 +187,66 @@ export default async function PersonalVideosPage() {
     }));
 
   return (
-    <div className="space-y-8">
+    <main className="min-w-0 space-y-10 [&_svg]:stroke-[1.5]">
       <PersonalVideosAutoRefresh targets={pollTargets} />
-      <header className="flex items-end justify-between">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight text-white">
+      <header className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl space-y-3">
+          <p className="text-meta font-semibold uppercase tracking-widest text-muted-foreground">
+            Editorial Video Library
+          </p>
+          <h1 className="editorial-display">
             {t("shell.personalNav.myVideos")}
           </h1>
-          <p className="mt-1 text-xs text-white/55">
+          <p className="max-w-2xl text-body text-muted-foreground">
             {t("shell.personalVideos.subtitle")}
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link href="/batch-create" className="glass-btn text-xs">
+        <div className="grid w-full gap-2 sm:flex sm:w-auto sm:flex-wrap">
+          <Button
+            render={<Link href="/batch-create" />}
+            variant="outline"
+            size="sm"
+          >
+            <Layers3 aria-hidden />
             批量生成
-          </Link>
-          <Link href="/personal/create-video" className="glass-btn-primary text-xs">
+          </Button>
+          <Button render={<Link href="/personal/create-video" />} size="sm">
+            <Plus aria-hidden />
             {t("shell.personalHome.createTitle")}
-          </Link>
+          </Button>
           {rows.length > 0 && (
-            <Link href="/personal/create-video?from=last" className="glass-btn text-xs">
+            <Button
+              render={<Link href="/personal/create-video?from=last" />}
+              variant="ghost"
+              size="sm"
+            >
+              <RotateCcw aria-hidden />
               {t("shell.creative.useLastPrompt")}
-            </Link>
+            </Button>
           )}
         </div>
       </header>
 
       {rows.length === 0 ? (
-        <div className="glass-card border-dashed p-12 text-center">
-          <h2 className="text-lg font-semibold tracking-tight text-white">
-            {t("shell.personalVideos.emptyTitle")}
-          </h2>
-          <p className="mt-2 text-sm text-white/55">
-            {t("shell.personalVideos.emptyBody")}
-          </p>
-          <Link
-            href="/personal/create-video"
-            className="glass-btn-primary mt-6 inline-flex text-xs"
-          >
-            {t("shell.personalVideos.emptyCta")}
-          </Link>
-        </div>
+        <Card>
+          <CardContent className="flex flex-col items-center py-16 text-center">
+            <h2 className="max-w-2xl font-heading text-section font-normal text-foreground">
+              {t("shell.personalVideos.emptyTitle")}
+            </h2>
+            <p className="mt-3 max-w-xl text-body text-muted-foreground">
+              {t("shell.personalVideos.emptyBody")}
+            </p>
+            <Button
+              render={<Link href="/personal/create-video" />}
+              className="mt-6"
+            >
+              <Plus aria-hidden />
+              {t("shell.personalVideos.emptyCta")}
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
-        <ul className="space-y-3">
+        <ul className="space-y-4" aria-label="个人视频列表">
           {rows.map((r) => {
             const isReady = r.status === "ready";
             const isFailed = r.status === "failed";
@@ -232,127 +255,128 @@ export default async function PersonalVideosPage() {
               r.status === "generating" || r.status === "assembling";
 
             return (
-              <li key={r.id} className="glass-card p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/personal/videos/${r.id}`}
-                        className="text-base font-semibold tracking-tight truncate hover:underline underline-offset-4"
-                      >
-                        {r.title}
-                      </Link>
-                      <span
-                        className={
-                          "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wider " +
-                          STATUS_CHIP_CLASS[r.status]
-                        }
-                      >
-                        {r.shortLabel}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
+              <li key={r.id}>
+                <Card size="sm">
+                  <CardContent className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start">
+                    {r.finalThumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={r.finalThumbnailUrl}
+                        alt={`${r.title} 视频缩略图`}
+                        className="h-28 w-full shrink-0 rounded-(--radius-md) border border-border object-cover sm:w-20"
+                      />
+                    ) : null}
+                    <div className="min-w-0 flex-1 space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+                          <Link
+                            href={`/personal/videos/${r.id}`}
+                            className="min-w-0 font-heading text-title font-normal text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                          >
+                            <span className="wrap-break-word">{r.title}</span>
+                          </Link>
+                          <Badge variant={STATUS_BADGE_VARIANT[r.status]}>
+                            {r.shortLabel}
+                          </Badge>
+                        </div>
+                        <p className="text-meta text-muted-foreground">
                       {isReadyButLinkPending
                         ? "正在准备视频链接，请稍候刷新"
                         : r.label}
                       {r.aspectRatio && r.durationSec ? (
-                        <span className="ml-2 opacity-70">
+                            <span className="ml-2">
                           · {r.aspectRatio} · {r.durationSec}s
                         </span>
                       ) : null}
                       {r.progressHintText ? (
-                        <span className="ml-2 opacity-70">
+                            <span className="ml-2">
                           · {r.progressHintText}
                         </span>
                       ) : null}
                     </p>
+                      </div>
 
                     {showProgressBar ? (
-                      <div className="mt-3 h-1 w-full max-w-[260px] overflow-hidden rounded-full bg-white/5">
-                        <div
-                          className={
-                            "h-full rounded-full transition-all " +
-                            PROGRESS_BAR_CLASS[r.status]
-                          }
-                          style={{
-                            width: `${Math.round(r.progressHint * 100)}%`,
-                          }}
+                        <Progress
+                          value={Math.round(r.progressHint * 100)}
+                          aria-label={`${r.title} 生成进度 ${Math.round(r.progressHint * 100)}%`}
                         />
-                      </div>
                     ) : null}
 
                     {isReady && r.finalVideoUrl ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <Link
-                          href={`/personal/videos/${r.id}`}
-                          className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                          <Button
+                            render={<Link href={`/personal/videos/${r.id}`} />}
+                            size="sm"
                         >
                           {r.cta ?? "查看视频"}
-                        </Link>
-                        <a
-                          href={r.finalVideoUrl}
-                          download
-                          className="inline-flex items-center rounded-md border border-white/15 bg-card/60 px-3 py-1.5 text-xs hover:bg-card/90 transition-colors"
+                            <ArrowRight aria-hidden />
+                          </Button>
+                          <Button
+                            render={<a href={r.finalVideoUrl} download />}
+                            variant="outline"
+                            size="sm"
                         >
+                            <Download aria-hidden />
                           下载视频
-                        </a>
-                        <Link
-                          href="/personal/create-video"
-                          className="inline-flex items-center rounded-md border border-white/10 bg-card/40 px-3 py-1.5 text-xs text-muted-foreground hover:bg-card/70 hover:text-foreground transition-colors"
+                          </Button>
+                          <Button
+                            render={<Link href="/personal/create-video" />}
+                            variant="ghost"
+                            size="sm"
                         >
                           再做一支
-                        </Link>
+                          </Button>
                       </div>
                     ) : null}
 
                     {!isReady && !isFailed ? (
-                      <Link
-                        href={`/personal/videos/${r.id}`}
-                        className="mt-3 inline-flex items-center text-xs text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+                        <Button
+                          render={<Link href={`/personal/videos/${r.id}`} />}
+                          variant="link"
+                          size="sm"
+                          className="px-0"
                       >
-                        查看分镜进度 →
-                      </Link>
+                          查看分镜进度
+                          <ArrowRight aria-hidden />
+                        </Button>
                     ) : null}
 
                     {isFailed ? (
-                      <div className="mt-3 flex flex-wrap items-center gap-3">
-                        <Link
-                          href={`/personal/videos/${r.id}`}
-                          className="inline-flex items-center rounded-md bg-rose-500/10 border border-rose-500/30 px-3 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 transition-colors"
+                        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                          <Button
+                            render={<Link href={`/personal/videos/${r.id}`} />}
+                            variant="destructive"
+                            size="sm"
                         >
                           重试失败片段
-                        </Link>
-                        <Link
-                          href="/personal/create-video"
-                          className="inline-flex items-center rounded-md bg-foreground text-background px-3 py-1.5 text-xs font-medium hover:bg-foreground/90 transition-colors"
+                          </Button>
+                          <Button
+                            render={<Link href="/personal/create-video" />}
+                            variant="outline"
+                            size="sm"
                         >
                           {r.cta ?? "重新生成"}
-                        </Link>
-                        <span className="text-[11px] text-muted-foreground">
+                          </Button>
+                          <span className="text-meta text-muted-foreground">
                           换个描述再试一次，效果通常会更好。
                         </span>
                       </div>
                     ) : null}
                   </div>
-                  <div className="text-right shrink-0">
-                    {r.finalThumbnailUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={r.finalThumbnailUrl}
-                        alt=""
-                        className="h-16 w-12 rounded object-cover border border-white/10"
-                      />
-                    ) : null}
-                    <span className="mt-2 block text-[10px] text-muted-foreground/60 uppercase tracking-wider">
+                    <time
+                      dateTime={r.updatedAt.toISOString()}
+                      className="shrink-0 text-meta text-muted-foreground sm:text-right"
+                    >
                       {new Date(r.updatedAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
+                    </time>
+                  </CardContent>
+                </Card>
               </li>
             );
           })}
         </ul>
       )}
-    </div>
+    </main>
   );
 }

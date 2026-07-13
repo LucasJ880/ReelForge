@@ -52,19 +52,28 @@ for (const route of EDITORIAL_ROUTES) {
     expect(focus?.outlineWidth).not.toBe("0px");
 
     if (testInfo.project.name === "desktop") {
-      await page.evaluate(() => {
-        document.documentElement.style.zoom = "2";
-      });
+      await page.setViewportSize({ width: 720, height: 1000 });
+      await page.waitForTimeout(50);
       const reflow = await page.evaluate(() => ({
         viewport: document.documentElement.clientWidth,
         document: document.documentElement.scrollWidth,
+        offenders: [...document.querySelectorAll<HTMLElement>("body *")]
+          .filter(
+            (element) =>
+              element.getBoundingClientRect().right >
+              document.documentElement.clientWidth + 1,
+          )
+          .slice(0, 8)
+          .map((element) => ({
+            tag: element.tagName,
+            className: element.className.toString().slice(0, 160),
+            right: Math.round(element.getBoundingClientRect().right),
+          })),
       }));
-      expect(reflow.document, "200% 缩放不得横向溢出").toBeLessThanOrEqual(
-        reflow.viewport + 1,
-      );
-      await page.evaluate(() => {
-        document.documentElement.style.zoom = "";
-      });
+      expect(
+        reflow.document,
+        `200% 缩放不得横向溢出：${JSON.stringify(reflow.offenders)}`,
+      ).toBeLessThanOrEqual(reflow.viewport + 1);
     }
 
     await page.emulateMedia({ reducedMotion: "reduce" });

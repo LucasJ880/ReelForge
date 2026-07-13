@@ -72,15 +72,15 @@ export default async function VideosPage() {
     .filter((x): x is NonNullable<typeof x> => x !== null);
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title={t("nav.videos")}
         description={t("video.subtitle")}
       />
 
       {items.length === 0 ? (
-        <Card className="p-10 text-center">
-          <p className="text-sm text-muted-foreground">
+        <Card className="p-8 text-center">
+          <p className="text-body text-muted-foreground">
             {t("video.libraryEmpty")}
           </p>
         </Card>
@@ -90,10 +90,10 @@ export default async function VideosPage() {
             <Link
               key={item.briefId}
               href={`/internal/orders/${item.orderId}`}
-              className="block"
+              className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <Card className="overflow-hidden transition-colors hover:ring-1 hover:ring-foreground/20">
-                <div className="relative aspect-9/16 w-full overflow-hidden bg-black">
+              <Card className="transition-colors duration-fast hover:border-foreground motion-reduce:transition-none">
+                <div className="relative aspect-9/16 w-full overflow-hidden bg-muted">
                   {item.thumb ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -108,15 +108,15 @@ export default async function VideosPage() {
                       className="h-full w-full object-cover"
                     />
                   )}
-                  <div className="absolute right-2 top-2 rounded bg-black/60 px-1.5 py-0.5 text-[10px] text-white">
+                  <div className="absolute right-2 top-2 rounded-(--radius-sm) bg-overlay px-2 py-1 text-meta text-card">
                     {item.duration}s
                   </div>
                 </div>
                 <div className="p-3">
-                  <p className="truncate text-sm font-medium text-foreground">
+                  <p className="truncate text-body font-medium text-foreground">
                     {item.orderTitle}
                   </p>
-                  <p className="truncate text-xs text-muted-foreground">
+                  <p className="truncate text-meta text-muted-foreground">
                     {item.title}
                   </p>
                 </div>

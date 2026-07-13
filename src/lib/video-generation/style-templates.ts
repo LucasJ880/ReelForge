@@ -83,6 +83,24 @@ export interface ConsistencyLock {
 
 export const CONSISTENCY_LOCKS: ConsistencyLock[] = [
   {
+    id: "lock_character_identity",
+    name: "人物身份锁",
+    description: "同一人物的脸、发型、年龄、服装与体型在全片保持一致",
+    icon: "人",
+    promptFragment:
+      "CHARACTER IDENTITY LOCK: every recurring person must keep the exact same face, age, hair, body proportions, outfit and accessories in every shot; do not swap, duplicate or restyle the cast.",
+    negativeFragment: "identity drift, face change, wardrobe change, duplicate person, age change",
+  },
+  {
+    id: "lock_scene_geometry",
+    name: "场景几何锁",
+    description: "同一空间的窗、家具、光源与物体位置跨镜头不漂移",
+    icon: "景",
+    promptFragment:
+      "SCENE GEOMETRY LOCK: keep one physically coherent location with unchanged windows, furniture, room proportions, prop positions and light direction across every cut.",
+    negativeFragment: "room geometry drift, moving windows, changing furniture, impossible camera rotation, teleporting props",
+  },
+  {
     id: "lock_product_shape",
     name: "产品锁形",
     description: "同一产品的几何/比例/材质在所有特写镜头中全程稳定",
@@ -239,6 +257,33 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
       shotPattern:
         "extreme macro of the material catching backlight → light rays diffuse through it in slow motion → the material sways gently in a breeze → rack focus revealing the full room bathed in filtered light → hand brushes the texture → tranquil closing wide at dusk with warm lamps",
       dialogueStyle: null,
+    },
+  },
+  {
+    id: "tpl_event_watch_party",
+    name: "赛事观看聚会",
+    category: "爆款广告",
+    icon: "赛",
+    description: "单一客厅、固定年轻人阵容、三段式赛事观看叙事，限制道具与机位以减少跑偏",
+    samplePrompt: "年轻人在同一间客厅观看世界杯：赛前准备、产品解决观看环境问题、进球庆祝，人物和房间全程一致。",
+    defaults: { durationSec: 15, language: "zh-CN" },
+    featured: true,
+    viral: true,
+    scaffold: {
+      characterHint:
+        "a fixed cast of three young adult friends, the exact same three people in every shot, each with a distinct simple solid-color outfit; natural expressions, no face-to-camera distortion",
+      environmentHint:
+        "ONE believable lived-in living room prepared for a football watch party; the same sofa, windows, screen direction, snack table and product remain fixed across all shots",
+      lightingHint:
+        "consistent soft daylight controlled by the product, with gentle screen ambience; faces remain evenly exposed with no hard bands of shadow",
+      styleKeywords:
+        "grounded watch-party realism, one coherent living room, fixed three-person cast, restrained social energy, readable product action, natural phone-camera texture, stable geometry, post-production captions only",
+      cameraLanguage:
+        "three stable eye-level setups: medium group shot, close product action, medium-wide payoff; straight cuts only, no overhead spins, no extreme close facial lens",
+      shotPattern:
+        "0-3s the same three friends settle into one living-room watch party → 3-8s one friend performs exactly one clear product action while the others stay spatially consistent → 8-13s the same group reacts naturally to the match from a stable medium-wide angle → 13-15s calm product-and-room payoff with clean space reserved for post text",
+      dialogueStyle: null,
+      nativeCaptions: { enabled: false, styleHint: "captions added in post only" },
     },
   },
   // ---- 电商产品 ----
@@ -524,6 +569,33 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
 export function getStyleTemplate(id: string | null | undefined): StyleTemplate | null {
   if (!id) return null;
   return STYLE_TEMPLATES.find((t) => t.id === id) ?? null;
+}
+
+export function recommendStyleTemplate(rawPrompt: string): StyleTemplate | null {
+  const prompt = rawPrompt.toLocaleLowerCase();
+  if (/(世界杯|world\s*cup|足球|football|soccer|看球|球赛|watch\s*party|match\s*day)/i.test(prompt)) {
+    return getStyleTemplate("tpl_event_watch_party");
+  }
+  if (/(痛点|困扰|problem|pain|解决|遮光|privacy|glare)/i.test(prompt)) {
+    return getStyleTemplate("tpl_viral_pain_solution");
+  }
+  if (/(口播|测评|review|ugc|达人|creator|selfie)/i.test(prompt)) {
+    return getStyleTemplate("tpl_ugc_review");
+  }
+  if (/(质感|材质|光影|texture|material|luxury|奢华|高级感)/i.test(prompt)) {
+    return getStyleTemplate("tpl_viral_sensory_texture");
+  }
+  if (/(广告|带货|product|产品|shop|购买|转化)/i.test(prompt)) {
+    return getStyleTemplate("tpl_viral_result_first");
+  }
+  return null;
+}
+
+export function resolveStyleTemplate(
+  requestedId: string | null | undefined,
+  rawPrompt: string,
+): StyleTemplate | null {
+  return getStyleTemplate(requestedId) ?? recommendStyleTemplate(rawPrompt);
 }
 
 export function getConsistencyLocks(ids: string[] | null | undefined): ConsistencyLock[] {

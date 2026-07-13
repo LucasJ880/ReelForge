@@ -7,6 +7,8 @@ import {
 } from "@/components/product-images/product-image-studio";
 import { authOptions } from "@/lib/auth";
 import { listProductImageJobsForUser } from "@/lib/services/product-image-service";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ export default async function ProductImagesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create/images");
   const rows = await listProductImageJobsForUser(session.user.id);
+  const copy = getPlatformCopy(await getServerLocale()).images;
   const jobs: ProductImageJobDto[] = rows.map((job) => ({
     id: job.id,
     mode: job.mode,
@@ -31,12 +34,10 @@ export default async function ProductImagesPage() {
   }));
   return (
     <div className="editorial-page-stack">
-      <header className="max-w-4xl space-y-4">
-        <p className="studio-label text-muted-foreground">Product Image Studio</p>
-        <h1 className="editorial-display">先把产品图做准，再批量出片</h1>
-        <p className="max-w-2xl text-body text-muted-foreground">
-          优化现有实拍图，或从描述生成新的产品视觉；风格预设锁定构图与光线，成品一键进入单条或批量视频。
-        </p>
+      <header className="studio-hero max-w-5xl space-y-4">
+        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
+        <h1 className="editorial-display">{copy.pageTitle}</h1>
+        <p className="max-w-2xl text-body text-muted-foreground">{copy.pageSubtitle}</p>
         <CreateModeTabs active="image" />
       </header>
       <ProductImageStudio initialJobs={jobs} />

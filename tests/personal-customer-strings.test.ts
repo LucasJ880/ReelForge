@@ -49,10 +49,14 @@ test("统一成品服务做 owner 隔离、安全状态映射与 URL 过滤", as
 
 test("统一成品页包含失败重试、支持提示与可行动空状态", async () => {
   const source = await readFile(path.join(ROOT, "src/app/(platform)/app/library/page.tsx"), "utf8");
+  const copy = await readFile(path.join(ROOT, "src/i18n/platform-copy.ts"), "utf8");
   assert.match(source, /row\.status === "failed"/);
-  assert.match(source, /重新生成/);
-  assert.match(source, /联系支持/);
-  assert.match(source, /还没有成片/);
+  assert.match(source, /copy\.regenerate/);
+  assert.match(source, /copy\.failed/);
+  assert.match(source, /copy\.empty/);
+  assert.match(copy, /重新生成/);
+  assert.match(copy, /联系支持/);
+  assert.match(copy, /还没有成片/);
   assert.match(source, /\/app\/templates/);
   assert.doesNotMatch(source, /\{\s*row\.status\s*\}/);
 });

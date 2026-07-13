@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { BatchCreateWizard } from "@/components/batch/batch-create-wizard";
 import { authOptions } from "@/lib/auth";
 import { findProductImageJobForUser } from "@/lib/services/product-image-service";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { getServerLocale } from "@/i18n/server";
 
 export default async function PlatformBatchCreatePage({
   searchParams,
@@ -22,16 +24,13 @@ export default async function PlatformBatchCreatePage({
         fileName: `Aivora-product-image-${job.id.slice(-6)}.png`,
       }]
     : [];
+  const copy = getPlatformCopy(await getServerLocale()).batches;
   return (
     <div className="editorial-page-stack">
       <header className="max-w-4xl space-y-4">
-        <p className="studio-label text-muted-foreground">
-          Batch Production
-        </p>
-        <h1 className="editorial-display">批量生产</h1>
-        <p className="max-w-2xl text-body text-muted-foreground">
-          锁定模板与素材分配，一次创建批次，并在统一监控页查看任务、分镜和失败原因。
-        </p>
+        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
+        <h1 className="editorial-display">{copy.title}</h1>
+        <p className="max-w-2xl text-body text-muted-foreground">{copy.newSubtitle}</p>
       </header>
       <BatchCreateWizard
         batchDetailsBasePath="/app/batches"

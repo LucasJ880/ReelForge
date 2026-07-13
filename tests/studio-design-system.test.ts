@@ -28,13 +28,13 @@ test("Studio theme：批准的暖色 token 与字体角色完整落地", async (
   assert.match(layout, /JetBrains_Mono/);
 });
 
-test("Studio theme：只作用于统一工作区，公开面保持 Editorial", async () => {
+test("Studio theme：统一工作区与认证入口均使用明确的深色主题边界", async () => {
   const [shell, authLayout] = await Promise.all([
     read("src/components/platform/platform-shell.tsx"),
     read("src/app/(auth)/layout.tsx"),
   ]);
   assert.match(shell, /className="studio-theme/);
-  assert.doesNotMatch(authLayout, /studio-theme/);
+  assert.match(authLayout, /className="auth-studio-theme/);
 });
 
 test("胶片计数条：五态齐全且 reduced-motion 有静态降级", async () => {

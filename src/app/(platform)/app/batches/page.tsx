@@ -7,18 +7,10 @@ import { db } from "@/lib/db";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_LABEL = {
-  EXPANDING: "正在展开",
-  RUNNING: "生成中",
-  PAUSED: "已暂停",
-  COMPLETED: "已完成",
-  PARTIAL_FAILED: "部分失败",
-  FAILED: "失败",
-  CANCELLED: "已取消",
-} as const;
 
 export default async function PlatformBatchesPage() {
   const session = await getServerSession(authOptions);
@@ -27,33 +19,33 @@ export default async function PlatformBatchesPage() {
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
     take: 50,
-    include: { template: { select: { nameZh: true, coverImage: true } } },
+    include: { template: { select: { name: true, nameZh: true, coverImage: true } } },
   }).catch(() => []);
+  const locale = await getServerLocale();
+  const copy = getPlatformCopy(locale).batches;
 
   return (
     <div className="editorial-page-stack min-w-0">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-3xl space-y-3">
-          <p className="studio-label text-muted-foreground">Batch production</p>
-          <h1 className="editorial-display">批量生产</h1>
-          <p className="max-w-2xl text-body text-muted-foreground">
-            从一条批次记录进入任务、分镜与失败分诊；状态与成本都保留在同一条生产链路。
-          </p>
+          <p className="studio-label text-muted-foreground">{copy.kicker}</p>
+          <h1 className="editorial-display">{copy.title}</h1>
+          <p className="max-w-2xl text-body text-muted-foreground">{copy.subtitle}</p>
         </div>
         <Button render={<Link href="/app/batches/new" />}>
-          <Plus aria-hidden />新建批次
+          <Plus aria-hidden />{copy.new}
         </Button>
       </header>
 
       {batches.length === 0 ? (
         <section className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
-          <p className="text-body text-muted-foreground">还没有批次。从模板库选一个风格开始。</p>
+          <p className="text-body text-muted-foreground">{copy.empty}</p>
           <Button render={<Link href="/app/templates" />} className="mt-5">
-            浏览模板库<ArrowRight aria-hidden />
+            {copy.browse}<ArrowRight aria-hidden />
           </Button>
         </section>
       ) : (
-        <ul className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2" aria-label="批次列表">
+        <ul className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2" aria-label={copy.listLabel}>
           {batches.map((batch) => {
             const queued = batch.queuedCount + batch.pausedCount;
             const variant = batch.status === "FAILED" ? "destructive" : batch.status === "COMPLETED" ? "success" : batch.status === "PARTIAL_FAILED" || batch.status === "PAUSED" ? "warning" : "default";
@@ -62,13 +54,14 @@ export default async function PlatformBatchesPage() {
                 <article className="group min-w-0 h-full rounded-(--radius-lg) border border-border bg-card p-5 transition-colors hover:border-border-strong">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="studio-label text-muted-foreground">{batch.template.nameZh}</p>
-                      <h2 className="mt-2 truncate font-heading text-subhead font-semibold">{batch.productName || "未命名批次"}</h2>
+                      <p className="studio-label text-muted-foreground">{locale === "en-US" ? batch.template.name : batch.template.nameZh}</p>
+                      <h2 className="mt-2 truncate font-heading text-subhead font-semibold">{batch.productName || copy.unnamed}</h2>
                     </div>
-                    <Badge variant={variant}>{STATUS_LABEL[batch.status]}</Badge>
+                    <Badge variant={variant}>{copy.statuses[batch.status]}</Badge>
                   </div>
                   <BatchFilmStrip
                     className="mt-6"
+                    locale={locale}
                     counts={{
                       completed: batch.completedCount,
                       generating: batch.runningCount,
@@ -79,15 +72,15 @@ export default async function PlatformBatchesPage() {
                   />
                   <div className="mt-5 grid grid-cols-[1fr_1fr_auto] items-end gap-4">
                     <div>
-                      <p className="studio-label text-muted-foreground">完成 / 总数</p>
+                      <p className="studio-label text-muted-foreground">{copy.completedTotal}</p>
                       <p className="mt-1 font-mono text-title font-semibold tabular-nums">{batch.completedCount}<span className="text-muted-foreground">/{batch.requestedCount}</span></p>
                     </div>
                     <div>
-                      <p className="studio-label text-muted-foreground">成本快照</p>
+                      <p className="studio-label text-muted-foreground">{copy.costSnapshot}</p>
                       <p className="mt-1 font-mono text-title font-semibold tabular-nums">$—</p>
                     </div>
-                    <Button render={<Link href={`/app/batches/${batch.id}`} />} variant="ghost" size="sm" aria-label={`查看批次 ${batch.id}`}>
-                      查看<ArrowRight aria-hidden />
+                    <Button render={<Link href={`/app/batches/${batch.id}`} />} variant="ghost" size="sm" aria-label={`${copy.view} ${batch.id}`}>
+                      {copy.view}<ArrowRight aria-hidden />
                     </Button>
                   </div>
                   <p className="mt-4 break-all border-t border-border pt-3 font-mono text-meta text-muted-foreground">

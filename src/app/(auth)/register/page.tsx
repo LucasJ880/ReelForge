@@ -13,9 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/i18n/useTranslation";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { locale } = useTranslation();
+  const copy = getPlatformCopy(locale).auth;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -36,7 +40,7 @@ export default function RegisterPage() {
       const data = await res.json().catch(() => null);
 
       if (!res.ok || !data?.ok) {
-        setError(typeof data?.error === "string" ? data.error : "注册失败，请稍后再试");
+        setError(typeof data?.error === "string" ? data.error : copy.registerFailed);
         setLoading(false);
         return;
       }
@@ -50,14 +54,14 @@ export default function RegisterPage() {
       setLoading(false);
 
       if (signInResult?.error) {
-        setError("注册成功但自动登录失败，请前往登录页手动登录");
+        setError(copy.autoLoginFailed);
         return;
       }
 
       router.push("/app/create");
       router.refresh();
     } catch {
-      setError("网络异常，请稍后再试");
+      setError(copy.networkError);
       setLoading(false);
     }
   }
@@ -65,14 +69,14 @@ export default function RegisterPage() {
   return (
     <>
       <CardHeader className="border-b border-border pb-5">
-        <CardTitle className="font-semibold">创建 Aivora 账号</CardTitle>
-        <CardDescription>一句话描述想法，AI 帮你完成短视频。</CardDescription>
+        <CardTitle className="font-semibold">{copy.registerTitle}</CardTitle>
+        <CardDescription>{copy.registerDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-meta font-medium">
-            邮箱
+            {copy.email}
             </label>
             <Input
               id="email"
@@ -88,7 +92,7 @@ export default function RegisterPage() {
 
           <div className="space-y-2">
             <label htmlFor="name" className="text-meta font-medium">
-            昵称（可选）
+            {copy.displayName}
             </label>
             <Input
               id="name"
@@ -97,13 +101,13 @@ export default function RegisterPage() {
               onChange={(event) => setName(event.target.value)}
               maxLength={80}
               autoComplete="name"
-              placeholder="给自己起个名字"
+              placeholder={copy.displayNamePlaceholder}
             />
           </div>
 
           <div className="space-y-2">
             <label htmlFor="password" className="text-meta font-medium">
-            密码（至少 8 位）
+            {copy.newPassword}
             </label>
             <Input
               id="password"
@@ -113,7 +117,7 @@ export default function RegisterPage() {
               required
               minLength={8}
               autoComplete="new-password"
-              placeholder="输入至少 8 位密码"
+              placeholder={copy.newPasswordPlaceholder}
               aria-invalid={Boolean(error)}
             />
           </div>
@@ -135,22 +139,22 @@ export default function RegisterPage() {
                 aria-hidden
               />
             ) : null}
-            {loading ? "创建中" : "创建账号"}
+            {loading ? copy.creating : copy.create}
           </Button>
         </form>
 
         <div className="space-y-3 border-t border-border pt-5 text-center">
           <p className="text-meta text-muted-foreground">
-            已经有账号？{" "}
+            {copy.hasAccount}{" "}
             <Link
               href="/login"
               className="font-medium text-foreground underline-offset-4 hover:underline"
             >
-              立即登录
+              {copy.loginNow}
             </Link>
           </p>
           <p className="text-meta leading-relaxed text-muted-foreground">
-            注册即代表你了解 AI 生成视频可能存在轻微随机性。
+            {copy.randomnessNote}
           </p>
         </div>
       </CardContent>

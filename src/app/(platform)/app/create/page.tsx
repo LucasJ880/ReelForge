@@ -5,15 +5,18 @@ import { UnifiedCreativeInputShell } from "@/components/video-generation/unified
 import { authOptions } from "@/lib/auth";
 import { findProductImageJobForUser } from "@/lib/services/product-image-service";
 import type { UploadedAsset } from "@/types/video-generation";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { getServerLocale } from "@/i18n/server";
 
 export default async function PlatformCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ productImageJobId?: string }>;
+  searchParams: Promise<{ productImageJobId?: string; styleTemplate?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const { productImageJobId } = await searchParams;
+  const [{ productImageJobId, styleTemplate }, locale] = await Promise.all([searchParams, getServerLocale()]);
+  const copy = getPlatformCopy(locale).create;
   const job = productImageJobId
     ? await findProductImageJobForUser(productImageJobId, session.user.id)
     : null;
@@ -31,23 +34,19 @@ export default async function PlatformCreatePage({
           height: null,
           durationSeconds: null,
           userAssignedRole: "product_image",
-          suggestedUse: "已从产品图工作台载入，可作为视频的产品一致性参考。",
+          suggestedUse: locale === "en-US" ? "Loaded from Product Image Studio as a product-consistency reference." : "已从产品图工作台载入，可作为视频的产品一致性参考。",
           warnings: [],
         }]
       : [];
   return (
     <div className="editorial-page-stack">
-      <header className="max-w-4xl space-y-4">
-        <p className="studio-label text-muted-foreground">
-          Agent Director
-        </p>
-        <h1 className="editorial-display">从一个想法到完整成片</h1>
-        <p className="max-w-2xl text-body text-muted-foreground">
-          上传产品素材，用自然语言描述目标；同一条流水线完成策划、分镜、生成与入库。
-        </p>
+      <header className="studio-hero max-w-5xl space-y-4">
+        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
+        <h1 className="editorial-display">{copy.title}</h1>
+        <p className="max-w-2xl text-body text-muted-foreground">{copy.subtitle}</p>
         <CreateModeTabs active="video" />
       </header>
-      <UnifiedCreativeInputShell userType="platform" initialAssets={initialAssets} />
+      <UnifiedCreativeInputShell userType="platform" initialAssets={initialAssets} initialStyleTemplateId={styleTemplate} />
     </div>
   );
 }

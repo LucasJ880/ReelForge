@@ -8,6 +8,8 @@ import type {
   QualityReview,
   VideoGenerationPlan,
 } from "@/types/video-generation";
+import { useTranslation } from "@/i18n/useTranslation";
+import type { Locale } from "@/i18n/config";
 
 interface PlanPreviewCardProps {
   plan: VideoGenerationPlan;
@@ -21,6 +23,8 @@ interface PlanPreviewCardProps {
  *   - 不展示原始 prompt 字符串（可能包含英文导演术语）
  */
 export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
+  const { locale } = useTranslation();
+  const isEn = locale === "en-US";
   const { planPreview, qualityReview } = plan;
   return (
     <Card>
@@ -29,7 +33,7 @@ export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
         <div className="flex items-center gap-2 text-muted-foreground">
           <Sparkles className="size-4" strokeWidth={1.5} aria-hidden />
           <span className="text-meta font-medium">
-            Generation plan
+            {isEn ? "Generation plan" : "生成方案"}
           </span>
         </div>
         <p className="text-body font-medium text-foreground">
@@ -37,28 +41,29 @@ export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
         </p>
       </header>
 
-      <PlanBreakdown preview={planPreview} />
+      <PlanBreakdown preview={planPreview} locale={locale} />
 
-      <QualityBlock review={qualityReview} />
+      <QualityBlock review={qualityReview} locale={locale} />
 
-      <SceneList plan={plan} />
+      <SceneList plan={plan} locale={locale} />
 
-      <NextStepHint canDispatch={qualityReview.canDispatch} />
+      <NextStepHint canDispatch={qualityReview.canDispatch} locale={locale} />
       </CardContent>
     </Card>
   );
 }
 
-function PlanBreakdown({ preview }: { preview: PlanPreview }) {
+function PlanBreakdown({ preview, locale }: { preview: PlanPreview; locale: Locale }) {
+  const isEn = locale === "en-US";
   const items: Array<{ label: string; value: string }> = [
-    { label: "AI scenes", value: String(preview.breakdown.aiClipCount) },
-    { label: "Your clips", value: String(preview.breakdown.uploadedClipCount) },
+    { label: isEn ? "AI scenes" : "AI 镜头", value: String(preview.breakdown.aiClipCount) },
+    { label: isEn ? "Your clips" : "自有片段", value: String(preview.breakdown.uploadedClipCount) },
     {
-      label: "End card",
-      value: preview.breakdown.hasBrandEndCard ? "Included" : "None",
+      label: isEn ? "End card" : "片尾",
+      value: preview.breakdown.hasBrandEndCard ? (isEn ? "Included" : "已包含") : (isEn ? "None" : "无"),
     },
-    { label: "Length", value: `${preview.breakdown.finalDurationSec}s` },
-    { label: "Format", value: orientationLabel(preview.breakdown.aspectRatio) },
+    { label: isEn ? "Length" : "时长", value: `${preview.breakdown.finalDurationSec}s` },
+    { label: isEn ? "Format" : "画幅", value: orientationLabel(preview.breakdown.aspectRatio, isEn) },
   ];
   return (
     <ul className="grid grid-cols-2 gap-3 text-meta sm:grid-cols-5">
@@ -77,14 +82,15 @@ function PlanBreakdown({ preview }: { preview: PlanPreview }) {
   );
 }
 
-function orientationLabel(ratio: string): string {
-  if (ratio === "9:16") return "9:16 vertical";
-  if (ratio === "16:9") return "16:9 horizontal";
-  if (ratio === "1:1") return "1:1 square";
+function orientationLabel(ratio: string, isEn: boolean): string {
+  if (ratio === "9:16") return isEn ? "9:16 vertical" : "9:16 竖屏";
+  if (ratio === "16:9") return isEn ? "16:9 horizontal" : "16:9 横屏";
+  if (ratio === "1:1") return isEn ? "1:1 square" : "1:1 方形";
   return ratio;
 }
 
-function QualityBlock({ review }: { review: QualityReview }) {
+function QualityBlock({ review, locale }: { review: QualityReview; locale: Locale }) {
+  const isEn = locale === "en-US";
   if (
     review.canDispatch &&
     review.warnings.length === 0 &&
@@ -94,7 +100,7 @@ function QualityBlock({ review }: { review: QualityReview }) {
       <div className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-muted p-3 text-body">
         <CheckCircle2 className="mt-0.5 size-4 text-success" strokeWidth={1.5} aria-hidden />
         <span className="text-foreground">
-          Ready to generate. Quality score {review.score}/100.
+          {isEn ? `Ready to generate. Quality score ${review.score}/100.` : `可以生成。质量评分 ${review.score}/100。`}
         </span>
       </div>
     );
@@ -105,7 +111,7 @@ function QualityBlock({ review }: { review: QualityReview }) {
         <div className="rounded-(--radius-md) border border-danger bg-card p-3">
           <div className="flex items-center gap-2 text-body text-danger">
             <AlertTriangle className="size-4" strokeWidth={1.5} aria-hidden />
-            <strong>Please fix before generating:</strong>
+            <strong>{isEn ? "Please fix before generating:" : "生成前需要修正："}</strong>
           </div>
           <ul className="mt-2 space-y-1 text-meta text-danger">
             {review.blockers.map((b, i) => (
@@ -118,7 +124,7 @@ function QualityBlock({ review }: { review: QualityReview }) {
         <div className="rounded-(--radius-md) border border-warning bg-card p-3">
           <div className="flex items-center gap-2 text-body text-warning">
             <Info className="size-4" strokeWidth={1.5} aria-hidden />
-            <strong>Heads up</strong>
+            <strong>{isEn ? "Heads up" : "请注意"}</strong>
           </div>
           <ul className="mt-2 space-y-1 text-meta text-warning">
             {review.warnings.map((w, i) => (
@@ -131,7 +137,7 @@ function QualityBlock({ review }: { review: QualityReview }) {
         <div className="rounded-(--radius-md) border border-border bg-muted p-3">
           <div className="flex items-center gap-2 text-body text-muted-foreground">
             <Info className="size-4" strokeWidth={1.5} aria-hidden />
-            <strong>Suggestions</strong>
+            <strong>{isEn ? "Suggestions" : "优化建议"}</strong>
           </div>
           <ul className="mt-2 space-y-1 text-meta text-muted-foreground">
             {review.suggestions.map((s, i) => (
@@ -142,26 +148,26 @@ function QualityBlock({ review }: { review: QualityReview }) {
       )}
       {review.canDispatch && review.warnings.length > 0 && (
         <p className="text-meta text-muted-foreground">
-          Score {review.score}/100. You can still continue &mdash; the notes above are
-          friendly suggestions, not blockers.
+          {isEn ? `Score ${review.score}/100. You can continue; the notes above are suggestions, not blockers.` : `评分 ${review.score}/100。仍可继续；以上是建议，不会阻止生成。`}
         </p>
       )}
     </div>
   );
 }
 
-function SceneList({ plan }: { plan: VideoGenerationPlan }) {
+function SceneList({ plan, locale }: { plan: VideoGenerationPlan; locale: Locale }) {
+  const isEn = locale === "en-US";
   return (
     <details className="rounded-(--radius-md) border border-border bg-card">
       <summary className="cursor-pointer px-3 py-2 text-meta font-medium text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-        Scene breakdown ({plan.segments.length})
+        {isEn ? "Scene breakdown" : "镜头拆解"} ({plan.segments.length})
       </summary>
       <ul className="space-y-3 px-3 py-3 text-meta">
         {plan.segments.map((s, idx) => (
           <li key={s.id} className="border-l-2 border-border pl-3">
             <div className="flex items-center gap-2">
               <Badge variant="secondary">
-                Scene {idx + 1} &middot; {humanSceneType(s.type)}
+                {isEn ? "Scene" : "镜头"} {idx + 1} &middot; {humanSceneType(s.type, isEn)}
               </Badge>
               <span className="text-meta text-muted-foreground">
                 {s.durationSeconds}s
@@ -175,33 +181,33 @@ function SceneList({ plan }: { plan: VideoGenerationPlan }) {
   );
 }
 
-function humanSceneType(type: string): string {
+function humanSceneType(type: string, isEn: boolean): string {
   switch (type) {
     case "ai_generated_clip":
-      return "AI scene";
+      return isEn ? "AI scene" : "AI 画面";
     case "uploaded_clip":
-      return "Your clip";
+      return isEn ? "Your clip" : "自有片段";
     case "brand_end_card":
-      return "End card";
+      return isEn ? "End card" : "片尾";
     case "cta_card":
-      return "End card";
+      return isEn ? "End card" : "片尾";
     default:
-      return "Scene";
+      return isEn ? "Scene" : "镜头";
   }
 }
 
-function NextStepHint({ canDispatch }: { canDispatch: boolean }) {
+function NextStepHint({ canDispatch, locale }: { canDispatch: boolean; locale: Locale }) {
+  const isEn = locale === "en-US";
   if (canDispatch) {
     return (
       <p className="text-meta text-muted-foreground">
-        Looks good. Hit <strong>Generate video</strong> when you&apos;re ready &mdash;
-        we&apos;ll keep you posted on progress in your video list.
+        {isEn ? <>Looks good. Select <strong>Generate video</strong> when ready; progress stays visible in your video list.</> : <>方案已就绪。确认后选择<strong>生成视频</strong>，成品库会持续显示进度。</>}
       </p>
     );
   }
   return (
     <p className="text-meta text-muted-foreground">
-      Update the prompt or attachments above, then re-run preview to continue.
+      {isEn ? "Update the prompt or attachments, then preview again." : "请更新描述或附件，然后重新预览方案。"}
     </p>
   );
 }

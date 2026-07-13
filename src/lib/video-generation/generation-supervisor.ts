@@ -25,7 +25,7 @@ import { buildCreativeBrief } from "@/lib/video-generation/creative-strategist";
 import { buildConsistencyBible } from "@/lib/video-generation/consistency-bible";
 import {
   getConsistencyLocks,
-  getStyleTemplate,
+  resolveStyleTemplate,
 } from "@/lib/video-generation/style-templates";
 import { analyzeVisualReferences } from "@/lib/video-generation/visual-reference-analysis";
 import { buildBrandPackagingPlan } from "@/lib/video-generation/brand-packaging";
@@ -89,8 +89,20 @@ export async function buildPlan(
   });
 
   /// 5.4 风格模版（skill 模式）：后端固化的风格底盘 + 可叠加一致性锁
-  const styleTemplate = getStyleTemplate(request.styleTemplateId);
-  const consistencyLocks = getConsistencyLocks(request.consistencyLockIds);
+  const styleTemplate = resolveStyleTemplate(request.styleTemplateId, request.rawPrompt);
+  const autoLockIds = styleTemplate
+    ? [
+        "lock_character_identity",
+        "lock_scene_geometry",
+        "lock_lighting",
+        ...(classifiedAssets.some((asset) => asset.inferredRole === "product_image") ? ["lock_product_shape"] : []),
+        ...(styleTemplate.scaffold.dialogueStyle ? ["lock_lipsync"] : []),
+      ]
+    : [];
+  const consistencyLocks = getConsistencyLocks([
+    ...autoLockIds,
+    ...(request.consistencyLockIds ?? []),
+  ]);
 
   /// 5.45 参考图视觉分析：GPT-4o 真正「看」参考图，提取真实门店/产品实拍细节，
   /// 让文字锚（bible/prompt）和 Omni-Reference 图片锚描述同一个真实场景

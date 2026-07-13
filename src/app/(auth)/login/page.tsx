@@ -13,12 +13,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/i18n/useTranslation";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 
 const DEMO_EMAIL = "demo@aivora.app";
 const DEMO_PASSWORD = "aivora2026";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { locale } = useTranslation();
+  const copy = getPlatformCopy(locale).auth;
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/";
   const [email, setEmail] = useState("");
@@ -36,7 +40,7 @@ export default function LoginPage() {
     });
     setLoading(false);
     if (result?.error) {
-      setError("账号或密码错误");
+      setError(copy.invalidCredentials);
       return;
     }
     router.push(from);
@@ -51,14 +55,14 @@ export default function LoginPage() {
   return (
     <>
       <CardHeader className="border-b border-border pb-5">
-        <CardTitle className="font-semibold">欢迎回到创作室</CardTitle>
-        <CardDescription>登录 Aivora，继续制作下一支短视频。</CardDescription>
+        <CardTitle className="font-semibold">{copy.loginTitle}</CardTitle>
+        <CardDescription>{copy.loginDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-meta font-medium">
-              邮箱
+              {copy.email}
             </label>
             <Input
               id="email"
@@ -73,7 +77,7 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <label htmlFor="password" className="text-meta font-medium">
-              密码
+              {copy.password}
             </label>
             <Input
               id="password"
@@ -82,7 +86,7 @@ export default function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               required
               autoComplete="current-password"
-              placeholder="输入密码"
+              placeholder={copy.passwordPlaceholder}
               aria-invalid={Boolean(error)}
             />
           </div>
@@ -104,7 +108,7 @@ export default function LoginPage() {
                 aria-hidden
               />
             ) : null}
-            {loading ? "登录中" : "登录"}
+            {loading ? copy.loggingIn : copy.login}
           </Button>
         </form>
 
@@ -116,18 +120,18 @@ export default function LoginPage() {
             onClick={() => doLogin(DEMO_EMAIL, DEMO_PASSWORD)}
             className="w-full"
           >
-            使用演示账号体验
+            {copy.demo}
           </Button>
           <p className="text-meta text-muted-foreground">
-            登录后 7 天内免登录 · 账号问题请联系管理员
+            {copy.sessionHint}
           </p>
           <p className="text-meta text-muted-foreground">
-            还没有账号？{" "}
+            {copy.noAccount}{" "}
             <Link
               href="/register"
               className="font-medium text-foreground underline-offset-4 hover:underline"
             >
-              创建个人账号
+              {copy.createAccount}
             </Link>
           </p>
         </div>

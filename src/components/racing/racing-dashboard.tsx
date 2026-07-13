@@ -6,6 +6,7 @@ import { ArrowRight, BarChart3, ChevronDown, FlaskConical } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useTranslation } from "@/i18n";
 
 type Snapshot = {
   id: string;
@@ -60,18 +61,6 @@ type RacingRound = {
   };
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  PLANNED: "待规划",
-  ANGLES_READY: "变体已就绪",
-  METRICS_WINDOWS_PENDING: "收集中",
-  SCORING: "分析中",
-  RANKED: "已排名",
-  DISTILLATION_PENDING: "提炼中",
-  CLOSED: "已完成",
-};
-
-const CONFIDENCE_LABEL = { LOW: "低置信度", MEDIUM: "中置信度", HIGH: "高置信度" } as const;
-
 export function RacingDashboard({ rounds }: { rounds: RacingRound[] }) {
   if (rounds.length === 0) return null;
   return (
@@ -83,6 +72,14 @@ export function RacingDashboard({ rounds }: { rounds: RacingRound[] }) {
 
 function RacingRoundCard({ round }: { round: RacingRound }) {
   const router = useRouter();
+  const { locale } = useTranslation();
+  const english = locale === "en-US";
+  const statusLabel: Record<string, string> = english
+    ? { PLANNED: "Planned", ANGLES_READY: "Variants ready", METRICS_WINDOWS_PENDING: "Collecting", SCORING: "Analyzing", RANKED: "Ranked", DISTILLATION_PENDING: "Distilling", CLOSED: "Completed" }
+    : { PLANNED: "待规划", ANGLES_READY: "变体已就绪", METRICS_WINDOWS_PENDING: "收集中", SCORING: "分析中", RANKED: "已排名", DISTILLATION_PENDING: "提炼中", CLOSED: "已完成" };
+  const confidenceLabel = english
+    ? { LOW: "Low confidence", MEDIUM: "Medium confidence", HIGH: "High confidence" }
+    : { LOW: "低置信度", MEDIUM: "中置信度", HIGH: "高置信度" };
   const [expanded, setExpanded] = useState(round === undefined ? false : round.roundIndex === 1);
   const [busy, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +109,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
       body: body ? JSON.stringify(body) : undefined,
     });
     const json = await response.json().catch(() => ({})) as { error?: string };
-    if (!response.ok) throw new Error(json.error ?? "操作失败，请稍后重试");
+    if (!response.ok) throw new Error(json.error ?? (english ? "Action failed. Please try again." : "操作失败，请稍后重试"));
     return json;
   }
 
@@ -135,7 +132,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
           windowHours,
           metrics,
         });
-        setMessage(`${windowHours}h 指标已保存。`);
+        setMessage(english ? `${windowHours}h metrics saved.` : `${windowHours}h 指标已保存。`);
         router.refresh();
       } catch (caught) {
         setError((caught as Error).message);
@@ -147,7 +144,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
     startTransition(async () => {
       try {
         await post(`/api/racing/rounds/${round.id}/analyze`);
-        setMessage("本轮排名、置信度与下一轮建议已更新。");
+        setMessage(english ? "Ranking, confidence, and next-round recommendations updated." : "本轮排名、置信度与下一轮建议已更新。");
         router.refresh();
       } catch (caught) {
         setError((caught as Error).message);
@@ -162,7 +159,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
         await post(`/api/racing/rounds/${round.id}/next`, {
           baseDistillationId: round.generatedDistillation?.id,
         });
-        setMessage("下一轮已建立：3 个优化位 + 2 个探索位。");
+        setMessage(english ? "Next round created: 3 optimization slots + 2 exploration slots." : "下一轮已建立：3 个优化位 + 2 个探索位。");
         router.refresh();
       } catch (caught) {
         setError((caught as Error).message);
@@ -183,20 +180,20 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
         aria-expanded={expanded}
       >
         <div className="min-w-0">
-          <p className="studio-label text-muted-foreground">Round {round.roundIndex} · {STATUS_LABEL[round.status] ?? round.status}</p>
+          <p className="studio-label text-muted-foreground">Round {round.roundIndex} · {statusLabel[round.status] ?? round.status}</p>
           <h2 className="mt-2 truncate font-heading text-title font-semibold">{round.deliveryOrder.title}</h2>
           <p className="mt-2 break-all font-mono text-meta text-muted-foreground">{round.id}</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
-          <Badge variant={confidenceVariant}>{CONFIDENCE_LABEL[round.confidence.level]}</Badge>
+          <Badge variant={confidenceVariant}>{confidenceLabel[round.confidence.level]}</Badge>
           <ChevronDown className={`size-4 transition-transform motion-reduce:transition-none ${expanded ? "rotate-180" : ""}`} aria-hidden />
         </div>
       </button>
 
       <div className="grid grid-cols-3 border-y border-border bg-secondary/40">
-        <Metric label="变体" value={String(round.confidence.variantCount)} />
-        <Metric label="指标窗口" value={`${round.confidence.observedSnapshots}/${round.confidence.expectedSnapshots}`} />
-        <Metric label="证据完整度" value={`${Math.round(round.confidence.snapshotCoverage * 100)}%`} accent={round.confidence.level === "HIGH"} />
+        <Metric label={english ? "Variants" : "变体"} value={String(round.confidence.variantCount)} />
+        <Metric label={english ? "Metric windows" : "指标窗口"} value={`${round.confidence.observedSnapshots}/${round.confidence.expectedSnapshots}`} />
+        <Metric label={english ? "Evidence coverage" : "证据完整度"} value={`${Math.round(round.confidence.snapshotCoverage * 100)}%`} accent={round.confidence.level === "HIGH"} />
       </div>
 
       {expanded && (
@@ -204,7 +201,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
           <div className="overflow-x-auto">
             <table className="w-full min-w-180 text-left text-body">
               <thead className="studio-label text-muted-foreground">
-                <tr><th className="pb-3">变体</th><th className="pb-3">Placement</th><th className="pb-3">窗口</th><th className="pb-3 text-right">排名 / 分数</th></tr>
+                <tr><th className="pb-3">{english ? "Variant" : "变体"}</th><th className="pb-3">Placement</th><th className="pb-3">{english ? "Window" : "窗口"}</th><th className="pb-3 text-right">{english ? "Rank / score" : "排名 / 分数"}</th></tr>
               </thead>
               <tbody className="divide-y divide-border">
                 {round.variants.map((variant) => {
@@ -212,7 +209,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
                   return (
                     <tr key={variant.videoBriefId}>
                       <td className="py-3 pr-4"><p className="font-medium">{variant.title}</p><p className="font-mono text-meta text-muted-foreground">{variant.videoBriefId}</p></td>
-                      <td className="py-3 pr-4"><p>{variant.placement?.platform ?? "尚未投放"}</p><p className="font-mono text-meta text-muted-foreground">{variant.placement?.externalPostId ?? "—"}</p></td>
+                      <td className="py-3 pr-4"><p>{variant.placement?.platform ?? (english ? "Not published" : "尚未投放")}</p><p className="font-mono text-meta text-muted-foreground">{variant.placement?.externalPostId ?? "—"}</p></td>
                       <td className="py-3 pr-4 font-mono tabular-nums">{variant.placement?.snapshots.map((snapshot) => `${snapshot.windowHours}h`).join(" · ") || "—"}</td>
                       <td className="py-3 text-right font-mono tabular-nums">{result ? `#${result.rank} · ${result.score.toFixed(3)}` : "—"}</td>
                     </tr>
@@ -224,28 +221,28 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
 
           <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
             <form onSubmit={saveMetrics} className="space-y-4 rounded-(--radius-md) border border-border bg-secondary/30 p-4">
-              <div><p className="studio-label text-muted-foreground">Manual placement import</p><h3 className="mt-1 font-heading text-subhead font-semibold">录入投放与指标</h3></div>
+              <div><p className="studio-label text-muted-foreground">Manual placement import</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Import placement metrics" : "录入投放与指标"}</h3></div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label="视频变体"><select required value={briefId} onChange={(event) => setBriefId(event.target.value)} className="studio-select">{round.variants.map((variant) => <option key={variant.videoBriefId} value={variant.videoBriefId}>{variant.title}</option>)}</select></Field>
-                <Field label="平台"><select value={platform} onChange={(event) => setPlatform(event.target.value)} className="studio-select"><option value="tiktok">TikTok</option><option value="instagram_reels">Instagram Reels</option><option value="youtube_shorts">YouTube Shorts</option><option value="facebook">Facebook</option></select></Field>
-                <Field label="贴文 ID"><Input required value={externalPostId} onChange={(event) => setExternalPostId(event.target.value)} placeholder="平台侧唯一 ID" /></Field>
-                <Field label="公开链接（可选）"><Input type="url" value={publishUrl} onChange={(event) => setPublishUrl(event.target.value)} placeholder="https://…" /></Field>
-                <Field label="观察窗口"><select value={windowHours} onChange={(event) => setWindowHours(Number(event.target.value) as 12 | 24 | 48)} className="studio-select"><option value={12}>12 小时</option><option value={24}>24 小时</option><option value={48}>48 小时</option></select></Field>
-                <Field label="播放量"><Input type="number" min={0} value={views} onChange={(event) => setViews(event.target.value)} /></Field>
-                <Field label="完播率"><Input type="number" min={0} max={100} step="0.1" value={completionRate} onChange={(event) => setCompletionRate(event.target.value)} placeholder="0–100%" /></Field>
-                <Field label="3 秒留存"><Input type="number" min={0} max={100} step="0.1" value={retention3s} onChange={(event) => setRetention3s(event.target.value)} placeholder="0–100%" /></Field>
-                <Field label="点赞"><Input type="number" min={0} value={likes} onChange={(event) => setLikes(event.target.value)} /></Field>
-                <Field label="分享"><Input type="number" min={0} value={shares} onChange={(event) => setShares(event.target.value)} /></Field>
+                <Field label={english ? "Video variant" : "视频变体"}><select required value={briefId} onChange={(event) => setBriefId(event.target.value)} className="studio-select">{round.variants.map((variant) => <option key={variant.videoBriefId} value={variant.videoBriefId}>{variant.title}</option>)}</select></Field>
+                <Field label={english ? "Platform" : "平台"}><select value={platform} onChange={(event) => setPlatform(event.target.value)} className="studio-select"><option value="tiktok">TikTok</option><option value="instagram_reels">Instagram Reels</option><option value="youtube_shorts">YouTube Shorts</option><option value="facebook">Facebook</option></select></Field>
+                <Field label={english ? "Post ID" : "贴文 ID"}><Input required value={externalPostId} onChange={(event) => setExternalPostId(event.target.value)} placeholder={english ? "Unique platform ID" : "平台侧唯一 ID"} /></Field>
+                <Field label={english ? "Public URL (optional)" : "公开链接（可选）"}><Input type="url" value={publishUrl} onChange={(event) => setPublishUrl(event.target.value)} placeholder="https://…" /></Field>
+                <Field label={english ? "Observation window" : "观察窗口"}><select value={windowHours} onChange={(event) => setWindowHours(Number(event.target.value) as 12 | 24 | 48)} className="studio-select"><option value={12}>12 {english ? "hours" : "小时"}</option><option value={24}>24 {english ? "hours" : "小时"}</option><option value={48}>48 {english ? "hours" : "小时"}</option></select></Field>
+                <Field label={english ? "Views" : "播放量"}><Input type="number" min={0} value={views} onChange={(event) => setViews(event.target.value)} /></Field>
+                <Field label={english ? "Completion rate" : "完播率"}><Input type="number" min={0} max={100} step="0.1" value={completionRate} onChange={(event) => setCompletionRate(event.target.value)} placeholder="0–100%" /></Field>
+                <Field label={english ? "3-second retention" : "3 秒留存"}><Input type="number" min={0} max={100} step="0.1" value={retention3s} onChange={(event) => setRetention3s(event.target.value)} placeholder="0–100%" /></Field>
+                <Field label={english ? "Likes" : "点赞"}><Input type="number" min={0} value={likes} onChange={(event) => setLikes(event.target.value)} /></Field>
+                <Field label={english ? "Shares" : "分享"}><Input type="number" min={0} value={shares} onChange={(event) => setShares(event.target.value)} /></Field>
               </div>
-              <Button type="submit" disabled={busy || !briefId}>{busy ? "保存中…" : "保存指标"}</Button>
+              <Button type="submit" disabled={busy || !briefId}>{busy ? (english ? "Saving…" : "保存中…") : (english ? "Save metrics" : "保存指标")}</Button>
             </form>
 
             <section className="space-y-4 rounded-(--radius-md) border border-border bg-secondary/30 p-4">
-              <div><p className="studio-label text-muted-foreground">Evidence-aware analysis</p><h3 className="mt-1 font-heading text-subhead font-semibold">本轮结论</h3></div>
+              <div><p className="studio-label text-muted-foreground">Evidence-aware analysis</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Round findings" : "本轮结论"}</h3></div>
               {round.confidence.limitations.map((limitation) => <p key={limitation} className="text-meta text-muted-foreground">{limitation}</p>)}
-              {round.generatedDistillation && <div className="border-l-2 border-accent pl-3"><p className="studio-label text-muted-foreground">下一轮建议</p><p className="mt-2 text-body">{round.generatedDistillation.summary}</p></div>}
-              <Button type="button" variant="outline" onClick={analyze} disabled={busy || round.confidence.observedSnapshots === 0} className="w-full"><BarChart3 aria-hidden />生成排名与建议</Button>
-              {round.generatedDistillation && round.roundIndex < round.deliveryOrder.maxRounds && <Button type="button" onClick={scheduleNext} disabled={busy} className="w-full"><FlaskConical aria-hidden />建立下一轮<ArrowRight aria-hidden /></Button>}
+              {round.generatedDistillation && <div className="border-l-2 border-accent pl-3"><p className="studio-label text-muted-foreground">{english ? "Next-round recommendation" : "下一轮建议"}</p><p className="mt-2 text-body">{round.generatedDistillation.summary}</p></div>}
+              <Button type="button" variant="outline" onClick={analyze} disabled={busy || round.confidence.observedSnapshots === 0} className="w-full"><BarChart3 aria-hidden />{english ? "Generate ranking and recommendations" : "生成排名与建议"}</Button>
+              {round.generatedDistillation && round.roundIndex < round.deliveryOrder.maxRounds && <Button type="button" onClick={scheduleNext} disabled={busy} className="w-full"><FlaskConical aria-hidden />{english ? "Create next round" : "建立下一轮"}<ArrowRight aria-hidden /></Button>}
             </section>
           </div>
           {error && <p role="alert" className="text-body text-danger">{error}</p>}

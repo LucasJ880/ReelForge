@@ -2,12 +2,20 @@ import { cn } from "@/lib/utils";
 
 type FilmState = "completed" | "generating" | "queued" | "failed" | "cancelled";
 
-const LABELS: Record<FilmState, string> = {
+const LABELS_ZH: Record<FilmState, string> = {
   completed: "已完成",
   generating: "生成中",
   queued: "排队中",
   failed: "失败",
   cancelled: "已取消",
+};
+
+const LABELS_EN: Record<FilmState, string> = {
+  completed: "Completed",
+  generating: "Generating",
+  queued: "Queued",
+  failed: "Failed",
+  cancelled: "Cancelled",
 };
 
 export interface BatchFilmStripCounts {
@@ -35,23 +43,26 @@ export function BatchFilmStrip({
   counts,
   className,
   maxCells = 32,
+  locale = "zh-CN",
 }: {
   counts: BatchFilmStripCounts;
   className?: string;
   maxCells?: number;
+  locale?: "zh-CN" | "en-US";
 }) {
+  const labels = locale === "en-US" ? LABELS_EN : LABELS_ZH;
   const total = Object.values(counts).reduce((sum, value) => sum + value, 0);
   const cellSize = Math.max(1, Math.ceil(total / maxCells));
   const cellCount = Math.max(1, Math.ceil(total / cellSize));
-  const summary = (Object.keys(LABELS) as FilmState[])
+  const summary = (Object.keys(labels) as FilmState[])
     .filter((state) => counts[state] > 0)
-    .map((state) => `${LABELS[state]} ${counts[state]}`)
-    .join("，");
+    .map((state) => `${labels[state]} ${counts[state]}`)
+    .join(locale === "en-US" ? ", " : "，");
 
   return (
     <div
       role="img"
-      aria-label={total > 0 ? `批次状态分布：${summary}` : "批次状态分布：暂无任务"}
+      aria-label={total > 0 ? (locale === "en-US" ? `Batch status distribution: ${summary}` : `批次状态分布：${summary}`) : (locale === "en-US" ? "Batch status distribution: no jobs" : "批次状态分布：暂无任务")}
       className={cn("batch-film-strip", className)}
       style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
       data-cell-size={cellSize}

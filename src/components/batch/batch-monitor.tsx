@@ -31,6 +31,7 @@ import {
 import { KpiCard } from "@/components/editorial/kpi-card";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { toast } from "sonner";
+import { useTranslation } from "@/i18n";
 
 export interface BatchMonitorJob {
   id: string;
@@ -83,25 +84,6 @@ const TERMINAL_BATCH = new Set([
   "CANCELLED",
 ]);
 
-const JOB_LABELS: Record<BatchMonitorJob["status"], string> = {
-  QUEUED: "排队中",
-  PAUSED: "已暂停",
-  RUNNING: "生成中",
-  SUCCEEDED: "已完成",
-  FAILED: "失败",
-  CANCELLED: "已取消",
-};
-
-const BATCH_LABELS: Record<BatchMonitorData["status"], string> = {
-  EXPANDING: "正在展开",
-  RUNNING: "生成中",
-  PAUSED: "已暂停",
-  COMPLETED: "已完成",
-  PARTIAL_FAILED: "部分失败",
-  FAILED: "失败",
-  CANCELLED: "已取消",
-};
-
 function firstAssetUrl(value: unknown): string | null {
   const assignment = value as
     | { assets?: Array<{ url?: unknown }> }
@@ -143,6 +125,14 @@ export function BatchMonitor({
 }: {
   initialBatch: BatchMonitorData;
 }) {
+  const { locale } = useTranslation();
+  const english = locale === "en-US";
+  const jobLabels: Record<BatchMonitorJob["status"], string> = english
+    ? { QUEUED: "Queued", PAUSED: "Paused", RUNNING: "Generating", SUCCEEDED: "Completed", FAILED: "Failed", CANCELLED: "Cancelled" }
+    : { QUEUED: "排队中", PAUSED: "已暂停", RUNNING: "生成中", SUCCEEDED: "已完成", FAILED: "失败", CANCELLED: "已取消" };
+  const batchLabels: Record<BatchMonitorData["status"], string> = english
+    ? { EXPANDING: "Preparing", RUNNING: "Generating", PAUSED: "Paused", COMPLETED: "Completed", PARTIAL_FAILED: "Partially failed", FAILED: "Failed", CANCELLED: "Cancelled" }
+    : { EXPANDING: "正在展开", RUNNING: "生成中", PAUSED: "已暂停", COMPLETED: "已完成", PARTIAL_FAILED: "部分失败", FAILED: "失败", CANCELLED: "已取消" };
   const [batch, setBatch] = useState(initialBatch);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -159,10 +149,10 @@ export function BatchMonitor({
       error?: string;
     };
     if (!response.ok || !data.batch) {
-      throw new Error(data.error ?? "批次状态刷新失败");
+      throw new Error(data.error ?? (english ? "Failed to refresh batch status" : "批次状态刷新失败"));
     }
     setBatch(data.batch);
-  }, [initialBatch.id]);
+  }, [english, initialBatch.id]);
 
   // INV-B7：整页唯一轮询器。所有卡片仅消费 batch.videoJobs，不自行 fetch。
   useEffect(() => {
@@ -208,10 +198,10 @@ export function BatchMonitor({
         error?: string;
       };
       if (!response.ok || !data.batch) {
-        throw new Error(data.error ?? "操作失败");
+        throw new Error(data.error ?? (english ? "Action failed" : "操作失败"));
       }
       setBatch(data.batch);
-      toast.success("批次状态已更新");
+      toast.success(english ? "Batch status updated" : "批次状态已更新");
     } catch (reason) {
       const message = (reason as Error).message;
       setError(message);
@@ -263,7 +253,7 @@ export function BatchMonitor({
                   Batch monitor
                 </p>
                 <Badge variant={batchStatusVariant(batch.status)}>
-                  {BATCH_LABELS[batch.status]}
+                  {batchLabels[batch.status]}
                 </Badge>
               </div>
               <div className="space-y-2">
@@ -271,7 +261,7 @@ export function BatchMonitor({
                   {batch.template.nameZh}
                 </h1>
                 <CardDescription className="break-all font-mono tabular-nums">
-                  批次 {batch.id} · 模板版本 v{batch.template.version}
+                  {english ? "Batch" : "批次"} {batch.id} · {english ? "Template version" : "模板版本"} v{batch.template.version}
                 </CardDescription>
               </div>
             </div>
@@ -297,7 +287,7 @@ export function BatchMonitor({
                   ) : (
                     <RefreshCw aria-hidden />
                   )}
-                  重试全部失败 ({batch.failedCount})
+                  {english ? "Retry all failed" : "重试全部失败"} ({batch.failedCount})
                 </Button>
               )}
               {batch.queuedCount + batch.pausedCount > 0 && (
@@ -313,7 +303,7 @@ export function BatchMonitor({
                     )
                   }
                 >
-                  取消未开始
+                  {english ? "Cancel unstarted" : "取消未开始"}
                 </Button>
               )}
             </div>
@@ -326,8 +316,10 @@ export function BatchMonitor({
                 aria-hidden
               />
               <span>
-                生成服务暂时拥堵，剩余 {batch.pausedCount} 条已安全暂停。
-                熔断恢复后会自动续跑。{batch.statusReason}
+                {english
+                  ? `Generation is temporarily congested. ${batch.pausedCount} items are safely paused and will resume when the circuit breaker recovers. `
+                  : `生成服务暂时拥堵，剩余 ${batch.pausedCount} 条已安全暂停。熔断恢复后会自动续跑。`}
+                {batch.statusReason}
               </span>
             </div>
           )}
@@ -335,21 +327,22 @@ export function BatchMonitor({
 
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <KpiCard label="总数" value={batch.requestedCount} />
-            <KpiCard label="完成" value={batch.completedCount} />
-            <KpiCard label="进行中" value={batch.runningCount} />
+            <KpiCard label={english ? "Total" : "总数"} value={batch.requestedCount} />
+            <KpiCard label={english ? "Completed" : "完成"} value={batch.completedCount} />
+            <KpiCard label={english ? "Running" : "进行中"} value={batch.runningCount} />
             <KpiCard
-              label="排队/暂停"
+              label={english ? "Queued / paused" : "排队/暂停"}
               value={batch.queuedCount + batch.pausedCount}
             />
-            <KpiCard label="失败" value={batch.failedCount} />
+            <KpiCard label={english ? "Failed" : "失败"} value={batch.failedCount} />
           </div>
           <KpiCard
-            label="批次总进度"
+            label={english ? "Batch progress" : "批次总进度"}
             value={`${totalProgress}%`}
             progress={totalProgress}
           />
           <BatchFilmStrip
+            locale={locale}
             counts={{
               completed: batch.completedCount,
               generating: batch.runningCount,
@@ -363,7 +356,7 @@ export function BatchMonitor({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-meta text-muted-foreground">
-          虚拟列表仅渲染可视区域 · 当前 <span className="font-mono tabular-nums">{batch.videoJobs.length}</span> 条
+          {english ? "Virtualized view renders only visible rows" : "虚拟列表仅渲染可视区域"} · {english ? "Currently" : "当前"} <span className="font-mono tabular-nums">{batch.videoJobs.length}</span> {english ? "items" : "条"}
         </p>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
@@ -374,8 +367,8 @@ export function BatchMonitor({
           >
             {completedJobs.every((job) => selected.has(job.id)) &&
             completedJobs.length > 0
-              ? "取消全选"
-              : "全选已完成"}
+              ? (english ? "Clear selection" : "取消全选")
+              : (english ? "Select completed" : "全选已完成")}
           </Button>
           <Button
             type="button"
@@ -384,7 +377,7 @@ export function BatchMonitor({
             onClick={downloadSelected}
           >
             <Download aria-hidden />
-            下载所选 ({selected.size})
+            {english ? "Download selected" : "下载所选"} ({selected.size})
           </Button>
         </div>
       </div>
@@ -392,7 +385,7 @@ export function BatchMonitor({
       <div
         ref={viewportRef}
         role="region"
-        aria-label="批次视频任务列表"
+        aria-label={english ? "Batch video jobs" : "批次视频任务列表"}
         tabIndex={0}
         className="h-[min(720px,70vh)] min-w-0 overflow-auto rounded-(--radius-lg) border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         data-virtualized="true"
@@ -427,7 +420,7 @@ export function BatchMonitor({
                       return next;
                     })}
                     className="size-4 accent-primary"
-                    aria-label={`选择视频 ${(job.batchIndex ?? 0) + 1}`}
+                    aria-label={english ? `Select video ${(job.batchIndex ?? 0) + 1}` : `选择视频 ${(job.batchIndex ?? 0) + 1}`}
                   />
                 </label>
                 <button
@@ -445,7 +438,7 @@ export function BatchMonitor({
                     }
                   }}
                   className="relative flex h-[54px] w-24 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-sm) bg-secondary font-mono text-meta text-muted-foreground"
-                  aria-label={`查看视频 ${(job.batchIndex ?? 0) + 1} 详情`}
+                  aria-label={english ? `View video ${(job.batchIndex ?? 0) + 1}` : `查看视频 ${(job.batchIndex ?? 0) + 1} 详情`}
                 >
                   {job.status === "SUCCEEDED" && job.outputVideoUrl ? (
                     <><video
@@ -463,20 +456,20 @@ export function BatchMonitor({
                   )}
                 </button>
                 <div className="w-40 min-w-0 shrink-0">
-                  <p className="truncate font-mono text-meta font-semibold text-foreground">视频 #{(job.batchIndex ?? 0) + 1}</p>
+                  <p className="truncate font-mono text-meta font-semibold text-foreground">{english ? "Video" : "视频"} #{(job.batchIndex ?? 0) + 1}</p>
                   <p className="truncate font-mono text-meta text-muted-foreground" title={job.id}>{job.id}</p>
                 </div>
-                <Badge variant={jobStatusVariant(job.status)} className="w-20">{JOB_LABELS[job.status]}</Badge>
+                <Badge variant={jobStatusVariant(job.status)} className="w-20">{jobLabels[job.status]}</Badge>
                 <div className="min-w-32 flex-1">
-                  {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={`视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
-                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger" title={job.errorMessage ?? undefined}>{job.userSafeError ?? "生成失败，可重试"}</p> : null}
-                  {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />可播放与下载</p> : null}
-                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />未提交 Provider</p> : null}
+                  {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
+                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger" title={job.errorMessage ?? undefined}>{job.userSafeError ?? (english ? "Generation failed; safe to retry" : "生成失败，可重试")}</p> : null}
+                  {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{english ? "Ready to play and download" : "可播放与下载"}</p> : null}
+                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{english ? "Not submitted to provider" : "未提交 Provider"}</p> : null}
                 </div>
                 <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} retry</p>
                 {job.status === "FAILED" ? (
                   <Button type="button" variant="outline" size="xs" disabled={busy != null} onClick={() => void action(`retry-${job.id}`, `/api/batches/${batch.id}/jobs/${job.id}/retry`)}>
-                    {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}重试
+                    {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}{english ? "Retry" : "重试"}
                   </Button>
                 ) : <span className="w-[72px]" aria-hidden />}
               </div>
@@ -495,9 +488,9 @@ export function BatchMonitor({
           {detailJob ? (
             <>
               <SheetHeader>
-                <SheetTitle>视频 #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
+                <SheetTitle>{english ? "Video" : "视频"} #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
                 <SheetDescription>
-                  {JOB_LABELS[detailJob.status]}
+                  {jobLabels[detailJob.status]}
                   {detailJob.userSafeError ? ` · ${detailJob.userSafeError}` : ""}
                 </SheetDescription>
               </SheetHeader>
@@ -514,7 +507,7 @@ export function BatchMonitor({
                 {detailJob.status === "RUNNING" && (
                   <Progress
                     value={detailJob.lastProgress ?? 8}
-                    aria-label={`视频 ${(detailJob.batchIndex ?? 0) + 1} 生成进度`}
+                    aria-label={english ? `Video ${(detailJob.batchIndex ?? 0) + 1} progress` : `视频 ${(detailJob.batchIndex ?? 0) + 1} 生成进度`}
                   />
                 )}
                 {detailJob.status === "FAILED" && (
@@ -531,7 +524,7 @@ export function BatchMonitor({
                     }
                   >
                     <RefreshCw aria-hidden />
-                    单条重试
+                    {english ? "Retry video" : "单条重试"}
                   </Button>
                 )}
               </div>

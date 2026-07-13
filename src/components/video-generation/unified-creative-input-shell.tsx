@@ -10,16 +10,19 @@ export function UnifiedCreativeInputShell({
   userType,
   initialDraft,
   initialAssets,
+  initialStyleTemplateId,
 }: {
   userType: "business" | "personal" | "platform";
   initialDraft?: OrderCreativeDraft;
   initialAssets?: UploadedAsset[];
+  initialStyleTemplateId?: string;
 }) {
   return (
     <UnifiedCreativeInput
       userType={userType}
       initialDraft={initialDraft}
       initialAssets={initialAssets}
+      initialStyleTemplateId={initialStyleTemplateId}
     />
   );
 }

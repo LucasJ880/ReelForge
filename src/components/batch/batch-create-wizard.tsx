@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
+import { useTranslation } from "@/i18n";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
@@ -58,7 +59,6 @@ interface StyleTemplateDto {
   imagesPerVideo: { min: number; max: number };
 }
 
-const STEPS = ["上传素材", "选择风格", "生成数量", "确认提交"] as const;
 const UPLOAD_CONCURRENCY = 4;
 const BATCH_IMAGE_MIME_TYPES = new Set([
   "image/png",
@@ -66,9 +66,11 @@ const BATCH_IMAGE_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
-function formatEstimate(seconds: number): string {
-  if (seconds < 60) return `约 ${seconds} 秒`;
-  return `约 ${Math.ceil(seconds / 60)} 分钟`;
+function formatEstimate(seconds: number, english: boolean): string {
+  if (seconds < 60) return english ? `About ${seconds}s` : `约 ${seconds} 秒`;
+  return english
+    ? `About ${Math.ceil(seconds / 60)} min`
+    : `约 ${Math.ceil(seconds / 60)} 分钟`;
 }
 
 export function BatchCreateWizard({
@@ -81,6 +83,11 @@ export function BatchCreateWizard({
   initialImages?: Array<{ id: string; url: string; fileName: string }>;
 } = {}) {
   const router = useRouter();
+  const { locale } = useTranslation();
+  const english = locale === "en-US";
+  const steps = english
+    ? ["Upload assets", "Choose style", "Set quantity", "Review"]
+    : ["上传素材", "选择风格", "生成数量", "确认提交"];
   const uploadControllersRef = useRef(new Map<string, AbortController>());
   const [step, setStep] = useState(0);
   const [uploads, setUploads] = useState<UploadItem[]>(() =>
@@ -105,7 +112,7 @@ export function BatchCreateWizard({
   useEffect(() => {
     void fetch("/api/batch-style-templates")
       .then(async (response) => {
-        if (!response.ok) throw new Error("风格模板加载失败");
+        if (!response.ok) throw new Error(english ? "Failed to load style templates" : "风格模板加载失败");
         return response.json() as Promise<{ templates: StyleTemplateDto[] }>;
       })
       .then(({ templates: rows }) => {
@@ -115,7 +122,7 @@ export function BatchCreateWizard({
         else if (rows[0]) setTemplateId(rows[0].id);
       })
       .catch((reason) => setError((reason as Error).message));
-  }, [initialTemplateId]);
+  }, [english, initialTemplateId]);
 
   useEffect(
     () => () => {
@@ -210,7 +217,7 @@ export function BatchCreateWizard({
       BATCH_IMAGE_MIME_TYPES.has(file.type),
     );
     if (images.length !== files.length) {
-      setError("批量生成仅支持 PNG、JPG、WEBP 产品图片");
+      setError(english ? "Batch generation supports PNG, JPG, and WebP product images only" : "批量生成仅支持 PNG、JPG、WEBP 产品图片");
     }
     const available = Math.max(0, 50 - uploads.length);
     const accepted = images.slice(0, available).map((file) => ({
@@ -220,7 +227,7 @@ export function BatchCreateWizard({
       previewUrl: URL.createObjectURL(file),
       status: "queued" as const,
     }));
-    if (images.length > available) setError("每个批次最多上传 50 张图片");
+    if (images.length > available) setError(english ? "Each batch accepts up to 50 images" : "每个批次最多上传 50 张图片");
     setUploads((current) => [...current, ...accepted]);
     void startUploadQueue(accepted);
   }
@@ -262,10 +269,10 @@ export function BatchCreateWizard({
         error?: string;
       };
       if (!response.ok || !data.batch) {
-        throw new Error(data.error ?? "创建批次失败");
+        throw new Error(data.error ?? (english ? "Failed to create batch" : "创建批次失败"));
       }
       router.push(`${batchDetailsBasePath}/${data.batch.id}`);
-      toast.success("批次已创建，正在跳转监控页");
+      toast.success(english ? "Batch created. Opening monitor…" : "批次已创建，正在跳转监控页");
     } catch (reason) {
       const message = (reason as Error).message;
       setError(message);
@@ -285,14 +292,14 @@ export function BatchCreateWizard({
     <div className="space-y-8 [&_svg]:stroke-[1.5]">
       <div className="space-y-4">
         <Progress
-          value={((step + 1) / STEPS.length) * 100}
-          aria-label={`批量创建进度：第 ${step + 1} 步，共 ${STEPS.length} 步`}
+          value={((step + 1) / steps.length) * 100}
+          aria-label={english ? `Batch setup: step ${step + 1} of ${steps.length}` : `批量创建进度：第 ${step + 1} 步，共 ${steps.length} 步`}
         />
         <ol
           className="grid grid-cols-2 gap-2 sm:grid-cols-4"
-          aria-label="批量创建步骤"
+          aria-label={english ? "Batch setup steps" : "批量创建步骤"}
         >
-          {STEPS.map((label, index) => {
+          {steps.map((label, index) => {
             const isCurrent = index === step;
             const isComplete = index < step;
 
@@ -315,7 +322,7 @@ export function BatchCreateWizard({
                 )}
                 <span className="truncate">{label}</span>
                 {isCurrent && (
-                  <Badge className="ml-auto hidden sm:inline-flex">当前</Badge>
+                  <Badge className="ml-auto hidden sm:inline-flex">{english ? "Current" : "当前"}</Badge>
                 )}
               </li>
             );
@@ -333,30 +340,30 @@ export function BatchCreateWizard({
         {step === 0 && (
           <>
             <CardHeader>
-              <CardTitle>添加产品素材</CardTitle>
+              <CardTitle>{english ? "Add product assets" : "添加产品素材"}</CardTitle>
               <CardDescription>
-                支持 PNG、JPG、WEBP，最多 50 张，并发上传 4 张。
+                {english ? "PNG, JPG, or WebP. Up to 50 images with four concurrent uploads." : "支持 PNG、JPG、WEBP，最多 50 张，并发上传 4 张。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <FileDropzone
-                title="拖入产品图片，或点击选择"
-                description="文件会在选择后立即上传，最多 50 张"
+                title={english ? "Drop product images here, or choose files" : "拖入产品图片，或点击选择"}
+                description={english ? "Files upload immediately after selection, up to 50" : "文件会在选择后立即上传，最多 50 张"}
                 uploading={hasPendingUploads}
                 disabled={uploads.length >= 50}
                 onFiles={addFiles}
                 onRejected={() =>
-                  setError("批量生成仅支持 PNG、JPG、WEBP 产品图片")
+                  setError(english ? "Batch generation supports PNG, JPG, and WebP product images only" : "批量生成仅支持 PNG、JPG、WEBP 产品图片")
                 }
               />
               <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
-                <span>{uploads.length}/50 张</span>
+                <span>{uploads.length}/50 {english ? "images" : "张"}</span>
                 <span>
-                  已完成 {uploaded.length} · 上传中{" "}
+                  {english ? "Complete" : "已完成"} {uploaded.length} · {english ? "Uploading" : "上传中"}{" "}
                   {
                     uploads.filter((item) => item.status === "uploading").length
                   }{" "}
-                  · 失败{" "}
+                  · {english ? "Failed" : "失败"}{" "}
                   {uploads.filter((item) => item.status === "failed").length}
                 </span>
               </div>
@@ -373,7 +380,7 @@ export function BatchCreateWizard({
                       style={{ backgroundImage: `url("${item.previewUrl}")` }}
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-overlay px-1.5 py-1 text-[10px] text-primary-foreground">
-                      {item.status === "queued" && <span>等待上传</span>}
+                      {item.status === "queued" && <span>{english ? "Waiting" : "等待上传"}</span>}
                       {item.status === "uploading" && (
                         <span className="flex flex-col gap-1">
                           <span className="flex items-center gap-1">
@@ -381,7 +388,7 @@ export function BatchCreateWizard({
                               className="size-3 animate-spin motion-reduce:animate-none"
                               aria-hidden
                             />
-                            上传中 {item.progress ?? 0}%
+                            {english ? "Uploading" : "上传中"} {item.progress ?? 0}%
                           </span>
                           <Progress value={item.progress ?? 0} className="h-0.5" />
                         </span>
@@ -389,7 +396,7 @@ export function BatchCreateWizard({
                       {item.status === "uploaded" && (
                         <span className="flex items-center gap-1">
                           <Check className="size-3" aria-hidden />
-                          已上传
+                          {english ? "Uploaded" : "已上传"}
                         </span>
                       )}
                       {item.status === "failed" && (
@@ -399,13 +406,13 @@ export function BatchCreateWizard({
                           onClick={() => void uploadOne(item)}
                         >
                           <RefreshCw className="size-3" aria-hidden />
-                          重传
+                          {english ? "Retry" : "重传"}
                         </button>
                       )}
                     </div>
                     <button
                       type="button"
-                      aria-label={`删除 ${item.fileName}`}
+                      aria-label={english ? `Remove ${item.fileName}` : `删除 ${item.fileName}`}
                       onClick={() => removeUpload(item.localId)}
                       className="absolute right-1 top-1 rounded-(--radius-sm) bg-overlay p-1 text-primary-foreground opacity-100 transition-opacity duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                     >
@@ -421,9 +428,9 @@ export function BatchCreateWizard({
         {step === 1 && (
           <>
             <CardHeader>
-              <CardTitle>选择统一风格</CardTitle>
+              <CardTitle>{english ? "Choose one consistent style" : "选择统一风格"}</CardTitle>
               <CardDescription>
-                一个批次锁定一个模板版本，确保输出视觉一致。
+                {english ? "Each batch locks one template version to keep every output visually consistent." : "一个批次锁定一个模板版本，确保输出视觉一致。"}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -447,7 +454,7 @@ export function BatchCreateWizard({
                       >
                         <div
                           role="img"
-                          aria-label={`${template.nameZh}模板预览`}
+                          aria-label={`${english ? template.name : template.nameZh}${english ? " template preview" : "模板预览"}`}
                           className="h-32 bg-muted bg-cover bg-center"
                           style={{
                             backgroundImage: `url("${template.coverImage}")`,
@@ -456,7 +463,7 @@ export function BatchCreateWizard({
                         <div className="space-y-2 p-4">
                           <div className="flex items-start justify-between gap-3">
                             <span className="font-heading text-subhead text-foreground">
-                              {template.nameZh}
+                              {english ? template.name : template.nameZh}
                             </span>
                             <Badge
                               variant={isSelected ? "default" : "secondary"}
@@ -468,16 +475,16 @@ export function BatchCreateWizard({
                             {template.category}
                           </p>
                           <p className="text-meta text-foreground">
-                            每条 {template.imagesPerVideo.min}
+                            {english ? "Each video uses" : "每条"} {template.imagesPerVideo.min}
                             {template.imagesPerVideo.max !==
                               template.imagesPerVideo.min &&
                               `-${template.imagesPerVideo.max}`}{" "}
-                            张 · {template.lockedParams.duration}s ·{" "}
+                            {english ? "images" : "张"} · {template.lockedParams.duration}s ·{" "}
                             {template.lockedParams.aspectRatio}
                           </p>
                           <p className="text-meta text-muted-foreground">
-                            {template.lockedParams.stability === "high" ? "稳定优先" : "创意均衡"}
-                            {template.lockedParams.humanInteraction === "none" ? " · 无人物交互" : " · 含受控人物交互"}
+                            {template.lockedParams.stability === "high" ? (english ? "Stability first" : "稳定优先") : (english ? "Balanced creativity" : "创意均衡")}
+                            {template.lockedParams.humanInteraction === "none" ? (english ? " · No human interaction" : " · 无人物交互") : (english ? " · Controlled human interaction" : " · 含受控人物交互")}
                           </p>
                         </div>
                       </button>
@@ -492,9 +499,9 @@ export function BatchCreateWizard({
         {step === 2 && (
           <>
             <CardHeader>
-              <CardTitle>设定生产规模</CardTitle>
+              <CardTitle>{english ? "Set production scale" : "设定生产规模"}</CardTitle>
               <CardDescription>
-                可选填产品名称，并确认本批次需要生成的视频数量。
+                {english ? "Optionally name the product, then confirm how many videos to generate." : "可选填产品名称，并确认本批次需要生成的视频数量。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="mx-auto w-full max-w-2xl space-y-8">
@@ -502,13 +509,13 @@ export function BatchCreateWizard({
                 htmlFor="product-name"
                 className="grid gap-2 text-meta font-medium text-foreground"
               >
-                产品名称（可选）
+                {english ? "Product name (optional)" : "产品名称（可选）"}
                 <Input
                   id="product-name"
                   value={productName}
                   maxLength={200}
                   onChange={(event) => setProductName(event.target.value)}
-                  placeholder="例如：Aivora 智能水杯"
+                  placeholder={english ? "e.g. Aivora smart bottle" : "例如：Aivora 智能水杯"}
                 />
               </label>
               <div className="space-y-3">
@@ -517,10 +524,10 @@ export function BatchCreateWizard({
                     htmlFor="batch-count"
                     className="text-meta font-medium text-foreground"
                   >
-                    生成数量
+                    {english ? "Video quantity" : "生成数量"}
                   </label>
                   <Input
-                    aria-label="生成数量输入"
+                    aria-label={english ? "Video quantity" : "生成数量输入"}
                     type="number"
                     min={1}
                     max={200}
@@ -554,11 +561,11 @@ export function BatchCreateWizard({
                   />
                   <div>
                     <p className="font-medium text-foreground">
-                      {uploaded.length} 张图 × {count} 条视频
+                      {uploaded.length} {english ? "images" : "张图"} × {count} {english ? "videos" : "条视频"}
                     </p>
                     <p className="mt-1 text-meta text-muted-foreground">
-                      每张图约使用 {perImage} 次 ·{" "}
-                      {formatEstimate(estimateSeconds)}
+                      {english ? `Each image appears about ${perImage} times` : `每张图约使用 ${perImage} 次`} ·{" "}
+                      {formatEstimate(estimateSeconds, english)}
                     </p>
                   </div>
                 </CardContent>
@@ -570,22 +577,22 @@ export function BatchCreateWizard({
         {step === 3 && selectedTemplate && (
           <>
             <CardHeader>
-              <CardTitle>确认批次</CardTitle>
+              <CardTitle>{english ? "Review batch" : "确认批次"}</CardTitle>
               <CardDescription>
-                提交前复核素材、模板与生产规模。
+                {english ? "Check assets, template, and scale before submitting." : "提交前复核素材、模板与生产规模。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="mx-auto w-full max-w-2xl space-y-5">
               <dl className="divide-y divide-border">
                 {[
-                  ["产品图片", `${uploaded.length} 张（已全部上传 CDN）`],
+                  [english ? "Product images" : "产品图片", english ? `${uploaded.length} uploaded to CDN` : `${uploaded.length} 张（已全部上传 CDN）`],
                   [
-                    "风格模板",
-                    `${selectedTemplate.nameZh} · v${selectedTemplate.version}`,
+                    english ? "Style template" : "风格模板",
+                    `${english ? selectedTemplate.name : selectedTemplate.nameZh} · v${selectedTemplate.version}`,
                   ],
-                  ["生成数量", `${count} 条`],
-                  ["平均覆盖", `每张图片约 ${perImage} 次`],
-                  ["预计耗时", formatEstimate(estimateSeconds)],
+                  [english ? "Video quantity" : "生成数量", english ? `${count} videos` : `${count} 条`],
+                  [english ? "Average coverage" : "平均覆盖", english ? `Each image about ${perImage} times` : `每张图片约 ${perImage} 次`],
+                  [english ? "Estimated time" : "预计耗时", formatEstimate(estimateSeconds, english)],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -599,8 +606,9 @@ export function BatchCreateWizard({
                 ))}
               </dl>
               <p className="rounded-(--radius-md) bg-muted p-4 text-meta leading-6 text-muted-foreground">
-                提交后素材分配、模板版本和 seed
-                将被持久化。单条失败不会阻塞其他视频，可在监控页单独或批量重试。
+                {english
+                  ? "Asset assignment, template version, and seed are persisted after submission. One failed video never blocks the rest; retry it individually or in bulk from the monitor."
+                  : "提交后素材分配、模板版本和 seed 将被持久化。单条失败不会阻塞其他视频，可在监控页单独或批量重试。"}
               </p>
             </CardContent>
           </>
@@ -615,17 +623,17 @@ export function BatchCreateWizard({
           onClick={() => setStep((current) => Math.max(0, current - 1))}
         >
           <ChevronLeft aria-hidden />
-          上一步
+          {english ? "Back" : "上一步"}
         </Button>
-        {step < STEPS.length - 1 ? (
+        {step < steps.length - 1 ? (
           <Button
             type="button"
             disabled={!canContinue}
             onClick={() =>
-              setStep((current) => Math.min(STEPS.length - 1, current + 1))
+              setStep((current) => Math.min(steps.length - 1, current + 1))
             }
           >
-            下一步
+            {english ? "Continue" : "下一步"}
             <ChevronRight aria-hidden />
           </Button>
         ) : (
@@ -640,7 +648,7 @@ export function BatchCreateWizard({
                 aria-hidden
               />
             )}
-            创建 {count} 条视频
+            {english ? `Create ${count} videos` : `创建 ${count} 条视频`}
           </Button>
         )}
       </div>

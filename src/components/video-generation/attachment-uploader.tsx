@@ -4,8 +4,9 @@ import { useRef, useState } from "react";
 import { Image as ImageIcon, Video, X, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { AssetRole, UploadedAsset } from "@/types/video-generation";
+import { useTranslation } from "@/i18n/useTranslation";
 
-const ASSET_ROLE_LABELS: Record<AssetRole, string> = {
+const ASSET_ROLE_LABELS_EN: Record<AssetRole, string> = {
   product_image: "Product image",
   reference_image: "Reference image",
   logo: "Logo",
@@ -17,6 +18,20 @@ const ASSET_ROLE_LABELS: Record<AssetRole, string> = {
   logo_animation: "Logo animation",
   existing_commercial: "Existing commercial",
   unknown: "Unknown",
+};
+
+const ASSET_ROLE_LABELS_ZH: Record<AssetRole, string> = {
+  product_image: "产品图",
+  reference_image: "参考图",
+  logo: "Logo",
+  intro_clip: "开场片段",
+  outro_clip: "片尾片段",
+  ad_clip: "广告片段",
+  store_clip: "门店 / 补充镜头",
+  product_demo_clip: "产品演示片段",
+  logo_animation: "Logo 动画",
+  existing_commercial: "现有广告",
+  unknown: "未识别",
 };
 
 const ALL_ROLES: AssetRole[] = [
@@ -43,6 +58,9 @@ export function AttachmentUploader({
   attachments,
   onChange,
 }: AttachmentUploaderProps) {
+  const { locale } = useTranslation();
+  const isEn = locale === "en-US";
+  const roleLabels = isEn ? ASSET_ROLE_LABELS_EN : ASSET_ROLE_LABELS_ZH;
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -172,10 +190,10 @@ export function AttachmentUploader({
           ) : (
             <ImageIcon className="h-4 w-4" />
           )}
-          {uploading ? "Uploading…" : "Attach images or clips"}
+          {uploading ? (isEn ? "Uploading…" : "上传中…") : (isEn ? "Attach images or clips" : "添加图片或视频")}
         </Button>
         <span className="text-meta text-muted-foreground">
-          Up to 100MB per file · PNG / JPG / WebP / MP4 / MOV / WebM
+          {isEn ? "Up to 100MB per file" : "每个文件最大 100MB"} · PNG / JPG / WebP / MP4 / MOV / WebM
         </span>
       </div>
       {error && (
@@ -199,7 +217,7 @@ export function AttachmentUploader({
                       {a.fileName}
                     </span>
                     <span className="text-meta text-muted-foreground">
-                      {Math.round(a.roleConfidence * 100)}% confidence
+                      {Math.round(a.roleConfidence * 100)}% {isEn ? "confidence" : "置信度"}
                     </span>
                   </div>
                   {a.suggestedUse && (
@@ -209,7 +227,7 @@ export function AttachmentUploader({
                   )}
                   <div className="mt-2">
                     <label className="text-meta font-medium text-muted-foreground">
-                      Role
+                      {isEn ? "Role" : "素材角色"}
                       <select
                         value={role}
                         onChange={(e) => setRole(idx, e.target.value as AssetRole)}
@@ -217,7 +235,7 @@ export function AttachmentUploader({
                       >
                         {supportedRoles.map((r) => (
                           <option key={r} value={r}>
-                            {ASSET_ROLE_LABELS[r]}
+                            {roleLabels[r]}
                           </option>
                         ))}
                       </select>
@@ -236,7 +254,7 @@ export function AttachmentUploader({
                   variant="ghost"
                   size="icon-sm"
                   onClick={() => removeAt(idx)}
-                  aria-label="Remove attachment"
+                  aria-label={isEn ? "Remove attachment" : "移除附件"}
                 >
                   <X strokeWidth={1.5} aria-hidden />
                 </Button>

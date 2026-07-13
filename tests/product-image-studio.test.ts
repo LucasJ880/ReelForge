@@ -103,14 +103,18 @@ test("video handoff loads product images with owner-scoped lookup", async () => 
 });
 
 test("customer UI exposes generate, optimize, single-video and batch-video paths", async () => {
-  const ui = await readFile(
-    "src/components/product-images/product-image-studio.tsx",
-    "utf8",
-  );
-  assert.match(ui, /优化实拍图/);
-  assert.match(ui, /生成产品图/);
-  assert.match(ui, /用于单条视频/);
-  assert.match(ui, /用于批量视频/);
+  const [ui, copy] = await Promise.all([
+    readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
+    readFile("src/i18n/platform-copy.ts", "utf8"),
+  ]);
+  assert.match(ui, /copy\.optimize/);
+  assert.match(ui, /copy\.generate/);
+  assert.match(ui, /copy\.useSingle/);
+  assert.match(ui, /copy\.useBatch/);
+  assert.match(copy, /优化实拍图/);
+  assert.match(copy, /生成产品图/);
+  assert.match(copy, /用于单条视频/);
+  assert.match(copy, /用于批量视频/);
   assert.match(ui, /AI Generated · Aivora/);
   assert.doesNotMatch(ui, /shuyu_api_key|sk_live_|ARK_API_KEY/);
 });

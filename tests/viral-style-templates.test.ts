@@ -13,6 +13,7 @@ import {
   STYLE_TEMPLATES,
   STYLE_TEMPLATE_CATEGORIES,
   getStyleTemplate,
+  recommendStyleTemplate,
 } from "../src/lib/video-generation/style-templates";
 import { buildPlan } from "../src/lib/video-generation/generation-supervisor";
 import type {
@@ -37,6 +38,13 @@ test("[viral-templates] 模版库 id 全局唯一且 getStyleTemplate 可取回"
   for (const t of STYLE_TEMPLATES) {
     assert.equal(getStyleTemplate(t.id)?.name, t.name);
   }
+});
+
+test("[viral-templates] 稀疏世界杯提示自动选择低自由度赛事模板", () => {
+  const template = recommendStyleTemplate("世界杯，年轻人");
+  assert.equal(template?.id, "tpl_event_watch_party");
+  assert.match(template?.scaffold.cameraLanguage ?? "", /three stable eye-level setups/);
+  assert.match(template?.scaffold.shotPattern ?? "", /same three friends/);
 });
 
 test("[viral-templates] scaffold 完整：styleKeywords/cameraLanguage/shotPattern 非空", () => {

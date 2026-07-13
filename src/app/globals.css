@@ -124,6 +124,44 @@
     padding: var(--space-8) var(--space-6) var(--space-12);
   }
 
+  .studio-canvas {
+    background:
+      radial-gradient(circle at 76% 8%, var(--accent-soft), transparent 28rem),
+      var(--bg);
+  }
+
+  .studio-hero {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, var(--surface-raised), var(--surface) 62%);
+    padding: var(--space-8);
+  }
+
+  .studio-hero::before {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    content: "";
+    background: var(--accent);
+  }
+
+  .studio-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: linear-gradient(180deg, var(--surface-raised), var(--surface) 5rem);
+  }
+
+  .auth-grid {
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: linear-gradient(to bottom, transparent, black 18%, black 76%, transparent);
+    opacity: 0.22;
+  }
+
   .batch-film-strip {
     display: grid;
     min-height: 42px;

@@ -1,14 +1,20 @@
+"use client";
+
 import Link from "next/link";
 import { ImageIcon, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/i18n/useTranslation";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 
 export function CreateModeTabs({ active }: { active: "video" | "image" }) {
+  const { locale } = useTranslation();
+  const copy = getPlatformCopy(locale).create;
   const items = [
-    { id: "video" as const, href: "/app/create", label: "生成视频", icon: Video },
-    { id: "image" as const, href: "/app/create/images", label: "产品图片", icon: ImageIcon },
+    { id: "video" as const, href: "/app/create", label: copy.video, icon: Video },
+    { id: "image" as const, href: "/app/create/images", label: copy.image, icon: ImageIcon },
   ];
   return (
-    <nav aria-label="创作模式" className="inline-flex rounded-(--radius-md) border border-border bg-muted p-1">
+    <nav aria-label={copy.modeNav} className="inline-flex rounded-(--radius-md) border border-border bg-muted p-1">
       {items.map((item) => {
         const Icon = item.icon;
         return (

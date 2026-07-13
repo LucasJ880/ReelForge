@@ -14,11 +14,14 @@ test("studio/starter 共用 owner-scoped 成品库，不按历史 persona 分流
 test("统一成品列表只展示安全 URL，失败态提供重试和支持", async () => {
   const page = await readFile(path.join(ROOT, "src/app/(platform)/app/library/page.tsx"), "utf8");
   const service = await readFile(path.join(ROOT, "src/lib/services/unified-library-service.ts"), "utf8");
+  const copy = await readFile(path.join(ROOT, "src/i18n/platform-copy.ts"), "utf8");
   assert.match(service, /customerSafeFinalVideoUrl/);
   assert.match(page, /row\.videoUrl \?/);
   assert.match(page, /row\.status === "failed"/);
-  assert.match(page, /重新生成/);
-  assert.match(page, /联系支持/);
+  assert.match(page, /copy\.regenerate/);
+  assert.match(page, /copy\.failed/);
+  assert.match(copy, /重新生成/);
+  assert.match(copy, /联系支持/);
 });
 
 test("统一详情按 session owner 查询，历史 persona 不触发跨路由重定向", async () => {

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 import { AttachmentUploader } from "@/components/video-generation/attachment-uploader";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,16 @@ interface UnifiedCreativeInputProps {
   userType: "business" | "personal" | "platform";
   initialDraft?: OrderCreativeDraft;
   initialAssets?: UploadedAsset[];
+  initialStyleTemplateId?: string;
 }
+
+const QUALITY_TEMPLATE_IDS = [
+  "tpl_event_watch_party",
+  "tpl_viral_result_first",
+  "tpl_viral_pain_solution",
+  "tpl_ugc_review",
+  "tpl_viral_sensory_texture",
+] as const;
 
 /**
  * 把任意错误转成客户可读的中文提示。
@@ -80,9 +90,11 @@ export function UnifiedCreativeInput({
   userType,
   initialDraft,
   initialAssets = [],
+  initialStyleTemplateId,
 }: UnifiedCreativeInputProps) {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const platformCopy = getPlatformCopy(locale).create;
   const isPersonal = userType === "personal";
   const [rawPrompt, setRawPrompt] = useState(initialDraft?.rawPrompt ?? "");
   const [attachments, setAttachments] = useState<UploadedAsset[]>(initialAssets);
@@ -100,6 +112,11 @@ export function UnifiedCreativeInput({
   const [cta, setCta] = useState(initialDraft?.cta ?? "");
   const [brandName, setBrandName] = useState(initialDraft?.brandName ?? "");
   const [website, setWebsite] = useState(initialDraft?.website ?? "");
+  const [styleTemplateId, setStyleTemplateId] = useState<string>(
+    initialStyleTemplateId && (QUALITY_TEMPLATE_IDS as readonly string[]).includes(initialStyleTemplateId)
+      ? initialStyleTemplateId
+      : "auto",
+  );
 
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
@@ -125,7 +142,8 @@ export function UnifiedCreativeInput({
               website: website || null,
             }
           : null,
-      language: null,
+      language: locale,
+      styleTemplateId: styleTemplateId === "auto" ? null : styleTemplateId,
     };
   }
 
@@ -268,6 +286,30 @@ export function UnifiedCreativeInput({
             />
           </label>
         </div>
+
+        {userType === "platform" ? (
+          <label className={LABEL_CLASS}>
+            {platformCopy.templateLabel}
+            <select
+              data-testid="quality-template-select"
+              value={styleTemplateId}
+              onChange={(event) => {
+                setStyleTemplateId(event.target.value);
+                setPlan(null);
+                setPlanRequestKey(null);
+              }}
+              className={SELECT_CLASS}
+            >
+              <option value="auto">{platformCopy.templateAuto}</option>
+              <option value="tpl_event_watch_party">{platformCopy.templateEvent}</option>
+              <option value="tpl_viral_result_first">{platformCopy.templateResult}</option>
+              <option value="tpl_viral_pain_solution">{platformCopy.templatePain}</option>
+              <option value="tpl_ugc_review">{platformCopy.templateUgc}</option>
+              <option value="tpl_viral_sensory_texture">{platformCopy.templateSensory}</option>
+            </select>
+            <span className="mt-1 block text-meta font-normal text-muted-foreground">{platformCopy.templateAutoHint}</span>
+          </label>
+        ) : null}
 
         <div>
           <p className={LABEL_CLASS}>

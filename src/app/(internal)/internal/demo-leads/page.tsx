@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { revalidatePath } from "next/cache";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/features/page-header";
 import { StatusBadge } from "@/components/features/status-badge";
 import { db } from "@/lib/db";
@@ -58,7 +59,7 @@ export default async function DemoLeadsPage({
   });
 
   return (
-    <div>
+    <div className="space-y-8">
       <PageHeader
         title="Demo 线索"
         description={`Real-footage ads public demo waitlist，共 ${leads.length} 条最近提交${
@@ -66,7 +67,7 @@ export default async function DemoLeadsPage({
         }`}
       />
 
-      <Card className="mb-4 flex flex-col gap-3 p-4 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+      <Card size="sm" className="flex flex-col gap-3 px-4 text-body text-muted-foreground md:flex-row md:items-center md:justify-between">
         <span>
           轻量管理：更新状态、把测试提交标记为 test，并隐藏或删除 test 线索。
         </span>
@@ -80,15 +81,15 @@ export default async function DemoLeadsPage({
         </a>
       </Card>
 
-      <Card className="mb-6 p-5">
-        <div className="mb-4">
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+      <Card className="p-6">
+        <div className="mb-6">
+          <p className="text-meta font-semibold uppercase tracking-[0.16em] text-primary">
             Proof dashboard
           </p>
-          <h2 className="mt-2 text-xl font-semibold">
+          <h2 className="mt-2 font-heading text-title">
             投资人 / 客户验证信号
           </h2>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-body text-muted-foreground">
             Lead 数来自数据库，其余早期 traction 指标可先手动维护，直到 trial
             workflow 稳定后再自动化。
           </p>
@@ -111,16 +112,21 @@ export default async function DemoLeadsPage({
       </Card>
 
       {leads.length === 0 ? (
-        <Card className="p-10 text-center">
-          <p className="text-sm text-muted-foreground">
+        <Card className="p-8 text-center">
+          <p className="text-body text-muted-foreground">
             暂无 waitlist 提交。分享 /demo/real-footage-ads 后，新的线索会出现在这里。
           </p>
         </Card>
       ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
-              <thead className="border-b border-border bg-secondary/40 text-xs text-muted-foreground">
+        <Card>
+          <div
+            className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            role="region"
+            aria-label="Demo 线索列表"
+            tabIndex={0}
+          >
+            <table className="min-w-240 w-full text-left text-body">
+              <thead className="border-b border-border bg-secondary text-meta text-muted-foreground">
                 <tr>
                   <Th>姓名</Th>
                   <Th>邮箱</Th>
@@ -136,7 +142,7 @@ export default async function DemoLeadsPage({
                 {leads.map((lead) => (
                   <tr
                     key={lead.id}
-                    className="border-b border-border/70 last:border-0"
+                    className="border-b border-border last:border-0"
                   >
                     <Td>
                       <span className="font-medium text-foreground">{lead.name}</span>
@@ -161,7 +167,7 @@ export default async function DemoLeadsPage({
                         {LEAD_STATUS_LABELS[lead.status]}
                       </StatusBadge>
                       {lead.hiddenAt ? (
-                        <p className="mt-2 text-xs text-muted-foreground">
+                        <p className="mt-2 text-meta text-muted-foreground">
                           已隐藏：{formatDate(lead.hiddenAt)}
                         </p>
                       ) : null}
@@ -174,7 +180,7 @@ export default async function DemoLeadsPage({
                           <select
                             name="status"
                             defaultValue={lead.status}
-                            className="h-9 min-w-32 rounded-xl border border-border bg-background px-2 text-xs text-foreground"
+                            className="h-10 min-w-32 rounded-(--radius-md) border border-input bg-card px-3 text-meta text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                           >
                             {LEAD_STATUS_OPTIONS.map((option) => (
                               <option key={option.value} value={option.value}>
@@ -182,12 +188,12 @@ export default async function DemoLeadsPage({
                               </option>
                             ))}
                           </select>
-                          <button
+                          <Button
                             type="submit"
-                            className="rounded-xl border border-border px-3 text-xs font-medium text-foreground hover:bg-secondary"
+                            variant="outline"
                           >
                             更新
-                          </button>
+                          </Button>
                         </form>
 
                         {lead.status === "TEST" ? (
@@ -195,22 +201,22 @@ export default async function DemoLeadsPage({
                             {!lead.hiddenAt ? (
                               <form action={hideTestLead}>
                                 <input type="hidden" name="id" value={lead.id} />
-                                <button
+                                <Button
                                   type="submit"
-                                  className="rounded-xl border border-border px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary"
+                                  variant="outline"
                                 >
                                   隐藏
-                                </button>
+                                </Button>
                               </form>
                             ) : null}
                             <form action={deleteTestLead}>
                               <input type="hidden" name="id" value={lead.id} />
-                              <button
+                              <Button
                                 type="submit"
-                                className="rounded-xl border border-destructive/30 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10"
+                                variant="destructive"
                               >
                                 删除测试
-                              </button>
+                              </Button>
                             </form>
                           </div>
                         ) : null}
@@ -298,10 +304,10 @@ function ProofMetric({
   detail: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-secondary/30 p-4">
-      <p className="text-2xl font-semibold text-primary">{value}</p>
-      <p className="mt-1 text-sm font-medium">{label}</p>
-      <p className="mt-2 text-xs leading-5 text-muted-foreground">{detail}</p>
+    <div className="border-l-2 border-primary pl-4">
+      <p className="font-heading text-title text-primary">{value}</p>
+      <p className="mt-1 text-body font-medium">{label}</p>
+      <p className="mt-2 text-meta text-muted-foreground">{detail}</p>
     </div>
   );
 }

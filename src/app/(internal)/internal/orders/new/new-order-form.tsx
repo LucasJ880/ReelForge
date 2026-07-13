@@ -179,7 +179,7 @@ export function NewOrderForm() {
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         <Field label="客户 / 产品类型" required>
           <select
             value={form.productCategory}
@@ -208,9 +208,9 @@ export function NewOrderForm() {
         </Field>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-border bg-secondary/30 p-4">
-        <h3 className="text-sm font-medium">产品 / 服务信息</h3>
-        <div className="grid grid-cols-2 gap-4">
+      <div className="space-y-4 rounded-(--radius-lg) border border-border bg-secondary p-4">
+        <h3 className="font-heading text-subhead">产品 / 服务信息</h3>
+        <div className="grid gap-4 sm:grid-cols-2">
           <Field label="产品 / 服务名称" required>
             <input
               type="text"
@@ -272,28 +272,28 @@ export function NewOrderForm() {
             rows={2}
             value={form.competitorUrls}
             onChange={(e) => setForm({ ...form, competitorUrls: e.target.value })}
-            className={`${INPUT} font-mono text-xs`}
+            className={`${INPUT} font-mono text-meta`}
             placeholder="https://www.tiktok.com/…"
           />
         </Field>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-border bg-secondary/30 p-4">
+      <div className="space-y-4 rounded-(--radius-lg) border border-border bg-secondary p-4">
         <div>
-          <h3 className="text-sm font-medium">真实素材</h3>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <h3 className="font-heading text-subhead">真实素材</h3>
+          <p className="mt-1 text-meta text-muted-foreground">
             上传客户真实产品、门店、人物、宠物互动、开箱、before/after 等素材；MVP 阶段会先把素材清单交给 AI 做脚本和分镜匹配。
           </p>
         </div>
-        <div className="rounded-lg border border-dashed border-border bg-card/60 p-4">
-          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 text-center text-sm">
+        <div className="rounded-(--radius-lg) border border-dashed border-border bg-card p-4">
+          <label className="flex cursor-pointer flex-col items-center justify-center gap-2 text-center text-body focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring">
             {uploading ? (
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="animate-spin text-muted-foreground" strokeWidth={1.5} aria-hidden />
             ) : (
-              <Upload className="h-5 w-5 text-muted-foreground" />
+              <Upload className="text-muted-foreground" strokeWidth={1.5} aria-hidden />
             )}
             <span>{uploading ? "素材上传中…" : "点击上传视频 / 图片素材"}</span>
-            <span className="text-xs text-muted-foreground">支持多文件，使用 Vercel Blob 存储</span>
+            <span className="text-meta text-muted-foreground">支持多文件，使用 Vercel Blob 存储</span>
             <input
               type="file"
               multiple
@@ -312,21 +312,21 @@ export function NewOrderForm() {
             {assets.map((asset) => (
               <div
                 key={asset.url}
-                className="flex items-center justify-between gap-3 rounded border border-border/60 bg-card px-3 py-2 text-xs"
+                className="flex min-w-0 items-center justify-between gap-3 rounded-(--radius-md) border border-border bg-card px-3 py-2 text-meta"
               >
                 <div className="min-w-0">
-                  <span className="mr-2 rounded bg-secondary px-1.5 py-0.5 uppercase">
+                  <span className="mr-2 rounded-(--radius-sm) bg-secondary px-2 py-1 uppercase">
                     {asset.type}
                   </span>
                   <span className="break-all">{asset.name}</span>
                 </div>
                 <button
                   type="button"
-                  className="text-muted-foreground hover:text-destructive"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) text-muted-foreground hover:bg-secondary hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                   onClick={() => setAssets((current) => current.filter((a) => a.url !== asset.url))}
                   aria-label={`移除 ${asset.name}`}
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X strokeWidth={1.5} aria-hidden />
                 </button>
               </div>
             ))}
@@ -337,7 +337,7 @@ export function NewOrderForm() {
             rows={3}
             value={form.footageUrls}
             onChange={(e) => setForm({ ...form, footageUrls: e.target.value })}
-            className={`${INPUT} font-mono text-xs`}
+            className={`${INPUT} font-mono text-meta`}
             placeholder="https://…/dog-jumps-on-sofa.mp4"
           />
         </Field>
@@ -352,14 +352,14 @@ export function NewOrderForm() {
         </Field>
       </div>
 
-      <div className="space-y-4 rounded-lg border border-border bg-secondary/30 p-4">
-        <h3 className="text-sm font-medium">投放与赛马设置</h3>
+      <div className="space-y-4 rounded-(--radius-lg) border border-border bg-secondary p-4">
+        <h3 className="font-heading text-subhead">投放与赛马设置</h3>
         <Field label="目标平台" required>
           <div className="grid gap-2 sm:grid-cols-2">
             {TARGET_PLATFORMS.map((platform) => (
               <label
                 key={platform.value}
-                className="flex items-center gap-2 rounded border border-border/60 bg-card px-3 py-2 text-sm"
+                className="flex min-h-10 items-center gap-2 rounded-(--radius-md) border border-border bg-card px-3 py-2 text-body focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring"
               >
                 <input
                   type="checkbox"
@@ -385,7 +385,7 @@ export function NewOrderForm() {
 
       <div className="flex justify-end gap-2">
         <Button type="submit" disabled={submitting}>
-          {submitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+          {submitting && <Loader2 className="animate-spin" strokeWidth={1.5} aria-hidden />}
           创建交付单
         </Button>
       </div>
@@ -394,7 +394,7 @@ export function NewOrderForm() {
 }
 
 const INPUT =
-  "w-full rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 focus:border-primary/60 focus:outline-none focus:ring-2 focus:ring-primary/20";
+  "min-h-10 w-full min-w-0 rounded-(--radius-md) border border-input bg-card px-3 py-2 text-body text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 function Field({
   label,
@@ -408,12 +408,12 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className="space-y-1.5 text-sm">
-      <span className="block text-xs font-medium text-muted-foreground">
-        {label} {required && <span className="text-destructive">*</span>}
+    <label className="space-y-2 text-body">
+      <span className="block text-meta font-medium text-muted-foreground">
+        {label} {required && <span className="text-danger">*</span>}
       </span>
       {children}
-      {hint && <span className="block text-[11px] text-muted-foreground/70">{hint}</span>}
+      {hint && <span className="block text-meta text-muted-foreground">{hint}</span>}
     </label>
   );
 }

@@ -123,8 +123,8 @@ function assertStatusEnvironment(record: SubmissionRecord) {
       ].join("\n"),
     );
   }
-  if (!process.env.ARK_API_KEY) {
-    throw new Error("缺少必需环境变量：ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY) {
+    throw new Error("缺少必需环境变量：BYTEPLUS_ARK_API_KEY");
   }
 }
 

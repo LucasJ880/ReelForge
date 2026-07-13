@@ -40,7 +40,6 @@ import type {
   VideoGenerationPlan,
   UploadedAsset,
 } from "@/types/video-generation";
-import { effectiveAssetRole } from "@/types/video-generation";
 
 /**
  * 主入口。

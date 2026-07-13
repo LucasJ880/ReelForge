@@ -12,7 +12,7 @@
  * 即使 brief 略弱，prompt-intelligence 还会基于 brief + 时长 + 资产 再做一次结构化推断）。
  */
 
-import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import type {
   CreativeBrief,
   InputClassification,
@@ -117,7 +117,7 @@ function coerceBrief(
   raw: unknown,
   args: BuildCreativeBriefArgs,
 ): CreativeBrief {
-  const isBusiness = args.request.userType === "business";
+  const isBusiness = args.request.userType !== "personal";
   const obj = (raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {});
 
   const get = (k: string): string => (typeof obj[k] === "string" ? (obj[k] as string) : "");
@@ -165,7 +165,7 @@ function coerceBrief(
  * - 其它字段填合理默认
  */
 export function heuristicBrief(args: BuildCreativeBriefArgs): CreativeBrief {
-  const isBusiness = args.request.userType === "business";
+  const isBusiness = args.request.userType !== "personal";
   const hook = extractFirstSentence(args.request.rawPrompt);
   const productHint =
     args.classifiedAssets.find((a) => effectiveAssetRole(a) === "product_image")?.fileName ??

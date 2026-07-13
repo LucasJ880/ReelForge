@@ -80,6 +80,19 @@ test("INV-B2：50 图 × 100 视频、k=2 时每张图恰好使用 4 次", () =>
   for (const count of counts.values()) assert.equal(count, 4);
 });
 
+test("Phase5a：底层引擎可确定性分配单批 500 条，且不改变素材均衡", () => {
+  const assignments = allocateAssets({
+    batchId: "batch_capacity_500",
+    images: images(50),
+    count: 500,
+    templateId: "capacity-proof@1",
+    imagesPerVideo: { min: 1, max: 3 },
+  });
+  assert.equal(assignments.length, 500);
+  assert.equal(new Set(assignments.map((item) => item.dedupeKey)).size, 500);
+  assertBalanced(countAssetUsage(assignments), 50);
+});
+
 test("AC-B2 分配前置：20 图 × 100 视频、k=1 时每张图恰好使用 5 次", () => {
   const assignments = allocateAssets({
     batchId: "batch_20x100",
@@ -154,7 +167,7 @@ test("分配器拒绝素材不足、重复 id、非 CDN URL 和越界 N", () => 
     allocateAssets({
       batchId: "batch",
       images: images(1),
-      count: 201,
+      count: 501,
       templateId: "tpl",
       imagesPerVideo: { min: 1, max: 1 },
     }),

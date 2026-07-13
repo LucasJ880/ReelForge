@@ -1,0 +1,14 @@
+{
+  "mode": "deterministic-mock-readiness",
+  "templates": 31,
+  "categories": 18,
+  "representativeProductInputs": 20,
+  "matrixCases": 620,
+  "uniqueSlugs": 31,
+  "uniquePromptSkeletons": 31,
+  "renderedPromptCollisions": 0,
+  "unresolvedPlaceholders": 0,
+  "missingVisualTruthGuards": 0,
+  "missingNeverInventGuards": 0,
+  "note": "This validates prompt/template determinism and guard coverage only. It does not claim real-provider visual quality or competitor parity."
+}

@@ -474,9 +474,9 @@ Segment plan:
 
 Required env vars:
 
-- `ARK_API_KEY`: required for real Seedance submission.
-- `ARK_BASE_URL`: optional; defaults to `https://ark.cn-beijing.volces.com/api/v3`.
-- `ARK_VIDEO_MODEL`: optional; defaults through the provider to `doubao-seedance-2-0-260128`.
+- `BYTEPLUS_ARK_API_KEY`: required for real Seedance submission.
+- `ARK_BASE_URL`: optional; defaults to `https://ark.ap-southeast.bytepluses.com/api/v3`.
+- `ARK_VIDEO_MODEL`: optional; defaults through the provider to `dreamina-seedance-2-0-260128`.
 - `VIDEO_ENGINE_MOCK`: must be unset or `false` for a real submission.
 
 Optional env vars:

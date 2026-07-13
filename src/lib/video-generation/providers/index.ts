@@ -6,13 +6,13 @@
  *   const provider = getVideoProvider();
  *   const { providerJobId } = await provider.createVideoJob({ prompt, ... });
  *
- * 当前唯一实现：volcengine（即梦 / Seedance）
+ * 当前唯一真实实现：BytePlus ModelArk（Seedance）。
  * 未来如果接入其他 video model（Runway / Pika），在此添加并扩展 VIDEO_PROVIDER 枚举。
  */
 
 import { getAppEnv } from "@/lib/config/env";
 import { MockVideoProvider } from "./mock-video-provider";
-import { VolcengineVideoProvider } from "./volcengine-video-provider";
+import { BytePlusVideoProvider } from "./byteplus-video-provider";
 import type { VideoProvider } from "./types";
 
 let cached: VideoProvider | null = null;
@@ -28,8 +28,8 @@ export function createVideoProvider(): VideoProvider {
   switch (env.videoProvider) {
     case "mock":
       return new MockVideoProvider();
-    case "volcengine":
-      return new VolcengineVideoProvider();
+    case "byteplus":
+      return new BytePlusVideoProvider();
     default: {
       const exhaustiveCheck: never = env.videoProvider;
       throw new Error(
@@ -40,11 +40,11 @@ export function createVideoProvider(): VideoProvider {
 }
 
 export function createVideoProviderById(
-  id: "volcengine" | "mock",
+  id: "byteplus" | "mock",
 ): VideoProvider {
   return id === "mock"
     ? new MockVideoProvider()
-    : new VolcengineVideoProvider();
+    : new BytePlusVideoProvider();
 }
 
 export function __resetVideoProviderForTests(): void {

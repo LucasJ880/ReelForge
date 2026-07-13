@@ -17,6 +17,7 @@ export default async function SettingsPage() {
     redirect("/orders");
   }
   const users = await db.adminUser.findMany({
+    where: { role: { in: ["SUPER_ADMIN", "OPERATOR", "REVIEWER"] } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -66,7 +67,7 @@ export default async function SettingsPage() {
                     id: u.id,
                     email: u.email,
                     name: u.name,
-                    role: u.role,
+                    role: u.role as "SUPER_ADMIN" | "OPERATOR" | "REVIEWER",
                     createdAtText: formatDate(u.createdAt),
                   }}
                   isSelf={u.id === session.user.id}

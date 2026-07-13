@@ -18,7 +18,7 @@ export const supportedDurationSchema = z.union([
   z.literal(60),
 ]);
 
-export const userTypeSchema = z.enum(["business", "personal"]);
+export const userTypeSchema = z.enum(["business", "personal", "platform"]);
 
 export const generationModeSchema = z.enum([
   "text_to_video",

@@ -16,7 +16,7 @@ pnpm db:seed              # 产生 SUPER_ADMIN（邮箱/密码见 .env SEED_ADMI
 ```
 
 环境变量：
-- 开发期可完全不配 `OPENAI_API_KEY` / `ARK_API_KEY`：
+- 开发期可完全不配 `OPENAI_API_KEY` / `BYTEPLUS_ARK_API_KEY`：
   - `openai` provider 走 mock：生成的文案/调研为占位（但结构完整）
   - `seedance` provider 走 mock：提交/轮询都立刻返回 `SUCCEEDED` + 占位 `outputVideoUrl`
 - 正式测试时按 `.env.example` 填入真实 key

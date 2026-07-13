@@ -14,21 +14,21 @@ export interface EditorialRoute {
 }
 
 export const EDITORIAL_ROUTES: EditorialRoute[] = [
-  { key: "design", path: "/design" },
-  { key: "agent", path: "/personal/agent" },
-  { key: "create-video", path: "/personal/create-video" },
-  { key: "batch-create", path: "/batch-create" },
-  { key: "batch-monitor", path: "/batches/__fixture__" },
-  { key: "videos", path: "/personal/videos" },
-  { key: "templates", path: "/personal/templates" },
+  { key: "design", path: "/app/create" },
+  { key: "agent", path: "/app/create" },
+  { key: "create-video", path: "/app/create" },
+  { key: "batch-create", path: "/app/batches/new" },
+  { key: "batch-monitor", path: "/app/batches/__fixture__" },
+  { key: "videos", path: "/app/library" },
+  { key: "templates", path: "/app/templates" },
   { key: "login", path: "/login" },
 ];
 
 export async function ensureAuthenticated(page: Page): Promise<void> {
-  await page.goto("/personal/videos");
+  await page.goto("/app/library");
   if (new URL(page.url()).pathname === "/login") {
     await page.getByRole("button", { name: /使用演示账号体验/ }).click();
-    await page.waitForURL(/\/personal\/videos/, { timeout: 20_000 });
+    await page.waitForURL(/\/app\/library/, { timeout: 20_000 });
   }
 }
 
@@ -106,7 +106,7 @@ export async function resolveRoute(
   projectName: string,
 ): Promise<string> {
   if (route.key !== "batch-monitor") return route.path;
-  return `/batches/${await createBatchFixture(page, projectName)}`;
+  return `/app/batches/${await createBatchFixture(page, projectName)}`;
 }
 
 export async function stabilizePage(page: Page): Promise<void> {

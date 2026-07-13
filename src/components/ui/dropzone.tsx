@@ -14,6 +14,7 @@ export interface FileDropzoneProps {
   description: string;
   className?: string;
   onFiles: (files: File[]) => void;
+  onRejected?: (files: File[]) => void;
 }
 
 export function FileDropzone({
@@ -25,19 +26,23 @@ export function FileDropzone({
   description,
   className,
   onFiles,
+  onRejected,
 }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
 
   function handleFiles(fileList: FileList | null) {
     if (!fileList || disabled || uploading) return;
-    const files = Array.from(fileList).filter((file) =>
-      accept
+    const allowed = accept
         .split(",")
-        .map((item) => item.trim())
-        .some((mime) => file.type === mime || mime.endsWith("/*")),
+        .map((item) => item.trim());
+    const files = Array.from(fileList);
+    const accepted = files.filter((file) =>
+      allowed.some((mime) => file.type === mime || mime.endsWith("/*")),
     );
-    if (files.length > 0) onFiles(files);
+    const rejected = files.filter((file) => !accepted.includes(file));
+    if (rejected.length > 0) onRejected?.(rejected);
+    if (accepted.length > 0) onFiles(accepted);
   }
 
   return (

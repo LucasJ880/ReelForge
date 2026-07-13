@@ -15,6 +15,14 @@ export const RUN_STATE_PATH = path.join(
 async function main() {
   const runId = process.env.FINAL_ACCEPTANCE_RUN_ID;
   if (!runId) throw new Error("缺少 FINAL_ACCEPTANCE_RUN_ID");
+  if (process.env.FINAL_ACCEPTANCE_REQUIRE_REHEARSAL === "true") {
+    const databaseUrl = process.env.DATABASE_URL;
+    if (!databaseUrl) throw new Error("最终验收缺少 DATABASE_URL");
+    const databaseHost = new URL(databaseUrl).hostname;
+    if (!databaseHost.includes("us-east-1.aws.neon.tech")) {
+      throw new Error("最终验收只允许写入 Neon us-east-1 演练分支");
+    }
+  }
 
   await mkdir(path.dirname(RUN_STATE_PATH), { recursive: true });
   await writeFile(

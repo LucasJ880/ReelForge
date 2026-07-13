@@ -10,7 +10,7 @@
  *   npm run demo:curtain -- --phase=submit
  *   npm run demo:curtain -- --phase=wait
  *
- * 前置：ARK_API_KEY / BLOB_READ_WRITE_TOKEN 已配置，VIDEO_ENGINE_MOCK 未开。
+ * 前置：BYTEPLUS_ARK_API_KEY / BLOB_READ_WRITE_TOKEN 已配置，VIDEO_ENGINE_MOCK 未开。
  * 产物：tmp/curtain-viral-ads/submission.json + tmp/curtain-viral-ads/video-N.mp4
  */
 import { loadEnvConfig } from "@next/env";
@@ -223,7 +223,7 @@ function assertRealMode() {
   if (flag === "1" || flag === "true" || flag === "yes") {
     throw new Error("VIDEO_ENGINE_MOCK 已开启；本脚本只做真实出片，请关掉 mock。");
   }
-  if (!process.env.ARK_API_KEY) throw new Error("缺少 ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY) throw new Error("缺少 BYTEPLUS_ARK_API_KEY");
   if (!process.env.BLOB_READ_WRITE_TOKEN) throw new Error("缺少 BLOB_READ_WRITE_TOKEN");
 }
 
@@ -350,7 +350,7 @@ async function main() {
       purpose: "curtain-viral-ads-5x15s",
       ratio: "9:16",
       durationSec: 15,
-      model: process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128",
+      model: process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128",
       submittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       imageBlobUrls: {},

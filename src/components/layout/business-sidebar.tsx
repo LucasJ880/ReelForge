@@ -13,7 +13,6 @@ import {
   Lightbulb,
   LogOut,
   CreditCard,
-  UserRound,
   Menu,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
@@ -41,11 +40,6 @@ export function BusinessSidebar() {
       href: "/business/create-ad-video",
       label: t("shell.businessNav.createAd"),
       icon: Wand2,
-    },
-    {
-      href: "/business/digital-human-store-ad",
-      label: t("shell.businessNav.digitalHuman"),
-      icon: UserRound,
     },
     {
       href: "/business/products",

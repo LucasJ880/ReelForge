@@ -5,6 +5,7 @@ export interface BlobUploadResult {
 
 export interface BlobUploadOptions {
   file: File;
+  endpoint?: string;
   prefix?: string;
   signal?: AbortSignal;
   onProgress?: (progress: number) => void;
@@ -12,6 +13,7 @@ export interface BlobUploadOptions {
 
 export function uploadBlobWithProgress({
   file,
+  endpoint = "/api/upload/blob",
   prefix = "unified-input",
   signal,
   onProgress,
@@ -58,7 +60,7 @@ export function uploadBlobWithProgress({
       resolve({ url: payload.url, pathname: payload.pathname });
     };
 
-    xhr.open("POST", "/api/upload/blob");
+    xhr.open("POST", endpoint);
     xhr.send(form);
   });
 }

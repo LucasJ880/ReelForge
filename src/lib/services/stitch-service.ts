@@ -181,6 +181,7 @@ export async function stitchFinalVideo(
     !isEphemeralSignedUrl(fv.segments[0].outputVideoUrl)
   ) {
     const single = fv.segments[0];
+    await reviewGeneratedVideo(single.outputVideoUrl as string, single.outputThumbUrl, finalVideoId);
     await db.finalVideo.update({
       where: { id: fv.id },
       data: {
@@ -203,6 +204,7 @@ export async function stitchFinalVideo(
   /// 演示模式：跳过真实 ffmpeg，把第一段 URL 当成片
   if (process.env.ENABLE_VIDEO_STITCHING === "false") {
     const first = fv.segments[0];
+    await reviewGeneratedVideo(first.outputVideoUrl as string, first.outputThumbUrl, finalVideoId);
     await db.finalVideo.update({
       where: { id: fv.id },
       data: {
@@ -269,6 +271,7 @@ export async function stitchFinalVideo(
   }
 
   if (stitchedUrl) {
+    await reviewGeneratedVideo(stitchedUrl, thumbnailUrl, finalVideoId);
     await db.finalVideo.update({
       where: { id: fv.id },
       data: {
@@ -405,6 +408,12 @@ export async function finishStitchTask(args: {
     };
   }
 
+  await reviewGeneratedVideo(
+    stitchedVideoUrl,
+    thumbnailUrl ?? fv.thumbnailUrl,
+    finalVideoId,
+  );
+
   await db.finalVideo.update({
     where: { id: fv.id },
     data: {
@@ -445,6 +454,23 @@ export async function retryStitch(finalVideoId: string) {
     },
   });
   return stitchFinalVideo(finalVideoId);
+}
+
+async function reviewGeneratedVideo(
+  videoUrl: string,
+  thumbnailUrl: string | null,
+  finalVideoId: string,
+) {
+  const { reviewMediaOrThrow } = await import("@/lib/content-review");
+  return reviewMediaOrThrow({
+    kind: "generated_video",
+    mediaUrl: videoUrl,
+    mediaType: "video",
+    context: {
+      finalVideoId,
+      ...(thumbnailUrl ? { previewImageUrl: thumbnailUrl } : {}),
+    },
+  });
 }
 
 async function markBriefReady(briefId: string) {

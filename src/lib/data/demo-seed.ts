@@ -147,7 +147,7 @@ export const DEMO_SEED_RESULT: DemoVideoAnalysisResult = {
       "Shot 1-3 已用 Seedance 真实生成（含失败时 Ken Burns 真实素材补位）",
       "可继续按行业扩展生成镜头模板",
     ],
-    nextKeys: ["ARK_API_KEY", "BLOB_READ_WRITE_TOKEN"],
+    nextKeys: ["BYTEPLUS_ARK_API_KEY", "BLOB_READ_WRITE_TOKEN"],
   },
 };
 

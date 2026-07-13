@@ -5,10 +5,10 @@ import {
   test,
 } from "./framework";
 
-test("生产路由 smoke：公开、个人、创建与监控页面均可达", async ({
+test("生产路由 smoke：统一创作、批量、成品与模板页面均可达", async ({
   page,
 }, testInfo) => {
-  await page.goto("/batch-create");
+  await page.goto("/app/batches/new");
   const batch = await createBatch(page, {
     imageCount: 1,
     requestedCount: 2,
@@ -16,11 +16,12 @@ test("生产路由 smoke：公开、个人、创建与监控页面均可达", as
   });
 
   const routes = [
-    "/design",
-    "/batch-create",
-    `/batches/${batch.id}`,
-    "/personal/videos",
-    "/personal/templates",
+    "/app/create",
+    "/app/batches/new",
+    `/app/batches/${batch.id}`,
+    "/app/library",
+    "/app/templates",
+    "/app/racing",
   ];
   const evidence: Array<{ route: string; status: number | null; title: string }> = [];
   for (const route of routes) {

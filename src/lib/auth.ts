@@ -44,7 +44,11 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as { role?: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" }).role;
+        token.role = (
+          user as {
+            role?: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER";
+          }
+        ).role;
         token.userType =
           (user as { userType?: "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN" | null })
             .userType ?? null;
@@ -67,7 +71,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user && token.id) {
         session.user.id = token.id as string;
         session.user.role =
-          (token.role as "SUPER_ADMIN" | "OPERATOR" | "REVIEWER") || "OPERATOR";
+          (token.role as
+            | "SUPER_ADMIN"
+            | "OPERATOR"
+            | "REVIEWER"
+            | "CUSTOMER") || "CUSTOMER";
         session.user.userType =
           (token.userType as
             | "BUSINESS"
@@ -91,7 +99,7 @@ export const authOptions: NextAuthOptions = {
  */
 function normalizeUserType(
   ut: string | null | undefined,
-  role: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER",
+  role: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER",
 ): "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN" | null {
   if (ut === "BUSINESS" || ut === "PERSONAL") return ut;
   if (ut === "OPERATOR" || ut === "SUPER_ADMIN") return ut;

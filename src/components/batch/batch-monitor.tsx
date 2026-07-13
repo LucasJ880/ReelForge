@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
+import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
   CheckCircle2,
   Download,
   Loader2,
   PauseCircle,
-  PlayCircle,
   RefreshCw,
   XCircle,
 } from "lucide-react";
@@ -28,6 +29,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { KpiCard } from "@/components/editorial/kpi-card";
+import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { toast } from "sonner";
 
 export interface BatchMonitorJob {
@@ -145,7 +147,6 @@ export function BatchMonitor({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [columns, setColumns] = useState(4);
   const [detailJob, setDetailJob] = useState<BatchMonitorJob | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -172,21 +173,10 @@ export function BatchMonitor({
     return () => window.clearInterval(timer);
   }, [batch.status, refresh]);
 
-  useEffect(() => {
-    const updateColumns = () => {
-      const width = viewportRef.current?.clientWidth ?? window.innerWidth;
-      setColumns(width >= 1100 ? 4 : width >= 720 ? 3 : width >= 480 ? 2 : 1);
-    };
-    updateColumns();
-    window.addEventListener("resize", updateColumns);
-    return () => window.removeEventListener("resize", updateColumns);
-  }, []);
-
-  const rowCount = Math.ceil(batch.videoJobs.length / columns);
   const virtualizer = useVirtualizer({
-    count: rowCount,
+    count: batch.videoJobs.length,
     getScrollElement: () => viewportRef.current,
-    estimateSize: () => 320,
+    estimateSize: () => 57,
     overscan: 2,
   });
   const completedJobs = useMemo(
@@ -269,8 +259,8 @@ export function BatchMonitor({
           <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-3">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <p className="text-meta font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Editorial Batch Monitor
+                <p className="studio-label text-muted-foreground">
+                  Batch monitor
                 </p>
                 <Badge variant={batchStatusVariant(batch.status)}>
                   {BATCH_LABELS[batch.status]}
@@ -280,7 +270,7 @@ export function BatchMonitor({
                 <h1 className="editorial-display wrap-break-word">
                   {batch.template.nameZh}
                 </h1>
-                <CardDescription className="break-all">
+                <CardDescription className="break-all font-mono tabular-nums">
                   批次 {batch.id} · 模板版本 v{batch.template.version}
                 </CardDescription>
               </div>
@@ -355,16 +345,25 @@ export function BatchMonitor({
             <KpiCard label="失败" value={batch.failedCount} />
           </div>
           <KpiCard
-            label="总进度"
+            label="批次总进度"
             value={`${totalProgress}%`}
             progress={totalProgress}
+          />
+          <BatchFilmStrip
+            counts={{
+              completed: batch.completedCount,
+              generating: batch.runningCount,
+              queued: batch.queuedCount + batch.pausedCount,
+              failed: batch.failedCount,
+              cancelled: batch.cancelledCount,
+            }}
           />
         </CardContent>
       </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-meta text-muted-foreground">
-          虚拟网格仅渲染可视区域 · 当前 {batch.videoJobs.length} 条
+          虚拟列表仅渲染可视区域 · 当前 <span className="font-mono tabular-nums">{batch.videoJobs.length}</span> 条
         </p>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
@@ -395,7 +394,7 @@ export function BatchMonitor({
         role="region"
         aria-label="批次视频任务列表"
         tabIndex={0}
-        className="h-[min(720px,70vh)] min-w-0 overflow-auto rounded-(--radius-lg) border border-border bg-muted p-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:p-3"
+        className="h-[min(720px,70vh)] min-w-0 overflow-auto rounded-(--radius-lg) border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         data-virtualized="true"
         data-total-cards={batch.videoJobs.length}
       >
@@ -404,144 +403,82 @@ export function BatchMonitor({
           style={{ height: `${virtualizer.getTotalSize()}px` }}
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
-            const rowStart = virtualRow.index * columns;
-            const jobs = batch.videoJobs.slice(rowStart, rowStart + columns);
+            const job = batch.videoJobs[virtualRow.index];
+            const thumb = job.outputThumbUrl ?? firstAssetUrl(job.assignedAssets);
+            const checked = selected.has(job.id);
             return (
               <div
                 key={virtualRow.key}
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
-                className="absolute left-0 top-0 grid w-full min-w-0 gap-3 pb-3"
-                style={{
-                  gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
+                data-batch-video-card
+                className="absolute left-0 top-0 flex h-14 w-full min-w-[680px] items-center gap-3 border-b border-border px-3 hover:bg-secondary"
+                style={{ transform: `translateY(${virtualRow.start}px)` }}
               >
-                {jobs.map((job) => {
-                  const thumb =
-                    job.outputThumbUrl ?? firstAssetUrl(job.assignedAssets);
-                  const checked = selected.has(job.id);
-                  return (
-                    <Card
-                      key={job.id}
-                      size="sm"
-                      className="min-w-0 gap-0 py-0"
-                      data-batch-video-card
-                      onClick={() => {
-                        if (columns === 1) setDetailJob(job);
-                      }}
-                      onKeyDown={(event) => {
-                        if (columns === 1 && (event.key === "Enter" || event.key === " ")) {
-                          event.preventDefault();
-                          setDetailJob(job);
-                        }
-                      }}
-                      role={columns === 1 ? "button" : undefined}
-                      tabIndex={columns === 1 ? 0 : undefined}
-                    >
-                      <div className="relative aspect-9/12 bg-muted">
-                        {job.outputVideoUrl ? (
-                          <video
-                            src={job.outputVideoUrl}
-                            poster={thumb ?? undefined}
-                            controls
-                            preload="metadata"
-                            className="size-full object-cover"
-                          />
-                        ) : thumb ? (
-                          <div
-                            className="size-full bg-cover bg-center"
-                            style={{ backgroundImage: `url("${thumb}")` }}
-                          />
-                        ) : (
-                          <div className="flex size-full items-center justify-center">
-                            <PlayCircle
-                              className="size-8 text-muted-foreground"
-                              aria-hidden
-                            />
-                          </div>
-                        )}
-                        <label className="absolute left-2 top-2 rounded-(--radius-sm) bg-card p-1">
-                          <input
-                            type="checkbox"
-                            disabled={job.status !== "SUCCEEDED"}
-                            checked={checked}
-                            onChange={() =>
-                              setSelected((current) => {
-                                const next = new Set(current);
-                                if (next.has(job.id)) next.delete(job.id);
-                                else next.add(job.id);
-                                return next;
-                              })
-                            }
-                            className="size-4 accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                            aria-label={`选择视频 ${(job.batchIndex ?? 0) + 1}`}
-                          />
-                        </label>
-                      </div>
-                      <CardContent className="space-y-3 p-4">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-meta font-semibold text-foreground">
-                            视频 #{(job.batchIndex ?? 0) + 1}
-                          </span>
-                          <Badge variant={jobStatusVariant(job.status)}>
-                            {JOB_LABELS[job.status]}
-                          </Badge>
-                        </div>
-                        {job.status === "RUNNING" && (
-                          <Progress
-                            value={job.lastProgress ?? 8}
-                            aria-label={`视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`}
-                          />
-                        )}
-                        {job.status === "FAILED" && (
-                          <div className="space-y-2">
-                            <p
-                              className="line-clamp-2 text-meta text-danger"
-                              title={job.errorMessage ?? undefined}
-                            >
-                              {job.userSafeError ?? "生成失败，可重试"}
-                            </p>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="xs"
-                              disabled={busy != null}
-                              onClick={() =>
-                                void action(
-                                  `retry-${job.id}`,
-                                  `/api/batches/${batch.id}/jobs/${job.id}/retry`,
-                                )
-                              }
-                            >
-                              {busy === `retry-${job.id}` ? (
-                                <Loader2
-                                  className="animate-spin motion-reduce:animate-none"
-                                  aria-hidden
-                                />
-                              ) : (
-                                <RefreshCw aria-hidden />
-                              )}
-                              单条重试
-                            </Button>
-                          </div>
-                        )}
-                        {job.status === "SUCCEEDED" && (
-                          <p className="flex items-center gap-1.5 text-meta text-success">
-                            <CheckCircle2 className="size-3" aria-hidden />{" "}
-                            可播放与下载
-                          </p>
-                        )}
-                        {job.status === "CANCELLED" && (
-                          <p className="flex items-center gap-1.5 text-meta text-muted-foreground">
-                            <XCircle className="size-3" aria-hidden /> 未提交
-                            Provider
-                          </p>
-                        )}
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                <label className="flex size-5 shrink-0 items-center justify-center">
+                  <input
+                    type="checkbox"
+                    disabled={job.status !== "SUCCEEDED"}
+                    checked={checked}
+                    onChange={() => setSelected((current) => {
+                      const next = new Set(current);
+                      if (next.has(job.id)) next.delete(job.id);
+                      else next.add(job.id);
+                      return next;
+                    })}
+                    className="size-4 accent-primary"
+                    aria-label={`选择视频 ${(job.batchIndex ?? 0) + 1}`}
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setDetailJob(job)}
+                  onMouseEnter={(event) => {
+                    const video = event.currentTarget.querySelector("video");
+                    if (video) void video.play().catch(() => undefined);
+                  }}
+                  onMouseLeave={(event) => {
+                    const video = event.currentTarget.querySelector("video");
+                    if (video) {
+                      video.pause();
+                      video.currentTime = 0;
+                    }
+                  }}
+                  className="relative flex h-[54px] w-24 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-sm) bg-secondary font-mono text-meta text-muted-foreground"
+                  aria-label={`查看视频 ${(job.batchIndex ?? 0) + 1} 详情`}
+                >
+                  {job.status === "SUCCEEDED" && job.outputVideoUrl ? (
+                    <><video
+                        src={job.outputVideoUrl}
+                        poster={thumb ?? undefined}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="pointer-events-none size-full object-cover"
+                      /><AiGeneratedLabel compact className="pointer-events-none absolute bottom-1 left-1 px-1 py-0.5" /></>
+                  ) : thumb ? (
+                    <Image src={thumb} alt="" fill unoptimized sizes="96px" className="object-cover" />
+                  ) : (
+                    `#${(job.batchIndex ?? 0) + 1}`
+                  )}
+                </button>
+                <div className="w-40 min-w-0 shrink-0">
+                  <p className="truncate font-mono text-meta font-semibold text-foreground">视频 #{(job.batchIndex ?? 0) + 1}</p>
+                  <p className="truncate font-mono text-meta text-muted-foreground" title={job.id}>{job.id}</p>
+                </div>
+                <Badge variant={jobStatusVariant(job.status)} className="w-20">{JOB_LABELS[job.status]}</Badge>
+                <div className="min-w-32 flex-1">
+                  {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={`视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
+                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger" title={job.errorMessage ?? undefined}>{job.userSafeError ?? "生成失败，可重试"}</p> : null}
+                  {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />可播放与下载</p> : null}
+                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />未提交 Provider</p> : null}
+                </div>
+                <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} retry</p>
+                {job.status === "FAILED" ? (
+                  <Button type="button" variant="outline" size="xs" disabled={busy != null} onClick={() => void action(`retry-${job.id}`, `/api/batches/${batch.id}/jobs/${job.id}/retry`)}>
+                    {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}重试
+                  </Button>
+                ) : <span className="w-[72px]" aria-hidden />}
               </div>
             );
           })}
@@ -566,13 +503,13 @@ export function BatchMonitor({
               </SheetHeader>
               <div className="space-y-4 px-6 pb-6">
                 {detailJob.outputVideoUrl ? (
-                  <video
-                    src={detailJob.outputVideoUrl}
-                    poster={detailJob.outputThumbUrl ?? undefined}
-                    controls
-                    preload="metadata"
-                    className="aspect-9/12 w-full rounded-(--radius-md) border border-border object-cover"
-                  />
+                  <div className="relative"><video
+                      src={detailJob.outputVideoUrl}
+                      poster={detailJob.outputThumbUrl ?? undefined}
+                      controls
+                      preload="metadata"
+                      className="aspect-9/12 w-full rounded-(--radius-md) border border-border object-cover"
+                    /><AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" /></div>
                 ) : null}
                 {detailJob.status === "RUNNING" && (
                   <Progress

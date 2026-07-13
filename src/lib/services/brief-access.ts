@@ -38,20 +38,14 @@ export interface BriefAccessResult {
  */
 export function decideBriefAccess(args: {
   callerUserId: string | null | undefined;
-  callerUserType:
-    | "BUSINESS"
-    | "PERSONAL"
-    | "OPERATOR"
-    | "SUPER_ADMIN"
-    | null
-    | undefined;
+  callerRole: "CUSTOMER" | "REVIEWER" | "OPERATOR" | "SUPER_ADMIN" | null | undefined;
   ownerUserId: string | null | undefined;
   ownerPersona: "BUSINESS" | "PERSONAL" | null | undefined;
   briefId: string;
 }): BriefAccessResult {
   const isInternalStaff =
-    args.callerUserType === "OPERATOR" ||
-    args.callerUserType === "SUPER_ADMIN";
+    args.callerRole === "OPERATOR" ||
+    args.callerRole === "SUPER_ADMIN";
 
   if (isInternalStaff) {
     return {
@@ -75,12 +69,7 @@ export function decideBriefAccess(args: {
 
   if (
     args.callerUserId &&
-    args.callerUserId === args.ownerUserId &&
-    /// 客户用户必须 persona 一致：避免 PERSONAL 调 BUSINESS brief（虽然 createdBy 一致）
-    /// 因为 unified-input 路由按 persona 渲染不同 UI / quota
-    (args.callerUserType === args.ownerPersona ||
-      /// 如果 brief 没标 persona（非 unified-input 老 brief），直接放行
-      args.ownerPersona == null)
+    args.callerUserId === args.ownerUserId
   ) {
     return {
       allowed: true,
@@ -132,7 +121,7 @@ export async function checkBriefAccess(
   if (!brief) {
     return decideBriefAccess({
       callerUserId: session.user.id,
-      callerUserType: session.user.userType,
+      callerRole: session.user.role,
       ownerUserId: null,
       ownerPersona: null,
       briefId,
@@ -147,7 +136,7 @@ export async function checkBriefAccess(
 
   return decideBriefAccess({
     callerUserId: session.user.id,
-    callerUserType: session.user.userType,
+    callerRole: session.user.role,
     ownerUserId: brief.contentAngle?.round?.deliveryOrder?.createdById ?? null,
     ownerPersona,
     briefId,

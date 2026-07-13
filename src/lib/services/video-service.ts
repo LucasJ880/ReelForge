@@ -1340,7 +1340,7 @@ function toUserSafeIfMissing(adminError: string | null): string | null {
 }
 
 function friendlySubmitError(adminMessage: string): string {
-  if (adminMessage.includes("OPENAI_API_KEY") || adminMessage.includes("ARK_API_KEY")) {
+  if (adminMessage.includes("OPENAI_API_KEY") || adminMessage.includes("BYTEPLUS_ARK_API_KEY")) {
     return "视频生成服务暂未配置完成，请联系管理员检查 API 密钥。";
   }
   if (adminMessage.includes("rate") || adminMessage.includes("429")) {

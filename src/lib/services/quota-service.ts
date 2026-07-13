@@ -2,7 +2,6 @@ import type { Prisma, UsageResource } from "@prisma/client";
 import type { Session } from "next-auth";
 import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
-import { isStripeConfigured } from "@/lib/services/stripe-billing-service";
 
 export class QuotaExceededError extends Error {
   readonly code = "QUOTA_EXCEEDED" as const;
@@ -58,17 +57,17 @@ export function currentUsagePeriodKey(date = new Date()): string {
 }
 
 export async function resolveQuotaPlan(userId: string): Promise<QuotaPlanId> {
-  if (!isStripeConfigured()) return "free";
   try {
-    const user = await db.adminUser.findUnique({
-      where: { id: userId },
-      select: { subscriptionTier: true },
+    const workspace = await db.workspace.findUnique({
+      where: { ownerId: userId },
+      select: { planId: true },
     });
-    if (user?.subscriptionTier === "pro") return "pro";
+    if (workspace?.planId === "studio") return "studio";
+    if (workspace?.planId === "starter") return "starter";
   } catch (err) {
-    console.warn("[resolveQuotaPlan] using free tier fallback", err);
+    console.warn("[resolveQuotaPlan] using starter fallback", err);
   }
-  return "free";
+  return "starter";
 }
 
 export function getLimitForResource(
@@ -325,10 +324,38 @@ export async function assertRegisterRateLimit(params: {
   );
 }
 
+/**
+ * Per-account protection for authenticated, provider-billed actions.
+ * This is deliberately separate from monthly plan quotas: it prevents a
+ * browser loop or duplicated client request from causing an abrupt spend
+ * spike without inventing a new commercial entitlement.
+ */
+export async function assertAuthenticatedActionRateLimit(params: {
+  action: "product-image";
+  userId: string;
+  maxPerHour?: number;
+}): Promise<void> {
+  if (!isQuotaEnforced() && process.env.NODE_ENV !== "production") return;
+
+  const configured = Number.parseInt(
+    process.env.PRODUCT_IMAGE_RATE_LIMIT_PER_HOUR ?? "5",
+    10,
+  );
+  const fallback = Number.isFinite(configured) ? configured : 5;
+  const max = Math.max(1, Math.min(params.maxPerHour ?? fallback, 100));
+  await bumpRateLimit(
+    `${params.action}:user:${params.userId}`,
+    hourlyWindowKey(),
+    max,
+    "图片生成操作过于频繁，请一小时后再试。",
+  );
+}
+
 async function bumpRateLimit(
   bucketKey: string,
   windowKey: string,
   max: number,
+  message?: string,
 ): Promise<void> {
   const row = await db.rateLimitBucket.upsert({
     where: { bucketKey_windowKey: { bucketKey, windowKey } },
@@ -337,7 +364,7 @@ async function bumpRateLimit(
   });
 
   if (row.count > max) {
-    throw new RateLimitExceededError();
+    throw new RateLimitExceededError(message);
   }
 }
 

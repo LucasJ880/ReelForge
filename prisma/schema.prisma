@@ -15,33 +15,67 @@ enum AdminRole {
   SUPER_ADMIN
   OPERATOR
   REVIEWER
+  CUSTOMER
 }
 
 model AdminUser {
-  id             String    @id @default(cuid())
-  email          String    @unique
-  hashedPassword String
-  name           String?
-  role           AdminRole @default(OPERATOR)
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  hashedPassword       String
+  name                 String?
+  role                 AdminRole @default(CUSTOMER)
   /// Phase 5（Unified Input）：persona discriminator
   /// 取值："BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN"
   /// 未填写时 src/app/page.tsx 强制跳转 /persona 选择。
   /// 不做成 enum：存量账号默认 "OPERATOR" 走 internal shell。
-  userType       String?   @default("OPERATOR")
+  userType             String?   @default("OPERATOR")
   /// Phase 7b：free | pro（Stripe 订阅成功后写入）
   subscriptionTier     String    @default("free")
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
-  createdOrders  DeliveryOrder[]
-  qaReviews      QAReview[]
-  publishRecords PublishRecord[]
-  usagePeriods   UserUsagePeriod[]
-  usageLogs      UsageLog[]
+  createdOrders      DeliveryOrder[]
+  qaReviews          QAReview[]
+  publishRecords     PublishRecord[]
+  usagePeriods       UserUsagePeriod[]
+  usageLogs          UsageLog[]
   digitalHumanAdJobs DigitalHumanAdJob[]
-  batchJobs      BatchJob[]
+  batchJobs          BatchJob[]
+  workspace          Workspace?
+  contentReports     ContentReport[]     @relation("ContentReportReporter")
+  reviewedReports    ContentReport[]     @relation("ContentReportReviewer")
+  productImageJobs   ProductImageJob[]
+}
+
+model PlanEntitlement {
+  /// Stable product plan id: starter | studio.
+  id                    String   @id
+  monthlyVideoLimit     Int
+  batchConcurrencyLimit Int
+  templateLibraryAccess String
+  featureFlags          Json
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  workspaces Workspace[]
+}
+
+/// Phase 1 starts with exactly one default workspace per user.
+/// The one-to-one owner constraint can be expanded later without changing job ownership.
+model Workspace {
+  id        String          @id @default(cuid())
+  name      String
+  ownerId   String          @unique
+  owner     AdminUser       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      PlanEntitlement @relation(fields: [planId], references: [id], onDelete: Restrict)
+  isDefault Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+
+  @@index([planId])
 }
 
 // =========================================================
@@ -528,6 +562,12 @@ model VideoBrief {
   /// 最终封面
   finalThumbnailUrl  String?
 
+  /// Customer delivery suppression. Media is retained for audit and recovery,
+  /// but customer library queries must not expose a taken-down item.
+  takedownAt     DateTime?
+  takedownReason String?
+  takedownById   String?
+
   /// 多段拼接成片的关联（只在 30s/60s 多段流程下创建）
   finalVideoId String?     @unique
   finalVideo   FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
@@ -544,6 +584,42 @@ model VideoBrief {
 
   @@index([status])
   @@index([finalVideoId])
+}
+
+enum ContentReportStatus {
+  OPEN
+  REVIEWING
+  ACTIONED
+  DISMISSED
+}
+
+enum ContentReportReason {
+  UNSAFE_CONTENT
+  IP_OR_BRAND
+  PRIVACY
+  MISLEADING
+  QUALITY_FAILURE
+  OTHER
+}
+
+model ContentReport {
+  id             String              @id @default(cuid())
+  reporterId     String
+  reporter       AdminUser           @relation("ContentReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  targetBriefId  String
+  reason         ContentReportReason
+  details        String?
+  status         ContentReportStatus @default(OPEN)
+  reviewedById   String?
+  reviewedBy     AdminUser?          @relation("ContentReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  resolutionNote String?
+  actionedAt     DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([reporterId, createdAt(sort: Desc)])
+  @@index([targetBriefId])
 }
 
 enum AdEditPlanStatus {
@@ -645,6 +721,7 @@ enum VideoProvider {
 enum StyleTemplateStatus {
   DRAFT
   ACTIVE
+  ARCHIVED
 }
 
 /// 批量视频风格模板。每一行代表一个不可变版本：
@@ -709,51 +786,56 @@ enum BatchJobStatus {
 }
 
 model BatchJob {
-  id               String         @id @default(cuid())
-  userId           String
-  user             AdminUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateId       String
-  template         StyleTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  templateVersion  Int
-  imageIds         String[]
-  imageUrls        String[]
-  productName      String?
-  requestedCount   Int
-  idempotencyKey   String
-  status           BatchJobStatus @default(EXPANDING)
-  queuedCount      Int            @default(0)
-  pausedCount      Int            @default(0)
-  runningCount     Int            @default(0)
-  completedCount   Int            @default(0)
-  failedCount      Int            @default(0)
-  cancelledCount   Int            @default(0)
-  statusReason     String?
-  breakerPausedAt  DateTime?
-  finishedAt       DateTime?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  id                         String         @id @default(cuid())
+  userId                     String
+  user                       AdminUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId                 String
+  template                   StyleTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateVersion            Int
+  imageIds                   String[]
+  imageUrls                  String[]
+  productName                String?
+  requestedCount             Int
+  idempotencyKey             String
+  status                     BatchJobStatus @default(EXPANDING)
+  queuedCount                Int            @default(0)
+  pausedCount                Int            @default(0)
+  runningCount               Int            @default(0)
+  completedCount             Int            @default(0)
+  failedCount                Int            @default(0)
+  cancelledCount             Int            @default(0)
+  statusReason               String?
+  breakerPausedAt            DateTime?
+  /// GATE 0 历史任务隔离栏人工决策：仅允许 RELEASED / EXPIRED；null 表示未处置。
+  dispatchQuarantineDecision String?
+  dispatchQuarantineAt       DateTime?
+  dispatchQuarantineBy       String?
+  finishedAt                 DateTime?
+  createdAt                  DateTime       @default(now())
+  updatedAt                  DateTime       @updatedAt
 
   videoJobs VideoJob[]
 
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
+  @@index([status, createdAt, dispatchQuarantineDecision])
 }
 
 model VideoJob {
-  id           String     @id @default(cuid())
-  videoBriefId String?
-  videoBrief   VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
-  batchJobId   String?
-  batchJob     BatchJob?   @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
-  batchIndex   Int?
-  batchItemKey String?     @unique
-  assignedAssets Json?
+  id               String      @id @default(cuid())
+  videoBriefId     String?
+  videoBrief       VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  batchJobId       String?
+  batchJob         BatchJob?   @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
+  batchIndex       Int?
+  batchItemKey     String?     @unique
+  assignedAssets   Json?
   templateSnapshot Json?
   promptText       String?
   negativePrompt   String?
   seed             Int?
-  submitAttempts   Int      @default(0)
+  submitAttempts   Int         @default(0)
   availableAt      DateTime?
   leaseOwner       String?
   leaseExpiresAt   DateTime?
@@ -762,6 +844,11 @@ model VideoJob {
   provider      VideoProvider
   externalJobId String?
   status        VideoJobStatus @default(QUEUED)
+
+  /// GATE 0 历史任务隔离栏人工决策：仅允许 RELEASED / EXPIRED；null 表示未处置。
+  dispatchQuarantineDecision String?
+  dispatchQuarantineAt       DateTime?
+  dispatchQuarantineBy       String?
 
   outputVideoUrl String?
   outputThumbUrl String?
@@ -804,6 +891,7 @@ model VideoJob {
   @@index([videoBriefId])
   @@index([batchJobId, status, batchIndex])
   @@index([status, availableAt])
+  @@index([status, createdAt, dispatchQuarantineDecision])
   @@index([finalVideoId, segmentIndex])
 }
 
@@ -876,6 +964,53 @@ model LogoGeneration {
 
   @@index([deliveryOrderId])
   @@index([createdAt(sort: Desc)])
+}
+
+enum ProductImageMode {
+  GENERATE
+  OPTIMIZE
+}
+
+enum ProductImageStatus {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+/// Customer-facing GPT Image workflow. The request snapshot, source/output
+/// assets and model attribution are retained so support, moderation and cost
+/// reconciliation do not depend on transient browser state.
+model ProductImageJob {
+  id             String             @id @default(cuid())
+  userId         String
+  user           AdminUser          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey String
+  mode           ProductImageMode
+  status         ProductImageStatus @default(QUEUED)
+
+  prompt      String
+  preset      String
+  aspectRatio String
+  quality     String
+  model       String
+
+  sourceImageUrl String?
+  sourceMimeType String?
+  outputImageUrl String?
+  fromMock       Boolean @default(false)
+  retryCount     Int     @default(0)
+
+  errorCode    String?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, createdAt])
 }
 
 // =========================================================
@@ -1113,8 +1248,8 @@ model DigitalHumanAdJob {
   id String @id @default(cuid())
 
   /// 归属商家用户
-  adminUserId String
-  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  adminUserId     String
+  adminUser       AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
   /// 可选：关联到某个 DeliveryOrder（MVP 不强制，纯记录用，不做 FK 关系）
   deliveryOrderId String?
 
@@ -1122,33 +1257,33 @@ model DigitalHumanAdJob {
 
   // ---- 输入 ----
   /// 选中的虚拟人资产引用：asset://asset-xxxxx
-  avatarAssetUri String
+  avatarAssetUri   String
   /// 火山音色 ID（speaker）
-  voiceType String
+  voiceType        String
   /// 火山音色资源版本（默认 seed-tts-2.0）
-  voiceResourceId String @default("seed-tts-2.0")
+  voiceResourceId  String   @default("seed-tts-2.0")
   /// 店铺实景图公网 URL（2-5 张）
-  storeImageUrls String[]
+  storeImageUrls   String[]
   /// 行业 / 店铺类型（如「宠物店 / 猫咪主题店」）
-  industry String
+  industry         String
   /// 一句话门店描述（喂给 LLM 写文案）
   storeDescription String?
   /// 卖点列表（逐条，喂给 LLM）
-  sellingPoints String[]
+  sellingPoints    String[]
   /// 行动号召（地址 / 关注引导）
-  cta String?
+  cta              String?
   /// 品牌名（可选，字幕 / 口播用）
-  brandName String?
-  durationSec Int    @default(28)
-  aspectRatio String @default("9:16")
+  brandName        String?
+  durationSec      Int      @default(28)
+  aspectRatio      String   @default("9:16")
 
   // ---- 外部 runner 协作 ----
   /// CAS 领取时间（QUEUED → RENDERING 时写入，防多 runner 抢同一条）
-  claimedAt DateTime?
+  claimedAt     DateTime?
   /// 尝试次数；>=3 不再自动重试
-  attempts Int @default(0)
+  attempts      Int       @default(0)
   /// 管理员可见的原始错误
-  lastError String?
+  lastError     String?
   /// 用户可见的中文错误
   userSafeError String?
 
@@ -1156,7 +1291,7 @@ model DigitalHumanAdJob {
   outputVideoUrl     String?
   outputThumbnailUrl String?
   /// 落库的分镜快照，便于复盘
-  storyboard Json?
+  storyboard         Json?
 
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

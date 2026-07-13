@@ -21,8 +21,8 @@ export function KpiCard({
         className,
       )}
     >
-      <p className="text-meta text-muted-foreground">{label}</p>
-      <p className="mt-1 font-heading text-subhead tabular-nums text-foreground">
+      <p className="studio-label text-muted-foreground">{label}</p>
+      <p className="mt-1 font-mono text-subhead font-semibold tabular-nums text-foreground">
         {value}
       </p>
       {typeof progress === "number" ? (

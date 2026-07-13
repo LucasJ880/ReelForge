@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/ai";
 import type { ResearchStructured } from "./discovery-service";
 
 const SYSTEM_PROMPT = `你是一名短视频广告卖点提炼专家。基于市场调研 + 产品/服务事实 + 客户上传的真实素材清单，为一个真实素材广告项目产出一组结构化卖点，面向剪辑和脚本团队使用。只输出 JSON。

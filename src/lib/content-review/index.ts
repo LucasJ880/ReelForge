@@ -7,19 +7,17 @@
  *   await reviewTextOrThrow({ kind: "generation_prompt", text: prompt, context: { briefId } });
  *
  * Provider 选择：
- *   - CONTENT_REVIEW_ENABLED=false → 强制 noop（即便 PROVIDER=volcengine 也走 noop）
+ *   - CONTENT_REVIEW_ENABLED=false → 强制 noop
  *   - CONTENT_REVIEW_ENABLED=true + PROVIDER=noop → 警告 + 走 noop（仅 dev/staging 临时）
- *   - CONTENT_REVIEW_ENABLED=true + PROVIDER=volcengine → 火山审核
+ *   - CONTENT_REVIEW_ENABLED=true + PROVIDER=openai_moderation → text/image moderation
  *
- * 调用点（Phase 1 预留，尚未真正接入业务流）：
- * - generation-supervisor.ts → 调 reviewTextOrThrow(prompt) before submit Seedance
- * - upload/blob route → 调 reviewMediaOrThrow(uploaded_url) after upload
- * - video-service finalize → 调 reviewMediaOrThrow(rendered_video_url) after stitch
+ * Enforced boundaries: upload, generation prompt before provider submit, and
+ * final media before it becomes customer-visible.
  */
 
 import { getAppEnv } from "@/lib/config/env";
 import { NoopReviewProvider } from "./providers/noop-review-provider";
-import { VolcengineReviewProvider } from "./providers/volcengine-review-provider";
+import { OpenAiModerationProvider } from "./providers/openai-moderation-provider";
 import type {
   ContentReviewProvider,
   MediaReviewInput,
@@ -44,13 +42,13 @@ export function createContentReviewProvider(): ContentReviewProvider {
   }
 
   switch (env.contentReviewProvider) {
+    case "openai_moderation":
+      return new OpenAiModerationProvider();
     case "noop":
       console.warn(
         "[content-review] CONTENT_REVIEW_ENABLED=true 但 PROVIDER=noop，等同于未启用审核（仅 dev/staging 允许）",
       );
       return new NoopReviewProvider();
-    case "volcengine":
-      return new VolcengineReviewProvider();
     default: {
       const exhaustiveCheck: never = env.contentReviewProvider;
       throw new Error(
@@ -65,15 +63,15 @@ export function __resetContentReviewProviderForTests(): void {
 }
 
 /**
- * 帮助方法：审核文本，verdict !== approved 时抛错（caller 不用每次判断）。
- * - failed_open / manual_review 不抛（业务侧自己决定是否放行）
+ * Fail closed for every non-approved result. A manual-review verdict is a queue,
+ * not permission to deliver or submit content.
  */
 export async function reviewTextOrThrow(
   input: TextReviewInput,
 ): Promise<ReviewResult> {
   const provider = getContentReviewProvider();
   const result = await provider.reviewText(input);
-  if (result.verdict === "rejected" || result.verdict === "failed_closed") {
+  if (result.verdict !== "approved") {
     throw new ContentReviewRejectedError(input.kind, result);
   }
   return result;
@@ -87,7 +85,7 @@ export async function reviewMediaOrThrow(
 ): Promise<ReviewResult> {
   const provider = getContentReviewProvider();
   const result = await provider.reviewMedia(input);
-  if (result.verdict === "rejected" || result.verdict === "failed_closed") {
+  if (result.verdict !== "approved") {
     throw new ContentReviewRejectedError(input.kind, result);
   }
   return result;

@@ -1,5 +1,28 @@
 import type { NextConfig } from "next";
 
+export const legacyPlatformRedirects = [
+  { source: "/design", destination: "/app/create", permanent: true },
+  { source: "/batch-create", destination: "/app/batches/new", permanent: true },
+  { source: "/batches/:id", destination: "/app/batches/:id", permanent: true },
+  { source: "/personal", destination: "/app/create", permanent: true },
+  { source: "/personal/agent", destination: "/app/create", permanent: true },
+  { source: "/personal/create-video", destination: "/app/create", permanent: true },
+  { source: "/personal/templates", destination: "/app/templates", permanent: true },
+  { source: "/personal/videos", destination: "/app/library", permanent: true },
+  { source: "/personal/videos/:id", destination: "/app/library/:id", permanent: true },
+  { source: "/personal/billing", destination: "/app/create", permanent: true },
+  { source: "/business", destination: "/app/create", permanent: true },
+  { source: "/business/create-ad-video", destination: "/app/create", permanent: true },
+  { source: "/business/creative-studio", destination: "/app/create", permanent: true },
+  { source: "/business/products", destination: "/app/library", permanent: true },
+  { source: "/business/products/:id", destination: "/app/library/:id", permanent: true },
+  { source: "/business/performance", destination: "/app/racing", permanent: true },
+  { source: "/business/recommendations", destination: "/app/racing", permanent: true },
+  { source: "/business/billing", destination: "/app/create", permanent: true },
+  { source: "/business/integrations", destination: "/app/create", permanent: true },
+  { source: "/business/digital-human-store-ad", destination: "/app/create", permanent: true },
+] as const;
+
 /**
  * Phase 5 — legacy URL redirects.
  *
@@ -12,6 +35,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async redirects() {
     return [
+      ...legacyPlatformRedirects,
       // Operator / internal tooling 全部归到 /internal/*
       { source: "/orders", destination: "/internal/orders", permanent: true },
       { source: "/orders/:path*", destination: "/internal/orders/:path*", permanent: true },
@@ -36,12 +60,12 @@ const nextConfig: NextConfig = {
       { source: "/settings/:path*", destination: "/internal/settings/:path*", permanent: true },
 
       // Customer-facing projects → business products
-      { source: "/projects", destination: "/business/products", permanent: true },
-      { source: "/projects/:path*", destination: "/business/products/:path*", permanent: true },
+      { source: "/projects", destination: "/app/library", permanent: true },
+      { source: "/projects/:path*", destination: "/app/library/:path*", permanent: true },
       // Legacy /videos was an operator-friendly aggregate; redirect to internal until Phase 2
       // splits it explicitly into business + personal libraries.
-      { source: "/videos", destination: "/internal/videos", permanent: true },
-      { source: "/videos/:path*", destination: "/internal/videos/:path*", permanent: true },
+      { source: "/videos", destination: "/app/library", permanent: true },
+      { source: "/videos/:path*", destination: "/app/library/:path*", permanent: true },
     ];
   },
 };

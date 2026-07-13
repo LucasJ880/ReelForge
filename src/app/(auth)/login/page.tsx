@@ -51,11 +51,11 @@ export default function LoginPage() {
   return (
     <>
       <CardHeader className="border-b border-border pb-5">
-        <CardTitle>欢迎回到创作室</CardTitle>
+        <CardTitle className="font-semibold">欢迎回到创作室</CardTitle>
         <CardDescription>登录 Aivora，继续制作下一支短视频。</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-meta font-medium">
               邮箱

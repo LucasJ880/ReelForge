@@ -7,7 +7,7 @@
 | Vercel | Next.js 托管 + Cron + Blob 存储 | ✅ |
 | Neon Postgres | 数据库 | ✅ |
 | OpenAI API | LLM（调研/卖点/Angle/脚本/QA/蒸馏） | MVP 可用 mock，生产必需 |
-| Volcengine Ark (Seedance) | 文本/图生视频 | MVP 可用 mock，生产必需 |
+| BytePlus ModelArk international (Seedance) | 文本/图生视频 | MVP 可用 mock，生产必需 |
 | remove.bg | V2 图片抠图（MVP 可关闭） | 可选 |
 
 ## 2. 环境变量清单
@@ -32,11 +32,11 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 
 # Seedance（不填或 VIDEO_ENGINE_MOCK=true 则走 mock）
-ARK_API_KEY=...
-ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
-ARK_VIDEO_MODEL=doubao-seedance-2-0-260128
+BYTEPLUS_ARK_API_KEY=...
+ARK_BASE_URL=https://ark.ap-southeast.bytepluses.com/api/v3
+ARK_VIDEO_MODEL=dreamina-seedance-2-0-260128
 ARK_VIDEO_I2V_MODEL=           # 留空则复用 ARK_VIDEO_MODEL
-VIDEO_ENGINE_MOCK=false
+VIDEO_ENGINE_MOCK=true         # Phase 0 / 未批准真实调用时保持 true
 
 # === 强烈推荐（让市场调研变"真实"） ===
 APIFY_TOKEN=apify_api_...      # 不填则 discovery 仅走 LLM 常识模式

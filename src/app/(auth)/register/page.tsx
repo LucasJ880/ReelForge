@@ -54,7 +54,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/personal");
+      router.push("/app/create");
       router.refresh();
     } catch {
       setError("网络异常，请稍后再试");
@@ -65,7 +65,7 @@ export default function RegisterPage() {
   return (
     <>
       <CardHeader className="border-b border-border pb-5">
-        <CardTitle>创建个人账号</CardTitle>
+        <CardTitle className="font-semibold">创建 Aivora 账号</CardTitle>
         <CardDescription>一句话描述想法，AI 帮你完成短视频。</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -151,8 +151,6 @@ export default function RegisterPage() {
           </p>
           <p className="text-meta leading-relaxed text-muted-foreground">
             注册即代表你了解 AI 生成视频可能存在轻微随机性。
-            <br />
-            商家账号请联系我们获得邀请。
           </p>
         </div>
       </CardContent>

@@ -11,7 +11,10 @@ const UI_DIR = path.join(ROOT, "src/components/ui");
 const FOUNDATION_FILES = [
   "src/app/globals.css",
   "src/app/layout.tsx",
-  "src/app/(personal)/design/page.tsx",
+  "src/app/(platform)/app/layout.tsx",
+  "src/components/platform/platform-shell.tsx",
+  "src/app/(platform)/app/create/page.tsx",
+  "src/app/(platform)/app/library/page.tsx",
   "src/components/ui/badge.tsx",
   "src/components/ui/button.tsx",
   "src/components/ui/card.tsx",

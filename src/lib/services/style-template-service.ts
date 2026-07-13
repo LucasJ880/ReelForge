@@ -16,6 +16,8 @@ const lockedParamsSchema = z.object({
   aspectRatio: z.enum(["9:16", "16:9", "1:1"]),
   resolution: z.enum(["720p", "1080p"]),
   cameraStyle: z.string().min(3).max(200),
+  stability: z.enum(["high", "balanced"]).default("balanced"),
+  humanInteraction: z.enum(["none", "controlled"]).default("controlled"),
 });
 
 const imagesPerVideoSchema = z
@@ -58,17 +60,32 @@ function json(value: object): Prisma.InputJsonValue {
  * 因此重复 seed 也不会绕过「ACTIVE 不可变」约束。
  */
 export async function seedBatchStyleTemplates(): Promise<number> {
-  const result = await db.styleTemplate.createMany({
-    data: BATCH_STYLE_TEMPLATE_SEEDS.map((template) => ({
-      ...template,
-      lockedParams: json(template.lockedParams),
-      imagesPerVideo: json(template.imagesPerVideo),
-      status: StyleTemplateStatus.ACTIVE,
-      activatedAt: new Date(),
-    })),
-    skipDuplicates: true,
-  });
-  return result.count;
+  let created = 0;
+  for (const template of BATCH_STYLE_TEMPLATE_SEEDS) {
+    validateValues(template);
+    created += await db.$transaction(async (tx) => {
+      const existing = await tx.styleTemplate.findUnique({
+        where: { slug_version: { slug: template.slug, version: template.version } },
+        select: { id: true },
+      });
+      if (existing) return 0;
+      await tx.styleTemplate.updateMany({
+        where: { slug: template.slug, status: StyleTemplateStatus.ACTIVE },
+        data: { status: StyleTemplateStatus.ARCHIVED },
+      });
+      await tx.styleTemplate.create({
+        data: {
+          ...template,
+          lockedParams: json(template.lockedParams),
+          imagesPerVideo: json(template.imagesPerVideo),
+          status: StyleTemplateStatus.ACTIVE,
+          activatedAt: new Date(),
+        },
+      });
+      return 1;
+    });
+  }
+  return created;
 }
 
 export async function listActiveStyleTemplates(): Promise<StyleTemplate[]> {
@@ -113,12 +130,32 @@ export async function activateStyleTemplate(id: string): Promise<StyleTemplate> 
   const existing = await db.styleTemplate.findUnique({ where: { id } });
   if (!existing) throw new Error("风格模板不存在");
   if (existing.status === StyleTemplateStatus.ACTIVE) return existing;
-  return db.styleTemplate.update({
-    where: { id },
-    data: {
-      status: StyleTemplateStatus.ACTIVE,
-      activatedAt: new Date(),
-    },
+  validateValues({
+    name: existing.name,
+    nameZh: existing.nameZh,
+    category: existing.category,
+    coverImage: existing.coverImage,
+    promptSkeleton: existing.promptSkeleton,
+    negativePrompt: existing.negativePrompt,
+    lockedParams: lockedParamsSchema.parse(existing.lockedParams),
+    imagesPerVideo: imagesPerVideoSchema.parse(existing.imagesPerVideo),
+  });
+  return db.$transaction(async (tx) => {
+    await tx.styleTemplate.updateMany({
+      where: {
+        slug: existing.slug,
+        status: StyleTemplateStatus.ACTIVE,
+        id: { not: existing.id },
+      },
+      data: { status: StyleTemplateStatus.ARCHIVED },
+    });
+    return tx.styleTemplate.update({
+      where: { id },
+      data: {
+        status: StyleTemplateStatus.ACTIVE,
+        activatedAt: new Date(),
+      },
+    });
   });
 }
 

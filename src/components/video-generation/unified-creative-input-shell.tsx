@@ -4,15 +4,22 @@
  */
 import { UnifiedCreativeInput } from "@/components/video-generation/unified-creative-input";
 import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
+import type { UploadedAsset } from "@/types/video-generation";
 
 export function UnifiedCreativeInputShell({
   userType,
   initialDraft,
+  initialAssets,
 }: {
-  userType: "business" | "personal";
+  userType: "business" | "personal" | "platform";
   initialDraft?: OrderCreativeDraft;
+  initialAssets?: UploadedAsset[];
 }) {
   return (
-    <UnifiedCreativeInput userType={userType} initialDraft={initialDraft} />
+    <UnifiedCreativeInput
+      userType={userType}
+      initialDraft={initialDraft}
+      initialAssets={initialAssets}
+    />
   );
 }

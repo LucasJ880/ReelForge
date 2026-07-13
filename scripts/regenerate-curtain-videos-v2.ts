@@ -181,7 +181,7 @@ function assertRealMode() {
   if (flag === "1" || flag === "true" || flag === "yes") {
     throw new Error("VIDEO_ENGINE_MOCK 已开启；本脚本只做真实出片。");
   }
-  if (!process.env.ARK_API_KEY) throw new Error("缺少 ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY) throw new Error("缺少 BYTEPLUS_ARK_API_KEY");
 }
 
 function loadImageBlobUrls(): Record<string, string> {
@@ -288,7 +288,7 @@ async function main() {
       purpose: "curtain-viral-ads-v2-regen",
       ratio: "9:16",
       durationSec: 15,
-      model: process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128",
+      model: process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128",
       submittedAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       videos: VIDEOS_V2.map((v) => ({

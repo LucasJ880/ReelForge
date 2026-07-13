@@ -3,6 +3,8 @@ import { requireAuth } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { assertQuotaForSession } from "@/lib/services/quota-service";
 import { getStorageProvider } from "@/lib/storage";
+import { reviewMediaOrThrow } from "@/lib/content-review";
+import { validateFileMagicBytes } from "@/lib/upload/media-file-validation";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const SUPPORTED_UPLOAD_TYPES = /^(video\/(mp4|quicktime|webm|x-m4v)|image\/(png|jpe?g|webp)|audio\/(mpeg|mp4|x-m4a|wav|aac))$/i;
@@ -58,6 +60,13 @@ export async function POST(req: NextRequest) {
       { status: 415 },
     );
   }
+  const magic = await validateFileMagicBytes(file);
+  if (!magic.ok) {
+    return NextResponse.json(
+      { error: `素材上传失败：${magic.reason}。请重新导出原始文件后再试。` },
+      { status: 415 },
+    );
+  }
   const prefix = (form.get("prefix") as string | null) ?? "uploads";
   const key = `${prefix}/${Date.now()}-${file.name}`;
 
@@ -77,5 +86,18 @@ export async function POST(req: NextRequest) {
     access: "public",
     contentType: file.type || undefined,
   });
+  try {
+    await reviewMediaOrThrow({
+      kind: "user_upload",
+      mediaUrl: result.url,
+      mediaType: file.type.startsWith("image/")
+        ? "image"
+        : file.type.startsWith("video/") ? "video" : "audio",
+      context: { ownerId: guard.session.user.id! },
+    });
+  } catch (error) {
+    await storage.deleteObject("uploads", result.key).catch(() => undefined);
+    throw error;
+  }
   return NextResponse.json({ url: result.url, pathname: result.key });
 }

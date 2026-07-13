@@ -224,7 +224,7 @@ async function main() {
   let enumValues: string[] = [];
   try {
     enumValues = await fetchEnumValues("FinalVideoStatus");
-  } catch (e) {
+  } catch {
     enumValues = [];
   }
   const enumOk =

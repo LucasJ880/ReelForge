@@ -15,6 +15,8 @@
  *   npm run demo:rehearsal            # 默认 http://localhost:3100
  *   DEMO_BASE_URL=http://localhost:3000 npm run demo:rehearsal
  */
+export {};
+
 const BASE = process.env.DEMO_BASE_URL || "http://localhost:3100";
 const EMAIL = "demo-rehearsal@aivora.test";
 const PASSWORD = "rehearsal-passw0rd";

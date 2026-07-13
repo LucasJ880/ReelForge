@@ -68,11 +68,11 @@ test("register schema: 超长 password 被拒", () => {
 
 /**
  * 契约外形断言：route 文件必须仍存在，且对外暴露 POST handler，
- * userType 写死为 PERSONAL，role 走 schema default = OPERATOR。
+ * role 必须写死为 CUSTOMER，并原子创建 starter Workspace。
  *
  * 用文本断言是最低成本的方式：避免引入 next handler runtime 依赖。
  */
-test("register route 文件契约：POST + 仅创建 PERSONAL persona 的账号", async () => {
+test("register route 文件契约：POST + CUSTOMER/starter，拒绝公开提权", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
   const file = path.resolve(
@@ -81,7 +81,9 @@ test("register route 文件契约：POST + 仅创建 PERSONAL persona 的账号"
   );
   const content = fs.readFileSync(file, "utf8");
   assert.match(content, /export async function POST/, "register endpoint must be POST");
-  assert.match(content, /userType:\s*"PERSONAL"/, "must hard-code userType=PERSONAL");
+  assert.match(content, /role:\s*"CUSTOMER"/, "must hard-code role=CUSTOMER");
+  assert.match(content, /workspace:\s*\{[\s\S]*?create:/, "must create a default workspace atomically");
+  assert.match(content, /planId:\s*"starter"/, "public registration must receive starter");
   assert.doesNotMatch(
     content,
     /userType:\s*"BUSINESS"/,
@@ -100,10 +102,9 @@ test("register route 文件契约：POST + 仅创建 PERSONAL persona 的账号"
 });
 
 /**
- * 跨文件契约：register page 必须把 userType=PERSONAL 的注册成功跳到 /personal
- * （不能跳 /business，避免误把个人用户带去商家表面）。
+ * 跨文件契约：注册成功进入统一创作区，不再经过 B/C persona 选择。
  */
-test("register page 契约：成功后 router.push('/personal')", async () => {
+test("register page 契约：成功后 router.push('/app/create')", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
   const file = path.resolve(
@@ -111,7 +112,7 @@ test("register page 契约：成功后 router.push('/personal')", async () => {
     "src/app/(auth)/register/page.tsx",
   );
   const content = fs.readFileSync(file, "utf8");
-  assert.match(content, /router\.push\("\/personal"\)/, "must redirect to /personal post-signup");
-  assert.doesNotMatch(content, /router\.push\("\/business"\)/);
+  assert.match(content, /router\.push\("\/app\/create"\)/, "must enter the unified studio post-signup");
+  assert.doesNotMatch(content, /router\.push\("\/(?:business|personal)"\)/);
   assert.match(content, /signIn\(/, "must auto-login via next-auth signIn");
 });

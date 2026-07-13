@@ -1,6 +1,8 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { db } from "../../src/lib/db";
+import { getStorageProvider } from "../../src/lib/storage";
+import { FINAL_ACCEPTANCE_EMAIL } from "./framework";
 
 interface RunState {
   runId: string;
@@ -18,11 +20,37 @@ export default async function globalTeardown() {
     if (batchIds.length > 0) {
       await db.batchJob.deleteMany({ where: { id: { in: batchIds } } });
     }
+    const account = await db.adminUser.findUnique({
+      where: { email: FINAL_ACCEPTANCE_EMAIL },
+      select: { id: true },
+    });
+    let deletedProductImageCount = 0;
+    if (account) {
+      const productImages = await db.productImageJob.findMany({
+        where: { userId: account.id },
+        select: { id: true, sourceImageUrl: true },
+      });
+      const storage = getStorageProvider();
+      for (const job of productImages) {
+        if (!job.sourceImageUrl || !storage.isConfigured()) continue;
+        try {
+          const key = new URL(job.sourceImageUrl).pathname.replace(/^\/+/, "");
+          await storage.deleteObject("uploads", key);
+        } catch {
+          // Cleanup is best effort and must not hide acceptance results.
+        }
+      }
+      const deleted = await db.productImageJob.deleteMany({
+        where: { id: { in: productImages.map((job) => job.id) } },
+      });
+      deletedProductImageCount = deleted.count;
+    }
     console.log(
       JSON.stringify({
         evt: "final_acceptance_cleanup",
         runId: state.runId,
         deletedBatchCount: batchIds.length,
+        deletedProductImageCount,
       }),
     );
   } finally {

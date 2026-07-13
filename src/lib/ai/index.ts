@@ -16,6 +16,11 @@ import { getAppEnv } from "@/lib/config/env";
 import { OpenAiProvider } from "./providers/openai-provider";
 import { VolcengineProvider } from "./providers/volcengine-provider";
 import type { AiProvider } from "./types";
+import type {
+  AiChatJsonByTierOptions,
+  AiChatJsonOptions,
+  AiChatJsonResult,
+} from "./types";
 
 let cached: AiProvider | null = null;
 
@@ -44,6 +49,36 @@ export function createAiProvider(): AiProvider {
 /// 仅测试用：清缓存
 export function __resetAiProviderForTests(): void {
   cached = null;
+}
+
+/** Compatibility-shaped helpers keep business callers provider-neutral while
+ * preserving the existing call contracts during the Phase 1 migration. */
+export function isLLMAvailable(): boolean {
+  return getAiProvider().isConfigured();
+}
+
+export function isLLMForcedMock(): boolean {
+  return getAiProvider().isForceMock();
+}
+
+export function chatJson<T = unknown>(
+  options: AiChatJsonOptions,
+): Promise<AiChatJsonResult<T>> {
+  return getAiProvider().chatJson<T>(options);
+}
+
+export function chatJsonByTier<T = unknown>(
+  options: AiChatJsonByTierOptions,
+): Promise<AiChatJsonResult<T>> {
+  return getAiProvider().chatJsonByTier<T>(options);
+}
+
+export function analyzeImages(
+  imageUrls: string[],
+  system: string,
+  user: string,
+): Promise<AiChatJsonResult<Record<string, unknown>>> {
+  return getAiProvider().analyzeImages({ imageUrls, system, user });
 }
 
 export type { AiProvider, AiTier, AiChatJsonResult, AiChatJsonByTierOptions } from "./types";

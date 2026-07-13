@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
   getAppEnv,
-  validateChinaDeploymentEnv,
+  validateDeploymentEnv,
 } from "@/lib/config/env";
 import { getAiProvider } from "@/lib/ai";
 import { getStorageProvider } from "@/lib/storage";
@@ -37,7 +37,6 @@ interface HealthResponse {
   contentReviewEnabled: boolean;
   paymentEnabled: boolean;
   smsLoginEnabled: boolean;
-  chinaComplianceMode: boolean;
 
   database: "connected" | "failed" | "not_checked";
   databaseError?: string;
@@ -54,7 +53,7 @@ interface HealthResponse {
   storage: "reachable" | "failed" | "not_checked";
   storageError?: string;
 
-  /// 中国大陆 env 校验结果
+  /// 加拿大 / 北美 env 校验结果
   envValidation: {
     ok: boolean;
     missing: string[];
@@ -109,7 +108,7 @@ async function pingStorage(
 
 export async function GET(req: NextRequest) {
   const env = getAppEnv();
-  const validation = validateChinaDeploymentEnv(process.env);
+  const validation = validateDeploymentEnv(process.env);
 
   const ai = getAiProvider();
   const storage = getStorageProvider();
@@ -140,7 +139,6 @@ export async function GET(req: NextRequest) {
     contentReviewEnabled: env.contentReviewEnabled,
     paymentEnabled: env.paymentEnabled,
     smsLoginEnabled: env.smsLoginEnabled,
-    chinaComplianceMode: env.chinaComplianceMode,
 
     database: dbResult.status,
     databaseError: dbResult.error,

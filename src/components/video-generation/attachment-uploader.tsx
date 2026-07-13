@@ -33,7 +33,7 @@ const ALL_ROLES: AssetRole[] = [
 ];
 
 interface AttachmentUploaderProps {
-  userType: "business" | "personal";
+  userType: "business" | "personal" | "platform";
   attachments: UploadedAsset[];
   onChange: (attachments: UploadedAsset[]) => void;
 }

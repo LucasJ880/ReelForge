@@ -18,7 +18,7 @@
  * 退出码：
  *   0 = 成功执行（无论是否有 job 状态变化）
  *   2 = 找不到 Sunny Shutter 订单
- *   3 = ARK_API_KEY 缺失（无法调和真实 Provider）
+ *   3 = BYTEPLUS_ARK_API_KEY 缺失（无法调和真实 Provider）
  */
 
 import { PrismaClient, VideoJobStatus } from "@prisma/client";
@@ -168,11 +168,11 @@ function printJobsTable(
 async function main() {
   banner("阶段 0 · 启动检查");
 
-  if (!process.env.ARK_API_KEY) {
+  if (!process.env.BYTEPLUS_ARK_API_KEY) {
     console.error(
-      "[sunny-shutter] 缺少 ARK_API_KEY —— 调和将走 Mock 路径，无法核对真实 Volcengine 状态。",
+      "[sunny-shutter] 缺少 BYTEPLUS_ARK_API_KEY —— 调和将走 Mock 路径，无法核对真实 Volcengine 状态。",
     );
-    console.error("请先在 .env.local 里配置 ARK_API_KEY 后再运行。");
+    console.error("请先在 .env.local 里配置 BYTEPLUS_ARK_API_KEY 后再运行。");
     process.exit(3);
   }
   if (

@@ -309,7 +309,7 @@ async function main() {
 function preflight() {
   banner("Preflight");
   const missing: string[] = [];
-  if (!process.env.ARK_API_KEY && !DRY_RUN) missing.push("ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY && !DRY_RUN) missing.push("BYTEPLUS_ARK_API_KEY");
   if (!process.env.BLOB_READ_WRITE_TOKEN && !DRY_RUN) {
     missing.push("BLOB_READ_WRITE_TOKEN");
   }

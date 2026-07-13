@@ -1,7 +1,7 @@
 import "next-auth";
 import "next-auth/jwt";
 
-type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER";
+type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER";
 
 /**
  * Phase 5 — userType discriminator for persona-aware routing

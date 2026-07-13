@@ -34,7 +34,7 @@ export function classifyInput(
     );
   });
 
-  const isBusiness = request.userType === "business";
+  const isBusiness = request.userType !== "personal";
 
   // generation mode
   let generationMode: GenerationMode;

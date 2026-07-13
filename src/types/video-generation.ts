@@ -14,7 +14,8 @@ import type { SupportedDurationSec } from "@/lib/duration/segment-planner";
 
 // ---------- User-type + generation mode ----------
 
-export type UserType = "business" | "personal";
+/** `platform` is the Phase 1 unified account-neutral creation surface. */
+export type UserType = "business" | "personal" | "platform";
 
 export type GenerationMode =
   | "text_to_video"

@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import {
   Instrument_Serif,
   Inter,
+  JetBrains_Mono,
   Noto_Sans_SC,
   Noto_Serif_SC,
+  Space_Grotesk,
 } from "next/font/google";
 import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/sonner";
@@ -27,10 +29,24 @@ const instrumentSerif = Instrument_Serif({
   display: "swap",
 });
 
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 const notoSansSc = Noto_Sans_SC({
   variable: "--font-noto-sans-sc",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 
@@ -60,7 +76,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${instrumentSerif.variable} ${notoSansSc.variable} ${notoSerifSc.variable} h-full`}
+      className={`${inter.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${notoSansSc.variable} ${notoSerifSc.variable} h-full`}
     >
       <body className="h-full antialiased">
         <AuthProvider session={session}>

@@ -3,8 +3,9 @@ import { z } from "zod";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import {
   chatJsonByTier,
+  isLLMAvailable,
   isLLMForcedMock,
-} from "@/lib/providers/openai";
+} from "@/lib/ai";
 
 /**
  * POST /api/personal/agent-chat —— Agent 导演对话（对齐同行「像聊天一样出片」）。
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
   const { messages, imageCount } = parsed.data;
 
   /// LLM 不可用 → 脚本化 fallback，demo 永不空转
-  if (isLLMForcedMock() || !process.env.OPENAI_API_KEY) {
+  if (isLLMForcedMock() || !isLLMAvailable()) {
     return NextResponse.json({ ok: true, ...fallbackReply(messages, imageCount) });
   }
 

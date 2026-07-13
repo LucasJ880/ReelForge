@@ -26,11 +26,11 @@ export type UsagePayload = {
   meters: UsageMeterPayload[];
 };
 
-/** DB 不可用时仍展示免费档限额（used=0），避免 Billing 白屏 */
+/** DB 不可用时仍展示 starter 限额（used=0），避免 Billing 白屏 */
 export function buildDefaultUsagePayload(session: Session): UsagePayload {
-  const plan: QuotaPlanId = "free";
+  const plan: QuotaPlanId = "starter";
   const periodKey = currentUsagePeriodKey();
-  const resources = Object.keys(QUOTA_LIMITS.free) as UsageResource[];
+  const resources = Object.keys(QUOTA_LIMITS.starter) as UsageResource[];
   const meters = resources.map((resource) => {
     const limit = getLimitForResource(plan, resource);
     return {

@@ -12,7 +12,7 @@
  *   npm run demo:gen:evidence            # 全量
  *   PET_EVIDENCE_ONLY=highlight,mat npm run demo:gen:evidence   # 仅指定
  *
- * 需要 ARK_API_KEY（真实 Seedance）。
+ * 需要 BYTEPLUS_ARK_API_KEY（真实 Seedance）。
  */
 import { loadEnvConfig } from "@next/env";
 import { execFileSync } from "node:child_process";
@@ -113,7 +113,7 @@ type Record = {
 };
 
 async function main() {
-  if (!process.env.ARK_API_KEY) throw new Error("缺少 ARK_API_KEY，无法生成证据短片。");
+  if (!process.env.BYTEPLUS_ARK_API_KEY) throw new Error("缺少 BYTEPLUS_ARK_API_KEY，无法生成证据短片。");
   ensureTools();
   [WORK_DIR, SOURCE_DIR, CAPTION_DIR, PUBLIC_OUTPUT_DIR].forEach(ensureDir);
 
@@ -124,7 +124,7 @@ async function main() {
   const selected = only.length > 0 ? CLIPS.filter((c) => only.includes(c.id)) : CLIPS;
 
   const record = readRecord();
-  const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
+  const model = process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128";
   const font = resolveFont();
 
   // 1) 提交（复用已存在 jobId）

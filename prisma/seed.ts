@@ -9,6 +9,58 @@ import { BATCH_STYLE_TEMPLATE_SEEDS } from "../src/lib/video-generation/batch-st
 
 const prisma = new PrismaClient();
 
+async function seedPlanEntitlements() {
+  await prisma.planEntitlement.upsert({
+    where: { id: "starter" },
+    create: {
+      id: "starter",
+      monthlyVideoLimit: 30,
+      batchConcurrencyLimit: 10,
+      templateLibraryAccess: "standard",
+      featureFlags: { digitalHuman: false },
+    },
+    update: {
+      monthlyVideoLimit: 30,
+      batchConcurrencyLimit: 10,
+      templateLibraryAccess: "standard",
+      featureFlags: { digitalHuman: false },
+    },
+  });
+  await prisma.planEntitlement.upsert({
+    where: { id: "studio" },
+    create: {
+      id: "studio",
+      monthlyVideoLimit: 200,
+      batchConcurrencyLimit: 10,
+      templateLibraryAccess: "full",
+      featureFlags: { digitalHuman: false },
+    },
+    update: {
+      monthlyVideoLimit: 200,
+      batchConcurrencyLimit: 10,
+      templateLibraryAccess: "full",
+      featureFlags: { digitalHuman: false },
+    },
+  });
+}
+
+async function ensureWorkspace(args: {
+  userId: string;
+  name: string;
+  planId: "starter" | "studio";
+}) {
+  await prisma.workspace.upsert({
+    where: { ownerId: args.userId },
+    create: {
+      ownerId: args.userId,
+      name: args.name,
+      planId: args.planId,
+      isDefault: true,
+    },
+    update: { planId: args.planId, isDefault: true },
+  });
+}
+
 async function seedAdmin() {
   const email = process.env.SEED_ADMIN_EMAIL || "admin@aivora.internal";
   const password = process.env.SEED_ADMIN_PASSWORD;
@@ -22,6 +74,11 @@ async function seedAdmin() {
 
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) {
+    await ensureWorkspace({
+      userId: existing.id,
+      name: existing.name || "Aivora Operations",
+      planId: "starter",
+    });
     console.log(`✅ Admin 已存在：${email}（role=${existing.role}）`);
     return;
   }
@@ -35,6 +92,11 @@ async function seedAdmin() {
       role: AdminRole.SUPER_ADMIN,
       userType: "SUPER_ADMIN",
     },
+  });
+  await ensureWorkspace({
+    userId: admin.id,
+    name: "Aivora Operations",
+    planId: "starter",
   });
   console.log(`✅ 已创建超级管理员：${admin.email}`);
 }
@@ -55,9 +117,15 @@ async function seedDemoPersonalUser() {
     await prisma.adminUser.update({
       where: { email },
       data: {
+        role: AdminRole.CUSTOMER,
         userType: "PERSONAL",
         hashedPassword: await bcrypt.hash(password, 10),
       },
+    });
+    await ensureWorkspace({
+      userId: existing.id,
+      name: existing.name || "Aivora Demo",
+      planId: "starter",
     });
     console.log(`✅ Demo 账号已重置凭据：${email}（密码：${password}）`);
     return;
@@ -69,31 +137,50 @@ async function seedDemoPersonalUser() {
       email,
       name: "Aivora Demo",
       hashedPassword,
-      role: AdminRole.OPERATOR,
+      role: AdminRole.CUSTOMER,
       userType: "PERSONAL",
     },
+  });
+  await ensureWorkspace({
+    userId: demo.id,
+    name: "Aivora Demo",
+    planId: "starter",
   });
   console.log(`✅ 已创建 Demo 个人账号：${demo.email}（密码：${password}）`);
 }
 
 async function seedStyleTemplates() {
-  const result = await prisma.styleTemplate.createMany({
-    data: BATCH_STYLE_TEMPLATE_SEEDS.map((template) => ({
-      ...template,
-      lockedParams: template.lockedParams as unknown as Prisma.InputJsonValue,
-      imagesPerVideo:
-        template.imagesPerVideo as unknown as Prisma.InputJsonValue,
-      status: StyleTemplateStatus.ACTIVE,
-      activatedAt: new Date(),
-    })),
-    skipDuplicates: true,
-  });
+  let created = 0;
+  for (const template of BATCH_STYLE_TEMPLATE_SEEDS) {
+    created += await prisma.$transaction(async (tx) => {
+      const existing = await tx.styleTemplate.findUnique({
+        where: { slug_version: { slug: template.slug, version: template.version } },
+        select: { id: true },
+      });
+      if (existing) return 0;
+      await tx.styleTemplate.updateMany({
+        where: { slug: template.slug, status: StyleTemplateStatus.ACTIVE },
+        data: { status: StyleTemplateStatus.ARCHIVED },
+      });
+      await tx.styleTemplate.create({
+        data: {
+          ...template,
+          lockedParams: template.lockedParams as unknown as Prisma.InputJsonValue,
+          imagesPerVideo: template.imagesPerVideo as unknown as Prisma.InputJsonValue,
+          status: StyleTemplateStatus.ACTIVE,
+          activatedAt: new Date(),
+        },
+      });
+      return 1;
+    });
+  }
   console.log(
-    `✅ 批量风格模板：新增 ${result.count}，总定义 ${BATCH_STYLE_TEMPLATE_SEEDS.length}`,
+    `✅ 批量风格模板：新增 ${created}，总定义 ${BATCH_STYLE_TEMPLATE_SEEDS.length}`,
   );
 }
 
 async function main() {
+  await seedPlanEntitlements();
   await seedAdmin();
   await seedDemoPersonalUser();
   await seedStyleTemplates();

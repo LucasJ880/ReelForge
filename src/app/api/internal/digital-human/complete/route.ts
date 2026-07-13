@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { completeDigitalHumanAdJob } from "@/lib/services/digital-human-service";
+import {
+  DIGITAL_HUMAN_SEALED_RESPONSE,
+  isDigitalHumanFeatureEnabled,
+} from "@/lib/features/digital-human";
 
 const completeSchema = z.object({
   jobId: z.string().min(1),
@@ -19,6 +23,9 @@ const completeSchema = z.object({
  * 设计同 stitch/complete：失败不抛 5xx（让 runner 退出而非重试导致 attempts 失控）。
  */
 export async function POST(req: NextRequest) {
+  if (!isDigitalHumanFeatureEnabled()) {
+    return NextResponse.json(DIGITAL_HUMAN_SEALED_RESPONSE, { status: 404 });
+  }
   if (process.env.CRON_SECRET) {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {

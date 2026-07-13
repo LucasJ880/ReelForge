@@ -33,7 +33,15 @@ import { reconcileVideoJob } from "./video-service";
 import {
   logStatusTransition,
   videoJobDeadlineMin,
+  watchdogGraceMin,
 } from "./video-watchdog";
+import {
+  callProviderWithHistoricalGuard,
+  HISTORICAL_DISPATCH_CUTOFF,
+  isHistoricalDispatchQuarantined,
+  isRealVideoDispatchMode,
+  QUARANTINE_RELEASED,
+} from "./historical-dispatch-quarantine";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -64,6 +72,10 @@ async function withSerializableRetry<T>(
 
 function providerConcurrency(): number {
   return Math.max(1, Math.floor(Number(process.env.PROVIDER_CONCURRENCY ?? "10")));
+}
+
+function remainingPlanConcurrency(limit: number, active: number): number {
+  return Math.max(0, Math.floor(limit) - Math.max(0, Math.floor(active)));
 }
 
 function json(value: unknown): Prisma.InputJsonValue {
@@ -365,31 +377,80 @@ async function claimJobs(args: {
 }): Promise<Array<VideoJob & { claimOwner: string }>> {
   if (args.maxClaims <= 0) return [];
   const owner = randomUUID();
+  const realDispatch = isRealVideoDispatchMode();
   return withSerializableRetry(() =>
     db.$transaction(
       async (tx) => {
-        const batchProvider = await tx.videoJob.findFirst({
-          where: { batchJobId: args.batchId },
-          select: { provider: true },
-        });
-        if (!batchProvider) return [];
-        // active provider jobs（已提交 + 正在提交）共同占用并发槽。
-        const active = await tx.videoJob.count({
-          where: {
-            status: VideoJobStatus.RUNNING,
-            provider: batchProvider.provider,
-          },
-        });
+        const [batch, batchProvider] = await Promise.all([
+          tx.batchJob.findUnique({
+            where: { id: args.batchId },
+            select: {
+              userId: true,
+              user: {
+                select: {
+                  workspace: {
+                    select: {
+                      plan: { select: { batchConcurrencyLimit: true } },
+                    },
+                  },
+                },
+              },
+            },
+          }),
+          tx.videoJob.findFirst({
+            where: { batchJobId: args.batchId },
+            select: { provider: true },
+          }),
+        ]);
+        if (!batch || !batchProvider) return [];
+        const planLimit = batch.user.workspace?.plan.batchConcurrencyLimit;
+        if (planLimit === undefined) {
+          throw new Error(
+            "用户缺少 Workspace plan；拒绝派发批次，避免绕过 plan 并发限制",
+          );
+        }
+        // Provider 全局槽与 Workspace plan 槽必须同时有余量。
+        const [activeForProvider, activeForUser] = await Promise.all([
+          tx.videoJob.count({
+            where: {
+              status: VideoJobStatus.RUNNING,
+              provider: batchProvider.provider,
+            },
+          }),
+          tx.videoJob.count({
+            where: {
+              status: VideoJobStatus.RUNNING,
+              batchJob: { userId: batch.userId },
+            },
+          }),
+        ]);
         const slots = Math.max(
           0,
-          Math.min(args.maxClaims, providerConcurrency() - active),
+          Math.min(
+            args.maxClaims,
+            providerConcurrency() - activeForProvider,
+            remainingPlanConcurrency(planLimit, activeForUser),
+          ),
         );
         if (slots === 0) return [];
         const candidates = await tx.videoJob.findMany({
           where: {
             batchJobId: args.batchId,
             status: VideoJobStatus.QUEUED,
-            OR: [{ availableAt: null }, { availableAt: { lte: args.now } }],
+            AND: [
+              { OR: [{ availableAt: null }, { availableAt: { lte: args.now } }] },
+              {
+                OR: [
+                  { dispatchQuarantineDecision: QUARANTINE_RELEASED },
+                  {
+                    dispatchQuarantineDecision: null,
+                    ...(realDispatch
+                      ? { createdAt: { gt: HISTORICAL_DISPATCH_CUTOFF } }
+                      : {}),
+                  },
+                ],
+              },
+            ],
           },
           orderBy: { batchIndex: "asc" },
           take: slots,
@@ -434,27 +495,53 @@ async function submitClaimedJob(
       : getVideoProvider();
   const now = new Date();
   try {
-    const created = await provider.createVideoJob({
-      prompt: job.promptText ?? "",
-      negativePrompt: job.negativePrompt ?? undefined,
-      referenceImages: assignment.assets.map((asset) => ({
-        url: asset.url,
-        role: "content",
-      })),
-      durationSec: snapshot.lockedParams.duration,
-      aspectRatio: snapshot.lockedParams.aspectRatio,
-      resolution: snapshot.lockedParams.resolution,
-      seed: job.seed ?? assignment.seed,
-      mockHints: {
-        briefId: job.batchJobId ?? "batch",
-        segmentIndex: job.batchIndex ?? 0,
-        segmentCount: 1,
+    const guarded = await callProviderWithHistoricalGuard({
+      record: job,
+      call: () => provider.createVideoJob({
+        prompt: job.promptText ?? "",
+        negativePrompt: job.negativePrompt ?? undefined,
+        referenceImages: assignment.assets.map((asset) => ({
+          url: asset.url,
+          role: "content",
+        })),
         durationSec: snapshot.lockedParams.duration,
         aspectRatio: snapshot.lockedParams.aspectRatio,
-        purpose: "batch-template",
-        retryAttempt: job.retryCount,
-      },
+        resolution: snapshot.lockedParams.resolution,
+        seed: job.seed ?? assignment.seed,
+        mockHints: {
+          briefId: job.batchJobId ?? "batch",
+          segmentIndex: job.batchIndex ?? 0,
+          segmentCount: 1,
+          durationSec: snapshot.lockedParams.duration,
+          aspectRatio: snapshot.lockedParams.aspectRatio,
+          purpose: "batch-template",
+          retryAttempt: job.retryCount,
+        },
+      }),
     });
+    if (!guarded.called) {
+      await db.videoJob.updateMany({
+        where: {
+          id: job.id,
+          status: VideoJobStatus.RUNNING,
+          leaseOwner: job.claimOwner,
+        },
+        data: {
+          status: VideoJobStatus.QUEUED,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+          heartbeatAt: null,
+        },
+      });
+      console.warn(JSON.stringify({
+        evt: "historical_dispatch_quarantined",
+        entity: "VideoJob",
+        id: job.id,
+        cutoff: HISTORICAL_DISPATCH_CUTOFF.toISOString(),
+      }));
+      return;
+    }
+    const created = guarded.value;
     const updated = await db.videoJob.updateMany({
       where: {
         id: job.id,
@@ -548,6 +635,49 @@ async function reconcileRunningBatchJobs(batchId: string): Promise<void> {
   });
 }
 
+/**
+ * A batch that is no longer being viewed must not permanently consume every
+ * global provider slot. Reconcile only jobs that are already beyond the hard
+ * deadline; reconcileVideoJob will take the no-provider-call watchdog path and
+ * CAS them to FAILED. This keeps the global concurrency guard strict without
+ * allowing abandoned jobs to deadlock every later customer batch.
+ */
+async function expireHardDeadlineProviderSlots(
+  provider: VideoProvider,
+  now: Date,
+  reconcile: (jobId: string) => Promise<unknown> = reconcileVideoJob,
+): Promise<number> {
+  const hardDeadlineCutoff = new Date(
+    now.getTime() - watchdogGraceMin() * 60_000,
+  );
+  const expired = await db.videoJob.findMany({
+    where: {
+      provider,
+      status: VideoJobStatus.RUNNING,
+      timeoutAt: { lt: hardDeadlineCutoff },
+    },
+    select: { id: true, batchJobId: true },
+    orderBy: { timeoutAt: "asc" },
+    take: providerConcurrency() * 20,
+  });
+  if (expired.length === 0) return 0;
+
+  await mapConcurrent(expired, providerConcurrency(), async (job) => {
+    await reconcile(job.id);
+  });
+  const affectedBatchIds = [
+    ...new Set(
+      expired
+        .map((job) => job.batchJobId)
+        .filter((batchId): batchId is string => Boolean(batchId)),
+    ),
+  ];
+  await mapConcurrent(affectedBatchIds, providerConcurrency(), async (batchId) => {
+    await syncBatchCounts(batchId);
+  });
+  return expired.length;
+}
+
 async function applyBreaker(
   batchId: string,
   decision: BreakerDecision,
@@ -592,13 +722,31 @@ async function applyBreaker(
  */
 export async function processBatchTick(batchId: string): Promise<BatchJob> {
   const now = new Date();
-  const batch = await db.batchJob.findUnique({ where: { id: batchId } });
+  const [batch, batchProvider] = await Promise.all([
+    db.batchJob.findUnique({ where: { id: batchId } }),
+    db.videoJob.findFirst({
+      where: { batchJobId: batchId },
+      select: { provider: true },
+    }),
+  ]);
   if (!batch) throw new Error("BatchJob 不存在");
   if (isTerminalBatchStatus(batch.status)) {
     return batch;
   }
+  if (isHistoricalDispatchQuarantined(batch)) {
+    console.warn(JSON.stringify({
+      evt: "historical_dispatch_quarantined",
+      entity: "BatchJob",
+      id: batch.id,
+      cutoff: HISTORICAL_DISPATCH_CUTOFF.toISOString(),
+    }));
+    return batch;
+  }
 
   await recoverExpiredLeases(batchId, now);
+  if (batchProvider) {
+    await expireHardDeadlineProviderSlots(batchProvider.provider, now);
+  }
   await reconcileRunningBatchJobs(batchId);
   await syncBatchCounts(batchId);
 
@@ -786,8 +934,10 @@ export const __test__ = {
   parseLockedParams,
   parseImagesPerVideo,
   providerConcurrency,
+  remainingPlanConcurrency,
   mapConcurrent,
   recoverExpiredLeases,
+  expireHardDeadlineProviderSlots,
   claimJobs,
   applyBreaker,
   isSerializableConflict,

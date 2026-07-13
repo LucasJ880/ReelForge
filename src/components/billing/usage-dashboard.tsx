@@ -168,7 +168,7 @@ export function UsageDashboard({
         <Badge variant="success">{t("shell.billing.upgraded")}</Badge>
       )}
 
-      {stripeEnabled && data.plan !== "pro" && persona === "business" && (
+      {stripeEnabled && data.plan !== "pro" && data.plan !== "studio" && persona === "business" && (
         <Card>
           <CardHeader>
             <CardTitle>{t("shell.billing.proTitle")}</CardTitle>
@@ -177,7 +177,7 @@ export function UsageDashboard({
         </Card>
       )}
 
-      {stripeEnabled && data.plan === "pro" && (
+      {stripeEnabled && (data.plan === "pro" || data.plan === "studio") && (
         <p className="text-meta text-muted-foreground">
           {t("shell.billing.onProPlan")}
         </p>

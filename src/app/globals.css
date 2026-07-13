@@ -3,6 +3,17 @@
 @import "shadcn/tailwind.css";
 @import "../styles/tokens.css";
 
+@utility studio-select {
+  height: 2.5rem;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--input);
+  background: var(--card);
+  padding-inline: 0.75rem;
+  color: var(--foreground);
+  font-size: var(--text-body);
+}
+
 @layer base {
   * {
     border-color: var(--border);
@@ -86,6 +97,110 @@
     animation: editorial-page-enter var(--motion-base) var(--ease-out);
   }
 
+  .studio-theme {
+    background: var(--bg);
+    color: var(--text-primary);
+    color-scheme: dark;
+  }
+
+  .studio-theme .editorial-display {
+    font-family: var(--font-display-family);
+    font-weight: 700;
+    font-style: normal;
+    letter-spacing: -0.035em;
+  }
+
+  .studio-theme .studio-label {
+    font-size: var(--font-size-meta);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  .studio-page {
+    margin-inline: auto;
+    width: min(100%, var(--content-max-width));
+    padding: var(--space-8) var(--space-6) var(--space-12);
+  }
+
+  .batch-film-strip {
+    display: grid;
+    min-height: 42px;
+    gap: 2px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    padding: 3px;
+  }
+
+  .batch-film-cell {
+    position: relative;
+    min-width: 3px;
+    border-radius: 2px;
+    background: var(--surface-raised);
+    padding-block: 6px;
+  }
+
+  .batch-film-cell::before,
+  .batch-film-cell::after {
+    position: absolute;
+    left: 50%;
+    width: min(56%, 8px);
+    height: 3px;
+    content: "";
+    transform: translateX(-50%);
+    border-radius: 1px;
+    background: var(--bg);
+    opacity: 0.9;
+  }
+
+  .batch-film-cell::before {
+    top: 2px;
+  }
+
+  .batch-film-cell::after {
+    bottom: 2px;
+  }
+
+  .batch-film-core {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 24px;
+    background: var(--surface-raised);
+  }
+
+  .batch-film-cell[data-state="completed"] .batch-film-core {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-soft);
+  }
+
+  .batch-film-cell[data-state="generating"] .batch-film-core {
+    background: var(--accent-soft);
+    animation: film-generating 2.4s ease-in-out infinite;
+  }
+
+  .batch-film-cell[data-state="failed"] .batch-film-core {
+    background: var(--danger);
+  }
+
+  .batch-film-cell[data-state="cancelled"] .batch-film-core {
+    background: var(--text-secondary);
+    opacity: 0.36;
+  }
+
+  @keyframes film-generating {
+    0%,
+    100% {
+      opacity: 0.36;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
   .editorial-card,
   .surface-panel {
     border: 1px solid var(--border);
@@ -127,6 +242,10 @@
   .editorial-page {
     padding: var(--space-6) var(--space-4) var(--space-12);
   }
+
+  .studio-page {
+    padding: var(--space-6) var(--space-4) var(--space-12);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -141,5 +260,10 @@
 
   .editorial-page-enter {
     animation: none;
+  }
+
+  .batch-film-cell[data-state="generating"] .batch-film-core {
+    animation: none;
+    opacity: 0.72;
   }
 }

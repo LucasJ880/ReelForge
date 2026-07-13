@@ -21,7 +21,7 @@ import {
   __resetContentReviewProviderForTests,
   createContentReviewProvider,
 } from "../src/lib/content-review";
-import { VolcengineVideoProvider } from "../src/lib/video-generation/providers/volcengine-video-provider";
+import { BytePlusVideoProvider } from "../src/lib/video-generation/providers/byteplus-video-provider";
 
 function withEnv<T>(
   patches: Record<string, string | undefined>,
@@ -63,10 +63,10 @@ test("AI provider 选择：默认（海外）→ openai", () => {
   );
 });
 
-test("AI provider 选择：REGION=cn 默认 → volcengine", () => {
-  withEnv({ REGION: "cn", AI_PROVIDER: undefined }, () => {
+test("AI provider 选择：REGION=future 仍默认 → openai", () => {
+  withEnv({ REGION: "future", AI_PROVIDER: undefined }, () => {
     const ai = createAiProvider();
-    assert.equal(ai.id, "volcengine");
+    assert.equal(ai.id, "openai");
   });
 });
 
@@ -84,21 +84,21 @@ test("Storage provider 选择：默认 → vercel_blob", () => {
   });
 });
 
-test("Storage provider 选择：REGION=cn → volcengine_tos", () => {
-  withEnv({ REGION: "cn", STORAGE_PROVIDER: undefined }, () => {
+test("Storage provider 选择：显式 legacy provider 用于迁移工具", () => {
+  withEnv({ REGION: "future", STORAGE_PROVIDER: "volcengine_tos" }, () => {
     const s = createStorageProvider();
     assert.equal(s.id, "volcengine_tos");
   });
 });
 
-test("Video provider：始终 volcengine（即梦/Seedance）", () => {
+test("Video provider：NA 与 future 均默认 BytePlus 国际 Seedance", () => {
   withEnv({ REGION: undefined }, () => {
     const v = createVideoProvider();
-    assert.equal(v.id, "volcengine");
+    assert.equal(v.id, "byteplus");
   });
-  withEnv({ REGION: "cn" }, () => {
+  withEnv({ REGION: "future" }, () => {
     const v = createVideoProvider();
-    assert.equal(v.id, "volcengine");
+    assert.equal(v.id, "byteplus");
   });
 });
 
@@ -119,23 +119,23 @@ test("Video provider 状态归一：覆盖所有 Seedance 原始状态", () => {
   assert.equal(normalizeStatusBuiltin("WhoKnows"), "unknown");
 });
 
-test("VolcengineVideoProvider.normalizeProviderStatus 大小写不敏感", () => {
-  const p = new VolcengineVideoProvider();
+test("BytePlusVideoProvider.normalizeProviderStatus 大小写不敏感", () => {
+  const p = new BytePlusVideoProvider();
   assert.equal(p.normalizeProviderStatus("SUCCEEDED"), "succeeded");
   assert.equal(p.normalizeProviderStatus(" Running "), "processing");
 });
 
-test("VolcengineVideoProvider.cancelVideoJob 当前 unsupported", async () => {
-  const p = new VolcengineVideoProvider();
+test("BytePlusVideoProvider.cancelVideoJob 当前 unsupported", async () => {
+  const p = new BytePlusVideoProvider();
   const r = await p.cancelVideoJob("any-job-id");
   assert.equal(r.supported, false);
 });
 
-test("Content review provider：CONTENT_REVIEW_ENABLED=false 始终 noop（即便 PROVIDER=volcengine）", () => {
+test("Content review provider：CONTENT_REVIEW_ENABLED=false 始终 noop", () => {
   withEnv(
     {
       CONTENT_REVIEW_ENABLED: "false",
-      CONTENT_REVIEW_PROVIDER: "volcengine",
+      CONTENT_REVIEW_PROVIDER: "noop",
     },
     () => {
       const p = createContentReviewProvider();
@@ -144,16 +144,10 @@ test("Content review provider：CONTENT_REVIEW_ENABLED=false 始终 noop（即�
   );
 });
 
-test("Content review provider：ENABLED=true + provider=volcengine → volcengine", () => {
-  withEnv(
-    {
-      CONTENT_REVIEW_ENABLED: "true",
-      CONTENT_REVIEW_PROVIDER: "volcengine",
-    },
-    () => {
-      const p = createContentReviewProvider();
-      assert.equal(p.id, "volcengine");
-    },
+test("Content review provider：已归档的 volcengine 配置被拒绝", () => {
+  assert.throws(
+    () => withEnv({ CONTENT_REVIEW_PROVIDER: "volcengine" }, createContentReviewProvider),
+    /CONTENT_REVIEW_PROVIDER="volcengine"/,
   );
 });
 
@@ -172,18 +166,8 @@ test("Noop review provider 始终返回 approved", async () => {
   );
 });
 
-test("Volcengine review provider 未实现时抛清晰错误（不允许静默放行）", async () => {
-  withEnv(
-    {
-      CONTENT_REVIEW_ENABLED: "true",
-      CONTENT_REVIEW_PROVIDER: "volcengine",
-    },
-    async () => {
-      const p = createContentReviewProvider();
-      await assert.rejects(
-        () => p.reviewText({ kind: "user_upload", text: "x" }),
-        /尚未实现/,
-      );
-    },
-  );
+test("Content review provider：ENABLED=true + noop 明确保持 noop", () => {
+  withEnv({ CONTENT_REVIEW_ENABLED: "true", CONTENT_REVIEW_PROVIDER: "noop" }, () => {
+    assert.equal(createContentReviewProvider().id, "noop");
+  });
 });

@@ -26,6 +26,9 @@ export interface AllocateAssetsInput {
   imagesPerVideo: BatchStyleImagesPerVideo;
 }
 
+/** Engine capacity ceiling. Customer API and plan quotas remain lower gates. */
+export const MAX_ENGINE_BATCH_SIZE = 500;
+
 function uint32Hash(input: string): number {
   // Prisma/Postgres Int 为 signed 32-bit；保留非负 31 bit 便于直接持久化。
   return createHash("sha256").update(input).digest().readUInt32BE(0) & 0x7fffffff;
@@ -56,8 +59,8 @@ export function allocateAssets(input: AllocateAssetsInput): AssetAssignment[] {
   const { batchId, images, count, templateId, imagesPerVideo } = input;
   if (!batchId.trim()) throw new Error("batchId 不能为空");
   if (!templateId.trim()) throw new Error("templateId 不能为空");
-  if (!Number.isInteger(count) || count < 1 || count > 200) {
-    throw new Error("生成数量必须是 1-200 的整数");
+  if (!Number.isInteger(count) || count < 1 || count > MAX_ENGINE_BATCH_SIZE) {
+    throw new Error(`生成数量必须是 1-${MAX_ENGINE_BATCH_SIZE} 的整数`);
   }
   if (images.length < 1 || images.length > 50) {
     throw new Error("图片数量必须是 1-50");

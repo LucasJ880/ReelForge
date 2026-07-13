@@ -127,11 +127,11 @@ function assertStatusEnvironment(record: SubmissionRecord) {
     );
   }
 
-  if (!process.env.ARK_API_KEY) {
+  if (!process.env.BYTEPLUS_ARK_API_KEY) {
     throw new Error(
       [
-        "Missing required Seedance env vars: ARK_API_KEY",
-        "ARK_BASE_URL is optional; provider defaults to https://ark.cn-beijing.volces.com/api/v3.",
+        "Missing required Seedance env vars: BYTEPLUS_ARK_API_KEY",
+        "ARK_BASE_URL is optional; provider defaults to https://ark.ap-southeast.bytepluses.com/api/v3.",
       ].join("\n"),
     );
   }

@@ -1,6 +1,6 @@
 import { Prisma, QAStatus, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/ai";
 import {
   QA_CRITERIA,
   calcOverallScore,

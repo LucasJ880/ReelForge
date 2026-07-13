@@ -7,7 +7,7 @@
 ## 制作流程
 
 ```
-npm run demo:gen:petkit       # 提交 4 段到 Seedance（需 ARK_API_KEY）
+npm run demo:gen:petkit       # 提交 4 段到 Seedance（需 BYTEPLUS_ARK_API_KEY）
 npm run demo:check:petkit     # 轮询各段状态，全部完成后给出 segment URL
 npm run demo:stitch:petkit    # 下载 → 归一化 → 烧中文字幕 → 拼接 → 加 BGM
 ```

@@ -21,7 +21,7 @@ import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/providers/openai";
+import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 
 const execFileAsync = promisify(execFile);
 

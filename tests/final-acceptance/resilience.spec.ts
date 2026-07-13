@@ -42,7 +42,7 @@ test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
   page,
   evidence,
 }, testInfo) => {
-  await page.goto("/batch-create");
+  await page.goto("/app/batches/new");
   const batch = await createBatch(page, {
     imageCount: 2,
     requestedCount: 4,
@@ -84,7 +84,7 @@ test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
   expect(timeout?.errorMessage).toMatch(/^\[watchdog:timeout]/);
   expect(stalled?.errorMessage).toMatch(/^\[watchdog:provider_stalled]/);
 
-  await page.goto(`/batches/${batch.id}`);
+  await page.goto(`/app/batches/${batch.id}`);
   await expect(page.getByText(/视频生成超时，已自动停止/)).toBeVisible();
   await expect(page.getByText(/视频生成服务长时间无响应/)).toBeVisible();
   expect(
@@ -100,7 +100,7 @@ test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async 
   process.env.DISPATCH_BREAKER_MIN_SAMPLES = "3";
   process.env.DISPATCH_BREAKER_UNHEALTHY_RATE = ".8";
 
-  await page.goto("/batch-create");
+  await page.goto("/app/batches/new");
   const batch = await createBatch(page, {
     imageCount: 2,
     requestedCount: 6,
@@ -129,7 +129,7 @@ test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async 
   await batchServiceTest.applyBreaker(batch.id, open);
   await syncBatchCounts(batch.id);
 
-  await page.goto(`/batches/${batch.id}`);
+  await page.goto(`/app/batches/${batch.id}`);
   await expect(page.getByText("已暂停", { exact: true }).first()).toBeVisible();
   await expect(page.getByText(/生成服务暂时拥堵/)).toBeVisible();
 

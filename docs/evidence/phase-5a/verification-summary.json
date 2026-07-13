@@ -1,0 +1,30 @@
+{
+  "lint": {
+    "errors": 0,
+    "warnings": 0,
+    "passed": true
+  },
+  "typecheck": {
+    "passed": true
+  },
+  "productionBuild": {
+    "passed": true,
+    "appPathManifestEntries": 104
+  },
+  "unitAndIntegrationTests": {
+    "total": 642,
+    "passed": 641,
+    "failed": 0,
+    "skipped": 1,
+    "skipReason": "Conditional database integration fixture; not a failure."
+  },
+  "productionDependencyAudit": {
+    "critical": 0,
+    "high": 8,
+    "moderate": 10,
+    "low": 1,
+    "gateCriterion": "zero critical",
+    "gateCriterionPassed": true,
+    "note": "Non-critical advisories remain explicit Phase 3.5 dependency-remediation evidence; no forced breaking upgrade was applied during Phase 5a."
+  }
+}

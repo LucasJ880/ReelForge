@@ -11,6 +11,10 @@ import {
 } from "@/lib/services/digital-human-service";
 import { getAvatarById } from "@/lib/video-generation/digital-human/avatar-catalog";
 import { getVoiceById } from "@/lib/video-generation/digital-human/voice-catalog";
+import {
+  DIGITAL_HUMAN_SEALED_RESPONSE,
+  isDigitalHumanFeatureEnabled,
+} from "@/lib/features/digital-human";
 
 const createSchema = z.object({
   avatarId: z.string().min(1),
@@ -25,17 +29,13 @@ const createSchema = z.object({
   aspectRatio: z.enum(["9:16", "1:1", "16:9"]).optional(),
 });
 
-function featureEnabled(): boolean {
-  return process.env.ENABLE_DIGITAL_HUMAN_AD !== "false";
-}
-
 /** 创建一条数字人探店广告生成任务（QUEUED），由外部 runner 异步出片。 */
 export async function POST(req: NextRequest) {
+  if (!isDigitalHumanFeatureEnabled()) {
+    return NextResponse.json(DIGITAL_HUMAN_SEALED_RESPONSE, { status: 404 });
+  }
   const guard = await requireBusinessUser();
   if (!guard.ok) return guard.response;
-  if (!featureEnabled()) {
-    return NextResponse.json({ error: "该功能暂未开放" }, { status: 403 });
-  }
 
   let body: unknown;
   try {
@@ -93,6 +93,9 @@ export async function POST(req: NextRequest) {
 
 /** 列出当前商家的历史任务。 */
 export async function GET() {
+  if (!isDigitalHumanFeatureEnabled()) {
+    return NextResponse.json(DIGITAL_HUMAN_SEALED_RESPONSE, { status: 404 });
+  }
   const guard = await requireBusinessUser();
   if (!guard.ok) return guard.response;
   const jobs = await listDigitalHumanAdJobsForUser(guard.session.user.id);

@@ -34,14 +34,34 @@ function defaultEndCardDuration(totalSec: number): number {
   return 4;
 }
 
+function disclosureEndCardEnabled(): boolean {
+  return ["1", "true", "yes"].includes(
+    process.env.AI_DISCLOSURE_END_CARD_ENABLED?.toLowerCase() ?? "",
+  );
+}
+
 export function buildBrandPackagingPlan(
   args: BuildBrandPackagingArgs,
 ): BrandPackagingPlan {
   const { request, classification, classifiedAssets } = args;
   const warnings: string[] = [];
+  const disclosureEnabled = disclosureEndCardEnabled();
 
   /// Personal 模式 + 用户没要 brand → 不做品牌包装
   if (!classification.needsBrandPackaging || request.selectedBrandEndingMode === "none") {
+    if (disclosureEnabled) {
+      return {
+        mode: "auto_end_card",
+        logoAssetId: null,
+        endCardDurationSeconds: 2,
+        cta: "Created with AI",
+        brandName: "AI Generated · Aivora",
+        slogan: null,
+        website: null,
+        renderStrategy: "render_ffmpeg_overlay",
+        warnings: ["AI disclosure end card enabled by deployment policy."],
+      };
+    }
     return {
       mode: "none",
       endCardDurationSeconds: 0,
@@ -122,7 +142,9 @@ function autoEndCard(
     ),
     cta: request.cta ?? null,
     brandName: request.brandKit?.brandName ?? null,
-    slogan: request.brandKit?.slogan ?? null,
+    slogan: disclosureEndCardEnabled()
+      ? [request.brandKit?.slogan, "AI Generated · Aivora"].filter(Boolean).join(" · ")
+      : request.brandKit?.slogan ?? null,
     website: request.brandKit?.website ?? null,
     renderStrategy: strategy,
     warnings,

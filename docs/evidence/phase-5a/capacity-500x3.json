@@ -1,0 +1,73 @@
+{
+  "phase": "5a",
+  "mode": "mock",
+  "database": "neon-rehearsal-us-east-1",
+  "batches": 3,
+  "requestedTotal": 1500,
+  "terminalTotal": 1500,
+  "succeeded": 1500,
+  "failed": 0,
+  "cancelled": 0,
+  "queuedOrRunning": 0,
+  "exactReconciliation": true,
+  "uniqueItemKeys": 1500,
+  "maxGlobalRunning": 50,
+  "concurrencyCeiling": 50,
+  "concurrencyRespected": true,
+  "mockOnly": true,
+  "realProviderCalls": 0,
+  "costUsd": 0,
+  "ticks": 31,
+  "elapsedMs": 138408,
+  "providerJobLatencyMs": {
+    "p50": 1441,
+    "p95": 2406
+  },
+  "perBatch": [
+    {
+      "batchId": "cmrjkje6w0004limb2ybab570",
+      "template": "ugc-handheld-review",
+      "requested": 500,
+      "status": {
+        "QUEUED": 0,
+        "PAUSED": 0,
+        "RUNNING": 0,
+        "SUCCEEDED": 500,
+        "FAILED": 0,
+        "CANCELLED": 0
+      },
+      "reconciled": true,
+      "maxRunning": 50
+    },
+    {
+      "batchId": "cmrjkjf7w00e2limbr4w60gjg",
+      "template": "lifestyle-use-demo",
+      "requested": 500,
+      "status": {
+        "QUEUED": 0,
+        "PAUSED": 0,
+        "RUNNING": 0,
+        "SUCCEEDED": 500,
+        "FAILED": 0,
+        "CANCELLED": 0
+      },
+      "reconciled": true,
+      "maxRunning": 50
+    },
+    {
+      "batchId": "cmrjkjfyw00s0limbarcy0xfy",
+      "template": "one-action-proof",
+      "requested": 500,
+      "status": {
+        "QUEUED": 0,
+        "PAUSED": 0,
+        "RUNNING": 0,
+        "SUCCEEDED": 500,
+        "FAILED": 0,
+        "CANCELLED": 0
+      },
+      "reconciled": true,
+      "maxRunning": 50
+    }
+  ]
+}

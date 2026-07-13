@@ -110,6 +110,68 @@
   --chart-5: var(--text-secondary);
 }
 
+/*
+ * /app Studio 工作区主题。只在 PlatformLayout 的 .studio-theme 内生效，
+ * 因此不会改变已冻结的 Showcase 或公开面的 Editorial 方向。
+ */
+.studio-theme {
+  --bg: #17130f;
+  --surface: #201a14;
+  --surface-sunken: #1b1611;
+  --surface-raised: #2a221a;
+  --border: #372d22;
+  --border-strong: #554536;
+  --text-primary: #f2eae1;
+  --text-secondary: #a89a8a;
+  --accent: #ff4d00;
+  --accent-soft: #ff4d001f;
+  --success: #4caf7d;
+  --warning: #e8b84b;
+  --danger: #e0574f;
+  --overlay: rgba(23, 19, 15, 0.82);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --shadow-card: none;
+
+  --font-display-family: var(--font-space-grotesk), var(--font-noto-sans-sc), system-ui, sans-serif;
+  --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-size-meta: 11px;
+  --font-size-body: 14px;
+  --font-size-subhead: 18px;
+  --font-size-title: 24px;
+  --font-size-section: 36px;
+  --text-display: clamp(32px, 4vw, 40px);
+  --leading-body: 1.55;
+  --leading-display: 1.08;
+
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --card: var(--surface);
+  --card-foreground: var(--text-primary);
+  --popover: var(--surface-raised);
+  --popover-foreground: var(--text-primary);
+  --primary: var(--accent);
+  --primary-foreground: var(--bg);
+  --secondary: var(--surface-raised);
+  --secondary-foreground: var(--text-primary);
+  --muted: var(--surface-sunken);
+  --muted-foreground: var(--text-secondary);
+  --accent-foreground: var(--text-primary);
+  --destructive: var(--danger);
+  --input: var(--border-strong);
+  --ring: var(--accent);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text-secondary);
+  --sidebar-primary: var(--accent);
+  --sidebar-primary-foreground: var(--bg);
+  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent-foreground: var(--text-primary);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--accent);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

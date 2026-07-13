@@ -6,7 +6,7 @@ const authFile = "tests/final-acceptance/.auth/personal.json";
 
 setup("建立最终验收独立登录态", async ({ page }) => {
   await mkdir(path.dirname(authFile), { recursive: true });
-  await page.goto("/login?from=/batch-create");
+  await page.goto("/login?from=/app/batches/new");
   await page.getByLabel("邮箱").fill("final-acceptance@aivora.app");
   await page.getByLabel("密码").fill("aivora-final-acceptance-2026");
   await page.getByRole("button", { name: "登录", exact: true }).click();
@@ -36,8 +36,8 @@ setup("建立最终验收独立登录态", async ({ page }) => {
       sameSite: "Lax",
     },
   ]);
-  await page.goto("/batch-create");
-  await expect(page).toHaveURL((url) => url.pathname === "/batch-create");
+  await page.goto("/app/batches/new");
+  await expect(page).toHaveURL((url) => url.pathname === "/app/batches/new");
   const protectedResponse = await page.request.get("/api/batch-style-templates");
   expect(protectedResponse.status(), "生产模式登录态必须可访问受保护 API").toBe(200);
   await page.context().storageState({ path: authFile });

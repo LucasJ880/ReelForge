@@ -12,7 +12,7 @@
  * 3. 输出全英文（Seedance 对英文 prompt 的语义遵从度最好），voiceProfile 记录口播语言。
  */
 
-import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import { effectiveAssetRole } from "@/types/video-generation";
 import type {
   ConsistencyBible,

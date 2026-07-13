@@ -564,7 +564,7 @@ async function main() {
 function preflight() {
   banner("Preflight");
   const missing: string[] = [];
-  if (!process.env.ARK_API_KEY && !DRY_RUN) missing.push("ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY && !DRY_RUN) missing.push("BYTEPLUS_ARK_API_KEY");
   if (!process.env.BLOB_READ_WRITE_TOKEN && !DRY_RUN) {
     missing.push("BLOB_READ_WRITE_TOKEN");
   }
@@ -614,10 +614,10 @@ function preflight() {
   console.log("preflight = ok");
 }
 
-/** Fail fast when ark.cn-beijing (or custom ARK_BASE_URL) is unreachable from this network. */
+/** Fail fast when the BytePlus international Ark endpoint is unreachable. */
 function assertSeedanceReachable() {
   const base =
-    process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
+    process.env.ARK_BASE_URL || "https://ark.ap-southeast.bytepluses.com/api/v3";
   let origin: string;
   try {
     origin = new URL(base).origin;
@@ -650,9 +650,8 @@ function assertSeedanceReachable() {
     throw new Error(
       [
         `无法连接 Seedance API（${origin}，HTTP ${httpCode}）。`,
-        "当前网络通常需要可访问中国大陆节点的 VPN 才能调用火山方舟北京区。",
-        "连上 VPN 后重试：npm run demo:sunny-investor:v21:resume",
-        "若使用 BytePlus 国际区，请在 .env.local 配置国际区 ARK_API_KEY + ARK_BASE_URL=https://ark.ap-southeast.bytepluses.com/api/v3。",
+        "确认当前网络可访问 BytePlus 国际区后重试：npm run demo:sunny-investor:v21:resume",
+        "请在 .env.local 配置国际区 BYTEPLUS_ARK_API_KEY + ARK_BASE_URL=https://ark.ap-southeast.bytepluses.com/api/v3。",
       ].join("\n"),
     );
   }

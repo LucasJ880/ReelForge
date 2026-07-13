@@ -4,7 +4,7 @@ import {
   type CreativeEvidenceCard,
 } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJson, isLLMAvailable } from "@/lib/ai";
 import {
   CREATIVE_INDUSTRIES,
   CREATIVE_OBJECTIVES,

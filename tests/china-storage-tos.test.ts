@@ -154,8 +154,8 @@ test("Storage factory: STORAGE_PROVIDER=volcengine_tos → VolcengineTosStorageP
   });
 });
 
-test("Storage factory: REGION=cn (默认) → volcengine_tos", async () => {
-  await withEnv({ REGION: "cn", STORAGE_PROVIDER: undefined }, () => {
+test("Storage factory: 显式迁移 provider → volcengine_tos", async () => {
+  await withEnv({ REGION: "future", STORAGE_PROVIDER: "volcengine_tos" }, () => {
     const s = createStorageProvider();
     assert.equal(s.id, "volcengine_tos");
   });

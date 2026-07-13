@@ -7,7 +7,6 @@ import { db } from "@/lib/db";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
 import {
   effectiveAssetRole,
-  type AssemblyClip,
   type AssemblyPlan,
   type AspectRatio,
   type BrandPackagingPlan,

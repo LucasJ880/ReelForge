@@ -425,6 +425,24 @@ export type Dictionary = {
     personaBusiness: string;
     personaPersonal: string;
     badgeSoon: string;
+    platformNav: {
+      create: string;
+      batches: string;
+      racing: string;
+      library: string;
+      templates: string;
+    };
+    platformShell: {
+      primaryNav: string;
+      mobileNav: string;
+      currentPlan: string;
+      switchWorkspace: string;
+      oneWorkspaceHint: string;
+      search: string;
+      accountSignOut: string;
+      activeBatches: string;
+      failedJobs: string;
+    };
     businessNav: {
       home: string;
       createAd: string;

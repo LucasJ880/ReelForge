@@ -30,7 +30,8 @@ type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
 interface UploadItem {
   localId: string;
-  file: File;
+  file: File | null;
+  fileName: string;
   previewUrl: string;
   status: UploadStatus;
   progress?: number;
@@ -51,23 +52,49 @@ interface StyleTemplateDto {
     aspectRatio: string;
     resolution: string;
     cameraStyle: string;
+    stability?: "high" | "balanced";
+    humanInteraction?: "none" | "controlled";
   };
   imagesPerVideo: { min: number; max: number };
 }
 
 const STEPS = ["上传素材", "选择风格", "生成数量", "确认提交"] as const;
 const UPLOAD_CONCURRENCY = 4;
+const BATCH_IMAGE_MIME_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
 
 function formatEstimate(seconds: number): string {
   if (seconds < 60) return `约 ${seconds} 秒`;
   return `约 ${Math.ceil(seconds / 60)} 分钟`;
 }
 
-export function BatchCreateWizard() {
+export function BatchCreateWizard({
+  batchDetailsBasePath = "/batches",
+  initialTemplateId,
+  initialImages = [],
+}: {
+  batchDetailsBasePath?: string;
+  initialTemplateId?: string;
+  initialImages?: Array<{ id: string; url: string; fileName: string }>;
+} = {}) {
   const router = useRouter();
   const uploadControllersRef = useRef(new Map<string, AbortController>());
   const [step, setStep] = useState(0);
-  const [uploads, setUploads] = useState<UploadItem[]>([]);
+  const [uploads, setUploads] = useState<UploadItem[]>(() =>
+    initialImages.map((image) => ({
+      localId: `existing-${image.id}`,
+      file: null,
+      fileName: image.fileName,
+      previewUrl: image.url,
+      status: "uploaded",
+      progress: 100,
+      assetId: image.id,
+      url: image.url,
+    })),
+  );
   const [templates, setTemplates] = useState<StyleTemplateDto[]>([]);
   const [templateId, setTemplateId] = useState("");
   const [count, setCount] = useState(100);
@@ -83,10 +110,12 @@ export function BatchCreateWizard() {
       })
       .then(({ templates: rows }) => {
         setTemplates(rows);
-        if (rows[0]) setTemplateId(rows[0].id);
+        const requested = rows.find((template) => template.id === initialTemplateId);
+        if (requested) setTemplateId(requested.id);
+        else if (rows[0]) setTemplateId(rows[0].id);
       })
       .catch((reason) => setError((reason as Error).message));
-  }, []);
+  }, [initialTemplateId]);
 
   useEffect(
     () => () => {
@@ -124,6 +153,7 @@ export function BatchCreateWizard() {
   }
 
   async function uploadOne(item: UploadItem) {
+    if (!item.file) return;
     uploadControllersRef.current.get(item.localId)?.abort();
     const controller = new AbortController();
     uploadControllersRef.current.set(item.localId, controller);
@@ -135,6 +165,7 @@ export function BatchCreateWizard() {
     try {
       const data = await uploadBlobWithProgress({
         file: item.file,
+        endpoint: "/api/upload/blob",
         prefix: "batch-products",
         signal: controller.signal,
         onProgress: (progress) =>
@@ -175,7 +206,9 @@ export function BatchCreateWizard() {
 
   function addFiles(files: File[]) {
     setError(null);
-    const images = files.filter((file) => file.type.startsWith("image/"));
+    const images = files.filter((file) =>
+      BATCH_IMAGE_MIME_TYPES.has(file.type),
+    );
     if (images.length !== files.length) {
       setError("批量生成仅支持 PNG、JPG、WEBP 产品图片");
     }
@@ -183,6 +216,7 @@ export function BatchCreateWizard() {
     const accepted = images.slice(0, available).map((file) => ({
       localId: crypto.randomUUID(),
       file,
+      fileName: file.name,
       previewUrl: URL.createObjectURL(file),
       status: "queued" as const,
     }));
@@ -196,7 +230,7 @@ export function BatchCreateWizard() {
     uploadControllersRef.current.delete(localId);
     setUploads((current) => {
       const target = current.find((item) => item.localId === localId);
-      if (target) URL.revokeObjectURL(target.previewUrl);
+      if (target?.previewUrl.startsWith("blob:")) URL.revokeObjectURL(target.previewUrl);
       return current.filter((item) => item.localId !== localId);
     });
   }
@@ -230,7 +264,7 @@ export function BatchCreateWizard() {
       if (!response.ok || !data.batch) {
         throw new Error(data.error ?? "创建批次失败");
       }
-      router.push(`/batches/${data.batch.id}`);
+      router.push(`${batchDetailsBasePath}/${data.batch.id}`);
       toast.success("批次已创建，正在跳转监控页");
     } catch (reason) {
       const message = (reason as Error).message;
@@ -311,6 +345,9 @@ export function BatchCreateWizard() {
                 uploading={hasPendingUploads}
                 disabled={uploads.length >= 50}
                 onFiles={addFiles}
+                onRejected={() =>
+                  setError("批量生成仅支持 PNG、JPG、WEBP 产品图片")
+                }
               />
               <div className="flex flex-wrap items-center justify-between gap-2 text-meta text-muted-foreground">
                 <span>{uploads.length}/50 张</span>
@@ -331,7 +368,7 @@ export function BatchCreateWizard() {
                   >
                     <div
                       role="img"
-                      aria-label={item.file.name}
+                      aria-label={item.fileName}
                       className="absolute inset-0 bg-cover bg-center"
                       style={{ backgroundImage: `url("${item.previewUrl}")` }}
                     />
@@ -368,7 +405,7 @@ export function BatchCreateWizard() {
                     </div>
                     <button
                       type="button"
-                      aria-label={`删除 ${item.file.name}`}
+                      aria-label={`删除 ${item.fileName}`}
                       onClick={() => removeUpload(item.localId)}
                       className="absolute right-1 top-1 rounded-(--radius-sm) bg-overlay p-1 text-primary-foreground opacity-100 transition-opacity duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
                     >
@@ -437,6 +474,10 @@ export function BatchCreateWizard() {
                               `-${template.imagesPerVideo.max}`}{" "}
                             张 · {template.lockedParams.duration}s ·{" "}
                             {template.lockedParams.aspectRatio}
+                          </p>
+                          <p className="text-meta text-muted-foreground">
+                            {template.lockedParams.stability === "high" ? "稳定优先" : "创意均衡"}
+                            {template.lockedParams.humanInteraction === "none" ? " · 无人物交互" : " · 含受控人物交互"}
                           </p>
                         </div>
                       </button>

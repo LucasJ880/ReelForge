@@ -20,6 +20,7 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
+  Flag,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -59,6 +60,7 @@ const INTERNAL_NAV: NavItem[] = [
   { href: "/internal/publish", labelKey: "nav.publish", icon: Send },
   { href: "/internal/metrics", labelKey: "nav.metrics", icon: BarChart3 },
   { href: "/internal/qa", labelKey: "nav.qualityCheck", icon: ClipboardCheck },
+  { href: "/internal/reports", label: "Content reports", icon: Flag, roles: ["SUPER_ADMIN", "OPERATOR"] },
   { href: "/internal/distillation", labelKey: "nav.distillation", icon: Sparkles },
   { href: "/internal/demo-leads", labelKey: "nav.demoLeads", icon: UsersRound },
   {

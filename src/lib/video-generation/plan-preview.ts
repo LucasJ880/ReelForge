@@ -22,7 +22,7 @@ export interface BuildPlanPreviewArgs {
   brandPackaging: BrandPackagingPlan;
   assemblyPlan: AssemblyPlan;
   aspectRatio: AspectRatio;
-  userType: "business" | "personal";
+  userType: "business" | "personal" | "platform";
 }
 
 export function buildPlanPreview(args: BuildPlanPreviewArgs): PlanPreview {
@@ -63,7 +63,7 @@ function renderSummary(args: {
   endCardSec: number;
   finalDurationSec: number;
   aspectRatio: AspectRatio;
-  userType: "business" | "personal";
+  userType: "business" | "personal" | "platform";
 }): string {
   const parts: string[] = [];
 
@@ -83,7 +83,7 @@ function renderSummary(args: {
   }
   if (args.hasBrandEndCard) {
     parts.push(
-      `a ${args.endCardSec}s ${args.userType === "business" ? "branded" : ""} end card`.replace(
+      `a ${args.endCardSec}s ${args.userType !== "personal" ? "branded" : ""} end card`.replace(
         / +/g,
         " ",
       ),
@@ -92,7 +92,7 @@ function renderSummary(args: {
 
   const orientation = orientationLabel(args.aspectRatio);
   const audience =
-    args.userType === "business" ? "ad" : "video";
+    args.userType !== "personal" ? "ad" : "video";
 
   const pieceList =
     parts.length === 0

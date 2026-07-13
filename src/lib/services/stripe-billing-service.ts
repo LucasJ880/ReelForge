@@ -62,14 +62,20 @@ export async function applyStripeSubscriptionToUser(params: {
   stripeSubscriptionId: string | null;
   tier: "free" | "pro";
 }) {
-  await db.adminUser.update({
-    where: { id: params.userId },
-    data: {
-      subscriptionTier: params.tier,
-      stripeCustomerId: params.stripeCustomerId ?? undefined,
-      stripeSubscriptionId: params.stripeSubscriptionId ?? undefined,
-    },
-  });
+  await db.$transaction([
+    db.adminUser.update({
+      where: { id: params.userId },
+      data: {
+        subscriptionTier: params.tier,
+        stripeCustomerId: params.stripeCustomerId ?? undefined,
+        stripeSubscriptionId: params.stripeSubscriptionId ?? undefined,
+      },
+    }),
+    db.workspace.update({
+      where: { ownerId: params.userId },
+      data: { planId: params.tier === "pro" ? "studio" : "starter" },
+    }),
+  ]);
 }
 
 export async function handleStripeWebhookEvent(

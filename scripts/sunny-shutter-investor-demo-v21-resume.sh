@@ -13,7 +13,7 @@ run_phase() {
 echo "=== Sunny Shutter V2.1 resume (storyboard → final + publish) ==="
 
 until run_phase submit; do
-  echo "$(date '+%H:%M:%S') — submit blocked (无法连接 ark.cn-beijing；请开启中国大陆 VPN 后自动重试)…"
+  echo "$(date '+%H:%M:%S') — submit blocked (无法连接 BytePlus 国际 Ark；网络恢复后自动重试)…"
   sleep 30
 done
 

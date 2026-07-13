@@ -25,7 +25,7 @@ npm install
 # 2. 配置环境变量
 cp .env.example .env.local
 # 填入 DATABASE_URL / OPENAI_API_KEY / AUTH_SECRET / BLOB_READ_WRITE_TOKEN
-# （可选）ARK_API_KEY（不填走 mock）
+# （可选）BYTEPLUS_ARK_API_KEY（不填走 mock）
 
 # 3. 建库 + 种子管理员
 npm run db:push

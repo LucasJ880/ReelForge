@@ -1,14 +1,15 @@
 import OpenAI from "openai";
 import { toFile } from "openai/uploads";
+import { buildLogoPrompt } from "@/lib/ai/logo-prompt";
 import { isDryRun } from "@/lib/config/dry-run";
 import { getStorageProvider } from "@/lib/storage";
 
 /**
  * OpenAI 图像生成 Provider —— 内部代号「Image 2」。
  *
- * 用途：Logo 生成（Phase 4 PART 6）。
+ * 用途：Logo、产品图生成与产品图优化。
  *
- * 模型：默认 gpt-image-1（OPENAI_IMAGE_MODEL 可覆盖）。
+ * 模型：默认 gpt-image-2（OPENAI_IMAGE_MODEL 可覆盖）。
  *
  * Mock 模式触发条件（任一为真即不发起真实调用）：
  *   1) 缺少 OPENAI_API_KEY
@@ -17,7 +18,7 @@ import { getStorageProvider } from "@/lib/storage";
  * Mock 返回固定占位 URL（不消耗 OpenAI 额度），便于本地开发 / E2E 测试。
  */
 
-const DEFAULT_IMAGE_MODEL = "gpt-image-1";
+export const DEFAULT_IMAGE_MODEL = "gpt-image-2";
 const DEFAULT_SIZE: ImageSize = "1024x1024";
 const DEFAULT_N = 3;
 
@@ -41,7 +42,7 @@ export interface GenerateImagesArgs {
   /// 强制 mock，便于测试调用
   forceMock?: boolean;
   /**
-   * 显式覆盖模型 ID。优先级：args.model > OPENAI_IMAGE_MODEL > "gpt-image-1"。
+   * 显式覆盖模型 ID。优先级：args.model > OPENAI_IMAGE_MODEL > "gpt-image-2"。
    * 注意：传 "gpt-image-2" 等新模型时，size 可以是任意满足模型约束的分辨率
    * （例如 9:16 demo 分镜帧用 "1080x1920"）。
    */
@@ -52,6 +53,13 @@ export interface GenerateImagesResult {
   urls: string[];
   modelUsed: string;
   fromMock: boolean;
+  usage: ImageGenerationUsage | null;
+}
+
+export interface ImageGenerationUsage {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
 }
 
 export function isImageGenAvailable(): boolean {
@@ -72,6 +80,7 @@ export async function generateImages(
       urls: mockUrls(n),
       modelUsed: "mock",
       fromMock: true,
+      usage: null,
     };
   }
 
@@ -127,6 +136,7 @@ export async function generateImages(
     urls,
     modelUsed: model,
     fromMock: false,
+    usage: imageUsageFromResponse(response),
   };
 }
 
@@ -165,6 +175,7 @@ export interface ComposeReferenceImageResult {
   url: string;
   modelUsed: string;
   fromMock: boolean;
+  usage: ImageGenerationUsage | null;
 }
 
 /**
@@ -182,7 +193,7 @@ export async function composeReferenceImage(
 ): Promise<ComposeReferenceImageResult> {
   const useMock = args.forceMock || !isImageGenAvailable();
   if (useMock) {
-    return { url: mockUrls(1)[0], modelUsed: "mock", fromMock: true };
+    return { url: mockUrls(1)[0], modelUsed: "mock", fromMock: true, usage: null };
   }
   if (!args.referenceImages.length) {
     throw new Error("composeReferenceImage 至少需要一张参考图");
@@ -213,7 +224,12 @@ export async function composeReferenceImage(
   if (!item) throw new Error("OpenAI 图像合成返回空结果");
 
   if (item.url) {
-    return { url: item.url, modelUsed: model, fromMock: false };
+    return {
+      url: item.url,
+      modelUsed: model,
+      fromMock: false,
+      usage: imageUsageFromResponse(response),
+    };
   }
   if (!item.b64_json) {
     throw new Error("OpenAI 图像合成返回缺少 url / b64_json");
@@ -233,57 +249,29 @@ export async function composeReferenceImage(
     contentType: "image/png",
     overwrite: true,
   });
-  return { url: obj.url, modelUsed: model, fromMock: false };
+  return {
+    url: obj.url,
+    modelUsed: model,
+    fromMock: false,
+    usage: imageUsageFromResponse(response),
+  };
 }
 
 /**
  * 构造 logo 生成 prompt 的标准结构。
  * 把 LogoGenerationForm 的字段编排成 OpenAI 友好的提示词。
  */
-export function buildLogoPrompt(args: {
-  businessName: string;
-  industry?: string | null;
-  styleHint?: string | null;
-  colors?: string | null;
-  slogan?: string | null;
-  iconIdea?: string | null;
-  language?: string | null;
-}): string {
-  const {
-    businessName,
-    industry,
-    styleHint,
-    colors,
-    slogan,
-    iconIdea,
-    language,
-  } = args;
-
-  const parts: string[] = [
-    `Logo design for "${businessName}".`,
-    industry ? `Industry: ${industry}.` : "",
-    styleHint ? `Style: ${styleHint}.` : "",
-    colors ? `Color palette preference: ${colors}.` : "",
-    iconIdea ? `Icon idea: ${iconIdea}.` : "",
-    slogan ? `Tagline: "${slogan}".` : "",
-    language ? `Wordmark language: ${language}.` : "",
-    "Vector flat design, clean, modern, scalable, transparent or solid background.",
-    "Centered composition, high contrast, suitable for social media avatar and end card.",
-    "Avoid photorealism, no people faces, no copyrighted characters, no clutter.",
-    "Output a single clear logo on solid background.",
-  ];
-  return parts.filter(Boolean).join(" ");
-}
+export { buildLogoPrompt } from "@/lib/ai/logo-prompt";
 
 function clamp(value: number, lo: number, hi: number): number {
   return Math.max(lo, Math.min(hi, value));
 }
 
 const MOCK_PALETTE = [
-  "https://placehold.co/1024x1024/0ea5e9/ffffff?text=Logo+1",
-  "https://placehold.co/1024x1024/8b5cf6/ffffff?text=Logo+2",
-  "https://placehold.co/1024x1024/22c55e/ffffff?text=Logo+3",
-  "https://placehold.co/1024x1024/ef4444/ffffff?text=Logo+4",
+  "/template-previews/white-studio-standard.jpg",
+  "/template-previews/lifestyle-use-demo.jpg",
+  "/template-previews/dark-luxury-lighting.jpg",
+  "/template-previews/macro-material-study.jpg",
 ];
 
 function mockUrls(n: number): string[] {
@@ -292,6 +280,22 @@ function mockUrls(n: number): string[] {
     out.push(MOCK_PALETTE[i % MOCK_PALETTE.length]);
   }
   return out;
+}
+
+function imageUsageFromResponse(response: unknown): ImageGenerationUsage | null {
+  const usage = (response as {
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      total_tokens?: number;
+    };
+  }).usage;
+  if (!usage) return null;
+  return {
+    inputTokens: usage.input_tokens ?? null,
+    outputTokens: usage.output_tokens ?? null,
+    totalTokens: usage.total_tokens ?? null,
+  };
 }
 
 /// 仅供测试导入

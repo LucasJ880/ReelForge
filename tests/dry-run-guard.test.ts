@@ -41,10 +41,10 @@ test("isDryRun：解析 1/true/yes/on，其余为 false", async (t) => {
   }
 });
 
-test("dry-run：Seedance 提交强制走 mock（即便 ARK_API_KEY 存在且 VIDEO_ENGINE_MOCK=false）", async (t) => {
+test("dry-run：Seedance 提交强制走 mock（即便 BYTEPLUS_ARK_API_KEY 存在且 VIDEO_ENGINE_MOCK=false）", async (t) => {
   withEnv(t, {
     AIVORA_DRY_RUN: "1",
-    ARK_API_KEY: "fake-key-should-never-be-used",
+    BYTEPLUS_ARK_API_KEY: "fake-key-should-never-be-used",
     VIDEO_ENGINE_MOCK: "false",
   });
   const { submitSeedanceJob, getSeedanceStatus, isSeedanceConfigured } =
@@ -62,7 +62,7 @@ test("dry-run：Seedance 提交强制走 mock（即便 ARK_API_KEY 存在且 VID
 test("dry-run：真实 externalJobId 的状态查询也不打真实 API（走 mock 分支）", async (t) => {
   withEnv(t, {
     AIVORA_DRY_RUN: "1",
-    ARK_API_KEY: "fake-key",
+    BYTEPLUS_ARK_API_KEY: "fake-key",
     VIDEO_ENGINE_MOCK: "false",
   });
   const { getSeedanceStatus } = await import("../src/lib/providers/seedance");

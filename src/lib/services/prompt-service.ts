@@ -1,6 +1,6 @@
 import { Prisma, VideoBriefStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/ai";
 
 const SYSTEM_PROMPT = `You are a Seedance 2.0 (Volcengine Ark) director-prompt engineer.
 Your job: turn each scene plan into a single, cinematic, ready-to-render prompt that produces a vertical 9:16 short-form ad shot.

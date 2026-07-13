@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { zhCN } from "../src/i18n/dictionaries/zh-CN";
 import { enUS } from "../src/i18n/dictionaries/en-US";
 
-/** B 端 page 不得硬编码的英文页头（应走 shell.* 字典） */
+/** 统一 platform page 不得硬编码旧 B 端页头。 */
 const FORBIDDEN_HARDCODED = [
   "Products",
   "Creative Studio",
@@ -22,14 +22,11 @@ const FORBIDDEN_HARDCODED = [
 ];
 
 const BUSINESS_PAGE_FILES = [
-  "src/app/(business)/business/page.tsx",
-  "src/app/(business)/business/products/page.tsx",
-  "src/app/(business)/business/products/[id]/page.tsx",
-  "src/app/(business)/business/creative-studio/page.tsx",
-  "src/app/(business)/business/performance/page.tsx",
-  "src/app/(business)/business/recommendations/page.tsx",
-  "src/app/(business)/business/integrations/page.tsx",
-  "src/app/(business)/business/create-ad-video/page.tsx",
+  "src/app/(platform)/app/create/page.tsx",
+  "src/app/(platform)/app/batches/page.tsx",
+  "src/app/(platform)/app/racing/page.tsx",
+  "src/app/(platform)/app/library/page.tsx",
+  "src/app/(platform)/app/templates/page.tsx",
 ];
 
 function stripComments(src: string): string {
@@ -51,7 +48,7 @@ function containsHardcodedPhrase(src: string, phrase: string): boolean {
   );
 }
 
-test("business locale: 页面源码不得硬编码英文页头", () => {
+test("platform locale: 页面源码不得残留旧 B 端英文页头", () => {
   for (const file of BUSINESS_PAGE_FILES) {
     const src = stripComments(readFileSync(resolve(file), "utf8"));
     for (const phrase of FORBIDDEN_HARDCODED) {
@@ -63,12 +60,8 @@ test("business locale: 页面源码不得硬编码英文页头", () => {
   }
 });
 
-test("business locale: zh-CN 页头与 en-US 不同且为中文产品库文案", () => {
-  assert.equal(zhCN.shell.productsPage.title, "产品库");
-  assert.equal(enUS.shell.productsPage.title, "Products");
-  assert.notEqual(
-    zhCN.shell.performancePage.title,
-    enUS.shell.performancePage.title,
-  );
-  assert.match(zhCN.shell.recommendationsPage.title, /建议/);
+test("platform locale: 五区导航中英文均存在且语义不同", () => {
+  assert.equal(zhCN.shell.platformNav.library, "成品库");
+  assert.equal(enUS.shell.platformNav.library, "Video library");
+  assert.notEqual(zhCN.shell.platformNav.racing, enUS.shell.platformNav.racing);
 });

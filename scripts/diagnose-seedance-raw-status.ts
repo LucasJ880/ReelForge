@@ -13,13 +13,13 @@ async function main() {
     console.log("用法: npx tsx scripts/diagnose-seedance-raw-status.ts <externalJobId...>");
     return;
   }
-  const apiKey = process.env.ARK_API_KEY;
+  const apiKey = process.env.BYTEPLUS_ARK_API_KEY;
   if (!apiKey) {
-    console.log("ARK_API_KEY 未配置，无法查询（生产为 mock 模式？）");
+    console.log("BYTEPLUS_ARK_API_KEY 未配置，无法查询（生产为 mock 模式？）");
     return;
   }
   const baseUrl =
-    process.env.ARK_BASE_URL || "https://ark.cn-beijing.volces.com/api/v3";
+    process.env.ARK_BASE_URL || "https://ark.ap-southeast.bytepluses.com/api/v3";
 
   for (const id of ids) {
     const res = await fetch(`${baseUrl}/contents/generations/tasks/${id}`, {

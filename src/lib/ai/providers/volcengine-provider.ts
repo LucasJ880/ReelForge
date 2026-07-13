@@ -25,6 +25,8 @@ import type {
   AiChatJsonResult,
   AiImageGenerationOptions,
   AiImageGenerationResult,
+  AiImageEditOptions,
+  AiImageEditResult,
   AiProvider,
   AiTier,
   AiVisionAnalyzeOptions,
@@ -276,8 +278,16 @@ export class VolcengineProvider implements AiProvider {
   async generateImages(
     _options: AiImageGenerationOptions,
   ): Promise<AiImageGenerationResult> {
+    void _options;
     /// TODO: 接入火山方舟 SeedDream / 通用 Visual Service
     /// 当前阶段保留 placeholder；caller (logo-service) 已有 mock fallback。
     throw new ProviderCapabilityNotImplementedError("volcengine", "generateImages");
+  }
+
+  async editImages(
+    _options: AiImageEditOptions,
+  ): Promise<AiImageEditResult> {
+    void _options;
+    throw new ProviderCapabilityNotImplementedError("volcengine", "editImages");
   }
 }

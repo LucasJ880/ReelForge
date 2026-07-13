@@ -1,6 +1,6 @@
 import { Prisma, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJsonByTier, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable } from "@/lib/ai";
 
 const SYSTEM_PROMPT = `You are a senior short-form ad scriptwriter for vertical video (TikTok / Reels / Shorts).
 Your job: write the spoken script for ONE 15–30 second ad based on the supplied angle, selling point, product input, real footage list, and target language.

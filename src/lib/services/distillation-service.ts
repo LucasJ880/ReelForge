@@ -1,6 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { chatJson, isLLMAvailable } from "@/lib/providers/openai";
+import { chatJson, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 
 const SYSTEM_PROMPT = `你是一名短视频创意蒸馏师。给你上一轮的 top 3 视频（含 hook/标题/脚本/打分结果），请提炼可复用的创意特征（不是复制成片），输出可指导下一轮 OPTIMIZATION angle 生成的结构化特征。只输出 JSON。
 
@@ -75,7 +75,7 @@ export async function distillRound(roundId: string) {
       .map((s) => ({ window: s.windowHours, metrics: s.metrics })),
   }));
 
-  const result = isLLMAvailable()
+  const result = !isLLMForcedMock() && isLLMAvailable()
     ? await llmDistill(llmInput)
     : mockDistill();
 

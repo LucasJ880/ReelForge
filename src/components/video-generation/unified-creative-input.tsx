@@ -27,8 +27,9 @@ const SELECT_CLASS =
   "mt-1 block h-10 w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 interface UnifiedCreativeInputProps {
-  userType: "business" | "personal";
+  userType: "business" | "personal" | "platform";
   initialDraft?: OrderCreativeDraft;
+  initialAssets?: UploadedAsset[];
 }
 
 /**
@@ -41,7 +42,7 @@ interface UnifiedCreativeInputProps {
 function toCustomerSafeError(
   err: unknown,
   scope: "preview" | "dispatch",
-  userType: "business" | "personal",
+  userType: "business" | "personal" | "platform",
   t: (key: string) => string,
 ): string {
   const fallback =
@@ -65,7 +66,7 @@ function toCustomerSafeError(
 
 function planBlockerMessage(
   plan: VideoGenerationPlan,
-  userType: "business" | "personal",
+  userType: "business" | "personal" | "platform",
   t: (key: string) => string,
 ): string {
   const first = plan.qualityReview.blockers[0]?.message;
@@ -78,12 +79,13 @@ function planBlockerMessage(
 export function UnifiedCreativeInput({
   userType,
   initialDraft,
+  initialAssets = [],
 }: UnifiedCreativeInputProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const isPersonal = userType === "personal";
   const [rawPrompt, setRawPrompt] = useState(initialDraft?.rawPrompt ?? "");
-  const [attachments, setAttachments] = useState<UploadedAsset[]>([]);
+  const [attachments, setAttachments] = useState<UploadedAsset[]>(initialAssets);
   const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(
     initialDraft?.selectedDuration ?? (isPersonal ? 15 : 30),
   );
@@ -93,7 +95,7 @@ export function UnifiedCreativeInput({
   const [selectedBrandEndingMode, setSelectedBrandEndingMode] =
     useState<BrandEndingMode>(
       initialDraft?.selectedBrandEndingMode ??
-        (userType === "business" ? "auto_end_card" : "none"),
+        (userType !== "personal" ? "auto_end_card" : "none"),
     );
   const [cta, setCta] = useState(initialDraft?.cta ?? "");
   const [brandName, setBrandName] = useState(initialDraft?.brandName ?? "");
@@ -113,11 +115,11 @@ export function UnifiedCreativeInput({
       attachments,
       selectedDuration,
       selectedAspectRatio,
-      selectedBrandEndingMode: userType === "business" ? selectedBrandEndingMode : "none",
-      cta: userType === "business" ? cta || null : null,
+      selectedBrandEndingMode: userType !== "personal" ? selectedBrandEndingMode : "none",
+      cta: userType !== "personal" ? cta || null : null,
       platform: null,
       brandKit:
-        userType === "business"
+        userType !== "personal"
           ? {
               brandName: brandName || null,
               website: website || null,
@@ -213,7 +215,11 @@ export function UnifiedCreativeInput({
       }
       const target =
         j.nextUrl ??
-        (userType === "business" ? `/business/products` : `/personal/videos`);
+        (userType === "platform"
+          ? "/app/library"
+          : userType === "business"
+            ? "/business/products"
+            : "/personal/videos");
       router.push(target);
       router.refresh();
     } catch (e) {
@@ -253,7 +259,7 @@ export function UnifiedCreativeInput({
                 }
               }}
               placeholder={
-                userType === "business"
+                userType !== "personal"
                   ? t("shell.creative.promptPlaceholderBusiness")
                   : t("shell.creative.promptPlaceholderPersonal")
               }
@@ -317,7 +323,7 @@ export function UnifiedCreativeInput({
               </select>
             </label>
           </div>
-          {userType === "business" && (
+          {userType !== "personal" && (
             <div>
               <label className={LABEL_CLASS}>
                 {t("shell.creative.endingLabel")}
@@ -343,7 +349,7 @@ export function UnifiedCreativeInput({
           )}
         </div>
 
-        {userType === "business" && (
+        {userType !== "personal" && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={LABEL_CLASS}>

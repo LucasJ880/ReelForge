@@ -81,7 +81,7 @@ export interface VideoJobStatusResult {
 }
 
 export interface VideoProvider {
-  readonly id: "volcengine" | "mock";
+  readonly id: "byteplus" | "mock";
   readonly displayName: string;
 
   isConfigured(): boolean;

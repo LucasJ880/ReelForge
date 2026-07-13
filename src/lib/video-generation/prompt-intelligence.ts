@@ -22,7 +22,7 @@
  *  - negativePrompt 始终 append brand guard
  */
 
-import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/providers/openai";
+import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import { effectiveAssetRole } from "@/types/video-generation";
 import type {
   AspectRatio,

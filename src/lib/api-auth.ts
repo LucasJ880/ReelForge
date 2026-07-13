@@ -7,7 +7,7 @@ export type AuthGuardResult =
   | { ok: true; session: Session }
   | { ok: false; response: NextResponse };
 
-type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER";
+type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER";
 
 /**
  * Persona discriminator on AdminUser.userType.
@@ -244,7 +244,25 @@ export async function requireInternalPage(
  * session.user.userType 做一致性校验（内部 staff 可代任意 persona 调用）。
  */
 export async function requireUserOfTypeForGeneration(): Promise<AuthGuardResult> {
-  return requireUserOfPersona(["BUSINESS", "PERSONAL"]);
+  const auth = await requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER", "CUSTOMER"]);
+  if (!auth.ok) return auth;
+  if (auth.session.user.role !== "CUSTOMER") return auth;
+
+  const { db } = await import("@/lib/db");
+  const workspace = await db.workspace.findUnique({
+    where: { ownerId: auth.session.user.id },
+    select: { id: true },
+  });
+  if (!workspace) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "账号工作区尚未就绪，请联系支持" },
+        { status: 403 },
+      ),
+    };
+  }
+  return auth;
 }
 
 /// 仅供测试 / 文档用：暴露内部判定逻辑给单测无 IO 时使用。
@@ -253,29 +271,23 @@ export const __test__ = {
   classifyAccess(args: {
     role: Role | null | undefined;
     userType: UserPersona | null | undefined;
-    expecting: "operator" | "reviewer" | "business" | "personal" | "generation" | "internal";
+    hasWorkspace?: boolean;
+    expecting: "operator" | "reviewer" | "platform" | "generation" | "internal";
   }): "allow" | "deny-not-logged-in" | "deny-forbidden" {
     if (!args.role) return "deny-not-logged-in";
     const isInternalRole = args.role === "OPERATOR" || args.role === "SUPER_ADMIN";
     const isReviewerRole = args.role === "REVIEWER" || isInternalRole;
-    const isCustomerType = args.userType === "BUSINESS" || args.userType === "PERSONAL";
-    const isInternalType = args.userType === "OPERATOR" || args.userType === "SUPER_ADMIN";
 
     switch (args.expecting) {
       case "operator":
       case "internal":
-        return isInternalRole && !isCustomerType ? "allow" : "deny-forbidden";
+        return isInternalRole ? "allow" : "deny-forbidden";
       case "reviewer":
-        return isReviewerRole && !isCustomerType ? "allow" : "deny-forbidden";
-      case "business":
-        if (isInternalType) return "allow";
-        return args.userType === "BUSINESS" ? "allow" : "deny-forbidden";
-      case "personal":
-        if (isInternalType) return "allow";
-        return args.userType === "PERSONAL" ? "allow" : "deny-forbidden";
+        return isReviewerRole ? "allow" : "deny-forbidden";
+      case "platform":
       case "generation":
-        if (isInternalType) return "allow";
-        return isCustomerType ? "allow" : "deny-forbidden";
+        if (args.role === "CUSTOMER" && args.hasWorkspace !== true) return "deny-forbidden";
+        return "allow";
     }
   },
 };

@@ -47,7 +47,7 @@ test("generateImages: forceMock=true → 不调用 OpenAI，返回占位 URL", a
   assert.equal(result.modelUsed, "mock");
   assert.equal(result.urls.length, 3);
   for (const url of result.urls) {
-    assert.match(url, /^https?:\/\//);
+    assert.match(url, /^\/template-previews\/.+\.jpg$/);
   }
 });
 

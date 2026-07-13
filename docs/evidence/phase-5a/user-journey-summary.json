@@ -1,0 +1,41 @@
+{
+  "database": "neon-rehearsal-us-east-1",
+  "providerMode": "mock",
+  "realVideoProviderCalls": 0,
+  "mainAcceptance": {
+    "projects": ["desktop-1440", "mobile-390"],
+    "tests": 19,
+    "passed": 19,
+    "failed": 0,
+    "duration": "7.9m",
+    "cleanedBatchFixtures": 22,
+    "coverage": [
+      "100-item deterministic 93/7 success/failure distribution",
+      "single and bulk retry",
+      "watchdog timeout and provider stall",
+      "breaker open, half-open, and recovery",
+      "50-file real IAD1 Blob upload",
+      "200-item cancellation",
+      "two concurrent batches",
+      "single-video create-to-library",
+      "Slow 3G and UI performance budgets",
+      "all five platform areas"
+    ]
+  },
+  "newUserOnboarding": {
+    "projects": ["desktop-1440", "mobile-390"],
+    "testsIncludingSetup": 3,
+    "passed": 3,
+    "failed": 0,
+    "combinedDuration": "30.5s",
+    "assertedLimitPerJourney": "10m",
+    "accountRole": "CUSTOMER",
+    "workspacePlan": "starter",
+    "finalVideoReady": true
+  },
+  "defectFoundAndFixed": {
+    "issue": "Privacy and terms pages were treated as authenticated routes during registration-page prefetch.",
+    "fix": "Added /privacy and /terms to the middleware public route allowlist.",
+    "regressionProof": "Desktop and mobile onboarding rerun passed with no console or network blockers."
+  }
+}

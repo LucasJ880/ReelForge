@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from "next/server";
  * Phase 5 — middleware whitelist:
  *
  *  - `/login`, `/register`, `/api/auth/*` → 登录 / 公开注册 / NextAuth
- *  - `/persona`, `/showcase` → public landing
+ *  - `/persona`, `/showcase`, `/privacy`, `/terms` → public landing / legal pages
  *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
  *  - `/api/internal/*` → 外部 runner（stitch / digital-human 等）回调与领单。
@@ -26,6 +26,8 @@ const publicPaths = [
   "/api/auth",
   "/persona",
   "/showcase",
+  "/privacy",
+  "/terms",
   "/demo",
   "/api/demo",
   // 健康检查端点：设计上无鉴权、已脱敏（见 src/app/api/health/route.ts 安全约定），
@@ -40,7 +42,7 @@ export async function middleware(req: NextRequest) {
   if (pathname === "/wizard" || pathname.startsWith("/wizard/")) {
     return NextResponse.json(
       {
-        error: "Wizard has been deprecated. Please use /business/create-ad-video or /personal/create-video.",
+        error: "Wizard has been deprecated. Please use /app/create.",
       },
       { status: 410 },
     );

@@ -23,6 +23,7 @@ import { isAbsolute, resolve } from "node:path";
 
 import { submitSeedanceJob, getSeedanceStatus } from "@/lib/providers/seedance";
 import { synthesizeSpeech } from "@/lib/providers/volc-tts";
+import { assertDigitalHumanFeatureEnabled } from "@/lib/features/digital-human";
 import {
   buildDynamicStoreAdStoryboard,
   buildStoreAdNarration,
@@ -111,6 +112,7 @@ export async function runDigitalHumanAdPipeline(
   input: DigitalHumanAdInput,
   opts: PipelineOptions = {},
 ): Promise<DigitalHumanAdResult> {
+  assertDigitalHumanFeatureEnabled();
   const log = opts.logger ?? ((m: string) => console.log(m));
   const aspect = input.aspectRatio || "9:16";
   const { w: OUT_W, h: OUT_H } = ASPECT_DIMS[aspect] ?? ASPECT_DIMS["9:16"];

@@ -4,15 +4,14 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const SHELL_CLIENT_FILES = [
-  "src/components/layout/business-sidebar.tsx",
-  "src/components/layout/personal-sidebar.tsx",
+  "src/components/platform/platform-shell.tsx",
   "src/components/billing/usage-dashboard.tsx",
   "src/components/video-generation/unified-creative-input.tsx",
   "src/components/business/business-metrics-form.tsx",
-  "src/app/(business)/business/products/[id]/video-actions.tsx",
+  "src/components/library/video-actions.tsx",
 ];
 
-test("shell: B/C 侧栏与核心表单使用 useTranslation", () => {
+test("shell: 统一侧栏与核心表单使用 useTranslation", () => {
   for (const file of SHELL_CLIENT_FILES) {
     const src = readFileSync(resolve(file), "utf8");
     assert.match(
@@ -28,11 +27,8 @@ test("shell: B/C 侧栏与核心表单使用 useTranslation", () => {
   }
 });
 
-test("shell: 侧栏导航不得硬编码英文 Home / Billing", () => {
-  for (const file of [
-    "src/components/layout/business-sidebar.tsx",
-    "src/components/layout/personal-sidebar.tsx",
-  ]) {
+test("shell: 统一侧栏不得硬编码旧 Home / Billing 导航", () => {
+  for (const file of ["src/components/platform/platform-shell.tsx"]) {
     const src = readFileSync(resolve(file), "utf8");
     assert.ok(
       !src.includes('label: "Home"'),

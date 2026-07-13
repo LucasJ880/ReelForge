@@ -127,7 +127,7 @@ async function main() {
 
   assertSourceDocExists();
   const segmentDurationSec = readSegmentDurationSec();
-  const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
+  const model = process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128";
   const selectedSegmentIndexes = readSelectedSegmentIndexes();
   const selectedSegments = SEGMENTS.filter((segment) =>
     selectedSegmentIndexes.includes(segment.index),
@@ -209,8 +209,8 @@ async function main() {
 
 function assertSeedanceEnvironment({ allowMock }: { allowMock: boolean }) {
   const missing: string[] = [];
-  if (!process.env.ARK_API_KEY && !allowMock) {
-    missing.push("ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY && !allowMock) {
+    missing.push("BYTEPLUS_ARK_API_KEY");
   }
 
   const mockFlag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
@@ -232,9 +232,9 @@ function assertSeedanceEnvironment({ allowMock }: { allowMock: boolean }) {
       [
         `Missing required Seedance env vars: ${missing.join(", ")}`,
         "Expected env configuration:",
-        "- ARK_API_KEY is required for real Seedance submission.",
-        "- ARK_BASE_URL is optional; provider defaults to https://ark.cn-beijing.volces.com/api/v3.",
-        "- ARK_VIDEO_MODEL is optional; provider defaults to doubao-seedance-2-0-260128.",
+        "- BYTEPLUS_ARK_API_KEY is required for real Seedance submission.",
+        "- ARK_BASE_URL is optional; provider defaults to https://ark.ap-southeast.bytepluses.com/api/v3.",
+        "- ARK_VIDEO_MODEL is optional; provider defaults to dreamina-seedance-2-0-260128.",
         "- VIDEO_ENGINE_MOCK must not be true for a real submission.",
       ].join("\n"),
     );

@@ -95,11 +95,11 @@ function checkLLM(): ProviderState {
 function checkSeedance(): ProviderState {
   /// 与 src/lib/providers/seedance.ts 的 isMockMode 完全同构
   const flag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
-  const apiKey = !!process.env.ARK_API_KEY;
-  const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
+  const apiKey = !!process.env.BYTEPLUS_ARK_API_KEY;
+  const model = process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128";
   if (flag === "1" || flag === "true" || flag === "yes") {
     return {
-      name: "Seedance (Volcengine Ark)",
+      name: "Seedance (BytePlus ModelArk international)",
       mode: "MOCK",
       reason: "VIDEO_ENGINE_MOCK=true",
       detail: apiKey
@@ -110,30 +110,23 @@ function checkSeedance(): ProviderState {
   }
   if (flag === "0" || flag === "false" || flag === "no") {
     return {
-      name: "Seedance (Volcengine Ark)",
+      name: "Seedance (BytePlus ModelArk international)",
       mode: "REAL",
       reason: "VIDEO_ENGINE_MOCK=false (explicit)",
       detail: apiKey
         ? `model=${model}`
-        : "❌ no ARK_API_KEY — real mode forced but submit will throw",
-      estimatedCostNote: "~$0.50 / 15s segment (1080p)",
+        : "❌ no BYTEPLUS_ARK_API_KEY — real mode forced but submit will throw",
+      estimatedCostNote: "待确认（企业账号注册后回填）",
     };
   }
-  /// 未设置：apiKey 决定
-  if (apiKey) {
-    return {
-      name: "Seedance (Volcengine Ark)",
-      mode: "REAL",
-      reason: "ARK_API_KEY set + VIDEO_ENGINE_MOCK unset (auto real)",
-      detail: `model=${model}`,
-      estimatedCostNote: "~$0.50 / 15s segment (1080p)",
-    };
-  }
+  /// 未设置：一律 mock；真实调用必须显式 VIDEO_ENGINE_MOCK=false
   return {
-    name: "Seedance (Volcengine Ark)",
+    name: "Seedance (BytePlus ModelArk international)",
     mode: "MOCK",
-    reason: "no ARK_API_KEY + no VIDEO_ENGINE_MOCK (auto mock)",
-    detail: "set ARK_API_KEY + VIDEO_ENGINE_MOCK=false to go real",
+    reason: apiKey
+      ? "API key set but VIDEO_ENGINE_MOCK unset (safe default mock)"
+      : "no BYTEPLUS_ARK_API_KEY + no VIDEO_ENGINE_MOCK (safe default mock)",
+    detail: "set BYTEPLUS_ARK_API_KEY + VIDEO_ENGINE_MOCK=false to go real",
     estimatedCostNote: "$0 / segment",
   };
 }

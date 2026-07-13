@@ -13,7 +13,7 @@
  * 失败兜底：LLM 不可用 / 分析失败返回 null，管线按旧行为继续（不阻塞出片）。
  */
 
-import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/providers/openai";
+import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import type { UploadedAsset } from "@/types/video-generation";
 
 export interface VisualReferenceAnalysis {

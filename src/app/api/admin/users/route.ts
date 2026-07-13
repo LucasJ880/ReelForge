@@ -4,10 +4,11 @@ import { requireSuperAdmin } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { createAdminSchema } from "@/lib/validators";
 
-export async function GET(_req: NextRequest) {
+export async function GET() {
   const guard = await requireSuperAdmin();
   if (!guard.ok) return guard.response;
   const users = await db.adminUser.findMany({
+    where: { role: { in: ["SUPER_ADMIN", "OPERATOR", "REVIEWER"] } },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,

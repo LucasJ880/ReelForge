@@ -14,13 +14,18 @@ import {
   isLLMForcedMock,
   type OpenAITier,
 } from "@/lib/providers/openai";
-import { generateImages as legacyGenerateImages } from "@/lib/providers/openai-image";
+import {
+  composeReferenceImage as legacyComposeReferenceImage,
+  generateImages as legacyGenerateImages,
+} from "@/lib/providers/openai-image";
 import type {
   AiChatJsonByTierOptions,
   AiChatJsonOptions,
   AiChatJsonResult,
   AiImageGenerationOptions,
   AiImageGenerationResult,
+  AiImageEditOptions,
+  AiImageEditResult,
   AiProvider,
   AiVisionAnalyzeOptions,
 } from "../types";
@@ -65,6 +70,18 @@ export class OpenAiProvider implements AiProvider {
     return legacyGenerateImages({
       prompt: options.prompt,
       n: options.n,
+      size: options.size,
+      quality: options.quality,
+      blobPrefix: options.storagePrefix,
+      forceMock: options.forceMock,
+      model: options.model,
+    });
+  }
+
+  async editImages(options: AiImageEditOptions): Promise<AiImageEditResult> {
+    return legacyComposeReferenceImage({
+      prompt: options.prompt,
+      referenceImages: options.referenceImages,
       size: options.size,
       quality: options.quality,
       blobPrefix: options.storagePrefix,

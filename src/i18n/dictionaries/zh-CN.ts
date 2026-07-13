@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 import type { Dictionary } from "../types";
 
@@ -531,6 +530,24 @@ export const zhCN: Dictionary = {
     personaBusiness: "商家",
     personaPersonal: "个人",
     badgeSoon: "即将推出",
+    platformNav: {
+      create: "创作",
+      batches: "批量生产",
+      racing: "投放与赛马",
+      library: "成品库",
+      templates: "模板库",
+    },
+    platformShell: {
+      primaryNav: "平台主导航",
+      mobileNav: "平台移动导航",
+      currentPlan: "当前套餐",
+      switchWorkspace: "切换工作区",
+      oneWorkspaceHint: "当前仅有一个工作区",
+      search: "搜索成品",
+      accountSignOut: "账户，点击退出",
+      activeBatches: "进行中批次",
+      failedJobs: "待处理失败",
+    },
     businessNav: {
       home: "首页",
       createAd: "创建广告视频",

@@ -91,6 +91,7 @@ export const ROLE_LABELS: Record<AdminRole, string> = {
   SUPER_ADMIN: "超级管理员",
   OPERATOR: "运营",
   REVIEWER: "审核员",
+  CUSTOMER: "客户",
 };
 
 export const ANGLE_TYPE_LABELS: Record<AngleType, string> = {

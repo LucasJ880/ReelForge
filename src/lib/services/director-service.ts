@@ -5,7 +5,7 @@ import {
   chatJsonByTier,
   isLLMAvailable,
   isLLMForcedMock,
-} from "@/lib/providers/openai";
+} from "@/lib/ai";
 import {
   normalizeDuration,
   planSegments,

@@ -1,10 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import {
-  buildLogoPrompt,
-  generateImages,
-  isImageGenAvailable,
-} from "@/lib/providers/openai-image";
+import { getAiProvider } from "@/lib/ai";
+import { buildLogoPrompt } from "@/lib/ai/logo-prompt";
 import { recordAIUsage } from "./ai-usage-log-service";
 
 /**
@@ -70,17 +67,17 @@ export async function generateLogoCandidates(
   });
 
   const useMock =
-    args.forceMock || !isImageGenAvailable() || process.env.IMAGE_ENGINE_MOCK === "true";
+    args.forceMock || !getAiProvider().isConfigured() || process.env.IMAGE_ENGINE_MOCK === "true";
 
   const start = Date.now();
   let urls: string[] = [];
   let modelUsed = "mock";
   let errorMessage: string | null = null;
   try {
-    const result = await generateImages({
+    const result = await getAiProvider().generateImages({
       prompt,
       n: clampInt(args.count ?? 3, 1, 4),
-      blobPrefix: `logos/${args.deliveryOrderId}/`,
+      storagePrefix: `logos/${args.deliveryOrderId}/`,
       forceMock: useMock,
     });
     urls = result.urls;

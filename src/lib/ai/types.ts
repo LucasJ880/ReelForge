@@ -68,6 +68,32 @@ export interface AiImageGenerationResult {
   urls: string[];
   modelUsed: string;
   fromMock: boolean;
+  usage: {
+    inputTokens: number | null;
+    outputTokens: number | null;
+    totalTokens: number | null;
+  } | null;
+}
+
+export interface AiImageEditOptions {
+  prompt: string;
+  referenceImages: Array<{
+    data: Buffer | Uint8Array;
+    mimeType?: string;
+    fileName?: string;
+  }>;
+  size?: string;
+  quality?: "auto" | "low" | "medium" | "high";
+  storagePrefix?: string;
+  forceMock?: boolean;
+  model?: string;
+}
+
+export interface AiImageEditResult {
+  url: string;
+  modelUsed: string;
+  fromMock: boolean;
+  usage: AiImageGenerationResult["usage"];
 }
 
 export interface AiVisionAnalyzeOptions {
@@ -136,6 +162,9 @@ export interface AiProvider {
   generateImages(
     options: AiImageGenerationOptions,
   ): Promise<AiImageGenerationResult>;
+
+  /** Product-fidelity image edit with one or more reference images. */
+  editImages(options: AiImageEditOptions): Promise<AiImageEditResult>;
 }
 
 export class ProviderCapabilityNotImplementedError extends Error {

@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
   const sessionPersona = session.user.userType;
   const isInternalStaff =
     sessionPersona === "OPERATOR" || sessionPersona === "SUPER_ADMIN";
-  if (!isInternalStaff) {
+  if (!isInternalStaff && reqParsed.data.userType !== "platform") {
     const expected =
       sessionPersona === "BUSINESS"
         ? "business"
@@ -213,7 +213,11 @@ export async function POST(req: NextRequest) {
 
   const request = reqParsed.data;
   const persona =
-    request.userType === "business" ? "BUSINESS" : "PERSONAL";
+    request.userType === "business"
+      ? "BUSINESS"
+      : request.userType === "personal"
+        ? "PERSONAL"
+        : "PLATFORM";
   const directorPlanJson = mapPlanToDirectorPlan({ plan, language: request.language ?? "en" });
 
   /// 单次「事务：创建 DeliveryOrder + Round + ContentAngle + VideoBrief」，
@@ -225,7 +229,7 @@ export async function POST(req: NextRequest) {
 
       if (!orderId) {
         const baseTitle =
-          request.userType === "business"
+          request.userType !== "personal"
             ? deriveBusinessOrderTitle({
                 rawPrompt: request.rawPrompt,
                 language: request.language,
@@ -247,11 +251,15 @@ export async function POST(req: NextRequest) {
             targetLanguage: simpleLanguageCode(request.language ?? "en"),
             productInput: {
               source: "unified_input",
+              // S5 provenance：与历史脚本写入的 unified_input 区分，供迁移/审计只读识别。
+              requestOrigin: "web_app",
               userType: request.userType,
               rawPrompt: request.rawPrompt,
               brandKit: request.brandKit ?? null,
             },
-            maxRounds: 1,
+            // Phase 3: every new customer project can flow through three
+            // measured racing rounds; the first render still creates only R1.
+            maxRounds: 3,
             createdById: session.user.id,
           },
         });
@@ -332,9 +340,11 @@ export async function POST(req: NextRequest) {
     const first = batchResults[0];
     /// 给前端一个明确「下一步去哪」+ user-facing status，避免 hardcode 路径
     const nextUrl =
-      request.userType === "business"
-        ? `/business/products?highlight=${first.deliveryOrderId}`
-        : `/personal/videos?highlight=${first.deliveryOrderId}`;
+      request.userType === "platform"
+        ? `/app/library?highlight=${first.deliveryOrderId}`
+        : request.userType === "business"
+          ? `/business/products?highlight=${first.deliveryOrderId}`
+          : `/personal/videos?highlight=${first.deliveryOrderId}`;
     const userStatus = deriveBusinessStatus({
       briefStatus: VideoBriefStatus.RENDER_QUEUED,
       segmentsTotal: first.videoJobs.length,

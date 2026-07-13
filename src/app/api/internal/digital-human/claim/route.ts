@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { claimDigitalHumanAdJob } from "@/lib/services/digital-human-service";
+import {
+  DIGITAL_HUMAN_SEALED_RESPONSE,
+  isDigitalHumanFeatureEnabled,
+} from "@/lib/features/digital-human";
 
 /**
  * 外部数字人 runner（GH Action）领取一条就绪任务。
@@ -10,6 +14,9 @@ import { claimDigitalHumanAdJob } from "@/lib/services/digital-human-service";
  * 返回：{ task: ClaimedDigitalHumanAdJob } 或 { task: null }（无任务时 runner 直接退出）
  */
 export async function GET(req: NextRequest) {
+  if (!isDigitalHumanFeatureEnabled()) {
+    return NextResponse.json(DIGITAL_HUMAN_SEALED_RESPONSE, { status: 404 });
+  }
   if (process.env.CRON_SECRET) {
     const auth = req.headers.get("authorization") ?? "";
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {

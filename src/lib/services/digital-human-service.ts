@@ -12,6 +12,7 @@
  */
 import { DigitalHumanAdJobStatus, type Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { assertDigitalHumanFeatureEnabled } from "@/lib/features/digital-human";
 
 export const MAX_DH_ATTEMPTS = 3;
 
@@ -34,6 +35,7 @@ export interface CreateDigitalHumanAdJobInput {
 export async function createDigitalHumanAdJob(
   input: CreateDigitalHumanAdJobInput,
 ) {
+  assertDigitalHumanFeatureEnabled();
   return db.digitalHumanAdJob.create({
     data: {
       adminUserId: input.adminUserId,
@@ -117,6 +119,7 @@ export interface ClaimedDigitalHumanAdJob {
  * 返回 null 表示当前没有可处理任务。
  */
 export async function claimDigitalHumanAdJob(): Promise<ClaimedDigitalHumanAdJob | null> {
+  assertDigitalHumanFeatureEnabled();
   const candidates = await db.digitalHumanAdJob.findMany({
     where: {
       status: DigitalHumanAdJobStatus.QUEUED,
@@ -164,6 +167,7 @@ export async function completeDigitalHumanAdJob(args: {
   storyboard?: unknown;
   error?: string | null;
 }): Promise<{ ok: boolean; status: DigitalHumanAdJobStatus }> {
+  assertDigitalHumanFeatureEnabled();
   const job = await db.digitalHumanAdJob.findUnique({ where: { id: args.jobId } });
   if (!job) return { ok: false, status: DigitalHumanAdJobStatus.FAILED };
 

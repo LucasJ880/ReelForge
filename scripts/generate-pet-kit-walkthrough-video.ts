@@ -5,7 +5,7 @@
  * 中文字幕与 BGM 在 stitch 阶段用 ffmpeg 烧录。
  *
  * 用法：
- *   npm run demo:gen:petkit                 # 全量提交（需 ARK_API_KEY）
+ *   npm run demo:gen:petkit                 # 全量提交（需 BYTEPLUS_ARK_API_KEY）
  *   npm run demo:gen:petkit -- --segments=2 # 仅重提某段
  *   npm run demo:gen:petkit -- --mock       # 显式 mock（仅本地调试）
  *
@@ -113,7 +113,7 @@ async function main() {
   assertSourceDocExists();
 
   const segmentDurationSec = readSegmentDurationSec();
-  const model = process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
+  const model = process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128";
   const selectedSegmentIndexes = readSelectedSegmentIndexes();
   const selectedSegments = SEGMENTS.filter((segment) =>
     selectedSegmentIndexes.includes(segment.index),
@@ -187,7 +187,7 @@ async function main() {
 
 function assertSeedanceEnvironment({ allowMock }: { allowMock: boolean }) {
   const missing: string[] = [];
-  if (!process.env.ARK_API_KEY && !allowMock) missing.push("ARK_API_KEY");
+  if (!process.env.BYTEPLUS_ARK_API_KEY && !allowMock) missing.push("BYTEPLUS_ARK_API_KEY");
 
   const mockFlag = process.env.VIDEO_ENGINE_MOCK?.toLowerCase();
   const mockEnabled = mockFlag === "1" || mockFlag === "true" || mockFlag === "yes";
@@ -205,9 +205,9 @@ function assertSeedanceEnvironment({ allowMock }: { allowMock: boolean }) {
     throw new Error(
       [
         `缺少 Seedance 必需环境变量：${missing.join(", ")}`,
-        "- ARK_API_KEY 用于真实 Seedance 提交。",
-        "- ARK_BASE_URL 可选，默认 https://ark.cn-beijing.volces.com/api/v3。",
-        "- ARK_VIDEO_MODEL 可选，默认 doubao-seedance-2-0-260128。",
+        "- BYTEPLUS_ARK_API_KEY 用于真实 Seedance 提交。",
+        "- ARK_BASE_URL 可选，默认 https://ark.ap-southeast.bytepluses.com/api/v3。",
+        "- ARK_VIDEO_MODEL 可选，默认 dreamina-seedance-2-0-260128。",
       ].join("\n"),
     );
   }

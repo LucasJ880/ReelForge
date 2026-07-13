@@ -104,7 +104,7 @@ function Navigation({
   );
 }
 
-export function PersonalGlassShell({
+export function PersonalEditorialShell({
   children,
   email,
 }: {
@@ -185,3 +185,6 @@ export function PersonalGlassShell({
     </div>
   );
 }
+
+/** @deprecated 使用 PersonalEditorialShell；保留旧导出避免调用方断裂。 */
+export const PersonalGlassShell = PersonalEditorialShell;

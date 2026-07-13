@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Bot,
+  ArrowRight,
   ImagePlus,
   Loader2,
   Send,
@@ -12,6 +13,16 @@ import {
   Flame,
   Wand2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import type { UploadedAsset } from "@/types/video-generation";
 import {
   saveCreatePrefill,
@@ -26,7 +37,7 @@ interface ChatMessage {
 const WELCOME: ChatMessage = {
   role: "assistant",
   content:
-    "你好，我是你的 AI 导演 🎬 把产品图传上来，然后像聊天一样告诉我你要什么——比如“我要一条带货剧本片”“我要 UGC 口播”“帮我复刻爆款”。不知道说啥就点下面的快捷按钮，我来带你。",
+    "你好，我是你的 AI 导演。把产品图传上来，然后像聊天一样告诉我你要什么——比如“我要一条带货剧本片”“我要 UGC 口播”“帮我复刻爆款”。不知道说什么就点下面的快捷按钮，我来带你。",
 };
 
 const QUICK_CHIPS = [
@@ -54,7 +65,7 @@ export default function AgentDirectorPage() {
   useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
-      behavior: "smooth",
+      behavior: "auto",
     });
   }, [messages, sending]);
 
@@ -117,7 +128,7 @@ export default function AgentDirectorPage() {
         ...prev,
         {
           role: "assistant",
-          content: "网络有点抖，刚才没听清 😅 再说一遍？",
+          content: "网络有点抖，刚才没听清。请再说一遍。",
         },
       ]);
     } finally {
@@ -136,7 +147,7 @@ export default function AgentDirectorPage() {
   }
 
   return (
-    <div className="flex h-[calc(100vh-7.5rem)] flex-col">
+    <div className="space-y-6">
       <input
         ref={fileRef}
         type="file"
@@ -146,154 +157,174 @@ export default function AgentDirectorPage() {
         onChange={(e) => handleUpload(e.target.files)}
       />
 
-      <div className="glass-card flex min-h-0 flex-1 flex-col p-5">
-        {/* 头部 */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pb-4">
-          <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-500/25 border border-sky-300/40">
-              <Bot className="h-4 w-4 text-sky-200" />
-            </span>
-            <h1 className="text-sm font-semibold text-white">
-              Agent 导演 · 像聊天一样出片
-            </h1>
-          </div>
-          <p className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-            传产品图 → 说你要什么（剧本 / UGC口播 / 复刻爆款）→ 它带你一步步出成片
-          </p>
-        </div>
+      <header className="max-w-4xl space-y-4">
+        <Badge variant="secondary">AI Creative Director</Badge>
+        <h1 className="editorial-display">
+          Agent <em>导演</em>
+        </h1>
+        <p className="max-w-2xl text-body text-muted-foreground">
+          上传产品图，说清创意方向，再由导演与你一起整理成可执行的短视频脚本。
+        </p>
+      </header>
 
-        {/* 产品图行 */}
-        <div className="flex flex-wrap items-center gap-3 pb-3">
-          <button
-            type="button"
-            className="glass-btn text-xs"
-            disabled={uploading || images.length >= 10}
-            onClick={() => fileRef.current?.click()}
-          >
-            {uploading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <ImagePlus className="h-3.5 w-3.5" />
-            )}
-            上传产品图
-          </button>
-          {images.length === 0 ? (
-            <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-              还没传图 — 也可以先聊需求
-            </span>
-          ) : (
-            <div className="flex items-center gap-1.5">
-              {images.map((img) => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  key={img.id}
-                  src={img.url}
-                  alt=""
-                  className="h-10 w-10 rounded-lg border border-white/15 object-cover"
-                />
-              ))}
-              <span className="text-[11px]" style={{ color: "var(--glass-text-dim)" }}>
-                {images.length}/10
+      <Card className="min-w-0">
+        <CardHeader className="border-b border-border">
+          <div className="flex min-w-0 flex-wrap items-start justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) bg-accent-soft text-foreground">
+                <Bot className="size-4 stroke-[1.5]" aria-hidden />
               </span>
-            </div>
-          )}
-        </div>
-
-        {/* 对话区 */}
-        <div
-          ref={scrollRef}
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto py-2 pr-1"
-        >
-          {messages.map((m, i) => (
-            <div
-              key={i}
-              className={
-                m.role === "user" ? "flex justify-end" : "flex justify-start"
-              }
-            >
-              <div
-                className={
-                  m.role === "user"
-                    ? "max-w-[78%] rounded-2xl rounded-br-md border border-sky-300/35 bg-sky-500/25 px-4 py-2.5 text-sm text-sky-50"
-                    : "max-w-[85%] rounded-2xl rounded-bl-md border border-white/12 bg-white/8 px-4 py-2.5 text-sm text-white/90"
-                }
-              >
-                {m.content}
+              <div className="min-w-0">
+                <CardTitle>创意对话</CardTitle>
+                <CardDescription>剧本、UGC 口播或爆款节奏，都可以直接描述。</CardDescription>
               </div>
             </div>
-          ))}
-          {sending && (
-            <div className="flex justify-start">
-              <div className="rounded-2xl border border-white/12 bg-white/8 px-4 py-2.5 text-sm text-white/60">
-                <Loader2 className="inline h-3.5 w-3.5 animate-spin" /> 导演思考中…
+            <Badge variant={brief ? "success" : "secondary"}>
+              {brief ? "需求已就绪" : "等待创意"}
+            </Badge>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-5 pt-2">
+          <section aria-labelledby="agent-assets-heading" className="space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 id="agent-assets-heading" className="text-subhead font-medium">
+                  产品素材
+                </h2>
+                <p className="text-meta text-muted-foreground">
+                  最多 10 张，也可以先聊需求。
+                </p>
               </div>
-            </div>
-          )}
-        </div>
-
-        {error && <p className="pt-1 text-xs text-rose-300">{error}</p>}
-
-        {/* 快捷 chips */}
-        <div className="flex flex-wrap gap-2 pt-3">
-          {QUICK_CHIPS.map((c) => {
-            const Icon = c.icon;
-            return (
-              <button
-                key={c.label}
+              <Button
                 type="button"
-                className="glass-btn text-xs"
-                disabled={sending}
-                onClick={() => send(c.text)}
+                variant="outline"
+                size="sm"
+                disabled={uploading || images.length >= 10}
+                onClick={() => fileRef.current?.click()}
               >
-                <Icon className="h-3.5 w-3.5" />
-                {c.label}
-              </button>
-            );
-          })}
-        </div>
+                {uploading ? <Loader2 className="animate-spin" /> : <ImagePlus />}
+                上传产品图
+              </Button>
+            </div>
+            {images.length > 0 && (
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                {images.map((img, index) => (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    key={img.id}
+                    src={img.url}
+                    alt={`产品素材 ${index + 1}`}
+                    className="size-12 rounded-(--radius-md) border border-border object-cover"
+                  />
+                ))}
+                <Badge variant="secondary">{images.length}/10</Badge>
+              </div>
+            )}
+          </section>
 
-        {/* 输入区 */}
-        <div className="flex items-end gap-3 pt-3">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                send(input);
-              }
-            }}
-            rows={2}
-            placeholder="像聊天一样说需求…例：我要 15 秒 UGC 口播，美国市场，突出防摔（Enter发送，Shift+Enter换行）"
-            className="glass-input min-h-[56px] flex-1 resize-none"
-          />
-          <button
-            type="button"
-            onClick={() => send(input)}
-            disabled={sending || !input.trim()}
-            className="glass-btn-primary h-[52px] w-[52px] rounded-full p-0"
-            aria-label="发送"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
+          <section aria-label="与 AI 导演的对话" className="space-y-4 border-y border-border py-5">
+            <div
+              ref={scrollRef}
+              className="max-h-96 min-h-64 space-y-3 overflow-y-auto"
+              role="region"
+              aria-label="创意对话记录"
+              aria-live="polite"
+              tabIndex={0}
+            >
+              {messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={message.role === "user" ? "flex justify-end" : "flex justify-start"}
+                >
+                  <div
+                    className={
+                      message.role === "user"
+                        ? "max-w-[85%] rounded-(--radius-lg) border border-primary bg-accent-soft px-4 py-3 text-body text-foreground sm:max-w-[70%]"
+                        : "max-w-[90%] rounded-(--radius-lg) border border-border bg-muted px-4 py-3 text-body text-foreground sm:max-w-[75%]"
+                    }
+                  >
+                    {message.content}
+                  </div>
+                </div>
+              ))}
+              {sending && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 rounded-(--radius-lg) border border-border bg-muted px-4 py-3 text-meta text-muted-foreground">
+                    <Loader2 className="size-4 animate-spin stroke-[1.5]" aria-hidden />
+                    导演思考中
+                  </div>
+                </div>
+              )}
+            </div>
 
-      {/* 底部状态条 */}
-      <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/10 bg-black/35 px-4 py-2.5 backdrop-blur-xl">
-        <span className="text-xs" style={{ color: "var(--glass-text-dim)" }}>
-          {brief
-            ? "需求已就绪 — 点右侧按钮进入出片流程"
-            : "就绪 — 聊清楚需求后即可一键出片"}
-        </span>
-        <button
-          type="button"
-          onClick={goCreate}
-          className="glass-btn-primary text-xs"
-        >
-          ▶ {brief ? "去出片：生成脚本" : "跳过对话，直接创作"}
-        </button>
-      </div>
+            <div className="flex flex-wrap gap-2" aria-label="快捷创意方向">
+              {QUICK_CHIPS.map((chip) => {
+                const Icon = chip.icon;
+                return (
+                  <Button
+                    key={chip.label}
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    disabled={sending}
+                    onClick={() => send(chip.text)}
+                  >
+                    <Icon />
+                    {chip.label}
+                  </Button>
+                );
+              })}
+            </div>
+
+            <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1 space-y-2 text-meta font-medium">
+                创意需求
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send(input);
+                    }
+                  }}
+                  rows={2}
+                  placeholder="例如：15 秒 UGC 口播，美国市场，突出防摔。"
+                  className="resize-none"
+                />
+              </label>
+              <Button
+                type="button"
+                onClick={() => send(input)}
+                disabled={sending || !input.trim()}
+                aria-label="发送创意需求"
+              >
+                <Send />
+                发送
+              </Button>
+            </div>
+          </section>
+
+          {error && (
+            <p role="alert" className="text-meta text-danger">
+              {error}
+            </p>
+          )}
+
+          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-meta text-muted-foreground">
+              {brief
+                ? "需求已就绪，可以进入脚本与出片流程。"
+                : "聊清楚需求后，可随时进入创作流程继续编辑。"}
+            </p>
+            <Button type="button" onClick={goCreate}>
+              {brief ? "进入脚本创作" : "直接开始创作"}
+              <ArrowRight />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

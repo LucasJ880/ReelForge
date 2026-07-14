@@ -134,3 +134,13 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Commit: `800aa6b`.
 - Evidence: `qa/evidence/phase34/iteration-3.12-new-batch-route-states.md`.
 - New dependencies: none.
+
+## Iteration 3.13 — Video detail route states
+
+- Date: 2026-07-14
+- Scope: Phase 3 all-route state coverage
+- Work: added dedicated loading/error states, bilingual label, and safe retry fallback for `/app/library/[id]`.
+- Regression: focused 1/1; typecheck/lint/build green; golden `gp-1784042619346-493a0b4b` green.
+- Commit: `108d4ac`.
+- Evidence: `qa/evidence/phase34/iteration-3.13-video-detail-route-states.md`.
+- New dependencies: none.

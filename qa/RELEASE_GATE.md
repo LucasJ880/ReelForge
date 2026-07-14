@@ -3,7 +3,7 @@
 - Gate owner: human release approver
 - Audit revision: H2 merge `ff1c959` + RF-037/RF-038 repair `a7fb734`
 - Current stage: H2-A merged-tree re-baseline
-- Current verdict: **NOT RELEASE-READY — RF-019 blocks ordinary production migration deploy; RF-005 lacks production cadence evidence; RF-039 awaits sanitized remote acceptance and credential disposition; the human paused broad post-UX regression for internal operations testing**
+- Current verdict: **NOT RELEASE-READY — Production remains fail-closed on mock-provider configuration; RF-005 lacks the full production cadence window; RF-039 awaits sanitized remote acceptance; broad post-UX regression remains paused for internal operations testing**
 
 ## Phase gates
 
@@ -24,7 +24,7 @@
 
 - [ ] Merged-tree golden invariant is green. Pre-merge evidence is green on both parents: H1 `gp-1784055279098-5047b432`; UI final series `gp-1784047276260-e8880c0c`, `gp-1784047304319-a978b9bb`, `gp-1784047333120-e0387432`.
 - [ ] Current post-H2 full validation is green. Pre-merge UI evidence is unit 727/728 plus explicit DB 1/1 and Final Acceptance `fa-1784047355157-099e9e8a` at 23/23; H1 ordered J4/J7 is `fa-1784054148752-d1a8f9ab` at 3/3. H2 must rerun every set on the merged tree.
-- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: P1 OPEN = 0, RF-037/RF-038 are FIXED pending final promotion; RF-019 is P0 OPEN; RF-005/RF-039 are P0 FIXED pending production/security evidence.
+- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: P1 OPEN = 0; RF-019 is VERIFIED; RF-005/RF-039 remain P0 FIXED pending production cadence/security evidence.
 - [ ] Merged-tree 33-route console/service/semantic/overflow checks pass across settled and injected states. Pre-merge UI evidence passed; H2 refresh is pending.
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.
@@ -32,7 +32,7 @@
 - [ ] Production health reports a real provider only after the explicit budget/provider gate. Local release code now fails closed for production mock (RF-001 VERIFIED); redeployed production evidence remains required.
 - [ ] Queue scheduler cadence is measured and meets the release SLO (RF-005). Minute-cron code is fixed; production cadence evidence is absent.
 - [x] Final-acceptance Playwright exits 0 including teardown (RF-006): final UI-closure run `fa-1784047355157-099e9e8a`, 23/23 in 7.3 minutes; teardown deleted 22 rehearsal batches and 4 product images, archived 1 run-scoped template, and exited 0.
-- [ ] RF-003 production migrations are rehearsed and applied through the RF-019 observed-state bootstrap; ordinary first deploy is currently unsafe when both remain pending.
+- [x] RF-003 production migrations were rehearsed from the production head and applied through the RF-019 observed-state bootstrap. Prisma status/diff, data invariants, app-role rollback probe, customer routes, and initial scheduler requests pass. Evidence: `qa/evidence/phase2/rf019-production-schema-repair-2026-07-14.md`.
 
 ## Evidence index
 
@@ -61,6 +61,7 @@
 - Gate C0 dependency status: `qa/certification/GATE_C0.md`
 - Human production deployment and rollback checklist: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`
 - H2 production stop audit: `qa/evidence/h2/production-deploy-stop-2026-07-14.md`
+- RF-019 production schema repair: `qa/evidence/phase2/rf019-production-schema-repair-2026-07-14.md`
 
 ## Rollback plan (draft; to validate in release phase)
 

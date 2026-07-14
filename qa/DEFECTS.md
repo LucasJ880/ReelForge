@@ -250,13 +250,14 @@
 ### RF-019 — RF-003 production migrations sort in dependency-inverted order
 
 - Severity: **P0 — production deployment/data-integrity blocker**
-- Status: **OPEN — production-head rehearsal and human execution required**
+- Status: **VERIFIED**
 - Reproduction: sort the pending migration folders. `20260713_phase2_ack_unknown_backfill` is selected before `20260713_phase2_provider_submission_integrity`, but its first statement casts to `ProviderSubmissionState` and updates `submissionState`/`submissionErrorClass`; those objects are created only by the later folder.
 - Impact: if both RF-003 migrations are pending as repository evidence indicates, a normal first `prisma migrate deploy` fails on the ack backfill, records a failed migration, and blocks all later production migrations. Marking it applied without creating the exact prerequisite objects would corrupt migration history.
 - Required regression: from a fresh Neon branch cut from the current production head, execute the documented atomic provider-integrity bootstrap, reconcile its history, then run ordinary migrate deploy. Require zero drift, both RF-003 backfill invariants, app-role enum/table DML with rollback, and the same successful human-run sequence in production before application deployment.
-- Planned repair: one-time observed-state bootstrap and rollback protocol in `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`. Migration folders cannot simply be renamed because the rehearsal branch already records their existing names; long-term migration-history reconciliation remains follow-up work.
-- Evidence: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
-- Repair commit: —
+- Repair: created a fresh branch from the current production head and completed the documented observed-state bootstrap there; created a separate pre-write restore branch; then repeated the exact one-transaction provider-integrity bootstrap, object verification, history reconciliation, ordinary deploy, app-role grants, and rollback probe against production. The immutable migration folder names were preserved.
+- Verification: Prisma reports 20/20 migrations applied and zero schema drift. Both RF-003 invariants and the historical batch-quota invariant are zero; all 170 external-id jobs are `ACCEPTED`; 239 remaining jobs are `NOT_STARTED`; the app role can use both new enum types and transactionally insert/read `VideoDispatchRequest`; the rollback probe left no row. Video-job count, submit-attempt total, latest submission timestamp, and the four historical pending final videos were unchanged. Production `/app/batches` and `/app/create` load with zero browser console errors; the first post-repair cron sample is HTTP 200 for all three schedulers with no provider-eligible work and no provider call.
+- Evidence: `qa/evidence/phase2/rf019-production-schema-repair-2026-07-14.md`.
+- Repair commit: this production-repair evidence commit
 
 ### RF-027 — Batch submission cap blocks the required 250-video commercial certification tier
 

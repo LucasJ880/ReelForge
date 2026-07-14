@@ -28,11 +28,11 @@ Expected result at this revision: JSON reports `passed: false`, `verified: 5`, `
 
 ## Work required before rechecking C0
 
-1. Human: follow `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`, including the fresh production-head Neon branch rehearsal and RF-019 ordering bootstrap. A plain first `prisma migrate deploy` is unsafe while both RF-003 migrations are pending.
-2. Human: deploy/promote the exact release while new submissions are paused and all provider-call eligibility preflight counts are zero.
-3. Agent: after deployment, export at least 70 minutes of production logs and evaluate an exact 60-minute window with `qa/certification/collect-scheduler-heartbeats.mjs`.
+1. Completed: the production-head Neon rehearsal, RF-019 observed-state bootstrap, restore branch, production migration, drift/invariant checks, and initial route/scheduler verification are recorded in `qa/evidence/phase2/rf019-production-schema-repair-2026-07-14.md`.
+2. Human/provider gate: replace the deliberately fail-closed production mock configuration with an approved real-provider-ready configuration without submitting work; `/api/health` must become 200 before cadence certification starts.
+3. Agent: after health is green, export at least 70 minutes of production logs and evaluate an exact 60-minute window with `qa/certification/collect-scheduler-heartbeats.mjs`.
 4. RF-005 may become VERIFIED only if all three schedulers meet the recorded sample, coverage, gap, and outcome SLOs and the before/after provider-submission snapshot is unchanged.
 
-RF-019 is a separate production deployment blocker discovered while preparing the requested checklist. It does not change the six-item C0 checker, but it must be resolved by the human migration rehearsal/bootstrap before RF-005 observation can begin.
+RF-019 is VERIFIED and no longer blocks the cadence window. Production mock-provider configuration and the complete RF-005 observation remain the active blockers.
 
 No throughput model, 8/50/200/250 ladder, chaos test, QA drift test, or real-provider canary may start while this Gate is blocked.

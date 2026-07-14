@@ -60,7 +60,7 @@ const INTERNAL_NAV: NavItem[] = [
   { href: "/internal/publish", labelKey: "nav.publish", icon: Send },
   { href: "/internal/metrics", labelKey: "nav.metrics", icon: BarChart3 },
   { href: "/internal/qa", labelKey: "nav.qualityCheck", icon: ClipboardCheck },
-  { href: "/internal/reports", label: "Content reports", icon: Flag, roles: ["SUPER_ADMIN", "OPERATOR"] },
+  { href: "/internal/reports", labelKey: "nav.contentReports", icon: Flag, roles: ["SUPER_ADMIN", "OPERATOR"] },
   { href: "/internal/distillation", labelKey: "nav.distillation", icon: Sparkles },
   { href: "/internal/demo-leads", labelKey: "nav.demoLeads", icon: UsersRound },
   {
@@ -78,8 +78,8 @@ const INTERNAL_NAV: NavItem[] = [
 ];
 
 const LEGACY_NAV: NavItem[] = [
-  { href: "/projects", label: "Projects (legacy)", icon: FolderKanban },
-  { href: "/videos", label: "Videos (legacy)", icon: Film },
+  { href: "/projects", labelKey: "nav.legacyProjects", icon: FolderKanban },
+  { href: "/videos", labelKey: "nav.legacyVideos", icon: Film },
 ];
 
 export function InternalSidebar() {
@@ -109,7 +109,7 @@ export function InternalSidebar() {
           <span className="min-w-0">
             <span className="block font-heading text-subhead">Aivora</span>
             <span className="block truncate text-meta text-muted-foreground">
-              Internal Ops
+              {t("nav.internalOps")}
             </span>
           </span>
         </Link>
@@ -150,7 +150,7 @@ export function InternalSidebar() {
               className="w-full justify-between text-muted-foreground"
               aria-expanded={legacyOpen}
             >
-              Legacy
+              {t("nav.legacySection")}
               {legacyOpen ? (
                 <ChevronDown strokeWidth={1.5} aria-hidden />
               ) : (
@@ -177,7 +177,7 @@ export function InternalSidebar() {
                       )}
                     >
                       <Icon strokeWidth={1.5} aria-hidden />
-                      {item.label ?? item.href}
+                      {item.label ?? (item.labelKey ? t(item.labelKey) : item.href)}
                     </Link>
                   );
                 })}
@@ -213,7 +213,7 @@ export function InternalSidebar() {
           aria-label="Aivora 内部工作台"
         >
           <Logo size={40} />
-          <span className="truncate font-heading text-subhead">Internal Ops</span>
+          <span className="truncate font-heading text-subhead">{t("nav.internalOps")}</span>
         </Link>
         <Dialog>
           <DialogTrigger

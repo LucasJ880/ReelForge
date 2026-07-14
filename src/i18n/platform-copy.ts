@@ -105,6 +105,7 @@ const zh = {
       error: "刚才没有听清，请再试一次。",
       templateHeading: "导演推荐模板",
       templateHint: "先锁定镜头结构与真实性边界，再给模型创作空间。",
+      qualityLockKicker: "质量锁定",
       templateSelected: "已选择",
       templateChoose: "选择模板",
       browseAll: "浏览全部 31 个模板",
@@ -112,6 +113,7 @@ const zh = {
       batch: "用此模板批量生产",
       directHeading: "生产设置",
       directHint: "导演整理后的描述、素材和模板会自动带入。你也可以直接在这里精调并生成。",
+      productionBriefKicker: "生产简报",
       uploaded: "已上传 {count} 张产品图",
     },
   },
@@ -175,6 +177,7 @@ const zh = {
     empty: "没有匹配的模板。清除筛选后继续浏览。",
     clear: "清除筛选",
     listLabel: "风格模板",
+    lockedCount: "{visible} / {total} 个质量模板",
     sample: "Aivora 生成样例帧",
     stable: "稳定优先",
     balanced: "创意均衡",
@@ -261,7 +264,7 @@ const en: CopyShape<typeof zh> = {
   create: {
     kicker: "AGENT DIRECTOR", title: "From one idea to a finished video", subtitle: "Upload product assets and describe the goal. A quality template locks the camera language before planning, generation, and delivery.", video: "Generate video", image: "Product images", modeNav: "Creation mode", templateLabel: "Quality template", templateAuto: "Auto match (recommended)", templateAutoHint: "Matches the topic, people, setting, and assets to a lower-variance template.", templateEvent: "Watch party · stable single setting", templateResult: "Result first · high retention", templatePain: "Pain to proof · product demo", templateUgc: "UGC review · identity lock", templateSensory: "Material and light · no dialogue",
     agent: {
-      status: "AI director online", title: "Talk it through, then generate", subtitle: "Describe the goal like you would to a creative partner. The director fills the gaps, matches a lower-variance template, and hands the brief to production.", conversation: "Creative conversation", conversationHint: "From a rough idea to an executable video brief.", waiting: "Waiting for an idea", ready: "Brief ready", welcome: "Hi, I’m your Aivora AI director. Tell me about the product, audience, and outcome—or choose a creative direction below to get started.", assets: "Product assets", assetsHint: "Upload 1–10 clear product images so the template can lock the real product identity.", upload: "Upload product images", uploadEmpty: "You can start chatting and add assets later.", steps: "This production", stepAssets: "Add product assets", stepBrief: "Define audience and proof", stepTemplate: "Confirm template and produce", quickLabel: "Quick creative directions", quickCommerce: "Commerce script", quickUgc: "UGC review", quickEvent: "Event moment", quickAuto: "Recommend for me", promptLabel: "Tell the director what you want to make", promptPlaceholder: "Example: A 15-second World Cup video for young adults in a believable living room. Keep the cast and product consistent.", send: "Send", thinking: "Director is shaping the idea…", error: "I missed that. Please try again.", templateHeading: "Director-recommended templates", templateHint: "Lock shot structure and realism boundaries before giving the model creative room.", templateSelected: "Selected", templateChoose: "Choose template", browseAll: "Browse all 31 templates", review: "Review brief and generation settings", batch: "Use this template for a batch", directHeading: "Production settings", directHint: "The director’s brief, assets, and template are carried in automatically. Fine-tune anything here, then generate.", uploaded: "Uploaded {count} product images",
+      status: "AI director online", title: "Talk it through, then generate", subtitle: "Describe the goal like you would to a creative partner. The director fills the gaps, matches a lower-variance template, and hands the brief to production.", conversation: "Creative conversation", conversationHint: "From a rough idea to an executable video brief.", waiting: "Waiting for an idea", ready: "Brief ready", welcome: "Hi, I’m your Aivora AI director. Tell me about the product, audience, and outcome—or choose a creative direction below to get started.", assets: "Product assets", assetsHint: "Upload 1–10 clear product images so the template can lock the real product identity.", upload: "Upload product images", uploadEmpty: "You can start chatting and add assets later.", steps: "This production", stepAssets: "Add product assets", stepBrief: "Define audience and proof", stepTemplate: "Confirm template and produce", quickLabel: "Quick creative directions", quickCommerce: "Commerce script", quickUgc: "UGC review", quickEvent: "Event moment", quickAuto: "Recommend for me", promptLabel: "Tell the director what you want to make", promptPlaceholder: "Example: A 15-second World Cup video for young adults in a believable living room. Keep the cast and product consistent.", send: "Send", thinking: "Director is shaping the idea…", error: "I missed that. Please try again.", templateHeading: "Director-recommended templates", templateHint: "Lock shot structure and realism boundaries before giving the model creative room.", qualityLockKicker: "QUALITY LOCK", templateSelected: "Selected", templateChoose: "Choose template", browseAll: "Browse all 31 templates", review: "Review brief and generation settings", batch: "Use this template for a batch", directHeading: "Production settings", directHint: "The director’s brief, assets, and template are carried in automatically. Fine-tune anything here, then generate.", productionBriefKicker: "PRODUCTION BRIEF", uploaded: "Uploaded {count} product images",
     },
   },
   images: {
@@ -269,7 +272,7 @@ const en: CopyShape<typeof zh> = {
     presets: { white_studio: ["White studio", "Catalog and ecommerce hero"], lifestyle: ["Lifestyle", "Believable use setting"], luxury: ["Luxury", "Material and refined light"], social: ["Social ad", "Safe area for post text"], macro: ["Material macro", "Structure and detail close-up"] },
   },
   templates: {
-    kicker: "QUALITY TEMPLATE LIBRARY", title: "Template library", subtitle: "Every template freezes shot structure, evidence limits, and failure boundaries. Reduce variance first, then scale production.", recommended: "Use recommended template", preparing: "Templates are being prepared. Start with a single video.", start: "Start creating", filterLabel: "Filter templates", searchLabel: "Search templates", searchPlaceholder: "Search setting, industry, or camera style", all: "All", categoryLabel: "Template categories", empty: "No matching templates. Clear the filters to keep browsing.", clear: "Clear filters", listLabel: "Style templates", sample: "Aivora generated sample", stable: "Stability first", balanced: "Creative balance", noHuman: "No people", controlledHuman: "Controlled interaction", useSingle: "Use for one", useBatch: "Use for batch",
+    kicker: "QUALITY TEMPLATE LIBRARY", title: "Template library", subtitle: "Every template freezes shot structure, evidence limits, and failure boundaries. Reduce variance first, then scale production.", recommended: "Use recommended template", preparing: "Templates are being prepared. Start with a single video.", start: "Start creating", filterLabel: "Filter templates", searchLabel: "Search templates", searchPlaceholder: "Search setting, industry, or camera style", all: "All", categoryLabel: "Template categories", empty: "No matching templates. Clear the filters to keep browsing.", clear: "Clear filters", listLabel: "Style templates", lockedCount: "{visible} / {total} quality-locked", sample: "Aivora generated sample", stable: "Stability first", balanced: "Creative balance", noHuman: "No people", controlledHuman: "Controlled interaction", useSingle: "Use for one", useBatch: "Use for batch",
     categories: { "电商展示": "Ecommerce", "质感特写": "Material detail", "生活方式": "Lifestyle", UGC: "UGC", "开箱": "Unboxing", "奢品": "Luxury", "使用演示": "Use demo", "爆款广告": "Performance ads", "对比转化": "Before / after", "包装展示": "Packaging", "家居空间": "Home spaces", "工具户外": "Tools & outdoors", "旅行收纳": "Travel organization", "服饰穿搭": "Fashion styling", "社媒循环": "Social loop", "科技数码": "Consumer tech", "美妆护理": "Beauty care", "食品饮料": "Food & beverage", "自动化验收": "Automated acceptance" },
   },
   batches: {

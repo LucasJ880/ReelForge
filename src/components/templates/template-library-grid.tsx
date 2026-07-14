@@ -58,7 +58,7 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchPlaceholder} className="pl-9" />
           </label>
           <div className="flex flex-wrap items-center gap-3 font-mono text-meta tabular-nums text-muted-foreground">
-            <span>{visible.length} / {templates.length} QUALITY-LOCKED</span>
+            <span>{copy.lockedCount.replace("{visible}", String(visible.length)).replace("{total}", String(templates.length))}</span>
             <span aria-hidden>·</span>
             <span>{sampleCount} {english ? "verified samples" : "个独立样片"}</span>
           </div>

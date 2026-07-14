@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 2 · P1 VERIFIED 4 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 1 · P1 VERIFIED 5 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -109,7 +109,7 @@
 ### RF-008 — Staff role can be locked out by a legacy customer persona
 
 - Severity: **P1 — operator-visible**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: use the known seeded account whose role is `SUPER_ADMIN` and `userType` is `BUSINESS`; visit `/internal`.
 - Root cause: `normalizeUserType` preserves BUSINESS/PERSONAL before staff role fallback (`src/lib/auth.ts:100-108`), and `requireInternalPage` redirects those personas before `requireOperator` (`src/lib/api-auth.ts:221-236`).
 - Impact: a valid admin credential can be redirected away from internal operations.
@@ -178,10 +178,13 @@
 - Status: **OPEN**
 - Seed: S-06
 - Reproduction: set locale to Chinese and open creation, templates, auth, and internal navigation.
-- Evidence/root cause: hard-coded `QUALITY-LOCKED`, `QUALITY LOCK`, `PRODUCTION BRIEF`, `JOB ID`, `Content reports`, `Legacy`, and `Internal Ops` in the sources listed by the Phase 0 scan.
+- Evidence/root cause: hard-coded `QUALITY-LOCKED`, `QUALITY LOCK`, `PRODUCTION BRIEF`, `Content reports`, `Legacy`, and `Internal Ops` bypassed both customer and internal dictionaries. `JOB ID` was audited and retained as a narrowly documented technical-field token rather than treated as operational copy.
 - Impact: same-screen language mixing reduces comprehension and undermines production polish.
 - Required regression: locale audit asserting customer-visible copy resolves through the i18n layer; IDs/provider names remain exempt technical tokens.
-- Repair commit: —
+- Repair: routed customer quality-lock/count and production-brief labels through platform copy; routed internal reports, workspace branding, and legacy navigation through the typed dictionaries; documented the narrow technical-token exemptions and explicitly prohibited using them for headings, buttons, navigation, or explanatory text.
+- Verification: focused operational-copy regression 3/3; combined dictionary/coverage/shell audit 11/11; typecheck and focused lint pass; complete Phase 3/4 browser suite 9/9; mandatory golden `gp-1784038463620-2c3cf392` passes with no real provider call.
+- Evidence: `qa/evidence/phase34/iteration-3.4-rf013-operational-i18n.md`, `qa/evidence/phase34/rf013-technical-token-exemptions.md`, `qa/evidence/phase1/golden-path-gp-1784038463620-2c3cf392.json`.
+- Repair commit: `63cad87`
 
 ### RF-014 — Completed customer video had no download action
 

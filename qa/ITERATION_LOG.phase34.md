@@ -34,3 +34,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-011 `OPEN → VERIFIED`; repair commit `3e7a6cc`.
 - Evidence: `qa/evidence/phase34/iteration-3.3-rf011-layout-containment.md`.
 - New dependencies: none.
+
+## Iteration 3.4 — RF-013 operational-copy i18n
+
+- Date: 2026-07-14
+- Defect: RF-013 (P1)
+- Reproduction: the new operational-copy audit failed 3/3 on customer quality-lock/production labels, internal navigation/branding labels, and the missing technical-token exemption record.
+- Work: moved the affected customer labels into `platform-copy`; moved internal report/workspace/legacy labels into typed `zh-CN`/`en-US` dictionaries; documented narrow technical identifiers that remain untranslated.
+- Regression: focused source audit 3/3; combined i18n coverage 11/11; typecheck and focused lint green; complete Phase 3/4 browser suite 9/9; golden `gp-1784038463620-2c3cf392` green.
+- Ledger: RF-013 `OPEN → VERIFIED`; repair commit `63cad87`.
+- Evidence: `qa/evidence/phase34/iteration-3.4-rf013-operational-i18n.md` and `qa/evidence/phase34/rf013-technical-token-exemptions.md`.
+- New dependencies: none.

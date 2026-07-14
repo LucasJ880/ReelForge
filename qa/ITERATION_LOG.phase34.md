@@ -68,3 +68,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-020 opened as P0 and moved to VERIFIED by atomic rollback. Future B work must be split so auth loading/error surfaces are introduced and golden-checked independently before the 33-route matrix.
 - Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`.
 - New dependencies: none.
+
+## Iteration 3.7 — Auth route boundaries isolated after RF-020
+
+- Date: 2026-07-14
+- Defect boundary: RF-020 prevention / Phase 3 route states
+- Reproduction: the focused source regression failed because the auth route group had no explicit loading/error boundary.
+- Work: added auth-only full-viewport loading/error surfaces under the approved light auth theme; preserved branded continuity, retry semantics, reduced-motion behavior, and existing i18n. Mechanically renamed a Playwright helper that ESLint incorrectly classified as a React Hook; no assertion changed.
+- Regression: auth boundary 1/1; typecheck/lint/build green; golden `gp-1784041162146-48d1317e` green with the original zero-blank-frame assertion.
+- Commit: `d82a8f4`.
+- Evidence: `qa/evidence/phase34/iteration-3.7-auth-route-boundaries.md`.
+- New dependencies: none.

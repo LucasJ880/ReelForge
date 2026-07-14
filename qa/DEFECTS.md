@@ -263,6 +263,7 @@
 - Impact: retaining the iteration would reopen the exact first-run blank-frame defect RF-009 locked down.
 - Repair: removed every uncommitted Phase 3 product/test/generated-output change as one atomic rollback; preserved only the failed-run evidence. No assertion, threshold, test, or production configuration changed.
 - Verification: rollback run `gp-1784040809734-ab04b4a7` passes the full golden journey with the original zero-blank-frame assertion. Working tree returned to the last committed Phase 3/4 baseline apart from the pre-existing external `qa/ITERATION_LOG.md` truncation and the two golden evidence runs.
+- Follow-up isolation: auth-only route boundaries were subsequently introduced in repair commit `d82a8f4`. Golden run `gp-1784041162146-48d1317e` passed with the unchanged zero-blank-frame assertion, proving this boundary can be retained safely before the remaining route groups are reintroduced.
 - Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784040695799-839af69f.json`, `qa/evidence/phase1/golden-path-gp-1784040809734-ab04b4a7.json`.
 - Repair commit: rollback contained no product commit; evidence commit recorded separately.
 

@@ -7,6 +7,7 @@ import {
 } from "@prisma/client";
 import { sweepStuckTasks, __test__ as sweepTest } from "../src/lib/services/sweep-service";
 import { MAX_STITCH_ATTEMPTS } from "../src/lib/services/stitch-service";
+import { HISTORICAL_DISPATCH_CUTOFF } from "../src/lib/services/historical-dispatch-quarantine";
 import { db } from "../src/lib/db";
 
 /**
@@ -59,7 +60,12 @@ test("sweep：超时的 RUNNING job → FAILED + 人话 userSafeError + brief �
   const jobUpdates: Array<{ where: unknown; data: Record<string, unknown> }> = [];
   patchModel(t, db.videoJob as unknown as Record<string, unknown>, {
     findMany: (async () => [
-      { id: "job_stuck", videoBriefId: "brief_1" },
+      {
+        id: "job_stuck",
+        videoBriefId: "brief_1",
+        createdAt: NOW,
+        dispatchQuarantineDecision: "RELEASED",
+      },
     ]) as never,
     updateMany: (async (args: { where: unknown; data: Record<string, unknown> }) => {
       jobUpdates.push(args);
@@ -83,7 +89,14 @@ test("sweep：超时的 RUNNING job → FAILED + 人话 userSafeError + brief �
     findMany: (async (args?: { where?: { status?: unknown } }) => {
       /// 第一次调用来自 sweeper（带 OR 超时条件），后续来自 syncBriefStatus
       if (args?.where && "OR" in (args.where as object)) {
-        return [{ id: "job_stuck", videoBriefId: "brief_1" }];
+        return [
+          {
+            id: "job_stuck",
+            videoBriefId: "brief_1",
+            createdAt: NOW,
+            dispatchQuarantineDecision: "RELEASED",
+          },
+        ];
       }
       return [
         {
@@ -140,6 +153,59 @@ test("sweep：timeoutAt 缺失的老 RUNNING job 按 createdAt 兜底清扫（�
       (c) => (c as { timeoutAt?: unknown }).timeoutAt === null,
     ),
     "必须有 timeoutAt=null + createdAt 兜底分支",
+  );
+});
+
+test("RF-007 sweep：真实模式下历史未决 job 保持隔离，不改成 FAILED", async (t) => {
+  patchEmptyDefaults(t);
+  const previousProvider = process.env.VIDEO_PROVIDER;
+  const previousMock = process.env.VIDEO_ENGINE_MOCK;
+  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_ENGINE_MOCK = "false";
+  t.after(() => {
+    if (previousProvider === undefined) delete process.env.VIDEO_PROVIDER;
+    else process.env.VIDEO_PROVIDER = previousProvider;
+    if (previousMock === undefined) delete process.env.VIDEO_ENGINE_MOCK;
+    else process.env.VIDEO_ENGINE_MOCK = previousMock;
+  });
+
+  const oldCreatedAt = new Date(HISTORICAL_DISPATCH_CUTOFF.getTime() - 1);
+  let capturedWhere: Record<string, unknown> | undefined;
+  let updateCalls = 0;
+  patchModel(t, db.videoJob as unknown as Record<string, unknown>, {
+    findMany: (async (args: { where: Record<string, unknown> }) => {
+      capturedWhere = args.where;
+      /// 故意模拟底层查询误返回隔离行，验证 service 的第二层保护。
+      return [
+        {
+          id: "old_quarantined",
+          videoBriefId: "brief_old",
+          createdAt: oldCreatedAt,
+          dispatchQuarantineDecision: null,
+        },
+      ];
+    }) as never,
+    updateMany: (async () => {
+      updateCalls += 1;
+      return { count: 1 };
+    }) as never,
+  });
+
+  const result = await sweepStuckTasks(
+    new Date(HISTORICAL_DISPATCH_CUTOFF.getTime() + 2 * 3_600_000),
+  );
+  assert.deepEqual(result.timedOutJobs, []);
+  assert.equal(updateCalls, 0, "历史未决任务不得被 sweeper 失败化");
+  assert.ok(capturedWhere?.AND, "数据库首层查询必须包含派发隔离 eligibility");
+
+  const realEligibility = sweepTest.videoJobSweepEligibilityWhere({
+    VIDEO_PROVIDER: "byteplus",
+    VIDEO_ENGINE_MOCK: "false",
+  });
+  assert.deepEqual(
+    (capturedWhere?.AND as unknown[])[0],
+    realEligibility,
+    "首层查询必须只允许 RELEASED 或截止线后的未决任务",
   );
 });
 

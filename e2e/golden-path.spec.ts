@@ -98,7 +98,12 @@ test("golden path: register, login, create, mock complete, preview, and download
       (response) => response.request().method() === "POST"
         && response.url().endsWith("/api/video-generation/dispatch"),
     );
+    const dispatchRequest = page.waitForRequest(
+      (request) => request.method() === "POST"
+        && request.url().endsWith("/api/video-generation/dispatch"),
+    );
     await page.getByRole("button", { name: "生成视频", exact: true }).click();
+    const originalRequest = await dispatchRequest;
     const response = await dispatchResponse;
     expect(response.status(), await response.text()).toBe(200);
     const payload = await response.json() as {
@@ -110,6 +115,30 @@ test("golden path: register, login, create, mock complete, preview, and download
     deliveryOrderId = payload.deliveryOrderId;
     expect(briefId).toBeTruthy();
     expect(deliveryOrderId).toBeTruthy();
+
+    const idempotencyKey = originalRequest.headers()["idempotency-key"];
+    expect(idempotencyKey).toBeTruthy();
+    const jobsBeforeReplay = await db.videoJob.count({
+      where: { videoBriefId: briefId },
+    });
+    const replay = await page.request.post("/api/video-generation/dispatch", {
+      headers: {
+        "content-type": "application/json",
+        "Idempotency-Key": idempotencyKey,
+      },
+      data: originalRequest.postDataJSON(),
+    });
+    expect(replay.status(), await replay.text()).toBe(200);
+    const replayPayload = await replay.json() as {
+      ok: true;
+      briefId: string;
+      deliveryOrderId: string;
+    };
+    expect(replayPayload.briefId).toBe(briefId);
+    expect(replayPayload.deliveryOrderId).toBe(deliveryOrderId);
+    expect(await db.videoJob.count({ where: { videoBriefId: briefId } })).toBe(
+      jobsBeforeReplay,
+    );
   });
 
   let renderSummary: RenderSummary | null = null;

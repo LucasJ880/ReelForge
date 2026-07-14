@@ -72,6 +72,10 @@ export function EditorialCreateWorkflow({
 
   const videoInputRef = useRef<HTMLInputElement>(null);
   const logRef = useRef<HTMLPreElement>(null);
+  const dispatchAttemptRef = useRef<{
+    fingerprint: string;
+    key: string;
+  } | null>(null);
 
   const log = useCallback((line: string) => {
     const ts = new Date().toLocaleTimeString("zh-CN", { hour12: false });
@@ -208,17 +212,32 @@ export function EditorialCreateWorkflow({
       const confirmedPrompts = Object.entries(editedPrompts).map(
         ([order, text]) => ({ segmentOrder: Number(order), prompt: text }),
       );
+      const dispatchBody = {
+        request: buildRequest(),
+        confirmedPrompts,
+        batchCount,
+      };
+      const dispatchFingerprint = JSON.stringify(dispatchBody);
+      if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
+        dispatchAttemptRef.current = {
+          fingerprint: dispatchFingerprint,
+          key: crypto.randomUUID(),
+        };
+      }
       const res = await fetch("/api/video-generation/dispatch", {
         method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          request: buildRequest(),
-          confirmedPrompts,
-          batchCount,
-        }),
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": dispatchAttemptRef.current.key,
+        },
+        body: JSON.stringify(dispatchBody),
       });
       const j = await res.json();
-      if (!res.ok || !j.ok) throw new Error(j.error ?? "出片任务提交失败");
+      if (!res.ok || !j.ok) {
+        if (j.retryable === true) dispatchAttemptRef.current = null;
+        throw new Error(j.error ?? "出片任务提交失败");
+      }
+      dispatchAttemptRef.current = null;
       log(`已提交 ${j.batch?.length ?? 1} 支成片任务，AI 正在逐镜头生成画面`);
       log("成片完成后可在「成片库」查看和下载（页面会自动刷新进度）");
       setDone({ nextUrl: j.nextUrl as string, batch: j.batch ?? [] });

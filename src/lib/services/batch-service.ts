@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   BatchJobStatus,
   Prisma,
+  ProviderSubmissionState,
   StyleTemplateStatus,
   VideoJobStatus,
   VideoProvider,
@@ -25,6 +26,11 @@ import {
   createVideoProviderById,
   getVideoProvider,
 } from "@/lib/video-generation/providers";
+import type { VideoProvider as VideoProviderAdapter } from "@/lib/video-generation/providers/types";
+import {
+  asProviderSubmissionError,
+  shouldAutomaticallyRetrySubmission,
+} from "@/lib/video-generation/providers/submission-error";
 import {
   evaluateDispatchBreaker,
   type BreakerDecision,
@@ -47,6 +53,17 @@ const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
 const PROVIDER_FAILURE_PREFIX = "[provider:failed]";
 const SERIALIZABLE_RETRY_LIMIT = 3;
+
+let videoProviderFactoryOverride:
+  | ((job: VideoJob) => VideoProviderAdapter)
+  | null = null;
+
+function providerForJob(job: VideoJob): VideoProviderAdapter {
+  if (videoProviderFactoryOverride) return videoProviderFactoryOverride(job);
+  return job.provider === VideoProvider.MOCK
+    ? createVideoProviderById("mock")
+    : getVideoProvider();
+}
 
 function isSerializableConflict(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -338,23 +355,42 @@ async function recoverExpiredLeases(batchId: string, now: Date): Promise<number>
       externalJobId: null,
       leaseExpiresAt: { lt: now },
     },
-    select: { id: true },
+    select: { id: true, submissionState: true },
   });
   let recovered = 0;
   for (const job of expired) {
+    const safeToReplay =
+      job.submissionState === ProviderSubmissionState.NOT_STARTED;
+    const nextStatus = safeToReplay
+      ? VideoJobStatus.QUEUED
+      : VideoJobStatus.FAILED;
     const result = await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: VideoJobStatus.RUNNING,
         externalJobId: null,
         leaseExpiresAt: { lt: now },
+        submissionState: job.submissionState,
       },
       data: {
-        status: VideoJobStatus.QUEUED,
+        status: nextStatus,
+        submissionState: safeToReplay
+          ? ProviderSubmissionState.NOT_STARTED
+          : ProviderSubmissionState.ACK_UNKNOWN,
+        submissionErrorClass: safeToReplay
+          ? null
+          : "lease_expired_after_submission_started",
+        errorMessage: safeToReplay
+          ? null
+          : `${PROVIDER_FAILURE_PREFIX} 提交确认丢失；为避免重复计费已停止自动重提`,
+        userSafeError: safeToReplay
+          ? null
+          : "生成服务可能已接收任务，系统已暂停重试以避免重复计费。请联系管理员核对。",
+        finishedAt: safeToReplay ? null : now,
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: null,
-        availableAt: now,
+        availableAt: safeToReplay ? now : null,
       },
     });
     if (result.count > 0) {
@@ -362,8 +398,10 @@ async function recoverExpiredLeases(batchId: string, now: Date): Promise<number>
       logStatusTransition({
         taskId: job.id,
         from: VideoJobStatus.RUNNING,
-        to: VideoJobStatus.QUEUED,
-        reason: "batch_lease_expired_requeue",
+        to: nextStatus,
+        reason: safeToReplay
+          ? "batch_lease_expired_before_submission_requeue"
+          : "batch_lease_expired_after_submission_ack_unknown",
       });
     }
   }
@@ -437,6 +475,7 @@ async function claimJobs(args: {
           where: {
             batchJobId: args.batchId,
             status: VideoJobStatus.QUEUED,
+            submissionState: ProviderSubmissionState.NOT_STARTED,
             AND: [
               { OR: [{ availableAt: null }, { availableAt: { lte: args.now } }] },
               {
@@ -458,7 +497,11 @@ async function claimJobs(args: {
         const claimed: Array<VideoJob & { claimOwner: string }> = [];
         for (const job of candidates) {
           const result = await tx.videoJob.updateMany({
-            where: { id: job.id, status: VideoJobStatus.QUEUED },
+            where: {
+              id: job.id,
+              status: VideoJobStatus.QUEUED,
+              submissionState: ProviderSubmissionState.NOT_STARTED,
+            },
             data: {
               status: VideoJobStatus.RUNNING,
               leaseOwner: owner,
@@ -489,15 +532,34 @@ async function submitClaimedJob(
   const snapshot = job.templateSnapshot as unknown as {
     lockedParams: BatchStyleLockedParams;
   };
-  const provider =
-    job.provider === VideoProvider.MOCK
-      ? createVideoProviderById("mock")
-      : getVideoProvider();
+  const provider = providerForJob(job);
   const now = new Date();
+  const attempts = job.submitAttempts + 1;
+  const providerRequestKey = `${job.id}:attempt:${attempts}`;
+  const intent = await db.videoJob.updateMany({
+    where: {
+      id: job.id,
+      status: VideoJobStatus.RUNNING,
+      leaseOwner: job.claimOwner,
+      submissionState: ProviderSubmissionState.NOT_STARTED,
+    },
+    data: {
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      submissionErrorClass: null,
+      providerRequestKey,
+      submittedAt: now,
+      submitAttempts: { increment: 1 },
+      heartbeatAt: now,
+    },
+  });
+  if (intent.count === 0) return;
+
+  let providerAcknowledged = false;
   try {
     const guarded = await callProviderWithHistoricalGuard({
       record: job,
       call: () => provider.createVideoJob({
+        providerRequestKey,
         prompt: job.promptText ?? "",
         negativePrompt: job.negativePrompt ?? undefined,
         referenceImages: assignment.assets.map((asset) => ({
@@ -525,9 +587,15 @@ async function submitClaimedJob(
           id: job.id,
           status: VideoJobStatus.RUNNING,
           leaseOwner: job.claimOwner,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          providerRequestKey,
         },
         data: {
           status: VideoJobStatus.QUEUED,
+          submissionState: ProviderSubmissionState.NOT_STARTED,
+          providerRequestKey: null,
+          submittedAt: null,
+          submitAttempts: { decrement: 1 },
           leaseOwner: null,
           leaseExpiresAt: null,
           heartbeatAt: null,
@@ -542,18 +610,21 @@ async function submitClaimedJob(
       return;
     }
     const created = guarded.value;
+    providerAcknowledged = true;
     const updated = await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: VideoJobStatus.RUNNING,
         leaseOwner: job.claimOwner,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        providerRequestKey,
       },
       data: {
         externalJobId: created.providerJobId,
-        submittedAt: now,
         startedAt: now,
         lastProviderStatus: "queued",
-        submitAttempts: { increment: 1 },
+        submissionState: ProviderSubmissionState.ACCEPTED,
+        submissionErrorClass: null,
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: now,
@@ -566,29 +637,58 @@ async function submitClaimedJob(
         to: VideoJobStatus.RUNNING,
         reason: `batch_provider_submitted (${created.providerId})`,
       });
+      return;
     }
+    throw new Error("provider acknowledgement could not be persisted");
   } catch (error) {
-    const attempts = job.submitAttempts + 1;
-    const terminal = attempts >= MAX_SUBMIT_ATTEMPTS;
-    const nextStatus = terminal
-      ? VideoJobStatus.FAILED
-      : VideoJobStatus.QUEUED;
+    const classified = asProviderSubmissionError({
+      error,
+      providerId: provider.id,
+      evidence: providerAcknowledged
+        ? { stage: "persistence" }
+        : provider.isMockMode()
+          ? { stage: "preflight", retryable: true }
+          : undefined,
+    });
+    const retryable =
+      attempts < MAX_SUBMIT_ATTEMPTS &&
+      shouldAutomaticallyRetrySubmission(classified);
+    const acknowledgementUnknown =
+      classified.disposition === "acknowledgement_unknown";
+    const nextStatus = retryable
+      ? VideoJobStatus.QUEUED
+      : VideoJobStatus.FAILED;
+    const nextSubmissionState = retryable
+      ? ProviderSubmissionState.NOT_STARTED
+      : acknowledgementUnknown
+        ? ProviderSubmissionState.ACK_UNKNOWN
+        : ProviderSubmissionState.REJECTED;
     const delayMs = Math.min(60_000, 1000 * 2 ** Math.max(0, attempts - 1));
     await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: VideoJobStatus.RUNNING,
         leaseOwner: job.claimOwner,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        providerRequestKey,
       },
       data: {
         status: nextStatus,
-        submitAttempts: attempts,
-        availableAt: terminal ? null : new Date(Date.now() + delayMs),
-        errorMessage: terminal
-          ? `${PROVIDER_FAILURE_PREFIX} 提交失败: ${(error as Error).message}`
-          : `批量提交暂时失败，将退避重试: ${(error as Error).message}`,
-        userSafeError: terminal ? "视频提交失败，请点击重试。" : null,
-        finishedAt: terminal ? new Date() : null,
+        submissionState: nextSubmissionState,
+        submissionErrorClass: `${classified.disposition}:${classified.stage}`,
+        providerRequestKey: retryable ? null : providerRequestKey,
+        availableAt: retryable ? new Date(Date.now() + delayMs) : null,
+        errorMessage: acknowledgementUnknown
+          ? `${PROVIDER_FAILURE_PREFIX} 提交确认未知；禁止自动重提: ${classified.message}`
+          : retryable
+            ? `批量提交确认未创建任务，将退避重试: ${classified.message}`
+            : `${PROVIDER_FAILURE_PREFIX} 提交被拒绝: ${classified.message}`,
+        userSafeError: acknowledgementUnknown
+          ? "生成服务可能已接收任务，系统已暂停重试以避免重复计费。请联系管理员核对。"
+          : retryable
+            ? null
+            : "视频提交失败，请检查素材或稍后重试。",
+        finishedAt: retryable ? null : new Date(),
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: null,
@@ -598,11 +698,44 @@ async function submitClaimedJob(
       taskId: job.id,
       from: VideoJobStatus.RUNNING,
       to: nextStatus,
-      reason: terminal
-        ? "batch_submit_failed_exhausted"
-        : `batch_submit_backoff_attempt_${attempts}`,
+      reason: retryable
+        ? `batch_submit_confirmed_no_create_backoff_attempt_${attempts}`
+        : acknowledgementUnknown
+          ? "batch_submit_ack_unknown_no_retry"
+          : "batch_submit_rejected",
     });
   }
+}
+
+function isProviderTerminalFailure(status: string | null): boolean {
+  return ["failed", "error", "expired", "cancelled", "canceled"].includes(
+    (status ?? "").toLowerCase(),
+  );
+}
+
+function isBillingSafeManualRetry(job: {
+  submissionState: ProviderSubmissionState;
+  externalJobId: string | null;
+  lastProviderStatus: string | null;
+  errorMessage: string | null;
+}): boolean {
+  if (
+    job.submissionState === ProviderSubmissionState.ACK_UNKNOWN ||
+    job.submissionState === ProviderSubmissionState.SUBMITTING
+  ) {
+    return false;
+  }
+  if (
+    job.submissionState === ProviderSubmissionState.NOT_STARTED ||
+    job.submissionState === ProviderSubmissionState.REJECTED
+  ) {
+    return true;
+  }
+  return Boolean(
+    job.externalJobId &&
+      (isProviderTerminalFailure(job.lastProviderStatus) ||
+        job.errorMessage?.startsWith("[frame-qa]")),
+  );
 }
 
 async function mapConcurrent<T>(
@@ -764,14 +897,28 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
 export async function retryFailedBatchJobs(batchId: string): Promise<number> {
   const failed = await db.videoJob.findMany({
     where: { batchJobId: batchId, status: VideoJobStatus.FAILED },
-    select: { id: true },
+    select: {
+      id: true,
+      submissionState: true,
+      externalJobId: true,
+      lastProviderStatus: true,
+      errorMessage: true,
+    },
   });
   let reset = 0;
   for (const job of failed) {
+    if (!isBillingSafeManualRetry(job)) continue;
     const result = await db.videoJob.updateMany({
-      where: { id: job.id, status: VideoJobStatus.FAILED },
+      where: {
+        id: job.id,
+        status: VideoJobStatus.FAILED,
+        submissionState: job.submissionState,
+      },
       data: {
         status: VideoJobStatus.QUEUED,
+        submissionState: ProviderSubmissionState.NOT_STARTED,
+        submissionErrorClass: null,
+        providerRequestKey: null,
         externalJobId: null,
         errorMessage: null,
         userSafeError: null,
@@ -816,14 +963,32 @@ export async function retryFailedBatchJob(
   batchId: string,
   jobId: string,
 ): Promise<boolean> {
-  const result = await db.videoJob.updateMany({
+  const job = await db.videoJob.findFirst({
     where: {
       id: jobId,
       batchJobId: batchId,
       status: VideoJobStatus.FAILED,
     },
+    select: {
+      submissionState: true,
+      externalJobId: true,
+      lastProviderStatus: true,
+      errorMessage: true,
+    },
+  });
+  if (!job || !isBillingSafeManualRetry(job)) return false;
+  const result = await db.videoJob.updateMany({
+    where: {
+      id: jobId,
+      batchJobId: batchId,
+      status: VideoJobStatus.FAILED,
+      submissionState: job.submissionState,
+    },
     data: {
       status: VideoJobStatus.QUEUED,
+      submissionState: ProviderSubmissionState.NOT_STARTED,
+      submissionErrorClass: null,
+      providerRequestKey: null,
       externalJobId: null,
       errorMessage: null,
       userSafeError: null,
@@ -942,4 +1107,11 @@ export const __test__ = {
   applyBreaker,
   isSerializableConflict,
   withSerializableRetry,
+  submitClaimedJob,
+  isBillingSafeManualRetry,
+  __setVideoProviderFactoryForTests(
+    factory: ((job: VideoJob) => VideoProviderAdapter) | null,
+  ): void {
+    videoProviderFactoryOverride = factory;
+  },
 };

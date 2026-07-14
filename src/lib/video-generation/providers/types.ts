@@ -25,6 +25,11 @@ export interface VideoJobReferenceImage {
 }
 
 export interface CreateVideoJobOptions {
+  /**
+   * Stable per-attempt request key persisted before the provider call.
+   * Adapters must ignore it until their idempotency contract is verified.
+   */
+  providerRequestKey?: string;
   prompt: string;
   /// 模板锁定的固定负面词；Provider 不支持独立字段时应确定性并入 prompt
   negativePrompt?: string;

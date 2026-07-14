@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -124,6 +124,10 @@ export function UnifiedCreativeInput({
   const [previewing, setPreviewing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dispatchAttemptRef = useRef<{
+    fingerprint: string;
+    key: string;
+  } | null>(null);
 
   function buildRequest(): UnifiedVideoGenerationRequest {
     return {
@@ -205,9 +209,20 @@ export function UnifiedCreativeInput({
         return;
       }
 
+      const dispatchFingerprint = JSON.stringify({ request: buildRequest() });
+      if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
+        dispatchAttemptRef.current = {
+          fingerprint: dispatchFingerprint,
+          key: crypto.randomUUID(),
+        };
+      }
+
       const res = await fetch("/api/video-generation/dispatch", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": dispatchAttemptRef.current.key,
+        },
         body: JSON.stringify({ request: buildRequest() }),
       });
       const j = (await res.json()) as
@@ -218,8 +233,14 @@ export function UnifiedCreativeInput({
             nextUrl?: string;
             userStatus?: { status: string; label: string };
           }
-        | { ok: false; error: string; blockers?: string[] };
+        | {
+            ok: false;
+            error: string;
+            blockers?: string[];
+            retryable?: boolean;
+          };
       if (!res.ok || !j.ok) {
+        if (!j.ok && j.retryable === true) dispatchAttemptRef.current = null;
         if (!j.ok && j.blockers?.length) {
           throw new Error(j.blockers[0]);
         }
@@ -231,6 +252,7 @@ export function UnifiedCreativeInput({
           !j.ok && j.error && j.error.length < 80 ? j.error : friendly,
         );
       }
+      dispatchAttemptRef.current = null;
       const target =
         j.nextUrl ??
         (userType === "platform"

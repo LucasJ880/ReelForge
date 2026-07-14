@@ -11,6 +11,13 @@ import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
+import {
+  claimVideoDispatchRequest,
+  completeVideoDispatchRequest,
+  hashVideoDispatchRequest,
+  markVideoDispatchQuotaConsumed,
+  validateIdempotencyKey,
+} from "@/lib/services/video-dispatch-idempotency";
 import { deriveBusinessStatus } from "@/lib/video-generation/business-status";
 import { deriveBusinessOrderTitle } from "@/lib/video-generation/business-display-title";
 import {
@@ -60,6 +67,21 @@ export async function POST(req: NextRequest) {
   const session = guard.session;
 
   const body = await req.json().catch(() => null);
+  const idempotencyKey = validateIdempotencyKey(
+    req.headers.get("idempotency-key"),
+  );
+  if (!idempotencyKey) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        error: "请刷新页面后重新提交",
+        retryable: false,
+      },
+      { status: 400 },
+    );
+  }
+  const requestHash = hashVideoDispatchRequest(body);
 
   const reqParsed = unifiedVideoGenerationRequestSchema.safeParse(body?.request);
   if (!reqParsed.success) {
@@ -194,6 +216,49 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  const dispatchClaim = await claimVideoDispatchRequest({
+    userId: session.user.id,
+    idempotencyKey,
+    requestHash,
+  });
+  if (dispatchClaim.outcome === "replay") {
+    return NextResponse.json(dispatchClaim.body, {
+      status: dispatchClaim.status,
+    });
+  }
+  if (dispatchClaim.outcome === "conflict") {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "IDEMPOTENCY_KEY_CONFLICT",
+        error: "该提交标识已用于另一份内容，请刷新页面后重试",
+        retryable: false,
+      },
+      { status: 409 },
+    );
+  }
+  if (dispatchClaim.outcome === "in_progress") {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "REQUEST_IN_PROGRESS",
+        error: "该视频请求正在处理中，请勿重复提交",
+        retryable: false,
+        action: "refresh_status",
+      },
+      { status: 409 },
+    );
+  }
+  const dispatchRequestId = dispatchClaim.request.id;
+  async function finalResponse(body: unknown, status: number) {
+    await completeVideoDispatchRequest({
+      requestId: dispatchRequestId,
+      status,
+      body,
+    });
+    return NextResponse.json(body, { status });
+  }
+
   const seedanceSegmentCount = plan.segments.filter(
     (s) => s.type === "ai_generated_clip",
   ).length;
@@ -207,9 +272,27 @@ export async function POST(req: NextRequest) {
     ]);
   } catch (err) {
     const quotaRes = quotaErrorResponse(err);
-    if (quotaRes) return quotaRes;
-    throw err;
+    if (quotaRes) {
+      const quotaBody = await quotaRes.clone().json();
+      await completeVideoDispatchRequest({
+        requestId: dispatchRequestId,
+        status: quotaRes.status,
+        body: quotaBody,
+      });
+      return quotaRes;
+    }
+    console.error("[/api/video-generation/dispatch] quota check failed", err);
+    return finalResponse(
+      {
+        ok: false,
+        code: "QUOTA_CHECK_UNAVAILABLE",
+        error: "暂时无法确认剩余额度，请稍后重试",
+        retryable: true,
+      },
+      503,
+    );
   }
+  await markVideoDispatchQuotaConsumed(dispatchRequestId);
 
   const request = reqParsed.data;
   const persona =
@@ -337,6 +420,33 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const submittedJobs = batchResults.flatMap((result) => result.videoJobs) as Array<{
+      status?: string;
+      submissionState?: string;
+    }>;
+    if (
+      submittedJobs.length > 0 &&
+      submittedJobs.every((job) => job?.status === "FAILED")
+    ) {
+      const acknowledgementUnknown = submittedJobs.some(
+        (job) => job?.submissionState === "ACK_UNKNOWN",
+      );
+      return finalResponse(
+        {
+          ok: false,
+          code: acknowledgementUnknown
+            ? "SUBMISSION_ACK_UNKNOWN"
+            : "PROVIDER_UNAVAILABLE",
+          error: acknowledgementUnknown
+            ? "生成服务可能已接收任务。系统已停止重复提交以避免重复计费，请联系支持核对。"
+            : "暂时无法开始生成，请检查素材后稍后重试",
+          retryable: !acknowledgementUnknown,
+          action: acknowledgementUnknown ? "contact_support" : "retry",
+        },
+        acknowledgementUnknown ? 409 : 503,
+      );
+    }
+
     const first = batchResults[0];
     /// 给前端一个明确「下一步去哪」+ user-facing status，避免 hardcode 路径
     const nextUrl =
@@ -351,7 +461,7 @@ export async function POST(req: NextRequest) {
       segmentsSucceeded: 0,
     });
 
-    return NextResponse.json({
+    const responseBody = {
       ok: true,
       deliveryOrderId: first.deliveryOrderId,
       briefId: first.briefId,
@@ -363,19 +473,22 @@ export async function POST(req: NextRequest) {
       planPreview: plan.planPreview,
       nextUrl,
       userStatus,
-    });
+    };
+    return finalResponse(responseBody, 200);
   } catch (err) {
     console.error("[/api/video-generation/dispatch]", err);
-    return NextResponse.json(
+    return finalResponse(
       {
         ok: false,
+        code: "DISPATCH_FAILED",
         error: "无法开始生成视频，请稍后重试",
+        retryable: true,
         debugMessage:
           process.env.NODE_ENV !== "production"
             ? (err as Error).message
             : undefined,
       },
-      { status: 500 },
+      500,
     );
   }
 }

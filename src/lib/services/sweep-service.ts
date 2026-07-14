@@ -1,9 +1,16 @@
 import {
   FinalVideoStatus,
+  Prisma,
   VideoBriefStatus,
   VideoJobStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  HISTORICAL_DISPATCH_CUTOFF,
+  QUARANTINE_RELEASED,
+  isHistoricalDispatchQuarantined,
+  isRealVideoDispatchMode,
+} from "./historical-dispatch-quarantine";
 import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
 
 /**
@@ -79,6 +86,30 @@ export async function sweepStuckTasks(now = new Date()): Promise<SweepResult> {
   return result;
 }
 
+/**
+ * Sweeper eligibility mirrors the provider-dispatch quarantine. In real mode,
+ * a historical undecided row must remain untouched until an operator performs
+ * the RELEASED/EXPIRED compare-and-swap. EXPIRED rows are terminally excluded
+ * in every mode.
+ */
+function videoJobSweepEligibilityWhere(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): Prisma.VideoJobWhereInput {
+  const undecided: Prisma.VideoJobWhereInput = isRealVideoDispatchMode(env)
+    ? {
+        dispatchQuarantineDecision: null,
+        createdAt: { gt: HISTORICAL_DISPATCH_CUTOFF },
+      }
+    : { dispatchQuarantineDecision: null };
+
+  return {
+    OR: [
+      { dispatchQuarantineDecision: QUARANTINE_RELEASED },
+      undecided,
+    ],
+  };
+}
+
 /// 1. VideoJob 超时
 async function sweepTimedOutJobs(now: Date, result: SweepResult) {
   const cutoff = new Date(now.getTime() - JOB_GRACE_MIN() * 60_000);
@@ -87,26 +118,40 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
   const noTimeoutCutoff = new Date(
     now.getTime() - JOB_NO_TIMEOUT_MAX_MIN() * 60_000,
   );
+  const dispatchEligibility = videoJobSweepEligibilityWhere();
   const stuckJobs = await db.videoJob.findMany({
     where: {
       status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+      AND: [dispatchEligibility],
       OR: [
         { timeoutAt: { not: null, lt: cutoff } },
         { timeoutAt: null, createdAt: { lt: noTimeoutCutoff } },
       ],
     },
-    select: { id: true, videoBriefId: true },
+    select: {
+      id: true,
+      videoBriefId: true,
+      createdAt: true,
+      dispatchQuarantineDecision: true,
+    },
     take: 50,
   });
   if (stuckJobs.length === 0) return;
 
   const briefIds = new Set<string>();
   for (const job of stuckJobs) {
+    /// Defense in depth：即使查询条件未来被改坏或行在读取后被人工 EXPIRED，
+    /// 仍不能把隔离任务改成 FAILED 后送进 retry 重提路径。
+    if (isHistoricalDispatchQuarantined(job)) continue;
+
     /// CAS：仍在 RUNNING/QUEUED 才失败化，避免与并发的 reconcile 冲突
     const updated = await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+        createdAt: job.createdAt,
+        dispatchQuarantineDecision: job.dispatchQuarantineDecision,
+        AND: [dispatchEligibility],
       },
       data: {
         status: VideoJobStatus.FAILED,
@@ -237,4 +282,5 @@ export const __test__ = {
   STITCH_TIMEOUT_ERROR,
   AWAIT_STITCH_TIMEOUT_ERROR,
   BRIEF_STITCH_FAILED_MESSAGE,
+  videoJobSweepEligibilityWhere,
 };

@@ -1,14 +1,18 @@
+import { randomUUID } from "node:crypto";
 import {
   FinalVideoStatus,
   Prisma,
+  ProviderSubmissionState,
   VideoBriefStatus,
   VideoJobStatus,
   VideoProvider,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import { isMockVideoRuntime } from "@/lib/config/env";
 import {
   getSeedanceStatus,
   submitSeedanceJobResilient,
+  type SeedanceSubmitOptions,
   type SeedanceJobResult,
 } from "@/lib/providers/seedance";
 import { processReferenceImages } from "@/lib/providers/remove-bg";
@@ -23,6 +27,10 @@ import {
 } from "@/lib/video-generation/frame-qa";
 import { createVideoProviderById } from "@/lib/video-generation/providers";
 import {
+  asProviderSubmissionError,
+  type ProviderSubmissionError,
+} from "@/lib/video-generation/providers/submission-error";
+import {
   WATCHDOG_STALLED_PREFIX,
   WATCHDOG_STALLED_USER_ERROR,
   WATCHDOG_TIMEOUT_PREFIX,
@@ -33,11 +41,17 @@ import {
   videoJobDeadlineMin,
   watchdogGraceMin,
 } from "./video-watchdog";
+import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
 /// 故障注入测试（AC-1/AC-3/AC-6）通过 __setStatusFetcherForTests 替换。
 let statusFetcherOverride: typeof getSeedanceStatus | null = null;
+let submitterOverride: typeof submitSeedanceJobResilient | null = null;
+
+async function submitVideoJob(options: SeedanceSubmitOptions) {
+  return (submitterOverride ?? submitSeedanceJobResilient)(options);
+}
 
 async function fetchVideoJobStatus(
   job: { provider: VideoProvider; externalJobId: string },
@@ -70,6 +84,135 @@ async function fetchVideoJobStatus(
     progress: result.progress,
     rawProviderResponse: result.rawProviderResponse,
   };
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
+
+function classifyDirectSubmissionError(args: {
+  error: unknown;
+  providerAcknowledged: boolean;
+}): ProviderSubmissionError {
+  return asProviderSubmissionError({
+    error: args.error,
+    providerId: "byteplus",
+    evidence: args.providerAcknowledged
+      ? { stage: "persistence" }
+      : isMockVideoRuntime()
+        ? { stage: "preflight", retryable: true }
+        : undefined,
+  });
+}
+
+async function failDirectSubmission(args: {
+  jobId: string;
+  providerRequestKey: string;
+  error: unknown;
+  providerAcknowledged: boolean;
+}) {
+  const failure = classifyDirectSubmissionError(args);
+  const acknowledgementUnknown =
+    failure.disposition === "acknowledgement_unknown";
+  const userSafeError = acknowledgementUnknown
+    ? "生成服务可能已接收任务，系统已暂停重试以避免重复计费。请联系管理员核对。"
+    : friendlySubmitError(failure.message);
+  await db.videoJob.updateMany({
+    where: {
+      id: args.jobId,
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      providerRequestKey: args.providerRequestKey,
+    },
+    data: {
+      status: VideoJobStatus.FAILED,
+      submissionState: acknowledgementUnknown
+        ? ProviderSubmissionState.ACK_UNKNOWN
+        : ProviderSubmissionState.REJECTED,
+      submissionErrorClass: `${failure.disposition}:${failure.stage}`,
+      errorMessage: acknowledgementUnknown
+        ? `[provider:ack_unknown] ${failure.message}`
+        : `[provider:rejected] ${failure.message}`,
+      userSafeError,
+      finishedAt: new Date(),
+    },
+  });
+  const job = await db.videoJob.findUnique({ where: { id: args.jobId } });
+  if (!job) throw new Error("VideoJob disappeared after submission failure");
+  return job;
+}
+
+async function persistAcceptedSubmission(args: {
+  jobId: string;
+  providerRequestKey: string;
+  externalJobId: string;
+  submittedAt: Date;
+  retryCount?: number;
+}) {
+  const updated = await db.videoJob.updateMany({
+    where: {
+      id: args.jobId,
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      providerRequestKey: args.providerRequestKey,
+    },
+    data: {
+      externalJobId: args.externalJobId,
+      status: VideoJobStatus.RUNNING,
+      submissionState: ProviderSubmissionState.ACCEPTED,
+      submissionErrorClass: null,
+      submittedAt: args.submittedAt,
+      startedAt: args.submittedAt,
+      finishedAt: null,
+      timeoutAt: new Date(args.submittedAt.getTime() + deadlineMs()),
+      errorMessage: null,
+      userSafeError: null,
+      lastProviderStatus: "queued",
+      pollErrors: 0,
+      ...(args.retryCount === undefined
+        ? {}
+        : { retryCount: args.retryCount }),
+    },
+  });
+  if (updated.count !== 1) {
+    throw new Error("provider acknowledgement could not be persisted");
+  }
+  const job = await db.videoJob.findUnique({ where: { id: args.jobId } });
+  if (!job) throw new Error("VideoJob disappeared after provider acknowledgement");
+  return job;
+}
+
+async function claimFailedJobForRetry(job: {
+  id: string;
+  status: VideoJobStatus;
+  submissionState: ProviderSubmissionState;
+  submitAttempts: number;
+}) {
+  const submittedAt = new Date();
+  const providerRequestKey = `${job.id}:attempt:${job.submitAttempts + 1}`;
+  const claimed = await db.videoJob.updateMany({
+    where: {
+      id: job.id,
+      status: VideoJobStatus.FAILED,
+      submissionState: job.submissionState,
+    },
+    data: {
+      status: VideoJobStatus.RUNNING,
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      submissionErrorClass: null,
+      providerRequestKey,
+      submittedAt,
+      finishedAt: null,
+      submitAttempts: { increment: 1 },
+      errorMessage: null,
+      userSafeError: null,
+    },
+  });
+  if (claimed.count !== 1) {
+    throw new Error("任务已被其他请求处理，请刷新状态后重试");
+  }
+  return { providerRequestKey, submittedAt };
 }
 
 /// 全局 deadline（INV-1，2026-07 事故后收紧为强制终态）：
@@ -142,8 +285,17 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
     where: {
       videoBriefId: briefId,
       finalVideoId: { not: null },
-      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
-      externalJobId: { not: null },
+      OR: [
+        { status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] } },
+        {
+          submissionState: {
+            in: [
+              ProviderSubmissionState.SUBMITTING,
+              ProviderSubmissionState.ACK_UNKNOWN,
+            ],
+          },
+        },
+      ],
     },
   });
   if (inflightExisting.length > 0) {
@@ -197,6 +349,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
       videoBriefId: briefId,
       status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
       externalJobId: null,
+      submissionState: ProviderSubmissionState.NOT_STARTED,
     },
     data: { status: VideoJobStatus.CANCELLED },
   });
@@ -234,22 +387,40 @@ async function submitSegmentJob(params: {
 }) {
   const { briefId, finalVideoId, aspectRatio, segment, segmentCount, referenceImageUrls } =
     params;
-
-  const job = await db.videoJob.create({
-    data: {
-      videoBriefId: briefId,
-      provider: VideoProvider.SEEDANCE_T2V,
-      status: VideoJobStatus.QUEUED,
-      segmentIndex: segment.segmentIndex,
-      segmentDurationSec: segment.durationSec,
-      finalVideoId,
-    },
-  });
-
+  const logicalJobKey = `${briefId}:segment:${segment.segmentIndex}`;
+  const id = randomUUID();
+  const providerRequestKey = `${id}:attempt:1`;
+  const submittedAt = new Date();
+  let job;
   try {
-    const submittedAt = new Date();
+    job = await db.videoJob.create({
+      data: {
+        id,
+        logicalJobKey,
+        providerRequestKey,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        submitAttempts: 1,
+        submittedAt,
+        timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
+        videoBriefId: briefId,
+        provider: VideoProvider.SEEDANCE_T2V,
+        status: VideoJobStatus.RUNNING,
+        segmentIndex: segment.segmentIndex,
+        segmentDurationSec: segment.durationSec,
+        finalVideoId,
+      },
+    });
+  } catch (error) {
+    if (!isUniqueConstraintError(error)) throw error;
+    const existing = await db.videoJob.findUnique({ where: { logicalJobKey } });
+    if (!existing) throw error;
+    return existing;
+  }
+
+  let providerAcknowledged = false;
+  try {
     const hasRefs = (referenceImageUrls?.length ?? 0) > 0;
-    const { jobId } = await submitSeedanceJobResilient({
+    const { jobId } = await submitVideoJob({
       prompt: segment.seedancePrompt,
       duration: segment.durationSec,
       ratio: aspectRatio,
@@ -267,39 +438,33 @@ async function submitSegmentJob(params: {
         purpose: segment.role,
       },
     });
+    providerAcknowledged = true;
     logStatusTransition({
       taskId: job.id,
-      from: VideoJobStatus.QUEUED,
+      from: VideoJobStatus.RUNNING,
       to: VideoJobStatus.RUNNING,
       reason: `submitted (external=${jobId})`,
     });
-    return db.videoJob.update({
-      where: { id: job.id },
-      data: {
-        externalJobId: jobId,
-        status: VideoJobStatus.RUNNING,
-        submittedAt,
-        startedAt: submittedAt,
-        timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
-        lastProviderStatus: "queued",
-      },
+    return await persistAcceptedSubmission({
+      jobId: job.id,
+      providerRequestKey,
+      externalJobId: jobId,
+      submittedAt,
     });
   } catch (err) {
-    const message = (err as Error).message;
     logStatusTransition({
       taskId: job.id,
-      from: VideoJobStatus.QUEUED,
+      from: VideoJobStatus.RUNNING,
       to: VideoJobStatus.FAILED,
-      reason: `submit_failed: ${message}`,
+      reason: providerAcknowledged
+        ? "submit_ack_persistence_unknown"
+        : "submit_ack_unknown",
     });
-    return db.videoJob.update({
-      where: { id: job.id },
-      data: {
-        status: VideoJobStatus.FAILED,
-        errorMessage: message,
-        userSafeError: friendlySubmitError(message),
-        finishedAt: new Date(),
-      },
+    return failDirectSubmission({
+      jobId: job.id,
+      providerRequestKey,
+      error: err,
+      providerAcknowledged,
     });
   }
 }
@@ -333,8 +498,17 @@ export async function dispatchVideoGeneration(briefId: string) {
   const inflightExisting = await db.videoJob.findMany({
     where: {
       videoBriefId: briefId,
-      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
-      externalJobId: { not: null },
+      OR: [
+        { status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] } },
+        {
+          submissionState: {
+            in: [
+              ProviderSubmissionState.SUBMITTING,
+              ProviderSubmissionState.ACK_UNKNOWN,
+            ],
+          },
+        },
+      ],
     },
   });
   if (inflightExisting.length > 0) {
@@ -358,6 +532,7 @@ export async function dispatchVideoGeneration(briefId: string) {
       videoBriefId: briefId,
       status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
       externalJobId: null,
+      submissionState: ProviderSubmissionState.NOT_STARTED,
     },
     data: { status: VideoJobStatus.CANCELLED },
   });
@@ -366,20 +541,40 @@ export async function dispatchVideoGeneration(briefId: string) {
     scenes.map(async (scene) => {
       const prompt = scene.videoPrompts[0];
       if (!prompt) throw new Error(`Scene #${scene.sceneIndex} 没有 prompt`);
-
-      const job = await db.videoJob.create({
-        data: {
-          videoBriefId: briefId,
-          provider: prompt.provider,
-          status: VideoJobStatus.QUEUED,
-        },
-      });
-
+      const logicalJobKey = `${briefId}:scene:${scene.id}`;
+      const id = randomUUID();
+      const providerRequestKey = `${id}:attempt:1`;
+      const submittedAt = new Date();
+      let job;
       try {
-        const submittedAt = new Date();
+        job = await db.videoJob.create({
+          data: {
+            id,
+            logicalJobKey,
+            providerRequestKey,
+            submissionState: ProviderSubmissionState.SUBMITTING,
+            submitAttempts: 1,
+            submittedAt,
+            timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
+            videoBriefId: briefId,
+            provider: prompt.provider,
+            status: VideoJobStatus.RUNNING,
+          },
+        });
+      } catch (error) {
+        if (!isUniqueConstraintError(error)) throw error;
+        const existing = await db.videoJob.findUnique({
+          where: { logicalJobKey },
+        });
+        if (!existing) throw error;
+        return existing;
+      }
+
+      let providerAcknowledged = false;
+      try {
         const ratio =
           (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio;
-        const { jobId } = await submitSeedanceJobResilient({
+        const { jobId } = await submitVideoJob({
           prompt: prompt.promptText,
           referenceImageUrls:
             prompt.provider === VideoProvider.SEEDANCE_I2V
@@ -402,29 +597,19 @@ export async function dispatchVideoGeneration(briefId: string) {
             purpose: "scene",
           },
         });
-        return db.videoJob.update({
-          where: { id: job.id },
-          data: {
-            externalJobId: jobId,
-            status: VideoJobStatus.RUNNING,
-            submittedAt,
-            startedAt: submittedAt,
-            timeoutAt: new Date(
-              submittedAt.getTime() + deadlineMs(),
-            ),
-            lastProviderStatus: "queued",
-          },
+        providerAcknowledged = true;
+        return await persistAcceptedSubmission({
+          jobId: job.id,
+          providerRequestKey,
+          externalJobId: jobId,
+          submittedAt,
         });
       } catch (err) {
-        const message = (err as Error).message;
-        return db.videoJob.update({
-          where: { id: job.id },
-          data: {
-            status: VideoJobStatus.FAILED,
-            errorMessage: message,
-            userSafeError: friendlySubmitError(message),
-            finishedAt: new Date(),
-          },
+        return failDirectSubmission({
+          jobId: job.id,
+          providerRequestKey,
+          error: err,
+          providerAcknowledged,
         });
       }
     }),
@@ -456,6 +641,10 @@ export async function reconcileVideoJob(jobId: string) {
   ) {
     return job;
   }
+
+  /// GATE0-6：历史隔离任务既不能轮询 Provider，也不能被 watchdog
+  /// 先改成 FAILED 后从 retry 路径绕过。必须先由人工 RELEASED/EXPIRED。
+  if (isHistoricalDispatchQuarantined(job)) return job;
 
   const now = new Date();
 
@@ -722,11 +911,23 @@ export async function retryFailedVideoJob(jobId: string) {
   if (!job.videoBriefId) {
     throw new Error("批量 VideoJob 请使用 batch retry 接口");
   }
+  if (isHistoricalDispatchQuarantined(job)) {
+    throw new Error("历史任务仍处于派发隔离栏，请先由管理员显式放行");
+  }
+  if (
+    job.submissionState === ProviderSubmissionState.SUBMITTING ||
+    job.submissionState === ProviderSubmissionState.ACK_UNKNOWN
+  ) {
+    throw new Error(
+      "生成服务可能已接收该任务；在管理员完成对账前禁止重新提交，以避免重复计费",
+    );
+  }
   const videoBriefId = job.videoBriefId;
 
   /// frame-qa 拦截的段：Provider 端是 completed，但产物已被判废 →
   /// 跳过下方「查状态发现已成功就直接翻回 SUCCEEDED」的捷径，必须重新生成
   const failedByFrameQa = !!job.errorMessage?.startsWith(FRAME_QA_ERROR_PREFIX);
+  let providerConfirmedFailed = failedByFrameQa;
 
   /// 双保险：如果 externalJobId 还在，先去查一遍真实状态
   if (job.externalJobId && !failedByFrameQa) {
@@ -774,9 +975,43 @@ export async function retryFailedVideoJob(jobId: string) {
           },
         });
       }
-    } catch {
-      /// 查不到状态 → 走重新提交分支
+      if (r.status === "failed") {
+        providerConfirmedFailed = true;
+        await db.videoJob.updateMany({
+          where: { id: job.id, status: VideoJobStatus.FAILED },
+          data: { lastProviderStatus: r.rawProviderStatus },
+        });
+      }
+    } catch (error) {
+      await db.videoJob.updateMany({
+        where: {
+          id: job.id,
+          status: VideoJobStatus.FAILED,
+          submissionState: job.submissionState,
+        },
+        data: {
+          submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+          submissionErrorClass: "status_lookup_ack_unknown",
+          errorMessage: `[provider:status_unknown] ${(error as Error).message}`,
+          userSafeError:
+            "暂时无法确认生成服务是否已完成该任务。为避免重复计费，系统不会自动重提，请联系管理员核对。",
+        },
+      });
+      throw new Error(
+        "暂时无法确认原任务状态；系统已禁止重新提交以避免重复计费",
+      );
     }
+  }
+
+  const safeWithoutExternalId =
+    !job.externalJobId &&
+    (job.submissionState === ProviderSubmissionState.REJECTED ||
+      (job.submissionState === ProviderSubmissionState.NOT_STARTED &&
+        job.submitAttempts === 0));
+  if (!providerConfirmedFailed && !safeWithoutExternalId) {
+    throw new Error(
+      "无法证明原任务未产生计费；在管理员完成对账前禁止重新提交",
+    );
   }
 
   /// Provider 端确认失败 / 不存在 → 重新提交
@@ -807,9 +1042,11 @@ export async function retryFailedVideoJob(jobId: string) {
     const retryRefs = (briefForRetry.referenceImageUrls ?? []).slice(0, 8);
     const retryHasRefs = retryRefs.length > 0;
 
-    const submittedAt = new Date();
+    const { submittedAt, providerRequestKey } =
+      await claimFailedJobForRetry(job);
+    let providerAcknowledged = false;
     try {
-      const { jobId: newExternalId } = await submitSeedanceJobResilient({
+      const { jobId: newExternalId } = await submitVideoJob({
         prompt: segment.seedancePrompt,
         duration: segment.durationSec,
         ratio: briefForRetry.aspectRatio,
@@ -825,29 +1062,19 @@ export async function retryFailedVideoJob(jobId: string) {
           purpose: segment.role,
         },
       });
+      providerAcknowledged = true;
       logStatusTransition({
         taskId: job.id,
         from: job.status,
         to: VideoJobStatus.RUNNING,
         reason: `retry_resubmitted (external=${newExternalId}, attempt=${(job.retryCount ?? 0) + 1})`,
       });
-      const updated = await db.videoJob.update({
-        where: { id: job.id },
-        data: {
-          externalJobId: newExternalId,
-          status: VideoJobStatus.RUNNING,
-          retryCount: (job.retryCount ?? 0) + 1,
-          submittedAt,
-          startedAt: submittedAt,
-          finishedAt: null,
-          timeoutAt: new Date(
-            submittedAt.getTime() + deadlineMs(),
-          ),
-          errorMessage: null,
-          userSafeError: null,
-          lastProviderStatus: "queued",
-          pollErrors: 0,
-        },
+      const updated = await persistAcceptedSubmission({
+        jobId: job.id,
+        providerRequestKey,
+        externalJobId: newExternalId,
+        submittedAt,
+        retryCount: (job.retryCount ?? 0) + 1,
       });
       /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试
       await db.finalVideo.update({
@@ -859,13 +1086,11 @@ export async function retryFailedVideoJob(jobId: string) {
       });
       return updated;
     } catch (err) {
-      const message = (err as Error).message;
-      return db.videoJob.update({
-        where: { id: job.id },
-        data: {
-          errorMessage: message,
-          userSafeError: friendlySubmitError(message),
-        },
+      return failDirectSubmission({
+        jobId: job.id,
+        providerRequestKey,
+        error: err,
+        providerAcknowledged,
       });
     }
   }
@@ -880,7 +1105,9 @@ export async function retryFailedVideoJob(jobId: string) {
   const prompt = scene.videoPrompts[0];
   if (!prompt) throw new Error("找不到对应的 prompt，无法重试");
 
-  const submittedAt = new Date();
+  const { submittedAt, providerRequestKey } =
+    await claimFailedJobForRetry(job);
+  let providerAcknowledged = false;
   try {
     const ratio = (prompt.params as { ratio?: string } | null)?.ratio;
     const briefForRefs = await db.videoBrief.findUnique({
@@ -892,7 +1119,7 @@ export async function retryFailedVideoJob(jobId: string) {
           (p) => p.url,
         )
       : [];
-    const { jobId: newExternalId } = await submitSeedanceJobResilient({
+    const { jobId: newExternalId } = await submitVideoJob({
       prompt: prompt.promptText,
       referenceImageUrls:
         prompt.provider === VideoProvider.SEEDANCE_I2V
@@ -915,36 +1142,26 @@ export async function retryFailedVideoJob(jobId: string) {
         purpose: "scene-retry",
       },
     });
+    providerAcknowledged = true;
     logStatusTransition({
       taskId: job.id,
       from: job.status,
       to: VideoJobStatus.RUNNING,
       reason: `retry_resubmitted_legacy (external=${newExternalId}, attempt=${(job.retryCount ?? 0) + 1})`,
     });
-    return db.videoJob.update({
-      where: { id: job.id },
-      data: {
-        externalJobId: newExternalId,
-        status: VideoJobStatus.RUNNING,
-        retryCount: (job.retryCount ?? 0) + 1,
-        submittedAt,
-        startedAt: submittedAt,
-        finishedAt: null,
-        timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
-        errorMessage: null,
-        userSafeError: null,
-        lastProviderStatus: "queued",
-        pollErrors: 0,
-      },
+    return persistAcceptedSubmission({
+      jobId: job.id,
+      providerRequestKey,
+      externalJobId: newExternalId,
+      submittedAt,
+      retryCount: (job.retryCount ?? 0) + 1,
     });
   } catch (err) {
-    const message = (err as Error).message;
-    return db.videoJob.update({
-      where: { id: job.id },
-      data: {
-        errorMessage: message,
-        userSafeError: friendlySubmitError(message),
-      },
+    return failDirectSubmission({
+      jobId: job.id,
+      providerRequestKey,
+      error: err,
+      providerAcknowledged,
     });
   }
 }
@@ -1387,8 +1604,18 @@ export const __test__ = {
   classifyUserStatus,
   friendlySubmitError,
   friendlyProviderError,
+  classifyDirectSubmissionError,
+  failDirectSubmission,
+  persistAcceptedSubmission,
+  claimFailedJobForRetry,
+  submitSegmentJob,
   __setStatusFetcherForTests(fn: typeof getSeedanceStatus | null): void {
     statusFetcherOverride = fn;
+  },
+  __setSubmitterForTests(
+    fn: typeof submitSeedanceJobResilient | null,
+  ): void {
+    submitterOverride = fn;
   },
 };
 

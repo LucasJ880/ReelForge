@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import {
   BatchJobStatus,
+  ProviderSubmissionState,
   StyleTemplateStatus,
   VideoJobStatus,
   VideoProvider,
@@ -282,7 +283,12 @@ test("INV-B3：worker 提交中被 kill 后，过期租约自动重排而不悬�
   const videoModel = db.videoJob as unknown as Record<string, unknown>;
   let updateData: Record<string, unknown> | null = null;
   patch(t, videoModel, {
-    findMany: async () => [{ id: "job_orphaned_claim" }],
+    findMany: async () => [
+      {
+        id: "job_orphaned_claim",
+        submissionState: ProviderSubmissionState.NOT_STARTED,
+      },
+    ],
     updateMany: async (args: { data: Record<string, unknown> }) => {
       updateData = args.data;
       return { count: 1 };

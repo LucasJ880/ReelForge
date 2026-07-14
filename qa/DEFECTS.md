@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 13 · P1 OPEN 0 · P1 VERIFIED 8 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 14 · P1 OPEN 0 · P1 VERIFIED 8 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -303,6 +303,17 @@
 - Verification: the same optimized-build matrix passes all 99 route-width scans with zero document or element overflow; mandatory golden run `gp-1784044311511-576ad482` passes the unchanged full customer journey.
 - Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`, `qa/screenshots/redesign/phase34-current/internal-ai-usage.png`, `qa/evidence/phase1/golden-path-gp-1784044311511-576ad482.json`.
 - Repair commit: `01e64be`
+
+### RF-024 — File selection can land before the upload control is hydrated
+
+- Severity: **P0 — final-acceptance and first-use workflow blocker**
+- Status: **VERIFIED**
+- Reproduction: start J1 against an optimized build and select the 20 test files as soon as the server-rendered batch form appears. The browser accepts the file assignment, but React has not attached the input change handler; the UI remains at `0/50 已完成 0` and emits no upload requests.
+- Root cause: the hidden file input was present and programmatically operable in the server HTML before the client component hydrated. Disabling only the surrounding button cannot protect direct input interaction.
+- Repair: derive a hydration-safe interactive state with `useSyncExternalStore`; do not render the real file input until hydration; reject drag/drop and selection callbacks unless the control is hydrated and otherwise enabled.
+- Verification: source-level hydration invariant 1/1; focused optimized-build Final Acceptance J1 passes setup + desktop + mobile 3/3 in run `fa-1784046239486-2cfa942a`; unchanged golden path passes as `gp-1784046345375-9b204bf9`.
+- Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
+- Repair commit: `fa145d0`
 
 ## Seed hypotheses not opened as defects
 

@@ -188,3 +188,15 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-010 remains VERIFIED with repair commit `4d15380`.
 - Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`.
 - New dependencies: none; package bundle impact 0 bytes.
+
+## Iteration 3.18 — RF-024 upload hydration guard
+
+- Date: 2026-07-14
+- Defect: RF-024 (P0 final-acceptance and first-use workflow blocker)
+- Reproduction: J1 selected all 20 files against visible SSR markup before the upload input's React change handler existed; no upload request was emitted and progress remained zero.
+- Work: withheld the real file input until hydration and made all selection/drop paths share a hydration-aware interaction guard.
+- Regression: focused source invariant 1/1; optimized Final Acceptance J1 setup + desktop + mobile 3/3 (`fa-1784046239486-2cfa942a`); unchanged golden `gp-1784046345375-9b204bf9` green.
+- Ledger: RF-024 `OPEN → VERIFIED`.
+- Repair commit: `fa145d0`.
+- Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
+- New dependencies: none.

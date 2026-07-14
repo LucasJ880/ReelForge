@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
+import { encode } from "next-auth/jwt";
 import { expect, test, type Page } from "@playwright/test";
 import { db } from "../../src/lib/db";
 import { registerBatch } from "../final-acceptance/framework";
@@ -150,6 +151,42 @@ function routeTargets(ids: Awaited<ReturnType<typeof seedDynamicRoutes>>): Route
   ];
 }
 
+async function installInternalSession(page: Page) {
+  const internalUser = await db.adminUser.findFirst({
+    where: {
+      role: { in: ["SUPER_ADMIN", "OPERATOR"] },
+      userType: { in: ["SUPER_ADMIN", "OPERATOR"] },
+    },
+    orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    select: { id: true, email: true, name: true, role: true, userType: true },
+  });
+  expect(internalUser, "route matrix needs an internal rehearsal account").toBeTruthy();
+  expect(process.env.AUTH_SECRET, "route matrix needs AUTH_SECRET").toBeTruthy();
+  const token = await encode({
+    secret: process.env.AUTH_SECRET!,
+    maxAge: 60 * 60,
+    token: {
+      id: internalUser!.id,
+      email: internalUser!.email,
+      name: internalUser!.name,
+      role: internalUser!.role,
+      userType: internalUser!.userType,
+    },
+  });
+  await page.context().clearCookies();
+  await page.context().addCookies([
+    {
+      name: "next-auth.session-token",
+      value: token,
+      domain: "localhost",
+      path: "/",
+      httpOnly: true,
+      secure: false,
+      sameSite: "Lax",
+    },
+  ]);
+}
+
 async function auditRoute(page: Page, target: RouteTarget, width: number) {
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
@@ -165,7 +202,19 @@ async function auditRoute(page: Page, target: RouteTarget, width: number) {
   const response = await page.goto(target.path, { waitUntil: "domcontentloaded" });
   expect(response, `${target.id} ${width} returns a document`).not.toBeNull();
   expect(response!.status(), `${target.id} ${width} status`).toBeLessThan(400);
+  const expectedPath = target.id === "root" || target.id === "app"
+    ? "/app/create"
+    : target.id === "internal"
+      ? "/internal/orders"
+      : target.path;
+  await expect(page, `${target.id} ${width} final pathname`).toHaveURL(
+    (url) => url.pathname === expectedPath,
+  );
   await expect(page.locator("body")).toBeVisible();
+  await expect(
+    page.locator('[data-route-state="loading"]'),
+    `${target.id} ${width} loading boundary settles`,
+  ).toHaveCount(0);
   await expect(page.locator('[data-route-state="error"]')).toHaveCount(0);
 
   const semantics = await page.evaluate(() => {
@@ -206,6 +255,9 @@ async function auditRoute(page: Page, target: RouteTarget, width: number) {
   expect(semantics.overflow, `${target.id} ${width} overflow`).toEqual([]);
   expect(semantics.unnamedButtons, `${target.id} ${width} unnamed buttons`).toBe(0);
   expect(semantics.invalidLinks, `${target.id} ${width} invalid links`).toBe(0);
+  page.removeAllListeners("console");
+  page.removeAllListeners("pageerror");
+  page.removeAllListeners("response");
 }
 
 test("33-route matrix has real dynamic records and no console, service, semantic, or desktop overflow defects", async ({ page }, testInfo) => {
@@ -215,7 +267,12 @@ test("33-route matrix has real dynamic records and no console, service, semantic
   await mkdir(path.join("qa", "screenshots", "redesign", "phase34-current"), { recursive: true });
 
   const scanned: Array<{ route: string; width: number }> = [];
+  let internalSessionInstalled = false;
   for (const target of targets) {
+    if (target.surface === "internal" && !internalSessionInstalled) {
+      await installInternalSession(page);
+      internalSessionInstalled = true;
+    }
     for (const width of WIDTHS) {
       await test.step(`${target.id} at ${width}`, async () => {
         await auditRoute(page, target, width);

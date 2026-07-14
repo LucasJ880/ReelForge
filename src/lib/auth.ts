@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
+import { normalizeUserTypeForRole } from "@/lib/auth-role-policy";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -30,7 +31,7 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
-          userType: normalizeUserType(user.userType, user.role),
+          userType: normalizeUserTypeForRole(user.userType, user.role),
         };
       },
     }),
@@ -61,7 +62,7 @@ export const authOptions: NextAuthOptions = {
         });
         if (fresh) {
           token.role = fresh.role;
-          token.userType = normalizeUserType(fresh.userType, fresh.role);
+          token.userType = normalizeUserTypeForRole(fresh.userType, fresh.role);
         }
       }
 
@@ -89,21 +90,3 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
-
-/**
- * Phase 5 — normalize userType.
- *
- * - 存量账号 userType=null 但 role=OPERATOR/SUPER_ADMIN → 自动落到 internal shell（避免 /persona 强跳）
- * - 已选过 BUSINESS/PERSONAL → 优先保留
- * - 缺省（理论上 default OPERATOR）→ 走 role 兜底
- */
-function normalizeUserType(
-  ut: string | null | undefined,
-  role: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER",
-): "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN" | null {
-  if (ut === "BUSINESS" || ut === "PERSONAL") return ut;
-  if (ut === "OPERATOR" || ut === "SUPER_ADMIN") return ut;
-  if (role === "SUPER_ADMIN") return "SUPER_ADMIN";
-  if (role === "OPERATOR") return "OPERATOR";
-  return null;
-}

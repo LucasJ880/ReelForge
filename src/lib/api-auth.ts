@@ -2,6 +2,7 @@ import { getServerSession, type Session } from "next-auth";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { decideInternalAccess, isInternalRole } from "@/lib/auth-role-policy";
 
 export type AuthGuardResult =
   | { ok: true; session: Session }
@@ -58,38 +59,15 @@ export async function requireSuperAdmin(): Promise<AuthGuardResult> {
 /**
  * 内部 admin 端点专用（delivery-orders / qa / publish / metrics 等）。
  *
- * Phase 5 收紧：除了原本的 role 检查，还要确保 userType 是内部 persona
- * （OPERATOR / SUPER_ADMIN），防止 PERSONAL/BUSINESS 自助注册账号
- * 因 default role=OPERATOR 而误得到管理员权限。
- *
- * 旧账号兼容：normalizeUserType 在 src/lib/auth.ts 会把 userType=null
- * 的旧 OPERATOR/SUPER_ADMIN 账号 normalize 成 "OPERATOR" / "SUPER_ADMIN"，
- * 因此对存量数据无副作用。
+ * 系统 role 是唯一授权来源。CUSTOMER 无论遗留 userType 为何都不能进入；
+ * SUPER_ADMIN/OPERATOR 即使仍带历史 BUSINESS/PERSONAL 值也保留 staff 权限。
  */
 export async function requireOperator(): Promise<AuthGuardResult> {
-  const auth = await requireRole(["SUPER_ADMIN", "OPERATOR"]);
-  if (!auth.ok) return auth;
-  const userType = auth.session.user.userType;
-  if (userType === "PERSONAL" || userType === "BUSINESS") {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
-    };
-  }
-  return auth;
+  return requireRole(["SUPER_ADMIN", "OPERATOR"]);
 }
 
 export async function requireReviewer(): Promise<AuthGuardResult> {
-  const auth = await requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
-  if (!auth.ok) return auth;
-  const userType = auth.session.user.userType;
-  if (userType === "PERSONAL" || userType === "BUSINESS") {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
-    };
-  }
-  return auth;
+  return requireRole(["SUPER_ADMIN", "OPERATOR", "REVIEWER"]);
 }
 
 /**
@@ -222,18 +200,16 @@ export async function requireInternalPage(
   intendedPath = "/internal",
 ): Promise<Session> {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
-  }
-  const userType = session.user.userType;
-  if (userType === "PERSONAL") redirect("/personal");
-  if (userType === "BUSINESS") redirect("/business");
-
-  const guard = await requireOperator();
-  if (!guard.ok) {
-    redirect("/persona");
-  }
-  return guard.session;
+  const decision = decideInternalAccess({
+    authenticated: Boolean(session?.user),
+    role: session?.user.role,
+    userType: session?.user.userType,
+  });
+  if (decision === "login") redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
+  if (decision === "customer-personal") redirect("/personal");
+  if (decision === "customer-business") redirect("/business");
+  if (decision === "deny") redirect("/persona");
+  return session!;
 }
 
 /**
@@ -275,13 +251,13 @@ export const __test__ = {
     expecting: "operator" | "reviewer" | "platform" | "generation" | "internal";
   }): "allow" | "deny-not-logged-in" | "deny-forbidden" {
     if (!args.role) return "deny-not-logged-in";
-    const isInternalRole = args.role === "OPERATOR" || args.role === "SUPER_ADMIN";
-    const isReviewerRole = args.role === "REVIEWER" || isInternalRole;
+    const internalRole = isInternalRole(args.role);
+    const isReviewerRole = args.role === "REVIEWER" || internalRole;
 
     switch (args.expecting) {
       case "operator":
       case "internal":
-        return isInternalRole ? "allow" : "deny-forbidden";
+        return internalRole ? "allow" : "deny-forbidden";
       case "reviewer":
         return isReviewerRole ? "allow" : "deny-forbidden";
       case "platform":

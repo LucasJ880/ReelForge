@@ -136,6 +136,7 @@
 - Evidence: `qa/screenshots/baseline/routes/app-create.png`, `internal-orders.png`, `login.png`
 - Impact: the current ship instruction calls this an incomplete Light-first migration, while the earlier approved design constitution explicitly requires dark `/app` plus light public/auth. Either implementation choice would violate one active instruction.
 - Human decision: preserve the current color topology — dark Studio `/app`, light public/auth and existing light operational surfaces. Phase 4 may unify tokens/components within those surfaces but must not perform an all-site recolor.
+- Human decision v3 (2026-07-14, H2 D-0): **Option A — unify within topology.** One shared shadcn/ui-based component anatomy and one token system may express two sanctioned skins: warm-charcoal Studio with brand orange for `/app`, and light Editorial for public/auth/`/internal`. No route changes color mode. `/showcase` remains frozen; shared changes must prove pixel equivalence or be forked away from it.
 - Verification: current screenshots match the accepted topology; no product change required.
 - Repair commit: —
 

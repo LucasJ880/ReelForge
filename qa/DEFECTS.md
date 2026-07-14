@@ -248,7 +248,7 @@
 - Repair: introduced a single `MAX_BATCH_VIDEO_COUNT=250` contract constant, moved the API request validator into a reusable contract schema, and wired both customer quantity controls to the same limit. The 50-image boundary and idempotency path are unchanged.
 - Verification: 5/5 focused API/UI boundary tests pass; the contract accepts 250 and rejects 251, while the customer controls clamp 251 to 250. Typecheck and the mandatory golden run `gp-1784050224278-3e756d58` pass end to end through register, dispatch, terminal mock completion, playback, and download.
 - Evidence: `qa/evidence/phase1/golden-path-gp-1784050224278-3e756d58.json`.
-- Repair commit: pending this iteration commit
+- Repair commit: `9bff2c1`
 
 ### RF-021 — Tier-one customer APIs expose inconsistent or naked error envelopes
 

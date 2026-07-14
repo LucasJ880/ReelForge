@@ -68,7 +68,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Protected page without session | Redirect to `/login?from=<pathname>` | `src/middleware.ts` | STATIC VERIFIED |
 | Protected API without session | `401 { error: "未登录" }` | `src/middleware.ts` | STATIC VERIFIED |
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
-| Root/runtime error | App error boundary | `src/app/error.tsx` | STATIC VERIFIED; no route-level boundaries (RF-012) |
+| Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
 ## API endpoint inventory (70/70 route files)
 
@@ -289,12 +289,12 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 | Seed | Hypothesis | Current conclusion | Evidence/status |
 |---|---|---|---|
 | S-01 | Login hierarchy/whitespace is unbalanced | CANNOT_REPRO | Current `/login` and supplied recording both show a filled hero + form composition; baseline `routes/login.png` |
-| S-02 | Login → workspace produces white screen/no feedback | CONFIRMED P1 | Supplied recording contains a full white frame for roughly 0.5 s; `recording/login-transition.jpg`; RF-009 |
+| S-02 | Login → workspace produces white screen/no feedback | VERIFIED FIXED | Persistent branded transition; golden path asserts zero full-viewport blank frames; RF-009 |
 | S-03 | Light-first redesign is partial; visual systems mix | ACCEPTED TOPOLOGY | Human confirmed the current dark `/app` plus light surrounding surfaces should remain; RF-010 VERIFIED |
-| S-04 | Grid/card alignment and spacing are inconsistent | CONFIRMED P1 | `/app/templates` filter controls overflow to x=1942; `/internal/rounds/[id]` action reaches x=1498 at 1440; template cards change height when preview absent; RF-011 |
-| S-05 | Loading/empty/error states are incomplete | CONFIRMED P1 | Only root `src/app/error.tsx` exists; no route `loading.tsx`; six customer pages collapse DB exceptions to empty/not-found via `.catch(() => [])`/`.catch(() => null)`; RF-012 |
-| S-06 | Chinese and English mix on the same interface | CONFIRMED P1 | `QUALITY-LOCKED`, `PRODUCTION BRIEF`, `JOB ID`, `Content reports`, `Legacy`, and `Internal Ops` appear on otherwise Chinese screens; RF-013 |
-| S-07 | Mutations do not always refresh views | CANNOT_REPRO in read-only Phase 0 | Code contains polling/`router.refresh()` after create/retry/report actions. Must be exercised with mutation interception in Phase 3; no current defect asserted |
+| S-04 | Grid/card alignment and spacing are inconsistent | VERIFIED FIXED | Template/round regressions plus all 99 settled route-width scans pass at 1280/1440/1920; RF-011/RF-023 |
+| S-05 | Loading/empty/error states are incomplete | VERIFIED FIXED | Six customer route families pass slow/empty/500 browser injection with accessible retry; all routes own appropriate boundaries; RF-012 |
+| S-06 | Chinese and English mix on the same interface | VERIFIED FIXED | Operational copy is routed through typed dictionaries; documented technical-token exemptions remain narrow; RF-013 |
+| S-07 | Mutations do not always refresh views | VERIFIED CANNOT REPRO | Final Acceptance exercises create, retry, cancel, status polling, circuit recovery, and product-image handoff on desktop/mobile without manual refresh; run `fa-1784047355157-099e9e8a` |
 
 ## Phase 0 completion checklist
 
@@ -319,6 +319,6 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 10 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 15 P0 VERIFIED, 0 P1 OPEN, 9 P1 VERIFIED.
 
-**Phase 1 automated exit criteria were approved; release remains blocked.** The latest serial Final Acceptance run passes 23/23 with teardown exit 0 and the post-fix golden path passes. Gate C0 remains 5/6 until human deployment, RF-019 migration execution, and RF-005 production heartbeat evidence.
+**Phase 1 automated exit criteria were approved; release remains blocked.** Phase 3 functional closure now passes the 33-route matrix and final serial Final Acceptance run `fa-1784047355157-099e9e8a` at 23/23 with teardown exit 0. Three consecutive final-code golden runs pass. Phase 4 visual evidence is ready for human review; Gate C0 remains blocked until human deployment, RF-019 migration execution, and RF-005 production heartbeat evidence.

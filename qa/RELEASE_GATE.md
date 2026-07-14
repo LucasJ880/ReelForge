@@ -2,8 +2,8 @@
 
 - Gate owner: human release approver
 - Audit revision: product/test baseline `440c91f`
-- Current stage: Commercial certification Gate C0 blocked at 5/6
-- Current verdict: **NOT RELEASE-READY — RF-005 lacks production cadence evidence, RF-019 blocks ordinary migration deploy, and 5 P1 remain OPEN**
+- Current stage: Phase 3 functional closure complete; Phase 4 evidence submitted for human visual review. Commercial certification remains higher-priority and separately gated.
+- Current verdict: **NOT RELEASE-READY — UI functional gate is green, but human visual approval is pending; RF-005 lacks production cadence evidence and RF-019 blocks ordinary migration deploy.**
 
 ## Phase gates
 
@@ -15,22 +15,22 @@
 - [x] Phase 1 — golden path exists and passes three independent runs. Evidence: `qa/evidence/phase1-verification.md`.
 - [x] **Human approval of Phase 1 evidence.** Approved 2026-07-13; Phase 2 authorized.
 - [ ] Phase 2 — state, idempotency, concurrency, error, and API contract suites pass.
-- [ ] Phase 3 — every route passes correctness and three-state acceptance.
-- [ ] Phase 4 — human visual review approves the selected theme topology.
+- [x] Phase 3 — all 33 routes pass the route matrix; customer slow/empty/500 states pass; seeded batch detail renders real status; 1280/1440/1920 scans have no overflow. Evidence: `qa/evidence/phase34/iteration-3.21-closure-regression.md`.
+- [ ] Phase 4 — token/font/motion audits pass and 33 current screenshots are attached; human visual approval of the preserved dark Studio + light public/auth/operations topology remains required.
 - [ ] Phase 5 — two 50-item mock commercial rehearsals and bad-weather cases pass.
 
 ## Final release checks
 
-- [x] Golden-path E2E invariant remains green. Latest post-acceptance run: `gp-1784011670688-32bda3f8`; the earlier five-run series and idempotent replay remain recorded in Phase 1/2 evidence.
+- [x] Golden-path E2E invariant remains green. Final-code consecutive series: `gp-1784047276260-e8880c0c`, `gp-1784047304319-a978b9bb`, `gp-1784047333120-e0387432`.
 - [x] Current full unit suite has no failure or new skip/xfail: 727/728 passed with the one intentionally conditional DB integration skipped; that integration was then explicitly enabled against the Neon rehearsal branch and passed 1/1, 0 skipped. Final Acceptance passes 23/23.
-- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: RF-019 is P0 OPEN, RF-005 is P0 FIXED pending production evidence, and 5 P1 remain OPEN.
-- [ ] Every route has console error = 0 in representative populated, empty, loading, and error states. Current limitation: `/app/batches/[id]` lacked representative rehearsal data.
+- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: P1 OPEN = 0; RF-019 is P0 OPEN and RF-005 is P0 FIXED pending production evidence.
+- [x] All 33 routes have console/service/semantic/overflow checks on settled target content; the six customer families additionally pass slow/empty/500 injection. `/app/batches/[id]` uses seeded owned data rather than a synthetic 404.
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.
 - [ ] Human disposition recorded for remaining P2/P3. Current: none opened.
 - [ ] Production health reports a real provider only after the explicit budget/provider gate. Local release code now fails closed for production mock (RF-001 VERIFIED); redeployed production evidence remains required.
 - [ ] Queue scheduler cadence is measured and meets the release SLO (RF-005). Minute-cron code is fixed; production cadence evidence is absent.
-- [x] Final-acceptance Playwright exits 0 including teardown (RF-006): run `fa-1784011167411-04cf5e45`, 23/23, teardown exit 0.
+- [x] Final-acceptance Playwright exits 0 including teardown (RF-006): final UI-closure run `fa-1784047355157-099e9e8a`, 23/23 in 7.3 minutes; teardown deleted 22 rehearsal batches and 4 product images, archived 1 run-scoped template, and exited 0.
 - [ ] RF-003 production migrations are rehearsed and applied through the RF-019 observed-state bootstrap; ordinary first deploy is currently unsafe when both remain pending.
 
 ## Evidence index
@@ -53,6 +53,8 @@
 - Phase 2 provider billing safety: `qa/evidence/phase2/iteration-2.3-provider-billing-safety.md`
 - Phase 2 historical quarantine closure: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`
 - Gate C0 Final Acceptance closure: `qa/evidence/phase2/gate-c0-final-acceptance.md`
+- Phase 3/4 final regression and merge plan: `qa/evidence/phase34/iteration-3.21-closure-regression.md`
+- Phase 3/4 settled route screenshots: `qa/screenshots/redesign/phase34-current/`
 - Gate C0 dependency status: `qa/certification/GATE_C0.md`
 - Human production deployment and rollback checklist: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`
 

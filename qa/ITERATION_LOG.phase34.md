@@ -224,3 +224,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Repair commit: `60ab8ea`.
 - Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
 - New dependencies: none; package bundle impact 0 bytes and downloaded font payload reduced.
+
+## Iteration 3.21 — Phase 3/4 closure regression
+
+- Date: 2026-07-14
+- Scope: exit-gate evidence on final product code.
+- Route acceptance: optimized build plus Phase 3/4 suite 12/12; 33 routes × 3 desktop widths; six customer slow/empty/500 families; 33 settled screenshots.
+- Golden invariant: three consecutive final-code runs green — `gp-1784047276260-e8880c0c`, `gp-1784047304319-a978b9bb`, `gp-1784047333120-e0387432`.
+- Final Acceptance: `fa-1784047355157-099e9e8a` passed 23/23 serially in 7.3 minutes; teardown exited 0 after run-scoped cleanup.
+- Gate: functional closure is green; human visual approval is still pending; no merge or deployment performed.
+- Evidence: `qa/evidence/phase34/iteration-3.21-closure-regression.md`, `qa/screenshots/redesign/phase34-current/`.
+- New dependencies: none.

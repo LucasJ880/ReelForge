@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 14 · P1 OPEN 0 · P1 VERIFIED 8 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 14 · P1 OPEN 0 · P1 VERIFIED 9 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -314,6 +314,17 @@
 - Verification: source-level hydration invariant 1/1; focused optimized-build Final Acceptance J1 passes setup + desktop + mobile 3/3 in run `fa-1784046239486-2cfa942a`; unchanged golden path passes as `gp-1784046345375-9b204bf9`.
 - Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
 - Repair commit: `fa145d0`
+
+### RF-025 — Batch detail navigation temporarily loses monitor progress semantics
+
+- Severity: **P1 — customer-visible loading feedback**
+- Status: **VERIFIED**
+- Reproduction: submit a one-item batch under the J8 Slow 3G profile, navigate to its detail URL, and start the delayed status tick. The parent `/app/batches/loading.tsx` boundary can remain visible while the detail route resolves, but it exposed only generic skeletons and no `批次总进度` progressbar within the 200ms feedback budget.
+- Root cause: the nested detail route has a progress-aware loading boundary, but Next.js may render the parent batches loading boundary during navigation; the shared parent state did not preserve the monitor's primary progress semantic.
+- Repair: shared batch list/detail loading surfaces now render a localized zero-state progressbar while data resolves. The real monitor replaces it with live progress after navigation settles.
+- Verification: shared route-state regression 6/6; optimized build; focused Final Acceptance J8 desktop setup + journey 2/2 under Slow 3G and the configured 30-second monitor delay, run `fa-1784046542905-9a7c8a52`; unchanged golden `gp-1784046710814-9748fc44` passes.
+- Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
+- Repair commit: `3a34a21`
 
 ## Seed hypotheses not opened as defects
 

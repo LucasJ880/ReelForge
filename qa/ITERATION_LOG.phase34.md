@@ -200,3 +200,15 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Repair commit: `fa145d0`.
 - Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
 - New dependencies: none.
+
+## Iteration 3.19 — RF-025 batch loading progress
+
+- Date: 2026-07-14
+- Defect: RF-025 (P1 customer-visible loading feedback)
+- Reproduction: the parent batches loading boundary could own detail navigation and did not expose the monitor's batch-progress semantic inside J8's unchanged 200ms feedback budget.
+- Work: added a localized zero-state progressbar to shared batch list/detail loading surfaces; the live monitor replaces it after route settlement.
+- Regression: shared route-state tests 6/6; optimized build; focused J8 desktop setup + journey 2/2 (`fa-1784046542905-9a7c8a52`); unchanged golden `gp-1784046710814-9748fc44` green.
+- Ledger: RF-025 `OPEN → VERIFIED`.
+- Repair commit: `3a34a21`.
+- Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
+- New dependencies: none.

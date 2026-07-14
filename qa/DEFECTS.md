@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 13 · P1 OPEN 0 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 13 · P1 OPEN 0 · P1 VERIFIED 8 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -278,6 +278,29 @@
 - Verification: focused prefetch/route regressions 2/2, typecheck, lint, optimized build, and golden `gp-1784042195066-160312e7` passed with the original 0-failed-request and 0-blank-frame assertions.
 - Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`, `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`, `qa/evidence/phase1/golden-path-gp-1784042195066-160312e7.json`.
 - Repair commit: `c95c7b7`
+
+### RF-022 — All-route matrix accepted authenticated redirects as successful route evidence
+
+- Severity: **P1 — release-evidence integrity**
+- Status: **VERIFIED**
+- Reproduction: run the original 33-route matrix with its customer storage state. Every `/internal/**` request returned a non-error document after redirecting to `/app/create`, yet the test recorded the route as green and wrote the Studio page into internal screenshot filenames.
+- Root cause: the matrix checked only the initial document status and never asserted the final pathname or installed an authorized internal session. It also captured screenshots while a route-level loading boundary could still be visible.
+- Impact: the 99-scan result and internal screenshots did not prove the named internal routes were rendered.
+- Repair: install a signed session from an existing OPERATOR/SUPER_ADMIN rehearsal account before internal scans; require the exact final pathname (allowing only the two source-defined root redirects); wait for the route loading boundary to settle; and remove per-scan listeners after each assertion set.
+- Verification: the strengthened test first failed on the previously hidden redirect, then exercised real internal pages. The corrected 33-route × 3-width matrix passes 99/99 and regenerated all 33 screenshots from settled target pages.
+- Evidence: `qa/evidence/phase34/iteration-3.15-rf022-route-evidence-integrity.md`, `qa/screenshots/redesign/phase34-current/`.
+- Repair commit: `01e64be`
+
+### RF-023 — AI usage summary tables overflow the operator viewport at 1280px
+
+- Severity: **P1 — operator-visible layout defect**
+- Status: **VERIFIED**
+- Reproduction: open `/internal/ai-usage` at 1280px with real usage rows after the strengthened route matrix waits for content. The right-hand model table ends at x=1305, outside the x=1280 viewport.
+- Root cause: the two-table grid switched to two columns at the `lg` breakpoint while its min-width tables and card grid items retained automatic minimum widths.
+- Repair: keep the summaries single-column until `2xl` and make the grid/cards explicitly shrinkable with `min-w-0`; table regions retain horizontal scrolling for genuinely narrow containers.
+- Verification: the same optimized-build matrix passes all 99 route-width scans with zero document or element overflow; mandatory golden run `gp-1784044311511-576ad482` passes the unchanged full customer journey.
+- Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`, `qa/screenshots/redesign/phase34-current/internal-ai-usage.png`, `qa/evidence/phase1/golden-path-gp-1784044311511-576ad482.json`.
+- Repair commit: `01e64be`
 
 ## Seed hypotheses not opened as defects
 

@@ -154,3 +154,27 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Commit: `8b90b51`.
 - Evidence: `qa/evidence/phase34/iteration-3.14-all-route-matrix.md`, `qa/screenshots/redesign/phase34-current/`.
 - New dependencies: none.
+
+## Iteration 3.15 — RF-022 route evidence integrity
+
+- Date: 2026-07-14
+- Defect: RF-022 (P1 release-evidence integrity)
+- Reproduction: final-path assertion exposed that internal routes redirected to `/app/create`; screenshot evidence was mislabeled and some frames still showed route loading boundaries.
+- Work: installed an explicit signed staff session, asserted exact final paths, waited for loading boundaries to settle, and removed per-scan listeners.
+- Regression: corrected 33-route × 3-width matrix reached real internal content and regenerated all current screenshots; no product auth path changed.
+- Ledger: RF-022 `OPEN → VERIFIED`.
+- Commit: `01e64be`.
+- Evidence: `qa/evidence/phase34/iteration-3.15-rf022-route-evidence-integrity.md`.
+- New dependencies: none.
+
+## Iteration 3.16 — RF-023 AI usage containment
+
+- Date: 2026-07-14
+- Defect: RF-023 (P1 operator-visible)
+- Reproduction: corrected matrix found the model table ending at x=1305 in a 1280px viewport.
+- Work: deferred the two-card grid to `2xl` and made its grid/card children shrinkable without changing table content or accessibility.
+- Regression: optimized build green; corrected 99-scan matrix green; golden `gp-1784044311511-576ad482` green.
+- Ledger: RF-023 `OPEN → VERIFIED`.
+- Commit: `01e64be`.
+- Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`.
+- New dependencies: none.

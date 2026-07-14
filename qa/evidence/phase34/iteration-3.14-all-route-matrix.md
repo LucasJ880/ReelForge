@@ -20,3 +20,7 @@ Test commit: `8b90b51`
 - New dependencies: none.
 
 Form double-submit and mutation-refresh behavior are exercised by the golden/final-acceptance journeys rather than by destructive clicks in this read-only route matrix. Final closure still requires the serial Final Acceptance 23/23 gate.
+
+## Correction after RF-022
+
+The initial 12/12 result did not validate internal route identity: the customer storage state redirected internal targets to `/app/create`, and the test neither asserted final pathname nor waited for route loading boundaries to settle. The original result remains recorded as historical evidence but is superseded by RF-022. See `qa/evidence/phase34/iteration-3.15-rf022-route-evidence-integrity.md` for the corrected internal session, exact-path assertions, settled screenshots, and the replacement 99/99 run.

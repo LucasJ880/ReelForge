@@ -24,7 +24,7 @@
 - Repair: production runtime detection now rejects every effective video-mock configuration in deployment validation and directly in both unified and legacy mock task paths. Vercel Production can never be reclassified as rehearsal by `AIVORA_DRY_RUN`; Vercel Preview and explicit local dry-run remain available.
 - Verification: 31/31 focused safety tests, typecheck, lint, optimized build, and golden run `gp-1784001583006-1ca10477` pass. Production redeploy/health evidence remains a final release-gate check, not a code-regression gap.
 - Evidence: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`.
-- Repair commit: pending Phase 2 iteration commit
+- Repair commit: `14d6c9b`
 
 ### RF-002 — Cron and external-runner endpoints fail open when `CRON_SECRET` is absent
 

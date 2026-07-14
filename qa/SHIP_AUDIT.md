@@ -2,7 +2,7 @@
 
 - Audit date: 2026-07-13 (America/Toronto)
 - Phase: 2 — backend hardening in progress
-- Source revision: Phase 2 iteration `825efe9` on `codex/final-sprint`
+- Source revision: Phase 2 iteration `14d6c9b` on `codex/final-sprint`
 - Coverage status: Phase 0 inventory complete; Phase 1 approved; Phase 2 security, state, idempotency, concurrency, error, and API-contract verification in progress
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 

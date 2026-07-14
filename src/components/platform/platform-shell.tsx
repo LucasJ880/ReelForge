@@ -68,6 +68,11 @@ function Nav({
           <Link
             key={item.id}
             href={item.href}
+            // These protected destinations must not prefetch while NextAuth is
+            // clearing the session during sign-out. A prefetch in that narrow
+            // window follows the middleware redirect to /login and produces a
+            // customer-visible navigation race before the intended redirect.
+            prefetch={false}
             aria-current={active ? "page" : undefined}
             className={cn(
               mobile

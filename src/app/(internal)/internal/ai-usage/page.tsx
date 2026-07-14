@@ -78,8 +78,8 @@ export default async function AdminAIUsagePage({
         <KpiCard label="Total Tokens" value={String(stats.totals.totalTokens)} />
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <Card>
+      <section className="grid min-w-0 gap-4 2xl:grid-cols-2">
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Calls by Feature</CardTitle>
           </CardHeader>
@@ -135,7 +135,7 @@ export default async function AdminAIUsagePage({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader>
             <CardTitle>Calls by Model</CardTitle>
           </CardHeader>

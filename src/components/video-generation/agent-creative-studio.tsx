@@ -318,7 +318,7 @@ export function AgentCreativeStudio({
       <section className="space-y-4" aria-labelledby="agent-template-heading">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="studio-label text-muted-foreground">QUALITY LOCK</p>
+            <p className="studio-label text-muted-foreground">{agent.qualityLockKicker}</p>
             <h2 id="agent-template-heading" className="mt-2 font-heading text-title font-semibold">{agent.templateHeading}</h2>
             <p className="mt-1 max-w-2xl text-body text-muted-foreground">{agent.templateHint}</p>
           </div>
@@ -362,7 +362,7 @@ export function AgentCreativeStudio({
 
       <section ref={productionRef} className="scroll-mt-20 space-y-4" aria-labelledby="agent-production-heading">
         <div>
-          <p className="studio-label text-muted-foreground">PRODUCTION BRIEF</p>
+          <p className="studio-label text-muted-foreground">{agent.productionBriefKicker}</p>
           <h2 id="agent-production-heading" className="mt-2 font-heading text-title font-semibold">{agent.directHeading}</h2>
           <p className="mt-1 max-w-2xl text-body text-muted-foreground">{agent.directHint}</p>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { Loader2 } from "lucide-react";
 import { EmptyUploadIllustration } from "@/components/editorial/empty-upload-illustration";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,8 @@ export interface FileDropzoneProps {
   onRejected?: (files: File[]) => void;
 }
 
+const subscribeToHydration = () => () => {};
+
 export function FileDropzone({
   accept = "image/png,image/jpeg,image/webp",
   multiple = true,
@@ -30,9 +32,15 @@ export function FileDropzone({
 }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const hydrated = useSyncExternalStore(
+    subscribeToHydration,
+    () => true,
+    () => false,
+  );
+  const interactive = hydrated && !disabled && !uploading;
 
   function handleFiles(fileList: FileList | null) {
-    if (!fileList || disabled || uploading) return;
+    if (!fileList || !interactive) return;
     const allowed = accept
         .split(",")
         .map((item) => item.trim());
@@ -53,9 +61,11 @@ export function FileDropzone({
         disabled && "opacity-60",
         className,
       )}
+      aria-busy={!hydrated || uploading}
+      data-hydrated={hydrated ? "true" : "false"}
       onDragEnter={(event) => {
         event.preventDefault();
-        if (!disabled) setDragging(true);
+        if (interactive) setDragging(true);
       }}
       onDragOver={(event) => event.preventDefault()}
       onDragLeave={() => setDragging(false)}
@@ -65,21 +75,23 @@ export function FileDropzone({
         handleFiles(event.dataTransfer.files);
       }}
     >
-      <input
-        ref={inputRef}
-        type="file"
-        hidden
-        multiple={multiple}
-        accept={accept}
-        disabled={disabled || uploading}
-        onChange={(event) => {
-          handleFiles(event.target.files);
-          event.target.value = "";
-        }}
-      />
+      {hydrated ? (
+        <input
+          ref={inputRef}
+          type="file"
+          hidden
+          multiple={multiple}
+          accept={accept}
+          disabled={!interactive}
+          onChange={(event) => {
+            handleFiles(event.target.files);
+            event.target.value = "";
+          }}
+        />
+      ) : null}
       <button
         type="button"
-        disabled={disabled || uploading}
+        disabled={!interactive}
         onClick={() => inputRef.current?.click()}
         className="mx-auto flex w-full max-w-md flex-col items-center gap-3 rounded-(--radius-md) transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
       >

@@ -24,7 +24,8 @@ export async function GET(_req: NextRequest, context: RouteContext) {
       }),
     );
   } catch (error) {
-    if (error instanceof BatchNotFoundError) {
+    const notFound = error instanceof BatchNotFoundError;
+    if (notFound) {
       return NextResponse.json(
         customerApiError({
           code: "RESOURCE_NOT_FOUND",
@@ -69,7 +70,8 @@ export async function POST(_req: NextRequest, context: RouteContext) {
       }),
     );
   } catch (error) {
-    if (error instanceof BatchNotFoundError) {
+    const notFound = error instanceof BatchNotFoundError;
+    if (notFound) {
       return NextResponse.json(
         customerApiError({
           code: "RESOURCE_NOT_FOUND",

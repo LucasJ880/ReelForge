@@ -131,6 +131,7 @@ export function PlatformShell({
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card md:flex">
         <Link
           href="/app/create"
+          prefetch={false}
           className="flex h-[72px] items-center gap-3 border-b border-border px-5"
           aria-label={platformCopy.home}
         >
@@ -169,7 +170,7 @@ export function PlatformShell({
 
       <div className="flex min-w-0 flex-1 flex-col pb-16 md:ml-60 md:pb-0">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card px-4 md:px-6">
-          <Link href="/app/create" className="flex shrink-0 items-center gap-3 md:hidden" aria-label={platformCopy.home}>
+          <Link href="/app/create" prefetch={false} className="flex shrink-0 items-center gap-3 md:hidden" aria-label={platformCopy.home}>
             <Logo size={32} />
             <span className="hidden font-heading text-subhead font-semibold sm:inline">Aivora</span>
           </Link>

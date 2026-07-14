@@ -1,9 +1,9 @@
 # ReelForge Ship Audit
 
 - Audit date: 2026-07-14 (America/Toronto)
-- Phase: H1 backend contract closure complete; H2 merge remains gated
-- Source revision: H1 product/test revision `e7dfea3` on `codex/final-hardening`
-- Coverage status: 71/71 API route files now have first-tier strict or second-tier light contract evidence; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
+- Phase: H2-A merged-tree re-baseline in progress
+- Source revision: merge of H1 `cc75c21` and UI closure `2d4aefc` on `codex/h2-ui-unification`; verification pending
+- Coverage status: 71/71 API route files have first-tier strict or second-tier light contract evidence; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -58,6 +58,8 @@ All routes below are backed by `src/app/**/page.tsx`. The Phase 0 scanner cold-l
 
 Canonical raw evidence: `qa/evidence/phase0-route-scan.json`. Screenshots are relative to `qa/screenshots/baseline/`.
 
+Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against real owned dynamic fixtures at 1280/1440/1920. All 99 route-width scans passed document, console, page-error, HTTP 5xx, semantic-control and overflow assertions. `/app/batches/[id]` is now validated with a seeded BatchJob rather than a synthetic 404. See `qa/evidence/phase34/iteration-3.14-all-route-matrix.md` and `qa/screenshots/redesign/phase34-current/`.
+
 ### Non-page route behavior
 
 | Route/pattern | Expected behavior | Source | Audit status |
@@ -66,7 +68,7 @@ Canonical raw evidence: `qa/evidence/phase0-route-scan.json`. Screenshots are re
 | Protected page without session | Redirect to `/login?from=<pathname>` | `src/middleware.ts` | STATIC VERIFIED |
 | Protected API without session | `401 { ok:false, code:"AUTH_REQUIRED", error:"未登录", retryable:false, action:"sign_in" }` | `src/middleware.ts` | DYNAMIC VERIFIED: H1 groups A/C and Final Acceptance J4 |
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
-| Root/runtime error | App error boundary | `src/app/error.tsx` | STATIC VERIFIED; no route-level boundaries (RF-012) |
+| Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
 ## API endpoint inventory (71/71 route files)
 
@@ -76,7 +78,7 @@ Middleware provides public/session boundaries. Phase 0 statically reviewed the e
 |---|---|---|---|
 | Public/auth/health/intake/webhook | Detailed tables below | HEALTHY at H1 contract depth | Health is strict/sanitized; public auth/intake have light success/validation contracts; Stripe is exactly middleware-reachable and signature-gated |
 | Customer/account/creative/batch/image/racing/report | Detailed tables below | HEALTHY at H1 contract depth | First-tier APIs use strict runtime DTO/envelope schemas; second-tier success wiring, anonymous boundary, and ownership checks are locked |
-| Operator/admin/order/round/QA/publish/report | Detailed tables below | HEALTHY at H1 contract depth | Success shapes and operator/super-admin/reviewer boundaries are locked; RF-008 remains a Phase 3 page/persona concern |
+| Operator/admin/order/round/QA/publish/report | Detailed tables below | HEALTHY at H1 contract depth | Success shapes and operator/super-admin/reviewer boundaries are locked; the RF-008 staff-role repair is merged and awaiting H2 revalidation |
 | Cron/external runner | 9 route files | HEALTHY at H1 contract depth | Missing secret → sanitized 503; wrong bearer → 401; stitch-dispatch has strict success/error schemas aligned with heartbeat outcomes |
 | Digital-human customer surface | 4 route files | HEALTHY | Middleware authentication and sealed 404 behavior are dynamically verified for every method |
 
@@ -288,12 +290,12 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 | Seed | Hypothesis | Current conclusion | Evidence/status |
 |---|---|---|---|
 | S-01 | Login hierarchy/whitespace is unbalanced | CANNOT_REPRO | Current `/login` and supplied recording both show a filled hero + form composition; baseline `routes/login.png` |
-| S-02 | Login → workspace produces white screen/no feedback | CONFIRMED P1 | Supplied recording contains a full white frame for roughly 0.5 s; `recording/login-transition.jpg`; RF-009 |
+| S-02 | Login → workspace produces white screen/no feedback | VERIFIED FIXED | Persistent branded transition; golden path asserts zero full-viewport blank frames; RF-009 |
 | S-03 | Light-first redesign is partial; visual systems mix | ACCEPTED TOPOLOGY | Human confirmed the current dark `/app` plus light surrounding surfaces should remain; RF-010 VERIFIED |
-| S-04 | Grid/card alignment and spacing are inconsistent | CONFIRMED P1 | `/app/templates` filter controls overflow to x=1942; `/internal/rounds/[id]` action reaches x=1498 at 1440; template cards change height when preview absent; RF-011 |
-| S-05 | Loading/empty/error states are incomplete | CONFIRMED P1 | Only root `src/app/error.tsx` exists; no route `loading.tsx`; six customer pages collapse DB exceptions to empty/not-found via `.catch(() => [])`/`.catch(() => null)`; RF-012 |
-| S-06 | Chinese and English mix on the same interface | CONFIRMED P1 | `QUALITY-LOCKED`, `PRODUCTION BRIEF`, `JOB ID`, `Content reports`, `Legacy`, and `Internal Ops` appear on otherwise Chinese screens; RF-013 |
-| S-07 | Mutations do not always refresh views | CANNOT_REPRO in read-only Phase 0 | Code contains polling/`router.refresh()` after create/retry/report actions. Must be exercised with mutation interception in Phase 3; no current defect asserted |
+| S-04 | Grid/card alignment and spacing are inconsistent | VERIFIED FIXED | Template/round regressions plus all 99 settled route-width scans pass at 1280/1440/1920; RF-011/RF-023 |
+| S-05 | Loading/empty/error states are incomplete | VERIFIED FIXED | Six customer route families pass slow/empty/500 browser injection with accessible retry; all routes own appropriate boundaries; RF-012 |
+| S-06 | Chinese and English mix on the same interface | VERIFIED FIXED | Operational copy is routed through typed dictionaries; documented technical-token exemptions remain narrow; RF-013 |
+| S-07 | Mutations do not always refresh views | VERIFIED CANNOT REPRO | Final Acceptance exercises create, retry, cancel, status polling, circuit recovery, and product-image handoff on desktop/mobile without manual refresh; run `fa-1784047355157-099e9e8a` |
 
 ## Phase 0 completion checklist
 
@@ -318,6 +320,6 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 16 P0 VERIFIED, 5 P1 OPEN, 6 P1 VERIFIED.
+- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 21 P0 VERIFIED, 0 P1 OPEN, 13 P1 VERIFIED.
 
-**Phase 1 automated exit criteria were approved; release remains blocked.** The last complete serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23 with teardown exit 0. After H1, the ordered J4/J7 contract subset `fa-1784054148752-d1a8f9ab` passes 3/3 and golden run `gp-1784055279098-5047b432` passes; a fresh full 23/23 rerun is deliberately reserved for H2 post-merge verification. Gate C0 remains 5/6 until the human-supervised deployment provides RF-005 production heartbeat evidence; RF-019 separately blocks unsafe production migration execution.
+**Phase 1–4 parent-branch evidence is approved; release remains blocked.** UI closure supplied Final Acceptance `fa-1784047355157-099e9e8a` at 23/23, three consecutive golden runs, the 99-scan route matrix, and human visual approval. H1 supplied the 116/116 contract suite, J4/J7 `fa-1784054148752-d1a8f9ab` at 3/3, and golden `gp-1784055279098-5047b432`. None of those parent-branch results is represented as merged-tree evidence; H2-A must rerun the full battery. Gate C0 remains 5/6 until the human-supervised deployment provides RF-005 heartbeat evidence; RF-019 separately blocks unsafe production migration execution.

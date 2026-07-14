@@ -2,8 +2,8 @@
 
 - Audit revision: H1 product/test revision `e7dfea3`
 - Last updated: 2026-07-14 (America/Toronto)
-- Current phase: H1 backend contract closure complete; H2 merge gated on RF-005 observation
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 16 · P1 OPEN 5 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
+- Current phase: H2-A merged-tree re-baseline in progress
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 21 · P1 OPEN 0 · P1 VERIFIED 13 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -109,23 +109,30 @@
 ### RF-008 — Staff role can be locked out by a legacy customer persona
 
 - Severity: **P1 — operator-visible**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: use the known seeded account whose role is `SUPER_ADMIN` and `userType` is `BUSINESS`; visit `/internal`.
 - Root cause: `normalizeUserType` preserves BUSINESS/PERSONAL before staff role fallback (`src/lib/auth.ts:100-108`), and `requireInternalPage` redirects those personas before `requireOperator` (`src/lib/api-auth.ts:221-236`).
 - Impact: a valid admin credential can be redirected away from internal operations.
 - Required regression: role/persona matrix test for pages and APIs, including legacy combinations; customer roles must still never acquire staff access.
-- Repair commit: —
+- Repair: extracted a pure role policy shared by session normalization and internal-page routing. `SUPER_ADMIN`/`OPERATOR` role now wins over stale BUSINESS/PERSONAL persona values; CUSTOMER/REVIEWER role can never be promoted by a stored OPERATOR/SUPER_ADMIN persona. Internal API guards use the same role authority.
+- Verification: source role/persona matrices pass 9/9. The optimized browser suite passes 11/11, including a `SUPER_ADMIN + BUSINESS` session reaching `/internal/orders` and a seeded CUSTOMER being denied for each BUSINESS/PERSONAL/OPERATOR/SUPER_ADMIN stored persona. Typecheck, focused lint, optimized build, and golden `gp-1784038873993-71bd69a3` pass.
+- Evidence: `qa/evidence/phase34/iteration-3.5-rf008-role-persona-authority.md`, `qa/evidence/phase1/golden-path-gp-1784038873993-71bd69a3.json`.
+- Repair commit: `0929fbb`
 
 ### RF-009 — Login success flashes a blank white viewport
 
-- Severity: **P1 — customer-visible onboarding defect**
-- Status: **OPEN**
+- Severity: **P0 — golden-path continuity blocker (upgraded after repair attempt 1 made the golden path red)**
+- Status: **VERIFIED**
 - Seed: S-02
 - Reproduction: sign in from the supplied recording and inspect the login-to-workspace transition; one full white frame is visible for roughly 0.5 seconds with no progress feedback.
 - Evidence: `qa/screenshots/baseline/recording/login-transition.jpg`
 - Impact: first-run users perceive a crash or broken redirect.
 - Required regression: golden-path navigation asserts a persistent branded/loading surface and no white full-viewport frame between submit and `/app/create`.
-- Repair commit: —
+- Repair attempts: Attempt 1 added an unauthenticated prefetch for `/app/create`; it caused the protected prefetch to redirect back to login and later abort during successful navigation. Strict golden run `gp-1784037382766-208c3e9d` failed on that request. The entire attempt was immediately rolled back; baseline run `gp-1784037506214-f921e4b0` then passed. Attempt 2 removed prefetch entirely.
+- Repair: safe internal `from` handling now defaults directly to `/app/create`; successful login performs one `router.replace` without an immediate refresh or redirect hop. A full-viewport, light-auth-theme Aivora status surface remains mounted from credential submission until the dark Studio shell is visible. Credential/network failures restore the form and preserve a readable error.
+- Verification: source regression 3/3, typecheck, focused lint, optimized build, and diff check pass. Golden run `gp-1784037627201-fa3fc7fb` passes the entire customer journey with zero console errors, 5xx responses, or failed requests; the in-page animation-frame sampler observed 27 transition frames and 0 blank viewport frames.
+- Evidence: `qa/evidence/phase34/iteration-3.2-rf009-login-continuity.md`, `qa/evidence/phase1/golden-path-gp-1784037627201-fa3fc7fb.json`.
+- Repair commit: `0fe2896`
 
 ### RF-010 — Current theme topology conflicts with the new Light-first instruction
 
@@ -137,41 +144,54 @@
 - Impact: the current ship instruction calls this an incomplete Light-first migration, while the earlier approved design constitution explicitly requires dark `/app` plus light public/auth. Either implementation choice would violate one active instruction.
 - Human decision: preserve the current color topology — dark Studio `/app`, light public/auth and existing light operational surfaces. Phase 4 may unify tokens/components within those surfaces but must not perform an all-site recolor.
 - Human decision v3 (2026-07-14, H2 D-0): **Option A — unify within topology.** One shared shadcn/ui-based component anatomy and one token system may express two sanctioned skins: warm-charcoal Studio with brand orange for `/app`, and light Editorial for public/auth/`/internal`. No route changes color mode. `/showcase` remains frozen; shared changes must prove pixel equivalence or be forked away from it.
-- Verification: current screenshots match the accepted topology; no product change required.
-- Repair commit: —
+- Human visual approval: 33 Phase 3/4 current screenshots approved on 2026-07-14. A proposed future unification of internal and customer themes (RF-010 v2) is explicitly **DEFERRED** until after the first commercial delivery and before formal market launch. No color changes are permitted before that separately approved project.
+- Repair: removed an accidental copied dark-token block from `.auth-studio-theme`; auth now inherits the light root token set and only declares `color-scheme: light`, while `.studio-theme` remains the sole dark workspace override.
+- Verification: the design-system closure audit passes 3/3 (topology, single literal-color source, tokenized fonts/motion); corrected settled route screenshots show light auth/internal and dark Studio; the 99-scan route matrix and golden `gp-1784043470993-88e292ff` pass.
+- Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`, `qa/evidence/phase34/phase4-human-visual-approval.md`, `qa/screenshots/redesign/phase34-current/`.
+- Repair commit: `4d15380`
 
 ### RF-011 — Template filters and round actions overflow; template cards have unstable geometry
 
 - Severity: **P1 — customer/operator-visible**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: S-04
 - Reproduction: cold-load at 1440×1000. `/app/templates` filter buttons extend to x=1942 inside a clipped row; `/internal/rounds/[id]` has an action ending at x=1498. Cards without a sample preview collapse vertically relative to preview cards.
 - Evidence: `qa/evidence/phase0-route-scan.json`, `qa/screenshots/baseline/routes/app-templates.png`, `internal-rounds-id.png`
 - Impact: controls are unreachable/clipped and template browsing looks structurally inconsistent.
 - Required regression: overflow detector at 1280/1440/1920; template cards preserve a consistent information grid with or without sample media.
-- Repair commit: —
+- Repair: category filters now wrap inside the filter panel instead of placing later controls outside the viewport. Template grid rows stretch cards to one height and pin recipe/actions consistently while cards without verified samples render no fake preview. Shared page headers defer side-by-side actions to large screens, and round actions own a full-width wrapping container constrained to the content column.
+- Verification: source guards 3/3 and the complete Phase 3/4 browser suite 9/9 pass. `/app/templates` and a seeded `/internal/rounds/[id]` were checked at 1280/1440/1920: document width never exceeded viewport, overflowing element count was 0, and same-row template card height variance was at most 1px. Golden run `gp-1784038024462-f5dadb44` passes with 28 transition samples and 0 blank frames.
+- Evidence: `qa/evidence/phase34/iteration-3.3-rf011-layout-containment.md`, `qa/evidence/phase1/golden-path-gp-1784038024462-f5dadb44.json`.
+- Repair commit: `3e7a6cc`
 
 ### RF-012 — Customer pages collapse server failures into empty/not-found states
 
 - Severity: **P1 — customer-visible correctness defect**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: S-05
 - Reproduction: force the data loader on create, batch list/detail, racing, library, or templates to reject. The page catches the exception and returns `[]`/`null`; there are no route-level `loading.tsx` or `error.tsx` files.
 - Root cause: silent catches in `src/app/(platform)/app/create/page.tsx:24`, `batches/page.tsx:23`, `batches/[id]/page.tsx:18`, `racing/page.tsx:20`, `library/page.tsx:26`, `templates/page.tsx:16`; only `src/app/error.tsx` exists.
 - Impact: outages masquerade as “no data” or 404 and offer no retry/recovery path.
 - Required regression: each customer route is exercised under slow, empty, and 500 responses with distinct, accessible states.
-- Repair commit: —
+- Repair: removed all six silent failure conversions; added route-owned loading/error boundaries with bilingual accessible copy and retry actions; gave successful empty states explicit semantics; and introduced a typed `BatchNotFoundError` so batch 404/access misses remain distinct from retryable service faults in both the page and status endpoint.
+- Rehearsal safety: browser state injection requires Preview + explicit rehearsal + dry-run + mock provider simultaneously. Production and real-provider runtimes ignore caller-supplied QA headers; this invariant is locked by a regression test.
+- Verification: source regression 6/6; browser slow/empty/500 matrix 7/7 after the final typed-error repair; typecheck, focused lint, optimized build, and diff check pass. Mandatory golden path run `gp-1784036981221-799edb49` passes registration → natural login → mock generation → terminal accounting → stitch → playback → non-empty download.
+- Evidence: `qa/evidence/phase34/iteration-3.1-rf012-route-states.md`, `qa/evidence/phase1/golden-path-gp-1784036981221-799edb49.json`.
+- Repair commit: `356182a`
 
 ### RF-013 — Chinese locale surfaces contain untranslated English operational copy
 
 - Severity: **P1 — customer/operator-visible**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: S-06
 - Reproduction: set locale to Chinese and open creation, templates, auth, and internal navigation.
-- Evidence/root cause: hard-coded `QUALITY-LOCKED`, `QUALITY LOCK`, `PRODUCTION BRIEF`, `JOB ID`, `Content reports`, `Legacy`, and `Internal Ops` in the sources listed by the Phase 0 scan.
+- Evidence/root cause: hard-coded `QUALITY-LOCKED`, `QUALITY LOCK`, `PRODUCTION BRIEF`, `Content reports`, `Legacy`, and `Internal Ops` bypassed both customer and internal dictionaries. `JOB ID` was audited and retained as a narrowly documented technical-field token rather than treated as operational copy.
 - Impact: same-screen language mixing reduces comprehension and undermines production polish.
 - Required regression: locale audit asserting customer-visible copy resolves through the i18n layer; IDs/provider names remain exempt technical tokens.
-- Repair commit: —
+- Repair: routed customer quality-lock/count and production-brief labels through platform copy; routed internal reports, workspace branding, and legacy navigation through the typed dictionaries; documented the narrow technical-token exemptions and explicitly prohibited using them for headings, buttons, navigation, or explanatory text.
+- Verification: focused operational-copy regression 3/3; combined dictionary/coverage/shell audit 11/11; typecheck and focused lint pass; complete Phase 3/4 browser suite 9/9; mandatory golden `gp-1784038463620-2c3cf392` passes with no real provider call.
+- Evidence: `qa/evidence/phase34/iteration-3.4-rf013-operational-i18n.md`, `qa/evidence/phase34/rf013-technical-token-exemptions.md`, `qa/evidence/phase1/golden-path-gp-1784038463620-2c3cf392.json`.
+- Repair commit: `63cad87`
 
 ### RF-014 — Completed customer video had no download action
 
@@ -365,6 +385,87 @@
 - Verification: `tests/platform-shell-signout-prefetch.test.ts` passes; typecheck, lint, optimized build, and golden run `gp-1784055279098-5047b432` pass with zero console/network errors.
 - Evidence: `qa/evidence/phase1/golden-path-gp-1784055093318-ae9ed205.json`, `qa/evidence/phase1/golden-path-gp-1784055279098-5047b432.json`.
 - Repair commit: `e7dfea3`
+
+### RF-020 — Phase 3 route-state bundle regressed login transition continuity
+
+- Severity: **P0 — golden-path continuity regression**
+- Status: **VERIFIED — speculative authenticated-route prefetch removed**
+- Reproduction: after the uncommitted Phase 3 all-route boundary/matrix iteration passed its 33×3 route scan and 12-test browser suite, run `npm run test:golden-path`. Run `gp-1784040695799-839af69f` observed 18 full-viewport frames without an accepted auth/loading/Studio surface during login → `/app/create`.
+- Root-cause boundary: the iteration introduced new route-group loading/error surfaces, including an auth loading surface, plus route-audit fixes. The constitution required immediate whole-iteration rollback, so no speculative sub-change was retained or isolated. The prior committed RF-009 code itself was unchanged.
+- Impact: retaining the iteration would reopen the exact first-run blank-frame defect RF-009 locked down.
+- Repair: removed every uncommitted Phase 3 product/test/generated-output change as one atomic rollback; preserved only the failed-run evidence. No assertion, threshold, test, or production configuration changed.
+- Verification: rollback run `gp-1784040809734-ab04b4a7` passes the full golden journey with the original zero-blank-frame assertion. Working tree returned to the last committed Phase 3/4 baseline apart from the pre-existing external `qa/ITERATION_LOG.md` truncation and the two golden evidence runs.
+- Follow-up isolation: auth-only route boundaries were subsequently introduced in repair commit `d82a8f4`. Golden run `gp-1784041162146-48d1317e` passed with the unchanged zero-blank-frame assertion, proving this boundary can be retained safely before the remaining route groups are reintroduced.
+- Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784040695799-839af69f.json`, `qa/evidence/phase1/golden-path-gp-1784040809734-ab04b4a7.json`.
+- Repair commit: rollback contained no product commit; evidence commit recorded separately.
+
+### RF-021 — Customer-detail route-state bundle triggered a golden network failure
+
+- Severity: **P0 — golden-path network invariant regression**
+- Status: **VERIFIED — offending iteration rolled back**
+- Reproduction: add loading/error boundaries for `/app/create/images`, `/app/batches/new`, and `/app/library/[id]` as one iteration, then run the unchanged golden path. Run `gp-1784041620850-0134270e` observed one aborted Next.js JavaScript chunk request and failed at the final network assertion.
+- Impact: retaining any iteration after a red golden path would violate the permanent Phase 1 invariant, even though this run reported 0 blank frames and completed the product workflow.
+- Repair: atomically removed all uncommitted product, copy/type, and test changes from that iteration. No assertion, allowlist, tolerance, retry, provider, or deployment setting changed.
+- Repair attempts: Attempt 1 bundled three customer-detail routes and was rolled back after one aborted chunk; baseline passed. Attempt 2 isolated `/app/create/images` only and was rolled back after two aborted chunks; baseline passed. Attempt 3 used trace evidence: the authenticated Studio shell was speculatively prefetching dynamic RSC destinations and the newly split boundary chunks were cancelled on subsequent navigation/sign-out. Automatic prefetch was disabled for Studio primary/home navigation while click navigation remains intact; `/app/create/images` was then reintroduced.
+- Verification: focused prefetch/route regressions 2/2, typecheck, lint, optimized build, and golden `gp-1784042195066-160312e7` passed with the original 0-failed-request and 0-blank-frame assertions.
+- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`, `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`, `qa/evidence/phase1/golden-path-gp-1784042195066-160312e7.json`.
+- Repair commit: `c95c7b7`
+
+### RF-022 — All-route matrix accepted authenticated redirects as successful route evidence
+
+- Severity: **P1 — release-evidence integrity**
+- Status: **VERIFIED**
+- Reproduction: run the original 33-route matrix with its customer storage state. Every `/internal/**` request returned a non-error document after redirecting to `/app/create`, yet the test recorded the route as green and wrote the Studio page into internal screenshot filenames.
+- Root cause: the matrix checked only the initial document status and never asserted the final pathname or installed an authorized internal session. It also captured screenshots while a route-level loading boundary could still be visible.
+- Impact: the 99-scan result and internal screenshots did not prove the named internal routes were rendered.
+- Repair: install a signed session from an existing OPERATOR/SUPER_ADMIN rehearsal account before internal scans; require the exact final pathname (allowing only the two source-defined root redirects); wait for the route loading boundary to settle; and remove per-scan listeners after each assertion set.
+- Verification: the strengthened test first failed on the previously hidden redirect, then exercised real internal pages. The corrected 33-route × 3-width matrix passes 99/99 and regenerated all 33 screenshots from settled target pages.
+- Evidence: `qa/evidence/phase34/iteration-3.15-rf022-route-evidence-integrity.md`, `qa/screenshots/redesign/phase34-current/`.
+- Repair commit: `01e64be`
+
+### RF-023 — AI usage summary tables overflow the operator viewport at 1280px
+
+- Severity: **P1 — operator-visible layout defect**
+- Status: **VERIFIED**
+- Reproduction: open `/internal/ai-usage` at 1280px with real usage rows after the strengthened route matrix waits for content. The right-hand model table ends at x=1305, outside the x=1280 viewport.
+- Root cause: the two-table grid switched to two columns at the `lg` breakpoint while its min-width tables and card grid items retained automatic minimum widths.
+- Repair: keep the summaries single-column until `2xl` and make the grid/cards explicitly shrinkable with `min-w-0`; table regions retain horizontal scrolling for genuinely narrow containers.
+- Verification: the same optimized-build matrix passes all 99 route-width scans with zero document or element overflow; mandatory golden run `gp-1784044311511-576ad482` passes the unchanged full customer journey.
+- Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`, `qa/screenshots/redesign/phase34-current/internal-ai-usage.png`, `qa/evidence/phase1/golden-path-gp-1784044311511-576ad482.json`.
+- Repair commit: `01e64be`
+
+### RF-024 — File selection can land before the upload control is hydrated
+
+- Severity: **P0 — final-acceptance and first-use workflow blocker**
+- Status: **VERIFIED**
+- Reproduction: start J1 against an optimized build and select the 20 test files as soon as the server-rendered batch form appears. The browser accepts the file assignment, but React has not attached the input change handler; the UI remains at `0/50 已完成 0` and emits no upload requests.
+- Root cause: the hidden file input was present and programmatically operable in the server HTML before the client component hydrated. Disabling only the surrounding button cannot protect direct input interaction.
+- Repair: derive a hydration-safe interactive state with `useSyncExternalStore`; do not render the real file input until hydration; reject drag/drop and selection callbacks unless the control is hydrated and otherwise enabled.
+- Verification: source-level hydration invariant 1/1; focused optimized-build Final Acceptance J1 passes setup + desktop + mobile 3/3 in run `fa-1784046239486-2cfa942a`; unchanged golden path passes as `gp-1784046345375-9b204bf9`.
+- Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
+- Repair commit: `fa145d0`
+
+### RF-025 — Batch detail navigation temporarily loses monitor progress semantics
+
+- Severity: **P1 — customer-visible loading feedback**
+- Status: **VERIFIED**
+- Reproduction: submit a one-item batch under the J8 Slow 3G profile, navigate to its detail URL, and start the delayed status tick. The parent `/app/batches/loading.tsx` boundary can remain visible while the detail route resolves, but it exposed only generic skeletons and no `批次总进度` progressbar within the 200ms feedback budget.
+- Root cause: the nested detail route has a progress-aware loading boundary, but Next.js may render the parent batches loading boundary during navigation; the shared parent state did not preserve the monitor's primary progress semantic.
+- Repair: shared batch list/detail loading surfaces now render a localized zero-state progressbar while data resolves. The real monitor replaces it with live progress after navigation settles.
+- Verification: shared route-state regression 6/6; optimized build; focused Final Acceptance J8 desktop setup + journey 2/2 under Slow 3G and the configured 30-second monitor delay, run `fa-1784046542905-9a7c8a52`; unchanged golden `gp-1784046710814-9748fc44` passes.
+- Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
+- Repair commit: `3a34a21`
+
+### RF-026 — Global CJK webfont payload blocks mobile onboarding and aborts on navigation
+
+- Severity: **P0 — mobile final-acceptance and network-invariant blocker**
+- Status: **VERIFIED**
+- Reproduction: run Final Acceptance mobile P6/J8 on the optimized build. The root layout requests six global font families, including multi-weight Noto Sans SC and Noto Serif SC payloads. Under Slow 3G, J8 cannot reach its template action inside 30 seconds; P6 records four aborted WOFF2 requests when navigation cancels still-pending fonts. The same resource contention reduced J2's five-second status sample count in the first full run.
+- Root cause: downloadable CJK families and weights were applied to every surface at the document root, although the approved typography contract permits an explicit Chinese system fallback. The payload competes with functional RSC/data requests and survives across route transitions long enough to be cancelled.
+- Repair: keep the four role-defining Latin `next/font` families and replace downloadable Noto SC families with explicit macOS/Windows/Linux CJK sans/serif system fallbacks in the single token source. Theme topology and font roles remain unchanged.
+- Verification: design-system audit 3/3 and optimized build pass; focused Final Acceptance mobile P6 2/2 (`fa-1784046862464-cbce87da`), J8 2/2 (`fa-1784046907181-1ef340f2`), and J2 2/2 (`fa-1784047003719-ac2aed1c`) pass with unchanged assertions; golden `gp-1784047054103-01af2a53` passes.
+- Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
+- Repair commit: `60ab8ea`
 
 ## Seed hypotheses not opened as defects
 

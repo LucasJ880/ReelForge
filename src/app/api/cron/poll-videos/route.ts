@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 
@@ -10,12 +11,8 @@ import { sweepStuckTasks } from "@/lib/services/sweep-service";
  * 保证「任何任务都不会永远处于进行中」。清扫失败不影响 poll 主流程。
  */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? "";
-  if (process.env.CRON_SECRET) {
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
   try {
     const result = await pollRunningJobs(30);
     const sweep = await sweepStuckTasks().catch((err) => {

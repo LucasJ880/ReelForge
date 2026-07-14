@@ -110,3 +110,13 @@
 - Verification: 31/31 focused tests, typecheck, focused lint, optimized build, and mandatory golden run `gp-1784001583006-1ca10477` pass.
 - Ledger change: RF-001 `OPEN → VERIFIED`; P0 OPEN count 6 → 5.
 - Evidence: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`.
+
+## Phase 2 · Iteration 2.2 — RF-002 machine endpoints fail-closed
+
+- Date: 2026-07-13
+- Reproduction: with no `CRON_SECRET`, `/api/cron/process-batches` reached Prisma; with a wrong bearer, sealed digital-human runner routes returned 404 before authentication.
+- Repair: centralized SHA-256/timing-safe bearer comparison and a sanitized 503 misconfiguration response. Every cron, stitch runner, and sealed digital-human runner route invokes it before parsing or side effects.
+- Regression: all eight endpoints under missing and wrong secret (16 cases); existing digital-human sealed and stitch runtime behavior.
+- Verification: 21/21 focused tests, typecheck, focused lint, optimized build, and mandatory golden run `gp-1784001858660-004e8b31` pass.
+- Ledger change: RF-002 `OPEN → VERIFIED`; P0 OPEN count 5 → 4.
+- Evidence: `qa/evidence/phase2/iteration-2.2-machine-auth.md`.

@@ -1,15 +1,12 @@
 import { BatchJobStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { processBatchTick } from "@/lib/services/batch-service";
 
 export async function GET(req: NextRequest) {
-  if (
-    process.env.CRON_SECRET &&
-    req.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
   const batches = await db.batchJob.findMany({
     where: {
       status: { in: [BatchJobStatus.RUNNING, BatchJobStatus.PAUSED] },

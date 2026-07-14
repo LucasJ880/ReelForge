@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { claimStitchTask } from "@/lib/services/stitch-service";
 
 /**
@@ -15,12 +16,8 @@ import { claimStitchTask } from "@/lib/services/stitch-service";
  * 注意：claimStitchTask 会 CAS PENDING → STITCHING，因此同一任务不会被并发抢两次。
  */
 export async function GET(req: NextRequest) {
-  if (process.env.CRON_SECRET) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
   try {
     const task = await claimStitchTask();
     return NextResponse.json({ task });

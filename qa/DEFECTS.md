@@ -3,7 +3,7 @@
 - Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
 - Last updated: 2026-07-13 (America/Toronto)
 - Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 5 · P0 FIXED 1 · P0 VERIFIED 4 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 4 · P0 FIXED 1 · P0 VERIFIED 5 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -29,12 +29,15 @@
 ### RF-002 — Cron and external-runner endpoints fail open when `CRON_SECRET` is absent
 
 - Severity: **P0 — security/data-integrity blocker**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: remove `CRON_SECRET` in an isolated test environment and call any machine endpoint without authorization; the guard body is skipped.
 - Root cause: conditional authentication in `src/app/api/cron/process-batches/route.ts:7`, `poll-videos/route.ts:14`, `stitch-videos/route.ts:21`, `sweep-stuck-tasks/route.ts:13`, `src/app/api/internal/stitch/claim/route.ts:18`, `complete/route.ts:27`, and the two sealed digital-human runner routes.
 - Impact: one missing deployment secret turns queue mutation and runner completion endpoints public.
 - Required regression: every machine endpoint returns a sanitized non-2xx response when the secret is missing and 401 when it is wrong; no queue service is invoked.
-- Repair commit: —
+- Repair: all eight cron/runner endpoints now call one constant-time, fail-closed guard before feature checks, body parsing, database access, or service invocation. Missing configuration returns sanitized 503; absent/wrong bearer returns 401.
+- Verification: before repair, missing secret reached Prisma and sealed digital-human routes returned 404 before checking wrong credentials. After repair, all 16 missing/wrong endpoint cases pass, along with digital-human sealed tests, stitch runtime tests, typecheck, lint, optimized build, and golden run `gp-1784001858660-004e8b31`.
+- Evidence: `qa/evidence/phase2/iteration-2.2-machine-auth.md`.
+- Repair commit: pending Phase 2 iteration commit
 
 ### RF-003 — Ambiguous provider failures can resubmit and duplicate billable work
 

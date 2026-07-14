@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { completeDigitalHumanAdJob } from "@/lib/services/digital-human-service";
 import {
   DIGITAL_HUMAN_SEALED_RESPONSE,
@@ -23,14 +24,10 @@ const completeSchema = z.object({
  * 设计同 stitch/complete：失败不抛 5xx（让 runner 退出而非重试导致 attempts 失控）。
  */
 export async function POST(req: NextRequest) {
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
   if (!isDigitalHumanFeatureEnabled()) {
     return NextResponse.json(DIGITAL_HUMAN_SEALED_RESPONSE, { status: 404 });
-  }
-  if (process.env.CRON_SECRET) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    }
   }
 
   let body: unknown;

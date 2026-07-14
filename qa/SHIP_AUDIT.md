@@ -77,7 +77,7 @@ Middleware provides public/session boundaries. Phase 0 statically reviewed the e
 | Public/auth/health/intake/webhook | Detailed tables below | HEALTHY static boundary | Production health/mock invariant dynamically verified in RF-001; remaining schemas continue in Phase 2 |
 | Customer/account/creative/batch/image/racing/report | Detailed tables below | DEGRADED | Guard/ownership patterns present; provider retry billing ambiguity is RF-003 |
 | Operator/admin/order/round/QA/publish/report | Detailed tables below | DEGRADED | Guards present; legacy persona can pre-empt staff role (RF-008) |
-| Cron/external runner | 8 route files | BLOCKED | All eight files authenticate only when `CRON_SECRET` exists (RF-002) |
+| Cron/external runner | 8 route files | HEALTHY at authentication depth | Missing secret → sanitized 503; wrong bearer → 401; guard runs before all side effects (RF-002 VERIFIED) |
 | Digital-human customer surface | 4 route files | HEALTHY | Feature flag returns sealed 404 for every plan |
 
 The detailed inventory below keeps `PENDING` in the “Contract audit” column to mean **dynamic Phase 2 contract execution not yet performed**. It does not mean the Phase 0 route inventory is incomplete.
@@ -178,14 +178,14 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET, POST | `/api/cron/process-batches` | `CRON_SECRET` | PENDING |
-| GET, POST | `/api/cron/poll-videos` | `CRON_SECRET` | PENDING |
-| GET, POST | `/api/cron/stitch-videos` | `CRON_SECRET` | PENDING |
-| GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | PENDING |
-| GET, POST | `/api/internal/stitch/claim` | `CRON_SECRET` | PENDING |
-| POST | `/api/internal/stitch/complete` | `CRON_SECRET` | PENDING |
-| GET, POST | `/api/internal/digital-human/claim` | `CRON_SECRET`; feature sealed | PENDING |
-| POST | `/api/internal/digital-human/complete` | `CRON_SECRET`; feature sealed | PENDING |
+| GET, POST | `/api/cron/process-batches` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/cron/poll-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/cron/stitch-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/internal/digital-human/claim` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |
+| POST | `/api/internal/digital-human/complete` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |
 
 ### Digital human sealed surface
 
@@ -209,7 +209,7 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 | Batch processor | `/api/cron/process-batches`; `.github/workflows/process-batches.yml` | Expand and lease queued batch work; submit eligible jobs | Lease CAS, breaker, historical dispatch guard, retry cap | BLOCKED: ambiguous submit retries RF-003; scheduler RF-005 |
 | Video poller | `/api/cron/poll-videos`; `.github/workflows/poll-videos.yml`; status endpoint opportunistic polling | Map provider state to internal jobs and synchronize brief/batch state | Poll-error threshold + watchdog + opportunistic sweep | BLOCKED: scheduler RF-005 |
 | Stitch coordinator | `/api/cron/stitch-videos`; `.github/workflows/stitch-videos.yml` | Advance completed segments to final assembly | External runner, claim CAS, retry cap | BLOCKED: stale completion race RF-004; scheduler RF-005 |
-| External stitch runner | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim is CAS; completion lacks claim token/CAS | BLOCKED: RF-002/RF-004 |
+| External stitch runner | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim is CAS; completion lacks claim token/CAS | BLOCKED: RF-004; machine authentication VERIFIED |
 | Stuck-task sweeper | `/api/cron/sweep-stuck-tasks`; also called by poller | Requeue/fail abandoned video and final-video work | Status CAS and max attempts | BLOCKED: historical quarantine bypass RF-007 |
 | Video watchdog | Status reads, dispatch/retry checks, cron fallback | Fail jobs beyond provider deadline/grace | CAS from `RUNNING/QUEUED` to `FAILED`; existing unit coverage | DEGRADED: dependent on RF-005 scheduler |
 | Product image worker | Product image service claim path | Claim and run queued Image 2 jobs | Job ownership/status guard; dynamic concurrency test deferred | HEALTHY at static depth |
@@ -313,6 +313,6 @@ Design/implementation mismatch: claim is compare-and-swap, but completion carrie
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 5 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 4 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 4 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 5 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
 
 **Phase 1 automated exit criteria were approved; release remains blocked.** Phase 2 is active. Its first mandatory golden-path regression exposed and verified RF-017 without changing any production limit.

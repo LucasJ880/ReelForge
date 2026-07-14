@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { finishStitchTask } from "@/lib/services/stitch-service";
 
 const completeSchema = z.object({
@@ -24,12 +25,8 @@ const completeSchema = z.object({
  *   - 用 zod 校验入参，避免 stitchedVideoUrl=file:// 之类的脏数据再次溜进 DB。
  */
 export async function POST(req: NextRequest) {
-  if (process.env.CRON_SECRET) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
 
   let body: unknown;
   try {

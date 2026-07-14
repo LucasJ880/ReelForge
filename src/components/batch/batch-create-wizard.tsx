@@ -27,9 +27,14 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
-import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
+import {
+  BlobUploadHttpError,
+  uploadBlobWithProgress,
+} from "@/lib/upload/blob-xhr";
 import { useTranslation } from "@/i18n";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
+import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
+import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
@@ -43,6 +48,7 @@ interface UploadItem {
   assetId?: string;
   url?: string;
   error?: string;
+  recoveryAction?: CustomerRecoveryAction;
 }
 
 interface StyleTemplateDto {
@@ -120,22 +126,47 @@ export function BatchCreateWizard({
   const [count, setCount] = useState(100);
   const [productName, setProductName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [recoveryAction, setRecoveryAction] =
+    useState<CustomerRecoveryAction | null>(null);
+  const [errorSource, setErrorSource] = useState<
+    "templates" | "batch" | null
+  >(null);
+  const [templateReloadToken, setTemplateReloadToken] = useState(0);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    setError(null);
+    setRecoveryAction(null);
     void fetch("/api/batch-style-templates")
       .then(async (response) => {
-        if (!response.ok) throw new Error(english ? "Failed to load style templates" : "风格模板加载失败");
-        return response.json() as Promise<{ templates: StyleTemplateDto[] }>;
+        const payload = (await response.json()) as {
+          templates?: StyleTemplateDto[];
+          error?: string;
+          action?: CustomerRecoveryAction;
+        };
+        if (!response.ok || !payload.templates) {
+          setRecoveryAction(payload.action ?? "retry");
+          setErrorSource("templates");
+          throw new Error(
+            payload.error ??
+              (english ? "Failed to load style templates" : "风格模板加载失败"),
+          );
+        }
+        return { templates: payload.templates };
       })
       .then(({ templates: rows }) => {
         setTemplates(rows);
+        setErrorSource(null);
         const requested = rows.find((template) => template.id === initialTemplateId);
         if (requested) setTemplateId(requested.id);
         else if (rows[0]) setTemplateId(rows[0].id);
       })
-      .catch((reason) => setError((reason as Error).message));
-  }, [english, initialTemplateId]);
+      .catch((reason) => {
+        setErrorSource("templates");
+        setRecoveryAction((current) => current ?? "retry");
+        setError((reason as Error).message);
+      });
+  }, [english, initialTemplateId, templateReloadToken]);
 
   useEffect(
     () => () => {
@@ -192,6 +223,7 @@ export function BatchCreateWizard({
       status: "uploading",
       progress: 0,
       error: undefined,
+      recoveryAction: undefined,
     });
     try {
       const data = await uploadBlobWithProgress({
@@ -209,9 +241,12 @@ export function BatchCreateWizard({
         url: data.url,
       });
     } catch (reason) {
+      const uploadError =
+        reason instanceof BlobUploadHttpError ? reason : null;
       updateUpload(item.localId, {
         status: "failed",
         error: (reason as Error).message,
+        recoveryAction: uploadError?.details.action,
       });
     } finally {
       if (uploadControllersRef.current.get(item.localId) === controller) {
@@ -237,6 +272,8 @@ export function BatchCreateWizard({
 
   function addFiles(files: File[]) {
     setError(null);
+    setRecoveryAction(null);
+    setErrorSource(null);
     const images = files.filter((file) =>
       BATCH_IMAGE_MIME_TYPES.has(file.type),
     );
@@ -270,6 +307,8 @@ export function BatchCreateWizard({
     if (!selectedTemplate || uploaded.length === 0) return;
     setSubmitting(true);
     setError(null);
+    setRecoveryAction(null);
+    setErrorSource("batch");
     try {
       const requestBody = {
         templateId: selectedTemplate.id,
@@ -299,8 +338,10 @@ export function BatchCreateWizard({
       const data = (await response.json()) as {
         batch?: { id: string };
         error?: string;
+        action?: CustomerRecoveryAction;
       };
       if (!response.ok || !data.batch) {
+        setRecoveryAction(data.action ?? "retry");
         throw new Error(data.error ?? (english ? "Failed to create batch" : "创建批次失败"));
       }
       router.push(`${batchDetailsBasePath}/${data.batch.id}`);
@@ -364,7 +405,28 @@ export function BatchCreateWizard({
 
       {error && (
         <Card size="sm" role="alert" className="border-danger">
-          <CardContent className="text-meta text-danger">{error}</CardContent>
+          <CardContent className="space-y-2 text-meta text-danger">
+            <p>{error}</p>
+            {recoveryAction ? (
+              <p className="text-foreground">
+                {dispatchRecoveryHint(
+                  recoveryAction,
+                  english ? "en-US" : "zh-CN",
+                )}
+              </p>
+            ) : null}
+            {errorSource === "templates" && recoveryAction === "retry" ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setTemplateReloadToken((value) => value + 1)}
+              >
+                <RefreshCw aria-hidden />
+                {english ? "Reload templates" : "重新加载模板"}
+              </Button>
+            ) : null}
+          </CardContent>
         </Card>
       )}
 
@@ -432,14 +494,27 @@ export function BatchCreateWizard({
                         </span>
                       )}
                       {item.status === "failed" && (
-                        <button
-                          type="button"
-                          className="flex items-center gap-1 text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                          onClick={() => void uploadOne(item)}
-                        >
-                          <RefreshCw className="size-3" aria-hidden />
-                          {english ? "Retry" : "重传"}
-                        </button>
+                        (item.recoveryAction ?? "retry") === "retry" ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            onClick={() => void uploadOne(item)}
+                          >
+                            <RefreshCw className="size-3" aria-hidden />
+                            {english ? "Retry" : "重传"}
+                          </button>
+                        ) : item.recoveryAction === "replace_asset" ? (
+                          <button
+                            type="button"
+                            className="flex items-center gap-1 text-primary-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                            onClick={() => removeUpload(item.localId)}
+                          >
+                            <X className="size-3" aria-hidden />
+                            {english ? "Replace" : "更换"}
+                          </button>
+                        ) : (
+                          <span>{english ? "See guidance" : "查看说明"}</span>
+                        )
                       )}
                     </div>
                     <button
@@ -453,6 +528,28 @@ export function BatchCreateWizard({
                   </div>
                 ))}
               </div>
+              {uploads.some((item) => item.status === "failed") ? (
+                <ul className="space-y-2" aria-label={english ? "Upload failures" : "上传失败明细"}>
+                  {uploads
+                    .filter((item) => item.status === "failed")
+                    .map((item) => (
+                      <li
+                        key={`${item.localId}-failure`}
+                        className="rounded-(--radius-sm) border border-danger px-3 py-2 text-meta"
+                      >
+                        <p className="font-medium text-danger">
+                          {item.fileName}: {item.error ?? (english ? "Upload failed" : "上传失败")}
+                        </p>
+                        <p className="mt-1 text-muted-foreground">
+                          {dispatchRecoveryHint(
+                            item.recoveryAction ?? "retry",
+                            english ? "en-US" : "zh-CN",
+                          )}
+                        </p>
+                      </li>
+                    ))}
+                </ul>
+              ) : null}
             </CardContent>
           </>
         )}

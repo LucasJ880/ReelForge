@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
+import {
+  dispatchRecoveryHint,
+  shouldResetDispatchAttempt,
+} from "@/lib/api/customer-video-dispatch-recovery";
 import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
 import type {
   AspectRatio,
@@ -225,31 +230,27 @@ export function UnifiedCreativeInput({
         },
         body: JSON.stringify({ request: buildRequest() }),
       });
-      const j = (await res.json()) as
-        | {
-            ok: true;
-            deliveryOrderId: string;
-            briefId: string;
-            nextUrl?: string;
-            userStatus?: { status: string; label: string };
-          }
-        | {
-            ok: false;
-            error: string;
-            blockers?: string[];
-            retryable?: boolean;
-          };
-      if (!res.ok || !j.ok) {
-        if (!j.ok && j.retryable === true) dispatchAttemptRef.current = null;
-        if (!j.ok && j.blockers?.length) {
-          throw new Error(j.blockers[0]);
-        }
-        const friendly =
+      const j = (await res.json()) as CustomerVideoDispatchResponse;
+      if (!j.ok) {
+        if (shouldResetDispatchAttempt(j)) dispatchAttemptRef.current = null;
+        const serverMessage = j.blockers?.[0] ?? j.error;
+        const safeMessage = toCustomerSafeError(
+          new Error(serverMessage),
+          "dispatch",
+          userType,
+          t,
+        );
+        setError(
+          `${safeMessage} ${dispatchRecoveryHint(j.action, locale)}`.trim(),
+        );
+        setGenerating(false);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(
           userType === "personal"
             ? t("shell.creative.errDispatchPersonal")
-            : t("shell.creative.errDispatchBusiness");
-        throw new Error(
-          !j.ok && j.error && j.error.length < 80 ? j.error : friendly,
+            : t("shell.creative.errDispatchBusiness"),
         );
       }
       dispatchAttemptRef.current = null;

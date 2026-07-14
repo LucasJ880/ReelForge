@@ -34,6 +34,11 @@ import {
   uploadFilesToAssets,
 } from "@/components/personal/upload-assets";
 import { getStyleTemplate } from "@/lib/video-generation/style-templates";
+import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
+import {
+  dispatchRecoveryHint,
+  shouldResetDispatchAttempt,
+} from "@/lib/api/customer-video-dispatch-recovery";
 
 type CreateMode = "fast" | "director";
 type Duration = 15 | 30 | 60;
@@ -232,15 +237,31 @@ export function EditorialCreateWorkflow({
         },
         body: JSON.stringify(dispatchBody),
       });
-      const j = await res.json();
-      if (!res.ok || !j.ok) {
-        if (j.retryable === true) dispatchAttemptRef.current = null;
-        throw new Error(j.error ?? "出片任务提交失败");
+      const j = (await res.json()) as CustomerVideoDispatchResponse;
+      if (!j.ok) {
+        if (shouldResetDispatchAttempt(j)) dispatchAttemptRef.current = null;
+        const message = `${j.blockers?.[0] ?? j.error} ${dispatchRecoveryHint(
+          j.action,
+          language.startsWith("zh") ? "zh-CN" : "en-US",
+        )}`.trim();
+        setError(message);
+        log(`出片提交失败：${message}`);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error("出片任务提交失败");
       }
       dispatchAttemptRef.current = null;
       log(`已提交 ${j.batch?.length ?? 1} 支成片任务，AI 正在逐镜头生成画面`);
       log("成片完成后可在「成片库」查看和下载（页面会自动刷新进度）");
-      setDone({ nextUrl: j.nextUrl as string, batch: j.batch ?? [] });
+      const safeBatch = (j.batch ?? []).filter(
+        (
+          item,
+        ): item is { briefId: string; deliveryOrderId: string } =>
+          typeof item.briefId === "string" &&
+          typeof item.deliveryOrderId === "string",
+      );
+      setDone({ nextUrl: j.nextUrl ?? "/app/library", batch: safeBatch });
     } catch (e) {
       setError((e as Error).message);
       log(`出片提交失败：${(e as Error).message}`);

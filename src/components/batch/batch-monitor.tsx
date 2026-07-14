@@ -32,6 +32,9 @@ import { KpiCard } from "@/components/editorial/kpi-card";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { toast } from "sonner";
 import { useTranslation } from "@/i18n";
+import type { CustomerGenerationError } from "@/lib/api/customer-generation-error";
+import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
+import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
 
 export interface BatchMonitorJob {
   id: string;
@@ -48,19 +51,7 @@ export interface BatchMonitorJob {
   outputThumbUrl: string | null;
   lastProgress: number | null;
   userSafeError: string | null;
-  error: {
-    code:
-      | "SUBMISSION_ACK_UNKNOWN"
-      | "PROVIDER_TIMEOUT"
-      | "PROVIDER_ERROR"
-      | "ASSET_MISSING"
-      | "QUOTA_EXCEEDED"
-      | "IDEMPOTENCY_CONFLICT"
-      | "INTERNAL_ERROR";
-    message: string;
-    retryable: boolean;
-    action: "retry" | "replace_asset" | "view_usage" | "contact_support";
-  } | null;
+  error: CustomerGenerationError | null;
   retryCount: number;
 }
 
@@ -149,6 +140,8 @@ export function BatchMonitor({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorAction, setErrorAction] =
+    useState<CustomerRecoveryAction | null>(null);
   const [detailJob, setDetailJob] = useState<BatchMonitorJob | null>(null);
   const viewportRef = useRef<HTMLDivElement>(null);
 
@@ -161,6 +154,8 @@ export function BatchMonitor({
       error?: string;
     };
     if (!response.ok || !data.batch) {
+      const failure = data as typeof data & { action?: CustomerRecoveryAction };
+      setErrorAction(failure.action ?? "retry");
       throw new Error(data.error ?? (english ? "Failed to refresh batch status" : "批次状态刷新失败"));
     }
     setBatch(data.batch);
@@ -210,13 +205,16 @@ export function BatchMonitor({
   async function action(key: string, url: string) {
     setBusy(key);
     setError(null);
+    setErrorAction(null);
     try {
       const response = await fetch(url, { method: "POST" });
       const data = (await response.json()) as {
         batch?: BatchMonitorData;
         error?: string;
+        action?: CustomerRecoveryAction;
       };
       if (!response.ok || !data.batch) {
+        setErrorAction(data.action ?? "retry");
         throw new Error(data.error ?? (english ? "Action failed" : "操作失败"));
       }
       setBatch(data.batch);
@@ -259,7 +257,17 @@ export function BatchMonitor({
     >
       {error && (
         <Card size="sm" role="alert" className="border-danger">
-          <CardContent className="text-meta text-danger">{error}</CardContent>
+          <CardContent className="space-y-1 text-meta text-danger">
+            <p>{error}</p>
+            {errorAction ? (
+              <p className="text-foreground">
+                {dispatchRecoveryHint(
+                  errorAction,
+                  english ? "en-US" : "zh-CN",
+                )}
+              </p>
+            ) : null}
+          </CardContent>
         </Card>
       )}
 
@@ -490,6 +498,15 @@ export function BatchMonitor({
                   <Button type="button" variant="outline" size="xs" disabled={busy != null} onClick={() => void action(`retry-${job.id}`, `/api/batches/${batch.id}/jobs/${job.id}/retry`)}>
                     {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}{english ? "Retry" : "重试"}
                   </Button>
+                ) : job.status === "FAILED" && job.error ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    onClick={() => setDetailJob(job)}
+                  >
+                    {english ? "Next step" : "处置说明"}
+                  </Button>
                 ) : <span className="w-[72px]" aria-hidden />}
               </div>
             );
@@ -503,7 +520,7 @@ export function BatchMonitor({
           if (!open) setDetailJob(null);
         }}
       >
-        <SheetContent side="bottom" className="md:hidden">
+        <SheetContent side="bottom">
           {detailJob ? (
             <>
               <SheetHeader>
@@ -518,6 +535,14 @@ export function BatchMonitor({
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-6 pb-6">
+                {detailJob.error ? (
+                  <p className="rounded-(--radius-sm) border border-border p-3 text-meta text-foreground">
+                    {dispatchRecoveryHint(
+                      detailJob.error.action,
+                      english ? "en-US" : "zh-CN",
+                    )}
+                  </p>
+                ) : null}
                 {detailJob.outputVideoUrl ? (
                   <div className="relative"><video
                       src={detailJob.outputVideoUrl}

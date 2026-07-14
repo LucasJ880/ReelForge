@@ -2,6 +2,31 @@ import { getServerSession, type Session } from "next-auth";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { customerApiError } from "@/lib/contracts/customer-api";
+
+function authRequiredResponse() {
+  return NextResponse.json(
+    customerApiError({
+      code: "AUTH_REQUIRED",
+      message: "未登录",
+      retryable: false,
+      action: "sign_in",
+    }),
+    { status: 401 },
+  );
+}
+
+function forbiddenResponse() {
+  return NextResponse.json(
+    customerApiError({
+      code: "FORBIDDEN",
+      message: "权限不足",
+      retryable: false,
+      action: "contact_support",
+    }),
+    { status: 403 },
+  );
+}
 
 export type AuthGuardResult =
   | { ok: true; session: Session }
@@ -23,7 +48,7 @@ export async function requireAuth(): Promise<AuthGuardResult> {
   if (!session?.user) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "未登录" }, { status: 401 }),
+      response: authRequiredResponse(),
     };
   }
   return { ok: true, session };
@@ -36,16 +61,13 @@ export async function requireRole(
   if (!session?.user) {
     return {
       ok: false,
-      response: NextResponse.json({ error: "未登录" }, { status: 401 }),
+      response: authRequiredResponse(),
     };
   }
   if (!allowed.includes(session.user.role)) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { error: "权限不足" },
-        { status: 403 },
-      ),
+      response: forbiddenResponse(),
     };
   }
   return { ok: true, session };
@@ -73,7 +95,7 @@ export async function requireOperator(): Promise<AuthGuardResult> {
   if (userType === "PERSONAL" || userType === "BUSINESS") {
     return {
       ok: false,
-      response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
+      response: forbiddenResponse(),
     };
   }
   return auth;
@@ -86,7 +108,7 @@ export async function requireReviewer(): Promise<AuthGuardResult> {
   if (userType === "PERSONAL" || userType === "BUSINESS") {
     return {
       ok: false,
-      response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
+      response: forbiddenResponse(),
     };
   }
   return auth;
@@ -193,7 +215,7 @@ export async function requireUserOfPersona(
 
   return {
     ok: false,
-    response: NextResponse.json({ error: "权限不足" }, { status: 403 }),
+    response: forbiddenResponse(),
   };
 }
 

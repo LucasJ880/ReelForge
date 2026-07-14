@@ -1,17 +1,12 @@
-export type CustomerGenerationErrorCode =
-  | "SUBMISSION_ACK_UNKNOWN"
-  | "PROVIDER_TIMEOUT"
-  | "PROVIDER_ERROR"
-  | "ASSET_MISSING"
-  | "QUOTA_EXCEEDED"
-  | "IDEMPOTENCY_CONFLICT"
-  | "INTERNAL_ERROR";
+import {
+  customerApiError,
+  type CustomerApiErrorCode,
+  type CustomerRecoveryAction,
+} from "@/lib/contracts/customer-api";
 
-export type CustomerRecoveryAction =
-  | "retry"
-  | "replace_asset"
-  | "view_usage"
-  | "contact_support";
+export { customerApiError };
+export type { CustomerRecoveryAction };
+export type CustomerGenerationErrorCode = CustomerApiErrorCode;
 
 export interface CustomerGenerationError {
   code: CustomerGenerationErrorCode;
@@ -98,20 +93,5 @@ export function classifyCustomerGenerationError(args: {
       : "生成结果尚未确认。为避免重复计费，系统已暂停重试，请联系支持核对。",
     retryable,
     action: retryable ? "retry" : "contact_support",
-  };
-}
-
-export function customerApiError(args: {
-  code: CustomerGenerationErrorCode;
-  message: string;
-  retryable: boolean;
-  action: CustomerRecoveryAction;
-}) {
-  return {
-    ok: false as const,
-    code: args.code,
-    error: args.message,
-    retryable: args.retryable,
-    action: args.action,
   };
 }

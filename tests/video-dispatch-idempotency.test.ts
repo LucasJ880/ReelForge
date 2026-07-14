@@ -122,6 +122,7 @@ test("RF-003 completed response replays exactly; same key with another body conf
 
   const body = {
     ok: true,
+    deliveryOrderId: "order-1",
     briefId: "brief-1",
     videoJobs: [
       {
@@ -134,6 +135,26 @@ test("RF-003 completed response replays exactly; same key with another body conf
         errorMessage: "LEAK_PERSISTED_ERROR",
       },
     ],
+    batch: [{ briefId: "brief-1", deliveryOrderId: "order-1" }],
+    planPreview: {
+      summary: "1 AI clip, 15 second vertical video",
+      breakdown: {
+        aiClipCount: 1,
+        uploadedClipCount: 0,
+        hasBrandEndCard: false,
+        finalDurationSec: 15,
+        aspectRatio: "9:16",
+      },
+    },
+    nextUrl: "/app/library?highlight=order-1",
+    userStatus: {
+      status: "generating",
+      label: "AI 正在生成画面",
+      shortLabel: "生成中",
+      progressHint: 0.2,
+      cta: null,
+      assemblingPhase: null,
+    },
   };
   const safeBody = toCustomerVideoDispatchResponse(body);
   const completed = await completeVideoDispatchRequest({
@@ -158,4 +179,89 @@ test("RF-003 completed response replays exactly; same key with another body conf
     requestHash: "different-hash",
   });
   assert.deepEqual(conflict, { outcome: "conflict" });
+});
+
+test("RF-003 corrupt success replay is nonretryable and never returns HTTP success", async (t) => {
+  const model = db.videoDispatchRequest as unknown as Record<string, unknown>;
+  patch(t, model, {
+    findUnique: async () => ({
+      id: "dispatch-request-corrupt-replay",
+      userId: "user-1",
+      idempotencyKey: "corrupt-replay-key",
+      requestHash: "corrupt-replay-hash",
+      state: VideoDispatchRequestState.COMPLETED,
+      responseStatus: 200,
+      responseBody: { ok: true },
+      quotaConsumedAt: new Date(),
+      completedAt: new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }),
+  });
+
+  const replay = await claimVideoDispatchRequest({
+    userId: "user-1",
+    idempotencyKey: "corrupt-replay-key",
+    requestHash: "corrupt-replay-hash",
+  });
+  assert.deepEqual(replay, {
+    outcome: "replay",
+    status: 409,
+    body: {
+      ok: false,
+      code: "SUBMISSION_ACK_UNKNOWN",
+      error:
+        "生成结果记录不完整。为避免重复计费，系统已停止重试，请联系支持核对。",
+      retryable: false,
+      action: "contact_support",
+    },
+  });
+});
+
+test("RF-003 corrupt new success is persisted as failed instead of completed", async (t) => {
+  const persistedWrites: Array<Record<string, unknown>> = [];
+  patch(t, db.videoDispatchRequest as unknown as Record<string, unknown>, {
+    updateMany: async (args: { data: Record<string, unknown> }) => {
+      persistedWrites.push(args.data);
+      return { count: 1 };
+    },
+  });
+
+  await completeVideoDispatchRequest({
+    requestId: "dispatch-request-corrupt-new",
+    status: 200,
+    body: { ok: true },
+  });
+  assert.equal(persistedWrites.length, 1);
+  const persisted = persistedWrites[0];
+  assert.equal(persisted.state, VideoDispatchRequestState.FAILED);
+  assert.equal(persisted.responseStatus, 409);
+  assert.deepEqual(persisted.responseBody, {
+    ok: false,
+    code: "SUBMISSION_ACK_UNKNOWN",
+    error:
+      "生成结果记录不完整。为避免重复计费，系统已停止重试，请联系支持核对。",
+    retryable: false,
+    action: "contact_support",
+  });
+});
+
+test("RF-035 quota and response CAS misses fail closed", async (t) => {
+  patch(t, db.videoDispatchRequest as unknown as Record<string, unknown>, {
+    updateMany: async () => ({ count: 0 }),
+  });
+
+  await assert.rejects(
+    () => markVideoDispatchQuotaConsumed("lost-quota-owner"),
+    /quota ownership marker was not persisted/,
+  );
+  await assert.rejects(
+    () =>
+      completeVideoDispatchRequest({
+        requestId: "lost-response-owner",
+        status: 200,
+        body: { ok: true, briefId: "brief-never-persisted" },
+      }),
+    /dispatch response was not persisted/,
+  );
 });

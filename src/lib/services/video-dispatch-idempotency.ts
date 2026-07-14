@@ -61,10 +61,14 @@ function classifyExisting(
   ) {
     return { outcome: "in_progress" };
   }
+  const body = toCustomerVideoDispatchResponse(existing.responseBody);
   return {
     outcome: "replay",
-    status: existing.responseStatus,
-    body: toCustomerVideoDispatchResponse(existing.responseBody),
+    status:
+      !body.ok && existing.responseStatus >= 200 && existing.responseStatus < 300
+        ? 409
+        : existing.responseStatus,
+    body,
   };
 }
 
@@ -113,7 +117,7 @@ export async function claimVideoDispatchRequest(args: {
 }
 
 export async function markVideoDispatchQuotaConsumed(requestId: string) {
-  return db.videoDispatchRequest.updateMany({
+  const result = await db.videoDispatchRequest.updateMany({
     where: {
       id: requestId,
       state: VideoDispatchRequestState.PROCESSING,
@@ -121,6 +125,19 @@ export async function markVideoDispatchQuotaConsumed(requestId: string) {
     },
     data: { quotaConsumedAt: new Date() },
   });
+  if (result.count !== 1) {
+    throw new VideoDispatchPersistenceConflictError(
+      "quota ownership marker was not persisted",
+    );
+  }
+  return result;
+}
+
+export class VideoDispatchPersistenceConflictError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "VideoDispatchPersistenceConflictError";
+  }
 }
 
 export async function completeVideoDispatchRequest(args: {
@@ -129,22 +146,30 @@ export async function completeVideoDispatchRequest(args: {
   body: unknown;
 }) {
   const safeBody = toCustomerVideoDispatchResponse(args.body);
+  const responseStatus =
+    !safeBody.ok && args.status >= 200 && args.status < 300 ? 409 : args.status;
   const state =
-    args.status >= 200 && args.status < 300
+    responseStatus >= 200 && responseStatus < 300
       ? VideoDispatchRequestState.COMPLETED
       : VideoDispatchRequestState.FAILED;
-  return db.videoDispatchRequest.updateMany({
+  const result = await db.videoDispatchRequest.updateMany({
     where: {
       id: args.requestId,
       state: VideoDispatchRequestState.PROCESSING,
     },
     data: {
       state,
-      responseStatus: args.status,
+      responseStatus,
       responseBody: safeBody as Prisma.InputJsonValue,
       completedAt: new Date(),
     },
   });
+  if (result.count !== 1) {
+    throw new VideoDispatchPersistenceConflictError(
+      "dispatch response was not persisted",
+    );
+  }
+  return result;
 }
 
 export const __test__ = { canonicalJson, classifyExisting };

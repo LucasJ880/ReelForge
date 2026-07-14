@@ -38,8 +38,12 @@ test("font and motion roles are tokenized and motion is capped at 300ms", () => 
   for (const token of ["--font-body-family", "--font-display-family", "--font-mono-family", "--motion-fast", "--motion-base", "--ease-out"]) {
     assert.match(tokens, new RegExp(token));
   }
-  for (const font of ["Inter", "Space_Grotesk", "JetBrains_Mono", "Noto_Sans_SC", "Noto_Serif_SC"]) {
+  for (const font of ["Inter", "Instrument_Serif", "Space_Grotesk", "JetBrains_Mono"]) {
     assert.match(layout, new RegExp(font));
+  }
+  assert.doesNotMatch(layout, /Noto_Sans_SC|Noto_Serif_SC/);
+  for (const fallback of ["PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Songti SC", "Noto Serif CJK SC"]) {
+    assert.match(tokens, new RegExp(fallback));
   }
   const motionValues = [...tokens.matchAll(/--motion-[\w-]+:\s*(\d+)ms/g)].map((match) => Number(match[1]));
   assert.ok(motionValues.length >= 2);

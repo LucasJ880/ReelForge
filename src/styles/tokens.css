@@ -54,8 +54,8 @@
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 
-  --font-body-family: var(--font-inter), var(--font-noto-sans-sc), system-ui, sans-serif;
-  --font-display-family: var(--font-instrument-serif), var(--font-noto-serif-sc), Georgia, serif;
+  --font-body-family: var(--font-inter), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+  --font-display-family: var(--font-instrument-serif), "Songti SC", STSong, "Noto Serif CJK SC", Georgia, serif;
   --font-mono-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 13px;
   --font-size-body: 15px;
@@ -135,7 +135,7 @@
   --radius-lg: 8px;
   --shadow-card: none;
 
-  --font-display-family: var(--font-space-grotesk), var(--font-noto-sans-sc), system-ui, sans-serif;
+  --font-display-family: var(--font-space-grotesk), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
   --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 11px;
   --font-size-body: 14px;

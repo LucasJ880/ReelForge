@@ -3,8 +3,6 @@ import {
   Instrument_Serif,
   Inter,
   JetBrains_Mono,
-  Noto_Sans_SC,
-  Noto_Serif_SC,
   Space_Grotesk,
 } from "next/font/google";
 import { getServerSession } from "next-auth";
@@ -43,20 +41,6 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
-const notoSansSc = Noto_Sans_SC({
-  variable: "--font-noto-sans-sc",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  display: "swap",
-});
-
-const notoSerifSc = Noto_Serif_SC({
-  variable: "--font-noto-serif-sc",
-  subsets: ["latin"],
-  weight: "400",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   title: "Aivora — AI Video Growth Platform",
   description:
@@ -76,7 +60,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} ${notoSansSc.variable} ${notoSerifSc.variable} h-full`}
+      className={`${inter.variable} ${instrumentSerif.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full`}
     >
       <body className="h-full antialiased">
         <AuthProvider session={session}>

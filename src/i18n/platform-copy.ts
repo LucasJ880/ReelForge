@@ -20,6 +20,8 @@ const zh = {
       racing: "投放与赛马",
       library: "成品库",
       templates: "模板库",
+      public: "公共页面",
+      internal: "内部运营工作台",
     },
   },
   auth: {
@@ -256,6 +258,8 @@ const en: CopyShape<typeof zh> = {
       racing: "Campaign racing",
       library: "Video library",
       templates: "Template library",
+      public: "Public page",
+      internal: "Internal operations",
     },
   },
   auth: {

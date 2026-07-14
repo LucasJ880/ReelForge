@@ -74,7 +74,7 @@
 - Required regression: final-acceptance config completes test and teardown with exit 0; teardown constants live in a side-effect-free module.
 - Repair: moved teardown constants into side-effect-free `tests/final-acceptance/fixture-data.ts`; added `tests/final-acceptance-global-teardown-import.test.ts`.
 - Verification: direct teardown import regression, full unit suite, typecheck, lint, and the independent golden-path suite pass. The full existing final-acceptance configuration has not been rerun in Phase 1, so this item is not yet marked VERIFIED.
-- Repair commit: `PENDING_LOCAL_COMMIT`
+- Repair commit: `e863c8e`
 
 ### RF-007 — Stuck-task sweeper bypasses the historical dispatch quarantine decision
 
@@ -160,7 +160,7 @@
 - Root cause: the unified library detail never rendered a download control, even though the product journey promises review and download.
 - Repair: added a bilingual download action that uses `@vercel/blob.getDownloadUrl`, preserves existing query parameters, requests attachment disposition, and supplies a stable `.mp4` filename.
 - Regression: `tests/video-download-link.test.ts`; four independent golden runs verify the browser download event and a non-empty local file.
-- Repair commit: `PENDING_LOCAL_COMMIT`
+- Repair commit: `e863c8e`
 
 ### RF-015 — Local optimized server rejected the cookie issued by NextAuth
 
@@ -170,7 +170,7 @@
 - Root cause: middleware overrode NextAuth's own URL/Vercel secure-cookie decision with `NODE_ENV === "production"`. Existing acceptance code masked the mismatch by manually cloning the cookie.
 - Repair: remove the override so `getToken` follows the same rule as NextAuth. HTTPS still requires the secure-prefixed cookie.
 - Regression: `tests/middleware-auth-cookie.test.ts` signs real JWTs for HTTP/HTTPS; the three golden runs register and log in naturally with no cookie bridge.
-- Repair commit: `PENDING_LOCAL_COMMIT`
+- Repair commit: `e863c8e`
 
 ### RF-016 — Unified Seedance mock could write real Blob storage during E2E
 
@@ -180,7 +180,7 @@
 - Root cause: the unified Seedance mock did not honor the deterministic `MOCK_OUTPUT_VIDEO_URL` seam already used by the batch mock provider.
 - Repair: in mock-only status handling, accept an explicit HTTP(S) fixture URL and bypass clip rendering/storage; invalid non-HTTP(S) fixtures fail the mock task.
 - Regression: `tests/seedance-mock-hints.test.ts`; all golden runs blank Blob/real-provider secrets and prove every job output equals the local static MP4.
-- Repair commit: `PENDING_LOCAL_COMMIT`
+- Repair commit: `e863c8e`
 
 ## Seed hypotheses not opened as defects
 

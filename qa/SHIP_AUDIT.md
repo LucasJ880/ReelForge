@@ -2,7 +2,7 @@
 
 - Audit date: 2026-07-13 (America/Toronto)
 - Phase: 1 — golden path complete, awaiting human gate
-- Source revision: `337f779` on `codex/final-sprint`
+- Source revision: Phase 1 implementation `e863c8e` on `codex/final-sprint`
 - Coverage status: Phase 0 inventory complete; Phase 1 register/login → mock generation → external completion → playback/download passes four independent optimized-build runs
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 

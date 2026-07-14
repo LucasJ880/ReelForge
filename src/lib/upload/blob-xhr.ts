@@ -1,6 +1,23 @@
+import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
+
 export interface BlobUploadResult {
   url: string;
   pathname?: string;
+}
+
+export class BlobUploadHttpError extends Error {
+  constructor(
+    message: string,
+    readonly details: {
+      status: number;
+      code?: string;
+      retryable?: boolean;
+      action?: CustomerRecoveryAction;
+    },
+  ) {
+    super(message);
+    this.name = "BlobUploadHttpError";
+  }
 }
 
 export interface BlobUploadOptions {
@@ -46,7 +63,14 @@ export function uploadBlobWithProgress({
     xhr.onabort = () => reject(new DOMException("上传已取消", "AbortError"));
     xhr.onload = () => {
       if (signal) signal.removeEventListener("abort", abort);
-      let payload: { url?: string; pathname?: string; error?: string } = {};
+      let payload: {
+        url?: string;
+        pathname?: string;
+        error?: string;
+        code?: string;
+        retryable?: boolean;
+        action?: CustomerRecoveryAction;
+      } = {};
       try {
         payload = JSON.parse(xhr.responseText) as typeof payload;
       } catch {
@@ -54,7 +78,17 @@ export function uploadBlobWithProgress({
         return;
       }
       if (xhr.status < 200 || xhr.status >= 300 || !payload.url) {
-        reject(new Error(payload.error ?? `上传失败 (${xhr.status})`));
+        reject(
+          new BlobUploadHttpError(
+            payload.error ?? `上传失败 (${xhr.status})`,
+            {
+              status: xhr.status,
+              code: payload.code,
+              retryable: payload.retryable,
+              action: payload.action,
+            },
+          ),
+        );
         return;
       }
       resolve({ url: payload.url, pathname: payload.pathname });

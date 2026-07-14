@@ -8,6 +8,12 @@ import { getAiProvider } from "@/lib/ai";
 import { getStorageProvider } from "@/lib/storage";
 import { VolcengineTosStorageProvider } from "@/lib/storage/providers/volcengine-tos-provider";
 import { getVideoProvider } from "@/lib/video-generation/providers";
+import {
+  healthHttpStatus,
+  healthResponseSchema,
+  unavailableHealthResponse,
+  type HealthResponse,
+} from "@/lib/contracts/health";
 
 /**
  * 健康检查 / 系统诊断接口。
@@ -17,7 +23,8 @@ import { getVideoProvider } from "@/lib/video-generation/providers";
  * - 不暴露完整的 connection string
  * - storage 默认只返回 configured / not_configured，不真实做一次上传
  * - 当查询参数 `?storage=ping` 或 env `HEALTH_STORAGE_PING=true` 时，
- *   会对 TOS bucket 做一次 `headBucket` 轻量探测，不会读写对象
+ *   会对 TOS bucket 做一次 `headBucket` 轻量探测，不会读写对象；失败时
+ *   只返回固定错误码，不回传 SDK / connection error 文本
  * - 数据库检查只做一次最便宜的 `SELECT 1`（不读业务数据）
  *
  * 默认无需鉴权（便于 Nginx / 监控系统直接拉）。
@@ -26,87 +33,37 @@ import { getVideoProvider } from "@/lib/video-generation/providers";
 
 export const dynamic = "force-dynamic";
 
-interface HealthResponse {
-  ok: boolean;
-  region: string;
-  deploymentTarget: string;
-  aiProvider: string;
-  storageProvider: string;
-  videoProvider: string;
-  contentReviewProvider: string;
-  contentReviewEnabled: boolean;
-  paymentEnabled: boolean;
-  smsLoginEnabled: boolean;
-
-  database: "connected" | "failed" | "not_checked";
-  databaseError?: string;
-
-  /// 仅返回 configured / not_configured / not_checked，不返回 key
-  aiProviderStatus: "configured" | "not_configured";
-  storageProviderStatus: "configured" | "not_configured";
-  videoProviderStatus: "configured" | "not_configured" | "mock";
-
-  /// 实际探测结果（仅 ping 模式触发）
-  /// - reachable: 真实 ping 通过（TOS headBucket / Vercel Blob token 校验）
-  /// - failed: 探测失败，error 字段为脱敏后的短信息
-  /// - not_checked: 当前请求未触发探测（默认）
-  storage: "reachable" | "failed" | "not_checked";
-  storageError?: string;
-
-  /// 加拿大 / 北美 env 校验结果
-  envValidation: {
-    ok: boolean;
-    missing: string[];
-    warnings: string[];
-  };
-
-  appVersion: string | null;
-  timestamp: string;
-}
-
 async function checkDatabase(): Promise<{
   status: "connected" | "failed";
-  error?: string;
 }> {
   try {
     await db.$queryRaw`SELECT 1`;
     return { status: "connected" };
-  } catch (err) {
-    return {
-      status: "failed",
-      /// 错误信息可能包含 host：去除任何可能的 password 字段，但保留报错代号方便排查
-      error: sanitizeDbError((err as Error).message),
-    };
+  } catch {
+    return { status: "failed" };
   }
-}
-
-function sanitizeDbError(msg: string): string {
-  /// 1. 去 password=XXX
-  /// 2. 截断 host:port 长串
-  /// 3. 限制最长 300 字符
-  return msg
-    .replace(/password=[^&\s]+/gi, "password=***")
-    .replace(/:\/\/[^@]+@/g, "://***@")
-    .slice(0, 300);
 }
 
 async function pingStorage(
   storage: ReturnType<typeof getStorageProvider>,
-): Promise<{ status: "reachable" | "failed"; error?: string }> {
+): Promise<{
+  status: "reachable" | "failed";
+  error?: "storage_unreachable" | "storage_not_configured";
+}> {
   /// 当前仅 TOS provider 提供 pingBucket（headBucket 是免费且低延迟操作）
   /// Vercel Blob 没有等价 ping API，我们只能根据 token presence 推断 → 视为 reachable
   if (storage instanceof VolcengineTosStorageProvider) {
     const r = await storage.pingBucket();
     return r.ok
       ? { status: "reachable" }
-      : { status: "failed", error: (r.error ?? "unknown").slice(0, 120) };
+      : { status: "failed", error: "storage_unreachable" };
   }
   return storage.isConfigured()
     ? { status: "reachable" }
-    : { status: "failed", error: "not configured" };
+    : { status: "failed", error: "storage_not_configured" };
 }
 
-export async function GET(req: NextRequest) {
+async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
   const env = getAppEnv();
   const validation = validateDeploymentEnv(process.env);
 
@@ -121,14 +78,17 @@ export async function GET(req: NextRequest) {
   const [dbResult, storagePing] = await Promise.all([
     checkDatabase(),
     shouldPingStorage
-      ? pingStorage(storage).catch((err): { status: "failed"; error: string } => ({
+      ? pingStorage(storage).catch((): {
+          status: "failed";
+          error: "storage_unreachable";
+        } => ({
           status: "failed",
-          error: (err as Error).message.slice(0, 120),
+          error: "storage_unreachable",
         }))
       : Promise.resolve<{ status: "not_checked" }>({ status: "not_checked" }),
   ]);
 
-  const body: HealthResponse = {
+  return healthResponseSchema.parse({
     ok: dbResult.status === "connected" && validation.ok,
     region: env.region,
     deploymentTarget: env.deploymentTarget,
@@ -141,7 +101,9 @@ export async function GET(req: NextRequest) {
     smsLoginEnabled: env.smsLoginEnabled,
 
     database: dbResult.status,
-    databaseError: dbResult.error,
+    ...(dbResult.status === "failed"
+      ? { databaseError: "database_unreachable" as const }
+      : {}),
 
     aiProviderStatus: ai.isConfigured() ? "configured" : "not_configured",
     storageProviderStatus: storage.isConfigured() ? "configured" : "not_configured",
@@ -155,10 +117,11 @@ export async function GET(req: NextRequest) {
       "status" in storagePing
         ? storagePing.status
         : ("not_checked" as const),
-    storageError:
-      storagePing.status === "failed" && "error" in storagePing
-        ? storagePing.error
-        : undefined,
+    ...(storagePing.status === "failed" && "error" in storagePing
+      ? {
+          storageError: storagePing.error,
+        }
+      : {}),
 
     envValidation: {
       ok: validation.ok,
@@ -166,12 +129,24 @@ export async function GET(req: NextRequest) {
       warnings: validation.warnings,
     },
 
-    appVersion: process.env.npm_package_version ?? null,
+    appVersion: process.env.npm_package_version?.slice(0, 80) || null,
     timestamp: new Date().toISOString(),
-  };
+  });
+}
+
+export async function GET(req: NextRequest) {
+  let body: HealthResponse;
+  try {
+    body = await resolveHealth(req);
+  } catch (error) {
+    console.error("[health] probe failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+    });
+    body = unavailableHealthResponse();
+  }
 
   /// HTTP 状态：DB 通 + env 校验通过 → 200；否则 503（方便 Nginx upstream health 判定）
-  const status = body.ok ? 200 : 503;
+  const status = healthHttpStatus(body);
   return NextResponse.json(body, { status });
 }
 

@@ -9,6 +9,7 @@ import {
   FINAL_ACCEPTANCE_TEMPLATE_SLUG,
   RUN_STATE_PATH,
 } from "./fixture-data";
+import { assertFinalAcceptanceRehearsal } from "./rehearsal-safety";
 
 export {
   FINAL_ACCEPTANCE_EMAIL,
@@ -20,24 +21,9 @@ export {
 async function main() {
   const runId = process.env.FINAL_ACCEPTANCE_RUN_ID;
   if (!runId) throw new Error("缺少 FINAL_ACCEPTANCE_RUN_ID");
-  if (process.env.FINAL_ACCEPTANCE_REQUIRE_REHEARSAL === "true") {
-    const databaseUrl = process.env.DATABASE_URL;
-    const rehearsalDatabaseUrl = process.env.NEON_REHEARSAL_DATABASE_URL;
-    if (!databaseUrl || !rehearsalDatabaseUrl) {
-      throw new Error("最终验收缺少演练分支数据库配置");
-    }
-    if (databaseUrl !== rehearsalDatabaseUrl) {
-      throw new Error("最终验收 DATABASE_URL 必须与 NEON_REHEARSAL_DATABASE_URL 完全一致");
-    }
-  }
+  assertFinalAcceptanceRehearsal();
 
-  await mkdir(path.dirname(RUN_STATE_PATH), { recursive: true });
-  await writeFile(
-    RUN_STATE_PATH,
-    JSON.stringify({ runId, batchIds: [], seededAt: new Date().toISOString() }, null, 2),
-  );
-
-  await db.adminUser.upsert({
+  const acceptanceUser = await db.adminUser.upsert({
     where: { email: FINAL_ACCEPTANCE_EMAIL },
     update: {
       name: "Final Acceptance QA",
@@ -50,6 +36,69 @@ async function main() {
       userType: "PERSONAL",
       role: "OPERATOR",
       hashedPassword: await bcrypt.hash(FINAL_ACCEPTANCE_PASSWORD, 10),
+    },
+  });
+
+  // An interrupted rehearsal must not leave RUNNING mock jobs occupying every
+  // provider slot in the next run. Scope cleanup to the fixed QA account and
+  // disposable onboarding accounts on the `.invalid` test domain only.
+  const onboardingUsers = await db.adminUser.findMany({
+    where: {
+      AND: [
+        { email: { startsWith: "onboarding-" } },
+        { email: { endsWith: "@aivora.invalid" } },
+      ],
+    },
+    select: { id: true },
+  });
+  const cleanupUserIds = [
+    acceptanceUser.id,
+    ...onboardingUsers.map((user) => user.id),
+  ];
+  const cleanup = await db.$transaction(async (tx) => {
+    const batches = await tx.batchJob.deleteMany({
+      where: { userId: { in: cleanupUserIds } },
+    });
+    const orders = await tx.deliveryOrder.deleteMany({
+      where: { createdById: { in: cleanupUserIds } },
+    });
+    const onboardingAccounts =
+      onboardingUsers.length === 0
+        ? { count: 0 }
+        : await tx.adminUser.deleteMany({
+            where: { id: { in: onboardingUsers.map((user) => user.id) } },
+          });
+    return {
+      batches: batches.count,
+      orders: orders.count,
+      onboardingAccounts: onboardingAccounts.count,
+    };
+  });
+
+  await mkdir(path.dirname(RUN_STATE_PATH), { recursive: true });
+  await writeFile(
+    RUN_STATE_PATH,
+    JSON.stringify(
+      { runId, batchIds: [], seededAt: new Date().toISOString() },
+      null,
+      2,
+    ),
+  );
+  console.log(
+    JSON.stringify({
+      evt: "final_acceptance_orphan_cleanup",
+      deletedBatchCount: cleanup.batches,
+      deletedOrderCount: cleanup.orders,
+      deletedOnboardingAccountCount: cleanup.onboardingAccounts,
+    }),
+  );
+  await db.workspace.upsert({
+    where: { ownerId: acceptanceUser.id },
+    update: { planId: "studio", name: "Final Acceptance QA" },
+    create: {
+      ownerId: acceptanceUser.id,
+      planId: "studio",
+      name: "Final Acceptance QA",
     },
   });
 

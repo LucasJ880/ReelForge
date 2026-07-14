@@ -81,8 +81,20 @@ test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
   const current = await getBatch(page, batch.id);
   const timeout = current.videoJobs.find((job) => job.id === timeoutJob.id);
   const stalled = current.videoJobs.find((job) => job.id === stallJob.id);
-  expect(timeout?.errorMessage).toMatch(/^\[watchdog:timeout]/);
-  expect(stalled?.errorMessage).toMatch(/^\[watchdog:provider_stalled]/);
+  expect(timeout).not.toHaveProperty("errorMessage");
+  expect(stalled).not.toHaveProperty("errorMessage");
+  expect(timeout?.error?.code).toBe("PROVIDER_TIMEOUT");
+  expect(stalled?.error?.code).toBe("PROVIDER_TIMEOUT");
+  const internalReasons = await db.videoJob.findMany({
+    where: { id: { in: [timeoutJob.id, stallJob.id] } },
+    select: { id: true, errorMessage: true },
+  });
+  expect(
+    internalReasons.find((job) => job.id === timeoutJob.id)?.errorMessage,
+  ).toMatch(/^\[watchdog:timeout]/);
+  expect(
+    internalReasons.find((job) => job.id === stallJob.id)?.errorMessage,
+  ).toMatch(/^\[watchdog:provider_stalled]/);
 
   await page.goto(`/app/batches/${batch.id}`);
   await expect(page.getByText(/视频生成超时，已自动停止/)).toBeVisible();
@@ -141,7 +153,10 @@ test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async 
   await page.reload();
   await expect(page.getByText("生成中", { exact: true }).first()).toBeVisible();
   const halfState = await getBatch(page, batch.id);
-  expect(halfState.statusReason).toContain("半开");
+  expect(halfState.statusReason).toBeNull();
+  expect(
+    (await db.batchJob.findUnique({ where: { id: batch.id } }))?.statusReason,
+  ).toContain("半开");
 
   await batchServiceTest.applyBreaker(batch.id, open);
   await syncBatchCounts(batch.id);
@@ -158,5 +173,8 @@ test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async 
   await expect(page.getByText("生成中", { exact: true }).first()).toBeVisible();
   const resumed = await getBatch(page, batch.id);
   expect(resumed.status).toBe("RUNNING");
-  expect(resumed.statusReason).toContain("恢复");
+  expect(resumed.statusReason).toBeNull();
+  expect(
+    (await db.batchJob.findUnique({ where: { id: batch.id } }))?.statusReason,
+  ).toContain("恢复");
 });

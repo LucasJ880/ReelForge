@@ -76,8 +76,13 @@ export interface BatchJob {
   outputVideoUrl: string | null;
   outputThumbUrl: string | null;
   lastProgress: number | null;
-  errorMessage: string | null;
   userSafeError: string | null;
+  error: {
+    code: string;
+    message: string;
+    retryable: boolean;
+    action: string;
+  } | null;
   retryCount: number;
 }
 
@@ -302,6 +307,9 @@ test.beforeEach(async () => {
       user: { email: FINAL_ACCEPTANCE_EMAIL },
     },
   });
+  await db.userUsagePeriod.deleteMany({
+    where: { user: { email: FINAL_ACCEPTANCE_EMAIL } },
+  });
 });
 
 export { expect };
@@ -381,6 +389,7 @@ export async function createBatch(
     requestedCount: number;
     key: string;
     prefix?: string;
+    expectedStatus?: 200 | 201;
   },
 ): Promise<Batch> {
   const template = await getAcceptanceTemplate(page);
@@ -402,7 +411,7 @@ export async function createBatch(
       },
     },
   );
-  expect(result.status, result.text).toBe(201);
+  expect(result.status, result.text).toBe(args.expectedStatus ?? 201);
   expect(result.body.batch, "创建批次响应必须包含 batch").toBeDefined();
   await registerBatch(result.body.batch!.id);
   return result.body.batch!;

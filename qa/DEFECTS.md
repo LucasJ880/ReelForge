@@ -496,13 +496,13 @@
 ### RF-039 — Phase 0 browser evidence retained expired signed TOS URLs
 
 - Severity: **P0 — repository credential-hygiene and release blocker**
-- Status: **FIXED — sanitized history push and credential disposition remain**
+- Status: **FIXED — sanitized history push accepted; credential disposition remains**
 - Reproduction: push the H2 release branch. GitHub Push Protection rejects the branch because `qa/evidence/phase0-route-scan.json` in an early commit contains Beijing TOS pre-signed URLs with a credential identifier and request signatures.
 - Root cause: the cold-load audit persisted complete failed network request URLs instead of normalizing query credentials before serializing evidence.
 - Impact: signed bearer URLs were retained in local Git history and the release branch could not be pushed. The observed URLs are expired, but any still-active access-key pair must be treated according to the human credential-rotation process.
 - Required regression: repository evidence contains no TOS credential/signature markers or access-key identifiers; every H2-only commit is rebuilt from the clean `origin/main` base; GitHub Push Protection accepts the sanitized branch.
 - Repair: all affected evidence URLs were replaced by a non-routable redaction marker, a regression test was added, 78 H2-only commits were deterministically rebuilt with the redacted blob, and tracked QA commit references were mapped to the rewritten graph.
-- Verification: JSON integrity and the focused redaction regression pass; the rewritten graph contains zero `X-Tos-Credential` markers in the affected artifact. Remote Push Protection acceptance and human confirmation that the historical VolcEngine credential is revoked/rotated are still pending, so the defect remains FIXED.
+- Verification: JSON integrity and the focused redaction regression pass; the rewritten graph contains zero `X-Tos-Credential` markers in the affected artifact. GitHub Push Protection accepted `origin/codex/h2-ui-unification` after rejecting the unsanitized graph. Human confirmation that the historical VolcEngine credential is revoked/rotated is still pending, so the defect remains FIXED.
 - Evidence: `qa/evidence/h2/history-rewrite-2026-07-14.md`; `qa/evidence/h2/history-rewrite-map.json`; `tests/qa-evidence-secret-redaction.test.ts`.
 - Repair commit: rewritten `5b492a3` plus the pending audit-reference commit.
 

@@ -49,4 +49,13 @@
 - Reproduction: the first branch push was rejected by GitHub Push Protection because a Phase 0 network-failure artifact had retained expired signed Beijing TOS URLs.
 - Repair: redacted 20 affected URLs, added a regression that forbids the TOS host/credential/signature/access-key patterns, rebuilt all 78 H2-only commits from `origin/main`, and updated QA references to the rewritten commit graph.
 - Evidence: focused redaction test 1/1 and JSON parsing pass; deterministic commit map and procedure are archived under `qa/evidence/h2/`.
-- Stop condition: production remains untouched. RF-039 cannot become VERIFIED until the sanitized branch is accepted remotely and the historical VolcEngine credential is confirmed revoked or rotated if it remains active.
+- Remote evidence: GitHub accepted the rebuilt `codex/h2-ui-unification` graph after Push Protection rejected the unsanitized graph.
+- Stop condition: production remains untouched. RF-039 cannot become VERIFIED until the historical VolcEngine credential is confirmed revoked or rotated if it remains active.
+
+## H2 · Iteration 5 — production deploy stop audit
+
+- Date: 2026-07-14.
+- Read-only findings: the current production deployment is healthy but still reports the old mock video runtime; four migrations are pending, including both RF-019 migrations in dependency-inverted order; the locally named production owner URL resolves to a pooled endpoint; Vercel Production remains on Node 24.x while the repository declares Node 22.x.
+- Release candidate evidence: the sanitized branch push produced Ready Preview deployment `dpl_9UY2b1A8rGbAHdjXf2iPgVERSdmN`, but its protected health probe fails closed because Preview lacks its database and real BytePlus configuration. It is build evidence, not an operations-test environment.
+- Decision: do not push or promote `main`. A Git-triggered deploy would place schema-dependent code on the old schema because the Vercel build does not run migrations, and an ordinary migration deploy would fail on RF-019.
+- Scope guard: read-only Vercel/health/migration inspection only; 0 production database writes, 0 environment mutations, 0 provider calls.

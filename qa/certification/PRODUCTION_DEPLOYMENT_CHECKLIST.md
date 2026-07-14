@@ -2,7 +2,7 @@
 
 - Owner: human release operator
 - Prepared: 2026-07-14 (America/Toronto)
-- Agent authority: preparation and verification only; **no production deploy and no real provider call**
+- Agent authority: human-authorized execution under the stop conditions below; **no real provider call**. A matched stop condition still ends execution before production mutation.
 - Release prerequisite commits: `7860985`, `2dded10`, `5b713b9`, and `419bb12`
 
 ## Stop conditions

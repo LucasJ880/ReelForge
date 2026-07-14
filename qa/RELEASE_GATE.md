@@ -60,6 +60,7 @@
 - Phase 4 human visual approval and deferred color decision: `qa/evidence/phase34/phase4-human-visual-approval.md`
 - Gate C0 dependency status: `qa/certification/GATE_C0.md`
 - Human production deployment and rollback checklist: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`
+- H2 production stop audit: `qa/evidence/h2/production-deploy-stop-2026-07-14.md`
 
 ## Rollback plan (draft; to validate in release phase)
 

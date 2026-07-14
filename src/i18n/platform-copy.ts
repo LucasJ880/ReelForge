@@ -15,6 +15,7 @@ const zh = {
     errorCode: "错误编号",
     areas: {
       create: "创作工作台",
+      createImages: "产品图工作台",
       batches: "批次列表",
       batchDetail: "批次详情",
       racing: "投放与赛马",
@@ -253,6 +254,7 @@ const en: CopyShape<typeof zh> = {
     errorCode: "Error code",
     areas: {
       create: "Creation studio",
+      createImages: "Product image studio",
       batches: "Batch list",
       batchDetail: "Batch detail",
       racing: "Campaign racing",

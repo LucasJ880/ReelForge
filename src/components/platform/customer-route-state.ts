@@ -1,5 +1,6 @@
 export type CustomerRouteId =
   | "create"
+  | "createImages"
   | "batches"
   | "batchDetail"
   | "racing"
@@ -8,6 +9,7 @@ export type CustomerRouteId =
 
 export const CUSTOMER_ROUTE_FALLBACKS = {
   create: "/app/create",
+  createImages: "/app/create",
   batches: "/app/create",
   batchDetail: "/app/batches",
   racing: "/app/create",

@@ -79,3 +79,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Commit: `d82a8f4`.
 - Evidence: `qa/evidence/phase34/iteration-3.7-auth-route-boundaries.md`.
 - New dependencies: none.
+
+## Iteration 3.8 — Public and internal route-group states
+
+- Date: 2026-07-14
+- Scope: Phase 3 all-route state coverage
+- Reproduction: focused source regression failed 2/2 because both route groups lacked explicit loading/error boundaries.
+- Work: added shared token-based loading and retryable error surfaces; wired only public and internal route groups; retained their approved light topology and i18n.
+- Regression: focused 2/2; typecheck/lint/build green; golden `gp-1784041415031-34e2254f` green.
+- Commit: `b560661`.
+- Evidence: `qa/evidence/phase34/iteration-3.8-public-internal-route-boundaries.md`.
+- New dependencies: none.

@@ -6,6 +6,7 @@ export type CustomerRouteId =
   | "batchDetail"
   | "racing"
   | "library"
+  | "libraryDetail"
   | "templates";
 
 export const CUSTOMER_ROUTE_FALLBACKS = {
@@ -16,5 +17,6 @@ export const CUSTOMER_ROUTE_FALLBACKS = {
   batchDetail: "/app/batches",
   racing: "/app/create",
   library: "/app/create",
+  libraryDetail: "/app/library",
   templates: "/app/create",
 } as const satisfies Record<CustomerRouteId, string>;

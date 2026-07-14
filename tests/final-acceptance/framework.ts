@@ -226,9 +226,50 @@ function instrumentEvidencePage(
 }
 
 export const test = base.extend<{
+  acceptanceIsolation: void;
   evidence: EvidenceCollector;
   evidenceAuto: void;
 }>({
+  acceptanceIsolation: [
+    async ({}, provide) => {
+      const runId = process.env.FINAL_ACCEPTANCE_RUN_ID;
+      if (!runId) {
+        throw new Error("Final Acceptance 缺少 FINAL_ACCEPTANCE_RUN_ID");
+      }
+
+      const account = await db.adminUser.findUnique({
+        where: { email: FINAL_ACCEPTANCE_EMAIL },
+        select: { id: true },
+      });
+      if (!account) {
+        throw new Error("Final Acceptance 验收账号尚未种子化");
+      }
+
+      await db.$transaction(async (tx) => {
+        await tx.batchJob.deleteMany({
+          where: {
+            idempotencyKey: { startsWith: runId },
+            userId: account.id,
+          },
+        });
+        await tx.userUsagePeriod.deleteMany({
+          where: { userId: account.id },
+        });
+      });
+
+      const remainingUsage = await db.userUsagePeriod.count({
+        where: { userId: account.id },
+      });
+      if (remainingUsage !== 0) {
+        throw new Error(
+          `Final Acceptance 用量隔离失败：仍有 ${remainingUsage} 条聚合记录`,
+        );
+      }
+
+      await provide();
+    },
+    { auto: true },
+  ],
   evidence: async ({ page, context }, provide) => {
     const evidence: EvidenceCollector = {
       console: [],
@@ -296,20 +337,6 @@ export const test = base.extend<{
     },
     { auto: true },
   ],
-});
-
-test.beforeEach(async () => {
-  const runId = process.env.FINAL_ACCEPTANCE_RUN_ID;
-  if (!runId) return;
-  await db.batchJob.deleteMany({
-    where: {
-      idempotencyKey: { startsWith: runId },
-      user: { email: FINAL_ACCEPTANCE_EMAIL },
-    },
-  });
-  await db.userUsagePeriod.deleteMany({
-    where: { user: { email: FINAL_ACCEPTANCE_EMAIL } },
-  });
 });
 
 export { expect };

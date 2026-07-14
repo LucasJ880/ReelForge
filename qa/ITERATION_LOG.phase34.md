@@ -90,3 +90,15 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Commit: `b560661`.
 - Evidence: `qa/evidence/phase34/iteration-3.8-public-internal-route-boundaries.md`.
 - New dependencies: none.
+
+## Iteration 3.9 — RF-021 immediate rollback of customer-detail boundaries
+
+- Date: 2026-07-14
+- Defect: RF-021 (P0, golden network invariant)
+- Attempt: added three customer-detail route loading/error pairs as one uncommitted bundle; focused 2/2, typecheck/lint/build green.
+- Failure: golden `gp-1784041620850-0134270e` failed on one aborted Next.js JavaScript chunk request. The unchanged continuity probe itself reported 0 blank frames.
+- Required response: atomically removed the three-route product/test bundle; no assertion or tolerance changed.
+- Rollback verification: baseline golden `gp-1784041708036-a861c1fa` passed.
+- Ledger: RF-021 opened and moved to VERIFIED by rollback; future routes must be introduced one at a time.
+- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`.
+- New dependencies: none.

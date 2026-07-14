@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 12 · P1 OPEN 0 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 13 · P1 OPEN 0 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -265,6 +265,17 @@
 - Verification: rollback run `gp-1784040809734-ab04b4a7` passes the full golden journey with the original zero-blank-frame assertion. Working tree returned to the last committed Phase 3/4 baseline apart from the pre-existing external `qa/ITERATION_LOG.md` truncation and the two golden evidence runs.
 - Follow-up isolation: auth-only route boundaries were subsequently introduced in repair commit `d82a8f4`. Golden run `gp-1784041162146-48d1317e` passed with the unchanged zero-blank-frame assertion, proving this boundary can be retained safely before the remaining route groups are reintroduced.
 - Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784040695799-839af69f.json`, `qa/evidence/phase1/golden-path-gp-1784040809734-ab04b4a7.json`.
+- Repair commit: rollback contained no product commit; evidence commit recorded separately.
+
+### RF-021 — Customer-detail route-state bundle triggered a golden network failure
+
+- Severity: **P0 — golden-path network invariant regression**
+- Status: **VERIFIED — offending iteration rolled back**
+- Reproduction: add loading/error boundaries for `/app/create/images`, `/app/batches/new`, and `/app/library/[id]` as one iteration, then run the unchanged golden path. Run `gp-1784041620850-0134270e` observed one aborted Next.js JavaScript chunk request and failed at the final network assertion.
+- Impact: retaining any iteration after a red golden path would violate the permanent Phase 1 invariant, even though this run reported 0 blank frames and completed the product workflow.
+- Repair: atomically removed all uncommitted product, copy/type, and test changes from that iteration. No assertion, allowlist, tolerance, retry, provider, or deployment setting changed.
+- Verification: baseline run `gp-1784041708036-a861c1fa` passed the full golden journey after rollback. The three customer-detail boundaries remain pending and must be introduced one route per iteration.
+- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784041620850-0134270e.json`, `qa/evidence/phase1/golden-path-gp-1784041708036-a861c1fa.json`.
 - Repair commit: rollback contained no product commit; evidence commit recorded separately.
 
 ## Seed hypotheses not opened as defects

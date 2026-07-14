@@ -8,6 +8,8 @@ import {
 import { metricsRowSchema } from "@/lib/validators";
 
 export async function GET() {
+  const guard = await requireOperator();
+  if (!guard.ok) return guard.response;
   return new NextResponse(METRICS_CSV_TEMPLATE, {
     headers: {
       "Content-Type": "text/csv",

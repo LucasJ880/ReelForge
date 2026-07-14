@@ -212,3 +212,15 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Repair commit: `3a34a21`.
 - Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
 - New dependencies: none.
+
+## Iteration 3.20 — RF-026 font network budget
+
+- Date: 2026-07-14
+- Defect: RF-026 (P0 mobile final-acceptance and network-invariant blocker)
+- Reproduction: global multi-family/multi-weight CJK webfonts competed with functional requests under Slow 3G and were aborted on navigation; P6/J8 failed and J2 sampling was starved in the first full run.
+- Work: retained four role-defining Latin `next/font` families and replaced downloadable CJK families with explicit platform CJK fallbacks in the token source.
+- Regression: design audit 3/3; optimized build; mobile P6/J8/J2 each setup + journey 2/2; unchanged golden `gp-1784047054103-01af2a53` green.
+- Ledger: RF-026 `OPEN → VERIFIED`.
+- Repair commit: `60ab8ea`.
+- Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
+- New dependencies: none; package bundle impact 0 bytes and downloaded font payload reduced.

@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 14 · P1 OPEN 0 · P1 VERIFIED 9 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 15 · P1 OPEN 0 · P1 VERIFIED 9 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -325,6 +325,17 @@
 - Verification: shared route-state regression 6/6; optimized build; focused Final Acceptance J8 desktop setup + journey 2/2 under Slow 3G and the configured 30-second monitor delay, run `fa-1784046542905-9a7c8a52`; unchanged golden `gp-1784046710814-9748fc44` passes.
 - Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
 - Repair commit: `3a34a21`
+
+### RF-026 — Global CJK webfont payload blocks mobile onboarding and aborts on navigation
+
+- Severity: **P0 — mobile final-acceptance and network-invariant blocker**
+- Status: **VERIFIED**
+- Reproduction: run Final Acceptance mobile P6/J8 on the optimized build. The root layout requests six global font families, including multi-weight Noto Sans SC and Noto Serif SC payloads. Under Slow 3G, J8 cannot reach its template action inside 30 seconds; P6 records four aborted WOFF2 requests when navigation cancels still-pending fonts. The same resource contention reduced J2's five-second status sample count in the first full run.
+- Root cause: downloadable CJK families and weights were applied to every surface at the document root, although the approved typography contract permits an explicit Chinese system fallback. The payload competes with functional RSC/data requests and survives across route transitions long enough to be cancelled.
+- Repair: keep the four role-defining Latin `next/font` families and replace downloadable Noto SC families with explicit macOS/Windows/Linux CJK sans/serif system fallbacks in the single token source. Theme topology and font roles remain unchanged.
+- Verification: design-system audit 3/3 and optimized build pass; focused Final Acceptance mobile P6 2/2 (`fa-1784046862464-cbce87da`), J8 2/2 (`fa-1784046907181-1ef340f2`), and J2 2/2 (`fa-1784047003719-ac2aed1c`) pass with unchanged assertions; golden `gp-1784047054103-01af2a53` passes.
+- Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
+- Repair commit: `60ab8ea`
 
 ## Seed hypotheses not opened as defects
 

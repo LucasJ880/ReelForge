@@ -57,11 +57,15 @@ test("RF-012 shared route states are accessible, retryable, and bilingual", asyn
   assert.match(loading, /data-route-state="loading"/);
   assert.match(loading, /role="status"/);
   assert.match(loading, /motion-reduce:animate-none/);
+  assert.match(loading, /route === "batches" \|\| route === "batchDetail"/);
+  assert.match(loading, /aria-label=\{copy\.batchProgress\}/);
   assert.match(error, /data-route-state="error"/);
   assert.match(error, /role="alert"/);
   assert.match(error, /onClick=\{reset\}/);
   assert.match(copy, /暂时无法加载/);
   assert.match(copy, /temporarily unavailable/i);
+  assert.match(copy, /batchProgress: "批次总进度"/);
+  assert.match(copy, /batchProgress: "Batch progress"/);
 });
 
 test("RF-012 customer routes expose successful empty states separately from errors", async () => {

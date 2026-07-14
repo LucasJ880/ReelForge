@@ -8,6 +8,7 @@ const zh = {
   },
   routeStates: {
     loading: "正在加载{area}…",
+    batchProgress: "批次总进度",
     errorTitle: "{area}暂时无法加载",
     errorBody: "这是服务故障，不是空数据。请重试；如果问题持续，请联系支持并附上错误编号。",
     retry: "重试",
@@ -249,6 +250,7 @@ const en: CopyShape<typeof zh> = {
   shell: { home: "Aivora home", privacy: "Privacy", terms: "Terms" },
   routeStates: {
     loading: "Loading {area}…",
+    batchProgress: "Batch progress",
     errorTitle: "{area} is temporarily unavailable",
     errorBody: "This is a service failure, not an empty result. Retry now; if it continues, contact support with the error code.",
     retry: "Retry",

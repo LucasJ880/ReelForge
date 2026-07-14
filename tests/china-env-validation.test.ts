@@ -81,6 +81,60 @@ test("validateDeploymentEnv: NA mock 配置齐全 → ok=true", () => {
   assert.equal(r.ok, true);
 });
 
+test("validateDeploymentEnv: Vercel production 禁止 mock 视频 runtime", () => {
+  const r = validateDeploymentEnv({
+    DATABASE_URL: "postgresql://x:y@host/db",
+    AUTH_SECRET: "secret",
+    APP_BASE_URL: "https://aivora.example",
+    VERCEL_ENV: "production",
+    VIDEO_PROVIDER: "byteplus",
+    VIDEO_ENGINE_MOCK: "true",
+    ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+  } as EnvMap);
+  assert.equal(r.ok, false);
+  assert.ok(r.missing.some((m) => /production.*mock/i.test(m)));
+});
+
+test("validateDeploymentEnv: Vercel production 即使 dry-run 也不能伪装成 rehearsal", () => {
+  const r = validateDeploymentEnv({
+    DATABASE_URL: "postgresql://x:y@host/db",
+    AUTH_SECRET: "secret",
+    APP_BASE_URL: "https://aivora.example",
+    VERCEL_ENV: "production",
+    AIVORA_DRY_RUN: "1",
+    VIDEO_PROVIDER: "mock",
+    VIDEO_ENGINE_MOCK: "true",
+  } as EnvMap);
+  assert.equal(r.ok, false);
+  assert.ok(r.missing.some((m) => /production.*mock/i.test(m)));
+});
+
+test("validateDeploymentEnv: Vercel preview 显式 mock 仍可用于演练", () => {
+  const r = validateDeploymentEnv({
+    DATABASE_URL: "postgresql://x:y@host/db",
+    AUTH_SECRET: "secret",
+    APP_BASE_URL: "https://preview.aivora.example",
+    VERCEL_ENV: "preview",
+    AIVORA_DRY_RUN: "1",
+    VIDEO_PROVIDER: "mock",
+    VIDEO_ENGINE_MOCK: "true",
+  } as EnvMap);
+  assert.equal(r.ok, true);
+});
+
+test("validateDeploymentEnv: 本地 optimized server + 显式 dry-run 仍可用于金路径", () => {
+  const r = validateDeploymentEnv({
+    DATABASE_URL: "postgresql://x:y@host/db",
+    AUTH_SECRET: "secret",
+    APP_BASE_URL: "http://localhost:3120",
+    NODE_ENV: "production",
+    AIVORA_DRY_RUN: "1",
+    VIDEO_PROVIDER: "mock",
+    VIDEO_ENGINE_MOCK: "true",
+  } as EnvMap);
+  assert.equal(r.ok, true);
+});
+
 test("validateDeploymentEnv: CONTENT_REVIEW_ENABLED=true + noop 应给警告", () => {
   const r = validateDeploymentEnv({
     DATABASE_URL: "postgresql://x:y@host/db",

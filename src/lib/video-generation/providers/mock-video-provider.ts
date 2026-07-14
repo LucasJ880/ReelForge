@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { assertMockVideoRuntimeAllowed } from "@/lib/config/env";
 import { generateMockClip } from "@/lib/video-generation/mock-clip-generator";
 import { normalizeStatusBuiltin } from "./types";
 import type {
@@ -120,6 +121,7 @@ export class MockVideoProvider implements VideoProvider {
   async createVideoJob(
     options: CreateVideoJobOptions,
   ): Promise<CreateVideoJobResult> {
+    assertMockVideoRuntimeAllowed();
     const seed = (options.seed ?? 0) & 0x7fffffff;
     const payload: EncodedMockJob = {
       c: Date.now(),
@@ -140,6 +142,7 @@ export class MockVideoProvider implements VideoProvider {
   async getVideoJobStatus(
     providerJobId: string,
   ): Promise<VideoJobStatusResult> {
+    assertMockVideoRuntimeAllowed();
     const job = decodeJob(providerJobId);
     const elapsed = Date.now() - job.c;
     const createdSec = Math.floor(job.c / 1000);
@@ -207,6 +210,7 @@ export class MockVideoProvider implements VideoProvider {
     supported: boolean;
     cancelled?: boolean;
   }> {
+    assertMockVideoRuntimeAllowed();
     return { supported: true, cancelled: true };
   }
 

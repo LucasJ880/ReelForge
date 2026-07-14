@@ -74,7 +74,7 @@ Middleware provides public/session boundaries. Phase 0 statically reviewed the e
 
 | Endpoint group | Inventory reference | Phase 0 health | Finding |
 |---|---|---|---|
-| Public/auth/health/intake/webhook | Detailed tables below | HEALTHY static boundary | Dynamic schema contracts deferred to Phase 2 |
+| Public/auth/health/intake/webhook | Detailed tables below | HEALTHY static boundary | Production health/mock invariant dynamically verified in RF-001; remaining schemas continue in Phase 2 |
 | Customer/account/creative/batch/image/racing/report | Detailed tables below | DEGRADED | Guard/ownership patterns present; provider retry billing ambiguity is RF-003 |
 | Operator/admin/order/round/QA/publish/report | Detailed tables below | DEGRADED | Guards present; legacy persona can pre-empt staff role (RF-008) |
 | Cron/external runner | 8 route files | BLOCKED | All eight files authenticate only when `CRON_SECRET` exists (RF-002) |
@@ -88,7 +88,7 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 |---|---|---|---|
 | GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | PENDING |
 | POST | `/api/auth/register` | Public, rate-limited | PENDING |
-| GET, HEAD | `/api/health` | Public, sanitized | PENDING |
+| GET, HEAD | `/api/health` | Public, sanitized | VERIFIED: production mock makes deployment validation unhealthy; runtime task paths also reject |
 | GET | `/api/me/usage` | Session | PENDING |
 | POST | `/api/billing/checkout` | Session | PENDING |
 | POST | `/api/upload/blob` | Session | PENDING |
@@ -313,6 +313,6 @@ Design/implementation mismatch: claim is compare-and-swap, but completion carrie
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 6 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 3 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 5 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 4 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
 
 **Phase 1 automated exit criteria were approved; release remains blocked.** Phase 2 is active. Its first mandatory golden-path regression exposed and verified RF-017 without changing any production limit.

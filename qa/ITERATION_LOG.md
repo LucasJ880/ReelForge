@@ -100,3 +100,13 @@
 - Verification: network-identity regression 1/1, typecheck, focused lint, and independent optimized golden run `gp-1784001316316-a8fd60a5` pass.
 - Ledger change: RF-017 opened and VERIFIED; RF-001 remains OPEN with the rolled-back attempt recorded.
 - Evidence: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
+
+## Phase 2 · Iteration 2.1 — RF-001 production mock fail-closed
+
+- Date: 2026-07-13
+- Reproduction: Vercel Production validation accepted `VIDEO_ENGINE_MOCK=true`, and both the unified Mock provider and legacy Seedance entry created mock jobs in that runtime.
+- Repair: added one shared production/runtime classifier, validation failure, and runtime backstops on all mock create/status/cancel branches. Production always refuses mock; Preview and explicit local rehearsal remain supported.
+- Regression: production validation (including dry-run), unified Mock provider, legacy Seedance path, Preview rehearsal, existing dry-run fuse, and historical quarantine.
+- Verification: 31/31 focused tests, typecheck, focused lint, optimized build, and mandatory golden run `gp-1784001583006-1ca10477` pass.
+- Ledger change: RF-001 `OPEN → VERIFIED`; P0 OPEN count 6 → 5.
+- Evidence: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`.

@@ -19,6 +19,7 @@
  */
 
 import { isDryRun } from "@/lib/config/dry-run";
+import { assertMockVideoRuntimeAllowed } from "@/lib/config/env";
 
 export interface SeedanceSubmitOptions {
   prompt: string;
@@ -179,7 +180,10 @@ export function isSeedanceConfigured(): boolean {
 export async function submitSeedanceJob(
   options: SeedanceSubmitOptions,
 ): Promise<{ jobId: string }> {
-  if (isMockMode()) return submitMock(options);
+  if (isMockMode()) {
+    assertMockVideoRuntimeAllowed();
+    return submitMock(options);
+  }
   return submitReal(options);
 }
 
@@ -217,7 +221,10 @@ export async function submitSeedanceJobResilient(
 export async function getSeedanceStatus(
   jobId: string,
 ): Promise<SeedanceJobResult> {
-  if (isMockMode() || jobId.startsWith("mock_")) return getStatusMock(jobId);
+  if (isMockMode() || jobId.startsWith("mock_")) {
+    assertMockVideoRuntimeAllowed();
+    return getStatusMock(jobId);
+  }
   return getStatusReal(jobId);
 }
 

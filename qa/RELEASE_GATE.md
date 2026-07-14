@@ -3,7 +3,7 @@
 - Gate owner: human release approver
 - Audit revision: Phase 2 iteration `825efe9`
 - Current stage: Phase 2 backend hardening in progress
-- Current verdict: **NOT RELEASE-READY — 6 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
+- Current verdict: **NOT RELEASE-READY — 5 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
 
 ## Phase gates
 
@@ -23,12 +23,12 @@
 
 - [ ] Golden-path E2E passes five consecutive independent runs. Phase 1 recorded four consecutive passes; Phase 2 restarted the consecutive counter after a rolled-back RF-001 attempt and now has one pass with run-isolated rate limiting. Evidence: `qa/evidence/phase1-verification.md`, `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
 - [ ] Full test suite passes with no newly added skip/xfail and all required DB integration tests enabled. Current: 662/663 pass, 1 pre-existing conditional DB integration skip.
-- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: 6 P0 OPEN + 1 P0 FIXED pending full verification; 5 P1 OPEN.
+- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: 5 P0 OPEN + 1 P0 FIXED pending full verification; 5 P1 OPEN.
 - [ ] Every route has console error = 0 in representative populated, empty, loading, and error states. Current limitation: `/app/batches/[id]` lacked representative rehearsal data.
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.
 - [ ] Human disposition recorded for remaining P2/P3. Current: none opened.
-- [ ] Production health reports a real provider only after the explicit budget/provider gate. Current: `videoProviderStatus=mock` (RF-001).
+- [ ] Production health reports a real provider only after the explicit budget/provider gate. Local release code now fails closed for production mock (RF-001 VERIFIED); redeployed production evidence remains required.
 - [ ] Queue scheduler cadence is measured and meets the release SLO (RF-005).
 - [ ] Final-acceptance Playwright exits 0 including teardown (RF-006). Import-time crash is fixed and regression-tested; full original configuration remains to run.
 
@@ -47,6 +47,7 @@
 - Phase 1 per-run JSON: `qa/evidence/phase1/golden-path-*.json`
 - Phase 1 completed-video screenshots: `qa/screenshots/phase1/*/completed-video.png`
 - Phase 2 golden-invariant recovery: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`
+- Phase 2 production-mock guard: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`
 
 ## Rollback plan (draft; to validate in release phase)
 

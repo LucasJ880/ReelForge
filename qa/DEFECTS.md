@@ -3,7 +3,7 @@
 - Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
 - Last updated: 2026-07-13 (America/Toronto)
 - Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 6 · P0 FIXED 1 · P0 VERIFIED 3 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 5 · P0 FIXED 1 · P0 VERIFIED 4 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -14,14 +14,17 @@
 ### RF-001 — Production reports mock video runtime
 
 - Severity: **P0 — delivery blocker**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: none; production invariant
 - Reproduction: `GET https://reelforge-delta.vercel.app/api/health` on 2026-07-13 returned `videoProvider: "byteplus"` and `videoProviderStatus: "mock"`.
 - Evidence: `qa/evidence/production-health-2026-07-13.json`
 - Impact: a production customer can enter a path that produces rehearsal output rather than paid provider output. This violates the ship-loop rule that mock is available only under an explicit test/rehearsal deployment.
 - Required regression: production configuration test must reject mock mode; preview/rehearsal must remain explicitly allowed.
-- Repair attempts: **1/3 rolled back**. Attempt 1 added health/runtime guards and passed 31 focused tests, but the mandatory golden-path run ended with one provider job FAILED. Per the golden-path invariant the entire product/test change was immediately rolled back before any other defect work. Evidence: `qa/evidence/phase1/golden-path-gp-1784001035053-52c5af59.json`. The subsequent baseline run exposed separate rehearsal rate-limit pollution (RF-017), so attempt 2 must rerun against the now-isolated fixture before assigning causality.
-- Repair commit: —
+- Repair attempts: Attempt 1 was rolled back when its mandatory golden run ended with one FAILED provider job. That run was later shown to share polluted rehearsal identity state (RF-017). Attempt 2 ran against an isolated preview identity and passed.
+- Repair: production runtime detection now rejects every effective video-mock configuration in deployment validation and directly in both unified and legacy mock task paths. Vercel Production can never be reclassified as rehearsal by `AIVORA_DRY_RUN`; Vercel Preview and explicit local dry-run remain available.
+- Verification: 31/31 focused safety tests, typecheck, lint, optimized build, and golden run `gp-1784001583006-1ca10477` pass. Production redeploy/health evidence remains a final release-gate check, not a code-regression gap.
+- Evidence: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`.
+- Repair commit: pending Phase 2 iteration commit
 
 ### RF-002 — Cron and external-runner endpoints fail open when `CRON_SECRET` is absent
 

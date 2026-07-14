@@ -7,7 +7,7 @@
 
 ## Phase gates
 
-- [x] Phase 0 — 33/33 routes and 70/70 API route files inventoried.
+- [x] Phase 0 — 33/33 routes and 71/71 API route files inventoried; H1 corrected the previously omitted stitch-dispatch route.
 - [x] Phase 0 — background executors and all three video state machines traced.
 - [x] Phase 0 — supplied recording and S-01 through S-07 concluded.
 - [x] Phase 0 — route screenshots and machine-readable cold-load evidence captured.

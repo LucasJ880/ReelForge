@@ -68,7 +68,7 @@ Canonical raw evidence: `qa/evidence/phase0-route-scan.json`. Screenshots are re
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary | `src/app/error.tsx` | STATIC VERIFIED; no route-level boundaries (RF-012) |
 
-## API endpoint inventory (70/70 route files)
+## API endpoint inventory (71/71 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -77,7 +77,7 @@ Middleware provides public/session boundaries. Phase 0 statically reviewed the e
 | Public/auth/health/intake/webhook | Detailed tables below | HEALTHY static boundary | Production health/mock invariant dynamically verified in RF-001; remaining schemas continue in Phase 2 |
 | Customer/account/creative/batch/image/racing/report | Detailed tables below | DEGRADED | Provider submit/retry idempotency is dynamically verified; response schemas and remaining customer error classes are still pending |
 | Operator/admin/order/round/QA/publish/report | Detailed tables below | DEGRADED | Guards present; legacy persona can pre-empt staff role (RF-008) |
-| Cron/external runner | 8 route files | HEALTHY at authentication depth | Missing secret → sanitized 503; wrong bearer → 401; guard runs before all side effects (RF-002 VERIFIED) |
+| Cron/external runner | 9 route files | HEALTHY at authentication depth | Missing secret → sanitized 503; wrong bearer → 401; guard runs before all side effects (RF-002 VERIFIED); stitch-dispatch response schema remains in H1 |
 | Digital-human customer surface | 4 route files | HEALTHY | Feature flag returns sealed 404 for every plan |
 
 The detailed inventory below keeps `PENDING` in the “Contract audit” column to mean **dynamic Phase 2 contract execution not yet performed**. It does not mean the Phase 0 route inventory is incomplete.
@@ -181,6 +181,7 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 | GET, POST | `/api/cron/process-batches` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/poll-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/stitch-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/cron/stitch-dispatch` | `CRON_SECRET` | PARTIAL: auth fail-closed verified; success/error response schema pending H1 |
 | GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
@@ -297,7 +298,7 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 ## Phase 0 completion checklist
 
 - [x] 33/33 frontend page routes enumerated.
-- [x] 70/70 API route files and HTTP methods enumerated.
+- [x] 71/71 API route files and HTTP methods enumerated; an executable inventory regression prevents future route drift.
 - [x] Background executor entry points enumerated at filename/trigger level.
 - [x] Endpoint authorization statically reviewed; dynamic schema contracts explicitly routed to Phase 2.
 - [x] Video/batch/final-video legal transitions verified against implementation.

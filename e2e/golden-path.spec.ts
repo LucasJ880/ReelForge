@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { mkdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
@@ -173,10 +174,12 @@ test("golden path: register, login, create, mock complete, preview, and download
   await test.step("simulate the external stitch runner claim and authenticated completion", async () => {
     const finalVideoId = renderSummary?.finalVideo?.id;
     expect(finalVideoId).toBeTruthy();
+    const attemptToken = randomUUID();
     const claim = await db.finalVideo.updateMany({
       where: { id: finalVideoId, status: FinalVideoStatus.PENDING },
       data: {
         status: FinalVideoStatus.STITCHING,
+        stitchAttemptToken: attemptToken,
         startedAt: new Date(),
         ffmpegError: null,
       },
@@ -189,7 +192,7 @@ test("golden path: register, login, create, mock complete, preview, and download
         authorization: `Bearer ${process.env.CRON_SECRET}`,
         "content-type": "application/json",
       },
-      data: { finalVideoId, stitchedVideoUrl: fixtureUrl },
+      data: { finalVideoId, attemptToken, stitchedVideoUrl: fixtureUrl },
     });
     expect(completion.status(), await completion.text()).toBe(200);
     expect((await completion.json()).ok).toBe(true);

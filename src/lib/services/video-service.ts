@@ -314,6 +314,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         stitchedVideoUrl: null,
         thumbnailUrl: null,
         ffmpegError: null,
+        stitchAttemptToken: null,
         startedAt: null,
         finishedAt: null,
         segmentCount: plan.segmentPlan.length,
@@ -1082,6 +1083,7 @@ export async function retryFailedVideoJob(jobId: string) {
         data: {
           status: FinalVideoStatus.PENDING,
           ffmpegError: null,
+          stitchAttemptToken: null,
         },
       });
       return updated;

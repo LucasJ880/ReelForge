@@ -195,10 +195,15 @@ async function sweepStuckStitching(now: Date, result: SweepResult) {
     if (attempts < MAX_STITCH_ATTEMPTS) {
       /// 续跑：转回 PENDING，等 runner 重新领取（段都在，不重新生成）
       const updated = await db.finalVideo.updateMany({
-        where: { id: fv.id, status: FinalVideoStatus.STITCHING },
+        where: {
+          id: fv.id,
+          status: FinalVideoStatus.STITCHING,
+          stitchAttemptToken: fv.stitchAttemptToken,
+        },
         data: {
           status: FinalVideoStatus.PENDING,
           stitchAttempts: attempts,
+          stitchAttemptToken: null,
           startedAt: null,
           ffmpegError: `sweep: stitching timed out after ${STITCH_TIMEOUT_MIN()}min, requeued (attempt ${attempts}/${MAX_STITCH_ATTEMPTS})`,
         },
@@ -206,10 +211,15 @@ async function sweepStuckStitching(now: Date, result: SweepResult) {
       if (updated.count > 0) result.requeuedStitching.push(fv.id);
     } else {
       const updated = await db.finalVideo.updateMany({
-        where: { id: fv.id, status: FinalVideoStatus.STITCHING },
+        where: {
+          id: fv.id,
+          status: FinalVideoStatus.STITCHING,
+          stitchAttemptToken: fv.stitchAttemptToken,
+        },
         data: {
           status: FinalVideoStatus.FAILED,
           stitchAttempts: attempts,
+          stitchAttemptToken: null,
           finishedAt: now,
           ffmpegError: STITCH_TIMEOUT_ERROR,
         },
@@ -252,6 +262,7 @@ async function sweepAwaitingStitchTimeout(now: Date, result: SweepResult) {
       where: { id: fv.id, status: FinalVideoStatus.PENDING },
       data: {
         status: FinalVideoStatus.FAILED,
+        stitchAttemptToken: null,
         finishedAt: now,
         ffmpegError: AWAIT_STITCH_TIMEOUT_ERROR,
       },

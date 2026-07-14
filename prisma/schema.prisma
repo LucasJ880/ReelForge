@@ -968,6 +968,9 @@ model FinalVideo {
   ffmpegError      String?
   /// 累计 ffmpeg 失败次数（>= 3 时停止自动重试）
   stitchAttempts   Int              @default(0)
+  /// 外部 runner 每次成功 claim 时换新的所有权令牌。
+  /// complete/fail 回调必须同时匹配 id + STITCHING + token，防止迟到回调覆盖新 attempt。
+  stitchAttemptToken String?
 
   startedAt  DateTime?
   finishedAt DateTime?

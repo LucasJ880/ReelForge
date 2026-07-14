@@ -10,7 +10,7 @@ import { claimStitchTask } from "@/lib/services/stitch-service";
  * 鉴权：`Authorization: Bearer ${CRON_SECRET}`（与 cron 复用同一密钥，避免再发一套）
  *
  * 返回：
- *   { task: { finalVideoId, segmentUrls[], aspectRatio, targetDurationSec } }
+ *   { task: { finalVideoId, attemptToken, segmentUrls[], aspectRatio, targetDurationSec } }
  *   或 { task: null }（没有可拼任务时 runner 直接退出）
  *
  * 注意：claimStitchTask 会 CAS PENDING → STITCHING，因此同一任务不会被并发抢两次。

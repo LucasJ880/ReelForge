@@ -223,6 +223,7 @@ test("sweep：STITCHING 超时且还有预算 → 转回 PENDING 续跑（不重
             id: "fv_stitching",
             status: FinalVideoStatus.STITCHING,
             stitchAttempts: 0,
+            stitchAttemptToken: "attempt-requeue",
             startedAt: HOURS_AGO(1),
             createdAt: HOURS_AGO(2),
             brief: { id: "brief_2" },
@@ -242,12 +243,18 @@ test("sweep：STITCHING 超时且还有预算 → 转回 PENDING 续跑（不重
   assert.equal(result.failedStitching.length, 0);
   assert.equal(fvUpdates[0].data.status, FinalVideoStatus.PENDING);
   assert.equal(fvUpdates[0].data.stitchAttempts, 1);
+  assert.equal(fvUpdates[0].data.stitchAttemptToken, null);
+  assert.deepEqual(fvUpdates[0].where, {
+    id: "fv_stitching",
+    status: FinalVideoStatus.STITCHING,
+    stitchAttemptToken: "attempt-requeue",
+  });
 });
 
 test("sweep：STITCHING 超时且预算耗尽 → FAILED + brief RENDER_FAILED（人话）", async (t) => {
   patchEmptyDefaults(t);
 
-  const fvUpdates: Array<{ data: Record<string, unknown> }> = [];
+  const fvUpdates: Array<{ where: unknown; data: Record<string, unknown> }> = [];
   patchModel(t, db.finalVideo as unknown as Record<string, unknown>, {
     findMany: (async (args: { where: { status?: unknown } }) => {
       if (args.where.status === FinalVideoStatus.STITCHING) {
@@ -256,6 +263,7 @@ test("sweep：STITCHING 超时且预算耗尽 → FAILED + brief RENDER_FAILED�
             id: "fv_exhausted",
             status: FinalVideoStatus.STITCHING,
             stitchAttempts: MAX_STITCH_ATTEMPTS - 1,
+            stitchAttemptToken: "attempt-exhausted",
             startedAt: HOURS_AGO(1),
             createdAt: HOURS_AGO(2),
             brief: { id: "brief_3" },
@@ -264,7 +272,7 @@ test("sweep：STITCHING 超时且预算耗尽 → FAILED + brief RENDER_FAILED�
       }
       return [];
     }) as never,
-    updateMany: (async (args: { data: Record<string, unknown> }) => {
+    updateMany: (async (args: { where: unknown; data: Record<string, unknown> }) => {
       fvUpdates.push(args);
       return { count: 1 };
     }) as never,
@@ -282,6 +290,12 @@ test("sweep：STITCHING 超时且预算耗尽 → FAILED + brief RENDER_FAILED�
   assert.deepEqual(result.failedStitching, ["fv_exhausted"]);
   assert.equal(fvUpdates[0].data.status, FinalVideoStatus.FAILED);
   assert.equal(fvUpdates[0].data.ffmpegError, sweepTest.STITCH_TIMEOUT_ERROR);
+  assert.equal(fvUpdates[0].data.stitchAttemptToken, null);
+  assert.deepEqual(fvUpdates[0].where, {
+    id: "fv_exhausted",
+    status: FinalVideoStatus.STITCHING,
+    stitchAttemptToken: "attempt-exhausted",
+  });
   assert.equal(briefUpdates.length, 1);
   assert.equal(briefUpdates[0].data.status, VideoBriefStatus.RENDER_FAILED);
   assert.equal(

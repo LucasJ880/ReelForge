@@ -3,7 +3,7 @@
 - Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
 - Last updated: 2026-07-13 (America/Toronto)
 - Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 2 · P0 FIXED 1 · P0 VERIFIED 7 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 0 · P0 FIXED 3 · P0 VERIFIED 7 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -57,22 +57,26 @@
 ### RF-004 — Stale stitch callback can overwrite a newer FinalVideo attempt
 
 - Severity: **P0 — final asset integrity blocker**
-- Status: **OPEN**
+- Status: **FIXED — mandatory golden/full-suite verification remains**
 - Reproduction: runner A claims `PENDING → STITCHING`; sweeper times it out to `PENDING`; runner B claims and completes; runner A then posts a late failure/success. The late callback updates by `id` and overwrites the current result.
 - Root cause: `finishStitchTask` reads by id and uses unconditional `db.finalVideo.update` at `src/lib/services/stitch-service.ts:393-427`; completion payload has no attempt/claim token and no `status=STITCHING` CAS.
 - Impact: a valid customer final video can revert to FAILED or be replaced with an older asset.
 - Required regression: two-attempt race test in which stale callbacks are rejected and only the active claim can finalize.
-- Repair commit: —
+- Repair: every claim now writes a UUID attempt token; success/failure completion uses `id + STITCHING + token` CAS and stale callbacks return `STALE_STITCH_ATTEMPT`/HTTP 409. A missing token is accepted only for a pre-migration in-flight row whose stored token is still null, so an old runner can drain during rolling deployment but cannot overwrite any newly claimed attempt. Dispatch and claim also paginate past older incomplete candidates, preventing stitch starvation.
+- Verification: 30/30 focused stitch, stale-callback, rolling-compatibility, starvation, scheduler-dispatch, and runtime tests pass. The full unit suite passes 725/726 with the one pre-existing conditional DB integration skip; typecheck and lint pass. The post-repair mandatory golden path and clean full Final Acceptance run have not yet been executed, so this item is not VERIFIED.
+- Repair commit: `0fc863d`
 
 ### RF-005 — Queue schedules declare 5 minutes but run roughly 55–107 minutes apart
 
 - Severity: **P0 — unattended batch completion blocker**
-- Status: **OPEN**
+- Status: **FIXED — production cadence evidence remains**
 - Reproduction: compare `.github/workflows/{process-batches,poll-videos,stitch-videos}.yml` (`*/5`) with GitHub Actions start timestamps on 2026-07-13/14. `vercel.json` has no crons.
 - Evidence: `qa/evidence/github-scheduler-observation.md`
 - Impact: jobs can remain queued/running/stitching far beyond customer expectations after the user leaves the monitoring page; watchdog convergence is equally delayed.
 - Required regression: deploy a scheduler with measured maximum delay, capture at least one 30-minute cadence trace, and prove queue/poller/stitch/sweep each execute within the agreed SLO.
-- Repair commit: —
+- Repair: `vercel.json` now declares minute crons for batch processing, video polling/sweeping, and stitch dispatch. The old GitHub schedules are manual-only; each scheduler emits structured heartbeat data. External stitch dispatch is guarded by a PostgreSQL advisory lock, active-run de-duplication, and fail-closed GitHub configuration.
+- Verification: 25/25 focused scheduler/auth/dispatch tests and the full unit suite pass. This code has not been deployed and no 30–60 minute production heartbeat trace or ready-stitch end-to-end dispatch observation exists; therefore the dependency is not VERIFIED.
+- Repair commit: `761baec`
 
 ### RF-006 — Existing final-acceptance Playwright run exits nonzero in global teardown
 
@@ -84,7 +88,7 @@
 - Impact: the existing end-to-end acceptance suite cannot supply a green release record even if its test body passes.
 - Required regression: final-acceptance config completes test and teardown with exit 0; teardown constants live in a side-effect-free module.
 - Repair: moved teardown constants into side-effect-free `tests/final-acceptance/fixture-data.ts`; added `tests/final-acceptance-global-teardown-import.test.ts`.
-- Verification: direct teardown import regression, full unit suite, typecheck, lint, and the independent golden-path suite pass. The full existing final-acceptance configuration has not been rerun in Phase 1, so this item is not yet marked VERIFIED.
+- Verification: direct teardown import regression, full unit suite, typecheck, lint, and the earlier independent golden-path suite pass. A full original Final Acceptance attempt completed global cleanup without the former teardown import crash, but the test body ended 11/23 green (12 product/harness failures). Focused repairs subsequently made J1 (93/7 accounting) and desktop onboarding green; a clean serial 23/23 run is still required, so this item remains FIXED rather than VERIFIED.
 - Repair commit: `e863c8e`
 
 ### RF-007 — Stuck-task sweeper bypasses the historical dispatch quarantine decision

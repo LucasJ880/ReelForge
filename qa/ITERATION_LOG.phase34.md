@@ -113,3 +113,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Rollback verification: baseline golden `gp-1784041956937-f623dad1` passed.
 - Evidence: `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`.
 - New dependencies: none.
+
+## Iteration 3.11 — RF-021 dynamic prefetch root repair
+
+- Date: 2026-07-14
+- Defect: RF-021, repair attempt 3/3
+- Root cause: failure trace linked the aborted chunks to speculative RSC prefetches for authenticated dynamic Studio routes; navigation/sign-out cancelled the route prefetch and its newly split client-boundary chunks.
+- Work: disabled automatic prefetch on Studio primary/home links while retaining click navigation; reintroduced only `/app/create/images` loading/error states.
+- Regression: focused 2/2; typecheck/lint/build green; golden `gp-1784042195066-160312e7` green with unchanged network and continuity assertions.
+- Ledger: RF-021 remains VERIFIED, now by root-cause repair rather than rollback alone; repair commit `c95c7b7`.
+- Evidence: `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`.
+- New dependencies: none.

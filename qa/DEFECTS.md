@@ -257,7 +257,7 @@
 ### RF-020 — Phase 3 route-state bundle regressed login transition continuity
 
 - Severity: **P0 — golden-path continuity regression**
-- Status: **VERIFIED — offending iteration rolled back**
+- Status: **VERIFIED — speculative authenticated-route prefetch removed**
 - Reproduction: after the uncommitted Phase 3 all-route boundary/matrix iteration passed its 33×3 route scan and 12-test browser suite, run `npm run test:golden-path`. Run `gp-1784040695799-839af69f` observed 18 full-viewport frames without an accepted auth/loading/Studio surface during login → `/app/create`.
 - Root-cause boundary: the iteration introduced new route-group loading/error surfaces, including an auth loading surface, plus route-audit fixes. The constitution required immediate whole-iteration rollback, so no speculative sub-change was retained or isolated. The prior committed RF-009 code itself was unchanged.
 - Impact: retaining the iteration would reopen the exact first-run blank-frame defect RF-009 locked down.
@@ -274,10 +274,10 @@
 - Reproduction: add loading/error boundaries for `/app/create/images`, `/app/batches/new`, and `/app/library/[id]` as one iteration, then run the unchanged golden path. Run `gp-1784041620850-0134270e` observed one aborted Next.js JavaScript chunk request and failed at the final network assertion.
 - Impact: retaining any iteration after a red golden path would violate the permanent Phase 1 invariant, even though this run reported 0 blank frames and completed the product workflow.
 - Repair: atomically removed all uncommitted product, copy/type, and test changes from that iteration. No assertion, allowlist, tolerance, retry, provider, or deployment setting changed.
-- Repair attempts: Attempt 1 bundled three customer-detail routes and was rolled back after one aborted chunk; baseline passed. Attempt 2 isolated `/app/create/images` only and was rolled back after two aborted chunks; baseline `gp-1784041956937-f623dad1` passed. Both failed runs completed the product workflow with 0 blank frames. No assertion was changed.
-- Verification: the baseline passes after both rollbacks. The three customer-detail boundaries remain pending. One further diagnostic attempt is permitted before RF-021 must be marked ESCALATED under the three-failure rule.
-- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784041620850-0134270e.json`, `qa/evidence/phase1/golden-path-gp-1784041708036-a861c1fa.json`, `qa/evidence/phase1/golden-path-gp-1784041900703-1146c6fa.json`, `qa/evidence/phase1/golden-path-gp-1784041956937-f623dad1.json`.
-- Repair commit: rollback contained no product commit; evidence commit recorded separately.
+- Repair attempts: Attempt 1 bundled three customer-detail routes and was rolled back after one aborted chunk; baseline passed. Attempt 2 isolated `/app/create/images` only and was rolled back after two aborted chunks; baseline passed. Attempt 3 used trace evidence: the authenticated Studio shell was speculatively prefetching dynamic RSC destinations and the newly split boundary chunks were cancelled on subsequent navigation/sign-out. Automatic prefetch was disabled for Studio primary/home navigation while click navigation remains intact; `/app/create/images` was then reintroduced.
+- Verification: focused prefetch/route regressions 2/2, typecheck, lint, optimized build, and golden `gp-1784042195066-160312e7` passed with the original 0-failed-request and 0-blank-frame assertions.
+- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`, `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`, `qa/evidence/phase1/golden-path-gp-1784042195066-160312e7.json`.
+- Repair commit: `c95c7b7`
 
 ## Seed hypotheses not opened as defects
 

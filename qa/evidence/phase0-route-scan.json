@@ -1,0 +1,4839 @@
+{
+  "generatedAt": "2026-07-14T03:00:08.418Z",
+  "baseURL": "http://localhost:3110",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "routeCount": 33,
+  "scans": [
+    {
+      "template": "/",
+      "path": "/",
+      "surface": "public",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/login",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/register?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/register?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora 视频生产工作室 中文 AI VIDEO PRODUCTION STUDIO 从一个想法， 到稳定交付。 把策划、模板、生成、质量检查与批量交付放进一条可追踪的生产链路。 工作流 1 → 4 追踪 JOB ID 成片 9:16 欢迎回到工作室 登录 Aivora，继续制作下一支短视频。 邮箱 密码 登录 使用演示账号体验 登录后 7 天内免登录 · 账号问题请联系管理员 还没有账号？ 创建个人账号 隐私政策 服务条款",
+      "screenshot": "qa/screenshots/baseline/routes/root.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/login",
+      "path": "/login",
+      "surface": "auth",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/login",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/register?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=_H_fFy2_Q06N8BA7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/register?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=sW2A7HEmFQnSVIMx",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora 视频生产工作室 中文 AI VIDEO PRODUCTION STUDIO 从一个想法， 到稳定交付。 把策划、模板、生成、质量检查与批量交付放进一条可追踪的生产链路。 工作流 1 → 4 追踪 JOB ID 成片 9:16 欢迎回到工作室 登录 Aivora，继续制作下一支短视频。 邮箱 密码 登录 使用演示账号体验 登录后 7 天内免登录 · 账号问题请联系管理员 还没有账号？ 创建个人账号 隐私政策 服务条款",
+      "screenshot": "qa/screenshots/baseline/routes/login.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/register",
+      "path": "/register",
+      "surface": "auth",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/register",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=YHJgCYC7z7ItAmEk",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=YHJgCYC7z7ItAmEk",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/login?_rsc=YHJgCYC7z7ItAmEk",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=YHJgCYC7z7ItAmEk",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=nqYP1k-cQeRiHB3h",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=nqYP1k-cQeRiHB3h",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=nqYP1k-cQeRiHB3h",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/login?_rsc=nqYP1k-cQeRiHB3h",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora 视频生产工作室 中文 AI VIDEO PRODUCTION STUDIO 从一个想法， 到稳定交付。 把策划、模板、生成、质量检查与批量交付放进一条可追踪的生产链路。 工作流 1 → 4 追踪 JOB ID 成片 9:16 创建 Aivora 账号 建立工作区，从质量模板开始生成。 邮箱 昵称（可选） 密码（至少 8 位） 创建账号 已经有账号？ 立即登录 注册即代表你了解 AI 生成内容可能存在轻微随机性。 隐私政策 服务条款",
+      "screenshot": "qa/screenshots/baseline/routes/register.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/persona",
+      "path": "/persona",
+      "surface": "public",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/persona",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/login?_rsc=SZGt56jrk9oaEqzB",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/register?_rsc=SZGt56jrk9oaEqzB",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/showcase?_rsc=SZGt56jrk9oaEqzB",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=SZGt56jrk9oaEqzB",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/login?_rsc=vE6E0aXVX3Zsh3TC",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/register?_rsc=vE6E0aXVX3Zsh3TC",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/showcase?_rsc=vE6E0aXVX3Zsh3TC",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=vE6E0aXVX3Zsh3TC",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Editorial Studio Sign in Get started AI video production 从一支视频开始，扩展到可控的批量生产。 创作、模板、批量、赛马与成品都在同一个工作区。新账号默认使用 starter，studio 由正式权益流程授予。 投资人 / 孵化器 / 战略合作？ 查看真实客户案例展示 创建 starter 账号 登录已有账号 © 2026 Aivora · AI Video Growth Platform",
+      "screenshot": "qa/screenshots/baseline/routes/persona.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/privacy",
+      "path": "/privacy",
+      "surface": "public",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/privacy",
+      "documentStatus": 200,
+      "title": "Privacy Policy Draft · Aivora",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "DRAFT · PENDING CANADIAN LEGAL REVIEW Privacy Policy Engineering draft for Aivora, operated from Ontario, Canada. Last updated July 13, 2026. Information we handle We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service. Why we use it We use this information to authenticate users, create and quality-check videos, deliver and troubleshoot batches, prevent abuse, measure plan usage, support customers, and improve service reliability. We do not sell customer media or prompts. Processors and data routes Current inf",
+      "screenshot": "qa/screenshots/baseline/routes/privacy.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/showcase",
+      "path": "/showcase",
+      "surface": "public",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/showcase",
+      "documentStatus": 200,
+      "title": "Aivora · 宠物内容智能采集套件 · 投资人 Demo",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/generated/aivora-pet-content-kit-walkthrough-60s-16x9.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/generated/pet-evidence-highlight.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/generated/pet-evidence-headtilt.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/generated/pet-evidence-mat.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/generated/pet-evidence-raw.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=Ddlz2elKnae4623i",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/showcase?_rsc=hkL1iE7Z3Y3tw3fi",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/?_rsc=hkL1iE7Z3Y3tw3fi",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora 宠物内容智能采集套件 · 投资人 Demo 01 / 13 申请体验 封面 为什么是现在 硬件套装 采集闭环 AI 看懂宠物 自动出片 病毒增长 B2B 证据 竞争壁垒 市场机会 商业模式 投资 & 团队 申请体验 Aivora 宠物内容智能采集套件 把每一个真实宠物瞬间， 变成可以马上分享的可爱视频。 人们天生爱分享自己的宠物。Aivora 用智能硬件自动采集宠物的真实瞬间，再由 AI 把它们变成可以马上分享的可爱视频——同时为宠物品牌沉淀真实可信的产品使用证据。 不只是宠物摄像头，而是一台宠物内容增长引擎。 申请套件体验 看真实成片对比 查看品牌证据 Demo 每天自动产出 3-5 条 可分享宠物短视频草稿 从瞬间到成片 < 5 分钟 识别 → 剪辑 → 字幕全自动 产品闭环 B2C + B2B 情绪陪伴 + 真实使用证据 60 秒看懂 Aivora · 中文字幕 + 纯音乐 Aivora 自有硬件套装 查看套装 360° 摄像头 第一视角项圈 智能宠物垫 本页所有设备状态、行为数据、识别瞬间与传播指标均为示例（demo 模拟数据），用于演示产品闭环；硬件采集部分在 demo 阶段以 UI + 模拟数据呈现，不代表已量产的真实硬件数据。 Why Now · 为什么是现在 宠物，正在成为新一代情绪消费入口 在经济不确定的周期里，消费者会减少大额支出，但不会停止寻找情绪安慰。过去，人们用一支口红获得即时满足；今天，越来越多年轻人把这种情绪价值，投向每天陪伴自己的毛孩子。宠物不只是宠物——它们正在成为家庭成员、社交内容、生活方式和情绪消费的核心入口。 THE NEW",
+      "screenshot": "qa/screenshots/baseline/routes/showcase.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/terms",
+      "path": "/terms",
+      "surface": "public",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/terms",
+      "documentStatus": 200,
+      "title": "Terms of Service Draft · Aivora",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "DRAFT · PENDING CANADIAN LEGAL REVIEW Terms of Service Engineering draft for business pilot review. Last updated July 13, 2026. Using Aivora You must provide accurate account information, protect your credentials, and use the service only for lawful business purposes. You remain responsible for reviewing generated media before publication and for disclosures required by the destination platform. Your inputs and permissions You retain your rights in uploaded materials. You grant Aivora and disclosed processors the limited permission needed to process, store, generate, quality-check, and deliver your requested output. You confirm that you have the rights and consents required for all product m",
+      "screenshot": "qa/screenshots/baseline/routes/terms.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app",
+      "path": "/app",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/create",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create/images?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create/images?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 创意导演 AI 导演在线 从一个想法到完整成片 上传产品素材，用自然语言描述目标；模板先锁定镜头语言，再完成策划、分镜、生成与入库。 生成视频 产品图片 创意对话 从一个模糊想法，到可执行的视频方案。 等待想法 产品素材 上传 1–10 张清晰产品图，模板会优先锁定真实产品身份。 上传产品图 PNG / JPG / WebP 可以先聊天，稍后再补充素材。 这次创作 1 补充产品素材 2 说清受众与卖点 3 确认模板并进入生产 你好，我是你的 Aivora AI 导演。告诉我产品、受众和你想要的效果；不知道从哪开始，也可以直接点一个创意方向。 带货脚本片 UGC 口播 赛事热点 你来推荐 告诉导演你想做什么 发送 QUALITY LOCK 导演推荐模板 先锁定镜头结构与真实性边界，再给模型创作空间。 浏览全部 31 个模板 生活场景使用演示 快节奏带货卡点 对比前后反转 UGC 手持口播风 微距质感特写 确认方案与生成设置 用此模板批量生产 PRODUCTION BRIEF 生产设置 导演整理后的描述、素材和模板会自动带入。你也可以直接在这里精调并生成。 你想做什么样的视频？ 质量模板 自动匹配（推荐） 赛事观看 · 单空间稳定叙事 成果前置 · 高留存 痛点解决 · 产品证明 UGC 口播 · 真人一致性 光影质感 · 无口播 根据主题、人物、场景和素材自动选择低跑偏模板。 附件（可选",
+      "screenshot": "qa/screenshots/baseline/routes/app.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/create",
+      "path": "/app/create",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/create",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create/images?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=FSRQay6OGzaSHw_c",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create/images?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=AOZWal27MX0mqVLK",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 创意导演 AI 导演在线 从一个想法到完整成片 上传产品素材，用自然语言描述目标；模板先锁定镜头语言，再完成策划、分镜、生成与入库。 生成视频 产品图片 创意对话 从一个模糊想法，到可执行的视频方案。 等待想法 产品素材 上传 1–10 张清晰产品图，模板会优先锁定真实产品身份。 上传产品图 PNG / JPG / WebP 可以先聊天，稍后再补充素材。 这次创作 1 补充产品素材 2 说清受众与卖点 3 确认模板并进入生产 你好，我是你的 Aivora AI 导演。告诉我产品、受众和你想要的效果；不知道从哪开始，也可以直接点一个创意方向。 带货脚本片 UGC 口播 赛事热点 你来推荐 告诉导演你想做什么 发送 QUALITY LOCK 导演推荐模板 先锁定镜头结构与真实性边界，再给模型创作空间。 浏览全部 31 个模板 生活场景使用演示 快节奏带货卡点 对比前后反转 UGC 手持口播风 微距质感特写 确认方案与生成设置 用此模板批量生产 PRODUCTION BRIEF 生产设置 导演整理后的描述、素材和模板会自动带入。你也可以直接在这里精调并生成。 你想做什么样的视频？ 质量模板 自动匹配（推荐） 赛事观看 · 单空间稳定叙事 成果前置 · 高留存 痛点解决 · 产品证明 UGC 口播 · 真人一致性 光影质感 · 无口播 根据主题、人物、场景和素材自动选择低跑偏模板。 附件（可选",
+      "screenshot": "qa/screenshots/baseline/routes/app-create.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/create/images",
+      "path": "/app/create/images",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/create/images",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=NtulekXUmHn5zita",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create/images?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=lMKweQU6HoLQbY-w",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 产品图工作台 先把产品图做准，再批量出片 优化现有实拍图，或从描述生成新的产品视觉；风格预设锁定构图与光线，成品一键进入单条或批量视频。 生成视频 产品图片 产品图工作台 GPT IMAGE 2 优化实拍图 生成产品图 上传原始产品照片 PNG / JPG / WebP · 保留产品身份与包装细节 希望改善什么 0/1200 风格锁定 白底棚拍 电商主图、目录页 生活方式 真实使用情境 高端质感 材质与精致光影 社媒广告 留出安全文案区 材质特写 结构与细节放大 画幅 1:1 4:5 9:16 16:9 输出质量 快速 标准 精细 优化产品图 优化模式只允许调整光线、背景、阴影和构图；产品结构、颜色、包装与标识会作为一致性硬约束。 成品预览 还没有产品图 选择优化实拍图或生成产品图，成品可直接进入单条与批量视频流程。 素材历史 最近产品图 完成第一张产品图后，会在这里形成可复用的素材历史。",
+      "screenshot": "qa/screenshots/baseline/routes/app-create-images.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/batches",
+      "path": "/app/batches",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/batches",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=j-DD3HZK35OHoTf0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=2ZFckwxxy9xMGsCK",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 批量生产 批量生产 从一条批次记录进入任务、分镜与失败分诊；状态、模板版本与成本都保留在同一条生产链路。 新建批次 还没有批次。从模板库选一个风格开始。 浏览模板库",
+      "screenshot": "qa/screenshots/baseline/routes/app-batches.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/batches/new",
+      "path": "/app/batches/new",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/batches/new",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=RvOkMUYYqg5fg3TH",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=SQ9VjyioxLUE3PhD",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 批量生产 批量生产 锁定模板与素材分配，一次创建批次，并在统一监控页查看任务、分镜和失败原因。 x 1 上传素材 当前 2 选择风格 3 生成数量 4 确认提交 添加产品素材 支持 PNG、JPG、WEBP，最多 50 张，并发上传 4 张。 拖入产品图片，或点击选择 文件会在选择后立即上传，最多 50 张 0/50 张 已完成 0 · 上传中 0 · 失败 0 上一步 下一步",
+      "screenshot": "qa/screenshots/baseline/routes/app-batches-new.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/batches/[id]",
+      "path": "/app/batches/__phase0_missing__",
+      "surface": "customer",
+      "representativeData": false,
+      "finalUrl": "http://localhost:3110/app/batches/__phase0_missing__",
+      "documentStatus": 404,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=-iExkuyq3QS4FHlE",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [
+        {
+          "status": 404,
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/__phase0_missing__"
+        }
+      ],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "404 · NOT FOUND 页面不存在 链接可能已过期或输入有误。 回到交付单列表",
+      "screenshot": "qa/screenshots/baseline/routes/app-batches-id.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/library",
+      "path": "/app/library",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/library",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmris9000016vlit5ol83r1hu?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjkscrg00kxlik9t8z9kimj?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjkxhag016xlik95v2idiqb?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjmk1xl00kxlirs2e6kzgb7?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjmpixr0183lirs4f89o1te?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjzlguz00kxlii5fz6z0cj3?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjzqkjw017zlii5rniqo2ra?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrk0868s00kxlioio7yr4m4y?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrk0d9q4017zlioizssjazi2?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=NrbufaO5Yg2lfCXZ",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmris9000016vlit5ol83r1hu?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjkscrg00kxlik9t8z9kimj?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjkxhag016xlik95v2idiqb?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjmk1xl00kxlirs2e6kzgb7?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjmpixr0183lirs4f89o1te?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjzlguz00kxlii5fz6z0cj3?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrjzqkjw017zlii5rniqo2ra?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrk0868s00kxlioio7yr4m4y?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library/cmrk0d9q4017zlioizssjazi2?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=1o2LLqwMyEenqZ_7",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjzql2a0186lii5gsvffx0i/1783993622908.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjzlhgy00l4lii5rwikyi34/1783993385052.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrk086ql00l4lioiic7j03ab/1783994444680.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrk0da8h0186lioi3ldr1cnl/1783994681337.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjmk2ng00l4lirsr300vlxb/1783971487882.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjmpjfa018alirsmmp44vfp/1783971741307.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 成品库 成品库 单条创作与批量生产的结果都汇总在这里。 批量生成 创建视频 15s AI Generated · Aivora 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 9:16 · 2026-07-13 查看成片 15s AI Generated · Aivora 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 9:16 · 2026-07-13 查看成片 15s AI Generated · Aivora 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 9:16 · 2026-07-13 查看成片 15s AI Generated · Aivora 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 9:16 · 2026-07-13 查看成片 30s AI Generated · Aivora 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 9:16 · 2026-07-13 查看成片 30s AI Generated · Aivora 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 9:16 · 2026-07-13 查看成片 30s AI",
+      "screenshot": "qa/screenshots/baseline/routes/app-library.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/library/[id]",
+      "path": "/app/library/cmrk0d9q4017zlioizssjazi2",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/library/cmrk0d9q4017zlioizssjazi2",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrk0da8h0186lioi3ldr1cnl/1783994681337.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=88ebjPuItSYN2Kfl",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=88ebjPuItSYN2Kfl",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=88ebjPuItSYN2Kfl",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=88ebjPuItSYN2Kfl",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=88ebjPuItSYN2Kfl",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=88ebjPuItSYN2Kfl",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=4pg5NEJWbislvlf8",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 返回成品库 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 已完成 15s · 9:16 · cmrk0d9q4017zlioizssjazi2 刷新进度 举报内容 AI Generated · Aivora",
+      "screenshot": "qa/screenshots/baseline/routes/app-library-id.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/racing",
+      "path": "/app/racing",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/racing",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=rt5QgxWLBd0e_GLG",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=rt5QgxWLBd0e_GLG",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=rt5QgxWLBd0e_GLG",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=rt5QgxWLBd0e_GLG",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=rt5QgxWLBd0e_GLG",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=rt5QgxWLBd0e_GLG",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=15Bb1E9bN9QL31Xf",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 投放与赛马 投放与赛马 把同一创意的多个变体放进 12/24/48 小时窗口比较，用证据完整度决定下一轮，而不是凭感觉追热点。 轮次 1 · 变体已就绪 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 cmrk0d9u60181lioijk62f91v 低置信度 变体 1 指标窗口 0/3 证据完整度 0% 变体 投放 窗口 排名 / 分数 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 cmrk0d9y80185lioiefq8sp2x 尚未投放 — — — 手动投放导入 录入投放与指标 视频变体 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 平台 TikTok Instagram Reels YouTube Shorts Facebook 贴文 ID 公开链接（可选） 观察窗口 12 小时 24 小时 48 小时 播放量 完播率 3 秒留存 点赞 分享 保存指标 证据约束分析 本轮结论 当前仅 1 个变体；方向性结论不等同于统计显著性。 12/24/48h 指标完整度为 0%。 仍有变体缺少 48h 成熟窗口，排名可能继续变化。 生成排名与建议 轮次 1 · 变体已就绪 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 cmrk086ck00kzlioim",
+      "screenshot": "qa/screenshots/baseline/routes/app-racing.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/app/templates",
+      "path": "/app/templates",
+      "surface": "customer",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/app/templates",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlypd000ilijgwj1wiiyu&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?styleTemplate=tpl_viral_result_first&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlwni0003lijggwdmszc2&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?styleTemplate=tpl_ugc_review&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlfdu0007lia4oblgna55&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?styleTemplate=tpl_viral_pain_solution&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlwx80005lijg28cpukks&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjleq40003lia484lw666o&_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlypd000ilijgwj1wiiyu&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?styleTemplate=tpl_viral_result_first&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlwni0003lijggwdmszc2&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?styleTemplate=tpl_ugc_review&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlfdu0007lia4oblgna55&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?styleTemplate=tpl_viral_pain_solution&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/terms?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/privacy?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjlwx80005lijg28cpukks&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?template=cmrjjleq40003lia484lw666o&_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/templates?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/library?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/racing?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/batches/new?_rsc=Do1Ur88dQgIxIstq",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/app/create?_rsc=kkmFt62pkMV1oXMa",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": [
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,background-color",
+            "left": 1413,
+            "right": 1499,
+            "width": 86
+          },
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,background-color",
+            "left": 1507,
+            "right": 1593,
+            "width": 86
+          },
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,background-color",
+            "left": 1601,
+            "right": 1687,
+            "width": 86
+          },
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,background-color",
+            "left": 1695,
+            "right": 1781,
+            "width": 86
+          },
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,background-color",
+            "left": 1789,
+            "right": 1875,
+            "width": 86
+          },
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,background-color",
+            "left": 1883,
+            "right": 1942,
+            "width": 59
+          }
+        ]
+      },
+      "bodyExcerpt": "Aivora Final Acceptance QA 创作 批量生产 投放与赛马 成品库 模板库 当前套餐 STARTER 中文 隐私 条款 退出登录 Final Acceptance QA F 质量模板库 模板库 每个模板都冻结镜头结构、真实性约束与失败边界；先减少自由度，再放大批量产能。 使用推荐模板 搜索模板 31 / 31 QUALITY-LOCKED · 10 个独立样片 全部 包装展示 爆款广告 电商展示 对比转化 服饰穿搭 工具户外 家居空间 开箱 科技数码 旅行收纳 美妆护理 奢品 社媒循环 生活方式 食品饮料 使用演示 质感特写 UGC Aivora 生成样例帧 UGC 手持口播风 UGC Handheld Review UGC 创意均衡 15s 9:16 v3 · 交互受控 查看质量配方 单条套用 批量套用 单动作功能证明 One Action Proof 使用演示 稳定优先 15s 9:16 v1 · 交互受控 查看质量配方 单条套用 批量套用 Aivora 生成样例帧 生活场景使用演示 Lifestyle Use Demo 使用演示 创意均衡 15s 9:16 v3 · 交互受控 查看质量配方 单条套用 批量套用 包装与产品列阵 Packaging Lineup 包装展示 稳定优先 10s 16:9 v1 · 无真人 查看质量配方 单条套用 批量套用 礼赠包装揭示 Gift-Ready Reveal 包装展示 稳定优先 15s 9:16 v1 · 交互受控 查看质量配方 单条套用 批量套用 Aivora 生成样例帧 暗调奢品布光 Dark Luxury ",
+      "screenshot": "qa/screenshots/baseline/routes/app-templates.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal",
+      "path": "/internal",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/orders",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmpixr0183lirs4f89o1te?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzlguz00kxlii5fz6z0cj3?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmn5kt00m0lirs7tqj6c7o?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmscfy0196lirs112crm9n?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzqkjw017zlii5rniqo2ra?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjztbxg0190lii53rw2fn6d?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzogcf00lylii5vfizcr61?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0868s00kxlioio7yr4m4y?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0d9q4017zlioizssjazi2?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0b5o100lylioislo8mqn3?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/new?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmn5kt00m0lirs7tqj6c7o?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmpixr0183lirs4f89o1te?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmscfy0196lirs112crm9n?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzlguz00kxlii5fz6z0cj3?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzogcf00lylii5vfizcr61?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzqkjw017zlii5rniqo2ra?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0b5o100lylioislo8mqn3?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0868s00kxlioio7yr4m4y?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjztbxg0190lii53rw2fn6d?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0d9q4017zlioizssjazi2?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/new?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 广告项目 共 80 个真实素材广告项目 新建广告项目 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:06 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:04 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:02 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:00 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 赛马进行中 unified_input tiktok C",
+      "screenshot": "qa/screenshots/baseline/routes/internal.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/ai-usage",
+      "path": "/internal/ai-usage",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/ai-usage",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?status=MOCK&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?days=7&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?days=90&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?status=SUCCESS&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=qa&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?status=FAILED&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=reviewer&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=director&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=shooting_guide&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=asset_qa&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=storyboard&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=creative_evidence_breakdown&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=client_script&days=30&_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?days=90&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?days=7&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?status=MOCK&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?status=SUCCESS&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?status=FAILED&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=qa&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=reviewer&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=director&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=asset_qa&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=shooting_guide&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=storyboard&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=client_script&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?feature=creative_evidence_breakdown&days=30&_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=wbaow_Y44rl7p75m",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=82fNw31o-KJHt3jM",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 AI Usage Dashboard 内部只读 · 最近 30 天 OpenAI 调用统计（18 条记录）。 数据来源 AIUsageLog，不参与计费，仅做可观测。 Feature： 全部 creative_evidence_breakdown client_script storyboard shooting_guide asset_qa director reviewer qa · Status： 全部 SUCCESS FAILED MOCK · 窗口： 7d 30d 90d TOTAL CALLS 18 SUCCESS / MOCK / FAILED 0 · 18 · 0 ESTIMATED COST (USD) $0.0000 TOTAL TOKENS 0 Calls by Feature Feature Calls Success Failed Mock Cost product_image_studio 18 0 0 18 $0.0000 Calls by Model Model Calls Prompt Tok Compl Tok Cost mock 18 0 0 $0.0000 Recent 50 Calls Time Feature Model Status Tokens Cost Duration",
+      "screenshot": "qa/screenshots/baseline/routes/internal-ai-usage.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/briefs/[id]",
+      "path": "/internal/briefs/cmrk0g10z0196lioidy2ekli7",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/briefs/cmrk0g10z0196lioidy2ekli7",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=WiG7fvZeunnkRYBf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=M0LRCfTyKQBWg5dI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrk0g1b70197lioibrearrx2/1783994809433.mp4",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 · 第 1 组创意 · 优化方向 生成视频脚本 生成分镜 生成视频 生成真实素材剪辑计划 渲染真实素材剪辑计划 进行质量检查 正在生成视频 时长 15s · 9:16 · 仅产品 ← 返回创意版本组 创意方向 开场钩子：为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 叙事：为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 开发者信息（locale_notes） 当前视频脚本 (v—) 尚未生成视频脚本 视频生成进度 视频脚本就绪 请求已发送 正在生成视频片段 4 视频已就绪 1/1 视频已生成 刷新状态 视频已生成 #1 · 15s 预览 视频已生成，点击预览查看。 显示开发者信息 成片 https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrk0g1b70197lioibrearrx2/1783994809433.mp4 质量检查 正在质量检查",
+      "screenshot": "qa/screenshots/baseline/routes/internal-briefs-id.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/demo-leads",
+      "path": "/internal/demo-leads",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/demo-leads",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=Cg6y-qOeJVUgkJAI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=YLGujA0WGOYtB9l6",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 Demo 线索 Real-footage ads public demo waitlist，共 3 条最近提交 轻量管理：更新状态、把测试提交标记为 test，并隐藏或删除 test 线索。 显示隐藏测试线索 PROOF DASHBOARD 投资人 / 客户验证信号 Lead 数来自数据库，其余早期 traction 指标可先手动维护，直到 trial workflow 稳定后再自动化。 3 Leads 公开 demo waitlist 最近 100 条 4 真实素材 demo runs 手动维护：已完成或可复现的演示轮次 6 已渲染视频 手动维护：可展示的 9:16 MP4 输出 5 愿意上传素材 手动维护：明确愿意提供真实素材试跑 3 价格正向对话 手动维护：表达预算、付费意愿或采购路径 姓名 邮箱 业务类型 月视频量 痛点 状态 提交时间 管理 Evan Liao iliaoyiyu@gmail.com Bubble Tea Shop 1-10 test 新线索 2026/04/29 19:11 new contacted demo_booked not_fit test 更新 Evan Liao iliaoyiyu@gmail.com Bubble Tea Shop 1-10 Need faster ad va",
+      "screenshot": "qa/screenshots/baseline/routes/internal-demo-leads.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/distillation",
+      "path": "/internal/distillation",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/distillation",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmoknfgkw0000lit8uxmut9y1?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=T9g9r3EVdX5006Zr",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmoknfgkw0000lit8uxmut9y1?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=rh7IpIwDCpsm3lXI",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 创意蒸馏 被 Top3 视频提炼的可复用创意特征 Aivora Ads E2E Demo · Real Footage Pet Store来源：第 1 轮 · 2026/04/29 18:52 [Mock] Top 3 share POV-style opening hook within first 1.5 seconds, followed by an ASMR texture close-up, ending with a soft CTA in the final 2 seconds. { \"format\": \"ASMR\", \"hook_type\": \"POV_first_sec\", \"cta_position\": \"closing\", \"scene_rhythm\": \"One close-up (3s) → mid cozy scene (10s) → hero CTA (5s)\", \"title_structure\": \"POV: you just got the softest X ever\", \"selling_point_order\": [ \"softness\", \"warmth\", \"giftable\" ], \"duration_sweet_spot_sec\": 18 }",
+      "screenshot": "qa/screenshots/baseline/routes/internal-distillation.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/metrics",
+      "path": "/internal/metrics",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/metrics",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=EX_XpYhDnvaIKPI6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=nvChccmGSf9RZDk6",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 数据导入 通过 CSV 上传 TikTok 12/24/48h 数据窗口 CSV 上传 必需列：external_post_id, window_hours (12/24/48)，可选列：views, completion_rate, retention_3s, shares, saves, likes, comments 下载模板 上传 CSV 最近数据快照 时间 交付单 / 轮次 post_id 窗口 Views Completion Likes 05/19 19:11 Sunny Shutter 纱帘 — 客厅自然光 TikTok 广告 · 第 1 轮 — +24h 6,200 19.0% 248 05/19 19:11 Sunny Shutter 遮光帘 — 卧室清晨竖屏广告 · 第 1 轮 — +24h 1.2万 48.0% 496 04/29 18:52 Aivora Ads E2E Demo · Real Footage Pet Store · 第 1 轮 demo-real-footage-5 +24h 2,856 41.0% 211 04/29 18:52 Aivora Ads E2E Demo · Real Footage Pet Store · 第 1 轮 demo-real-footage-4 ",
+      "screenshot": "qa/screenshots/baseline/routes/internal-metrics.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/orders",
+      "path": "/internal/orders",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/orders",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmn5kt00m0lirs7tqj6c7o?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmpixr0183lirs4f89o1te?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmscfy0196lirs112crm9n?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzlguz00kxlii5fz6z0cj3?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzogcf00lylii5vfizcr61?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzqkjw017zlii5rniqo2ra?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjztbxg0190lii53rw2fn6d?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0868s00kxlioio7yr4m4y?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0b5o100lylioislo8mqn3?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0d9q4017zlioizssjazi2?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/new?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=EoBXkbBvGL8srZ6k",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmn5kt00m0lirs7tqj6c7o?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmpixr0183lirs4f89o1te?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzlguz00kxlii5fz6z0cj3?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjmscfy0196lirs112crm9n?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzogcf00lylii5vfizcr61?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzqkjw017zlii5rniqo2ra?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0868s00kxlioio7yr4m4y?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjztbxg0190lii53rw2fn6d?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0b5o100lylioislo8mqn3?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0d9q4017zlioizssjazi2?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/new?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=YflenU8i4aFdf-rz",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 广告项目 共 80 个真实素材广告项目 新建广告项目 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:06 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:04 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:02 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 赛马进行中 unified_input tiktok CN · zh 卖点 0 轮次 1 #1 · Angle 就绪 2026/07/13 22:00 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 赛马进行中 unified_input tiktok C",
+      "screenshot": "qa/screenshots/baseline/routes/internal-orders.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/orders/new",
+      "path": "/internal/orders/new",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/orders/new",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=v4VSH4o8F2GMpuT0",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=gphMrmxGQ1mL-WXV",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 新建广告项目 上传真实素材，系统将产出市场分析、卖点、脚本、分镜和多轮广告赛马方案 交付单标题 * 客户 / 产品类型 * 宠物用品 家居用品 本地服务 跨境电商 其他真实素材广告 目标市场 / 语言 * English (US) (en-US) English (UK) (en-GB) Français (Québec) (fr-CA) Français (France) (fr-FR) Deutsch (de-DE) Español (ES) (es-ES) Español (MX) (es-MX) 日本語 (ja-JP) 한국어 (ko-KR) 产品 / 服务信息 产品 / 服务名称 * 产品链接 / 官网 / 店铺链接 价格区间 目标客户 已有卖点 / 客户备注 品牌风格要求 竞品 / 参考视频 URL 多条用空格、逗号或换行分隔 真实素材 上传客户真实产品、门店、人物、宠物互动、开箱、before/after 等素材；MVP 阶段会先把素材清单交给 AI 做脚本和分镜匹配。 点击上传视频 / 图片素材 支持多文件，使用 Vercel Blob 存储 素材 URL 补充 如果素材已在网盘/CDN，可直接粘贴 URL 素材说明 / 拍摄限制 投放与赛马设置 目标平台 * TikTok Instagram Reel",
+      "screenshot": "qa/screenshots/baseline/routes/internal-orders-new.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/orders/[id]",
+      "path": "/internal/orders/cmrk0g0ta0190lioiqhmhm0mz",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmrk0g10z0196lioidy2ekli7?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=rh_isx6qD-HpEIlW",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmrk0g10z0196lioidy2ekli7?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=K4XCzwOl-GEZgkMX",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 unified_input · tiktok · CN / zh 提前结算 取消 赛马进行中 创建于 2026/07/13 22:06 · onboarding-fa-1783994352718-05bf06c7-final-acceptance-mobile@aivora.invalid MVP Demo Pipeline 上传 Next 0/3 RawAssets 上传或登记至少 3 个素材 预处理 Next 0/0 indexed · 0 shots 点击真实素材区的「预处理并打标签」 计划 Next 0/5 AdEditPlans 进入轮次页生成 5 条广告 Review Next 0/0 reviewed 生成计划后自动跑 ReviewerAgent 渲染 OK 1 final videos finalVideoUrl 已绑定 人工审核 OK 1 QA records QA 结果可查看 数据 Next 0 metric snapshots 导入 CSV 指标 迭代 Next no score · no distill 轮次页点击「复盘 + 下一轮」 产品输入 市场调研 未开始，点击右上「执行调研 + 卖点」 真实素材 (0)",
+      "screenshot": "qa/screenshots/baseline/routes/internal-orders-id.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/publish",
+      "path": "/internal/publish",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/publish",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmp1dcuuc000fjr04xt6ssbur?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmoknfk5c0023lit84cjdy4go?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=PGicHJFX_82zKJNf",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmp1dcuv9000jjr041t1q62t9?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmp1dcuuc000fjr04xt6ssbur?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmoknfk5c0023lit84cjdy4go?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=bB_rNfemeWHhaDCO",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmp1uuvia000clilu24zh7v2n/1778543494006.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmp1to1lg000eliqxv5511y3e/1778541495554.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmp1wsdf9000clic6dc8vfugx/1778547017753.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmp1vkjg0000cliowaggmu9ik/1778544966103.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/cmoknflaj002nlit8o3n1efws.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 发布队列 8 条待发布 / 上线确认 Pet reaction hook 待下载 Aivora Ads E2E Demo · Real Footage Pet Store · 第 1 轮 下载并标记 上传 TikTok 后回填 提交 post_id 确认已上线 失败 Effortless Control for All Ages 待下载 Sunny Shutter Inc.-Sunny Shutter Motorized Blinds · 第 1 轮 下载并标记 上传 TikTok 后回填 提交 post_id 确认已上线 失败 Comfort at Your Command 待下载 Sunny Shutter Inc.-Sunny Shutter Motorized Blinds · 第 1 轮 下载并标记 上传 TikTok 后回填 提交 post_id 确认已上线 失败 Why I Chose Sunny Shutter 待下载 Sunny Shutter Inc.-Sunny Shutter Motorized Blinds · 第 1 轮 下载并标记 上传 TikTok 后回填 提交 post_id 确认已上线 失败 Wizard primary angle 待下载 Cozy Home Living [QA ",
+      "screenshot": "qa/screenshots/baseline/routes/internal-publish.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/qa",
+      "path": "/internal/qa",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/qa",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmpd7d9gl0008jfcibmztke4l?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmpd6xm04000gjfl1gdjax6j0?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=HiwEIwsNUl0h4Su_",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmpd7d9gl0008jfcibmztke4l?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmpd6xm04000gjfl1gdjax6j0?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=6yfty79E4xiP6ZXd",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmr83jwrk0027lil7uqoyds4c/1783274941083.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/pet-store-zh-30s-trimmed-swiVWon4uQKo29MubkZsAZyYZF4RNB.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7r17u000ljfagp3g0puay/1779230263077.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8nczl000ljfddhkzkbz5t/1779231772028.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd9ccym000ljfqshxbso5tc/1779232943708.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7du3n000mjfci3lycid3w/1779229651354.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7pm520008jfqfsca6o791/1779230204021.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8y7fq000ojfq1c7z05bdv/1779232277506.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrcbuald000sl404w9j4cvd0/1783536284297.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7jgzt000ljfxtb7mmg6mf/1779229919691.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmr82s20s001slil78kw0h101/1783273543530.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8iab1000ljf3hw55nfaei/1779231534726.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd9kysb000ljfsa02h2ttlx/1779233338407.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjl2w1v000pli2mac9jsfef/1783969004208.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmr8idv99000llitobx3qicd2/1783299353909.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjmsd0q019dlirs0sn2vmbb/1783971871566.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjzlhgy00l4lii5rwikyi34/1783993385052.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8xi2y0009jfq1ntlih9pl/1779232250653.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/pet-store-zh-30s-trimmed-swiVWon4uQKo29MubkZsAZyYZF4RNB.mp4",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 审核队列 共 50 条待审核 a cat exploring a sunny apartment in vertical 9:16 AI — a cat exploring a sunny apartment in vertical 9:16 · 第 1 轮 通过 要求修改 驳回 a cat exploring a sunny apartment in vertical 9:16 AI — a cat exploring a sunny apartment in vertical 9:16 · 第 1 轮 通过 要求修改 驳回 a cat exploring a sunny apartment in vertical 9:16 AI — a cat exploring a sunny apartment in vertical 9:16 · 第 1 轮 通过 要求修改 驳回 hydration sports drink, energetic vertical ad AI — hydration sports drink, energetic vertical ad · 第 1 轮 通过 要求修改 驳回 a cat exploring a sunny apartment in vertical 9:16 AI — a c",
+      "screenshot": "qa/screenshots/baseline/routes/internal-qa.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/reports",
+      "path": "/internal/reports",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/reports",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=mZ-Y3Xa949mCunaF",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=ghNJly79bXX7f_xn",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 内容举报 0 条待处理 · 操作写入审计记录 当前没有举报。客户提交后会在这里进入队列。",
+      "screenshot": "qa/screenshots/baseline/routes/internal-reports.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/rounds",
+      "path": "/internal/rounds",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/rounds",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjmpj1n0185lirslkn499xn?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjmsck20198lirs1dovgaxi?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjmn5ph00m2lirsej68nfz1?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjzlgzu00kzlii5fx6i00c7?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjzogg500m0lii5ilvo76dc?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk086ck00kzlioim7w0toj7?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjztc1c0192lii5f00ev9iu?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjzqknt0181lii5liy00mhw?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0b5rt00m0lioi0wvj5z1c?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0d9u60181lioijk62f91v?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=-klpnmrHIWML2lwg",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjmpj1n0185lirslkn499xn?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjmsck20198lirs1dovgaxi?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjzogg500m0lii5ilvo76dc?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjzlgzu00kzlii5fx6i00c7?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjzqknt0181lii5liy00mhw?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrjztc1c0192lii5f00ev9iu?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk086ck00kzlioim7w0toj7?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0b5rt00m0lioi0wvj5z1c?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0d9u60181lioijk62f91v?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=YAOEMjuaSXwmvc0Q",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 赛马轮次 所有进行中及历史轮次 第 1 轮 Angle 就绪 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 · 1 条 angle 2026/07/13 22:06 第 1 轮 Angle 就绪 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 · 1 条 angle 2026/07/13 22:04 第 1 轮 Angle 就绪 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 · 1 条 angle 2026/07/13 22:02 第 1 轮 Angle 就绪 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 · 1 条 angle 2026/07/13 22:00 第 1 轮 Angle 就绪 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 · 1 条 angle 2026/07/13 21:49 第 1 轮 Angle 就绪 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 · 1 条 angle 2026/07/13 21:46 第 1 轮 Angle 就绪 为一款便携保温杯制作 10 秒真实自然光产品演示",
+      "screenshot": "qa/screenshots/baseline/routes/internal-rounds.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/rounds/[id]",
+      "path": "/internal/rounds/cmrk0g0x30192lioibgkxjsgt",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/rounds/cmrk0g0x30192lioibgkxjsgt",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmrk0g10z0196lioidy2ekli7?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=rhvExuaIuQfGylId",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/briefs/cmrk0g10z0196lioidy2ekli7?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=1i5MPS3hC2fZFHN6",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": [
+          {
+            "tag": "button",
+            "id": null,
+            "className": "group/button inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-(--radius-md) border font-semibold transition-[filter,backgro",
+            "left": 1350,
+            "right": 1498,
+            "width": 148
+          }
+        ]
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 · 第 1 组创意 Angle 就绪 · 1 个创意方向 生成 5 个创意版本 ← 返回交付单 视频生成进度 0/1 视频已生成 1/1 正在生成 视频生成通常需要 2–5 分钟。可以离开此页面稍后回来。 #0 优化方向 正在生成视频 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 开场钩子： 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 打开创意简报 →",
+      "screenshot": "qa/screenshots/baseline/routes/internal-rounds-id.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/settings",
+      "path": "/internal/settings",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/settings",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=YNJzMccs49NOv8H8",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=2utxGy5kxwByGhNc",
+          "failure": "net::ERR_ABORTED"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 设置 / 账号管理 仅 SUPER_ADMIN 可管理内部账号 运营 审核员 超级管理员 新建 邮箱 姓名 角色 创建时间 phase5a-capacity@aivora.invalid Phase 5a Capacity 运营 审核员 超级管理员 2026/07/13 14:41 lucas@sunnyshutter.ca Lucas 超级管理员 (自己) 2026/04/20 21:47 iliaoyiyu@gmail.com Super Admin 运营 审核员 超级管理员 2026/04/19 21:41 ",
+      "screenshot": "qa/screenshots/baseline/routes/internal-settings.png",
+      "networkIdle": true
+    },
+    {
+      "template": "/internal/videos",
+      "path": "/internal/videos",
+      "surface": "operator",
+      "representativeData": true,
+      "finalUrl": "http://localhost:3110/internal/videos",
+      "documentStatus": 200,
+      "title": "Aivora — AI Video Growth Platform",
+      "consoleErrors": [],
+      "consoleWarnings": [],
+      "pageErrors": [],
+      "failedRequests": [
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/pet-store-zh-30s-trimmed-swiVWon4uQKo29MubkZsAZyYZF4RNB.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrk0g1b70197lioibrearrx2/1783994809433.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzqkjw017zlii5rniqo2ra?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjztbxg0190lii53rw2fn6d?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0d9q4017zlioizssjazi2?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=fwD_MXpPv_7bqQAo",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjzqkjw017zlii5rniqo2ra?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrjztbxg0190lii53rw2fn6d?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0868s00kxlioio7yr4m4y?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0b5o100lylioislo8mqn3?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0d9q4017zlioizssjazi2?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders/cmrk0g0ta0190lioiqhmhm0mz?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/settings?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/ai-usage?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/demo-leads?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/distillation?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/reports?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/qa?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/metrics?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/publish?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/videos?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/rounds?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal/orders?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "http://localhost:3110/internal?_rsc=vhfDQq_M3EsYwp4E",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjzlhgy00l4lii5rwikyi34/1783993385052.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmr8idv99000llitobx3qicd2/1783299353909.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd9ccym000ljfqshxbso5tc/1779232943708.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd9kysb000ljfsa02h2ttlx/1779233338407.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7r17u000ljfagp3g0puay/1779230263077.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8y7fq000ojfq1c7z05bdv/1779232277506.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7jgzt000ljfxtb7mmg6mf/1779229919691.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8xi2y0009jfq1ntlih9pl/1779232250653.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmp1vkjg0000cliowaggmu9ik/1778544966103.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7pm520008jfqfsca6o791/1779230204021.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8iab1000ljf3hw55nfaei/1779231534726.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd8nczl000ljfddhkzkbz5t/1779231772028.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/cmoknflaj002nlit8o3n1efws.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmpd7du3n000mjfci3lycid3w/1779229651354.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/cmp1wsdf9000clic6dc8vfugx/1778547017753.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmr82s20s001slil78kw0h101/1783273543530.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmr83jwrk0027lil7uqoyds4c/1783274941083.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/final-videos/pet-store-zh-30s-trimmed-swiVWon4uQKo29MubkZsAZyYZF4RNB.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/final-videos/cmrjztcgh0197lii586xe0goy/1783993750943.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/migrations/beijing-tos/7542a883dcc8fe83b61dc05dffd9e2bfdeba6375c105d8e716ba54d482532edf/stitched.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/migrations/beijing-tos/c7ac2028140b240ef9af16abc4e55e447ea65cb927e2e6761d876d1d0b4f65b4/stitched.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/mock-ai-clips/mock-9x16-15s-seg0of1-41c1aff5.mp4",
+          "failure": "net::ERR_ABORTED"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        },
+        {
+          "method": "GET",
+          "url": "https://redacted.invalid/expired-tos-signed-url",
+          "failure": "net::ERR_BLOCKED_BY_ORB"
+        }
+      ],
+      "errorResponses": [],
+      "overflow": {
+        "viewportWidth": 1440,
+        "documentWidth": 1440,
+        "overflowingElements": []
+      },
+      "bodyExcerpt": "Aivora Internal Ops 创意版本组 创意简报 视频库 发布队列 数据回流 质量检查 Content reports 创意蒸馏 线索 AI 用量 设置 Legacy 中文 lucas@sunnyshutter.ca SUPER_ADMIN 退出登录 视频库 AI 正在为你的项目生成视频，可以在这里查看进度。 15s 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 15s 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 15s 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 15s 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 15s 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。 15s 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 15 秒中文 UGC 产品演示，突出耐用与便携，真实自然光，清晰展示使用前后。 15s 为一款便携保温杯制作 1",
+      "screenshot": "qa/screenshots/baseline/routes/internal-videos.png",
+      "networkIdle": true
+    }
+  ]
+}

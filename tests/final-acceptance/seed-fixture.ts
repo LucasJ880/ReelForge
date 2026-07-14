@@ -3,14 +3,19 @@ import path from "node:path";
 import bcrypt from "bcryptjs";
 import { Prisma, StyleTemplateStatus } from "@prisma/client";
 import { db } from "../../src/lib/db";
+import {
+  FINAL_ACCEPTANCE_EMAIL,
+  FINAL_ACCEPTANCE_PASSWORD,
+  FINAL_ACCEPTANCE_TEMPLATE_SLUG,
+  RUN_STATE_PATH,
+} from "./fixture-data";
 
-export const FINAL_ACCEPTANCE_EMAIL = "final-acceptance@aivora.app";
-export const FINAL_ACCEPTANCE_PASSWORD = "aivora-final-acceptance-2026";
-export const FINAL_ACCEPTANCE_TEMPLATE_SLUG = "final-acceptance-one-image";
-export const RUN_STATE_PATH = path.join(
-  process.cwd(),
-  "test-results/final-acceptance/run-state.json",
-);
+export {
+  FINAL_ACCEPTANCE_EMAIL,
+  FINAL_ACCEPTANCE_PASSWORD,
+  FINAL_ACCEPTANCE_TEMPLATE_SLUG,
+  RUN_STATE_PATH,
+} from "./fixture-data";
 
 async function main() {
   const runId = process.env.FINAL_ACCEPTANCE_RUN_ID;

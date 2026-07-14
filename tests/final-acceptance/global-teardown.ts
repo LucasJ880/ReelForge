@@ -1,12 +1,12 @@
 import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { StyleTemplateStatus } from "@prisma/client";
 import { db } from "../../src/lib/db";
 import { getStorageProvider } from "../../src/lib/storage";
 import {
   FINAL_ACCEPTANCE_EMAIL,
   FINAL_ACCEPTANCE_TEMPLATE_SLUG,
-} from "./framework";
+  RUN_STATE_PATH,
+} from "./fixture-data";
 
 interface RunState {
   runId: string;
@@ -14,12 +14,8 @@ interface RunState {
 }
 
 export default async function globalTeardown() {
-  const statePath = path.join(
-    process.cwd(),
-    "test-results/final-acceptance/run-state.json",
-  );
   try {
-    const state = JSON.parse(await readFile(statePath, "utf8")) as RunState;
+    const state = JSON.parse(await readFile(RUN_STATE_PATH, "utf8")) as RunState;
     const batchIds = [...new Set(state.batchIds.filter(Boolean))];
     if (batchIds.length > 0) {
       await db.batchJob.deleteMany({ where: { id: { in: batchIds } } });

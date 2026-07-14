@@ -330,11 +330,20 @@ async function getStatusMock(jobId: string): Promise<SeedanceJobResult> {
   const hints = job.mockHints ?? fallbackHints;
   let videoUrl: string;
   try {
-    const { generateMockClip } = await import(
-      "@/lib/video-generation/mock-clip-generator"
-    );
-    const clip = await generateMockClip(hints);
-    videoUrl = clip.url;
+    const configuredFixture = process.env.MOCK_OUTPUT_VIDEO_URL?.trim();
+    if (configuredFixture) {
+      const parsed = new URL(configuredFixture);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        throw new Error("MOCK_OUTPUT_VIDEO_URL 必须是 http(s) URL");
+      }
+      videoUrl = parsed.toString();
+    } else {
+      const { generateMockClip } = await import(
+        "@/lib/video-generation/mock-clip-generator"
+      );
+      const clip = await generateMockClip(hints);
+      videoUrl = clip.url;
+    }
   } catch (err) {
     /// 渲染失败：返回 failed 让上层走重试 / 用户可见错误，不要 silent fall back to bunny URL
     return {

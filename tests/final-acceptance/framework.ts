@@ -1,5 +1,4 @@
 import { readFile, writeFile } from "node:fs/promises";
-import path from "node:path";
 import {
   expect,
   test as base,
@@ -8,11 +7,18 @@ import {
   type TestInfo,
 } from "@playwright/test";
 import { db } from "../../src/lib/db";
+import {
+  FINAL_ACCEPTANCE_EMAIL,
+  FINAL_ACCEPTANCE_TEMPLATE_NAME,
+  RUN_STATE_PATH,
+} from "./fixture-data";
 
-export const FINAL_ACCEPTANCE_EMAIL = "final-acceptance@aivora.app";
-export const FINAL_ACCEPTANCE_PASSWORD = "aivora-final-acceptance-2026";
-export const FINAL_ACCEPTANCE_TEMPLATE_NAME = "最终验收单图模板";
-export const FINAL_ACCEPTANCE_TEMPLATE_SLUG = "final-acceptance-one-image";
+export {
+  FINAL_ACCEPTANCE_EMAIL,
+  FINAL_ACCEPTANCE_PASSWORD,
+  FINAL_ACCEPTANCE_TEMPLATE_NAME,
+  FINAL_ACCEPTANCE_TEMPLATE_SLUG,
+} from "./fixture-data";
 export const TERMINAL_BATCH_STATUSES = new Set([
   "COMPLETED",
   "PARTIAL_FAILED",
@@ -20,10 +26,6 @@ export const TERMINAL_BATCH_STATUSES = new Set([
   "CANCELLED",
 ]);
 
-const RUN_STATE_PATH = path.join(
-  process.cwd(),
-  "test-results/final-acceptance/run-state.json",
-);
 const ALLOWED_RESOURCE_CANCELLATIONS = [
   {
     label: "导航切换导致的媒体取消",

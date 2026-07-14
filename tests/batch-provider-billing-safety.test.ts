@@ -165,6 +165,7 @@ test("RF-003: a batch ACK_UNKNOWN failure cannot be manually reset for paid resu
   let updateCalls = 0;
   patch(t, db.videoJob as unknown as Record<string, unknown>, {
     findFirst: async () => ({
+      status: VideoJobStatus.FAILED,
       provider: VideoProvider.SEEDANCE_I2V,
       submissionState: ProviderSubmissionState.ACK_UNKNOWN,
       externalJobId: null,
@@ -178,7 +179,7 @@ test("RF-003: a batch ACK_UNKNOWN failure cannot be manually reset for paid resu
   });
 
   const retried = await retryFailedBatchJob("batch-1", "job-1");
-  assert.equal(retried, false);
+  assert.deepEqual(retried, { outcome: "billing_unsafe" });
   assert.equal(updateCalls, 0);
 });
 
@@ -210,5 +211,51 @@ test("RF-018: retry capability keeps explicit mock stalls recoverable without re
     }),
     false,
     "a real-provider timeout remains blocked until billing reconciliation",
+  );
+});
+
+test("RF-033: paid-provider retry requires proof that no external job exists", () => {
+  const base = {
+    provider: VideoProvider.SEEDANCE_I2V,
+    submissionState: ProviderSubmissionState.NOT_STARTED,
+    externalJobId: null,
+    lastProviderStatus: null,
+    errorMessage: null,
+  };
+
+  assert.equal(batchTest.isBillingSafeManualRetry(base), true);
+  assert.equal(
+    batchTest.isBillingSafeManualRetry({
+      ...base,
+      submissionState: ProviderSubmissionState.REJECTED,
+    }),
+    true,
+  );
+  assert.equal(
+    batchTest.isBillingSafeManualRetry({
+      ...base,
+      submissionState: ProviderSubmissionState.REJECTED,
+      externalJobId: "rejected-but-created",
+    }),
+    false,
+  );
+  assert.equal(
+    batchTest.isBillingSafeManualRetry({
+      ...base,
+      submissionState: ProviderSubmissionState.ACCEPTED,
+      externalJobId: "provider-job-failed",
+      lastProviderStatus: "failed",
+    }),
+    false,
+  );
+  assert.equal(
+    batchTest.isBillingSafeManualRetry({
+      ...base,
+      submissionState: ProviderSubmissionState.ACCEPTED,
+      externalJobId: "provider-job-generated",
+      lastProviderStatus: "succeeded",
+      errorMessage: "[frame-qa] text overlay detected",
+    }),
+    false,
   );
 });

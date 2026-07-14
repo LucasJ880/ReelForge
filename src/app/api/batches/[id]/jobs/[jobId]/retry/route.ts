@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import {
+  BatchNotFoundError,
   getBatchStatus,
   processBatchTick,
   retryFailedBatchJob,
   toCustomerBatchStatus,
 } from "@/lib/services/batch-service";
 import { customerApiError } from "@/lib/api/customer-generation-error";
+import { batchRetryOneResponseSchema } from "@/lib/contracts/batch-api";
 
 export async function POST(
   _req: NextRequest,
@@ -19,8 +21,30 @@ export async function POST(
   const { id, jobId } = await params;
   try {
     await getBatchStatus(id, guard.session.user.id);
-    const retried = await retryFailedBatchJob(id, jobId);
-    if (!retried) {
+    const result = await retryFailedBatchJob(id, jobId);
+    if (result.outcome === "not_found") {
+      return NextResponse.json(
+        customerApiError({
+          code: "RESOURCE_NOT_FOUND",
+          message: "批次任务不存在。",
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 404 },
+      );
+    }
+    if (result.outcome === "invalid_state") {
+      return NextResponse.json(
+        customerApiError({
+          code: "INVALID_STATE",
+          message: "只有失败且尚未重试的任务可以重试，请刷新批次状态。",
+          retryable: false,
+          action: "refresh_status",
+        }),
+        { status: 409 },
+      );
+    }
+    if (result.outcome === "billing_unsafe") {
       return NextResponse.json(
         customerApiError({
           code: "SUBMISSION_ACK_UNKNOWN",
@@ -32,12 +56,26 @@ export async function POST(
       );
     }
     await processBatchTick(id);
-    return NextResponse.json({
-      batch: toCustomerBatchStatus(
-        await getBatchStatus(id, guard.session.user.id),
-      ),
-    });
+    return NextResponse.json(
+      batchRetryOneResponseSchema.parse({
+        retried: 1,
+        batch: toCustomerBatchStatus(
+          await getBatchStatus(id, guard.session.user.id),
+        ),
+      }),
+    );
   } catch (error) {
+    if (error instanceof BatchNotFoundError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "RESOURCE_NOT_FOUND",
+          message: "批次不存在。",
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 404 },
+      );
+    }
     console.error("[batch:retry-one] request failed", {
       batchId: id,
       jobId,

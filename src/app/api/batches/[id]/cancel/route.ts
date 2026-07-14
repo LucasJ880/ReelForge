@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import {
+  BatchNotFoundError,
   cancelPendingBatchJobs,
   getBatchStatus,
   toCustomerBatchStatus,
 } from "@/lib/services/batch-service";
 import { customerApiError } from "@/lib/api/customer-generation-error";
+import { batchCancelResponseSchema } from "@/lib/contracts/batch-api";
 
 export async function POST(
   _req: NextRequest,
@@ -17,13 +19,26 @@ export async function POST(
   try {
     await getBatchStatus(id, guard.session.user.id);
     const cancelled = await cancelPendingBatchJobs(id);
-    return NextResponse.json({
-      cancelled,
-      batch: toCustomerBatchStatus(
-        await getBatchStatus(id, guard.session.user.id),
-      ),
-    });
+    return NextResponse.json(
+      batchCancelResponseSchema.parse({
+        cancelled,
+        batch: toCustomerBatchStatus(
+          await getBatchStatus(id, guard.session.user.id),
+        ),
+      }),
+    );
   } catch (error) {
+    if (error instanceof BatchNotFoundError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "RESOURCE_NOT_FOUND",
+          message: "批次不存在。",
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 404 },
+      );
+    }
     console.error("[batch:cancel] request failed", {
       batchId: id,
       error: error instanceof Error ? error.message : String(error),

@@ -45,7 +45,7 @@ test("AC-B7：250 卡片使用行虚拟化，仅渲染 virtualItems", () => {
   );
 });
 
-test("RF-020：批量向导与 API 共享 250 条商单认证上限", () => {
+test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /const UPLOAD_CONCURRENCY = 4/);
   assert.match(wizard, /50 - uploads\.length/);
   assert.match(limits, /MAX_BATCH_IMAGE_COUNT = 50/);

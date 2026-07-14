@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/api-auth";
 import {
   BatchImageIdConflictError,
   BatchIdempotencyConflictError,
+  BatchTemplateUnavailableError,
   createBatchJob,
   getBatchStatus,
   processBatchTick,
@@ -16,7 +17,9 @@ import {
 } from "@/lib/services/quota-service";
 import {
   batchCreateRequestSchema,
+  batchIdempotencyKeySchema,
 } from "@/lib/contracts/batch-request";
+import { batchStatusResponseSchema } from "@/lib/contracts/batch-api";
 
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
@@ -26,18 +29,46 @@ export async function POST(req: NextRequest) {
   );
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "批量生成参数不合法", issues: parsed.error.flatten() },
+      {
+        ...customerApiError({
+          code: "VALIDATION_FAILED",
+          message: "批量生成参数不合法",
+          retryable: false,
+          action: "fix_request",
+        }),
+        issues: parsed.error.flatten(),
+      },
       { status: 400 },
     );
   }
-  const idempotencyKey =
+  const rawIdempotencyKey =
     req.headers.get("idempotency-key") ?? parsed.data.idempotencyKey;
-  if (!idempotencyKey) {
+  if (!rawIdempotencyKey) {
     return NextResponse.json(
-      { error: "缺少 Idempotency-Key" },
+      customerApiError({
+        code: "IDEMPOTENCY_KEY_REQUIRED",
+        message: "缺少 Idempotency-Key",
+        retryable: false,
+        action: "fix_request",
+      }),
       { status: 400 },
     );
   }
+  const parsedIdempotencyKey = batchIdempotencyKeySchema.safeParse(
+    rawIdempotencyKey,
+  );
+  if (!parsedIdempotencyKey.success) {
+    return NextResponse.json(
+      customerApiError({
+        code: "VALIDATION_FAILED",
+        message: "Idempotency-Key 必须是 1–200 个字符。",
+        retryable: false,
+        action: "fix_request",
+      }),
+      { status: 400 },
+    );
+  }
+  const idempotencyKey = parsedIdempotencyKey.data;
 
   try {
     const batch = await createBatchJob({
@@ -58,7 +89,9 @@ export async function POST(req: NextRequest) {
     });
     const status = await getBatchStatus(batch.id, guard.session.user.id);
     return NextResponse.json(
-      { batch: toCustomerBatchStatus(status) },
+      batchStatusResponseSchema.parse({
+        batch: toCustomerBatchStatus(status),
+      }),
       { status: authorization.replayed ? 200 : 201 },
     );
   } catch (error) {
@@ -66,8 +99,24 @@ export async function POST(req: NextRequest) {
     if (quotaResponse) return quotaResponse;
     if (error instanceof BatchImageIdConflictError) {
       return NextResponse.json(
-        { error: error.message, code: error.code },
+        customerApiError({
+          code: "VALIDATION_FAILED",
+          message: error.message,
+          retryable: false,
+          action: "fix_request",
+        }),
         { status: error.httpStatus },
+      );
+    }
+    if (error instanceof BatchTemplateUnavailableError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "VALIDATION_FAILED",
+          message: error.message,
+          retryable: false,
+          action: "fix_request",
+        }),
+        { status: 422 },
       );
     }
     if (error instanceof BatchIdempotencyConflictError) {
@@ -84,7 +133,7 @@ export async function POST(req: NextRequest) {
     if (error instanceof BatchQuotaAuthorizationError) {
       return NextResponse.json(
         customerApiError({
-          code: "INTERNAL_ERROR",
+          code: "QUOTA_CHECK_UNAVAILABLE",
           message: "暂时无法确认批次额度，请稍后重试。",
           retryable: true,
           action: "retry",

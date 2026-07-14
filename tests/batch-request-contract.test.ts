@@ -14,12 +14,12 @@ function request(requestedCount: number) {
   };
 }
 
-test("RF-020: the commercial 250-item tier is accepted by the API contract", () => {
+test("RF-027: the commercial 250-item tier is accepted by the API contract", () => {
   assert.equal(MAX_BATCH_VIDEO_COUNT, 250);
   assert.equal(batchCreateRequestSchema.safeParse(request(250)).success, true);
 });
 
-test("RF-020: 251 items remain fail-closed", () => {
+test("RF-027: 251 items remain fail-closed", () => {
   const parsed = batchCreateRequestSchema.safeParse(request(251));
   assert.equal(parsed.success, false);
   if (!parsed.success) {

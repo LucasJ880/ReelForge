@@ -74,6 +74,25 @@ export class BatchImageIdConflictError extends Error {
   }
 }
 
+/**
+ * Customer batch lookups intentionally collapse "missing" and "owned by a
+ * different account" into the same error. Routes must never reveal whether a
+ * guessed batch id belongs to another customer.
+ */
+export class BatchNotFoundError extends Error {
+  constructor() {
+    super("BatchJob 不存在或无权访问");
+    this.name = "BatchNotFoundError";
+  }
+}
+
+export class BatchTemplateUnavailableError extends Error {
+  constructor() {
+    super("指定的 ACTIVE 模板版本不存在");
+    this.name = "BatchTemplateUnavailableError";
+  }
+}
+
 export class BatchDispatchNotAuthorizedError extends Error {
   readonly code = "BATCH_DISPATCH_NOT_AUTHORIZED" as const;
 
@@ -312,7 +331,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       status: StyleTemplateStatus.ACTIVE,
     },
   });
-  if (!template) throw new Error("指定的 ACTIVE 模板版本不存在");
+  if (!template) throw new BatchTemplateUnavailableError();
   parseLockedParams(template.lockedParams);
   const provider =
     getAppEnv().videoProvider === "mock"
@@ -429,7 +448,7 @@ export async function syncBatchCounts(batchId: string): Promise<BatchJob> {
       _count: { _all: true },
     }),
   ]);
-  if (!batch) throw new Error("BatchJob 不存在");
+  if (!batch) throw new BatchNotFoundError();
   const counts: Partial<Record<VideoJobStatus, number>> = {};
   for (const row of grouped as StatusCount[]) {
     counts[row.status] = row._count._all;
@@ -830,12 +849,6 @@ async function submitClaimedJob(
   }
 }
 
-function isProviderTerminalFailure(status: string | null): boolean {
-  return ["failed", "error", "expired", "cancelled", "canceled"].includes(
-    (status ?? "").toLowerCase(),
-  );
-}
-
 function isBillingSafeManualRetry(job: {
   provider: VideoProvider;
   submissionState: ProviderSubmissionState;
@@ -853,16 +866,14 @@ function isBillingSafeManualRetry(job: {
   // rehearsal adapter is zero-cost and deterministically succeeds on retry;
   // real adapters continue through the conservative billing-evidence checks.
   if (providerForJob(job).manualRetryBillingRisk === "none") return true;
-  if (
-    job.submissionState === ProviderSubmissionState.NOT_STARTED ||
-    job.submissionState === ProviderSubmissionState.REJECTED
-  ) {
-    return true;
-  }
-  return Boolean(
-    job.externalJobId &&
-      (isProviderTerminalFailure(job.lastProviderStatus) ||
-        job.errorMessage?.startsWith("[frame-qa]")),
+  // For a paid/ambiguous adapter, only positive evidence that no external job
+  // exists makes this zero-cost retry path safe. Provider-terminal states and
+  // post-generation QA failures may already be billable and require a new,
+  // explicitly metered regeneration workflow instead.
+  return (
+    job.externalJobId === null &&
+    (job.submissionState === ProviderSubmissionState.NOT_STARTED ||
+      job.submissionState === ProviderSubmissionState.REJECTED)
   );
 }
 
@@ -1001,7 +1012,7 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
       select: { provider: true },
     }),
   ]);
-  if (!batch) throw new Error("BatchJob 不存在");
+  if (!batch) throw new BatchNotFoundError();
   if (isTerminalBatchStatus(batch.status)) {
     return batch;
   }
@@ -1102,17 +1113,23 @@ export async function retryFailedBatchJobs(batchId: string): Promise<number> {
   return reset;
 }
 
+export type RetryFailedBatchJobResult =
+  | { outcome: "retried" }
+  | { outcome: "not_found" }
+  | { outcome: "invalid_state" }
+  | { outcome: "billing_unsafe" };
+
 export async function retryFailedBatchJob(
   batchId: string,
   jobId: string,
-): Promise<boolean> {
+): Promise<RetryFailedBatchJobResult> {
   const job = await db.videoJob.findFirst({
     where: {
       id: jobId,
       batchJobId: batchId,
-      status: VideoJobStatus.FAILED,
     },
     select: {
+      status: true,
       provider: true,
       submissionState: true,
       externalJobId: true,
@@ -1120,7 +1137,13 @@ export async function retryFailedBatchJob(
       errorMessage: true,
     },
   });
-  if (!job || !isBillingSafeManualRetry(job)) return false;
+  if (!job) return { outcome: "not_found" };
+  if (job.status !== VideoJobStatus.FAILED) {
+    return { outcome: "invalid_state" };
+  }
+  if (!isBillingSafeManualRetry(job)) {
+    return { outcome: "billing_unsafe" };
+  }
   const result = await db.videoJob.updateMany({
     where: {
       id: jobId,
@@ -1149,7 +1172,7 @@ export async function retryFailedBatchJob(
       availableAt: new Date(),
     },
   });
-  if (result.count === 0) return false;
+  if (result.count === 0) return { outcome: "invalid_state" };
   logStatusTransition({
     taskId: jobId,
     from: VideoJobStatus.FAILED,
@@ -1165,7 +1188,7 @@ export async function retryFailedBatchJob(
     },
   });
   await syncBatchCounts(batchId);
-  return true;
+  return { outcome: "retried" };
 }
 
 export async function cancelPendingBatchJobs(batchId: string): Promise<number> {
@@ -1224,7 +1247,7 @@ export async function getBatchStatus(batchId: string, userId?: string) {
       },
     },
   });
-  if (!batch) throw new Error("BatchJob 不存在或无权访问");
+  if (!batch) throw new BatchNotFoundError();
   return batch;
 }
 
@@ -1257,7 +1280,9 @@ export type CustomerBatchStatus = {
     id: string;
     batchIndex: number | null;
     status: VideoJobStatus;
-    assignedAssets: Prisma.JsonValue | null;
+    assignedAssets: {
+      assets: Array<{ id: string; url: string }>;
+    } | null;
     outputVideoUrl: string | null;
     outputThumbUrl: string | null;
     lastProgress: number | null;
@@ -1269,6 +1294,35 @@ export type CustomerBatchStatus = {
     error: ReturnType<typeof classifyCustomerGenerationError>;
   }>;
 };
+
+function customerHttpUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+      ? parsed.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function customerAssetAssignment(value: Prisma.JsonValue | null): {
+  assets: Array<{ id: string; url: string }>;
+} | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const assets = (value as { assets?: unknown }).assets;
+  if (!Array.isArray(assets)) return null;
+  const safeAssets = assets.flatMap((asset) => {
+    if (!asset || typeof asset !== "object" || Array.isArray(asset)) return [];
+    const id = (asset as { id?: unknown }).id;
+    const url = customerHttpUrl((asset as { url?: unknown }).url);
+    return typeof id === "string" && id.length > 0 && url
+      ? [{ id, url }]
+      : [];
+  });
+  return { assets: safeAssets };
+}
 
 /**
  * Customer APIs must never expose provider diagnostics or submission internals.
@@ -1313,9 +1367,9 @@ export function toCustomerBatchStatus(
       id: job.id,
       batchIndex: job.batchIndex,
       status: job.status,
-      assignedAssets: job.assignedAssets,
-      outputVideoUrl: job.outputVideoUrl,
-      outputThumbUrl: job.outputThumbUrl,
+      assignedAssets: customerAssetAssignment(job.assignedAssets),
+      outputVideoUrl: customerHttpUrl(job.outputVideoUrl),
+      outputThumbUrl: customerHttpUrl(job.outputThumbUrl),
       lastProgress: job.lastProgress,
       userSafeError: job.userSafeError,
       retryCount: job.retryCount,

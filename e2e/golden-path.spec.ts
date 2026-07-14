@@ -75,8 +75,56 @@ test("golden path: register, login, create, mock complete, preview, and download
     await expect(page).toHaveURL((url) => url.pathname === "/login");
     await page.getByLabel("邮箱").fill(GOLDEN_PATH_EMAIL);
     await page.getByLabel("密码").fill(GOLDEN_PATH_PASSWORD);
+    await page.evaluate(() => {
+      const continuity = { active: true, blankFrames: 0, samples: 0 };
+      const scope = window as typeof window & {
+        __authTransitionContinuity?: typeof continuity;
+      };
+      scope.__authTransitionContinuity = continuity;
+      const sample = () => {
+        if (!continuity.active) return;
+        const surface = document.querySelector<HTMLElement>(
+          '[data-auth-transition="active"], .auth-studio-theme, .studio-theme',
+        );
+        const rect = surface?.getBoundingClientRect();
+        const style = surface ? window.getComputedStyle(surface) : null;
+        const visible = Boolean(
+          rect
+          && rect.width >= window.innerWidth * 0.98
+          && rect.height >= window.innerHeight * 0.98
+          && style?.display !== "none"
+          && style?.visibility !== "hidden"
+          && Number(style?.opacity ?? "1") > 0,
+        );
+        continuity.samples += 1;
+        if (!visible) continuity.blankFrames += 1;
+        requestAnimationFrame(sample);
+      };
+      requestAnimationFrame(sample);
+    });
     await page.getByRole("button", { name: "登录", exact: true }).click();
+    await expect(page.locator('[data-auth-transition="active"]')).toBeVisible();
     await expect(page).toHaveURL((url) => url.pathname === "/app/create");
+    await expect(page.locator(".studio-theme")).toBeVisible();
+    const continuity = await page.evaluate(() => {
+      const scope = window as typeof window & {
+        __authTransitionContinuity?: {
+          active: boolean;
+          blankFrames: number;
+          samples: number;
+        };
+      };
+      if (!scope.__authTransitionContinuity) return null;
+      scope.__authTransitionContinuity.active = false;
+      return scope.__authTransitionContinuity;
+    });
+    expect(continuity, "auth-transition-continuity sampler must survive client navigation").not.toBeNull();
+    expect(continuity?.samples).toBeGreaterThan(0);
+    expect(continuity?.blankFrames, "login transition must have zero blank viewport frames").toBe(0);
+    await testInfo.attach("auth-transition-continuity", {
+      body: Buffer.from(JSON.stringify(continuity, null, 2)),
+      contentType: "application/json",
+    });
   });
 
   let briefId = "";

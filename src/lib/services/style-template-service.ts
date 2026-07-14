@@ -88,9 +88,16 @@ export async function seedBatchStyleTemplates(): Promise<number> {
   return created;
 }
 
-export async function listActiveStyleTemplates(): Promise<StyleTemplate[]> {
+export async function listActiveStyleTemplates(options: {
+  includeAcceptanceFixtures?: boolean;
+} = {}): Promise<StyleTemplate[]> {
   return db.styleTemplate.findMany({
-    where: { status: StyleTemplateStatus.ACTIVE },
+    where: {
+      status: StyleTemplateStatus.ACTIVE,
+      ...(options.includeAcceptanceFixtures
+        ? {}
+        : { category: { not: "自动化验收" } }),
+    },
     orderBy: [{ category: "asc" }, { nameZh: "asc" }],
   });
 }

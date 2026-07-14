@@ -1,8 +1,12 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { StyleTemplateStatus } from "@prisma/client";
 import { db } from "../../src/lib/db";
 import { getStorageProvider } from "../../src/lib/storage";
-import { FINAL_ACCEPTANCE_EMAIL } from "./framework";
+import {
+  FINAL_ACCEPTANCE_EMAIL,
+  FINAL_ACCEPTANCE_TEMPLATE_SLUG,
+} from "./framework";
 
 interface RunState {
   runId: string;
@@ -20,6 +24,18 @@ export default async function globalTeardown() {
     if (batchIds.length > 0) {
       await db.batchJob.deleteMany({ where: { id: { in: batchIds } } });
     }
+    const archivedTemplate = await db.styleTemplate.updateMany({
+      where: {
+        slug: FINAL_ACCEPTANCE_TEMPLATE_SLUG,
+        version: 1,
+        category: "自动化验收",
+        status: StyleTemplateStatus.ACTIVE,
+      },
+      data: {
+        status: StyleTemplateStatus.ARCHIVED,
+        activatedAt: null,
+      },
+    });
     const account = await db.adminUser.findUnique({
       where: { email: FINAL_ACCEPTANCE_EMAIL },
       select: { id: true },
@@ -51,6 +67,7 @@ export default async function globalTeardown() {
         runId: state.runId,
         deletedBatchCount: batchIds.length,
         deletedProductImageCount,
+        archivedTemplateCount: archivedTemplate.count,
       }),
     );
   } finally {

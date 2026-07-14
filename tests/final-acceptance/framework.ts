@@ -12,6 +12,7 @@ import { db } from "../../src/lib/db";
 export const FINAL_ACCEPTANCE_EMAIL = "final-acceptance@aivora.app";
 export const FINAL_ACCEPTANCE_PASSWORD = "aivora-final-acceptance-2026";
 export const FINAL_ACCEPTANCE_TEMPLATE_NAME = "最终验收单图模板";
+export const FINAL_ACCEPTANCE_TEMPLATE_SLUG = "final-acceptance-one-image";
 export const TERMINAL_BATCH_STATUSES = new Set([
   "COMPLETED",
   "PARTIAL_FAILED",
@@ -52,6 +53,11 @@ const ALLOWED_RESOURCE_CANCELLATIONS = [
   {
     label: "步骤切换取消未完成的模板封面",
     url: /^https:\/\/images\.unsplash\.com\//i,
+    error: /ERR_ABORTED|cancelled|canceled/i,
+  },
+  {
+    label: "离开批量创建页时取消未完成的模板列表请求",
+    url: /\/api\/batch-style-templates(?:\?|$)/i,
     error: /ERR_ABORTED|cancelled|canceled/i,
   },
 ] as const;

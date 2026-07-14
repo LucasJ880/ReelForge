@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { verifiedTemplateSample } from "@/lib/video-generation/template-sample";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +34,9 @@ export default async function PlatformTemplatesPage() {
         nameZh: template.nameZh,
         slug: template.slug,
         category: template.category,
-        coverImage: template.coverImage,
+        sampleImage: verifiedTemplateSample(template.slug, template.coverImage),
+        promptSkeleton: template.promptSkeleton,
+        negativePrompt: template.negativePrompt,
         version: template.version,
         lockedParams: template.lockedParams as TemplateLibraryItem["lockedParams"],
       }))} /></div>}

@@ -3,10 +3,11 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, Film, Search, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 
@@ -16,7 +17,9 @@ export type TemplateLibraryItem = {
   name: string;
   nameZh: string;
   category: string;
-  coverImage: string;
+  sampleImage: string | null;
+  promptSkeleton: string;
+  negativePrompt: string;
   version: number;
   lockedParams: {
     stability?: "high" | "balanced";
@@ -29,6 +32,7 @@ export type TemplateLibraryItem = {
 export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryItem[] }) {
   const { locale } = useTranslation();
   const copy = getPlatformCopy(locale).templates;
+  const english = locale === "en-US";
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("__all__");
   const categories = useMemo(
@@ -39,9 +43,10 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
     const normalized = query.trim().toLocaleLowerCase();
     return templates.filter((template) =>
       (category === "__all__" || template.category === category) &&
-      (!normalized || `${template.nameZh} ${template.name} ${template.category}`.toLocaleLowerCase().includes(normalized)),
+      (!normalized || `${template.nameZh} ${template.name} ${template.category} ${template.slug}`.toLocaleLowerCase().includes(normalized)),
     );
   }, [category, query, templates]);
+  const sampleCount = templates.filter((template) => template.sampleImage).length;
 
   return (
     <div className="space-y-5">
@@ -52,7 +57,11 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
             <span className="sr-only">{copy.searchLabel}</span>
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchPlaceholder} className="pl-9" />
           </label>
-          <p className="font-mono text-meta tabular-nums text-muted-foreground">{visible.length} / {templates.length} QUALITY-LOCKED</p>
+          <div className="flex flex-wrap items-center gap-3 font-mono text-meta tabular-nums text-muted-foreground">
+            <span>{visible.length} / {templates.length} QUALITY-LOCKED</span>
+            <span aria-hidden>·</span>
+            <span>{sampleCount} {english ? "verified samples" : "个独立样片"}</span>
+          </div>
         </div>
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="group" aria-label={copy.categoryLabel}>
           {categories.map((item) => (
@@ -67,19 +76,28 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
           <Button type="button" variant="outline" onClick={() => { setCategory("__all__"); setQuery(""); }} className="mt-4">{copy.clear}</Button>
         </section>
       ) : (
-        <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={copy.listLabel}>
+        <ul className="grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label={copy.listLabel}>
           {visible.map((template) => {
             const locked = template.lockedParams;
+            const title = english ? template.name : template.nameZh;
             return (
               <li key={template.id} className="min-w-0">
-                <article className="studio-panel group min-w-0 overflow-hidden transition-colors hover:border-border-strong">
-                  <div className="relative aspect-video overflow-hidden bg-secondary">
-                    <Image src={template.coverImage} alt={`${locale === "en-US" ? template.name : template.nameZh} ${copy.sample}`} fill unoptimized sizes="(min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
-                    <span className="absolute bottom-3 left-3 rounded-(--radius-sm) bg-overlay px-2 py-1 text-meta text-foreground">{copy.sample}</span>
-                  </div>
-                  <div className="space-y-4 p-4">
+                <article className="studio-panel group flex min-w-0 flex-col overflow-hidden transition-colors hover:border-border-strong">
+                  {template.sampleImage ? (
+                    <div className="relative aspect-video overflow-hidden bg-secondary">
+                      <Image src={template.sampleImage} alt={`${title} ${copy.sample}`} fill unoptimized sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
+                      <span className="absolute bottom-2 left-2 rounded-(--radius-sm) bg-overlay px-2 py-1 text-meta text-foreground">{copy.sample}</span>
+                    </div>
+                  ) : null}
+                  <div className="flex flex-1 flex-col gap-3 p-4">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0"><h2 className="truncate font-heading text-subhead font-semibold">{locale === "en-US" ? template.name : template.nameZh}</h2><p className="mt-1 truncate font-mono text-meta text-muted-foreground">{locale === "en-US" ? template.slug : template.name}</p></div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          {!template.sampleImage ? <Film className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
+                          <h2 className="truncate font-heading text-subhead font-semibold">{title}</h2>
+                        </div>
+                        <p className="mt-1 truncate font-mono text-meta text-muted-foreground">{english ? template.slug : template.name}</p>
+                      </div>
                       <Badge variant="secondary">{categoryLabel(copy, template.category)}</Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-meta text-muted-foreground">
@@ -87,12 +105,13 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
                       <span className="font-mono tabular-nums">{locked.duration ?? 10}s</span>
                       <span className="font-mono tabular-nums">{locked.aspectRatio ?? "9:16"}</span>
                     </div>
-                    <div className="flex items-center justify-between border-t border-border pt-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                       <p className="font-mono text-meta tabular-nums text-muted-foreground">v{template.version} · {locked.humanInteraction === "none" ? copy.noHuman : copy.controlledHuman}</p>
-                      <div className="flex items-center gap-1">
-                        <Button render={<Link href={`/app/create?styleTemplate=${encodeURIComponent(singleSkillFor(template))}`} />} variant="ghost" size="sm">{copy.useSingle}</Button>
-                        <Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(template.id)}`} />} variant="outline" size="sm">{copy.useBatch}<ArrowRight aria-hidden /></Button>
-                      </div>
+                      <TemplateRecipeDialog name={title} version={template.version} promptSkeleton={template.promptSkeleton} negativePrompt={template.negativePrompt} english={english} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button render={<Link href={`/app/create?styleTemplate=${encodeURIComponent(singleSkillFor(template))}`} />} variant="ghost" size="sm">{copy.useSingle}</Button>
+                      <Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(template.id)}`} />} variant="outline" size="sm">{copy.useBatch}<ArrowRight aria-hidden /></Button>
                     </div>
                   </div>
                 </article>

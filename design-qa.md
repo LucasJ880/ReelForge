@@ -1,66 +1,79 @@
 **Comparison Target**
 
-- Source visual truth path: `/tmp/aivora-historical-agent-1440.png`
-- Implementation screenshot path: `/tmp/aivora-agent-current-top-1440.png`
-- Mobile implementation screenshot: `/tmp/aivora-agent-current-390-top-v2.png`
-- Full-view comparison evidence: `/tmp/aivora-agent-comparison-1440.jpg`
-- Viewport: desktop `1440px`; mobile `390 × 844px`
-- State: authenticated `/app/create`, empty/new creation state, Chinese locale; the source is Aivora's own historical Agent creation screen, not third-party source material.
+- Source visual truth paths:
+  - `/var/folders/mz/fbdqftfs1hbczqkj9_wqqkg40000gp/T/codex-clipboard-7e574fb3-3be8-454f-b940-71508d8067f6.png`
+  - `/var/folders/mz/fbdqftfs1hbczqkj9_wqqkg40000gp/T/codex-clipboard-2a30abf8-02ba-432b-ad43-638c4a7b2a22.png`
+- Browser-rendered implementation screenshots:
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/desktop-templates.png`
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/mobile-templates.png`
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/desktop-batch-style.png`
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/mobile-batch-style.png`
+- Full-view comparison evidence:
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/compare-template-library.png`
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/compare-batch-style.png`
+- Viewports: desktop `1440 × 1000`; mobile `390 × 844` CSS pixels.
+- State: authenticated Chinese Studio workspace, 31 customer templates, 10 verified dedicated samples, acceptance fixture archived, mock provider only.
 
 **Findings**
 
 - No actionable P0/P1/P2 findings remain.
-- The deep warm Studio palette, fixed platform navigation, and compact production controls are intentional product-system differences from the historical light Editorial screen. The Agent-first information architecture is preserved: product context, conversation, quick starts, then production handoff.
+- The implementation intentionally does not imitate the competitor card treatment or copy. It keeps Aivora's approved warm Studio tokens while adopting the requested product behavior: dense browsing, truthful sample labeling, visible prompt recipes, and less page scrolling.
 
 **Required Fidelity Surfaces**
 
-- Fonts and typography: the implementation uses the approved Studio display/body/mono roles; the Agent title, message hierarchy, compact labels, and production values retain distinct optical weights and readable wrapping at both viewports.
-- Spacing and layout rhythm: desktop preserves the historical two-rail asset/conversation composition with a consistent warm-token grid; mobile has no horizontal overflow and places the Agent conversation before the asset manager.
-- Colors and visual tokens: all new surfaces use the existing warm Studio CSS tokens and the single orange accent. The palette intentionally differs from the historical light theme while maintaining contrast and hierarchy.
-- Image quality and asset fidelity: recommendations use existing real template preview rasters with stable crops and no placeholder drawings, emoji, or synthetic CSS artwork.
-- Copy and content: the Agent flow, quality-lock explanations, sparse-brief quick starts, and production handoff are coherent in Chinese and English. Language switching updates the header, conversation, templates, asset panel, and existing production form.
+- Fonts and typography: display/body/mono roles remain intact. Template names, versions, durations, aspect ratios, counts, and recipe text have distinct optical weights and readable wrapping at both breakpoints.
+- Spacing and layout rhythm: desktop batch selection changed from a large three-column card wall to a compact internal-scroll list plus a fixed selected-template inspector. Template cards use a denser four-column maximum and omit the media region entirely when no dedicated sample exists.
+- Colors and visual tokens: all new surfaces use existing warm Studio CSS variables and the single orange accent; no new arbitrary color values or competing component library were introduced.
+- Image quality and asset fidelity: only a cover whose canonical path matches its own template slug is labeled and rendered as a sample. Twenty-one templates with reused authoring covers now show no customer-facing preview, eliminating misleading or broken media.
+- Copy and content: the library reports `31 / 31 QUALITY-LOCKED` and `10 个独立样片`; every card exposes the exact Aivora generation prompt and Negative Prompt. The automated acceptance fixture is absent from customer lists.
 
 **Full-view Comparison**
 
-- The combined evidence shows the same core onboarding model in both states: an Agent welcomes the user, gathers product context, offers guided choices, and hands the result into video creation.
-- The implementation intentionally adds visible quality-lock template recommendations and keeps the existing production form below the Agent so the single-video journey and established automation remain available.
+- The template-library comparison shows the broken localhost acceptance card removed, the real total made explicit, non-sample templates rendered compactly, and the quality-recipe action available without opening a generation flow.
+- The batch-style comparison shows the requested density improvement: search and category filters stay above a bounded list, while the selected style's real sample, format, image requirements, and recipe remain visible in a side inspector.
 
 **Focused Region Comparison**
 
-- The conversation card and first-screen action region were checked at original resolution in `/tmp/aivora-historical-agent-1440.png` and `/tmp/aivora-agent-current-top-1440.png`. Text, control labels, spacing, and selected-template handoff are readable there, so a separate crop was not needed.
+- Separate focused crops were not required because the combined 1940 × 700 evidence keeps the affected card grid, count, search controls, compact rows, and selected-template inspector readable. Recipe-dialog screenshots were also captured at both viewports:
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/desktop-recipe.png`
+  - `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/mobile-recipe.png`
 
 **Comparison History**
 
-1. Earlier finding `[P2]`: mobile placed the product-assets manager before the Agent conversation, delaying the primary onboarding action.
-   - Fix: responsive ordering now puts the conversation first on mobile and retains the two-column desktop layout.
-   - Post-fix evidence: `/tmp/aivora-agent-current-390-top-v2.png`; measured document width equals the `390px` viewport with no horizontal overflow.
-2. Earlier finding `[P1]`: the server-rendered create-page hero did not update when the client language control changed locale.
-   - Fix: moved the Agent hero into the locale-aware client component and added complete Chinese/English Agent copy.
-   - Post-fix evidence: browser DOM verification showed the hero, shell, conversation, recommendation cards, and production controls switching together; the revised screenshots contain the unified Chinese state.
+1. Earlier finding `[P1]`: an automated final-acceptance template leaked into production and displayed a broken localhost image.
+   - Fix: customer queries now exclude acceptance fixtures by default; the row was rehearsed and CAS-archived in production while preserving four historical batch references; final acceptance is forced onto `NEON_REHEARSAL_DATABASE_URL` and archives its fixture during teardown.
+   - Post-fix evidence: template-library screenshot shows 31 customer templates and zero acceptance cards; production verification reports `activeAcceptanceFixtures: 0`.
+2. Earlier finding `[P1]`: twenty-one templates reused another template's image and therefore implied false sample provenance.
+   - Fix: added exact slug-to-asset verification. A missing dedicated sample now removes the preview region rather than substituting a placeholder or unrelated still.
+   - Post-fix evidence: `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/desktop-templates.png`.
+3. Earlier finding `[P2]`: the batch style step rendered oversized media cards for every template and forced long page scrolling.
+   - Fix: replaced the card wall with a searchable, category-filtered, `26rem` internal-scroll list and a selected-template inspector.
+   - Post-fix evidence: `/Users/evan/Documents/ReelForge/docs/evidence/template-ux/desktop-batch-style.png` and mobile counterpart.
 
 **Primary Interactions Tested**
 
-- Select a recommended quality-lock template and verify the production template selector receives the matching database template.
-- Switch Chinese/English and verify the full Agent creation experience changes language.
-- Render desktop and mobile creation states; verify mobile chat-first ordering and absence of horizontal overflow.
-- Run the mock registration-to-first-video journey and protected-route smoke coverage without a real provider call.
-- Browser console checked in a clean tab: no console errors.
+- Browse exactly 31 customer templates and confirm the 10 verified-sample count.
+- Open the exact generation prompt and Negative Prompt dialog.
+- Upload a valid product image in rehearsal, advance to style selection, search/filter the compact list, and inspect the selected recipe.
+- Render desktop and mobile states with no authentication or route errors.
+- Complete the 23-scenario mock journey suite across desktop/mobile; the one navigation-abort false positive was fixed and the failed scenario passed on rerun.
+- Full unit/integration suite: 657 passed, 0 failed, 1 skipped. Production build, typecheck, and lint passed.
 
 **Open Questions**
 
-- None blocking. Real provider output quality remains a separate human-approved canary step and was not invoked in this build.
+- None blocking. Twenty-one templates still need future real-provider sample generation before they can truthfully display media; hiding their reused authoring covers is the correct current state.
 
 **Implementation Checklist**
 
-- [x] Restore the first-party Agent onboarding model.
-- [x] Connect recommendations to real quality-lock template records.
-- [x] Preserve the existing production form and automation selectors.
-- [x] Make the Agent flow fully bilingual.
-- [x] Put conversation first on mobile and verify responsive width.
-- [x] Complete browser, unit, build, and mock journey checks.
+- [x] Hide non-dedicated sample media without inserting fake placeholders.
+- [x] Keep all 31 quality recipes searchable and selectable.
+- [x] Expose exact Aivora prompt and negative constraints.
+- [x] Compact the batch style step and bound its scroll region.
+- [x] Isolate and archive acceptance fixtures safely.
+- [x] Verify desktop/mobile, mock journeys, full tests, lint, typecheck, and build.
 
 **Follow-up Polish**
 
-- A later real-provider canary can replace or supplement template preview stills with newly approved customer-quality outputs; this does not block the current interface handoff.
+- Generate and QA dedicated customer-quality samples for the remaining 21 templates during a separately approved real-provider canary; until then their preview regions should remain absent.
 
 final result: passed

@@ -6,9 +6,11 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Film,
   Images,
   Loader2,
   RefreshCw,
+  Search,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -24,6 +26,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/ui/dropzone";
+import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
 import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
 import { useTranslation } from "@/i18n";
 
@@ -48,6 +51,9 @@ interface StyleTemplateDto {
   nameZh: string;
   category: string;
   coverImage: string;
+  sampleImage: string | null;
+  promptSkeleton: string;
+  negativePrompt: string;
   lockedParams: {
     duration: number;
     aspectRatio: string;
@@ -104,6 +110,8 @@ export function BatchCreateWizard({
   );
   const [templates, setTemplates] = useState<StyleTemplateDto[]>([]);
   const [templateId, setTemplateId] = useState("");
+  const [templateQuery, setTemplateQuery] = useState("");
+  const [templateCategory, setTemplateCategory] = useState("__all__");
   const [count, setCount] = useState(100);
   const [productName, setProductName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -135,6 +143,17 @@ export function BatchCreateWizard({
   const selectedTemplate = templates.find(
     (template) => template.id === templateId,
   );
+  const templateCategories = useMemo(
+    () => ["__all__", ...Array.from(new Set(templates.map((template) => template.category)))],
+    [templates],
+  );
+  const visibleTemplates = useMemo(() => {
+    const normalized = templateQuery.trim().toLocaleLowerCase();
+    return templates.filter((template) =>
+      (templateCategory === "__all__" || template.category === templateCategory) &&
+      (!normalized || `${template.name} ${template.nameZh} ${template.category}`.toLocaleLowerCase().includes(normalized)),
+    );
+  }, [templateCategory, templateQuery, templates]);
   const uploaded = uploads.filter((item) => item.status === "uploaded");
   const hasPendingUploads = uploads.some(
     (item) => item.status === "queued" || item.status === "uploading",
@@ -427,71 +446,144 @@ export function BatchCreateWizard({
 
         {step === 1 && (
           <>
-            <CardHeader>
-              <CardTitle>{english ? "Choose one consistent style" : "选择统一风格"}</CardTitle>
-              <CardDescription>
-                {english ? "Each batch locks one template version to keep every output visually consistent." : "一个批次锁定一个模板版本，确保输出视觉一致。"}
-              </CardDescription>
+            <CardHeader className="flex-row items-start justify-between gap-4">
+              <div className="space-y-1">
+                <CardTitle>{english ? "Choose one consistent style" : "选择统一风格"}</CardTitle>
+                <CardDescription>
+                  {english
+                    ? "Search every quality-locked recipe in this step without scrolling through oversized cards."
+                    : "在当前步骤内搜索全部质量锁定模板，不必滚动浏览大尺寸卡片。"}
+                </CardDescription>
+              </div>
+              <Badge variant="secondary" className="shrink-0 font-mono">
+                {templates.length} {english ? "recipes" : "个配方"}
+              </Badge>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {templates.map((template) => {
-                  const isSelected = template.id === templateId;
+            <CardContent className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
+              <div className="min-w-0 space-y-3">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_12rem]">
+                  <label className="relative block">
+                    <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+                    <Input
+                      value={templateQuery}
+                      onChange={(event) => setTemplateQuery(event.target.value)}
+                      placeholder={english ? "Search style or scenario" : "搜索风格或使用场景"}
+                      className="pl-9"
+                      aria-label={english ? "Search style templates" : "搜索风格模板"}
+                    />
+                  </label>
+                  <select
+                    value={templateCategory}
+                    onChange={(event) => setTemplateCategory(event.target.value)}
+                    className="h-9 rounded-(--radius-sm) border border-input bg-transparent px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+                    aria-label={english ? "Filter by category" : "按分类筛选"}
+                  >
+                    {templateCategories.map((category) => (
+                      <option key={category} value={category}>
+                        {category === "__all__" ? (english ? "All categories" : "全部分类") : category}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  return (
-                    <Card
-                      key={template.id}
-                      size="sm"
-                      className={
-                        isSelected ? "border-primary bg-accent-soft" : ""
-                      }
-                    >
+                <div className="max-h-[26rem] space-y-2 overflow-y-auto pr-1">
+                  {visibleTemplates.map((template) => {
+                    const isSelected = template.id === templateId;
+                    const displayName = english ? template.name : template.nameZh;
+                    return (
                       <button
+                        key={template.id}
                         type="button"
                         aria-pressed={isSelected}
                         onClick={() => setTemplateId(template.id)}
-                        className="text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        className={`grid w-full grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-3 rounded-(--radius-md) border p-2 text-left transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none ${
+                          isSelected ? "border-primary bg-accent-soft" : "border-border bg-card hover:bg-muted"
+                        }`}
                       >
-                        <div
-                          role="img"
-                          aria-label={`${english ? template.name : template.nameZh}${english ? " template preview" : "模板预览"}`}
-                          className="h-32 bg-muted bg-cover bg-center"
-                          style={{
-                            backgroundImage: `url("${template.coverImage}")`,
-                          }}
-                        />
-                        <div className="space-y-2 p-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <span className="font-heading text-subhead text-foreground">
-                              {english ? template.name : template.nameZh}
-                            </span>
-                            <Badge
-                              variant={isSelected ? "default" : "secondary"}
-                            >
-                              v{template.version}
-                            </Badge>
-                          </div>
-                          <p className="text-meta text-muted-foreground">
-                            {template.category}
-                          </p>
-                          <p className="text-meta text-foreground">
-                            {english ? "Each video uses" : "每条"} {template.imagesPerVideo.min}
-                            {template.imagesPerVideo.max !==
-                              template.imagesPerVideo.min &&
-                              `-${template.imagesPerVideo.max}`}{" "}
-                            {english ? "images" : "张"} · {template.lockedParams.duration}s ·{" "}
-                            {template.lockedParams.aspectRatio}
-                          </p>
-                          <p className="text-meta text-muted-foreground">
-                            {template.lockedParams.stability === "high" ? (english ? "Stability first" : "稳定优先") : (english ? "Balanced creativity" : "创意均衡")}
-                            {template.lockedParams.humanInteraction === "none" ? (english ? " · No human interaction" : " · 无人物交互") : (english ? " · Controlled human interaction" : " · 含受控人物交互")}
-                          </p>
-                        </div>
+                        {template.sampleImage ? (
+                          <span
+                            role="img"
+                            aria-label={`${displayName}${english ? " sample" : "样片"}`}
+                            className="block aspect-video rounded-(--radius-sm) bg-muted bg-cover bg-center"
+                            style={{ backgroundImage: `url("${template.sampleImage}")` }}
+                          />
+                        ) : (
+                          <span className="grid aspect-video place-items-center rounded-(--radius-sm) border border-border bg-muted text-muted-foreground">
+                            <Film className="size-4" aria-hidden />
+                            <span className="sr-only">{english ? "No dedicated sample" : "暂无独立样片"}</span>
+                          </span>
+                        )}
+                        <span className="min-w-0">
+                          <span className="flex items-center gap-2">
+                            <span className="truncate font-heading text-sm font-semibold text-foreground">{displayName}</span>
+                            <span className="shrink-0 font-mono text-[11px] text-muted-foreground">v{template.version}</span>
+                          </span>
+                          <span className="mt-1 block truncate text-xs text-muted-foreground">
+                            {template.category} · {english ? "uses" : "每条"} {template.imagesPerVideo.min}
+                            {template.imagesPerVideo.max !== template.imagesPerVideo.min && `-${template.imagesPerVideo.max}`} {english ? "images" : "张"}
+                          </span>
+                        </span>
+                        <span className="flex items-center gap-2">
+                          <span className="hidden text-right font-mono text-[11px] text-muted-foreground sm:block">
+                            {template.lockedParams.duration}s<br />{template.lockedParams.aspectRatio}
+                          </span>
+                          {isSelected && <Check className="size-4 text-primary" aria-hidden />}
+                        </span>
                       </button>
-                    </Card>
-                  );
-                })}
+                    );
+                  })}
+                  {visibleTemplates.length === 0 && (
+                    <div className="rounded-(--radius-md) border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
+                      {english ? "No recipes match this search." : "没有匹配当前搜索的风格配方。"}
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {selectedTemplate && (
+                <aside className="h-fit space-y-4 rounded-(--radius-md) border border-border bg-muted p-4 lg:sticky lg:top-4">
+                  {selectedTemplate.sampleImage && (
+                    <div
+                      role="img"
+                      aria-label={`${english ? selectedTemplate.name : selectedTemplate.nameZh}${english ? " sample" : "样片"}`}
+                      className="aspect-video rounded-(--radius-sm) bg-background bg-cover bg-center"
+                      style={{ backgroundImage: `url("${selectedTemplate.sampleImage}")` }}
+                    />
+                  )}
+                  <div>
+                    <p className="font-heading text-base font-semibold text-foreground">{english ? selectedTemplate.name : selectedTemplate.nameZh}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{selectedTemplate.category} · v{selectedTemplate.version}</p>
+                  </div>
+                  <dl className="grid grid-cols-2 gap-3 border-y border-border py-3 text-xs">
+                    <div>
+                      <dt className="text-muted-foreground">{english ? "Format" : "画面"}</dt>
+                      <dd className="mt-1 font-mono text-foreground">{selectedTemplate.lockedParams.duration}s · {selectedTemplate.lockedParams.aspectRatio}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-muted-foreground">{english ? "Images" : "素材数"}</dt>
+                      <dd className="mt-1 font-mono text-foreground">
+                        {selectedTemplate.imagesPerVideo.min}
+                        {selectedTemplate.imagesPerVideo.max !== selectedTemplate.imagesPerVideo.min && `-${selectedTemplate.imagesPerVideo.max}`}
+                      </dd>
+                    </div>
+                  </dl>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    {selectedTemplate.sampleImage
+                      ? (english ? "Dedicated Aivora sample available." : "已有独立 Aivora 样片。")
+                      : (english
+                        ? "No dedicated sample yet. The recipe is available, but Aivora will not reuse another template's image as a preview."
+                        : "暂无独立样片；配方仍可使用，但不会拿其他模板画面冒充预览。")}
+                  </p>
+                  <TemplateRecipeDialog
+                    name={english ? selectedTemplate.name : selectedTemplate.nameZh}
+                    version={selectedTemplate.version}
+                    promptSkeleton={selectedTemplate.promptSkeleton}
+                    negativePrompt={selectedTemplate.negativePrompt}
+                    english={english}
+                    triggerVariant="outline"
+                  />
+                </aside>
+              )}
             </CardContent>
           </>
         )}

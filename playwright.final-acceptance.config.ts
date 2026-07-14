@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
+const rehearsalDatabaseUrl = process.env.NEON_REHEARSAL_DATABASE_URL;
+if (!rehearsalDatabaseUrl) {
+  throw new Error("Final acceptance requires NEON_REHEARSAL_DATABASE_URL");
+}
+process.env.DATABASE_URL = rehearsalDatabaseUrl;
 const baseURL = process.env.FINAL_ACCEPTANCE_BASE_URL ?? `http://localhost:${port}`;
 const runId = process.env.FINAL_ACCEPTANCE_RUN_ID ?? `fa-${Date.now()}-${randomUUID().slice(0, 8)}`;
 const soakMs = Number(process.env.FINAL_ACCEPTANCE_SOAK_MS ?? "5000");
@@ -28,6 +33,7 @@ const runtimeEnv = [
   "WATCHDOG_GRACE_MIN=0",
   "DISPATCH_BREAKER_ENABLED=false",
   "FRAME_QA_DISABLED=true",
+  'DATABASE_URL="$NEON_REHEARSAL_DATABASE_URL"',
 ].join(" ");
 
 export default defineConfig({

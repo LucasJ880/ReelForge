@@ -17,10 +17,12 @@ async function main() {
   if (!runId) throw new Error("缺少 FINAL_ACCEPTANCE_RUN_ID");
   if (process.env.FINAL_ACCEPTANCE_REQUIRE_REHEARSAL === "true") {
     const databaseUrl = process.env.DATABASE_URL;
-    if (!databaseUrl) throw new Error("最终验收缺少 DATABASE_URL");
-    const databaseHost = new URL(databaseUrl).hostname;
-    if (!databaseHost.includes("us-east-1.aws.neon.tech")) {
-      throw new Error("最终验收只允许写入 Neon us-east-1 演练分支");
+    const rehearsalDatabaseUrl = process.env.NEON_REHEARSAL_DATABASE_URL;
+    if (!databaseUrl || !rehearsalDatabaseUrl) {
+      throw new Error("最终验收缺少演练分支数据库配置");
+    }
+    if (databaseUrl !== rehearsalDatabaseUrl) {
+      throw new Error("最终验收 DATABASE_URL 必须与 NEON_REHEARSAL_DATABASE_URL 完全一致");
     }
   }
 

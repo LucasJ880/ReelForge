@@ -124,3 +124,13 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-021 remains VERIFIED, now by root-cause repair rather than rollback alone; repair commit `c95c7b7`.
 - Evidence: `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`.
 - New dependencies: none.
+
+## Iteration 3.12 — New batch route states
+
+- Date: 2026-07-14
+- Scope: Phase 3 all-route state coverage
+- Work: added dedicated loading/error states, bilingual label, and safe retry fallback for `/app/batches/new`.
+- Regression: focused 1/1; typecheck/lint/build green; golden `gp-1784042405189-e61a81b0` green.
+- Commit: `800aa6b`.
+- Evidence: `qa/evidence/phase34/iteration-3.12-new-batch-route-states.md`.
+- New dependencies: none.

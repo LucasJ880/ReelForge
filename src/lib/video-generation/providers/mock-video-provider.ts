@@ -109,6 +109,7 @@ async function outputUrl(payload: EncodedMockJob): Promise<string> {
 export class MockVideoProvider implements VideoProvider {
   readonly id = "mock" as const;
   readonly displayName = "Aivora Mock Video Provider";
+  readonly manualRetryBillingRisk = "none" as const;
 
   isConfigured(): boolean {
     return true;

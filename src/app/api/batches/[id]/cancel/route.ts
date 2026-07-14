@@ -3,7 +3,9 @@ import { requireAuth } from "@/lib/api-auth";
 import {
   cancelPendingBatchJobs,
   getBatchStatus,
+  toCustomerBatchStatus,
 } from "@/lib/services/batch-service";
+import { customerApiError } from "@/lib/api/customer-generation-error";
 
 export async function POST(
   _req: NextRequest,
@@ -17,9 +19,23 @@ export async function POST(
     const cancelled = await cancelPendingBatchJobs(id);
     return NextResponse.json({
       cancelled,
-      batch: await getBatchStatus(id, guard.session.user.id),
+      batch: toCustomerBatchStatus(
+        await getBatchStatus(id, guard.session.user.id),
+      ),
     });
-  } catch {
-    return NextResponse.json({ error: "批次不存在" }, { status: 404 });
+  } catch (error) {
+    console.error("[batch:cancel] request failed", {
+      batchId: id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      customerApiError({
+        code: "INTERNAL_ERROR",
+        message: "暂时无法取消未开始任务，请稍后再试。",
+        retryable: true,
+        action: "retry",
+      }),
+      { status: 500 },
+    );
   }
 }

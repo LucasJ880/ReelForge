@@ -47,8 +47,20 @@ export interface BatchMonitorJob {
   outputVideoUrl: string | null;
   outputThumbUrl: string | null;
   lastProgress: number | null;
-  errorMessage: string | null;
   userSafeError: string | null;
+  error: {
+    code:
+      | "SUBMISSION_ACK_UNKNOWN"
+      | "PROVIDER_TIMEOUT"
+      | "PROVIDER_ERROR"
+      | "ASSET_MISSING"
+      | "QUOTA_EXCEEDED"
+      | "IDEMPOTENCY_CONFLICT"
+      | "INTERNAL_ERROR";
+    message: string;
+    retryable: boolean;
+    action: "retry" | "replace_asset" | "view_usage" | "contact_support";
+  } | null;
   retryCount: number;
 }
 
@@ -176,6 +188,13 @@ export function BatchMonitor({
       ),
     [batch.videoJobs],
   );
+  const retryableFailedJobs = useMemo(
+    () =>
+      batch.videoJobs.filter(
+        (job) => job.status === "FAILED" && job.error?.retryable === true,
+      ),
+    [batch.videoJobs],
+  );
   const totalProgress = useMemo(() => {
     const runningProgress = batch.videoJobs
       .filter((job) => job.status === "RUNNING")
@@ -266,7 +285,7 @@ export function BatchMonitor({
               </div>
             </div>
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              {batch.failedCount > 0 && (
+              {retryableFailedJobs.length > 0 && (
                 <Button
                   type="button"
                   variant="outline"
@@ -287,7 +306,7 @@ export function BatchMonitor({
                   ) : (
                     <RefreshCw aria-hidden />
                   )}
-                  {english ? "Retry all failed" : "重试全部失败"} ({batch.failedCount})
+                  {english ? "Retry recoverable" : "重试可恢复任务"} ({retryableFailedJobs.length})
                 </Button>
               )}
               {batch.queuedCount + batch.pausedCount > 0 && (
@@ -462,12 +481,12 @@ export function BatchMonitor({
                 <Badge variant={jobStatusVariant(job.status)} className="w-20">{jobLabels[job.status]}</Badge>
                 <div className="min-w-32 flex-1">
                   {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
-                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger" title={job.errorMessage ?? undefined}>{job.userSafeError ?? (english ? "Generation failed; safe to retry" : "生成失败，可重试")}</p> : null}
+                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{job.error?.message ?? job.userSafeError ?? (english ? "Generation failed" : "生成失败")}</p> : null}
                   {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{english ? "Ready to play and download" : "可播放与下载"}</p> : null}
-                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{english ? "Not submitted to provider" : "未提交 Provider"}</p> : null}
+                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{english ? "Cancelled before generation" : "已在生成前取消"}</p> : null}
                 </div>
-                <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} retry</p>
-                {job.status === "FAILED" ? (
+                <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} {english ? "retries" : "次重试"}</p>
+                {job.status === "FAILED" && job.error?.retryable ? (
                   <Button type="button" variant="outline" size="xs" disabled={busy != null} onClick={() => void action(`retry-${job.id}`, `/api/batches/${batch.id}/jobs/${job.id}/retry`)}>
                     {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}{english ? "Retry" : "重试"}
                   </Button>
@@ -491,7 +510,11 @@ export function BatchMonitor({
                 <SheetTitle>{english ? "Video" : "视频"} #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
                 <SheetDescription>
                   {jobLabels[detailJob.status]}
-                  {detailJob.userSafeError ? ` · ${detailJob.userSafeError}` : ""}
+                  {detailJob.error?.message
+                    ? ` · ${detailJob.error.message}`
+                    : detailJob.userSafeError
+                      ? ` · ${detailJob.userSafeError}`
+                      : ""}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-6 pb-6">
@@ -510,7 +533,7 @@ export function BatchMonitor({
                     aria-label={english ? `Video ${(detailJob.batchIndex ?? 0) + 1} progress` : `视频 ${(detailJob.batchIndex ?? 0) + 1} 生成进度`}
                   />
                 )}
-                {detailJob.status === "FAILED" && (
+                {detailJob.status === "FAILED" && detailJob.error?.retryable && (
                   <Button
                     type="button"
                     variant="outline"

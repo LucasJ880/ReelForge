@@ -8,6 +8,11 @@ import {
   VideoProvider,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import {
+  classifyCustomerGenerationError,
+  SubmissionReconciliationRequiredError,
+  type CustomerGenerationError,
+} from "@/lib/api/customer-generation-error";
 import { isMockVideoRuntime } from "@/lib/config/env";
 import {
   getSeedanceStatus,
@@ -919,9 +924,7 @@ export async function retryFailedVideoJob(jobId: string) {
     job.submissionState === ProviderSubmissionState.SUBMITTING ||
     job.submissionState === ProviderSubmissionState.ACK_UNKNOWN
   ) {
-    throw new Error(
-      "生成服务可能已接收该任务；在管理员完成对账前禁止重新提交，以避免重复计费",
-    );
+    throw new SubmissionReconciliationRequiredError();
   }
   const videoBriefId = job.videoBriefId;
 
@@ -998,9 +1001,7 @@ export async function retryFailedVideoJob(jobId: string) {
             "暂时无法确认生成服务是否已完成该任务。为避免重复计费，系统不会自动重提，请联系管理员核对。",
         },
       });
-      throw new Error(
-        "暂时无法确认原任务状态；系统已禁止重新提交以避免重复计费",
-      );
+      throw new SubmissionReconciliationRequiredError();
     }
   }
 
@@ -1010,9 +1011,7 @@ export async function retryFailedVideoJob(jobId: string) {
       (job.submissionState === ProviderSubmissionState.NOT_STARTED &&
         job.submitAttempts === 0));
   if (!providerConfirmedFailed && !safeWithoutExternalId) {
-    throw new Error(
-      "无法证明原任务未产生计费；在管理员完成对账前禁止重新提交",
-    );
+    throw new SubmissionReconciliationRequiredError();
   }
 
   /// Provider 端确认失败 / 不存在 → 重新提交
@@ -1397,6 +1396,7 @@ export type BriefRenderSummary = {
     finishedAt: Date | null;
     /// 友好错误（FAILED 时填）
     userSafeError: string | null;
+    error: CustomerGenerationError | null;
     /// 是否已超时
     isStuck: boolean;
     /// debug 抽屉用 — 不要默认展示
@@ -1480,6 +1480,14 @@ export async function summarizeBriefRender(
       lastCheckedAt: j.lastCheckedAt,
       finishedAt: j.finishedAt,
       userSafeError: j.userSafeError ?? toUserSafeIfMissing(j.errorMessage),
+      error: classifyCustomerGenerationError({
+        status: j.status,
+        submissionState: j.submissionState,
+        submissionErrorClass: j.submissionErrorClass,
+        errorMessage: j.errorMessage,
+        userSafeError: j.userSafeError ?? toUserSafeIfMissing(j.errorMessage),
+        isStuck,
+      }),
       isStuck,
       debug: {
         provider: j.provider,
@@ -1529,6 +1537,34 @@ export async function summarizeBriefRender(
     lastCheckedAt,
     finalVideo,
     jobs: mapped,
+  };
+}
+
+export type CustomerBriefRenderSummary = Omit<
+  BriefRenderSummary,
+  "finalVideo" | "jobs"
+> & {
+  finalVideo: Omit<NonNullable<BriefRenderSummary["finalVideo"]>, "ffmpegError"> | null;
+  jobs: Array<Omit<BriefRenderSummary["jobs"][number], "debug">>;
+};
+
+export function toCustomerBriefRenderSummary(
+  summary: BriefRenderSummary,
+): CustomerBriefRenderSummary {
+  let finalVideo: CustomerBriefRenderSummary["finalVideo"] = null;
+  if (summary.finalVideo) {
+    const { ffmpegError, ...safe } = summary.finalVideo;
+    void ffmpegError;
+    finalVideo = safe;
+  }
+  return {
+    ...summary,
+    finalVideo,
+    jobs: summary.jobs.map((job) => {
+      const { debug, ...safe } = job;
+      void debug;
+      return safe;
+    }),
   };
 }
 

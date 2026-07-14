@@ -2,10 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
 import {
+  BatchImageIdConflictError,
+  BatchIdempotencyConflictError,
   createBatchJob,
   getBatchStatus,
   processBatchTick,
+  toCustomerBatchStatus,
 } from "@/lib/services/batch-service";
+import { customerApiError } from "@/lib/api/customer-generation-error";
+import { quotaErrorResponse } from "@/lib/api-quota";
+import {
+  authorizeBatchQuotaForSession,
+  BatchQuotaAuthorizationError,
+} from "@/lib/services/quota-service";
 
 const createBatchSchema = z.object({
   templateId: z.string().min(1),
@@ -51,6 +60,10 @@ export async function POST(req: NextRequest) {
       userId: guard.session.user.id,
       idempotencyKey,
     });
+    const authorization = await authorizeBatchQuotaForSession(
+      guard.session,
+      batch.id,
+    );
     // 同一请求内启动首个受控并发 wave；后续由单一 batch status 轮询续跑。
     await processBatchTick(batch.id).catch((error) => {
       console.error("[batch:create] initial tick failed", {
@@ -59,11 +72,53 @@ export async function POST(req: NextRequest) {
       });
     });
     const status = await getBatchStatus(batch.id, guard.session.user.id);
-    return NextResponse.json({ batch: status }, { status: 201 });
-  } catch (error) {
     return NextResponse.json(
-      { error: (error as Error).message },
-      { status: 409 },
+      { batch: toCustomerBatchStatus(status) },
+      { status: authorization.replayed ? 200 : 201 },
+    );
+  } catch (error) {
+    const quotaResponse = quotaErrorResponse(error);
+    if (quotaResponse) return quotaResponse;
+    if (error instanceof BatchImageIdConflictError) {
+      return NextResponse.json(
+        { error: error.message, code: error.code },
+        { status: error.httpStatus },
+      );
+    }
+    if (error instanceof BatchIdempotencyConflictError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "IDEMPOTENCY_CONFLICT",
+          message: error.message,
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 409 },
+      );
+    }
+    if (error instanceof BatchQuotaAuthorizationError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "INTERNAL_ERROR",
+          message: "暂时无法确认批次额度，请稍后重试。",
+          retryable: true,
+          action: "retry",
+        }),
+        { status: 503 },
+      );
+    }
+    console.error("[batch:create] request failed", {
+      userId: guard.session.user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return NextResponse.json(
+      customerApiError({
+        code: "INTERNAL_ERROR",
+        message: "暂时无法创建批次，请稍后重试。",
+        retryable: true,
+        action: "retry",
+      }),
+      { status: 500 },
     );
   }
 }

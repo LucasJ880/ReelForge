@@ -12,6 +12,7 @@ import {
   markVideoDispatchQuotaConsumed,
   validateIdempotencyKey,
 } from "../src/lib/services/video-dispatch-idempotency";
+import { toCustomerVideoDispatchResponse } from "../src/lib/api/customer-video-dispatch";
 
 function patch(
   t: TestContext,
@@ -119,20 +120,37 @@ test("RF-003 completed response replays exactly; same key with another body conf
   assert.equal(quota.count, 1);
   assert.ok(row.quotaConsumedAt instanceof Date);
 
-  const body = { ok: true, briefId: "brief-1" };
+  const body = {
+    ok: true,
+    briefId: "brief-1",
+    videoJobs: [
+      {
+        id: "job-1",
+        status: "RUNNING",
+        provider: "LEAK_PERSISTED_PROVIDER",
+        externalJobId: "LEAK_PERSISTED_EXTERNAL_ID",
+        providerRequestKey: "LEAK_PERSISTED_REQUEST_KEY",
+        promptText: "LEAK_PERSISTED_PROMPT",
+        errorMessage: "LEAK_PERSISTED_ERROR",
+      },
+    ],
+  };
+  const safeBody = toCustomerVideoDispatchResponse(body);
   const completed = await completeVideoDispatchRequest({
     requestId: String(row.id),
     status: 200,
     body,
   });
   assert.equal(completed.count, 1);
+  assert.deepEqual(row.responseBody, safeBody);
+  assert.doesNotMatch(JSON.stringify(row.responseBody), /LEAK_PERSISTED/);
 
   const replay = await claimVideoDispatchRequest({
     userId: "user-1",
     idempotencyKey: "stable-key",
     requestHash: "hash-1",
   });
-  assert.deepEqual(replay, { outcome: "replay", status: 200, body });
+  assert.deepEqual(replay, { outcome: "replay", status: 200, body: safeBody });
 
   const conflict = await claimVideoDispatchRequest({
     userId: "user-1",

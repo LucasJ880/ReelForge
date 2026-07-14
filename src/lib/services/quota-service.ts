@@ -1,4 +1,8 @@
-import type { Prisma, UsageResource } from "@prisma/client";
+import {
+  BatchJobStatus,
+  Prisma,
+  type UsageResource,
+} from "@prisma/client";
 import type { Session } from "next-auth";
 import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
@@ -231,60 +235,209 @@ export async function assertQuotaBatchForSession(
   const plan = await resolveQuotaPlan(userId);
   const periodKey = currentUsagePeriodKey();
 
-  await db.$transaction(async (tx) => {
-    for (const item of items) {
-      const amount = item.amount ?? 1;
-      const limit = getLimitForResource(plan, item.resource);
-      const existing = await tx.userUsagePeriod.findUnique({
-        where: {
-          userId_periodKey_resource: {
-            userId,
-            periodKey,
-            resource: item.resource,
-          },
-        },
-      });
-      const used = existing?.amount ?? 0;
-      if (used + amount > limit) {
-        throw new QuotaExceededError({
-          resource: item.resource,
-          used,
-          limit,
-          periodKey,
-        });
-      }
-    }
+  // The check and increment must serialize across distinct idempotency keys.
+  // Under READ COMMITTED, two requests can both observe the last available
+  // slot and commit, exceeding the hard plan limit. PostgreSQL SSI aborts one
+  // contender; retrying that transaction makes it observe the committed usage
+  // and fail with QuotaExceededError instead of overspending.
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      await db.$transaction(
+        async (tx) => {
+          for (const item of items) {
+            const amount = item.amount ?? 1;
+            const limit = getLimitForResource(plan, item.resource);
+            const existing = await tx.userUsagePeriod.findUnique({
+              where: {
+                userId_periodKey_resource: {
+                  userId,
+                  periodKey,
+                  resource: item.resource,
+                },
+              },
+            });
+            const used = existing?.amount ?? 0;
+            if (used + amount > limit) {
+              throw new QuotaExceededError({
+                resource: item.resource,
+                used,
+                limit,
+                periodKey,
+              });
+            }
+          }
 
-    for (const item of items) {
-      const amount = item.amount ?? 1;
-      await tx.userUsagePeriod.upsert({
-        where: {
-          userId_periodKey_resource: {
-            userId,
-            periodKey,
-            resource: item.resource,
-          },
+          for (const item of items) {
+            const amount = item.amount ?? 1;
+            await tx.userUsagePeriod.upsert({
+              where: {
+                userId_periodKey_resource: {
+                  userId,
+                  periodKey,
+                  resource: item.resource,
+                },
+              },
+              create: {
+                userId,
+                periodKey,
+                resource: item.resource,
+                amount,
+              },
+              update: { amount: { increment: amount } },
+            });
+            await tx.usageLog.create({
+              data: {
+                userId,
+                resource: item.resource,
+                amount,
+                metadata: (item.metadata ?? undefined) as
+                  | Prisma.InputJsonValue
+                  | undefined,
+              },
+            });
+          }
         },
-        create: {
-          userId,
-          periodKey,
-          resource: item.resource,
-          amount,
-        },
-        update: { amount: { increment: amount } },
-      });
-      await tx.usageLog.create({
-        data: {
-          userId,
-          resource: item.resource,
-          amount,
-          metadata: (item.metadata ?? undefined) as
-            | Prisma.InputJsonValue
-            | undefined,
-        },
-      });
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+      return;
+    } catch (error) {
+      if (!isQuotaSerializationConflict(error) || attempt >= 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
     }
-  });
+  }
+}
+
+export class BatchQuotaAuthorizationError extends Error {
+  constructor(message = "批次额度授权状态已变化，请刷新后重试") {
+    super(message);
+    this.name = "BatchQuotaAuthorizationError";
+  }
+}
+
+function isQuotaSerializationConflict(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    (error.code === "P2034" || error.code === "P2002")
+  );
+}
+
+/**
+ * Atomically authorizes a newly expanded batch and consumes its monthly
+ * entitlement exactly once. Until this commits the BatchJob remains
+ * EXPANDING and processBatchTick refuses every provider submission.
+ */
+export async function authorizeBatchQuotaForSession(
+  session: Session,
+  batchId: string,
+): Promise<{ authorized: true; replayed: boolean }> {
+  const userId = session.user.id;
+  const enforce = isQuotaEnforced() && !isQuotaExemptSession(session);
+  const plan = enforce ? await resolveQuotaPlan(userId) : null;
+  const periodKey = currentUsagePeriodKey();
+
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await db.$transaction(
+        async (tx) => {
+          const batch = await tx.batchJob.findFirst({
+            where: { id: batchId, userId },
+          });
+          if (!batch) {
+            throw new BatchQuotaAuthorizationError("批次不存在或无权访问");
+          }
+          if (batch.quotaConsumedAt) {
+            return { authorized: true as const, replayed: true };
+          }
+
+          const items: Array<{ resource: UsageResource; amount: number }> = [
+            { resource: "VIDEO_DISPATCH", amount: batch.requestedCount },
+            { resource: "SEEDANCE_SEGMENT", amount: batch.requestedCount },
+          ];
+          if (enforce && plan) {
+            for (const item of items) {
+              const limit = getLimitForResource(plan, item.resource);
+              const existing = await tx.userUsagePeriod.findUnique({
+                where: {
+                  userId_periodKey_resource: {
+                    userId,
+                    periodKey,
+                    resource: item.resource,
+                  },
+                },
+              });
+              const used = existing?.amount ?? 0;
+              if (used + item.amount > limit) {
+                throw new QuotaExceededError({
+                  resource: item.resource,
+                  used,
+                  limit,
+                  periodKey,
+                });
+              }
+            }
+          }
+
+          const activated = await tx.batchJob.updateMany({
+            where: {
+              id: batchId,
+              userId,
+              status: BatchJobStatus.EXPANDING,
+              quotaConsumedAt: null,
+            },
+            data: {
+              status: BatchJobStatus.RUNNING,
+              quotaConsumedAt: new Date(),
+              statusReason: "额度已确认，批次进入生成队列",
+            },
+          });
+          if (activated.count !== 1) {
+            const replay = await tx.batchJob.findFirst({
+              where: { id: batchId, userId },
+              select: { quotaConsumedAt: true },
+            });
+            if (replay?.quotaConsumedAt) {
+              return { authorized: true as const, replayed: true };
+            }
+            throw new BatchQuotaAuthorizationError();
+          }
+
+          if (enforce) {
+            for (const item of items) {
+              await tx.userUsagePeriod.upsert({
+                where: {
+                  userId_periodKey_resource: {
+                    userId,
+                    periodKey,
+                    resource: item.resource,
+                  },
+                },
+                create: {
+                  userId,
+                  periodKey,
+                  resource: item.resource,
+                  amount: item.amount,
+                },
+                update: { amount: { increment: item.amount } },
+              });
+              await tx.usageLog.create({
+                data: {
+                  userId,
+                  resource: item.resource,
+                  amount: item.amount,
+                  metadata: { batchId, phase: "batch_authorization" },
+                },
+              });
+            }
+          }
+          return { authorized: true as const, replayed: false };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (!isQuotaSerializationConflict(error) || attempt >= 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
+    }
+  }
 }
 
 function hourlyWindowKey(date = new Date()): string {

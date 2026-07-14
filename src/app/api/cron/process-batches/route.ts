@@ -12,7 +12,13 @@ export async function GET(req: NextRequest) {
   try {
     const batches = await db.batchJob.findMany({
       where: {
-        status: { in: [BatchJobStatus.RUNNING, BatchJobStatus.PAUSED] },
+        OR: [
+          { status: { in: [BatchJobStatus.RUNNING, BatchJobStatus.PAUSED] } },
+          {
+            status: BatchJobStatus.EXPANDING,
+            quotaConsumedAt: { not: null },
+          },
+        ],
       },
       orderBy: { updatedAt: "asc" },
       select: { id: true },

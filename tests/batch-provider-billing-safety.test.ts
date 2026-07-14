@@ -58,6 +58,7 @@ function provider(
   return {
     id: "byteplus",
     displayName: "Billing safety fixture",
+    manualRetryBillingRisk: "possible",
     isConfigured: () => true,
     isMockMode: () => false,
     createVideoJob: create,
@@ -164,6 +165,7 @@ test("RF-003: a batch ACK_UNKNOWN failure cannot be manually reset for paid resu
   let updateCalls = 0;
   patch(t, db.videoJob as unknown as Record<string, unknown>, {
     findFirst: async () => ({
+      provider: VideoProvider.SEEDANCE_I2V,
       submissionState: ProviderSubmissionState.ACK_UNKNOWN,
       externalJobId: null,
       lastProviderStatus: null,
@@ -178,4 +180,35 @@ test("RF-003: a batch ACK_UNKNOWN failure cannot be manually reset for paid resu
   const retried = await retryFailedBatchJob("batch-1", "job-1");
   assert.equal(retried, false);
   assert.equal(updateCalls, 0);
+});
+
+test("RF-018: retry capability keeps explicit mock stalls recoverable without reopening real-provider ambiguity", async (t) => {
+  const mockAdapter: VideoProviderAdapter = {
+    ...provider(async () => ({ providerJobId: "mock", providerId: "mock" })),
+    id: "mock",
+    manualRetryBillingRisk: "none",
+    isMockMode: () => true,
+  };
+  installProvider(t, mockAdapter);
+
+  const stalled = {
+    provider: VideoProvider.MOCK,
+    submissionState: ProviderSubmissionState.ACCEPTED,
+    externalJobId: "batchmock_stalled",
+    lastProviderStatus: "running",
+    errorMessage: "[watchdog:provider_stalled] no progress",
+  };
+  assert.equal(batchTest.isBillingSafeManualRetry(stalled), true);
+
+  // Keep VIDEO_PROVIDER=mock from installProvider, but resolve the historical
+  // real job from its persisted provider snapshot rather than today's default.
+  batchTest.__setVideoProviderFactoryForTests(null);
+  assert.equal(
+    batchTest.isBillingSafeManualRetry({
+      ...stalled,
+      provider: VideoProvider.SEEDANCE_I2V,
+    }),
+    false,
+    "a real-provider timeout remains blocked until billing reconciliation",
+  );
 });

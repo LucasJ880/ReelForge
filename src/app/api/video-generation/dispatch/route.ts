@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AngleType, DeliveryOrderStatus, RoundStatus, VideoBriefStatus } from "@prisma/client";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
+import { toCustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
 import { assertQuotaBatchForSession } from "@/lib/services/quota-service";
 import {
   BREAKER_USER_MESSAGE,
@@ -251,12 +252,13 @@ export async function POST(req: NextRequest) {
   }
   const dispatchRequestId = dispatchClaim.request.id;
   async function finalResponse(body: unknown, status: number) {
+    const safeBody = toCustomerVideoDispatchResponse(body);
     await completeVideoDispatchRequest({
       requestId: dispatchRequestId,
       status,
-      body,
+      body: safeBody,
     });
-    return NextResponse.json(body, { status });
+    return NextResponse.json(safeBody, { status });
   }
 
   const seedanceSegmentCount = plan.segments.filter(

@@ -24,7 +24,6 @@ import {
 } from "@/lib/video-generation/batch-style-templates";
 import {
   createVideoProviderById,
-  getVideoProvider,
 } from "@/lib/video-generation/providers";
 import type { VideoProvider as VideoProviderAdapter } from "@/lib/video-generation/providers/types";
 import {
@@ -48,21 +47,54 @@ import {
   isRealVideoDispatchMode,
   QUARANTINE_RELEASED,
 } from "./historical-dispatch-quarantine";
+import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
+import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
 const PROVIDER_FAILURE_PREFIX = "[provider:failed]";
 const SERIALIZABLE_RETRY_LIMIT = 3;
 
+export class BatchIdempotencyConflictError extends Error {
+  readonly code = "IDEMPOTENCY_CONFLICT" as const;
+
+  constructor() {
+    super("同一个 Idempotency-Key 已用于不同的批量生成请求");
+    this.name = "BatchIdempotencyConflictError";
+  }
+}
+
+export class BatchImageIdConflictError extends Error {
+  readonly code = "BATCH_IMAGE_ID_CONFLICT" as const;
+  readonly httpStatus = 409 as const;
+
+  constructor() {
+    super("批量生成素材的图片 ID 不得重复");
+    this.name = "BatchImageIdConflictError";
+  }
+}
+
+export class BatchDispatchNotAuthorizedError extends Error {
+  readonly code = "BATCH_DISPATCH_NOT_AUTHORIZED" as const;
+
+  constructor() {
+    super("批次尚未完成额度授权，禁止派发");
+    this.name = "BatchDispatchNotAuthorizedError";
+  }
+}
+
 let videoProviderFactoryOverride:
-  | ((job: VideoJob) => VideoProviderAdapter)
+  | ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter)
   | null = null;
 
-function providerForJob(job: VideoJob): VideoProviderAdapter {
+function providerForJob(job: Pick<VideoJob, "provider">): VideoProviderAdapter {
   if (videoProviderFactoryOverride) return videoProviderFactoryOverride(job);
-  return job.provider === VideoProvider.MOCK
-    ? createVideoProviderById("mock")
-    : getVideoProvider();
+  // Resolve from the provider persisted on the job, never from today's global
+  // default. A provider switch must not change the billing semantics of an
+  // already-submitted historical task.
+  return createVideoProviderById(
+    job.provider === VideoProvider.MOCK ? "mock" : "byteplus",
+  );
 }
 
 function isSerializableConflict(error: unknown): boolean {
@@ -93,6 +125,33 @@ function providerConcurrency(): number {
 
 function remainingPlanConcurrency(limit: number, active: number): number {
   return Math.max(0, Math.floor(limit) - Math.max(0, Math.floor(active)));
+}
+
+/**
+ * A quarantined historical row cannot consume a live provider/workspace slot.
+ * Keep this predicate aligned with `isHistoricalDispatchQuarantined`: in real
+ * mode an undecided pre-cutoff row is blocked; EXPIRED is blocked in every
+ * mode; RELEASED is explicitly eligible.
+ */
+function dispatchableRunningSlotFilter(
+  realDispatch: boolean,
+): Prisma.VideoJobWhereInput {
+  return realDispatch
+    ? {
+        OR: [
+          { dispatchQuarantineDecision: QUARANTINE_RELEASED },
+          {
+            dispatchQuarantineDecision: null,
+            createdAt: { gt: HISTORICAL_DISPATCH_CUTOFF },
+          },
+        ],
+      }
+    : {
+        OR: [
+          { dispatchQuarantineDecision: null },
+          { dispatchQuarantineDecision: QUARANTINE_RELEASED },
+        ],
+      };
 }
 
 function json(value: unknown): Prisma.InputJsonValue {
@@ -134,6 +193,39 @@ export interface CreateBatchInput {
   requestedCount: number;
   productName?: string | null;
   idempotencyKey: string;
+}
+
+function batchRequestHash(input: CreateBatchInput): string {
+  return hashVideoDispatchRequest({
+    templateId: input.templateId,
+    templateVersion: input.templateVersion,
+    images: input.images,
+    requestedCount: input.requestedCount,
+    productName: input.productName?.trim() || null,
+  });
+}
+
+function assertBatchReplayMatches(
+  existing: BatchJob,
+  input: CreateBatchInput,
+  requestHash: string,
+): void {
+  if (existing.requestHash) {
+    if (existing.requestHash !== requestHash) {
+      throw new BatchIdempotencyConflictError();
+    }
+    return;
+  }
+  const legacyMatches =
+    existing.templateId === input.templateId &&
+    existing.templateVersion === input.templateVersion &&
+    existing.requestedCount === input.requestedCount &&
+    (existing.productName ?? null) === (input.productName?.trim() || null) &&
+    JSON.stringify(existing.imageIds) ===
+      JSON.stringify(input.images.map((image) => image.id)) &&
+    JSON.stringify(existing.imageUrls) ===
+      JSON.stringify(input.images.map((image) => image.url));
+  if (!legacyMatches) throw new BatchIdempotencyConflictError();
 }
 
 function templateSnapshot(template: StyleTemplate): Prisma.InputJsonValue {
@@ -195,6 +287,11 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
   if (!input.idempotencyKey.trim() || input.idempotencyKey.length > 200) {
     throw new Error("idempotencyKey 必须是 1-200 字符");
   }
+  const imageIds = input.images.map((image) => image.id);
+  if (new Set(imageIds).size !== imageIds.length) {
+    throw new BatchImageIdConflictError();
+  }
+  const requestHash = batchRequestHash(input);
   const existing = await db.batchJob.findUnique({
     where: {
       userId_idempotencyKey: {
@@ -203,7 +300,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       },
     },
   });
-  if (existing) return existing;
+  if (existing) {
+    assertBatchReplayMatches(existing, input, requestHash);
+    return existing;
+  }
 
   const template = await db.styleTemplate.findFirst({
     where: {
@@ -213,7 +313,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     },
   });
   if (!template) throw new Error("指定的 ACTIVE 模板版本不存在");
-  const locked = parseLockedParams(template.lockedParams);
+  parseLockedParams(template.lockedParams);
   const provider =
     getAppEnv().videoProvider === "mock"
       ? VideoProvider.MOCK
@@ -229,7 +329,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           },
         },
       });
-      if (raced) return raced;
+      if (raced) {
+        assertBatchReplayMatches(raced, input, requestHash);
+        return raced;
+      }
 
       const batch = await tx.batchJob.create({
         data: {
@@ -241,6 +344,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           productName: input.productName?.trim() || null,
           requestedCount: input.requestedCount,
           idempotencyKey: input.idempotencyKey,
+          requestHash,
           status: BatchJobStatus.EXPANDING,
         },
       });
@@ -256,9 +360,9 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       return tx.batchJob.update({
         where: { id: batch.id },
         data: {
-          status: BatchJobStatus.RUNNING,
+          status: BatchJobStatus.EXPANDING,
           queuedCount: rows.length,
-          statusReason: `已按模板 ${template.slug}@${template.version} 原子展开；${locked.duration}s ${locked.aspectRatio}`,
+          statusReason: `已按模板 ${template.slug}@${template.version} 原子展开；等待额度授权`,
         },
       });
     });
@@ -275,7 +379,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           },
         },
       });
-      if (raced) return raced;
+      if (raced) {
+        assertBatchReplayMatches(raced, input, requestHash);
+        return raced;
+      }
     }
     throw error;
   }
@@ -453,12 +560,14 @@ async function claimJobs(args: {
             where: {
               status: VideoJobStatus.RUNNING,
               provider: batchProvider.provider,
+              ...dispatchableRunningSlotFilter(realDispatch),
             },
           }),
           tx.videoJob.count({
             where: {
               status: VideoJobStatus.RUNNING,
               batchJob: { userId: batch.userId },
+              ...dispatchableRunningSlotFilter(realDispatch),
             },
           }),
         ]);
@@ -494,27 +603,41 @@ async function claimJobs(args: {
           orderBy: { batchIndex: "asc" },
           take: slots,
         });
-        const claimed: Array<VideoJob & { claimOwner: string }> = [];
-        for (const job of candidates) {
-          const result = await tx.videoJob.updateMany({
-            where: {
-              id: job.id,
-              status: VideoJobStatus.QUEUED,
-              submissionState: ProviderSubmissionState.NOT_STARTED,
-            },
-            data: {
-              status: VideoJobStatus.RUNNING,
-              leaseOwner: owner,
-              leaseExpiresAt: new Date(args.now.getTime() + LEASE_MS),
-              heartbeatAt: args.now,
-              timeoutAt: new Date(
-                args.now.getTime() + videoJobDeadlineMin() * 60_000,
-              ),
-            },
-          });
-          if (result.count > 0) claimed.push({ ...job, claimOwner: owner });
-        }
-        return claimed;
+        const candidateIds = candidates.map((job) => job.id);
+        if (candidateIds.length === 0) return [];
+
+        // One set-based CAS keeps the serializable transaction bounded on a
+        // remote Neon branch. The old per-row loop performed up to N network
+        // round trips and could expire the 5s transaction after partially
+        // preparing a customer batch.
+        const claimed = await tx.videoJob.updateMany({
+          where: {
+            id: { in: candidateIds },
+            status: VideoJobStatus.QUEUED,
+            submissionState: ProviderSubmissionState.NOT_STARTED,
+          },
+          data: {
+            status: VideoJobStatus.RUNNING,
+            leaseOwner: owner,
+            leaseExpiresAt: new Date(args.now.getTime() + LEASE_MS),
+            heartbeatAt: args.now,
+            timeoutAt: new Date(
+              args.now.getTime() + videoJobDeadlineMin() * 60_000,
+            ),
+          },
+        });
+        if (claimed.count === 0) return [];
+
+        const claimedRows = await tx.videoJob.findMany({
+          where: {
+            id: { in: candidateIds },
+            status: VideoJobStatus.RUNNING,
+            submissionState: ProviderSubmissionState.NOT_STARTED,
+            leaseOwner: owner,
+          },
+          orderBy: { batchIndex: "asc" },
+        });
+        return claimedRows.map((job) => ({ ...job, claimOwner: owner }));
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     ),
@@ -714,6 +837,7 @@ function isProviderTerminalFailure(status: string | null): boolean {
 }
 
 function isBillingSafeManualRetry(job: {
+  provider: VideoProvider;
   submissionState: ProviderSubmissionState;
   externalJobId: string | null;
   lastProviderStatus: string | null;
@@ -725,6 +849,10 @@ function isBillingSafeManualRetry(job: {
   ) {
     return false;
   }
+  // Provider capability is the only mock/real decision point. The explicit
+  // rehearsal adapter is zero-cost and deterministically succeeds on retry;
+  // real adapters continue through the conservative billing-evidence checks.
+  if (providerForJob(job).manualRetryBillingRisk === "none") return true;
   if (
     job.submissionState === ProviderSubmissionState.NOT_STARTED ||
     job.submissionState === ProviderSubmissionState.REJECTED
@@ -744,14 +872,25 @@ async function mapConcurrent<T>(
   fn: (item: T) => Promise<void>,
 ): Promise<void> {
   let cursor = 0;
+  const errors: unknown[] = [];
   await Promise.all(
     Array.from({ length: Math.min(concurrency, items.length) }, async () => {
       while (cursor < items.length) {
         const index = cursor++;
-        await fn(items[index]);
+        try {
+          await fn(items[index]);
+        } catch (error) {
+          // One malformed/provider-failed item must not strand its siblings.
+          // Preserve failure visibility, but only reject after every claimed item
+          // has settled so callers can safely reconcile/account for the batch.
+          errors.push(error);
+        }
       }
     }),
   );
+  if (errors.length > 0) {
+    throw new AggregateError(errors, `${errors.length} concurrent item(s) failed`);
+  }
 }
 
 async function reconcileRunningBatchJobs(batchId: string): Promise<void> {
@@ -866,6 +1005,9 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
   if (isTerminalBatchStatus(batch.status)) {
     return batch;
   }
+  if (!batch.quotaConsumedAt) {
+    throw new BatchDispatchNotAuthorizedError();
+  }
   if (isHistoricalDispatchQuarantined(batch)) {
     console.warn(JSON.stringify({
       evt: "historical_dispatch_quarantined",
@@ -899,6 +1041,7 @@ export async function retryFailedBatchJobs(batchId: string): Promise<number> {
     where: { batchJobId: batchId, status: VideoJobStatus.FAILED },
     select: {
       id: true,
+      provider: true,
       submissionState: true,
       externalJobId: true,
       lastProviderStatus: true,
@@ -970,6 +1113,7 @@ export async function retryFailedBatchJob(
       status: VideoJobStatus.FAILED,
     },
     select: {
+      provider: true,
       submissionState: true,
       externalJobId: true,
       lastProviderStatus: true,
@@ -1067,6 +1211,11 @@ export async function getBatchStatus(batchId: string, userId?: string) {
           lastProgress: true,
           errorMessage: true,
           userSafeError: true,
+          provider: true,
+          externalJobId: true,
+          lastProviderStatus: true,
+          submissionState: true,
+          submissionErrorClass: true,
           retryCount: true,
           createdAt: true,
           submittedAt: true,
@@ -1077,6 +1226,115 @@ export async function getBatchStatus(batchId: string, userId?: string) {
   });
   if (!batch) throw new Error("BatchJob 不存在或无权访问");
   return batch;
+}
+
+export type CustomerBatchStatus = {
+  id: string;
+  templateId: string;
+  templateVersion: number;
+  productName: string | null;
+  requestedCount: number;
+  status: BatchJobStatus;
+  queuedCount: number;
+  pausedCount: number;
+  runningCount: number;
+  completedCount: number;
+  failedCount: number;
+  cancelledCount: number;
+  statusReason: string | null;
+  finishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  template: {
+    id: string;
+    version: number;
+    name: string;
+    nameZh: string;
+    category: string;
+    coverImage: string | null;
+  };
+  videoJobs: Array<{
+    id: string;
+    batchIndex: number | null;
+    status: VideoJobStatus;
+    assignedAssets: Prisma.JsonValue | null;
+    outputVideoUrl: string | null;
+    outputThumbUrl: string | null;
+    lastProgress: number | null;
+    userSafeError: string | null;
+    retryCount: number;
+    createdAt: Date;
+    submittedAt: Date | null;
+    finishedAt: Date | null;
+    error: ReturnType<typeof classifyCustomerGenerationError>;
+  }>;
+};
+
+/**
+ * Customer APIs must never expose provider diagnostics or submission internals.
+ * Those values remain in the database/internal surfaces for incident response.
+ */
+export function toCustomerBatchStatus(
+  batch: Awaited<ReturnType<typeof getBatchStatus>>,
+): CustomerBatchStatus {
+  const statusReason =
+    batch.status === BatchJobStatus.PAUSED
+      ? "生成服务暂时拥堵，任务已安全排队。"
+      : batch.status === BatchJobStatus.PARTIAL_FAILED ||
+          batch.status === BatchJobStatus.FAILED
+        ? "部分视频生成失败，请查看任务详情。"
+        : null;
+  return {
+    id: batch.id,
+    templateId: batch.templateId,
+    templateVersion: batch.templateVersion,
+    productName: batch.productName,
+    requestedCount: batch.requestedCount,
+    status: batch.status,
+    queuedCount: batch.queuedCount,
+    pausedCount: batch.pausedCount,
+    runningCount: batch.runningCount,
+    completedCount: batch.completedCount,
+    failedCount: batch.failedCount,
+    cancelledCount: batch.cancelledCount,
+    statusReason,
+    finishedAt: batch.finishedAt,
+    createdAt: batch.createdAt,
+    updatedAt: batch.updatedAt,
+    template: {
+      id: batch.template.id,
+      version: batch.template.version,
+      name: batch.template.name,
+      nameZh: batch.template.nameZh,
+      category: batch.template.category,
+      coverImage: batch.template.coverImage,
+    },
+    videoJobs: batch.videoJobs.map((job) => ({
+      id: job.id,
+      batchIndex: job.batchIndex,
+      status: job.status,
+      assignedAssets: job.assignedAssets,
+      outputVideoUrl: job.outputVideoUrl,
+      outputThumbUrl: job.outputThumbUrl,
+      lastProgress: job.lastProgress,
+      userSafeError: job.userSafeError,
+      retryCount: job.retryCount,
+      createdAt: job.createdAt,
+      submittedAt: job.submittedAt,
+      finishedAt: job.finishedAt,
+      error: classifyCustomerGenerationError({
+        status: job.status,
+        submissionState: job.submissionState,
+        submissionErrorClass: job.submissionErrorClass,
+        errorMessage: job.errorMessage,
+        userSafeError: job.userSafeError,
+        billingSafeToRetry:
+          job.status === VideoJobStatus.FAILED
+            ? isBillingSafeManualRetry(job)
+            : false,
+      }),
+    })),
+  };
 }
 
 export async function runBatchUntilTerminal(args: {
@@ -1100,6 +1358,7 @@ export const __test__ = {
   parseImagesPerVideo,
   providerConcurrency,
   remainingPlanConcurrency,
+  dispatchableRunningSlotFilter,
   mapConcurrent,
   recoverExpiredLeases,
   expireHardDeadlineProviderSlots,
@@ -1110,7 +1369,7 @@ export const __test__ = {
   submitClaimedJob,
   isBillingSafeManualRetry,
   __setVideoProviderFactoryForTests(
-    factory: ((job: VideoJob) => VideoProviderAdapter) | null,
+    factory: ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter) | null,
   ): void {
     videoProviderFactoryOverride = factory;
   },

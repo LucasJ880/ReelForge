@@ -812,6 +812,11 @@ model BatchJob {
   productName                String?
   requestedCount             Int
   idempotencyKey             String
+  /// Canonical customer request hash. Same key + different payload is a conflict.
+  requestHash                String?
+  /// Dispatch remains fail-closed until quota authorization and Batch activation
+  /// commit atomically. Existing rows are backfilled during the expand migration.
+  quotaConsumedAt            DateTime?
   status                     BatchJobStatus @default(EXPANDING)
   queuedCount                Int            @default(0)
   pausedCount                Int            @default(0)
@@ -834,6 +839,7 @@ model BatchJob {
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
+  @@index([status, quotaConsumedAt, createdAt])
   @@index([status, createdAt, dispatchQuarantineDecision])
 }
 

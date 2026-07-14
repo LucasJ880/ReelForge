@@ -12,6 +12,7 @@ import { db } from "../src/lib/db";
 import { __resetAppEnvForTests } from "../src/lib/config/env";
 import {
   __test__,
+  BatchImageIdConflictError,
   buildBatchVideoRows,
   createBatchJob,
   deriveBatchStatus,
@@ -82,6 +83,40 @@ test("INV-B1/B2：展开行只含模板填空 prompt，分配快照与模板版�
     );
     assert.ok(row.assignedAssets);
   }
+});
+
+test("API-BATCH：重复图片 ID 在任何数据库访问前以 409 冲突拒绝", async (t) => {
+  const batchModel = db.batchJob as unknown as Record<string, unknown>;
+  let databaseTouched = false;
+  patch(t, batchModel, {
+    findUnique: async () => {
+      databaseTouched = true;
+      throw new Error("重复图片 ID 不应触发数据库访问");
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      createBatchJob({
+        userId: "user_duplicate_images",
+        templateId: TEMPLATE.id,
+        templateVersion: TEMPLATE.version,
+        images: [
+          { id: "duplicate", url: "https://cdn.test/a.jpg" },
+          { id: "duplicate", url: "https://cdn.test/b.jpg" },
+        ],
+        requestedCount: 2,
+        idempotencyKey: "duplicate-image-request",
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof BatchImageIdConflictError);
+      assert.equal(error.code, "BATCH_IMAGE_ID_CONFLICT");
+      assert.equal(error.httpStatus, 409);
+      assert.match(error.message, /图片 ID 不得重复/);
+      return true;
+    },
+  );
+  assert.equal(databaseTouched, false);
 });
 
 test("AC-B4：同一 idempotencyKey 连发 3 次，只展开 N 个 VideoJob", async (t) => {
@@ -156,6 +191,15 @@ test("AC-B4：同一 idempotencyKey 连发 3 次，只展开 N 个 VideoJob", as
   assert.equal(first.id, second.id);
   assert.equal(second.id, third.id);
   assert.equal(videoJobCount, 100, "重复请求不得二次展开");
+  await assert.rejects(
+    () =>
+      createBatchJob({
+        ...input,
+        requestedCount: 99,
+      }),
+    /Idempotency-Key.*不同|不同的批量生成请求/,
+    "同 key + 不同 payload 必须冲突，不能静默复用旧批次",
+  );
 });
 
 test("AC-B3/INV-B5：200 个任务受信号量限制，peak 不超过 10 且真实并行", async () => {
@@ -341,4 +385,92 @@ test("全局并发：只回收已越过硬 deadline 的 provider 槽，避免废
   assert.deepEqual(where.timeoutAt, {
     lt: new Date("2026-07-13T17:58:00.000Z"),
   });
+});
+
+test("派发槽位：历史隔离与 EXPIRED 的 RUNNING 任务不占用实时并发", () => {
+  assert.deepEqual(__test__.dispatchableRunningSlotFilter(true), {
+    OR: [
+      { dispatchQuarantineDecision: "RELEASED" },
+      {
+        dispatchQuarantineDecision: null,
+        createdAt: { gt: new Date("2026-07-13T14:35:00.000Z") },
+      },
+    ],
+  });
+  assert.deepEqual(__test__.dispatchableRunningSlotFilter(false), {
+    OR: [
+      { dispatchQuarantineDecision: null },
+      { dispatchQuarantineDecision: "RELEASED" },
+    ],
+  });
+});
+
+test("派发领取：10 个候选使用一次批量 CAS，避免 Neon 逐行事务超时", async (t) => {
+  const prisma = db as unknown as Record<string, unknown>;
+  const candidates = Array.from({ length: 10 }, (_, index) => ({
+    id: `claim_${index}`,
+    batchIndex: index,
+  }));
+  let findManyCalls = 0;
+  let updateManyCalls = 0;
+  const countFilters: unknown[] = [];
+  const tx = {
+    batchJob: {
+      findUnique: async () => ({
+        userId: "claim_user",
+        user: { workspace: { plan: { batchConcurrencyLimit: 10 } } },
+      }),
+    },
+    videoJob: {
+      findFirst: async () => ({ provider: VideoProvider.MOCK }),
+      count: async (args: { where: unknown }) => {
+        countFilters.push(args.where);
+        return 0;
+      },
+      findMany: async () => {
+        findManyCalls += 1;
+        return candidates;
+      },
+      updateMany: async () => {
+        updateManyCalls += 1;
+        return { count: candidates.length };
+      },
+    },
+  };
+  patch(t, prisma, {
+    $transaction: async (fn: (client: typeof tx) => Promise<unknown>) => fn(tx),
+  });
+  const previous = {
+    provider: process.env.VIDEO_PROVIDER,
+    engineMock: process.env.VIDEO_ENGINE_MOCK,
+    concurrency: process.env.PROVIDER_CONCURRENCY,
+  };
+  process.env.VIDEO_PROVIDER = "byteplus";
+  process.env.VIDEO_ENGINE_MOCK = "false";
+  process.env.PROVIDER_CONCURRENCY = "10";
+  t.after(() => {
+    if (previous.provider === undefined) delete process.env.VIDEO_PROVIDER;
+    else process.env.VIDEO_PROVIDER = previous.provider;
+    if (previous.engineMock === undefined) delete process.env.VIDEO_ENGINE_MOCK;
+    else process.env.VIDEO_ENGINE_MOCK = previous.engineMock;
+    if (previous.concurrency === undefined) delete process.env.PROVIDER_CONCURRENCY;
+    else process.env.PROVIDER_CONCURRENCY = previous.concurrency;
+  });
+
+  const claimed = await __test__.claimJobs({
+    batchId: "batch_claim",
+    maxClaims: 10,
+    now: new Date("2026-07-14T05:00:00.000Z"),
+  });
+
+  assert.equal(claimed.length, 10);
+  assert.equal(updateManyCalls, 1, "领取必须是一次 set-based CAS");
+  assert.equal(findManyCalls, 2, "候选读取与 CAS 后回读各一次");
+  assert.equal(countFilters.length, 2);
+  for (const where of countFilters) {
+    assert.deepEqual(
+      (where as { OR: unknown }).OR,
+      __test__.dispatchableRunningSlotFilter(true).OR,
+    );
+  }
 });

@@ -5,6 +5,7 @@ import {
   type VideoDispatchRequest,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import { toCustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
 
 export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
 
@@ -63,7 +64,7 @@ function classifyExisting(
   return {
     outcome: "replay",
     status: existing.responseStatus,
-    body: existing.responseBody,
+    body: toCustomerVideoDispatchResponse(existing.responseBody),
   };
 }
 
@@ -127,6 +128,7 @@ export async function completeVideoDispatchRequest(args: {
   status: number;
   body: unknown;
 }) {
+  const safeBody = toCustomerVideoDispatchResponse(args.body);
   const state =
     args.status >= 200 && args.status < 300
       ? VideoDispatchRequestState.COMPLETED
@@ -139,7 +141,7 @@ export async function completeVideoDispatchRequest(args: {
     data: {
       state,
       responseStatus: args.status,
-      responseBody: args.body as Prisma.InputJsonValue,
+      responseBody: safeBody as Prisma.InputJsonValue,
       completedAt: new Date(),
     },
   });

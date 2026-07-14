@@ -95,6 +95,10 @@ export function BatchCreateWizard({
     ? ["Upload assets", "Choose style", "Set quantity", "Review"]
     : ["上传素材", "选择风格", "生成数量", "确认提交"];
   const uploadControllersRef = useRef(new Map<string, AbortController>());
+  const submissionIdentityRef = useRef<{
+    fingerprint: string;
+    key: string;
+  } | null>(null);
   const [step, setStep] = useState(0);
   const [uploads, setUploads] = useState<UploadItem[]>(() =>
     initialImages.map((image) => ({
@@ -266,22 +270,30 @@ export function BatchCreateWizard({
     setSubmitting(true);
     setError(null);
     try {
+      const requestBody = {
+        templateId: selectedTemplate.id,
+        templateVersion: selectedTemplate.version,
+        images: uploaded.map((item) => ({
+          id: item.assetId,
+          url: item.url,
+        })),
+        requestedCount: count,
+        productName: productName.trim() || undefined,
+      };
+      const fingerprint = JSON.stringify(requestBody);
+      if (submissionIdentityRef.current?.fingerprint !== fingerprint) {
+        submissionIdentityRef.current = {
+          fingerprint,
+          key: crypto.randomUUID(),
+        };
+      }
       const response = await fetch("/api/batches", {
         method: "POST",
         headers: {
           "content-type": "application/json",
-          "idempotency-key": crypto.randomUUID(),
+          "idempotency-key": submissionIdentityRef.current.key,
         },
-        body: JSON.stringify({
-          templateId: selectedTemplate.id,
-          templateVersion: selectedTemplate.version,
-          images: uploaded.map((item) => ({
-            id: item.assetId,
-            url: item.url,
-          })),
-          requestedCount: count,
-          productName: productName.trim() || undefined,
-        }),
+        body: fingerprint,
       });
       const data = (await response.json()) as {
         batch?: { id: string };

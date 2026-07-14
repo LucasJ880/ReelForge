@@ -3,7 +3,10 @@ import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
-import { getBatchStatus } from "@/lib/services/batch-service";
+import {
+  getBatchStatus,
+  toCustomerBatchStatus,
+} from "@/lib/services/batch-service";
 import { BatchMonitor, type BatchMonitorData } from "@/components/batch/batch-monitor";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
@@ -28,7 +31,11 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
           <Plus aria-hidden />{copy.new}
         </Button>
       </nav>
-      <BatchMonitor initialBatch={batch as unknown as BatchMonitorData} />
+      <BatchMonitor
+        initialBatch={
+          toCustomerBatchStatus(batch) as unknown as BatchMonitorData
+        }
+      />
     </div>
   );
 }

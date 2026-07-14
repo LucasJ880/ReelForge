@@ -88,6 +88,11 @@ export interface VideoJobStatusResult {
 export interface VideoProvider {
   readonly id: "byteplus" | "mock";
   readonly displayName: string;
+  /**
+   * Static billing capability of this adapter, independent of current env
+   * flags. Only `none` may make an otherwise ambiguous manual retry safe.
+   */
+  readonly manualRetryBillingRisk: "none" | "possible";
 
   isConfigured(): boolean;
   isMockMode(): boolean;

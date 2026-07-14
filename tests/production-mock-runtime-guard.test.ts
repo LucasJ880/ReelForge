@@ -66,3 +66,17 @@ test("preview rehearsal: MockVideoProvider 仍可创建零成本任务", async (
   const result = await provider.createVideoJob({ prompt: "preview fixture" });
   assert.match(result.providerJobId, /^batchmock_/);
 });
+
+test("local optimized rehearsal: explicit dry-run 可在 next start 下创建零成本任务", async (t) => {
+  withEnv(t, {
+    VERCEL_ENV: undefined,
+    NODE_ENV: "production",
+    AIVORA_DRY_RUN: "1",
+    VIDEO_PROVIDER: "mock",
+    VIDEO_ENGINE_MOCK: "true",
+  });
+
+  const provider = new MockVideoProvider();
+  const result = await provider.createVideoJob({ prompt: "local acceptance fixture" });
+  assert.match(result.providerJobId, /^batchmock_/);
+});

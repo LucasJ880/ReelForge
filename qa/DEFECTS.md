@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 10 · P1 OPEN 4 · P1 VERIFIED 3 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 3 · P1 VERIFIED 3 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -118,14 +118,18 @@
 
 ### RF-009 — Login success flashes a blank white viewport
 
-- Severity: **P1 — customer-visible onboarding defect**
-- Status: **OPEN**
+- Severity: **P0 — golden-path continuity blocker (upgraded after repair attempt 1 made the golden path red)**
+- Status: **VERIFIED**
 - Seed: S-02
 - Reproduction: sign in from the supplied recording and inspect the login-to-workspace transition; one full white frame is visible for roughly 0.5 seconds with no progress feedback.
 - Evidence: `qa/screenshots/baseline/recording/login-transition.jpg`
 - Impact: first-run users perceive a crash or broken redirect.
 - Required regression: golden-path navigation asserts a persistent branded/loading surface and no white full-viewport frame between submit and `/app/create`.
-- Repair commit: —
+- Repair attempts: Attempt 1 added an unauthenticated prefetch for `/app/create`; it caused the protected prefetch to redirect back to login and later abort during successful navigation. Strict golden run `gp-1784037382766-208c3e9d` failed on that request. The entire attempt was immediately rolled back; baseline run `gp-1784037506214-f921e4b0` then passed. Attempt 2 removed prefetch entirely.
+- Repair: safe internal `from` handling now defaults directly to `/app/create`; successful login performs one `router.replace` without an immediate refresh or redirect hop. A full-viewport, light-auth-theme Aivora status surface remains mounted from credential submission until the dark Studio shell is visible. Credential/network failures restore the form and preserve a readable error.
+- Verification: source regression 3/3, typecheck, focused lint, optimized build, and diff check pass. Golden run `gp-1784037627201-fa3fc7fb` passes the entire customer journey with zero console errors, 5xx responses, or failed requests; the in-page animation-frame sampler observed 27 transition frames and 0 blank viewport frames.
+- Evidence: `qa/evidence/phase34/iteration-3.2-rf009-login-continuity.md`, `qa/evidence/phase1/golden-path-gp-1784037627201-fa3fc7fb.json`.
+- Repair commit: `0fe2896`
 
 ### RF-010 — Current theme topology conflicts with the new Light-first instruction
 

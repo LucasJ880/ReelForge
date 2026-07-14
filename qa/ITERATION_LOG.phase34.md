@@ -12,3 +12,15 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-012 `OPEN → VERIFIED`; repair commit `356182a`.
 - Evidence: `qa/evidence/phase34/iteration-3.1-rf012-route-states.md`.
 - New dependencies: none.
+
+## Iteration 3.2 — RF-009 login-to-Studio continuity
+
+- Date: 2026-07-14
+- Defect: RF-009 (`P1 → P0 → VERIFIED`)
+- Attempt 1: persistent overlay + unauthenticated workspace prefetch. Golden `gp-1784037382766-208c3e9d` failed because the protected prefetch redirected to login and was then aborted. No assertion was changed; all attempt-1 product/test changes were immediately rolled back.
+- Rollback verification: golden `gp-1784037506214-f921e4b0` passed, restoring the invariant.
+- Attempt 2: no prefetch; direct safe `/app/create` default; one `router.replace`; no concurrent refresh; persistent branded light-theme status surface.
+- Regression: source 3/3; golden `gp-1784037627201-fa3fc7fb` passed with 27 sampled transition frames and 0 blank frames.
+- Ledger: RF-009 upgraded to P0 on the red golden run, then moved to VERIFIED after same full journey passed; repair commit `0fe2896`.
+- Evidence: `qa/evidence/phase34/iteration-3.2-rf009-login-continuity.md`.
+- New dependencies: none.

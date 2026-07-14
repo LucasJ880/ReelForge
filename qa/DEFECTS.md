@@ -1,9 +1,9 @@
 # ReelForge Ship Defect Ledger
 
-- Audit revision: product/test baseline `440c91f`
+- Audit revision: H1 product/test revision `e7dfea3`
 - Last updated: 2026-07-14 (America/Toronto)
-- Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 10 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Current phase: H1 backend contract closure complete; H2 merge gated on RF-005 observation
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 16 · P1 OPEN 5 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -237,7 +237,7 @@
 - Evidence: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
 - Repair commit: —
 
-### RF-020 — Batch submission cap blocks the required 250-video commercial certification tier
+### RF-027 — Batch submission cap blocks the required 250-video commercial certification tier
 
 - Severity: **P0 — commercial certification blocker**
 - Status: **VERIFIED**
@@ -250,23 +250,120 @@
 - Evidence: `qa/evidence/phase1/golden-path-gp-1784050224278-3e756d58.json`.
 - Repair commit: `9bff2c1`
 
-### RF-021 — Tier-one customer APIs expose inconsistent or naked error envelopes
+### RF-028 — Tier-one customer APIs expose inconsistent or naked error envelopes
 
 - Severity: **P1 — customer-visible recovery and contract defect**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: exercise authentication, validation, missing-resource, conflict, quota, and service failures across upload/blob, batch templates, the batch route group, video dispatch, health, and library loaders. Several paths return only `{ error }`, classify a 404 as `INTERNAL_ERROR`, turn ownership/not-found into 500, or let an exception reach the framework response.
 - Impact: clients cannot reliably distinguish empty data from outages or render the promised retry/replace/wait/upgrade/contact recovery action; contract snapshots cannot be made stable.
 - Required regression: first-tier endpoints use a shared machine-readable error envelope and endpoint DTO schemas; every supported status shape is snapshot-tested and frontend-consumed recovery fields are cross-asserted.
-- Repair commit: —
+- Repair: introduced a closed shared customer error envelope, strict request/response DTO schemas for upload/blob, batch templates, all batch mutations/status, direct dispatch, health, and library, plus customer-safe recovery-action rendering. The remaining API surface now has light success-shape, authentication, and ownership boundary contracts without claiming strict hostile-input depth.
+- Verification: the integrated H1 contract/inventory suite passes 116/116 with no skip; Final Acceptance J4/J7 run `fa-1784054148752-d1a8f9ab` passes 3/3; golden run `gp-1784055279098-5047b432` passes the complete customer journey. Typecheck, lint, and optimized build pass.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commits: `b6a8537`, `e3eca56`, `02d0d52`, `570fcb4`, `e3467e6`, `49e491f`, `de6e11d`, `81741c6`, `3b42780`
 
-### RF-022 — Library detail lookup is incorrectly bounded by the latest 100 list rows
+### RF-029 — Library detail lookup is incorrectly bounded by the latest 100 list rows
 
 - Severity: **P1 — customer-visible historical asset access defect**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: create more than 100 unified library orders for one owner, then open the detail route for an older valid order. `getUnifiedLibraryItem` calls the list loader (`take: 100`) and searches that truncated result, returning null/404 for an owned asset that still exists.
 - Impact: a commercial customer can lose access to older delivered videos as their library grows, and the SSR detail DTO does not have an independently enforced ownership/query contract.
 - Required regression: detail lookup queries the requested owner-scoped order directly, uses the same public DTO mapper as the list, and succeeds beyond the list pagination window without leaking another owner's item.
-- Repair commit: —
+- Repair: detail lookup now queries the requested owner-scoped order directly and maps it through the same allowlisted public DTO as the list; it no longer depends on the list's 100-row window.
+- Verification: `tests/unified-library-contract.test.ts` covers an owned item beyond the list window, cross-owner denial, and list/detail DTO parity; it passes inside the 116/116 H1 suite and the optimized build.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `abea1f2`
+
+### RF-030 — Library progress exposes a 0–1 fraction as a 0–100 percentage
+
+- Severity: **P1 — customer-visible monitoring truth defect**
+- Status: **VERIFIED**
+- Reproduction: open a generating or completed item in `/app/library`. `derivePersonalStatus` documents and returns `progressHint` in the 0–1 range, while the library renders `row.progress` with a percent sign and passes it to a 0–100 Progress component without conversion.
+- Impact: a completed item can display `1%`, and in-flight progress is understated by 100×, contradicting the monitoring-truth requirement.
+- Required regression: the shared library DTO mapper converts the fraction to an integer 0–100 exactly once; ready maps to 100 and all list/detail consumers use that same field.
+- Repair: the shared library DTO mapper converts the service fraction to one clamped integer percentage; READY maps to 100 and list/detail use the identical field.
+- Verification: `tests/unified-library-contract.test.ts` locks 0–100 conversion and list/detail parity; it passes inside the 116/116 H1 suite.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `abea1f2`
+
+### RF-031 — Final Acceptance quota state leaks from J4 into J7
+
+- Severity: **P0 — release-evidence isolation blocker**
+- Status: **VERIFIED**
+- Reproduction: run the desktop Final Acceptance subset matching `J4|J7` with one worker. J4 validly creates and cancels a 200-video batch; J7 then receives `429 QUOTA_EXCEEDED` with `used=200` before it can create its four-job resilience fixture.
+- Root cause: the cleanup hook is registered at module scope in the shared `tests/final-acceptance/framework.ts` helper. When the shared module is cached across spec loading, the hook is not reliably attached to every consuming spec, so the 200-unit usage rows written by J4 remain visible to J7.
+- Impact: the serial acceptance suite is order-dependent and cannot provide reproducible H1 or release-gate evidence even though the product quota boundary is behaving correctly.
+- Required regression: move acceptance cleanup into an automatic fixture exported with the shared `test`, delete by the resolved acceptance user ID inside a transaction, assert zero remaining usage before each test, and pass the J4→J7 sequence without changing quota limits or assertions.
+- Repair: Final Acceptance cleanup is now an automatic per-test fixture, resolves the run-scoped user, deletes usage/batch state transactionally, and asserts a zero baseline. J4's anonymous contract probes use an explicit empty-storage API context rather than consuming page-console findings or inheriting the authenticated browser session.
+- Verification: ordered J4→J7 run `fa-1784054148752-d1a8f9ab` passes 3/3 with unchanged product quota limits and assertions.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `a39be48`
+
+### RF-032 — Legacy dispatch replay can advertise a duplicate-billing retry
+
+- Severity: **P0 — duplicate provider submission and billing blocker**
+- Status: **VERIFIED**
+- Reproduction: deserialize a persisted pre-H1 dispatch failure with `code=DISPATCH_FAILED` and `retryable=true`. The compatibility mapper emits `INTERNAL_ERROR`, preserves `retryable=true`, and derives `action=retry`; both customer creation UIs then discard the original idempotency key and can submit the request again.
+- Root cause: the legacy-code mapper normalizes the machine code but the retry normalizer still trusts the persisted boolean. `DISPATCH_FAILED` does not prove that the provider failed before accepting or billing the request.
+- Impact: an ambiguous historical replay can create a second paid provider job while appearing to the customer as an ordinary safe retry.
+- Required regression: every legacy `DISPATCH_FAILED` replay maps to `SUBMISSION_ACK_UNKNOWN`, `retryable=false`, and `action=contact_support`, including hostile persisted values that claim retryability.
+- Repair: compatibility mapping treats every legacy `DISPATCH_FAILED` as acknowledgement-unknown regardless of the persisted retry flag and returns `SUBMISSION_ACK_UNKNOWN`, `retryable=false`, `contact_support`.
+- Verification: hostile legacy replay cases pass in `tests/video-dispatch-error-contract.test.ts`; customer consumers also refuse to rotate the idempotency key for this class.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `570fcb4`
+
+### RF-033 — Real-provider post-generation failures are misclassified as billing-safe retries
+
+- Severity: **P0 — commercial reconciliation and duplicate billing blocker**
+- Status: **VERIFIED**
+- Reproduction: pass a failed real-provider job with an `externalJobId` plus terminal provider status, or an accepted job whose local error starts with `[frame-qa]`, to `isBillingSafeManualRetry`. The predicate returns true, and retry resets the job to `NOT_STARTED` without recording a new quota or usage charge.
+- Root cause: the guard treats provider-terminal and post-generation QA failures as proof of non-billing. Those states prove only that the first attempt is no longer running; frame QA specifically proves that a provider output already existed.
+- Impact: provider submission count can exceed internally metered task count, violating the commercial T3 reconciliation invariant and charging again for a generated attempt.
+- Required regression: real providers may use the no-cost retry path only for `NOT_STARTED` or explicitly `REJECTED` jobs with no external job ID. Accepted, terminal, frame-QA, submitting, and acknowledgement-unknown attempts remain fail-closed; explicit zero-cost mock behavior remains recoverable.
+- Repair: the real-provider retry predicate now requires positive no-bill evidence: `NOT_STARTED`, or explicit `REJECTED` with no external job ID. Accepted, terminal, frame-QA, submitting, and acknowledgement-unknown attempts fail closed; zero-cost mock behavior remains separately recoverable.
+- Verification: `tests/batch-provider-billing-safety.test.ts` covers every positive and negative state plus external-job/frame-QA cases; the integrated H1 suite passes.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `02d0d52`
+
+### RF-034 — Direct dispatch advertises a new paid attempt after quota was consumed
+
+- Severity: **P0 — entitlement reconciliation and duplicate billing blocker**
+- Status: **VERIFIED**
+- Reproduction: let the direct Agent Director dispatch consume quota, then return only failed jobs whose submission state is anything other than `ACK_UNKNOWN`—including `ACCEPTED` with an external provider job. The route returns `PROVIDER_ERROR`, `retryable=true`, `action=retry`; the UI replaces the idempotency key and a second request consumes quota and can submit again.
+- Root cause: the route infers “safe to retry” from the absence of `ACK_UNKNOWN`. That is not positive proof that the provider created no job, and the consumed usage ledger is not compensated before a new attempt is offered.
+- Impact: a customer can be charged entitlement twice and the provider can be called twice for one intended generation, while internal and provider reconciliation diverge.
+- Required regression: after quota ownership is marked, an all-failed dispatch must not advertise an immediate new-key retry. It remains fail-closed with an explicit support/reconciliation action unless a future atomic quota-compensation path is implemented and proven idempotent.
+- Repair: once dispatch quota is owned, an all-failed result never advertises a new paid attempt; the response remains fail-closed with support/reconciliation guidance and the UI preserves the stable idempotency key.
+- Verification: dispatch route and consumer contract tests prove no `retry` action/new-key rotation after quota consumption; the golden path still completes under explicit mock mode.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `570fcb4`
+
+### RF-035 — Dispatch quota/response CAS misses are treated as persisted
+
+- Severity: **P1 — idempotency durability and customer recovery defect**
+- Status: **VERIFIED**
+- Reproduction: make `videoDispatchRequest.updateMany` return `{count:0}` from either `markVideoDispatchQuotaConsumed` or `completeVideoDispatchRequest`. Both helpers resolve normally; the route can continue into provider submission without owning the quota marker or return a response that was never persisted for replay.
+- Root cause: the idempotency helpers expose raw CAS results and callers only handle thrown errors, never the zero-row outcome.
+- Impact: the same idempotency key can remain permanently `PROCESSING`, while the client has already received a response or a provider job may have been submitted without durable request ownership.
+- Required regression: both CAS helpers throw on any count other than one; quota-marker failure stops before provider submission and response-persistence failure returns fail-closed reconciliation guidance.
+- Repair: quota ownership and response persistence helpers now require `updateMany.count === 1`; every zero/multiple-row result throws into the fail-closed reconciliation path before unsafe continuation.
+- Verification: `tests/video-dispatch-idempotency.test.ts` and `tests/video-dispatch-error-contract.test.ts` cover both CAS misses and prove provider submission does not continue without durable ownership.
+- Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
+- Repair commit: `570fcb4`
+
+### RF-036 — Protected navigation prefetch races sign-out and produces an aborted customer request
+
+- Severity: **P0 — golden-path/release-evidence blocker**
+- Status: **VERIFIED**
+- Reproduction: run the golden path through sign-out while platform primary navigation links remain mounted. After the session cookie clears, Next.js prefetch for `/app/batches` follows middleware to `/login?from=%2Fapp%2Fbatches`; navigation then tears it down and records `net::ERR_ABORTED`.
+- Evidence before repair: golden run `gp-1784055093318-ae9ed205` fails the unchanged zero-failed-network-request assertion.
+- Root cause: protected primary navigation used default viewport/hover prefetch even though sign-out deliberately invalidates every protected destination before redirecting.
+- Impact: the customer-visible sign-out transition emits a failed request and the mandatory golden invariant cannot provide clean evidence.
+- Required regression: protected primary navigation must not prefetch across authentication teardown; the zero-network-error golden assertion remains strict.
+- Repair: disabled speculative prefetch on protected platform primary navigation links. Deliberate clicks still navigate normally; no assertion was removed or weakened.
+- Verification: `tests/platform-shell-signout-prefetch.test.ts` passes; typecheck, lint, optimized build, and golden run `gp-1784055279098-5047b432` pass with zero console/network errors.
+- Evidence: `qa/evidence/phase1/golden-path-gp-1784055093318-ae9ed205.json`, `qa/evidence/phase1/golden-path-gp-1784055279098-5047b432.json`.
+- Repair commit: `e7dfea3`
 
 ## Seed hypotheses not opened as defects
 

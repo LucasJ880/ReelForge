@@ -1,9 +1,9 @@
 # ReelForge Ship Audit
 
 - Audit date: 2026-07-14 (America/Toronto)
-- Phase: 2 — backend hardening in progress
-- Source revision: product/test baseline `440c91f` on `codex/final-sprint`
-- Coverage status: Phase 0 inventory complete; Phase 1 approved; Gate C0 required dependencies 5/6 verified; RF-005 production cadence and RF-019 migration execution remain blocked on human deployment
+- Phase: H1 backend contract closure complete; H2 merge remains gated
+- Source revision: H1 product/test revision `e7dfea3` on `codex/final-hardening`
+- Coverage status: 71/71 API route files now have first-tier strict or second-tier light contract evidence; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -64,7 +64,7 @@ Canonical raw evidence: `qa/evidence/phase0-route-scan.json`. Screenshots are re
 |---|---|---|---|
 | `/wizard`, `/wizard/**` | `410 Gone` JSON directing users to `/app/create` | `src/middleware.ts` | STATIC VERIFIED |
 | Protected page without session | Redirect to `/login?from=<pathname>` | `src/middleware.ts` | STATIC VERIFIED |
-| Protected API without session | `401 { error: "未登录" }` | `src/middleware.ts` | STATIC VERIFIED |
+| Protected API without session | `401 { ok:false, code:"AUTH_REQUIRED", error:"未登录", retryable:false, action:"sign_in" }` | `src/middleware.ts` | DYNAMIC VERIFIED: H1 groups A/C and Final Acceptance J4 |
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary | `src/app/error.tsx` | STATIC VERIFIED; no route-level boundaries (RF-012) |
 
@@ -74,105 +74,105 @@ Middleware provides public/session boundaries. Phase 0 statically reviewed the e
 
 | Endpoint group | Inventory reference | Phase 0 health | Finding |
 |---|---|---|---|
-| Public/auth/health/intake/webhook | Detailed tables below | HEALTHY static boundary | Production health/mock invariant dynamically verified in RF-001; remaining schemas continue in Phase 2 |
-| Customer/account/creative/batch/image/racing/report | Detailed tables below | DEGRADED | Provider submit/retry idempotency is dynamically verified; response schemas and remaining customer error classes are still pending |
-| Operator/admin/order/round/QA/publish/report | Detailed tables below | DEGRADED | Guards present; legacy persona can pre-empt staff role (RF-008) |
-| Cron/external runner | 9 route files | HEALTHY at authentication depth | Missing secret → sanitized 503; wrong bearer → 401; guard runs before all side effects (RF-002 VERIFIED); stitch-dispatch response schema remains in H1 |
-| Digital-human customer surface | 4 route files | HEALTHY | Feature flag returns sealed 404 for every plan |
+| Public/auth/health/intake/webhook | Detailed tables below | HEALTHY at H1 contract depth | Health is strict/sanitized; public auth/intake have light success/validation contracts; Stripe is exactly middleware-reachable and signature-gated |
+| Customer/account/creative/batch/image/racing/report | Detailed tables below | HEALTHY at H1 contract depth | First-tier APIs use strict runtime DTO/envelope schemas; second-tier success wiring, anonymous boundary, and ownership checks are locked |
+| Operator/admin/order/round/QA/publish/report | Detailed tables below | HEALTHY at H1 contract depth | Success shapes and operator/super-admin/reviewer boundaries are locked; RF-008 remains a Phase 3 page/persona concern |
+| Cron/external runner | 9 route files | HEALTHY at H1 contract depth | Missing secret → sanitized 503; wrong bearer → 401; stitch-dispatch has strict success/error schemas aligned with heartbeat outcomes |
+| Digital-human customer surface | 4 route files | HEALTHY | Middleware authentication and sealed 404 behavior are dynamically verified for every method |
 
-The detailed inventory below keeps `PENDING` in the “Contract audit” column to mean **dynamic Phase 2 contract execution not yet performed**. It does not mean the Phase 0 route inventory is incomplete.
+Contract evidence has two deliberate depths: **strict** first-tier runtime schemas for commercial-path APIs and **light** second-tier success-shape/guard snapshots plus dynamic boundary checks. No row below remains contract-pending.
 
 ### Auth, account, health, billing, and uploads
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | PENDING |
-| POST | `/api/auth/register` | Public, rate-limited | PENDING |
-| GET, HEAD | `/api/health` | Public, sanitized | VERIFIED: production mock makes deployment validation unhealthy; runtime task paths also reject |
-| GET | `/api/me/usage` | Session | PENDING |
-| POST | `/api/billing/checkout` | Session | PENDING |
-| POST | `/api/upload/blob` | Session | PENDING |
-| GET, POST | `/api/admin/users` | Super admin | PENDING |
-| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | PENDING |
+| GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | VERIFIED H1 light: shared handler wiring + exact public middleware boundary |
+| POST | `/api/auth/register` | Public, rate-limited | VERIFIED H1 light: success wiring + dynamic public validation |
+| GET, HEAD | `/api/health` | Public, sanitized | VERIFIED H1 strict: bounded healthy/degraded 200/503 schemas; secrets rejected |
+| GET | `/api/me/usage` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |
+| GET, POST | `/api/admin/users` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
+| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
 
 ### Agent Director, briefs, planning, and rendering
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| POST | `/api/personal/agent-chat` | Session | PENDING |
-| POST | `/api/video-generation/plan` | Session | PENDING |
-| POST | `/api/video-generation/classify-asset` | Session | PENDING |
-| POST | `/api/video-generation/dispatch` | Session; idempotency required | PARTIAL: stable-key replay and no duplicate job/quota owner verified; full error schema pending |
-| GET, PATCH | `/api/briefs/[id]` | Session + ownership | PENDING |
-| POST | `/api/briefs/[id]/ad-plan` | Session + ownership | PENDING |
-| POST | `/api/briefs/[id]/scenes` | Session + ownership | PENDING |
-| POST | `/api/briefs/[id]/script` | Session + ownership | PENDING |
-| POST | `/api/briefs/[id]/render` | Session + ownership | PENDING |
-| GET, POST | `/api/briefs/[id]/render-status` | Session + ownership | PENDING |
-| POST | `/api/briefs/[id]/render-retry` | Session + ownership | PENDING |
-| POST | `/api/briefs/[id]/qa` | Session + ownership | PENDING |
-| POST | `/api/ad-plans/[id]/render` | Session + ownership | PENDING |
+| POST | `/api/personal/agent-chat` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
+| GET, PATCH | `/api/briefs/[id]` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| POST | `/api/briefs/[id]/ad-plan` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| POST | `/api/briefs/[id]/scenes` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| POST | `/api/briefs/[id]/script` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| POST | `/api/briefs/[id]/render` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| GET, POST | `/api/briefs/[id]/render-status` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
+| POST | `/api/briefs/[id]/render-retry` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
+| POST | `/api/briefs/[id]/qa` | Reviewer | VERIFIED H1 light: dynamic success/auth + reviewer boundary |
+| POST | `/api/ad-plans/[id]/render` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 
 ### Batch generation and templates
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET | `/api/batch-style-templates` | Session | PENDING |
-| POST | `/api/batches` | Session; idempotency required | PENDING |
-| GET, POST | `/api/batches/[id]/status` | Session + ownership | PENDING |
-| POST | `/api/batches/[id]/cancel` | Session + ownership | PENDING |
-| POST | `/api/batches/[id]/retry` | Session + ownership | PENDING |
-| POST | `/api/batches/[id]/jobs/[jobId]/retry` | Session + ownership | PENDING |
+| GET | `/api/batch-style-templates` | Session | VERIFIED H1 strict: allowlisted template DTO + auth/503 schemas |
+| POST | `/api/batches` | Session; idempotency required | VERIFIED H1 strict: success/error/quota schemas and 250-item contract |
+| GET, POST | `/api/batches/[id]/status` | Session + ownership | VERIFIED H1 strict: one owner-scoped customer DTO and safe 404 |
+| POST | `/api/batches/[id]/cancel` | Session + ownership | VERIFIED H1 strict: cancel DTO and state/error schemas |
+| POST | `/api/batches/[id]/retry` | Session + ownership | VERIFIED H1 strict: retry-all DTO and billing-safe predicate |
+| POST | `/api/batches/[id]/jobs/[jobId]/retry` | Session + ownership | VERIFIED H1 strict: explicit not-found/state/billing outcomes |
 
 ### Product images and brand assets
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET, POST | `/api/product-images` | Session | PENDING |
-| POST | `/api/raw-assets/[id]/preprocess` | Session + ownership | PENDING |
-| POST | `/api/projects/[id]/logo/generate` | Session + ownership | PENDING |
-| POST | `/api/projects/[id]/logo/select` | Session + ownership | PENDING |
+| GET, POST | `/api/product-images` | Session + ownership | VERIFIED H1 light: success wiring, shared 401 and user/idempotency scope |
+| POST | `/api/raw-assets/[id]/preprocess` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |
+| POST | `/api/projects/[id]/logo/select` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 
 ### Delivery orders and round workflow
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET, POST | `/api/delivery-orders` | Operator | PENDING |
-| GET, PATCH | `/api/delivery-orders/[id]` | Operator | PENDING |
-| GET, POST | `/api/delivery-orders/[id]/assets` | Operator | PENDING |
-| POST | `/api/delivery-orders/[id]/research` | Operator | PENDING |
-| POST | `/api/delivery-orders/[id]/selling-points` | Operator | PENDING |
-| POST | `/api/delivery-orders/[id]/rounds` | Operator | PENDING |
-| GET | `/api/rounds/[id]` | Operator | PENDING |
-| POST | `/api/rounds/[id]/angles` | Operator | PENDING |
-| POST | `/api/rounds/[id]/ad-plans` | Operator | PENDING |
-| POST | `/api/rounds/[id]/score` | Operator | PENDING |
-| POST | `/api/rounds/[id]/iteration` | Operator | PENDING |
-| POST | `/api/rounds/[id]/distill` | Operator | PENDING |
-| GET, POST | `/api/metrics/import` | Operator | PENDING |
-| POST | `/api/business/metrics` | Session/legacy contract pending | PENDING |
+| GET, POST | `/api/delivery-orders` | Operator | VERIFIED H1 light: success schemas + operator boundary |
+| GET, PATCH | `/api/delivery-orders/[id]` | Operator | VERIFIED H1 light: success schemas + operator boundary |
+| GET, POST | `/api/delivery-orders/[id]/assets` | Operator | VERIFIED H1 light: success schemas + operator boundary |
+| POST | `/api/delivery-orders/[id]/research` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/delivery-orders/[id]/selling-points` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/delivery-orders/[id]/rounds` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| GET | `/api/rounds/[id]` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/rounds/[id]/angles` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/rounds/[id]/ad-plans` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/rounds/[id]/score` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/rounds/[id]/iteration` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| POST | `/api/rounds/[id]/distill` | Operator | VERIFIED H1 light: success schema + operator boundary |
+| GET, POST | `/api/metrics/import` | Operator | VERIFIED H1 light: both methods now guard before CSV/JSON success |
+| POST | `/api/business/metrics` | Business customer + ownership | VERIFIED H1 light: success schema + persona/owner service predicate |
 
 ### Racing MVP
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| POST | `/api/racing/rounds/[id]/metrics` | Session + ownership | PENDING |
-| POST | `/api/racing/rounds/[id]/analyze` | Session + ownership | PENDING |
-| POST | `/api/racing/rounds/[id]/next` | Session + ownership | PENDING |
+| POST | `/api/racing/rounds/[id]/metrics` | Session + ownership | VERIFIED H1 light: success schema + direct owner-scope service test |
+| POST | `/api/racing/rounds/[id]/analyze` | Session + ownership | VERIFIED H1 light: success schema + direct owner-scope service test |
+| POST | `/api/racing/rounds/[id]/next` | Session + ownership | VERIFIED H1 light: success schema + direct owner-scope service test |
 
 ### QA, publishing, reports, and public intake
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET | `/api/qa` | Operator | PENDING |
-| POST | `/api/qa/[id]` | Operator | PENDING |
-| GET | `/api/publish` | Operator | PENDING |
-| POST | `/api/publish/[id]` | Operator | PENDING |
-| POST | `/api/reports` | Session | PENDING |
-| GET | `/api/internal/reports` | Operator/session boundary pending | PENDING |
-| PATCH | `/api/internal/reports/[id]` | Operator/session boundary pending | PENDING |
-| POST | `/api/demo/real-footage-ads/waitlist` | Public | PENDING |
-| POST | `/api/persona` | Public/session boundary pending | PENDING |
+| GET | `/api/qa` | Reviewer | VERIFIED H1 light: dynamic success, 401 and customer 403 |
+| POST | `/api/qa/[id]` | Reviewer | VERIFIED H1 light: dynamic validation/success and reviewer boundary |
+| GET | `/api/publish` | Operator | VERIFIED H1 light: dynamic success, 401 and customer 403 |
+| POST | `/api/publish/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
+| POST | `/api/reports` | Session + ownership | VERIFIED H1 light: dynamic validation/ownership/success contract |
+| GET | `/api/internal/reports` | Operator | VERIFIED H1 light: dynamic success, 401 and customer 403 |
+| PATCH | `/api/internal/reports/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
+| POST | `/api/demo/real-footage-ads/waitlist` | Public | VERIFIED H1 light: dynamic validation/success with in-memory DB stub |
+| POST | `/api/persona` | Session | VERIFIED H1 light: dynamic auth/validation/persisted success |
 
 ### Scheduled tasks and external runners
 
@@ -181,7 +181,7 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 | GET, POST | `/api/cron/process-batches` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/poll-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/stitch-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
-| GET, POST | `/api/cron/stitch-dispatch` | `CRON_SECRET` | PARTIAL: auth fail-closed verified; success/error response schema pending H1 |
+| GET, POST | `/api/cron/stitch-dispatch` | `CRON_SECRET` | VERIFIED H1 strict: auth plus 200/502/503/500 schemas aligned with heartbeat outcomes |
 | GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
@@ -192,16 +192,16 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET | `/api/digital-human/avatars` | Session; expected fail-closed by feature flag | PENDING |
-| GET | `/api/digital-human/voices` | Session; expected fail-closed by feature flag | PENDING |
-| GET, POST | `/api/digital-human/jobs` | Session; expected fail-closed by feature flag | PENDING |
-| GET | `/api/digital-human/jobs/[id]` | Session; expected fail-closed by feature flag | PENDING |
+| GET | `/api/digital-human/avatars` | Session; fail-closed by feature flag | VERIFIED H1 light: authenticated surface remains sealed 404 |
+| GET | `/api/digital-human/voices` | Session; fail-closed by feature flag | VERIFIED H1 light: authenticated surface remains sealed 404 |
+| GET, POST | `/api/digital-human/jobs` | Session; fail-closed by feature flag | VERIFIED H1 light: both methods remain sealed 404 before service work |
+| GET | `/api/digital-human/jobs/[id]` | Session; fail-closed by feature flag | VERIFIED H1 light: sealed 404 before lookup |
 
 ### Third-party webhooks
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| POST | `/api/webhooks/stripe` | Stripe signature | PENDING |
+| POST | `/api/webhooks/stripe` | Exact middleware exception + Stripe signature | VERIFIED H1 light: exact path reachable; sibling path 401; missing/invalid signature 400; offline signed event 200 |
 
 ## Background task and queue inventory
 
@@ -300,7 +300,7 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 - [x] 33/33 frontend page routes enumerated.
 - [x] 71/71 API route files and HTTP methods enumerated; an executable inventory regression prevents future route drift.
 - [x] Background executor entry points enumerated at filename/trigger level.
-- [x] Endpoint authorization statically reviewed; dynamic schema contracts explicitly routed to Phase 2.
+- [x] Endpoint authorization statically reviewed and H1 dynamic/contract depth recorded for every method.
 - [x] Video/batch/final-video legal transitions verified against implementation.
 - [x] Supplied screen recording inspected and all seven seed hypotheses concluded.
 - [x] Every route cold-loaded with console/network/overflow evidence at the Phase 0 desktop viewport.
@@ -318,6 +318,6 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 10 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 16 P0 VERIFIED, 5 P1 OPEN, 6 P1 VERIFIED.
 
-**Phase 1 automated exit criteria were approved; release remains blocked.** The latest serial Final Acceptance run passes 23/23 with teardown exit 0 and the post-fix golden path passes. Gate C0 remains 5/6 until human deployment, RF-019 migration execution, and RF-005 production heartbeat evidence.
+**Phase 1 automated exit criteria were approved; release remains blocked.** The last complete serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23 with teardown exit 0. After H1, the ordered J4/J7 contract subset `fa-1784054148752-d1a8f9ab` passes 3/3 and golden run `gp-1784055279098-5047b432` passes; a fresh full 23/23 rerun is deliberately reserved for H2 post-merge verification. Gate C0 remains 5/6 until the human-supervised deployment provides RF-005 production heartbeat evidence; RF-019 separately blocks unsafe production migration execution.

@@ -5,7 +5,7 @@ import { db } from "../../src/lib/db";
 type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER";
 type UserType = "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN" | null;
 
-async function useMatrixSession(page: Page, role: Role, userType: UserType) {
+async function seedMatrixSession(page: Page, role: Role, userType: UserType) {
   expect(process.env.AUTH_SECRET).toBeTruthy();
   const customer = role === "CUSTOMER"
     ? await db.adminUser.findFirst({
@@ -41,7 +41,7 @@ async function useMatrixSession(page: Page, role: Role, userType: UserType) {
 }
 
 test("RF-008 SUPER_ADMIN with legacy BUSINESS persona reaches internal operations", async ({ page }) => {
-  await useMatrixSession(page, "SUPER_ADMIN", "BUSINESS");
+  await seedMatrixSession(page, "SUPER_ADMIN", "BUSINESS");
   await page.goto("/internal");
   await expect(page).toHaveURL((url) => url.pathname === "/internal/orders");
   await expect(page.getByRole("navigation", { name: "内部主导航" })).toBeVisible();
@@ -49,7 +49,7 @@ test("RF-008 SUPER_ADMIN with legacy BUSINESS persona reaches internal operation
 
 test("RF-008 customer role cannot enter internal with any stored persona", async ({ page }) => {
   for (const userType of ["BUSINESS", "PERSONAL", "OPERATOR", "SUPER_ADMIN"] as const) {
-    await useMatrixSession(page, "CUSTOMER", userType);
+    await seedMatrixSession(page, "CUSTOMER", userType);
     await page.goto("/internal");
     await expect(page, `CUSTOMER + ${userType}`).toHaveURL(
       (url) => !url.pathname.startsWith("/internal"),

@@ -11,7 +11,7 @@ export function PageHeader({ title, description, actions, className }: Props) {
   return (
     <header
       className={cn(
-        "mb-8 flex min-w-0 flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between",
+        "mb-8 flex min-w-0 flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-end lg:justify-between",
         className,
       )}
     >
@@ -22,7 +22,7 @@ export function PageHeader({ title, description, actions, className }: Props) {
         )}
       </div>
       {actions && (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">{actions}</div>
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 lg:w-auto lg:max-w-[58%] lg:justify-end">{actions}</div>
       )}
     </header>
   );

@@ -63,7 +63,7 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
             <span>{sampleCount} {english ? "verified samples" : "个独立样片"}</span>
           </div>
         </div>
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-1" role="group" aria-label={copy.categoryLabel}>
+        <div data-template-filters className="mt-4 flex flex-wrap gap-2" role="group" aria-label={copy.categoryLabel}>
           {categories.map((item) => (
             <Button key={item} type="button" size="sm" variant={category === item ? "default" : "outline"} onClick={() => setCategory(item)} className="shrink-0">{item === "__all__" ? copy.all : categoryLabel(copy, item)}</Button>
           ))}
@@ -76,13 +76,13 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
           <Button type="button" variant="outline" onClick={() => { setCategory("__all__"); setQuery(""); }} className="mt-4">{copy.clear}</Button>
         </section>
       ) : (
-        <ul className="grid min-w-0 grid-cols-1 items-start gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label={copy.listLabel}>
+        <ul className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label={copy.listLabel}>
           {visible.map((template) => {
             const locked = template.lockedParams;
             const title = english ? template.name : template.nameZh;
             return (
-              <li key={template.id} className="min-w-0">
-                <article className="studio-panel group flex min-w-0 flex-col overflow-hidden transition-colors hover:border-border-strong">
+              <li key={template.id} className="min-w-0 h-full">
+                <article data-template-card className="studio-panel group flex h-full min-w-0 flex-col overflow-hidden transition-colors hover:border-border-strong">
                   {template.sampleImage ? (
                     <div className="relative aspect-video overflow-hidden bg-secondary">
                       <Image src={template.sampleImage} alt={`${title} ${copy.sample}`} fill unoptimized sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
@@ -105,7 +105,7 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
                       <span className="font-mono tabular-nums">{locked.duration ?? 10}s</span>
                       <span className="font-mono tabular-nums">{locked.aspectRatio ?? "9:16"}</span>
                     </div>
-                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                    <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
                       <p className="font-mono text-meta tabular-nums text-muted-foreground">v{template.version} · {locked.humanInteraction === "none" ? copy.noHuman : copy.controlledHuman}</p>
                       <TemplateRecipeDialog name={title} version={template.version} promptSkeleton={template.promptSkeleton} negativePrompt={template.negativePrompt} english={english} />
                     </div>

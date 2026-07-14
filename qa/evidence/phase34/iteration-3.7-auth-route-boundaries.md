@@ -2,7 +2,7 @@
 
 Date: 2026-07-14
 Branch: `ui/phase34-closure`
-Repair commit: `d82a8f4`
+Repair commit: `760b358`
 
 ## Reproduction
 

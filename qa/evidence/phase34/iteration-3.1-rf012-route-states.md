@@ -2,7 +2,7 @@
 
 - Date: 2026-07-14 (America/Toronto)
 - Branch: `ui/phase34-closure`
-- Repair commit: `356182a`
+- Repair commit: `5286033`
 - Provider mode: local Vercel Preview rehearsal, explicit mock/dry-run; no real provider call and no real budget.
 
 ## Reproduction

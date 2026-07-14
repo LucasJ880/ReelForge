@@ -2,7 +2,7 @@
 
 - Audit date: 2026-07-14 (America/Toronto)
 - Phase: H2-A merged-tree re-baseline in progress
-- Source revision: merge of H1 `cc75c21` and UI closure `2d4aefc` on `codex/h2-ui-unification`; verification pending
+- Source revision: merge of H1 `87b9f34` and UI closure `bb0c05b` on `codex/h2-ui-unification`; verification pending
 - Coverage status: 71/71 API route files have first-tier strict or second-tier light contract evidence; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
@@ -320,6 +320,6 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 21 P0 VERIFIED, 0 P1 OPEN, 2 P1 FIXED pending merged golden/internal operations feedback (RF-037/RF-038), 13 P1 VERIFIED.
+- Current ledger: 1 P0 OPEN (RF-019), 2 P0 FIXED pending production cadence/credential disposition (RF-005/RF-039), 21 P0 VERIFIED, 0 P1 OPEN, 2 P1 FIXED pending merged golden/internal operations feedback (RF-037/RF-038), 13 P1 VERIFIED.
 
 **Phase 1–4 parent-branch evidence is approved; release remains blocked.** UI closure supplied Final Acceptance `fa-1784047355157-099e9e8a` at 23/23, three consecutive golden runs, the 99-scan route matrix, and human visual approval. H1 supplied the 116/116 contract suite, J4/J7 `fa-1784054148752-d1a8f9ab` at 3/3, and golden `gp-1784055279098-5047b432`. None of those parent-branch results is represented as merged-tree evidence; H2-A must rerun the full battery. Gate C0 remains 5/6 until the human-supervised deployment provides RF-005 heartbeat evidence; RF-019 separately blocks unsafe production migration execution.

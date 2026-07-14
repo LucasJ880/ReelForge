@@ -1,9 +1,9 @@
 # ReelForge Ship Defect Ledger
 
-- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair `c337bc7`
+- Audit revision: H2 merge `ff1c959` + RF-037/RF-038 repair `a7fb734`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: H2-A merged-tree re-baseline in progress
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 21 · P1 OPEN 0 · P1 FIXED 2 · P1 VERIFIED 13 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 2 · P0 VERIFIED 21 · P1 OPEN 0 · P1 FIXED 2 · P1 VERIFIED 13 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -24,7 +24,7 @@
 - Repair: production runtime detection now rejects every effective video-mock configuration in deployment validation and directly in both unified and legacy mock task paths. Vercel Production can never be reclassified as rehearsal by `AIVORA_DRY_RUN`; Vercel Preview and explicit local dry-run remain available.
 - Verification: 31/31 focused safety tests, typecheck, lint, optimized build, and golden run `gp-1784001583006-1ca10477` pass. Production redeploy/health evidence remains a final release-gate check, not a code-regression gap.
 - Evidence: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`.
-- Repair commit: `14d6c9b`
+- Repair commit: `db8ca29`
 
 ### RF-002 — Cron and external-runner endpoints fail open when `CRON_SECRET` is absent
 
@@ -37,7 +37,7 @@
 - Repair: all eight cron/runner endpoints now call one constant-time, fail-closed guard before feature checks, body parsing, database access, or service invocation. Missing configuration returns sanitized 503; absent/wrong bearer returns 401.
 - Verification: before repair, missing secret reached Prisma and sealed digital-human routes returned 404 before checking wrong credentials. After repair, all 16 missing/wrong endpoint cases pass, along with digital-human sealed tests, stitch runtime tests, typecheck, lint, optimized build, and golden run `gp-1784001858660-004e8b31`.
 - Evidence: `qa/evidence/phase2/iteration-2.2-machine-auth.md`.
-- Repair commit: `7bf8372`
+- Repair commit: `11c4c74`
 
 ### RF-003 — Ambiguous provider failures can resubmit and duplicate billable work
 
@@ -52,7 +52,7 @@
 - Verification: 16/16 focused billing-safety tests pass, including provider timeout, accepted-but-not-persisted, status lookup timeout with zero new submit calls, concurrent manual retry with exactly one submit, logical segment replay, and concurrent request claims. Optimized build passes. Golden run `gp-1784004092244-2a4be693` replays the captured customer dispatch request with the same key and proves identical order/brief IDs plus unchanged VideoJob count; the full journey then completes playback/download.
 - Database evidence: both expand-only migrations applied successfully on the Neon rehearsal branch; historical attempted rows without an external id were conservatively backfilled to `ACK_UNKNOWN`. No production migration was run.
 - Evidence: `qa/evidence/phase2/iteration-2.3-provider-billing-safety.md`.
-- Repair commit: `076cf1d`
+- Repair commit: `961d660`
 
 ### RF-004 — Stale stitch callback can overwrite a newer FinalVideo attempt
 
@@ -65,7 +65,7 @@
 - Repair: every claim now writes a UUID attempt token; success/failure completion uses `id + STITCHING + token` CAS and stale callbacks return `STALE_STITCH_ATTEMPT`/HTTP 409. A missing token is accepted only for a pre-migration in-flight row whose stored token is still null, so an old runner can drain during rolling deployment but cannot overwrite any newly claimed attempt. Dispatch and claim also paginate past older incomplete candidates, preventing stitch starvation.
 - Verification: 30/30 focused stitch, stale-callback, rolling-compatibility, starvation, scheduler-dispatch, and runtime tests pass. The serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23 with teardown exit 0, and the post-repair golden run `gp-1784011670688-32bda3f8` passes. The full unit suite passes 727/728 with only the intentionally conditional DB integration test skipped; that integration test was then run explicitly against `NEON_REHEARSAL_DATABASE_URL` and passed 1/1. Typecheck, lint, optimized build, and diff check pass.
 - Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
-- Repair commit: `0fc863d`
+- Repair commit: `7860985`
 
 ### RF-005 — Queue schedules declare 5 minutes but run roughly 55–107 minutes apart
 
@@ -77,7 +77,7 @@
 - Required regression: deploy a scheduler with measured maximum delay, capture at least one 30-minute cadence trace, and prove queue/poller/stitch/sweep each execute within the agreed SLO.
 - Repair: `vercel.json` now declares minute crons for batch processing, video polling/sweeping, and stitch dispatch. The old GitHub schedules are manual-only; each scheduler emits structured heartbeat data. External stitch dispatch is guarded by a PostgreSQL advisory lock, active-run de-duplication, and fail-closed GitHub configuration.
 - Verification: 25/25 focused scheduler/auth/dispatch tests and the full unit suite pass. This code has not been deployed and no 30–60 minute production heartbeat trace or ready-stitch end-to-end dispatch observation exists; therefore the dependency is not VERIFIED.
-- Repair commit: `761baec`
+- Repair commit: `2dded10`
 
 ### RF-006 — Existing final-acceptance Playwright run exits nonzero in global teardown
 
@@ -91,7 +91,7 @@
 - Repair: moved teardown constants into side-effect-free `tests/final-acceptance/fixture-data.ts`; added `tests/final-acceptance-global-teardown-import.test.ts`.
 - Verification: the direct teardown import regression passes. The clean serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23 in 8.1 minutes; global teardown exits 0 after deleting 22 rehearsal batches and 4 product images and archiving the run-scoped template. The post-run `.last-run.json` reports `passed` with no failed tests. The post-repair golden path, full unit suite, explicit rehearsal DB integration, typecheck, lint, optimized build, and diff check also pass.
 - Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
-- Repair commit: `e863c8e`
+- Repair commit: `26b430e`
 
 ### RF-007 — Stuck-task sweeper bypasses the historical dispatch quarantine decision
 
@@ -104,7 +104,7 @@
 - Repair: sweeper selection and update CAS now share the same real-mode eligibility predicate (explicit `RELEASED`, or undecided and created after the cutoff), while `EXPIRED` is always excluded. A second in-process guard protects against stale/incorrect query results. Reconcile and manual retry also stop before provider access or DB mutation for historical undecided rows.
 - Verification: 23/23 quarantine, sweeper, and watchdog tests pass. With mock disabled and a placeholder credential present, the historical reconcile/retry regression records provider calls = 0 and DB writes = 0. Typecheck, focused lint, optimized build, and the mandatory golden path pass.
 - Evidence: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`.
-- Repair commit: `076cf1d`
+- Repair commit: `961d660`
 
 ### RF-008 — Staff role can be locked out by a legacy customer persona
 
@@ -117,7 +117,7 @@
 - Repair: extracted a pure role policy shared by session normalization and internal-page routing. `SUPER_ADMIN`/`OPERATOR` role now wins over stale BUSINESS/PERSONAL persona values; CUSTOMER/REVIEWER role can never be promoted by a stored OPERATOR/SUPER_ADMIN persona. Internal API guards use the same role authority.
 - Verification: source role/persona matrices pass 9/9. The optimized browser suite passes 11/11, including a `SUPER_ADMIN + BUSINESS` session reaching `/internal/orders` and a seeded CUSTOMER being denied for each BUSINESS/PERSONAL/OPERATOR/SUPER_ADMIN stored persona. Typecheck, focused lint, optimized build, and golden `gp-1784038873993-71bd69a3` pass.
 - Evidence: `qa/evidence/phase34/iteration-3.5-rf008-role-persona-authority.md`, `qa/evidence/phase1/golden-path-gp-1784038873993-71bd69a3.json`.
-- Repair commit: `0929fbb`
+- Repair commit: `8dab2c2`
 
 ### RF-009 — Login success flashes a blank white viewport
 
@@ -132,7 +132,7 @@
 - Repair: safe internal `from` handling now defaults directly to `/app/create`; successful login performs one `router.replace` without an immediate refresh or redirect hop. A full-viewport, light-auth-theme Aivora status surface remains mounted from credential submission until the dark Studio shell is visible. Credential/network failures restore the form and preserve a readable error.
 - Verification: source regression 3/3, typecheck, focused lint, optimized build, and diff check pass. Golden run `gp-1784037627201-fa3fc7fb` passes the entire customer journey with zero console errors, 5xx responses, or failed requests; the in-page animation-frame sampler observed 27 transition frames and 0 blank viewport frames.
 - Evidence: `qa/evidence/phase34/iteration-3.2-rf009-login-continuity.md`, `qa/evidence/phase1/golden-path-gp-1784037627201-fa3fc7fb.json`.
-- Repair commit: `0fe2896`
+- Repair commit: `97d6b69`
 
 ### RF-010 — Current theme topology conflicts with the new Light-first instruction
 
@@ -148,7 +148,7 @@
 - Repair: removed an accidental copied dark-token block from `.auth-studio-theme`; auth now inherits the light root token set and only declares `color-scheme: light`, while `.studio-theme` remains the sole dark workspace override.
 - Verification: the design-system closure audit passes 3/3 (topology, single literal-color source, tokenized fonts/motion); corrected settled route screenshots show light auth/internal and dark Studio; the 99-scan route matrix and golden `gp-1784043470993-88e292ff` pass.
 - Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`, `qa/evidence/phase34/phase4-human-visual-approval.md`, `qa/screenshots/redesign/phase34-current/`.
-- Repair commit: `4d15380`
+- Repair commit: `38dea0f`
 
 ### RF-011 — Template filters and round actions overflow; template cards have unstable geometry
 
@@ -162,7 +162,7 @@
 - Repair: category filters now wrap inside the filter panel instead of placing later controls outside the viewport. Template grid rows stretch cards to one height and pin recipe/actions consistently while cards without verified samples render no fake preview. Shared page headers defer side-by-side actions to large screens, and round actions own a full-width wrapping container constrained to the content column.
 - Verification: source guards 3/3 and the complete Phase 3/4 browser suite 9/9 pass. `/app/templates` and a seeded `/internal/rounds/[id]` were checked at 1280/1440/1920: document width never exceeded viewport, overflowing element count was 0, and same-row template card height variance was at most 1px. Golden run `gp-1784038024462-f5dadb44` passes with 28 transition samples and 0 blank frames.
 - Evidence: `qa/evidence/phase34/iteration-3.3-rf011-layout-containment.md`, `qa/evidence/phase1/golden-path-gp-1784038024462-f5dadb44.json`.
-- Repair commit: `3e7a6cc`
+- Repair commit: `697b0d7`
 
 ### RF-012 — Customer pages collapse server failures into empty/not-found states
 
@@ -177,7 +177,7 @@
 - Rehearsal safety: browser state injection requires Preview + explicit rehearsal + dry-run + mock provider simultaneously. Production and real-provider runtimes ignore caller-supplied QA headers; this invariant is locked by a regression test.
 - Verification: source regression 6/6; browser slow/empty/500 matrix 7/7 after the final typed-error repair; typecheck, focused lint, optimized build, and diff check pass. Mandatory golden path run `gp-1784036981221-799edb49` passes registration → natural login → mock generation → terminal accounting → stitch → playback → non-empty download.
 - Evidence: `qa/evidence/phase34/iteration-3.1-rf012-route-states.md`, `qa/evidence/phase1/golden-path-gp-1784036981221-799edb49.json`.
-- Repair commit: `356182a`
+- Repair commit: `5286033`
 
 ### RF-013 — Chinese locale surfaces contain untranslated English operational copy
 
@@ -191,7 +191,7 @@
 - Repair: routed customer quality-lock/count and production-brief labels through platform copy; routed internal reports, workspace branding, and legacy navigation through the typed dictionaries; documented the narrow technical-token exemptions and explicitly prohibited using them for headings, buttons, navigation, or explanatory text.
 - Verification: focused operational-copy regression 3/3; combined dictionary/coverage/shell audit 11/11; typecheck and focused lint pass; complete Phase 3/4 browser suite 9/9; mandatory golden `gp-1784038463620-2c3cf392` passes with no real provider call.
 - Evidence: `qa/evidence/phase34/iteration-3.4-rf013-operational-i18n.md`, `qa/evidence/phase34/rf013-technical-token-exemptions.md`, `qa/evidence/phase1/golden-path-gp-1784038463620-2c3cf392.json`.
-- Repair commit: `63cad87`
+- Repair commit: `d601c16`
 
 ### RF-014 — Completed customer video had no download action
 
@@ -201,7 +201,7 @@
 - Root cause: the unified library detail never rendered a download control, even though the product journey promises review and download.
 - Repair: added a bilingual download action that uses `@vercel/blob.getDownloadUrl`, preserves existing query parameters, requests attachment disposition, and supplies a stable `.mp4` filename.
 - Regression: `tests/video-download-link.test.ts`; four independent golden runs verify the browser download event and a non-empty local file.
-- Repair commit: `e863c8e`
+- Repair commit: `26b430e`
 
 ### RF-015 — Local optimized server rejected the cookie issued by NextAuth
 
@@ -211,7 +211,7 @@
 - Root cause: middleware overrode NextAuth's own URL/Vercel secure-cookie decision with `NODE_ENV === "production"`. Existing acceptance code masked the mismatch by manually cloning the cookie.
 - Repair: remove the override so `getToken` follows the same rule as NextAuth. HTTPS still requires the secure-prefixed cookie.
 - Regression: `tests/middleware-auth-cookie.test.ts` signs real JWTs for HTTP/HTTPS; the three golden runs register and log in naturally with no cookie bridge.
-- Repair commit: `e863c8e`
+- Repair commit: `26b430e`
 
 ### RF-016 — Unified Seedance mock could write real Blob storage during E2E
 
@@ -221,7 +221,7 @@
 - Root cause: the unified Seedance mock did not honor the deterministic `MOCK_OUTPUT_VIDEO_URL` seam already used by the batch mock provider.
 - Repair: in mock-only status handling, accept an explicit HTTP(S) fixture URL and bypass clip rendering/storage; invalid non-HTTP(S) fixtures fail the mock task.
 - Regression: `tests/seedance-mock-hints.test.ts`; all golden runs blank Blob/real-provider secrets and prove every job output equals the local static MP4.
-- Repair commit: `e863c8e`
+- Repair commit: `26b430e`
 
 ### RF-017 — Independent golden-path runs shared a persistent registration rate-limit bucket
 
@@ -232,7 +232,7 @@
 - Repair: derive a deterministic, run-unique RFC 3849 documentation IPv6 address and send it through the rehearsal browser context; explicitly label that server as `VERCEL_ENV=preview`. Production rate-limit code and assertions are unchanged.
 - Regression: `tests/golden-path-network-identity.test.ts` proves stable-per-run and distinct-between-run identities. The next independent golden run `gp-1784001316316-a8fd60a5` completed register → generate → preview → download with no retry.
 - Evidence: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
-- Repair commit: `825efe9`
+- Repair commit: `198b514`
 
 ### RF-018 — Batch UI offers retry that the billing guard rejects
 
@@ -245,7 +245,7 @@
 - Repair: customer DTO classification and retry mutations now share the billing-safety predicate. Provider adapters declare a static manual-retry billing risk: the explicit zero-cost mock permits its deterministic stalled fixture to retry, while BytePlus and any ambiguous real-provider acknowledgement remain fail-closed. Historical jobs resolve their persisted provider rather than inheriting the current default provider.
 - Verification: 15/15 focused customer-contract and billing-safety tests pass. Targeted setup + desktop/mobile J3 pass 3/3 in run `fa-1784011098406-50ddd9f4`; the clean serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23; the post-fix golden run `gp-1784011670688-32bda3f8` passes. Full unit, explicit rehearsal DB integration, typecheck, lint, optimized build, and diff check pass. No assertion was relaxed and no test was skipped or deleted.
 - Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
-- Repair commit: `df5accb`
+- Repair commit: `5b713b9`
 
 ### RF-019 — RF-003 production migrations sort in dependency-inverted order
 
@@ -269,7 +269,7 @@
 - Repair: introduced a single `MAX_BATCH_VIDEO_COUNT=250` contract constant, moved the API request validator into a reusable contract schema, and wired both customer quantity controls to the same limit. The 50-image boundary and idempotency path are unchanged.
 - Verification: 5/5 focused API/UI boundary tests pass; the contract accepts 250 and rejects 251, while the customer controls clamp 251 to 250. Typecheck and the mandatory golden run `gp-1784050224278-3e756d58` pass end to end through register, dispatch, terminal mock completion, playback, and download.
 - Evidence: `qa/evidence/phase1/golden-path-gp-1784050224278-3e756d58.json`.
-- Repair commit: `9bff2c1`
+- Repair commit: `c3c3268`
 
 ### RF-028 — Tier-one customer APIs expose inconsistent or naked error envelopes
 
@@ -281,7 +281,7 @@
 - Repair: introduced a closed shared customer error envelope, strict request/response DTO schemas for upload/blob, batch templates, all batch mutations/status, direct dispatch, health, and library, plus customer-safe recovery-action rendering. The remaining API surface now has light success-shape, authentication, and ownership boundary contracts without claiming strict hostile-input depth.
 - Verification: the integrated H1 contract/inventory suite passes 116/116 with no skip; Final Acceptance J4/J7 run `fa-1784054148752-d1a8f9ab` passes 3/3; golden run `gp-1784055279098-5047b432` passes the complete customer journey. Typecheck, lint, and optimized build pass.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commits: `b6a8537`, `e3eca56`, `02d0d52`, `570fcb4`, `e3467e6`, `49e491f`, `de6e11d`, `81741c6`, `3b42780`
+- Repair commits: `132401a`, `f0bbdbc`, `b92e344`, `c8fd6bc`, `be0c7ea`, `2c97542`, `e34bc55`, `073a86c`, `12253a5`
 
 ### RF-029 — Library detail lookup is incorrectly bounded by the latest 100 list rows
 
@@ -293,7 +293,7 @@
 - Repair: detail lookup now queries the requested owner-scoped order directly and maps it through the same allowlisted public DTO as the list; it no longer depends on the list's 100-row window.
 - Verification: `tests/unified-library-contract.test.ts` covers an owned item beyond the list window, cross-owner denial, and list/detail DTO parity; it passes inside the 116/116 H1 suite and the optimized build.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `abea1f2`
+- Repair commit: `3961854`
 
 ### RF-030 — Library progress exposes a 0–1 fraction as a 0–100 percentage
 
@@ -305,7 +305,7 @@
 - Repair: the shared library DTO mapper converts the service fraction to one clamped integer percentage; READY maps to 100 and list/detail use the identical field.
 - Verification: `tests/unified-library-contract.test.ts` locks 0–100 conversion and list/detail parity; it passes inside the 116/116 H1 suite.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `abea1f2`
+- Repair commit: `3961854`
 
 ### RF-031 — Final Acceptance quota state leaks from J4 into J7
 
@@ -318,7 +318,7 @@
 - Repair: Final Acceptance cleanup is now an automatic per-test fixture, resolves the run-scoped user, deletes usage/batch state transactionally, and asserts a zero baseline. J4's anonymous contract probes use an explicit empty-storage API context rather than consuming page-console findings or inheriting the authenticated browser session.
 - Verification: ordered J4→J7 run `fa-1784054148752-d1a8f9ab` passes 3/3 with unchanged product quota limits and assertions.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `a39be48`
+- Repair commit: `cb14d73`
 
 ### RF-032 — Legacy dispatch replay can advertise a duplicate-billing retry
 
@@ -331,7 +331,7 @@
 - Repair: compatibility mapping treats every legacy `DISPATCH_FAILED` as acknowledgement-unknown regardless of the persisted retry flag and returns `SUBMISSION_ACK_UNKNOWN`, `retryable=false`, `contact_support`.
 - Verification: hostile legacy replay cases pass in `tests/video-dispatch-error-contract.test.ts`; customer consumers also refuse to rotate the idempotency key for this class.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `570fcb4`
+- Repair commit: `c8fd6bc`
 
 ### RF-033 — Real-provider post-generation failures are misclassified as billing-safe retries
 
@@ -344,7 +344,7 @@
 - Repair: the real-provider retry predicate now requires positive no-bill evidence: `NOT_STARTED`, or explicit `REJECTED` with no external job ID. Accepted, terminal, frame-QA, submitting, and acknowledgement-unknown attempts fail closed; zero-cost mock behavior remains separately recoverable.
 - Verification: `tests/batch-provider-billing-safety.test.ts` covers every positive and negative state plus external-job/frame-QA cases; the integrated H1 suite passes.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `02d0d52`
+- Repair commit: `b92e344`
 
 ### RF-034 — Direct dispatch advertises a new paid attempt after quota was consumed
 
@@ -357,7 +357,7 @@
 - Repair: once dispatch quota is owned, an all-failed result never advertises a new paid attempt; the response remains fail-closed with support/reconciliation guidance and the UI preserves the stable idempotency key.
 - Verification: dispatch route and consumer contract tests prove no `retry` action/new-key rotation after quota consumption; the golden path still completes under explicit mock mode.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `570fcb4`
+- Repair commit: `c8fd6bc`
 
 ### RF-035 — Dispatch quota/response CAS misses are treated as persisted
 
@@ -370,7 +370,7 @@
 - Repair: quota ownership and response persistence helpers now require `updateMany.count === 1`; every zero/multiple-row result throws into the fail-closed reconciliation path before unsafe continuation.
 - Verification: `tests/video-dispatch-idempotency.test.ts` and `tests/video-dispatch-error-contract.test.ts` cover both CAS misses and prove provider submission does not continue without durable ownership.
 - Evidence: `qa/evidence/phase2/h1-contract-closure.md`.
-- Repair commit: `570fcb4`
+- Repair commit: `c8fd6bc`
 
 ### RF-036 — Protected navigation prefetch races sign-out and produces an aborted customer request
 
@@ -384,7 +384,7 @@
 - Repair: disabled speculative prefetch on protected platform primary navigation links. Deliberate clicks still navigate normally; no assertion was removed or weakened.
 - Verification: `tests/platform-shell-signout-prefetch.test.ts` passes; typecheck, lint, optimized build, and golden run `gp-1784055279098-5047b432` pass with zero console/network errors.
 - Evidence: `qa/evidence/phase1/golden-path-gp-1784055093318-ae9ed205.json`, `qa/evidence/phase1/golden-path-gp-1784055279098-5047b432.json`.
-- Repair commit: `e7dfea3`
+- Repair commit: `b04beb7`
 
 ### RF-020 — Phase 3 route-state bundle regressed login transition continuity
 
@@ -395,7 +395,7 @@
 - Impact: retaining the iteration would reopen the exact first-run blank-frame defect RF-009 locked down.
 - Repair: removed every uncommitted Phase 3 product/test/generated-output change as one atomic rollback; preserved only the failed-run evidence. No assertion, threshold, test, or production configuration changed.
 - Verification: rollback run `gp-1784040809734-ab04b4a7` passes the full golden journey with the original zero-blank-frame assertion. Working tree returned to the last committed Phase 3/4 baseline apart from the pre-existing external `qa/ITERATION_LOG.md` truncation and the two golden evidence runs.
-- Follow-up isolation: auth-only route boundaries were subsequently introduced in repair commit `d82a8f4`. Golden run `gp-1784041162146-48d1317e` passed with the unchanged zero-blank-frame assertion, proving this boundary can be retained safely before the remaining route groups are reintroduced.
+- Follow-up isolation: auth-only route boundaries were subsequently introduced in repair commit `760b358`. Golden run `gp-1784041162146-48d1317e` passed with the unchanged zero-blank-frame assertion, proving this boundary can be retained safely before the remaining route groups are reintroduced.
 - Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784040695799-839af69f.json`, `qa/evidence/phase1/golden-path-gp-1784040809734-ab04b4a7.json`.
 - Repair commit: rollback contained no product commit; evidence commit recorded separately.
 
@@ -409,7 +409,7 @@
 - Repair attempts: Attempt 1 bundled three customer-detail routes and was rolled back after one aborted chunk; baseline passed. Attempt 2 isolated `/app/create/images` only and was rolled back after two aborted chunks; baseline passed. Attempt 3 used trace evidence: the authenticated Studio shell was speculatively prefetching dynamic RSC destinations and the newly split boundary chunks were cancelled on subsequent navigation/sign-out. Automatic prefetch was disabled for Studio primary/home navigation while click navigation remains intact; `/app/create/images` was then reintroduced.
 - Verification: focused prefetch/route regressions 2/2, typecheck, lint, optimized build, and golden `gp-1784042195066-160312e7` passed with the original 0-failed-request and 0-blank-frame assertions.
 - Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`, `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`, `qa/evidence/phase1/golden-path-gp-1784042195066-160312e7.json`.
-- Repair commit: `c95c7b7`
+- Repair commit: `bbb867e`
 
 ### RF-022 — All-route matrix accepted authenticated redirects as successful route evidence
 
@@ -421,7 +421,7 @@
 - Repair: install a signed session from an existing OPERATOR/SUPER_ADMIN rehearsal account before internal scans; require the exact final pathname (allowing only the two source-defined root redirects); wait for the route loading boundary to settle; and remove per-scan listeners after each assertion set.
 - Verification: the strengthened test first failed on the previously hidden redirect, then exercised real internal pages. The corrected 33-route × 3-width matrix passes 99/99 and regenerated all 33 screenshots from settled target pages.
 - Evidence: `qa/evidence/phase34/iteration-3.15-rf022-route-evidence-integrity.md`, `qa/screenshots/redesign/phase34-current/`.
-- Repair commit: `01e64be`
+- Repair commit: `585a4c7`
 
 ### RF-023 — AI usage summary tables overflow the operator viewport at 1280px
 
@@ -432,7 +432,7 @@
 - Repair: keep the summaries single-column until `2xl` and make the grid/cards explicitly shrinkable with `min-w-0`; table regions retain horizontal scrolling for genuinely narrow containers.
 - Verification: the same optimized-build matrix passes all 99 route-width scans with zero document or element overflow; mandatory golden run `gp-1784044311511-576ad482` passes the unchanged full customer journey.
 - Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`, `qa/screenshots/redesign/phase34-current/internal-ai-usage.png`, `qa/evidence/phase1/golden-path-gp-1784044311511-576ad482.json`.
-- Repair commit: `01e64be`
+- Repair commit: `585a4c7`
 
 ### RF-024 — File selection can land before the upload control is hydrated
 
@@ -443,7 +443,7 @@
 - Repair: derive a hydration-safe interactive state with `useSyncExternalStore`; do not render the real file input until hydration; reject drag/drop and selection callbacks unless the control is hydrated and otherwise enabled.
 - Verification: source-level hydration invariant 1/1; focused optimized-build Final Acceptance J1 passes setup + desktop + mobile 3/3 in run `fa-1784046239486-2cfa942a`; unchanged golden path passes as `gp-1784046345375-9b204bf9`.
 - Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
-- Repair commit: `fa145d0`
+- Repair commit: `b013c8a`
 
 ### RF-025 — Batch detail navigation temporarily loses monitor progress semantics
 
@@ -454,7 +454,7 @@
 - Repair: shared batch list/detail loading surfaces now render a localized zero-state progressbar while data resolves. The real monitor replaces it with live progress after navigation settles.
 - Verification: shared route-state regression 6/6; optimized build; focused Final Acceptance J8 desktop setup + journey 2/2 under Slow 3G and the configured 30-second monitor delay, run `fa-1784046542905-9a7c8a52`; unchanged golden `gp-1784046710814-9748fc44` passes.
 - Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
-- Repair commit: `3a34a21`
+- Repair commit: `7f6d7d1`
 
 ### RF-026 — Global CJK webfont payload blocks mobile onboarding and aborts on navigation
 
@@ -465,7 +465,7 @@
 - Repair: keep the four role-defining Latin `next/font` families and replace downloadable Noto SC families with explicit macOS/Windows/Linux CJK sans/serif system fallbacks in the single token source. Theme topology and font roles remain unchanged.
 - Verification: design-system audit 3/3 and optimized build pass; focused Final Acceptance mobile P6 2/2 (`fa-1784046862464-cbce87da`), J8 2/2 (`fa-1784046907181-1ef340f2`), and J2 2/2 (`fa-1784047003719-ac2aed1c`) pass with unchanged assertions; golden `gp-1784047054103-01af2a53` passes.
 - Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
-- Repair commit: `60ab8ea`
+- Repair commit: `c23d287`
 
 ### RF-037 — Locale switch does not cover the complete customer journey
 
@@ -478,7 +478,7 @@
 - Repair: the authenticated mobile shell now exposes the same locale control as desktop; batch creation and monitoring translate persisted template/category/status values and replace upstream-language error bodies with locale-owned recovery copy. Privacy, terms, and persona pages now read the persisted locale for metadata and body copy and expose a visible switcher.
 - Verification: 16/16 focused Agent/locale/public/platform journey tests, TypeScript, focused ESLint, optimized production build, and diff check pass. The human explicitly paused further broad simulation before internal operations testing, so this item is not promoted to VERIFIED on pre-repair golden evidence.
 - Evidence: H2 merge audit on 2026-07-14; `tests/phase34/locale-switch.spec.ts`.
-- Repair commit: `c337bc7`
+- Repair commit: `a7fb734`
 
 ### RF-038 — Agent conversation grows the page and hides the primary generation action
 
@@ -491,7 +491,20 @@
 - Repair: the Agent card now has a viewport-bounded desktop height, independent asset/transcript scrolling, pinned-versus-detached auto-scroll, a jump-to-latest control, a fixed composer, compact message/panel density, and a horizontal recommendation rail. The production form always renders one primary Generate action and performs the existing quality-plan check automatically before dispatch; Preview remains optional.
 - Verification: focused source regression 3/3, related journey/locale tests 16/16, TypeScript, focused ESLint, optimized production build, and browser run `phase34-1784065559900-a0eb3437` 2/2 with rehearsal teardown exit 0. No real provider or paid operation was invoked.
 - Evidence: `tests/phase34/agent-chat-ux.spec.ts`; `qa/evidence/h2/open-source-ux-research.md`.
-- Repair commit: `c337bc7`
+- Repair commit: `a7fb734`
+
+### RF-039 — Phase 0 browser evidence retained expired signed TOS URLs
+
+- Severity: **P0 — repository credential-hygiene and release blocker**
+- Status: **FIXED — sanitized history push and credential disposition remain**
+- Reproduction: push the H2 release branch. GitHub Push Protection rejects the branch because `qa/evidence/phase0-route-scan.json` in an early commit contains Beijing TOS pre-signed URLs with a credential identifier and request signatures.
+- Root cause: the cold-load audit persisted complete failed network request URLs instead of normalizing query credentials before serializing evidence.
+- Impact: signed bearer URLs were retained in local Git history and the release branch could not be pushed. The observed URLs are expired, but any still-active access-key pair must be treated according to the human credential-rotation process.
+- Required regression: repository evidence contains no TOS credential/signature markers or access-key identifiers; every H2-only commit is rebuilt from the clean `origin/main` base; GitHub Push Protection accepts the sanitized branch.
+- Repair: all affected evidence URLs were replaced by a non-routable redaction marker, a regression test was added, 78 H2-only commits were deterministically rebuilt with the redacted blob, and tracked QA commit references were mapped to the rewritten graph.
+- Verification: JSON integrity and the focused redaction regression pass; the rewritten graph contains zero `X-Tos-Credential` markers in the affected artifact. Remote Push Protection acceptance and human confirmation that the historical VolcEngine credential is revoked/rotated are still pending, so the defect remains FIXED.
+- Evidence: `qa/evidence/h2/history-rewrite-2026-07-14.md`; `qa/evidence/h2/history-rewrite-map.json`; `tests/qa-evidence-secret-redaction.test.ts`.
+- Repair commit: rewritten `5b492a3` plus the pending audit-reference commit.
 
 ## Seed hypotheses not opened as defects
 

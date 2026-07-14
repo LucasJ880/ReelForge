@@ -2,7 +2,7 @@
 
 - Date: 2026-07-13 (America/Toronto)
 - Defect: RF-003
-- Commit: `076cf1d`
+- Commit: `961d660`
 - Real provider calls: **0**
 - Production database writes: **0**
 

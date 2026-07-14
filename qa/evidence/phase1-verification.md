@@ -2,7 +2,7 @@
 
 - Date: 2026-07-13 (America/Toronto)
 - Branch: `codex/final-sprint`
-- Implementation commit: `e863c8e`
+- Implementation commit: `26b430e`
 - Build mode: optimized `next build` + a new `next start` process for every run
 - Database guard: `DATABASE_URL` must exactly equal `NEON_REHEARSAL_DATABASE_URL`
 - Billing guard: `AIVORA_DRY_RUN=1`; video/LLM/image/review providers explicitly mocked; real provider and Blob credentials blank in the test server

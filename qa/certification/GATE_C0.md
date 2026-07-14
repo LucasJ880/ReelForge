@@ -1,7 +1,7 @@
 # Commercial Batch Certification — Gate C0
 
 - Date: 2026-07-14 (America/Toronto)
-- Product/test baseline: `440c91f`
+- Product/test baseline: `419bb12`
 - Gate verdict: **BLOCKED — 5/6 dependencies VERIFIED**
 - Real provider calls / paid operations: **0**
 

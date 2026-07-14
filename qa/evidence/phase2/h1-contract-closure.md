@@ -2,7 +2,7 @@
 
 - Date: 2026-07-14 (America/Toronto)
 - Branch: `codex/final-hardening`
-- Product/test revision under evidence: `e7dfea3`
+- Product/test revision under evidence: `b04beb7`
 - Scope: API contract hardening only. No production deployment, production database write, migration execution, real provider call, external webhook call, or paid operation occurred.
 
 ## Result
@@ -89,7 +89,7 @@ Failed diagnostic run IDs are retained in `qa/ITERATION_LOG.hardening.md`; no as
 
 ## Commit chain
 
-`551a78b`, `9bff2c1`, `b8775ee`, `b6a8537`, `e3eca56`, `02d0d52`, `570fcb4`, `abea1f2`, `e3467e6`, `49e491f`, `a39be48`, `de6e11d`, `81741c6`, `3b42780`, `e7dfea3`
+`b8ba530`, `c3c3268`, `0cf5af6`, `132401a`, `f0bbdbc`, `b92e344`, `c8fd6bc`, `3961854`, `be0c7ea`, `2c97542`, `cb14d73`, `e34bc55`, `073a86c`, `12253a5`, `b04beb7`
 
 ## Gate boundary
 

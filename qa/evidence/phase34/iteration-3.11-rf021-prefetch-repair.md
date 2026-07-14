@@ -2,7 +2,7 @@
 
 Date: 2026-07-14
 Branch: `ui/phase34-closure`
-Repair commit: `c95c7b7`
+Repair commit: `bbb867e`
 
 ## Root cause evidence
 

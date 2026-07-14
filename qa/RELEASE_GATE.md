@@ -1,9 +1,9 @@
 # ReelForge Release Gate
 
 - Gate owner: human release approver
-- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair `c337bc7`
+- Audit revision: H2 merge `ff1c959` + RF-037/RF-038 repair `a7fb734`
 - Current stage: H2-A merged-tree re-baseline
-- Current verdict: **NOT RELEASE-READY — RF-019 blocks ordinary production migration deploy; RF-005 lacks production cadence evidence; the human paused broad post-UX regression for internal operations testing**
+- Current verdict: **NOT RELEASE-READY — RF-019 blocks ordinary production migration deploy; RF-005 lacks production cadence evidence; RF-039 awaits sanitized remote acceptance and credential disposition; the human paused broad post-UX regression for internal operations testing**
 
 ## Phase gates
 
@@ -24,7 +24,7 @@
 
 - [ ] Merged-tree golden invariant is green. Pre-merge evidence is green on both parents: H1 `gp-1784055279098-5047b432`; UI final series `gp-1784047276260-e8880c0c`, `gp-1784047304319-a978b9bb`, `gp-1784047333120-e0387432`.
 - [ ] Current post-H2 full validation is green. Pre-merge UI evidence is unit 727/728 plus explicit DB 1/1 and Final Acceptance `fa-1784047355157-099e9e8a` at 23/23; H1 ordered J4/J7 is `fa-1784054148752-d1a8f9ab` at 3/3. H2 must rerun every set on the merged tree.
-- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: P1 OPEN = 0, RF-037/RF-038 are FIXED pending final promotion; RF-019 is P0 OPEN and RF-005 is P0 FIXED pending production evidence.
+- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: P1 OPEN = 0, RF-037/RF-038 are FIXED pending final promotion; RF-019 is P0 OPEN; RF-005/RF-039 are P0 FIXED pending production/security evidence.
 - [ ] Merged-tree 33-route console/service/semantic/overflow checks pass across settled and injected states. Pre-merge UI evidence passed; H2 refresh is pending.
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.

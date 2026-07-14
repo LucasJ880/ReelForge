@@ -8,7 +8,7 @@ Date: 2026-07-14
 - public/auth/internal operations: light Editorial root tokens.
 - Showcase/demo: frozen, with no redesign dependency.
 
-An accidental dark override under `.auth-studio-theme` was removed in commit `4d15380`. The auth class now only declares `color-scheme: light`; the dark workspace tokens remain scoped to `.studio-theme`.
+An accidental dark override under `.auth-studio-theme` was removed in commit `38dea0f`. The auth class now only declares `color-scheme: light`; the dark workspace tokens remain scoped to `.studio-theme`.
 
 ## Automated audit
 

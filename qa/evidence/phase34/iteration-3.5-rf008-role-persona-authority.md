@@ -2,7 +2,7 @@
 
 - Date: 2026-07-14 (America/Toronto)
 - Branch: `ui/phase34-closure`
-- Repair commit: `0929fbb`
+- Repair commit: `8dab2c2`
 - Provider mode: local Preview/mock rehearsal; no real provider call or budget.
 
 ## Reproduction

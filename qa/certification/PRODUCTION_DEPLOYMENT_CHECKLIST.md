@@ -3,7 +3,7 @@
 - Owner: human release operator
 - Prepared: 2026-07-14 (America/Toronto)
 - Agent authority: preparation and verification only; **no production deploy and no real provider call**
-- Release prerequisite commits: `0fc863d`, `761baec`, `df5accb`, and `440c91f`
+- Release prerequisite commits: `7860985`, `2dded10`, `5b713b9`, and `419bb12`
 
 ## Stop conditions
 
@@ -28,7 +28,7 @@ Do not deploy if any item below is true:
 ```bash
 git status --porcelain
 git rev-parse HEAD
-for sha in 0fc863d 761baec df5accb 440c91f; do
+for sha in 7860985 2dded10 5b713b9 419bb12; do
   git merge-base --is-ancestor "$sha" HEAD || exit 1
 done
 ```

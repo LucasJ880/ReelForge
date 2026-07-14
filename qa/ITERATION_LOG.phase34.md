@@ -9,7 +9,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Work: removed six silent loader fallbacks; added six loading/error boundary pairs; added explicit empty states and retry actions; separated typed batch not-found/access errors from retryable service faults; added a production-inert preview rehearsal fault injector and a six-route Playwright matrix.
 - Files: customer page boundaries/loaders, shared route-state components/copy, typed batch error/status mapping, `playwright.phase34.config.ts`, source and browser regressions.
 - Verification: source 6/6; browser 7/7; typecheck/lint/build/diff check green; golden `gp-1784036981221-799edb49` green.
-- Ledger: RF-012 `OPEN → VERIFIED`; repair commit `356182a`.
+- Ledger: RF-012 `OPEN → VERIFIED`; repair commit `5286033`.
 - Evidence: `qa/evidence/phase34/iteration-3.1-rf012-route-states.md`.
 - New dependencies: none.
 
@@ -21,7 +21,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Rollback verification: golden `gp-1784037506214-f921e4b0` passed, restoring the invariant.
 - Attempt 2: no prefetch; direct safe `/app/create` default; one `router.replace`; no concurrent refresh; persistent branded light-theme status surface.
 - Regression: source 3/3; golden `gp-1784037627201-fa3fc7fb` passed with 27 sampled transition frames and 0 blank frames.
-- Ledger: RF-009 upgraded to P0 on the red golden run, then moved to VERIFIED after same full journey passed; repair commit `0fe2896`.
+- Ledger: RF-009 upgraded to P0 on the red golden run, then moved to VERIFIED after same full journey passed; repair commit `97d6b69`.
 - Evidence: `qa/evidence/phase34/iteration-3.2-rf009-login-continuity.md`.
 - New dependencies: none.
 
@@ -31,7 +31,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Defect: RF-011 (P1)
 - Work: wrapped template filters; stretched same-row cards without inventing previews; pinned card metadata/actions; constrained shared header and round action wrapping.
 - Regression: source 3/3; complete Phase 3/4 browser suite 9/9; template and real internal round routes at 1280/1440/1920 with 0 overflow; golden `gp-1784038024462-f5dadb44` green.
-- Ledger: RF-011 `OPEN → VERIFIED`; repair commit `3e7a6cc`.
+- Ledger: RF-011 `OPEN → VERIFIED`; repair commit `697b0d7`.
 - Evidence: `qa/evidence/phase34/iteration-3.3-rf011-layout-containment.md`.
 - New dependencies: none.
 
@@ -42,7 +42,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Reproduction: the new operational-copy audit failed 3/3 on customer quality-lock/production labels, internal navigation/branding labels, and the missing technical-token exemption record.
 - Work: moved the affected customer labels into `platform-copy`; moved internal report/workspace/legacy labels into typed `zh-CN`/`en-US` dictionaries; documented narrow technical identifiers that remain untranslated.
 - Regression: focused source audit 3/3; combined i18n coverage 11/11; typecheck and focused lint green; complete Phase 3/4 browser suite 9/9; golden `gp-1784038463620-2c3cf392` green.
-- Ledger: RF-013 `OPEN → VERIFIED`; repair commit `63cad87`.
+- Ledger: RF-013 `OPEN → VERIFIED`; repair commit `d601c16`.
 - Evidence: `qa/evidence/phase34/iteration-3.4-rf013-operational-i18n.md` and `qa/evidence/phase34/rf013-technical-token-exemptions.md`.
 - New dependencies: none.
 
@@ -53,7 +53,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Reproduction: the production guards normalized and redirected from legacy BUSINESS/PERSONAL persona before evaluating a valid staff role; the initial regression had no shared production policy module and failed to load.
 - Work: made system role authoritative in one pure policy used by session normalization and internal-page guards; removed persona-based demotion from staff API guards; retained customer-safe redirects after role denial.
 - Regression: source matrices 9/9; complete Phase 3/4 browser suite 11/11 with both positive and negative real-route cases; typecheck/focused lint/build green; golden `gp-1784038873993-71bd69a3` green.
-- Ledger: RF-008 `OPEN → VERIFIED`; repair commit `0929fbb`.
+- Ledger: RF-008 `OPEN → VERIFIED`; repair commit `8dab2c2`.
 - Evidence: `qa/evidence/phase34/iteration-3.5-rf008-role-persona-authority.md`.
 - New dependencies: none.
 
@@ -76,7 +76,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Reproduction: the focused source regression failed because the auth route group had no explicit loading/error boundary.
 - Work: added auth-only full-viewport loading/error surfaces under the approved light auth theme; preserved branded continuity, retry semantics, reduced-motion behavior, and existing i18n. Mechanically renamed a Playwright helper that ESLint incorrectly classified as a React Hook; no assertion changed.
 - Regression: auth boundary 1/1; typecheck/lint/build green; golden `gp-1784041162146-48d1317e` green with the original zero-blank-frame assertion.
-- Commit: `d82a8f4`.
+- Commit: `760b358`.
 - Evidence: `qa/evidence/phase34/iteration-3.7-auth-route-boundaries.md`.
 - New dependencies: none.
 
@@ -87,7 +87,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Reproduction: focused source regression failed 2/2 because both route groups lacked explicit loading/error boundaries.
 - Work: added shared token-based loading and retryable error surfaces; wired only public and internal route groups; retained their approved light topology and i18n.
 - Regression: focused 2/2; typecheck/lint/build green; golden `gp-1784041415031-34e2254f` green.
-- Commit: `b560661`.
+- Commit: `57350d1`.
 - Evidence: `qa/evidence/phase34/iteration-3.8-public-internal-route-boundaries.md`.
 - New dependencies: none.
 
@@ -121,7 +121,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Root cause: failure trace linked the aborted chunks to speculative RSC prefetches for authenticated dynamic Studio routes; navigation/sign-out cancelled the route prefetch and its newly split client-boundary chunks.
 - Work: disabled automatic prefetch on Studio primary/home links while retaining click navigation; reintroduced only `/app/create/images` loading/error states.
 - Regression: focused 2/2; typecheck/lint/build green; golden `gp-1784042195066-160312e7` green with unchanged network and continuity assertions.
-- Ledger: RF-021 remains VERIFIED, now by root-cause repair rather than rollback alone; repair commit `c95c7b7`.
+- Ledger: RF-021 remains VERIFIED, now by root-cause repair rather than rollback alone; repair commit `bbb867e`.
 - Evidence: `qa/evidence/phase34/iteration-3.11-rf021-prefetch-repair.md`.
 - New dependencies: none.
 
@@ -131,7 +131,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Scope: Phase 3 all-route state coverage
 - Work: added dedicated loading/error states, bilingual label, and safe retry fallback for `/app/batches/new`.
 - Regression: focused 1/1; typecheck/lint/build green; golden `gp-1784042405189-e61a81b0` green.
-- Commit: `800aa6b`.
+- Commit: `7d51b6b`.
 - Evidence: `qa/evidence/phase34/iteration-3.12-new-batch-route-states.md`.
 - New dependencies: none.
 
@@ -141,7 +141,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Scope: Phase 3 all-route state coverage
 - Work: added dedicated loading/error states, bilingual label, and safe retry fallback for `/app/library/[id]`.
 - Regression: focused 1/1; typecheck/lint/build green; golden `gp-1784042619346-493a0b4b` green.
-- Commit: `108d4ac`.
+- Commit: `142748e`.
 - Evidence: `qa/evidence/phase34/iteration-3.13-video-detail-route-states.md`.
 - New dependencies: none.
 
@@ -151,7 +151,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Scope: Phase 3 all-route verification
 - Work: added a 33-route matrix with real owned dynamic records, 1280/1440/1920 scans, semantic/console/service/overflow assertions, and 33 current full-page screenshots.
 - Regression: 99 route-width scans green; complete Phase 3/4 browser suite 12/12 green; typecheck/lint/build green; golden `gp-1784043093070-c9c5be09` green.
-- Commit: `8b90b51`.
+- Commit: `02b3769`.
 - Evidence: `qa/evidence/phase34/iteration-3.14-all-route-matrix.md`, `qa/screenshots/redesign/phase34-current/`.
 - New dependencies: none.
 
@@ -163,7 +163,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Work: installed an explicit signed staff session, asserted exact final paths, waited for loading boundaries to settle, and removed per-scan listeners.
 - Regression: corrected 33-route × 3-width matrix reached real internal content and regenerated all current screenshots; no product auth path changed.
 - Ledger: RF-022 `OPEN → VERIFIED`.
-- Commit: `01e64be`.
+- Commit: `585a4c7`.
 - Evidence: `qa/evidence/phase34/iteration-3.15-rf022-route-evidence-integrity.md`.
 - New dependencies: none.
 
@@ -175,7 +175,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Work: deferred the two-card grid to `2xl` and made its grid/card children shrinkable without changing table content or accessibility.
 - Regression: optimized build green; corrected 99-scan matrix green; golden `gp-1784044311511-576ad482` green.
 - Ledger: RF-023 `OPEN → VERIFIED`.
-- Commit: `01e64be`.
+- Commit: `585a4c7`.
 - Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`.
 - New dependencies: none.
 
@@ -185,7 +185,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Defect: RF-010 topology regression repair and Phase 4 token closure.
 - Work: restored light auth inheritance while preserving dark Studio; audited the single color/token source, fonts, motion, shared components, and remaining layout-only arbitrary values.
 - Regression: design-system audit 3/3; corrected 99-scan route matrix green; topology golden `gp-1784043470993-88e292ff` green.
-- Ledger: RF-010 remains VERIFIED with repair commit `4d15380`.
+- Ledger: RF-010 remains VERIFIED with repair commit `38dea0f`.
 - Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`.
 - New dependencies: none; package bundle impact 0 bytes.
 
@@ -197,7 +197,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Work: withheld the real file input until hydration and made all selection/drop paths share a hydration-aware interaction guard.
 - Regression: focused source invariant 1/1; optimized Final Acceptance J1 setup + desktop + mobile 3/3 (`fa-1784046239486-2cfa942a`); unchanged golden `gp-1784046345375-9b204bf9` green.
 - Ledger: RF-024 `OPEN → VERIFIED`.
-- Repair commit: `fa145d0`.
+- Repair commit: `b013c8a`.
 - Evidence: `qa/evidence/phase34/iteration-3.18-rf024-upload-hydration.md`.
 - New dependencies: none.
 
@@ -209,7 +209,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Work: added a localized zero-state progressbar to shared batch list/detail loading surfaces; the live monitor replaces it after route settlement.
 - Regression: shared route-state tests 6/6; optimized build; focused J8 desktop setup + journey 2/2 (`fa-1784046542905-9a7c8a52`); unchanged golden `gp-1784046710814-9748fc44` green.
 - Ledger: RF-025 `OPEN → VERIFIED`.
-- Repair commit: `3a34a21`.
+- Repair commit: `7f6d7d1`.
 - Evidence: `qa/evidence/phase34/iteration-3.19-rf025-batch-loading-progress.md`.
 - New dependencies: none.
 
@@ -221,7 +221,7 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Work: retained four role-defining Latin `next/font` families and replaced downloadable CJK families with explicit platform CJK fallbacks in the token source.
 - Regression: design audit 3/3; optimized build; mobile P6/J8/J2 each setup + journey 2/2; unchanged golden `gp-1784047054103-01af2a53` green.
 - Ledger: RF-026 `OPEN → VERIFIED`.
-- Repair commit: `60ab8ea`.
+- Repair commit: `c23d287`.
 - Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
 - New dependencies: none; package bundle impact 0 bytes and downloaded font payload reduced.
 

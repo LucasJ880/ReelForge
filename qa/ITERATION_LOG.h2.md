@@ -4,13 +4,13 @@
 
 - Date: 2026-07-14
 - Human decision: unify shared tokens, component anatomy, spacing, typography, focus, elevation, and motion **within** the approved topology. `/app` remains dark Studio; public/auth/`/internal` remain light Editorial. `/showcase` is frozen.
-- Decision commit: `da83969`.
+- Decision commit: `bba9b80`.
 - Scope guard: no production database, migration, provider, billing, environment, or deployment mutation.
 
 ## H2 · Iteration 1 — H1/UI merge resolution
 
 - Date: 2026-07-14
-- Parents: H1 `cc75c21`; UI closure `2d4aefc`.
+- Parents: H1 `87b9f34`; UI closure `bb0c05b`.
 - Branch: `codex/h2-ui-unification`.
 - Resolution policy: H1 wins for API/error/billing behavior; UI wins for presentation and route-owned state surfaces; QA documents preserve the semantic union.
 - Explicit resolutions:
@@ -42,3 +42,11 @@
 - Evidence: TypeScript and focused ESLint pass; 16/16 focused source/journey/locale tests pass; optimized production build passes; focused browser run `phase34-1784065559900-a0eb3437` passes 2/2 and cleans its rehearsal fixture.
 - Human scope direction: no 200/250 simulation, full 33-route matrix, Final Acceptance, or real provider call was run in this iteration.
 - Release note: the code repair is ready for internal operations feedback, but production remains blocked independently by RF-019 and RF-005.
+
+## H2 · Iteration 4 — RF-039 signed-evidence history remediation
+
+- Date: 2026-07-14.
+- Reproduction: the first branch push was rejected by GitHub Push Protection because a Phase 0 network-failure artifact had retained expired signed Beijing TOS URLs.
+- Repair: redacted 20 affected URLs, added a regression that forbids the TOS host/credential/signature/access-key patterns, rebuilt all 78 H2-only commits from `origin/main`, and updated QA references to the rewritten commit graph.
+- Evidence: focused redaction test 1/1 and JSON parsing pass; deterministic commit map and procedure are archived under `qa/evidence/h2/`.
+- Stop condition: production remains untouched. RF-039 cannot become VERIFIED until the sanitized branch is accepted remotely and the historical VolcEngine credential is confirmed revoked or rotated if it remains active.

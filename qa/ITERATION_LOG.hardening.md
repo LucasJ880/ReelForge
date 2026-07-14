@@ -30,7 +30,7 @@
 - Reproduction: upload/blob, batch templates, batch create/status/cancel/retry, direct dispatch, health, and library used incompatible success/error shapes; clients could not reliably distinguish validation, missing asset, quota, provider, and service failures.
 - Work: added strict allowlisted request/response DTOs and a closed recovery envelope; converted ownership/missing-resource failures to safe 404s; aligned customer recovery actions with server retry safety. Direct dispatch now persists/replays exact envelopes and fails closed when provider acknowledgement or idempotency ownership is ambiguous.
 - Verification: first-tier contract suites, cross-consumer assertions, typecheck, lint, and optimized build pass. No production, provider, storage, or paid call was made.
-- Repair commits: `b6a8537`, `e3eca56`, `02d0d52`, `570fcb4`, `49e491f`
+- Repair commits: `132401a`, `f0bbdbc`, `b92e344`, `c8fd6bc`, `2c97542`
 
 ## H1 · Iteration 5 — RF-029/RF-030 unified library truth
 
@@ -38,7 +38,7 @@
 - Reproduction: library detail searched only the newest 100 list rows, and fractional progress was rendered as a percentage without conversion.
 - Work: detail now performs a direct owner-scoped lookup through the shared public DTO mapper; progress is converted exactly once to a clamped 0–100 integer for list and detail.
 - Verification: `tests/unified-library-contract.test.ts` covers old owned rows, cross-owner denial, DTO parity, and progress conversion; the integrated H1 suite passes.
-- Repair commit: `abea1f2`
+- Repair commit: `3961854`
 
 ## H1 · Iteration 6 — omitted stitch-dispatch contract
 
@@ -46,15 +46,15 @@
 - Reproduction: route inventory had omitted `GET /api/cron/stitch-dispatch`; the executor existed but its heartbeat/error response schema was not contract-locked.
 - Work: added strict success, disabled, auth, upstream, and unexpected-failure schemas aligned with the scheduler heartbeat service; kept machine authentication fail-closed.
 - Verification: stitch-dispatch contract/service suites and machine endpoint authentication pass.
-- Repair commit: `e3467e6`
+- Repair commit: `be0c7ea`
 
 ## H1 · Iteration 7 — second-tier light contract closure
 
 - Date: 2026-07-14
 - Work: covered the remaining API methods with lightweight success-shape wiring plus dynamic anonymous/role/ownership boundaries. Group A covers 24 methods, Group B 25 methods, and Group C 18 route entries; these are intentionally not claimed as strict hostile-input snapshots.
-- Defect found and repaired: `GET /api/metrics/import` lacked its operator guard; both GET/POST now guard before CSV/JSON work (`81741c6`). Stripe's exact webhook path was incorrectly intercepted by session middleware before signature verification; only `/api/webhooks/stripe` is now public to the signed handler, while subpaths remain protected (`3b42780`).
+- Defect found and repaired: `GET /api/metrics/import` lacked its operator guard; both GET/POST now guard before CSV/JSON work (`073a86c`). Stripe's exact webhook path was incorrectly intercepted by session middleware before signature verification; only `/api/webhooks/stripe` is now public to the signed handler, while subpaths remain protected (`12253a5`).
 - Verification: all three secondary groups, related middleware/machine/sealed/report tests, typecheck, lint, and optimized build pass. No external network or webhook/provider call was made.
-- Repair commits: `de6e11d`, `81741c6`, `3b42780`
+- Repair commits: `e34bc55`, `073a86c`, `12253a5`
 
 ## H1 · Iteration 8 — RF-031 through RF-035 acceptance and billing safety
 
@@ -63,7 +63,7 @@
 - Work: made acceptance cleanup an automatic run-scoped fixture; used an explicit empty-storage API context for anonymous probes; tightened retry eligibility to positive no-bill evidence; mapped legacy ambiguity to support/reconciliation; required exact one-row CAS ownership.
 - Failed evidence preserved: `fa-1784051887340-f5de6474` exposed locator ambiguity; `fa-1784051997045-83dc77ca` exposed quota leakage; `fa-1784053713921-996e9e3f` showed expected anonymous 401 responses polluting page-console accounting; `fa-1784054066547-b0b66ca3` proved the first API context still inherited storage. Each failure drove the minimum product/fixture correction; no quota, error, or console assertion was relaxed.
 - Passing evidence: intermediate `fa-1784052408837-0b975d38` and final isolated run `fa-1784054148752-d1a8f9ab` pass 3/3.
-- Repair commits: `02d0d52`, `570fcb4`, `a39be48`
+- Repair commits: `b92e344`, `c8fd6bc`, `cb14d73`
 
 ## H1 · Iteration 9 — RF-036 sign-out prefetch race
 
@@ -71,7 +71,7 @@
 - Reproduction: golden run `gp-1784055093318-ae9ed205` failed because a protected `/app/batches` prefetch followed the session-loss redirect and was aborted during sign-out.
 - Work: disabled speculative prefetch on protected primary navigation only. Direct navigation remains unchanged; the golden zero-failed-request assertion remains strict.
 - Verification: `tests/platform-shell-signout-prefetch.test.ts`, typecheck, lint, optimized build, and golden run `gp-1784055279098-5047b432` pass.
-- Repair commit: `e7dfea3`
+- Repair commit: `b04beb7`
 
 ## H1 closure note
 

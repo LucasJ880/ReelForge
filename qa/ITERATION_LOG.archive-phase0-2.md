@@ -160,7 +160,7 @@
 
 - Date: 2026-07-14
 - Repair: aligned customer retry presentation and mutation authorization through one provider-capability-aware billing-safety predicate. Explicit mock retry remains zero-cost and deterministic; ambiguous real-provider work remains blocked. Final Acceptance rehearsal data is run-scoped and production mock guards remain enabled.
-- Product/test commits: RF-018 and commercial-contract repair `df5accb`; Final Acceptance rehearsal isolation `440c91f`. RF-004 and RF-005 were already isolated in `0fc863d` and `761baec`; repair hashes were recorded by `58a8909`.
+- Product/test commits: RF-018 and commercial-contract repair `5b713b9`; Final Acceptance rehearsal isolation `419bb12`. RF-004 and RF-005 were already isolated in `7860985` and `2dded10`; repair hashes were recorded by `ec18b06`.
 - Verification:
   - focused RF-018 regressions: 15/15 passed;
   - targeted setup + desktop/mobile J3: 3/3 passed, run `fa-1784011098406-50ddd9f4`;

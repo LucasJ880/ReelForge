@@ -1,7 +1,7 @@
 # Gate C0 closure — Final Acceptance evidence
 
 - Date: 2026-07-14 (America/Toronto)
-- Product/test baseline: `440c91f`
+- Product/test baseline: `419bb12`
 - Scope: RF-004, RF-006, and RF-018 verification
 - Real video-provider calls / paid operations: **0**
 - Production database writes: **0**
@@ -10,13 +10,13 @@
 
 | Defect | Repair commit | Closure evidence |
 |---|---|---|
-| RF-004 stale stitch callback | `0fc863d` | Attempt-token CAS regressions plus post-repair golden and full acceptance |
-| RF-005 scheduler cadence code | `761baec` | Code is isolated and tested; production cadence evidence is intentionally still pending |
-| RF-006 teardown crash | `e863c8e` | Original serial suite exits 0 including global teardown |
-| RF-018 retry contract mismatch | `df5accb` | Shared billing-safe retry policy; focused, J3, full acceptance, and golden regressions |
-| Final Acceptance rehearsal isolation | `440c91f` | Run-scoped fixtures and explicit preview/mock rehearsal boundaries |
+| RF-004 stale stitch callback | `7860985` | Attempt-token CAS regressions plus post-repair golden and full acceptance |
+| RF-005 scheduler cadence code | `2dded10` | Code is isolated and tested; production cadence evidence is intentionally still pending |
+| RF-006 teardown crash | `26b430e` | Original serial suite exits 0 including global teardown |
+| RF-018 retry contract mismatch | `5b713b9` | Shared billing-safe retry policy; focused, J3, full acceptance, and golden regressions |
+| Final Acceptance rehearsal isolation | `419bb12` | Run-scoped fixtures and explicit preview/mock rehearsal boundaries |
 
-The RF-004/RF-005 hashes were recorded in the defect ledger by commit `58a8909`. No existing assertion was loosened, and no test was deleted, disabled, or newly skipped.
+The RF-004/RF-005 hashes were recorded in the defect ledger by commit `ec18b06`. No existing assertion was loosened, and no test was deleted, disabled, or newly skipped.
 
 ## Reproducible verification record
 

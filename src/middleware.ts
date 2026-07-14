@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { customerApiError } from "@/lib/contracts/customer-api";
 
 /**
  * Phase 5 — middleware whitelist:
@@ -63,7 +64,15 @@ export async function middleware(req: NextRequest) {
 
   if (!token) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "未登录" }, { status: 401 });
+      return NextResponse.json(
+        customerApiError({
+          code: "AUTH_REQUIRED",
+          message: "未登录",
+          retryable: false,
+          action: "sign_in",
+        }),
+        { status: 401 },
+      );
     }
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("from", pathname);

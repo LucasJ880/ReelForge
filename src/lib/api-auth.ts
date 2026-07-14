@@ -16,11 +16,11 @@ function authRequiredResponse() {
   );
 }
 
-function forbiddenResponse() {
+function forbiddenResponse(message = "权限不足") {
   return NextResponse.json(
     customerApiError({
       code: "FORBIDDEN",
-      message: "权限不足",
+      message,
       retryable: false,
       action: "contact_support",
     }),
@@ -278,10 +278,7 @@ export async function requireUserOfTypeForGeneration(): Promise<AuthGuardResult>
   if (!workspace) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { error: "账号工作区尚未就绪，请联系支持" },
-        { status: 403 },
-      ),
+      response: forbiddenResponse("账号工作区尚未就绪，请联系支持"),
     };
   }
   return auth;

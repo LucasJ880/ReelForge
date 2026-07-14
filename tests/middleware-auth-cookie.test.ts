@@ -3,6 +3,7 @@ import test from "node:test";
 import { NextRequest } from "next/server";
 import { encode } from "next-auth/jwt";
 import { middleware } from "../src/middleware";
+import { customerApiErrorSchema } from "../src/lib/contracts/customer-api";
 
 const SECRET = "middleware-cookie-regression-secret";
 
@@ -87,6 +88,29 @@ test("middleware follows NextAuth cookie security rules for HTTP and HTTPS", asy
     restoreEnvironment("AUTH_SECRET", previousAuthSecret);
     restoreEnvironment("NEXTAUTH_URL", previousNextAuthUrl);
     restoreEnvironment("VERCEL", previousVercel);
+  }
+});
+
+test("H1 contract: middleware API denial uses the same customer error envelope", async () => {
+  const previousAuthSecret = process.env.AUTH_SECRET;
+  const previousNextAuthUrl = process.env.NEXTAUTH_URL;
+  process.env.AUTH_SECRET = SECRET;
+  process.env.NEXTAUTH_URL = "https://app.aivora.example";
+  try {
+    const response = await middleware(
+      new NextRequest("https://app.aivora.example/api/batches"),
+    );
+    assert.equal(response.status, 401);
+    assert.deepEqual(customerApiErrorSchema.parse(await response.json()), {
+      ok: false,
+      code: "AUTH_REQUIRED",
+      error: "未登录",
+      retryable: false,
+      action: "sign_in",
+    });
+  } finally {
+    restoreEnvironment("AUTH_SECRET", previousAuthSecret);
+    restoreEnvironment("NEXTAUTH_URL", previousNextAuthUrl);
   }
 });
 

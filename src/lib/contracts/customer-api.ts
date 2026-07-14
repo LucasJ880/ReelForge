@@ -36,6 +36,49 @@ export const customerRecoveryActions = [
 export type CustomerApiErrorCode = (typeof customerApiErrorCodes)[number];
 export type CustomerRecoveryAction = (typeof customerRecoveryActions)[number];
 
+const allowedRecoveryPairs: Record<CustomerApiErrorCode, ReadonlySet<string>> = {
+  AUTH_REQUIRED: new Set(["false:sign_in"]),
+  FORBIDDEN: new Set(["false:contact_support"]),
+  VALIDATION_FAILED: new Set(["false:fix_request"]),
+  RESOURCE_NOT_FOUND: new Set(["false:contact_support"]),
+  INVALID_STATE: new Set(["false:refresh_status", "false:contact_support"]),
+  IDEMPOTENCY_KEY_REQUIRED: new Set(["false:fix_request"]),
+  IDEMPOTENCY_CONFLICT: new Set([
+    "false:fix_request",
+    "false:contact_support",
+  ]),
+  REQUEST_IN_PROGRESS: new Set(["false:refresh_status"]),
+  QUALITY_BLOCKED: new Set(["false:fix_request", "false:replace_asset"]),
+  RATE_LIMITED: new Set(["true:retry"]),
+  QUOTA_EXCEEDED: new Set(["false:view_usage"]),
+  QUOTA_CHECK_UNAVAILABLE: new Set(["true:retry", "true:wait"]),
+  STORAGE_UNAVAILABLE: new Set([
+    "true:retry",
+    "true:wait",
+    "false:contact_support",
+  ]),
+  SUBMISSION_ACK_UNKNOWN: new Set(["false:contact_support"]),
+  PROVIDER_TIMEOUT: new Set(["true:retry", "false:contact_support"]),
+  PROVIDER_ERROR: new Set(["true:retry", "false:contact_support"]),
+  ASSET_MISSING: new Set(["false:replace_asset"]),
+  SERVICE_UNAVAILABLE: new Set([
+    "true:retry",
+    "true:wait",
+    "false:contact_support",
+  ]),
+  INTERNAL_ERROR: new Set(["true:retry", "false:contact_support"]),
+};
+
+export function isCustomerRecoverySemanticallyValid(args: {
+  code: CustomerApiErrorCode;
+  retryable: boolean;
+  action: CustomerRecoveryAction;
+}): boolean {
+  return allowedRecoveryPairs[args.code].has(
+    `${String(args.retryable)}:${args.action}`,
+  );
+}
+
 export const customerApiErrorSchema = z
   .object({
     ok: z.literal(false),
@@ -44,7 +87,7 @@ export const customerApiErrorSchema = z
     retryable: z.boolean(),
     action: z.enum(customerRecoveryActions),
   })
-  .passthrough();
+  .strict();
 
 export type CustomerApiError = z.infer<typeof customerApiErrorSchema>;
 
@@ -54,6 +97,11 @@ export function customerApiError(args: {
   retryable: boolean;
   action: CustomerRecoveryAction;
 }) {
+  if (!isCustomerRecoverySemanticallyValid(args)) {
+    throw new TypeError(
+      `Invalid customer recovery semantics for ${args.code}: retryable=${String(args.retryable)}, action=${args.action}`,
+    );
+  }
   return {
     ok: false as const,
     code: args.code,
@@ -62,4 +110,3 @@ export function customerApiError(args: {
     action: args.action,
   };
 }
-

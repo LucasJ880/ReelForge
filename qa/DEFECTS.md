@@ -2,8 +2,8 @@
 
 - Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
 - Last updated: 2026-07-13 (America/Toronto)
-- Current phase: Phase 1 human gate
-- Counts: **P0 OPEN 6 · P0 FIXED 1 · P0 VERIFIED 2 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Current phase: Phase 2 backend hardening
+- Counts: **P0 OPEN 6 · P0 FIXED 1 · P0 VERIFIED 3 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -20,6 +20,7 @@
 - Evidence: `qa/evidence/production-health-2026-07-13.json`
 - Impact: a production customer can enter a path that produces rehearsal output rather than paid provider output. This violates the ship-loop rule that mock is available only under an explicit test/rehearsal deployment.
 - Required regression: production configuration test must reject mock mode; preview/rehearsal must remain explicitly allowed.
+- Repair attempts: **1/3 rolled back**. Attempt 1 added health/runtime guards and passed 31 focused tests, but the mandatory golden-path run ended with one provider job FAILED. Per the golden-path invariant the entire product/test change was immediately rolled back before any other defect work. Evidence: `qa/evidence/phase1/golden-path-gp-1784001035053-52c5af59.json`. The subsequent baseline run exposed separate rehearsal rate-limit pollution (RF-017), so attempt 2 must rerun against the now-isolated fixture before assigning causality.
 - Repair commit: —
 
 ### RF-002 — Cron and external-runner endpoints fail open when `CRON_SECRET` is absent
@@ -181,6 +182,17 @@
 - Repair: in mock-only status handling, accept an explicit HTTP(S) fixture URL and bypass clip rendering/storage; invalid non-HTTP(S) fixtures fail the mock task.
 - Regression: `tests/seedance-mock-hints.test.ts`; all golden runs blank Blob/real-provider secrets and prove every job output equals the local static MP4.
 - Repair commit: `e863c8e`
+
+### RF-017 — Independent golden-path runs shared a persistent registration rate-limit bucket
+
+- Severity: **P0 — release-evidence blocker**
+- Status: **VERIFIED**
+- Reproduction: after the Phase 1 pass series and two Phase 2 diagnostic starts, another clean optimized-server run received HTTP 429 from `/api/auth/register` before account creation.
+- Root cause: every local browser run used the same implicit `unknown`/loopback registration IP, while `RateLimitBucket` correctly persists across server restarts; account cleanup intentionally did not erase security audit buckets.
+- Repair: derive a deterministic, run-unique RFC 3849 documentation IPv6 address and send it through the rehearsal browser context; explicitly label that server as `VERCEL_ENV=preview`. Production rate-limit code and assertions are unchanged.
+- Regression: `tests/golden-path-network-identity.test.ts` proves stable-per-run and distinct-between-run identities. The next independent golden run `gp-1784001316316-a8fd60a5` completed register → generate → preview → download with no retry.
+- Evidence: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
+- Repair commit: pending Phase 2 iteration commit
 
 ## Seed hypotheses not opened as defects
 

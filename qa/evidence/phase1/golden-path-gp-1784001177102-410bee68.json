@@ -1,0 +1,188 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/23.11.0/bin/node",
+      "/Users/evan/Documents/ReelForge/node_modules/.bin/playwright",
+      "test",
+      "--config=playwright.golden-path.config.ts"
+    ],
+    "configFile": "/Users/evan/Documents/ReelForge/playwright.golden-path.config.ts",
+    "rootDir": "/Users/evan/Documents/ReelForge/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-setup.ts",
+    "globalTeardown": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784001177102-410bee68",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/evan/Documents/ReelForge/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/golden-path\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "qa/evidence/phase1/golden-path-gp-1784001177102-410bee68.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run start -- -p 3120",
+      "url": "http://localhost:3120",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "golden-path.spec.ts",
+      "file": "golden-path.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "golden path: register, login, create, mock complete, preview, and download",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "interrupted",
+                  "duration": 7918,
+                  "error": {
+                    "message": "Error: apiRequestContext.post: Test ended.\nCall log:\n\u001b[2m  - → POST http://localhost:3120/api/briefs/cmrk48qtz000olizy3u0o3mya/render-status\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: next-auth.csrf-token=2b99fae8636fd8af7302c3a246127ce92bee28ef1f893ac5a44747ededf1f221%7C88d452226f79e3ed7ccbb7b9517f61afcc12947ee85a6c55d83180c20eb9cb78; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3120%2Flogin; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..Kh-2xEGqa2KcccUk.jNdzNmTYysZGywX9dE33fgI-hGU5NbwyvQIT5SLMvMus5D4BboD-4N_yWrzC94bfmF3KYINFdCgoU9guHYND30uB6yTZqJIykRilxHj45crA_iWdXqfEzJA9EOXJIm7h_Adr6elbVoLgRFGrVGyvLu1go7QaWRXRzM4VAoBefJm63XIMUqMQ1GeYuVRKgw4BG9ye7XMidK15n1sfI5lUcWIWpwSKONXoeAK8ZQi_fBk8KoiG_-XK8AIez0SgZIzs6L8pT3e4xA_KX4tBrwbkt7lIKvpusUjavWutA2PV6EWW3QO5cWfWCQt-RHKdgSIDaqAgWCBS7EsVXVKyuRxenEKXbnahKh9HAE71Zr03sI6uqUo.tfHIILYZbC4SX7F-xDbdIw\u001b[22m\n",
+                    "stack": "Error: apiRequestContext.post: Test ended.\nCall log:\n\u001b[2m  - → POST http://localhost:3120/api/briefs/cmrk48qtz000olizy3u0o3mya/render-status\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: next-auth.csrf-token=2b99fae8636fd8af7302c3a246127ce92bee28ef1f893ac5a44747ededf1f221%7C88d452226f79e3ed7ccbb7b9517f61afcc12947ee85a6c55d83180c20eb9cb78; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3120%2Flogin; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..Kh-2xEGqa2KcccUk.jNdzNmTYysZGywX9dE33fgI-hGU5NbwyvQIT5SLMvMus5D4BboD-4N_yWrzC94bfmF3KYINFdCgoU9guHYND30uB6yTZqJIykRilxHj45crA_iWdXqfEzJA9EOXJIm7h_Adr6elbVoLgRFGrVGyvLu1go7QaWRXRzM4VAoBefJm63XIMUqMQ1GeYuVRKgw4BG9ye7XMidK15n1sfI5lUcWIWpwSKONXoeAK8ZQi_fBk8KoiG_-XK8AIez0SgZIzs6L8pT3e4xA_KX4tBrwbkt7lIKvpusUjavWutA2PV6EWW3QO5cWfWCQt-RHKdgSIDaqAgWCBS7EsVXVKyuRxenEKXbnahKh9HAE71Zr03sI6uqUo.tfHIILYZbC4SX7F-xDbdIw\u001b[22m\n\n    at _test.expect.poll.message (/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:118:43)\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:117:5\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:116:3",
+                    "location": {
+                      "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                      "column": 43,
+                      "line": 118
+                    },
+                    "snippet": "  116 |   await test.step(\"reconcile every provider job to a terminal success\", async () => {\n  117 |     await expect.poll(async () => {\n> 118 |       const response = await page.request.post(`/api/briefs/${briefId}/render-status`);\n      |                                           ^\n  119 |       expect(response.status(), await response.text()).toBe(200);\n  120 |       renderSummary = await response.json() as RenderSummary;\n  121 |       return {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                        "column": 43,
+                        "line": 118
+                      },
+                      "message": "Error: apiRequestContext.post: Test ended.\nCall log:\n\u001b[2m  - → POST http://localhost:3120/api/briefs/cmrk48qtz000olizy3u0o3mya/render-status\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: next-auth.csrf-token=2b99fae8636fd8af7302c3a246127ce92bee28ef1f893ac5a44747ededf1f221%7C88d452226f79e3ed7ccbb7b9517f61afcc12947ee85a6c55d83180c20eb9cb78; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3120%2Flogin; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..Kh-2xEGqa2KcccUk.jNdzNmTYysZGywX9dE33fgI-hGU5NbwyvQIT5SLMvMus5D4BboD-4N_yWrzC94bfmF3KYINFdCgoU9guHYND30uB6yTZqJIykRilxHj45crA_iWdXqfEzJA9EOXJIm7h_Adr6elbVoLgRFGrVGyvLu1go7QaWRXRzM4VAoBefJm63XIMUqMQ1GeYuVRKgw4BG9ye7XMidK15n1sfI5lUcWIWpwSKONXoeAK8ZQi_fBk8KoiG_-XK8AIez0SgZIzs6L8pT3e4xA_KX4tBrwbkt7lIKvpusUjavWutA2PV6EWW3QO5cWfWCQt-RHKdgSIDaqAgWCBS7EsVXVKyuRxenEKXbnahKh9HAE71Zr03sI6uqUo.tfHIILYZbC4SX7F-xDbdIw\u001b[22m\n\n\n  116 |   await test.step(\"reconcile every provider job to a terminal success\", async () => {\n  117 |     await expect.poll(async () => {\n> 118 |       const response = await page.request.post(`/api/briefs/${briefId}/render-status`);\n      |                                           ^\n  119 |       expect(response.status(), await response.text()).toBe(200);\n  120 |       renderSummary = await response.json() as RenderSummary;\n  121 |       return {\n    at _test.expect.poll.message (/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:118:43)\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:117:5\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:116:3"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "steps": [
+                    {
+                      "title": "register and arrive naturally in the workspace",
+                      "duration": 2363
+                    },
+                    {
+                      "title": "sign out and sign back in without a cookie bridge",
+                      "duration": 651
+                    },
+                    {
+                      "title": "preview and dispatch one deterministic mock video",
+                      "duration": 2530
+                    },
+                    {
+                      "title": "reconcile every provider job to a terminal success",
+                      "duration": 2338,
+                      "error": {
+                        "message": "Error: apiRequestContext.post: Test ended.\nCall log:\n\u001b[2m  - → POST http://localhost:3120/api/briefs/cmrk48qtz000olizy3u0o3mya/render-status\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: next-auth.csrf-token=2b99fae8636fd8af7302c3a246127ce92bee28ef1f893ac5a44747ededf1f221%7C88d452226f79e3ed7ccbb7b9517f61afcc12947ee85a6c55d83180c20eb9cb78; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3120%2Flogin; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..Kh-2xEGqa2KcccUk.jNdzNmTYysZGywX9dE33fgI-hGU5NbwyvQIT5SLMvMus5D4BboD-4N_yWrzC94bfmF3KYINFdCgoU9guHYND30uB6yTZqJIykRilxHj45crA_iWdXqfEzJA9EOXJIm7h_Adr6elbVoLgRFGrVGyvLu1go7QaWRXRzM4VAoBefJm63XIMUqMQ1GeYuVRKgw4BG9ye7XMidK15n1sfI5lUcWIWpwSKONXoeAK8ZQi_fBk8KoiG_-XK8AIez0SgZIzs6L8pT3e4xA_KX4tBrwbkt7lIKvpusUjavWutA2PV6EWW3QO5cWfWCQt-RHKdgSIDaqAgWCBS7EsVXVKyuRxenEKXbnahKh9HAE71Zr03sI6uqUo.tfHIILYZbC4SX7F-xDbdIw\u001b[22m\n",
+                        "stack": "Error: apiRequestContext.post: Test ended.\nCall log:\n\u001b[2m  - → POST http://localhost:3120/api/briefs/cmrk48qtz000olizy3u0o3mya/render-status\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.7827.55 Safari/537.36\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\u001b[2m    - cookie: next-auth.csrf-token=2b99fae8636fd8af7302c3a246127ce92bee28ef1f893ac5a44747ededf1f221%7C88d452226f79e3ed7ccbb7b9517f61afcc12947ee85a6c55d83180c20eb9cb78; next-auth.callback-url=http%3A%2F%2Flocalhost%3A3120%2Flogin; next-auth.session-token=eyJhbGciOiJkaXIiLCJlbmMiOiJBMjU2R0NNIn0..Kh-2xEGqa2KcccUk.jNdzNmTYysZGywX9dE33fgI-hGU5NbwyvQIT5SLMvMus5D4BboD-4N_yWrzC94bfmF3KYINFdCgoU9guHYND30uB6yTZqJIykRilxHj45crA_iWdXqfEzJA9EOXJIm7h_Adr6elbVoLgRFGrVGyvLu1go7QaWRXRzM4VAoBefJm63XIMUqMQ1GeYuVRKgw4BG9ye7XMidK15n1sfI5lUcWIWpwSKONXoeAK8ZQi_fBk8KoiG_-XK8AIez0SgZIzs6L8pT3e4xA_KX4tBrwbkt7lIKvpusUjavWutA2PV6EWW3QO5cWfWCQt-RHKdgSIDaqAgWCBS7EsVXVKyuRxenEKXbnahKh9HAE71Zr03sI6uqUo.tfHIILYZbC4SX7F-xDbdIw\u001b[22m\n\n    at _test.expect.poll.message (/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:118:43)\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:117:5\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:116:3",
+                        "location": {
+                          "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                          "column": 43,
+                          "line": 118
+                        },
+                        "snippet": "  116 |   await test.step(\"reconcile every provider job to a terminal success\", async () => {\n  117 |     await expect.poll(async () => {\n> 118 |       const response = await page.request.post(`/api/briefs/${briefId}/render-status`);\n      |                                           ^\n  119 |       expect(response.status(), await response.text()).toBe(200);\n  120 |       renderSummary = await response.json() as RenderSummary;\n  121 |       return {"
+                      }
+                    }
+                  ],
+                  "startTime": "2026-07-14T03:52:58.570Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784001177102-410bee68/golden-path-golden-path-re-0269f-mplete-preview-and-download/test-failed-1.png"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784001177102-410bee68/golden-path-golden-path-re-0269f-mplete-preview-and-download/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                    "column": 43,
+                    "line": 118
+                  }
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "d6dd496e245cb9874cb8-197153a49bc4ff37fc0f",
+          "file": "golden-path.spec.ts",
+          "line": 25,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-07-14T03:52:57.103Z",
+    "duration": 10354.753,
+    "expected": 0,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

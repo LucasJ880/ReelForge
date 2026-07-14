@@ -90,3 +90,13 @@
   - post-run rehearsal cleanup: 0 `golden-gp-*` accounts remain.
 - Evidence: `qa/evidence/phase1-verification.md`, per-run JSON, and completed-video screenshots.
 - Gate state: **WAITING FOR HUMAN PHASE 1 APPROVAL**. Per the ship loop, no Phase 2 work has started.
+
+## Phase 2 · Iteration 2.0 — Gate approval and golden-path invariant recovery
+
+- Date: 2026-07-13
+- Human approval: Phase 2 backend hardening authorized; existing dark `/app` plus light public/auth topology remains unchanged.
+- RF-001 attempt 1: four new reproduction tests failed before repair and 31 focused tests passed after a production mock guard was added. The mandatory golden path then terminated with one FAILED provider job, so the entire attempt was rolled back immediately under the phase constitution. RF-001 remains OPEN at attempt 1/3.
+- Baseline recovery exposed RF-017: the persistent registration IP rate-limit bucket returned 429 after repeated independent golden runs. No assertion or product limit was relaxed. The rehearsal client now receives a run-unique RFC 3849 IP and explicitly identifies as Vercel preview.
+- Verification: network-identity regression 1/1, typecheck, focused lint, and independent optimized golden run `gp-1784001316316-a8fd60a5` pass.
+- Ledger change: RF-017 opened and VERIFIED; RF-001 remains OPEN with the rolled-back attempt recorded.
+- Evidence: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.

@@ -1,9 +1,9 @@
 # ReelForge Ship Audit
 
 - Audit date: 2026-07-13 (America/Toronto)
-- Phase: 1 — golden path complete, awaiting human gate
+- Phase: 2 — backend hardening in progress
 - Source revision: Phase 1 implementation `e863c8e` on `codex/final-sprint`
-- Coverage status: Phase 0 inventory complete; Phase 1 register/login → mock generation → external completion → playback/download passes four independent optimized-build runs
+- Coverage status: Phase 0 inventory complete; Phase 1 approved; Phase 2 security, state, idempotency, concurrency, error, and API-contract verification in progress
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -313,6 +313,6 @@ Design/implementation mismatch: claim is compare-and-swap, but completion carrie
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 6 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 2 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 6 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 3 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
 
-**Phase 1 automated exit criteria are met; release remains blocked.** Gate state: waiting for human Phase 1 approval. Phase 2 has not started.
+**Phase 1 automated exit criteria were approved; release remains blocked.** Phase 2 is active. Its first mandatory golden-path regression exposed and verified RF-017 without changing any production limit.

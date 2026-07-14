@@ -2,7 +2,7 @@
 
 - Gate owner: human release approver
 - Audit revision: Phase 1 implementation `e863c8e`
-- Current stage: Phase 1 automated exit criteria complete, awaiting human review
+- Current stage: Phase 2 backend hardening in progress
 - Current verdict: **NOT RELEASE-READY — 6 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
 
 ## Phase gates
@@ -13,7 +13,7 @@
 - [x] Phase 0 — route screenshots and machine-readable cold-load evidence captured.
 - [x] **Human approval of Phase 0 map.** Approved 2026-07-13; Phase 1 authorized.
 - [x] Phase 1 — golden path exists and passes three independent runs. Evidence: `qa/evidence/phase1-verification.md`.
-- [ ] **Human approval of Phase 1 evidence.**
+- [x] **Human approval of Phase 1 evidence.** Approved 2026-07-13; Phase 2 authorized.
 - [ ] Phase 2 — state, idempotency, concurrency, error, and API contract suites pass.
 - [ ] Phase 3 — every route passes correctness and three-state acceptance.
 - [ ] Phase 4 — human visual review approves the selected theme topology.
@@ -21,7 +21,7 @@
 
 ## Final release checks
 
-- [ ] Golden-path E2E passes five consecutive independent runs. Current: 4 consecutive independent runs pass; evidence: `qa/evidence/phase1-verification.md`.
+- [ ] Golden-path E2E passes five consecutive independent runs. Phase 1 recorded four consecutive passes; Phase 2 restarted the consecutive counter after a rolled-back RF-001 attempt and now has one pass with run-isolated rate limiting. Evidence: `qa/evidence/phase1-verification.md`, `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
 - [ ] Full test suite passes with no newly added skip/xfail and all required DB integration tests enabled. Current: 662/663 pass, 1 pre-existing conditional DB integration skip.
 - [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: 6 P0 OPEN + 1 P0 FIXED pending full verification; 5 P1 OPEN.
 - [ ] Every route has console error = 0 in representative populated, empty, loading, and error states. Current limitation: `/app/batches/[id]` lacked representative rehearsal data.
@@ -46,6 +46,7 @@
 - Phase 1 golden-path summary: `qa/evidence/phase1-verification.md`
 - Phase 1 per-run JSON: `qa/evidence/phase1/golden-path-*.json`
 - Phase 1 completed-video screenshots: `qa/screenshots/phase1/*/completed-video.png`
+- Phase 2 golden-invariant recovery: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`
 
 ## Rollback plan (draft; to validate in release phase)
 

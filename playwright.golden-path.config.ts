@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { defineConfig, devices } from "@playwright/test";
+import { rehearsalClientIpForRun } from "./e2e/golden-path-network-identity";
 
 const port = 3120;
 const rehearsalDatabaseUrl = process.env.NEON_REHEARSAL_DATABASE_URL?.trim();
@@ -10,12 +11,14 @@ if (!rehearsalDatabaseUrl) {
 const baseURL = `http://localhost:${port}`;
 const runId = process.env.GOLDEN_PATH_RUN_ID?.trim()
   || `gp-${Date.now()}-${randomUUID().slice(0, 8)}`;
+const rehearsalClientIp = rehearsalClientIpForRun(runId);
 const emailSuffix = runId.toLowerCase().replace(/[^a-z0-9-]/g, "-").slice(-60);
 const runtimeEnv: Record<string, string> = {
   DATABASE_URL: rehearsalDatabaseUrl,
   NEON_REHEARSAL_DATABASE_URL: rehearsalDatabaseUrl,
   GOLDEN_PATH_RUN_ID: runId,
   GOLDEN_PATH_EMAIL: `golden-${emailSuffix}@aivora.invalid`,
+  VERCEL_ENV: "preview",
   NEXTAUTH_URL: baseURL,
   AUTH_URL: baseURL,
   NEXT_PUBLIC_APP_URL: baseURL,
@@ -67,6 +70,7 @@ export default defineConfig({
     ...devices["Desktop Chrome"],
     baseURL,
     locale: "zh-CN",
+    extraHTTPHeaders: { "x-forwarded-for": rehearsalClientIp },
     viewport: { width: 1440, height: 1000 },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",

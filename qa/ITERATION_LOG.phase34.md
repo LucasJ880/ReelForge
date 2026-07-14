@@ -24,3 +24,13 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-009 upgraded to P0 on the red golden run, then moved to VERIFIED after same full journey passed; repair commit `0fe2896`.
 - Evidence: `qa/evidence/phase34/iteration-3.2-rf009-login-continuity.md`.
 - New dependencies: none.
+
+## Iteration 3.3 — RF-011 layout containment
+
+- Date: 2026-07-14
+- Defect: RF-011 (P1)
+- Work: wrapped template filters; stretched same-row cards without inventing previews; pinned card metadata/actions; constrained shared header and round action wrapping.
+- Regression: source 3/3; complete Phase 3/4 browser suite 9/9; template and real internal round routes at 1280/1440/1920 with 0 overflow; golden `gp-1784038024462-f5dadb44` green.
+- Ledger: RF-011 `OPEN → VERIFIED`; repair commit `3e7a6cc`.
+- Evidence: `qa/evidence/phase34/iteration-3.3-rf011-layout-containment.md`.
+- New dependencies: none.

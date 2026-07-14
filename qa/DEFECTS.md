@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 3 · P1 VERIFIED 3 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 2 · P1 VERIFIED 4 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -146,13 +146,16 @@
 ### RF-011 — Template filters and round actions overflow; template cards have unstable geometry
 
 - Severity: **P1 — customer/operator-visible**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: S-04
 - Reproduction: cold-load at 1440×1000. `/app/templates` filter buttons extend to x=1942 inside a clipped row; `/internal/rounds/[id]` has an action ending at x=1498. Cards without a sample preview collapse vertically relative to preview cards.
 - Evidence: `qa/evidence/phase0-route-scan.json`, `qa/screenshots/baseline/routes/app-templates.png`, `internal-rounds-id.png`
 - Impact: controls are unreachable/clipped and template browsing looks structurally inconsistent.
 - Required regression: overflow detector at 1280/1440/1920; template cards preserve a consistent information grid with or without sample media.
-- Repair commit: —
+- Repair: category filters now wrap inside the filter panel instead of placing later controls outside the viewport. Template grid rows stretch cards to one height and pin recipe/actions consistently while cards without verified samples render no fake preview. Shared page headers defer side-by-side actions to large screens, and round actions own a full-width wrapping container constrained to the content column.
+- Verification: source guards 3/3 and the complete Phase 3/4 browser suite 9/9 pass. `/app/templates` and a seeded `/internal/rounds/[id]` were checked at 1280/1440/1920: document width never exceeded viewport, overflowing element count was 0, and same-row template card height variance was at most 1px. Golden run `gp-1784038024462-f5dadb44` passes with 28 transition samples and 0 blank frames.
+- Evidence: `qa/evidence/phase34/iteration-3.3-rf011-layout-containment.md`, `qa/evidence/phase1/golden-path-gp-1784038024462-f5dadb44.json`.
+- Repair commit: `3e7a6cc`
 
 ### RF-012 — Customer pages collapse server failures into empty/not-found states
 

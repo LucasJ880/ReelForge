@@ -58,6 +58,8 @@ All routes below are backed by `src/app/**/page.tsx`. The Phase 0 scanner cold-l
 
 Canonical raw evidence: `qa/evidence/phase0-route-scan.json`. Screenshots are relative to `qa/screenshots/baseline/`.
 
+Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against real owned dynamic fixtures at 1280/1440/1920. All 99 route-width scans passed document, console, page-error, HTTP 5xx, semantic-control and overflow assertions. `/app/batches/[id]` is now validated with a seeded BatchJob rather than a synthetic 404. See `qa/evidence/phase34/iteration-3.14-all-route-matrix.md` and `qa/screenshots/redesign/phase34-current/`.
+
 ### Non-page route behavior
 
 | Route/pattern | Expected behavior | Source | Audit status |

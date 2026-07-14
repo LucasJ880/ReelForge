@@ -144,3 +144,13 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Commit: `108d4ac`.
 - Evidence: `qa/evidence/phase34/iteration-3.13-video-detail-route-states.md`.
 - New dependencies: none.
+
+## Iteration 3.14 — 33-route desktop matrix
+
+- Date: 2026-07-14
+- Scope: Phase 3 all-route verification
+- Work: added a 33-route matrix with real owned dynamic records, 1280/1440/1920 scans, semantic/console/service/overflow assertions, and 33 current full-page screenshots.
+- Regression: 99 route-width scans green; complete Phase 3/4 browser suite 12/12 green; typecheck/lint/build green; golden `gp-1784043093070-c9c5be09` green.
+- Commit: `8b90b51`.
+- Evidence: `qa/evidence/phase34/iteration-3.14-all-route-matrix.md`, `qa/screenshots/redesign/phase34-current/`.
+- New dependencies: none.

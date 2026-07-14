@@ -274,8 +274,9 @@
 - Reproduction: add loading/error boundaries for `/app/create/images`, `/app/batches/new`, and `/app/library/[id]` as one iteration, then run the unchanged golden path. Run `gp-1784041620850-0134270e` observed one aborted Next.js JavaScript chunk request and failed at the final network assertion.
 - Impact: retaining any iteration after a red golden path would violate the permanent Phase 1 invariant, even though this run reported 0 blank frames and completed the product workflow.
 - Repair: atomically removed all uncommitted product, copy/type, and test changes from that iteration. No assertion, allowlist, tolerance, retry, provider, or deployment setting changed.
-- Verification: baseline run `gp-1784041708036-a861c1fa` passed the full golden journey after rollback. The three customer-detail boundaries remain pending and must be introduced one route per iteration.
-- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784041620850-0134270e.json`, `qa/evidence/phase1/golden-path-gp-1784041708036-a861c1fa.json`.
+- Repair attempts: Attempt 1 bundled three customer-detail routes and was rolled back after one aborted chunk; baseline passed. Attempt 2 isolated `/app/create/images` only and was rolled back after two aborted chunks; baseline `gp-1784041956937-f623dad1` passed. Both failed runs completed the product workflow with 0 blank frames. No assertion was changed.
+- Verification: the baseline passes after both rollbacks. The three customer-detail boundaries remain pending. One further diagnostic attempt is permitted before RF-021 must be marked ESCALATED under the three-failure rule.
+- Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`, `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784041620850-0134270e.json`, `qa/evidence/phase1/golden-path-gp-1784041708036-a861c1fa.json`, `qa/evidence/phase1/golden-path-gp-1784041900703-1146c6fa.json`, `qa/evidence/phase1/golden-path-gp-1784041956937-f623dad1.json`.
 - Repair commit: rollback contained no product commit; evidence commit recorded separately.
 
 ## Seed hypotheses not opened as defects

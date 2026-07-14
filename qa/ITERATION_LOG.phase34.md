@@ -102,3 +102,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-021 opened and moved to VERIFIED by rollback; future routes must be introduced one at a time.
 - Evidence: `qa/evidence/phase34/iteration-3.9-rf021-customer-boundary-rollback.md`.
 - New dependencies: none.
+
+## Iteration 3.10 — RF-021 single-route retry rollback
+
+- Date: 2026-07-14
+- Defect: RF-021, repair attempt 2/3
+- Attempt: added only `/app/create/images` loading/error states plus focused coverage; focused/typecheck/lint/build green.
+- Failure: golden `gp-1784041900703-1146c6fa` failed on two aborted Next.js chunk requests; continuity reported 0 blank frames.
+- Required response: removed the complete single-route iteration without changing assertions or runtime settings.
+- Rollback verification: baseline golden `gp-1784041956937-f623dad1` passed.
+- Evidence: `qa/evidence/phase34/iteration-3.10-rf021-single-route-rollback.md`.
+- New dependencies: none.

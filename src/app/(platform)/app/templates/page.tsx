@@ -9,11 +9,16 @@ import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { verifiedTemplateSample } from "@/lib/video-generation/template-sample";
+import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformTemplatesPage() {
-  const [templates, locale] = await Promise.all([listActiveStyleTemplates().catch(() => []), getServerLocale()]);
+  const [routeState, locale] = await Promise.all([
+    getCustomerRouteRehearsalState("templates"),
+    getServerLocale(),
+  ]);
+  const templates = routeState === "empty" ? [] : await listActiveStyleTemplates();
   const copy = getPlatformCopy(locale).templates;
   return (
     <div className="editorial-page-stack">
@@ -24,7 +29,7 @@ export default async function PlatformTemplatesPage() {
       </header>
       {templates.length > 0 ? <div className="flex justify-end"><Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].id)}`} />} variant="outline">{copy.recommended}<ArrowRight aria-hidden /></Button></div> : null}
       {templates.length === 0 ? (
-        <section className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
+        <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
           <p className="text-body text-muted-foreground">{copy.preparing}</p>
           <Button render={<Link href="/app/create" />} className="mt-5">{copy.start}<ArrowRight aria-hidden /></Button>
         </section>

@@ -8,16 +8,18 @@ import { RacingDashboard } from "@/components/racing/racing-dashboard";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformRacingPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/racing");
-  const rounds = await listRacingRounds({
+  const routeState = await getCustomerRouteRehearsalState("racing");
+  const rounds = routeState === "empty" ? [] : await listRacingRounds({
     userId: session.user.id,
     canViewAll: isInternalRacingUser(session.user.userType),
-  }).catch(() => []);
+  });
   const copy = getPlatformCopy(await getServerLocale()).racing;
   return (
     <div className="editorial-page-stack">
@@ -26,7 +28,7 @@ export default async function PlatformRacingPage() {
         <h1 className="editorial-display">{copy.title}</h1>
         <p className="text-body text-muted-foreground">{copy.subtitle}</p>
       </header>
-      {rounds.length === 0 ? <section className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
+      {rounds.length === 0 ? <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
         <p className="text-body text-muted-foreground">{copy.empty}</p>
         <Button render={<Link href="/app/create" />} className="mt-5">{copy.start}<ArrowRight aria-hidden /></Button>
       </section> : <RacingDashboard rounds={rounds} />}

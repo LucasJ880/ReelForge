@@ -10,6 +10,7 @@ import { findProductImageJobForUser } from "@/lib/services/product-image-service
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
+import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export default async function PlatformCreatePage({
   searchParams,
@@ -18,11 +19,12 @@ export default async function PlatformCreatePage({
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageJobId, styleTemplate }, locale, templates] = await Promise.all([
+  const [{ productImageJobId, styleTemplate }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
-    listActiveStyleTemplates().catch(() => []),
+    getCustomerRouteRehearsalState("create"),
   ]);
+  const templates = routeState === "empty" ? [] : await listActiveStyleTemplates();
   const job = productImageJobId
     ? await findProductImageJobForUser(productImageJobId, session.user.id)
     : null;
@@ -46,11 +48,13 @@ export default async function PlatformCreatePage({
       : [];
   const recommendations = buildAgentRecommendations(templates);
   return (
-    <AgentCreativeStudio
-      initialAssets={initialAssets}
-      initialStyleTemplateId={styleTemplate}
-      recommendations={recommendations}
-    />
+    <div data-route-state={routeState === "empty" ? "empty" : "ready"}>
+      <AgentCreativeStudio
+        initialAssets={initialAssets}
+        initialStyleTemplateId={styleTemplate}
+        recommendations={recommendations}
+      />
+    </div>
   );
 }
 

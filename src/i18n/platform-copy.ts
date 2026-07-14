@@ -6,6 +6,22 @@ const zh = {
     privacy: "隐私",
     terms: "条款",
   },
+  routeStates: {
+    loading: "正在加载{area}…",
+    errorTitle: "{area}暂时无法加载",
+    errorBody: "这是服务故障，不是空数据。请重试；如果问题持续，请联系支持并附上错误编号。",
+    retry: "重试",
+    back: "返回创作工作台",
+    errorCode: "错误编号",
+    areas: {
+      create: "创作工作台",
+      batches: "批次列表",
+      batchDetail: "批次详情",
+      racing: "投放与赛马",
+      library: "成品库",
+      templates: "模板库",
+    },
+  },
   auth: {
     studio: "视频生产工作室",
     kicker: "AI VIDEO PRODUCTION STUDIO",
@@ -222,6 +238,22 @@ type CopyShape<T> = { [K in keyof T]: T[K] extends string ? string : T[K] extend
 
 const en: CopyShape<typeof zh> = {
   shell: { home: "Aivora home", privacy: "Privacy", terms: "Terms" },
+  routeStates: {
+    loading: "Loading {area}…",
+    errorTitle: "{area} is temporarily unavailable",
+    errorBody: "This is a service failure, not an empty result. Retry now; if it continues, contact support with the error code.",
+    retry: "Retry",
+    back: "Back to creation",
+    errorCode: "Error code",
+    areas: {
+      create: "Creation studio",
+      batches: "Batch list",
+      batchDetail: "Batch detail",
+      racing: "Campaign racing",
+      library: "Video library",
+      templates: "Template library",
+    },
+  },
   auth: {
     studio: "Video Production Studio", kicker: "AI VIDEO PRODUCTION STUDIO", titleLead: "From one idea,", titleAccent: "to reliable delivery.", subtitle: "Plan, template, generate, quality-check, and deliver batches in one traceable production line.", workflow: "Workflow", trace: "Trace", output: "Output", privacy: "Privacy", terms: "Terms", loginTitle: "Welcome back to the studio", loginDescription: "Sign in to Aivora and continue your next short video.", email: "Email", password: "Password", passwordPlaceholder: "Enter password", login: "Sign in", loggingIn: "Signing in", demo: "Try the demo account", sessionHint: "Stay signed in for 7 days · Contact an administrator for account help", noAccount: "New to Aivora?", createAccount: "Create an account", invalidCredentials: "Incorrect email or password", registerTitle: "Create your Aivora account", registerDescription: "Create a workspace and start from a quality-locked template.", displayName: "Display name (optional)", displayNamePlaceholder: "How should we address you?", newPassword: "Password (8+ characters)", newPasswordPlaceholder: "Enter at least 8 characters", creating: "Creating", create: "Create account", hasAccount: "Already have an account?", loginNow: "Sign in", randomnessNote: "By registering, you acknowledge that AI-generated content may vary slightly.", registerFailed: "Could not create the account. Try again.", autoLoginFailed: "Account created, but automatic sign-in failed. Please sign in manually.", networkError: "Network error. Try again.",
   },

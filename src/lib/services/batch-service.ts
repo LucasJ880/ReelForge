@@ -83,6 +83,15 @@ export class BatchDispatchNotAuthorizedError extends Error {
   }
 }
 
+export class BatchNotFoundError extends Error {
+  readonly code = "BATCH_NOT_FOUND" as const;
+
+  constructor() {
+    super("BatchJob 不存在或无权访问");
+    this.name = "BatchNotFoundError";
+  }
+}
+
 let videoProviderFactoryOverride:
   | ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter)
   | null = null;
@@ -1224,7 +1233,7 @@ export async function getBatchStatus(batchId: string, userId?: string) {
       },
     },
   });
-  if (!batch) throw new Error("BatchJob 不存在或无权访问");
+  if (!batch) throw new BatchNotFoundError();
   return batch;
 }
 

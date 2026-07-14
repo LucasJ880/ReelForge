@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import {
+  BatchNotFoundError,
   getBatchStatus,
   processBatchTick,
   toCustomerBatchStatus,
@@ -16,15 +17,22 @@ export async function GET(_req: NextRequest, context: RouteContext) {
   try {
     const batch = await getBatchStatus(id, guard.session.user.id);
     return NextResponse.json({ batch: toCustomerBatchStatus(batch) });
-  } catch {
+  } catch (error) {
+    const notFound = error instanceof BatchNotFoundError;
+    if (!notFound) {
+      console.error("[batch:status] read failed", {
+        batchId: id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     return NextResponse.json(
       customerApiError({
         code: "INTERNAL_ERROR",
-        message: "批次不存在。",
-        retryable: false,
-        action: "contact_support",
+        message: notFound ? "批次不存在。" : "暂时无法刷新批次，请稍后重试。",
+        retryable: !notFound,
+        action: notFound ? "contact_support" : "retry",
       }),
-      { status: 404 },
+      { status: notFound ? 404 : 500 },
     );
   }
 }
@@ -43,9 +51,9 @@ export async function POST(_req: NextRequest, context: RouteContext) {
     const batch = await getBatchStatus(id, guard.session.user.id);
     return NextResponse.json({ batch: toCustomerBatchStatus(batch) });
   } catch (error) {
-    const message = (error as Error).message;
+    const message = error instanceof Error ? error.message : String(error);
     console.error("[batch:status] tick failed", { batchId: id, error: message });
-    const notFound = message.includes("无权") || message.includes("不存在");
+    const notFound = error instanceof BatchNotFoundError;
     return NextResponse.json(
       customerApiError({
         code: "INTERNAL_ERROR",

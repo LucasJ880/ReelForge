@@ -9,18 +9,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlatformBatchesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/batches");
-  const batches = await db.batchJob.findMany({
+  const routeState = await getCustomerRouteRehearsalState("batches");
+  const batches = routeState === "empty" ? [] : await db.batchJob.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
     take: 50,
     include: { template: { select: { name: true, nameZh: true, coverImage: true } } },
-  }).catch(() => []);
+  });
   const locale = await getServerLocale();
   const copy = getPlatformCopy(locale).batches;
 
@@ -38,7 +40,7 @@ export default async function PlatformBatchesPage() {
       </header>
 
       {batches.length === 0 ? (
-        <section className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
+        <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
           <p className="text-body text-muted-foreground">{copy.empty}</p>
           <Button render={<Link href="/app/templates" />} className="mt-5">
             {copy.browse}<ArrowRight aria-hidden />

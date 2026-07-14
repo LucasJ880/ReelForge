@@ -12,6 +12,7 @@ import { HoverPreviewVideo } from "@/components/library/hover-preview-video";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,8 @@ export default async function PlatformLibraryPage({
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/library");
   const query = (await searchParams).q?.trim().toLocaleLowerCase() ?? "";
-  const allRows = await loadUnifiedLibrary(session.user.id).catch(() => []);
+  const routeState = await getCustomerRouteRehearsalState("library");
+  const allRows = routeState === "empty" ? [] : await loadUnifiedLibrary(session.user.id);
   const rows = query
     ? allRows.filter((row) => row.title.toLocaleLowerCase().includes(query) || row.id.toLocaleLowerCase().includes(query))
     : allRows;
@@ -46,7 +48,7 @@ export default async function PlatformLibraryPage({
         </div>
       </header>
       {rows.length === 0 ? (
-        <section className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
+        <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
           <p className="text-body text-muted-foreground">{query ? copy.noResults.replace("{query}", query) : copy.empty}</p>
           <Button render={<Link href="/app/templates" />} className="mt-5">{copy.browse}<ArrowRight aria-hidden /></Button>
         </section>

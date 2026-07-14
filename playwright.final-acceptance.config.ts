@@ -18,6 +18,15 @@ const runtimeEnv = [
   `NEXTAUTH_URL=${baseURL}`,
   `AUTH_URL=${baseURL}`,
   "VIDEO_PROVIDER=mock",
+  // `next start` sets NODE_ENV=production. Mark this local rehearsal
+  // explicitly so the production mock-leak guard can distinguish it from a
+  // customer runtime; VERCEL_ENV=production still takes precedence and fails
+  // closed.
+  "AIVORA_DRY_RUN=1",
+  // Override any local `.env.production.local` value loaded by `next start`.
+  // This server targets the Neon rehearsal branch and must never identify as
+  // a customer production deployment.
+  "VERCEL_ENV=preview",
   "LLM_FORCE_MOCK=true",
   "VIDEO_ENGINE_MOCK=true",
   "IMAGE_ENGINE_MOCK=true",

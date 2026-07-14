@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import {
   BatchJobStatus,
   Prisma,
+  ProviderSubmissionState,
   StyleTemplateStatus,
   VideoJobStatus,
   VideoProvider,
@@ -23,8 +24,12 @@ import {
 } from "@/lib/video-generation/batch-style-templates";
 import {
   createVideoProviderById,
-  getVideoProvider,
 } from "@/lib/video-generation/providers";
+import type { VideoProvider as VideoProviderAdapter } from "@/lib/video-generation/providers/types";
+import {
+  asProviderSubmissionError,
+  shouldAutomaticallyRetrySubmission,
+} from "@/lib/video-generation/providers/submission-error";
 import {
   evaluateDispatchBreaker,
   type BreakerDecision,
@@ -42,11 +47,74 @@ import {
   isRealVideoDispatchMode,
   QUARANTINE_RELEASED,
 } from "./historical-dispatch-quarantine";
+import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
+import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
 const PROVIDER_FAILURE_PREFIX = "[provider:failed]";
 const SERIALIZABLE_RETRY_LIMIT = 3;
+
+export class BatchIdempotencyConflictError extends Error {
+  readonly code = "IDEMPOTENCY_CONFLICT" as const;
+
+  constructor() {
+    super("同一个 Idempotency-Key 已用于不同的批量生成请求");
+    this.name = "BatchIdempotencyConflictError";
+  }
+}
+
+export class BatchImageIdConflictError extends Error {
+  readonly code = "BATCH_IMAGE_ID_CONFLICT" as const;
+  readonly httpStatus = 409 as const;
+
+  constructor() {
+    super("批量生成素材的图片 ID 不得重复");
+    this.name = "BatchImageIdConflictError";
+  }
+}
+
+/**
+ * Customer batch lookups intentionally collapse "missing" and "owned by a
+ * different account" into the same error. Routes must never reveal whether a
+ * guessed batch id belongs to another customer.
+ */
+export class BatchNotFoundError extends Error {
+  constructor() {
+    super("BatchJob 不存在或无权访问");
+    this.name = "BatchNotFoundError";
+  }
+}
+
+export class BatchTemplateUnavailableError extends Error {
+  constructor() {
+    super("指定的 ACTIVE 模板版本不存在");
+    this.name = "BatchTemplateUnavailableError";
+  }
+}
+
+export class BatchDispatchNotAuthorizedError extends Error {
+  readonly code = "BATCH_DISPATCH_NOT_AUTHORIZED" as const;
+
+  constructor() {
+    super("批次尚未完成额度授权，禁止派发");
+    this.name = "BatchDispatchNotAuthorizedError";
+  }
+}
+
+let videoProviderFactoryOverride:
+  | ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter)
+  | null = null;
+
+function providerForJob(job: Pick<VideoJob, "provider">): VideoProviderAdapter {
+  if (videoProviderFactoryOverride) return videoProviderFactoryOverride(job);
+  // Resolve from the provider persisted on the job, never from today's global
+  // default. A provider switch must not change the billing semantics of an
+  // already-submitted historical task.
+  return createVideoProviderById(
+    job.provider === VideoProvider.MOCK ? "mock" : "byteplus",
+  );
+}
 
 function isSerializableConflict(error: unknown): boolean {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -76,6 +144,33 @@ function providerConcurrency(): number {
 
 function remainingPlanConcurrency(limit: number, active: number): number {
   return Math.max(0, Math.floor(limit) - Math.max(0, Math.floor(active)));
+}
+
+/**
+ * A quarantined historical row cannot consume a live provider/workspace slot.
+ * Keep this predicate aligned with `isHistoricalDispatchQuarantined`: in real
+ * mode an undecided pre-cutoff row is blocked; EXPIRED is blocked in every
+ * mode; RELEASED is explicitly eligible.
+ */
+function dispatchableRunningSlotFilter(
+  realDispatch: boolean,
+): Prisma.VideoJobWhereInput {
+  return realDispatch
+    ? {
+        OR: [
+          { dispatchQuarantineDecision: QUARANTINE_RELEASED },
+          {
+            dispatchQuarantineDecision: null,
+            createdAt: { gt: HISTORICAL_DISPATCH_CUTOFF },
+          },
+        ],
+      }
+    : {
+        OR: [
+          { dispatchQuarantineDecision: null },
+          { dispatchQuarantineDecision: QUARANTINE_RELEASED },
+        ],
+      };
 }
 
 function json(value: unknown): Prisma.InputJsonValue {
@@ -117,6 +212,39 @@ export interface CreateBatchInput {
   requestedCount: number;
   productName?: string | null;
   idempotencyKey: string;
+}
+
+function batchRequestHash(input: CreateBatchInput): string {
+  return hashVideoDispatchRequest({
+    templateId: input.templateId,
+    templateVersion: input.templateVersion,
+    images: input.images,
+    requestedCount: input.requestedCount,
+    productName: input.productName?.trim() || null,
+  });
+}
+
+function assertBatchReplayMatches(
+  existing: BatchJob,
+  input: CreateBatchInput,
+  requestHash: string,
+): void {
+  if (existing.requestHash) {
+    if (existing.requestHash !== requestHash) {
+      throw new BatchIdempotencyConflictError();
+    }
+    return;
+  }
+  const legacyMatches =
+    existing.templateId === input.templateId &&
+    existing.templateVersion === input.templateVersion &&
+    existing.requestedCount === input.requestedCount &&
+    (existing.productName ?? null) === (input.productName?.trim() || null) &&
+    JSON.stringify(existing.imageIds) ===
+      JSON.stringify(input.images.map((image) => image.id)) &&
+    JSON.stringify(existing.imageUrls) ===
+      JSON.stringify(input.images.map((image) => image.url));
+  if (!legacyMatches) throw new BatchIdempotencyConflictError();
 }
 
 function templateSnapshot(template: StyleTemplate): Prisma.InputJsonValue {
@@ -178,6 +306,11 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
   if (!input.idempotencyKey.trim() || input.idempotencyKey.length > 200) {
     throw new Error("idempotencyKey 必须是 1-200 字符");
   }
+  const imageIds = input.images.map((image) => image.id);
+  if (new Set(imageIds).size !== imageIds.length) {
+    throw new BatchImageIdConflictError();
+  }
+  const requestHash = batchRequestHash(input);
   const existing = await db.batchJob.findUnique({
     where: {
       userId_idempotencyKey: {
@@ -186,7 +319,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       },
     },
   });
-  if (existing) return existing;
+  if (existing) {
+    assertBatchReplayMatches(existing, input, requestHash);
+    return existing;
+  }
 
   const template = await db.styleTemplate.findFirst({
     where: {
@@ -195,8 +331,8 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       status: StyleTemplateStatus.ACTIVE,
     },
   });
-  if (!template) throw new Error("指定的 ACTIVE 模板版本不存在");
-  const locked = parseLockedParams(template.lockedParams);
+  if (!template) throw new BatchTemplateUnavailableError();
+  parseLockedParams(template.lockedParams);
   const provider =
     getAppEnv().videoProvider === "mock"
       ? VideoProvider.MOCK
@@ -212,7 +348,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           },
         },
       });
-      if (raced) return raced;
+      if (raced) {
+        assertBatchReplayMatches(raced, input, requestHash);
+        return raced;
+      }
 
       const batch = await tx.batchJob.create({
         data: {
@@ -224,6 +363,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           productName: input.productName?.trim() || null,
           requestedCount: input.requestedCount,
           idempotencyKey: input.idempotencyKey,
+          requestHash,
           status: BatchJobStatus.EXPANDING,
         },
       });
@@ -239,9 +379,9 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       return tx.batchJob.update({
         where: { id: batch.id },
         data: {
-          status: BatchJobStatus.RUNNING,
+          status: BatchJobStatus.EXPANDING,
           queuedCount: rows.length,
-          statusReason: `已按模板 ${template.slug}@${template.version} 原子展开；${locked.duration}s ${locked.aspectRatio}`,
+          statusReason: `已按模板 ${template.slug}@${template.version} 原子展开；等待额度授权`,
         },
       });
     });
@@ -258,7 +398,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           },
         },
       });
-      if (raced) return raced;
+      if (raced) {
+        assertBatchReplayMatches(raced, input, requestHash);
+        return raced;
+      }
     }
     throw error;
   }
@@ -305,7 +448,7 @@ export async function syncBatchCounts(batchId: string): Promise<BatchJob> {
       _count: { _all: true },
     }),
   ]);
-  if (!batch) throw new Error("BatchJob 不存在");
+  if (!batch) throw new BatchNotFoundError();
   const counts: Partial<Record<VideoJobStatus, number>> = {};
   for (const row of grouped as StatusCount[]) {
     counts[row.status] = row._count._all;
@@ -338,23 +481,42 @@ async function recoverExpiredLeases(batchId: string, now: Date): Promise<number>
       externalJobId: null,
       leaseExpiresAt: { lt: now },
     },
-    select: { id: true },
+    select: { id: true, submissionState: true },
   });
   let recovered = 0;
   for (const job of expired) {
+    const safeToReplay =
+      job.submissionState === ProviderSubmissionState.NOT_STARTED;
+    const nextStatus = safeToReplay
+      ? VideoJobStatus.QUEUED
+      : VideoJobStatus.FAILED;
     const result = await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: VideoJobStatus.RUNNING,
         externalJobId: null,
         leaseExpiresAt: { lt: now },
+        submissionState: job.submissionState,
       },
       data: {
-        status: VideoJobStatus.QUEUED,
+        status: nextStatus,
+        submissionState: safeToReplay
+          ? ProviderSubmissionState.NOT_STARTED
+          : ProviderSubmissionState.ACK_UNKNOWN,
+        submissionErrorClass: safeToReplay
+          ? null
+          : "lease_expired_after_submission_started",
+        errorMessage: safeToReplay
+          ? null
+          : `${PROVIDER_FAILURE_PREFIX} 提交确认丢失；为避免重复计费已停止自动重提`,
+        userSafeError: safeToReplay
+          ? null
+          : "生成服务可能已接收任务，系统已暂停重试以避免重复计费。请联系管理员核对。",
+        finishedAt: safeToReplay ? null : now,
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: null,
-        availableAt: now,
+        availableAt: safeToReplay ? now : null,
       },
     });
     if (result.count > 0) {
@@ -362,8 +524,10 @@ async function recoverExpiredLeases(batchId: string, now: Date): Promise<number>
       logStatusTransition({
         taskId: job.id,
         from: VideoJobStatus.RUNNING,
-        to: VideoJobStatus.QUEUED,
-        reason: "batch_lease_expired_requeue",
+        to: nextStatus,
+        reason: safeToReplay
+          ? "batch_lease_expired_before_submission_requeue"
+          : "batch_lease_expired_after_submission_ack_unknown",
       });
     }
   }
@@ -415,12 +579,14 @@ async function claimJobs(args: {
             where: {
               status: VideoJobStatus.RUNNING,
               provider: batchProvider.provider,
+              ...dispatchableRunningSlotFilter(realDispatch),
             },
           }),
           tx.videoJob.count({
             where: {
               status: VideoJobStatus.RUNNING,
               batchJob: { userId: batch.userId },
+              ...dispatchableRunningSlotFilter(realDispatch),
             },
           }),
         ]);
@@ -437,6 +603,7 @@ async function claimJobs(args: {
           where: {
             batchJobId: args.batchId,
             status: VideoJobStatus.QUEUED,
+            submissionState: ProviderSubmissionState.NOT_STARTED,
             AND: [
               { OR: [{ availableAt: null }, { availableAt: { lte: args.now } }] },
               {
@@ -455,23 +622,41 @@ async function claimJobs(args: {
           orderBy: { batchIndex: "asc" },
           take: slots,
         });
-        const claimed: Array<VideoJob & { claimOwner: string }> = [];
-        for (const job of candidates) {
-          const result = await tx.videoJob.updateMany({
-            where: { id: job.id, status: VideoJobStatus.QUEUED },
-            data: {
-              status: VideoJobStatus.RUNNING,
-              leaseOwner: owner,
-              leaseExpiresAt: new Date(args.now.getTime() + LEASE_MS),
-              heartbeatAt: args.now,
-              timeoutAt: new Date(
-                args.now.getTime() + videoJobDeadlineMin() * 60_000,
-              ),
-            },
-          });
-          if (result.count > 0) claimed.push({ ...job, claimOwner: owner });
-        }
-        return claimed;
+        const candidateIds = candidates.map((job) => job.id);
+        if (candidateIds.length === 0) return [];
+
+        // One set-based CAS keeps the serializable transaction bounded on a
+        // remote Neon branch. The old per-row loop performed up to N network
+        // round trips and could expire the 5s transaction after partially
+        // preparing a customer batch.
+        const claimed = await tx.videoJob.updateMany({
+          where: {
+            id: { in: candidateIds },
+            status: VideoJobStatus.QUEUED,
+            submissionState: ProviderSubmissionState.NOT_STARTED,
+          },
+          data: {
+            status: VideoJobStatus.RUNNING,
+            leaseOwner: owner,
+            leaseExpiresAt: new Date(args.now.getTime() + LEASE_MS),
+            heartbeatAt: args.now,
+            timeoutAt: new Date(
+              args.now.getTime() + videoJobDeadlineMin() * 60_000,
+            ),
+          },
+        });
+        if (claimed.count === 0) return [];
+
+        const claimedRows = await tx.videoJob.findMany({
+          where: {
+            id: { in: candidateIds },
+            status: VideoJobStatus.RUNNING,
+            submissionState: ProviderSubmissionState.NOT_STARTED,
+            leaseOwner: owner,
+          },
+          orderBy: { batchIndex: "asc" },
+        });
+        return claimedRows.map((job) => ({ ...job, claimOwner: owner }));
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     ),
@@ -489,15 +674,34 @@ async function submitClaimedJob(
   const snapshot = job.templateSnapshot as unknown as {
     lockedParams: BatchStyleLockedParams;
   };
-  const provider =
-    job.provider === VideoProvider.MOCK
-      ? createVideoProviderById("mock")
-      : getVideoProvider();
+  const provider = providerForJob(job);
   const now = new Date();
+  const attempts = job.submitAttempts + 1;
+  const providerRequestKey = `${job.id}:attempt:${attempts}`;
+  const intent = await db.videoJob.updateMany({
+    where: {
+      id: job.id,
+      status: VideoJobStatus.RUNNING,
+      leaseOwner: job.claimOwner,
+      submissionState: ProviderSubmissionState.NOT_STARTED,
+    },
+    data: {
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      submissionErrorClass: null,
+      providerRequestKey,
+      submittedAt: now,
+      submitAttempts: { increment: 1 },
+      heartbeatAt: now,
+    },
+  });
+  if (intent.count === 0) return;
+
+  let providerAcknowledged = false;
   try {
     const guarded = await callProviderWithHistoricalGuard({
       record: job,
       call: () => provider.createVideoJob({
+        providerRequestKey,
         prompt: job.promptText ?? "",
         negativePrompt: job.negativePrompt ?? undefined,
         referenceImages: assignment.assets.map((asset) => ({
@@ -525,9 +729,15 @@ async function submitClaimedJob(
           id: job.id,
           status: VideoJobStatus.RUNNING,
           leaseOwner: job.claimOwner,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          providerRequestKey,
         },
         data: {
           status: VideoJobStatus.QUEUED,
+          submissionState: ProviderSubmissionState.NOT_STARTED,
+          providerRequestKey: null,
+          submittedAt: null,
+          submitAttempts: { decrement: 1 },
           leaseOwner: null,
           leaseExpiresAt: null,
           heartbeatAt: null,
@@ -542,18 +752,21 @@ async function submitClaimedJob(
       return;
     }
     const created = guarded.value;
+    providerAcknowledged = true;
     const updated = await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: VideoJobStatus.RUNNING,
         leaseOwner: job.claimOwner,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        providerRequestKey,
       },
       data: {
         externalJobId: created.providerJobId,
-        submittedAt: now,
         startedAt: now,
         lastProviderStatus: "queued",
-        submitAttempts: { increment: 1 },
+        submissionState: ProviderSubmissionState.ACCEPTED,
+        submissionErrorClass: null,
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: now,
@@ -566,29 +779,58 @@ async function submitClaimedJob(
         to: VideoJobStatus.RUNNING,
         reason: `batch_provider_submitted (${created.providerId})`,
       });
+      return;
     }
+    throw new Error("provider acknowledgement could not be persisted");
   } catch (error) {
-    const attempts = job.submitAttempts + 1;
-    const terminal = attempts >= MAX_SUBMIT_ATTEMPTS;
-    const nextStatus = terminal
-      ? VideoJobStatus.FAILED
-      : VideoJobStatus.QUEUED;
+    const classified = asProviderSubmissionError({
+      error,
+      providerId: provider.id,
+      evidence: providerAcknowledged
+        ? { stage: "persistence" }
+        : provider.isMockMode()
+          ? { stage: "preflight", retryable: true }
+          : undefined,
+    });
+    const retryable =
+      attempts < MAX_SUBMIT_ATTEMPTS &&
+      shouldAutomaticallyRetrySubmission(classified);
+    const acknowledgementUnknown =
+      classified.disposition === "acknowledgement_unknown";
+    const nextStatus = retryable
+      ? VideoJobStatus.QUEUED
+      : VideoJobStatus.FAILED;
+    const nextSubmissionState = retryable
+      ? ProviderSubmissionState.NOT_STARTED
+      : acknowledgementUnknown
+        ? ProviderSubmissionState.ACK_UNKNOWN
+        : ProviderSubmissionState.REJECTED;
     const delayMs = Math.min(60_000, 1000 * 2 ** Math.max(0, attempts - 1));
     await db.videoJob.updateMany({
       where: {
         id: job.id,
         status: VideoJobStatus.RUNNING,
         leaseOwner: job.claimOwner,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        providerRequestKey,
       },
       data: {
         status: nextStatus,
-        submitAttempts: attempts,
-        availableAt: terminal ? null : new Date(Date.now() + delayMs),
-        errorMessage: terminal
-          ? `${PROVIDER_FAILURE_PREFIX} 提交失败: ${(error as Error).message}`
-          : `批量提交暂时失败，将退避重试: ${(error as Error).message}`,
-        userSafeError: terminal ? "视频提交失败，请点击重试。" : null,
-        finishedAt: terminal ? new Date() : null,
+        submissionState: nextSubmissionState,
+        submissionErrorClass: `${classified.disposition}:${classified.stage}`,
+        providerRequestKey: retryable ? null : providerRequestKey,
+        availableAt: retryable ? new Date(Date.now() + delayMs) : null,
+        errorMessage: acknowledgementUnknown
+          ? `${PROVIDER_FAILURE_PREFIX} 提交确认未知；禁止自动重提: ${classified.message}`
+          : retryable
+            ? `批量提交确认未创建任务，将退避重试: ${classified.message}`
+            : `${PROVIDER_FAILURE_PREFIX} 提交被拒绝: ${classified.message}`,
+        userSafeError: acknowledgementUnknown
+          ? "生成服务可能已接收任务，系统已暂停重试以避免重复计费。请联系管理员核对。"
+          : retryable
+            ? null
+            : "视频提交失败，请检查素材或稍后重试。",
+        finishedAt: retryable ? null : new Date(),
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: null,
@@ -598,11 +840,41 @@ async function submitClaimedJob(
       taskId: job.id,
       from: VideoJobStatus.RUNNING,
       to: nextStatus,
-      reason: terminal
-        ? "batch_submit_failed_exhausted"
-        : `batch_submit_backoff_attempt_${attempts}`,
+      reason: retryable
+        ? `batch_submit_confirmed_no_create_backoff_attempt_${attempts}`
+        : acknowledgementUnknown
+          ? "batch_submit_ack_unknown_no_retry"
+          : "batch_submit_rejected",
     });
   }
+}
+
+function isBillingSafeManualRetry(job: {
+  provider: VideoProvider;
+  submissionState: ProviderSubmissionState;
+  externalJobId: string | null;
+  lastProviderStatus: string | null;
+  errorMessage: string | null;
+}): boolean {
+  if (
+    job.submissionState === ProviderSubmissionState.ACK_UNKNOWN ||
+    job.submissionState === ProviderSubmissionState.SUBMITTING
+  ) {
+    return false;
+  }
+  // Provider capability is the only mock/real decision point. The explicit
+  // rehearsal adapter is zero-cost and deterministically succeeds on retry;
+  // real adapters continue through the conservative billing-evidence checks.
+  if (providerForJob(job).manualRetryBillingRisk === "none") return true;
+  // For a paid/ambiguous adapter, only positive evidence that no external job
+  // exists makes this zero-cost retry path safe. Provider-terminal states and
+  // post-generation QA failures may already be billable and require a new,
+  // explicitly metered regeneration workflow instead.
+  return (
+    job.externalJobId === null &&
+    (job.submissionState === ProviderSubmissionState.NOT_STARTED ||
+      job.submissionState === ProviderSubmissionState.REJECTED)
+  );
 }
 
 async function mapConcurrent<T>(
@@ -611,14 +883,25 @@ async function mapConcurrent<T>(
   fn: (item: T) => Promise<void>,
 ): Promise<void> {
   let cursor = 0;
+  const errors: unknown[] = [];
   await Promise.all(
     Array.from({ length: Math.min(concurrency, items.length) }, async () => {
       while (cursor < items.length) {
         const index = cursor++;
-        await fn(items[index]);
+        try {
+          await fn(items[index]);
+        } catch (error) {
+          // One malformed/provider-failed item must not strand its siblings.
+          // Preserve failure visibility, but only reject after every claimed item
+          // has settled so callers can safely reconcile/account for the batch.
+          errors.push(error);
+        }
       }
     }),
   );
+  if (errors.length > 0) {
+    throw new AggregateError(errors, `${errors.length} concurrent item(s) failed`);
+  }
 }
 
 async function reconcileRunningBatchJobs(batchId: string): Promise<void> {
@@ -729,9 +1012,12 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
       select: { provider: true },
     }),
   ]);
-  if (!batch) throw new Error("BatchJob 不存在");
+  if (!batch) throw new BatchNotFoundError();
   if (isTerminalBatchStatus(batch.status)) {
     return batch;
+  }
+  if (!batch.quotaConsumedAt) {
+    throw new BatchDispatchNotAuthorizedError();
   }
   if (isHistoricalDispatchQuarantined(batch)) {
     console.warn(JSON.stringify({
@@ -764,14 +1050,29 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
 export async function retryFailedBatchJobs(batchId: string): Promise<number> {
   const failed = await db.videoJob.findMany({
     where: { batchJobId: batchId, status: VideoJobStatus.FAILED },
-    select: { id: true },
+    select: {
+      id: true,
+      provider: true,
+      submissionState: true,
+      externalJobId: true,
+      lastProviderStatus: true,
+      errorMessage: true,
+    },
   });
   let reset = 0;
   for (const job of failed) {
+    if (!isBillingSafeManualRetry(job)) continue;
     const result = await db.videoJob.updateMany({
-      where: { id: job.id, status: VideoJobStatus.FAILED },
+      where: {
+        id: job.id,
+        status: VideoJobStatus.FAILED,
+        submissionState: job.submissionState,
+      },
       data: {
         status: VideoJobStatus.QUEUED,
+        submissionState: ProviderSubmissionState.NOT_STARTED,
+        submissionErrorClass: null,
+        providerRequestKey: null,
         externalJobId: null,
         errorMessage: null,
         userSafeError: null,
@@ -812,18 +1113,49 @@ export async function retryFailedBatchJobs(batchId: string): Promise<number> {
   return reset;
 }
 
+export type RetryFailedBatchJobResult =
+  | { outcome: "retried" }
+  | { outcome: "not_found" }
+  | { outcome: "invalid_state" }
+  | { outcome: "billing_unsafe" };
+
 export async function retryFailedBatchJob(
   batchId: string,
   jobId: string,
-): Promise<boolean> {
+): Promise<RetryFailedBatchJobResult> {
+  const job = await db.videoJob.findFirst({
+    where: {
+      id: jobId,
+      batchJobId: batchId,
+    },
+    select: {
+      status: true,
+      provider: true,
+      submissionState: true,
+      externalJobId: true,
+      lastProviderStatus: true,
+      errorMessage: true,
+    },
+  });
+  if (!job) return { outcome: "not_found" };
+  if (job.status !== VideoJobStatus.FAILED) {
+    return { outcome: "invalid_state" };
+  }
+  if (!isBillingSafeManualRetry(job)) {
+    return { outcome: "billing_unsafe" };
+  }
   const result = await db.videoJob.updateMany({
     where: {
       id: jobId,
       batchJobId: batchId,
       status: VideoJobStatus.FAILED,
+      submissionState: job.submissionState,
     },
     data: {
       status: VideoJobStatus.QUEUED,
+      submissionState: ProviderSubmissionState.NOT_STARTED,
+      submissionErrorClass: null,
+      providerRequestKey: null,
       externalJobId: null,
       errorMessage: null,
       userSafeError: null,
@@ -840,7 +1172,7 @@ export async function retryFailedBatchJob(
       availableAt: new Date(),
     },
   });
-  if (result.count === 0) return false;
+  if (result.count === 0) return { outcome: "invalid_state" };
   logStatusTransition({
     taskId: jobId,
     from: VideoJobStatus.FAILED,
@@ -856,7 +1188,7 @@ export async function retryFailedBatchJob(
     },
   });
   await syncBatchCounts(batchId);
-  return true;
+  return { outcome: "retried" };
 }
 
 export async function cancelPendingBatchJobs(batchId: string): Promise<number> {
@@ -902,6 +1234,11 @@ export async function getBatchStatus(batchId: string, userId?: string) {
           lastProgress: true,
           errorMessage: true,
           userSafeError: true,
+          provider: true,
+          externalJobId: true,
+          lastProviderStatus: true,
+          submissionState: true,
+          submissionErrorClass: true,
           retryCount: true,
           createdAt: true,
           submittedAt: true,
@@ -910,8 +1247,148 @@ export async function getBatchStatus(batchId: string, userId?: string) {
       },
     },
   });
-  if (!batch) throw new Error("BatchJob 不存在或无权访问");
+  if (!batch) throw new BatchNotFoundError();
   return batch;
+}
+
+export type CustomerBatchStatus = {
+  id: string;
+  templateId: string;
+  templateVersion: number;
+  productName: string | null;
+  requestedCount: number;
+  status: BatchJobStatus;
+  queuedCount: number;
+  pausedCount: number;
+  runningCount: number;
+  completedCount: number;
+  failedCount: number;
+  cancelledCount: number;
+  statusReason: string | null;
+  finishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  template: {
+    id: string;
+    version: number;
+    name: string;
+    nameZh: string;
+    category: string;
+    coverImage: string | null;
+  };
+  videoJobs: Array<{
+    id: string;
+    batchIndex: number | null;
+    status: VideoJobStatus;
+    assignedAssets: {
+      assets: Array<{ id: string; url: string }>;
+    } | null;
+    outputVideoUrl: string | null;
+    outputThumbUrl: string | null;
+    lastProgress: number | null;
+    userSafeError: string | null;
+    retryCount: number;
+    createdAt: Date;
+    submittedAt: Date | null;
+    finishedAt: Date | null;
+    error: ReturnType<typeof classifyCustomerGenerationError>;
+  }>;
+};
+
+function customerHttpUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+      ? parsed.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function customerAssetAssignment(value: Prisma.JsonValue | null): {
+  assets: Array<{ id: string; url: string }>;
+} | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const assets = (value as { assets?: unknown }).assets;
+  if (!Array.isArray(assets)) return null;
+  const safeAssets = assets.flatMap((asset) => {
+    if (!asset || typeof asset !== "object" || Array.isArray(asset)) return [];
+    const id = (asset as { id?: unknown }).id;
+    const url = customerHttpUrl((asset as { url?: unknown }).url);
+    return typeof id === "string" && id.length > 0 && url
+      ? [{ id, url }]
+      : [];
+  });
+  return { assets: safeAssets };
+}
+
+/**
+ * Customer APIs must never expose provider diagnostics or submission internals.
+ * Those values remain in the database/internal surfaces for incident response.
+ */
+export function toCustomerBatchStatus(
+  batch: Awaited<ReturnType<typeof getBatchStatus>>,
+): CustomerBatchStatus {
+  const statusReason =
+    batch.status === BatchJobStatus.PAUSED
+      ? "生成服务暂时拥堵，任务已安全排队。"
+      : batch.status === BatchJobStatus.PARTIAL_FAILED ||
+          batch.status === BatchJobStatus.FAILED
+        ? "部分视频生成失败，请查看任务详情。"
+        : null;
+  return {
+    id: batch.id,
+    templateId: batch.templateId,
+    templateVersion: batch.templateVersion,
+    productName: batch.productName,
+    requestedCount: batch.requestedCount,
+    status: batch.status,
+    queuedCount: batch.queuedCount,
+    pausedCount: batch.pausedCount,
+    runningCount: batch.runningCount,
+    completedCount: batch.completedCount,
+    failedCount: batch.failedCount,
+    cancelledCount: batch.cancelledCount,
+    statusReason,
+    finishedAt: batch.finishedAt,
+    createdAt: batch.createdAt,
+    updatedAt: batch.updatedAt,
+    template: {
+      id: batch.template.id,
+      version: batch.template.version,
+      name: batch.template.name,
+      nameZh: batch.template.nameZh,
+      category: batch.template.category,
+      coverImage: batch.template.coverImage,
+    },
+    videoJobs: batch.videoJobs.map((job) => ({
+      id: job.id,
+      batchIndex: job.batchIndex,
+      status: job.status,
+      assignedAssets: customerAssetAssignment(job.assignedAssets),
+      outputVideoUrl: customerHttpUrl(job.outputVideoUrl),
+      outputThumbUrl: customerHttpUrl(job.outputThumbUrl),
+      lastProgress: job.lastProgress,
+      userSafeError: job.userSafeError,
+      retryCount: job.retryCount,
+      createdAt: job.createdAt,
+      submittedAt: job.submittedAt,
+      finishedAt: job.finishedAt,
+      error: classifyCustomerGenerationError({
+        status: job.status,
+        submissionState: job.submissionState,
+        submissionErrorClass: job.submissionErrorClass,
+        errorMessage: job.errorMessage,
+        userSafeError: job.userSafeError,
+        billingSafeToRetry:
+          job.status === VideoJobStatus.FAILED
+            ? isBillingSafeManualRetry(job)
+            : false,
+      }),
+    })),
+  };
 }
 
 export async function runBatchUntilTerminal(args: {
@@ -935,6 +1412,7 @@ export const __test__ = {
   parseImagesPerVideo,
   providerConcurrency,
   remainingPlanConcurrency,
+  dispatchableRunningSlotFilter,
   mapConcurrent,
   recoverExpiredLeases,
   expireHardDeadlineProviderSlots,
@@ -942,4 +1420,11 @@ export const __test__ = {
   applyBreaker,
   isSerializableConflict,
   withSerializableRetry,
+  submitClaimedJob,
+  isBillingSafeManualRetry,
+  __setVideoProviderFactoryForTests(
+    factory: ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter) | null,
+  ): void {
+    videoProviderFactoryOverride = factory;
+  },
 };

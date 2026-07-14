@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "region": "na",
+  "deploymentTarget": "vercel",
+  "aiProvider": "openai",
+  "storageProvider": "vercel_blob",
+  "videoProvider": "byteplus",
+  "contentReviewProvider": "openai_moderation",
+  "contentReviewEnabled": true,
+  "paymentEnabled": true,
+  "smsLoginEnabled": false,
+  "database": "connected",
+  "aiProviderStatus": "configured",
+  "storageProviderStatus": "configured",
+  "videoProviderStatus": "mock",
+  "storage": "not_checked",
+  "envValidation": {
+    "ok": true,
+    "missing": [],
+    "warnings": []
+  },
+  "appVersion": null,
+  "timestamp": "2026-07-14T02:54:09.447Z",
+  "source": "https://reelforge-delta.vercel.app/api/health"
+}
+

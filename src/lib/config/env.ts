@@ -68,6 +68,47 @@ function parseBool(raw: string | undefined, fallback: boolean): boolean {
   return fallback;
 }
 
+function isExplicitRealVideoEngine(raw: string | undefined): boolean {
+  const value = raw?.trim().toLowerCase();
+  return value === "false" || value === "0" || value === "no";
+}
+
+/**
+ * Vercel production is always a customer runtime. A local optimized server can
+ * still be an explicit zero-cost rehearsal when AIVORA_DRY_RUN is enabled.
+ */
+export function isProductionRuntime(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  const vercelEnv = env.VERCEL_ENV?.trim().toLowerCase();
+  if (vercelEnv === "production") return true;
+  if (vercelEnv === "preview" || vercelEnv === "development") return false;
+  return env.NODE_ENV === "production" && !parseBool(env.AIVORA_DRY_RUN, false);
+}
+
+/** Mirrors the provider's safe default: anything except an explicit false/0/no is mock. */
+export function isMockVideoRuntime(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  const app = parseAppEnv(env);
+  return (
+    app.videoProvider === "mock" ||
+    parseBool(env.AIVORA_DRY_RUN, false) ||
+    !isExplicitRealVideoEngine(env.VIDEO_ENGINE_MOCK)
+  );
+}
+
+/** Runtime backstop for every mock submission/status path, not just /api/health. */
+export function assertMockVideoRuntimeAllowed(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): void {
+  if (isProductionRuntime(env)) {
+    throw new Error(
+      "production runtime 禁止 mock 视频 provider；请在 preview/rehearsal 使用 mock，或显式配置真实 provider",
+    );
+  }
+}
+
 let cached: AppEnv | null = null;
 
 /**
@@ -183,7 +224,7 @@ export function validateDeploymentEnv(
   }
 
   if (app.videoProvider === "byteplus") {
-    if (!env.BYTEPLUS_ARK_API_KEY && env.VIDEO_ENGINE_MOCK === "false") {
+    if (!env.BYTEPLUS_ARK_API_KEY && !isMockVideoRuntime(env)) {
       missing.push(
         "BYTEPLUS_ARK_API_KEY（VIDEO_ENGINE_MOCK=false 时必填；缺失会 fail closed）",
       );
@@ -195,6 +236,12 @@ export function validateDeploymentEnv(
     ) {
       missing.push("ARK_BASE_URL 必须为 BytePlus 国际 ModelArk 端点");
     }
+  }
+
+  if (isProductionRuntime(env) && isMockVideoRuntime(env)) {
+    missing.push(
+      "production runtime 禁止 mock 视频 provider（VIDEO_PROVIDER=mock、VIDEO_ENGINE_MOCK 非 false 或 AIVORA_DRY_RUN）",
+    );
   }
 
   if (app.contentReviewEnabled && app.contentReviewProvider === "noop") {

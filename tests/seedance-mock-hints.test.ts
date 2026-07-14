@@ -16,6 +16,36 @@ async function ffmpegPresent(): Promise<boolean> {
   });
 }
 
+test("seedance mock: configured output URL avoids storage writes and returns the exact fixture", async () => {
+  const fixtureUrl = "http://localhost:3120/mock-clips/9x16.mp4";
+  const previous = process.env.MOCK_OUTPUT_VIDEO_URL;
+  process.env.MOCK_OUTPUT_VIDEO_URL = fixtureUrl;
+  try {
+    const { submitSeedanceJob, getSeedanceStatus } = await import(
+      "../src/lib/providers/seedance"
+    );
+    const submission = await submitSeedanceJob({
+      prompt: "deterministic golden-path fixture",
+      duration: 15,
+      ratio: "9:16",
+      mockHints: {
+        briefId: "golden-path",
+        segmentIndex: 0,
+        segmentCount: 1,
+        durationSec: 15,
+        aspectRatio: "9:16",
+      },
+    });
+
+    const result = await getSeedanceStatus(submission.jobId);
+    assert.equal(result.status, "completed");
+    assert.equal(result.videoUrl, fixtureUrl);
+  } finally {
+    if (previous == null) delete process.env.MOCK_OUTPUT_VIDEO_URL;
+    else process.env.MOCK_OUTPUT_VIDEO_URL = previous;
+  }
+});
+
 test("seedance mock: submitSeedanceJob 透传 mockHints + getSeedanceStatus 完成时返回真 MP4 URL（非 Big Buck Bunny）", async (t) => {
   const hasFfmpeg = await ffmpegPresent();
   if (!hasFfmpeg) {

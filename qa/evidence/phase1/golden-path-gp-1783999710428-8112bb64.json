@@ -1,0 +1,195 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/23.11.0/bin/node",
+      "/Users/evan/Documents/ReelForge/node_modules/.bin/playwright",
+      "test",
+      "--config=playwright.golden-path.config.ts"
+    ],
+    "configFile": "/Users/evan/Documents/ReelForge/playwright.golden-path.config.ts",
+    "rootDir": "/Users/evan/Documents/ReelForge/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-setup.ts",
+    "globalTeardown": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1783999710428-8112bb64",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/evan/Documents/ReelForge/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/golden-path\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "qa/evidence/phase1/golden-path-gp-1783999710428-8112bb64.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run start -- -p 3120",
+      "url": "http://localhost:3120",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "golden-path.spec.ts",
+      "file": "golden-path.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "golden path: register, login, create, mock complete, preview, and download",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 9977,
+                  "error": {
+                    "message": "Error: failed browser network requests\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 73\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/login?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/login?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=HMnfDFMmR03gURpX net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=i4xrvWWw7k094TN1 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=JFAgQp50tmx4SnGR net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=2Md0sTUZcnjCijMr net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?highlight=cmrk3dat9000ili6lgv09j7gs&_rsc=v5LQFA-8QdouvjHo net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library/cmrk3dat9000ili6lgv09j7gs?_rsc=NrbufaO5Yg2lfCXZ net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library/cmrk3dat9000ili6lgv09j7gs?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m",
+                    "stack": "Error: failed browser network requests\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 73\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/login?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/login?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=HMnfDFMmR03gURpX net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=i4xrvWWw7k094TN1 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=JFAgQp50tmx4SnGR net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=2Md0sTUZcnjCijMr net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?highlight=cmrk3dat9000ili6lgv09j7gs&_rsc=v5LQFA-8QdouvjHo net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library/cmrk3dat9000ili6lgv09j7gs?_rsc=NrbufaO5Yg2lfCXZ net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library/cmrk3dat9000ili6lgv09j7gs?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:227:61",
+                    "location": {
+                      "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                      "column": 61,
+                      "line": 227
+                    },
+                    "snippet": "  225 |   expect(clientErrors, \"browser console/page errors\").toEqual([]);\n  226 |   expect(serverFailures, \"HTTP 5xx responses observed by the page\").toEqual([]);\n> 227 |   expect(failedRequests, \"failed browser network requests\").toEqual([]);\n      |                                                             ^\n  228 |\n  229 |   const finalSummary = renderSummary as RenderSummary | null;\n  230 |   await testInfo.attach(\"golden-path-summary\", {"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                        "column": 61,
+                        "line": 227
+                      },
+                      "message": "Error: failed browser network requests\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // deep equality\u001b[22m\n\n\u001b[32m- Expected  -  1\u001b[39m\n\u001b[31m+ Received  + 73\u001b[39m\n\n\u001b[32m- Array []\u001b[39m\n\u001b[31m+ Array [\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/login?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=YHJgCYC7z7ItAmEk net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/login?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=HMnfDFMmR03gURpX net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=i4xrvWWw7k094TN1 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=_H_fFy2_Q06N8BA7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=sW2A7HEmFQnSVIMx net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/register?_rsc=tXyZJ52UQVBCVsD3 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/?_rsc=JFAgQp50tmx4SnGR net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=2Md0sTUZcnjCijMr net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create/images?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?_rsc=FSRQay6OGzaSHw_c net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=AOZWal27MX0mqVLK net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?template=cmrjjlfjb0008lia4aub3nvvg&_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?highlight=cmrk3dat9000ili6lgv09j7gs&_rsc=v5LQFA-8QdouvjHo net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library/cmrk3dat9000ili6lgv09j7gs?_rsc=NrbufaO5Yg2lfCXZ net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches/new?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library/cmrk3dat9000ili6lgv09j7gs?_rsc=1o2LLqwMyEenqZ_7 net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=lwcYIjbm3mKeZmav net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/library?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/terms?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/privacy?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/templates?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/racing?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/batches?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+   \"GET http://localhost:3120/app/create?_rsc=BH9s6fMKiUjlmSHW net::ERR_ABORTED\",\u001b[39m\n\u001b[31m+ ]\u001b[39m\n\n  225 |   expect(clientErrors, \"browser console/page errors\").toEqual([]);\n  226 |   expect(serverFailures, \"HTTP 5xx responses observed by the page\").toEqual([]);\n> 227 |   expect(failedRequests, \"failed browser network requests\").toEqual([]);\n      |                                                             ^\n  228 |\n  229 |   const finalSummary = renderSummary as RenderSummary | null;\n  230 |   await testInfo.attach(\"golden-path-summary\", {\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:227:61"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "steps": [
+                    {
+                      "title": "register and arrive naturally in the workspace",
+                      "duration": 2162
+                    },
+                    {
+                      "title": "sign out and sign back in without a cookie bridge",
+                      "duration": 629
+                    },
+                    {
+                      "title": "preview and dispatch one deterministic mock video",
+                      "duration": 2459
+                    },
+                    {
+                      "title": "reconcile every provider job to a terminal success",
+                      "duration": 2469
+                    },
+                    {
+                      "title": "simulate the external stitch runner claim and authenticated completion",
+                      "duration": 873
+                    },
+                    {
+                      "title": "open, play, and download the completed customer asset",
+                      "duration": 785
+                    },
+                    {
+                      "title": "verify account and workspace ownership",
+                      "duration": 202
+                    }
+                  ],
+                  "startTime": "2026-07-14T03:28:32.010Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1783999710428-8112bb64/golden-path-golden-path-re-0269f-mplete-preview-and-download/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1783999710428-8112bb64/golden-path-golden-path-re-0269f-mplete-preview-and-download/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1783999710428-8112bb64/golden-path-golden-path-re-0269f-mplete-preview-and-download/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                    "column": 61,
+                    "line": 227
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d6dd496e245cb9874cb8-197153a49bc4ff37fc0f",
+          "file": "golden-path.spec.ts",
+          "line": 25,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-07-14T03:28:30.430Z",
+    "duration": 12554.488,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

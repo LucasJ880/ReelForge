@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { AngleType, DeliveryOrderStatus, RoundStatus, VideoBriefStatus } from "@prisma/client";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
+import {
+  toCustomerVideoDispatchError,
+  toCustomerVideoDispatchResponse,
+  type CustomerVideoDispatchErrorInput,
+} from "@/lib/api/customer-video-dispatch";
 import { assertQuotaBatchForSession } from "@/lib/services/quota-service";
 import {
   BREAKER_USER_MESSAGE,
@@ -11,6 +16,13 @@ import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
+import {
+  claimVideoDispatchRequest,
+  completeVideoDispatchRequest,
+  hashVideoDispatchRequest,
+  markVideoDispatchQuotaConsumed,
+  validateIdempotencyKey,
+} from "@/lib/services/video-dispatch-idempotency";
 import { deriveBusinessStatus } from "@/lib/video-generation/business-status";
 import { deriveBusinessOrderTitle } from "@/lib/video-generation/business-display-title";
 import {
@@ -36,6 +48,13 @@ const confirmedPromptsSchema = z
 
 const batchCountSchema = z.number().int().min(1).max(3);
 
+function dispatchErrorResponse(
+  status: number,
+  error: CustomerVideoDispatchErrorInput,
+) {
+  return NextResponse.json(toCustomerVideoDispatchError(error), { status });
+}
+
 /**
  * POST /api/video-generation/dispatch
  *
@@ -56,17 +75,45 @@ const batchCountSchema = z.number().int().min(1).max(3);
  */
 export async function POST(req: NextRequest) {
   const guard = await requireUserOfTypeForGeneration();
-  if (!guard.ok) return guard.response;
+  if (!guard.ok) {
+    return guard.response.status === 401
+      ? dispatchErrorResponse(401, {
+          code: "AUTH_REQUIRED",
+          message: "请先登录后再生成视频。",
+          retryable: false,
+          action: "sign_in",
+        })
+      : dispatchErrorResponse(403, {
+          code: "FORBIDDEN",
+          message: "当前账号暂时无法使用视频生成，请联系支持。",
+          retryable: false,
+          action: "contact_support",
+        });
+  }
   const session = guard.session;
 
   const body = await req.json().catch(() => null);
+  const idempotencyKey = validateIdempotencyKey(
+    req.headers.get("idempotency-key"),
+  );
+  if (!idempotencyKey) {
+    return dispatchErrorResponse(400, {
+      code: "IDEMPOTENCY_KEY_REQUIRED",
+      message: "提交标识缺失，请刷新页面后重新提交。",
+      retryable: false,
+      action: "fix_request",
+    });
+  }
+  const requestHash = hashVideoDispatchRequest(body);
 
   const reqParsed = unifiedVideoGenerationRequestSchema.safeParse(body?.request);
   if (!reqParsed.success) {
-    return NextResponse.json(
-      { ok: false, error: "request 参数不合法", issues: reqParsed.error.flatten() },
-      { status: 400 },
-    );
+    return dispatchErrorResponse(400, {
+      code: "VALIDATION_FAILED",
+      message: "视频描述或生成设置不合法，请检查后重试。",
+      retryable: false,
+      action: "fix_request",
+    });
   }
 
   /// Phase 5 — persona consistency 校验：
@@ -83,10 +130,12 @@ export async function POST(req: NextRequest) {
           ? "personal"
           : null;
     if (!expected || expected !== reqParsed.data.userType) {
-      return NextResponse.json(
-        { ok: false, error: "权限不足：persona 与 request.userType 不一致" },
-        { status: 403 },
-      );
+      return dispatchErrorResponse(403, {
+        code: "FORBIDDEN",
+        message: "当前账号无权以所选身份提交生成请求。",
+        retryable: false,
+        action: "contact_support",
+      });
     }
   }
 
@@ -97,34 +146,24 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     /// 客户可见 error 走友好文案；详细 message 仅写日志 / dev 调试
     console.error("[/api/video-generation/dispatch] buildPlan failed", err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "无法生成视频方案，请稍后重试",
-        debugMessage:
-          process.env.NODE_ENV !== "production"
-            ? (err as Error).message
-            : undefined,
-      },
-      { status: 500 },
-    );
+    return dispatchErrorResponse(500, {
+      code: "INTERNAL_ERROR",
+      message: "暂时无法准备视频方案，请稍后重试。",
+      retryable: true,
+      action: "retry",
+    });
   }
 
   /// 如果 body.plan 存在，校验它是个合法 plan（仅作 sanity check；最终用 server plan）
   if (body?.plan) {
     const optParse = videoGenerationPlanSchema.safeParse(body.plan);
     if (!optParse.success) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "提交内容有误，请刷新页面后重试",
-          debugIssues:
-            process.env.NODE_ENV !== "production"
-              ? optParse.error.flatten()
-              : undefined,
-        },
-        { status: 400 },
-      );
+      return dispatchErrorResponse(400, {
+        code: "VALIDATION_FAILED",
+        message: "提交的视频方案不合法，请刷新页面后重试。",
+        retryable: false,
+        action: "fix_request",
+      });
     }
   }
 
@@ -132,10 +171,12 @@ export async function POST(req: NextRequest) {
   if (body?.confirmedPrompts != null) {
     const cpParse = confirmedPromptsSchema.safeParse(body.confirmedPrompts);
     if (!cpParse.success) {
-      return NextResponse.json(
-        { ok: false, error: "确认的脚本内容不合法，请刷新后重试" },
-        { status: 400 },
-      );
+      return dispatchErrorResponse(400, {
+        code: "VALIDATION_FAILED",
+        message: "确认的脚本内容不合法，请修改后重试。",
+        retryable: false,
+        action: "fix_request",
+      });
     }
     const byOrder = new Map(
       cpParse.data.map((c) => [c.segmentOrder, c.prompt.trim()]),
@@ -159,24 +200,25 @@ export async function POST(req: NextRequest) {
   if (body?.batchCount != null) {
     const bcParse = batchCountSchema.safeParse(body.batchCount);
     if (!bcParse.success) {
-      return NextResponse.json(
-        { ok: false, error: "batchCount 参数不合法（1-3）" },
-        { status: 400 },
-      );
+      return dispatchErrorResponse(400, {
+        code: "VALIDATION_FAILED",
+        message: "一次可生成 1–3 支视频，请调整生成数量。",
+        retryable: false,
+        action: "fix_request",
+      });
     }
     batchCount = bcParse.data;
   }
 
   /// quality blocker 守门：blocker > 0 → 拒绝
   if (!plan.qualityReview.canDispatch) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "您的描述还需要更多细节才能生成视频，请补充后重试",
-        blockers: plan.qualityReview.blockers,
-      },
-      { status: 422 },
-    );
+    return dispatchErrorResponse(422, {
+      code: "QUALITY_BLOCKED",
+      message: "您的描述还需要更多细节才能生成视频，请补充后重试。",
+      retryable: false,
+      action: "fix_request",
+      blockers: plan.qualityReview.blockers.map((blocker) => blocker.message),
+    });
   }
 
   /// 入口熔断（2026-07 事故加固）：最近窗口内已提交任务僵死率超阈值时，
@@ -188,10 +230,77 @@ export async function POST(req: NextRequest) {
     return null;
   });
   if (breaker && !breaker.allowed) {
-    return NextResponse.json(
-      { ok: false, error: BREAKER_USER_MESSAGE, retryable: true },
-      { status: 503 },
-    );
+    return dispatchErrorResponse(503, {
+      code: "SERVICE_UNAVAILABLE",
+      message: BREAKER_USER_MESSAGE,
+      retryable: true,
+      action: "wait",
+    });
+  }
+
+  let dispatchClaim: Awaited<ReturnType<typeof claimVideoDispatchRequest>>;
+  try {
+    dispatchClaim = await claimVideoDispatchRequest({
+      userId: session.user.id,
+      idempotencyKey,
+      requestHash,
+    });
+  } catch (error) {
+    console.error("[dispatch] idempotency claim failed", {
+      userId: session.user.id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return dispatchErrorResponse(500, {
+      code: "INTERNAL_ERROR",
+      message: "暂时无法登记生成请求，请稍后重试。",
+      retryable: true,
+      action: "retry",
+    });
+  }
+  if (dispatchClaim.outcome === "replay") {
+    return NextResponse.json(toCustomerVideoDispatchResponse(dispatchClaim.body), {
+      status: dispatchClaim.status,
+    });
+  }
+  if (dispatchClaim.outcome === "conflict") {
+    return dispatchErrorResponse(409, {
+      code: "IDEMPOTENCY_CONFLICT",
+      message: "该提交标识已用于另一份内容，请刷新页面后重试。",
+      retryable: false,
+      action: "fix_request",
+    });
+  }
+  if (dispatchClaim.outcome === "in_progress") {
+    return dispatchErrorResponse(409, {
+      code: "REQUEST_IN_PROGRESS",
+      message: "该视频请求正在处理中，请勿重复提交。",
+      retryable: false,
+      action: "refresh_status",
+    });
+  }
+  const dispatchRequestId = dispatchClaim.request.id;
+  async function finalResponse(body: unknown, status: number) {
+    const safeBody = toCustomerVideoDispatchResponse(body);
+    try {
+      await completeVideoDispatchRequest({
+        requestId: dispatchRequestId,
+        status,
+        body: safeBody,
+      });
+    } catch (error) {
+      console.error("[dispatch] response persistence failed", {
+        requestId: dispatchRequestId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return dispatchErrorResponse(500, {
+        code: "SUBMISSION_ACK_UNKNOWN",
+        message:
+          "生成请求的处理状态尚未完成登记。为避免重复计费，请联系支持核对。",
+        retryable: false,
+        action: "contact_support",
+      });
+    }
+    return NextResponse.json(safeBody, { status });
   }
 
   const seedanceSegmentCount = plan.segments.filter(
@@ -207,8 +316,84 @@ export async function POST(req: NextRequest) {
     ]);
   } catch (err) {
     const quotaRes = quotaErrorResponse(err);
-    if (quotaRes) return quotaRes;
-    throw err;
+    if (quotaRes) {
+      const quotaBody = (await quotaRes.clone().json()) as {
+        code?: unknown;
+        error?: unknown;
+        resource?: unknown;
+        used?: unknown;
+        limit?: unknown;
+        periodKey?: unknown;
+      };
+      const metadata = {
+        ...(typeof quotaBody.resource === "string"
+          ? { resource: quotaBody.resource }
+          : {}),
+        ...(typeof quotaBody.used === "number" ? { used: quotaBody.used } : {}),
+        ...(typeof quotaBody.limit === "number"
+          ? { limit: quotaBody.limit }
+          : {}),
+        ...(typeof quotaBody.periodKey === "string"
+          ? { periodKey: quotaBody.periodKey }
+          : {}),
+      };
+      if (quotaBody.code === "QUOTA_EXCEEDED") {
+        return finalResponse(
+          toCustomerVideoDispatchError({
+            code: "QUOTA_EXCEEDED",
+            message:
+              typeof quotaBody.error === "string"
+                ? quotaBody.error
+                : "当前视频生成额度已用尽。",
+            retryable: false,
+            action: "view_usage",
+            ...metadata,
+          }),
+          quotaRes.status,
+        );
+      }
+      return finalResponse(
+        toCustomerVideoDispatchError({
+          code: "RATE_LIMITED",
+          message:
+            typeof quotaBody.error === "string"
+              ? quotaBody.error
+              : "操作过于频繁，请稍后重试。",
+          retryable: true,
+          action: "retry",
+          ...metadata,
+        }),
+        quotaRes.status,
+      );
+    }
+    console.error("[/api/video-generation/dispatch] quota check failed", err);
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "QUOTA_CHECK_UNAVAILABLE",
+        message: "暂时无法确认剩余额度，请稍后重试。",
+        retryable: true,
+        action: "retry",
+      }),
+      503,
+    );
+  }
+  try {
+    await markVideoDispatchQuotaConsumed(dispatchRequestId);
+  } catch (error) {
+    console.error("[dispatch] quota ownership marker failed", {
+      requestId: dispatchRequestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "INTERNAL_ERROR",
+        message:
+          "额度记录状态尚未确认。为避免重复计费，请联系支持核对。",
+        retryable: false,
+        action: "contact_support",
+      }),
+      500,
+    );
   }
 
   const request = reqParsed.data;
@@ -218,7 +403,28 @@ export async function POST(req: NextRequest) {
       : request.userType === "personal"
         ? "PERSONAL"
         : "PLATFORM";
-  const directorPlanJson = mapPlanToDirectorPlan({ plan, language: request.language ?? "en" });
+  let directorPlanJson: ReturnType<typeof mapPlanToDirectorPlan>;
+  try {
+    directorPlanJson = mapPlanToDirectorPlan({
+      plan,
+      language: request.language ?? "en",
+    });
+  } catch (error) {
+    console.error("[dispatch] director plan mapping failed", {
+      requestId: dispatchRequestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "INTERNAL_ERROR",
+        message:
+          "生成方案未能完成登记。为避免重复扣减额度，请联系支持核对。",
+        retryable: false,
+        action: "contact_support",
+      }),
+      500,
+    );
+  }
 
   /// 单次「事务：创建 DeliveryOrder + Round + ContentAngle + VideoBrief」，
   /// 供 batch 循环复用。batchIndex > 0 时永远新建 order（多支成片各自独立）。
@@ -318,6 +524,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  let providerSubmissionStarted = false;
   try {
     /// batch 循环：逐支创建 + 调度（Seedance 侧仍是每段一个 job）。
     /// 单支失败即中断并向用户报错 —— 已成功的支保留（用户可在成片库看到）。
@@ -329,12 +536,48 @@ export async function POST(req: NextRequest) {
     for (let i = 0; i < batchCount; i++) {
       const { briefId, deliveryOrderId } = await createBriefTransaction(i);
       /// 调 Seedance（multi-segment 或 single-segment 自动选）
+      providerSubmissionStarted = true;
       const dispatched = await dispatchVideoForBrief(briefId);
       batchResults.push({
         briefId,
         deliveryOrderId,
         videoJobs: Array.isArray(dispatched) ? dispatched : [dispatched],
       });
+    }
+
+    const submittedJobs = batchResults.flatMap((result) => result.videoJobs) as Array<{
+      status?: string;
+      submissionState?: string;
+    }>;
+    if (
+      submittedJobs.length > 0 &&
+      submittedJobs.every((job) => job?.status === "FAILED")
+    ) {
+      const acknowledgementUnknown = submittedJobs.some(
+        (job) => job?.submissionState === "ACK_UNKNOWN",
+      );
+      if (acknowledgementUnknown) {
+        return finalResponse(
+          toCustomerVideoDispatchError({
+            code: "SUBMISSION_ACK_UNKNOWN",
+            message:
+              "生成服务可能已接收任务。系统已停止重复提交以避免重复计费，请联系支持核对。",
+            retryable: false,
+            action: "contact_support",
+          }),
+          409,
+        );
+      }
+      return finalResponse(
+        toCustomerVideoDispatchError({
+          code: "PROVIDER_ERROR",
+          message:
+            "生成任务未能完成。为核对 provider 接收状态与已扣额度，请联系支持后再重试。",
+          retryable: false,
+          action: "contact_support",
+        }),
+        503,
+      );
     }
 
     const first = batchResults[0];
@@ -351,7 +594,7 @@ export async function POST(req: NextRequest) {
       segmentsSucceeded: 0,
     });
 
-    return NextResponse.json({
+    const responseBody = {
       ok: true,
       deliveryOrderId: first.deliveryOrderId,
       briefId: first.briefId,
@@ -363,19 +606,22 @@ export async function POST(req: NextRequest) {
       planPreview: plan.planPreview,
       nextUrl,
       userStatus,
-    });
+    };
+    return finalResponse(responseBody, 200);
   } catch (err) {
     console.error("[/api/video-generation/dispatch]", err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "无法开始生成视频，请稍后重试",
-        debugMessage:
-          process.env.NODE_ENV !== "production"
-            ? (err as Error).message
-            : undefined,
-      },
-      { status: 500 },
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: providerSubmissionStarted
+          ? "SUBMISSION_ACK_UNKNOWN"
+          : "INTERNAL_ERROR",
+        message: providerSubmissionStarted
+          ? "生成服务的接收状态尚未确认。为避免重复计费，请联系支持核对。"
+          : "任务未能完成登记。为避免重复扣减额度，请联系支持核对。",
+        retryable: false,
+        action: "contact_support",
+      }),
+      500,
     );
   }
 }

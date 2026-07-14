@@ -1,5 +1,6 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
+import { customerApiError } from "@/lib/contracts/customer-api";
 
 /**
  * Phase 5 — middleware whitelist:
@@ -35,6 +36,11 @@ const publicPaths = [
   "/api/health",
 ];
 
+// Stripe cannot present a NextAuth session. Only the exact webhook endpoint is
+// allowed through middleware; the handler still rejects missing/invalid Stripe
+// signatures before applying any billing state.
+const exactPublicPaths = ["/api/webhooks/stripe"];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -50,6 +56,7 @@ export async function middleware(req: NextRequest) {
 
   const isPublic =
     pathname === "/" ||
+    exactPublicPaths.includes(pathname) ||
     publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/internal/");
@@ -59,12 +66,19 @@ export async function middleware(req: NextRequest) {
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
-    secureCookie: process.env.NODE_ENV === "production",
   });
 
   if (!token) {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json({ error: "未登录" }, { status: 401 });
+      return NextResponse.json(
+        customerApiError({
+          code: "AUTH_REQUIRED",
+          message: "未登录",
+          retryable: false,
+          action: "sign_in",
+        }),
+        { status: 401 },
+      );
     }
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("from", pathname);

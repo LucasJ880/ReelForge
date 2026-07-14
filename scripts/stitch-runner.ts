@@ -5,11 +5,11 @@
  * 通过 Aivora 后端的 internal API 拉任务、做拼接、写回结果。
  *
  * 流程（最多循环 LOOP_LIMIT 次，每次处理一条 FinalVideo）：
- *   1. GET  $APP_URL/api/internal/stitch/claim   → { task: {finalVideoId, segmentUrls[], aspectRatio, ...} | null }
+ *   1. GET  $APP_URL/api/internal/stitch/claim   → { task: {finalVideoId, attemptToken, segmentUrls[], aspectRatio, ...} | null }
  *   2. 下载所有段 mp4 到 tmp 目录
  *   3. 用本地 ffmpeg（GH Action runner 自带）转码 + concat 成最终 mp4
  *   4. 用 BLOB_READ_WRITE_TOKEN 调 @vercel/blob put 上传到 final-videos/{id}/{ts}.mp4
- *   5. POST $APP_URL/api/internal/stitch/complete  { finalVideoId, stitchedVideoUrl }
+ *   5. POST $APP_URL/api/internal/stitch/complete  { finalVideoId, attemptToken, stitchedVideoUrl }
  *   6. 任何步骤失败 → POST complete 写 error，不抛错（让循环继续处理下一个）
  *
  * Env 要求：
@@ -34,8 +34,16 @@ const APP_URL = (process.env.APP_URL ?? "").replace(/\/+$/, "");
 const CRON_SECRET = process.env.CRON_SECRET ?? "";
 const BLOB_READ_WRITE_TOKEN = process.env.BLOB_READ_WRITE_TOKEN ?? "";
 
+class StaleStitchAttemptError extends Error {
+  constructor() {
+    super("stitch attempt is no longer active");
+    this.name = "StaleStitchAttemptError";
+  }
+}
+
 interface StitchTask {
   finalVideoId: string;
+  attemptToken: string;
   segmentUrls: string[];
   aspectRatio: string;
   targetDurationSec: number;
@@ -62,16 +70,9 @@ async function main() {
       `[stitch-runner] claimed task finalVideoId=${task.finalVideoId} segments=${task.segmentUrls.length}`,
     );
 
+    let stitchedUrl: string;
     try {
-      const stitchedUrl = await stitchOne(task);
-      await complete({
-        finalVideoId: task.finalVideoId,
-        stitchedVideoUrl: stitchedUrl,
-      });
-      console.log(
-        `[stitch-runner] ✓ finalVideoId=${task.finalVideoId} url=${stitchedUrl}`,
-      );
-      processed++;
+      stitchedUrl = await stitchOne(task);
     } catch (err) {
       const message = (err as Error).message ?? String(err);
       console.error(
@@ -80,14 +81,49 @@ async function main() {
       try {
         await complete({
           finalVideoId: task.finalVideoId,
+          attemptToken: task.attemptToken,
           error: message.slice(0, 500),
         });
       } catch (postErr) {
-        console.error(
-          "[stitch-runner] failed to POST /complete (giving up):",
-          (postErr as Error).message,
-        );
+        if (postErr instanceof StaleStitchAttemptError) {
+          console.warn(
+            `[stitch-runner] stale failure ignored finalVideoId=${task.finalVideoId}`,
+          );
+        } else {
+          console.error(
+            "[stitch-runner] failed to POST /complete (giving up):",
+            (postErr as Error).message,
+          );
+        }
       }
+      failed++;
+      continue;
+    }
+
+    try {
+      await complete({
+        finalVideoId: task.finalVideoId,
+        attemptToken: task.attemptToken,
+        stitchedVideoUrl: stitchedUrl,
+      });
+      console.log(
+        `[stitch-runner] ✓ finalVideoId=${task.finalVideoId} url=${stitchedUrl}`,
+      );
+      processed++;
+    } catch (err) {
+      if (err instanceof StaleStitchAttemptError) {
+        console.warn(
+          `[stitch-runner] stale completion ignored finalVideoId=${task.finalVideoId}`,
+        );
+        continue;
+      }
+      console.error(
+        `[stitch-runner] completion callback failed finalVideoId=${task.finalVideoId}:`,
+        (err as Error).message,
+      );
+      // The media has already been stitched and uploaded. A callback transport
+      // failure is not a rendering failure: leave this attempt STITCHING so a
+      // retry/sweeper can reconcile it without overwriting a newer claim.
       failed++;
     }
   }
@@ -95,6 +131,7 @@ async function main() {
   console.log(
     `[stitch-runner] done: processed=${processed} failed=${failed}`,
   );
+  if (failed > 0) process.exitCode = 1;
 }
 
 async function claim(): Promise<StitchTask | null> {
@@ -113,6 +150,7 @@ async function claim(): Promise<StitchTask | null> {
 
 async function complete(args: {
   finalVideoId: string;
+  attemptToken: string;
   stitchedVideoUrl?: string;
   thumbnailUrl?: string;
   error?: string;
@@ -125,10 +163,19 @@ async function complete(args: {
     },
     body: JSON.stringify(args),
   });
+  if (res.status === 409) {
+    throw new StaleStitchAttemptError();
+  }
   if (!res.ok) {
     throw new Error(
       `complete failed: HTTP ${res.status} ${await safeText(res)}`,
     );
+  }
+  if (!args.error) {
+    const payload = (await res.json()) as { ok?: boolean };
+    if (payload.ok !== true) {
+      throw new Error("complete endpoint did not accept successful output");
+    }
   }
 }
 

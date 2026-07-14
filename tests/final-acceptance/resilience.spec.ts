@@ -1,4 +1,8 @@
-import { BatchJobStatus, VideoJobStatus } from "@prisma/client";
+import {
+  BatchJobStatus,
+  ProviderSubmissionState,
+  VideoJobStatus,
+} from "@prisma/client";
 import { db } from "../../src/lib/db";
 import {
   __test__ as batchServiceTest,
@@ -51,7 +55,7 @@ test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
   expect(batch.videoJobs).toHaveLength(4);
   await page.waitForTimeout(20);
 
-  const [stallJob, timeoutJob] = batch.videoJobs;
+  const [stallJob, timeoutJob, providerJob, assetJob] = batch.videoJobs;
   await db.videoJob.update({
     where: { id: timeoutJob.id },
     data: {
@@ -59,6 +63,26 @@ test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
       timeoutAt: new Date(Date.now() - 60_000),
       finishedAt: null,
       errorMessage: null,
+      userSafeError: null,
+    },
+  });
+  await db.videoJob.update({
+    where: { id: providerJob.id },
+    data: {
+      status: VideoJobStatus.FAILED,
+      submissionState: ProviderSubmissionState.REJECTED,
+      finishedAt: new Date(),
+      errorMessage: "[provider:rejected] injected upstream failure",
+      userSafeError: null,
+    },
+  });
+  await db.videoJob.update({
+    where: { id: assetJob.id },
+    data: {
+      status: VideoJobStatus.FAILED,
+      submissionState: ProviderSubmissionState.REJECTED,
+      finishedAt: new Date(),
+      errorMessage: "reference image asset missing at private origin",
       userSafeError: null,
     },
   });
@@ -81,12 +105,50 @@ test("J7：无需 cron，UI 可见 watchdog timeout 与 provider stall", async (
   const current = await getBatch(page, batch.id);
   const timeout = current.videoJobs.find((job) => job.id === timeoutJob.id);
   const stalled = current.videoJobs.find((job) => job.id === stallJob.id);
-  expect(timeout?.errorMessage).toMatch(/^\[watchdog:timeout]/);
-  expect(stalled?.errorMessage).toMatch(/^\[watchdog:provider_stalled]/);
+  const provider = current.videoJobs.find((job) => job.id === providerJob.id);
+  const asset = current.videoJobs.find((job) => job.id === assetJob.id);
+  expect(timeout).not.toHaveProperty("errorMessage");
+  expect(stalled).not.toHaveProperty("errorMessage");
+  expect(timeout?.error?.code).toBe("PROVIDER_TIMEOUT");
+  expect(stalled?.error?.code).toBe("PROVIDER_TIMEOUT");
+  expect(provider?.error).toMatchObject({
+    code: "PROVIDER_ERROR",
+    retryable: true,
+    action: "retry",
+  });
+  expect(asset?.error).toMatchObject({
+    code: "ASSET_MISSING",
+    retryable: false,
+    action: "replace_asset",
+  });
+  const internalReasons = await db.videoJob.findMany({
+    where: { id: { in: [timeoutJob.id, stallJob.id] } },
+    select: { id: true, errorMessage: true },
+  });
+  expect(
+    internalReasons.find((job) => job.id === timeoutJob.id)?.errorMessage,
+  ).toMatch(/^\[watchdog:timeout]/);
+  expect(
+    internalReasons.find((job) => job.id === stallJob.id)?.errorMessage,
+  ).toMatch(/^\[watchdog:provider_stalled]/);
 
   await page.goto(`/app/batches/${batch.id}`);
   await expect(page.getByText(/视频生成超时，已自动停止/)).toBeVisible();
   await expect(page.getByText(/视频生成服务长时间无响应/)).toBeVisible();
+  await expect(page.getByText("视频生成失败，请稍后重试。")).toBeVisible();
+  await expect(
+    page.getByText("原始素材已失效或无法读取，请替换素材后重新提交。"),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "重试", exact: true }).first(),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "处置说明", exact: true })
+    .first()
+    .click();
+  await expect(
+    page.getByText(/请移除失效素材，重新上传有效文件后再提交/),
+  ).toBeVisible();
   expect(
     evidence.network.filter((entry) => String(entry.url).includes("/api/cron/")),
     "J6 不得调用 cron",
@@ -141,7 +203,10 @@ test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async 
   await page.reload();
   await expect(page.getByText("生成中", { exact: true }).first()).toBeVisible();
   const halfState = await getBatch(page, batch.id);
-  expect(halfState.statusReason).toContain("半开");
+  expect(halfState.statusReason).toBeNull();
+  expect(
+    (await db.batchJob.findUnique({ where: { id: batch.id } }))?.statusReason,
+  ).toContain("半开");
 
   await batchServiceTest.applyBreaker(batch.id, open);
   await syncBatchCounts(batch.id);
@@ -158,5 +223,8 @@ test("J6：高失败夹具触发 open/paused/half-open/resume 并清理", async 
   await expect(page.getByText("生成中", { exact: true }).first()).toBeVisible();
   const resumed = await getBatch(page, batch.id);
   expect(resumed.status).toBe("RUNNING");
-  expect(resumed.statusReason).toContain("恢复");
+  expect(resumed.statusReason).toBeNull();
+  expect(
+    (await db.batchJob.findUnique({ where: { id: batch.id } }))?.statusReason,
+  ).toContain("恢复");
 });

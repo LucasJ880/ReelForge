@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
+import { AuthTransitionScreen } from "@/components/auth/auth-transition-screen";
 
 const DEMO_EMAIL = "demo@aivora.app";
 const DEMO_PASSWORD = "aivora2026";
@@ -24,7 +25,10 @@ export default function LoginPage() {
   const { locale } = useTranslation();
   const copy = getPlatformCopy(locale).auth;
   const searchParams = useSearchParams();
-  const from = searchParams.get("from") || "/";
+  const requestedFrom = searchParams.get("from");
+  const from = requestedFrom?.startsWith("/") && !requestedFrom.startsWith("//")
+    ? requestedFrom
+    : "/app/create";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -33,18 +37,22 @@ export default function LoginPage() {
   async function doLogin(loginEmail: string, loginPassword: string) {
     setError("");
     setLoading(true);
-    const result = await signIn("credentials", {
-      email: loginEmail,
-      password: loginPassword,
-      redirect: false,
-    });
-    setLoading(false);
-    if (result?.error) {
-      setError(copy.invalidCredentials);
-      return;
+    try {
+      const result = await signIn("credentials", {
+        email: loginEmail,
+        password: loginPassword,
+        redirect: false,
+      });
+      if (!result || result.error) {
+        setError(copy.invalidCredentials);
+        setLoading(false);
+        return;
+      }
+      router.replace(from);
+    } catch {
+      setError(copy.networkError);
+      setLoading(false);
     }
-    router.push(from);
-    router.refresh();
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -54,6 +62,12 @@ export default function LoginPage() {
 
   return (
     <>
+      {loading ? (
+        <AuthTransitionScreen
+          label={copy.preparingStudio}
+          studio={copy.studio}
+        />
+      ) : null}
       <CardHeader className="border-b border-border pb-5">
         <CardTitle className="font-semibold">{copy.loginTitle}</CardTitle>
         <CardDescription>{copy.loginDescription}</CardDescription>

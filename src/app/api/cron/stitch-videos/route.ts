@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { processPendingFinalVideos } from "@/lib/services/stitch-service";
 
 /**
@@ -17,12 +18,8 @@ import { processPendingFinalVideos } from "@/lib/services/stitch-service";
  * 不要删除路由本身：避免 GH Secrets / Vercel Cron 配置还指着它的版本失败。
  */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? "";
-  if (process.env.CRON_SECRET) {
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
 
   const runtime = (process.env.STITCH_RUNTIME ?? "").trim().toLowerCase();
   if (runtime !== "local") {

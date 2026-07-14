@@ -4,7 +4,7 @@
 @import "../styles/tokens.css";
 
 @utility studio-select {
-  height: 2.5rem;
+  height: var(--control-height);
   width: 100%;
   border-radius: var(--radius-md);
   border: 1px solid var(--input);
@@ -283,6 +283,10 @@
 
   .studio-page {
     padding: var(--space-6) var(--space-4) var(--space-12);
+  }
+
+  .studio-theme {
+    --control-height: 40px;
   }
 }
 

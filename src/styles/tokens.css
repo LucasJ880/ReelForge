@@ -53,9 +53,14 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --control-height: 40px;
+  --control-padding-inline: 16px;
+  --card-padding-x: 24px;
+  --card-padding-y: 24px;
+  --card-gap: 16px;
 
-  --font-body-family: var(--font-inter), var(--font-noto-sans-sc), system-ui, sans-serif;
-  --font-display-family: var(--font-instrument-serif), var(--font-noto-serif-sc), Georgia, serif;
+  --font-body-family: var(--font-inter), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+  --font-display-family: var(--font-instrument-serif), "Songti SC", STSong, "Noto Serif CJK SC", Georgia, serif;
   --font-mono-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 13px;
   --font-size-body: 15px;
@@ -135,16 +140,29 @@
   --radius-lg: 8px;
   --shadow-card: none;
 
-  --font-display-family: var(--font-space-grotesk), var(--font-noto-sans-sc), system-ui, sans-serif;
+  --font-display-family: var(--font-space-grotesk), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
   --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 11px;
-  --font-size-body: 14px;
-  --font-size-subhead: 18px;
-  --font-size-title: 24px;
-  --font-size-section: 36px;
-  --text-display: clamp(32px, 4vw, 40px);
-  --leading-body: 1.55;
+  --font-size-body: 13px;
+  --font-size-subhead: 16px;
+  --font-size-title: 20px;
+  --font-size-section: 28px;
+  --text-display: clamp(28px, 3vw, 34px);
+  --leading-body: 1.48;
   --leading-display: 1.08;
+
+  --content-max-width: 82rem;
+  --control-height: 36px;
+  --control-padding-inline: 12px;
+  --card-padding-x: 18px;
+  --card-padding-y: 18px;
+  --card-gap: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-8: 24px;
+  --space-10: 32px;
+  --space-12: 36px;
+  --space-16: 48px;
 
   --background: var(--bg);
   --foreground: var(--text-primary);
@@ -172,44 +190,9 @@
   --sidebar-ring: var(--accent);
 }
 
-/* Latest product direction: auth and workspace share one deliberate studio shell. */
+/* Auth remains on the approved light Editorial surface; /app alone is dark Studio. */
 .auth-studio-theme {
-  --bg: #17130f;
-  --surface: #201a14;
-  --surface-sunken: #18130f;
-  --surface-raised: #2a221a;
-  --border: #372d22;
-  --border-strong: #5a4938;
-  --text-primary: #f2eae1;
-  --text-secondary: #b2a596;
-  --accent: #ff4d00;
-  --accent-soft: #ff4d001f;
-  --success: #4caf7d;
-  --warning: #e8b84b;
-  --danger: #e0574f;
-  --overlay: rgba(23, 19, 15, 0.88);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 8px;
-  --shadow-card: none;
-  --font-display-family: var(--font-space-grotesk), var(--font-noto-sans-sc), system-ui, sans-serif;
-  --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
-  --background: var(--bg);
-  --foreground: var(--text-primary);
-  --card: var(--surface);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-raised);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--accent);
-  --primary-foreground: var(--bg);
-  --secondary: var(--surface-raised);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface-sunken);
-  --muted-foreground: var(--text-secondary);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--danger);
-  --input: var(--border-strong);
-  --ring: var(--accent);
+  color-scheme: light;
 }
 
 @theme inline {

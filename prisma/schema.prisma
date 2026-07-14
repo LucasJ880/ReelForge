@@ -36,17 +36,18 @@ model AdminUser {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  createdOrders      DeliveryOrder[]
-  qaReviews          QAReview[]
-  publishRecords     PublishRecord[]
-  usagePeriods       UserUsagePeriod[]
-  usageLogs          UsageLog[]
-  digitalHumanAdJobs DigitalHumanAdJob[]
-  batchJobs          BatchJob[]
-  workspace          Workspace?
-  contentReports     ContentReport[]     @relation("ContentReportReporter")
-  reviewedReports    ContentReport[]     @relation("ContentReportReviewer")
-  productImageJobs   ProductImageJob[]
+  createdOrders         DeliveryOrder[]
+  qaReviews             QAReview[]
+  publishRecords        PublishRecord[]
+  usagePeriods          UserUsagePeriod[]
+  usageLogs             UsageLog[]
+  digitalHumanAdJobs    DigitalHumanAdJob[]
+  batchJobs             BatchJob[]
+  workspace             Workspace?
+  contentReports        ContentReport[]        @relation("ContentReportReporter")
+  reviewedReports       ContentReport[]        @relation("ContentReportReviewer")
+  productImageJobs      ProductImageJob[]
+  videoDispatchRequests VideoDispatchRequest[]
 }
 
 model PlanEntitlement {
@@ -775,6 +776,20 @@ enum VideoJobStatus {
   CANCELLED
 }
 
+enum ProviderSubmissionState {
+  NOT_STARTED
+  SUBMITTING
+  ACCEPTED
+  REJECTED
+  ACK_UNKNOWN
+}
+
+enum VideoDispatchRequestState {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
 enum BatchJobStatus {
   EXPANDING
   RUNNING
@@ -797,6 +812,11 @@ model BatchJob {
   productName                String?
   requestedCount             Int
   idempotencyKey             String
+  /// Canonical customer request hash. Same key + different payload is a conflict.
+  requestHash                String?
+  /// Dispatch remains fail-closed until quota authorization and Batch activation
+  /// commit atomically. Existing rows are backfilled during the expand migration.
+  quotaConsumedAt            DateTime?
   status                     BatchJobStatus @default(EXPANDING)
   queuedCount                Int            @default(0)
   pausedCount                Int            @default(0)
@@ -819,27 +839,36 @@ model BatchJob {
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
+  @@index([status, quotaConsumedAt, createdAt])
   @@index([status, createdAt, dispatchQuarantineDecision])
 }
 
 model VideoJob {
-  id               String      @id @default(cuid())
-  videoBriefId     String?
-  videoBrief       VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
-  batchJobId       String?
-  batchJob         BatchJob?   @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
-  batchIndex       Int?
-  batchItemKey     String?     @unique
-  assignedAssets   Json?
-  templateSnapshot Json?
-  promptText       String?
-  negativePrompt   String?
-  seed             Int?
-  submitAttempts   Int         @default(0)
-  availableAt      DateTime?
-  leaseOwner       String?
-  leaseExpiresAt   DateTime?
-  heartbeatAt      DateTime?
+  id                   String                  @id @default(cuid())
+  videoBriefId         String?
+  videoBrief           VideoBrief?             @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  batchJobId           String?
+  batchJob             BatchJob?               @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
+  batchIndex           Int?
+  batchItemKey         String?                 @unique
+  assignedAssets       Json?
+  templateSnapshot     Json?
+  promptText           String?
+  negativePrompt       String?
+  seed                 Int?
+  submitAttempts       Int                     @default(0)
+  /// Stable logical slot and per-attempt request key. Provider adapters must
+  /// not claim idempotency support until their contract has been verified.
+  logicalJobKey        String?                 @unique
+  providerRequestKey   String?                 @unique
+  submissionState      ProviderSubmissionState @default(NOT_STARTED)
+  submissionErrorClass String?
+  /// Price snapshot at submission time. Null means pricing is not confirmed.
+  providerUnitPriceUsd Decimal?                @db.Decimal(12, 6)
+  availableAt          DateTime?
+  leaseOwner           String?
+  leaseExpiresAt       DateTime?
+  heartbeatAt          DateTime?
 
   provider      VideoProvider
   externalJobId String?
@@ -895,6 +924,27 @@ model VideoJob {
   @@index([finalVideoId, segmentIndex])
 }
 
+/// Request-level idempotency for the customer Agent Director dispatch route.
+/// A PROCESSING row is deliberately sticky after an acknowledgement gap: a
+/// replay returns reconciliation-required instead of consuming quota twice.
+model VideoDispatchRequest {
+  id              String                    @id @default(cuid())
+  userId          String
+  user            AdminUser                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey  String
+  requestHash     String
+  state           VideoDispatchRequestState @default(PROCESSING)
+  responseStatus  Int?
+  responseBody    Json?
+  quotaConsumedAt DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  @@unique([userId, idempotencyKey])
+  @@index([state, createdAt])
+}
+
 // =========================================================
 // 5.1 FinalVideo（多段拼接结果）
 // =========================================================
@@ -924,6 +974,9 @@ model FinalVideo {
   ffmpegError      String?
   /// 累计 ffmpeg 失败次数（>= 3 时停止自动重试）
   stitchAttempts   Int              @default(0)
+  /// 外部 runner 每次成功 claim 时换新的所有权令牌。
+  /// complete/fail 回调必须同时匹配 id + STITCHING + token，防止迟到回调覆盖新 attempt。
+  stitchAttemptToken String?
 
   startedAt  DateTime?
   finishedAt DateTime?

@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { finishStitchTask } from "@/lib/services/stitch-service";
+import { machineAuthFailure } from "@/lib/machine-auth";
+import {
+  finishStitchTask,
+  STALE_STITCH_ATTEMPT_CODE,
+} from "@/lib/services/stitch-service";
 
 const completeSchema = z.object({
   finalVideoId: z.string().min(1),
+  // Rolling-deploy compatibility: a runner that claimed before the token
+  // migration has no credential to send. The service only accepts omission
+  // while the row itself still has a null token; every new claim writes one.
+  attemptToken: z.string().min(1).optional(),
   stitchedVideoUrl: z.string().url().optional().nullable(),
   thumbnailUrl: z.string().url().optional().nullable(),
   error: z.string().optional().nullable(),
@@ -16,7 +24,7 @@ const completeSchema = z.object({
  * 鉴权：`Authorization: Bearer ${CRON_SECRET}`
  *
  * body:
- *   { finalVideoId: string, stitchedVideoUrl?: string, thumbnailUrl?: string, error?: string }
+ *   { finalVideoId: string, attemptToken?: string, stitchedVideoUrl?: string, thumbnailUrl?: string, error?: string }
  *
  * 设计取舍：
  *   - 失败时不抛 5xx —— 因为 GH Action runner 出错时仍需要写库（status=FAILED）；
@@ -24,12 +32,8 @@ const completeSchema = z.object({
  *   - 用 zod 校验入参，避免 stitchedVideoUrl=file:// 之类的脏数据再次溜进 DB。
  */
 export async function POST(req: NextRequest) {
-  if (process.env.CRON_SECRET) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
 
   let body: unknown;
   try {
@@ -51,11 +55,29 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await finishStitchTask(parsed.data);
+    if (result.conflict) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: STALE_STITCH_ATTEMPT_CODE,
+          error: "stitch attempt is no longer active",
+          result,
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json({ ok: result.ok, result });
   } catch (err) {
-    return NextResponse.json({
-      ok: false,
-      error: (err as Error).message,
+    console.error("[stitch:complete] callback failed", {
+      finalVideoId: parsed.data.finalVideoId,
+      error: err instanceof Error ? err.message : String(err),
     });
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "stitch completion could not be recorded",
+      },
+      { status: 500 },
+    );
   }
 }

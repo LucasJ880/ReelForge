@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 
 /**
@@ -9,12 +10,8 @@ import { sweepStuckTasks } from "@/lib/services/sweep-service";
  * - 零计费：只做 DB 状态迁移，不调任何外部生成 API。
  */
 export async function GET(req: NextRequest) {
-  const auth = req.headers.get("authorization") ?? "";
-  if (process.env.CRON_SECRET) {
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
-  }
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
   try {
     const result = await sweepStuckTasks();
     return NextResponse.json(result);

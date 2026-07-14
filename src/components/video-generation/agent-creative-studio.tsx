@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   Bot,
   Check,
+  ChevronDown,
   Clapperboard,
   Images,
   Loader2,
@@ -63,6 +64,7 @@ export function AgentCreativeStudio({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [chatPinned, setChatPinned] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [attachments, setAttachments] = useState<UploadedAsset[]>(initialAssets);
   const [brief, setBrief] = useState<{ prompt: string; duration: 15 | 30 | 60 } | null>(null);
@@ -130,6 +132,15 @@ export function AgentCreativeStudio({
     attachments.map((asset) => asset.id).join(","),
   ].join("|");
 
+  useEffect(() => {
+    if (!chatPinned) return;
+    const frame = requestAnimationFrame(() => {
+      const viewport = chatScrollRef.current;
+      viewport?.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [chatPinned, messages, sending]);
+
   async function handleUpload(files: File[] | FileList | null) {
     if (!files) return;
     const available = 10 - attachments.length;
@@ -150,6 +161,7 @@ export function AgentCreativeStudio({
   async function send(raw: string) {
     const content = raw.trim();
     if (!content || sending) return;
+    setChatPinned(true);
     setInput("");
     const nextMessages = [...messages, { role: "user" as const, content }];
     setMessages(nextMessages);
@@ -179,9 +191,6 @@ export function AgentCreativeStudio({
             : 15,
         });
       }
-      requestAnimationFrame(() => {
-        chatScrollRef.current?.scrollTo({ top: chatScrollRef.current.scrollHeight, behavior: "smooth" });
-      });
     } catch {
       setMessages((current) => [...current, { role: "assistant", content: agent.error }]);
     } finally {
@@ -191,11 +200,20 @@ export function AgentCreativeStudio({
 
   function reviewProduction() {
     productionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    requestAnimationFrame(() => {
+      document.getElementById("platform-primary-generate")?.focus({ preventScroll: true });
+    });
+  }
+
+  function scrollChatToBottom() {
+    setChatPinned(true);
+    const viewport = chatScrollRef.current;
+    viewport?.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
   }
 
   return (
     <div className="editorial-page-stack">
-      <header className="studio-hero max-w-5xl space-y-4">
+      <header className="max-w-5xl space-y-2">
         <div className="flex flex-wrap items-center gap-3">
           <p className="studio-label text-muted-foreground">{copy.kicker}</p>
           <Badge variant="secondary">{agent.status}</Badge>
@@ -206,11 +224,11 @@ export function AgentCreativeStudio({
       </header>
 
       <Card className="overflow-hidden p-0">
-        <CardHeader className="border-b border-border px-5 py-4 sm:px-6">
+        <CardHeader className="border-b border-border px-4 py-3 sm:px-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-(--radius-md) border border-border bg-accent-soft text-foreground">
-                <Bot className="size-5" aria-hidden />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-(--radius-md) border border-border bg-accent-soft text-foreground">
+                <Bot className="size-4" aria-hidden />
               </span>
               <div className="min-w-0">
                 <CardTitle>{agent.conversation}</CardTitle>
@@ -221,8 +239,8 @@ export function AgentCreativeStudio({
           </div>
         </CardHeader>
 
-        <CardContent className="grid min-w-0 p-0 xl:grid-cols-[17rem_minmax(0,1fr)]">
-          <aside className="order-2 space-y-6 border-t border-border bg-muted p-5 sm:p-6 xl:order-1 xl:border-t-0 xl:border-r" aria-label={agent.assets}>
+        <CardContent className="grid min-h-0 min-w-0 p-0 xl:h-[min(38rem,calc(100dvh-10rem))] xl:min-h-[30rem] xl:grid-cols-[14rem_minmax(0,1fr)]">
+          <aside className="order-2 space-y-4 border-t border-border bg-muted p-4 xl:order-1 xl:min-h-0 xl:overflow-y-auto xl:border-t-0 xl:border-r" aria-label={agent.assets}>
             <section className="space-y-3">
               <div>
                 <h2 className="font-heading text-subhead font-semibold">{agent.assets}</h2>
@@ -254,9 +272,9 @@ export function AgentCreativeStudio({
               ) : <p className="rounded-(--radius-md) border border-dashed border-border bg-card p-3 text-meta text-muted-foreground">{agent.uploadEmpty}</p>}
             </section>
 
-            <section className="border-t border-border pt-5">
+            <section className="border-t border-border pt-4">
               <h2 className="studio-label text-muted-foreground">{agent.steps}</h2>
-              <ol className="mt-4 space-y-3 text-meta text-muted-foreground">
+              <ol className="mt-3 space-y-2 text-meta text-muted-foreground">
                 {[agent.stepAssets, agent.stepBrief, agent.stepTemplate].map((step, index) => (
                   <li key={step} className="flex items-center gap-3">
                     <span className={cn(
@@ -274,14 +292,39 @@ export function AgentCreativeStudio({
             </section>
           </aside>
 
-          <section className="order-1 flex min-w-0 flex-col xl:order-2" aria-label={agent.conversation}>
-            <div ref={chatScrollRef} className="min-h-72 flex-1 space-y-4 overflow-y-auto p-5 sm:min-h-96 sm:p-6" aria-live="polite">
-              <ChatBubble role="assistant">{agent.welcome}</ChatBubble>
-              {messages.map((message, index) => <ChatBubble key={`${message.role}-${index}`} role={message.role}>{message.content}</ChatBubble>)}
-              {sending ? <ChatBubble role="assistant"><span className="inline-flex items-center gap-2 text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden />{agent.thinking}</span></ChatBubble> : null}
+          <section className="order-1 flex h-[32rem] min-h-0 min-w-0 flex-col xl:order-2 xl:h-full" aria-label={agent.conversation}>
+            <div className="relative min-h-0 flex-1">
+              <div
+                ref={chatScrollRef}
+                data-testid="agent-chat-scroll"
+                className="h-full min-h-0 space-y-3 overflow-y-auto overscroll-contain p-4 sm:p-5"
+                aria-live="polite"
+                onScroll={(event) => {
+                  const viewport = event.currentTarget;
+                  const distanceFromBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight;
+                  setChatPinned(distanceFromBottom <= 48);
+                }}
+              >
+                <ChatBubble role="assistant">{agent.welcome}</ChatBubble>
+                {messages.map((message, index) => <ChatBubble key={`${message.role}-${index}`} role={message.role}>{message.content}</ChatBubble>)}
+                {sending ? <ChatBubble role="assistant"><span className="inline-flex items-center gap-2 text-muted-foreground"><Loader2 className="size-4 animate-spin" aria-hidden />{agent.thinking}</span></ChatBubble> : null}
+              </div>
+              {!chatPinned ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon-sm"
+                  className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full shadow-editorial"
+                  onClick={scrollChatToBottom}
+                  aria-label={agent.jumpToLatest}
+                  title={agent.jumpToLatest}
+                >
+                  <ChevronDown aria-hidden />
+                </Button>
+              ) : null}
             </div>
 
-            <div className="space-y-4 border-t border-border bg-muted p-5 sm:p-6">
+            <div data-testid="agent-chat-composer" className="shrink-0 space-y-3 border-t border-border bg-muted p-4">
               <div className="flex gap-2 overflow-x-auto pb-1" aria-label={agent.quickLabel}>
                 {quickPrompts.map(({ icon: Icon, label, text }) => (
                   <Button key={label} type="button" variant="outline" size="sm" className="shrink-0 bg-card" disabled={sending} onClick={() => void send(text)}>
@@ -289,7 +332,7 @@ export function AgentCreativeStudio({
                   </Button>
                 ))}
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                 <label className="min-w-0 flex-1 text-meta font-medium">
                   {agent.promptLabel}
                   <Textarea
@@ -303,12 +346,17 @@ export function AgentCreativeStudio({
                     }}
                     rows={2}
                     placeholder={agent.promptPlaceholder}
-                    className="mt-2 resize-none bg-card"
+                    className="mt-1 max-h-28 min-h-16 resize-none overflow-y-auto bg-card"
                   />
                 </label>
-                <Button type="button" disabled={sending || !input.trim()} onClick={() => void send(input)} className="sm:self-end">
-                  <Send aria-hidden />{agent.send}
-                </Button>
+                <div className="flex shrink-0 gap-2 sm:self-end">
+                  <Button type="button" variant="outline" disabled={sending || !productionPrompt.trim()} onClick={reviewProduction}>
+                    <ArrowRight aria-hidden />{agent.continueGenerate}
+                  </Button>
+                  <Button type="button" disabled={sending || !input.trim()} onClick={() => void send(input)}>
+                    <Send aria-hidden />{agent.send}
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
@@ -318,17 +366,17 @@ export function AgentCreativeStudio({
       <section className="space-y-4" aria-labelledby="agent-template-heading">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="studio-label text-muted-foreground">QUALITY LOCK</p>
+            <p className="studio-label text-muted-foreground">{agent.qualityLockKicker}</p>
             <h2 id="agent-template-heading" className="mt-2 font-heading text-title font-semibold">{agent.templateHeading}</h2>
             <p className="mt-1 max-w-2xl text-body text-muted-foreground">{agent.templateHint}</p>
           </div>
           <Button render={<Link href="/app/templates" />} variant="ghost">{agent.browseAll}<ArrowRight aria-hidden /></Button>
         </div>
-        <ul className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <ul className="flex min-w-0 snap-x gap-3 overflow-x-auto pb-2">
           {recommendations.map((recommendation) => {
             const selected = recommendation.skillId === selectedTemplateSkill;
             return (
-              <li key={recommendation.skillId} className="min-w-0">
+              <li key={recommendation.skillId} className="w-52 shrink-0 snap-start sm:w-56">
                 <button
                   type="button"
                   onClick={() => setSelectedTemplateSkill(recommendation.skillId)}
@@ -362,7 +410,7 @@ export function AgentCreativeStudio({
 
       <section ref={productionRef} className="scroll-mt-20 space-y-4" aria-labelledby="agent-production-heading">
         <div>
-          <p className="studio-label text-muted-foreground">PRODUCTION BRIEF</p>
+          <p className="studio-label text-muted-foreground">{agent.productionBriefKicker}</p>
           <h2 id="agent-production-heading" className="mt-2 font-heading text-title font-semibold">{agent.directHeading}</h2>
           <p className="mt-1 max-w-2xl text-body text-muted-foreground">{agent.directHint}</p>
         </div>
@@ -382,7 +430,7 @@ function ChatBubble({ role, children }: { role: "user" | "assistant"; children: 
   return (
     <div className={role === "user" ? "flex justify-end" : "flex justify-start"}>
       <div className={cn(
-        "max-w-[92%] rounded-(--radius-lg) border px-4 py-3 text-body leading-relaxed sm:max-w-[78%]",
+        "max-w-[92%] rounded-(--radius-lg) border px-3 py-2.5 text-body leading-relaxed sm:max-w-[78%]",
         role === "user" ? "border-primary bg-accent-soft text-foreground" : "border-border bg-card text-foreground",
       )}>
         {children}

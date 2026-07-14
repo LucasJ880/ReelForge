@@ -1,4 +1,5 @@
-import { execFile } from "child_process";
+import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import { promisify } from "util";
 import { copyFile, mkdir, readFile, rm, writeFile } from "fs/promises";
 import os from "os";
@@ -39,7 +40,36 @@ const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
  */
 
 export const MAX_STITCH_ATTEMPTS = 3;
+export const STALE_STITCH_ATTEMPT_CODE = "STALE_STITCH_ATTEMPT";
+export const STITCH_CANDIDATE_PAGE_SIZE = 20;
 const AWAITING_EXTERNAL_STITCHER = "awaiting external stitcher";
+
+type StitchReadinessCandidate = {
+  segmentCount: number;
+  segments: ReadonlyArray<{
+    status: VideoJobStatus;
+    outputVideoUrl: string | null;
+  }>;
+};
+
+/**
+ * Readiness remains an application-level invariant because Prisma cannot
+ * compare the relation count with FinalVideo.segmentCount in a where clause.
+ * Callers should still pre-filter obviously incomplete segments in SQL, then
+ * use this exact-count check before claiming or dispatching work.
+ */
+export function isStitchCandidateReady(
+  candidate: StitchReadinessCandidate,
+): boolean {
+  return (
+    candidate.segments.length === candidate.segmentCount &&
+    candidate.segments.every(
+      (segment) =>
+        segment.status === VideoJobStatus.SUCCEEDED &&
+        Boolean(segment.outputVideoUrl),
+    )
+  );
+}
 
 export interface StitchResult {
   finalVideoId: string;
@@ -48,12 +78,15 @@ export interface StitchResult {
   stitchedVideoUrl?: string | null;
   error?: string | null;
   skipped?: boolean;
+  /// 外部 runner 的 attempt token 已过期；调用方应返回 HTTP 409，不得重放写入。
+  conflict?: boolean;
   /// 仅在生产环境（external runner）下置为 true：表示已记录占位，等 GH Action 拉
   awaitingExternal?: boolean;
 }
 
 export interface ClaimedStitchTask {
   finalVideoId: string;
+  attemptToken: string;
   segmentUrls: string[];
   aspectRatio: string;
   targetDurationSec: number;
@@ -317,49 +350,65 @@ export async function stitchFinalVideo(
  * 返回 null 表示当前没有可拼任务，runner 可以直接退出。
  */
 export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
-  const candidates = await db.finalVideo.findMany({
-    where: {
-      status: FinalVideoStatus.PENDING,
-      stitchAttempts: { lt: MAX_STITCH_ATTEMPTS },
-    },
-    take: 10,
-    orderBy: { updatedAt: "asc" },
-    include: {
-      brief: { select: { aspectRatio: true } },
-      segments: { orderBy: { segmentIndex: "asc" } },
-    },
-  });
-
-  for (const fv of candidates) {
-    const allSucceeded =
-      fv.segments.length === fv.segmentCount &&
-      fv.segments.every(
-        (s) => s.status === VideoJobStatus.SUCCEEDED && !!s.outputVideoUrl,
-      );
-    if (!allSucceeded) continue;
-    /// 注意：不再跳过单段任务（历史 bug：带 unified assemblyPlan 的单段 brief 在
-    /// 生产环境被 stitchFinalVideo 打上「awaiting external stitcher」占位 —— 该判定
-    /// 先于单段捷径 —— 而这里又跳过 segmentCount<=1，导致没有任何 worker 认领，
-    /// 任务永久卡在「正在合成 85%」）。单段走 runner 会被归一化并转存持久存储，
-    /// 顺带避免把 24h 过期的 Seedance 签名 URL 直接当成片 URL。
-
-    /// CAS：从 PENDING → STITCHING；若已被别的 runner 抢走则跳过下一个
-    const claim = await db.finalVideo.updateMany({
-      where: { id: fv.id, status: FinalVideoStatus.PENDING },
-      data: {
-        status: FinalVideoStatus.STITCHING,
-        startedAt: new Date(),
-        ffmpegError: null,
+  let cursor: string | undefined;
+  while (true) {
+    const candidates = await db.finalVideo.findMany({
+      where: {
+        status: FinalVideoStatus.PENDING,
+        stitchAttempts: { lt: MAX_STITCH_ATTEMPTS },
+        /// Exclude rows with a known non-ready segment at the database layer.
+        /// A relation-count equality check is still required below for rows
+        /// whose expected segment has not been created yet.
+        segments: {
+          every: {
+            status: VideoJobStatus.SUCCEEDED,
+            outputVideoUrl: { not: null },
+          },
+        },
+      },
+      take: STITCH_CANDIDATE_PAGE_SIZE,
+      orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      include: {
+        brief: { select: { aspectRatio: true } },
+        segments: { orderBy: { segmentIndex: "asc" } },
       },
     });
-    if (claim.count === 0) continue;
 
-    return {
-      finalVideoId: fv.id,
-      segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
-      aspectRatio: fv.brief?.aspectRatio ?? "9:16",
-      targetDurationSec: fv.targetDurationSec,
-    };
+    for (const fv of candidates) {
+      if (!isStitchCandidateReady(fv)) continue;
+      /// 注意：不再跳过单段任务（历史 bug：带 unified assemblyPlan 的单段 brief 在
+      /// 生产环境被 stitchFinalVideo 打上「awaiting external stitcher」占位 —— 该判定
+      /// 先于单段捷径 —— 而这里又跳过 segmentCount<=1，导致没有任何 worker 认领，
+      /// 任务永久卡在「正在合成 85%」）。单段走 runner 会被归一化并转存持久存储，
+      /// 顺带避免把 24h 过期的 Seedance 签名 URL 直接当成片 URL。
+
+      /// CAS：从 PENDING → STITCHING；若已被别的 runner 抢走则继续找下一条
+      const attemptToken = randomUUID();
+      const claim = await db.finalVideo.updateMany({
+        where: { id: fv.id, status: FinalVideoStatus.PENDING },
+        data: {
+          status: FinalVideoStatus.STITCHING,
+          stitchAttemptToken: attemptToken,
+          startedAt: new Date(),
+          ffmpegError: null,
+        },
+      });
+      if (claim.count === 0) continue;
+
+      return {
+        finalVideoId: fv.id,
+        attemptToken,
+        segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
+        aspectRatio: fv.brief?.aspectRatio ?? "9:16",
+        targetDurationSec: fv.targetDurationSec,
+      };
+    }
+
+    if (candidates.length < STITCH_CANDIDATE_PAGE_SIZE) break;
+    const nextCursor = candidates.at(-1)?.id;
+    if (!nextCursor || nextCursor === cursor) break;
+    cursor = nextCursor;
   }
   return null;
 }
@@ -372,11 +421,12 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
  */
 export async function finishStitchTask(args: {
   finalVideoId: string;
+  attemptToken?: string;
   stitchedVideoUrl?: string | null;
   thumbnailUrl?: string | null;
   error?: string | null;
 }): Promise<StitchResult> {
-  const { finalVideoId, stitchedVideoUrl, thumbnailUrl, error } = args;
+  const { finalVideoId, attemptToken, stitchedVideoUrl, thumbnailUrl, error } = args;
   const fv = await db.finalVideo.findUnique({
     where: { id: finalVideoId },
     include: { brief: { select: { id: true } } },
@@ -390,16 +440,35 @@ export async function finishStitchTask(args: {
     };
   }
 
+  /// attempt token 是外部 runner 对这一次 STITCHING 的所有权凭证。
+  /// 先快速拒绝明显 stale 回调；最终写入仍会再做一次 CAS，
+  /// 防止内容审核期间 sweep/reclaim 导致的 TOCTOU 竞态。
+  const expectedAttemptToken = attemptToken ?? null;
+  if (
+    fv.status !== FinalVideoStatus.STITCHING ||
+    fv.stitchAttemptToken !== expectedAttemptToken
+  ) {
+    return staleStitchAttempt(finalVideoId, fv.status);
+  }
+
   if (error || !stitchedVideoUrl) {
-    await db.finalVideo.update({
-      where: { id: fv.id },
+    const finished = await db.finalVideo.updateMany({
+      where: {
+        id: fv.id,
+        status: FinalVideoStatus.STITCHING,
+        stitchAttemptToken: expectedAttemptToken,
+      },
       data: {
         status: FinalVideoStatus.FAILED,
         ffmpegError: error ?? "external stitcher returned no URL",
         finishedAt: new Date(),
-        stitchAttempts: fv.stitchAttempts + 1,
+        stitchAttempts: { increment: 1 },
+        stitchAttemptToken: null,
       },
     });
+    if (finished.count === 0) {
+      return staleStitchAttempt(finalVideoId, fv.status);
+    }
     return {
       finalVideoId,
       ok: false,
@@ -414,23 +483,44 @@ export async function finishStitchTask(args: {
     finalVideoId,
   );
 
-  await db.finalVideo.update({
-    where: { id: fv.id },
+  const finished = await db.finalVideo.updateMany({
+    where: {
+      id: fv.id,
+      status: FinalVideoStatus.STITCHING,
+      stitchAttemptToken: expectedAttemptToken,
+    },
     data: {
       status: FinalVideoStatus.READY,
       stitchedVideoUrl,
       thumbnailUrl: thumbnailUrl ?? fv.thumbnailUrl,
       finishedAt: new Date(),
-      stitchAttempts: fv.stitchAttempts + 1,
+      stitchAttempts: { increment: 1 },
       ffmpegError: null,
+      stitchAttemptToken: null,
     },
   });
+  if (finished.count === 0) {
+    return staleStitchAttempt(finalVideoId, fv.status);
+  }
   if (fv.brief) await markBriefReady(fv.brief.id);
   return {
     finalVideoId,
     ok: true,
     status: FinalVideoStatus.READY,
     stitchedVideoUrl,
+  };
+}
+
+function staleStitchAttempt(
+  finalVideoId: string,
+  status: FinalVideoStatus,
+): StitchResult {
+  return {
+    finalVideoId,
+    ok: false,
+    status,
+    conflict: true,
+    error: STALE_STITCH_ATTEMPT_CODE,
   };
 }
 
@@ -441,11 +531,19 @@ export async function finishStitchTask(args: {
 export async function retryStitch(finalVideoId: string) {
   const fv = await db.finalVideo.findUnique({ where: { id: finalVideoId } });
   if (!fv) throw new Error("FinalVideo 不存在");
-  await db.finalVideo.update({
-    where: { id: finalVideoId },
+  if (fv.status !== FinalVideoStatus.FAILED) {
+    throw new Error("只有失败的成片合成任务可以重试");
+  }
+  const reset = await db.finalVideo.updateMany({
+    where: {
+      id: finalVideoId,
+      status: FinalVideoStatus.FAILED,
+      stitchAttemptToken: fv.stitchAttemptToken,
+    },
     data: {
       status: FinalVideoStatus.PENDING,
       ffmpegError: null,
+      stitchAttemptToken: null,
       /// 用户主动重试 → 重置尝试预算，否则 attempts>=MAX 的任务重试后
       /// 永远不会被 runner 领取（claim 过滤 attempts < MAX），又回到死区
       stitchAttempts: 0,
@@ -453,6 +551,9 @@ export async function retryStitch(finalVideoId: string) {
       finishedAt: null,
     },
   });
+  if (reset.count !== 1) {
+    throw new Error("成片状态已变化，请刷新后重试");
+  }
   return stitchFinalVideo(finalVideoId);
 }
 

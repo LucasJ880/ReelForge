@@ -6,7 +6,16 @@ import { db } from "@/lib/db";
 import {
   retryFailedVideoJob,
   reconcileBriefRenderStatus,
+  toCustomerBriefRenderSummary,
 } from "@/lib/services/video-service";
+import {
+  customerApiError,
+  SubmissionReconciliationRequiredError,
+} from "@/lib/api/customer-generation-error";
+
+function canSeeRenderDebug(userType: string | null | undefined): boolean {
+  return userType === "OPERATOR" || userType === "SUPER_ADMIN";
+}
 
 /**
  * 重试该 brief 下的失败环节。重试永远是「续跑」：
@@ -36,10 +45,18 @@ export async function POST(
 
   const access = await checkBriefAccess(briefId, guard.session);
   if (!access.allowed) {
-    if (access.reason === "not-found") {
-      return NextResponse.json({ error: "Brief 不存在" }, { status: 404 });
-    }
-    return NextResponse.json({ error: "权限不足" }, { status: 403 });
+    return NextResponse.json(
+      customerApiError({
+        code: "INTERNAL_ERROR",
+        message:
+          access.reason === "not-found"
+            ? "生成记录不存在。"
+            : "无权访问该生成记录。",
+        retryable: false,
+        action: "contact_support",
+      }),
+      { status: access.reason === "not-found" ? 404 : 403 },
+    );
   }
 
   const body = await req.json().catch(() => ({}));
@@ -91,23 +108,57 @@ export async function POST(
       });
       if (!job || job.videoBriefId !== briefId) {
         return NextResponse.json(
-          { error: "VideoJob 不存在或不属于该 Brief" },
+          customerApiError({
+            code: "INTERNAL_ERROR",
+            message: "待重试的生成任务不存在。",
+            retryable: false,
+            action: "contact_support",
+          }),
           { status: 404 },
         );
       }
       await retryFailedVideoJob(body.jobId);
     } else {
       return NextResponse.json(
-        { error: "请传 jobId 或 all=true" },
+        customerApiError({
+          code: "INTERNAL_ERROR",
+          message: "请选择一个失败任务，或重试全部可恢复任务。",
+          retryable: false,
+          action: "contact_support",
+        }),
         { status: 400 },
       );
     }
 
     const summary = await reconcileBriefRenderStatus(briefId);
-    return NextResponse.json(summary);
-  } catch (err) {
     return NextResponse.json(
-      { error: (err as Error).message },
+      canSeeRenderDebug(guard.session.user.userType)
+        ? summary
+        : toCustomerBriefRenderSummary(summary),
+    );
+  } catch (err) {
+    if (err instanceof SubmissionReconciliationRequiredError) {
+      return NextResponse.json(
+        customerApiError({
+          code: err.code,
+          message: err.message,
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 409 },
+      );
+    }
+    console.error("[render-retry] retry failed", {
+      briefId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return NextResponse.json(
+      customerApiError({
+        code: "INTERNAL_ERROR",
+        message: "暂时无法重试生成任务，请稍后再试。",
+        retryable: true,
+        action: "retry",
+      }),
       { status: 500 },
     );
   }

@@ -110,10 +110,21 @@ async function main() {
 
   /// 若之前被打过「awaiting external stitcher」占位 / FAILED，重置回 PENDING 再走状态机
   if (fv.status !== FinalVideoStatus.PENDING) {
-    await db.finalVideo.update({
-      where: { id: fv.id },
-      data: { status: FinalVideoStatus.PENDING, ffmpegError: null },
+    const reset = await db.finalVideo.updateMany({
+      where: {
+        id: fv.id,
+        status: fv.status,
+        stitchAttemptToken: fv.stitchAttemptToken,
+      },
+      data: {
+        status: FinalVideoStatus.PENDING,
+        ffmpegError: null,
+        stitchAttemptToken: null,
+      },
     });
+    if (reset.count !== 1) {
+      throw new Error("FinalVideo 状态已被其他 runner 更新，拒绝覆盖当前合成尝试");
+    }
     console.log(`[recover] 状态 ${fv.status} → PENDING（重置以便领取）`);
   }
 

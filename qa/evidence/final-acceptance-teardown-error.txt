@@ -1,0 +1,14 @@
+Phase 0 reproduction while reusing the existing final-acceptance teardown:
+
+Error: Playwright Test did not expect test.beforeEach() to be called here.
+Most common reasons include:
+- You are calling test.beforeEach() in a configuration file.
+- You are calling test.beforeEach() in a file that is imported by the configuration file.
+
+Import chain:
+playwright.final-acceptance.config.ts
+  -> tests/final-acceptance/global-teardown.ts
+  -> tests/final-acceptance/framework.ts
+  -> test.beforeEach at framework.ts:294
+
+Observed outcome: the route-audit test body passed, then Playwright exited nonzero when the reused teardown module loaded. The Phase 0 audit harness now uses its own side-effect-free teardown so audit evidence can be collected without altering the existing acceptance suite.

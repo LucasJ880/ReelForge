@@ -1,0 +1,161 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/23.11.0/bin/node",
+      "/Users/evan/Documents/ReelForge/node_modules/.bin/playwright",
+      "test",
+      "--config=playwright.golden-path.config.ts"
+    ],
+    "configFile": "/Users/evan/Documents/ReelForge/playwright.golden-path.config.ts",
+    "rootDir": "/Users/evan/Documents/ReelForge/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-setup.ts",
+    "globalTeardown": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784004030002-3e3089af",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/evan/Documents/ReelForge/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/golden-path\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "qa/evidence/phase1/golden-path-gp-1784004030002-3e3089af.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run start -- -p 3120",
+      "url": "http://localhost:3120",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "golden-path.spec.ts",
+      "file": "golden-path.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "golden path: register, login, create, mock complete, preview, and download",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 10398,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "steps": [
+                    {
+                      "title": "register and arrive naturally in the workspace",
+                      "duration": 2229
+                    },
+                    {
+                      "title": "sign out and sign back in without a cookie bridge",
+                      "duration": 603
+                    },
+                    {
+                      "title": "preview and dispatch one deterministic mock video",
+                      "duration": 3164
+                    },
+                    {
+                      "title": "reconcile every provider job to a terminal success",
+                      "duration": 2388
+                    },
+                    {
+                      "title": "simulate the external stitch runner claim and authenticated completion",
+                      "duration": 859
+                    },
+                    {
+                      "title": "open, play, and download the completed customer asset",
+                      "duration": 762
+                    },
+                    {
+                      "title": "verify account and workspace ownership",
+                      "duration": 193
+                    }
+                  ],
+                  "startTime": "2026-07-14T04:40:31.648Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "golden-path-summary",
+                      "contentType": "application/json",
+                      "body": "ewogICJydW5JZCI6ICJncC0xNzg0MDA0MDMwMDAyLTNlMzA4OWFmIiwKICAiZGVsaXZlcnlPcmRlcklkIjogImNtcms1eHdhZDAwMGtsaWVibHpjMDhvZmkiLAogICJicmllZklkIjogImNtcms1eHdqcDAwMHFsaWVid3UxemVsZHYiLAogICJ0b3RhbEpvYnMiOiAxLAogICJmaW5hbFZpZGVvUmVhZHkiOiB0cnVlLAogICJtb2NrT25seSI6IHRydWUsCiAgImNhbmNlbGxlZFJzY1ByZWZldGNoZXMiOiA3Mgp9"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "d6dd496e245cb9874cb8-197153a49bc4ff37fc0f",
+          "file": "golden-path.spec.ts",
+          "line": 25,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-07-14T04:40:30.003Z",
+    "duration": 13068.895,
+    "expected": 1,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

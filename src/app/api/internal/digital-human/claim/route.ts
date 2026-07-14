@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { machineAuthFailure } from "@/lib/machine-auth";
 import { claimDigitalHumanAdJob } from "@/lib/services/digital-human-service";
 import {
   DIGITAL_HUMAN_SEALED_RESPONSE,
@@ -14,14 +15,10 @@ import {
  * 返回：{ task: ClaimedDigitalHumanAdJob } 或 { task: null }（无任务时 runner 直接退出）
  */
 export async function GET(req: NextRequest) {
+  const authFailure = machineAuthFailure(req);
+  if (authFailure) return authFailure;
   if (!isDigitalHumanFeatureEnabled()) {
     return NextResponse.json(DIGITAL_HUMAN_SEALED_RESPONSE, { status: 404 });
-  }
-  if (process.env.CRON_SECRET) {
-    const auth = req.headers.get("authorization") ?? "";
-    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
-      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-    }
   }
   try {
     const task = await claimDigitalHumanAdJob();

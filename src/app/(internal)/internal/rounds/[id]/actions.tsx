@@ -42,7 +42,7 @@ export function RoundActions({
   const canDistill = round.status === "RANKED";
 
   return (
-    <div className="flex min-w-0 flex-wrap gap-2">
+    <div data-round-actions className="flex w-full min-w-0 flex-wrap gap-2 lg:justify-end">
       {canGenerateAngles && (
         <Button
           size="sm"

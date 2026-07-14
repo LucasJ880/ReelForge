@@ -3,15 +3,23 @@ import {
   QuotaExceededError,
   RateLimitExceededError,
 } from "@/lib/services/quota-service";
+import { customerApiError } from "@/lib/contracts/customer-api";
 
 export function quotaErrorResponse(err: unknown): NextResponse | null {
   if (err instanceof QuotaExceededError) {
+    const customerResource =
+      err.resource === "VIDEO_DISPATCH" || err.resource === "SEEDANCE_SEGMENT"
+        ? "VIDEO_GENERATION"
+        : err.resource;
     return NextResponse.json(
       {
-        ok: false,
-        code: err.code,
-        error: err.message,
-        resource: err.resource,
+        ...customerApiError({
+          code: "QUOTA_EXCEEDED",
+          message: err.message,
+          retryable: false,
+          action: "view_usage",
+        }),
+        resource: customerResource,
         used: err.used,
         limit: err.limit,
         periodKey: err.periodKey,
@@ -21,7 +29,12 @@ export function quotaErrorResponse(err: unknown): NextResponse | null {
   }
   if (err instanceof RateLimitExceededError) {
     return NextResponse.json(
-      { ok: false, code: err.code, error: err.message },
+      customerApiError({
+        code: "RATE_LIMITED",
+        message: err.message,
+        retryable: true,
+        action: "retry",
+      }),
       { status: 429 },
     );
   }

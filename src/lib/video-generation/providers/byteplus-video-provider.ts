@@ -29,6 +29,7 @@ import { normalizeStatusBuiltin } from "./types";
 export class BytePlusVideoProvider implements VideoProvider {
   readonly id = "byteplus" as const;
   readonly displayName = "BytePlus ModelArk (Seedance)";
+  readonly manualRetryBillingRisk = "possible" as const;
 
   isConfigured(): boolean {
     return isSeedanceConfigured();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Sparkles } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -11,6 +11,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
+import {
+  dispatchRecoveryHint,
+  shouldResetDispatchAttempt,
+} from "@/lib/api/customer-video-dispatch-recovery";
 import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
 import type {
   AspectRatio,
@@ -25,7 +30,7 @@ const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
 const BRAND_ENDING_MODES: BrandEndingMode[] = ["auto_end_card", "uploaded_clip", "none"];
 const LABEL_CLASS = "text-meta font-medium text-muted-foreground";
 const SELECT_CLASS =
-  "mt-1 block h-10 w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
+  "mt-1 block h-(--control-height) w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring";
 
 interface UnifiedCreativeInputProps {
   userType: "business" | "personal" | "platform";
@@ -124,6 +129,10 @@ export function UnifiedCreativeInput({
   const [previewing, setPreviewing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const dispatchAttemptRef = useRef<{
+    fingerprint: string;
+    key: string;
+  } | null>(null);
 
   function buildRequest(): UnifiedVideoGenerationRequest {
     return {
@@ -205,32 +214,46 @@ export function UnifiedCreativeInput({
         return;
       }
 
+      const dispatchFingerprint = JSON.stringify({ request: buildRequest() });
+      if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
+        dispatchAttemptRef.current = {
+          fingerprint: dispatchFingerprint,
+          key: crypto.randomUUID(),
+        };
+      }
+
       const res = await fetch("/api/video-generation/dispatch", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": dispatchAttemptRef.current.key,
+        },
         body: JSON.stringify({ request: buildRequest() }),
       });
-      const j = (await res.json()) as
-        | {
-            ok: true;
-            deliveryOrderId: string;
-            briefId: string;
-            nextUrl?: string;
-            userStatus?: { status: string; label: string };
-          }
-        | { ok: false; error: string; blockers?: string[] };
-      if (!res.ok || !j.ok) {
-        if (!j.ok && j.blockers?.length) {
-          throw new Error(j.blockers[0]);
-        }
-        const friendly =
+      const j = (await res.json()) as CustomerVideoDispatchResponse;
+      if (!j.ok) {
+        if (shouldResetDispatchAttempt(j)) dispatchAttemptRef.current = null;
+        const serverMessage = j.blockers?.[0] ?? j.error;
+        const safeMessage = toCustomerSafeError(
+          new Error(serverMessage),
+          "dispatch",
+          userType,
+          t,
+        );
+        setError(
+          `${safeMessage} ${dispatchRecoveryHint(j.action, locale)}`.trim(),
+        );
+        setGenerating(false);
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(
           userType === "personal"
             ? t("shell.creative.errDispatchPersonal")
-            : t("shell.creative.errDispatchBusiness");
-        throw new Error(
-          !j.ok && j.error && j.error.length < 80 ? j.error : friendly,
+            : t("shell.creative.errDispatchBusiness"),
         );
       }
+      dispatchAttemptRef.current = null;
       const target =
         j.nextUrl ??
         (userType === "platform"
@@ -253,17 +276,14 @@ export function UnifiedCreativeInput({
   const canPreview =
     rawPrompt.trim().length > 0 && !previewing && !generating;
   const canGenerate =
-    plan != null &&
-    planRequestKey === requestFingerprint() &&
-    plan.qualityReview.canDispatch &&
-    !generating;
+    rawPrompt.trim().length > 0 && !previewing && !generating;
   const canQuickGenerate =
     isPersonal && rawPrompt.trim().length > 0 && !previewing && !generating;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-4">
         <div>
           <label className={LABEL_CLASS}>
             {t("shell.creative.promptLabel")}
@@ -281,7 +301,7 @@ export function UnifiedCreativeInput({
                   ? t("shell.creative.promptPlaceholderBusiness")
                   : t("shell.creative.promptPlaceholderPersonal")
               }
-              rows={4}
+              rows={3}
               className="mt-2"
             />
           </label>
@@ -309,6 +329,36 @@ export function UnifiedCreativeInput({
             </select>
             <span className="mt-1 block text-meta font-normal text-muted-foreground">{platformCopy.templateAutoHint}</span>
           </label>
+        ) : null}
+
+        {userType === "platform" ? (
+          <div className="sticky top-14 z-10 flex flex-wrap items-center gap-2 rounded-(--radius-md) border border-border bg-muted p-3 shadow-editorial">
+            <Button
+              type="button"
+              id="platform-primary-generate"
+              disabled={!canGenerate}
+              onClick={() => void handleGenerate(null)}
+            >
+              {generating || previewing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
+              {generating
+                ? t("shell.creative.generating")
+                : t("shell.creative.generateVideo")}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canPreview}
+              onClick={() => void handlePreview()}
+            >
+              {previewing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t("shell.creative.previewPlan")}
+            </Button>
+            <p className="text-meta text-muted-foreground">{platformCopy.generateHint}</p>
+          </div>
         ) : null}
 
         <div>
@@ -480,7 +530,7 @@ export function UnifiedCreativeInput({
               </Button>
             ) : null}
           </div>
-        ) : (
+        ) : userType !== "platform" ? (
           <div className="flex flex-wrap items-center gap-3">
             <Button
               type="button"
@@ -495,20 +545,16 @@ export function UnifiedCreativeInput({
               )}
               {t("shell.creative.previewPlan")}
             </Button>
-            {plan && planRequestKey === requestFingerprint() ? (
-              <Button
-                type="button"
-                disabled={!canGenerate}
-                onClick={() => void handleGenerate(plan)}
-              >
-                {generating ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : null}
-                {t("shell.creative.generateVideo")}
-              </Button>
-            ) : null}
+            <Button
+              type="button"
+              disabled={!canGenerate}
+              onClick={() => void handleGenerate(plan)}
+            >
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              {t("shell.creative.generateVideo")}
+            </Button>
           </div>
-        )}
+        ) : null}
         </CardContent>
       </Card>
 

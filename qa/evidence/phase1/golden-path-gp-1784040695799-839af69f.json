@@ -1,0 +1,185 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/23.11.0/bin/node",
+      "/Users/evan/Documents/ReelForge/node_modules/.bin/playwright",
+      "test",
+      "--config=playwright.golden-path.config.ts"
+    ],
+    "configFile": "/Users/evan/Documents/ReelForge/playwright.golden-path.config.ts",
+    "rootDir": "/Users/evan/Documents/ReelForge/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": true,
+    "fullyParallel": false,
+    "globalSetup": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-setup.ts",
+    "globalTeardown": "/Users/evan/Documents/ReelForge/e2e/golden-path-global-teardown.ts",
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784040695799-839af69f",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "",
+        "name": "",
+        "testDir": "/Users/evan/Documents/ReelForge/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "/golden-path\\.spec\\.ts/"
+        ],
+        "timeout": 120000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "line",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "qa/evidence/phase1/golden-path-gp-1784040695799-839af69f.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run start -- -p 3120",
+      "url": "http://localhost:3120",
+      "reuseExistingServer": false,
+      "timeout": 120000
+    }
+  },
+  "suites": [
+    {
+      "title": "golden-path.spec.ts",
+      "file": "golden-path.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "golden path: register, login, create, mock complete, preview, and download",
+          "ok": false,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "",
+              "projectName": "",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 4815,
+                  "error": {
+                    "message": "Error: login transition must have zero blank viewport frames\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m18\u001b[39m",
+                    "stack": "Error: login transition must have zero blank viewport frames\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m18\u001b[39m\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:123:94\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:73:3",
+                    "location": {
+                      "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                      "column": 94,
+                      "line": 123
+                    },
+                    "snippet": "  121 |     expect(continuity, \"auth-transition-continuity sampler must survive client navigation\").not.toBeNull();\n  122 |     expect(continuity?.samples).toBeGreaterThan(0);\n> 123 |     expect(continuity?.blankFrames, \"login transition must have zero blank viewport frames\").toBe(0);\n      |                                                                                              ^\n  124 |     await testInfo.attach(\"auth-transition-continuity\", {\n  125 |       body: Buffer.from(JSON.stringify(continuity, null, 2)),\n  126 |       contentType: \"application/json\","
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                        "column": 94,
+                        "line": 123
+                      },
+                      "message": "Error: login transition must have zero blank viewport frames\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m18\u001b[39m\n\n  121 |     expect(continuity, \"auth-transition-continuity sampler must survive client navigation\").not.toBeNull();\n  122 |     expect(continuity?.samples).toBeGreaterThan(0);\n> 123 |     expect(continuity?.blankFrames, \"login transition must have zero blank viewport frames\").toBe(0);\n      |                                                                                              ^\n  124 |     await testInfo.attach(\"auth-transition-continuity\", {\n  125 |       body: Buffer.from(JSON.stringify(continuity, null, 2)),\n  126 |       contentType: \"application/json\",\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:123:94\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:73:3"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "steps": [
+                    {
+                      "title": "register and arrive naturally in the workspace",
+                      "duration": 3300
+                    },
+                    {
+                      "title": "sign out and sign back in without a cookie bridge",
+                      "duration": 1245,
+                      "error": {
+                        "message": "Error: login transition must have zero blank viewport frames\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m18\u001b[39m",
+                        "stack": "Error: login transition must have zero blank viewport frames\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m0\u001b[39m\nReceived: \u001b[31m18\u001b[39m\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:123:94\n    at /Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts:73:3",
+                        "location": {
+                          "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                          "column": 94,
+                          "line": 123
+                        },
+                        "snippet": "  121 |     expect(continuity, \"auth-transition-continuity sampler must survive client navigation\").not.toBeNull();\n  122 |     expect(continuity?.samples).toBeGreaterThan(0);\n> 123 |     expect(continuity?.blankFrames, \"login transition must have zero blank viewport frames\").toBe(0);\n      |                                                                                              ^\n  124 |     await testInfo.attach(\"auth-transition-continuity\", {\n  125 |       body: Buffer.from(JSON.stringify(continuity, null, 2)),\n  126 |       contentType: \"application/json\","
+                      }
+                    }
+                  ],
+                  "startTime": "2026-07-14T14:51:37.594Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "screenshot",
+                      "contentType": "image/png",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784040695799-839af69f/golden-path-golden-path-re-0269f-mplete-preview-and-download/test-failed-1.png"
+                    },
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784040695799-839af69f/golden-path-golden-path-re-0269f-mplete-preview-and-download/error-context.md"
+                    },
+                    {
+                      "name": "trace",
+                      "contentType": "application/zip",
+                      "path": "/Users/evan/Documents/ReelForge/test-results/golden-path/gp-1784040695799-839af69f/golden-path-golden-path-re-0269f-mplete-preview-and-download/trace.zip"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/evan/Documents/ReelForge/e2e/golden-path.spec.ts",
+                    "column": 94,
+                    "line": 123
+                  }
+                }
+              ],
+              "status": "unexpected"
+            }
+          ],
+          "id": "d6dd496e245cb9874cb8-197153a49bc4ff37fc0f",
+          "file": "golden-path.spec.ts",
+          "line": 26,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-07-14T14:51:35.800Z",
+    "duration": 7917.323,
+    "expected": 0,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  }
+}

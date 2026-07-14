@@ -1,6 +1,6 @@
 # ReelForge Ship Defect Ledger
 
-- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair working tree
+- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair `c337bc7`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: H2-A merged-tree re-baseline in progress
 - Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 21 · P1 OPEN 0 · P1 FIXED 2 · P1 VERIFIED 13 · P2 OPEN 0 · P3 OPEN 0**
@@ -478,7 +478,7 @@
 - Repair: the authenticated mobile shell now exposes the same locale control as desktop; batch creation and monitoring translate persisted template/category/status values and replace upstream-language error bodies with locale-owned recovery copy. Privacy, terms, and persona pages now read the persisted locale for metadata and body copy and expose a visible switcher.
 - Verification: 16/16 focused Agent/locale/public/platform journey tests, TypeScript, focused ESLint, optimized production build, and diff check pass. The human explicitly paused further broad simulation before internal operations testing, so this item is not promoted to VERIFIED on pre-repair golden evidence.
 - Evidence: H2 merge audit on 2026-07-14; `tests/phase34/locale-switch.spec.ts`.
-- Repair commit: pending.
+- Repair commit: `c337bc7`
 
 ### RF-038 — Agent conversation grows the page and hides the primary generation action
 
@@ -491,7 +491,7 @@
 - Repair: the Agent card now has a viewport-bounded desktop height, independent asset/transcript scrolling, pinned-versus-detached auto-scroll, a jump-to-latest control, a fixed composer, compact message/panel density, and a horizontal recommendation rail. The production form always renders one primary Generate action and performs the existing quality-plan check automatically before dispatch; Preview remains optional.
 - Verification: focused source regression 3/3, related journey/locale tests 16/16, TypeScript, focused ESLint, optimized production build, and browser run `phase34-1784065559900-a0eb3437` 2/2 with rehearsal teardown exit 0. No real provider or paid operation was invoked.
 - Evidence: `tests/phase34/agent-chat-ux.spec.ts`; `qa/evidence/h2/open-source-ux-research.md`.
-- Repair commit: pending.
+- Repair commit: `c337bc7`
 
 ## Seed hypotheses not opened as defects
 

@@ -1,7 +1,7 @@
 # ReelForge Release Gate
 
 - Gate owner: human release approver
-- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair working tree
+- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair `c337bc7`
 - Current stage: H2-A merged-tree re-baseline
 - Current verdict: **NOT RELEASE-READY — RF-019 blocks ordinary production migration deploy; RF-005 lacks production cadence evidence; the human paused broad post-UX regression for internal operations testing**
 

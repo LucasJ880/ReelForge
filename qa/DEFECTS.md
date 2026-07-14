@@ -37,7 +37,7 @@
 - Repair: all eight cron/runner endpoints now call one constant-time, fail-closed guard before feature checks, body parsing, database access, or service invocation. Missing configuration returns sanitized 503; absent/wrong bearer returns 401.
 - Verification: before repair, missing secret reached Prisma and sealed digital-human routes returned 404 before checking wrong credentials. After repair, all 16 missing/wrong endpoint cases pass, along with digital-human sealed tests, stitch runtime tests, typecheck, lint, optimized build, and golden run `gp-1784001858660-004e8b31`.
 - Evidence: `qa/evidence/phase2/iteration-2.2-machine-auth.md`.
-- Repair commit: pending Phase 2 iteration commit
+- Repair commit: `7bf8372`
 
 ### RF-003 — Ambiguous provider failures can resubmit and duplicate billable work
 

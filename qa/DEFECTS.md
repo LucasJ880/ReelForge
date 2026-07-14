@@ -192,7 +192,7 @@
 - Repair: derive a deterministic, run-unique RFC 3849 documentation IPv6 address and send it through the rehearsal browser context; explicitly label that server as `VERCEL_ENV=preview`. Production rate-limit code and assertions are unchanged.
 - Regression: `tests/golden-path-network-identity.test.ts` proves stable-per-run and distinct-between-run identities. The next independent golden run `gp-1784001316316-a8fd60a5` completed register → generate → preview → download with no retry.
 - Evidence: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
-- Repair commit: pending Phase 2 iteration commit
+- Repair commit: `825efe9`
 
 ## Seed hypotheses not opened as defects
 

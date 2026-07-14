@@ -1,7 +1,7 @@
 # ReelForge Release Gate
 
 - Gate owner: human release approver
-- Audit revision: Phase 1 implementation `e863c8e`
+- Audit revision: Phase 2 iteration `825efe9`
 - Current stage: Phase 2 backend hardening in progress
 - Current verdict: **NOT RELEASE-READY — 6 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
 

@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 0 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 12 · P1 OPEN 0 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -253,6 +253,18 @@
 - Planned repair: one-time observed-state bootstrap and rollback protocol in `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`. Migration folders cannot simply be renamed because the rehearsal branch already records their existing names; long-term migration-history reconciliation remains follow-up work.
 - Evidence: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
 - Repair commit: —
+
+### RF-020 — Phase 3 route-state bundle regressed login transition continuity
+
+- Severity: **P0 — golden-path continuity regression**
+- Status: **VERIFIED — offending iteration rolled back**
+- Reproduction: after the uncommitted Phase 3 all-route boundary/matrix iteration passed its 33×3 route scan and 12-test browser suite, run `npm run test:golden-path`. Run `gp-1784040695799-839af69f` observed 18 full-viewport frames without an accepted auth/loading/Studio surface during login → `/app/create`.
+- Root-cause boundary: the iteration introduced new route-group loading/error surfaces, including an auth loading surface, plus route-audit fixes. The constitution required immediate whole-iteration rollback, so no speculative sub-change was retained or isolated. The prior committed RF-009 code itself was unchanged.
+- Impact: retaining the iteration would reopen the exact first-run blank-frame defect RF-009 locked down.
+- Repair: removed every uncommitted Phase 3 product/test/generated-output change as one atomic rollback; preserved only the failed-run evidence. No assertion, threshold, test, or production configuration changed.
+- Verification: rollback run `gp-1784040809734-ab04b4a7` passes the full golden journey with the original zero-blank-frame assertion. Working tree returned to the last committed Phase 3/4 baseline apart from the pre-existing external `qa/ITERATION_LOG.md` truncation and the two golden evidence runs.
+- Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`, `qa/evidence/phase1/golden-path-gp-1784040695799-839af69f.json`, `qa/evidence/phase1/golden-path-gp-1784040809734-ab04b4a7.json`.
+- Repair commit: rollback contained no product commit; evidence commit recorded separately.
 
 ## Seed hypotheses not opened as defects
 

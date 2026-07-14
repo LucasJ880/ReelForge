@@ -56,3 +56,15 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-008 `OPEN → VERIFIED`; repair commit `0929fbb`.
 - Evidence: `qa/evidence/phase34/iteration-3.5-rf008-role-persona-authority.md`.
 - New dependencies: none.
+
+## Iteration 3.6 — RF-020 immediate rollback of Phase 3 route bundle
+
+- Date: 2026-07-14
+- Defect: RF-020 (P0, golden-path regression)
+- Attempt: a single uncommitted B-stage bundle added inherited route boundaries, a 33×3 route matrix, a real seeded batch detail, and two route fixes found by that matrix. The focused browser suite reached 12/12.
+- Failure: mandatory golden `gp-1784040695799-839af69f` failed RF-009 continuity with 18 blank frames. Assertions remained unchanged.
+- Required response: immediately rolled back every file and generated artifact from the B-stage bundle; no partial fix was retained.
+- Rollback verification: golden `gp-1784040809734-ab04b4a7` passed the full journey and restored the invariant.
+- Ledger: RF-020 opened as P0 and moved to VERIFIED by atomic rollback. Future B work must be split so auth loading/error surfaces are introduced and golden-checked independently before the 33-route matrix.
+- Evidence: `qa/evidence/phase34/iteration-3.6-rf020-route-bundle-rollback.md`.
+- New dependencies: none.

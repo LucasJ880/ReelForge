@@ -32,6 +32,7 @@ import {
   uploadBlobWithProgress,
 } from "@/lib/upload/blob-xhr";
 import { useTranslation } from "@/i18n";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
@@ -86,6 +87,13 @@ function formatEstimate(seconds: number, english: boolean): string {
     : `约 ${Math.ceil(seconds / 60)} 分钟`;
 }
 
+function categoryLabel(
+  category: string,
+  categories: Readonly<Record<string, string>>,
+): string {
+  return categories[category] ?? category;
+}
+
 export function BatchCreateWizard({
   batchDetailsBasePath = "/batches",
   initialTemplateId,
@@ -98,6 +106,9 @@ export function BatchCreateWizard({
   const router = useRouter();
   const { locale } = useTranslation();
   const english = locale === "en-US";
+  const templateCopy = getPlatformCopy(locale).templates;
+  const templateCategoryCopy: Readonly<Record<string, string>> =
+    templateCopy.categories;
   const steps = english
     ? ["Upload assets", "Choose style", "Set quantity", "Review"]
     : ["上传素材", "选择风格", "生成数量", "确认提交"];
@@ -148,8 +159,7 @@ export function BatchCreateWizard({
           setRecoveryAction(payload.action ?? "retry");
           setErrorSource("templates");
           throw new Error(
-            payload.error ??
-              (english ? "Failed to load style templates" : "风格模板加载失败"),
+            english ? "Failed to load style templates" : "风格模板加载失败",
           );
         }
         return { templates: payload.templates };
@@ -187,9 +197,9 @@ export function BatchCreateWizard({
     const normalized = templateQuery.trim().toLocaleLowerCase();
     return templates.filter((template) =>
       (templateCategory === "__all__" || template.category === templateCategory) &&
-      (!normalized || `${template.name} ${template.nameZh} ${template.category}`.toLocaleLowerCase().includes(normalized)),
+      (!normalized || `${template.name} ${template.nameZh} ${template.category} ${categoryLabel(template.category, templateCategoryCopy)}`.toLocaleLowerCase().includes(normalized)),
     );
-  }, [templateCategory, templateQuery, templates]);
+  }, [templateCategory, templateCategoryCopy, templateQuery, templates]);
   const uploaded = uploads.filter((item) => item.status === "uploaded");
   const hasPendingUploads = uploads.some(
     (item) => item.status === "queued" || item.status === "uploading",
@@ -342,7 +352,7 @@ export function BatchCreateWizard({
       };
       if (!response.ok || !data.batch) {
         setRecoveryAction(data.action ?? "retry");
-        throw new Error(data.error ?? (english ? "Failed to create batch" : "创建批次失败"));
+        throw new Error(english ? "Failed to create batch" : "创建批次失败");
       }
       router.push(`${batchDetailsBasePath}/${data.batch.id}`);
       toast.success(english ? "Batch created. Opening monitor…" : "批次已创建，正在跳转监控页");
@@ -590,7 +600,9 @@ export function BatchCreateWizard({
                   >
                     {templateCategories.map((category) => (
                       <option key={category} value={category}>
-                        {category === "__all__" ? (english ? "All categories" : "全部分类") : category}
+                        {category === "__all__"
+                          ? templateCopy.all
+                          : categoryLabel(category, templateCategoryCopy)}
                       </option>
                     ))}
                   </select>
@@ -629,7 +641,7 @@ export function BatchCreateWizard({
                             <span className="shrink-0 font-mono text-[11px] text-muted-foreground">v{template.version}</span>
                           </span>
                           <span className="mt-1 block truncate text-xs text-muted-foreground">
-                            {template.category} · {english ? "uses" : "每条"} {template.imagesPerVideo.min}
+                            {categoryLabel(template.category, templateCategoryCopy)} · {english ? "uses" : "每条"} {template.imagesPerVideo.min}
                             {template.imagesPerVideo.max !== template.imagesPerVideo.min && `-${template.imagesPerVideo.max}`} {english ? "images" : "张"}
                           </span>
                         </span>
@@ -662,7 +674,7 @@ export function BatchCreateWizard({
                   )}
                   <div>
                     <p className="font-heading text-base font-semibold text-foreground">{english ? selectedTemplate.name : selectedTemplate.nameZh}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{selectedTemplate.category} · v{selectedTemplate.version}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{categoryLabel(selectedTemplate.category, templateCategoryCopy)} · v{selectedTemplate.version}</p>
                   </div>
                   <dl className="grid grid-cols-2 gap-3 border-y border-border py-3 text-xs">
                     <div>

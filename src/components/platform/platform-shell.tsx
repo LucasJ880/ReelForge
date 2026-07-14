@@ -57,7 +57,7 @@ function Nav({
   return (
     <nav
       aria-label={t(mobile ? "shell.platformShell.mobileNav" : "shell.platformShell.primaryNav")}
-      className={mobile ? "grid h-16 grid-cols-5 border-t border-border bg-card" : "flex flex-1 flex-col gap-1 px-3 py-6"}
+      className={mobile ? "grid h-16 grid-cols-5 border-t border-border bg-card" : "flex flex-1 flex-col gap-0.5 px-3 py-4"}
     >
       {PLATFORM_PRIMARY_NAV.map((item) => {
         const Icon = ICONS[item.id];
@@ -77,7 +77,7 @@ function Nav({
             className={cn(
               mobile
                 ? "relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-meta font-medium"
-                : "group flex h-10 items-center gap-3 rounded-(--radius-md) px-3 text-meta font-medium transition-colors",
+                : "group flex h-9 items-center gap-3 rounded-(--radius-md) px-3 text-meta font-medium transition-colors",
               active
                 ? "bg-accent-soft text-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -128,11 +128,11 @@ export function PlatformShell({
   const platformCopy = getPlatformCopy(locale).shell;
   return (
     <div className="studio-theme studio-canvas relative z-10 flex min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-border bg-card md:flex">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-border bg-card md:flex">
         <Link
           href="/app/create"
           prefetch={false}
-          className="flex h-[72px] items-center gap-3 border-b border-border px-5"
+          className="flex h-16 items-center gap-3 border-b border-border px-4"
           aria-label={platformCopy.home}
         >
           <Logo size={40} />
@@ -168,12 +168,18 @@ export function PlatformShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col pb-16 md:ml-60 md:pb-0">
-        <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border bg-card px-4 md:px-6">
+      <div className="flex min-w-0 flex-1 flex-col pb-16 md:ml-56 md:pb-0">
+        <header className="sticky top-0 z-20 flex h-12 items-center gap-3 border-b border-border bg-card px-4 md:px-5">
           <Link href="/app/create" prefetch={false} className="flex shrink-0 items-center gap-3 md:hidden" aria-label={platformCopy.home}>
             <Logo size={32} />
             <span className="hidden font-heading text-subhead font-semibold sm:inline">Aivora</span>
           </Link>
+          <div className="shrink-0 md:hidden" data-mobile-language-switcher>
+            <LanguageSwitcher
+              variant="inline"
+              className="size-9 justify-center gap-0 p-0 [&>span]:sr-only"
+            />
+          </div>
           <button
             type="button"
             className="hidden h-9 max-w-56 items-center gap-2 rounded-(--radius-md) border border-border bg-secondary px-3 text-meta text-foreground md:flex"

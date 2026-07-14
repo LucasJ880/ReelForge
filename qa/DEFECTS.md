@@ -1,9 +1,9 @@
 # ReelForge Ship Defect Ledger
 
-- Audit revision: H1 product/test revision `e7dfea3`
+- Audit revision: H2 merge `b15743b` + RF-037/RF-038 repair working tree
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: H2-A merged-tree re-baseline in progress
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 21 · P1 OPEN 0 · P1 VERIFIED 13 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 21 · P1 OPEN 0 · P1 FIXED 2 · P1 VERIFIED 13 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -466,6 +466,32 @@
 - Verification: design-system audit 3/3 and optimized build pass; focused Final Acceptance mobile P6 2/2 (`fa-1784046862464-cbce87da`), J8 2/2 (`fa-1784046907181-1ef340f2`), and J2 2/2 (`fa-1784047003719-ac2aed1c`) pass with unchanged assertions; golden `gp-1784047054103-01af2a53` passes.
 - Evidence: `qa/evidence/phase34/iteration-3.20-rf026-font-network-budget.md`.
 - Repair commit: `60ab8ea`
+
+### RF-037 — Locale switch does not cover the complete customer journey
+
+- Severity: **P1 — customer-visible language continuity defect**
+- Status: **FIXED — focused regression is green; merged golden remains intentionally deferred**
+- Reproduction: switch the authenticated Studio to English, then open batch creation/detail and the public privacy, terms, and persona routes; repeat at a 390px viewport. The desktop shell headings switch, but mobile Studio has no visible locale control, batch surfaces can expose Chinese template/category/error fields, and public legal/persona pages remain English-only or mixed-language.
+- Root cause: RF-013 locked a narrow set of operational labels at source level but never exercised a real locale click across client and RSC boundaries. Several customer components still consume untranslated database/API display fields, while public routes own hard-coded copy and the mobile shell omits `LanguageSwitcher`.
+- Impact: a customer can select English or Chinese and immediately encounter a different language on the next production, review, or legal step; mobile customers cannot correct the locale at all.
+- Required regression: browser tests must perform the real switch, prove cookie/localStorage/`html[lang]` persistence across auth, Studio, batch, library, and public routes, and prove a visible 390px control. Customer error rendering must select localized recovery copy from machine codes rather than echo an upstream-language message.
+- Repair: the authenticated mobile shell now exposes the same locale control as desktop; batch creation and monitoring translate persisted template/category/status values and replace upstream-language error bodies with locale-owned recovery copy. Privacy, terms, and persona pages now read the persisted locale for metadata and body copy and expose a visible switcher.
+- Verification: 16/16 focused Agent/locale/public/platform journey tests, TypeScript, focused ESLint, optimized production build, and diff check pass. The human explicitly paused further broad simulation before internal operations testing, so this item is not promoted to VERIFIED on pre-repair golden evidence.
+- Evidence: H2 merge audit on 2026-07-14; `tests/phase34/locale-switch.spec.ts`.
+- Repair commit: pending.
+
+### RF-038 — Agent conversation grows the page and hides the primary generation action
+
+- Severity: **P1 — customer-visible creation UX blocker**
+- Status: **FIXED — focused browser regression is green; internal operator feedback pending**
+- Reproduction: continue the Agent conversation on `/app/create`. The transcript has `overflow-y-auto` but no bounded ancestor, so each reply increases the whole page height; the composer moves away, and the actual generation button does not exist in the DOM until a separate plan preview succeeds.
+- Root cause: `min-height + flex: 1` was used without a constrained parent; auto-scroll was unconditional and success-only; the production CTA was conditionally mounted behind `plan != null` at the bottom of a long form.
+- Impact: users lose conversational context, must chase the composer down the page, and can reasonably conclude that generation is unavailable.
+- Required regression: at 1440px, a long mocked conversation must produce `scrollHeight > clientHeight` inside the transcript while the composer remains fixed; manual upward scrolling exposes a jump-to-latest action; exactly one primary generation control remains visible and available without a prior preview.
+- Repair: the Agent card now has a viewport-bounded desktop height, independent asset/transcript scrolling, pinned-versus-detached auto-scroll, a jump-to-latest control, a fixed composer, compact message/panel density, and a horizontal recommendation rail. The production form always renders one primary Generate action and performs the existing quality-plan check automatically before dispatch; Preview remains optional.
+- Verification: focused source regression 3/3, related journey/locale tests 16/16, TypeScript, focused ESLint, optimized production build, and browser run `phase34-1784065559900-a0eb3437` 2/2 with rehearsal teardown exit 0. No real provider or paid operation was invoked.
+- Evidence: `tests/phase34/agent-chat-ux.spec.ts`; `qa/evidence/h2/open-source-ux-research.md`.
+- Repair commit: pending.
 
 ## Seed hypotheses not opened as defects
 

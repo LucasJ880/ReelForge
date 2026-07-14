@@ -53,6 +53,11 @@
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --control-height: 40px;
+  --control-padding-inline: 16px;
+  --card-padding-x: 24px;
+  --card-padding-y: 24px;
+  --card-gap: 16px;
 
   --font-body-family: var(--font-inter), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
   --font-display-family: var(--font-instrument-serif), "Songti SC", STSong, "Noto Serif CJK SC", Georgia, serif;
@@ -138,13 +143,26 @@
   --font-display-family: var(--font-space-grotesk), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
   --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 11px;
-  --font-size-body: 14px;
-  --font-size-subhead: 18px;
-  --font-size-title: 24px;
-  --font-size-section: 36px;
-  --text-display: clamp(32px, 4vw, 40px);
-  --leading-body: 1.55;
+  --font-size-body: 13px;
+  --font-size-subhead: 16px;
+  --font-size-title: 20px;
+  --font-size-section: 28px;
+  --text-display: clamp(28px, 3vw, 34px);
+  --leading-body: 1.48;
   --leading-display: 1.08;
+
+  --content-max-width: 82rem;
+  --control-height: 36px;
+  --control-padding-inline: 12px;
+  --card-padding-x: 18px;
+  --card-padding-y: 18px;
+  --card-gap: 12px;
+  --space-5: 16px;
+  --space-6: 20px;
+  --space-8: 24px;
+  --space-10: 32px;
+  --space-12: 36px;
+  --space-16: 48px;
 
   --background: var(--bg);
   --foreground: var(--text-primary);

@@ -32,6 +32,7 @@ import { KpiCard } from "@/components/editorial/kpi-card";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { toast } from "sonner";
 import { useTranslation } from "@/i18n";
+import { getPlatformCopy } from "@/i18n/platform-copy";
 import type { CustomerGenerationError } from "@/lib/api/customer-generation-error";
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
@@ -74,6 +75,7 @@ export interface BatchMonitorData {
   cancelledCount: number;
   statusReason: string | null;
   template: {
+    name: string;
     nameZh: string;
     version: number;
   };
@@ -123,6 +125,26 @@ function batchStatusVariant(
   return "secondary";
 }
 
+type BatchFailureCopy = ReturnType<
+  typeof getPlatformCopy
+>["batches"]["monitor"]["failures"];
+
+function jobFailureSummary(
+  job: BatchMonitorJob,
+  copy: BatchFailureCopy,
+): string {
+  switch (job.error?.code) {
+    case "ASSET_MISSING":
+      return copy.assetMissing;
+    case "PROVIDER_TIMEOUT":
+      return copy.providerTimeout;
+    case "SUBMISSION_ACK_UNKNOWN":
+      return copy.acknowledgementUnknown;
+    default:
+      return copy.providerError;
+  }
+}
+
 export function BatchMonitor({
   initialBatch,
 }: {
@@ -130,12 +152,10 @@ export function BatchMonitor({
 }) {
   const { locale } = useTranslation();
   const english = locale === "en-US";
-  const jobLabels: Record<BatchMonitorJob["status"], string> = english
-    ? { QUEUED: "Queued", PAUSED: "Paused", RUNNING: "Generating", SUCCEEDED: "Completed", FAILED: "Failed", CANCELLED: "Cancelled" }
-    : { QUEUED: "排队中", PAUSED: "已暂停", RUNNING: "生成中", SUCCEEDED: "已完成", FAILED: "失败", CANCELLED: "已取消" };
-  const batchLabels: Record<BatchMonitorData["status"], string> = english
-    ? { EXPANDING: "Preparing", RUNNING: "Generating", PAUSED: "Paused", COMPLETED: "Completed", PARTIAL_FAILED: "Partially failed", FAILED: "Failed", CANCELLED: "Cancelled" }
-    : { EXPANDING: "正在展开", RUNNING: "生成中", PAUSED: "已暂停", COMPLETED: "已完成", PARTIAL_FAILED: "部分失败", FAILED: "失败", CANCELLED: "已取消" };
+  const batchCopy = getPlatformCopy(locale).batches;
+  const monitorCopy = batchCopy.monitor;
+  const jobLabels = monitorCopy.jobStatuses;
+  const batchLabels = batchCopy.statuses;
   const [batch, setBatch] = useState(initialBatch);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -156,10 +176,10 @@ export function BatchMonitor({
     if (!response.ok || !data.batch) {
       const failure = data as typeof data & { action?: CustomerRecoveryAction };
       setErrorAction(failure.action ?? "retry");
-      throw new Error(data.error ?? (english ? "Failed to refresh batch status" : "批次状态刷新失败"));
+      throw new Error(monitorCopy.refreshFailed);
     }
     setBatch(data.batch);
-  }, [english, initialBatch.id]);
+  }, [initialBatch.id, monitorCopy.refreshFailed]);
 
   // INV-B7：整页唯一轮询器。所有卡片仅消费 batch.videoJobs，不自行 fetch。
   useEffect(() => {
@@ -215,10 +235,10 @@ export function BatchMonitor({
       };
       if (!response.ok || !data.batch) {
         setErrorAction(data.action ?? "retry");
-        throw new Error(data.error ?? (english ? "Action failed" : "操作失败"));
+        throw new Error(monitorCopy.actionFailed);
       }
       setBatch(data.batch);
-      toast.success(english ? "Batch status updated" : "批次状态已更新");
+      toast.success(monitorCopy.statusUpdated);
     } catch (reason) {
       const message = (reason as Error).message;
       setError(message);
@@ -277,7 +297,7 @@ export function BatchMonitor({
             <div className="min-w-0 space-y-3">
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                 <p className="studio-label text-muted-foreground">
-                  Batch monitor
+                  {monitorCopy.kicker}
                 </p>
                 <Badge variant={batchStatusVariant(batch.status)}>
                   {batchLabels[batch.status]}
@@ -285,10 +305,10 @@ export function BatchMonitor({
               </div>
               <div className="space-y-2">
                 <h1 className="editorial-display wrap-break-word">
-                  {batch.template.nameZh}
+                  {english ? batch.template.name : batch.template.nameZh}
                 </h1>
                 <CardDescription className="break-all font-mono tabular-nums">
-                  {english ? "Batch" : "批次"} {batch.id} · {english ? "Template version" : "模板版本"} v{batch.template.version}
+                  {monitorCopy.batch} {batch.id} · {monitorCopy.templateVersion} v{batch.template.version}
                 </CardDescription>
               </div>
             </div>
@@ -314,7 +334,7 @@ export function BatchMonitor({
                   ) : (
                     <RefreshCw aria-hidden />
                   )}
-                  {english ? "Retry recoverable" : "重试可恢复任务"} ({retryableFailedJobs.length})
+                  {monitorCopy.retryRecoverable} ({retryableFailedJobs.length})
                 </Button>
               )}
               {batch.queuedCount + batch.pausedCount > 0 && (
@@ -330,7 +350,7 @@ export function BatchMonitor({
                     )
                   }
                 >
-                  {english ? "Cancel unstarted" : "取消未开始"}
+                  {monitorCopy.cancelUnstarted}
                 </Button>
               )}
             </div>
@@ -342,29 +362,24 @@ export function BatchMonitor({
                 className="mt-0.5 size-4 shrink-0 text-warning"
                 aria-hidden
               />
-              <span>
-                {english
-                  ? `Generation is temporarily congested. ${batch.pausedCount} items are safely paused and will resume when the circuit breaker recovers. `
-                  : `生成服务暂时拥堵，剩余 ${batch.pausedCount} 条已安全暂停。熔断恢复后会自动续跑。`}
-                {batch.statusReason}
-              </span>
+              <span>{monitorCopy.paused.replace("{count}", String(batch.pausedCount))}</span>
             </div>
           )}
         </CardHeader>
 
         <CardContent className="space-y-6">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <KpiCard label={english ? "Total" : "总数"} value={batch.requestedCount} />
-            <KpiCard label={english ? "Completed" : "完成"} value={batch.completedCount} />
-            <KpiCard label={english ? "Running" : "进行中"} value={batch.runningCount} />
+            <KpiCard label={monitorCopy.total} value={batch.requestedCount} />
+            <KpiCard label={monitorCopy.completed} value={batch.completedCount} />
+            <KpiCard label={monitorCopy.running} value={batch.runningCount} />
             <KpiCard
-              label={english ? "Queued / paused" : "排队/暂停"}
+              label={monitorCopy.queuedPaused}
               value={batch.queuedCount + batch.pausedCount}
             />
-            <KpiCard label={english ? "Failed" : "失败"} value={batch.failedCount} />
+            <KpiCard label={monitorCopy.failed} value={batch.failedCount} />
           </div>
           <KpiCard
-            label={english ? "Batch progress" : "批次总进度"}
+            label={monitorCopy.progress}
             value={`${totalProgress}%`}
             progress={totalProgress}
           />
@@ -383,7 +398,7 @@ export function BatchMonitor({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-meta text-muted-foreground">
-          {english ? "Virtualized view renders only visible rows" : "虚拟列表仅渲染可视区域"} · {english ? "Currently" : "当前"} <span className="font-mono tabular-nums">{batch.videoJobs.length}</span> {english ? "items" : "条"}
+          {monitorCopy.virtualized} · {monitorCopy.currently} <span className="font-mono tabular-nums">{batch.videoJobs.length}</span> {monitorCopy.items}
         </p>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <Button
@@ -394,8 +409,8 @@ export function BatchMonitor({
           >
             {completedJobs.every((job) => selected.has(job.id)) &&
             completedJobs.length > 0
-              ? (english ? "Clear selection" : "取消全选")
-              : (english ? "Select completed" : "全选已完成")}
+              ? monitorCopy.clearSelection
+              : monitorCopy.selectCompleted}
           </Button>
           <Button
             type="button"
@@ -404,7 +419,7 @@ export function BatchMonitor({
             onClick={downloadSelected}
           >
             <Download aria-hidden />
-            {english ? "Download selected" : "下载所选"} ({selected.size})
+            {monitorCopy.downloadSelected} ({selected.size})
           </Button>
         </div>
       </div>
@@ -412,7 +427,7 @@ export function BatchMonitor({
       <div
         ref={viewportRef}
         role="region"
-        aria-label={english ? "Batch video jobs" : "批次视频任务列表"}
+        aria-label={monitorCopy.jobsLabel}
         tabIndex={0}
         className="h-[min(720px,70vh)] min-w-0 overflow-auto rounded-(--radius-lg) border border-border bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         data-virtualized="true"
@@ -483,20 +498,20 @@ export function BatchMonitor({
                   )}
                 </button>
                 <div className="w-40 min-w-0 shrink-0">
-                  <p className="truncate font-mono text-meta font-semibold text-foreground">{english ? "Video" : "视频"} #{(job.batchIndex ?? 0) + 1}</p>
+                  <p className="truncate font-mono text-meta font-semibold text-foreground">{monitorCopy.video} #{(job.batchIndex ?? 0) + 1}</p>
                   <p className="truncate font-mono text-meta text-muted-foreground" title={job.id}>{job.id}</p>
                 </div>
                 <Badge variant={jobStatusVariant(job.status)} className="w-20">{jobLabels[job.status]}</Badge>
                 <div className="min-w-32 flex-1">
                   {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
-                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{job.error?.message ?? job.userSafeError ?? (english ? "Generation failed" : "生成失败")}</p> : null}
-                  {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{english ? "Ready to play and download" : "可播放与下载"}</p> : null}
-                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{english ? "Cancelled before generation" : "已在生成前取消"}</p> : null}
+                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures)}</p> : null}
+                  {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{monitorCopy.ready}</p> : null}
+                  {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{monitorCopy.cancelled}</p> : null}
                 </div>
-                <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} {english ? "retries" : "次重试"}</p>
+                <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} {monitorCopy.retryCount}</p>
                 {job.status === "FAILED" && job.error?.retryable ? (
                   <Button type="button" variant="outline" size="xs" disabled={busy != null} onClick={() => void action(`retry-${job.id}`, `/api/batches/${batch.id}/jobs/${job.id}/retry`)}>
-                    {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}{english ? "Retry" : "重试"}
+                    {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}{monitorCopy.retry}
                   </Button>
                 ) : job.status === "FAILED" && job.error ? (
                   <Button
@@ -505,7 +520,7 @@ export function BatchMonitor({
                     size="xs"
                     onClick={() => setDetailJob(job)}
                   >
-                    {english ? "Next step" : "处置说明"}
+                    {monitorCopy.nextStep}
                   </Button>
                 ) : <span className="w-[72px]" aria-hidden />}
               </div>
@@ -524,14 +539,12 @@ export function BatchMonitor({
           {detailJob ? (
             <>
               <SheetHeader>
-                <SheetTitle>{english ? "Video" : "视频"} #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
+                <SheetTitle>{monitorCopy.video} #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
                 <SheetDescription>
                   {jobLabels[detailJob.status]}
-                  {detailJob.error?.message
-                    ? ` · ${detailJob.error.message}`
-                    : detailJob.userSafeError
-                      ? ` · ${detailJob.userSafeError}`
-                      : ""}
+                  {detailJob.status === "FAILED"
+                    ? ` · ${jobFailureSummary(detailJob, monitorCopy.failures)}`
+                    : ""}
                 </SheetDescription>
               </SheetHeader>
               <div className="space-y-4 px-6 pb-6">
@@ -572,7 +585,7 @@ export function BatchMonitor({
                     }
                   >
                     <RefreshCw aria-hidden />
-                    {english ? "Retry video" : "单条重试"}
+                    {monitorCopy.retryVideo}
                   </Button>
                 )}
               </div>

@@ -24,3 +24,21 @@
 - Initial verification: focused merge suite 52/52, typecheck, focused lint, and diff check pass. Full merged-tree evidence begins only after the merge commit.
 - Failed diagnostic preserved: the first focused run was 51/52 because the RF-012 test expected the old local variable/ternary source shape; the second exposed its remaining ternary assertion. Both failures led only to the documented semantic test correction.
 - Scope guard: 0 real provider calls, 0 paid operations, 0 production database/config/deployment changes.
+
+## H2 · Iteration 2 — RF-037 locale continuity
+
+- Date: 2026-07-14.
+- Reproduction: the desktop Studio locale switch did not carry through the mobile shell, persisted batch taxonomy/status/error fields, or the public privacy/terms/persona surfaces.
+- Repair: added one shared public-copy source, server-locale metadata/body rendering, public and mobile Studio switchers, and localized batch presentation/recovery text without exposing upstream-language errors.
+- Focused evidence: 16/16 related tests, TypeScript, focused ESLint, optimized build, and diff check pass.
+- Status discipline: RF-037 remains FIXED rather than VERIFIED because the human paused broad golden/final-acceptance reruns in favor of internal operations testing.
+
+## H2 · Iteration 3 — RF-038 creation density and bounded Agent thread
+
+- Date: 2026-07-14.
+- Reproduction: transcript growth expanded the whole page, moved the composer, and hid the Generate action behind a prior Preview result.
+- Repair: reduced only Studio typography/spacing/control/card density inside the approved dark `/app` theme; bounded the Agent card with independent transcript scrolling; added pinned/detached scrolling and jump-to-latest; kept the composer fixed; changed recommendations to a compact horizontal rail; rendered one primary Generate action before preview and reused the existing fail-closed quality-plan check.
+- Open-source method review: assistant-ui (MIT), Vercel Chatbot (Apache-2.0), Hugging Face Chat UI (Apache-2.0), and Chatbot UI (MIT) were reviewed only for layout/scrolling patterns. No code, visual design, copy, or proprietary artifact was copied.
+- Evidence: TypeScript and focused ESLint pass; 16/16 focused source/journey/locale tests pass; optimized production build passes; focused browser run `phase34-1784065559900-a0eb3437` passes 2/2 and cleans its rehearsal fixture.
+- Human scope direction: no 200/250 simulation, full 33-route matrix, Final Acceptance, or real provider call was run in this iteration.
+- Release note: the code repair is ready for internal operations feedback, but production remains blocked independently by RF-019 and RF-005.

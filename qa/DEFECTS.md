@@ -3,7 +3,7 @@
 - Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
 - Last updated: 2026-07-13 (America/Toronto)
 - Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 0 · P0 FIXED 3 · P0 VERIFIED 7 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 3 · P0 VERIFIED 7 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -210,6 +210,16 @@
 - Regression: `tests/golden-path-network-identity.test.ts` proves stable-per-run and distinct-between-run identities. The next independent golden run `gp-1784001316316-a8fd60a5` completed register → generate → preview → download with no retry.
 - Evidence: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
 - Repair commit: `825efe9`
+
+### RF-018 — Batch UI offers retry that the billing guard rejects
+
+- Severity: **P0 — release-evidence and customer recovery blocker**
+- Status: **OPEN**
+- Reproduction: run `npm run test:final-acceptance`. J3 reaches a deterministic mock stall/watchdog failure, renders a retry action, then `POST /api/batches/:batchId/jobs/:jobId/retry` returns 409 on desktop and mobile. Run `fa-1784009993055-a2497f4b` finished 21/23 with only these two equivalent failures; global cleanup exited normally.
+- Root cause: `classifyCustomerGenerationError` marks every timeout/stall as retryable, while `isBillingSafeManualRetry` correctly rejects a real-provider timeout whose external job may still be billable. The customer DTO and mutation therefore use different recovery predicates. The explicit mock provider is also intentionally zero-cost and makes retry attempts succeed, but that provider capability is not consulted by the shared billing guard.
+- Impact: customers can be shown a dead retry control; in the acceptance rehearsal, the mismatch blocks both desktop and mobile J3 and prevents RF-006 verification.
+- Required regression: customer retryability and the mutation must share one billing-safe predicate; ambiguous real-provider failures stay non-retryable, explicit mock rehearsal failures remain retryable, and J3 plus the full 23-test suite pass without assertion changes.
+- Repair commit: —
 
 ## Seed hypotheses not opened as defects
 

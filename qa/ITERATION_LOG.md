@@ -138,3 +138,20 @@
 - Verification: 23/23 quarantine/sweeper/watchdog tests, typecheck, focused lint, optimized build, and mandatory golden path pass. The real-mode fixture proves zero provider calls and zero DB writes for an undecided pre-cutoff job.
 - Ledger change: RF-007 `OPEN → VERIFIED`; P0 OPEN count 3 → 2.
 - Evidence: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`.
+
+## Commercial certification · Gate C0 dependency audit
+
+- Date: 2026-07-13
+- Scope: read the six required dependency states from `qa/DEFECTS.md`; no throughput/scale/chaos/canary work started.
+- Result: RF-002, RF-003, and RF-007 are VERIFIED. RF-004, RF-005, and RF-006 have code repairs but lack mandatory full/production evidence and remain FIXED.
+- Reproducible command: `node qa/certification/check-gate-c0.mjs` (expected exit 1 at this revision, 3/6 VERIFIED).
+- Ledger change: RF-004 `OPEN → FIXED`; RF-005 `OPEN → FIXED`; RF-006 remains FIXED. No item was promoted to VERIFIED without its required evidence.
+- Gate state: **BLOCKED**. Per the Commercial Batch Certification constitution, work stops here pending dependency closure and a new C0 check.
+
+## Gate C0 closure · Iteration 1 — RF-018 retry contract mismatch
+
+- Date: 2026-07-14
+- Reproduction: optimized golden path passed 1/1. The serial original Final Acceptance run `fa-1784009993055-a2497f4b` completed cleanup and passed 21/23; desktop and mobile J3 both received HTTP 409 from a retry control that the customer DTO had labelled retryable.
+- Evidence: `test-results/final-acceptance/**/trace.zip`, screenshots, and Playwright HTML report for the run above.
+- Diagnosis: customer error classification and mutation authorization use different retry-safety predicates. No assertion was relaxed and no test was skipped.
+- Ledger change: opened RF-018 as P0. RF-004/RF-006 remain FIXED pending a clean post-repair 23/23 run.

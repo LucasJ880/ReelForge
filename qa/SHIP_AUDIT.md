@@ -2,7 +2,7 @@
 
 - Audit date: 2026-07-13 (America/Toronto)
 - Phase: 2 — backend hardening in progress
-- Source revision: Phase 2 iteration `7bf8372` on `codex/final-sprint`
+- Source revision: Phase 2 iteration `076cf1d` on `codex/final-sprint`
 - Coverage status: Phase 0 inventory complete; Phase 1 approved; Phase 2 security, state, idempotency, concurrency, error, and API-contract verification in progress
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
@@ -75,7 +75,7 @@ Middleware provides public/session boundaries. Phase 0 statically reviewed the e
 | Endpoint group | Inventory reference | Phase 0 health | Finding |
 |---|---|---|---|
 | Public/auth/health/intake/webhook | Detailed tables below | HEALTHY static boundary | Production health/mock invariant dynamically verified in RF-001; remaining schemas continue in Phase 2 |
-| Customer/account/creative/batch/image/racing/report | Detailed tables below | DEGRADED | Guard/ownership patterns present; provider retry billing ambiguity is RF-003 |
+| Customer/account/creative/batch/image/racing/report | Detailed tables below | DEGRADED | Provider submit/retry idempotency is dynamically verified; response schemas and remaining customer error classes are still pending |
 | Operator/admin/order/round/QA/publish/report | Detailed tables below | DEGRADED | Guards present; legacy persona can pre-empt staff role (RF-008) |
 | Cron/external runner | 8 route files | HEALTHY at authentication depth | Missing secret → sanitized 503; wrong bearer → 401; guard runs before all side effects (RF-002 VERIFIED) |
 | Digital-human customer surface | 4 route files | HEALTHY | Feature flag returns sealed 404 for every plan |
@@ -102,7 +102,7 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 | POST | `/api/personal/agent-chat` | Session | PENDING |
 | POST | `/api/video-generation/plan` | Session | PENDING |
 | POST | `/api/video-generation/classify-asset` | Session | PENDING |
-| POST | `/api/video-generation/dispatch` | Session; idempotency required | PENDING |
+| POST | `/api/video-generation/dispatch` | Session; idempotency required | PARTIAL: stable-key replay and no duplicate job/quota owner verified; full error schema pending |
 | GET, PATCH | `/api/briefs/[id]` | Session + ownership | PENDING |
 | POST | `/api/briefs/[id]/ad-plan` | Session + ownership | PENDING |
 | POST | `/api/briefs/[id]/scenes` | Session + ownership | PENDING |
@@ -206,11 +206,11 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 
 | Executor | Trigger | Responsibility | Failure convergence | Audit status |
 |---|---|---|---|---|
-| Batch processor | `/api/cron/process-batches`; `.github/workflows/process-batches.yml` | Expand and lease queued batch work; submit eligible jobs | Lease CAS, breaker, historical dispatch guard, retry cap | BLOCKED: ambiguous submit retries RF-003; scheduler RF-005 |
+| Batch processor | `/api/cron/process-batches`; `.github/workflows/process-batches.yml` | Expand and lease queued batch work; submit eligible jobs | Lease CAS, breaker, historical dispatch guard, persisted submission acknowledgement | BLOCKED only by scheduler RF-005; provider billing safety VERIFIED (RF-003) |
 | Video poller | `/api/cron/poll-videos`; `.github/workflows/poll-videos.yml`; status endpoint opportunistic polling | Map provider state to internal jobs and synchronize brief/batch state | Poll-error threshold + watchdog + opportunistic sweep | BLOCKED: scheduler RF-005 |
 | Stitch coordinator | `/api/cron/stitch-videos`; `.github/workflows/stitch-videos.yml` | Advance completed segments to final assembly | External runner, claim CAS, retry cap | BLOCKED: stale completion race RF-004; scheduler RF-005 |
 | External stitch runner | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim is CAS; completion lacks claim token/CAS | BLOCKED: RF-004; machine authentication VERIFIED |
-| Stuck-task sweeper | `/api/cron/sweep-stuck-tasks`; also called by poller | Requeue/fail abandoned video and final-video work | Status CAS and max attempts | BLOCKED: historical quarantine bypass RF-007 |
+| Stuck-task sweeper | `/api/cron/sweep-stuck-tasks`; also called by poller | Requeue/fail abandoned video and final-video work | Status/quarantine CAS and max attempts | HEALTHY at quarantine depth; RF-007 VERIFIED |
 | Video watchdog | Status reads, dispatch/retry checks, cron fallback | Fail jobs beyond provider deadline/grace | CAS from `RUNNING/QUEUED` to `FAILED`; existing unit coverage | DEGRADED: dependent on RF-005 scheduler |
 | Product image worker | Product image service claim path | Claim and run queued Image 2 jobs | Job ownership/status guard; dynamic concurrency test deferred | HEALTHY at static depth |
 | Digital-human runner | Internal claim/complete APIs | Sealed legacy TTS/avatar pipeline | Feature flag denies before claim/complete | HEALTHY: workflow disabled; no active GitHub workflow |
@@ -231,18 +231,18 @@ Static enum inventory and implementation trace are complete. The tables below li
 |---|---|---|---|
 | create | `QUEUED` | brief or batch expansion | HEALTHY |
 | `QUEUED` | `RUNNING` | lease claim with status CAS | HEALTHY |
-| `RUNNING` | `QUEUED` | expired pre-submit lease, historical quarantine, or submit backoff | DEGRADED: ambiguous provider acknowledgement can duplicate work (RF-003) |
+| `RUNNING` | `QUEUED` | expired lease before submission, historical guard, or positively confirmed no-create backoff | HEALTHY: ambiguous acknowledgement cannot requeue (RF-003) |
 | `RUNNING` | `RUNNING` | provider pending/processing heartbeat | HEALTHY |
 | `RUNNING` | `SUCCEEDED` | provider completed + asset persisted | HEALTHY; terminal CAS exists in reconcile paths |
-| `RUNNING`/`QUEUED` | `FAILED` | provider failure, poll threshold, watchdog, or sweep timeout | DEGRADED: sweeper ignores historical quarantine decision (RF-007) |
+| `RUNNING`/`QUEUED` | `FAILED` | provider failure, poll threshold, watchdog, or eligible sweep timeout | HEALTHY at quarantine depth; undecided historical rows cannot be swept/reconciled/retried (RF-007) |
 | `QUEUED` | `PAUSED` | batch breaker/pause | HEALTHY |
 | `PAUSED` | `QUEUED` | batch resume | HEALTHY |
-| `FAILED` | `RUNNING` | explicit single-job retry/resubmit | BLOCKED: status lookup exception falls through to paid resubmit (RF-003) |
+| `FAILED` | `RUNNING` | explicit retry after provider-terminal proof and CAS claim | HEALTHY: status lookup ambiguity becomes non-retryable `ACK_UNKNOWN` (RF-003) |
 | `FAILED` | `SUCCEEDED` | retry reconciliation finds provider completed | HEALTHY |
-| `FAILED` | `QUEUED` | batch retry | HEALTHY at static depth |
+| `FAILED` | `QUEUED` | batch retry after billing-safe eligibility check | HEALTHY: `SUBMITTING`/`ACK_UNKNOWN` cannot reset |
 | `QUEUED`/`PAUSED` | `CANCELLED` | batch/user cancellation | HEALTHY |
 
-No legal path leaves `SUCCEEDED`, `FAILED`, or `CANCELLED` except the explicit retry paths from `FAILED`.
+No legal path leaves `SUCCEEDED`, `FAILED`, or `CANCELLED` except the explicit billing-safe retry paths from `FAILED`. Provider submission acknowledgement is independently persisted as `NOT_STARTED → SUBMITTING → ACCEPTED / REJECTED / ACK_UNKNOWN`; `ACK_UNKNOWN` has no automatic or customer retry transition.
 
 ### BatchJob
 
@@ -259,7 +259,7 @@ No legal path leaves `SUCCEEDED`, `FAILED`, or `CANCELLED` except the explicit r
 | `EXPANDING`/`RUNNING` | `FAILED` | expansion failure or all-terminal failure aggregation | HEALTHY at static depth |
 | non-terminal | `CANCELLED` | cancellation and child convergence | HEALTHY |
 
-The historical quarantine protects provider dispatch through `callProviderWithHistoricalGuard`, but the independent sweeper can still move quarantined `QUEUED` children to `FAILED`; see RF-007.
+The historical quarantine is enforced in provider dispatch, sweeper selection/CAS, reconciliation, and manual retry. Explicit `RELEASED` remains the only real-mode path for a pre-cutoff undecided task; `EXPIRED` is permanently excluded (RF-007 VERIFIED).
 
 ### FinalVideo
 
@@ -313,6 +313,6 @@ Design/implementation mismatch: claim is compare-and-swap, but completion carrie
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 4 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 5 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 2 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 7 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
 
 **Phase 1 automated exit criteria were approved; release remains blocked.** Phase 2 is active. Its first mandatory golden-path regression exposed and verified RF-017 without changing any production limit.

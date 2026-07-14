@@ -3,7 +3,7 @@
 - Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
 - Last updated: 2026-07-13 (America/Toronto)
 - Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 4 · P0 FIXED 1 · P0 VERIFIED 5 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 2 · P0 FIXED 1 · P0 VERIFIED 7 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -42,13 +42,17 @@
 ### RF-003 — Ambiguous provider failures can resubmit and duplicate billable work
 
 - Severity: **P0 — billing/data-integrity blocker**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction A: make provider submission accept the job, then make the client receive a timeout. `submitClaimedJob` catches every exception and returns the same row to `QUEUED` for up to three submissions.
 - Reproduction B: on manual retry, make `fetchVideoJobStatus` throw a temporary transport error. The catch at `src/lib/services/video-service.ts:777` falls through to a new paid submission.
 - Root cause: `src/lib/services/batch-service.ts:497-605` does not distinguish definitely-unbilled from ambiguous acknowledgement and does not pass/provider-persist an idempotency key; `src/lib/services/video-service.ts:731-827` treats status lookup failure as “provider failed/not found.”
 - Impact: duplicate videos and duplicate provider charges during ordinary network faults.
 - Required regression: concurrent/timeout contract tests proving ambiguous failures go to manual reconciliation and never invoke `createVideoJob` twice; provider idempotency behavior must be explicit.
-- Repair commit: —
+- Repair: persisted request-level idempotency and a provider submission state machine (`NOT_STARTED → SUBMITTING → ACCEPTED / REJECTED / ACK_UNKNOWN`). Real-provider timeout, 5xx, decode, status-lookup, and acknowledgement-persistence gaps now fail closed as `ACK_UNKNOWN`; only positive “no job created” evidence permits replay. Initial logical segment keys and retry CAS prevent concurrent duplicate submissions. Customer dispatch clients reuse a stable idempotency key, and the route replays the exact stored response without consuming quota or creating jobs again.
+- Verification: 16/16 focused billing-safety tests pass, including provider timeout, accepted-but-not-persisted, status lookup timeout with zero new submit calls, concurrent manual retry with exactly one submit, logical segment replay, and concurrent request claims. Optimized build passes. Golden run `gp-1784004092244-2a4be693` replays the captured customer dispatch request with the same key and proves identical order/brief IDs plus unchanged VideoJob count; the full journey then completes playback/download.
+- Database evidence: both expand-only migrations applied successfully on the Neon rehearsal branch; historical attempted rows without an external id were conservatively backfilled to `ACK_UNKNOWN`. No production migration was run.
+- Evidence: `qa/evidence/phase2/iteration-2.3-provider-billing-safety.md`.
+- Repair commit: `076cf1d`
 
 ### RF-004 — Stale stitch callback can overwrite a newer FinalVideo attempt
 
@@ -86,12 +90,15 @@
 ### RF-007 — Stuck-task sweeper bypasses the historical dispatch quarantine decision
 
 - Severity: **P0 — protected historical task integrity blocker**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: create/retain a pre-cutoff `QUEUED` VideoJob with `dispatchQuarantineDecision=null` and an expired/missing timeout, then run `sweepStuckTasks`; it is moved to `FAILED` without a human `RELEASED`/`EXPIRED` decision.
 - Root cause: `src/lib/services/sweep-service.ts:90-117` selects all old `QUEUED/RUNNING` jobs and performs a status CAS but does not filter `createdAt`, `dispatchQuarantineDecision`, or call `isHistoricalDispatchQuarantined`. The dedicated guard in `historical-dispatch-quarantine.ts:34-54` protects provider calls only.
 - Impact: contradicts the approved GATE 0 rule that historical tasks may only be explicitly released or marked expired through the human CAS operation.
 - Required regression: in real-provider mode, sweep leaves pre-cutoff undecided jobs untouched; explicit EXPIRED/RELEASED paths retain CAS semantics.
-- Repair commit: —
+- Repair: sweeper selection and update CAS now share the same real-mode eligibility predicate (explicit `RELEASED`, or undecided and created after the cutoff), while `EXPIRED` is always excluded. A second in-process guard protects against stale/incorrect query results. Reconcile and manual retry also stop before provider access or DB mutation for historical undecided rows.
+- Verification: 23/23 quarantine, sweeper, and watchdog tests pass. With mock disabled and a placeholder credential present, the historical reconcile/retry regression records provider calls = 0 and DB writes = 0. Typecheck, focused lint, optimized build, and the mandatory golden path pass.
+- Evidence: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`.
+- Repair commit: `076cf1d`
 
 ### RF-008 — Staff role can be locked out by a legacy customer persona
 

@@ -120,3 +120,21 @@
 - Verification: 21/21 focused tests, typecheck, focused lint, optimized build, and mandatory golden run `gp-1784001858660-004e8b31` pass.
 - Ledger change: RF-002 `OPEN → VERIFIED`; P0 OPEN count 5 → 4.
 - Evidence: `qa/evidence/phase2/iteration-2.2-machine-auth.md`.
+
+## Phase 2 · Iteration 2.3 — RF-003 provider submission and request idempotency
+
+- Date: 2026-07-13
+- Reproduction: batch submission timeouts were automatically requeued; single-video provider status lookup errors fell through to a new paid submission; the customer dispatch route had no request-level idempotency.
+- Repair: added persistent submission intent/acknowledgement states, logical job and per-attempt request keys, conservative historical backfill, request-response replay, quota ownership tracking, and compare-and-swap retry claims. Ambiguous acknowledgements are terminally held for reconciliation and cannot expose a normal retry path.
+- Database: two expand-only migrations applied successfully to the Neon rehearsal branch with the branch owner; rehearsal app-role DML access verified. Production was not migrated.
+- Verification: 16/16 focused billing-safety tests, typecheck, lint, optimized build, and two mandatory golden runs pass. The second golden run captures and replays the actual browser dispatch request and proves unchanged IDs/job count.
+- Ledger change: RF-003 `OPEN → VERIFIED`; P0 OPEN count 4 → 3.
+- Evidence: `qa/evidence/phase2/iteration-2.3-provider-billing-safety.md`.
+
+## Phase 2 · Iteration 2.4 — RF-007 historical quarantine closure
+
+- Date: 2026-07-13
+- Repair: aligned sweeper selection/CAS with the historical dispatch predicate and added defense-in-depth guards to sweep, reconcile, and manual retry paths.
+- Verification: 23/23 quarantine/sweeper/watchdog tests, typecheck, focused lint, optimized build, and mandatory golden path pass. The real-mode fixture proves zero provider calls and zero DB writes for an undecided pre-cutoff job.
+- Ledger change: RF-007 `OPEN → VERIFIED`; P0 OPEN count 3 → 2.
+- Evidence: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`.

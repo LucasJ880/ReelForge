@@ -1,9 +1,9 @@
 # ReelForge Release Gate
 
 - Gate owner: human release approver
-- Audit revision: Phase 2 iteration `7bf8372`
+- Audit revision: Phase 2 iteration `076cf1d`
 - Current stage: Phase 2 backend hardening in progress
-- Current verdict: **NOT RELEASE-READY — 4 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
+- Current verdict: **NOT RELEASE-READY — 2 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
 
 ## Phase gates
 
@@ -21,9 +21,9 @@
 
 ## Final release checks
 
-- [ ] Golden-path E2E passes five consecutive independent runs. Phase 1 recorded four consecutive passes; Phase 2 restarted the consecutive counter after a rolled-back RF-001 attempt and now has one pass with run-isolated rate limiting. Evidence: `qa/evidence/phase1-verification.md`, `qa/evidence/phase2/iteration-2.0-golden-invariant.md`.
+- [x] Golden-path E2E passes five consecutive independent runs after the rolled-back RF-001 attempt: `gp-1784001316316-a8fd60a5`, `gp-1784001583006-1ca10477`, `gp-1784001858660-004e8b31`, `gp-1784004030002-3e3089af`, and `gp-1784004092244-2a4be693`. The fifth also proves exact dispatch replay without a duplicate VideoJob.
 - [ ] Full test suite passes with no newly added skip/xfail and all required DB integration tests enabled. Current: 662/663 pass, 1 pre-existing conditional DB integration skip.
-- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: 4 P0 OPEN + 1 P0 FIXED pending full verification; 5 P1 OPEN.
+- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: 2 P0 OPEN + 1 P0 FIXED pending full verification; 5 P1 OPEN.
 - [ ] Every route has console error = 0 in representative populated, empty, loading, and error states. Current limitation: `/app/batches/[id]` lacked representative rehearsal data.
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.
@@ -49,6 +49,8 @@
 - Phase 2 golden-invariant recovery: `qa/evidence/phase2/iteration-2.0-golden-invariant.md`
 - Phase 2 production-mock guard: `qa/evidence/phase2/iteration-2.1-production-mock-guard.md`
 - Phase 2 machine endpoint authentication: `qa/evidence/phase2/iteration-2.2-machine-auth.md`
+- Phase 2 provider billing safety: `qa/evidence/phase2/iteration-2.3-provider-billing-safety.md`
+- Phase 2 historical quarantine closure: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`
 
 ## Rollback plan (draft; to validate in release phase)
 

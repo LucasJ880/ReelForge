@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
 import {
   BatchImageIdConflictError,
@@ -15,28 +14,14 @@ import {
   authorizeBatchQuotaForSession,
   BatchQuotaAuthorizationError,
 } from "@/lib/services/quota-service";
-
-const createBatchSchema = z.object({
-  templateId: z.string().min(1),
-  templateVersion: z.number().int().min(1),
-  images: z
-    .array(
-      z.object({
-        id: z.string().min(1).max(300),
-        url: z.string().url().refine((url) => /^https?:\/\//i.test(url)),
-      }),
-    )
-    .min(1)
-    .max(50),
-  requestedCount: z.number().int().min(1).max(200),
-  productName: z.string().trim().max(200).optional(),
-  idempotencyKey: z.string().min(1).max(200).optional(),
-});
+import {
+  batchCreateRequestSchema,
+} from "@/lib/contracts/batch-request";
 
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
-  const parsed = createBatchSchema.safeParse(
+  const parsed = batchCreateRequestSchema.safeParse(
     await req.json().catch(() => null),
   );
   if (!parsed.success) {

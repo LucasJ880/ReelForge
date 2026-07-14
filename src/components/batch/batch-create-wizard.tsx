@@ -29,6 +29,7 @@ import { FileDropzone } from "@/components/ui/dropzone";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
 import { uploadBlobWithProgress } from "@/lib/upload/blob-xhr";
 import { useTranslation } from "@/i18n";
+import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
@@ -634,12 +635,12 @@ export function BatchCreateWizard({
                     aria-label={english ? "Video quantity" : "生成数量输入"}
                     type="number"
                     min={1}
-                    max={200}
+                    max={MAX_BATCH_VIDEO_COUNT}
                     value={count}
                     onChange={(event) =>
                       setCount(
                         Math.min(
-                          200,
+                          MAX_BATCH_VIDEO_COUNT,
                           Math.max(1, Number(event.target.value) || 1),
                         ),
                       )
@@ -651,7 +652,7 @@ export function BatchCreateWizard({
                   id="batch-count"
                   type="range"
                   min={1}
-                  max={200}
+                  max={MAX_BATCH_VIDEO_COUNT}
                   value={count}
                   onChange={(event) => setCount(Number(event.target.value))}
                   className="w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"

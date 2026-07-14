@@ -237,6 +237,37 @@
 - Evidence: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
 - Repair commit: —
 
+### RF-020 — Batch submission cap blocks the required 250-video commercial certification tier
+
+- Severity: **P0 — commercial certification blocker**
+- Status: **VERIFIED**
+- Reproduction: submit `requestedCount=250` to `POST /api/batches`, or enter 250 in the customer batch wizard. The API schema rejects every value above 200 and both UI controls clamp to 200.
+- Root cause: the commercial certification target was raised to 250 after the original 200-item UI/API boundary was implemented; the limit is duplicated in `src/app/api/batches/route.ts` and `src/components/batch/batch-create-wizard.tsx` instead of sharing one contract constant.
+- Impact: the mandated 250-item overload rehearsal cannot be created through the same customer/API path that will serve the commercial order.
+- Required regression: one shared limit must drive API and UI; 250 is accepted, 251 is rejected/clamped, and the existing 50-image and idempotency boundaries remain unchanged.
+- Repair: introduced a single `MAX_BATCH_VIDEO_COUNT=250` contract constant, moved the API request validator into a reusable contract schema, and wired both customer quantity controls to the same limit. The 50-image boundary and idempotency path are unchanged.
+- Verification: 5/5 focused API/UI boundary tests pass; the contract accepts 250 and rejects 251, while the customer controls clamp 251 to 250. Typecheck and the mandatory golden run `gp-1784050224278-3e756d58` pass end to end through register, dispatch, terminal mock completion, playback, and download.
+- Evidence: `qa/evidence/phase1/golden-path-gp-1784050224278-3e756d58.json`.
+- Repair commit: pending this iteration commit
+
+### RF-021 — Tier-one customer APIs expose inconsistent or naked error envelopes
+
+- Severity: **P1 — customer-visible recovery and contract defect**
+- Status: **OPEN**
+- Reproduction: exercise authentication, validation, missing-resource, conflict, quota, and service failures across upload/blob, batch templates, the batch route group, video dispatch, health, and library loaders. Several paths return only `{ error }`, classify a 404 as `INTERNAL_ERROR`, turn ownership/not-found into 500, or let an exception reach the framework response.
+- Impact: clients cannot reliably distinguish empty data from outages or render the promised retry/replace/wait/upgrade/contact recovery action; contract snapshots cannot be made stable.
+- Required regression: first-tier endpoints use a shared machine-readable error envelope and endpoint DTO schemas; every supported status shape is snapshot-tested and frontend-consumed recovery fields are cross-asserted.
+- Repair commit: —
+
+### RF-022 — Library detail lookup is incorrectly bounded by the latest 100 list rows
+
+- Severity: **P1 — customer-visible historical asset access defect**
+- Status: **OPEN**
+- Reproduction: create more than 100 unified library orders for one owner, then open the detail route for an older valid order. `getUnifiedLibraryItem` calls the list loader (`take: 100`) and searches that truncated result, returning null/404 for an owned asset that still exists.
+- Impact: a commercial customer can lose access to older delivered videos as their library grows, and the SSR detail DTO does not have an independently enforced ownership/query contract.
+- Required regression: detail lookup queries the requested owner-scoped order directly, uses the same public DTO mapper as the list, and succeeds beyond the list pagination window without leaking another owner's item.
+- Repair commit: —
+
 ## Seed hypotheses not opened as defects
 
 | Seed | Status | Evidence |

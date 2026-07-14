@@ -12,6 +12,10 @@ const wizard = readFileSync(
   path.join(root, "src/components/batch/batch-create-wizard.tsx"),
   "utf8",
 );
+const limits = readFileSync(
+  path.join(root, "src/lib/contracts/batch-limits.ts"),
+  "utf8",
+);
 
 test("AC-B7：监控页只有一个 15s batch 聚合轮询器", () => {
   assert.equal(
@@ -29,7 +33,7 @@ test("AC-B7：监控页只有一个 15s batch 聚合轮询器", () => {
   );
 });
 
-test("AC-B7：200 卡片使用行虚拟化，仅渲染 virtualItems", () => {
+test("AC-B7：250 卡片使用行虚拟化，仅渲染 virtualItems", () => {
   assert.match(monitor, /useVirtualizer\(\{/);
   assert.match(monitor, /virtualizer\.getVirtualItems\(\)\.map/);
   assert.match(monitor, /overscan:\s*2/);
@@ -37,14 +41,21 @@ test("AC-B7：200 卡片使用行虚拟化，仅渲染 virtualItems", () => {
   assert.doesNotMatch(
     monitor,
     /batch\.videoJobs\.map\(/,
-    "不得直接渲染全部 200 卡片",
+    "不得直接渲染全部 250 卡片",
   );
 });
 
-test("批量向导：50 图上限、4 并发上传、200 条上限和四步流程均有硬约束", () => {
+test("RF-020：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /const UPLOAD_CONCURRENCY = 4/);
   assert.match(wizard, /50 - uploads\.length/);
-  assert.match(wizard, /max=\{200\}/);
+  assert.match(limits, /MAX_BATCH_IMAGE_COUNT = 50/);
+  assert.match(limits, /MAX_BATCH_VIDEO_COUNT = 250/);
+  assert.equal(
+    (wizard.match(/max=\{MAX_BATCH_VIDEO_COUNT\}/g) ?? []).length,
+    2,
+    "number 与 range 两个输入都必须使用共享上限",
+  );
+  assert.match(wizard, /Math\.min\(\s*MAX_BATCH_VIDEO_COUNT/);
   assert.match(wizard, /上传素材.*选择风格.*生成数量.*确认提交/);
   assert.match(wizard, /\/api\/upload\/blob/);
   assert.match(wizard, /\/api\/batch-style-templates/);

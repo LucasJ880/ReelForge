@@ -3,7 +3,7 @@
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 1 · P1 VERIFIED 5 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 11 · P1 OPEN 0 · P1 VERIFIED 6 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -114,7 +114,10 @@
 - Root cause: `normalizeUserType` preserves BUSINESS/PERSONAL before staff role fallback (`src/lib/auth.ts:100-108`), and `requireInternalPage` redirects those personas before `requireOperator` (`src/lib/api-auth.ts:221-236`).
 - Impact: a valid admin credential can be redirected away from internal operations.
 - Required regression: role/persona matrix test for pages and APIs, including legacy combinations; customer roles must still never acquire staff access.
-- Repair commit: —
+- Repair: extracted a pure role policy shared by session normalization and internal-page routing. `SUPER_ADMIN`/`OPERATOR` role now wins over stale BUSINESS/PERSONAL persona values; CUSTOMER/REVIEWER role can never be promoted by a stored OPERATOR/SUPER_ADMIN persona. Internal API guards use the same role authority.
+- Verification: source role/persona matrices pass 9/9. The optimized browser suite passes 11/11, including a `SUPER_ADMIN + BUSINESS` session reaching `/internal/orders` and a seeded CUSTOMER being denied for each BUSINESS/PERSONAL/OPERATOR/SUPER_ADMIN stored persona. Typecheck, focused lint, optimized build, and golden `gp-1784038873993-71bd69a3` pass.
+- Evidence: `qa/evidence/phase34/iteration-3.5-rf008-role-persona-authority.md`, `qa/evidence/phase1/golden-path-gp-1784038873993-71bd69a3.json`.
+- Repair commit: `0929fbb`
 
 ### RF-009 — Login success flashes a blank white viewport
 
@@ -175,7 +178,7 @@
 ### RF-013 — Chinese locale surfaces contain untranslated English operational copy
 
 - Severity: **P1 — customer/operator-visible**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: S-06
 - Reproduction: set locale to Chinese and open creation, templates, auth, and internal navigation.
 - Evidence/root cause: hard-coded `QUALITY-LOCKED`, `QUALITY LOCK`, `PRODUCTION BRIEF`, `Content reports`, `Legacy`, and `Internal Ops` bypassed both customer and internal dictionaries. `JOB ID` was audited and retained as a narrowly documented technical-field token rather than treated as operational copy.

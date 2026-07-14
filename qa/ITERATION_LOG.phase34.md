@@ -45,3 +45,14 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Ledger: RF-013 `OPEN → VERIFIED`; repair commit `63cad87`.
 - Evidence: `qa/evidence/phase34/iteration-3.4-rf013-operational-i18n.md` and `qa/evidence/phase34/rf013-technical-token-exemptions.md`.
 - New dependencies: none.
+
+## Iteration 3.5 — RF-008 role/persona authority
+
+- Date: 2026-07-14
+- Defect: RF-008 (P1)
+- Reproduction: the production guards normalized and redirected from legacy BUSINESS/PERSONAL persona before evaluating a valid staff role; the initial regression had no shared production policy module and failed to load.
+- Work: made system role authoritative in one pure policy used by session normalization and internal-page guards; removed persona-based demotion from staff API guards; retained customer-safe redirects after role denial.
+- Regression: source matrices 9/9; complete Phase 3/4 browser suite 11/11 with both positive and negative real-route cases; typecheck/focused lint/build green; golden `gp-1784038873993-71bd69a3` green.
+- Ledger: RF-008 `OPEN → VERIFIED`; repair commit `0929fbb`.
+- Evidence: `qa/evidence/phase34/iteration-3.5-rf008-role-persona-authority.md`.
+- New dependencies: none.

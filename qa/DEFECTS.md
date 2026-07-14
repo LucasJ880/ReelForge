@@ -2,8 +2,8 @@
 
 - Audit revision: product/test baseline `440c91f`
 - Last updated: 2026-07-14 (America/Toronto)
-- Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 10 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Current phase: Phase 3/4 UI closure on isolated branch (commercial certification remains higher priority)
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 10 · P1 OPEN 4 · P1 VERIFIED 3 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -153,13 +153,17 @@
 ### RF-012 — Customer pages collapse server failures into empty/not-found states
 
 - Severity: **P1 — customer-visible correctness defect**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Seed: S-05
 - Reproduction: force the data loader on create, batch list/detail, racing, library, or templates to reject. The page catches the exception and returns `[]`/`null`; there are no route-level `loading.tsx` or `error.tsx` files.
 - Root cause: silent catches in `src/app/(platform)/app/create/page.tsx:24`, `batches/page.tsx:23`, `batches/[id]/page.tsx:18`, `racing/page.tsx:20`, `library/page.tsx:26`, `templates/page.tsx:16`; only `src/app/error.tsx` exists.
 - Impact: outages masquerade as “no data” or 404 and offer no retry/recovery path.
 - Required regression: each customer route is exercised under slow, empty, and 500 responses with distinct, accessible states.
-- Repair commit: —
+- Repair: removed all six silent failure conversions; added route-owned loading/error boundaries with bilingual accessible copy and retry actions; gave successful empty states explicit semantics; and introduced a typed `BatchNotFoundError` so batch 404/access misses remain distinct from retryable service faults in both the page and status endpoint.
+- Rehearsal safety: browser state injection requires Preview + explicit rehearsal + dry-run + mock provider simultaneously. Production and real-provider runtimes ignore caller-supplied QA headers; this invariant is locked by a regression test.
+- Verification: source regression 6/6; browser slow/empty/500 matrix 7/7 after the final typed-error repair; typecheck, focused lint, optimized build, and diff check pass. Mandatory golden path run `gp-1784036981221-799edb49` passes registration → natural login → mock generation → terminal accounting → stitch → playback → non-empty download.
+- Evidence: `qa/evidence/phase34/iteration-3.1-rf012-route-states.md`, `qa/evidence/phase1/golden-path-gp-1784036981221-799edb49.json`.
+- Repair commit: `356182a`
 
 ### RF-013 — Chinese locale surfaces contain untranslated English operational copy
 

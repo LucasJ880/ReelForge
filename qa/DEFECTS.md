@@ -143,8 +143,10 @@
 - Evidence: `qa/screenshots/baseline/routes/app-create.png`, `internal-orders.png`, `login.png`
 - Impact: the current ship instruction calls this an incomplete Light-first migration, while the earlier approved design constitution explicitly requires dark `/app` plus light public/auth. Either implementation choice would violate one active instruction.
 - Human decision: preserve the current color topology — dark Studio `/app`, light public/auth and existing light operational surfaces. Phase 4 may unify tokens/components within those surfaces but must not perform an all-site recolor.
-- Verification: current screenshots match the accepted topology; no product change required.
-- Repair commit: —
+- Repair: removed an accidental copied dark-token block from `.auth-studio-theme`; auth now inherits the light root token set and only declares `color-scheme: light`, while `.studio-theme` remains the sole dark workspace override.
+- Verification: the design-system closure audit passes 3/3 (topology, single literal-color source, tokenized fonts/motion); corrected settled route screenshots show light auth/internal and dark Studio; the 99-scan route matrix and golden `gp-1784043470993-88e292ff` pass.
+- Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`, `qa/screenshots/redesign/phase34-current/`.
+- Repair commit: `4d15380`
 
 ### RF-011 — Template filters and round actions overflow; template cards have unstable geometry
 

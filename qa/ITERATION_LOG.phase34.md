@@ -178,3 +178,13 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Commit: `01e64be`.
 - Evidence: `qa/evidence/phase34/iteration-3.16-rf023-ai-usage-containment.md`.
 - New dependencies: none.
+
+## Iteration 3.17 — Design-system closure
+
+- Date: 2026-07-14
+- Defect: RF-010 topology regression repair and Phase 4 token closure.
+- Work: restored light auth inheritance while preserving dark Studio; audited the single color/token source, fonts, motion, shared components, and remaining layout-only arbitrary values.
+- Regression: design-system audit 3/3; corrected 99-scan route matrix green; topology golden `gp-1784043470993-88e292ff` green.
+- Ledger: RF-010 remains VERIFIED with repair commit `4d15380`.
+- Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`.
+- New dependencies: none; package bundle impact 0 bytes.

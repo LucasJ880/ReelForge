@@ -1,9 +1,9 @@
 # ReelForge Release Gate
 
 - Gate owner: human release approver
-- Audit revision: Phase 2 iteration `076cf1d`
-- Current stage: Phase 2 backend hardening in progress
-- Current verdict: **NOT RELEASE-READY — 2 P0 OPEN, 1 P0 FIXED awaiting full-suite verification, and 5 P1 OPEN**
+- Audit revision: product/test baseline `440c91f`
+- Current stage: Commercial certification Gate C0 blocked at 5/6
+- Current verdict: **NOT RELEASE-READY — RF-005 lacks production cadence evidence, RF-019 blocks ordinary migration deploy, and 5 P1 remain OPEN**
 
 ## Phase gates
 
@@ -21,16 +21,17 @@
 
 ## Final release checks
 
-- [x] Golden-path E2E passes five consecutive independent runs after the rolled-back RF-001 attempt: `gp-1784001316316-a8fd60a5`, `gp-1784001583006-1ca10477`, `gp-1784001858660-004e8b31`, `gp-1784004030002-3e3089af`, and `gp-1784004092244-2a4be693`. The fifth also proves exact dispatch replay without a duplicate VideoJob.
-- [ ] Full test suite passes with no newly added skip/xfail and all required DB integration tests enabled. Current: 662/663 pass, 1 pre-existing conditional DB integration skip.
-- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: 2 P0 OPEN + 1 P0 FIXED pending full verification; 5 P1 OPEN.
+- [x] Golden-path E2E invariant remains green. Latest post-acceptance run: `gp-1784011670688-32bda3f8`; the earlier five-run series and idempotent replay remain recorded in Phase 1/2 evidence.
+- [x] Current full unit suite has no failure or new skip/xfail: 727/728 passed with the one intentionally conditional DB integration skipped; that integration was then explicitly enabled against the Neon rehearsal branch and passed 1/1, 0 skipped. Final Acceptance passes 23/23.
+- [ ] `DEFECTS.md` has P0 = 0 and P1 = 0. Current: RF-019 is P0 OPEN, RF-005 is P0 FIXED pending production evidence, and 5 P1 remain OPEN.
 - [ ] Every route has console error = 0 in representative populated, empty, loading, and error states. Current limitation: `/app/batches/[id]` lacked representative rehearsal data.
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.
 - [ ] Human disposition recorded for remaining P2/P3. Current: none opened.
 - [ ] Production health reports a real provider only after the explicit budget/provider gate. Local release code now fails closed for production mock (RF-001 VERIFIED); redeployed production evidence remains required.
-- [ ] Queue scheduler cadence is measured and meets the release SLO (RF-005).
-- [ ] Final-acceptance Playwright exits 0 including teardown (RF-006). Import-time crash is fixed and regression-tested; full original configuration remains to run.
+- [ ] Queue scheduler cadence is measured and meets the release SLO (RF-005). Minute-cron code is fixed; production cadence evidence is absent.
+- [x] Final-acceptance Playwright exits 0 including teardown (RF-006): run `fa-1784011167411-04cf5e45`, 23/23, teardown exit 0.
+- [ ] RF-003 production migrations are rehearsed and applied through the RF-019 observed-state bootstrap; ordinary first deploy is currently unsafe when both remain pending.
 
 ## Evidence index
 
@@ -51,6 +52,9 @@
 - Phase 2 machine endpoint authentication: `qa/evidence/phase2/iteration-2.2-machine-auth.md`
 - Phase 2 provider billing safety: `qa/evidence/phase2/iteration-2.3-provider-billing-safety.md`
 - Phase 2 historical quarantine closure: `qa/evidence/phase2/iteration-2.4-historical-quarantine-closure.md`
+- Gate C0 Final Acceptance closure: `qa/evidence/phase2/gate-c0-final-acceptance.md`
+- Gate C0 dependency status: `qa/certification/GATE_C0.md`
+- Human production deployment and rollback checklist: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`
 
 ## Rollback plan (draft; to validate in release phase)
 

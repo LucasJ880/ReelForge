@@ -1,9 +1,9 @@
 # ReelForge Ship Audit
 
-- Audit date: 2026-07-13 (America/Toronto)
+- Audit date: 2026-07-14 (America/Toronto)
 - Phase: 2 — backend hardening in progress
-- Source revision: Phase 2 iteration `076cf1d` on `codex/final-sprint`
-- Coverage status: Phase 0 inventory complete; Phase 1 approved; Phase 2 security, state, idempotency, concurrency, error, and API-contract verification in progress
+- Source revision: product/test baseline `440c91f` on `codex/final-sprint`
+- Coverage status: Phase 0 inventory complete; Phase 1 approved; Gate C0 required dependencies 5/6 verified; RF-005 production cadence and RF-019 migration execution remain blocked on human deployment
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -206,18 +206,22 @@ The detailed inventory below keeps `PENDING` in the “Contract audit” column 
 
 | Executor | Trigger | Responsibility | Failure convergence | Audit status |
 |---|---|---|---|---|
-| Batch processor | `/api/cron/process-batches`; `.github/workflows/process-batches.yml` | Expand and lease queued batch work; submit eligible jobs | Lease CAS, breaker, historical dispatch guard, persisted submission acknowledgement | BLOCKED only by scheduler RF-005; provider billing safety VERIFIED (RF-003) |
-| Video poller | `/api/cron/poll-videos`; `.github/workflows/poll-videos.yml`; status endpoint opportunistic polling | Map provider state to internal jobs and synchronize brief/batch state | Poll-error threshold + watchdog + opportunistic sweep | BLOCKED: scheduler RF-005 |
-| Stitch coordinator | `/api/cron/stitch-videos`; `.github/workflows/stitch-videos.yml` | Advance completed segments to final assembly | External runner, claim CAS, retry cap | BLOCKED: stale completion race RF-004; scheduler RF-005 |
-| External stitch runner | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim is CAS; completion lacks claim token/CAS | BLOCKED: RF-004; machine authentication VERIFIED |
+| Batch processor | Vercel `/api/cron/process-batches`; manual-only GitHub fallback | Expand and lease queued batch work; submit eligible jobs | Lease CAS, breaker, historical dispatch guard, persisted submission acknowledgement | Code HEALTHY; production minute cadence pending RF-005 evidence |
+| Video poller | Vercel `/api/cron/poll-videos`; status endpoint opportunistic polling | Map provider state to internal jobs and synchronize brief/batch state | Poll-error threshold + watchdog + opportunistic sweep | Code HEALTHY; production minute cadence pending RF-005 evidence |
+| Stitch coordinator | Vercel `/api/cron/stitch-dispatch`; manual-only GitHub runner | Detect ready assemblies and dispatch one external runner | PostgreSQL advisory lock, active-run de-duplication, claim CAS, retry cap | RF-004 VERIFIED; production minute cadence pending RF-005 evidence |
+| External stitch runner | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim writes attempt token; completion is `id + STITCHING + token` CAS | HEALTHY: RF-004 and machine authentication VERIFIED |
 | Stuck-task sweeper | `/api/cron/sweep-stuck-tasks`; also called by poller | Requeue/fail abandoned video and final-video work | Status/quarantine CAS and max attempts | HEALTHY at quarantine depth; RF-007 VERIFIED |
-| Video watchdog | Status reads, dispatch/retry checks, cron fallback | Fail jobs beyond provider deadline/grace | CAS from `RUNNING/QUEUED` to `FAILED`; existing unit coverage | DEGRADED: dependent on RF-005 scheduler |
+| Video watchdog | Status reads, dispatch/retry checks, cron fallback | Fail jobs beyond provider deadline/grace | CAS from `RUNNING/QUEUED` to `FAILED`; existing unit coverage | Code HEALTHY; production cadence pending RF-005 evidence |
 | Product image worker | Product image service claim path | Claim and run queued Image 2 jobs | Job ownership/status guard; dynamic concurrency test deferred | HEALTHY at static depth |
 | Digital-human runner | Internal claim/complete APIs | Sealed legacy TTS/avatar pipeline | Feature flag denies before claim/complete | HEALTHY: workflow disabled; no active GitHub workflow |
 
 ### Scheduler finding requiring verification
 
-`vercel.json` has no `crons` declaration. GitHub lists exactly three active workflows: `process-batches`, `poll-videos`, and `stitch-videos`; the sweeper is invoked opportunistically by `poll-videos`. Although every recent run completed when it started, declared `*/5` schedules were observed starting roughly 55–107 minutes apart on 2026-07-13/14. That cadence cannot support unattended commercial batches and is recorded as RF-005. The prior `digital-human-render` notification source is no longer an active workflow; historical failures remain in run history but no new scheduled email source is present.
+The baseline had no Vercel crons and GitHub's declared `*/5` schedules were observed starting roughly 55–107 minutes apart. RF-005 now adds three minute Vercel crons, converts the old queue schedules to manual-only, and emits structured start/finish heartbeats. Focused and full local regressions pass. The code is not yet production-verified: RF-005 remains FIXED until the exact deployment produces a passing 60-minute trace for `process-batches`, `poll-videos`, and `stitch-dispatch`. The evaluator and policy are in `qa/certification/collect-scheduler-heartbeats.mjs`.
+
+### Production migration finding
+
+The RF-003 ack backfill folder sorts before the folder that creates its enum and columns. If both are pending, a plain first production `prisma migrate deploy` fails deterministically. RF-019 records this P0 deployment issue. The human checklist requires a production-head Neon branch rehearsal, atomic prerequisite bootstrap, exact object/history verification, then ordinary deploy; no production database write has been made by the agent.
 
 ## Video-generation state machines
 
@@ -270,13 +274,13 @@ The historical quarantine is enforced in provider dispatch, sweeper selection/CA
 | create | `PENDING` | multi-segment render plan | HEALTHY |
 | `PENDING` | `STITCHING` | external/local runner claim with status CAS | HEALTHY |
 | `PENDING` | `READY` | single segment or explicitly disabled stitching fast path | HEALTHY at static depth |
-| `STITCHING` | `READY` | runner completion callback | BLOCKED: callback update is unconditional by id (RF-004) |
-| `STITCHING` | `FAILED` | runner failure callback or exhausted timeout | BLOCKED: callback update is unconditional by id (RF-004) |
-| `STITCHING` | `PENDING` | sweeper timeout with attempts remaining | HEALTHY CAS, but enables stale-callback race RF-004 |
+| `STITCHING` | `READY` | active runner completion callback | HEALTHY: `id + STITCHING + stitchAttemptToken` CAS; stale callbacks return 409 (RF-004) |
+| `STITCHING` | `FAILED` | active runner failure callback or exhausted timeout | HEALTHY: attempt-token CAS; stale callbacks cannot overwrite (RF-004) |
+| `STITCHING` | `PENDING` | sweeper timeout with attempts remaining | HEALTHY: retry claim rotates the token, invalidating the old runner |
 | `PENDING` | `FAILED` | waiting-for-segments timeout | HEALTHY at static depth |
 | `FAILED` | `PENDING` | explicit stitch retry | HEALTHY at static depth |
 
-Design/implementation mismatch: claim is compare-and-swap, but completion carries only `finalVideoId`; it has neither an attempt token nor a `status=STITCHING` CAS. A late callback from an expired runner can overwrite a newer retry or READY result.
+RF-004 closed the former design/implementation mismatch. Each new claim rotates an attempt token, and completion/failure is accepted only for the active `STITCHING` attempt. Rolling compatibility accepts a missing token only for a pre-migration in-flight row whose stored token is also null.
 
 ## Seed defect verification matrix
 
@@ -313,6 +317,6 @@ Design/implementation mismatch: claim is compare-and-swap, but completion carrie
 - The UI journey covers public registration, automatic workspace entry, explicit sign-out and natural re-login, plan preview, generation dispatch, all-job terminal accounting, authenticated external-stitch completion, owner-scoped library detail, actual media playback, and a non-empty browser download.
 - Browser console/page errors, page-observed 5xx responses, and unexpected request failures are hard failures. Only exact Next.js `_rsc` prefetch cancellations with `net::ERR_ABORTED` are classified as intentional framework cancellation and counted in evidence.
 - Four independent optimized-server runs passed with no Playwright retry; the first three satisfy the Phase 1 exit rule and the fourth verifies the final env-free evidence configuration. See `qa/evidence/phase1-verification.md`.
-- Current ledger: 2 P0 OPEN, 1 P0 FIXED pending its original full-suite verification, 7 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
+- Current ledger: 1 P0 OPEN (RF-019), 1 P0 FIXED pending production cadence (RF-005), 10 P0 VERIFIED, 5 P1 OPEN, 2 P1 VERIFIED.
 
-**Phase 1 automated exit criteria were approved; release remains blocked.** Phase 2 is active. Its first mandatory golden-path regression exposed and verified RF-017 without changing any production limit.
+**Phase 1 automated exit criteria were approved; release remains blocked.** The latest serial Final Acceptance run passes 23/23 with teardown exit 0 and the post-fix golden path passes. Gate C0 remains 5/6 until human deployment, RF-019 migration execution, and RF-005 production heartbeat evidence.

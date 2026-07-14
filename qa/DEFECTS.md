@@ -1,9 +1,9 @@
 # ReelForge Ship Defect Ledger
 
-- Audit revision: `337f7796ef90560904b341e620b44028af3f3f74`
-- Last updated: 2026-07-13 (America/Toronto)
+- Audit revision: product/test baseline `440c91f`
+- Last updated: 2026-07-14 (America/Toronto)
 - Current phase: Phase 2 backend hardening
-- Counts: **P0 OPEN 1 · P0 FIXED 3 · P0 VERIFIED 7 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
+- Counts: **P0 OPEN 1 · P0 FIXED 1 · P0 VERIFIED 10 · P1 OPEN 5 · P1 VERIFIED 2 · P2 OPEN 0 · P3 OPEN 0**
 
 ## Status rules
 
@@ -57,13 +57,14 @@
 ### RF-004 — Stale stitch callback can overwrite a newer FinalVideo attempt
 
 - Severity: **P0 — final asset integrity blocker**
-- Status: **FIXED — mandatory golden/full-suite verification remains**
+- Status: **VERIFIED**
 - Reproduction: runner A claims `PENDING → STITCHING`; sweeper times it out to `PENDING`; runner B claims and completes; runner A then posts a late failure/success. The late callback updates by `id` and overwrites the current result.
 - Root cause: `finishStitchTask` reads by id and uses unconditional `db.finalVideo.update` at `src/lib/services/stitch-service.ts:393-427`; completion payload has no attempt/claim token and no `status=STITCHING` CAS.
 - Impact: a valid customer final video can revert to FAILED or be replaced with an older asset.
 - Required regression: two-attempt race test in which stale callbacks are rejected and only the active claim can finalize.
 - Repair: every claim now writes a UUID attempt token; success/failure completion uses `id + STITCHING + token` CAS and stale callbacks return `STALE_STITCH_ATTEMPT`/HTTP 409. A missing token is accepted only for a pre-migration in-flight row whose stored token is still null, so an old runner can drain during rolling deployment but cannot overwrite any newly claimed attempt. Dispatch and claim also paginate past older incomplete candidates, preventing stitch starvation.
-- Verification: 30/30 focused stitch, stale-callback, rolling-compatibility, starvation, scheduler-dispatch, and runtime tests pass. The full unit suite passes 725/726 with the one pre-existing conditional DB integration skip; typecheck and lint pass. The post-repair mandatory golden path and clean full Final Acceptance run have not yet been executed, so this item is not VERIFIED.
+- Verification: 30/30 focused stitch, stale-callback, rolling-compatibility, starvation, scheduler-dispatch, and runtime tests pass. The serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23 with teardown exit 0, and the post-repair golden run `gp-1784011670688-32bda3f8` passes. The full unit suite passes 727/728 with only the intentionally conditional DB integration test skipped; that integration test was then run explicitly against `NEON_REHEARSAL_DATABASE_URL` and passed 1/1. Typecheck, lint, optimized build, and diff check pass.
+- Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
 - Repair commit: `0fc863d`
 
 ### RF-005 — Queue schedules declare 5 minutes but run roughly 55–107 minutes apart
@@ -81,14 +82,15 @@
 ### RF-006 — Existing final-acceptance Playwright run exits nonzero in global teardown
 
 - Severity: **P0 — release evidence blocker**
-- Status: **FIXED — full final-acceptance suite verification remains**
+- Status: **VERIFIED**
 - Reproduction: run the final-acceptance configuration with its global teardown. Importing constants from `tests/final-acceptance/framework.ts` registers `test.beforeEach` outside a test module and Playwright aborts.
 - Root cause: `tests/final-acceptance/global-teardown.ts:6-9` imports `./framework`; that module calls `test.beforeEach` at `framework.ts:294`.
 - Evidence: `qa/evidence/final-acceptance-teardown-error.txt`
 - Impact: the existing end-to-end acceptance suite cannot supply a green release record even if its test body passes.
 - Required regression: final-acceptance config completes test and teardown with exit 0; teardown constants live in a side-effect-free module.
 - Repair: moved teardown constants into side-effect-free `tests/final-acceptance/fixture-data.ts`; added `tests/final-acceptance-global-teardown-import.test.ts`.
-- Verification: direct teardown import regression, full unit suite, typecheck, lint, and the earlier independent golden-path suite pass. A full original Final Acceptance attempt completed global cleanup without the former teardown import crash, but the test body ended 11/23 green (12 product/harness failures). Focused repairs subsequently made J1 (93/7 accounting) and desktop onboarding green; a clean serial 23/23 run is still required, so this item remains FIXED rather than VERIFIED.
+- Verification: the direct teardown import regression passes. The clean serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23 in 8.1 minutes; global teardown exits 0 after deleting 22 rehearsal batches and 4 product images and archiving the run-scoped template. The post-run `.last-run.json` reports `passed` with no failed tests. The post-repair golden path, full unit suite, explicit rehearsal DB integration, typecheck, lint, optimized build, and diff check also pass.
+- Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
 - Repair commit: `e863c8e`
 
 ### RF-007 — Stuck-task sweeper bypasses the historical dispatch quarantine decision
@@ -214,11 +216,25 @@
 ### RF-018 — Batch UI offers retry that the billing guard rejects
 
 - Severity: **P0 — release-evidence and customer recovery blocker**
-- Status: **OPEN**
+- Status: **VERIFIED**
 - Reproduction: run `npm run test:final-acceptance`. J3 reaches a deterministic mock stall/watchdog failure, renders a retry action, then `POST /api/batches/:batchId/jobs/:jobId/retry` returns 409 on desktop and mobile. Run `fa-1784009993055-a2497f4b` finished 21/23 with only these two equivalent failures; global cleanup exited normally.
 - Root cause: `classifyCustomerGenerationError` marks every timeout/stall as retryable, while `isBillingSafeManualRetry` correctly rejects a real-provider timeout whose external job may still be billable. The customer DTO and mutation therefore use different recovery predicates. The explicit mock provider is also intentionally zero-cost and makes retry attempts succeed, but that provider capability is not consulted by the shared billing guard.
 - Impact: customers can be shown a dead retry control; in the acceptance rehearsal, the mismatch blocks both desktop and mobile J3 and prevents RF-006 verification.
 - Required regression: customer retryability and the mutation must share one billing-safe predicate; ambiguous real-provider failures stay non-retryable, explicit mock rehearsal failures remain retryable, and J3 plus the full 23-test suite pass without assertion changes.
+- Repair: customer DTO classification and retry mutations now share the billing-safety predicate. Provider adapters declare a static manual-retry billing risk: the explicit zero-cost mock permits its deterministic stalled fixture to retry, while BytePlus and any ambiguous real-provider acknowledgement remain fail-closed. Historical jobs resolve their persisted provider rather than inheriting the current default provider.
+- Verification: 15/15 focused customer-contract and billing-safety tests pass. Targeted setup + desktop/mobile J3 pass 3/3 in run `fa-1784011098406-50ddd9f4`; the clean serial Final Acceptance run `fa-1784011167411-04cf5e45` passes 23/23; the post-fix golden run `gp-1784011670688-32bda3f8` passes. Full unit, explicit rehearsal DB integration, typecheck, lint, optimized build, and diff check pass. No assertion was relaxed and no test was skipped or deleted.
+- Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
+- Repair commit: `df5accb`
+
+### RF-019 — RF-003 production migrations sort in dependency-inverted order
+
+- Severity: **P0 — production deployment/data-integrity blocker**
+- Status: **OPEN — production-head rehearsal and human execution required**
+- Reproduction: sort the pending migration folders. `20260713_phase2_ack_unknown_backfill` is selected before `20260713_phase2_provider_submission_integrity`, but its first statement casts to `ProviderSubmissionState` and updates `submissionState`/`submissionErrorClass`; those objects are created only by the later folder.
+- Impact: if both RF-003 migrations are pending as repository evidence indicates, a normal first `prisma migrate deploy` fails on the ack backfill, records a failed migration, and blocks all later production migrations. Marking it applied without creating the exact prerequisite objects would corrupt migration history.
+- Required regression: from a fresh Neon branch cut from the current production head, execute the documented atomic provider-integrity bootstrap, reconcile its history, then run ordinary migrate deploy. Require zero drift, both RF-003 backfill invariants, app-role enum/table DML with rollback, and the same successful human-run sequence in production before application deployment.
+- Planned repair: one-time observed-state bootstrap and rollback protocol in `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`. Migration folders cannot simply be renamed because the rehearsal branch already records their existing names; long-term migration-history reconciliation remains follow-up work.
+- Evidence: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`.
 - Repair commit: —
 
 ## Seed hypotheses not opened as defects

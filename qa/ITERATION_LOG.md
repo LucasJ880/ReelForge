@@ -155,3 +155,30 @@
 - Evidence: `test-results/final-acceptance/**/trace.zip`, screenshots, and Playwright HTML report for the run above.
 - Diagnosis: customer error classification and mutation authorization use different retry-safety predicates. No assertion was relaxed and no test was skipped.
 - Ledger change: opened RF-018 as P0. RF-004/RF-006 remain FIXED pending a clean post-repair 23/23 run.
+
+## Gate C0 closure · Iteration 2 — Full acceptance and retry-contract closure
+
+- Date: 2026-07-14
+- Repair: aligned customer retry presentation and mutation authorization through one provider-capability-aware billing-safety predicate. Explicit mock retry remains zero-cost and deterministic; ambiguous real-provider work remains blocked. Final Acceptance rehearsal data is run-scoped and production mock guards remain enabled.
+- Product/test commits: RF-018 and commercial-contract repair `df5accb`; Final Acceptance rehearsal isolation `440c91f`. RF-004 and RF-005 were already isolated in `0fc863d` and `761baec`; repair hashes were recorded by `58a8909`.
+- Verification:
+  - focused RF-018 regressions: 15/15 passed;
+  - targeted setup + desktop/mobile J3: 3/3 passed, run `fa-1784011098406-50ddd9f4`;
+  - serial full Final Acceptance: 23/23 passed in 8.1 minutes, run `fa-1784011167411-04cf5e45`, teardown exit 0;
+  - optimized post-fix golden path: 1/1 passed, run `gp-1784011670688-32bda3f8`;
+  - full unit suite: 727/728 passed, 0 failed, 1 intentionally conditional DB integration skip;
+  - conditional DB integration explicitly enabled against the Neon rehearsal branch: 1/1 passed, 0 skipped;
+  - optimized build, typecheck, full lint, and `git diff --check`: passed.
+- Ledger change: RF-004 `FIXED → VERIFIED`; RF-006 `FIXED → VERIFIED`; RF-018 `OPEN → VERIFIED`. RF-005 deliberately remains `FIXED` until a human production deployment is followed by the required 60-minute scheduler heartbeat observation.
+- Real provider calls / paid operations: **0**.
+- Evidence: `qa/evidence/phase2/gate-c0-final-acceptance.md`.
+
+## Gate C0 closure · Iteration 3 — Production migration/runbook audit
+
+- Date: 2026-07-14
+- Work: prepared the human-run production checklist, RF-003 migration/backfill invariants, no-provider observation preflight, application/database rollback points, post-deploy health checks, and the reproducible 60-minute scheduler heartbeat evaluator.
+- Finding: opened RF-019. The committed RF-003 ack backfill sorts before the migration that creates its enum and columns, so ordinary migrate deploy is not a safe first production command when both remain pending.
+- Containment: the checklist requires a production-head Neon branch rehearsal, atomic prerequisite SQL, exact object verification, migration-history reconciliation, then ordinary migration deploy. Partial or mismatched state is an explicit stop condition.
+- Verification: scheduler collector regressions pass 5/5; full Final Acceptance/golden/unit/database/static evidence remains unchanged from Iteration 2.
+- Gate state: required C0 dependencies are 5/6 VERIFIED; RF-005 still needs the post-human-deploy 60-minute trace. RF-019 separately blocks that deployment until the checklist's migration rehearsal/bootstrap succeeds.
+- Real provider calls / paid operations: **0**.

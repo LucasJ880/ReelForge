@@ -235,3 +235,12 @@ This branch-local companion log exists because `qa/ITERATION_LOG.md` was already
 - Gate: functional closure is green; human visual approval is still pending; no merge or deployment performed.
 - Evidence: `qa/evidence/phase34/iteration-3.21-closure-regression.md`, `qa/screenshots/redesign/phase34-current/`.
 - New dependencies: none.
+
+## Iteration 3.22 — Human visual approval and evidence archive
+
+- Date: 2026-07-14
+- Human decision: all 33 current screenshots approved; dark Studio `/app` plus light public/auth/operations remains the signed topology.
+- Deferred scope: internal/customer theme unification (RF-010 v2) is deferred until after the first commercial delivery and before formal market launch; color changes are forbidden before that separate project is approved.
+- Evidence continuity: the removed Phase 0–2/Gate C0 main-log history was preserved verbatim in `qa/ITERATION_LOG.archive-phase0-2.md`; `qa/ITERATION_LOG.md` now points to that archive.
+- Gate: Phase 4 human visual gate `PENDING → APPROVED`; H1 hardening authorized. No merge or deployment performed in this iteration.
+- Evidence: `qa/evidence/phase34/phase4-human-visual-approval.md`.

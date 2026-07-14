@@ -2,8 +2,8 @@
 
 - Gate owner: human release approver
 - Audit revision: product/test baseline `440c91f`
-- Current stage: Phase 3 functional closure complete; Phase 4 evidence submitted for human visual review. Commercial certification remains higher-priority and separately gated.
-- Current verdict: **NOT RELEASE-READY — UI functional gate is green, but human visual approval is pending; RF-005 lacks production cadence evidence and RF-019 blocks ordinary migration deploy.**
+- Current stage: Phase 3/4 UI closure signed by the human approver; H1 contract hardening authorized. Commercial certification remains higher-priority and separately gated.
+- Current verdict: **NOT RELEASE-READY — UI gate is signed, but RF-005 lacks production cadence evidence and RF-019 blocks ordinary migration deploy.**
 
 ## Phase gates
 
@@ -16,7 +16,7 @@
 - [x] **Human approval of Phase 1 evidence.** Approved 2026-07-13; Phase 2 authorized.
 - [ ] Phase 2 — state, idempotency, concurrency, error, and API contract suites pass.
 - [x] Phase 3 — all 33 routes pass the route matrix; customer slow/empty/500 states pass; seeded batch detail renders real status; 1280/1440/1920 scans have no overflow. Evidence: `qa/evidence/phase34/iteration-3.21-closure-regression.md`.
-- [ ] Phase 4 — token/font/motion audits pass and 33 current screenshots are attached; human visual approval of the preserved dark Studio + light public/auth/operations topology remains required.
+- [x] Phase 4 — token/font/motion audits pass, 33 current screenshots are attached, and the human approver signed the preserved dark Studio + light public/auth/operations topology on 2026-07-14. Evidence: `qa/evidence/phase34/phase4-human-visual-approval.md`.
 - [ ] Phase 5 — two 50-item mock commercial rehearsals and bad-weather cases pass.
 
 ## Final release checks
@@ -55,6 +55,7 @@
 - Gate C0 Final Acceptance closure: `qa/evidence/phase2/gate-c0-final-acceptance.md`
 - Phase 3/4 final regression and merge plan: `qa/evidence/phase34/iteration-3.21-closure-regression.md`
 - Phase 3/4 settled route screenshots: `qa/screenshots/redesign/phase34-current/`
+- Phase 4 human visual approval and deferred color decision: `qa/evidence/phase34/phase4-human-visual-approval.md`
 - Gate C0 dependency status: `qa/certification/GATE_C0.md`
 - Human production deployment and rollback checklist: `qa/certification/PRODUCTION_DEPLOYMENT_CHECKLIST.md`
 

@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { GET as processBatches } from "../src/app/api/cron/process-batches/route";
 import { GET as pollVideos } from "../src/app/api/cron/poll-videos/route";
 import { GET as stitchVideos } from "../src/app/api/cron/stitch-videos/route";
+import { GET as stitchDispatch } from "../src/app/api/cron/stitch-dispatch/route";
 import { GET as sweepStuckTasks } from "../src/app/api/cron/sweep-stuck-tasks/route";
 import { GET as claimStitch } from "../src/app/api/internal/stitch/claim/route";
 import { POST as completeStitch } from "../src/app/api/internal/stitch/complete/route";
@@ -16,6 +17,7 @@ const endpoints: Array<{ name: string; path: string; method: "GET" | "POST"; han
   { name: "process batches", path: "/api/cron/process-batches", method: "GET", handler: processBatches },
   { name: "poll videos", path: "/api/cron/poll-videos", method: "GET", handler: pollVideos },
   { name: "stitch videos", path: "/api/cron/stitch-videos", method: "GET", handler: stitchVideos },
+  { name: "stitch dispatch", path: "/api/cron/stitch-dispatch", method: "GET", handler: stitchDispatch },
   { name: "sweep stuck tasks", path: "/api/cron/sweep-stuck-tasks", method: "GET", handler: sweepStuckTasks },
   { name: "claim stitch", path: "/api/internal/stitch/claim", method: "GET", handler: claimStitch },
   { name: "complete stitch", path: "/api/internal/stitch/complete", method: "POST", handler: completeStitch },

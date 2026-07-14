@@ -1,7 +1,7 @@
 name: poll-videos
 
-# 外部 cron：每 5 分钟调用一次 /api/cron/poll-videos，让 Seedance 生成结果能及时回写 DB。
-# 这是 Vercel Hobby 套餐下唯一可靠的轮询渠道；Pro 套餐请把 vercel.json 的 crons 写回去。
+# 手动恢复入口：正常生产调度由 Vercel Pro `vercel.json` 每分钟调用。
+# 保留 workflow_dispatch 便于事故时人工触发，不再依赖 GitHub schedule cadence。
 #
 # 仓库 Secrets 需配置（GitHub → Settings → Secrets and variables → Actions）：
 #   APP_URL       — 例如 https://reelforge-delta.vercel.app（不带尾斜杠）
@@ -12,8 +12,6 @@ name: poll-videos
 # 会真正 fail，便于排错。
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 jobs:

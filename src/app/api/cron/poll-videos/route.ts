@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
+import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 
@@ -13,16 +14,30 @@ import { sweepStuckTasks } from "@/lib/services/sweep-service";
 export async function GET(req: NextRequest) {
   const authFailure = machineAuthFailure(req);
   if (authFailure) return authFailure;
+  const heartbeat = startSchedulerHeartbeat("poll-videos");
   try {
     const result = await pollRunningJobs(30);
+    let sweepFailed = false;
     const sweep = await sweepStuckTasks().catch((err) => {
+      sweepFailed = true;
       console.warn("[cron/poll-videos] sweep failed:", (err as Error).message);
       return null;
     });
-    return NextResponse.json({ ...result, sweep });
+    const heartbeatEvent = heartbeat.finish(
+      sweepFailed ? "degraded" : "ok",
+      {
+        polled: result.polled,
+        sweepCompleted: !sweepFailed,
+      },
+    );
+    return NextResponse.json({ ...result, sweep, heartbeat: heartbeatEvent });
   } catch (err) {
+    const heartbeatEvent = heartbeat.finish("error", {
+      polled: 0,
+      sweepCompleted: false,
+    });
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: (err as Error).message, heartbeat: heartbeatEvent },
       { status: 500 },
     );
   }

@@ -8,7 +8,8 @@ name: stitch-videos
 #   （Ubuntu 自带 apt ffmpeg）执行；API 层只负责状态机和回调。
 #
 # 流程：
-#   每 5 分钟触发 → 安装 ffmpeg → 调 /api/internal/stitch/claim 拉任务 →
+#   Vercel `/api/cron/stitch-dispatch` 检测到待处理任务后 workflow_dispatch →
+#   安装 ffmpeg → 调 /api/internal/stitch/claim 拉任务 →
 #   下载段 → ffmpeg concat → 上传 Blob → 调 /api/internal/stitch/complete 写 URL。
 #
 # 仓库 Secrets 必填（GitHub → Settings → Secrets and variables → Actions）：
@@ -22,8 +23,6 @@ name: stitch-videos
 #   - 任何任务在 stitchAttempts >= 3 时会被 claim 跳过，需要人工 retryStitch
 
 on:
-  schedule:
-    - cron: "*/5 * * * *"
   workflow_dispatch: {}
 
 concurrency:

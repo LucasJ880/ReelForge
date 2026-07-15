@@ -15,9 +15,9 @@ export const VIDEO_ROUTE_IDS = [
 ] as const;
 
 export type VideoRouteId = (typeof VIDEO_ROUTE_IDS)[number];
-export type EnabledVideoRouteId = Exclude<VideoRouteId, "buddy">;
+export type EnabledVideoRouteId = VideoRouteId;
 
-export type VideoProviderAdapterSnapshot = "byteplus" | "mock" | "buddy";
+export type VideoProviderAdapterSnapshot = "byteplus" | "shuyu" | "mock";
 
 export interface VideoRouteContract {
   readonly id: VideoRouteId;
@@ -55,11 +55,12 @@ const ROUTES = {
   },
   buddy: {
     id: "buddy",
-    enabled: false,
-    providerAdapter: "buddy",
-    // Buddy remains type-reserved only. No model may be guessed from verbal
-    // intent, screenshots, or another provider's Seedance contract.
-    model: null,
+    enabled: true,
+    providerAdapter: "shuyu",
+    // The public /prices contract currently exposes exactly this one video
+    // plan. The upstream request selects it by model; plan_id is metadata only
+    // and must never be sent in POST /videos/generations.
+    model: "studio-video",
     processingRegion: null,
   },
 } as const satisfies Record<VideoRouteId, VideoRouteContract>;
@@ -103,7 +104,7 @@ function isVideoRouteId(value: string): value is VideoRouteId {
 function isProviderAdapterSnapshot(
   value: string,
 ): value is VideoProviderAdapterSnapshot {
-  return value === "byteplus" || value === "mock" || value === "buddy";
+  return value === "byteplus" || value === "shuyu" || value === "mock";
 }
 
 export function getVideoRouteContract(routeId: VideoRouteId): VideoRouteContract {

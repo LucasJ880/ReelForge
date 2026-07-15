@@ -69,6 +69,7 @@ export class BytePlusVideoProvider implements VideoProvider {
     const submitOptions = {
       prompt,
       referenceImageUrls: refUrls.length > 0 ? refUrls : undefined,
+      mode: options.referenceMode,
       duration: options.durationSec,
       resolution: options.resolution,
       ratio: options.aspectRatio,

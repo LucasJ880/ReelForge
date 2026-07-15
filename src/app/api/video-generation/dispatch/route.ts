@@ -36,11 +36,13 @@ import {
 import { z } from "zod";
 import { videoGenerationRuntimeReadiness } from "@/lib/config/env";
 import {
-  isVideoRouteSnapshotRuntimeReady,
+  canVideoRouteOverrideDefaultRuntimeFailure,
+  getVideoRouteSnapshotRuntimeAvailability,
   selectVideoRouteSnapshot,
   VideoRouteSelectionError,
 } from "@/lib/video-generation/video-route-selection";
 import type { VideoRouteSnapshot } from "@/lib/video-generation/video-route-registry";
+import { SHUYU_VIDEO_POINTS_PER_SECOND } from "@/lib/providers/shuyu";
 
 /**
  * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
@@ -125,6 +127,22 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  /// 多批量出片：一次确认可同时出 1-3 支（同 plan 不同种子，提升可用率）。
+  /// 必须在供应商余额预检前解析，避免只按一支视频检查合作方余额。
+  let batchCount = 1;
+  if (body?.batchCount != null) {
+    const bcParse = batchCountSchema.safeParse(body.batchCount);
+    if (!bcParse.success) {
+      return dispatchErrorResponse(400, {
+        code: "VALIDATION_FAILED",
+        message: "一次可生成 1–3 支视频，请调整生成数量。",
+        retryable: false,
+        action: "fix_request",
+      });
+    }
+    batchCount = bcParse.data;
+  }
+
   /// Phase 5 — persona consistency 校验：
   /// 客户用户（非内部 staff）只能以自己的 persona 调度。
   /// 内部 staff（OPERATOR/SUPER_ADMIN）可代任意 persona 调用，便于客服 / debug。
@@ -170,17 +188,6 @@ export async function POST(req: NextRequest) {
     }
     throw error;
   }
-  if (!isVideoRouteSnapshotRuntimeReady(videoRouteSnapshot)) {
-    console.error("[dispatch] selected video route unavailable", {
-      videoRouteId: videoRouteSnapshot.videoRouteSnapshot,
-    });
-    return dispatchErrorResponse(503, {
-      code: "SERVICE_UNAVAILABLE",
-      message: "所选视频生成线路正在配置中，请稍后再试。",
-      retryable: true,
-      action: "wait",
-    });
-  }
   const requestHash = hashVideoDispatchRequest(body, videoRouteSnapshot);
 
   const runtimeReadiness = videoGenerationRuntimeReadiness();
@@ -188,12 +195,10 @@ export async function POST(req: NextRequest) {
   const overrideMayIgnoreGlobalRouteFailure =
     selectedRouteOverridesGlobal &&
     !runtimeReadiness.ok &&
-    [
-      "byteplus_key_missing",
-      "byteplus_endpoint_invalid",
-      "volcengine_legacy_key_missing",
-      "volcengine_legacy_endpoint_invalid",
-    ].includes(runtimeReadiness.reason);
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      videoRouteSnapshot,
+      runtimeReadiness.reason,
+    );
   if (!runtimeReadiness.ok && !overrideMayIgnoreGlobalRouteFailure) {
     console.error("[dispatch] video runtime unavailable", {
       reason: runtimeReadiness.reason,
@@ -260,21 +265,6 @@ export async function POST(req: NextRequest) {
         sp.prompt = override;
       }
     }
-  }
-
-  /// 多批量出片：一次确认可同时出 1-3 支（同 plan 不同种子，提升可用率）
-  let batchCount = 1;
-  if (body?.batchCount != null) {
-    const bcParse = batchCountSchema.safeParse(body.batchCount);
-    if (!bcParse.success) {
-      return dispatchErrorResponse(400, {
-        code: "VALIDATION_FAILED",
-        message: "一次可生成 1–3 支视频，请调整生成数量。",
-        retryable: false,
-        action: "fix_request",
-      });
-    }
-    batchCount = bcParse.data;
   }
 
   /// quality blocker 守门：blocker > 0 → 拒绝
@@ -382,6 +372,104 @@ export async function POST(req: NextRequest) {
       }),
       503,
     );
+  }
+
+  // The idempotency claim/replay decision intentionally precedes the live
+  // provider check: a completed request must replay its persisted response even
+  // if the provider later runs out of points or becomes unavailable.
+  const selectedRouteAvailability =
+    await getVideoRouteSnapshotRuntimeAvailability({
+      snapshot: videoRouteSnapshot,
+      shuyuRequiredPoints:
+        videoRouteSnapshot.videoRouteSnapshot === "buddy"
+          ? reqParsed.data.selectedDuration *
+            batchCount *
+            SHUYU_VIDEO_POINTS_PER_SECOND
+          : undefined,
+    });
+  if (!selectedRouteAvailability.available) {
+    console.error("[dispatch] selected video route unavailable", {
+      videoRouteId: videoRouteSnapshot.videoRouteSnapshot,
+      reason: selectedRouteAvailability.reason,
+    });
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "SERVICE_UNAVAILABLE",
+        message:
+          selectedRouteAvailability.reason === "insufficient_balance"
+            ? "合作方视频线路暂时余额不足，请切换火山线路或稍后再试。"
+            : "所选视频生成线路暂时不可用，请切换线路或稍后再试。",
+        retryable: true,
+        action: "retry",
+      }),
+      503,
+    );
+  }
+
+  const request = reqParsed.data;
+  const persona =
+    request.userType === "business"
+      ? "BUSINESS"
+      : request.userType === "personal"
+        ? "PERSONAL"
+        : "PLATFORM";
+  let directorPlanJson: ReturnType<typeof mapPlanToDirectorPlan>;
+  try {
+    directorPlanJson = mapPlanToDirectorPlan({
+      plan,
+      language: request.language ?? "en",
+    });
+  } catch (error) {
+    console.error("[dispatch] director plan mapping failed", {
+      requestId: dispatchRequestId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "INTERNAL_ERROR",
+        message: "暂时无法准备视频方案，请稍后重试。",
+        retryable: true,
+        action: "retry",
+      }),
+      500,
+    );
+  }
+
+  if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
+    const hasInvalidReferenceUrl = plan.classifiedAssets
+      .filter((asset) => asset.type === "IMAGE")
+      .some((asset) => {
+        try {
+          return new URL(asset.url).protocol !== "https:";
+        } catch {
+          return true;
+        }
+      });
+    const hasInvalidSegment = directorPlanJson.segmentPlan.some((segment) => {
+      const mergedPrompt = segment.negativePrompt?.trim()
+        ? `${segment.seedancePrompt}\nNegative constraints: ${segment.negativePrompt.trim()}`
+        : segment.seedancePrompt;
+      return (
+        !Number.isInteger(segment.durationSec) ||
+        segment.durationSec < 5 ||
+        segment.durationSec > 15 ||
+        !mergedPrompt.trim() ||
+        mergedPrompt.length > 5_000
+      );
+    });
+    if (hasInvalidReferenceUrl || hasInvalidSegment) {
+      return finalResponse(
+        toCustomerVideoDispatchError({
+          code: "VALIDATION_FAILED",
+          message: hasInvalidReferenceUrl
+            ? "合作方线路只接受 HTTPS 图片地址，请更换素材或切换线路。"
+            : "当前方案不符合合作方线路的时长或提示词限制，请修改后重试。",
+          retryable: false,
+          action: "fix_request",
+        }),
+        422,
+      );
+    }
   }
 
   const seedanceSegmentCount = plan.segments.filter(
@@ -493,36 +581,6 @@ export async function POST(req: NextRequest) {
         code: "INTERNAL_ERROR",
         message:
           "额度记录状态尚未确认。为避免重复计费，请联系支持核对。",
-        retryable: false,
-        action: "contact_support",
-      }),
-      500,
-    );
-  }
-
-  const request = reqParsed.data;
-  const persona =
-    request.userType === "business"
-      ? "BUSINESS"
-      : request.userType === "personal"
-        ? "PERSONAL"
-        : "PLATFORM";
-  let directorPlanJson: ReturnType<typeof mapPlanToDirectorPlan>;
-  try {
-    directorPlanJson = mapPlanToDirectorPlan({
-      plan,
-      language: request.language ?? "en",
-    });
-  } catch (error) {
-    console.error("[dispatch] director plan mapping failed", {
-      requestId: dispatchRequestId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-    return finalResponse(
-      toCustomerVideoDispatchError({
-        code: "INTERNAL_ERROR",
-        message:
-          "生成方案未能完成登记。为避免重复扣减额度，请联系支持核对。",
         retryable: false,
         action: "contact_support",
       }),

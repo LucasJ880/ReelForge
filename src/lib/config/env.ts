@@ -21,12 +21,13 @@ import {
   seedanceExpectedBaseUrl,
   type SeedanceRuntimeProfile,
 } from "@/lib/config/seedance-runtime";
+import { shuyuApiKey } from "@/lib/providers/shuyu";
 
 export type Region = "na" | "future";
 export type DeploymentTarget = "vercel" | "selfhosted";
 export type AiProviderId = "openai" | "volcengine";
 export type StorageProviderId = "vercel_blob" | "volcengine_tos";
-export type VideoProviderId = "byteplus" | "mock";
+export type VideoProviderId = "byteplus" | "shuyu" | "mock";
 export type ContentReviewProviderId = "noop" | "openai_moderation";
 
 export interface AppEnv {
@@ -51,6 +52,9 @@ export type VideoGenerationRuntimeUnavailableReason =
   | "byteplus_endpoint_invalid"
   | "volcengine_legacy_key_missing"
   | "volcengine_legacy_endpoint_invalid"
+  | "shuyu_key_missing"
+  | "shuyu_insufficient_balance"
+  | "shuyu_unavailable"
   | "content_review_key_missing";
 
 export type VideoGenerationRuntimeReadiness =
@@ -74,7 +78,7 @@ const STORAGE_PROVIDER_VALUES: StorageProviderId[] = [
   "vercel_blob",
   "volcengine_tos",
 ];
-const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["byteplus", "mock"];
+const VIDEO_PROVIDER_VALUES: VideoProviderId[] = ["byteplus", "shuyu", "mock"];
 const REVIEW_PROVIDER_VALUES: ContentReviewProviderId[] = ["noop", "openai_moderation"];
 
 function parseEnum<T extends string>(
@@ -188,6 +192,10 @@ export function videoGenerationRuntimeReadiness(
             : "byteplus_endpoint_invalid",
       };
     }
+  }
+
+  if (!mock && app.videoProvider === "shuyu" && !shuyuApiKey(env)) {
+    return { ok: false, reason: "shuyu_key_missing" };
   }
 
   const moderationMock = [env.CONTENT_REVIEW_MOCK, env.LLM_FORCE_MOCK].some(
@@ -360,6 +368,14 @@ export function validateDeploymentEnv(
         "SEEDANCE_RUNTIME_PROFILE=volcengine_cn_legacy 会将生成素材发送至中国区；仅用于经人工明确批准的临时兼容窗口",
       );
     }
+  }
+
+  if (
+    app.videoProvider === "shuyu" &&
+    !shuyuApiKey(env) &&
+    !isMockVideoRuntime(env)
+  ) {
+    missing.push("SHUYU_API_KEY（兼容现有 shuyu_api_key）");
   }
 
   if (isProductionRuntime(env) && isMockVideoRuntime(env)) {

@@ -1,8 +1,14 @@
-import { isMockVideoRuntime } from "@/lib/config/env";
 import {
+  isMockVideoRuntime,
+  type VideoGenerationRuntimeUnavailableReason,
+} from "@/lib/config/env";
+import {
+  resolveSeedanceArkBaseUrl,
   resolveSeedanceRuntimeProfile,
   seedanceApiKey,
 } from "@/lib/config/seedance-runtime";
+import { shuyuApiKey } from "@/lib/providers/shuyu";
+import { getShuyuRouteRuntimeAvailability } from "./shuyu-runtime";
 import {
   createVideoRouteSnapshot,
   type VideoRouteSnapshot,
@@ -11,6 +17,7 @@ import {
 export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
   "byteplus_international",
   "volcengine_cn_legacy",
+  "buddy",
 ] as const;
 
 export type StaffSelectableVideoRouteId =
@@ -35,9 +42,10 @@ function isStaffSelectableRouteId(
 /**
  * Resolve one immutable route snapshot before idempotency/quota work begins.
  *
- * Customers cannot influence routing. In explicit mock rehearsal mode the
- * mock route is forced and a requested paid route is rejected, so a test
- * deployment cannot accidentally escape into a real provider.
+ * Authenticated customers choose between the environment-pinned direct route
+ * (no override) and the audited Shuyu partner route. Explicit direct profile
+ * overrides remain staff-only. Mock is forced by rehearsal configuration and
+ * can never be selected by a request payload.
  */
 export function selectVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
@@ -46,13 +54,6 @@ export function selectVideoRouteSnapshot(args: {
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
   const hasOverride = args.requestedRouteId !== undefined;
-
-  if (hasOverride && !args.isInternalStaff) {
-    throw new VideoRouteSelectionError(
-      "FORBIDDEN",
-      "Only OPERATOR or SUPER_ADMIN may override the video route",
-    );
-  }
 
   if (isMockVideoRuntime(env)) {
     if (hasOverride) {
@@ -65,13 +66,19 @@ export function selectVideoRouteSnapshot(args: {
   }
 
   if (hasOverride) {
+    if (!args.isInternalStaff && args.requestedRouteId !== "buddy") {
+      throw new VideoRouteSelectionError(
+        "FORBIDDEN",
+        "Customers may use the default direct route or select the Shuyu partner route",
+      );
+    }
     if (
       typeof args.requestedRouteId !== "string" ||
       !isStaffSelectableRouteId(args.requestedRouteId)
     ) {
       throw new VideoRouteSelectionError(
         "INVALID_ROUTE",
-        "videoRouteId is not in the audited Seedance route allowlist",
+        "videoRouteId is not in the audited public video route allowlist",
       );
     }
     return createVideoRouteSnapshot(args.requestedRouteId);
@@ -89,5 +96,87 @@ export function isVideoRouteSnapshotRuntimeReady(
   if (snapshot.videoRouteSnapshot === "mock") {
     return isMockVideoRuntime(env);
   }
-  return Boolean(seedanceApiKey(snapshot.videoRouteSnapshot, env));
+  if (snapshot.videoRouteSnapshot === "buddy") {
+    return Boolean(shuyuApiKey(env));
+  }
+  if (!seedanceApiKey(snapshot.videoRouteSnapshot, env)) return false;
+  try {
+    resolveSeedanceArkBaseUrl(
+      env.ARK_BASE_URL,
+      snapshot.videoRouteSnapshot,
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * An explicit route may bypass readiness only when the reported failure
+ * belongs to a different provider/profile. Content-review and mock seals are
+ * intentionally never bypassable.
+ */
+export function canVideoRouteOverrideDefaultRuntimeFailure(
+  snapshot: VideoRouteSnapshot,
+  reason: VideoGenerationRuntimeUnavailableReason,
+): boolean {
+  const byteplusFailure = [
+    "byteplus_key_missing",
+    "byteplus_endpoint_invalid",
+  ].some((candidate) => candidate === reason);
+  const volcengineFailure = [
+    "volcengine_legacy_key_missing",
+    "volcengine_legacy_endpoint_invalid",
+  ].some((candidate) => candidate === reason);
+
+  if (snapshot.videoRouteSnapshot === "buddy") {
+    return byteplusFailure || volcengineFailure;
+  }
+  if (snapshot.videoRouteSnapshot === "byteplus_international") {
+    return reason === "shuyu_key_missing" || volcengineFailure;
+  }
+  if (snapshot.videoRouteSnapshot === "volcengine_cn_legacy") {
+    return reason === "shuyu_key_missing" || byteplusFailure;
+  }
+  return false;
+}
+
+export async function getVideoRouteSnapshotRuntimeAvailability(args: {
+  snapshot: VideoRouteSnapshot;
+  env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
+  shuyuRequiredPoints?: number;
+  fetchImpl?: typeof fetch;
+}): Promise<{
+  available: boolean;
+  funded: boolean | null;
+  reason:
+    | "not_configured"
+    | "insufficient_balance"
+    | "authentication_rejected"
+    | "rate_limited"
+    | "timeout"
+    | "upstream_unavailable"
+    | "invalid_response"
+    | "price_contract_mismatch"
+    | null;
+}> {
+  const env = args.env ?? process.env;
+  if (args.snapshot.videoRouteSnapshot === "buddy") {
+    const shuyu = await getShuyuRouteRuntimeAvailability({
+      ...(args.env ? { env } : {}),
+      ...(args.fetchImpl ? { fetchImpl: args.fetchImpl } : {}),
+      requiredPoints: args.shuyuRequiredPoints,
+    });
+    return {
+      available: shuyu.available,
+      funded: shuyu.funded,
+      reason: shuyu.reason,
+    };
+  }
+  const available = isVideoRouteSnapshotRuntimeReady(args.snapshot, env);
+  return {
+    available,
+    funded: null,
+    reason: available ? null : "not_configured",
+  };
 }

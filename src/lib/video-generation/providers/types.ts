@@ -34,6 +34,8 @@ export interface CreateVideoJobOptions {
   /// 模板锁定的固定负面词；Provider 不支持独立字段时应确定性并入 prompt
   negativePrompt?: string;
   referenceImages?: VideoJobReferenceImage[];
+  /// Provider-specific interpretation for reference images when supported.
+  referenceMode?: "i2v" | "reference";
   durationSec?: number;
   /// "9:16" | "16:9" | "1:1" | "21:9"...
   aspectRatio?: string;
@@ -86,7 +88,7 @@ export interface VideoJobStatusResult {
 }
 
 export interface VideoProvider {
-  readonly id: "byteplus" | "mock";
+  readonly id: "byteplus" | "shuyu" | "mock";
   readonly displayName: string;
   /**
    * Static billing capability of this adapter, independent of current env

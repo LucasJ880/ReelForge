@@ -1,9 +1,9 @@
 # ReelForge Ship Audit
 
-- Audit date: 2026-07-14 (America/Toronto)
+- Audit date: 2026-07-15 (America/Toronto)
 - Phase: H2-A merged-tree re-baseline in progress
 - Source revision: merge of H1 `87b9f34` and UI closure `bb0c05b` on `codex/h2-ui-unification`; verification pending
-- Coverage status: 72/72 API route files have first-tier strict or second-tier light contract evidence; the new read-only Buddy route/model discovery endpoint is staff-or-machine authenticated and never submits provider work; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
+- Coverage status: 73/73 API route files have first-tier strict or second-tier light contract evidence; Shuyu discovery is read-only, sanitized, and separate from paid submission; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (72/72 route files)
+## API endpoint inventory (73/73 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -104,6 +104,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/personal/agent-chat` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
 | GET | `/api/internal/video-provider-routes` | Operator/Super Admin session or `CRON_SECRET`; read-only | VERIFIED strict: authentication precedes all upstream reads; response is bounded/sanitized; invalid, anonymous and customer callers trigger zero Buddy requests; no submission path exists |
 | GET, PATCH | `/api/briefs/[id]` | Operator | VERIFIED H1 light: success wiring + operator boundary |
@@ -301,7 +302,7 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 ## Phase 0 completion checklist
 
 - [x] 33/33 frontend page routes enumerated.
-- [x] 72/72 API route files and HTTP methods enumerated; an executable inventory regression prevents future route drift.
+- [x] 73/73 API route files and HTTP methods enumerated; an executable inventory regression prevents future route drift.
 - [x] Background executor entry points enumerated at filename/trigger level.
 - [x] Endpoint authorization statically reviewed and H1 dynamic/contract depth recorded for every method.
 - [x] Video/batch/final-video legal transitions verified against implementation.

@@ -13,7 +13,6 @@ import {
 import { db } from "@/lib/db";
 import {
   assertMockVideoRuntimeAllowed,
-  assertVideoGenerationRuntimeReady,
   videoGenerationRuntimeReadiness,
   VideoGenerationRuntimeUnavailableError,
 } from "@/lib/config/env";
@@ -59,7 +58,12 @@ import {
   readVideoRouteSnapshot,
   type VideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-registry";
-import { selectVideoRouteSnapshot } from "@/lib/video-generation/video-route-selection";
+import {
+  canVideoRouteOverrideDefaultRuntimeFailure,
+  getVideoRouteSnapshotRuntimeAvailability,
+  selectVideoRouteSnapshot,
+} from "@/lib/video-generation/video-route-selection";
+import { SHUYU_VIDEO_POINTS_PER_SECOND } from "@/lib/providers/shuyu";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -95,6 +99,16 @@ export class BatchInsufficientAssetsError extends Error {
   ) {
     super(`当前模板每条至少需要 ${required} 张图，实际只有 ${actual} 张`);
     this.name = "BatchInsufficientAssetsError";
+  }
+}
+
+export class BatchProviderInputError extends Error {
+  readonly code = "BATCH_PROVIDER_INPUT_INVALID" as const;
+  readonly httpStatus = 422 as const;
+
+  constructor(message: string) {
+    super(message);
+    this.name = "BatchProviderInputError";
   }
 }
 
@@ -151,7 +165,7 @@ function providerForJob(
       "历史批量任务缺少不可变线路快照；已禁止 provider 调用，请转人工对账",
     );
   }
-  if (read.videoRouteSnapshot === "buddy" || !read.route.enabled) {
+  if (!read.route.enabled) {
     throw new Error("持久化批量线路尚未启用，拒绝 provider 调用");
   }
   return createVideoProviderByRouteSnapshot({
@@ -283,6 +297,8 @@ export interface CreateBatchInput {
   requestedCount: number;
   productName?: string | null;
   idempotencyKey: string;
+  videoRouteId?: unknown;
+  isInternalStaff?: boolean;
 }
 
 function batchRequestHash(
@@ -394,13 +410,23 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
   if (new Set(imageIds).size !== imageIds.length) {
     throw new BatchImageIdConflictError();
   }
-  // Runtime readiness must precede the idempotent replay shortcut. Otherwise
-  // a production+mock deployment can return an existing batch and let the
-  // route continue into quota/tick work even though new dispatch is sealed.
-  assertVideoGenerationRuntimeReady();
   const videoRouteSnapshot = selectVideoRouteSnapshot({
-    isInternalStaff: false,
+    requestedRouteId: input.videoRouteId,
+    isInternalStaff: input.isInternalStaff === true,
   });
+  // Keep production mock/content-review seals ahead of replay, while allowing
+  // an explicitly selected healthy provider to act as a fallback when only the
+  // deployment's default provider is misconfigured.
+  const runtimeReadiness = videoGenerationRuntimeReadiness();
+  const selectedRouteOverridesDefaultFailure =
+    !runtimeReadiness.ok &&
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      videoRouteSnapshot,
+      runtimeReadiness.reason,
+    );
+  if (!runtimeReadiness.ok && !selectedRouteOverridesDefaultFailure) {
+    throw new VideoGenerationRuntimeUnavailableError(runtimeReadiness.reason);
+  }
   const requestHash = batchRequestHash(input, videoRouteSnapshot);
   const existing = await db.batchJob.findUnique({
     where: {
@@ -423,12 +449,47 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     },
   });
   if (!template) throw new BatchTemplateUnavailableError();
-  parseLockedParams(template.lockedParams);
+  const lockedParams = parseLockedParams(template.lockedParams);
   const imagesPerVideo = parseImagesPerVideo(template.imagesPerVideo);
   if (input.images.length < imagesPerVideo.min) {
     throw new BatchInsufficientAssetsError(
       imagesPerVideo.min,
       input.images.length,
+    );
+  }
+  if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
+    const invalidReferenceUrl = input.images.some((image) => {
+      try {
+        return new URL(image.url).protocol !== "https:";
+      } catch {
+        return true;
+      }
+    });
+    if (invalidReferenceUrl) {
+      throw new BatchProviderInputError("合作方线路只接受 HTTPS 图片地址");
+    }
+    if (imagesPerVideo.max > 9) {
+      throw new BatchProviderInputError("合作方线路每支视频最多接受 9 张参考图");
+    }
+  }
+  const availability = await getVideoRouteSnapshotRuntimeAvailability({
+    snapshot: videoRouteSnapshot,
+    shuyuRequiredPoints:
+      videoRouteSnapshot.videoRouteSnapshot === "buddy"
+        ? lockedParams.duration
+          * input.requestedCount
+          * SHUYU_VIDEO_POINTS_PER_SECOND
+        : undefined,
+  });
+  if (!availability.available) {
+    throw new VideoGenerationRuntimeUnavailableError(
+      availability.reason === "insufficient_balance"
+        ? "shuyu_insufficient_balance"
+        : videoRouteSnapshot.videoRouteSnapshot === "buddy"
+          ? "shuyu_unavailable"
+          : videoRouteSnapshot.videoRouteSnapshot === "volcengine_cn_legacy"
+            ? "volcengine_legacy_key_missing"
+            : "byteplus_key_missing",
     );
   }
   const provider =
@@ -475,6 +536,24 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
         provider,
         videoRouteSnapshot,
       });
+      if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
+        const negativePrompt = template.negativePrompt?.trim();
+        const hasInvalidPrompt = rows.some((row) => {
+          const prompt =
+            typeof row.promptText === "string" ? row.promptText : "";
+          const mergedPrompt = negativePrompt
+            ? `${prompt}\nNegative constraints: ${negativePrompt}`
+            : prompt;
+          return !mergedPrompt.trim() || mergedPrompt.length > 5_000;
+        });
+        if (hasInvalidPrompt) {
+          // Throwing inside this transaction rolls back the just-created
+          // BatchJob, and the route has not authorized any local quota yet.
+          throw new BatchProviderInputError(
+            "合作方线路的渲染后提示词不得超过 5000 个字符",
+          );
+        }
+      }
       await tx.videoJob.createMany({ data: rows });
       return tx.batchJob.update({
         where: { id: batch.id },

@@ -13,6 +13,7 @@
 import { getAppEnv } from "@/lib/config/env";
 import { MockVideoProvider } from "./mock-video-provider";
 import { BytePlusVideoProvider } from "./byteplus-video-provider";
+import { ShuyuVideoProvider } from "./shuyu-video-provider";
 import type { VideoProvider } from "./types";
 import type { VideoRouteSnapshot } from "../video-route-registry";
 
@@ -31,6 +32,8 @@ export function createVideoProvider(): VideoProvider {
       return new MockVideoProvider();
     case "byteplus":
       return new BytePlusVideoProvider();
+    case "shuyu":
+      return new ShuyuVideoProvider();
     default: {
       const exhaustiveCheck: never = env.videoProvider;
       throw new Error(
@@ -41,11 +44,11 @@ export function createVideoProvider(): VideoProvider {
 }
 
 export function createVideoProviderById(
-  id: "byteplus" | "mock",
+  id: "byteplus" | "shuyu" | "mock",
 ): VideoProvider {
-  return id === "mock"
-    ? new MockVideoProvider()
-    : new BytePlusVideoProvider();
+  if (id === "mock") return new MockVideoProvider();
+  if (id === "shuyu") return new ShuyuVideoProvider();
+  return new BytePlusVideoProvider();
 }
 
 export function createVideoProviderByRouteSnapshot(
@@ -56,6 +59,12 @@ export function createVideoProviderByRouteSnapshot(
       throw new Error("Mock route snapshot has an incompatible adapter");
     }
     return new MockVideoProvider();
+  }
+  if (snapshot.videoRouteSnapshot === "buddy") {
+    if (snapshot.videoProviderAdapterSnapshot !== "shuyu") {
+      throw new Error("Shuyu route snapshot has an incompatible adapter");
+    }
+    return new ShuyuVideoProvider(snapshot.videoModelSnapshot);
   }
   if (snapshot.videoProviderAdapterSnapshot !== "byteplus") {
     throw new Error("Seedance route snapshot has an incompatible adapter");

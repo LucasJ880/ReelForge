@@ -4,6 +4,7 @@ import {
   BatchInsufficientAssetsError,
   BatchImageIdConflictError,
   BatchIdempotencyConflictError,
+  BatchProviderInputError,
   BatchTemplateUnavailableError,
   createBatchJob,
   getBatchStatus,
@@ -77,6 +78,9 @@ export async function POST(req: NextRequest) {
       ...parsed.data,
       userId: guard.session.user.id,
       idempotencyKey,
+      isInternalStaff:
+        guard.session.user.role === "OPERATOR" ||
+        guard.session.user.role === "SUPER_ADMIN",
     });
     const authorization = await authorizeBatchQuotaForSession(
       guard.session,
@@ -111,6 +115,17 @@ export async function POST(req: NextRequest) {
       );
     }
     if (error instanceof BatchInsufficientAssetsError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "VALIDATION_FAILED",
+          message: error.message,
+          retryable: false,
+          action: "fix_request",
+        }),
+        { status: error.httpStatus },
+      );
+    }
+    if (error instanceof BatchProviderInputError) {
       return NextResponse.json(
         customerApiError({
           code: "VALIDATION_FAILED",

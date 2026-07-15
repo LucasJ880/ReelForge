@@ -45,12 +45,11 @@ test("Phase2 模板库选择可透传到批量向导并预选精确版本 ID", a
 
 test("Phase1 unified journey：创作使用 account-neutral platform 请求并回统一成品库", async () => {
   const page = await readFile("src/app/(platform)/app/create/page.tsx", "utf8");
-  const agent = await readFile("src/components/video-generation/agent-creative-studio.tsx", "utf8");
-  const input = await readFile("src/components/video-generation/unified-creative-input.tsx", "utf8");
+  const studio = await readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
   const dispatch = await readFile("src/app/api/video-generation/dispatch/route.ts", "utf8");
-  assert.match(page, /AgentCreativeStudio/);
-  assert.match(agent, /userType="platform"/);
-  assert.match(input, /userType === "platform"[\s\S]*?"\/app\/library"/);
+  assert.match(page, /StreamlinedVideoStudio/);
+  assert.match(studio, /userType:\s*"platform"/);
+  assert.match(studio, /router\.push\(payload\.nextUrl \?\? "\/app\/library"\)/);
   assert.match(dispatch, /request\.userType === "platform"[\s\S]*?\/app\/library/);
 });
 

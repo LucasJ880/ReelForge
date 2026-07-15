@@ -3,9 +3,7 @@ import { requireOperator } from "@/lib/api-auth";
 import { internalVideoProviderRoutesResponseSchema } from "@/lib/contracts/video-provider-routes";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import {
-  buddyVideoProviderRoute,
-  discoverBuddyApiContract,
-  discoverBuddyModels,
+  discoverShuyuVideoRoute,
 } from "@/lib/server/buddy-route-discovery";
 
 export const runtime = "nodejs";
@@ -32,14 +30,11 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const [discovery, contract] = await Promise.all([
-    discoverBuddyModels(),
-    discoverBuddyApiContract(),
-  ]);
+  const shuyuRoute = await discoverShuyuVideoRoute();
   return NextResponse.json(
     internalVideoProviderRoutesResponseSchema.parse({
       ok: true,
-      routes: [buddyVideoProviderRoute(discovery, contract)],
+      routes: [shuyuRoute],
     }),
     {
       headers: {

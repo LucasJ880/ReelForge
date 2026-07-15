@@ -68,28 +68,21 @@ test("internal video-provider-routes route authenticates before read-only discov
   );
   const guardIndex = source.indexOf("await requireOperator()");
   const machineGuardIndex = source.indexOf("machineAuthFailure(req)");
-  const discoveryIndex = source.indexOf("discoverBuddyModels()");
-  const contractDiscoveryIndex = source.indexOf(
-    "discoverBuddyApiContract()",
-  );
+  const discoveryIndex = source.indexOf("discoverShuyuVideoRoute()");
   assert.ok(guardIndex >= 0, "route must use the system-role operator guard");
   assert.ok(machineGuardIndex >= 0, "route must support shared machine auth");
   assert.ok(
     discoveryIndex > guardIndex && discoveryIndex > machineGuardIndex,
     "both auth paths must complete before calling the upstream discovery client",
   );
-  assert.ok(
-    contractDiscoveryIndex > guardIndex,
-    "route must authorize before probing official contract documents",
-  );
   assert.doesNotMatch(source, /shuyu_api_key|Authorization|Bearer/);
   assert.doesNotMatch(
     source,
-    /createVideoJob|submitSeedance|contents\/generations\/tasks/,
+    /createVideoJob|submitSeedance|videos\/generations/,
   );
   assert.match(
     source,
-    /models_and_openapi_read_only_non_billing|buddyVideoProviderRoute/,
+    /discoverShuyuVideoRoute/,
   );
   assert.match(source, /Cache-Control/);
   assert.match(source, /private, no-store/);

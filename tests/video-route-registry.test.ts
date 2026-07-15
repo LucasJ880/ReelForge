@@ -35,16 +35,18 @@ test("video route registry explicitly allowlists audited routes", () => {
   assert.equal(isEnabledVideoRouteId("mock"), true);
 });
 
-test("Buddy stays type-reserved but disabled without a confirmed model", () => {
+test("Shuyu partner route is enabled only for the audited studio-video contract", () => {
   const buddy = getVideoRouteContract("buddy");
-  assert.equal(buddy.enabled, false);
-  assert.equal(buddy.model, null);
+  assert.equal(buddy.enabled, true);
+  assert.equal(buddy.model, "studio-video");
+  assert.equal(buddy.providerAdapter, "shuyu");
   assert.equal(buddy.processingRegion, null);
-  assert.equal(isEnabledVideoRouteId("buddy"), false);
-  assert.throws(
-    () => createVideoRouteSnapshot("buddy"),
-    /registered but disabled.*model contract is confirmed/,
-  );
+  assert.equal(isEnabledVideoRouteId("buddy"), true);
+  assert.deepEqual(createVideoRouteSnapshot("buddy"), {
+    videoRouteSnapshot: "buddy",
+    videoModelSnapshot: "studio-video",
+    videoProviderAdapterSnapshot: "shuyu",
+  });
 });
 
 test("enabled routes create complete immutable snapshots", () => {

@@ -1,88 +1,83 @@
 import { z } from "zod";
 
-export const buddyRouteUnavailableReasons = [
+export const shuyuRouteUnavailableReasons = [
   "not_configured",
   "authentication_rejected",
-  "models_endpoint_unavailable",
+  "insufficient_balance",
   "rate_limited",
   "timeout",
   "upstream_unavailable",
   "invalid_response",
+  "price_contract_mismatch",
 ] as const;
 
-export const buddyContractUnavailableReasons = [
-  "not_configured",
-  "not_found",
-  "timeout",
-  "upstream_unavailable",
-  "invalid_response",
-  "video_contract_unavailable",
-] as const;
-
-export const buddyContractOperationSchema = z
+export const shuyuVideoPlanSchema = z
   .object({
-    path: z.string().startsWith("/").max(300),
-    method: z.enum(["GET", "POST", "PUT", "PATCH", "DELETE"]),
-    operationId: z.string().min(1).max(160).nullable(),
-    requestFields: z.array(z.string().min(1).max(120)).max(60),
-    pathParameters: z.array(z.string().min(1).max(120)).max(20),
-    queryParameters: z.array(z.string().min(1).max(120)).max(20),
+    planId: z.literal("video-standard-720p-second"),
+    kind: z.literal("video"),
+    model: z.literal("studio-video"),
+    unit: z.literal("second"),
+    resolution: z.literal("720P"),
+    salePoints: z.literal(104),
   })
   .strict();
 
-export const buddyApiContractSchema = z
+export const shuyuApiContractSchema = z
   .object({
-    availability: z.enum(["available", "unavailable"]),
-    sourcePath: z
-      .enum(["/openapi.json", "/docs/openapi.json"])
-      .nullable(),
-    unavailableReason: z.enum(buddyContractUnavailableReasons).nullable(),
-    submitPath: z.string().startsWith("/").max(300).nullable(),
-    statusPath: z.string().startsWith("/").max(300).nullable(),
-    cancelPath: z.string().startsWith("/").max(300).nullable(),
-    operations: z.array(buddyContractOperationSchema).max(30),
+    submitPath: z.literal("/videos/generations"),
+    statusPath: z.literal("/tasks/{task_id}"),
+    balancePath: z.literal("/account/balance"),
+    requestFields: z.tuple([
+      z.literal("model"),
+      z.literal("prompt"),
+      z.literal("duration"),
+      z.literal("aspect_ratio"),
+      z.literal("input_images"),
+    ]),
+    statuses: z.tuple([
+      z.literal("queued"),
+      z.literal("processing"),
+      z.literal("completed"),
+      z.literal("refund_pending"),
+      z.literal("refund_error"),
+      z.literal("refunded"),
+    ]),
   })
   .strict();
 
-export const buddyModelDtoSchema = z
-  .object({
-    id: z.string().min(1).max(200),
-    name: z.string().min(1).max(120).nullable(),
-    version: z.string().min(1).max(80).nullable(),
-    status: z.string().min(1).max(40).nullable(),
-    capabilities: z.array(z.string().min(1).max(60)).max(20),
-  })
-  .strict();
-
-export const buddyVideoProviderRouteSchema = z
+export const shuyuVideoProviderRouteSchema = z
   .object({
     id: z.literal("buddy"),
-    provider: z.literal("buddy"),
-    displayName: z.literal("Buddy API"),
+    provider: z.literal("shuyu"),
+    displayName: z.literal("Shuyu API"),
     apiBaseUrl: z.literal("https://shuyu-tiktok-tool.pages.dev/api/v1"),
-    discoveryMode: z.literal("models_and_openapi_read_only_non_billing"),
+    discoveryMode: z.literal("prices_and_balance_read_only_non_billing"),
     availability: z.enum(["available", "unavailable"]),
-    unavailableReason: z.enum(buddyRouteUnavailableReasons).nullable(),
-    models: z.array(buddyModelDtoSchema).max(100),
-    contract: buddyApiContractSchema,
+    configured: z.boolean(),
+    funded: z.boolean(),
+    unavailableReason: z.enum(shuyuRouteUnavailableReasons).nullable(),
+    plans: z.array(shuyuVideoPlanSchema).max(1),
+    contract: shuyuApiContractSchema,
   })
   .strict();
 
 export const internalVideoProviderRoutesResponseSchema = z
   .object({
     ok: z.literal(true),
-    routes: z.array(buddyVideoProviderRouteSchema).length(1),
+    routes: z.array(shuyuVideoProviderRouteSchema).length(1),
   })
   .strict();
 
-export type BuddyModelDto = z.infer<typeof buddyModelDtoSchema>;
-export type BuddyContractOperation = z.infer<
-  typeof buddyContractOperationSchema
->;
-export type BuddyApiContract = z.infer<typeof buddyApiContractSchema>;
-export type BuddyVideoProviderRoute = z.infer<
-  typeof buddyVideoProviderRouteSchema
+export type ShuyuVideoPlan = z.infer<typeof shuyuVideoPlanSchema>;
+export type ShuyuApiContract = z.infer<typeof shuyuApiContractSchema>;
+export type ShuyuVideoProviderRoute = z.infer<
+  typeof shuyuVideoProviderRouteSchema
 >;
 export type InternalVideoProviderRoutesResponse = z.infer<
   typeof internalVideoProviderRoutesResponseSchema
 >;
+
+// Compatibility type aliases for existing internal imports during the route
+// rename. They contain only the new sanitized /prices contract.
+export type BuddyApiContract = ShuyuApiContract;
+export type BuddyVideoProviderRoute = ShuyuVideoProviderRoute;

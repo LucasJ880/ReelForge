@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  canVideoRouteOverrideDefaultRuntimeFailure,
+  isVideoRouteSnapshotRuntimeReady,
   selectVideoRouteSnapshot,
   VideoRouteSelectionError,
 } from "../src/lib/video-generation/video-route-selection";
@@ -13,20 +15,40 @@ const realEnv = {
   SEEDANCE_RUNTIME_PROFILE: "byteplus_international",
 };
 
-test("customer cannot override a video route", () => {
-  assert.throws(
-    () =>
-      selectVideoRouteSnapshot({
-        requestedRouteId: "volcengine_cn_legacy",
-        isInternalStaff: false,
-        env: realEnv,
-      }),
-    (error) =>
-      error instanceof VideoRouteSelectionError && error.code === "FORBIDDEN",
+test("authenticated customer gets direct by default and may override only to Shuyu", () => {
+  assert.equal(
+    selectVideoRouteSnapshot({
+      isInternalStaff: false,
+      env: {
+        ...realEnv,
+        SEEDANCE_RUNTIME_PROFILE: "volcengine_cn_legacy",
+      },
+    }).videoRouteSnapshot,
+    "volcengine_cn_legacy",
   );
+  assert.deepEqual(
+    selectVideoRouteSnapshot({
+      requestedRouteId: "buddy",
+      isInternalStaff: false,
+      env: realEnv,
+    }),
+    createVideoRouteSnapshot("buddy"),
+  );
+  for (const routeId of ["byteplus_international", "volcengine_cn_legacy"]) {
+    assert.throws(
+      () =>
+        selectVideoRouteSnapshot({
+          requestedRouteId: routeId,
+          isInternalStaff: false,
+          env: realEnv,
+        }),
+      (error) =>
+        error instanceof VideoRouteSelectionError && error.code === "FORBIDDEN",
+    );
+  }
 });
 
-test("staff override accepts only the two audited Seedance routes", () => {
+test("unregistered and mock request overrides remain sealed", () => {
   assert.equal(
     selectVideoRouteSnapshot({
       requestedRouteId: "volcengine_cn_legacy",
@@ -35,7 +57,7 @@ test("staff override accepts only the two audited Seedance routes", () => {
     }).videoRouteSnapshot,
     "volcengine_cn_legacy",
   );
-  for (const routeId of ["buddy", "mock", "custom-proxy"]) {
+  for (const routeId of ["mock", "custom-proxy"]) {
     assert.throws(
       () =>
         selectVideoRouteSnapshot({
@@ -87,5 +109,86 @@ test("idempotency hash includes the effective route snapshot", () => {
       body,
       createVideoRouteSnapshot("byteplus_international"),
     ),
+  );
+});
+
+test("direct route readiness seals credentials to the matching endpoint", () => {
+  const byteplus = createVideoRouteSnapshot("byteplus_international");
+  const volcengine = createVideoRouteSnapshot("volcengine_cn_legacy");
+  assert.equal(
+    isVideoRouteSnapshotRuntimeReady(byteplus, {
+      BYTEPLUS_ARK_API_KEY: "configured",
+    }),
+    true,
+  );
+  assert.equal(
+    isVideoRouteSnapshotRuntimeReady(byteplus, {
+      BYTEPLUS_ARK_API_KEY: "configured",
+      ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3",
+    }),
+    false,
+  );
+  assert.equal(
+    isVideoRouteSnapshotRuntimeReady(volcengine, {
+      ARK_API_KEY: "configured",
+      ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3/",
+    }),
+    true,
+  );
+  assert.equal(
+    isVideoRouteSnapshotRuntimeReady(volcengine, {
+      ARK_API_KEY: "configured",
+      ARK_BASE_URL: "https://proxy.example.com/api/v3",
+    }),
+    false,
+  );
+});
+
+test("explicit routes bypass only a different provider's readiness failure", () => {
+  const buddy = createVideoRouteSnapshot("buddy");
+  const byteplus = createVideoRouteSnapshot("byteplus_international");
+  const volcengine = createVideoRouteSnapshot("volcengine_cn_legacy");
+
+  assert.equal(
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      buddy,
+      "byteplus_endpoint_invalid",
+    ),
+    true,
+  );
+  assert.equal(
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      buddy,
+      "content_review_key_missing",
+    ),
+    false,
+  );
+  assert.equal(
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      byteplus,
+      "volcengine_legacy_key_missing",
+    ),
+    true,
+  );
+  assert.equal(
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      byteplus,
+      "byteplus_key_missing",
+    ),
+    false,
+  );
+  assert.equal(
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      volcengine,
+      "shuyu_key_missing",
+    ),
+    true,
+  );
+  assert.equal(
+    canVideoRouteOverrideDefaultRuntimeFailure(
+      volcengine,
+      "volcengine_legacy_endpoint_invalid",
+    ),
+    false,
   );
 });

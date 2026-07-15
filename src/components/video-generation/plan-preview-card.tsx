@@ -37,7 +37,7 @@ export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
           </span>
         </div>
         <p className="text-body font-medium text-foreground">
-          {planPreview.summary}
+          {localizedPlanSummary(planPreview, isEn)}
         </p>
       </header>
 
@@ -51,6 +51,18 @@ export function PlanPreviewCard({ plan }: PlanPreviewCardProps) {
       </CardContent>
     </Card>
   );
+}
+
+function localizedPlanSummary(preview: PlanPreview, isEn: boolean): string {
+  if (isEn) return preview.summary;
+  const aiScenes = `${preview.breakdown.aiClipCount} 个 AI 镜头`;
+  const ownClips = preview.breakdown.uploadedClipCount > 0
+    ? `和 ${preview.breakdown.uploadedClipCount} 个自有片段`
+    : "";
+  const endCard = preview.breakdown.hasBrandEndCard
+    ? "，并加入品牌片尾"
+    : "";
+  return `Aivora 将把 ${aiScenes}${ownClips}组合成一支 ${preview.breakdown.finalDurationSec} 秒 ${orientationLabel(preview.breakdown.aspectRatio, false)}视频${endCard}。`;
 }
 
 function PlanBreakdown({ preview, locale }: { preview: PlanPreview; locale: Locale }) {

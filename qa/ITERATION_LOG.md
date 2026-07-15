@@ -31,3 +31,15 @@ Phase 0–2 与 Gate C0 的历史迭代记录已归档至 [ITERATION_LOG.archive
 - Completed the zero-cost optimized-browser journey through FinalVideo READY, preview, and download entry; media is H.264/AAC and browser-ready.
 - Focused suite passed 72/72; TypeScript, ESLint, optimized build, and diff check passed.
 - Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
+
+## 2026-07-14 — RF-042 production authentication rejection and quota reconciliation
+
+- Ran exactly one human-authorized real front-end canary against the BytePlus international endpoint. It received a definitive 401 authentication rejection and no provider task id; no retry was attempted.
+- Reconciled the production request/job and both entitlement meters with explicit no-create evidence and negative ledger entries.
+- Removed the invalid canonical production credential so the next deployment fails closed before plan/quota/idempotency/job writes.
+- Added typed provider-response classification: only 401/403 are definite no-create; every ambiguous 4xx/5xx/timeout/decode/missing-id response remains acknowledgement-unknown.
+- Added Serializable, CAS-guarded direct-dispatch compensation and customer-owned bilingual error copy with raw auth/provider leakage blocked.
+- Added explicit Studio main/page backgrounds; post-deploy computed styles are uniformly `rgb(16, 16, 21)` with no white document canvas.
+- Focused suite passed 61/61; TypeScript, scoped ESLint, optimized build, and diff check passed. Production deployment `dpl_JApx5yrYeErnqzPpQq3ceWNbPdj8` is Ready.
+- Honest blocker: a newly issued BytePlus international key must be installed by the human account owner before a successful real video can be generated. Current health is intentionally 503/fail-closed with the database connected.
+- Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.

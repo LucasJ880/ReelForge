@@ -512,21 +512,21 @@
 ### RF-040 — Production video generation was sealed by an incompatible mock/secret configuration
 
 - Severity: **P0 — customer generation blocker and quota-accounting defect**
-- Status: **FIXED — deployment and one bounded production canary pending**
+- Status: **FIXED — repaired code is deployed; real generation remains externally blocked by a missing valid BytePlus international credential**
 - Reproduction: submit one 15-second video from the deployed Agent Director. The request reaches planning, consumes the direct-video entitlement, creates a `VideoDispatchRequest` and `VideoJob`, then the production mock backstop rejects the provider path with `production runtime 禁止 mock 视频 provider`. The customer sees only a generation failure and no provider job exists.
 - Root cause: production still had `VIDEO_ENGINE_MOCK=true`, while the international BytePlus credential remained under the legacy `ARK_API_KEY` name. The real Seedance adapter intentionally reads only `BYTEPLUS_ARK_API_KEY`, so simply disabling mock would still fail closed. Runtime readiness was also checked too late on the direct path and after an idempotent existing-batch shortcut on the batch path.
 - Impact: internal operators cannot produce a video; configuration failures can create failed job/accounting rows before any provider call.
 - Repair: add one typed runtime-readiness predicate covering production mock, international BytePlus key/endpoint, invalid env values, and mandatory real moderation credentials. Direct dispatch now checks it before planning/quota/idempotency/job writes. Batch create/tick/retry check it before idempotency lookup, lease recovery, or reset mutations. Production secret migration is prepared from the existing international credential to the canonical variable without exposing its value.
 - Accounting repair: the diagnostic request made zero video-provider calls. Its single VIDEO_DISPATCH and SEEDANCE_SEGMENT usage units were compensated with auditable negative `UsageLog` rows and compare-and-swap clearing of `quotaConsumedAt`.
 - Regression: `tests/production-mock-runtime-guard.test.ts`, `tests/batch-runtime-readiness.test.ts`, and `tests/china-env-validation.test.ts` lock zero-side-effect fail-closed behavior while preserving Preview/local mock rehearsal.
-- Verification: focused generation/runtime/design suite 72/72, TypeScript, ESLint, optimized build, and a zero-cost browser rehearsal all pass. The rehearsal completed login -> Agent brief -> plan -> dispatch -> polling -> `FinalVideo READY` -> preview/download entry; H.264/AAC media reached browser `readyState=4`. Production verification remains pending deployment.
+- Verification: focused generation/runtime/design suite 72/72, TypeScript, ESLint, optimized build, and a zero-cost browser rehearsal all pass. The rehearsal completed login -> Agent brief -> plan -> dispatch -> polling -> `FinalVideo READY` -> preview/download entry; H.264/AAC media reached browser `readyState=4`. Production deployments `83db62d` and `14c7b4b` are live. The sole bounded real canary reached the international endpoint but received a definitive authentication rejection; no provider task id was created. The invalid canonical secret was removed, so production now reports `BYTEPLUS_ARK_API_KEY` missing and fails closed before paid/mutating work until a new international credential is supplied by the human account owner.
 - Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
-- Repair commit: pending.
+- Repair commits: `83db62d`, `14c7b4b`.
 
 ### RF-041 — Batch creation allowed fewer assets than the selected immutable template requires
 
 - Severity: **P1 — customer-visible batch creation blocker**
-- Status: **FIXED — production browser verification pending**
+- Status: **FIXED — deployed; focused browser/API regression is green**
 - Reproduction: upload one product image, select a template whose immutable `imagesPerVideo.min` is three, continue to confirmation, and submit. The API throws a generic error, returns HTTP 500, and the UI replaces the useful reason with `创建批次失败`.
 - Root cause: the wizard gated only on `uploaded.length > 0`; the service parsed the allocation rule only inside expansion and did not expose a typed validation error at the API boundary.
 - Impact: a valid-looking four-step customer journey ends in an opaque failure. No BatchJob/provider submission is committed because the transaction rolls back, but the operator cannot understand how to recover.
@@ -534,7 +534,20 @@
 - Regression: one image against `min=3` produces no API request in the UI and a direct API call returns the strict 422 envelope before transaction/quota/provider work; Preview mock idempotency still works.
 - Verification: focused batch/runtime/design suite 72/72, TypeScript, ESLint, optimized build, and diff check pass.
 - Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
-- Repair commit: pending.
+- Repair commit: `83db62d`.
+
+### RF-042 — Definitive BytePlus authentication rejection was treated as acknowledgement-unknown and retained quota
+
+- Severity: **P0 — production generation, entitlement reconciliation, and customer error-disclosure blocker**
+- Status: **FIXED — hardening deployed; a valid external credential is still required before a successful real canary can exist**
+- Reproduction: submit the single authorized 15-second production canary through Agent Director with the legacy credential copied to the canonical BytePlus variable. The international endpoint returns HTTP 401 authentication rejection and no task id, but the generic adapter error is conservatively wrapped as `ACK_UNKNOWN`; the request keeps its quota marker and the customer receives an ambiguity message even though the provider positively rejected authentication.
+- Root cause: the Seedance adapter discarded the structured HTTP boundary and threw a generic error. The shared classifier therefore had no typed positive evidence that the provider created no task, and direct dispatch had no atomic compensation path for a proven no-create result.
+- Impact: the only real canary could not generate a video; one VIDEO_DISPATCH and one SEEDANCE_SEGMENT entitlement unit remained consumed until manual reconciliation. A short raw provider/authentication error also had customer-display paths in both creation UIs.
+- Repair: BytePlus submission now emits a typed, sanitized `ProviderSubmissionError`. Only contractual 401/403 authentication/authorization rejection is marked `definitely_not_created`; 408/409/429, unknown 4xx, 5xx, timeouts, decode failures, and missing task ids remain acknowledgement-unknown. Direct dispatch rechecks request ownership, brief ownership, exact job cardinality, `REJECTED` state, no external id, and the strict failure class inside one Serializable transaction before CAS-clearing the quota marker, decrementing both meters, and appending negative usage ledger rows. Customer copy is selected from machine code and never echoes provider/auth payloads.
+- Production reconciliation: request `cmrlceupd0005ky050ke0if6h` is `FAILED/503` with `quotaConsumedAt=null`; job `f0fa952f-214b-49d4-85fb-29e4139d633e` is `FAILED/REJECTED/definitely_not_created:provider_response`, has no external job id, and has paired negative VIDEO_DISPATCH/SEEDANCE_SEGMENT ledger rows. Production has zero QUEUED/RUNNING VideoJobs and zero EXPANDING/RUNNING/PAUSED batches after reconciliation.
+- Verification: focused safety/runtime/UI suite 61/61, TypeScript, scoped ESLint, optimized build, and diff check pass. Deployment `dpl_JApx5yrYeErnqzPpQq3ceWNbPdj8` is Ready on the production alias. Health intentionally returns 503 with database connected, region `na`, provider `byteplus`, and only the missing canonical BytePlus key reported.
+- Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
+- Repair commit: `14c7b4b`.
 
 ## Seed hypotheses not opened as defects
 

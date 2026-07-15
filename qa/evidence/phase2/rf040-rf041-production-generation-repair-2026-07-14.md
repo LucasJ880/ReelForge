@@ -59,12 +59,16 @@ Result:
 - `npm run build`: pass.
 - `git diff --check`: pass.
 
-## Remaining production gate
+## Production deployment and bounded canary
 
-Before production verification:
+- `83db62d` deployed the runtime-readiness, batch-validation, and document-canvas repair.
+- Production was configured for `VIDEO_PROVIDER=byteplus`, `VIDEO_ENGINE_MOCK=false`, and `https://ark.ap-southeast.bytepluses.com/api/v3`.
+- One and only one 15-second Agent Director canary was submitted. BytePlus returned a definitive HTTP 401 authentication rejection. No provider task id was created and no second canary was submitted.
+- The request/job were reconciled with compare-and-swap evidence and paired negative usage rows. The production database now has zero nonterminal VideoJobs and zero running/expanding/paused batches.
+- `14c7b4b` deployed typed 401/403 no-create classification, conservative handling for every ambiguous response, automatic Serializable quota compensation, customer-owned bilingual error copy, and explicit Studio main/page backgrounds.
+- Production deployment `dpl_JApx5yrYeErnqzPpQq3ceWNbPdj8` is Ready on `https://reelforge-delta.vercel.app`.
+- Production browser verification on `/app/batches/new` reports `html`, `body`, `.studio-theme`, `main`, and `.studio-page` all as `rgb(16, 16, 21)`; the light canvas is not exposed.
 
-1. confirm there are zero eligible QUEUED/RUNNING jobs (observed zero before configuration change);
-2. copy the existing international credential to `BYTEPLUS_ARK_API_KEY` without exposing it;
-3. set `VIDEO_PROVIDER=byteplus`, `VIDEO_ENGINE_MOCK=false`, and the canonical international `ARK_BASE_URL`;
-4. deploy the repaired commit;
-5. verify health, one-image/min-three batch blocking, dark document canvas, and exactly one 15-second front-end canary. Do not automatically retry an ambiguous provider response.
+## Honest remaining external blocker
+
+The legacy credential is not valid for the BytePlus international endpoint. It was removed from the canonical `BYTEPLUS_ARK_API_KEY` production variable after the bounded canary. Health now intentionally returns HTTP 503 with the database connected, region `na`, provider `byteplus`, and a missing canonical key. This is the required fail-closed state: neither a task row nor quota can be created until the human account owner installs a newly issued BytePlus international credential. Buddy remains locked because confirmed pricing and credits are not both present.

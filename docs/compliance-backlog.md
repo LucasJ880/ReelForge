@@ -3,6 +3,8 @@
 ## Legal and privacy
 
 - 加拿大律师复核并定稿 Privacy Policy 与 Terms of Service，确认责任限制、赔偿、适用法律与终止条款。
+- 在任何外部客户走 Volcengine `cn-beijing` 临时视频生成路由前，更新第三方处理方与跨境披露：列明传输的 brief、图片/视频素材、派生提示词与返回成片，处理目的和区域，provider 保存/删除口径、合同安全措施及客户通知/选择机制；由加拿大律师复核。
+- 为 `cn-beijing` legacy profile 建立临时例外登记：业务 owner、启用日期、复审/退出日期、适用账号与批次、回切 BytePlus 国际路径的条件。到期未复审不得把该路径描述为永久默认。`ASSUMPTION: 当前尚无人工确认的截止日期。`
 - 人工确认 `NEXT_PUBLIC_PRIVACY_EMAIL` 指向真实有人监控的邮箱；当前工程草稿显式展示该假设。
 - 为 PIPEDA 访问、导出与删除请求建立 internal 工单和可审计执行工具；定义客户记录、作业日志、媒体与安全日志的具体保存期限。
 - 如向欧盟用户提供服务，评估 EU AI Act Article 50 的透明度要求；当前播放器标签与可选片尾卡是技术基础，不等于法律结论。
@@ -24,6 +26,7 @@
 ## Provider configuration cleanup
 
 - 活动 env 示例已移除 digital-human provider 变量；人工需从本地/托管环境清理不再使用的旧 provider secrets。若未来重启该产品能力，使用单独的 provider 选型、数据路由与预算 Gate。
+- 临时 Volcengine `cn-beijing` 视频 profile 只允许通过既有 `VideoProvider` 切换面启用；不得扩散为 LLM/TTS/OmniHuman/审核/存储默认。BytePlus 国际 adapter 保留，legacy 例外结束后应按演练过的配置回切并撤除不再需要的旧凭证。
 
 ## Buddy provider
 

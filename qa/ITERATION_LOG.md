@@ -2,6 +2,14 @@
 
 Phase 0–2 与 Gate C0 的历史迭代记录已归档至 [ITERATION_LOG.archive-phase0-2.md](./ITERATION_LOG.archive-phase0-2.md)。权威源为 commit `489e22d1ff5201595b287ecc5887af37c41f1496`，归档 SHA-256 为 `0186c9ac39d13ca2cdb95558efad01a2e4a1e45fb4a21efdb186971e65b45364`。后续阶段记录按各阶段日志与证据索引继续维护。
 
+## 2026-07-14 — Superseding video-route decision (documentation only)
+
+- Preserved the original North-America deployment and Gate 4 evidence, then recorded the narrower human superseding decision: CEO video generation may temporarily use the Volcengine `cn-beijing` legacy profile.
+- Kept Neon and object storage in North America; did not reopen China-region database, storage, moderation, LLM, TTS, or digital-human architecture.
+- Kept BytePlus international and Buddy provider routes intact. The exception does not authorize deleting adapters, bypassing provider abstraction, or relaxing Buddy price/credit/contract gates.
+- Added explicit cross-border-processing and temporary-risk actions to the compliance record. The privacy/terms disclosure and provider retention/deletion position still require Canadian counsel review before external-customer use.
+- Documentation only: no provider configuration, credential, deployment, database, storage, production call, or paid operation changed; no secret value was recorded.
+
 ## 2026-07-14 — RF-019 production schema repair
 
 - Reproduced the deployed-code/Neon-schema mismatch from production logs: missing `BatchJob.requestHash` and `VideoDispatchRequest`.

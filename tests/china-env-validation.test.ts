@@ -18,6 +18,7 @@ test("parseAppEnv: 默认锁定加拿大/北美 provider 路由", () => {
   assert.equal(app.aiProvider, "openai");
   assert.equal(app.storageProvider, "vercel_blob");
   assert.equal(app.videoProvider, "byteplus");
+  assert.equal(app.seedanceRuntimeProfile, "byteplus_international");
   assert.equal(app.contentReviewProvider, "noop");
   assert.equal(app.paymentEnabled, true);
 });
@@ -42,6 +43,22 @@ test("parseAppEnv: 非法 AI_PROVIDER 抛清晰错误", () => {
 
 test("parseAppEnv: 非法 STORAGE_PROVIDER 抛错", () => {
   assert.throws(() => parseAppEnv({ STORAGE_PROVIDER: "s3" } as EnvMap), /STORAGE_PROVIDER="s3"/);
+});
+
+test("parseAppEnv: Seedance runtime profile 必须显式命中允许枚举", () => {
+  assert.equal(
+    parseAppEnv({
+      SEEDANCE_RUNTIME_PROFILE: "volcengine_cn_legacy",
+    } as EnvMap).seedanceRuntimeProfile,
+    "volcengine_cn_legacy",
+  );
+  assert.throws(
+    () =>
+      parseAppEnv({
+        SEEDANCE_RUNTIME_PROFILE: "legacy-auto-fallback",
+      } as EnvMap),
+    /SEEDANCE_RUNTIME_PROFILE="legacy-auto-fallback"/,
+  );
 });
 
 test("parseAppEnv: bool 解析支持常见真假值", () => {
@@ -158,6 +175,39 @@ test("video runtime readiness: real BytePlus 必须同时有国际密钥与国�
       ARK_BASE_URL: "   ",
     } as EnvMap),
     { ok: false, reason: "byteplus_endpoint_invalid" },
+  );
+});
+
+test("video runtime readiness: legacy CN 只认旧密钥与固定 CN 端点", () => {
+  const base = {
+    VERCEL_ENV: "production",
+    VIDEO_PROVIDER: "byteplus",
+    VIDEO_ENGINE_MOCK: "false",
+    SEEDANCE_RUNTIME_PROFILE: "volcengine_cn_legacy",
+    ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3",
+  } as EnvMap;
+
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      ...base,
+      BYTEPLUS_ARK_API_KEY: "international-key-must-not-fallback",
+    }),
+    { ok: false, reason: "volcengine_legacy_key_missing" },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      ...base,
+      ARK_API_KEY: "legacy-key",
+      ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+    }),
+    { ok: false, reason: "volcengine_legacy_endpoint_invalid" },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      ...base,
+      ARK_API_KEY: "  legacy-key  ",
+    }),
+    { ok: true },
   );
 });
 
@@ -278,5 +328,35 @@ test("validateDeploymentEnv: 非国际 Ark URL 被拒绝", () => {
     ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3",
   } as EnvMap);
   assert.equal(r.ok, false);
-  assert.ok(r.missing.some((m) => /BytePlus 国际/.test(m)));
+  assert.ok(
+    r.missing.some((m) =>
+      /byteplus_international.*固定端点/.test(m),
+    ),
+  );
+});
+
+test("validateDeploymentEnv: explicit legacy CN profile 只接受旧 credential realm", () => {
+  const common = {
+    DATABASE_URL: "postgresql://x:y@host/db",
+    AUTH_SECRET: "secret",
+    APP_BASE_URL: "https://aivora.example",
+    LLM_FORCE_MOCK: "true",
+    VIDEO_ENGINE_MOCK: "false",
+    SEEDANCE_RUNTIME_PROFILE: "volcengine_cn_legacy",
+    ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3",
+  } as EnvMap;
+
+  const missingLegacyKey = validateDeploymentEnv({
+    ...common,
+    BYTEPLUS_ARK_API_KEY: "must-not-fallback",
+  });
+  assert.equal(missingLegacyKey.ok, false);
+  assert.ok(missingLegacyKey.missing.some((m) => /ARK_API_KEY/.test(m)));
+
+  const ready = validateDeploymentEnv({
+    ...common,
+    ARK_API_KEY: "legacy-key",
+  });
+  assert.equal(ready.ok, true);
+  assert.ok(ready.warnings.some((m) => /中国区/.test(m)));
 });

@@ -95,6 +95,7 @@ async function resolveHealth(req: NextRequest): Promise<HealthResponse> {
     aiProvider: ai.id,
     storageProvider: storage.id,
     videoProvider: video.id,
+    seedanceRuntimeProfile: env.seedanceRuntimeProfile,
     contentReviewProvider: env.contentReviewProvider,
     contentReviewEnabled: env.contentReviewEnabled,
     paymentEnabled: env.paymentEnabled,

@@ -13,6 +13,15 @@
  * - 不在模块加载时强校验，避免本地 dev / 测试时炸全场。
  */
 
+import {
+  resolveSeedanceArkBaseUrl,
+  resolveSeedanceRuntimeProfile,
+  seedanceApiKey,
+  seedanceCredentialEnvName,
+  seedanceExpectedBaseUrl,
+  type SeedanceRuntimeProfile,
+} from "@/lib/config/seedance-runtime";
+
 export type Region = "na" | "future";
 export type DeploymentTarget = "vercel" | "selfhosted";
 export type AiProviderId = "openai" | "volcengine";
@@ -26,6 +35,7 @@ export interface AppEnv {
   aiProvider: AiProviderId;
   storageProvider: StorageProviderId;
   videoProvider: VideoProviderId;
+  seedanceRuntimeProfile: SeedanceRuntimeProfile;
   contentReviewProvider: ContentReviewProviderId;
   contentReviewEnabled: boolean;
   paymentEnabled: boolean;
@@ -39,6 +49,8 @@ export type VideoGenerationRuntimeUnavailableReason =
   | "production_mock_forbidden"
   | "byteplus_key_missing"
   | "byteplus_endpoint_invalid"
+  | "volcengine_legacy_key_missing"
+  | "volcengine_legacy_endpoint_invalid"
   | "content_review_key_missing";
 
 export type VideoGenerationRuntimeReadiness =
@@ -152,22 +164,30 @@ export function videoGenerationRuntimeReadiness(
     return { ok: false, reason: "production_mock_forbidden" };
   }
 
-  const bytePlusApiKey = env.BYTEPLUS_ARK_API_KEY?.trim();
-  if (!mock && app.videoProvider === "byteplus" && !bytePlusApiKey) {
-    return { ok: false, reason: "byteplus_key_missing" };
-  }
-
-  const rawArkBaseUrl = env.ARK_BASE_URL;
-  const normalizedArkBaseUrl = rawArkBaseUrl?.trim().replace(/\/+$/, "");
-  if (
-    !mock &&
-    app.videoProvider === "byteplus" &&
-    rawArkBaseUrl != null &&
-    rawArkBaseUrl !== "" &&
-    normalizedArkBaseUrl !==
-      "https://ark.ap-southeast.bytepluses.com/api/v3"
-  ) {
-    return { ok: false, reason: "byteplus_endpoint_invalid" };
+  if (!mock && app.videoProvider === "byteplus") {
+    if (!seedanceApiKey(app.seedanceRuntimeProfile, env)) {
+      return {
+        ok: false,
+        reason:
+          app.seedanceRuntimeProfile === "volcengine_cn_legacy"
+            ? "volcengine_legacy_key_missing"
+            : "byteplus_key_missing",
+      };
+    }
+    try {
+      resolveSeedanceArkBaseUrl(
+        env.ARK_BASE_URL,
+        app.seedanceRuntimeProfile,
+      );
+    } catch {
+      return {
+        ok: false,
+        reason:
+          app.seedanceRuntimeProfile === "volcengine_cn_legacy"
+            ? "volcengine_legacy_endpoint_invalid"
+            : "byteplus_endpoint_invalid",
+      };
+    }
   }
 
   const moderationMock = [env.CONTENT_REVIEW_MOCK, env.LLM_FORCE_MOCK].some(
@@ -242,6 +262,9 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
     videoDefault,
     "VIDEO_PROVIDER",
   );
+  const seedanceRuntimeProfile = resolveSeedanceRuntimeProfile(
+    env.SEEDANCE_RUNTIME_PROFILE,
+  );
 
   const contentReviewProvider = parseEnum<ContentReviewProviderId>(
     env.CONTENT_REVIEW_PROVIDER,
@@ -256,6 +279,7 @@ export function parseAppEnv(env: NodeJS.ProcessEnv | Record<string, string | und
     aiProvider,
     storageProvider,
     videoProvider,
+    seedanceRuntimeProfile,
     contentReviewProvider,
     contentReviewEnabled: parseBool(env.CONTENT_REVIEW_ENABLED, false),
     paymentEnabled: parseBool(env.PAYMENT_ENABLED, true),
@@ -310,17 +334,31 @@ export function validateDeploymentEnv(
   }
 
   if (app.videoProvider === "byteplus") {
-    if (!env.BYTEPLUS_ARK_API_KEY && !isMockVideoRuntime(env)) {
+    const credentialName = seedanceCredentialEnvName(
+      app.seedanceRuntimeProfile,
+    );
+    if (
+      !seedanceApiKey(app.seedanceRuntimeProfile, env) &&
+      !isMockVideoRuntime(env)
+    ) {
       missing.push(
-        "BYTEPLUS_ARK_API_KEY（VIDEO_ENGINE_MOCK=false 时必填；缺失会 fail closed）",
+        `${credentialName}（SEEDANCE_RUNTIME_PROFILE=${app.seedanceRuntimeProfile} 且 VIDEO_ENGINE_MOCK=false 时必填；缺失会 fail closed）`,
       );
     }
-    if (
-      env.ARK_BASE_URL &&
-      env.ARK_BASE_URL.replace(/\/+$/, "") !==
-        "https://ark.ap-southeast.bytepluses.com/api/v3"
-    ) {
-      missing.push("ARK_BASE_URL 必须为 BytePlus 国际 ModelArk 端点");
+    try {
+      resolveSeedanceArkBaseUrl(
+        env.ARK_BASE_URL,
+        app.seedanceRuntimeProfile,
+      );
+    } catch {
+      missing.push(
+        `ARK_BASE_URL 必须为 ${app.seedanceRuntimeProfile} 的固定端点 ${seedanceExpectedBaseUrl(app.seedanceRuntimeProfile)}`,
+      );
+    }
+    if (app.seedanceRuntimeProfile === "volcengine_cn_legacy") {
+      warnings.push(
+        "SEEDANCE_RUNTIME_PROFILE=volcengine_cn_legacy 会将生成素材发送至中国区；仅用于经人工明确批准的临时兼容窗口",
+      );
     }
   }
 

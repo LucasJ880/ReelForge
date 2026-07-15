@@ -11,6 +11,12 @@
 - Buddy 本轮仅保留 `shuyu_api_key` 配置名与 backlog，零真实调用。
 - 不做 ICP、公安备案或中国大陆云架构。
 
+### 2026-07-14 后续人工裁决（保留原 Gate 证据）
+
+原 Gate 4 部署语境是当时验收事实，继续保留用于审计。后续人工只对**视频生成**增加一个临时例外：CEO 内部生成可使用 Volcengine `cn-beijing` legacy profile。Neon 数据库与对象存储继续留在北美；BytePlus 国际路径和 Buddy 路线均不删除。该例外不授权中国大陆数据库、对象存储、审核、LLM、TTS 或数字人架构。
+
+这会使用户提交的视频 brief、必要素材或派生数据在视频生成期间由中国大陆 provider 处理，并可能产生跨境数据流。现有 Privacy Policy / Terms 工程草稿尚不能据此视为律师已批准；对外客户启用前必须披露实际第三方处理方、处理区域、数据类别、传输目的、provider 保存/删除口径和客户选择，并完成加拿大律师复核。该路由是临时风险接受，不是永久管辖区变更。
+
 ## 显式假设
 
 `ASSUMPTION: privacy@aivora.ai 是工程草稿联系邮箱。人工需确认邮箱真实可达，或在客户开放前配置 NEXT_PUBLIC_PRIVACY_EMAIL。`
@@ -51,7 +57,7 @@
 ## 律师待审清单
 
 - PIPEDA 目的、同意、访问/更正/删除流程与确定保存期限。
-- 第三方处理方、跨境处理和 subprocessors 的合同披露。
+- 第三方处理方、跨境处理和 subprocessors 的合同披露；明确覆盖临时 Volcengine `cn-beijing` 视频处理、传输数据类别、处理目的、区域、保存/删除及退出安排。
 - 责任限制、赔偿、适用法律、终止与 B2B order form 优先级。
 - AI 输出权利、平台披露、客户输入权利保证与禁止用途。
 - `privacy@aivora.ai` 联系方式及响应流程。

@@ -549,6 +549,18 @@
 - Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
 - Repair commit: `14c7b4b`.
 
+### RF-043 — Authorized CEO Volcengine video runtime was blocked by the international-only endpoint guard
+
+- Severity: **P0 — production generation blocker**
+- Status: **FIXED — code and zero-cost regression are green; production deployment and one real canary remain**
+- Reproduction: keep the existing CEO Volcengine credential/model in the legacy `ARK_*` variables and explicitly enable the real video engine. The runtime still requires `BYTEPLUS_ARK_API_KEY` and rejects the Beijing Ark endpoint before submission, while the same legacy credential is definitively invalid on the international BytePlus endpoint.
+- Root cause: the migration to BytePlus correctly prevented accidental cross-region routing, but it represented the only real Seedance path as one global international configuration. It had no explicit, auditable compatibility profile for the CEO-owned Volcengine account.
+- Human superseding decision: on 2026-07-14 the CEO explicitly authorized a temporary video-only `cn-beijing` compatibility route. Neon and Vercel Blob remain in North America; BytePlus and Buddy code paths remain intact. The earlier international-only video constraint is retained in history and marked superseded rather than erased.
+- Repair: add the allowlisted profiles `byteplus_international` and `volcengine_cn_legacy`. Each profile has an exact HTTPS endpoint, its own non-fallback credential realm and provider identity. Readiness, health, submit and status polling all use the selected profile; invalid profile/key/endpoint combinations fail before a provider request. No secret or endpoint is returned to customers.
+- Regression: the focused endpoint/readiness/health contract suite passes 39/39 locally; the implementation agent also completed the broader focused suite 48/48, TypeScript, scoped ESLint and the full unit suite at 865 pass / 0 fail / 1 pre-existing skip. The optimized production build passes.
+- Remaining gate: deploy with `SEEDANCE_RUNTIME_PROFILE=volcengine_cn_legacy`, verify health, then submit exactly one bounded CEO canary and reconcile task/quota state before marking VERIFIED.
+- Evidence: `qa/evidence/phase2/rf043-legacy-cn-video-runtime-2026-07-14.md`.
+
 ## Seed hypotheses not opened as defects
 
 | Seed | Status | Evidence |

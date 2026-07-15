@@ -17,6 +17,11 @@ export const healthResponseSchema = z
       "unknown",
     ]),
     videoProvider: z.string().min(1).max(80),
+    seedanceRuntimeProfile: z.enum([
+      "byteplus_international",
+      "volcengine_cn_legacy",
+      "unknown",
+    ]),
     contentReviewProvider: z.enum([
       "noop",
       "openai_moderation",
@@ -68,6 +73,7 @@ export function unavailableHealthResponse(now = new Date()): HealthResponse {
     aiProvider: "unknown",
     storageProvider: "unknown",
     videoProvider: "unknown",
+    seedanceRuntimeProfile: "unknown",
     contentReviewProvider: "unknown",
     contentReviewEnabled: false,
     paymentEnabled: false,

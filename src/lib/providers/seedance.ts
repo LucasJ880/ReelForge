@@ -1,8 +1,8 @@
 /**
- * BytePlus ModelArk / Seedance 视频生成 Provider（T2V + I2V 统一）
+ * Seedance 视频生成 Provider（BytePlus international + explicit legacy CN）
  *
  * Mock 模式：默认模式，或 VIDEO_ENGINE_MOCK=true
- * Real 模式：仅在 VIDEO_ENGINE_MOCK=false 且配置 BYTEPLUS_ARK_API_KEY 时启用
+ * Real 模式：仅在 VIDEO_ENGINE_MOCK=false 且所选 runtime profile 配置完整时启用
  *
  * API 文档: https://docs.byteplus.com/en/docs/ModelArk/1520757
  *   POST /contents/generations/tasks        (提交)
@@ -20,7 +20,20 @@
 
 import { isDryRun } from "@/lib/config/dry-run";
 import { assertMockVideoRuntimeAllowed } from "@/lib/config/env";
+import {
+  BYTEPLUS_ARK_BASE_URL,
+  VOLCENGINE_CN_ARK_BASE_URL,
+  resolveSeedanceArkBaseUrl,
+  resolveSeedanceRuntimeProfile,
+  seedanceApiKey,
+  seedanceCredentialEnvName,
+  seedanceDefaultModel,
+  seedanceRuntimeProviderId,
+  type SeedanceRuntimeProfile,
+} from "@/lib/config/seedance-runtime";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
+
+export { BYTEPLUS_ARK_BASE_URL, VOLCENGINE_CN_ARK_BASE_URL };
 
 export interface SeedanceSubmitOptions {
   prompt: string;
@@ -105,37 +118,43 @@ function seedanceHttpTimeoutMs(): number {
   return Number(process.env.SEEDANCE_HTTP_TIMEOUT_MS ?? "30000");
 }
 
-export const BYTEPLUS_ARK_BASE_URL =
-  "https://ark.ap-southeast.bytepluses.com/api/v3";
-
 /**
- * 生产数据只能发往 BytePlus 国际 ModelArk。
- * 即使环境变量被误配为中国区或任意代理地址，也在发起网络请求前 fail closed。
+ * Backward-compatible public helper for callers/tests that explicitly audit
+ * the BytePlus international endpoint. Runtime requests use the selected
+ * profile through resolveSelectedSeedanceArkBaseUrl below.
  */
 export function resolveBytePlusArkBaseUrl(
   raw = process.env.ARK_BASE_URL,
 ): string {
-  const value = (raw || BYTEPLUS_ARK_BASE_URL).trim().replace(/\/+$/, "");
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    throw new Error("ARK_BASE_URL 无效；必须使用 BytePlus 国际 ModelArk 端点");
-  }
-  if (
-    parsed.protocol !== "https:" ||
-    parsed.hostname !== "ark.ap-southeast.bytepluses.com" ||
-    parsed.pathname.replace(/\/+$/, "") !== "/api/v3" ||
-    parsed.username ||
-    parsed.password ||
-    parsed.search ||
-    parsed.hash
-  ) {
-    throw new Error(
-      `拒绝非 BytePlus 国际端点：${parsed.origin}${parsed.pathname}；允许值仅为 ${BYTEPLUS_ARK_BASE_URL}`,
-    );
-  }
-  return BYTEPLUS_ARK_BASE_URL;
+  return resolveSeedanceArkBaseUrl(raw, "byteplus_international");
+}
+
+export function resolveVolcengineLegacyArkBaseUrl(
+  raw = process.env.ARK_BASE_URL,
+): string {
+  return resolveSeedanceArkBaseUrl(raw, "volcengine_cn_legacy");
+}
+
+function selectedRuntimeProfile(): SeedanceRuntimeProfile {
+  return resolveSeedanceRuntimeProfile(process.env.SEEDANCE_RUNTIME_PROFILE);
+}
+
+function resolveSelectedSeedanceArkBaseUrl(
+  profile = selectedRuntimeProfile(),
+): string {
+  return resolveSeedanceArkBaseUrl(process.env.ARK_BASE_URL, profile);
+}
+
+function requireSelectedApiKey(
+  profile: SeedanceRuntimeProfile,
+  action: "调用" | "查询",
+): string {
+  const apiKey = seedanceApiKey(profile);
+  if (apiKey) return apiKey;
+  const credentialName = seedanceCredentialEnvName(profile);
+  throw new Error(
+    `Seedance 真实模式已开启（VIDEO_ENGINE_MOCK=false），但 ${credentialName} 未配置（runtime profile: ${profile}）；拒绝真实${action}。`,
+  );
 }
 
 async function fetchWithTimeout(
@@ -175,7 +194,14 @@ function isMockMode(): boolean {
 }
 
 export function isSeedanceConfigured(): boolean {
-  return !!process.env.BYTEPLUS_ARK_API_KEY && !isMockMode();
+  if (isMockMode()) return false;
+  try {
+    const profile = selectedRuntimeProfile();
+    resolveSelectedSeedanceArkBaseUrl(profile);
+    return !!seedanceApiKey(profile);
+  } catch {
+    return false;
+  }
 }
 
 export async function submitSeedanceJob(
@@ -375,17 +401,14 @@ async function getStatusMock(jobId: string): Promise<SeedanceJobResult> {
 async function submitReal(
   options: SeedanceSubmitOptions,
 ): Promise<{ jobId: string }> {
-  const apiKey = process.env.BYTEPLUS_ARK_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "Seedance 真实模式已开启（VIDEO_ENGINE_MOCK=false），但 BYTEPLUS_ARK_API_KEY 未配置；拒绝真实调用。请配置有效的 BytePlus 国际密钥或将 VIDEO_ENGINE_MOCK 设为 true。",
-    );
-  }
-  const baseUrl = resolveBytePlusArkBaseUrl();
+  const profile = selectedRuntimeProfile();
+  const apiKey = requireSelectedApiKey(profile, "调用");
+  const baseUrl = resolveSelectedSeedanceArkBaseUrl(profile);
+  const providerId = seedanceRuntimeProviderId(profile);
   const model =
     options.model ||
-    process.env.ARK_VIDEO_MODEL ||
-    "dreamina-seedance-2-0-260128";
+    process.env.ARK_VIDEO_MODEL?.trim() ||
+    seedanceDefaultModel(profile);
 
   const isSeedance2 = model.includes("seedance-2");
 
@@ -473,7 +496,7 @@ async function submitReal(
     );
   } catch (cause) {
     throw new ProviderSubmissionError("Seedance 提交传输失败", {
-      providerId: "byteplus",
+      providerId,
       stage: "transport",
       retryable: false,
       cause,
@@ -484,7 +507,7 @@ async function submitReal(
     const code = await readSafeProviderErrorCode(res);
     const message = `Seedance 提交被 provider 拒绝: HTTP ${res.status}${code ? ` (${code})` : ""}`;
     throw new ProviderSubmissionError(message, {
-      providerId: "byteplus",
+      providerId,
       stage: "provider_response",
       httpStatus: res.status,
       code,
@@ -502,7 +525,7 @@ async function submitReal(
     data = await res.json();
   } catch (cause) {
     throw new ProviderSubmissionError("Seedance 成功响应无法解码", {
-      providerId: "byteplus",
+      providerId,
       stage: "response_decode",
       httpStatus: res.status,
       retryable: false,
@@ -521,7 +544,7 @@ async function submitReal(
         : null;
   if (!taskId) {
     throw new ProviderSubmissionError("Seedance 成功响应未携带任务 ID", {
-      providerId: "byteplus",
+      providerId,
       stage: "response_decode",
       httpStatus: res.status,
       retryable: false,
@@ -562,13 +585,9 @@ async function readSafeProviderErrorCode(
 }
 
 async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
-  const apiKey = process.env.BYTEPLUS_ARK_API_KEY;
-  if (!apiKey) {
-    throw new Error(
-      "Seedance 真实模式已开启（VIDEO_ENGINE_MOCK=false），但 BYTEPLUS_ARK_API_KEY 未配置；拒绝查询真实任务。",
-    );
-  }
-  const baseUrl = resolveBytePlusArkBaseUrl();
+  const profile = selectedRuntimeProfile();
+  const apiKey = requireSelectedApiKey(profile, "查询");
+  const baseUrl = resolveSelectedSeedanceArkBaseUrl(profile);
 
   const res = await fetchWithTimeout(
     `${baseUrl}/contents/generations/tasks/${jobId}`,

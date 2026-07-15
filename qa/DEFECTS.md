@@ -577,12 +577,15 @@
 ### RF-045 — Global provider switching could redirect polling and retries away from the task's original account
 
 - Severity: **P0 — cross-account task lookup and duplicate-billing risk**
-- Status: **FIXED — schema migrated and regression green; deployment verification pending**
+- Status: **VERIFIED — schema, production runtime and role-isolated selector verified**
 - Reproduction: before this repair, provider submit/status helpers selected the current global Seedance profile. If the default changed between submission and polling or retry, an existing provider job could be queried or retried against a different endpoint/account. The database stored a broad provider enum but not the exact route, model, and adapter evidence.
 - Repair: persist an immutable route/model/adapter snapshot on dispatch requests, briefs, jobs and batches; reconstruct submit, poll and retry adapters from that snapshot; include the effective snapshot in the idempotency hash; and fail closed before any provider call for historical real jobs whose route is unknowable. The UI exposes BytePlus international and the CEO Volcengine route only to OPERATOR/SUPER_ADMIN system roles. Buddy discovery is read-only, bounded and staff-or-machine authenticated; Buddy submission remains disabled until an official task contract and price are confirmed.
 - Database safety: the nullable, no-default, no-backfill migration was rehearsed on the Neon branch with owner DDL and app-role read verification, then applied to production after confirming zero in-flight real VideoJobs. Production exposes all 12 new columns to the app role and still has zero in-flight real VideoJobs.
-- Verification: route, permission, billing, polling, retry, Buddy discovery and snapshot tests pass 61/61; TypeScript, scoped ESLint, Prisma validation, optimized build and diff check pass; the complete unit suite passes 901, fails 0, with one pre-existing skip.
+- Production verification: deployment `dpl_6fdqR35JDA4qcz98dbNBEfADWJpS` is Ready on the production alias. Health is `ok=true`, region `na`, database connected, video provider configured, and default profile still `volcengine_cn_legacy`. A temporary OPERATOR with a starter workspace saw the compact system/BytePlus/Volcengine selector; after sign-out the ordinary demo CUSTOMER rendered Generate video but no internal route selector. The temporary account and workspace were then deleted.
+- Buddy conclusion: the production read-only probe received no `/models` contract (sanitized as `models_endpoint_unavailable`), so Buddy remains visibly disabled and no model/route ID is invented. No Buddy video submit or billing operation occurred.
+- Verification: route, permission, billing, polling, retry, Buddy discovery and snapshot tests pass 61/61; the later diagnostic-focused set passes 15/15; TypeScript, scoped ESLint, Prisma validation, optimized build and diff check pass; the complete unit suite passes 901, fails 0, with one pre-existing skip.
 - Evidence: `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
+- Repair commits: `112cee9`, `240942e`
 
 ## Seed hypotheses not opened as defects
 

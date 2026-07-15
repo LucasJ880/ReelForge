@@ -61,6 +61,13 @@ Observed results:
 - complete unit suite: 901 passed, 0 failed, 1 pre-existing skip;
 - TypeScript, scoped ESLint, Prisma schema validation, optimized Next.js build and diff check: passed.
 
-## Remaining gate
+## Production deployment verification
 
-RF-045 remains FIXED until the matching application build is deployed, production health passes, the authenticated discovery endpoint returns only its sanitized DTO, and the customer default-route journey still loads without exposing internal route controls.
+- Application commit `240942e` deployed as `dpl_6fdqR35JDA4qcz98dbNBEfADWJpS` and became Ready on the production alias.
+- Health: `ok=true`, `region=na`, database connected, provider configured, default profile `volcengine_cn_legacy`.
+- Staff UI: a temporary OPERATOR with a starter workspace saw Current system / BytePlus international / Volcengine legacy selections; Buddy remained disabled.
+- Customer isolation: after signing out and entering through the demo CUSTOMER flow, `/app/create` exposed Generate video and no internal route selector.
+- Cleanup: the temporary operator and its cascading workspace were deleted.
+- Buddy result: the authenticated production read-only probe reported `models_endpoint_unavailable`; the provider currently exposes no discoverable `/models` contract at the documented API base. No route ID was guessed and no submit/billing call occurred.
+
+RF-045 is VERIFIED. Buddy activation remains a separate contract gate: the provider must supply official model identifiers and submit/status/cancel schemas (or expose them through its developer API) before an adapter can be enabled.

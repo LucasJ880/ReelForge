@@ -12,6 +12,7 @@ Phase 0–2 与 Gate C0 的历史迭代记录已归档至 [ITERATION_LOG.archive
 - Rehearsed the nullable/no-backfill migration on Neon, recovered the expected app-role DDL denial with the owner role, verified app-role reads, then applied the identical migration to production with zero in-flight real jobs.
 - Verification: targeted multi-route/stitch suite 61/61, full unit 901 pass / 0 fail / 1 pre-existing skip, TypeScript, ESLint, Prisma validation and optimized build green.
 - Evidence: `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
+- Production closeout: deployments `dpl_8nqfBqZrGueaF53KzSq3U1W6BCve` and `dpl_6fdqR35JDA4qcz98dbNBEfADWJpS` became Ready; health remained green on the CEO profile. Staff selector and customer non-disclosure were browser-verified, Buddy returned the sanitized `models_endpoint_unavailable` state, and the temporary operator fixture was deleted.
 
 ## 2026-07-14 — Superseding video-route decision (documentation only)
 

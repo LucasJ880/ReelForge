@@ -1,9 +1,9 @@
 # ReelForge Release Gate
 
 - Gate owner: human release approver
-- Audit revision: H2 merge `ff1c959` + RF-037/RF-038 repair `a7fb734`
+- Audit revision: multi-route production closeout `240942e`
 - Current stage: H2-A merged-tree re-baseline
-- Current verdict: **NOT RELEASE-READY — the bounded CEO real-video path is verified, but RF-045 still requires deployment verification; RF-005 lacks the full production cadence window; RF-039 awaits credential disposition; commercial certification remains incomplete**
+- Current verdict: **NOT RELEASE-READY — the bounded CEO real-video path and RF-045 task-level routing are verified; RF-005 lacks the full production cadence window; RF-039 awaits credential disposition; commercial certification remains incomplete**
 
 ## Phase gates
 

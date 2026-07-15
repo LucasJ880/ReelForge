@@ -75,6 +75,9 @@ function failedAcceptedJob() {
     id: "job-retry-safe",
     status: VideoJobStatus.FAILED,
     provider: VideoProvider.SEEDANCE_T2V,
+    videoRouteSnapshot: "byteplus_international",
+    videoModelSnapshot: "dreamina-seedance-2-0-260128",
+    videoProviderAdapterSnapshot: "byteplus",
     externalJobId: "provider-original",
     submissionState: ProviderSubmissionState.ACCEPTED,
     providerRequestKey: "job-retry-safe:attempt:1",
@@ -226,6 +229,11 @@ test("RF-003: logical segment key makes repeated initial dispatch submit once", 
     segment: plan.segmentPlan[0],
     segmentCount: 1,
     referenceImageUrls: [],
+    routeSnapshot: {
+      videoRouteSnapshot: "byteplus_international" as const,
+      videoModelSnapshot: "dreamina-seedance-2-0-260128",
+      videoProviderAdapterSnapshot: "byteplus" as const,
+    },
   };
   const first = await videoTest.submitSegmentJob(args);
   const replay = await videoTest.submitSegmentJob(args);

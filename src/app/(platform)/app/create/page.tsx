@@ -11,6 +11,7 @@ import { listActiveStyleTemplates } from "@/lib/services/style-template-service"
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
+import { isInternalRole } from "@/lib/auth-role-policy";
 
 export default async function PlatformCreatePage({
   searchParams,
@@ -25,6 +26,7 @@ export default async function PlatformCreatePage({
     getCustomerRouteRehearsalState("create"),
   ]);
   const templates = routeState === "empty" ? [] : await listActiveStyleTemplates();
+  const canSelectVideoRoute = isInternalRole(session.user.role);
   const job = productImageJobId
     ? await findProductImageJobForUser(productImageJobId, session.user.id)
     : null;
@@ -53,6 +55,7 @@ export default async function PlatformCreatePage({
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
         recommendations={recommendations}
+        canSelectVideoRoute={canSelectVideoRoute}
       />
     </div>
   );

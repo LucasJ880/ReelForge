@@ -12,8 +12,10 @@ import {
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
+  assertMockVideoRuntimeAllowed,
   assertVideoGenerationRuntimeReady,
-  getAppEnv,
+  videoGenerationRuntimeReadiness,
+  VideoGenerationRuntimeUnavailableError,
 } from "@/lib/config/env";
 import {
   allocateAssets,
@@ -26,7 +28,7 @@ import {
   type BatchStyleLockedParams,
 } from "@/lib/video-generation/batch-style-templates";
 import {
-  createVideoProviderById,
+  createVideoProviderByRouteSnapshot,
 } from "@/lib/video-generation/providers";
 import type { VideoProvider as VideoProviderAdapter } from "@/lib/video-generation/providers/types";
 import {
@@ -52,6 +54,12 @@ import {
 } from "./historical-dispatch-quarantine";
 import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
 import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
+import {
+  createVideoRouteSnapshot,
+  readVideoRouteSnapshot,
+  type VideoRouteSnapshot,
+} from "@/lib/video-generation/video-route-registry";
+import { selectVideoRouteSnapshot } from "@/lib/video-generation/video-route-selection";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -122,14 +130,61 @@ let videoProviderFactoryOverride:
   | ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter)
   | null = null;
 
-function providerForJob(job: Pick<VideoJob, "provider">): VideoProviderAdapter {
+function providerForJob(
+  job: Pick<
+    VideoJob,
+    | "provider"
+    | "videoRouteSnapshot"
+    | "videoModelSnapshot"
+    | "videoProviderAdapterSnapshot"
+  >,
+): VideoProviderAdapter {
   if (videoProviderFactoryOverride) return videoProviderFactoryOverride(job);
-  // Resolve from the provider persisted on the job, never from today's global
-  // default. A provider switch must not change the billing semantics of an
-  // already-submitted historical task.
-  return createVideoProviderById(
-    job.provider === VideoProvider.MOCK ? "mock" : "byteplus",
-  );
+  const read = readVideoRouteSnapshot(job);
+  if (read.state === "historical_unknown") {
+    if (job.provider === VideoProvider.MOCK) {
+      return createVideoProviderByRouteSnapshot(
+        createVideoRouteSnapshot("mock"),
+      );
+    }
+    throw new Error(
+      "历史批量任务缺少不可变线路快照；已禁止 provider 调用，请转人工对账",
+    );
+  }
+  if (read.videoRouteSnapshot === "buddy" || !read.route.enabled) {
+    throw new Error("持久化批量线路尚未启用，拒绝 provider 调用");
+  }
+  return createVideoProviderByRouteSnapshot({
+    videoRouteSnapshot: read.videoRouteSnapshot,
+    videoModelSnapshot: read.videoModelSnapshot,
+    videoProviderAdapterSnapshot: read.videoProviderAdapterSnapshot,
+  });
+}
+
+function assertPersistedJobProviderReady(
+  job: Pick<
+    VideoJob,
+    | "provider"
+    | "videoRouteSnapshot"
+    | "videoModelSnapshot"
+    | "videoProviderAdapterSnapshot"
+  >,
+): VideoProviderAdapter {
+  const provider = providerForJob(job);
+  if (provider.id === "mock") assertMockVideoRuntimeAllowed();
+  if (!provider.isConfigured()) {
+    throw new Error(
+      `持久化视频线路 ${job.videoRouteSnapshot ?? "historical_unknown"} 未配置，拒绝派发`,
+    );
+  }
+  return provider;
+}
+
+function assertProductionMockRuntimeSealed(): void {
+  const readiness = videoGenerationRuntimeReadiness();
+  if (!readiness.ok && readiness.reason === "production_mock_forbidden") {
+    throw new VideoGenerationRuntimeUnavailableError(readiness.reason);
+  }
 }
 
 function isSerializableConflict(error: unknown): boolean {
@@ -230,14 +285,20 @@ export interface CreateBatchInput {
   idempotencyKey: string;
 }
 
-function batchRequestHash(input: CreateBatchInput): string {
-  return hashVideoDispatchRequest({
-    templateId: input.templateId,
-    templateVersion: input.templateVersion,
-    images: input.images,
-    requestedCount: input.requestedCount,
-    productName: input.productName?.trim() || null,
-  });
+function batchRequestHash(
+  input: CreateBatchInput,
+  videoRouteSnapshot?: VideoRouteSnapshot,
+): string {
+  return hashVideoDispatchRequest(
+    {
+      templateId: input.templateId,
+      templateVersion: input.templateVersion,
+      images: input.images,
+      requestedCount: input.requestedCount,
+      productName: input.productName?.trim() || null,
+    },
+    videoRouteSnapshot,
+  );
 }
 
 function assertBatchReplayMatches(
@@ -246,7 +307,12 @@ function assertBatchReplayMatches(
   requestHash: string,
 ): void {
   if (existing.requestHash) {
-    if (existing.requestHash !== requestHash) {
+    const persistedRoute = readVideoRouteSnapshot(existing);
+    const expectedHash =
+      persistedRoute.state === "historical_unknown"
+        ? batchRequestHash(input)
+        : requestHash;
+    if (existing.requestHash !== expectedHash) {
       throw new BatchIdempotencyConflictError();
     }
     return;
@@ -285,6 +351,7 @@ export function buildBatchVideoRows(args: {
   requestedCount: number;
   productName?: string | null;
   provider: VideoProvider;
+  videoRouteSnapshot?: VideoRouteSnapshot;
 }): Prisma.VideoJobCreateManyInput[] {
   const assignments = allocateAssets({
     batchId: args.batchId,
@@ -311,6 +378,7 @@ export function buildBatchVideoRows(args: {
     negativePrompt: args.template.negativePrompt,
     seed: assignment.seed,
     availableAt: new Date(),
+    ...(args.videoRouteSnapshot ?? {}),
   }));
 }
 
@@ -330,7 +398,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
   // a production+mock deployment can return an existing batch and let the
   // route continue into quota/tick work even though new dispatch is sealed.
   assertVideoGenerationRuntimeReady();
-  const requestHash = batchRequestHash(input);
+  const videoRouteSnapshot = selectVideoRouteSnapshot({
+    isInternalStaff: false,
+  });
+  const requestHash = batchRequestHash(input, videoRouteSnapshot);
   const existing = await db.batchJob.findUnique({
     where: {
       userId_idempotencyKey: {
@@ -361,7 +432,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     );
   }
   const provider =
-    getAppEnv().videoProvider === "mock"
+    videoRouteSnapshot.videoRouteSnapshot === "mock"
       ? VideoProvider.MOCK
       : VideoProvider.SEEDANCE_I2V;
 
@@ -392,6 +463,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
           idempotencyKey: input.idempotencyKey,
           requestHash,
           status: BatchJobStatus.EXPANDING,
+          ...videoRouteSnapshot,
         },
       });
       const rows = buildBatchVideoRows({
@@ -401,6 +473,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
         requestedCount: input.requestedCount,
         productName: input.productName,
         provider,
+        videoRouteSnapshot,
       });
       await tx.videoJob.createMany({ data: rows });
       return tx.batchJob.update({
@@ -812,7 +885,7 @@ async function submitClaimedJob(
   } catch (error) {
     const classified = asProviderSubmissionError({
       error,
-      providerId: provider.id,
+      providerId: job.videoRouteSnapshot ?? provider.id,
       evidence: providerAcknowledged
         ? { stage: "persistence" }
         : provider.isMockMode()
@@ -878,6 +951,9 @@ async function submitClaimedJob(
 
 function isBillingSafeManualRetry(job: {
   provider: VideoProvider;
+  videoRouteSnapshot: string | null;
+  videoModelSnapshot: string | null;
+  videoProviderAdapterSnapshot: string | null;
   submissionState: ProviderSubmissionState;
   externalJobId: string | null;
   lastProviderStatus: string | null;
@@ -1031,15 +1107,20 @@ async function applyBreaker(
  * 前端只调用 batch status 端点一次；不会为 N 个任务建立 N 条连接。
  */
 export async function processBatchTick(batchId: string): Promise<BatchJob> {
-  // A tick can mutate expired leases before it reaches provider submission.
-  // Seal the whole worker before any read/recovery path can lead to writes.
-  assertVideoGenerationRuntimeReady();
+  // This guard intentionally runs before the first DB read. Route-specific
+  // credential readiness is checked from the persisted job snapshot below.
+  assertProductionMockRuntimeSealed();
   const now = new Date();
   const [batch, batchProvider] = await Promise.all([
     db.batchJob.findUnique({ where: { id: batchId } }),
     db.videoJob.findFirst({
       where: { batchJobId: batchId },
-      select: { provider: true },
+      select: {
+        provider: true,
+        videoRouteSnapshot: true,
+        videoModelSnapshot: true,
+        videoProviderAdapterSnapshot: true,
+      },
     }),
   ]);
   if (!batch) throw new BatchNotFoundError();
@@ -1058,6 +1139,7 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
     }));
     return batch;
   }
+  if (batchProvider) assertPersistedJobProviderReady(batchProvider);
 
   await recoverExpiredLeases(batchId, now);
   if (batchProvider) {
@@ -1080,12 +1162,15 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
 export async function retryFailedBatchJobs(batchId: string): Promise<number> {
   // Retry is a dispatch-enabling mutation. Refuse it while the selected video
   // runtime is unavailable instead of leaving newly QUEUED work behind.
-  assertVideoGenerationRuntimeReady();
+  assertProductionMockRuntimeSealed();
   const failed = await db.videoJob.findMany({
     where: { batchJobId: batchId, status: VideoJobStatus.FAILED },
     select: {
       id: true,
       provider: true,
+      videoRouteSnapshot: true,
+      videoModelSnapshot: true,
+      videoProviderAdapterSnapshot: true,
       submissionState: true,
       externalJobId: true,
       lastProviderStatus: true,
@@ -1094,6 +1179,11 @@ export async function retryFailedBatchJobs(batchId: string): Promise<number> {
   });
   let reset = 0;
   for (const job of failed) {
+    try {
+      assertPersistedJobProviderReady(job);
+    } catch {
+      continue;
+    }
     if (!isBillingSafeManualRetry(job)) continue;
     const result = await db.videoJob.updateMany({
       where: {
@@ -1158,7 +1248,7 @@ export async function retryFailedBatchJob(
 ): Promise<RetryFailedBatchJobResult> {
   // Keep the single-job retry path under the same fail-closed boundary as the
   // retry-all path; preview mock remains allowed by the shared env predicate.
-  assertVideoGenerationRuntimeReady();
+  assertProductionMockRuntimeSealed();
   const job = await db.videoJob.findFirst({
     where: {
       id: jobId,
@@ -1167,6 +1257,9 @@ export async function retryFailedBatchJob(
     select: {
       status: true,
       provider: true,
+      videoRouteSnapshot: true,
+      videoModelSnapshot: true,
+      videoProviderAdapterSnapshot: true,
       submissionState: true,
       externalJobId: true,
       lastProviderStatus: true,
@@ -1176,6 +1269,11 @@ export async function retryFailedBatchJob(
   if (!job) return { outcome: "not_found" };
   if (job.status !== VideoJobStatus.FAILED) {
     return { outcome: "invalid_state" };
+  }
+  try {
+    assertPersistedJobProviderReady(job);
+  } catch {
+    return { outcome: "billing_unsafe" };
   }
   if (!isBillingSafeManualRetry(job)) {
     return { outcome: "billing_unsafe" };
@@ -1271,6 +1369,9 @@ export async function getBatchStatus(batchId: string, userId?: string) {
           errorMessage: true,
           userSafeError: true,
           provider: true,
+          videoRouteSnapshot: true,
+          videoModelSnapshot: true,
+          videoProviderAdapterSnapshot: true,
           externalJobId: true,
           lastProviderStatus: true,
           submissionState: true,

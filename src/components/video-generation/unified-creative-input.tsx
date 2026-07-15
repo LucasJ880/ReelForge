@@ -11,6 +11,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  VideoRouteSelector,
+  type VideoRouteOverride,
+} from "@/components/video-generation/video-route-selector";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
 import {
   customerDirectDispatchMessage,
@@ -37,6 +41,7 @@ interface UnifiedCreativeInputProps {
   initialDraft?: OrderCreativeDraft;
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
+  canSelectVideoRoute?: boolean;
 }
 
 const QUALITY_TEMPLATE_IDS = [
@@ -96,6 +101,7 @@ export function UnifiedCreativeInput({
   initialDraft,
   initialAssets = [],
   initialStyleTemplateId,
+  canSelectVideoRoute = false,
 }: UnifiedCreativeInputProps) {
   const router = useRouter();
   const { t, locale } = useTranslation();
@@ -122,6 +128,8 @@ export function UnifiedCreativeInput({
       ? initialStyleTemplateId
       : "auto",
   );
+  const [selectedVideoRouteId, setSelectedVideoRouteId] =
+    useState<VideoRouteOverride>("");
 
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
@@ -214,7 +222,13 @@ export function UnifiedCreativeInput({
         return;
       }
 
-      const dispatchFingerprint = JSON.stringify({ request: buildRequest() });
+      const dispatchBody = {
+        request: buildRequest(),
+        ...(canSelectVideoRoute && selectedVideoRouteId
+          ? { videoRouteId: selectedVideoRouteId }
+          : {}),
+      };
+      const dispatchFingerprint = JSON.stringify(dispatchBody);
       if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
         dispatchAttemptRef.current = {
           fingerprint: dispatchFingerprint,
@@ -228,7 +242,7 @@ export function UnifiedCreativeInput({
           "content-type": "application/json",
           "Idempotency-Key": dispatchAttemptRef.current.key,
         },
-        body: JSON.stringify({ request: buildRequest() }),
+        body: dispatchFingerprint,
       });
       const j = (await res.json()) as CustomerVideoDispatchResponse;
       if (!j.ok) {
@@ -299,27 +313,38 @@ export function UnifiedCreativeInput({
         </div>
 
         {userType === "platform" ? (
-          <label className={LABEL_CLASS}>
-            {platformCopy.templateLabel}
-            <select
-              data-testid="quality-template-select"
-              value={styleTemplateId}
-              onChange={(event) => {
-                setStyleTemplateId(event.target.value);
-                setPlan(null);
-                setPlanRequestKey(null);
+          <div className={canSelectVideoRoute ? "grid gap-3 lg:grid-cols-2" : undefined}>
+            <label className={LABEL_CLASS}>
+              {platformCopy.templateLabel}
+              <select
+                data-testid="quality-template-select"
+                value={styleTemplateId}
+                onChange={(event) => {
+                  setStyleTemplateId(event.target.value);
+                  setPlan(null);
+                  setPlanRequestKey(null);
+                }}
+                className={SELECT_CLASS}
+              >
+                <option value="auto">{platformCopy.templateAuto}</option>
+                <option value="tpl_event_watch_party">{platformCopy.templateEvent}</option>
+                <option value="tpl_viral_result_first">{platformCopy.templateResult}</option>
+                <option value="tpl_viral_pain_solution">{platformCopy.templatePain}</option>
+                <option value="tpl_ugc_review">{platformCopy.templateUgc}</option>
+                <option value="tpl_viral_sensory_texture">{platformCopy.templateSensory}</option>
+              </select>
+              <span className="mt-1 block text-meta font-normal text-muted-foreground">{platformCopy.templateAutoHint}</span>
+            </label>
+            <VideoRouteSelector
+              canSelectVideoRoute={canSelectVideoRoute}
+              value={selectedVideoRouteId}
+              disabled={previewing || generating}
+              onChange={(routeId) => {
+                setSelectedVideoRouteId(routeId);
+                setError(null);
               }}
-              className={SELECT_CLASS}
-            >
-              <option value="auto">{platformCopy.templateAuto}</option>
-              <option value="tpl_event_watch_party">{platformCopy.templateEvent}</option>
-              <option value="tpl_viral_result_first">{platformCopy.templateResult}</option>
-              <option value="tpl_viral_pain_solution">{platformCopy.templatePain}</option>
-              <option value="tpl_ugc_review">{platformCopy.templateUgc}</option>
-              <option value="tpl_viral_sensory_texture">{platformCopy.templateSensory}</option>
-            </select>
-            <span className="mt-1 block text-meta font-normal text-muted-foreground">{platformCopy.templateAutoHint}</span>
-          </label>
+            />
+          </div>
         ) : null}
 
         {userType === "platform" ? (

@@ -3,11 +3,11 @@
 - Gate owner: human release approver
 - Audit revision: H2 merge `ff1c959` + RF-037/RF-038 repair `a7fb734`
 - Current stage: H2-A merged-tree re-baseline
-- Current verdict: **NOT RELEASE-READY — Production remains fail-closed on mock-provider configuration; RF-005 lacks the full production cadence window; RF-039 awaits sanitized remote acceptance; broad post-UX regression remains paused for internal operations testing**
+- Current verdict: **NOT RELEASE-READY — the bounded CEO real-video path is verified, but RF-045 still requires deployment verification; RF-005 lacks the full production cadence window; RF-039 awaits credential disposition; commercial certification remains incomplete**
 
 ## Phase gates
 
-- [x] Phase 0 — 33/33 routes and 71/71 API route files inventoried; H1 corrected the previously omitted stitch-dispatch route.
+- [x] Phase 0 — 33/33 routes and 72/72 API route files inventoried; H1 corrected the previously omitted stitch-dispatch route and the multi-route update added the authenticated read-only provider discovery route.
 - [x] Phase 0 — background executors and all three video state machines traced.
 - [x] Phase 0 — supplied recording and S-01 through S-07 concluded.
 - [x] Phase 0 — route screenshots and machine-readable cold-load evidence captured.
@@ -29,7 +29,7 @@
 - [ ] Batch rehearsal report attached. Evidence: —
 - [ ] ESCALATED list attached for human ruling. Current: none.
 - [ ] Human disposition recorded for remaining P2/P3. Current: none opened.
-- [ ] Production health reports a real provider only after the explicit budget/provider gate. Local release code now fails closed for production mock (RF-001 VERIFIED); redeployed production evidence remains required.
+- [x] Production health reports a real provider only after the explicit human provider gate. The authorized CEO Volcengine profile completed one bounded real canary with one submit, zero retries and a READY final asset. Evidence: `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
 - [ ] Queue scheduler cadence is measured and meets the release SLO (RF-005). Minute-cron code is fixed; production cadence evidence is absent.
 - [x] Final-acceptance Playwright exits 0 including teardown (RF-006): final UI-closure run `fa-1784047355157-099e9e8a`, 23/23 in 7.3 minutes; teardown deleted 22 rehearsal batches and 4 product images, archived 1 run-scoped template, and exited 0.
 - [x] RF-003 production migrations were rehearsed from the production head and applied through the RF-019 observed-state bootstrap. Prisma status/diff, data invariants, app-role rollback probe, customer routes, and initial scheduler requests pass. Evidence: `qa/evidence/phase2/rf019-production-schema-repair-2026-07-14.md`.

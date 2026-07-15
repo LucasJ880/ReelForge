@@ -3,7 +3,7 @@
 - Audit date: 2026-07-14 (America/Toronto)
 - Phase: H2-A merged-tree re-baseline in progress
 - Source revision: merge of H1 `87b9f34` and UI closure `bb0c05b` on `codex/h2-ui-unification`; verification pending
-- Coverage status: 71/71 API route files have first-tier strict or second-tier light contract evidence; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
+- Coverage status: 72/72 API route files have first-tier strict or second-tier light contract evidence; the new read-only Buddy route/model discovery endpoint is staff-or-machine authenticated and never submits provider work; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (71/71 route files)
+## API endpoint inventory (72/72 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -105,6 +105,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
+| GET | `/api/internal/video-provider-routes` | Operator/Super Admin session or `CRON_SECRET`; read-only | VERIFIED strict: authentication precedes all upstream reads; response is bounded/sanitized; invalid, anonymous and customer callers trigger zero Buddy requests; no submission path exists |
 | GET, PATCH | `/api/briefs/[id]` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/briefs/[id]/ad-plan` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/briefs/[id]/scenes` | Operator | VERIFIED H1 light: success wiring + operator boundary |
@@ -224,7 +225,7 @@ The baseline had no Vercel crons and GitHub's declared `*/5` schedules were obse
 
 ### Production migration finding
 
-The RF-003 ack backfill folder sorts before the folder that creates its enum and columns. If both are pending, a plain first production `prisma migrate deploy` fails deterministically. RF-019 records this P0 deployment issue. The human checklist requires a production-head Neon branch rehearsal, atomic prerequisite bootstrap, exact object/history verification, then ordinary deploy; no production database write has been made by the agent.
+The RF-003 ack backfill folder originally sorted before the folder that creates its enum and columns. RF-019 closed that production issue through a production-head branch rehearsal, prerequisite bootstrap, exact object/history verification and ordinary deploy. The later `20260714_video_route_snapshots` migration was separately rehearsed, correctly rejected under the app DDL role, applied by the branch owner, app-role verified, and then applied to production only after the non-mock in-flight VideoJob count reached zero. See `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
 
 ## Video-generation state machines
 
@@ -300,7 +301,7 @@ RF-004 closed the former design/implementation mismatch. Each new claim rotates 
 ## Phase 0 completion checklist
 
 - [x] 33/33 frontend page routes enumerated.
-- [x] 71/71 API route files and HTTP methods enumerated; an executable inventory regression prevents future route drift.
+- [x] 72/72 API route files and HTTP methods enumerated; an executable inventory regression prevents future route drift.
 - [x] Background executor entry points enumerated at filename/trigger level.
 - [x] Endpoint authorization statically reviewed and H1 dynamic/contract depth recorded for every method.
 - [x] Video/batch/final-video legal transitions verified against implementation.

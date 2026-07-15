@@ -53,10 +53,12 @@ export function AgentCreativeStudio({
   initialAssets = [],
   initialStyleTemplateId,
   recommendations,
+  canSelectVideoRoute,
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
   recommendations: AgentTemplateRecommendation[];
+  canSelectVideoRoute: boolean;
 }) {
   const { locale } = useTranslation();
   const copy = getPlatformCopy(locale).create;
@@ -420,6 +422,7 @@ export function AgentCreativeStudio({
           initialDraft={draft}
           initialAssets={attachments}
           initialStyleTemplateId={selectedTemplateSkill}
+          canSelectVideoRoute={canSelectVideoRoute}
         />
       </section>
     </div>

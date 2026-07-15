@@ -82,6 +82,18 @@ const zh = {
     templatePain: "痛点解决 · 产品证明",
     templateUgc: "UGC 口播 · 真人一致性",
     templateSensory: "光影质感 · 无口播",
+    videoRoutes: {
+      label: "视频生成线路（内部）",
+      systemDefault: "当前系统线路（推荐）",
+      systemDefaultHint: "不覆盖当前部署配置",
+      overrideHint: "本次任务将锁定所选线路与模型版本",
+      byteplusInternational: "BytePlus 国际 · 新加坡 ap-southeast · dreamina Seedance 2.0",
+      volcengineLegacy: "火山方舟旧账户 · 北京 cn-beijing · doubao Seedance 2.0",
+      buddyPending: "Buddy API · 契约待确认（不可用）",
+      buddyChecking: "Buddy 模型发现中；提交仍封锁",
+      buddyModels: "Buddy 已发现 {count} 个模型；契约与价格确认前不可提交",
+      buddyUnavailable: "Buddy 模型暂不可读取；契约与价格确认前不可提交",
+    },
     agent: {
       status: "AI 导演在线",
       title: "先聊清楚，再开始生成",
@@ -316,6 +328,18 @@ const en: CopyShape<typeof zh> = {
   },
   create: {
     kicker: "AGENT DIRECTOR", title: "From one idea to a finished video", subtitle: "Upload product assets and describe the goal. A quality template locks the camera language before planning, generation, and delivery.", video: "Generate video", image: "Product images", modeNav: "Creation mode", templateLabel: "Quality template", templateAuto: "Auto match (recommended)", templateAutoHint: "Matches the topic, people, setting, and assets to a lower-variance template.", templateEvent: "Watch party · stable single setting", templateResult: "Result first · high retention", templatePain: "Pain to proof · product demo", templateUgc: "UGC review · identity lock", templateSensory: "Material and light · no dialogue",
+    videoRoutes: {
+      label: "Video generation route (internal)",
+      systemDefault: "Current system route (recommended)",
+      systemDefaultHint: "Uses the current deployment configuration",
+      overrideHint: "This job will snapshot the selected route and model version",
+      byteplusInternational: "BytePlus international · Singapore ap-southeast · dreamina Seedance 2.0",
+      volcengineLegacy: "Volcengine legacy account · Beijing cn-beijing · doubao Seedance 2.0",
+      buddyPending: "Buddy API · contract pending (unavailable)",
+      buddyChecking: "Discovering Buddy models; submissions remain blocked",
+      buddyModels: "{count} Buddy models discovered; blocked until contract and pricing are confirmed",
+      buddyUnavailable: "Buddy models are unavailable; blocked until contract and pricing are confirmed",
+    },
     agent: {
       status: "AI director online", title: "Talk it through, then generate", subtitle: "Describe the goal like you would to a creative partner. The director fills the gaps, matches a lower-variance template, and hands the brief to production.", conversation: "Creative conversation", conversationHint: "From a rough idea to an executable video brief.", waiting: "Waiting for an idea", ready: "Brief ready", welcome: "Hi, I’m your Aivora AI director. Tell me about the product, audience, and outcome—or choose a creative direction below to get started.", assets: "Product assets", assetsHint: "Upload 1–10 clear product images so the template can lock the real product identity.", upload: "Upload product images", uploadEmpty: "You can start chatting and add assets later.", steps: "This production", stepAssets: "Add product assets", stepBrief: "Define audience and proof", stepTemplate: "Confirm template and produce", quickLabel: "Quick creative directions", quickCommerce: "Commerce script", quickUgc: "UGC review", quickEvent: "Event moment", quickAuto: "Recommend for me", promptLabel: "Tell the director what you want to make", promptPlaceholder: "Example: A 15-second World Cup video for young adults in a believable living room. Keep the cast and product consistent.", send: "Send", continueGenerate: "Generation settings", jumpToLatest: "Jump to latest message", thinking: "Director is shaping the idea…", error: "I missed that. Please try again.", templateHeading: "Director-recommended templates", templateHint: "Lock shot structure and realism boundaries before giving the model creative room.", qualityLockKicker: "QUALITY LOCK", templateSelected: "Selected", templateChoose: "Choose template", browseAll: "Browse all 31 templates", review: "Review brief and generation settings", batch: "Use this template for a batch", directHeading: "Production settings", directHint: "The director’s brief, assets, and template are carried in automatically. Fine-tune anything here, then generate.", productionBriefKicker: "PRODUCTION BRIEF", uploaded: "Uploaded {count} product images",
     },

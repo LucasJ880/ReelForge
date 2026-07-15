@@ -194,6 +194,9 @@ test("RF-018: retry capability keeps explicit mock stalls recoverable without re
 
   const stalled = {
     provider: VideoProvider.MOCK,
+    videoRouteSnapshot: "mock",
+    videoModelSnapshot: "aivora-deterministic-mock-v1",
+    videoProviderAdapterSnapshot: "mock",
     submissionState: ProviderSubmissionState.ACCEPTED,
     externalJobId: "batchmock_stalled",
     lastProviderStatus: "running",
@@ -208,6 +211,9 @@ test("RF-018: retry capability keeps explicit mock stalls recoverable without re
     batchTest.isBillingSafeManualRetry({
       ...stalled,
       provider: VideoProvider.SEEDANCE_I2V,
+      videoRouteSnapshot: "byteplus_international",
+      videoModelSnapshot: "dreamina-seedance-2-0-260128",
+      videoProviderAdapterSnapshot: "byteplus",
     }),
     false,
     "a real-provider timeout remains blocked until billing reconciliation",
@@ -217,6 +223,9 @@ test("RF-018: retry capability keeps explicit mock stalls recoverable without re
 test("RF-033: paid-provider retry requires proof that no external job exists", () => {
   const base = {
     provider: VideoProvider.SEEDANCE_I2V,
+    videoRouteSnapshot: "byteplus_international",
+    videoModelSnapshot: "dreamina-seedance-2-0-260128",
+    videoProviderAdapterSnapshot: "byteplus",
     submissionState: ProviderSubmissionState.NOT_STARTED,
     externalJobId: null,
     lastProviderStatus: null,

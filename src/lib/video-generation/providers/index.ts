@@ -14,6 +14,7 @@ import { getAppEnv } from "@/lib/config/env";
 import { MockVideoProvider } from "./mock-video-provider";
 import { BytePlusVideoProvider } from "./byteplus-video-provider";
 import type { VideoProvider } from "./types";
+import type { VideoRouteSnapshot } from "../video-route-registry";
 
 let cached: VideoProvider | null = null;
 
@@ -45,6 +46,24 @@ export function createVideoProviderById(
   return id === "mock"
     ? new MockVideoProvider()
     : new BytePlusVideoProvider();
+}
+
+export function createVideoProviderByRouteSnapshot(
+  snapshot: VideoRouteSnapshot,
+): VideoProvider {
+  if (snapshot.videoRouteSnapshot === "mock") {
+    if (snapshot.videoProviderAdapterSnapshot !== "mock") {
+      throw new Error("Mock route snapshot has an incompatible adapter");
+    }
+    return new MockVideoProvider();
+  }
+  if (snapshot.videoProviderAdapterSnapshot !== "byteplus") {
+    throw new Error("Seedance route snapshot has an incompatible adapter");
+  }
+  return new BytePlusVideoProvider(
+    snapshot.videoRouteSnapshot,
+    snapshot.videoModelSnapshot,
+  );
 }
 
 export function __resetVideoProviderForTests(): void {

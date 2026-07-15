@@ -35,6 +35,12 @@ import {
 } from "@/lib/schemas/unified-input";
 import { z } from "zod";
 import { videoGenerationRuntimeReadiness } from "@/lib/config/env";
+import {
+  isVideoRouteSnapshotRuntimeReady,
+  selectVideoRouteSnapshot,
+  VideoRouteSelectionError,
+} from "@/lib/video-generation/video-route-selection";
+import type { VideoRouteSnapshot } from "@/lib/video-generation/video-route-registry";
 
 /**
  * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
@@ -109,8 +115,6 @@ export async function POST(req: NextRequest) {
       action: "fix_request",
     });
   }
-  const requestHash = hashVideoDispatchRequest(body);
-
   const reqParsed = unifiedVideoGenerationRequestSchema.safeParse(body?.request);
   if (!reqParsed.success) {
     return dispatchErrorResponse(400, {
@@ -144,8 +148,53 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const mayOverrideVideoRoute =
+    session.user.role === "OPERATOR" || session.user.role === "SUPER_ADMIN";
+  let videoRouteSnapshot: VideoRouteSnapshot;
+  try {
+    videoRouteSnapshot = selectVideoRouteSnapshot({
+      requestedRouteId: body?.videoRouteId,
+      isInternalStaff: mayOverrideVideoRoute,
+    });
+  } catch (error) {
+    if (error instanceof VideoRouteSelectionError) {
+      return dispatchErrorResponse(error.code === "FORBIDDEN" ? 403 : 400, {
+        code: error.code === "FORBIDDEN" ? "FORBIDDEN" : "VALIDATION_FAILED",
+        message:
+          error.code === "FORBIDDEN"
+            ? "当前账号无权选择视频生成线路。"
+            : "所选视频生成线路不可用，请刷新后重试。",
+        retryable: false,
+        action: error.code === "FORBIDDEN" ? "contact_support" : "fix_request",
+      });
+    }
+    throw error;
+  }
+  if (!isVideoRouteSnapshotRuntimeReady(videoRouteSnapshot)) {
+    console.error("[dispatch] selected video route unavailable", {
+      videoRouteId: videoRouteSnapshot.videoRouteSnapshot,
+    });
+    return dispatchErrorResponse(503, {
+      code: "SERVICE_UNAVAILABLE",
+      message: "所选视频生成线路正在配置中，请稍后再试。",
+      retryable: true,
+      action: "wait",
+    });
+  }
+  const requestHash = hashVideoDispatchRequest(body, videoRouteSnapshot);
+
   const runtimeReadiness = videoGenerationRuntimeReadiness();
-  if (!runtimeReadiness.ok) {
+  const selectedRouteOverridesGlobal = body?.videoRouteId !== undefined;
+  const overrideMayIgnoreGlobalRouteFailure =
+    selectedRouteOverridesGlobal &&
+    !runtimeReadiness.ok &&
+    [
+      "byteplus_key_missing",
+      "byteplus_endpoint_invalid",
+      "volcengine_legacy_key_missing",
+      "volcengine_legacy_endpoint_invalid",
+    ].includes(runtimeReadiness.reason);
+  if (!runtimeReadiness.ok && !overrideMayIgnoreGlobalRouteFailure) {
     console.error("[dispatch] video runtime unavailable", {
       reason: runtimeReadiness.reason,
     });
@@ -262,6 +311,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       idempotencyKey,
       requestHash,
+      videoRouteSnapshot,
     });
   } catch (error) {
     console.error("[dispatch] idempotency claim failed", {
@@ -571,6 +621,7 @@ export async function POST(req: NextRequest) {
           directorPlan: directorPlanJson as unknown as object,
           videoGenerationPlan: plan as unknown as object,
           persona,
+          ...videoRouteSnapshot,
         },
       });
 

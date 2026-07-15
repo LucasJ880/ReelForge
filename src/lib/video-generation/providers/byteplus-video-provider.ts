@@ -15,8 +15,10 @@ import { isDryRun } from "@/lib/config/dry-run";
 import {
   getSeedanceStatus,
   isSeedanceConfigured,
+  SeedanceRuntimeAdapter,
   submitSeedanceJobResilient,
 } from "@/lib/providers/seedance";
+import type { SeedanceRuntimeProfile } from "@/lib/config/seedance-runtime";
 import type {
   CreateVideoJobOptions,
   CreateVideoJobResult,
@@ -31,8 +33,18 @@ export class BytePlusVideoProvider implements VideoProvider {
   readonly displayName = "BytePlus ModelArk (Seedance)";
   readonly manualRetryBillingRisk = "possible" as const;
 
+  private readonly runtimeAdapter: SeedanceRuntimeAdapter | null;
+
+  constructor(profile?: SeedanceRuntimeProfile, model?: string) {
+    this.runtimeAdapter = profile
+      ? new SeedanceRuntimeAdapter(profile, model)
+      : null;
+  }
+
   isConfigured(): boolean {
-    return isSeedanceConfigured();
+    return this.runtimeAdapter
+      ? this.runtimeAdapter.isConfigured()
+      : isSeedanceConfigured();
   }
 
   /// 真实调用必须显式 VIDEO_ENGINE_MOCK=false；未设置时一律保持 mock。
@@ -54,7 +66,7 @@ export class BytePlusVideoProvider implements VideoProvider {
       ? `${options.prompt}\nNegative constraints: ${options.negativePrompt.trim()}`
       : options.prompt;
 
-    const { jobId } = await submitSeedanceJobResilient({
+    const submitOptions = {
       prompt,
       referenceImageUrls: refUrls.length > 0 ? refUrls : undefined,
       duration: options.durationSec,
@@ -64,14 +76,19 @@ export class BytePlusVideoProvider implements VideoProvider {
       generateAudio: options.generateAudio,
       returnLastFrame: options.returnLastFrame,
       mockHints: options.mockHints,
-    });
+    };
+    const { jobId } = this.runtimeAdapter
+      ? await this.runtimeAdapter.submitResilient(submitOptions)
+      : await submitSeedanceJobResilient(submitOptions);
     return { providerJobId: jobId, providerId: this.id };
   }
 
   async getVideoJobStatus(
     providerJobId: string,
   ): Promise<VideoJobStatusResult> {
-    const r = await getSeedanceStatus(providerJobId);
+    const r = this.runtimeAdapter
+      ? await this.runtimeAdapter.getStatus(providerJobId)
+      : await getSeedanceStatus(providerJobId);
     return {
       providerJobId: r.jobId,
       normalizedStatus: this.normalizeProviderStatus(r.rawProviderStatus),

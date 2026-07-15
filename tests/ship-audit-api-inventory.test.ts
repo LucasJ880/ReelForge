@@ -10,7 +10,7 @@ function walk(directory: string): string[] {
   });
 }
 
-test("H1 API inventory accounts for every route file, including stitch-dispatch", () => {
+test("API inventory accounts for every route file, including provider discovery", () => {
   const apiRoot = path.join(process.cwd(), "src/app/api");
   const audit = readFileSync("qa/SHIP_AUDIT.md", "utf8");
   const routeFiles = walk(apiRoot).filter((file) => file.endsWith("/route.ts"));
@@ -19,7 +19,7 @@ test("H1 API inventory accounts for every route file, including stitch-dispatch"
     return `/api/${relative}`;
   });
 
-  assert.equal(routeFiles.length, 71);
+  assert.equal(routeFiles.length, 72);
   assert.equal(new Set(endpoints).size, routeFiles.length);
   for (const endpoint of endpoints) {
     assert.ok(
@@ -27,6 +27,7 @@ test("H1 API inventory accounts for every route file, including stitch-dispatch"
       `${endpoint} is implemented but missing from qa/SHIP_AUDIT.md`,
     );
   }
-  assert.match(audit, /API endpoint inventory \(71\/71 route files\)/);
+  assert.match(audit, /API endpoint inventory \(72\/72 route files\)/);
   assert.match(audit, /GET, POST \| `\/api\/cron\/stitch-dispatch`/);
+  assert.match(audit, /GET \| `\/api\/internal\/video-provider-routes`/);
 });

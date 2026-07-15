@@ -556,6 +556,13 @@ model VideoBrief {
   /// zod schema: src/lib/schemas/unified-input.ts:videoGenerationPlanSchema
   videoGenerationPlan Json?
 
+  /// Immutable video-routing evidence captured when a route is selected.
+  /// All three fields remain null for historical rows; null means unknown and
+  /// must never be interpreted as the current default route.
+  videoRouteSnapshot           String?
+  videoModelSnapshot           String?
+  videoProviderAdapterSnapshot String?
+
   /// I2V 参考图（Vercel Blob URL）；支持 1-5 张
   referenceImageUrls String[] @default([])
   /// 最终送审/发布的成片 URL（兼容旧 Sunny Shutter：单段 brief 这里就是 finalVideo URL）
@@ -817,6 +824,11 @@ model BatchJob {
   /// Dispatch remains fail-closed until quota authorization and Batch activation
   /// commit atomically. Existing rows are backfilled during the expand migration.
   quotaConsumedAt            DateTime?
+  /// Immutable routing evidence for this batch. Historical rows remain null;
+  /// readers must preserve unknown rather than borrowing a runtime default.
+  videoRouteSnapshot           String?
+  videoModelSnapshot           String?
+  videoProviderAdapterSnapshot String?
   status                     BatchJobStatus @default(EXPANDING)
   queuedCount                Int            @default(0)
   pausedCount                Int            @default(0)
@@ -865,6 +877,11 @@ model VideoJob {
   submissionErrorClass String?
   /// Price snapshot at submission time. Null means pricing is not confirmed.
   providerUnitPriceUsd Decimal?                @db.Decimal(12, 6)
+  /// Immutable route/model/adapter evidence for this provider attempt.
+  /// Historical rows remain null and are not safe to infer from `provider`.
+  videoRouteSnapshot           String?
+  videoModelSnapshot           String?
+  videoProviderAdapterSnapshot String?
   availableAt          DateTime?
   leaseOwner           String?
   leaseExpiresAt       DateTime?
@@ -937,6 +954,11 @@ model VideoDispatchRequest {
   responseStatus  Int?
   responseBody    Json?
   quotaConsumedAt DateTime?
+  /// Immutable route/model/adapter evidence chosen for this idempotent request.
+  /// Historical rows remain null; retries must not silently adopt a new route.
+  videoRouteSnapshot           String?
+  videoModelSnapshot           String?
+  videoProviderAdapterSnapshot String?
   completedAt     DateTime?
   createdAt       DateTime                  @default(now())
   updatedAt       DateTime                  @updatedAt

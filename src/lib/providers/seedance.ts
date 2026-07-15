@@ -100,6 +100,36 @@ export interface SeedanceJobResult {
   rawProviderResponse?: unknown;
 }
 
+/**
+ * Persistable routing snapshot for one provider job. It intentionally excludes
+ * credentials: callers may store this value with the job and reconstruct the
+ * same provider route after a global default switch without persisting a key.
+ */
+export type SeedanceRuntimeSnapshot = Readonly<{
+  profile: SeedanceRuntimeProfile;
+  providerId: ReturnType<typeof seedanceRuntimeProviderId>;
+  baseUrl: string;
+  model: string;
+}>;
+
+export function createSeedanceRuntimeSnapshot(args: {
+  profile: SeedanceRuntimeProfile;
+  model?: string;
+  baseUrl?: string;
+}): SeedanceRuntimeSnapshot {
+  const profile = resolveSeedanceRuntimeProfile(args.profile);
+  const model = (args.model || seedanceDefaultModel(profile)).trim();
+  if (!model || model.length > 200) {
+    throw new Error("Seedance runtime snapshot model 无效");
+  }
+  return Object.freeze({
+    profile,
+    providerId: seedanceRuntimeProviderId(profile),
+    baseUrl: resolveSeedanceArkBaseUrl(args.baseUrl, profile),
+    model,
+  });
+}
+
 type MockJobRecord = {
   status: string;
   createdAt: number;
@@ -121,7 +151,7 @@ function seedanceHttpTimeoutMs(): number {
 /**
  * Backward-compatible public helper for callers/tests that explicitly audit
  * the BytePlus international endpoint. Runtime requests use the selected
- * profile through resolveSelectedSeedanceArkBaseUrl below.
+ * profile through an immutable runtime snapshot.
  */
 export function resolveBytePlusArkBaseUrl(
   raw = process.env.ARK_BASE_URL,
@@ -139,10 +169,13 @@ function selectedRuntimeProfile(): SeedanceRuntimeProfile {
   return resolveSeedanceRuntimeProfile(process.env.SEEDANCE_RUNTIME_PROFILE);
 }
 
-function resolveSelectedSeedanceArkBaseUrl(
-  profile = selectedRuntimeProfile(),
-): string {
-  return resolveSeedanceArkBaseUrl(process.env.ARK_BASE_URL, profile);
+function globalRuntimeSnapshot(model?: string): SeedanceRuntimeSnapshot {
+  const profile = selectedRuntimeProfile();
+  return createSeedanceRuntimeSnapshot({
+    profile,
+    baseUrl: process.env.ARK_BASE_URL,
+    model: model || process.env.ARK_VIDEO_MODEL,
+  });
 }
 
 function requireSelectedApiKey(
@@ -194,11 +227,18 @@ function isMockMode(): boolean {
 }
 
 export function isSeedanceConfigured(): boolean {
-  if (isMockMode()) return false;
+  return isSeedanceRuntimeConfigured();
+}
+
+export function isSeedanceRuntimeConfigured(
+  runtime?: SeedanceRuntimeSnapshot,
+): boolean {
+  if (!runtime && isMockMode()) return false;
   try {
-    const profile = selectedRuntimeProfile();
-    resolveSelectedSeedanceArkBaseUrl(profile);
-    return !!seedanceApiKey(profile);
+    const selected = runtime
+      ? normalizeRuntimeSnapshot(runtime)
+      : globalRuntimeSnapshot();
+    return !!seedanceApiKey(selected.profile);
   } catch {
     return false;
   }
@@ -206,12 +246,17 @@ export function isSeedanceConfigured(): boolean {
 
 export async function submitSeedanceJob(
   options: SeedanceSubmitOptions,
+  runtime?: SeedanceRuntimeSnapshot,
 ): Promise<{ jobId: string }> {
-  if (isMockMode()) {
+  if (!runtime && isMockMode()) {
     assertMockVideoRuntimeAllowed();
     return submitMock(options);
   }
-  return submitReal(options);
+  const selected = runtime
+    ? normalizeRuntimeSnapshot(runtime)
+    : globalRuntimeSnapshot(options.model);
+  assertRuntimeModelMatchesOption(options, selected);
+  return submitReal(options, selected);
 }
 
 /** Seedance I2V first_frame blocked for photorealistic persons / privacy. */
@@ -224,6 +269,7 @@ export function isSeedancePrivacyBlockError(message: string): boolean {
  */
 export async function submitSeedanceJobResilient(
   options: SeedanceSubmitOptions,
+  runtime?: SeedanceRuntimeSnapshot,
 ): Promise<{ jobId: string }> {
   const { reviewTextOrThrow } = await import("@/lib/content-review");
   await reviewTextOrThrow({
@@ -232,14 +278,17 @@ export async function submitSeedanceJobResilient(
   });
   const hadRef = (options.referenceImageUrls?.filter(Boolean).length ?? 0) > 0;
   try {
-    return await submitSeedanceJob(options);
+    return await submitSeedanceJob(options, runtime);
   } catch (err) {
     const msg = (err as Error).message;
     if (hadRef && isSeedancePrivacyBlockError(msg)) {
-      return submitSeedanceJob({
-        ...options,
-        referenceImageUrls: undefined,
-      });
+      return submitSeedanceJob(
+        {
+          ...options,
+          referenceImageUrls: undefined,
+        },
+        runtime,
+      );
     }
     throw err;
   }
@@ -247,12 +296,83 @@ export async function submitSeedanceJobResilient(
 
 export async function getSeedanceStatus(
   jobId: string,
+  runtime?: SeedanceRuntimeSnapshot,
 ): Promise<SeedanceJobResult> {
-  if (isMockMode() || jobId.startsWith("mock_")) {
+  if (jobId.startsWith("mock_") || (!runtime && isMockMode())) {
     assertMockVideoRuntimeAllowed();
     return getStatusMock(jobId);
   }
-  return getStatusReal(jobId);
+  return getStatusReal(
+    jobId,
+    runtime ? normalizeRuntimeSnapshot(runtime) : globalRuntimeSnapshot(),
+  );
+}
+
+/**
+ * Adapter bound to one immutable route. Service/API layers can reconstruct it
+ * from a stored runtime snapshot without branching on provider-specific env.
+ */
+export class SeedanceRuntimeAdapter {
+  readonly runtimeSnapshot: SeedanceRuntimeSnapshot;
+  readonly id: SeedanceRuntimeSnapshot["providerId"];
+
+  constructor(
+    profile: SeedanceRuntimeProfile,
+    model?: string,
+    baseUrl?: string,
+  ) {
+    this.runtimeSnapshot = createSeedanceRuntimeSnapshot({
+      profile,
+      model,
+      baseUrl,
+    });
+    this.id = this.runtimeSnapshot.providerId;
+  }
+
+  isConfigured(): boolean {
+    return isSeedanceRuntimeConfigured(this.runtimeSnapshot);
+  }
+
+  submit(options: SeedanceSubmitOptions): Promise<{ jobId: string }> {
+    return submitSeedanceJob(options, this.runtimeSnapshot);
+  }
+
+  submitResilient(
+    options: SeedanceSubmitOptions,
+  ): Promise<{ jobId: string }> {
+    return submitSeedanceJobResilient(options, this.runtimeSnapshot);
+  }
+
+  getStatus(jobId: string): Promise<SeedanceJobResult> {
+    return getSeedanceStatus(jobId, this.runtimeSnapshot);
+  }
+}
+
+function assertRuntimeModelMatchesOption(
+  options: SeedanceSubmitOptions,
+  runtime: SeedanceRuntimeSnapshot,
+): void {
+  const optionModel = options.model?.trim();
+  if (optionModel && optionModel !== runtime.model) {
+    throw new ProviderSubmissionError(
+      "Seedance 请求模型与持久化 runtime snapshot 不一致",
+      {
+        providerId: runtime.providerId,
+        stage: "preflight",
+        retryable: false,
+      },
+    );
+  }
+}
+
+function normalizeRuntimeSnapshot(
+  runtime: SeedanceRuntimeSnapshot,
+): SeedanceRuntimeSnapshot {
+  return createSeedanceRuntimeSnapshot({
+    profile: runtime.profile,
+    baseUrl: runtime.baseUrl,
+    model: runtime.model,
+  });
 }
 
 function submitMock(options: SeedanceSubmitOptions): { jobId: string } {
@@ -400,15 +520,13 @@ async function getStatusMock(jobId: string): Promise<SeedanceJobResult> {
 
 async function submitReal(
   options: SeedanceSubmitOptions,
+  runtime: SeedanceRuntimeSnapshot,
 ): Promise<{ jobId: string }> {
-  const profile = selectedRuntimeProfile();
+  const profile = runtime.profile;
   const apiKey = requireSelectedApiKey(profile, "调用");
-  const baseUrl = resolveSelectedSeedanceArkBaseUrl(profile);
+  const baseUrl = runtime.baseUrl;
   const providerId = seedanceRuntimeProviderId(profile);
-  const model =
-    options.model ||
-    process.env.ARK_VIDEO_MODEL?.trim() ||
-    seedanceDefaultModel(profile);
+  const model = runtime.model;
 
   const isSeedance2 = model.includes("seedance-2");
 
@@ -584,10 +702,13 @@ async function readSafeProviderErrorCode(
   return code;
 }
 
-async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {
-  const profile = selectedRuntimeProfile();
+async function getStatusReal(
+  jobId: string,
+  runtime: SeedanceRuntimeSnapshot,
+): Promise<SeedanceJobResult> {
+  const profile = runtime.profile;
   const apiKey = requireSelectedApiKey(profile, "查询");
-  const baseUrl = resolveSelectedSeedanceArkBaseUrl(profile);
+  const baseUrl = runtime.baseUrl;
 
   const res = await fetchWithTimeout(
     `${baseUrl}/contents/generations/tasks/${jobId}`,

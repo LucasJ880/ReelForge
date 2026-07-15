@@ -2,6 +2,17 @@
 
 Phase 0–2 与 Gate C0 的历史迭代记录已归档至 [ITERATION_LOG.archive-phase0-2.md](./ITERATION_LOG.archive-phase0-2.md)。权威源为 commit `489e22d1ff5201595b287ecc5887af37c41f1496`，归档 SHA-256 为 `0186c9ac39d13ca2cdb95558efad01a2e4a1e45fb4a21efdb186971e65b45364`。后续阶段记录按各阶段日志与证据索引继续维护。
 
+## 2026-07-14 — RF-043 / RF-044 real canary and RF-045 immutable route snapshots
+
+- Activated only the explicitly authorized CEO Volcengine compatibility profile; North-American database/object storage, BytePlus international and Buddy code paths remain intact.
+- Completed one bounded real front-end canary: one provider acknowledgement, zero retries, provider success, repaired external assembly, final library entry, browser playback/download, and 15.12-second 1080×1920 H.264/AAC ffprobe evidence.
+- Found that the external runner omitted a moderation preview frame. Added JPEG extraction/upload and completion wiring; the repaired run succeeded. A separate provider-free production fixture proved the minute dispatcher invokes the runner unattended, then all fixture rows/objects were removed.
+- Added task-level immutable route/model/adapter snapshots across dispatch, brief, job and batch lifecycle records. Submit, polling and retry reconstruct the stored route; historical unknown real tasks stop before any provider call.
+- Added an internal-only Seedance route selector for BytePlus international and the CEO Volcengine account. Buddy model/contract discovery is read-only and sanitized; Buddy submission remains disabled pending an official task contract and confirmed pricing.
+- Rehearsed the nullable/no-backfill migration on Neon, recovered the expected app-role DDL denial with the owner role, verified app-role reads, then applied the identical migration to production with zero in-flight real jobs.
+- Verification: targeted multi-route/stitch suite 61/61, full unit 901 pass / 0 fail / 1 pre-existing skip, TypeScript, ESLint, Prisma validation and optimized build green.
+- Evidence: `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
+
 ## 2026-07-14 — Superseding video-route decision (documentation only)
 
 - Preserved the original North-America deployment and Gate 4 evidence, then recorded the narrower human superseding decision: CEO video generation may temporarily use the Volcengine `cn-beijing` legacy profile.

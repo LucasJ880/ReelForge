@@ -6,6 +6,7 @@ import {
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import { toCustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
+import type { VideoRouteSnapshot } from "@/lib/video-generation/video-route-registry";
 
 export const IDEMPOTENCY_KEY_HEADER = "idempotency-key";
 
@@ -23,8 +24,14 @@ function canonicalJson(value: unknown): string {
     .join(",")}}`;
 }
 
-export function hashVideoDispatchRequest(body: unknown): string {
-  return createHash("sha256").update(canonicalJson(body)).digest("hex");
+export function hashVideoDispatchRequest(
+  body: unknown,
+  videoRouteSnapshot?: VideoRouteSnapshot,
+): string {
+  const hashInput = videoRouteSnapshot
+    ? { body, videoRouteSnapshot }
+    : body;
+  return createHash("sha256").update(canonicalJson(hashInput)).digest("hex");
 }
 
 export function validateIdempotencyKey(raw: string | null): string | null {
@@ -76,6 +83,7 @@ export async function claimVideoDispatchRequest(args: {
   userId: string;
   idempotencyKey: string;
   requestHash: string;
+  videoRouteSnapshot?: VideoRouteSnapshot;
 }): Promise<VideoDispatchClaim> {
   const existing = await db.videoDispatchRequest.findUnique({
     where: {
@@ -93,6 +101,7 @@ export async function claimVideoDispatchRequest(args: {
         userId: args.userId,
         idempotencyKey: args.idempotencyKey,
         requestHash: args.requestHash,
+        ...(args.videoRouteSnapshot ?? {}),
       },
     });
     return { outcome: "acquired", request };

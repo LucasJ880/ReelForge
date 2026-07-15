@@ -16,6 +16,7 @@ import {
 import { isMockVideoRuntime } from "@/lib/config/env";
 import {
   getSeedanceStatus,
+  SeedanceRuntimeAdapter,
   submitSeedanceJobResilient,
   type SeedanceSubmitOptions,
   type SeedanceJobResult,
@@ -36,6 +37,12 @@ import {
   type ProviderSubmissionError,
 } from "@/lib/video-generation/providers/submission-error";
 import {
+  createVideoRouteSnapshot,
+  readVideoRouteSnapshot,
+  type PersistedVideoRouteSnapshotInput,
+  type VideoRouteSnapshot,
+} from "@/lib/video-generation/video-route-registry";
+import {
   WATCHDOG_STALLED_PREFIX,
   WATCHDOG_STALLED_USER_ERROR,
   WATCHDOG_TIMEOUT_PREFIX,
@@ -54,18 +61,92 @@ const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 let statusFetcherOverride: typeof getSeedanceStatus | null = null;
 let submitterOverride: typeof submitSeedanceJobResilient | null = null;
 
-async function submitVideoJob(options: SeedanceSubmitOptions) {
-  return (submitterOverride ?? submitSeedanceJobResilient)(options);
+export class HistoricalVideoRouteUnknownError extends Error {
+  constructor() {
+    super(
+      "历史视频任务缺少不可变线路快照；已禁止 provider 调用，请转人工对账",
+    );
+    this.name = "HistoricalVideoRouteUnknownError";
+  }
+}
+
+function requiredVideoRouteSnapshot(
+  input: PersistedVideoRouteSnapshotInput,
+): VideoRouteSnapshot {
+  const read = readVideoRouteSnapshot(input);
+  if (read.state === "historical_unknown") {
+    throw new HistoricalVideoRouteUnknownError();
+  }
+  if (read.videoRouteSnapshot === "buddy" || !read.route.enabled) {
+    throw new Error("持久化视频线路尚未启用，拒绝 provider 调用");
+  }
+  const expectedAdapter =
+    read.videoRouteSnapshot === "mock" ? "mock" : "byteplus";
+  if (read.videoProviderAdapterSnapshot !== expectedAdapter) {
+    throw new Error("持久化视频线路与 adapter 快照不一致，拒绝 provider 调用");
+  }
+  return {
+    videoRouteSnapshot: read.videoRouteSnapshot,
+    videoModelSnapshot: read.videoModelSnapshot,
+    videoProviderAdapterSnapshot: read.videoProviderAdapterSnapshot,
+  };
+}
+
+function requiredJobVideoRouteSnapshot(
+  job: PersistedVideoRouteSnapshotInput & { provider: VideoProvider },
+): VideoRouteSnapshot {
+  const read = readVideoRouteSnapshot(job);
+  if (read.state === "historical_unknown" && job.provider === VideoProvider.MOCK) {
+    return createVideoRouteSnapshot("mock");
+  }
+  return requiredVideoRouteSnapshot(job);
+}
+
+function seedanceAdapterForSnapshot(
+  snapshot: VideoRouteSnapshot,
+): SeedanceRuntimeAdapter {
+  if (snapshot.videoRouteSnapshot === "mock") {
+    throw new Error("Mock route does not have a real Seedance runtime adapter");
+  }
+  return new SeedanceRuntimeAdapter(
+    snapshot.videoRouteSnapshot,
+    snapshot.videoModelSnapshot,
+  );
+}
+
+async function submitVideoJob(
+  options: SeedanceSubmitOptions,
+  persistedRoute: PersistedVideoRouteSnapshotInput,
+) {
+  if (submitterOverride) return submitterOverride(options);
+  const snapshot = requiredVideoRouteSnapshot(persistedRoute);
+  if (snapshot.videoRouteSnapshot === "mock") {
+    if (!isMockVideoRuntime()) {
+      throw new Error("持久化 mock 线路不能在真实 provider 模式下提交");
+    }
+    return submitSeedanceJobResilient(options);
+  }
+  return seedanceAdapterForSnapshot(snapshot).submitResilient(options);
 }
 
 async function fetchVideoJobStatus(
-  job: { provider: VideoProvider; externalJobId: string },
+  job: {
+    provider: VideoProvider;
+    externalJobId: string;
+    videoRouteSnapshot?: string | null;
+    videoModelSnapshot?: string | null;
+    videoProviderAdapterSnapshot?: string | null;
+  },
 ): Promise<SeedanceJobResult> {
   if (statusFetcherOverride) {
     return statusFetcherOverride(job.externalJobId);
   }
   if (job.provider !== VideoProvider.MOCK) {
-    return getSeedanceStatus(job.externalJobId);
+    const snapshot = requiredVideoRouteSnapshot(job);
+    if (snapshot.videoRouteSnapshot === "mock") {
+      throw new Error("真实 VideoJob 不能使用 mock 路线快照");
+    }
+    return seedanceAdapterForSnapshot(snapshot).getStatus(job.externalJobId);
   }
   const result = await createVideoProviderById("mock").getVideoJobStatus(
     job.externalJobId,
@@ -101,10 +182,11 @@ function isUniqueConstraintError(error: unknown): boolean {
 function classifyDirectSubmissionError(args: {
   error: unknown;
   providerAcknowledged: boolean;
+  providerId?: string;
 }): ProviderSubmissionError {
   return asProviderSubmissionError({
     error: args.error,
-    providerId: "byteplus",
+    providerId: args.providerId ?? "historical_unknown",
     evidence: args.providerAcknowledged
       ? { stage: "persistence" }
       : isMockVideoRuntime()
@@ -118,6 +200,7 @@ async function failDirectSubmission(args: {
   providerRequestKey: string;
   error: unknown;
   providerAcknowledged: boolean;
+  providerId?: string;
 }) {
   const failure = classifyDirectSubmissionError(args);
   const acknowledgementUnknown =
@@ -277,6 +360,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
   if (!brief.directorPlan) {
     throw new Error("Brief 尚未生成 DirectorPlan，无法分段生成");
   }
+  const routeSnapshot = requiredVideoRouteSnapshot(brief);
 
   let plan: DirectorPlan;
   try {
@@ -374,6 +458,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
       segment,
       segmentCount: plan.segmentPlan.length,
       referenceImageUrls,
+      routeSnapshot,
     });
     created.push(result);
   }
@@ -390,9 +475,17 @@ async function submitSegmentJob(params: {
   segmentCount: number;
   /// 产品参考图（Omni-Reference 模式传给 Seedance 2.0，产品外观跨镜头一致）
   referenceImageUrls?: string[];
+  routeSnapshot: VideoRouteSnapshot;
 }) {
-  const { briefId, finalVideoId, aspectRatio, segment, segmentCount, referenceImageUrls } =
-    params;
+  const {
+    briefId,
+    finalVideoId,
+    aspectRatio,
+    segment,
+    segmentCount,
+    referenceImageUrls,
+    routeSnapshot,
+  } = params;
   const logicalJobKey = `${briefId}:segment:${segment.segmentIndex}`;
   const id = randomUUID();
   const providerRequestKey = `${id}:attempt:1`;
@@ -414,6 +507,7 @@ async function submitSegmentJob(params: {
         segmentIndex: segment.segmentIndex,
         segmentDurationSec: segment.durationSec,
         finalVideoId,
+        ...routeSnapshot,
       },
     });
   } catch (error) {
@@ -426,24 +520,28 @@ async function submitSegmentJob(params: {
   let providerAcknowledged = false;
   try {
     const hasRefs = (referenceImageUrls?.length ?? 0) > 0;
-    const { jobId } = await submitVideoJob({
-      prompt: segment.seedancePrompt,
-      duration: segment.durationSec,
-      ratio: aspectRatio,
-      /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
-      referenceImageUrls: hasRefs ? referenceImageUrls : undefined,
-      mode: hasRefs ? "reference" : undefined,
-      /// 质量对齐：显式要求 1080p（Seedance 2.0 默认更低档位）
-      resolution: "1080p",
-      mockHints: {
-        briefId,
-        segmentIndex: segment.segmentIndex,
-        segmentCount,
-        durationSec: segment.durationSec,
-        aspectRatio,
-        purpose: segment.role,
+    const { jobId } = await submitVideoJob(
+      {
+        prompt: segment.seedancePrompt,
+        duration: segment.durationSec,
+        ratio: aspectRatio,
+        model: routeSnapshot.videoModelSnapshot,
+        /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
+        referenceImageUrls: hasRefs ? referenceImageUrls : undefined,
+        mode: hasRefs ? "reference" : undefined,
+        /// 质量对齐：显式要求 1080p（Seedance 2.0 默认更低档位）
+        resolution: "1080p",
+        mockHints: {
+          briefId,
+          segmentIndex: segment.segmentIndex,
+          segmentCount,
+          durationSec: segment.durationSec,
+          aspectRatio,
+          purpose: segment.role,
+        },
       },
-    });
+      routeSnapshot,
+    );
     providerAcknowledged = true;
     logStatusTransition({
       taskId: job.id,
@@ -471,6 +569,7 @@ async function submitSegmentJob(params: {
       providerRequestKey,
       error: err,
       providerAcknowledged,
+      providerId: routeSnapshot.videoRouteSnapshot,
     });
   }
 }
@@ -493,6 +592,7 @@ export async function dispatchVideoGeneration(briefId: string) {
   if (!brief) throw new Error("Brief 不存在");
   const script = brief.scripts[0];
   if (!script) throw new Error("Brief 尚未有脚本");
+  const briefRouteSnapshot = requiredVideoRouteSnapshot(brief);
 
   const scenes = await db.scenePlan.findMany({
     where: { scriptId: script.id },
@@ -551,6 +651,13 @@ export async function dispatchVideoGeneration(briefId: string) {
       const id = randomUUID();
       const providerRequestKey = `${id}:attempt:1`;
       const submittedAt = new Date();
+      const routeSnapshot: VideoRouteSnapshot =
+        prompt.provider === VideoProvider.SEEDANCE_I2V && I2V_MODEL_OVERRIDE
+          ? {
+              ...briefRouteSnapshot,
+              videoModelSnapshot: I2V_MODEL_OVERRIDE,
+            }
+          : briefRouteSnapshot;
       let job;
       try {
         job = await db.videoJob.create({
@@ -565,6 +672,7 @@ export async function dispatchVideoGeneration(briefId: string) {
             videoBriefId: briefId,
             provider: prompt.provider,
             status: VideoJobStatus.RUNNING,
+            ...routeSnapshot,
           },
         });
       } catch (error) {
@@ -580,29 +688,29 @@ export async function dispatchVideoGeneration(briefId: string) {
       try {
         const ratio =
           (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio;
-        const { jobId } = await submitVideoJob({
-          prompt: prompt.promptText,
-          referenceImageUrls:
-            prompt.provider === VideoProvider.SEEDANCE_I2V
-              ? prompt.referenceImageUrl
-                ? [prompt.referenceImageUrl, ...processed.slice(1)]
-                : processed
-              : undefined,
-          duration: scene.durationSec,
-          ratio,
-          model:
-            prompt.provider === VideoProvider.SEEDANCE_I2V
-              ? I2V_MODEL_OVERRIDE
-              : undefined,
-          mockHints: {
-            briefId,
-            segmentIndex: scene.sceneIndex,
-            segmentCount: scenes.length,
-            durationSec: scene.durationSec,
-            aspectRatio: ratio,
-            purpose: "scene",
+        const { jobId } = await submitVideoJob(
+          {
+            prompt: prompt.promptText,
+            referenceImageUrls:
+              prompt.provider === VideoProvider.SEEDANCE_I2V
+                ? prompt.referenceImageUrl
+                  ? [prompt.referenceImageUrl, ...processed.slice(1)]
+                  : processed
+                : undefined,
+            duration: scene.durationSec,
+            ratio,
+            model: routeSnapshot.videoModelSnapshot,
+            mockHints: {
+              briefId,
+              segmentIndex: scene.sceneIndex,
+              segmentCount: scenes.length,
+              durationSec: scene.durationSec,
+              aspectRatio: ratio,
+              purpose: "scene",
+            },
           },
-        });
+          routeSnapshot,
+        );
         providerAcknowledged = true;
         return await persistAcceptedSubmission({
           jobId: job.id,
@@ -616,6 +724,7 @@ export async function dispatchVideoGeneration(briefId: string) {
           providerRequestKey,
           error: err,
           providerAcknowledged,
+          providerId: routeSnapshot.videoRouteSnapshot,
         });
       }
     }),
@@ -671,8 +780,35 @@ export async function reconcileVideoJob(jobId: string) {
     result = await fetchVideoJobStatus({
       provider: job.provider,
       externalJobId: job.externalJobId,
+      videoRouteSnapshot: job.videoRouteSnapshot,
+      videoModelSnapshot: job.videoModelSnapshot,
+      videoProviderAdapterSnapshot: job.videoProviderAdapterSnapshot,
     });
   } catch (err) {
+    if (err instanceof HistoricalVideoRouteUnknownError) {
+      logStatusTransition({
+        taskId: job.id,
+        from: job.status,
+        to: VideoJobStatus.FAILED,
+        reason: "historical_route_snapshot_missing_no_provider_call",
+      });
+      await db.videoJob.updateMany({
+        where: {
+          id: job.id,
+          status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+        },
+        data: {
+          status: VideoJobStatus.FAILED,
+          submissionErrorClass: "historical_route_snapshot_missing",
+          errorMessage: `[provider:route_unknown] ${err.message}`,
+          userSafeError:
+            "该历史任务缺少生成线路记录，系统已停止自动查询以避免跨线路误操作。请联系管理员对账。",
+          finishedAt: new Date(),
+          lastCheckedAt: new Date(),
+        },
+      });
+      return db.videoJob.findUnique({ where: { id: jobId } });
+    }
     const newErrors = (job.pollErrors ?? 0) + 1;
     const exceeded = newErrors >= POLL_ERROR_THRESHOLD;
     if (exceeded) {
@@ -926,6 +1062,7 @@ export async function retryFailedVideoJob(jobId: string) {
   ) {
     throw new SubmissionReconciliationRequiredError();
   }
+  const jobRouteSnapshot = requiredJobVideoRouteSnapshot(job);
   const videoBriefId = job.videoBriefId;
 
   /// frame-qa 拦截的段：Provider 端是 completed，但产物已被判废 →
@@ -939,6 +1076,9 @@ export async function retryFailedVideoJob(jobId: string) {
       const r = await fetchVideoJobStatus({
         provider: job.provider,
         externalJobId: job.externalJobId,
+        videoRouteSnapshot: job.videoRouteSnapshot,
+        videoModelSnapshot: job.videoModelSnapshot,
+        videoProviderAdapterSnapshot: job.videoProviderAdapterSnapshot,
       });
       if (r.status === "completed") {
         logStatusTransition({
@@ -1046,22 +1186,26 @@ export async function retryFailedVideoJob(jobId: string) {
       await claimFailedJobForRetry(job);
     let providerAcknowledged = false;
     try {
-      const { jobId: newExternalId } = await submitVideoJob({
-        prompt: segment.seedancePrompt,
-        duration: segment.durationSec,
-        ratio: briefForRetry.aspectRatio,
-        referenceImageUrls: retryHasRefs ? retryRefs : undefined,
-        mode: retryHasRefs ? "reference" : undefined,
-        resolution: "1080p",
-        mockHints: {
-          briefId: videoBriefId,
-          segmentIndex: segment.segmentIndex,
-          segmentCount: plan.segmentPlan.length,
-          durationSec: segment.durationSec,
-          aspectRatio: briefForRetry.aspectRatio,
-          purpose: segment.role,
+      const { jobId: newExternalId } = await submitVideoJob(
+        {
+          prompt: segment.seedancePrompt,
+          duration: segment.durationSec,
+          ratio: briefForRetry.aspectRatio,
+          model: jobRouteSnapshot.videoModelSnapshot,
+          referenceImageUrls: retryHasRefs ? retryRefs : undefined,
+          mode: retryHasRefs ? "reference" : undefined,
+          resolution: "1080p",
+          mockHints: {
+            briefId: videoBriefId,
+            segmentIndex: segment.segmentIndex,
+            segmentCount: plan.segmentPlan.length,
+            durationSec: segment.durationSec,
+            aspectRatio: briefForRetry.aspectRatio,
+            purpose: segment.role,
+          },
         },
-      });
+        jobRouteSnapshot,
+      );
       providerAcknowledged = true;
       logStatusTransition({
         taskId: job.id,
@@ -1092,6 +1236,7 @@ export async function retryFailedVideoJob(jobId: string) {
         providerRequestKey,
         error: err,
         providerAcknowledged,
+        providerId: jobRouteSnapshot.videoRouteSnapshot,
       });
     }
   }
@@ -1120,29 +1265,29 @@ export async function retryFailedVideoJob(jobId: string) {
           (p) => p.url,
         )
       : [];
-    const { jobId: newExternalId } = await submitVideoJob({
-      prompt: prompt.promptText,
-      referenceImageUrls:
-        prompt.provider === VideoProvider.SEEDANCE_I2V
-          ? prompt.referenceImageUrl
-            ? [prompt.referenceImageUrl, ...processed.slice(1)]
-            : processed
-          : undefined,
-      duration: scene.durationSec,
-      ratio,
-      model:
-        prompt.provider === VideoProvider.SEEDANCE_I2V
-          ? I2V_MODEL_OVERRIDE
-          : undefined,
-      mockHints: {
-        briefId: videoBriefId,
-        segmentIndex: scene.sceneIndex,
-        segmentCount: 1,
-        durationSec: scene.durationSec,
-        aspectRatio: ratio ?? "9:16",
-        purpose: "scene-retry",
+    const { jobId: newExternalId } = await submitVideoJob(
+      {
+        prompt: prompt.promptText,
+        referenceImageUrls:
+          prompt.provider === VideoProvider.SEEDANCE_I2V
+            ? prompt.referenceImageUrl
+              ? [prompt.referenceImageUrl, ...processed.slice(1)]
+              : processed
+            : undefined,
+        duration: scene.durationSec,
+        ratio,
+        model: jobRouteSnapshot.videoModelSnapshot,
+        mockHints: {
+          briefId: videoBriefId,
+          segmentIndex: scene.sceneIndex,
+          segmentCount: 1,
+          durationSec: scene.durationSec,
+          aspectRatio: ratio ?? "9:16",
+          purpose: "scene-retry",
+        },
       },
-    });
+      jobRouteSnapshot,
+    );
     providerAcknowledged = true;
     logStatusTransition({
       taskId: job.id,
@@ -1163,6 +1308,7 @@ export async function retryFailedVideoJob(jobId: string) {
       providerRequestKey,
       error: err,
       providerAcknowledged,
+      providerId: jobRouteSnapshot.videoRouteSnapshot,
     });
   }
 }

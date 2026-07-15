@@ -552,14 +552,37 @@
 ### RF-043 — Authorized CEO Volcengine video runtime was blocked by the international-only endpoint guard
 
 - Severity: **P0 — production generation blocker**
-- Status: **FIXED — code and zero-cost regression are green; production deployment and one real canary remain**
+- Status: **VERIFIED — bounded production canary completed and entered the customer library**
 - Reproduction: keep the existing CEO Volcengine credential/model in the legacy `ARK_*` variables and explicitly enable the real video engine. The runtime still requires `BYTEPLUS_ARK_API_KEY` and rejects the Beijing Ark endpoint before submission, while the same legacy credential is definitively invalid on the international BytePlus endpoint.
 - Root cause: the migration to BytePlus correctly prevented accidental cross-region routing, but it represented the only real Seedance path as one global international configuration. It had no explicit, auditable compatibility profile for the CEO-owned Volcengine account.
 - Human superseding decision: on 2026-07-14 the CEO explicitly authorized a temporary video-only `cn-beijing` compatibility route. Neon and Vercel Blob remain in North America; BytePlus and Buddy code paths remain intact. The earlier international-only video constraint is retained in history and marked superseded rather than erased.
 - Repair: add the allowlisted profiles `byteplus_international` and `volcengine_cn_legacy`. Each profile has an exact HTTPS endpoint, its own non-fallback credential realm and provider identity. Readiness, health, submit and status polling all use the selected profile; invalid profile/key/endpoint combinations fail before a provider request. No secret or endpoint is returned to customers.
 - Regression: the focused endpoint/readiness/health contract suite passes 39/39 locally; the implementation agent also completed the broader focused suite 48/48, TypeScript, scoped ESLint and the full unit suite at 865 pass / 0 fail / 1 pre-existing skip. The optimized production build passes.
-- Remaining gate: deploy with `SEEDANCE_RUNTIME_PROFILE=volcengine_cn_legacy`, verify health, then submit exactly one bounded CEO canary and reconcile task/quota state before marking VERIFIED.
-- Evidence: `qa/evidence/phase2/rf043-legacy-cn-video-runtime-2026-07-14.md`.
+- Production verification: production health reported the explicit `volcengine_cn_legacy` profile with the database connected. One authorized 15-second, 9:16 front-end canary created exactly one provider task, received one acknowledgement, used zero automatic retries, reached provider success, and was assembled into a customer-visible final. The stable asset passed HTTP and ffprobe checks at 15.12 seconds, 1080×1920, H.264/AAC. Usage accounting contains exactly one VIDEO_DISPATCH and one SEEDANCE_SEGMENT increment for the request.
+- Evidence: `qa/evidence/phase2/rf043-legacy-cn-video-runtime-2026-07-14.md`, `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
+- Repair commit: `14e0dbf`
+
+### RF-044 — External stitch completion omitted the preview frame required by media moderation
+
+- Severity: **P0 — provider generation succeeds but the customer never receives a final video**
+- Status: **VERIFIED — production repair and unattended dispatcher rehearsal both passed**
+- Reproduction: the RF-043 canary reached provider success and entered `FinalVideo.STITCHING`; the external runner uploaded only the MP4. The completion endpoint's media review could not inspect a frame and rejected finalization as awaiting frame extraction, leaving the customer without a completed asset.
+- Root cause: `scripts/stitch-runner.ts` never extracted or uploaded a representative JPEG and therefore called the completion API without `thumbnailUrl`.
+- Repair: extract a bounded representative frame with ffmpeg (plus a deterministic fallback), upload MP4 and JPEG to the configured object store, and complete with both URLs. Temporary files remain cleaned and errors remain code-only/sanitized.
+- Verification: the original runner attempt preserved the failure evidence; the repaired attempt succeeded, the canary entered `FinalVideo.READY`, browser playback/download became available, and ffprobe passed. A separate production rehearsal created a provider-free fixture, allowed the minute dispatcher to invoke the GitHub runner without manual intervention, reached READY with both assets, and then deleted the fixture rows and objects.
+- Regression: `tests/stitch-runner-thumbnail.test.ts` and the related stitch suite passed 25/25; the full suite later passed 901 with zero failures and one pre-existing skip.
+- Evidence: `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
+- Repair commit: `ca00be4`
+
+### RF-045 — Global provider switching could redirect polling and retries away from the task's original account
+
+- Severity: **P0 — cross-account task lookup and duplicate-billing risk**
+- Status: **FIXED — schema migrated and regression green; deployment verification pending**
+- Reproduction: before this repair, provider submit/status helpers selected the current global Seedance profile. If the default changed between submission and polling or retry, an existing provider job could be queried or retried against a different endpoint/account. The database stored a broad provider enum but not the exact route, model, and adapter evidence.
+- Repair: persist an immutable route/model/adapter snapshot on dispatch requests, briefs, jobs and batches; reconstruct submit, poll and retry adapters from that snapshot; include the effective snapshot in the idempotency hash; and fail closed before any provider call for historical real jobs whose route is unknowable. The UI exposes BytePlus international and the CEO Volcengine route only to OPERATOR/SUPER_ADMIN system roles. Buddy discovery is read-only, bounded and staff-or-machine authenticated; Buddy submission remains disabled until an official task contract and price are confirmed.
+- Database safety: the nullable, no-default, no-backfill migration was rehearsed on the Neon branch with owner DDL and app-role read verification, then applied to production after confirming zero in-flight real VideoJobs. Production exposes all 12 new columns to the app role and still has zero in-flight real VideoJobs.
+- Verification: route, permission, billing, polling, retry, Buddy discovery and snapshot tests pass 61/61; TypeScript, scoped ESLint, Prisma validation, optimized build and diff check pass; the complete unit suite passes 901, fails 0, with one pre-existing skip.
+- Evidence: `qa/evidence/phase2/rf043-rf045-video-routing-production-2026-07-14.md`.
 
 ## Seed hypotheses not opened as defects
 

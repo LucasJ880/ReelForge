@@ -4,7 +4,9 @@ import { ProviderSubmissionError } from "../src/lib/video-generation/providers/s
 
 import {
   BYTEPLUS_ARK_BASE_URL,
+  SeedanceRuntimeAdapter,
   VOLCENGINE_CN_ARK_BASE_URL,
+  createSeedanceRuntimeSnapshot,
   getSeedanceStatus,
   resolveBytePlusArkBaseUrl,
   resolveVolcengineLegacyArkBaseUrl,
@@ -221,6 +223,125 @@ test("legacy CN status polling stays on the same explicit credential realm", asy
     assert.equal(authorization, "Bearer test-legacy-key-never-real");
     assert.equal(result.status, "completed");
     assert.equal(result.videoUrl, "https://assets.example.test/result.mp4");
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreSeedanceEnv(previous);
+  }
+});
+
+test("runtime snapshot is persistable, immutable, and rejects cross-profile endpoints", () => {
+  const snapshot = createSeedanceRuntimeSnapshot({
+    profile: "volcengine_cn_legacy",
+    model: "persisted-model-fixture",
+    baseUrl: VOLCENGINE_CN_ARK_BASE_URL,
+  });
+  assert.equal(snapshot.profile, "volcengine_cn_legacy");
+  assert.equal(snapshot.providerId, "volcengine_cn_legacy");
+  assert.equal(snapshot.baseUrl, VOLCENGINE_CN_ARK_BASE_URL);
+  assert.equal(snapshot.model, "persisted-model-fixture");
+  assert.equal(Object.isFrozen(snapshot), true);
+
+  assert.throws(
+    () =>
+      createSeedanceRuntimeSnapshot({
+        profile: "volcengine_cn_legacy",
+        model: "persisted-model-fixture",
+        baseUrl: BYTEPLUS_ARK_BASE_URL,
+      }),
+    /拒绝不匹配 volcengine_cn_legacy/,
+  );
+});
+
+test("bound runtime adapter keeps submit and status on the stored route after global switch", async () => {
+  const previous = snapshotSeedanceEnv();
+  const originalFetch = globalThis.fetch;
+  const requestedUrls: string[] = [];
+  const requestedModels: string[] = [];
+  globalThis.fetch = async (input, init) => {
+    requestedUrls.push(String(input));
+    if (init?.method === "POST") {
+      const body = JSON.parse(String(init.body)) as { model?: unknown };
+      requestedModels.push(
+        typeof body.model === "string" ? body.model : "",
+      );
+      return new Response(JSON.stringify({ id: "stored-route-task" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    return new Response(
+      JSON.stringify({
+        status: "succeeded",
+        content: { video_url: "https://assets.example.test/stored.mp4" },
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  };
+  process.env.VIDEO_ENGINE_MOCK = "false";
+  process.env.ARK_API_KEY = "test-legacy-key-never-real";
+  process.env.BYTEPLUS_ARK_API_KEY = "test-international-key-never-real";
+
+  const adapter = new SeedanceRuntimeAdapter(
+    "volcengine_cn_legacy",
+    "stored-model-fixture",
+    VOLCENGINE_CN_ARK_BASE_URL,
+  );
+
+  // Simulate a later global default switch. The bound adapter must continue
+  // using its stored profile/base/model for the historical job.
+  process.env.SEEDANCE_RUNTIME_PROFILE = "byteplus_international";
+  process.env.ARK_BASE_URL = BYTEPLUS_ARK_BASE_URL;
+  process.env.ARK_VIDEO_MODEL = "new-global-model-must-not-win";
+  try {
+    assert.equal(adapter.id, "volcengine_cn_legacy");
+    assert.equal(adapter.isConfigured(), true);
+    const submitted = await adapter.submit({
+      prompt: "stored route fixture",
+    });
+    assert.equal(submitted.jobId, "stored-route-task");
+    const status = await adapter.getStatus(submitted.jobId);
+    assert.equal(status.status, "completed");
+    assert.deepEqual(requestedUrls, [
+      `${VOLCENGINE_CN_ARK_BASE_URL}/contents/generations/tasks`,
+      `${VOLCENGINE_CN_ARK_BASE_URL}/contents/generations/tasks/stored-route-task`,
+    ]);
+    assert.deepEqual(requestedModels, ["stored-model-fixture"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+    restoreSeedanceEnv(previous);
+  }
+});
+
+test("explicit runtime snapshot rejects a conflicting per-call model before fetch", async () => {
+  const previous = snapshotSeedanceEnv();
+  const originalFetch = globalThis.fetch;
+  let fetchCount = 0;
+  globalThis.fetch = async () => {
+    fetchCount += 1;
+    throw new Error("unexpected network call");
+  };
+  process.env.VIDEO_ENGINE_MOCK = "false";
+  process.env.ARK_API_KEY = "test-legacy-key-never-real";
+  const snapshot = createSeedanceRuntimeSnapshot({
+    profile: "volcengine_cn_legacy",
+    model: "stored-model-fixture",
+    baseUrl: VOLCENGINE_CN_ARK_BASE_URL,
+  });
+  try {
+    await assert.rejects(
+      submitSeedanceJob(
+        { prompt: "model mismatch", model: "different-model" },
+        snapshot,
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof ProviderSubmissionError);
+        assert.equal(error.providerId, "volcengine_cn_legacy");
+        assert.equal(error.stage, "preflight");
+        assert.equal(error.disposition, "definitely_not_created");
+        return true;
+      },
+    );
+    assert.equal(fetchCount, 0);
   } finally {
     globalThis.fetch = originalFetch;
     restoreSeedanceEnv(previous);

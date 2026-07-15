@@ -13,6 +13,7 @@ import {
   validateIdempotencyKey,
 } from "../src/lib/services/video-dispatch-idempotency";
 import { toCustomerVideoDispatchResponse } from "../src/lib/api/customer-video-dispatch";
+import { createVideoRouteSnapshot } from "../src/lib/video-generation/video-route-registry";
 
 function patch(
   t: TestContext,
@@ -37,6 +38,41 @@ test("RF-003 request hash is stable across object key order and validates bounde
   assert.equal(validateIdempotencyKey("dispatch_abc-123"), "dispatch_abc-123");
   assert.equal(validateIdempotencyKey(" bad"), null);
   assert.equal(validateIdempotencyKey("x".repeat(201)), null);
+});
+
+test("dispatch claim persists the exact route/model/adapter snapshot", async (t) => {
+  let createdData: Record<string, unknown> | null = null;
+  const model = db.videoDispatchRequest as unknown as Record<string, unknown>;
+  patch(t, model, {
+    findUnique: async () => null,
+    create: async (args: { data: Record<string, unknown> }) => {
+      createdData = args.data;
+      return {
+        id: "route-aware-dispatch",
+        state: VideoDispatchRequestState.PROCESSING,
+        responseStatus: null,
+        responseBody: null,
+        quotaConsumedAt: null,
+        completedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        ...args.data,
+      };
+    },
+  });
+  const snapshot = createVideoRouteSnapshot("volcengine_cn_legacy");
+  const claim = await claimVideoDispatchRequest({
+    userId: "staff-1",
+    idempotencyKey: "route-aware",
+    requestHash: hashVideoDispatchRequest({ request: {} }, snapshot),
+    videoRouteSnapshot: snapshot,
+  });
+  assert.equal(claim.outcome, "acquired");
+  assert.ok(createdData);
+  const persisted = createdData as unknown as Record<string, unknown>;
+  assert.equal(persisted.videoRouteSnapshot, "volcengine_cn_legacy");
+  assert.equal(persisted.videoModelSnapshot, snapshot.videoModelSnapshot);
+  assert.equal(persisted.videoProviderAdapterSnapshot, "byteplus");
 });
 
 test("RF-003 concurrent duplicate dispatch claims have one winner and no duplicate quota owner", async (t) => {

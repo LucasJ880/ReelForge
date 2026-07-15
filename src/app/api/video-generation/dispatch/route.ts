@@ -30,6 +30,7 @@ import {
   videoGenerationPlanSchema,
 } from "@/lib/schemas/unified-input";
 import { z } from "zod";
+import { videoGenerationRuntimeReadiness } from "@/lib/config/env";
 
 /**
  * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
@@ -137,6 +138,19 @@ export async function POST(req: NextRequest) {
         action: "contact_support",
       });
     }
+  }
+
+  const runtimeReadiness = videoGenerationRuntimeReadiness();
+  if (!runtimeReadiness.ok) {
+    console.error("[dispatch] video runtime unavailable", {
+      reason: runtimeReadiness.reason,
+    });
+    return dispatchErrorResponse(503, {
+      code: "SERVICE_UNAVAILABLE",
+      message: "视频生成服务正在配置中，请稍后再试。",
+      retryable: true,
+      action: "wait",
+    });
   }
 
   /// Phase 1：始终服务端重建 plan 防 UI tamper

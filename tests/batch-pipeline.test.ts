@@ -12,6 +12,7 @@ import { db } from "../src/lib/db";
 import { __resetAppEnvForTests } from "../src/lib/config/env";
 import {
   __test__,
+  BatchInsufficientAssetsError,
   BatchImageIdConflictError,
   buildBatchVideoRows,
   createBatchJob,
@@ -117,6 +118,48 @@ test("API-BATCH：重复图片 ID 在任何数据库访问前以 409 冲突拒�
     },
   );
   assert.equal(databaseTouched, false);
+});
+
+test("API-BATCH：素材少于模板下限时在事务与派发前以 422 语义拒绝", async (t) => {
+  const template = {
+    ...TEMPLATE,
+    id: "tpl_requires_three",
+    imagesPerVideo: { min: 3, max: 5 },
+  } satisfies StyleTemplate;
+  let transactionTouched = false;
+  patch(t, db.batchJob as unknown as Record<string, unknown>, {
+    findUnique: async () => null,
+  });
+  patch(t, db.styleTemplate as unknown as Record<string, unknown>, {
+    findFirst: async () => template,
+  });
+  patch(t, db as unknown as Record<string, unknown>, {
+    $transaction: async () => {
+      transactionTouched = true;
+      throw new Error("素材校验失败不得进入事务");
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      createBatchJob({
+        userId: "user_too_few_images",
+        templateId: template.id,
+        templateVersion: template.version,
+        images: [{ id: "only_one", url: "https://cdn.test/one.jpg" }],
+        requestedCount: 1,
+        idempotencyKey: "too-few-images",
+      }),
+    (error: unknown) => {
+      assert.ok(error instanceof BatchInsufficientAssetsError);
+      assert.equal(error.httpStatus, 422);
+      assert.equal(error.required, 3);
+      assert.equal(error.actual, 1);
+      assert.match(error.message, /至少需要 3 张图.*只有 1 张/);
+      return true;
+    },
+  );
+  assert.equal(transactionTouched, false);
 });
 
 test("AC-B4：同一 idempotencyKey 连发 3 次，只展开 N 个 VideoJob", async (t) => {

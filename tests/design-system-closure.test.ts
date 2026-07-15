@@ -16,7 +16,8 @@ test("approved theme topology keeps Studio dark and auth/public/operations light
   const studio = tokens.match(/\.studio-theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const auth = tokens.match(/\.auth-studio-theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   assert.match(root, /--bg:\s*#fafaf7/i);
-  assert.match(studio, /--bg:\s*#17130f/i);
+  assert.match(studio, /--bg:\s*#101015/i);
+  assert.match(tokens, /:root:has\(\.studio-theme\),\s*\n\.studio-theme\s*\{/);
   assert.match(auth, /color-scheme:\s*light/);
   assert.doesNotMatch(auth, /--bg:\s*#17130f/i);
 });

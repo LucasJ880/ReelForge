@@ -11,3 +11,23 @@ Phase 0–2 与 Gate C0 的历史迭代记录已归档至 [ITERATION_LOG.archive
 - Verified production batch/create pages, 31 active templates, zero browser console errors, three schedulers returning HTTP 200, unchanged task accounting, and zero provider-eligible work/calls.
 - RF-019 moved from OPEN to VERIFIED. Production health remains independently fail-closed because mock video is still configured.
 - Evidence: `qa/evidence/phase2/rf019-production-schema-repair-2026-07-14.md`.
+
+## 2026-07-14 — RF-010 v4 palette gate and RF-037 batch error locale
+
+- Recorded the human-authorized return of `/app` to the project's earlier neutral-dark Studio palette while preserving the approved dark-Studio/light-public-auth-internal topology.
+- Updated the design hard gates to require the neutral canvas/surface values and the descendant-scoped document-canvas boundary; no token implementation was changed in this iteration.
+- Kept the batch API's Chinese default error body intact and moved customer localization to a machine-code UI mapping, so English workspaces cannot render Chinese validation failures.
+- Added minimal behavior/source regressions for known and unknown error codes.
+- Focused design, customer-recovery, batch frontend/API, and pipeline suite passed 35/35; `npm run typecheck` passed.
+- Evidence: `qa/evidence/phase34/iteration-3.22-neutral-studio-canvas-and-batch-error-locale.md`.
+
+## 2026-07-14 — RF-040 / RF-041 generation blocker repair
+
+- Reproduced the direct creation failure from the customer UI and production records: the production mock backstop rejected dispatch after the old path had already created accounting/task state; no provider call was made.
+- Reproduced the batch failure: one product image was allowed with a template that requires three; the transaction rolled back but the API/UI converted the recoverable validation error into an opaque failure.
+- Added typed runtime readiness before paid/mutating work, including batch idempotency replay, tick, and retry entry points.
+- Added front-end and service enforcement of immutable template asset minimums plus a strict 422 customer error envelope.
+- Compensated the diagnostic direct-dispatch entitlement with auditable negative usage rows and a compare-and-swap request update.
+- Completed the zero-cost optimized-browser journey through FinalVideo READY, preview, and download entry; media is H.264/AAC and browser-ready.
+- Focused suite passed 72/72; TypeScript, ESLint, optimized build, and diff check passed.
+- Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.

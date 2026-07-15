@@ -11,7 +11,10 @@ import {
   type VideoJob,
 } from "@prisma/client";
 import { db } from "@/lib/db";
-import { getAppEnv } from "@/lib/config/env";
+import {
+  assertVideoGenerationRuntimeReady,
+  getAppEnv,
+} from "@/lib/config/env";
 import {
   allocateAssets,
   type AllocatableAsset,
@@ -71,6 +74,19 @@ export class BatchImageIdConflictError extends Error {
   constructor() {
     super("批量生成素材的图片 ID 不得重复");
     this.name = "BatchImageIdConflictError";
+  }
+}
+
+export class BatchInsufficientAssetsError extends Error {
+  readonly code = "BATCH_INSUFFICIENT_ASSETS" as const;
+  readonly httpStatus = 422 as const;
+
+  constructor(
+    readonly required: number,
+    readonly actual: number,
+  ) {
+    super(`当前模板每条至少需要 ${required} 张图，实际只有 ${actual} 张`);
+    this.name = "BatchInsufficientAssetsError";
   }
 }
 
@@ -310,6 +326,10 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
   if (new Set(imageIds).size !== imageIds.length) {
     throw new BatchImageIdConflictError();
   }
+  // Runtime readiness must precede the idempotent replay shortcut. Otherwise
+  // a production+mock deployment can return an existing batch and let the
+  // route continue into quota/tick work even though new dispatch is sealed.
+  assertVideoGenerationRuntimeReady();
   const requestHash = batchRequestHash(input);
   const existing = await db.batchJob.findUnique({
     where: {
@@ -333,6 +353,13 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
   });
   if (!template) throw new BatchTemplateUnavailableError();
   parseLockedParams(template.lockedParams);
+  const imagesPerVideo = parseImagesPerVideo(template.imagesPerVideo);
+  if (input.images.length < imagesPerVideo.min) {
+    throw new BatchInsufficientAssetsError(
+      imagesPerVideo.min,
+      input.images.length,
+    );
+  }
   const provider =
     getAppEnv().videoProvider === "mock"
       ? VideoProvider.MOCK
@@ -1004,6 +1031,9 @@ async function applyBreaker(
  * 前端只调用 batch status 端点一次；不会为 N 个任务建立 N 条连接。
  */
 export async function processBatchTick(batchId: string): Promise<BatchJob> {
+  // A tick can mutate expired leases before it reaches provider submission.
+  // Seal the whole worker before any read/recovery path can lead to writes.
+  assertVideoGenerationRuntimeReady();
   const now = new Date();
   const [batch, batchProvider] = await Promise.all([
     db.batchJob.findUnique({ where: { id: batchId } }),
@@ -1048,6 +1078,9 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
 }
 
 export async function retryFailedBatchJobs(batchId: string): Promise<number> {
+  // Retry is a dispatch-enabling mutation. Refuse it while the selected video
+  // runtime is unavailable instead of leaving newly QUEUED work behind.
+  assertVideoGenerationRuntimeReady();
   const failed = await db.videoJob.findMany({
     where: { batchJobId: batchId, status: VideoJobStatus.FAILED },
     select: {
@@ -1123,6 +1156,9 @@ export async function retryFailedBatchJob(
   batchId: string,
   jobId: string,
 ): Promise<RetryFailedBatchJobResult> {
+  // Keep the single-job retry path under the same fail-closed boundary as the
+  // retry-all path; preview mock remains allowed by the shared env predicate.
+  assertVideoGenerationRuntimeReady();
   const job = await db.videoJob.findFirst({
     where: {
       id: jobId,

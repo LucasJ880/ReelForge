@@ -34,6 +34,27 @@ export interface AppEnv {
   appBaseUrl: string | null;
 }
 
+export type VideoGenerationRuntimeUnavailableReason =
+  | "environment_invalid"
+  | "production_mock_forbidden"
+  | "byteplus_key_missing"
+  | "byteplus_endpoint_invalid"
+  | "content_review_key_missing";
+
+export type VideoGenerationRuntimeReadiness =
+  | { ok: true }
+  | { ok: false; reason: VideoGenerationRuntimeUnavailableReason };
+
+export class VideoGenerationRuntimeUnavailableError extends Error {
+  readonly code = "VIDEO_RUNTIME_UNAVAILABLE" as const;
+  readonly httpStatus = 503 as const;
+
+  constructor(readonly reason: VideoGenerationRuntimeUnavailableReason) {
+    super(`video generation runtime unavailable: ${reason}`);
+    this.name = "VideoGenerationRuntimeUnavailableError";
+  }
+}
+
 const REGION_VALUES: Region[] = ["na", "future"];
 const DEPLOYMENT_VALUES: DeploymentTarget[] = ["vercel", "selfhosted"];
 const AI_PROVIDER_VALUES: AiProviderId[] = ["openai", "volcengine"];
@@ -106,6 +127,71 @@ export function assertMockVideoRuntimeAllowed(
     throw new Error(
       "production runtime 禁止 mock 视频 provider；请在 preview/rehearsal 使用 mock，或显式配置真实 provider",
     );
+  }
+}
+
+/**
+ * Mutation-entry readiness check. It runs before quota consumption or job
+ * creation so a production configuration error cannot leave billed failures.
+ */
+export function videoGenerationRuntimeReadiness(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): VideoGenerationRuntimeReadiness {
+  let app: AppEnv;
+  try {
+    app = parseAppEnv(env);
+  } catch {
+    return { ok: false, reason: "environment_invalid" };
+  }
+
+  const mock =
+    app.videoProvider === "mock" ||
+    parseBool(env.AIVORA_DRY_RUN, false) ||
+    !isExplicitRealVideoEngine(env.VIDEO_ENGINE_MOCK);
+  if (isProductionRuntime(env) && mock) {
+    return { ok: false, reason: "production_mock_forbidden" };
+  }
+
+  const bytePlusApiKey = env.BYTEPLUS_ARK_API_KEY?.trim();
+  if (!mock && app.videoProvider === "byteplus" && !bytePlusApiKey) {
+    return { ok: false, reason: "byteplus_key_missing" };
+  }
+
+  const rawArkBaseUrl = env.ARK_BASE_URL;
+  const normalizedArkBaseUrl = rawArkBaseUrl?.trim().replace(/\/+$/, "");
+  if (
+    !mock &&
+    app.videoProvider === "byteplus" &&
+    rawArkBaseUrl != null &&
+    rawArkBaseUrl !== "" &&
+    normalizedArkBaseUrl !==
+      "https://ark.ap-southeast.bytepluses.com/api/v3"
+  ) {
+    return { ok: false, reason: "byteplus_endpoint_invalid" };
+  }
+
+  const moderationMock = [env.CONTENT_REVIEW_MOCK, env.LLM_FORCE_MOCK].some(
+    (value) =>
+      ["1", "true", "yes"].includes(value?.toLowerCase() ?? ""),
+  );
+  if (
+    app.contentReviewEnabled &&
+    app.contentReviewProvider === "openai_moderation" &&
+    !moderationMock &&
+    !env.OPENAI_API_KEY?.trim()
+  ) {
+    return { ok: false, reason: "content_review_key_missing" };
+  }
+
+  return { ok: true };
+}
+
+export function assertVideoGenerationRuntimeReady(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): void {
+  const readiness = videoGenerationRuntimeReadiness(env);
+  if (!readiness.ok) {
+    throw new VideoGenerationRuntimeUnavailableError(readiness.reason);
   }
 }
 

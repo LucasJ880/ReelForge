@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import {
+  BatchInsufficientAssetsError,
   BatchImageIdConflictError,
   BatchIdempotencyConflictError,
   BatchTemplateUnavailableError,
@@ -20,6 +21,7 @@ import {
   batchIdempotencyKeySchema,
 } from "@/lib/contracts/batch-request";
 import { batchStatusResponseSchema } from "@/lib/contracts/batch-api";
+import { VideoGenerationRuntimeUnavailableError } from "@/lib/config/env";
 
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
@@ -108,6 +110,17 @@ export async function POST(req: NextRequest) {
         { status: error.httpStatus },
       );
     }
+    if (error instanceof BatchInsufficientAssetsError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "VALIDATION_FAILED",
+          message: error.message,
+          retryable: false,
+          action: "fix_request",
+        }),
+        { status: error.httpStatus },
+      );
+    }
     if (error instanceof BatchTemplateUnavailableError) {
       return NextResponse.json(
         customerApiError({
@@ -117,6 +130,20 @@ export async function POST(req: NextRequest) {
           action: "fix_request",
         }),
         { status: 422 },
+      );
+    }
+    if (error instanceof VideoGenerationRuntimeUnavailableError) {
+      console.error("[batch:create] video runtime unavailable", {
+        reason: error.reason,
+      });
+      return NextResponse.json(
+        customerApiError({
+          code: "SERVICE_UNAVAILABLE",
+          message: "视频生成服务正在配置中，请稍后再试。",
+          retryable: true,
+          action: "wait",
+        }),
+        { status: error.httpStatus },
       );
     }
     if (error instanceof BatchIdempotencyConflictError) {

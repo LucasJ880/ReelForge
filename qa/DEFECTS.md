@@ -144,10 +144,11 @@
 - Impact: the current ship instruction calls this an incomplete Light-first migration, while the earlier approved design constitution explicitly requires dark `/app` plus light public/auth. Either implementation choice would violate one active instruction.
 - Human decision: preserve the current color topology — dark Studio `/app`, light public/auth and existing light operational surfaces. Phase 4 may unify tokens/components within those surfaces but must not perform an all-site recolor.
 - Human decision v3 (2026-07-14, H2 D-0): **Option A — unify within topology.** One shared shadcn/ui-based component anatomy and one token system may express two sanctioned skins: warm-charcoal Studio with brand orange for `/app`, and light Editorial for public/auth/`/internal`. No route changes color mode. `/showcase` remains frozen; shared changes must prove pixel equivalence or be forked away from it.
-- Human visual approval: 33 Phase 3/4 current screenshots approved on 2026-07-14. A proposed future unification of internal and customer themes (RF-010 v2) is explicitly **DEFERRED** until after the first commercial delivery and before formal market launch. No color changes are permitted before that separately approved project.
+- Human decision v4 (2026-07-14): preserve the same topology but return the `/app` Studio skin to the project's earlier neutral-dark direction. The approved Studio canvas/surface tokens are `#101015` / `#18181f`; public, auth, and internal surfaces remain light. The Studio root canvas may inherit the dark token set only while a `.studio-theme` descendant is mounted so viewport overscroll and short pages cannot expose the light root canvas. This supersedes only v3's warm-charcoal palette detail, not its route topology, component anatomy, or Showcase freeze.
+- Human visual approval: 33 Phase 3/4 screenshots were approved on 2026-07-14 before the v4 palette refinement. The proposed future unification of internal and customer themes (RF-010 v2) remains explicitly **DEFERRED** until after the first commercial delivery and before formal market launch. The v4 palette itself is human-authorized; its final deployed screenshot/browser check remains pending.
 - Repair: removed an accidental copied dark-token block from `.auth-studio-theme`; auth now inherits the light root token set and only declares `color-scheme: light`, while `.studio-theme` remains the sole dark workspace override.
-- Verification: the design-system closure audit passes 3/3 (topology, single literal-color source, tokenized fonts/motion); corrected settled route screenshots show light auth/internal and dark Studio; the 99-scan route matrix and golden `gp-1784043470993-88e292ff` pass.
-- Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/design-token-exemptions.md`, `qa/evidence/phase34/phase4-human-visual-approval.md`, `qa/screenshots/redesign/phase34-current/`.
+- Verification: the v4 design hard gates require the neutral-dark values and the descendant-scoped root canvas selector. The focused design and batch-customer recovery suite passes 35/35 and TypeScript passes. Earlier settled route screenshots, the 99-scan route matrix, and golden `gp-1784043470993-88e292ff` remain historical topology evidence; a post-deploy browser check is still required for the refined palette.
+- Evidence: `qa/evidence/phase34/iteration-3.17-design-system-closure.md`, `qa/evidence/phase34/iteration-3.22-neutral-studio-canvas-and-batch-error-locale.md`, `qa/evidence/phase34/design-token-exemptions.md`, `qa/evidence/phase34/phase4-human-visual-approval.md`, `qa/screenshots/redesign/phase34-current/`.
 - Repair commit: `38dea0f`
 
 ### RF-011 — Template filters and round actions overflow; template cards have unstable geometry
@@ -477,8 +478,9 @@
 - Impact: a customer can select English or Chinese and immediately encounter a different language on the next production, review, or legal step; mobile customers cannot correct the locale at all.
 - Required regression: browser tests must perform the real switch, prove cookie/localStorage/`html[lang]` persistence across auth, Studio, batch, library, and public routes, and prove a visible 390px control. Customer error rendering must select localized recovery copy from machine codes rather than echo an upstream-language message.
 - Repair: the authenticated mobile shell now exposes the same locale control as desktop; batch creation and monitoring translate persisted template/category/status values and replace upstream-language error bodies with locale-owned recovery copy. Privacy, terms, and persona pages now read the persisted locale for metadata and body copy and expose a visible switcher.
-- Verification: 16/16 focused Agent/locale/public/platform journey tests, TypeScript, focused ESLint, optimized production build, and diff check pass. The human explicitly paused further broad simulation before internal operations testing, so this item is not promoted to VERIFIED on pre-repair golden evidence.
-- Evidence: H2 merge audit on 2026-07-14; `tests/phase34/locale-switch.spec.ts`.
+- Follow-up repair: batch creation now derives customer-facing failure copy from the API machine error code. English workspaces never echo the API's Chinese default error body; Chinese workspaces retain the specific server detail. Unknown error codes also fall back to locale-owned copy.
+- Verification: 16/16 focused Agent/locale/public/platform journey tests remain green. The follow-up focused design, customer-recovery, batch frontend/API, and batch-pipeline suite passes 35/35, and TypeScript passes. The human explicitly paused further broad simulation before internal operations testing, so this item is not promoted to VERIFIED on pre-repair golden evidence.
+- Evidence: H2 merge audit on 2026-07-14; `tests/phase34/locale-switch.spec.ts`; `qa/evidence/phase34/iteration-3.22-neutral-studio-canvas-and-batch-error-locale.md`.
 - Repair commit: `a7fb734`
 
 ### RF-038 — Agent conversation grows the page and hides the primary generation action
@@ -506,6 +508,33 @@
 - Verification: JSON integrity and the focused redaction regression pass; the rewritten graph contains zero `X-Tos-Credential` markers in the affected artifact. GitHub Push Protection accepted `origin/codex/h2-ui-unification` after rejecting the unsanitized graph. Human confirmation that the historical VolcEngine credential is revoked/rotated is still pending, so the defect remains FIXED.
 - Evidence: `qa/evidence/h2/history-rewrite-2026-07-14.md`; `qa/evidence/h2/history-rewrite-map.json`; `tests/qa-evidence-secret-redaction.test.ts`.
 - Repair commit: rewritten `5b492a3` plus the pending audit-reference commit.
+
+### RF-040 — Production video generation was sealed by an incompatible mock/secret configuration
+
+- Severity: **P0 — customer generation blocker and quota-accounting defect**
+- Status: **FIXED — deployment and one bounded production canary pending**
+- Reproduction: submit one 15-second video from the deployed Agent Director. The request reaches planning, consumes the direct-video entitlement, creates a `VideoDispatchRequest` and `VideoJob`, then the production mock backstop rejects the provider path with `production runtime 禁止 mock 视频 provider`. The customer sees only a generation failure and no provider job exists.
+- Root cause: production still had `VIDEO_ENGINE_MOCK=true`, while the international BytePlus credential remained under the legacy `ARK_API_KEY` name. The real Seedance adapter intentionally reads only `BYTEPLUS_ARK_API_KEY`, so simply disabling mock would still fail closed. Runtime readiness was also checked too late on the direct path and after an idempotent existing-batch shortcut on the batch path.
+- Impact: internal operators cannot produce a video; configuration failures can create failed job/accounting rows before any provider call.
+- Repair: add one typed runtime-readiness predicate covering production mock, international BytePlus key/endpoint, invalid env values, and mandatory real moderation credentials. Direct dispatch now checks it before planning/quota/idempotency/job writes. Batch create/tick/retry check it before idempotency lookup, lease recovery, or reset mutations. Production secret migration is prepared from the existing international credential to the canonical variable without exposing its value.
+- Accounting repair: the diagnostic request made zero video-provider calls. Its single VIDEO_DISPATCH and SEEDANCE_SEGMENT usage units were compensated with auditable negative `UsageLog` rows and compare-and-swap clearing of `quotaConsumedAt`.
+- Regression: `tests/production-mock-runtime-guard.test.ts`, `tests/batch-runtime-readiness.test.ts`, and `tests/china-env-validation.test.ts` lock zero-side-effect fail-closed behavior while preserving Preview/local mock rehearsal.
+- Verification: focused generation/runtime/design suite 72/72, TypeScript, ESLint, optimized build, and a zero-cost browser rehearsal all pass. The rehearsal completed login -> Agent brief -> plan -> dispatch -> polling -> `FinalVideo READY` -> preview/download entry; H.264/AAC media reached browser `readyState=4`. Production verification remains pending deployment.
+- Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
+- Repair commit: pending.
+
+### RF-041 — Batch creation allowed fewer assets than the selected immutable template requires
+
+- Severity: **P1 — customer-visible batch creation blocker**
+- Status: **FIXED — production browser verification pending**
+- Reproduction: upload one product image, select a template whose immutable `imagesPerVideo.min` is three, continue to confirmation, and submit. The API throws a generic error, returns HTTP 500, and the UI replaces the useful reason with `创建批次失败`.
+- Root cause: the wizard gated only on `uploaded.length > 0`; the service parsed the allocation rule only inside expansion and did not expose a typed validation error at the API boundary.
+- Impact: a valid-looking four-step customer journey ends in an opaque failure. No BatchJob/provider submission is committed because the transaction rolls back, but the operator cannot understand how to recover.
+- Repair: derive the selected template minimum in the wizard, display required/actual/missing counts, block continue and submit until the minimum is met, and retain a defensive submit guard. The service revalidates the immutable ACTIVE template before the transaction and throws `BatchInsufficientAssetsError`; the API maps it to `422 VALIDATION_FAILED / fix_request`. Customer copy is selected from the machine code so English workspaces never echo the Chinese server default.
+- Regression: one image against `min=3` produces no API request in the UI and a direct API call returns the strict 422 envelope before transaction/quota/provider work; Preview mock idempotency still works.
+- Verification: focused batch/runtime/design suite 72/72, TypeScript, ESLint, optimized build, and diff check pass.
+- Evidence: `qa/evidence/phase2/rf040-rf041-production-generation-repair-2026-07-14.md`.
+- Repair commit: pending.
 
 ## Seed hypotheses not opened as defects
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { MockVideoProvider } from "../src/lib/video-generation/providers/mock-video-provider";
+import { readFileSync } from "node:fs";
 
 function withEnv(
   t: TestContext,
@@ -79,4 +80,19 @@ test("local optimized rehearsal: explicit dry-run 可在 next start 下创建零
   const provider = new MockVideoProvider();
   const result = await provider.createVideoJob({ prompt: "local acceptance fixture" });
   assert.match(result.providerJobId, /^batchmock_/);
+});
+
+test("customer dispatch performs production readiness before plan, quota, or job creation", () => {
+  const source = readFileSync(
+    "src/app/api/video-generation/dispatch/route.ts",
+    "utf8",
+  );
+  const readiness = source.indexOf("videoGenerationRuntimeReadiness()");
+  const plan = source.indexOf("plan = await buildPlan");
+  const quota = source.indexOf("await assertQuotaBatchForSession");
+  const createJob = source.indexOf("await dispatchVideoForBrief");
+  assert.ok(readiness > 0);
+  assert.ok(readiness < plan, "readiness must precede paid LLM planning");
+  assert.ok(readiness < quota, "readiness must precede quota consumption");
+  assert.ok(readiness < createJob, "readiness must precede provider job creation");
 });

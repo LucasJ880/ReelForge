@@ -1,4 +1,7 @@
-import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
+import type {
+  CustomerApiErrorCode,
+  CustomerRecoveryAction,
+} from "@/lib/contracts/customer-api";
 
 export interface DispatchRecoveryInput {
   retryable: boolean;
@@ -54,5 +57,69 @@ export function dispatchRecoveryHint(
       return english
         ? "Sign in again before submitting this request."
         : "请重新登录后再提交此请求。";
+  }
+}
+
+/**
+ * Batch-create API bodies intentionally keep a Chinese server default for
+ * operators and logs. Customer UI copy is selected from the machine code so
+ * an English workspace never echoes that upstream-language message.
+ */
+export function batchCreateErrorMessage(
+  code: CustomerApiErrorCode | undefined,
+  locale: "zh-CN" | "en-US",
+  serverMessage?: string,
+): string {
+  const english = locale === "en-US";
+  const chineseFallback = serverMessage?.trim();
+  const localized = (englishCopy: string, chineseCopy: string) =>
+    english ? englishCopy : chineseFallback || chineseCopy;
+
+  switch (code) {
+    case "AUTH_REQUIRED":
+      return localized(
+        "Sign in again before creating this batch.",
+        "请重新登录后再创建批次。",
+      );
+    case "FORBIDDEN":
+      return localized(
+        "This account cannot create batches. Contact your workspace owner.",
+        "当前账号无法创建批次，请联系工作区负责人。",
+      );
+    case "VALIDATION_FAILED":
+    case "IDEMPOTENCY_KEY_REQUIRED":
+      return localized(
+        "Check the selected style, product images, and batch settings before submitting again.",
+        "请检查所选风格、产品图片与批次设置后重新提交。",
+      );
+    case "IDEMPOTENCY_CONFLICT":
+      return localized(
+        "This submission key was already used for different batch settings. Review the batch before submitting again.",
+        "该提交标识已用于不同的批次设置，请复核后重新提交。",
+      );
+    case "RATE_LIMITED":
+      return localized(
+        "Too many batch requests were submitted. Wait briefly, then try again.",
+        "批次提交过于频繁，请稍后再试。",
+      );
+    case "QUOTA_EXCEEDED":
+      return localized(
+        "Your current plan does not have enough video quota for this batch.",
+        "当前套餐的视频额度不足以创建该批次。",
+      );
+    case "QUOTA_CHECK_UNAVAILABLE":
+      return localized(
+        "We could not verify your video quota. Try again in a moment.",
+        "暂时无法确认视频额度，请稍后重试。",
+      );
+    case "SERVICE_UNAVAILABLE":
+      return localized(
+        "Video generation is temporarily unavailable. Wait a few minutes, then try again.",
+        "视频生成服务暂时不可用，请等待几分钟后重试。",
+      );
+    default:
+      return english
+        ? "We could not create this batch. Review the settings and try again."
+        : chineseFallback || "暂时无法创建批次，请检查设置后重试。";
   }
 }

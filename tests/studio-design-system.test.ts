@@ -4,23 +4,24 @@ import { readFile } from "node:fs/promises";
 
 const read = (path: string) => readFile(path, "utf8");
 
-test("Studio theme：批准的暖色 token 与字体角色完整落地", async () => {
+test("Studio theme：批准的中性深色 token 与字体角色完整落地", async () => {
   const [tokens, layout] = await Promise.all([
     read("src/styles/tokens.css"),
     read("src/app/layout.tsx"),
   ]);
   for (const token of [
-    "--bg: #17130f",
-    "--surface: #201a14",
-    "--surface-raised: #2a221a",
-    "--border: #372d22",
-    "--text-primary: #f2eae1",
-    "--text-secondary: #a89a8a",
+    "--bg: #101015",
+    "--surface: #18181f",
+    "--surface-raised: #22222b",
+    "--border: #32323d",
+    "--text-primary: #f3f2f6",
+    "--text-secondary: #a7a5b0",
     "--accent: #ff4d00",
     "--success: #4caf7d",
     "--warning: #e8b84b",
     "--danger: #e0574f",
   ]) assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(tokens, /:root:has\(\.studio-theme\),\s*\n\.studio-theme\s*{/);
   assert.match(tokens, /\.studio-theme\s*{/);
   assert.match(tokens, /--font-display-family:\s*var\(--font-space-grotesk\)/);
   assert.match(tokens, /--font-mono-family:\s*var\(--font-jetbrains-mono\)/);

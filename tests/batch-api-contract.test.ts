@@ -233,6 +233,16 @@ test("H1 batch contract: all customer batch routes validate success DTOs and avo
     /BatchImageIdConflictError[\s\S]*?code:\s*"VALIDATION_FAILED"[\s\S]*?action:\s*"fix_request"/,
     "duplicate image ids must use the complete customer error contract",
   );
+  assert.match(
+    create,
+    /BatchInsufficientAssetsError[\s\S]*?code:\s*"VALIDATION_FAILED"[\s\S]*?action:\s*"fix_request"/,
+    "template asset minimum must be a 422 fix-request response, never a 500",
+  );
+  assert.match(
+    create,
+    /VideoGenerationRuntimeUnavailableError[\s\S]*?code:\s*"SERVICE_UNAVAILABLE"[\s\S]*?action:\s*"wait"/,
+    "runtime misconfiguration must fail before quota or provider work",
+  );
 
   const status = readFileSync(
     path.join(process.cwd(), "src/app/api/batches/[id]/status/route.ts"),

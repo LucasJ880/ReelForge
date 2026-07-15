@@ -34,8 +34,14 @@ import {
 import { useTranslation } from "@/i18n";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
-import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
-import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
+import type {
+  CustomerApiErrorCode,
+  CustomerRecoveryAction,
+} from "@/lib/contracts/customer-api";
+import {
+  batchCreateErrorMessage,
+  dispatchRecoveryHint,
+} from "@/lib/api/customer-video-dispatch-recovery";
 
 type UploadStatus = "queued" | "uploading" | "uploaded" | "failed";
 
@@ -201,6 +207,9 @@ export function BatchCreateWizard({
     );
   }, [templateCategory, templateCategoryCopy, templateQuery, templates]);
   const uploaded = uploads.filter((item) => item.status === "uploaded");
+  const minimumImages = selectedTemplate?.imagesPerVideo.min ?? 0;
+  const missingImages = Math.max(0, minimumImages - uploaded.length);
+  const hasEnoughImages = Boolean(selectedTemplate) && missingImages === 0;
   const hasPendingUploads = uploads.some(
     (item) => item.status === "queued" || item.status === "uploading",
   );
@@ -315,6 +324,17 @@ export function BatchCreateWizard({
 
   async function submit() {
     if (!selectedTemplate || uploaded.length === 0) return;
+    if (!hasEnoughImages) {
+      const message = english
+        ? `This style needs at least ${minimumImages} product images. Add ${missingImages} more before submitting.`
+        : `当前风格每条至少需要 ${minimumImages} 张产品图，请再添加 ${missingImages} 张后提交。`;
+      setError(message);
+      setRecoveryAction("fix_request");
+      setErrorSource("batch");
+      setStep(0);
+      toast.error(message);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     setRecoveryAction(null);
@@ -347,12 +367,15 @@ export function BatchCreateWizard({
       });
       const data = (await response.json()) as {
         batch?: { id: string };
+        code?: CustomerApiErrorCode;
         error?: string;
         action?: CustomerRecoveryAction;
       };
       if (!response.ok || !data.batch) {
         setRecoveryAction(data.action ?? "retry");
-        throw new Error(english ? "Failed to create batch" : "创建批次失败");
+        throw new Error(
+          batchCreateErrorMessage(data.code, locale, data.error),
+        );
       }
       router.push(`${batchDetailsBasePath}/${data.batch.id}`);
       toast.success(english ? "Batch created. Opening monitor…" : "批次已创建，正在跳转监控页");
@@ -368,7 +391,7 @@ export function BatchCreateWizard({
     step === 0
       ? uploaded.length > 0 && !hasPendingUploads
       : step === 1
-        ? Boolean(selectedTemplate)
+        ? hasEnoughImages
         : true;
 
   return (
@@ -696,6 +719,27 @@ export function BatchCreateWizard({
                         ? "No dedicated sample yet. The recipe is available, but Aivora will not reuse another template's image as a preview."
                         : "暂无独立样片；配方仍可使用，但不会拿其他模板画面冒充预览。")}
                   </p>
+                  {!hasEnoughImages ? (
+                    <div
+                      role="alert"
+                      className="space-y-3 rounded-(--radius-md) border border-warning bg-background p-3 text-xs leading-5 text-foreground"
+                    >
+                      <p>
+                        {english
+                          ? `This recipe needs at least ${minimumImages} product images. You have ${uploaded.length}; add ${missingImages} more.`
+                          : `这个配方每条至少需要 ${minimumImages} 张产品图。当前已有 ${uploaded.length} 张，还需 ${missingImages} 张。`}
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setStep(0)}
+                      >
+                        <ChevronLeft aria-hidden />
+                        {english ? "Add product images" : "返回添加产品图"}
+                      </Button>
+                    </div>
+                  ) : null}
                   <TemplateRecipeDialog
                     name={english ? selectedTemplate.name : selectedTemplate.nameZh}
                     version={selectedTemplate.version}
@@ -853,7 +897,7 @@ export function BatchCreateWizard({
         ) : (
           <Button
             type="button"
-            disabled={submitting}
+            disabled={submitting || !hasEnoughImages}
             onClick={() => void submit()}
           >
             {submitting && (

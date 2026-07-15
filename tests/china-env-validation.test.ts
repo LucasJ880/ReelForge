@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  assertVideoGenerationRuntimeReady,
   parseAppEnv,
   validateDeploymentEnv,
+  VideoGenerationRuntimeUnavailableError,
+  videoGenerationRuntimeReadiness,
 } from "../src/lib/config/env";
 
 type EnvMap = Record<string, string | undefined>;
@@ -93,6 +96,123 @@ test("validateDeploymentEnv: Vercel production 禁止 mock 视频 runtime", () =
   } as EnvMap);
   assert.equal(r.ok, false);
   assert.ok(r.missing.some((m) => /production.*mock/i.test(m)));
+});
+
+test("video runtime readiness: production mock 在任何写入前关闭", () => {
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      VERCEL_ENV: "production",
+      VIDEO_PROVIDER: "byteplus",
+      VIDEO_ENGINE_MOCK: "true",
+    } as EnvMap),
+    { ok: false, reason: "production_mock_forbidden" },
+  );
+});
+
+test("video runtime readiness: real BytePlus 必须同时有国际密钥与国际端点", () => {
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      VERCEL_ENV: "production",
+      VIDEO_PROVIDER: "byteplus",
+      VIDEO_ENGINE_MOCK: "false",
+      ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+    } as EnvMap),
+    { ok: false, reason: "byteplus_key_missing" },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      VERCEL_ENV: "production",
+      VIDEO_PROVIDER: "byteplus",
+      VIDEO_ENGINE_MOCK: "false",
+      BYTEPLUS_ARK_API_KEY: "configured",
+      ARK_BASE_URL: "https://ark.cn-beijing.volces.com/api/v3",
+    } as EnvMap),
+    { ok: false, reason: "byteplus_endpoint_invalid" },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      VERCEL_ENV: "production",
+      VIDEO_PROVIDER: "byteplus",
+      VIDEO_ENGINE_MOCK: "false",
+      BYTEPLUS_ARK_API_KEY: "  configured  ",
+      ARK_BASE_URL: "  https://ark.ap-southeast.bytepluses.com/api/v3///  ",
+    } as EnvMap),
+    { ok: true },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      VERCEL_ENV: "production",
+      VIDEO_PROVIDER: "byteplus",
+      VIDEO_ENGINE_MOCK: "false",
+      BYTEPLUS_ARK_API_KEY: "  \t  ",
+      ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+    } as EnvMap),
+    { ok: false, reason: "byteplus_key_missing" },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      VERCEL_ENV: "production",
+      VIDEO_PROVIDER: "byteplus",
+      VIDEO_ENGINE_MOCK: "false",
+      BYTEPLUS_ARK_API_KEY: "configured",
+      ARK_BASE_URL: "   ",
+    } as EnvMap),
+    { ok: false, reason: "byteplus_endpoint_invalid" },
+  );
+});
+
+test("video runtime readiness: 非法 enum 折叠为 typed unavailable", () => {
+  const env = {
+    VERCEL_ENV: "production",
+    VIDEO_PROVIDER: "not-a-provider",
+    VIDEO_ENGINE_MOCK: "false",
+  } as EnvMap;
+  assert.deepEqual(videoGenerationRuntimeReadiness(env), {
+    ok: false,
+    reason: "environment_invalid",
+  });
+  assert.throws(
+    () => assertVideoGenerationRuntimeReady(env),
+    (error: unknown) => {
+      assert.ok(error instanceof VideoGenerationRuntimeUnavailableError);
+      assert.equal(error.reason, "environment_invalid");
+      assert.equal(error.httpStatus, 503);
+      return true;
+    },
+  );
+});
+
+test("video runtime readiness: 真实 OpenAI moderation 缺密钥时关闭", () => {
+  const base = {
+    VERCEL_ENV: "production",
+    VIDEO_PROVIDER: "byteplus",
+    VIDEO_ENGINE_MOCK: "false",
+    BYTEPLUS_ARK_API_KEY: "configured",
+    ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+    CONTENT_REVIEW_ENABLED: "true",
+    CONTENT_REVIEW_PROVIDER: "openai_moderation",
+  } as EnvMap;
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      ...base,
+      OPENAI_API_KEY: "  ",
+    }),
+    { ok: false, reason: "content_review_key_missing" },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      ...base,
+      OPENAI_API_KEY: "  configured  ",
+    }),
+    { ok: true },
+  );
+  assert.deepEqual(
+    videoGenerationRuntimeReadiness({
+      ...base,
+      CONTENT_REVIEW_MOCK: "true",
+    }),
+    { ok: true },
+  );
 });
 
 test("validateDeploymentEnv: Vercel production 即使 dry-run 也不能伪装成 rehearsal", () => {

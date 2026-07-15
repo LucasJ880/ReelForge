@@ -119,21 +119,24 @@
  * /app Studio 工作区主题。只在 PlatformLayout 的 .studio-theme 内生效，
  * 因此不会改变已冻结的 Showcase 或公开面的 Editorial 方向。
  */
+:root:has(.studio-theme),
 .studio-theme {
-  --bg: #17130f;
-  --surface: #201a14;
-  --surface-sunken: #18130f;
-  --surface-raised: #2a221a;
-  --border: #372d22;
-  --border-strong: #5a4938;
-  --text-primary: #f2eae1;
-  --text-secondary: #a89a8a;
+  /* Restore Aivora's original neutral-dark studio depth; keep the current
+   * orange brand action color and avoid the old ornamental gradients. */
+  --bg: #101015;
+  --surface: #18181f;
+  --surface-sunken: #0d0d12;
+  --surface-raised: #22222b;
+  --border: #32323d;
+  --border-strong: #4c4c5c;
+  --text-primary: #f3f2f6;
+  --text-secondary: #a7a5b0;
   --accent: #ff4d00;
   --accent-soft: #ff4d001f;
   --success: #4caf7d;
   --warning: #e8b84b;
   --danger: #e0574f;
-  --overlay: rgba(23, 19, 15, 0.82);
+  --overlay: rgba(16, 16, 21, 0.84);
 
   --radius-sm: 6px;
   --radius-md: 8px;

@@ -62,6 +62,14 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /\/api\/batches/);
   assert.match(wizard, /BATCH_IMAGE_MIME_TYPES/);
   assert.match(wizard, /submissionIdentityRef/);
+  assert.match(wizard, /const hasEnoughImages =/);
+  assert.match(wizard, /missingImages/);
+  assert.match(wizard, /disabled=\{submitting \|\| !hasEnoughImages\}/);
+  assert.match(
+    wizard,
+    /batchCreateErrorMessage\(data\.code, locale, data\.error\)/,
+    "batch failures must select customer copy from the machine error code",
+  );
   assert.match(wizard, /fingerprint:\s*string/);
   assert.match(
     wizard,

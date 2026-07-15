@@ -8,8 +8,9 @@
  *   1. GET  $APP_URL/api/internal/stitch/claim   → { task: {finalVideoId, attemptToken, segmentUrls[], aspectRatio, ...} | null }
  *   2. 下载所有段 mp4 到 tmp 目录
  *   3. 用本地 ffmpeg（GH Action runner 自带）转码 + concat 成最终 mp4
- *   4. 用 BLOB_READ_WRITE_TOKEN 调 @vercel/blob put 上传到 final-videos/{id}/{ts}.mp4
- *   5. POST $APP_URL/api/internal/stitch/complete  { finalVideoId, attemptToken, stitchedVideoUrl }
+ *   4. 从成片抽取 JPEG 预览帧，并将 mp4 + jpg 上传到 Vercel Blob
+ *   5. POST $APP_URL/api/internal/stitch/complete
+ *      { finalVideoId, attemptToken, stitchedVideoUrl, thumbnailUrl }
  *   6. 任何步骤失败 → POST complete 写 error，不抛错（让循环继续处理下一个）
  *
  * Env 要求：
@@ -38,6 +39,13 @@ class StaleStitchAttemptError extends Error {
   constructor() {
     super("stitch attempt is no longer active");
     this.name = "StaleStitchAttemptError";
+  }
+}
+
+class StitchRunnerError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = "StitchRunnerError";
   }
 }
 
@@ -70,11 +78,11 @@ async function main() {
       `[stitch-runner] claimed task finalVideoId=${task.finalVideoId} segments=${task.segmentUrls.length}`,
     );
 
-    let stitchedUrl: string;
+    let output: { stitchedVideoUrl: string; thumbnailUrl: string };
     try {
-      stitchedUrl = await stitchOne(task);
+      output = await stitchOne(task);
     } catch (err) {
-      const message = (err as Error).message ?? String(err);
+      const message = safeFailureMessage(err);
       console.error(
         `[stitch-runner] ✗ finalVideoId=${task.finalVideoId} error=${message}`,
       );
@@ -92,7 +100,7 @@ async function main() {
         } else {
           console.error(
             "[stitch-runner] failed to POST /complete (giving up):",
-            (postErr as Error).message,
+            safeFailureMessage(postErr),
           );
         }
       }
@@ -104,10 +112,11 @@ async function main() {
       await complete({
         finalVideoId: task.finalVideoId,
         attemptToken: task.attemptToken,
-        stitchedVideoUrl: stitchedUrl,
+        stitchedVideoUrl: output.stitchedVideoUrl,
+        thumbnailUrl: output.thumbnailUrl,
       });
       console.log(
-        `[stitch-runner] ✓ finalVideoId=${task.finalVideoId} url=${stitchedUrl}`,
+        `[stitch-runner] ✓ finalVideoId=${task.finalVideoId} mediaUploaded=true`,
       );
       processed++;
     } catch (err) {
@@ -119,7 +128,7 @@ async function main() {
       }
       console.error(
         `[stitch-runner] completion callback failed finalVideoId=${task.finalVideoId}:`,
-        (err as Error).message,
+        safeFailureMessage(err),
       );
       // The media has already been stitched and uploaded. A callback transport
       // failure is not a rendering failure: leave this attempt STITCHING so a
@@ -140,9 +149,7 @@ async function claim(): Promise<StitchTask | null> {
     headers: { authorization: `Bearer ${CRON_SECRET}` },
   });
   if (!res.ok) {
-    throw new Error(
-      `claim failed: HTTP ${res.status} ${await safeText(res)}`,
-    );
+    throw new StitchRunnerError(`claim_failed_http_${res.status}`);
   }
   const body = (await res.json()) as { task: StitchTask | null };
   return body.task ?? null;
@@ -167,9 +174,7 @@ async function complete(args: {
     throw new StaleStitchAttemptError();
   }
   if (!res.ok) {
-    throw new Error(
-      `complete failed: HTTP ${res.status} ${await safeText(res)}`,
-    );
+    throw new StitchRunnerError(`complete_failed_http_${res.status}`);
   }
   if (!args.error) {
     const payload = (await res.json()) as { ok?: boolean };
@@ -179,7 +184,10 @@ async function complete(args: {
   }
 }
 
-async function stitchOne(task: StitchTask): Promise<string> {
+async function stitchOne(task: StitchTask): Promise<{
+  stitchedVideoUrl: string;
+  thumbnailUrl: string;
+}> {
   const tmpDir = path.join(
     os.tmpdir(),
     `stitch-${task.finalVideoId}-${Date.now()}`,
@@ -194,7 +202,7 @@ async function stitchOne(task: StitchTask): Promise<string> {
       const localInput = path.join(tmpDir, `seg-${i}.input`);
       const out = path.join(tmpDir, `seg-${i}.mp4`);
       await downloadToFile(url, localInput);
-      await execFileAsync(
+      await runFfmpeg(
         "ffmpeg",
         [
           "-y",
@@ -212,7 +220,7 @@ async function stitchOne(task: StitchTask): Promise<string> {
           padFilter,
           out,
         ],
-        { maxBuffer: 1024 * 1024 * 50 },
+        "segment_normalization_failed",
       );
       normalized.push(out);
     }
@@ -226,7 +234,7 @@ async function stitchOne(task: StitchTask): Promise<string> {
       "utf8",
     );
     const finalOut = path.join(tmpDir, "final.mp4");
-    await execFileAsync(
+    await runFfmpeg(
       "ffmpeg",
       [
         "-y",
@@ -244,11 +252,20 @@ async function stitchOne(task: StitchTask): Promise<string> {
         "+faststart",
         finalOut,
       ],
-      { maxBuffer: 1024 * 1024 * 50 },
+      "stitch_concat_failed",
     );
 
-    const blobPath = `final-videos/${task.finalVideoId}/${Date.now()}.mp4`;
-    return await uploadToBlob(finalOut, blobPath);
+    const timestamp = Date.now();
+    const thumbnailOut = path.join(tmpDir, "thumbnail.jpg");
+    await extractThumbnail(finalOut, thumbnailOut, task.targetDurationSec);
+
+    const videoBlobPath = `final-videos/${task.finalVideoId}/${timestamp}.mp4`;
+    const thumbnailBlobPath = `final-videos/${task.finalVideoId}/${timestamp}.jpg`;
+    const [stitchedVideoUrl, thumbnailUrl] = await Promise.all([
+      uploadToBlob(finalOut, videoBlobPath, "video/mp4"),
+      uploadToBlob(thumbnailOut, thumbnailBlobPath, "image/jpeg"),
+    ]);
+    return { stitchedVideoUrl, thumbnailUrl };
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
@@ -257,25 +274,100 @@ async function stitchOne(task: StitchTask): Promise<string> {
 async function downloadToFile(url: string, dest: string) {
   const res = await fetch(url);
   if (!res.ok) {
-    throw new Error(
-      `download segment failed: HTTP ${res.status} ${url.slice(0, 80)}`,
-    );
+    throw new StitchRunnerError(`download_segment_failed_http_${res.status}`);
   }
   const buf = Buffer.from(await res.arrayBuffer());
   await writeFile(dest, buf);
 }
 
-async function uploadToBlob(filePath: string, blobPath: string): Promise<string> {
+async function uploadToBlob(
+  filePath: string,
+  blobPath: string,
+  contentType: "video/mp4" | "image/jpeg",
+): Promise<string> {
   /// 动态 import 避免 stitch-runner.ts 在 type check 时强依赖 @vercel/blob
   /// （CI runner 通过 npx -y @vercel/blob 或 npm i 临时装即可）
   const { put } = (await import("@vercel/blob")) as typeof import("@vercel/blob");
   const buffer = await readFile(filePath);
-  const blob = await put(blobPath, buffer, {
-    access: "public",
-    contentType: "video/mp4",
-    token: BLOB_READ_WRITE_TOKEN,
-  });
-  return blob.url;
+  try {
+    const blob = await put(blobPath, buffer, {
+      access: "public",
+      contentType,
+      token: BLOB_READ_WRITE_TOKEN,
+    });
+    return blob.url;
+  } catch {
+    throw new StitchRunnerError(
+      contentType === "image/jpeg"
+        ? "thumbnail_upload_failed"
+        : "stitched_video_upload_failed",
+    );
+  }
+}
+
+async function extractThumbnail(
+  videoPath: string,
+  thumbnailPath: string,
+  targetDurationSec: number,
+) {
+  /// Prefer a frame just after the opening transition. Clamp the seek point so
+  /// short clips still have a valid candidate and long videos do not require a
+  /// deep seek. If metadata/duration is inaccurate, fall back to ffmpeg's
+  /// representative-frame selector instead of completing without a preview.
+  const safeDuration = Number.isFinite(targetDurationSec)
+    ? Math.max(0, targetDurationSec)
+    : 0;
+  const seekSeconds = Math.min(2, Math.max(0.25, safeDuration * 0.1));
+
+  try {
+    await runFfmpeg(
+      "ffmpeg",
+      [
+        "-y",
+        "-i",
+        videoPath,
+        "-ss",
+        seekSeconds.toFixed(3),
+        "-frames:v",
+        "1",
+        "-vf",
+        "scale=480:-2",
+        "-q:v",
+        "2",
+        thumbnailPath,
+      ],
+      "thumbnail_seek_failed",
+    );
+  } catch {
+    await runFfmpeg(
+      "ffmpeg",
+      [
+        "-y",
+        "-i",
+        videoPath,
+        "-vf",
+        "thumbnail=30,scale=480:-2",
+        "-frames:v",
+        "1",
+        "-q:v",
+        "2",
+        thumbnailPath,
+      ],
+      "thumbnail_extraction_failed",
+    );
+  }
+}
+
+async function runFfmpeg(
+  executable: "ffmpeg",
+  args: string[],
+  errorCode: string,
+) {
+  try {
+    await execFileAsync(executable, args, { maxBuffer: 1024 * 1024 * 50 });
+  } catch {
+    throw new StitchRunnerError(errorCode);
+  }
 }
 
 function aspectToDimensions(aspectRatio: string): { width: number; height: number } {
@@ -294,15 +386,13 @@ function aspectToDimensions(aspectRatio: string): { width: number; height: numbe
   }
 }
 
-async function safeText(res: Response): Promise<string> {
-  try {
-    return (await res.text()).slice(0, 200);
-  } catch {
-    return "";
-  }
+function safeFailureMessage(err: unknown): string {
+  if (err instanceof StitchRunnerError) return err.code;
+  if (err instanceof StaleStitchAttemptError) return "stale_stitch_attempt";
+  return "stitch_runner_unexpected_failure";
 }
 
 main().catch((err) => {
-  console.error("[stitch-runner] fatal:", err);
+  console.error("[stitch-runner] fatal:", safeFailureMessage(err));
   process.exit(1);
 });

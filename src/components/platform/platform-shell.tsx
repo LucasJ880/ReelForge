@@ -168,7 +168,7 @@ export function PlatformShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col pb-16 md:ml-56 md:pb-0">
+      <div className="flex min-w-0 flex-1 flex-col bg-background pb-16 md:ml-56 md:pb-0">
         <header className="sticky top-0 z-20 flex h-12 items-center gap-3 border-b border-border bg-card px-4 md:px-5">
           <Link href="/app/create" prefetch={false} className="flex shrink-0 items-center gap-3 md:hidden" aria-label={platformCopy.home}>
             <Logo size={32} />
@@ -209,8 +209,8 @@ export function PlatformShell({
             {email ? emailInitial(email) : <UserRound className="size-4" aria-hidden />}
           </button>
         </header>
-        <main className="min-w-0 flex-1">
-          <div className="studio-page editorial-page-enter">{children}</div>
+        <main className="min-w-0 flex-1 bg-background">
+          <div className="studio-page editorial-page-enter min-h-full bg-background">{children}</div>
         </main>
       </div>
 

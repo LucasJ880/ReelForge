@@ -7,7 +7,11 @@ import {
   toCustomerVideoDispatchResponse,
   type CustomerVideoDispatchErrorInput,
 } from "@/lib/api/customer-video-dispatch";
-import { assertQuotaBatchForSession } from "@/lib/services/quota-service";
+import {
+  assertQuotaBatchForSession,
+  compensateDirectDispatchQuota,
+  currentUsagePeriodKey,
+} from "@/lib/services/quota-service";
 import {
   BREAKER_USER_MESSAGE,
   evaluateDispatchBreaker,
@@ -317,17 +321,53 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(safeBody, { status });
   }
 
+  function uncompensatedProviderFailureResponse() {
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "PROVIDER_ERROR",
+        message:
+          "生成任务未能完成。为核对 provider 接收状态与已扣额度，请联系支持后再重试。",
+        retryable: false,
+        action: "contact_support",
+      }),
+      503,
+    );
+  }
+
   const seedanceSegmentCount = plan.segments.filter(
     (s) => s.type === "ai_generated_clip",
   ).length;
+  const videoDispatchQuotaAmount = batchCount;
+  const seedanceSegmentQuotaAmount =
+    Math.max(1, seedanceSegmentCount) * batchCount;
+  let quotaReceipt: Awaited<
+    ReturnType<typeof assertQuotaBatchForSession>
+  >;
   try {
-    await assertQuotaBatchForSession(session, [
-      { resource: "VIDEO_DISPATCH", amount: batchCount },
+    const receipt = await assertQuotaBatchForSession(session, [
+      {
+        resource: "VIDEO_DISPATCH",
+        amount: videoDispatchQuotaAmount,
+        metadata: {
+          requestId: dispatchRequestId,
+          phase: "direct_dispatch_authorization",
+        },
+      },
       {
         resource: "SEEDANCE_SEGMENT",
-        amount: Math.max(1, seedanceSegmentCount) * batchCount,
+        amount: seedanceSegmentQuotaAmount,
+        metadata: {
+          requestId: dispatchRequestId,
+          phase: "direct_dispatch_authorization",
+        },
       },
     ]);
+    // A few isolated route tests still stub the pre-receipt void contract.
+    // Treat that legacy stub as unmetered; production always returns a receipt.
+    quotaReceipt = receipt ?? {
+      consumed: false,
+      periodKey: currentUsagePeriodKey(),
+    };
   } catch (err) {
     const quotaRes = quotaErrorResponse(err);
     if (quotaRes) {
@@ -560,8 +600,12 @@ export async function POST(req: NextRequest) {
     }
 
     const submittedJobs = batchResults.flatMap((result) => result.videoJobs) as Array<{
+      id?: string;
+      videoBriefId?: string | null;
       status?: string;
       submissionState?: string;
+      submissionErrorClass?: string | null;
+      externalJobId?: string | null;
     }>;
     if (
       submittedJobs.length > 0 &&
@@ -582,11 +626,58 @@ export async function POST(req: NextRequest) {
           409,
         );
       }
+      const briefIds = batchResults.map((result) => result.briefId);
+      const briefIdSet = new Set(briefIds);
+      const safelyRejectedBeforeCreation =
+        batchResults.length === videoDispatchQuotaAmount &&
+        submittedJobs.length === seedanceSegmentQuotaAmount &&
+        submittedJobs.every(
+          (job) =>
+            typeof job.id === "string" &&
+            typeof job.videoBriefId === "string" &&
+            briefIdSet.has(job.videoBriefId) &&
+            job.submissionState === "REJECTED" &&
+            job.externalJobId == null &&
+            /^definitely_not_created:(?:preflight|transport|provider_response)$/.test(
+              job.submissionErrorClass ?? "",
+            ),
+        );
+      if (!safelyRejectedBeforeCreation) {
+        return uncompensatedProviderFailureResponse();
+      }
+
+      try {
+        const compensation = await compensateDirectDispatchQuota({
+          requestId: dispatchRequestId,
+          userId: session.user.id,
+          briefIds,
+          videoDispatchAmount: videoDispatchQuotaAmount,
+          seedanceSegmentAmount: seedanceSegmentQuotaAmount,
+          periodKey: quotaReceipt.periodKey,
+          quotaWasMetered: quotaReceipt.consumed,
+          reason: "all_jobs_rejected_definitely_not_created",
+          responseStatus: 503,
+        });
+        console.info("[dispatch] quota compensation completed", {
+          requestId: dispatchRequestId,
+          compensated: compensation.compensated,
+          replayed: compensation.replayed,
+          metered: quotaReceipt.consumed,
+        });
+      } catch (error) {
+        console.error("[dispatch] quota compensation failed closed", {
+          requestId: dispatchRequestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        return uncompensatedProviderFailureResponse();
+      }
+
       return finalResponse(
         toCustomerVideoDispatchError({
           code: "PROVIDER_ERROR",
-          message:
-            "生成任务未能完成。为核对 provider 接收状态与已扣额度，请联系支持后再重试。",
+          message: quotaReceipt.consumed
+            ? "生成服务明确未创建任务，额度已自动返还。请联系支持处理服务配置后再试。"
+            : "生成服务明确未创建任务。请联系支持处理服务配置后再试。",
           retryable: false,
           action: "contact_support",
         }),

@@ -36,7 +36,7 @@ import {
 import { getStyleTemplate } from "@/lib/video-generation/style-templates";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
 import {
-  dispatchRecoveryHint,
+  customerDirectDispatchMessage,
   shouldResetDispatchAttempt,
 } from "@/lib/api/customer-video-dispatch-recovery";
 
@@ -240,10 +240,10 @@ export function EditorialCreateWorkflow({
       const j = (await res.json()) as CustomerVideoDispatchResponse;
       if (!j.ok) {
         if (shouldResetDispatchAttempt(j)) dispatchAttemptRef.current = null;
-        const message = `${j.blockers?.[0] ?? j.error} ${dispatchRecoveryHint(
-          j.action,
+        const message = customerDirectDispatchMessage(
+          j,
           language.startsWith("zh") ? "zh-CN" : "en-US",
-        )}`.trim();
+        );
         setError(message);
         log(`出片提交失败：${message}`);
         return;

@@ -8,6 +8,7 @@ import {
   type CustomerVideoDispatchErrorInput,
 } from "../src/lib/api/customer-video-dispatch";
 import {
+  customerDirectDispatchMessage,
   dispatchRecoveryHint,
   shouldResetDispatchAttempt,
 } from "../src/lib/api/customer-video-dispatch-recovery";
@@ -338,6 +339,89 @@ test("H1 dispatch contract: every server recovery action has executable bilingua
   }
 });
 
+test("direct dispatch copy is localized and never echoes provider/auth payloads", () => {
+  const rawMessages = [
+    "HTTP 401 AuthenticationError: The API key doesn't exist",
+    "403 provider response body: {\"token\":\"secret\"}",
+  ];
+  const codes = [
+    "PROVIDER_ERROR",
+    "SERVICE_UNAVAILABLE",
+    "INTERNAL_ERROR",
+    "SUBMISSION_ACK_UNKNOWN",
+  ] as const;
+
+  for (const code of codes) {
+    for (const rawMessage of rawMessages) {
+      const failure = toCustomerVideoDispatchResponse({
+        ok: false,
+        code,
+        error: rawMessage,
+        retryable: false,
+        action: "contact_support",
+      });
+      assert.equal(failure.ok, false);
+      if (failure.ok) continue;
+
+      const zh = customerDirectDispatchMessage(failure, "zh-CN");
+      const en = customerDirectDispatchMessage(failure, "en-US");
+      assert.match(zh, /[\u3400-\u9fff]/);
+      assert.doesNotMatch(en, /[\u3400-\u9fff]/);
+      for (const copy of [zh, en]) {
+        assert.doesNotMatch(
+          copy,
+          /401|403|token|api[\s_-]*key|provider response|secret|\{|\}/i,
+        );
+        assert.notEqual(copy, rawMessage);
+      }
+    }
+  }
+});
+
+test("QUALITY_BLOCKED displays only short language-matched sanitized blockers", () => {
+  const safeZh = customerDirectDispatchMessage(
+    {
+      code: "QUALITY_BLOCKED",
+      action: "fix_request",
+      blockers: ["请补充产品使用场景。"],
+    },
+    "zh-CN",
+  );
+  assert.match(safeZh, /^请补充产品使用场景。/);
+
+  const safeEn = customerDirectDispatchMessage(
+    {
+      code: "QUALITY_BLOCKED",
+      action: "fix_request",
+      blockers: ["Describe the product use case."],
+    },
+    "en-US",
+  );
+  assert.match(safeEn, /^Describe the product use case\./);
+
+  for (const blocker of [
+    "HTTP 401: invalid API key",
+    "403 {\"token\":\"secret\"}",
+    "BytePlus provider response body",
+  ]) {
+    const zh = customerDirectDispatchMessage(
+      { code: "QUALITY_BLOCKED", action: "fix_request", blockers: [blocker] },
+      "zh-CN",
+    );
+    const en = customerDirectDispatchMessage(
+      { code: "QUALITY_BLOCKED", action: "fix_request", blockers: [blocker] },
+      "en-US",
+    );
+    for (const copy of [zh, en]) {
+      assert.doesNotMatch(
+        copy,
+        /401|403|token|api[\s_-]*key|byteplus|provider|response body|secret|\{|\}/i,
+      );
+      assert.notEqual(copy, blocker);
+    }
+  }
+});
+
 test("H1 dispatch wiring: route and direct consumers cannot drift to legacy retry semantics", async () => {
   const [route, unified, editorial] = await Promise.all([
     readFile("src/app/api/video-generation/dispatch/route.ts", "utf8"),
@@ -365,7 +449,8 @@ test("H1 dispatch wiring: route and direct consumers cannot drift to legacy retr
   for (const consumer of [unified, editorial]) {
     assert.match(consumer, /CustomerVideoDispatchResponse/);
     assert.match(consumer, /shouldResetDispatchAttempt\(j\)/);
-    assert.match(consumer, /dispatchRecoveryHint\(/);
+    assert.match(consumer, /customerDirectDispatchMessage\(\s*j,/);
+    assert.doesNotMatch(consumer, /j\.blockers\?\.\[0\]\s*\?\?\s*j\.error/);
     assert.doesNotMatch(
       consumer,
       /j\.retryable\s*===\s*true[\s\S]{0,80}dispatchAttemptRef\.current\s*=\s*null/,

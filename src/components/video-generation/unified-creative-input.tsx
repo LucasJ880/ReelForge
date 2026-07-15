@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
 import {
-  dispatchRecoveryHint,
+  customerDirectDispatchMessage,
   shouldResetDispatchAttempt,
 } from "@/lib/api/customer-video-dispatch-recovery";
 import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
@@ -233,16 +233,7 @@ export function UnifiedCreativeInput({
       const j = (await res.json()) as CustomerVideoDispatchResponse;
       if (!j.ok) {
         if (shouldResetDispatchAttempt(j)) dispatchAttemptRef.current = null;
-        const serverMessage = j.blockers?.[0] ?? j.error;
-        const safeMessage = toCustomerSafeError(
-          new Error(serverMessage),
-          "dispatch",
-          userType,
-          t,
-        );
-        setError(
-          `${safeMessage} ${dispatchRecoveryHint(j.action, locale)}`.trim(),
-        );
+        setError(customerDirectDispatchMessage(j, locale));
         setGenerating(false);
         return;
       }

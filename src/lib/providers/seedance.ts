@@ -20,6 +20,7 @@
 
 import { isDryRun } from "@/lib/config/dry-run";
 import { assertMockVideoRuntimeAllowed } from "@/lib/config/env";
+import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 
 export interface SeedanceSubmitOptions {
   prompt: string;
@@ -456,32 +457,108 @@ async function submitReal(
     body.resolution = options.resolution || "1080p";
   }
 
-  const res = await fetchWithTimeout(
-    `${baseUrl}/contents/generations/tasks`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
+  let res: Response;
+  try {
+    res = await fetchWithTimeout(
+      `${baseUrl}/contents/generations/tasks`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify(body),
       },
-      body: JSON.stringify(body),
-    },
-    "提交",
-  );
+      "提交",
+    );
+  } catch (cause) {
+    throw new ProviderSubmissionError("Seedance 提交传输失败", {
+      providerId: "byteplus",
+      stage: "transport",
+      retryable: false,
+      cause,
+    });
+  }
 
   if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Seedance 提交失败: ${res.status} ${err.slice(0, 300)}`);
+    const code = await readSafeProviderErrorCode(res);
+    const message = `Seedance 提交被 provider 拒绝: HTTP ${res.status}${code ? ` (${code})` : ""}`;
+    throw new ProviderSubmissionError(message, {
+      providerId: "byteplus",
+      stage: "provider_response",
+      httpStatus: res.status,
+      code,
+      // Only authentication rejection is positive evidence that BytePlus did
+      // not create a billable task. Other 4xx responses (notably 408/409/429)
+      // can be emitted after an upstream accepted the request, so they remain
+      // acknowledgement-unknown until the provider contract proves otherwise.
+      providerConfirmedNoJob: res.status === 401 || res.status === 403,
+      retryable: false,
+    });
   }
 
-  const data = await res.json();
-  const taskId = data.id || data.task_id;
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch (cause) {
+    throw new ProviderSubmissionError("Seedance 成功响应无法解码", {
+      providerId: "byteplus",
+      stage: "response_decode",
+      httpStatus: res.status,
+      retryable: false,
+      cause,
+    });
+  }
+  const record =
+    data != null && typeof data === "object"
+      ? (data as Record<string, unknown>)
+      : null;
+  const taskId =
+    typeof record?.id === "string"
+      ? record.id
+      : typeof record?.task_id === "string"
+        ? record.task_id
+        : null;
   if (!taskId) {
-    throw new Error(
-      `Seedance 响应未携带任务 ID（数据形态变更？）: ${JSON.stringify(data).slice(0, 300)}`,
-    );
+    throw new ProviderSubmissionError("Seedance 成功响应未携带任务 ID", {
+      providerId: "byteplus",
+      stage: "response_decode",
+      httpStatus: res.status,
+      retryable: false,
+    });
   }
   return { jobId: taskId };
+}
+
+async function readSafeProviderErrorCode(
+  response: Response,
+): Promise<string | undefined> {
+  const raw = await response.text().catch(() => "");
+  if (!raw) return undefined;
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return undefined;
+  }
+  if (payload == null || typeof payload !== "object") return undefined;
+
+  const record = payload as Record<string, unknown>;
+  const nestedError =
+    record.error != null && typeof record.error === "object"
+      ? (record.error as Record<string, unknown>)
+      : null;
+  const candidates = [
+    nestedError?.code,
+    nestedError?.type,
+    record.code,
+    record.error_code,
+  ];
+  const code = candidates.find((value): value is string =>
+    typeof value === "string" && /^[A-Za-z0-9_.:-]{1,100}$/.test(value),
+  );
+  return code;
 }
 
 async function getStatusReal(jobId: string): Promise<SeedanceJobResult> {

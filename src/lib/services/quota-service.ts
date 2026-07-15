@@ -1,6 +1,9 @@
 import {
   BatchJobStatus,
   Prisma,
+  ProviderSubmissionState,
+  VideoDispatchRequestState,
+  VideoJobStatus,
   type UsageResource,
 } from "@prisma/client";
 import type { Session } from "next-auth";
@@ -224,16 +227,16 @@ export async function assertQuotaBatchForSession(
     amount?: number;
     metadata?: Record<string, unknown>;
   }>,
-): Promise<void> {
-  if (isQuotaExemptSession(session)) return;
-  if (items.length === 0) return;
+): Promise<{ consumed: boolean; periodKey: string }> {
+  const periodKey = currentUsagePeriodKey();
+  if (isQuotaExemptSession(session)) return { consumed: false, periodKey };
+  if (items.length === 0) return { consumed: false, periodKey };
 
   const enforce = isQuotaEnforced();
-  if (!enforce) return;
+  if (!enforce) return { consumed: false, periodKey };
 
   const userId = session.user.id;
   const plan = await resolveQuotaPlan(userId);
-  const periodKey = currentUsagePeriodKey();
 
   // The check and increment must serialize across distinct idempotency keys.
   // Under READ COMMITTED, two requests can both observe the last available
@@ -299,7 +302,7 @@ export async function assertQuotaBatchForSession(
         },
         { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
       );
-      return;
+      return { consumed: true, periodKey };
     } catch (error) {
       if (!isQuotaSerializationConflict(error) || attempt >= 3) throw error;
       await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
@@ -319,6 +322,228 @@ function isQuotaSerializationConflict(error: unknown): boolean {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     (error.code === "P2034" || error.code === "P2002")
   );
+}
+
+export class DirectDispatchQuotaCompensationError extends Error {
+  constructor(message = "direct dispatch quota compensation evidence is unsafe") {
+    super(message);
+    this.name = "DirectDispatchQuotaCompensationError";
+  }
+}
+
+export interface DirectDispatchQuotaCompensationInput {
+  requestId: string;
+  userId: string;
+  briefIds: string[];
+  videoDispatchAmount: number;
+  seedanceSegmentAmount: number;
+  periodKey: string;
+  quotaWasMetered: boolean;
+  reason: string;
+  responseStatus: number;
+}
+
+type DirectDispatchFailureStage =
+  | "preflight"
+  | "transport"
+  | "provider_response";
+
+function directDispatchFailureStage(
+  value: string | null,
+): DirectDispatchFailureStage | null {
+  const match = /^definitely_not_created:(preflight|transport|provider_response)$/.exec(
+    value ?? "",
+  );
+  return (match?.[1] as DirectDispatchFailureStage | undefined) ?? null;
+}
+
+/**
+ * Refunds a direct dispatch only when database evidence proves that every job
+ * created by this request was rejected before the provider created a billable
+ * job. The request marker is the compensation CAS: once it is cleared, a
+ * replay cannot decrement the meters or append negative ledger rows again.
+ *
+ * Quota-exempt requests still clear the ownership marker after the same strict
+ * evidence check, but deliberately do not invent meter or UsageLog activity.
+ */
+export async function compensateDirectDispatchQuota(
+  params: DirectDispatchQuotaCompensationInput,
+): Promise<{ compensated: boolean; replayed: boolean }> {
+  const uniqueBriefIds = [...new Set(params.briefIds)];
+  const reason = params.reason.trim();
+  if (
+    !params.requestId ||
+    !params.userId ||
+    uniqueBriefIds.length !== params.briefIds.length ||
+    uniqueBriefIds.length !== params.videoDispatchAmount ||
+    !Number.isInteger(params.videoDispatchAmount) ||
+    params.videoDispatchAmount <= 0 ||
+    !Number.isInteger(params.seedanceSegmentAmount) ||
+    params.seedanceSegmentAmount <= 0 ||
+    !/^\d{4}-(?:0[1-9]|1[0-2])$/.test(params.periodKey) ||
+    !reason ||
+    !Number.isInteger(params.responseStatus) ||
+    params.responseStatus < 100 ||
+    params.responseStatus > 599
+  ) {
+    throw new DirectDispatchQuotaCompensationError(
+      "direct dispatch compensation input is invalid",
+    );
+  }
+
+  const httpClass = `${Math.floor(params.responseStatus / 100)}xx`;
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await db.$transaction(
+        async (tx) => {
+          const request = await tx.videoDispatchRequest.findFirst({
+            where: { id: params.requestId, userId: params.userId },
+            select: { state: true, quotaConsumedAt: true },
+          });
+          if (!request) {
+            throw new DirectDispatchQuotaCompensationError(
+              "dispatch request does not exist or is not owned by the user",
+            );
+          }
+          if (!request.quotaConsumedAt) {
+            return { compensated: false, replayed: true };
+          }
+          if (request.state !== VideoDispatchRequestState.PROCESSING) {
+            throw new DirectDispatchQuotaCompensationError(
+              "dispatch request is no longer processing",
+            );
+          }
+
+          const ownedBriefs = await tx.videoBrief.findMany({
+            where: {
+              id: { in: uniqueBriefIds },
+              contentAngle: {
+                round: { deliveryOrder: { createdById: params.userId } },
+              },
+            },
+            select: { id: true },
+          });
+          if (ownedBriefs.length !== uniqueBriefIds.length) {
+            throw new DirectDispatchQuotaCompensationError(
+              "dispatch briefs are missing or not owned by the user",
+            );
+          }
+
+          const jobs = await tx.videoJob.findMany({
+            where: { videoBriefId: { in: uniqueBriefIds } },
+            select: {
+              id: true,
+              videoBriefId: true,
+              status: true,
+              submissionState: true,
+              submissionErrorClass: true,
+              externalJobId: true,
+            },
+          });
+          const representedBriefIds = new Set(
+            jobs.map((job) => job.videoBriefId).filter(Boolean),
+          );
+          const failureStages = jobs.map((job) =>
+            directDispatchFailureStage(job.submissionErrorClass),
+          );
+          const evidenceIsSafe =
+            jobs.length === params.seedanceSegmentAmount &&
+            representedBriefIds.size === uniqueBriefIds.length &&
+            jobs.every(
+              (job) =>
+                job.status === VideoJobStatus.FAILED &&
+                job.submissionState === ProviderSubmissionState.REJECTED &&
+                job.externalJobId == null,
+            ) &&
+            failureStages.every((stage) => stage !== null);
+          if (!evidenceIsSafe) {
+            throw new DirectDispatchQuotaCompensationError(
+              "not every dispatch job is definitely-not-created and unacknowledged",
+            );
+          }
+
+          const marker = await tx.videoDispatchRequest.updateMany({
+            where: {
+              id: params.requestId,
+              userId: params.userId,
+              state: VideoDispatchRequestState.PROCESSING,
+              quotaConsumedAt: { not: null },
+            },
+            data: { quotaConsumedAt: null },
+          });
+          if (marker.count !== 1) {
+            throw new DirectDispatchQuotaCompensationError(
+              "quota compensation marker CAS failed",
+            );
+          }
+
+          if (params.quotaWasMetered) {
+            const distinctFailureStages = [
+              ...new Set(
+                failureStages.filter(
+                  (stage): stage is DirectDispatchFailureStage => stage !== null,
+                ),
+              ),
+            ];
+            const providerRequestSent = distinctFailureStages.includes(
+              "provider_response",
+            );
+            const items: Array<{ resource: UsageResource; amount: number }> = [
+              {
+                resource: "VIDEO_DISPATCH",
+                amount: params.videoDispatchAmount,
+              },
+              {
+                resource: "SEEDANCE_SEGMENT",
+                amount: params.seedanceSegmentAmount,
+              },
+            ];
+            for (const item of items) {
+              const meter = await tx.userUsagePeriod.updateMany({
+                where: {
+                  userId: params.userId,
+                  periodKey: params.periodKey,
+                  resource: item.resource,
+                  amount: { gte: item.amount },
+                },
+                data: { amount: { decrement: item.amount } },
+              });
+              if (meter.count !== 1) {
+                throw new DirectDispatchQuotaCompensationError(
+                  `quota meter cannot compensate ${item.resource}`,
+                );
+              }
+              await tx.usageLog.create({
+                data: {
+                  userId: params.userId,
+                  resource: item.resource,
+                  amount: -item.amount,
+                  metadata: {
+                    requestId: params.requestId,
+                    reason,
+                    providerCallMade: providerRequestSent,
+                    providerRequestSent,
+                    providerAccepted: false,
+                    providerJobCreated: false,
+                    failureStages: distinctFailureStages,
+                    customerResponseClass: httpClass,
+                    customerResponseStatus: params.responseStatus,
+                    phase: "direct_dispatch_compensation",
+                  },
+                },
+              });
+            }
+          }
+
+          return { compensated: true, replayed: false };
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (!isQuotaSerializationConflict(error) || attempt >= 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
+    }
+  }
 }
 
 /**

@@ -60,6 +60,158 @@ export function dispatchRecoveryHint(
   }
 }
 
+const unsafeCustomerCopyPattern =
+  /(?:\b(?:401|403)\b|api[\s_-]*key|access[\s_-]*token|\btoken\b|authorization|bearer|secret|credential|provider|seedance|byteplus|modelark|ark\.|response\s*body|raw\s*body|stack\s*trace|https?:\/\/|[{}])/i;
+
+/**
+ * Quality blockers are the only server-authored dispatch copy a customer may
+ * see. Keep the allowlist deliberately narrow: one short, single-line message
+ * in the active UI language with no credential, provider, HTTP or raw-payload
+ * vocabulary. All other dispatch copy is owned by the client below.
+ */
+function safeQualityBlocker(
+  blockers: string[] | undefined,
+  locale: "zh-CN" | "en-US",
+): string | null {
+  const candidate = blockers?.find((blocker) => {
+    const value = blocker.trim();
+    if (!value || value.length > 160 || /[\r\n\u0000-\u001f]/.test(value)) {
+      return false;
+    }
+    if (unsafeCustomerCopyPattern.test(value)) return false;
+
+    const containsChinese = /[\u3400-\u9fff]/.test(value);
+    return locale === "zh-CN" ? containsChinese : !containsChinese;
+  });
+  return candidate?.trim() ?? null;
+}
+
+/**
+ * Customer-owned direct-dispatch copy. Never use `failure.error` here: it is
+ * retained in the transport contract for operational compatibility and may
+ * contain a provider response, credential hint, HTTP status or other internal
+ * detail. Machine code + locale + recovery action are the only display inputs.
+ */
+export function customerDirectDispatchMessage(
+  failure: {
+    code: CustomerApiErrorCode;
+    action: CustomerRecoveryAction;
+    blockers?: string[];
+  },
+  locale: "zh-CN" | "en-US",
+): string {
+  const english = locale === "en-US";
+  const localized = (englishCopy: string, chineseCopy: string) =>
+    english ? englishCopy : chineseCopy;
+
+  let summary: string;
+  switch (failure.code) {
+    case "AUTH_REQUIRED":
+      summary = localized(
+        "Your session has expired, so this video was not submitted.",
+        "登录状态已失效，本次视频未提交。",
+      );
+      break;
+    case "FORBIDDEN":
+      summary = localized(
+        "This account cannot submit video generation requests.",
+        "当前账号无法提交视频生成请求。",
+      );
+      break;
+    case "VALIDATION_FAILED":
+    case "IDEMPOTENCY_KEY_REQUIRED":
+    case "IDEMPOTENCY_CONFLICT":
+      summary = localized(
+        "The video settings need to be reviewed before submission.",
+        "视频设置需要复核后才能提交。",
+      );
+      break;
+    case "RESOURCE_NOT_FOUND":
+      summary = localized(
+        "A required video resource is no longer available.",
+        "本次生成所需的资源已不可用。",
+      );
+      break;
+    case "INVALID_STATE":
+    case "REQUEST_IN_PROGRESS":
+      summary = localized(
+        "This video request already has an active status.",
+        "该视频请求已有进行中的状态。",
+      );
+      break;
+    case "QUALITY_BLOCKED":
+      summary =
+        safeQualityBlocker(failure.blockers, locale) ??
+        localized(
+          "The video brief needs more detail before it can be submitted.",
+          "视频需求需要补充细节后才能提交。",
+        );
+      break;
+    case "RATE_LIMITED":
+      summary = localized(
+        "Too many video requests were submitted in a short time.",
+        "短时间内提交的视频请求过多。",
+      );
+      break;
+    case "QUOTA_EXCEEDED":
+      summary = localized(
+        "The current plan does not have enough video quota.",
+        "当前套餐的视频额度不足。",
+      );
+      break;
+    case "QUOTA_CHECK_UNAVAILABLE":
+      summary = localized(
+        "We could not verify video quota right now.",
+        "暂时无法确认视频额度。",
+      );
+      break;
+    case "STORAGE_UNAVAILABLE":
+      summary = localized(
+        "The uploaded assets are temporarily unavailable.",
+        "上传素材暂时不可用。",
+      );
+      break;
+    case "SUBMISSION_ACK_UNKNOWN":
+      summary = localized(
+        "We could not confirm whether the generation service received this request.",
+        "暂时无法确认生成服务是否已接收该请求。",
+      );
+      break;
+    case "PROVIDER_TIMEOUT":
+      summary = localized(
+        "The video generation service did not respond in time.",
+        "视频生成服务未能及时响应。",
+      );
+      break;
+    case "PROVIDER_ERROR":
+      summary = localized(
+        "The video generation service could not accept this request.",
+        "视频生成服务暂时无法接收该请求。",
+      );
+      break;
+    case "ASSET_MISSING":
+      summary = localized(
+        "A selected product asset is no longer available.",
+        "所选产品素材已不可用。",
+      );
+      break;
+    case "SERVICE_UNAVAILABLE":
+      summary = localized(
+        "Video generation is temporarily unavailable.",
+        "视频生成服务暂时不可用。",
+      );
+      break;
+    case "INTERNAL_ERROR":
+      summary = localized(
+        "We could not submit this video request right now.",
+        "暂时无法提交本次视频请求。",
+      );
+      break;
+  }
+
+  return `${summary} ${dispatchRecoveryHint(failure.action, locale)}`.trim();
+}
+
 /**
  * Batch-create API bodies intentionally keep a Chinese server default for
  * operators and logs. Customer UI copy is selected from the machine code so

@@ -447,6 +447,13 @@ export async function discoverBuddyModels(
       redirect: "error",
       signal: controller.signal,
     });
+    if (response.status === 401 || response.status === 403) {
+      return unavailable("authentication_rejected");
+    }
+    if (response.status === 404 || response.status === 405) {
+      return unavailable("models_endpoint_unavailable");
+    }
+    if (response.status === 429) return unavailable("rate_limited");
     if (!response.ok) return unavailable("upstream_unavailable");
 
     const raw = await response.text();

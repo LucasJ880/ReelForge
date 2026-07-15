@@ -47,24 +47,27 @@ export function VideoRouteSelector({
       cache: "no-store",
     })
       .then(async (response) => {
-        if (!response.ok) return { state: "unavailable" } as const;
+        if (!response.ok) {
+          return { state: "unavailable", reason: "unknown" } as const;
+        }
         return buddyRouteDiscoverySummary(await response.json());
       })
       .then((summary) => setBuddyDiscovery(summary))
       .catch((error: unknown) => {
         if (error instanceof DOMException && error.name === "AbortError") return;
-        setBuddyDiscovery({ state: "unavailable" });
+        setBuddyDiscovery({ state: "unavailable", reason: "unknown" });
       });
     return () => controller.abort();
   }, [canSelectVideoRoute]);
 
   if (!canSelectVideoRoute) return null;
 
-  const buddyStatus = buddyDiscovery === null
-    ? copy.buddyChecking
-    : buddyDiscovery.state === "available"
-      ? copy.buddyModels.replace("{count}", String(buddyDiscovery.modelCount))
-      : copy.buddyUnavailable;
+  const buddyStatus =
+    buddyDiscovery === null
+      ? copy.buddyChecking
+      : buddyDiscovery.state === "available"
+        ? copy.buddyModels.replace("{count}", String(buddyDiscovery.modelCount))
+        : copy.buddyUnavailableReasons[buddyDiscovery.reason];
 
   return (
     <label

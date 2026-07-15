@@ -376,7 +376,7 @@ test("Buddy discovery fails closed with sanitized unavailable reasons", async ()
   });
   assert.deepEqual(rejected, {
     available: false,
-    reason: "upstream_unavailable",
+    reason: "authentication_rejected",
     models: [],
   });
   assert.doesNotMatch(JSON.stringify(rejected), new RegExp(secret));
@@ -404,4 +404,21 @@ test("Buddy discovery fails closed with sanitized unavailable reasons", async ()
     reason: "invalid_response",
     models: [],
   });
+});
+
+test("Buddy model discovery distinguishes bounded non-secret HTTP failures", async () => {
+  for (const [status, reason] of [
+    [401, "authentication_rejected"],
+    [403, "authentication_rejected"],
+    [404, "models_endpoint_unavailable"],
+    [405, "models_endpoint_unavailable"],
+    [429, "rate_limited"],
+    [502, "upstream_unavailable"],
+  ] as const) {
+    const discovery = await discoverBuddyModels({
+      env: { shuyu_api_key: "configured-test-key" },
+      fetchImpl: async () => new Response("", { status }),
+    });
+    assert.deepEqual(discovery, { available: false, reason, models: [] });
+  }
 });

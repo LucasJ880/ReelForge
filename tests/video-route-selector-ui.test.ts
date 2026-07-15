@@ -79,7 +79,19 @@ test("Buddy discovery is reduced to a model count and never unlocks submission",
   );
   assert.deepEqual(
     buddyRouteDiscoverySummary({ ok: true, routes: [{ id: "buddy", availability: "unavailable", models: [] }] }),
-    { state: "unavailable" },
+    { state: "unavailable", reason: "unknown" },
+  );
+  assert.deepEqual(
+    buddyRouteDiscoverySummary({
+      ok: true,
+      routes: [{
+        id: "buddy",
+        availability: "unavailable",
+        unavailableReason: "authentication_rejected",
+        models: [],
+      }],
+    }),
+    { state: "unavailable", reason: "authentication_rejected" },
   );
 });
 

@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const buddyRouteUnavailableReasons = [
   "not_configured",
+  "authentication_rejected",
+  "models_endpoint_unavailable",
+  "rate_limited",
   "timeout",
   "upstream_unavailable",
   "invalid_response",

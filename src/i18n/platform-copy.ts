@@ -93,6 +93,16 @@ const zh = {
       buddyChecking: "Buddy 模型发现中；提交仍封锁",
       buddyModels: "Buddy 已发现 {count} 个模型；契约与价格确认前不可提交",
       buddyUnavailable: "Buddy 模型暂不可读取；契约与价格确认前不可提交",
+      buddyUnavailableReasons: {
+        not_configured: "Buddy 密钥尚未配置；提交保持封锁",
+        authentication_rejected: "Buddy 密钥被接口拒绝；请对方确认或轮换",
+        models_endpoint_unavailable: "Buddy 未开放模型清单端点；需对方提供正式契约",
+        rate_limited: "Buddy 模型清单当前限流；提交保持封锁",
+        timeout: "Buddy 模型清单读取超时；提交保持封锁",
+        upstream_unavailable: "Buddy 模型清单上游不可用；提交保持封锁",
+        invalid_response: "Buddy 模型清单响应不符合契约；提交保持封锁",
+        unknown: "Buddy 模型暂不可读取；契约与价格确认前不可提交",
+      },
     },
     agent: {
       status: "AI 导演在线",
@@ -339,6 +349,16 @@ const en: CopyShape<typeof zh> = {
       buddyChecking: "Discovering Buddy models; submissions remain blocked",
       buddyModels: "{count} Buddy models discovered; blocked until contract and pricing are confirmed",
       buddyUnavailable: "Buddy models are unavailable; blocked until contract and pricing are confirmed",
+      buddyUnavailableReasons: {
+        not_configured: "Buddy key is not configured; submissions remain blocked",
+        authentication_rejected: "Buddy rejected the configured key; ask the provider to confirm or rotate it",
+        models_endpoint_unavailable: "Buddy has no model-list endpoint; an official contract is required",
+        rate_limited: "Buddy model discovery is rate limited; submissions remain blocked",
+        timeout: "Buddy model discovery timed out; submissions remain blocked",
+        upstream_unavailable: "Buddy model discovery is unavailable; submissions remain blocked",
+        invalid_response: "Buddy returned a response outside the discovery contract; submissions remain blocked",
+        unknown: "Buddy models are unavailable; blocked until contract and pricing are confirmed",
+      },
     },
     agent: {
       status: "AI director online", title: "Talk it through, then generate", subtitle: "Describe the goal like you would to a creative partner. The director fills the gaps, matches a lower-variance template, and hands the brief to production.", conversation: "Creative conversation", conversationHint: "From a rough idea to an executable video brief.", waiting: "Waiting for an idea", ready: "Brief ready", welcome: "Hi, I’m your Aivora AI director. Tell me about the product, audience, and outcome—or choose a creative direction below to get started.", assets: "Product assets", assetsHint: "Upload 1–10 clear product images so the template can lock the real product identity.", upload: "Upload product images", uploadEmpty: "You can start chatting and add assets later.", steps: "This production", stepAssets: "Add product assets", stepBrief: "Define audience and proof", stepTemplate: "Confirm template and produce", quickLabel: "Quick creative directions", quickCommerce: "Commerce script", quickUgc: "UGC review", quickEvent: "Event moment", quickAuto: "Recommend for me", promptLabel: "Tell the director what you want to make", promptPlaceholder: "Example: A 15-second World Cup video for young adults in a believable living room. Keep the cast and product consistent.", send: "Send", continueGenerate: "Generation settings", jumpToLatest: "Jump to latest message", thinking: "Director is shaping the idea…", error: "I missed that. Please try again.", templateHeading: "Director-recommended templates", templateHint: "Lock shot structure and realism boundaries before giving the model creative room.", qualityLockKicker: "QUALITY LOCK", templateSelected: "Selected", templateChoose: "Choose template", browseAll: "Browse all 31 templates", review: "Review brief and generation settings", batch: "Use this template for a batch", directHeading: "Production settings", directHint: "The director’s brief, assets, and template are carried in automatically. Fine-tune anything here, then generate.", productionBriefKicker: "PRODUCTION BRIEF", uploaded: "Uploaded {count} product images",

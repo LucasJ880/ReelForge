@@ -43,12 +43,19 @@ yarn-error.log*
 # vercel
 .vercel
 
-# local build artifacts (Seedance/HeyGen renders, ffmpeg intermediates)
+# local build artifacts (Seedance/HeyGen renders, ffmpeg intermediates, acceptance videos)
 /tmp/
 /.aivora-private/
 
 # brand assets (real customer logos must not be committed; provide via Blob in prod)
 /public/brand/
+
+# regenerated demo / acceptance media — do not re-commit finished videos
+/public/generated/**/*.mp4
+/public/generated/**/*.mov
+/public/generated/**/*.webm
+/public/generated/storyboard-frames/
+/deploy/**/assets/**/*.mp4
 
 # local CEO TikTok screen-recording keyframes (do not commit third-party content)
 /assets/sunnyshutter/ceo-refs/

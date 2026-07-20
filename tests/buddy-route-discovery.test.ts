@@ -130,7 +130,7 @@ test("prices parser strips unknown fields and keeps the exact documented plan sh
   assert.deepEqual(prices, { object: "list", data: [videoPlan] });
 });
 
-test("discovery fails closed when the public video price contract changes", async () => {
+test("discovery stays available when audited plan is among additional video plans", async () => {
   const discovered = await discoverShuyuVideoRoute({
     env: { SHUYU_API_KEY: "configured" },
     fetchImpl: async (input) =>
@@ -141,6 +141,35 @@ test("discovery fails closed when the public video price contract changes", asyn
             JSON.stringify({
               object: "list",
               data: [videoPlan, { ...videoPlan, plan_id: "unreviewed-plan" }],
+            }),
+            { status: 200 },
+          )
+        : new Response(
+            JSON.stringify({
+              object: "balance",
+              available_points: 10_000,
+              unit: "points",
+            }),
+            { status: 200 },
+          ),
+  });
+  assert.equal(discovered.availability, "available");
+  assert.equal(discovered.unavailableReason, null);
+  assert.equal(discovered.plans.length, 1);
+  assert.equal(discovered.plans[0]?.planId, "video-plan-02");
+});
+
+test("discovery fails closed when the audited video plan is missing", async () => {
+  const discovered = await discoverShuyuVideoRoute({
+    env: { SHUYU_API_KEY: "configured" },
+    fetchImpl: async (input) =>
+      String(input).endsWith("/health")
+        ? new Response(JSON.stringify(healthPayload), { status: 200 })
+        : String(input).endsWith("/prices")
+        ? new Response(
+            JSON.stringify({
+              object: "list",
+              data: [{ ...videoPlan, plan_id: "video-plan-03", unit: "second", sale_points: 88 }],
             }),
             { status: 200 },
           )

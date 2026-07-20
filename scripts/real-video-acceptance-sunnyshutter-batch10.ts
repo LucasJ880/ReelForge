@@ -1,99 +1,126 @@
 /**
- * SunnyShutter 电商专用模版 · 10 条批量验收骨架。
+ * SunnyShutter 电商专用 · 10×15s 锁定流水线验收。
  *
- * 全部使用 `sunnyshutter-commerce-cta-*` 模版族（钩子 → 冲突/对比 → 回归产品 +
- * 安全镜头硬闸 + CEO 风格车道）。11 个变体轮转出 10 条。
+ * 硬锁流程（同行高质量路径 / CEO 标准）:
+ *   1) Shuyu GPT Image 2 故事版（2 帧：钩子 + 回归产品）
+ *   2) storyboard-lock 硬闸
+ *   3) Shuyu Seedance I2V 15s（故事版 + 产品参考图）
+ *   4) 品牌包装：左上角 logo + 锁定尾卡
  *
- * 默认 DRY RUN（只打印计划 + 渲染 prompt，不烧钱）。
- * 充值 / Shuyu 视频可用后：
- *   ACCEPTANCE_SUBMIT=1 npx tsx --env-file=.env.local scripts/real-video-acceptance-sunnyshutter-batch10.ts
+ * 默认 DRY RUN。提交：
+ *   ACCEPTANCE_SUBMIT=1 npm run acceptance:sunnyshutter:batch10:submit
  *
- * Spec: docs/acceptance/shutter-safe-shot-policy.md §11–12
+ * Spec: docs/acceptance/shutter-safe-shot-policy.md
  */
-import { createHash } from "node:crypto";
 import {
   existsSync,
   mkdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { basename, extname, resolve } from "node:path";
+import { basename, resolve } from "node:path";
+import { createHash } from "node:crypto";
 import { loadEnvConfig } from "@next/env";
-import { StyleTemplateStatus } from "@prisma/client";
-import { put } from "@vercel/blob";
-import type { Session } from "next-auth";
-import { db } from "@/lib/db";
+import { list } from "@vercel/blob";
 import {
-  createBatchJob,
-  getBatchStatus,
-  isTerminalBatchStatus,
-  processBatchTick,
-} from "@/lib/services/batch-service";
-import { authorizeBatchQuotaForSession } from "@/lib/services/quota-service";
-import { seedBatchStyleTemplates } from "@/lib/services/style-template-service";
-import { VOLCENGINE_CN_ARK_BASE_URL } from "@/lib/config/seedance-runtime";
-import { renderBatchTemplatePrompt } from "@/lib/video-generation/batch-style-templates";
+  SHUYU_IMAGE_PLAN_ID,
+  SHUYU_VIDEO_FAST_PLAN_ID,
+  SHUYU_VIDEO_PLAN_ID,
+  getShuyuBalance,
+} from "@/lib/providers/shuyu";
 import {
   SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY,
   SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS,
   pickSunnyShutterCommerceVariant,
 } from "@/lib/video-generation/sunnyshutter-commerce-template";
+import {
+  SUNNYSHUTTER_LOCKED_PIPELINE_ID,
+  SUNNYSHUTTER_PIPELINE_DURATION_SEC,
+  buildSunnyShutterI2VPlan,
+  generateSunnyShutterStoryboard,
+  pollShuyuTaskUntilDone,
+  runSunnyShutterI2VWithFailover,
+} from "@/lib/video-generation/sunnyshutter-image2-pipeline";
+import type { Image2StoryboardArtifact } from "@/lib/video-generation/storyboard-lock";
+import { applyBrandOverlay } from "@/lib/video-generation/brand-overlay-renderer";
+import { trimVideoTail } from "@/lib/video-generation/tail-trim";
+import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
+import { runFfmpegNormalizeAndConcat } from "@/lib/services/stitch-service";
+import {
+  SUNNYSHUTTER_END_CARD_COPY,
+  SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
+  SUNNYSHUTTER_LOGO_RELATIVE,
+  applySunnyShutterBrandPack,
+  sunnyShutterLogoFileUrl,
+  sunnyShutterLogoOverlayConfig,
+} from "@/lib/video-generation/sunnyshutter-brand-pack";
+import type { BrandPackagingPlan } from "@/types/video-generation";
 
 loadEnvConfig(process.cwd(), true);
 
 const SUBMIT = process.env.ACCEPTANCE_SUBMIT === "1";
+/** Fast VIP (video-plan-03, 88pts/sec) is default for acceptance speed. Set SUNNYSHUTTER_VIDEO_FAST=0 for audited plan-02. */
+const PREFER_FAST_VIP = process.env.SUNNYSHUTTER_VIDEO_FAST !== "0";
 const RUN_KEY =
   process.env.REAL_ACCEPTANCE_RUN_KEY?.trim() ||
-  "real-acceptance-sunnyshutter-commerce-batch10-v1";
+  "real-acceptance-sunnyshutter-image2-batch10-v1";
 const ITEM_COUNT = 10;
+const PRODUCT_NAME =
+  "Custom plantation shutters / 定制实木百叶窗 · SunnyShutter";
 const OUTPUT_DIR = resolve(process.cwd(), "tmp/real-video-acceptance");
-const REPORT_PATH = resolve(OUTPUT_DIR, "sunnyshutter-commerce-batch10.json");
-const VIDEO_DIR = resolve(OUTPUT_DIR, "sunnyshutter-commerce-batch10-videos");
+const REPORT_PATH = resolve(OUTPUT_DIR, "sunnyshutter-image2-batch10.json");
+const VIDEO_DIR = resolve(OUTPUT_DIR, "sunnyshutter-image2-batch10-videos");
+const BRANDED_DIR = resolve(OUTPUT_DIR, "sunnyshutter-image2-batch10-branded");
+const LOGO_PATH = resolve(process.cwd(), SUNNYSHUTTER_LOGO_RELATIVE);
 const IMAGES_PER_ITEM = 4;
-const TICK_SPACING_MS = 1_200;
-const POLL_MS = 20_000;
-const MAX_WAIT_MS = 90 * 60_000;
+const TICK_SPACING_MS = 1_500;
 
-const SOURCE_PATHS = [
-  "/Users/evan/Downloads/2024-11-14 14.10.56.jpg",
-  "/Users/evan/Downloads/2024-11-14 14.10.46.jpg",
-  "/Users/evan/Downloads/2024-03-14 11.55.01.jpeg",
-  "/Users/evan/Downloads/2024-01-31 10.39.03.jpeg",
-  "/Users/evan/Downloads/2026-04-29 16.04.00.jpg",
-  "/Users/evan/Downloads/2024-03-07 15.33.02.jpeg",
-  "/Users/evan/Downloads/2024-01-23 14.47.09.jpeg",
-] as const;
+/** Stable Blob prefix from prior acceptance uploads (local Downloads may be empty). */
+const SOURCE_BLOB_PREFIX =
+  "real-video-acceptance/real-acceptance-20260718-backend-v1/";
 
-const COMMERCE_SLUGS = SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.map((s) => s.slug);
+type SourceAsset = { id: string; pathname: string; blobUrl: string };
 
 type ReportItem = {
   index: number;
   idempotencyKey: string;
   templateSlug: string;
   plotVariantId: string;
-  templateId?: string;
+  styleLane: string;
   imageIds: string[];
-  batchId?: string;
-  videoJobId?: string;
+  productImageUrls: string[];
+  storyboard?: Image2StoryboardArtifact;
+  videoPlanId?: string;
   externalJobId?: string | null;
   status?: string;
   outputVideoUrl?: string | null;
   localPath?: string | null;
+  brandedLocalPath?: string | null;
+  brandedBlobUrl?: string | null;
   promptPreview?: string;
   error?: string | null;
+  storyboardStartedAt?: string;
+  storyboardFinishedAt?: string;
+  videoStartedAt?: string;
+  videoFinishedAt?: string;
+  elapsedMs?: number;
 };
 
 type Report = {
   runKey: string;
-  purpose: "sunnyshutter-commerce-cta-batch10";
+  purpose: "sunnyshutter-image2-storyboard-batch10";
+  pipelineId: typeof SUNNYSHUTTER_LOCKED_PIPELINE_ID;
   templateFamily: typeof SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY;
-  providerRoute: "volcengine_cn_legacy";
+  providerRoute: "shuyu";
+  imagePlanId: string;
+  videoPlanId: string;
+  preferFastVip: boolean;
   dryRun: boolean;
   requestedCount: number;
-  durationSec: 15;
+  durationSec: typeof SUNNYSHUTTER_PIPELINE_DURATION_SEC;
   startedAt: string;
   finishedAt?: string;
-  sourceAssets: Array<{ id: string; localPath: string; blobUrl: string }>;
+  sourceAssets: SourceAsset[];
   items: ReportItem[];
 };
 
@@ -101,67 +128,13 @@ function hashOf(seed: string): string {
   return createHash("sha256").update(seed).digest("hex");
 }
 
-function imagesForItem(
-  index: number,
-  assets: Report["sourceAssets"],
-): Report["sourceAssets"] {
+function imagesForItem(index: number, assets: SourceAsset[]): SourceAsset[] {
   const shuffled = [...assets].sort((left, right) =>
     hashOf(`${RUN_KEY}:item-${index}:${left.id}`).localeCompare(
       hashOf(`${RUN_KEY}:item-${index}:${right.id}`),
     ),
   );
   return shuffled.slice(0, IMAGES_PER_ITEM);
-}
-
-function mimeType(path: string): "image/jpeg" {
-  const extension = extname(path).toLowerCase();
-  if (extension !== ".jpg" && extension !== ".jpeg") {
-    throw new Error(`Unsupported source image: ${path}`);
-  }
-  return "image/jpeg";
-}
-
-async function uploadAssets(
-  existing: Report | null,
-): Promise<Report["sourceAssets"]> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    throw new Error("BLOB_READ_WRITE_TOKEN is required for submit mode");
-  }
-  const existingByPath = new Map(
-    existing?.sourceAssets.map((asset) => [asset.localPath, asset]) ?? [],
-  );
-  const assets: Report["sourceAssets"] = [];
-  for (const [index, localPath] of SOURCE_PATHS.entries()) {
-    if (!existsSync(localPath)) throw new Error(`Missing source image: ${localPath}`);
-    const prior = existingByPath.get(localPath);
-    if (prior) {
-      assets.push(prior);
-      continue;
-    }
-    const objectName = `real-video-acceptance/${RUN_KEY}/source-${index + 1}-${basename(localPath)}`;
-    const blob = await put(objectName, readFileSync(localPath), {
-      access: "public",
-      contentType: mimeType(localPath),
-      token: process.env.BLOB_READ_WRITE_TOKEN,
-      addRandomSuffix: false,
-      allowOverwrite: true,
-    });
-    assets.push({
-      id: `${RUN_KEY}-source-${index + 1}`,
-      localPath,
-      blobUrl: blob.url,
-    });
-    console.log(`uploaded source ${index + 1}/${SOURCE_PATHS.length}`);
-  }
-  return assets;
-}
-
-function buildDryRunAssets(): Report["sourceAssets"] {
-  return SOURCE_PATHS.map((localPath, index) => ({
-    id: `${RUN_KEY}-source-${index + 1}`,
-    localPath,
-    blobUrl: `https://example.invalid/dry-run/${encodeURIComponent(basename(localPath))}`,
-  }));
 }
 
 function writeReport(report: Report): void {
@@ -173,15 +146,242 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
+async function resolveSourceAssets(
+  existing: Report | null,
+): Promise<SourceAsset[]> {
+  if (existing?.sourceAssets?.length) return existing.sourceAssets;
+  if (!process.env.BLOB_READ_WRITE_TOKEN && SUBMIT) {
+    throw new Error("BLOB_READ_WRITE_TOKEN required to resolve product sources");
+  }
+  if (!SUBMIT) {
+    return Array.from({ length: 7 }, (_, index) => ({
+      id: `${RUN_KEY}-source-${index + 1}`,
+      pathname: `${SOURCE_BLOB_PREFIX}source-${index + 1}.jpg`,
+      blobUrl: `https://example.invalid/dry-run/source-${index + 1}.jpg`,
+    }));
+  }
+  const listed = await list({
+    prefix: SOURCE_BLOB_PREFIX,
+    limit: 50,
+    token: process.env.BLOB_READ_WRITE_TOKEN,
+  });
+  const images = listed.blobs
+    .filter((blob) => /\.(jpe?g|png)$/i.test(blob.pathname))
+    .sort((a, b) => a.pathname.localeCompare(b.pathname));
+  if (images.length < 4) {
+    throw new Error(
+      `Need ≥4 product images under ${SOURCE_BLOB_PREFIX}, found ${images.length}`,
+    );
+  }
+  return images.map((blob, index) => ({
+    id: `${RUN_KEY}-source-${index + 1}`,
+    pathname: blob.pathname,
+    blobUrl: blob.url,
+  }));
+}
+
+function endCardPlan(language: "en" | "zh"): BrandPackagingPlan {
+  const copy = SUNNYSHUTTER_END_CARD_COPY[language];
+  return applySunnyShutterBrandPack(
+    {
+      mode: "auto_end_card",
+      logoAssetId: null,
+      endCardDurationSeconds: copy.endCardDurationSeconds,
+      brandName: copy.brandName,
+      slogan: copy.slogan,
+      cta: copy.cta,
+      contactLines: [...copy.contactLines],
+      website: copy.website,
+      renderStrategy: "render_ffmpeg_overlay",
+      warnings: [],
+    },
+    {
+      clientLockProfileId: "sunnyshutter",
+      brandName: copy.brandName,
+      language,
+      aspectRatio: "9:16",
+    },
+  );
+}
+
+async function brandOne(args: {
+  index: number;
+  sourcePath: string;
+  language: "en" | "zh";
+  endCardUrl: string;
+}): Promise<{ localPath: string; blobUrl: string }> {
+  if (!existsSync(LOGO_PATH)) throw new Error(`logo missing: ${LOGO_PATH}`);
+  mkdirSync(BRANDED_DIR, { recursive: true });
+  const logoCfg = sunnyShutterLogoOverlayConfig();
+  // Seedance 常在最后 1s 幻觉假名片 — 拼真尾卡前先裁掉尾部。
+  const trimmedPath = await trimVideoTail(args.sourcePath, {
+    tailSeconds: 0.8,
+  });
+  const overlay = await applyBrandOverlay({
+    sourceVideo: trimmedPath,
+    logo: LOGO_PATH,
+    placement: SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
+    durationMode: logoCfg.durationMode,
+    logoWidthRatio: logoCfg.logoWidthRatio,
+    opacity: logoCfg.opacity,
+    marginPx: logoCfg.marginPx,
+    outputDir: BRANDED_DIR,
+  });
+  const brandedUrl = await runFfmpegNormalizeAndConcat({
+    finalVideoId: `${RUN_KEY}-branded-${args.index}`,
+    aspectRatio: "9:16",
+    clips: [
+      { url: overlay.outputUrl, intendedDurationSec: null, trimToFit: false },
+      { url: args.endCardUrl, intendedDurationSec: 3, trimToFit: true },
+    ],
+  });
+  const localPath = resolve(
+    BRANDED_DIR,
+    `ss-image2-${String(args.index).padStart(2, "0")}-branded.mp4`,
+  );
+  const response = await fetch(brandedUrl);
+  if (!response.ok) {
+    throw new Error(`download branded failed (${response.status})`);
+  }
+  writeFileSync(localPath, Buffer.from(await response.arrayBuffer()));
+  return { localPath, blobUrl: brandedUrl };
+}
+
+async function processItem(
+  item: ReportItem,
+  report: Report,
+): Promise<void> {
+  if (item.status === "SUCCEEDED" && item.localPath && existsSync(item.localPath)) {
+    console.log(`#${item.index} skip (already SUCCEEDED)`);
+    return;
+  }
+
+  const itemStartedMs = Date.now();
+  try {
+    if (!item.storyboard?.frames?.length) {
+      console.log(`#${item.index} storyboard (Image2)…`);
+      item.storyboardStartedAt = new Date().toISOString();
+      item.storyboard = await generateSunnyShutterStoryboard({
+        index1Based: item.index,
+        productImageUrls: item.productImageUrls,
+        purpose: `${RUN_KEY}:item-${item.index}`,
+        providerRequestKeyPrefix: `${RUN_KEY}:${item.index}`,
+        imagePlanId: report.imagePlanId,
+      });
+      item.storyboardFinishedAt = new Date().toISOString();
+      writeReport(report);
+    }
+
+    const i2v = buildSunnyShutterI2VPlan({
+      index1Based: item.index,
+      productName: PRODUCT_NAME,
+      productImageUrls: item.productImageUrls,
+      storyboard: item.storyboard!,
+      preferFastVip: report.preferFastVip,
+    });
+    item.videoPlanId = i2v.videoPlanId;
+    item.promptPreview = i2v.prompt.slice(0, 480);
+    item.videoStartedAt = item.videoStartedAt ?? new Date().toISOString();
+
+    if (item.outputVideoUrl && item.status === "SUCCEEDED") {
+      // resume download only
+    } else if (
+      item.externalJobId &&
+      item.status === "PROCESSING" &&
+      // Only resume poll when the stuck job is already on the preferred plan family.
+      // Old slow VIP (plan-02) jobs are abandoned in favor of Fast VIP.
+      String(item.videoPlanId ?? "").startsWith("video-plan-0") &&
+      (report.preferFastVip
+        ? ["video-plan-03", "video-plan-05"].includes(String(item.videoPlanId))
+        : item.videoPlanId === i2v.videoPlanId)
+    ) {
+      console.log(
+        `#${item.index} resume poll ${item.externalJobId} on ${item.videoPlanId}…`,
+      );
+      try {
+        const done = await pollShuyuTaskUntilDone(item.externalJobId, {
+          label: `video#${item.index}`,
+          pollMs: 6_000,
+          maxWaitMs: 15 * 60_000,
+        });
+        item.outputVideoUrl = done.url;
+        item.status = "SUCCEEDED";
+      } catch {
+        console.log(`#${item.index} prior Fast job failed — failover…`);
+        item.externalJobId = null;
+        const done = await runSunnyShutterI2VWithFailover({
+          plan: i2v,
+          providerRequestKey: `${item.idempotencyKey}:video`,
+          label: `video#${item.index}`,
+          pollMs: 6_000,
+          maxWaitMs: 20 * 60_000,
+        });
+        item.externalJobId = done.taskId;
+        item.videoPlanId = done.planId;
+        item.outputVideoUrl = done.url;
+        item.status = "SUCCEEDED";
+      }
+      writeReport(report);
+    } else {
+      console.log(`#${item.index} submit I2V with plan failover…`);
+      const done = await runSunnyShutterI2VWithFailover({
+        plan: i2v,
+        providerRequestKey: `${item.idempotencyKey}:video`,
+        label: `video#${item.index}`,
+        pollMs: 8_000,
+        maxWaitMs: 35 * 60_000,
+      });
+      item.externalJobId = done.taskId;
+      item.videoPlanId = done.planId;
+      item.outputVideoUrl = done.url;
+      item.status = "SUCCEEDED";
+      writeReport(report);
+    }
+
+    mkdirSync(VIDEO_DIR, { recursive: true });
+    const localPath = resolve(
+      VIDEO_DIR,
+      `ss-image2-${String(item.index).padStart(2, "0")}-${item.plotVariantId}.mp4`,
+    );
+    if (!existsSync(localPath) && item.outputVideoUrl) {
+      const response = await fetch(item.outputVideoUrl);
+      if (!response.ok) {
+        throw new Error(`download failed (${response.status})`);
+      }
+      writeFileSync(localPath, Buffer.from(await response.arrayBuffer()));
+    }
+    item.localPath = localPath;
+    item.videoFinishedAt = new Date().toISOString();
+    item.elapsedMs = Date.now() - itemStartedMs;
+    writeReport(report);
+    console.log(
+      `#${item.index} OK → ${basename(localPath)} · plan=${item.videoPlanId} · ${(item.elapsedMs / 1000).toFixed(0)}s`,
+    );
+  } catch (error) {
+    item.status = "FAILED";
+    item.error = error instanceof Error ? error.message : String(error);
+    item.elapsedMs = Date.now() - itemStartedMs;
+    writeReport(report);
+    throw error;
+  }
+}
+
 async function main(): Promise<void> {
   mkdirSync(OUTPUT_DIR, { recursive: true });
+  const videoPlanId = PREFER_FAST_VIP
+    ? SHUYU_VIDEO_FAST_PLAN_ID
+    : SHUYU_VIDEO_PLAN_ID;
 
   console.log(
     [
-      `SunnyShutter commerce batch10 · family=${SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY}`,
-      `mode=${SUBMIT ? "SUBMIT (paid)" : "DRY RUN (no provider calls)"}`,
+      `SunnyShutter Image2→I2V batch10`,
+      `pipeline=${SUNNYSHUTTER_LOCKED_PIPELINE_ID}`,
+      `mode=${SUBMIT ? "SUBMIT (paid)" : "DRY RUN"}`,
       `runKey=${RUN_KEY}`,
-      `variants=${COMMERCE_SLUGS.join(", ")}`,
+      `imagePlan=${SHUYU_IMAGE_PLAN_ID}`,
+      `videoPlan=${videoPlanId}${PREFER_FAST_VIP ? " (Fast VIP 88pts/sec)" : " (audited 900/gen)"}`,
+      `duration=${SUNNYSHUTTER_PIPELINE_DURATION_SEC}s × ${ITEM_COUNT}`,
+      `variants=${SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.length}`,
     ].join("\n"),
   );
 
@@ -189,57 +389,50 @@ async function main(): Promise<void> {
     ? (JSON.parse(readFileSync(REPORT_PATH, "utf8")) as Report)
     : null;
 
-  if (SUBMIT) {
-    process.env.VIDEO_ENGINE_MOCK = "false";
-    process.env.VIDEO_PROVIDER = "byteplus";
-    process.env.SEEDANCE_RUNTIME_PROFILE = "volcengine_cn_legacy";
-    process.env.ARK_BASE_URL = VOLCENGINE_CN_ARK_BASE_URL;
-    process.env.ARK_VIDEO_MODEL = "doubao-seedance-2-0-260128";
-  }
-
-  const sourceAssets = SUBMIT
-    ? await uploadAssets(existing)
-    : (existing?.sourceAssets?.length ? existing.sourceAssets : buildDryRunAssets());
-
-  const seedBySlug = new Map(
-    SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.map((seed) => [seed.slug, seed]),
-  );
+  const sourceAssets = await resolveSourceAssets(existing);
 
   const items: ReportItem[] = [];
   for (let index = 1; index <= ITEM_COUNT; index += 1) {
     const variant = pickSunnyShutterCommerceVariant(index);
-    const seed = seedBySlug.get(variant.slug);
-    if (!seed) throw new Error(`Missing seed for ${variant.slug}`);
     const itemImages = imagesForItem(index, sourceAssets);
-    const promptPreview = renderBatchTemplatePrompt({
-      promptSkeleton: seed.promptSkeleton,
-      productName: "Custom plantation shutters / 定制实木百叶窗 · SunnyShutter",
-      imageUrls: itemImages.map((asset) => asset.blobUrl),
-    }).slice(0, 480);
-
+    const prior = existing?.items.find((row) => row.index === index);
     items.push({
       index,
       idempotencyKey: `${RUN_KEY}:${index}`,
       templateSlug: variant.slug,
       plotVariantId: variant.id,
+      styleLane: variant.styleLane,
       imageIds: itemImages.map((asset) => asset.id),
-      promptPreview,
+      productImageUrls: itemImages.map((asset) => asset.blobUrl),
+      storyboard: prior?.storyboard,
+      videoPlanId: prior?.videoPlanId,
+      externalJobId: prior?.externalJobId ?? null,
+      status: prior?.status,
+      outputVideoUrl: prior?.outputVideoUrl ?? null,
+      localPath: prior?.localPath ?? null,
+      brandedLocalPath: prior?.brandedLocalPath ?? null,
+      brandedBlobUrl: prior?.brandedBlobUrl ?? null,
+      error: prior?.error ?? null,
+      promptPreview: prior?.promptPreview,
     });
-
     console.log(
-      `#${String(index).padStart(2, "0")} ${variant.slug} · ${variant.nameZh} · images=${itemImages.length}`,
+      `#${String(index).padStart(2, "0")} ${variant.slug} · ${variant.nameZh} · ${variant.styleLane}`,
     );
   }
 
   const report: Report = {
     runKey: RUN_KEY,
-    purpose: "sunnyshutter-commerce-cta-batch10",
+    purpose: "sunnyshutter-image2-storyboard-batch10",
+    pipelineId: SUNNYSHUTTER_LOCKED_PIPELINE_ID,
     templateFamily: SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY,
-    providerRoute: "volcengine_cn_legacy",
+    providerRoute: "shuyu",
+    imagePlanId: SHUYU_IMAGE_PLAN_ID,
+    videoPlanId,
+    preferFastVip: PREFER_FAST_VIP,
     dryRun: !SUBMIT,
     requestedCount: ITEM_COUNT,
-    durationSec: 15,
-    startedAt: new Date().toISOString(),
+    durationSec: SUNNYSHUTTER_PIPELINE_DURATION_SEC,
+    startedAt: existing?.startedAt ?? new Date().toISOString(),
     sourceAssets,
     items,
   };
@@ -247,131 +440,122 @@ async function main(): Promise<void> {
 
   if (!SUBMIT) {
     console.log(
-      `\nDRY RUN done. Plan written to ${REPORT_PATH}\n` +
-        "When ARK is topped up (or Shuyu video is live), re-run with ACCEPTANCE_SUBMIT=1.",
+      `\nDRY RUN done → ${REPORT_PATH}\n` +
+        "Submit with ACCEPTANCE_SUBMIT=1 (Shuyu Image2 storyboard → 15s I2V).",
     );
     return;
   }
 
-  await seedBatchStyleTemplates();
-  const templates = await db.styleTemplate.findMany({
-    where: {
-      slug: { in: COMMERCE_SLUGS },
-      status: StyleTemplateStatus.ACTIVE,
-    },
-  });
-  if (templates.length !== COMMERCE_SLUGS.length) {
-    throw new Error(
-      `Expected ${COMMERCE_SLUGS.length} ACTIVE commerce templates, found ${templates.length}. Run seedBatchStyleTemplates.`,
-    );
-  }
-  const templateBySlug = new Map(templates.map((row) => [row.slug, row]));
+  const balance = await getShuyuBalance();
+  console.log(`Shuyu balance: ${balance.available_points} pts`);
 
-  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
-  const user = await db.adminUser.findFirst({
-    where: adminEmail ? { email: adminEmail } : { role: "SUPER_ADMIN" },
-  });
-  if (!user) throw new Error("No acceptance user found");
-
-  const session = {
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      image: null,
-      role: user.role,
-      userType: user.userType,
-    },
-  } as Session;
-
-  for (const item of report.items) {
-    const template = templateBySlug.get(item.templateSlug);
-    if (!template) throw new Error(`Template not in DB: ${item.templateSlug}`);
-    const itemImages = imagesForItem(item.index, sourceAssets);
-    const batch = await createBatchJob({
-      userId: user.id,
-      templateId: template.id,
-      templateVersion: template.version,
-      images: itemImages.map((asset) => ({ id: asset.id, url: asset.blobUrl })),
-      requestedCount: 1,
-      productName: "Custom plantation shutters / 定制实木百叶窗 · SunnyShutter",
-      idempotencyKey: item.idempotencyKey,
-      videoRouteId: "volcengine_cn_legacy",
-      isInternalStaff: true,
-    });
-    await authorizeBatchQuotaForSession(session, batch.id);
-    item.templateId = template.id;
-    item.batchId = batch.id;
-    writeReport(report);
-  }
-
-  // Canary: tick item 1 first; stop the rest if provider rejects.
-  const canary = report.items[0]!;
-  await processBatchTick(canary.batchId!);
-  const canaryAfter = await getBatchStatus(canary.batchId!, user.id);
-  const canaryJob = canaryAfter.videoJobs[0];
-  canary.status = canaryAfter.status;
-  canary.videoJobId = canaryJob?.id;
-  canary.externalJobId = canaryJob?.externalJobId ?? null;
-  canary.error = canaryJob?.errorMessage ?? null;
-  writeReport(report);
-
-  if (
-    canaryAfter.status === "FAILED" ||
-    String(canaryJob?.errorMessage ?? "").includes("AccountOverdue")
-  ) {
-    throw new Error(
-      `Canary failed — aborting remaining 9. status=${canaryAfter.status} error=${canary.error}`,
-    );
-  }
+  // Canary item 1 first
+  await processItem(report.items[0]!, report);
 
   for (const item of report.items.slice(1)) {
     await sleep(TICK_SPACING_MS);
-    await processBatchTick(item.batchId!);
+    try {
+      await processItem(item, report);
+    } catch (error) {
+      console.error(
+        `#${item.index} failed — continuing remaining. ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
-  const deadline = Date.now() + MAX_WAIT_MS;
-  while (Date.now() < deadline) {
-    let allTerminal = true;
+  // Second pass: retry busy-line failures (common on Image2 / Fast VIP).
+  const retryables = report.items.filter((item) => item.status === "FAILED");
+  if (retryables.length > 0) {
+    console.log(`\nRetry pass for ${retryables.length} failed item(s)…`);
+    for (const item of retryables) {
+      item.status = undefined;
+      item.error = null;
+      item.externalJobId = null;
+      item.outputVideoUrl = null;
+      // Keep storyboard if already generated.
+      await sleep(5_000);
+      try {
+        await processItem(item, report);
+      } catch (error) {
+        console.error(
+          `#${item.index} retry failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+  }
+
+  // Brand packaging for successes
+  if (!existsSync(LOGO_PATH)) {
+    console.warn(`skip branding — logo missing at ${LOGO_PATH}`);
+  } else {
+    const endCardEn = await renderBrandEndCard({
+      briefId: `${RUN_KEY}-end-en`,
+      plan: endCardPlan("en"),
+      aspectRatio: "9:16",
+      logoUrl: sunnyShutterLogoFileUrl(),
+    });
+    const endCardZh = await renderBrandEndCard({
+      briefId: `${RUN_KEY}-end-zh`,
+      plan: endCardPlan("zh"),
+      aspectRatio: "9:16",
+      logoUrl: sunnyShutterLogoFileUrl(),
+    });
+    if (!endCardEn?.url || !endCardZh?.url) {
+      throw new Error("end card render failed");
+    }
     for (const item of report.items) {
-      const status = await getBatchStatus(item.batchId!, user.id);
-      const job = status.videoJobs[0];
-      item.status = status.status;
-      item.videoJobId = job?.id;
-      item.externalJobId = job?.externalJobId ?? null;
-      item.outputVideoUrl = job?.outputVideoUrl ?? null;
-      item.error = job?.errorMessage ?? null;
-      if (!isTerminalBatchStatus(status.status)) allTerminal = false;
-      if (!isTerminalBatchStatus(status.status)) {
-        await processBatchTick(item.batchId!);
+      if (item.status !== "SUCCEEDED" || !item.localPath) continue;
+      if (item.brandedLocalPath && existsSync(item.brandedLocalPath)) continue;
+      const language = item.index % 5 === 0 ? "zh" : "en";
+      try {
+        const branded = await brandOne({
+          index: item.index,
+          sourcePath: item.localPath,
+          language,
+          endCardUrl: language === "zh" ? endCardZh.url : endCardEn.url,
+        });
+        item.brandedLocalPath = branded.localPath;
+        item.brandedBlobUrl = branded.blobUrl;
+        writeReport(report);
+        console.log(`#${item.index} branded → ${basename(branded.localPath)}`);
+      } catch (error) {
+        item.error = [
+          item.error,
+          `branding: ${error instanceof Error ? error.message : String(error)}`,
+        ]
+          .filter(Boolean)
+          .join(" | ");
+        writeReport(report);
+        console.error(`#${item.index} branding failed: ${item.error}`);
       }
     }
-    writeReport(report);
-    if (allTerminal) break;
-    await sleep(POLL_MS);
-  }
-
-  mkdirSync(VIDEO_DIR, { recursive: true });
-  for (const item of report.items) {
-    if (!item.outputVideoUrl) continue;
-    const path = resolve(
-      VIDEO_DIR,
-      `ss-commerce-${String(item.index).padStart(2, "0")}-${item.plotVariantId}.mp4`,
-    );
-    if (!existsSync(path)) {
-      const response = await fetch(item.outputVideoUrl);
-      if (!response.ok) {
-        throw new Error(`download ${item.index} failed (${response.status})`);
-      }
-      writeFileSync(path, Buffer.from(await response.arrayBuffer()));
-    }
-    item.localPath = path;
   }
 
   report.finishedAt = new Date().toISOString();
   report.dryRun = false;
   writeReport(report);
-  console.log(`SUBMIT done. Report: ${REPORT_PATH}`);
+
+  const ok = report.items.filter((item) => item.status === "SUCCEEDED").length;
+  const branded = report.items.filter((item) => item.brandedLocalPath).length;
+  console.log(
+    JSON.stringify(
+      {
+        reportPath: REPORT_PATH,
+        succeeded: ok,
+        branded,
+        failed: report.items
+          .filter((item) => item.status === "FAILED")
+          .map((item) => ({ index: item.index, error: item.error })),
+      },
+      null,
+      2,
+    ),
+  );
+  if (ok < ITEM_COUNT) process.exitCode = 1;
 }
 
 main().catch((error: unknown) => {

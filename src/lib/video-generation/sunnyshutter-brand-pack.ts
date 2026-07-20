@@ -65,8 +65,8 @@ export const SUNNYSHUTTER_END_CARD_COPY: Record<
   en: {
     language: "en",
     brandName: "SUNNY Shutters",
-    slogan: "Custom Shutters · Measured, Made, Installed",
-    cta: "Book Your FREE In-Home Quote",
+    slogan: "Custom Shutters · Shades · Curtains",
+    cta: "Call Now · FREE In-Home Measure",
     contactLines: [
       `Call / Text ${SUNNYSHUTTER_PHONE}`,
       SUNNYSHUTTER_ADDRESS,

@@ -8,6 +8,19 @@ export const SHUYU_VIDEO_MODEL = "studio-video" as const;
 export const SHUYU_VIDEO_RESOLUTION = "720P" as const;
 export const SHUYU_VIDEO_BILLING_UNIT = "generation" as const;
 export const SHUYU_VIDEO_POINTS_PER_GENERATION = 900 as const;
+/** GPT Image 2 · 推荐 — plan resolution rotates; prefer 01 then failover in pipeline. */
+export const SHUYU_IMAGE_PLAN_ID = "image-plan-01" as const;
+export const SHUYU_IMAGE_MODEL = "studio-image" as const;
+export const SHUYU_IMAGE_RESOLUTION = "1K" as const;
+export const SHUYU_IMAGE_POINTS_PER_GENERATION = 24 as const;
+/** Fallback lane if the recommended plan is temporarily unavailable. */
+export const SHUYU_IMAGE_FALLBACK_PLAN_ID = "image-plan-07" as const;
+/**
+ * Fast VIP recommended lane (88 pts/sec). Prefer for speed; for flat 15s cost
+ * the audited `video-plan-02` (900/generation) is cheaper.
+ */
+export const SHUYU_VIDEO_FAST_PLAN_ID = "video-plan-03" as const;
+export const SHUYU_VIDEO_FAST_POINTS_PER_SECOND = 88 as const;
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const MAX_RESPONSE_BYTES = 512_000;
@@ -159,6 +172,18 @@ export interface ShuyuCreateVideoInput extends ShuyuFetchOptions {
   aspectRatio: string;
   inputImages: string[];
   model?: string;
+  /** Defaults to audited `SHUYU_VIDEO_PLAN_ID`. Acceptance may pass Fast VIP. */
+  planId?: string;
+}
+
+export interface ShuyuCreateImageInput extends ShuyuFetchOptions {
+  providerRequestKey: string;
+  prompt: string;
+  aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
+  resolution?: "1K" | "2K" | "4K";
+  inputImages?: string[];
+  planId?: string;
+  model?: string;
 }
 
 export class ShuyuApiError extends Error {
@@ -199,16 +224,24 @@ export function isAuditedShuyuVideoPlan(
     plan.resolution === SHUYU_VIDEO_RESOLUTION &&
     plan.sale_points === SHUYU_VIDEO_POINTS_PER_GENERATION &&
     plan.status === "available" &&
-    plan.capabilities.quality === SHUYU_VIDEO_RESOLUTION &&
+    (plan.capabilities.quality === SHUYU_VIDEO_RESOLUTION ||
+      plan.capabilities.quality === undefined) &&
     plan.capabilities.input_images_max >= 9 &&
     plan.capabilities.aspect_ratios.includes("9:16") &&
     plan.capabilities.aspect_ratios.includes("16:9") &&
     plan.capabilities.aspect_ratios.includes("1:1") &&
     (plan.capabilities.modes?.includes("text2video") ?? false) &&
     (plan.capabilities.modes?.includes("image2video") ?? false) &&
-    (plan.capabilities.modes?.includes("frames2video") ?? false) &&
+    // Live /prices may omit frames2video; image2video is the SunnyShutter path.
     (plan.capabilities.durations?.includes(15) ?? false)
   );
+}
+
+/** Locate the audited video plan among a multi-plan price list. */
+export function findAuditedShuyuVideoPlan(
+  plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
+): z.infer<typeof shuyuPriceSchema> | undefined {
+  return plans.find((plan) => plan.kind === "video" && isAuditedShuyuVideoPlan(plan));
 }
 
 function timeoutMs(value: number | undefined): number {
@@ -480,6 +513,107 @@ function createSubmissionError(args: {
   });
 }
 
+export async function createShuyuImageTask(
+  input: ShuyuCreateImageInput,
+): Promise<{ taskId: string }> {
+  const providerRequestKey = input.providerRequestKey.trim();
+  if (providerRequestKey.length < 8 || providerRequestKey.length > 120) {
+    throw new ProviderSubmissionError(
+      "Shuyu requires a persisted Idempotency-Key",
+      { providerId: "shuyu", stage: "preflight", retryable: false },
+    );
+  }
+  const prompt = input.prompt.trim();
+  if (!prompt || prompt.length > 5_000) {
+    throw new ProviderSubmissionError(
+      prompt.length > 5_000
+        ? "Shuyu image prompt must not exceed 5000 characters"
+        : "Shuyu image prompt is required",
+      { providerId: "shuyu", stage: "preflight", retryable: false },
+    );
+  }
+  const inputImages = (input.inputImages ?? [])
+    .map((url) => url.trim())
+    .filter(Boolean);
+  if (inputImages.length > 5) {
+    throw new ProviderSubmissionError(
+      "Shuyu image accepts at most 5 HTTPS reference images",
+      { providerId: "shuyu", stage: "preflight", retryable: false },
+    );
+  }
+
+  const body = {
+    plan_id: input.planId ?? SHUYU_IMAGE_PLAN_ID,
+    model: input.model ?? SHUYU_IMAGE_MODEL,
+    prompt,
+    resolution: input.resolution ?? SHUYU_IMAGE_RESOLUTION,
+    aspect_ratio: input.aspectRatio ?? "9:16",
+    ...(inputImages.length > 0 ? { input_images: inputImages } : {}),
+  };
+
+  let response: Response;
+  let payload: unknown;
+  try {
+    const result = await shuyuFetchJson(
+      "/images/generations",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": providerRequestKey,
+        },
+        body: JSON.stringify(body),
+      },
+      input,
+    );
+    response = result.response;
+    payload = result.payload;
+  } catch (error) {
+    if (error instanceof ProviderSubmissionError) throw error;
+    throw new ProviderSubmissionError(
+      error instanceof Error ? error.message : "Shuyu image request failed",
+      {
+        providerId: "shuyu",
+        stage:
+          error instanceof ShuyuApiError && error.code === "invalid_response"
+            ? "response_decode"
+            : "transport",
+        httpStatus:
+          error instanceof ShuyuApiError ? error.httpStatus : undefined,
+        retryable: false,
+        cause: error,
+      },
+    );
+  }
+  if (!response.ok) throw createSubmissionError({ response, payload });
+
+  const parsed = shuyuCreateTaskResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ProviderSubmissionError(
+      "Shuyu accepted the image request but returned no valid task identifier",
+      {
+        providerId: "shuyu",
+        stage: "response_decode",
+        httpStatus: response.status,
+        retryable: false,
+      },
+    );
+  }
+  const taskId = parsed.data.task_id ?? parsed.data.id;
+  if (!taskId) {
+    throw new ProviderSubmissionError(
+      "Shuyu accepted the image request but returned no valid task identifier",
+      {
+        providerId: "shuyu",
+        stage: "response_decode",
+        httpStatus: response.status,
+        retryable: false,
+      },
+    );
+  }
+  return { taskId };
+}
+
 export async function createShuyuVideoTask(
   input: ShuyuCreateVideoInput,
 ): Promise<{ taskId: string }> {
@@ -492,7 +626,7 @@ export async function createShuyuVideoTask(
   }
 
   const body = {
-    plan_id: SHUYU_VIDEO_PLAN_ID,
+    plan_id: input.planId ?? SHUYU_VIDEO_PLAN_ID,
     model: input.model ?? SHUYU_VIDEO_MODEL,
     mode:
       input.inputImages.length === 0

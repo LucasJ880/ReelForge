@@ -36,9 +36,16 @@ export type Image2StoryboardFrame = {
   imageUrl: string;
   beat?: string;
   imagePrompt?: string;
+  /** 抽卡：本帧生成的全部候选图（imageUrl 为择优胜者）。 */
+  candidateUrls?: string[];
+  /** 抽卡评审：择优结论（checked=false 表示评审不可用、fail-open 取第一张）。 */
+  gachaJudge?: { chosenIndex: number; checked: boolean; note: string };
 };
 
-export type Image2StoryboardSource = "openai_image2" | "manual_keyframes";
+export type Image2StoryboardSource =
+  | "openai_image2"
+  | "shuyu_image2"
+  | "manual_keyframes";
 
 export type Image2StoryboardArtifact = {
   source: Image2StoryboardSource;
@@ -108,6 +115,7 @@ export function validateImage2Storyboard(
   }
   if (
     artifact.source !== "openai_image2" &&
+    artifact.source !== "shuyu_image2" &&
     artifact.source !== "manual_keyframes"
   ) {
     reasons.push(`unsupported storyboard source: ${String(artifact.source)}`);

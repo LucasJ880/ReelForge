@@ -257,3 +257,42 @@ ACCEPTANCE_SUBMIT=1 npm run acceptance:sunnyshutter:batch10:submit
 
 种子即全部 `BATCH_STYLE_TEMPLATE_SEEDS`（**通用风格库已下线，仅 SunnyShutter**）。  
 上线/本地跑一次 `seedBatchStyleTemplates`：写入缺失 SunnyShutter 行，并 **归档** 其它 ACTIVE 通用模版。
+
+---
+
+## 13. Shades / Curtains 附加锁（2026-07-20 CEO WeChat）
+
+> 适用产品：`roller_blackout` / `zebra` / `sheer_sfold`（卷帘 / 斑马帘 / S 褶纱帘）。  
+> 代码：`sunnyshutter-shade-template.ts` + `sunnyshutter-shade-pipeline.ts`（家族 `sunnyshutter-shade-cta`，10 变体，Plan A ≈ 6 卷帘 + 2 斑马 + 2 纱帘）。
+
+### 13.1 拉珠侧边硬锁（写死）
+
+- 拉珠 / 珠链 / 循环拉绳 **只允许出现在帘头左边缘或右边缘**（变体里 `pullSide` 锁定具体侧）。
+- **禁止**：拉珠居中、飘在窗中间、脱离侧轨。故事版评审与人工抽检均按此一票否决。
+
+### 13.2 窗户主角锁（CEO：「重点是窗帘，把故事版的重点放窗上」）
+
+- 故事版每一帧：**同一扇窗 + 窗饰是画面主角**（约占画面一半以上、完整入画、机位角度不变）。
+- 人物只做配角，永不遮挡产品；`product_only` 变体可完全无人。
+
+### 13.3 单场景防幻视锁
+
+- 全片一个房间、一扇窗、一个机位；节拍推进只靠画面内真实运动（帘动 / 人动）。
+- **禁止**交叉溶解 / 叠影 / 双重曝光 / 房间变形切换（v1 成片曾出现卧室→办公室→客厅漂移 + 人帘叠影幻视）。
+
+### 13.4 故事版抽卡 + 择优（一致性关键路径）
+
+- 每帧并行生成 N 个候选（默认 3，`STORYBOARD_GACHA_CANDIDATES` 可调），vision 评审按
+  「窗主角 / 同房同窗同人 / 拉珠侧边 / 零文字」打分择优；评审不可用时 fail-open 取第一张。
+- 帧 2/3 生成时把**已选前帧作为首个输入图**（图像锚定，不再纯靠文字锁一致性）。
+- 代码：`src/lib/video-generation/storyboard-gacha.ts`。
+
+### 13.5 裁尾 + 帧质检
+
+- 品牌包装前一律 `trimVideoTail` 裁掉原片最后 0.8s（Seedance 假名片幻觉高发区），再接真尾卡。
+- 下载原片后跑 `runFrameTextQa` 抽帧文字质检，结论写进验收报告 `frameQa` 字段（fail-open，仅记录）。
+
+### 13.6 人工抽检清单（发片前）
+
+1. 拉珠是否只在侧边；2. 有无任何模型画的文字 / logo / 假名片；3. 房间与人物是否全程一致、无叠影；
+4. 左上角 logo 是否清晰无重合；5. 尾卡电话 `647-857-8669` 与地址是否正确。

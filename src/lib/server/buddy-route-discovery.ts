@@ -8,10 +8,10 @@
  */
 
 import {
+  findAuditedShuyuVideoPlan,
   getShuyuBalance,
   getShuyuHealth,
   getShuyuPrices,
-  isAuditedShuyuVideoPlan,
   SHUYU_API_BASE_URL,
   SHUYU_TASK_STATUSES,
   SHUYU_VIDEO_BILLING_UNIT,
@@ -111,8 +111,7 @@ export async function discoverShuyuVideoRoute(
       getShuyuBalance(options),
     ]);
     const videoPlans = prices.data.filter((item) => item.kind === "video");
-    const contractMatches =
-      videoPlans.length === 1 && isAuditedShuyuVideoPlan(videoPlans[0]);
+    const contractMatches = Boolean(findAuditedShuyuVideoPlan(videoPlans));
     const plans = contractMatches ? [AUDITED_PLAN] : [];
     const funded = balance.available_points > 0;
     return route({

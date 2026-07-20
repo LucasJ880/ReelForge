@@ -74,3 +74,6 @@ _legacy/**/__pycache__/
 _legacy/*.pyc
 _legacy/.env
 _legacy/*.db
+
+# vendored third-party agent skills (large clones, not project code)
+.claude/skills/video-shotcraft/

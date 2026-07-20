@@ -1,7 +1,7 @@
 import {
+  findAuditedShuyuVideoPlan,
   getShuyuBalance,
   getShuyuPrices,
-  isAuditedShuyuVideoPlan,
   shuyuApiKey,
   ShuyuApiError,
   type ShuyuFetchOptions,
@@ -50,8 +50,7 @@ async function runProbe(options: ShuyuFetchOptions): Promise<CachedProbe> {
       getShuyuBalance(options),
     ]);
     const videoPlans = prices.data.filter((plan) => plan.kind === "video");
-    const contractReady =
-      videoPlans.length === 1 && isAuditedShuyuVideoPlan(videoPlans[0]);
+    const contractReady = Boolean(findAuditedShuyuVideoPlan(videoPlans));
     return {
       expiresAt: Date.now() + CACHE_TTL_MS,
       contractReady,

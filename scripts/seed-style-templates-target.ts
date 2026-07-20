@@ -10,12 +10,23 @@ async function main() {
   const seededSlugs = BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug);
   const [seededActive, otherActive, total] = await Promise.all([
     db.styleTemplate.count({ where: { status: "ACTIVE", slug: { in: seededSlugs } } }),
-    db.styleTemplate.count({ where: { status: "ACTIVE", slug: { notIn: seededSlugs } } }),
+    db.styleTemplate.count({
+      where: {
+        status: "ACTIVE",
+        slug: { notIn: seededSlugs },
+        category: { not: "自动化验收" },
+      },
+    }),
     db.styleTemplate.count(),
   ]);
   console.log(JSON.stringify({ created, seededActive, otherActive, total }));
   if (seededActive !== BATCH_STYLE_TEMPLATE_SEEDS.length) {
     throw new Error(`Expected ${BATCH_STYLE_TEMPLATE_SEEDS.length} active seeded templates, found ${seededActive}`);
+  }
+  if (otherActive > 0) {
+    throw new Error(
+      `Expected 0 non-SunnyShutter ACTIVE templates, found ${otherActive}`,
+    );
   }
 }
 

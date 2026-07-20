@@ -56,8 +56,8 @@ function json(value: object): Prisma.InputJsonValue {
 }
 
 /**
- * 幂等 seed：只创建缺失的 v1 ACTIVE 模板，绝不 update 已存在 ACTIVE 行。
- * 因此重复 seed 也不会绕过「ACTIVE 不可变」约束。
+ * 幂等 seed：只创建缺失的 ACTIVE 模板，绝不 update 已存在 ACTIVE 行。
+ * 同时归档「不在当前种子集合」的 ACTIVE 行（通用风格库已下线，仅保留 SunnyShutter）。
  */
 export async function seedBatchStyleTemplates(): Promise<number> {
   let created = 0;
@@ -85,6 +85,18 @@ export async function seedBatchStyleTemplates(): Promise<number> {
       return 1;
     });
   }
+
+  const keepSlugs = BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug);
+  await db.styleTemplate.updateMany({
+    where: {
+      status: StyleTemplateStatus.ACTIVE,
+      slug: { notIn: keepSlugs },
+      /// 验收夹具分类保留，避免误伤自动化测试行
+      category: { not: "自动化验收" },
+    },
+    data: { status: StyleTemplateStatus.ARCHIVED },
+  });
+
   return created;
 }
 

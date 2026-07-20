@@ -104,7 +104,7 @@ function collectWorkItems(): WorkItem[] {
         sourcePath: item.localPath,
         /// 5/10/15 号用中文尾卡（对华人商家侧投放），其余英文
         language: item.index % 5 === 0 ? "zh" : "en",
-        aspectRatio: item.templateSlug === "furniture-room-anchor" ? "16:9" : "9:16",
+        aspectRatio: "9:16",
       });
     }
   }

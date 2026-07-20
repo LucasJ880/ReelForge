@@ -253,4 +253,5 @@ npm run acceptance:sunnyshutter:batch10
 ACCEPTANCE_SUBMIT=1 npm run acceptance:sunnyshutter:batch10:submit
 ```
 
-种子已并入 `BATCH_STYLE_TEMPLATE_SEEDS`；上线前 `seedBatchStyleTemplates`。
+种子即全部 `BATCH_STYLE_TEMPLATE_SEEDS`（**通用风格库已下线，仅 SunnyShutter**）。  
+上线/本地跑一次 `seedBatchStyleTemplates`：写入缺失 SunnyShutter 行，并 **归档** 其它 ACTIVE 通用模版。

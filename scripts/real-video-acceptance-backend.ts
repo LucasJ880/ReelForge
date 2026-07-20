@@ -30,6 +30,7 @@ import {
   getShuyuHealth,
   isAuditedShuyuVideoPlan,
 } from "@/lib/providers/shuyu";
+import { SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS } from "@/lib/video-generation/sunnyshutter-commerce-template";
 
 loadEnvConfig(process.cwd());
 
@@ -62,15 +63,10 @@ const SOURCE_PATHS = [
   "/Users/evan/Downloads/2024-01-23 14.47.09.jpeg",
 ] as const;
 
-const CANDIDATE_TEMPLATE_SLUGS = [
-  "furniture-room-anchor",
-  "before-after-reversal",
-  "same-frame-comparison",
-  "one-action-proof",
-  "feature-detail-triad",
-  "lifestyle-use-demo",
-  "ugc-handheld-review",
-] as const;
+/// 通用风格库已下线；仅 SunnyShutter 电商族。
+const CANDIDATE_TEMPLATE_SLUGS = SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.map(
+  (seed) => seed.slug,
+);
 
 type ReportItem = {
   index: number;

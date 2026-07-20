@@ -33,6 +33,7 @@ import {
 } from "@/lib/services/batch-service";
 import { authorizeBatchQuotaForSession } from "@/lib/services/quota-service";
 import { VOLCENGINE_CN_ARK_BASE_URL } from "@/lib/config/seedance-runtime";
+import { SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS } from "@/lib/video-generation/sunnyshutter-commerce-template";
 
 // dev 模式加载 env：.env.production.local 里是轮转前的过期 DB 凭证，
 // 必须走 .env.local（同一个生产 Neon 库、有效的 app 角色）。
@@ -81,15 +82,11 @@ const SOURCE_PATHS = [
   "/Users/evan/Downloads/2024-01-23 14.47.09.jpeg",
 ] as const;
 
-const CANDIDATE_TEMPLATE_SLUGS = [
-  "furniture-room-anchor",
-  "before-after-reversal",
-  "same-frame-comparison",
-  "one-action-proof",
-  "feature-detail-triad",
-  "lifestyle-use-demo",
-  "ugc-handheld-review",
-] as const;
+/// 通用风格库已下线；本验收脚本改走 SunnyShutter 电商族。
+/// 新批量请优先用 real-video-acceptance-sunnyshutter-batch10.ts。
+const CANDIDATE_TEMPLATE_SLUGS = SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.map(
+  (seed) => seed.slug,
+);
 
 type ReportItem = {
   index: number;

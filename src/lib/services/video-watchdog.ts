@@ -12,10 +12,16 @@
  *   信号 B（provider 僵死）：provider 仍报 running，但其 updated_at 距 created_at
  *     从未推进，且任务已存在超过 N 分钟                → FAILED reason=provider_stalled
  *
+ * ⚠️ 信号 B 语义修正（2026-07-20 真机取证）：火山 CN Ark 的 updated_at 在任务
+ * running 期间**恒等于** created_at，只在到达终态时才推进——「未推进」是健康任务的
+ * 正常状态，不是僵死证据。信号 B 因此只能作为晚于信号 A 的兜底（覆盖 timeoutAt
+ * 缺失的旧任务），阈值必须显著大于正常生成时长（15s/1080p 实测 6-10 分钟）。
+ * 旧默认 8 分钟曾在批量验收中误杀 3 条健康任务（已付费、供应商侧照常完成）。
+ *
  * 环境变量（分钟，均可配置）：
  *   VIDEO_JOB_DEADLINE_MIN   全局 deadline，默认 10（兼容旧 SEEDANCE_TIMEOUT_MIN）
  *   WATCHDOG_GRACE_MIN       信号 A 的宽限期，默认 2
- *   PROVIDER_STALL_MIN       信号 B 的僵死阈值，默认 8
+ *   PROVIDER_STALL_MIN       信号 B 的僵死阈值，默认 30（必须 > 正常生成时长上限）
  */
 
 import type { SeedanceJobResult } from "@/lib/providers/seedance";
@@ -50,7 +56,7 @@ export function watchdogGraceMin(): number {
 }
 
 export function providerStallMin(): number {
-  return Number(process.env.PROVIDER_STALL_MIN ?? "8");
+  return Number(process.env.PROVIDER_STALL_MIN ?? "30");
 }
 
 /**
@@ -72,9 +78,10 @@ export interface ProviderStallVerdict {
 }
 
 /**
- * 信号 B：provider 僵死。
- * Seedance 原始响应里 created_at / updated_at 为 unix 秒。生产取证显示：
- * 僵死任务 status=running 且 updated_at 恒等于 created_at（从未推进）。
+ * 信号 B：provider 僵死（晚于信号 A 的兜底，见模块头 2026-07-20 语义修正）。
+ * Seedance 原始响应里 created_at / updated_at 为 unix 秒。火山 CN 实测：健康
+ * running 任务的 updated_at 同样恒等于 created_at（仅终态推进），因此该信号
+ * 无法区分「僵死」与「正常生成中」，阈值必须显著大于正常生成时长上限。
  * 判定：非终态 && updated_at <= created_at && 任务已存在超过 PROVIDER_STALL_MIN。
  * 原始响应快照由调用方随日志保留。
  */

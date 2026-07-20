@@ -42,7 +42,7 @@ import {
   VideoRouteSelectionError,
 } from "@/lib/video-generation/video-route-selection";
 import type { VideoRouteSnapshot } from "@/lib/video-generation/video-route-registry";
-import { SHUYU_VIDEO_POINTS_PER_SECOND } from "@/lib/providers/shuyu";
+import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
 
 /**
  * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
@@ -382,9 +382,7 @@ export async function POST(req: NextRequest) {
       snapshot: videoRouteSnapshot,
       shuyuRequiredPoints:
         videoRouteSnapshot.videoRouteSnapshot === "buddy"
-          ? reqParsed.data.selectedDuration *
-            batchCount *
-            SHUYU_VIDEO_POINTS_PER_SECOND
+          ? batchCount * SHUYU_VIDEO_POINTS_PER_GENERATION
           : undefined,
     });
   if (!selectedRouteAvailability.available) {

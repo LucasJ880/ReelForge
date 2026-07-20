@@ -57,7 +57,7 @@ const ROUTE_COPY = {
     directDescription: "当前生产默认线路 · 失败按平台规则处理",
     shuyuGroup: "Shuyu 已开放 API 线路",
     shuyuTitle: "Shuyu 合作接口 · Seedance 2.0 · 720P",
-    shuyuDescription: "文生 / 图片参考 · 每镜头 5–15 秒 · 104 积分/秒",
+    shuyuDescription: "文生 / 图片参考 · 每镜头 5–15 秒 · 900 积分/支",
     shuyuEstimate: "当前时长预计 {points} 积分/支 · 提交前再次核对",
     available: "已接入",
     checking: "正在检查",
@@ -81,7 +81,7 @@ const ROUTE_COPY = {
     directDescription: "Current production default · platform recovery rules apply",
     shuyuGroup: "Shuyu public API route",
     shuyuTitle: "Shuyu partner API · Seedance 2.0 · 720P",
-    shuyuDescription: "Text / image reference · 5–15s per shot · 104 points/sec",
+    shuyuDescription: "Text / image reference · 5–15s per shot · 900 points/video",
     shuyuEstimate: "Estimated {points} points/video · checked again before submit",
     available: "Connected",
     checking: "Checking",
@@ -114,7 +114,7 @@ export function VideoRouteSelector({
   canSelectVideoRoute: boolean;
   showInternalRoutes?: boolean;
   shuyuStatus?: ShuyuRouteUiStatus | null;
-  durationSeconds?: 15 | 30 | 60;
+  durationSeconds?: number;
   value: VideoRouteOverride;
   disabled: boolean;
   onChange: (value: VideoRouteOverride) => void;
@@ -217,7 +217,7 @@ export function VideoRouteSelector({
   const volcengineLabel = directRouteLabel("volcengine_cn_legacy");
   const shuyuEstimate = copy.shuyuEstimate.replace(
     "{points}",
-    String(durationSeconds * 104),
+    "900",
   );
   const shuyuDescription = `${copy.shuyuDescription} · ${shuyuEstimate}`;
   const selectedTitle = value === "buddy"

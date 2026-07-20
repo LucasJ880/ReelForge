@@ -8,20 +8,39 @@ import {
 import { discoverShuyuVideoRoute } from "../src/lib/server/buddy-route-discovery";
 
 const videoPlan = {
-  plan_id: "video-standard-720p-second",
+  plan_id: "video-plan-02",
   kind: "video",
   model: "studio-video",
-  unit: "second",
+  unit: "generation",
   resolution: "720P",
-  sale_points: 104,
+  sale_points: 900,
+  display_name: "Seedance 2.0 · 720P",
+  capabilities: {
+    aspect_ratios: ["9:16", "16:9", "1:1"],
+    input_images_max: 9,
+    modes: ["frames2video", "image2video", "text2video"],
+    durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+    quality: "720P",
+  },
+  status: "available",
 };
 
-test("Shuyu discovery only uses documented read-only prices and balance routes", async () => {
+const healthPayload = {
+  object: "service_health",
+  status: "operational",
+  capabilities: { image: "available", video: "available" },
+  checked_at: "2026-07-19T02:00:00.000Z",
+};
+
+test("Shuyu discovery only uses documented read-only health, prices and balance routes", async () => {
   const secret = "test-only-shuyu-secret-never-return";
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const fetchStub: typeof fetch = async (input, init) => {
     const url = String(input);
     calls.push({ url, init });
+    if (url.endsWith("/health")) {
+      return new Response(JSON.stringify(healthPayload), { status: 200 });
+    }
     if (url.endsWith("/prices")) {
       return new Response(
         JSON.stringify({
@@ -58,6 +77,7 @@ test("Shuyu discovery only uses documented read-only prices and balance routes",
     calls.map((call) => call.url).sort(),
     [
       `${SHUYU_API_BASE_URL}/account/balance`,
+      `${SHUYU_API_BASE_URL}/health`,
       `${SHUYU_API_BASE_URL}/prices`,
     ],
   );
@@ -81,12 +101,12 @@ test("Shuyu discovery only uses documented read-only prices and balance routes",
   assert.equal(response.routes[0].unavailableReason, "insufficient_balance");
   assert.deepEqual(response.routes[0].plans, [
     {
-      planId: "video-standard-720p-second",
+      planId: "video-plan-02",
       kind: "video",
       model: "studio-video",
-      unit: "second",
+      unit: "generation",
       resolution: "720P",
-      salePoints: 104,
+      salePoints: 900,
     },
   ]);
   const serialized = JSON.stringify(response);
@@ -114,7 +134,9 @@ test("discovery fails closed when the public video price contract changes", asyn
   const discovered = await discoverShuyuVideoRoute({
     env: { SHUYU_API_KEY: "configured" },
     fetchImpl: async (input) =>
-      String(input).endsWith("/prices")
+      String(input).endsWith("/health")
+        ? new Response(JSON.stringify(healthPayload), { status: 200 })
+        : String(input).endsWith("/prices")
         ? new Response(
             JSON.stringify({
               object: "list",
@@ -136,6 +158,43 @@ test("discovery fails closed when the public video price contract changes", asyn
   assert.deepEqual(discovered.plans, []);
 });
 
+test("discovery fails closed when health is 503 even if price and balance look usable", async () => {
+  const discovered = await discoverShuyuVideoRoute({
+    env: { SHUYU_API_KEY: "configured" },
+    fetchImpl: async (input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              type: "service_unavailable",
+              message: "The API is temporarily unavailable.",
+            },
+          }),
+          { status: 503 },
+        );
+      }
+      if (url.endsWith("/prices")) {
+        return new Response(
+          JSON.stringify({ object: "list", data: [videoPlan] }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          object: "balance",
+          available_points: 180_000,
+          unit: "points",
+        }),
+        { status: 200 },
+      );
+    },
+  });
+  assert.equal(discovered.availability, "unavailable");
+  assert.equal(discovered.unavailableReason, "upstream_unavailable");
+  assert.deepEqual(discovered.plans, []);
+});
+
 test("missing key performs no upstream discovery", async () => {
   let calls = 0;
   const discovered = await discoverShuyuVideoRoute({
@@ -151,7 +210,7 @@ test("missing key performs no upstream discovery", async () => {
     provider: "shuyu",
     displayName: "Shuyu API",
     apiBaseUrl: SHUYU_API_BASE_URL,
-    discoveryMode: "prices_and_balance_read_only_non_billing",
+    discoveryMode: "health_prices_and_balance_read_only_non_billing",
     availability: "unavailable",
     configured: false,
     funded: false,
@@ -162,7 +221,9 @@ test("missing key performs no upstream discovery", async () => {
       statusPath: "/tasks/{task_id}",
       balancePath: "/account/balance",
       requestFields: [
+        "plan_id",
         "model",
+        "mode",
         "prompt",
         "duration",
         "aspect_ratio",
@@ -172,6 +233,7 @@ test("missing key performs no upstream discovery", async () => {
         "queued",
         "processing",
         "completed",
+        "failed",
         "refund_pending",
         "refund_error",
         "refunded",

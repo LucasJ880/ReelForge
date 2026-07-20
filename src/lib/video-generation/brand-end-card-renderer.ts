@@ -235,6 +235,31 @@ function buildSvg(input: BrandEndCardRenderInput): string {
     ? Math.round(height * (isVertical ? 0.78 : 0.75))
     : websiteY;
 
+  /// 联系方式行（电话/地址）：渲染在 CTA 按钮之下、website 之上；最多 3 行。
+  const contactLines = (input.plan.contactLines ?? [])
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+  const contactSize = Math.round(base * 0.034);
+  const contactLineGap = Math.round(contactSize * 1.45);
+  const contactStartY = hideCta
+    ? Math.round(height * (isVertical ? 0.82 : 0.79))
+    : Math.round(height * (isVertical ? 0.8 : 0.76));
+  const contactSvg = contactLines
+    .map(
+      (line, i) =>
+        `<text x="${width / 2}" y="${contactStartY + i * contactLineGap}" font-family="Helvetica, Arial, sans-serif" font-size="${contactSize}" font-weight="600" fill="${colors.mediaEndCardHeading}" text-anchor="middle" opacity="0.95">${escapeXml(line)}</text>`,
+    )
+    .join("\n  ");
+  /// 有联系方式时 website 顺延到联系块下方（封顶 95% 画布高防溢出）。
+  const websiteRenderY = contactLines.length
+    ? Math.min(
+        Math.round(height * 0.95),
+        contactStartY + contactLines.length * contactLineGap +
+          Math.round(contactSize * 0.6),
+      )
+    : finalWebsiteY;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs>
@@ -261,9 +286,10 @@ function buildSvg(input: BrandEndCardRenderInput): string {
         `<text x="${width / 2}" y="${sloganY + i * sloganSize * 1.2}" font-family="Helvetica, Arial, sans-serif" font-size="${sloganSize}" fill="${colors.mediaEndCardSecondaryText}" text-anchor="middle">${escapeXml(line)}</text>`,
     )
     .join("\n  ")}${ctaButtonSvg}
+  ${contactSvg}
   ${
     website
-      ? `<text x="${width / 2}" y="${finalWebsiteY}" font-family="Helvetica, Arial, sans-serif" font-size="${websiteSize}" fill="${colors.mediaEndCardSecondaryText}" text-anchor="middle" opacity="0.85">${escapeXml(website)}</text>`
+      ? `<text x="${width / 2}" y="${websiteRenderY}" font-family="Helvetica, Arial, sans-serif" font-size="${websiteSize}" fill="${colors.mediaEndCardSecondaryText}" text-anchor="middle" opacity="0.85">${escapeXml(website)}</text>`
       : ""
   }
 </svg>`;
@@ -297,6 +323,7 @@ function computeCacheKey(input: BrandEndCardRenderInput): string {
     slogan: input.plan.slogan ?? "",
     cta: input.plan.cta ?? "",
     website: input.plan.website ?? "",
+    contact: (input.plan.contactLines ?? []).join("|"),
     logo: input.logoUrl ?? "",
   };
   const h = crypto.createHash("sha1").update(JSON.stringify(norm)).digest("hex");

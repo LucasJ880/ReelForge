@@ -64,7 +64,12 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /submissionIdentityRef/);
   assert.match(wizard, /const hasEnoughImages =/);
   assert.match(wizard, /missingImages/);
-  assert.match(wizard, /disabled=\{submitting \|\| !hasEnoughImages\}/);
+  assert.match(
+    wizard,
+    /submitting \|\|\s*!hasEnoughImages \|\|\s*selectedRouteAvailable !== true/,
+    "final submission must also be blocked while the selected provider route is unavailable",
+  );
+  assert.match(wizard, /videoRouteId:\s*videoRouteId \|\| undefined/);
   assert.match(
     wizard,
     /batchCreateErrorMessage\(data\.code, locale, data\.error\)/,

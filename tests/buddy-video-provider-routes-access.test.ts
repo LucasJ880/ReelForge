@@ -163,7 +163,7 @@ test("video-provider-routes accepts staff session or valid machine auth and deni
   fetchCalls = 0;
   const operatorResponse = await get(request());
   assert.equal(operatorResponse.status, 200);
-  assert.equal(fetchCalls, 2);
+  assert.equal(fetchCalls, 3);
 
   activeSession = null;
   fetchCalls = 0;
@@ -171,7 +171,7 @@ test("video-provider-routes accepts staff session or valid machine auth and deni
     request("Bearer test-only-machine-secret"),
   );
   assert.equal(machineResponse.status, 200);
-  assert.equal(fetchCalls, 2);
+  assert.equal(fetchCalls, 3);
   assert.doesNotMatch(
     await machineResponse.text(),
     /test-only-machine-secret|test-only-buddy-discovery-secret/,

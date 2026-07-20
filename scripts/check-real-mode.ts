@@ -3,7 +3,7 @@
  *
  * 设计目的：
  *   - 防止「以为是 mock，实际在烧真钱」的静默扣费场景
- *   - 一行命令就能看到全景：LLM / Seedance / OpenAI Image / 拼接 runtime
+ *   - 一行命令就能看到全景：LLM / 当前视频供应商 / OpenAI Image / 拼接 runtime
  *   - 在 predev / GitHub Action / 手动跑前真测时统一入口
  *
  * 用法：
@@ -42,7 +42,7 @@ function loadEnvFiles() {
     if (!existsSync(file)) continue;
     const content = readFileSync(file, "utf8");
     for (const line of content.split(/\r?\n/)) {
-      const m = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*)\s*$/);
+      const m = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
       if (!m) continue;
       const key = m[1];
       const value = m[2].replace(/^"(.*)"$/, "$1").replace(/^'(.*)'$/, "$1");
@@ -129,6 +129,36 @@ function checkSeedance(): ProviderState {
     detail: "set BYTEPLUS_ARK_API_KEY + VIDEO_ENGINE_MOCK=false to go real",
     estimatedCostNote: "$0 / segment",
   };
+}
+
+function checkVideoProvider(): ProviderState {
+  const provider = (process.env.VIDEO_PROVIDER ?? "byteplus")
+    .trim()
+    .toLowerCase();
+  if (provider === "mock") {
+    return {
+      name: "Video provider",
+      mode: "MOCK",
+      reason: "VIDEO_PROVIDER=mock",
+      detail: "provider factory will use generated preview clips",
+      estimatedCostNote: "$0 / video",
+    };
+  }
+  if (provider === "shuyu") {
+    const apiKey = Boolean(
+      process.env.SHUYU_API_KEY?.trim() || process.env.shuyu_api_key?.trim(),
+    );
+    return {
+      name: "Video (Shuyu partner route)",
+      mode: "REAL",
+      reason: "VIDEO_PROVIDER=shuyu",
+      detail: apiKey
+        ? "API key configured; live /prices audit still runs before dispatch"
+        : "❌ no SHUYU_API_KEY/shuyu_api_key — submit will fail closed",
+      estimatedCostNote: "900 points / generated video (audited live plan)",
+    };
+  }
+  return checkSeedance();
 }
 
 function checkOpenAIImage(): ProviderState {
@@ -247,7 +277,7 @@ function main() {
 
   const states = [
     checkLLM(),
-    checkSeedance(),
+    checkVideoProvider(),
     checkOpenAIImage(),
     checkStitchRuntime(),
     checkBlob(),
@@ -279,7 +309,7 @@ function guidance(realCount: number, isProd: boolean): string {
   }
   if (realCount === 0) return "all mock — safe to develop / iterate UI";
   if (realCount < 3) return "partial REAL — be aware of costs on each dispatch";
-  return "全部 REAL — 每次 Generate 都会真扣 Seedance/OpenAI 额度，确认你想这么做";
+  return "全部 REAL — 每次 Generate 都会真扣当前视频供应商/OpenAI 额度，确认你想这么做";
 }
 
 main();

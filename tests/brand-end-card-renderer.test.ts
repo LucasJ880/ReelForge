@@ -48,6 +48,34 @@ test("brand-end-card: SVG 包含 brandName / cta / website 字符串", () => {
   assert.ok(svg.includes("aivora.app"), "should contain website");
 });
 
+test("brand-end-card: contactLines 渲染电话/地址且计入 cacheKey（最多 3 行）", () => {
+  const planWithContact: BrandPackagingPlan = {
+    ...samplePlan,
+    contactLines: [
+      "647-857-8669",
+      "690 Progress Ave, Unit 7&8, Scarborough",
+      "line3",
+      "line4-should-be-dropped",
+    ],
+  };
+  const svg = buildSvg({
+    briefId: "b1",
+    aspectRatio: "9:16",
+    plan: planWithContact,
+  });
+  assert.ok(svg.includes("647-857-8669"), "should contain phone line");
+  assert.ok(
+    svg.includes("690 Progress Ave, Unit 7&amp;8, Scarborough"),
+    "should contain escaped address line",
+  );
+  assert.ok(!svg.includes("line4-should-be-dropped"), "max 3 contact lines");
+  assert.notEqual(
+    computeCacheKey({ briefId: "b1", aspectRatio: "9:16", plan: planWithContact }),
+    computeCacheKey({ briefId: "b1", aspectRatio: "9:16", plan: samplePlan }),
+    "contactLines must invalidate the render cache",
+  );
+});
+
 test("brand-end-card: SVG 转义 < & > 符号防止注入", () => {
   const evilPlan: BrandPackagingPlan = {
     ...samplePlan,

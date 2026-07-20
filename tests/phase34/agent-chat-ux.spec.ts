@@ -78,8 +78,7 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
 
   await page.getByRole("button", { name: /视频生成接口: 火山官方接口/ }).click();
   const shuyuRoute = page.getByRole("menuitemradio", { name: /Shuyu 合作接口/ });
-  await expect(shuyuRoute).toContainText("104 积分/秒");
-  await expect(shuyuRoute).toContainText("1560 积分/支");
+  await expect(shuyuRoute).toContainText("900 积分/支");
   await expect(
     page.getByRole("menuitem", { name: /480P 推荐线路 1 \/ 2/ }),
   ).toHaveAttribute("aria-disabled", "true");

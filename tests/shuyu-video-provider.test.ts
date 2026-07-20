@@ -16,12 +16,21 @@ const pricePayload = {
   object: "list",
   data: [
     {
-      plan_id: "video-standard-720p-second",
+      plan_id: "video-plan-02",
       kind: "video",
       model: "studio-video",
-      unit: "second",
+      unit: "generation",
       resolution: "720P",
-      sale_points: 104,
+      sale_points: 900,
+      display_name: "Seedance 2.0 · 720P",
+      capabilities: {
+        aspect_ratios: ["9:16", "16:9", "1:1"],
+        input_images_max: 9,
+        modes: ["frames2video", "image2video", "text2video"],
+        durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        quality: "720P",
+      },
+      status: "available",
     },
   ],
 };
@@ -32,11 +41,21 @@ const fundedPayload = {
   unit: "points",
 };
 
+const healthPayload = {
+  object: "service_health",
+  status: "operational",
+  capabilities: { image: "available", video: "available" },
+  checked_at: "2026-07-19T02:00:00.000Z",
+};
+
 test("Shuyu provider sends the exact documented body and persisted Idempotency-Key", async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const fetchStub: typeof fetch = async (input, init) => {
     const url = String(input);
     calls.push({ url, init });
+    if (url.endsWith("/health")) {
+      return new Response(JSON.stringify(healthPayload), { status: 200 });
+    }
     if (url.endsWith("/prices")) {
       return new Response(JSON.stringify(pricePayload), { status: 200 });
     }
@@ -79,14 +98,16 @@ test("Shuyu provider sends the exact documented body and persisted Idempotency-K
   assert.equal(headers.get("content-type"), "application/json");
   assert.equal(headers.get("idempotency-key"), "job-12345678-attempt-1");
   assert.deepEqual(JSON.parse(String(submission.init?.body)), {
+    plan_id: "video-plan-02",
     model: "studio-video",
+    mode: "image2video",
     prompt:
       "Show the product clearly\nNegative constraints: watermark, morphing",
     duration: 10,
     aspect_ratio: "9:16",
     input_images: ["https://example.com/product.jpg"],
   });
-  assert.doesNotMatch(String(submission.init?.body), /plan_id|resolution/);
+  assert.doesNotMatch(String(submission.init?.body), /resolution/);
 });
 
 test("Shuyu status mapping waits through refund states and only fails after refunded", async () => {
@@ -122,7 +143,7 @@ test("Shuyu status mapping waits through refund states and only fails after refu
       new Response(
         JSON.stringify({
           status: "completed",
-          outputs: ["https://cdn.example.com/video.mp4"],
+          outputs: [{ url: "https://cdn.example.com/video.mp4" }],
           secret: "discarded",
         }),
         { status: 200 },
@@ -220,7 +241,7 @@ test("Shuyu submit timeout, 5xx, 409, and malformed success fail closed", async 
             type: "insufficient_balance",
             message: "Not enough points.",
             available_points: 0,
-            required_points: 1040,
+            required_points: 900,
           },
         }),
         { status: 402 },

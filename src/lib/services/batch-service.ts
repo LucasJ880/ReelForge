@@ -63,7 +63,7 @@ import {
   getVideoRouteSnapshotRuntimeAvailability,
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
-import { SHUYU_VIDEO_POINTS_PER_SECOND } from "@/lib/providers/shuyu";
+import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -449,7 +449,6 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     },
   });
   if (!template) throw new BatchTemplateUnavailableError();
-  const lockedParams = parseLockedParams(template.lockedParams);
   const imagesPerVideo = parseImagesPerVideo(template.imagesPerVideo);
   if (input.images.length < imagesPerVideo.min) {
     throw new BatchInsufficientAssetsError(
@@ -476,9 +475,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     snapshot: videoRouteSnapshot,
     shuyuRequiredPoints:
       videoRouteSnapshot.videoRouteSnapshot === "buddy"
-        ? lockedParams.duration
-          * input.requestedCount
-          * SHUYU_VIDEO_POINTS_PER_SECOND
+        ? input.requestedCount * SHUYU_VIDEO_POINTS_PER_GENERATION
         : undefined,
   });
   if (!availability.available) {
@@ -837,7 +834,14 @@ async function claimJobs(args: {
         });
         return claimedRows.map((job) => ({ ...job, claimOwner: owner }));
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        /// Neon pooler 的跨洋 RTT 下，claim 事务的多条查询可能超过 Prisma 默认
+        /// 5s interactive-transaction 超时（2026-07-20 批量验收实测 5.07s 爆炸）。
+        /// 事务内只有 DB 操作，放宽到 30s 不影响正确性。
+        maxWait: 10_000,
+        timeout: 30_000,
+      },
     ),
   );
 }
@@ -887,6 +891,11 @@ async function submitClaimedJob(
           url: asset.url,
           role: "content",
         })),
+        /// 批量模板的多张产品图是「视觉真值参考」，不是首尾帧。Seedance 2 必须走
+        /// Omni-Reference，否则 4 张不同房间的图会被当 first/last frame 强行变形
+        /// 拼接（2026-07-20 真机验收发现的幻觉源头）。Seedance-1/Shuyu 适配器会
+        /// 各自忽略或按自身模式处理该字段。
+        referenceMode: "reference",
         durationSec: snapshot.lockedParams.duration,
         aspectRatio: snapshot.lockedParams.aspectRatio,
         resolution: snapshot.lockedParams.resolution,

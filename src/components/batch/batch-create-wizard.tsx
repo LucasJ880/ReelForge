@@ -28,6 +28,10 @@ import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
 import {
+  VideoRouteSelector,
+  type VideoRouteOverride,
+} from "@/components/video-generation/video-route-selector";
+import {
   BlobUploadHttpError,
   uploadBlobWithProgress,
 } from "@/lib/upload/blob-xhr";
@@ -86,13 +90,6 @@ const BATCH_IMAGE_MIME_TYPES = new Set([
   "image/webp",
 ]);
 
-function formatEstimate(seconds: number, english: boolean): string {
-  if (seconds < 60) return english ? `About ${seconds}s` : `约 ${seconds} 秒`;
-  return english
-    ? `About ${Math.ceil(seconds / 60)} min`
-    : `约 ${Math.ceil(seconds / 60)} 分钟`;
-}
-
 function categoryLabel(
   category: string,
   categories: Readonly<Record<string, string>>,
@@ -140,8 +137,13 @@ export function BatchCreateWizard({
   const [templateId, setTemplateId] = useState("");
   const [templateQuery, setTemplateQuery] = useState("");
   const [templateCategory, setTemplateCategory] = useState("__all__");
-  const [count, setCount] = useState(100);
+  const [count, setCount] = useState(10);
   const [productName, setProductName] = useState("");
+  const [videoRouteId, setVideoRouteId] =
+    useState<VideoRouteOverride>("buddy");
+  const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
+    boolean | null
+  >(null);
   const [error, setError] = useState<string | null>(null);
   const [recoveryAction, setRecoveryAction] =
     useState<CustomerRecoveryAction | null>(null);
@@ -222,8 +224,10 @@ export function BatchCreateWizard({
   }, [count, selectedTemplate]);
   const perImage =
     uploaded.length > 0 ? (totalSlots / uploaded.length).toFixed(1) : "0";
-  const estimateSeconds =
-    Math.ceil(count / 10) * (selectedTemplate?.lockedParams.duration ?? 10);
+  const estimateText = english
+    ? "Live ETA appears after provider submission"
+    : "提交供应商后显示实时预计完成时间";
+  const estimatedPartnerPoints = count * 900;
 
   function updateUpload(localId: string, patch: Partial<UploadItem>) {
     setUploads((current) =>
@@ -349,6 +353,7 @@ export function BatchCreateWizard({
         })),
         requestedCount: count,
         productName: productName.trim() || undefined,
+        videoRouteId: videoRouteId || undefined,
       };
       const fingerprint = JSON.stringify(requestBody);
       if (submissionIdentityRef.current?.fingerprint !== fingerprint) {
@@ -392,7 +397,9 @@ export function BatchCreateWizard({
       ? uploaded.length > 0 && !hasPendingUploads
       : step === 1
         ? hasEnoughImages
-        : true;
+        : step === 2
+          ? selectedRouteAvailable === true
+          : true;
 
   return (
     <div className="space-y-8 [&_svg]:stroke-[1.5]">
@@ -811,6 +818,32 @@ export function BatchCreateWizard({
                   className="w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 />
               </div>
+              <div className="space-y-2">
+                <p className="text-meta font-medium text-foreground">
+                  {english ? "Video generation route" : "视频生成线路"}
+                </p>
+                <VideoRouteSelector
+                  canSelectVideoRoute
+                  durationSeconds={selectedTemplate?.lockedParams.duration ?? 15}
+                  value={videoRouteId}
+                  disabled={submitting}
+                  onChange={setVideoRouteId}
+                  onSelectedAvailabilityChange={setSelectedRouteAvailable}
+                />
+                <p className="text-meta text-muted-foreground">
+                  {selectedRouteAvailable === null
+                    ? (english ? "Checking live provider availability…" : "正在检查供应商实时可用性…")
+                    : selectedRouteAvailable
+                      ? videoRouteId === "buddy"
+                        ? (english
+                            ? `Estimated provider charge: ${estimatedPartnerPoints.toLocaleString()} points for this batch.`
+                            : `本批预计消耗 ${estimatedPartnerPoints.toLocaleString()} 积分。`)
+                        : (english ? "The selected route is ready." : "所选线路当前可用。")
+                      : (english
+                          ? "This route is unavailable. Choose another route or wait before continuing."
+                          : "所选线路当前不可用，请更换线路或等待恢复后继续。")}
+                </p>
+              </div>
               <Card size="sm">
                 <CardContent className="flex items-start gap-3">
                   <Images
@@ -823,7 +856,7 @@ export function BatchCreateWizard({
                     </p>
                     <p className="mt-1 text-meta text-muted-foreground">
                       {english ? `Each image appears about ${perImage} times` : `每张图约使用 ${perImage} 次`} ·{" "}
-                      {formatEstimate(estimateSeconds, english)}
+                      {estimateText}
                     </p>
                   </div>
                 </CardContent>
@@ -850,7 +883,19 @@ export function BatchCreateWizard({
                   ],
                   [english ? "Video quantity" : "生成数量", english ? `${count} videos` : `${count} 条`],
                   [english ? "Average coverage" : "平均覆盖", english ? `Each image about ${perImage} times` : `每张图片约 ${perImage} 次`],
-                  [english ? "Estimated time" : "预计耗时", formatEstimate(estimateSeconds, english)],
+                  [
+                    english ? "Video route" : "视频线路",
+                    videoRouteId === "buddy"
+                      ? (english ? "Shuyu partner API · 720P" : "Shuyu 合作接口 · 720P")
+                      : (english ? "Official direct route" : "官方直连线路"),
+                  ],
+                  [
+                    english ? "Estimated points" : "预计积分",
+                    videoRouteId === "buddy"
+                      ? estimatedPartnerPoints.toLocaleString()
+                      : (english ? "Provider dependent" : "以供应商为准"),
+                  ],
+                  [english ? "Estimated time" : "预计耗时", estimateText],
                 ].map(([label, value]) => (
                   <div
                     key={label}
@@ -897,7 +942,11 @@ export function BatchCreateWizard({
         ) : (
           <Button
             type="button"
-            disabled={submitting || !hasEnoughImages}
+            disabled={
+              submitting ||
+              !hasEnoughImages ||
+              selectedRouteAvailable !== true
+            }
             onClick={() => void submit()}
           >
             {submitting && (

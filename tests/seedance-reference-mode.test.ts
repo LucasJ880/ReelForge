@@ -112,6 +112,41 @@ test("seedance i2v（默认/无 mode）路径不受影响：仍是 first_frame r
   assert.equal(img?.role, undefined, "i2v 模式不应在 item 同级放 role");
 });
 
+test("seedance i2v · volcengine_cn_legacy：first/last frame role 必须是 content item 同级字段", async () => {
+  const { SeedanceRuntimeAdapter } = await import("../src/lib/providers/seedance");
+  process.env.ARK_API_KEY = "test-volc-key-not-real";
+  const adapter = new SeedanceRuntimeAdapter(
+    "volcengine_cn_legacy",
+    "doubao-seedance-2-0-260128",
+  );
+  const { captured, restore } = stubFetch();
+  try {
+    await adapter.submit({
+      prompt: "i2v volc",
+      referenceImageUrls: [
+        "https://example.com/first.png",
+        "https://example.com/last.png",
+      ],
+      duration: 5,
+      ratio: "9:16",
+    });
+  } finally {
+    restore();
+  }
+  const content = captured[0].body.content as ContentItem[];
+  const images = content.filter((c) => c.type === "image_url");
+  assert.equal(images.length, 2);
+  assert.equal(images[0].role, "first_frame", "火山 CN 要求同级 role=first_frame");
+  assert.equal(images[1].role, "last_frame", "火山 CN 要求同级 role=last_frame");
+  for (const img of images) {
+    assert.equal(
+      (img.image_url as { role?: string }).role,
+      undefined,
+      "火山 CN 不应把 role 内嵌进 image_url（会被 InvalidParameter 拒绝）",
+    );
+  }
+});
+
 test("seedance reference 模式下显式 resolution 会下发到 body", async () => {
   const { submitSeedanceJob } = await import("../src/lib/providers/seedance");
   const { captured, restore } = stubFetch();

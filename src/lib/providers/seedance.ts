@@ -547,8 +547,9 @@ async function submitReal(
         image_url:
           | string
           | { url: string; role?: "first_frame" | "last_frame" };
-        /// Seedance 2.0 多模态参考：role 作为 content item 的同级字段（官方原生格式）
-        role?: "reference_image";
+        /// Seedance 2.0 多模态参考：role 作为 content item 的同级字段（官方原生格式）。
+        /// 火山 CN 端点对 first/last frame 也要求同级 role（见下方注释）。
+        role?: "reference_image" | "first_frame" | "last_frame";
       }
     | { type: "text"; text: string };
   const content: ContentPart[] = [];
@@ -563,19 +564,40 @@ async function submitReal(
       });
     }
   } else {
+    /// 火山 CN 端点（volcengine_cn_legacy）要求 first/last frame 的 role 是
+    /// content item 同级字段：image_url 内嵌 role 会被 InvalidParameter
+    /// "role must be specified for image contents" 拒绝（2026-07-20 真机验收实测）。
+    /// BytePlus intl 维持既有 image_url.role 内嵌格式不动，避免破坏已验证线路。
+    const roleAsSibling = isSeedance2 && profile === "volcengine_cn_legacy";
     if (images[0]) {
-      content.push({
-        type: "image_url",
-        image_url: isSeedance2
-          ? { url: images[0], role: "first_frame" }
-          : images[0],
-      });
+      if (roleAsSibling) {
+        content.push({
+          type: "image_url",
+          image_url: { url: images[0] },
+          role: "first_frame",
+        });
+      } else {
+        content.push({
+          type: "image_url",
+          image_url: isSeedance2
+            ? { url: images[0], role: "first_frame" }
+            : images[0],
+        });
+      }
     }
     if (isSeedance2 && images[1]) {
-      content.push({
-        type: "image_url",
-        image_url: { url: images[1], role: "last_frame" },
-      });
+      if (roleAsSibling) {
+        content.push({
+          type: "image_url",
+          image_url: { url: images[1] },
+          role: "last_frame",
+        });
+      } else {
+        content.push({
+          type: "image_url",
+          image_url: { url: images[1], role: "last_frame" },
+        });
+      }
     }
   }
   content.push({ type: "text", text: promptText });

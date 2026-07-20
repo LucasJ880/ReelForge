@@ -1,7 +1,7 @@
 import {
   getShuyuVideoTask,
   SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_POINTS_PER_SECOND,
+  SHUYU_VIDEO_POINTS_PER_GENERATION,
   shuyuApiKey,
   createShuyuVideoTask,
   ShuyuApiError,
@@ -119,7 +119,7 @@ export class ShuyuVideoProvider implements VideoProvider {
 
     const availability = await getShuyuRouteRuntimeAvailability({
       ...this.options,
-      requiredPoints: duration * SHUYU_VIDEO_POINTS_PER_SECOND,
+      requiredPoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
     });
     if (!availability.available) {
       const transientFailure = [
@@ -156,7 +156,7 @@ export class ShuyuVideoProvider implements VideoProvider {
     providerJobId: string,
   ): Promise<VideoJobStatusResult> {
     const task = await getShuyuVideoTask(providerJobId, this.options);
-    const videoUrl = task.outputs?.[0];
+    const videoUrl = task.outputs?.[0]?.url;
     if (task.status === "completed" && !videoUrl) {
       throw new ShuyuApiError(
         "Shuyu completed task contains no output URL",
@@ -205,6 +205,7 @@ export class ShuyuVideoProvider implements VideoProvider {
       // intermediate states keep polling instead of opening a second charge.
       case "refund_pending":
       case "refund_error":
+      case "failed":
         return "processing";
       case "refunded":
         return "failed";

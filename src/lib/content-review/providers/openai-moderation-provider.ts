@@ -8,6 +8,39 @@ import type {
 
 const MODEL = "omni-moderation-latest";
 
+/// 批量派发会短时间连发多次审核请求，OpenAI moderation 的 429/5xx/网络抖动
+/// 属于「稍后重试即可」的瞬时故障。此前直接 fail-closed 会把整批任务永久判死
+/// （2026-07-20 真机验收：18 连发中 12 条因此死亡）。仅对瞬时错误做有限退避重试，
+/// 重试穷尽后仍然 fail-closed，不放松安全语义。
+const TRANSIENT_RETRY_DELAYS_MS = [1_000, 3_000];
+
+function isTransientModerationError(error: unknown): boolean {
+  const status = (error as { status?: unknown })?.status;
+  if (typeof status !== "number") return true; // 网络层错误（无 HTTP 状态）
+  return status === 408 || status === 429 || status >= 500;
+}
+
+async function withTransientRetries<T>(fn: () => Promise<T>): Promise<T> {
+  let lastError: unknown;
+  for (let attempt = 0; attempt <= TRANSIENT_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (
+        !isTransientModerationError(error) ||
+        attempt === TRANSIENT_RETRY_DELAYS_MS.length
+      ) {
+        throw error;
+      }
+      await new Promise((resolveDelay) =>
+        setTimeout(resolveDelay, TRANSIENT_RETRY_DELAYS_MS[attempt]),
+      );
+    }
+  }
+  throw lastError;
+}
+
 type ModerationResult = {
   flagged: boolean;
   categories: Record<string, boolean>;
@@ -26,10 +59,12 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
     if (isMockMode()) return mockApproved(input.kind);
     if (!process.env.OPENAI_API_KEY) return failedClosed("审核服务尚未配置");
     try {
-      const response = await client().moderations.create({
-        model: MODEL,
-        input: input.text,
-      });
+      const response = await withTransientRetries(() =>
+        client().moderations.create({
+          model: MODEL,
+          input: input.text,
+        }),
+      );
       return mapResult(response.id, response.results[0] as unknown as ModerationResult | undefined);
     } catch {
       return failedClosed("内容安全检查暂时不可用，请稍后重试");
@@ -59,10 +94,12 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
       };
     }
     try {
-      const response = await client().moderations.create({
-        model: MODEL,
-        input: [{ type: "image_url", image_url: { url: imageUrl } }],
-      });
+      const response = await withTransientRetries(() =>
+        client().moderations.create({
+          model: MODEL,
+          input: [{ type: "image_url", image_url: { url: imageUrl } }],
+        }),
+      );
       return mapResult(response.id, response.results[0] as unknown as ModerationResult | undefined);
     } catch {
       return failedClosed("媒体安全检查暂时不可用，请稍后重试");
@@ -109,4 +146,10 @@ function mapResult(reviewId: string, result?: ModerationResult): ReviewResult {
   };
 }
 
-export const __test__ = { mapResult, isMockMode };
+export const __test__ = {
+  mapResult,
+  isMockMode,
+  withTransientRetries,
+  isTransientModerationError,
+  TRANSIENT_RETRY_DELAYS_MS,
+};

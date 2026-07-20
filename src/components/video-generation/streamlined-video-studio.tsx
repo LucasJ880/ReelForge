@@ -953,7 +953,7 @@ export function StreamlinedVideoStudio({
                   : selectedVideoRouteId === "buddy"
                     ? copy.shuyuEstimate.replace(
                         "{points}",
-                        String(selectedDuration * 104),
+                        "900",
                       )
                     : copy.readyHint}
             </p>

@@ -249,6 +249,9 @@ export interface BrandPackagingPlan {
   brandName?: string | null;
   slogan?: string | null;
   website?: string | null;
+  /// 联系方式行（电话 / 地址等），按序渲染在 CTA 与 website 之间；最多取前 3 行。
+  /// 广告成片必备（2026-07 客户要求：片尾必须有电话+地址，否则只是"艺术片"）。
+  contactLines?: string[] | null;
   /// 用户选用上传 clip 作为结尾时，引用对应 attachment id
   uploadedEndingClipAssetId?: string | null;
   renderStrategy: BrandRenderStrategy;

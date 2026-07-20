@@ -3,11 +3,11 @@ import { ProviderSubmissionError } from "@/lib/video-generation/providers/submis
 
 export const SHUYU_API_BASE_URL =
   "https://shuyu-tiktok-tool.pages.dev/api/v1" as const;
-export const SHUYU_VIDEO_PLAN_ID = "video-standard-720p-second" as const;
+export const SHUYU_VIDEO_PLAN_ID = "video-plan-02" as const;
 export const SHUYU_VIDEO_MODEL = "studio-video" as const;
 export const SHUYU_VIDEO_RESOLUTION = "720P" as const;
-export const SHUYU_VIDEO_BILLING_UNIT = "second" as const;
-export const SHUYU_VIDEO_POINTS_PER_SECOND = 104 as const;
+export const SHUYU_VIDEO_BILLING_UNIT = "generation" as const;
+export const SHUYU_VIDEO_POINTS_PER_GENERATION = 900 as const;
 
 const DEFAULT_TIMEOUT_MS = 8_000;
 const MAX_RESPONSE_BYTES = 512_000;
@@ -36,6 +36,22 @@ export const shuyuPriceSchema = z
     unit: z.enum(["generation", "second"]),
     resolution: boundedIdentifier,
     sale_points: z.number().int().nonnegative().max(10_000_000),
+    display_name: z.string().trim().min(1).max(500),
+    capabilities: z
+      .object({
+        aspect_ratios: z
+          .array(z.enum(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "9:16", "16:9"]))
+          .max(8),
+        input_images_max: z.number().int().min(0).max(9),
+        modes: z
+          .array(z.enum(["text2video", "image2video", "frames2video"]))
+          .max(3)
+          .optional(),
+        durations: z.array(z.number().int().min(1).max(15)).max(15).optional(),
+        quality: z.enum(["480P", "720P", "1080P", "1K", "2K", "4K"]).optional(),
+      })
+      .strip(),
+    status: z.literal("available"),
   })
   .strip();
 
@@ -51,6 +67,20 @@ export const shuyuBalanceResponseSchema = z
     object: z.literal("balance"),
     available_points: z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER),
     unit: z.literal("points"),
+  })
+  .strip();
+
+export const shuyuHealthResponseSchema = z
+  .object({
+    object: z.literal("service_health"),
+    status: z.literal("operational"),
+    capabilities: z
+      .object({
+        image: z.literal("available"),
+        video: z.literal("available"),
+      })
+      .strip(),
+    checked_at: z.string().datetime().nullable(),
   })
   .strip();
 
@@ -93,6 +123,7 @@ export const SHUYU_TASK_STATUSES = [
   "queued",
   "processing",
   "completed",
+  "failed",
   "refund_pending",
   "refund_error",
   "refunded",
@@ -108,7 +139,10 @@ export const shuyuTaskResponseSchema = z
     task_id: taskIdSchema.optional(),
     id: taskIdSchema.optional(),
     status: z.enum(SHUYU_TASK_STATUSES),
-    outputs: z.array(httpsUrlSchema).max(20).optional(),
+    outputs: z
+      .array(z.object({ url: httpsUrlSchema }).strip())
+      .max(20)
+      .optional(),
   })
   .strip();
 
@@ -163,7 +197,17 @@ export function isAuditedShuyuVideoPlan(
     plan.model === SHUYU_VIDEO_MODEL &&
     plan.unit === SHUYU_VIDEO_BILLING_UNIT &&
     plan.resolution === SHUYU_VIDEO_RESOLUTION &&
-    plan.sale_points === SHUYU_VIDEO_POINTS_PER_SECOND
+    plan.sale_points === SHUYU_VIDEO_POINTS_PER_GENERATION &&
+    plan.status === "available" &&
+    plan.capabilities.quality === SHUYU_VIDEO_RESOLUTION &&
+    plan.capabilities.input_images_max >= 9 &&
+    plan.capabilities.aspect_ratios.includes("9:16") &&
+    plan.capabilities.aspect_ratios.includes("16:9") &&
+    plan.capabilities.aspect_ratios.includes("1:1") &&
+    (plan.capabilities.modes?.includes("text2video") ?? false) &&
+    (plan.capabilities.modes?.includes("image2video") ?? false) &&
+    (plan.capabilities.modes?.includes("frames2video") ?? false) &&
+    (plan.capabilities.durations?.includes(15) ?? false)
   );
 }
 
@@ -383,6 +427,35 @@ export async function getShuyuBalance(
   return parsed.data;
 }
 
+export async function getShuyuHealth(
+  options: ShuyuFetchOptions = {},
+): Promise<z.infer<typeof shuyuHealthResponseSchema>> {
+  const { response, payload } = await shuyuFetchJson(
+    "/health",
+    { method: "GET" },
+    options,
+  );
+  if (!response.ok) {
+    const parsed = shuyuErrorSchema.safeParse(payload);
+    throw new ShuyuApiError(
+      parsed.success
+        ? safeProviderMessage(parsed.data.error.message)
+        : `Shuyu health request failed (${response.status})`,
+      getErrorCode(response.status),
+      response.status,
+    );
+  }
+  const parsed = shuyuHealthResponseSchema.safeParse(payload);
+  if (!parsed.success) {
+    throw new ShuyuApiError(
+      "Shuyu returned an invalid health response",
+      "invalid_response",
+      response.status,
+    );
+  }
+  return parsed.data;
+}
+
 function createSubmissionError(args: {
   response: Response;
   payload: unknown;
@@ -419,7 +492,12 @@ export async function createShuyuVideoTask(
   }
 
   const body = {
+    plan_id: SHUYU_VIDEO_PLAN_ID,
     model: input.model ?? SHUYU_VIDEO_MODEL,
+    mode:
+      input.inputImages.length === 0
+        ? "text2video"
+        : "image2video",
     prompt: input.prompt,
     duration: input.duration,
     aspect_ratio: input.aspectRatio,

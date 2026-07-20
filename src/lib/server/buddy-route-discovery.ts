@@ -1,13 +1,15 @@
 /**
  * Server-only, non-billing Shuyu route discovery.
  *
- * The upstream contract documents GET /prices and GET /account/balance. No
- * model/OpenAPI guessing is performed. Only the single audited video plan and
- * a funded boolean cross this module boundary; raw balance and responses do not.
+ * The upstream contract documents GET /health, GET /prices and GET
+ * /account/balance. No model/OpenAPI guessing is performed. Only the single
+ * audited video plan and a funded boolean cross this module boundary; raw
+ * balance and responses do not.
  */
 
 import {
   getShuyuBalance,
+  getShuyuHealth,
   getShuyuPrices,
   isAuditedShuyuVideoPlan,
   SHUYU_API_BASE_URL,
@@ -15,7 +17,7 @@ import {
   SHUYU_VIDEO_BILLING_UNIT,
   SHUYU_VIDEO_MODEL,
   SHUYU_VIDEO_PLAN_ID,
-  SHUYU_VIDEO_POINTS_PER_SECOND,
+  SHUYU_VIDEO_POINTS_PER_GENERATION,
   SHUYU_VIDEO_RESOLUTION,
   shuyuApiKey,
   ShuyuApiError,
@@ -34,7 +36,9 @@ const CONTRACT: ShuyuVideoProviderRoute["contract"] = {
   statusPath: "/tasks/{task_id}",
   balancePath: "/account/balance",
   requestFields: [
+    "plan_id",
     "model",
+    "mode",
     "prompt",
     "duration",
     "aspect_ratio",
@@ -49,7 +53,7 @@ const AUDITED_PLAN: ShuyuVideoPlan = Object.freeze({
   model: SHUYU_VIDEO_MODEL,
   unit: SHUYU_VIDEO_BILLING_UNIT,
   resolution: SHUYU_VIDEO_RESOLUTION,
-  salePoints: SHUYU_VIDEO_POINTS_PER_SECOND,
+  salePoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
 });
 
 type UnavailableReason = NonNullable<
@@ -75,7 +79,7 @@ function route(args: {
     provider: "shuyu",
     displayName: "Shuyu API",
     apiBaseUrl: SHUYU_API_BASE_URL,
-    discoveryMode: "prices_and_balance_read_only_non_billing",
+    discoveryMode: "health_prices_and_balance_read_only_non_billing",
     availability: args.reason === null ? "available" : "unavailable",
     configured: args.configured,
     funded: args.funded,
@@ -101,7 +105,8 @@ export async function discoverShuyuVideoRoute(
   }
 
   try {
-    const [prices, balance] = await Promise.all([
+    const [, prices, balance] = await Promise.all([
+      getShuyuHealth(options),
       getShuyuPrices(options),
       getShuyuBalance(options),
     ]);

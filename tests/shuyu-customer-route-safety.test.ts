@@ -31,18 +31,37 @@ test("zero Shuyu balance is unavailable before submission and exposes no raw bal
     env: { SHUYU_API_KEY: "configured" },
     shuyuRequiredPoints: 1_560,
     fetchImpl: async (input) =>
-      String(input).endsWith("/prices")
+      String(input).endsWith("/health")
+        ? new Response(
+            JSON.stringify({
+              object: "service_health",
+              status: "operational",
+              capabilities: { image: "available", video: "available" },
+              checked_at: "2026-07-19T02:00:00.000Z",
+            }),
+            { status: 200 },
+          )
+        : String(input).endsWith("/prices")
         ? new Response(
             JSON.stringify({
               object: "list",
               data: [
                 {
-                  plan_id: "video-standard-720p-second",
+                  plan_id: "video-plan-02",
                   kind: "video",
                   model: "studio-video",
-                  unit: "second",
+                  unit: "generation",
                   resolution: "720P",
-                  sale_points: 104,
+                  sale_points: 900,
+                  display_name: "Seedance 2.0 · 720P",
+                  capabilities: {
+                    aspect_ratios: ["9:16", "16:9", "1:1"],
+                    input_images_max: 9,
+                    modes: ["frames2video", "image2video", "text2video"],
+                    durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+                    quality: "720P",
+                  },
+                  status: "available",
                 },
               ],
             }),
@@ -147,7 +166,7 @@ test("direct dispatch replays before provider checks and checks the whole batch 
   );
   assert.match(
     source,
-    /selectedDuration\s*\*\s*batchCount\s*\*\s*SHUYU_VIDEO_POINTS_PER_SECOND/,
+    /batchCount\s*\*\s*SHUYU_VIDEO_POINTS_PER_GENERATION/,
   );
 });
 

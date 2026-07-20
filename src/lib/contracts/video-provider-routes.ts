@@ -13,12 +13,12 @@ export const shuyuRouteUnavailableReasons = [
 
 export const shuyuVideoPlanSchema = z
   .object({
-    planId: z.literal("video-standard-720p-second"),
+    planId: z.literal("video-plan-02"),
     kind: z.literal("video"),
     model: z.literal("studio-video"),
-    unit: z.literal("second"),
+    unit: z.literal("generation"),
     resolution: z.literal("720P"),
-    salePoints: z.literal(104),
+    salePoints: z.literal(900),
   })
   .strict();
 
@@ -28,7 +28,9 @@ export const shuyuApiContractSchema = z
     statusPath: z.literal("/tasks/{task_id}"),
     balancePath: z.literal("/account/balance"),
     requestFields: z.tuple([
+      z.literal("plan_id"),
       z.literal("model"),
+      z.literal("mode"),
       z.literal("prompt"),
       z.literal("duration"),
       z.literal("aspect_ratio"),
@@ -38,6 +40,7 @@ export const shuyuApiContractSchema = z
       z.literal("queued"),
       z.literal("processing"),
       z.literal("completed"),
+      z.literal("failed"),
       z.literal("refund_pending"),
       z.literal("refund_error"),
       z.literal("refunded"),
@@ -51,7 +54,9 @@ export const shuyuVideoProviderRouteSchema = z
     provider: z.literal("shuyu"),
     displayName: z.literal("Shuyu API"),
     apiBaseUrl: z.literal("https://shuyu-tiktok-tool.pages.dev/api/v1"),
-    discoveryMode: z.literal("prices_and_balance_read_only_non_billing"),
+    discoveryMode: z.literal(
+      "health_prices_and_balance_read_only_non_billing",
+    ),
     availability: z.enum(["available", "unavailable"]),
     configured: z.boolean(),
     funded: z.boolean(),

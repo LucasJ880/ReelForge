@@ -6,7 +6,7 @@ import { resolveSeedanceRuntimeProfile } from "@/lib/config/seedance-runtime";
 import { publicVideoRouteOptionsResponseSchema } from "@/lib/contracts/video-route-options";
 import {
   SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_POINTS_PER_SECOND,
+  SHUYU_VIDEO_POINTS_PER_GENERATION,
   SHUYU_VIDEO_RESOLUTION,
 } from "@/lib/providers/shuyu";
 import {
@@ -52,13 +52,10 @@ export async function GET(req: NextRequest) {
       unavailableReason: available ? null : "not_configured" as const,
     };
   });
-  const requestedDuration = Number(req.nextUrl.searchParams.get("duration"));
-  const duration = [15, 30, 60].includes(requestedDuration)
-    ? requestedDuration
-    : 15;
+  void req;
   const shuyu = await getShuyuRouteRuntimeAvailability({
     timeoutMs: 3_000,
-    requiredPoints: duration * SHUYU_VIDEO_POINTS_PER_SECOND,
+    requiredPoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
   });
 
   return NextResponse.json(

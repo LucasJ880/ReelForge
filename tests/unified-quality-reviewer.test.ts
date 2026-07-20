@@ -191,3 +191,46 @@ test("[unified-quality-reviewer] checkSeedancePromptStatic: multiple violations"
   assert.ok(codes.includes("seedance_render_text"));
   assert.ok(codes.includes("seedance_qr_code"));
 });
+
+test("[unified-quality-reviewer] shutter suicide-shot prompts are hard blockers for SunnyShutter only", () => {
+  const suicidal =
+    "Close-up: her hand grips the thin vertical tilt bar and twists the louvers";
+  const review = buildQualityReview({
+    classification: baseClass,
+    classifiedAssets: [],
+    brandPackaging: { ...baseBrand, brandName: "SUNNY Shutters" },
+    segments: [aiSeg(1, suicidal)],
+    creativeBrief: baseBrief,
+    clientLockProfileId: "sunnyshutter",
+  });
+  assert.equal(review.canDispatch, false);
+  assert.ok(
+    review.blockers.some((b) => b.code.startsWith("shutter_")),
+    "expected shutter_* blocker",
+  );
+
+  const otherClient = buildQualityReview({
+    classification: baseClass,
+    classifiedAssets: [],
+    brandPackaging: { ...baseBrand, brandName: "Acme Blinds" },
+    segments: [aiSeg(1, suicidal)],
+    creativeBrief: baseBrief,
+  });
+  assert.equal(
+    otherClient.blockers.some((b) => b.code.startsWith("shutter_")),
+    false,
+    "other clients must not inherit SunnyShutter shutter gates",
+  );
+
+  const staticIssues = checkSeedancePromptStatic(
+    "fingers adjust one individual louver in extreme macro of dense louvers",
+    { clientLockProfileId: "sunnyshutter" },
+  );
+  assert.ok(staticIssues.some((i) => i.code.startsWith("shutter_")));
+  assert.equal(
+    checkSeedancePromptStatic(
+      "fingers adjust one individual louver in extreme macro of dense louvers",
+    ).some((i) => i.code.startsWith("shutter_")),
+    false,
+  );
+});

@@ -35,6 +35,7 @@ import { buildVideoSegments } from "@/lib/video-generation/prompt-intelligence";
 import { buildAssemblyPlan } from "@/lib/video-generation/video-assembly-plan";
 import { buildQualityReview } from "@/lib/video-generation/quality-reviewer";
 import { buildPlanPreview } from "@/lib/video-generation/plan-preview";
+import { resolveClientLockProfile } from "@/lib/video-generation/client-lock-profiles";
 import type {
   UnifiedVideoGenerationRequest,
   VideoGenerationPlan,
@@ -141,13 +142,17 @@ export async function buildPlan(
     aspectRatio: request.selectedAspectRatio,
   });
 
-  /// 8. Quality review
+  /// 8. Quality review (SunnyShutter locks only when brand/client matches)
+  const clientLockProfileId = resolveClientLockProfile({
+    brandName: brandPackagingPlan.brandName ?? request.brandKit?.brandName,
+  });
   const qualityReview = buildQualityReview({
     classification,
     classifiedAssets,
     brandPackaging: brandPackagingPlan,
     segments,
     creativeBrief,
+    clientLockProfileId,
   });
 
   /// 9. Plan preview

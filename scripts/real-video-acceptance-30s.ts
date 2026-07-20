@@ -28,6 +28,15 @@ import { put } from "@vercel/blob";
 import { SeedanceRuntimeAdapter } from "@/lib/providers/seedance";
 import { VOLCENGINE_CN_ARK_BASE_URL } from "@/lib/config/seedance-runtime";
 import { runFfmpegNormalizeAndConcat } from "@/lib/services/stitch-service";
+import {
+  findUnsafeShutterPromptViolations,
+  renderSafeShutterPrompt,
+} from "@/lib/video-generation/shutter-shot-policy";
+import {
+  parseStoryboardArtifact,
+  requireStoryboardBeforeVideo,
+  type Image2StoryboardArtifact,
+} from "@/lib/video-generation/storyboard-lock";
 
 // dev 模式加载 env：.env.production.local 里是轮转前的过期 DB 凭证。
 loadEnvConfig(process.cwd(), true);
@@ -59,16 +68,10 @@ const SOURCE_PATHS = [
 ] as const;
 
 const EN_PRESENTER =
-  "CHARACTER (must stay 100% identical across every shot): one friendly Canadian home-design consultant, woman in her mid-30s, shoulder-length auburn hair, warm genuine smile, fitted navy blazer over a plain white top, small stud earrings, no other jewelry.";
+  "one friendly Canadian home-design consultant, woman in her mid-30s, shoulder-length auburn hair, warm genuine smile, fitted navy blazer over a plain white top, small stud earrings, no other jewelry";
 
-const SHARED_QUALITY = [
-  "Photorealistic real-footage look, true-to-life color, natural material physics.",
-  "The shutters, frames, rooms and materials MUST exactly match the reference images — never redesign, recolor or restyle them.",
-  "SPATIAL BOUNDARY: stay within the photographed rooms; never invent unseen rooms or angles.",
-  "PRODUCT SHAPE LOCK: louver width, tilt-bar position, frame color and panel layout stay pixel-consistent in every shot.",
-  "LIGHTING CONTINUITY LOCK: light direction and color temperature continuous between adjacent shots.",
-  "no on-screen text, no logos, no captions, no URLs, no QR codes, no watermarks.",
-].join(" ");
+const ZH_PRESENTER =
+  "one relatable East Asian woman around 30, shoulder-length straight black hair, oversized light-grey cotton loungewear, natural no-makeup look";
 
 type SegmentSpec = {
   key: string; // providerRequestKey suffix
@@ -105,39 +108,41 @@ const VIDEOS: VideoSpec[] = [
       {
         key: "en-a",
         imageIdx: [0, 4],
-        prompt: [
-          "9:16 vertical premium home-decor ad segment, 15 seconds, presenter-led like a professional spokesperson video.",
-          EN_PRESENTER,
-          "LOCATION: the exact condo room in image 1 and image 2 — a full wall of white plantation shutters with a louvered transom row above, dark hardwood floor, white walls.",
-          "PRODUCT (must exactly match the references): white custom plantation shutters, wide louvers, clean frames.",
-          "",
-          '0-5s: she walks into frame beside the shutter wall, gestures at it and says warmly to camera (spoken English): "These are custom plantation shutters — and they completely transformed this condo."',
-          '5-10s: cut to a medium close-up, her hand tilts the louvers smoothly with the tilt bar while she says: "Solid louvers, one smooth touch — full control of light and privacy."',
-          '10-15s: cut to a wider shot, she stands by the window, soft daylight filtering through, and says: "Each panel is measured and built for this exact window."',
-          "",
-          "Audio: her natural spoken English lines exactly as scripted, quiet room ambience, no music.",
-          "Style: bright, trustworthy, professional-but-warm real-estate presenter energy, stable gimbal camera.",
-          SHARED_QUALITY,
-        ].join("\n"),
+        prompt: renderSafeShutterPrompt({
+          motion: "presenter_point_only",
+          productName: "white custom plantation shutters",
+          productLock:
+            "LOCATION: the exact condo room in image 1 and image 2 — a full wall of white plantation shutters with a louvered transom row above, dark hardwood floor, white walls. Preserve product geometry from the references.",
+          characterLock: EN_PRESENTER,
+          voiceLock:
+            "warm spoken Canadian English lines exactly as scripted, quiet room ambience, no music",
+          microExpressionLock: "warm genuine smile; never exaggerated faces",
+          beats: [
+            '0-5s: she walks into frame beside the shutter wall, points at it without touching, and says: "These are custom plantation shutters — and they completely transformed this condo."',
+            '5-10s: medium shot — shutters stay static while soft daylight stripes the floor; she gestures toward the wall (no contact) and says: "Solid louvers, one smooth touch — full control of light and privacy."',
+            '10-15s: wider shot, she stands by the window and says: "Each panel is measured and built for this exact window."',
+          ],
+        }),
       },
       {
         key: "en-b2",
         imageIdx: [2, 3],
         chainIdentity: true,
-        prompt: [
-          "9:16 vertical premium home-decor ad segment, 15 seconds, presenter-led like a professional spokesperson video. This segment continues INSTANTLY after a previous scene of the same commercial — keep the same person, outfit, energy and color grade.",
-          "CHARACTER IDENTITY LOCK: image 1 is a frame of the exact presenter from the previous scene. The woman in every shot MUST be 100% this person — identical face, facial structure, age, skin tone, shoulder-length auburn hair, fitted navy blazer over plain white top. Never redesign or age-shift her.",
-          "LOCATION: the exact rooms in image 2 (corner floor-to-ceiling white plantation shutters in a condo with light hardwood and a baseboard heater) and image 3 (white kitchen with plantation shutters over the counter window).",
-          "PRODUCT (must exactly match the references): white custom plantation shutters, wide louvers, clean frames.",
-          "",
-          '0-5s: she stands at the corner windows of image 2, folds one shutter panel open to reveal the view and says (spoken English): "Every panel folds back whenever you want the full view."',
-          '5-10s: cut to the kitchen of image 3, she tilts the louvers half-closed over the counter and says: "Morning glare? Just tilt. It is that easy."',
-          '10-15s: cut to a medium shot, she faces the camera with a confident smile and says: "Custom shutters, made to measure for Canadian homes. Book your free in-home quote today."',
-          "",
-          "Audio: her natural spoken English lines exactly as scripted, quiet room ambience, no music.",
-          "Style: bright, trustworthy, professional-but-warm presenter energy, stable gimbal camera.",
-          SHARED_QUALITY,
-        ].join("\n"),
+        prompt: renderSafeShutterPrompt({
+          motion: "panel_hinge_open",
+          productName: "white custom plantation shutters",
+          productLock:
+            "image 1 is the presenter identity frame from the previous scene. LOCATION: image 2 corner floor-to-ceiling white plantation shutters (light hardwood, baseboard heater) and image 3 kitchen counter window with white plantation shutters. Preserve product geometry.",
+          characterLock: `${EN_PRESENTER}. The woman MUST remain 100% identical to image 1 — same face, hair, outfit.`,
+          voiceLock:
+            "warm spoken Canadian English lines exactly as scripted, quiet room ambience, no music",
+          microExpressionLock: "confident soft smile on the final CTA beat",
+          beats: [
+            '0-5s: at the corner windows of image 2, one whole shutter panel slowly swings open on side hinges to reveal the view (no hand on tilt bar) while she says: "Every panel folds back whenever you want the full view."',
+            '5-10s: kitchen of image 3 — shutters static or all louvers already half-closed with NO hands in frame; soft light on the counter; she says: "Morning glare? Just tilt. It is that easy."',
+            '10-15s: medium shot to camera: "Custom shutters, made to measure for Canadian homes. Book your free in-home quote today."',
+          ],
+        }),
       },
     ],
   },
@@ -154,42 +159,58 @@ const VIDEOS: VideoSpec[] = [
       {
         key: "zh-a",
         imageIdx: [5, 0],
-        prompt: [
-          "9:16 vertical UGC-style home ad segment shot like real phone footage, 15 seconds. Pain-point structure: suffer first, solve instantly.",
-          "CHARACTER (must stay 100% identical across every shot): one relatable East Asian woman around 30, shoulder-length straight black hair, oversized light-grey cotton loungewear, natural no-makeup look.",
-          "LOCATION: the exact bedroom in image 1 — warm tan walls, three tall windows with white plantation shutters, crystal chandelier — and the room in image 2 with a full wall of white plantation shutters.",
-          "PRODUCT (must exactly match the references): white custom plantation shutters with wide louvers.",
-          "",
-          '0-5s: harsh morning sun blasts through the open louvers onto the bed; she squints awake, annoyed, shields her eyes and says (spoken Mandarin Chinese, tired): "每天早上都被晒醒，真的受不了了。"',
-          '5-10s: she walks to the window and pushes the tilt bar; the louvers glide closed and the room instantly softens into gentle shade. Camera: handheld follow, satisfying motion.',
-          '10-15s: she turns back to camera, relieved half-smile, and says (spoken Mandarin Chinese): "装了实木百叶窗，一拨就搞定，太省心了。"',
-          "",
-          "Audio: her natural spoken Mandarin lines exactly as scripted, room ambience, gentle louver click, no music.",
-          "Style: authentic handheld phone footage, realistic skin texture, natural motion blur.",
-          SHARED_QUALITY,
-        ].join("\n"),
+        prompt: renderSafeShutterPrompt({
+          motion: "panel_hinge_open",
+          productName: "white custom plantation shutters",
+          productLock:
+            "LOCATION: bedroom in image 1 (warm tan walls, three tall windows with white plantation shutters, crystal chandelier) and room in image 2 with a full wall of white plantation shutters. Preserve product geometry.",
+          characterLock: ZH_PRESENTER,
+          voiceLock:
+            "natural spoken Mandarin Chinese lines exactly as scripted, room ambience, no music",
+          microExpressionLock:
+            "annoyed squint then relieved half-smile; no exaggerated cartoon faces",
+          beats: [
+            '0-5s: harsh morning sun through open louvers onto the bed; she squints awake, shields her eyes, says: "每天早上都被晒醒，真的受不了了。"',
+            "5-10s: she walks to the window; one whole shutter panel slowly swings toward closed on its hinges (door-like). Hands may lightly guide the panel edge only — never the thin tilt bar. Room softens into shade.",
+            '10-15s: she turns to camera, relieved, says: "装了实木百叶窗，一拨就搞定，太省心了。"',
+          ],
+        }),
       },
       {
         key: "zh-b",
         imageIdx: [6, 1],
-        prompt: [
-          "9:16 vertical UGC-style home ad segment shot like real phone footage, 15 seconds. This segment continues INSTANTLY after a previous scene of the same ad — keep the same person, outfit, energy and color grade.",
-          "CHARACTER (must stay 100% identical across every shot): one relatable East Asian woman around 30, shoulder-length straight black hair, oversized light-grey cotton loungewear, natural no-makeup look.",
-          "LOCATION: the exact rooms in image 1 (cream dining area with a full wall of plantation shutters over the patio door, white cabinetry) and image 2 (living room with black-framed plantation shutters and black French doors with art glass).",
-          "PRODUCT (must exactly match the references): custom plantation shutters — cream/white panels in image 1 and black-framed panels in image 2.",
-          "",
-          '0-5s: afternoon in the dining area of image 1, she tilts the louvers to a perfect half-open angle, soft striped light falls on the floor, she says (spoken Mandarin Chinese, pleased): "角度随便调，光线刚刚好，隐私也有了。"',
-          '5-10s: cut to the living room of image 2 — slow pan across the black-framed shutters and the elegant French doors, striped shadows drifting.',
-          '10-15s: she stands by the black shutters, looks to camera and says (spoken Mandarin Chinese, recommending): "定制百叶窗，上门量尺安装，家里颜值直接拉满。"',
-          "",
-          "Audio: her natural spoken Mandarin lines exactly as scripted, room ambience, no music.",
-          "Style: authentic handheld phone footage, realistic skin texture, natural motion blur.",
-          SHARED_QUALITY,
-        ].join("\n"),
+        prompt: renderSafeShutterPrompt({
+          motion: "louver_tilt_no_hands",
+          productName: "custom plantation shutters",
+          productLock:
+            "LOCATION: image 1 cream dining area with plantation shutters over patio door; image 2 living room with black-framed plantation shutters and black French doors. Preserve each room's shutter finish from references.",
+          characterLock: ZH_PRESENTER,
+          voiceLock:
+            "natural spoken Mandarin Chinese lines exactly as scripted, room ambience, no music",
+          microExpressionLock: "pleased recommending smile on the CTA beat",
+          beats: [
+            '0-5s: dining area of image 1 — all louvers slowly tilt together as one unit with NO hands in frame; soft striped light on the floor; she says from medium shot: "角度随便调，光线刚刚好，隐私也有了。"',
+            "5-10s: living room of image 2 — slow pan across black-framed shutters (static product), striped shadows drifting.",
+            '10-15s: she stands by the black shutters, looks to camera: "定制百叶窗，上门量尺安装，家里颜值直接拉满。"',
+          ],
+        }),
       },
     ],
   },
 ];
+
+for (const video of VIDEOS) {
+  for (const segment of video.segments) {
+    const violations = findUnsafeShutterPromptViolations(segment.prompt);
+    if (violations.length > 0) {
+      throw new Error(
+        `Unsafe shutter prompt in ${video.id}/${segment.key}: ${violations
+          .map((v) => v.code)
+          .join(", ")}`,
+      );
+    }
+  }
+}
 
 type SegmentState = {
   key: string;
@@ -280,6 +301,37 @@ function ensureProviderConfigured(): void {
       "Volcengine legacy Seedance runtime is not configured (ARK_API_KEY / VIDEO_ENGINE_MOCK)",
     );
   }
+}
+
+/**
+ * Image2 storyboard-first: shutter acceptance must not submit Seedance until
+ * gpt-image-2 (or manual) keyframes exist. Place JSON at:
+ *   tmp/real-video-acceptance/storyboard.json
+ * or set ACCEPTANCE_STORYBOARD_JSON=/path/to/storyboard.json
+ *
+ * Canonical shape: { source, purpose, frames: [{ id, order, imageUrl }] }
+ * Also accepts investor-demo StoryboardRecord ({ segments with blobUrl }).
+ */
+function loadAcceptanceStoryboard(): Image2StoryboardArtifact | null {
+  const path =
+    process.env.ACCEPTANCE_STORYBOARD_JSON ??
+    resolve(OUTPUT_DIR, "storyboard.json");
+  if (!existsSync(path)) return null;
+  try {
+    return parseStoryboardArtifact(JSON.parse(readFileSync(path, "utf8")));
+  } catch (err) {
+    throw new Error(
+      `Invalid acceptance storyboard at ${path}: ${(err as Error).message}`,
+    );
+  }
+}
+
+function assertStoryboardBeforeSeedanceSubmit(): void {
+  requireStoryboardBeforeVideo(loadAcceptanceStoryboard(), {
+    clientLockProfileId: "sunnyshutter",
+    runKind: "shutter_acceptance",
+    minFrames: 2,
+  });
 }
 
 function findFont(): string {
@@ -578,6 +630,12 @@ async function main(): Promise<void> {
   /// 提交所有可提交的 segment（身份链段要等前一段 completed 才能提交）。
   /// 返回尚未提交的数量。
   async function trySubmitPending(): Promise<number> {
+    const needsNewSubmit = report.videos.some((state) =>
+      state.segments.some((segment) => !segment.taskId),
+    );
+    if (needsNewSubmit) {
+      assertStoryboardBeforeSeedanceSubmit();
+    }
     let unsubmitted = 0;
     for (const video of VIDEOS) {
       const state = report.videos.find((row) => row.id === video.id)!;

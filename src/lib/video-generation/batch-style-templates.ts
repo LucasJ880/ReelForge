@@ -6,6 +6,7 @@
  */
 
 import { EXPANDED_BATCH_STYLE_TEMPLATE_SEEDS } from "@/lib/video-generation/batch-style-template-expansion";
+import { SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS } from "@/lib/video-generation/sunnyshutter-commerce-template";
 
 export interface BatchStyleLockedParams {
   duration: 5 | 10 | 15;
@@ -193,6 +194,7 @@ const CORE_BATCH_STYLE_TEMPLATE_SEEDS: BatchStyleTemplateSeed[] = [
 export const BATCH_STYLE_TEMPLATE_SEEDS: BatchStyleTemplateSeed[] = [
   ...CORE_BATCH_STYLE_TEMPLATE_SEEDS,
   ...EXPANDED_BATCH_STYLE_TEMPLATE_SEEDS,
+  ...SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS,
 ];
 
 export function renderBatchTemplatePrompt(args: {

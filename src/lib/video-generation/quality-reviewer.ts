@@ -27,6 +27,17 @@ import type {
   BrandPackagingPlan,
 } from "@/types/video-generation";
 import { effectiveAssetRole } from "@/types/video-generation";
+import {
+  resolveClientLockProfile,
+  usesSunnyShutterLocks,
+  type ClientLockProfileId,
+} from "@/lib/video-generation/client-lock-profiles";
+import { findUnsafeShutterPromptViolations } from "@/lib/video-generation/shutter-shot-policy";
+import {
+  storyboardGateIssues,
+  type Image2StoryboardArtifact,
+  type StoryboardFirstRunKind,
+} from "@/lib/video-generation/storyboard-lock";
 
 /**
  * Seedance prompt 不应渲染的精确视觉元素的关键词。
@@ -71,6 +82,19 @@ export interface BuildQualityReviewArgs {
   brandPackaging: BrandPackagingPlan;
   segments: VideoSegment[];
   creativeBrief: CreativeBrief;
+  /**
+   * Client hard-lock pack. Only `sunnyshutter` enables plantation-shutter
+   * suicide-shot + Image2 storyboard-first gates. Other clients stay unaffected.
+   */
+  clientLockProfileId?: ClientLockProfileId | string | null;
+  productName?: string | null;
+  merchantEmail?: string | null;
+  /**
+   * Image2 storyboard artifact. Required (fail-closed) for SunnyShutter when
+   * prompts imply plot-lock or `storyboardRunKind` is shutter_*.
+   */
+  storyboard?: Image2StoryboardArtifact | null;
+  storyboardRunKind?: StoryboardFirstRunKind;
 }
 
 export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview {
@@ -79,11 +103,20 @@ export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview 
   const suggestions: QualityIssue[] = [];
 
   const { classification, classifiedAssets, brandPackaging, segments, creativeBrief } = args;
+  const clientLockProfileId = resolveClientLockProfile({
+    clientLockProfileId: args.clientLockProfileId,
+    brandName: brandPackaging.brandName,
+    productName: args.productName,
+    merchantEmail: args.merchantEmail,
+  });
+  const sunnyShutterLocks = usesSunnyShutterLocks(clientLockProfileId);
 
   /// 1. Seedance prompt 硬约束
+  const aiPrompts: string[] = [];
   for (const seg of segments) {
     if (seg.type !== "ai_generated_clip") continue;
     const prompt = seg.prompt ?? "";
+    aiPrompts.push(prompt);
     for (const rule of FORBIDDEN_SEEDANCE_PATTERNS) {
       if (rule.re.test(prompt)) {
         blockers.push({
@@ -100,6 +133,33 @@ export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview 
         code: "prompt_too_short",
         message: `Segment ${seg.order} has a very short prompt; results may be inconsistent.`,
         segmentOrder: seg.order,
+      });
+    }
+    /// SunnyShutter-only: plantation suicide-shot hard gate
+    if (sunnyShutterLocks) {
+      for (const violation of findUnsafeShutterPromptViolations(prompt)) {
+        blockers.push({
+          severity: "blocker",
+          code: `shutter_${violation.code}`,
+          message: violation.message,
+          segmentOrder: seg.order,
+        });
+      }
+    }
+  }
+
+  /// 1b. SunnyShutter-only: Image2 storyboard-first
+  if (sunnyShutterLocks) {
+    for (const issue of storyboardGateIssues({
+      prompts: aiPrompts,
+      storyboard: args.storyboard,
+      runKind: args.storyboardRunKind,
+      clientLockProfileId,
+    })) {
+      blockers.push({
+        severity: "blocker",
+        code: issue.code,
+        message: issue.message,
       });
     }
   }
@@ -198,7 +258,13 @@ export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview 
 }
 
 /// 公开：单 prompt 静态检查（UI 实时反馈使用）
-export function checkSeedancePromptStatic(prompt: string): QualityIssue[] {
+export function checkSeedancePromptStatic(
+  prompt: string,
+  opts?: {
+    clientLockProfileId?: ClientLockProfileId | string | null;
+    brandName?: string | null;
+  },
+): QualityIssue[] {
   const issues: QualityIssue[] = [];
   for (const rule of FORBIDDEN_SEEDANCE_PATTERNS) {
     if (rule.re.test(prompt)) {
@@ -206,6 +272,19 @@ export function checkSeedancePromptStatic(prompt: string): QualityIssue[] {
         severity: "blocker",
         code: rule.code,
         message: rule.message,
+      });
+    }
+  }
+  const profile = resolveClientLockProfile({
+    clientLockProfileId: opts?.clientLockProfileId,
+    brandName: opts?.brandName,
+  });
+  if (usesSunnyShutterLocks(profile)) {
+    for (const violation of findUnsafeShutterPromptViolations(prompt)) {
+      issues.push({
+        severity: "blocker",
+        code: `shutter_${violation.code}`,
+        message: violation.message,
       });
     }
   }

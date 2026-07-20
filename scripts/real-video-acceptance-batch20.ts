@@ -8,6 +8,9 @@
  *   - 断点续跑：幂等键 + JSON 报告
  *
  * 第 2 部分（2 × 30s 拼接 + 口播字幕）见 real-video-acceptance-30s.ts。
+ *
+ * 百叶安全镜头硬闸：dispatch 前由 quality-reviewer + shutter-shot-policy 拦截
+ * 手拧中杆等自杀镜头（见 docs/acceptance/shutter-safe-shot-policy.md）。
  */
 import { createHash } from "node:crypto";
 import {

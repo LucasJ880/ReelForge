@@ -256,6 +256,8 @@ export interface BrandPackagingPlan {
   /// end-card renderer prefers this PNG as the background and burns exact
   /// brand/contact typography on top so phone/address never hallucinate.
   endCardStillUrl?: string | null;
+  /// Full-video logo watermark corner. SunnyShutter locks this to top-left.
+  logoOverlayPlacement?: "top-left" | "top-right" | "bottom-left" | "bottom-right" | null;
   /// 用户选用上传 clip 作为结尾时，引用对应 attachment id
   uploadedEndingClipAssetId?: string | null;
   renderStrategy: BrandRenderStrategy;

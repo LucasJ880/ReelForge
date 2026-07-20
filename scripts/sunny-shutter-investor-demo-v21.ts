@@ -1053,12 +1053,12 @@ async function phaseAssemble() {
   let watermarked = state.watermarkedBaseLocal;
   if (!watermarked || !existsSync(watermarked)) {
     console.log(
-      "  applying brand overlay watermark (top-right, opacity 0.84, ~15% width)",
+      "  applying brand overlay watermark (top-left, opacity 0.84, ~15% width)",
     );
     const overlay = await applyBrandOverlay({
       sourceVideo: baseLocal,
       logo: LOGO_PATH,
-      placement: "top-right",
+      placement: "top-left",
       opacity: 0.84,
       logoWidthRatio: 0.15,
       marginPx: 32,

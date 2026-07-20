@@ -5,6 +5,11 @@ import os from "os";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath, pathToFileURL } from "url";
+import {
+  resolveClientLockProfile,
+  SUNNYSHUTTER_CLIENT_LOCK_ID,
+} from "@/lib/video-generation/client-lock-profiles";
+import { applySunnyShutterLogoOverlayLock } from "@/lib/video-generation/sunnyshutter-brand-pack";
 
 /**
  * Brand Overlay Renderer —— Phase 2 · L2.1
@@ -444,6 +449,9 @@ export interface ApplyOverlayIfConfiguredArgs {
   sourceVideoUrl: string;
   logoUrl: string | null | undefined;
   config: BrandOverlayConfig | null | undefined;
+  /** When brand/client resolves to SunnyShutter, placement is forced top-left. */
+  brandName?: string | null;
+  clientLockProfileId?: string | null;
 }
 
 export interface ApplyOverlayIfConfiguredResult {
@@ -470,7 +478,12 @@ export interface ApplyOverlayIfConfiguredResult {
 export async function applyBrandOverlayIfConfigured(
   args: ApplyOverlayIfConfiguredArgs,
 ): Promise<ApplyOverlayIfConfiguredResult> {
-  if (!args.config?.enabled) {
+  const config = applySunnyShutterLogoOverlayLock(args.config, {
+    clientLockProfileId: args.clientLockProfileId,
+    brandName: args.brandName,
+  });
+
+  if (!config?.enabled) {
     return { overlayUrl: null, applied: false, warnings: [] };
   }
   if (!args.logoUrl) {
@@ -492,11 +505,11 @@ export async function applyBrandOverlayIfConfigured(
     const result = await applyBrandOverlay({
       sourceVideo: args.sourceVideoUrl,
       logo: args.logoUrl,
-      placement: args.config.placement,
-      opacity: args.config.opacity,
-      logoWidthRatio: args.config.logoWidthRatio,
-      marginPx: args.config.marginPx,
-      durationMode: args.config.durationMode,
+      placement: config.placement,
+      opacity: config.opacity,
+      logoWidthRatio: config.logoWidthRatio,
+      marginPx: config.marginPx,
+      durationMode: config.durationMode,
     });
     /// Defensive double-check before claiming "applied". Caller relies on this
     /// to gate finalVideoUrl updates — no overlay file → no URL update.
@@ -625,8 +638,16 @@ export function extractBrandOverlayConfig(
   const brandKit = root.brandKit;
   if (!brandKit || typeof brandKit !== "object") return null;
   const bk = brandKit as Record<string, unknown>;
+  const brandName = typeof bk.brandName === "string" ? bk.brandName : null;
+  const isSunny =
+    resolveClientLockProfile({ brandName }) === SUNNYSHUTTER_CLIENT_LOCK_ID;
+
   const overlay = bk.overlay;
-  if (!overlay || typeof overlay !== "object") return null;
+  if (!overlay || typeof overlay !== "object") {
+    /// SunnyShutter always gets a locked top-left watermark config.
+    if (!isSunny) return null;
+    return applySunnyShutterLogoOverlayLock({ enabled: true }, { brandName });
+  }
   const ov = overlay as Record<string, unknown>;
 
   const placement = isOverlayPlacement(ov.placement) ? ov.placement : undefined;
@@ -639,14 +660,17 @@ export function extractBrandOverlayConfig(
   const marginPx = typeof ov.marginPx === "number" ? ov.marginPx : undefined;
   const enabled = ov.enabled === true;
 
-  return {
-    enabled,
-    placement,
-    opacity,
-    logoWidthRatio,
-    marginPx,
-    durationMode,
-  };
+  return applySunnyShutterLogoOverlayLock(
+    {
+      enabled,
+      placement,
+      opacity,
+      logoWidthRatio,
+      marginPx,
+      durationMode,
+    },
+    { brandName },
+  );
 }
 
 function isOverlayPlacement(v: unknown): v is OverlayPlacement {

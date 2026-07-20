@@ -2,7 +2,7 @@
  * Real-provider acceptance · 品牌包装后处理（CEO 广告要求）。
  *
  * 对已生成的验收视频统一注入：
- *   1. SUNNY logo 角标（brand-overlay-renderer，全程右下角）
+ *   1. SUNNY logo 角标（brand-overlay-renderer，全程左上角 — CEO 锁死）
  *   2. 3 秒品牌尾卡（brand-end-card-renderer：logo + CTA + 电话 + 地址）
  *   3. runFfmpegNormalizeAndConcat 正片+尾卡拼接 → Blob
  *
@@ -26,9 +26,11 @@ import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-render
 import { runFfmpegNormalizeAndConcat } from "@/lib/services/stitch-service";
 import {
   SUNNYSHUTTER_END_CARD_COPY,
+  SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
   SUNNYSHUTTER_LOGO_RELATIVE,
   applySunnyShutterBrandPack,
   sunnyShutterLogoFileUrl,
+  sunnyShutterLogoOverlayConfig,
 } from "@/lib/video-generation/sunnyshutter-brand-pack";
 import type { BrandPackagingPlan } from "@/types/video-generation";
 
@@ -170,14 +172,16 @@ async function main(): Promise<void> {
     const finalLocal = resolve(BRANDED_DIR, `${item.name}-branded.mp4`);
     if (record.brandedBlobUrl && existsSync(finalLocal)) continue;
     try {
-      // 1) logo 角标
+      // 1) logo 角标（CEO 锁死：左上角）
+      const logoCfg = sunnyShutterLogoOverlayConfig();
       const overlay = await applyBrandOverlay({
         sourceVideo: item.sourcePath,
         logo: LOGO_PATH,
-        placement: "bottom-right",
-        durationMode: "full_video",
-        logoWidthRatio: 0.16,
-        opacity: 0.9,
+        placement: SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
+        durationMode: logoCfg.durationMode,
+        logoWidthRatio: logoCfg.logoWidthRatio,
+        opacity: logoCfg.opacity,
+        marginPx: logoCfg.marginPx,
         outputDir: BRANDED_DIR,
       });
       record.overlaidPath = overlay.outputPath;

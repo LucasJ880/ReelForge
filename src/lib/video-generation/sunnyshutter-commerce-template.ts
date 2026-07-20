@@ -40,6 +40,7 @@ NARRATIVE STRUCTURE LOCK (must follow this order):
 2) MIDDLE: escalate CONFLICT or STRONG CONTRAST / emotional resonance (uncomfortable before vs controlled after, or public glare vs private calm).
 3) END: RETURN TO PRODUCT — clear hero view of the referenced plantation shutters as the solution; hold for the locked SunnyShutter real-ad end card (logo + phone + address burned in post — never by the model).
 END-CARD LOCK: every SunnyShutter video MUST finish with the client end card (Call/Text 647-857-8669 · 690 Progress Ave Unit 7&8 Scarborough). Do not invent alternate contacts.
+LOGO CORNER LOCK: full-video brand watermark is always top-left (never bottom-right). Logo is composited in post — model must not paint any logo.
 CAMERA / LIGHT / RHYTHM LOCK: stable sales camera (medium/wide preferred, gentle push or hold only). Soft natural window daylight key OR warm amber lifestyle lamps when style lane says cozy; controlled fill; soft contact shadow on the sill. Sales pacing: hook beat → conflict/contrast beat → product hold.`;
 
 const SHARED_NEGATIVE =

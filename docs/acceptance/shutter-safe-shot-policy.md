@@ -210,6 +210,7 @@ PRODUCT MECHANICS PRECONDITIONS (must obey):
 | 电话 | `647-857-8669` |
 | 地址 | `690 Progress Ave, Unit 7&8, Scarborough, ON` |
 | Logo | `public/brand/sunny-logo.png`（本地；prod 走 Blob，目录 gitignore） |
+| Logo 角标位置 | **左上角**（CEO 锁死；禁止右下角） |
 | 尾卡底图 | `assets/sunnyshutter/end-card-9x16.png`（16:9 另有一份；可提交） |
 | 时长 | 3s |
 
@@ -217,8 +218,9 @@ PRODUCT MECHANICS PRECONDITIONS (must obey):
 
 1. `buildBrandPackagingPlan` 对 `sunnyshutter` **强制** `auto_end_card` + 上表联系方式（即使用户选 `none`）。  
 2. `quality-reviewer` 缺电话/地址 → `sunnyshutter_end_card_*` blocker，不可 dispatch。  
-3. `brand-end-card-renderer` 优先铺 Image2 设计底图，再叠**精确**品牌/电话/地址字（不交给模型写字）。  
-4. 重生底图：`npm run brand:sunnyshutter:end-card`（需 OpenAI 项目开通 gpt-image-*；当前仓库已提交设计底图，脚本失败时不影响出片）
+3. `brand-end-card-renderer` 优先铺设计底图，再叠**精确**品牌/电话/地址字（不交给模型写字）。  
+4. 全程 logo 水印：`SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT = top-left`（`applySunnyShutterLogoOverlayLock` 强制覆盖任何 bottom-right / top-right）。  
+5. 重生尾卡底图：`npm run brand:sunnyshutter:end-card`
 
 ---
 

@@ -2,9 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { buildBrandPackagingPlan } from "../src/lib/video-generation/brand-packaging";
 import {
+  SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
   SUNNYSHUTTER_PHONE,
   applySunnyShutterBrandPack,
+  applySunnyShutterLogoOverlayLock,
   sunnyShutterEndCardMissingIssues,
+  sunnyShutterLogoOverlayConfig,
 } from "../src/lib/video-generation/sunnyshutter-brand-pack";
 import type {
   InputClassification,
@@ -71,7 +74,25 @@ test("SunnyShutter brand pack locks phone + address + Image2 still url", () => {
   assert.ok(plan.contactLines?.some((line) => line.includes(SUNNYSHUTTER_PHONE)));
   assert.ok(plan.contactLines?.some((line) => /690\s*Progress/i.test(line)));
   assert.match(plan.endCardStillUrl ?? "", /end-card-9x16\.png/);
+  assert.equal(plan.logoOverlayPlacement, "top-left");
   assert.equal(sunnyShutterEndCardMissingIssues(plan).length, 0);
+});
+
+test("SunnyShutter logo watermark is locked to top-left (never bottom-right)", () => {
+  assert.equal(SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT, "top-left");
+  assert.equal(sunnyShutterLogoOverlayConfig().placement, "top-left");
+
+  const forced = applySunnyShutterLogoOverlayLock(
+    { enabled: true, placement: "bottom-right" },
+    { clientLockProfileId: "sunnyshutter" },
+  );
+  assert.equal(forced?.placement, "top-left");
+
+  const other = applySunnyShutterLogoOverlayLock(
+    { enabled: true, placement: "bottom-right" },
+    { brandName: "Acme Blinds" },
+  );
+  assert.equal(other?.placement, "bottom-right");
 });
 
 test("buildBrandPackagingPlan forces SunnyShutter end card even when mode=none", () => {

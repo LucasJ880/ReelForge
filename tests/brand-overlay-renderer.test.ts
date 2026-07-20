@@ -366,6 +366,25 @@ test("brand-overlay: extractBrandOverlayConfig parses full config", () => {
   });
 });
 
+test("brand-overlay: SunnyShutter brandKit forces top-left even if overlay asks bottom-right", () => {
+  const r = extractBrandOverlayConfig({
+    brandKit: {
+      brandName: "SUNNY Shutters",
+      overlay: { enabled: true, placement: "bottom-right" },
+    },
+  });
+  assert.equal(r?.enabled, true);
+  assert.equal(r?.placement, "top-left");
+});
+
+test("brand-overlay: SunnyShutter without overlay JSON still gets locked top-left config", () => {
+  const r = extractBrandOverlayConfig({
+    brandKit: { brandName: "Sunny Shutter" },
+  });
+  assert.equal(r?.enabled, true);
+  assert.equal(r?.placement, "top-left");
+});
+
 test("brand-overlay: extractBrandOverlayConfig drops invalid placement / mode", () => {
   const r = extractBrandOverlayConfig({
     brandKit: {

@@ -17,6 +17,18 @@ import {
 } from "@/lib/video-generation/client-lock-profiles";
 import type { BrandPackagingPlan } from "@/types/video-generation";
 
+/** CEO lock (2026-07-19): logo goes top-left on every SunnyShutter video — never bottom-right. */
+export const SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT = "top-left" as const;
+
+export type SunnyShutterLogoOverlayConfig = {
+  enabled: boolean;
+  placement: typeof SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT;
+  opacity: number;
+  logoWidthRatio: number;
+  marginPx: number;
+  durationMode: "full_video" | "first_3s" | "last_5s";
+};
+
 export const SUNNYSHUTTER_PHONE = "647-857-8669";
 export const SUNNYSHUTTER_ADDRESS =
   "690 Progress Ave, Unit 7&8, Scarborough, ON";
@@ -102,6 +114,46 @@ export function sunnyShutterEndCardStillFileUrl(
   return pathToFileURL(path.resolve(cwd, relative)).href;
 }
 
+/** Locked watermark config for every SunnyShutter full-video logo overlay. */
+export function sunnyShutterLogoOverlayConfig(overrides?: {
+  opacity?: number;
+  logoWidthRatio?: number;
+  marginPx?: number;
+  durationMode?: SunnyShutterLogoOverlayConfig["durationMode"];
+}): SunnyShutterLogoOverlayConfig {
+  return {
+    enabled: true,
+    placement: SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
+    opacity: overrides?.opacity ?? 0.9,
+    logoWidthRatio: overrides?.logoWidthRatio ?? 0.16,
+    marginPx: overrides?.marginPx ?? 32,
+    durationMode: overrides?.durationMode ?? "full_video",
+  };
+}
+
+/**
+ * Force logo corner to top-left for SunnyShutter; leave other clients unchanged.
+ */
+export function applySunnyShutterLogoOverlayLock<
+  T extends {
+    enabled?: boolean;
+    placement?: string;
+    opacity?: number;
+    logoWidthRatio?: number;
+    marginPx?: number;
+    durationMode?: SunnyShutterLogoOverlayConfig["durationMode"];
+  },
+>(config: T | null | undefined, hints?: ClientLockHints): T | SunnyShutterLogoOverlayConfig | null {
+  const profile = resolveClientLockProfile(hints ?? {});
+  if (profile !== SUNNYSHUTTER_CLIENT_LOCK_ID) return config ?? null;
+  return sunnyShutterLogoOverlayConfig({
+    opacity: config?.opacity,
+    logoWidthRatio: config?.logoWidthRatio,
+    marginPx: config?.marginPx,
+    durationMode: config?.durationMode,
+  });
+}
+
 /**
  * Force SunnyShutter brand ending onto any packaging plan.
  * No-op for other clients.
@@ -138,9 +190,11 @@ export function applySunnyShutterBrandPack(
     renderStrategy: "render_ffmpeg_overlay",
     /// Prefer Image2-designed still; renderer falls back to SVG if missing.
     endCardStillUrl: sunnyShutterEndCardStillFileUrl(aspect),
+    logoOverlayPlacement: SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT,
     warnings: [
       ...(plan.warnings ?? []),
       "SunnyShutter brand end card locked (logo + phone + address).",
+      "SunnyShutter logo watermark locked to top-left.",
     ],
   };
 }

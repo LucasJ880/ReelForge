@@ -544,7 +544,7 @@ async function phaseAssemble() {
     const overlay = await applyBrandOverlay({
       sourceVideo: baseLocal,
       logo: LOGO_PATH,
-      placement: "top-right",
+      placement: "top-left",
       opacity: 0.82,
       logoWidthRatio: 0.16,
       marginPx: 32,

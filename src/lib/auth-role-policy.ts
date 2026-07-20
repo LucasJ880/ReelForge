@@ -1,8 +1,12 @@
 export type AccountRole = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER";
 export type AccountUserType = "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN";
 
+/**
+ * 2026-07-20 产品决策：系统定位是给电商公司的通用运营服务，功能对所有
+ * 登录用户统一开放，不按角色隐藏功能。角色字段保留用于审计/展示，不再门禁。
+ */
 export function isInternalRole(role: AccountRole | null | undefined): boolean {
-  return role === "SUPER_ADMIN" || role === "OPERATOR";
+  return role != null;
 }
 
 /**

@@ -95,14 +95,14 @@ export async function judgeStoryboardCandidates(args: {
   }
 }
 
-/** 抽卡数：默认 3；STORYBOARD_GACHA_CANDIDATES 可调（1 = 关闭抽卡）。 */
+/** 抽卡数：默认 4（用户 2026-07-20：抽卡不限成本）；STORYBOARD_GACHA_CANDIDATES 可调（1 = 关闭抽卡）。 */
 export function gachaCandidateCount(): number {
   const parsed = Number.parseInt(
     process.env.STORYBOARD_GACHA_CANDIDATES ?? "",
     10,
   );
-  if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 6) return parsed;
-  return 3;
+  if (Number.isInteger(parsed) && parsed >= 1 && parsed <= 8) return parsed;
+  return 4;
 }
 
 /**

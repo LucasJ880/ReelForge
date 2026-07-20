@@ -31,6 +31,7 @@ import {
   pickSunnyShutterCommerceVariant,
   type SunnyShutterCommercePlotVariant,
 } from "@/lib/video-generation/sunnyshutter-commerce-template";
+import { resolveImagePlanCandidates } from "@/lib/video-generation/sunnyshutter-shade-pipeline";
 
 export const SUNNYSHUTTER_LOCKED_PIPELINE_ID =
   "sunnyshutter-image2-storyboard-i2v-15s" as const;
@@ -211,15 +212,10 @@ export async function generateSunnyShutterStoryboard(args: {
     new Set(
       [
         args.imagePlanId,
-        SHUYU_IMAGE_PLAN_ID, // GPT Image 2 推荐 · 1K
-        SHUYU_IMAGE_FALLBACK_PLAN_ID, // GPT Image 2 特价 Low · 1K
-        "image-plan-03", // GPT Image 2 推荐 · 4K
-        "image-plan-06", // GPT Image 2 线路1 · 4K
-        "image-plan-02", // may rotate
-        "image-plan-04",
-        "image-plan-05",
-        "image-plan-10", // Nano Banana if GPT Image 2 all busy
-        "image-plan-13",
+        // 动态线路优先（/prices 实时可用），静态名单兜底
+        ...(await resolveImagePlanCandidates(args.options)),
+        SHUYU_IMAGE_PLAN_ID,
+        SHUYU_IMAGE_FALLBACK_PLAN_ID,
       ].filter(Boolean) as string[],
     ),
   );

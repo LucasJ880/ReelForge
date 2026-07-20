@@ -431,6 +431,26 @@ export async function getShuyuPrices(
   return parsed.data;
 }
 
+/**
+ * 动态图片线路（2026-07-20 起 GPT Image 2 线路已下线，只剩 Nano Banana / Gemini）：
+ * 从 /prices 拉当前可用 image plan，质量优先排序 — Gemini Pro 优先于 Flash，
+ * 2K 优先于 4K（9:16 故事版 2K 足够且出图更快），同档按积分升序。
+ */
+export async function getAvailableShuyuImagePlanIds(
+  options: ShuyuFetchOptions = {},
+): Promise<string[]> {
+  const prices = await getShuyuPrices(options);
+  const rank = (plan: z.infer<typeof shuyuPriceSchema>): number => {
+    const pro = /\bpro\b/i.test(plan.display_name) ? 0 : 1;
+    const res2k = plan.resolution === "2K" ? 0 : plan.resolution === "1K" ? 1 : 2;
+    return pro * 10 + res2k;
+  };
+  return prices.data
+    .filter((plan) => plan.kind === "image")
+    .sort((a, b) => rank(a) - rank(b) || a.sale_points - b.sale_points)
+    .map((plan) => plan.plan_id);
+}
+
 export async function getShuyuBalance(
   options: ShuyuFetchOptions = {},
 ): Promise<z.infer<typeof shuyuBalanceResponseSchema>> {

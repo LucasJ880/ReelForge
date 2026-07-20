@@ -45,6 +45,9 @@ import {
 import type { BrandPackagingPlan } from "@/types/video-generation";
 
 loadEnvConfig(process.cwd(), true);
+// 本脚本走真实 Shuyu 引擎；.env.local 的 VIDEO_ENGINE_MOCK=true 是给 app 本地
+// 开发用的，这里必须关掉，否则 frame-qa 门禁会自动跳过。
+process.env.VIDEO_ENGINE_MOCK = "false";
 
 const SUBMIT = process.env.ACCEPTANCE_SUBMIT === "1";
 const RUN_KEY =
@@ -253,7 +256,7 @@ async function processItem(item: ReportItem, report: Report): Promise<void> {
   const t0 = Date.now();
   try {
     if (!item.storyboard?.frames?.length) {
-      console.log(`#${item.index} storyboard Image2 (3 frames)…`);
+      console.log(`#${item.index} storyboard Image2 (5-frame gacha)…`);
       item.storyboard = await generateShadeStoryboard({
         index1Based: item.index,
         productImageUrls: item.productImageUrls,

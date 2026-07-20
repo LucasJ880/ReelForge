@@ -10,6 +10,7 @@ import {
   SHUYU_VIDEO_FAST_PLAN_ID,
   createShuyuImageTask,
   createShuyuVideoTask,
+  getAvailableShuyuImagePlanIds,
   getShuyuVideoTask,
   type ShuyuFetchOptions,
 } from "@/lib/providers/shuyu";
@@ -90,6 +91,11 @@ export async function pollShuyuTaskUntilDone(
   throw new Error(`${options.label ?? "task"} timed out (${taskId})`);
 }
 
+/**
+ * 5 帧故事版（CEO 2026-07-20：blinds 至少 4-6 张）：
+ * hook → 冲突特写 → 操作 → payoff → 产品英雄 CTA 定格。
+ * 帧越多，I2V 每段要脑补的运动越短，漂移/幻视空间越小。
+ */
 function framePlans(variant: SunnyShutterShadePlotVariant) {
   const bible = shadeStoryboardVisualBible(variant);
   const [hook, mid, end] = [
@@ -105,31 +111,79 @@ function framePlans(variant: SunnyShutterShadePlotVariant) {
       imagePrompt: [
         `[Visual Bible] ${bible}`,
         `[Frame 1 HOOK] ${hook}`,
-        "[Output] One 9:16 photoreal still. Same room identity for frames 2-3.",
+        "[Output] One 9:16 photoreal still. This frame locks the room identity for ALL later frames.",
+      ].join("\n\n"),
+    },
+    {
+      id: "conflict-close",
+      order: 2,
+      beat: `CONFLICT CLOSE-UP (same scene as hook): ${variant.conflictAngle} — emphasize the discomfort; window still dominates the frame.`,
+      imagePrompt: [
+        `[Visual Bible] ${bible}`,
+        `[Frame 2 CONFLICT CLOSE] Same scene as Frame 1, slightly tighter on the window to emphasize the problem: ${variant.conflictAngle}. The uncovered/glaring window fills most of the frame.`,
+        "[Output] One 9:16 still. Same room/window/person as Frame 1; only emphasis changes.",
       ].join("\n\n"),
     },
     {
       id: "operate",
-      order: 2,
+      order: 3,
       beat: mid,
       imagePrompt: [
         `[Visual Bible] ${bible}`,
-        `[Frame 2 OPERATE / TRANSFORM] ${mid}`,
+        `[Frame 3 OPERATE / TRANSFORM] ${mid}`,
         `[PULL LOCK] chain ONLY on the ${variant.pullSide} edge if visible.`,
-        "[Output] One 9:16 still. Same woman/room/product as Frame 1.",
+        "[Output] One 9:16 still. Same woman/room/product as Frames 1-2; shade mid-travel.",
       ].join("\n\n"),
     },
     {
       id: "payoff",
-      order: 3,
+      order: 4,
       beat: end,
       imagePrompt: [
         `[Visual Bible] ${bible}`,
-        `[Frame 3 PAYOFF / PRODUCT HERO] ${end}`,
-        "[Output] One 9:16 still. Same continuity; clear product hero for CTA hold.",
+        `[Frame 4 PAYOFF] ${end}`,
+        "[Output] One 9:16 still. Same continuity; covering fully deployed; comfort payoff readable.",
+      ].join("\n\n"),
+    },
+    {
+      id: "hero-cta",
+      order: 5,
+      beat: "FINAL CTA HOLD: clean hero of the covering on the SAME window, perfect geometry, calm light, zero text — ready for post CTA overlay and end card.",
+      imagePrompt: [
+        `[Visual Bible] ${bible}`,
+        "[Frame 5 PRODUCT HERO / CTA HOLD] Clean hero composition of the covering fully deployed on the SAME window as all earlier frames; perfect straight geometry; calm premium light; person optional and secondary.",
+        "[Output] One 9:16 still. Same room identity; this is the freeze the video ends on.",
       ].join("\n\n"),
     },
   ];
+}
+
+/** 静态兜底名单（/prices 拉不到时用；线路轮换频繁，别依赖它） */
+const STATIC_IMAGE_PLAN_FALLBACK = [
+  "image-plan-11",
+  "image-plan-14",
+  "image-plan-12",
+  "image-plan-15",
+  "image-plan-10",
+  "image-plan-13",
+  SHUYU_IMAGE_PLAN_ID,
+  SHUYU_IMAGE_FALLBACK_PLAN_ID,
+];
+
+/** 每个故事版拉一次 /prices 动态选线路，失败回退静态名单。 */
+export async function resolveImagePlanCandidates(
+  options?: ShuyuFetchOptions,
+): Promise<string[]> {
+  try {
+    const dynamic = await getAvailableShuyuImagePlanIds({
+      ...options,
+      timeoutMs: options?.timeoutMs ?? 15_000,
+    });
+    if (dynamic.length > 0) return dynamic;
+  } catch {
+    // fall through to static list
+  }
+  return STATIC_IMAGE_PLAN_FALLBACK;
 }
 
 async function generateOneFrame(args: {
@@ -137,23 +191,10 @@ async function generateOneFrame(args: {
   refs: string[];
   keyPrefix: string;
   label: string;
+  planCandidates: string[];
   options?: ShuyuFetchOptions;
 }): Promise<string> {
-  // Shuyu rotates image lanes often — keep a wide GPT Image 2 + Nano Banana set.
-  const planCandidates = [
-    "image-plan-11",
-    "image-plan-14",
-    "image-plan-10",
-    "image-plan-13",
-    SHUYU_IMAGE_PLAN_ID,
-    SHUYU_IMAGE_FALLBACK_PLAN_ID,
-    "image-plan-12",
-    "image-plan-15",
-    "image-plan-03",
-    "image-plan-06",
-    "image-plan-02",
-    "image-plan-04",
-  ];
+  const planCandidates = args.planCandidates;
   let lastError: unknown;
   for (let round = 0; round < 3; round += 1) {
     if (round > 0) await sleep(8_000 * round);
@@ -221,6 +262,7 @@ export async function generateShadeStoryboard(args: {
   const variant = pickSunnyShutterShadeVariant(args.index1Based);
   const plans = framePlans(variant);
   const refs = args.productImageUrls.slice(0, 4);
+  const planCandidates = await resolveImagePlanCandidates(args.options);
   const frames: Image2StoryboardArtifact["frames"] = [];
 
   for (const plan of plans) {
@@ -247,6 +289,7 @@ export async function generateShadeStoryboard(args: {
             : [...frames.map((f) => f.imageUrl), ...refs].slice(0, 4),
           keyPrefix: `${args.providerRequestKeyPrefix}:img:${args.index1Based}:${plan.id}:c${candidateIndex}`,
           label: `shade-sb#${args.index1Based}/${plan.id}/c${candidateIndex}`,
+          planCandidates,
           options: args.options,
         }),
     });
@@ -271,7 +314,7 @@ export async function generateShadeStoryboard(args: {
   requireStoryboardBeforeVideo(artifact, {
     runKind: "shutter_acceptance",
     clientLockProfileId: "sunnyshutter",
-    minFrames: 3,
+    minFrames: plans.length,
   });
   return artifact;
 }
@@ -286,7 +329,7 @@ export async function runShadeI2V(args: {
   const variant = pickSunnyShutterShadeVariant(args.index1Based);
   const prompt = [
     buildSunnyShutterShadePrompt({ variant }),
-    "STORYBOARD-FIRST MOTION LOCK: Animate from storyboard frame 1 → frame 2 → frame 3 with continuous identity. Keep pull chain on the locked side edge only.",
+    "STORYBOARD-FIRST MOTION LOCK: Animate through ALL storyboard frames strictly in order (first input images) with continuous identity — each segment is a short, simple motion. Keep pull chain on the locked side edge only.",
     "TRANSITION LOCK: between storyboard frames use real in-scene motion or a clean hard cut ONLY — never a crossfade/dissolve; never show two moments blended or a see-through person/shade ghost.",
     "END HOLD LOCK: final second is a clean product/lifestyle freeze — absolutely no contact card, no cursive brand text, no phone digits from the model.",
   ].join("\n");

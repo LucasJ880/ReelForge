@@ -50,6 +50,9 @@ yarn-error.log*
 # brand assets (real customer logos must not be committed; provide via Blob in prod)
 /public/brand/
 
+# local CEO TikTok screen-recording keyframes (do not commit third-party content)
+/assets/sunnyshutter/ceo-refs/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -24,6 +24,12 @@ loadEnvConfig(process.cwd(), true);
 import { applyBrandOverlay } from "@/lib/video-generation/brand-overlay-renderer";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
 import { runFfmpegNormalizeAndConcat } from "@/lib/services/stitch-service";
+import {
+  SUNNYSHUTTER_END_CARD_COPY,
+  SUNNYSHUTTER_LOGO_RELATIVE,
+  applySunnyShutterBrandPack,
+  sunnyShutterLogoFileUrl,
+} from "@/lib/video-generation/sunnyshutter-brand-pack";
 import type { BrandPackagingPlan } from "@/types/video-generation";
 
 const RUN_KEY = "real-acceptance-20260719-branding-v1";
@@ -35,44 +41,33 @@ const BATCH_REPORTS = [
   resolve(OUTPUT_DIR, "volc-batch18-v3.json"),
 ];
 const REPORT_30S = resolve(OUTPUT_DIR, "30s-v1.json");
-const LOGO_PATH = resolve(process.cwd(), "public/brand/sunny-logo.png");
+const LOGO_PATH = resolve(process.cwd(), SUNNYSHUTTER_LOGO_RELATIVE);
 
-const CONTACT_EN = [
-  "Call / Text 647-857-8669",
-  "690 Progress Ave, Unit 7&8, Scarborough, ON",
-];
-const CONTACT_ZH = [
-  "电话 647-857-8669",
-  "690 Progress Ave, Unit 7&8, Scarborough",
-];
-
-function endCardPlan(language: "en" | "zh"): BrandPackagingPlan {
-  if (language === "zh") {
-    return {
+function endCardPlan(
+  language: "en" | "zh",
+  aspectRatio: string,
+): BrandPackagingPlan {
+  const copy = SUNNYSHUTTER_END_CARD_COPY[language];
+  return applySunnyShutterBrandPack(
+    {
       mode: "auto_end_card",
       logoAssetId: null,
-      endCardDurationSeconds: 3,
-      brandName: "SUNNY 定制百叶窗",
-      slogan: "上门量尺 · 工厂直供 · 专业安装",
-      cta: "现在致电 免费上门量尺",
-      contactLines: CONTACT_ZH,
-      website: null,
+      endCardDurationSeconds: copy.endCardDurationSeconds,
+      brandName: copy.brandName,
+      slogan: copy.slogan,
+      cta: copy.cta,
+      contactLines: [...copy.contactLines],
+      website: copy.website,
       renderStrategy: "render_ffmpeg_overlay",
       warnings: [],
-    };
-  }
-  return {
-    mode: "auto_end_card",
-    logoAssetId: null,
-    endCardDurationSeconds: 3,
-    brandName: "SUNNY Shutters",
-    slogan: "Custom Shutters · Measured, Made, Installed",
-    cta: "Book Your FREE In-Home Quote",
-    contactLines: CONTACT_EN,
-    website: null,
-    renderStrategy: "render_ffmpeg_overlay",
-    warnings: [],
-  };
+    },
+    {
+      clientLockProfileId: "sunnyshutter",
+      brandName: copy.brandName,
+      language,
+      aspectRatio,
+    },
+  );
 }
 
 type WorkItem = {
@@ -156,9 +151,9 @@ async function main(): Promise<void> {
     if (cached) return cached;
     const rendered = await renderBrandEndCard({
       briefId: `${RUN_KEY}-${key}`,
-      plan: endCardPlan(language),
+      plan: endCardPlan(language, aspect),
       aspectRatio: aspect,
-      logoUrl: `file://${LOGO_PATH}`,
+      logoUrl: sunnyShutterLogoFileUrl(),
     });
     if (!rendered?.url) {
       throw new Error(

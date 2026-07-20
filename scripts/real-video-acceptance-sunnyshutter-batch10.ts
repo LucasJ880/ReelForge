@@ -2,13 +2,13 @@
  * SunnyShutter 电商专用模版 · 10 条批量验收骨架。
  *
  * 全部使用 `sunnyshutter-commerce-cta-*` 模版族（钩子 → 冲突/对比 → 回归产品 +
- * 安全镜头硬闸）。5 个剧情变体轮转 × 2 = 10 条。
+ * 安全镜头硬闸 + CEO 风格车道）。11 个变体轮转出 10 条。
  *
  * 默认 DRY RUN（只打印计划 + 渲染 prompt，不烧钱）。
  * 充值 / Shuyu 视频可用后：
  *   ACCEPTANCE_SUBMIT=1 npx tsx --env-file=.env.local scripts/real-video-acceptance-sunnyshutter-batch10.ts
  *
- * Spec: docs/acceptance/shutter-safe-shot-policy.md §11
+ * Spec: docs/acceptance/shutter-safe-shot-policy.md §11–12
  */
 import { createHash } from "node:crypto";
 import {

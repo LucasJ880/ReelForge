@@ -54,6 +54,7 @@
     "acceptance:real:backend": "tsx --env-file=.env.local scripts/real-video-acceptance-backend.ts",
     "acceptance:sunnyshutter:batch10": "tsx --env-file=.env.local scripts/real-video-acceptance-sunnyshutter-batch10.ts",
     "acceptance:sunnyshutter:batch10:submit": "ACCEPTANCE_SUBMIT=1 tsx --env-file=.env.local scripts/real-video-acceptance-sunnyshutter-batch10.ts",
+    "brand:sunnyshutter:end-card": "tsx --env-file=.env.local scripts/generate-sunnyshutter-end-card.ts",
     "frame:qa": "tsx scripts/frame-qa.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",

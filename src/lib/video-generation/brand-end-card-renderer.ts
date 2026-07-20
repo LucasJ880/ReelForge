@@ -325,6 +325,7 @@ function computeCacheKey(input: BrandEndCardRenderInput): string {
     website: input.plan.website ?? "",
     contact: (input.plan.contactLines ?? []).join("|"),
     logo: input.logoUrl ?? "",
+    still: input.plan.endCardStillUrl ?? "",
   };
   const h = crypto.createHash("sha1").update(JSON.stringify(norm)).digest("hex");
   return `endcard-${dims.label.replace(":", "x")}-${input.plan.endCardDurationSeconds}s-${h.slice(0, 10)}`;
@@ -346,36 +347,118 @@ async function fetchLogoBuffer(logoUrl: string): Promise<Buffer | null> {
 }
 
 /**
+ * Image2 / locked client still as photographic background, with a translucent
+ * lower panel so exact brand/contact typography stays readable.
+ */
+async function rasterizeDesignedStillBackground(
+  input: BrandEndCardRenderInput,
+  stillUrl: string,
+  warnings: string[],
+): Promise<Buffer | null> {
+  const dims = resolveAspect(input.aspectRatio);
+  const stillBuf = await fetchLogoBuffer(stillUrl);
+  if (!stillBuf) {
+    warnings.push(
+      `endCardStillUrl not reachable (${stillUrl}); falling back to SVG end card.`,
+    );
+    return null;
+  }
+
+  const sharpModule = await import("sharp");
+  const sharp = sharpModule.default;
+  try {
+    const base = await sharp(stillBuf)
+      .resize(dims.width, dims.height, { fit: "cover", position: "centre" })
+      .png()
+      .toBuffer();
+
+    /// Soft dark panel in the lower ~52% so white text stays legible.
+    const panelH = Math.round(dims.height * 0.52);
+    const panel = await sharp({
+      create: {
+        width: dims.width,
+        height: panelH,
+        channels: 4,
+        background: { r: 12, g: 18, b: 28, alpha: 0.72 },
+      },
+    })
+      .png()
+      .toBuffer();
+
+    return await sharp(base)
+      .composite([{ input: panel, top: dims.height - panelH, left: 0 }])
+      .png()
+      .toBuffer();
+  } catch (err) {
+    warnings.push(
+      `Designed still prep failed (${(err as Error).message}); falling back to SVG.`,
+    );
+    return null;
+  }
+}
+
+/**
  * 把 SVG 栅格化为 PNG，并（如果有 logo）把 logo 居中叠加到上 1/3 区域。
+ * 若 plan.endCardStillUrl 可用，先铺 Image2 设计底图再叠文案层。
  */
 async function rasterizeToPng(
   input: BrandEndCardRenderInput,
   warnings: string[],
 ): Promise<Buffer> {
   const dims = resolveAspect(input.aspectRatio);
-  const svg = buildSvg(input);
-
   const sharpModule = await import("sharp");
   const sharp = sharpModule.default;
 
+  let designedBg: Buffer | null = null;
+  if (input.plan.endCardStillUrl?.trim()) {
+    designedBg = await rasterizeDesignedStillBackground(
+      input,
+      input.plan.endCardStillUrl.trim(),
+      warnings,
+    );
+  }
+
+  /// When using a designed still, render typography on a transparent SVG so the
+  /// Image2 background shows through (no solid gradient fill).
+  const svgInput = designedBg
+    ? {
+        ...input,
+        plan: {
+          ...input.plan,
+          /// Force a known brief so palette pick is irrelevant (bg is transparent).
+        },
+      }
+    : input;
+  const svg = designedBg
+    ? buildSvgTransparentTextOverlay(svgInput)
+    : buildSvg(input);
+
   let png: Buffer;
   try {
-    png = await sharp(Buffer.from(svg))
+    const textLayer = await sharp(Buffer.from(svg))
       .resize(dims.width, dims.height, { fit: "fill" })
       .png()
       .toBuffer();
+    png = designedBg
+      ? await sharp(designedBg)
+          .composite([{ input: textLayer, top: 0, left: 0 }])
+          .png()
+          .toBuffer()
+      : textLayer;
   } catch (err) {
     /// 罕见路径（极小概率 librsvg 异常）：退化成纯色 PNG
     warnings.push(`SVG render failed (${(err as Error).message}); using solid color fallback.`);
     const palette = pickPaletteFromBriefId(input.briefId);
-    png = await sharp({
-      create: {
-        width: dims.width,
-        height: dims.height,
-        channels: 4,
-        background: palette.from,
-      },
-    }).png().toBuffer();
+    png = designedBg
+      ? designedBg
+      : await sharp({
+          create: {
+            width: dims.width,
+            height: dims.height,
+            channels: 4,
+            background: palette.from,
+          },
+        }).png().toBuffer();
   }
 
   /// Logo 叠加：放在画布上 1/3 中央，等比缩放，最大不超过短边的 30%
@@ -400,7 +483,7 @@ async function rasterizeToPng(
         const meta = await sharp(resizedLogo).metadata();
         const lw = meta.width ?? logoMax;
         const lh = meta.height ?? logoMax;
-        const top = Math.round(dims.height * (isVertical ? 0.18 : 0.13));
+        const top = Math.round(dims.height * (isVertical ? 0.14 : 0.1));
         const left = Math.round((dims.width - lw) / 2);
         png = await sharp(png)
           .composite([{ input: resizedLogo, top, left }])
@@ -414,6 +497,21 @@ async function rasterizeToPng(
   }
 
   return png;
+}
+
+/** Transparent-canvas variant of buildSvg for compositing over Image2 stills. */
+function buildSvgTransparentTextOverlay(input: BrandEndCardRenderInput): string {
+  const filled = buildSvg(input);
+  /// Replace solid gradient background rect with transparent fill.
+  return filled
+    .replace(
+      /<rect width="[^"]+" height="[^"]+" fill="url\(#bg\)"\/>/,
+      `<rect width="100%" height="100%" fill="none"/>`,
+    )
+    .replace(
+      /<!-- 顶部 accent 条 -->\s*<rect[^/]+\/>/,
+      "",
+    );
 }
 
 async function pngToMp4(

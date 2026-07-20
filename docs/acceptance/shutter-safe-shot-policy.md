@@ -200,26 +200,57 @@ PRODUCT MECHANICS PRECONDITIONS (must obey):
 
 ---
 
-## 11. SunnyShutter 电商专用模版族（批量固定）
+## 11. 强制真实广告尾卡（logo + 电话 + 地址）
 
-> 业务反馈固化：带货 CTA，不要文艺片；结构固定为 **0–3s 钩子 → 中段冲突/强对比/共鸣 → 回归产品**。  
-> 代码真相源：`src/lib/video-generation/sunnyshutter-commerce-template.ts`  
-> 家族 ID：`sunnyshutter-commerce-cta`（5 个剧情变体 slug，轮转出 10 条）
+> 每一条 SunnyShutter 视频结尾必须接这家客户的真实广告尾卡，不得省略。  
+> 代码：`src/lib/video-generation/sunnyshutter-brand-pack.ts`
 
-| slug 后缀 | 冲突角度 | 安全运动 |
-|-----------|----------|----------|
-| `-glare` | 刺眼日光 vs 可控采光 | `louver_tilt_no_hands` |
-| `-privacy` | 街景暴露 vs 隐私闭合 | `panel_hinge_open` |
-| `-comfort` | 单薄窗饰感 vs 实木百叶存在感 | `static_product` |
-| `-view` | 封闭挡景 vs 整扇开景 | `panel_hinge_open` |
-| `-presenter` | DIY 纠结 vs 顾问指景推荐 | `presenter_point_only` |
+| 字段 | 锁定值 |
+|------|--------|
+| 电话 | `647-857-8669` |
+| 地址 | `690 Progress Ave, Unit 7&8, Scarborough, ON` |
+| Logo | `public/brand/sunny-logo.png`（本地；prod 走 Blob，目录 gitignore） |
+| 尾卡底图 | `assets/sunnyshutter/end-card-9x16.png`（16:9 另有一份；可提交） |
+| 时长 | 3s |
 
-批量验收（默认 dry-run，不烧钱）：
+工程行为：
+
+1. `buildBrandPackagingPlan` 对 `sunnyshutter` **强制** `auto_end_card` + 上表联系方式（即使用户选 `none`）。  
+2. `quality-reviewer` 缺电话/地址 → `sunnyshutter_end_card_*` blocker，不可 dispatch。  
+3. `brand-end-card-renderer` 优先铺 Image2 设计底图，再叠**精确**品牌/电话/地址字（不交给模型写字）。  
+4. 重生底图：`npm run brand:sunnyshutter:end-card`（需 OpenAI 项目开通 gpt-image-*；当前仓库已提交设计底图，脚本失败时不影响出片）
+
+---
+
+## 12. SunnyShutter 电商专用模版族（批量固定）
+
+> CEO 质量风格标准（2026-07-19 录屏 + 微信）：**多 CTA**、**土土的硬广 OK**、**产品不变形**；结构仍是钩子 → 冲突/对比 → 回归产品 + 强制尾卡。  
+> 代码：`src/lib/video-generation/sunnyshutter-commerce-template.ts`  
+> 家族：`sunnyshutter-commerce-cta`（**11** 个风格/剧情变体，batch10 轮转）
+
+### 风格车道（对齐 CEO 喜欢的 TikTok）
+
+| lane | 参考感 | 用途 |
+|------|--------|------|
+| `cozy_warm_lifestyle` | 暖光治愈家居 | 暖灯 / 纹理 / 生活感，但仍收硬 CTA |
+| `pov_before_after` | POV 空房前后对比 | 基础窗饰 → 定制百叶 |
+| `hard_sell_presenter` | 高能量硬广主持人 | 土一点、急一点、指景卖点 |
+| `product_hero_proof` | 产品几何稳定英雄镜 | 强调不变形 + 卖点 |
+
+### 变体 slug（节选）
+
+| slug 后缀 | lane | 安全运动 |
+|-----------|------|----------|
+| `-glare` / `-privacy` / `-comfort` / `-view` / `-geometry` / `-morning` | hero / cozy | 静景 / 整扇 / 无手倾角 |
+| `-presenter` / `-hard-sell` | hard_sell_presenter | `presenter_point_only` |
+| `-cozy` / `-night-privacy` | cozy_warm_lifestyle | 静景 / 整扇 |
+| `-pov-ba` | pov_before_after | `static_product` |
+
+批量验收：
 
 ```bash
-npx tsx --env-file=.env.local scripts/real-video-acceptance-sunnyshutter-batch10.ts
-# 账户充值 / Shuyu 视频可用后：
-ACCEPTANCE_SUBMIT=1 npx tsx --env-file=.env.local scripts/real-video-acceptance-sunnyshutter-batch10.ts
+npm run acceptance:sunnyshutter:batch10
+ACCEPTANCE_SUBMIT=1 npm run acceptance:sunnyshutter:batch10:submit
 ```
 
-种子已并入 `BATCH_STYLE_TEMPLATE_SEEDS`；上线前跑一次 `seedBatchStyleTemplates` 让 DB 出现 ACTIVE 行。
+种子已并入 `BATCH_STYLE_TEMPLATE_SEEDS`；上线前 `seedBatchStyleTemplates`。

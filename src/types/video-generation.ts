@@ -252,6 +252,10 @@ export interface BrandPackagingPlan {
   /// 联系方式行（电话 / 地址等），按序渲染在 CTA 与 website 之间；最多取前 3 行。
   /// 广告成片必备（2026-07 客户要求：片尾必须有电话+地址，否则只是"艺术片"）。
   contactLines?: string[] | null;
+  /// Optional designed still (Image2 / locked client art). When set, the
+  /// end-card renderer prefers this PNG as the background and burns exact
+  /// brand/contact typography on top so phone/address never hallucinate.
+  endCardStillUrl?: string | null;
   /// 用户选用上传 clip 作为结尾时，引用对应 attachment id
   uploadedEndingClipAssetId?: string | null;
   renderStrategy: BrandRenderStrategy;

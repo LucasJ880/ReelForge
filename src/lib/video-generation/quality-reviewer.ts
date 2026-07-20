@@ -38,6 +38,7 @@ import {
   type Image2StoryboardArtifact,
   type StoryboardFirstRunKind,
 } from "@/lib/video-generation/storyboard-lock";
+import { sunnyShutterEndCardMissingIssues } from "@/lib/video-generation/sunnyshutter-brand-pack";
 
 /**
  * Seedance prompt 不应渲染的精确视觉元素的关键词。
@@ -212,6 +213,17 @@ export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview 
       message:
         "Auto end card mode is on but no logo or brand name was provided. End card will look empty.",
     });
+  }
+
+  /// 4b. SunnyShutter: real-ad end card (phone + address) is mandatory
+  if (sunnyShutterLocks) {
+    for (const issue of sunnyShutterEndCardMissingIssues(brandPackaging)) {
+      blockers.push({
+        severity: "blocker",
+        code: issue.code,
+        message: issue.message,
+      });
+    }
   }
 
   /// 5. Creative brief 完整性

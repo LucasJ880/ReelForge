@@ -14,14 +14,23 @@ import {
 } from "../src/lib/video-generation/sunnyshutter-commerce-template";
 import { findUnsafeShutterPromptViolations } from "../src/lib/video-generation/shutter-shot-policy";
 
-test("SunnyShutter commerce family: 5 plot variants, unique slugs, wired into BATCH seeds", () => {
-  assert.equal(SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.length, 5);
-  assert.equal(SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.length, 5);
+test("SunnyShutter commerce family: CEO style lanes + unique slugs wired into BATCH seeds", () => {
+  assert.ok(SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.length >= 10);
+  assert.equal(
+    SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.length,
+    SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.length,
+  );
   assert.equal(SUNNYSHUTTER_COMMERCE_CLIENT_LOCK, "sunnyshutter");
 
   const slugs = SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.map((t) => t.slug);
   assert.equal(new Set(slugs).size, slugs.length);
   assert.ok(slugs.every((slug) => slug.startsWith(`${SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY}-`)));
+
+  const lanes = new Set(SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.map((v) => v.styleLane));
+  assert.ok(lanes.has("cozy_warm_lifestyle"));
+  assert.ok(lanes.has("pov_before_after"));
+  assert.ok(lanes.has("hard_sell_presenter"));
+  assert.ok(lanes.has("product_hero_proof"));
 
   for (const seed of SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS) {
     assert.ok(
@@ -31,6 +40,9 @@ test("SunnyShutter commerce family: 5 plot variants, unique slugs, wired into BA
     assert.equal(seed.category, "SunnyShutter电商");
     assert.equal(seed.lockedParams.duration, 15);
     assert.equal(seed.lockedParams.aspectRatio, "9:16");
+    assert.match(seed.promptSkeleton, /CEO STYLE STANDARD LOCK/i);
+    assert.match(seed.promptSkeleton, /PRODUCT NO-DEFORM/i);
+    assert.match(seed.promptSkeleton, /Cheesy|土土|hard-sell|CTA ENERGY/i);
   }
 });
 
@@ -64,8 +76,15 @@ test("pickSunnyShutterCommerceVariant rotates deterministically for a 10-video b
     pickSunnyShutterCommerceVariant(i + 1),
   );
   assert.equal(picked[0]!.id, SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS[0]!.id);
-  assert.equal(picked[5]!.id, SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS[0]!.id);
-  assert.equal(new Set(picked.map((v) => v.id)).size, 5);
+  assert.equal(
+    pickSunnyShutterCommerceVariant(SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.length + 1)
+      .id,
+    SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS[0]!.id,
+  );
+  assert.equal(
+    new Set(picked.map((v) => v.id)).size,
+    Math.min(10, SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.length),
+  );
   assert.ok(isSunnyShutterCommerceTemplateSlug(picked[0]!.slug));
   assert.equal(isSunnyShutterCommerceTemplateSlug("slow-360-orbit"), false);
 });

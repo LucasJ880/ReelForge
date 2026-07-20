@@ -191,8 +191,12 @@ test("quality-reviewer blocks shutter plot-lock prompts without image2 storyboar
     mode: "auto_end_card",
     logoAssetId: "lg",
     endCardDurationSeconds: 3,
-    cta: "Book",
+    cta: "Book Your FREE In-Home Quote",
     brandName: "SUNNY Shutters",
+    contactLines: [
+      "Call / Text 647-857-8669",
+      "690 Progress Ave, Unit 7&8, Scarborough, ON",
+    ],
     renderStrategy: "render_ffmpeg_overlay",
     warnings: [],
   };

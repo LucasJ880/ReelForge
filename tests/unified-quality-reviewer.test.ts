@@ -195,10 +195,18 @@ test("[unified-quality-reviewer] checkSeedancePromptStatic: multiple violations"
 test("[unified-quality-reviewer] shutter suicide-shot prompts are hard blockers for SunnyShutter only", () => {
   const suicidal =
     "Close-up: her hand grips the thin vertical tilt bar and twists the louvers";
+  const sunnyBrand = {
+    ...baseBrand,
+    brandName: "SUNNY Shutters",
+    contactLines: [
+      "Call / Text 647-857-8669",
+      "690 Progress Ave, Unit 7&8, Scarborough, ON",
+    ],
+  };
   const review = buildQualityReview({
     classification: baseClass,
     classifiedAssets: [],
-    brandPackaging: { ...baseBrand, brandName: "SUNNY Shutters" },
+    brandPackaging: sunnyBrand,
     segments: [aiSeg(1, suicidal)],
     creativeBrief: baseBrief,
     clientLockProfileId: "sunnyshutter",
@@ -232,5 +240,24 @@ test("[unified-quality-reviewer] shutter suicide-shot prompts are hard blockers 
       "fingers adjust one individual louver in extreme macro of dense louvers",
     ).some((i) => i.code.startsWith("shutter_")),
     false,
+  );
+});
+
+test("[unified-quality-reviewer] SunnyShutter missing phone/address end card is a blocker", () => {
+  const review = buildQualityReview({
+    classification: baseClass,
+    classifiedAssets: [],
+    brandPackaging: {
+      ...baseBrand,
+      brandName: "SUNNY Shutters",
+      contactLines: null,
+    },
+    segments: [aiSeg(1, "Wide product hold of plantation shutters")],
+    creativeBrief: baseBrief,
+    clientLockProfileId: "sunnyshutter",
+  });
+  assert.equal(review.canDispatch, false);
+  assert.ok(
+    review.blockers.some((b) => b.code.startsWith("sunnyshutter_end_card_")),
   );
 });

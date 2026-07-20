@@ -20,6 +20,7 @@ import type {
   UnifiedVideoGenerationRequest,
   UploadedAsset,
 } from "@/types/video-generation";
+import { applySunnyShutterBrandPack } from "@/lib/video-generation/sunnyshutter-brand-pack";
 
 export interface BuildBrandPackagingArgs {
   request: UnifiedVideoGenerationRequest;
@@ -47,31 +48,45 @@ export function buildBrandPackagingPlan(
   const warnings: string[] = [];
   const disclosureEnabled = disclosureEndCardEnabled();
 
+  const sunnyHints = {
+    brandName: request.brandKit?.brandName,
+    cta: request.cta,
+    language: request.language,
+    aspectRatio: request.selectedAspectRatio,
+  };
+
   /// Personal 模式 + 用户没要 brand → 不做品牌包装
+  /// （SunnyShutter 仍会被 applySunnyShutterBrandPack 强制加回真实广告尾卡）
   if (!classification.needsBrandPackaging || request.selectedBrandEndingMode === "none") {
     if (disclosureEnabled) {
-      return {
-        mode: "auto_end_card",
-        logoAssetId: null,
-        endCardDurationSeconds: 2,
-        cta: "Created with AI",
-        brandName: "AI Generated · Aivora",
-        slogan: null,
-        website: null,
-        renderStrategy: "render_ffmpeg_overlay",
-        warnings: ["AI disclosure end card enabled by deployment policy."],
-      };
+      return applySunnyShutterBrandPack(
+        {
+          mode: "auto_end_card",
+          logoAssetId: null,
+          endCardDurationSeconds: 2,
+          cta: "Created with AI",
+          brandName: "AI Generated · Aivora",
+          slogan: null,
+          website: null,
+          renderStrategy: "render_ffmpeg_overlay",
+          warnings: ["AI disclosure end card enabled by deployment policy."],
+        },
+        sunnyHints,
+      );
     }
-    return {
-      mode: "none",
-      endCardDurationSeconds: 0,
-      cta: null,
-      brandName: request.brandKit?.brandName ?? null,
-      slogan: request.brandKit?.slogan ?? null,
-      website: request.brandKit?.website ?? null,
-      renderStrategy: "no_end_card",
-      warnings,
-    };
+    return applySunnyShutterBrandPack(
+      {
+        mode: "none",
+        endCardDurationSeconds: 0,
+        cta: null,
+        brandName: request.brandKit?.brandName ?? null,
+        slogan: request.brandKit?.slogan ?? null,
+        website: request.brandKit?.website ?? null,
+        renderStrategy: "no_end_card",
+        warnings,
+      },
+      sunnyHints,
+    );
   }
 
   /// uploaded ending clip 优先
@@ -81,34 +96,43 @@ export function buildBrandPackagingPlan(
       effectiveAssetRole(a) === "logo_animation",
   );
 
+  let plan: BrandPackagingPlan;
   if (request.selectedBrandEndingMode === "uploaded_clip") {
     if (!uploadedOutro) {
       warnings.push(
         "Uploaded clip mode selected but no outro/logo_animation asset was found. Falling back to auto end card.",
       );
-      return autoEndCard(args, warnings);
+      plan = autoEndCard(args, warnings);
+    } else {
+      plan = {
+        mode: "uploaded_clip",
+        logoAssetId: classifiedAssets.find(
+          (a) => effectiveAssetRole(a) === "logo",
+        )?.id ?? null,
+        endCardDurationSeconds: Math.min(
+          uploadedOutro.durationSeconds ?? 5,
+          5,
+        ),
+        cta: request.cta ?? null,
+        brandName: request.brandKit?.brandName ?? null,
+        slogan: request.brandKit?.slogan ?? null,
+        website: request.brandKit?.website ?? null,
+        uploadedEndingClipAssetId: uploadedOutro.id,
+        renderStrategy: "use_uploaded_clip",
+        warnings,
+      };
     }
-    return {
-      mode: "uploaded_clip",
-      logoAssetId: classifiedAssets.find(
-        (a) => effectiveAssetRole(a) === "logo",
-      )?.id ?? null,
-      endCardDurationSeconds: Math.min(
-        uploadedOutro.durationSeconds ?? 5,
-        5,
-      ),
-      cta: request.cta ?? null,
-      brandName: request.brandKit?.brandName ?? null,
-      slogan: request.brandKit?.slogan ?? null,
-      website: request.brandKit?.website ?? null,
-      uploadedEndingClipAssetId: uploadedOutro.id,
-      renderStrategy: "use_uploaded_clip",
-      warnings,
-    };
+  } else {
+    /// 默认：auto end card
+    plan = autoEndCard(args, warnings);
   }
 
-  /// 默认：auto end card
-  return autoEndCard(args, warnings);
+  /// SunnyShutter: force locked real-ad end card (logo + phone + address).
+  return applySunnyShutterBrandPack(plan, {
+    ...sunnyHints,
+    brandName: plan.brandName ?? request.brandKit?.brandName,
+    cta: plan.cta ?? request.cta,
+  });
 }
 
 function autoEndCard(

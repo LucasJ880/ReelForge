@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "app",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000
+    },
+    {
       "name": "designs",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4311", "--directory", "designs"],

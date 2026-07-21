@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
+  CircleHelp,
   Clapperboard,
   ChevronsUpDown,
   Film,
@@ -199,6 +200,15 @@ export function PlatformShell({
               className="h-9 w-full rounded-(--radius-sm) border border-border bg-secondary pl-9 pr-3 text-body text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
           </form>
+          <Link
+            href="/app/create?guide=open"
+            prefetch={false}
+            data-testid="topbar-help"
+            aria-label={locale === "en-US" ? "Open the getting-started guide" : "打开新手指引"}
+            className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:text-foreground"
+          >
+            <CircleHelp className="size-4" aria-hidden />
+          </Link>
           <button
             type="button"
             onClick={() => signOut({ callbackUrl: "/login" })}

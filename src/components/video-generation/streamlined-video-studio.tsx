@@ -27,6 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { FirstRunOnboardingDialog } from "@/components/video-generation/first-run-onboarding-dialog";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
 import {
   VideoRouteSelector,
@@ -50,6 +51,7 @@ import type {
 const MAX_PRODUCT_IMAGES = 9;
 const MAX_ATTACHMENTS = 20;
 const GUIDE_STORAGE_KEY = "aivora.streamlined-video-guide.v1";
+const ONBOARDING_STORAGE_KEY = "aivora.create-onboarding.v1";
 const DURATIONS = [15, 30, 60] as const;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
 const QUALITY_TEMPLATE_IDS = [
@@ -251,15 +253,18 @@ export function StreamlinedVideoStudio({
   initialStyleTemplateId,
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
+  forceOnboarding = false,
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
+  forceOnboarding?: boolean;
 }) {
   const router = useRouter();
   const { locale } = useTranslation();
-  const copy = locale === "en-US" ? EN_COPY : ZH_COPY;
+  const english = locale === "en-US";
+  const copy = english ? EN_COPY : ZH_COPY;
   const initialProductAssets = initialAssets
     .filter((asset) => asset.type === "IMAGE")
     .slice(0, MAX_PRODUCT_IMAGES)
@@ -272,6 +277,7 @@ export function StreamlinedVideoStudio({
     : "auto";
 
   const [showGuide, setShowGuide] = useState(true);
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
   const [productAssets, setProductAssets] = useState<UploadedAsset[]>(initialProductAssets);
   const [referenceAssets, setReferenceAssets] = useState<UploadedAsset[]>(initialReferenceAssets);
   const [uploadingTarget, setUploadingTarget] = useState<"product" | "reference" | null>(null);
@@ -298,10 +304,15 @@ export function StreamlinedVideoStudio({
   useEffect(() => {
     try {
       setShowGuide(localStorage.getItem(GUIDE_STORAGE_KEY) !== "dismissed");
+      setOnboardingOpen(
+        forceOnboarding
+          || localStorage.getItem(ONBOARDING_STORAGE_KEY) !== "dismissed",
+      );
     } catch {
       setShowGuide(true);
+      setOnboardingOpen(forceOnboarding);
     }
-  }, []);
+  }, [forceOnboarding]);
 
   const activeAttachments = useMemo(
     () => referenceMode === "all" ? [...productAssets, ...referenceAssets] : productAssets,
@@ -335,6 +346,22 @@ export function StreamlinedVideoStudio({
       localStorage.setItem(GUIDE_STORAGE_KEY, "dismissed");
     } catch {
       // The guide is still dismissible for the current visit when storage is unavailable.
+    }
+  }
+
+  function closeOnboarding(startCreating: boolean) {
+    setOnboardingOpen(false);
+    try {
+      localStorage.setItem(ONBOARDING_STORAGE_KEY, "dismissed");
+      if (!showGuide) localStorage.setItem(GUIDE_STORAGE_KEY, "dismissed");
+      else localStorage.removeItem(GUIDE_STORAGE_KEY);
+    } catch {
+      // Storage unavailable: the dialog still closes for the current visit.
+    }
+    if (startCreating) {
+      document
+        .querySelector('[data-testid="streamlined-product-assets"]')
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
 
@@ -585,6 +612,14 @@ export function StreamlinedVideoStudio({
 
   return (
     <div className="space-y-6 pb-4" data-testid="streamlined-video-studio">
+      <FirstRunOnboardingDialog
+        open={onboardingOpen}
+        english={english}
+        keepHints={showGuide}
+        onKeepHintsChange={setShowGuide}
+        onSkip={() => closeOnboarding(false)}
+        onStart={() => closeOnboarding(true)}
+      />
       <header className="max-w-4xl space-y-3">
         <p className="studio-label text-muted-foreground">{copy.kicker}</p>
         <h1 className="editorial-display">{copy.title}</h1>

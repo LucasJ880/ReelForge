@@ -11,11 +11,11 @@ import { isInternalRole } from "@/lib/auth-role-policy";
 export default async function PlatformCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ productImageJobId?: string; styleTemplate?: string }>;
+  searchParams: Promise<{ productImageJobId?: string; styleTemplate?: string; guide?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageJobId, styleTemplate }, locale, routeState] = await Promise.all([
+  const [{ productImageJobId, styleTemplate, guide }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -49,6 +49,7 @@ export default async function PlatformCreatePage({
         initialStyleTemplateId={styleTemplate}
         canSelectVideoRoute
         showInternalVideoRoutes={showInternalVideoRoutes}
+        forceOnboarding={guide === "open"}
       />
     </div>
   );

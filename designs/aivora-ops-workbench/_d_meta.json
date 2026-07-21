@@ -8,11 +8,20 @@
         {
           "path": "index.html",
           "createdAt": "2026-07-20T19:20:40.294Z",
+          "status": "approved"
+        }
+      ]
+    },
+    "Aivora 运营工作台": {
+      "versions": [
+        {
+          "path": "index.html",
+          "createdAt": "2026-07-21T01:18:33.316Z",
           "status": "needs-review"
         }
       ]
     }
   },
   "createdAt": "2026-07-20T19:20:40.295Z",
-  "updatedAt": "2026-07-20T19:20:40.295Z"
+  "updatedAt": "2026-07-21T01:20:33.723Z"
 }

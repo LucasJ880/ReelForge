@@ -43,15 +43,25 @@ const AIVORA_DATA = {
       { i: 10, name: "纱帘 · 公寓柔光", status: "wait", plan: "", judge: "" },
     ],
   },
-  templates: [
-    { id: "roller-glare", name: "卷帘 · 晨光刺眼", sub: "痛点钩子 → 拉帘 → 安睡", kind: "roller" },
-    { id: "roller-privacy", name: "卷帘 · 公寓隐私", sub: "外窗直视 → 拉帘 → 私密", kind: "roller" },
-    { id: "zebra-day", name: "斑马帘 · 白天隐私", sub: "透光但不透人", kind: "zebra" },
-    { id: "zebra-kitchen", name: "斑马帘 · 厨房采光", sub: "防眩仍明亮", kind: "zebra" },
-    { id: "sheer-living", name: "纱帘 · 客厅 S 褶", sub: "高级空间质感", kind: "sheer" },
-    { id: "sheer-glow", name: "纱帘 · 公寓柔光", sub: "硬光变柔光", kind: "sheer" },
-  ],
+  user: { name: "Evan", mail: "lucas@sunnyshutter.ca", version: "V2.1 · 生产" },
+  templates: {
+    shade: [
+      { id: "roller-glare", name: "卷帘 · 晨光刺眼", sub: "痛点钩子 → 拉帘 → 安睡" },
+      { id: "roller-privacy", name: "卷帘 · 公寓隐私", sub: "外窗直视 → 拉帘 → 私密" },
+      { id: "zebra-day", name: "斑马帘 · 白天隐私", sub: "透光但不透人" },
+      { id: "zebra-kitchen", name: "斑马帘 · 厨房采光", sub: "防眩仍明亮" },
+      { id: "sheer-living", name: "纱帘 · 客厅 S 褶", sub: "高级空间质感" },
+      { id: "sheer-glow", name: "纱帘 · 公寓柔光", sub: "硬光变柔光" },
+    ],
+    shutter: [
+      { id: "shutter-glare", name: "百叶 · 晨光防眩", sub: "光影穿叶片 → 舒适" },
+      { id: "shutter-door", name: "百叶 · 整扇开合", sub: "像门一样打开看风景" },
+      { id: "shutter-privacy", name: "百叶 · 夜间隐私", sub: "暖灯 + 关叶片" },
+      { id: "shutter-hero", name: "百叶 · 产品英雄墙", sub: "整墙静景 + 硬广 CTA" },
+    ],
+  },
   refs: ["assets/ref-1.png", "assets/ref-2.png", "assets/ref-3.png", "assets/ref-4.png"],
+  thumbPool: ["assets/thumb-01.png", "assets/thumb-02.png", "assets/thumb-03.png", "assets/thumb-04.png"],
   storyboard: [
     { id: "hook", tag: "① 钩子", sub: "刺眼晨光", img: "assets/thumb-01.png", score: "8.5" },
     { id: "conflict", tag: "② 冲突特写", sub: "窗为主体", img: "assets/thumb-01.png", score: "8.0" },

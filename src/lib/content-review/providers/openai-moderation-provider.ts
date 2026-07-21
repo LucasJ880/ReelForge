@@ -52,12 +52,12 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
   readonly displayName = "OpenAI omni-moderation-latest";
 
   isConfigured() {
-    return isMockMode() || Boolean(process.env.OPENAI_API_KEY);
+    return isMockMode() || Boolean(openAiApiKey());
   }
 
   async reviewText(input: TextReviewInput): Promise<ReviewResult> {
     if (isMockMode()) return mockApproved(input.kind);
-    if (!process.env.OPENAI_API_KEY) return failedClosed("审核服务尚未配置");
+    if (!openAiApiKey()) return failedClosed("审核服务尚未配置");
     try {
       const response = await withTransientRetries(() =>
         client().moderations.create({
@@ -73,7 +73,7 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
 
   async reviewMedia(input: MediaReviewInput): Promise<ReviewResult> {
     if (isMockMode()) return mockApproved(input.kind);
-    if (!process.env.OPENAI_API_KEY) return failedClosed("审核服务尚未配置");
+    if (!openAiApiKey()) return failedClosed("审核服务尚未配置");
     if (input.mediaType === "audio") {
       return {
         verdict: "manual_review",
@@ -107,8 +107,19 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
   }
 }
 
+/**
+ * 读取并清洗 OPENAI_API_KEY。env 注入常见的尾随空白/换行（Vercel/CI 拉取时
+ * 用双引号包裹会把 \n 展开成真实换行）会让 Authorization 头带上非法字符，
+ * OpenAI 直接判 401 → moderation 每次抛错 → fail-closed → 素材全上传不了。
+ * 在读取处统一 trim，规避这类隐形配置故障。
+ */
+function openAiApiKey(): string | undefined {
+  const raw = process.env.OPENAI_API_KEY?.trim();
+  return raw ? raw : undefined;
+}
+
 function client() {
-  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  return new OpenAI({ apiKey: openAiApiKey() });
 }
 
 function isMockMode() {

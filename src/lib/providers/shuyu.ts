@@ -23,6 +23,15 @@ export const SHUYU_VIDEO_FAST_PLAN_ID = "video-plan-03" as const;
 export const SHUYU_VIDEO_FAST_POINTS_PER_SECOND = 88 as const;
 
 const DEFAULT_TIMEOUT_MS = 8_000;
+/**
+ * Video-generation submission (POST /videos/generations) legitimately takes
+ * longer to acknowledge than a status poll: the provider validates up to 9
+ * image URLs and enqueues the task before responding. 0721 real-run取证:
+ * 8s 默认值下约 1/4 的 image2video 提交在确认前被 abort，落入
+ * acknowledgement_unknown 后 fail-closed，无法安全重试。给提交路径 45s 专用
+ * 上限；状态轮询仍走 8s 默认。
+ */
+const VIDEO_SUBMIT_TIMEOUT_MS = 45_000;
 const MAX_RESPONSE_BYTES = 512_000;
 const boundedIdentifier = z
   .string()
@@ -245,7 +254,12 @@ export function findAuditedShuyuVideoPlan(
 }
 
 function timeoutMs(value: number | undefined): number {
-  return Math.min(20_000, Math.max(250, Math.floor(value ?? DEFAULT_TIMEOUT_MS)));
+  // Cap raised to 45s so the video-submit path can request a longer ack window
+  // than a status poll; the 8s default is unchanged for callers that pass none.
+  return Math.min(
+    VIDEO_SUBMIT_TIMEOUT_MS,
+    Math.max(250, Math.floor(value ?? DEFAULT_TIMEOUT_MS)),
+  );
 }
 
 function safeProviderMessage(value: string): string {
@@ -670,7 +684,7 @@ export async function createShuyuVideoTask(
         },
         body: JSON.stringify(body),
       },
-      input,
+      { ...input, timeoutMs: input.timeoutMs ?? VIDEO_SUBMIT_TIMEOUT_MS },
     );
     response = result.response;
     payload = result.payload;

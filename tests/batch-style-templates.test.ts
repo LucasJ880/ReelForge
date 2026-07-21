@@ -108,8 +108,10 @@ test("INV-B1：prompt 只做确定性模板填空，不留占位符、不调用 
 
   assert.equal(first, second);
   assert.match(first, /Trail Shoe/);
-  assert.match(first, /Image 1: https:\/\/cdn\.test\/a\.jpg/);
-  assert.match(first, /Image 2: https:\/\/cdn\.test\/b\.jpg/);
+  // 参考图走 API input_images 字段；提示词只放位置标签，不放 URL
+  // （URL 会把 SunnyShutter 骨架顶破合作方 5000 字符上限）。
+  assert.match(first, /input_images\[1\], input_images\[2\]/);
+  assert.doesNotMatch(first, /https:\/\/cdn\.test/);
   assert.doesNotMatch(first, /\{IMAGE_REFS\}|\{PRODUCT_NAME\}/);
 });
 
@@ -141,11 +143,12 @@ test("SunnyShutter 模版 × 产品输入形成确定性质量锁定矩阵", () 
       assert.match(first, /Never invent/i, `${template.slug} 必须保留禁止脑补护栏`);
       assert.match(first, new RegExp(product.name), `${template.slug} 必须绑定产品名`);
       assert.equal(
-        (first.match(/Image \d+:/g) ?? []).length,
+        (first.match(/input_images\[\d+\]/g) ?? []).length,
         imageUrls.length,
         `${template.slug} 必须逐张绑定参考图`,
       );
-      assert.ok(first.length >= 700 && first.length <= 6_000, `${template.slug} prompt 长度异常`);
+      // 合作方线路硬上限 5000；渲染后必须留有余量（参考图不再占用 URL 长度）。
+      assert.ok(first.length >= 700 && first.length <= 5_000, `${template.slug} prompt 长度异常: ${first.length}`);
       rendered.add(first);
     }
   }

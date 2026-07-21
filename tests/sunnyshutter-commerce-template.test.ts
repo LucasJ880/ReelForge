@@ -66,7 +66,8 @@ test("SunnyShutter commerce skeletons lock sales narrative + safe motions; no su
         "https://example.com/b.jpg",
       ],
     });
-    assert.match(filled, /Image 1: https:\/\/example.com\/a\.jpg/);
+    assert.match(filled, /input_images\[1\]/);
+    assert.doesNotMatch(filled, /https:\/\/example\.com/);
     assert.equal(findUnsafeShutterPromptViolations(filled).length, 0);
   }
 });

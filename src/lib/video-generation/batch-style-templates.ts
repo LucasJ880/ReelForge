@@ -53,9 +53,12 @@ export function renderBatchTemplatePrompt(args: {
   if (args.imageUrls.length === 0) {
     throw new Error("至少需要 1 张产品参考图");
   }
+  /// Shuyu/Seedance 的参考图走 API input_images 字段；提示词里只放位置标签。
+  /// 完整 URL 既是 token 噪音，又会把 4.6-4.8k 的 SunnyShutter 骨架顶破
+  /// 合作方 5000 字符硬上限（0721 真机复现）。
   const refs = args.imageUrls
-    .map((url, index) => `Image ${index + 1}: ${url}`)
-    .join("; ");
+    .map((_, index) => `input_images[${index + 1}]`)
+    .join(", ");
   return args.promptSkeleton
     .replaceAll("{IMAGE_REFS}", refs)
     .replaceAll("{PRODUCT_NAME}", args.productName?.trim() || "the referenced product");

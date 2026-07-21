@@ -37,7 +37,13 @@ import {
 } from "@/lib/upload/blob-xhr";
 import { useTranslation } from "@/i18n";
 import { getPlatformCopy } from "@/i18n/platform-copy";
+import {
+  queueTotalCount,
+  queueTotalPoints,
+  type BatchQueueGroup,
+} from "@/lib/batch/batch-queue";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
+import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
 import type {
   CustomerApiErrorCode,
   CustomerRecoveryAction,
@@ -138,6 +144,7 @@ export function BatchCreateWizard({
   const [templateQuery, setTemplateQuery] = useState("");
   const [templateCategory, setTemplateCategory] = useState("__all__");
   const [count, setCount] = useState(10);
+  const [queuedGroups, setQueuedGroups] = useState<BatchQueueGroup[]>([]);
   const [productName, setProductName] = useState("");
   const [videoRouteId, setVideoRouteId] =
     useState<VideoRouteOverride>("buddy");
@@ -227,7 +234,12 @@ export function BatchCreateWizard({
   const estimateText = english
     ? "Live ETA appears after provider submission"
     : "提交供应商后显示实时预计完成时间";
-  const estimatedPartnerPoints = count * 900;
+  const totalVideoCount = queueTotalCount(queuedGroups, count);
+  const estimatedPartnerPoints = queueTotalPoints(
+    queuedGroups,
+    count,
+    SHUYU_VIDEO_POINTS_PER_GENERATION,
+  );
 
   function updateUpload(localId: string, patch: Partial<UploadItem>) {
     setUploads((current) =>
@@ -326,6 +338,30 @@ export function BatchCreateWizard({
     });
   }
 
+  function queueCurrentGroup() {
+    if (!selectedTemplate) return;
+    setQueuedGroups((current) => [
+      ...current,
+      {
+        id: crypto.randomUUID(),
+        templateId: selectedTemplate.id,
+        templateVersion: selectedTemplate.version,
+        templateName: english ? selectedTemplate.name : selectedTemplate.nameZh,
+        count,
+      },
+    ]);
+    setStep(1);
+    toast.success(
+      english
+        ? "Group queued. Pick the next style."
+        : "已加入队列，继续选下一组风格。",
+    );
+  }
+
+  function removeQueuedGroup(id: string) {
+    setQueuedGroups((current) => current.filter((group) => group.id !== id));
+  }
+
   async function submit() {
     if (!selectedTemplate || uploaded.length === 0) return;
     if (!hasEnoughImages) {
@@ -344,46 +380,76 @@ export function BatchCreateWizard({
     setRecoveryAction(null);
     setErrorSource("batch");
     try {
-      const requestBody = {
-        templateId: selectedTemplate.id,
-        templateVersion: selectedTemplate.version,
-        images: uploaded.map((item) => ({
-          id: item.assetId,
-          url: item.url,
-        })),
-        requestedCount: count,
-        productName: productName.trim() || undefined,
-        videoRouteId: videoRouteId || undefined,
-      };
-      const fingerprint = JSON.stringify(requestBody);
-      if (submissionIdentityRef.current?.fingerprint !== fingerprint) {
-        submissionIdentityRef.current = {
-          fingerprint,
-          key: crypto.randomUUID(),
-        };
-      }
-      const response = await fetch("/api/batches", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "idempotency-key": submissionIdentityRef.current.key,
+      const submissionGroups: BatchQueueGroup[] = [
+        ...queuedGroups,
+        {
+          id: "current",
+          templateId: selectedTemplate.id,
+          templateVersion: selectedTemplate.version,
+          templateName: english ? selectedTemplate.name : selectedTemplate.nameZh,
+          count,
         },
-        body: fingerprint,
-      });
-      const data = (await response.json()) as {
-        batch?: { id: string };
-        code?: CustomerApiErrorCode;
-        error?: string;
-        action?: CustomerRecoveryAction;
-      };
-      if (!response.ok || !data.batch) {
-        setRecoveryAction(data.action ?? "retry");
-        throw new Error(
-          batchCreateErrorMessage(data.code, locale, data.error),
-        );
+      ];
+      const createdBatchIds: string[] = [];
+      for (const group of submissionGroups) {
+        const requestBody = {
+          templateId: group.templateId,
+          templateVersion: group.templateVersion,
+          images: uploaded.map((item) => ({
+            id: item.assetId,
+            url: item.url,
+          })),
+          requestedCount: group.count,
+          productName: productName.trim() || undefined,
+          videoRouteId: videoRouteId || undefined,
+        };
+        const fingerprint = JSON.stringify(requestBody);
+        if (submissionIdentityRef.current?.fingerprint !== fingerprint) {
+          submissionIdentityRef.current = {
+            fingerprint,
+            key: crypto.randomUUID(),
+          };
+        }
+        const response = await fetch("/api/batches", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "idempotency-key": submissionIdentityRef.current.key,
+          },
+          body: fingerprint,
+        });
+        const data = (await response.json()) as {
+          batch?: { id: string };
+          code?: CustomerApiErrorCode;
+          error?: string;
+          action?: CustomerRecoveryAction;
+        };
+        if (!response.ok || !data.batch) {
+          setRecoveryAction(data.action ?? "retry");
+          const failurePrefix = createdBatchIds.length > 0
+            ? (english
+                ? `${createdBatchIds.length} of ${submissionGroups.length} batches created. Remaining group failed: `
+                : `已创建 ${createdBatchIds.length}/${submissionGroups.length} 个批次，剩余分组失败：`)
+            : "";
+          throw new Error(
+            failurePrefix + batchCreateErrorMessage(data.code, locale, data.error),
+          );
+        }
+        createdBatchIds.push(data.batch.id);
       }
-      router.push(`${batchDetailsBasePath}/${data.batch.id}`);
-      toast.success(english ? "Batch created. Opening monitor…" : "批次已创建，正在跳转监控页");
+      setQueuedGroups([]);
+      if (createdBatchIds.length === 1) {
+        router.push(`${batchDetailsBasePath}/${createdBatchIds[0]}`);
+      } else {
+        router.push(batchDetailsBasePath);
+      }
+      toast.success(
+        createdBatchIds.length === 1
+          ? (english ? "Batch created. Opening monitor…" : "批次已创建，正在跳转监控页")
+          : (english
+              ? `${createdBatchIds.length} batches created. Opening batch list…`
+              : `已创建 ${createdBatchIds.length} 个批次，正在跳转批次列表`),
+      );
     } catch (reason) {
       const message = (reason as Error).message;
       setError(message);
@@ -468,6 +534,38 @@ export function BatchCreateWizard({
             ) : null}
           </CardContent>
         </Card>
+      )}
+
+      {queuedGroups.length > 0 && (
+        <div
+          data-testid="batch-queue-bar"
+          className="flex flex-wrap items-center gap-2 rounded-(--radius-md) border border-border bg-card px-4 py-3"
+        >
+          <span className="text-meta text-muted-foreground">
+            {english ? "Queued groups" : "已排队分组"}
+          </span>
+          {queuedGroups.map((group) => (
+            <span
+              key={group.id}
+              className="flex items-center gap-2 rounded-full border border-border bg-accent-soft px-3 py-1 text-meta"
+            >
+              {group.templateName} × {group.count}
+              <button
+                type="button"
+                aria-label={english ? `Remove ${group.templateName}` : `移除 ${group.templateName}`}
+                onClick={() => removeQueuedGroup(group.id)}
+                className="text-muted-foreground hover:text-danger focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                <X className="size-3" aria-hidden />
+              </button>
+            </span>
+          ))}
+          <span className="ml-auto font-mono text-meta tabular-nums text-muted-foreground">
+            {english
+              ? `${totalVideoCount} videos total`
+              : `合计 ${totalVideoCount} 条`}
+          </span>
+        </div>
       )}
 
       <Card>
@@ -881,7 +979,14 @@ export function BatchCreateWizard({
                     english ? "Style template" : "风格模板",
                     `${english ? selectedTemplate.name : selectedTemplate.nameZh} · v${selectedTemplate.version}`,
                   ],
-                  [english ? "Video quantity" : "生成数量", english ? `${count} videos` : `${count} 条`],
+                  [
+                    english ? "Video quantity" : "生成数量",
+                    queuedGroups.length > 0
+                      ? (english
+                          ? `${totalVideoCount} videos in ${queuedGroups.length + 1} groups`
+                          : `${queuedGroups.length + 1} 组共 ${totalVideoCount} 条`)
+                      : (english ? `${count} videos` : `${count} 条`),
+                  ],
                   [english ? "Average coverage" : "平均覆盖", english ? `Each image about ${perImage} times` : `每张图片约 ${perImage} 次`],
                   [
                     english ? "Video route" : "视频线路",
@@ -908,6 +1013,9 @@ export function BatchCreateWizard({
                   </div>
                 ))}
               </dl>
+              <Button type="button" variant="outline" onClick={queueCurrentGroup}>
+                {english ? "Queue this group, pick another style" : "加入队列，再选一组风格"}
+              </Button>
               <p className="rounded-(--radius-md) bg-muted p-4 text-meta leading-6 text-muted-foreground">
                 {english
                   ? "Asset assignment, template version, and seed are persisted after submission. One failed video never blocks the rest; retry it individually or in bulk from the monitor."
@@ -955,7 +1063,7 @@ export function BatchCreateWizard({
                 aria-hidden
               />
             )}
-            {english ? `Create ${count} videos` : `创建 ${count} 条视频`}
+            {english ? `Create ${totalVideoCount} videos` : `创建 ${totalVideoCount} 条视频`}
           </Button>
         )}
       </div>

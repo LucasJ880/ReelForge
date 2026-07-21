@@ -31,7 +31,9 @@ test("Phase1 unified journey：批量创建完成后进入统一批次详情", a
   const page = await readFile("src/app/(platform)/app/batches/new/page.tsx", "utf8");
   const wizard = await readFile("src/components/batch/batch-create-wizard.tsx", "utf8");
   assert.match(page, /batchDetailsBasePath="\/app\/batches"/);
-  assert.match(wizard, /router\.push\(`\$\{batchDetailsBasePath\}\/\$\{data\.batch\.id\}`\)/);
+  // 单批仍进入统一批次详情；混合队列多批时回批次列表
+  assert.match(wizard, /router\.push\(`\$\{batchDetailsBasePath\}\/\$\{createdBatchIds\[0\]\}`\)/);
+  assert.match(wizard, /router\.push\(batchDetailsBasePath\)/);
 });
 
 test("Phase2 模板库选择可透传到批量向导并预选精确版本 ID", async () => {

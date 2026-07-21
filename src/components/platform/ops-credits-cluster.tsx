@@ -58,7 +58,7 @@ export function OpsCreditsCluster({ english }: { english: boolean }) {
         <span className="text-muted-foreground">{english ? "pts" : "积分"}</span>
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-40 mt-2 w-72 space-y-2 rounded-(--radius-md) border border-border bg-card p-4 shadow-lg">
+        <div className="absolute right-0 top-full z-40 mt-2 w-72 space-y-2 rounded-(--radius-md) border border-border bg-card p-4 shadow-editorial">
           {state.phase === "ready" ? (
             <>
               <div className="flex items-center justify-between text-meta">

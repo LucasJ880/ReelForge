@@ -39,7 +39,7 @@ export function FirstRunOnboardingDialog({
       aria-labelledby="first-run-onboarding-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-overlay p-4"
     >
-      <div className="w-full max-w-lg space-y-4 rounded-(--radius-lg) border border-border bg-card p-6 shadow-lg">
+      <div className="w-full max-w-lg space-y-4 rounded-(--radius-lg) border border-border bg-card p-6 shadow-editorial">
         <p className="inline-flex rounded-full border border-border bg-accent-soft px-3 py-0.5 text-meta text-foreground">
           {english ? "First visit · Create studio" : "第一次使用 · 创作工作台"}
         </p>

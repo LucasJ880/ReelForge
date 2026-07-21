@@ -461,8 +461,10 @@ async function rasterizeToPng(
         }).png().toBuffer();
   }
 
-  /// Logo 叠加：放在画布上 1/3 中央，等比缩放，最大不超过短边的 30%
-  if (input.logoUrl) {
+  /// Logo 叠加：放在画布上 1/3 中央，等比缩放，最大不超过短边的 30%。
+  /// 仅在 SVG 渐变兜底路径叠加——designed still（Image2 尾卡底图）已烧入品牌
+  /// logo，再叠一枚会在同一中上区域叠成「双 logo」（0721 真机取证）。
+  if (input.logoUrl && !designedBg) {
     const logoBuf = await fetchLogoBuffer(input.logoUrl);
     if (!logoBuf) {
       warnings.push(`Logo URL not reachable, using text-only end card.`);

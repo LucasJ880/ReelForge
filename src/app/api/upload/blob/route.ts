@@ -7,6 +7,7 @@ import { assertQuotaForSession } from "@/lib/services/quota-service";
 import { getStorageProvider } from "@/lib/storage";
 import {
   ContentReviewRejectedError,
+  classifyContentReviewFailure,
   reviewMediaOrThrow,
 } from "@/lib/content-review";
 import { validateFileMagicBytes } from "@/lib/upload/media-file-validation";
@@ -151,16 +152,37 @@ export async function POST(req: NextRequest) {
     if (result) {
       await storage.deleteObject("uploads", result.key).catch(() => undefined);
     }
-    if (error instanceof ContentReviewRejectedError) {
-      return NextResponse.json(
-        customerApiError({
-          code: "QUALITY_BLOCKED",
-          message: "内容安全检查未通过，请更换素材后重试。",
-          retryable: false,
-          action: "replace_asset",
-        }),
-        { status: 422 },
-      );
+    if (stage === "content_review") {
+      /// 只有 provider 明确判定违规才提示「换素材」；provider 不可达 / 密钥缺失 /
+      /// 429 抖动 / 拉不到素材 URL 等一律按可重试的临时不可用处理，
+      /// 不再把正常素材误报成「内容安全检查未通过」（0721 线上真机 bug 修复）。
+      if (classifyContentReviewFailure(error) === "content_blocked") {
+        return NextResponse.json(
+          customerApiError({
+            code: "QUALITY_BLOCKED",
+            message:
+              (error instanceof ContentReviewRejectedError &&
+                error.result.userMessage) ||
+              "内容安全检查未通过，请更换素材后重试。",
+            retryable: false,
+            action: "replace_asset",
+          }),
+          { status: 422 },
+        );
+      }
+      console.error("[upload/blob] content review unavailable", {
+        stage,
+        name: error instanceof Error ? error.name : "UnknownError",
+        verdict:
+          error instanceof ContentReviewRejectedError
+            ? error.result.verdict
+            : "unknown",
+      });
+      return unavailableError({
+        code: "SERVICE_UNAVAILABLE",
+        message: "素材安全检查暂时不可用，请稍后重试。",
+        action: "retry",
+      });
     }
     console.error("[upload/blob] request failed", {
       stage,

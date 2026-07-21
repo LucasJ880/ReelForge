@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
-import { ContentReviewRejectedError, reviewMediaOrThrow } from "@/lib/content-review";
+import {
+  ContentReviewRejectedError,
+  classifyContentReviewFailure,
+  reviewMediaOrThrow,
+} from "@/lib/content-review";
 import { db } from "@/lib/db";
 import {
   createProductImageJob,
@@ -177,13 +181,25 @@ export async function POST(req: NextRequest) {
       );
     }
     if (error instanceof ContentReviewRejectedError) {
+      /// provider 不可达 / 密钥缺失 / 抖动不是用户素材的问题，返回可重试的 503，
+      /// 不再统一误报「请更换素材」。只有 verdict==="rejected" 才是真违规。
+      if (classifyContentReviewFailure(error) === "content_blocked") {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "CONTENT_REVIEW_REJECTED",
+            error: error.result.userMessage || "内容安全检查未通过。请更换素材后重试。",
+          },
+          { status: 422 },
+        );
+      }
       return NextResponse.json(
         {
           ok: false,
-          code: "CONTENT_REVIEW_REJECTED",
-          error: "内容安全检查未通过。请更换素材后重试。",
+          code: "CONTENT_REVIEW_UNAVAILABLE",
+          error: "素材安全检查暂时不可用，请稍后重试。",
         },
-        { status: 422 },
+        { status: 503 },
       );
     }
     console.error("[product-images:POST]", {

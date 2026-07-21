@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { __test__, OpenAiModerationProvider } from "../src/lib/content-review/providers/openai-moderation-provider";
-import { ContentReviewRejectedError, __resetContentReviewProviderForTests, createContentReviewProvider, reviewMediaOrThrow } from "../src/lib/content-review";
+import { ContentReviewRejectedError, classifyContentReviewFailure, __resetContentReviewProviderForTests, createContentReviewProvider, reviewMediaOrThrow } from "../src/lib/content-review";
 import { __resetAppEnvForTests } from "../src/lib/config/env";
 
 async function withEnv<T>(patch: Record<string, string | undefined>, fn: () => Promise<T> | T): Promise<T> {
@@ -48,6 +48,32 @@ test("video without a reviewed frame cannot pass real-mode delivery", async () =
   await withEnv({ CONTENT_REVIEW_ENABLED: "true", CONTENT_REVIEW_PROVIDER: "openai_moderation", CONTENT_REVIEW_MOCK: "false", LLM_FORCE_MOCK: "false", OPENAI_API_KEY: "test-only-key" }, async () => {
     await assert.rejects(() => reviewMediaOrThrow({ kind: "generated_video", mediaUrl: "https://example.test/video.mp4", mediaType: "video" }), ContentReviewRejectedError);
   });
+});
+
+test("only a genuine rejection is classified as content_blocked", () => {
+  const rejected = new ContentReviewRejectedError("user_upload", {
+    verdict: "rejected",
+    categories: ["violence"],
+  });
+  assert.equal(rejected.isContentGenuinelyBlocked, true);
+  assert.equal(classifyContentReviewFailure(rejected), "content_blocked");
+
+  for (const verdict of ["failed_closed", "failed_open", "manual_review"] as const) {
+    const err = new ContentReviewRejectedError("user_upload", { verdict });
+    assert.equal(err.isContentGenuinelyBlocked, false, verdict);
+    assert.equal(classifyContentReviewFailure(err), "review_unavailable", verdict);
+  }
+
+  // 非审核异常（未知瞬时故障）也不能当成用户素材违规
+  assert.equal(classifyContentReviewFailure(new Error("boom")), "review_unavailable");
+});
+
+test("upload boundary maps provider-unavailable to a retryable error, not replace_asset", async () => {
+  const source = await readFile("src/app/api/upload/blob/route.ts", "utf8");
+  // provider 故障分支必须走可重试的 SERVICE_UNAVAILABLE，且只有真违规才 replace_asset
+  assert.match(source, /classifyContentReviewFailure/);
+  assert.match(source, /content review unavailable/);
+  assert.match(source, /SERVICE_UNAVAILABLE/);
 });
 
 test("three Phase 4 review boundaries are wired", async () => {

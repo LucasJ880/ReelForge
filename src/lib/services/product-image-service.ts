@@ -7,6 +7,7 @@ import { Prisma } from "@prisma/client";
 import { getAiProvider } from "@/lib/ai";
 import {
   ContentReviewRejectedError,
+  classifyContentReviewFailure,
   reviewMediaOrThrow,
   reviewTextOrThrow,
 } from "@/lib/content-review";
@@ -295,9 +296,18 @@ export async function createProductImageJob(
 
 function safeProductImageError(error: unknown): { code: string; message: string } {
   if (error instanceof ContentReviewRejectedError) {
+    /// 只有真违规才提示「更换素材/调整描述」；provider 不可达/抖动按可重试处理。
+    if (classifyContentReviewFailure(error) === "content_blocked") {
+      return {
+        code: "CONTENT_REVIEW_REJECTED",
+        message:
+          error.result.userMessage ||
+          "内容安全检查未通过。请更换素材或调整描述后重试。",
+      };
+    }
     return {
-      code: "CONTENT_REVIEW_REJECTED",
-      message: "内容安全检查未通过。请更换素材或调整描述后重试。",
+      code: "CONTENT_REVIEW_UNAVAILABLE",
+      message: "素材安全检查暂时不可用，请稍后重试。",
     };
   }
   if (error instanceof ProductImageRequestError) {

@@ -18,7 +18,6 @@ test("all customers can choose the public interface while internal diagnostics s
   assert.match(studio, /showInternalRoutes=\{showInternalVideoRoutes\}/);
 });
 
-// 2026-07-20 产品决策：所有登录角色统一放行（isInternalRole 只要求已登录）。
 test("legacy role/persona mismatches cannot demote staff or promote customers", () => {
   const cases: Array<{
     role: AccountRole;
@@ -27,8 +26,8 @@ test("legacy role/persona mismatches cannot demote staff or promote customers", 
   }> = [
     { role: "OPERATOR", legacyUserType: "PERSONAL", expected: true },
     { role: "SUPER_ADMIN", legacyUserType: "BUSINESS", expected: true },
-    { role: "CUSTOMER", legacyUserType: "OPERATOR", expected: true },
-    { role: "CUSTOMER", legacyUserType: "SUPER_ADMIN", expected: true },
+    { role: "CUSTOMER", legacyUserType: "OPERATOR", expected: false },
+    { role: "CUSTOMER", legacyUserType: "SUPER_ADMIN", expected: false },
   ];
 
   for (const identity of cases) {

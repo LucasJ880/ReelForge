@@ -24,6 +24,8 @@ export const unifiedLibraryRowSchema = z.object({
   batchId: z.string().min(1).nullable().default(null),
   /// 品牌封装成片（logo + 尾卡）。null = 未封装。
   brandedVideoUrl: z.string().url().nullable().default(null),
+  /// true = 他人（样片账号）的只读客户样片，非访问者本人成片。
+  isShowcase: z.boolean().default(false),
   title: z.string().min(1),
   updatedAt: z.date(),
   status: unifiedLibraryStatusSchema,

@@ -76,6 +76,7 @@ export default async function PlatformLibraryPage({
                       </div>
                     )}
                     <span className="absolute right-3 top-3 rounded-(--radius-sm) bg-card px-2 py-1 font-mono text-meta tabular-nums">{row.durationSec ? `${row.durationSec}s` : "—"}</span>
+                    {row.isShowcase ? <Badge variant="secondary" className="absolute left-3 top-3" title={copy.showcaseHint}>{copy.showcaseBadge}</Badge> : null}
                     <AiGeneratedLabel className="absolute bottom-3 left-3" />
                   </div>
                 </Link>
@@ -84,7 +85,7 @@ export default async function PlatformLibraryPage({
                     {(row.status === "generating" || row.status === "assembling") && <Progress value={row.progress} aria-label={`${row.title} ${copy.progress}`} />}
                     {row.status === "failed" ? <p className="text-meta text-muted-foreground">{copy.failed}</p> : null}
                     <p className="font-mono text-meta tabular-nums text-muted-foreground">{row.aspectRatio ?? copy.aspectPending} · {row.updatedAt.toLocaleDateString("en-CA")}</p>
-                    {row.status === "ready" && row.videoUrl ? (
+                    {row.status === "ready" && row.videoUrl && !row.isShowcase ? (
                       <BrandPackageButton
                         videoJobId={row.videoJobId}
                         briefId={row.briefId}

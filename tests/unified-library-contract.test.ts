@@ -58,6 +58,7 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "durationSec",
     "failedSceneCount",
     "id",
+    "isShowcase",
     "label",
     "progress",
     "source",

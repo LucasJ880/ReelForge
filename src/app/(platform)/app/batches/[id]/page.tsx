@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
+import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,16 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
   try {
     batch = await getBatchStatus(id, session.user.id);
   } catch (error) {
-    if (error instanceof BatchNotFoundError) notFound();
-    throw error;
+    if (!(error instanceof BatchNotFoundError)) throw error;
+    // 命中 SunnyShutter 样片账号的批次则以只读方式呈现；否则 404。
+    const showcaseUserId = await resolveShowcaseSourceFor(session.user.id);
+    if (!showcaseUserId) notFound();
+    try {
+      batch = await getBatchStatus(id, showcaseUserId);
+    } catch (showcaseError) {
+      if (showcaseError instanceof BatchNotFoundError) notFound();
+      throw showcaseError;
+    }
   }
   const copy = getPlatformCopy(await getServerLocale()).batches;
   return (

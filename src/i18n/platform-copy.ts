@@ -309,6 +309,8 @@ const zh = {
     detailFailure: "这支视频没有完成。请重试失败片段；如再次失败，请联系支持并附上方视频 ID。",
     cannotPlay: "浏览器无法播放此视频。",
     processing: "视频仍在处理中，完成后会显示在这里。",
+    showcaseBadge: "样片",
+    showcaseHint: "SunnyShutter 客户样片，仅供浏览。",
   },
 } as const;
 
@@ -420,7 +422,7 @@ const en: CopyShape<typeof zh> = {
     },
   },
   racing: { kicker: "CAMPAIGN RACING", title: "Campaign racing", subtitle: "Compare variants across 12/24/48-hour windows and use evidence completeness—not instinct—to decide the next round.", empty: "No comparable campaign rounds yet. Generate a finished video to open three rounds of testing.", start: "Start the first creative round" },
-  library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video", download: "Download video", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete." },
+  library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video", download: "Download video", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete.", showcaseBadge: "Sample", showcaseHint: "SunnyShutter customer sample — view only." },
 };
 
 export function getPlatformCopy(locale: Locale) {

@@ -15,6 +15,7 @@ import {
   unifiedLibraryRowSchema,
   type UnifiedLibraryRow,
 } from "@/lib/contracts/unified-library";
+import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
 
@@ -69,6 +70,7 @@ type UnifiedLibraryOrder = Prisma.DeliveryOrderGetPayload<{
 
 export function toUnifiedLibraryRow(
   order: UnifiedLibraryOrder,
+  isShowcase = false,
 ): UnifiedLibraryRow | null {
   const brief = order.rounds[0]?.angles[0]?.videoBrief ?? null;
   if (brief?.takedownAt) return null;
@@ -92,6 +94,7 @@ export function toUnifiedLibraryRow(
     source: "order",
     videoJobId: null,
     batchId: null,
+    isShowcase,
     brandedVideoUrl: customerSafeFinalVideoUrl(brief?.brandedVideoUrl ?? null),
     title: order.title,
     updatedAt: order.updatedAt,
@@ -145,7 +148,10 @@ const batchLibraryJobSelect = {
   },
 } satisfies Prisma.VideoJobSelect;
 
-export function toBatchLibraryRow(job: BatchLibraryJob): UnifiedLibraryRow | null {
+export function toBatchLibraryRow(
+  job: BatchLibraryJob,
+  isShowcase = false,
+): UnifiedLibraryRow | null {
   if (!job.batchJob) return null;
   const status = batchJobStatusToLibraryStatus(job.status);
   const snapshot = (job.templateSnapshot ?? null) as {
@@ -161,6 +167,7 @@ export function toBatchLibraryRow(job: BatchLibraryJob): UnifiedLibraryRow | nul
     source: "batch",
     videoJobId: job.id,
     batchId: job.batchJob.id,
+    isShowcase,
     brandedVideoUrl: customerSafeFinalVideoUrl(job.brandedVideoUrl),
     title: `${job.batchJob.productName ?? templateName} · ${templateName} #${index}`,
     updatedAt: job.updatedAt,
@@ -177,36 +184,54 @@ export function toBatchLibraryRow(job: BatchLibraryJob): UnifiedLibraryRow | nul
   });
 }
 
-export async function loadUnifiedLibrary(
-  userId: string,
+async function loadRowsForOwner(
+  ownerId: string,
+  isShowcase: boolean,
 ): Promise<UnifiedLibraryRow[]> {
   const [orders, batchJobs] = await Promise.all([
     db.deliveryOrder.findMany({
-      where: { createdById: userId, productCategory: "unified_input" },
+      where: { createdById: ownerId, productCategory: "unified_input" },
       orderBy: { updatedAt: "desc" },
       take: 100,
       select: unifiedLibraryOrderSelect,
     }),
     db.videoJob.findMany({
-      where: { batchJob: { userId } },
+      where: { batchJob: { userId: ownerId } },
       orderBy: { updatedAt: "desc" },
       take: 100,
       select: batchLibraryJobSelect,
     }),
   ]);
 
-  return [
+  const rows = [
     ...orders
-      .map(toUnifiedLibraryRow)
+      .map((order) => toUnifiedLibraryRow(order, isShowcase))
       .filter((row): row is UnifiedLibraryRow => row !== null),
     ...batchJobs
-      .map(toBatchLibraryRow)
+      .map((job) => toBatchLibraryRow(job, isShowcase))
       .filter((row): row is UnifiedLibraryRow => row !== null),
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+  // 样片只暴露已完成成片，避免把半成品/失败的 demo 内容展示给其他用户。
+  return isShowcase ? rows.filter((row) => row.status === "ready") : rows;
+}
+
+export async function loadUnifiedLibrary(
+  userId: string,
+): Promise<UnifiedLibraryRow[]> {
+  const showcaseUserId = await resolveShowcaseSourceFor(userId);
+  const [ownRows, showcaseRows] = await Promise.all([
+    loadRowsForOwner(userId, false),
+    showcaseUserId
+      ? loadRowsForOwner(showcaseUserId, true)
+      : Promise.resolve<UnifiedLibraryRow[]>([]),
+  ]);
+  // 访问者本人成片在前，SunnyShutter 客户样片在后（新注册用户仅见样片）。
+  return [...ownRows, ...showcaseRows];
 }
 
 export async function getUnifiedLibraryItem(userId: string, orderId: string) {
-  const order = await db.deliveryOrder.findFirst({
+  const own = await db.deliveryOrder.findFirst({
     where: {
       id: orderId,
       createdById: userId,
@@ -214,5 +239,18 @@ export async function getUnifiedLibraryItem(userId: string, orderId: string) {
     },
     select: unifiedLibraryOrderSelect,
   });
-  return order ? toUnifiedLibraryRow(order) : null;
+  if (own) return toUnifiedLibraryRow(own);
+
+  // 命中样片账号的成片则以只读样片形式返回。
+  const showcaseUserId = await resolveShowcaseSourceFor(userId);
+  if (!showcaseUserId) return null;
+  const showcase = await db.deliveryOrder.findFirst({
+    where: {
+      id: orderId,
+      createdById: showcaseUserId,
+      productCategory: "unified_input",
+    },
+    select: unifiedLibraryOrderSelect,
+  });
+  return showcase ? toUnifiedLibraryRow(showcase, true) : null;
 }

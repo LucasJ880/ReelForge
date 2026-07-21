@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
+import { OpsCreditsCluster } from "@/components/platform/ops-credits-cluster";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import {
   PLATFORM_PRIMARY_NAV,
@@ -116,6 +117,7 @@ export function PlatformShell({
   planId,
   activeBatches,
   failedJobs,
+  showOpsCredits = false,
 }: {
   children: React.ReactNode;
   email: string;
@@ -123,6 +125,7 @@ export function PlatformShell({
   planId: "starter" | "studio";
   activeBatches: number;
   failedJobs: number;
+  showOpsCredits?: boolean;
 }) {
   const pathname = usePathname();
   const { t, locale } = useTranslation();
@@ -200,6 +203,7 @@ export function PlatformShell({
               className="h-9 w-full rounded-(--radius-sm) border border-border bg-secondary pl-9 pr-3 text-body text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             />
           </form>
+          {showOpsCredits ? <OpsCreditsCluster english={locale === "en-US"} /> : null}
           <Link
             href="/app/create?guide=open"
             prefetch={false}

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { PlatformShell } from "@/components/platform/platform-shell";
 import { authOptions } from "@/lib/auth";
+import { isInternalRole } from "@/lib/auth-role-policy";
 import { db } from "@/lib/db";
 import { getWorkspacePlanForUser } from "@/lib/services/workspace-plan-service";
 
@@ -34,6 +35,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
       planId={entitlement.planId}
       activeBatches={activeBatches}
       failedJobs={failedJobs}
+      showOpsCredits={isInternalRole(session.user.role)}
     >
       {children}
     </PlatformShell>

@@ -567,6 +567,9 @@ model VideoBrief {
   referenceImageUrls String[] @default([])
   /// 最终送审/发布的成片 URL（兼容旧 Sunny Shutter：单段 brief 这里就是 finalVideo URL）
   finalVideoUrl      String?
+  /// 品牌封装成片（logo 角标 + 尾卡）。null = 尚未封装。
+  brandedVideoUrl    String?
+  brandedAt          DateTime?
   /// 最终封面
   finalThumbnailUrl  String?
 
@@ -898,6 +901,9 @@ model VideoJob {
 
   outputVideoUrl String?
   outputThumbUrl String?
+  /// 品牌封装成片（logo 角标 + 尾卡）。null = 尚未封装，只有 branded 可对外交付。
+  brandedVideoUrl String?
+  brandedAt       DateTime?
   /// 内部/管理员错误（包含原始 Provider 错误，仅 debug 区可见）
   errorMessage   String?
   /// 用户安全的错误描述（已脱敏的中文友好提示，可直接展示给客户）

@@ -51,6 +51,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
   assert.deepEqual(unifiedLibraryRowSchema.parse(row), row);
   assert.deepEqual(Object.keys(row).sort(), [
     "aspectRatio",
+    "batchId",
+    "brandedVideoUrl",
     "briefId",
     "canRetry",
     "durationSec",
@@ -58,10 +60,12 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "id",
     "label",
     "progress",
+    "source",
     "status",
     "thumbnailUrl",
     "title",
     "updatedAt",
+    "videoJobId",
     "videoUrl",
   ]);
   assert.equal(row.status, "ready");

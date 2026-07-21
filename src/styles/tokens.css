@@ -116,11 +116,16 @@
 }
 
 /*
- * /app Studio 工作区主题。只在 PlatformLayout 的 .studio-theme 内生效，
- * 因此不会改变已冻结的 Showcase 或公开面的 Editorial 方向。
+ * /app Studio 工作区主题。在 PlatformLayout 的 .studio-theme 与登录面的
+ * .auth-studio-theme 内生效；已冻结的 Showcase 与公开面保持 Editorial 浅色。
+ * 0721 决策：登录页并入深色 Studio，消除登录 → 工作台的明暗跳变。
  */
 :root:has(.studio-theme),
-.studio-theme {
+.studio-theme,
+:root:has(.auth-studio-theme),
+.auth-studio-theme {
+  /* 根级 color-scheme 跟随深色，否则自动填充/原生滚动条按浅色渲染。 */
+  color-scheme: dark;
   /* Restore Aivora's original neutral-dark studio depth; keep the current
    * orange brand action color and avoid the old ornamental gradients. */
   --bg: #101015;
@@ -193,9 +198,9 @@
   --sidebar-ring: var(--accent);
 }
 
-/* Auth remains on the approved light Editorial surface; /app alone is dark Studio. */
+/* 登录面与 Studio 同为深色（0721 起）；公开面/运营面仍为浅色 Editorial。 */
 .auth-studio-theme {
-  color-scheme: light;
+  color-scheme: dark;
 }
 
 @theme inline {

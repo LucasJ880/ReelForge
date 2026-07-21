@@ -13,14 +13,19 @@ import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
+import { db } from "@/lib/db";
 import { applyClientBrandPackaging } from "@/lib/video-generation/brand-packaging-service";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const requestSchema = z.object({
-  /** 干净原片 URL（Blob / 成片库地址） */
-  sourceVideoUrl: z.string().url(),
+  /** 干净原片 URL（Blob / 成片库地址）。与 videoJobId / briefId 三选一。 */
+  sourceVideoUrl: z.string().url().nullish(),
+  /** 批量视频：按 VideoJob 封装并把 brandedVideoUrl 落库。 */
+  videoJobId: z.string().min(1).nullish(),
+  /** 单条创作：按 VideoBrief 封装并把 brandedVideoUrl 落库。 */
+  briefId: z.string().min(1).nullish(),
   clientProfileId: z.literal("sunnyshutter").nullish(),
   custom: z
     .object({
@@ -68,10 +73,76 @@ export async function POST(request: Request): Promise<NextResponse> {
       { status: 400 },
     );
   }
+  const targetCount = [body.sourceVideoUrl, body.videoJobId, body.briefId].filter(
+    Boolean,
+  ).length;
+  if (targetCount !== 1) {
+    return NextResponse.json(
+      { error: "exactly one of sourceVideoUrl / videoJobId / briefId required" },
+      { status: 400 },
+    );
+  }
+
+  /// 解析封装对象：videoJobId / briefId 需校验归属并在成功后落库。
+  let sourceVideoUrl = body.sourceVideoUrl ?? null;
+  let persist: (brandedUrl: string) => Promise<void> = async () => {};
+  if (body.videoJobId) {
+    const job = await db.videoJob.findFirst({
+      where: { id: body.videoJobId, batchJob: { userId: session.user.id } },
+      select: { id: true, status: true, outputVideoUrl: true },
+    });
+    if (!job) {
+      return NextResponse.json({ error: "video job not found" }, { status: 404 });
+    }
+    if (job.status !== "SUCCEEDED" || !job.outputVideoUrl) {
+      return NextResponse.json(
+        { error: "video job has no finished output yet" },
+        { status: 409 },
+      );
+    }
+    sourceVideoUrl = job.outputVideoUrl;
+    persist = async (brandedUrl) => {
+      await db.videoJob.update({
+        where: { id: job.id },
+        data: { brandedVideoUrl: brandedUrl, brandedAt: new Date() },
+      });
+    };
+  } else if (body.briefId) {
+    const brief = await db.videoBrief.findFirst({
+      where: {
+        id: body.briefId,
+        contentAngle: {
+          round: { deliveryOrder: { createdById: session.user.id } },
+        },
+      },
+      select: {
+        id: true,
+        finalVideoUrl: true,
+        finalVideo: { select: { stitchedVideoUrl: true } },
+      },
+    });
+    if (!brief) {
+      return NextResponse.json({ error: "brief not found" }, { status: 404 });
+    }
+    const cleanUrl = brief.finalVideo?.stitchedVideoUrl ?? brief.finalVideoUrl;
+    if (!cleanUrl) {
+      return NextResponse.json(
+        { error: "brief has no finished video yet" },
+        { status: 409 },
+      );
+    }
+    sourceVideoUrl = cleanUrl;
+    persist = async (brandedUrl) => {
+      await db.videoBrief.update({
+        where: { id: brief.id },
+        data: { brandedVideoUrl: brandedUrl, brandedAt: new Date() },
+      });
+    };
+  }
 
   try {
     const workDir = mkdtempSync(join(tmpdir(), "brand-pack-"));
-    const sourcePath = await downloadTo(workDir, "source.mp4", body.sourceVideoUrl);
+    const sourcePath = await downloadTo(workDir, "source.mp4", sourceVideoUrl!);
     const logoPath = body.custom
       ? await downloadTo(workDir, "logo.png", body.custom.logoUrl)
       : null;
@@ -100,6 +171,8 @@ export async function POST(request: Request): Promise<NextResponse> {
       outputDir: workDir,
       outputId: `brand-${Date.now().toString(36)}`,
     });
+
+    await persist(result.blobUrl);
 
     return NextResponse.json({
       brandedUrl: result.blobUrl,

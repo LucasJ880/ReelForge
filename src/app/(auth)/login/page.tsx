@@ -75,7 +75,7 @@ export default function LoginPage() {
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-meta font-medium">
+            <label htmlFor="email" className="text-body font-medium">
               {copy.email}
             </label>
             <Input
@@ -90,7 +90,7 @@ export default function LoginPage() {
             />
           </div>
           <div className="space-y-2">
-            <label htmlFor="password" className="text-meta font-medium">
+            <label htmlFor="password" className="text-body font-medium">
               {copy.password}
             </label>
             <Input

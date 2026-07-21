@@ -21,8 +21,11 @@ test("Studio theme：批准的中性深色 token 与字体角色完整落地", a
     "--warning: #e8b84b",
     "--danger: #e0574f",
   ]) assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(tokens, /:root:has\(\.studio-theme\),\s*\n\.studio-theme\s*{/);
-  assert.match(tokens, /\.studio-theme\s*{/);
+  // 0721 起登录面与 Studio 共用同一深色块。
+  assert.match(
+    tokens,
+    /:root:has\(\.studio-theme\),\s*\n\.studio-theme,\s*\n:root:has\(\.auth-studio-theme\),\s*\n\.auth-studio-theme\s*{/,
+  );
   assert.match(tokens, /--font-display-family:\s*var\(--font-space-grotesk\)/);
   assert.match(tokens, /--font-mono-family:\s*var\(--font-jetbrains-mono\)/);
   assert.match(layout, /Space_Grotesk/);

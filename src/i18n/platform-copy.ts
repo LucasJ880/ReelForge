@@ -297,6 +297,11 @@ const zh = {
     regenerate: "重新生成",
     view: "查看成片",
     download: "下载成片",
+    brandPackage: "品牌封装",
+    brandPackaging: "封装中…",
+    brandPackaged: "已封装",
+    downloadDelivery: "下载交付",
+    brandPackageFailed: "封装失败，请重试",
     progress: "进度",
     statuses: { planning: "准备中", generating: "生成中", assembling: "即将完成", ready: "已完成", failed: "生成失败" },
     back: "返回成品库",
@@ -415,7 +420,7 @@ const en: CopyShape<typeof zh> = {
     },
   },
   racing: { kicker: "CAMPAIGN RACING", title: "Campaign racing", subtitle: "Compare variants across 12/24/48-hour windows and use evidence completeness—not instinct—to decide the next round.", empty: "No comparable campaign rounds yet. Generate a finished video to open three rounds of testing.", start: "Start the first creative round" },
-  library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video", download: "Download video", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete." },
+  library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video", download: "Download video", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete." },
 };
 
 export function getPlatformCopy(locale: Locale) {

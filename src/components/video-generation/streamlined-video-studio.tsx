@@ -69,7 +69,7 @@ type BusyState = "preview" | "dispatch" | null;
 const ZH_COPY = {
   kicker: "单条视频创作",
   title: "选规格，写提示词，直接生成",
-  subtitle: "不必先和 AI 对话。按页面从上到下完成素材、模式、规格和提示词，提交后可在成品库查看进度。",
+  subtitle: "按页面从上到下完成素材、模式、规格和提示词，提交后可在成品库查看进度。",
   guideTitle: "第一次使用，顺着四步完成",
   guideBody: "有真实产品时先给参考图，再说清想拍什么；没有素材也可以直接使用纯文字生成。",
   guideSteps: ["添加产品图（可选）", "选择生成方式", "选择视频规格", "写提示词，核对后生成"],
@@ -163,7 +163,7 @@ type StudioCopy = {
 const EN_COPY: StudioCopy = {
   kicker: "SINGLE VIDEO",
   title: "Choose the specs, write a prompt, and generate",
-  subtitle: "No required AI conversation. Move straight through assets, mode, format, and prompt, then follow progress in your video library.",
+  subtitle: "Move straight through assets, mode, format, and prompt, then follow progress in your video library.",
   guideTitle: "Follow four simple steps for your first video",
   guideBody: "Add real product references when you have them, then describe the video. You can also generate directly from text.",
   guideSteps: ["Add product images (optional)", "Choose a generation mode", "Choose video specs", "Write the prompt, review, and generate"],

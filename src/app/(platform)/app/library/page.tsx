@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { HoverPreviewVideo } from "@/components/library/hover-preview-video";
+import { BrandPackageButton } from "@/components/library/brand-package-button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
@@ -54,10 +55,15 @@ export default async function PlatformLibraryPage({
         </section>
       ) : (
         <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={copy.listLabel}>
-          {rows.map((row) => (
+          {rows.map((row) => {
+            const detailHref =
+              row.source === "batch"
+                ? `/app/batches/${row.batchId}`
+                : `/app/library/${row.id}`;
+            return (
             <li key={row.id} className="min-w-0">
               <article className="group min-w-0 overflow-hidden rounded-(--radius-lg) border border-border bg-card transition-colors hover:border-border-strong">
-                <Link href={`/app/library/${row.id}`} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                <Link href={detailHref} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                   <div className="relative aspect-video overflow-hidden bg-secondary">
                     {row.videoUrl ? (
                       <HoverPreviewVideo src={row.videoUrl} poster={row.thumbnailUrl ?? undefined} />
@@ -78,13 +84,29 @@ export default async function PlatformLibraryPage({
                     {(row.status === "generating" || row.status === "assembling") && <Progress value={row.progress} aria-label={`${row.title} ${copy.progress}`} />}
                     {row.status === "failed" ? <p className="text-meta text-muted-foreground">{copy.failed}</p> : null}
                     <p className="font-mono text-meta tabular-nums text-muted-foreground">{row.aspectRatio ?? copy.aspectPending} · {row.updatedAt.toLocaleDateString("en-CA")}</p>
-                    <Button render={<Link href={row.status === "failed" ? `/app/create?retry=${encodeURIComponent(row.id)}` : `/app/library/${row.id}`} />} variant={row.status === "failed" ? "outline" : "ghost"} size="sm">
+                    {row.status === "ready" && row.videoUrl ? (
+                      <BrandPackageButton
+                        videoJobId={row.videoJobId}
+                        briefId={row.briefId}
+                        brandedVideoUrl={row.brandedVideoUrl}
+                        aspectRatio={row.aspectRatio}
+                        copy={{
+                          package: copy.brandPackage,
+                          packaging: copy.brandPackaging,
+                          packaged: copy.brandPackaged,
+                          download: copy.downloadDelivery,
+                          failed: copy.brandPackageFailed,
+                        }}
+                      />
+                    ) : null}
+                    <Button render={<Link href={row.status === "failed" && row.source === "order" ? `/app/create?retry=${encodeURIComponent(row.id)}` : detailHref} />} variant={row.status === "failed" ? "outline" : "ghost"} size="sm">
                       {row.status === "failed" ? copy.regenerate : copy.view}<ArrowRight aria-hidden />
                     </Button>
                   </div>
               </article>
             </li>
-          ))}
+            );
+          })}
         </ul>
       )}
     </div>

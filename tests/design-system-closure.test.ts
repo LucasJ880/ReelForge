@@ -10,16 +10,17 @@ function walk(directory: string): string[] {
   });
 }
 
-test("approved theme topology keeps Studio dark and auth/public/operations light", () => {
+test("approved theme topology keeps Studio and auth dark, public/operations light", () => {
   const tokens = readFileSync("src/styles/tokens.css", "utf8");
   const root = tokens.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const studio = tokens.match(/\.studio-theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
-  const auth = tokens.match(/\.auth-studio-theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const studio = tokens.match(
+    /:root:has\(\.studio-theme\),\s*\n\.studio-theme,\s*\n:root:has\(\.auth-studio-theme\),\s*\n\.auth-studio-theme\s*\{([\s\S]*?)\n\}/,
+  )?.[1] ?? "";
   assert.match(root, /--bg:\s*#fafaf7/i);
+  // 0721 决策：登录面与 /app Studio 共用同一深色块，避免登录 → 工作台明暗跳变。
   assert.match(studio, /--bg:\s*#101015/i);
-  assert.match(tokens, /:root:has\(\.studio-theme\),\s*\n\.studio-theme\s*\{/);
-  assert.match(auth, /color-scheme:\s*light/);
-  assert.doesNotMatch(auth, /--bg:\s*#17130f/i);
+  assert.match(tokens, /\.auth-studio-theme\s*\{\s*color-scheme:\s*dark;\s*\}/);
+  assert.doesNotMatch(tokens, /color-scheme:\s*light/);
 });
 
 test("literal DOM colors stay in the single token source", () => {

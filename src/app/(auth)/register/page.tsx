@@ -75,7 +75,7 @@ export default function RegisterPage() {
       <CardContent className="space-y-6">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <label htmlFor="email" className="text-meta font-medium">
+            <label htmlFor="email" className="text-body font-medium">
             {copy.email}
             </label>
             <Input
@@ -91,7 +91,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="name" className="text-meta font-medium">
+            <label htmlFor="name" className="text-body font-medium">
             {copy.displayName}
             </label>
             <Input
@@ -106,7 +106,7 @@ export default function RegisterPage() {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="text-meta font-medium">
+            <label htmlFor="password" className="text-body font-medium">
             {copy.newPassword}
             </label>
             <Input

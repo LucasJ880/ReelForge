@@ -103,7 +103,7 @@ test("buildBrandPackagingPlan forces SunnyShutter end card even when mode=none",
   });
   assert.equal(plan.mode, "auto_end_card");
   assert.ok(plan.contactLines?.join(" ").includes(SUNNYSHUTTER_PHONE));
-  assert.match(plan.cta ?? "", /FREE In-Home Quote/i);
+  assert.match(plan.cta ?? "", /FREE In-Home Measure/i);
 });
 
 test("other brands are not forced onto SunnyShutter contacts", () => {

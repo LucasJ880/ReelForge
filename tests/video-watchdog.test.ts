@@ -57,7 +57,9 @@ function unixSec(d: Date): number {
 }
 
 test("watchdog 信号 B：running + updated_at 从未推进 + 超过阈值 → 判僵死", () => {
-  const createdAt = unixSec(new Date(NOW.getTime() - 20 * MIN));
+  const createdAt = unixSec(
+    new Date(NOW.getTime() - (providerStallMin() + 10) * MIN),
+  );
   const verdict = detectProviderStall(
     {
       status: "processing",

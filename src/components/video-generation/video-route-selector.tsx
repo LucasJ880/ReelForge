@@ -259,19 +259,23 @@ export function VideoRouteSelector({
             value={value}
             onValueChange={(nextValue) => onChange(parseVideoRouteOverride(nextValue))}
           >
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>{copy.label}</DropdownMenuLabel>
-              <RouteRadioItem
-                value=""
-                icon={Server}
-                title={copy.directTitle}
-                description={copy.directDescription}
-                status={directLabel}
-                active={value === ""}
-                warning={resolvedDirectAvailable === false || statusLoadFailed}
-              />
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+            {showInternalRoutes ? (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel>{copy.label}</DropdownMenuLabel>
+                  <RouteRadioItem
+                    value=""
+                    icon={Server}
+                    title={copy.directTitle}
+                    description={copy.directDescription}
+                    status={directLabel}
+                    active={value === ""}
+                    warning={resolvedDirectAvailable === false || statusLoadFailed}
+                  />
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            ) : null}
             <DropdownMenuGroup>
               <DropdownMenuLabel>{copy.shuyuGroup}</DropdownMenuLabel>
               <RouteRadioItem

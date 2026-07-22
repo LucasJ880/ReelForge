@@ -64,6 +64,12 @@ import {
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
 import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
+import {
+  attachStoryboardToVideoJob,
+  createStoryboardRun,
+  reconcileStoryboardRun,
+  requireApprovedStoryboardForVideoJob,
+} from "@/lib/video-generation/storyboard-service";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -739,7 +745,7 @@ async function claimJobs(args: {
           }),
           tx.videoJob.findFirst({
             where: { batchJobId: args.batchId },
-            select: { provider: true },
+            select: { provider: true, videoRouteSnapshot: true },
           }),
         ]);
         if (!batch || !batchProvider) return [];
@@ -780,6 +786,9 @@ async function claimJobs(args: {
             batchJobId: args.batchId,
             status: VideoJobStatus.QUEUED,
             submissionState: ProviderSubmissionState.NOT_STARTED,
+            ...(batchProvider.videoRouteSnapshot === "buddy"
+              ? { storyboardRun: { status: "APPROVED" } }
+              : {}),
             AND: [
               { OR: [{ availableAt: null }, { availableAt: { lte: args.now } }] },
               {
@@ -861,6 +870,9 @@ async function submitClaimedJob(
   const now = new Date();
   const attempts = job.submitAttempts + 1;
   const providerRequestKey = `${job.id}:attempt:${attempts}`;
+  const storyboardReferences = job.videoRouteSnapshot === "buddy"
+    ? await requireApprovedStoryboardForVideoJob(job.id)
+    : [];
   const intent = await db.videoJob.updateMany({
     where: {
       id: job.id,
@@ -887,10 +899,16 @@ async function submitClaimedJob(
         providerRequestKey,
         prompt: job.promptText ?? "",
         negativePrompt: job.negativePrompt ?? undefined,
-        referenceImages: assignment.assets.map((asset) => ({
-          url: asset.url,
-          role: "content",
-        })),
+        referenceImages: [
+          ...storyboardReferences.map((url) => ({
+            url,
+            role: "content" as const,
+          })),
+          ...assignment.assets.map((asset) => ({
+            url: asset.url,
+            role: "content" as const,
+          })),
+        ].slice(0, 9),
         /// 批量模板的多张产品图是「视觉真值参考」，不是首尾帧。Seedance 2 必须走
         /// Omni-Reference，否则 4 张不同房间的图会被当 first/last frame 强行变形
         /// 拼接（2026-07-20 真机验收发现的幻觉源头）。Seedance-1/Shuyu 适配器会
@@ -1035,6 +1053,72 @@ async function submitClaimedJob(
           : "batch_submit_rejected",
     });
   }
+}
+
+function batchStoryboardSpec(job: VideoJob): {
+  durationSec: 5 | 10 | 15;
+  aspectRatio: "9:16" | "16:9" | "1:1";
+  sourceAssetIds: string[];
+} {
+  const snapshot = job.templateSnapshot as unknown as {
+    lockedParams?: { duration?: unknown; aspectRatio?: unknown };
+  };
+  const assignment = assignmentFromJob(job);
+  const duration = snapshot.lockedParams?.duration;
+  const aspectRatio = snapshot.lockedParams?.aspectRatio;
+  if (duration !== 5 && duration !== 10 && duration !== 15) {
+    throw new Error(`批量故事板不支持时长 ${String(duration)}`);
+  }
+  if (aspectRatio !== "9:16" && aspectRatio !== "16:9" && aspectRatio !== "1:1") {
+    throw new Error(`批量故事板不支持画幅 ${String(aspectRatio)}`);
+  }
+  return {
+    durationSec: duration,
+    aspectRatio,
+    sourceAssetIds: assignment.assets.map((asset) => asset.id),
+  };
+}
+
+async function advanceBatchStoryboards(batchId: string): Promise<void> {
+  const runs = await db.storyboardRun.findMany({
+    where: {
+      videoJob: { batchJobId: batchId },
+      status: "GENERATING",
+    },
+    orderBy: { updatedAt: "asc" },
+    select: { id: true },
+    take: providerConcurrency(),
+  });
+  await mapConcurrent(runs, providerConcurrency(), async (run) => {
+    await reconcileStoryboardRun(run.id);
+  });
+}
+
+async function prepareBatchStoryboards(batchId: string, userId: string): Promise<void> {
+  const jobs = await db.videoJob.findMany({
+    where: {
+      batchJobId: batchId,
+      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] },
+      videoRouteSnapshot: "buddy",
+      storyboardRun: null,
+    },
+    orderBy: { batchIndex: "asc" },
+    take: providerConcurrency(),
+  });
+  await mapConcurrent(jobs, providerConcurrency(), async (job) => {
+    const spec = batchStoryboardSpec(job);
+    const run = await createStoryboardRun({
+      userId,
+      idempotencyKey: `batch-storyboard:${job.id}`,
+      prompt: job.promptText ?? "Create a faithful product demonstration.",
+      durationSec: spec.durationSec,
+      aspectRatio: spec.aspectRatio,
+      sourceAssetIds: spec.sourceAssetIds,
+      approvalPolicy: "AUTO",
+      purpose: `batch-video-storyboard:${job.id}`,
+    });
+    await attachStoryboardToVideoJob({ userId, runId: run.id, videoJobId: job.id });
+  });
 }
 
 function isBillingSafeManualRetry(job: {
@@ -1228,6 +1312,11 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
     return batch;
   }
   if (batchProvider) assertPersistedJobProviderReady(batchProvider);
+
+  if (batchProvider?.videoRouteSnapshot === "buddy") {
+    await advanceBatchStoryboards(batchId);
+    await prepareBatchStoryboards(batchId, batch.userId);
+  }
 
   await recoverExpiredLeases(batchId, now);
   if (batchProvider) {
@@ -1465,6 +1554,24 @@ export async function getBatchStatus(batchId: string, userId?: string) {
           submissionState: true,
           submissionErrorClass: true,
           retryCount: true,
+          storyboardRun: {
+            select: {
+              id: true,
+              status: true,
+              approvalPolicy: true,
+              frames: {
+                where: { isCurrent: true },
+                orderBy: { ordinal: "asc" },
+                select: {
+                  id: true,
+                  ordinal: true,
+                  status: true,
+                  outputUrl: true,
+                  outputAsset: { select: { url: true } },
+                },
+              },
+            },
+          },
           createdAt: true,
           submittedAt: true,
           finishedAt: true,
@@ -1513,6 +1620,17 @@ export type CustomerBatchStatus = {
     lastProgress: number | null;
     userSafeError: string | null;
     retryCount: number;
+    storyboard: {
+      id: string;
+      status: string;
+      approvalPolicy: string;
+      frames: Array<{
+        id: string;
+        ordinal: number;
+        status: string;
+        imageUrl: string | null;
+      }>;
+    } | null;
     createdAt: Date;
     submittedAt: Date | null;
     finishedAt: Date | null;
@@ -1598,6 +1716,21 @@ export function toCustomerBatchStatus(
       lastProgress: job.lastProgress,
       userSafeError: job.userSafeError,
       retryCount: job.retryCount,
+      storyboard: job.storyboardRun
+        ? {
+            id: job.storyboardRun.id,
+            status: String(job.storyboardRun.status),
+            approvalPolicy: String(job.storyboardRun.approvalPolicy),
+            frames: job.storyboardRun.frames.map((frame) => ({
+              id: frame.id,
+              ordinal: frame.ordinal,
+              status: String(frame.status),
+              imageUrl: customerHttpUrl(
+                frame.outputAsset?.url ?? frame.outputUrl,
+              ),
+            })),
+          }
+        : null,
       createdAt: job.createdAt,
       submittedAt: job.submittedAt,
       finishedAt: job.finishedAt,

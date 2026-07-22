@@ -45,6 +45,18 @@ test("AC-B7：250 卡片使用行虚拟化，仅渲染 virtualItems", () => {
   );
 });
 
+test("批量任务逐条展示 Image 2 故事板，成片预览受视口约束", () => {
+  assert.match(monitor, /storyboard/);
+  assert.match(monitor, /grid-cols-2/);
+  assert.match(monitor, /object-contain/);
+  assert.match(monitor, /max-h-\[min\(58vh,720px\)\]/);
+  assert.doesNotMatch(
+    monitor,
+    /className="aspect-9\/12 w-full[^\"]*object-cover"/,
+    "竖屏成片不能再按抽屉全宽错误放大",
+  );
+});
+
 test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /const UPLOAD_CONCURRENCY = 4/);
   assert.match(wizard, /50 - uploads\.length/);

@@ -1,4 +1,10 @@
-import { BatchJobStatus, VideoJobStatus } from "@prisma/client";
+import {
+  BatchJobStatus,
+  StoryboardApprovalPolicy,
+  StoryboardFrameStatus,
+  StoryboardRunStatus,
+  VideoJobStatus,
+} from "@prisma/client";
 import { z } from "zod";
 import {
   customerApiErrorSchema,
@@ -49,6 +55,24 @@ export const customerBatchJobSchema = z
     lastProgress: z.number().min(0).max(100).nullable(),
     userSafeError: z.string().nullable(),
     retryCount: z.number().int().nonnegative(),
+    storyboard: z
+      .object({
+        id: z.string().min(1),
+        status: z.nativeEnum(StoryboardRunStatus),
+        approvalPolicy: z.nativeEnum(StoryboardApprovalPolicy),
+        frames: z.array(
+          z
+            .object({
+              id: z.string().min(1),
+              ordinal: z.number().int().nonnegative(),
+              status: z.nativeEnum(StoryboardFrameStatus),
+              imageUrl: customerHttpUrlSchema.nullable(),
+            })
+            .strict(),
+        ),
+      })
+      .strict()
+      .nullable(),
     createdAt: responseDateSchema,
     submittedAt: responseDateSchema.nullable(),
     finishedAt: responseDateSchema.nullable(),

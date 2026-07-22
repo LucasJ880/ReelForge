@@ -238,7 +238,7 @@ export async function createStoryboardRun(
   if (!input.prompt.trim()) {
     throw new StoryboardRequestError("请描述视频故事。", "VALIDATION_FAILED");
   }
-  if (![15, 30, 60].includes(input.durationSec)) {
+  if (![5, 10, 15, 30, 60].includes(input.durationSec)) {
     throw new StoryboardRequestError("视频时长不受支持。", "VALIDATION_FAILED");
   }
   const assetIds = [...new Set(input.sourceAssetIds ?? [])];
@@ -820,6 +820,61 @@ export async function attachStoryboardToVideoBrief(input: {
       data: { referenceImageUrls: refs },
     });
   });
+}
+
+export async function attachStoryboardToVideoJob(input: {
+  userId: string;
+  runId: string;
+  videoJobId: string;
+}): Promise<void> {
+  const attached = await db.storyboardRun.updateMany({
+    where: {
+      id: input.runId,
+      userId: input.userId,
+      OR: [{ videoJobId: null }, { videoJobId: input.videoJobId }],
+    },
+    data: { videoJobId: input.videoJobId },
+  });
+  if (attached.count !== 1) {
+    throw new StoryboardRequestError(
+      "故事板已用于另一条批量视频。",
+      "INVALID_STATE",
+      409,
+    );
+  }
+}
+
+export async function requireApprovedStoryboardForVideoJob(
+  videoJobId: string,
+): Promise<string[]> {
+  const run = await db.storyboardRun.findUnique({
+    where: { videoJobId },
+    include: storyboardInclude,
+  });
+  if (!run || run.status !== StoryboardRunStatus.APPROVED) {
+    throw new StoryboardRequestError(
+      "批量视频生成前必须完成故事板。",
+      "STORYBOARD_NOT_APPROVED",
+      409,
+    );
+  }
+  const refs = run.frames
+    .filter(
+      (frame) =>
+        frame.status === StoryboardFrameStatus.SUCCEEDED &&
+        frame.outputAsset?.userId === run.userId,
+    )
+    .sort((a, b) => a.ordinal - b.ordinal)
+    .map((frame) => frame.outputAsset?.url)
+    .filter((url): url is string => Boolean(url));
+  if (refs.length !== storyboardFrameCountForDuration(run.durationSec)) {
+    throw new StoryboardRequestError(
+      "批量故事板图片不完整。",
+      "STORYBOARD_INCOMPLETE",
+      409,
+    );
+  }
+  return refs;
 }
 
 export async function requireApprovedStoryboardForBrief(

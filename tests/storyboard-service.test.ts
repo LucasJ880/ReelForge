@@ -21,6 +21,11 @@ test("a 15 second video plans four ordered Shuyu Image 2 frames", () => {
   assert.ok(plans.every((frame) => /PRODUCT IDENTITY LOCK/.test(frame.prompt)));
 });
 
+test("short batch clips still receive four continuity-lock frames", () => {
+  assert.equal(storyboardFrameCountForDuration(5), 4);
+  assert.equal(storyboardFrameCountForDuration(10), 4);
+});
+
 test("storyboard regeneration fails closed unless creation was rejected or refunded", () => {
   assert.equal(canRegenerateStoryboardFrame({
     status: "FAILED",

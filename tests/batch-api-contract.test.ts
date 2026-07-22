@@ -89,6 +89,18 @@ function customerBatchFixture() {
         submissionState: ProviderSubmissionState.ACCEPTED,
         submissionErrorClass: null,
         retryCount: 0,
+        storyboardRun: {
+          id: "storyboard-contract-1",
+          status: "APPROVED",
+          approvalPolicy: "AUTO",
+          frames: Array.from({ length: 4 }, (_, ordinal) => ({
+            id: `frame-${ordinal}`,
+            ordinal,
+            status: "SUCCEEDED",
+            outputUrl: `https://example.test/frame-${ordinal}.png`,
+            outputAsset: null,
+          })),
+        },
         createdAt: now,
         submittedAt: now,
         finishedAt: now,
@@ -142,6 +154,8 @@ test("H1 batch contract: service DTO and every success envelope share one strict
   assert.deepEqual(batch.videoJobs[0]?.assignedAssets, {
     assets: [{ id: "asset-1", url: "https://example.test/asset.jpg" }],
   });
+  assert.equal(batch.videoJobs[0]?.storyboard?.frames.length, 4);
+  assert.equal(batch.videoJobs[0]?.storyboard?.approvalPolicy, "AUTO");
 
   assert.equal(
     batchStatusResponseSchema.safeParse({ batch, unexpected: true }).success,

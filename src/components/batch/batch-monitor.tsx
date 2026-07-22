@@ -54,6 +54,17 @@ export interface BatchMonitorJob {
   userSafeError: string | null;
   error: CustomerGenerationError | null;
   retryCount: number;
+  storyboard: {
+    id: string;
+    status: "GENERATING" | "AWAITING_APPROVAL" | "APPROVED" | "FAILED";
+    approvalPolicy: "AUTO" | "MANUAL";
+    frames: Array<{
+      id: string;
+      ordinal: number;
+      status: "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED";
+      imageUrl: string | null;
+    }>;
+  } | null;
 }
 
 export interface BatchMonitorData {
@@ -439,7 +450,10 @@ export function BatchMonitor({
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
             const job = batch.videoJobs[virtualRow.index];
-            const thumb = job.outputThumbUrl ?? firstAssetUrl(job.assignedAssets);
+            const storyboardCover = job.storyboard?.frames.find(
+              (frame) => frame.imageUrl,
+            )?.imageUrl;
+            const thumb = job.outputThumbUrl ?? storyboardCover ?? firstAssetUrl(job.assignedAssets);
             const checked = selected.has(job.id);
             return (
               <div
@@ -507,6 +521,15 @@ export function BatchMonitor({
                   {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures)}</p> : null}
                   {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{monitorCopy.ready}</p> : null}
                   {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{monitorCopy.cancelled}</p> : null}
+                  {job.status === "QUEUED" ? (
+                    <p className="truncate text-meta text-muted-foreground">
+                      {job.storyboard?.status === "APPROVED"
+                        ? (english ? "Storyboard locked · waiting for Shuyu video" : "故事板已锁定 · 等待 Shuyu 视频")
+                        : job.storyboard
+                          ? (english ? `Image 2 storyboard · ${job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/4` : `Image 2 故事板 · ${job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/4`)
+                          : (english ? "Waiting for Image 2 storyboard" : "等待 Image 2 故事板")}
+                    </p>
+                  ) : null}
                 </div>
                 <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} {monitorCopy.retryCount}</p>
                 {job.status === "FAILED" && job.error?.retryable ? (
@@ -535,7 +558,7 @@ export function BatchMonitor({
           if (!open) setDetailJob(null);
         }}
       >
-        <SheetContent side="bottom">
+        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
           {detailJob ? (
             <>
               <SheetHeader>
@@ -547,7 +570,57 @@ export function BatchMonitor({
                     : ""}
                 </SheetDescription>
               </SheetHeader>
-              <div className="space-y-4 px-6 pb-6">
+              <div className="mx-auto w-full max-w-5xl space-y-5 px-6 pb-6">
+                <ol className="grid gap-2 text-meta sm:grid-cols-4" aria-label={english ? "Video workflow" : "视频工作流"}>
+                  {[
+                    english ? "1 · Product uploaded" : "1 · 产品图已上传",
+                    english ? "2 · Image 2 storyboard" : "2 · Image 2 故事板",
+                    english ? "3 · Shuyu video" : "3 · Shuyu 视频生成",
+                    english ? "4 · Delivery" : "4 · 成片交付",
+                  ].map((label, index) => (
+                    <li key={label} className="rounded-(--radius-sm) border border-border bg-card px-3 py-2">
+                      <span className={index === 0 || detailJob.storyboard?.status === "APPROVED" || (index > 1 && detailJob.status === "SUCCEEDED") ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+                    </li>
+                  ))}
+                </ol>
+                <section className="space-y-3" aria-labelledby="batch-storyboard-title">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 id="batch-storyboard-title" className="font-medium text-foreground">
+                        {english ? "Consistency storyboard" : "一致性故事板"}
+                      </h3>
+                      <p className="text-meta text-muted-foreground">
+                        {english ? "Four Image 2 frames are auto-approved for this batch item before video generation." : "该条任务先由 Image 2 生成 4 帧并自动确认，再进入视频生成。"}
+                      </p>
+                    </div>
+                    <Badge variant={detailJob.storyboard?.status === "APPROVED" ? "success" : detailJob.storyboard?.status === "FAILED" ? "destructive" : "secondary"}>
+                      {detailJob.storyboard?.status === "APPROVED"
+                        ? (english ? "Auto-approved" : "已自动确认")
+                        : detailJob.storyboard?.status === "FAILED"
+                          ? (english ? "Needs attention" : "需要处理")
+                          : (english ? "Generating" : "生成中")}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {Array.from({ length: 4 }, (_, ordinal) => {
+                      const frame = detailJob.storyboard?.frames.find((item) => item.ordinal === ordinal);
+                      return (
+                        <div key={frame?.id ?? ordinal} className="space-y-2">
+                          <div className="relative aspect-9/16 overflow-hidden rounded-(--radius-sm) border border-border bg-secondary">
+                            {frame?.imageUrl ? (
+                              <Image src={frame.imageUrl} alt={english ? `Storyboard frame ${ordinal + 1}` : `故事板分镜 ${ordinal + 1}`} fill unoptimized sizes="(max-width: 640px) 45vw, 220px" className="object-contain" />
+                            ) : (
+                              <div className="flex size-full items-center justify-center text-meta text-muted-foreground">
+                                {frame?.status === "FAILED" ? (english ? "Failed" : "失败") : (english ? "Generating…" : "生成中…")}
+                              </div>
+                            )}
+                          </div>
+                          <p className="font-mono text-meta text-muted-foreground">{english ? `Frame ${ordinal + 1}` : `分镜 ${ordinal + 1}`} · {frame?.status ?? "QUEUED"}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
                 {detailJob.error ? (
                   <p className="rounded-(--radius-sm) border border-border p-3 text-meta text-foreground">
                     {dispatchRecoveryHint(
@@ -557,12 +630,12 @@ export function BatchMonitor({
                   </p>
                 ) : null}
                 {detailJob.outputVideoUrl ? (
-                  <div className="relative"><video
+                  <div className="relative flex justify-center rounded-(--radius-md) bg-secondary/40 p-3"><video
                       src={detailJob.outputVideoUrl}
                       poster={detailJob.outputThumbUrl ?? undefined}
                       controls
                       preload="metadata"
-                      className="aspect-9/12 w-full rounded-(--radius-md) border border-border object-cover"
+                      className="max-h-[min(58vh,720px)] w-auto max-w-full rounded-(--radius-md) border border-border object-contain"
                     /><AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" /></div>
                 ) : null}
                 {detailJob.status === "RUNNING" && (

@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (77/77 route files)
+## API endpoint inventory (81/81 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -106,6 +106,10 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
+| POST | `/api/video-generation/storyboards` | Session; idempotency required | VERIFIED: owner-scoped durable Shuyu Image 2 storyboard creation |
+| GET | `/api/video-generation/storyboards/[id]` | Session + ownership | VERIFIED: reconciles and returns only the owner's current frame attempts |
+| POST | `/api/video-generation/storyboards/[id]/approve` | Session + ownership | VERIFIED: manual approval only after every current frame succeeds |
+| POST | `/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate` | Session + ownership | VERIFIED: immutable new attempt; fails closed for ambiguous billing/refund state |
 | GET | `/api/internal/video-provider-routes` | Operator/Super Admin session or `CRON_SECRET`; read-only | VERIFIED strict: authentication precedes all upstream reads; response is bounded/sanitized; invalid, anonymous and customer callers trigger zero Buddy requests; no submission path exists |
 | GET | `/api/internal/ops-credits` | Operator/Super Admin session; read-only | ADDED post-H1: raw Shuyu balance is deliberately internal-only (customer routes API never exposes it); zod-parsed response, no-store, upstream failures map to 502 without leaking provider payloads |
 | GET, PATCH | `/api/briefs/[id]` | Operator | VERIFIED H1 light: success wiring + operator boundary |

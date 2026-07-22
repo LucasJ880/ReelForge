@@ -235,7 +235,11 @@ export function parseStoryboardArtifact(raw: unknown): Image2StoryboardArtifact 
   /// Canonical shape: { source, purpose, frames }
   if (Array.isArray(obj.frames) && typeof obj.purpose === "string") {
     const source = obj.source;
-    if (source !== "openai_image2" && source !== "manual_keyframes") {
+    if (
+      source !== "openai_image2" &&
+      source !== "shuyu_image2" &&
+      source !== "manual_keyframes"
+    ) {
       throw new Error("invalid storyboard artifact: bad source");
     }
     const artifact: Image2StoryboardArtifact = {

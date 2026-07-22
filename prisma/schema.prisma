@@ -49,6 +49,8 @@ model AdminUser {
   productImageJobs      ProductImageJob[]
   videoDispatchRequests VideoDispatchRequest[]
   mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
+  storyboardRuns        StoryboardRun[]         @relation("StoryboardRunOwner")
+  approvedStoryboards   StoryboardRun[]         @relation("StoryboardRunApprover")
 }
 
 model PlanEntitlement {
@@ -101,6 +103,7 @@ model MediaAsset {
   productImageOutput     ProductImageJob?    @relation("ProductImageOutputAsset")
   productImageSourceJobs ProductImageJob[]   @relation("ProductImageSourceAsset")
   productImageResults    ProductImageResult[]
+  storyboardFrames       StoryboardFrame[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([workspaceId, createdAt(sort: Desc)])
@@ -619,6 +622,7 @@ model VideoBrief {
   adEditPlans    AdEditPlan[]
   qaReviews      QAReview[]
   publishRecords PublishRecord[]
+  storyboardRun  StoryboardRun?
 
   @@index([status])
   @@index([finalVideoId])
@@ -961,6 +965,7 @@ model VideoJob {
   /// 多段流程下指向同一 FinalVideo 的所有段
   finalVideoId       String?
   finalVideo         FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
+  storyboardRun      StoryboardRun?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1236,6 +1241,111 @@ model ProductImageResult {
 
   @@unique([productImageJobId, position])
   @@index([productImageJobId])
+}
+
+enum StoryboardApprovalPolicy {
+  MANUAL
+  AUTO
+}
+
+enum StoryboardRunStatus {
+  GENERATING
+  AWAITING_APPROVAL
+  APPROVED
+  FAILED
+}
+
+enum StoryboardFrameStatus {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+/// Durable Shuyu Image 2 storyboard for either one customer video brief or one
+/// future batch video slot. A run may exist before its video record is created.
+model StoryboardRun {
+  id             String                   @id @default(cuid())
+  userId         String
+  owner          AdminUser                @relation("StoryboardRunOwner", fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey String
+  requestHash    String
+  approvalPolicy StoryboardApprovalPolicy
+  status         StoryboardRunStatus      @default(GENERATING)
+
+  durationSec   Int
+  aspectRatio   String
+  purpose       String
+  sourcePrompt  String
+  inputAssetIds String[] @default([])
+  inputImageUrls String[] @default([])
+
+  videoBriefId String?     @unique
+  videoBrief   VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: SetNull)
+  videoJobId   String?     @unique
+  videoJob     VideoJob?   @relation(fields: [videoJobId], references: [id], onDelete: SetNull)
+  /// Short-lived ownership fence between an idempotent dispatch request and
+  /// this approved storyboard. Cleared when the brief is attached or a
+  /// pre-provider failure is safely persisted.
+  dispatchReservationKey String? @unique
+
+  approvedAt   DateTime?
+  approvedById String?
+  approvedBy   AdminUser? @relation("StoryboardRunApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  errorCode    String?
+  errorMessage String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  frames StoryboardFrame[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, updatedAt])
+}
+
+/// Each regeneration creates a new immutable attempt row while `isCurrent`
+/// identifies the one frame shown and passed to video generation.
+model StoryboardFrame {
+  id              String                @id @default(cuid())
+  storyboardRunId String
+  storyboardRun   StoryboardRun         @relation(fields: [storyboardRunId], references: [id], onDelete: Cascade)
+  ordinal         Int
+  attempt         Int                   @default(1)
+  isCurrent       Boolean               @default(true)
+  beat            String
+  prompt          String
+  status          StoryboardFrameStatus @default(QUEUED)
+
+  providerRequestKey String                  @unique
+  externalTaskId   String?                  @unique
+  submissionState  ProviderSubmissionState @default(NOT_STARTED)
+  provider          String                  @default("shuyu")
+  planId            String?
+  modelSnapshot     String?
+  resolutionSnapshot String?
+  pointsSnapshot    Int?
+  outputUrl         String?
+  outputAssetId     String?                 @unique
+  outputAsset       MediaAsset?             @relation(fields: [outputAssetId], references: [id], onDelete: SetNull)
+
+  leaseOwner         String?
+  leaseExpiresAt     DateTime?
+  availableAt        DateTime?
+  lastProviderStatus String?
+  lastCheckedAt      DateTime?
+  pollErrors         Int       @default(0)
+  submittedAt        DateTime?
+  completedAt        DateTime?
+  errorCode          String?
+  errorMessage       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([storyboardRunId, ordinal, attempt])
+  @@index([storyboardRunId, isCurrent, ordinal])
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
 }
 
 // =========================================================

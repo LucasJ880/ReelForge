@@ -53,6 +53,7 @@ import {
   watchdogGraceMin,
 } from "./video-watchdog";
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
+import { requireApprovedStoryboardForBrief } from "@/lib/video-generation/storyboard-service";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
@@ -357,6 +358,11 @@ export async function dispatchVideoForBrief(briefId: string) {
   /// Unified-input / DirectorPlan 管线：有 directorPlan 就用 segmentPlan 直发 Seedance
   ///（含 15s 单段；旧 Sunny Shutter / ScenePlan brief 无 directorPlan，仍走下方 legacy 路径）
   if (brief.directorPlan != null) {
+    const storyboardReferences = await requireApprovedStoryboardForBrief(briefId);
+    await db.videoBrief.update({
+      where: { id: briefId },
+      data: { referenceImageUrls: storyboardReferences },
+    });
     return dispatchMultiSegmentGeneration(briefId);
   }
   return dispatchVideoGeneration(briefId);

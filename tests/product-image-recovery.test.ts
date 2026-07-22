@@ -515,11 +515,12 @@ test("cron isolates image polling errors so video polling and sweep still comple
     }),
     pollRunningJobs: async () => { calls.push("video"); return { polled: 3 }; },
     pollPendingProductImageJobs: async () => { calls.push("image"); throw new Error("image down"); },
+    pollPendingStoryboardRuns: async () => { calls.push("storyboard"); return 2; },
     sweepStuckTasks: async () => { calls.push("sweep"); return { swept: 2 }; },
   });
   const response = await handler(new Request("http://localhost/api/cron/poll-videos"));
   assert.equal(response.status, 200);
-  assert.deepEqual(calls.sort(), ["image", "sweep", "video"]);
+  assert.deepEqual(calls.sort(), ["image", "storyboard", "sweep", "video"]);
   const body = await response.json();
   assert.equal(body.polled, 3);
   assert.equal(body.imagePolled, 0);

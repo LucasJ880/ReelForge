@@ -48,6 +48,10 @@ import {
   resolveOwnedCreationRequest,
 } from "@/lib/services/media-asset-service";
 import type { UnifiedVideoGenerationRequest } from "@/types/video-generation";
+import {
+  getApprovedStoryboardVideoReferences,
+  StoryboardRequestError,
+} from "@/lib/video-generation/storyboard-service";
 
 /**
  * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
@@ -317,6 +321,41 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const storyboardRunId = z.string().min(1).max(200).safeParse(body?.storyboardRunId);
+  if (!storyboardRunId.success) {
+    return dispatchErrorResponse(422, {
+      code: "VALIDATION_FAILED",
+      message: "请先生成并确认 Image 2 故事板，再生成视频。",
+      retryable: false,
+      action: "fix_request",
+    });
+  }
+  if (batchCount !== 1) {
+    return dispatchErrorResponse(422, {
+      code: "VALIDATION_FAILED",
+      message: "多支视频请使用批量生产工作流，以便每支视频拥有独立故事板。",
+      retryable: false,
+      action: "fix_request",
+    });
+  }
+  let storyboardReferences: string[];
+  try {
+    storyboardReferences = await getApprovedStoryboardVideoReferences({
+      userId: session.user.id,
+      runId: storyboardRunId.data,
+    });
+  } catch (error) {
+    if (error instanceof StoryboardRequestError) {
+      return dispatchErrorResponse(error.status, {
+        code: "VALIDATION_FAILED",
+        message: error.message,
+        retryable: false,
+        action: "fix_request",
+      });
+    }
+    throw error;
+  }
+
   /// 入口熔断（2026-07 事故加固）：最近窗口内已提交任务僵死率超阈值时，
   /// 不再把用户额度/等待时间浪费在必死任务上。半开探测自动恢复。
   /// 熔断检查放在扣配额之前 —— 被拒绝的请求不消耗任何额度。
@@ -376,8 +415,38 @@ export async function POST(req: NextRequest) {
     });
   }
   const dispatchRequestId = dispatchClaim.request.id;
+  let providerSubmissionStarted = false;
+  let quotaMayBeConsumed = false;
+  let storyboardReservationHeld = false;
   async function finalResponse(body: unknown, status: number) {
     const safeBody = toCustomerVideoDispatchResponse(body);
+    if (
+      status >= 400 &&
+      storyboardReservationHeld &&
+      !providerSubmissionStarted &&
+      !quotaMayBeConsumed
+    ) {
+      try {
+        const released = await db.storyboardRun.updateMany({
+          where: {
+            id: storyboardRunId.data,
+            userId: session.user.id,
+            dispatchReservationKey: dispatchRequestId,
+            videoBriefId: null,
+          },
+          data: { dispatchReservationKey: null },
+        });
+        if (released.count === 1) storyboardReservationHeld = false;
+      } catch (error) {
+        // Keep the fence if release cannot be proven. This can block reuse but
+        // cannot double-submit or double-charge; support can inspect the key.
+        console.error("[dispatch] storyboard reservation release failed", {
+          requestId: dispatchRequestId,
+          storyboardRunId: storyboardRunId.data,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
     try {
       await completeVideoDispatchRequest({
         requestId: dispatchRequestId,
@@ -399,6 +468,32 @@ export async function POST(req: NextRequest) {
     }
     return NextResponse.json(safeBody, { status });
   }
+
+  const reservedStoryboard = await db.storyboardRun.updateMany({
+    where: {
+      id: storyboardRunId.data,
+      userId: session.user.id,
+      status: "APPROVED",
+      videoBriefId: null,
+      OR: [
+        { dispatchReservationKey: null },
+        { dispatchReservationKey: dispatchRequestId },
+      ],
+    },
+    data: { dispatchReservationKey: dispatchRequestId },
+  });
+  if (reservedStoryboard.count !== 1) {
+    return finalResponse(
+      toCustomerVideoDispatchError({
+        code: "VALIDATION_FAILED",
+        message: "该故事板已用于另一支视频，请重新生成故事板。",
+        retryable: false,
+        action: "fix_request",
+      }),
+      409,
+    );
+  }
+  storyboardReservationHeld = true;
 
   function uncompensatedProviderFailureResponse() {
     return finalResponse(
@@ -542,6 +637,7 @@ export async function POST(req: NextRequest) {
       consumed: false,
       periodKey: currentUsagePeriodKey(),
     };
+    quotaMayBeConsumed = quotaReceipt.consumed;
   } catch (err) {
     const quotaRes = quotaErrorResponse(err);
     if (quotaRes) {
@@ -709,9 +805,7 @@ export async function POST(req: NextRequest) {
           targetDurationSec: request.selectedDuration,
           aspectRatio: request.selectedAspectRatio,
           tone: plan.creativeBrief.emotionalAngle,
-          referenceImageUrls: plan.classifiedAssets
-            .filter((a) => a.type === "IMAGE")
-            .map((a) => a.url),
+          referenceImageUrls: storyboardReferences,
           directorPlan: directorPlanJson as unknown as object,
           videoGenerationPlan: plan as unknown as object,
           persona,
@@ -719,11 +813,28 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      const attachedStoryboard = await tx.storyboardRun.updateMany({
+        where: {
+          id: storyboardRunId.data,
+          userId: session.user.id,
+          status: "APPROVED",
+          videoBriefId: null,
+          dispatchReservationKey: dispatchRequestId,
+        },
+        data: { videoBriefId: brief.id, dispatchReservationKey: null },
+      });
+      if (attachedStoryboard.count !== 1) {
+        throw new StoryboardRequestError(
+          "故事板已用于另一支视频，请重新生成故事板。",
+          "INVALID_STATE",
+          409,
+        );
+      }
+
       return { briefId: brief.id, deliveryOrderId: orderId! };
     });
   }
 
-  let providerSubmissionStarted = false;
   try {
     /// batch 循环：逐支创建 + 调度（Seedance 侧仍是每段一个 job）。
     /// 单支失败即中断并向用户报错 —— 已成功的支保留（用户可在成片库看到）。

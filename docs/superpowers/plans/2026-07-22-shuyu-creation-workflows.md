@@ -640,6 +640,8 @@ git commit -m "fix: bound batch video details on every viewport"
 
 Cover text-to-image, reference-to-image, image-to-video handoff, single storyboard regenerate/approve, clean single delivery, branded single delivery, batch auto-storyboards, partial retry, and responsive batch inspection. Explicitly dismiss first-run onboarding before interacting.
 
+Reproduce the supplied 1910×895 creation-page failure state that displays `PROVIDER_ERROR` with `contact_support`. Trace and verify Shuyu runtime readiness, immutable route snapshot, idempotency replay, submission error classification, and quota compensation. After a safely rejected/configuration-repaired request, a real user must be able to submit a fresh generation without a stale poisoned attempt; acknowledgement-unknown requests must still remain fail-closed and recover through status/support reconciliation rather than blind resubmission.
+
 - [ ] **Step 2: Run static verification**
 
 Run: `npx prisma validate && npm run typecheck && npm run lint`

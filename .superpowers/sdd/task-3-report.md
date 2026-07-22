@@ -183,3 +183,23 @@ git diff --check
 
 - No paid Shuyu request, live database migration, or browser E2E was run in this review closure. The lifecycle behavior is covered with provider/database boundary fakes plus the complete repository test suite.
 - Repeated provider polling outages now remain safely recoverable and use a capped 15-minute backoff; operational monitoring should still alert on sustained high `pollErrors` rather than relying on terminal job failure.
+
+## Immutable Attempt Ledger Closure — 2026-07-22
+
+### Reviewer Finding Addressed
+
+- Accepted-task retries no longer erase the earlier billable request identity. The expand-only `20260722192500_product_image_provider_attempts` migration adds `ProductImageProviderAttempt`, backfills every currently observable task correlation, and preserves each future request key, external task ID, audited plan/model/resolution/points snapshot, submission state, provider status, polling state, error, and timestamp as a distinct attempt.
+- A provider task remains the current ordinal summary and keeps its one-to-one result relation. Submission, acknowledgement, polling, terminal failure, successful output finalization, and stale-submission quarantine update the current immutable attempt and task summary atomically.
+- Accepted-acknowledgement persistence and stale-submission quarantine both treat a task-summary CAS miss as a transaction abort. A dedicated regression test proves an attempt-only quarantine state cannot commit after a concurrent task transition.
+- Only a provider-confirmed `refunded` terminal state can create a fresh paid request identity. Ordinary `failed` and `refund_error` states are fail-closed for billing reconciliation; confirmed pre-provider rejection remains safe to retry under the same idempotency key; `ACK_UNKNOWN` remains non-retryable.
+- Retry behavior tests distinguish `failed`, `refunded`, and `refund_error`, and assert that the original request key/external task ID remain unchanged after a refunded retry creates a second attempt.
+
+### Fresh Verification
+
+- Prisma validate/generate: PASS (Prisma Client 6.19.3).
+- Focused image/upload/UI/recovery suite: 34 passed / 0 failed.
+- TypeScript: PASS.
+- Complete unit suite: 1008 passed / 0 failed / 1 skipped (1009 total).
+- `git diff --check`: PASS.
+
+No paid Shuyu request, live migration, or browser E2E was run at this stage; those remain final-delivery checks where safe and available.

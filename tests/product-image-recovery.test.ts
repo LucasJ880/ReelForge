@@ -110,12 +110,16 @@ test("aggregate recovery self-heals success and failure after a terminal-task in
 
 test("transient polling errors back off without converting an ACCEPTED task into terminal failure", async (t) => {
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptModel = db.productImageProviderAttempt as unknown as Record<string, unknown>;
   const jobModel = db.productImageJob as unknown as Record<string, unknown>;
+  const client = db as unknown as Record<string, unknown>;
   const originals = {
     updateMany: taskModel.updateMany,
     findFirst: taskModel.findFirst,
+    attemptUpdateMany: attemptModel.updateMany,
     jobFindUnique: jobModel.findUnique,
     jobUpdateMany: jobModel.updateMany,
+    transaction: client.$transaction,
   };
   const task: Record<string, unknown> = {
     id: "accepted-task",
@@ -134,6 +138,8 @@ test("transient polling errors back off without converting an ACCEPTED task into
     return { count: 1 };
   };
   taskModel.findFirst = async () => ({ ...task });
+  attemptModel.updateMany = async () => ({ count: 1 });
+  client.$transaction = async (callback: (tx: unknown) => Promise<unknown>) => callback(db);
   jobModel.findUnique = async () => ({
     id: "job-1",
     userId: "owner-1",
@@ -150,8 +156,10 @@ test("transient polling errors back off without converting an ACCEPTED task into
   t.after(() => {
     taskModel.updateMany = originals.updateMany;
     taskModel.findFirst = originals.findFirst;
+    attemptModel.updateMany = originals.attemptUpdateMany;
     jobModel.findUnique = originals.jobFindUnique;
     jobModel.updateMany = originals.jobUpdateMany;
+    client.$transaction = originals.transaction;
     productImageServiceTest.__setRuntimeDependenciesForTests(null);
   });
 
@@ -229,12 +237,16 @@ test("fatal sibling suppresses confirmed-rejection retry in both DTO and service
 
 test("provider-confirmed refunded task can be retried by its owner with a fresh paid identity", async (t) => {
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptModel = db.productImageProviderAttempt as unknown as Record<string, unknown>;
   const jobModel = db.productImageJob as unknown as Record<string, unknown>;
   const client = db as unknown as Record<string, unknown>;
   const originals = {
     taskFindFirst: taskModel.findFirst,
     taskFindUnique: taskModel.findUnique,
     taskUpdateMany: taskModel.updateMany,
+    attemptCreate: attemptModel.create,
+    attemptFindUnique: attemptModel.findUnique,
+    attemptUpdateMany: attemptModel.updateMany,
     jobFindFirst: jobModel.findFirst,
     jobFindUnique: jobModel.findUnique,
     jobUpdateMany: jobModel.updateMany,
@@ -274,25 +286,58 @@ test("provider-confirmed refunded task can be retried by its owner with a fresh 
     sourceImageUrl: null,
     outputs: [],
   };
+  const attempts: Array<Record<string, unknown>> = [{
+    providerTaskId: task.id,
+    attemptNumber: 1,
+    requestKey: originalKey,
+    externalTaskId: "terminal-refunded-external",
+    submissionState: ProviderSubmissionState.ACCEPTED,
+    status: ProductImageStatus.FAILED,
+    errorCode: "PROVIDER_REFUNDED",
+  }];
   const fullJob = () => ({
     ...job,
     sourceAsset: null,
     outputs: [],
     providerTasks: [{ ...task, result: null }],
   });
-  taskModel.findFirst = async () => ({
-    id: task.id,
-    productImageJobId: task.productImageJobId,
-    requestKey: task.requestKey,
-    ordinal: task.ordinal,
-    submissionState: task.submissionState,
-    errorCode: task.errorCode,
-    externalTaskId: task.externalTaskId,
-  });
+  taskModel.findFirst = async () => ({ ...task });
   taskModel.findUnique = async () => ({ ...task, productImageJob: fullJob() });
   taskModel.updateMany = async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
     if (args.where.requestKey && args.where.requestKey !== task.requestKey) return { count: 0 };
-    Object.assign(task, args.data);
+    const { submitAttempts, ...plainData } = args.data;
+    Object.assign(task, plainData);
+    if (
+      submitAttempts &&
+      typeof submitAttempts === "object" &&
+      "increment" in submitAttempts
+    ) {
+      task.submitAttempts = Number(task.submitAttempts) + Number(submitAttempts.increment);
+    }
+    return { count: 1 };
+  };
+  attemptModel.create = async (args: { data: Record<string, unknown> }) => {
+    attempts.push({ ...args.data });
+    return attempts.at(-1);
+  };
+  attemptModel.findUnique = async (args: {
+    where: { providerTaskId_attemptNumber: { providerTaskId: string; attemptNumber: number } };
+  }) => attempts.find((attempt) =>
+    attempt.providerTaskId === args.where.providerTaskId_attemptNumber.providerTaskId &&
+    attempt.attemptNumber === args.where.providerTaskId_attemptNumber.attemptNumber
+  ) ?? null;
+  attemptModel.updateMany = async (args: {
+    where: Record<string, unknown>;
+    data: Record<string, unknown>;
+  }) => {
+    const attempt = attempts.find((candidate) =>
+      candidate.providerTaskId === args.where.providerTaskId &&
+      (args.where.attemptNumber == null || candidate.attemptNumber === args.where.attemptNumber) &&
+      (args.where.externalTaskId == null || candidate.externalTaskId === args.where.externalTaskId) &&
+      (args.where.requestKey == null || candidate.requestKey === args.where.requestKey)
+    );
+    if (!attempt) return { count: 0 };
+    Object.assign(attempt, args.data);
     return { count: 1 };
   };
   jobModel.updateMany = async (args: { data: Record<string, unknown> }) => {
@@ -321,6 +366,9 @@ test("provider-confirmed refunded task can be retried by its owner with a fresh 
     taskModel.findFirst = originals.taskFindFirst;
     taskModel.findUnique = originals.taskFindUnique;
     taskModel.updateMany = originals.taskUpdateMany;
+    attemptModel.create = originals.attemptCreate;
+    attemptModel.findUnique = originals.attemptFindUnique;
+    attemptModel.updateMany = originals.attemptUpdateMany;
     jobModel.findFirst = originals.jobFindFirst;
     jobModel.findUnique = originals.jobFindUnique;
     jobModel.updateMany = originals.jobUpdateMany;
@@ -337,6 +385,123 @@ test("provider-confirmed refunded task can be retried by its owner with a fresh 
   assert.notEqual(task.requestKey, originalKey);
   assert.equal(task.submissionState, ProviderSubmissionState.ACCEPTED);
   assert.equal(task.externalTaskId, "paid-attempt-two-external");
+  assert.equal(attempts.length, 2);
+  assert.deepEqual(
+    {
+      requestKey: attempts[0]?.requestKey,
+      externalTaskId: attempts[0]?.externalTaskId,
+      errorCode: attempts[0]?.errorCode,
+    },
+    {
+      requestKey: originalKey,
+      externalTaskId: "terminal-refunded-external",
+      errorCode: "PROVIDER_REFUNDED",
+    },
+  );
+  assert.equal(attempts[1]?.requestKey, submittedKey);
+  assert.equal(attempts[1]?.externalTaskId, "paid-attempt-two-external");
+});
+
+test("only confirmed refunded is retryable; ordinary failed and refund_error fail closed", () => {
+  const viewFor = (id: string, errorCode: string, rawStatus: string) => productImageJobView({
+    id: `job-${id}`,
+    userId: "owner-1",
+    status: ProductImageStatus.FAILED,
+    outputImageUrl: null,
+    outputs: [],
+    sourceAsset: null,
+    providerTasks: [{
+      id,
+      ordinal: 0,
+      status: ProductImageStatus.FAILED,
+      submissionState: ProviderSubmissionState.ACCEPTED,
+      externalTaskId: `external-${id}`,
+      errorCode,
+      lastProviderStatus: rawStatus,
+      errorMessage: rawStatus,
+    }],
+    createdAt: new Date(),
+  } as never);
+
+  assert.deepEqual(viewFor("failed", "PROVIDER_FAILED", "failed").retryableTasks, []);
+  assert.deepEqual(
+    viewFor("refunded", "PROVIDER_REFUNDED", "refunded").retryableTasks.map((task) => task.id),
+    ["refunded"],
+  );
+  assert.deepEqual(
+    viewFor("refund-error", "PROVIDER_REFUND_ERROR", "refund_error").retryableTasks,
+    [],
+  );
+});
+
+test("every paid retry retains the previous request and external identities in durable attempts", async () => {
+  const schema = await readFile(new URL("../prisma/schema.prisma", import.meta.url), "utf8");
+  assert.match(schema, /model ProductImageProviderAttempt\s*\{/);
+  assert.match(schema, /attempts\s+ProductImageProviderAttempt\[\]/);
+  assert.match(schema, /@@unique\(\[providerTaskId, attemptNumber\]\)/);
+
+  const attemptModel = (db as unknown as Record<string, unknown>).productImageProviderAttempt;
+  assert.ok(attemptModel, "generated Prisma client must expose immutable provider attempts");
+
+  const migration = await readFile(
+    new URL("../prisma/migrations/20260722192500_product_image_provider_attempts/migration.sql", import.meta.url),
+    "utf8",
+  );
+  assert.match(migration, /CREATE TABLE "ProductImageProviderAttempt"/);
+  assert.match(migration, /INSERT INTO "ProductImageProviderAttempt"[\s\S]*"requestKey"/);
+
+  const service = await readFile(
+    new URL("../src/lib/services/product-image-service.ts", import.meta.url),
+    "utf8",
+  );
+  assert.match(service, /productImageProviderAttempt\.create/);
+  assert.doesNotMatch(
+    service,
+    /productImageProviderAttempt\.updateMany\([\s\S]{0,500}data:\s*\{[\s\S]{0,200}requestKey:/,
+    "attempt request identity must never be overwritten",
+  );
+});
+
+test("stale-submission quarantine never commits an attempt when the task CAS loses", async (t) => {
+  const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptModel = db.productImageProviderAttempt as unknown as Record<string, unknown>;
+  const client = db as unknown as Record<string, unknown>;
+  const originals = {
+    findMany: taskModel.findMany,
+    updateMany: taskModel.updateMany,
+    attemptUpdateMany: attemptModel.updateMany,
+    transaction: client.$transaction,
+  };
+  let committedCasMiss = false;
+  taskModel.findMany = async () => [{
+    id: "stale-submit",
+    productImageJobId: "job-stale-submit",
+    requestKey: "stale-key",
+    submitAttempts: 1,
+  }];
+  attemptModel.updateMany = async () => ({ count: 1 });
+  taskModel.updateMany = async () => ({ count: 0 });
+  client.$transaction = async (callback: (tx: unknown) => Promise<unknown>) => {
+    const result = await callback(db);
+    if ((result as { count?: number } | null)?.count === 0) committedCasMiss = true;
+    return result;
+  };
+  t.after(() => {
+    taskModel.findMany = originals.findMany;
+    taskModel.updateMany = originals.updateMany;
+    attemptModel.updateMany = originals.attemptUpdateMany;
+    client.$transaction = originals.transaction;
+  });
+
+  const failed = await productImageServiceTest.failStaleSubmittingTasks(
+    new Date("2026-07-22T18:00:00.000Z"),
+  );
+  assert.equal(failed, 0);
+  assert.equal(
+    committedCasMiss,
+    false,
+    "a lost task CAS must abort the transaction instead of committing attempt-only state",
+  );
 });
 
 test("cron isolates image polling errors so video polling and sweep still complete as degraded", async () => {

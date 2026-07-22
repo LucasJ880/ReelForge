@@ -1141,9 +1141,10 @@ model ProductImageJob {
   @@index([status, lastCheckedAt])
 }
 
-/// One durable, billable Shuyu submission per requested result. A task keeps
-/// its request key for its entire lifetime so confirmed-no-job retries reuse
-/// the same provider identity, while acknowledgement-unknown tasks fail closed.
+/// One durable Shuyu result slot. The task stores the current-attempt summary;
+/// immutable billable submission identities live in ProductImageProviderAttempt.
+/// Confirmed-no-job retries reuse a request key, while acknowledgement-unknown
+/// attempts remain fail closed.
 model ProductImageProviderTask {
   id                   String                  @id @default(cuid())
   productImageJobId    String
@@ -1177,11 +1178,48 @@ model ProductImageProviderTask {
   updatedAt          DateTime  @updatedAt
 
   result ProductImageResult?
+  attempts ProductImageProviderAttempt[]
 
   @@unique([productImageJobId, ordinal])
   @@index([status, availableAt])
   @@index([status, leaseExpiresAt])
   @@index([productImageJobId, status])
+}
+
+/// Immutable submission ledger. The parent task may update its current-attempt
+/// summary, but request/external identities from earlier paid attempts remain
+/// available for billing and provider reconciliation.
+model ProductImageProviderAttempt {
+  id                String                  @id @default(cuid())
+  providerTaskId    String
+  providerTask      ProductImageProviderTask @relation(fields: [providerTaskId], references: [id], onDelete: Cascade)
+  attemptNumber     Int
+  requestKey        String
+  externalTaskId    String?                 @unique
+  submissionState   ProviderSubmissionState @default(SUBMITTING)
+  status            ProductImageStatus      @default(PROCESSING)
+
+  provider           String @default("shuyu")
+  planId             String?
+  modelSnapshot      String?
+  resolutionSnapshot String?
+  pointsSnapshot     Int?
+  lastProviderStatus String?
+  pollErrors         Int    @default(0)
+
+  submittedAt DateTime @default(now())
+  acknowledgedAt DateTime?
+  lastCheckedAt DateTime?
+  completedAt DateTime?
+  errorCode String?
+  errorMessage String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([providerTaskId, attemptNumber])
+  @@index([requestKey])
+  @@index([submissionState, status])
+  @@index([providerTaskId, createdAt])
 }
 
 model ProductImageResult {

@@ -262,6 +262,7 @@ test("generated-output fetch returns bounded image bytes", async () => {
 test("one durable task per requested result fails closed on acknowledgement loss and is not resubmitted", async (t) => {
   const model = db.productImageJob as unknown as Record<string, unknown>;
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptMock = installProviderAttemptMock();
   const client = db as unknown as Record<string, unknown>;
   const originals = {
     findUnique: model.findUnique,
@@ -366,6 +367,7 @@ test("one durable task per requested result fails closed on acknowledgement loss
     taskModel.findUnique = originals.taskFindUnique;
     taskModel.updateMany = originals.taskUpdateMany;
     client.$transaction = originals.transaction;
+    attemptMock.restore();
     productImageServiceTest.__setRuntimeDependenciesForTests(null);
   });
 
@@ -458,6 +460,7 @@ test("concurrent reconciliation can grant a provider-task lease to only one owne
 
 test("confirmed-no-job rejection can retry with the same stable request identity", async (t) => {
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptMock = installProviderAttemptMock();
   const jobModel = db.productImageJob as unknown as Record<string, unknown>;
   const client = db as unknown as Record<string, unknown>;
   const originals = {
@@ -516,6 +519,7 @@ test("confirmed-no-job rejection can retry with the same stable request identity
     jobModel.update = originals.jobUpdate;
     jobModel.updateMany = originals.jobUpdateMany;
     client.$transaction = originals.transaction;
+    attemptMock.restore();
     productImageServiceTest.__setRuntimeDependenciesForTests(null);
   });
 
@@ -528,6 +532,7 @@ test("confirmed-no-job rejection can retry with the same stable request identity
 
 test("public rejected-task retry atomically reactivates the job and claims the task before submission", async (t) => {
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptMock = installProviderAttemptMock();
   const jobModel = db.productImageJob as unknown as Record<string, unknown>;
   const client = db as unknown as Record<string, unknown>;
   const originals = {
@@ -559,9 +564,7 @@ test("public rejected-task retry atomically reactivates the job and claims the t
     transactionDepth += 1;
     try { return await callback(db); } finally { transactionDepth -= 1; }
   };
-  taskModel.findFirst = async () => ({
-    id: task.id, productImageJobId: task.productImageJobId, requestKey: task.requestKey,
-  });
+  taskModel.findFirst = async () => ({ ...task });
   taskModel.findUnique = async () => ({ ...task, productImageJob: fullJob() });
   taskModel.updateMany = async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
     if (args.where.submissionState === ProviderSubmissionState.REJECTED) {
@@ -602,6 +605,7 @@ test("public rejected-task retry atomically reactivates the job and claims the t
     jobModel.updateMany = originals.jobUpdateMany;
     jobModel.update = originals.jobUpdate;
     client.$transaction = originals.transaction;
+    attemptMock.restore();
     productImageServiceTest.__setRuntimeDependenciesForTests(null);
   });
 
@@ -760,17 +764,20 @@ test("expired owners cannot finalize and their unreferenced asset and object are
 
 test("unique-result loser cleans up its newly copied asset and object", async (t) => {
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptModel = db.productImageProviderAttempt as unknown as Record<string, unknown>;
   const resultModel = db.productImageResult as unknown as Record<string, unknown>;
   const assetModel = db.mediaAsset as unknown as Record<string, unknown>;
   const client = db as unknown as Record<string, unknown>;
   const originals = {
     taskUpdateMany: taskModel.updateMany,
+    attemptUpdateMany: attemptModel.updateMany,
     resultCreate: resultModel.create,
     assetDeleteMany: assetModel.deleteMany,
     transaction: client.$transaction,
   };
   const deleted: string[] = [];
   taskModel.updateMany = async () => ({ count: 1 });
+  attemptModel.updateMany = async () => ({ count: 1 });
   resultModel.create = async () => { throw new Error("unique providerTaskId conflict"); };
   assetModel.deleteMany = async () => ({ count: 1 });
   client.$transaction = async (callback: (tx: unknown) => Promise<unknown>) => callback(db);
@@ -791,6 +798,7 @@ test("unique-result loser cleans up its newly copied asset and object", async (t
   });
   t.after(() => {
     taskModel.updateMany = originals.taskUpdateMany;
+    attemptModel.updateMany = originals.attemptUpdateMany;
     resultModel.create = originals.resultCreate;
     assetModel.deleteMany = originals.assetDeleteMany;
     client.$transaction = originals.transaction;
@@ -815,4 +823,43 @@ function applyMockData(target: Record<string, unknown>, data: Record<string, unk
       target[key] = value;
     }
   }
+}
+
+function installProviderAttemptMock() {
+  const model = db.productImageProviderAttempt as unknown as Record<string, unknown>;
+  const originals = {
+    create: model.create,
+    findUnique: model.findUnique,
+    updateMany: model.updateMany,
+  };
+  const attempts: Array<Record<string, unknown>> = [];
+  model.create = async (args: { data: Record<string, unknown> }) => {
+    const created = { ...args.data };
+    attempts.push(created);
+    return created;
+  };
+  model.findUnique = async (args: {
+    where: { providerTaskId_attemptNumber: { providerTaskId: string; attemptNumber: number } };
+  }) => attempts.find((attempt) =>
+    attempt.providerTaskId === args.where.providerTaskId_attemptNumber.providerTaskId &&
+    attempt.attemptNumber === args.where.providerTaskId_attemptNumber.attemptNumber
+  ) ?? null;
+  model.updateMany = async (args: {
+    where: Record<string, unknown>;
+    data: Record<string, unknown>;
+  }) => {
+    const attempt = attempts.find((candidate) =>
+      candidate.providerTaskId === args.where.providerTaskId &&
+      (args.where.attemptNumber == null || candidate.attemptNumber === args.where.attemptNumber) &&
+      (args.where.requestKey == null || candidate.requestKey === args.where.requestKey) &&
+      (args.where.externalTaskId == null || candidate.externalTaskId === args.where.externalTaskId)
+    );
+    if (!attempt) return { count: 0 };
+    applyMockData(attempt, args.data);
+    return { count: 1 };
+  };
+  return {
+    attempts,
+    restore: () => Object.assign(model, originals),
+  };
 }

@@ -31,7 +31,7 @@ const PROVIDER_TASK_LEASE_MS = 2 * 60_000;
 const SUBMITTING_STALE_MS = 2 * 60_000;
 const POLL_RETRY_BASE_MS = 15_000;
 const POLL_RETRY_MAX_MS = 15 * 60_000;
-const PROVIDER_TERMINAL_RETRY_CODES = ["PROVIDER_FAILED", "PROVIDER_REFUNDED"] as const;
+const PROVIDER_TERMINAL_RETRY_CODES = ["PROVIDER_REFUNDED"] as const;
 
 interface ProductImageRuntimeDependencies {
   submitTask: typeof submitShuyuImageTask;
@@ -361,26 +361,70 @@ async function submitProductImageProviderTask(
       : !allowedStates.includes(task.submissionState)
   ) return;
 
+  let attemptNumber = task.submitAttempts;
   if (!alreadyClaimed) {
-    const claimed = await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        requestKey: task.requestKey,
-        status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.FAILED] },
-        submissionState: { in: allowedStates },
-      },
-      data: {
-        status: ProductImageStatus.PROCESSING,
-        submissionState: ProviderSubmissionState.SUBMITTING,
-        submissionErrorClass: null,
-        submittedAt: new Date(),
-        submitAttempts: { increment: 1 },
-        completedAt: null,
-        errorCode: null,
-        errorMessage: null,
-      },
+    const claimedAttempt = await db.$transaction(async (tx) => {
+      const submittedAt = new Date();
+      const claimed = await tx.productImageProviderTask.updateMany({
+        where: {
+          id: task.id,
+          requestKey: task.requestKey,
+          status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.FAILED] },
+          submissionState: { in: allowedStates },
+        },
+        data: {
+          status: ProductImageStatus.PROCESSING,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          submissionErrorClass: null,
+          submittedAt,
+          submitAttempts: { increment: 1 },
+          completedAt: null,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+      if (claimed.count !== 1) return null;
+      const current = await tx.productImageProviderTask.findUnique({
+        where: { id: task.id },
+        select: { submitAttempts: true },
+      });
+      if (!current) throw new ProductImageLeaseLostError();
+      await tx.productImageProviderAttempt.create({
+        data: {
+          providerTaskId: task.id,
+          attemptNumber: current.submitAttempts,
+          requestKey: task.requestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          status: ProductImageStatus.PROCESSING,
+          provider: task.provider,
+          planId: task.planId,
+          modelSnapshot: task.modelSnapshot,
+          resolutionSnapshot: task.resolutionSnapshot,
+          pointsSnapshot: task.pointsSnapshot,
+          submittedAt,
+        },
+      });
+      return current.submitAttempts;
     });
-    if (claimed.count !== 1) return;
+    if (claimedAttempt === null) return;
+    attemptNumber = claimedAttempt;
+  } else {
+    const attempt = await db.productImageProviderAttempt.findUnique({
+      where: {
+        providerTaskId_attemptNumber: {
+          providerTaskId: task.id,
+          attemptNumber,
+        },
+      },
+      select: { requestKey: true, submissionState: true },
+    });
+    if (
+      !attempt ||
+      attempt.requestKey !== task.requestKey ||
+      attempt.submissionState !== ProviderSubmissionState.SUBMITTING
+    ) {
+      throw new ProductImageLeaseLostError();
+    }
   }
 
   const job = task.productImageJob;
@@ -405,6 +449,7 @@ async function submitProductImageProviderTask(
     resultCount: 1,
   });
   let providerAcknowledged = false;
+  let acknowledgedExternalTaskId: string | null = null;
   try {
     const submitted = await runtimeDependencies().submitTask({
       requestKey: task.requestKey,
@@ -438,6 +483,21 @@ async function submitProductImageProviderTask(
             },
           });
           if (persisted.count !== 1) throw new ProductImageLeaseLostError();
+          const attemptPersisted = await tx.productImageProviderAttempt.updateMany({
+            where: {
+              providerTaskId: task.id,
+              attemptNumber,
+              requestKey: task.requestKey,
+              submissionState: ProviderSubmissionState.SUBMITTING,
+            },
+            data: {
+              planId: plan.planId,
+              modelSnapshot: plan.model,
+              resolutionSnapshot: plan.resolution,
+              pointsSnapshot: plan.points,
+            },
+          });
+          if (attemptPersisted.count !== 1) throw new ProductImageLeaseLostError();
           await tx.productImageJob.update({
             where: { id: job.id },
             data: {
@@ -458,20 +518,44 @@ async function submitProductImageProviderTask(
       },
     });
     providerAcknowledged = true;
-    const persisted = await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        requestKey: task.requestKey,
-        submissionState: ProviderSubmissionState.SUBMITTING,
-      },
-      data: {
-        externalTaskId: submitted.externalTaskId,
-        submissionState: ProviderSubmissionState.ACCEPTED,
-        status: ProductImageStatus.PROCESSING,
-        lastProviderStatus: "queued",
-        lastCheckedAt: new Date(),
-        pollErrors: 0,
-      },
+    acknowledgedExternalTaskId = submitted.externalTaskId;
+    const persisted = await db.$transaction(async (tx) => {
+      const acknowledgedAt = new Date();
+      const attemptPersisted = await tx.productImageProviderAttempt.updateMany({
+        where: {
+          providerTaskId: task.id,
+          attemptNumber,
+          requestKey: task.requestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+        },
+        data: {
+          externalTaskId: submitted.externalTaskId,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          status: ProductImageStatus.PROCESSING,
+          lastProviderStatus: "queued",
+          acknowledgedAt,
+          lastCheckedAt: acknowledgedAt,
+          pollErrors: 0,
+        },
+      });
+      if (attemptPersisted.count !== 1) throw new ProductImageLeaseLostError();
+      const taskPersisted = await tx.productImageProviderTask.updateMany({
+        where: {
+          id: task.id,
+          requestKey: task.requestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+        },
+        data: {
+          externalTaskId: submitted.externalTaskId,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          status: ProductImageStatus.PROCESSING,
+          lastProviderStatus: "queued",
+          lastCheckedAt: acknowledgedAt,
+          pollErrors: 0,
+        },
+      });
+      if (taskPersisted.count !== 1) throw new ProductImageLeaseLostError();
+      return taskPersisted;
     });
     if (persisted.count !== 1) throw new Error("provider acknowledgement could not be persisted");
     if (task.ordinal === 0) {
@@ -487,24 +571,49 @@ async function submitProductImageProviderTask(
   } catch (error) {
     const failure = classifyProductImageSubmission(error, providerAcknowledged);
     const acknowledgementUnknown = failure.disposition === "acknowledgement_unknown";
-    await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        requestKey: task.requestKey,
-        submissionState: ProviderSubmissionState.SUBMITTING,
-      },
-      data: {
-        status: ProductImageStatus.FAILED,
-        submissionState: acknowledgementUnknown
-          ? ProviderSubmissionState.ACK_UNKNOWN
-          : ProviderSubmissionState.REJECTED,
-        submissionErrorClass: `${failure.disposition}:${failure.stage}`,
-        completedAt: new Date(),
-        errorCode: acknowledgementUnknown ? "SUBMISSION_ACK_UNKNOWN" : "PROVIDER_REJECTED",
-        errorMessage: acknowledgementUnknown
-          ? "Shuyu 可能已接收任务。为避免重复计费，系统不会自动重提，请联系管理员核对。"
-          : "Shuyu 明确拒绝了任务；可使用相同请求标识安全重试。",
-      },
+    await db.$transaction(async (tx) => {
+      const completedAt = new Date();
+      const submissionState = acknowledgementUnknown
+        ? ProviderSubmissionState.ACK_UNKNOWN
+        : ProviderSubmissionState.REJECTED;
+      const errorCode = acknowledgementUnknown ? "SUBMISSION_ACK_UNKNOWN" : "PROVIDER_REJECTED";
+      const errorMessage = acknowledgementUnknown
+        ? "Shuyu 可能已接收任务。为避免重复计费，系统不会自动重提，请联系管理员核对。"
+        : "Shuyu 明确拒绝了任务；可使用相同请求标识安全重试。";
+      const attemptFailed = await tx.productImageProviderAttempt.updateMany({
+        where: {
+          providerTaskId: task.id,
+          attemptNumber,
+          requestKey: task.requestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+        },
+        data: {
+          ...(acknowledgedExternalTaskId ? { externalTaskId: acknowledgedExternalTaskId } : {}),
+          status: ProductImageStatus.FAILED,
+          submissionState,
+          completedAt,
+          errorCode,
+          errorMessage,
+        },
+      });
+      if (attemptFailed.count !== 1) throw new ProductImageLeaseLostError();
+      const taskFailed = await tx.productImageProviderTask.updateMany({
+        where: {
+          id: task.id,
+          requestKey: task.requestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+        },
+        data: {
+          ...(acknowledgedExternalTaskId ? { externalTaskId: acknowledgedExternalTaskId } : {}),
+          status: ProductImageStatus.FAILED,
+          submissionState,
+          submissionErrorClass: `${failure.disposition}:${failure.stage}`,
+          completedAt,
+          errorCode,
+          errorMessage,
+        },
+      });
+      if (taskFailed.count !== 1) throw new ProductImageLeaseLostError();
     });
   }
 }
@@ -555,6 +664,12 @@ export async function retryRejectedProductImageProviderTask(
           submissionState: true,
           errorCode: true,
           externalTaskId: true,
+          submitAttempts: true,
+          provider: true,
+          planId: true,
+          modelSnapshot: true,
+          resolutionSnapshot: true,
+          pointsSnapshot: true,
         },
       });
       if (!eligible) return null;
@@ -567,6 +682,8 @@ export async function retryRejectedProductImageProviderTask(
       const nextRequestKey = providerTerminalRetry
         ? stableProviderRequestKey()
         : eligible.requestKey;
+      const submittedAt = new Date();
+      const attemptNumber = eligible.submitAttempts + 1;
       const reactivated = await tx.productImageJob.updateMany({
         where: {
           id: eligible.productImageJobId,
@@ -601,7 +718,7 @@ export async function retryRejectedProductImageProviderTask(
           status: ProductImageStatus.PROCESSING,
           submissionState: ProviderSubmissionState.SUBMITTING,
           submissionErrorClass: null,
-          submittedAt: new Date(),
+          submittedAt,
           submitAttempts: { increment: 1 },
           completedAt: null,
           errorCode: null,
@@ -616,6 +733,21 @@ export async function retryRejectedProductImageProviderTask(
         },
       });
       if (claimed.count !== 1) throw new ProductImageRetryClaimLostError();
+      await tx.productImageProviderAttempt.create({
+        data: {
+          providerTaskId: eligible.id,
+          attemptNumber,
+          requestKey: nextRequestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          status: ProductImageStatus.PROCESSING,
+          provider: eligible.provider,
+          planId: eligible.planId,
+          modelSnapshot: eligible.modelSnapshot,
+          resolutionSnapshot: eligible.resolutionSnapshot,
+          pointsSnapshot: eligible.pointsSnapshot,
+          submittedAt,
+        },
+      });
       return { id: eligible.id, productImageJobId: eligible.productImageJobId };
     });
   } catch (error) {
@@ -708,68 +840,127 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
       POLL_RETRY_MAX_MS,
       POLL_RETRY_BASE_MS * 2 ** Math.min(Math.max(pollErrors - 1, 0), 10),
     );
-    await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        leaseOwner,
-        leaseExpiresAt: { gt: mutationTime },
-        status: ProductImageStatus.PROCESSING,
-      },
-      data: {
-        pollErrors,
-        lastCheckedAt: mutationTime,
-        availableAt: new Date(mutationTime.getTime() + retryDelay),
-        leaseOwner: null,
-        leaseExpiresAt: null,
-      },
+    await db.$transaction(async (tx) => {
+      const attemptUpdated = await tx.productImageProviderAttempt.updateMany({
+        where: {
+          providerTaskId: task.id,
+          externalTaskId: task.externalTaskId,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: { pollErrors, lastCheckedAt: mutationTime },
+      });
+      if (attemptUpdated.count !== 1) throw new ProductImageLeaseLostError();
+      const taskUpdated = await tx.productImageProviderTask.updateMany({
+        where: {
+          id: task.id,
+          leaseOwner,
+          leaseExpiresAt: { gt: mutationTime },
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: {
+          pollErrors,
+          lastCheckedAt: mutationTime,
+          availableAt: new Date(mutationTime.getTime() + retryDelay),
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+      if (taskUpdated.count !== 1) throw new ProductImageLeaseLostError();
     });
     return;
   }
 
   if (providerResult.status === "queued" || providerResult.status === "processing") {
     const mutationTime = new Date();
-    await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        leaseOwner,
-        leaseExpiresAt: { gt: mutationTime },
-        status: ProductImageStatus.PROCESSING,
-      },
-      data: {
-        lastProviderStatus: providerResult.rawStatus,
-        lastCheckedAt: mutationTime,
-        pollErrors: 0,
-        availableAt: null,
-        leaseOwner: null,
-        leaseExpiresAt: null,
-      },
+    await db.$transaction(async (tx) => {
+      const attemptUpdated = await tx.productImageProviderAttempt.updateMany({
+        where: {
+          providerTaskId: task.id,
+          externalTaskId: task.externalTaskId,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: {
+          lastProviderStatus: providerResult.rawStatus,
+          lastCheckedAt: mutationTime,
+          pollErrors: 0,
+        },
+      });
+      if (attemptUpdated.count !== 1) throw new ProductImageLeaseLostError();
+      const taskUpdated = await tx.productImageProviderTask.updateMany({
+        where: {
+          id: task.id,
+          leaseOwner,
+          leaseExpiresAt: { gt: mutationTime },
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: {
+          lastProviderStatus: providerResult.rawStatus,
+          lastCheckedAt: mutationTime,
+          pollErrors: 0,
+          availableAt: null,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+      if (taskUpdated.count !== 1) throw new ProductImageLeaseLostError();
     });
     return;
   }
 
   if (providerResult.status === "failed") {
     const mutationTime = new Date();
-    await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        leaseOwner,
-        leaseExpiresAt: { gt: mutationTime },
-        status: ProductImageStatus.PROCESSING,
-      },
-      data: {
-        status: ProductImageStatus.FAILED,
-        lastProviderStatus: providerResult.rawStatus,
-        lastCheckedAt: mutationTime,
-        completedAt: mutationTime,
-        errorCode: providerResult.rawStatus === "refunded" ? "PROVIDER_REFUNDED" : "PROVIDER_FAILED",
-        errorMessage:
-          providerResult.rawStatus === "refunded"
-            ? "Shuyu 产品图生成失败且已退款，参考素材与设置已保留，可由任务所有者重试。"
-            : "Shuyu 产品图生成失败，参考素材与设置已保留，可由任务所有者重试。",
-        availableAt: null,
-        leaseOwner: null,
-        leaseExpiresAt: null,
-      },
+    const providerErrorCode =
+      providerResult.rawStatus === "refunded"
+        ? "PROVIDER_REFUNDED"
+        : providerResult.rawStatus === "refund_error"
+          ? "PROVIDER_REFUND_ERROR"
+          : "PROVIDER_FAILED";
+    const errorMessage =
+      providerResult.rawStatus === "refunded"
+        ? "Shuyu 产品图生成失败且已退款，参考素材与设置已保留，可由任务所有者重试。"
+        : providerResult.rawStatus === "refund_error"
+          ? "Shuyu 产品图生成失败且退款状态异常。为避免重复计费，请联系管理员核对。"
+          : "Shuyu 产品图生成失败，计费状态需人工核对，系统不会自动开放新付费重试。";
+    await db.$transaction(async (tx) => {
+      const attemptUpdated = await tx.productImageProviderAttempt.updateMany({
+        where: {
+          providerTaskId: task.id,
+          externalTaskId: task.externalTaskId,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: {
+          status: ProductImageStatus.FAILED,
+          lastProviderStatus: providerResult.rawStatus,
+          lastCheckedAt: mutationTime,
+          completedAt: mutationTime,
+          errorCode: providerErrorCode,
+          errorMessage,
+        },
+      });
+      if (attemptUpdated.count !== 1) throw new ProductImageLeaseLostError();
+      const taskUpdated = await tx.productImageProviderTask.updateMany({
+        where: {
+          id: task.id,
+          leaseOwner,
+          leaseExpiresAt: { gt: mutationTime },
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: {
+          status: ProductImageStatus.FAILED,
+          lastProviderStatus: providerResult.rawStatus,
+          lastCheckedAt: mutationTime,
+          completedAt: mutationTime,
+          errorCode: providerErrorCode,
+          errorMessage,
+          availableAt: null,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+      if (taskUpdated.count !== 1) throw new ProductImageLeaseLostError();
     });
     await refreshProductImageJob(task.productImageJobId);
     return;
@@ -793,46 +984,85 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
       await persistProviderTaskOutput(task, leaseOwner, outputUrl, providerResult.rawStatus);
     } else {
       const mutationTime = new Date();
-      await db.productImageProviderTask.updateMany({
-        where: {
-          id: task.id,
-          leaseOwner,
-          leaseExpiresAt: { gt: mutationTime },
-          status: ProductImageStatus.PROCESSING,
-        },
-        data: {
-          status: ProductImageStatus.SUCCEEDED,
-          lastProviderStatus: providerResult.rawStatus,
-          lastCheckedAt: mutationTime,
-          completedAt: mutationTime,
-          pollErrors: 0,
-          availableAt: null,
-          errorCode: null,
-          errorMessage: null,
-          leaseOwner: null,
-          leaseExpiresAt: null,
-        },
+      await db.$transaction(async (tx) => {
+        const attemptUpdated = await tx.productImageProviderAttempt.updateMany({
+          where: {
+            providerTaskId: task.id,
+            externalTaskId: task.externalTaskId,
+            submissionState: ProviderSubmissionState.ACCEPTED,
+            status: ProductImageStatus.PROCESSING,
+          },
+          data: {
+            status: ProductImageStatus.SUCCEEDED,
+            lastProviderStatus: providerResult.rawStatus,
+            lastCheckedAt: mutationTime,
+            completedAt: mutationTime,
+            pollErrors: 0,
+            errorCode: null,
+            errorMessage: null,
+          },
+        });
+        if (attemptUpdated.count !== 1) throw new ProductImageLeaseLostError();
+        const taskUpdated = await tx.productImageProviderTask.updateMany({
+          where: {
+            id: task.id,
+            leaseOwner,
+            leaseExpiresAt: { gt: mutationTime },
+            status: ProductImageStatus.PROCESSING,
+          },
+          data: {
+            status: ProductImageStatus.SUCCEEDED,
+            lastProviderStatus: providerResult.rawStatus,
+            lastCheckedAt: mutationTime,
+            completedAt: mutationTime,
+            pollErrors: 0,
+            availableAt: null,
+            errorCode: null,
+            errorMessage: null,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+          },
+        });
+        if (taskUpdated.count !== 1) throw new ProductImageLeaseLostError();
       });
     }
   } catch (error) {
     if (!(error instanceof ProductImageLeaseLostError)) {
       const safe = safeProductImageError(error);
       const mutationTime = new Date();
-      await db.productImageProviderTask.updateMany({
-        where: {
-          id: task.id,
-          leaseOwner,
-          leaseExpiresAt: { gt: mutationTime },
-          status: ProductImageStatus.PROCESSING,
-        },
-        data: {
-          status: ProductImageStatus.FAILED,
-          completedAt: mutationTime,
-          errorCode: safe.code,
-          errorMessage: safe.message,
-          leaseOwner: null,
-          leaseExpiresAt: null,
-        },
+      await db.$transaction(async (tx) => {
+        const attemptUpdated = await tx.productImageProviderAttempt.updateMany({
+          where: {
+            providerTaskId: task.id,
+            externalTaskId: task.externalTaskId,
+            submissionState: ProviderSubmissionState.ACCEPTED,
+            status: ProductImageStatus.PROCESSING,
+          },
+          data: {
+            status: ProductImageStatus.FAILED,
+            completedAt: mutationTime,
+            errorCode: safe.code,
+            errorMessage: safe.message,
+          },
+        });
+        if (attemptUpdated.count !== 1) throw new ProductImageLeaseLostError();
+        const taskUpdated = await tx.productImageProviderTask.updateMany({
+          where: {
+            id: task.id,
+            leaseOwner,
+            leaseExpiresAt: { gt: mutationTime },
+            status: ProductImageStatus.PROCESSING,
+          },
+          data: {
+            status: ProductImageStatus.FAILED,
+            completedAt: mutationTime,
+            errorCode: safe.code,
+            errorMessage: safe.message,
+            leaseOwner: null,
+            leaseExpiresAt: null,
+          },
+        });
+        if (taskUpdated.count !== 1) throw new ProductImageLeaseLostError();
       });
     }
   }
@@ -887,6 +1117,24 @@ async function persistProviderTaskOutput(
         },
       });
       if (ownsLease.count !== 1) throw new ProductImageLeaseLostError();
+      const attemptCompleted = await tx.productImageProviderAttempt.updateMany({
+        where: {
+          providerTaskId: task.id,
+          externalTaskId: task.externalTaskId,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          status: ProductImageStatus.PROCESSING,
+        },
+        data: {
+          status: ProductImageStatus.SUCCEEDED,
+          lastProviderStatus: rawProviderStatus,
+          lastCheckedAt: mutationTime,
+          completedAt: mutationTime,
+          pollErrors: 0,
+          errorCode: null,
+          errorMessage: null,
+        },
+      });
+      if (attemptCompleted.count !== 1) throw new ProductImageLeaseLostError();
       await tx.productImageResult.create({
         data: {
           productImageJobId: task.productImageJobId,
@@ -1026,27 +1274,58 @@ async function failStaleSubmittingTasks(now: Date): Promise<number> {
       submissionState: ProviderSubmissionState.SUBMITTING,
       submittedAt: { lte: stale },
     },
-    select: { id: true, productImageJobId: true, requestKey: true },
+    select: {
+      id: true,
+      productImageJobId: true,
+      requestKey: true,
+      submitAttempts: true,
+    },
     take: 50,
   });
   let failed = 0;
   for (const task of tasks) {
-    const updated = await db.productImageProviderTask.updateMany({
-      where: {
-        id: task.id,
-        requestKey: task.requestKey,
-        submissionState: ProviderSubmissionState.SUBMITTING,
-        submittedAt: { lte: stale },
-      },
-      data: {
-        status: ProductImageStatus.FAILED,
-        submissionState: ProviderSubmissionState.ACK_UNKNOWN,
-        submissionErrorClass: "acknowledgement_unknown:submission_timeout",
-        completedAt: now,
-        errorCode: "SUBMISSION_ACK_UNKNOWN",
-        errorMessage: "提交确认丢失；为避免重复计费，系统不会自动重提。",
-      },
-    });
+    let updated: { count: number };
+    try {
+      updated = await db.$transaction(async (tx) => {
+        const attemptUpdated = await tx.productImageProviderAttempt.updateMany({
+          where: {
+            providerTaskId: task.id,
+            attemptNumber: task.submitAttempts,
+            requestKey: task.requestKey,
+            submissionState: ProviderSubmissionState.SUBMITTING,
+          },
+          data: {
+            status: ProductImageStatus.FAILED,
+            submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+            completedAt: now,
+            errorCode: "SUBMISSION_ACK_UNKNOWN",
+            errorMessage: "提交确认丢失；为避免重复计费，系统不会自动重提。",
+          },
+        });
+        if (attemptUpdated.count !== 1) throw new ProductImageLeaseLostError();
+        const taskUpdated = await tx.productImageProviderTask.updateMany({
+          where: {
+            id: task.id,
+            requestKey: task.requestKey,
+            submissionState: ProviderSubmissionState.SUBMITTING,
+            submittedAt: { lte: stale },
+          },
+          data: {
+            status: ProductImageStatus.FAILED,
+            submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+            submissionErrorClass: "acknowledgement_unknown:submission_timeout",
+            completedAt: now,
+            errorCode: "SUBMISSION_ACK_UNKNOWN",
+            errorMessage: "提交确认丢失；为避免重复计费，系统不会自动重提。",
+          },
+        });
+        if (taskUpdated.count !== 1) throw new ProductImageLeaseLostError();
+        return taskUpdated;
+      });
+    } catch (error) {
+      if (error instanceof ProductImageLeaseLostError) continue;
+      throw error;
+    }
     if (updated.count === 1) {
       failed++;
       await refreshProductImageJob(task.productImageJobId);

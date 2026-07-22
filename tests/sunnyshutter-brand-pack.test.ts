@@ -95,15 +95,14 @@ test("SunnyShutter logo watermark is locked to top-left (never bottom-right)", (
   assert.equal(other?.placement, "bottom-right");
 });
 
-test("buildBrandPackagingPlan forces SunnyShutter end card even when mode=none", () => {
+test("buildBrandPackagingPlan respects SunnyShutter per-video opt-out", () => {
   const plan = buildBrandPackagingPlan({
     request: baseRequest({ selectedBrandEndingMode: "none" }),
     classification: baseClass({ needsBrandPackaging: false }),
     classifiedAssets: [],
   });
-  assert.equal(plan.mode, "auto_end_card");
-  assert.ok(plan.contactLines?.join(" ").includes(SUNNYSHUTTER_PHONE));
-  assert.match(plan.cta ?? "", /FREE In-Home Measure/i);
+  assert.equal(plan.mode, "none");
+  assert.equal(plan.renderStrategy, "no_end_card");
 });
 
 test("other brands are not forced onto SunnyShutter contacts", () => {

@@ -80,6 +80,7 @@ model Workspace {
   updatedAt DateTime        @updatedAt
 
   mediaAssets MediaAsset[] @relation("MediaAssetWorkspace")
+  brandPackages WorkspaceBrandPackage[]
 
   @@index([planId])
 }
@@ -104,9 +105,39 @@ model MediaAsset {
   productImageSourceJobs ProductImageJob[]   @relation("ProductImageSourceAsset")
   productImageResults    ProductImageResult[]
   storyboardFrames       StoryboardFrame[]
+  brandPackageLogos      WorkspaceBrandPackage[] @relation("WorkspaceBrandPackageLogo")
+  brandPackageEndCards   WorkspaceBrandPackage[] @relation("WorkspaceBrandPackageEndCard")
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([workspaceId, createdAt(sort: Desc)])
+}
+
+/// Reusable, tenant-owned post-production package. Selection is always per
+/// video; `isDefault` only controls which package is suggested in the UI.
+model WorkspaceBrandPackage {
+  id              String   @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name            String
+  brandName       String
+  slogan          String?
+  cta             String?
+  contactLines    String[] @default([])
+  website         String?
+  clientProfileId String?
+  logoAssetId     String
+  logoAsset       MediaAsset @relation("WorkspaceBrandPackageLogo", fields: [logoAssetId], references: [id], onDelete: Restrict)
+  endCardAssetId  String?
+  endCardAsset    MediaAsset? @relation("WorkspaceBrandPackageEndCard", fields: [endCardAssetId], references: [id], onDelete: SetNull)
+  isDefault       Boolean @default(false)
+  isActive        Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([workspaceId, name])
+  @@index([workspaceId, isActive, createdAt(sort: Desc)])
+  @@index([logoAssetId])
+  @@index([endCardAssetId])
 }
 
 // =========================================================

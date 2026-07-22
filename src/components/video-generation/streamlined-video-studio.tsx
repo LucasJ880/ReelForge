@@ -27,7 +27,6 @@ import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileDropzone } from "@/components/ui/dropzone";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FirstRunOnboardingDialog } from "@/components/video-generation/first-run-onboarding-dialog";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
@@ -46,6 +45,7 @@ import {
   shouldResetDispatchAttempt,
 } from "@/lib/api/customer-video-dispatch-recovery";
 import { cn } from "@/lib/utils";
+import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
   AspectRatio,
@@ -129,6 +129,11 @@ const ZH_COPY = {
   ending: "品牌片尾",
   endingNone: "不添加",
   endingAuto: "自动生成",
+  brandPackageStep: "品牌封装（可选）",
+  brandPackageHint: "每条视频单独选择。关闭时输出干净视频；开启后使用当前 workspace 的 Logo 与尾卡。",
+  cleanVideo: "只生成干净视频",
+  cleanVideoHint: "不添加品牌 Logo 或尾卡",
+  noBrandPackages: "当前 workspace 还没有可用品牌包；可先保持纯视频输出。",
   brandName: "品牌名称",
   brandNamePlaceholder: "例如 Aivora",
   cta: "行动文案",
@@ -229,6 +234,11 @@ const EN_COPY: StudioCopy = {
   ending: "Brand ending",
   endingNone: "None",
   endingAuto: "Generate automatically",
+  brandPackageStep: "Brand package (optional)",
+  brandPackageHint: "Choose per video. Off produces a clean video; on uses this workspace's logo and end card.",
+  cleanVideo: "Clean video only",
+  cleanVideoHint: "No brand logo or end card",
+  noBrandPackages: "This workspace has no active brand package yet. You can continue with a clean video.",
   brandName: "Brand name",
   brandNamePlaceholder: "Example: Aivora",
   cta: "Call to action",
@@ -270,12 +280,14 @@ const EN_COPY: StudioCopy = {
 export function StreamlinedVideoStudio({
   initialAssets = [],
   initialStyleTemplateId,
+  brandPackages = [],
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
   forceOnboarding = false,
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
+  brandPackages?: WorkspaceBrandPackageView[];
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
   forceOnboarding?: boolean;
@@ -306,9 +318,7 @@ export function StreamlinedVideoStudio({
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("9:16");
   const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(15);
   const [styleTemplateId, setStyleTemplateId] = useState(seededStyleTemplateId);
-  const [selectedBrandEndingMode, setSelectedBrandEndingMode] = useState<BrandEndingMode>("none");
-  const [brandName, setBrandName] = useState("");
-  const [cta, setCta] = useState("");
+  const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
   const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
@@ -337,10 +347,64 @@ export function StreamlinedVideoStudio({
     }
   }, [forceOnboarding]);
 
-  const activeAttachments = useMemo(
-    () => referenceMode === "all" ? [...productAssets, ...referenceAssets] : productAssets,
-    [productAssets, referenceAssets, referenceMode],
-  );
+  const selectedBrandPackage = brandPackages.find(
+    (brandPackage) => brandPackage.id === selectedBrandPackageId,
+  ) ?? null;
+  const brandPackageAssets = useMemo<UploadedAsset[]>(() => {
+    if (!selectedBrandPackage) return [];
+    const logo: UploadedAsset = {
+      id: selectedBrandPackage.logoAsset.id,
+      assetId: selectedBrandPackage.logoAsset.id,
+      type: "IMAGE",
+      inferredRole: "logo",
+      roleConfidence: 1,
+      url: selectedBrandPackage.logoAsset.url,
+      mimeType: selectedBrandPackage.logoAsset.mimeType,
+      fileName: `${selectedBrandPackage.name}-logo`,
+      width: selectedBrandPackage.logoAsset.width,
+      height: selectedBrandPackage.logoAsset.height,
+      durationSeconds: null,
+      userAssignedRole: "logo",
+      suggestedUse: "Workspace brand package logo",
+      warnings: [],
+    };
+    const endCard = selectedBrandPackage.endCardAsset;
+    if (!endCard) return [logo];
+    const isVideo = endCard.mimeType.startsWith("video/");
+    return [
+      logo,
+      {
+        id: endCard.id,
+        assetId: endCard.id,
+        type: isVideo ? "VIDEO" : "IMAGE",
+        inferredRole: isVideo ? "outro_clip" : "reference_image",
+        roleConfidence: 1,
+        url: endCard.url,
+        mimeType: endCard.mimeType,
+        fileName: `${selectedBrandPackage.name}-end-card`,
+        width: endCard.width,
+        height: endCard.height,
+        durationSeconds: null,
+        userAssignedRole: isVideo ? "outro_clip" : "reference_image",
+        suggestedUse: "Workspace brand package end card",
+        warnings: [],
+      },
+    ];
+  }, [selectedBrandPackage]);
+  const activeAttachments = useMemo(() => {
+    const creativeAssets = referenceMode === "all"
+      ? [...productAssets, ...referenceAssets]
+      : productAssets;
+    const boundedCreativeAssets = creativeAssets.slice(
+      0,
+      Math.max(0, MAX_ATTACHMENTS - brandPackageAssets.length),
+    );
+    const seen = new Set(boundedCreativeAssets.map((asset) => asset.assetId ?? asset.id));
+    return [
+      ...boundedCreativeAssets,
+      ...brandPackageAssets.filter((asset) => !seen.has(asset.assetId ?? asset.id)),
+    ];
+  }, [brandPackageAssets, productAssets, referenceAssets, referenceMode]);
 
   const invalidatePlan = useCallback(() => {
     setPlan(null);
@@ -516,17 +580,26 @@ export function StreamlinedVideoStudio({
   function buildRequest(): OwnedUnifiedVideoGenerationRequest {
     const advanced = creationMode === "advanced";
     const activeStyleTemplateId = advanced ? styleTemplateId : seededStyleTemplateId;
+    const selectedBrandEndingMode: BrandEndingMode = selectedBrandPackage?.endCardAsset?.mimeType.startsWith("video/")
+      ? "uploaded_clip"
+      : selectedBrandPackage
+        ? "auto_end_card"
+        : "none";
     return toOwnedCreationRequest({
       userType: "platform",
       rawPrompt: rawPrompt.trim(),
       attachments: activeAttachments,
       selectedDuration,
       selectedAspectRatio,
-      selectedBrandEndingMode: advanced ? selectedBrandEndingMode : "none",
-      cta: advanced && selectedBrandEndingMode === "auto_end_card" ? cta.trim() || null : null,
+      selectedBrandEndingMode,
+      cta: selectedBrandPackage?.cta ?? null,
       platform: null,
-      brandKit: advanced && selectedBrandEndingMode === "auto_end_card"
-        ? { brandName: brandName.trim() || null, website: null }
+      brandKit: selectedBrandPackage
+        ? {
+            brandName: selectedBrandPackage.brandName,
+            slogan: selectedBrandPackage.slogan,
+            website: selectedBrandPackage.website,
+          }
         : null,
       language: locale,
       styleTemplateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
@@ -1054,7 +1127,7 @@ export function StreamlinedVideoStudio({
           </div>
 
           {creationMode === "advanced" ? (
-            <div className="grid gap-3 border-t border-border pt-4 sm:grid-cols-2" data-testid="streamlined-advanced-options">
+            <div className="border-t border-border pt-4" data-testid="streamlined-advanced-options">
               <label className="text-meta font-medium text-muted-foreground">
                 {copy.template}
                 <select
@@ -1074,61 +1147,50 @@ export function StreamlinedVideoStudio({
                   <option value="tpl_viral_sensory_texture">{copy.templateSensory}</option>
                 </select>
               </label>
-              <label className="text-meta font-medium text-muted-foreground">
-                {copy.ending}
-                <select
-                  value={selectedBrandEndingMode}
-                  disabled={busy !== null || configurationLocked}
-                  onChange={(event) => {
-                    setSelectedBrandEndingMode(event.target.value as BrandEndingMode);
-                    invalidatePlan();
-                  }}
-                  className="studio-select mt-1"
-                >
-                  <option value="none">{copy.endingNone}</option>
-                  <option value="auto_end_card">{copy.endingAuto}</option>
-                </select>
-              </label>
-              {selectedBrandEndingMode === "auto_end_card" ? (
-                <>
-                  <label className="text-meta font-medium text-muted-foreground">
-                    {copy.brandName}
-                    <Input
-                      value={brandName}
-                      maxLength={120}
-                      disabled={busy !== null || configurationLocked}
-                      onChange={(event) => {
-                        setBrandName(event.target.value);
-                        invalidatePlan();
-                      }}
-                      placeholder={copy.brandNamePlaceholder}
-                      className="mt-1"
-                    />
-                  </label>
-                  <label className="text-meta font-medium text-muted-foreground">
-                    {copy.cta}
-                    <Input
-                      value={cta}
-                      maxLength={500}
-                      disabled={busy !== null || configurationLocked}
-                      onChange={(event) => {
-                        setCta(event.target.value);
-                        invalidatePlan();
-                      }}
-                      placeholder={copy.ctaPlaceholder}
-                      className="mt-1"
-                    />
-                  </label>
-                </>
-              ) : null}
             </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card data-testid="streamlined-brand-package">
+        <StepCardHeader number={4} title={copy.brandPackageStep} hint={copy.brandPackageHint} />
+        <CardContent className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" role="group" aria-label={copy.brandPackageStep}>
+            <ModeButton
+              active={selectedBrandPackageId === null}
+              title={copy.cleanVideo}
+              description={copy.cleanVideoHint}
+              icon={Film}
+              disabled={busy !== null || configurationLocked}
+              onClick={() => {
+                setSelectedBrandPackageId(null);
+                invalidatePlan();
+              }}
+            />
+            {brandPackages.map((brandPackage) => (
+              <ModeButton
+                key={brandPackage.id}
+                active={selectedBrandPackageId === brandPackage.id}
+                title={brandPackage.name}
+                description={`${brandPackage.brandName} · Logo + ${english ? "end card" : "尾卡"}`}
+                icon={Package}
+                disabled={busy !== null || configurationLocked}
+                onClick={() => {
+                  setSelectedBrandPackageId(brandPackage.id);
+                  invalidatePlan();
+                }}
+              />
+            ))}
+          </div>
+          {brandPackages.length === 0 ? (
+            <p className="text-meta text-muted-foreground">{copy.noBrandPackages}</p>
           ) : null}
         </CardContent>
       </Card>
 
       <Card data-testid="streamlined-video-prompt">
         <StepCardHeader
-          number={4}
+          number={5}
           title={copy.stepPrompt}
           hint={creationMode === "quick" ? copy.stepPromptHintQuick : copy.stepPromptHintAdvanced}
         />

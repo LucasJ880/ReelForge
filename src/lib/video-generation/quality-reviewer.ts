@@ -216,7 +216,7 @@ export function buildQualityReview(args: BuildQualityReviewArgs): QualityReview 
   }
 
   /// 4b. SunnyShutter: real-ad end card (phone + address) is mandatory
-  if (sunnyShutterLocks) {
+  if (sunnyShutterLocks && brandPackaging.mode !== "none") {
     for (const issue of sunnyShutterEndCardMissingIssues(brandPackaging)) {
       blockers.push({
         severity: "blocker",

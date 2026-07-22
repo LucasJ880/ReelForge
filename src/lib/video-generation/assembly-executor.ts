@@ -5,6 +5,7 @@ import {
 } from "@prisma/client";
 import { db } from "@/lib/db";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
+import { applyBrandOverlayIfConfigured } from "@/lib/video-generation/brand-overlay-renderer";
 import {
   effectiveAssetRole,
   type AssemblyPlan,
@@ -183,11 +184,20 @@ export async function executeAssembly(
       /^https?:\/\//.test(only.url) &&
       !isEphemeralSignedUrl(only.url)
     ) {
+      const deliveredUrl = await applyConfiguredLogoOverlay({
+        finalVideoId,
+        aspectRatio,
+        sourceVideoUrl: only.url,
+        plan: plan.brandPackagingPlan,
+        assets: plan.classifiedAssets ?? [],
+        fallbackLogoUrl: brandKitFromOrder?.logoUrl ?? null,
+        warnings,
+      });
       await db.finalVideo.update({
         where: { id: fv.id },
         data: {
           status: FinalVideoStatus.READY,
-          stitchedVideoUrl: only.url,
+          stitchedVideoUrl: deliveredUrl,
           finishedAt: new Date(),
         },
       });
@@ -196,7 +206,7 @@ export async function executeAssembly(
         finalVideoId,
         ok: true,
         status: FinalVideoStatus.READY,
-        stitchedVideoUrl: only.url,
+        stitchedVideoUrl: deliveredUrl,
         warnings,
         resolvedClips,
       };
@@ -242,6 +252,15 @@ export async function executeAssembly(
   }
 
   if (stitchedUrl) {
+    stitchedUrl = await applyConfiguredLogoOverlay({
+      finalVideoId,
+      aspectRatio,
+      sourceVideoUrl: stitchedUrl,
+      plan: plan.brandPackagingPlan,
+      assets: plan.classifiedAssets ?? [],
+      fallbackLogoUrl: brandKitFromOrder?.logoUrl ?? null,
+      warnings,
+    });
     await db.finalVideo.update({
       where: { id: fv.id },
       data: {
@@ -279,6 +298,53 @@ export async function executeAssembly(
     warnings,
     resolvedClips,
   };
+}
+
+async function applyConfiguredLogoOverlay(input: {
+  finalVideoId: string;
+  aspectRatio: AspectRatio;
+  sourceVideoUrl: string;
+  plan: BrandPackagingPlan;
+  assets: UploadedAsset[];
+  fallbackLogoUrl: string | null;
+  warnings: string[];
+}): Promise<string> {
+  if (input.plan.mode === "none") return input.sourceVideoUrl;
+  const logoUrl = input.assets.find(
+    (asset) => effectiveAssetRole(asset) === "logo",
+  )?.url ?? input.fallbackLogoUrl;
+  const overlay = await applyBrandOverlayIfConfigured({
+    sourceVideoUrl: input.sourceVideoUrl,
+    logoUrl,
+    brandName: input.plan.brandName,
+    config: {
+      enabled: true,
+      placement: input.plan.logoOverlayPlacement ?? "top-left",
+      opacity: 0.9,
+      logoWidthRatio: 0.16,
+      marginPx: 32,
+      durationMode: "full_video",
+    },
+  });
+  input.warnings.push(...overlay.warnings);
+  if (!overlay.applied || !overlay.overlayUrl) return input.sourceVideoUrl;
+  try {
+    const { runFfmpegNormalizeAndConcat } = await import(
+      "@/lib/services/stitch-service"
+    );
+    return await runFfmpegNormalizeAndConcat({
+      finalVideoId: `${input.finalVideoId}-brand-overlay`,
+      aspectRatio: input.aspectRatio,
+      clips: [{
+        url: overlay.overlayUrl,
+        intendedDurationSec: null,
+        trimToFit: false,
+      }],
+    });
+  } catch {
+    input.warnings.push("Brand logo overlay could not be persisted; the clean assembled video was kept.");
+    return input.sourceVideoUrl;
+  }
 }
 
 interface ResolveArgs {

@@ -55,38 +55,32 @@ export function buildBrandPackagingPlan(
     aspectRatio: request.selectedAspectRatio,
   };
 
-  /// Personal 模式 + 用户没要 brand → 不做品牌包装
-  /// （SunnyShutter 仍会被 applySunnyShutterBrandPack 强制加回真实广告尾卡）
+  /// 用户没选品牌包 → 始终输出干净视频。客户 profile 只能约束用户
+  /// 主动选择的品牌包，不能覆盖逐视频的显式 opt-out。
   if (!classification.needsBrandPackaging || request.selectedBrandEndingMode === "none") {
     if (disclosureEnabled) {
-      return applySunnyShutterBrandPack(
-        {
-          mode: "auto_end_card",
-          logoAssetId: null,
-          endCardDurationSeconds: 2,
-          cta: "Created with AI",
-          brandName: "AI Generated · Aivora",
-          slogan: null,
-          website: null,
-          renderStrategy: "render_ffmpeg_overlay",
-          warnings: ["AI disclosure end card enabled by deployment policy."],
-        },
-        sunnyHints,
-      );
+      return {
+        mode: "auto_end_card",
+        logoAssetId: null,
+        endCardDurationSeconds: 2,
+        cta: "Created with AI",
+        brandName: "AI Generated · Aivora",
+        slogan: null,
+        website: null,
+        renderStrategy: "render_ffmpeg_overlay",
+        warnings: ["AI disclosure end card enabled by deployment policy."],
+      };
     }
-    return applySunnyShutterBrandPack(
-      {
-        mode: "none",
-        endCardDurationSeconds: 0,
-        cta: null,
-        brandName: request.brandKit?.brandName ?? null,
-        slogan: request.brandKit?.slogan ?? null,
-        website: request.brandKit?.website ?? null,
-        renderStrategy: "no_end_card",
-        warnings,
-      },
-      sunnyHints,
-    );
+    return {
+      mode: "none",
+      endCardDurationSeconds: 0,
+      cta: null,
+      brandName: request.brandKit?.brandName ?? null,
+      slogan: request.brandKit?.slogan ?? null,
+      website: request.brandKit?.website ?? null,
+      renderStrategy: "no_end_card",
+      warnings,
+    };
   }
 
   /// uploaded ending clip 优先
@@ -143,6 +137,12 @@ function autoEndCard(
 
   const logo = classifiedAssets.find((a) => effectiveAssetRole(a) === "logo");
   const logoUrl = logo?.url ?? request.brandKit?.logoUrl ?? null;
+  const designedEndCard = classifiedAssets.find(
+    (asset) =>
+      asset.type === "IMAGE" &&
+      asset.userAssignedRole === "reference_image" &&
+      /-end-card$/i.test(asset.fileName),
+  );
 
   if (!logoUrl) {
     warnings.push(
@@ -170,6 +170,8 @@ function autoEndCard(
       ? [request.brandKit?.slogan, "AI Generated · Aivora"].filter(Boolean).join(" · ")
       : request.brandKit?.slogan ?? null,
     website: request.brandKit?.website ?? null,
+    endCardStillUrl: designedEndCard?.url ?? null,
+    logoOverlayPlacement: "top-left",
     renderStrategy: strategy,
     warnings,
   };

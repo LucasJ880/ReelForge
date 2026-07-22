@@ -15,6 +15,11 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { applyClientBrandPackaging } from "@/lib/video-generation/brand-packaging-service";
+import {
+  findWorkspaceBrandPackageForUser,
+  listWorkspaceBrandPackagesForUser,
+  upsertWorkspaceBrandPackageForUser,
+} from "@/lib/services/workspace-brand-package-service";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -26,6 +31,7 @@ const requestSchema = z.object({
   videoJobId: z.string().min(1).nullish(),
   /** 单条创作：按 VideoBrief 封装并把 brandedVideoUrl 落库。 */
   briefId: z.string().min(1).nullish(),
+  brandPackageId: z.string().min(1).nullish(),
   clientProfileId: z.literal("sunnyshutter").nullish(),
   custom: z
     .object({
@@ -42,6 +48,52 @@ const requestSchema = z.object({
   includeEndCard: z.boolean().optional(),
   aspectRatio: z.enum(["9:16", "16:9"]).optional(),
 });
+
+const packageSchema = z.object({
+  id: z.string().min(1).optional(),
+  name: z.string().trim().min(1).max(80),
+  brandName: z.string().trim().min(1).max(120),
+  slogan: z.string().trim().max(160).nullish(),
+  cta: z.string().trim().max(160).nullish(),
+  contactLines: z.array(z.string().trim().min(1).max(160)).max(3).optional(),
+  website: z.string().trim().max(160).nullish(),
+  logoAssetId: z.string().min(1),
+  endCardAssetId: z.string().min(1).nullish(),
+  isDefault: z.boolean().optional(),
+}).strict();
+
+export async function GET(): Promise<NextResponse> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  return NextResponse.json({
+    packages: await listWorkspaceBrandPackagesForUser(session.user.id),
+  });
+}
+
+export async function PUT(request: Request): Promise<NextResponse> {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  const parsed = packageSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: "invalid brand package" }, { status: 400 });
+  }
+  try {
+    const brandPackage = await upsertWorkspaceBrandPackageForUser({
+      userId: session.user.id,
+      ...parsed.data,
+    });
+    return NextResponse.json({ brandPackage });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "brand package failed" },
+      { status: 400 },
+    );
+  }
+}
 
 async function downloadTo(dir: string, name: string, url: string): Promise<string> {
   const response = await fetch(url);
@@ -67,7 +119,13 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const body = parsed.data;
-  if (!body.clientProfileId && !body.custom) {
+  const selectedPackage = body.brandPackageId
+    ? await findWorkspaceBrandPackageForUser(body.brandPackageId, session.user.id)
+    : null;
+  if (body.brandPackageId && !selectedPackage) {
+    return NextResponse.json({ error: "brand package not found" }, { status: 404 });
+  }
+  if (!selectedPackage && !body.clientProfileId && !body.custom) {
     return NextResponse.json(
       { error: "clientProfileId or custom brand info required" },
       { status: 400 },
@@ -143,14 +201,29 @@ export async function POST(request: Request): Promise<NextResponse> {
   try {
     const workDir = mkdtempSync(join(tmpdir(), "brand-pack-"));
     const sourcePath = await downloadTo(workDir, "source.mp4", sourceVideoUrl!);
-    const logoPath = body.custom
-      ? await downloadTo(workDir, "logo.png", body.custom.logoUrl)
+    const packageLogoUrl = selectedPackage?.logoAsset.url ?? body.custom?.logoUrl ?? null;
+    const logoPath = packageLogoUrl
+      ? await downloadTo(workDir, "logo.png", packageLogoUrl)
       : null;
+    const selectedSunny = selectedPackage?.clientProfileId === "sunnyshutter";
 
     const result = await applyClientBrandPackaging({
       sourceVideoPath: sourcePath,
-      clientProfileId: body.clientProfileId ?? null,
-      custom: body.custom
+      clientProfileId: selectedSunny ? "sunnyshutter" : (body.clientProfileId ?? null),
+      custom: selectedPackage && !selectedSunny
+        ? {
+            logoPath: logoPath!,
+            card: {
+              brandName: selectedPackage.brandName,
+              slogan: selectedPackage.slogan,
+              cta: selectedPackage.cta,
+              phone: selectedPackage.contactLines[0] ?? null,
+              addressLines: selectedPackage.contactLines.slice(1),
+              website: selectedPackage.website,
+              endCardStillUrl: selectedPackage.endCardAsset?.url ?? null,
+            },
+          }
+        : body.custom
         ? {
             logoPath: logoPath!,
             card: {

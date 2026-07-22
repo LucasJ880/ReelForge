@@ -14,6 +14,7 @@ import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
+import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,13 @@ export default async function PlatformLibraryPage({
   if (!session?.user?.id) redirect("/login?from=/app/library");
   const query = (await searchParams).q?.trim().toLocaleLowerCase() ?? "";
   const routeState = await getCustomerRouteRehearsalState("library");
-  const allRows = routeState === "empty" ? [] : await loadUnifiedLibrary(session.user.id);
+  const [allRows, brandPackages] = await Promise.all([
+    routeState === "empty" ? Promise.resolve([]) : loadUnifiedLibrary(session.user.id),
+    listWorkspaceBrandPackagesForUser(session.user.id),
+  ]);
+  const preferredBrandPackage = brandPackages.find((brandPackage) => brandPackage.isDefault)
+    ?? brandPackages[0]
+    ?? null;
   const rows = query
     ? allRows.filter((row) => row.title.toLocaleLowerCase().includes(query) || row.id.toLocaleLowerCase().includes(query))
     : allRows;
@@ -89,6 +96,7 @@ export default async function PlatformLibraryPage({
                       <BrandPackageButton
                         videoJobId={row.videoJobId}
                         briefId={row.briefId}
+                        brandPackageId={preferredBrandPackage?.id ?? null}
                         brandedVideoUrl={row.brandedVideoUrl}
                         aspectRatio={row.aspectRatio}
                         copy={{

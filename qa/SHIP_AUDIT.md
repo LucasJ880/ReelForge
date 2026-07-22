@@ -140,7 +140,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/product-images` | Session + ownership | VERIFIED H1 light: success wiring, shared 401 and user/idempotency scope |
 | GET | `/api/product-images/[id]` | Session + ownership | VERIFIED task status reconciliation; owner-scoped durable Shuyu polling |
 | POST | `/api/product-images/tasks/[taskId]/retry` | Session + ownership | VERIFIED confirmed-rejection-only retry with atomic durable task claim |
-| POST | `/api/brand-packaging` | Session | ADDED post-H1 (brand packaging module); needs H1-light contract verification pass |
+| GET, PUT, POST | `/api/brand-packaging` | Session + workspace ownership | VERIFIED: tenant package listing/upsert plus owner-scoped optional post-production packaging |
 | POST | `/api/raw-assets/[id]/preprocess` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/select` | Operator | VERIFIED H1 light: success wiring + operator boundary |

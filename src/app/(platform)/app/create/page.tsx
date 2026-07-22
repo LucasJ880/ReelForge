@@ -7,6 +7,7 @@ import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { isInternalRole } from "@/lib/auth-role-policy";
+import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 
 export default async function PlatformCreatePage({
   searchParams,
@@ -21,6 +22,7 @@ export default async function PlatformCreatePage({
     getCustomerRouteRehearsalState("create"),
   ]);
   const showInternalVideoRoutes = isInternalRole(session.user.role);
+  const brandPackages = await listWorkspaceBrandPackagesForUser(session.user.id);
   const result = productImageResultId
     ? await findProductImageResultForUser(productImageResultId, session.user.id)
     : null;
@@ -48,6 +50,7 @@ export default async function PlatformCreatePage({
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
+        brandPackages={brandPackages}
         canSelectVideoRoute={showInternalVideoRoutes}
         showInternalVideoRoutes={showInternalVideoRoutes}
         forceOnboarding={guide === "open"}

@@ -14,12 +14,14 @@ import { Badge } from "@/components/ui/badge";
 export function BrandPackageButton({
   videoJobId,
   briefId,
+  brandPackageId,
   brandedVideoUrl,
   aspectRatio,
   copy,
 }: {
   videoJobId: string | null;
   briefId: string | null;
+  brandPackageId: string | null;
   brandedVideoUrl: string | null;
   aspectRatio: string | null;
   copy: {
@@ -55,7 +57,7 @@ export function BrandPackageButton({
     );
   }
 
-  if (!videoJobId && !briefId) return null;
+  if ((!videoJobId && !briefId) || !brandPackageId) return null;
 
   async function packageVideo() {
     setBusy(true);
@@ -67,7 +69,7 @@ export function BrandPackageButton({
         body: JSON.stringify({
           videoJobId,
           briefId,
-          clientProfileId: "sunnyshutter",
+          brandPackageId,
           aspectRatio: aspectRatio === "16:9" ? "16:9" : "9:16",
         }),
       });

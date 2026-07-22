@@ -88,9 +88,10 @@ export async function POST(req: NextRequest) {
       images: ownedAssets.map((asset) => ({ id: asset.id, url: asset.url })),
       userId: guard.session.user.id,
       idempotencyKey,
-      isInternalStaff:
-        guard.session.user.role === "OPERATOR" ||
-        guard.session.user.role === "SUPER_ADMIN",
+      // The batch creator is a customer-facing production surface. Internal
+      // accounts use the same audited Shuyu route here; legacy routes belong
+      // only in diagnostics and historical snapshot readers.
+      isInternalStaff: false,
     });
     const authorization = await authorizeBatchQuotaForSession(
       guard.session,

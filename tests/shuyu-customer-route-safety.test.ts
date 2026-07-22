@@ -25,6 +25,16 @@ test("ordinary authenticated customer can persist the audited Shuyu snapshot", (
   });
 });
 
+test("customer-facing dispatch routes never grant staff a legacy provider override", async () => {
+  const [singleRoute, batchRoute] = await Promise.all([
+    readFile("src/app/api/video-generation/dispatch/route.ts", "utf8"),
+    readFile("src/app/api/batches/route.ts", "utf8"),
+  ]);
+  assert.match(singleRoute, /selectVideoRouteSnapshot\(\{[\s\S]{0,320}isInternalStaff:\s*false/);
+  assert.match(batchRoute, /createBatchJob\(\{[\s\S]{0,520}isInternalStaff:\s*false/);
+  assert.doesNotMatch(singleRoute, /mayOverrideVideoRoute/);
+});
+
 test("zero Shuyu balance is unavailable before submission and exposes no raw balance", async () => {
   const availability = await getVideoRouteSnapshotRuntimeAvailability({
     snapshot: createVideoRouteSnapshot("buddy"),

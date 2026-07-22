@@ -6,7 +6,6 @@ import { findProductImageResultForUser } from "@/lib/services/product-image-serv
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
-import { isInternalRole } from "@/lib/auth-role-policy";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 
 export default async function PlatformCreatePage({
@@ -21,7 +20,6 @@ export default async function PlatformCreatePage({
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
   ]);
-  const showInternalVideoRoutes = isInternalRole(session.user.role);
   const brandPackages = await listWorkspaceBrandPackagesForUser(session.user.id);
   const result = productImageResultId
     ? await findProductImageResultForUser(productImageResultId, session.user.id)
@@ -51,8 +49,8 @@ export default async function PlatformCreatePage({
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
         brandPackages={brandPackages}
-        canSelectVideoRoute={showInternalVideoRoutes}
-        showInternalVideoRoutes={showInternalVideoRoutes}
+        canSelectVideoRoute={false}
+        showInternalVideoRoutes={false}
         forceOnboarding={guide === "open"}
       />
     </div>

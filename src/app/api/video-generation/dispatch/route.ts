@@ -212,12 +212,13 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const mayOverrideVideoRoute = isInternalStaff;
   let videoRouteSnapshot: VideoRouteSnapshot;
   try {
     videoRouteSnapshot = selectVideoRouteSnapshot({
       requestedRouteId: body?.videoRouteId,
-      isInternalStaff: mayOverrideVideoRoute,
+      // `/app/create` is a customer-facing production surface even when an
+      // operator is rehearsing it. Never inherit a legacy provider default.
+      isInternalStaff: false,
     });
   } catch (error) {
     if (error instanceof VideoRouteSelectionError) {

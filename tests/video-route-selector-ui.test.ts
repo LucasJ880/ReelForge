@@ -4,16 +4,16 @@ import { readFile } from "node:fs/promises";
 import { parseVideoRouteOverride } from "../src/components/video-generation/video-route-selector";
 import { isInternalRole, type AccountRole } from "../src/lib/auth-role-policy";
 
-test("all customers can choose the public interface while internal diagnostics stay role-gated", async () => {
+test("platform creation is Shuyu-only even for an internal account", async () => {
   const [page, studio] = await Promise.all([
     readFile("src/app/(platform)/app/create/page.tsx", "utf8"),
     readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8"),
   ]);
 
-  assert.match(page, /isInternalRole\(session\.user\.role\)/);
+  assert.doesNotMatch(page, /isInternalRole\(session\.user\.role\)/);
   assert.doesNotMatch(page, /session\.user\.userType/);
-  assert.match(page, /canSelectVideoRoute/);
-  assert.match(page, /showInternalVideoRoutes=\{showInternalVideoRoutes\}/);
+  assert.match(page, /canSelectVideoRoute=\{false\}/);
+  assert.match(page, /showInternalVideoRoutes=\{false\}/);
   assert.match(studio, /<VideoRouteSelector[\s\S]*?canSelectVideoRoute=\{canSelectVideoRoute\}/);
   assert.match(studio, /showInternalRoutes=\{showInternalVideoRoutes\}/);
 });

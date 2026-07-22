@@ -25,7 +25,8 @@ test("single video creation exposes the full Shuyu workflow and four-frame appro
   assert.match(panel, /onApprove/);
   assert.match(panel, /Shuyu Image 2/);
 
-  assert.match(page, /canSelectVideoRoute=\{showInternalVideoRoutes\}/);
+  assert.match(page, /canSelectVideoRoute=\{false\}/);
+  assert.match(page, /showInternalVideoRoutes=\{false\}/);
 });
 
 test("creation uploads skip AI classification while retaining server-side security upload", async () => {

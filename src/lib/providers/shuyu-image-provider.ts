@@ -1,5 +1,6 @@
 import type { AuditedShuyuImagePlan, ShuyuResolution } from "./shuyu-catalog";
 import { selectAuditedImage2Plan } from "./shuyu-catalog";
+import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
   createShuyuImageTask,
   getAvailableShuyuImagePlans,
@@ -30,6 +31,7 @@ export interface SubmitShuyuImageTaskInput extends ShuyuFetchOptions {
   aspectRatio: ShuyuImageAspectRatio;
   resolution: ShuyuResolution;
   inputImages?: string[];
+  planSnapshot?: AuditedShuyuImagePlan;
   onPlanSelected?: (plan: AuditedShuyuImagePlan) => Promise<void>;
 }
 
@@ -47,9 +49,27 @@ export async function submitShuyuImageTask(
   externalTaskId: string;
   planSnapshot: AuditedShuyuImagePlan;
 }> {
-  const plans = await getAvailableShuyuImagePlans(input);
-  const planSnapshot = selectAuditedImage2Plan({ imagePlans: plans }, input.resolution);
-  await input.onPlanSelected?.(planSnapshot);
+  let planSnapshot: AuditedShuyuImagePlan;
+  try {
+    if (input.planSnapshot) {
+      planSnapshot = input.planSnapshot;
+    } else {
+      const plans = await getAvailableShuyuImagePlans(input);
+      planSnapshot = selectAuditedImage2Plan({ imagePlans: plans }, input.resolution);
+    }
+    await input.onPlanSelected?.(planSnapshot);
+  } catch (error) {
+    if (error instanceof ProviderSubmissionError) throw error;
+    throw new ProviderSubmissionError(
+      error instanceof Error ? error.message : "Unable to audit the Shuyu image plan",
+      {
+        providerId: "shuyu",
+        stage: "preflight",
+        retryable: true,
+        cause: error,
+      },
+    );
+  }
   const created = await createShuyuImageTask({
     ...input,
     providerRequestKey: input.requestKey,
@@ -81,12 +101,15 @@ export async function pollShuyuImageTask(
     }
     return { status: "succeeded", rawStatus: task.status, outputUrls };
   }
-  if (task.status === "refunded") {
+  if (["failed", "refund_error", "refunded"].includes(task.status)) {
     return {
       status: "failed",
       rawStatus: task.status,
       outputUrls: [],
-      errorMessage: "Shuyu generation failed and provider points were refunded",
+      errorMessage:
+        task.status === "refunded"
+          ? "Shuyu generation failed and provider points were refunded"
+          : "Shuyu image generation failed",
     };
   }
   return {

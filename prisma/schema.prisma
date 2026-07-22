@@ -1111,6 +1111,7 @@ model ProductImageJob {
   outputAssetId  String?     @unique
   outputAsset    MediaAsset? @relation("ProductImageOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
   outputs        ProductImageResult[]
+  providerTasks  ProductImageProviderTask[]
 
   provider           String?
   providerRequestKey String? @unique
@@ -1140,12 +1141,57 @@ model ProductImageJob {
   @@index([status, lastCheckedAt])
 }
 
+/// One durable, billable Shuyu submission per requested result. A task keeps
+/// its request key for its entire lifetime so confirmed-no-job retries reuse
+/// the same provider identity, while acknowledgement-unknown tasks fail closed.
+model ProductImageProviderTask {
+  id                   String                  @id @default(cuid())
+  productImageJobId    String
+  productImageJob      ProductImageJob         @relation(fields: [productImageJobId], references: [id], onDelete: Cascade)
+  ordinal              Int
+  requestKey           String                  @unique
+  externalTaskId       String?                 @unique
+  submissionState      ProviderSubmissionState @default(NOT_STARTED)
+  status               ProductImageStatus      @default(QUEUED)
+  submitAttempts       Int                     @default(0)
+  submissionErrorClass String?
+
+  provider           String  @default("shuyu")
+  planId             String?
+  modelSnapshot      String?
+  resolutionSnapshot String?
+  pointsSnapshot     Int?
+  finalPoints        Int?
+
+  leaseOwner         String?
+  leaseExpiresAt     DateTime?
+  lastProviderStatus String?
+  lastCheckedAt      DateTime?
+  pollErrors         Int       @default(0)
+  availableAt        DateTime?
+  submittedAt        DateTime?
+  completedAt        DateTime?
+  errorCode          String?
+  errorMessage       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  result ProductImageResult?
+
+  @@unique([productImageJobId, ordinal])
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+  @@index([productImageJobId, status])
+}
+
 model ProductImageResult {
   id             String          @id @default(cuid())
   productImageJobId String
   productImageJob ProductImageJob @relation(fields: [productImageJobId], references: [id], onDelete: Cascade)
   assetId        String          @unique
   asset          MediaAsset      @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  providerTaskId String?         @unique
+  providerTask   ProductImageProviderTask? @relation(fields: [providerTaskId], references: [id], onDelete: SetNull)
   position       Int
   outputImageUrl String
   createdAt      DateTime        @default(now())

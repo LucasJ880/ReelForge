@@ -2,26 +2,26 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { BatchCreateWizard } from "@/components/batch/batch-create-wizard";
 import { authOptions } from "@/lib/auth";
-import { findProductImageJobForUser } from "@/lib/services/product-image-service";
+import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 
 export default async function PlatformBatchCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ template?: string; productImageJobId?: string }>;
+  searchParams: Promise<{ template?: string; productImageResultId?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/batches/new");
-  const { template: initialTemplateId, productImageJobId } = await searchParams;
-  const job = productImageJobId
-    ? await findProductImageJobForUser(productImageJobId, session.user.id)
+  const { template: initialTemplateId, productImageResultId } = await searchParams;
+  const result = productImageResultId
+    ? await findProductImageResultForUser(productImageResultId, session.user.id)
     : null;
-  const initialImages = job?.status === "SUCCEEDED" && job.outputImageUrl && job.outputAssetId
+  const initialImages = result
     ? [{
-        id: job.outputAssetId,
-        url: absoluteAssetUrl(job.outputImageUrl),
-        fileName: `Aivora-product-image-${job.id.slice(-6)}.png`,
+        id: result.assetId,
+        url: absoluteAssetUrl(result.asset.url),
+        fileName: `Aivora-product-image-${result.id.slice(-6)}.png`,
       }]
     : [];
   const copy = getPlatformCopy(await getServerLocale()).batches;

@@ -96,13 +96,13 @@ test("video handoff loads product images with owner-scoped lookup", async () => 
     readFile("src/app/(platform)/app/batches/new/page.tsx", "utf8"),
   ]);
   for (const page of [single, batch]) {
-    assert.match(page, /findProductImageJobForUser/);
+    assert.match(page, /findProductImageResultForUser/);
     assert.match(page, /session\.user\.id/);
-    assert.match(page, /status === "SUCCEEDED"/);
+    assert.match(page, /productImageResultId/);
   }
-  assert.match(single, /job\.outputAssetId/);
-  assert.match(single, /assetId: job\.outputAssetId/);
-  assert.match(batch, /job\.outputAssetId/);
+  assert.match(single, /result\.assetId/);
+  assert.match(single, /assetId: result\.assetId/);
+  assert.match(batch, /result\.assetId/);
   assert.doesNotMatch(single, /product_image_\$\{job\.id\}/);
   assert.doesNotMatch(batch, /product-image-\$\{job\.id\}/);
   assert.match(single, /inferredRole: "product_image"/);
@@ -120,7 +120,7 @@ test("customer UI exposes one optional-reference Shuyu workbench and video hando
   assert.match(ui, /copy\.useSingle/);
   assert.match(ui, /copy\.useBatch/);
   assert.match(ui, /outputAssetId: string \| null/);
-  assert.match(ui, /activeJob\.outputAssetId/);
+  assert.match(ui, /productImageResultId/);
   assert.match(copy, /优化实拍图/);
   assert.match(copy, /生成产品图/);
   assert.match(copy, /用于单条视频/);

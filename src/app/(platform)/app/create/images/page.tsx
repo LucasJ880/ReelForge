@@ -17,44 +17,72 @@ export default async function ProductImagesPage() {
   if (!session?.user?.id) redirect("/login?from=/app/create/images");
   const rows = await listProductImageJobsForUser(session.user.id);
   const copy = getPlatformCopy(await getServerLocale()).images;
-  const jobs: ProductImageJobDto[] = rows.map((job) => ({
-    id: job.id,
-    status: job.status,
-    prompt: job.prompt,
-    preset: job.preset,
-    aspectRatio: job.aspectRatio,
-    model: job.model,
-    modelSnapshot: job.modelSnapshot,
-    planId: job.planId,
-    resolutionSnapshot: job.resolutionSnapshot,
-    pointsSnapshot: job.pointsSnapshot,
-    resultCount: job.resultCount,
-    sourceAsset: job.sourceAsset
-      ? {
-          id: job.sourceAsset.id,
-          url: job.sourceAsset.url,
-          mimeType: job.sourceAsset.mimeType,
-          width: job.sourceAsset.width,
-          height: job.sourceAsset.height,
-        }
-      : null,
-    outputs: job.outputs.map((output) => ({
-      id: output.id,
-      position: output.position,
-      url: output.outputImageUrl,
-      asset: {
-        id: output.asset.id,
-        url: output.asset.url,
-        mimeType: output.asset.mimeType,
-        width: output.asset.width,
-        height: output.asset.height,
-      },
-    })),
-    outputImageUrl: job.outputImageUrl,
-    outputAssetId: job.outputAssetId,
-    errorMessage: job.errorMessage,
-    createdAt: job.createdAt.toISOString(),
-  }));
+  const jobs: ProductImageJobDto[] = rows.map((job) => {
+    const outputs = job.outputs.length > 0
+      ? job.outputs.map((output) => ({
+          id: output.id,
+          handoffId: output.id,
+          position: output.position,
+          url: output.outputImageUrl,
+          asset: {
+            id: output.asset.id,
+            url: output.asset.url,
+            mimeType: output.asset.mimeType,
+            width: output.asset.width,
+            height: output.asset.height,
+          },
+          historical: false,
+        }))
+      : job.status === "SUCCEEDED" && job.outputImageUrl
+        ? [{
+            id: `historical-${job.id}`,
+            handoffId: null,
+            position: 0,
+            url: job.outputImageUrl,
+            asset: null,
+            historical: true,
+          }]
+        : [];
+    return {
+      id: job.id,
+      status: job.status,
+      prompt: job.prompt,
+      preset: job.preset,
+      aspectRatio: job.aspectRatio,
+      model: job.model,
+      modelSnapshot: job.modelSnapshot,
+      planId: job.planId,
+      resolutionSnapshot: job.resolutionSnapshot,
+      pointsSnapshot: job.pointsSnapshot,
+      resultCount: job.resultCount,
+      sourceAsset: job.sourceAsset
+        ? {
+            id: job.sourceAsset.id,
+            url: job.sourceAsset.url,
+            mimeType: job.sourceAsset.mimeType,
+            width: job.sourceAsset.width,
+            height: job.sourceAsset.height,
+          }
+        : null,
+      outputs,
+      retryableTasks: job.status === "FAILED"
+        ? job.providerTasks
+            .filter((task) => task.submissionState === "REJECTED")
+            .map((task) => ({
+              id: task.id,
+              ordinal: task.ordinal,
+              errorMessage: task.errorMessage,
+            }))
+        : [],
+      outputImageUrl: job.outputImageUrl,
+      outputAssetId: job.outputAssetId,
+      errorMessage: job.errorMessage,
+      historyNotice: outputs.some((output) => output.historical)
+        ? "此历史图片可查看和下载；如需继续编辑或制作视频，请重新生成以创建服务器资产。"
+        : null,
+      createdAt: job.createdAt.toISOString(),
+    };
+  });
   return (
     <div className="editorial-page-stack">
       <header className="studio-hero max-w-5xl space-y-4">

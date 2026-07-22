@@ -2,7 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createUploadBlobPostHandler } from "../src/app/api/upload/blob/route";
-import { createProductImagePostHandler } from "../src/app/api/product-images/route";
+import {
+  createProductImagePostHandler,
+  productImageJobView,
+} from "../src/app/api/product-images/route";
+import { db } from "../src/lib/db";
+import { findProductImageResultForUser } from "../src/lib/services/product-image-service";
 
 const ONE_PIXEL_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
@@ -134,4 +139,69 @@ test("product-image idempotent replay reconstructs the active source and output 
   assert.equal(body.duplicate, true);
   assert.equal(body.asset.id, "source-asset");
   assert.equal(body.job.outputs[0].asset.id, "output-asset");
+});
+
+test("historical succeeded URL-only jobs render read-only output with regeneration guidance", () => {
+  const view = productImageJobView({
+    id: "legacy-job",
+    status: "SUCCEEDED",
+    outputImageUrl: "https://legacy.example.test/output.png",
+    outputs: [],
+    sourceAsset: null,
+    providerTasks: [],
+    createdAt: new Date(),
+  } as never);
+  assert.equal(view.outputs.length, 1);
+  assert.equal(view.outputs[0]?.url, "https://legacy.example.test/output.png");
+  assert.equal(view.outputs[0]?.asset, null);
+  assert.equal(view.outputs[0]?.handoffId, null);
+  assert.match(view.historyNotice ?? "", /重新生成|服务器资产/);
+});
+
+test("failed jobs expose only confirmed-rejection tasks as retryable", () => {
+  const view = productImageJobView({
+    id: "failed-job",
+    status: "FAILED",
+    outputImageUrl: null,
+    outputs: [],
+    sourceAsset: null,
+    providerTasks: [
+      { id: "rejected", ordinal: 0, submissionState: "REJECTED", errorMessage: "retry" },
+      { id: "unknown", ordinal: 1, submissionState: "ACK_UNKNOWN", errorMessage: "stop" },
+    ],
+    createdAt: new Date(),
+  } as never);
+  assert.deepEqual(view.retryableTasks, [
+    { id: "rejected", ordinal: 0, errorMessage: "retry" },
+  ]);
+});
+
+test("result-scoped handoff resolves outputs two through four by authenticated owner", async (t) => {
+  const model = db.productImageResult as unknown as Record<string, unknown>;
+  const original = model.findFirst;
+  const captured: Array<Record<string, unknown>> = [];
+  model.findFirst = async (args: Record<string, unknown>) => {
+    captured.push(args);
+    const where = args.where as { id: string };
+    return {
+      id: where.id,
+      assetId: `asset-${where.id}`,
+      asset: { id: `asset-${where.id}`, url: `https://assets.example.test/${where.id}.png` },
+      productImageJob: { id: "job-4", userId: "owner-1", status: "SUCCEEDED" },
+    };
+  };
+  t.after(() => { model.findFirst = original; });
+
+  for (const position of [2, 3, 4]) {
+    const result = await findProductImageResultForUser(`result-${position}`, "owner-1");
+    assert.equal(result?.id, `result-${position}`);
+  }
+  for (const [index, call] of captured.entries()) {
+    const where = call.where as {
+      id: string;
+      productImageJob: { userId: string; status: string };
+    };
+    assert.equal(where.id, `result-${index + 2}`);
+    assert.deepEqual(where.productImageJob, { userId: "owner-1", status: "SUCCEEDED" });
+  }
 });

@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { StreamlinedVideoStudio } from "@/components/video-generation/streamlined-video-studio";
 import { authOptions } from "@/lib/auth";
-import { findProductImageJobForUser } from "@/lib/services/product-image-service";
+import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
@@ -11,32 +11,32 @@ import { isInternalRole } from "@/lib/auth-role-policy";
 export default async function PlatformCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ productImageJobId?: string; styleTemplate?: string; guide?: string }>;
+  searchParams: Promise<{ productImageResultId?: string; styleTemplate?: string; guide?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageJobId, styleTemplate, guide }, locale, routeState] = await Promise.all([
+  const [{ productImageResultId, styleTemplate, guide }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
   ]);
   const showInternalVideoRoutes = isInternalRole(session.user.role);
-  const job = productImageJobId
-    ? await findProductImageJobForUser(productImageJobId, session.user.id)
+  const result = productImageResultId
+    ? await findProductImageResultForUser(productImageResultId, session.user.id)
     : null;
   const initialAssets: UploadedAsset[] =
-    job?.status === "SUCCEEDED" && job.outputImageUrl && job.outputAssetId
+    result
       ? [{
-          id: job.outputAssetId,
-          assetId: job.outputAssetId,
+          id: result.assetId,
+          assetId: result.assetId,
           type: "IMAGE",
           inferredRole: "product_image",
           roleConfidence: 1,
-          url: absoluteAssetUrl(job.outputImageUrl),
-          mimeType: "image/png",
-          fileName: `Aivora-product-image-${job.id.slice(-6)}.png`,
-          width: null,
-          height: null,
+          url: absoluteAssetUrl(result.asset.url),
+          mimeType: result.asset.mimeType,
+          fileName: `Aivora-product-image-${result.id.slice(-6)}.png`,
+          width: result.asset.width,
+          height: result.asset.height,
           durationSeconds: null,
           userAssignedRole: "product_image",
           suggestedUse: locale === "en-US" ? "Loaded from Product Image Studio as a product-consistency reference." : "已从产品图工作台载入，可作为视频的产品一致性参考。",

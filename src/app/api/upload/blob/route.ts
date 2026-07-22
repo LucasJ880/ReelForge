@@ -90,7 +90,7 @@ export function createUploadBlobPostHandler(
   }
   if (file.size > MAX_UPLOAD_BYTES) {
     return validationError(
-      "素材上传失败：单个文件不能超过 100MB。请压缩视频、裁短素材，或改用可公开访问的素材 URL 登记。",
+      "素材上传失败：单个文件不能超过 100MB。请压缩视频、裁短素材，或拆分后重新上传以获取服务器资产 ID。",
       413,
     );
   }

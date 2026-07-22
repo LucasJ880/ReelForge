@@ -31,9 +31,11 @@ type AssetView = {
 };
 type ProductImageOutputDto = {
   id: string;
+  handoffId: string | null;
   position: number;
   url: string;
-  asset: AssetView;
+  asset: AssetView | null;
+  historical: boolean;
 };
 
 export interface ProductImageJobDto {
@@ -50,9 +52,11 @@ export interface ProductImageJobDto {
   resultCount: number;
   sourceAsset: AssetView | null;
   outputs: ProductImageOutputDto[];
+  retryableTasks: Array<{ id: string; ordinal: number; errorMessage: string | null }>;
   outputImageUrl: string | null;
   outputAssetId: string | null;
   errorMessage: string | null;
+  historyNotice: string | null;
   createdAt: string;
 }
 
@@ -174,7 +178,28 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
     }
   }
 
+  async function retryRejectedTask(taskId: string) {
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/product-images/tasks/${encodeURIComponent(taskId)}/retry`,
+        { method: "POST" },
+      );
+      const data = (await response.json()) as { job?: ProductImageJobDto; error?: string };
+      if (!response.ok || !data.job) throw new Error(data.error ?? copy.requestFailed);
+      setJobs((current) => [data.job!, ...current.filter((job) => job.id !== data.job!.id)]);
+      setActiveJob(data.job);
+      if (data.job.status === "FAILED") setError(data.job.errorMessage ?? copy.jobFailed);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function continueWithOutput(output: ProductImageOutputDto, variation: boolean) {
+    if (!output.asset) return;
     setSource(null);
     setSourceAsset(output.asset);
     if (variation) {
@@ -293,11 +318,18 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                       <div className="relative aspect-square overflow-hidden rounded-(--radius-sm) bg-muted">
                         <Image src={output.url} alt={english ? `Generated product image ${output.position + 1}` : `生成产品图 ${output.position + 1}`} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-contain" unoptimized />
                       </div>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-5 gap-2">
                         <a href={output.url} download className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="download"><Download aria-hidden /></a>
-                        <Button type="button" variant="outline" size="sm" aria-label="variation" onClick={() => continueWithOutput(output, true)}><RefreshCw aria-hidden /></Button>
-                        <Button type="button" variant="outline" size="sm" aria-label="edit" onClick={() => continueWithOutput(output, false)}><Pencil aria-hidden /></Button>
+                        <Button type="button" variant="outline" size="sm" aria-label="variation" disabled={!output.asset} onClick={() => continueWithOutput(output, true)}><RefreshCw aria-hidden /></Button>
+                        <Button type="button" variant="outline" size="sm" aria-label="edit" disabled={!output.asset} onClick={() => continueWithOutput(output, false)}><Pencil aria-hidden /></Button>
+                        {output.handoffId ? (
+                          <Link href={`/app/create?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="single-video"><ArrowRight aria-hidden /><span className="sr-only">{copy.useSingle}</span></Link>
+                        ) : <Button type="button" variant="outline" size="sm" aria-label="single-video" disabled><ArrowRight aria-hidden /></Button>}
+                        {output.handoffId ? (
+                          <Link href={`/app/batches/new?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="batch-video"><ArrowRight aria-hidden /><span className="sr-only">{copy.useBatch}</span></Link>
+                        ) : <Button type="button" variant="outline" size="sm" aria-label="batch-video" disabled><ArrowRight aria-hidden /></Button>}
                       </div>
+                      {output.historical ? <p className="text-meta text-muted-foreground">{activeJob.historyNotice}</p> : null}
                     </article>
                   ))}
                 </div>
@@ -305,16 +337,22 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                   <span className="inline-flex items-center gap-2 text-success"><CheckCircle2 className="size-4" aria-hidden />{copy.approved}</span>
                   <span className="font-mono text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts</span>
                 </div>
-                {activeJob.outputAssetId ? (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <Link href={`/app/create?productImageJobId=${encodeURIComponent(activeJob.id)}`} className={buttonVariants()}>{copy.useSingle} <ArrowRight aria-hidden /></Link>
-                    <Link href={`/app/batches/new?productImageJobId=${encodeURIComponent(activeJob.id)}`} className={buttonVariants({ variant: "outline" })}>{copy.useBatch} <ArrowRight aria-hidden /></Link>
-                  </div>
-                ) : null}
               </div>
             ) : activeJob?.status === "FAILED" ? (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center">
                 <RefreshCw className="size-6 text-danger" aria-hidden /><p className="font-medium">{copy.failed}</p><p className="max-w-sm text-body text-muted-foreground">{activeJob.errorMessage}</p>
+                {activeJob.retryableTasks.map((task) => (
+                  <Button
+                    key={task.id}
+                    type="button"
+                    variant="outline"
+                    disabled={submitting}
+                    onClick={() => void retryRejectedTask(task.id)}
+                  >
+                    {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <RefreshCw className="size-4" aria-hidden />}
+                    {english ? `Retry result ${task.ordinal + 1}` : `重试结果 ${task.ordinal + 1}`}
+                  </Button>
+                ))}
               </div>
             ) : activeJob ? (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center" aria-live="polite">

@@ -227,3 +227,29 @@ Results: Prisma validate PASS; Prisma generate PASS; focused tests 29/29 PASS; T
 - No live database migration or browser/e2e run was performed; Prisma validation/generation, focused behavior tests, typecheck, and the complete unit suite passed.
 - Production must set `SHUYU_OUTPUT_HOST_ALLOWLIST` if Shuyu returns output URLs from CDN hosts beyond the narrow built-in allowlist.
 - The full unit suite retains one pre-existing skipped test.
+
+## Task 3 Lifecycle Review Fix Addendum — 2026-07-22
+
+### Status
+
+The follow-up review findings that touched Task 2's server-owned asset boundary are fixed. Product-image handoffs now carry a result identifier, resolve the exact owned `ProductImageResult` and `MediaAsset` for the authenticated user, and no longer fall back to the aggregate job's primary output. Oversized upload guidance now tells users to create server-owned asset IDs rather than register public URLs.
+
+### Evidence
+
+- The single-video and batch-video destination pages use `findProductImageResultForUser(resultId, session.user.id)` and derive their initial media exclusively from that result's owned asset.
+- Outputs two through four are covered by an owner-scoped handoff regression test.
+- Historical URL-only successes are read-only: the image and download remain visible, while mutation/handoff controls are disabled with regeneration guidance.
+- The additive follow-up migration backfills a `ProductImageResult` from every existing non-null `outputAssetId` where no durable result already owns the slot or asset.
+- The two pre-existing `.bak` files and scratch data remained unmodified and unstaged.
+
+### Verification
+
+Prisma validation/generation, 36 focused lifecycle/asset/UI tests, TypeScript, the complete unit suite, and `git diff --check` passed in the final verification run recorded in the Task 3 report.
+
+## Task 3 Final Review Closure — 2026-07-22
+
+- Added an authenticated, owner-scoped retry endpoint for provider-confirmed `REJECTED` image tasks and exposed only those safe retry candidates in the job DTO/UI. `ACK_UNKNOWN` remains non-retryable.
+- Retry now reactivates the aggregate and claims `REJECTED → SUBMITTING` in one database transaction before any paid call. The task keeps its original request key, audited plan, and persisted source-image URL.
+- Lease-sensitive polling and terminal writes require a live expiry. Successful output persistence atomically inserts the unique result and finalizes its task; stale and duplicate writers remove their unreferenced asset/object copies.
+- Updated the API ship-audit inventory for the new retry route. No historical migration, `.bak` file, or scratch data was modified or staged.
+- Final verification: Prisma validate/generate PASS; 42 focused tests PASS; TypeScript PASS; full suite 998 passed / 0 failed / 1 skipped (999 total); `git diff --check` PASS.

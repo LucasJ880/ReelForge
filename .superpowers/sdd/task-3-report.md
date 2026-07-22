@@ -70,3 +70,64 @@ The first complete suite exposed two legacy static contract expectations for the
 - No live database migration or browser/e2e workflow was run in this task.
 - Configure `SHUYU_OUTPUT_HOST_ALLOWLIST` in production when provider output hosts differ from the narrow built-in set.
 - The full unit suite contains one pre-existing skip.
+
+## Review Fix Addendum — 2026-07-22
+
+### Status
+
+All Task 3 lifecycle review findings are addressed. The aggregate image job now owns one durable `ProductImageProviderTask` per requested result, paid submission is fail-closed under acknowledgement loss, reconciliation is lease-exclusive, success requires the exact requested durable result count, and every durable result has a result-scoped continuation path.
+
+### Implementation
+
+- Added the expand-only `20260722191500_product_image_provider_tasks` migration without changing either committed migration. It creates provider-task submission, audit, retry, polling, and lease state; backfills historical tasks; links/backfills `ProductImageResult` from existing owned primary outputs; and leaves URL-only history readable.
+- Persisted all 1–4 provider-task rows and unique stable request keys in the aggregate job create before any provider call. The Shuyu request body remains documented-only and contains no invented count field.
+- Each provider task transitions through `NOT_STARTED → SUBMITTING → ACCEPTED`, `REJECTED`, or `ACK_UNKNOWN`. Transport/response/persistence uncertainty becomes `ACK_UNKNOWN` and is never automatically submitted again. A provider-confirmed no-job rejection can be explicitly retried with the same request key and persisted plan snapshot.
+- Stale `SUBMITTING` rows become `ACK_UNKNOWN`, not ordinary retryable failures. Only untouched `NOT_STARTED` rows are recovered automatically.
+- Added expiring per-task leases. A compare-and-swap claim permits one owner; poll updates, provider-terminal transitions, result insertion, and finalization all require that owner. Result insertion verifies the live lease in a transaction, and a losing writer removes its unreferenced `MediaAsset` plus stored object when safe.
+- Mapped `failed`, `refund_error`, and `refunded` to terminal failure. Only `queued`, `processing`, and `refund_pending` remain nonterminal.
+- Each task accepts only its first documented output and creates one ordinal result. The aggregate succeeds only when task count and durable result count both exactly equal `resultCount`.
+- URL-only historical successes synthesize a read-only result DTO with regeneration guidance instead of showing a spinner or invalid continuation.
+- Moved download, variation, edit, single-video, and batch-video controls onto each durable result. Handoffs carry `productImageResultId`; both destinations resolve that exact result and asset by authenticated owner, including outputs two through four.
+
+### TDD Evidence
+
+RED focused run: 15 passed / 4 failed. The failures demonstrated the incorrect `failed` mapping, missing provider-task/submission/lease schema, and job-scoped primary-output handoffs.
+
+GREEN focused run:
+
+```text
+node --import tsx --test tests/shuyu-product-image-service.test.ts tests/product-image-ui-contract.test.ts tests/product-image-studio.test.ts tests/upload-route-boundary.test.ts tests/media-asset-upload.test.ts tests/media-asset-ownership.test.ts
+```
+
+Result: 36 passed / 0 failed. Behavioral coverage includes every documented lifecycle status, durable task creation before paid calls, ACK_UNKNOWN no-resubmit, same-identity confirmed rejection retry, a concurrent single-winner lease claim, exact four-task/four-result completion, loser cleanup, URL-only history, and owner-scoped handoff for outputs two through four.
+
+### Verification
+
+Final verification covered Prisma schema validation and client generation, the focused suite above, `tsc --noEmit`, the complete `npm test` suite, and `git diff --check`. The complete suite passed 998 tests / 0 failed / 1 pre-existing skipped (999 total).
+
+### Concerns / Follow-Ups
+
+- No live database migration or paid Shuyu/browser e2e was run. Migration SQL, Prisma generation, lifecycle behavior, route/UI contracts, TypeScript, and the complete unit suite were verified locally.
+- Production still must configure any additional Shuyu CDN output hosts through `SHUYU_OUTPUT_HOST_ALLOWLIST`.
+
+## Final Reviewer Closure — 2026-07-22
+
+### Findings and Fixes
+
+- **Retry/finalization race:** aggregate reactivation and the task's `REJECTED → SUBMITTING` compare-and-swap now commit in one transaction before submission. Reconciliation cannot observe the aggregate as active while every task is still terminal.
+- **Operational retry path:** added `POST /api/product-images/tasks/[taskId]/retry`, authenticated by owner. Failed-job DTOs expose only `REJECTED` task IDs; the workbench renders explicit per-result retry controls. Foreign, acknowledgement-unknown, and otherwise ineligible tasks return the same 404 boundary.
+- **Exact replay:** confirmed retries use the persisted `sourceImageUrl` even when the `MediaAsset` relation was deleted via `onDelete: SetNull`, together with the original stable request key and audited plan snapshot.
+- **Lease freshness:** all poll and terminal owner writes require `leaseExpiresAt > now`. The owner renews before output download/storage, and durable result creation plus task success finalization occur atomically under the live lease.
+- **Concurrency cleanup:** unique task/ordinal constraints prevent duplicate durable results. A stale or losing worker deletes its unreferenced newly created asset and stored object.
+- **API inventory:** updated the ship-audit inventory from 76 to 77 route files for the owner-scoped retry endpoint.
+
+### Additional Behavioral Coverage
+
+- The production retry function verifies aggregate/task writes share a transaction and the paid call starts only after that transaction commits.
+- The public retry route verifies authenticated owner propagation and non-disclosing ineligible-task handling.
+- Lease tests verify a single winner, denial before expiry, reclaim after expiry, stale-owner finalization rejection, no duplicate result insertion, and losing-copy cleanup.
+- Replay verifies the immutable persisted source URL is sent after the live asset relation is absent.
+
+### Final Verification
+
+Prisma validation and client generation passed. The focused lifecycle/route/asset/UI suite passed 42/42, TypeScript passed, the full unit suite passed 998/998 with one pre-existing skip (999 total), and `git diff --check` passed.

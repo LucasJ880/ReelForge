@@ -131,3 +131,55 @@ Final verification covered Prisma schema validation and client generation, the f
 ### Final Verification
 
 Prisma validation and client generation passed. The focused lifecycle/route/asset/UI suite passed 42/42, TypeScript passed, the full unit suite passed 998/998 with one pre-existing skip (999 total), and `git diff --check` passed.
+
+## Final Lifecycle Recovery Closure — 2026-07-22
+
+### Findings Addressed
+
+- Removed the creation-time `QUEUED → PROCESSING` crash window: a job and all provider-task rows are now created in one transaction with the parent already `PROCESSING`. Idempotent replay promotes legacy `QUEUED` rows, and cron also promotes recoverable legacy rows before submission scanning.
+- Added aggregate recovery scanning for active parents whose child tasks are already terminal. It self-heals both the successful-result and failed-task interruption windows, including legacy parents still marked `QUEUED`; aggregate completion remains CAS-protected so usage is not double-recorded.
+- Changed transient polling exceptions from a three-strike terminal failure to durable exponential backoff on the already-accepted external task. `ACK_UNKNOWN` remains non-retryable and is never blindly resubmitted.
+- Added owner-only retry for provider-confirmed `failed`/`refunded` terminal tasks. The retry retains prompt/source/plan snapshots, clears the confirmed-terminal external identity, and uses a fresh request key before a new paid submission. Confirmed preflight rejection still reuses its stable request key.
+- Made retry eligibility aggregate-aware: any fatal sibling, including `ACK_UNKNOWN` or another non-recoverable failed state, suppresses retry in both the server transaction predicate and the API/page DTO.
+- Isolated cron image polling failures from video polling and sweep execution, returning a degraded heartbeat instead of aborting the whole scheduler run.
+- Strengthened result handoff ownership to verify the related output asset owner as well as the parent job owner.
+- No schema expansion was needed: the existing additive lifecycle migration already provides `availableAt`, leases, task status, immutable snapshots, and unique request/result identities. Historical migrations were not edited.
+
+### TDD Evidence
+
+Initial RED command:
+
+```text
+node --import tsx --test tests/product-image-recovery.test.ts
+```
+
+Result before implementation: 0 passed / 6 failed. The failures independently demonstrated the unrecovered `QUEUED` replay, missing aggregate scanner, third-poll terminal failure, mixed-failure retry leak, missing cron isolation boundary, and absent result-asset owner predicate.
+
+GREEN affected-suite command:
+
+```text
+node --import tsx --test tests/shuyu-product-image-service.test.ts tests/upload-route-boundary.test.ts tests/product-image-studio.test.ts tests/product-image-recovery.test.ts
+```
+
+Result: 36 passed / 0 failed. The new recovery file contains 7 behavioral tests, including explicit provider-refund owner retry with a fresh paid identity.
+
+### Verification
+
+```text
+DATABASE_URL=postgresql://prisma:prisma@127.0.0.1:1/reelforge npx prisma validate
+DATABASE_URL=postgresql://prisma:prisma@127.0.0.1:1/reelforge npx prisma generate
+npm run typecheck
+npm test
+git diff --check
+```
+
+- Prisma schema validation: PASS.
+- Prisma Client generation: PASS (6.19.3).
+- TypeScript: PASS (`tsc --noEmit`).
+- Complete unit suite: PASS, 1005 passed / 0 failed / 1 skipped (1006 total).
+- Diff whitespace validation: PASS.
+
+### Remaining Risk
+
+- No paid Shuyu request, live database migration, or browser E2E was run in this review closure. The lifecycle behavior is covered with provider/database boundary fakes plus the complete repository test suite.
+- Repeated provider polling outages now remain safely recoverable and use a capped 15-minute backoff; operational monitoring should still alert on sustained high `pollErrors` rather than relying on terminal job failure.

@@ -166,8 +166,14 @@ test("failed jobs expose only confirmed-rejection tasks as retryable", () => {
     outputs: [],
     sourceAsset: null,
     providerTasks: [
-      { id: "rejected", ordinal: 0, submissionState: "REJECTED", errorMessage: "retry" },
-      { id: "unknown", ordinal: 1, submissionState: "ACK_UNKNOWN", errorMessage: "stop" },
+      {
+        id: "rejected", ordinal: 0, status: "FAILED", submissionState: "REJECTED",
+        errorCode: "PROVIDER_REJECTED", externalTaskId: null, errorMessage: "retry",
+      },
+      {
+        id: "unknown", ordinal: 1, status: "SUCCEEDED", submissionState: "ACCEPTED",
+        errorCode: null, externalTaskId: "completed-task", errorMessage: "stop",
+      },
     ],
     createdAt: new Date(),
   } as never);

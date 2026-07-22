@@ -6,7 +6,11 @@ import {
   type ProductImageJobDto,
 } from "@/components/product-images/product-image-studio";
 import { authOptions } from "@/lib/auth";
-import { listProductImageJobsForUser } from "@/lib/services/product-image-service";
+import {
+  hasFatalProductImageTask,
+  isRetryableProductImageTask,
+  listProductImageJobsForUser,
+} from "@/lib/services/product-image-service";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 
@@ -65,9 +69,9 @@ export default async function ProductImagesPage() {
           }
         : null,
       outputs,
-      retryableTasks: job.status === "FAILED"
+      retryableTasks: job.status === "FAILED" && !hasFatalProductImageTask(job.providerTasks)
         ? job.providerTasks
-            .filter((task) => task.submissionState === "REJECTED")
+            .filter(isRetryableProductImageTask)
             .map((task) => ({
               id: task.id,
               ordinal: task.ordinal,

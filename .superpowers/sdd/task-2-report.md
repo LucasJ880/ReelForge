@@ -253,3 +253,11 @@ Prisma validation/generation, 36 focused lifecycle/asset/UI tests, TypeScript, t
 - Lease-sensitive polling and terminal writes require a live expiry. Successful output persistence atomically inserts the unique result and finalizes its task; stale and duplicate writers remove their unreferenced asset/object copies.
 - Updated the API ship-audit inventory for the new retry route. No historical migration, `.bak` file, or scratch data was modified or staged.
 - Final verification: Prisma validate/generate PASS; 42 focused tests PASS; TypeScript PASS; full suite 998 passed / 0 failed / 1 skipped (999 total); `git diff --check` PASS.
+
+## Final Recovery and Ownership Closure — 2026-07-22
+
+- Result-scoped handoff now requires both the succeeded parent job and the related `MediaAsset` to belong to the authenticated user. A forged or corrupt cross-owner result-to-asset relation therefore fails closed.
+- The cron boundary now isolates image polling from video polling and the stuck-task sweep. An image subsystem exception returns an authenticated machine-only degraded response without preventing either of the other recovery paths.
+- Added behavioral regressions for the asset-owner predicate and degraded cron execution. The pre-existing `.bak` files remained unmodified and unstaged.
+
+Verification evidence for this closure is recorded in the Task 3 report: Prisma validation/generation passed; 36 focused tests passed in total, including 7 new recovery tests; TypeScript passed; the complete suite passed with 1005 passed / 0 failed / 1 skipped.

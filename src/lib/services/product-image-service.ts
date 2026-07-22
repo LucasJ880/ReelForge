@@ -27,9 +27,11 @@ import {
 } from "@/lib/video-generation/providers/submission-error";
 
 export const PRODUCT_IMAGE_PROMPT_VERSION = "product-image-shuyu-v2";
-const MAX_POLL_ERRORS = 3;
 const PROVIDER_TASK_LEASE_MS = 2 * 60_000;
 const SUBMITTING_STALE_MS = 2 * 60_000;
+const POLL_RETRY_BASE_MS = 15_000;
+const POLL_RETRY_MAX_MS = 15 * 60_000;
+const PROVIDER_TERMINAL_RETRY_CODES = ["PROVIDER_FAILED", "PROVIDER_REFUNDED"] as const;
 
 interface ProductImageRuntimeDependencies {
   submitTask: typeof submitShuyuImageTask;
@@ -124,6 +126,29 @@ type ProviderTaskWithJob = Prisma.ProductImageProviderTaskGetPayload<{
   };
 }>;
 
+type ProductImageRetryTask = Pick<
+  ProductImageProviderTask,
+  "status" | "submissionState" | "errorCode" | "externalTaskId"
+>;
+
+export function isRetryableProductImageTask(task: ProductImageRetryTask): boolean {
+  if (task.status !== ProductImageStatus.FAILED) return false;
+  if (task.submissionState === ProviderSubmissionState.REJECTED) return true;
+  return (
+    task.submissionState === ProviderSubmissionState.ACCEPTED &&
+    Boolean(task.externalTaskId) &&
+    PROVIDER_TERMINAL_RETRY_CODES.includes(
+      task.errorCode as (typeof PROVIDER_TERMINAL_RETRY_CODES)[number],
+    )
+  );
+}
+
+export function hasFatalProductImageTask(tasks: ProductImageRetryTask[]): boolean {
+  return tasks.some(
+    (task) => task.status === ProductImageStatus.FAILED && !isRetryableProductImageTask(task),
+  );
+}
+
 export class ProductImageRequestError extends Error {
   constructor(
     message: string,
@@ -194,6 +219,7 @@ export async function findProductImageResultForUser(
   return db.productImageResult.findFirst({
     where: {
       id,
+      asset: { userId },
       productImageJob: { userId, status: ProductImageStatus.SUCCEEDED },
     },
     include: {
@@ -219,6 +245,20 @@ function stableProviderRequestKey(): string {
   return `product-image-${randomUUID()}`;
 }
 
+async function promoteQueuedProductImageJob(
+  job: ProductImageJobWithAssets,
+): Promise<ProductImageJobWithAssets> {
+  if (job.status !== ProductImageStatus.QUEUED) return job;
+  await db.productImageJob.updateMany({
+    where: { id: job.id, status: ProductImageStatus.QUEUED },
+    data: { status: ProductImageStatus.PROCESSING, startedAt: job.startedAt ?? new Date() },
+  });
+  return (await db.productImageJob.findUnique({
+    where: { id: job.id },
+    include: assetInclude,
+  })) ?? job;
+}
+
 export async function createProductImageJob(
   input: ProductImageRequest,
 ): Promise<ProductImageJobWithAssets> {
@@ -231,7 +271,7 @@ export async function createProductImageJob(
     },
     include: assetInclude,
   });
-  if (existing) return existing;
+  if (existing) return promoteQueuedProductImageJob(existing);
   if (!Number.isInteger(input.resultCount) || input.resultCount < 1 || input.resultCount > 4) {
     throw new ProductImageRequestError("一次可生成 1–4 张产品图。", "INVALID_RESULT_COUNT");
   }
@@ -249,6 +289,8 @@ export async function createProductImageJob(
         idempotencyKey: input.idempotencyKey,
         providerRequestKey: taskRequests[0]?.requestKey,
         provider: "shuyu",
+        status: ProductImageStatus.PROCESSING,
+        startedAt: new Date(),
         mode,
         prompt: input.prompt,
         preset: input.preset,
@@ -282,15 +324,11 @@ export async function createProductImageJob(
         },
         include: assetInclude,
       });
-      if (duplicate) return duplicate;
+      if (duplicate) return promoteQueuedProductImageJob(duplicate);
     }
     throw error;
   }
 
-  await db.productImageJob.updateMany({
-    where: { id: job.id, userId: input.userId, status: ProductImageStatus.QUEUED },
-    data: { status: ProductImageStatus.PROCESSING, startedAt: new Date() },
-  });
   for (const task of job.providerTasks) {
     await submitProductImageProviderTask(task.id, input);
   }
@@ -482,12 +520,53 @@ export async function retryRejectedProductImageProviderTask(
         where: {
           id: taskId,
           status: ProductImageStatus.FAILED,
-          submissionState: ProviderSubmissionState.REJECTED,
-          productImageJob: { userId },
+          OR: [
+            { submissionState: ProviderSubmissionState.REJECTED },
+            {
+              submissionState: ProviderSubmissionState.ACCEPTED,
+              externalTaskId: { not: null },
+              errorCode: { in: [...PROVIDER_TERMINAL_RETRY_CODES] },
+            },
+          ],
+          productImageJob: {
+            userId,
+            providerTasks: {
+              none: {
+                status: ProductImageStatus.FAILED,
+                NOT: {
+                  OR: [
+                    { submissionState: ProviderSubmissionState.REJECTED },
+                    {
+                      submissionState: ProviderSubmissionState.ACCEPTED,
+                      externalTaskId: { not: null },
+                      errorCode: { in: [...PROVIDER_TERMINAL_RETRY_CODES] },
+                    },
+                  ],
+                },
+              },
+            },
+          },
         },
-        select: { id: true, productImageJobId: true, requestKey: true },
+        select: {
+          id: true,
+          productImageJobId: true,
+          requestKey: true,
+          ordinal: true,
+          submissionState: true,
+          errorCode: true,
+          externalTaskId: true,
+        },
       });
       if (!eligible) return null;
+      const providerTerminalRetry =
+        eligible.submissionState === ProviderSubmissionState.ACCEPTED &&
+        Boolean(eligible.externalTaskId) &&
+        PROVIDER_TERMINAL_RETRY_CODES.includes(
+          eligible.errorCode as (typeof PROVIDER_TERMINAL_RETRY_CODES)[number],
+        );
+      const nextRequestKey = providerTerminalRetry
+        ? stableProviderRequestKey()
+        : eligible.requestKey;
       const reactivated = await tx.productImageJob.updateMany({
         where: {
           id: eligible.productImageJobId,
@@ -499,6 +578,12 @@ export async function retryRejectedProductImageProviderTask(
           completedAt: null,
           errorCode: null,
           errorMessage: null,
+          ...(eligible.ordinal === 0
+            ? {
+                providerRequestKey: nextRequestKey,
+                externalTaskId: null,
+              }
+            : {}),
         },
       });
       if (reactivated.count !== 1) throw new ProductImageRetryClaimLostError();
@@ -507,9 +592,12 @@ export async function retryRejectedProductImageProviderTask(
           id: eligible.id,
           requestKey: eligible.requestKey,
           status: ProductImageStatus.FAILED,
-          submissionState: ProviderSubmissionState.REJECTED,
+          submissionState: eligible.submissionState,
+          errorCode: eligible.errorCode,
+          externalTaskId: eligible.externalTaskId,
         },
         data: {
+          requestKey: nextRequestKey,
           status: ProductImageStatus.PROCESSING,
           submissionState: ProviderSubmissionState.SUBMITTING,
           submissionErrorClass: null,
@@ -520,6 +608,11 @@ export async function retryRejectedProductImageProviderTask(
           errorMessage: null,
           leaseOwner: null,
           leaseExpiresAt: null,
+          externalTaskId: null,
+          lastProviderStatus: null,
+          lastCheckedAt: null,
+          availableAt: null,
+          pollErrors: 0,
         },
       });
       if (claimed.count !== 1) throw new ProductImageRetryClaimLostError();
@@ -581,6 +674,7 @@ async function claimProductImageProviderTask(
       status: ProductImageStatus.PROCESSING,
       submissionState: ProviderSubmissionState.ACCEPTED,
       externalTaskId: { not: null },
+      AND: [{ OR: [{ availableAt: null }, { availableAt: { lte: now } }] }],
       OR: [{ leaseOwner: null }, { leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
     },
     data: {
@@ -610,6 +704,10 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
   } catch {
     const pollErrors = task.pollErrors + 1;
     const mutationTime = new Date();
+    const retryDelay = Math.min(
+      POLL_RETRY_MAX_MS,
+      POLL_RETRY_BASE_MS * 2 ** Math.min(Math.max(pollErrors - 1, 0), 10),
+    );
     await db.productImageProviderTask.updateMany({
       where: {
         id: task.id,
@@ -620,19 +718,11 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
       data: {
         pollErrors,
         lastCheckedAt: mutationTime,
+        availableAt: new Date(mutationTime.getTime() + retryDelay),
         leaseOwner: null,
         leaseExpiresAt: null,
-        ...(pollErrors >= MAX_POLL_ERRORS
-          ? {
-              status: ProductImageStatus.FAILED,
-              completedAt: new Date(),
-              errorCode: "POLL_UNAVAILABLE",
-              errorMessage: "暂时无法获取产品图生成进度，请稍后重试。",
-            }
-          : {}),
       },
     });
-    await refreshProductImageJob(task.productImageJobId);
     return;
   }
 
@@ -649,6 +739,7 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
         lastProviderStatus: providerResult.rawStatus,
         lastCheckedAt: mutationTime,
         pollErrors: 0,
+        availableAt: null,
         leaseOwner: null,
         leaseExpiresAt: null,
       },
@@ -670,8 +761,12 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
         lastProviderStatus: providerResult.rawStatus,
         lastCheckedAt: mutationTime,
         completedAt: mutationTime,
-        errorCode: "PROVIDER_FAILED",
-        errorMessage: "Shuyu 产品图生成失败，参考素材与设置已保留。",
+        errorCode: providerResult.rawStatus === "refunded" ? "PROVIDER_REFUNDED" : "PROVIDER_FAILED",
+        errorMessage:
+          providerResult.rawStatus === "refunded"
+            ? "Shuyu 产品图生成失败且已退款，参考素材与设置已保留，可由任务所有者重试。"
+            : "Shuyu 产品图生成失败，参考素材与设置已保留，可由任务所有者重试。",
+        availableAt: null,
         leaseOwner: null,
         leaseExpiresAt: null,
       },
@@ -711,6 +806,7 @@ async function reconcileProductImageProviderTask(taskId: string): Promise<void> 
           lastCheckedAt: mutationTime,
           completedAt: mutationTime,
           pollErrors: 0,
+          availableAt: null,
           errorCode: null,
           errorMessage: null,
           leaseOwner: null,
@@ -840,7 +936,10 @@ async function refreshProductImageJob(jobId: string): Promise<void> {
     const primary = job.outputs[0];
     if (!primary) return;
     const completed = await db.productImageJob.updateMany({
-      where: { id: job.id, status: ProductImageStatus.PROCESSING },
+      where: {
+        id: job.id,
+        status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.PROCESSING] },
+      },
       data: {
         status: ProductImageStatus.SUCCEEDED,
         outputImageUrl: primary.outputImageUrl,
@@ -861,7 +960,10 @@ async function refreshProductImageJob(jobId: string): Promise<void> {
   if ((ackUnknown || failed) && allTerminal) {
     const errorCode = ackUnknown ? "SUBMISSION_ACK_UNKNOWN" : failed?.errorCode ?? "PROVIDER_FAILED";
     const completed = await db.productImageJob.updateMany({
-      where: { id: job.id, status: ProductImageStatus.PROCESSING },
+      where: {
+        id: job.id,
+        status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.PROCESSING] },
+      },
       data: {
         status: ProductImageStatus.FAILED,
         completedAt: new Date(),
@@ -953,10 +1055,53 @@ async function failStaleSubmittingTasks(now: Date): Promise<number> {
   return failed;
 }
 
+async function recoverProductImageAggregates(limit = 50): Promise<number> {
+  const jobs = await db.productImageJob.findMany({
+    where: {
+      status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.PROCESSING] },
+      providerTasks: {
+        some: {},
+        every: {
+          status: { in: [ProductImageStatus.SUCCEEDED, ProductImageStatus.FAILED] },
+        },
+      },
+    },
+    orderBy: { updatedAt: "asc" },
+    take: Math.max(1, Math.min(limit, 100)),
+    select: { id: true },
+  });
+  let recovered = 0;
+  for (const job of jobs) {
+    try {
+      await refreshProductImageJob(job.id);
+      recovered += 1;
+    } catch (error) {
+      console.warn("[product-image] aggregate recovery failed", {
+        jobId: job.id,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  return recovered;
+}
+
 export async function pollPendingProductImageJobs(limit = 20): Promise<{
   polled: number;
+  recovered: number;
 }> {
   const now = new Date();
+  let recovered = await recoverProductImageAggregates(limit);
+  await db.productImageJob.updateMany({
+    where: {
+      status: ProductImageStatus.QUEUED,
+      providerTasks: {
+        some: {
+          status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.PROCESSING] },
+        },
+      },
+    },
+    data: { status: ProductImageStatus.PROCESSING, startedAt: now },
+  });
   await failStaleSubmittingTasks(now);
   const unsubmitted = await db.productImageProviderTask.findMany({
     where: {
@@ -976,6 +1121,7 @@ export async function pollPendingProductImageJobs(limit = 20): Promise<{
       submissionState: ProviderSubmissionState.ACCEPTED,
       externalTaskId: { not: null },
       productImageJob: { status: ProductImageStatus.PROCESSING },
+      AND: [{ OR: [{ availableAt: null }, { availableAt: { lte: now } }] }],
       OR: [{ leaseOwner: null }, { leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
     },
     orderBy: { lastCheckedAt: "asc" },
@@ -983,7 +1129,8 @@ export async function pollPendingProductImageJobs(limit = 20): Promise<{
     select: { id: true },
   });
   for (const task of tasks) await reconcileProductImageProviderTask(task.id);
-  return { polled: tasks.length };
+  recovered += await recoverProductImageAggregates(limit);
+  return { polled: tasks.length, recovered };
 }
 
 export const __test__ = {
@@ -993,6 +1140,7 @@ export const __test__ = {
   reconcileProductImageProviderTask,
   submitProductImageProviderTask,
   refreshProductImageJob,
+  recoverProductImageAggregates,
   failStaleSubmittingTasks,
   persistProviderTaskOutput,
   __setRuntimeDependenciesForTests(

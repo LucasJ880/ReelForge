@@ -10,6 +10,8 @@ import {
 } from "@/lib/services/media-asset-service";
 import {
   createProductImageJob,
+  hasFatalProductImageTask,
+  isRetryableProductImageTask,
   listProductImageJobsForUser,
   ProductImageRequestError,
   type ProductImageJobWithAssets,
@@ -75,9 +77,9 @@ export function productImageJobView(job: ProductImageJobWithAssets) {
     createdAt: job.createdAt,
     sourceAsset: assetView(job.sourceAsset),
     outputs,
-    retryableTasks: job.status === "FAILED"
+    retryableTasks: job.status === "FAILED" && !hasFatalProductImageTask(job.providerTasks)
       ? job.providerTasks
-          .filter((task) => task.submissionState === "REJECTED")
+          .filter(isRetryableProductImageTask)
           .map((task) => ({
             id: task.id,
             ordinal: task.ordinal,

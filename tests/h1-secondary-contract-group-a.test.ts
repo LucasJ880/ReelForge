@@ -179,7 +179,7 @@ const contracts: RouteMethodContract[] = [
     route: "/api/product-images",
     file: "src/app/api/product-images/route.ts",
     boundary: "session",
-    successMarker: /NextResponse\.json\(\{ ok: true, jobs \}\)/,
+    successMarker: /NextResponse\.json\(\{ ok: true, jobs: jobs\.map\(productImageJobView\) \}\)/,
   },
   {
     method: "POST",
@@ -187,7 +187,7 @@ const contracts: RouteMethodContract[] = [
     file: "src/app/api/product-images/route.ts",
     boundary: "session",
     successMarker:
-      /duplicate: false,[\s\S]*asset: sourceAsset[\s\S]*\{ status: 201 \}/,
+      /duplicate: false,[\s\S]*job: productImageJobView\(job\),[\s\S]*asset: assetView\(job\.sourceAsset\)[\s\S]*\{ status: 201 \}/,
   },
   {
     method: "POST",

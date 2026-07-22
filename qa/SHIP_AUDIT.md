@@ -3,7 +3,7 @@
 - Audit date: 2026-07-15 (America/Toronto)
 - Phase: H2-A merged-tree re-baseline in progress
 - Source revision: merge of H1 `87b9f34` and UI closure `bb0c05b` on `codex/h2-ui-unification`; verification pending
-- Coverage status: 75/75 API route files have first-tier strict or second-tier light contract evidence; Shuyu discovery is read-only, sanitized, and separate from paid submission; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
+- Coverage status: 76/76 API route files have first-tier strict or second-tier light contract evidence; Shuyu discovery is read-only, sanitized, and separate from paid submission; 33-route UI closure is merged but must be reverified; Gate C0 remains 5/6 because RF-005 production cadence and RF-019 migration execution still require the human-supervised deployment line
 - Health legend: `HEALTHY` verified at the stated audit depth · `PARTIAL` representative state missing · `DEGRADED` customer-visible defect · `BLOCKED` delivery blocker · `N/A` intentionally unavailable
 
 ## Scope and release invariants
@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (75/75 route files)
+## API endpoint inventory (76/76 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -134,6 +134,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
 | GET, POST | `/api/product-images` | Session + ownership | VERIFIED H1 light: success wiring, shared 401 and user/idempotency scope |
+| GET | `/api/product-images/[id]` | Session + ownership | VERIFIED task status reconciliation; owner-scoped durable Shuyu polling |
 | POST | `/api/brand-packaging` | Session | ADDED post-H1 (brand packaging module); needs H1-light contract verification pass |
 | POST | `/api/raw-assets/[id]/preprocess` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |

@@ -1,12 +1,11 @@
 # Product Image Studio
 
-Product Image Studio is available under `/app/create/images` without adding a sixth primary navigation area. It provides two customer workflows:
+Product Image Studio lives at `/app/create/images` and uses one customer workflow: an optional owned reference image, one prompt, compact aspect-ratio/resolution/result-count settings, and advanced style presets.
 
-- **Optimize:** uses the uploaded photograph as the sole visual source of truth and restricts changes to background, lighting, shadow, crop, framing, and minor cleanup.
-- **Generate:** creates an unbranded product concept from a written description while blocking invented claims, logos, prices, watermarks, and common geometry failures.
+New public tasks are submitted only through an audited, currently available Shuyu Image 2 plan. The server persists the provider request key, external task ID, plan/model/resolution/point snapshots, source asset relation, polling state, and every durable output asset relation. It does not call the generic OpenAI/Volcengine image provider path.
 
-Both workflows use the configured AI provider abstraction. The North American default is OpenAI `gpt-image-2`; automated tests set `IMAGE_ENGINE_MOCK=true` and make no paid request. Source uploads are authenticated, limited to 20 MB, checked by MIME and magic bytes, reviewed for content safety, and written to an unenumerable object key. Generated outputs are reviewed again before customer delivery.
+Reference uploads use `/api/upload/blob`. They are authenticated, quota checked, size/MIME/magic-byte validated, stored under randomized keys, and persisted as owner-scoped `MediaAsset` records without platform AI review. Product-image requests submit the asset ID rather than a client URL.
 
-Every request requires an idempotency key, is owner-scoped, records its model and timestamps in `ProductImageJob`, and records provider usage in `AIUsageLog`. Production applies a separate per-account hourly safety limit (`PRODUCT_IMAGE_RATE_LIMIT_PER_HOUR`, default `5`) to prevent accidental spend loops. This protection is not a commercial plan quota.
+Shuyu tasks are reconciled by the authenticated status endpoint and the existing polling cron. Completed remote outputs are accepted only from the configured `SHUYU_OUTPUT_HOST_ALLOWLIST` (or the narrow built-in provider hosts), with HTTPS-only URL validation, redirect rejection, content-length and streamed byte caps, an abort timeout, and cleanup when the controlled-storage copy cannot be made durable.
 
-Successful outputs can be loaded directly into the single-video creator or the batch-video wizard. They remain visibly marked `AI Generated · Aivora`; customers must review product fidelity before publishing.
+Successful results support download, variation, continued editing, and handoff to single or batch video creation. Idempotent replays reconstruct the active source and output asset DTOs from persisted relations.

@@ -1,27 +1,49 @@
 import { randomUUID } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import { resolve, sep } from "node:path";
 import type {
+  MediaAsset,
   ProductImageJob,
   ProductImageMode,
+  ProductImageResult,
 } from "@prisma/client";
 import { Prisma } from "@prisma/client";
-import { getAiProvider } from "@/lib/ai";
+import type { ShuyuResolution } from "@/lib/providers/shuyu-catalog";
 import {
-  ContentReviewRejectedError,
-  classifyContentReviewFailure,
-  reviewMediaOrThrow,
-  reviewTextOrThrow,
-} from "@/lib/content-review";
+  fetchShuyuOutputImage,
+  pollShuyuImageTask,
+  submitShuyuImageTask,
+  type ShuyuImageAspectRatio,
+} from "@/lib/providers/shuyu-image-provider";
 import { db } from "@/lib/db";
 import { recordAIUsage } from "@/lib/services/ai-usage-log-service";
-import { createOwnedMediaAsset } from "@/lib/services/media-asset-service";
+import {
+  createOwnedMediaAsset,
+  type MediaAssetRecord,
+} from "@/lib/services/media-asset-service";
 import { getStorageProvider } from "@/lib/storage";
 
-export const PRODUCT_IMAGE_PROMPT_VERSION = "product-image-v1";
-const DEFAULT_PRODUCT_IMAGE_MODEL = "gpt-image-2";
-const MAX_GENERATED_IMAGE_BYTES = 25 * 1024 * 1024;
-type ImageQuality = "auto" | "low" | "medium" | "high";
+export const PRODUCT_IMAGE_PROMPT_VERSION = "product-image-shuyu-v2";
+const MAX_POLL_ERRORS = 3;
+
+interface ProductImageRuntimeDependencies {
+  submitTask: typeof submitShuyuImageTask;
+  pollTask: typeof pollShuyuImageTask;
+  fetchOutputImage: typeof fetchShuyuOutputImage;
+  getStorageProvider: typeof getStorageProvider;
+  createOwnedAsset: typeof createOwnedMediaAsset;
+}
+
+const defaultRuntimeDependencies: ProductImageRuntimeDependencies = {
+  submitTask: submitShuyuImageTask,
+  pollTask: pollShuyuImageTask,
+  fetchOutputImage: fetchShuyuOutputImage,
+  getStorageProvider,
+  createOwnedAsset: createOwnedMediaAsset,
+};
+let runtimeOverride: Partial<ProductImageRuntimeDependencies> | null = null;
+
+function runtimeDependencies(): ProductImageRuntimeDependencies {
+  return { ...defaultRuntimeDependencies, ...runtimeOverride };
+}
 
 export const PRODUCT_IMAGE_PRESETS = {
   white_studio: {
@@ -52,30 +74,32 @@ export const PRODUCT_IMAGE_PRESETS = {
 } as const;
 
 export type ProductImagePreset = keyof typeof PRODUCT_IMAGE_PRESETS;
-export type ProductImageAspectRatio = "1:1" | "4:5" | "9:16" | "16:9";
-
-const SIZE_BY_ASPECT: Record<ProductImageAspectRatio, "1024x1024" | "1024x1536" | "1536x1024"> = {
-  "1:1": "1024x1024",
-  "4:5": "1024x1536",
-  "9:16": "1024x1536",
-  "16:9": "1536x1024",
-};
+export type ProductImageAspectRatio = Extract<
+  ShuyuImageAspectRatio,
+  "1:1" | "4:5" | "9:16" | "16:9"
+>;
 
 export interface ProductImageRequest {
   userId: string;
   idempotencyKey: string;
-  mode: ProductImageMode;
   prompt: string;
   preset: ProductImagePreset;
   aspectRatio: ProductImageAspectRatio;
-  quality: ImageQuality;
-  sourceImage?: {
-    url: string;
-    mimeType: string;
-    data: Buffer;
-    fileName: string;
-  };
+  resolution: ShuyuResolution;
+  resultCount: number;
+  sourceAsset?: MediaAssetRecord;
 }
+
+type ProductImageResultWithAsset = ProductImageResult & { asset: MediaAsset };
+export type ProductImageJobWithAssets = ProductImageJob & {
+  sourceAsset: MediaAsset | null;
+  outputs: ProductImageResultWithAsset[];
+};
+
+const assetInclude = {
+  sourceAsset: true,
+  outputs: { include: { asset: true }, orderBy: { position: "asc" as const } },
+} as const;
 
 export class ProductImageRequestError extends Error {
   constructor(
@@ -89,24 +113,27 @@ export class ProductImageRequestError extends Error {
 }
 
 export function buildProductImagePrompt(input: {
-  mode: ProductImageMode;
+  hasReference: boolean;
   description: string;
   preset: ProductImagePreset;
   aspectRatio: ProductImageAspectRatio;
+  resultCount: number;
 }): string {
   const preset = PRODUCT_IMAGE_PRESETS[input.preset];
   const shared = [
-    "Create one production-ready commercial product photograph.",
+    "Create a production-ready commercial product photograph.",
     `Art direction: ${preset.instruction}.`,
     `Composition: ${input.aspectRatio} frame, product is the unmistakable focal point, physically plausible perspective and shadows.`,
     `Customer direction: ${input.description.trim()}.`,
+    input.resultCount > 1
+      ? `Return up to ${input.resultCount} distinct, commercially useful variations while preserving the same product identity.`
+      : "Return one commercially useful result.",
     "Do not add claims, badges, prices, watermarks, extra products, people, hands, invented logos, or invented readable text unless explicitly requested.",
     "Avoid warped geometry, duplicate parts, floating objects, broken packaging, illegible labels, and surreal reflections.",
   ];
-
-  if (input.mode === "OPTIMIZE") {
+  if (input.hasReference) {
     shared.unshift(
-      "The uploaded source image is the sole visual source of truth.",
+      "The supplied reference image is the sole visual source of truth.",
       "Preserve the exact product identity, count, geometry, proportions, color, material, packaging, logo, label placement, and visible construction details.",
       "Only improve background, lighting, shadow, crop, framing, and minor photographic cleanup. Never redesign or replace the product.",
     );
@@ -121,24 +148,29 @@ export function buildProductImagePrompt(input: {
 export async function findProductImageJobForUser(
   id: string,
   userId: string,
-): Promise<ProductImageJob | null> {
-  return db.productImageJob.findFirst({ where: { id, userId } });
+): Promise<ProductImageJobWithAssets | null> {
+  return db.productImageJob.findFirst({ where: { id, userId }, include: assetInclude });
 }
 
 export async function listProductImageJobsForUser(
   userId: string,
   take = 24,
-): Promise<ProductImageJob[]> {
+): Promise<ProductImageJobWithAssets[]> {
   return db.productImageJob.findMany({
     where: { userId },
+    include: assetInclude,
     orderBy: { createdAt: "desc" },
     take: Math.max(1, Math.min(take, 50)),
   });
 }
 
+function providerRequestKey(): string {
+  return `product-image-${randomUUID()}`;
+}
+
 export async function createProductImageJob(
   input: ProductImageRequest,
-): Promise<ProductImageJob> {
+): Promise<ProductImageJobWithAssets> {
   const existing = await db.productImageJob.findUnique({
     where: {
       userId_idempotencyKey: {
@@ -146,32 +178,36 @@ export async function createProductImageJob(
         idempotencyKey: input.idempotencyKey,
       },
     },
+    include: assetInclude,
   });
   if (existing) return existing;
-
-  if (input.mode === "OPTIMIZE" && !input.sourceImage) {
-    throw new ProductImageRequestError(
-      "优化产品图需要上传一张原始产品照片。",
-      "SOURCE_IMAGE_REQUIRED",
-    );
+  if (!Number.isInteger(input.resultCount) || input.resultCount < 1 || input.resultCount > 4) {
+    throw new ProductImageRequestError("一次可生成 1–4 张产品图。", "INVALID_RESULT_COUNT");
   }
 
-  const model = process.env.OPENAI_IMAGE_MODEL || DEFAULT_PRODUCT_IMAGE_MODEL;
-  let job: ProductImageJob;
+  const mode: ProductImageMode = input.sourceAsset ? "OPTIMIZE" : "GENERATE";
+  const requestKey = providerRequestKey();
+  let job: ProductImageJobWithAssets;
   try {
     job = await db.productImageJob.create({
       data: {
         userId: input.userId,
         idempotencyKey: input.idempotencyKey,
-        mode: input.mode,
+        providerRequestKey: requestKey,
+        provider: "shuyu",
+        mode,
         prompt: input.prompt,
         preset: input.preset,
         aspectRatio: input.aspectRatio,
-        quality: input.quality,
-        model,
-        sourceImageUrl: input.sourceImage?.url,
-        sourceMimeType: input.sourceImage?.mimeType,
+        quality: input.resolution,
+        resolutionSnapshot: input.resolution,
+        resultCount: input.resultCount,
+        model: "pending-shuyu-image-2-audit",
+        sourceAssetId: input.sourceAsset?.id,
+        sourceImageUrl: input.sourceAsset?.url,
+        sourceMimeType: input.sourceAsset?.mimeType,
       },
+      include: assetInclude,
     });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
@@ -182,6 +218,7 @@ export async function createProductImageJob(
             idempotencyKey: input.idempotencyKey,
           },
         },
+        include: assetInclude,
       });
       if (duplicate) return duplicate;
     }
@@ -196,109 +233,45 @@ export async function createProductImageJob(
     return (await findProductImageJobForUser(job.id, input.userId)) ?? job;
   }
 
-  const startedAt = Date.now();
-  const providerPrompt = buildProductImagePrompt({
-    mode: input.mode,
+  const prompt = buildProductImagePrompt({
+    hasReference: Boolean(input.sourceAsset),
     description: input.prompt,
     preset: input.preset,
     aspectRatio: input.aspectRatio,
+    resultCount: input.resultCount,
   });
-
   try {
-    await reviewTextOrThrow({
-      kind: "generation_prompt",
-      text: providerPrompt,
-      context: { productImageJobId: job.id, ownerId: input.userId },
-    });
-
-    const prefix = `product-images/${input.userId}/${job.id}/${randomUUID()}/`;
-    const ai = getAiProvider();
-    const result = input.mode === "OPTIMIZE"
-      ? await ai.editImages({
-          prompt: providerPrompt,
-          referenceImages: [{
-            data: input.sourceImage!.data,
-            mimeType: input.sourceImage!.mimeType,
-            fileName: input.sourceImage!.fileName,
-          }],
-          size: SIZE_BY_ASPECT[input.aspectRatio],
-          quality: input.quality,
-          storagePrefix: prefix,
-          model,
-        })
-      : await ai.generateImages({
-          prompt: providerPrompt,
-          n: 1,
-          size: SIZE_BY_ASPECT[input.aspectRatio],
-          quality: input.quality,
-          storagePrefix: prefix,
-          model,
+    const submitted = await runtimeDependencies().submitTask({
+      requestKey,
+      prompt,
+      aspectRatio: input.aspectRatio,
+      resolution: input.resolution,
+      inputImages: input.sourceAsset ? [input.sourceAsset.url] : [],
+      onPlanSelected: async (plan) => {
+        await db.productImageJob.update({
+          where: { id: job.id },
+          data: {
+            planId: plan.planId,
+            model: plan.model,
+            modelSnapshot: plan.model,
+            resolutionSnapshot: plan.resolution,
+            pointsSnapshot: plan.points,
+          },
         });
-
-    const outputImageUrl = "url" in result ? result.url : result.urls[0];
-    if (!outputImageUrl) throw new Error("图像 provider 未返回成品地址");
-
-    await reviewMediaOrThrow({
-      kind: "generated_image",
-      mediaUrl: outputImageUrl,
-      mediaType: "image",
-      context: { productImageJobId: job.id, ownerId: input.userId },
-    });
-
-    const generatedMedia = await readGeneratedImage(outputImageUrl);
-    let canonicalOutputUrl = outputImageUrl;
-    let canonicalStorageKey = `product-image-output/${job.id}`;
-    if (!result.fromMock) {
-      const storage = getStorageProvider();
-      if (!storage.isConfigured()) throw new Error("产品图存储暂不可用");
-      const persisted = await storage.uploadBuffer("renders", generatedMedia.bytes, {
-        key: `product-images/${input.userId}/${job.id}/owned-output.${extensionForImageMime(generatedMedia.mimeType)}`,
-        access: "public",
-        contentType: generatedMedia.mimeType,
-        overwrite: false,
-      });
-      canonicalOutputUrl = persisted.url;
-      canonicalStorageKey = persisted.key;
-    }
-    const outputAsset = await createOwnedMediaAsset({
-      userId: input.userId,
-      storageKey: canonicalStorageKey,
-      url: canonicalOutputUrl,
-      mimeType: generatedMedia.mimeType,
-      bytes: generatedMedia.bytes,
-    });
-
-    const updated = await db.productImageJob.update({
-      where: { id: job.id },
-      data: {
-        status: "SUCCEEDED",
-        model: result.modelUsed,
-        outputImageUrl: canonicalOutputUrl,
-        outputAssetId: outputAsset.id,
-        fromMock: result.fromMock,
-        completedAt: new Date(),
-        errorCode: null,
-        errorMessage: null,
       },
     });
-    await recordAIUsage({
-      feature: "product_image_studio",
-      provider: result.fromMock ? "mock" : "openai",
-      model: result.modelUsed,
-      actorUserId: input.userId,
-      inputSummary: `${input.mode}/${input.preset}/${input.aspectRatio}`,
-      outputSummary: `productImageJobId=${job.id}`,
-      promptTokens: result.usage?.inputTokens,
-      completionTokens: result.usage?.outputTokens,
-      totalTokens: result.usage?.totalTokens,
-      promptVersion: PRODUCT_IMAGE_PROMPT_VERSION,
-      status: result.fromMock ? "MOCK" : "SUCCESS",
-      durationMs: Date.now() - startedAt,
+    await db.productImageJob.update({
+      where: { id: job.id },
+      data: {
+        externalTaskId: submitted.externalTaskId,
+        lastProviderStatus: "queued",
+        lastCheckedAt: new Date(),
+      },
     });
-    return updated;
+    return (await findProductImageJobForUser(job.id, input.userId)) ?? job;
   } catch (error) {
     const safe = safeProductImageError(error);
-    const failed = await db.productImageJob.update({
+    await db.productImageJob.update({
       where: { id: job.id },
       data: {
         status: "FAILED",
@@ -307,60 +280,195 @@ export async function createProductImageJob(
         errorMessage: safe.message,
       },
     });
-    await recordAIUsage({
-      feature: "product_image_studio",
-      provider: "openai",
-      model,
-      actorUserId: input.userId,
-      inputSummary: `${input.mode}/${input.preset}/${input.aspectRatio}`,
-      outputSummary: `productImageJobId=${job.id}`,
-      promptVersion: PRODUCT_IMAGE_PROMPT_VERSION,
-      status: "FAILED",
-      errorMessage: safe.code,
-      durationMs: Date.now() - startedAt,
+    await recordProductImageUsage(job.id, input.userId, "FAILED", safe.code);
+    return (await findProductImageJobForUser(job.id, input.userId)) ?? job;
+  }
+}
+
+export async function reconcileProductImageJob(
+  jobId: string,
+  userId?: string,
+): Promise<ProductImageJobWithAssets | null> {
+  const job = userId
+    ? await findProductImageJobForUser(jobId, userId)
+    : await db.productImageJob.findUnique({ where: { id: jobId }, include: assetInclude });
+  if (!job || job.status !== "PROCESSING" || !job.externalTaskId) return job;
+
+  let providerResult: Awaited<ReturnType<typeof pollShuyuImageTask>>;
+  try {
+    providerResult = await runtimeDependencies().pollTask(job.externalTaskId);
+  } catch (error) {
+    const pollErrors = job.pollErrors + 1;
+    await db.productImageJob.update({
+      where: { id: job.id },
+      data: {
+        pollErrors,
+        lastCheckedAt: new Date(),
+        ...(pollErrors >= MAX_POLL_ERRORS
+          ? {
+              status: "FAILED" as const,
+              completedAt: new Date(),
+              errorCode: "POLL_UNAVAILABLE",
+              errorMessage: "暂时无法获取产品图生成进度，请稍后重试。",
+            }
+          : {}),
+      },
     });
-    return failed;
+    return userId
+      ? findProductImageJobForUser(job.id, userId)
+      : db.productImageJob.findUnique({ where: { id: job.id }, include: assetInclude });
   }
-}
 
-async function readGeneratedImage(
-  imageUrl: string,
-): Promise<{ bytes: Buffer; mimeType: string }> {
-  if (imageUrl.startsWith("/")) {
-    const publicRoot = resolve(process.cwd(), "public");
-    const filePath = resolve(publicRoot, `.${imageUrl}`);
-    if (!filePath.startsWith(`${publicRoot}${sep}`)) {
-      throw new Error("生成图片路径不合法");
+  if (providerResult.status === "queued" || providerResult.status === "processing") {
+    await db.productImageJob.update({
+      where: { id: job.id },
+      data: {
+        lastProviderStatus: providerResult.rawStatus,
+        lastCheckedAt: new Date(),
+        pollErrors: 0,
+      },
+    });
+    return userId
+      ? findProductImageJobForUser(job.id, userId)
+      : db.productImageJob.findUnique({ where: { id: job.id }, include: assetInclude });
+  }
+
+  if (providerResult.status === "failed") {
+    await db.productImageJob.updateMany({
+      where: { id: job.id, status: "PROCESSING" },
+      data: {
+        status: "FAILED",
+        lastProviderStatus: providerResult.rawStatus,
+        lastCheckedAt: new Date(),
+        completedAt: new Date(),
+        errorCode: "PROVIDER_FAILED",
+        errorMessage: "Shuyu 产品图生成失败，参考素材与设置已保留。",
+      },
+    });
+    await recordProductImageUsage(job.id, job.userId, "FAILED", "PROVIDER_FAILED");
+    return userId
+      ? findProductImageJobForUser(job.id, userId)
+      : db.productImageJob.findUnique({ where: { id: job.id }, include: assetInclude });
+  }
+
+  const claimedAt = new Date();
+  const claimed = await db.productImageJob.updateMany({
+    where: { id: job.id, status: "PROCESSING", lastCheckedAt: job.lastCheckedAt },
+    data: { lastCheckedAt: claimedAt, lastProviderStatus: providerResult.rawStatus },
+  });
+  if (claimed.count !== 1) {
+    return userId
+      ? findProductImageJobForUser(job.id, userId)
+      : db.productImageJob.findUnique({ where: { id: job.id }, include: assetInclude });
+  }
+
+  try {
+    const existingPositions = new Set(job.outputs.map((output) => output.position));
+    const selectedUrls = providerResult.outputUrls.slice(0, job.resultCount);
+    for (const [position, outputUrl] of selectedUrls.entries()) {
+      if (existingPositions.has(position)) continue;
+      await persistOutput(job, position, outputUrl);
     }
-    const bytes = await readFile(filePath);
-    assertGeneratedImageSize(bytes.byteLength);
-    return {
-      bytes,
-      mimeType: imageUrl.toLowerCase().endsWith(".webp")
-        ? "image/webp"
-        : imageUrl.toLowerCase().endsWith(".png")
-          ? "image/png"
-          : "image/jpeg",
-    };
+    const outputs = await db.productImageResult.findMany({
+      where: { productImageJobId: job.id },
+      include: { asset: true },
+      orderBy: { position: "asc" },
+    });
+    if (outputs.length === 0) throw new Error("Shuyu returned no persistable image output");
+    const primary = outputs[0];
+    await db.productImageJob.updateMany({
+      where: { id: job.id, status: "PROCESSING" },
+      data: {
+        status: "SUCCEEDED",
+        outputImageUrl: primary.outputImageUrl,
+        outputAssetId: primary.assetId,
+        completedAt: new Date(),
+        lastCheckedAt: new Date(),
+        lastProviderStatus: providerResult.rawStatus,
+        pollErrors: 0,
+        errorCode: null,
+        errorMessage: null,
+      },
+    });
+    await recordProductImageUsage(job.id, job.userId, "SUCCESS");
+  } catch (error) {
+    const safe = safeProductImageError(error);
+    await db.productImageJob.updateMany({
+      where: { id: job.id, status: "PROCESSING" },
+      data: {
+        status: "FAILED",
+        completedAt: new Date(),
+        errorCode: safe.code,
+        errorMessage: safe.message,
+      },
+    });
+    await recordProductImageUsage(job.id, job.userId, "FAILED", safe.code);
   }
-
-  const url = new URL(imageUrl);
-  if (url.protocol !== "https:" && url.protocol !== "http:") {
-    throw new Error("生成图片地址不合法");
-  }
-  const response = await fetch(url, { redirect: "error" });
-  if (!response.ok) throw new Error("无法读取生成图片");
-  const mimeType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
-  if (!mimeType?.startsWith("image/")) throw new Error("生成结果不是图片");
-  const bytes = Buffer.from(await response.arrayBuffer());
-  assertGeneratedImageSize(bytes.byteLength);
-  return { bytes, mimeType };
+  return userId
+    ? findProductImageJobForUser(job.id, userId)
+    : db.productImageJob.findUnique({ where: { id: job.id }, include: assetInclude });
 }
 
-function assertGeneratedImageSize(byteSize: number): void {
-  if (byteSize <= 0 || byteSize > MAX_GENERATED_IMAGE_BYTES) {
-    throw new Error("生成图片大小不合法");
+async function persistOutput(
+  job: ProductImageJobWithAssets,
+  position: number,
+  outputUrl: string,
+): Promise<void> {
+  const runtime = runtimeDependencies();
+  const generated = await runtime.fetchOutputImage(outputUrl);
+  const storage = runtime.getStorageProvider();
+  if (!storage.isConfigured()) throw new Error("产品图存储暂不可用");
+  const key = `product-images/${job.userId}/${job.id}/output-${position}-${randomUUID()}.${extensionForImageMime(generated.mimeType)}`;
+  const persisted = await storage.uploadBuffer("renders", generated.bytes, {
+    key,
+    access: "public",
+    contentType: generated.mimeType,
+    overwrite: false,
+  });
+  let assetDurable = false;
+  try {
+    const asset = await runtime.createOwnedAsset({
+      userId: job.userId,
+      storageKey: persisted.key,
+      url: persisted.url,
+      mimeType: generated.mimeType,
+      bytes: generated.bytes,
+    });
+    assetDurable = true;
+    await db.productImageResult.create({
+      data: {
+        productImageJobId: job.id,
+        assetId: asset.id,
+        position,
+        outputImageUrl: asset.url,
+      },
+    });
+  } catch (error) {
+    if (!assetDurable) {
+      await storage.deleteObject("renders", persisted.key).catch(() => undefined);
+    }
+    throw error;
   }
+}
+
+async function recordProductImageUsage(
+  jobId: string,
+  userId: string,
+  status: "SUCCESS" | "FAILED",
+  errorMessage?: string,
+): Promise<void> {
+  const job = await db.productImageJob.findUnique({ where: { id: jobId } });
+  await recordAIUsage({
+    feature: "product_image_studio",
+    provider: "shuyu",
+    model: job?.modelSnapshot ?? job?.model ?? "shuyu-image-2",
+    actorUserId: userId,
+    inputSummary: `${job?.mode ?? "unknown"}/${job?.preset ?? "unknown"}/${job?.aspectRatio ?? "unknown"}`,
+    outputSummary: `productImageJobId=${jobId}`,
+    promptVersion: PRODUCT_IMAGE_PROMPT_VERSION,
+    status,
+    errorMessage,
+  }).catch(() => undefined);
 }
 
 function extensionForImageMime(mimeType: string): "png" | "jpg" | "webp" {
@@ -370,35 +478,38 @@ function extensionForImageMime(mimeType: string): "png" | "jpg" | "webp" {
 }
 
 function safeProductImageError(error: unknown): { code: string; message: string } {
-  if (error instanceof ContentReviewRejectedError) {
-    /// 只有真违规才提示「更换素材/调整描述」；provider 不可达/抖动按可重试处理。
-    if (classifyContentReviewFailure(error) === "content_blocked") {
-      return {
-        code: "CONTENT_REVIEW_REJECTED",
-        message:
-          error.result.userMessage ||
-          "内容安全检查未通过。请更换素材或调整描述后重试。",
-      };
-    }
-    return {
-      code: "CONTENT_REVIEW_UNAVAILABLE",
-      message: "素材安全检查暂时不可用，请稍后重试。",
-    };
-  }
   if (error instanceof ProductImageRequestError) {
     return { code: error.code, message: error.message };
   }
-  console.error("[product-image] provider failure", {
+  console.error("[product-image] Shuyu workflow failure", {
     name: error instanceof Error ? error.name : "UnknownError",
     message: error instanceof Error ? error.message : String(error),
   });
   return {
     code: "PROVIDER_UNAVAILABLE",
-    message: "产品图暂时生成失败，未完成的结果不会进入素材库。请稍后重试。",
+    message: "Shuyu 产品图暂时生成失败，参考素材与设置已保留。请稍后重试。",
   };
 }
 
+export async function pollPendingProductImageJobs(limit = 20): Promise<{
+  polled: number;
+}> {
+  const jobs = await db.productImageJob.findMany({
+    where: { status: "PROCESSING", externalTaskId: { not: null } },
+    orderBy: { lastCheckedAt: "asc" },
+    take: Math.max(1, Math.min(limit, 50)),
+    select: { id: true },
+  });
+  for (const job of jobs) await reconcileProductImageJob(job.id);
+  return { polled: jobs.length };
+}
+
 export const __test__ = {
-  SIZE_BY_ASPECT,
   safeProductImageError,
+  persistOutput,
+  __setRuntimeDependenciesForTests(
+    dependencies: Partial<ProductImageRuntimeDependencies> | null,
+  ) {
+    runtimeOverride = dependencies;
+  },
 };

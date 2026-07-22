@@ -152,8 +152,10 @@ export async function POST(req: NextRequest) {
   /// 客户用户（非内部 staff）只能以自己的 persona 调度。
   /// 内部 staff（OPERATOR/SUPER_ADMIN）可代任意 persona 调用，便于客服 / debug。
   const sessionPersona = session.user.userType;
+  // System authorization is derived only from AdminUser.role. userType is a
+  // customer persona and must never grant access to another owner's order.
   const isInternalStaff =
-    sessionPersona === "OPERATOR" || sessionPersona === "SUPER_ADMIN";
+    session.user.role === "OPERATOR" || session.user.role === "SUPER_ADMIN";
   if (!isInternalStaff && reqParsed.data.userType !== "platform") {
     const expected =
       sessionPersona === "BUSINESS"
@@ -206,8 +208,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const mayOverrideVideoRoute =
-    session.user.role === "OPERATOR" || session.user.role === "SUPER_ADMIN";
+  const mayOverrideVideoRoute = isInternalStaff;
   let videoRouteSnapshot: VideoRouteSnapshot;
   try {
     videoRouteSnapshot = selectVideoRouteSnapshot({

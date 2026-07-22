@@ -192,7 +192,7 @@ export interface ShuyuCreateVideoInput extends ShuyuFetchOptions {
 export interface ShuyuCreateImageInput extends ShuyuFetchOptions {
   providerRequestKey: string;
   prompt: string;
-  aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4";
+  aspectRatio?: "9:16" | "16:9" | "1:1" | "4:3" | "3:4" | "4:5" | "2:3" | "3:2";
   resolution?: "1K" | "2K" | "4K";
   inputImages?: string[];
   planId?: string;
@@ -564,6 +564,19 @@ export async function createShuyuImageTask(
   if (inputImages.length > 5) {
     throw new ProviderSubmissionError(
       "Shuyu image accepts at most 5 HTTPS reference images",
+      { providerId: "shuyu", stage: "preflight", retryable: false },
+    );
+  }
+  if (inputImages.some((value) => {
+    try {
+      const url = new URL(value);
+      return url.protocol !== "https:" || Boolean(url.username || url.password);
+    } catch {
+      return true;
+    }
+  })) {
+    throw new ProviderSubmissionError(
+      "Shuyu image accepts only HTTPS reference images",
       { providerId: "shuyu", stage: "preflight", retryable: false },
     );
   }

@@ -12,7 +12,7 @@ import {
 } from "../src/lib/upload/media-file-validation";
 import { DEFAULT_IMAGE_MODEL, generateImages } from "../src/lib/providers/openai-image";
 
-test("Image 2 is the provider default and mock mode never calls a real provider", async () => {
+test("legacy direct image provider remains mockable for historical non-public callers", async () => {
   assert.equal(DEFAULT_IMAGE_MODEL, "gpt-image-2");
   const result = await generateImages({
     prompt: "a faithful product photo",
@@ -27,10 +27,11 @@ test("Image 2 is the provider default and mock mode never calls a real provider"
 
 test("optimize prompt locks product identity instead of redesigning it", () => {
   const prompt = buildProductImagePrompt({
-    mode: "OPTIMIZE",
+    hasReference: true,
     description: "clean white background and softer shadow",
     preset: "white_studio",
     aspectRatio: "4:5",
+    resultCount: 1,
   });
   assert.match(prompt, /sole visual source of truth/i);
   assert.match(prompt, /exact product identity/i);
@@ -38,15 +39,16 @@ test("optimize prompt locks product identity instead of redesigning it", () => {
   assert.match(prompt, /Never redesign or replace the product/i);
   assert.match(prompt, /warped geometry/i);
   assert.match(prompt, /4:5/);
-  assert.equal(PRODUCT_IMAGE_PROMPT_VERSION, "product-image-v1");
+  assert.equal(PRODUCT_IMAGE_PROMPT_VERSION, "product-image-shuyu-v2");
 });
 
 test("generate prompt forbids invented branding, claims and common product hallucinations", () => {
   const prompt = buildProductImagePrompt({
-    mode: "GENERATE",
+    hasReference: false,
     description: "an unbranded matte black travel mug",
     preset: "social",
     aspectRatio: "9:16",
+    resultCount: 2,
   });
   assert.match(prompt, /do not invent brand identity/i);
   assert.match(prompt, /regulated performance claims/i);
@@ -77,16 +79,15 @@ test("shared upload validator accepts ISO media container for MP4 video and M4A 
   assert.equal(validateMediaMagicBytes(ftyp, "image/png").ok, false);
 });
 
-test("product-image route contract has auth, owner idempotency, rate limit, owned assets and random keys", async () => {
+test("product-image route contract has auth, owner idempotency, rate limit and owned source assets", async () => {
   const route = await readFile("src/app/api/product-images/route.ts", "utf8");
   assert.match(route, /requireAuth\(\)/);
   assert.match(route, /userId_idempotencyKey/);
   assert.match(route, /assertAuthenticatedActionRateLimit/);
-  assert.match(route, /validateFileMagicBytes/);
-  assert.match(route, /createOwnedMediaAsset/);
+  assert.match(route, /resolveOwnedImageAssets/);
   assert.doesNotMatch(route, /reviewMediaOrThrow/);
-  assert.match(route, /randomUUID\(\)/);
-  assert.match(route, /20 \* 1024 \* 1024/);
+  assert.match(route, /sourceAssetId/);
+  assert.match(route, /resultCount/);
 });
 
 test("video handoff loads product images with owner-scoped lookup", async () => {
@@ -108,13 +109,14 @@ test("video handoff loads product images with owner-scoped lookup", async () => 
   assert.match(batch, /initialImages/);
 });
 
-test("customer UI exposes generate, optimize, single-video and batch-video paths", async () => {
+test("customer UI exposes one optional-reference Shuyu workbench and video handoffs", async () => {
   const [ui, copy] = await Promise.all([
     readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
     readFile("src/i18n/platform-copy.ts", "utf8"),
   ]);
-  assert.match(ui, /copy\.optimize/);
-  assert.match(ui, /copy\.generate/);
+  assert.match(ui, /Shuyu Image 2/);
+  assert.match(ui, /sourceAssetId/);
+  assert.match(ui, /resultCount/);
   assert.match(ui, /copy\.useSingle/);
   assert.match(ui, /copy\.useBatch/);
   assert.match(ui, /outputAssetId: string \| null/);
@@ -123,6 +125,6 @@ test("customer UI exposes generate, optimize, single-video and batch-video paths
   assert.match(copy, /生成产品图/);
   assert.match(copy, /用于单条视频/);
   assert.match(copy, /用于批量视频/);
-  assert.match(ui, /AI Generated · Aivora/);
+  assert.match(ui, /download/);
   assert.doesNotMatch(ui, /shuyu_api_key|sk_live_|ARK_API_KEY/);
 });

@@ -239,6 +239,14 @@ test("creation routes resolve ownership before quota, persistence, or provider w
   const orderResolve = dispatchRoute.indexOf("await db.deliveryOrder.findFirst");
   assert.ok(orderResolve >= 0);
   assert.match(dispatchRoute, /createdById: session\.user\.id/);
+  assert.match(
+    dispatchRoute,
+    /const isInternalStaff =\s*session\.user\.role === "OPERATOR" \|\| session\.user\.role === "SUPER_ADMIN"/,
+  );
+  assert.doesNotMatch(
+    dispatchRoute,
+    /const isInternalStaff =\s*sessionPersona ===/,
+  );
   assert.ok(orderResolve < dispatchRoute.indexOf("videoRouteSnapshot = selectVideoRouteSnapshot"));
   assert.ok(orderResolve < dispatchRoute.indexOf("await buildPlan"));
   assert.ok(orderResolve < dispatchRoute.indexOf("await assertQuotaBatchForSession"));

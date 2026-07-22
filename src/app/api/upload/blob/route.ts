@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
@@ -10,6 +11,25 @@ import { validateFileMagicBytes } from "@/lib/upload/media-file-validation";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 const SUPPORTED_UPLOAD_TYPES = /^(video\/(mp4|quicktime|webm|x-m4v)|image\/(png|jpe?g|webp)|audio\/(mpeg|mp4|x-m4a|wav|aac))$/i;
+const SAFE_PREFIX = /^(?!\/)(?!.*(?:^|\/)\.\.?(?:\/|$))[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*$/;
+
+interface UploadBlobDependencies {
+  requireAuth: typeof requireAuth;
+  getStorageProvider: typeof getStorageProvider;
+  validateFileMagicBytes: typeof validateFileMagicBytes;
+  assertQuotaForSession: typeof assertQuotaForSession;
+  createOwnedMediaAsset: typeof createOwnedMediaAsset;
+  randomUUID: () => string;
+}
+
+const defaultDependencies: UploadBlobDependencies = {
+  requireAuth,
+  getStorageProvider,
+  validateFileMagicBytes,
+  assertQuotaForSession,
+  createOwnedMediaAsset,
+  randomUUID,
+};
 
 function validationError(message: string, status = 400) {
   return NextResponse.json(
@@ -52,27 +72,13 @@ function unavailableError(args: {
  *
  * 成功响应返回服务端持有的资产 ID；后续创作请求只提交 ID，不信任外部 URL。
  */
-export async function POST(req: NextRequest) {
-  const guard = await requireAuth();
+export function createUploadBlobPostHandler(
+  overrides: Partial<UploadBlobDependencies> = {},
+) {
+  const dependencies = { ...defaultDependencies, ...overrides };
+  return async function uploadBlobPost(req: NextRequest) {
+  const guard = await dependencies.requireAuth();
   if (!guard.ok) return guard.response;
-
-  let storage: ReturnType<typeof getStorageProvider>;
-  try {
-    storage = getStorageProvider();
-  } catch {
-    return unavailableError({
-      code: "STORAGE_UNAVAILABLE",
-      message: "素材上传服务暂不可用，请联系运营核对部署配置。",
-      action: "contact_support",
-    });
-  }
-  if (!storage.isConfigured()) {
-    return unavailableError({
-      code: "STORAGE_UNAVAILABLE",
-      message: "素材上传服务暂不可用，请联系运营核对部署配置。",
-      action: "contact_support",
-    });
-  }
 
   const form = await req.formData().catch(() => null);
   if (!form) {
@@ -94,7 +100,7 @@ export async function POST(req: NextRequest) {
       415,
     );
   }
-  const magic = await validateFileMagicBytes(file).catch(() => null);
+  const magic = await dependencies.validateFileMagicBytes(file).catch(() => null);
   if (!magic) {
     return validationError("素材文件无法读取，请重新导出原始文件后再试。", 415);
   }
@@ -105,10 +111,32 @@ export async function POST(req: NextRequest) {
     );
   }
   const prefix = (form.get("prefix") as string | null) ?? "uploads";
-  const key = `${prefix}/${Date.now()}-${file.name}`;
+  if (!SAFE_PREFIX.test(prefix)) {
+    return validationError("上传目录不合法，请刷新页面后重试。");
+  }
+  const extension = extensionForMime(file.type);
+  const key = `${prefix}/${dependencies.randomUUID()}${extension}`;
+
+  let storage: ReturnType<typeof getStorageProvider>;
+  try {
+    storage = dependencies.getStorageProvider();
+  } catch {
+    return unavailableError({
+      code: "STORAGE_UNAVAILABLE",
+      message: "素材上传服务暂不可用，请联系运营核对部署配置。",
+      action: "contact_support",
+    });
+  }
+  if (!storage.isConfigured()) {
+    return unavailableError({
+      code: "STORAGE_UNAVAILABLE",
+      message: "素材上传服务暂不可用，请联系运营核对部署配置。",
+      action: "contact_support",
+    });
+  }
 
   try {
-    await assertQuotaForSession(guard.session, "BLOB_UPLOAD_BYTES", file.size);
+    await dependencies.assertQuotaForSession(guard.session, "BLOB_UPLOAD_BYTES", file.size);
   } catch (err) {
     const quotaRes = quotaErrorResponse(err);
     if (quotaRes) return quotaRes;
@@ -132,7 +160,7 @@ export async function POST(req: NextRequest) {
       contentType: file.type || undefined,
     });
     stage = "asset_persistence";
-    const asset = await createOwnedMediaAsset({
+    const asset = await dependencies.createOwnedMediaAsset({
       userId: guard.session.user.id,
       storageKey: result.key,
       url: result.url,
@@ -172,4 +200,26 @@ export async function POST(req: NextRequest) {
           action: "retry",
         });
   }
+  };
 }
+
+function extensionForMime(mimeType: string): string {
+  switch (mimeType.toLowerCase()) {
+    case "image/png": return ".png";
+    case "image/jpeg":
+    case "image/jpg": return ".jpg";
+    case "image/webp": return ".webp";
+    case "video/mp4": return ".mp4";
+    case "video/quicktime": return ".mov";
+    case "video/webm": return ".webm";
+    case "video/x-m4v": return ".m4v";
+    case "audio/mpeg": return ".mp3";
+    case "audio/mp4":
+    case "audio/x-m4a": return ".m4a";
+    case "audio/wav": return ".wav";
+    case "audio/aac": return ".aac";
+    default: return "";
+  }
+}
+
+export const POST = createUploadBlobPostHandler();

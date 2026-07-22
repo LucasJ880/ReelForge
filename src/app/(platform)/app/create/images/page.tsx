@@ -19,17 +19,39 @@ export default async function ProductImagesPage() {
   const copy = getPlatformCopy(await getServerLocale()).images;
   const jobs: ProductImageJobDto[] = rows.map((job) => ({
     id: job.id,
-    mode: job.mode,
     status: job.status,
     prompt: job.prompt,
     preset: job.preset,
     aspectRatio: job.aspectRatio,
-    quality: job.quality,
     model: job.model,
-    sourceImageUrl: job.sourceImageUrl,
+    modelSnapshot: job.modelSnapshot,
+    planId: job.planId,
+    resolutionSnapshot: job.resolutionSnapshot,
+    pointsSnapshot: job.pointsSnapshot,
+    resultCount: job.resultCount,
+    sourceAsset: job.sourceAsset
+      ? {
+          id: job.sourceAsset.id,
+          url: job.sourceAsset.url,
+          mimeType: job.sourceAsset.mimeType,
+          width: job.sourceAsset.width,
+          height: job.sourceAsset.height,
+        }
+      : null,
+    outputs: job.outputs.map((output) => ({
+      id: output.id,
+      position: output.position,
+      url: output.outputImageUrl,
+      asset: {
+        id: output.asset.id,
+        url: output.asset.url,
+        mimeType: output.asset.mimeType,
+        width: output.asset.width,
+        height: output.asset.height,
+      },
+    })),
     outputImageUrl: job.outputImageUrl,
     outputAssetId: job.outputAssetId,
-    fromMock: job.fromMock,
     errorMessage: job.errorMessage,
     createdAt: job.createdAt.toISOString(),
   }));

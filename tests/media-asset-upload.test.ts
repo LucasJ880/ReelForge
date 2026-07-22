@@ -12,8 +12,9 @@ test("upload succeeds without invoking AI review", async () => {
 
   for (const source of [uploadRoute, productImageRoute]) {
     assert.doesNotMatch(source, /reviewMediaOrThrow/);
-    assert.match(source, /createOwnedMediaAsset/);
   }
+  assert.match(uploadRoute, /createOwnedMediaAsset/);
+  assert.match(productImageRoute, /resolveOwnedImageAssets/);
 
   const response = uploadBlobSuccessSchema.parse({
     ok: true,
@@ -102,6 +103,6 @@ test("active creation upload consumers use the server-issued asset ID", async ()
   assert.doesNotMatch(batchWizard, /images: uploaded\.map/);
 
   assert.match(singleStudio, /toOwnedCreationRequest/);
-  assert.match(imageStudio, /asset\?: \{ id: string/);
-  assert.match(imageStudio, /source && !data\.asset\?\.id/);
+  assert.match(imageStudio, /asset\?: AssetView/);
+  assert.match(imageStudio, /sourceAssetId: sourceAsset\?\.id/);
 });

@@ -1,212 +1,205 @@
-import { randomUUID } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { db } from "@/lib/db";
 import {
-  createOwnedMediaAsset,
-  type MediaAssetRecord,
+  MediaAssetNotFoundError,
+  MediaAssetTypeError,
+  resolveOwnedImageAssets,
 } from "@/lib/services/media-asset-service";
 import {
   createProductImageJob,
   listProductImageJobsForUser,
   ProductImageRequestError,
+  type ProductImageJobWithAssets,
 } from "@/lib/services/product-image-service";
 import { assertAuthenticatedActionRateLimit } from "@/lib/services/quota-service";
-import { getStorageProvider } from "@/lib/storage";
-import {
-  SUPPORTED_IMAGE_MIME_TYPES,
-  validateFileMagicBytes,
-} from "@/lib/upload/media-file-validation";
 
-export const maxDuration = 300;
-
-const MAX_SOURCE_BYTES = 20 * 1024 * 1024;
 const requestSchema = z.object({
-  mode: z.enum(["GENERATE", "OPTIMIZE"]),
   prompt: z.string().trim().min(8).max(1200),
   preset: z.enum(["white_studio", "lifestyle", "luxury", "social", "macro"]),
   aspectRatio: z.enum(["1:1", "4:5", "9:16", "16:9"]),
-  quality: z.enum(["low", "medium", "high"]),
-});
+  resolution: z.enum(["1K", "2K", "4K"]),
+  resultCount: z.number().int().min(1).max(4),
+  sourceAssetId: z.string().trim().min(1).max(200).optional(),
+}).strict();
+
+function assetView(asset: ProductImageJobWithAssets["sourceAsset"]) {
+  return asset
+    ? {
+        id: asset.id,
+        url: asset.url,
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+      }
+    : null;
+}
+
+export function productImageJobView(job: ProductImageJobWithAssets) {
+  return {
+    id: job.id,
+    status: job.status,
+    prompt: job.prompt,
+    preset: job.preset,
+    aspectRatio: job.aspectRatio,
+    model: job.model,
+    modelSnapshot: job.modelSnapshot,
+    planId: job.planId,
+    resolutionSnapshot: job.resolutionSnapshot,
+    pointsSnapshot: job.pointsSnapshot,
+    resultCount: job.resultCount,
+    outputImageUrl: job.outputImageUrl,
+    outputAssetId: job.outputAssetId,
+    errorMessage: job.errorMessage,
+    createdAt: job.createdAt,
+    sourceAsset: assetView(job.sourceAsset),
+    outputs: job.outputs.map((output) => ({
+      id: output.id,
+      position: output.position,
+      url: output.outputImageUrl,
+      asset: assetView(output.asset),
+    })),
+  };
+}
+
+interface ProductImagePostDependencies {
+  requireAuth: typeof requireAuth;
+  findExisting(args: {
+    where: { userId_idempotencyKey: { userId: string; idempotencyKey: string } };
+    include: {
+      sourceAsset: true;
+      outputs: { include: { asset: true }; orderBy: { position: "asc" } };
+    };
+  }): Promise<ProductImageJobWithAssets | null>;
+  resolveOwnedImageAssets: typeof resolveOwnedImageAssets;
+  assertAuthenticatedActionRateLimit: typeof assertAuthenticatedActionRateLimit;
+  createProductImageJob: typeof createProductImageJob;
+}
+
+const defaultPostDependencies: ProductImagePostDependencies = {
+  requireAuth,
+  findExisting: (args) => db.productImageJob.findUnique(args),
+  resolveOwnedImageAssets,
+  assertAuthenticatedActionRateLimit,
+  createProductImageJob,
+};
+
+export function createProductImagePostHandler(
+  overrides: Partial<ProductImagePostDependencies> = {},
+) {
+  const dependencies = { ...defaultPostDependencies, ...overrides };
+  return async function productImagePost(req: NextRequest) {
+    const guard = await dependencies.requireAuth();
+    if (!guard.ok) return guard.response;
+    const userId = guard.session.user.id;
+    const idempotencyKey = req.headers.get("idempotency-key")?.trim();
+    if (!idempotencyKey || idempotencyKey.length > 200) {
+      return NextResponse.json(
+        { ok: false, code: "IDEMPOTENCY_KEY_REQUIRED", error: "缺少有效的 Idempotency-Key。" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await dependencies.findExisting({
+      where: { userId_idempotencyKey: { userId, idempotencyKey } },
+      include: {
+        sourceAsset: true,
+        outputs: { include: { asset: true }, orderBy: { position: "asc" } },
+      },
+    });
+    if (existing) {
+      return NextResponse.json({
+        ok: true,
+        duplicate: true,
+        job: productImageJobView(existing as ProductImageJobWithAssets),
+        asset: assetView((existing as ProductImageJobWithAssets).sourceAsset),
+      });
+    }
+
+    const body = await req.json().catch(() => null);
+    const parsed = requestSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { ok: false, code: "INVALID_REQUEST", error: "产品图参数不完整或格式不正确。" },
+        { status: 400 },
+      );
+    }
+
+    let sourceAsset;
+    try {
+      sourceAsset = parsed.data.sourceAssetId
+        ? (await dependencies.resolveOwnedImageAssets({
+            userId,
+            assetIds: [parsed.data.sourceAssetId],
+          }))[0]
+        : undefined;
+    } catch (error) {
+      if (error instanceof MediaAssetNotFoundError || error instanceof MediaAssetTypeError) {
+        return NextResponse.json(
+          { ok: false, code: "RESOURCE_NOT_FOUND", error: "参考图片不存在或无权访问。" },
+          { status: 404 },
+        );
+      }
+      throw error;
+    }
+
+    try {
+      await dependencies.assertAuthenticatedActionRateLimit({ action: "product-image", userId });
+    } catch (error) {
+      const response = quotaErrorResponse(error);
+      if (response) return response;
+      throw error;
+    }
+
+    try {
+      const job = await dependencies.createProductImageJob({
+        userId,
+        idempotencyKey,
+        prompt: parsed.data.prompt,
+        preset: parsed.data.preset,
+        aspectRatio: parsed.data.aspectRatio,
+        resolution: parsed.data.resolution,
+        resultCount: parsed.data.resultCount,
+        sourceAsset,
+      });
+      return NextResponse.json(
+        {
+          ok: true,
+          duplicate: false,
+          job: productImageJobView(job),
+          asset: assetView(job.sourceAsset),
+        },
+        { status: 201 },
+      );
+    } catch (error) {
+      if (error instanceof ProductImageRequestError) {
+        return NextResponse.json(
+          { ok: false, code: error.code, error: error.message },
+          { status: error.status },
+        );
+      }
+      console.error("[product-images:POST]", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: error instanceof Error ? error.message : String(error),
+      });
+      return NextResponse.json(
+        { ok: false, code: "PRODUCT_IMAGE_FAILED", error: "产品图任务提交失败，请稍后重试。" },
+        { status: 503 },
+      );
+    }
+  };
+}
 
 export async function GET() {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
   const jobs = await listProductImageJobsForUser(guard.session.user.id);
-  return NextResponse.json({ ok: true, jobs });
+  return NextResponse.json({ ok: true, jobs: jobs.map(productImageJobView) });
 }
 
+const productImagePost = createProductImagePostHandler();
 export async function POST(req: NextRequest) {
-  const guard = await requireAuth();
-  if (!guard.ok) return guard.response;
-  const userId = guard.session.user.id;
-  const idempotencyKey = req.headers.get("idempotency-key")?.trim();
-  if (!idempotencyKey || idempotencyKey.length > 200) {
-    return NextResponse.json(
-      { ok: false, code: "IDEMPOTENCY_KEY_REQUIRED", error: "缺少有效的 Idempotency-Key。" },
-      { status: 400 },
-    );
-  }
-
-  const existing = await db.productImageJob.findUnique({
-    where: { userId_idempotencyKey: { userId, idempotencyKey } },
-  });
-  if (existing) {
-    return NextResponse.json({ ok: true, duplicate: true, job: existing });
-  }
-
-  const form = await req.formData().catch(() => null);
-  if (!form) {
-    return NextResponse.json(
-      { ok: false, code: "INVALID_FORM", error: "无法读取提交内容，请刷新后重试。" },
-      { status: 400 },
-    );
-  }
-  const parsed = requestSchema.safeParse({
-    mode: form.get("mode"),
-    prompt: form.get("prompt"),
-    preset: form.get("preset"),
-    aspectRatio: form.get("aspectRatio"),
-    quality: form.get("quality"),
-  });
-  if (!parsed.success) {
-    return NextResponse.json(
-      { ok: false, code: "INVALID_REQUEST", error: "产品图参数不完整或格式不正确。" },
-      { status: 400 },
-    );
-  }
-
-  const source = form.get("sourceImage");
-  if (parsed.data.mode === "OPTIMIZE" && !(source instanceof File)) {
-    return NextResponse.json(
-      { ok: false, code: "SOURCE_IMAGE_REQUIRED", error: "优化产品图需要上传一张原始产品照片。" },
-      { status: 400 },
-    );
-  }
-  if (source instanceof File) {
-    if (source.size > MAX_SOURCE_BYTES) {
-      return NextResponse.json(
-        { ok: false, code: "SOURCE_TOO_LARGE", error: "原图不能超过 20MB，请压缩后重试。" },
-        { status: 413 },
-      );
-    }
-    if (!SUPPORTED_IMAGE_MIME_TYPES.has(source.type.toLowerCase())) {
-      return NextResponse.json(
-        { ok: false, code: "UNSUPPORTED_IMAGE", error: "只支持 PNG、JPG 和 WebP 原图。" },
-        { status: 415 },
-      );
-    }
-    const magic = await validateFileMagicBytes(source);
-    if (!magic.ok) {
-      return NextResponse.json(
-        { ok: false, code: "IMAGE_SIGNATURE_MISMATCH", error: `原图文件校验失败：${magic.reason}。` },
-        { status: 415 },
-      );
-    }
-  }
-
-  try {
-    await assertAuthenticatedActionRateLimit({ action: "product-image", userId });
-  } catch (error) {
-    const response = quotaErrorResponse(error);
-    if (response) return response;
-    throw error;
-  }
-
-  const storage = getStorageProvider();
-  let uploaded: { url: string; key: string; data: Buffer; mimeType: string; fileName: string } | undefined;
-  let sourceAsset: MediaAssetRecord | undefined;
-  try {
-    if (source instanceof File) {
-      if (!storage.isConfigured()) {
-        throw new ProductImageRequestError(
-          "产品图存储暂不可用，请联系运营后重试。",
-          "STORAGE_UNAVAILABLE",
-          503,
-        );
-      }
-      const data = Buffer.from(await source.arrayBuffer());
-      const ext = extensionForMime(source.type);
-      const result = await storage.uploadBuffer("uploads", data, {
-        key: `product-images/${userId}/${randomUUID()}/source.${ext}`,
-        access: "public",
-        contentType: source.type,
-        overwrite: false,
-      });
-      uploaded = {
-        url: result.url,
-        key: result.key,
-        data,
-        mimeType: source.type,
-        fileName: `source.${ext}`,
-      };
-      sourceAsset = await createOwnedMediaAsset({
-        userId,
-        storageKey: result.key,
-        url: result.url,
-        mimeType: source.type,
-        bytes: data,
-      });
-    }
-
-    const job = await createProductImageJob({
-      userId,
-      idempotencyKey,
-      ...parsed.data,
-      sourceImage: uploaded
-        ? {
-            url: uploaded.url,
-            data: uploaded.data,
-            mimeType: uploaded.mimeType,
-            fileName: uploaded.fileName,
-          }
-        : undefined,
-    });
-
-    // A concurrent idempotent request may already own the canonical job. This
-    // upload still remains a durable owned asset that the caller can reuse.
-    return NextResponse.json(
-      {
-        ok: true,
-        duplicate: false,
-        job,
-        asset: sourceAsset
-          ? {
-              id: sourceAsset.id,
-              url: sourceAsset.url,
-              mimeType: sourceAsset.mimeType,
-              width: sourceAsset.width,
-              height: sourceAsset.height,
-            }
-          : null,
-      },
-      { status: 201 },
-    );
-  } catch (error) {
-    if (uploaded && !sourceAsset) {
-      await storage.deleteObject("uploads", uploaded.key).catch(() => undefined);
-    }
-    if (error instanceof ProductImageRequestError) {
-      return NextResponse.json(
-        { ok: false, code: error.code, error: error.message },
-        { status: error.status },
-      );
-    }
-    console.error("[product-images:POST]", {
-      name: error instanceof Error ? error.name : "UnknownError",
-      message: error instanceof Error ? error.message : String(error),
-    });
-    return NextResponse.json(
-      { ok: false, code: "PRODUCT_IMAGE_FAILED", error: "产品图处理失败，请稍后重试。" },
-      { status: 503 },
-    );
-  }
-}
-
-function extensionForMime(mime: string): "png" | "jpg" | "webp" {
-  if (mime === "image/png") return "png";
-  if (mime === "image/webp") return "webp";
-  return "jpg";
+  return productImagePost(req);
 }

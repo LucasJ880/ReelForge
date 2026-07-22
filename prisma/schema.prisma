@@ -98,7 +98,9 @@ model MediaAsset {
 
   user      AdminUser  @relation("MediaAssetOwner", fields: [userId], references: [id], onDelete: Cascade)
   workspace Workspace? @relation("MediaAssetWorkspace", fields: [workspaceId], references: [id], onDelete: SetNull)
-  productImageOutput ProductImageJob? @relation("ProductImageOutputAsset")
+  productImageOutput     ProductImageJob?    @relation("ProductImageOutputAsset")
+  productImageSourceJobs ProductImageJob[]   @relation("ProductImageSourceAsset")
+  productImageResults    ProductImageResult[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@index([workspaceId, createdAt(sort: Desc)])
@@ -1084,7 +1086,7 @@ enum ProductImageStatus {
   FAILED
 }
 
-/// Customer-facing GPT Image workflow. The request snapshot, source/output
+/// Customer-facing audited Shuyu Image 2 workflow. The request snapshot, source/output
 /// assets and model attribution are retained so support, moderation and cost
 /// reconciliation do not depend on transient browser state.
 model ProductImageJob {
@@ -1103,9 +1105,25 @@ model ProductImageJob {
 
   sourceImageUrl String?
   sourceMimeType String?
+  sourceAssetId  String?
+  sourceAsset    MediaAsset? @relation("ProductImageSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
   outputImageUrl String?
   outputAssetId  String?     @unique
   outputAsset    MediaAsset? @relation("ProductImageOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
+  outputs        ProductImageResult[]
+
+  provider           String?
+  providerRequestKey String? @unique
+  externalTaskId     String? @unique
+  planId             String?
+  modelSnapshot      String?
+  resolutionSnapshot String?
+  pointsSnapshot     Int?
+  finalPoints        Int?
+  resultCount        Int     @default(1)
+  lastProviderStatus String?
+  lastCheckedAt      DateTime?
+  pollErrors         Int     @default(0)
   fromMock       Boolean @default(false)
   retryCount     Int     @default(0)
 
@@ -1119,6 +1137,21 @@ model ProductImageJob {
   @@unique([userId, idempotencyKey])
   @@index([userId, createdAt(sort: Desc)])
   @@index([status, createdAt])
+  @@index([status, lastCheckedAt])
+}
+
+model ProductImageResult {
+  id             String          @id @default(cuid())
+  productImageJobId String
+  productImageJob ProductImageJob @relation(fields: [productImageJobId], references: [id], onDelete: Cascade)
+  assetId        String          @unique
+  asset          MediaAsset      @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  position       Int
+  outputImageUrl String
+  createdAt      DateTime        @default(now())
+
+  @@unique([productImageJobId, position])
+  @@index([productImageJobId])
 }
 
 // =========================================================

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
 import { pollRunningJobs } from "@/lib/services/video-service";
+import { pollPendingProductImageJobs } from "@/lib/services/product-image-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 
 /**
@@ -16,7 +17,10 @@ export async function GET(req: NextRequest) {
   if (authFailure) return authFailure;
   const heartbeat = startSchedulerHeartbeat("poll-videos");
   try {
-    const result = await pollRunningJobs(30);
+    const [result, imageResult] = await Promise.all([
+      pollRunningJobs(30),
+      pollPendingProductImageJobs(20),
+    ]);
     let sweepFailed = false;
     const sweep = await sweepStuckTasks().catch((err) => {
       sweepFailed = true;
@@ -27,10 +31,11 @@ export async function GET(req: NextRequest) {
       sweepFailed ? "degraded" : "ok",
       {
         polled: result.polled,
+        imagePolled: imageResult.polled,
         sweepCompleted: !sweepFailed,
       },
     );
-    return NextResponse.json({ ...result, sweep, heartbeat: heartbeatEvent });
+    return NextResponse.json({ ...result, imagePolled: imageResult.polled, sweep, heartbeat: heartbeatEvent });
   } catch (err) {
     const heartbeatEvent = heartbeat.finish("error", {
       polled: 0,

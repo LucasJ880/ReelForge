@@ -29,6 +29,26 @@ test("single video creation exposes the full Shuyu workflow and four-frame appro
   assert.match(page, /showInternalVideoRoutes=\{false\}/);
 });
 
+test("the studio survives refresh: resumes the active storyboard and replays idempotency keys", async () => {
+  const [studio, panel] = await Promise.all([
+    readFile(STUDIO, "utf8"),
+    readFile(STORYBOARD, "utf8"),
+  ]);
+
+  // Mount-time resume of the durable server-side run.
+  assert.match(studio, /fetch\("\/api\/video-generation\/storyboards", \{ cache: "no-store" \}\)/);
+  assert.match(studio, /interactedRef/);
+  // Refresh + resubmit must replay the same idempotency key, never double-bill.
+  assert.match(studio, /aivora\.storyboard-attempt\.v1/);
+  assert.match(studio, /aivora\.dispatch-attempt\.v1/);
+  assert.match(studio, /loadStoredAttempt/);
+  // Deliberately exiting a storyboard must not resurrect it on the next visit.
+  assert.match(studio, /markStoryboardRunDismissed/);
+  // A frame with an unresolved billing acknowledgement stays locked in the UI.
+  assert.match(panel, /canRegenerate/);
+  assert.match(panel, /regenBlocked/);
+});
+
 test("creation uploads skip AI classification while retaining server-side security upload", async () => {
   const [studio, uploadAssets, uploadRoute] = await Promise.all([
     readFile(STUDIO, "utf8"),

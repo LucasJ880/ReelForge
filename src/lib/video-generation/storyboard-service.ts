@@ -79,6 +79,20 @@ export interface StoryboardRunView {
     imageUrl: string | null;
     errorCode: string | null;
     errorMessage: string | null;
+    canRegenerate: boolean;
+  }>;
+}
+
+export interface ResumableStoryboardContext {
+  prompt: string;
+  durationSec: number;
+  aspectRatio: string;
+  sourceAssets: Array<{
+    id: string;
+    url: string;
+    mimeType: string;
+    width: number | null;
+    height: number | null;
   }>;
 }
 
@@ -175,6 +189,7 @@ export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
       imageUrl: frame.outputAsset?.url ?? frame.outputUrl ?? null,
       errorCode: frame.errorCode ?? null,
       errorMessage: frame.errorMessage ?? null,
+      canRegenerate: canRegenerateStoryboardFrame(frame),
     }));
   const allReady =
     frames.length === storyboardFrameCountForDuration(run.durationSec) &&
@@ -430,24 +445,20 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       : ProviderSubmissionState.REJECTED;
     const code = unknown ? "SUBMISSION_ACK_UNKNOWN" : "PROVIDER_REJECTED";
     const message = unknown
-      ? "故事板任务可能已被接收。为避免重复计费，系统已停止重提，请联系支持核对。"
+      ? "该分镜的任务可能已被接收。为避免重复计费，系统已停止重提这一帧，请联系支持核对；其余分镜会继续生成。"
       : "Shuyu 明确拒绝了该分镜任务，可重新生成这一帧。";
-    await db.$transaction([
-      db.storyboardFrame.updateMany({
-        where: { id: frame.id, submissionState: ProviderSubmissionState.SUBMITTING },
-        data: {
-          status: StoryboardFrameStatus.FAILED,
-          submissionState: state,
-          completedAt: new Date(),
-          errorCode: code,
-          errorMessage: message,
-        },
-      }),
-      db.storyboardRun.updateMany({
-        where: { id: frame.storyboardRunId, status: StoryboardRunStatus.GENERATING },
-        data: { status: StoryboardRunStatus.FAILED, errorCode: code, errorMessage: message },
-      }),
-    ]);
+    // Only this frame fails here. The run settles in advanceRun once every
+    // sibling reaches a terminal state, so in-flight paid frames still finish.
+    await db.storyboardFrame.updateMany({
+      where: { id: frame.id, submissionState: ProviderSubmissionState.SUBMITTING },
+      data: {
+        status: StoryboardFrameStatus.FAILED,
+        submissionState: state,
+        completedAt: new Date(),
+        errorCode: code,
+        errorMessage: message,
+      },
+    });
   }
 }
 
@@ -528,29 +539,25 @@ async function reconcileStoryboardFrame(frameId: string): Promise<void> {
       : refunded
         ? "故事板分镜生成失败，合作方已确认退款，可重新生成这一帧。"
         : "故事板分镜生成失败，但退款状态尚未确认。为避免重复计费，请联系支持核对。";
-    await db.$transaction([
-      db.storyboardFrame.updateMany({
-        where: { id: frame.id, leaseOwner, leaseExpiresAt: { gt: now } },
-        data: {
-          status: StoryboardFrameStatus.FAILED,
-          lastProviderStatus: result.rawStatus,
-          lastCheckedAt: now,
-          completedAt: now,
-          errorCode: refundError
-            ? "PROVIDER_REFUND_ERROR"
-            : refunded
-              ? "PROVIDER_REFUNDED"
-              : "PROVIDER_FAILED",
-          errorMessage: message,
-          leaseOwner: null,
-          leaseExpiresAt: null,
-        },
-      }),
-      db.storyboardRun.updateMany({
-        where: { id: frame.storyboardRunId },
-        data: { status: StoryboardRunStatus.FAILED, errorCode: "FRAME_FAILED", errorMessage: message },
-      }),
-    ]);
+    // Frame-level failure only; advanceRun settles the run after every
+    // sibling reaches a terminal state so completed frames stay harvestable.
+    await db.storyboardFrame.updateMany({
+      where: { id: frame.id, leaseOwner, leaseExpiresAt: { gt: now } },
+      data: {
+        status: StoryboardFrameStatus.FAILED,
+        lastProviderStatus: result.rawStatus,
+        lastCheckedAt: now,
+        completedAt: now,
+        errorCode: refundError
+          ? "PROVIDER_REFUND_ERROR"
+          : refunded
+            ? "PROVIDER_REFUNDED"
+            : "PROVIDER_FAILED",
+        errorMessage: message,
+        leaseOwner: null,
+        leaseExpiresAt: null,
+      },
+    });
     return;
   }
 
@@ -622,10 +629,31 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
   let run = await findRun(runId);
   if (!run) throw new StoryboardRequestError("故事板不存在。", "NOT_FOUND", 404);
   const expected = storyboardFrameCountForDuration(run.durationSec);
-  if (run.frames.some((frame) => frame.status === StoryboardFrameStatus.FAILED)) {
+  const settled =
+    run.frames.length === expected &&
+    run.frames.every((frame) =>
+      frame.status === StoryboardFrameStatus.SUCCEEDED ||
+      frame.status === StoryboardFrameStatus.FAILED,
+    );
+  const anyFailed = run.frames.some((frame) => frame.status === StoryboardFrameStatus.FAILED);
+  if (anyFailed && !settled) {
+    // A frame failed while siblings are still queued or generating. Keep the
+    // run GENERATING so the scheduler and UI polling continue to drive the
+    // remaining frames; paid in-flight work must never be abandoned. This also
+    // heals runs that older code marked FAILED mid-flight.
+    await db.storyboardRun.updateMany({
+      where: { id: run.id, status: StoryboardRunStatus.FAILED },
+      data: { status: StoryboardRunStatus.GENERATING, errorCode: null, errorMessage: null },
+    });
+  }
+  if (anyFailed && settled) {
     await db.storyboardRun.updateMany({
       where: { id: run.id, status: { not: StoryboardRunStatus.FAILED } },
-      data: { status: StoryboardRunStatus.FAILED, errorCode: "FRAME_FAILED", errorMessage: "部分故事板分镜生成失败。" },
+      data: {
+        status: StoryboardRunStatus.FAILED,
+        errorCode: "FRAME_FAILED",
+        errorMessage: "部分分镜需要处理；已完成的分镜已保留，可在故事板中单独处理失败的分镜。",
+      },
     });
     return (await findRun(run.id))!;
   }
@@ -663,7 +691,17 @@ export async function reconcileStoryboardRun(
       frame.submissionState === ProviderSubmissionState.ACCEPTED &&
       frame.externalTaskId
     ) {
-      await reconcileStoryboardFrame(frame.id);
+      try {
+        await reconcileStoryboardFrame(frame.id);
+      } catch (error) {
+        // One frame's harvest failure (storage, output fetch) must not block
+        // reconciling siblings or reading the run; the frame retries on the
+        // next poll once its lease expires.
+        console.error("[storyboards] frame reconcile failed", {
+          frameId: frame.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
   return advanceRun(run.id);
@@ -674,6 +712,66 @@ export async function getStoryboardRunForUser(
   userId: string,
 ): Promise<StoryboardRunView> {
   return storyboardRunView(await reconcileStoryboardRun(runId, userId));
+}
+
+const STORYBOARD_RESUME_WINDOW_MS = 24 * 60 * 60_000;
+
+/**
+ * The most recent single-video storyboard the user can pick back up after a
+ * refresh or accidental navigation: not yet attached to a video, and touched
+ * within the resume window. Reconciles on read so a run that kept generating
+ * server-side comes back with fresh frame states.
+ */
+export async function findResumableStoryboardRunForUser(userId: string): Promise<{
+  run: StoryboardRunView;
+  context: ResumableStoryboardContext;
+} | null> {
+  const candidate = await db.storyboardRun.findFirst({
+    where: {
+      userId,
+      purpose: "single-video-storyboard",
+      videoBriefId: null,
+      videoJobId: null,
+      status: {
+        in: [
+          StoryboardRunStatus.GENERATING,
+          StoryboardRunStatus.AWAITING_APPROVAL,
+          StoryboardRunStatus.APPROVED,
+          StoryboardRunStatus.FAILED,
+        ],
+      },
+      updatedAt: { gte: new Date(Date.now() - STORYBOARD_RESUME_WINDOW_MS) },
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true },
+  });
+  if (!candidate) return null;
+  const run = await reconcileStoryboardRun(candidate.id, userId);
+  const assets = run.inputAssetIds.length
+    ? await db.mediaAsset.findMany({
+        where: { id: { in: run.inputAssetIds }, userId },
+        select: { id: true, url: true, mimeType: true, width: true, height: true },
+      })
+    : [];
+  const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
+  return {
+    run: storyboardRunView(run),
+    context: {
+      prompt: run.sourcePrompt,
+      durationSec: run.durationSec,
+      aspectRatio: run.aspectRatio,
+      sourceAssets: run.inputAssetIds
+        .map((assetId) => assetsById.get(assetId))
+        .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset))
+        .map((asset) => ({
+          id: asset.id,
+          url: asset.url,
+          mimeType: asset.mimeType,
+          width: asset.width,
+          height: asset.height,
+        })),
+    },
+  };
 }
 
 export async function regenerateStoryboardFrame(input: {

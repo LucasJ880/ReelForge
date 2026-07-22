@@ -59,6 +59,9 @@ const MAX_PRODUCT_IMAGES = 9;
 const MAX_ATTACHMENTS = 20;
 const GUIDE_STORAGE_KEY = "aivora.streamlined-video-guide.v1";
 const ONBOARDING_STORAGE_KEY = "aivora.create-onboarding.v1";
+const STORYBOARD_ATTEMPT_STORAGE_KEY = "aivora.storyboard-attempt.v1";
+const DISPATCH_ATTEMPT_STORAGE_KEY = "aivora.dispatch-attempt.v1";
+const DISMISSED_STORYBOARDS_STORAGE_KEY = "aivora.dismissed-storyboards.v1";
 const DURATIONS = [15, 30, 60] as const;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
 const QUALITY_TEMPLATE_IDS = [
@@ -72,6 +75,27 @@ const QUALITY_TEMPLATE_IDS = [
 type CreationMode = "quick" | "advanced";
 type ReferenceMode = "all" | "product_only";
 type BusyState = "preview" | "storyboard" | "dispatch" | null;
+
+interface StoredAttempt {
+  fingerprint: string;
+  key: string;
+}
+
+interface ResumableStoryboardPayload {
+  run: StoryboardRunView;
+  context: {
+    prompt: string;
+    durationSec: number;
+    aspectRatio: string;
+    sourceAssets: Array<{
+      id: string;
+      url: string;
+      mimeType: string;
+      width: number | null;
+      height: number | null;
+    }>;
+  };
+}
 
 const ZH_COPY = {
   kicker: "单条视频创作",
@@ -331,8 +355,10 @@ export function StreamlinedVideoStudio({
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
-  const storyboardAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
-  const dispatchAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
+  const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
+  const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
+  /// 用户一旦改动任何创作输入，挂载时的静默恢复就必须放弃，避免覆盖新意图。
+  const interactedRef = useRef(false);
 
   useEffect(() => {
     try {
@@ -346,6 +372,83 @@ export function StreamlinedVideoStudio({
       setOnboardingOpen(forceOnboarding);
     }
   }, [forceOnboarding]);
+
+  useEffect(() => {
+    /// 幂等键写入 sessionStorage：刷新后重提同一内容会命中服务端幂等回放，
+    /// 而不是创建重复计费的新任务。
+    storyboardAttemptRef.current = loadStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY);
+    dispatchAttemptRef.current = loadStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY);
+  }, []);
+
+  useEffect(() => {
+    // Arriving from the Product Image Studio expresses intent to start a new
+    // creation, so the silent resume stays out of the way.
+    if (initialProductAssets.length > 0) return;
+    let cancelled = false;
+    const resume = async () => {
+      let payload:
+        | { ok: true; resume: ResumableStoryboardPayload | null }
+        | { ok: false }
+        | null = null;
+      try {
+        const response = await fetch("/api/video-generation/storyboards", { cache: "no-store" });
+        if (!response.ok) return;
+        payload = await response.json().catch(() => null);
+      } catch {
+        return; // Resume is best effort; creating from scratch still works.
+      }
+      if (cancelled || !payload?.ok || !payload.resume) return;
+      if (interactedRef.current) return;
+      const { run, context } = payload.resume;
+      if (loadDismissedStoryboardRunIds().includes(run.id)) return;
+      setStoryboard(run);
+      setRawPrompt(context.prompt);
+      if ((DURATIONS as readonly number[]).includes(context.durationSec)) {
+        setSelectedDuration(context.durationSec as 15 | 30 | 60);
+      }
+      if (ASPECT_RATIOS.includes(context.aspectRatio as AspectRatio)) {
+        setSelectedAspectRatio(context.aspectRatio as AspectRatio);
+      }
+      if (context.sourceAssets.length > 0) {
+        setProductAssets(context.sourceAssets.slice(0, MAX_PRODUCT_IMAGES).map((asset, index) => ({
+          id: asset.id,
+          assetId: asset.id,
+          type: "IMAGE" as const,
+          inferredRole: "product_image" as const,
+          roleConfidence: 1,
+          url: asset.url,
+          mimeType: asset.mimeType,
+          fileName: `product-image-${index + 1}`,
+          width: asset.width,
+          height: asset.height,
+          durationSeconds: null,
+          userAssignedRole: "product_image" as const,
+          suggestedUse: english
+            ? "Restored from your storyboard in progress."
+            : "已从进行中的故事板任务恢复。",
+          warnings: [],
+        })));
+      }
+      if (run.status === "FAILED") {
+        setError(run.errorMessage ?? copy.storyboardFailed);
+      }
+      toast.success(
+        english
+          ? "Resumed your storyboard in progress."
+          : "已恢复进行中的故事板任务。",
+      );
+      requestAnimationFrame(() => {
+        document.getElementById("single-video-storyboard")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    };
+    void resume();
+    return () => {
+      cancelled = true;
+    };
+  }, [copy.storyboardFailed, english, initialProductAssets.length]);
 
   const selectedBrandPackage = brandPackages.find(
     (brandPackage) => brandPackage.id === selectedBrandPackageId,
@@ -407,11 +510,14 @@ export function StreamlinedVideoStudio({
   }, [brandPackageAssets, productAssets, referenceAssets, referenceMode]);
 
   const invalidatePlan = useCallback(() => {
+    interactedRef.current = true;
     setPlan(null);
     setPlanRequestKey(null);
     setStoryboard(null);
     storyboardAttemptRef.current = null;
     dispatchAttemptRef.current = null;
+    persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
+    persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
     setError(null);
   }, []);
 
@@ -504,6 +610,7 @@ export function StreamlinedVideoStudio({
 
   async function uploadProductImages(files: File[]) {
     if (busy !== null || uploadingTarget !== null || storyboard) return;
+    interactedRef.current = true;
     const remaining = Math.min(
       MAX_PRODUCT_IMAGES - productAssets.length,
       MAX_ATTACHMENTS - productAssets.length - referenceAssets.length,
@@ -538,6 +645,7 @@ export function StreamlinedVideoStudio({
 
   async function uploadReferenceAssets(files: File[]) {
     if (busy !== null || uploadingTarget !== null || storyboard) return;
+    interactedRef.current = true;
     const reservedProductSlot = productAssets.length === 0 ? 1 : 0;
     const remaining = MAX_ATTACHMENTS
       - productAssets.length
@@ -709,6 +817,7 @@ export function StreamlinedVideoStudio({
       if (storyboardAttemptRef.current?.fingerprint !== fingerprint) {
         storyboardAttemptRef.current = { fingerprint, key: crypto.randomUUID() };
       }
+      persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, storyboardAttemptRef.current);
       const response = await fetch("/api/video-generation/storyboards", {
         method: "POST",
         headers: {
@@ -788,9 +897,13 @@ export function StreamlinedVideoStudio({
 
   function editStoryboardDirection() {
     if (!storyboard || window.confirm(copy.editStoryboardConfirm)) {
+      interactedRef.current = true;
+      if (storyboard) markStoryboardRunDismissed(storyboard.id);
       setStoryboard(null);
       storyboardAttemptRef.current = null;
       dispatchAttemptRef.current = null;
+      persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
+      persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
       setError(null);
       requestAnimationFrame(() => {
         document.getElementById("streamlined-video-prompt")?.scrollIntoView({
@@ -847,6 +960,7 @@ export function StreamlinedVideoStudio({
           key: crypto.randomUUID(),
         };
       }
+      persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, dispatchAttemptRef.current);
 
       const response = await fetch("/api/video-generation/dispatch", {
         method: "POST",
@@ -859,13 +973,19 @@ export function StreamlinedVideoStudio({
       const payload = await response.json().catch(() => null) as CustomerVideoDispatchResponse | null;
       if (!payload) throw new Error(copy.dispatchFailed);
       if (!payload.ok) {
-        if (shouldResetDispatchAttempt(payload)) dispatchAttemptRef.current = null;
+        if (shouldResetDispatchAttempt(payload)) {
+          dispatchAttemptRef.current = null;
+          persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
+        }
         setError(customerDirectDispatchMessage(payload, locale));
         return;
       }
       if (!response.ok) throw new Error(copy.dispatchFailed);
 
       dispatchAttemptRef.current = null;
+      persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
+      persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
+      if (storyboard) markStoryboardRunDismissed(storyboard.id);
       router.push(payload.nextUrl ?? "/app/library");
       router.refresh();
     } catch {
@@ -1652,4 +1772,45 @@ function safeUploadError(error: unknown, fallback: string): string {
   if (!message || message.length > 100) return fallback;
   if (/(api|key|token|provider|seedance|byteplus|blob|stack|json|https?:\/\/)/i.test(message)) return fallback;
   return message;
+}
+
+function loadStoredAttempt(storageKey: string): StoredAttempt | null {
+  try {
+    const raw = sessionStorage.getItem(storageKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StoredAttempt> | null;
+    if (typeof parsed?.fingerprint === "string" && typeof parsed?.key === "string") {
+      return { fingerprint: parsed.fingerprint, key: parsed.key };
+    }
+  } catch {
+    // Session storage unavailable: the attempt simply restarts with a new key.
+  }
+  return null;
+}
+
+function persistStoredAttempt(storageKey: string, attempt: StoredAttempt | null): void {
+  try {
+    if (attempt) sessionStorage.setItem(storageKey, JSON.stringify(attempt));
+    else sessionStorage.removeItem(storageKey);
+  } catch {
+    // Session storage unavailable: idempotent replay still works within this visit.
+  }
+}
+
+function loadDismissedStoryboardRunIds(): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(DISMISSED_STORYBOARDS_STORAGE_KEY) ?? "[]");
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function markStoryboardRunDismissed(runId: string): void {
+  try {
+    const ids = [runId, ...loadDismissedStoryboardRunIds().filter((id) => id !== runId)].slice(0, 20);
+    localStorage.setItem(DISMISSED_STORYBOARDS_STORAGE_KEY, JSON.stringify(ids));
+  } catch {
+    // Storage unavailable: the run may resume again on the next visit.
+  }
 }

@@ -16,6 +16,8 @@ const DEFAULT_MAX_OUTPUT_BYTES = 25 * 1024 * 1024;
 const DEFAULT_OUTPUT_HOSTS = [
   "shuyu-tiktok-tool.pages.dev",
   "ark-acg-cn-beijing.tos-cn-beijing.volces.com",
+  // Shuyu 2026-07 起把图片产出迁到了这个 Cloudflare R2 公共桶（真机任务实测）。
+  "pub-e3efa798bda34fd0a8bf550fca3b297f.r2.dev",
 ] as const;
 const MOCK_OUTPUT_PREFIX = "https://shuyu-tiktok-tool.pages.dev/mock-output/";
 const MOCK_IMAGE_BYTES = Buffer.from(

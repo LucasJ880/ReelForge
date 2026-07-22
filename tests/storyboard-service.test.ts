@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { db } from "../src/lib/db";
 import { parseStoryboardArtifact } from "../src/lib/video-generation/storyboard-lock";
 import {
+  __test__ as storyboardServiceTest,
   buildStoryboardFramePlans,
   canRegenerateStoryboardFrame,
   storyboardFrameCountForDuration,
@@ -57,6 +59,155 @@ test("storyboard regeneration fails closed unless creation was rejected or refun
     submissionState: "ACCEPTED",
     lastProviderStatus: "success",
   }), true);
+});
+
+function fakeFrame(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: "frame-x",
+    ordinal: 0,
+    attempt: 1,
+    isCurrent: true,
+    beat: "beat",
+    prompt: "prompt",
+    status: "QUEUED",
+    submissionState: "NOT_STARTED",
+    lastProviderStatus: null,
+    outputUrl: null,
+    outputAsset: null,
+    errorCode: null,
+    errorMessage: null,
+    ...overrides,
+  };
+}
+
+test("a failed frame does not settle the run while siblings are still in flight", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
+  const originals = {
+    runFindFirst: runModel.findFirst,
+    runUpdateMany: runModel.updateMany,
+    frameFindUnique: frameModel.findUnique,
+  };
+  t.after(() => {
+    runModel.findFirst = originals.runFindFirst;
+    runModel.updateMany = originals.runUpdateMany;
+    frameModel.findUnique = originals.frameFindUnique;
+  });
+
+  const run = {
+    id: "run-partial",
+    userId: "owner-1",
+    status: "FAILED", // legacy rows written by the old fail-fast semantics
+    approvalPolicy: "MANUAL",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: "SUBMISSION_ACK_UNKNOWN",
+    errorMessage: "stale",
+    inputImageUrls: [],
+    frames: [
+      fakeFrame({ id: "f0", ordinal: 0, status: "PROCESSING", submissionState: "ACCEPTED", externalTaskId: "ext-0" }),
+      fakeFrame({ id: "f1", ordinal: 1, status: "PROCESSING", submissionState: "ACCEPTED", externalTaskId: "ext-1" }),
+      fakeFrame({ id: "f2", ordinal: 2, status: "FAILED", submissionState: "ACK_UNKNOWN", errorCode: "SUBMISSION_ACK_UNKNOWN" }),
+      fakeFrame({ id: "f3", ordinal: 3, status: "QUEUED" }),
+    ],
+  } as Record<string, unknown>;
+
+  const runUpdates: Array<Record<string, unknown>> = [];
+  runModel.findFirst = async () => ({ ...run });
+  runModel.updateMany = async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+    runUpdates.push(args.data);
+    if (
+      (run.status as string) === "FAILED" &&
+      (args.where.status as Record<string, unknown> | string) &&
+      args.data.status === "GENERATING"
+    ) {
+      run.status = "GENERATING";
+      return { count: 1 };
+    }
+    return { count: 0 };
+  };
+  let submitAttempted: string | null = null;
+  frameModel.findUnique = async (args: { where: { id: string } }) => {
+    submitAttempted = args.where.id;
+    return null; // stop submitStoryboardFrame before any provider work
+  };
+
+  await storyboardServiceTest.advanceRun("run-partial");
+
+  assert.ok(
+    runUpdates.some((data) => data.status === "GENERATING"),
+    "an unsettled run heals back to GENERATING so polling keeps driving it",
+  );
+  assert.ok(
+    !runUpdates.some((data) => data.status === "FAILED"),
+    "the run must not settle FAILED while frames are queued or processing",
+  );
+  assert.equal(submitAttempted, "f3", "the remaining queued frame keeps advancing");
+});
+
+test("the run settles FAILED only after every frame reaches a terminal state", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const originals = { findFirst: runModel.findFirst, updateMany: runModel.updateMany };
+  t.after(() => Object.assign(runModel, originals));
+
+  const run = {
+    id: "run-settled",
+    userId: "owner-1",
+    status: "GENERATING",
+    approvalPolicy: "MANUAL",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: null,
+    errorMessage: null,
+    inputImageUrls: [],
+    frames: [
+      fakeFrame({ id: "f0", ordinal: 0, status: "SUCCEEDED", submissionState: "ACCEPTED", outputUrl: "https://assets.example.test/0.png" }),
+      fakeFrame({ id: "f1", ordinal: 1, status: "SUCCEEDED", submissionState: "ACCEPTED", outputUrl: "https://assets.example.test/1.png" }),
+      fakeFrame({ id: "f2", ordinal: 2, status: "FAILED", submissionState: "ACK_UNKNOWN", errorCode: "SUBMISSION_ACK_UNKNOWN" }),
+      fakeFrame({ id: "f3", ordinal: 3, status: "SUCCEEDED", submissionState: "ACCEPTED", outputUrl: "https://assets.example.test/3.png" }),
+    ],
+  } as Record<string, unknown>;
+
+  const runUpdates: Array<Record<string, unknown>> = [];
+  runModel.findFirst = async () => ({ ...run });
+  runModel.updateMany = async (args: { data: Record<string, unknown> }) => {
+    runUpdates.push(args.data);
+    if (args.data.status === "FAILED") run.status = "FAILED";
+    return { count: 1 };
+  };
+
+  await storyboardServiceTest.advanceRun("run-settled");
+
+  assert.ok(
+    runUpdates.some((data) => data.status === "FAILED" && data.errorCode === "FRAME_FAILED"),
+    "a fully terminal run with a failed frame settles FAILED",
+  );
+});
+
+test("the run view exposes billing-safe per-frame regeneration flags", () => {
+  const view = storyboardRunView({
+    id: "run-flags",
+    userId: "owner-1",
+    approvalPolicy: "MANUAL",
+    status: "FAILED",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: "FRAME_FAILED",
+    errorMessage: "部分分镜需要处理",
+    frames: [
+      fakeFrame({ id: "f0", ordinal: 0, status: "SUCCEEDED", submissionState: "ACCEPTED", lastProviderStatus: "completed" }),
+      fakeFrame({ id: "f1", ordinal: 1, status: "FAILED", submissionState: "REJECTED" }),
+      fakeFrame({ id: "f2", ordinal: 2, status: "FAILED", submissionState: "ACK_UNKNOWN" }),
+      fakeFrame({ id: "f3", ordinal: 3, status: "FAILED", submissionState: "ACCEPTED", lastProviderStatus: "refunded" }),
+    ],
+  } as never);
+  assert.deepEqual(
+    view.frames.map((frame) => frame.canRegenerate),
+    [true, true, false, true],
+  );
 });
 
 test("canonical parser accepts a Shuyu Image 2 storyboard", () => {

@@ -22,6 +22,8 @@ export interface StoryboardFrameView {
   imageUrl: string | null;
   errorCode: string | null;
   errorMessage: string | null;
+  /** False while the provider's billing acknowledgement is unresolved. */
+  canRegenerate?: boolean;
 }
 
 export interface StoryboardRunView {
@@ -102,6 +104,7 @@ export function StoryboardWorkflowPanel({
             const pending = !frame || frame.status === "QUEUED" || frame.status === "PROCESSING";
             const failed = frame?.status === "FAILED";
             const regenerating = frame?.id === busyFrameId;
+            const regenBlocked = failed && frame?.canRegenerate === false;
             return (
               <article key={frame?.id ?? ordinal} className="min-w-0 overflow-hidden rounded-(--radius-md) border border-border bg-muted">
                 <div
@@ -151,9 +154,11 @@ export function StoryboardWorkflowPanel({
                     <p className="mt-1 text-[11px] text-muted-foreground">
                       {frame?.status === "SUCCEEDED"
                         ? english ? "Ready" : "画面已就绪"
-                        : failed
-                          ? english ? "Needs attention" : "需要处理"
-                          : english ? "Generating" : "生成中"}
+                        : regenBlocked
+                          ? english ? "Pending billing verification" : "等待计费核对"
+                          : failed
+                            ? english ? "Needs attention" : "需要处理"
+                            : english ? "Generating" : "生成中"}
                     </p>
                   </div>
                   <Button
@@ -161,11 +166,18 @@ export function StoryboardWorkflowPanel({
                     variant="outline"
                     size="sm"
                     className="w-full bg-card"
-                    disabled={!frame || pending || approved || regenerating}
+                    disabled={!frame || pending || approved || regenerating || regenBlocked}
+                    title={regenBlocked
+                      ? english
+                        ? "This frame is locked until the provider confirms whether it was billed."
+                        : "需等待合作方确认这一帧是否已计费，暂不能重做。"
+                      : undefined}
                     onClick={() => frame && onRegenerate(frame.id)}
                   >
                     {regenerating ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}
-                    {english ? "Regenerate frame" : "重做这一帧"}
+                    {regenBlocked
+                      ? english ? "Awaiting verification" : "等待核对中"
+                      : english ? "Regenerate frame" : "重做这一帧"}
                   </Button>
                 </div>
               </article>

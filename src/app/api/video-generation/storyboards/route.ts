@@ -3,8 +3,36 @@ import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
 import {
   createStoryboardRun,
+  findResumableStoryboardRunForUser,
   StoryboardRequestError,
 } from "@/lib/video-generation/storyboard-service";
+
+/**
+ * Resume entry point: returns the caller's most recent single-video storyboard
+ * that is still worth showing after a page refresh (generating, awaiting
+ * approval, approved-but-undispatched, or failed), plus the creation context
+ * needed to rehydrate the studio form.
+ */
+export async function GET() {
+  const guard = await requireAuth();
+  if (!guard.ok) return guard.response;
+  try {
+    const resume = await findResumableStoryboardRunForUser(guard.session.user.id);
+    return NextResponse.json({ ok: true, resume });
+  } catch (error) {
+    if (error instanceof StoryboardRequestError) {
+      return NextResponse.json(
+        { ok: false, code: error.code, error: error.message },
+        { status: error.status },
+      );
+    }
+    console.error("[storyboards:GET]", error);
+    return NextResponse.json(
+      { ok: false, code: "INTERNAL_ERROR", error: "暂时无法读取故事板。" },
+      { status: 500 },
+    );
+  }
+}
 
 const createSchema = z.object({
   prompt: z.string().trim().min(8).max(4000),

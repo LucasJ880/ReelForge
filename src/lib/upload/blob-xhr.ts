@@ -1,8 +1,11 @@
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 
 export interface BlobUploadResult {
+  assetId: string;
   url: string;
-  pathname?: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
 }
 
 export class BlobUploadHttpError extends Error {
@@ -64,8 +67,13 @@ export function uploadBlobWithProgress({
     xhr.onload = () => {
       if (signal) signal.removeEventListener("abort", abort);
       let payload: {
-        url?: string;
-        pathname?: string;
+        asset?: {
+          id?: string;
+          url?: string;
+          mimeType?: string;
+          width?: number | null;
+          height?: number | null;
+        };
         error?: string;
         code?: string;
         retryable?: boolean;
@@ -77,7 +85,13 @@ export function uploadBlobWithProgress({
         reject(new Error(`上传失败 (${xhr.status})`));
         return;
       }
-      if (xhr.status < 200 || xhr.status >= 300 || !payload.url) {
+      if (
+        xhr.status < 200 ||
+        xhr.status >= 300 ||
+        !payload.asset?.id ||
+        !payload.asset.url ||
+        !payload.asset.mimeType
+      ) {
         reject(
           new BlobUploadHttpError(
             payload.error ?? `上传失败 (${xhr.status})`,
@@ -91,7 +105,13 @@ export function uploadBlobWithProgress({
         );
         return;
       }
-      resolve({ url: payload.url, pathname: payload.pathname });
+      resolve({
+        assetId: payload.asset.id,
+        url: payload.asset.url,
+        mimeType: payload.asset.mimeType,
+        width: payload.asset.width ?? null,
+        height: payload.asset.height ?? null,
+      });
     };
 
     xhr.open("POST", endpoint);

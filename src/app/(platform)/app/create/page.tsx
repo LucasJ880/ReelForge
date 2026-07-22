@@ -25,9 +25,10 @@ export default async function PlatformCreatePage({
     ? await findProductImageJobForUser(productImageJobId, session.user.id)
     : null;
   const initialAssets: UploadedAsset[] =
-    job?.status === "SUCCEEDED" && job.outputImageUrl
+    job?.status === "SUCCEEDED" && job.outputImageUrl && job.outputAssetId
       ? [{
-          id: `product_image_${job.id}`,
+          id: job.outputAssetId,
+          assetId: job.outputAssetId,
           type: "IMAGE",
           inferredRole: "product_image",
           roleConfidence: 1,

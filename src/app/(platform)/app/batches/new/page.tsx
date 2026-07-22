@@ -17,9 +17,9 @@ export default async function PlatformBatchCreatePage({
   const job = productImageJobId
     ? await findProductImageJobForUser(productImageJobId, session.user.id)
     : null;
-  const initialImages = job?.status === "SUCCEEDED" && job.outputImageUrl
+  const initialImages = job?.status === "SUCCEEDED" && job.outputImageUrl && job.outputAssetId
     ? [{
-        id: `product-image-${job.id}`,
+        id: job.outputAssetId,
         url: absoluteAssetUrl(job.outputImageUrl),
         fileName: `Aivora-product-image-${job.id.slice(-6)}.png`,
       }]

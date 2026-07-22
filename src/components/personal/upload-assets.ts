@@ -24,7 +24,15 @@ export async function uploadFilesToAssets(
       const j = await uploadRes.json().catch(() => ({}));
       throw new Error(j.error ?? `上传失败 (${uploadRes.status})`);
     }
-    const { url } = (await uploadRes.json()) as { url: string };
+    const { asset } = (await uploadRes.json()) as {
+      asset: {
+        id: string;
+        url: string;
+        mimeType: string;
+        width: number | null;
+        height: number | null;
+      };
+    };
 
     const { width, height, durationSeconds } = await readMediaMetadata(file);
 
@@ -37,7 +45,7 @@ export async function uploadFilesToAssets(
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          url,
+          url: asset.url,
           mimeType: file.type,
           fileName: file.name,
           width,
@@ -71,15 +79,16 @@ export async function uploadFilesToAssets(
         : "IMAGE";
 
     out.push({
-      id: `asset_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      id: asset.id,
+      assetId: asset.id,
       type,
       inferredRole,
       roleConfidence,
-      url,
-      mimeType: file.type,
+      url: asset.url,
+      mimeType: asset.mimeType,
       fileName: file.name,
-      width: width ?? null,
-      height: height ?? null,
+      width: asset.width ?? width ?? null,
+      height: asset.height ?? height ?? null,
       durationSeconds: durationSeconds ?? null,
       suggestedUse,
       warnings,

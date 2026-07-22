@@ -3,12 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
-import {
-  ContentReviewRejectedError,
-  classifyContentReviewFailure,
-  reviewMediaOrThrow,
-} from "@/lib/content-review";
 import { db } from "@/lib/db";
+import {
+  createOwnedMediaAsset,
+  type MediaAssetRecord,
+} from "@/lib/services/media-asset-service";
 import {
   createProductImageJob,
   listProductImageJobsForUser,
@@ -118,6 +117,7 @@ export async function POST(req: NextRequest) {
 
   const storage = getStorageProvider();
   let uploaded: { url: string; key: string; data: Buffer; mimeType: string; fileName: string } | undefined;
+  let sourceAsset: MediaAssetRecord | undefined;
   try {
     if (source instanceof File) {
       if (!storage.isConfigured()) {
@@ -142,11 +142,12 @@ export async function POST(req: NextRequest) {
         mimeType: source.type,
         fileName: `source.${ext}`,
       };
-      await reviewMediaOrThrow({
-        kind: "user_upload",
-        mediaUrl: result.url,
-        mediaType: "image",
-        context: { ownerId: userId, workflow: "product_image" },
+      sourceAsset = await createOwnedMediaAsset({
+        userId,
+        storageKey: result.key,
+        url: result.url,
+        mimeType: source.type,
+        bytes: data,
       });
     }
 
@@ -164,42 +165,33 @@ export async function POST(req: NextRequest) {
         : undefined,
     });
 
-    // A concurrent request may win the idempotency race after this request
-    // uploaded a source. Remove the unused copy; never delete the canonical job source.
-    if (uploaded && job.sourceImageUrl !== uploaded.url) {
-      await storage.deleteObject("uploads", uploaded.key).catch(() => undefined);
-    }
-    return NextResponse.json({ ok: true, duplicate: false, job }, { status: 201 });
+    // A concurrent idempotent request may already own the canonical job. This
+    // upload still remains a durable owned asset that the caller can reuse.
+    return NextResponse.json(
+      {
+        ok: true,
+        duplicate: false,
+        job,
+        asset: sourceAsset
+          ? {
+              id: sourceAsset.id,
+              url: sourceAsset.url,
+              mimeType: sourceAsset.mimeType,
+              width: sourceAsset.width,
+              height: sourceAsset.height,
+            }
+          : null,
+      },
+      { status: 201 },
+    );
   } catch (error) {
-    if (uploaded) {
+    if (uploaded && !sourceAsset) {
       await storage.deleteObject("uploads", uploaded.key).catch(() => undefined);
     }
     if (error instanceof ProductImageRequestError) {
       return NextResponse.json(
         { ok: false, code: error.code, error: error.message },
         { status: error.status },
-      );
-    }
-    if (error instanceof ContentReviewRejectedError) {
-      /// provider 不可达 / 密钥缺失 / 抖动不是用户素材的问题，返回可重试的 503，
-      /// 不再统一误报「请更换素材」。只有 verdict==="rejected" 才是真违规。
-      if (classifyContentReviewFailure(error) === "content_blocked") {
-        return NextResponse.json(
-          {
-            ok: false,
-            code: "CONTENT_REVIEW_REJECTED",
-            error: error.result.userMessage || "内容安全检查未通过。请更换素材后重试。",
-          },
-          { status: 422 },
-        );
-      }
-      return NextResponse.json(
-        {
-          ok: false,
-          code: "CONTENT_REVIEW_UNAVAILABLE",
-          error: "素材安全检查暂时不可用，请稍后重试。",
-        },
-        { status: 503 },
       );
     }
     console.error("[product-images:POST]", {

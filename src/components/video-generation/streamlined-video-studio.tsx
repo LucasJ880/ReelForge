@@ -40,10 +40,11 @@ import {
   shouldResetDispatchAttempt,
 } from "@/lib/api/customer-video-dispatch-recovery";
 import { cn } from "@/lib/utils";
+import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
   AspectRatio,
   BrandEndingMode,
-  UnifiedVideoGenerationRequest,
+  OwnedUnifiedVideoGenerationRequest,
   UploadedAsset,
   VideoGenerationPlan,
 } from "@/types/video-generation";
@@ -450,10 +451,10 @@ export function StreamlinedVideoStudio({
     invalidatePlan();
   }
 
-  function buildRequest(): UnifiedVideoGenerationRequest {
+  function buildRequest(): OwnedUnifiedVideoGenerationRequest {
     const advanced = creationMode === "advanced";
     const activeStyleTemplateId = advanced ? styleTemplateId : seededStyleTemplateId;
-    return {
+    return toOwnedCreationRequest({
       userType: "platform",
       rawPrompt: rawPrompt.trim(),
       attachments: activeAttachments,
@@ -467,7 +468,7 @@ export function StreamlinedVideoStudio({
         : null,
       language: locale,
       styleTemplateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
-    };
+    });
   }
 
   function validateBeforeRequest(): string | null {
@@ -476,7 +477,7 @@ export function StreamlinedVideoStudio({
   }
 
   async function fetchPlan(
-    request: UnifiedVideoGenerationRequest,
+    request: OwnedUnifiedVideoGenerationRequest,
   ): Promise<VideoGenerationPlan> {
     const response = await fetch("/api/video-generation/plan", {
       method: "POST",

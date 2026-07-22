@@ -24,8 +24,8 @@ const TARGET_PLATFORMS = [
 ];
 
 interface UploadedAsset {
+  assetId: string;
   url: string;
-  pathname?: string;
   type: "video" | "image" | "other";
   name: string;
 }
@@ -82,10 +82,12 @@ export function NewOrderForm() {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || `素材上传失败: ${file.name}`);
         }
-        const body = await res.json();
+        const body = (await res.json()) as {
+          asset: { id: string; url: string };
+        };
         uploaded.push({
-          url: body.url,
-          pathname: body.pathname,
+          assetId: body.asset.id,
+          url: body.asset.url,
           type: file.type.startsWith("video/")
             ? "video"
             : file.type.startsWith("image/")

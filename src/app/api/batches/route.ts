@@ -23,6 +23,11 @@ import {
 } from "@/lib/contracts/batch-request";
 import { batchStatusResponseSchema } from "@/lib/contracts/batch-api";
 import { VideoGenerationRuntimeUnavailableError } from "@/lib/config/env";
+import {
+  MediaAssetNotFoundError,
+  MediaAssetTypeError,
+  resolveOwnedImageAssets,
+} from "@/lib/services/media-asset-service";
 
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
@@ -74,8 +79,13 @@ export async function POST(req: NextRequest) {
   const idempotencyKey = parsedIdempotencyKey.data;
 
   try {
+    const ownedAssets = await resolveOwnedImageAssets({
+      userId: guard.session.user.id,
+      assetIds: parsed.data.assetIds,
+    });
     const batch = await createBatchJob({
       ...parsed.data,
+      images: ownedAssets.map((asset) => ({ id: asset.id, url: asset.url })),
       userId: guard.session.user.id,
       idempotencyKey,
       isInternalStaff:
@@ -103,6 +113,28 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     const quotaResponse = quotaErrorResponse(error);
     if (quotaResponse) return quotaResponse;
+    if (error instanceof MediaAssetNotFoundError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "RESOURCE_NOT_FOUND",
+          message: "素材不存在或无权访问。",
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 404 },
+      );
+    }
+    if (error instanceof MediaAssetTypeError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "VALIDATION_FAILED",
+          message: "批量素材只支持图片。",
+          retryable: false,
+          action: "fix_request",
+        }),
+        { status: 400 },
+      );
+    }
     if (error instanceof BatchImageIdConflictError) {
       return NextResponse.json(
         customerApiError({

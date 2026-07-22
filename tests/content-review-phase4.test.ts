@@ -68,21 +68,20 @@ test("only a genuine rejection is classified as content_blocked", () => {
   assert.equal(classifyContentReviewFailure(new Error("boom")), "review_unavailable");
 });
 
-test("upload boundary maps provider-unavailable to a retryable error, not replace_asset", async () => {
+test("creation upload is independent of the content-review provider", async () => {
   const source = await readFile("src/app/api/upload/blob/route.ts", "utf8");
-  // provider 故障分支必须走可重试的 SERVICE_UNAVAILABLE，且只有真违规才 replace_asset
-  assert.match(source, /classifyContentReviewFailure/);
-  assert.match(source, /content review unavailable/);
+  assert.doesNotMatch(source, /reviewMediaOrThrow/);
+  assert.match(source, /createOwnedMediaAsset/);
   assert.match(source, /SERVICE_UNAVAILABLE/);
 });
 
-test("three Phase 4 review boundaries are wired", async () => {
+test("text submission and generated-video review boundaries remain wired", async () => {
   const [upload, submit, finalize] = await Promise.all([
     readFile("src/app/api/upload/blob/route.ts", "utf8"),
     readFile("src/lib/providers/seedance.ts", "utf8"),
     readFile("src/lib/services/stitch-service.ts", "utf8"),
   ]);
-  assert.match(upload, /reviewMediaOrThrow/);
+  assert.doesNotMatch(upload, /reviewMediaOrThrow/);
   assert.match(submit, /reviewTextOrThrow/);
   assert.match(finalize, /reviewGeneratedVideo/);
   assert.match(finalize, /reviewMediaOrThrow/);

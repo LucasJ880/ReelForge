@@ -30,8 +30,13 @@ const AUTH_REQUIRED = customerApiError({
 
 test("H1 upload contract: success and auth/failure envelopes are closed", () => {
   const success = uploadBlobSuccess({
-    url: "https://assets.example.test/uploads/a.png",
-    pathname: "uploads/a.png",
+    asset: {
+      id: "asset-a",
+      url: "https://assets.example.test/uploads/a.png",
+      mimeType: "image/png",
+      width: 1200,
+      height: 1200,
+    },
   });
   assert.deepEqual(uploadBlobResponseSchema.parse(success), success);
   assert.deepEqual(uploadBlobResponseSchema.parse(AUTH_REQUIRED), AUTH_REQUIRED);
@@ -250,8 +255,8 @@ test("H1 endpoint wiring: all three routes use the shared schemas and safe envel
   assert.match(upload, /requireAuth\(\)/);
   assert.match(upload, /uploadBlobSuccess\(/);
   assert.match(upload, /customerApiError\(/);
-  assert.match(upload, /ContentReviewRejectedError/);
-  assert.match(upload, /code: "QUALITY_BLOCKED"/);
+  assert.match(upload, /createOwnedMediaAsset/);
+  assert.doesNotMatch(upload, /reviewMediaOrThrow/);
   assert.doesNotMatch(upload, /throw err\b/);
 
   assert.match(templates, /requireAuth\(\)/);

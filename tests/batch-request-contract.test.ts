@@ -9,7 +9,7 @@ function request(requestedCount: number) {
   return {
     templateId: "template-1",
     templateVersion: 1,
-    images: [{ id: "image-1", url: "https://example.com/image.png" }],
+    assetIds: ["image-1"],
     requestedCount,
   };
 }

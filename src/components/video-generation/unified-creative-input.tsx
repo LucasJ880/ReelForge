@@ -21,10 +21,11 @@ import {
   shouldResetDispatchAttempt,
 } from "@/lib/api/customer-video-dispatch-recovery";
 import type { OrderCreativeDraft } from "@/lib/services/order-creative-draft";
+import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
   AspectRatio,
   BrandEndingMode,
-  UnifiedVideoGenerationRequest,
+  OwnedUnifiedVideoGenerationRequest,
   UploadedAsset,
   VideoGenerationPlan,
 } from "@/types/video-generation";
@@ -142,8 +143,8 @@ export function UnifiedCreativeInput({
     key: string;
   } | null>(null);
 
-  function buildRequest(): UnifiedVideoGenerationRequest {
-    return {
+  function buildRequest(): OwnedUnifiedVideoGenerationRequest {
+    return toOwnedCreationRequest({
       userType,
       rawPrompt,
       attachments,
@@ -161,7 +162,7 @@ export function UnifiedCreativeInput({
           : null,
       language: locale,
       styleTemplateId: styleTemplateId === "auto" ? null : styleTemplateId,
-    };
+    });
   }
 
   function requestFingerprint(): string {

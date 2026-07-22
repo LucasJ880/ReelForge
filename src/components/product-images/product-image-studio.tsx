@@ -33,6 +33,7 @@ export interface ProductImageJobDto {
   model: string;
   sourceImageUrl: string | null;
   outputImageUrl: string | null;
+  outputAssetId: string | null;
   fromMock: boolean;
   errorMessage: string | null;
   createdAt: string;
@@ -83,9 +84,11 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
       const data = (await response.json()) as {
         ok?: boolean;
         job?: ProductImageJobDto;
+        asset?: { id: string } | null;
         error?: string;
       };
       if (!response.ok || !data.job) throw new Error(data.error ?? copy.requestFailed);
+      if (source && !data.asset?.id) throw new Error(copy.requestFailed);
       setJobs((current) => [data.job!, ...current.filter((job) => job.id !== data.job!.id)]);
       setActiveJob(data.job);
       if (data.job.status === "FAILED") setError(data.job.errorMessage ?? copy.jobFailed);
@@ -236,20 +239,28 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                   <span className="inline-flex items-center gap-2 text-meta text-success"><CheckCircle2 className="size-4" aria-hidden />{copy.approved}</span>
                   <span className="font-mono text-meta text-muted-foreground">{activeJob.model}</span>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Link
-                    href={`/app/create?productImageJobId=${encodeURIComponent(activeJob.id)}`}
-                    className={buttonVariants()}
-                  >
-                    {copy.useSingle} <ArrowRight aria-hidden />
-                  </Link>
-                  <Link
-                    href={`/app/batches/new?productImageJobId=${encodeURIComponent(activeJob.id)}`}
-                    className={buttonVariants({ variant: "outline" })}
-                  >
-                    {copy.useBatch} <ArrowRight aria-hidden />
-                  </Link>
-                </div>
+                {activeJob.outputAssetId ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Link
+                      href={`/app/create?productImageJobId=${encodeURIComponent(activeJob.id)}`}
+                      className={buttonVariants()}
+                    >
+                      {copy.useSingle} <ArrowRight aria-hidden />
+                    </Link>
+                    <Link
+                      href={`/app/batches/new?productImageJobId=${encodeURIComponent(activeJob.id)}`}
+                      className={buttonVariants({ variant: "outline" })}
+                    >
+                      {copy.useBatch} <ArrowRight aria-hidden />
+                    </Link>
+                  </div>
+                ) : (
+                  <p className="text-meta text-muted-foreground">
+                    {locale === "en-US"
+                      ? "This older result must be regenerated before it can be used in a video."
+                      : "此历史结果需重新生成后才能用于视频。"}
+                  </p>
+                )}
               </div>
             ) : activeJob?.status === "FAILED" ? (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center">

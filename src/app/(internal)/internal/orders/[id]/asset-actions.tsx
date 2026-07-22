@@ -42,10 +42,12 @@ export function AssetActions({ orderId }: { orderId: string }) {
         const data = await upload.json().catch(() => ({}));
         throw new Error(data.error || "上传失败");
       }
-      const blob = (await upload.json()) as { url: string };
+      const blob = (await upload.json()) as {
+        asset: { id: string; url: string };
+      };
       await registerAsset({
         name: file.name,
-        url: blob.url,
+        url: blob.asset.url,
         type: file.type.startsWith("image/") ? "IMAGE" : file.type.startsWith("audio/") ? "AUDIO" : "VIDEO",
         mimeType: file.type,
         fileSizeBytes: file.size,

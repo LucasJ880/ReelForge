@@ -77,13 +77,14 @@ test("shared upload validator accepts ISO media container for MP4 video and M4A 
   assert.equal(validateMediaMagicBytes(ftyp, "image/png").ok, false);
 });
 
-test("product-image route contract has auth, owner idempotency, rate limit, review and random keys", async () => {
+test("product-image route contract has auth, owner idempotency, rate limit, owned assets and random keys", async () => {
   const route = await readFile("src/app/api/product-images/route.ts", "utf8");
   assert.match(route, /requireAuth\(\)/);
   assert.match(route, /userId_idempotencyKey/);
   assert.match(route, /assertAuthenticatedActionRateLimit/);
   assert.match(route, /validateFileMagicBytes/);
-  assert.match(route, /reviewMediaOrThrow/);
+  assert.match(route, /createOwnedMediaAsset/);
+  assert.doesNotMatch(route, /reviewMediaOrThrow/);
   assert.match(route, /randomUUID\(\)/);
   assert.match(route, /20 \* 1024 \* 1024/);
 });
@@ -98,6 +99,11 @@ test("video handoff loads product images with owner-scoped lookup", async () => 
     assert.match(page, /session\.user\.id/);
     assert.match(page, /status === "SUCCEEDED"/);
   }
+  assert.match(single, /job\.outputAssetId/);
+  assert.match(single, /assetId: job\.outputAssetId/);
+  assert.match(batch, /job\.outputAssetId/);
+  assert.doesNotMatch(single, /product_image_\$\{job\.id\}/);
+  assert.doesNotMatch(batch, /product-image-\$\{job\.id\}/);
   assert.match(single, /inferredRole: "product_image"/);
   assert.match(batch, /initialImages/);
 });
@@ -111,6 +117,8 @@ test("customer UI exposes generate, optimize, single-video and batch-video paths
   assert.match(ui, /copy\.generate/);
   assert.match(ui, /copy\.useSingle/);
   assert.match(ui, /copy\.useBatch/);
+  assert.match(ui, /outputAssetId: string \| null/);
+  assert.match(ui, /activeJob\.outputAssetId/);
   assert.match(copy, /优化实拍图/);
   assert.match(copy, /生成产品图/);
   assert.match(copy, /用于单条视频/);

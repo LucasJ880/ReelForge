@@ -5,8 +5,15 @@ import { customerApiErrorSchema } from "@/lib/contracts/customer-api";
 export const uploadBlobSuccessSchema = z
   .object({
     ok: z.literal(true),
-    url: z.string().url(),
-    pathname: z.string().min(1),
+    asset: z
+      .object({
+        id: z.string().min(1),
+        url: z.string().url(),
+        mimeType: z.string().min(1),
+        width: z.number().int().positive().nullable(),
+        height: z.number().int().positive().nullable(),
+      })
+      .strict(),
   })
   .strict();
 
@@ -30,8 +37,13 @@ export const uploadBlobResponseSchema = z.union([
 export type UploadBlobSuccess = z.infer<typeof uploadBlobSuccessSchema>;
 
 export function uploadBlobSuccess(args: {
-  url: string;
-  pathname: string;
+  asset: {
+    id: string;
+    url: string;
+    mimeType: string;
+    width: number | null;
+    height: number | null;
+  };
 }): UploadBlobSuccess {
   return uploadBlobSuccessSchema.parse({ ok: true, ...args });
 }

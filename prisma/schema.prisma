@@ -48,6 +48,7 @@ model AdminUser {
   reviewedReports       ContentReport[]        @relation("ContentReportReviewer")
   productImageJobs      ProductImageJob[]
   videoDispatchRequests VideoDispatchRequest[]
+  mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
 }
 
 model PlanEntitlement {
@@ -76,7 +77,31 @@ model Workspace {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
+  mediaAssets MediaAsset[] @relation("MediaAssetWorkspace")
+
   @@index([planId])
+}
+
+model MediaAsset {
+  id          String   @id @default(cuid())
+  userId      String
+  workspaceId String?
+  storageKey  String   @unique
+  url         String
+  mimeType    String
+  byteSize    Int
+  sha256      String
+  width       Int?
+  height      Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      AdminUser  @relation("MediaAssetOwner", fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation("MediaAssetWorkspace", fields: [workspaceId], references: [id], onDelete: SetNull)
+  productImageOutput ProductImageJob? @relation("ProductImageOutputAsset")
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([workspaceId, createdAt(sort: Desc)])
 }
 
 // =========================================================
@@ -1079,6 +1104,8 @@ model ProductImageJob {
   sourceImageUrl String?
   sourceMimeType String?
   outputImageUrl String?
+  outputAssetId  String?     @unique
+  outputAsset    MediaAsset? @relation("ProductImageOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
   fromMock       Boolean @default(false)
   retryCount     Int     @default(0)
 

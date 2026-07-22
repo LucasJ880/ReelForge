@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 /** Bump when schema changes so dev HMR does not keep a stale PrismaClient. */
-const PRISMA_CLIENT_GENERATION = "20260713_phase2_provider_submission_integrity";
+const PRISMA_CLIENT_GENERATION = "20260722_media_assets";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

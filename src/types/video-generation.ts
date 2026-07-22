@@ -68,6 +68,8 @@ export type AssetRole =
   | "unknown";
 
 export interface UploadedAsset {
+  /** Durable server-owned identity. Historical plan snapshots may not have one. */
+  assetId?: string | null;
   id: string;
   /// 原始声明类型（来自 mime/ext，VIDEO/IMAGE/AUDIO）
   type: "VIDEO" | "IMAGE" | "AUDIO";
@@ -86,6 +88,18 @@ export interface UploadedAsset {
   /// suggestedUse: classifier 给的人类可读建议
   suggestedUse?: string | null;
   /// warnings: 分类器发现的潜在问题（如「这个图分辨率太低，建议作为参考图」）
+  warnings?: string[];
+}
+
+/** URL-free media reference accepted by new customer creation endpoints. */
+export interface OwnedCreationAssetInput {
+  assetId: string;
+  inferredRole: AssetRole;
+  roleConfidence: number;
+  fileName: string;
+  durationSeconds?: number | null;
+  userAssignedRole?: AssetRole | null;
+  suggestedUse?: string | null;
   warnings?: string[];
 }
 
@@ -128,6 +142,45 @@ export interface UnifiedVideoGenerationRequest {
   advancedOptions?: Record<string, unknown> | null;
   /// 关联到已有 DeliveryOrder（continuation 场景）；缺省时 supervisor 会新建
   deliveryOrderId?: string | null;
+}
+
+export type OwnedUnifiedVideoGenerationRequest = Omit<
+  UnifiedVideoGenerationRequest,
+  "attachments"
+> & {
+  attachments: OwnedCreationAssetInput[];
+};
+
+export function toOwnedCreationAsset(
+  asset: UploadedAsset,
+): OwnedCreationAssetInput {
+  const assetId = asset.assetId ?? asset.id;
+  if (!assetId) {
+    throw new Error("Uploaded asset is missing its server-owned ID");
+  }
+  return {
+    assetId,
+    inferredRole: asset.inferredRole,
+    roleConfidence: asset.roleConfidence,
+    fileName: asset.fileName,
+    durationSeconds: asset.durationSeconds ?? null,
+    userAssignedRole: asset.userAssignedRole ?? null,
+    suggestedUse: asset.suggestedUse ?? null,
+    warnings: asset.warnings ?? [],
+  };
+}
+
+export function toOwnedCreationRequest(
+  request: UnifiedVideoGenerationRequest,
+): OwnedUnifiedVideoGenerationRequest {
+  const brandKit = request.brandKit
+    ? (({ logoUrl: _logoUrl, ...ownedFields }) => ownedFields)(request.brandKit)
+    : request.brandKit;
+  return {
+    ...request,
+    brandKit,
+    attachments: request.attachments.map(toOwnedCreationAsset),
+  };
 }
 
 // ---------- Classification outputs ----------

@@ -3,13 +3,9 @@ import { requireAuth } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { customerApiError } from "@/lib/contracts/customer-api";
 import { uploadBlobSuccess } from "@/lib/contracts/upload-blob";
+import { createOwnedMediaAsset } from "@/lib/services/media-asset-service";
 import { assertQuotaForSession } from "@/lib/services/quota-service";
 import { getStorageProvider } from "@/lib/storage";
-import {
-  ContentReviewRejectedError,
-  classifyContentReviewFailure,
-  reviewMediaOrThrow,
-} from "@/lib/content-review";
 import { validateFileMagicBytes } from "@/lib/upload/media-file-validation";
 
 const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -54,7 +50,7 @@ function unavailableError(args: {
  * 鉴权：任何已登录账号（含 BUSINESS / PERSONAL / 内部 staff）均可调用，
  * 由 size + MIME 白名单 + 文件名 prefix 兜底防滥用。Phase 7a 已加单用户配额。
  *
- * Response 形状保持向后兼容：`{ url, pathname }`（pathname 现在等价于 storage key）。
+ * 成功响应返回服务端持有的资产 ID；后续创作请求只提交 ID，不信任外部 URL。
  */
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
@@ -127,62 +123,38 @@ export async function POST(req: NextRequest) {
   /// access=public：当前业务模型里素材 URL 需要长期可被 AI provider 拉取（Seedance / Ark vision），
   /// 不能用短时效 signed URL。生产环境推荐 TOS bucket 公开读 + 单独 ACL，或外挂 CDN。
   let result: Awaited<ReturnType<typeof storage.uploadFile>> | null = null;
-  let stage: "storage_upload" | "content_review" | "response_contract" =
-    "storage_upload";
+  let assetPersisted = false;
+  let stage: "storage_upload" | "asset_persistence" = "storage_upload";
   try {
     result = await storage.uploadFile("uploads", file, {
       key,
       access: "public",
       contentType: file.type || undefined,
     });
-    stage = "content_review";
-    await reviewMediaOrThrow({
-      kind: "user_upload",
-      mediaUrl: result.url,
-      mediaType: file.type.startsWith("image/")
-        ? "image"
-        : file.type.startsWith("video/") ? "video" : "audio",
-      context: { ownerId: guard.session.user.id! },
+    stage = "asset_persistence";
+    const asset = await createOwnedMediaAsset({
+      userId: guard.session.user.id,
+      storageKey: result.key,
+      url: result.url,
+      mimeType: file.type,
+      bytes: Buffer.from(await file.arrayBuffer()),
     });
-    stage = "response_contract";
+    assetPersisted = true;
     return NextResponse.json(
-      uploadBlobSuccess({ url: result.url, pathname: result.key }),
+      uploadBlobSuccess({
+        asset: {
+          id: asset.id,
+          url: asset.url,
+          mimeType: asset.mimeType,
+          width: asset.width,
+          height: asset.height,
+        },
+      }),
+      { status: 201 },
     );
   } catch (error) {
-    if (result) {
+    if (result && !assetPersisted) {
       await storage.deleteObject("uploads", result.key).catch(() => undefined);
-    }
-    if (stage === "content_review") {
-      /// 只有 provider 明确判定违规才提示「换素材」；provider 不可达 / 密钥缺失 /
-      /// 429 抖动 / 拉不到素材 URL 等一律按可重试的临时不可用处理，
-      /// 不再把正常素材误报成「内容安全检查未通过」（0721 线上真机 bug 修复）。
-      if (classifyContentReviewFailure(error) === "content_blocked") {
-        return NextResponse.json(
-          customerApiError({
-            code: "QUALITY_BLOCKED",
-            message:
-              (error instanceof ContentReviewRejectedError &&
-                error.result.userMessage) ||
-              "内容安全检查未通过，请更换素材后重试。",
-            retryable: false,
-            action: "replace_asset",
-          }),
-          { status: 422 },
-        );
-      }
-      console.error("[upload/blob] content review unavailable", {
-        stage,
-        name: error instanceof Error ? error.name : "UnknownError",
-        verdict:
-          error instanceof ContentReviewRejectedError
-            ? error.result.verdict
-            : "unknown",
-      });
-      return unavailableError({
-        code: "SERVICE_UNAVAILABLE",
-        message: "素材安全检查暂时不可用，请稍后重试。",
-        action: "retry",
-      });
     }
     console.error("[upload/blob] request failed", {
       stage,
@@ -191,7 +163,7 @@ export async function POST(req: NextRequest) {
     return result
       ? unavailableError({
           code: "SERVICE_UNAVAILABLE",
-          message: "素材安全检查暂不可用，请稍后重试。",
+          message: "素材登记暂不可用，请稍后重试。",
           action: "retry",
         })
       : unavailableError({

@@ -272,7 +272,7 @@ export function BatchCreateWizard({
       updateUpload(item.localId, {
         status: "uploaded",
         progress: 100,
-        assetId: data.pathname ?? item.localId,
+        assetId: data.assetId,
         url: data.url,
       });
     } catch (reason) {
@@ -395,10 +395,7 @@ export function BatchCreateWizard({
         const requestBody = {
           templateId: group.templateId,
           templateVersion: group.templateVersion,
-          images: uploaded.map((item) => ({
-            id: item.assetId,
-            url: item.url,
-          })),
+          assetIds: uploaded.map((item) => item.assetId),
           requestedCount: group.count,
           productName: productName.trim() || undefined,
           videoRouteId: videoRouteId || undefined,

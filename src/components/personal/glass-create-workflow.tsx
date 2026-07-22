@@ -26,9 +26,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { EditorialStepper } from "@/components/editorial/editorial-stepper";
 import type {
+  OwnedUnifiedVideoGenerationRequest,
   UploadedAsset,
   VideoGenerationPlan,
 } from "@/types/video-generation";
+import { toOwnedCreationRequest } from "@/types/video-generation";
 import {
   consumeCreatePrefill,
   uploadFilesToAssets,
@@ -156,10 +158,10 @@ export function EditorialCreateWorkflow({
     }
   }
 
-  function buildRequest() {
+  function buildRequest(): OwnedUnifiedVideoGenerationRequest {
     const attachments: UploadedAsset[] = [...images];
     if (refVideo) attachments.push(refVideo);
-    return {
+    return toOwnedCreationRequest({
       userType: "personal" as const,
       rawPrompt: prompt.trim(),
       attachments,
@@ -170,7 +172,7 @@ export function EditorialCreateWorkflow({
       language,
       styleTemplateId,
       consistencyLockIds: lockIds.length > 0 ? lockIds : null,
-    };
+    });
   }
 
   const canPlan = prompt.trim().length >= 4 && !planning && !dispatching;

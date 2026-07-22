@@ -43,6 +43,11 @@ import {
 } from "@/lib/video-generation/video-route-selection";
 import type { VideoRouteSnapshot } from "@/lib/video-generation/video-route-registry";
 import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
+import {
+  MediaAssetNotFoundError,
+  resolveOwnedCreationRequest,
+} from "@/lib/services/media-asset-service";
+import type { UnifiedVideoGenerationRequest } from "@/types/video-generation";
 
 /**
  * 用户在创作页「确认脚本」时编辑过的分镜 prompt 覆盖。
@@ -166,6 +171,41 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let request: UnifiedVideoGenerationRequest;
+  try {
+    request = await resolveOwnedCreationRequest({
+      userId: session.user.id,
+      request: reqParsed.data,
+    });
+  } catch (error) {
+    if (error instanceof MediaAssetNotFoundError) {
+      return dispatchErrorResponse(404, {
+        code: "RESOURCE_NOT_FOUND",
+        message: "素材不存在或无权访问。",
+        retryable: false,
+        action: "contact_support",
+      });
+    }
+    throw error;
+  }
+
+  if (request.deliveryOrderId) {
+    const ownedOrder = await db.deliveryOrder.findFirst({
+      where: isInternalStaff
+        ? { id: request.deliveryOrderId }
+        : { id: request.deliveryOrderId, createdById: session.user.id },
+      select: { id: true },
+    });
+    if (!ownedOrder) {
+      return dispatchErrorResponse(404, {
+        code: "RESOURCE_NOT_FOUND",
+        message: "项目不存在或无权访问。",
+        retryable: false,
+        action: "contact_support",
+      });
+    }
+  }
+
   const mayOverrideVideoRoute =
     session.user.role === "OPERATOR" || session.user.role === "SUPER_ADMIN";
   let videoRouteSnapshot: VideoRouteSnapshot;
@@ -212,7 +252,7 @@ export async function POST(req: NextRequest) {
   /// Phase 1：始终服务端重建 plan 防 UI tamper
   let plan: Awaited<ReturnType<typeof buildPlan>>;
   try {
-    plan = await buildPlan(reqParsed.data);
+    plan = await buildPlan(request);
   } catch (err) {
     /// 客户可见 error 走友好文案；详细 message 仅写日志 / dev 调试
     console.error("[/api/video-generation/dispatch] buildPlan failed", err);
@@ -402,7 +442,6 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const request = reqParsed.data;
   const persona =
     request.userType === "business"
       ? "BUSINESS"
@@ -619,7 +658,7 @@ export async function POST(req: NextRequest) {
               requestOrigin: "web_app",
               userType: request.userType,
               rawPrompt: request.rawPrompt,
-              brandKit: request.brandKit ?? null,
+              brandKit: request.brandKit ? { ...request.brandKit } : null,
             },
             // Phase 3: every new customer project can flow through three
             // measured racing rounds; the first render still creates only R1.

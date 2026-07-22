@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { assertQuotaForSession } from "@/lib/services/quota-service";
+import {
+  MediaAssetNotFoundError,
+  resolveOwnedCreationRequest,
+} from "@/lib/services/media-asset-service";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { unifiedVideoGenerationRequestSchema } from "@/lib/schemas/unified-input";
 
@@ -33,9 +37,25 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  let request;
+  try {
+    request = await resolveOwnedCreationRequest({
+      userId: guard.session.user.id,
+      request: parsed.data,
+    });
+  } catch (error) {
+    if (error instanceof MediaAssetNotFoundError) {
+      return NextResponse.json(
+        { ok: false, error: "素材不存在或无权访问。" },
+        { status: 404 },
+      );
+    }
+    throw error;
+  }
+
   try {
     await assertQuotaForSession(guard.session, "PLAN_PREVIEW", 1);
-    const plan = await buildPlan(parsed.data);
+    const plan = await buildPlan(request);
     return NextResponse.json({ ok: true, plan });
   } catch (err) {
     const quotaRes = quotaErrorResponse(err);

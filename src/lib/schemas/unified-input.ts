@@ -70,6 +70,8 @@ export const assetRoleSchema = z.enum([
 ]);
 
 export const uploadedAssetSchema = z.object({
+  /** Server-owned ID for new creation requests; absent only on historical plans. */
+  assetId: z.string().min(1).nullable().optional(),
   id: z.string().min(1),
   type: z.enum(["VIDEO", "IMAGE", "AUDIO"]),
   inferredRole: assetRoleSchema,
@@ -85,6 +87,20 @@ export const uploadedAssetSchema = z.object({
   warnings: z.array(z.string()).optional(),
 });
 
+/** New task input: identity and annotations only; URL/MIME/dimensions are server-resolved. */
+export const ownedCreationAssetSchema = z
+  .object({
+    assetId: z.string().min(1),
+    inferredRole: assetRoleSchema,
+    roleConfidence: z.number().min(0).max(1),
+    fileName: z.string().min(1),
+    durationSeconds: z.number().nonnegative().nullable().optional(),
+    userAssignedRole: assetRoleSchema.nullable().optional(),
+    suggestedUse: z.string().nullable().optional(),
+    warnings: z.array(z.string()).optional(),
+  })
+  .strict();
+
 export const brandKitSchema = z.object({
   brandName: z.string().nullable().optional(),
   slogan: z.string().nullable().optional(),
@@ -94,16 +110,21 @@ export const brandKitSchema = z.object({
   logoUrl: z.string().url().nullable().optional(),
 });
 
+/** New creation input cannot provide a fetchable logo URL; logos are owned attachments. */
+export const ownedBrandKitSchema = brandKitSchema
+  .omit({ logoUrl: true })
+  .strict();
+
 export const unifiedVideoGenerationRequestSchema = z.object({
   userType: userTypeSchema,
   rawPrompt: z.string().min(1).max(4000),
-  attachments: z.array(uploadedAssetSchema).max(20),
+  attachments: z.array(ownedCreationAssetSchema).max(20),
   selectedDuration: supportedDurationSchema,
   selectedAspectRatio: aspectRatioSchema,
   selectedBrandEndingMode: brandEndingModeSchema,
   cta: z.string().max(500).nullable().optional(),
   platform: targetPlatformSchema.nullable().optional(),
-  brandKit: brandKitSchema.nullable().optional(),
+  brandKit: ownedBrandKitSchema.nullable().optional(),
   language: z.string().max(20).nullable().optional(),
   /// 风格模版 ID（style-templates.ts；2026-07 skill 模式对齐同行）
   styleTemplateId: z.string().max(60).nullable().optional(),

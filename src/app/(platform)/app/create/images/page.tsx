@@ -28,6 +28,7 @@ export default async function ProductImagesPage() {
     model: job.model,
     sourceImageUrl: job.sourceImageUrl,
     outputImageUrl: job.outputImageUrl,
+    outputAssetId: job.outputAssetId,
     fromMock: job.fromMock,
     errorMessage: job.errorMessage,
     createdAt: job.createdAt.toISOString(),

@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import { resolve, sep } from "node:path";
 import type {
   ProductImageJob,
   ProductImageMode,
@@ -13,9 +15,12 @@ import {
 } from "@/lib/content-review";
 import { db } from "@/lib/db";
 import { recordAIUsage } from "@/lib/services/ai-usage-log-service";
+import { createOwnedMediaAsset } from "@/lib/services/media-asset-service";
+import { getStorageProvider } from "@/lib/storage";
 
 export const PRODUCT_IMAGE_PROMPT_VERSION = "product-image-v1";
 const DEFAULT_PRODUCT_IMAGE_MODEL = "gpt-image-2";
+const MAX_GENERATED_IMAGE_BYTES = 25 * 1024 * 1024;
 type ImageQuality = "auto" | "low" | "medium" | "high";
 
 export const PRODUCT_IMAGE_PRESETS = {
@@ -240,12 +245,36 @@ export async function createProductImageJob(
       context: { productImageJobId: job.id, ownerId: input.userId },
     });
 
+    const generatedMedia = await readGeneratedImage(outputImageUrl);
+    let canonicalOutputUrl = outputImageUrl;
+    let canonicalStorageKey = `product-image-output/${job.id}`;
+    if (!result.fromMock) {
+      const storage = getStorageProvider();
+      if (!storage.isConfigured()) throw new Error("产品图存储暂不可用");
+      const persisted = await storage.uploadBuffer("renders", generatedMedia.bytes, {
+        key: `product-images/${input.userId}/${job.id}/owned-output.${extensionForImageMime(generatedMedia.mimeType)}`,
+        access: "public",
+        contentType: generatedMedia.mimeType,
+        overwrite: false,
+      });
+      canonicalOutputUrl = persisted.url;
+      canonicalStorageKey = persisted.key;
+    }
+    const outputAsset = await createOwnedMediaAsset({
+      userId: input.userId,
+      storageKey: canonicalStorageKey,
+      url: canonicalOutputUrl,
+      mimeType: generatedMedia.mimeType,
+      bytes: generatedMedia.bytes,
+    });
+
     const updated = await db.productImageJob.update({
       where: { id: job.id },
       data: {
         status: "SUCCEEDED",
         model: result.modelUsed,
-        outputImageUrl,
+        outputImageUrl: canonicalOutputUrl,
+        outputAssetId: outputAsset.id,
         fromMock: result.fromMock,
         completedAt: new Date(),
         errorCode: null,
@@ -292,6 +321,52 @@ export async function createProductImageJob(
     });
     return failed;
   }
+}
+
+async function readGeneratedImage(
+  imageUrl: string,
+): Promise<{ bytes: Buffer; mimeType: string }> {
+  if (imageUrl.startsWith("/")) {
+    const publicRoot = resolve(process.cwd(), "public");
+    const filePath = resolve(publicRoot, `.${imageUrl}`);
+    if (!filePath.startsWith(`${publicRoot}${sep}`)) {
+      throw new Error("生成图片路径不合法");
+    }
+    const bytes = await readFile(filePath);
+    assertGeneratedImageSize(bytes.byteLength);
+    return {
+      bytes,
+      mimeType: imageUrl.toLowerCase().endsWith(".webp")
+        ? "image/webp"
+        : imageUrl.toLowerCase().endsWith(".png")
+          ? "image/png"
+          : "image/jpeg",
+    };
+  }
+
+  const url = new URL(imageUrl);
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new Error("生成图片地址不合法");
+  }
+  const response = await fetch(url, { redirect: "error" });
+  if (!response.ok) throw new Error("无法读取生成图片");
+  const mimeType = response.headers.get("content-type")?.split(";", 1)[0]?.trim();
+  if (!mimeType?.startsWith("image/")) throw new Error("生成结果不是图片");
+  const bytes = Buffer.from(await response.arrayBuffer());
+  assertGeneratedImageSize(bytes.byteLength);
+  return { bytes, mimeType };
+}
+
+function assertGeneratedImageSize(byteSize: number): void {
+  if (byteSize <= 0 || byteSize > MAX_GENERATED_IMAGE_BYTES) {
+    throw new Error("生成图片大小不合法");
+  }
+}
+
+function extensionForImageMime(mimeType: string): "png" | "jpg" | "webp" {
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "image/webp") return "webp";
+  return "jpg";
 }
 
 function safeProductImageError(error: unknown): { code: string; message: string } {

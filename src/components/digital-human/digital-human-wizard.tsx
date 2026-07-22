@@ -39,6 +39,7 @@ interface Voice {
 }
 interface StoreImage {
   id: string;
+  assetId: string;
   url: string;
   fileName: string;
 }
@@ -148,10 +149,13 @@ export function DigitalHumanWizard() {
             const j = await res.json().catch(() => ({}));
             throw new Error(j.error ?? `上传失败 (${res.status})`);
           }
-          const { url } = (await res.json()) as { url: string };
+          const { asset } = (await res.json()) as {
+            asset: { id: string; url: string };
+          };
           added.push({
-            id: `img_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            url,
+            id: asset.id,
+            assetId: asset.id,
+            url: asset.url,
             fileName: file.name,
           });
         }
@@ -177,7 +181,7 @@ export function DigitalHumanWizard() {
         body: JSON.stringify({
           avatarId,
           voiceId,
-          storeImageUrls: storeImages.map((s) => s.url),
+          storeImageAssetIds: storeImages.map((s) => s.assetId),
           industry: industry.trim(),
           storeDescription: storeDescription.trim() || null,
           sellingPoints: sellingPoints

@@ -15,11 +15,16 @@ import {
   DIGITAL_HUMAN_SEALED_RESPONSE,
   isDigitalHumanFeatureEnabled,
 } from "@/lib/features/digital-human";
+import {
+  MediaAssetNotFoundError,
+  MediaAssetTypeError,
+  resolveOwnedImageAssets,
+} from "@/lib/services/media-asset-service";
 
 const createSchema = z.object({
   avatarId: z.string().min(1),
   voiceId: z.string().min(1),
-  storeImageUrls: z.array(z.string().url()).min(1).max(5),
+  storeImageAssetIds: z.array(z.string().min(1)).min(1).max(5),
   industry: z.string().min(1).max(120),
   storeDescription: z.string().max(1000).nullish(),
   sellingPoints: z.array(z.string().max(200)).max(8).optional(),
@@ -62,6 +67,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "音色不存在" }, { status: 400 });
   }
 
+  let storeImages;
+  try {
+    storeImages = await resolveOwnedImageAssets({
+      userId: guard.session.user.id,
+      assetIds: data.storeImageAssetIds,
+    });
+  } catch (error) {
+    if (
+      error instanceof MediaAssetNotFoundError ||
+      error instanceof MediaAssetTypeError
+    ) {
+      return NextResponse.json({ error: "门店图片不存在或无权访问" }, { status: 404 });
+    }
+    throw error;
+  }
+
   try {
     await assertQuotaForSession(guard.session, "DIGITAL_HUMAN_AD", 1, {
       industry: data.industry,
@@ -78,7 +99,7 @@ export async function POST(req: NextRequest) {
     avatarAssetUri: avatar.assetUri,
     voiceType: voice.voiceType,
     voiceResourceId: voice.resourceId,
-    storeImageUrls: data.storeImageUrls,
+    storeImageUrls: storeImages.map((image) => image.url),
     industry: data.industry,
     storeDescription: data.storeDescription ?? null,
     sellingPoints: data.sellingPoints ?? [],

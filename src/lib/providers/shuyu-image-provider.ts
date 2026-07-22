@@ -1,5 +1,8 @@
 import type { AuditedShuyuImagePlan, ShuyuResolution } from "./shuyu-catalog";
 import { selectAuditedImage2Plan } from "./shuyu-catalog";
+import { randomUUID } from "node:crypto";
+import { isDryRun } from "@/lib/config/dry-run";
+import { isProductionRuntime } from "@/lib/config/env";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
   createShuyuImageTask,
@@ -14,6 +17,34 @@ const DEFAULT_OUTPUT_HOSTS = [
   "shuyu-tiktok-tool.pages.dev",
   "ark-acg-cn-beijing.tos-cn-beijing.volces.com",
 ] as const;
+const MOCK_OUTPUT_PREFIX = "https://shuyu-tiktok-tool.pages.dev/mock-output/";
+const MOCK_IMAGE_BYTES = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+  "base64",
+);
+
+function mockImageRuntime(): boolean {
+  const explicitMock = /^(1|true|yes|on)$/i.test(
+    process.env.IMAGE_ENGINE_MOCK?.trim() ?? "",
+  );
+  const mock = isDryRun() || explicitMock;
+  if (mock && isProductionRuntime()) {
+    throw new Error("production runtime 禁止 mock Shuyu 图片 provider");
+  }
+  return mock;
+}
+
+function mockPlan(resolution: ShuyuResolution): AuditedShuyuImagePlan {
+  const ordinal = resolution === "1K" ? "01" : resolution === "2K" ? "02" : "03";
+  const points = resolution === "1K" ? 24 : resolution === "2K" ? 32 : 64;
+  return {
+    planId: `image-plan-${ordinal}`,
+    model: "gpt-image-2",
+    resolution,
+    points,
+    family: "gpt-image-2",
+  };
+}
 
 export type ShuyuImageAspectRatio =
   | "1:1"
@@ -49,6 +80,15 @@ export async function submitShuyuImageTask(
   externalTaskId: string;
   planSnapshot: AuditedShuyuImagePlan;
 }> {
+  if (mockImageRuntime()) {
+    const planSnapshot = input.planSnapshot ?? mockPlan(input.resolution);
+    await input.onPlanSelected?.(planSnapshot);
+    return {
+      requestKey: input.requestKey,
+      externalTaskId: `mock_shuyu_image_${randomUUID()}`,
+      planSnapshot,
+    };
+  }
   let planSnapshot: AuditedShuyuImagePlan;
   try {
     if (input.planSnapshot) {
@@ -88,6 +128,21 @@ export async function pollShuyuImageTask(
   externalTaskId: string,
   options: ShuyuFetchOptions = {},
 ): Promise<ShuyuImageTaskResult> {
+  if (mockImageRuntime()) {
+    if (!externalTaskId.startsWith("mock_shuyu_image_")) {
+      return {
+        status: "failed",
+        rawStatus: "refunded",
+        outputUrls: [],
+        errorMessage: "Dry-run refused to poll a real Shuyu image task",
+      };
+    }
+    return {
+      status: "succeeded",
+      rawStatus: "completed",
+      outputUrls: [`${MOCK_OUTPUT_PREFIX}${encodeURIComponent(externalTaskId)}.png`],
+    };
+  }
   const task = await getShuyuVideoTask(externalTaskId, options);
   if (task.status === "completed") {
     const outputUrls = task.outputs?.map((output) => output.url) ?? [];
@@ -211,6 +266,9 @@ export async function fetchShuyuOutputImage(
   value: string,
   options: FetchShuyuOutputOptions = {},
 ): Promise<{ bytes: Buffer; mimeType: string }> {
+  if (mockImageRuntime() && value.startsWith(MOCK_OUTPUT_PREFIX)) {
+    return { bytes: Buffer.from(MOCK_IMAGE_BYTES), mimeType: "image/png" };
+  }
   const url = validateShuyuOutputUrl(value, options.allowedHosts ?? configuredOutputHosts());
   const maxBytes = Math.max(1, Math.min(options.maxBytes ?? DEFAULT_MAX_OUTPUT_BYTES, DEFAULT_MAX_OUTPUT_BYTES));
   const timeoutMs = Math.max(10, Math.min(options.timeoutMs ?? DEFAULT_OUTPUT_TIMEOUT_MS, 60_000));

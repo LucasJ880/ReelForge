@@ -418,7 +418,11 @@ export function StreamlinedVideoStudio({
   useEffect(() => {
     if (!storyboard || storyboard.status !== "GENERATING") return;
     let cancelled = false;
-    const timer = window.setTimeout(async () => {
+    let timer = 0;
+    /// 服务端按「每次 reconcile 推进一帧」逐帧生成，UI 轮询是它唯一的前台驱动；
+    /// 因此链条必须在失败/异常后照常续上，且页面回到前台时立即补一拍。
+    const poll = async () => {
+      let next: StoryboardRunView | null = null;
       try {
         const response = await fetch(
           `/api/video-generation/storyboards/${encodeURIComponent(storyboard.id)}`,
@@ -428,18 +432,33 @@ export function StreamlinedVideoStudio({
           | { ok: true; run: StoryboardRunView }
           | { ok: false; error?: string }
           | null;
-        if (cancelled || !response.ok || !payload?.ok) return;
-        setStoryboard(payload.run);
-        if (payload.run.status === "FAILED") {
-          setError(payload.run.errorMessage ?? copy.storyboardFailed);
-        }
+        if (response.ok && payload?.ok) next = payload.run;
       } catch {
         // The durable storyboard remains available after a transient browser error.
       }
-    }, 2_500);
+      if (cancelled) return;
+      if (next) {
+        setStoryboard(next);
+        if (next.status === "FAILED") {
+          setError(next.errorMessage ?? copy.storyboardFailed);
+        }
+        // A successful poll swaps `storyboard`, so the effect re-runs and
+        // re-arms itself while the run is still generating.
+        return;
+      }
+      timer = window.setTimeout(poll, 2_500);
+    };
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || cancelled) return;
+      window.clearTimeout(timer);
+      void poll();
+    };
+    timer = window.setTimeout(poll, 2_500);
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [copy.storyboardFailed, storyboard]);
 
@@ -979,13 +998,32 @@ export function StreamlinedVideoStudio({
             className="py-5"
           />
           {productAssets.length > 0 ? (
-            <AssetGrid
-              assets={productAssets}
-              imageLabel={copy.stepAsset}
-              removeLabel={copy.removeProduct}
-              onRemove={removeProductAsset}
-              disabled={busy !== null || configurationLocked}
-            />
+            <>
+              {initialProductAssets.some((initial) =>
+                productAssets.some((asset) => asset.id === initial.id),
+              ) ? (
+                <p role="status" className="text-meta text-success">
+                  {english
+                    ? "Loaded from Product Image Studio as a product consistency reference."
+                    : "已从产品图工作台载入，并作为产品一致性参考。"}
+                  <span className="ml-1 font-mono text-muted-foreground">
+                    {initialProductAssets
+                      .filter((initial) =>
+                        productAssets.some((asset) => asset.id === initial.id),
+                      )
+                      .map((asset) => asset.fileName)
+                      .join("、")}
+                  </span>
+                </p>
+              ) : null}
+              <AssetGrid
+                assets={productAssets}
+                imageLabel={copy.stepAsset}
+                removeLabel={copy.removeProduct}
+                onRemove={removeProductAsset}
+                disabled={busy !== null || configurationLocked}
+              />
+            </>
           ) : (
             <p className="flex items-center gap-2 text-meta text-muted-foreground">
               <Package className="size-4" aria-hidden />
@@ -1195,7 +1233,10 @@ export function StreamlinedVideoStudio({
           hint={creationMode === "quick" ? copy.stepPromptHintQuick : copy.stepPromptHintAdvanced}
         />
         <CardContent className="space-y-3">
-          <div className="flex gap-2 overflow-x-auto pb-1" aria-label={copy.promptLabel}>
+          <div
+            className="flex gap-2 overflow-x-auto pb-1"
+            aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
+          >
             {copy.promptPresets.map((label, index) => (
               <Button
                 key={label}

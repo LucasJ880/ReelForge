@@ -15,6 +15,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -317,16 +318,17 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                     <article key={output.id} className="space-y-3 rounded-(--radius-md) border border-border p-3">
                       <div className="relative aspect-square overflow-hidden rounded-(--radius-sm) bg-muted">
                         <Image src={output.url} alt={english ? `Generated product image ${output.position + 1}` : `生成产品图 ${output.position + 1}`} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-contain" unoptimized />
+                        <AiGeneratedLabel className="absolute bottom-2 left-2" />
                       </div>
                       <div className="grid grid-cols-5 gap-2">
                         <a href={output.url} download className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="download"><Download aria-hidden /></a>
                         <Button type="button" variant="outline" size="sm" aria-label="variation" disabled={!output.asset} onClick={() => continueWithOutput(output, true)}><RefreshCw aria-hidden /></Button>
                         <Button type="button" variant="outline" size="sm" aria-label="edit" disabled={!output.asset} onClick={() => continueWithOutput(output, false)}><Pencil aria-hidden /></Button>
                         {output.handoffId ? (
-                          <Link href={`/app/create?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="single-video"><ArrowRight aria-hidden /><span className="sr-only">{copy.useSingle}</span></Link>
+                          <Link href={`/app/create?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label={copy.useSingle}><ArrowRight aria-hidden /><span className="sr-only">{copy.useSingle}</span></Link>
                         ) : <Button type="button" variant="outline" size="sm" aria-label="single-video" disabled><ArrowRight aria-hidden /></Button>}
                         {output.handoffId ? (
-                          <Link href={`/app/batches/new?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="batch-video"><ArrowRight aria-hidden /><span className="sr-only">{copy.useBatch}</span></Link>
+                          <Link href={`/app/batches/new?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label={copy.useBatch}><ArrowRight aria-hidden /><span className="sr-only">{copy.useBatch}</span></Link>
                         ) : <Button type="button" variant="outline" size="sm" aria-label="batch-video" disabled><ArrowRight aria-hidden /></Button>}
                       </div>
                       {output.historical ? <p className="text-meta text-muted-foreground">{activeJob.historyNotice}</p> : null}

@@ -530,7 +530,12 @@ async function submitSegmentJob(params: {
         submittedAt,
         timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
         videoBriefId: briefId,
-        provider: VideoProvider.SEEDANCE_T2V,
+        /// provider 必须与不可变路线快照一致（poll 侧有一致性硬校验）；
+        /// mock 演练线路的段任务持久化为 MOCK，与 batch-service 同规则。
+        provider:
+          routeSnapshot.videoRouteSnapshot === "mock"
+            ? VideoProvider.MOCK
+            : VideoProvider.SEEDANCE_T2V,
         status: VideoJobStatus.RUNNING,
         segmentIndex: segment.segmentIndex,
         segmentDurationSec: segment.durationSec,
@@ -703,7 +708,10 @@ export async function dispatchVideoGeneration(briefId: string) {
             submittedAt,
             timeoutAt: new Date(submittedAt.getTime() + deadlineMs()),
             videoBriefId: briefId,
-            provider: prompt.provider,
+            provider:
+              routeSnapshot.videoRouteSnapshot === "mock"
+                ? VideoProvider.MOCK
+                : prompt.provider,
             status: VideoJobStatus.RUNNING,
             ...routeSnapshot,
           },

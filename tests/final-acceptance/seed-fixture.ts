@@ -4,6 +4,8 @@ import bcrypt from "bcryptjs";
 import { Prisma, StyleTemplateStatus } from "@prisma/client";
 import { db } from "../../src/lib/db";
 import {
+  FINAL_ACCEPTANCE_ASSET_COUNT,
+  FINAL_ACCEPTANCE_ASSET_PREFIX,
   FINAL_ACCEPTANCE_EMAIL,
   FINAL_ACCEPTANCE_PASSWORD,
   FINAL_ACCEPTANCE_TEMPLATE_SLUG,
@@ -92,7 +94,7 @@ async function main() {
       deletedOnboardingAccountCount: cleanup.onboardingAccounts,
     }),
   );
-  await db.workspace.upsert({
+  const workspace = await db.workspace.upsert({
     where: { ownerId: acceptanceUser.id },
     update: { planId: "studio", name: "Final Acceptance QA" },
     create: {
@@ -101,6 +103,35 @@ async function main() {
       name: "Final Acceptance QA",
     },
   });
+
+  const acceptanceAssetUrl = `${process.env.FINAL_ACCEPTANCE_BASE_URL ?? "http://localhost:3100"}/file.svg`;
+  await Promise.all(
+    Array.from({ length: FINAL_ACCEPTANCE_ASSET_COUNT }, (_, index) => {
+      const ordinal = index + 1;
+      const id = `${FINAL_ACCEPTANCE_ASSET_PREFIX}-${ordinal}`;
+      return db.mediaAsset.upsert({
+        where: { id },
+        update: {
+          userId: acceptanceUser.id,
+          workspaceId: workspace.id,
+          url: acceptanceAssetUrl,
+          mimeType: "image/svg+xml",
+        },
+        create: {
+          id,
+          userId: acceptanceUser.id,
+          workspaceId: workspace.id,
+          storageKey: `final-acceptance/assets/${ordinal}.svg`,
+          url: acceptanceAssetUrl,
+          mimeType: "image/svg+xml",
+          byteSize: 537,
+          sha256: `final-acceptance-${ordinal}`,
+          width: 512,
+          height: 512,
+        },
+      });
+    }),
+  );
 
   const lockedParams = {
     duration: 5,

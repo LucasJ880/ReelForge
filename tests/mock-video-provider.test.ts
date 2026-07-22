@@ -37,6 +37,7 @@ test("MockProvider：100 条默认注入恰好 93 成功、5 失败、2 僵死",
         segmentCount: 100,
         durationSec: 10,
         aspectRatio: "9:16",
+        purpose: "batch-template",
       },
     });
     statuses.push(await provider.getVideoJobStatus(created.providerJobId));

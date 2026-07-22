@@ -49,6 +49,7 @@ test("批量任务逐条展示 Image 2 故事板，成片预览受视口约束",
   assert.match(monitor, /storyboard/);
   assert.match(monitor, /grid-cols-2/);
   assert.match(monitor, /object-contain/);
+  assert.match(monitor, /历史成片/);
   assert.match(monitor, /max-h-\[min\(58vh,720px\)\]/);
   assert.doesNotMatch(
     monitor,
@@ -81,7 +82,11 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
     /submitting \|\|\s*!hasEnoughImages \|\|\s*selectedRouteAvailable !== true/,
     "final submission must also be blocked while the selected provider route is unavailable",
   );
-  assert.match(wizard, /videoRouteId:\s*videoRouteId \|\| undefined/);
+  assert.doesNotMatch(
+    wizard,
+    /const requestBody = \{[\s\S]*?videoRouteId:[\s\S]*?\};/,
+    "customer batch submissions must let the server lock the Shuyu route",
+  );
   assert.match(
     wizard,
     /batchCreateErrorMessage\(data\.code, locale, data\.error\)/,

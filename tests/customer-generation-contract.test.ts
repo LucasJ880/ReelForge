@@ -289,6 +289,25 @@ test("Phase 2 contract: customer batch serializer strips raw submission diagnost
         submissionErrorClass: "status_lookup_ack_unknown secret",
         ...jobSensitive,
         retryCount: 0,
+        storyboardRun: {
+          id: "storyboard-1",
+          status: "APPROVED",
+          approvalPolicy: "AUTO",
+          userId: "LEAK_STORYBOARD_USER",
+          dispatchReservationKey: "LEAK_STORYBOARD_RESERVATION",
+          frames: [
+            {
+              id: "frame-1",
+              ordinal: 0,
+              status: "SUCCEEDED",
+              outputUrl: "https://cdn.example.com/frame-1.png",
+              outputAsset: null,
+              prompt: "LEAK_FRAME_PROMPT",
+              providerRequestKey: "LEAK_FRAME_REQUEST_KEY",
+              externalTaskId: "LEAK_FRAME_EXTERNAL_TASK",
+            },
+          ],
+        },
         createdAt: new Date(),
         submittedAt: new Date(),
         finishedAt: new Date(),
@@ -341,9 +360,20 @@ test("Phase 2 contract: customer batch serializer strips raw submission diagnost
     "outputVideoUrl",
     "retryCount",
     "status",
+    "storyboard",
     "submittedAt",
     "userSafeError",
   ]);
+  assert.deepEqual(Object.keys(customer.videoJobs[0].storyboard!).sort(), [
+    "approvalPolicy",
+    "frames",
+    "id",
+    "status",
+  ]);
+  assert.deepEqual(
+    Object.keys(customer.videoJobs[0].storyboard!.frames[0]).sort(),
+    ["id", "imageUrl", "ordinal", "status"],
+  );
   assert.match(json, /SUBMISSION_ACK_UNKNOWN/);
   assert.match(json, /contact_support/);
 });

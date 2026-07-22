@@ -1,5 +1,10 @@
 import { db } from "../../src/lib/db";
-import { browserFetch, expect, test } from "./framework";
+import {
+  browserFetch,
+  dispatchCurrentSingleVideo,
+  expect,
+  test,
+} from "./framework";
 
 test("P6：新用户从注册到首条成片少于 10 分钟", async ({ page }, testInfo) => {
   const startedAt = performance.now();
@@ -55,26 +60,10 @@ test("P6：新用户从注册到首条成片少于 10 分钟", async ({ page }, 
 
   await page.goto("/app/create");
   await expect(page).toHaveURL((url) => url.pathname === "/app/create");
-  await page
-    .getByLabel("你想做什么样的视频？")
-    .fill("为一款便携保温杯制作 10 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。");
-  const planResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url().endsWith("/api/video-generation/plan"),
+  const payload = await dispatchCurrentSingleVideo(
+    page,
+    "为一款便携保温杯制作 15 秒真实自然光产品演示，主体稳定，不添加参考图之外的功能。",
   );
-  await page.getByRole("button", { name: "预览方案" }).click();
-  expect((await planResponse).status()).toBe(200);
-
-  const dispatchResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === "POST" &&
-      response.url().endsWith("/api/video-generation/dispatch"),
-  );
-  await page.getByRole("button", { name: "生成视频", exact: true }).click();
-  const dispatched = await dispatchResponse;
-  expect(dispatched.status()).toBe(200);
-  const payload = (await dispatched.json()) as { briefId: string };
 
   let renderStatus:
     | {

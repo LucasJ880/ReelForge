@@ -143,7 +143,9 @@ type BatchFailureCopy = ReturnType<
 function jobFailureSummary(
   job: BatchMonitorJob,
   copy: BatchFailureCopy,
+  english: boolean,
 ): string {
+  if (!english && job.error?.message) return job.error.message;
   switch (job.error?.code) {
     case "ASSET_MISSING":
       return copy.assetMissing;
@@ -502,7 +504,7 @@ export function BatchMonitor({
                         poster={thumb ?? undefined}
                         muted
                         playsInline
-                        preload="metadata"
+                        preload="none"
                         className="pointer-events-none size-full object-cover"
                       /><AiGeneratedLabel compact className="pointer-events-none absolute bottom-1 left-1 px-1 py-0.5" /></>
                   ) : thumb ? (
@@ -518,7 +520,7 @@ export function BatchMonitor({
                 <Badge variant={jobStatusVariant(job.status)} className="w-20">{jobLabels[job.status]}</Badge>
                 <div className="min-w-32 flex-1">
                   {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
-                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures)}</p> : null}
+                  {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures, english)}</p> : null}
                   {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{monitorCopy.ready}</p> : null}
                   {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{monitorCopy.cancelled}</p> : null}
                   {job.status === "QUEUED" ? (
@@ -566,7 +568,7 @@ export function BatchMonitor({
                 <SheetDescription>
                   {jobLabels[detailJob.status]}
                   {detailJob.status === "FAILED"
-                    ? ` · ${jobFailureSummary(detailJob, monitorCopy.failures)}`
+                    ? ` · ${jobFailureSummary(detailJob, monitorCopy.failures, english)}`
                     : ""}
                 </SheetDescription>
               </SheetHeader>
@@ -590,11 +592,15 @@ export function BatchMonitor({
                         {english ? "Consistency storyboard" : "一致性故事板"}
                       </h3>
                       <p className="text-meta text-muted-foreground">
-                        {english ? "Four Image 2 frames are auto-approved for this batch item before video generation." : "该条任务先由 Image 2 生成 4 帧并自动确认，再进入视频生成。"}
+                        {!detailJob.storyboard && detailJob.status === "SUCCEEDED"
+                          ? (english ? "This video predates the storyboard workflow; no frame record is available." : "该成片生成于故事板工作流上线前，因此没有分镜记录。")
+                          : (english ? "Four Image 2 frames are auto-approved for this batch item before video generation." : "该条任务先由 Image 2 生成 4 帧并自动确认，再进入视频生成。")}
                       </p>
                     </div>
                     <Badge variant={detailJob.storyboard?.status === "APPROVED" ? "success" : detailJob.storyboard?.status === "FAILED" ? "destructive" : "secondary"}>
-                      {detailJob.storyboard?.status === "APPROVED"
+                      {!detailJob.storyboard && detailJob.status === "SUCCEEDED"
+                        ? (english ? "Legacy video" : "历史成片")
+                        : detailJob.storyboard?.status === "APPROVED"
                         ? (english ? "Auto-approved" : "已自动确认")
                         : detailJob.storyboard?.status === "FAILED"
                           ? (english ? "Needs attention" : "需要处理")
@@ -611,11 +617,15 @@ export function BatchMonitor({
                               <Image src={frame.imageUrl} alt={english ? `Storyboard frame ${ordinal + 1}` : `故事板分镜 ${ordinal + 1}`} fill unoptimized sizes="(max-width: 640px) 45vw, 220px" className="object-contain" />
                             ) : (
                               <div className="flex size-full items-center justify-center text-meta text-muted-foreground">
-                                {frame?.status === "FAILED" ? (english ? "Failed" : "失败") : (english ? "Generating…" : "生成中…")}
+                                {!detailJob.storyboard && detailJob.status === "SUCCEEDED"
+                                  ? (english ? "Not recorded" : "未记录")
+                                  : frame?.status === "FAILED"
+                                    ? (english ? "Failed" : "失败")
+                                    : (english ? "Generating…" : "生成中…")}
                               </div>
                             )}
                           </div>
-                          <p className="font-mono text-meta text-muted-foreground">{english ? `Frame ${ordinal + 1}` : `分镜 ${ordinal + 1}`} · {frame?.status ?? "QUEUED"}</p>
+                          <p className="font-mono text-meta text-muted-foreground">{english ? `Frame ${ordinal + 1}` : `分镜 ${ordinal + 1}`} · {frame?.status ?? (!detailJob.storyboard && detailJob.status === "SUCCEEDED" ? "N/A" : "QUEUED")}</p>
                         </div>
                       );
                     })}

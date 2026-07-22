@@ -108,6 +108,35 @@ test("dry-run：OpenAI 图像生成视为不可用 → 走占位 mock", async (t
   assert.equal(result.fromMock, true, "dry-run 下图像生成必须来自 mock");
 });
 
+test("dry-run：Shuyu Image 2 提交、轮询与输出下载全程走本地 mock", async (t) => {
+  withEnv(t, {
+    AIVORA_DRY_RUN: "1",
+    VERCEL_ENV: "preview",
+    IMAGE_ENGINE_MOCK: undefined,
+    SHUYU_API_KEY: "fake-key-should-never-be-used",
+  });
+  const {
+    fetchShuyuOutputImage,
+    pollShuyuImageTask,
+    submitShuyuImageTask,
+  } = await import("../src/lib/providers/shuyu-image-provider");
+
+  const submitted = await submitShuyuImageTask({
+    requestKey: "dry-run-image",
+    prompt: "A stable product image for dry-run acceptance",
+    aspectRatio: "1:1",
+    resolution: "1K",
+  });
+  assert.match(submitted.externalTaskId, /^mock_shuyu_image_/);
+  assert.equal(submitted.planSnapshot.family, "gpt-image-2");
+
+  const polled = await pollShuyuImageTask(submitted.externalTaskId);
+  assert.equal(polled.status, "succeeded");
+  const output = await fetchShuyuOutputImage(polled.outputUrls[0]);
+  assert.equal(output.mimeType, "image/png");
+  assert.ok(output.bytes.length > 0);
+});
+
 test("dry-run：火山 TTS 显式拒绝（fail-closed）", async (t) => {
   withEnv(t, {
     AIVORA_DRY_RUN: "1",

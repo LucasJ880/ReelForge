@@ -29,7 +29,7 @@ export function HoverPreviewVideo({
       muted
       loop
       playsInline
-      preload="metadata"
+      preload="none"
       onPointerEnter={play}
       onPointerLeave={reset}
       onFocus={play}

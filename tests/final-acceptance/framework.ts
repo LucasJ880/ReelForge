@@ -8,6 +8,8 @@ import {
 } from "@playwright/test";
 import { db } from "../../src/lib/db";
 import {
+  FINAL_ACCEPTANCE_ASSET_COUNT,
+  FINAL_ACCEPTANCE_ASSET_PREFIX,
   FINAL_ACCEPTANCE_EMAIL,
   FINAL_ACCEPTANCE_TEMPLATE_NAME,
   RUN_STATE_PATH,
@@ -389,14 +391,14 @@ export async function getAcceptanceTemplate(page: Page): Promise<{
   return template!;
 }
 
-export function imageUrls(count: number, prefix: string) {
-  const baseURL =
-    process.env.FINAL_ACCEPTANCE_BASE_URL ?? "http://localhost:3100";
-  const imageUrl = `${baseURL}/file.svg`;
-  return Array.from({ length: count }, (_, index) => ({
-    id: `${prefix}-image-${index + 1}`,
-    url: imageUrl,
-  }));
+export function acceptanceAssetIds(count: number) {
+  if (count > FINAL_ACCEPTANCE_ASSET_COUNT) {
+    throw new Error(`Final acceptance only seeds ${FINAL_ACCEPTANCE_ASSET_COUNT} assets`);
+  }
+  return Array.from(
+    { length: count },
+    (_, index) => `${FINAL_ACCEPTANCE_ASSET_PREFIX}-${index + 1}`,
+  );
 }
 
 export async function registerBatch(batchId: string): Promise<void> {
@@ -407,6 +409,99 @@ export async function registerBatch(batchId: string): Promise<void> {
   };
   if (!state.batchIds.includes(batchId)) state.batchIds.push(batchId);
   await writeFile(RUN_STATE_PATH, JSON.stringify(state, null, 2));
+}
+
+export async function dispatchCurrentSingleVideo(
+  page: Page,
+  prompt: string,
+): Promise<{ briefId: string; nextUrl: string }> {
+  /// 首次使用弹窗随 hydration 异步挂载，goto 后立即检查会漏掉；
+  /// locator handler 会在弹窗任意时刻挡住后续操作时自动关闭它。
+  const onboarding = page.getByTestId("first-run-onboarding");
+  await page.addLocatorHandler(onboarding, async () => {
+    await onboarding.getByRole("button", { name: "开始创作" }).click();
+  });
+
+  const tinyPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+  const uploadResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/api/upload/blob"),
+  );
+  await page
+    .getByTestId("streamlined-product-assets")
+    .locator('input[type="file"]')
+    .first()
+    .setInputFiles({
+      name: "single-video-product.png",
+      mimeType: "image/png",
+      buffer: tinyPng,
+    });
+  expect((await uploadResponse).status()).toBe(201);
+  await expect(
+    page.getByTestId("streamlined-product-assets").getByText(/1 \/ 9 张/),
+  ).toBeVisible();
+
+  await page
+    .getByRole("textbox", { name: "描述你想生成的视频" })
+    .fill(prompt);
+  const planResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/api/video-generation/plan"),
+  );
+  await page.getByRole("button", { name: "核对规格与积分" }).click();
+  expect((await planResponse).status()).toBe(200);
+
+  const storyboardResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/api/video-generation/storyboards"),
+  );
+  await page.getByRole("button", { name: "生成 Image 2 故事板" }).click();
+  expect((await storyboardResponse).status()).toBe(201);
+  await expect(page.getByTestId("storyboard-frame-grid").locator("article")).toHaveCount(4);
+
+  const approve = page.getByRole("button", { name: "确认全部分镜" });
+  /// 生产环境由 cron/poll-videos 周期性推进故事板逐帧生成；验收服务器没有
+  /// 调度器，这里按同样节拍驱动它，让推进不只依赖页面自身的轮询链。
+  const pollCronHeaders = process.env.CRON_SECRET
+    ? { authorization: `Bearer ${process.env.CRON_SECRET}` }
+    : undefined;
+  await expect
+    .poll(
+      async () => {
+        await page.request
+          .get("/api/cron/poll-videos", pollCronHeaders ? { headers: pollCronHeaders } : {})
+          .catch(() => undefined);
+        return approve.isEnabled().catch(() => false);
+      },
+      { timeout: 45_000, intervals: [1_500] },
+    )
+    .toBe(true);
+  const approvalResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      /\/api\/video-generation\/storyboards\/[^/]+\/approve$/.test(
+        new URL(response.url()).pathname,
+      ),
+  );
+  await approve.click();
+  expect((await approvalResponse).status()).toBe(200);
+  await expect(page.getByText("故事板已确认", { exact: true })).toBeVisible();
+
+  const dispatchResponse = page.waitForResponse(
+    (response) =>
+      response.request().method() === "POST" &&
+      response.url().endsWith("/api/video-generation/dispatch"),
+  );
+  await page.getByRole("button", { name: "生成视频", exact: true }).click();
+  const dispatched = await dispatchResponse;
+  expect(dispatched.status()).toBe(200);
+  return (await dispatched.json()) as { briefId: string; nextUrl: string };
 }
 
 export async function createBatch(
@@ -432,7 +527,7 @@ export async function createBatch(
       body: {
         templateId: template.id,
         templateVersion: template.version,
-        images: imageUrls(args.imageCount, args.prefix ?? args.key),
+        assetIds: acceptanceAssetIds(args.imageCount),
         requestedCount: args.requestedCount,
         productName: `Final Acceptance ${args.key}`,
       },

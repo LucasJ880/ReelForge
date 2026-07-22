@@ -46,7 +46,18 @@ test("batch monitor localizes titles, statuses, recovery copy, and template name
   );
   assert.match(monitor, /monitorCopy\.paused\.replace/);
   assert.doesNotMatch(monitor, /\{batch\.statusReason\}/);
-  assert.doesNotMatch(monitor, /job\.error\?\.message/);
+  /// 服务端失败原因是已脱敏的中文 userSafeError；只允许 zh-CN 界面直渲，
+  /// 英文界面必须继续走本地化 copy 映射。
+  assert.match(
+    monitor,
+    /if \(!english && job\.error\?\.message\) return job\.error\.message;/,
+    "the sanitized server reason may only render behind the zh-CN guard",
+  );
+  assert.equal(
+    (monitor.match(/error\?\.message/g) ?? []).length,
+    1,
+    "no other raw error.message rendering is allowed in the monitor",
+  );
   assert.doesNotMatch(monitor, /detailJob\.error\.message/);
   assert.doesNotMatch(monitor, /data\.error\s*\?\?/);
 });

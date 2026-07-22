@@ -398,7 +398,6 @@ export function BatchCreateWizard({
           assetIds: uploaded.map((item) => item.assetId),
           requestedCount: group.count,
           productName: productName.trim() || undefined,
-          videoRouteId: videoRouteId || undefined,
         };
         const fingerprint = JSON.stringify(requestBody);
         if (submissionIdentityRef.current?.fingerprint !== fingerprint) {

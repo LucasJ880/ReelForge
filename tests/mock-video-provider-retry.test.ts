@@ -18,6 +18,7 @@ test("Mock Provider：首次故障分布不变，重试尝试确定性恢复", a
       segmentCount: 1,
       durationSec: 5,
       aspectRatio: "9:16",
+      purpose: "batch-template",
     },
   };
 
@@ -30,4 +31,20 @@ test("Mock Provider：首次故障分布不变，重试尝试确定性恢复", a
   assert.equal(__test__.decodeJob(initial.providerJobId).o, "stall");
   assert.equal(__test__.decodeJob(retried.providerJobId).o, "success");
   assert.equal(__test__.decodeJob(retried.providerJobId).s, base.seed);
+});
+
+test("Mock Provider：单条（非批量）提交不参与故障注入，确定性成功", async () => {
+  const provider = new MockVideoProvider();
+  const created = await provider.createVideoJob({
+    prompt: "single video segment",
+    mockHints: {
+      briefId: "brief-single",
+      segmentIndex: 0,
+      segmentCount: 1,
+      durationSec: 15,
+      aspectRatio: "9:16",
+      purpose: "scene",
+    },
+  });
+  assert.equal(__test__.decodeJob(created.providerJobId).o, "success");
 });

@@ -124,11 +124,15 @@ export class MockVideoProvider implements VideoProvider {
   ): Promise<CreateVideoJobResult> {
     assertMockVideoRuntimeAllowed();
     const seed = (options.seed ?? 0) & 0x7fffffff;
+    /// 故障注入排列是为批量测试设计的（batchIndex 0..99 稳定得到 2 stall +
+    /// 5 failure）。单条视频段的 segmentIndex 恒为 0，套进排列会 100% stall；
+    /// 单条链路的失败/watchdog 场景由测试直接改 DB 注入，这里保持确定性成功。
+    const injectOutcome = options.mockHints?.purpose === "batch-template";
     const payload: EncodedMockJob = {
       c: Date.now(),
       l: latencyForSeed(seed),
       o:
-        (options.mockHints?.retryAttempt ?? 0) > 0
+        !injectOutcome || (options.mockHints?.retryAttempt ?? 0) > 0
           ? "success"
           : chooseOutcome(seed, options.mockHints?.segmentIndex),
       s: seed,

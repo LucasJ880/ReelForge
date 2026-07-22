@@ -1,5 +1,9 @@
 import { z } from "zod";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
+import {
+  parseShuyuCatalog,
+  type AuditedShuyuImagePlan,
+} from "./shuyu-catalog";
 
 export const SHUYU_API_BASE_URL =
   "https://shuyu-tiktok-tool.pages.dev/api/v1" as const;
@@ -445,24 +449,12 @@ export async function getShuyuPrices(
   return parsed.data;
 }
 
-/**
- * 动态图片线路（2026-07-20 起 GPT Image 2 线路已下线，只剩 Nano Banana / Gemini）：
- * 从 /prices 拉当前可用 image plan，质量优先排序 — Gemini Pro 优先于 Flash，
- * 2K 优先于 4K（9:16 故事版 2K 足够且出图更快），同档按积分升序。
- */
-export async function getAvailableShuyuImagePlanIds(
+/** Return only currently available, audited GPT Image 2 plans and metadata. */
+export async function getAvailableShuyuImagePlans(
   options: ShuyuFetchOptions = {},
-): Promise<string[]> {
+): Promise<AuditedShuyuImagePlan[]> {
   const prices = await getShuyuPrices(options);
-  const rank = (plan: z.infer<typeof shuyuPriceSchema>): number => {
-    const pro = /\bpro\b/i.test(plan.display_name) ? 0 : 1;
-    const res2k = plan.resolution === "2K" ? 0 : plan.resolution === "1K" ? 1 : 2;
-    return pro * 10 + res2k;
-  };
-  return prices.data
-    .filter((plan) => plan.kind === "image")
-    .sort((a, b) => rank(a) - rank(b) || a.sale_points - b.sale_points)
-    .map((plan) => plan.plan_id);
+  return parseShuyuCatalog(prices).imagePlans;
 }
 
 export async function getShuyuBalance(

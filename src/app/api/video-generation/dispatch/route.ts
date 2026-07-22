@@ -191,9 +191,7 @@ export async function POST(req: NextRequest) {
   const requestHash = hashVideoDispatchRequest(body, videoRouteSnapshot);
 
   const runtimeReadiness = videoGenerationRuntimeReadiness();
-  const selectedRouteOverridesGlobal = body?.videoRouteId !== undefined;
   const overrideMayIgnoreGlobalRouteFailure =
-    selectedRouteOverridesGlobal &&
     !runtimeReadiness.ok &&
     canVideoRouteOverrideDefaultRuntimeFailure(
       videoRouteSnapshot,
@@ -395,8 +393,8 @@ export async function POST(req: NextRequest) {
         code: "SERVICE_UNAVAILABLE",
         message:
           selectedRouteAvailability.reason === "insufficient_balance"
-            ? "合作方视频线路暂时余额不足，请切换火山线路或稍后再试。"
-            : "所选视频生成线路暂时不可用，请切换线路或稍后再试。",
+            ? "合作方视频线路暂时余额不足，请稍后重试；若持续发生，请联系支持。"
+            : "合作方视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。",
         retryable: true,
         action: "retry",
       }),
@@ -460,7 +458,7 @@ export async function POST(req: NextRequest) {
         toCustomerVideoDispatchError({
           code: "VALIDATION_FAILED",
           message: hasInvalidReferenceUrl
-            ? "合作方线路只接受 HTTPS 图片地址，请更换素材或切换线路。"
+            ? "合作方线路只接受 HTTPS 图片地址，请更换素材后重试。"
             : "当前方案不符合合作方线路的时长或提示词限制，请修改后重试。",
           retryable: false,
           action: "fix_request",

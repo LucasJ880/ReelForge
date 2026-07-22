@@ -39,13 +39,33 @@ function isStaffSelectableRouteId(
   return STAFF_SELECTABLE_VIDEO_ROUTE_IDS.some((routeId) => routeId === value);
 }
 
+export function selectCustomerVideoRouteSnapshot(args: {
+  requestedRouteId?: unknown;
+  env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
+}): VideoRouteSnapshot {
+  const env = args.env ?? process.env;
+  if (isMockVideoRuntime(env)) {
+    if (args.requestedRouteId !== undefined) {
+      throw new VideoRouteSelectionError(
+        "MOCK_ROUTE_CONFLICT",
+        "Mock rehearsal mode does not permit a real provider route override",
+      );
+    }
+    return createVideoRouteSnapshot("mock");
+  }
+  if (args.requestedRouteId !== undefined && args.requestedRouteId !== "buddy") {
+    throw new VideoRouteSelectionError(
+      "FORBIDDEN",
+      "Customers may only use the audited Shuyu partner route",
+    );
+  }
+  return createVideoRouteSnapshot("buddy");
+}
+
 /**
  * Resolve one immutable route snapshot before idempotency/quota work begins.
- *
- * Authenticated customers choose between the environment-pinned direct route
- * (no override) and the audited Shuyu partner route. Explicit direct profile
- * overrides remain staff-only. Mock is forced by rehearsal configuration and
- * can never be selected by a request payload.
+ * Customer requests are Shuyu-only; legacy direct profiles remain available to
+ * internal staff and historical snapshot readers.
  */
 export function selectVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
@@ -53,6 +73,14 @@ export function selectVideoRouteSnapshot(args: {
   env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
+  if (!args.isInternalStaff) {
+    return selectCustomerVideoRouteSnapshot({
+      ...(args.requestedRouteId !== undefined
+        ? { requestedRouteId: args.requestedRouteId }
+        : {}),
+      env,
+    });
+  }
   const hasOverride = args.requestedRouteId !== undefined;
 
   if (isMockVideoRuntime(env)) {
@@ -66,12 +94,6 @@ export function selectVideoRouteSnapshot(args: {
   }
 
   if (hasOverride) {
-    if (!args.isInternalStaff && args.requestedRouteId !== "buddy") {
-      throw new VideoRouteSelectionError(
-        "FORBIDDEN",
-        "Customers may use the default direct route or select the Shuyu partner route",
-      );
-    }
     if (
       typeof args.requestedRouteId !== "string" ||
       !isStaffSelectableRouteId(args.requestedRouteId)

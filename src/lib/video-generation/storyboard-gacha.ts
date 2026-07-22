@@ -106,6 +106,45 @@ export function gachaCandidateCount(): number {
 }
 
 /**
+ * Select the first successful Shuyu candidate in submission order. Public
+ * Shuyu storyboard paths use this rather than an unaudited platform judge.
+ */
+export async function generateFrameDeterministically(args: {
+  generateOnce: (candidateIndex: number) => Promise<string>;
+  candidateCount?: number;
+  label?: string;
+}): Promise<{
+  imageUrl: string;
+  candidateUrls: string[];
+  judge: GachaJudgeVerdict;
+}> {
+  const count = args.candidateCount ?? gachaCandidateCount();
+  const settled = await Promise.allSettled(
+    Array.from({ length: count }, (_, k) => args.generateOnce(k)),
+  );
+  const candidateUrls = settled
+    .filter((s): s is PromiseFulfilledResult<string> => s.status === "fulfilled")
+    .map((s) => s.value);
+  if (candidateUrls.length === 0) {
+    const firstError = settled.find(
+      (s): s is PromiseRejectedResult => s.status === "rejected",
+    );
+    throw firstError?.reason instanceof Error
+      ? firstError.reason
+      : new Error(`${args.label ?? "gacha"}: all candidates failed`);
+  }
+  return {
+    imageUrl: candidateUrls[0]!,
+    candidateUrls,
+    judge: {
+      chosenIndex: 0,
+      checked: false,
+      note: "deterministic first successful Shuyu candidate",
+    },
+  };
+}
+
+/**
  * 并行生成 N 个候选 → 评审择优。generateOnce 抛错的候选被丢弃，
  * 只要 ≥1 个成功即可返回；全失败则抛最后一个错误。
  */

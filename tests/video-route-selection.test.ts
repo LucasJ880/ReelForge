@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   canVideoRouteOverrideDefaultRuntimeFailure,
@@ -6,6 +7,7 @@ import {
   selectVideoRouteSnapshot,
   VideoRouteSelectionError,
 } from "../src/lib/video-generation/video-route-selection";
+import * as routeSelection from "../src/lib/video-generation/video-route-selection";
 import { hashVideoDispatchRequest } from "../src/lib/services/video-dispatch-idempotency";
 import { createVideoRouteSnapshot } from "../src/lib/video-generation/video-route-registry";
 
@@ -15,16 +17,19 @@ const realEnv = {
   SEEDANCE_RUNTIME_PROFILE: "byteplus_international",
 };
 
-test("authenticated customer gets direct by default and may override only to Shuyu", () => {
+test("customer routing is Shuyu-only outside mock mode", () => {
   assert.equal(
-    selectVideoRouteSnapshot({
-      isInternalStaff: false,
+    typeof routeSelection.selectCustomerVideoRouteSnapshot,
+    "function",
+  );
+  assert.equal(
+    routeSelection.selectCustomerVideoRouteSnapshot({
       env: {
         ...realEnv,
         SEEDANCE_RUNTIME_PROFILE: "volcengine_cn_legacy",
       },
     }).videoRouteSnapshot,
-    "volcengine_cn_legacy",
+    "buddy",
   );
   assert.deepEqual(
     selectVideoRouteSnapshot({
@@ -46,6 +51,18 @@ test("authenticated customer gets direct by default and may override only to Shu
         error instanceof VideoRouteSelectionError && error.code === "FORBIDDEN",
     );
   }
+});
+
+test("implicit Shuyu dispatch bypasses an unrelated direct runtime failure", async () => {
+  const source = await readFile(
+    "src/app/api/video-generation/dispatch/route.ts",
+    "utf8",
+  );
+  assert.doesNotMatch(source, /selectedRouteOverridesGlobal/);
+  assert.match(
+    source,
+    /const overrideMayIgnoreGlobalRouteFailure\s*=\s*!runtimeReadiness\.ok\s*&&\s*canVideoRouteOverrideDefaultRuntimeFailure/,
+  );
 });
 
 test("unregistered and mock request overrides remain sealed", () => {

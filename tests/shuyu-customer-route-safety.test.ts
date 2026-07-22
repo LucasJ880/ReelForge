@@ -84,19 +84,8 @@ test("zero Shuyu balance is unavailable before submission and exposes no raw bal
 
   const publicPayload = publicVideoRouteOptionsResponseSchema.parse({
     ok: true,
-    defaultRouteId: "volcengine_cn_legacy",
+    defaultRouteId: "buddy",
     routes: [
-      {
-        id: "volcengine_cn_legacy",
-        provider: "direct",
-        displayName: "火山 Seedance 直连",
-        model: "doubao-seedance-2-0-260128",
-        resolution: null,
-        configured: true,
-        funded: null,
-        available: true,
-        unavailableReason: null,
-      },
       {
         id: "buddy",
         provider: "shuyu",
@@ -112,7 +101,8 @@ test("zero Shuyu balance is unavailable before submission and exposes no raw bal
   });
   assert.doesNotMatch(JSON.stringify(publicPayload), /available_points|balance_points/);
 
-  const staffPayload = publicVideoRouteOptionsResponseSchema.parse({
+  assert.throws(() =>
+    publicVideoRouteOptionsResponseSchema.parse({
     ...publicPayload,
     routes: [
       ...publicPayload.routes,
@@ -128,21 +118,6 @@ test("zero Shuyu balance is unavailable before submission and exposes no raw bal
         unavailableReason: "not_configured",
       },
     ],
-  });
-  assert.equal(staffPayload.routes.length, 3);
-  assert.equal(
-    staffPayload.routes.find((route) => route.id === "byteplus_international")
-      ?.available,
-    false,
-  );
-  assert.throws(() =>
-    publicVideoRouteOptionsResponseSchema.parse({
-      ...staffPayload,
-      routes: [
-        staffPayload.routes[0],
-        staffPayload.routes[0],
-        staffPayload.routes[1],
-      ],
     }),
   );
 });
@@ -160,14 +135,17 @@ test("direct dispatch replays before provider checks and checks the whole batch 
   assert.ok(availabilityIndex > 0);
   assert.ok(claimIndex < availabilityIndex);
   assert.ok(quotaIndex > availabilityIndex);
+  const availabilityBlock = source.slice(availabilityIndex, quotaIndex);
   assert.match(
-    source.slice(availabilityIndex, quotaIndex),
+    availabilityBlock,
     /code:\s*"SERVICE_UNAVAILABLE"[\s\S]*?action:\s*"retry"/,
   );
   assert.match(
     source,
     /batchCount\s*\*\s*SHUYU_VIDEO_POINTS_PER_GENERATION/,
   );
+  assert.doesNotMatch(source, /切换火山线路|切换线路/);
+  assert.match(availabilityBlock, /稍后重试；若持续发生，请联系支持/);
 });
 
 test("Shuyu adapters preserve content review and batch provider preflight boundaries", async () => {

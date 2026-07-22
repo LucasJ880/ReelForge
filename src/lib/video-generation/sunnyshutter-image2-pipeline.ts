@@ -8,9 +8,6 @@
  */
 
 import {
-  SHUYU_IMAGE_FALLBACK_PLAN_ID,
-  SHUYU_IMAGE_MODEL,
-  SHUYU_IMAGE_PLAN_ID,
   SHUYU_VIDEO_FAST_PLAN_ID,
   SHUYU_VIDEO_PLAN_ID,
   createShuyuImageTask,
@@ -21,7 +18,7 @@ import {
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
   gachaCandidateCount,
-  generateFrameWithGacha,
+  generateFrameDeterministically,
 } from "@/lib/video-generation/storyboard-gacha";
 import {
   requireStoryboardBeforeVideo,
@@ -208,17 +205,18 @@ export async function generateSunnyShutterStoryboard(args: {
   const refs = args.productImageUrls.slice(0, 4);
   const generated: Image2StoryboardArtifact["frames"] = [];
 
-  const planCandidates = Array.from(
-    new Set(
-      [
-        args.imagePlanId,
-        // 动态线路优先（/prices 实时可用），静态名单兜底
-        ...(await resolveImagePlanCandidates(args.options)),
-        SHUYU_IMAGE_PLAN_ID,
-        SHUYU_IMAGE_FALLBACK_PLAN_ID,
-      ].filter(Boolean) as string[],
-    ),
-  );
+  const auditedPlanCandidates = await resolveImagePlanCandidates(args.options);
+  const requestedPlan = args.imagePlanId
+    ? auditedPlanCandidates.find((plan) => plan.planId === args.imagePlanId)
+    : undefined;
+  const planCandidates = requestedPlan
+    ? [
+        requestedPlan,
+        ...auditedPlanCandidates.filter(
+          (plan) => plan.planId !== requestedPlan.planId,
+        ),
+      ]
+    : auditedPlanCandidates;
 
   const generateOnce = async (
     frame: SunnyShutterStoryboardFramePlan,
@@ -230,30 +228,26 @@ export async function generateSunnyShutterStoryboard(args: {
     // Up to 3 rounds × plan candidates — Image2 busy refunds are common.
     for (let round = 0; round < 3; round += 1) {
       if (round > 0) await sleep(8_000 * round);
-      for (const planId of planCandidates) {
+      for (const plan of planCandidates) {
         try {
           const created = await createShuyuImageTask({
             ...args.options,
             timeoutMs: args.options?.timeoutMs ?? 20_000,
             providerRequestKey:
-              `${args.providerRequestKeyPrefix}:img:${args.index1Based}:${frame.id}:c${candidateIndex}:${planId}:r${round}`.slice(
+              `${args.providerRequestKeyPrefix}:img:${args.index1Based}:${frame.id}:c${candidateIndex}:${plan.planId}:r${round}`.slice(
                 0,
                 120,
               ),
-            planId,
-            model: SHUYU_IMAGE_MODEL,
+            planId: plan.planId,
+            model: plan.model,
             prompt,
-            resolution: /plan-0[235]|plan-1[14]/.test(planId)
-              ? "2K"
-              : /plan-0[36]|plan-1[25]/.test(planId)
-                ? "4K"
-                : "1K",
+            resolution: plan.resolution,
             aspectRatio: "9:16",
             inputImages: round >= 2 ? frameRefs.slice(0, 2) : frameRefs,
           });
           const done = await pollShuyuTaskUntilDone(created.taskId, {
             ...args.options,
-            label: `storyboard#${args.index1Based}/${frame.id}/c${candidateIndex}/${planId}/r${round}`,
+            label: `storyboard#${args.index1Based}/${frame.id}/c${candidateIndex}/${plan.planId}/r${round}`,
             pollMs: 4_000,
             maxWaitMs: 12 * 60_000,
           });
@@ -281,22 +275,10 @@ export async function generateSunnyShutterStoryboard(args: {
     const prompt = isFirstFrame
       ? frame.imagePrompt
       : `${frame.imagePrompt}\n\n[SCENE ANCHOR] The FIRST input image(s) are the locked earlier storyboard frames — reproduce their room, window, camera position, and person EXACTLY; only the louver state / action changes.`;
-    const picked = await generateFrameWithGacha({
+    const picked = await generateFrameDeterministically({
       candidateCount: isFirstFrame
         ? gachaCandidateCount()
         : Math.max(2, gachaCandidateCount() - 1),
-      criteria: [
-        `Beat to depict: ${frame.beat}`,
-        "White plantation shutters must match the reference photos (parallel louvers, straight frames) and the shuttered window must be the clear protagonist.",
-        isFirstFrame
-          ? "Anchor frame: pick the candidate whose room/window composition works best as the locked scene for the whole video."
-          : "Must match the CONTEXT frame(s) exactly: same room, same window, same camera position.",
-        "Zero text/logo/watermark; top-left corner clean; no hands on tilt bars.",
-      ].join(" "),
-      contextUrls: [
-        ...generated.map((f) => f.imageUrl),
-        ...refs.slice(0, isFirstFrame ? 2 : 1),
-      ],
       label: `shutter-sb#${args.index1Based}/${frame.id}`,
       generateOnce: (candidateIndex) =>
         generateOnce(frame, frameRefs, prompt, candidateIndex),
@@ -314,7 +296,7 @@ export async function generateSunnyShutterStoryboard(args: {
 
   const artifact: Image2StoryboardArtifact = {
     source: "shuyu_image2",
-    model: `${SHUYU_IMAGE_MODEL}/${args.imagePlanId ?? SHUYU_IMAGE_PLAN_ID}`,
+    model: `${planCandidates[0]!.model}/${planCandidates[0]!.planId}`,
     purpose: args.purpose,
     generatedAt: new Date().toISOString(),
     frames: generated,

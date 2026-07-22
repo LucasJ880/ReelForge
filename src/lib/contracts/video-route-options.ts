@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const publicVideoRouteOptionSchema = z
   .object({
-    id: z.enum(["byteplus_international", "volcengine_cn_legacy", "buddy"]),
-    provider: z.enum(["direct", "shuyu"]),
+    id: z.literal("buddy"),
+    provider: z.literal("shuyu"),
     displayName: z.string().min(1).max(120),
     model: z.string().min(1).max(120),
     resolution: z.string().min(1).max(20).nullable(),
@@ -28,11 +28,8 @@ export const publicVideoRouteOptionSchema = z
 export const publicVideoRouteOptionsResponseSchema = z
   .object({
     ok: z.literal(true),
-    defaultRouteId: z.enum([
-      "byteplus_international",
-      "volcengine_cn_legacy",
-    ]),
-    routes: z.array(publicVideoRouteOptionSchema).min(2).max(3),
+    defaultRouteId: z.literal("buddy"),
+    routes: z.array(publicVideoRouteOptionSchema).length(1),
   })
   .strict()
   .superRefine((value, context) => {
@@ -44,11 +41,11 @@ export const publicVideoRouteOptionsResponseSchema = z
         message: "Video route identifiers must be unique",
       });
     }
-    if (!routeIds.includes(value.defaultRouteId) || !routeIds.includes("buddy")) {
+    if (!routeIds.includes(value.defaultRouteId)) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["routes"],
-        message: "Default and Shuyu routes are required",
+        message: "The Shuyu route is required",
       });
     }
   });

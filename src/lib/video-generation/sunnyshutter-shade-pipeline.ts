@@ -4,20 +4,21 @@
  */
 
 import {
-  SHUYU_IMAGE_FALLBACK_PLAN_ID,
-  SHUYU_IMAGE_MODEL,
-  SHUYU_IMAGE_PLAN_ID,
   SHUYU_VIDEO_FAST_PLAN_ID,
   createShuyuImageTask,
   createShuyuVideoTask,
-  getAvailableShuyuImagePlanIds,
+  getAvailableShuyuImagePlans,
   getShuyuVideoTask,
   type ShuyuFetchOptions,
 } from "@/lib/providers/shuyu";
+import {
+  ShuyuPlanUnavailableError,
+  type AuditedShuyuImagePlan,
+} from "@/lib/providers/shuyu-catalog";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
   gachaCandidateCount,
-  generateFrameWithGacha,
+  generateFrameDeterministically,
 } from "@/lib/video-generation/storyboard-gacha";
 import {
   requireStoryboardBeforeVideo,
@@ -158,32 +159,18 @@ function framePlans(variant: SunnyShutterShadePlotVariant) {
   ];
 }
 
-/** 静态兜底名单（/prices 拉不到时用；线路轮换频繁，别依赖它） */
-const STATIC_IMAGE_PLAN_FALLBACK = [
-  "image-plan-11",
-  "image-plan-14",
-  "image-plan-12",
-  "image-plan-15",
-  "image-plan-10",
-  "image-plan-13",
-  SHUYU_IMAGE_PLAN_ID,
-  SHUYU_IMAGE_FALLBACK_PLAN_ID,
-];
-
-/** 每个故事版拉一次 /prices 动态选线路，失败回退静态名单。 */
+/** Resolve only audited, currently available GPT Image 2 plans. */
 export async function resolveImagePlanCandidates(
   options?: ShuyuFetchOptions,
-): Promise<string[]> {
-  try {
-    const dynamic = await getAvailableShuyuImagePlanIds({
-      ...options,
-      timeoutMs: options?.timeoutMs ?? 15_000,
-    });
-    if (dynamic.length > 0) return dynamic;
-  } catch {
-    // fall through to static list
+): Promise<AuditedShuyuImagePlan[]> {
+  const dynamic = await getAvailableShuyuImagePlans({
+    ...options,
+    timeoutMs: options?.timeoutMs ?? 15_000,
+  });
+  if (dynamic.length === 0) {
+    throw new ShuyuPlanUnavailableError("Image 2 is unavailable");
   }
-  return STATIC_IMAGE_PLAN_FALLBACK;
+  return dynamic;
 }
 
 async function generateOneFrame(args: {
@@ -191,33 +178,29 @@ async function generateOneFrame(args: {
   refs: string[];
   keyPrefix: string;
   label: string;
-  planCandidates: string[];
+  planCandidates: AuditedShuyuImagePlan[];
   options?: ShuyuFetchOptions;
 }): Promise<string> {
   const planCandidates = args.planCandidates;
   let lastError: unknown;
   for (let round = 0; round < 3; round += 1) {
     if (round > 0) await sleep(8_000 * round);
-    for (const planId of planCandidates) {
+    for (const plan of planCandidates) {
       try {
         const created = await createShuyuImageTask({
           ...args.options,
           timeoutMs: args.options?.timeoutMs ?? 20_000,
-          providerRequestKey: `${args.keyPrefix}:${planId}:r${round}`.slice(0, 120),
-          planId,
-          model: SHUYU_IMAGE_MODEL,
+          providerRequestKey: `${args.keyPrefix}:${plan.planId}:r${round}`.slice(0, 120),
+          planId: plan.planId,
+          model: plan.model,
           prompt: args.prompt,
-          resolution: /plan-(02|05|11|14)/.test(planId)
-            ? "2K"
-            : /plan-(03|06|12|15)/.test(planId)
-              ? "4K"
-              : "1K",
+          resolution: plan.resolution,
           aspectRatio: "9:16",
           inputImages: args.refs.slice(0, round >= 2 ? 2 : 4),
         });
         const done = await pollShuyuTaskUntilDone(created.taskId, {
           ...args.options,
-          label: `${args.label}/${planId}`,
+          label: `${args.label}/${plan.planId}`,
           pollMs: 4_000,
           maxWaitMs: 12 * 60_000,
         });
@@ -236,22 +219,6 @@ async function generateOneFrame(args: {
     : new Error("shade storyboard image failed");
 }
 
-function frameJudgeCriteria(args: {
-  variant: SunnyShutterShadePlotVariant;
-  beat: string;
-  isFirstFrame: boolean;
-}): string {
-  return [
-    `Beat to depict: ${args.beat}`,
-    `Product kind: ${args.variant.productKind}; pull chain (if visible) ONLY on the ${args.variant.pullSide} edge.`,
-    "The window + covering must be the clear protagonist (large, straight geometry, matching the product reference photos).",
-    args.isFirstFrame
-      ? "This is the anchor frame: pick the candidate whose room/window composition works best as the locked scene for the whole video."
-      : "Must match the CONTEXT frame(s) exactly: same room, same window, same camera position, same person (if any).",
-    "Zero text/logo/watermark anywhere; top-left corner clean.",
-  ].join(" ");
-}
-
 export async function generateShadeStoryboard(args: {
   index1Based: number;
   productImageUrls: string[];
@@ -268,15 +235,10 @@ export async function generateShadeStoryboard(args: {
   for (const plan of plans) {
     const isFirstFrame = frames.length === 0;
     // 抽卡：帧1决定全片场景，多抽；后续帧以已选帧为上下文评一致性。
-    const picked = await generateFrameWithGacha({
+    const picked = await generateFrameDeterministically({
       candidateCount: isFirstFrame
         ? gachaCandidateCount()
         : Math.max(2, gachaCandidateCount() - 1),
-      criteria: frameJudgeCriteria({ variant, beat: plan.beat, isFirstFrame }),
-      contextUrls: [
-        ...frames.map((f) => f.imageUrl),
-        ...refs.slice(0, isFirstFrame ? 2 : 1),
-      ],
       label: `shade-sb#${args.index1Based}/${plan.id}`,
       generateOnce: (candidateIndex) =>
         generateOneFrame({
@@ -306,7 +268,7 @@ export async function generateShadeStoryboard(args: {
 
   const artifact: Image2StoryboardArtifact = {
     source: "shuyu_image2",
-    model: SHUYU_IMAGE_MODEL,
+    model: planCandidates[0]!.model,
     purpose: args.purpose,
     generatedAt: new Date().toISOString(),
     frames,

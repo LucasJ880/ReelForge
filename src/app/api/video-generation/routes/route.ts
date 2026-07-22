@@ -1,21 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
-import { isInternalRole } from "@/lib/auth-role-policy";
-import { isMockVideoRuntime } from "@/lib/config/env";
-import { resolveSeedanceRuntimeProfile } from "@/lib/config/seedance-runtime";
 import { publicVideoRouteOptionsResponseSchema } from "@/lib/contracts/video-route-options";
 import {
   SHUYU_VIDEO_MODEL,
   SHUYU_VIDEO_POINTS_PER_GENERATION,
   SHUYU_VIDEO_RESOLUTION,
 } from "@/lib/providers/shuyu";
-import {
-  createVideoRouteSnapshot,
-  getVideoRouteContract,
-} from "@/lib/video-generation/video-route-registry";
-import {
-  isVideoRouteSnapshotRuntimeReady,
-} from "@/lib/video-generation/video-route-selection";
 import { getShuyuRouteRuntimeAvailability } from "@/lib/video-generation/shuyu-runtime";
 
 export const runtime = "nodejs";
@@ -26,32 +16,6 @@ export async function GET(req: NextRequest) {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
 
-  const directRouteId = resolveSeedanceRuntimeProfile(
-    process.env.SEEDANCE_RUNTIME_PROFILE,
-  );
-  const mockMode = isMockVideoRuntime();
-  const directRouteIds = isInternalRole(guard.session.user.role)
-    ? (["byteplus_international", "volcengine_cn_legacy"] as const)
-    : [directRouteId];
-  const directRoutes = directRouteIds.map((routeId) => {
-    const contract = getVideoRouteContract(routeId);
-    const available = routeId === directRouteId && mockMode
-      ? true
-      : isVideoRouteSnapshotRuntimeReady(createVideoRouteSnapshot(routeId));
-    return {
-      id: routeId,
-      provider: "direct" as const,
-      displayName: routeId === "volcengine_cn_legacy"
-        ? "火山北京 Seedance 直连"
-        : "BytePlus Seedance 直连",
-      model: contract.model,
-      resolution: null,
-      configured: available,
-      funded: null,
-      available,
-      unavailableReason: available ? null : "not_configured" as const,
-    };
-  });
   void req;
   const shuyu = await getShuyuRouteRuntimeAvailability({
     timeoutMs: 3_000,
@@ -61,9 +25,8 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     publicVideoRouteOptionsResponseSchema.parse({
       ok: true,
-      defaultRouteId: directRouteId,
+      defaultRouteId: "buddy",
       routes: [
-        ...directRoutes,
         {
           id: "buddy",
           provider: "shuyu",

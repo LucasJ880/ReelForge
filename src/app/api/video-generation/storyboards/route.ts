@@ -10,7 +10,7 @@ const createSchema = z.object({
   prompt: z.string().trim().min(8).max(4000),
   durationSec: z.union([z.literal(15), z.literal(30), z.literal(60)]),
   aspectRatio: z.enum(["9:16", "16:9", "1:1"]),
-  sourceAssetIds: z.array(z.string().min(1).max(200)).max(8).default([]),
+  sourceAssetIds: z.array(z.string().min(1).max(200)).max(9).default([]),
   approvalPolicy: z.enum(["MANUAL", "AUTO"]).default("MANUAL"),
   purpose: z.string().trim().min(1).max(200).optional(),
 }).strict();

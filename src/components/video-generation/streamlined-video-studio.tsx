@@ -5,8 +5,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  ArrowRight,
   Check,
   ChevronDown,
+  Clapperboard,
   Clock3,
   Film,
   Layers3,
@@ -29,6 +31,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FirstRunOnboardingDialog } from "@/components/video-generation/first-run-onboarding-dialog";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
+import {
+  StoryboardWorkflowPanel,
+  type StoryboardRunView,
+} from "@/components/video-generation/storyboard-workflow-panel";
 import {
   VideoRouteSelector,
   type VideoRouteOverride,
@@ -65,15 +71,17 @@ const QUALITY_TEMPLATE_IDS = [
 
 type CreationMode = "quick" | "advanced";
 type ReferenceMode = "all" | "product_only";
-type BusyState = "preview" | "dispatch" | null;
+type BusyState = "preview" | "storyboard" | "dispatch" | null;
 
 const ZH_COPY = {
   kicker: "单条视频创作",
-  title: "选规格，写提示词，直接生成",
-  subtitle: "按页面从上到下完成素材、模式、规格和提示词，提交后可在成品库查看进度。",
-  guideTitle: "第一次使用，顺着四步完成",
-  guideBody: "有真实产品时先给参考图，再说清想拍什么；没有素材也可以直接使用纯文字生成。",
-  guideSteps: ["添加产品图（可选）", "选择生成方式", "选择视频规格", "写提示词，核对后生成"],
+  title: "从产品图到故事板，再到最终视频",
+  subtitle: "每一步都看得见：上传素材、确认创作方向、审阅 Image 2 故事板，再交给 Shuyu 生成视频。",
+  guideTitle: "第一次使用，顺着五步完成",
+  guideBody: "产品图上传后直接进入创作，不经过 AI 审核；故事板会先把产品外观和场景连续性锁定。",
+  guideSteps: ["上传产品图", "设置创作方向", "生成 Image 2 故事板", "确认每一帧", "Shuyu 生成视频"],
+  workflowTitle: "当前创作流程",
+  workflowSteps: ["产品素材", "创作方案", "Image 2 故事板", "Shuyu 视频", "成品"],
   dismissGuide: "知道了，隐藏提示",
   stepAsset: "选择产品素材（可选）",
   stepAssetHint: "最多 9 张。真实产品建议上传正面、侧面和细节图；不上传则使用纯文字生成。",
@@ -101,8 +109,8 @@ const ZH_COPY = {
   stepSpecs: "视频规格",
   stepSpecsHint: "所有选项集中在一栏，提交前可再次核对。",
   route: "生成线路",
-  autoRoute: "系统智能线路",
-  routeHint: "自动选择当前可用线路",
+  autoRoute: "Shuyu 视频通道",
+  routeHint: "故事板与视频统一走 Shuyu",
   referenceMode: "参考方式",
   referenceAll: "全能参考",
   referenceProduct: "仅产品图",
@@ -142,6 +150,10 @@ const ZH_COPY = {
   previewing: "正在准备方案…",
   reviewSpecs: "核对规格与积分",
   reviewingSpecs: "正在核对…",
+  createStoryboard: "生成 Image 2 故事板",
+  creatingStoryboard: "正在生成故事板…",
+  storyboardFailed: "故事板暂时无法生成，请保留当前方案后重试。",
+  editStoryboardConfirm: "修改创作方向会退出当前故事板。已生成的画面仍保留在任务记录中，确定继续吗？",
   generate: "生成视频",
   generating: "正在提交…",
   stickySummary: "{count} 张产品图 · {ratio} · {duration} 秒",
@@ -163,11 +175,13 @@ type StudioCopy = {
 
 const EN_COPY: StudioCopy = {
   kicker: "SINGLE VIDEO",
-  title: "Choose the specs, write a prompt, and generate",
-  subtitle: "Move straight through assets, mode, format, and prompt, then follow progress in your video library.",
-  guideTitle: "Follow four simple steps for your first video",
-  guideBody: "Add real product references when you have them, then describe the video. You can also generate directly from text.",
-  guideSteps: ["Add product images (optional)", "Choose a generation mode", "Choose video specs", "Write the prompt, review, and generate"],
+  title: "From product images to storyboard to final video",
+  subtitle: "See every step: upload assets, confirm direction, review the Image 2 storyboard, then generate through Shuyu.",
+  guideTitle: "Follow five clear steps for your first video",
+  guideBody: "Product uploads go straight into creation without AI review. The storyboard locks product identity and scene continuity first.",
+  guideSteps: ["Upload product images", "Set the direction", "Generate Image 2 storyboard", "Approve every frame", "Generate with Shuyu"],
+  workflowTitle: "Current workflow",
+  workflowSteps: ["Product assets", "Creative plan", "Image 2 storyboard", "Shuyu video", "Final asset"],
   dismissGuide: "Got it, hide this guide",
   stepAsset: "Choose product assets (optional)",
   stepAssetHint: "Add up to 9 clear product images, or leave this empty for text-to-video generation.",
@@ -195,8 +209,8 @@ const EN_COPY: StudioCopy = {
   stepSpecs: "Video specs",
   stepSpecsHint: "The important choices stay together in one compact bar for a final check.",
   route: "Generation route",
-  autoRoute: "Smart system route",
-  routeHint: "Uses the best currently available route",
+  autoRoute: "Shuyu video route",
+  routeHint: "Storyboard and video stay on Shuyu",
   referenceMode: "Reference mode",
   referenceAll: "Use all references",
   referenceProduct: "Product only",
@@ -236,6 +250,10 @@ const EN_COPY: StudioCopy = {
   previewing: "Preparing the plan…",
   reviewSpecs: "Review specs & points",
   reviewingSpecs: "Checking…",
+  createStoryboard: "Generate Image 2 storyboard",
+  creatingStoryboard: "Generating storyboard…",
+  storyboardFailed: "The storyboard could not be generated right now. Your direction is preserved; try again shortly.",
+  editStoryboardConfirm: "Editing the direction exits this storyboard. Generated frames remain in task history. Continue?",
   generate: "Generate video",
   generating: "Submitting…",
   stickySummary: "{count} product images · {ratio} · {duration}s",
@@ -298,8 +316,12 @@ export function StreamlinedVideoStudio({
   const [rawPrompt, setRawPrompt] = useState("");
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
+  const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
+  const [storyboardFrameBusy, setStoryboardFrameBusy] = useState<string | null>(null);
+  const [approvingStoryboard, setApprovingStoryboard] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
+  const storyboardAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
   const dispatchAttemptRef = useRef<{ fingerprint: string; key: string } | null>(null);
 
   useEffect(() => {
@@ -323,8 +345,39 @@ export function StreamlinedVideoStudio({
   const invalidatePlan = useCallback(() => {
     setPlan(null);
     setPlanRequestKey(null);
+    setStoryboard(null);
+    storyboardAttemptRef.current = null;
+    dispatchAttemptRef.current = null;
     setError(null);
   }, []);
+
+  useEffect(() => {
+    if (!storyboard || storyboard.status !== "GENERATING") return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `/api/video-generation/storyboards/${encodeURIComponent(storyboard.id)}`,
+          { cache: "no-store" },
+        );
+        const payload = await response.json().catch(() => null) as
+          | { ok: true; run: StoryboardRunView }
+          | { ok: false; error?: string }
+          | null;
+        if (cancelled || !response.ok || !payload?.ok) return;
+        setStoryboard(payload.run);
+        if (payload.run.status === "FAILED") {
+          setError(payload.run.errorMessage ?? copy.storyboardFailed);
+        }
+      } catch {
+        // The durable storyboard remains available after a transient browser error.
+      }
+    }, 2_500);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [copy.storyboardFailed, storyboard]);
 
   const handleVideoRouteChange = useCallback(
     (routeId: VideoRouteOverride) => {
@@ -367,7 +420,7 @@ export function StreamlinedVideoStudio({
   }
 
   async function uploadProductImages(files: File[]) {
-    if (busy !== null || uploadingTarget !== null) return;
+    if (busy !== null || uploadingTarget !== null || storyboard) return;
     const remaining = Math.min(
       MAX_PRODUCT_IMAGES - productAssets.length,
       MAX_ATTACHMENTS - productAssets.length - referenceAssets.length,
@@ -383,7 +436,10 @@ export function StreamlinedVideoStudio({
     if (accepted.length === 0) return;
     setUploadingTarget("product");
     try {
-      const uploaded = await uploadFilesToAssets(accepted, { forceRole: "product_image" });
+      const uploaded = await uploadFilesToAssets(accepted, {
+        forceRole: "product_image",
+        skipAiClassification: true,
+      });
       setProductAssets((current) => [...current, ...uploaded].slice(0, MAX_PRODUCT_IMAGES));
       invalidatePlan();
       setUploadError(null);
@@ -398,7 +454,7 @@ export function StreamlinedVideoStudio({
   }
 
   async function uploadReferenceAssets(files: File[]) {
-    if (busy !== null || uploadingTarget !== null) return;
+    if (busy !== null || uploadingTarget !== null || storyboard) return;
     const reservedProductSlot = productAssets.length === 0 ? 1 : 0;
     const remaining = MAX_ATTACHMENTS
       - productAssets.length
@@ -419,10 +475,16 @@ export function StreamlinedVideoStudio({
       const videos = accepted.filter((file) => file.type.startsWith("video/"));
       const [uploadedImages, uploadedVideos] = await Promise.all([
         images.length > 0
-          ? uploadFilesToAssets(images, { forceRole: "reference_image" })
+          ? uploadFilesToAssets(images, {
+              forceRole: "reference_image",
+              skipAiClassification: true,
+            })
           : Promise.resolve([]),
         videos.length > 0
-          ? uploadFilesToAssets(videos, { forceRole: "product_demo_clip" })
+          ? uploadFilesToAssets(videos, {
+              forceRole: "product_demo_clip",
+              skipAiClassification: true,
+            })
           : Promise.resolve([]),
       ]);
       const uploaded = [...uploadedImages, ...uploadedVideos];
@@ -440,13 +502,13 @@ export function StreamlinedVideoStudio({
   }
 
   function removeProductAsset(assetId: string) {
-    if (busy !== null) return;
+    if (busy !== null || storyboard) return;
     setProductAssets((current) => current.filter((asset) => asset.id !== assetId));
     invalidatePlan();
   }
 
   function removeReferenceAsset(assetId: string) {
-    if (busy !== null) return;
+    if (busy !== null || storyboard) return;
     setReferenceAssets((current) => current.filter((asset) => asset.id !== assetId));
     invalidatePlan();
   }
@@ -522,10 +584,139 @@ export function StreamlinedVideoStudio({
     }
   }
 
+  async function handleCreateStoryboard() {
+    const validationError = validateBeforeRequest();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    const request = buildRequest();
+    const requestKey = JSON.stringify(request);
+    setError(null);
+    setBusy("storyboard");
+    try {
+      let activePlan = plan;
+      if (!activePlan || planRequestKey !== requestKey) {
+        activePlan = await fetchPlan(request);
+        setPlan(activePlan);
+        setPlanRequestKey(requestKey);
+      }
+      if (!activePlan.qualityReview.canDispatch) {
+        setError(copy.qualityBlocked);
+        return;
+      }
+      const storyboardBody = {
+        prompt: request.rawPrompt,
+        durationSec: request.selectedDuration,
+        aspectRatio: request.selectedAspectRatio,
+        sourceAssetIds: productAssets.map((asset) => asset.assetId ?? asset.id),
+        approvalPolicy: "MANUAL" as const,
+        purpose: "single-video-storyboard",
+      };
+      const fingerprint = JSON.stringify(storyboardBody);
+      if (storyboardAttemptRef.current?.fingerprint !== fingerprint) {
+        storyboardAttemptRef.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      const response = await fetch("/api/video-generation/storyboards", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "Idempotency-Key": storyboardAttemptRef.current.key,
+        },
+        body: fingerprint,
+      });
+      const payload = await response.json().catch(() => null) as
+        | { ok: true; run: StoryboardRunView }
+        | { ok: false; error?: string }
+        | null;
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload && "error" in payload ? payload.error : copy.storyboardFailed);
+      }
+      setStoryboard(payload.run);
+      requestAnimationFrame(() => {
+        document.getElementById("single-video-storyboard")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : copy.storyboardFailed);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function regenerateStoryboardFrame(frameId: string) {
+    if (!storyboard || storyboardFrameBusy || approvingStoryboard) return;
+    setStoryboardFrameBusy(frameId);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/video-generation/storyboards/${encodeURIComponent(storyboard.id)}/frames/${encodeURIComponent(frameId)}/regenerate`,
+        { method: "POST" },
+      );
+      const payload = await response.json().catch(() => null) as
+        | { ok: true; run: StoryboardRunView }
+        | { ok: false; error?: string }
+        | null;
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload && "error" in payload ? payload.error : copy.storyboardFailed);
+      }
+      setStoryboard(payload.run);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : copy.storyboardFailed);
+    } finally {
+      setStoryboardFrameBusy(null);
+    }
+  }
+
+  async function approveStoryboard() {
+    if (!storyboard?.canApprove || approvingStoryboard) return;
+    setApprovingStoryboard(true);
+    setError(null);
+    try {
+      const response = await fetch(
+        `/api/video-generation/storyboards/${encodeURIComponent(storyboard.id)}/approve`,
+        { method: "POST" },
+      );
+      const payload = await response.json().catch(() => null) as
+        | { ok: true; run: StoryboardRunView }
+        | { ok: false; error?: string }
+        | null;
+      if (!response.ok || !payload?.ok) {
+        throw new Error(payload && "error" in payload ? payload.error : copy.storyboardFailed);
+      }
+      setStoryboard(payload.run);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : copy.storyboardFailed);
+    } finally {
+      setApprovingStoryboard(false);
+    }
+  }
+
+  function editStoryboardDirection() {
+    if (!storyboard || window.confirm(copy.editStoryboardConfirm)) {
+      setStoryboard(null);
+      storyboardAttemptRef.current = null;
+      dispatchAttemptRef.current = null;
+      setError(null);
+      requestAnimationFrame(() => {
+        document.getElementById("streamlined-video-prompt")?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      });
+    }
+  }
+
   async function handleGenerate() {
     const validationError = validateBeforeRequest();
     if (validationError) {
       setError(validationError);
+      return;
+    }
+    if (storyboard?.status !== "APPROVED") {
+      setError(copy.storyboardFailed);
       return;
     }
     const request = buildRequest();
@@ -552,6 +743,7 @@ export function StreamlinedVideoStudio({
 
       const dispatchBody = {
         request,
+        storyboardRunId: storyboard.id,
         ...(canSelectVideoRoute && selectedVideoRouteId
           ? { videoRouteId: selectedVideoRouteId }
           : {}),
@@ -596,6 +788,7 @@ export function StreamlinedVideoStudio({
     && busy === null
     && uploadingTarget === null
     && selectedRouteAvailable === true;
+  const configurationLocked = Boolean(storyboard);
   const currentRequestKey = rawPrompt.trim()
     ? JSON.stringify(buildRequest())
     : null;
@@ -603,12 +796,30 @@ export function StreamlinedVideoStudio({
     plan && currentRequestKey && planRequestKey === currentRequestKey,
   );
   const canGenerate = Boolean(
-    canReview && planIsCurrent && plan?.qualityReview.canDispatch,
+    canReview
+      && planIsCurrent
+      && plan?.qualityReview.canDispatch
+      && storyboard?.status === "APPROVED",
   );
   const quickNeedsReview = creationMode === "quick" && !planIsCurrent;
+  const needsStoryboard = Boolean(
+    planIsCurrent && plan?.qualityReview.canDispatch && !storyboard,
+  );
+  const storyboardGenerating = storyboard?.status === "GENERATING";
+  const storyboardNeedsApproval = storyboard?.status === "AWAITING_APPROVAL";
   const primaryIsBusy =
     busy === "dispatch"
+    || busy === "storyboard"
     || (creationMode === "quick" && busy === "preview");
+  const workflowActiveIndex = busy === "dispatch" || storyboard?.status === "APPROVED"
+    ? 3
+    : storyboard
+      ? 2
+      : planIsCurrent
+        ? 2
+        : rawPrompt.trim()
+          ? 1
+          : 0;
   const ratioLabel = aspectRatioLabel(selectedAspectRatio, copy);
 
   return (
@@ -628,6 +839,12 @@ export function StreamlinedVideoStudio({
         <CreateModeTabs active="video" />
       </header>
 
+      <WorkflowRail
+        title={copy.workflowTitle}
+        steps={copy.workflowSteps}
+        activeIndex={workflowActiveIndex}
+      />
+
       {showGuide ? (
         <section
           className="studio-panel relative overflow-hidden p-4 sm:p-5"
@@ -641,7 +858,7 @@ export function StreamlinedVideoStudio({
             <div className="min-w-0 flex-1">
               <h2 id="streamlined-first-use-heading" className="font-heading text-subhead font-semibold">{copy.guideTitle}</h2>
               <p className="mt-1 text-meta text-muted-foreground">{copy.guideBody}</p>
-              <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
                 {copy.guideSteps.map((step, index) => (
                   <li key={step} className="flex items-center gap-2 rounded-(--radius-md) border border-border bg-muted px-3 py-2 text-meta text-foreground">
                     <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-[10px] tabular-nums">{index + 1}</span>
@@ -677,6 +894,7 @@ export function StreamlinedVideoStudio({
             description={copy.productDropDescription}
             uploading={uploadingTarget === "product"}
             disabled={busy !== null
+              || configurationLocked
               || uploadingTarget !== null
               || productAssets.length >= MAX_PRODUCT_IMAGES
               || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS}
@@ -693,7 +911,7 @@ export function StreamlinedVideoStudio({
               imageLabel={copy.stepAsset}
               removeLabel={copy.removeProduct}
               onRemove={removeProductAsset}
-              disabled={busy !== null}
+              disabled={busy !== null || configurationLocked}
             />
           ) : (
             <p className="flex items-center gap-2 text-meta text-muted-foreground">
@@ -721,6 +939,7 @@ export function StreamlinedVideoStudio({
                 description={copy.referenceDropDescription}
                 uploading={uploadingTarget === "reference"}
                 disabled={busy !== null
+                  || configurationLocked
                   || uploadingTarget !== null
                   || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS - (productAssets.length === 0 ? 1 : 0)}
                 onFiles={(files) => void uploadReferenceAssets(files)}
@@ -736,7 +955,7 @@ export function StreamlinedVideoStudio({
                   imageLabel={copy.optionalReferences}
                   removeLabel={copy.removeReference}
                   onRemove={removeReferenceAsset}
-                  disabled={busy !== null}
+                  disabled={busy !== null || configurationLocked}
                 />
               ) : null}
             </div>
@@ -754,7 +973,7 @@ export function StreamlinedVideoStudio({
               title={copy.quick}
               description={copy.quickHint}
               icon={Zap}
-              disabled={busy !== null}
+              disabled={busy !== null || configurationLocked}
               onClick={() => {
                 setCreationMode("quick");
                 invalidatePlan();
@@ -765,7 +984,7 @@ export function StreamlinedVideoStudio({
               title={copy.advanced}
               description={copy.advancedHint}
               icon={WandSparkles}
-              disabled={busy !== null}
+              disabled={busy !== null || configurationLocked}
               onClick={() => {
                 setCreationMode("advanced");
                 invalidatePlan();
@@ -787,7 +1006,7 @@ export function StreamlinedVideoStudio({
                     showInternalRoutes={showInternalVideoRoutes}
                     durationSeconds={selectedDuration}
                     value={selectedVideoRouteId}
-                    disabled={busy !== null}
+                    disabled={busy !== null || configurationLocked}
                     onChange={handleVideoRouteChange}
                     onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
                   />
@@ -799,7 +1018,7 @@ export function StreamlinedVideoStudio({
                 icon={Layers3}
                 label={copy.referenceMode}
                 value={referenceMode}
-                disabled={busy !== null}
+                disabled={busy !== null || configurationLocked}
                 onChange={(value) => {
                   setReferenceMode(value as ReferenceMode);
                   invalidatePlan();
@@ -813,7 +1032,7 @@ export function StreamlinedVideoStudio({
                 icon={Monitor}
                 label={copy.aspect}
                 value={selectedAspectRatio}
-                disabled={busy !== null}
+                disabled={busy !== null || configurationLocked}
                 onChange={(value) => {
                   setSelectedAspectRatio(value as AspectRatio);
                   invalidatePlan();
@@ -824,7 +1043,7 @@ export function StreamlinedVideoStudio({
                 icon={Clock3}
                 label={copy.duration}
                 value={String(selectedDuration)}
-                disabled={busy !== null}
+                disabled={busy !== null || configurationLocked}
                 onChange={(value) => {
                   setSelectedDuration(Number(value) as 15 | 30 | 60);
                   invalidatePlan();
@@ -840,7 +1059,7 @@ export function StreamlinedVideoStudio({
                 {copy.template}
                 <select
                   value={styleTemplateId}
-                  disabled={busy !== null}
+                  disabled={busy !== null || configurationLocked}
                   onChange={(event) => {
                     setStyleTemplateId(event.target.value);
                     invalidatePlan();
@@ -859,7 +1078,7 @@ export function StreamlinedVideoStudio({
                 {copy.ending}
                 <select
                   value={selectedBrandEndingMode}
-                  disabled={busy !== null}
+                  disabled={busy !== null || configurationLocked}
                   onChange={(event) => {
                     setSelectedBrandEndingMode(event.target.value as BrandEndingMode);
                     invalidatePlan();
@@ -877,7 +1096,7 @@ export function StreamlinedVideoStudio({
                     <Input
                       value={brandName}
                       maxLength={120}
-                      disabled={busy !== null}
+                      disabled={busy !== null || configurationLocked}
                       onChange={(event) => {
                         setBrandName(event.target.value);
                         invalidatePlan();
@@ -891,7 +1110,7 @@ export function StreamlinedVideoStudio({
                     <Input
                       value={cta}
                       maxLength={500}
-                      disabled={busy !== null}
+                      disabled={busy !== null || configurationLocked}
                       onChange={(event) => {
                         setCta(event.target.value);
                         invalidatePlan();
@@ -922,7 +1141,7 @@ export function StreamlinedVideoStudio({
                 variant="outline"
                 size="sm"
                 className="shrink-0 bg-card"
-                disabled={busy !== null}
+                disabled={busy !== null || configurationLocked}
                 onClick={() => {
                   setRawPrompt(copy.presetPrompts[index] ?? "");
                   invalidatePlan();
@@ -939,7 +1158,7 @@ export function StreamlinedVideoStudio({
               value={rawPrompt}
               maxLength={4000}
               rows={7}
-              disabled={busy !== null}
+              disabled={busy !== null || configurationLocked}
               aria-invalid={Boolean(error && !rawPrompt.trim())}
               onChange={(event) => {
                 setRawPrompt(event.target.value);
@@ -962,10 +1181,28 @@ export function StreamlinedVideoStudio({
         </section>
       ) : null}
 
+      {storyboard ? (
+        <div id="single-video-storyboard" className="scroll-mt-20">
+          <StoryboardWorkflowPanel
+            run={storyboard}
+            english={english}
+            busyFrameId={storyboardFrameBusy}
+            approving={approvingStoryboard}
+            onRegenerate={(frameId) => void regenerateStoryboardFrame(frameId)}
+            onApprove={() => void approveStoryboard()}
+            onEditPlan={editStoryboardDirection}
+          />
+        </div>
+      ) : null}
+
       <section
         className="sticky bottom-20 z-10 rounded-(--radius-lg) border border-border bg-overlay p-3 shadow-editorial md:bottom-4"
         data-testid="streamlined-generate-bar"
-        aria-label={quickNeedsReview ? copy.reviewSpecs : copy.generate}
+        aria-label={quickNeedsReview
+          ? copy.reviewSpecs
+          : needsStoryboard
+            ? copy.createStoryboard
+            : copy.generate}
       >
         {error ? (
           <p role="alert" className="mb-3 flex items-start gap-2 rounded-(--radius-md) border border-danger bg-card px-3 py-2 text-meta text-danger">
@@ -995,7 +1232,7 @@ export function StreamlinedVideoStudio({
             </p>
           </div>
           <div className="grid shrink-0 gap-2 sm:flex">
-            {creationMode === "advanced" ? (
+            {creationMode === "advanced" && !storyboard ? (
               <Button
                 type="button"
                 variant="outline"
@@ -1010,10 +1247,25 @@ export function StreamlinedVideoStudio({
             <Button
               type="button"
               id="platform-primary-generate"
-              disabled={quickNeedsReview ? !canReview : !canGenerate}
+              disabled={quickNeedsReview
+                ? !canReview
+                : needsStoryboard
+                  ? !canReview || busy !== null
+                  : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
               onClick={() => {
                 if (quickNeedsReview) {
                   void handlePreview();
+                  return;
+                }
+                if (needsStoryboard) {
+                  void handleCreateStoryboard();
+                  return;
+                }
+                if (storyboardGenerating || storyboardNeedsApproval) {
+                  document.getElementById("single-video-storyboard")?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  });
                   return;
                 }
                 void handleGenerate();
@@ -1023,16 +1275,77 @@ export function StreamlinedVideoStudio({
               {primaryIsBusy ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Sparkles aria-hidden />}
               {busy === "dispatch"
                   ? copy.generating
+                  : busy === "storyboard"
+                    ? copy.creatingStoryboard
                   : creationMode === "quick" && busy === "preview"
                     ? copy.reviewingSpecs
                   : quickNeedsReview
                     ? copy.reviewSpecs
+                    : needsStoryboard
+                      ? copy.createStoryboard
+                      : storyboardGenerating
+                        ? copy.creatingStoryboard
+                        : storyboardNeedsApproval
+                          ? (english ? "Approve storyboard above" : "请先确认上方故事板")
                     : copy.generate}
             </Button>
           </div>
         </div>
       </section>
     </div>
+  );
+}
+
+function WorkflowRail({
+  title,
+  steps,
+  activeIndex,
+}: {
+  title: string;
+  steps: readonly string[];
+  activeIndex: number;
+}) {
+  const icons = [Package, Sparkles, Clapperboard, Film, Check] as const;
+  return (
+    <section
+      className="overflow-hidden rounded-(--radius-lg) border border-border bg-muted"
+      aria-label={title}
+      data-testid="creation-workflow-rail"
+    >
+      <div className="border-b border-border px-4 py-3 sm:px-5">
+        <p className="studio-label text-muted-foreground">{title}</p>
+      </div>
+      <ol className="grid min-w-[42rem] grid-cols-5 gap-0 overflow-x-auto px-2 py-2 sm:min-w-0">
+        {steps.map((step, index) => {
+          const Icon = icons[index] ?? Sparkles;
+          const complete = index < activeIndex;
+          const active = index === activeIndex;
+          return (
+            <li key={step} className="flex min-w-0 items-center">
+              <div className={cn(
+                "flex min-w-0 flex-1 items-center gap-2 rounded-(--radius-md) px-2.5 py-2",
+                active ? "bg-card text-foreground" : "text-muted-foreground",
+              )}>
+                <span className={cn(
+                  "flex size-7 shrink-0 items-center justify-center rounded-full border",
+                  complete
+                    ? "border-success bg-success text-background"
+                    : active
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card",
+                )}>
+                  {complete ? <Check className="size-3.5" aria-hidden /> : <Icon className="size-3.5" aria-hidden />}
+                </span>
+                <span className="truncate text-meta font-medium">{step}</span>
+              </div>
+              {index < steps.length - 1 ? (
+                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
   );
 }
 

@@ -9,7 +9,7 @@ import type { AssetRole, UploadedAsset } from "@/types/video-generation";
  */
 export async function uploadFilesToAssets(
   files: File[],
-  opts?: { forceRole?: AssetRole },
+  opts?: { forceRole?: AssetRole; skipAiClassification?: boolean },
 ): Promise<UploadedAsset[]> {
   const out: UploadedAsset[] = [];
   for (const file of files) {
@@ -40,7 +40,7 @@ export async function uploadFilesToAssets(
     let roleConfidence = 0.3;
     let suggestedUse: string | null = null;
     let warnings: string[] = [];
-    try {
+    if (!opts?.skipAiClassification) try {
       const classifyRes = await fetch("/api/video-generation/classify-asset", {
         method: "POST",
         headers: { "content-type": "application/json" },

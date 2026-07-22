@@ -48,7 +48,7 @@ export default async function PlatformCreatePage({
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
-        canSelectVideoRoute
+        canSelectVideoRoute={showInternalVideoRoutes}
         showInternalVideoRoutes={showInternalVideoRoutes}
         forceOnboarding={guide === "open"}
       />

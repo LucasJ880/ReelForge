@@ -202,3 +202,15 @@ export function commerceTemplateSummary(
   if (!recipe) return null;
   return locale === "zh-CN" ? recipe.summaryZh : recipe.summary;
 }
+
+export function commerceTemplateStarterPrompt(
+  slug: string,
+  locale: "zh-CN" | "en-US" = "en-US",
+): string | null {
+  const recipe = getCommerceTemplateRecipe(slug);
+  if (!recipe) return null;
+  if (locale === "zh-CN") {
+    return `请制作一条 15 秒「${recipe.nameZh}」电商短视频。核心方向：${recipe.summaryZh} 前 3 秒明确抓住注意力，中段只证明一个参考图可见的卖点，结尾回到完整产品并给出口播行动指引。保持产品外形、颜色、材质和配件一致，不虚构功能、价格或效果，画面不要生成文字。`;
+  }
+  return `Create a 15-second “${recipe.name}” ecommerce video. Hook: ${recipe.hook} Proof: ${recipe.proof} CTA: ${recipe.cta} Preserve the exact referenced product and do not invent features, pricing, results, or on-screen text.`;
+}

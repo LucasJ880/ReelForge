@@ -17,5 +17,28 @@ export function verifiedTemplateVideo(
   sampleVideo: string | null | undefined,
 ): string | null {
   const expected = `/template-previews/${slug}.mp4`;
-  return sampleVideo === expected ? sampleVideo : null;
+  return sampleVideo === expected && VERIFIED_TEMPLATE_VIDEO_SLUGS.has(slug)
+    ? sampleVideo
+    : null;
 }
+
+const VERIFIED_TEMPLATE_VIDEO_SLUGS = new Set([
+  "before-after-reversal",
+  "dark-luxury-lighting",
+  "fast-commerce-beats",
+  "lifestyle-use-demo",
+  "macro-material-study",
+  "rhythmic-unboxing",
+  "slow-360-orbit",
+  "street-style-placement",
+  "ugc-handheld-review",
+  "white-studio-standard",
+  "commerce-aesthetic-mood",
+  "commerce-ugc-testimonial",
+  "commerce-demo-first-reveal",
+  "commerce-single-feature-proof",
+  "commerce-unboxing-transform",
+  "commerce-value-proof",
+  "commerce-problem-solution",
+  "commerce-hard-sell-presenter",
+]);

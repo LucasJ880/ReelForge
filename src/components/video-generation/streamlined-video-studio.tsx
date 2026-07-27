@@ -46,6 +46,10 @@ import {
 } from "@/lib/api/customer-video-dispatch-recovery";
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
+import {
+  COMMERCE_TEMPLATE_RECIPES,
+  COMMERCE_TEMPLATE_SLUGS,
+} from "@/lib/video-generation/commerce-template-catalog";
 import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
   AspectRatio,
@@ -64,12 +68,16 @@ const DISPATCH_ATTEMPT_STORAGE_KEY = "aivora.dispatch-attempt.v1";
 const DISMISSED_STORYBOARDS_STORAGE_KEY = "aivora.dismissed-storyboards.v1";
 const DURATIONS = [15, 30, 60] as const;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
-const QUALITY_TEMPLATE_IDS = [
+const LEGACY_QUALITY_TEMPLATE_IDS = [
   "tpl_event_watch_party",
   "tpl_viral_result_first",
   "tpl_viral_pain_solution",
   "tpl_ugc_review",
   "tpl_viral_sensory_texture",
+] as const;
+const QUALITY_TEMPLATE_IDS = [
+  ...COMMERCE_TEMPLATE_SLUGS,
+  ...LEGACY_QUALITY_TEMPLATE_IDS,
 ] as const;
 
 type CreationMode = "quick" | "advanced";
@@ -304,6 +312,7 @@ const EN_COPY: StudioCopy = {
 export function StreamlinedVideoStudio({
   initialAssets = [],
   initialStyleTemplateId,
+  initialPrompt = "",
   brandPackages = [],
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
@@ -311,6 +320,7 @@ export function StreamlinedVideoStudio({
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
+  initialPrompt?: string;
   brandPackages?: WorkspaceBrandPackageView[];
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
@@ -347,7 +357,7 @@ export function StreamlinedVideoStudio({
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
   >(true);
-  const [rawPrompt, setRawPrompt] = useState("");
+  const [rawPrompt, setRawPrompt] = useState(initialPrompt);
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
   const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
@@ -1298,11 +1308,11 @@ export function StreamlinedVideoStudio({
                   className="studio-select mt-1"
                 >
                   <option value="auto">{copy.templateAuto}</option>
-                  <option value="tpl_event_watch_party">{copy.templateEvent}</option>
-                  <option value="tpl_viral_result_first">{copy.templateResult}</option>
-                  <option value="tpl_viral_pain_solution">{copy.templatePain}</option>
-                  <option value="tpl_ugc_review">{copy.templateUgc}</option>
-                  <option value="tpl_viral_sensory_texture">{copy.templateSensory}</option>
+                  {COMMERCE_TEMPLATE_RECIPES.map((recipe) => (
+                    <option key={recipe.slug} value={recipe.slug}>
+                      {english ? recipe.name : recipe.nameZh}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>

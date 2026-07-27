@@ -10,14 +10,19 @@ import {
   verifiedTemplateSample,
   verifiedTemplateVideo,
 } from "@/lib/video-generation/template-sample";
+import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
+import { getServerLocale } from "@/i18n/server";
 
 export async function GET() {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
   try {
-    const templates = await listActiveStyleTemplates({
-      includeAcceptanceFixtures: Boolean(process.env.FINAL_ACCEPTANCE_RUN_ID),
-    });
+    const [templates, locale] = await Promise.all([
+      listActiveStyleTemplates({
+        includeAcceptanceFixtures: Boolean(process.env.FINAL_ACCEPTANCE_RUN_ID),
+      }),
+      getServerLocale(),
+    ]);
     return NextResponse.json(
       batchStyleTemplatesSuccessSchema.parse({
         ok: true,
@@ -30,7 +35,7 @@ export async function GET() {
                 template.slug,
                 `/template-previews/${template.slug}.mp4`,
               ),
-              summary: null,
+              summary: commerceTemplateSummary(template.slug, locale),
             },
           ),
         ),

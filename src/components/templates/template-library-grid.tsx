@@ -122,8 +122,8 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
                       <TemplateRecipeDialog name={title} version={template.version} promptSkeleton={template.promptSkeleton} negativePrompt={template.negativePrompt} english={english} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      <Button render={<Link href={`/app/create?styleTemplate=${encodeURIComponent(singleSkillFor(template))}`} />} variant="ghost" size="sm">{copy.useSingle}</Button>
-                      <Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(template.id)}`} />} variant="outline" size="sm">{copy.useBatch}<ArrowRight aria-hidden /></Button>
+                      <Button render={<Link href={`/app/create?styleTemplate=${encodeURIComponent(template.slug)}&prompt=${encodeURIComponent(templateStarterPrompt(template, english))}`} />} variant="ghost" size="sm">{copy.useSingle}</Button>
+                      <Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(template.slug)}`} />} variant="outline" size="sm">{copy.useBatch}<ArrowRight aria-hidden /></Button>
                     </div>
                   </div>
                 </article>
@@ -140,9 +140,15 @@ function categoryLabel(copy: ReturnType<typeof getPlatformCopy>["templates"], va
   return copy.categories[value as keyof typeof copy.categories] ?? value;
 }
 
-function singleSkillFor(template: TemplateLibraryItem): string {
-  if (/macro|material|jewelry|skincare|facet|fabric/.test(template.slug)) return "tpl_viral_sensory_texture";
-  if (/before|comparison|proof|demo/.test(template.slug)) return "tpl_viral_pain_solution";
-  if (/ugc|lifestyle|street|unboxing|pack/.test(template.slug)) return "tpl_ugc_review";
-  return "tpl_viral_result_first";
+function templateStarterPrompt(
+  template: TemplateLibraryItem,
+  english: boolean,
+): string {
+  const direction = template.summary
+    ?? (english
+      ? `Use the ${template.name} structure with one visible proof point.`
+      : `使用「${template.nameZh}」结构，只证明一个可见卖点。`);
+  return english
+    ? `Create a 15-second ecommerce video. ${direction} Preserve the exact referenced product, avoid unsupported claims, and finish on a clear spoken action.`
+    : `请制作一条 15 秒电商短视频。${direction} 保持参考产品完全一致，不虚构功能或效果，结尾给出清晰的口播行动指引。`;
 }

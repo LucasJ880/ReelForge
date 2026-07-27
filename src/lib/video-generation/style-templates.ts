@@ -568,7 +568,19 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
 
 export function getStyleTemplate(id: string | null | undefined): StyleTemplate | null {
   if (!id) return null;
-  return STYLE_TEMPLATES.find((t) => t.id === id) ?? null;
+  const commerceAdapters: Record<string, string> = {
+    "commerce-aesthetic-mood": "tpl_viral_sensory_texture",
+    "commerce-ugc-testimonial": "tpl_ugc_talking",
+    "commerce-demo-first-reveal": "tpl_viral_result_first",
+    "commerce-single-feature-proof": "tpl_viral_sensory_texture",
+    "commerce-unboxing-transform": "tpl_viral_result_first",
+    "commerce-value-proof": "tpl_viral_result_first",
+    "commerce-problem-solution": "tpl_viral_pain_solution",
+    "commerce-hard-sell-presenter": "tpl_viral_result_first",
+    "tpl_ugc_review": "tpl_ugc_talking",
+  };
+  const resolvedId = commerceAdapters[id] ?? id;
+  return STYLE_TEMPLATES.find((t) => t.id === resolvedId) ?? null;
 }
 
 export function recommendStyleTemplate(rawPrompt: string): StyleTemplate | null {

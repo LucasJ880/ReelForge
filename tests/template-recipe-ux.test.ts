@@ -16,6 +16,10 @@ const wizard = readFileSync(
   path.join(root, "src/components/batch/batch-create-wizard.tsx"),
   "utf8",
 );
+const studio = readFileSync(
+  path.join(root, "src/components/video-generation/streamlined-video-studio.tsx"),
+  "utf8",
+);
 const service = readFileSync(
   path.join(root, "src/lib/services/style-template-service.ts"),
   "utf8",
@@ -81,4 +85,13 @@ test("最终验收强制把 DATABASE_URL 指向显式演练分支", () => {
   assert.match(acceptanceConfig, /NEON_REHEARSAL_DATABASE_URL/);
   assert.match(acceptanceConfig, /process\.env\.DATABASE_URL = rehearsalDatabaseUrl/);
   assert.match(acceptanceConfig, /DATABASE_URL=\"\$NEON_REHEARSAL_DATABASE_URL\"/);
+});
+
+test("模板库与高级创作统一使用 canonical commerce slugs", () => {
+  assert.match(library, /template\.slug/);
+  assert.doesNotMatch(library, /function singleSkillFor/);
+  assert.match(studio, /COMMERCE_TEMPLATE_RECIPES/);
+  assert.match(studio, /recipe\.slug/);
+  assert.doesNotMatch(studio, /<option value="tpl_event_watch_party"/);
+  assert.match(studio, /initialPrompt/);
 });

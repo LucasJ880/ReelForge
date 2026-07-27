@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
+import { HoverPreviewVideo } from "@/components/library/hover-preview-video";
 import {
   VideoRouteSelector,
   type VideoRouteOverride,
@@ -70,12 +71,15 @@ interface UploadItem {
 
 interface StyleTemplateDto {
   id: string;
+  slug: string;
   version: number;
   name: string;
   nameZh: string;
   category: string;
   coverImage: string;
   sampleImage: string | null;
+  sampleVideo: string | null;
+  summary: string | null;
   promptSkeleton: string;
   negativePrompt: string;
   lockedParams: {
@@ -182,7 +186,10 @@ export function BatchCreateWizard({
       .then(({ templates: rows }) => {
         setTemplates(rows);
         setErrorSource(null);
-        const requested = rows.find((template) => template.id === initialTemplateId);
+        const requested = rows.find(
+          (template) =>
+            template.slug === initialTemplateId || template.id === initialTemplateId,
+        );
         if (requested) setTemplateId(requested.id);
         else if (rows[0]) setTemplateId(rows[0].id);
       })
@@ -746,13 +753,16 @@ export function BatchCreateWizard({
                           isSelected ? "border-primary bg-accent-soft" : "border-border bg-card hover:bg-muted"
                         }`}
                       >
-                        {template.sampleImage ? (
-                          <span
-                            role="img"
-                            aria-label={`${displayName}${english ? " sample" : "样片"}`}
-                            className="block aspect-video rounded-(--radius-sm) bg-muted bg-cover bg-center"
-                            style={{ backgroundImage: `url("${template.sampleImage}")` }}
-                          />
+                        {template.sampleVideo ? (
+                          <span className="block aspect-video overflow-hidden rounded-(--radius-sm) bg-muted">
+                            <HoverPreviewVideo
+                              src={template.sampleVideo}
+                              poster={template.sampleImage ?? undefined}
+                              ariaLabel={`${displayName}${english ? " sample" : "样片"}`}
+                            />
+                          </span>
+                        ) : template.sampleImage ? (
+                          <span role="img" aria-label={`${displayName}${english ? " sample" : "样片"}`} className="block aspect-video rounded-(--radius-sm) bg-muted bg-cover bg-center" style={{ backgroundImage: `url("${template.sampleImage}")` }} />
                         ) : (
                           <span className="grid aspect-video place-items-center rounded-(--radius-sm) border border-border bg-muted text-muted-foreground">
                             <Film className="size-4" aria-hidden />
@@ -768,6 +778,7 @@ export function BatchCreateWizard({
                             {categoryLabel(template.category, templateCategoryCopy)} · {english ? "uses" : "每条"} {template.imagesPerVideo.min}
                             {template.imagesPerVideo.max !== template.imagesPerVideo.min && `-${template.imagesPerVideo.max}`} {english ? "images" : "张"}
                           </span>
+                          {template.summary ? <span className="mt-1 line-clamp-1 block text-xs text-muted-foreground">{template.summary}</span> : null}
                         </span>
                         <span className="flex items-center gap-2">
                           <span className="hidden text-right font-mono text-[11px] text-muted-foreground sm:block">
@@ -788,14 +799,17 @@ export function BatchCreateWizard({
 
               {selectedTemplate && (
                 <aside className="h-fit space-y-4 rounded-(--radius-md) border border-border bg-muted p-4 lg:sticky lg:top-4">
-                  {selectedTemplate.sampleImage && (
-                    <div
-                      role="img"
-                      aria-label={`${english ? selectedTemplate.name : selectedTemplate.nameZh}${english ? " sample" : "样片"}`}
-                      className="aspect-video rounded-(--radius-sm) bg-background bg-cover bg-center"
-                      style={{ backgroundImage: `url("${selectedTemplate.sampleImage}")` }}
-                    />
-                  )}
+                  {selectedTemplate.sampleVideo ? (
+                    <div className="aspect-video overflow-hidden rounded-(--radius-sm) bg-background">
+                      <HoverPreviewVideo
+                        src={selectedTemplate.sampleVideo}
+                        poster={selectedTemplate.sampleImage ?? undefined}
+                        ariaLabel={`${english ? selectedTemplate.name : selectedTemplate.nameZh}${english ? " sample" : "样片"}`}
+                      />
+                    </div>
+                  ) : selectedTemplate.sampleImage ? (
+                    <div role="img" aria-label={`${english ? selectedTemplate.name : selectedTemplate.nameZh}${english ? " sample" : "样片"}`} className="aspect-video rounded-(--radius-sm) bg-background bg-cover bg-center" style={{ backgroundImage: `url("${selectedTemplate.sampleImage}")` }} />
+                  ) : null}
                   <div>
                     <p className="font-heading text-base font-semibold text-foreground">{english ? selectedTemplate.name : selectedTemplate.nameZh}</p>
                     <p className="mt-1 text-xs text-muted-foreground">{categoryLabel(selectedTemplate.category, templateCategoryCopy)} · v{selectedTemplate.version}</p>
@@ -814,11 +828,12 @@ export function BatchCreateWizard({
                     </div>
                   </dl>
                   <p className="text-xs leading-5 text-muted-foreground">
-                    {selectedTemplate.sampleImage
+                    {selectedTemplate.summary
+                      ?? (selectedTemplate.sampleImage || selectedTemplate.sampleVideo
                       ? (english ? "Dedicated Aivora sample available." : "已有独立 Aivora 样片。")
                       : (english
                         ? "No dedicated sample yet. The recipe is available, but Aivora will not reuse another template's image as a preview."
-                        : "暂无独立样片；配方仍可使用，但不会拿其他模板画面冒充预览。")}
+                        : "暂无独立样片；配方仍可使用，但不会拿其他模板画面冒充预览。"))}
                   </p>
                   {!hasEnoughImages ? (
                     <div

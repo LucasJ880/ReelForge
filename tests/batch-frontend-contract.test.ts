@@ -120,3 +120,12 @@ test("批量列表使用紧凑语义表格并提供移动端字段标签", () =>
   assert.doesNotMatch(batchList, /grid-cols-2/);
   assert.doesNotMatch(batchList, /BatchFilmStrip/);
 });
+
+test("批量模板深链按 canonical slug 解析到当前数据库版本", () => {
+  assert.match(
+    wizard,
+    /template\.slug === initialTemplateId \|\| template\.id === initialTemplateId/,
+  );
+  assert.match(wizard, /selectedTemplate\.id/);
+  assert.match(wizard, /selectedTemplate\.version/);
+});

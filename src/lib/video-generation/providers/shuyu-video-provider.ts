@@ -148,6 +148,7 @@ export class ShuyuVideoProvider implements VideoProvider {
       duration,
       aspectRatio: options.aspectRatio ?? "9:16",
       inputImages,
+      generateAudio: options.generateAudio ?? false,
     });
     return { providerJobId: created.taskId, providerId: this.id };
   }

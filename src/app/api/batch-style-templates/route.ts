@@ -6,15 +6,23 @@ import {
 } from "@/lib/contracts/batch-style-templates";
 import { customerApiError } from "@/lib/contracts/customer-api";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
-import { verifiedTemplateSample } from "@/lib/video-generation/template-sample";
+import {
+  verifiedTemplateSample,
+  verifiedTemplateVideo,
+} from "@/lib/video-generation/template-sample";
+import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
+import { getServerLocale } from "@/i18n/server";
 
 export async function GET() {
   const guard = await requireAuth();
   if (!guard.ok) return guard.response;
   try {
-    const templates = await listActiveStyleTemplates({
-      includeAcceptanceFixtures: Boolean(process.env.FINAL_ACCEPTANCE_RUN_ID),
-    });
+    const [templates, locale] = await Promise.all([
+      listActiveStyleTemplates({
+        includeAcceptanceFixtures: Boolean(process.env.FINAL_ACCEPTANCE_RUN_ID),
+      }),
+      getServerLocale(),
+    ]);
     return NextResponse.json(
       batchStyleTemplatesSuccessSchema.parse({
         ok: true,
@@ -22,6 +30,13 @@ export async function GET() {
           batchStyleTemplateDto(
             template,
             verifiedTemplateSample(template.slug, template.coverImage),
+            {
+              sampleVideo: verifiedTemplateVideo(
+                template.slug,
+                `/template-previews/${template.slug}.mp4`,
+              ),
+              summary: commerceTemplateSummary(template.slug, locale),
+            },
           ),
         ),
       }),

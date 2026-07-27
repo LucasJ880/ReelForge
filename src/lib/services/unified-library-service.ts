@@ -1,6 +1,7 @@
 import type {
   FinalVideoStatus,
   Prisma,
+  StoryboardRunStatus,
   VideoBriefStatus,
   VideoJobStatus,
 } from "@prisma/client";
@@ -19,9 +20,51 @@ import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
 
+export type MakingProcessStepKey =
+  | "brief"
+  | "storyboard"
+  | "generation"
+  | "post-production";
+
+export type MakingProcessStepStatus =
+  | "completed"
+  | "current"
+  | "pending"
+  | "failed";
+
+export type MakingProcessStep = {
+  key: MakingProcessStepKey;
+  status: MakingProcessStepStatus;
+  timestamp: Date | null;
+  summary: string;
+  completed?: number;
+  total?: number;
+};
+
+export type MakingProcessEvidence = {
+  orderCreatedAt: Date;
+  briefCreatedAt?: Date | null;
+  briefStatus?: VideoBriefStatus | null;
+  storyboardStatus?: StoryboardRunStatus | null;
+  storyboardCreatedAt?: Date | null;
+  storyboardApprovedAt?: Date | null;
+  storyboardUpdatedAt?: Date | null;
+  videoJobs: Array<{
+    status: VideoJobStatus;
+    submittedAt?: Date | null;
+    finishedAt?: Date | null;
+    createdAt?: Date | null;
+  }>;
+  finalVideoStatus?: FinalVideoStatus | null;
+  finalVideoStartedAt?: Date | null;
+  finalVideoFinishedAt?: Date | null;
+  hasPlayableVideo: boolean;
+};
+
 const unifiedLibraryOrderSelect = {
   id: true,
   title: true,
+  createdAt: true,
   updatedAt: true,
   rounds: {
     orderBy: { roundIndex: "desc" },
@@ -41,12 +84,24 @@ const unifiedLibraryOrderSelect = {
               finalThumbnailUrl: true,
               brandedVideoUrl: true,
               takedownAt: true,
+              createdAt: true,
+              storyboardRun: {
+                select: {
+                  status: true,
+                  createdAt: true,
+                  approvedAt: true,
+                  updatedAt: true,
+                },
+              },
               finalVideo: {
                 select: {
                   status: true,
                   stitchedVideoUrl: true,
                   thumbnailUrl: true,
+                  subtitleFileUrl: true,
                   segmentCount: true,
+                  startedAt: true,
+                  finishedAt: true,
                 },
               },
               videoJobs: {
@@ -54,6 +109,8 @@ const unifiedLibraryOrderSelect = {
                   status: true,
                   lastProgress: true,
                   submittedAt: true,
+                  finishedAt: true,
+                  createdAt: true,
                 },
               },
             },
@@ -67,6 +124,138 @@ const unifiedLibraryOrderSelect = {
 type UnifiedLibraryOrder = Prisma.DeliveryOrderGetPayload<{
   select: typeof unifiedLibraryOrderSelect;
 }>;
+
+function latestDate(
+  values: Array<Date | null | undefined>,
+): Date | null {
+  return values.reduce<Date | null>((latest, value) => {
+    if (!value) return latest;
+    return !latest || value > latest ? value : latest;
+  }, null);
+}
+
+export function deriveMakingProcess(
+  evidence: MakingProcessEvidence,
+): MakingProcessStep[] {
+  const briefFailed =
+    evidence.briefStatus === "RENDER_FAILED" ||
+    evidence.briefStatus === "QA_REJECTED" ||
+    evidence.briefStatus === "DROPPED";
+  const brief: MakingProcessStep = {
+    key: "brief",
+    status: briefFailed ? "failed" : "completed",
+    timestamp: evidence.briefCreatedAt ?? evidence.orderCreatedAt,
+    summary: briefFailed ? "brief_failed" : "brief_locked",
+  };
+
+  let storyboard: MakingProcessStep;
+  if (evidence.storyboardStatus === "APPROVED") {
+    storyboard = {
+      key: "storyboard",
+      status: "completed",
+      timestamp:
+        evidence.storyboardApprovedAt ?? evidence.storyboardCreatedAt ?? null,
+      summary: "storyboard_approved",
+    };
+  } else if (evidence.storyboardStatus === "FAILED") {
+    storyboard = {
+      key: "storyboard",
+      status: "failed",
+      timestamp:
+        evidence.storyboardUpdatedAt ?? evidence.storyboardCreatedAt ?? null,
+      summary: "storyboard_failed",
+    };
+  } else if (
+    evidence.storyboardStatus === "GENERATING" ||
+    evidence.storyboardStatus === "AWAITING_APPROVAL"
+  ) {
+    storyboard = {
+      key: "storyboard",
+      status: "current",
+      timestamp: evidence.storyboardCreatedAt ?? null,
+      summary:
+        evidence.storyboardStatus === "GENERATING"
+          ? "storyboard_generating"
+          : "storyboard_waiting",
+    };
+  } else {
+    storyboard = {
+      key: "storyboard",
+      status: "pending",
+      timestamp: null,
+      summary: "storyboard_not_recorded",
+    };
+  }
+
+  const total = evidence.videoJobs.length;
+  const completed = evidence.videoJobs.filter(
+    (job) => job.status === "SUCCEEDED",
+  ).length;
+  const hasActiveGeneration = evidence.videoJobs.some((job) =>
+    ["QUEUED", "PAUSED", "RUNNING"].includes(job.status),
+  );
+  const hasFailedGeneration = evidence.videoJobs.some((job) =>
+    ["FAILED", "CANCELLED"].includes(job.status),
+  );
+  let generationStatus: MakingProcessStepStatus = "pending";
+  let generationSummary = "generation_pending";
+  if (total > 0 && completed === total) {
+    generationStatus = "completed";
+    generationSummary = "generation_completed";
+  } else if (hasActiveGeneration) {
+    generationStatus = "current";
+    generationSummary = "generation_running";
+  } else if (hasFailedGeneration) {
+    generationStatus = "failed";
+    generationSummary = "generation_failed";
+  }
+  const generation: MakingProcessStep = {
+    key: "generation",
+    status: generationStatus,
+    timestamp:
+      generationStatus === "completed" || generationStatus === "failed"
+        ? latestDate(evidence.videoJobs.map((job) => job.finishedAt))
+        : latestDate(
+            evidence.videoJobs.map(
+              (job) => job.submittedAt ?? job.createdAt,
+            ),
+          ),
+    summary: generationSummary,
+    completed,
+    total,
+  };
+
+  let postStatus: MakingProcessStepStatus = "pending";
+  let postSummary = "post_pending";
+  if (
+    evidence.hasPlayableVideo ||
+    evidence.finalVideoStatus === "READY"
+  ) {
+    postStatus = "completed";
+    postSummary = "post_ready";
+  } else if (evidence.finalVideoStatus === "FAILED") {
+    postStatus = "failed";
+    postSummary = "post_failed";
+  } else if (
+    evidence.finalVideoStatus === "PENDING" ||
+    evidence.finalVideoStatus === "STITCHING" ||
+    generationStatus === "completed"
+  ) {
+    postStatus = "current";
+    postSummary = "post_processing";
+  }
+  const postProduction: MakingProcessStep = {
+    key: "post-production",
+    status: postStatus,
+    timestamp:
+      postStatus === "completed" || postStatus === "failed"
+        ? evidence.finalVideoFinishedAt ?? null
+        : evidence.finalVideoStartedAt ?? null,
+    summary: postSummary,
+  };
+
+  return [brief, storyboard, generation, postProduction];
+}
 
 export function toUnifiedLibraryRow(
   order: UnifiedLibraryOrder,
@@ -112,6 +301,36 @@ export function toUnifiedLibraryRow(
     failedSceneCount,
     canRetry: derived.status === "failed" || failedSceneCount > 0,
   });
+}
+
+function toUnifiedLibraryDetail(
+  order: UnifiedLibraryOrder,
+  isShowcase = false,
+) {
+  const row = toUnifiedLibraryRow(order, isShowcase);
+  if (!row) return null;
+  const brief = order.rounds[0]?.angles[0]?.videoBrief ?? null;
+  const finalVideo = brief?.finalVideo ?? null;
+  return {
+    ...row,
+    subtitleFileUrl: customerSafeFinalVideoUrl(
+      finalVideo?.subtitleFileUrl ?? null,
+    ),
+    makingProcess: deriveMakingProcess({
+      orderCreatedAt: order.createdAt,
+      briefCreatedAt: brief?.createdAt,
+      briefStatus: brief?.status ?? null,
+      storyboardStatus: brief?.storyboardRun?.status ?? null,
+      storyboardCreatedAt: brief?.storyboardRun?.createdAt,
+      storyboardApprovedAt: brief?.storyboardRun?.approvedAt,
+      storyboardUpdatedAt: brief?.storyboardRun?.updatedAt,
+      videoJobs: brief?.videoJobs ?? [],
+      finalVideoStatus: finalVideo?.status ?? null,
+      finalVideoStartedAt: finalVideo?.startedAt,
+      finalVideoFinishedAt: finalVideo?.finishedAt,
+      hasPlayableVideo: Boolean(row.videoUrl),
+    }),
+  };
 }
 
 /// 批量生产的 VideoJob → 成品库行。成品库文案承诺「单条与批量都汇总在这里」，
@@ -184,6 +403,17 @@ export function toBatchLibraryRow(
   });
 }
 
+/**
+ * Terminal failures without playable media are operational records, not useful
+ * customer library items. Keep recoverable outputs visible even when their
+ * status is failed so support and customers do not lose access to media.
+ */
+export function filterCustomerLibraryRows(
+  rows: UnifiedLibraryRow[],
+): UnifiedLibraryRow[] {
+  return rows.filter((row) => row.status !== "failed" || Boolean(row.videoUrl));
+}
+
 async function loadRowsForOwner(
   ownerId: string,
   isShowcase: boolean,
@@ -213,7 +443,9 @@ async function loadRowsForOwner(
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   // 样片只暴露已完成成片，避免把半成品/失败的 demo 内容展示给其他用户。
-  return isShowcase ? rows.filter((row) => row.status === "ready") : rows;
+  return isShowcase
+    ? rows.filter((row) => row.status === "ready")
+    : filterCustomerLibraryRows(rows);
 }
 
 export async function loadUnifiedLibrary(
@@ -239,7 +471,7 @@ export async function getUnifiedLibraryItem(userId: string, orderId: string) {
     },
     select: unifiedLibraryOrderSelect,
   });
-  if (own) return toUnifiedLibraryRow(own);
+  if (own) return toUnifiedLibraryDetail(own);
 
   // 命中样片账号的成片则以只读样片形式返回。
   const showcaseUserId = await resolveShowcaseSourceFor(userId);
@@ -252,5 +484,5 @@ export async function getUnifiedLibraryItem(userId: string, orderId: string) {
     },
     select: unifiedLibraryOrderSelect,
   });
-  return showcase ? toUnifiedLibraryRow(showcase, true) : null;
+  return showcase ? toUnifiedLibraryDetail(showcase, true) : null;
 }

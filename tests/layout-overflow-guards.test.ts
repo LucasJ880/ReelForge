@@ -43,3 +43,23 @@ test("RF-011 browser overflow regression covers all three desktop widths", async
   assert.match(source, /documentElement\.scrollWidth/);
   assert.match(source, /getBoundingClientRect/);
 });
+
+test("auth hero uses the compact editorial type scale", async () => {
+  const source = await readFile(
+    path.join(ROOT, "src/app/(auth)/layout.tsx"),
+    "utf8",
+  );
+  assert.match(source, /clamp\(2\.35rem,5vw,4\.75rem\)/);
+  assert.match(source, /max-w-\[34rem\]/);
+  assert.match(source, /font-mono text-body font-semibold/);
+});
+
+test("brand manager uses responsive cards without horizontal scrolling", async () => {
+  const source = await readFile(
+    path.join(ROOT, "src/components/brand/brand-package-manager.tsx"),
+    "utf8",
+  );
+  assert.match(source, /grid-cols-1/);
+  assert.match(source, /min-w-0/);
+  assert.doesNotMatch(source, /overflow-x-auto/);
+});

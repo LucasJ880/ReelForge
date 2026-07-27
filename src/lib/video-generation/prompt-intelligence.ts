@@ -31,6 +31,7 @@ import type {
   InputClassification,
   UploadedAsset,
   VideoSegment,
+  VoiceoverSettings,
 } from "@/types/video-generation";
 import { heuristicBible } from "@/lib/video-generation/consistency-bible";
 import type { ConsistencyLock, StyleTemplate } from "@/lib/video-generation/style-templates";
@@ -112,6 +113,8 @@ export interface BuildSegmentPromptsArgs {
   consistencyLocks?: ConsistencyLock[];
   /// 参考图视觉分析：真实门店场景时注入实景匹配指令 + 放开招牌文字渲染
   visualRefs?: VisualReferenceAnalysis | null;
+  /** User-approved final wording; overrides any LLM-authored dialogue. */
+  voiceover?: VoiceoverSettings | null;
 }
 
 export interface SegmentPromptResult {
@@ -241,8 +244,93 @@ export async function buildVideoSegments(
 // 最终 prompt 组装（确定性代码，保证 bible 逐字一致，不依赖 LLM 抄写）
 // ---------------------------------------------------------------------------
 
-/// Seedance 英文建议 ≤1000 词；这里给最终 prompt 一个安全字符预算
-const PROMPT_CHAR_BUDGET = 3300;
+/// Leave room for Shuyu's appended negative constraints under its 5,000-char cap.
+const PROMPT_CHAR_BUDGET = 4500;
+
+function nearestSpeechBoundary(
+  graphemes: string[],
+  ideal: number,
+  min: number,
+  max: number,
+): number {
+  const isBoundary = (index: number) =>
+    /[。！？!?；;，,\s]/u.test(graphemes[index - 1] ?? "");
+  for (let offset = 0; offset <= Math.max(ideal - min, max - ideal); offset++) {
+    const after = ideal + offset;
+    if (after >= min && after <= max && isBoundary(after)) return after;
+    const before = ideal - offset;
+    if (before >= min && before <= max && isBoundary(before)) return before;
+  }
+  return Math.min(max, Math.max(min, ideal));
+}
+
+/**
+ * Split the approved wording into contiguous, non-repeating segment chunks.
+ * Joining the chunks reproduces the trimmed script exactly.
+ */
+export function splitVoiceoverScript(
+  script: string,
+  segmentCount: number,
+): string[] {
+  if (segmentCount <= 0) return [];
+  const graphemes = Array.from(script.trim());
+  if (graphemes.length === 0) return Array.from({ length: segmentCount }, () => "");
+  const chunks: string[] = [];
+  let cursor = 0;
+  for (let index = 0; index < segmentCount; index++) {
+    if (index === segmentCount - 1) {
+      chunks.push(graphemes.slice(cursor).join(""));
+      break;
+    }
+    const remainingSegments = segmentCount - index;
+    const ideal = cursor + Math.round((graphemes.length - cursor) / remainingSegments);
+    const minimum = Math.min(graphemes.length, cursor + 1);
+    const maximum = Math.max(
+      minimum,
+      graphemes.length - (remainingSegments - 1),
+    );
+    const boundary = nearestSpeechBoundary(
+      graphemes,
+      ideal,
+      minimum,
+      maximum,
+    );
+    chunks.push(graphemes.slice(cursor, boundary).join(""));
+    cursor = boundary;
+  }
+  while (chunks.length < segmentCount) chunks.push("");
+  return chunks;
+}
+
+function voiceoverChunkForSegment(
+  args: BuildSegmentPromptsArgs,
+  segmentIndex: number,
+): string {
+  if (!args.voiceover?.enabled) return "";
+  const count = args.segmentSlots.filter((slot) => slot.source === "ai").length;
+  return splitVoiceoverScript(args.voiceover.script, count)[segmentIndex] ?? "";
+}
+
+function escapeDialogueForPrompt(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replace(/\s+/gu, " ");
+}
+
+function fitPromptWithPriorityBlock(base: string, priorityBlock: string): string {
+  if (!priorityBlock) {
+    return base.length > PROMPT_CHAR_BUDGET
+      ? base.slice(0, PROMPT_CHAR_BUDGET).replace(/\s+\S*$/u, "")
+      : base;
+  }
+  const availableForBase = Math.max(
+    0,
+    PROMPT_CHAR_BUDGET - priorityBlock.length - 2,
+  );
+  const fittedBase =
+    base.length > availableForBase
+      ? base.slice(0, availableForBase).replace(/\s+\S*$/u, "")
+      : base;
+  return `${fittedBase.trimEnd()}\n\n${priorityBlock}`.trim();
+}
 
 function orientationLabel(aspect: AspectRatio): string {
   return aspect === "9:16"
@@ -271,7 +359,7 @@ function composeSeedancePrompt(params: {
 
   const shotLines = shots
     .map((s) => {
-      const dialogue = s.dialogue.trim()
+      const dialogue = !args.voiceover?.enabled && s.dialogue.trim()
         ? ` Dialogue (spoken to camera): "${s.dialogue.trim()}"`
         : "";
       const camera = s.camera.trim() ? ` Camera: ${s.camera.trim()}.` : "";
@@ -279,10 +367,25 @@ function composeSeedancePrompt(params: {
     })
     .join("\n");
 
-  const hasDialogue = shots.some((s) => s.dialogue.trim().length > 0);
-  const audioLine = hasDialogue
-    ? `Audio: natural voiceover speaking the quoted dialogue lines (${bible.voiceProfile ?? "casual natural voice"}), real room ambience, no background music.`
-    : "Audio: real environment ambience only, no background music, no narration.";
+  const voiceoverChunk = voiceoverChunkForSegment(args, segIdxInAi);
+  const hasGeneratedDialogue =
+    !args.voiceover?.enabled &&
+    shots.some((s) => s.dialogue.trim().length > 0);
+  const audioLine = args.voiceover?.enabled
+    ? voiceoverChunk
+      ? "Audio: generate native speech for the approved voice-only dialogue below, with subtle real room ambience."
+      : "Audio: subtle real room ambience only; do not improvise narration in this segment."
+    : hasGeneratedDialogue
+      ? `Audio: natural voiceover speaking the quoted dialogue lines (${bible.voiceProfile ?? "casual natural voice"}), real room ambience, no background music.`
+      : "Audio: real environment ambience only, no background music, no narration.";
+  const voiceStyle = args.voiceover?.voiceId.replaceAll("-", " ") ?? "";
+  const nativeDialogueBlock =
+    args.voiceover?.enabled && voiceoverChunk
+      ? [
+          `Spoken dialogue (voice only, exact wording, ${args.voiceover.language}, ${voiceStyle}): "${escapeDialogueForPrompt(voiceoverChunk)}"`,
+          "Do not render subtitles, captions, readable text, or a music bed.",
+        ].join("\n")
+      : "";
 
   const productLine = hasProductRefs
     ? `PRODUCT (must exactly match the reference images): ${bible.productDescription}`
@@ -350,9 +453,7 @@ function composeSeedancePrompt(params: {
     `Style: ${bible.styleKeywords}`,
   ].join("\n");
 
-  return prompt.length > PROMPT_CHAR_BUDGET
-    ? prompt.slice(0, PROMPT_CHAR_BUDGET).replace(/\s\S*$/, "")
-    : prompt;
+  return fitPromptWithPriorityBlock(prompt, nativeDialogueBlock);
 }
 
 // ---------------------------------------------------------------------------
@@ -533,6 +634,7 @@ ${referenceAssets || "  (none)"}
 aspect_ratio: ${args.aspectRatio}
 generation_mode: ${args.classification.generationMode}
 dialogue_language: ${args.language ?? "en-US"}
+${args.voiceover?.enabled ? "authoritative_dialogue: use only the user-approved voiceover injected by Aivora; return empty dialogue fields" : ""}
 
 Return the JSON array now.`;
 }

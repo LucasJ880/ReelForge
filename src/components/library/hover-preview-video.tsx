@@ -5,9 +5,11 @@ import { useRef } from "react";
 export function HoverPreviewVideo({
   src,
   poster,
+  ariaLabel,
 }: {
   src: string;
   poster?: string;
+  ariaLabel: string;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
 
@@ -35,7 +37,7 @@ export function HoverPreviewVideo({
       onFocus={play}
       onBlur={reset}
       className="size-full object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none"
-      aria-label="悬停预览视频"
+      aria-label={ariaLabel}
     />
   );
 }

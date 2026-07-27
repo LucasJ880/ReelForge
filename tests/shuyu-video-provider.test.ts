@@ -106,8 +106,48 @@ test("Shuyu provider sends the exact documented body and persisted Idempotency-K
     duration: 10,
     aspect_ratio: "9:16",
     input_images: ["https://example.com/product.jpg"],
+    generate_audio: false,
   });
   assert.doesNotMatch(String(submission.init?.body), /resolution/);
+});
+
+test("Shuyu Seedance forwards native audio generation explicitly", async () => {
+  const submissions: Array<Record<string, unknown>> = [];
+  const provider = new ShuyuVideoProvider("studio-video", {
+    env: { SHUYU_API_KEY: "configured" },
+    fetchImpl: async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/health")) {
+        return new Response(JSON.stringify(healthPayload), { status: 200 });
+      }
+      if (url.endsWith("/prices")) {
+        return new Response(JSON.stringify(pricePayload), { status: 200 });
+      }
+      if (url.endsWith("/account/balance")) {
+        return new Response(JSON.stringify(fundedPayload), { status: 200 });
+      }
+      submissions.push(JSON.parse(String(init?.body)));
+      return new Response(JSON.stringify({ task_id: "native-audio-task" }), {
+        status: 201,
+      });
+    },
+  });
+
+  await provider.createVideoJob({
+    providerRequestKey: "native-audio-attempt-1",
+    prompt: 'Spoken dialogue (voice only, exact wording, zh-CN, warm confident): "现在开始。"',
+    durationSec: 5,
+    generateAudio: true,
+  });
+  await provider.createVideoJob({
+    providerRequestKey: "silent-video-attempt-1",
+    prompt: "Product beauty shot with room ambience.",
+    durationSec: 5,
+    generateAudio: false,
+  });
+
+  assert.equal(submissions[0]?.generate_audio, true);
+  assert.equal(submissions[1]?.generate_audio, false);
 });
 
 test("Shuyu status mapping waits through refund states and only fails after refunded", async () => {

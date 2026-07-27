@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { verifiedTemplateSample } from "../src/lib/video-generation/template-sample";
+import {
+  verifiedTemplateSample,
+  verifiedTemplateVideo,
+} from "../src/lib/video-generation/template-sample";
 
 const root = process.cwd();
 const library = readFileSync(
@@ -11,6 +14,10 @@ const library = readFileSync(
 );
 const wizard = readFileSync(
   path.join(root, "src/components/batch/batch-create-wizard.tsx"),
+  "utf8",
+);
+const studio = readFileSync(
+  path.join(root, "src/components/video-generation/streamlined-video-studio.tsx"),
   "utf8",
 );
 const service = readFileSync(
@@ -36,6 +43,25 @@ test("模板样片只在封面属于当前模板时对客户展示", () => {
   assert.doesNotMatch(library, /backgroundImage.*coverImage/);
 });
 
+test("模板视频样片必须属于当前模板并通过悬停预览组件呈现", () => {
+  assert.equal(
+    verifiedTemplateVideo(
+      "ugc-handheld-review",
+      "/template-previews/ugc-handheld-review.mp4",
+    ),
+    "/template-previews/ugc-handheld-review.mp4",
+  );
+  assert.equal(
+    verifiedTemplateVideo(
+      "another-template",
+      "/template-previews/ugc-handheld-review.mp4",
+    ),
+    null,
+  );
+  assert.match(library, /HoverPreviewVideo/);
+  assert.match(library, /template\.sampleVideo/);
+});
+
 test("模板库向用户开放实际质量配方和负向约束", () => {
   assert.match(library, /TemplateRecipeDialog/);
   assert.match(library, /promptSkeleton=\{template\.promptSkeleton\}/);
@@ -59,4 +85,21 @@ test("最终验收强制把 DATABASE_URL 指向显式演练分支", () => {
   assert.match(acceptanceConfig, /NEON_REHEARSAL_DATABASE_URL/);
   assert.match(acceptanceConfig, /process\.env\.DATABASE_URL = rehearsalDatabaseUrl/);
   assert.match(acceptanceConfig, /DATABASE_URL=\"\$NEON_REHEARSAL_DATABASE_URL\"/);
+});
+
+test("模板库与高级创作统一使用 canonical commerce slugs", () => {
+  assert.match(library, /template\.slug/);
+  assert.doesNotMatch(library, /function singleSkillFor/);
+  assert.match(studio, /COMMERCE_TEMPLATE_RECIPES/);
+  assert.match(studio, /recipe\.slug/);
+  assert.doesNotMatch(studio, /<option value="tpl_event_watch_party"/);
+  assert.match(studio, /initialPrompt/);
+});
+
+test("单条创作把原生口播、字幕和授权配乐作为同一请求提交", () => {
+  assert.match(studio, /AudioCaptionControls/);
+  assert.match(studio, /voiceoverEnabled/);
+  assert.match(studio, /captionStyle/);
+  assert.match(studio, /bgmTrackId/);
+  assert.doesNotMatch(studio, /volc-tts|submitTts|synthesizeSpeech/);
 });

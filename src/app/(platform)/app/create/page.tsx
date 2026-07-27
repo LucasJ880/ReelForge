@@ -11,11 +11,11 @@ import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-bran
 export default async function PlatformCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ productImageResultId?: string; styleTemplate?: string; guide?: string }>;
+  searchParams: Promise<{ productImageResultId?: string; styleTemplate?: string; prompt?: string; guide?: string }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageResultId, styleTemplate, guide }, locale, routeState] = await Promise.all([
+  const [{ productImageResultId, styleTemplate, prompt, guide }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -48,6 +48,7 @@ export default async function PlatformCreatePage({
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
+        initialPrompt={prompt?.slice(0, 4000) ?? ""}
         brandPackages={brandPackages}
         canSelectVideoRoute={false}
         showInternalVideoRoutes={false}

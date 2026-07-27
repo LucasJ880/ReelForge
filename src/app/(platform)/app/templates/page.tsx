@@ -8,8 +8,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
-import { verifiedTemplateSample } from "@/lib/video-generation/template-sample";
+import {
+  verifiedTemplateSample,
+  verifiedTemplateVideo,
+} from "@/lib/video-generation/template-sample";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
+import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +31,7 @@ export default async function PlatformTemplatesPage() {
         <h1 className="editorial-display">{copy.title}</h1>
         <p className="max-w-3xl text-body text-muted-foreground">{copy.subtitle}</p>
       </header>
-      {templates.length > 0 ? <div className="flex justify-end"><Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].id)}`} />} variant="outline">{copy.recommended}<ArrowRight aria-hidden /></Button></div> : null}
+      {templates.length > 0 ? <div className="flex justify-end"><Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />} variant="outline">{copy.recommended}<ArrowRight aria-hidden /></Button></div> : null}
       {templates.length === 0 ? (
         <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
           <p className="text-body text-muted-foreground">{copy.preparing}</p>
@@ -40,6 +44,8 @@ export default async function PlatformTemplatesPage() {
         slug: template.slug,
         category: template.category,
         sampleImage: verifiedTemplateSample(template.slug, template.coverImage),
+        sampleVideo: verifiedTemplateVideo(template.slug, `/template-previews/${template.slug}.mp4`),
+        summary: commerceTemplateSummary(template.slug, locale),
         promptSkeleton: template.promptSkeleton,
         negativePrompt: template.negativePrompt,
         version: template.version,

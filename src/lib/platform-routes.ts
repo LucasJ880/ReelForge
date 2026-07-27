@@ -3,6 +3,7 @@ export const PLATFORM_PRIMARY_NAV = [
   { id: "batches", label: "批量生产", href: "/app/batches" },
   { id: "racing", label: "投放与赛马", href: "/app/racing" },
   { id: "library", label: "成品库", href: "/app/library" },
+  { id: "brands", label: "品牌", href: "/app/brands" },
   { id: "templates", label: "模板库", href: "/app/templates" },
 ] as const;
 

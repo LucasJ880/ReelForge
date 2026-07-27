@@ -19,6 +19,8 @@ export type WorkspaceBrandPackageView = {
   contactLines: string[];
   website: string | null;
   clientProfileId: string | null;
+  scope: "global" | "workspace";
+  canEdit: boolean;
   isDefault: boolean;
   logoAsset: Pick<MediaAsset, "id" | "url" | "mimeType" | "width" | "height">;
   endCardAsset: Pick<MediaAsset, "id" | "url" | "mimeType" | "width" | "height"> | null;
@@ -36,6 +38,8 @@ export function workspaceBrandPackageView(
     contactLines: [...value.contactLines],
     website: value.website,
     clientProfileId: value.clientProfileId,
+    scope: value.isGlobal ? "global" : "workspace",
+    canEdit: !value.isGlobal,
     isDefault: value.isDefault,
     logoAsset: {
       id: value.logoAsset.id,
@@ -60,9 +64,19 @@ export async function listWorkspaceBrandPackagesForUser(
   userId: string,
 ): Promise<WorkspaceBrandPackageView[]> {
   const rows = await db.workspaceBrandPackage.findMany({
-    where: { workspace: { ownerId: userId }, isActive: true },
+    where: {
+      isActive: true,
+      OR: [
+        { isGlobal: true },
+        { workspace: { ownerId: userId } },
+      ],
+    },
     include: packageInclude,
-    orderBy: [{ isDefault: "desc" }, { createdAt: "desc" }],
+    orderBy: [
+      { isGlobal: "desc" },
+      { isDefault: "desc" },
+      { createdAt: "desc" },
+    ],
   });
   return rows.map(workspaceBrandPackageView);
 }
@@ -72,9 +86,24 @@ export async function findWorkspaceBrandPackageForUser(
   userId: string,
 ): Promise<WorkspaceBrandPackageRecord | null> {
   return db.workspaceBrandPackage.findFirst({
-    where: { id: packageId, workspace: { ownerId: userId }, isActive: true },
+    where: {
+      id: packageId,
+      isActive: true,
+      OR: [
+        { isGlobal: true },
+        { workspace: { ownerId: userId } },
+      ],
+    },
     include: packageInclude,
   });
+}
+
+export function assertWorkspaceBrandPackageMutable(
+  value: { isGlobal: boolean } | null,
+): void {
+  if (value?.isGlobal) {
+    throw new Error("Global brand packages are read-only");
+  }
 }
 
 export async function upsertWorkspaceBrandPackageForUser(input: {
@@ -96,6 +125,17 @@ export async function upsertWorkspaceBrandPackageForUser(input: {
     select: { id: true },
   });
   if (!workspace) throw new Error("workspace not found");
+  if (input.id) {
+    const existing = await db.workspaceBrandPackage.findUnique({
+      where: { id: input.id },
+      select: { workspaceId: true, isGlobal: true },
+    });
+    if (!existing || existing.workspaceId !== workspace.id) {
+      assertWorkspaceBrandPackageMutable(existing);
+      throw new Error("brand package not found");
+    }
+    assertWorkspaceBrandPackageMutable(existing);
+  }
   const assetIds = [input.logoAssetId, input.endCardAssetId].filter(
     (id): id is string => Boolean(id),
   );
@@ -120,6 +160,7 @@ export async function upsertWorkspaceBrandPackageForUser(input: {
     endCardAssetId: endCard?.id ?? null,
     isDefault: input.isDefault ?? false,
     isActive: true,
+    isGlobal: false,
   };
 
   const row = await db.$transaction(async (tx) => {

@@ -34,6 +34,8 @@ export const batchStyleTemplateDtoSchema = z
     category: z.string().min(1),
     coverImage: z.string().min(1),
     sampleImage: z.string().min(1).nullable(),
+    sampleVideo: z.string().min(1).nullable(),
+    summary: z.string().min(1).max(240).nullable(),
     promptSkeleton: z.string().min(1),
     negativePrompt: z.string().min(1),
     lockedParams: batchStyleLockedParamsSchema,
@@ -74,6 +76,10 @@ interface StyleTemplateRecord {
 export function batchStyleTemplateDto(
   template: StyleTemplateRecord,
   sampleImage: string | null,
+  preview: {
+    sampleVideo?: string | null;
+    summary?: string | null;
+  } = {},
 ): BatchStyleTemplateDto {
   return batchStyleTemplateDtoSchema.parse({
     id: template.id,
@@ -84,6 +90,8 @@ export function batchStyleTemplateDto(
     category: template.category,
     coverImage: template.coverImage,
     sampleImage,
+    sampleVideo: preview.sampleVideo ?? null,
+    summary: preview.summary ?? null,
     promptSkeleton: template.promptSkeleton,
     negativePrompt: template.negativePrompt,
     lockedParams: template.lockedParams,

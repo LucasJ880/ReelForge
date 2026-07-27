@@ -28,6 +28,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AudioCaptionControls,
+  generateVoiceoverScript,
+  type AudioCaptionControlValue,
+} from "@/components/video-generation/audio-caption-controls";
 import { FirstRunOnboardingDialog } from "@/components/video-generation/first-run-onboarding-dialog";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
 import {
@@ -46,6 +51,10 @@ import {
 } from "@/lib/api/customer-video-dispatch-recovery";
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
+import {
+  COMMERCE_TEMPLATE_RECIPES,
+  COMMERCE_TEMPLATE_SLUGS,
+} from "@/lib/video-generation/commerce-template-catalog";
 import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
   AspectRatio,
@@ -64,12 +73,16 @@ const DISPATCH_ATTEMPT_STORAGE_KEY = "aivora.dispatch-attempt.v1";
 const DISMISSED_STORYBOARDS_STORAGE_KEY = "aivora.dismissed-storyboards.v1";
 const DURATIONS = [15, 30, 60] as const;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
-const QUALITY_TEMPLATE_IDS = [
+const LEGACY_QUALITY_TEMPLATE_IDS = [
   "tpl_event_watch_party",
   "tpl_viral_result_first",
   "tpl_viral_pain_solution",
   "tpl_ugc_review",
   "tpl_viral_sensory_texture",
+] as const;
+const QUALITY_TEMPLATE_IDS = [
+  ...COMMERCE_TEMPLATE_SLUGS,
+  ...LEGACY_QUALITY_TEMPLATE_IDS,
 ] as const;
 
 type CreationMode = "quick" | "advanced";
@@ -304,6 +317,7 @@ const EN_COPY: StudioCopy = {
 export function StreamlinedVideoStudio({
   initialAssets = [],
   initialStyleTemplateId,
+  initialPrompt = "",
   brandPackages = [],
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
@@ -311,6 +325,7 @@ export function StreamlinedVideoStudio({
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
+  initialPrompt?: string;
   brandPackages?: WorkspaceBrandPackageView[];
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
@@ -347,7 +362,25 @@ export function StreamlinedVideoStudio({
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
   >(true);
-  const [rawPrompt, setRawPrompt] = useState("");
+  const [rawPrompt, setRawPrompt] = useState(initialPrompt);
+  const [audioCaptionSettings, setAudioCaptionSettings] =
+    useState<AudioCaptionControlValue>(() => ({
+      voiceoverEnabled: true,
+      voiceId: "warm-confident",
+      voiceoverScript: generateVoiceoverScript({
+        prompt: initialPrompt,
+        cta: null,
+        durationSec: 15,
+        language: locale,
+        templateId: seededStyleTemplateId === "auto" ? null : seededStyleTemplateId,
+      }),
+      captionsEnabled: true,
+      captionStyle: "word_by_word",
+      captionPosition: "bottom",
+      exportSrt: true,
+      bgmTrackId: "none",
+      bgmVolume: 0.2,
+    }));
   const [plan, setPlan] = useState<VideoGenerationPlan | null>(null);
   const [planRequestKey, setPlanRequestKey] = useState<string | null>(null);
   const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
@@ -357,6 +390,7 @@ export function StreamlinedVideoStudio({
   const [error, setError] = useState<string | null>(null);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
+  const voiceoverEditedRef = useRef(false);
   /// 用户一旦改动任何创作输入，挂载时的静默恢复就必须放弃，避免覆盖新意图。
   const interactedRef = useRef(false);
 
@@ -453,6 +487,33 @@ export function StreamlinedVideoStudio({
   const selectedBrandPackage = brandPackages.find(
     (brandPackage) => brandPackage.id === selectedBrandPackageId,
   ) ?? null;
+  const activeStyleTemplateId = creationMode === "advanced"
+    ? styleTemplateId
+    : seededStyleTemplateId;
+  const autoVoiceoverScript = useMemo(() => generateVoiceoverScript({
+    prompt: rawPrompt,
+    cta: selectedBrandPackage?.cta ?? null,
+    durationSec: selectedDuration,
+    language: locale,
+    templateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
+  }), [
+    activeStyleTemplateId,
+    locale,
+    rawPrompt,
+    selectedBrandPackage?.cta,
+    selectedDuration,
+  ]);
+  const {
+    voiceoverEnabled,
+    voiceId,
+    voiceoverScript,
+    captionsEnabled,
+    captionStyle,
+    captionPosition,
+    exportSrt,
+    bgmTrackId,
+    bgmVolume,
+  } = audioCaptionSettings;
   const brandPackageAssets = useMemo<UploadedAsset[]>(() => {
     if (!selectedBrandPackage) return [];
     const logo: UploadedAsset = {
@@ -509,6 +570,15 @@ export function StreamlinedVideoStudio({
     ];
   }, [brandPackageAssets, productAssets, referenceAssets, referenceMode]);
 
+  useEffect(() => {
+    if (voiceoverEditedRef.current) return;
+    setAudioCaptionSettings((current) => (
+      current.voiceoverScript === autoVoiceoverScript
+        ? current
+        : { ...current, voiceoverScript: autoVoiceoverScript }
+    ));
+  }, [autoVoiceoverScript]);
+
   const invalidatePlan = useCallback(() => {
     interactedRef.current = true;
     setPlan(null);
@@ -520,6 +590,27 @@ export function StreamlinedVideoStudio({
     persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
     setError(null);
   }, []);
+
+  const updateAudioCaptionSettings = useCallback((
+    next: AudioCaptionControlValue,
+  ) => {
+    setAudioCaptionSettings((current) => {
+      if (next.voiceoverScript !== current.voiceoverScript) {
+        voiceoverEditedRef.current = true;
+      }
+      return next;
+    });
+    invalidatePlan();
+  }, [invalidatePlan]);
+
+  const regenerateVoiceoverScript = useCallback(() => {
+    voiceoverEditedRef.current = false;
+    setAudioCaptionSettings((current) => ({
+      ...current,
+      voiceoverScript: autoVoiceoverScript,
+    }));
+    invalidatePlan();
+  }, [autoVoiceoverScript, invalidatePlan]);
 
   useEffect(() => {
     if (!storyboard || storyboard.status !== "GENERATING") return;
@@ -705,8 +796,6 @@ export function StreamlinedVideoStudio({
   }
 
   function buildRequest(): OwnedUnifiedVideoGenerationRequest {
-    const advanced = creationMode === "advanced";
-    const activeStyleTemplateId = advanced ? styleTemplateId : seededStyleTemplateId;
     const selectedBrandEndingMode: BrandEndingMode = selectedBrandPackage?.endCardAsset?.mimeType.startsWith("video/")
       ? "uploaded_clip"
       : selectedBrandPackage
@@ -730,11 +819,35 @@ export function StreamlinedVideoStudio({
         : null,
       language: locale,
       styleTemplateId: activeStyleTemplateId === "auto" ? null : activeStyleTemplateId,
+      audio: {
+        voiceover: {
+          enabled: voiceoverEnabled,
+          voiceId,
+          language: locale,
+          script: voiceoverScript.trim(),
+        },
+        bgm: {
+          trackId: bgmTrackId,
+          volume: bgmTrackId === "none" ? 0 : bgmVolume,
+        },
+      },
+      captions: {
+        enabled: captionsEnabled,
+        style: captionStyle,
+        language: locale,
+        position: captionPosition,
+        exportSrt,
+      },
     });
   }
 
   function validateBeforeRequest(): string | null {
     if (!rawPrompt.trim()) return copy.promptRequired;
+    if (voiceoverEnabled && !voiceoverScript.trim()) {
+      return english
+        ? "Add a voiceover script or turn native voiceover off."
+        : "请填写口播稿，或关闭原生口播。";
+    }
     return null;
   }
 
@@ -1298,11 +1411,11 @@ export function StreamlinedVideoStudio({
                   className="studio-select mt-1"
                 >
                   <option value="auto">{copy.templateAuto}</option>
-                  <option value="tpl_event_watch_party">{copy.templateEvent}</option>
-                  <option value="tpl_viral_result_first">{copy.templateResult}</option>
-                  <option value="tpl_viral_pain_solution">{copy.templatePain}</option>
-                  <option value="tpl_ugc_review">{copy.templateUgc}</option>
-                  <option value="tpl_viral_sensory_texture">{copy.templateSensory}</option>
+                  {COMMERCE_TEMPLATE_RECIPES.map((recipe) => (
+                    <option key={recipe.slug} value={recipe.slug}>
+                      {english ? recipe.name : recipe.nameZh}
+                    </option>
+                  ))}
                 </select>
               </label>
             </div>
@@ -1396,6 +1509,14 @@ export function StreamlinedVideoStudio({
           </p>
         </CardContent>
       </Card>
+
+      <AudioCaptionControls
+        value={audioCaptionSettings}
+        english={english}
+        disabled={busy !== null || configurationLocked}
+        onChange={updateAudioCaptionSettings}
+        onRegenerate={regenerateVoiceoverScript}
+      />
 
       {plan ? (
         <section id="streamlined-plan-preview" className="scroll-mt-20 space-y-3" aria-labelledby="streamlined-plan-heading">

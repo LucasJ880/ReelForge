@@ -1,5 +1,5 @@
 /**
- * Storyboard gacha（抽卡）+ 择优 — SunnyShutter 一致性优先路径。
+ * Storyboard gacha（抽卡）+ 择优 — product identity first.
  *
  * 背景（CEO WeChat 0720）：单张故事版直出的一致性不够——成片出现房间漂移、
  * 幻视叠影、构图重点不在窗上。对策：每个故事版帧并行生成 N 个候选，
@@ -20,19 +20,25 @@ export type GachaJudgeVerdict = {
   note: string;
 };
 
-const JUDGE_SYSTEM = `You are a strict casting director for ecommerce window-covering (shades/shutters/curtains) video ads.
+const JUDGE_SYSTEM = `You are a strict casting director for ecommerce product video ads.
 You will receive images in two groups, in order:
-1) CONTEXT images (already-locked storyboard frames and/or product reference photos). Product reference photos define ONLY the product's look (fabric, color, opacity, mount style) — the generated scene does NOT need to copy their room. Locked storyboard frames (when the frame criteria says this is a later frame that must match) define the room, window, camera, and person that the candidate MUST reproduce.
+1) CONTEXT images (already-locked storyboard frames and/or product reference photos). Product reference photos are the only truth for product identity, visible parts, material, color, proportions, packaging, and supported states. Locked storyboard frames define the room, camera, cast, and continuity that a later candidate MUST reproduce.
 2) CANDIDATE images — alternative generations for ONE storyboard frame.
 Score each CANDIDATE 0-10 against the criteria given by the user. Heavily penalize:
 - any visible text, logo, watermark, caption, phone number, or QR code (instant score ≤ 2)
-- room / window / person identity drift vs the CONTEXT images
-- the window + covering NOT being the clear visual protagonist of the composition
-- warped product geometry (bent headrail, melted fabric, non-parallel louvers)
-- pull chain shown anywhere except the required side edge
+- product identity, room, camera, or cast drift vs the CONTEXT images
+- the product not being the clear visual protagonist of the composition
+- invented or warped product geometry, controls, parts, labels, accessories, packaging, or unsupported states
+- an intended action that is unclear, physically impossible, or not supported by the reference images
+- distorted human anatomy, extra fingers, merged hands, or hands obscuring the proof
+- weak proof clarity, incoherent continuity, or a composition that contradicts the requested beat
 Respond with JSON only:
 {"scores":[{"index":0,"score":7,"issues":"..."}],"best":0}
 "index" is the 0-based index WITHIN THE CANDIDATE GROUP. "best" is the winning candidate index.`;
+
+export function genericJudgeSystem(): string {
+  return JUDGE_SYSTEM;
+}
 
 export async function judgeStoryboardCandidates(args: {
   candidateUrls: string[];

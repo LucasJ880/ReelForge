@@ -11,6 +11,7 @@ import {
   Layers3,
   LogOut,
   NotebookText,
+  Palette,
   Search,
   Trophy,
   UserRound,
@@ -32,6 +33,7 @@ const ICONS = {
   batches: Layers3,
   racing: Trophy,
   library: Film,
+  brands: Palette,
   templates: NotebookText,
 } satisfies Record<PlatformNavId, typeof Clapperboard>;
 
@@ -59,7 +61,7 @@ function Nav({
   return (
     <nav
       aria-label={t(mobile ? "shell.platformShell.mobileNav" : "shell.platformShell.primaryNav")}
-      className={mobile ? "grid h-16 grid-cols-5 border-t border-border bg-card" : "flex flex-1 flex-col gap-0.5 px-3 py-4"}
+      className={mobile ? "grid h-16 grid-cols-6 border-t border-border bg-card" : "flex flex-1 flex-col gap-0.5 px-3 py-4"}
     >
       {PLATFORM_PRIMARY_NAV.map((item) => {
         const Icon = ICONS[item.id];

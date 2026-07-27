@@ -40,7 +40,41 @@ import type {
   UnifiedVideoGenerationRequest,
   VideoGenerationPlan,
   UploadedAsset,
+  PostProductionPlan,
 } from "@/types/video-generation";
+
+export function normalizePostProductionSettings(
+  request: UnifiedVideoGenerationRequest,
+): PostProductionPlan {
+  const language = request.language?.trim() || "en-US";
+  const voiceover = request.audio?.voiceover;
+  const bgm = request.audio?.bgm;
+  const captions = request.captions;
+  return {
+    audio: {
+      voiceover: {
+        enabled: voiceover?.enabled ?? false,
+        voiceId: voiceover?.voiceId.trim() || "warm-confident",
+        language: voiceover?.language.trim() || language,
+        script: voiceover?.script ?? "",
+      },
+      bgm: {
+        trackId: bgm?.trackId ?? "none",
+        volume:
+          bgm?.trackId === "wholesome"
+            ? Math.min(0.35, Math.max(0, bgm.volume))
+            : 0,
+      },
+    },
+    captions: {
+      enabled: captions?.enabled ?? false,
+      style: captions?.style ?? "word_by_word",
+      language: captions?.language.trim() || language,
+      position: captions?.position ?? "bottom",
+      exportSrt: captions?.exportSrt ?? false,
+    },
+  };
+}
 
 /**
  * 主入口。
@@ -51,6 +85,7 @@ import type {
 export async function buildPlan(
   request: UnifiedVideoGenerationRequest,
 ): Promise<VideoGenerationPlan> {
+  const postProduction = normalizePostProductionSettings(request);
   /// 1. Ensure assets are classified. UI 大概率已经跑过 /api/video-generation/classify-asset；
   /// 但兜底再跑一次，保证 inferredRole 一定有合理值。
   const classifiedAssets = ensureClassified(request.attachments ?? []);
@@ -133,6 +168,7 @@ export async function buildPlan(
     styleTemplate,
     consistencyLocks,
     visualRefs,
+    voiceover: postProduction.audio.voiceover,
   });
 
   /// 7. Assembly plan
@@ -187,6 +223,7 @@ export async function buildPlan(
     brandPackagingPlan,
     clipPlacementPlan,
     assemblyPlan,
+    postProduction,
     qualityReview,
     planPreview,
     createdAt: new Date().toISOString(),

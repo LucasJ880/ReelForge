@@ -556,6 +556,7 @@ export const enUS: Dictionary = {
       batches: "Batch production",
       racing: "Campaign racing",
       library: "Video library",
+      brands: "Brands",
       templates: "Template library",
     },
     platformShell: {

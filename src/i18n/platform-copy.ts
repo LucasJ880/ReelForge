@@ -217,7 +217,7 @@ const zh = {
     useSingle: "单条套用",
     useBatch: "批量套用",
     categories: {
-      "电商展示": "电商展示", "质感特写": "质感特写", "生活方式": "生活方式", UGC: "UGC", "开箱": "开箱", "奢品": "奢品", "使用演示": "使用演示", "爆款广告": "爆款广告", "对比转化": "对比转化", "包装展示": "包装展示", "家居空间": "家居空间", "工具户外": "工具户外", "旅行收纳": "旅行收纳", "服饰穿搭": "服饰穿搭", "社媒循环": "社媒循环", "科技数码": "科技数码", "美妆护理": "美妆护理", "食品饮料": "食品饮料", "自动化验收": "自动化验收",
+      "电商带货": "电商带货", "电商展示": "电商展示", "质感特写": "质感特写", "生活方式": "生活方式", UGC: "UGC", "开箱": "开箱", "奢品": "奢品", "使用演示": "使用演示", "爆款广告": "爆款广告", "对比转化": "对比转化", "包装展示": "包装展示", "家居空间": "家居空间", "工具户外": "工具户外", "旅行收纳": "旅行收纳", "服饰穿搭": "服饰穿搭", "社媒循环": "社媒循环", "科技数码": "科技数码", "美妆护理": "美妆护理", "食品饮料": "食品饮料", "自动化验收": "自动化验收",
     },
   },
   batches: {
@@ -232,6 +232,7 @@ const zh = {
     costSnapshot: "成本快照",
     view: "查看",
     listLabel: "批次列表",
+    columns: { batch: "批次", template: "模板", progress: "进度", status: "状态", updated: "更新时间", action: "操作" },
     back: "返回批次",
     monitorNav: "批次监控导航",
     newSubtitle: "锁定模板与素材分配，一次创建批次，并在统一监控页查看任务、分镜和失败原因。",
@@ -297,6 +298,7 @@ const zh = {
     regenerate: "重新生成",
     view: "查看成片",
     download: "下载成片",
+    downloadSubtitles: "下载字幕（SRT）",
     brandPackage: "品牌封装",
     brandPackaging: "封装中…",
     brandPackaged: "已封装",
@@ -378,10 +380,10 @@ const en: CopyShape<typeof zh> = {
   },
   templates: {
     kicker: "QUALITY TEMPLATE LIBRARY", title: "Template library", subtitle: "Every template freezes shot structure, evidence limits, and failure boundaries. Reduce variance first, then scale production.", recommended: "Use recommended template", preparing: "Templates are being prepared. Start with a single video.", start: "Start creating", filterLabel: "Filter templates", searchLabel: "Search templates", searchPlaceholder: "Search setting, industry, or camera style", all: "All", categoryLabel: "Template categories", empty: "No matching templates. Clear the filters to keep browsing.", clear: "Clear filters", listLabel: "Style templates", lockedCount: "{visible} / {total} quality-locked", sample: "Aivora generated sample", stable: "Stability first", balanced: "Creative balance", noHuman: "No people", controlledHuman: "Controlled interaction", useSingle: "Use for one", useBatch: "Use for batch",
-    categories: { "电商展示": "Ecommerce", "质感特写": "Material detail", "生活方式": "Lifestyle", UGC: "UGC", "开箱": "Unboxing", "奢品": "Luxury", "使用演示": "Use demo", "爆款广告": "Performance ads", "对比转化": "Before / after", "包装展示": "Packaging", "家居空间": "Home spaces", "工具户外": "Tools & outdoors", "旅行收纳": "Travel organization", "服饰穿搭": "Fashion styling", "社媒循环": "Social loop", "科技数码": "Consumer tech", "美妆护理": "Beauty care", "食品饮料": "Food & beverage", "自动化验收": "Automated acceptance" },
+    categories: { "电商带货": "Ecommerce selling", "电商展示": "Ecommerce", "质感特写": "Material detail", "生活方式": "Lifestyle", UGC: "UGC", "开箱": "Unboxing", "奢品": "Luxury", "使用演示": "Use demo", "爆款广告": "Performance ads", "对比转化": "Before / after", "包装展示": "Packaging", "家居空间": "Home spaces", "工具户外": "Tools & outdoors", "旅行收纳": "Travel organization", "服饰穿搭": "Fashion styling", "社媒循环": "Social loop", "科技数码": "Consumer tech", "美妆护理": "Beauty care", "食品饮料": "Food & beverage", "自动化验收": "Automated acceptance" },
   },
   batches: {
-    kicker: "BATCH PRODUCTION", title: "Batch production", subtitle: "Open one batch to inspect jobs, shots, and failure clusters. Status, template version, and cost stay on one production trace.", new: "New batch", empty: "No batches yet. Pick a style from the template library.", browse: "Browse templates", unnamed: "Untitled batch", completedTotal: "Completed / total", costSnapshot: "Cost snapshot", view: "View", listLabel: "Batch list", back: "Back to batches", monitorNav: "Batch monitor navigation", newSubtitle: "Lock the template and asset allocation, create once, then monitor jobs, shots, and failures in one place.", statuses: { EXPANDING: "Expanding", RUNNING: "Generating", PAUSED: "Paused", COMPLETED: "Completed", PARTIAL_FAILED: "Partially failed", FAILED: "Failed", CANCELLED: "Cancelled" },
+    kicker: "BATCH PRODUCTION", title: "Batch production", subtitle: "Open one batch to inspect jobs, shots, and failure clusters. Status, template version, and cost stay on one production trace.", new: "New batch", empty: "No batches yet. Pick a style from the template library.", browse: "Browse templates", unnamed: "Untitled batch", completedTotal: "Completed / total", costSnapshot: "Cost snapshot", view: "View", listLabel: "Batch list", columns: { batch: "Batch", template: "Template", progress: "Progress", status: "Status", updated: "Updated", action: "Action" }, back: "Back to batches", monitorNav: "Batch monitor navigation", newSubtitle: "Lock the template and asset allocation, create once, then monitor jobs, shots, and failures in one place.", statuses: { EXPANDING: "Expanding", RUNNING: "Generating", PAUSED: "Paused", COMPLETED: "Completed", PARTIAL_FAILED: "Partially failed", FAILED: "Failed", CANCELLED: "Cancelled" },
     monitor: {
       kicker: "BATCH MONITOR",
       batch: "Batch",
@@ -422,7 +424,7 @@ const en: CopyShape<typeof zh> = {
     },
   },
   racing: { kicker: "CAMPAIGN RACING", title: "Campaign racing", subtitle: "Compare variants across 12/24/48-hour windows and use evidence completeness—not instinct—to decide the next round.", empty: "No comparable campaign rounds yet. Generate a finished video to open three rounds of testing.", start: "Start the first creative round" },
-  library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video", download: "Download video", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete.", showcaseBadge: "Sample", showcaseHint: "SunnyShutter customer sample — view only." },
+  library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video", download: "Download video", downloadSubtitles: "Download captions (SRT)", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete.", showcaseBadge: "Sample", showcaseHint: "SunnyShutter customer sample — view only." },
 };
 
 export function getPlatformCopy(locale: Locale) {

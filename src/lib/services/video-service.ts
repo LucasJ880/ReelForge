@@ -20,6 +20,7 @@ import {
   type DirectorPlan,
   type SegmentPlan,
 } from "@/lib/schemas/director-plan";
+import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import {
   FRAME_QA_ERROR_PREFIX,
   runFrameTextQa,
@@ -389,6 +390,19 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
     throw new Error("Brief 尚未生成 DirectorPlan，无法分段生成");
   }
   const routeSnapshot = requiredVideoRouteSnapshot(brief);
+  const rawPostProduction =
+    brief.videoGenerationPlan &&
+    typeof brief.videoGenerationPlan === "object" &&
+    !Array.isArray(brief.videoGenerationPlan)
+      ? (brief.videoGenerationPlan as Record<string, unknown>).postProduction
+      : null;
+  const parsedPostProduction =
+    postProductionPlanSchema.safeParse(rawPostProduction);
+  const postProductionSnapshot = parsedPostProduction.success
+    ? parsedPostProduction.data
+    : null;
+  const generateAudio =
+    postProductionSnapshot?.audio.voiceover.enabled === true;
 
   let plan: DirectorPlan;
   try {
@@ -430,6 +444,10 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         status: FinalVideoStatus.PENDING,
         stitchedVideoUrl: null,
         thumbnailUrl: null,
+        postProduction: postProductionSnapshot
+          ? (postProductionSnapshot as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+        subtitleFileUrl: null,
         ffmpegError: null,
         stitchAttemptToken: null,
         startedAt: null,
@@ -444,6 +462,9 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         targetDurationSec: brief.targetDurationSec,
         segmentCount: plan.segmentPlan.length,
         status: FinalVideoStatus.PENDING,
+        postProduction: postProductionSnapshot
+          ? (postProductionSnapshot as Prisma.InputJsonValue)
+          : Prisma.DbNull,
       },
     });
     finalVideoId = finalVideo.id;
@@ -486,6 +507,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
       segment,
       segmentCount: plan.segmentPlan.length,
       referenceImageUrls,
+      generateAudio,
       routeSnapshot,
     });
     created.push(result);
@@ -503,6 +525,7 @@ async function submitSegmentJob(params: {
   segmentCount: number;
   /// 产品参考图（Omni-Reference 模式传给 Seedance 2.0，产品外观跨镜头一致）
   referenceImageUrls?: string[];
+  generateAudio?: boolean;
   routeSnapshot: VideoRouteSnapshot;
 }) {
   const {
@@ -512,6 +535,7 @@ async function submitSegmentJob(params: {
     segment,
     segmentCount,
     referenceImageUrls,
+    generateAudio,
     routeSnapshot,
   } = params;
   const logicalJobKey = `${briefId}:segment:${segment.segmentIndex}`;
@@ -560,6 +584,8 @@ async function submitSegmentJob(params: {
         durationSec: segment.durationSec,
         aspectRatio,
         model: routeSnapshot.videoModelSnapshot,
+        generateAudio: generateAudio ?? false,
+        negativePrompt: segment.negativePrompt || undefined,
         /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
         referenceImages: hasRefs
           ? referenceImageUrls?.map((url) => ({ url, role: "content" as const }))
@@ -1203,7 +1229,12 @@ export async function retryFailedVideoJob(jobId: string) {
   if (job.segmentIndex != null && job.finalVideoId) {
     const briefForRetry = await db.videoBrief.findUnique({
       where: { id: videoBriefId },
-      select: { aspectRatio: true, directorPlan: true, referenceImageUrls: true },
+      select: {
+        aspectRatio: true,
+        directorPlan: true,
+        referenceImageUrls: true,
+        videoGenerationPlan: true,
+      },
     });
     if (!briefForRetry?.directorPlan) {
       throw new Error("Brief 缺少 DirectorPlan，无法重试该段");
@@ -1225,6 +1256,16 @@ export async function retryFailedVideoJob(jobId: string) {
     /// 此前重试丢失这两项 → 重试段产品外观漂移、分辨率降档，成片段间质量不一致。
     const retryRefs = (briefForRetry.referenceImageUrls ?? []).slice(0, 8);
     const retryHasRefs = retryRefs.length > 0;
+    const retryGenerateAudio =
+      (
+        briefForRetry.videoGenerationPlan as
+          | {
+              postProduction?: {
+                audio?: { voiceover?: { enabled?: unknown } };
+              };
+            }
+          | null
+      )?.postProduction?.audio?.voiceover?.enabled === true;
 
     const { submittedAt, providerRequestKey } =
       await claimFailedJobForRetry(job);
@@ -1237,6 +1278,8 @@ export async function retryFailedVideoJob(jobId: string) {
           durationSec: segment.durationSec,
           aspectRatio: briefForRetry.aspectRatio,
           model: jobRouteSnapshot.videoModelSnapshot,
+          generateAudio: retryGenerateAudio,
+          negativePrompt: segment.negativePrompt || undefined,
           referenceImages: retryHasRefs
             ? retryRefs.map((url) => ({ url, role: "content" as const }))
             : undefined,
@@ -1274,6 +1317,7 @@ export async function retryFailedVideoJob(jobId: string) {
           status: FinalVideoStatus.PENDING,
           ffmpegError: null,
           stitchAttemptToken: null,
+          subtitleFileUrl: null,
         },
       });
       return updated;

@@ -73,7 +73,11 @@ export default async function PlatformLibraryPage({
                 <Link href={detailHref} className="block focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
                   <div className="relative aspect-video overflow-hidden bg-secondary">
                     {row.videoUrl ? (
-                      <HoverPreviewVideo src={row.videoUrl} poster={row.thumbnailUrl ?? undefined} />
+                      <HoverPreviewVideo
+                        src={row.videoUrl}
+                        poster={row.thumbnailUrl ?? undefined}
+                        ariaLabel={`${row.title} ${copy.view}`}
+                      />
                     ) : row.thumbnailUrl ? (
                       <Image src={row.thumbnailUrl} alt="" fill unoptimized sizes="(min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
                     ) : (

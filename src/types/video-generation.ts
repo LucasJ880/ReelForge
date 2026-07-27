@@ -41,6 +41,47 @@ export type AspectRatio = "9:16" | "16:9" | "1:1";
 
 export type BrandEndingMode = "auto_end_card" | "uploaded_clip" | "none";
 
+export type CaptionStyle = "word_by_word" | "karaoke" | "plain";
+export type CaptionPosition = "top" | "center" | "bottom";
+export type BgmTrackId = "none" | "wholesome";
+
+export interface VoiceoverSettings {
+  enabled: boolean;
+  /** Product-facing voice style identifier; Seedance receives it in the prompt. */
+  voiceId: string;
+  language: string;
+  /** Final user-editable wording spoken by Seedance; maximum 2,000 characters. */
+  script: string;
+}
+
+export interface AudioSettings {
+  voiceover?: VoiceoverSettings;
+  bgm?: {
+    trackId: BgmTrackId;
+    /** Mix gain in the inclusive range 0..0.35. */
+    volume: number;
+  };
+}
+
+export interface CaptionSettings {
+  enabled: boolean;
+  style: CaptionStyle;
+  language: string;
+  position: CaptionPosition;
+  exportSrt: boolean;
+}
+
+export interface PostProductionPlan {
+  audio: {
+    voiceover: VoiceoverSettings;
+    bgm: {
+      trackId: BgmTrackId;
+      volume: number;
+    };
+  };
+  captions: CaptionSettings;
+}
+
 // ---------- Uploaded asset model ----------
 
 /**
@@ -138,6 +179,10 @@ export interface UnifiedVideoGenerationRequest {
   styleTemplateId?: string | null;
   /// 一致性锁 ID 列表（可叠加追加 prompt 约束）
   consistencyLockIds?: string[] | null;
+  /// Seedance 原生口播与授权背景音乐；缺省时均关闭。
+  audio?: AudioSettings;
+  /// 后期确定性字幕；缺省时关闭。
+  captions?: CaptionSettings;
   /// Phase 1 不开放高级选项；保留字段
   advancedOptions?: Record<string, unknown> | null;
   /// 关联到已有 DeliveryOrder（continuation 场景）；缺省时 supervisor 会新建
@@ -174,8 +219,9 @@ export function toOwnedCreationRequest(
   request: UnifiedVideoGenerationRequest,
 ): OwnedUnifiedVideoGenerationRequest {
   const brandKit = request.brandKit
-    ? (({ logoUrl: _logoUrl, ...ownedFields }) => ownedFields)(request.brandKit)
+    ? { ...request.brandKit }
     : request.brandKit;
+  if (brandKit) delete brandKit.logoUrl;
   return {
     ...request,
     brandKit,
@@ -426,6 +472,8 @@ export interface VideoGenerationPlan {
   brandPackagingPlan: BrandPackagingPlan;
   clipPlacementPlan: ClipPlacementPlan;
   assemblyPlan: AssemblyPlan;
+  /** Normalized immutable settings used for provider and stitch dispatch. */
+  postProduction?: PostProductionPlan | null;
   qualityReview: QualityReview;
   planPreview: PlanPreview;
   /// supervisor 生成时间

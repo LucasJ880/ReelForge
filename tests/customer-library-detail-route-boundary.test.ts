@@ -12,3 +12,34 @@ test("video detail route exposes explicit loading and retryable error states", (
   assert.match(state, /libraryDetail/);
   assert.match(copy, /libraryDetail:/);
 });
+
+test("video detail renders the persisted making-process timeline", () => {
+  const page = readFileSync(
+    "src/app/(platform)/app/library/[id]/page.tsx",
+    "utf8",
+  );
+  const timeline = readFileSync(
+    "src/components/library/making-process-timeline.tsx",
+    "utf8",
+  );
+  assert.match(page, /MakingProcessTimeline/);
+  assert.match(page, /item\.makingProcess/);
+  assert.match(timeline, /post-production/);
+  assert.doesNotMatch(timeline, /Math\.random|setInterval/);
+});
+
+test("video detail exposes the deterministic SRT when post-production exported it", () => {
+  const page = readFileSync(
+    "src/app/(platform)/app/library/[id]/page.tsx",
+    "utf8",
+  );
+  const service = readFileSync(
+    "src/lib/services/unified-library-service.ts",
+    "utf8",
+  );
+  assert.match(service, /subtitleFileUrl:\s*true/);
+  assert.match(service, /subtitleFileUrl:\s*customerSafeFinalVideoUrl/);
+  assert.match(page, /item\.subtitleFileUrl/);
+  assert.match(page, /downloadSubtitles/);
+  assert.match(page, /\.srt/);
+});

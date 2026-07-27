@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { unifiedLibraryRowSchema } from "../src/lib/contracts/unified-library";
-import { toUnifiedLibraryRow } from "../src/lib/services/unified-library-service";
+import {
+  deriveMakingProcess,
+  filterCustomerLibraryRows,
+  toUnifiedLibraryRow,
+} from "../src/lib/services/unified-library-service";
 
 type MapperInput = Parameters<typeof toUnifiedLibraryRow>[0];
 
@@ -80,6 +84,28 @@ test("RF-029: taken-down assets are excluded by the shared mapper", () => {
   assert.equal(toUnifiedLibraryRow(fixture), null);
 });
 
+test("failed records without playable output are excluded from customer lists", () => {
+  const ready = toUnifiedLibraryRow(orderFixture());
+  assert.ok(ready);
+  const failedWithoutVideo = {
+    ...ready,
+    id: "dead",
+    status: "failed" as const,
+    videoUrl: null,
+  };
+  const failedWithVideo = {
+    ...failedWithoutVideo,
+    id: "kept",
+    videoUrl: "https://assets.example.com/recovered.mp4",
+  };
+  assert.deepEqual(
+    filterCustomerLibraryRows([failedWithoutVideo, failedWithVideo, ready]).map(
+      (row) => row.id,
+    ),
+    ["kept", ready.id],
+  );
+});
+
 test("RF-029: detail query is direct and owner-scoped, never the take-100 list", async () => {
   const source = await readFile(
     "src/lib/services/unified-library-service.ts",
@@ -92,4 +118,31 @@ test("RF-029: detail query is direct and owner-scoped, never the take-100 list",
   assert.match(detail, /productCategory:\s*"unified_input"/);
   assert.doesNotMatch(detail, /loadUnifiedLibrary\(/);
   assert.doesNotMatch(detail, /take:\s*100/);
+});
+
+test("library detail derives making-process steps only from persisted evidence", () => {
+  const steps = deriveMakingProcess({
+    orderCreatedAt: new Date("2026-07-20T10:00:00.000Z"),
+    briefCreatedAt: new Date("2026-07-20T10:01:00.000Z"),
+    briefStatus: "RENDER_SUCCEEDED",
+    storyboardStatus: "APPROVED",
+    storyboardCreatedAt: new Date("2026-07-20T10:02:00.000Z"),
+    storyboardApprovedAt: new Date("2026-07-20T10:04:00.000Z"),
+    videoJobs: [
+      {
+        status: "SUCCEEDED",
+        submittedAt: new Date("2026-07-20T10:05:00.000Z"),
+        finishedAt: new Date("2026-07-20T10:10:00.000Z"),
+      },
+    ],
+    finalVideoStatus: "READY",
+    finalVideoFinishedAt: new Date("2026-07-20T10:11:00.000Z"),
+    hasPlayableVideo: true,
+  });
+  assert.deepEqual(
+    steps.map((step) => step.key),
+    ["brief", "storyboard", "generation", "post-production"],
+  );
+  assert.ok(steps.every((step) => step.status === "completed"));
+  assert.equal(steps[1]?.summary, "storyboard_approved");
 });

@@ -14,6 +14,7 @@ const completeSchema = z.object({
   attemptToken: z.string().min(1).optional(),
   stitchedVideoUrl: z.string().url().optional().nullable(),
   thumbnailUrl: z.string().url().optional().nullable(),
+  subtitleFileUrl: z.string().url().optional().nullable(),
   error: z.string().optional().nullable(),
 });
 

@@ -57,7 +57,7 @@ function json(value: object): Prisma.InputJsonValue {
 
 /**
  * 幂等 seed：只创建缺失的 ACTIVE 模板，绝不 update 已存在 ACTIVE 行。
- * 同时归档「不在当前种子集合」的 ACTIVE 行（通用风格库已下线，仅保留 SunnyShutter）。
+ * 同时归档「不在当前种子集合」的 ACTIVE 行；客户专属差异由 lock profile 注入。
  */
 export async function seedBatchStyleTemplates(): Promise<number> {
   let created = 0;

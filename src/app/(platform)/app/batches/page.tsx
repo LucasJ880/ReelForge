@@ -4,7 +4,6 @@ import { redirect } from "next/navigation";
 import { ArrowRight, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
@@ -47,52 +46,58 @@ export default async function PlatformBatchesPage() {
           </Button>
         </section>
       ) : (
-        <ul className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2" aria-label={copy.listLabel}>
-          {batches.map((batch) => {
-            const queued = batch.queuedCount + batch.pausedCount;
-            const variant = batch.status === "FAILED" ? "destructive" : batch.status === "COMPLETED" ? "success" : batch.status === "PARTIAL_FAILED" || batch.status === "PAUSED" ? "warning" : "default";
-            return (
-              <li key={batch.id} className="min-w-0">
-                <article className="group min-w-0 h-full rounded-(--radius-lg) border border-border bg-card p-5 transition-colors hover:border-border-strong">
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="studio-label text-muted-foreground">{locale === "en-US" ? batch.template.name : batch.template.nameZh}</p>
-                      <h2 className="mt-2 truncate font-heading text-subhead font-semibold">{batch.productName || copy.unnamed}</h2>
-                    </div>
-                    <Badge variant={variant}>{copy.statuses[batch.status]}</Badge>
-                  </div>
-                  <BatchFilmStrip
-                    className="mt-6"
-                    locale={locale}
-                    counts={{
-                      completed: batch.completedCount,
-                      generating: batch.runningCount,
-                      queued,
-                      failed: batch.failedCount,
-                      cancelled: batch.cancelledCount,
-                    }}
-                  />
-                  <div className="mt-5 grid grid-cols-[1fr_1fr_auto] items-end gap-4">
-                    <div>
-                      <p className="studio-label text-muted-foreground">{copy.completedTotal}</p>
-                      <p className="mt-1 font-mono text-title font-semibold tabular-nums">{batch.completedCount}<span className="text-muted-foreground">/{batch.requestedCount}</span></p>
-                    </div>
-                    <div>
-                      <p className="studio-label text-muted-foreground">{copy.costSnapshot}</p>
-                      <p className="mt-1 font-mono text-title font-semibold tabular-nums">$—</p>
-                    </div>
-                    <Button render={<Link href={`/app/batches/${batch.id}`} />} variant="ghost" size="sm" aria-label={`${copy.view} ${batch.id}`}>
-                      {copy.view}<ArrowRight aria-hidden />
-                    </Button>
-                  </div>
-                  <p className="mt-4 break-all border-t border-border pt-3 font-mono text-meta text-muted-foreground">
-                    {batch.id} · {batch.createdAt.toLocaleString("en-CA", { hour12: false })}
-                  </p>
-                </article>
-              </li>
-            );
-          })}
-        </ul>
+        <div className="min-w-0 overflow-hidden rounded-(--radius-lg) border border-border bg-card">
+          <table className="block w-full table-fixed md:table" aria-label={copy.listLabel}>
+            <thead className="hidden border-b border-border bg-muted/35 md:table-header-group">
+              <tr>
+                <th className="w-[28%] px-4 py-3 text-left studio-label text-muted-foreground">{copy.columns.batch}</th>
+                <th className="w-[20%] px-4 py-3 text-left studio-label text-muted-foreground">{copy.columns.template}</th>
+                <th className="w-[20%] px-4 py-3 text-left studio-label text-muted-foreground">{copy.columns.progress}</th>
+                <th className="w-[13%] px-4 py-3 text-left studio-label text-muted-foreground">{copy.columns.status}</th>
+                <th className="w-[13%] px-4 py-3 text-left studio-label text-muted-foreground">{copy.columns.updated}</th>
+                <th className="w-[6%] px-4 py-3 text-right studio-label text-muted-foreground">{copy.columns.action}</th>
+              </tr>
+            </thead>
+            <tbody className="block divide-y divide-border md:table-row-group">
+              {batches.map((batch) => {
+                const variant = batch.status === "FAILED" ? "destructive" : batch.status === "COMPLETED" ? "success" : batch.status === "PARTIAL_FAILED" || batch.status === "PAUSED" ? "warning" : "default";
+                const percent = batch.requestedCount > 0
+                  ? Math.round((batch.completedCount / batch.requestedCount) * 100)
+                  : 0;
+                return (
+                  <tr key={batch.id} className="group block px-4 py-3 transition-colors hover:bg-muted/30 md:table-row md:px-0 md:py-0">
+                    <td data-label={copy.columns.batch} className="block min-w-0 py-2 before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
+                      <p className="truncate font-heading text-body font-semibold">{batch.productName || copy.unnamed}</p>
+                      <p className="mt-1 truncate font-mono text-meta text-muted-foreground">{batch.id}</p>
+                    </td>
+                    <td data-label={copy.columns.template} className="block min-w-0 py-2 text-body before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
+                      {locale === "en-US" ? batch.template.name : batch.template.nameZh}
+                    </td>
+                    <td data-label={copy.columns.progress} className="block py-2 before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
+                      <div className="inline-flex min-w-40 items-center gap-3 align-middle">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+                        </div>
+                        <span className="font-mono text-meta tabular-nums">{batch.completedCount}/{batch.requestedCount}</span>
+                      </div>
+                    </td>
+                    <td data-label={copy.columns.status} className="block py-2 before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
+                      <Badge variant={variant}>{copy.statuses[batch.status]}</Badge>
+                    </td>
+                    <td data-label={copy.columns.updated} className="block py-2 font-mono text-meta text-muted-foreground before:mr-3 before:font-sans before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
+                      {batch.updatedAt.toLocaleString(locale === "en-US" ? "en-CA" : "zh-CN", { dateStyle: "short", timeStyle: "short", hour12: false })}
+                    </td>
+                    <td data-label={copy.columns.action} className="block py-2 text-right before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
+                      <Button render={<Link href={`/app/batches/${batch.id}`} />} variant="ghost" size="icon-sm" aria-label={`${copy.view} ${batch.id}`}>
+                        <ArrowRight aria-hidden />
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

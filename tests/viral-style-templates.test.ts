@@ -14,6 +14,7 @@ import {
   STYLE_TEMPLATE_CATEGORIES,
   getStyleTemplate,
   recommendStyleTemplate,
+  resolveStyleTemplate,
 } from "../src/lib/video-generation/style-templates";
 import { buildPlan } from "../src/lib/video-generation/generation-supervisor";
 import type {
@@ -38,6 +39,21 @@ test("[viral-templates] 模版库 id 全局唯一且 getStyleTemplate 可取回"
   for (const t of STYLE_TEMPLATES) {
     assert.equal(getStyleTemplate(t.id)?.name, t.name);
   }
+});
+
+test("[viral-templates] canonical commerce slugs adapt to proven style scaffolds", () => {
+  assert.equal(
+    resolveStyleTemplate("commerce-ugc-testimonial", "")?.id,
+    "tpl_ugc_talking",
+  );
+  assert.equal(
+    resolveStyleTemplate("commerce-problem-solution", "")?.id,
+    "tpl_viral_pain_solution",
+  );
+  assert.equal(
+    resolveStyleTemplate("commerce-aesthetic-mood", "")?.id,
+    "tpl_viral_sensory_texture",
+  );
 });
 
 test("[viral-templates] 稀疏世界杯提示自动选择低自由度赛事模板", () => {

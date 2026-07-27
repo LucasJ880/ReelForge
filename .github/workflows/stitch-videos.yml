@@ -44,10 +44,10 @@ jobs:
           sudo apt-get install -y --no-install-recommends ffmpeg
           ffmpeg -version | head -n 1
 
-      - name: Setup Node 20
+      - name: Setup Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install minimal deps
         # 只装 runner 需要的 @vercel/blob + tsx，跳过 postinstall (prisma generate) /

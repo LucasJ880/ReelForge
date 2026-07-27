@@ -14,7 +14,7 @@ import {
 } from "../src/lib/video-generation/sunnyshutter-commerce-template";
 import { findUnsafeShutterPromptViolations } from "../src/lib/video-generation/shutter-shot-policy";
 
-test("SunnyShutter commerce family: CEO style lanes + unique slugs wired into BATCH seeds", () => {
+test("SunnyShutter commerce family remains a client profile, not a parallel customer catalog", () => {
   assert.ok(SUNNYSHUTTER_COMMERCE_PLOT_VARIANTS.length >= 10);
   assert.equal(
     SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.length,
@@ -33,10 +33,7 @@ test("SunnyShutter commerce family: CEO style lanes + unique slugs wired into BA
   assert.ok(lanes.has("product_hero_proof"));
 
   for (const seed of SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS) {
-    assert.ok(
-      BATCH_STYLE_TEMPLATE_SEEDS.some((row) => row.slug === seed.slug),
-      `${seed.slug} missing from BATCH_STYLE_TEMPLATE_SEEDS`,
-    );
+    assert.equal(BATCH_STYLE_TEMPLATE_SEEDS.some((row) => row.slug === seed.slug), false);
     assert.equal(seed.category, "SunnyShutter电商");
     assert.equal(seed.lockedParams.duration, 15);
     assert.equal(seed.lockedParams.aspectRatio, "9:16");

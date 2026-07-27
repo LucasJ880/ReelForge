@@ -196,4 +196,14 @@ export function renderSafeShutterPrompt(
   return prompt;
 }
 
+/**
+ * Client-profile adapter retained as the migration seam for generic commerce
+ * templates. Delegation deliberately preserves the legacy prompt byte-for-byte.
+ */
+export function renderSafeShutterPromptAdapter(
+  args: RenderSafeShutterPromptArgs,
+): string {
+  return renderSafeShutterPrompt(args);
+}
+
 export const __test__ = { UNSAFE_PATTERNS, MOTION_BEAT_HINTS };

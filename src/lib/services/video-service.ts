@@ -20,6 +20,7 @@ import {
   type DirectorPlan,
   type SegmentPlan,
 } from "@/lib/schemas/director-plan";
+import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import {
   FRAME_QA_ERROR_PREFIX,
   runFrameTextQa,
@@ -389,16 +390,19 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
     throw new Error("Brief 尚未生成 DirectorPlan，无法分段生成");
   }
   const routeSnapshot = requiredVideoRouteSnapshot(brief);
+  const rawPostProduction =
+    brief.videoGenerationPlan &&
+    typeof brief.videoGenerationPlan === "object" &&
+    !Array.isArray(brief.videoGenerationPlan)
+      ? (brief.videoGenerationPlan as Record<string, unknown>).postProduction
+      : null;
+  const parsedPostProduction =
+    postProductionPlanSchema.safeParse(rawPostProduction);
+  const postProductionSnapshot = parsedPostProduction.success
+    ? parsedPostProduction.data
+    : null;
   const generateAudio =
-    (
-      brief.videoGenerationPlan as
-        | {
-            postProduction?: {
-              audio?: { voiceover?: { enabled?: unknown } };
-            };
-          }
-        | null
-    )?.postProduction?.audio?.voiceover?.enabled === true;
+    postProductionSnapshot?.audio.voiceover.enabled === true;
 
   let plan: DirectorPlan;
   try {
@@ -440,6 +444,10 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         status: FinalVideoStatus.PENDING,
         stitchedVideoUrl: null,
         thumbnailUrl: null,
+        postProduction: postProductionSnapshot
+          ? (postProductionSnapshot as Prisma.InputJsonValue)
+          : Prisma.DbNull,
+        subtitleFileUrl: null,
         ffmpegError: null,
         stitchAttemptToken: null,
         startedAt: null,
@@ -454,6 +462,9 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         targetDurationSec: brief.targetDurationSec,
         segmentCount: plan.segmentPlan.length,
         status: FinalVideoStatus.PENDING,
+        postProduction: postProductionSnapshot
+          ? (postProductionSnapshot as Prisma.InputJsonValue)
+          : Prisma.DbNull,
       },
     });
     finalVideoId = finalVideo.id;
@@ -1306,6 +1317,7 @@ export async function retryFailedVideoJob(jobId: string) {
           status: FinalVideoStatus.PENDING,
           ffmpegError: null,
           stitchAttemptToken: null,
+          subtitleFileUrl: null,
         },
       });
       return updated;

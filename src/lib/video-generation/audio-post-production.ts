@@ -1,8 +1,6 @@
-import type {
-  AspectRatio,
-  CaptionPosition,
-  CaptionStyle,
-} from "@/types/video-generation";
+type AspectRatio = "9:16" | "16:9" | "1:1";
+type CaptionPosition = "top" | "center" | "bottom";
+type CaptionStyle = "word_by_word" | "karaoke" | "plain";
 
 export type CaptionCue = {
   index: number;

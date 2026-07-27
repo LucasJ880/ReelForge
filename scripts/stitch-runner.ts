@@ -8,9 +8,9 @@
  *   1. GET  $APP_URL/api/internal/stitch/claim   → { task: {finalVideoId, attemptToken, segmentUrls[], aspectRatio, ...} | null }
  *   2. 下载所有段 mp4 到 tmp 目录
  *   3. 用本地 ffmpeg（GH Action runner 自带）转码 + concat 成最终 mp4
- *   4. 从成片抽取 JPEG 预览帧，并将 mp4 + jpg 上传到 Vercel Blob
+ *   4. 按持久化快照生成字幕/混音，再抽取 JPEG 预览帧并上传成片与可选 SRT
  *   5. POST $APP_URL/api/internal/stitch/complete
- *      { finalVideoId, attemptToken, stitchedVideoUrl, thumbnailUrl }
+ *      { finalVideoId, attemptToken, stitchedVideoUrl, thumbnailUrl, subtitleFileUrl? }
  *   6. 任何步骤失败 → POST complete 写 error，不抛错（让循环继续处理下一个）
  *
  * Env 要求：
@@ -18,8 +18,7 @@
  *   CRON_SECRET             — 与 Vercel 环境一致
  *   BLOB_READ_WRITE_TOKEN   — Vercel Blob R/W token
  *
- * 注意：不要在脚本里 import 任何 src/ 路径，否则需要把整个 Next/Prisma 拽到 runner，
- * 部署成本会爆炸。
+ * 注意：只允许 import 零运行时依赖的纯函数模块；不要引入 Next / Prisma。
  */
 
 import { execFile } from "node:child_process";
@@ -27,6 +26,13 @@ import { promisify } from "node:util";
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import {
+  BGM_TRACKS,
+  buildAudioFilterPlan,
+  buildDeterministicCues,
+  renderAssCaptions,
+  renderSrtCaptions,
+} from "../src/lib/video-generation/audio-post-production";
 
 const execFileAsync = promisify(execFile);
 
@@ -55,6 +61,29 @@ interface StitchTask {
   segmentUrls: string[];
   aspectRatio: string;
   targetDurationSec: number;
+  postProduction: PostProductionSnapshot | null;
+}
+
+interface PostProductionSnapshot {
+  audio: {
+    voiceover: {
+      enabled: boolean;
+      voiceId: string;
+      language: string;
+      script: string;
+    };
+    bgm: {
+      trackId: "none" | "wholesome";
+      volume: number;
+    };
+  };
+  captions: {
+    enabled: boolean;
+    style: "word_by_word" | "karaoke" | "plain";
+    language: string;
+    position: "top" | "center" | "bottom";
+    exportSrt: boolean;
+  };
 }
 
 async function main() {
@@ -78,7 +107,11 @@ async function main() {
       `[stitch-runner] claimed task finalVideoId=${task.finalVideoId} segments=${task.segmentUrls.length}`,
     );
 
-    let output: { stitchedVideoUrl: string; thumbnailUrl: string };
+    let output: {
+      stitchedVideoUrl: string;
+      thumbnailUrl: string;
+      subtitleFileUrl?: string;
+    };
     try {
       output = await stitchOne(task);
     } catch (err) {
@@ -114,6 +147,7 @@ async function main() {
         attemptToken: task.attemptToken,
         stitchedVideoUrl: output.stitchedVideoUrl,
         thumbnailUrl: output.thumbnailUrl,
+        subtitleFileUrl: output.subtitleFileUrl,
       });
       console.log(
         `[stitch-runner] ✓ finalVideoId=${task.finalVideoId} mediaUploaded=true`,
@@ -160,6 +194,7 @@ async function complete(args: {
   attemptToken: string;
   stitchedVideoUrl?: string;
   thumbnailUrl?: string;
+  subtitleFileUrl?: string;
   error?: string;
 }) {
   const res = await fetch(`${APP_URL}/api/internal/stitch/complete`, {
@@ -187,6 +222,7 @@ async function complete(args: {
 async function stitchOne(task: StitchTask): Promise<{
   stitchedVideoUrl: string;
   thumbnailUrl: string;
+  subtitleFileUrl?: string;
 }> {
   const tmpDir = path.join(
     os.tmpdir(),
@@ -255,20 +291,176 @@ async function stitchOne(task: StitchTask): Promise<{
       "stitch_concat_failed",
     );
 
+    const postProduced = await applyPostProduction({
+      task,
+      inputPath: finalOut,
+      tmpDir,
+    });
     const timestamp = Date.now();
     const thumbnailOut = path.join(tmpDir, "thumbnail.jpg");
-    await extractThumbnail(finalOut, thumbnailOut, task.targetDurationSec);
+    await extractThumbnail(
+      postProduced.videoPath,
+      thumbnailOut,
+      task.targetDurationSec,
+    );
 
     const videoBlobPath = `final-videos/${task.finalVideoId}/${timestamp}.mp4`;
     const thumbnailBlobPath = `final-videos/${task.finalVideoId}/${timestamp}.jpg`;
-    const [stitchedVideoUrl, thumbnailUrl] = await Promise.all([
-      uploadToBlob(finalOut, videoBlobPath, "video/mp4"),
+    const [stitchedVideoUrl, thumbnailUrl, subtitleFileUrl] = await Promise.all([
+      uploadToBlob(postProduced.videoPath, videoBlobPath, "video/mp4"),
       uploadToBlob(thumbnailOut, thumbnailBlobPath, "image/jpeg"),
+      postProduced.srtPath
+        ? uploadToBlob(
+            postProduced.srtPath,
+            `final-videos/${task.finalVideoId}/${timestamp}.srt`,
+            "text/plain",
+          )
+        : Promise.resolve(undefined),
     ]);
-    return { stitchedVideoUrl, thumbnailUrl };
+    return { stitchedVideoUrl, thumbnailUrl, subtitleFileUrl };
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
+}
+
+async function probeDuration(videoPath: string): Promise<number> {
+  try {
+    const { stdout } = await execFileAsync("ffprobe", [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      videoPath,
+    ]);
+    const duration = Number(stdout.trim());
+    if (!Number.isFinite(duration) || duration <= 0) {
+      throw new Error("invalid duration");
+    }
+    return duration;
+  } catch {
+    throw new StitchRunnerError("duration_probe_failed");
+  }
+}
+
+function escapeFfmpegFilterPath(value: string): string {
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll(":", "\\:")
+    .replaceAll("'", "\\'");
+}
+
+/**
+ * Applies the same deterministic planner used by local assembly. Native speech
+ * is retained while sidechaincompress ducks the licensed music bed beneath it.
+ */
+async function applyPostProduction(args: {
+  task: StitchTask;
+  inputPath: string;
+  tmpDir: string;
+}): Promise<{ videoPath: string; srtPath?: string }> {
+  const snapshot = args.task.postProduction;
+  if (!snapshot) return { videoPath: args.inputPath };
+  const script = snapshot.audio.voiceover.script.trim();
+  const captionsEnabled = snapshot.captions.enabled && Boolean(script);
+  const bgm = BGM_TRACKS.find(
+    (track) => track.id === snapshot.audio.bgm.trackId,
+  );
+  if (!bgm) throw new StitchRunnerError("post_production_bgm_unknown");
+  const bgmEnabled =
+    bgm.path !== null && snapshot.audio.bgm.volume > 0;
+  if (
+    !captionsEnabled &&
+    !bgmEnabled &&
+    !snapshot.audio.voiceover.enabled
+  ) {
+    return { videoPath: args.inputPath };
+  }
+
+  const actualDurationSec = await probeDuration(args.inputPath);
+  let assPath: string | undefined;
+  let srtPath: string | undefined;
+  if (captionsEnabled) {
+    const cues = buildDeterministicCues(script, actualDurationSec);
+    assPath = path.join(args.tmpDir, "captions.ass");
+    await writeFile(
+      assPath,
+      renderAssCaptions(cues, {
+        aspectRatio:
+          args.task.aspectRatio === "16:9" || args.task.aspectRatio === "1:1"
+            ? args.task.aspectRatio
+            : "9:16",
+        position: snapshot.captions.position,
+        style: snapshot.captions.style,
+      }),
+      "utf8",
+    );
+    if (snapshot.captions.exportSrt) {
+      srtPath = path.join(args.tmpDir, "captions.srt");
+      await writeFile(srtPath, renderSrtCaptions(cues), "utf8");
+    }
+  }
+
+  const audioPlan = buildAudioFilterPlan({
+    bgmVolume: bgmEnabled ? snapshot.audio.bgm.volume : 0,
+    hasNativeAudio: snapshot.audio.voiceover.enabled,
+    durationSec: actualDurationSec,
+  });
+  const outputPath = path.join(args.tmpDir, "post-produced.mp4");
+  const ffmpegArgs = ["-y", "-i", args.inputPath];
+  if (bgmEnabled && bgm.path) {
+    ffmpegArgs.push(
+      ...audioPlan.bgmInputArgs,
+      "-i",
+      path.resolve(process.cwd(), bgm.path),
+    );
+  }
+
+  const filterParts: string[] = [];
+  if (assPath) {
+    filterParts.push(
+      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'[vout]`,
+    );
+  }
+  if (audioPlan.filterComplex) {
+    filterParts.push(audioPlan.filterComplex);
+  }
+  if (filterParts.length > 0) {
+    ffmpegArgs.push("-filter_complex", filterParts.join(";"));
+  }
+  ffmpegArgs.push("-map", assPath ? "[vout]" : "0:v:0");
+  if (audioPlan.outputLabel) {
+    ffmpegArgs.push("-map", audioPlan.outputLabel);
+  } else {
+    ffmpegArgs.push("-map", "0:a?");
+  }
+  if (assPath) {
+    ffmpegArgs.push(
+      "-c:v",
+      "libx264",
+      "-crf",
+      "18",
+      "-preset",
+      "medium",
+      "-pix_fmt",
+      "yuv420p",
+    );
+  } else {
+    ffmpegArgs.push("-c:v", "copy");
+  }
+  if (audioPlan.outputLabel) {
+    ffmpegArgs.push("-c:a", "aac", "-b:a", "192k");
+  } else {
+    ffmpegArgs.push("-c:a", "copy");
+  }
+  ffmpegArgs.push("-movflags", "+faststart", "-shortest", outputPath);
+  await runFfmpeg(
+    "ffmpeg",
+    ffmpegArgs,
+    "post_production_failed",
+  );
+  return { videoPath: outputPath, srtPath };
 }
 
 async function downloadToFile(url: string, dest: string) {
@@ -283,7 +475,7 @@ async function downloadToFile(url: string, dest: string) {
 async function uploadToBlob(
   filePath: string,
   blobPath: string,
-  contentType: "video/mp4" | "image/jpeg",
+  contentType: "video/mp4" | "image/jpeg" | "text/plain",
 ): Promise<string> {
   /// 动态 import 避免 stitch-runner.ts 在 type check 时强依赖 @vercel/blob
   /// （CI runner 通过 npx -y @vercel/blob 或 npm i 临时装即可）
@@ -300,6 +492,8 @@ async function uploadToBlob(
     throw new StitchRunnerError(
       contentType === "image/jpeg"
         ? "thumbnail_upload_failed"
+        : contentType === "text/plain"
+          ? "subtitle_upload_failed"
         : "stitched_video_upload_failed",
     );
   }

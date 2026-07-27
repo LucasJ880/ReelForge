@@ -49,8 +49,8 @@ model AdminUser {
   productImageJobs      ProductImageJob[]
   videoDispatchRequests VideoDispatchRequest[]
   mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
-  storyboardRuns        StoryboardRun[]         @relation("StoryboardRunOwner")
-  approvedStoryboards   StoryboardRun[]         @relation("StoryboardRunApprover")
+  storyboardRuns        StoryboardRun[]        @relation("StoryboardRunOwner")
+  approvedStoryboards   StoryboardRun[]        @relation("StoryboardRunApprover")
 }
 
 model PlanEntitlement {
@@ -79,7 +79,7 @@ model Workspace {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
-  mediaAssets MediaAsset[] @relation("MediaAssetWorkspace")
+  mediaAssets   MediaAsset[]            @relation("MediaAssetWorkspace")
   brandPackages WorkspaceBrandPackage[]
 
   @@index([planId])
@@ -99,10 +99,10 @@ model MediaAsset {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user      AdminUser  @relation("MediaAssetOwner", fields: [userId], references: [id], onDelete: Cascade)
-  workspace Workspace? @relation("MediaAssetWorkspace", fields: [workspaceId], references: [id], onDelete: SetNull)
-  productImageOutput     ProductImageJob?    @relation("ProductImageOutputAsset")
-  productImageSourceJobs ProductImageJob[]   @relation("ProductImageSourceAsset")
+  user                   AdminUser               @relation("MediaAssetOwner", fields: [userId], references: [id], onDelete: Cascade)
+  workspace              Workspace?              @relation("MediaAssetWorkspace", fields: [workspaceId], references: [id], onDelete: SetNull)
+  productImageOutput     ProductImageJob?        @relation("ProductImageOutputAsset")
+  productImageSourceJobs ProductImageJob[]       @relation("ProductImageSourceAsset")
   productImageResults    ProductImageResult[]
   storyboardFrames       StoryboardFrame[]
   brandPackageLogos      WorkspaceBrandPackage[] @relation("WorkspaceBrandPackageLogo")
@@ -115,25 +115,25 @@ model MediaAsset {
 /// Reusable, tenant-owned post-production package. Selection is always per
 /// video; `isDefault` only controls which package is suggested in the UI.
 model WorkspaceBrandPackage {
-  id              String   @id @default(cuid())
+  id              String      @id @default(cuid())
   workspaceId     String
-  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  workspace       Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   name            String
   brandName       String
   slogan          String?
   cta             String?
-  contactLines    String[] @default([])
+  contactLines    String[]    @default([])
   website         String?
   clientProfileId String?
   logoAssetId     String
-  logoAsset       MediaAsset @relation("WorkspaceBrandPackageLogo", fields: [logoAssetId], references: [id], onDelete: Restrict)
+  logoAsset       MediaAsset  @relation("WorkspaceBrandPackageLogo", fields: [logoAssetId], references: [id], onDelete: Restrict)
   endCardAssetId  String?
   endCardAsset    MediaAsset? @relation("WorkspaceBrandPackageEndCard", fields: [endCardAssetId], references: [id], onDelete: SetNull)
-  isGlobal        Boolean @default(false)
-  isDefault       Boolean @default(false)
-  isActive        Boolean @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isGlobal        Boolean     @default(false)
+  isDefault       Boolean     @default(false)
+  isActive        Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
   @@unique([workspaceId, name])
   @@index([workspaceId, isActive, createdAt(sort: Desc)])
@@ -627,7 +627,7 @@ model VideoBrief {
   videoProviderAdapterSnapshot String?
 
   /// I2V 参考图（Vercel Blob URL）；支持 1-5 张
-  referenceImageUrls String[] @default([])
+  referenceImageUrls String[]  @default([])
   /// 最终送审/发布的成片 URL（兼容旧 Sunny Shutter：单段 brief 这里就是 finalVideo URL）
   finalVideoUrl      String?
   /// 品牌封装成片（logo 角标 + 尾卡）。null = 尚未封装。
@@ -875,43 +875,43 @@ enum BatchJobStatus {
 }
 
 model BatchJob {
-  id                         String         @id @default(cuid())
-  userId                     String
-  user                       AdminUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  templateId                 String
-  template                   StyleTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  templateVersion            Int
-  imageIds                   String[]
-  imageUrls                  String[]
-  productName                String?
-  requestedCount             Int
-  idempotencyKey             String
+  id                           String         @id @default(cuid())
+  userId                       String
+  user                         AdminUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  templateId                   String
+  template                     StyleTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  templateVersion              Int
+  imageIds                     String[]
+  imageUrls                    String[]
+  productName                  String?
+  requestedCount               Int
+  idempotencyKey               String
   /// Canonical customer request hash. Same key + different payload is a conflict.
-  requestHash                String?
+  requestHash                  String?
   /// Dispatch remains fail-closed until quota authorization and Batch activation
   /// commit atomically. Existing rows are backfilled during the expand migration.
-  quotaConsumedAt            DateTime?
+  quotaConsumedAt              DateTime?
   /// Immutable routing evidence for this batch. Historical rows remain null;
   /// readers must preserve unknown rather than borrowing a runtime default.
   videoRouteSnapshot           String?
   videoModelSnapshot           String?
   videoProviderAdapterSnapshot String?
-  status                     BatchJobStatus @default(EXPANDING)
-  queuedCount                Int            @default(0)
-  pausedCount                Int            @default(0)
-  runningCount               Int            @default(0)
-  completedCount             Int            @default(0)
-  failedCount                Int            @default(0)
-  cancelledCount             Int            @default(0)
-  statusReason               String?
-  breakerPausedAt            DateTime?
+  status                       BatchJobStatus @default(EXPANDING)
+  queuedCount                  Int            @default(0)
+  pausedCount                  Int            @default(0)
+  runningCount                 Int            @default(0)
+  completedCount               Int            @default(0)
+  failedCount                  Int            @default(0)
+  cancelledCount               Int            @default(0)
+  statusReason                 String?
+  breakerPausedAt              DateTime?
   /// GATE 0 历史任务隔离栏人工决策：仅允许 RELEASED / EXPIRED；null 表示未处置。
-  dispatchQuarantineDecision String?
-  dispatchQuarantineAt       DateTime?
-  dispatchQuarantineBy       String?
-  finishedAt                 DateTime?
-  createdAt                  DateTime       @default(now())
-  updatedAt                  DateTime       @updatedAt
+  dispatchQuarantineDecision   String?
+  dispatchQuarantineAt         DateTime?
+  dispatchQuarantineBy         String?
+  finishedAt                   DateTime?
+  createdAt                    DateTime       @default(now())
+  updatedAt                    DateTime       @updatedAt
 
   videoJobs VideoJob[]
 
@@ -923,36 +923,36 @@ model BatchJob {
 }
 
 model VideoJob {
-  id                   String                  @id @default(cuid())
-  videoBriefId         String?
-  videoBrief           VideoBrief?             @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
-  batchJobId           String?
-  batchJob             BatchJob?               @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
-  batchIndex           Int?
-  batchItemKey         String?                 @unique
-  assignedAssets       Json?
-  templateSnapshot     Json?
-  promptText           String?
-  negativePrompt       String?
-  seed                 Int?
-  submitAttempts       Int                     @default(0)
+  id                           String                  @id @default(cuid())
+  videoBriefId                 String?
+  videoBrief                   VideoBrief?             @relation(fields: [videoBriefId], references: [id], onDelete: Cascade)
+  batchJobId                   String?
+  batchJob                     BatchJob?               @relation(fields: [batchJobId], references: [id], onDelete: Cascade)
+  batchIndex                   Int?
+  batchItemKey                 String?                 @unique
+  assignedAssets               Json?
+  templateSnapshot             Json?
+  promptText                   String?
+  negativePrompt               String?
+  seed                         Int?
+  submitAttempts               Int                     @default(0)
   /// Stable logical slot and per-attempt request key. Provider adapters must
   /// not claim idempotency support until their contract has been verified.
-  logicalJobKey        String?                 @unique
-  providerRequestKey   String?                 @unique
-  submissionState      ProviderSubmissionState @default(NOT_STARTED)
-  submissionErrorClass String?
+  logicalJobKey                String?                 @unique
+  providerRequestKey           String?                 @unique
+  submissionState              ProviderSubmissionState @default(NOT_STARTED)
+  submissionErrorClass         String?
   /// Price snapshot at submission time. Null means pricing is not confirmed.
-  providerUnitPriceUsd Decimal?                @db.Decimal(12, 6)
+  providerUnitPriceUsd         Decimal?                @db.Decimal(12, 6)
   /// Immutable route/model/adapter evidence for this provider attempt.
   /// Historical rows remain null and are not safe to infer from `provider`.
   videoRouteSnapshot           String?
   videoModelSnapshot           String?
   videoProviderAdapterSnapshot String?
-  availableAt          DateTime?
-  leaseOwner           String?
-  leaseExpiresAt       DateTime?
-  heartbeatAt          DateTime?
+  availableAt                  DateTime?
+  leaseOwner                   String?
+  leaseExpiresAt               DateTime?
+  heartbeatAt                  DateTime?
 
   provider      VideoProvider
   externalJobId String?
@@ -963,16 +963,16 @@ model VideoJob {
   dispatchQuarantineAt       DateTime?
   dispatchQuarantineBy       String?
 
-  outputVideoUrl String?
-  outputThumbUrl String?
+  outputVideoUrl  String?
+  outputThumbUrl  String?
   /// 品牌封装成片（logo 角标 + 尾卡）。null = 尚未封装，只有 branded 可对外交付。
   brandedVideoUrl String?
   brandedAt       DateTime?
   /// 内部/管理员错误（包含原始 Provider 错误，仅 debug 区可见）
-  errorMessage   String?
+  errorMessage    String?
   /// 用户安全的错误描述（已脱敏的中文友好提示，可直接展示给客户）
-  userSafeError  String?
-  retryCount     Int     @default(0)
+  userSafeError   String?
+  retryCount      Int       @default(0)
 
   /// 我们调用 Provider 提交时间
   submittedAt        DateTime?
@@ -997,7 +997,7 @@ model VideoJob {
   segmentDurationSec Int?
   /// 多段流程下指向同一 FinalVideo 的所有段
   finalVideoId       String?
-  finalVideo         FinalVideo? @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
+  finalVideo         FinalVideo?    @relation(fields: [finalVideoId], references: [id], onDelete: SetNull)
   storyboardRun      StoryboardRun?
 
   createdAt DateTime @default(now())
@@ -1016,23 +1016,23 @@ model VideoJob {
 /// A PROCESSING row is deliberately sticky after an acknowledgement gap: a
 /// replay returns reconciliation-required instead of consuming quota twice.
 model VideoDispatchRequest {
-  id              String                    @id @default(cuid())
-  userId          String
-  user            AdminUser                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  idempotencyKey  String
-  requestHash     String
-  state           VideoDispatchRequestState @default(PROCESSING)
-  responseStatus  Int?
-  responseBody    Json?
-  quotaConsumedAt DateTime?
+  id                           String                    @id @default(cuid())
+  userId                       String
+  user                         AdminUser                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  idempotencyKey               String
+  requestHash                  String
+  state                        VideoDispatchRequestState @default(PROCESSING)
+  responseStatus               Int?
+  responseBody                 Json?
+  quotaConsumedAt              DateTime?
   /// Immutable route/model/adapter evidence chosen for this idempotent request.
   /// Historical rows remain null; retries must not silently adopt a new route.
   videoRouteSnapshot           String?
   videoModelSnapshot           String?
   videoProviderAdapterSnapshot String?
-  completedAt     DateTime?
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime                  @updatedAt
+  completedAt                  DateTime?
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
 
   @@unique([userId, idempotencyKey])
   @@index([state, createdAt])
@@ -1061,12 +1061,16 @@ model FinalVideo {
   targetDurationSec Int
   segmentCount      Int
 
-  status           FinalVideoStatus @default(PENDING)
-  stitchedVideoUrl String?
-  thumbnailUrl     String?
-  ffmpegError      String?
+  status             FinalVideoStatus @default(PENDING)
+  stitchedVideoUrl   String?
+  thumbnailUrl       String?
+  /// Immutable normalized voice/caption/BGM settings captured before dispatch.
+  postProduction     Json?
+  /// Optional downloadable captions generated from the final approved script.
+  subtitleFileUrl    String?
+  ffmpegError        String?
   /// 累计 ffmpeg 失败次数（>= 3 时停止自动重试）
-  stitchAttempts   Int              @default(0)
+  stitchAttempts     Int              @default(0)
   /// 外部 runner 每次成功 claim 时换新的所有权令牌。
   /// complete/fail 回调必须同时匹配 id + STITCHING + token，防止迟到回调覆盖新 attempt。
   stitchAttemptToken String?
@@ -1144,27 +1148,27 @@ model ProductImageJob {
   sourceImageUrl String?
   sourceMimeType String?
   sourceAssetId  String?
-  sourceAsset    MediaAsset? @relation("ProductImageSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
+  sourceAsset    MediaAsset?                @relation("ProductImageSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
   outputImageUrl String?
-  outputAssetId  String?     @unique
-  outputAsset    MediaAsset? @relation("ProductImageOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
+  outputAssetId  String?                    @unique
+  outputAsset    MediaAsset?                @relation("ProductImageOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)
   outputs        ProductImageResult[]
   providerTasks  ProductImageProviderTask[]
 
   provider           String?
-  providerRequestKey String? @unique
-  externalTaskId     String? @unique
+  providerRequestKey String?   @unique
+  externalTaskId     String?   @unique
   planId             String?
   modelSnapshot      String?
   resolutionSnapshot String?
   pointsSnapshot     Int?
   finalPoints        Int?
-  resultCount        Int     @default(1)
+  resultCount        Int       @default(1)
   lastProviderStatus String?
   lastCheckedAt      DateTime?
-  pollErrors         Int     @default(0)
-  fromMock       Boolean @default(false)
-  retryCount     Int     @default(0)
+  pollErrors         Int       @default(0)
+  fromMock           Boolean   @default(false)
+  retryCount         Int       @default(0)
 
   errorCode    String?
   errorMessage String?
@@ -1215,7 +1219,7 @@ model ProductImageProviderTask {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  result ProductImageResult?
+  result   ProductImageResult?
   attempts ProductImageProviderAttempt[]
 
   @@unique([productImageJobId, ordinal])
@@ -1228,31 +1232,31 @@ model ProductImageProviderTask {
 /// summary, but request/external identities from earlier paid attempts remain
 /// available for billing and provider reconciliation.
 model ProductImageProviderAttempt {
-  id                String                  @id @default(cuid())
-  providerTaskId    String
-  providerTask      ProductImageProviderTask @relation(fields: [providerTaskId], references: [id], onDelete: Cascade)
-  attemptNumber     Int
-  requestKey        String
-  externalTaskId    String?                 @unique
-  submissionState   ProviderSubmissionState @default(SUBMITTING)
-  status            ProductImageStatus      @default(PROCESSING)
+  id              String                   @id @default(cuid())
+  providerTaskId  String
+  providerTask    ProductImageProviderTask @relation(fields: [providerTaskId], references: [id], onDelete: Cascade)
+  attemptNumber   Int
+  requestKey      String
+  externalTaskId  String?                  @unique
+  submissionState ProviderSubmissionState  @default(SUBMITTING)
+  status          ProductImageStatus       @default(PROCESSING)
 
-  provider           String @default("shuyu")
+  provider           String  @default("shuyu")
   planId             String?
   modelSnapshot      String?
   resolutionSnapshot String?
   pointsSnapshot     Int?
   lastProviderStatus String?
-  pollErrors         Int    @default(0)
+  pollErrors         Int     @default(0)
 
-  submittedAt DateTime @default(now())
+  submittedAt    DateTime  @default(now())
   acknowledgedAt DateTime?
-  lastCheckedAt DateTime?
-  completedAt DateTime?
-  errorCode String?
-  errorMessage String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  lastCheckedAt  DateTime?
+  completedAt    DateTime?
+  errorCode      String?
+  errorMessage   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@unique([providerTaskId, attemptNumber])
   @@index([requestKey])
@@ -1261,16 +1265,16 @@ model ProductImageProviderAttempt {
 }
 
 model ProductImageResult {
-  id             String          @id @default(cuid())
+  id                String                    @id @default(cuid())
   productImageJobId String
-  productImageJob ProductImageJob @relation(fields: [productImageJobId], references: [id], onDelete: Cascade)
-  assetId        String          @unique
-  asset          MediaAsset      @relation(fields: [assetId], references: [id], onDelete: Restrict)
-  providerTaskId String?         @unique
-  providerTask   ProductImageProviderTask? @relation(fields: [providerTaskId], references: [id], onDelete: SetNull)
-  position       Int
-  outputImageUrl String
-  createdAt      DateTime        @default(now())
+  productImageJob   ProductImageJob           @relation(fields: [productImageJobId], references: [id], onDelete: Cascade)
+  assetId           String                    @unique
+  asset             MediaAsset                @relation(fields: [assetId], references: [id], onDelete: Restrict)
+  providerTaskId    String?                   @unique
+  providerTask      ProductImageProviderTask? @relation(fields: [providerTaskId], references: [id], onDelete: SetNull)
+  position          Int
+  outputImageUrl    String
+  createdAt         DateTime                  @default(now())
 
   @@unique([productImageJobId, position])
   @@index([productImageJobId])
@@ -1306,21 +1310,21 @@ model StoryboardRun {
   approvalPolicy StoryboardApprovalPolicy
   status         StoryboardRunStatus      @default(GENERATING)
 
-  durationSec   Int
-  aspectRatio   String
-  purpose       String
-  sourcePrompt  String
-  inputAssetIds String[] @default([])
+  durationSec    Int
+  aspectRatio    String
+  purpose        String
+  sourcePrompt   String
+  inputAssetIds  String[] @default([])
   inputImageUrls String[] @default([])
 
-  videoBriefId String?     @unique
-  videoBrief   VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: SetNull)
-  videoJobId   String?     @unique
-  videoJob     VideoJob?   @relation(fields: [videoJobId], references: [id], onDelete: SetNull)
+  videoBriefId           String?     @unique
+  videoBrief             VideoBrief? @relation(fields: [videoBriefId], references: [id], onDelete: SetNull)
+  videoJobId             String?     @unique
+  videoJob               VideoJob?   @relation(fields: [videoJobId], references: [id], onDelete: SetNull)
   /// Short-lived ownership fence between an idempotent dispatch request and
   /// this approved storyboard. Cleared when the brief is attached or a
   /// pre-provider failure is safely persisted.
-  dispatchReservationKey String? @unique
+  dispatchReservationKey String?     @unique
 
   approvedAt   DateTime?
   approvedById String?
@@ -1351,16 +1355,16 @@ model StoryboardFrame {
   status          StoryboardFrameStatus @default(QUEUED)
 
   providerRequestKey String                  @unique
-  externalTaskId   String?                  @unique
-  submissionState  ProviderSubmissionState @default(NOT_STARTED)
-  provider          String                  @default("shuyu")
-  planId            String?
-  modelSnapshot     String?
+  externalTaskId     String?                 @unique
+  submissionState    ProviderSubmissionState @default(NOT_STARTED)
+  provider           String                  @default("shuyu")
+  planId             String?
+  modelSnapshot      String?
   resolutionSnapshot String?
-  pointsSnapshot    Int?
-  outputUrl         String?
-  outputAssetId     String?                 @unique
-  outputAsset       MediaAsset?             @relation(fields: [outputAssetId], references: [id], onDelete: SetNull)
+  pointsSnapshot     Int?
+  outputUrl          String?
+  outputAssetId      String?                 @unique
+  outputAsset        MediaAsset?             @relation(fields: [outputAssetId], references: [id], onDelete: SetNull)
 
   leaseOwner         String?
   leaseExpiresAt     DateTime?

@@ -6,6 +6,7 @@ import {
 import { db } from "@/lib/db";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
 import { applyBrandOverlayIfConfigured } from "@/lib/video-generation/brand-overlay-renderer";
+import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import {
   effectiveAssetRole,
   type AssemblyPlan,
@@ -14,6 +15,7 @@ import {
   type SegmentType,
   type UploadedAsset,
   type VideoGenerationPlan,
+  type PostProductionPlan,
 } from "@/types/video-generation";
 
 /**
@@ -132,6 +134,20 @@ export async function executeAssembly(
 
   const aspectRatio = (fv.brief?.aspectRatio ?? "9:16") as AspectRatio;
   const warnings: string[] = [];
+  let postProduction: PostProductionPlan | null = null;
+  if (fv.postProduction != null) {
+    const parsed = postProductionPlanSchema.safeParse(fv.postProduction);
+    if (!parsed.success) {
+      return {
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.FAILED,
+        error: "FinalVideo post-production snapshot is invalid",
+        warnings,
+      };
+    }
+    postProduction = parsed.data;
+  }
 
   /// 解析 brandKit logoUrl 用于 end card 渲染
   const brandKitFromOrder = extractBrandKit(
@@ -179,10 +195,16 @@ export async function executeAssembly(
     /// 单 clip 是 AI 段且 URL 是公网 https 时直接复用；其他情况仍要走 stitch 来归一化。
     /// 临时签名 URL（Seedance TOS 24h 过期）除外 —— 必须走 stitch 转存持久存储，
     /// 否则成片链接一天后 403。
+    const needsPostProduction =
+      Boolean(postProduction?.captions.enabled) ||
+      Boolean(postProduction?.audio.voiceover.enabled) ||
+      (postProduction?.audio.bgm.trackId !== "none" &&
+        (postProduction?.audio.bgm.volume ?? 0) > 0);
     if (
       only.type === "ai_generated_clip" &&
       /^https?:\/\//.test(only.url) &&
-      !isEphemeralSignedUrl(only.url)
+      !isEphemeralSignedUrl(only.url) &&
+      !needsPostProduction
     ) {
       const deliveredUrl = await applyConfiguredLogoOverlay({
         finalVideoId,
@@ -233,12 +255,13 @@ export async function executeAssembly(
   }
 
   let stitchedUrl: string | null = null;
+  let subtitleFileUrl: string | null = null;
   let error: string | null = null;
   try {
-    const { runFfmpegNormalizeAndConcat } = await import(
+    const { runFfmpegNormalizeAndConcatWithPostProduction } = await import(
       "@/lib/services/stitch-service"
     );
-    stitchedUrl = await runFfmpegNormalizeAndConcat({
+    const stitched = await runFfmpegNormalizeAndConcatWithPostProduction({
       finalVideoId,
       aspectRatio,
       clips: resolvedClips.map((c) => ({
@@ -246,7 +269,10 @@ export async function executeAssembly(
         intendedDurationSec: c.intendedDurationSec,
         trimToFit: c.trimToFit,
       })),
+      postProduction,
     });
+    stitchedUrl = stitched.stitchedVideoUrl;
+    subtitleFileUrl = stitched.subtitleFileUrl;
   } catch (err) {
     error = (err as Error).message;
   }
@@ -266,6 +292,7 @@ export async function executeAssembly(
       data: {
         status: FinalVideoStatus.READY,
         stitchedVideoUrl: stitchedUrl,
+        subtitleFileUrl,
         finishedAt: new Date(),
         stitchAttempts: fv.stitchAttempts + 1,
       },

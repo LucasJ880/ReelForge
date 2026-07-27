@@ -10,7 +10,7 @@ test("stitch runner extracts and uploads a JPEG preview before completing", asyn
 
   assert.match(
     runner,
-    /await extractThumbnail\(finalOut, thumbnailOut, task\.targetDurationSec\)/,
+    /await extractThumbnail\([\s\S]*postProduced\.videoPath,[\s\S]*thumbnailOut,[\s\S]*task\.targetDurationSec/,
   );
   assert.match(
     runner,
@@ -18,6 +18,17 @@ test("stitch runner extracts and uploads a JPEG preview before completing", asyn
   );
   assert.match(runner, /thumbnailUrl: output\.thumbnailUrl/);
   assert.match(runner, /thumbnail=30,scale=480:-2/);
+});
+
+test("stitch runner probes actual duration and uploads optional deterministic SRT", async () => {
+  const runner = await readFile(runnerPath, "utf8");
+
+  assert.match(runner, /ffprobe/);
+  assert.match(runner, /buildDeterministicCues/);
+  assert.match(runner, /renderAssCaptions/);
+  assert.match(runner, /renderSrtCaptions/);
+  assert.match(runner, /subtitleFileUrl: output\.subtitleFileUrl/);
+  assert.match(runner, /text\/plain/);
 });
 
 test("stitch runner keeps temporary cleanup and emits only safe failure codes", async () => {

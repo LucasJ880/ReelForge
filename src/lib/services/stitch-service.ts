@@ -7,9 +7,19 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
+import type { PostProductionPlan } from "@/types/video-generation";
+import {
+  BGM_TRACKS,
+  buildAudioFilterPlan,
+  buildDeterministicCues,
+  renderAssCaptions,
+  renderSrtCaptions,
+} from "@/lib/video-generation/audio-post-production";
 
 const execFileAsync = promisify(execFile);
 const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
+const FFPROBE_BIN = process.env.FFPROBE_BIN || "ffprobe";
 
 /**
  * Stitch Service —— 多段 Seedance 段拼接为完整 MP4 的状态机。
@@ -76,6 +86,7 @@ export interface StitchResult {
   ok: boolean;
   status: FinalVideoStatus;
   stitchedVideoUrl?: string | null;
+  subtitleFileUrl?: string | null;
   error?: string | null;
   skipped?: boolean;
   /// 外部 runner 的 attempt token 已过期；调用方应返回 HTTP 409，不得重放写入。
@@ -90,6 +101,18 @@ export interface ClaimedStitchTask {
   segmentUrls: string[];
   aspectRatio: string;
   targetDurationSec: number;
+  postProduction: PostProductionPlan | null;
+}
+
+function parsePersistedPostProduction(
+  input: unknown,
+): PostProductionPlan | null {
+  if (input == null) return null;
+  const parsed = postProductionPlanSchema.safeParse(input);
+  if (!parsed.success) {
+    throw new Error("FinalVideo contains an invalid post-production snapshot");
+  }
+  return parsed.data;
 }
 
 /**
@@ -377,6 +400,7 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
 
     for (const fv of candidates) {
       if (!isStitchCandidateReady(fv)) continue;
+      const postProduction = parsePersistedPostProduction(fv.postProduction);
       /// 注意：不再跳过单段任务（历史 bug：带 unified assemblyPlan 的单段 brief 在
       /// 生产环境被 stitchFinalVideo 打上「awaiting external stitcher」占位 —— 该判定
       /// 先于单段捷径 —— 而这里又跳过 segmentCount<=1，导致没有任何 worker 认领，
@@ -402,6 +426,7 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
         segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
         aspectRatio: fv.brief?.aspectRatio ?? "9:16",
         targetDurationSec: fv.targetDurationSec,
+        postProduction,
       };
     }
 
@@ -424,9 +449,17 @@ export async function finishStitchTask(args: {
   attemptToken?: string;
   stitchedVideoUrl?: string | null;
   thumbnailUrl?: string | null;
+  subtitleFileUrl?: string | null;
   error?: string | null;
 }): Promise<StitchResult> {
-  const { finalVideoId, attemptToken, stitchedVideoUrl, thumbnailUrl, error } = args;
+  const {
+    finalVideoId,
+    attemptToken,
+    stitchedVideoUrl,
+    thumbnailUrl,
+    subtitleFileUrl,
+    error,
+  } = args;
   const fv = await db.finalVideo.findUnique({
     where: { id: finalVideoId },
     include: { brief: { select: { id: true } } },
@@ -493,6 +526,7 @@ export async function finishStitchTask(args: {
       status: FinalVideoStatus.READY,
       stitchedVideoUrl,
       thumbnailUrl: thumbnailUrl ?? fv.thumbnailUrl,
+      subtitleFileUrl: subtitleFileUrl ?? null,
       finishedAt: new Date(),
       stitchAttempts: { increment: 1 },
       ffmpegError: null,
@@ -508,6 +542,7 @@ export async function finishStitchTask(args: {
     ok: true,
     status: FinalVideoStatus.READY,
     stitchedVideoUrl,
+    subtitleFileUrl: subtitleFileUrl ?? null,
   };
 }
 
@@ -549,6 +584,7 @@ export async function retryStitch(finalVideoId: string) {
       stitchAttempts: 0,
       startedAt: null,
       finishedAt: null,
+      subtitleFileUrl: null,
     },
   });
   if (reset.count !== 1) {
@@ -673,6 +709,19 @@ export async function runFfmpegNormalizeAndConcat(params: {
   aspectRatio: string;
   clips: NormalizeAndConcatClip[];
 }): Promise<string> {
+  const result = await runFfmpegNormalizeAndConcatWithPostProduction(params);
+  return result.stitchedVideoUrl;
+}
+
+export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
+  finalVideoId: string;
+  aspectRatio: string;
+  clips: NormalizeAndConcatClip[];
+  postProduction?: PostProductionPlan | null;
+}): Promise<{
+  stitchedVideoUrl: string;
+  subtitleFileUrl: string | null;
+}> {
   const { finalVideoId, aspectRatio, clips } = params;
   const { width, height } = resolveAspectResolution(aspectRatio);
   const tmpDir = path.join(
@@ -815,14 +864,156 @@ export async function runFfmpegNormalizeAndConcat(params: {
       { maxBuffer: 1024 * 1024 * 50, timeout: 120_000 },
     );
 
+    const postProduced = await applyLocalPostProduction({
+      inputPath: finalOut,
+      tmpDir,
+      aspectRatio,
+      postProduction: params.postProduction ?? null,
+    });
     const url = await persistStitchedFile(
-      finalOut,
+      postProduced.videoPath,
       `final-videos/${finalVideoId}/${Date.now()}.mp4`,
     );
-    return url;
+    const subtitleFileUrl = postProduced.srtPath
+      ? await persistStitchedSubtitleFile(
+          postProduced.srtPath,
+          `final-videos/${finalVideoId}/${Date.now()}.srt`,
+        )
+      : null;
+    return { stitchedVideoUrl: url, subtitleFileUrl };
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
+}
+
+async function probeMediaDuration(videoPath: string): Promise<number> {
+  const { stdout } = await execFileAsync(
+    FFPROBE_BIN,
+    [
+      "-v",
+      "error",
+      "-show_entries",
+      "format=duration",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      videoPath,
+    ],
+    { timeout: 30_000, maxBuffer: 1024 * 1024 },
+  );
+  const duration = Number(stdout.trim());
+  if (!Number.isFinite(duration) || duration <= 0) {
+    throw new Error("ffprobe returned an invalid final-video duration");
+  }
+  return duration;
+}
+
+function escapeFfmpegFilterPath(value: string): string {
+  return value
+    .replaceAll("\\", "\\\\")
+    .replaceAll(":", "\\:")
+    .replaceAll("'", "\\'");
+}
+
+async function applyLocalPostProduction(args: {
+  inputPath: string;
+  tmpDir: string;
+  aspectRatio: string;
+  postProduction: PostProductionPlan | null;
+}): Promise<{ videoPath: string; srtPath?: string }> {
+  const snapshot = args.postProduction;
+  if (!snapshot) return { videoPath: args.inputPath };
+  const script = snapshot.audio.voiceover.script.trim();
+  const captionsEnabled = snapshot.captions.enabled && Boolean(script);
+  const bgm = BGM_TRACKS.find(
+    (track) => track.id === snapshot.audio.bgm.trackId,
+  );
+  if (!bgm) throw new Error("Unknown licensed BGM track");
+  const bgmEnabled =
+    bgm.path !== null && snapshot.audio.bgm.volume > 0;
+  if (
+    !captionsEnabled &&
+    !bgmEnabled &&
+    !snapshot.audio.voiceover.enabled
+  ) {
+    return { videoPath: args.inputPath };
+  }
+
+  const actualDurationSec = await probeMediaDuration(args.inputPath);
+  let assPath: string | undefined;
+  let srtPath: string | undefined;
+  if (captionsEnabled) {
+    const cues = buildDeterministicCues(script, actualDurationSec);
+    assPath = path.join(args.tmpDir, "captions.ass");
+    const aspectRatio =
+      args.aspectRatio === "16:9" || args.aspectRatio === "1:1"
+        ? args.aspectRatio
+        : "9:16";
+    await writeFile(
+      assPath,
+      renderAssCaptions(cues, {
+        aspectRatio,
+        position: snapshot.captions.position,
+        style: snapshot.captions.style,
+      }),
+      "utf8",
+    );
+    if (snapshot.captions.exportSrt) {
+      srtPath = path.join(args.tmpDir, "captions.srt");
+      await writeFile(srtPath, renderSrtCaptions(cues), "utf8");
+    }
+  }
+
+  const audioPlan = buildAudioFilterPlan({
+    bgmVolume: bgmEnabled ? snapshot.audio.bgm.volume : 0,
+    hasNativeAudio: snapshot.audio.voiceover.enabled,
+    durationSec: actualDurationSec,
+  });
+  const outputPath = path.join(args.tmpDir, "post-produced.mp4");
+  const ffmpegArgs = ["-y", "-loglevel", "error", "-i", args.inputPath];
+  if (bgmEnabled && bgm.path) {
+    ffmpegArgs.push(
+      ...audioPlan.bgmInputArgs,
+      "-i",
+      path.resolve(process.cwd(), bgm.path),
+    );
+  }
+  const filterParts: string[] = [];
+  if (assPath) {
+    filterParts.push(
+      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'[vout]`,
+    );
+  }
+  if (audioPlan.filterComplex) filterParts.push(audioPlan.filterComplex);
+  if (filterParts.length > 0) {
+    ffmpegArgs.push("-filter_complex", filterParts.join(";"));
+  }
+  ffmpegArgs.push("-map", assPath ? "[vout]" : "0:v:0");
+  ffmpegArgs.push("-map", audioPlan.outputLabel ?? "0:a?");
+  if (assPath) {
+    ffmpegArgs.push(
+      "-c:v",
+      "libx264",
+      "-crf",
+      "18",
+      "-preset",
+      "medium",
+      "-pix_fmt",
+      "yuv420p",
+    );
+  } else {
+    ffmpegArgs.push("-c:v", "copy");
+  }
+  if (audioPlan.outputLabel) {
+    ffmpegArgs.push("-c:a", "aac", "-b:a", "192k");
+  } else {
+    ffmpegArgs.push("-c:a", "copy");
+  }
+  ffmpegArgs.push("-movflags", "+faststart", "-shortest", outputPath);
+  await execFileAsync(FFMPEG_BIN, ffmpegArgs, {
+    maxBuffer: 1024 * 1024 * 50,
+    timeout: 120_000,
+  });
+  return { videoPath: outputPath, srtPath };
 }
 
 /**
@@ -927,6 +1118,27 @@ async function persistStitchedFile(
     key: blobPath,
     access: "public",
     contentType: "video/mp4",
+    overwrite: true,
+  });
+  return obj.url;
+}
+
+async function persistStitchedSubtitleFile(
+  filePath: string,
+  blobPath: string,
+): Promise<string> {
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
+    throw new Error(
+      `Storage provider "${storage.id}" not configured; refusing to persist subtitle output`,
+    );
+  }
+  const buffer = await readFile(filePath);
+  const obj = await storage.uploadBuffer("renders", buffer, {
+    key: blobPath,
+    access: "public",
+    contentType: "text/plain; charset=utf-8",
     overwrite: true,
   });
   return obj.url;

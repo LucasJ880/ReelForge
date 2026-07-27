@@ -4,11 +4,11 @@
  * INV-B1：批量视频 prompt 只能由这里的 promptSkeleton 做确定性填空。
  * 生成关键路径不 import OpenAI，也不接受客户端传入任意 prompt。
  *
- * 2026-07 产品决策：通用电商风格库下线；当前仅保留 SunnyShutter 客户模版族。
- * 其它客户模版以后再单独接入。
+ * 2026-07 产品决策：客户入口统一为八个通用电商配方。
+ * SunnyShutter 等客户差异通过 client lock profile 注入，不再创建平行模板库。
  */
 
-import { SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS } from "@/lib/video-generation/sunnyshutter-commerce-template";
+import { COMMERCE_TEMPLATE_SEEDS } from "@/lib/video-generation/generic-commerce-template";
 
 export interface BatchStyleLockedParams {
   duration: 5 | 10 | 15;
@@ -37,9 +37,9 @@ export interface BatchStyleTemplateSeed {
   imagesPerVideo: BatchStyleImagesPerVideo;
 }
 
-/** Active batch template library — SunnyShutter only. */
+/** Active batch template library — canonical generic ecommerce catalog. */
 export const BATCH_STYLE_TEMPLATE_SEEDS: BatchStyleTemplateSeed[] = [
-  ...SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS,
+  ...COMMERCE_TEMPLATE_SEEDS,
 ];
 
 export function renderBatchTemplatePrompt(args: {

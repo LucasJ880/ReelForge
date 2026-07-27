@@ -6,9 +6,8 @@ import {
   renderBatchTemplatePrompt,
 } from "../src/lib/video-generation/batch-style-templates";
 import {
-  SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY,
-  SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS,
-} from "../src/lib/video-generation/sunnyshutter-commerce-template";
+  COMMERCE_TEMPLATE_SLUGS,
+} from "../src/lib/video-generation/commerce-template-catalog";
 import {
   activateStyleTemplate,
   createStyleTemplateVersion,
@@ -44,23 +43,18 @@ function patchTransaction(
   });
 }
 
-test("批量风格库仅保留 SunnyShutter 客户模版", () => {
-  assert.equal(
-    BATCH_STYLE_TEMPLATE_SEEDS.length,
-    SUNNYSHUTTER_COMMERCE_TEMPLATE_SEEDS.length,
-  );
-  assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.length >= 10);
+test("批量风格库统一使用八个通用电商模板", () => {
+  assert.equal(BATCH_STYLE_TEMPLATE_SEEDS.length, 8);
   assert.equal(
     new Set(BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug)).size,
     BATCH_STYLE_TEMPLATE_SEEDS.length,
   );
-  assert.ok(
-    BATCH_STYLE_TEMPLATE_SEEDS.every(
-      (template) =>
-        template.category === "SunnyShutter电商" &&
-        template.slug.startsWith(`${SUNNYSHUTTER_COMMERCE_TEMPLATE_FAMILY}-`),
-    ),
+  assert.deepEqual(
+    BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug),
+    COMMERCE_TEMPLATE_SLUGS,
   );
+  assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.every((template) => template.category === "电商带货"));
+  assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.every((template) => !/sunnyshutter/i.test(template.promptSkeleton)));
   assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.every((template) => template.version >= 1));
   assert.equal(
     new Set(BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.promptSkeleton)).size,
@@ -115,7 +109,7 @@ test("INV-B1：prompt 只做确定性模板填空，不留占位符、不调用 
   assert.doesNotMatch(first, /\{IMAGE_REFS\}|\{PRODUCT_NAME\}/);
 });
 
-test("SunnyShutter 模版 × 产品输入形成确定性质量锁定矩阵", () => {
+test("通用电商模版 × 产品输入形成确定性质量锁定矩阵", () => {
   const representativeProducts = Array.from({ length: 20 }, (_, index) => ({
     name: `Reference Product ${String(index + 1).padStart(2, "0")}`,
     imageUrls: Array.from(

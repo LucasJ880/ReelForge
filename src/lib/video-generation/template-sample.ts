@@ -10,3 +10,12 @@ export function verifiedTemplateSample(
   const expected = `/template-previews/${slug}.jpg`;
   return coverImage === expected ? coverImage : null;
 }
+
+/** Only same-origin MP4 assets named for the exact template are customer-safe. */
+export function verifiedTemplateVideo(
+  slug: string,
+  sampleVideo: string | null | undefined,
+): string | null {
+  const expected = `/template-previews/${slug}.mp4`;
+  return sampleVideo === expected ? sampleVideo : null;
+}

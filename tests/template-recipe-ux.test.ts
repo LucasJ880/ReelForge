@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { verifiedTemplateSample } from "../src/lib/video-generation/template-sample";
+import {
+  verifiedTemplateSample,
+  verifiedTemplateVideo,
+} from "../src/lib/video-generation/template-sample";
 
 const root = process.cwd();
 const library = readFileSync(
@@ -34,6 +37,25 @@ test("模板样片只在封面属于当前模板时对客户展示", () => {
   assert.equal(verifiedTemplateSample("another-template", "http://localhost:3100/file.svg"), null);
   assert.match(library, /template\.sampleImage \?/);
   assert.doesNotMatch(library, /backgroundImage.*coverImage/);
+});
+
+test("模板视频样片必须属于当前模板并通过悬停预览组件呈现", () => {
+  assert.equal(
+    verifiedTemplateVideo(
+      "ugc-handheld-review",
+      "/template-previews/ugc-handheld-review.mp4",
+    ),
+    "/template-previews/ugc-handheld-review.mp4",
+  );
+  assert.equal(
+    verifiedTemplateVideo(
+      "another-template",
+      "/template-previews/ugc-handheld-review.mp4",
+    ),
+    null,
+  );
+  assert.match(library, /HoverPreviewVideo/);
+  assert.match(library, /template\.sampleVideo/);
 });
 
 test("模板库向用户开放实际质量配方和负向约束", () => {

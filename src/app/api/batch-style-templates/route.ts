@@ -6,7 +6,10 @@ import {
 } from "@/lib/contracts/batch-style-templates";
 import { customerApiError } from "@/lib/contracts/customer-api";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
-import { verifiedTemplateSample } from "@/lib/video-generation/template-sample";
+import {
+  verifiedTemplateSample,
+  verifiedTemplateVideo,
+} from "@/lib/video-generation/template-sample";
 
 export async function GET() {
   const guard = await requireAuth();
@@ -22,6 +25,13 @@ export async function GET() {
           batchStyleTemplateDto(
             template,
             verifiedTemplateSample(template.slug, template.coverImage),
+            {
+              sampleVideo: verifiedTemplateVideo(
+                template.slug,
+                `/template-previews/${template.slug}.mp4`,
+              ),
+              summary: null,
+            },
           ),
         ),
       }),

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
+import { HoverPreviewVideo } from "@/components/library/hover-preview-video";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 
@@ -18,6 +19,8 @@ export type TemplateLibraryItem = {
   nameZh: string;
   category: string;
   sampleImage: string | null;
+  sampleVideo: string | null;
+  summary: string | null;
   promptSkeleton: string;
   negativePrompt: string;
   version: number;
@@ -46,7 +49,7 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
       (!normalized || `${template.nameZh} ${template.name} ${template.category} ${template.slug}`.toLocaleLowerCase().includes(normalized)),
     );
   }, [category, query, templates]);
-  const sampleCount = templates.filter((template) => template.sampleImage).length;
+  const sampleCount = templates.filter((template) => template.sampleImage || template.sampleVideo).length;
 
   return (
     <div className="space-y-5">
@@ -83,9 +86,17 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
             return (
               <li key={template.id} className="min-w-0 h-full">
                 <article data-template-card className="studio-panel group flex h-full min-w-0 flex-col overflow-hidden transition-colors hover:border-border-strong">
-                  {template.sampleImage ? (
+                  {template.sampleImage || template.sampleVideo ? (
                     <div className="relative aspect-video overflow-hidden bg-secondary">
-                      <Image src={template.sampleImage} alt={`${title} ${copy.sample}`} fill unoptimized sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
+                      {template.sampleVideo ? (
+                        <HoverPreviewVideo
+                          src={template.sampleVideo}
+                          poster={template.sampleImage ?? undefined}
+                          ariaLabel={`${title} ${copy.sample}`}
+                        />
+                      ) : template.sampleImage ? (
+                        <Image src={template.sampleImage} alt={`${title} ${copy.sample}`} fill unoptimized sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
+                      ) : null}
                       <span className="absolute bottom-2 left-2 rounded-(--radius-sm) bg-overlay px-2 py-1 text-meta text-foreground">{copy.sample}</span>
                     </div>
                   ) : null}
@@ -93,10 +104,11 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          {!template.sampleImage ? <Film className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
+                          {!template.sampleImage && !template.sampleVideo ? <Film className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
                           <h2 className="truncate font-heading text-subhead font-semibold">{title}</h2>
                         </div>
                         <p className="mt-1 truncate font-mono text-meta text-muted-foreground">{english ? template.slug : template.name}</p>
+                        {template.summary ? <p className="mt-2 line-clamp-2 text-meta leading-relaxed text-muted-foreground">{template.summary}</p> : null}
                       </div>
                       <Badge variant="secondary">{categoryLabel(copy, template.category)}</Badge>
                     </div>

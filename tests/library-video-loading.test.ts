@@ -10,5 +10,8 @@ test("library and batch cards do not preload historical video URLs", async () =>
 
   assert.match(libraryPreview, /preload="none"/);
   assert.doesNotMatch(libraryPreview, /preload="metadata"/);
+  assert.match(libraryPreview, /aria-label=\{ariaLabel\}/);
+  assert.match(libraryPreview, /onFocus=\{play\}/);
+  assert.match(libraryPreview, /onBlur=\{reset\}/);
   assert.match(batchMonitor, /preload="none"/);
 });

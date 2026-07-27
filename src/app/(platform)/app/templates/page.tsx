@@ -8,7 +8,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
-import { verifiedTemplateSample } from "@/lib/video-generation/template-sample";
+import {
+  verifiedTemplateSample,
+  verifiedTemplateVideo,
+} from "@/lib/video-generation/template-sample";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +43,8 @@ export default async function PlatformTemplatesPage() {
         slug: template.slug,
         category: template.category,
         sampleImage: verifiedTemplateSample(template.slug, template.coverImage),
+        sampleVideo: verifiedTemplateVideo(template.slug, `/template-previews/${template.slug}.mp4`),
+        summary: null,
         promptSkeleton: template.promptSkeleton,
         negativePrompt: template.negativePrompt,
         version: template.version,

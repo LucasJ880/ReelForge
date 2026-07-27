@@ -6,6 +6,8 @@
  * inherit these gates. Add a new profile id when onboarding the next client.
  */
 
+import type { CommerceProductMotionProfile } from "@/lib/video-generation/generic-shot-policy";
+
 export const SUNNYSHUTTER_CLIENT_LOCK_ID = "sunnyshutter" as const;
 
 /** Extensible union — add future client ids here when their pack is ready. */
@@ -60,4 +62,36 @@ export function usesSunnyShutterLocks(
   profile: ClientLockProfileId | null | undefined,
 ): boolean {
   return profile === SUNNYSHUTTER_CLIENT_LOCK_ID;
+}
+
+/**
+ * Product mechanics appended to the shared commerce policy when a client lock
+ * is active. Generic constraints remain in force; this profile only narrows
+ * product identity and supported motion.
+ */
+export function clientLockCommerceProductProfile(
+  profile: ClientLockProfileId | null | undefined,
+): CommerceProductMotionProfile | null {
+  if (profile !== SUNNYSHUTTER_CLIENT_LOCK_ID) return null;
+  return {
+    productType: "plantation shutters",
+    identityLocks: [
+      "Preserve exact louver width, frame color, panel layout, hinge side, material, and proportions from the supplied references.",
+      "The vertical tilt bar, when visible, remains one continuous straight rod.",
+      "Keep all louvers parallel and evenly spaced; never warp frames or invent hardware.",
+    ],
+    demonstrableActions: [
+      "swing one whole panel on its side hinges",
+      "tilt all louvers together with no hands visible",
+    ],
+    revealTransitions: [
+      "matched-angle cut from the supported before state to the referenced installed state",
+      "swing one whole panel on its side hinges",
+    ],
+    forbiddenActions: [
+      "grip or twist the tilt bar",
+      "adjust one individual louver",
+      "rapidly fold multiple panels",
+    ],
+  };
 }

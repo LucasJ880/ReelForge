@@ -98,6 +98,7 @@ const unifiedLibraryOrderSelect = {
                   status: true,
                   stitchedVideoUrl: true,
                   thumbnailUrl: true,
+                  subtitleFileUrl: true,
                   segmentCount: true,
                   startedAt: true,
                   finishedAt: true,
@@ -312,6 +313,9 @@ function toUnifiedLibraryDetail(
   const finalVideo = brief?.finalVideo ?? null;
   return {
     ...row,
+    subtitleFileUrl: customerSafeFinalVideoUrl(
+      finalVideo?.subtitleFileUrl ?? null,
+    ),
     makingProcess: deriveMakingProcess({
       orderCreatedAt: order.createdAt,
       briefCreatedAt: brief?.createdAt,

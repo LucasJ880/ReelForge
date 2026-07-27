@@ -106,7 +106,7 @@ export const shuyuHealthResponseSchema = z
         video: z.literal("available"),
       })
       .strip(),
-    checked_at: z.string().datetime().nullable(),
+    checked_at: z.string().datetime({ offset: true }).nullable(),
   })
   .strip();
 

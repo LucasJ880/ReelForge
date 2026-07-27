@@ -184,6 +184,17 @@ export function toBatchLibraryRow(
   });
 }
 
+/**
+ * Terminal failures without playable media are operational records, not useful
+ * customer library items. Keep recoverable outputs visible even when their
+ * status is failed so support and customers do not lose access to media.
+ */
+export function filterCustomerLibraryRows(
+  rows: UnifiedLibraryRow[],
+): UnifiedLibraryRow[] {
+  return rows.filter((row) => row.status !== "failed" || Boolean(row.videoUrl));
+}
+
 async function loadRowsForOwner(
   ownerId: string,
   isShowcase: boolean,
@@ -213,7 +224,9 @@ async function loadRowsForOwner(
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   // 样片只暴露已完成成片，避免把半成品/失败的 demo 内容展示给其他用户。
-  return isShowcase ? rows.filter((row) => row.status === "ready") : rows;
+  return isShowcase
+    ? rows.filter((row) => row.status === "ready")
+    : filterCustomerLibraryRows(rows);
 }
 
 export async function loadUnifiedLibrary(

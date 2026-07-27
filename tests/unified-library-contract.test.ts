@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import { unifiedLibraryRowSchema } from "../src/lib/contracts/unified-library";
-import { toUnifiedLibraryRow } from "../src/lib/services/unified-library-service";
+import {
+  filterCustomerLibraryRows,
+  toUnifiedLibraryRow,
+} from "../src/lib/services/unified-library-service";
 
 type MapperInput = Parameters<typeof toUnifiedLibraryRow>[0];
 
@@ -78,6 +81,28 @@ test("RF-029: taken-down assets are excluded by the shared mapper", () => {
   const fixture = orderFixture();
   fixture.rounds[0]!.angles[0]!.videoBrief!.takedownAt = new Date();
   assert.equal(toUnifiedLibraryRow(fixture), null);
+});
+
+test("failed records without playable output are excluded from customer lists", () => {
+  const ready = toUnifiedLibraryRow(orderFixture());
+  assert.ok(ready);
+  const failedWithoutVideo = {
+    ...ready,
+    id: "dead",
+    status: "failed" as const,
+    videoUrl: null,
+  };
+  const failedWithVideo = {
+    ...failedWithoutVideo,
+    id: "kept",
+    videoUrl: "https://assets.example.com/recovered.mp4",
+  };
+  assert.deepEqual(
+    filterCustomerLibraryRows([failedWithoutVideo, failedWithVideo, ready]).map(
+      (row) => row.id,
+    ),
+    ["kept", ready.id],
+  );
 });
 
 test("RF-029: detail query is direct and owner-scoped, never the take-100 list", async () => {

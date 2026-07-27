@@ -12,6 +12,7 @@
     "walkthrough:mock": "tsx --env-file=.env.local scripts/mock-walkthrough-harness.ts",
     "sunny:merchant-journey": "tsx --env-file=.env.local scripts/sunny-shutter-merchant-journey.ts",
     "backfill:business-titles": "tsx --env-file=.env.local scripts/backfill-business-order-titles.ts",
+    "cleanup:library:dead": "node --env-file-if-exists=.env.local --import tsx scripts/cleanup-dead-library-records.ts",
     "acceptance:mock": "npm run typecheck && npm run e2e:phase4:mock && node --import tsx --test tests/i18n-coverage.test.ts tests/shell-i18n-wiring.test.ts tests/business-locale-regression.test.ts tests/business-display-title.test.ts tests/business-order-title-service.test.ts && npm run walkthrough:mock",
     "build": "prisma generate && next build",
     "start": "next start",

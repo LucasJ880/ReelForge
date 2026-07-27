@@ -95,3 +95,11 @@ test("模板库与高级创作统一使用 canonical commerce slugs", () => {
   assert.doesNotMatch(studio, /<option value="tpl_event_watch_party"/);
   assert.match(studio, /initialPrompt/);
 });
+
+test("单条创作把原生口播、字幕和授权配乐作为同一请求提交", () => {
+  assert.match(studio, /AudioCaptionControls/);
+  assert.match(studio, /voiceoverEnabled/);
+  assert.match(studio, /captionStyle/);
+  assert.match(studio, /bgmTrackId/);
+  assert.doesNotMatch(studio, /volc-tts|submitTts|synthesizeSpeech/);
+});

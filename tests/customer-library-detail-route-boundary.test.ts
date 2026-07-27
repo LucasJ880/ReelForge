@@ -12,3 +12,18 @@ test("video detail route exposes explicit loading and retryable error states", (
   assert.match(state, /libraryDetail/);
   assert.match(copy, /libraryDetail:/);
 });
+
+test("video detail renders the persisted making-process timeline", () => {
+  const page = readFileSync(
+    "src/app/(platform)/app/library/[id]/page.tsx",
+    "utf8",
+  );
+  const timeline = readFileSync(
+    "src/components/library/making-process-timeline.tsx",
+    "utf8",
+  );
+  assert.match(page, /MakingProcessTimeline/);
+  assert.match(page, /item\.makingProcess/);
+  assert.match(timeline, /post-production/);
+  assert.doesNotMatch(timeline, /Math\.random|setInterval/);
+});

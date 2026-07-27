@@ -82,13 +82,16 @@ test("工作区数据展示：批次、任务、成品 ID 与时间字段使用 
   for (const source of sources) assert.match(source, /font-mono/);
 });
 
-test("工作区移动端：媒体网格显式使用零最小宽度列，避免素材固有宽度撑破 390px", async () => {
-  const sources = await Promise.all([
+test("工作区移动端：媒体网格与响应式表格均避免内容撑破 390px", async () => {
+  const [batches, ...mediaGrids] = await Promise.all([
     read("src/app/(platform)/app/batches/page.tsx"),
     read("src/app/(platform)/app/library/page.tsx"),
     read("src/app/(platform)/app/templates/page.tsx"),
   ]);
-  for (const source of sources) {
+  assert.match(batches, /min-w-0/);
+  assert.match(batches, /className="block w-full table-fixed md:table"/);
+  assert.match(batches, /className="group block[\s\S]*?md:table-row/);
+  for (const source of mediaGrids) {
     assert.match(source, /grid-cols-1/);
     assert.match(source, /min-w-0/);
   }

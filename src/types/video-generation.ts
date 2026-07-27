@@ -219,8 +219,9 @@ export function toOwnedCreationRequest(
   request: UnifiedVideoGenerationRequest,
 ): OwnedUnifiedVideoGenerationRequest {
   const brandKit = request.brandKit
-    ? (({ logoUrl: _logoUrl, ...ownedFields }) => ownedFields)(request.brandKit)
+    ? { ...request.brandKit }
     : request.brandKit;
+  if (brandKit) delete brandKit.logoUrl;
   return {
     ...request,
     brandKit,

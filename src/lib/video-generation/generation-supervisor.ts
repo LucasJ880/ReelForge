@@ -85,6 +85,7 @@ export function normalizePostProductionSettings(
 export async function buildPlan(
   request: UnifiedVideoGenerationRequest,
 ): Promise<VideoGenerationPlan> {
+  const postProduction = normalizePostProductionSettings(request);
   /// 1. Ensure assets are classified. UI 大概率已经跑过 /api/video-generation/classify-asset；
   /// 但兜底再跑一次，保证 inferredRole 一定有合理值。
   const classifiedAssets = ensureClassified(request.attachments ?? []);
@@ -167,6 +168,7 @@ export async function buildPlan(
     styleTemplate,
     consistencyLocks,
     visualRefs,
+    voiceover: postProduction.audio.voiceover,
   });
 
   /// 7. Assembly plan
@@ -221,7 +223,7 @@ export async function buildPlan(
     brandPackagingPlan,
     clipPlacementPlan,
     assemblyPlan,
-    postProduction: normalizePostProductionSettings(request),
+    postProduction,
     qualityReview,
     planPreview,
     createdAt: new Date().toISOString(),

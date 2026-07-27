@@ -101,4 +101,12 @@ test("supervisor carries a normalized post-production snapshot", async () => {
     },
   });
   assert.equal(plan.inputClassification.generationMode, "text_to_video_ad");
+  assert.match(
+    plan.seedancePrompts[0]?.prompt ?? "",
+    /Spoken dialogue \(voice only, exact wording, zh-CN, warm confident\): "一拧即开，随时补水。"/,
+  );
+  assert.match(
+    plan.seedancePrompts[0]?.prompt ?? "",
+    /Do not render subtitles, captions, readable text, or a music bed\./,
+  );
 });

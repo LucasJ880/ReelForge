@@ -389,6 +389,16 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
     throw new Error("Brief 尚未生成 DirectorPlan，无法分段生成");
   }
   const routeSnapshot = requiredVideoRouteSnapshot(brief);
+  const generateAudio =
+    (
+      brief.videoGenerationPlan as
+        | {
+            postProduction?: {
+              audio?: { voiceover?: { enabled?: unknown } };
+            };
+          }
+        | null
+    )?.postProduction?.audio?.voiceover?.enabled === true;
 
   let plan: DirectorPlan;
   try {
@@ -486,6 +496,7 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
       segment,
       segmentCount: plan.segmentPlan.length,
       referenceImageUrls,
+      generateAudio,
       routeSnapshot,
     });
     created.push(result);
@@ -503,6 +514,7 @@ async function submitSegmentJob(params: {
   segmentCount: number;
   /// 产品参考图（Omni-Reference 模式传给 Seedance 2.0，产品外观跨镜头一致）
   referenceImageUrls?: string[];
+  generateAudio?: boolean;
   routeSnapshot: VideoRouteSnapshot;
 }) {
   const {
@@ -512,6 +524,7 @@ async function submitSegmentJob(params: {
     segment,
     segmentCount,
     referenceImageUrls,
+    generateAudio,
     routeSnapshot,
   } = params;
   const logicalJobKey = `${briefId}:segment:${segment.segmentIndex}`;
@@ -560,6 +573,8 @@ async function submitSegmentJob(params: {
         durationSec: segment.durationSec,
         aspectRatio,
         model: routeSnapshot.videoModelSnapshot,
+        generateAudio: generateAudio ?? false,
+        negativePrompt: segment.negativePrompt || undefined,
         /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
         referenceImages: hasRefs
           ? referenceImageUrls?.map((url) => ({ url, role: "content" as const }))
@@ -1203,7 +1218,12 @@ export async function retryFailedVideoJob(jobId: string) {
   if (job.segmentIndex != null && job.finalVideoId) {
     const briefForRetry = await db.videoBrief.findUnique({
       where: { id: videoBriefId },
-      select: { aspectRatio: true, directorPlan: true, referenceImageUrls: true },
+      select: {
+        aspectRatio: true,
+        directorPlan: true,
+        referenceImageUrls: true,
+        videoGenerationPlan: true,
+      },
     });
     if (!briefForRetry?.directorPlan) {
       throw new Error("Brief 缺少 DirectorPlan，无法重试该段");
@@ -1225,6 +1245,16 @@ export async function retryFailedVideoJob(jobId: string) {
     /// 此前重试丢失这两项 → 重试段产品外观漂移、分辨率降档，成片段间质量不一致。
     const retryRefs = (briefForRetry.referenceImageUrls ?? []).slice(0, 8);
     const retryHasRefs = retryRefs.length > 0;
+    const retryGenerateAudio =
+      (
+        briefForRetry.videoGenerationPlan as
+          | {
+              postProduction?: {
+                audio?: { voiceover?: { enabled?: unknown } };
+              };
+            }
+          | null
+      )?.postProduction?.audio?.voiceover?.enabled === true;
 
     const { submittedAt, providerRequestKey } =
       await claimFailedJobForRetry(job);
@@ -1237,6 +1267,8 @@ export async function retryFailedVideoJob(jobId: string) {
           durationSec: segment.durationSec,
           aspectRatio: briefForRetry.aspectRatio,
           model: jobRouteSnapshot.videoModelSnapshot,
+          generateAudio: retryGenerateAudio,
+          negativePrompt: segment.negativePrompt || undefined,
           referenceImages: retryHasRefs
             ? retryRefs.map((url) => ({ url, role: "content" as const }))
             : undefined,

@@ -161,6 +161,7 @@ test("direct service submits and polls Shuyu from the persisted route snapshot",
     },
     segmentCount: 1,
     referenceImageUrls: ["https://example.com/product.jpg"],
+    generateAudio: true,
     routeSnapshot: snapshot,
   } as never);
 
@@ -177,6 +178,10 @@ test("direct service submits and polls Shuyu from the persisted route snapshot",
   assert.equal(
     new Headers(post.init?.headers).get("idempotency-key"),
     persisted.providerRequestKey,
+  );
+  assert.equal(
+    JSON.parse(String(post.init?.body)).generate_audio,
+    true,
   );
 
   const reconciled = await reconcileVideoJob(String(persisted.id));

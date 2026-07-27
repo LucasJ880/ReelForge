@@ -184,6 +184,8 @@ export interface ShuyuCreateVideoInput extends ShuyuFetchOptions {
   duration: number;
   aspectRatio: string;
   inputImages: string[];
+  /** Seedance native soundtrack and speech generation. Defaults off. */
+  generateAudio?: boolean;
   model?: string;
   /** Defaults to audited `SHUYU_VIDEO_PLAN_ID`. Acceptance may pass Fast VIP. */
   planId?: string;
@@ -675,6 +677,7 @@ export async function createShuyuVideoTask(
     duration: input.duration,
     aspect_ratio: input.aspectRatio,
     input_images: input.inputImages,
+    generate_audio: input.generateAudio ?? false,
   };
   let response: Response;
   let payload: unknown;

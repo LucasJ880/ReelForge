@@ -137,3 +137,17 @@ test("digital human：旧 provider、runner、workflow 与 demo 已归档，活�
   assert.doesNotMatch(activeTts, /fetch\s*\(/);
   assert.doesNotMatch(activeOmni, /fetch\s*\(/);
 });
+
+test("native customer voiceover stays on Shuyu and never imports sealed Volc TTS", async () => {
+  const shuyuProvider = await readFile(
+    "src/lib/video-generation/providers/shuyu-video-provider.ts",
+    "utf8",
+  );
+  const promptIntelligence = await readFile(
+    "src/lib/video-generation/prompt-intelligence.ts",
+    "utf8",
+  );
+  assert.doesNotMatch(shuyuProvider, /volc-tts|submitTts|synthesizeSpeech/);
+  assert.doesNotMatch(promptIntelligence, /volc-tts|submitTts|synthesizeSpeech/);
+  assert.match(shuyuProvider, /generateAudio/);
+});

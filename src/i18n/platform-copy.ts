@@ -232,6 +232,7 @@ const zh = {
     costSnapshot: "成本快照",
     view: "查看",
     listLabel: "批次列表",
+    columns: { batch: "批次", template: "模板", progress: "进度", status: "状态", updated: "更新时间", action: "操作" },
     back: "返回批次",
     monitorNav: "批次监控导航",
     newSubtitle: "锁定模板与素材分配，一次创建批次，并在统一监控页查看任务、分镜和失败原因。",
@@ -381,7 +382,7 @@ const en: CopyShape<typeof zh> = {
     categories: { "电商展示": "Ecommerce", "质感特写": "Material detail", "生活方式": "Lifestyle", UGC: "UGC", "开箱": "Unboxing", "奢品": "Luxury", "使用演示": "Use demo", "爆款广告": "Performance ads", "对比转化": "Before / after", "包装展示": "Packaging", "家居空间": "Home spaces", "工具户外": "Tools & outdoors", "旅行收纳": "Travel organization", "服饰穿搭": "Fashion styling", "社媒循环": "Social loop", "科技数码": "Consumer tech", "美妆护理": "Beauty care", "食品饮料": "Food & beverage", "自动化验收": "Automated acceptance" },
   },
   batches: {
-    kicker: "BATCH PRODUCTION", title: "Batch production", subtitle: "Open one batch to inspect jobs, shots, and failure clusters. Status, template version, and cost stay on one production trace.", new: "New batch", empty: "No batches yet. Pick a style from the template library.", browse: "Browse templates", unnamed: "Untitled batch", completedTotal: "Completed / total", costSnapshot: "Cost snapshot", view: "View", listLabel: "Batch list", back: "Back to batches", monitorNav: "Batch monitor navigation", newSubtitle: "Lock the template and asset allocation, create once, then monitor jobs, shots, and failures in one place.", statuses: { EXPANDING: "Expanding", RUNNING: "Generating", PAUSED: "Paused", COMPLETED: "Completed", PARTIAL_FAILED: "Partially failed", FAILED: "Failed", CANCELLED: "Cancelled" },
+    kicker: "BATCH PRODUCTION", title: "Batch production", subtitle: "Open one batch to inspect jobs, shots, and failure clusters. Status, template version, and cost stay on one production trace.", new: "New batch", empty: "No batches yet. Pick a style from the template library.", browse: "Browse templates", unnamed: "Untitled batch", completedTotal: "Completed / total", costSnapshot: "Cost snapshot", view: "View", listLabel: "Batch list", columns: { batch: "Batch", template: "Template", progress: "Progress", status: "Status", updated: "Updated", action: "Action" }, back: "Back to batches", monitorNav: "Batch monitor navigation", newSubtitle: "Lock the template and asset allocation, create once, then monitor jobs, shots, and failures in one place.", statuses: { EXPANDING: "Expanding", RUNNING: "Generating", PAUSED: "Paused", COMPLETED: "Completed", PARTIAL_FAILED: "Partially failed", FAILED: "Failed", CANCELLED: "Cancelled" },
     monitor: {
       kicker: "BATCH MONITOR",
       batch: "Batch",

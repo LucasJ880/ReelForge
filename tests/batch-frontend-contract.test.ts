@@ -12,6 +12,10 @@ const wizard = readFileSync(
   path.join(root, "src/components/batch/batch-create-wizard.tsx"),
   "utf8",
 );
+const batchList = readFileSync(
+  path.join(root, "src/app/(platform)/app/batches/page.tsx"),
+  "utf8",
+);
 const limits = readFileSync(
   path.join(root, "src/lib/contracts/batch-limits.ts"),
   "utf8",
@@ -106,4 +110,13 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
     /file\.type\.startsWith\("image\/"\)/,
     "GIF/SVG 等未批准类型不得只凭 image/* 通过",
   );
+});
+
+test("批量列表使用紧凑语义表格并提供移动端字段标签", () => {
+  assert.match(batchList, /<table/);
+  assert.match(batchList, /<thead/);
+  assert.match(batchList, /data-label=\{copy\.columns\.status\}/);
+  assert.match(batchList, /data-label=\{copy\.columns\.progress\}/);
+  assert.doesNotMatch(batchList, /grid-cols-2/);
+  assert.doesNotMatch(batchList, /BatchFilmStrip/);
 });

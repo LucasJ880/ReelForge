@@ -435,6 +435,7 @@ export type Dictionary = {
       batches: string;
       racing: string;
       library: string;
+      brands: string;
       templates: string;
     };
     platformShell: {

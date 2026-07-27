@@ -53,3 +53,13 @@ test("auth hero uses the compact editorial type scale", async () => {
   assert.match(source, /max-w-\[34rem\]/);
   assert.match(source, /font-mono text-body font-semibold/);
 });
+
+test("brand manager uses responsive cards without horizontal scrolling", async () => {
+  const source = await readFile(
+    path.join(ROOT, "src/components/brand/brand-package-manager.tsx"),
+    "utf8",
+  );
+  assert.match(source, /grid-cols-1/);
+  assert.match(source, /min-w-0/);
+  assert.doesNotMatch(source, /overflow-x-auto/);
+});

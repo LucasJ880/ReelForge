@@ -8,6 +8,7 @@ export interface EditorialRoute {
     | "batch-list"
     | "batch-create"
     | "batch-monitor"
+    | "brand-manager"
     | "videos"
     | "templates"
     | "login";
@@ -21,6 +22,7 @@ export const EDITORIAL_ROUTES: EditorialRoute[] = [
   { key: "batch-list", path: "/app/batches" },
   { key: "batch-create", path: "/app/batches/new" },
   { key: "batch-monitor", path: "/app/batches/__fixture__" },
+  { key: "brand-manager", path: "/app/brands" },
   { key: "videos", path: "/app/library" },
   { key: "templates", path: "/app/templates" },
   { key: "login", path: "/login" },

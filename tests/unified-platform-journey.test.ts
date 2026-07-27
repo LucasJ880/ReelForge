@@ -3,18 +3,19 @@ import test from "node:test";
 import { access, readFile } from "node:fs/promises";
 import { PLATFORM_PRIMARY_NAV, platformPathAfterGeneration } from "../src/lib/platform-routes";
 
-test("Phase1 unified journey：五个一级区只有一套 /app 路径", () => {
+test("Phase1 unified journey：六个一级区只有一套 /app 路径", () => {
   assert.deepEqual(PLATFORM_PRIMARY_NAV.map(({ label, href }) => ({ label, href })), [
     { label: "创作", href: "/app/create" },
     { label: "批量生产", href: "/app/batches" },
     { label: "投放与赛马", href: "/app/racing" },
     { label: "成品库", href: "/app/library" },
+    { label: "品牌", href: "/app/brands" },
     { label: "模板库", href: "/app/templates" },
   ]);
   assert.equal(platformPathAfterGeneration("order 1"), "/app/library?highlight=order%201");
 });
 
-test("Phase1 unified journey：五区页面与批次/成品详情均存在", async () => {
+test("Phase1 unified journey：六区页面与批次/成品详情均存在", async () => {
   for (const file of [
     "src/app/(platform)/app/create/page.tsx",
     "src/app/(platform)/app/batches/new/page.tsx",
@@ -23,6 +24,7 @@ test("Phase1 unified journey：五区页面与批次/成品详情均存在", asy
     "src/app/(platform)/app/racing/page.tsx",
     "src/app/(platform)/app/library/page.tsx",
     "src/app/(platform)/app/library/[id]/page.tsx",
+    "src/app/(platform)/app/brands/page.tsx",
     "src/app/(platform)/app/templates/page.tsx",
   ]) await access(file);
 });
@@ -42,7 +44,7 @@ test("Phase2 模板库选择可透传到批量向导并预选精确版本 ID", a
   const wizard = await readFile("src/components/batch/batch-create-wizard.tsx", "utf8");
   assert.match(templates, /\/app\/batches\/new\?template=/);
   assert.match(page, /initialTemplateId=\{initialTemplateId\}/);
-  assert.match(wizard, /rows\.find\(\(template\) => template\.id === initialTemplateId\)/);
+  assert.match(wizard, /template\.slug === initialTemplateId \|\| template\.id === initialTemplateId/);
 });
 
 test("Phase1 unified journey：创作使用 account-neutral platform 请求并回统一成品库", async () => {

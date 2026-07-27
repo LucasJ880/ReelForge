@@ -540,6 +540,7 @@ export const zhCN: Dictionary = {
       batches: "批量生产",
       racing: "投放与赛马",
       library: "成品库",
+      brands: "品牌",
       templates: "模板库",
     },
     platformShell: {

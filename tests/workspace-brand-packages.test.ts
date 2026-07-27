@@ -4,6 +4,10 @@ import test from "node:test";
 
 import { buildBrandPackagingPlan } from "../src/lib/video-generation/brand-packaging";
 import type { InputClassification, UnifiedVideoGenerationRequest } from "../src/types/video-generation";
+import {
+  assertWorkspaceBrandPackageMutable,
+  workspaceBrandPackageView,
+} from "../src/lib/services/workspace-brand-package-service";
 
 test("even SunnyShutter stays clean when the user selects no brand package", () => {
   const request: UnifiedVideoGenerationRequest = {
@@ -56,4 +60,62 @@ test("workspace brand package is tenant-scoped and wired into creation and deliv
   assert.doesNotMatch(button, /clientProfileId: "sunnyshutter"/);
   assert.match(assembly, /applyBrandOverlayIfConfigured/);
   assert.match(packaging, /endCardStillUrl: designedEndCard\?\.url/);
+});
+
+test("brand package view exposes global scope as read-only", () => {
+  const view = workspaceBrandPackageView({
+    id: "global-pack",
+    workspaceId: "platform-workspace",
+    name: "Aivora Clean",
+    brandName: "Aivora",
+    slogan: null,
+    cta: null,
+    contactLines: [],
+    website: null,
+    clientProfileId: null,
+    logoAssetId: "logo",
+    endCardAssetId: null,
+    isDefault: false,
+    isActive: true,
+    isGlobal: true,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    logoAsset: {
+      id: "logo",
+      userId: "platform",
+      workspaceId: "platform-workspace",
+      storageKey: "seed/aivora.png",
+      url: "/demo/pet/aivora-logo-endcard.png",
+      mimeType: "image/png",
+      byteSize: 100,
+      sha256: "hash",
+      width: 512,
+      height: 512,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    endCardAsset: null,
+  } as never);
+  assert.equal(view.scope, "global");
+  assert.equal(view.canEdit, false);
+});
+
+test("global brand packages cannot be mutated by workspace routes", () => {
+  assert.throws(
+    () => assertWorkspaceBrandPackageMutable({ isGlobal: true }),
+    /read-only/i,
+  );
+  assert.doesNotThrow(() =>
+    assertWorkspaceBrandPackageMutable({ isGlobal: false }),
+  );
+});
+
+test("global and workspace packages are queried together", async () => {
+  const service = await readFile(
+    "src/lib/services/workspace-brand-package-service.ts",
+    "utf8",
+  );
+  assert.match(service, /OR:\s*\[\s*\{\s*isGlobal:\s*true\s*\}/);
+  assert.match(service, /workspace:\s*\{\s*ownerId:\s*userId\s*\}/);
+  assert.match(service, /isGlobal:\s*"desc"/);
 });

@@ -129,6 +129,7 @@ model WorkspaceBrandPackage {
   logoAsset       MediaAsset @relation("WorkspaceBrandPackageLogo", fields: [logoAssetId], references: [id], onDelete: Restrict)
   endCardAssetId  String?
   endCardAsset    MediaAsset? @relation("WorkspaceBrandPackageEndCard", fields: [endCardAssetId], references: [id], onDelete: SetNull)
+  isGlobal        Boolean @default(false)
   isDefault       Boolean @default(false)
   isActive        Boolean @default(true)
   createdAt       DateTime @default(now())
@@ -136,6 +137,7 @@ model WorkspaceBrandPackage {
 
   @@unique([workspaceId, name])
   @@index([workspaceId, isActive, createdAt(sort: Desc)])
+  @@index([isGlobal, isActive, updatedAt(sort: Desc)])
   @@index([logoAssetId])
   @@index([endCardAssetId])
 }

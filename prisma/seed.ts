@@ -5,6 +5,8 @@ import {
   StyleTemplateStatus,
 } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { BATCH_STYLE_TEMPLATE_SEEDS } from "../src/lib/video-generation/batch-style-templates";
 
 const prisma = new PrismaClient();
@@ -179,11 +181,87 @@ async function seedStyleTemplates() {
   );
 }
 
+async function seedGlobalBrandPackages() {
+  const platformOwner =
+    (await prisma.adminUser.findFirst({
+      where: { role: AdminRole.SUPER_ADMIN },
+      orderBy: { createdAt: "asc" },
+    })) ??
+    (await prisma.adminUser.findUnique({
+      where: { email: process.env.SEED_DEMO_EMAIL || "demo@aivora.app" },
+    }));
+  if (!platformOwner) {
+    console.log("⚠️  无平台账号，跳过全局品牌包 seed。");
+    return;
+  }
+  const workspace = await prisma.workspace.findUnique({
+    where: { ownerId: platformOwner.id },
+  });
+  if (!workspace) {
+    console.log("⚠️  平台账号无工作区，跳过全局品牌包 seed。");
+    return;
+  }
+
+  const logoPath = "public/demo/pet/aivora-logo-endcard.png";
+  const logoBytes = await readFile(logoPath);
+  const logoAsset = await prisma.mediaAsset.upsert({
+    where: { storageKey: "seed/global-brand/aivora-logo-endcard.png" },
+    create: {
+      userId: platformOwner.id,
+      workspaceId: workspace.id,
+      storageKey: "seed/global-brand/aivora-logo-endcard.png",
+      url: "/demo/pet/aivora-logo-endcard.png",
+      mimeType: "image/png",
+      byteSize: logoBytes.byteLength,
+      sha256: createHash("sha256").update(logoBytes).digest("hex"),
+      width: 1536,
+      height: 1024,
+    },
+    update: {
+      userId: platformOwner.id,
+      workspaceId: workspace.id,
+      url: "/demo/pet/aivora-logo-endcard.png",
+      byteSize: logoBytes.byteLength,
+      sha256: createHash("sha256").update(logoBytes).digest("hex"),
+      width: 1536,
+      height: 1024,
+    },
+  });
+  await prisma.workspaceBrandPackage.upsert({
+    where: {
+      workspaceId_name: {
+        workspaceId: workspace.id,
+        name: "Aivora Clean",
+      },
+    },
+    create: {
+      workspaceId: workspace.id,
+      name: "Aivora Clean",
+      brandName: "Aivora",
+      slogan: "From one idea to reliable delivery.",
+      cta: "Create your next product story",
+      website: "aivora.app",
+      logoAssetId: logoAsset.id,
+      endCardAssetId: logoAsset.id,
+      isGlobal: true,
+      isDefault: false,
+    },
+    update: {
+      logoAssetId: logoAsset.id,
+      endCardAssetId: logoAsset.id,
+      isGlobal: true,
+      isActive: true,
+    },
+  });
+  console.log("✅ 全局品牌包：Aivora Clean");
+}
+
 async function main() {
   await seedPlanEntitlements();
   await seedAdmin();
   await seedDemoPersonalUser();
   await seedStyleTemplates();
+  await seedGlobalBrandPackages();
 }
 
 main()

@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { BrandPackageManager } from "@/components/brand/brand-package-manager";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { getServerLocale } from "@/i18n/server";
+import { CustomerBrandWall } from "@/components/brand/customer-brand-wall";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +33,15 @@ export default async function PlatformBrandsPage() {
             : "统一管理 Logo、行动指引、联系方式和尾卡，让单条与批量生产保持同一套品牌表达。"}
         </p>
       </header>
+      <CustomerBrandWall
+        english={english}
+        entries={packages.map((item) => ({
+          id: item.id,
+          brandName: item.brandName,
+          logoUrl: item.logoAsset.url,
+          scope: item.scope,
+        }))}
+      />
       <BrandPackageManager
         initialPackages={packages}
         logoProjectId={latestOrder?.id ?? null}

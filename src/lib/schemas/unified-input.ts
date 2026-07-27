@@ -115,6 +115,48 @@ export const ownedBrandKitSchema = brandKitSchema
   .omit({ logoUrl: true })
   .strict();
 
+export const voiceoverSettingsSchema = z
+  .object({
+    enabled: z.boolean(),
+    voiceId: z.string().trim().min(1).max(80),
+    language: z.string().trim().min(2).max(20),
+    script: z.string().max(2_000),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (value.enabled && !value.script.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["script"],
+        message: "Enabled voiceover requires a script",
+      });
+    }
+  });
+
+export const bgmSettingsSchema = z
+  .object({
+    trackId: z.enum(["none", "wholesome"]),
+    volume: z.number().min(0).max(0.35),
+  })
+  .strict();
+
+export const audioSettingsSchema = z
+  .object({
+    voiceover: voiceoverSettingsSchema.optional(),
+    bgm: bgmSettingsSchema.optional(),
+  })
+  .strict();
+
+export const captionSettingsSchema = z
+  .object({
+    enabled: z.boolean(),
+    style: z.enum(["word_by_word", "karaoke", "plain"]),
+    language: z.string().trim().min(2).max(20),
+    position: z.enum(["top", "center", "bottom"]),
+    exportSrt: z.boolean(),
+  })
+  .strict();
+
 export const unifiedVideoGenerationRequestSchema = z.object({
   userType: userTypeSchema,
   rawPrompt: z.string().min(1).max(4000),
@@ -130,6 +172,8 @@ export const unifiedVideoGenerationRequestSchema = z.object({
   styleTemplateId: z.string().max(60).nullable().optional(),
   /// 一致性锁 ID 列表（可叠加）
   consistencyLockIds: z.array(z.string().max(60)).max(8).nullable().optional(),
+  audio: audioSettingsSchema.optional(),
+  captions: captionSettingsSchema.optional(),
   advancedOptions: z.record(z.string(), z.unknown()).nullable().optional(),
   deliveryOrderId: z.string().nullable().optional(),
 });
@@ -303,6 +347,14 @@ export const consistencyBibleSchema = z.object({
   styleKeywords: z.string(),
 });
 
+export const postProductionPlanSchema = z.object({
+  audio: z.object({
+    voiceover: voiceoverSettingsSchema,
+    bgm: bgmSettingsSchema,
+  }),
+  captions: captionSettingsSchema,
+});
+
 export const videoGenerationPlanSchema = z.object({
   id: z.string(),
   inputClassification: inputClassificationSchema,
@@ -321,6 +373,7 @@ export const videoGenerationPlanSchema = z.object({
   brandPackagingPlan: brandPackagingPlanSchema,
   clipPlacementPlan: clipPlacementPlanSchema,
   assemblyPlan: assemblyPlanSchema,
+  postProduction: postProductionPlanSchema.nullable().optional(),
   qualityReview: qualityReviewSchema,
   planPreview: planPreviewSchema,
   createdAt: z.string(),

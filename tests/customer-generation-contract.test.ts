@@ -23,6 +23,20 @@ import {
   toCustomerVideoDispatchResponse,
 } from "../src/lib/api/customer-video-dispatch";
 import { QuotaExceededError } from "../src/lib/services/quota-service";
+import { unifiedVideoGenerationRequestSchema } from "../src/lib/schemas/unified-input";
+
+test("customer generation contract accepts optional post-production without changing legacy requests", () => {
+  const legacy = unifiedVideoGenerationRequestSchema.parse({
+    userType: "personal",
+    rawPrompt: "A quiet walk through a sunlit park.",
+    attachments: [],
+    selectedDuration: 15,
+    selectedAspectRatio: "9:16",
+    selectedBrandEndingMode: "none",
+  });
+  assert.equal("audio" in legacy, false);
+  assert.equal("captions" in legacy, false);
+});
 
 test("Phase 2 contract: four customer generation failures have stable codes and recovery actions", () => {
   const timeout = classifyCustomerGenerationError({

@@ -196,7 +196,7 @@ test("AC-1c 故障注入：回调永不到达（通道已删）→ 单靠轮询�
 
 /// ---------- AC-1d / AC-3：worker 中途被 kill / provider 失联，硬超时兜底 ----------
 
-test("AC-1d/AC-3 故障注入：任务超过 deadline 且 Provider 完全失联 → 信号 A 直接 FAILED（不调 Provider）", async (t) => {
+test("AC-1d/AC-3 故障注入：任务超过 deadline 且 Provider 完全失联 → 最后查询一次后 FAILED", async (t) => {
   const job = installInMemoryJob(
     t,
     /// timeoutAt 已过期 5 分钟（> 默认 2 分钟宽限）—— 等价于 worker 中途被 kill 后无人认领
@@ -206,18 +206,44 @@ test("AC-1d/AC-3 故障注入：任务超过 deadline 且 Provider 完全失联 
   let fetcherCalled = 0;
   injectFetcher(t, async () => {
     fetcherCalled++;
-    /// 模拟 provider 悬挂：即使被调用也永不返回有效结果
+    /// 最后的有界查询无法证明任务仍在生成。
     throw new Error("provider unreachable");
   });
 
   await reconcileVideoJob(job.id);
   assert.equal(job.status, VideoJobStatus.FAILED, "硬超时必须终态化");
-  assert.equal(fetcherCalled, 0, "信号 A 必须在调 Provider 之前判定（悬挂免疫）");
+  assert.equal(fetcherCalled, 1, "判死前只允许最后查询一次，不能重复轮询");
   assert.ok(job.errorMessage?.startsWith(WATCHDOG_TIMEOUT_PREFIX));
   assert.ok(
     logs.some((l) => l.reason === "timeout" && l.to === "FAILED"),
     "必须记录 reason=timeout 的结构化迁移日志",
   );
+});
+
+test("AC-1d 反例：超过 deadline 但 Provider 仍在处理 → 单次查询后保留 RUNNING", async (t) => {
+  const job = installInMemoryJob(
+    t,
+    makeJob({ timeoutAt: new Date(NOW_MS - 5 * MIN) }),
+  );
+  let fetcherCalled = 0;
+  injectFetcher(t, async () => {
+    fetcherCalled++;
+    return {
+      jobId: "ext_test",
+      status: "processing",
+      rawProviderStatus: "running",
+      rawProviderResponse: {
+        status: "running",
+        created_at: Math.floor((NOW_MS - 10 * MIN) / 1000),
+        updated_at: Math.floor((NOW_MS - 5 * MIN) / 1000),
+      },
+    };
+  });
+
+  await reconcileVideoJob(job.id);
+  assert.equal(job.status, VideoJobStatus.RUNNING);
+  assert.equal(fetcherCalled, 1, "deadline 兜底结果必须复用，不能同轮重复查供应商");
+  assert.equal(job.lastProviderStatus, "running");
 });
 
 test("AC-3 混沌：一次 reconcile 中途崩溃 → 任务不悬空，下一次 reconcile 收敛到终态", async (t) => {

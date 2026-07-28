@@ -886,6 +886,38 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
   }
 }
 
+/**
+ * 探测文件里是否真的存在音轨。
+ *
+ * 不能拿 `voiceover.enabled` 这个**请求标志**代替。Shuyu 代理虽然不接受
+ * generate_audio 开关，但历史原片会按提示词返回原生音轨；同时供应商异常时
+ * 也可能返回静音文件。以实际媒体流为准，避免 ffmpeg 引用不存在的 [0:a]。
+ */
+async function probeHasAudioStream(videoPath: string): Promise<boolean> {
+  try {
+    const { stdout } = await execFileAsync(
+      FFPROBE_BIN,
+      [
+        "-v",
+        "error",
+        "-select_streams",
+        "a",
+        "-show_entries",
+        "stream=index",
+        "-of",
+        "csv=p=0",
+        videoPath,
+      ],
+      { timeout: 30_000, maxBuffer: 1024 * 1024 },
+    );
+    return stdout.trim().length > 0;
+  } catch {
+    /// 探测失败按「无音轨」处理：BGM-only 分支对静音输入始终成立，
+    /// 反向假设则会让整条 ffmpeg 崩掉。
+    return false;
+  }
+}
+
 async function probeMediaDuration(videoPath: string): Promise<number> {
   const { stdout } = await execFileAsync(
     FFPROBE_BIN,
@@ -963,9 +995,12 @@ async function applyLocalPostProduction(args: {
     }
   }
 
+  /// Shuyu 口播属于生成模型的原生音轨，拼接阶段只负责保留/标准化并与 BGM
+  /// 混音，绝不再调用另一家 TTS 覆盖音色。是否有音轨以 ffprobe 实测为准。
+  const hasNativeAudio = await probeHasAudioStream(args.inputPath);
   const audioPlan = buildAudioFilterPlan({
     bgmVolume: bgmEnabled ? snapshot.audio.bgm.volume : 0,
-    hasNativeAudio: snapshot.audio.voiceover.enabled,
+    hasNativeAudio,
     durationSec: actualDurationSec,
   });
   const outputPath = path.join(args.tmpDir, "post-produced.mp4");

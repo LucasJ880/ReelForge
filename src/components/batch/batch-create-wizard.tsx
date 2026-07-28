@@ -247,7 +247,6 @@ export function BatchCreateWizard({
     count,
     SHUYU_VIDEO_POINTS_PER_GENERATION,
   );
-
   function updateUpload(localId: string, patch: Partial<UploadItem>) {
     setUploads((current) =>
       current.map((item) =>
@@ -953,6 +952,7 @@ export function BatchCreateWizard({
                           : "所选线路当前不可用，请更换线路或等待恢复后继续。")}
                 </p>
               </div>
+
               <Card size="sm">
                 <CardContent className="flex items-start gap-3">
                   <Images
@@ -1002,7 +1002,7 @@ export function BatchCreateWizard({
                   [
                     english ? "Video route" : "视频线路",
                     videoRouteId === "buddy"
-                      ? (english ? "Shuyu partner API · 720P" : "Shuyu 合作接口 · 720P")
+                      ? (english ? "Aivora video route · Seedance 2.0 · 720P" : "Aivora 视频通道 · Seedance 2.0 · 720P")
                       : (english ? "Official direct route" : "官方直连线路"),
                   ],
                   [

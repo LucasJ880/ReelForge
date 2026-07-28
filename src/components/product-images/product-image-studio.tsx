@@ -217,10 +217,10 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between gap-4">
               <CardTitle>{copy.workbench}</CardTitle>
-              <span className="studio-label text-muted-foreground">Shuyu Image 2</span>
+              <span className="studio-label text-muted-foreground">Image 2</span>
             </div>
             <p className="text-meta text-muted-foreground">
-              {english ? "Reference image optional · audited Shuyu route" : "参考图可选 · 已审计 Shuyu 线路"}
+              {english ? "Reference image optional · audited generation route" : "参考图可选 · 已审计生成线路"}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -358,7 +358,7 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
               </div>
             ) : activeJob ? (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center" aria-live="polite">
-                <Loader2 className="size-7 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden /><p className="font-medium">{copy.processing}</p><p className="text-meta text-muted-foreground">Shuyu · {activeJob.resolutionSnapshot ?? resolution}</p>
+                <Loader2 className="size-7 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden /><p className="font-medium">{copy.processing}</p><p className="text-meta text-muted-foreground">Aivora · {activeJob.resolutionSnapshot ?? resolution}</p>
               </div>
             ) : (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center"><ImageIcon className="size-7 text-muted-foreground" aria-hidden /><p className="font-medium">{copy.emptyTitle}</p><p className="max-w-sm text-body text-muted-foreground">{copy.emptyBody}</p></div>

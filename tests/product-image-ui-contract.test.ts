@@ -2,14 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("active image UI is one Shuyu workbench with optional reference and compact settings", async () => {
+test("active image UI is one Aivora workbench with optional reference and compact settings", async () => {
   const source = await readFile(
     "src/components/product-images/product-image-studio.tsx",
     "utf8",
   );
   assert.doesNotMatch(source, /setMode|\[mode,/);
   assert.doesNotMatch(source, /GPT Image 2/);
-  assert.match(source, /Shuyu Image 2/);
+  assert.match(source, />Image 2</);
+  assert.match(source, /Aivora/);
   assert.match(source, /sourceAssetId/);
   assert.match(source, /resolution/);
   assert.match(source, /resultCount/);

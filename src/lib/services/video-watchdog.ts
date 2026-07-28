@@ -8,7 +8,8 @@
  * GitHub Actions cron + sweep-service 降级为纯兜底。
  *
  * 双信号（INV-1）：
- *   信号 A（硬超时）  ：now > timeoutAt + 宽限        → FAILED reason=timeout
+ *   信号 A（硬超时）  ：now > timeoutAt + 宽限        → 最终查询一次 Provider；
+ *                                                   不可达才 FAILED
  *   信号 B（provider 僵死）：provider 仍报 running，但其 updated_at 距 created_at
  *     从未推进，且任务已存在超过 N 分钟                → FAILED reason=provider_stalled
  *
@@ -19,7 +20,7 @@
  * 旧默认 8 分钟曾在批量验收中误杀 3 条健康任务（已付费、供应商侧照常完成）。
  *
  * 环境变量（分钟，均可配置）：
- *   VIDEO_JOB_DEADLINE_MIN   全局 deadline，默认 10（兼容旧 SEEDANCE_TIMEOUT_MIN）
+ *   VIDEO_JOB_DEADLINE_MIN   全局 deadline，默认 30（兼容旧 SEEDANCE_TIMEOUT_MIN）
  *   WATCHDOG_GRACE_MIN       信号 A 的宽限期，默认 2
  *   PROVIDER_STALL_MIN       信号 B 的僵死阈值，默认 30（必须 > 正常生成时长上限）
  */
@@ -43,11 +44,19 @@ export const WATCHDOG_TIMEOUT_USER_ERROR =
 export const WATCHDOG_STALLED_USER_ERROR =
   "视频生成服务长时间无响应，已自动停止。点击「重试」重新生成。";
 
+/**
+ * 单条视频的全局 deadline（分钟）。
+ *
+ * 默认从 10 提到 30：0728 真机实测合作方渲染一条 15s 视频排队 + 出片可超过
+ * 16 分钟，旧默认值会在供应商仍在正常渲染时判死，客户拿不到片子、积分照扣。
+ * 看门狗在判死前还会再问一次供应商（见 reconcileVideoJob 的信号 A），
+ * 这里的放宽只是让正常慢渲染不必依赖那层兜底。
+ */
 export function videoJobDeadlineMin(): number {
   return Number(
     process.env.VIDEO_JOB_DEADLINE_MIN ??
       process.env.SEEDANCE_TIMEOUT_MIN ??
-      "10",
+      "30",
   );
 }
 
@@ -60,7 +69,7 @@ export function providerStallMin(): number {
 }
 
 /**
- * 信号 A：硬超时。timeoutAt + 宽限已过仍非终态。
+ * 信号 A：硬超时阈值。timeoutAt + 宽限已过仍非终态时触发最终 Provider 查询。
  * timeoutAt 为 null 的旧任务由 sweep 的 createdAt 兜底路径处理（保持既有行为）。
  */
 export function isPastHardDeadline(

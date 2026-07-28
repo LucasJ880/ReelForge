@@ -13,7 +13,8 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { applyBrandOverlay } from "@/lib/video-generation/brand-overlay-renderer";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
-import { runFfmpegNormalizeAndConcat } from "@/lib/services/stitch-service";
+import { runFfmpegNormalizeAndConcatWithPostProduction } from "@/lib/services/stitch-service";
+import type { PostProductionPlan } from "@/types/video-generation";
 import {
   DEFAULT_TAIL_TRIM_SECONDS,
   trimVideoTail,
@@ -49,6 +50,11 @@ export type BrandPackagingOptions = {
   logoPlacement?: "top-left" | "top-right" | "bottom-left" | "bottom-right";
   endCardDurationSeconds?: number;
   aspectRatio?: "9:16" | "16:9";
+  /**
+   * 批次级后期（口播 / BGM / 字幕）。与 logo/尾卡在同一次 ffmpeg 归一化里烧录，
+   * 避免二次转码掉画质。null / 省略 = 不做后期，输出干净视频。
+   */
+  postProduction?: PostProductionPlan | null;
 };
 
 export type BrandPackagingInput = {
@@ -137,6 +143,7 @@ export async function applyClientBrandPackaging(
   const includeEndCard = opts.includeEndCard ?? true;
   const tailTrim = opts.tailTrimSeconds ?? DEFAULT_TAIL_TRIM_SECONDS;
   const aspectRatio = opts.aspectRatio ?? "9:16";
+  const postProduction = opts.postProduction ?? null;
   const isSunnyShutter = input.clientProfileId === "sunnyshutter";
 
   if (!isSunnyShutter && !input.custom) {
@@ -197,26 +204,33 @@ export async function applyClientBrandPackaging(
         : `file://${resolve(input.custom!.logoPath)}`,
     });
     if (!endCard?.url) throw new Error("end card render failed");
-    finalUrl = await runFfmpegNormalizeAndConcat({
-      finalVideoId: `${input.outputId}-branded`,
-      aspectRatio,
-      clips: [
-        { url: workingUrl, intendedDurationSec: null, trimToFit: false },
-        {
-          url: endCard.url,
-          intendedDurationSec: plan.endCardDurationSeconds,
-          trimToFit: true,
-        },
-      ],
-    });
+    finalUrl = (
+      await runFfmpegNormalizeAndConcatWithPostProduction({
+        finalVideoId: `${input.outputId}-branded`,
+        aspectRatio,
+        clips: [
+          { url: workingUrl, intendedDurationSec: null, trimToFit: false },
+          {
+            url: endCard.url,
+            intendedDurationSec: plan.endCardDurationSeconds,
+            trimToFit: true,
+          },
+        ],
+        postProduction,
+      })
+    ).stitchedVideoUrl;
     endCardApplied = true;
-  } else if (includeLogo) {
-    // 只有 logo 没尾卡：归一化输出保证成片规格一致
-    finalUrl = await runFfmpegNormalizeAndConcat({
-      finalVideoId: `${input.outputId}-branded`,
-      aspectRatio,
-      clips: [{ url: workingUrl, intendedDurationSec: null, trimToFit: false }],
-    });
+  } else if (includeLogo || postProduction) {
+    /// 只有 logo、或只要后期时也走一次归一化：保证成片规格一致，
+    /// 且字幕/BGM/口播与有尾卡分支烧录在同一条链路上。
+    finalUrl = (
+      await runFfmpegNormalizeAndConcatWithPostProduction({
+        finalVideoId: `${input.outputId}-branded`,
+        aspectRatio,
+        clips: [{ url: workingUrl, intendedDurationSec: null, trimToFit: false }],
+        postProduction,
+      })
+    ).stitchedVideoUrl;
   }
 
   const localPath = resolve(input.outputDir, `${input.outputId}-branded.mp4`);

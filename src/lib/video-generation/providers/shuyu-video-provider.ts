@@ -140,6 +140,9 @@ export class ShuyuVideoProvider implements VideoProvider {
       );
     }
 
+    /// Shuyu 代理会拒绝显式 generate_audio 字段，因此不把 options.generateAudio
+    /// 写入请求体。原生口播意图已经包含在 prompt 的 Dialogue / Audio 指令里；
+    /// 历史原始成片证明代理在省略开关时仍可返回自带音轨的视频。
     const created = await createShuyuVideoTask({
       ...this.options,
       providerRequestKey: requestKey,
@@ -148,7 +151,6 @@ export class ShuyuVideoProvider implements VideoProvider {
       duration,
       aspectRatio: options.aspectRatio ?? "9:16",
       inputImages,
-      generateAudio: options.generateAudio ?? false,
     });
     return { providerJobId: created.taskId, providerId: this.id };
   }

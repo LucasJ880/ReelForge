@@ -78,7 +78,7 @@ export function StoryboardWorkflowPanel({
                 {english ? "Review your storyboard" : "确认视频故事板"}
               </h2>
               <span className="rounded-full border border-border bg-card px-2 py-0.5 font-mono text-[11px] text-muted-foreground">
-                Shuyu Image 2
+                Image 2
               </span>
             </div>
             <p className="mt-1 text-meta text-muted-foreground">

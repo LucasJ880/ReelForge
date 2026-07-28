@@ -26,12 +26,24 @@ export default async function PlatformTemplatesPage() {
   const copy = getPlatformCopy(locale).templates;
   return (
     <div className="editorial-page-stack">
-      <header className="studio-hero max-w-5xl space-y-3">
-        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
-        <h1 className="editorial-display">{copy.title}</h1>
-        <p className="max-w-3xl text-body text-muted-foreground">{copy.subtitle}</p>
+      {/* 主操作与标题同排：此前它单独占一行，白白吃掉一整屏高度。 */}
+      <header className="studio-hero flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-3xl space-y-3">
+          <p className="studio-label text-muted-foreground">{copy.kicker}</p>
+          <h1 className="editorial-display">{copy.title}</h1>
+          <p className="text-body text-muted-foreground">{copy.subtitle}</p>
+        </div>
+        {templates.length > 0 ? (
+          <Button
+            render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />}
+            variant="outline"
+            className="shrink-0"
+          >
+            {copy.recommended}
+            <ArrowRight aria-hidden />
+          </Button>
+        ) : null}
       </header>
-      {templates.length > 0 ? <div className="flex justify-end"><Button render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />} variant="outline">{copy.recommended}<ArrowRight aria-hidden /></Button></div> : null}
       {templates.length === 0 ? (
         <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">
           <p className="text-body text-muted-foreground">{copy.preparing}</p>

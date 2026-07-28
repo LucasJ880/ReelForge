@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { LOGO_STYLE_KEYS, type LogoStyleKey } from "@/lib/services/logo-service";
+import { LOGO_STYLE_KEYS, type LogoStyleKey } from "@/lib/services/logo-style-keys";
 import { cn } from "@/lib/utils";
 
 const STYLE_KEY_TO_I18N: Record<LogoStyleKey, string> = {

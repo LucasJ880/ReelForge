@@ -106,48 +106,60 @@ test("Shuyu provider sends the exact documented body and persisted Idempotency-K
     duration: 10,
     aspect_ratio: "9:16",
     input_images: ["https://example.com/product.jpg"],
-    generate_audio: false,
   });
   assert.doesNotMatch(String(submission.init?.body), /resolution/);
 });
 
-test("Shuyu Seedance forwards native audio generation explicitly", async () => {
+test("Shuyu omits unsupported generate_audio while preserving the audio prompt", async () => {
+  /// 0728 真机实测：带上 generate_audio 会整条被拒
+  ///   `提交被拒绝: Unknown request field: generate_audio.`
+  /// 历史 Shuyu 原片同时证明：省略该字段时，上游会按 prompt 生成原生口播。
   const submissions: Array<Record<string, unknown>> = [];
+  const fetchStub: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (url.endsWith("/health")) {
+      return new Response(JSON.stringify(healthPayload), { status: 200 });
+    }
+    if (url.endsWith("/prices")) {
+      return new Response(JSON.stringify(pricePayload), { status: 200 });
+    }
+    if (url.endsWith("/account/balance")) {
+      return new Response(JSON.stringify(fundedPayload), { status: 200 });
+    }
+    submissions.push(JSON.parse(String(init?.body)) as Record<string, unknown>);
+    return new Response(JSON.stringify({ task_id: "task_opaque-1" }), { status: 201 });
+  };
   const provider = new ShuyuVideoProvider("studio-video", {
+    fetchImpl: fetchStub,
     env: { SHUYU_API_KEY: "configured" },
-    fetchImpl: async (input, init) => {
-      const url = String(input);
-      if (url.endsWith("/health")) {
-        return new Response(JSON.stringify(healthPayload), { status: 200 });
-      }
-      if (url.endsWith("/prices")) {
-        return new Response(JSON.stringify(pricePayload), { status: 200 });
-      }
-      if (url.endsWith("/account/balance")) {
-        return new Response(JSON.stringify(fundedPayload), { status: 200 });
-      }
-      submissions.push(JSON.parse(String(init?.body)));
-      return new Response(JSON.stringify({ task_id: "native-audio-task" }), {
-        status: 201,
-      });
-    },
   });
 
   await provider.createVideoJob({
     providerRequestKey: "native-audio-attempt-1",
-    prompt: 'Spoken dialogue (voice only, exact wording, zh-CN, warm confident): "现在开始。"',
+    prompt: "Spoken dialogue requested by the caller.",
     durationSec: 5,
+    model: "studio-video",
     generateAudio: true,
   });
   await provider.createVideoJob({
     providerRequestKey: "silent-video-attempt-1",
     prompt: "Product beauty shot with room ambience.",
     durationSec: 5,
+    model: "studio-video",
     generateAudio: false,
   });
 
-  assert.equal(submissions[0]?.generate_audio, true);
-  assert.equal(submissions[1]?.generate_audio, false);
+  for (const body of submissions) {
+    assert.ok(
+      !("generate_audio" in body),
+      "generate_audio 不得出现在 Shuyu 请求体中，无论调用方是否请求",
+    );
+  }
+  assert.equal(
+    submissions[0]?.prompt,
+    "Spoken dialogue requested by the caller.",
+    "原生口播指令必须原样保留在 prompt 中",
+  );
 });
 
 test("Shuyu status mapping waits through refund states and only fails after refunded", async () => {

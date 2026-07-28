@@ -526,7 +526,7 @@ export function BatchMonitor({
                   {job.status === "QUEUED" ? (
                     <p className="truncate text-meta text-muted-foreground">
                       {job.storyboard?.status === "APPROVED"
-                        ? (english ? "Storyboard locked · waiting for Shuyu video" : "故事板已锁定 · 等待 Shuyu 视频")
+                        ? (english ? "Storyboard locked · waiting for Aivora video" : "故事板已锁定 · 等待 Aivora 视频")
                         : job.storyboard
                           ? (english ? `Image 2 storyboard · ${job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/4` : `Image 2 故事板 · ${job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/4`)
                           : (english ? "Waiting for Image 2 storyboard" : "等待 Image 2 故事板")}
@@ -577,7 +577,7 @@ export function BatchMonitor({
                   {[
                     english ? "1 · Product uploaded" : "1 · 产品图已上传",
                     english ? "2 · Image 2 storyboard" : "2 · Image 2 故事板",
-                    english ? "3 · Shuyu video" : "3 · Shuyu 视频生成",
+                    english ? "3 · Aivora video" : "3 · Aivora 视频生成",
                     english ? "4 · Delivery" : "4 · 成片交付",
                   ].map((label, index) => (
                     <li key={label} className="rounded-(--radius-sm) border border-border bg-card px-3 py-2">

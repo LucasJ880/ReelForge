@@ -130,19 +130,20 @@
       var(--bg);
   }
 
+  /* 页面标题由排版承载，不再套卡片。
+   * 此前 hero 是带渐变与橙色竖条的完整盒子，页面一打开就先看到一个大色块，
+   * 内容区反而被压到下面；去掉盒子后垂直空间还给真正的内容，整体也不再「模块感」重。
+   * 强调改用一条短促的顶部标尺，保留品牌色但不喧宾夺主。 */
   .studio-hero {
     position: relative;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background: linear-gradient(135deg, var(--surface-raised), var(--surface) 62%);
-    padding: var(--space-8);
+    padding-top: var(--space-5);
   }
 
   .studio-hero::before {
     position: absolute;
-    inset: 0 auto 0 0;
-    width: 3px;
+    inset: 0 auto auto 0;
+    width: 28px;
+    height: 2px;
     content: "";
     background: var(--accent);
   }
@@ -151,6 +152,7 @@
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: linear-gradient(180deg, var(--surface-raised), var(--surface) 5rem);
+    box-shadow: var(--shadow-card);
   }
 
   .auth-grid {

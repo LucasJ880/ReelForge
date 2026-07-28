@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         {
           id: "buddy",
           provider: "shuyu",
-          displayName: "合作方 Shuyu · Seedance 720P",
+          displayName: "Aivora 视频通道 · Seedance 720P",
           model: SHUYU_VIDEO_MODEL,
           resolution: SHUYU_VIDEO_RESOLUTION,
           configured: shuyu.configured,

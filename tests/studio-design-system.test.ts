@@ -10,16 +10,16 @@ test("Studio theme：批准的中性深色 token 与字体角色完整落地", a
     read("src/app/layout.tsx"),
   ]);
   for (const token of [
-    "--bg: #101015",
-    "--surface: #18181f",
-    "--surface-raised: #22222b",
-    "--border: #32323d",
-    "--text-primary: #f3f2f6",
-    "--text-secondary: #a7a5b0",
+    "--bg: #121011",
+    "--surface: #1a1718",
+    "--surface-raised: #241f21",
+    "--border: #37302f",
+    "--text-primary: #f5f2f0",
+    "--text-secondary: #a9a19d",
     "--accent: #ff4d00",
-    "--success: #4caf7d",
-    "--warning: #e8b84b",
-    "--danger: #e0574f",
+    "--success: #4fb582",
+    "--warning: #e8b34b",
+    "--danger: #e35a4d",
   ]) assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   // 0721 起登录面与 Studio 共用同一深色块。
   assert.match(

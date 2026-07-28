@@ -53,6 +53,7 @@ import {
 } from "./historical-dispatch-quarantine";
 import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
 import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
+import type { BatchPostProductionInput } from "@/lib/schemas/unified-input";
 import {
   createVideoRouteSnapshot,
   readVideoRouteSnapshot,
@@ -66,8 +67,10 @@ import {
 import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
 import {
   attachStoryboardToVideoJob,
+  canRegenerateStoryboardFrame,
   createStoryboardRun,
   reconcileStoryboardRun,
+  regenerateStoryboardFrame,
   requireApprovedStoryboardForVideoJob,
 } from "@/lib/video-generation/storyboard-service";
 
@@ -305,6 +308,8 @@ export interface CreateBatchInput {
   idempotencyKey: string;
   videoRouteId?: unknown;
   isInternalStaff?: boolean;
+  /// 批次级后期（口播 / BGM / 字幕），整批共用；null/省略 = 干净视频。
+  postProduction?: BatchPostProductionInput | null;
 }
 
 function batchRequestHash(
@@ -318,6 +323,9 @@ function batchRequestHash(
       images: input.images,
       requestedCount: input.requestedCount,
       productName: input.productName?.trim() || null,
+      /// 后期设置改变成片，必须进哈希，否则同一幂等键换配置会被误判为重放。
+      /// 仅在非空时并入：不选后期的批次沿用历史哈希，旧批次重放不会假冲突。
+      ...(input.postProduction ? { postProduction: input.postProduction } : {}),
     },
     videoRouteSnapshot,
   );
@@ -351,7 +359,28 @@ function assertBatchReplayMatches(
   if (!legacyMatches) throw new BatchIdempotencyConflictError();
 }
 
-function templateSnapshot(template: StyleTemplate): Prisma.InputJsonValue {
+/**
+ * 批次级后期在快照里的命名空间键。
+ *
+ * 后期设置本属于批次而非单条，理想位置是 BatchJob 上的一列；但生产库的 DDL
+ * 需要 neondb_owner，而运行时角色只有 DML 权限（见 docs/roadmap 记录）。
+ * 因此随不可变的模板快照一起写进每条 VideoJob：同批次所有行值相同，
+ * 语义仍是「整批共用一套后期」，且天然获得与模板快照一致的可溯源性。
+ * 加 `__` 前缀与模板自身字段区隔，读取方按 schema 校验，失败即视为无后期。
+ */
+const BATCH_POST_PRODUCTION_KEY = "__batchPostProduction" as const;
+
+export function readBatchPostProductionFromSnapshot(
+  snapshot: unknown,
+): unknown {
+  if (!snapshot || typeof snapshot !== "object") return null;
+  return (snapshot as Record<string, unknown>)[BATCH_POST_PRODUCTION_KEY] ?? null;
+}
+
+function templateSnapshot(
+  template: StyleTemplate,
+  postProduction?: BatchPostProductionInput | null,
+): Prisma.InputJsonValue {
   return json({
     id: template.id,
     slug: template.slug,
@@ -363,6 +392,7 @@ function templateSnapshot(template: StyleTemplate): Prisma.InputJsonValue {
     negativePrompt: template.negativePrompt,
     lockedParams: template.lockedParams,
     imagesPerVideo: template.imagesPerVideo,
+    ...(postProduction ? { [BATCH_POST_PRODUCTION_KEY]: postProduction } : {}),
   });
 }
 
@@ -374,6 +404,7 @@ export function buildBatchVideoRows(args: {
   productName?: string | null;
   provider: VideoProvider;
   videoRouteSnapshot?: VideoRouteSnapshot;
+  postProduction?: BatchPostProductionInput | null;
 }): Prisma.VideoJobCreateManyInput[] {
   const assignments = allocateAssets({
     batchId: args.batchId,
@@ -382,7 +413,7 @@ export function buildBatchVideoRows(args: {
     templateId: `${args.template.id}@${args.template.version}`,
     imagesPerVideo: parseImagesPerVideo(args.template.imagesPerVideo),
   });
-  const snapshot = templateSnapshot(args.template);
+  const snapshot = templateSnapshot(args.template, args.postProduction);
 
   return assignments.map((assignment) => ({
     batchJobId: args.batchId,
@@ -538,6 +569,7 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
         productName: input.productName,
         provider,
         videoRouteSnapshot,
+        postProduction: input.postProduction,
       });
       if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
         const negativePrompt = template.negativePrompt?.trim();
@@ -1079,7 +1111,71 @@ function batchStoryboardSpec(job: VideoJob): {
   };
 }
 
+/**
+ * 批量场景下故事板帧的自动重投上限。
+ *
+ * 单条创作里失败帧由用户在故事板界面手动重生成；批量没有人盯着，
+ * 因此这里代为重试。上限存在的意义是：供应商真的长时间不可用时，
+ * 批次应当以失败收敛，而不是无限重投烧积分。
+ */
+const BATCH_FRAME_MAX_ATTEMPTS = 3;
+
+/**
+ * 把「确定未创建且已退款」的失败帧重投一次。
+ *
+ * 0728 真机实测：Shuyu 线路繁忙会对部分帧回 502「积分已退回」，4 帧里 3 帧
+ * 因此失败、整个故事板 FAILED，而派发闸门要求 storyboardRun=APPROVED，
+ * 于是批次永久停在 QUEUED 无人推进。canRegenerateStoryboardFrame 已能识别
+ * 这类可安全重投的帧（REJECTED / refunded），批量路径据此自愈。
+ */
+async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
+  const runs = await db.storyboardRun.findMany({
+    where: { videoJob: { batchJobId: batchId }, status: "FAILED" },
+    select: {
+      id: true,
+      userId: true,
+      frames: {
+        where: { isCurrent: true, status: "FAILED" },
+        select: {
+          id: true,
+          attempt: true,
+          status: true,
+          submissionState: true,
+          lastProviderStatus: true,
+        },
+      },
+    },
+    take: providerConcurrency(),
+  });
+
+  for (const run of runs) {
+    const retryable = run.frames.filter(
+      (frame) =>
+        frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
+        canRegenerateStoryboardFrame(frame),
+    );
+    /// 存在无法安全重投的帧（计费状态未确认）时整条留给人工，不碰。
+    if (retryable.length === 0 || retryable.length !== run.frames.length) continue;
+    for (const frame of retryable) {
+      await regenerateStoryboardFrame({
+        userId: run.userId,
+        runId: run.id,
+        frameId: frame.id,
+      }).catch((error) => {
+        console.warn(JSON.stringify({
+          evt: "batch_frame_retry_failed",
+          batchId,
+          runId: run.id,
+          frameId: frame.id,
+          error: (error as Error).message.slice(0, 200),
+        }));
+      });
+    }
+  }
+}
+
 async function advanceBatchStoryboards(batchId: string): Promise<void> {
+  await retryRecoverableBatchFrames(batchId);
   const runs = await db.storyboardRun.findMany({
     where: {
       videoJob: { batchJobId: batchId },
@@ -1196,9 +1292,9 @@ async function reconcileRunningBatchJobs(batchId: string): Promise<void> {
 /**
  * A batch that is no longer being viewed must not permanently consume every
  * global provider slot. Reconcile only jobs that are already beyond the hard
- * deadline; reconcileVideoJob will take the no-provider-call watchdog path and
- * CAS them to FAILED. This keeps the global concurrency guard strict without
- * allowing abandoned jobs to deadlock every later customer batch.
+ * deadline; reconcileVideoJob performs one final provider query, then either
+ * collects/keeps a confirmed live task or CAS-fails an unreachable one. This
+ * keeps the global concurrency guard strict without discarding paid slow jobs.
  */
 async function expireHardDeadlineProviderSlots(
   provider: VideoProvider,

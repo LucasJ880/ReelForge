@@ -179,9 +179,11 @@ test("direct service submits and polls Shuyu from the persisted route snapshot",
     new Headers(post.init?.headers).get("idempotency-key"),
     persisted.providerRequestKey,
   );
-  assert.equal(
-    JSON.parse(String(post.init?.body)).generate_audio,
-    true,
+  /// Shuyu 代理不接受 generate_audio（0728 真机：带上会整条被拒），但省略
+  /// 字段时会按 prompt 生成原生口播；因此只省略开关，不能改走外部 TTS。
+  assert.ok(
+    !("generate_audio" in JSON.parse(String(post.init?.body))),
+    "generate_audio 不得出现在 Shuyu 请求体中",
   );
 
   const reconciled = await reconcileVideoJob(String(persisted.id));

@@ -40,6 +40,7 @@ export default async function PlatformBrandsPage() {
           brandName: item.brandName,
           logoUrl: item.logoAsset.url,
           scope: item.scope,
+          clientProfileId: item.clientProfileId,
         }))}
       />
       <BrandPackageManager

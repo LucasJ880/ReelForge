@@ -147,7 +147,24 @@ test("native customer voiceover stays on Shuyu and never imports sealed Volc TTS
     "src/lib/video-generation/prompt-intelligence.ts",
     "utf8",
   );
-  assert.doesNotMatch(shuyuProvider, /volc-tts|submitTts|synthesizeSpeech/);
+  const stitchService = await readFile(
+    "src/lib/services/stitch-service.ts",
+    "utf8",
+  );
+  assert.doesNotMatch(
+    shuyuProvider,
+    /volc-tts|openai-tts|submitTts|synthesizeSpeech|synthesizeVoiceover/,
+  );
   assert.doesNotMatch(promptIntelligence, /volc-tts|submitTts|synthesizeSpeech/);
+  assert.doesNotMatch(
+    stitchService,
+    /volc-tts|openai-tts|submitTts|synthesizeSpeech|synthesizeVoiceover/,
+    "Shuyu 原生口播不得在拼接阶段被另一家 TTS 替换",
+  );
+  assert.doesNotMatch(
+    shuyuProvider,
+    /route emits silent video|shuyu_native_audio_unsupported/,
+    "代理不接受显式开关不等于上游只产静音视频",
+  );
   assert.match(shuyuProvider, /generateAudio/);
 });

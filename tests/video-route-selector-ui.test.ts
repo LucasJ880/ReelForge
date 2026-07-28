@@ -72,9 +72,9 @@ test("only audited public routes can be selected and dispatch keeps the route in
 test("route copy names both interfaces and marks workbench-only Seedance lines in both languages", async () => {
   const selector = await readFile("src/components/video-generation/video-route-selector.tsx", "utf8");
   assert.match(selector, /火山官方接口/);
-  assert.match(selector, /Shuyu 合作接口/);
-  assert.match(selector, /工作台其它 Seedance 线路/);
+  assert.match(selector, /Aivora 视频通道/);
+  assert.match(selector, /其它 Seedance 线路/);
   assert.match(selector, /Volcengine official/);
-  assert.match(selector, /Shuyu partner API/);
+  assert.match(selector, /Aivora video route/);
   assert.match(selector, /not exposed by the public API/);
 });

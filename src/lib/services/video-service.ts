@@ -811,7 +811,7 @@ export async function dispatchVideoGeneration(briefId: string) {
  *   而是累加 pollErrors，超过阈值才下线。
  *
  * Watchdog 双信号内联（INV-1/INV-2 等价物，2026-07 事故加固）：
- *   信号 A（硬超时）在调 Provider **之前**判定 —— 即使 Provider 悬挂也能终态化；
+ *   信号 A（硬超时）只做一次最终 Provider 查询，保护已付费但慢渲染的任务；
  *   信号 B（provider 僵死）在拿到 Provider 响应后判定。
  * 两个信号都走 CAS（仍在 RUNNING/QUEUED 才写 FAILED，INV-6 幂等），
  * 并记录结构化状态迁移日志（AC-5）。
@@ -832,22 +832,37 @@ export async function reconcileVideoJob(jobId: string) {
   if (isHistoricalDispatchQuarantined(job)) return job;
 
   const now = new Date();
+  let result: DirectProviderStatus | null = null;
 
-  /// ---- 信号 A：硬超时（不依赖 Provider 可达性） ----
+  /// ---- 信号 A：硬超时 ----
+  /// 判死前必须再问一次供应商。0728 真机实测：合作方渲染一条 15s 视频可超过
+  /// 16 分钟，而 deadline 默认仅 10min + 2min 宽限；先判死再轮询会把**已付费且
+  /// 即将/已经产出**的任务直接丢弃，客户既拿不到片子也白扣积分。
+  /// 查询结果会直接复用，避免同一轮重复请求供应商。
   if (isPastHardDeadline(job, now)) {
-    const failed = await failJobIdempotent(job, {
-      reason: "timeout",
-      errorMessage: `${WATCHDOG_TIMEOUT_PREFIX} 超过全局 deadline（timeoutAt=${job.timeoutAt?.toISOString()} + ${watchdogGraceMin()}min 宽限）仍未终态`,
-      userSafeError: WATCHDOG_TIMEOUT_USER_ERROR,
-      now,
-    });
-    if (failed) return failed;
-    return db.videoJob.findUnique({ where: { id: jobId } });
+    try {
+      result = await fetchVideoJobStatus({
+        provider: job.provider,
+        externalJobId: job.externalJobId,
+        videoRouteSnapshot: job.videoRouteSnapshot,
+        videoModelSnapshot: job.videoModelSnapshot,
+        videoProviderAdapterSnapshot: job.videoProviderAdapterSnapshot,
+      });
+    } catch {
+      /// 供应商此刻不可达 → 无法证明它还在干活，按原策略判超时。
+      const failed = await failJobIdempotent(job, {
+        reason: "timeout",
+        errorMessage: `${WATCHDOG_TIMEOUT_PREFIX} 超过全局 deadline（timeoutAt=${job.timeoutAt?.toISOString()} + ${watchdogGraceMin()}min 宽限）仍未终态`,
+        userSafeError: WATCHDOG_TIMEOUT_USER_ERROR,
+        now,
+      });
+      if (failed) return failed;
+      return db.videoJob.findUnique({ where: { id: jobId } });
+    }
   }
 
-  let result: DirectProviderStatus;
   try {
-    result = await fetchVideoJobStatus({
+    result ??= await fetchVideoJobStatus({
       provider: job.provider,
       externalJobId: job.externalJobId,
       videoRouteSnapshot: job.videoRouteSnapshot,
@@ -905,6 +920,10 @@ export async function reconcileVideoJob(jobId: string) {
           : {}),
       },
     });
+  }
+
+  if (!result) {
+    throw new Error("Provider status fetch completed without a result");
   }
 
   if (result.status === "completed") {

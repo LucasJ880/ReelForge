@@ -388,7 +388,9 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       requestKey: frame.providerRequestKey,
       prompt: frame.prompt,
       aspectRatio: frame.storyboardRun.aspectRatio as "9:16" | "16:9" | "1:1",
-      resolution: "1K",
+      /// 合作方 0728 起下线 1K 档，目录最低为 2K。成本让位于可用性：
+      /// 宁可每帧多几个积分，也不让整条产线因档位缺失而停摆。
+      resolution: "2K",
       inputImages,
       planSnapshot:
         frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null

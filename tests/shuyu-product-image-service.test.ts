@@ -287,7 +287,9 @@ test("one durable task per requested result fails closed on acknowledgement loss
     const providerTasks = args.data.providerTasks as {
       create: Array<Record<string, unknown>>;
     };
-    const { providerTasks: _nested, ...data } = args.data;
+    const data = Object.fromEntries(
+      Object.entries(args.data).filter(([key]) => key !== "providerTasks"),
+    );
     row = {
       id: "job-1",
       status: "QUEUED",

@@ -15,6 +15,9 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { applyClientBrandPackaging } from "@/lib/video-generation/brand-packaging-service";
+import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
+import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
+import type { PostProductionPlan } from "@/types/video-generation";
 import {
   findWorkspaceBrandPackageForUser,
   listWorkspaceBrandPackagesForUser,
@@ -144,10 +147,17 @@ export async function POST(request: Request): Promise<NextResponse> {
   /// 解析封装对象：videoJobId / briefId 需校验归属并在成功后落库。
   let sourceVideoUrl = body.sourceVideoUrl ?? null;
   let persist: (brandedUrl: string) => Promise<void> = async () => {};
+  /// 批次级后期（口播 / BGM / 字幕）随批次走，封装时一并烧录。
+  let postProduction: PostProductionPlan | null = null;
   if (body.videoJobId) {
     const job = await db.videoJob.findFirst({
       where: { id: body.videoJobId, batchJob: { userId: session.user.id } },
-      select: { id: true, status: true, outputVideoUrl: true },
+      select: {
+        id: true,
+        status: true,
+        outputVideoUrl: true,
+        templateSnapshot: true,
+      },
     });
     if (!job) {
       return NextResponse.json({ error: "video job not found" }, { status: 404 });
@@ -159,6 +169,11 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
     sourceVideoUrl = job.outputVideoUrl;
+    /// 校验失败按「无后期」处理：批次仍应产出干净成片，不因后期设置损坏而卡死交付。
+    const parsedPost = postProductionPlanSchema.safeParse(
+      readBatchPostProductionFromSnapshot(job.templateSnapshot),
+    );
+    postProduction = parsedPost.success ? parsedPost.data : null;
     persist = async (brandedUrl) => {
       await db.videoJob.update({
         where: { id: job.id },
@@ -240,6 +255,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         includeLogo: body.includeLogo ?? true,
         includeEndCard: body.includeEndCard ?? true,
         aspectRatio: body.aspectRatio ?? "9:16",
+        postProduction,
       },
       outputDir: workDir,
       outputId: `brand-${Date.now().toString(36)}`,

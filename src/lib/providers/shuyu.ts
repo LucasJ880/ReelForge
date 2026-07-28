@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
   parseShuyuCatalog,
+  selectAuditedImage2Plan,
   type AuditedShuyuImagePlan,
 } from "./shuyu-catalog";
 
@@ -110,19 +111,33 @@ export const shuyuHealthResponseSchema = z
   })
   .strip();
 
-const shuyuErrorSchema = z
+const shuyuErrorDetailSchema = z
   .object({
-    error: z
-      .object({
-        type: boundedIdentifier,
-        message: z.string().trim().min(1).max(500),
-        request_id: z.string().trim().min(1).max(200).optional(),
-        available_points: z.number().int().nonnegative().optional(),
-        required_points: z.number().int().nonnegative().optional(),
-      })
-      .strip(),
+    type: boundedIdentifier,
+    message: z.string().trim().min(1).max(500),
+    request_id: z.string().trim().min(1).max(200).optional(),
+    available_points: z.number().int().nonnegative().optional(),
+    required_points: z.number().int().nonnegative().optional(),
   })
   .strip();
+
+/**
+ * Shuyu 的错误网关存在两种等价形状：
+ * `{ error: { type, message } }` 与 `{ type, message }`。统一归一为前者，
+ * 避免退款确认等计费语义因为网关层差异而丢失。
+ */
+const shuyuErrorSchema = z.preprocess(
+  (value) =>
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    !("error" in value) &&
+    "type" in value &&
+    "message" in value
+      ? { error: value }
+      : value,
+  z.object({ error: shuyuErrorDetailSchema }).strip(),
+);
 
 export const shuyuCreateTaskResponseSchema = z
   .object({
@@ -184,7 +199,15 @@ export interface ShuyuCreateVideoInput extends ShuyuFetchOptions {
   duration: number;
   aspectRatio: string;
   inputImages: string[];
-  /** Seedance native soundtrack and speech generation. Defaults off. */
+  /**
+   * 调用方的原生音频意图；**Shuyu 代理不接受显式开关**，不会进请求体。
+   *
+   * 0728 真机实测：带上该字段会被整条拒绝
+   *   `提交被拒绝: Unknown request field: generate_audio.`
+   * 但历史原始 Shuyu 成片在未发送该字段时确实自带音轨，并会按 prompt
+   * 里的 Dialogue / Audio 指令生成口播。因此这里只省略代理不支持的字段，
+   * 音频意图继续由提示词传给上游，不能改走另一家 TTS。
+   */
   generateAudio?: boolean;
   model?: string;
   /** Defaults to audited `SHUYU_VIDEO_PLAN_ID`. Acceptance may pass Fast VIP. */
@@ -459,6 +482,41 @@ export async function getAvailableShuyuImagePlans(
   return parseShuyuCatalog(prices).imagePlans;
 }
 
+/**
+ * 从供应商实时目录解析图像套餐。
+ *
+ * 合作方会轮换 plan id（源码里 SHUYU_IMAGE_PLAN_ID 旁的注释早已预告
+ * "plan resolution rotates"，但故障转移一直没落地）。0728 真机实测：
+ * 硬编码的主 `image-plan-01` 与备 `image-plan-07` 都已从目录中消失，
+ * 目录只剩 02/03/05/06/08/09 且最低档为 2K —— 于是每一帧提交都被回
+ * `400 model_unavailable`，故事板全灭、批次卡死。注意 /health 仍报
+ * `image: available`，健康检查发现不了这类失配。
+ *
+ * 选取策略：优先满足所需分辨率，同档取积分最低者；请求 1K 时回落到最低可用档
+ * （目录已无 1K）。结果做短缓存，避免每帧都打一次价格表。
+ */
+const IMAGE_PLAN_CACHE_TTL_MS = 5 * 60_000;
+let imagePlanCache: { at: number; plans: AuditedShuyuImagePlan[] } | null = null;
+
+/** 仅供测试：清空套餐缓存。 */
+export function __resetShuyuImagePlanCache(): void {
+  imagePlanCache = null;
+}
+
+export async function resolveShuyuImagePlan(
+  requested: { resolution?: "1K" | "2K" | "4K" } & ShuyuFetchOptions = {},
+): Promise<AuditedShuyuImagePlan> {
+  const now = Date.now();
+  if (!imagePlanCache || now - imagePlanCache.at > IMAGE_PLAN_CACHE_TTL_MS) {
+    imagePlanCache = { at: now, plans: await getAvailableShuyuImagePlans(requested) };
+  }
+  /// 档位回落策略集中在 selectAuditedImage2Plan，避免两处各写一份而漂移。
+  return selectAuditedImage2Plan(
+    { imagePlans: imagePlanCache.plans },
+    requested.resolution ?? "2K",
+  );
+}
+
 export async function getShuyuBalance(
   options: ShuyuFetchOptions = {},
 ): Promise<z.infer<typeof shuyuBalanceResponseSchema>> {
@@ -517,12 +575,34 @@ export async function getShuyuHealth(
   return parsed.data;
 }
 
+/**
+ * Shuyu 在「线路繁忙」时会明确回执已退还积分，例如 0728 真机实测：
+ *   HTTP 502 · {"type":"generation_failed",
+ *               "message":"线路繁忙，请刷新或切换线路后重试。积分已退回。"}
+ *
+ * 这句退款声明是供应商对「本次没有产生任务、也没有计费」的显式确认，
+ * 因而可以安全地当作 definitely_not_created 并重试；否则该帧会停在
+ * ACK_UNKNOWN 永不重投，故事板判失败，整个批次卡在 QUEUED 无人推进。
+ *
+ * 只认这一条显式信号，不放宽全部 5xx —— 未声明退款的 5xx 仍按可能已计费处理。
+ */
+const REFUND_CONFIRMED_PATTERNS = [
+  /积分已退回/,
+  /积分已退还/,
+  /credits?\s+(have\s+been\s+)?refunded/i,
+];
+
+function providerConfirmedRefund(message: string): boolean {
+  return REFUND_CONFIRMED_PATTERNS.some((pattern) => pattern.test(message));
+}
+
 function createSubmissionError(args: {
   response: Response;
   payload: unknown;
 }): ProviderSubmissionError {
   const parsed = shuyuErrorSchema.safeParse(args.payload);
   const status = args.response.status;
+  const rawMessage = parsed.success ? parsed.data.error.message : "";
   const message = parsed.success
     ? safeProviderMessage(parsed.data.error.message)
     : `Shuyu video submission failed (${status})`;
@@ -530,14 +610,16 @@ function createSubmissionError(args: {
   // These documented 4xx responses reject the submitted request. 409 remains
   // acknowledgement-unknown because an idempotency conflict can point to an
   // already-created task whose ID was not returned to this caller.
-  const providerConfirmedNoJob = [400, 401, 402, 403, 404, 429].includes(status);
+  const statusConfirmsNoJob = [400, 401, 402, 403, 404, 429].includes(status);
+  const refunded = providerConfirmedRefund(rawMessage);
   return new ProviderSubmissionError(message, {
     providerId: "shuyu",
     stage: "provider_response",
     httpStatus: status,
     code,
-    providerConfirmedNoJob,
-    retryable: false,
+    providerConfirmedNoJob: statusConfirmsNoJob || refunded,
+    /// 退款已确认 = 重投不会二次计费，允许自动重试把「线路繁忙」熬过去。
+    retryable: refunded,
   });
 }
 
@@ -583,11 +665,17 @@ export async function createShuyuImageTask(
     );
   }
 
+  /// 未显式指定套餐时按实时目录解析：合作方轮换 plan id 后硬编码常量会全量失效。
+  const resolved = input.planId
+    ? null
+    : await resolveShuyuImagePlan({ ...input, resolution: input.resolution });
   const body = {
-    plan_id: input.planId ?? SHUYU_IMAGE_PLAN_ID,
+    plan_id: input.planId ?? resolved!.planId,
     model: input.model ?? SHUYU_IMAGE_MODEL,
     prompt,
-    resolution: input.resolution ?? SHUYU_IMAGE_RESOLUTION,
+    resolution: input.resolution && input.planId
+      ? input.resolution
+      : (resolved?.resolution ?? SHUYU_IMAGE_RESOLUTION),
     aspect_ratio: input.aspectRatio ?? "9:16",
     ...(inputImages.length > 0 ? { input_images: inputImages } : {}),
   };
@@ -677,7 +765,6 @@ export async function createShuyuVideoTask(
     duration: input.duration,
     aspect_ratio: input.aspectRatio,
     input_images: input.inputImages,
-    generate_audio: input.generateAudio ?? false,
   };
   let response: Response;
   let payload: unknown;

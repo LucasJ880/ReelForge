@@ -18,7 +18,7 @@ test("approved theme topology keeps Studio and auth dark, public/operations ligh
   )?.[1] ?? "";
   assert.match(root, /--bg:\s*#fafaf7/i);
   // 0721 决策：登录面与 /app Studio 共用同一深色块，避免登录 → 工作台明暗跳变。
-  assert.match(studio, /--bg:\s*#101015/i);
+  assert.match(studio, /--bg:\s*#121011/i);
   assert.match(tokens, /\.auth-studio-theme\s*\{\s*color-scheme:\s*dark;\s*\}/);
   assert.doesNotMatch(tokens, /color-scheme:\s*light/);
 });

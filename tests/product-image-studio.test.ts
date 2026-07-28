@@ -109,12 +109,13 @@ test("video handoff loads product images with owner-scoped lookup", async () => 
   assert.match(batch, /initialImages/);
 });
 
-test("customer UI exposes one optional-reference Shuyu workbench and video handoffs", async () => {
+test("customer UI exposes one optional-reference Aivora workbench and video handoffs", async () => {
   const [ui, copy] = await Promise.all([
     readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
     readFile("src/i18n/platform-copy.ts", "utf8"),
   ]);
-  assert.match(ui, /Shuyu Image 2/);
+  assert.match(ui, />Image 2</);
+  assert.match(ui, /Aivora/);
   assert.match(ui, /sourceAssetId/);
   assert.match(ui, /resultCount/);
   assert.match(ui, /copy\.useSingle/);

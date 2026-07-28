@@ -14,16 +14,13 @@ import { recordAIUsage } from "./ai-usage-log-service";
  * - mock：缺 OPENAI_API_KEY 或 IMAGE_ENGINE_MOCK=true → 返回占位 URL，不计费。
  */
 
-export const LOGO_STYLE_KEYS = [
-  "modern",
-  "minimal",
-  "luxury",
-  "playful",
-  "tech",
-  "natural",
-  "local",
-] as const;
-export type LogoStyleKey = (typeof LOGO_STYLE_KEYS)[number];
+/// 常量本体在 client-safe 模块，避免客户端组件因取值而拖入 OpenAI/Prisma。
+/// 见 logo-style-keys.ts 顶部说明。
+export {
+  LOGO_STYLE_KEYS,
+  type LogoStyleKey,
+} from "@/lib/services/logo-style-keys";
+import type { LogoStyleKey } from "@/lib/services/logo-style-keys";
 
 export interface GenerateLogoArgs {
   deliveryOrderId: string;

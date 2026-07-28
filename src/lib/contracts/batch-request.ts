@@ -3,6 +3,7 @@ import {
   MAX_BATCH_IMAGE_COUNT,
   MAX_BATCH_VIDEO_COUNT,
 } from "@/lib/contracts/batch-limits";
+import { batchPostProductionSchema } from "@/lib/schemas/unified-input";
 
 export const batchIdempotencyKeySchema = z.string().trim().min(1).max(200);
 
@@ -16,4 +17,6 @@ export const batchCreateRequestSchema = z.object({
   videoRouteId: z
     .enum(["byteplus_international", "volcengine_cn_legacy", "buddy"])
     .optional(),
+  /// 批次级后期（口播 / BGM / 字幕），整批共用；省略 = 输出干净视频。
+  postProduction: batchPostProductionSchema.optional(),
 }).strict();

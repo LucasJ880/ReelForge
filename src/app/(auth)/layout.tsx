@@ -31,13 +31,15 @@ export default async function AuthLayout({
         <LanguageSwitcher variant="inline" className="w-auto min-w-32" />
       </header>
       <main className="relative z-10 mx-auto grid min-h-[calc(100vh-7.5rem)] w-full max-w-7xl items-center gap-12 px-4 py-12 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.72fr)] lg:px-12">
-        <section className="max-w-3xl space-y-7">
+        <section className="max-w-2xl space-y-6">
           <p className="studio-label text-muted-foreground">{copy.kicker}</p>
-          <h1 className="font-heading text-[clamp(2.35rem,5vw,4.75rem)] font-semibold leading-[0.98] tracking-[-0.045em]">
+          {/* 克制的编辑式标题：上限 ~44px。过大的展示字号在登录页显廉价，
+              收小后配紧凑字距更接近成熟 SaaS 工作台的调性。 */}
+          <h1 className="font-heading text-[clamp(1.75rem,3.2vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-balance">
             {copy.titleLead}<br /><span className="text-primary">{copy.titleAccent}</span>
           </h1>
-          <p className="max-w-[34rem] text-body leading-relaxed text-muted-foreground">{copy.subtitle}</p>
-          <dl className="grid grid-cols-3 gap-2 border-t border-border pt-6 sm:gap-4">
+          <p className="max-w-[32rem] text-body leading-relaxed text-muted-foreground">{copy.subtitle}</p>
+          <dl className="grid grid-cols-3 gap-2 border-t border-border pt-5 sm:gap-4">
             <div className="border-l border-border pl-3"><dt className="studio-label text-muted-foreground">{copy.workflow}</dt><dd className="mt-2 font-mono text-body font-semibold">1 → 4</dd></div>
             <div className="border-l border-border pl-3"><dt className="studio-label text-muted-foreground">{copy.trace}</dt><dd className="mt-2 font-mono text-body font-semibold">JOB ID</dd></div>
             <div className="border-l border-border pl-3"><dt className="studio-label text-muted-foreground">{copy.output}</dt><dd className="mt-2 font-mono text-body font-semibold">9:16</dd></div>

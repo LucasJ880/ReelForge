@@ -51,7 +51,7 @@ export function OpsCreditsCluster({ english }: { english: boolean }) {
           if (state.phase === "error") void load();
         }}
         aria-expanded={open}
-        aria-label={english ? "Shuyu credits" : "Shuyu 积分"}
+        aria-label={english ? "Aivora credits" : "Aivora 积分"}
         className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-accent-soft px-3 font-mono text-meta tabular-nums text-foreground"
       >
         {points}

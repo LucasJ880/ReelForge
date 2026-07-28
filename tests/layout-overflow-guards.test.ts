@@ -49,8 +49,8 @@ test("auth hero uses the compact editorial type scale", async () => {
     path.join(ROOT, "src/app/(auth)/layout.tsx"),
     "utf8",
   );
-  assert.match(source, /clamp\(2\.35rem,5vw,4\.75rem\)/);
-  assert.match(source, /max-w-\[34rem\]/);
+  assert.match(source, /clamp\(1\.75rem,3\.2vw,2\.75rem\)/);
+  assert.match(source, /max-w-\[32rem\]/);
   assert.match(source, /font-mono text-body font-semibold/);
 });
 

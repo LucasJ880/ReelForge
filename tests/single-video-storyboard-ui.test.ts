@@ -5,7 +5,7 @@ import test from "node:test";
 const STUDIO = "src/components/video-generation/streamlined-video-studio.tsx";
 const STORYBOARD = "src/components/video-generation/storyboard-workflow-panel.tsx";
 
-test("single video creation exposes the full Shuyu workflow and four-frame approval gate", async () => {
+test("single video creation exposes the full Aivora workflow and four-frame approval gate", async () => {
   const [studio, panel, page] = await Promise.all([
     readFile(STUDIO, "utf8"),
     readFile(STORYBOARD, "utf8"),
@@ -23,7 +23,8 @@ test("single video creation exposes the full Shuyu workflow and four-frame appro
   assert.match(studio, /\$\{encodeURIComponent\(storyboard\.id\)\}\/approve/);
   assert.match(panel, /onRegenerate/);
   assert.match(panel, /onApprove/);
-  assert.match(panel, /Shuyu Image 2/);
+  assert.match(panel, />\s*Image 2\s*</);
+  assert.match(studio, /Aivora 视频通道/);
 
   assert.match(page, /canSelectVideoRoute=\{false\}/);
   assert.match(page, /showInternalVideoRoutes=\{false\}/);

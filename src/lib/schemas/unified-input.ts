@@ -355,6 +355,17 @@ export const postProductionPlanSchema = z.object({
   captions: captionSettingsSchema,
 });
 
+/**
+ * 批次级后期设置：口播 / BGM / 字幕，整批统一。
+ *
+ * 形状与单条完全一致（复用 postProductionPlanSchema），语义上是「一次投放共用一套后期」：
+ * 同一产品、同一模板的一批广告本就是同一段口播配不同画面，这也是真实投放的常规做法，
+ * 且脚本由用户一次写定 —— 无即兴生成，符合 INV-B1 的确定性要求。
+ */
+export const batchPostProductionSchema = postProductionPlanSchema;
+
+export type BatchPostProductionInput = z.infer<typeof batchPostProductionSchema>;
+
 export const videoGenerationPlanSchema = z.object({
   id: z.string(),
   inputClassification: inputClassificationSchema,

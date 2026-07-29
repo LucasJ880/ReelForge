@@ -8,6 +8,7 @@ import {
 import { getServerSession } from "next-auth";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/providers/session-provider";
+import { SessionExpiryWatcher } from "@/components/providers/session-expiry-watcher";
 import { I18nProvider } from "@/i18n/I18nProvider";
 import { getServerLocale } from "@/i18n/server";
 import { authOptions } from "@/lib/auth";
@@ -65,6 +66,7 @@ export default async function RootLayout({
       <body className="h-full antialiased">
         <AuthProvider session={session}>
           <I18nProvider initialLocale={locale}>
+            <SessionExpiryWatcher />
             {children}
             <Toaster richColors position="top-right" />
           </I18nProvider>

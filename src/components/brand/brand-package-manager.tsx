@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { Check, Loader2, LockKeyhole, PackagePlus, Pencil, Upload } from "lucide-react";
+import { BrandLogo } from "@/components/brand/brand-logo";
 import { LogoGeneratorDialog } from "@/components/wizard/logo-generator-dialog";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Badge } from "@/components/ui/badge";
@@ -365,9 +366,11 @@ function PackageCards({
       {packages.map((item) => (
         <article key={item.id} className="min-w-0 rounded-(--radius-lg) border border-border bg-card p-4">
           <div className="flex items-start gap-3">
-            <div className="relative size-14 shrink-0 overflow-hidden rounded-(--radius-md) border border-border bg-white">
-              <Image src={item.logoAsset.url} alt="" fill unoptimized className="object-contain" />
-            </div>
+            <BrandLogo
+              src={item.logoAsset.url}
+              brandName={item.brandName}
+              className="size-14 shrink-0 rounded-(--radius-md) border border-border bg-white"
+            />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h3 className="truncate font-heading text-subhead font-semibold">{item.name}</h3>

@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowRight,
   CheckCircle2,
+  Clapperboard,
   Download,
   ImageIcon,
+  Layers,
   Loader2,
   Pencil,
   RefreshCw,
@@ -61,6 +62,14 @@ export interface ProductImageJobDto {
   createdAt: string;
 }
 
+/** 下载文件名：`aivora-product-image-<序号>.<扩展名>`，比对象存储的哈希名更可读 */
+function outputFileName(output: ProductImageOutputDto, mimeType: string): string {
+  const fromUrl = output.url.split("?")[0].split("#")[0].split(".").pop();
+  const fromMime = mimeType.split("/")[1];
+  const extension = (fromUrl && fromUrl.length <= 4 ? fromUrl : fromMime) || "png";
+  return `aivora-product-image-${output.position + 1}.${extension}`;
+}
+
 const PRESET_IDS = ["white_studio", "lifestyle", "luxury", "social", "macro"] as const;
 const ASPECTS = ["1:1", "4:5", "9:16", "16:9"] as const;
 const RESOLUTIONS = ["1K", "2K", "4K"] as const;
@@ -82,6 +91,7 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [requestKey, setRequestKey] = useState(() => crypto.randomUUID());
 
   const sourcePreview = useMemo(
@@ -196,6 +206,35 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
       setError((reason as Error).message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  /**
+   * 成品图托管在对象存储上（跨域），`<a download>` 的 download 属性会被浏览器
+   * 忽略 —— 点击只会跳去打开图片，用户感知就是「下不了」。这里先取回字节再用
+   * object URL 触发真正的下载；取不回时退回新标签页打开并提示。
+   */
+  async function downloadOutput(output: ProductImageOutputDto) {
+    setDownloadingId(output.id);
+    setError(null);
+    try {
+      const response = await fetch(output.url, { cache: "no-store" });
+      if (!response.ok) throw new Error(String(response.status));
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = outputFileName(output, blob.type);
+      document.body.append(anchor);
+      anchor.click();
+      anchor.remove();
+      /// 立刻 revoke 会让部分浏览器拿不到字节，留一拍再回收
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 10_000);
+    } catch {
+      window.open(output.url, "_blank", "noopener,noreferrer");
+      setError(copy.downloadFailed);
+    } finally {
+      setDownloadingId(null);
     }
   }
 
@@ -320,24 +359,66 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                         <Image src={output.url} alt={english ? `Generated product image ${output.position + 1}` : `生成产品图 ${output.position + 1}`} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-contain" unoptimized />
                         <AiGeneratedLabel className="absolute bottom-2 left-2" />
                       </div>
-                      <div className="grid grid-cols-5 gap-2">
-                        <a href={output.url} download className={buttonVariants({ variant: "outline", size: "sm" })} aria-label="download"><Download aria-hidden /></a>
-                        <Button type="button" variant="outline" size="sm" aria-label="variation" disabled={!output.asset} onClick={() => continueWithOutput(output, true)}><RefreshCw aria-hidden /></Button>
-                        <Button type="button" variant="outline" size="sm" aria-label="edit" disabled={!output.asset} onClick={() => continueWithOutput(output, false)}><Pencil aria-hidden /></Button>
-                        {output.handoffId ? (
-                          <Link href={`/app/create?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label={copy.useSingle}><ArrowRight aria-hidden /><span className="sr-only">{copy.useSingle}</span></Link>
-                        ) : <Button type="button" variant="outline" size="sm" aria-label="single-video" disabled><ArrowRight aria-hidden /></Button>}
-                        {output.handoffId ? (
-                          <Link href={`/app/batches/new?productImageResultId=${encodeURIComponent(output.handoffId)}`} className={buttonVariants({ variant: "outline", size: "sm" })} aria-label={copy.useBatch}><ArrowRight aria-hidden /><span className="sr-only">{copy.useBatch}</span></Link>
-                        ) : <Button type="button" variant="outline" size="sm" aria-label="batch-video" disabled><ArrowRight aria-hidden /></Button>}
+                      {/* 每个动作都带文字：早期版本是 5 个纯图标按钮（含 3 个箭头），
+                          用户无法判断哪个是下载、哪个进单条 / 批量视频。 */}
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          {output.handoffId ? (
+                            <Link
+                              href={`/app/create?productImageResultId=${encodeURIComponent(output.handoffId)}`}
+                              className={buttonVariants({ size: "sm", className: "justify-center" })}
+                            >
+                              <Clapperboard aria-hidden />{copy.useSingle}
+                            </Link>
+                          ) : (
+                            <Button type="button" size="sm" disabled><Clapperboard aria-hidden />{copy.useSingle}</Button>
+                          )}
+                          {output.handoffId ? (
+                            <Link
+                              href={`/app/batches/new?productImageResultId=${encodeURIComponent(output.handoffId)}`}
+                              className={buttonVariants({ variant: "outline", size: "sm", className: "justify-center" })}
+                            >
+                              <Layers aria-hidden />{copy.useBatch}
+                            </Link>
+                          ) : (
+                            <Button type="button" variant="outline" size="sm" disabled><Layers aria-hidden />{copy.useBatch}</Button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={downloadingId === output.id}
+                            onClick={() => void downloadOutput(output)}
+                          >
+                            {downloadingId === output.id ? (
+                              <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
+                            ) : (
+                              <Download aria-hidden />
+                            )}
+                            {downloadingId === output.id ? copy.downloading : copy.download}
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" disabled={!output.asset} onClick={() => continueWithOutput(output, true)}>
+                            <RefreshCw aria-hidden />{copy.variation}
+                          </Button>
+                          <Button type="button" variant="ghost" size="sm" disabled={!output.asset} onClick={() => continueWithOutput(output, false)}>
+                            <Pencil aria-hidden />{copy.editAgain}
+                          </Button>
+                        </div>
                       </div>
                       {output.historical ? <p className="text-meta text-muted-foreground">{activeJob.historyNotice}</p> : null}
                     </article>
                   ))}
                 </div>
-                <div className="flex flex-wrap items-center gap-3 text-meta">
-                  <span className="inline-flex items-center gap-2 text-success"><CheckCircle2 className="size-4" aria-hidden />{copy.approved}</span>
-                  <span className="font-mono text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts</span>
+                <div className="space-y-2 border-t border-border pt-3">
+                  <p className="text-meta text-muted-foreground">{copy.nextStepHint}</p>
+                  <div className="flex flex-wrap items-center gap-3 text-meta">
+                    <a href="#product-image-history" className="inline-flex items-center gap-2 text-success underline-offset-4 hover:underline">
+                      <CheckCircle2 className="size-4" aria-hidden />{copy.approved}
+                    </a>
+                    <span className="font-mono text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts</span>
+                  </div>
                 </div>
               </div>
             ) : activeJob?.status === "FAILED" ? (
@@ -367,8 +448,16 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
         </Card>
       </div>
 
-      <section aria-labelledby="product-image-history" className="space-y-4">
-        <div><p className="studio-label text-muted-foreground">{copy.historyKicker}</p><h2 id="product-image-history" className="mt-2 font-heading text-title font-semibold">{copy.historyTitle}</h2></div>
+      <section
+        id="product-image-history"
+        aria-labelledby="product-image-history-title"
+        className="scroll-mt-24 space-y-4"
+      >
+        <div className="max-w-2xl">
+          <p className="studio-label text-muted-foreground">{copy.historyKicker}</p>
+          <h2 id="product-image-history-title" className="mt-2 font-heading text-title font-semibold">{copy.historyTitle}</h2>
+          <p className="mt-2 text-body text-muted-foreground">{copy.historySubtitle}</p>
+        </div>
         {jobs.length ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {jobs.map((job) => (

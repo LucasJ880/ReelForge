@@ -200,6 +200,8 @@ const ZH_COPY = {
   generating: "正在提交…",
   stickySummary: "{count} 张产品图 · {ratio} · {duration} 秒",
   readyHint: "失败任务会按系统规则处理，不会因为重复点击产生重复提交。",
+  cancelRound: "取消这一轮",
+  cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
   routeCheckingHint: "正在检查所选生成线路，请稍候。",
   routeUnavailableHint: "所选线路当前不可用，请在线路菜单中更换后再提交。",
   shuyuEstimate: "同行线路预计 {points} 积分/支，提交时会再次核对余额。",
@@ -305,6 +307,8 @@ const EN_COPY: StudioCopy = {
   generating: "Submitting…",
   stickySummary: "{count} product images · {ratio} · {duration}s",
   readyHint: "Failed jobs follow safe recovery rules, and repeated clicks cannot create duplicate submissions.",
+  cancelRound: "Cancel this round",
+  cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
   routeCheckingHint: "Checking the selected generation route…",
   routeUnavailableHint: "The selected route is unavailable. Choose another route before submitting.",
   shuyuEstimate: "Partner route estimate: {points} points/video. Balance is checked again at submit.",
@@ -590,6 +594,24 @@ export function StreamlinedVideoStudio({
     persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
     setError(null);
   }, []);
+
+  /**
+   * 放弃当前这一轮创作。
+   *
+   * 供应商崩溃、故事板失败、任务卡住时，用户必须能退出这一轮而不是只能一直重试：
+   * 清掉进行中的故事板与失败态，并把这个 run 标记为不再自动恢复（否则下次进页面
+   * 又被恢复回来）。素材和创作描述保留，方便直接改一改重开一轮。
+   */
+  const cancelCurrentRound = useCallback(() => {
+    if (storyboard) markStoryboardRunDismissed(storyboard.id);
+    invalidatePlan();
+    setBusy(null);
+    toast.success(
+      english
+        ? "This round was cancelled. Your uploads and direction are kept."
+        : "已取消这一轮创作。素材与创作描述都保留着，可以直接改一改重开。",
+    );
+  }, [english, invalidatePlan, storyboard]);
 
   const updateAudioCaptionSettings = useCallback((
     next: AudioCaptionControlValue,
@@ -1526,7 +1548,7 @@ export function StreamlinedVideoStudio({
       ) : null}
 
       {storyboard ? (
-        <div id="single-video-storyboard" className="scroll-mt-20">
+        <div id="single-video-storyboard" className="scroll-mt-20 space-y-2">
           <StoryboardWorkflowPanel
             run={storyboard}
             english={english}
@@ -1536,6 +1558,14 @@ export function StreamlinedVideoStudio({
             onApprove={() => void approveStoryboard()}
             onEditPlan={editStoryboardDirection}
           />
+          {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
+          <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">
+            <span className="min-w-0 flex-1">{copy.cancelRoundHint}</span>
+            <Button type="button" variant="ghost" size="xs" onClick={cancelCurrentRound}>
+              <X aria-hidden />
+              {copy.cancelRound}
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -1549,10 +1579,21 @@ export function StreamlinedVideoStudio({
             : copy.generate}
       >
         {error ? (
-          <p role="alert" className="mb-3 flex items-start gap-2 rounded-(--radius-md) border border-danger bg-card px-3 py-2 text-meta text-danger">
+          <div role="alert" className="mb-3 flex flex-wrap items-start gap-2 rounded-(--radius-md) border border-danger bg-card px-3 py-2 text-meta text-danger">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            {error}
-          </p>
+            <span className="min-w-0 flex-1">{error}</span>
+            {/* 供应商挂了 / 这一轮失败时，用户必须有一条「不再纠缠这一轮」的出口 */}
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              className="bg-card text-foreground"
+              onClick={cancelCurrentRound}
+            >
+              <X aria-hidden />
+              {copy.cancelRound}
+            </Button>
+          </div>
         ) : null}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">

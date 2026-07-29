@@ -13,7 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -36,6 +36,7 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import type { CustomerGenerationError } from "@/lib/api/customer-generation-error";
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
+import { cn } from "@/lib/utils";
 
 export interface BatchMonitorJob {
   id: string;
@@ -167,6 +168,7 @@ export function BatchMonitor({
   const english = locale === "en-US";
   const batchCopy = getPlatformCopy(locale).batches;
   const monitorCopy = batchCopy.monitor;
+  const libraryCopy = getPlatformCopy(locale).library;
   const jobLabels = monitorCopy.jobStatuses;
   const batchLabels = batchCopy.statuses;
   const [batch, setBatch] = useState(initialBatch);
@@ -563,74 +565,49 @@ export function BatchMonitor({
         <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
           {detailJob ? (
             <>
-              <SheetHeader>
-                <SheetTitle>{monitorCopy.video} #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
-                <SheetDescription>
-                  {jobLabels[detailJob.status]}
-                  {detailJob.status === "FAILED"
-                    ? ` · ${jobFailureSummary(detailJob, monitorCopy.failures, english)}`
-                    : ""}
-                </SheetDescription>
-              </SheetHeader>
-              <div className="mx-auto w-full max-w-5xl space-y-5 px-6 pb-6">
-                <ol className="grid gap-2 text-meta sm:grid-cols-4" aria-label={english ? "Video workflow" : "视频工作流"}>
-                  {[
-                    english ? "1 · Product uploaded" : "1 · 产品图已上传",
-                    english ? "2 · Image 2 storyboard" : "2 · Image 2 故事板",
-                    english ? "3 · Aivora video" : "3 · Aivora 视频生成",
-                    english ? "4 · Delivery" : "4 · 成片交付",
-                  ].map((label, index) => (
-                    <li key={label} className="rounded-(--radius-sm) border border-border bg-card px-3 py-2">
-                      <span className={index === 0 || detailJob.storyboard?.status === "APPROVED" || (index > 1 && detailJob.status === "SUCCEEDED") ? "text-foreground" : "text-muted-foreground"}>{label}</span>
-                    </li>
-                  ))}
-                </ol>
-                <section className="space-y-3" aria-labelledby="batch-storyboard-title">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div>
-                      <h3 id="batch-storyboard-title" className="font-medium text-foreground">
-                        {english ? "Consistency storyboard" : "一致性故事板"}
-                      </h3>
-                      <p className="text-meta text-muted-foreground">
-                        {!detailJob.storyboard && detailJob.status === "SUCCEEDED"
-                          ? (english ? "This video predates the storyboard workflow; no frame record is available." : "该成片生成于故事板工作流上线前，因此没有分镜记录。")
-                          : (english ? "Four Image 2 frames are auto-approved for this batch item before video generation." : "该条任务先由 Image 2 生成 4 帧并自动确认，再进入视频生成。")}
-                      </p>
+              {/* 抽屉内容统一在同一条 max-w-5xl 轴上：标题和正文分属两个容器时，
+                  标题会贴到视口最左，正文居中，读起来像两个页面。 */}
+              <div className="mx-auto w-full max-w-5xl space-y-6 px-6 pb-8">
+                <SheetHeader className="px-0">
+                  <SheetTitle>{monitorCopy.video} #{(detailJob.batchIndex ?? 0) + 1}</SheetTitle>
+                  <SheetDescription>
+                    {jobLabels[detailJob.status]}
+                    {detailJob.status === "FAILED"
+                      ? ` · ${jobFailureSummary(detailJob, monitorCopy.failures, english)}`
+                      : ""}
+                  </SheetDescription>
+                </SheetHeader>
+
+                {/* 成片是用户打开抽屉要看的东西 —— 放在最前面，占主视觉。 */}
+                {detailJob.outputVideoUrl ? (
+                  <section className="space-y-3" aria-label={english ? "Finished video" : "成片"}>
+                    <div className="flex justify-center rounded-(--radius-lg) border border-border bg-secondary/30 p-4">
+                      <div className="relative inline-block max-w-full">
+                        <video
+                          src={detailJob.outputVideoUrl}
+                          poster={detailJob.outputThumbUrl ?? undefined}
+                          controls
+                          preload="metadata"
+                          className="max-h-[min(58vh,720px)] w-auto max-w-full rounded-(--radius-md) border border-border bg-black object-contain"
+                        />
+                        <AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" />
+                      </div>
                     </div>
-                    <Badge variant={detailJob.storyboard?.status === "APPROVED" ? "success" : detailJob.storyboard?.status === "FAILED" ? "destructive" : "secondary"}>
-                      {!detailJob.storyboard && detailJob.status === "SUCCEEDED"
-                        ? (english ? "Legacy video" : "历史成片")
-                        : detailJob.storyboard?.status === "APPROVED"
-                        ? (english ? "Auto-approved" : "已自动确认")
-                        : detailJob.storyboard?.status === "FAILED"
-                          ? (english ? "Needs attention" : "需要处理")
-                          : (english ? "Generating" : "生成中")}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-                    {Array.from({ length: 4 }, (_, ordinal) => {
-                      const frame = detailJob.storyboard?.frames.find((item) => item.ordinal === ordinal);
-                      return (
-                        <div key={frame?.id ?? ordinal} className="space-y-2">
-                          <div className="relative aspect-9/16 overflow-hidden rounded-(--radius-sm) border border-border bg-secondary">
-                            {frame?.imageUrl ? (
-                              <Image src={frame.imageUrl} alt={english ? `Storyboard frame ${ordinal + 1}` : `故事板分镜 ${ordinal + 1}`} fill unoptimized sizes="(max-width: 640px) 45vw, 220px" className="object-contain" />
-                            ) : (
-                              <div className="flex size-full items-center justify-center text-meta text-muted-foreground">
-                                {!detailJob.storyboard && detailJob.status === "SUCCEEDED"
-                                  ? (english ? "Not recorded" : "未记录")
-                                  : frame?.status === "FAILED"
-                                    ? (english ? "Failed" : "失败")
-                                    : (english ? "Generating…" : "生成中…")}
-                              </div>
-                            )}
-                          </div>
-                          <p className="font-mono text-meta text-muted-foreground">{english ? `Frame ${ordinal + 1}` : `分镜 ${ordinal + 1}`} · {frame?.status ?? (!detailJob.storyboard && detailJob.status === "SUCCEEDED" ? "N/A" : "QUEUED")}</p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={detailJob.outputVideoUrl}
+                        download
+                        target="_blank"
+                        rel="noreferrer"
+                        className={buttonVariants({ size: "sm" })}
+                      >
+                        <Download aria-hidden />
+                        {libraryCopy.download}
+                      </a>
+                    </div>
+                  </section>
+                ) : null}
+
                 {detailJob.error ? (
                   <p className="rounded-(--radius-sm) border border-border p-3 text-meta text-foreground">
                     {dispatchRecoveryHint(
@@ -639,15 +616,97 @@ export function BatchMonitor({
                     )}
                   </p>
                 ) : null}
-                {detailJob.outputVideoUrl ? (
-                  <div className="relative flex justify-center rounded-(--radius-md) bg-secondary/40 p-3"><video
-                      src={detailJob.outputVideoUrl}
-                      poster={detailJob.outputThumbUrl ?? undefined}
-                      controls
-                      preload="metadata"
-                      className="max-h-[min(58vh,720px)] w-auto max-w-full rounded-(--radius-md) border border-border object-contain"
-                    /><AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" /></div>
-                ) : null}
+
+                <ol className="grid gap-2 text-meta sm:grid-cols-4" aria-label={english ? "Video workflow" : "视频工作流"}>
+                  {[
+                    english ? "1 · Product uploaded" : "1 · 产品图已上传",
+                    english ? "2 · Image 2 storyboard" : "2 · Image 2 故事板",
+                    english ? "3 · Aivora video" : "3 · Aivora 视频生成",
+                    english ? "4 · Delivery" : "4 · 成片交付",
+                  ].map((label, index) => {
+                    const done =
+                      index === 0 ||
+                      (index === 1 && detailJob.storyboard?.status === "APPROVED") ||
+                      (index > 1 && detailJob.status === "SUCCEEDED");
+                    return (
+                      <li
+                        key={label}
+                        className={cn(
+                          "flex items-center gap-2 rounded-(--radius-sm) border px-3 py-2",
+                          done ? "border-border-strong bg-card" : "border-dashed border-border bg-transparent",
+                        )}
+                      >
+                        {done ? (
+                          <CheckCircle2 className="size-3.5 shrink-0 text-success" aria-hidden />
+                        ) : (
+                          <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/50" aria-hidden />
+                        )}
+                        <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+
+                {/* 历史成片没有分镜记录：一句话说明即可。渲染 4 个空的 9:16 占位框
+                    会把「什么都没有」放大成整屏噪音，压过真正的成片。 */}
+                {(() => {
+                  const legacy = !detailJob.storyboard && detailJob.status === "SUCCEEDED";
+                  if (legacy) {
+                    return (
+                      <p className="rounded-(--radius-sm) border border-dashed border-border px-3 py-2 text-meta text-muted-foreground">
+                        {english
+                          ? "Legacy video · this batch item predates the storyboard workflow, so no frame record exists."
+                          : "历史成片 · 该条生成于故事板工作流上线前，没有分镜记录。"}
+                      </p>
+                    );
+                  }
+                  return (
+                    <section className="space-y-3" aria-labelledby="batch-storyboard-title">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 id="batch-storyboard-title" className="font-medium text-foreground">
+                            {english ? "Consistency storyboard" : "一致性故事板"}
+                          </h3>
+                          <p className="text-meta text-muted-foreground">
+                            {english
+                              ? "Four Image 2 frames are auto-approved for this batch item before video generation."
+                              : "该条任务先由 Image 2 生成 4 帧并自动确认，再进入视频生成。"}
+                          </p>
+                        </div>
+                        <Badge variant={detailJob.storyboard?.status === "APPROVED" ? "success" : detailJob.storyboard?.status === "FAILED" ? "destructive" : "secondary"}>
+                          {detailJob.storyboard?.status === "APPROVED"
+                            ? (english ? "Auto-approved" : "已自动确认")
+                            : detailJob.storyboard?.status === "FAILED"
+                              ? (english ? "Needs attention" : "需要处理")
+                              : (english ? "Generating" : "生成中")}
+                        </Badge>
+                      </div>
+                      {/* 分镜是参考信息，不该跟成片抢版面：限制每格高度 */}
+                      <div className="grid grid-cols-4 gap-3">
+                        {Array.from({ length: 4 }, (_, ordinal) => {
+                          const frame = detailJob.storyboard?.frames.find((item) => item.ordinal === ordinal);
+                          return (
+                            <div key={frame?.id ?? ordinal} className="space-y-2">
+                              <div className="relative aspect-9/16 max-h-44 overflow-hidden rounded-(--radius-sm) border border-border bg-secondary">
+                                {frame?.imageUrl ? (
+                                  <Image src={frame.imageUrl} alt={english ? `Storyboard frame ${ordinal + 1}` : `故事板分镜 ${ordinal + 1}`} fill unoptimized sizes="(max-width: 640px) 25vw, 140px" className="object-contain" />
+                                ) : (
+                                  <div className="flex size-full items-center justify-center text-meta text-muted-foreground">
+                                    {frame?.status === "FAILED"
+                                      ? (english ? "Failed" : "失败")
+                                      : (english ? "Generating…" : "生成中…")}
+                                  </div>
+                                )}
+                              </div>
+                              <p className="font-mono text-meta text-muted-foreground">{english ? `Frame ${ordinal + 1}` : `分镜 ${ordinal + 1}`} · {frame?.status ?? "QUEUED"}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })()}
+
                 {detailJob.status === "RUNNING" && (
                   <Progress
                     value={detailJob.lastProgress ?? 8}

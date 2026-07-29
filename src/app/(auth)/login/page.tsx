@@ -26,6 +26,9 @@ export default function LoginPage() {
   const copy = getPlatformCopy(locale).auth;
   const searchParams = useSearchParams();
   const requestedFrom = searchParams.get("from");
+  /// 会话过期由 SessionExpiryWatcher / middleware 带过来，登录页负责解释原因，
+  /// 否则用户只会看到「莫名其妙又要登录一次」。
+  const sessionExpired = searchParams.get("reason") === "expired";
   const from = requestedFrom?.startsWith("/") && !requestedFrom.startsWith("//")
     ? requestedFrom
     : "/app/create";
@@ -73,6 +76,14 @@ export default function LoginPage() {
         <CardDescription>{copy.loginDescription}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {sessionExpired ? (
+          <p
+            role="status"
+            className="rounded-(--radius-md) border border-border bg-muted px-3 py-2 text-meta text-muted-foreground"
+          >
+            {copy.sessionExpired}
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-body font-medium">

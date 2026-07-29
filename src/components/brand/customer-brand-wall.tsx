@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { BrandLogo } from "@/components/brand/brand-logo";
 
 export type BrandWallEntry = {
   id: string;
@@ -69,15 +69,12 @@ export function CustomerBrandWall({
             key={entry.id}
             className="group flex min-w-0 flex-1 basis-56 items-center gap-4 rounded-(--radius-md) border border-border bg-card p-4 transition-colors hover:border-border-strong sm:flex-none"
           >
-            <div className="relative size-12 shrink-0 overflow-hidden rounded-(--radius-sm) bg-secondary">
-              <Image
-                src={entry.logoUrl}
-                alt=""
-                fill
-                unoptimized
-                className="object-contain p-1"
-              />
-            </div>
+            <BrandLogo
+              src={entry.logoUrl}
+              brandName={entry.brandName}
+              className="size-12 shrink-0 rounded-(--radius-sm)"
+              imageClassName="p-1"
+            />
             <span className="min-w-0 truncate font-heading text-subhead font-semibold">
               {entry.brandName}
             </span>

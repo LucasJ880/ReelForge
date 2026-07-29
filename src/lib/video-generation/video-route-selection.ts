@@ -63,6 +63,29 @@ export function selectCustomerVideoRouteSnapshot(args: {
 }
 
 /**
+ * 客户线路的自动降级目标（PRD C1）。
+ *
+ * 边界：客户**仍然不能自己选**线路 —— `selectCustomerVideoRouteSnapshot` 对任何
+ * 非 buddy 的显式请求照旧抛 FORBIDDEN。降级是平台在主线路不可用时替客户做的
+ * 决定，不是把选择权交出去。2026-07 Shuyu 线路 7 天成功率 28.6%，而它是客户
+ * 唯一线路 —— 单点没有出口。
+ */
+export const CUSTOMER_FAILOVER_ROUTE_ID = "byteplus_international" as const;
+
+/**
+ * 主线路不可用时可用的备用线路快照；备用线路自己也没配好时返回 null，
+ * 由调用方走「提前告知不可用 + 免费取消」，而不是把用户丢进必死的提交。
+ */
+export function customerFailoverRouteSnapshot(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): VideoRouteSnapshot | null {
+  /// mock 演练不参与降级：演练线路必须保持确定性
+  if (isMockVideoRuntime(env)) return null;
+  const snapshot = createVideoRouteSnapshot(CUSTOMER_FAILOVER_ROUTE_ID);
+  return isVideoRouteSnapshotRuntimeReady(snapshot, env) ? snapshot : null;
+}
+
+/**
  * Resolve one immutable route snapshot before idempotency/quota work begins.
  * Customer requests are Shuyu-only; legacy direct profiles remain available to
  * internal staff and historical snapshot readers.

@@ -944,6 +944,10 @@ model VideoJob {
   submissionErrorClass         String?
   /// Price snapshot at submission time. Null means pricing is not confirmed.
   providerUnitPriceUsd         Decimal?                @db.Decimal(12, 6)
+  /// 合作方按积分计价时的单条成本快照（如 Shuyu studio-video = 900 points）。
+  /// 与 providerUnitPriceUsd 并存：不同线路的计价单位不同，不做隐式换算。
+  /// 历史行为 null —— 「单条成片成本」只能从有快照的行统计。
+  providerUnitPoints           Int?
   /// Immutable route/model/adapter evidence for this provider attempt.
   /// Historical rows remain null and are not safe to infer from `provider`.
   videoRouteSnapshot           String?

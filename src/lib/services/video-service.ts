@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { videoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import {
   FinalVideoStatus,
   Prisma,
@@ -565,6 +566,7 @@ async function submitSegmentJob(params: {
         segmentDurationSec: segment.durationSec,
         finalVideoId,
         ...routeSnapshot,
+        ...videoRouteCostSnapshot(routeSnapshot.videoRouteSnapshot),
       },
     });
   } catch (error) {
@@ -740,6 +742,7 @@ export async function dispatchVideoGeneration(briefId: string) {
                 : prompt.provider,
             status: VideoJobStatus.RUNNING,
             ...routeSnapshot,
+            ...videoRouteCostSnapshot(routeSnapshot.videoRouteSnapshot),
           },
         });
       } catch (error) {

@@ -65,6 +65,7 @@ import {
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
 import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
+import { videoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import {
   attachStoryboardToVideoJob,
   canRegenerateStoryboardFrame,
@@ -432,6 +433,10 @@ export function buildBatchVideoRows(args: {
     seed: assignment.seed,
     availableAt: new Date(),
     ...(args.videoRouteSnapshot ?? {}),
+    /// 单条成片成本快照：没有这一列，PRD C1 的成本指标连基线都算不出来
+    ...(args.videoRouteSnapshot
+      ? videoRouteCostSnapshot(args.videoRouteSnapshot.videoRouteSnapshot)
+      : {}),
   }));
 }
 

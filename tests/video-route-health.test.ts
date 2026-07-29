@@ -22,6 +22,7 @@ function sample(
     submittedAt: BASE,
     finishedAt: new Date(BASE.getTime() + 60_000),
     providerUnitPriceUsd: 1,
+    providerUnitPoints: 900,
     ...rest,
   };
 }
@@ -106,6 +107,17 @@ test("单条成本只平均有价格的成功样本，缺价格不算 0", () => 
   ];
   const buddy = findRouteHealth(summarizeVideoRouteHealth(rows), "buddy")!;
   assert.equal(buddy.avgCostUsd, 3);
+});
+
+test("积分计价与美元计价并存，各自独立统计且不互相换算", () => {
+  const rows = [
+    sample({ providerUnitPriceUsd: null, providerUnitPoints: 900 }),
+    sample({ providerUnitPriceUsd: null, providerUnitPoints: 900 }),
+    sample({ providerUnitPriceUsd: null, providerUnitPoints: null }),
+  ];
+  const buddy = findRouteHealth(summarizeVideoRouteHealth(rows), "buddy")!;
+  assert.equal(buddy.avgCostPoints, 900);
+  assert.equal(buddy.avgCostUsd, null, "没有美元快照时不能拿积分顶替");
 });
 
 test("历史行没有线路证据时整条丢弃，不按 provider 反推", () => {

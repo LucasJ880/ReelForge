@@ -42,6 +42,8 @@ export interface VideoRouteJobSample {
   submittedAt: Date | null;
   finishedAt: Date | null;
   providerUnitPriceUsd: number | null;
+  /** 按积分计价的线路（如 Shuyu）用这个；与 USD 并存，不做隐式换算 */
+  providerUnitPoints: number | null;
 }
 
 export interface VideoRouteHealth {
@@ -58,6 +60,8 @@ export interface VideoRouteHealth {
   p95DurationMs: number | null;
   /** 成功样本的平均单条成本（USD），缺价格的样本被跳过 */
   avgCostUsd: number | null;
+  /** 成功样本的平均单条积分成本，缺快照的样本被跳过 */
+  avgCostPoints: number | null;
   /** 样本足够且成功率达标 —— 只是「可以优先用」，不代表运行时可用 */
   healthy: boolean;
   /** 样本不足以判断，调用方应回退到配置默认值而不是判它有罪 */
@@ -124,6 +128,9 @@ export function summarizeVideoRouteHealth(
     const costs = succeeded
       .map((row) => row.providerUnitPriceUsd)
       .filter((value): value is number => typeof value === "number" && value >= 0);
+    const pointCosts = succeeded
+      .map((row) => row.providerUnitPoints)
+      .filter((value): value is number => typeof value === "number" && value >= 0);
 
     const insufficientData = decided < MIN_ROUTE_HEALTH_SAMPLES;
     routes.push({
@@ -138,6 +145,9 @@ export function summarizeVideoRouteHealth(
       p95DurationMs: percentile(durations, 0.95),
       avgCostUsd: costs.length
         ? costs.reduce((sum, value) => sum + value, 0) / costs.length
+        : null,
+      avgCostPoints: pointCosts.length
+        ? pointCosts.reduce((sum, value) => sum + value, 0) / pointCosts.length
         : null,
       /// 样本不足时按「无罪推定」处理：不阻断，交给运行时可用性去判断
       healthy: insufficientData || (successRate ?? 0) >= UNHEALTHY_SUCCESS_RATE,
@@ -185,6 +195,7 @@ export async function getVideoRouteHealthReport(
         submittedAt: true,
         finishedAt: true,
         providerUnitPriceUsd: true,
+        providerUnitPoints: true,
       },
     });
     return summarizeVideoRouteHealth(
@@ -199,6 +210,7 @@ export async function getVideoRouteHealthReport(
           row.providerUnitPriceUsd === null
             ? null
             : Number(row.providerUnitPriceUsd),
+        providerUnitPoints: row.providerUnitPoints,
       })),
       { windowHours },
     );

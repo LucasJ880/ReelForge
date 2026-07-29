@@ -69,8 +69,13 @@ export function selectCustomerVideoRouteSnapshot(args: {
  * 非 buddy 的显式请求照旧抛 FORBIDDEN。降级是平台在主线路不可用时替客户做的
  * 决定，不是把选择权交出去。2026-07 Shuyu 线路 7 天成功率 28.6%，而它是客户
  * 唯一线路 —— 单点没有出口。
+ *
+ * 为什么选 volcengine_cn_legacy 而不是 byteplus_international：只有它在生产
+ * 配好了凭据（ARK_API_KEY）。两条线路的凭据分属不同账号域、绝不交叉接线，
+ * 所以 byteplus 在 BYTEPLUS_ARK_API_KEY 配好之前只会返回 null，等于没有降级。
+ * 换目标只需改这一个常量。
  */
-export const CUSTOMER_FAILOVER_ROUTE_ID = "byteplus_international" as const;
+export const CUSTOMER_FAILOVER_ROUTE_ID = "volcengine_cn_legacy" as const;
 
 /**
  * 主线路不可用时可用的备用线路快照；备用线路自己也没配好时返回 null，

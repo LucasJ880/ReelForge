@@ -12,8 +12,10 @@ const REAL_ENV = {
   VIDEO_PROVIDER: "byteplus",
   VIDEO_ENGINE_MOCK: "false",
   SEEDANCE_RUNTIME_PROFILE: "byteplus_international",
-  BYTEPLUS_ARK_API_KEY: "test-byteplus-key",
-  ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+  /// volcengine_cn_legacy realm 的凭据（与 BYTEPLUS_ARK_API_KEY 分属不同账号域）
+  ARK_API_KEY: "test-ark-key",
+  /// 故意不设 ARK_BASE_URL：它是全局单值，两个 realm 只能满足一个。
+  /// 不设时每条线路各自解析到自己的正确端点，这也是生产必须保持的状态。
 };
 
 /**
@@ -42,8 +44,23 @@ test("备用线路配置齐全时给出可用快照", () => {
 });
 
 test("备用线路没配好时返回 null，而不是把用户丢进必死的提交", () => {
-  const withoutKey = { ...REAL_ENV, BYTEPLUS_ARK_API_KEY: "" };
+  const withoutKey = { ...REAL_ENV, ARK_API_KEY: "" };
   assert.equal(customerFailoverRouteSnapshot(withoutKey), null);
+});
+
+/**
+ * 生产陷阱：ARK_BASE_URL 是全局单值。它一旦被设成 byteplus 端点，
+ * volcengine_cn_legacy 就会被跨域校验硬拒（凭据分属不同账号域，绝不交叉接线），
+ * 于是降级静默失效 —— 代码没错，配置让它永远返回 null。
+ */
+test("ARK_BASE_URL 指向另一个 realm 时备用线路不可用", () => {
+  assert.equal(
+    customerFailoverRouteSnapshot({
+      ...REAL_ENV,
+      ARK_BASE_URL: "https://ark.ap-southeast.bytepluses.com/api/v3",
+    }),
+    null,
+  );
 });
 
 test("mock 演练不参与降级，保持确定性", () => {

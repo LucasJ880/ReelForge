@@ -11,8 +11,17 @@
           "status": "needs-review"
         }
       ]
+    },
+    "Aivora OS": {
+      "versions": [
+        {
+          "path": "Aivora OS v2.html",
+          "createdAt": "2026-07-30T00:35:46.827Z",
+          "status": "needs-review"
+        }
+      ]
     }
   },
   "createdAt": "2026-07-30T00:19:09.854Z",
-  "updatedAt": "2026-07-30T00:19:09.854Z"
+  "updatedAt": "2026-07-30T00:35:46.832Z"
 }

@@ -2,7 +2,7 @@
 
 const DIRS2 = [
   { id: "plain", name: "常规", hint: "上一稿，留作对照" },
-  { id: "cut",   name: "剪辑台", hint: "胶片 / 场记板 / 时间线轨道" },
+  { id: "cut",   name: "剪辑台", hint: "胶片 / 场记板 / 时间线轨道", locked: true },
   { id: "note",  name: "店主本子", hint: "纸 / 宋体 / 便签" },
 ];
 
@@ -65,6 +65,7 @@ function App2() {
           <button key={d.id} type="button" className="chip" aria-pressed={dir === d.id}
                   title={d.hint} onClick={() => setDir(d.id)}>
             {d.name}
+            {d.locked && <span className="tag tag--good" style={{ marginLeft: 2 }}>已定</span>}
           </button>
         ))}
       </div>

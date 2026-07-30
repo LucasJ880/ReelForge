@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Aivora OS — 信息架构与关键页面</title>
+<style>
+  /* ============================================================
+     Aivora OS 设计稿
+     两个方向共用同一套信息架构，差异在密度与观感：
+       dir="desk"  值班台 —— 深色高密度，运营每天开着看
+       dir="calm"  顺手台 —— 浅色低密度，小商家自助
+     唯一继承的品牌资产：accent #ff4d00
+     ============================================================ */
+
+  :root {
+    --accent: #ff4d00;
+    --radius: 4px;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC",
+            "Noto Sans SC", "Microsoft YaHei", sans-serif;
+    --mono: ui-monospace, SFMono-Regular, Menlo, "SF Mono", Consolas, monospace;
+  }
+
+  /* ---------- 方向 A · 值班台 ---------- */
+  :root[data-dir="desk"] {
+    --bg: #0C0D0F;
+    --panel: #14161A;
+    --panel-2: #1B1E23;
+    --line: #262A30;
+    --line-strong: #363B43;
+    --ink: #E8EAED;
+    --ink-2: #9BA3AE;
+    --ink-3: #616974;
+    --accent-wash: #ff4d0018;
+    --good: #4FB477;
+    --warn: #D9A54C;
+    --bad: #D9614C;
+    --shadow: none;
+    --nav-w: 216px;
+    --pad: 20px;
+    --gap: 12px;
+    --card-r: 4px;
+    --title-size: 20px;
+    --body-size: 13px;
+    --meta-size: 11px;
+    --row-h: 38px;
+  }
+
+  /* ---------- 方向 B · 顺手台 ---------- */
+  :root[data-dir="calm"] {
+    --bg: #F7F6F4;
+    --panel: #FFFFFF;
+    --panel-2: #FBFAF8;
+    --line: #E7E4DF;
+    --line-strong: #D6D2CB;
+    --ink: #1D1C1A;
+    --ink-2: #6B675F;
+    --ink-3: #9A958C;
+    --accent-wash: #ff4d000f;
+    --good: #2F7D51;
+    --warn: #9A6B18;
+    --bad: #B23D28;
+    --shadow: 0 1px 2px rgba(29,28,26,.05), 0 8px 24px -12px rgba(29,28,26,.12);
+    --nav-w: 248px;
+    --pad: 32px;
+    --gap: 20px;
+    --card-r: 12px;
+    --title-size: 26px;
+    --body-size: 15px;
+    --meta-size: 12.5px;
+    --row-h: 56px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: var(--body-size);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  [lang="en"] { line-height: 1.5; }
+
+  /* ---------- 布局骨架 ---------- */
+  .shell { display: grid; grid-template-columns: var(--nav-w) 1fr; min-height: 100vh; }
+
+  .nav {
+    border-right: 1px solid var(--line);
+    background: var(--panel);
+    padding: var(--pad) 12px;
+    display: flex; flex-direction: column; gap: 24px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
+  .brand__mark {
+    width: 26px; height: 26px; border-radius: 6px;
+    background: var(--accent);
+    display: grid; place-items: center;
+    color: #fff; font-weight: 700; font-size: 13px; flex-shrink: 0;
+  }
+  .brand__name { font-weight: 650; letter-spacing: -.01em; }
+  .brand__sub { font-size: var(--meta-size); color: var(--ink-3); }
+
+  .navgroup { display: flex; flex-direction: column; gap: 2px; }
+  .navgroup__label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-3);
+    padding: 0 8px 6px;
+  }
+  .navitem {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 8px; border-radius: var(--radius);
+    color: var(--ink-2); background: none; border: 0;
+    font: inherit; text-align: left; cursor: pointer; width: 100%;
+    transition: background .12s, color .12s;
+  }
+  .navitem:hover { background: var(--panel-2); color: var(--ink); }
+  .navitem[aria-current="page"] { background: var(--accent-wash); color: var(--ink); font-weight: 600; }
+  .navitem[aria-current="page"] svg { color: var(--accent); }
+  .navitem svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .navitem__count {
+    margin-left: auto; font-family: var(--mono); font-size: var(--meta-size);
+    color: var(--ink-3); font-variant-numeric: tabular-nums;
+  }
+  .navitem:focus-visible, .btn:focus-visible, .chip:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
+
+  .main { min-width: 0; padding: var(--pad); display: flex; flex-direction: column; gap: var(--gap); }
+
+  /* ---------- 通用件 ---------- */
+  .h1 { font-size: var(--title-size); font-weight: 680; letter-spacing: -.02em; margin: 0; text-wrap: balance; }
+  .h2 { font-size: calc(var(--body-size) + 2px); font-weight: 650; margin: 0; }
+  .sub { color: var(--ink-2); margin: 0; max-width: 62ch; }
+  .kicker {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--ink-3); margin: 0;
+  }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: var(--card-r); box-shadow: var(--shadow);
+  }
+  .card__hd {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+  }
+  .card__bd { padding: 14px; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 8px 13px; border-radius: var(--radius);
+    border: 1px solid var(--line-strong); background: var(--panel-2);
+    color: var(--ink); font: inherit; font-weight: 550; cursor: pointer;
+    transition: border-color .12s, background .12s;
+  }
+  .btn:hover { border-color: var(--ink-3); }
+  .btn svg { width: 14px; height: 14px; }
+  .btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn--primary:hover { filter: brightness(1.08); border-color: var(--accent); }
+  .btn--ghost { background: none; border-color: transparent; color: var(--ink-2); }
+  .btn--ghost:hover { color: var(--ink); background: var(--panel-2); }
+
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 9px; border-radius: 999px;
+    border: 1px solid var(--line-strong); background: none;
+    color: var(--ink-2); font: inherit; font-size: var(--meta-size);
+    cursor: pointer; transition: all .12s;
+  }
+  .chip[aria-pressed="true"] { background: var(--accent-wash); border-color: var(--accent); color: var(--ink); }
+
+  .tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 10px; letter-spacing: .06em;
+    text-transform: uppercase; padding: 3px 7px; border-radius: 3px;
+    border: 1px solid currentColor;
+  }
+  .tag--good { color: var(--good); }
+  .tag--warn { color: var(--warn); }
+  .tag--bad { color: var(--bad); }
+  .tag--mute { color: var(--ink-3); }
+
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .row { display: flex; align-items: center; gap: 10px; }
+  .between { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .stack { display: flex; flex-direction: column; }
+  .grid { display: grid; gap: var(--gap); }
+  .scrollx { overflow-x: auto; }
+
+  /* ---------- 方向切换器 ---------- */
+  .switcher {
+    position: fixed; right: 16px; bottom: 16px; z-index: 50;
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px; border-radius: 999px;
+    background: var(--panel); border: 1px solid var(--line-strong);
+    box-shadow: 0 8px 30px -8px rgba(0,0,0,.4);
+  }
+  .switcher__label {
+    font-family: var(--mono); font-size: 10px; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--ink-3); padding-left: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+  @media (max-width: 900px) {
+    .shell { grid-template-columns: 1fr; }
+    .nav { position: static; height: auto; flex-direction: row; overflow-x: auto; align-items: center; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="icons.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="screens.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+</body>
+</html>

@@ -953,6 +953,27 @@ model VideoJob {
   videoRouteSnapshot           String?
   videoModelSnapshot           String?
   videoProviderAdapterSnapshot String?
+
+  /// 创意配方快照（PRD §9.4）。赛马按「哪种结构在赢」归因的唯一依据。
+  ///
+  /// 为什么是快照列而不是读时 join：模板会改版、brief 的 JSON 会被覆写，
+  /// 追溯派生出来的配方会跟着变，那样 M2 判的是错的历史。配方必须是
+  /// 「这条片子生成当时用了什么」，与 videoRouteSnapshot / providerUnitPoints 同一套模式。
+  ///
+  /// 历史行（2026-07-31 之前）全为 null，且**不可反推**：一律排除出配方维度统计，
+  /// 不要用模板现状回填。
+  ///
+  /// recipeId 是跨形态稳定的配方身份（如 `tpl:cinematic@3`），赛马的分组键。
+  recipeId                     String?
+  /// 钩子类型：POV | Curiosity | Stat | Reveal | Pain | Demo。无 brief 的批量线路为 null。
+  hookType                     String?
+  /// 风格模板 + 版本（如 `cinematic@3`）。非模板线路为 null。
+  templateId                   String?
+  /// 画幅（9:16 / 16:9 / 1:1）。VideoJob 此前不落此列，只散在 brief / storyboard 上。
+  aspectRatio                  String?
+  /// 品牌植入档位：natural | planar_track | corner_badge。见 PRD 决策 3。
+  brandPlacement               String?
+
   availableAt                  DateTime?
   leaseOwner                   String?
   leaseExpiresAt               DateTime?
@@ -1014,6 +1035,10 @@ model VideoJob {
   @@index([status, availableAt])
   @@index([status, createdAt, dispatchQuarantineDecision])
   @@index([finalVideoId, segmentIndex])
+  /// 青砚 aivora-sync 拉成片：status=SUCCEEDED 按 finishedAt 倒序翻页（约 200 条/天）
+  @@index([status, finishedAt])
+  /// 赛马按配方维度分组统计（PRD §4）
+  @@index([recipeId])
 }
 
 /// Request-level idempotency for the customer Agent Director dispatch route.

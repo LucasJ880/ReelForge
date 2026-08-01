@@ -17,6 +17,7 @@ import {
   type UnifiedLibraryRow,
 } from "@/lib/contracts/unified-library";
 import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
+import { readTemplateSnapshot } from "@/lib/video-generation/creative-recipe";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
 
@@ -373,10 +374,9 @@ export function toBatchLibraryRow(
 ): UnifiedLibraryRow | null {
   if (!job.batchJob) return null;
   const status = batchJobStatusToLibraryStatus(job.status);
-  const snapshot = (job.templateSnapshot ?? null) as {
-    durationSec?: number;
-    aspectRatio?: string;
-  } | null;
+  /// 曾经这里读的是 snapshot.durationSec / snapshot.aspectRatio —— 顶层没有这两个 key，
+  /// 于是所有批量成片的时长与画幅在成品库里恒为空。它们其实冻在 lockedParams 里。
+  const snapshot = readTemplateSnapshot(job.templateSnapshot);
   const templateName =
     job.batchJob.template.nameZh ?? job.batchJob.template.name;
   const index = (job.batchIndex ?? 0) + 1;

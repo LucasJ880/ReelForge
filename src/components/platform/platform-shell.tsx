@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
+  CalendarRange,
   CircleHelp,
   Clapperboard,
   ChevronsUpDown,
@@ -29,6 +30,7 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 
 const ICONS = {
+  plan: CalendarRange,
   create: Clapperboard,
   batches: Layers3,
   racing: Trophy,

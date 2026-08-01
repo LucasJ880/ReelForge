@@ -263,3 +263,43 @@
   --duration-fast: var(--motion-fast);
   --duration-base: var(--motion-base);
 }
+
+/*
+ * ─────────────────────────────────────────────────────────────
+ * 剪辑台方向（PRD v3.3 §11）
+ * ─────────────────────────────────────────────────────────────
+ *
+ * 调色房的暖近黑，不是 SaaS 灰。视觉语言来自 Aivora 自己的材料
+ * ——胶片、场记板、剪辑时间线——而不是通用 SaaS 模板。
+ *
+ * 目前只作用于新定位的界面（/app/plan 起）。全站切换属于 PRD §10.5 的
+ * 「新信息架构 → 按新架构实现界面」那一步，不在本轮范围内。
+ *
+ * 硬性规矩（改之前先读 PRD §11.4）：
+ *   圆角 0 · 无阴影 · 数字 tabular-nums · accent 只用三处 · 只做深色。
+ *   accent 铺开用就废了：只给品牌标记、当前项、需要行动的数字。
+ */
+:root {
+  --cut-bg: #0a0806;
+  --cut-panel: #120e0b;
+  --cut-panel-2: #1a1410;
+  --cut-panel-3: #241c16;
+  --cut-line: #2a211b;
+  --cut-line-2: #453529;
+  --cut-ink: #f2ebe3;
+  --cut-ink-2: #a99a8b;
+  --cut-ink-3: #6e6055;
+  /* 唯一继承的品牌资产 */
+  --cut-accent: #ff4d00;
+  --cut-accent-ink: #ffffff;
+  --cut-good: #7fa86b;
+  --cut-warn: #d9a54c;
+  --cut-bad: #e2553a;
+  /* 齿孔条的片基色 */
+  --cut-film-base: #040302;
+  --cut-overlay-shadow: rgb(0 0 0 / 0.85);
+
+  /* 压缩高对比的场记板标题 + 制片单据式等宽数字 */
+  --cut-display: "Archivo Narrow", "Archivo", var(--font-display-family);
+  --cut-mono: "IBM Plex Mono", var(--font-mono-family);
+}

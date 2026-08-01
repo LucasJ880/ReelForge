@@ -1,4 +1,7 @@
 export const PLATFORM_PRIMARY_NAV = [
+  /// 一句话进、一周排完（PRD §3 O1）。放在最前：它是新定位的主入口 ——
+  /// 小商家的痛点是发不出去、发得不连续，不是单条不够好。
+  { id: "plan", label: "本周内容", href: "/app/plan" },
   { id: "create", label: "创作", href: "/app/create" },
   { id: "batches", label: "批量生产", href: "/app/batches" },
   { id: "racing", label: "投放与赛马", href: "/app/racing" },

@@ -36,6 +36,9 @@ export type TimelinePlan = {
   targetAudience: string;
   corePainPoint: string;
   generatedBy: string;
+  /// 这一周为什么这么排：自己的战绩 / 借同行结构 / 还没有依据。
+  /// 借来的结构必须说明是借来的，不能让商家以为是他自己的数据结论。
+  planBasis: string | null;
   posts: TimelinePost[];
 };
 
@@ -189,6 +192,9 @@ export function PlanTimeline({
             {pending ? "排期中" : "排一周"}
           </button>
         </div>
+        {plan?.planBasis ? (
+          <p className={styles.basis}>{plan.planBasis}</p>
+        ) : null}
         {error ? <p className={styles.error}>{error}</p> : null}
       </header>
 

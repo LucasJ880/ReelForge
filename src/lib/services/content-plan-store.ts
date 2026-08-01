@@ -9,6 +9,7 @@ import {
   factsToPromptLines,
   ProductLinkError,
 } from "@/lib/services/product-link-service";
+import { resolveDerivationInput } from "@/lib/services/winner-derivation-service";
 import type { ContentFormat, ContentPost } from "@/lib/schemas/content-plan";
 
 /**
@@ -84,6 +85,13 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
     factsRaw = facts as unknown as Prisma.InputJsonValue;
   }
 
+  /// 每周排期先看有没有依据可用：自己的战绩优先，其次同行长期在投的结构，
+  /// 都没有就老实说这是第一周（R4 / O4）。
+  const derivation = await resolveDerivationInput({
+    userId: args.userId,
+    industry: args.industry ?? null,
+  });
+
   const input: ContentPlanInput = {
     sentence:
       args.source === "sentence"
@@ -93,6 +101,8 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
     platform: args.platform ?? null,
     brandName: args.brandName ?? null,
     productFacts,
+    referenceStructures: derivation.referenceStructures,
+    winningRecipe: derivation.winningRecipe,
   };
 
   const { plan, source: generatedBy } = await buildContentPlan(input);
@@ -112,6 +122,7 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
       corePainPoint: plan.corePainPoint,
       productFactsJson: factsRaw,
       generatedBy,
+      planBasis: derivation.basis,
       idempotencyKey: args.idempotencyKey ?? null,
       posts: { create: plan.posts.map(toPostCreate) },
     },
@@ -148,6 +159,7 @@ const planSelect = {
   targetAudience: true,
   corePainPoint: true,
   generatedBy: true,
+  planBasis: true,
   createdAt: true,
   posts: {
     orderBy: [{ dayOffset: "asc" }, { key: "asc" }],

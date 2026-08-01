@@ -30,6 +30,7 @@ export default async function PlanPage() {
         targetAudience: latest.targetAudience,
         corePainPoint: latest.corePainPoint,
         generatedBy: latest.generatedBy,
+        planBasis: latest.planBasis,
         posts: latest.posts.map((post) => ({
           id: post.id,
           key: post.key,

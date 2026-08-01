@@ -108,6 +108,15 @@
   cursor: default;
 }
 
+/* 排期依据：说清楚这一周是按什么排的 */
+.basis {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--cut-accent);
+  background: var(--cut-panel-2);
+  color: var(--cut-ink-2);
+}
+
 .error {
   color: var(--cut-bad);
   margin: 10px 0 0;

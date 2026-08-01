@@ -1867,6 +1867,10 @@ model ContentPlan {
   /// 兜底计划质量不同，度量「一次通过率」时必须能分开统计。
   generatedBy String
 
+  /// 这一周为什么这么排：自己的战绩 / 同行结构 / 还没有依据。
+  /// 给商家看的一句话 —— 借来的结构必须说明是借来的，不能冒充他自己的数据结论。
+  planBasis String?
+
   /// 幂等键：同一用户重复提交同一请求不重复计费、不重复生成。
   idempotencyKey String?
 
@@ -1979,4 +1983,71 @@ model ContentPerformance {
   @@unique([subjectType, subjectId, platform, windowHours])
   @@index([recipeId, windowHours])
   @@index([observedAt])
+}
+
+// =========================================================
+// O4 · 同行广告情报与仿写（PRD §3 O4 / M4）
+// =========================================================
+//
+// 合规边界焊在表结构里：**这张表没有任何素材字段**。
+//
+// PRD 把「扒 Ads + 仿写」拆成三件法律风险完全不同的事：
+//   1. 采集同行公开投放的广告  ✅ 做 —— 各平台的广告透明库是官方公开接口
+//   2. 提取结构并仿写          ✅ 做 —— 结构/策略/创意方向不受版权保护
+//   3. 搬运成片换音轨重发      ❌ 不做 —— 直接的版权侵权，且风险落在客户头上
+//
+// 第 ② 步之后我们保留的是**结构标注，不是别人的素材**。这既是合规边界，
+// 也是工程上更好的选择：结构可以跨行业复用，素材不能。
+//
+// 因此这里没有 mediaUrl / downloadUrl / thumbnailUrl 之类的列，
+// 将来也不要加。加了就等于给「搬运」留了落脚点。
+
+enum AdIntelSource {
+  /// 各平台官方广告透明库（为透明度公开的接口）
+  META_AD_LIBRARY
+  TIKTOK_AD_LIBRARY
+  GOOGLE_ADS_TRANSPARENCY
+  /// 现有 Apify 抓取的公开自然内容（非广告）
+  APIFY_ORGANIC
+}
+
+model AdIntelRecipe {
+  id String @id @default(cuid())
+
+  source      AdIntelSource
+  /// 平台侧标识，仅用于去重与回查，不是素材。
+  externalRef String
+  /// 行业 / 品类，用于按行业筛配方。
+  industry    String
+
+  // ── 结构标注：以下就是我们保留的全部内容 ──
+
+  /// 钩子类型，与 VideoJob.hookType / ContentPost.hookType 同一套枚举，
+  /// 这样外部配方能和我方赛马结论对齐。
+  hookType          String
+  /// 前 3 秒做了什么（一句话描述动作，不是台词）
+  openingBeats      String
+  /// 镜头节奏
+  pacing            String
+  /// 卖点出现顺序
+  sellingPointOrder String[] @default([])
+  /// 社会证明方式（评价 / 数据 / 权威背书 / 无）
+  socialProof       String?
+  /// CTA 形态
+  ctaForm           String?
+
+  durationSec Int?
+  aspectRatio String?
+
+  /// 已连续投放天数。**这是搬运给不了的信号**：长期在投 = 还在赚钱，
+  /// 比「看起来不错」强得多的筛选依据。
+  daysRunning Int?
+
+  observedAt DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([source, externalRef])
+  @@index([industry, daysRunning])
+  @@index([hookType])
 }

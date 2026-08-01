@@ -28,6 +28,19 @@ export type ContentPlanInput = {
   /// 这里塞进去的东西会被当成真的写进文案。
   productFacts?: string[] | null;
   brandName?: string | null;
+  /**
+   * 同行广告的**结构骨架**（O4）。冷启动时没有自己的战绩，就先借同行
+   * 已经验证过的结构。
+   *
+   * 只带结构，绝不带原文措辞 —— 由 ad-intel-service 的
+   * `structuresToPromptLines` 产出，那一层已经把素材与原文剥干净了。
+   */
+  referenceStructures?: string[] | null;
+  /**
+   * 已被赛马判定为赢家的配方（R4）。给了就围绕它派生变体，
+   * 而不是每周从零开始猜。
+   */
+  winningRecipe?: { hookType: string; format: string } | null;
 };
 
 const SYSTEM_PROMPT = `You plan a week of social content for a SMALL LOCAL BUSINESS owner.
@@ -66,6 +79,32 @@ HARD RULES:
 
 function buildUserPrompt(input: ContentPlanInput): string {
   const facts = input.productFacts?.filter(Boolean) ?? [];
+  const structures = input.referenceStructures?.filter(Boolean) ?? [];
+
+  /**
+   * 参考结构与赢家配方是两种不同的输入：
+   * - 参考结构来自同行（冷启动用），只给骨架，画面与文案必须全部原创；
+   * - 赢家配方来自我方赛马（有战绩之后用），是「这种结构在替你赚钱」的证据。
+   * 两者都只影响结构，都不提供可抄的措辞。
+   */
+  const referenceBlock = structures.length
+    ? `\n\n# Proven structures from this industry (SKELETON ONLY)
+${structures.map((line) => `  - ${line}`).join("\n")}
+
+Use these as structural inspiration: hook type, pacing, order of claims, CTA form.
+NEVER reuse their wording, taglines, or specific claims. All copy must be original
+and must only assert facts from the section above.`
+    : "";
+
+  const winnerBlock = input.winningRecipe
+    ? `\n\n# Winning structure from this account's own results
+hook_type: ${input.winningRecipe.hookType}
+format: ${input.winningRecipe.format}
+
+At least 2 of the posts must use this hook type. Vary the angle and the visual,
+not the structure — the structure is what is already working.`
+    : "";
+
   return `# Business
 one_liner: ${input.sentence}
 industry: ${input.industry ?? "(infer it)"}
@@ -73,7 +112,7 @@ brand_name: ${input.brandName ?? "(none given)"}
 target_platform: ${input.platform ?? "(general short-form social)"}
 
 # Verified product facts (do not contradict these; do not invent more)
-${facts.length ? facts.map((f) => `  - ${f}`).join("\n") : "  (none — rely only on the one-liner)"}`;
+${facts.length ? facts.map((f) => `  - ${f}`).join("\n") : "  (none — rely only on the one-liner)"}${referenceBlock}${winnerBlock}`;
 }
 
 export async function buildContentPlan(

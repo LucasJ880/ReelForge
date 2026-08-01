@@ -33,7 +33,7 @@ const ICONS = {
   plan: CalendarRange,
   create: Clapperboard,
   batches: Layers3,
-  racing: Trophy,
+  wins: Trophy,
   library: Film,
   brands: Palette,
   templates: NotebookText,

@@ -11,7 +11,8 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     { label: "本周内容", href: "/app/plan" },
     { label: "创作", href: "/app/create" },
     { label: "批量生产", href: "/app/batches" },
-    { label: "投放与赛马", href: "/app/racing" },
+    /// R5 替换旧赛马页（PRD §10.4 A 级：导航移除，旧路由保留可直达）。
+    { label: "战绩", href: "/app/wins" },
     { label: "成品库", href: "/app/library" },
     { label: "品牌", href: "/app/brands" },
     { label: "模板库", href: "/app/templates" },
@@ -22,6 +23,9 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
 test("Phase1 unified journey：各一级区页面与批次/成品详情均存在", async () => {
   for (const file of [
     "src/app/(platform)/app/plan/page.tsx",
+    "src/app/(platform)/app/wins/page.tsx",
+    /// A 级下线只动导航：旧 racing 路由必须仍然存在（可直达）。
+    "src/app/(platform)/app/racing/page.tsx",
     "src/app/(platform)/app/create/page.tsx",
     "src/app/(platform)/app/batches/new/page.tsx",
     "src/app/(platform)/app/batches/page.tsx",

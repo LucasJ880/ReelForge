@@ -60,8 +60,10 @@ test("platform locale: 页面源码不得残留旧 B 端英文页头", () => {
   }
 });
 
-test("platform locale: 五区导航中英文均存在且语义不同", () => {
+test("platform locale: 一级区导航中英文均存在且语义不同", () => {
   assert.equal(zhCN.shell.platformNav.library, "成品库");
   assert.equal(enUS.shell.platformNav.library, "Video library");
-  assert.notEqual(zhCN.shell.platformNav.racing, enUS.shell.platformNav.racing);
+  /// R5 战绩替换旧赛马导航；本周内容是新定位的主入口。
+  assert.notEqual(zhCN.shell.platformNav.wins, enUS.shell.platformNav.wins);
+  assert.notEqual(zhCN.shell.platformNav.plan, enUS.shell.platformNav.plan);
 });

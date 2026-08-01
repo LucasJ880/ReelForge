@@ -552,9 +552,10 @@ export const enUS: Dictionary = {
     personaPersonal: "Personal",
     badgeSoon: "Soon",
     platformNav: {
+      plan: "This week",
       create: "Create",
       batches: "Batch production",
-      racing: "Campaign racing",
+      wins: "Wins",
       library: "Video library",
       brands: "Brands",
       templates: "Template library",

@@ -49,6 +49,7 @@ model AdminUser {
   productImageJobs      ProductImageJob[]
   videoDispatchRequests VideoDispatchRequest[]
   contentPlans          ContentPlan[]
+  productAnchors        ProductAnchor[]
   mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
   storyboardRuns        StoryboardRun[]        @relation("StoryboardRunOwner")
   approvedStoryboards   StoryboardRun[]        @relation("StoryboardRunApprover")
@@ -2067,4 +2068,50 @@ model AdIntelRecipe {
   @@unique([source, externalRef])
   @@index([industry, daysRunning])
   @@index([hookType])
+}
+
+// =========================================================
+// B1 · 产品身份锚定（PRD §5 / M5）
+// =========================================================
+//
+// 「一个 SKU 做一次，之后所有内容复用」。锚点是三样东西：
+// RGBA 切片（合成时贴回去的真实像素）、mask（告诉模型这块不许画）、
+// logo 区域框（校验层要知道去哪儿看）。
+
+enum ProductAnchorStatus {
+  /// 等抠图。商用抠图 key 未配置时新建的锚点停在这里 —— 不做假成功。
+  PENDING_CUTOUT
+  READY
+  FAILED
+}
+
+model ProductAnchor {
+  id     String    @id @default(cuid())
+  userId String
+  user   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// SKU 标识（商家命名）。同一 SKU 只做一次锚定。
+  sku String
+
+  sourceImageUrl String
+  /// RGBA 切片（透明背景 PNG）。null = 还没抠出来。
+  cutoutUrl      String?
+  /// mask（白=产品，黑=背景）。路径 A 用它的反相喂 images.edit。
+  maskUrl        String?
+  /// logo 区域框（归一化 {x,y,width,height}）。用户框一次，
+  /// 一次性人工换 100% 可靠基准（PRD 原话）。
+  logoBoxJson    Json?
+  /// 品牌名，Gate 的文字判据用。
+  brandName      String?
+
+  status         ProductAnchorStatus @default(PENDING_CUTOUT)
+  /// 抠图走的哪家（remove_bg / clipdrop）。排障与成本核算用。
+  cutoutProvider String?
+  failureReason  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, sku])
+  @@index([status])
 }

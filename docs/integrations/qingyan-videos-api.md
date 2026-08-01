@@ -108,6 +108,44 @@ Authorization: Bearer {CRON_SECRET}
 `VideoAsset.source` 的 `aivora` 枚举、`externalId` 幂等键、`/api/cron/aivora-sync`
 定时任务你们都已经有了，不需要动。
 
+## 反向接口：把渠道指标回灌给我们
+
+```
+POST {AIVORA_API_URL}/api/performance
+Authorization: Bearer {CRON_SECRET}
+
+{
+  "samples": [
+    {
+      "subjectType": "post" | "video",
+      "subjectId": "batch-cmr...",        // 可带 batch-/brief- 前缀，我方会归一化
+      "platform": "instagram",
+      "externalPostId": "...",            // 可空
+      "windowHours": 48,                  // 必填，不设默认值
+      "observedAt": "2026-08-01T00:00:00Z",
+      "impressions": 1200, "views": null,
+      "likes": 60, "comments": 8, "shares": 0, "saves": 5,
+      "clicks": null, "conversions": null
+    }
+  ]
+}
+→ { "accepted": 1, "unmatched": 0, "withoutRecipe": 0 }
+```
+
+方向与 `/videos` 相反：指标在你们手里（你们持有平台 OAuth），我们拉不到，所以由你们推。
+一次最多 500 条。
+
+**三件需要注意的：**
+
+1. **`recipeId` 不要传，传了也会被忽略。** 配方是我方生成时确定的事实，
+   我们从自己的 subject 上读。允许外部覆盖等于给赛马开一个能被写脏的口子。
+2. **`windowHours` 必填。** 同一条内容在不同窗口各存一行、互不覆盖 ——
+   12h 下结论和 48h 下结论是两回事。同窗口重复回灌会覆盖数值（指标会被平台修正）。
+3. **回执里的 `unmatched` 要看。** 持续大于 0 说明两边 id 对不齐，
+   要查而不是忽略；`withoutRecipe` 大于 0 只是说明那些是历史内容，数据会留着但不进配方统计。
+
+分母（`impressions` / `views`）两个都可以为空 —— 各平台口径不同，**我们不做换算**，缺就是缺。
+
 ## 我方已验证
 
 - 无凭据 / 错误凭据 → 401；正确凭据 → 200 并返回真实成片

@@ -965,20 +965,20 @@ model VideoJob {
   /// 不要用模板现状回填。
   ///
   /// recipeId 是跨形态稳定的配方身份（如 `tpl:cinematic@3`），赛马的分组键。
-  recipeId                     String?
+  recipeId       String?
   /// 钩子类型：POV | Curiosity | Stat | Reveal | Pain | Demo。无 brief 的批量线路为 null。
-  hookType                     String?
+  hookType       String?
   /// 风格模板 + 版本（如 `cinematic@3`）。非模板线路为 null。
-  templateId                   String?
+  templateId     String?
   /// 画幅（9:16 / 16:9 / 1:1）。VideoJob 此前不落此列，只散在 brief / storyboard 上。
-  aspectRatio                  String?
+  aspectRatio    String?
   /// 品牌植入档位：natural | planar_track | corner_badge。见 PRD 决策 3。
-  brandPlacement               String?
+  brandPlacement String?
 
-  availableAt                  DateTime?
-  leaseOwner                   String?
-  leaseExpiresAt               DateTime?
-  heartbeatAt                  DateTime?
+  availableAt    DateTime?
+  leaseOwner     String?
+  leaseExpiresAt DateTime?
+  heartbeatAt    DateTime?
 
   provider      VideoProvider
   externalJobId String?
@@ -1851,7 +1851,7 @@ model ContentPlan {
   userId String
   user   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  source ContentPlanSource
+  source      ContentPlanSource
   /// 商家给的原始输入（一句话原文 / 商品链接 / 产品图 URL）。
   /// 保留原文而不只存解析结果：出问题时要能回看商家到底说了什么。
   sourceInput String
@@ -1904,7 +1904,7 @@ model ContentPost {
   slidesJson  Json?
 
   /// 已产出的视觉素材。单图是一张，轮播是按 order 排的多张。
-  renderedImageUrls String[] @default([])
+  renderedImageUrls String[]  @default([])
   renderedAt        DateTime?
   renderError       String?
 
@@ -1922,4 +1922,61 @@ model ContentPost {
   @@index([planId, dayOffset])
   @@index([recipeId])
   @@index([status, createdAt])
+}
+
+// =========================================================
+// R2/R3 · 表现回流与配方维度胜负判定（PRD §4 / M2）
+// =========================================================
+//
+// ⚠️ 这不是 racing-service / scoring-service 的升级版。
+// 那套是为旧概念（投放效果评估）建的，输入、判据、输出都不一样。
+// PRD §10.3 明确：新赛马按新模型重写，旧实现降级为参考，不要改造它。
+
+enum PerformanceSubjectType {
+  /// 视频成片（VideoJob / VideoBrief）
+  VIDEO
+  /// 图文帖（ContentPost）
+  POST
+}
+
+model ContentPerformance {
+  id String @id @default(cuid())
+
+  subjectType PerformanceSubjectType
+  /// VideoJob.id / ContentPost.id
+  subjectId   String
+
+  /// 创意配方快照。**从 subject 上复制而来，之后不再变** ——
+  /// 与 VideoJob.recipeId 同一套不可变语义：配方是「发这条时用了什么」。
+  /// null 表示该条内容早于配方字段，必须排除出配方维度统计。
+  recipeId String?
+
+  platform       String
+  /// 平台侧帖子 id，用于对账与去重
+  externalPostId String?
+
+  /// 观测窗口（小时）。同一条内容在不同窗口各存一行，不覆盖 ——
+  /// 12h 就下结论和 48h 下结论是两回事，覆盖掉就看不出趋势了。
+  windowHours Int
+  observedAt  DateTime
+
+  /// 分母。两者都可能缺：不同平台给的口径不同，缺就是缺，不换算。
+  impressions Int?
+  views       Int?
+
+  /// 分子构成。分开存而不是只存一个 engagement 总数：
+  /// 「收藏多但不评论」和「评论多但不收藏」是不同的结构信号。
+  likes       Int?
+  comments    Int?
+  shares      Int?
+  saves       Int?
+  clicks      Int?
+  conversions Int?
+
+  createdAt DateTime @default(now())
+
+  /// 同一条内容 + 同一平台 + 同一窗口只允许一行，重复回流走 upsert。
+  @@unique([subjectType, subjectId, platform, windowHours])
+  @@index([recipeId, windowHours])
+  @@index([observedAt])
 }

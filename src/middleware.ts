@@ -43,7 +43,12 @@ const publicPaths = [
 // 只放行精确路径，不用前缀：以后新增 /api/videos/* 子路由时必须各自单独评估，
 // 不能被这一条顺带放开。route handler 里的 machineAuthFailure 是 fail-closed 的
 // （CRON_SECRET 缺失直接 503），它才是真正的守卫。
-const exactPublicPaths = ["/api/webhooks/stripe", "/api/videos"];
+const exactPublicPaths = [
+  "/api/webhooks/stripe",
+  "/api/videos",
+  /// 青砚回灌渠道指标（PRD §4 R2）。同样由 machineAuthFailure fail-closed 守卫。
+  "/api/performance",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

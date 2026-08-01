@@ -62,8 +62,11 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "durationSec",
     "failedSceneCount",
     "id",
+    /// PRD §4.3：素材库要收纳图文帖与轮播，因此多了 imageUrls 与 planId。
+    "imageUrls",
     "isShowcase",
     "label",
+    "planId",
     "progress",
     "source",
     "status",

@@ -403,6 +403,73 @@ export function toBatchLibraryRow(
   });
 }
 
+
+/**
+ * PRD §4.3：素材库要收纳「上传原图、生成产品图、分镜、成片、**图文帖与轮播**、
+ * 字幕/导出件」，按业务对象组织。
+ *
+ * 图文帖没有视频 URL，所以它的「可用」判据是**有没有出图**，
+ * 而不是复用视频那套 videoUrl 判空 —— 纯文案帖本来就没有配图，
+ * 它一样是可发布的成品，不能因为没有 videoUrl 就被当成半成品过滤掉。
+ */
+const contentPostLibrarySelect = {
+  id: true,
+  key: true,
+  format: true,
+  status: true,
+  copyHook: true,
+  renderedImageUrls: true,
+  updatedAt: true,
+  plan: { select: { id: true, theme: true } },
+} satisfies Prisma.ContentPostSelect;
+
+type ContentPostLibraryRow = Prisma.ContentPostGetPayload<{
+  select: typeof contentPostLibrarySelect;
+}>;
+
+const POST_FORMAT_LABEL: Record<string, string> = {
+  TEXT: "文案帖",
+  SINGLE_IMAGE: "单图帖",
+  CAROUSEL: "轮播",
+  VIDEO: "短视频",
+};
+
+export function toContentPostLibraryRow(
+  post: ContentPostLibraryRow,
+  isShowcase = false,
+): UnifiedLibraryRow | null {
+  /// 商家主动弃用的内容不进素材库，但记录仍在（不物理删除）。
+  if (post.status === "DISCARDED") return null;
+
+  const needsImage = post.format === "SINGLE_IMAGE" || post.format === "CAROUSEL";
+  const hasImages = post.renderedImageUrls.length > 0;
+  const status = needsImage && !hasImages ? "generating" : "ready";
+
+  return unifiedLibraryRowSchema.parse({
+    id: `post-${post.id}`,
+    briefId: null,
+    source: "post",
+    videoJobId: null,
+    batchId: null,
+    planId: post.plan.id,
+    isShowcase,
+    brandedVideoUrl: null,
+    title: `${post.plan.theme} · ${POST_FORMAT_LABEL[post.format] ?? post.format}`,
+    updatedAt: post.updatedAt,
+    status,
+    label: status,
+    progress: status === "ready" ? 100 : 0,
+    /// 图文帖没有视频；配图走 imageUrls，UI 据此渲染图而不是播放器。
+    videoUrl: null,
+    thumbnailUrl: post.renderedImageUrls[0] ?? null,
+    imageUrls: post.renderedImageUrls,
+    durationSec: null,
+    aspectRatio: needsImage ? "2:3" : null,
+    failedSceneCount: 0,
+    canRetry: needsImage && !hasImages,
+  });
+}
+
 /**
  * Terminal failures without playable media are operational records, not useful
  * customer library items. Keep recoverable outputs visible even when their
@@ -411,14 +478,19 @@ export function toBatchLibraryRow(
 export function filterCustomerLibraryRows(
   rows: UnifiedLibraryRow[],
 ): UnifiedLibraryRow[] {
-  return rows.filter((row) => row.status !== "failed" || Boolean(row.videoUrl));
+  /// 图文帖没有 videoUrl 也可能是完整成品（纯文案帖），
+  /// 所以只对视频来源套「失败且无可播放媒体则隐藏」这条规则。
+  return rows.filter(
+    (row) =>
+      row.source === "post" || row.status !== "failed" || Boolean(row.videoUrl),
+  );
 }
 
 async function loadRowsForOwner(
   ownerId: string,
   isShowcase: boolean,
 ): Promise<UnifiedLibraryRow[]> {
-  const [orders, batchJobs] = await Promise.all([
+  const [orders, batchJobs, contentPosts] = await Promise.all([
     db.deliveryOrder.findMany({
       where: { createdById: ownerId, productCategory: "unified_input" },
       orderBy: { updatedAt: "desc" },
@@ -431,6 +503,13 @@ async function loadRowsForOwner(
       take: 100,
       select: batchLibraryJobSelect,
     }),
+    /// PRD §4.3：图文帖与轮播也要进素材库，否则商家出完图就找不到它们了。
+    db.contentPost.findMany({
+      where: { plan: { userId: ownerId } },
+      orderBy: { updatedAt: "desc" },
+      take: 100,
+      select: contentPostLibrarySelect,
+    }),
   ]);
 
   const rows = [
@@ -439,6 +518,9 @@ async function loadRowsForOwner(
       .filter((row): row is UnifiedLibraryRow => row !== null),
     ...batchJobs
       .map((job) => toBatchLibraryRow(job, isShowcase))
+      .filter((row): row is UnifiedLibraryRow => row !== null),
+    ...contentPosts
+      .map((post) => toContentPostLibraryRow(post, isShowcase))
       .filter((row): row is UnifiedLibraryRow => row !== null),
   ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 

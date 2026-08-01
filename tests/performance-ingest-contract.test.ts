@@ -41,7 +41,14 @@ test("配方只从我方 subject 上读，服务层不读入参", () => {
     /sample\.recipeId/,
     "服务层不得从回流入参取 recipeId",
   );
-  assert.match(source, /recipeByVideo|recipeByPost/);
+  /// 维度必须来自我方 subject 的查询结果，而不是回流入参。
+  assert.match(source, /videoDims\.get\(subjectId\)/);
+  assert.match(source, /postDims\.get\(subjectId\)/);
+  /// 五个分组维度同样不许从回流入参取。
+  assert.doesNotMatch(
+    source,
+    /sample\.(hookType|templateId|brandPlacement|aspectRatio|durationSec)/,
+  );
 });
 
 test("窗口必须显式给，不设默认值", () => {

@@ -21,8 +21,32 @@
 /** 判定用的比率口径。分母不同不可混用。 */
 export type RacingMetric = "engagement_rate" | "conversion_rate";
 
+/**
+ * 分组维度（PRD §4.3 R3：「按钩子类型 / 模板 / 时长 / 画幅 / 植入档位分组比较」）。
+ *
+ * `recipe` 是默认维度，也是最有解释力的一维（结构本身）。
+ * 其余四维回答的是另一类问题：「9:16 是不是比 1:1 强」「自然植入是不是比角标强」——
+ * 决策 3 要验证换植入档位有没有用，靠的就是 `brandPlacement` 这一维。
+ *
+ * 每一维都走同一套样本门槛与区间检验，不因为维度换了就放松判据。
+ */
+export type RacingDimension =
+  | "recipe"
+  | "hookType"
+  | "templateId"
+  | "durationSec"
+  | "aspectRatio"
+  | "brandPlacement";
+
 export type PerformanceRow = {
   recipeId: string | null;
+  /// 以下四维来自 subject 上的配方快照，与 recipeId 同样是生成时冻结的。
+  /// 缺失即未知，参与不了该维度的比较（而不是归进某个默认桶）。
+  hookType?: string | null;
+  templateId?: string | null;
+  durationSec?: number | null;
+  aspectRatio?: string | null;
+  brandPlacement?: string | null;
   subjectId: string;
   impressions: number | null;
   views: number | null;
@@ -35,6 +59,7 @@ export type PerformanceRow = {
 };
 
 export type RecipeStats = {
+  /// 这一组的标识。维度为 recipe 时是 recipeId，为 aspectRatio 时是 "9:16"，以此类推。
   recipeId: string;
   /// 这个配方下有几条内容被发布过。**这是能否下结论的关键**，不是曝光量。
   subjectCount: number;
@@ -50,6 +75,7 @@ export type RacingVerdict =
   | {
       status: "winner";
       metric: RacingMetric;
+      dimension: RacingDimension;
       winner: RecipeStats;
       runnerUp: RecipeStats;
       /// 赢多少（百分点）。区间不重叠才会给这个数。
@@ -59,6 +85,7 @@ export type RacingVerdict =
   | {
       status: "no_difference";
       metric: RacingMetric;
+      dimension: RacingDimension;
       ranked: RecipeStats[];
       /// 为什么判成「分不出高下」而不是「还判不了」
       reason: string;
@@ -66,6 +93,7 @@ export type RacingVerdict =
   | {
       status: "insufficient";
       metric: RacingMetric;
+      dimension: RacingDimension;
       ranked: RecipeStats[];
       /// 差什么，说人话，让商家知道再发几条就能有结论
       missing: string[];
@@ -83,6 +111,37 @@ export const MIN_SUBJECTS_PER_RECIPE = 3;
 export const MIN_TRIALS_PER_RECIPE = 300;
 /// 至少要有两个配方才谈得上比较。
 export const MIN_RECIPES = 2;
+
+/**
+ * 取某一维度的分组键。
+ *
+ * 返回 null 表示这一行在该维度上是**未知**，直接排除 ——
+ * 与 recipeId 为 null 的处理一致：未知不是一个可以比较的桶。
+ */
+export function groupKeyFor(
+  row: PerformanceRow,
+  dimension: RacingDimension,
+): string | null {
+  switch (dimension) {
+    case "recipe":
+      return row.recipeId ?? null;
+    case "hookType":
+      return row.hookType ?? null;
+    case "templateId":
+      return row.templateId ?? null;
+    case "aspectRatio":
+      return row.aspectRatio ?? null;
+    case "brandPlacement":
+      return row.brandPlacement ?? null;
+    case "durationSec":
+      /// 时长按秒分桶会碎成一堆单点，比不出东西。
+      /// 按投放语境里真实存在的档位分：短 / 中 / 长。
+      if (typeof row.durationSec !== "number" || row.durationSec <= 0) return null;
+      if (row.durationSec <= 15) return "≤15s";
+      if (row.durationSec <= 30) return "16-30s";
+      return ">30s";
+  }
+}
 
 function successesFor(row: PerformanceRow, metric: RacingMetric): number {
   if (metric === "conversion_rate") return row.conversions ?? 0;
@@ -127,6 +186,7 @@ export function wilsonInterval(
 export function aggregateByRecipe(
   rows: PerformanceRow[],
   metric: RacingMetric,
+  dimension: RacingDimension = "recipe",
 ): RecipeStats[] {
   const buckets = new Map<
     string,
@@ -134,13 +194,14 @@ export function aggregateByRecipe(
   >();
 
   for (const row of rows) {
-    /// 配方未知的内容一律排除，不归到某个默认桶里 ——
-    /// 那会把「加列之前的历史成片」全部算成同一个配方，结论必然是错的。
-    if (!row.recipeId) continue;
+    /// 该维度未知的内容一律排除，不归到某个默认桶里 ——
+    /// 那会把「加列之前的历史成片」全部算成同一组，结论必然是错的。
+    const key = groupKeyFor(row, dimension);
+    if (!key) continue;
     const trials = trialsFor(row);
     if (trials === null || trials <= 0) continue;
 
-    const bucket = buckets.get(row.recipeId) ?? {
+    const bucket = buckets.get(key) ?? {
       subjects: new Set<string>(),
       trials: 0,
       successes: 0,
@@ -148,7 +209,7 @@ export function aggregateByRecipe(
     bucket.subjects.add(row.subjectId);
     bucket.trials += trials;
     bucket.successes += successesFor(row, metric);
-    buckets.set(row.recipeId, bucket);
+    buckets.set(key, bucket);
   }
 
   return [...buckets.entries()]
@@ -180,8 +241,9 @@ export function aggregateByRecipe(
 export function judgeRecipes(
   rows: PerformanceRow[],
   metric: RacingMetric = "engagement_rate",
+  dimension: RacingDimension = "recipe",
 ): RacingVerdict {
-  const ranked = aggregateByRecipe(rows, metric);
+  const ranked = aggregateByRecipe(rows, metric, dimension);
 
   const missing: string[] = [];
   const eligible = ranked.filter(
@@ -210,7 +272,7 @@ export function judgeRecipes(
   }
 
   if (eligible.length < MIN_RECIPES) {
-    return { status: "insufficient", metric, ranked, missing };
+    return { status: "insufficient", metric, dimension, ranked, missing };
   }
 
   const [winner, runnerUp] = eligible;
@@ -219,6 +281,7 @@ export function judgeRecipes(
     return {
       status: "no_difference",
       metric,
+      dimension,
       ranked,
       reason: `${winner.recipeId} 与 ${runnerUp.recipeId} 的置信区间重叠，现有数据分不出高下`,
     };
@@ -227,6 +290,7 @@ export function judgeRecipes(
   return {
     status: "winner",
     metric,
+    dimension,
     winner,
     runnerUp,
     marginPoints: (winner.rate - runnerUp.rate) * 100,
@@ -251,4 +315,34 @@ export function explainVerdict(verdict: RacingVerdict): string {
     case "insufficient":
       return `还判不出哪种结构更好。${verdict.missing[0] ?? "样本还不够"}。`;
   }
+}
+
+/**
+ * 把五个维度一次判完（PRD §4.3 R3）。
+ *
+ * 为什么不只判 recipe：结构维度回答「哪种写法在赢」，
+ * 其余四维回答「哪种规格在赢」—— 决策 3 要验证植入档位从角标换成自然植入
+ * 有没有用，靠的正是 brandPlacement 这一维。
+ *
+ * 每一维独立判，互不影响：某一维样本够了不代表别的维也够。
+ */
+export const RACING_DIMENSIONS: RacingDimension[] = [
+  "recipe",
+  "hookType",
+  "templateId",
+  "durationSec",
+  "aspectRatio",
+  "brandPlacement",
+];
+
+export function judgeAllDimensions(
+  rows: PerformanceRow[],
+  metric: RacingMetric = "engagement_rate",
+): Record<RacingDimension, RacingVerdict> {
+  return Object.fromEntries(
+    RACING_DIMENSIONS.map((dimension) => [
+      dimension,
+      judgeRecipes(rows, metric, dimension),
+    ]),
+  ) as Record<RacingDimension, RacingVerdict>;
 }

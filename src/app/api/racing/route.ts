@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/api-auth";
 import { loadPerformanceRows } from "@/lib/services/performance-ingest-service";
 import {
   explainVerdict,
+  judgeAllDimensions,
   judgeRecipes,
 } from "@/lib/services/recipe-racing-service";
 
@@ -40,9 +41,14 @@ export async function GET(req: NextRequest) {
     windowHours: parsed.data.windowHours,
   });
   const verdict = judgeRecipes(rows, parsed.data.metric);
+  /// 五个维度一次判完（PRD §4.3 R3）：结构维度回答「哪种写法在赢」，
+  /// 画幅/时长/植入档位回答「哪种规格在赢」——
+  /// 决策 3 要验证植入档位换档有没有用，靠的正是后者。
+  const dimensions = judgeAllDimensions(rows, parsed.data.metric);
 
   return NextResponse.json({
     verdict,
+    dimensions,
     /// 给商家看的一句话。前端应该显示这句，而不是自己解读 verdict。
     summary: explainVerdict(verdict),
     windowHours: parsed.data.windowHours,

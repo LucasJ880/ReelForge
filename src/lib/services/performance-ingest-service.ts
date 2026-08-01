@@ -32,19 +32,59 @@ export async function ingestPerformanceSamples(
     videoIds.size
       ? db.videoJob.findMany({
           where: { id: { in: [...videoIds] } },
-          select: { id: true, recipeId: true },
+          select: {
+            id: true,
+            recipeId: true,
+            hookType: true,
+            templateId: true,
+            aspectRatio: true,
+            brandPlacement: true,
+            segmentDurationSec: true,
+          },
         })
       : Promise.resolve([]),
     postIds.size
       ? db.contentPost.findMany({
           where: { id: { in: [...postIds] } },
-          select: { id: true, recipeId: true },
+          select: {
+            id: true,
+            recipeId: true,
+            hookType: true,
+            format: true,
+          },
         })
       : Promise.resolve([]),
   ]);
 
-  const recipeByVideo = new Map(videos.map((v) => [v.id, v.recipeId]));
-  const recipeByPost = new Map(posts.map((p) => [p.id, p.recipeId]));
+  /// 五个分组维度一并快照下来（PRD §4.3 R3）。
+  /// 图文帖没有时长与画幅，那两维对它就是未知 —— 未知不参与该维度的比较。
+  const videoDims = new Map(
+    videos.map((v) => [
+      v.id,
+      {
+        recipeId: v.recipeId,
+        hookType: v.hookType,
+        templateId: v.templateId,
+        aspectRatio: v.aspectRatio,
+        brandPlacement: v.brandPlacement,
+        durationSec: v.segmentDurationSec,
+      },
+    ]),
+  );
+  const postDims = new Map(
+    posts.map((p) => [
+      p.id,
+      {
+        recipeId: p.recipeId,
+        hookType: p.hookType,
+        /// 图文帖的「模板」就是它的形态：赛马问「轮播是不是比单图强」时用这一维。
+        templateId: p.format,
+        aspectRatio: null as string | null,
+        brandPlacement: null as string | null,
+        durationSec: null as number | null,
+      },
+    ]),
+  );
 
   let accepted = 0;
   let unmatched = 0;
@@ -52,10 +92,11 @@ export async function ingestPerformanceSamples(
 
   for (const sample of samples) {
     const subjectId = normalizeSubjectId(sample.subjectId);
-    const known =
+    const dims =
       sample.subjectType === "video"
-        ? recipeByVideo.has(subjectId)
-        : recipeByPost.has(subjectId);
+        ? videoDims.get(subjectId)
+        : postDims.get(subjectId);
+    const known = Boolean(dims);
 
     /// 对不上就丢弃并计数。存下来也没法归因，只会让「有多少数据」这个问题失真。
     if (!known) {
@@ -63,15 +104,17 @@ export async function ingestPerformanceSamples(
       continue;
     }
 
-    const recipeId =
-      (sample.subjectType === "video"
-        ? recipeByVideo.get(subjectId)
-        : recipeByPost.get(subjectId)) ?? null;
+    const recipeId = dims?.recipeId ?? null;
     if (!recipeId) withoutRecipe += 1;
 
     const subjectType = sample.subjectType === "video" ? "VIDEO" : "POST";
     const numbers = {
       recipeId,
+      hookType: dims?.hookType ?? null,
+      templateId: dims?.templateId ?? null,
+      aspectRatio: dims?.aspectRatio ?? null,
+      brandPlacement: dims?.brandPlacement ?? null,
+      durationSec: dims?.durationSec ?? null,
       externalPostId: sample.externalPostId ?? null,
       observedAt: sample.observedAt,
       impressions: sample.impressions ?? null,
@@ -137,6 +180,11 @@ export async function loadPerformanceRows(args: {
     where: { subjectId: { in: ids }, windowHours: args.windowHours },
     select: {
       recipeId: true,
+      hookType: true,
+      templateId: true,
+      durationSec: true,
+      aspectRatio: true,
+      brandPlacement: true,
       subjectId: true,
       impressions: true,
       views: true,

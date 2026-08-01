@@ -7,6 +7,7 @@ import {
   listContentPlans,
 } from "@/lib/services/content-plan-store";
 import { ProductLinkError } from "@/lib/services/product-link-service";
+import { ProductImageFactsError } from "@/lib/services/product-image-facts-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -57,8 +58,19 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ plan }, { status: 201 });
   } catch (err) {
-    /// 链接抓取失败是**商家可以自己解决**的问题（换链接 / 改用一句话），
-    /// 所以给具体原因而不是「生成失败」。
+    /// 链接抓取与读图失败都是**商家可以自己解决**的问题
+    /// （换链接 / 换图 / 改用一句话），所以给具体原因而不是「生成失败」。
+    if (err instanceof ProductImageFactsError) {
+      return NextResponse.json(
+        customerApiError({
+          code: err.reason === "unavailable" ? "SERVICE_UNAVAILABLE" : "VALIDATION_FAILED",
+          message: err.message,
+          retryable: err.reason === "unavailable",
+          action: err.reason === "unavailable" ? "retry" : "replace_asset",
+        }),
+        { status: err.reason === "unavailable" ? 503 : 400 },
+      );
+    }
     if (err instanceof ProductLinkError) {
       return NextResponse.json(
         customerApiError({

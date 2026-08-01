@@ -9,6 +9,11 @@ import {
   factsToPromptLines,
   ProductLinkError,
 } from "@/lib/services/product-link-service";
+import {
+  imageFactsToPromptLines,
+  readProductImageFacts,
+  ProductImageFactsError,
+} from "@/lib/services/product-image-facts-service";
 import { resolveDerivationInput } from "@/lib/services/winner-derivation-service";
 import type { ContentFormat, ContentPost } from "@/lib/schemas/content-plan";
 
@@ -77,11 +82,16 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
   let productFacts: string[] | null = null;
   let factsRaw: Prisma.InputJsonValue | undefined;
 
+  /// 链接与产品图都要**真的**读出事实来。
+  /// 读不出就明确失败，绝不静默降级成「把输入当一句话」——
+  /// 商家给了链接/图却拿到一份无关的计划，比报错更糟，而且界面上看不出来。
   if (args.source === "product_url") {
-    /// 抓不到就明确失败，不要静默降级成纯一句话 ——
-    /// 商家给了链接却拿到一份和链接无关的计划，比报错更糟。
     const facts = await fetchProductFacts(args.sourceInput);
     productFacts = factsToPromptLines(facts);
+    factsRaw = facts as unknown as Prisma.InputJsonValue;
+  } else if (args.source === "product_image") {
+    const facts = await readProductImageFacts(args.sourceInput);
+    productFacts = imageFactsToPromptLines(facts);
     factsRaw = facts as unknown as Prisma.InputJsonValue;
   }
 
@@ -105,7 +115,7 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
     winningRecipe: derivation.winningRecipe,
   };
 
-  const { plan, source: generatedBy } = await buildContentPlan(input);
+  const { plan, source: generatedBy, originality } = await buildContentPlan(input);
 
   const created = await db.contentPlan.create({
     data: {
@@ -123,6 +133,9 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
       productFactsJson: factsRaw,
       generatedBy,
       planBasis: derivation.basis,
+      /// O4 验收 3 的证据：这一份产出对参考素材的重复度。
+      /// 存下来才能在被问到「你们怎么证明是原创的」时拿得出东西。
+      originalityScore: originality.containment,
       idempotencyKey: args.idempotencyKey ?? null,
       posts: { create: plan.posts.map(toPostCreate) },
     },
@@ -203,4 +216,4 @@ export async function listContentPlans(userId: string, limit = 20) {
   });
 }
 
-export { ProductLinkError };
+export { ProductLinkError, ProductImageFactsError };

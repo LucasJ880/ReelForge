@@ -1871,6 +1871,10 @@ model ContentPlan {
   /// 给商家看的一句话 —— 借来的结构必须说明是借来的，不能冒充他自己的数据结论。
   planBasis String?
 
+  /// 对参考素材的重复度（O4 验收 3）。这是合规主张的证据：
+  /// 我们对外说生成内容是原创的，就得留下能证明的数字。
+  originalityScore Float?
+
   /// 幂等键：同一用户重复提交同一请求不重复计费、不重复生成。
   idempotencyKey String?
 
@@ -1954,6 +1958,15 @@ model ContentPerformance {
   /// 与 VideoJob.recipeId 同一套不可变语义：配方是「发这条时用了什么」。
   /// null 表示该条内容早于配方字段，必须排除出配方维度统计。
   recipeId String?
+
+  /// R3 的其余分组维度（PRD §4.3：钩子类型 / 模板 / 时长 / 画幅 / 植入档位）。
+  /// 同样是**从 subject 上复制的快照**，回流方不能指定。
+  /// 决策 3 要验证植入档位从角标换成自然植入有没有用，靠的就是 brandPlacement 这一维。
+  hookType       String?
+  templateId     String?
+  durationSec    Int?
+  aspectRatio    String?
+  brandPlacement String?
 
   platform       String
   /// 平台侧帖子 id，用于对账与去重
@@ -2042,6 +2055,10 @@ model AdIntelRecipe {
   /// 已连续投放天数。**这是搬运给不了的信号**：长期在投 = 还在赚钱，
   /// 比「看起来不错」强得多的筛选依据。
   daysRunning Int?
+
+  /// 同一广告主为这条创意跑过几个版本（O4 验收 2）。
+  /// 反复迭代同一结构 = 广告主自己在往里投钱调优，是比单看天数更强的有效性信号。
+  variantCount Int?
 
   observedAt DateTime
   createdAt  DateTime @default(now())

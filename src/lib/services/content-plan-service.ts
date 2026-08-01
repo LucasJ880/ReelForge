@@ -8,6 +8,11 @@ import {
   type ContentPost,
 } from "@/lib/schemas/content-plan";
 import { HOOK_TYPES } from "@/lib/video-generation/creative-recipe";
+import {
+  checkOriginality,
+  flattenPlanText,
+  type OriginalityReport,
+} from "@/lib/services/originality-check";
 
 /**
  * O1 · 从一句话生成一周多形态内容计划（PRD §3）。
@@ -115,30 +120,71 @@ target_platform: ${input.platform ?? "(general short-form social)"}
 ${facts.length ? facts.map((f) => `  - ${f}`).join("\n") : "  (none — rely only on the one-liner)"}${referenceBlock}${winnerBlock}`;
 }
 
-export async function buildContentPlan(
-  input: ContentPlanInput,
-): Promise<{ plan: ContentPlan; source: "llm" | "heuristic" }> {
+export async function buildContentPlan(input: ContentPlanInput): Promise<{
+  plan: ContentPlan;
+  source: "llm" | "heuristic";
+  originality: OriginalityReport;
+}> {
+  const references = input.referenceStructures?.filter(Boolean) ?? [];
+
   if (isLLMForcedMock() || !isLLMAvailable()) {
-    return { plan: heuristicPlan(input), source: "heuristic" };
+    const plan = heuristicPlan(input);
+    return {
+      plan,
+      source: "heuristic",
+      originality: checkOriginality(flattenPlanText(plan), references),
+    };
   }
 
   try {
-    const { data } = await chatJsonByTier<unknown>({
-      tier: "creative",
-      stage: "content_plan_week",
-      system: SYSTEM_PROMPT,
-      user: buildUserPrompt(input),
-      temperature: 0.7,
-      maxTokens: 4000,
-    });
-    return { plan: repairPlan(data, input), source: "llm" };
+    const plan = await generateOnce(input);
+    const originality = checkOriginality(flattenPlanText(plan), references);
+    if (originality.passed || references.length === 0) {
+      return { plan, source: "llm", originality };
+    }
+
+    /**
+     * 重复度不过 → **不把它交出去**。
+     *
+     * O4 验收 3 要求「由配方生成的内容是原创的，可通过重复度检查」，
+     * 那是合规主张，不是质量分。所以这里不是记个分就放行，而是重生成：
+     * 第二次**完全去掉参考结构** —— 没有可抄的东西，结果必然原创。
+     * 代价是这一周的内容失去同行结构的加成，但合规边界不能拿它换。
+     */
+    console.warn(
+      `[content-plan] 重复度 ${originality.containment.toFixed(3)} 超阈值，` +
+        `去掉参考结构重生成。命中片段：${originality.longestOverlap ?? "(无)"}`,
+    );
+    const clean = await generateOnce({ ...input, referenceStructures: null });
+    return {
+      plan: clean,
+      source: "llm",
+      originality: checkOriginality(flattenPlanText(clean), references),
+    };
   } catch (err) {
     console.warn(
       "[content-plan] LLM failed, falling back to heuristic:",
       (err as Error).message,
     );
-    return { plan: heuristicPlan(input), source: "heuristic" };
+    const plan = heuristicPlan(input);
+    return {
+      plan,
+      source: "heuristic",
+      originality: checkOriginality(flattenPlanText(plan), references),
+    };
   }
+}
+
+async function generateOnce(input: ContentPlanInput): Promise<ContentPlan> {
+  const { data } = await chatJsonByTier<unknown>({
+    tier: "creative",
+    stage: "content_plan_week",
+    system: SYSTEM_PROMPT,
+    user: buildUserPrompt(input),
+    temperature: 0.7,
+    maxTokens: 4000,
+  });
+  return repairPlan(data, input);
 }
 
 /**

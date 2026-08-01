@@ -31,6 +31,8 @@ export type GateThresholds = {
   minTextSimilarity: number;
   /// 主色 ΔE 上限。ΔE > 5 在并排对比下肉眼可辨。
   maxDeltaE: number;
+  /// 清晰度比下限（生成图拉普拉斯方差 / 参考图）。抓「logo 糊了」。
+  minSharpnessRatio: number;
 };
 
 /**
@@ -46,10 +48,14 @@ export const DEFAULT_GATE_THRESHOLDS: GateThresholds = {
   minSsim: 0.85,
   minTextSimilarity: 0.8,
   maxDeltaE: 5,
+  /// 0.35：一次有损压缩的清晰度比通常 >0.7，高斯模糊直接掉到 0.1 以下。
+  /// 端到端测试抓出的缺口：全局 SSIM 保低频结构，对「糊」不敏感 ——
+  /// 而「重绘整图 = logo 糊」正是 PRD 要逃离的那一档，必须有专门判据。
+  minSharpnessRatio: 0.35,
 };
 
 export type GateCheck = {
-  rule: "ssim" | "text" | "color";
+  rule: "ssim" | "text" | "color" | "sharpness";
   passed: boolean;
   value: number;
   threshold: number;
@@ -259,6 +265,33 @@ export async function dominantColor(
 }
 
 /**
+ * 清晰度：拉普拉斯方差。
+ *
+ * 端到端测试抓出的缺口：重度模糊能穿过全局 SSIM（低频结构保留），
+ * 而「重绘整图 = logo 糊」正是 PRD 要逃离的那一档。
+ * 拉普拉斯算子只响应高频边缘，模糊一来方差断崖式下跌 ——
+ * 高斯模糊后通常不足原值的 10%，一次有损压缩仍有 70% 以上。
+ */
+export async function sharpness(buffer: Buffer): Promise<number> {
+  const gray = await toGray(buffer);
+  const size = COMPARE_SIZE;
+  let sum = 0;
+  let sumSq = 0;
+  const n = (size - 2) * (size - 2);
+  for (let y = 1; y < size - 1; y += 1) {
+    for (let x = 1; x < size - 1; x += 1) {
+      const i = y * size + x;
+      const lap =
+        4 * gray[i] - gray[i - 1] - gray[i + 1] - gray[i - size] - gray[i + size];
+      sum += lap;
+      sumSq += lap * lap;
+    }
+  }
+  const mean = sum / n;
+  return sumSq / n - mean * mean;
+}
+
+/**
  * CIE76 ΔE。
  *
  * 不用 CIEDE2000：后者在饱和色与近中性色上更准，但实现复杂度高一个量级，
@@ -365,6 +398,26 @@ export async function runLogoFidelityGate(
         : "logo 结构走形：笔画或轮廓被重画过",
   });
 
+  /// 清晰度比：糊了的 logo 能穿过全局 SSIM，必须单独抓。
+  const [refSharpness, genSharpness] = await Promise.all([
+    sharpness(refRegion),
+    sharpness(genRegion),
+  ]);
+  /// 参考图本身几乎没有细节时这条判据没有意义（比值分母趋零会乱报），跳过。
+  if (refSharpness > 1) {
+    const ratio = genSharpness / refSharpness;
+    checks.push({
+      rule: "sharpness",
+      passed: ratio >= thresholds.minSharpnessRatio,
+      value: round(ratio),
+      threshold: thresholds.minSharpnessRatio,
+      message:
+        ratio >= thresholds.minSharpnessRatio
+          ? "logo 清晰度正常"
+          : "logo 被糊化：细节大量丢失，多半是被模型重画过",
+    });
+  }
+
   /// 品牌名或读到的文字缺一个就跳过这条判据 ——
   /// **跳过要显式记录**，不能让「没检查」在结果里看起来像「检查通过」。
   if (input.brandName && input.readText !== null) {
@@ -411,7 +464,7 @@ export async function runLogoFidelityGate(
  */
 function adviceFor(failed: GateCheck[]): string {
   const rules = new Set(failed.map((check) => check.rule));
-  if (rules.has("ssim") || rules.has("text")) {
+  if (rules.has("ssim") || rules.has("text") || rules.has("sharpness")) {
     return "改走产品锚定路径：把 logo 区域设为 mask 不让模型重画，而不是换种子重试";
   }
   if (rules.has("color")) {

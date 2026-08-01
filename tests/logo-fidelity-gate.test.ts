@@ -118,6 +118,38 @@ test("轻微位移（同结构上下挪 20px）不该误杀", async () => {
   assert.ok(ssim > 0.5, `位移后的 SSIM=${ssim}，不该像重画一样趋近 0`);
 });
 
+test("🔴 端到端抓出的缺口：重度模糊必须被清晰度判据拦下", async () => {
+  /// 模糊能穿过全局 SSIM（低频结构保留）—— 这正是「重绘整图 = logo 糊」。
+  const reference = await makeImage({ background: WHITE, logo: BRAND_ORANGE });
+  const blurred = await sharp(reference).blur(18).png().toBuffer();
+  const result = await runLogoFidelityGate({
+    referenceImage: reference,
+    generatedImage: blurred,
+    logoBox: BOX,
+    brandName: null,
+    readText: null,
+  });
+  assert.equal(result.passed, false, JSON.stringify(result.checks));
+  const check = result.checks.find((c) => c.rule === "sharpness")!;
+  assert.ok(check, "必须有清晰度判据");
+  assert.equal(check.passed, false, `清晰度比=${check.value} 应低于阈值`);
+  assert.match(result.retakeAdvice!, /mask|锚定/);
+});
+
+test("一次有损压缩不该被清晰度判据误杀", async () => {
+  const reference = await makeImage({ background: WHITE, logo: BRAND_ORANGE });
+  const jpeg = await sharp(reference).jpeg({ quality: 70 }).toBuffer();
+  const result = await runLogoFidelityGate({
+    referenceImage: reference,
+    generatedImage: jpeg,
+    logoBox: BOX,
+    brandName: null,
+    readText: null,
+  });
+  const check = result.checks.find((c) => c.rule === "sharpness");
+  assert.ok(check?.passed, `压缩后的清晰度比=${check?.value}，不该被判糊`);
+});
+
 test("品牌名判据：少一个字母与整段乱码是不同严重度", () => {
   assert.ok(textSimilarity("SunnyShutter", "SunnyShutter") === 1);
   const oneOff = textSimilarity("SunnyShutter", "SunnyShuter");
@@ -156,7 +188,11 @@ test("没给品牌名或没读到文字时跳过 text 判据，且结果里看�
   });
   /// 跳过 ≠ 通过：checks 里根本没有 text 这条，调用方能分辨。
   assert.ok(!result.checks.some((c) => c.rule === "text"));
-  assert.equal(result.checks.length, 2);
+  /// 其余判据（ssim / sharpness / color）照常在场。
+  assert.deepEqual(
+    result.checks.map((c) => c.rule).sort(),
+    ["color", "sharpness", "ssim"],
+  );
 });
 
 test("Brand Kit 主色优先于参考图主色", async () => {

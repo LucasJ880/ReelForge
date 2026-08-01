@@ -41,33 +41,52 @@ export type OpenAITier =
   | "research"
   | "vision";
 
+/**
+ * ⚠️ 2026-08-01：生产 key 的项目**只有 gpt-5.6 系与 gpt-image-2 的权限**，
+ * 全部 gpt-4o / gpt-4.1 系一律 403。此前整条回退链都是 4 系，
+ * 于是每个 LLM 阶段都跑完三次 403 再静默降级到启发式 —— 线上看不出来，
+ * 因为降级是「成功」路径。改模型前先跑 `GET /v1/models` 确认权限，别照抄文档。
+ */
 const DEFAULTS: Record<OpenAITier, string> = {
   /// 最强的视频导演 / 脚本 / Seedance prompt 阶段 — 客户最终看到的输出
-  director: "gpt-5.5",
-  script: "gpt-5.5",
-  videoPrompt: "gpt-5.5",
-  creative: "gpt-4.1",
-  qa: "gpt-4.1-mini",
-  fast: "gpt-4o-mini",
-  research: "gpt-4o-mini",
-  vision: "gpt-4o",
+  director: "gpt-5.6-sol",
+  script: "gpt-5.6-sol",
+  videoPrompt: "gpt-5.6-sol",
+  creative: "gpt-5.6-sol",
+  qa: "gpt-5.6-terra",
+  fast: "gpt-5.6-terra",
+  research: "gpt-5.6-terra",
+  vision: "gpt-5.6-sol",
 };
 
 /**
  * 当首选模型不可用时按顺序回退。
- * 关键规则：director / script / videoPrompt 永远不能退到 mini —
- * 这些 tier 是客户最终看到的脚本和 Seedance prompt，必须保持高质量。
+ *
+ * 两条规则：
+ * 1. director / script / videoPrompt 永远不能退到轻量档 —— 这些是客户最终看到的
+ *    脚本与 Seedance prompt。
+ * 2. 链尾保留 4 系是给尚未换 key 的部署兜底；当前生产用不到它们。
+ *    **不要把 4 系放到链首**，那会让每次调用白白吃三个 403。
  */
 const FALLBACK_CHAIN: Record<OpenAITier, string[]> = {
-  director: ["gpt-5.5", "gpt-4.1", "gpt-4o"],
-  script: ["gpt-5.5", "gpt-4.1", "gpt-4o"],
-  videoPrompt: ["gpt-5.5", "gpt-4.1", "gpt-4o"],
-  creative: ["gpt-4.1", "gpt-4o", "gpt-4o-mini"],
-  qa: ["gpt-4.1-mini", "gpt-4o-mini"],
-  fast: ["gpt-4o-mini"],
-  research: ["gpt-4o-mini"],
-  vision: ["gpt-4o"],
+  director: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
+  script: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
+  videoPrompt: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
+  creative: ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-4.1"],
+  qa: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4.1-mini"],
+  fast: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4o-mini"],
+  research: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4o-mini"],
+  vision: ["gpt-5.6-sol", "gpt-4o"],
 };
+
+/**
+ * 已知在当前生产项目下**没有权限**的模型。
+ *
+ * 旧部署的 `OPENAI_MODEL=gpt-4o-mini` 会被 resolveModelForTier 当成首选，
+ * 于是链首必然 403。与其每次调用浪费一个往返，不如在这里直接跳过 ——
+ * 这不是猜测，是 `GET /v1/models` 的返回。
+ */
+const KNOWN_UNAVAILABLE = /^gpt-4/;
 
 /**
  * 客户最终看到的 tier（director / script / videoPrompt）必须避免 mini —
@@ -105,7 +124,12 @@ export function resolveFallbackChain(tier: OpenAITier): string[] {
     seen.add(m);
     return true;
   });
-  return chain;
+
+  /// 已知无权限的模型下沉到链尾而不是删掉：万一某个部署的 key 确实有 4 系权限，
+  /// 它仍然能作为最后的兜底，只是不再占用首选位置浪费往返。
+  const usable = chain.filter((m) => !KNOWN_UNAVAILABLE.test(m));
+  const deprioritized = chain.filter((m) => KNOWN_UNAVAILABLE.test(m));
+  return usable.length ? [...usable, ...deprioritized] : chain;
 }
 
 export type TokenUsage = {

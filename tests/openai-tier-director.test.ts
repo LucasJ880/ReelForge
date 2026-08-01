@@ -24,7 +24,7 @@ function withEnv<T>(
   }
 }
 
-test("director tier: 默认走 gpt-5.5（不可退到 mini）", () => {
+test("director tier: 默认走最强档（不可退到 mini）", () => {
   withEnv(
     {
       OPENAI_DIRECTOR_MODEL: undefined,
@@ -33,24 +33,24 @@ test("director tier: 默认走 gpt-5.5（不可退到 mini）", () => {
     () => {
       const model = resolveModelForTier("director");
       assert.doesNotMatch(model, /mini/);
-      assert.equal(model, "gpt-5.5");
+      assert.equal(model, "gpt-5.6-sol");
     },
   );
 });
 
-test("script tier: 默认走 gpt-5.5（修复 wizard-script-service.ts 历史硬编码 mini）", () => {
+test("script tier: 默认走最强档（修复 wizard-script-service.ts 历史硬编码 mini）", () => {
   withEnv({ OPENAI_SCRIPT_MODEL: undefined }, () => {
     const model = resolveModelForTier("script");
     assert.doesNotMatch(model, /mini/);
-    assert.equal(model, "gpt-5.5");
+    assert.equal(model, "gpt-5.6-sol");
   });
 });
 
-test("videoPrompt tier: 默认走 gpt-5.5", () => {
+test("videoPrompt tier: 默认走最强档", () => {
   withEnv({ OPENAI_VIDEO_PROMPT_MODEL: undefined }, () => {
     const model = resolveModelForTier("videoPrompt");
     assert.doesNotMatch(model, /mini/);
-    assert.equal(model, "gpt-5.5");
+    assert.equal(model, "gpt-5.6-sol");
   });
 });
 
@@ -68,8 +68,8 @@ test("director tier fallback chain: 永远不退到 mini", () => {
     }
     /// 至少保留一个稳定可用的备份
     assert.ok(
-      chain.includes("gpt-4.1") || chain.includes("gpt-4o"),
-      `chain 应有 gpt-4.1 / gpt-4o 兜底：${JSON.stringify(chain)}`,
+      chain.includes("gpt-5.5") || chain.includes("gpt-4.1"),
+      `chain 应有更低档兜底：${JSON.stringify(chain)}`,
     );
   });
 });

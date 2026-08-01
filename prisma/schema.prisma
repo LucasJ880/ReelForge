@@ -48,6 +48,7 @@ model AdminUser {
   reviewedReports       ContentReport[]        @relation("ContentReportReviewer")
   productImageJobs      ProductImageJob[]
   videoDispatchRequests VideoDispatchRequest[]
+  contentPlans          ContentPlan[]
   mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
   storyboardRuns        StoryboardRun[]        @relation("StoryboardRunOwner")
   approvedStoryboards   StoryboardRun[]        @relation("StoryboardRunApprover")
@@ -1815,4 +1816,110 @@ model RateLimitBucket {
 
   @@unique([bucketKey, windowKey])
   @@index([bucketKey])
+}
+
+// =========================================================
+// O1 · 一句话进，多形态出（PRD §3 / M3）
+// =========================================================
+//
+// 产出单位是**一周计划**而不是单条内容：小商家的真痛点是发不出去、
+// 发得不连续，不是单条不够好。北极星指标也是「一周至少发 3 条」。
+
+enum ContentPlanSource {
+  SENTENCE
+  PRODUCT_IMAGE
+  PRODUCT_URL
+}
+
+enum ContentFormat {
+  TEXT
+  SINGLE_IMAGE
+  CAROUSEL
+  VIDEO
+}
+
+enum ContentPostStatus {
+  DRAFT
+  /// 视觉素材已产出、文案已确认，可交给青砚发布
+  READY
+  /// 商家主动弃用这一条；保留记录，不物理删除
+  DISCARDED
+}
+
+model ContentPlan {
+  id     String    @id @default(cuid())
+  userId String
+  user   AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  source ContentPlanSource
+  /// 商家给的原始输入（一句话原文 / 商品链接 / 产品图 URL）。
+  /// 保留原文而不只存解析结果：出问题时要能回看商家到底说了什么。
+  sourceInput String
+
+  theme          String
+  targetAudience String
+  corePainPoint  String
+
+  /// 从商品链接 / 产品图抽到的**事实**（不含推断）。null = 纯一句话起片。
+  productFactsJson Json?
+
+  /// 这份计划是 LLM 生成的还是启发式兜底的。
+  /// 兜底计划质量不同，度量「一次通过率」时必须能分开统计。
+  generatedBy String
+
+  /// 幂等键：同一用户重复提交同一请求不重复计费、不重复生成。
+  idempotencyKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts ContentPost[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([userId, createdAt])
+}
+
+model ContentPost {
+  id     String      @id @default(cuid())
+  planId String
+  plan   ContentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  /// 计划内稳定序号，重排不改；下游按它做幂等。
+  key       String
+  dayOffset Int
+  format    ContentFormat
+  status    ContentPostStatus @default(DRAFT)
+
+  /// 文案三段式分开存：赛马要按段归因，拼成一坨就拆不回去了。
+  copyHook String
+  copyBody String
+  copyCta  String?
+
+  /// 不带 # 前缀，展示层再加。
+  hashtags String[] @default([])
+
+  /// 单图帖的出图提示词；其他形态为 null。
+  imagePrompt String?
+  /// 轮播分屏 [{ order, imagePrompt, overlayText, purpose }]；其他形态为空。
+  slidesJson  Json?
+
+  /// 已产出的视觉素材。单图是一张，轮播是按 order 排的多张。
+  renderedImageUrls String[] @default([])
+  renderedAt        DateTime?
+  renderError       String?
+
+  rationale String
+
+  /// 创意配方（PRD §9.4）。与 VideoJob 上的同名列同一语义：
+  /// 生成时确定，之后不改，赛马按它分组。
+  recipeId String?
+  hookType String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([planId, key])
+  @@index([planId, dayOffset])
+  @@index([recipeId])
+  @@index([status, createdAt])
 }

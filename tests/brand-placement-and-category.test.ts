@@ -21,13 +21,13 @@ test("🔴 B4：SunnyShutter 的 CEO 锁定值在泛化后逐字保留", () => {
   assert.deepEqual(viaLegacy, viaCategory);
   assert.equal(viaLegacy!.productType, "plantation shutters");
   assert.ok(
-    viaLegacy!.identityLocks.some((lock) =>
+    viaLegacy!.identityLocks?.some((lock) =>
       lock.includes("one continuous straight rod"),
     ),
     "tilt bar 锁必须还在",
   );
   assert.ok(
-    viaLegacy!.forbiddenActions.includes("grip or twist the tilt bar"),
+    viaLegacy!.forbiddenActions?.includes("grip or twist the tilt bar"),
   );
 });
 
@@ -39,9 +39,9 @@ test("B4：每个实物品类都有完整的锁结构，generic 明确返回 nul
       continue;
     }
     assert.ok(profile, `${category} 缺锁`);
-    assert.ok(profile.identityLocks.length >= 3, `${category} 主角锁太少`);
-    assert.ok(profile.demonstrableActions.length >= 2);
-    assert.ok(profile.forbiddenActions.length >= 3, `${category} 禁止动作太少`);
+    assert.ok((profile.identityLocks?.length ?? 0) >= 3, `${category} 主角锁太少`);
+    assert.ok((profile.demonstrableActions?.length ?? 0) >= 2);
+    assert.ok((profile.forbiddenActions?.length ?? 0) >= 3, `${category} 禁止动作太少`);
   }
 });
 
@@ -90,7 +90,7 @@ test("B2：平面跟踪档在能力表里明确缺席，没有假装支持的分
     path.join(process.cwd(), "src/lib/services/brand-placement-policy.ts"),
     "utf8",
   );
-  assert.match(source, /planar_track.*当前不可达|当前不可达/s);
+  assert.match(source, /当前不可达/);
   /// 代码路径里不存在返回 planar_track 的分支。
   assert.doesNotMatch(source, /placement: "planar_track"/);
 });

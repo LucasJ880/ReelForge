@@ -2136,3 +2136,25 @@ model ProductAnchor {
   @@unique([userId, sku])
   @@index([status])
 }
+
+// =========================================================
+// C1 · 能力探测历史（PRD §6 / M7）
+// =========================================================
+//
+// 漂移要在事故前被看见，靠的是探测历史，不是事故后翻日志。
+// 0728 套餐轮换、0729 线路崩溃都栽在「health 只测存活」的盲区。
+
+model CapabilityProbe {
+  id               String   @id @default(cuid())
+  provider         String
+  ok               Boolean
+  /// 契约完全匹配的套餐是否存在
+  auditedPlanFound Boolean
+  /// 上游连 video 套餐都没有 —— 最严重一档
+  videoPlansGone   Boolean
+  /// 逐字段漂移 [{field, expected, actual}]；ok 时为 null
+  driftsJson       Json?
+  probedAt         DateTime
+
+  @@index([provider, probedAt(sort: Desc)])
+}

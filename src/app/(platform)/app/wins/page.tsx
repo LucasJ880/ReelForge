@@ -10,6 +10,10 @@ import {
 } from "@/lib/services/recipe-racing-service";
 import { resolveDerivationInput } from "@/lib/services/winner-derivation-service";
 import { listContentPlans } from "@/lib/services/content-plan-store";
+import {
+  postFirstPassRate,
+  videoFirstPassRate,
+} from "@/lib/services/first-pass-rate-service";
 import styles from "./wins.module.css";
 
 export const dynamic = "force-dynamic";
@@ -39,10 +43,12 @@ export default async function WinsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/wins");
 
-  const [rows, derivation, plans] = await Promise.all([
+  const [rows, derivation, plans, videoPass, postPass] = await Promise.all([
     loadPerformanceRows({ userId: session.user.id, windowHours: 48 }),
     resolveDerivationInput({ userId: session.user.id }),
     listContentPlans(session.user.id, 1),
+    videoFirstPassRate({ userId: session.user.id }),
+    postFirstPassRate({ userId: session.user.id }),
   ]);
   const verdict = judgeRecipes(rows);
   const dimensions = judgeAllDimensions(rows);
@@ -143,6 +149,16 @@ export default async function WinsPage() {
 
       <footer className={styles.foot}>
         判定窗口 48 小时 · 表现数据来自你自己授权的账号 · 不做全账号看板
+        {" · "}
+        {/* C3 一次通过率：样本不足时不显示假百分比 */}
+        一次通过率{" "}
+        {videoPass.rate !== null
+          ? `视频 ${Math.round(videoPass.rate * 100)}%`
+          : `视频样本不足（${videoPass.sample}）`}
+        {" / "}
+        {postPass.rate !== null
+          ? `图文 ${Math.round(postPass.rate * 100)}%`
+          : `图文样本不足（${postPass.sample}）`}
       </footer>
     </div>
   );

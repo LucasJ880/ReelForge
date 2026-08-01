@@ -95,6 +95,14 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
     factsRaw = facts as unknown as Prisma.InputJsonValue;
   }
 
+  /// B3：默认 Brand Kit 的两份视觉配方套进出图提示词（跨形态）。
+  const brandPackage = await db.workspaceBrandPackage.findFirst({
+    /// 与 workspace-brand-package-service 同一套归属规则：本人工作区优先于全局包。
+    where: { isActive: true, OR: [{ workspace: { ownerId: args.userId } }, { isGlobal: true }] },
+    orderBy: [{ isGlobal: "asc" }, { isDefault: "desc" }, { updatedAt: "desc" }],
+    select: { compositionRecipeJson: true, photographyStyleJson: true, brandName: true },
+  });
+
   /// 每周排期先看有没有依据可用：自己的战绩优先，其次同行长期在投的结构，
   /// 都没有就老实说这是第一周（R4 / O4）。
   const derivation = await resolveDerivationInput({
@@ -113,6 +121,12 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
     productFacts,
     referenceStructures: derivation.referenceStructures,
     winningRecipe: derivation.winningRecipe,
+    brandStyle: brandPackage
+      ? {
+          composition: textOf(brandPackage.compositionRecipeJson),
+          photographyStyle: textOf(brandPackage.photographyStyleJson),
+        }
+      : null,
   };
 
   const { plan, source: generatedBy, originality } = await buildContentPlan(input);
@@ -214,6 +228,16 @@ export async function listContentPlans(userId: string, limit = 20) {
     take: limit,
     select: planSelect,
   });
+}
+
+/// Brand Kit 的配方列是 Json（结构留给编辑器演化），提示词只要一段文字。
+function textOf(raw: unknown): string | null {
+  if (typeof raw === "string") return raw.trim() || null;
+  if (raw && typeof raw === "object") {
+    const text = (raw as { text?: unknown }).text;
+    if (typeof text === "string" && text.trim()) return text.trim();
+  }
+  return null;
 }
 
 export { ProductLinkError, ProductImageFactsError };

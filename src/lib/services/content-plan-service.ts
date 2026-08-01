@@ -46,6 +46,18 @@ export type ContentPlanInput = {
    * 而不是每周从零开始猜。
    */
   winningRecipe?: { hookType: string; format: string } | null;
+  /**
+   * Brand Kit 的两份跨形态配方（B3，PRD §5.2）。
+   * PRD 原话：这两份比色板字体更决定「看起来是不是同一个品牌」，
+   * 且要能套用到图文帖与轮播，不只是视频。
+   * 它们只影响 imagePrompt 的视觉语言，不影响文案。
+   */
+  brandStyle?: {
+    /// 构图 / 机位 / 产品位置
+    composition?: string | null;
+    /// 光线 / 相机质感 / 氛围
+    photographyStyle?: string | null;
+  } | null;
 };
 
 const SYSTEM_PROMPT = `You plan a week of social content for a SMALL LOCAL BUSINESS owner.
@@ -110,6 +122,22 @@ At least 2 of the posts must use this hook type. Vary the angle and the visual,
 not the structure — the structure is what is already working.`
     : "";
 
+  const styleParts = [
+    input.brandStyle?.composition
+      ? `composition: ${input.brandStyle.composition}`
+      : null,
+    input.brandStyle?.photographyStyle
+      ? `photography style: ${input.brandStyle.photographyStyle}`
+      : null,
+  ].filter(Boolean);
+  const styleBlock = styleParts.length
+    ? `\n\n# Brand visual recipes (apply to EVERY imagePrompt and slide imagePrompt)
+${styleParts.map((line) => `  - ${line}`).join("\n")}
+
+These define what makes this brand's images look like the same brand.
+Bake them into every image prompt. They do not affect the copy.`
+    : "";
+
   return `# Business
 one_liner: ${input.sentence}
 industry: ${input.industry ?? "(infer it)"}
@@ -117,7 +145,7 @@ brand_name: ${input.brandName ?? "(none given)"}
 target_platform: ${input.platform ?? "(general short-form social)"}
 
 # Verified product facts (do not contradict these; do not invent more)
-${facts.length ? facts.map((f) => `  - ${f}`).join("\n") : "  (none — rely only on the one-liner)"}${referenceBlock}${winnerBlock}`;
+${facts.length ? facts.map((f) => `  - ${f}`).join("\n") : "  (none — rely only on the one-liner)"}${styleBlock}${referenceBlock}${winnerBlock}`;
 }
 
 export async function buildContentPlan(input: ContentPlanInput): Promise<{

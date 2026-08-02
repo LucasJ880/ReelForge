@@ -31,6 +31,11 @@ import {
 } from "@/lib/providers/openai-tts";
 import { isStockFootageAvailable } from "@/lib/providers/stock-footage";
 import { runFfmpegNormalizeAndConcatWithPostProduction } from "@/lib/services/stitch-service";
+import {
+  brollAspectResolution,
+  brollSegmentDurationSec,
+  buildBrollComposeArgs,
+} from "@/lib/video-generation/broll-segment-compose";
 
 const execFileAsync = promisify(execFile);
 const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
@@ -86,24 +91,8 @@ function aspectToStock(aspect: BrollAspectRatio): "portrait" | "landscape" {
   return aspect === "9:16" ? "portrait" : "landscape";
 }
 
-function aspectResolution(aspect: BrollAspectRatio): {
-  width: number;
-  height: number;
-} {
-  return aspect === "9:16"
-    ? { width: 1080, height: 1920 }
-    : { width: 1920, height: 1080 };
-}
-
-/// 口播与画面之间的呼吸间隙：紧贴着切下一段会显得赶。
-const BREATH_GAP_SEC = 0.35;
-const MIN_SEGMENT_SEC = 2;
-
-export function segmentDurationSec(ttsDurationSec: number): number {
-  const target = Math.max(MIN_SEGMENT_SEC, ttsDurationSec + BREATH_GAP_SEC);
-  /// 收敛到百分位：浮点尾差别进 ffmpeg 参数和数据库
-  return Math.round(target * 100) / 100;
-}
+/// 与 runner 共用的纯模块统一供给（两端 ffmpeg 参数不漂移）
+export const segmentDurationSec = brollSegmentDurationSec;
 
 async function probeDurationSec(filePath: string): Promise<number> {
   const { stdout } = await execFileAsync(
@@ -148,43 +137,17 @@ async function composeSegmentFile(args: {
   aspect: BrollAspectRatio;
   targetDurationSec: number;
 }): Promise<void> {
-  const { width, height } = aspectResolution(args.aspect);
+  const { width, height } = brollAspectResolution(args.aspect);
   await execFileAsync(
     FFMPEG_BIN,
-    [
-      "-y",
-      "-loglevel",
-      "error",
-      "-stream_loop",
-      "-1",
-      "-i",
-      args.clipPath,
-      "-i",
-      args.ttsPath,
-      "-filter_complex",
-      `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v];[1:a]apad,aresample=44100[a]`,
-      "-map",
-      "[v]",
-      "-map",
-      "[a]",
-      "-t",
-      String(args.targetDurationSec),
-      "-c:v",
-      "libx264",
-      "-pix_fmt",
-      "yuv420p",
-      "-preset",
-      "veryfast",
-      "-c:a",
-      "aac",
-      "-ar",
-      "44100",
-      "-ac",
-      "2",
-      "-movflags",
-      "+faststart",
-      args.outPath,
-    ],
+    buildBrollComposeArgs({
+      clipPath: args.clipPath,
+      ttsPath: args.ttsPath,
+      outPath: args.outPath,
+      width,
+      height,
+      targetDurationSec: args.targetDurationSec,
+    }),
     { maxBuffer: 1024 * 1024 * 50, timeout: 120_000 },
   );
 }
@@ -515,4 +478,396 @@ export async function createBrollDelivery(args: {
     segmentCount: composed.segments.length,
     totalDurationSec,
   };
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * 异步链（创作页 UI 通道，2026-08-02 二期）：
+ * Vercel 函数没有 ffmpeg/ffprobe，所以提交层只做纯 HTTP 工作
+ * （拆段 / 选片 / TTS / 上传），ffmpeg 全量活交给 stitch runner 的
+ * broll 分支（外部 GH Action）或本地 dev 的进程内分支。
+ * ──────────────────────────────────────────────────────────────── */
+
+export type PreparedBrollSegment = {
+  order: number;
+  narration: string;
+  searchTerm: string;
+  /// 图库素材原片 URL（未合成）
+  clipUrl: string;
+  /// 该段口播 TTS 音频（已上传 Blob）
+  ttsAudioUrl: string;
+  stock: ComposedBrollSegment["stock"];
+};
+
+/**
+ * 提交层准备（Vercel 安全：无 ffmpeg / 无 ffprobe）。
+ * 段时长在合成端用 ffprobe 实测，这里不估不猜。
+ */
+export async function prepareBrollInputs(args: {
+  script: string;
+  aspectRatio: BrollAspectRatio;
+  voiceId?: string | null;
+}): Promise<{ runId: string; plan: BrollPlan; prepared: PreparedBrollSegment[] }> {
+  if (!isOpenAiTtsAvailable()) {
+    throw new BrollPlanError(
+      "TTS 配音尚未接入（缺 OPENAI_API_KEY 的 tts 权限）",
+      "footage_unavailable",
+    );
+  }
+  const plan = await buildBrollPlan({
+    script: args.script,
+    aspect: aspectToStock(args.aspectRatio),
+  });
+  const picks = await pickFootageForPlan({ plan });
+  const missing = missingSegments(picks);
+  if (missing.length > 0) {
+    throw new BrollPlanError(
+      `第 ${missing.map((i) => i + 1).join("、")} 段没搜到可用素材，请调整口播稿或换个说法`,
+      "footage_unavailable",
+    );
+  }
+
+  const runId = randomUUID();
+  const storage = getStorageProvider();
+  const prepared: PreparedBrollSegment[] = [];
+  for (const pick of picks) {
+    const clip = pick.candidates[0];
+    const audio = await synthesizeVoiceover({
+      text: pick.segment.narration,
+      voiceId: args.voiceId,
+    });
+    const uploaded = await storage.uploadBuffer("renders", audio, {
+      key: `broll/${runId}/tts-${pick.segment.order}.mp3`,
+      access: "public",
+      contentType: "audio/mpeg",
+      overwrite: true,
+    });
+    prepared.push({
+      order: pick.segment.order,
+      narration: pick.segment.narration,
+      searchTerm: pick.segment.searchTerm,
+      clipUrl: clip.downloadUrl,
+      ttsAudioUrl: uploaded.url,
+      stock: {
+        id: clip.id,
+        provider: clip.provider,
+        creator: clip.creator,
+        sourcePageUrl: clip.sourcePageUrl,
+      },
+    });
+  }
+  return { runId, plan, prepared };
+}
+
+/// 提交时的展示估算：中文口播约 4.5 字/秒。真实时长由合成端 ffprobe 实测。
+export function estimateSegmentSec(narration: string): number {
+  return Math.max(2, Math.ceil(narration.length / 4.5));
+}
+
+export type StartBrollDeliveryResult = {
+  orderId: string;
+  briefId: string;
+  finalVideoId: string;
+  segmentCount: number;
+  estimatedDurationSec: number;
+};
+
+/**
+ * UI 提交入口：准备输入 → 建 PENDING 数据链 → 交给 stitch 状态机。
+ *
+ * 建链后立即返回；合成由 stitchFinalVideo 推进（本地 dev 进程内跑，
+ * 生产等 stitch-dispatch cron 派 GH runner）。成品库「生产线上」段
+ * 立刻可见，取消走 cancelBrollDelivery。
+ */
+export async function startBrollDelivery(args: {
+  userId: string;
+  script: string;
+  aspectRatio: BrollAspectRatio;
+  title?: string;
+  voiceId?: string;
+  bgmTrackId?: "none" | "wholesome";
+  captionsEnabled?: boolean;
+}): Promise<StartBrollDeliveryResult> {
+  const voiceId = args.voiceId ?? "warm-confident";
+  const bgmTrackId = args.bgmTrackId ?? "none";
+  const captionsEnabled = args.captionsEnabled ?? true;
+
+  const { prepared } = await prepareBrollInputs({
+    script: args.script,
+    aspectRatio: args.aspectRatio,
+    voiceId,
+  });
+  const estimatedDurationSec = prepared.reduce(
+    (sum, seg) => sum + estimateSegmentSec(seg.narration),
+    0,
+  );
+  const postProduction = buildBrollPostProduction({
+    script: args.script,
+    voiceId,
+    bgmTrackId,
+    captionsEnabled,
+  });
+  const title =
+    args.title?.trim() ||
+    `${prepared[0]?.narration.slice(0, 40) ?? "b-roll"}（实拍图库）`;
+  const finalVideoId = `broll_${randomUUID()}`;
+  const now = new Date();
+
+  const created = await db.$transaction(async (tx) => {
+    const order = await tx.deliveryOrder.create({
+      data: {
+        title,
+        status: DeliveryOrderStatus.ROUND_ACTIVE,
+        productCategory: "unified_input",
+        targetPlatform: "generic",
+        targetCountry: hasCjk(args.script) ? "CN" : "US",
+        targetLanguage: hasCjk(args.script) ? "zh" : "en",
+        productInput: {
+          source: "broll_route",
+          requestOrigin: "web_app",
+          rawPrompt: args.script,
+          stockAttribution: prepared.map((seg) => seg.stock),
+        },
+        maxRounds: 3,
+        createdById: args.userId,
+      },
+    });
+    const round = await tx.round.create({
+      data: {
+        deliveryOrderId: order.id,
+        roundIndex: 1,
+        status: RoundStatus.ANGLES_READY,
+        optimizationSlots: 1,
+        explorationSlots: 0,
+        startedAt: now,
+      },
+    });
+    const angle = await tx.contentAngle.create({
+      data: {
+        roundId: round.id,
+        sortOrder: 0,
+        type: AngleType.OPTIMIZATION,
+        title: title.slice(0, 200),
+        hook: prepared[0]?.narration ?? args.script.slice(0, 200),
+        narrative: args.script,
+        localeNotes: { route: "broll" },
+      },
+    });
+    const finalVideo = await tx.finalVideo.create({
+      data: {
+        id: finalVideoId,
+        targetDurationSec: estimatedDurationSec,
+        segmentCount: prepared.length,
+        status: FinalVideoStatus.PENDING,
+        postProduction: postProduction as unknown as object,
+      },
+    });
+    const brief = await tx.videoBrief.create({
+      data: {
+        contentAngleId: angle.id,
+        status: VideoBriefStatus.RENDER_SUCCEEDED,
+        durationSec: estimatedDurationSec,
+        targetDurationSec: estimatedDurationSec,
+        aspectRatio: args.aspectRatio,
+        tone: voiceId,
+        videoRouteSnapshot: "broll",
+        finalVideoId: finalVideo.id,
+      },
+    });
+    for (const seg of prepared) {
+      await tx.videoJob.create({
+        data: {
+          videoBriefId: brief.id,
+          finalVideoId: finalVideo.id,
+          segmentIndex: seg.order,
+          segmentDurationSec: estimateSegmentSec(seg.narration),
+          provider: VideoProvider.FFMPEG_EDIT,
+          status: VideoJobStatus.SUCCEEDED,
+          outputVideoUrl: seg.clipUrl,
+          promptText: seg.narration,
+          assignedAssets: {
+            broll: {
+              ttsAudioUrl: seg.ttsAudioUrl,
+              narration: seg.narration,
+              searchTerm: seg.searchTerm,
+              stock: seg.stock,
+            },
+          },
+          finishedAt: now,
+        },
+      });
+    }
+    return { orderId: order.id, briefId: brief.id };
+  });
+
+  /// 本地 dev：进程内直接推进（fire-and-forget，dev server 常驻）。
+  /// 生产：stitch-dispatch cron 会派 GH runner，这里不阻塞请求。
+  if (process.env.NODE_ENV !== "production") {
+    const { stitchFinalVideo } = await import("@/lib/services/stitch-service");
+    void stitchFinalVideo(finalVideoId).catch((err) => {
+      console.error("[broll] 本地 stitch 推进失败:", (err as Error).message);
+    });
+  }
+
+  return {
+    orderId: created.orderId,
+    briefId: created.briefId,
+    finalVideoId,
+    segmentCount: prepared.length,
+    estimatedDurationSec,
+  };
+}
+
+/** VideoJob.assignedAssets 里的 broll 输入标记。 */
+export function readBrollJobInput(assignedAssets: unknown): {
+  ttsAudioUrl: string;
+  narration: string;
+} | null {
+  if (!assignedAssets || typeof assignedAssets !== "object") return null;
+  const broll = (assignedAssets as { broll?: unknown }).broll;
+  if (!broll || typeof broll !== "object") return null;
+  const value = broll as { ttsAudioUrl?: unknown; narration?: unknown };
+  if (typeof value.ttsAudioUrl !== "string" || !value.ttsAudioUrl) return null;
+  return {
+    ttsAudioUrl: value.ttsAudioUrl,
+    narration: typeof value.narration === "string" ? value.narration : "",
+  };
+}
+
+/**
+ * 本地运行时的 b-roll 合成（stitchFinalVideo 的 broll 分支调用；
+ * 调用方负责 PENDING→STITCHING 的 CAS 与结果落库）。
+ * 逐段：下载素材+TTS → ffprobe 实测 → 合成；然后走既有拼接后期。
+ * 合成段以 file:// 直通拼接（downloadToFile 原生支持），不重复上传。
+ */
+export async function stitchBrollLocally(args: {
+  finalVideoId: string;
+  aspectRatio: string;
+  postProduction: PostProductionPlan | null;
+  segments: Array<{
+    segmentIndex: number;
+    clipUrl: string;
+    ttsAudioUrl: string;
+  }>;
+}): Promise<{
+  stitchedVideoUrl: string;
+  subtitleFileUrl: string | null;
+  thumbnailUrl: string | null;
+}> {
+  const aspect: BrollAspectRatio =
+    args.aspectRatio === "16:9" ? "16:9" : "9:16";
+  const tmpDir = path.join(
+    os.tmpdir(),
+    `aivora-broll-local-${args.finalVideoId}`,
+  );
+  await mkdir(tmpDir, { recursive: true });
+  try {
+    const clips: Array<{ url: string; intendedDurationSec: number | null; trimToFit: boolean }> = [];
+    let thumbnailUrl: string | null = null;
+    const ordered = [...args.segments].sort(
+      (a, b) => a.segmentIndex - b.segmentIndex,
+    );
+    for (const seg of ordered) {
+      const i = seg.segmentIndex;
+      const ttsPath = path.join(tmpDir, `tts-${i}.mp3`);
+      const clipPath = path.join(tmpDir, `clip-${i}.mp4`);
+      await downloadToFile(seg.ttsAudioUrl, ttsPath);
+      await downloadToFile(seg.clipUrl, clipPath);
+      const ttsDuration = await probeDurationSec(ttsPath);
+      const targetDuration = segmentDurationSec(ttsDuration);
+      const outPath = path.join(tmpDir, `seg-${i}.mp4`);
+      await composeSegmentFile({
+        clipPath,
+        ttsPath,
+        outPath,
+        aspect,
+        targetDurationSec: targetDuration,
+      });
+      if (clips.length === 0) {
+        const thumbPath = path.join(tmpDir, "thumb.jpg");
+        await extractThumbnail(outPath, thumbPath);
+        const storage = getStorageProvider();
+        const thumb = await storage.uploadBuffer(
+          "renders",
+          await readFile(thumbPath),
+          {
+            key: `broll/${args.finalVideoId}/thumb.jpg`,
+            access: "public",
+            contentType: "image/jpeg",
+            overwrite: true,
+          },
+        );
+        thumbnailUrl = thumb.url;
+      }
+      clips.push({
+        url: `file://${outPath}`,
+        intendedDurationSec: targetDuration,
+        trimToFit: false,
+      });
+    }
+
+    const result = await runFfmpegNormalizeAndConcatWithPostProduction({
+      finalVideoId: args.finalVideoId,
+      aspectRatio: aspect,
+      clips,
+      postProduction: args.postProduction,
+    });
+    return { ...result, thumbnailUrl };
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
+}
+
+export type CancelBrollResult =
+  | { ok: true; state: "cancelled" }
+  | { ok: false; reason: "not_found" | "not_broll" | "already_finished" };
+
+/**
+ * 取消（铁律 #7）：素材与已上传输入全部保留，只终止合成。
+ * FinalVideo 置 FAILED（原因写明用户取消，无 CANCELLED 枚举——只加不改的
+ * 数据库纪律下留待下次加列）；段任务置 CANCELLED 使 claim 永不再认领。
+ */
+export async function cancelBrollDelivery(args: {
+  userId: string;
+  briefId: string;
+}): Promise<CancelBrollResult> {
+  const brief = await db.videoBrief.findFirst({
+    where: {
+      id: args.briefId,
+      contentAngle: {
+        round: { deliveryOrder: { createdById: args.userId } },
+      },
+    },
+    select: {
+      id: true,
+      videoRouteSnapshot: true,
+      finalVideoId: true,
+      finalVideo: { select: { id: true, status: true } },
+    },
+  });
+  if (!brief?.finalVideo) return { ok: false, reason: "not_found" };
+  if (brief.videoRouteSnapshot !== "broll") {
+    return { ok: false, reason: "not_broll" };
+  }
+  if (
+    brief.finalVideo.status === FinalVideoStatus.READY ||
+    brief.finalVideo.status === FinalVideoStatus.FAILED
+  ) {
+    return { ok: false, reason: "already_finished" };
+  }
+
+  await db.$transaction([
+    db.finalVideo.update({
+      where: { id: brief.finalVideo.id },
+      data: {
+        status: FinalVideoStatus.FAILED,
+        ffmpegError: "用户取消（素材与口播音频已保留，可重新提交）",
+        finishedAt: new Date(),
+      },
+    }),
+    db.videoJob.updateMany({
+      where: { finalVideoId: brief.finalVideo.id },
+      data: { status: VideoJobStatus.CANCELLED },
+    }),
+  ]);
+  return { ok: true, state: "cancelled" };
 }

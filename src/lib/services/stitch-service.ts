@@ -9,6 +9,7 @@ import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/clie
 import { db } from "@/lib/db";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
+import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
   BGM_TRACKS,
   buildAudioFilterPlan,
@@ -102,6 +103,42 @@ export interface ClaimedStitchTask {
   aspectRatio: string;
   targetDurationSec: number;
   postProduction: PostProductionPlan | null;
+  /// b-roll 任务附带：runner 需要先「素材+TTS→段合成」再进拼接后期。
+  /// null/缺省 = 普通任务（段已是成品视频）。
+  brollSegments?: BrollClaimSegment[] | null;
+}
+
+/**
+ * 从段任务的 assignedAssets 提取 b-roll 输入（全部段都带 broll 标记才算
+ * b-roll 任务；混合形态不存在——startBrollDelivery 整链同源写入）。
+ */
+function extractBrollClaimSegments(
+  segments: Array<{
+    segmentIndex: number | null;
+    outputVideoUrl: string | null;
+    assignedAssets: unknown;
+  }>,
+): BrollClaimSegment[] | null {
+  if (segments.length === 0) return null;
+  const out: BrollClaimSegment[] = [];
+  for (const [index, segment] of segments.entries()) {
+    const assets = segment.assignedAssets;
+    const broll =
+      assets && typeof assets === "object"
+        ? (assets as { broll?: { ttsAudioUrl?: unknown } }).broll
+        : null;
+    const ttsAudioUrl =
+      broll && typeof broll === "object" && typeof broll.ttsAudioUrl === "string"
+        ? broll.ttsAudioUrl
+        : null;
+    if (!ttsAudioUrl || !segment.outputVideoUrl) return null;
+    out.push({
+      segmentIndex: segment.segmentIndex ?? index,
+      clipUrl: segment.outputVideoUrl,
+      ttsAudioUrl,
+    });
+  }
+  return out;
 }
 
 function parsePersistedPostProduction(
@@ -193,6 +230,93 @@ export async function stitchFinalVideo(
       status: FinalVideoStatus.PENDING,
       skipped: true,
     };
+  }
+
+  /// b-roll 任务：段是「素材+TTS 输入」而非成品视频，必须先合成 ——
+  /// 绝不能落进下面的单段捷径/演示捷径（把图库原片直接当成片交付）。
+  const brollSegments = extractBrollClaimSegments(fv.segments);
+  if (brollSegments) {
+    if (
+      stitchRuntimeMode() === "external" ||
+      process.env.ENABLE_VIDEO_STITCHING === "false"
+    ) {
+      /// 生产（或无本地 ffmpeg 的演示模式）：留占位等外部 runner 认领。
+      await db.finalVideo.updateMany({
+        where: { id: fv.id, status: FinalVideoStatus.PENDING },
+        data: { ffmpegError: AWAITING_EXTERNAL_STITCHER },
+      });
+      return {
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.PENDING,
+        awaitingExternal: true,
+        error: AWAITING_EXTERNAL_STITCHER,
+      };
+    }
+
+    const brollClaim = await db.finalVideo.updateMany({
+      where: { id: fv.id, status: FinalVideoStatus.PENDING },
+      data: {
+        status: FinalVideoStatus.STITCHING,
+        startedAt: new Date(),
+        ffmpegError: null,
+      },
+    });
+    if (brollClaim.count === 0) {
+      return { finalVideoId, ok: false, status: fv.status, skipped: true };
+    }
+
+    try {
+      /// 动态 import 断开 broll-assembly-service ↔ stitch-service 的模块环
+      const { stitchBrollLocally } = await import(
+        "@/lib/services/broll-assembly-service"
+      );
+      const output = await stitchBrollLocally({
+        finalVideoId: fv.id,
+        aspectRatio: (await briefAspectRatio(fv.brief?.id)) ?? "9:16",
+        postProduction: parsePersistedPostProduction(fv.postProduction),
+        segments: brollSegments,
+      });
+      await reviewGeneratedVideo(
+        output.stitchedVideoUrl,
+        output.thumbnailUrl,
+        finalVideoId,
+      );
+      await db.finalVideo.update({
+        where: { id: fv.id },
+        data: {
+          status: FinalVideoStatus.READY,
+          stitchedVideoUrl: output.stitchedVideoUrl,
+          thumbnailUrl: output.thumbnailUrl,
+          subtitleFileUrl: output.subtitleFileUrl,
+          finishedAt: new Date(),
+          stitchAttempts: fv.stitchAttempts + 1,
+        },
+      });
+      if (fv.brief) await markBriefReady(fv.brief.id);
+      return {
+        finalVideoId,
+        ok: true,
+        status: FinalVideoStatus.READY,
+        stitchedVideoUrl: output.stitchedVideoUrl,
+      };
+    } catch (err) {
+      await db.finalVideo.update({
+        where: { id: fv.id },
+        data: {
+          status: FinalVideoStatus.FAILED,
+          ffmpegError: (err as Error).message.slice(0, 500),
+          finishedAt: new Date(),
+          stitchAttempts: fv.stitchAttempts + 1,
+        },
+      });
+      return {
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.FAILED,
+        error: (err as Error).message,
+      };
+    }
   }
 
   /// Phase 2：如果 brief 有 unified VideoGenerationPlan（assemblyPlan 描述了
@@ -427,6 +551,7 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
         aspectRatio: fv.brief?.aspectRatio ?? "9:16",
         targetDurationSec: fv.targetDurationSec,
         postProduction,
+        brollSegments: extractBrollClaimSegments(fv.segments),
       };
     }
 

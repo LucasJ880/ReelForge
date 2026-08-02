@@ -1,6 +1,7 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { StreamlinedVideoStudio } from "@/components/video-generation/streamlined-video-studio";
+import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { authOptions } from "@/lib/auth";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import type { UploadedAsset } from "@/types/video-generation";
@@ -53,6 +54,7 @@ export default async function PlatformCreatePage({
         canSelectVideoRoute={false}
         showInternalVideoRoutes={false}
         forceOnboarding={guide === "open"}
+        brollAvailable={isBrollRouteAvailable()}
       />
     </div>
   );

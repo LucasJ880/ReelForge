@@ -2,8 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   buildBrollPostProduction,
+  estimateSegmentSec,
+  readBrollJobInput,
   segmentDurationSec,
 } from "../src/lib/services/broll-assembly-service";
+import { buildBrollComposeArgs } from "../src/lib/video-generation/broll-segment-compose";
 import {
   OpenAiTtsError,
   resolveTtsVoice,
@@ -85,6 +88,40 @@ test("TTS 错误分类：429/5xx 可重试，4xx 不可重试，短音频判异�
     synthesizeVoiceover({ text: "你好", fetchImpl: fakeTtsFetch(200, Buffer.alloc(64)) }),
     (err: unknown) => err instanceof OpenAiTtsError && err.retryable,
   );
+});
+
+test("段合成参数：素材循环补长、TTS 音轨替换原声、截断到目标时长", () => {
+  const args = buildBrollComposeArgs({
+    clipPath: "/tmp/clip.mp4",
+    ttsPath: "/tmp/tts.mp3",
+    outPath: "/tmp/out.mp4",
+    width: 1080,
+    height: 1920,
+    targetDurationSec: 4.35,
+  });
+  const joined = args.join(" ");
+  assert.ok(joined.includes("-stream_loop -1"));
+  assert.ok(joined.includes("-t 4.35"));
+  /// 只映射 [1:a]（TTS），素材原声被丢弃
+  assert.ok(joined.includes("[1:a]apad"));
+  assert.ok(!joined.includes("[0:a]"));
+});
+
+test("异步链：assignedAssets 的 broll 标记解析（缺 ttsAudioUrl 判非 broll）", () => {
+  assert.deepEqual(
+    readBrollJobInput({ broll: { ttsAudioUrl: "https://x/t.mp3", narration: "你好" } }),
+    { ttsAudioUrl: "https://x/t.mp3", narration: "你好" },
+  );
+  assert.equal(readBrollJobInput({ broll: {} }), null);
+  assert.equal(readBrollJobInput({ stock: {} }), null);
+  assert.equal(readBrollJobInput(null), null);
+  assert.equal(readBrollJobInput("broll"), null);
+});
+
+test("提交层时长估算：中文 4.5 字/秒，段下限 2s", () => {
+  assert.equal(estimateSegmentSec("好"), 2);
+  assert.equal(estimateSegmentSec("一二三四五六七八九"), 2);
+  assert.equal(estimateSegmentSec("一二三四五六七八九十一二三四五六七八"), 4);
 });
 
 test("TTS 正常路径：返回音频 Buffer", async () => {

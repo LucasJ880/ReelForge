@@ -33,6 +33,11 @@ import {
   renderAssCaptions,
   renderSrtCaptions,
 } from "../src/lib/video-generation/audio-post-production";
+import {
+  brollSegmentDurationSec,
+  buildBrollComposeArgs,
+  type BrollClaimSegment,
+} from "../src/lib/video-generation/broll-segment-compose";
 
 const execFileAsync = promisify(execFile);
 
@@ -62,6 +67,8 @@ interface StitchTask {
   aspectRatio: string;
   targetDurationSec: number;
   postProduction: PostProductionSnapshot | null;
+  /// b-roll 任务：段 = 图库素材 + TTS 音频输入，runner 先合成再拼接。
+  brollSegments?: BrollClaimSegment[] | null;
 }
 
 interface PostProductionSnapshot {
@@ -234,31 +241,61 @@ async function stitchOne(task: StitchTask): Promise<{
     const padFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
 
     const normalized: string[] = [];
-    for (const [i, url] of task.segmentUrls.entries()) {
-      const localInput = path.join(tmpDir, `seg-${i}.input`);
-      const out = path.join(tmpDir, `seg-${i}.mp4`);
-      await downloadToFile(url, localInput);
-      await runFfmpeg(
-        "ffmpeg",
-        [
-          "-y",
-          "-i",
-          localInput,
-          "-c:v",
-          "libx264",
-          "-pix_fmt",
-          "yuv420p",
-          "-c:a",
-          "aac",
-          "-r",
-          "30",
-          "-vf",
-          padFilter,
-          out,
-        ],
-        "segment_normalization_failed",
+    if (task.brollSegments && task.brollSegments.length > 0) {
+      /// b-roll 分支：素材 + TTS → 段合成（时长由 TTS 实测驱动）。
+      /// 合成参数与服务端共用 broll-segment-compose，两端不漂移。
+      const ordered = [...task.brollSegments].sort(
+        (a, b) => a.segmentIndex - b.segmentIndex,
       );
-      normalized.push(out);
+      for (const seg of ordered) {
+        const i = seg.segmentIndex;
+        const clipPath = path.join(tmpDir, `broll-clip-${i}.mp4`);
+        const ttsPath = path.join(tmpDir, `broll-tts-${i}.mp3`);
+        await downloadToFile(seg.clipUrl, clipPath);
+        await downloadToFile(seg.ttsAudioUrl, ttsPath);
+        const ttsDuration = await probeDuration(ttsPath);
+        const out = path.join(tmpDir, `seg-${i}.mp4`);
+        await runFfmpeg(
+          "ffmpeg",
+          buildBrollComposeArgs({
+            clipPath,
+            ttsPath,
+            outPath: out,
+            width,
+            height,
+            targetDurationSec: brollSegmentDurationSec(ttsDuration),
+          }),
+          "broll_segment_compose_failed",
+        );
+        normalized.push(out);
+      }
+    } else {
+      for (const [i, url] of task.segmentUrls.entries()) {
+        const localInput = path.join(tmpDir, `seg-${i}.input`);
+        const out = path.join(tmpDir, `seg-${i}.mp4`);
+        await downloadToFile(url, localInput);
+        await runFfmpeg(
+          "ffmpeg",
+          [
+            "-y",
+            "-i",
+            localInput,
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-r",
+            "30",
+            "-vf",
+            padFilter,
+            out,
+          ],
+          "segment_normalization_failed",
+        );
+        normalized.push(out);
+      }
     }
 
     const concatList = path.join(tmpDir, "concat.txt");

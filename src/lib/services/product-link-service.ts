@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  firecrawlScrapeHtml,
+  isFirecrawlAvailable,
+} from "@/lib/providers/firecrawl";
 
 /**
  * O1 · 商品链接起片（PRD §3，P0）。
@@ -88,8 +92,33 @@ export async function fetchProductFacts(
   const shopify = await tryShopifyJson(url, doFetch);
   if (shopify) return shopify;
 
-  const html = await fetchText(url, doFetch);
-  return extractFactsFromHtml(html, url.toString());
+  /// 直抓优先（免费、快）；抓不到或页面是 JS 渲染壳（抽不出任何事实）时，
+  /// 走 Firecrawl 托管渲染兜底（0802 接入），两条路径共用同一套抽取。
+  try {
+    const html = await fetchText(url, doFetch);
+    const facts = extractFactsFromHtml(html, url.toString());
+    if (facts.source !== "none" || !isFirecrawlAvailable()) return facts;
+    return await fetchFactsViaFirecrawl(url, deps.fetchImpl);
+  } catch (err) {
+    const recoverable =
+      err instanceof ProductLinkError &&
+      (err.reason === "unreachable" || err.reason === "not_html");
+    if (!recoverable || !isFirecrawlAvailable()) throw err;
+    try {
+      return await fetchFactsViaFirecrawl(url, deps.fetchImpl);
+    } catch {
+      /// 兜底也失败时抛直抓的原始错误：对用户更可解释（页面 404 vs 渲染失败）
+      throw err;
+    }
+  }
+}
+
+async function fetchFactsViaFirecrawl(
+  url: URL,
+  fetchImpl?: typeof fetch,
+): Promise<ProductLinkFacts> {
+  const rendered = await firecrawlScrapeHtml(url.toString(), { fetchImpl });
+  return extractFactsFromHtml(rendered, url.toString());
 }
 
 async function fetchText(url: URL, doFetch: typeof fetch): Promise<string> {

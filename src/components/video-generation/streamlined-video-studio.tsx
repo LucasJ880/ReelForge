@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { Textarea } from "@/components/ui/textarea";
+import { BrollQuickCard } from "@/components/video-generation/broll-quick-card";
 import {
   AudioCaptionControls,
   generateVoiceoverScript,
@@ -326,6 +327,7 @@ export function StreamlinedVideoStudio({
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
   forceOnboarding = false,
+  brollAvailable = false,
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
@@ -334,6 +336,7 @@ export function StreamlinedVideoStudio({
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
   forceOnboarding?: boolean;
+  brollAvailable?: boolean;
 }) {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -1358,6 +1361,9 @@ export function StreamlinedVideoStudio({
           </div>
         </CardContent>
       </Card>
+
+      {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机） */}
+      <BrollQuickCard available={brollAvailable} />
 
       <Card data-testid="streamlined-video-specs">
         <StepCardHeader number={3} title={copy.stepSpecs} hint={copy.stepSpecsHint} />

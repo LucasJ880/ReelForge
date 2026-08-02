@@ -44,8 +44,10 @@ export const SAMPLE_DATA_DISCLAIMER =
  * 这是 hero 区投资人最先看到的视频：讲清「我们做什么 / 怎么自动生产可裂变的
  * 宠物视频 / 为什么要用我们」，而不是展示任何旧的样片。为 null 时 hero 降级。
  */
+/// 原 /generated/*.mp4 从未进仓库（public/generated 被 gitignore），线上必 404。
+/// 置 null 走 PhoneVideoMockup 的占位渲染；真样片补上时改回 blob URL（禁止再用本地静态路径）。
 export const PET_WALKTHROUGH_VIDEO_URL: string | null =
-  "/generated/aivora-pet-content-kit-walkthrough-60s-16x9.mp4";
+  null;
 
 /** 讲解片封面（从成片抽帧），未生成时回退到 AI 宠物素材。 */
 export const PET_WALKTHROUGH_VIDEO_POSTER: string | null =
@@ -305,7 +307,7 @@ export interface DailyClipDemo {
 export const dailyClip: DailyClipDemo = {
   title: "今日份可爱 · 自动合成",
   durationLabel: "30 秒 · 9:16",
-  videoUrl: "/generated/pet-evidence-highlight.mp4",
+  videoUrl: null,
   posterUrl: "/demo/pet/moment-tilt.png",
   caption: "把今天的高光瞬间自动剪成一条，每天打开都有惊喜。",
 };
@@ -339,7 +341,7 @@ export const moodCard: MoodCardDemo = {
   mood: "今日心情：被宠爱",
   emoji: "温暖",
   line: "“有人记得我的每一个可爱瞬间，真好。”",
-  imageUrl: "/demo/pet/mood-card.png",
+  imageUrl: null,
 };
 
 export const desktopPet = {
@@ -380,7 +382,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     caption: "歪头、干饭、打滚，一个都没落下。每天的份可爱已送达。",
     hashtags: ["#萌宠日常", "#我家有猫", "#治愈瞬间", "#Aivora"],
     posterUrl: "/demo/pet/moment-greeting.png",
-    videoUrl: "/generated/pet-evidence-highlight.mp4",
+    videoUrl: null,
     recommended: true,
   },
   {
@@ -394,7 +396,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     caption: "AI 自动挑出最萌的歪头瞬间，做成最容易爆的封面。",
     hashtags: ["#歪头杀", "#萌宠", "#每日一萌"],
     posterUrl: "/demo/pet/moment-tilt.png",
-    videoUrl: "/generated/pet-evidence-headtilt.mp4",
+    videoUrl: null,
     recommended: false,
   },
   {
@@ -408,7 +410,7 @@ export const autoVideoDrafts: ReadonlyArray<AutoVideoDraftDemo> = [
     caption: "真实使用场景：宠物主动接触并长时间使用，可作为产品种草素材。",
     hashtags: ["#宠物好物", "#真实测评", "#宠物垫"],
     posterUrl: "/demo/pet/moment-product.png",
-    videoUrl: "/generated/pet-evidence-mat.mp4",
+    videoUrl: null,
     recommended: false,
   },
 ];
@@ -1173,10 +1175,10 @@ export const BENCHMARK_MATRIX = {
  * 优雅降级回退到 poster 图（PhoneVideoMockup / video fallback），不影响页面。
  */
 export const PET_EVIDENCE_CLIP = {
-  highlight: "/generated/pet-evidence-highlight.mp4",
-  headtilt: "/generated/pet-evidence-headtilt.mp4",
-  mat: "/generated/pet-evidence-mat.mp4",
-  raw: "/generated/pet-evidence-raw.mp4",
+  highlight: null,
+  headtilt: null,
+  mat: null,
+  raw: null,
 } as const;
 
 /* ------------------------------------------------------------------ */

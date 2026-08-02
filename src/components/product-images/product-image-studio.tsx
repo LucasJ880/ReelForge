@@ -331,7 +331,7 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
               <summary className="cursor-pointer font-medium text-foreground">{english ? "Advanced styles" : "高级风格"}</summary>
               <div className="mt-4 grid gap-2 sm:grid-cols-2">
                 {presets.map(([value, label, description]) => (
-                  <button key={value} type="button" onClick={() => setPreset(value)} className={cn("rounded-(--radius-md) border p-3 text-left", preset === value ? "border-primary bg-accent-soft" : "border-border bg-card")}>
+                  <button key={value} type="button" aria-label={label} onClick={() => setPreset(value)} className={cn("rounded-(--radius-md) border p-3 text-left", preset === value ? "border-primary bg-accent-soft" : "border-border bg-card")}>
                     <span className="block text-body font-medium">{label}</span>
                     <span className="mt-1 block text-meta text-muted-foreground">{description}</span>
                   </button>

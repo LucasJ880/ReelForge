@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -35,7 +34,6 @@ export interface I18nProviderProps {
 }
 
 export function I18nProvider({ initialLocale, children }: I18nProviderProps) {
-  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(
     initialLocale ?? DEFAULT_LOCALE,
   );
@@ -70,10 +68,18 @@ export function I18nProvider({ initialLocale, children }: I18nProviderProps) {
         }
         writeCookie(LOCALE_COOKIE, next);
         syncHtmlLang(next);
-        router.refresh();
+        /**
+         * 整页 reload 而不是 router.refresh()：
+         * 生产（next start）实测 refresh() 被静默吞掉 —— 点击后没有任何
+         * 对当前路由的 RSC 请求发出，页面文案停在旧语言；偶尔生效时还会
+         * 与上一次切换竞态（旧语言的响应后到，覆盖新选择）。dev 模式正常，
+         * 所以这个 bug 只在线上暴露。切语言是低频且刻意的操作，
+         * reload 是保证所有 RSC 段落一致换语言的最稳做法（行业通行）。
+         */
+        window.location.reload();
       }
     },
-    [router],
+    [],
   );
 
   const dict = useMemo(() => getDictionary(locale), [locale]);

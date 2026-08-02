@@ -1,6 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { videoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import {
+  creativeRecipeSnapshot,
+  DEFAULT_BRAND_PLACEMENT,
+} from "@/lib/video-generation/creative-recipe";
+import {
   FinalVideoStatus,
   Prisma,
   ProviderSubmissionState,
@@ -518,6 +522,25 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
   return created;
 }
 
+/**
+ * brief 线路的创意配方快照（PRD §9.4）。
+ *
+ * ⚠️ 这条线路目前只落得下画幅与植入档位：
+ * - `hookType` 没有数据源 —— unified-input 的 `plan.hook` 是自由文本，不是
+ *   POV/Curiosity/Stat/Reveal/Pain/Demo 枚举，硬套会得到一堆脏值。
+ * - 因而 `recipeId` 也为 null：批量线路的配方身份来自模板版本，brief 线路没有模板。
+ *
+ * 结果是 brief 线路的成片进不了赛马的配方维度统计。补法只能是让配方在**生成时**
+ * 就是一个显式选择（O1 选钩子类型 / M3 引入配方模板），不能事后从文本反推。
+ * 在那之前这里保持 null —— null 表示未知，比一个编出来的分组键诚实。
+ */
+function briefCreativeRecipe(aspectRatio: string) {
+  return creativeRecipeSnapshot({
+    aspectRatio,
+    brandPlacement: DEFAULT_BRAND_PLACEMENT,
+  });
+}
+
 async function submitSegmentJob(params: {
   briefId: string;
   finalVideoId: string;
@@ -567,6 +590,7 @@ async function submitSegmentJob(params: {
         finalVideoId,
         ...routeSnapshot,
         ...videoRouteCostSnapshot(routeSnapshot.videoRouteSnapshot),
+        ...briefCreativeRecipe(aspectRatio),
       },
     });
   } catch (error) {
@@ -743,6 +767,10 @@ export async function dispatchVideoGeneration(briefId: string) {
             status: VideoJobStatus.RUNNING,
             ...routeSnapshot,
             ...videoRouteCostSnapshot(routeSnapshot.videoRouteSnapshot),
+            ...briefCreativeRecipe(
+              (prompt.params as { ratio?: string } | null)?.ratio ??
+                brief.aspectRatio,
+            ),
           },
         });
       } catch (error) {

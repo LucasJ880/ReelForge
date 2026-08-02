@@ -96,6 +96,18 @@
       "sourceType": "github",
       "skillPath": "skills/writing-skills/SKILL.md",
       "computedHash": "985a2c1a4242d89bd44a0060cd0e2c81ebb3683e820026fa52ccd7213804ce03"
+    },
+    "seedance-director-methodology": {
+      "source": "Emily2040/seedance-2.0",
+      "sourceType": "github",
+      "pinnedCommit": "db601eccc95733da02849066c783800b794ec4fd",
+      "note": "PRD §7 写的 v6.6.0 tag 上游不存在（实际最大 tag v5.3.0 且不含 references/），锁到含四份关键资料的 main commit。设计时编译进 src/lib/video-generation/director-methodology.ts；升级 = 重新编译 + 回归。platform-surface-matrix 的平台数据刻意不编译（以 video-route-registry 与审计契约为准）。",
+      "license": "MIT (c) 2026 Iamemily2050",
+      "compiledFiles": [
+        "references/retake-protocol.md",
+        "references/model-mechanics.md",
+        "references/delivery-qc.md"
+      ]
     }
   }
 }

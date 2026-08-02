@@ -58,7 +58,7 @@ test("resolveFallbackChain: 首选模型在最前，后续按内置 chain 去重
     assert.equal(chain[0], "gpt-5.5");
     /// chain 必须包含一个我们账号里 100% 可用的备份模型
     assert.ok(
-      chain.includes("gpt-4o") || chain.includes("gpt-4o-mini"),
+      chain.includes("gpt-5.6-sol") || chain.includes("gpt-5.6-terra"),
       `fallback chain 缺少安全模型：${JSON.stringify(chain)}`,
     );
     /// 没有重复
@@ -67,9 +67,9 @@ test("resolveFallbackChain: 首选模型在最前，后续按内置 chain 去重
 });
 
 test("resolveFallbackChain: 若首选模型已在内置 chain 中，不重复", () => {
-  withEnv({ OPENAI_CREATIVE_MODEL: "gpt-4.1" }, () => {
+  withEnv({ OPENAI_CREATIVE_MODEL: "gpt-5.6-sol" }, () => {
     const chain = resolveFallbackChain("creative");
-    assert.equal(chain[0], "gpt-4.1");
+    assert.equal(chain[0], "gpt-5.6-sol");
     assert.equal(new Set(chain).size, chain.length);
   });
 });

@@ -67,6 +67,10 @@ import {
 import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
 import { videoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import {
+  creativeRecipeSnapshot,
+  DEFAULT_BRAND_PLACEMENT,
+} from "@/lib/video-generation/creative-recipe";
+import {
   attachStoryboardToVideoJob,
   canRegenerateStoryboardFrame,
   createStoryboardRun,
@@ -378,6 +382,14 @@ export function readBatchPostProductionFromSnapshot(
   return (snapshot as Record<string, unknown>)[BATCH_POST_PRODUCTION_KEY] ?? null;
 }
 
+/// lockedParams 是 Json 列，运行时不保证形状；取不到画幅就返回 undefined，
+/// 让 aspectRatio 保持 null 而不是编一个 "9:16"。
+function templateAspectRatio(template: StyleTemplate): string | undefined {
+  const locked = template.lockedParams as { aspectRatio?: unknown } | null;
+  const ratio = locked?.aspectRatio;
+  return typeof ratio === "string" && ratio.trim() ? ratio : undefined;
+}
+
 function templateSnapshot(
   template: StyleTemplate,
   postProduction?: BatchPostProductionInput | null,
@@ -437,6 +449,13 @@ export function buildBatchVideoRows(args: {
     ...(args.videoRouteSnapshot
       ? videoRouteCostSnapshot(args.videoRouteSnapshot.videoRouteSnapshot)
       : {}),
+    /// 创意配方快照（PRD §9.4）：赛马按「哪种结构在赢」归因的分组键。
+    /// 批量线路的配方身份就是模板版本；钩子类型批量线路没有，保持 null。
+    ...creativeRecipeSnapshot({
+      template: args.template,
+      aspectRatio: templateAspectRatio(args.template),
+      brandPlacement: DEFAULT_BRAND_PLACEMENT,
+    }),
   }));
 }
 

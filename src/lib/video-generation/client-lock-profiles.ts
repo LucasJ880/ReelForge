@@ -6,6 +6,7 @@
  * inherit these gates. Add a new profile id when onboarding the next client.
  */
 
+import { categoryLockProfile } from "@/lib/video-generation/category-lock-registry";
 import type { CommerceProductMotionProfile } from "@/lib/video-generation/generic-shot-policy";
 
 export const SUNNYSHUTTER_CLIENT_LOCK_ID = "sunnyshutter" as const;
@@ -68,30 +69,15 @@ export function usesSunnyShutterLocks(
  * Product mechanics appended to the shared commerce policy when a client lock
  * is active. Generic constraints remain in force; this profile only narrows
  * product identity and supported motion.
+ *
+ * B4（PRD §5.2）：锁值已泛化进品类注册表 —— SunnyShutter 就是
+ * `window_shutters` 品类的一个实例。这里保留旧入口做兼容，
+ * 值与旧硬编码逐字一致（category-lock-registry 有 deep-equal 回归守着）。
+ * 新客户走 `categoryLockProfile(品类)`，不再新增 client id。
  */
 export function clientLockCommerceProductProfile(
   profile: ClientLockProfileId | null | undefined,
 ): CommerceProductMotionProfile | null {
   if (profile !== SUNNYSHUTTER_CLIENT_LOCK_ID) return null;
-  return {
-    productType: "plantation shutters",
-    identityLocks: [
-      "Preserve exact louver width, frame color, panel layout, hinge side, material, and proportions from the supplied references.",
-      "The vertical tilt bar, when visible, remains one continuous straight rod.",
-      "Keep all louvers parallel and evenly spaced; never warp frames or invent hardware.",
-    ],
-    demonstrableActions: [
-      "swing one whole panel on its side hinges",
-      "tilt all louvers together with no hands visible",
-    ],
-    revealTransitions: [
-      "matched-angle cut from the supported before state to the referenced installed state",
-      "swing one whole panel on its side hinges",
-    ],
-    forbiddenActions: [
-      "grip or twist the tilt bar",
-      "adjust one individual louver",
-      "rapidly fold multiple panels",
-    ],
-  };
+  return categoryLockProfile("window_shutters");
 }

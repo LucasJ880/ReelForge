@@ -26,11 +26,11 @@ async function expectLocaleState(
 test("RF-037 customer locale switch persists across the complete Studio journey", async ({ page }) => {
   await page.goto("/app/create");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.getByRole("heading", { name: "从一个想法到完整成片" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "从产品图到故事板，再到最终视频" })).toBeVisible();
 
   await switchLocale(page, "切换语言", "English");
   await expectLocaleState(page, "en-US");
-  await expect(page.getByRole("heading", { name: "From one idea to a finished video" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "From product images to storyboard to final video" })).toBeVisible();
 
   const englishJourney = [
     ["/app/templates", "Template library"],
@@ -46,7 +46,8 @@ test("RF-037 customer locale switch persists across the complete Studio journey"
 
   await switchLocale(page, "Switch language", "中文");
   await expectLocaleState(page, "zh-CN");
-  await expect(page.getByRole("heading", { name: "成品库", exact: true })).toBeVisible();
+  /// 真机实测切回中文 1s 内翻转；演练（prod build + 冷 RSC 缓存）首次刷新更慢，放宽到 30s 判别「慢 vs 坏」。
+  await expect(page.getByRole("heading", { name: "成品库", exact: true })).toBeVisible({ timeout: 30_000 });
 });
 
 test("RF-037 unauthenticated locale switch persists from login to registration", async ({ browser }) => {
@@ -92,5 +93,5 @@ test("RF-037 mobile Studio exposes the same persistent locale control", async ({
   await switcher.click();
   await page.getByRole("menuitem", { name: "English", exact: true }).click();
   await expectLocaleState(page, "en-US");
-  await expect(page.getByRole("heading", { name: "From one idea to a finished video" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "From product images to storyboard to final video" })).toBeVisible();
 });

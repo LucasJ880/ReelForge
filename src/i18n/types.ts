@@ -431,9 +431,10 @@ export type Dictionary = {
     personaPersonal: string;
     badgeSoon: string;
     platformNav: {
+      plan: string;
       create: string;
       batches: string;
-      racing: string;
+      wins: string;
       library: string;
       brands: string;
       templates: string;

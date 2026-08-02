@@ -1,6 +1,27 @@
 {
-  "generatedAt": "2026-07-13T04:20:03.667Z",
+  "generatedAt": "2026-08-01T00:33:47.906Z",
   "routes": [
+    {
+      "routePath": "/",
+      "filePath": "src/app/(auth)/error.tsx",
+      "kind": "error",
+      "group": "auth",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/",
+      "filePath": "src/app/(internal)/error.tsx",
+      "kind": "error",
+      "group": "internal",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/",
+      "filePath": "src/app/(public)/error.tsx",
+      "kind": "error",
+      "group": "public",
+      "isDynamic": false
+    },
     {
       "routePath": "/",
       "filePath": "src/app/error.tsx",
@@ -16,23 +37,9 @@
     },
     {
       "routePath": "/",
-      "filePath": "src/app/(business)/layout.tsx",
-      "kind": "layout",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/",
       "filePath": "src/app/(internal)/layout.tsx",
       "kind": "layout",
       "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/",
-      "filePath": "src/app/(personal)/layout.tsx",
-      "kind": "layout",
-      "group": "personal",
       "isDynamic": false
     },
     {
@@ -46,6 +53,27 @@
       "routePath": "/",
       "filePath": "src/app/layout.tsx",
       "kind": "layout",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/",
+      "filePath": "src/app/(auth)/loading.tsx",
+      "kind": "loading",
+      "group": "auth",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/",
+      "filePath": "src/app/(internal)/loading.tsx",
+      "kind": "loading",
+      "group": "internal",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/",
+      "filePath": "src/app/(public)/loading.tsx",
+      "kind": "loading",
+      "group": "public",
       "isDynamic": false
     },
     {
@@ -170,6 +198,17 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/brand-packaging",
+      "filePath": "src/app/api/brand-packaging/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST",
+        "PUT"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/briefs/[id]",
       "filePath": "src/app/api/briefs/[id]/route.ts",
       "kind": "api",
@@ -265,6 +304,16 @@
     {
       "routePath": "/api/cron/process-batches",
       "filePath": "src/app/api/cron/process-batches/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/cron/stitch-dispatch",
+      "filePath": "src/app/api/cron/stitch-dispatch/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET",
@@ -425,6 +474,33 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/internal/ops-credits",
+      "filePath": "src/app/api/internal/ops-credits/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/internal/reports",
+      "filePath": "src/app/api/internal/reports/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/internal/reports/[id]",
+      "filePath": "src/app/api/internal/reports/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "PATCH"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/internal/stitch/claim",
       "filePath": "src/app/api/internal/stitch/claim/route.ts",
       "kind": "api",
@@ -440,6 +516,15 @@
       "kind": "api",
       "httpMethods": [
         "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/internal/video-provider-routes",
+      "filePath": "src/app/api/internal/video-provider-routes/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
       ],
       "isDynamic": false
     },
@@ -479,6 +564,34 @@
         "POST"
       ],
       "isDynamic": false
+    },
+    {
+      "routePath": "/api/product-images",
+      "filePath": "src/app/api/product-images/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/product-images/[id]",
+      "filePath": "src/app/api/product-images/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/product-images/tasks/[taskId]/retry",
+      "filePath": "src/app/api/product-images/tasks/[taskId]/retry/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
     },
     {
       "routePath": "/api/projects/[id]/logo/generate",
@@ -535,6 +648,33 @@
       "isDynamic": true
     },
     {
+      "routePath": "/api/racing/rounds/[id]/analyze",
+      "filePath": "src/app/api/racing/rounds/[id]/analyze/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/racing/rounds/[id]/metrics",
+      "filePath": "src/app/api/racing/rounds/[id]/metrics/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/racing/rounds/[id]/next",
+      "filePath": "src/app/api/racing/rounds/[id]/next/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/raw-assets/[id]/preprocess",
       "filePath": "src/app/api/raw-assets/[id]/preprocess/route.ts",
       "kind": "api",
@@ -542,6 +682,15 @@
         "POST"
       ],
       "isDynamic": true
+    },
+    {
+      "routePath": "/api/reports",
+      "filePath": "src/app/api/reports/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
     },
     {
       "routePath": "/api/rounds/[id]",
@@ -634,6 +783,52 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/video-generation/routes",
+      "filePath": "src/app/api/video-generation/routes/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/video-generation/storyboards",
+      "filePath": "src/app/api/video-generation/storyboards/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/video-generation/storyboards/[id]",
+      "filePath": "src/app/api/video-generation/storyboards/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/video-generation/storyboards/[id]/approve",
+      "filePath": "src/app/api/video-generation/storyboards/[id]/approve/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate",
+      "filePath": "src/app/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/webhooks/stripe",
       "filePath": "src/app/api/webhooks/stripe/route.ts",
       "kind": "api",
@@ -643,94 +838,213 @@
       "isDynamic": false
     },
     {
-      "routePath": "/batch-create",
-      "filePath": "src/app/(personal)/batch-create/page.tsx",
-      "kind": "page",
-      "group": "personal",
+      "routePath": "/app",
+      "filePath": "src/app/(platform)/app/layout.tsx",
+      "kind": "layout",
+      "group": "platform",
       "isDynamic": false
     },
     {
-      "routePath": "/batches/[id]",
-      "filePath": "src/app/(personal)/batches/[id]/page.tsx",
+      "routePath": "/app",
+      "filePath": "src/app/(platform)/app/page.tsx",
       "kind": "page",
-      "group": "personal",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/batches",
+      "filePath": "src/app/(platform)/app/batches/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/batches",
+      "filePath": "src/app/(platform)/app/batches/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/batches",
+      "filePath": "src/app/(platform)/app/batches/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/batches/[id]",
+      "filePath": "src/app/(platform)/app/batches/[id]/error.tsx",
+      "kind": "error",
+      "group": "platform",
       "isDynamic": true
     },
     {
-      "routePath": "/business",
-      "filePath": "src/app/(business)/business/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/billing",
-      "filePath": "src/app/(business)/business/billing/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/create-ad-video",
-      "filePath": "src/app/(business)/business/create-ad-video/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/creative-studio",
-      "filePath": "src/app/(business)/business/creative-studio/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/digital-human-store-ad",
-      "filePath": "src/app/(business)/business/digital-human-store-ad/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/integrations",
-      "filePath": "src/app/(business)/business/integrations/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/performance",
-      "filePath": "src/app/(business)/business/performance/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/products",
-      "filePath": "src/app/(business)/business/products/page.tsx",
-      "kind": "page",
-      "group": "business",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/business/products/[id]",
-      "filePath": "src/app/(business)/business/products/[id]/page.tsx",
-      "kind": "page",
-      "group": "business",
+      "routePath": "/app/batches/[id]",
+      "filePath": "src/app/(platform)/app/batches/[id]/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
       "isDynamic": true
     },
     {
-      "routePath": "/business/recommendations",
-      "filePath": "src/app/(business)/business/recommendations/page.tsx",
+      "routePath": "/app/batches/[id]",
+      "filePath": "src/app/(platform)/app/batches/[id]/page.tsx",
       "kind": "page",
-      "group": "business",
+      "group": "platform",
+      "isDynamic": true
+    },
+    {
+      "routePath": "/app/batches/new",
+      "filePath": "src/app/(platform)/app/batches/new/error.tsx",
+      "kind": "error",
+      "group": "platform",
       "isDynamic": false
     },
     {
-      "routePath": "/design",
-      "filePath": "src/app/(personal)/design/page.tsx",
+      "routePath": "/app/batches/new",
+      "filePath": "src/app/(platform)/app/batches/new/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/batches/new",
+      "filePath": "src/app/(platform)/app/batches/new/page.tsx",
       "kind": "page",
-      "group": "personal",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/brands",
+      "filePath": "src/app/(platform)/app/brands/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/create",
+      "filePath": "src/app/(platform)/app/create/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/create",
+      "filePath": "src/app/(platform)/app/create/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/create",
+      "filePath": "src/app/(platform)/app/create/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/create/images",
+      "filePath": "src/app/(platform)/app/create/images/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/create/images",
+      "filePath": "src/app/(platform)/app/create/images/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/create/images",
+      "filePath": "src/app/(platform)/app/create/images/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/library",
+      "filePath": "src/app/(platform)/app/library/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/library",
+      "filePath": "src/app/(platform)/app/library/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/library",
+      "filePath": "src/app/(platform)/app/library/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/library/[id]",
+      "filePath": "src/app/(platform)/app/library/[id]/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": true
+    },
+    {
+      "routePath": "/app/library/[id]",
+      "filePath": "src/app/(platform)/app/library/[id]/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": true
+    },
+    {
+      "routePath": "/app/library/[id]",
+      "filePath": "src/app/(platform)/app/library/[id]/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": true
+    },
+    {
+      "routePath": "/app/racing",
+      "filePath": "src/app/(platform)/app/racing/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/racing",
+      "filePath": "src/app/(platform)/app/racing/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/racing",
+      "filePath": "src/app/(platform)/app/racing/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/templates",
+      "filePath": "src/app/(platform)/app/templates/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/templates",
+      "filePath": "src/app/(platform)/app/templates/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/templates",
+      "filePath": "src/app/(platform)/app/templates/page.tsx",
+      "kind": "page",
+      "group": "platform",
       "isDynamic": false
     },
     {
@@ -812,6 +1126,13 @@
       "isDynamic": false
     },
     {
+      "routePath": "/internal/reports",
+      "filePath": "src/app/(internal)/internal/reports/page.tsx",
+      "kind": "page",
+      "group": "internal",
+      "isDynamic": false
+    },
+    {
       "routePath": "/internal/rounds",
       "filePath": "src/app/(internal)/internal/rounds/page.tsx",
       "kind": "page",
@@ -854,53 +1175,11 @@
       "isDynamic": false
     },
     {
-      "routePath": "/personal",
-      "filePath": "src/app/(personal)/personal/page.tsx",
+      "routePath": "/privacy",
+      "filePath": "src/app/(public)/privacy/page.tsx",
       "kind": "page",
-      "group": "personal",
+      "group": "public",
       "isDynamic": false
-    },
-    {
-      "routePath": "/personal/agent",
-      "filePath": "src/app/(personal)/personal/agent/page.tsx",
-      "kind": "page",
-      "group": "personal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/personal/billing",
-      "filePath": "src/app/(personal)/personal/billing/page.tsx",
-      "kind": "page",
-      "group": "personal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/personal/create-video",
-      "filePath": "src/app/(personal)/personal/create-video/page.tsx",
-      "kind": "page",
-      "group": "personal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/personal/templates",
-      "filePath": "src/app/(personal)/personal/templates/page.tsx",
-      "kind": "page",
-      "group": "personal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/personal/videos",
-      "filePath": "src/app/(personal)/personal/videos/page.tsx",
-      "kind": "page",
-      "group": "personal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/personal/videos/[id]",
-      "filePath": "src/app/(personal)/personal/videos/[id]/page.tsx",
-      "kind": "page",
-      "group": "personal",
-      "isDynamic": true
     },
     {
       "routePath": "/register",
@@ -912,6 +1191,13 @@
     {
       "routePath": "/showcase",
       "filePath": "src/app/(public)/showcase/page.tsx",
+      "kind": "page",
+      "group": "public",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/terms",
+      "filePath": "src/app/(public)/terms/page.tsx",
       "kind": "page",
       "group": "public",
       "isDynamic": false

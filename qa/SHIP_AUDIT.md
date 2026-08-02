@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (81/81 route files)
+## API endpoint inventory (87/87 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -91,6 +91,12 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | VERIFIED H1 light: shared handler wiring + exact public middleware boundary |
 | POST | `/api/auth/register` | Public, rate-limited | VERIFIED H1 light: success wiring + dynamic public validation |
 | GET, HEAD | `/api/health` | Public, sanitized | VERIFIED H1 strict: bounded healthy/degraded 200/503 schemas; secrets rejected |
+| GET | `/api/videos` | Machine auth (Bearer CRON_SECRET), middleware-exact | PRD M0: 青砚 aivora-sync 拉成片；fail-closed，无会话回退；只给已品牌封装、非 takedown、非样片账号的成片 |
+| GET, POST | `/api/content-plans` | Session | PRD M3/O1: 一句话进多形态出；生成不计费，出图才计费 |
+| POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped | PRD M3/O1: 单图/轮播出图；重复出图幂等不重复计费；DELETE 取消保留素材 |
+| POST | `/api/performance` | Machine auth (Bearer CRON_SECRET) | PRD M2/R2: 青砚回灌渠道指标；配方只从我方 subject 读，回流方不得指定 |
+| GET | `/api/racing` | Session, owner-scoped | PRD M2/R3: 配方维度胜负；样本不足明确返回 insufficient，不给方向性结论 |
+| GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警 |
 | GET | `/api/me/usage` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |

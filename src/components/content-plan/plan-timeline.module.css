@@ -1,0 +1,434 @@
+/*
+ * 剪辑台 · 一周内容时间线（PRD §11）。
+ *
+ * 三个结构装置必须复用，不要各自发明：
+ *   时间线轨道 —— 一周不是 7 张卡片，是一条横向轨道；今天是播放头；
+ *                 空档画成**真的缺口**（虚线框 + 「空档」），不是留白。
+ *   齿孔封边   —— 主区顶部一条胶片齿孔条。
+ *   场记板镜号 —— 等宽、全大写、accent 色的配方编号。
+ *
+ * 硬性规矩：圆角 0、无阴影、数字一律 tabular-nums、accent 只用在三处
+ * （品牌标记 / 当前项 / 需要行动的数字）、只做深色。
+ * 一旦加回圆角和卡片阴影，就立刻变回普通 SaaS。
+ */
+
+.root {
+  background: var(--cut-bg);
+  color: var(--cut-ink);
+  font-size: 13px;
+  line-height: 1.75;
+  /* 制片单据的质感来源，也让列对得齐 */
+  font-variant-numeric: tabular-nums;
+  min-height: 100%;
+}
+
+/* 齿孔封边：一眼认出「这是出片的工具」 */
+.perf {
+  height: 16px;
+  background-color: var(--cut-film-base);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 10px,
+    var(--cut-line-2) 10px 11px,
+    var(--cut-panel-2) 11px 20px,
+    var(--cut-line-2) 20px 21px,
+    transparent 21px 31px
+  );
+  border-bottom: 1px solid var(--cut-line-2);
+}
+
+.head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--cut-line);
+  background: var(--cut-panel);
+}
+
+.h1 {
+  font-family: var(--cut-display);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0 0 6px;
+}
+
+.slug {
+  font-family: var(--cut-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cut-accent);
+}
+
+.sub {
+  color: var(--cut-ink-2);
+  margin: 6px 0 0;
+  max-width: 62ch;
+}
+
+/* ── 一句话入口 ── */
+.intake {
+  display: flex;
+  border: 1px solid var(--cut-line-2);
+  background: var(--cut-panel-2);
+  margin-top: 16px;
+}
+
+.intake input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0;
+  color: var(--cut-ink);
+  padding: 13px 14px;
+  font: inherit;
+  outline: none;
+}
+
+.intake input::placeholder {
+  color: var(--cut-ink-3);
+}
+
+.intake button {
+  border: 0;
+  border-left: 1px solid var(--cut-line-2);
+  background: var(--cut-accent);
+  color: var(--cut-accent-ink);
+  font-family: var(--cut-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0 20px;
+  cursor: pointer;
+}
+
+.intake button:disabled {
+  background: var(--cut-panel);
+  color: var(--cut-ink-3);
+  cursor: default;
+}
+
+/* 排期依据：说清楚这一周是按什么排的 */
+.basis {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border-left: 2px solid var(--cut-accent);
+  background: var(--cut-panel-2);
+  color: var(--cut-ink-2);
+}
+
+.error {
+  color: var(--cut-bad);
+  margin: 10px 0 0;
+}
+
+/* ── 时间线轨道 ── */
+.track {
+  position: relative;
+  background: var(--cut-panel);
+  border-bottom: 1px solid var(--cut-line);
+  /* 窄屏时轨道自己横向滚动，页面不横向滚 */
+  overflow-x: auto;
+}
+
+.trackInner {
+  min-width: 760px;
+  position: relative;
+}
+
+.ruler {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: 1px solid var(--cut-line);
+}
+
+.tick {
+  padding: 7px 10px;
+  border-right: 1px solid var(--cut-line);
+  font-family: var(--cut-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--cut-ink-3);
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.tick:last-child {
+  border-right: 0;
+}
+
+.tickToday {
+  color: var(--cut-accent);
+}
+
+.lanes {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  min-height: 132px;
+}
+
+.lane {
+  border-right: 1px solid var(--cut-line);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background-image: repeating-linear-gradient(
+    0deg,
+    var(--cut-line) 0 1px,
+    transparent 1px 26px
+  );
+  background-size: 100% 26px;
+}
+
+.lane:last-child {
+  border-right: 0;
+}
+
+.laneEmpty {
+  background-image: none;
+}
+
+/* 播放头：今天 */
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--cut-accent);
+  z-index: 3;
+}
+
+.playhead::before {
+  content: "";
+  position: absolute;
+  top: -1px;
+  left: -4px;
+  border-left: 4.5px solid transparent;
+  border-right: 4.5px solid transparent;
+  border-top: 6px solid var(--cut-accent);
+}
+
+/* 空档：明确画成缺口，不是留白。空档是要被填的信息，不是排版余量。 */
+.hole {
+  flex: 1;
+  border: 1px dashed var(--cut-line-2);
+  display: grid;
+  place-items: center;
+  color: var(--cut-ink-3);
+  font-family: var(--cut-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  min-height: 56px;
+}
+
+/* 轨道上的一个 clip */
+.clip {
+  border: 0;
+  border-left: 3px solid var(--cut-accent);
+  background: var(--cut-panel-2);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+  color: var(--cut-ink-2);
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.12s;
+}
+
+.clip:hover,
+.clip:focus-visible {
+  background: var(--cut-panel-3);
+  color: var(--cut-ink);
+}
+
+.clipSelected {
+  background: var(--cut-panel-3);
+  color: var(--cut-ink);
+}
+
+.clipReady {
+  border-left-color: var(--cut-good);
+}
+
+.clipDiscarded {
+  border-left-color: var(--cut-ink-3);
+  border-left-style: dashed;
+  opacity: 0.55;
+}
+
+.clipHook {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
+/* 场记板镜号 */
+.shotSlug {
+  font-family: var(--cut-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cut-ink-3);
+}
+
+/* ── 选中帖子的详情 ── */
+.detail {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--cut-line);
+  background: var(--cut-panel);
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+  .detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.label {
+  font-family: var(--cut-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cut-ink-3);
+  margin: 0 0 4px;
+}
+
+.hook {
+  font-family: var(--cut-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: var(--cut-ink);
+}
+
+.body {
+  margin: 0 0 12px;
+  color: var(--cut-ink-2);
+  white-space: pre-wrap;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tag {
+  font-family: var(--cut-mono);
+  font-size: 10.5px;
+  color: var(--cut-ink-2);
+  border: 1px solid var(--cut-line-2);
+  padding: 2px 7px;
+}
+
+.actions {
+  display: flex;
+  margin-top: 14px;
+  border: 1px solid var(--cut-line-2);
+  width: fit-content;
+}
+
+.actions button {
+  border: 0;
+  border-right: 1px solid var(--cut-line-2);
+  background: var(--cut-panel-2);
+  color: var(--cut-ink-2);
+  font-family: var(--cut-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  cursor: pointer;
+}
+
+.actions button:last-child {
+  border-right: 0;
+}
+
+.actions button:hover:not(:disabled) {
+  background: var(--cut-panel-3);
+  color: var(--cut-ink);
+}
+
+.actions button:disabled {
+  color: var(--cut-ink-3);
+  cursor: default;
+}
+
+.primary {
+  background: var(--cut-accent);
+  color: var(--cut-accent-ink);
+}
+
+.frames {
+  display: grid;
+  gap: 8px;
+}
+
+.frame {
+  border: 1px solid var(--cut-line-2);
+  background: var(--cut-panel-2);
+  aspect-ratio: 2 / 3;
+  display: grid;
+  place-items: center;
+  color: var(--cut-ink-3);
+  font-family: var(--cut-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  overflow: hidden;
+  position: relative;
+}
+
+.frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 分屏文字由我们叠，不让出图模型写字 */
+.overlayText {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  font-family: var(--cut-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cut-accent-ink);
+  text-shadow: 0 1px 6px var(--cut-overlay-shadow);
+  text-align: left;
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+
+.foot {
+  padding: 14px 24px;
+  color: var(--cut-ink-3);
+  font-family: var(--cut-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footCount {
+  color: var(--cut-accent);
+}

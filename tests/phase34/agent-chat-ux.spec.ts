@@ -5,66 +5,23 @@ const ONE_PIXEL_PNG = Buffer.from(
   "base64",
 );
 
-const ROUTE_OPTIONS = {
-  ok: true,
-  defaultRouteId: "volcengine_cn_legacy",
-  routes: [
-    {
-      id: "volcengine_cn_legacy",
-      provider: "direct",
-      displayName: "火山北京 Seedance 直连",
-      model: "doubao-seedance-2-0-260128",
-      resolution: null,
-      configured: true,
-      funded: null,
-      available: true,
-      unavailableReason: null,
-    },
-    {
-      id: "buddy",
-      provider: "shuyu",
-      displayName: "合作方 Shuyu · Seedance 720P",
-      model: "studio-video",
-      resolution: "720P",
-      configured: true,
-      funded: false,
-      available: false,
-      unavailableReason: "insufficient_balance",
-    },
-  ],
-};
+
+/// 新账号首次进创作页会弹首用引导（正常产品行为，spec 写于它出现之前）。
+/// 真实用户会点「跳过」—— 测试同样先关掉它再走主流程。
+/// 弹窗在水合后的 useEffect 里才挂载：先等工作台本体出现再给出现窗口。
+async function dismissFirstRunOnboarding(page: import("@playwright/test").Page) {
+  await page.getByTestId("streamlined-video-studio").waitFor();
+  const onboarding = page.getByTestId("first-run-onboarding");
+  if (await onboarding.isVisible({ timeout: 10_000 }).catch(() => false)) {
+    await onboarding.getByRole("button", { name: "跳过" }).click();
+    await onboarding.waitFor({ state: "hidden" });
+  }
+}
 
 test("RF-038: creation follows one upload-to-generate flow with a persistent final action", async ({ page }) => {
-  await page.route("**/api/video-generation/routes?duration=*", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(ROUTE_OPTIONS),
-    });
-  });
-  await page.route("**/api/upload/blob", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({ url: "https://example.com/product.png" }),
-    });
-  });
-  await page.route("**/api/video-generation/classify-asset", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify({
-        classification: {
-          inferredRole: "product_image",
-          roleConfidence: 1,
-          suggestedUse: "Product identity reference",
-          warnings: [],
-        },
-      }),
-    });
-  });
 
   await page.goto("/app/create");
+  await dismissFirstRunOnboarding(page);
 
   await expect(page.getByTestId("streamlined-first-use-guide")).toBeVisible();
   await expect(page.getByTestId("streamlined-product-assets")).toBeVisible();
@@ -76,16 +33,10 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
   await expect(generate).toBeVisible();
   await expect(generate).toBeDisabled();
 
-  await page.getByRole("button", { name: /视频生成接口: 火山官方接口/ }).click();
-  const shuyuRoute = page.getByRole("menuitemradio", { name: /Shuyu 合作接口/ });
-  await expect(shuyuRoute).toContainText("900 积分/支");
-  await expect(
-    page.getByRole("menuitem", { name: /480P 推荐线路 1 \/ 2/ }),
-  ).toHaveAttribute("aria-disabled", "true");
-  await shuyuRoute.click();
-  await expect(generate).toBeDisabled();
-  await page.getByRole("button", { name: /视频生成接口: Shuyu 合作接口/ }).click();
-  await page.getByRole("menuitemradio", { name: /火山官方接口/ }).click();
+  /// 0722 改版后客户面**不再暴露线路选择**（统一走 Aivora 引擎，线路由
+  /// C1 自动路由决定）。守两个方向：选择器不回潮 + 说明文案在场。
+  await expect(page.getByRole("button", { name: /视频生成接口/ })).toHaveCount(0);
+  await expect(page.getByText(/统一走 Aivora 引擎/)).toBeVisible();
 
   await page.locator('input[type="file"]').first().setInputFiles({
     name: "product.png",
@@ -99,8 +50,12 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
   );
   await expect(generate).toBeEnabled();
   await expect(generate).toHaveText("核对规格与积分");
+  await dismissFirstRunOnboarding(page);
   await generate.click();
-  await expect(generate).toHaveText("生成视频");
+  /// 0722 起主流程带故事板前置：核对规格 → 生成 Image 2 故事板 →（确认后）生成视频。
+  /// 主按钮持久在场、文案随阶段推进 —— 这正是「持久主操作」要守的不变量。
+  await expect(generate).toHaveText("生成 Image 2 故事板");
+  await expect(generate).toBeEnabled();
 
   await page.getByRole("button", { name: /高级生成/ }).click();
   await expect(page.getByTestId("streamlined-advanced-options")).toBeVisible();
@@ -111,19 +66,15 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
   await expect(generate).toBeVisible();
 });
 
-test("RF-038: mobile provider menu stays inside the viewport and closes from the keyboard", async ({ page }) => {
+test("RF-038: mobile dropdown menus stay inside the viewport and close from the keyboard", async ({ page }) => {
+  /// 线路选择菜单已随 0722 改版下线；「移动端菜单不出视口 + 键盘可关」这个
+  /// 不变量改由仍然存在的下拉菜单（语言切换器）来守。
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.route("**/api/video-generation/routes?duration=*", async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(ROUTE_OPTIONS),
-    });
-  });
   await page.goto("/app/create");
+  await dismissFirstRunOnboarding(page);
 
-  await page.getByRole("button", { name: /视频生成接口: 火山官方接口/ }).click();
-  const menu = page.getByRole("menu", { name: /视频生成接口: 火山官方接口/ });
+  await page.getByRole("button", { name: /切换语言|Switch language/ }).click();
+  const menu = page.getByRole("menu");
   await expect(menu).toBeVisible();
   const bounds = await menu.boundingBox();
   expect(bounds).not.toBeNull();

@@ -234,10 +234,11 @@ async function auditRoute(page: Page, target: RouteTarget, width: number) {
       })
       .filter((item) => item.visible && (item.left < -1 || item.right > viewport + 1))
       .slice(0, 20);
+    /// 报出 outerHTML 而不是只报个数：否则失败时要人肉翻页面找是哪个按钮。
     const unnamedButtons = [...document.querySelectorAll<HTMLElement>("button")]
       .filter((element) => !element.hasAttribute("disabled"))
       .filter((element) => !(element.innerText || element.getAttribute("aria-label") || element.getAttribute("title")))
-      .length;
+      .map((element) => element.outerHTML.slice(0, 200));
     const invalidLinks = [...document.querySelectorAll<HTMLAnchorElement>("a[href]")]
       .map((anchor) => anchor.getAttribute("href"))
       .filter((href) => !href || href === "#").length;
@@ -254,7 +255,7 @@ async function auditRoute(page: Page, target: RouteTarget, width: number) {
   expect(serverErrors, `${target.id} ${width} HTTP 5xx`).toEqual([]);
   expect(semantics.documentWidth, `${target.id} ${width} document width`).toBeLessThanOrEqual(semantics.viewport + 1);
   expect(semantics.overflow, `${target.id} ${width} overflow`).toEqual([]);
-  expect(semantics.unnamedButtons, `${target.id} ${width} unnamed buttons`).toBe(0);
+  expect(semantics.unnamedButtons, `${target.id} ${width} unnamed buttons`).toEqual([]);
   expect(semantics.invalidLinks, `${target.id} ${width} invalid links`).toBe(0);
   page.removeAllListeners("console");
   page.removeAllListeners("pageerror");

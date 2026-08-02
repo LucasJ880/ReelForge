@@ -1,0 +1,155 @@
+/*
+ * R5 · 战绩（PRD §4.3 / §11.5）。剪辑台方向，token 全部来自 tokens.css 的 --cut-*。
+ * 硬性规矩同 /app/plan：圆角 0、无阴影、数字 tabular-nums、accent 只用三处。
+ */
+
+.root {
+  background: var(--cut-bg);
+  color: var(--cut-ink);
+  font-size: 13px;
+  line-height: 1.75;
+  font-variant-numeric: tabular-nums;
+  min-height: 100%;
+}
+
+.perf {
+  height: 16px;
+  background-color: var(--cut-film-base);
+  background-image: repeating-linear-gradient(
+    90deg,
+    transparent 0 10px,
+    var(--cut-line-2) 10px 11px,
+    var(--cut-panel-2) 11px 20px,
+    var(--cut-line-2) 20px 21px,
+    transparent 21px 31px
+  );
+  border-bottom: 1px solid var(--cut-line-2);
+}
+
+.head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--cut-line);
+  background: var(--cut-panel);
+}
+
+.slug {
+  font-family: var(--cut-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cut-accent);
+}
+
+.h1 {
+  font-family: var(--cut-display);
+  font-size: 44px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin: 0 0 6px;
+}
+
+.sub {
+  color: var(--cut-ink-2);
+  margin: 6px 0 0;
+  max-width: 62ch;
+}
+
+/* 三问三答：一页只回答三件事，不做大而全的看板 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.cell {
+  border-right: 1px solid var(--cut-line);
+  border-bottom: 1px solid var(--cut-line);
+  background: var(--cut-panel);
+  padding: 18px 20px 22px;
+}
+
+.cell:last-child {
+  border-right: 0;
+}
+
+.label {
+  font-family: var(--cut-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cut-ink-3);
+  margin: 0 0 10px;
+}
+
+.answer {
+  font-family: var(--cut-display);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cut-ink);
+  margin: 0 0 8px;
+}
+
+.body {
+  color: var(--cut-ink-2);
+  margin: 0;
+}
+
+/* 需要行动的数字才用 accent —— 三处限额之一 */
+.actionNumber {
+  color: var(--cut-accent);
+}
+
+/* 维度表：制片单据式 */
+.dims {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+.dims th {
+  font-family: var(--cut-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cut-ink-3);
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--cut-line-2);
+  font-weight: 500;
+}
+
+.dims td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--cut-line);
+  color: var(--cut-ink-2);
+  font-family: var(--cut-mono);
+  font-size: 11.5px;
+}
+
+.dimReady {
+  color: var(--cut-good);
+}
+
+.shotSlug {
+  font-family: var(--cut-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cut-ink-3);
+}
+
+.foot {
+  padding: 14px 24px;
+  color: var(--cut-ink-3);
+  font-family: var(--cut-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

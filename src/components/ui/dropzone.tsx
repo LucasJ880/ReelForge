@@ -92,6 +92,9 @@ export function FileDropzone({
       <button
         type="button"
         disabled={!interactive}
+        /// 无障碍名不能依赖内部 span 的可见性：按钮藏在未激活面板里时
+        /// innerText 为空，读屏与 a11y 审计都拿不到名字。
+        aria-label={title}
         onClick={() => inputRef.current?.click()}
         className="mx-auto flex w-full max-w-md flex-col items-center gap-3 rounded-(--radius-md) transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
       >

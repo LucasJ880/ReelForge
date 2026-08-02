@@ -169,6 +169,17 @@ export interface ComposeReferenceImageArgs {
   /// 覆盖模型；默认 OPENAI_IMAGE_MODEL > gpt-image-1
   model?: string;
   forceMock?: boolean;
+  /**
+   * 产品锚定的 mask（B1 路径 A，PRD §5 第 1 层）。
+   *
+   * 语义按 OpenAI images.edit：**透明（alpha=0）的区域才允许模型重画**，
+   * 不透明区域原样保留。所以传「产品 mask」时要传它的**反相** ——
+   * 产品像素不透明（锁死），环境透明（可画）。
+   *
+   * 不传 = 现状行为：在保持主体一致的前提下重绘整图。
+   * 重绘整图 = 让模型逐字符重画 logo = 糊，这正是要逃离的那一档。
+   */
+  mask?: ReferenceImageInput;
 }
 
 export interface ComposeReferenceImageResult {
@@ -212,9 +223,19 @@ export async function composeReferenceImage(
     ),
   );
 
+  /// 路径 A 只差的那个参数就是它（PRD §5）：mask 圈住产品像素零重画。
+  const maskFile = args.mask
+    ? await toFile(
+        Buffer.from(args.mask.data),
+        args.mask.fileName ?? "mask.png",
+        { type: args.mask.mimeType ?? "image/png" },
+      )
+    : undefined;
+
   const response = await openai.images.edit({
     model,
     image: files,
+    ...(maskFile ? { mask: maskFile } : {}),
     prompt: args.prompt,
     size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
     quality: args.quality,

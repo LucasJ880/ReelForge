@@ -443,7 +443,9 @@ export function toContentPostLibraryRow(
 
   const needsImage = post.format === "SINGLE_IMAGE" || post.format === "CAROUSEL";
   const hasImages = post.renderedImageUrls.length > 0;
-  const status = needsImage && !hasImages ? "generating" : "ready";
+  /// 未出图 ≠ 生成中：没有任何任务在跑，显示「生成中 0%」会让商家以为卡死了
+  /// （0802 录屏抓到的误导）。planning（准备中）才是实情 —— 等商家点「生成配图」。
+  const status = needsImage && !hasImages ? "planning" : "ready";
 
   return unifiedLibraryRowSchema.parse({
     id: `post-${post.id}`,

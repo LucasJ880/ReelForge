@@ -771,6 +771,61 @@ function classifyProductImageSubmission(
   });
 }
 
+/**
+ * 取消这一轮产品图（铁律 #7：每一轮任务都必须可取消）。
+ *
+ * 语义与批量/故事板取消一致：
+ * - **清幂等键**：原键改写为 `cancelled:<时间戳>:<原键>`（保留审计痕迹），
+ *   商家可以立刻用同样的输入重新发起，不会被幂等回放卡住。
+ * - **保留素材**：已 SUCCEEDED 的 provider task 与产出资产一律不动 ——
+ *   花过钱的东西不能因为取消就消失。
+ * - 未终态的 provider task 置 CANCELLED；poll 只认 QUEUED/PROCESSING，
+ *   reconcile 只认 PROCESSING，取消态不会被复活。
+ * - 供应商侧无撤回接口，已提交的远端任务会自然完成，但结果不再被拉取入库。
+ */
+export async function cancelProductImageJob(args: {
+  jobId: string;
+  userId: string;
+}): Promise<ProductImageJobWithAssets> {
+  const job = await db.productImageJob.findFirst({
+    /// owner 校验进查询条件，不靠调用方比对。
+    where: { id: args.jobId, userId: args.userId },
+    select: { id: true, status: true, idempotencyKey: true },
+  });
+  if (!job) {
+    throw new ProductImageRequestError("任务不存在或无权访问。", "NOT_FOUND", 404);
+  }
+  if (
+    job.status !== ProductImageStatus.QUEUED &&
+    job.status !== ProductImageStatus.PROCESSING
+  ) {
+    throw new ProductImageRequestError("任务已结束，无需取消。", "INVALID_STATE", 409);
+  }
+
+  const now = new Date();
+  await db.$transaction([
+    db.productImageJob.update({
+      where: { id: job.id },
+      data: {
+        status: ProductImageStatus.CANCELLED,
+        completedAt: now,
+        idempotencyKey: `cancelled:${now.getTime()}:${job.idempotencyKey}`.slice(0, 190),
+      },
+    }),
+    db.productImageProviderTask.updateMany({
+      where: {
+        productImageJobId: job.id,
+        status: {
+          in: [ProductImageStatus.QUEUED, ProductImageStatus.PROCESSING],
+        },
+      },
+      data: { status: ProductImageStatus.CANCELLED },
+    }),
+  ]);
+
+  return (await findProductImageJobForUser(job.id, args.userId))!;
+}
+
 export async function reconcileProductImageJob(
   jobId: string,
   userId?: string,

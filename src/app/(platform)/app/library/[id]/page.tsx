@@ -22,6 +22,8 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const session = await getServerSession(authOptions);
   const { id } = await params;
   if (!session?.user?.id) redirect(`/login?from=/app/library/${id}`);
+  /// 图文帖没有视频详情页；老链接/直达 URL 一律送回它的家（本周内容），不 404。
+  if (id.startsWith("post-")) redirect("/app/plan");
   const item = await getUnifiedLibraryItem(session.user.id, id);
   if (!item) notFound();
   const locale = await getServerLocale();

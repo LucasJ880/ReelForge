@@ -63,10 +63,15 @@ export default async function PlatformLibraryPage({
       ) : (
         <ul className="grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label={copy.listLabel}>
           {rows.map((row) => {
+            /// 图文帖的家是「本周内容」——它没有可播放的成片，
+            /// 链到视频详情页只会 404（0802 录屏抓到的真实事故）。
             const detailHref =
               row.source === "batch"
                 ? `/app/batches/${row.batchId}`
-                : `/app/library/${row.id}`;
+                : row.source === "post"
+                  ? "/app/plan"
+                  : `/app/library/${row.id}`;
+            const viewLabel = row.source === "post" ? copy.viewPost : copy.view;
             return (
             <li key={row.id} className="min-w-0">
               <article className="group min-w-0 overflow-hidden rounded-(--radius-lg) border border-border bg-card transition-colors hover:border-border-strong">
@@ -76,7 +81,7 @@ export default async function PlatformLibraryPage({
                       <HoverPreviewVideo
                         src={row.videoUrl}
                         poster={row.thumbnailUrl ?? undefined}
-                        ariaLabel={`${row.title} ${copy.view}`}
+                        ariaLabel={`${row.title} ${viewLabel}`}
                       />
                     ) : row.thumbnailUrl ? (
                       <Image src={row.thumbnailUrl} alt="" fill unoptimized sizes="(min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover" />
@@ -113,7 +118,7 @@ export default async function PlatformLibraryPage({
                       />
                     ) : null}
                     <Button render={<Link href={row.status === "failed" && row.source === "order" ? `/app/create?retry=${encodeURIComponent(row.id)}` : detailHref} />} variant={row.status === "failed" ? "outline" : "ghost"} size="sm">
-                      {row.status === "failed" ? copy.regenerate : copy.view}<ArrowRight aria-hidden />
+                      {row.status === "failed" ? copy.regenerate : viewLabel}<ArrowRight aria-hidden />
                     </Button>
                   </div>
               </article>

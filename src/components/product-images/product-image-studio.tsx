@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 
-type ProductImageStatus = "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED";
+type ProductImageStatus = "QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED" | "CANCELLED";
 type AssetView = {
   id: string;
   url: string;
@@ -124,6 +124,29 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
       window.clearTimeout(timer);
     };
   }, [activeJob, copy.jobFailed]);
+
+  const [cancelling, setCancelling] = useState(false);
+  async function handleCancel() {
+    if (!activeJob) return;
+    setCancelling(true);
+    try {
+      const response = await fetch(
+        `/api/product-images/${encodeURIComponent(activeJob.id)}/cancel`,
+        { method: "POST" },
+      );
+      const data = (await response.json()) as { job?: ProductImageJobDto; error?: string };
+      if (response.ok && data.job) {
+        setJobs((current) => [data.job!, ...current.filter((job) => job.id !== data.job!.id)]);
+        setActiveJob(data.job);
+      } else {
+        setError(data.error ?? copy.cancelFailed);
+      }
+    } catch {
+      setError(copy.cancelFailed);
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   const canSubmit =
     prompt.trim().length >= 8 &&
@@ -437,9 +460,24 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                   </Button>
                 ))}
               </div>
+            ) : activeJob?.status === "CANCELLED" ? (
+              <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center">
+                <ImageIcon className="size-7 text-muted-foreground" aria-hidden />
+                <p className="font-medium">{copy.cancelledTitle}</p>
+                <p className="max-w-sm text-body text-muted-foreground">{copy.cancelledBody}</p>
+              </div>
             ) : activeJob ? (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center" aria-live="polite">
                 <Loader2 className="size-7 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden /><p className="font-medium">{copy.processing}</p><p className="text-meta text-muted-foreground">Aivora · {activeJob.resolutionSnapshot ?? resolution}</p>
+                {/* 铁律 #7：运行中必须有「不再纠缠这一轮」的出口，且取消永远免费 */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={cancelling}
+                  onClick={() => void handleCancel()}
+                >
+                  {cancelling ? copy.cancelling : copy.cancelRound}
+                </Button>
               </div>
             ) : (
               <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center"><ImageIcon className="size-7 text-muted-foreground" aria-hidden /><p className="font-medium">{copy.emptyTitle}</p><p className="max-w-sm text-body text-muted-foreground">{copy.emptyBody}</p></div>

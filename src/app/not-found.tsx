@@ -16,11 +16,13 @@ export default function NotFoundPage() {
           链接可能已过期或输入有误。
         </p>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
+          {/* 全局 404 对所有角色可见：回 / 由角色路由决定去处。
+              此前指向旧代运营入口，客户看不懂那套叫法（0802 录屏）。 */}
           <Link
-            href="/orders"
+            href="/"
             className="inline-flex items-center justify-center rounded-(--radius-md) bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
-            回到交付单列表
+            回到工作台
           </Link>
         </div>
       </div>

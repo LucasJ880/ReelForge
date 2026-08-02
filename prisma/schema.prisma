@@ -1178,6 +1178,8 @@ enum ProductImageStatus {
   PROCESSING
   SUCCEEDED
   FAILED
+  /// 用户取消这一轮（铁律：每轮任务都必须可取消）。已产出素材保留。
+  CANCELLED
 }
 
 /// Customer-facing audited Shuyu Image 2 workflow. The request snapshot, source/output

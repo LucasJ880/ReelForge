@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (87/87 route files)
+## API endpoint inventory (88/88 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -96,6 +96,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped | PRD M3/O1: 单图/轮播出图；重复出图幂等不重复计费；DELETE 取消保留素材 |
 | POST | `/api/performance` | Machine auth (Bearer CRON_SECRET) | PRD M2/R2: 青砚回灌渠道指标；配方只从我方 subject 读，回流方不得指定 |
 | GET | `/api/racing` | Session, owner-scoped | PRD M2/R3: 配方维度胜负；样本不足明确返回 insufficient，不给方向性结论 |
+| POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |
 | GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警 |
 | GET | `/api/me/usage` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |

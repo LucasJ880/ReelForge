@@ -6,6 +6,10 @@ const eslintConfig = [
     ignores: [
       ".agents/**",
       ".claude/**",
+      ".codex/**",
+      ".cursor/**",
+      ".github/skills/**",
+      ".github/hooks/**",
       "designs/**",
       "showcase-static/**",
       "deploy/china-future/**",

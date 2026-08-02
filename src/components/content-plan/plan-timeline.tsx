@@ -328,9 +328,11 @@ export function PlanTimeline({
               ))
             ) : (
               <div className={styles.frame}>
-                {selected.format === "TEXT" || selected.format === "VIDEO"
-                  ? "无需配图"
-                  : "未出图"}
+                {selected.format === "TEXT"
+                  ? "纯文案 · 无需配图"
+                  : selected.format === "VIDEO"
+                    ? "视频请到「创作」出片"
+                    : "未出图"}
               </div>
             )}
           </div>

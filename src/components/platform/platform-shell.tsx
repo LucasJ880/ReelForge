@@ -63,7 +63,7 @@ function Nav({
   return (
     <nav
       aria-label={t(mobile ? "shell.platformShell.mobileNav" : "shell.platformShell.primaryNav")}
-      className={mobile ? "grid h-16 grid-cols-6 border-t border-border bg-card" : "flex flex-1 flex-col gap-0.5 px-3 py-4"}
+      className={mobile ? "glass-pane grid h-16 auto-cols-fr grid-flow-col border-0 border-t" : "flex flex-1 flex-col gap-0.5 px-3 py-4"}
     >
       {PLATFORM_PRIMARY_NAV.map((item) => {
         const Icon = ICONS[item.id];
@@ -82,7 +82,7 @@ function Nav({
             aria-current={active ? "page" : undefined}
             className={cn(
               mobile
-                ? "relative flex min-w-0 flex-col items-center justify-center gap-1 px-1 text-meta font-medium"
+                ? "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-[10px] font-medium"
                 : "group flex h-9 items-center gap-3 rounded-(--radius-md) px-3 text-meta font-medium transition-colors",
               active
                 ? "bg-accent-soft text-foreground"
@@ -135,8 +135,12 @@ export function PlatformShell({
   const { t, locale } = useTranslation();
   const platformCopy = getPlatformCopy(locale).shell;
   return (
-    <div className="studio-theme studio-canvas relative z-10 flex min-h-screen bg-background text-foreground">
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-r border-border bg-card md:flex">
+    <div
+      className="studio-theme studio-canvas relative z-10 flex min-h-screen bg-background text-foreground"
+      // 环境光随进行中的生成任务变亮：玻璃后透出的光就是正在发生的工作。
+      style={{ "--ambient-glow": Math.min(0.2 + activeBatches * 0.04, 0.36) } as React.CSSProperties}
+    >
+      <aside className="glass-pane fixed inset-y-0 left-0 z-30 hidden w-56 flex-col border-0 border-r md:flex">
         <Link
           href="/app/create"
           prefetch={false}
@@ -176,8 +180,8 @@ export function PlatformShell({
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col bg-background pb-16 md:ml-56 md:pb-0">
-        <header className="sticky top-0 z-20 flex h-12 items-center gap-3 border-b border-border bg-card px-4 md:px-5">
+      <div className="flex min-w-0 flex-1 flex-col pb-16 md:ml-56 md:pb-0">
+        <header className="glass-pane sticky top-0 z-20 flex h-12 items-center gap-3 border-0 border-b px-4 md:px-5">
           <Link href="/app/create" prefetch={false} className="flex shrink-0 items-center gap-3 md:hidden" aria-label={platformCopy.home}>
             <Logo size={32} />
             <span className="hidden font-heading text-subhead font-semibold sm:inline">Aivora</span>
@@ -227,8 +231,8 @@ export function PlatformShell({
             {email ? emailInitial(email) : <UserRound className="size-4" aria-hidden />}
           </button>
         </header>
-        <main className="min-w-0 flex-1 bg-background">
-          <div className="studio-page editorial-page-enter min-h-full bg-background">{children}</div>
+        <main className="min-w-0 flex-1">
+          <div className="studio-page editorial-page-enter min-h-full">{children}</div>
         </main>
       </div>
 

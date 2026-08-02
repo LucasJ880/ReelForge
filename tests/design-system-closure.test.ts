@@ -10,16 +10,18 @@ function walk(directory: string): string[] {
   });
 }
 
-test("approved theme topology keeps Studio and auth dark, public/operations light", () => {
+test("approved theme topology: 全站单一深色玻璃世界，工作区块只收密度", () => {
   const tokens = readFileSync("src/styles/tokens.css", "utf8");
   const root = tokens.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
   const studio = tokens.match(
     /:root:has\(\.studio-theme\),\s*\n\.studio-theme,\s*\n:root:has\(\.auth-studio-theme\),\s*\n\.auth-studio-theme\s*\{([\s\S]*?)\n\}/,
   )?.[1] ?? "";
-  assert.match(root, /--bg:\s*#fafaf7/i);
-  // 0721 决策：登录面与 /app Studio 共用同一深色块，避免登录 → 工作台明暗跳变。
-  assert.match(studio, /--bg:\s*#121011/i);
-  assert.match(tokens, /\.auth-studio-theme\s*\{\s*color-scheme:\s*dark;\s*\}/);
+  // 2026-08 决策：毛玻璃取代 Editorial 浅色 + 剪辑台，全站一块深色玻璃空气。
+  assert.match(root, /--bg:\s*#0a0809/i);
+  assert.match(root, /color-scheme:\s*dark/);
+  // 工作区块不得再声明颜色——颜色全站统一，只允许密度差异。
+  assert.doesNotMatch(studio, /--bg:|--surface:|--accent:/);
+  assert.match(studio, /--control-height/);
   assert.doesNotMatch(tokens, /color-scheme:\s*light/);
 });
 
@@ -40,11 +42,13 @@ test("font and motion roles are tokenized and motion is capped at 300ms", () => 
   for (const token of ["--font-body-family", "--font-display-family", "--font-mono-family", "--motion-fast", "--motion-base", "--ease-out"]) {
     assert.match(tokens, new RegExp(token));
   }
-  for (const font of ["Inter", "Instrument_Serif", "Space_Grotesk", "JetBrains_Mono"]) {
+  // 玻璃世界字体：Schibsted Grotesk（拉丁显示）+ Noto Sans SC（中文显示，
+  // next/font 按 unicode-range 分片加载）+ Inter 正文 + JetBrains Mono 等宽。
+  for (const font of ["Inter", "Schibsted_Grotesk", "Noto_Sans_SC", "JetBrains_Mono"]) {
     assert.match(layout, new RegExp(font));
   }
-  assert.doesNotMatch(layout, /Noto_Sans_SC|Noto_Serif_SC/);
-  for (const fallback of ["PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", "Songti SC", "Noto Serif CJK SC"]) {
+  assert.doesNotMatch(layout, /Instrument_Serif|Space_Grotesk\b/);
+  for (const fallback of ["PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC"]) {
     assert.match(tokens, new RegExp(fallback));
   }
   const motionValues = [...tokens.matchAll(/--motion-[\w-]+:\s*(\d+)ms/g)].map((match) => Number(match[1]));

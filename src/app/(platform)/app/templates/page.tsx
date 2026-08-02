@@ -29,7 +29,6 @@ export default async function PlatformTemplatesPage() {
       {/* 主操作与标题同排：此前它单独占一行，白白吃掉一整屏高度。 */}
       <header className="studio-hero flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl space-y-3">
-          <p className="studio-label text-muted-foreground">{copy.kicker}</p>
           <h1 className="editorial-display">{copy.title}</h1>
           <p className="text-body text-muted-foreground">{copy.subtitle}</p>
         </div>

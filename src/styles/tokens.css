@@ -1,22 +1,62 @@
 /*
- * Aivora Editorial Studio
+ * Aivora Glass
  * 全站唯一视觉 token 来源。组件与页面不得声明颜色、圆角或阴影字面量。
+ *
+ * 2026-08-02 起全站进入毛玻璃世界（取代旧 Editorial 浅色与剪辑台方向，
+ * 决策记录见 DESIGN.md 与 root layout 的方向契约注释）：
+ *   一块近黑的暖石墨空气里悬着三档玻璃 ——
+ *   glass-pane（结构面，真实 backdrop 模糊）
+ *   glass 卡（内容面，分层薄膜质感，不付模糊成本）
+ *   glass-well（下沉容器，光被吸进去）
+ *   品牌橙 #ff4d00 是唯一光源色：品牌标记、当前项、需要行动的数字。
+ *   数字一律 tabular-nums。文本对比必须 ≥ AA（#ff4d00 上不用白字）。
  */
 :root {
-  --bg: #fafaf7;
-  --surface: #ffffff;
-  --surface-sunken: #f1f0eb;
-  --border: #e4e2da;
-  --border-strong: #d4d1c7;
+  color-scheme: dark;
+
+  /* 空气与玻璃 */
+  --bg: #0a0809;
+  --surface: rgb(255 255 255 / 0.045);
+  --surface-sunken: rgb(0 0 0 / 0.3);
+  --surface-raised: rgb(255 255 255 / 0.08);
+  --border: rgb(255 255 255 / 0.1);
+  --border-strong: rgb(255 255 255 / 0.2);
   --content-max-width: 75rem;
-  --text-primary: #16150f;
-  --text-secondary: #6e6b60;
+  --text-primary: #f7f4f2;
+  --text-secondary: #b0a8a4;
   --accent: #ff4d00;
-  --accent-soft: #ffede5;
-  --success: #1a7f4e;
-  --warning: #b7791f;
-  --danger: #c4320a;
-  --overlay: rgba(22, 21, 15, 0.22);
+  --accent-soft: rgb(255 77 0 / 0.14);
+  --success: #58c08a;
+  --warning: #e9b658;
+  --danger: #ff6f5b;
+  --overlay: rgb(8 6 7 / 0.62);
+
+  /* 玻璃材质参数（只在 globals.css 的材质类里消费） */
+  --glass-pane-bg: rgb(24 20 21 / 0.78);
+  --glass-pane-blur: 24px;
+  --glass-card-bg: rgb(22 18 19 / 0.52);
+  --glass-well-bg: rgb(0 0 0 / 0.28);
+  --glass-sheen: linear-gradient(
+    165deg,
+    rgb(255 255 255 / 0.07),
+    rgb(255 255 255 / 0.02) 42%,
+    transparent 68%
+  );
+  /* 镜面高光边：所有玻璃面的第一层 box-shadow */
+  --glass-edge: inset 0 1px 0 rgb(255 255 255 / 0.08);
+  /* 下沉井的吸光内影 */
+  --shadow-well:
+    inset 0 1px 2px rgb(0 0 0 / 0.32),
+    inset 0 -1px 0 rgb(255 255 255 / 0.04);
+  /* 强薄膜反光：被点亮的玻璃片（如完成的批次格） */
+  --glass-sheen-strong: linear-gradient(165deg, rgb(255 255 255 / 0.28), transparent 55%);
+
+  /* 环境光场：全站唯一的一块「空气」。胶片颗粒 + 品牌橙光源 + 冷石板对光。
+   * --ambient-glow 由 PlatformShell 按进行中的批次数抬升（0.2 → 0.36）。 */
+  --ambient-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --ambient-light-accent: radial-gradient(60rem 44rem at 84% -8%, rgb(255 77 0 / var(--ambient-glow, 0.2)), transparent 64%);
+  --ambient-light-cool: radial-gradient(52rem 40rem at -10% 108%, rgb(84 100 138 / 0.24), transparent 62%);
+  --ambient-light-floor: radial-gradient(36rem 26rem at 62% 118%, rgb(255 77 0 / 0.08), transparent 65%);
 
   /* 非 DOM 渲染与输入示例；由 scripts/generate-design-tokens.ts 派生为 JSON。 */
   --brand-input-color-example: #1E40AF;
@@ -46,10 +86,19 @@
   --media-mock-olive-background: #2a3a0c;
   --media-mock-olive-accent: #a3e635;
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --shadow-card: 0 1px 2px rgba(22, 21, 15, 0.06);
+  /* 圆角层级：控件 < 卡片 < 面板/弹层 */
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  /* 玻璃深度：高光边 + 贴地细影 + 远距柔影（有偏移有羽化，不做光晕装饰） */
+  --shadow-card:
+    var(--glass-edge),
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 16px 40px -24px rgb(0 0 0 / 0.7);
+  --shadow-float:
+    var(--glass-edge),
+    0 4px 12px rgb(0 0 0 / 0.35),
+    0 32px 80px -24px rgb(0 0 0 / 0.75);
   --motion-fast: 120ms;
   --motion-base: 200ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
@@ -60,8 +109,8 @@
   --card-gap: 16px;
 
   --font-body-family: var(--font-inter), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
-  --font-display-family: var(--font-instrument-serif), "Songti SC", STSong, "Noto Serif CJK SC", Georgia, serif;
-  --font-mono-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-display-family: var(--font-schibsted-grotesk), var(--font-noto-sans-sc), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
+  --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 13px;
   --font-size-body: 15px;
   --font-size-subhead: 18px;
@@ -87,23 +136,24 @@
   --foreground: var(--text-primary);
   --card: var(--surface);
   --card-foreground: var(--text-primary);
-  --popover: var(--surface);
+  /* 浮层比内容卡更实：模糊失效（老浏览器/低端机）时仍要能读 */
+  --popover: rgb(30 25 26 / 0.94);
   --popover-foreground: var(--text-primary);
   --primary: var(--accent);
   /* #FF4D00 与白字仅 3.32:1；深色前景满足 WCAG AA。 */
-  --primary-foreground: var(--text-primary);
-  --secondary: var(--surface-sunken);
+  --primary-foreground: #140801;
+  --secondary: var(--surface-raised);
   --secondary-foreground: var(--text-primary);
   --muted: var(--surface-sunken);
   --muted-foreground: var(--text-secondary);
   --accent-foreground: var(--text-primary);
   --destructive: var(--danger);
-  --input: var(--border);
+  --input: var(--border-strong);
   --ring: var(--accent);
-  --sidebar: var(--surface);
+  --sidebar: var(--glass-pane-bg);
   --sidebar-foreground: var(--text-secondary);
   --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: var(--surface);
+  --sidebar-primary-foreground: #140801;
   --sidebar-accent: var(--accent-soft);
   --sidebar-accent-foreground: var(--text-primary);
   --sidebar-border: var(--border);
@@ -116,49 +166,15 @@
 }
 
 /*
- * /app Studio 工作区主题。在 PlatformLayout 的 .studio-theme 与登录面的
- * .auth-studio-theme 内生效；已冻结的 Showcase 与公开面保持 Editorial 浅色。
- * 0721 决策：登录页并入深色 Studio，消除登录 → 工作台的明暗跳变。
+ * /app Studio 工作区与登录面：同一玻璃世界，只在**密度**上收紧。
+ * 颜色与材质全站统一，工作台是数字密集面，字号/控件/间距更紧。
  */
 :root:has(.studio-theme),
 .studio-theme,
 :root:has(.auth-studio-theme),
 .auth-studio-theme {
-  /* 根级 color-scheme 跟随深色，否则自动填充/原生滚动条按浅色渲染。 */
   color-scheme: dark;
-  /* 暖中性深色工作台。
-   *
-   * 中性色统一带一点点红相（色相约 20–30°），与品牌橙同侧。此前的中性色偏蓝紫
-   * （#101015 / #32323d）与纯橙 accent 处于补色关系，大面积并置会互相压暗、
-   * 整体发灰发闷；把中性往 accent 一侧偏之后，同一块屏幕读起来才像一套配色。
-   * 品牌橙本身不动，保证识别度。 */
-  --bg: #121011;
-  --surface: #1a1718;
-  --surface-sunken: #0d0b0c;
-  --surface-raised: #241f21;
-  /* 边框较此前提亮一档：原来卡片与背景几乎糊在一起，缺少边界。 */
-  --border: #37302f;
-  --border-strong: #554a46;
-  --text-primary: #f5f2f0;
-  --text-secondary: #a9a19d;
-  --accent: #ff4d00;
-  --accent-soft: #ff4d001f;
-  /* 语义色同样暖调化，避免绿/黄在暖底上显脏。 */
-  --success: #4fb582;
-  --warning: #e8b34b;
-  --danger: #e35a4d;
-  --overlay: rgba(18, 16, 17, 0.86);
 
-  /* 圆角建立层级：控件 < 卡片 < 面板。此前 md 与 lg 同为 8px，
-   * 所有容器长得一样，界面因此显得扁平呆板。 */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  /* 极轻的纵深，只用于把卡片从背景里托起来，不做装饰性投影。 */
-  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.28), 0 8px 24px -16px rgba(0, 0, 0, 0.7);
-
-  --font-display-family: var(--font-space-grotesk), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
-  --font-mono-family: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-size-meta: 11px;
   --font-size-body: 13px;
   --font-size-subhead: 16px;
@@ -180,36 +196,13 @@
   --space-10: 32px;
   --space-12: 28px;
   --space-16: 48px;
-
-  --background: var(--bg);
-  --foreground: var(--text-primary);
-  --card: var(--surface);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-raised);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--accent);
-  --primary-foreground: var(--bg);
-  --secondary: var(--surface-raised);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface-sunken);
-  --muted-foreground: var(--text-secondary);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--danger);
-  --input: var(--border-strong);
-  --ring: var(--accent);
-  --sidebar: var(--surface);
-  --sidebar-foreground: var(--text-secondary);
-  --sidebar-primary: var(--accent);
-  --sidebar-primary-foreground: var(--bg);
-  --sidebar-accent: var(--accent-soft);
-  --sidebar-accent-foreground: var(--text-primary);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--accent);
 }
 
-/* 登录面与 Studio 同为深色（0721 起）；公开面/运营面仍为浅色 Editorial。 */
-.auth-studio-theme {
-  color-scheme: dark;
+/* 模糊可用时浮层才敢更透；不支持的环境维持 0.94 实底保证可读。 */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --popover: rgb(30 25 26 / 0.78);
+  }
 }
 
 @theme inline {
@@ -262,44 +255,4 @@
   --shadow-editorial: var(--shadow-card);
   --duration-fast: var(--motion-fast);
   --duration-base: var(--motion-base);
-}
-
-/*
- * ─────────────────────────────────────────────────────────────
- * 剪辑台方向（PRD v3.3 §11）
- * ─────────────────────────────────────────────────────────────
- *
- * 调色房的暖近黑，不是 SaaS 灰。视觉语言来自 Aivora 自己的材料
- * ——胶片、场记板、剪辑时间线——而不是通用 SaaS 模板。
- *
- * 目前只作用于新定位的界面（/app/plan 起）。全站切换属于 PRD §10.5 的
- * 「新信息架构 → 按新架构实现界面」那一步，不在本轮范围内。
- *
- * 硬性规矩（改之前先读 PRD §11.4）：
- *   圆角 0 · 无阴影 · 数字 tabular-nums · accent 只用三处 · 只做深色。
- *   accent 铺开用就废了：只给品牌标记、当前项、需要行动的数字。
- */
-:root {
-  --cut-bg: #0a0806;
-  --cut-panel: #120e0b;
-  --cut-panel-2: #1a1410;
-  --cut-panel-3: #241c16;
-  --cut-line: #2a211b;
-  --cut-line-2: #453529;
-  --cut-ink: #f2ebe3;
-  --cut-ink-2: #a99a8b;
-  --cut-ink-3: #6e6055;
-  /* 唯一继承的品牌资产 */
-  --cut-accent: #ff4d00;
-  --cut-accent-ink: #ffffff;
-  --cut-good: #7fa86b;
-  --cut-warn: #d9a54c;
-  --cut-bad: #e2553a;
-  /* 齿孔条的片基色 */
-  --cut-film-base: #040302;
-  --cut-overlay-shadow: rgb(0 0 0 / 0.85);
-
-  /* 压缩高对比的场记板标题 + 制片单据式等宽数字 */
-  --cut-display: "Archivo Narrow", "Archivo", var(--font-display-family);
-  --cut-mono: "IBM Plex Mono", var(--font-mono-family);
 }

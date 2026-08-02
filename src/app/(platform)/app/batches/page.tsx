@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { cn } from "@/lib/utils";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,6 @@ export default async function PlatformBatchesPage() {
     <div className="editorial-page-stack min-w-0">
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-3xl space-y-3">
-          <p className="studio-label text-muted-foreground">{copy.kicker}</p>
           <h1 className="editorial-display">{copy.title}</h1>
           <p className="max-w-2xl text-body text-muted-foreground">{copy.subtitle}</p>
         </div>
@@ -76,7 +76,20 @@ export default async function PlatformBatchesPage() {
                     <td data-label={copy.columns.progress} className="block py-2 before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
                       <div className="inline-flex min-w-40 items-center gap-3 align-middle">
                         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden>
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${percent}%` }} />
+                          {/* accent 只留给进行中的批次（当前项）；完结批次退为语义色/中性 */}
+                          <div
+                            className={cn(
+                              "h-full rounded-full",
+                              variant === "destructive"
+                                ? "bg-danger"
+                                : variant === "warning"
+                                  ? "bg-warning"
+                                  : variant === "success"
+                                    ? "bg-success"
+                                    : "bg-primary",
+                            )}
+                            style={{ width: `${percent}%` }}
+                          />
                         </div>
                         <span className="font-mono text-meta tabular-nums">{batch.completedCount}/{batch.requestedCount}</span>
                       </div>

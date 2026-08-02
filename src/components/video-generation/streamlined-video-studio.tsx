@@ -1180,7 +1180,6 @@ export function StreamlinedVideoStudio({
         onStart={() => closeOnboarding(true)}
       />
       <header className="max-w-4xl space-y-3">
-        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
         <h1 className="editorial-display">{copy.title}</h1>
         <p className="max-w-3xl text-body text-muted-foreground">{copy.subtitle}</p>
         <CreateModeTabs active="video" />
@@ -1199,7 +1198,7 @@ export function StreamlinedVideoStudio({
           data-testid="streamlined-first-use-guide"
         >
           <div className="flex items-start gap-3 pr-10">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-primary bg-accent-soft text-foreground">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-foreground">
               <Sparkles className="size-4" aria-hidden />
             </span>
             <div className="min-w-0 flex-1">
@@ -1570,7 +1569,7 @@ export function StreamlinedVideoStudio({
       ) : null}
 
       <section
-        className="sticky bottom-20 z-10 rounded-(--radius-lg) border border-border bg-overlay p-3 shadow-editorial md:bottom-4"
+        className="glass-pane sticky bottom-20 z-10 rounded-(--radius-lg) p-3 md:bottom-4"
         data-testid="streamlined-generate-bar"
         aria-label={quickNeedsReview
           ? copy.reviewSpecs
@@ -1748,7 +1747,7 @@ function StepCardHeader({
   return (
     <CardHeader className="px-4 py-4 sm:px-5">
       <div className="flex items-start gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-primary bg-accent-soft font-mono text-meta font-semibold tabular-nums text-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-secondary font-mono text-meta font-semibold tabular-nums text-foreground">
           {number}
         </span>
         <div className="min-w-0 flex-1">

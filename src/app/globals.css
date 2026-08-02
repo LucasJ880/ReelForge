@@ -8,10 +8,11 @@
   width: 100%;
   border-radius: var(--radius-md);
   border: 1px solid var(--input);
-  background: var(--card);
+  background: var(--glass-well-bg);
   padding-inline: 0.75rem;
   color: var(--foreground);
   font-size: var(--text-body);
+  box-shadow: var(--shadow-well);
 }
 
 @layer base {
@@ -58,19 +59,62 @@
 }
 
 @layer components {
+  /*
+   * ── 环境光场 ──
+   * 玻璃必须有可透的东西。全站唯一的一块「空气」：
+   * 品牌橙在右上作为光源，左下一记冷石板对光，表面铺一层胶片颗粒。
+   * body 与 .studio-canvas（PlatformShell 会盖住 body）共用同一片空气。
+   */
+  /* --ambient-glow 由 PlatformShell 按「进行中批次数」抬升：
+   * 玻璃后透出的光就是正在发生的生成任务（STORY 承诺的唯一表达点）。 */
+  body,
+  .studio-canvas {
+    background-image:
+      var(--ambient-noise),
+      var(--ambient-light-accent),
+      var(--ambient-light-cool),
+      var(--ambient-light-floor);
+    background-attachment: fixed;
+  }
+
+  /*
+   * ── 玻璃材质 ──
+   * pane：结构面（侧栏/顶栏/弹层），真实 backdrop 模糊，全站少数几处。
+   * card 质感由 --shadow-card（含镜面高光边）+ 下面的 sheen 渐变承担，
+   * 内容卡不付 backdrop-filter 的性能成本。
+   * well：下沉容器（输入框/轨道/空档）。
+   */
+  .glass-pane {
+    border: 1px solid var(--border);
+    background-color: var(--glass-pane-bg);
+    box-shadow: var(--shadow-float);
+    -webkit-backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+    backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+  }
+
+  .glass-well {
+    border: 1px solid var(--border);
+    background-color: var(--glass-well-bg);
+    box-shadow: var(--shadow-well);
+  }
+
+  /* 内容玻璃卡的薄膜反光：打在所有卡类容器上，与 token 的高光边配合 */
+  [data-slot="card"],
+  .editorial-card,
+  .surface-panel,
+  .studio-panel {
+    background-image: var(--glass-sheen);
+  }
+
   .editorial-display {
     font-family: var(--font-display-family);
     font-size: var(--text-display);
-    font-weight: 400;
+    font-weight: 600;
     line-height: var(--leading-display);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
   }
 
-  .editorial-display-latin {
-    font-family: var(--font-display-family);
-    font-style: italic;
-  }
-
+  .editorial-display-latin,
   .editorial-display-cjk {
     font-family: var(--font-display-family);
     font-style: normal;
@@ -98,15 +142,13 @@
   }
 
   .studio-theme {
-    background: var(--bg);
+    background-color: var(--bg);
     color: var(--text-primary);
     color-scheme: dark;
   }
 
   .studio-theme .editorial-display {
-    font-family: var(--font-display-family);
     font-weight: 700;
-    font-style: normal;
     letter-spacing: -0.035em;
   }
 
@@ -124,117 +166,81 @@
     padding: var(--space-8) var(--space-6) var(--space-12);
   }
 
-  .studio-canvas {
-    background:
-      radial-gradient(circle at 76% 8%, var(--accent-soft), transparent 28rem),
-      var(--bg);
-  }
-
-  /* 页面标题由排版承载，不再套卡片。
-   * 此前 hero 是带渐变与橙色竖条的完整盒子，页面一打开就先看到一个大色块，
-   * 内容区反而被压到下面；去掉盒子后垂直空间还给真正的内容，整体也不再「模块感」重。
-   * 强调改用一条短促的顶部标尺，保留品牌色但不喧宾夺主。 */
+  /* 页面标题由排版承载，不加标尺不加眉题。 */
   .studio-hero {
     position: relative;
     padding-top: var(--space-5);
   }
 
-  .studio-hero::before {
-    position: absolute;
-    inset: 0 auto auto 0;
-    width: 28px;
-    height: 2px;
-    content: "";
-    background: var(--accent);
-  }
-
   .studio-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    background: linear-gradient(180deg, var(--surface-raised), var(--surface) 5rem);
+    background-color: var(--glass-card-bg);
     box-shadow: var(--shadow-card);
   }
 
-  .auth-grid {
-    background-image:
-      linear-gradient(var(--border) 1px, transparent 1px),
-      linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 48px 48px;
-    mask-image: linear-gradient(to bottom, transparent, black 18%, black 76%, transparent);
-    opacity: 0.22;
-  }
-
+  /*
+   * 批次进度：磨砂分段计量条（玻璃语言，取代旧胶片齿孔）。
+   * 每格是一枚小玻璃片；完成的格子被品牌橙从背后点亮。
+   */
   .batch-film-strip {
     display: grid;
     min-height: 42px;
-    gap: 2px;
+    gap: 3px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    background: var(--surface-sunken);
-    padding: 3px;
+    background-color: var(--glass-well-bg);
+    box-shadow: var(--shadow-well);
+    padding: 4px;
   }
 
   .batch-film-cell {
     position: relative;
     min-width: 3px;
-    border-radius: 2px;
-    background: var(--surface-raised);
-    padding-block: 6px;
-  }
-
-  .batch-film-cell::before,
-  .batch-film-cell::after {
-    position: absolute;
-    left: 50%;
-    width: min(56%, 8px);
-    height: 3px;
-    content: "";
-    transform: translateX(-50%);
-    border-radius: 1px;
-    background: var(--bg);
-    opacity: 0.9;
-  }
-
-  .batch-film-cell::before {
-    top: 2px;
-  }
-
-  .batch-film-cell::after {
-    bottom: 2px;
+    overflow: hidden;
+    border-radius: calc(var(--radius-sm) - 4px);
+    background-color: var(--surface);
+    background-image: var(--glass-sheen);
+    box-shadow: var(--glass-edge);
   }
 
   .batch-film-core {
     display: block;
     width: 100%;
     height: 100%;
-    min-height: 24px;
-    background: var(--surface-raised);
+    min-height: 32px;
+    background: transparent;
   }
 
-  .batch-film-cell[data-state="completed"] .batch-film-core {
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent-soft);
+  .batch-film-cell[data-state="completed"] {
+    background-color: var(--accent);
+    background-image: var(--glass-sheen-strong);
+    box-shadow:
+      var(--glass-edge),
+      0 2px 10px -2px var(--accent-soft);
   }
 
-  .batch-film-cell[data-state="generating"] .batch-film-core {
-    background: var(--accent-soft);
+  .batch-film-cell[data-state="generating"] {
+    background-color: var(--accent-soft);
     animation: film-generating 2.4s ease-in-out infinite;
   }
 
-  .batch-film-cell[data-state="failed"] .batch-film-core {
-    background: var(--danger);
+  .batch-film-cell[data-state="failed"] {
+    background-color: var(--danger);
+    background-image: var(--glass-sheen-strong);
   }
 
-  .batch-film-cell[data-state="cancelled"] .batch-film-core {
-    background: var(--text-secondary);
-    opacity: 0.36;
+  .batch-film-cell[data-state="cancelled"] {
+    background-color: var(--surface-sunken);
+    background-image: none;
+    opacity: 0.6;
   }
 
   @keyframes film-generating {
     0%,
     100% {
-      opacity: 0.36;
+      opacity: 0.4;
     }
     50% {
       opacity: 1;
@@ -245,14 +251,15 @@
   .surface-panel {
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
-    background: var(--surface);
+    background-color: var(--glass-card-bg);
     box-shadow: var(--shadow-card);
   }
 
   .editorial-card-interactive {
     transition:
       border-color var(--motion-fast) var(--ease-out),
-      background-color var(--motion-fast) var(--ease-out);
+      background-color var(--motion-fast) var(--ease-out),
+      box-shadow var(--motion-fast) var(--ease-out);
   }
 
   .editorial-card-interactive:hover {
@@ -260,14 +267,46 @@
   }
 }
 
+/*
+ * ── 浮层玻璃（未分层，覆盖 utilities）──
+ * 全站所有弹出面共用一种结构玻璃：backdrop 模糊 + 薄膜反光 + 浮空投影。
+ * 组件文件不必各自声明；页面级 className 无法覆盖属于刻意设计。
+ */
+[data-slot="dialog-content"],
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"],
+[data-slot="select-content"],
+[data-slot="sheet-content"] {
+  background-image: var(--glass-sheen);
+  box-shadow: var(--shadow-float);
+  -webkit-backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+  backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+}
+
+/* 遮罩把后景推进雾里，弹层的玻璃才有东西可透。 */
+[data-slot="dialog-overlay"],
+[data-slot="sheet-overlay"] {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+/* toast 同为结构玻璃；模糊统一住在材质层，组件不写 blur 工具类。 */
+.cn-toast {
+  -webkit-backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+  backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+}
+
+/* 唯一的入场动作：玻璃从一点雾里升起来（新页面整体一次，不逐节重复）。 */
 @keyframes editorial-page-enter {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(6px);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
+    filter: blur(0);
   }
 }
 
@@ -306,7 +345,7 @@
     animation: none;
   }
 
-  .batch-film-cell[data-state="generating"] .batch-film-core {
+  .batch-film-cell[data-state="generating"] {
     animation: none;
     opacity: 0.72;
   }

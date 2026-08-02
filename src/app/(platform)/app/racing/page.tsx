@@ -24,7 +24,6 @@ export default async function PlatformRacingPage() {
   return (
     <div className="editorial-page-stack">
       <header className="max-w-3xl space-y-3">
-        <p className="studio-label text-muted-foreground">{copy.kicker}</p>
         <h1 className="editorial-display">{copy.title}</h1>
         <p className="text-body text-muted-foreground">{copy.subtitle}</p>
       </header>

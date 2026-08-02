@@ -25,7 +25,6 @@ export default async function PlatformBrandsPage() {
   return (
     <div className="editorial-page-stack min-w-0">
       <header className="studio-hero max-w-5xl space-y-3">
-        <p className="studio-label text-muted-foreground">{english ? "BRAND SYSTEM" : "品牌系统"}</p>
         <h1 className="editorial-display">{english ? "Reusable brand packages" : "可复用品牌包"}</h1>
         <p className="max-w-3xl text-body text-muted-foreground">
           {english

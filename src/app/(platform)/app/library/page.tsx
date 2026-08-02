@@ -42,7 +42,6 @@ export default async function PlatformLibraryPage({
     <div className="editorial-page-stack min-w-0">
       <header className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-3xl space-y-3">
-          <p className="studio-label text-muted-foreground">{copy.kicker}</p>
           <h1 className="editorial-display">{copy.title}</h1>
           <p className="text-body text-muted-foreground">{copy.subtitle}</p>
         </div>

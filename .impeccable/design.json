@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-02T00:00:00Z",
+  "title": "Design System: Aivora (Aivora Glass)",
+  "extensions": {
+    "colorMeta": {
+      "graphite-air": { "role": "neutral", "displayName": "暖石墨空气 Warm Graphite Air", "canonical": "#0a0809", "tonalRamp": ["#0a0809", "#171314", "#262021", "#383032", "#4f4547", "#6e6265", "#948a8c", "#c2bbbc"] },
+      "text-primary": { "role": "neutral", "displayName": "主文本 Porcelain", "canonical": "#f7f4f2", "tonalRamp": ["#2b2725", "#4d4643", "#6f6662", "#918681", "#b3a9a4", "#d5ccc8", "#f7f4f2", "#fdfcfb"] },
+      "text-secondary": { "role": "neutral", "displayName": "次文本 Warm Ash", "canonical": "#b0a8a4", "tonalRamp": ["#211f1e", "#3d3937", "#595350", "#756d69", "#918883", "#b0a8a4", "#cbc5c2", "#e7e4e2"] },
+      "accent": { "role": "primary", "displayName": "品牌橙 Brand Ember", "canonical": "#ff4d00", "tonalRamp": ["#2b0d00", "#571a00", "#832800", "#af3600", "#db4300", "#ff4d00", "#ff8a55", "#ffc9ad"] },
+      "accent-soft": { "role": "primary", "displayName": "橙雾 Ember Haze（品牌橙 14% 透明形态）", "canonical": "rgb(255 77 0 / 0.14)" },
+      "on-accent": { "role": "primary", "displayName": "橙上深字 On-Ember Ink（#ff4d00 上唯一合规前景，白字仅 3.32:1）", "canonical": "#140801" },
+      "glass-surface": { "role": "neutral", "displayName": "玻璃面 Glass Surface（白 4.5% 覆盖，内容卡底）", "canonical": "rgb(255 255 255 / 0.045)" },
+      "glass-surface-raised": { "role": "neutral", "displayName": "浮起玻璃 Raised（白 8%，hover 与次级钮）", "canonical": "rgb(255 255 255 / 0.08)" },
+      "glass-surface-sunken": { "role": "neutral", "displayName": "沉底 Sunken（黑 30%，muted 区）", "canonical": "rgb(0 0 0 / 0.3)" },
+      "glass-pane": { "role": "neutral", "displayName": "结构玻璃底 Pane（真 backdrop 模糊面）", "canonical": "rgb(24 20 21 / 0.78)" },
+      "glass-card": { "role": "neutral", "displayName": "内容玻璃底 Card（薄膜反光面，不开真模糊）", "canonical": "rgb(22 18 19 / 0.52)" },
+      "glass-well": { "role": "neutral", "displayName": "下沉井 Well（输入框/轨道/空档）", "canonical": "rgb(0 0 0 / 0.28)" },
+      "hairline": { "role": "neutral", "displayName": "发丝边 Hairline", "canonical": "rgb(255 255 255 / 0.1)" },
+      "hairline-strong": { "role": "neutral", "displayName": "强发丝边 Hairline Strong（hover/表头）", "canonical": "rgb(255 255 255 / 0.2)" },
+      "popover-solid": { "role": "neutral", "displayName": "浮层实底 Popover（模糊可用时降到 0.78 透明）", "canonical": "rgb(30 25 26 / 0.94)" },
+      "overlay": { "role": "neutral", "displayName": "雾遮罩 Fog（配 6px backdrop 模糊）", "canonical": "rgb(8 6 7 / 0.62)" },
+      "success": { "role": "status", "displayName": "成功绿 Ready Green", "canonical": "#58c08a", "tonalRamp": ["#0d2418", "#1a4630", "#276847", "#348a5f", "#41ac76", "#58c08a", "#8ad4ae", "#c4ead6"] },
+      "warning": { "role": "status", "displayName": "警示黄 Caution Amber", "canonical": "#e9b658", "tonalRamp": ["#2e2208", "#5c4410", "#8a6618", "#b88820", "#d9a53c", "#e9b658", "#f0cc8a", "#f8e5c4"] },
+      "danger": { "role": "status", "displayName": "危险红 Fail Coral", "canonical": "#ff6f5b", "tonalRamp": ["#33110c", "#661f16", "#992e21", "#cc3f2f", "#f0563f", "#ff6f5b", "#ff9c8d", "#ffcdc5"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "页面主标题。Schibsted Grotesk + Noto Sans SC；studio 密度档收紧为 700 / clamp(28px,3vw,34px) / -0.035em。中文标题绝不落回系统默认字体。" },
+      "title": { "displayName": "Title", "purpose": "弹层标题（DialogTitle）。studio 档 20px。" },
+      "subhead": { "displayName": "Subhead", "purpose": "卡片标题（CardTitle）。studio 档 16px。" },
+      "body": { "displayName": "Body", "purpose": "正文 Inter。studio 档 13px / lh 1.48；长段说明限宽约 62ch。" },
+      "label": { "displayName": "Label / Meta", "purpose": ".studio-label：uppercase、0.05em、500。studio 档 11px。" },
+      "mono": { "displayName": "Mono 镜号/台账", "purpose": "JetBrains Mono + tabular-nums：一切数字、镜号标签（9.5–11.5px、0.08–0.14em、uppercase）、轨道刻度、操作条文字。数据的语气，不是装饰。" }
+    },
+    "shadows": [
+      { "name": "glass-edge", "value": "inset 0 1px 0 rgb(255 255 255 / 0.08)", "purpose": "镜面高光边：所有玻璃面的第一层 box-shadow，玻璃感的最小单元。" },
+      { "name": "shadow-card", "value": "inset 0 1px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 40px -24px rgb(0 0 0 / 0.7)", "purpose": "内容玻璃卡：高光边 + 贴地细影 + 远距柔影。" },
+      { "name": "shadow-float", "value": "inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 12px rgb(0 0 0 / 0.35), 0 32px 80px -24px rgb(0 0 0 / 0.75)", "purpose": "浮空层：结构 pane、dialog、dropdown、sheet、toast。" },
+      { "name": "shadow-well", "value": "inset 0 1px 2px rgb(0 0 0 / 0.32), inset 0 -1px 0 rgb(255 255 255 / 0.04)", "purpose": "下沉井的吸光内影：输入框、轨道、空档。" },
+      { "name": "accent-lit", "value": "inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 10px -2px rgb(255 77 0 / 0.14)", "purpose": "被品牌橙从背后点亮的玻璃片（完成的批次格）。无偏移光晕仅允许于此与播放头。" }
+    ],
+    "motion": [
+      { "name": "motion-fast", "value": "120ms", "purpose": "状态过渡（hover/边框/按压）。" },
+      { "name": "motion-base", "value": "200ms", "purpose": "页面入场。" },
+      { "name": "ease-out", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "全站默认缓动。" },
+      { "name": "editorial-page-enter", "value": "opacity 0 / translateY(6px) / blur(6px) → 清晰, 200ms ease-out", "purpose": "唯一入场动作：玻璃从一点雾里升起，每个新页面整体一次，不逐节重复。reduced-motion 时停用。" },
+      { "name": "film-generating", "value": "opacity 0.4↔1, 2.4s ease-in-out infinite", "purpose": "生成中批次格的呼吸脉动；reduced-motion 时定格 0.72 不透明度。" }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "content-timeline-detail", "value": "720px" },
+      { "name": "content-wins-grid", "value": "900px" }
+    ],
+    "materials": {
+      "glass-sheen": { "value": "linear-gradient(165deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02) 42%, transparent 68%)", "purpose": "内容玻璃卡的薄膜反光，自动打在 [data-slot=card] 与卡类容器上。" },
+      "glass-sheen-strong": { "value": "linear-gradient(165deg, rgb(255 255 255 / 0.28), transparent 55%)", "purpose": "强薄膜反光：被点亮的玻璃片（完成/失败的批次格）。" },
+      "glass-pane-blur": { "value": "blur(24px) saturate(1.5)", "purpose": "结构 pane 与浮层的真 backdrop 模糊。只住在 globals.css 材质层，组件不写 blur 工具类。" },
+      "ambient-field": { "value": "胶片颗粒(SVG fractalNoise) + radial 品牌橙(84% -8%, alpha=var(--ambient-glow)) + radial 冷石板(-10% 108%, rgb(84 100 138 / 0.24)) + radial 底部微橙地光, background-attachment: fixed", "purpose": "全站唯一的一块「空气」，body 与 .studio-canvas 共用。--ambient-glow 由 PlatformShell 按进行中批次数写入：0.2 + activeBatches × 0.04，封顶 0.36。" }
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "品牌橙实心主行动钮，橙上深字（#140801），一页通常只一枚。",
+      "html": "<button class=\"ds-btn-primary\">生成本批</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--control-height, 40px); padding: 0 16px; border: 1px solid var(--accent, #ff4d00); border-radius: var(--radius-md, 14px); background: var(--accent, #ff4d00); color: var(--primary-foreground, #140801); font-size: var(--font-size-meta, 13px); font-weight: 600; cursor: pointer; transition: filter 120ms cubic-bezier(0.16, 1, 0.3, 1), transform 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-primary:hover { filter: brightness(0.94); } .ds-btn-primary:active { transform: scale(0.98); } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent, #ff4d00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "白 8% 浮起玻璃底的次级钮。",
+      "html": "<button class=\"ds-btn-secondary\">查看批次</button>",
+      "css": ".ds-btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--control-height, 40px); padding: 0 16px; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--radius-md, 14px); background: var(--surface-raised, rgb(255 255 255 / 0.08)); color: var(--text-primary, #f7f4f2); font-size: var(--font-size-meta, 13px); font-weight: 600; cursor: pointer; transition: filter 120ms cubic-bezier(0.16, 1, 0.3, 1), transform 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-secondary:hover { filter: brightness(0.94); } .ds-btn-secondary:active { transform: scale(0.98); } .ds-btn-secondary:focus-visible { outline: 2px solid var(--accent, #ff4d00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "透明底文字钮，hover 时浮起为白 8%。",
+      "html": "<button class=\"ds-btn-ghost\">取消</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: var(--control-height, 40px); padding: 0 16px; border: 1px solid transparent; border-radius: var(--radius-md, 14px); background: transparent; color: var(--text-primary, #f7f4f2); font-size: var(--font-size-meta, 13px); font-weight: 600; cursor: pointer; transition: background-color 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-ghost:hover { background: var(--surface-raised, rgb(255 255 255 / 0.08)); } .ds-btn-ghost:active { transform: scale(0.98); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--accent, #ff4d00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Well Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "下沉井材质输入框：黑 28% 底 + 吸光内影，focus 转品牌橙。",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"输入产品链接或一句话…\" />",
+      "css": ".ds-input { height: var(--control-height, 40px); width: 100%; min-width: 240px; padding: 8px 12px; border: 1px solid var(--border-strong, rgb(255 255 255 / 0.2)); border-radius: var(--radius-md, 14px); background: var(--glass-well-bg, rgb(0 0 0 / 0.28)); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.32), inset 0 -1px 0 rgb(255 255 255 / 0.04); color: var(--text-primary, #f7f4f2); font-size: var(--font-size-body, 15px); transition: border-color 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-input::placeholder { color: var(--text-secondary, #b0a8a4); } .ds-input:focus-visible { border-color: var(--accent, #ff4d00); outline: 2px solid var(--accent, #ff4d00); outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Card",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "内容玻璃卡：薄膜反光 + 镜面高光边 + 羽化投影，不开真 backdrop 模糊。",
+      "html": "<div class=\"ds-card\"><div class=\"ds-card-label\">本周批次</div><div class=\"ds-card-title\">SunnyShutter 春季补量</div><p class=\"ds-card-body\">12 条成片就绪，<span class=\"ds-card-num\">3</span> 条需要处理。</p></div>",
+      "css": ".ds-card { padding: 18px 20px 22px; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--radius-lg, 20px); background-color: var(--glass-card-bg, rgb(22 18 19 / 0.52)); background-image: linear-gradient(165deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02) 42%, transparent 68%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 1px 2px rgb(0 0 0 / 0.35), 0 16px 40px -24px rgb(0 0 0 / 0.7); color: var(--text-primary, #f7f4f2); transition: border-color 120ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-card:hover { border-color: var(--border-strong, rgb(255 255 255 / 0.2)); } .ds-card-label { font-size: 12px; font-weight: 500; color: var(--text-secondary, #b0a8a4); margin-bottom: 10px; } .ds-card-title { font-family: 'Schibsted Grotesk', 'Noto Sans SC', 'PingFang SC', system-ui, sans-serif; font-size: 19px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; } .ds-card-body { margin: 0; font-size: 13px; line-height: 1.75; color: var(--text-secondary, #b0a8a4); font-variant-numeric: tabular-nums; } .ds-card-num { color: var(--accent, #ff4d00); font-family: 'JetBrains Mono', ui-monospace, monospace; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "description": "结构玻璃侧栏内的导航项：激活态 = 橙雾底 + 主文本，计数徽章 mono tabular-nums。",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-active\" href=\"#\" aria-current=\"page\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 3v18\"/><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/></svg><span>批次</span><span class=\"ds-nav-count\">3</span></a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/></svg><span>成品库</span></a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 2px; width: 200px; padding: 12px; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); background-color: var(--glass-pane-bg, rgb(24 20 21 / 0.78)); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 4px 12px rgb(0 0 0 / 0.35), 0 32px 80px -24px rgb(0 0 0 / 0.75); -webkit-backdrop-filter: blur(24px) saturate(1.5); backdrop-filter: blur(24px) saturate(1.5); } .ds-nav-item { display: flex; align-items: center; gap: 12px; height: 36px; padding: 0 12px; border-radius: var(--radius-md, 14px); color: var(--text-secondary, #b0a8a4); font-size: var(--font-size-meta, 13px); font-weight: 500; text-decoration: none; transition: background-color 120ms, color 120ms; } .ds-nav-item:hover { background: var(--surface-sunken, rgb(0 0 0 / 0.3)); color: var(--text-primary, #f7f4f2); } .ds-nav-active, .ds-nav-active:hover { background: var(--accent-soft, rgb(255 77 0 / 0.14)); color: var(--text-primary, #f7f4f2); } .ds-nav-count { margin-left: auto; min-width: 24px; padding: 2px 6px; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: 999px; background: var(--surface-raised, rgb(255 255 255 / 0.08)); text-align: center; font-family: 'JetBrains Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 12px; color: var(--text-primary, #f7f4f2); }"
+    },
+    {
+      "name": "Batch Film Strip",
+      "kind": "custom",
+      "description": "签名装置：磨砂分段计量条。下沉玻璃井里的一排小玻璃片；完成的格子被品牌橙从背后点亮，生成中的格子呼吸脉动。",
+      "html": "<div class=\"ds-strip\"><span class=\"ds-strip-cell\" data-state=\"completed\"></span><span class=\"ds-strip-cell\" data-state=\"completed\"></span><span class=\"ds-strip-cell\" data-state=\"completed\"></span><span class=\"ds-strip-cell\" data-state=\"generating\"></span><span class=\"ds-strip-cell\" data-state=\"failed\"></span><span class=\"ds-strip-cell\"></span><span class=\"ds-strip-cell\"></span><span class=\"ds-strip-cell\" data-state=\"cancelled\"></span></div>",
+      "css": ".ds-strip { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; min-height: 42px; width: 320px; padding: 4px; overflow: hidden; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--radius-md, 14px); background-color: var(--glass-well-bg, rgb(0 0 0 / 0.28)); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.32), inset 0 -1px 0 rgb(255 255 255 / 0.04); } .ds-strip-cell { min-width: 3px; min-height: 32px; overflow: hidden; border-radius: 6px; background-color: var(--surface, rgb(255 255 255 / 0.045)); background-image: linear-gradient(165deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02) 42%, transparent 68%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08); } .ds-strip-cell[data-state=\"completed\"] { background-color: var(--accent, #ff4d00); background-image: linear-gradient(165deg, rgb(255 255 255 / 0.28), transparent 55%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 10px -2px rgb(255 77 0 / 0.14); } .ds-strip-cell[data-state=\"generating\"] { background-color: var(--accent-soft, rgb(255 77 0 / 0.14)); animation: ds-film-generating 2.4s ease-in-out infinite; } .ds-strip-cell[data-state=\"failed\"] { background-color: var(--danger, #ff6f5b); background-image: linear-gradient(165deg, rgb(255 255 255 / 0.28), transparent 55%); } .ds-strip-cell[data-state=\"cancelled\"] { background-color: var(--surface-sunken, rgb(0 0 0 / 0.3)); background-image: none; opacity: 0.6; } @keyframes ds-film-generating { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } } @media (prefers-reduced-motion: reduce) { .ds-strip-cell[data-state=\"generating\"] { animation: none; opacity: 0.72; } }"
+    },
+    {
+      "name": "Timeline Clip + Shot Slug",
+      "kind": "custom",
+      "description": "签名装置：下沉玻璃轨道上的一枚玻璃片 clip，配 mono 全大写镜号标签；选中态橙边。",
+      "html": "<div class=\"ds-lane\"><button class=\"ds-clip ds-clip-selected\"><span class=\"ds-slug\">SHOT-A3</span><span class=\"ds-clip-hook\">窗帘一拉，阳光听话</span></button><div class=\"ds-hole\">空档</div></div>",
+      "css": ".ds-lane { display: flex; flex-direction: column; gap: 6px; width: 200px; padding: 8px; background: var(--glass-well-bg, rgb(0 0 0 / 0.28)); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.32), inset 0 -1px 0 rgb(255 255 255 / 0.04); border: 1px solid var(--border, rgb(255 255 255 / 0.1)); } .ds-clip { display: flex; flex-direction: column; gap: 2px; padding: 6px 9px; text-align: left; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--radius-sm, 10px); background-color: var(--surface, rgb(255 255 255 / 0.045)); background-image: linear-gradient(165deg, rgb(255 255 255 / 0.07), rgb(255 255 255 / 0.02) 42%, transparent 68%); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08); color: var(--text-secondary, #b0a8a4); font-size: 11.5px; line-height: 1.45; cursor: pointer; transition: background-color 120ms, border-color 120ms; } .ds-clip:hover, .ds-clip:focus-visible { background-color: var(--surface-raised, rgb(255 255 255 / 0.08)); color: var(--text-primary, #f7f4f2); } .ds-clip-selected { background-color: var(--surface-raised, rgb(255 255 255 / 0.08)); border-color: var(--accent, #ff4d00); color: var(--text-primary, #f7f4f2); } .ds-slug { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-secondary, #b0a8a4); } .ds-clip-hook { display: block; } .ds-hole { display: grid; place-items: center; min-height: 56px; border: 1px solid var(--border, rgb(255 255 255 / 0.1)); border-radius: var(--radius-sm, 10px); background: var(--glass-well-bg, rgb(0 0 0 / 0.28)); box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.32), inset 0 -1px 0 rgb(255 255 255 / 0.04); color: var(--text-secondary, #b0a8a4); font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "玻璃工作台 (Aivora Glass)",
+    "overview": "小商家的整条出片生产线悬在一块深色玻璃工作台上。一块近黑的暖石墨空气（#0a0809）里，右上方挂着一枚品牌橙光源，左下一记冷石板对光，表面铺一层胶片颗粒；三档玻璃悬在这片空气中——backdrop 真模糊的结构 pane、薄膜反光的内容卡、吸光的下沉 well。玻璃后透出的光就是正在发生的生成任务：环境光的亮度由进行中的批次数实时抬升。这是一个专业出片台，不是「白底卡片格 SaaS 仪表盘」——后者是本世界明确拒绝的范式。整站只做深色，工作区与登录面共用同一套颜色与材质，只在密度上收紧。数字信息一律等宽 tabular-nums，用 JetBrains Mono 承载，是制片单据的语气。",
+    "keyCharacteristics": [
+      "暖石墨空气 + 单一品牌橙光源，光强随进行中的任务数变化（活的环境光）",
+      "三档玻璃材质分层：pane（真模糊）/ card（薄膜反光）/ well（吸光下沉）",
+      "白透明 hairline 边 + 镜面高光边（inset 1px 白 8%）是所有玻璃的封边",
+      "圆角三级 10/14/20，阴影有偏移有羽化、承担深度而非装饰",
+      "中英双语等价排版，中文标题绝不落回系统默认字体",
+      "全部颜色/圆角/阴影字面量只住在 tokens.css（有回归测试把关）"
+    ],
+    "rules": [
+      { "name": "The One Light Source Rule（唯一光源律）", "body": "#ff4d00 只出现在三处：品牌标记、当前项、需要行动的数字。环境光场右上的橙辉是它唯一的氛围性使用，且强度与进行中的批次数挂钩（--ambient-glow 0.2 → 0.36）——光不是装饰，是正在发生的工作。", "section": "colors" },
+      { "name": "The Dark Ink on Ember Rule（橙上无白字律）", "body": "品牌橙上的前景永远是 #140801，永远不是白色。WCAG AA 是底线。", "section": "colors" },
+      { "name": "The Token Closure Rule（token 闭环律）", "body": "颜色、圆角、阴影字面量只允许出现在 src/styles/tokens.css；组件与页面只引用 token。由 tests/design-system-closure.test.ts 与 tests/editorial-source-compliance.test.ts 机器把关，违例即红。", "section": "colors" },
+      { "name": "The Tabular Ledger Rule（等宽台账律）", "body": "一切数字（积分、进度、时长、比分、计数）一律 tabular-nums，密集数字面用 JetBrains Mono。列必须对得齐，这是制片单据的质感来源。", "section": "typography" },
+      { "name": "The Bilingual Parity Rule（双语等价律）", "body": "中英文案同权重排版；中文标题必须吃到 Noto Sans SC 的 display 声音，不为英文优化而牺牲中文可读性。", "section": "typography" },
+      { "name": "The Three-Glass Rule（三档玻璃律）", "body": "全站只有 pane / card / well 三种玻璃，不发明第四种。backdrop-filter 只住在 globals.css 材质层（结构面与浮层），组件文件永远不写 blur 工具类；内容卡永远用 sheen + edge 模拟，不开真模糊。", "section": "elevation" },
+      { "name": "The Living Light Rule（活光律）", "body": "环境橙光的亮度耦合进行中的生成任务数。玻璃后透出的光就是正在发生的工作——这是 STORY 承诺的唯一表达点，不另加进度装饰。", "section": "elevation" },
+      { "name": "The Feathered Shadow Rule（羽化投影律）", "body": "投影必须有偏移有羽化，承担深度；无偏移光晕只允许出现在品牌橙从背后点亮玻璃的地方（点亮的批次格、播放头）。", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 从 src/styles/tokens.css 取一切颜色/圆角/阴影；新值先进 tokens 再被引用（closure 测试把关）。",
+      "Do 用三档玻璃现成材质类（.glass-pane / .studio-panel（卡） / .glass-well）拼新界面；签名装置（分段计量条、下沉轨道、播放头、镜号标签）全站复用，不各自发明。",
+      "Do 数字一律 tabular-nums，密集数字与镜号用 JetBrains Mono 全大写小字距。",
+      "Do 品牌橙上永远用 #140801 深字；全站文本对比守 WCAG AA。",
+      "Do 长任务状态诚实可读：进行/失败/取消/恢复各有玻璃语言（脉动橙雾/危险红/沉灰），失败永远伴随出路，任务永远可取消。",
+      "Do 宽装置在自身容器内横滚（overflow-x: auto），页面永不横向滚动。"
+    ],
+    "donts": [
+      "Don't 在组件或页面里写 backdrop-filter / blur 工具类——模糊只住在 globals.css 材质层；内容卡不开真模糊。",
+      "Don't 把品牌橙用到三处（品牌标记/当前项/需行动的数字）之外；不给装饰性图标、普通链接或静态数字上橙。",
+      "Don't 使用胶片/场记板装置（齿孔封边、场记板镜号牌、时间线剪辑台隐喻的装饰件）——2026-08-02 起已整体退役，只留纯玻璃语言；也不要复活 PRD §11 的圆角 0 / 无阴影规矩。",
+      "Don't 加眉题（kicker/eyebrow）、标尺装饰或无偏移光晕；页面标题由排版本身承载，光晕只属于被橙光点亮的玻璃。",
+      "Don't 做浅色主题或白底卡片格仪表盘布局；本世界只有深色暖石墨空气。",
+      "Don't 让中文标题落回系统默认字体，或为英文排版牺牲中文可读性。"
+    ]
+  }
+}

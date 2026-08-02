@@ -55,7 +55,7 @@ export function PersonalSidebar() {
   ];
 
   return (
-    <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+    <aside className="glass-pane hidden h-screen w-60 shrink-0 flex-col border-0 border-r md:flex">
       <div className="flex h-20 items-center gap-3 border-b border-border px-5">
         <Logo size={40} />
         <div className="min-w-0">

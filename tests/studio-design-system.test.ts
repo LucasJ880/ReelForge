@@ -4,45 +4,51 @@ import { readFile } from "node:fs/promises";
 
 const read = (path: string) => readFile(path, "utf8");
 
-test("Studio theme：批准的中性深色 token 与字体角色完整落地", async () => {
+test("Aivora Glass：玻璃世界 token 与字体角色完整落地（2026-08 取代剪辑台）", async () => {
   const [tokens, layout] = await Promise.all([
     read("src/styles/tokens.css"),
     read("src/app/layout.tsx"),
   ]);
   for (const token of [
-    "--bg: #121011",
-    "--surface: #1a1718",
-    "--surface-raised: #241f21",
-    "--border: #37302f",
-    "--text-primary: #f5f2f0",
-    "--text-secondary: #a9a19d",
+    "--bg: #0a0809",
+    "--glass-pane-bg: rgb(24 20 21 / 0.78)",
+    "--glass-well-bg: rgb(0 0 0 / 0.28)",
+    "--border: rgb(255 255 255 / 0.1)",
+    "--text-primary: #f7f4f2",
     "--accent: #ff4d00",
-    "--success: #4fb582",
-    "--warning: #e8b34b",
-    "--danger: #e35a4d",
+    "--success: #58c08a",
+    "--warning: #e9b658",
+    "--danger: #ff6f5b",
+    // #ff4d00 上禁白字：主按钮前景必须是深色
+    "--primary-foreground: #140801",
   ]) assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  // 0721 起登录面与 Studio 共用同一深色块。
+  // 登录面与 Studio 共用同一玻璃世界，工作区块只收紧密度。
   assert.match(
     tokens,
     /:root:has\(\.studio-theme\),\s*\n\.studio-theme,\s*\n:root:has\(\.auth-studio-theme\),\s*\n\.auth-studio-theme\s*{/,
   );
-  assert.match(tokens, /--font-display-family:\s*var\(--font-space-grotesk\)/);
+  assert.match(tokens, /--font-display-family:\s*var\(--font-schibsted-grotesk\),\s*var\(--font-noto-sans-sc\)/);
   assert.match(tokens, /--font-mono-family:\s*var\(--font-jetbrains-mono\)/);
-  assert.match(layout, /Space_Grotesk/);
+  assert.match(layout, /Schibsted_Grotesk/);
+  assert.match(layout, /Noto_Sans_SC/);
   assert.match(layout, /JetBrains_Mono/);
 });
 
-test("Studio theme：统一工作区与认证入口均使用明确的深色主题边界", async () => {
-  const [shell, authLayout] = await Promise.all([
+test("Aivora Glass：壳层结构面用 glass-pane，内容区不再叠不透明底盖住环境光", async () => {
+  const [shell, authLayout, globals] = await Promise.all([
     read("src/components/platform/platform-shell.tsx"),
     read("src/app/(auth)/layout.tsx"),
+    read("src/app/globals.css"),
   ]);
   assert.match(shell, /className="studio-theme/);
-  assert.match(shell, /<main className="min-w-0 flex-1 bg-background">/);
-  assert.match(
-    shell,
-    /className="studio-page editorial-page-enter min-h-full bg-background"/,
-  );
+  assert.match(shell, /aside className="glass-pane/);
+  assert.match(shell, /header className="glass-pane/);
+  // 环境光场必须能透进内容区（曾被 bg-background 盖死）
+  assert.match(shell, /<main className="min-w-0 flex-1">/);
+  assert.match(shell, /className="studio-page editorial-page-enter min-h-full"/);
+  // 光随进行中的生成任务抬升（STORY 表达点）
+  assert.match(shell, /--ambient-glow/);
+  assert.match(globals, /--ambient-glow/);
   assert.match(authLayout, /className="auth-studio-theme/);
 });
 

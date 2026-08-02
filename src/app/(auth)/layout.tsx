@@ -13,8 +13,7 @@ export default async function AuthLayout({
   const copy = getPlatformCopy(await getServerLocale()).auth;
   return (
     <div className="auth-studio-theme studio-canvas relative min-h-screen bg-background text-foreground">
-      <div className="auth-grid pointer-events-none absolute inset-0" aria-hidden />
-      <header className="relative z-10 flex h-[72px] items-center justify-between border-b border-border bg-card/95 px-4 sm:px-8">
+      <header className="glass-pane relative z-10 flex h-[72px] items-center justify-between border-0 border-b px-4 sm:px-8">
         <Link
           href="/"
           className="flex items-center gap-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
@@ -32,7 +31,6 @@ export default async function AuthLayout({
       </header>
       <main className="relative z-10 mx-auto grid min-h-[calc(100vh-7.5rem)] w-full max-w-7xl items-center gap-12 px-4 py-12 sm:px-8 lg:grid-cols-[minmax(0,1.15fr)_minmax(380px,0.72fr)] lg:px-12">
         <section className="max-w-2xl space-y-6">
-          <p className="studio-label text-muted-foreground">{copy.kicker}</p>
           {/* 克制的编辑式标题：上限 ~44px。过大的展示字号在登录页显廉价，
               收小后配紧凑字距更接近成熟 SaaS 工作台的调性。 */}
           <h1 className="font-heading text-[clamp(1.75rem,3.2vw,2.75rem)] font-semibold leading-[1.08] tracking-[-0.03em] text-balance">

@@ -76,7 +76,7 @@ export function BusinessSidebar() {
 
   return (
     <>
-      <aside className="hidden h-screen w-60 shrink-0 flex-col border-r border-border bg-sidebar md:flex">
+      <aside className="glass-pane hidden h-screen w-60 shrink-0 flex-col border-0 border-r md:flex">
         <Link
           href="/business"
           className="flex h-20 items-center gap-3 border-b border-border px-5 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
@@ -139,7 +139,7 @@ export function BusinessSidebar() {
         </div>
       </aside>
 
-      <header className="fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-card px-4 md:hidden">
+      <header className="glass-pane fixed inset-x-0 top-0 z-30 flex h-16 items-center justify-between border-0 border-b px-4 md:hidden">
         <Link
           href="/business"
           className="flex min-w-0 items-center gap-3"
@@ -192,7 +192,7 @@ export function BusinessSidebar() {
 
       <nav
         aria-label="商家移动导航"
-        className="fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-4 border-t border-border bg-card md:hidden"
+        className="glass-pane fixed inset-x-0 bottom-0 z-30 grid h-16 grid-cols-4 border-0 border-t md:hidden"
       >
         {mobileNav.map((item) => {
           const Icon = item.icon;

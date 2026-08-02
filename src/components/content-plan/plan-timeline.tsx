@@ -166,7 +166,6 @@ export function PlanTimeline({
       <div className={styles.perf} aria-hidden="true" />
 
       <header className={styles.head}>
-        <div className={styles.slug}>本周内容</div>
         <h1 className={styles.h1}>{plan?.theme ?? "一句话，排完一周"}</h1>
         <p className={styles.sub}>
           {plan

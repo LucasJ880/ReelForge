@@ -1,47 +1,30 @@
 /*
- * R5 · 战绩（PRD §4.3 / §11.5）。剪辑台方向，token 全部来自 tokens.css 的 --cut-*。
- * 硬性规矩同 /app/plan：圆角 0、无阴影、数字 tabular-nums、accent 只用三处。
+ * R5 · 战绩（PRD §4.3）。Aivora Glass：材质与装置同 plan-timeline
+ * （玻璃卡 / 等宽镜号，规范见 DESIGN.md），token 全部来自 tokens.css。
+ * 数字一律 tabular-nums；accent 只给需要行动的数字。
  */
 
 .root {
-  background: var(--cut-bg);
-  color: var(--cut-ink);
+  background: transparent;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.75;
   font-variant-numeric: tabular-nums;
   min-height: 100%;
 }
 
+/* 旧齿孔条挂点：玻璃世界不再需要装饰装置（finish review：accent 三处纪律） */
 .perf {
-  height: 16px;
-  background-color: var(--cut-film-base);
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent 0 10px,
-    var(--cut-line-2) 10px 11px,
-    var(--cut-panel-2) 11px 20px,
-    var(--cut-line-2) 20px 21px,
-    transparent 21px 31px
-  );
-  border-bottom: 1px solid var(--cut-line-2);
+  display: none;
 }
 
 .head {
   padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--cut-line);
-  background: var(--cut-panel);
-}
-
-.slug {
-  font-family: var(--cut-mono);
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--cut-accent);
+  border-bottom: 1px solid var(--border);
 }
 
 .h1 {
-  font-family: var(--cut-display);
+  font-family: var(--font-display-family);
   font-size: 44px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -50,7 +33,7 @@
 }
 
 .sub {
-  color: var(--cut-ink-2);
+  color: var(--text-secondary);
   margin: 6px 0 0;
   max-width: 62ch;
 }
@@ -58,6 +41,8 @@
 /* 三问三答：一页只回答三件事，不做大而全的看板 */
 .grid {
   display: grid;
+  gap: 12px;
+  padding: 16px 24px 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
@@ -67,43 +52,45 @@
   }
 }
 
+/* 一问一块玻璃卡 */
 .cell {
-  border-right: 1px solid var(--cut-line);
-  border-bottom: 1px solid var(--cut-line);
-  background: var(--cut-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--glass-card-bg);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--shadow-card);
   padding: 18px 20px 22px;
 }
 
 .cell:last-child {
-  border-right: 0;
+  border-right: 1px solid var(--border);
 }
 
+/* 卡内的问题行：正文语气的小标题，不做眉题 */
 .label {
-  font-family: var(--cut-mono);
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--cut-ink-3);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
   margin: 0 0 10px;
 }
 
 .answer {
-  font-family: var(--cut-display);
+  font-family: var(--font-display-family);
   font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--cut-ink);
+  color: var(--text-primary);
   margin: 0 0 8px;
 }
 
 .body {
-  color: var(--cut-ink-2);
+  color: var(--text-secondary);
   margin: 0;
 }
 
-/* 需要行动的数字才用 accent —— 三处限额之一 */
+/* 需要行动的数字才用 accent */
 .actionNumber {
-  color: var(--cut-accent);
+  color: var(--accent);
 }
 
 /* 维度表：制片单据式 */
@@ -114,41 +101,41 @@
 }
 
 .dims th {
-  font-family: var(--cut-mono);
+  font-family: var(--font-mono-family);
   font-size: 10px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
   text-align: left;
   padding: 6px 8px;
-  border-bottom: 1px solid var(--cut-line-2);
+  border-bottom: 1px solid var(--border-strong);
   font-weight: 500;
 }
 
 .dims td {
   padding: 6px 8px;
-  border-bottom: 1px solid var(--cut-line);
-  color: var(--cut-ink-2);
-  font-family: var(--cut-mono);
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  font-family: var(--font-mono-family);
   font-size: 11.5px;
 }
 
 .dimReady {
-  color: var(--cut-good);
+  color: var(--success);
 }
 
 .shotSlug {
-  font-family: var(--cut-mono);
+  font-family: var(--font-mono-family);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
 }
 
 .foot {
   padding: 14px 24px;
-  color: var(--cut-ink-3);
-  font-family: var(--cut-mono);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  font-family: var(--font-mono-family);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;

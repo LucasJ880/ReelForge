@@ -1,20 +1,18 @@
 /*
- * 剪辑台 · 一周内容时间线（PRD §11）。
+ * 玻璃工作台 · 一周内容时间线（Aivora Glass，2026-08 起取代剪辑台方向）。
  *
- * 三个结构装置必须复用，不要各自发明：
- *   时间线轨道 —— 一周不是 7 张卡片，是一条横向轨道；今天是播放头；
- *                 空档画成**真的缺口**（虚线框 + 「空档」），不是留白。
- *   齿孔封边   —— 主区顶部一条胶片齿孔条。
- *   场记板镜号 —— 等宽、全大写、accent 色的配方编号。
+ * 结构装置（玻璃语言，全站共用，不要各自发明，规范见 DESIGN.md）：
+ *   时间线轨道 —— 一周不是 7 张卡片，是一条下沉的玻璃轨道（glass-well）；
+ *                 今天是发光的播放头；空档画成**真的缺口**（更深的下沉井 + 「空档」）。
+ *   镜号标签   —— 等宽、全大写的配方编号，数据的语气，不是装饰。
  *
- * 硬性规矩：圆角 0、无阴影、数字一律 tabular-nums、accent 只用在三处
- * （品牌标记 / 当前项 / 需要行动的数字）、只做深色。
- * 一旦加回圆角和卡片阴影，就立刻变回普通 SaaS。
+ * 硬性规矩：颜色/圆角/阴影只从 token 取值、数字一律 tabular-nums、
+ * accent 只用在三处（品牌标记 / 当前项 / 需要行动的数字）。
  */
 
 .root {
-  background: var(--cut-bg);
-  color: var(--cut-ink);
+  background: transparent;
+  color: var(--text-primary);
   font-size: 13px;
   line-height: 1.75;
   /* 制片单据的质感来源，也让列对得齐 */
@@ -22,29 +20,18 @@
   min-height: 100%;
 }
 
-/* 齿孔封边：一眼认出「这是出片的工具」 */
+/* 旧齿孔条挂点：玻璃世界不再需要装饰装置（finish review：accent 三处纪律） */
 .perf {
-  height: 16px;
-  background-color: var(--cut-film-base);
-  background-image: repeating-linear-gradient(
-    90deg,
-    transparent 0 10px,
-    var(--cut-line-2) 10px 11px,
-    var(--cut-panel-2) 11px 20px,
-    var(--cut-line-2) 20px 21px,
-    transparent 21px 31px
-  );
-  border-bottom: 1px solid var(--cut-line-2);
+  display: none;
 }
 
 .head {
   padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--cut-line);
-  background: var(--cut-panel);
+  border-bottom: 1px solid var(--border);
 }
 
 .h1 {
-  font-family: var(--cut-display);
+  font-family: var(--font-display-family);
   font-size: 44px;
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -52,25 +39,20 @@
   margin: 0 0 6px;
 }
 
-.slug {
-  font-family: var(--cut-mono);
-  font-size: 11.5px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--cut-accent);
-}
-
 .sub {
-  color: var(--cut-ink-2);
+  color: var(--text-secondary);
   margin: 6px 0 0;
   max-width: 62ch;
 }
 
-/* ── 一句话入口 ── */
+/* ── 一句话入口：一条下沉玻璃槽 + 实心橙行动钮 ── */
 .intake {
   display: flex;
-  border: 1px solid var(--cut-line-2);
-  background: var(--cut-panel-2);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--glass-well-bg);
+  box-shadow: var(--shadow-well);
   margin-top: 16px;
 }
 
@@ -79,23 +61,24 @@
   min-width: 0;
   background: transparent;
   border: 0;
-  color: var(--cut-ink);
+  color: var(--text-primary);
   padding: 13px 14px;
   font: inherit;
   outline: none;
 }
 
 .intake input::placeholder {
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
 }
 
 .intake button {
   border: 0;
-  border-left: 1px solid var(--cut-line-2);
-  background: var(--cut-accent);
-  color: var(--cut-accent-ink);
-  font-family: var(--cut-mono);
+  border-left: 1px solid var(--border);
+  background: var(--accent);
+  color: var(--primary-foreground);
+  font-family: var(--font-mono-family);
   font-size: 11.5px;
+  font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   padding: 0 20px;
@@ -103,30 +86,33 @@
 }
 
 .intake button:disabled {
-  background: var(--cut-panel);
-  color: var(--cut-ink-3);
+  background: var(--surface);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
   cursor: default;
 }
 
 /* 排期依据：说清楚这一周是按什么排的 */
 .basis {
   margin: 12px 0 0;
-  padding: 8px 10px;
-  border-left: 2px solid var(--cut-accent);
-  background: var(--cut-panel-2);
-  color: var(--cut-ink-2);
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  background-image: var(--glass-sheen);
+  color: var(--text-secondary);
 }
 
 .error {
-  color: var(--cut-bad);
+  color: var(--danger);
   margin: 10px 0 0;
 }
 
-/* ── 时间线轨道 ── */
+/* ── 时间线轨道：下沉的玻璃槽，光被吸进去 ── */
 .track {
   position: relative;
-  background: var(--cut-panel);
-  border-bottom: 1px solid var(--cut-line);
+  background: var(--glass-well-bg);
+  box-shadow: var(--shadow-well);
+  border-bottom: 1px solid var(--border);
   /* 窄屏时轨道自己横向滚动，页面不横向滚 */
   overflow-x: auto;
 }
@@ -139,17 +125,17 @@
 .ruler {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  border-bottom: 1px solid var(--cut-line);
+  border-bottom: 1px solid var(--border);
 }
 
 .tick {
   padding: 7px 10px;
-  border-right: 1px solid var(--cut-line);
-  font-family: var(--cut-mono);
+  border-right: 1px solid var(--border);
+  font-family: var(--font-mono-family);
   font-size: 9.5px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
   display: flex;
   justify-content: space-between;
   gap: 6px;
@@ -160,7 +146,7 @@
 }
 
 .tickToday {
-  color: var(--cut-accent);
+  color: var(--accent);
 }
 
 .lanes {
@@ -170,17 +156,11 @@
 }
 
 .lane {
-  border-right: 1px solid var(--cut-line);
+  border-right: 1px solid var(--border);
   padding: 8px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background-image: repeating-linear-gradient(
-    0deg,
-    var(--cut-line) 0 1px,
-    transparent 1px 26px
-  );
-  background-size: 100% 26px;
 }
 
 .lane:last-child {
@@ -191,13 +171,14 @@
   background-image: none;
 }
 
-/* 播放头：今天 */
+/* 播放头：今天。一根发光的光针（有偏移有羽化，不是光晕装饰） */
 .playhead {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 1px;
-  background: var(--cut-accent);
+  background: var(--accent);
+  box-shadow: 0 0 8px 0 var(--accent-soft);
   z-index: 3;
 }
 
@@ -208,57 +189,64 @@
   left: -4px;
   border-left: 4.5px solid transparent;
   border-right: 4.5px solid transparent;
-  border-top: 6px solid var(--cut-accent);
+  border-top: 6px solid var(--accent);
 }
 
-/* 空档：明确画成缺口，不是留白。空档是要被填的信息，不是排版余量。 */
+/* 空档：明确画成缺口，不是留白。玻璃语言里的缺口 = 更深的下沉井，光被吸走。 */
 .hole {
   flex: 1;
-  border: 1px dashed var(--cut-line-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--glass-well-bg);
+  box-shadow: var(--shadow-well);
   display: grid;
   place-items: center;
-  color: var(--cut-ink-3);
-  font-family: var(--cut-mono);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  font-family: var(--font-mono-family);
   font-size: 9.5px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   min-height: 56px;
 }
 
-/* 轨道上的一个 clip */
+/* 轨道上的一枚玻璃片 clip */
 .clip {
-  border: 0;
-  border-left: 3px solid var(--cut-accent);
-  background: var(--cut-panel-2);
-  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  background-image: var(--glass-sheen);
+  box-shadow: var(--glass-edge);
+  padding: 6px 9px;
   display: flex;
   flex-direction: column;
   gap: 2px;
   text-align: left;
-  color: var(--cut-ink-2);
+  color: var(--text-secondary);
   cursor: pointer;
   font: inherit;
-  transition: background 0.12s;
+  transition:
+    background-color 0.12s,
+    border-color 0.12s;
 }
 
 .clip:hover,
 .clip:focus-visible {
-  background: var(--cut-panel-3);
-  color: var(--cut-ink);
+  background-color: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .clipSelected {
-  background: var(--cut-panel-3);
-  color: var(--cut-ink);
+  background-color: var(--surface-raised);
+  border-color: var(--accent);
+  color: var(--text-primary);
 }
 
 .clipReady {
-  border-left-color: var(--cut-good);
+  border-color: var(--success);
 }
 
 .clipDiscarded {
-  border-left-color: var(--cut-ink-3);
-  border-left-style: dashed;
+  border-style: dashed;
   opacity: 0.55;
 }
 
@@ -271,20 +259,21 @@
   line-height: 1.45;
 }
 
-/* 场记板镜号 */
+/* 镜号标签 */
 .shotSlug {
-  font-family: var(--cut-mono);
+  font-family: var(--font-mono-family);
   font-size: 9.5px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
 }
 
-/* ── 选中帖子的详情 ── */
+/* ── 选中帖子的详情：一块内容玻璃卡 ── */
 .detail {
   padding: 20px 24px;
-  border-bottom: 1px solid var(--cut-line);
-  background: var(--cut-panel);
+  border-bottom: 1px solid var(--border);
+  background: var(--glass-card-bg);
+  background-image: var(--glass-sheen);
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(0, 1fr) 260px;
@@ -298,26 +287,26 @@
 }
 
 .label {
-  font-family: var(--cut-mono);
+  font-family: var(--font-mono-family);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
   margin: 0 0 4px;
 }
 
 .hook {
-  font-family: var(--cut-display);
+  font-family: var(--font-display-family);
   font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
   margin: 0 0 8px;
-  color: var(--cut-ink);
+  color: var(--text-primary);
 }
 
 .body {
   margin: 0 0 12px;
-  color: var(--cut-ink-2);
+  color: var(--text-secondary);
   white-space: pre-wrap;
 }
 
@@ -331,26 +320,32 @@
 }
 
 .tag {
-  font-family: var(--cut-mono);
+  font-family: var(--font-mono-family);
   font-size: 10.5px;
-  color: var(--cut-ink-2);
-  border: 1px solid var(--cut-line-2);
-  padding: 2px 7px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 9px;
+  background: var(--surface);
 }
 
+/* 分段玻璃操作条 */
 .actions {
   display: flex;
   margin-top: 14px;
-  border: 1px solid var(--cut-line-2);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
   width: fit-content;
 }
 
 .actions button {
   border: 0;
-  border-right: 1px solid var(--cut-line-2);
-  background: var(--cut-panel-2);
-  color: var(--cut-ink-2);
-  font-family: var(--cut-mono);
+  border-right: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-mono-family);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -363,18 +358,19 @@
 }
 
 .actions button:hover:not(:disabled) {
-  background: var(--cut-panel-3);
-  color: var(--cut-ink);
+  background: var(--surface-raised);
+  color: var(--text-primary);
 }
 
 .actions button:disabled {
-  color: var(--cut-ink-3);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
   cursor: default;
 }
 
 .primary {
-  background: var(--cut-accent);
-  color: var(--cut-accent-ink);
+  background: var(--accent);
+  color: var(--primary-foreground);
+  font-weight: 600;
 }
 
 .frames {
@@ -383,13 +379,15 @@
 }
 
 .frame {
-  border: 1px solid var(--cut-line-2);
-  background: var(--cut-panel-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  background-image: var(--glass-sheen);
   aspect-ratio: 2 / 3;
   display: grid;
   place-items: center;
-  color: var(--cut-ink-3);
-  font-family: var(--cut-mono);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  font-family: var(--font-mono-family);
   font-size: 10px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -410,11 +408,11 @@
   left: 8px;
   right: 8px;
   bottom: 8px;
-  font-family: var(--cut-display);
+  font-family: var(--font-display-family);
   font-size: 14px;
   font-weight: 700;
-  color: var(--cut-accent-ink);
-  text-shadow: 0 1px 6px var(--cut-overlay-shadow);
+  color: var(--text-primary);
+  text-shadow: 0 1px 6px color-mix(in srgb, var(--bg) 92%, transparent);
   text-align: left;
   letter-spacing: -0.01em;
   text-transform: none;
@@ -422,13 +420,13 @@
 
 .foot {
   padding: 14px 24px;
-  color: var(--cut-ink-3);
-  font-family: var(--cut-mono);
+  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  font-family: var(--font-mono-family);
   font-size: 11px;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .footCount {
-  color: var(--cut-accent);
+  color: var(--accent);
 }

@@ -69,7 +69,6 @@ export default async function WinsPage() {
       <div className={styles.perf} aria-hidden="true" />
 
       <header className={styles.head}>
-        <div className={styles.slug}>战绩</div>
         <h1 className={styles.h1}>哪种内容在替你赚钱</h1>
         <p className={styles.sub}>
           只看你自己发出去的内容。样本不够时这里会直说「还判不了」——
@@ -79,7 +78,7 @@ export default async function WinsPage() {
 
       <section className={styles.grid} aria-label="三个问题">
         <div className={styles.cell}>
-          <p className={styles.label}>01 · 哪个结构在赢</p>
+          <p className={styles.label}>哪个结构在赢</p>
           <h2 className={styles.answer}>
             {verdict.status === "winner"
               ? verdict.winner.recipeId
@@ -117,7 +116,7 @@ export default async function WinsPage() {
         </div>
 
         <div className={styles.cell}>
-          <p className={styles.label}>02 · 下一步试什么</p>
+          <p className={styles.label}>下一步试什么</p>
           <h2 className={styles.answer}>
             {verdict.status === "winner" ? "复制赢家结构" : "先把样本发够"}
           </h2>
@@ -131,7 +130,7 @@ export default async function WinsPage() {
         </div>
 
         <div className={styles.cell}>
-          <p className={styles.label}>03 · 我帮你排了什么</p>
+          <p className={styles.label}>我帮你排了什么</p>
           <h2 className={styles.answer}>
             {latestPlan ? latestPlan.theme : "还没有本周计划"}
           </h2>

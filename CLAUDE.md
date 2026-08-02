@@ -63,8 +63,19 @@ npm run context:find -- "..."
 改完代码，**先自己验证再报完成**：`npm run typecheck` + `npm run lint` + 相关 test 全绿，
 把命令输出贴出来。失败就说失败，不要用「应该没问题」代替证据。
 
-## 6. 新界面：剪辑台方向（已定稿）
+## 6. 界面：Aivora Glass 毛玻璃方向（2026-08-02 定稿，取代旧剪辑台）
 
-时间线轨道 / 齿孔封边 / 场记板镜号三个装置必须复用，不要各自发明。
-**圆角 0、无阴影、数字一律等宽 tabular-nums、accent `#ff4d00` 只用三处、只做深色。**
-完整 token 与硬性规矩见 PRD §11，设计稿 `designs/aivora-os/Aivora OS v2.html`。
+全站单一深色玻璃世界，完整规矩见根目录 **`DESIGN.md`**（唯一事实来源）。速记：
+
+- 三档玻璃材质只从 `globals.css` 取用：`glass-pane`（结构面，真 backdrop 模糊）/
+  内容玻璃卡（`--shadow-card` + `--glass-sheen`，不付模糊成本）/ `glass-well`（下沉井）。
+  **blur 不许写成组件里的工具类**，有门禁测试守着。
+- 颜色/圆角/阴影字面量只住 `src/styles/tokens.css`；圆角 10/14/20；数字一律 tabular-nums。
+- accent 品牌橙只用三处：品牌标记（含登录门主标题宣言行）/ 当前项 / 需行动的数字。
+  `#ff4d00` 上禁白字（用 `--primary-foreground`）。
+- 字体：Schibsted Grotesk + Noto Sans SC（显示）/ Inter（正文）/ JetBrains Mono（数字）。
+- 环境光场 `--ambient-glow` 随进行中批次数抬升（PlatformShell），别做成静态装饰。
+- 眉题/kicker 一律禁止；页面标题自己承重。
+- 旧剪辑台三装置（齿孔封边/场记板镜号）已废弃；`designs/aivora-os/Aivora OS v2.html`
+  与 PRD §11 的圆角 0/无阴影规矩仅作历史参考，**不要再照着做**。
+- 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-glass`）。

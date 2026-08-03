@@ -29,6 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { Textarea } from "@/components/ui/textarea";
 import { BrollQuickCard } from "@/components/video-generation/broll-quick-card";
+import { ProductLinkPrefill } from "@/components/video-generation/product-link-prefill";
 import {
   AudioCaptionControls,
   generateVoiceoverScript,
@@ -1515,6 +1516,14 @@ export function StreamlinedVideoStudio({
               </Button>
             ))}
           </div>
+          {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填提示词 */}
+          <ProductLinkPrefill
+            disabled={busy !== null || configurationLocked}
+            onPrefill={(promptText) => {
+              setRawPrompt((current) => (current.trim() ? `${current}\n${promptText}` : promptText));
+              invalidatePlan();
+            }}
+          />
           <label className="block text-meta font-medium text-muted-foreground">
             {copy.promptLabel}
             <Textarea

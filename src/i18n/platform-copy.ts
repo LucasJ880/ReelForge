@@ -328,11 +328,25 @@ const zh = {
     showcaseBadge: "样片",
     showcaseHint: "SunnyShutter 客户样片，仅供浏览。",
     sectionMaking: "生产线上",
-    sectionMakingHint: "正在生成的任务。点进去可以看进度、恢复或取消。",
-    sectionReady: "成片",
+    sectionMakingHint: "机器正在生成的任务。点进去可以看进度、恢复或取消。",
+    sectionReady: "成片 · 视频",
+    sectionReadyPosts: "成片 · 图文与轮播",
     sectionFailed: "需要处理",
+    sectionAction: "待生成配图",
+    sectionActionHint: "本周内容里排好的图文帖。没有任务在跑——点「去生成配图」才会开始出图。",
+    goRender: "去生成配图",
     viewProgress: "查看进度",
     sourceLabels: { order: "单条", batch: "批次", post: "图文" },
+    carouselCount: "{n} 张",
+    workflowHint: "一条生产线：计划 → 生产 → 成品 → 交付",
+    workflowPlan: "计划",
+    workflowPlanHint: "本周内容排期",
+    workflowMaking: "生产",
+    workflowMakingHint: "创作与批量生成",
+    workflowReady: "成品",
+    workflowReadyHint: "视频与图文汇总",
+    workflowDeliver: "交付 · 发布",
+    workflowDeliverHint: "品牌封装下载；发布由青砚侧排期",
   },
 } as const;
 
@@ -450,7 +464,7 @@ const en: CopyShape<typeof zh> = {
   },
   racing: { kicker: "CAMPAIGN RACING", title: "Campaign racing", subtitle: "Compare variants across 12/24/48-hour windows and use evidence completeness—not instinct—to decide the next round.", empty: "No comparable campaign rounds yet. Generate a finished video to open three rounds of testing.", start: "Start the first creative round" },
   library: { kicker: "VIDEO LIBRARY", title: "Video library", subtitle: "Single and batch outputs live in one place.", batch: "Generate batch", create: "Create video", noResults: "No results for “{query}”. Try another search or start a new video.", empty: "No finished videos yet. Start from a style in the template library.", browse: "Browse templates", listLabel: "Video list", failed: "Generation did not complete. Adjust the brief and retry; contact support if it fails again.", aspectPending: "Aspect pending", regenerate: "Regenerate", view: "View video",
-    viewPost: "View content", download: "Download video", downloadSubtitles: "Download captions (SRT)", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete.", showcaseBadge: "Sample", showcaseHint: "SunnyShutter customer sample — view only.", sectionMaking: "In production", sectionMakingHint: "Tasks currently generating. Open one to track, resume, or cancel.", sectionReady: "Finished videos", sectionFailed: "Needs attention", viewProgress: "View progress", sourceLabels: { order: "Single", batch: "Batch", post: "Post" } },
+    viewPost: "View content", download: "Download video", downloadSubtitles: "Download captions (SRT)", brandPackage: "Brand packaging", brandPackaging: "Packaging…", brandPackaged: "Branded", downloadDelivery: "Download delivery", brandPackageFailed: "Packaging failed, retry", progress: "progress", statuses: { planning: "Preparing", generating: "Generating", assembling: "Finishing", ready: "Completed", failed: "Generation failed" }, back: "Back to video library", durationPending: "Duration pending", detailFailure: "This video did not complete. Retry failed scenes; if it fails again, contact support with the video ID above.", cannotPlay: "Your browser cannot play this video.", processing: "This video is still processing and will appear here when complete.", showcaseBadge: "Sample", showcaseHint: "SunnyShutter customer sample — view only.", sectionMaking: "In production", sectionMakingHint: "Tasks the machine is generating right now. Open one to track, resume, or cancel.", sectionReady: "Finished · Videos", sectionReadyPosts: "Finished · Posts & carousels", sectionFailed: "Needs attention", sectionAction: "Awaiting image generation", sectionActionHint: "Posts scheduled in This Week. Nothing is running — click through to generate their images.", goRender: "Generate images", viewProgress: "View progress", sourceLabels: { order: "Single", batch: "Batch", post: "Post" }, carouselCount: "{n} slides", workflowHint: "One production line: plan → produce → finished → deliver", workflowPlan: "Plan", workflowPlanHint: "This Week schedule", workflowMaking: "Produce", workflowMakingHint: "Create & batch generation", workflowReady: "Finished", workflowReadyHint: "Videos and posts in one place", workflowDeliver: "Deliver · Publish", workflowDeliverHint: "Branded downloads; publishing scheduled by the Qingyan side" },
 };
 
 export function getPlatformCopy(locale: Locale) {

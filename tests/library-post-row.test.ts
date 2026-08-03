@@ -48,8 +48,13 @@ test("🔴 列表页：post 行链到本周内容，不链视频详情（那里�
     "utf8",
   );
   assert.match(source, /row\.source === "post"\s*\?\s*"\/app\/plan"/);
-  /// 按钮文案也要区分：图文帖没有「成片」。
-  assert.match(source, /viewLabel = row\.source === "post" \? copy\.viewPost : copy\.view/);
+  /// 0802 IA 重构后图文有独立分区：成片图文卡与待生成配图行都只链本周内容，
+  /// 按钮文案用「查看内容」而不是「查看成片」。
+  assert.match(source, /readyPostRows\.map/);
+  assert.match(source, /href="\/app\/plan"/);
+  assert.match(source, /\{copy\.viewPost\}/);
+  /// 视频分区绝不掺 post 行
+  assert.match(source, /row\.status === "ready" && !isPost\(row\)/);
 });
 
 test("🔴 详情页：post- 前缀的老链接 redirect 回本周内容，不 404", () => {

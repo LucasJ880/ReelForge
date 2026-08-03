@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-01T00:33:47.902Z",
+  "generatedAt": "2026-08-02T19:57:15.581Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -7,8 +7,10 @@
   "topLevelDirs": [
     ".agents",
     ".claude",
+    ".codex",
     ".cursor",
     ".github",
+    ".impeccable",
     ".superpowers",
     ".worktrees",
     "artifacts",
@@ -41,42 +43,42 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 1775,
+    "total": 2440,
     "byType": {
-      "unknown": 492,
-      "doc": 435,
-      "test": 240,
-      "style": 8,
+      "unknown": 933,
+      "doc": 591,
+      "test": 260,
+      "style": 10,
       "workflow": 3,
       "config": 9,
-      "schema": 42,
+      "schema": 54,
       "prisma": 1,
       "script": 76,
-      "page": 60,
+      "page": 62,
       "layout": 5,
-      "api": 81,
-      "component": 123,
+      "api": 88,
+      "component": 124,
       "i18n": 13,
-      "util": 118,
-      "provider": 10,
-      "service": 57,
+      "util": 123,
+      "provider": 12,
+      "service": 74,
       "type": 2
     },
     "byArea": {
-      "unknown": 903,
-      "media-processing": 79,
-      "tests": 240,
+      "unknown": 1360,
+      "media-processing": 84,
+      "tests": 260,
       "ffmpeg": 14,
-      "config": 10,
-      "shared": 208,
-      "prisma": 34,
+      "config": 154,
+      "shared": 231,
+      "prisma": 45,
       "auth": 17,
       "payments": 6,
       "upload": 7,
       "scripts": 36,
       "demo": 50,
       "real-footage-ads": 10,
-      "video-generation": 59,
+      "video-generation": 62,
       "blob-storage": 9,
       "admin": 26,
       "metrics": 6,
@@ -85,18 +87,18 @@
       "shared-ui": 17,
       "wizard": 4,
       "i18n": 13,
-      "ai-providers": 10
+      "ai-providers": 12
     }
   },
   "routes": {
-    "total": 146,
+    "total": 155,
     "byKind": {
       "error": 13,
       "layout": 5,
       "loading": 12,
       "not-found": 1,
-      "page": 34,
-      "api": 81
+      "page": 36,
+      "api": 88
     }
   },
   "importantFiles": [
@@ -184,7 +186,8 @@
     "test:final-acceptance:soak": "FINAL_ACCEPTANCE_SOAK_MS=300000 FINAL_ACCEPTANCE_MONITOR_DELAY_MS=30000 dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e .env.local -- prisma migrate dev",
-    "db:migrate:deploy": "dotenv -e .env.local -- prisma migrate deploy",
+    "db:migrate:deploy": "dotenv -e .env.local -- sh -c 'DATABASE_URL=\"$NEON_PRODUCTION_OWNER_DATABASE_URL\" prisma migrate deploy'",
+    "db:migrate:deploy:unlock": "dotenv -e .env.local -- sh -c 'DATABASE_URL=\"$NEON_PRODUCTION_OWNER_DATABASE_URL\" PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=true prisma migrate deploy'",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "postinstall": "prisma generate",

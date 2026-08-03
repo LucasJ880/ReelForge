@@ -456,7 +456,9 @@ export function toContentPostLibraryRow(
     planId: post.plan.id,
     isShowcase,
     brandedVideoUrl: null,
-    title: `${post.plan.theme} · ${POST_FORMAT_LABEL[post.format] ?? post.format}`,
+    /// 标题用帖子自己的钩子文案：同一计划的多个帖子若都叫「主题 · 形态」，
+    /// 在成品库里看起来就是一堆重复行（0802 Lucas 实测反馈）。
+    title: `${post.copyHook}（${POST_FORMAT_LABEL[post.format] ?? post.format}）`,
     updatedAt: post.updatedAt,
     status,
     label: status,

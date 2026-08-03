@@ -50,6 +50,32 @@ export type CutoutResult = {
   provider: CutoutProviderId;
 };
 
+/// 归一化（0-1）产品区域，原点左上。与锚点的 logoBox 同构。
+export type CutoutRegion = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * remove.bg 的 roi 参数：「只允许此矩形内被识别为前景」。
+ * 生活场景照（产品只占画面一角）没有它会抠错主体 —— B1 验收实测
+ * 把餐桌椅当成了产品。
+ *
+ * 百分比必须是**整数**：带小数会被拒 `HTTP 400 invalid_roi`
+ * （0803 UI 验收真机踩到）。起点向下、终点向上取整 = 框只放大不缩小，
+ * 不会把产品边缘裁进背景。
+ */
+export function roiFormValue(region: CutoutRegion): string {
+  const clamp = (value: number) => Math.min(100, Math.max(0, value * 100));
+  const x1 = Math.floor(clamp(region.x));
+  const y1 = Math.floor(clamp(region.y));
+  const x2 = Math.ceil(clamp(region.x + region.width));
+  const y2 = Math.ceil(clamp(region.y + region.height));
+  return `${x1}% ${y1}% ${x2}% ${y2}%`;
+}
+
 /**
  * 抠出产品 RGBA 切片。
  *
@@ -57,11 +83,11 @@ export type CutoutResult = {
  */
 export async function cutoutProduct(
   image: Buffer,
-  deps: { fetchImpl?: typeof fetch } = {},
+  options: { roi?: CutoutRegion | null; fetchImpl?: typeof fetch } = {},
 ): Promise<CutoutResult> {
   const provider = availableCutoutProvider();
   if (!provider) throw new CutoutUnavailableError();
-  const doFetch = deps.fetchImpl ?? fetch;
+  const doFetch = options.fetchImpl ?? fetch;
 
   if (provider === "remove_bg") {
     const form = new FormData();
@@ -72,6 +98,7 @@ export async function cutoutProduct(
     /// size=auto：按账户额度给最高可用分辨率；format=png 保住 alpha。
     form.append("size", "auto");
     form.append("format", "png");
+    if (options.roi) form.append("roi", roiFormValue(options.roi));
     const res = await doFetch("https://api.remove.bg/v1.0/removebg", {
       method: "POST",
       headers: { "X-Api-Key": process.env.REMOVE_BG_API_KEY!.trim() },
@@ -86,6 +113,7 @@ export async function cutoutProduct(
     return { rgba: Buffer.from(await res.arrayBuffer()), provider };
   }
 
+  /// Clipdrop 无 roi 等价参数：区域约束只在 remove.bg 生效。
   const form = new FormData();
   form.append(
     "image_file",

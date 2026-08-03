@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getStorageProvider } from "@/lib/storage";
 import {
   cutoutProduct,
+  CutoutFailedError,
   CutoutUnavailableError,
   isCutoutAvailable,
 } from "@/lib/providers/cutout";
@@ -68,6 +69,23 @@ export async function createProductAnchor(args: CreateAnchorArgs) {
  * 执行抠图并派生 mask。独立出来是为了 key 后配的场景：
  * `processPendingAnchors` 扫 PENDING_CUTOUT 逐个续跑。
  */
+/**
+ * logoBoxJson 是 Json 列，读回来要防御性校验：
+ * 不是合法归一化框就当没有，宁可全图抠也不给 remove.bg 喂坏 roi。
+ */
+export function parseStoredLogoBox(value: unknown): LogoBox | null {
+  if (typeof value !== "object" || value === null) return null;
+  const box = value as Record<string, unknown>;
+  const nums = [box.x, box.y, box.width, box.height];
+  if (!nums.every((n) => typeof n === "number" && Number.isFinite(n))) {
+    return null;
+  }
+  const { x, y, width, height } = box as unknown as LogoBox;
+  if (x < 0 || y < 0 || width <= 0 || height <= 0) return null;
+  if (x + width > 1.001 || y + height > 1.001) return null;
+  return { x, y, width, height };
+}
+
 export async function runCutout(anchorId: string) {
   const anchor = await db.productAnchor.findUniqueOrThrow({
     where: { id: anchorId },
@@ -80,8 +98,41 @@ export async function runCutout(anchorId: string) {
     }
     const source = Buffer.from(await sourceRes.arrayBuffer());
 
-    const { rgba, provider } = await cutoutProduct(source);
+    /// 商家框选的产品区域先作为 remove.bg 的 roi：
+    /// 生活场景照没有它会抠错主体（B1 验收实测把餐桌椅当成了产品）。
+    const box = parseStoredLogoBox(anchor.logoBoxJson);
+    let cutout;
+    try {
+      cutout = await cutoutProduct(source, { roi: box });
+    } catch (err) {
+      /// 0803 UI 验收实测：贴边产品（窗帘/百叶整窗照）加 roi 后 remove.bg
+      /// 整体报 unknown_foreground——连近全幅框都失败，而全图抠是成功的。
+      /// 所以 roi 失败时退回全图抠，把框改用为下面的**事后校验**：
+      /// 抠错主体依然会被拒掉，不做假成功。
+      const roiRejected =
+        box !== null &&
+        err instanceof CutoutFailedError &&
+        /unknown_foreground/.test(err.message);
+      if (!roiRejected) throw err;
+      cutout = await cutoutProduct(source);
+    }
+    const { rgba, provider } = cutout;
     const mask = await maskFromAlpha(rgba);
+
+    if (box) {
+      const coverage = await maskCoverageInBox(mask, box);
+      if (coverage < MIN_BOX_COVERAGE) {
+        return db.productAnchor.update({
+          where: { id: anchor.id },
+          data: {
+            status: "FAILED",
+            failureReason:
+              `抠出的主体只有 ${Math.round(coverage * 100)}% 落在框选区域内，` +
+              "很可能把框外物体当成了产品。请换主体更突出的产品照，或调整框选范围后重试。",
+          },
+        });
+      }
+    }
 
     const storage = getStorageProvider();
     const prefix = `product-anchors/${anchor.id}`;
@@ -128,6 +179,19 @@ export async function runCutout(anchorId: string) {
   }
 }
 
+/** 品牌页锚点列表：一个商家的 SKU 通常个位数，不分页。 */
+export async function listProductAnchorsForUser(userId: string) {
+  return db.productAnchor.findMany({
+    where: { userId },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+/** 归属校验：查不到与不属于同样返回 null，路由层统一 404，不泄露存在性。 */
+export async function getOwnedProductAnchor(userId: string, anchorId: string) {
+  return db.productAnchor.findFirst({ where: { id: anchorId, userId } });
+}
+
 /** key 后配时的续跑入口：扫所有停在待抠图的锚点。 */
 export async function processPendingAnchors(limit = 20) {
   const pending = await db.productAnchor.findMany({
@@ -142,6 +206,39 @@ export async function processPendingAnchors(limit = 20) {
     if (updated.status === "READY") ready += 1;
   }
   return { scanned: pending.length, ready };
+}
+
+/**
+ * 抠出的产品像素落在框选区域内的最低比例。
+ * 低于它 = 前景大头在框外 = 抠错主体（餐桌椅那一档），判 FAILED。
+ * 0.7 留出产品自然超出框选边缘的余量（框只是人手画的近似）。
+ */
+export const MIN_BOX_COVERAGE = 0.7;
+
+/** 白=产品 mask 中，产品像素落在归一化框内的比例；无产品像素返回 0。 */
+export async function maskCoverageInBox(
+  mask: Buffer,
+  box: LogoBox,
+): Promise<number> {
+  const { data, info } = await sharp(mask)
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const x1 = Math.floor(box.x * info.width);
+  const y1 = Math.floor(box.y * info.height);
+  const x2 = Math.ceil((box.x + box.width) * info.width);
+  const y2 = Math.ceil((box.y + box.height) * info.height);
+  let product = 0;
+  let inside = 0;
+  for (let y = 0; y < info.height; y += 1) {
+    for (let x = 0; x < info.width; x += 1) {
+      if (data[y * info.width + x] >= 128) {
+        product += 1;
+        if (x >= x1 && x < x2 && y >= y1 && y < y2) inside += 1;
+      }
+    }
+  }
+  return product === 0 ? 0 : inside / product;
 }
 
 /**

@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (91/91 route files)
+## API endpoint inventory (93/93 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -150,6 +150,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/product-images` | Session + ownership | VERIFIED H1 light: success wiring, shared 401 and user/idempotency scope |
 | GET | `/api/product-images/[id]` | Session + ownership | VERIFIED task status reconciliation; owner-scoped durable Shuyu polling |
 | POST | `/api/product-images/tasks/[taskId]/retry` | Session + ownership | VERIFIED confirmed-rejection-only retry with atomic durable task claim |
+| GET, POST | `/api/product-anchors` | Session; demo blocked (paid cutout) | PRD §5/M5 B1: 品牌页「锚定这个产品」入口；服务端资产 ID + 框选 roi 防抠错主体；同 SKU upsert 天然幂等；抠图失败落库为 FAILED+failureReason 不报 HTTP 错 |
+| POST | `/api/product-anchors/[id]/retry` | Session + ownership; demo blocked | PRD §5/M5 B1: FAILED 原地重跑 + PENDING_CUTOUT（key 后配）界面续跑；READY 短路不重复扣费 |
 | GET, PUT, POST | `/api/brand-packaging` | Session + workspace ownership | VERIFIED: tenant package listing/upsert plus owner-scoped optional post-production packaging |
 | POST | `/api/raw-assets/[id]/preprocess` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |

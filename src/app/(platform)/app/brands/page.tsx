@@ -3,7 +3,10 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BrandPackageManager } from "@/components/brand/brand-package-manager";
+import { ProductAnchorManager } from "@/components/brand/product-anchor-manager";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
+import { listProductAnchorsForUser } from "@/lib/services/product-anchor-service";
+import { productAnchorView } from "@/lib/contracts/product-anchor-api";
 import { getServerLocale } from "@/i18n/server";
 import { CustomerBrandWall } from "@/components/brand/customer-brand-wall";
 
@@ -12,8 +15,9 @@ export const dynamic = "force-dynamic";
 export default async function PlatformBrandsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/brands");
-  const [packages, latestOrder, locale] = await Promise.all([
+  const [packages, anchors, latestOrder, locale] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
+    listProductAnchorsForUser(session.user.id),
     db.deliveryOrder.findFirst({
       where: { createdById: session.user.id },
       orderBy: { createdAt: "desc" },
@@ -32,6 +36,7 @@ export default async function PlatformBrandsPage() {
             : "统一管理 Logo、行动指引、联系方式和尾卡，让单条与批量生产保持同一套品牌表达。"}
         </p>
       </header>
+      <ProductAnchorManager initialAnchors={anchors.map(productAnchorView)} />
       <CustomerBrandWall
         english={english}
         entries={packages.map((item) => ({

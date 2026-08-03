@@ -45,10 +45,11 @@ function record(name: string, ok: boolean, detail: string): void {
 async function phase1(): Promise<void> {
   console.log("\n───── PHASE 1 · 契约与数据校验（零成本）─────\n");
 
-  // 1. 通用配方数量与命名
+  // 1. 通用配方数量与命名（2026-08-03 起扩容到 35 条，需保持同行水位 30+）
   record(
-    "通用电商配方 = 8 条",
-    COMMERCE_TEMPLATE_RECIPES.length === 8,
+    "通用电商配方 = 35 条（≥30）",
+    COMMERCE_TEMPLATE_RECIPES.length === 35 &&
+      COMMERCE_TEMPLATE_RECIPES.length === BATCH_STYLE_TEMPLATE_SEEDS.length,
     `实际 ${COMMERCE_TEMPLATE_RECIPES.length} 条：${COMMERCE_TEMPLATE_RECIPES.map((r) => r.nameZh).join("、")}`,
   );
 
@@ -83,7 +84,7 @@ async function phase1(): Promise<void> {
     missingSlots.length === 0 ? "IMAGE_REFS / PRODUCT_NAME 均已替换" : `未填：${missingSlots.map((r) => r.slug).join(", ")}`,
   );
 
-  // 3. 库内 ACTIVE 模板 = 通用 8 条，且旧客户模板已归档
+  // 3. 库内 ACTIVE 模板 = 通用目录全量，且旧客户模板已归档
   const active = await db.styleTemplate.findMany({
     where: { status: StyleTemplateStatus.ACTIVE, category: { not: "自动化验收" } },
     select: { slug: true, category: true, nameZh: true },
@@ -91,8 +92,8 @@ async function phase1(): Promise<void> {
   const seedSlugs = new Set(BATCH_STYLE_TEMPLATE_SEEDS.map((s) => s.slug));
   const strays = active.filter((t) => !seedSlugs.has(t.slug));
   record(
-    "线上 ACTIVE 模板只剩通用 8 条",
-    active.length === 8 && strays.length === 0,
+    `线上 ACTIVE 模板只剩通用 ${BATCH_STYLE_TEMPLATE_SEEDS.length} 条`,
+    active.length === BATCH_STYLE_TEMPLATE_SEEDS.length && strays.length === 0,
     `ACTIVE ${active.length} 条，分类 ${[...new Set(active.map((t) => t.category))].join("/")}` +
       (strays.length ? `；残留：${strays.map((t) => t.slug).join(", ")}` : ""),
   );

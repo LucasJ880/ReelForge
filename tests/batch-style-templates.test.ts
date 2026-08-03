@@ -6,6 +6,7 @@ import {
   renderBatchTemplatePrompt,
 } from "../src/lib/video-generation/batch-style-templates";
 import {
+  COMMERCE_TEMPLATE_CATEGORIES,
   COMMERCE_TEMPLATE_SLUGS,
 } from "../src/lib/video-generation/commerce-template-catalog";
 import {
@@ -43,8 +44,8 @@ function patchTransaction(
   });
 }
 
-test("批量风格库统一使用八个通用电商模板", () => {
-  assert.equal(BATCH_STYLE_TEMPLATE_SEEDS.length, 8);
+test("批量风格库统一使用通用电商模板目录（35 条）", () => {
+  assert.equal(BATCH_STYLE_TEMPLATE_SEEDS.length, 35);
   assert.equal(
     new Set(BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug)).size,
     BATCH_STYLE_TEMPLATE_SEEDS.length,
@@ -53,7 +54,13 @@ test("批量风格库统一使用八个通用电商模板", () => {
     BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug),
     COMMERCE_TEMPLATE_SLUGS,
   );
-  assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.every((template) => template.category === "电商带货"));
+  const allowedCategories = new Set<string>(COMMERCE_TEMPLATE_CATEGORIES);
+  assert.ok(
+    BATCH_STYLE_TEMPLATE_SEEDS.every((template) =>
+      allowedCategories.has(template.category),
+    ),
+    "模板分类必须来自 platform-copy 已注册的标签集合",
+  );
   assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.every((template) => !/sunnyshutter/i.test(template.promptSkeleton)));
   assert.ok(BATCH_STYLE_TEMPLATE_SEEDS.every((template) => template.version >= 1));
   assert.equal(

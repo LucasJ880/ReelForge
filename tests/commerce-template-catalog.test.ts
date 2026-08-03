@@ -10,7 +10,8 @@ import {
   renderCommerceTemplate,
 } from "../src/lib/video-generation/generic-commerce-template";
 
-const EXPECTED_SLUGS = [
+/// 首发 8 个 slug 是既有批次的 FK 溯源锚点，永远不许改名或移位。
+const LEGACY_EIGHT_SLUGS = [
   "commerce-aesthetic-mood",
   "commerce-ugc-testimonial",
   "commerce-demo-first-reveal",
@@ -21,11 +22,49 @@ const EXPECTED_SLUGS = [
   "commerce-hard-sell-presenter",
 ] as const;
 
-test("commerce catalog exposes the canonical eight stable slugs", () => {
+/// 2026-08-03 扩容批次（来源映射见 docs/roadmap/2026-08-03-template-library-expansion.md）。
+const EXPANSION_SLUGS = [
+  "commerce-talking-head-review",
+  "commerce-podcast-authority",
+  "commerce-founder-story",
+  "commerce-street-interview",
+  "commerce-hook-face-demo",
+  "commerce-triple-proof",
+  "commerce-creator-reaction",
+  "commerce-before-after-match",
+  "commerce-360-hero-orbit",
+  "commerce-variant-lineup",
+  "commerce-whats-in-box",
+  "commerce-in-hand-scale",
+  "commerce-macro-texture-asmr",
+  "commerce-dark-luxury-light",
+  "commerce-seamless-loop",
+  "commerce-morning-routine",
+  "commerce-pov-immersive",
+  "commerce-dual-context",
+  "commerce-pet-companion",
+  "commerce-home-space-styling",
+  "commerce-fashion-lookbook",
+  "commerce-beauty-texture",
+  "commerce-food-sizzle",
+  "commerce-tech-feature-focus",
+  "commerce-outdoor-rugged",
+  "commerce-travel-pack-flow",
+  "commerce-gift-unwrap",
+] as const;
+
+const EXPECTED_SLUGS = [...LEGACY_EIGHT_SLUGS, ...EXPANSION_SLUGS] as const;
+
+test("commerce catalog exposes the canonical stable slugs (8 legacy + 27 expansion)", () => {
   assert.deepEqual(COMMERCE_TEMPLATE_SLUGS, EXPECTED_SLUGS);
-  assert.equal(COMMERCE_TEMPLATE_RECIPES.length, 8);
-  assert.equal(COMMERCE_TEMPLATE_SEEDS.length, 8);
-  assert.equal(new Set(COMMERCE_TEMPLATE_SLUGS).size, 8);
+  assert.deepEqual(COMMERCE_TEMPLATE_SLUGS.slice(0, 8), LEGACY_EIGHT_SLUGS);
+  assert.equal(COMMERCE_TEMPLATE_RECIPES.length, 35);
+  assert.equal(COMMERCE_TEMPLATE_SEEDS.length, 35);
+  assert.equal(new Set(COMMERCE_TEMPLATE_SLUGS).size, 35);
+  assert.ok(
+    COMMERCE_TEMPLATE_RECIPES.length >= 30,
+    "模板体量必须保持同行水位（30+）",
+  );
 });
 
 test("every recipe has hook, proof, CTA, summary, and product-safe copy", () => {

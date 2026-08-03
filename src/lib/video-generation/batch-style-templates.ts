@@ -4,8 +4,10 @@
  * INV-B1：批量视频 prompt 只能由这里的 promptSkeleton 做确定性填空。
  * 生成关键路径不 import OpenAI，也不接受客户端传入任意 prompt。
  *
- * 2026-07 产品决策：客户入口统一为八个通用电商配方。
+ * 2026-07 产品决策：客户入口统一走通用电商配方目录；
  * SunnyShutter 等客户差异通过 client lock profile 注入，不再创建平行模板库。
+ * 2026-08-03：目录从 8 扩容到 35（复刻开源同行模板类型，
+ * 见 docs/roadmap/2026-08-03-template-library-expansion.md），锁定语义不变。
  */
 
 import { COMMERCE_TEMPLATE_SEEDS } from "@/lib/video-generation/generic-commerce-template";

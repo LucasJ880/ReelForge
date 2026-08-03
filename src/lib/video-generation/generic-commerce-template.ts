@@ -1,6 +1,7 @@
 import {
   COMMERCE_TEMPLATE_RECIPES,
   getCommerceTemplateRecipe,
+  type CommerceTemplateCategory,
   type CommerceTemplateSlug,
 } from "@/lib/video-generation/commerce-template-catalog";
 
@@ -9,7 +10,7 @@ export type CommerceTemplateSeed = {
   version: number;
   name: string;
   nameZh: string;
-  category: "电商带货";
+  category: CommerceTemplateCategory;
   coverImage: string;
   promptSkeleton: string;
   negativePrompt: string;
@@ -23,6 +24,9 @@ export type CommerceTemplateSeed = {
   };
   imagesPerVideo: { min: number; max: number };
 };
+
+/// 框架修订号；语义见 seedFor 内注释。0 = 初版框架。
+const COMMERCE_FRAME_REVISION = 1;
 
 const GENERIC_COMMERCE_FRAME = `GOAL LOCK: create a conversion-focused ecommerce video for the referenced product, not a generic mood film.
 PRODUCT TRUTH LOCK:
@@ -38,11 +42,13 @@ STORY LOCK:
 - One primary buying reason per video. Return to a complete product hero before the end.
 PRODUCTION LOCK:
 - Photorealistic real-footage look, stable identity, coherent room and cast, clean commercial light, controlled camera, decisive pacing.
+- One single full-bleed camera view on screen at every moment; never split screen, grid, collage, tiled panels, or picture-in-picture.
+- Props and set dressing stay generic and unbranded: no third-party logos or recognizable branded items, no mannequins or body-part display props.
 - Voice is optional and added natively by Seedance. Do not generate a music bed.
 - No on-screen text, captions, prices, logos, URLs, QR codes, UI, or watermarks; captions and brand packaging are added in post.`;
 
 const GENERIC_NEGATIVE =
-  "product morphing, invented features, wrong color, wrong material, missing parts, duplicate product, warped packaging, unreadable labels, fake before after, unsupported claims, distorted hands, extra fingers, floating objects, geometry drift, scene discontinuity, burned-in text, captions, prices, logos, QR codes, URLs, watermarks";
+  "product morphing, invented features, wrong color, wrong material, missing parts, duplicate product, warped packaging, unreadable labels, fake before after, unsupported claims, distorted hands, extra fingers, floating objects, geometry drift, scene discontinuity, burned-in text, captions, prices, logos, QR codes, URLs, watermarks, split screen, grid collage, tiled panels, picture-in-picture, mannequin body parts, third-party brand marks";
 
 function seedFor(
   recipe: (typeof COMMERCE_TEMPLATE_RECIPES)[number],
@@ -70,10 +76,14 @@ function seedFor(
   }
   return {
     slug: recipe.slug,
-    version: 1,
+    /// COMMERCE_FRAME_REVISION：框架文本(GENERIC_COMMERCE_FRAME / NEGATIVE)
+    /// 每次修订全目录 +1——框架进 promptSkeleton，任何框架改动都改变全部 35 个
+    /// 模板的骨架，必须整体升版并重 seed，否则 DB ACTIVE 行与代码骨架漂移。
+    /// 2026-08-03 rev1：单画幅铁律 + 道具纪律（拼贴/人台/第三方 logo 真机复现）。
+    version: (recipe.version ?? 1) + COMMERCE_FRAME_REVISION,
     name: recipe.name,
     nameZh: recipe.nameZh,
-    category: "电商带货",
+    category: recipe.category,
     coverImage: recipe.coverImage,
     promptSkeleton,
     negativePrompt: GENERIC_NEGATIVE,

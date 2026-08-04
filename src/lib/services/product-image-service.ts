@@ -26,7 +26,7 @@ import {
   type ProviderSubmissionError,
 } from "@/lib/video-generation/providers/submission-error";
 
-export const PRODUCT_IMAGE_PROMPT_VERSION = "product-image-shuyu-v2";
+export const PRODUCT_IMAGE_PROMPT_VERSION = "product-image-shuyu-v3";
 const PROVIDER_TASK_LEASE_MS = 2 * 60_000;
 const SUBMITTING_STALE_MS = 2 * 60_000;
 const POLL_RETRY_BASE_MS = 15_000;
@@ -97,6 +97,16 @@ export interface ProductImageRequest {
   resolution: ShuyuResolution;
   resultCount: number;
   sourceAsset?: MediaAssetRecord;
+  /**
+   * 印上品牌 Logo（路径 B）：品牌包 logo 作第二参考图。
+   * 三个值在 job 上落为不可变快照（与 sourceImageUrl 同语义），
+   * 确认重试永远重放快照，而不是品牌包的现值。
+   */
+  brandLogo?: {
+    packageId: string;
+    assetId: string;
+    url: string;
+  };
 }
 
 const assetInclude = {
@@ -180,7 +190,10 @@ export function buildProductImagePrompt(input: {
   preset: ProductImagePreset;
   aspectRatio: ProductImageAspectRatio;
   resultCount: number;
+  /// 印上品牌 Logo：仅在同时有产品参考图时生效（无源图不做印制）。
+  hasBrandLogo?: boolean;
 }): string {
+  const hasBrandLogo = Boolean(input.hasBrandLogo && input.hasReference);
   const preset = PRODUCT_IMAGE_PRESETS[input.preset];
   const shared = [
     "Create a production-ready commercial product photograph.",
@@ -188,18 +201,29 @@ export function buildProductImagePrompt(input: {
     `Composition: ${input.aspectRatio} frame, product is the unmistakable focal point, physically plausible perspective and shadows.`,
     `Customer direction: ${input.description.trim()}.`,
     "Return one commercially useful result.",
-    "Do not add claims, badges, prices, watermarks, extra products, people, hands, invented logos, or invented readable text unless explicitly requested.",
+    hasBrandLogo
+      ? "Do not add claims, badges, prices, watermarks, extra products, people, hands, or any logo or readable text beyond the supplied brand logo."
+      : "Do not add claims, badges, prices, watermarks, extra products, people, hands, invented logos, or invented readable text unless explicitly requested.",
     "Avoid warped geometry, duplicate parts, floating objects, broken packaging, illegible labels, and surreal reflections.",
   ];
   if (input.hasReference) {
     shared.unshift(
-      "The supplied reference image is the sole visual source of truth.",
+      hasBrandLogo
+        ? "Reference image 1 is the product photograph and the sole visual source of truth for product identity; reference image 2 is the official brand logo asset."
+        : "The supplied reference image is the sole visual source of truth.",
       "Preserve the exact product identity, count, geometry, proportions, color, material, packaging, logo, label placement, and visible construction details.",
       "Only improve background, lighting, shadow, crop, framing, and minor photographic cleanup. Never redesign or replace the product.",
     );
   } else {
     shared.unshift(
       "Render a truthful product concept from the customer's written description; do not invent brand identity or regulated performance claims.",
+    );
+  }
+  if (hasBrandLogo) {
+    shared.push(
+      "Imprint the exact logo from reference image 2 onto the product's most natural branded surface (front panel, label area, woven tag, or fabric edge as appropriate for this product type).",
+      "Reproduce that logo with identical letterforms, spelling, colors, and proportions. Never redesign, restyle, retype, or translate it.",
+      "The imprinted logo must sit on the surface like factory branding: correct perspective, curvature, material texture, and scene lighting, never a floating sticker.",
     );
   }
   return shared.join("\n");
@@ -303,6 +327,9 @@ export async function createProductImageJob(
         sourceAssetId: input.sourceAsset?.id,
         sourceImageUrl: input.sourceAsset?.url,
         sourceMimeType: input.sourceAsset?.mimeType,
+        brandPackageId: input.brandLogo?.packageId,
+        brandLogoAssetId: input.brandLogo?.assetId,
+        brandLogoUrl: input.brandLogo?.url,
         providerTasks: {
           create: taskRequests.map(({ ordinal, requestKey }) => ({
             ordinal,
@@ -441,8 +468,12 @@ async function submitProductImageProviderTask(
   // deleted later (onDelete: SetNull), but a confirmed retry must replay the
   // exact original paid request under the same request key.
   const sourceImageUrl = job.sourceImageUrl ?? input?.sourceAsset?.url ?? job.sourceAsset?.url;
+  const brandLogoUrl = sourceImageUrl
+    ? job.brandLogoUrl ?? input?.brandLogo?.url ?? null
+    : null;
   const prompt = buildProductImagePrompt({
     hasReference: Boolean(sourceImageUrl),
+    hasBrandLogo: Boolean(brandLogoUrl),
     description: request.prompt,
     preset: request.preset,
     aspectRatio: request.aspectRatio,
@@ -456,7 +487,12 @@ async function submitProductImageProviderTask(
       prompt,
       aspectRatio: request.aspectRatio,
       resolution: request.resolution,
-      inputImages: sourceImageUrl ? [sourceImageUrl] : [],
+      /// 顺序即 prompt 里的「参考图 1 / 参考图 2」：产品图在前，品牌 logo 在后。
+      inputImages: sourceImageUrl
+        ? brandLogoUrl
+          ? [sourceImageUrl, brandLogoUrl]
+          : [sourceImageUrl]
+        : [],
       planSnapshot:
         task.planId && task.modelSnapshot && task.resolutionSnapshot && task.pointsSnapshot !== null
           ? {

@@ -17,6 +17,7 @@ import {
   type ProductImageJobWithAssets,
 } from "@/lib/services/product-image-service";
 import { assertAuthenticatedActionRateLimit } from "@/lib/services/quota-service";
+import { findWorkspaceBrandPackageForUser } from "@/lib/services/workspace-brand-package-service";
 
 const requestSchema = z.object({
   prompt: z.string().trim().min(8).max(1200),
@@ -25,6 +26,8 @@ const requestSchema = z.object({
   resolution: z.enum(["1K", "2K", "4K"]),
   resultCount: z.number().int().min(1).max(4),
   sourceAssetId: z.string().trim().min(1).max(200).optional(),
+  /// 印上品牌 Logo（路径 B）：该品牌包的 logo 作第二参考图。需要产品源图。
+  brandPackageId: z.string().trim().min(1).max(200).optional(),
 }).strict();
 
 function assetView(asset: ProductImageJobWithAssets["sourceAsset"]) {
@@ -89,6 +92,9 @@ export function productImageJobView(job: ProductImageJobWithAssets) {
     historyNotice: outputs.some((output) => output.historical)
       ? "此历史图片可查看和下载；如需继续编辑或制作视频，请重新生成以创建服务器资产。"
       : null,
+    brandLogo: job.brandLogoUrl
+      ? { packageId: job.brandPackageId, url: job.brandLogoUrl }
+      : null,
   };
 }
 
@@ -106,6 +112,7 @@ interface ProductImagePostDependencies {
     };
   }): Promise<ProductImageJobWithAssets | null>;
   resolveOwnedImageAssets: typeof resolveOwnedImageAssets;
+  findWorkspaceBrandPackageForUser: typeof findWorkspaceBrandPackageForUser;
   assertAuthenticatedActionRateLimit: typeof assertAuthenticatedActionRateLimit;
   createProductImageJob: typeof createProductImageJob;
 }
@@ -114,6 +121,7 @@ const defaultPostDependencies: ProductImagePostDependencies = {
   requireAuth,
   findExisting: (args) => db.productImageJob.findUnique(args),
   resolveOwnedImageAssets,
+  findWorkspaceBrandPackageForUser,
   assertAuthenticatedActionRateLimit,
   createProductImageJob,
 };
@@ -181,6 +189,37 @@ export function createProductImagePostHandler(
       throw error;
     }
 
+    /// 印品牌 Logo：先于任何配额/付费动作校验。无源图不做印制；
+    /// 品牌包按用户可见范围（workspace 自有 + global）解析，拿不到即 404。
+    let brandLogo: { packageId: string; assetId: string; url: string } | undefined;
+    if (parsed.data.brandPackageId) {
+      if (!sourceAsset) {
+        return NextResponse.json(
+          {
+            ok: false,
+            code: "BRAND_LOGO_REQUIRES_SOURCE",
+            error: "印品牌 Logo 需要先上传产品图。",
+          },
+          { status: 400 },
+        );
+      }
+      const brandPackage = await dependencies.findWorkspaceBrandPackageForUser(
+        parsed.data.brandPackageId,
+        userId,
+      );
+      if (!brandPackage) {
+        return NextResponse.json(
+          { ok: false, code: "RESOURCE_NOT_FOUND", error: "品牌包不存在或无权访问。" },
+          { status: 404 },
+        );
+      }
+      brandLogo = {
+        packageId: brandPackage.id,
+        assetId: brandPackage.logoAsset.id,
+        url: brandPackage.logoAsset.url,
+      };
+    }
+
     try {
       await dependencies.assertAuthenticatedActionRateLimit({ action: "product-image", userId });
     } catch (error) {
@@ -199,6 +238,7 @@ export function createProductImagePostHandler(
         resolution: parsed.data.resolution,
         resultCount: parsed.data.resultCount,
         sourceAsset,
+        brandLogo,
       });
       return NextResponse.json(
         {

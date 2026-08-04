@@ -141,6 +141,125 @@ test("product-image idempotent replay reconstructs the active source and output 
   assert.equal(body.job.outputs[0].asset.id, "output-asset");
 });
 
+test("brand-logo request without a product source is rejected before any paid call", async () => {
+  const calls: string[] = [];
+  const handler = createProductImagePostHandler({
+    requireAuth: async () => ({ ok: true, session: { user: { id: "user-1" } } as never }),
+    findExisting: async () => null,
+    resolveOwnedImageAssets: async () => [],
+    findWorkspaceBrandPackageForUser: async () => { calls.push("package"); return null; },
+    assertAuthenticatedActionRateLimit: async () => { calls.push("quota"); },
+    createProductImageJob: async () => { calls.push("create"); throw new Error("unreachable"); },
+  });
+  const response = await handler(new Request("http://localhost/api/product-images", {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": "idem-logo-1" },
+    body: JSON.stringify({
+      prompt: "Imprint our logo on the curtain",
+      preset: "lifestyle", aspectRatio: "9:16", resolution: "1K", resultCount: 1,
+      brandPackageId: "brand-package-1",
+    }),
+  }) as never);
+  assert.equal(response.status, 400);
+  const body = await response.json();
+  assert.equal(body.code, "BRAND_LOGO_REQUIRES_SOURCE");
+  assert.deepEqual(calls, []);
+});
+
+test("brand-logo request with an unknown package 404s without creating a job", async () => {
+  const calls: string[] = [];
+  const sourceAsset = {
+    id: "source-asset", userId: "user-1", workspaceId: null,
+    storageKey: "uploads/source.png", url: "https://assets.example.test/source.png",
+    mimeType: "image/png", byteSize: 68, sha256: "source-sha", width: 1, height: 1,
+    createdAt: new Date(), updatedAt: new Date(),
+  };
+  const handler = createProductImagePostHandler({
+    requireAuth: async () => ({ ok: true, session: { user: { id: "user-1" } } as never }),
+    findExisting: async () => null,
+    resolveOwnedImageAssets: async () => [sourceAsset],
+    findWorkspaceBrandPackageForUser: async (packageId, userId) => {
+      calls.push(`package:${packageId}:${userId}`);
+      return null;
+    },
+    assertAuthenticatedActionRateLimit: async () => { calls.push("quota"); },
+    createProductImageJob: async () => { calls.push("create"); throw new Error("unreachable"); },
+  });
+  const response = await handler(new Request("http://localhost/api/product-images", {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": "idem-logo-2" },
+    body: JSON.stringify({
+      prompt: "Imprint our logo on the curtain",
+      preset: "lifestyle", aspectRatio: "9:16", resolution: "1K", resultCount: 1,
+      sourceAssetId: "source-asset",
+      brandPackageId: "missing-package",
+    }),
+  }) as never);
+  assert.equal(response.status, 404);
+  const body = await response.json();
+  assert.equal(body.code, "RESOURCE_NOT_FOUND");
+  assert.deepEqual(calls, ["package:missing-package:user-1"]);
+});
+
+test("brand-logo request resolves the package logo into the job request and view", async () => {
+  const sourceAsset = {
+    id: "source-asset", userId: "user-1", workspaceId: null,
+    storageKey: "uploads/source.png", url: "https://assets.example.test/source.png",
+    mimeType: "image/png", byteSize: 68, sha256: "source-sha", width: 1, height: 1,
+    createdAt: new Date(), updatedAt: new Date(),
+  };
+  let received: unknown = null;
+  const handler = createProductImagePostHandler({
+    requireAuth: async () => ({ ok: true, session: { user: { id: "user-1" } } as never }),
+    findExisting: async () => null,
+    resolveOwnedImageAssets: async () => [sourceAsset],
+    findWorkspaceBrandPackageForUser: async () => ({
+      id: "brand-package-1",
+      logoAsset: { id: "logo-asset-1", url: "https://assets.example.test/logo.png" },
+    } as never),
+    assertAuthenticatedActionRateLimit: async () => {},
+    createProductImageJob: async (request) => {
+      received = request.brandLogo;
+      return {
+        id: "job-logo", userId: "user-1", idempotencyKey: "idem-logo-3", mode: "OPTIMIZE",
+        status: "PROCESSING", prompt: request.prompt, preset: request.preset,
+        aspectRatio: request.aspectRatio, quality: "1K", model: "gpt-image-2",
+        sourceImageUrl: sourceAsset.url, sourceMimeType: sourceAsset.mimeType,
+        sourceAssetId: sourceAsset.id, sourceAsset,
+        brandPackageId: "brand-package-1", brandLogoAssetId: "logo-asset-1",
+        brandLogoUrl: "https://assets.example.test/logo.png",
+        outputImageUrl: null, outputAssetId: null, outputs: [], providerTasks: [],
+        provider: "shuyu", providerRequestKey: "rk", externalTaskId: null, planId: null,
+        modelSnapshot: null, resolutionSnapshot: "1K", pointsSnapshot: 0, finalPoints: null,
+        resultCount: 1, lastProviderStatus: null, lastCheckedAt: null, pollErrors: 0,
+        fromMock: false, retryCount: 0, errorCode: null, errorMessage: null,
+        startedAt: new Date(), completedAt: null, createdAt: new Date(), updatedAt: new Date(),
+      } as never;
+    },
+  });
+  const response = await handler(new Request("http://localhost/api/product-images", {
+    method: "POST",
+    headers: { "content-type": "application/json", "idempotency-key": "idem-logo-3" },
+    body: JSON.stringify({
+      prompt: "Imprint our logo on the curtain",
+      preset: "lifestyle", aspectRatio: "9:16", resolution: "1K", resultCount: 1,
+      sourceAssetId: "source-asset",
+      brandPackageId: "brand-package-1",
+    }),
+  }) as never);
+  assert.equal(response.status, 201);
+  assert.deepEqual(received, {
+    packageId: "brand-package-1",
+    assetId: "logo-asset-1",
+    url: "https://assets.example.test/logo.png",
+  });
+  const body = await response.json();
+  assert.deepEqual(body.job.brandLogo, {
+    packageId: "brand-package-1",
+    url: "https://assets.example.test/logo.png",
+  });
+});
+
 test("historical succeeded URL-only jobs render read-only output with regeneration guidance", () => {
   const view = productImageJobView({
     id: "legacy-job",

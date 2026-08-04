@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import {
   ProductImageStudio,
+  type BrandPackageOption,
   type ProductImageJobDto,
 } from "@/components/product-images/product-image-studio";
 import { authOptions } from "@/lib/auth";
@@ -11,6 +12,7 @@ import {
   isRetryableProductImageTask,
   listProductImageJobsForUser,
 } from "@/lib/services/product-image-service";
+import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 
@@ -19,7 +21,21 @@ export const dynamic = "force-dynamic";
 export default async function ProductImagesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create/images");
-  const rows = await listProductImageJobsForUser(session.user.id);
+  const [rows, brandPackageViews] = await Promise.all([
+    listProductImageJobsForUser(session.user.id),
+    listWorkspaceBrandPackagesForUser(session.user.id),
+  ]);
+  /// 印上品牌 Logo：只传客户端需要的精简字段，logo 直接取品牌包资产 URL。
+  const brandPackages: BrandPackageOption[] = brandPackageViews
+    .filter((pkg) => pkg.logoAsset.mimeType.startsWith("image/"))
+    .map((pkg) => ({
+      id: pkg.id,
+      name: pkg.name,
+      brandName: pkg.brandName,
+      logoUrl: pkg.logoAsset.url,
+      scope: pkg.scope,
+      isDefault: pkg.isDefault,
+    }));
   const copy = getPlatformCopy(await getServerLocale()).images;
   const jobs: ProductImageJobDto[] = rows.map((job) => {
     const outputs = job.outputs.length > 0
@@ -84,6 +100,9 @@ export default async function ProductImagesPage() {
       historyNotice: outputs.some((output) => output.historical)
         ? "此历史图片可查看和下载；如需继续编辑或制作视频，请重新生成以创建服务器资产。"
         : null,
+      brandLogo: job.brandLogoUrl
+        ? { packageId: job.brandPackageId, url: job.brandLogoUrl }
+        : null,
       createdAt: job.createdAt.toISOString(),
     };
   });
@@ -95,7 +114,7 @@ export default async function ProductImagesPage() {
         <p className="max-w-2xl text-body text-muted-foreground">{copy.pageSubtitle}</p>
         <CreateModeTabs active="image" />
       </header>
-      <ProductImageStudio initialJobs={jobs} />
+      <ProductImageStudio initialJobs={jobs} brandPackages={brandPackages} />
     </div>
   );
 }

@@ -1203,6 +1203,14 @@ model ProductImageJob {
   sourceMimeType String?
   sourceAssetId  String?
   sourceAsset    MediaAsset?                @relation("ProductImageSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
+
+  /// —— 印上品牌 Logo（路径 B：产品照没印 logo，AI 印上去）——
+  /// 三列均为提交时快照：与 sourceImageUrl 同语义，属于不可变的已计费请求输入，
+  /// 品牌包 / 资产日后变更或删除也要能按原样重放确认重试。快照语义，不建 FK。
+  brandPackageId   String?
+  brandLogoAssetId String?
+  brandLogoUrl     String?
+
   outputImageUrl String?
   outputAssetId  String?                    @unique
   outputAsset    MediaAsset?                @relation("ProductImageOutputAsset", fields: [outputAssetId], references: [id], onDelete: SetNull)

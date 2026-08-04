@@ -59,7 +59,18 @@ export interface ProductImageJobDto {
   outputAssetId: string | null;
   errorMessage: string | null;
   historyNotice: string | null;
+  brandLogo: { packageId: string | null; url: string } | null;
   createdAt: string;
+}
+
+/** 印上品牌 Logo 的可选品牌包（server component 预载，见 create/images/page.tsx） */
+export interface BrandPackageOption {
+  id: string;
+  name: string;
+  brandName: string;
+  logoUrl: string;
+  scope: "global" | "workspace";
+  isDefault: boolean;
 }
 
 /** 下载文件名：`aivora-product-image-<序号>.<扩展名>`，比对象存储的哈希名更可读 */
@@ -74,7 +85,13 @@ const PRESET_IDS = ["white_studio", "lifestyle", "luxury", "social", "macro"] as
 const ASPECTS = ["1:1", "4:5", "9:16", "16:9"] as const;
 const RESOLUTIONS = ["1K", "2K", "4K"] as const;
 
-export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJobDto[] }) {
+export function ProductImageStudio({
+  initialJobs,
+  brandPackages,
+}: {
+  initialJobs: ProductImageJobDto[];
+  brandPackages: BrandPackageOption[];
+}) {
   const { locale } = useTranslation();
   const copy = getPlatformCopy(locale).images;
   const english = locale === "en-US";
@@ -86,6 +103,20 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
   const [resultCount, setResultCount] = useState(1);
   const [source, setSource] = useState<File | null>(null);
   const [sourceAsset, setSourceAsset] = useState<AssetView | null>(null);
+  /// 印上品牌 Logo：默认选自家（workspace）默认包，其次任一自家包，最后 global 包。
+  const defaultBrandPackage = useMemo(
+    () =>
+      brandPackages.find((pkg) => pkg.scope === "workspace" && pkg.isDefault) ??
+      brandPackages.find((pkg) => pkg.scope === "workspace") ??
+      brandPackages[0] ??
+      null,
+    [brandPackages],
+  );
+  const [logoEnabled, setLogoEnabled] = useState(false);
+  const [logoPackageId, setLogoPackageId] = useState<string | null>(null);
+  const selectedBrandPackage =
+    (logoPackageId ? brandPackages.find((pkg) => pkg.id === logoPackageId) : null) ??
+    defaultBrandPackage;
   const [jobs, setJobs] = useState(initialJobs);
   const [activeJob, setActiveJob] = useState<ProductImageJobDto | null>(initialJobs[0] ?? null);
   const [uploading, setUploading] = useState(false);
@@ -158,7 +189,11 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
     setSource(file);
     setSourceAsset(null);
     setError(null);
-    if (!file) return;
+    /// 印 logo 依赖产品源图；源图被移除时同步关掉，不留「勾着但不会生效」的假状态。
+    if (!file) {
+      setLogoEnabled(false);
+      return;
+    }
     if (file.size > 20 * 1024 * 1024) {
       setError(copy.sourceTooLarge);
       return;
@@ -197,6 +232,9 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
           resolution,
           resultCount,
           sourceAssetId: sourceAsset?.id,
+          ...(logoEnabled && sourceAsset && selectedBrandPackage
+            ? { brandPackageId: selectedBrandPackage.id }
+            : {}),
         }),
       });
       const data = (await response.json()) as { job?: ProductImageJobDto; error?: string };
@@ -314,6 +352,71 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                 </span>
               )}
             </label>
+
+            {brandPackages.length > 0 && selectedBrandPackage ? (
+              <div
+                className={cn(
+                  "rounded-(--radius-md) border p-4",
+                  logoEnabled && sourceAsset ? "border-primary bg-accent-soft" : "border-border",
+                )}
+              >
+                <label className="flex cursor-pointer items-start gap-3">
+                  <input
+                    data-testid="product-image-brand-logo-toggle"
+                    type="checkbox"
+                    className="mt-1 accent-(--primary)"
+                    checked={logoEnabled}
+                    disabled={!sourceAsset || uploading}
+                    onChange={(event) => setLogoEnabled(event.target.checked)}
+                  />
+                  <span className="grid flex-1 grid-cols-[1fr_auto] items-center gap-3">
+                    <span>
+                      <span className="block font-medium text-foreground">{copy.brandLogoTitle}</span>
+                      <span className="mt-1 block text-meta text-muted-foreground">
+                        {sourceAsset ? copy.brandLogoHint : copy.brandLogoNeedsSource}
+                      </span>
+                    </span>
+                    <span className="relative size-12 overflow-hidden rounded-(--radius-sm) bg-card">
+                      <Image
+                        src={selectedBrandPackage.logoUrl}
+                        alt={selectedBrandPackage.brandName}
+                        fill
+                        sizes="48px"
+                        className="object-contain"
+                        unoptimized
+                      />
+                    </span>
+                  </span>
+                </label>
+                {logoEnabled && brandPackages.length > 1 ? (
+                  <label className="mt-3 block text-meta font-medium text-muted-foreground">
+                    {copy.brandLogoPackageLabel}
+                    <select
+                      data-testid="product-image-brand-logo-package"
+                      value={selectedBrandPackage.id}
+                      onChange={(event) => setLogoPackageId(event.target.value)}
+                      className="studio-select mt-2"
+                    >
+                      {brandPackages.map((pkg) => (
+                        <option key={pkg.id} value={pkg.id}>
+                          {pkg.brandName} · {pkg.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-meta text-muted-foreground">
+                {copy.brandLogoEmpty}{" "}
+                <Link
+                  href="/app/brands"
+                  className="underline underline-offset-4 hover:text-foreground"
+                >
+                  {copy.brandLogoEmptyCta}
+                </Link>
+              </p>
+            )}
 
             <label className="block text-meta font-medium text-muted-foreground">
               {copy.describeLabel}
@@ -440,7 +543,7 @@ export function ProductImageStudio({ initialJobs }: { initialJobs: ProductImageJ
                     <a href="#product-image-history" className="inline-flex items-center gap-2 text-success underline-offset-4 hover:underline">
                       <CheckCircle2 className="size-4" aria-hidden />{copy.approved}
                     </a>
-                    <span className="font-mono text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts</span>
+                    <span className="font-mono text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts{activeJob.brandLogo ? ` · ${copy.brandLogoBadge}` : ""}</span>
                   </div>
                 </div>
               </div>

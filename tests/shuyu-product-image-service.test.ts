@@ -532,6 +532,86 @@ test("confirmed-no-job rejection can retry with the same stable request identity
   assert.equal(task.externalTaskId, "external-retry");
 });
 
+test("brand-logo job replays the [source, logo] snapshot pair with the imprint prompt", async (t) => {
+  const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
+  const attemptMock = installProviderAttemptMock();
+  const jobModel = db.productImageJob as unknown as Record<string, unknown>;
+  const client = db as unknown as Record<string, unknown>;
+  const originals = {
+    taskFindUnique: taskModel.findUnique,
+    taskUpdateMany: taskModel.updateMany,
+    jobUpdate: jobModel.update,
+    jobUpdateMany: jobModel.updateMany,
+    transaction: client.$transaction,
+  };
+  const stableKey = "product-image-stable-brand-logo";
+  const task: Record<string, unknown> = {
+    id: "task-brand-logo",
+    productImageJobId: "job-brand-logo",
+    ordinal: 0,
+    requestKey: stableKey,
+    status: ProductImageStatus.FAILED,
+    submissionState: ProviderSubmissionState.REJECTED,
+    submitAttempts: 1,
+    planId: "image-plan-01",
+    modelSnapshot: "gpt-image-2",
+    resolutionSnapshot: "1K",
+    pointsSnapshot: 24,
+    result: null,
+  };
+  /// 品牌包现值与快照故意不同：重放必须用 job 上的快照，而不是品牌包现值。
+  const job = {
+    id: "job-brand-logo", userId: "user-1", idempotencyKey: "idem-brand-logo",
+    prompt: "Warm bedroom scene with natural drape", preset: "lifestyle",
+    aspectRatio: "9:16", quality: "1K", resolutionSnapshot: "1K",
+    resultCount: 1, sourceAsset: null,
+    sourceImageUrl: "https://immutable.example.test/curtain-source.png",
+    brandPackageId: "brand-package-1",
+    brandLogoAssetId: "logo-asset-1",
+    brandLogoUrl: "https://immutable.example.test/brand-logo.png",
+    outputs: [],
+  };
+  taskModel.findUnique = async () => ({ ...task, productImageJob: job });
+  taskModel.updateMany = async (args: { data: Record<string, unknown> }) => {
+    applyMockData(task, args.data);
+    return { count: 1 };
+  };
+  jobModel.update = async () => job;
+  jobModel.updateMany = async () => ({ count: 1 });
+  client.$transaction = async (callback: (tx: unknown) => Promise<unknown>) => callback(db);
+  const submissions: Array<{ inputImages?: string[]; prompt: string }> = [];
+  productImageServiceTest.__setRuntimeDependenciesForTests({
+    submitTask: async (input) => {
+      submissions.push({ inputImages: input.inputImages, prompt: input.prompt });
+      await input.onPlanSelected?.({
+        planId: "image-plan-01", model: "gpt-image-2", resolution: "1K",
+        points: 24, family: "gpt-image-2",
+      });
+      return { requestKey: input.requestKey, externalTaskId: "external-brand-logo", planSnapshot: {} as never };
+    },
+  });
+  t.after(() => {
+    taskModel.findUnique = originals.taskFindUnique;
+    taskModel.updateMany = originals.taskUpdateMany;
+    jobModel.update = originals.jobUpdate;
+    jobModel.updateMany = originals.jobUpdateMany;
+    client.$transaction = originals.transaction;
+    attemptMock.restore();
+    productImageServiceTest.__setRuntimeDependenciesForTests(null);
+  });
+
+  await productImageServiceTest.submitProductImageProviderTask("task-brand-logo", undefined, true);
+  assert.equal(submissions.length, 1);
+  /// 顺序契约：参考图 1 = 产品图，参考图 2 = 品牌 logo。
+  assert.deepEqual(submissions[0].inputImages, [
+    "https://immutable.example.test/curtain-source.png",
+    "https://immutable.example.test/brand-logo.png",
+  ]);
+  assert.match(submissions[0].prompt, /reference image 2 is the official brand logo/i);
+  assert.match(submissions[0].prompt, /Imprint the exact logo from reference image 2/i);
+  assert.equal(task.submissionState, ProviderSubmissionState.ACCEPTED);
+});
+
 test("public rejected-task retry atomically reactivates the job and claims the task before submission", async (t) => {
   const taskModel = db.productImageProviderTask as unknown as Record<string, unknown>;
   const attemptMock = installProviderAttemptMock();

@@ -39,7 +39,43 @@ test("optimize prompt locks product identity instead of redesigning it", () => {
   assert.match(prompt, /Never redesign or replace the product/i);
   assert.match(prompt, /warped geometry/i);
   assert.match(prompt, /4:5/);
-  assert.equal(PRODUCT_IMAGE_PROMPT_VERSION, "product-image-shuyu-v2");
+  assert.equal(PRODUCT_IMAGE_PROMPT_VERSION, "product-image-shuyu-v3");
+  /// 未开印 logo 时不得出现印制指令
+  assert.doesNotMatch(prompt, /reference image 2/i);
+  assert.doesNotMatch(prompt, /imprint/i);
+});
+
+test("brand-logo prompt imprints reference image 2 with factory-branding fidelity", () => {
+  const prompt = buildProductImagePrompt({
+    hasReference: true,
+    hasBrandLogo: true,
+    description: "warm bedroom scene, keep the fabric drape natural",
+    preset: "lifestyle",
+    aspectRatio: "9:16",
+    resultCount: 1,
+  });
+  assert.match(prompt, /reference image 1 is the product photograph/i);
+  assert.match(prompt, /reference image 2 is the official brand logo/i);
+  assert.match(prompt, /imprint the exact logo from reference image 2/i);
+  assert.match(prompt, /identical letterforms, spelling, colors, and proportions/i);
+  assert.match(prompt, /never redesign, restyle, retype, or translate/i);
+  assert.match(prompt, /perspective, curvature, material texture/i);
+  assert.match(prompt, /beyond the supplied brand logo/i);
+  /// 印 logo 时约束改述，不再出现「invented logos」原句
+  assert.doesNotMatch(prompt, /invented logos/i);
+});
+
+test("brand-logo flag without a product reference never emits imprint directives", () => {
+  const prompt = buildProductImagePrompt({
+    hasReference: false,
+    hasBrandLogo: true,
+    description: "an unbranded matte black travel mug",
+    preset: "white_studio",
+    aspectRatio: "1:1",
+    resultCount: 1,
+  });
+  assert.doesNotMatch(prompt, /reference image 2/i);
+  assert.doesNotMatch(prompt, /imprint/i);
 });
 
 test("generate prompt forbids invented branding, claims and common product hallucinations", () => {
@@ -128,4 +164,11 @@ test("customer UI exposes one optional-reference Aivora workbench and video hand
   assert.match(copy, /用于批量视频/);
   assert.match(ui, /download/);
   assert.doesNotMatch(ui, /shuyu_api_key|sk_live_|ARK_API_KEY/);
+  /// 印上品牌 Logo 入口：开关 + 品牌包提交字段 + zh/en 文案。
+  assert.match(ui, /product-image-brand-logo-toggle/);
+  assert.match(ui, /brandPackageId/);
+  assert.match(copy, /印上品牌 Logo/);
+  assert.match(copy, /Imprint brand logo/);
+  /// 客户端组件不得 import 服务端 service（client-bundle-safety 铁律）。
+  assert.doesNotMatch(ui, /lib\/services\/workspace-brand-package-service/);
 });

@@ -198,6 +198,13 @@ const zh = {
     sourceTooLarge: "原图不能超过 20MB。",
     requestFailed: "产品图处理失败，请稍后重试。",
     jobFailed: "本次处理未完成，请调整后重试。",
+    brandLogoTitle: "印上品牌 Logo",
+    brandLogoHint: "把品牌包的官方 Logo 以出厂印制效果印到产品上",
+    brandLogoNeedsSource: "先上传产品图，才能印品牌 Logo",
+    brandLogoEmpty: "品牌包里还没有可用的 Logo。",
+    brandLogoEmptyCta: "去品牌包上传",
+    brandLogoPackageLabel: "选择品牌包",
+    brandLogoBadge: "印品牌 Logo",
     presets: {
       white_studio: ["白底棚拍", "电商主图、目录页"],
       lifestyle: ["生活方式", "真实使用情境"],
@@ -415,6 +422,7 @@ const en: CopyShape<typeof zh> = {
     cancelFailed: "Cancel failed, please retry",
     cancelledTitle: "This round was cancelled",
     cancelledBody: "Cancelling is always free. Finished images stay in history; rerun with the same input anytime.", uploadTitle: "Upload the original product photo", uploadHint: "PNG / JPG / WebP · identity and packaging stay locked", improveLabel: "What should improve?", describeLabel: "Describe the product to generate", improvePlaceholder: "Example: Keep the bottle, label, and color exact. Clean the background, use a soft white studio, and preserve a realistic shadow.", describePlaceholder: "Example: An unbranded matte-black insulated bottle, clear screw cap and metal rim, white ecommerce studio.", styleLock: "Style lock", aspect: "Aspect ratio", outputQuality: "Output quality", fast: "Fast", standard: "Standard", detailed: "Detailed", processing: "Processing and running safety checks…", optimizeCta: "Optimize product image", generateCta: "Generate product image", hardLockHint: "Optimize mode may change only lighting, background, shadow, and composition. Product shape, color, packaging, and marks are hard constraints.", preview: "Output preview", approved: "Safety checks passed · saved to your image library below", useSingle: "Use in single video", useBatch: "Use in batch video", download: "Download", downloading: "Downloading…", downloadFailed: "Download failed; the image opened in a new tab.", variation: "New composition", editAgain: "Keep editing this", nextStepHint: "Download it, send it straight into video production, or keep refining this exact image.", failed: "This job did not complete", emptyTitle: "No product image yet", emptyBody: "Optimize a real photo or generate a product image, then send it directly to single or batch video.", historyKicker: "IMAGE LIBRARY", historyTitle: "Your product image library", historySubtitle: "Every product image you generate is kept here — download it, keep editing, or send it into video production.", historyEmpty: "Your first completed image is kept here and stays reusable.", sourceTooLarge: "The source image must be 20MB or smaller.", requestFailed: "Product image processing failed. Try again.", jobFailed: "This job did not complete. Adjust it and retry.",
+    brandLogoTitle: "Imprint brand logo", brandLogoHint: "Print your brand kit's official logo onto the product like factory branding", brandLogoNeedsSource: "Upload a product photo first to imprint the logo", brandLogoEmpty: "No usable logo in your brand kits yet.", brandLogoEmptyCta: "Add one in Brand kits", brandLogoPackageLabel: "Brand kit", brandLogoBadge: "Brand logo",
     presets: { white_studio: ["White studio", "Catalog and ecommerce hero"], lifestyle: ["Lifestyle", "Believable use setting"], luxury: ["Luxury", "Material and refined light"], social: ["Social ad", "Safe area for post text"], macro: ["Material macro", "Structure and detail close-up"] },
   },
   templates: {

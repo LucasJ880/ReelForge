@@ -35,6 +35,7 @@
     "postinstall": "prisma generate",
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
     "db:seed:creative-cards": "dotenv -e .env.local -- tsx scripts/seed-creative-evidence-cards.ts",
+    "e2e:brand-logo": "tsx scripts/e2e-brand-logo-shipment.ts",
     "demo:generate:walkthrough": "tsx scripts/generate-real-footage-walkthrough-video.ts",
     "demo:check:walkthrough": "tsx scripts/check-real-footage-walkthrough-video.ts",
     "demo:stitch:walkthrough": "tsx scripts/stitch-real-footage-walkthrough-video.ts",

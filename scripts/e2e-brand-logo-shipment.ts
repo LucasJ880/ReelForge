@@ -53,9 +53,14 @@ const NARRATION_LINES = [
 const VOICEOVER_SCRIPT = NARRATION_LINES.join(" ");
 
 /// 印 logo 产品图的生成指令（走生产同一条 buildProductImagePrompt v3 管线）。
+/// 第一抽教训（2026-08-04）：不指定落位时模型把 logo 缩成拉链小圆牌，字只剩
+/// 「SUNN」。客户描述里钉死落位与尺寸，要求整字清晰。
 const IMPRINT_PROMPT =
   "Warm inviting bedroom scene at golden hour, curtains fully installed and neatly draped, " +
-  "natural daylight diffusing through the sheer layer, keep the fabric drape and hardware realistic.";
+  "natural daylight diffusing through the sheer layer, keep the fabric drape and hardware realistic. " +
+  "Print the brand logo from reference image 2 on the front face of the shade's bottom rail, " +
+  "centered, spanning roughly one third of the rail width, complete spelling, crisp and clearly " +
+  "legible at a glance, factory-printed finish that follows the rail's surface and lighting.";
 
 /**
  * 视频 prompt：沿用 generate-curtain-viral-ads 已验证的爆款结构 + 产品锁，
@@ -123,9 +128,12 @@ type State = {
   };
   video?: {
     externalJobId: string;
+    planId?: string;
     videoUrl?: string;
     localPath?: string;
   };
+  /// 被供应商退款终结的套餐：重投时拉黑，避免反复栽进同一条死队列。
+  refundedPlanIds?: string[];
   packaged?: {
     blobUrl: string;
     localPath: string;
@@ -315,55 +323,105 @@ async function stageImprint(state: State, options: { redo: boolean; sourceAssetI
 
 async function stageVideo(state: State) {
   if (!state.imprint) throw new Error("请先完成阶段 1（imprint）");
-  const { submitSeedanceJob, getSeedanceStatus } = await import("@/lib/providers/seedance");
+  /// 生产视频线路 = Shuyu（转售 seedance 模型），BytePlus 直连凭证已废弃
+  /// （2026-08-04 真机验证 401）。提交/轮询范式照抄 sunnyshutter-shade-pipeline。
+  const { createShuyuVideoTask, resolveShuyuVideoPlans } = await import(
+    "@/lib/providers/shuyu"
+  );
+  const { pollShuyuTaskUntilDone } = await import(
+    "@/lib/video-generation/sunnyshutter-shade-pipeline"
+  );
 
   if (!state.video?.externalJobId) {
+    /// 套餐 ID 会轮换（f99f8b3 教训），一律按实时目录解析已审计套餐，
+    /// 逐个降级提交；720P 优先。
+    const refunded = new Set(state.refundedPlanIds ?? []);
+    const plans = (await resolveShuyuVideoPlans({ timeoutMs: 20_000 }))
+      .filter((plan) => plan.inputImagesMax >= 1 && !refunded.has(plan.planId))
+      .sort((a, b) => (a.resolution === b.resolution ? 0 : a.resolution === "720P" ? -1 : 1));
+    if (plans.length === 0) throw new Error("Shuyu 无可用已审计视频套餐（或全部已被退款拉黑）");
+
     const prompt = buildVideoPrompt();
-    log("阶段 2 · Seedance 真机出片", `promptChars=${prompt.length} · ref=印 logo 产品图`);
-    const { jobId } = await submitSeedanceJob({
-      prompt,
-      referenceImageUrls: [state.imprint.outputUrl],
-      mode: "reference",
-      duration: 15,
-      ratio: "9:16",
-      resolution: "1080p",
-      model: process.env.ARK_VIDEO_MODEL || "dreamina-seedance-2-0-260128",
-      generateAudio: true,
-    });
-    state.video = { externalJobId: jobId };
-    writeState(state);
-    log("已提交", `externalJobId=${jobId}`);
+    log(
+      "阶段 2 · Shuyu 真机出片",
+      `promptChars=${prompt.length} · ref=印 logo 产品图 · 候选套餐=${plans.map((p) => p.planId).join(",")}`,
+    );
+    let lastError: unknown;
+    let submitted = false;
+    for (let round = 0; round < 3 && !submitted; round += 1) {
+      if (round > 0) await new Promise((r) => setTimeout(r, 15_000 * round));
+      for (const plan of plans) {
+        try {
+          const created = await createShuyuVideoTask({
+            timeoutMs: 20_000,
+            providerRequestKey:
+              `e2e-brand-logo:${plan.planId}:${Date.now()}`.slice(0, 120),
+            planId: plan.planId,
+            prompt: prompt.slice(0, 4_500),
+            duration: 15,
+            aspectRatio: "9:16",
+            inputImages: [state.imprint.outputUrl],
+          });
+          state.video = { externalJobId: created.taskId, planId: plan.planId };
+          writeState(state);
+          log("已提交", `taskId=${created.taskId} · plan=${plan.planId}（${plan.displayName} · ${plan.resolution}）`);
+          submitted = true;
+          break;
+        } catch (error) {
+          lastError = error;
+          const retryable = /繁忙|busy|refunded|unavailable|timed out|不可用/i.test(
+            error instanceof Error ? error.message : String(error),
+          );
+          if (!retryable) throw error;
+          log("套餐提交被拒，降级重试", `${plan.planId}: ${(error as Error).message}`);
+        }
+      }
+    }
+    if (!submitted) {
+      throw lastError instanceof Error
+        ? lastError
+        : new Error("所有 Shuyu 视频套餐提交失败");
+    }
   } else {
-    log("阶段 2 · Seedance 真机出片", `已提交（${state.video.externalJobId}），继续轮询`);
+    log("阶段 2 · Shuyu 真机出片", `已提交（${state.video.externalJobId}），继续轮询`);
   }
 
-  const startedAt = Date.now();
-  while (!state.video.videoUrl) {
-    const r = await getSeedanceStatus(state.video.externalJobId);
-    if (r.status === "completed" && r.videoUrl) {
-      state.video.videoUrl = r.videoUrl;
+  const video = state.video;
+  if (!video) throw new Error("视频任务状态缺失（state.video 未持久化）");
+
+  if (!video.videoUrl) {
+    try {
+      const done = await pollShuyuTaskUntilDone(video.externalJobId, {
+        label: "brand-logo-e2e",
+        pollMs: 6_000,
+        maxWaitMs: VIDEO_TIMEOUT_MS,
+      });
+      video.videoUrl = done.url;
       writeState(state);
-      break;
+    } catch (error) {
+      /// 供应商退款 = 本任务已死且未计费：拉黑该套餐、清掉任务号，
+      /// 下次重跑自动换套餐重投。
+      if (/terminal: (refunded|refund_error|failed)/.test((error as Error).message ?? "")) {
+        if (video.planId) {
+          state.refundedPlanIds = [...(state.refundedPlanIds ?? []), video.planId];
+        }
+        state.video = undefined;
+        writeState(state);
+        throw new Error(
+          `视频任务被供应商终结（${(error as Error).message}）；已拉黑套餐 ${video.planId ?? "?"}，重跑本命令将自动换套餐重投`,
+        );
+      }
+      throw error;
     }
-    if (r.status === "failed") {
-      throw new Error(`视频生成失败: ${r.errorMessage ?? r.rawProviderStatus}`);
-    }
-    if (Date.now() - startedAt > VIDEO_TIMEOUT_MS) {
-      throw new Error("等待超过 40 分钟；稍后重跑本命令续跑（任务号已持久化，不会重复计费）");
-    }
-    process.stdout.write(
-      `  ${Math.round((Date.now() - startedAt) / 1000)}s → ${r.rawProviderStatus}${r.progress != null ? ` ${r.progress}%` : ""}\n`,
-    );
-    await new Promise((r2) => setTimeout(r2, VIDEO_POLL_MS));
   }
 
   const localPath = resolve(OUTPUT_DIR, "clean-master.mp4");
-  await download(state.video.videoUrl!, localPath);
-  state.video.localPath = localPath;
+  await download(video.videoUrl, localPath);
+  video.localPath = localPath;
   writeState(state);
   const clean = await probeStreams(localPath);
   log("干净原片已产出", [
-    state.video.videoUrl!,
+    video.videoUrl,
     `${clean.width}x${clean.height} · ${clean.durationSec.toFixed(1)}s · 原生音轨=${clean.hasAudio ? "有" : "无（验收要求有口播，无音轨即失败）"}`,
   ].join("\n  "));
   if (!clean.hasAudio) {

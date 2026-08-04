@@ -11,6 +11,7 @@
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { applyBrandOverlay } from "@/lib/video-generation/brand-overlay-renderer";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
 import { runFfmpegNormalizeAndConcatWithPostProduction } from "@/lib/services/stitch-service";
@@ -82,6 +83,19 @@ export type BrandPackagingResult = {
   };
   warnings: string[];
 };
+
+/**
+ * stitch 层 clip 的契约是 URL（http(s)/file://）。裁尾产物是本地路径；
+ * includeLogo=false 时它不经角标 overlay（其产物已是 URL）直接进拼接，
+ * 必须在这里补 file:// 包装 —— 否则拼接层对本地路径 fetch 直接炸
+ * （2026-08-04 印 logo 验收「角标关 + 后期开」组合首次踩中）。
+ */
+function asClipUrl(value: string): string {
+  return /^(https?|file):\/\//.test(value) ? value : pathToFileURL(value).href;
+}
+
+/// 仅供测试导入
+export const __test__ = { asClipUrl };
 
 function sunnyShutterPlan(aspectRatio: "9:16" | "16:9"): BrandPackagingPlan {
   const copy = SUNNYSHUTTER_END_CARD_COPY.en;
@@ -209,7 +223,7 @@ export async function applyClientBrandPackaging(
         finalVideoId: `${input.outputId}-branded`,
         aspectRatio,
         clips: [
-          { url: workingUrl, intendedDurationSec: null, trimToFit: false },
+          { url: asClipUrl(workingUrl), intendedDurationSec: null, trimToFit: false },
           {
             url: endCard.url,
             intendedDurationSec: plan.endCardDurationSeconds,
@@ -227,7 +241,7 @@ export async function applyClientBrandPackaging(
       await runFfmpegNormalizeAndConcatWithPostProduction({
         finalVideoId: `${input.outputId}-branded`,
         aspectRatio,
-        clips: [{ url: workingUrl, intendedDurationSec: null, trimToFit: false }],
+        clips: [{ url: asClipUrl(workingUrl), intendedDurationSec: null, trimToFit: false }],
         postProduction,
       })
     ).stitchedVideoUrl;

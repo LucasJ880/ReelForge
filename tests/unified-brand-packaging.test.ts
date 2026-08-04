@@ -150,3 +150,21 @@ test("[unified-brand-packaging] auto_end_card duration scales with total length"
   assert.equal(p15.endCardDurationSeconds, 2);
   assert.equal(p60.endCardDurationSeconds, 4);
 });
+
+test("packaging clip URLs wrap local paths as file:// and pass real URLs through", async () => {
+  const { __test__ } = await import("../src/lib/video-generation/brand-packaging-service");
+  /// 回归：includeLogo=false 时裁尾产物（本地路径）直接进拼接层，
+  /// 必须包成 file://，否则 stitch 对本地路径 fetch 直接炸。
+  assert.equal(
+    __test__.asClipUrl("/tmp/brand-e2e/trimmed-123.mp4"),
+    "file:///tmp/brand-e2e/trimmed-123.mp4",
+  );
+  assert.equal(
+    __test__.asClipUrl("https://blob.example.com/final.mp4"),
+    "https://blob.example.com/final.mp4",
+  );
+  assert.equal(
+    __test__.asClipUrl("file:///already/wrapped.mp4"),
+    "file:///already/wrapped.mp4",
+  );
+});

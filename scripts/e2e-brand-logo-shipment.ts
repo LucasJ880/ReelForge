@@ -36,7 +36,6 @@ const ACCOUNT = "bill@sunnyshutter.ca";
 
 const IMPRINT_POLL_MS = 5_000;
 const IMPRINT_TIMEOUT_MS = 10 * 60_000;
-const VIDEO_POLL_MS = 20_000;
 /// 0728 实测合作方 15s 排队+出片可超 15 分钟，放宽到 40 分钟。
 const VIDEO_TIMEOUT_MS = 40 * 60_000;
 

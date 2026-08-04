@@ -158,9 +158,13 @@ function assertRealMode(): void {
       throw new Error(`${flag}=${value} 已开启；本脚本只做真实出片验收，请关掉 mock。`);
     }
   }
-  for (const key of ["SHUYU_API_KEY", "BYTEPLUS_ARK_API_KEY", "BLOB_READ_WRITE_TOKEN"]) {
-    if (!process.env[key]) throw new Error(`缺少 ${key}`);
+  /// Shuyu key 与 provider 同规则：大写为准，小写为历史部署兼容。
+  /// Seedance 凭证按 runtime profile 解析（ARK_API_KEY / BYTEPLUS_ARK_API_KEY 等），
+  /// 由 provider 在提交时给出精确报错，这里不重复造判定。
+  if (!process.env.SHUYU_API_KEY?.trim() && !process.env.shuyu_api_key?.trim()) {
+    throw new Error("缺少 SHUYU_API_KEY / shuyu_api_key");
   }
+  if (!process.env.BLOB_READ_WRITE_TOKEN) throw new Error("缺少 BLOB_READ_WRITE_TOKEN");
 }
 
 async function probeStreams(url: string): Promise<{

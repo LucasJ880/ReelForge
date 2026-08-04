@@ -47,8 +47,8 @@ async function phase1(): Promise<void> {
 
   // 1. 通用配方数量与命名（2026-08-03 起扩容到 35 条，需保持同行水位 30+）
   record(
-    "通用电商配方 = 35 条（≥30）",
-    COMMERCE_TEMPLATE_RECIPES.length === 35 &&
+    "通用电商配方 = 34 条（≥30）",
+    COMMERCE_TEMPLATE_RECIPES.length === 34 &&
       COMMERCE_TEMPLATE_RECIPES.length === BATCH_STYLE_TEMPLATE_SEEDS.length,
     `实际 ${COMMERCE_TEMPLATE_RECIPES.length} 条：${COMMERCE_TEMPLATE_RECIPES.map((r) => r.nameZh).join("、")}`,
   );

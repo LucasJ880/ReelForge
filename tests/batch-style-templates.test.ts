@@ -44,8 +44,8 @@ function patchTransaction(
   });
 }
 
-test("批量风格库统一使用通用电商模板目录（35 条）", () => {
-  assert.equal(BATCH_STYLE_TEMPLATE_SEEDS.length, 35);
+test("批量风格库统一使用通用电商模板目录（34 条）", () => {
+  assert.equal(BATCH_STYLE_TEMPLATE_SEEDS.length, 34);
   assert.equal(
     new Set(BATCH_STYLE_TEMPLATE_SEEDS.map((template) => template.slug)).size,
     BATCH_STYLE_TEMPLATE_SEEDS.length,

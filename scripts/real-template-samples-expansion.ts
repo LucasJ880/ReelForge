@@ -190,7 +190,6 @@ const TEMPLATE_PLAN: Array<{ slug: string; set: keyof typeof PRODUCT_SETS }> = [
   { slug: "commerce-in-hand-scale", set: "bottle" },
   { slug: "commerce-macro-texture-asmr", set: "watch" },
   { slug: "commerce-dark-luxury-light", set: "watch" },
-  { slug: "commerce-seamless-loop", set: "bottle" },
   { slug: "commerce-morning-routine", set: "coffee" },
   { slug: "commerce-pov-immersive", set: "earbuds" },
   { slug: "commerce-dual-context", set: "pillow" },

@@ -38,7 +38,6 @@ const EXPANSION_SLUGS = [
   "commerce-in-hand-scale",
   "commerce-macro-texture-asmr",
   "commerce-dark-luxury-light",
-  "commerce-seamless-loop",
   "commerce-morning-routine",
   "commerce-pov-immersive",
   "commerce-dual-context",
@@ -55,12 +54,12 @@ const EXPANSION_SLUGS = [
 
 const EXPECTED_SLUGS = [...LEGACY_EIGHT_SLUGS, ...EXPANSION_SLUGS] as const;
 
-test("commerce catalog exposes the canonical stable slugs (8 legacy + 27 expansion)", () => {
+test("commerce catalog exposes the canonical stable slugs (8 legacy + 26 expansion; seamless-loop 两轮真机未过循环点验收,0804 砍除)", () => {
   assert.deepEqual(COMMERCE_TEMPLATE_SLUGS, EXPECTED_SLUGS);
   assert.deepEqual(COMMERCE_TEMPLATE_SLUGS.slice(0, 8), LEGACY_EIGHT_SLUGS);
-  assert.equal(COMMERCE_TEMPLATE_RECIPES.length, 35);
-  assert.equal(COMMERCE_TEMPLATE_SEEDS.length, 35);
-  assert.equal(new Set(COMMERCE_TEMPLATE_SLUGS).size, 35);
+  assert.equal(COMMERCE_TEMPLATE_RECIPES.length, 34);
+  assert.equal(COMMERCE_TEMPLATE_SEEDS.length, 34);
+  assert.equal(new Set(COMMERCE_TEMPLATE_SLUGS).size, 34);
   assert.ok(
     COMMERCE_TEMPLATE_RECIPES.length >= 30,
     "模板体量必须保持同行水位（30+）",

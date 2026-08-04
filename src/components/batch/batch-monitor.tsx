@@ -310,10 +310,8 @@ export function BatchMonitor({
         <CardHeader className="gap-5">
           <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0 space-y-3">
+              {/* 眉题按 DESIGN.md 禁用;状态 Badge 是内容不是眉题,保留。 */}
               <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <p className="studio-label text-muted-foreground">
-                  {monitorCopy.kicker}
-                </p>
                 <Badge variant={batchStatusVariant(batch.status)}>
                   {batchLabels[batch.status]}
                 </Badge>

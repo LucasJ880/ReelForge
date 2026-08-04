@@ -67,7 +67,14 @@ export default async function PlatformBatchesPage() {
                 return (
                   <tr key={batch.id} className="group block px-4 py-3 transition-colors hover:bg-muted/30 md:table-row md:px-0 md:py-0">
                     <td data-label={copy.columns.batch} className="block min-w-0 py-2 before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">
-                      <p className="truncate font-heading text-body font-semibold">{batch.productName || copy.unnamed}</p>
+                      {/* 批次身份优先级:产品名 > 模板×数量。裸 cuid 永远只当追踪码,不当标题。 */}
+                      <p className="truncate font-heading text-body font-semibold">
+                        {batch.productName?.trim()
+                          ? batch.productName
+                          : locale === "en-US"
+                            ? `${batch.template.name} × ${batch.requestedCount}`
+                            : `${batch.template.nameZh} × ${batch.requestedCount} 条`}
+                      </p>
                       <p className="mt-1 truncate font-mono text-meta text-muted-foreground">{batch.id}</p>
                     </td>
                     <td data-label={copy.columns.template} className="block min-w-0 py-2 text-body before:mr-3 before:studio-label before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:px-4 md:py-4 md:before:hidden">

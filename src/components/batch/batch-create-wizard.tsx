@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Check,
@@ -44,7 +44,6 @@ import {
   type BatchQueueGroup,
 } from "@/lib/batch/batch-queue";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
-import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
 import type {
   CustomerApiErrorCode,
   CustomerRecoveryAction,
@@ -155,6 +154,29 @@ export function BatchCreateWizard({
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
   >(null);
+  /// 0803 多套餐:套餐 ID 与该套餐下单支报价由 VideoRouteSelector 实时回传。
+  const [videoPlanId, setVideoPlanId] = useState<string | null>(null);
+  const [planPointsPerVideo, setPlanPointsPerVideo] = useState<number | null>(
+    null,
+  );
+  const [planSummary, setPlanSummary] = useState<{
+    displayName: string;
+    resolution: string;
+  } | null>(null);
+  const handlePlanChange = useCallback(
+    (
+      planId: string | null,
+      pointsPerVideo: number | null,
+      plan?: { displayName: string; resolution: string } | null,
+    ) => {
+      setVideoPlanId(planId);
+      setPlanPointsPerVideo(pointsPerVideo);
+      setPlanSummary(
+        plan ? { displayName: plan.displayName, resolution: plan.resolution } : null,
+      );
+    },
+    [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [recoveryAction, setRecoveryAction] =
     useState<CustomerRecoveryAction | null>(null);
@@ -242,11 +264,11 @@ export function BatchCreateWizard({
     ? "Live ETA appears after provider submission"
     : "提交供应商后显示实时预计完成时间";
   const totalVideoCount = queueTotalCount(queuedGroups, count);
-  const estimatedPartnerPoints = queueTotalPoints(
-    queuedGroups,
-    count,
-    SHUYU_VIDEO_POINTS_PER_GENERATION,
-  );
+  /// 报价来自 VideoRouteSelector 实时回传的所选套餐;拿不到时不编数字。
+  const estimatedPartnerPoints =
+    planPointsPerVideo !== null
+      ? queueTotalPoints(queuedGroups, count, planPointsPerVideo)
+      : null;
   function updateUpload(localId: string, patch: Partial<UploadItem>) {
     setUploads((current) =>
       current.map((item) =>
@@ -404,6 +426,8 @@ export function BatchCreateWizard({
           assetIds: uploaded.map((item) => item.assetId),
           requestedCount: group.count,
           productName: productName.trim() || undefined,
+          /// 0803 多套餐:缺省(null)= 提交时实时默认套餐。
+          videoPlanId: videoRouteId === "buddy" ? videoPlanId ?? undefined : undefined,
         };
         const fingerprint = JSON.stringify(requestBody);
         if (submissionIdentityRef.current?.fingerprint !== fingerprint) {
@@ -771,7 +795,7 @@ export function BatchCreateWizard({
                         <span className="min-w-0">
                           <span className="flex items-center gap-2">
                             <span className="truncate font-heading text-sm font-semibold text-foreground">{displayName}</span>
-                            <span className="shrink-0 font-mono text-[11px] text-muted-foreground">v{template.version}</span>
+                            <span className="shrink-0 font-mono text-meta text-muted-foreground">v{template.version}</span>
                           </span>
                           <span className="mt-1 block truncate text-xs text-muted-foreground">
                             {categoryLabel(template.category, templateCategoryCopy)} · {english ? "uses" : "每条"} {template.imagesPerVideo.min}
@@ -780,7 +804,7 @@ export function BatchCreateWizard({
                           {template.summary ? <span className="mt-1 line-clamp-1 block text-xs text-muted-foreground">{template.summary}</span> : null}
                         </span>
                         <span className="flex items-center gap-2">
-                          <span className="hidden text-right font-mono text-[11px] text-muted-foreground sm:block">
+                          <span className="hidden text-right font-mono text-meta text-muted-foreground sm:block">
                             {template.lockedParams.duration}s<br />{template.lockedParams.aspectRatio}
                           </span>
                           {isSelected && <Check className="size-4 text-primary" aria-hidden />}
@@ -937,15 +961,22 @@ export function BatchCreateWizard({
                   disabled={submitting}
                   onChange={setVideoRouteId}
                   onSelectedAvailabilityChange={setSelectedRouteAvailable}
+                  planSelectable
+                  planValue={videoPlanId}
+                  onPlanChange={handlePlanChange}
                 />
                 <p className="text-meta text-muted-foreground">
                   {selectedRouteAvailable === null
                     ? (english ? "Checking live provider availability…" : "正在检查供应商实时可用性…")
                     : selectedRouteAvailable
                       ? videoRouteId === "buddy"
-                        ? (english
-                            ? `Estimated provider charge: ${estimatedPartnerPoints.toLocaleString()} points for this batch.`
-                            : `本批预计消耗 ${estimatedPartnerPoints.toLocaleString()} 积分。`)
+                        ? estimatedPartnerPoints !== null
+                          ? (english
+                              ? `Estimated provider charge: ${estimatedPartnerPoints.toLocaleString()} points for this batch.`
+                              : `本批预计消耗 ${estimatedPartnerPoints.toLocaleString()} 积分。`)
+                          : (english
+                              ? "Charged at the live plan price on submit."
+                              : "按提交时实时套餐价计费。")
                         : (english ? "The selected route is ready." : "所选线路当前可用。")
                       : (english
                           ? "This route is unavailable. Choose another route or wait before continuing."
@@ -1002,13 +1033,17 @@ export function BatchCreateWizard({
                   [
                     english ? "Video route" : "视频线路",
                     videoRouteId === "buddy"
-                      ? (english ? "Aivora video route · Seedance 2.0 · 720P" : "Aivora 视频通道 · Seedance 2.0 · 720P")
+                      ? planSummary
+                        ? `Aivora · ${planSummary.displayName} · ${planSummary.resolution}`
+                        : (english ? "Aivora video route · Seedance 2.0" : "Aivora 视频通道 · Seedance 2.0")
                       : (english ? "Official direct route" : "官方直连线路"),
                   ],
                   [
                     english ? "Estimated points" : "预计积分",
                     videoRouteId === "buddy"
-                      ? estimatedPartnerPoints.toLocaleString()
+                      ? (estimatedPartnerPoints !== null
+                          ? estimatedPartnerPoints.toLocaleString()
+                          : (english ? "Live plan price at submit" : "以提交时实时套餐价为准"))
                       : (english ? "Provider dependent" : "以供应商为准"),
                   ],
                   [english ? "Estimated time" : "预计耗时", estimateText],

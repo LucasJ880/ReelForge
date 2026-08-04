@@ -213,16 +213,18 @@
     background: transparent;
   }
 
+  /* accent 纪律:完成态退语义绿;品牌橙只留给「生成中」= 当前项。 */
   .batch-film-cell[data-state="completed"] {
-    background-color: var(--accent);
+    background-color: var(--success);
     background-image: var(--glass-sheen-strong);
     box-shadow:
       var(--glass-edge),
-      0 2px 10px -2px var(--accent-soft);
+      0 2px 10px -2px color-mix(in oklab, var(--success) 45%, transparent);
   }
 
   .batch-film-cell[data-state="generating"] {
-    background-color: var(--accent-soft);
+    background-color: var(--accent);
+    background-image: var(--glass-sheen-strong);
     animation: film-generating 2.4s ease-in-out infinite;
   }
 

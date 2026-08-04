@@ -40,6 +40,7 @@ interface VideoRouteUiStatus {
   directAvailable: boolean;
   directRoutes: Partial<Record<Exclude<VideoRouteOverride, "" | "buddy">, boolean>>;
   shuyu: ShuyuRouteUiStatus;
+  plans: ShuyuPlanUiOption[];
 }
 
 export function parseVideoRouteOverride(value: string): VideoRouteOverride {
@@ -56,21 +57,20 @@ const ROUTE_COPY = {
     directTitle: "火山官方接口 · Seedance 2.0",
     directDescription: "当前生产默认线路 · 失败按平台规则处理",
     shuyuGroup: "Aivora 生成线路",
-    shuyuTitle: "Aivora 视频通道 · Seedance 2.0 · 720P",
-    shuyuDescription: "文生 / 图片参考 · 每镜头 5–15 秒 · 900 积分/支",
+    shuyuTitle: "Aivora 视频通道 · Seedance 2.0",
+    shuyuDescription: "文生 / 图片参考 · 每镜头 5–15 秒",
     shuyuEstimate: "当前时长预计 {points} 积分/支 · 提交前再次核对",
     available: "已接入",
     checking: "正在检查",
     notConfigured: "尚未配置",
     insufficient: "余额不足",
     unavailable: "暂不可用",
-    workspaceGroup: "其它 Seedance 线路 · 公开 API 未开放",
-    workspaceOnly: "工作台可见，当前 API Key 暂不能调用",
-    workspaceRoutes: [
-      "Seedance 2.0 · 480P 推荐线路 1 / 2",
-      "Seedance 2.0 · 1080P / 4K 推荐线路",
-      "Seedance 2.0 · 720P 按条 / 最多 4 图线路",
-    ],
+    planGroup: "套餐选择 · 实时价目",
+    planDefault: "推荐",
+    planPerVideo: "积分/支",
+    planPerSecond: "积分/秒",
+    planInfoOnly: "本入口按推荐套餐提交",
+    planEmpty: "价目暂不可用,提交时按实时默认套餐",
     internalGroup: "内部诊断线路",
     byteplus: "BytePlus 国际 · Seedance 2.0",
     volcengine: "火山北京 · Seedance 2.0（显式锁定）",
@@ -80,26 +80,43 @@ const ROUTE_COPY = {
     directTitle: "Volcengine official · Seedance 2.0",
     directDescription: "Current production default · platform recovery rules apply",
     shuyuGroup: "Aivora generation route",
-    shuyuTitle: "Aivora video route · Seedance 2.0 · 720P",
-    shuyuDescription: "Text / image reference · 5–15s per shot · 900 points/video",
+    shuyuTitle: "Aivora video route · Seedance 2.0",
+    shuyuDescription: "Text / image reference · 5–15s per shot",
     shuyuEstimate: "Estimated {points} points/video · checked again before submit",
     available: "Connected",
     checking: "Checking",
     notConfigured: "Not configured",
     insufficient: "No balance",
     unavailable: "Unavailable",
-    workspaceGroup: "Other Seedance routes · not exposed by the public API",
-    workspaceOnly: "Visible in the partner workbench, unavailable to this API key",
-    workspaceRoutes: [
-      "Seedance 2.0 · 480P recommended routes 1 / 2",
-      "Seedance 2.0 · 1080P / 4K recommended routes",
-      "Seedance 2.0 · 720P per-job / up-to-4-image routes",
-    ],
+    planGroup: "Plan selection · live pricing",
+    planDefault: "Recommended",
+    planPerVideo: "points/video",
+    planPerSecond: "points/second",
+    planInfoOnly: "This entry submits on the recommended plan",
+    planEmpty: "Pricing unavailable; the live default plan applies at submit",
     internalGroup: "Internal diagnostic routes",
     byteplus: "BytePlus international · Seedance 2.0",
     volcengine: "Volcengine Beijing · Seedance 2.0 (explicit)",
   },
 } as const;
+
+export interface ShuyuPlanUiOption {
+  planId: string;
+  displayName: string;
+  resolution: "480P" | "720P";
+  billingUnit: "generation" | "second";
+  unitSalePoints: number;
+  isDefault: boolean;
+}
+
+export function shuyuPlanPointsPerVideo(
+  plan: ShuyuPlanUiOption,
+  durationSeconds: number,
+): number {
+  return plan.billingUnit === "generation"
+    ? plan.unitSalePoints
+    : plan.unitSalePoints * Math.max(1, Math.ceil(durationSeconds));
+}
 
 export function VideoRouteSelector({
   canSelectVideoRoute,
@@ -110,6 +127,9 @@ export function VideoRouteSelector({
   disabled,
   onChange,
   onSelectedAvailabilityChange,
+  planSelectable = false,
+  planValue = null,
+  onPlanChange,
 }: {
   canSelectVideoRoute: boolean;
   showInternalRoutes?: boolean;
@@ -119,9 +139,18 @@ export function VideoRouteSelector({
   disabled: boolean;
   onChange: (value: VideoRouteOverride) => void;
   onSelectedAvailabilityChange?: (available: boolean | null) => void;
+  /// true 时套餐可选并回传选择;false 时只展示实时价目(按默认套餐提交)。
+  planSelectable?: boolean;
+  planValue?: string | null;
+  onPlanChange?: (
+    planId: string | null,
+    pointsPerVideo: number | null,
+    plan?: ShuyuPlanUiOption | null,
+  ) => void;
 }) {
   const { locale } = useTranslation();
   const copy = ROUTE_COPY[locale];
+  const [plans, setPlans] = useState<ShuyuPlanUiOption[]>([]);
   const [resolvedShuyuStatus, setResolvedShuyuStatus] = useState(shuyuStatus);
   const [resolvedDirectAvailable, setResolvedDirectAvailable] = useState<
     boolean | null
@@ -156,6 +185,7 @@ export function VideoRouteSelector({
         setResolvedShuyuStatus(status.shuyu);
         setResolvedDirectAvailable(status.directAvailable);
         setResolvedDirectRoutes(status.directRoutes);
+        setPlans(status.plans);
         setStatusLoadFailed(false);
       })
       .catch((error: unknown) => {
@@ -191,6 +221,27 @@ export function VideoRouteSelector({
     value,
   ]);
 
+  /// 套餐有效性与报价回传:清单刷新后,已选套餐若已下架则回落默认并上报;
+  /// 非 buddy 线路一律回传 null(套餐只属于合作方线路)。
+  const selectedPlan =
+    value === "buddy" && plans.length > 0
+      ? (plans.find((plan) => plan.planId === planValue) ?? plans[0])
+      : null;
+  useEffect(() => {
+    if (!onPlanChange) return;
+    if (value !== "buddy" || plans.length === 0) {
+      onPlanChange(null, null, null);
+      return;
+    }
+    const effective =
+      plans.find((plan) => plan.planId === planValue) ?? plans[0];
+    onPlanChange(
+      effective.planId,
+      shuyuPlanPointsPerVideo(effective, durationSeconds),
+      effective,
+    );
+  }, [onPlanChange, value, planValue, durationSeconds, plans]);
+
   if (!canSelectVideoRoute) return null;
 
   const shuyuLabel = resolvedShuyuStatus === null
@@ -215,11 +266,13 @@ export function VideoRouteSelector({
   };
   const byteplusLabel = directRouteLabel("byteplus_international");
   const volcengineLabel = directRouteLabel("volcengine_cn_legacy");
-  const shuyuEstimate = copy.shuyuEstimate.replace(
-    "{points}",
-    "900",
-  );
-  const shuyuDescription = `${copy.shuyuDescription} · ${shuyuEstimate}`;
+  /// 报价随 /prices 实时解析;拿不到就不编数字,退回无价格描述。
+  const shuyuDescription = selectedPlan
+    ? `${copy.shuyuDescription} · ${copy.shuyuEstimate.replace(
+        "{points}",
+        shuyuPlanPointsPerVideo(selectedPlan, durationSeconds).toLocaleString(),
+      )}`
+    : copy.shuyuDescription;
   const selectedTitle = value === "buddy"
     ? copy.shuyuTitle
     : value === "byteplus_international"
@@ -317,25 +370,79 @@ export function VideoRouteSelector({
               </>
             ) : null}
           </DropdownMenuRadioGroup>
-          <DropdownMenuSeparator />
-          <DropdownMenuGroup>
-            <DropdownMenuLabel>{copy.workspaceGroup}</DropdownMenuLabel>
-            {copy.workspaceRoutes.map((routeName) => (
-              <DropdownMenuItem
-                key={routeName}
-                aria-disabled="true"
-                closeOnClick={false}
-                onClick={(event) => event.preventDefault()}
-                className="cursor-not-allowed items-start py-2.5 opacity-60"
-              >
-                <CircleAlert className="mt-0.5 size-4" aria-hidden />
-                <span className="min-w-0">
-                  <span className="block text-body font-medium text-foreground">{routeName}</span>
-                  <span className="mt-0.5 block text-meta text-muted-foreground">{copy.workspaceOnly}</span>
-                </span>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuGroup>
+          {value === "buddy" ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{copy.planGroup}</DropdownMenuLabel>
+                {plans.length === 0 ? (
+                  <DropdownMenuItem
+                    aria-disabled="true"
+                    closeOnClick={false}
+                    onClick={(event) => event.preventDefault()}
+                    className="cursor-default items-start py-2.5 opacity-60"
+                  >
+                    <CircleAlert className="mt-0.5 size-4" aria-hidden />
+                    <span className="text-meta text-muted-foreground">{copy.planEmpty}</span>
+                  </DropdownMenuItem>
+                ) : (
+                  plans.map((plan) => {
+                    const selected = selectedPlan?.planId === plan.planId;
+                    const unitLabel = plan.billingUnit === "generation"
+                      ? copy.planPerVideo
+                      : copy.planPerSecond;
+                    return (
+                      <DropdownMenuItem
+                        key={plan.planId}
+                        closeOnClick={false}
+                        aria-disabled={planSelectable ? undefined : "true"}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          if (planSelectable && onPlanChange) {
+                            onPlanChange(
+                              plan.planId,
+                              shuyuPlanPointsPerVideo(plan, durationSeconds),
+                              plan,
+                            );
+                          }
+                        }}
+                        className={cn(
+                          "items-start py-2.5",
+                          planSelectable ? "cursor-pointer" : "cursor-default",
+                          !selected && "opacity-70",
+                        )}
+                      >
+                        <CheckCircle2
+                          className={cn(
+                            "mt-0.5 size-4",
+                            selected
+                              ? "text-success"
+                              : "text-muted-foreground opacity-40",
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-body font-medium text-foreground">
+                            {plan.displayName}
+                            {plan.isDefault ? ` · ${copy.planDefault}` : ""}
+                          </span>
+                          <span className="mt-0.5 block truncate font-mono text-meta tabular-nums text-muted-foreground">
+                            {plan.resolution} · {plan.unitSalePoints.toLocaleString()} {unitLabel}
+                            {plan.billingUnit === "second"
+                              ? ` · ≈${shuyuPlanPointsPerVideo(plan, durationSeconds).toLocaleString()} ${copy.planPerVideo}`
+                              : ""}
+                          </span>
+                        </span>
+                      </DropdownMenuItem>
+                    );
+                  })
+                )}
+                {!planSelectable && plans.length > 0 ? (
+                  <p className="px-2 pb-1 pt-1 text-meta text-muted-foreground">{copy.planInfoOnly}</p>
+                ) : null}
+              </DropdownMenuGroup>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
     </div>
@@ -385,7 +492,37 @@ function readVideoRouteStatus(payload: unknown): VideoRouteUiStatus | null {
       available: route.available,
       reason: route.unavailableReason,
     },
+    plans: readShuyuPlanOptions(route.plans),
   };
+}
+
+/// plans 是 0803 新增字段;旧部署/异常 payload 缺失时容错为空数组,
+/// UI 落到「按实时默认套餐提交」的信息态,不阻塞线路选择。
+function readShuyuPlanOptions(value: unknown): ShuyuPlanUiOption[] {
+  if (!Array.isArray(value)) return [];
+  const options: ShuyuPlanUiOption[] = [];
+  for (const candidate of value) {
+    if (
+      !isRecord(candidate)
+      || typeof candidate.planId !== "string"
+      || typeof candidate.displayName !== "string"
+      || (candidate.resolution !== "480P" && candidate.resolution !== "720P")
+      || (candidate.billingUnit !== "generation" && candidate.billingUnit !== "second")
+      || typeof candidate.unitSalePoints !== "number"
+      || typeof candidate.isDefault !== "boolean"
+    ) {
+      continue;
+    }
+    options.push({
+      planId: candidate.planId,
+      displayName: candidate.displayName,
+      resolution: candidate.resolution,
+      billingUnit: candidate.billingUnit,
+      unitSalePoints: candidate.unitSalePoints,
+      isDefault: candidate.isDefault,
+    });
+  }
+  return options;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

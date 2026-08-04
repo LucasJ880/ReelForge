@@ -26,7 +26,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-loadEnvConfig(process.cwd());
+/// 强制按开发档加载（.env.local 优先），绝不读 .env.production.local ——
+/// 那份是线上快照（VIDEO_ENGINE_MOCK="true"），混进来会把真机验收判成 mock。
+loadEnvConfig(process.cwd(), true);
 
 const OUTPUT_DIR = resolve(process.cwd(), "tmp/brand-logo-e2e");
 const STATE_PATH = resolve(OUTPUT_DIR, "state.json");
@@ -153,7 +155,7 @@ function assertRealMode(): void {
   for (const flag of ["VIDEO_ENGINE_MOCK", "IMAGE_ENGINE_MOCK"]) {
     const value = process.env[flag]?.toLowerCase();
     if (value === "1" || value === "true" || value === "yes") {
-      throw new Error(`${flag} 已开启；本脚本只做真实出片验收，请关掉 mock。`);
+      throw new Error(`${flag}=${value} 已开启；本脚本只做真实出片验收，请关掉 mock。`);
     }
   }
   for (const key of ["SHUYU_API_KEY", "BYTEPLUS_ARK_API_KEY", "BLOB_READ_WRITE_TOKEN"]) {

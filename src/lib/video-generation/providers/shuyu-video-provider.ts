@@ -1,10 +1,15 @@
 import {
   getShuyuVideoTask,
   SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_POINTS_PER_GENERATION,
   shuyuApiKey,
   createShuyuVideoTask,
+  isShuyuVideoPlanCoolingDown,
+  markShuyuVideoPlanRejected,
+  resolveShuyuVideoPlans,
+  resolveShuyuVideoPlanWithCooldown,
+  shuyuVideoPlanPointsForDuration,
   ShuyuApiError,
+  type AuditedShuyuVideoPlan,
   type ShuyuFetchOptions,
 } from "@/lib/providers/shuyu";
 import { ProviderSubmissionError } from "./submission-error";
@@ -117,42 +122,111 @@ export class ShuyuVideoProvider implements VideoProvider {
       );
     }
 
-    const availability = await getShuyuRouteRuntimeAvailability({
-      ...this.options,
-      requiredPoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
-    });
-    if (!availability.available) {
-      const transientFailure = [
-        "rate_limited",
-        "timeout",
-        "upstream_unavailable",
-      ].includes(availability.reason ?? "");
+    /// 套餐从 /prices 动态解析:默认取审计清单首位(最便宜的 720P,跳过
+    /// 提交被拒后处于冷却中的套餐);调用方显式指定的套餐必须在审计清单内,
+    /// 否则 fail-closed,且显式选择绝不静默替换。
+    const explicitPlanId = options.providerPlanId?.trim() || null;
+    let plan: AuditedShuyuVideoPlan;
+    try {
+      plan = await resolveShuyuVideoPlanWithCooldown({
+        ...this.options,
+        planId: explicitPlanId,
+      });
+    } catch (error) {
       throw new ProviderSubmissionError(
-        availability.reason === "insufficient_balance"
-          ? "Shuyu provider balance is insufficient"
-          : "Shuyu provider route is not ready",
+        error instanceof Error
+          ? error.message
+          : "No audited Shuyu video plan is available",
         {
           providerId: this.id,
           stage: "preflight",
-          code: availability.reason ?? undefined,
-          retryable: transientFailure,
+          retryable:
+            error instanceof ShuyuApiError && error.code !== "not_found",
+          cause: error,
         },
       );
+    }
+    const availability = await getShuyuRouteRuntimeAvailability({
+      ...this.options,
+      requiredPoints: shuyuVideoPlanPointsForDuration(plan, duration),
+    });
+    if (!availability.available) {
+      /// 预检只拦「确定性不可用」:余额不足/未配置/价目失配/鉴权拒绝。
+      /// 探针自身抖动(超时/限流/残缺响应)不判死——提交才是真探针,
+      /// 幂等键保证重复提交安全;0804 真机:探针瞬时失败连环误杀了
+      /// 三条本可成功的任务。
+      const definitiveBlock = [
+        "insufficient_balance",
+        "not_configured",
+        "price_contract_mismatch",
+        "authentication_rejected",
+      ].includes(availability.reason ?? "");
+      if (definitiveBlock) {
+        throw new ProviderSubmissionError(
+          availability.reason === "insufficient_balance"
+            ? "Shuyu provider balance is insufficient"
+            : `Shuyu provider route is not ready (${availability.reason})`,
+          {
+            providerId: this.id,
+            stage: "preflight",
+            code: availability.reason ?? undefined,
+            retryable: false,
+          },
+        );
+      }
+      console.warn("[shuyu] availability probe flaky; proceeding to submit", {
+        reason: availability.reason,
+      });
     }
 
     /// Shuyu 代理会拒绝显式 generate_audio 字段，因此不把 options.generateAudio
     /// 写入请求体。原生口播意图已经包含在 prompt 的 Dialogue / Audio 指令里；
     /// 历史原始成片证明代理在省略开关时仍可返回自带音轨的视频。
-    const created = await createShuyuVideoTask({
-      ...this.options,
-      providerRequestKey: requestKey,
-      model: this.model,
-      prompt,
-      duration,
-      aspectRatio: options.aspectRatio ?? "9:16",
-      inputImages,
-    });
-    return { providerJobId: created.taskId, providerId: this.id };
+    /// 提交级套餐降级:/prices 说 available 的套餐仍可能在提交时被
+    /// 「video option is unavailable」拒绝(0804 真机:限时特价档大面积拒单)。
+    /// 默认套餐被拒 → 冷却该套餐并按顺位换下一档重试(至多 3 档);
+    /// 显式选择的套餐被拒 → 如实失败,不做静默替换。
+    const attemptedPlanIds: string[] = [];
+    for (;;) {
+      try {
+        const created = await createShuyuVideoTask({
+          ...this.options,
+          providerRequestKey: requestKey,
+          model: this.model,
+          planId: plan.planId,
+          prompt,
+          duration,
+          aspectRatio: options.aspectRatio ?? "9:16",
+          inputImages,
+        });
+        return {
+          providerJobId: created.taskId,
+          providerId: this.id,
+          providerPlanId: plan.planId,
+          providerUnitPoints: shuyuVideoPlanPointsForDuration(plan, duration),
+        };
+      } catch (error) {
+        const optionUnavailable =
+          error instanceof ProviderSubmissionError &&
+          /video option is unavailable/i.test(error.message);
+        if (!optionUnavailable || explicitPlanId) throw error;
+        markShuyuVideoPlanRejected(plan.planId);
+        attemptedPlanIds.push(plan.planId);
+        if (attemptedPlanIds.length >= 3) throw error;
+        const plans = await resolveShuyuVideoPlans(this.options);
+        const next = plans.find(
+          (candidate) =>
+            !attemptedPlanIds.includes(candidate.planId) &&
+            !isShuyuVideoPlanCoolingDown(candidate.planId),
+        );
+        if (!next) throw error;
+        console.warn("[shuyu] plan rejected at submit; falling back", {
+          from: plan.planId,
+          to: next.planId,
+        });
+        plan = next;
+      }
+    }
   }
 
   async getVideoJobStatus(

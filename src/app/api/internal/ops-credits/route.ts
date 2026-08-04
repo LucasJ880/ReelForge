@@ -4,9 +4,8 @@ import { db } from "@/lib/db";
 import { opsCreditsResponseSchema } from "@/lib/contracts/ops-credits";
 import {
   getShuyuBalance,
-  SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_POINTS_PER_GENERATION,
-  SHUYU_VIDEO_RESOLUTION,
+  resolveShuyuVideoPlan,
+  shuyuVideoPlanPointsForDuration,
   ShuyuApiError,
 } from "@/lib/providers/shuyu";
 
@@ -15,8 +14,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * Internal-only credits snapshot for the ops topbar.
- * 今日消耗 = 今日创建且走 buddy 线路的 VideoJob 数 × 单条计价（近似值，
- * 与供应商账单以 Shuyu 后台为准）。
+ * 今日消耗 = 今日创建且走 buddy 线路的 VideoJob 各自的计价快照之和
+ * (providerUnitPoints 在任务创建时按实时套餐落列;历史无快照行不计入,
+ * 近似值,与供应商账单以 Shuyu 后台为准)。
  */
 export async function GET() {
   const auth = await requireOperator();
@@ -24,24 +24,28 @@ export async function GET() {
   try {
     const startOfTodayUtc = new Date();
     startOfTodayUtc.setUTCHours(0, 0, 0, 0);
-    const [balance, todayBuddyJobs] = await Promise.all([
+    const [balance, todaySpent, defaultPlan] = await Promise.all([
       getShuyuBalance(),
-      db.videoJob.count({
+      db.videoJob.aggregate({
+        _sum: { providerUnitPoints: true },
         where: {
           videoRouteSnapshot: "buddy",
           createdAt: { gte: startOfTodayUtc },
         },
       }),
+      resolveShuyuVideoPlan(),
     ]);
     return NextResponse.json(
       opsCreditsResponseSchema.parse({
         ok: true,
         availablePoints: balance.available_points,
-        todaySpentPoints: todayBuddyJobs * SHUYU_VIDEO_POINTS_PER_GENERATION,
+        todaySpentPoints: todaySpent._sum.providerUnitPoints ?? 0,
         videoPlan: {
-          model: SHUYU_VIDEO_MODEL,
-          resolution: SHUYU_VIDEO_RESOLUTION,
-          salePoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
+          model: defaultPlan.model,
+          resolution: defaultPlan.resolution,
+          /// 展示口径:一条 15s 成片的有效积分成本(按秒套餐乘 15)。
+          /// 套餐解析不到时整个请求走 502——宁可显示不可用也不显示过期假价。
+          salePoints: shuyuVideoPlanPointsForDuration(defaultPlan, 15),
         },
         fetchedAt: new Date().toISOString(),
       }),

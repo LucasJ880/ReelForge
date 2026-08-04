@@ -33,6 +33,7 @@ interface CachedProbe {
 
 const CACHE_TTL_MS = 30_000;
 let cachedProbe: CachedProbe | null = null;
+let inflightProbe: Promise<CachedProbe> | null = null;
 
 function mapFailure(error: unknown): ShuyuRouteUnavailableReason {
   if (error instanceof ShuyuApiError) {
@@ -59,7 +60,9 @@ async function runProbe(options: ShuyuFetchOptions): Promise<CachedProbe> {
     };
   } catch (error) {
     return {
-      expiresAt: Date.now() + CACHE_TTL_MS,
+      /// 失败结果只缓存 5s:一次抖动若按满 TTL 缓存,会让同波后续提交
+      /// 全部吃到陈旧的「not ready」直接终态失败(0804 真机)。
+      expiresAt: Date.now() + 5_000,
       contractReady: false,
       availablePoints: 0,
       failure: mapFailure(error),
@@ -88,10 +91,21 @@ export async function getShuyuRouteRuntimeAvailability(
   }
 
   const useCache = args.useCache !== false && !args.fetchImpl && !args.env;
-  const probe =
-    useCache && cachedProbe && cachedProbe.expiresAt > Date.now()
-      ? cachedProbe
-      : await runProbe(args);
+  /// single-flight:批量一波并发提交时只跑一次探针(/prices + /balance),
+  /// 冷缓存下 N 个并发首扑会被上游抖动/限流放大成终态失败(0804 真机)。
+  let probe: CachedProbe;
+  if (useCache && cachedProbe && cachedProbe.expiresAt > Date.now()) {
+    probe = cachedProbe;
+  } else if (useCache) {
+    if (!inflightProbe) {
+      inflightProbe = runProbe(args).finally(() => {
+        inflightProbe = null;
+      });
+    }
+    probe = await inflightProbe;
+  } else {
+    probe = await runProbe(args);
+  }
   if (useCache) cachedProbe = probe;
   if (!probe.contractReady) {
     return {

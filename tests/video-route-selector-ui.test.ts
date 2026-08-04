@@ -49,7 +49,6 @@ test("only audited public routes can be selected and dispatch keeps the route in
   assert.match(selector, /value="volcengine_cn_legacy"/);
   assert.match(selector, /value="buddy"/);
   assert.match(selector, /\/api\/video-generation\/routes/);
-  assert.match(selector, /公开 API 未开放/);
   assert.match(selector, /showInternalRoutes/);
   assert.match(selector, /resolvedDirectRoutes\?\.byteplus_international/);
   assert.match(selector, /resolvedDirectRoutes\?\.volcengine_cn_legacy/);
@@ -69,12 +68,16 @@ test("only audited public routes can be selected and dispatch keeps the route in
   assert.equal(parseVideoRouteOverride("attacker-controlled-route"), "");
 });
 
-test("route copy names both interfaces and marks workbench-only Seedance lines in both languages", async () => {
+test("route copy names both interfaces and exposes the live plan group in both languages", async () => {
   const selector = await readFile("src/components/video-generation/video-route-selector.tsx", "utf8");
   assert.match(selector, /火山官方接口/);
   assert.match(selector, /Aivora 视频通道/);
-  assert.match(selector, /其它 Seedance 线路/);
+  /// 0804 起「工作台可见但不可调用」死清单被实时套餐组取代:
+  /// 套餐来自 /prices 审计清单,可选且带实时价,不再硬编码 900 或任何套餐名。
+  assert.match(selector, /套餐选择 · 实时价目/);
+  assert.match(selector, /Plan selection · live pricing/);
+  assert.doesNotMatch(selector, /其它 Seedance 线路/);
+  assert.doesNotMatch(selector, /900 积分/);
   assert.match(selector, /Volcengine official/);
   assert.match(selector, /Aivora video route/);
-  assert.match(selector, /not exposed by the public API/);
 });

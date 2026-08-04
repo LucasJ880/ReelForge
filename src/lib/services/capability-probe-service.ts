@@ -3,12 +3,10 @@ import { db } from "@/lib/db";
 import {
   getShuyuPrices,
   isAuditedShuyuVideoPlan,
+  resolveShuyuVideoPlan,
   shuyuPriceSchema,
-  SHUYU_VIDEO_PLAN_ID,
+  shuyuVideoPlanPointsForDuration,
   SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_BILLING_UNIT,
-  SHUYU_VIDEO_RESOLUTION,
-  SHUYU_VIDEO_POINTS_PER_GENERATION,
 } from "@/lib/providers/shuyu";
 
 /**
@@ -41,19 +39,13 @@ export type ProbeResult = {
   probedAt: Date;
 };
 
-/** 期望契约，与 isAuditedShuyuVideoPlan 的判据一一对应。 */
+/** 期望契约，与 auditShuyuVideoPlan 的语义判据一一对应(0803 起不钉 plan_id/单价)。 */
 const EXPECTED: Array<{
   field: string;
   expected: string;
   actual: (plan: ShuyuPlan) => string;
   matches: (plan: ShuyuPlan) => boolean;
 }> = [
-  {
-    field: "plan_id",
-    expected: SHUYU_VIDEO_PLAN_ID,
-    actual: (plan) => plan.plan_id,
-    matches: (plan) => plan.plan_id === SHUYU_VIDEO_PLAN_ID,
-  },
   {
     field: "model",
     expected: SHUYU_VIDEO_MODEL,
@@ -62,23 +54,27 @@ const EXPECTED: Array<{
   },
   {
     field: "unit",
-    expected: SHUYU_VIDEO_BILLING_UNIT,
+    expected: "generation 或 second",
     actual: (plan) => plan.unit,
-    matches: (plan) => plan.unit === SHUYU_VIDEO_BILLING_UNIT,
+    matches: (plan) => plan.unit === "generation" || plan.unit === "second",
   },
   {
     field: "resolution",
-    expected: SHUYU_VIDEO_RESOLUTION,
+    expected: "720P 或 480P",
     actual: (plan) => plan.resolution,
-    matches: (plan) => plan.resolution === SHUYU_VIDEO_RESOLUTION,
+    matches: (plan) =>
+      plan.resolution === "720P" || plan.resolution === "480P",
   },
   {
-    /// 计价漂移最危险：审计写死 900 分，上游调价会让「按 900 计价却扣别的分」。
+    /// 计价漂移最危险:实际扣分随 /prices 走,这里只守健全区间——
+    /// 越界(疯涨/疑似错价)会让审计不过并阻断线路,而不是照单扣。
     field: "sale_points",
-    expected: String(SHUYU_VIDEO_POINTS_PER_GENERATION),
-    actual: (plan) => String(plan.sale_points),
+    expected: "按条 100-2000 / 按秒 10-300",
+    actual: (plan) => `${plan.sale_points}/${plan.unit}`,
     matches: (plan) =>
-      plan.sale_points === SHUYU_VIDEO_POINTS_PER_GENERATION,
+      plan.unit === "generation"
+        ? plan.sale_points >= 100 && plan.sale_points <= 2_000
+        : plan.sale_points >= 10 && plan.sale_points <= 300,
   },
   {
     field: "status",
@@ -119,11 +115,11 @@ const EXPECTED: Array<{
   },
   {
     field: "quality",
-    expected: "720P 或缺省",
+    expected: "与 resolution 一致或缺省",
     actual: (plan) => plan.capabilities.quality ?? "(缺省)",
     matches: (plan) =>
-      plan.capabilities.quality === SHUYU_VIDEO_RESOLUTION ||
-      plan.capabilities.quality === undefined,
+      plan.capabilities.quality === undefined ||
+      plan.capabilities.quality === plan.resolution,
   },
 ];
 
@@ -164,9 +160,8 @@ export function diagnoseDrift(plans: ShuyuPlan[]): {
     return { auditedPlanFound: true, videoPlansGone: false, drifts: [] };
   }
 
-  /// 找最像的候选：先按 plan_id，再按 model，最后拿第一个。
+  /// 找最像的候选：先按 model 家族，最后拿第一个(plan_id 轮换是常态,不参与匹配)。
   const candidate =
-    videoPlans.find((plan) => plan.plan_id === SHUYU_VIDEO_PLAN_ID) ??
     videoPlans.find((plan) => plan.model === SHUYU_VIDEO_MODEL) ??
     videoPlans[0];
 
@@ -240,7 +235,13 @@ export async function currentRouteSummary(): Promise<string> {
     orderBy: { probedAt: "desc" },
   });
   if (!latest || latest.ok) {
-    return `当前线路：Shuyu studio-video · 每条约 ${SHUYU_VIDEO_POINTS_PER_GENERATION} 积分`;
+    /// 报价随 /prices 实时解析;解析不到时不编数字。
+    try {
+      const plan = await resolveShuyuVideoPlan();
+      return `当前线路：Shuyu ${plan.model} · 每条约 ${shuyuVideoPlanPointsForDuration(plan, 15)} 积分`;
+    } catch {
+      return "当前线路：Shuyu studio-video";
+    }
   }
   return "主线路能力异常，已自动切换备用线路；生成可能稍慢";
 }

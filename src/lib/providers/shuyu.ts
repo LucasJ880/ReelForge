@@ -8,6 +8,9 @@ import {
 
 export const SHUYU_API_BASE_URL =
   "https://shuyu-tiktok-tool.pages.dev/api/v1" as const;
+/// ⚠️ LEGACY(2026-08-03 起):plan_id 与单价由 /prices 动态解析(见下方
+/// auditShuyuVideoPlan 族),这些常量只作为历史批次对账参照与极端兜底,
+/// **不再是**提交或审计的依据。0803 真机:video-plan-02 已从价目表下架。
 export const SHUYU_VIDEO_PLAN_ID = "video-plan-02" as const;
 export const SHUYU_VIDEO_MODEL = "studio-video" as const;
 export const SHUYU_VIDEO_RESOLUTION = "720P" as const;
@@ -251,36 +254,235 @@ export function shuyuApiKey(
   return env.SHUYU_API_KEY?.trim() || env.shuyu_api_key?.trim() || null;
 }
 
+/**
+ * 语义化视频套餐审计(2026-08-03 起取代「钉死 plan_id + 单价」)。
+ *
+ * 背景:合作方套餐 ID 与定价会整体轮换——0803 真机:`video-plan-02`
+ * (900 分/条)从 /prices 下架,出现 700 分/条限时档与 88/104 分/秒新档,
+ * 钉死 ID 的审计把一次正常调价误判成了整条线路停机。
+ *
+ * 新审计只锁**语义边界**:studio-video 家族、720P/480P、9:16 等全画幅、
+ * image2video+text2video、支持 15s、参考图 ≥4、单价落在健全区间。
+ * 实际扣分仍以 /prices 实时价为准并写入任务计价快照——不存在
+ * 「按旧价预估、按新价扣分」的静默漂移,价格越界会直接审计不过。
+ */
+export interface AuditedShuyuVideoPlan {
+  planId: string;
+  model: typeof SHUYU_VIDEO_MODEL;
+  displayName: string;
+  resolution: "480P" | "720P";
+  billingUnit: "generation" | "second";
+  /** /prices 实时销售价(按 billingUnit 计)。 */
+  unitSalePoints: number;
+  inputImagesMax: number;
+}
+
+const VIDEO_PLAN_POINT_SANITY = {
+  generation: { min: 100, max: 2_000 },
+  second: { min: 10, max: 300 },
+} as const;
+
+export function auditShuyuVideoPlan(
+  plan: z.infer<typeof shuyuPriceSchema>,
+): AuditedShuyuVideoPlan | null {
+  if (plan.kind !== "video") return null;
+  if (plan.model !== SHUYU_VIDEO_MODEL) return null;
+  if (plan.status !== "available") return null;
+  if (plan.unit !== "generation" && plan.unit !== "second") return null;
+  const resolution =
+    plan.resolution === "720P" || plan.resolution === "480P"
+      ? plan.resolution
+      : null;
+  if (!resolution) return null;
+  if (
+    plan.capabilities.quality !== undefined &&
+    plan.capabilities.quality !== resolution
+  ) {
+    return null;
+  }
+  const bounds = VIDEO_PLAN_POINT_SANITY[plan.unit];
+  if (plan.sale_points < bounds.min || plan.sale_points > bounds.max) {
+    return null;
+  }
+  /// 我方批量/单条最多送 4 张参考图;不再要求满 9(0728 漂移期曾降到 4)。
+  if (plan.capabilities.input_images_max < 4) return null;
+  const ratios = plan.capabilities.aspect_ratios;
+  if (
+    !ratios.includes("9:16") ||
+    !ratios.includes("16:9") ||
+    !ratios.includes("1:1")
+  ) {
+    return null;
+  }
+  if (!(plan.capabilities.modes?.includes("image2video") ?? false)) return null;
+  if (!(plan.capabilities.modes?.includes("text2video") ?? false)) return null;
+  // Live /prices may omit frames2video; image2video is the SunnyShutter path.
+  if (!(plan.capabilities.durations?.includes(15) ?? false)) return null;
+  return {
+    planId: plan.plan_id,
+    model: SHUYU_VIDEO_MODEL,
+    displayName: plan.display_name,
+    resolution,
+    billingUnit: plan.unit,
+    unitSalePoints: plan.sale_points,
+    inputImagesMax: plan.capabilities.input_images_max,
+  };
+}
+
 export function isAuditedShuyuVideoPlan(
   plan: z.infer<typeof shuyuPriceSchema>,
 ): boolean {
-  return (
-    plan.plan_id === SHUYU_VIDEO_PLAN_ID &&
-    plan.kind === "video" &&
-    plan.model === SHUYU_VIDEO_MODEL &&
-    plan.unit === SHUYU_VIDEO_BILLING_UNIT &&
-    plan.resolution === SHUYU_VIDEO_RESOLUTION &&
-    plan.sale_points === SHUYU_VIDEO_POINTS_PER_GENERATION &&
-    plan.status === "available" &&
-    (plan.capabilities.quality === SHUYU_VIDEO_RESOLUTION ||
-      plan.capabilities.quality === undefined) &&
-    plan.capabilities.input_images_max >= 9 &&
-    plan.capabilities.aspect_ratios.includes("9:16") &&
-    plan.capabilities.aspect_ratios.includes("16:9") &&
-    plan.capabilities.aspect_ratios.includes("1:1") &&
-    (plan.capabilities.modes?.includes("text2video") ?? false) &&
-    (plan.capabilities.modes?.includes("image2video") ?? false) &&
-    // Live /prices may omit frames2video; image2video is the SunnyShutter path.
-    (plan.capabilities.durations?.includes(15) ?? false)
-  );
+  return auditShuyuVideoPlan(plan) !== null;
 }
 
-/** Locate the audited video plan among a multi-plan price list. */
+/** 一条成片在该套餐下的实际积分成本(按条计费返回单价,按秒计费乘时长)。 */
+export function shuyuVideoPlanPointsForDuration(
+  plan: AuditedShuyuVideoPlan,
+  durationSec: number,
+): number {
+  if (plan.billingUnit === "generation") return plan.unitSalePoints;
+  return plan.unitSalePoints * Math.max(1, Math.ceil(durationSec));
+}
+
+/**
+ * 审计通过的套餐排序:720P 优先(模板质量底线),同分辨率按 15s 有效成本
+ * 升序,并列时按条计费优先(总价确定、无时长歧义),最后按 plan_id 稳定排序。
+ * 列表第一个即默认套餐。
+ */
+export function listAuditedShuyuVideoPlans(
+  plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
+): AuditedShuyuVideoPlan[] {
+  return plans
+    .map(auditShuyuVideoPlan)
+    .filter((plan): plan is AuditedShuyuVideoPlan => plan !== null)
+    .sort((left, right) => {
+      if (left.resolution !== right.resolution) {
+        return left.resolution === "720P" ? -1 : 1;
+      }
+      const leftCost = shuyuVideoPlanPointsForDuration(left, 15);
+      const rightCost = shuyuVideoPlanPointsForDuration(right, 15);
+      if (leftCost !== rightCost) return leftCost - rightCost;
+      if (left.billingUnit !== right.billingUnit) {
+        return left.billingUnit === "generation" ? -1 : 1;
+      }
+      return left.planId.localeCompare(right.planId);
+    });
+}
+
+/** Locate the default audited video plan among a multi-plan price list. */
 export function findAuditedShuyuVideoPlan(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
 ): z.infer<typeof shuyuPriceSchema> | undefined {
-  return plans.find((plan) => plan.kind === "video" && isAuditedShuyuVideoPlan(plan));
+  const ranked = listAuditedShuyuVideoPlans(plans);
+  if (ranked.length === 0) return undefined;
+  return plans.find((plan) => plan.plan_id === ranked[0].planId);
 }
+
+const VIDEO_PLAN_CACHE_TTL_MS = 60_000;
+let videoPlanCache: { at: number; plans: AuditedShuyuVideoPlan[] } | null = null;
+let videoPlanInflight: Promise<AuditedShuyuVideoPlan[]> | null = null;
+
+/**
+ * 实时(60s 缓存)读取审计通过的视频套餐清单,默认套餐在首位。
+ * single-flight:批量一波 6 个任务并发提交时只发一次 /prices,
+ * 否则冷缓存瞬时打出 6+ 个请求会被上游抖动/限流放大成终态失败
+ * (0804 真机:两条任务因并发风暴报 route not ready)。
+ */
+export async function resolveShuyuVideoPlans(
+  options: ShuyuFetchOptions = {},
+): Promise<AuditedShuyuVideoPlan[]> {
+  const now = Date.now();
+  if (videoPlanCache && now - videoPlanCache.at <= VIDEO_PLAN_CACHE_TTL_MS) {
+    return videoPlanCache.plans;
+  }
+  if (!videoPlanInflight) {
+    videoPlanInflight = (async () => {
+      try {
+        const prices = await getShuyuPrices(options);
+        const plans = listAuditedShuyuVideoPlans(
+          prices.data.filter((plan) => plan.kind === "video"),
+        );
+        videoPlanCache = { at: Date.now(), plans };
+        return plans;
+      } finally {
+        videoPlanInflight = null;
+      }
+    })();
+  }
+  return videoPlanInflight;
+}
+
+/** 解析指定/默认视频套餐;指定 ID 不在审计清单内一律拒绝(fail-closed)。 */
+export async function resolveShuyuVideoPlan(
+  args: { planId?: string | null } & ShuyuFetchOptions = {},
+): Promise<AuditedShuyuVideoPlan> {
+  const plans = await resolveShuyuVideoPlans(args);
+  if (plans.length === 0) {
+    throw new ShuyuApiError(
+      "No audited Shuyu video plan is currently available",
+      "not_found",
+      200,
+    );
+  }
+  const requested = args.planId?.trim();
+  if (!requested) return plans[0];
+  const match = plans.find((plan) => plan.planId === requested);
+  if (!match) {
+    throw new ShuyuApiError(
+      `Shuyu video plan ${requested} is not in the audited available list`,
+      "not_found",
+      200,
+    );
+  }
+  return match;
+}
+
+/**
+ * 提交级套餐冷却:/prices 声称 available 的套餐可能在提交时被
+ * 「The requested video option is unavailable」拒绝(0804 真机:限时特价档
+ * 大面积拒单)。被拒套餐进入短冷却,默认解析自动跳过;显式指定不受冷却
+ * 影响(用户明确要它就如实尝试、如实失败)。
+ */
+const PLAN_REJECT_COOLDOWN_MS = 10 * 60_000;
+const rejectedPlanUntil = new Map<string, number>();
+
+export function markShuyuVideoPlanRejected(planId: string): void {
+  rejectedPlanUntil.set(planId, Date.now() + PLAN_REJECT_COOLDOWN_MS);
+}
+
+export function isShuyuVideoPlanCoolingDown(planId: string): boolean {
+  const until = rejectedPlanUntil.get(planId);
+  if (!until) return false;
+  if (until <= Date.now()) {
+    rejectedPlanUntil.delete(planId);
+    return false;
+  }
+  return true;
+}
+
+/** 默认解析顺位中跳过冷却套餐;全部在冷却时回退到完整清单(总比直接拒好)。 */
+export async function resolveShuyuVideoPlanWithCooldown(
+  args: { planId?: string | null } & ShuyuFetchOptions = {},
+): Promise<AuditedShuyuVideoPlan> {
+  if (args.planId?.trim()) return resolveShuyuVideoPlan(args);
+  const plans = await resolveShuyuVideoPlans(args);
+  if (plans.length === 0) {
+    throw new ShuyuApiError(
+      "No audited Shuyu video plan is currently available",
+      "not_found",
+      200,
+    );
+  }
+  const warm = plans.filter((plan) => !isShuyuVideoPlanCoolingDown(plan.planId));
+  return (warm[0] ?? plans[0]);
+}
+
+export const __testVideoPlans__ = {
+  resetVideoPlanCache: () => {
+    videoPlanCache = null;
+    rejectedPlanUntil.clear();
+  },
+};
 
 function timeoutMs(value: number | undefined): number {
   // Cap raised to 45s so the video-submit path can request a longer ack window

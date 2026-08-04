@@ -17,6 +17,8 @@ export const batchCreateRequestSchema = z.object({
   videoRouteId: z
     .enum(["byteplus_international", "volcengine_cn_legacy", "buddy"])
     .optional(),
+  /// 合作方线路的套餐选择(0803 多套餐);必须在实时审计清单内,省略 = 默认套餐。
+  videoPlanId: z.string().trim().min(1).max(200).optional(),
   /// 批次级后期（口播 / BGM / 字幕），整批共用；省略 = 输出干净视频。
   postProduction: batchPostProductionSchema.optional(),
 }).strict();

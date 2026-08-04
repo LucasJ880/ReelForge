@@ -11,14 +11,16 @@ export const shuyuRouteUnavailableReasons = [
   "price_contract_mismatch",
 ] as const;
 
+/// 0803 起套餐 ID/单价随 /prices 轮换,契约只锁语义边界(与 auditShuyuVideoPlan
+/// 一致):studio-video 家族、按条或按秒计费、720P/480P、价格在健全区间。
 export const shuyuVideoPlanSchema = z
   .object({
-    planId: z.literal("video-plan-02"),
+    planId: z.string().min(1).max(200),
     kind: z.literal("video"),
     model: z.literal("studio-video"),
-    unit: z.literal("generation"),
-    resolution: z.literal("720P"),
-    salePoints: z.literal(900),
+    unit: z.enum(["generation", "second"]),
+    resolution: z.enum(["720P", "480P"]),
+    salePoints: z.number().int().positive().max(2_000),
   })
   .strict();
 

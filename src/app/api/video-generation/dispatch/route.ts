@@ -43,7 +43,10 @@ import {
   VideoRouteSelectionError,
 } from "@/lib/video-generation/video-route-selection";
 import type { VideoRouteSnapshot } from "@/lib/video-generation/video-route-registry";
-import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
+import {
+  resolveShuyuVideoPlan,
+  shuyuVideoPlanPointsForDuration,
+} from "@/lib/providers/shuyu";
 import {
   MediaAssetNotFoundError,
   resolveOwnedCreationRequest,
@@ -513,12 +516,25 @@ export async function POST(req: NextRequest) {
   // The idempotency claim/replay decision intentionally precedes the live
   // provider check: a completed request must replay its persisted response even
   // if the provider later runs out of points or becomes unavailable.
+  /// 买断制线路按实时审计套餐估算积分需求(0803 起套餐/价格由 /prices 动态解析)。
+  let buddyPerVideoPoints: number | undefined;
+  if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
+    try {
+      const plan = await resolveShuyuVideoPlan();
+      buddyPerVideoPoints = shuyuVideoPlanPointsForDuration(
+        plan,
+        request.selectedDuration ?? 15,
+      );
+    } catch {
+      buddyPerVideoPoints = undefined;
+    }
+  }
   const selectedRouteAvailability =
     await getVideoRouteSnapshotRuntimeAvailability({
       snapshot: videoRouteSnapshot,
       shuyuRequiredPoints:
-        videoRouteSnapshot.videoRouteSnapshot === "buddy"
-          ? batchCount * SHUYU_VIDEO_POINTS_PER_GENERATION
+        buddyPerVideoPoints !== undefined
+          ? batchCount * buddyPerVideoPoints
           : undefined,
     });
   if (!selectedRouteAvailability.available) {

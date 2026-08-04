@@ -31,6 +31,16 @@ export const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || "missing-openai-api-key",
 });
 
+/**
+ * 调用前从 env 惰性刷新 key。独立脚本(验收/样片)通常在 import 之后才
+ * loadEnvConfig,模块加载时单例会捕获占位 key,导致 frame-QA 等门禁 401
+ * 后 fail-open(0803 真机复现)。对象身份保持不变,unit test 的 mock seam 不受影响。
+ */
+function refreshOpenAiKeyFromEnv(): void {
+  const key = process.env.OPENAI_API_KEY?.trim();
+  if (key && openai.apiKey !== key) openai.apiKey = key;
+}
+
 export type OpenAITier =
   | "director"
   | "script"
@@ -249,6 +259,7 @@ export async function chatJson<T = unknown>(
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY 未配置");
   }
+  refreshOpenAiKeyFromEnv();
 
   const model = options.model || resolveModelForTier("fast");
   const tokenLimit = buildTokenLimitParam(model, options.maxTokens ?? 3500);
@@ -370,6 +381,7 @@ export async function analyzeImages(
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY 未配置");
   }
+  refreshOpenAiKeyFromEnv();
 
   const visionModel = resolveModelForTier("vision");
   const imageContent = imageUrls.slice(0, 8).map((url) => ({

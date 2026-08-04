@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
 import { publicVideoRouteOptionsResponseSchema } from "@/lib/contracts/video-route-options";
 import {
+  resolveShuyuVideoPlans,
+  shuyuVideoPlanPointsForDuration,
   SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_POINTS_PER_GENERATION,
   SHUYU_VIDEO_RESOLUTION,
 } from "@/lib/providers/shuyu";
 import { getShuyuRouteRuntimeAvailability } from "@/lib/video-generation/shuyu-runtime";
@@ -17,9 +18,17 @@ export async function GET(req: NextRequest) {
   if (!guard.ok) return guard.response;
 
   void req;
+  /// 套餐清单与可用性同源(/prices 60s 缓存);清单为空时线路探针会给出
+  /// price_contract_mismatch,这里不重复造原因。
+  const plans = await resolveShuyuVideoPlans({ timeoutMs: 3_000 }).catch(
+    () => [],
+  );
+  const defaultPlan = plans[0];
   const shuyu = await getShuyuRouteRuntimeAvailability({
     timeoutMs: 3_000,
-    requiredPoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
+    requiredPoints: defaultPlan
+      ? shuyuVideoPlanPointsForDuration(defaultPlan, 15)
+      : undefined,
   });
 
   return NextResponse.json(
@@ -31,12 +40,21 @@ export async function GET(req: NextRequest) {
           id: "buddy",
           provider: "shuyu",
           displayName: "Aivora 视频通道 · Seedance 720P",
-          model: SHUYU_VIDEO_MODEL,
-          resolution: SHUYU_VIDEO_RESOLUTION,
+          model: defaultPlan?.model ?? SHUYU_VIDEO_MODEL,
+          resolution: defaultPlan?.resolution ?? SHUYU_VIDEO_RESOLUTION,
           configured: shuyu.configured,
           funded: shuyu.funded,
           available: shuyu.available,
           unavailableReason: shuyu.reason,
+          plans: plans.map((plan, index) => ({
+            planId: plan.planId,
+            displayName: plan.displayName,
+            resolution: plan.resolution,
+            billingUnit: plan.billingUnit,
+            unitSalePoints: plan.unitSalePoints,
+            pointsPer15s: shuyuVideoPlanPointsForDuration(plan, 15),
+            isDefault: index === 0,
+          })),
         },
       ],
     }),

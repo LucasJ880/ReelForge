@@ -43,6 +43,8 @@ export interface CreateVideoJobOptions {
   resolution?: string;
   /// 显式覆盖模型（如 doubao-seedance-2-0-pro / -262）
   model?: string;
+  /// 合作方(买断制)线路的套餐 ID;必须在实时审计清单内,缺省用默认套餐。
+  providerPlanId?: string | null;
   /// Seedance 2+ 是否生成原生音频；保留通用名让 caller 友好
   generateAudio?: boolean;
   /// 是否返回末帧（用于段间衔接）
@@ -70,6 +72,10 @@ export interface CreateVideoJobResult {
   providerJobId: string;
   /// Provider 标识（写入 VideoJob.provider 时只取 SEEDANCE_T2V/I2V/FFMPEG_EDIT；这里返回的是字符串）
   providerId: string;
+  /// 实际提交所用的合作方套餐与单支积分成本。提交级降级可能与创建时的
+  /// 预估套餐不同,调用方应以此回写计价快照,避免账实不符。
+  providerPlanId?: string;
+  providerUnitPoints?: number;
 }
 
 export interface VideoJobStatusResult {

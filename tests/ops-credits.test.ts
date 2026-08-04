@@ -21,7 +21,10 @@ test("API 路由 operator 门控且不缓存；余额只经 internal 面暴露",
   assert.match(route, /requireOperator/);
   assert.match(route, /no-store/);
   assert.match(route, /getShuyuBalance/);
-  assert.match(route, /SHUYU_VIDEO_POINTS_PER_GENERATION/);
+  /// 0803 起:今日消耗 = 各任务计价快照之和,套餐口径实时解析,不再乘固定常量。
+  assert.match(route, /_sum:\s*\{\s*providerUnitPoints:\s*true\s*\}/);
+  assert.match(route, /resolveShuyuVideoPlan/);
+  assert.doesNotMatch(route, /SHUYU_VIDEO_POINTS_PER_GENERATION/);
   assert.doesNotMatch(route, /requireAuth\(/);
 });
 

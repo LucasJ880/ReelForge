@@ -60,34 +60,44 @@ test("0728 的另一个坑：15s 时长下线能被定位到 durations 字段", 
   assert.equal(drift.actual, "5,10");
 });
 
-test("🔴 0728 场景：套餐 ID 轮换要报出新旧值，而不是「什么都没找到」", () => {
+test("🔴 0803 反例：套餐 ID 轮换是常态，绝不能再被误判成停机", () => {
+  /// 0803 真机:video-plan-02 → video-plan-01 轮换被钉死审计误判为
+  /// price_contract_mismatch,假停机数小时。语义审计下 ID 轮换必须是健康态。
   const result = diagnoseDrift([goodPlan({ plan_id: "video-plan-07" })]);
-  assert.equal(result.auditedPlanFound, false);
-  const drift = result.drifts.find((d) => d.field === "plan_id");
-  assert.ok(drift, "必须定位到 plan_id 这个字段");
-  assert.equal(drift.expected, SHUYU_VIDEO_PLAN_ID);
-  assert.equal(drift.actual, "video-plan-07");
+  assert.equal(result.auditedPlanFound, true);
+  assert.equal(result.drifts.length, 0);
 });
 
-test("🔴 计价漂移最危险：sale_points 变了要精确报出", () => {
-  /// 审计写死 900 分。上游调价后若不拦，会「按 900 计价却实际扣别的分」。
-  const result = diagnoseDrift([goodPlan({ sale_points: 1200 })]);
-  const drift = result.drifts.find((d) => d.field === "sale_points");
-  assert.ok(drift);
-  assert.equal(drift.expected, "900");
-  assert.equal(drift.actual, "1200");
+test("🔴 计价漂移：健全区间内调价是常态，越界必须精确报出", () => {
+  /// 实际扣分随 /prices 实时价走,不存在「按旧价计价扣新价」;
+  /// 审计只拦越界价(疯涨/疑似错价),照单全收才是事故。
+  const priced = diagnoseDrift([goodPlan({ sale_points: 1200 })]);
+  assert.equal(priced.auditedPlanFound, true);
+
+  const insane = diagnoseDrift([goodPlan({ sale_points: 5000 })]);
+  assert.equal(insane.auditedPlanFound, false);
+  const drift = insane.drifts.find((d) => d.field === "sale_points");
+  assert.ok(drift, "越界价必须定位到 sale_points 字段");
+  assert.match(drift.expected, /100-2000/);
+  assert.equal(drift.actual, "5000/generation");
 });
 
-test("分辨率降档与画幅缺失都能逐字段定位", () => {
+test("分辨率出族与画幅缺失都能逐字段定位(480P 已入审计族)", () => {
   const result = diagnoseDrift([
     goodPlan({
-      resolution: "480P",
+      resolution: "1080P",
       capabilities: { aspect_ratios: ["16:9"], input_images_max: 9 },
     }),
   ]);
   const fields = result.drifts.map((d) => d.field);
   assert.ok(fields.includes("resolution"));
   assert.ok(fields.includes("aspect_ratios"));
+
+  /// 480P 按秒档 0803 起是合法审计族成员,不得再报分辨率漂移。
+  const budget = diagnoseDrift([
+    goodPlan({ resolution: "480P", sale_points: 68, unit: "second" }),
+  ]);
+  assert.equal(budget.auditedPlanFound, true);
 });
 
 test("video 套餐整体消失是最严重一档，单独标记", () => {
@@ -98,12 +108,12 @@ test("video 套餐整体消失是最严重一档，单独标记", () => {
   assert.equal(result.drifts[0].field, "kind=video");
 });
 
-test("多个 video 套餐时优先对比同 ID，其次同型号", () => {
-  /// 上游同时挂着新旧两个套餐时，要对比的是我们锁定的那个，
-  /// 不能拿一个无关套餐报一堆假漂移。
+test("多个 video 套餐时优先对比 studio-video 家族成员", () => {
+  /// 上游同时挂着多个套餐时，诊断对象是我们家族里最像的那个,
+  /// 不能拿一个无关型号套餐报一堆假漂移。
   const result = diagnoseDrift([
     goodPlan({ plan_id: "other-plan", model: "different-model", sale_points: 50 }),
-    goodPlan({ sale_points: 1200 }),
+    goodPlan({ sale_points: 5000 }),
   ]);
   assert.equal(result.drifts.length, 1);
   assert.equal(result.drifts[0].field, "sale_points");

@@ -8,17 +8,12 @@
  */
 
 import {
-  findAuditedShuyuVideoPlan,
   getShuyuBalance,
   getShuyuHealth,
   getShuyuPrices,
+  listAuditedShuyuVideoPlans,
   SHUYU_API_BASE_URL,
   SHUYU_TASK_STATUSES,
-  SHUYU_VIDEO_BILLING_UNIT,
-  SHUYU_VIDEO_MODEL,
-  SHUYU_VIDEO_PLAN_ID,
-  SHUYU_VIDEO_POINTS_PER_GENERATION,
-  SHUYU_VIDEO_RESOLUTION,
   shuyuApiKey,
   ShuyuApiError,
   type ShuyuFetchOptions,
@@ -47,14 +42,20 @@ const CONTRACT: ShuyuVideoProviderRoute["contract"] = {
   statuses: [...SHUYU_TASK_STATUSES],
 };
 
-const AUDITED_PLAN: ShuyuVideoPlan = Object.freeze({
-  planId: SHUYU_VIDEO_PLAN_ID,
-  kind: "video",
-  model: SHUYU_VIDEO_MODEL,
-  unit: SHUYU_VIDEO_BILLING_UNIT,
-  resolution: SHUYU_VIDEO_RESOLUTION,
-  salePoints: SHUYU_VIDEO_POINTS_PER_GENERATION,
-});
+/// 0803 起套餐从 /prices 实时审计,不再有固定的单一 AUDITED_PLAN;
+/// discovery 返回实时审计清单映射后的套餐列表。
+function auditedPlanList(
+  videoPlans: Parameters<typeof listAuditedShuyuVideoPlans>[0],
+): ShuyuVideoPlan[] {
+  return listAuditedShuyuVideoPlans(videoPlans).map((plan) => ({
+    planId: plan.planId,
+    kind: "video" as const,
+    model: plan.model,
+    unit: plan.billingUnit,
+    resolution: plan.resolution,
+    salePoints: plan.unitSalePoints,
+  }));
+}
 
 type UnavailableReason = NonNullable<
   ShuyuVideoProviderRoute["unavailableReason"]
@@ -111,8 +112,8 @@ export async function discoverShuyuVideoRoute(
       getShuyuBalance(options),
     ]);
     const videoPlans = prices.data.filter((item) => item.kind === "video");
-    const contractMatches = Boolean(findAuditedShuyuVideoPlan(videoPlans));
-    const plans = contractMatches ? [AUDITED_PLAN] : [];
+    const plans = auditedPlanList(videoPlans);
+    const contractMatches = plans.length > 0;
     const funded = balance.available_points > 0;
     return route({
       configured: true,

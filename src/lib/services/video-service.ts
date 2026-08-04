@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { videoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
+import { resolveVideoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import {
   creativeRecipeSnapshot,
   DEFAULT_BRAND_PLACEMENT,
@@ -589,7 +589,10 @@ async function submitSegmentJob(params: {
         segmentDurationSec: segment.durationSec,
         finalVideoId,
         ...routeSnapshot,
-        ...videoRouteCostSnapshot(routeSnapshot.videoRouteSnapshot),
+        ...(await resolveVideoRouteCostSnapshot(
+          routeSnapshot.videoRouteSnapshot,
+          segment.durationSec,
+        )),
         ...briefCreativeRecipe(aspectRatio),
       },
     });
@@ -766,7 +769,10 @@ export async function dispatchVideoGeneration(briefId: string) {
                 : prompt.provider,
             status: VideoJobStatus.RUNNING,
             ...routeSnapshot,
-            ...videoRouteCostSnapshot(routeSnapshot.videoRouteSnapshot),
+            ...(await resolveVideoRouteCostSnapshot(
+              routeSnapshot.videoRouteSnapshot,
+              brief.durationSec ?? 15,
+            )),
             ...briefCreativeRecipe(
               (prompt.params as { ratio?: string } | null)?.ratio ??
                 brief.aspectRatio,

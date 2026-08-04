@@ -150,7 +150,11 @@ test("direct dispatch replays before provider checks and checks the whole batch 
     availabilityBlock,
     /code:\s*"SERVICE_UNAVAILABLE"[\s\S]*?action:\s*"retry"/,
   );
-  assert.match(
+  /// 0803 起单支计价由 /prices 实时解析;预检仍必须按 batchCount 放大,
+  /// 且单支价必须来自审计套餐解析,不允许退回固定常量。
+  assert.match(source, /batchCount\s*\*\s*buddyPerVideoPoints/);
+  assert.match(source, /resolveShuyuVideoPlan\(/);
+  assert.doesNotMatch(
     source,
     /batchCount\s*\*\s*SHUYU_VIDEO_POINTS_PER_GENERATION/,
   );

@@ -64,8 +64,11 @@ import {
   getVideoRouteSnapshotRuntimeAvailability,
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
-import { SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
-import { videoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
+import {
+  resolveShuyuVideoPlan,
+  shuyuVideoPlanPointsForDuration,
+} from "@/lib/providers/shuyu";
+import { resolveVideoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import {
   creativeRecipeSnapshot,
   DEFAULT_BRAND_PLACEMENT,
@@ -315,6 +318,8 @@ export interface CreateBatchInput {
   isInternalStaff?: boolean;
   /// 批次级后期（口播 / BGM / 字幕），整批共用；null/省略 = 干净视频。
   postProduction?: BatchPostProductionInput | null;
+  /// 合作方(买断制)线路的套餐选择;必须在实时审计清单内,省略 = 默认套餐。
+  videoPlanId?: string | null;
 }
 
 function batchRequestHash(
@@ -331,6 +336,8 @@ function batchRequestHash(
       /// 后期设置改变成片，必须进哈希，否则同一幂等键换配置会被误判为重放。
       /// 仅在非空时并入：不选后期的批次沿用历史哈希，旧批次重放不会假冲突。
       ...(input.postProduction ? { postProduction: input.postProduction } : {}),
+      /// 套餐选择改变计费与线路行为,同理进哈希;缺省(默认套餐)不并入。
+      ...(input.videoPlanId ? { videoPlanId: input.videoPlanId } : {}),
     },
     videoRouteSnapshot,
   );
@@ -393,6 +400,7 @@ function templateAspectRatio(template: StyleTemplate): string | undefined {
 function templateSnapshot(
   template: StyleTemplate,
   postProduction?: BatchPostProductionInput | null,
+  providerPlanId?: string | null,
 ): Prisma.InputJsonValue {
   return json({
     id: template.id,
@@ -406,6 +414,9 @@ function templateSnapshot(
     lockedParams: template.lockedParams,
     imagesPerVideo: template.imagesPerVideo,
     ...(postProduction ? { [BATCH_POST_PRODUCTION_KEY]: postProduction } : {}),
+    /// 用户选定的合作方套餐(0803 多套餐)。缺省 = 提交时用实时默认套餐。
+    /// 落在快照里保证:同一批次内所有任务、包括后续重试,用同一套餐提交。
+    ...(providerPlanId ? { providerPlanId } : {}),
   });
 }
 
@@ -418,6 +429,10 @@ export function buildBatchVideoRows(args: {
   provider: VideoProvider;
   videoRouteSnapshot?: VideoRouteSnapshot;
   postProduction?: BatchPostProductionInput | null;
+  /// 由调用方在事务外解析(买断制线路计价随 /prices 实时变化,必须 async 取)。
+  costSnapshot?: { providerUnitPoints?: number };
+  /// 用户选定的合作方套餐 ID;缺省用提交时默认套餐。
+  videoPlanId?: string | null;
 }): Prisma.VideoJobCreateManyInput[] {
   const assignments = allocateAssets({
     batchId: args.batchId,
@@ -426,7 +441,11 @@ export function buildBatchVideoRows(args: {
     templateId: `${args.template.id}@${args.template.version}`,
     imagesPerVideo: parseImagesPerVideo(args.template.imagesPerVideo),
   });
-  const snapshot = templateSnapshot(args.template, args.postProduction);
+  const snapshot = templateSnapshot(
+    args.template,
+    args.postProduction,
+    args.videoPlanId,
+  );
 
   return assignments.map((assignment) => ({
     batchJobId: args.batchId,
@@ -446,9 +465,7 @@ export function buildBatchVideoRows(args: {
     availableAt: new Date(),
     ...(args.videoRouteSnapshot ?? {}),
     /// 单条成片成本快照：没有这一列，PRD C1 的成本指标连基线都算不出来
-    ...(args.videoRouteSnapshot
-      ? videoRouteCostSnapshot(args.videoRouteSnapshot.videoRouteSnapshot)
-      : {}),
+    ...(args.costSnapshot ?? {}),
     /// 创意配方快照（PRD §9.4）：赛马按「哪种结构在赢」归因的分组键。
     /// 批量线路的配方身份就是模板版本；钩子类型批量线路没有，保持 null。
     ...creativeRecipeSnapshot({
@@ -532,11 +549,47 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       throw new BatchProviderInputError("合作方线路每支视频最多接受 9 张参考图");
     }
   }
+  /// 买断制线路按实时审计套餐估算积分需求;解析失败时交给可用性探针给出
+  /// 具体原因(price_contract_mismatch 等),不用过期常量高/低估。
+  const lockedDurationSec =
+    (template.lockedParams as { duration?: number } | null)?.duration ?? 15;
+  const requestedPlanId = input.videoPlanId?.trim() || null;
+  if (requestedPlanId && videoRouteSnapshot.videoRouteSnapshot !== "buddy") {
+    throw new BatchProviderInputError("套餐选择仅适用于合作方线路");
+  }
+  let buddyPerVideoPoints: number | undefined;
+  if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
+    if (requestedPlanId) {
+      /// 显式选择的套餐必须实时在审计清单内;不在就明确拒绝,
+      /// 绝不静默换成别的套餐扣费。
+      try {
+        const plan = await resolveShuyuVideoPlan({ planId: requestedPlanId });
+        buddyPerVideoPoints = shuyuVideoPlanPointsForDuration(
+          plan,
+          lockedDurationSec,
+        );
+      } catch {
+        throw new BatchProviderInputError(
+          "所选视频套餐已下架或暂不可用，请刷新后重新选择",
+        );
+      }
+    } else {
+      try {
+        const plan = await resolveShuyuVideoPlan();
+        buddyPerVideoPoints = shuyuVideoPlanPointsForDuration(
+          plan,
+          lockedDurationSec,
+        );
+      } catch {
+        buddyPerVideoPoints = undefined;
+      }
+    }
+  }
   const availability = await getVideoRouteSnapshotRuntimeAvailability({
     snapshot: videoRouteSnapshot,
     shuyuRequiredPoints:
-      videoRouteSnapshot.videoRouteSnapshot === "buddy"
-        ? input.requestedCount * SHUYU_VIDEO_POINTS_PER_GENERATION
+      buddyPerVideoPoints !== undefined
+        ? input.requestedCount * buddyPerVideoPoints
         : undefined,
   });
   if (!availability.available) {
@@ -554,6 +607,12 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     videoRouteSnapshot.videoRouteSnapshot === "mock"
       ? VideoProvider.MOCK
       : VideoProvider.SEEDANCE_I2V;
+  /// 在事务外解析计价快照(网络调用不进事务;买断线路价格实时变化)。
+  const costSnapshot = await resolveVideoRouteCostSnapshot(
+    videoRouteSnapshot.videoRouteSnapshot,
+    lockedDurationSec,
+    requestedPlanId,
+  );
 
   try {
     return await db.$transaction(async (tx) => {
@@ -593,6 +652,8 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
         productName: input.productName,
         provider,
         videoRouteSnapshot,
+        costSnapshot,
+        videoPlanId: requestedPlanId,
         postProduction: input.postProduction,
       });
       if (videoRouteSnapshot.videoRouteSnapshot === "buddy") {
@@ -921,6 +982,8 @@ async function submitClaimedJob(
   const assignment = assignmentFromJob(job);
   const snapshot = job.templateSnapshot as unknown as {
     lockedParams: BatchStyleLockedParams;
+    /// 0803 多套餐:批次创建时选定的合作方套餐;缺失 = 提交时实时默认。
+    providerPlanId?: string;
   };
   const provider = providerForJob(job);
   const now = new Date();
@@ -973,6 +1036,7 @@ async function submitClaimedJob(
         durationSec: snapshot.lockedParams.duration,
         aspectRatio: snapshot.lockedParams.aspectRatio,
         resolution: snapshot.lockedParams.resolution,
+        providerPlanId: snapshot.providerPlanId ?? null,
         seed: job.seed ?? assignment.seed,
         mockHints: {
           briefId: job.batchJobId ?? "batch",
@@ -1032,6 +1096,10 @@ async function submitClaimedJob(
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: now,
+        /// 提交级套餐降级后以实际使用的套餐回写计价快照,保证账实一致。
+        ...(created.providerUnitPoints !== undefined
+          ? { providerUnitPoints: created.providerUnitPoints }
+          : {}),
       },
     });
     if (updated.count > 0) {

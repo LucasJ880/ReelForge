@@ -181,7 +181,7 @@ const TEMPLATE_PLAN: Array<{ slug: string; set: keyof typeof PRODUCT_SETS }> = [
   { slug: "commerce-founder-story", set: "backpack" },
   { slug: "commerce-street-interview", set: "sneaker" },
   { slug: "commerce-hook-face-demo", set: "sneaker" },
-  { slug: "commerce-triple-proof", set: "bottle" },
+  { slug: "commerce-triple-proof", set: "watch" },
   { slug: "commerce-creator-reaction", set: "earbuds" },
   { slug: "commerce-before-after-match", set: "pillow" },
   { slug: "commerce-360-hero-orbit", set: "bottle" },

@@ -156,11 +156,14 @@ test("discovery stays available when audited plan is among additional video plan
   });
   assert.equal(discovered.availability, "available");
   assert.equal(discovered.unavailableReason, null);
-  assert.equal(discovered.plans.length, 1);
-  assert.equal(discovered.plans[0]?.planId, "video-plan-02");
+  /// 0804 起语义审计:两个同构套餐都入清单(ID 不再参与审计),默认在首位。
+  assert.equal(discovered.plans.length, 2);
+  assert.ok(
+    discovered.plans.every((plan) => plan.model === "studio-video"),
+  );
 });
 
-test("discovery fails closed when the audited video plan is missing", async () => {
+test("0804 语义:仅剩按秒计费套餐时线路保持可用(ID 轮换/按条档下架是常态)", async () => {
   const discovered = await discoverShuyuVideoRoute({
     env: { SHUYU_API_KEY: "configured" },
     fetchImpl: async (input) =>
@@ -171,6 +174,35 @@ test("discovery fails closed when the audited video plan is missing", async () =
             JSON.stringify({
               object: "list",
               data: [{ ...videoPlan, plan_id: "video-plan-03", unit: "second", sale_points: 88 }],
+            }),
+            { status: 200 },
+          )
+        : new Response(
+            JSON.stringify({
+              object: "balance",
+              available_points: 10_000,
+              unit: "points",
+            }),
+            { status: 200 },
+          ),
+  });
+  assert.equal(discovered.availability, "available");
+  assert.equal(discovered.plans.length, 1);
+  assert.equal(discovered.plans[0]?.unit, "second");
+});
+
+test("discovery fails closed when no plan passes the semantic audit", async () => {
+  const discovered = await discoverShuyuVideoRoute({
+    env: { SHUYU_API_KEY: "configured" },
+    fetchImpl: async (input) =>
+      String(input).endsWith("/health")
+        ? new Response(JSON.stringify(healthPayload), { status: 200 })
+        : String(input).endsWith("/prices")
+        ? new Response(
+            JSON.stringify({
+              object: "list",
+              /// 价格越界(疑似错价/疯涨)——语义审计必须拦下,不能照单扣。
+              data: [{ ...videoPlan, sale_points: 5_000 }],
             }),
             { status: 200 },
           )

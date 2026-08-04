@@ -31,6 +31,17 @@ const EXPANSION_QA_PASSED_SLUGS = [
   "commerce-whats-in-box",
   "commerce-in-hand-scale",
   "commerce-beauty-texture",
+  /// 0804 第二轮真机 QA 通过
+  "commerce-macro-texture-asmr",
+  "commerce-tech-feature-focus",
+  "commerce-morning-routine",
+  "commerce-travel-pack-flow",
+  /// 0804 第三轮(收割机进程清场后)真机 QA 通过
+  "commerce-creator-reaction",
+  "commerce-dark-luxury-light",
+  "commerce-pov-immersive",
+  "commerce-360-hero-orbit",
+  "commerce-before-after-match",
 ] as const;
 
 /** Slugs whose /template-previews/<slug>.jpg still is committed and QA-passed. */

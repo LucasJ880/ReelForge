@@ -1,4 +1,13 @@
-# 模板库扩容真机验收记录(2026-08-03)
+# 模板库扩容真机验收记录(2026-08-03,0804 增补)
+
+> **0804 终态**:目录 34 条(无缝循环两轮未过循环点验收被砍);26 个扩容模板中
+> **18 条真机样片过检并上线**,8 条仍在续跑/重掷(triple-proof·pet·home·food·
+> fashion·outdoor·dual·gift),不阻塞营销测试。当天另根治了 Shuyu 套餐轮换假停机
+> (语义化动态解析+多套餐可选+提交级降级,见 main 提交记录),并揪出三台「旧代码
+> 收割机」进程(周末残留 next start:3210、dev server 旧 chunk、tsx 编译缓存)——
+> 它们伪装成供应商故障猎杀同库任务多轮。管线缺口两处待修:①故事板单帧
+> ACK_UNKNOWN 会判死整个 run 并把任务悬死在 QUEUED;②波内 deadline 翻页会把
+> 已提交仍在渲染的任务孤儿化,配合硬 timeoutAt 造成「供应商还在渲染却被扫成失败」。
 
 范围:27 个新模板逐条真机出样(设计:[扩容决策](../roadmap/2026-08-03-template-library-expansion.md))。
 线路:客户主线路 buddy(Shuyu image2video `studio-video`,900pt/条),持久化批量管线

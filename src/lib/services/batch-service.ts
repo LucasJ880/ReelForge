@@ -1113,6 +1113,19 @@ async function submitClaimedJob(
     }
     throw new Error("provider acknowledgement could not be persisted");
   } catch (error) {
+    /// 0804 取证:同一批「route is not ready」裸文案在多次净进程复现,
+    /// 静态检索找不到源——在写入点落完整堆栈定位真实抛出者。
+    if (error instanceof Error && /route is not ready/.test(error.message)) {
+      console.error("[forensics] not-ready origin", {
+        message: error.message,
+        stack: error.stack?.split("\n").slice(0, 8).join(" <- "),
+        causeMessage: (error as { cause?: Error }).cause?.message,
+        causeStack: (error as { cause?: Error }).cause?.stack
+          ?.split("\n")
+          .slice(0, 6)
+          .join(" <- "),
+      });
+    }
     const classified = asProviderSubmissionError({
       error,
       providerId: job.videoRouteSnapshot ?? provider.id,

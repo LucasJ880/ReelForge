@@ -84,9 +84,13 @@ test("Shuyu provider sends the exact documented body and persisted Idempotency-K
     ],
   });
 
+  /// 0804 起返回实际提交所用套餐与单支积分(提交级降级后回写计价快照用)。
+  /// 夹具价目里唯一审计套餐是 video-plan-02(900 分/条,按条计费)。
   assert.deepEqual(result, {
     providerJobId: "task_opaque-123",
     providerId: "shuyu",
+    providerPlanId: "video-plan-02",
+    providerUnitPoints: 900,
   });
   const submission = calls.find((call) =>
     call.url.endsWith("/videos/generations"),

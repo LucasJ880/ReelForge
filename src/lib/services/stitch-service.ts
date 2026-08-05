@@ -843,6 +843,12 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
   aspectRatio: string;
   clips: NormalizeAndConcatClip[];
   postProduction?: PostProductionPlan | null;
+  /**
+   * 字幕只允许铺到成片的前 N 秒（= 口播所在主片段的时长）。
+   * 不传 = 铺满全片。拼了尾卡/追加镜头时必须传，否则确定性切分会把
+   * 台词摊到没有口播的片段上（0804 验收：字幕时间轴整体后漂 ~1s）。
+   */
+  captionWindowSec?: number | null;
 }): Promise<{
   stitchedVideoUrl: string;
   subtitleFileUrl: string | null;
@@ -875,7 +881,8 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
         "-i",
         "anullsrc=channel_layout=stereo:sample_rate=44100",
         "-filter_complex",
-        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v];[0:a?][1:a]amerge=inputs=2,pan=stereo|c0=c0|c1=c1[a]`,
+        /// lanczos：720P 母片放到 1080 时保住的锐度肉眼可见（默认 bicubic 偏糊）
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v];[0:a?][1:a]amerge=inputs=2,pan=stereo|c0=c0|c1=c1[a]`,
         "-map",
         "[v]",
         "-map",
@@ -919,7 +926,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
           "-i",
           "anullsrc=channel_layout=stereo:sample_rate=44100",
           "-vf",
-          `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30`,
+          `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30`,
           "-map",
           "0:v:0",
           "-map",
@@ -994,6 +1001,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
       tmpDir,
       aspectRatio,
       postProduction: params.postProduction ?? null,
+      captionWindowSec: params.captionWindowSec ?? null,
     });
     const url = await persistStitchedFile(
       postProduced.videoPath,
@@ -1076,6 +1084,7 @@ async function applyLocalPostProduction(args: {
   tmpDir: string;
   aspectRatio: string;
   postProduction: PostProductionPlan | null;
+  captionWindowSec?: number | null;
 }): Promise<{ videoPath: string; srtPath?: string }> {
   const snapshot = args.postProduction;
   if (!snapshot) return { videoPath: args.inputPath };
@@ -1099,7 +1108,12 @@ async function applyLocalPostProduction(args: {
   let assPath: string | undefined;
   let srtPath: string | undefined;
   if (captionsEnabled) {
-    const cues = buildDeterministicCues(script, actualDurationSec);
+    /// 台词只属于口播所在的主片段：窗口外（尾卡/静帧英雄镜头）不背字幕。
+    const captionSpanSec =
+      args.captionWindowSec && args.captionWindowSec > 0
+        ? Math.min(actualDurationSec, args.captionWindowSec)
+        : actualDurationSec;
+    const cues = buildDeterministicCues(script, captionSpanSec);
     assPath = path.join(args.tmpDir, "captions.ass");
     const aspectRatio =
       args.aspectRatio === "16:9" || args.aspectRatio === "1:1"

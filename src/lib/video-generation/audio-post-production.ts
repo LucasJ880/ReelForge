@@ -35,6 +35,9 @@ function isMostlyCjk(value: string): boolean {
   return cjk / graphemes.length >= 0.3;
 }
 
+/** 强断点（短语边界）：切在这些标点之后，观感是完整语组而不是词组腰斩 */
+const STRONG_BREAK = /[，,、:：；;]/u;
+
 function splitLongSentence(sentence: string): string[] {
   const graphemes = Array.from(sentence);
   const limit = isMostlyCjk(sentence)
@@ -42,18 +45,32 @@ function splitLongSentence(sentence: string): string[] {
     : LATIN_READABLE_GRAPHEMES;
   if (graphemes.length <= limit) return [sentence];
 
+  /// 断点优先级：窗口内先找强标点（允许略超上限 15%，语义边界值得多几个字），
+  /// 找不到再退到空格，最后才硬切 —— 0804 验收里 “Custom blackout / curtains
+  /// from …” 这种腰斩就是旧逻辑空格/逗号同权导致的。
+  const strongOvershoot = Math.floor(limit * 0.15);
   const chunks: string[] = [];
   let cursor = 0;
   while (graphemes.length - cursor > limit) {
     const ideal = cursor + limit;
     const minimum = cursor + Math.max(1, Math.floor(limit * 0.55));
-    let boundary = ideal;
-    for (let index = ideal; index >= minimum; index--) {
-      if (/[，,、:：\s]/u.test(graphemes[index - 1] ?? "")) {
+    const strongMax = Math.min(graphemes.length, ideal + strongOvershoot);
+    let boundary = 0;
+    for (let index = strongMax; index >= minimum; index--) {
+      if (STRONG_BREAK.test(graphemes[index - 1] ?? "")) {
         boundary = index;
         break;
       }
     }
+    if (boundary === 0) {
+      for (let index = ideal; index >= minimum; index--) {
+        if (/\s/u.test(graphemes[index - 1] ?? "")) {
+          boundary = index;
+          break;
+        }
+      }
+    }
+    if (boundary === 0) boundary = ideal;
     chunks.push(graphemes.slice(cursor, boundary).join(""));
     cursor = boundary;
   }
@@ -66,9 +83,24 @@ function splitLongSentence(sentence: string): string[] {
 function readableChunks(script: string): string[] {
   const normalized = script.trim().replace(/\s+/gu, " ");
   if (!normalized) return [];
-  const sentences =
-    normalized.match(/[^。！？!?；;]+(?:[。！？!?；;]+|$)/gu) ?? [normalized];
-  return sentences.flatMap(splitLongSentence).filter(Boolean);
+  /// 句边界：CJK 句末标点后零宽切；拉丁句末标点(.!?)只有后跟空白才算句界
+  /// —— 既修掉 v1「ASCII 句号不算句界导致英文台词整段黏连」的问题，
+  /// 又不会把 "3.5"/"$19.99" 这类小数点误切。
+  const sentences = normalized
+    .split(/(?<=[。！？；;])|(?<=[.!?])\s+/u)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  return sentences
+    .flatMap(splitLongSentence)
+    .map((chunk) => chunk.trim())
+    .filter(Boolean);
+}
+
+/** 合并相邻 cue 时的连接符：拉丁文之间补空格，CJK 直接相接 */
+function joinChunks(left: string, right: string): string {
+  if (!left) return right;
+  if (!right) return left;
+  return isMostlyCjk(left + right) ? `${left}${right}` : `${left} ${right}`;
 }
 
 function mergeToDuration(chunks: string[], durationMs: number): string[] {
@@ -85,10 +117,16 @@ function mergeToDuration(chunks: string[], durationMs: number): string[] {
       }
     }
     if (shortestIndex === merged.length - 1) {
-      merged[shortestIndex - 1] += merged[shortestIndex];
+      merged[shortestIndex - 1] = joinChunks(
+        merged[shortestIndex - 1],
+        merged[shortestIndex],
+      );
       merged.splice(shortestIndex, 1);
     } else {
-      merged[shortestIndex] += merged[shortestIndex + 1];
+      merged[shortestIndex] = joinChunks(
+        merged[shortestIndex],
+        merged[shortestIndex + 1],
+      );
       merged.splice(shortestIndex + 1, 1);
     }
   }

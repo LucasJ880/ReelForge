@@ -65,3 +65,32 @@ test("licensed BGM catalog has an explicit no-music option and attribution", () 
     author: "Kevin MacLeod",
   });
 });
+
+test("english scripts split at sentence and phrase boundaries, never mid-phrase", () => {
+  /// 0804 brand-logo 验收回归：旧逻辑不认 ASCII 句号 + 空格/逗号同权，
+  /// 烧出 “Not in this bedroom. Custom blackout / curtains from …” 这类腰斩字幕。
+  const script =
+    "Morning glare again? Not in this bedroom. Custom blackout curtains from SunnyShutter, measured and made for your exact window. Soft light when you want it, total blackout when you need it.";
+  const cues = buildDeterministicCues(script, 14.3);
+  assert.deepEqual(
+    cues.map((cue) => cue.text),
+    [
+      "Morning glare again?",
+      "Not in this bedroom.",
+      "Custom blackout curtains from SunnyShutter,",
+      "measured and made for your exact window.",
+      "Soft light when you want it,",
+      "total blackout when you need it.",
+    ],
+  );
+  assert.ok(cues.every((cue) => cue.text === cue.text.trim()));
+  assert.equal(cues.at(-1)?.endMs, 14_300);
+});
+
+test("decimal points do not split sentences", () => {
+  const cues = buildDeterministicCues("Only $19.99 today. Grab yours now!", 6);
+  assert.deepEqual(
+    cues.map((cue) => cue.text),
+    ["Only $19.99 today.", "Grab yours now!"],
+  );
+});

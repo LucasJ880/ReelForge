@@ -171,7 +171,7 @@ function autoEndCard(
       : request.brandKit?.slogan ?? null,
     website: request.brandKit?.website ?? null,
     endCardStillUrl: designedEndCard?.url ?? null,
-    logoOverlayPlacement: "top-left",
+    /// 0805 起不再默认角标（brand-watermark-policy），placement 留空。
     renderStrategy: strategy,
     warnings,
   };

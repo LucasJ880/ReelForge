@@ -50,7 +50,10 @@ export function mapPlanToDirectorPlan(args: MapToDirectorArgs): DirectorPlan {
     toSec: computeFromSec(aiSegments, i) + seg.durationSeconds,
     role: seg.role === "outro" ? "cta" : seg.role,
     seedancePrompt: seg.prompt ?? `Cinematic shot at segment ${i}`,
-    negativePrompt: seg.negativePrompt ?? "",
+    negativePrompt: clampNegativeForMergedCap(
+      seg.prompt ?? "",
+      seg.negativePrompt ?? "",
+    ),
     continuityNotes:
       i === 0 ? "Establish look and tone" : `Continue look from segment ${i - 1}`,
     referenceAssetHints: seg.sourceAssetIds,
@@ -116,6 +119,28 @@ export function mapPlanToDirectorPlan(args: MapToDirectorArgs): DirectorPlan {
 
   /// 兜底校验：与 director-plan zod 一致
   return directorPlanSchema.parse(directorPlan);
+}
+
+/**
+ * buddy(Shuyu) 线按「seedancePrompt + "\nNegative constraints: " + negativePrompt」
+ * 合并后 ≤5000 校验。正向预算（prompt-intelligence 4200）之外这里兜底：
+ * 超限时从负面提示词尾部按逗号整项回退 —— 标准禁项在前、追加项在后，
+ * 永远不动正向提示词（它尾部驮着口播台词块）。0805 walkthrough 422 的修复。
+ */
+const BUDDY_MERGED_PROMPT_CAP = 4_950;
+
+function clampNegativeForMergedCap(prompt: string, negative: string): string {
+  const trimmed = negative.trim();
+  if (!trimmed) return trimmed;
+  const overhead = "\nNegative constraints: ".length;
+  const room = BUDDY_MERGED_PROMPT_CAP - prompt.length - overhead;
+  if (room <= 0) return "";
+  if (trimmed.length <= room) return trimmed;
+  let out = trimmed;
+  while (out.length > room && out.includes(",")) {
+    out = out.slice(0, out.lastIndexOf(",")).trimEnd();
+  }
+  return out.length <= room ? out : out.slice(0, room);
 }
 
 function computeFromSec(segments: VideoSegment[], idx: number): number {

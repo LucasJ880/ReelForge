@@ -49,6 +49,16 @@ interface MediaAssetRepository {
   findMany(args: {
     where: { userId: string; id: { in: string[] } };
   }): Promise<MediaAssetRecord[]>;
+  /**
+   * 品牌包资产二次授权（0805 walkthrough 实测修复）：全局激活品牌包（或该
+   * 用户自己工作区的包）所引用的 logo / 尾卡资产，对使用者是只读可用的 ——
+   * 否则新客户在 studio 选全局 SunnyShutter 包时，包内资产按属主校验直接
+   * 404「素材不存在或无权访问」。可选实现：测试替身没有它时保持旧语义。
+   */
+  findVisibleBrandPackageAssets?(args: {
+    userId: string;
+    assetIds: string[];
+  }): Promise<MediaAssetRecord[]>;
 }
 
 let repositoryOverride: MediaAssetRepository | null = null;
@@ -58,6 +68,31 @@ function repository(): MediaAssetRepository {
   return {
     create: (args) => db.mediaAsset.create(args),
     findMany: (args) => db.mediaAsset.findMany(args),
+    findVisibleBrandPackageAssets: async ({ userId, assetIds }) => {
+      const packages = await db.workspaceBrandPackage.findMany({
+        where: {
+          isActive: true,
+          OR: [{ isGlobal: true }, { workspace: { ownerId: userId } }],
+          AND: {
+            OR: [
+              { logoAssetId: { in: assetIds } },
+              { endCardAssetId: { in: assetIds } },
+            ],
+          },
+        },
+        select: { logoAssetId: true, endCardAssetId: true },
+      });
+      const allowed = new Set(
+        packages.flatMap((pkg) =>
+          [pkg.logoAssetId, pkg.endCardAssetId].filter(
+            (id): id is string => Boolean(id),
+          ),
+        ),
+      );
+      const ids = assetIds.filter((id) => allowed.has(id));
+      if (ids.length === 0) return [];
+      return db.mediaAsset.findMany({ where: { id: { in: ids } } });
+    },
   };
 }
 
@@ -114,10 +149,20 @@ export async function resolveOwnedMediaAssets(args: {
 }): Promise<MediaAssetRecord[]> {
   if (args.assetIds.length === 0) return [];
   const uniqueIds = [...new Set(args.assetIds)];
-  const records = await repository().findMany({
+  const repo = repository();
+  const records = await repo.findMany({
     where: { userId: args.userId, id: { in: uniqueIds } },
   });
   const byId = new Map(records.map((record) => [record.id, record]));
+  /// 属主查不到的 id 再走品牌包可见性授权（全局包资产全员只读可用）。
+  const missing = uniqueIds.filter((id) => !byId.has(id));
+  if (missing.length > 0 && repo.findVisibleBrandPackageAssets) {
+    const shared = await repo.findVisibleBrandPackageAssets({
+      userId: args.userId,
+      assetIds: missing,
+    });
+    for (const record of shared) byId.set(record.id, record);
+  }
   return args.assetIds.map((assetId) => {
     const record = byId.get(assetId);
     if (!record) throw new MediaAssetNotFoundError();

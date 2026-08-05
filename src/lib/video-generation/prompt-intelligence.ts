@@ -245,7 +245,9 @@ export async function buildVideoSegments(
 // ---------------------------------------------------------------------------
 
 /// Leave room for Shuyu's appended negative constraints under its 5,000-char cap.
-const PROMPT_CHAR_BUDGET = 4500;
+/// 0805 收紧 4500→4200：真实场所的签牌负面块能到 ~600 字，4500 预算合并后
+/// 溢出 5000 被 dispatch 422（walkthrough 实锤）；plan-to-director 另有兜底夹紧。
+const PROMPT_CHAR_BUDGET = 4200;
 
 function nearestSpeechBoundary(
   graphemes: string[],
@@ -393,13 +395,18 @@ function composeSeedancePrompt(params: {
 
   /// 真实场所参考图 → 强制画面复现实拍场景（与 Omni-Reference 图片锚配合）
   const refs = args.visualRefs;
+  /// 0805：品牌文字按物理落位分道 —— 店招「室内禁止出现」，产品印字
+  /// 「原位保留、禁止放大/复制/抹除」。旧数据无 signageKind 时按店招（旧行为）。
+  const signageLine = refs?.signageText
+    ? refs.signageKind === "product_print"
+      ? `The brand mark printed on the product reads exactly "${refs.signageText}" — reproduce it faithfully exactly where it appears on the product in the reference photos, same size, position and finish; never enlarge it, never duplicate it onto walls, glass or other surfaces, and never erase it.`
+      : `The storefront sign reads exactly "${refs.signageText}" — render this text accurately ONLY on the exterior storefront facade; the signage must NEVER appear inside the store, reflected, mirrored or duplicated on interior walls or glass.`
+    : "";
   const realLocationLine =
     refs?.isRealLocation
       ? [
           "REAL LOCATION (the reference images are actual photos of this place): reproduce the photographed location faithfully — same layout, same furniture, same materials and colors. Do not redesign or restyle the space.",
-          refs.signageText
-            ? `The storefront sign reads exactly "${refs.signageText}" — render this text accurately ONLY on the exterior storefront facade; the signage must NEVER appear inside the store, reflected, mirrored or duplicated on interior walls or glass.`
-            : "",
+          signageLine,
           refs.keyFeatures.length > 0
             ? `Signature features that must stay recognizable: ${refs.keyFeatures.join("; ")}.`
             : "",
@@ -601,7 +608,7 @@ function buildLLMUserPrompt(
       ? `
 # REAL LOCATION (client's actual photos, also fed to the video model as references)
 This video takes place in a real place: ${refs.locationDescription}
-${refs.signageText ? `- storefront sign reads exactly: "${refs.signageText}" (exterior establishing shot ONLY — never show signage from inside)` : ""}
+${refs.signageText ? (refs.signageKind === "product_print" ? `- brand mark printed on the product reads exactly: "${refs.signageText}" (keep it where it is on the product — never enlarge, duplicate or erase it)` : `- storefront sign reads exactly: "${refs.signageText}" (exterior establishing shot ONLY — never show signage from inside)`) : ""}
 ${refs.keyFeatures.length > 0 ? `- weave these real features into your shots: ${refs.keyFeatures.join("; ")}` : ""}
 - photo coverage (${refs.photoCount} photo(s)): ${refs.viewsCovered.join(" / ") || "unspecified"}
 - CRITICAL: design shots ONLY within these photographed views. ${refs.photoCount <= 3 ? "Coverage is limited — use medium shots / close-ups of people, pets and photographed features instead of wide shots of unseen areas." : "You may cut between photographed views freely."} Never invent unseen rooms or angles.
@@ -806,6 +813,11 @@ function adjustNegativeForRealSignage(
       );
     })
     .join(", ");
+  /// 0805：产品印字禁的是「复制/放大/挪位」，绝不能禁「室内出现」——
+  /// 印字本来就在室内的产品上（店招负面照旧）。
+  if (refs.signageKind === "product_print") {
+    return `${cleaned}, misspelled brand text, gibberish lettering, warped text, duplicated brand mark, brand text on walls or glass, oversized brand mark, invented rooms, space extending beyond reference photos`;
+  }
   return `${cleaned}, misspelled signage, gibberish lettering, warped text, signage visible indoors, duplicated signage, mirrored signage text, invented rooms, space extending beyond reference photos`;
 }
 

@@ -295,6 +295,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     name: "Founder Story",
     nameZh: "创始人自述",
     category: "UGC",
+    /// v2（0805）：补「同人同衣锁」—— walkthrough 实测故事板首帧换装
+    ///（衬衫→毛衣），创始人叙事最吃单人可信度，锁语言对齐 creator-reaction v2。
+    version: 2,
     summary: "A maker explains why the product exists and shows one honest detail.",
     summaryZh: "创始人视角讲述产品为何而做，只展示一个真实细节。",
     hook: "A maker speaks plainly at their workspace about the problem that started it.",
@@ -302,9 +305,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "A sincere invitation to try it while the product holds center frame.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: grounded workshop or desk context; the maker speaks plainly about the original problem, product already present.",
-      "3-10s PROOF: the maker points to one visible crafted detail of the exact referenced product; hands never obscure it.",
-      "10-15s CTA HOLD: a sincere spoken invitation over a stable, complete product hero.",
+      "0-3s HOOK: grounded workshop or desk context; the maker speaks plainly about the original problem, product already present; exactly one founder appears in this video and keeps the same face, hair, and clothing in every shot.",
+      "3-10s PROOF: the same founder points to one visible crafted detail of the exact referenced product; hands never obscure it; outfit, hair and lighting continue unchanged from the opening shot.",
+      "10-15s CTA HOLD: a sincere spoken invitation over a stable, complete product hero; the founder's appearance stays identical to every earlier shot; no second person ever appears.",
     ],
     coverImage: "/template-previews/commerce-founder-story.jpg",
     cameraStyle: "grounded medium shot, natural workspace light, minimal camera drift",

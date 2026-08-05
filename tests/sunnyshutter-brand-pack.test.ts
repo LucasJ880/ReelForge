@@ -7,7 +7,6 @@ import {
   applySunnyShutterBrandPack,
   applySunnyShutterLogoOverlayLock,
   sunnyShutterEndCardMissingIssues,
-  sunnyShutterLogoOverlayConfig,
 } from "../src/lib/video-generation/sunnyshutter-brand-pack";
 import type {
   InputClassification,
@@ -55,7 +54,33 @@ function baseClass(
   };
 }
 
-test("SunnyShutter brand pack locks phone + address + Image2 still url", () => {
+test("SunnyShutter contact end frame locks phone + website + address + still url when opted in", () => {
+  const plan = applySunnyShutterBrandPack(
+    {
+      mode: "auto_end_card",
+      logoAssetId: null,
+      endCardDurationSeconds: 2,
+      cta: "user cta (ignored)",
+      brandName: "SUNNY Shutters",
+      slogan: null,
+      website: null,
+      renderStrategy: "render_ffmpeg_overlay",
+      warnings: [],
+    },
+    { clientLockProfileId: "sunnyshutter", aspectRatio: "9:16" },
+  );
+  assert.equal(plan.mode, "auto_end_card");
+  assert.equal(plan.endCardDurationSeconds, 3);
+  assert.ok(plan.contactLines?.some((line) => line.includes(SUNNYSHUTTER_PHONE)));
+  assert.ok(plan.contactLines?.some((line) => /690\s*Progress/i.test(line)));
+  assert.equal(plan.website, "sunnyshutter.ca");
+  assert.match(plan.endCardStillUrl ?? "", /end-card-9x16\.png/);
+  /// 0805：不再向计划注入角标 placement（角标平台停用）
+  assert.equal(plan.logoOverlayPlacement ?? null, null);
+  assert.equal(sunnyShutterEndCardMissingIssues(plan).length, 0);
+});
+
+test("SunnyShutter per-video opt-out is respected by the brand pack lock (0805)", () => {
   const plan = applySunnyShutterBrandPack(
     {
       mode: "none",
@@ -69,29 +94,25 @@ test("SunnyShutter brand pack locks phone + address + Image2 still url", () => {
     },
     { clientLockProfileId: "sunnyshutter", aspectRatio: "9:16" },
   );
-  assert.equal(plan.mode, "auto_end_card");
-  assert.equal(plan.endCardDurationSeconds, 3);
-  assert.ok(plan.contactLines?.some((line) => line.includes(SUNNYSHUTTER_PHONE)));
-  assert.ok(plan.contactLines?.some((line) => /690\s*Progress/i.test(line)));
-  assert.match(plan.endCardStillUrl ?? "", /end-card-9x16\.png/);
-  assert.equal(plan.logoOverlayPlacement, "top-left");
-  assert.equal(sunnyShutterEndCardMissingIssues(plan).length, 0);
+  assert.equal(plan.mode, "none");
+  assert.equal(plan.renderStrategy, "no_end_card");
 });
 
-test("SunnyShutter logo watermark is locked to top-left (never bottom-right)", () => {
+test("SunnyShutter corner watermark is disabled platform-wide (0805 imprint decision)", () => {
+  /// 印上式 logo 时代：角标对 SunnyShutter 一律 enabled=false，哪怕显式开。
   assert.equal(SUNNYSHUTTER_LOGO_OVERLAY_PLACEMENT, "top-left");
-  assert.equal(sunnyShutterLogoOverlayConfig().placement, "top-left");
 
   const forced = applySunnyShutterLogoOverlayLock(
     { enabled: true, placement: "bottom-right" },
     { clientLockProfileId: "sunnyshutter" },
   );
-  assert.equal(forced?.placement, "top-left");
+  assert.equal(forced?.enabled, false);
 
   const other = applySunnyShutterLogoOverlayLock(
     { enabled: true, placement: "bottom-right" },
     { brandName: "Acme Blinds" },
   );
+  assert.equal(other?.enabled, true);
   assert.equal(other?.placement, "bottom-right");
 });
 
@@ -125,12 +146,26 @@ test("other brands are not forced onto SunnyShutter contacts", () => {
   assert.equal(plan.endCardStillUrl ?? null, null);
 });
 
-test("sunnyShutterEndCardMissingIssues flags empty packaging", () => {
-  const issues = sunnyShutterEndCardMissingIssues({
+test("contact end frame off is no longer a defect; on with missing contacts still is", () => {
+  /// 0805：帧可选 —— mode none 不再报 required。
+  const offIssues = sunnyShutterEndCardMissingIssues({
     mode: "none",
     endCardDurationSeconds: 0,
     renderStrategy: "no_end_card",
     warnings: [],
   });
-  assert.ok(issues.some((i) => i.code === "sunnyshutter_end_card_required"));
+  assert.equal(offIssues.length, 0);
+
+  /// 开着但联系方式缺失仍然拦截。
+  const onIssues = sunnyShutterEndCardMissingIssues({
+    mode: "auto_end_card",
+    endCardDurationSeconds: 3,
+    cta: "Book now",
+    brandName: "SUNNY Shutters",
+    contactLines: ["missing everything"],
+    renderStrategy: "render_ffmpeg_overlay",
+    warnings: [],
+  });
+  assert.ok(onIssues.some((i) => i.code === "sunnyshutter_end_card_missing_phone"));
+  assert.ok(onIssues.some((i) => i.code === "sunnyshutter_end_card_missing_address"));
 });

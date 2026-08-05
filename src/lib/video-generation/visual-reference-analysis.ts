@@ -23,6 +23,13 @@ export interface VisualReferenceAnalysis {
   locationDescription: string | null;
   /// 招牌/门头上的可读文字（逐字，如 "Meow Club"）；null = 无
   signageText: string | null;
+  /**
+   * 品牌文字的物理落位（0805）：storefront = 门头/外立面招牌；
+   * product_print = 印/绣/压在产品表面（布面、底轨、包装）。
+   * 二者的提示词待遇完全相反 —— 店招「室内禁止出现」，产品印字「必须原位保留」。
+   * null / 老数据缺省按 storefront 处理（旧行为）。
+   */
+  signageKind: "storefront" | "product_print" | null;
   /// 场所内可入镜的标志性元素（如 "natural wood cat tree", "flower-petal cushion chairs"）
   keyFeatures: string[];
   /// 产品的精确英文描述（如参考图里有产品）；null = 无产品图
@@ -40,6 +47,7 @@ Return strict JSON:
   "isRealLocation": true/false — true if the photos show a real place (storefront, shop interior, restaurant, venue...),
   "locationDescription": "if isRealLocation: one dense English paragraph (50-90 words) describing the place exactly as photographed: storefront facade (materials, colors, sign), interior layout, furniture with materials and colors, flooring, lighting fixtures, decor. Be faithful — never invent items not visible. null if not a location",
   "signageText": "the exact readable text on the storefront sign or logo, verbatim (e.g. 'Meow Club'), null if none",
+  "signageKind": "where that brand text physically lives: 'storefront' if it is on an exterior sign, facade or window decal; 'product_print' if it is printed, stitched, embossed or engraved on the product itself (fabric, rail, packaging, label); null if there is no readable brand text",
   "keyFeatures": ["3-6 distinctive photographable features of the place or product, each 2-6 words, e.g. 'natural wood cat climbing tree'"],
   "productDescription": "if any photo shows a product for sale: its exact color/material/shape/details in 25-50 words, else null",
   "viewsCovered": ["one short entry PER PHOTO describing the view it covers, in photo order, e.g. 'storefront exterior at night', 'interior: cat cabin wall and seating corner'"]
@@ -70,10 +78,15 @@ export async function analyzeVisualReferences(
     const str = (v: unknown): string | null =>
       typeof v === "string" && v.trim().length > 0 ? v.trim() : null;
 
+    const kindRaw = str(data.signageKind);
     return {
       isRealLocation: data.isRealLocation === true,
       locationDescription: str(data.locationDescription),
       signageText: str(data.signageText),
+      signageKind:
+        kindRaw === "product_print" || kindRaw === "storefront"
+          ? kindRaw
+          : null,
       keyFeatures: Array.isArray(data.keyFeatures)
         ? data.keyFeatures.map(String).filter((s) => s.trim().length > 0).slice(0, 6)
         : [],

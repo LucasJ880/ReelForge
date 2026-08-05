@@ -81,7 +81,7 @@ export async function buildConsistencyBible(
 # REAL LOCATION (from the client's actual photos — these photos are ALSO fed to the video model as visual references)
 The video takes place in this REAL place. environmentProfile MUST be this description verbatim or near-verbatim — do NOT invent a different place:
 "${refs.locationDescription}"
-${refs.signageText ? `Storefront signage reads exactly: "${refs.signageText}" — the sign may appear in establishing shots.` : ""}
+${refs.signageText ? (refs.signageKind === "product_print" ? `Brand mark printed on the product reads exactly: "${refs.signageText}" — keep it in place on the product; never enlarge, duplicate or erase it.` : `Storefront signage reads exactly: "${refs.signageText}" — the sign may appear in establishing shots.`) : ""}
 ${refs.keyFeatures.length > 0 ? `Signature features to keep recognizable: ${refs.keyFeatures.join("; ")}.` : ""}
 `
         : "";

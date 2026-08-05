@@ -366,23 +366,22 @@ test("brand-overlay: extractBrandOverlayConfig parses full config", () => {
   });
 });
 
-test("brand-overlay: SunnyShutter brandKit forces top-left even if overlay asks bottom-right", () => {
+test("brand-overlay: SunnyShutter corner watermark stays off even if overlay asks for it (0805)", () => {
+  /// 0805 印上式决策：SunnyShutter 一律 enabled=false，显式请求也不放行。
   const r = extractBrandOverlayConfig({
     brandKit: {
       brandName: "SUNNY Shutters",
       overlay: { enabled: true, placement: "bottom-right" },
     },
   });
-  assert.equal(r?.enabled, true);
-  assert.equal(r?.placement, "top-left");
+  assert.equal(r?.enabled, false);
 });
 
-test("brand-overlay: SunnyShutter without overlay JSON still gets locked top-left config", () => {
+test("brand-overlay: SunnyShutter without overlay JSON resolves to disabled watermark (0805)", () => {
   const r = extractBrandOverlayConfig({
     brandKit: { brandName: "Sunny Shutter" },
   });
-  assert.equal(r?.enabled, true);
-  assert.equal(r?.placement, "top-left");
+  assert.equal(r?.enabled, false);
 });
 
 test("brand-overlay: extractBrandOverlayConfig drops invalid placement / mode", () => {

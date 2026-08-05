@@ -168,8 +168,8 @@ const ZH_COPY = {
   ending: "品牌片尾",
   endingNone: "不添加",
   endingAuto: "自动生成",
-  brandPackageStep: "品牌封装（可选）",
-  brandPackageHint: "每条视频单独选择。关闭时输出干净视频；开启后使用当前 workspace 的 Logo 与尾卡。",
+  brandPackageStep: "结尾联系方式帧（可选）",
+  brandPackageHint: "每条视频单独选择。关闭输出干净视频；开启后在片尾追加一帧品牌联系方式（logo 印在产品上，画面不再盖角标水印）。",
   cleanVideo: "只生成干净视频",
   cleanVideoHint: "不添加品牌 Logo 或尾卡",
   noBrandPackages: "当前 workspace 还没有可用品牌包；可先保持纯视频输出。",
@@ -275,8 +275,8 @@ const EN_COPY: StudioCopy = {
   ending: "Brand ending",
   endingNone: "None",
   endingAuto: "Generate automatically",
-  brandPackageStep: "Brand package (optional)",
-  brandPackageHint: "Choose per video. Off produces a clean video; on uses this workspace's logo and end card.",
+  brandPackageStep: "Contact end frame (optional)",
+  brandPackageHint: "Choose per video. Off produces a clean video; on appends one brand contact frame at the end (no corner watermark — the logo lives on the product).",
   cleanVideo: "Clean video only",
   cleanVideoHint: "No brand logo or end card",
   noBrandPackages: "This workspace has no active brand package yet. You can continue with a clean video.",
@@ -428,16 +428,25 @@ export function StreamlinedVideoStudio({
     if (initialProductAssets.length > 0) return;
     let cancelled = false;
     const resume = async () => {
+      /// 恢复是「必须尽力」而不是「随缘」：0805 实测 APPROVED 故事板在刷新后
+      /// 悬空 —— 挂载期这次 fetch 撞上瞬时失败（dev 重编译/网络抖动）就被旧的
+      /// 静默 catch 吞掉，用户以为白做了。改为重试三次 + 失败留 console 痕。
       let payload:
         | { ok: true; resume: ResumableStoryboardPayload | null }
         | { ok: false }
         | null = null;
-      try {
-        const response = await fetch("/api/video-generation/storyboards", { cache: "no-store" });
-        if (!response.ok) return;
-        payload = await response.json().catch(() => null);
-      } catch {
-        return; // Resume is best effort; creating from scratch still works.
+      for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+        if (attempt > 0) {
+          await new Promise((r) => setTimeout(r, attempt === 1 ? 800 : 2_000));
+        }
+        try {
+          const response = await fetch("/api/video-generation/storyboards", { cache: "no-store" });
+          if (!response.ok) continue;
+          payload = await response.json().catch(() => null);
+          if (payload) break;
+        } catch (error) {
+          console.debug("[studio-resume] fetch attempt failed", attempt + 1, error);
+        }
       }
       if (cancelled || !payload?.ok || !payload.resume) return;
       if (interactedRef.current) return;
@@ -1471,7 +1480,7 @@ export function StreamlinedVideoStudio({
                 key={brandPackage.id}
                 active={selectedBrandPackageId === brandPackage.id}
                 title={brandPackage.name}
-                description={`${brandPackage.brandName} · Logo + ${english ? "end card" : "尾卡"}`}
+                description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
                 icon={Package}
                 disabled={busy !== null || configurationLocked}
                 onClick={() => {

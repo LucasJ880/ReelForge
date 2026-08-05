@@ -252,8 +252,11 @@ export async function POST(request: Request): Promise<NextResponse> {
           }
         : undefined,
       options: {
-        includeLogo: body.includeLogo ?? true,
-        includeEndCard: body.includeEndCard ?? true,
+        /// 0805 解绑：角标平台停用（显式传 true 才走）；单条 brief 的成片在
+        /// 装配期已按用户选择烧好联系方式帧，交付步默认不再叠一张（双尾卡
+        /// 是 0721 就踩过的坑）；批量 videoJob 的干净母片仍默认在此处补帧。
+        includeLogo: body.includeLogo ?? false,
+        includeEndCard: body.includeEndCard ?? !body.briefId,
         aspectRatio: body.aspectRatio ?? "9:16",
         postProduction,
       },

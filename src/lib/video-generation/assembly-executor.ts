@@ -6,6 +6,7 @@ import {
 import { db } from "@/lib/db";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
 import { applyBrandOverlayIfConfigured } from "@/lib/video-generation/brand-overlay-renderer";
+import { CORNER_LOGO_WATERMARK_ENABLED } from "@/lib/video-generation/brand-watermark-policy";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import {
   effectiveAssetRole,
@@ -254,6 +255,12 @@ export async function executeAssembly(
     };
   }
 
+  /// 装配期警告必须留痕：0805 walkthrough 首拼把联系方式帧静默跳过，
+  /// 事后无任何日志可查（重拼即成功，属偶发）。跳过类警告一律落 server log。
+  if (warnings.length > 0) {
+    console.warn("[assembly]", finalVideoId, JSON.stringify(warnings));
+  }
+
   let stitchedUrl: string | null = null;
   let subtitleFileUrl: string | null = null;
   let error: string | null = null;
@@ -261,6 +268,16 @@ export async function executeAssembly(
     const { runFfmpegNormalizeAndConcatWithPostProduction } = await import(
       "@/lib/services/stitch-service"
     );
+    /// 字幕只铺口播所在的主内容窗口：尾卡/CTA 卡不背台词
+    ///（0805，与 brand-packaging-service 的 captionWindowSec 语义一致）。
+    const isEndCardClip = (c: { type: string }) =>
+      c.type === "brand_end_card" || c.type === "cta_card";
+    const endCardSeconds = resolvedClips
+      .filter(isEndCardClip)
+      .reduce((sum, c) => sum + (c.intendedDurationSec ?? 0), 0);
+    const mainWindowSec = resolvedClips
+      .filter((c) => !isEndCardClip(c))
+      .reduce((sum, c) => sum + (c.intendedDurationSec ?? 0), 0);
     const stitched = await runFfmpegNormalizeAndConcatWithPostProduction({
       finalVideoId,
       aspectRatio,
@@ -270,6 +287,8 @@ export async function executeAssembly(
         trimToFit: c.trimToFit,
       })),
       postProduction,
+      captionWindowSec:
+        endCardSeconds > 0 && mainWindowSec > 0 ? mainWindowSec : null,
     });
     stitchedUrl = stitched.stitchedVideoUrl;
     subtitleFileUrl = stitched.subtitleFileUrl;
@@ -336,6 +355,9 @@ async function applyConfiguredLogoOverlay(input: {
   fallbackLogoUrl: string | null;
   warnings: string[];
 }): Promise<string> {
+  /// 0805 产品决策：logo 走印上式（产品图 imprint），封装只留联系方式帧，
+  /// 平台管线不再自动盖角标水印。见 brand-watermark-policy.ts。
+  if (!CORNER_LOGO_WATERMARK_ENABLED) return input.sourceVideoUrl;
   if (input.plan.mode === "none") return input.sourceVideoUrl;
   const logoUrl = input.assets.find(
     (asset) => effectiveAssetRole(asset) === "logo",

@@ -568,6 +568,10 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
 
 export function getStyleTemplate(id: string | null | undefined): StyleTemplate | null {
   if (!id) return null;
+  /// ⚠️ 每个 commerce 模板 slug 都必须在这里有映射：查不到会静默落回
+  /// recommendStyleTemplate 的关键词猜测（0805 walkthrough 实锤：founder-story
+  /// 落到无人产品模板，提示词写出「NO on-camera person」+ 创始人分镜的自相矛盾）。
+  /// 有人开口的模板一律映射 talking scaffold（带 characterHint + dialogueStyle）。
   const commerceAdapters: Record<string, string> = {
     "commerce-aesthetic-mood": "tpl_viral_sensory_texture",
     "commerce-ugc-testimonial": "tpl_ugc_talking",
@@ -576,8 +580,38 @@ export function getStyleTemplate(id: string | null | undefined): StyleTemplate |
     "commerce-unboxing-transform": "tpl_viral_result_first",
     "commerce-value-proof": "tpl_viral_result_first",
     "commerce-problem-solution": "tpl_viral_pain_solution",
-    "commerce-hard-sell-presenter": "tpl_viral_result_first",
+    /// presenter 开口带货 → 必须有人（0805 修正：原映射 result_first 是无人模板）
+    "commerce-hard-sell-presenter": "tpl_ugc_talking",
     "tpl_ugc_review": "tpl_ugc_talking",
+    /// —— 0803 扩容批次的有人/口播模板（0805 补桥）——
+    "commerce-founder-story": "tpl_ugc_talking",
+    "commerce-talking-head-review": "tpl_ugc_talking",
+    "commerce-podcast-authority": "tpl_ugc_talking",
+    "commerce-street-interview": "tpl_ugc_talking",
+    "commerce-creator-reaction": "tpl_ugc_talking",
+    "commerce-hook-face-demo": "tpl_ugc_talking",
+    /// —— 0803 扩容批次的纯产品模板（无人镜头语言明确）——
+    "commerce-triple-proof": "tpl_viral_result_first",
+    "commerce-before-after-match": "tpl_before_after",
+    "commerce-360-hero-orbit": "tpl_sneaker_360",
+    "commerce-variant-lineup": "tpl_viral_sensory_texture",
+    "commerce-whats-in-box": "tpl_unboxing",
+    "commerce-macro-texture-asmr": "tpl_viral_sensory_texture",
+    "commerce-dark-luxury-light": "tpl_viral_sensory_texture",
+    "commerce-tech-feature-focus": "tpl_3c_focus",
+    "commerce-dual-context": "tpl_viral_result_first",
+    "commerce-home-space-styling": "tpl_viral_before_after_room",
+    "commerce-food-sizzle": "tpl_food_appetite",
+    /// —— 有手/生活方式类：先映射最接近的现有 scaffold，专属 scaffold 待补 ——
+    "commerce-morning-routine": "tpl_ugc_talking",
+    "commerce-pov-immersive": "tpl_unboxing",
+    "commerce-in-hand-scale": "tpl_unboxing",
+    "commerce-travel-pack-flow": "tpl_unboxing",
+    "commerce-gift-unwrap": "tpl_unboxing",
+    "commerce-outdoor-rugged": "tpl_viral_result_first",
+    "commerce-beauty-texture": "tpl_skincare_texture",
+    "commerce-fashion-lookbook": "tpl_viral_sensory_texture",
+    "commerce-pet-companion": "tpl_pet_daily",
   };
   const resolvedId = commerceAdapters[id] ?? id;
   return STYLE_TEMPLATES.find((t) => t.id === resolvedId) ?? null;

@@ -1,28 +1,35 @@
 /**
- * 印上品牌 Logo · 真机全链路验收（CEO Plan B 验收标准，会产生真实供应商费用）。
+ * 印上品牌 Logo · 真机全链路验收 v2（会产生真实供应商费用）。
  *
- * 链路（每一阶段幂等、断点续跑，状态在 tmp/brand-logo-e2e/state.json）：
- *   1. imprint  — 产品图工作台同一条服务路径 createProductImageJob(brandLogo)：
- *                 SunnyShutter 窗帘实拍图 + 品牌包 logo 作第二参考图 → 印 logo 产品图
- *   2. video    — Seedance 直连（generate-curtain-viral-ads 同款路数）：
- *                 印 logo 产品图作参考，Narration 台词写进 prompt 由模型原生开口
- *   3. package  — 平台品牌封装模块 applyClientBrandPackaging：
- *                 同一份台词烧录对齐字幕 + 导出 SRT + 授权 BGM；
- *                 角标/尾卡都关（验收对象是「logo 印在产品上」，不靠角标）
- *   4. verify   — ffprobe 音轨 / 抽帧（logo 肉眼复核用）/ SRT 摘要 / 验收报告
+ * v1（0804）教训 —— 三处质量事故全部来自「让 I2V 模型保住印在产品上的字标」：
+ *   1. 印好的真 lockup（条纹太阳盘+SUNNY）被 Seedance 逐帧重绘成另一套金色
+ *      手写体「SunnyShutter」，双层帘中景里直接涂成乱码（LOGO LOCK 提示词无效）；
+ *   2. 盲裁尾 0.8s 把口播最后的 "need it." 物理切掉，而字幕还写着这三个词；
+ *   3. 字幕机械按字符数切分，词组腰斩 + 时间轴对不上语音。
  *
- * 验收判据（2026-08-04 CEO WeChat）：语音字幕全齐且对齐、产品上有 logo 不脱节、
- * 尾卡本轮不管。
+ * v2 策略（回归 0720 平台既定决策「模型只出干净画面，品牌永远后期上」）：
+ *   1. imprint  — 不变：createProductImageJob(brandLogo) 出印 logo 静帧
+ *                 （已有 0804 合格产物时直接复用，不再花钱）
+ *   2. video    — Seedance 干净版出片：参考图用**原始实拍**，提示词全文禁字禁标，
+ *                 Narration 台词仍写进 prompt 由模型原生开口
+ *   3. hero     — 纯本地 ffmpeg：印 logo 静帧裁原生像素窗做 2s 运动特写
+ *                 （logo 像素级保真，全片最锐一镜，零供应商费用）
+ *   4. package  — applyClientBrandPackaging：语音安全裁尾 + 拼英雄镜头 +
+ *                 字幕（只铺口播窗口）+ SRT + BGM；角标/尾卡本轮仍关
+ *   5. verify   — ffprobe / 抽帧 / 口播完整性 gate（本机有 whisper 就自动转录对词）
  *
  * 用法：
  *   npm run e2e:brand-logo                       # 全链路（断点续跑）
- *   npm run e2e:brand-logo -- --phase=imprint    # 只出印 logo 产品图（先看图再烧视频）
+ *   npm run e2e:brand-logo -- --phase=imprint    # 只出印 logo 产品图
+ *   npm run e2e:brand-logo -- --phase=hero       # 只重渲英雄镜头（免费，可反复调）
  *   npm run e2e:brand-logo -- --redo-imprint     # 印得不满意，重抽一张
  *   npm run e2e:brand-logo -- --source-asset=<mediaAssetId>  # 指定源图
+ *   npm run e2e:brand-logo -- --allow-480p       # Shuyu 只剩 480P 时仍放行（默认拒）
  */
 import { loadEnvConfig } from "@next/env";
 import { execFile } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -30,8 +37,11 @@ import { promisify } from "node:util";
 /// 那份是线上快照（VIDEO_ENGINE_MOCK="true"），混进来会把真机验收判成 mock。
 loadEnvConfig(process.cwd(), true);
 
-const OUTPUT_DIR = resolve(process.cwd(), "tmp/brand-logo-e2e");
+const OUTPUT_DIR = resolve(process.cwd(), "tmp/brand-logo-e2e-v2");
 const STATE_PATH = resolve(OUTPUT_DIR, "state.json");
+/// 0804 v1 的产物目录：印 logo 静帧已人工验收合格，v2 直接领养复用。
+const LEGACY_DIR = resolve(process.cwd(), "tmp/brand-logo-e2e");
+const LEGACY_STATE_PATH = resolve(LEGACY_DIR, "state.json");
 const ACCOUNT = "bill@sunnyshutter.ca";
 
 const IMPRINT_POLL_MS = 5_000;
@@ -50,6 +60,8 @@ const NARRATION_LINES = [
   "Soft light when you want it, total blackout when you need it.",
 ] as const;
 const VOICEOVER_SCRIPT = NARRATION_LINES.join(" ");
+/** 口播收尾短语：verify 阶段用它对成片音轨做「没被裁掉」的机器判据 */
+const NARRATION_TAIL_PHRASE = "total blackout when you need it";
 
 /// 印 logo 产品图的生成指令（走生产同一条 buildProductImagePrompt v3 管线）。
 /// 第一抽教训（2026-08-04）：不指定落位时模型把 logo 缩成拉链小圆牌，字只剩
@@ -62,28 +74,30 @@ const IMPRINT_PROMPT =
   "legible at a glance, factory-printed finish that follows the rail's surface and lighting.";
 
 /**
- * 视频 prompt：沿用 generate-curtain-viral-ads 已验证的爆款结构 + 产品锁，
- * 但把「禁止一切 logo」改述为「必须原样保留印在产品上的 SunnyShutter logo」。
+ * 视频 prompt v2：干净版。参考图是**原始实拍**（不是印 logo 静帧），
+ * 提示词里不出现任何「画面上有品牌字」的说法 —— 0804 实锤：只要 prompt
+ * 提到 "the SunnyShutter logo printed on…"，模型就会自己发挥去画一套
+ * 品牌字，真 lockup 反而被顶掉。品牌露出全部由后期承担（英雄镜头/角标/尾卡）。
  */
 function buildVideoPrompt(): string {
   const quality = [
     "Photorealistic real-footage look, true-to-life color, natural fabric physics.",
     "The curtains, room and materials MUST exactly match reference image 1 — never redesign, recolor or restyle them.",
-    "LOGO LOCK: the SunnyShutter brand logo printed on the curtain fabric in image 1 is part of the product. Keep it visible and pixel-faithful — identical letterforms, spelling, colors and placement. Never redraw, blur, warp or remove it.",
-    "No other logos, no extra brand text, no URLs, no readable on-screen text, no QR codes, no watermarks, no people.",
+    "ABSOLUTE TEXT BAN: zero readable text anywhere in any frame — no logos, no wordmarks, no brand names, no labels, no stitched or printed lettering on any fabric, rail or wall, no captions, no numbers, no QR codes, no watermarks. No people.",
     "SPATIAL BOUNDARY: stay within the photographed room; never invent unseen rooms or angles.",
     "LIGHTING CONTINUITY LOCK: light direction and color temperature continuous between adjacent shots.",
+    "END HOLD LOCK: final second is a clean product hold on the same window — absolutely no contact card, no cursive brand text, no phone digits.",
   ].join(" ");
   return [
     "9:16 vertical premium home-decor selling ad, 15s story told in 5 precisely edited cuts. Result-first structure with spoken narration.",
     "",
     "LOCATION: the exact bedroom in reference image 1.",
-    "PRODUCT (must exactly match reference image 1): custom layered blackout curtains with sheer inner layer, with the SunnyShutter logo printed on the fabric.",
+    "PRODUCT (must exactly match reference image 1): custom layered blackout curtains with sheer inner layer.",
     "",
     `0-3s: cinematic hero shot — slow push-in on the fully styled bedroom of image 1, golden glow through the sheer layer, curtains perfectly draped. Camera: slow push-in. Narration (spoken in English, warm confident voice): "${NARRATION_LINES[0]}"`,
-    `3-8s: macro glide across the curtain fabric passing the printed SunnyShutter logo, weave texture crisp, the logo stays sharp and legible exactly as in image 1. Camera: slow macro slider. Narration (same voice): "${NARRATION_LINES[1]}"`,
+    `3-8s: macro glide across the curtain fabric, weave texture crisp and tactile, hardware detail clean. Camera: slow macro slider. Narration (same voice): "${NARRATION_LINES[1]}"`,
     "8-11s: the blackout layer glides closed along its track, the room dims into a cozy sleep cave in one satisfying motion. Camera: static medium on the window.",
-    `11-15s: layers reopen to soft filtered daylight, closing wide of the serene bedroom with the curtains as hero, logo naturally visible in frame. Camera: static wide, gentle light movement. Narration (same voice): "${NARRATION_LINES[2]}"`,
+    `11-15s: layers reopen to soft filtered daylight, closing wide of the serene bedroom with the curtains as hero, room perfectly styled. Camera: static wide, gentle light movement. Narration (same voice): "${NARRATION_LINES[2]}"`,
     "",
     "Audio: the three English narration lines spoken naturally as voiceover, soft room ambience under them, a subtle track-glide sound at 8s, no music with vocals.",
     "Style: result-first reveal edit, satisfying detail montage, warm aspirational home tones, high retention pacing.",
@@ -113,6 +127,13 @@ const POST_PRODUCTION = {
   },
 };
 
+/// 英雄镜头裁窗（阶段 3，纯本地）：印 logo 静帧 2160x3840 上 SUNNY lockup
+/// 中心约 (1194, 2596)。810x1440 原生像素窗 → 1080x1920（1.33x lanczos，
+/// 全片最锐一镜），2s 内右移 40px 的滑轨感。⚠️ 静帧重抽后要重新标定。
+const HERO_STILL_CROP = { width: 810, height: 1440, x: 769, y: 1976 };
+const HERO_DRIFT = { dx: 40, dy: 0 };
+const HERO_DURATION_SECONDS = 2;
+
 type State = {
   startedAt: string;
   updatedAt: string;
@@ -124,6 +145,8 @@ type State = {
     outputUrl: string;
     localPath: string;
     pointsSnapshot: number | null;
+    /** 从 v1 验收领养而来（未新扣积分） */
+    adoptedFromLegacy?: boolean;
   };
   video?: {
     externalJobId: string;
@@ -131,12 +154,15 @@ type State = {
     videoUrl?: string;
     localPath?: string;
   };
+  hero?: { clipPath: string };
   /// 被供应商退款终结的套餐：重投时拉黑，避免反复栽进同一条死队列。
   refundedPlanIds?: string[];
   packaged?: {
     blobUrl: string;
     localPath: string;
     srtPath?: string;
+    tailTrimmedSeconds?: number;
+    warnings?: string[];
   };
 };
 
@@ -166,8 +192,6 @@ function assertRealMode(): void {
     }
   }
   /// Shuyu key 与 provider 同规则：大写为准，小写为历史部署兼容。
-  /// Seedance 凭证按 runtime profile 解析（ARK_API_KEY / BYTEPLUS_ARK_API_KEY 等），
-  /// 由 provider 在提交时给出精确报错，这里不重复造判定。
   if (!process.env.SHUYU_API_KEY?.trim() && !process.env.shuyu_api_key?.trim()) {
     throw new Error("缺少 SHUYU_API_KEY / shuyu_api_key");
   }
@@ -206,9 +230,67 @@ async function download(url: string, toPath: string): Promise<void> {
   writeFileSync(toPath, Buffer.from(await res.arrayBuffer()));
 }
 
+/**
+ * 口播完整性机器判据：本机装了 whisper-cli + 模型时把成片音轨转录出来，
+ * 断言收尾短语没被裁掉（v1 的 "need it." 事故就该在这里被拦）。
+ * 环境缺工具时返回 null，报告里改记「待人工听一遍」。
+ */
+async function transcribeIfPossible(videoPath: string): Promise<string | null> {
+  const whisperModel =
+    process.env.WHISPER_MODEL?.trim() ||
+    resolve(homedir(), ".cache/whisper-cpp/ggml-small.bin");
+  if (!existsSync(whisperModel)) return null;
+  try {
+    await run("whisper-cli", ["--help"]);
+  } catch {
+    return null;
+  }
+  const wavPath = resolve(OUTPUT_DIR, "final-audio-16k.wav");
+  await run("ffmpeg", [
+    "-y", "-loglevel", "error",
+    "-i", videoPath,
+    "-vn", "-ac", "1", "-ar", "16000",
+    wavPath,
+  ]);
+  const { stdout } = await run("whisper-cli", [
+    "-m", whisperModel,
+    "-f", wavPath,
+    "-l", "en",
+    "-nt",
+  ]);
+  return stdout.trim();
+}
+
 // ---------------------------------------------------------------- 阶段 1
 
 async function stageImprint(state: State, options: { redo: boolean; sourceAssetId?: string }) {
+  if (state.imprint && !options.redo) {
+    log("阶段 1 · 印 logo 产品图", `已完成（job=${state.imprint.jobId}），跳过。--redo-imprint 可重抽`);
+    return;
+  }
+
+  /// 优先领养 v1 已人工验收合格的静帧（同一账号同一品牌包），不再花钱。
+  if (!options.redo && !options.sourceAssetId && existsSync(LEGACY_STATE_PATH)) {
+    const legacy = JSON.parse(readFileSync(LEGACY_STATE_PATH, "utf8")) as State;
+    if (legacy.imprint && legacy.sourceAsset && legacy.brandPackage) {
+      const localPath = resolve(OUTPUT_DIR, "imprinted-product.png");
+      if (existsSync(legacy.imprint.localPath)) {
+        copyFileSync(legacy.imprint.localPath, localPath);
+      } else {
+        await download(legacy.imprint.outputUrl, localPath);
+      }
+      state.sourceAsset = legacy.sourceAsset;
+      state.brandPackage = legacy.brandPackage;
+      state.imprint = { ...legacy.imprint, localPath, adoptedFromLegacy: true };
+      writeState(state);
+      log("阶段 1 · 印 logo 产品图", [
+        `领养 0804 已验收静帧（job=${legacy.imprint.jobId}，未新扣积分）`,
+        `本地：${localPath}`,
+      ].join("\n  "));
+      return;
+    }
+  }
+
   const { db } = await import("@/lib/db");
   const { createProductImageJob, reconcileProductImageJob } = await import(
     "@/lib/services/product-image-service"
@@ -217,10 +299,6 @@ async function stageImprint(state: State, options: { redo: boolean; sourceAssetI
     "@/lib/services/workspace-brand-package-service"
   );
 
-  if (state.imprint && !options.redo) {
-    log("阶段 1 · 印 logo 产品图", `已完成（job=${state.imprint.jobId}），跳过。--redo-imprint 可重抽`);
-    return;
-  }
   if (options.redo) state.imprint = undefined;
 
   const user = await db.adminUser.findUnique({
@@ -263,7 +341,7 @@ async function stageImprint(state: State, options: { redo: boolean; sourceAssetI
   state.sourceAsset = { id: source.id, url: source.url };
   writeState(state);
 
-  log("阶段 1 · 印 logo 产品图（被验收的新功能）", [
+  log("阶段 1 · 印 logo 产品图", [
     `账号：${user.email}`,
     `源图：${source.id}`,
     `品牌包：${brandPackage.name}（logo=${brandPackage.logoAsset.url.slice(0, 70)}…）`,
@@ -314,14 +392,14 @@ async function stageImprint(state: State, options: { redo: boolean; sourceAssetI
   log("印 logo 产品图已产出", [
     output.asset.url,
     `本地：${localPath}`,
-    "⚠️ 烧视频前先肉眼确认 logo 保真（不满意用 --redo-imprint 重抽）",
+    "⚠️ 静帧重抽后 HERO_STILL_CROP 裁窗坐标要重新标定（--phase=hero 免费反复调）",
   ].join("\n  "));
 }
 
 // ---------------------------------------------------------------- 阶段 2
 
-async function stageVideo(state: State) {
-  if (!state.imprint) throw new Error("请先完成阶段 1（imprint）");
+async function stageVideo(state: State, options: { allow480p: boolean }) {
+  if (!state.sourceAsset) throw new Error("请先完成阶段 1（imprint，或至少解析出源图）");
   /// 生产视频线路 = Shuyu（转售 seedance 模型），BytePlus 直连凭证已废弃
   /// （2026-08-04 真机验证 401）。提交/轮询范式照抄 sunnyshutter-shade-pipeline。
   const { createShuyuVideoTask, resolveShuyuVideoPlans } = await import(
@@ -333,17 +411,22 @@ async function stageVideo(state: State) {
 
   if (!state.video?.externalJobId) {
     /// 套餐 ID 会轮换（f99f8b3 教训），一律按实时目录解析已审计套餐，
-    /// 逐个降级提交；720P 优先。
+    /// 逐个降级提交；720P 优先（Shuyu 目录上限就是 720P）。
     const refunded = new Set(state.refundedPlanIds ?? []);
     const plans = (await resolveShuyuVideoPlans({ timeoutMs: 20_000 }))
       .filter((plan) => plan.inputImagesMax >= 1 && !refunded.has(plan.planId))
       .sort((a, b) => (a.resolution === b.resolution ? 0 : a.resolution === "720P" ? -1 : 1));
     if (plans.length === 0) throw new Error("Shuyu 无可用已审计视频套餐（或全部已被退款拉黑）");
+    if (plans[0].resolution !== "720P" && !options.allow480p) {
+      throw new Error(
+        "Shuyu 目录当前最高只剩 480P —— 交付级成片默认拒绝（--allow-480p 可强行放行）",
+      );
+    }
 
     const prompt = buildVideoPrompt();
     log(
-      "阶段 2 · Shuyu 真机出片",
-      `promptChars=${prompt.length} · ref=印 logo 产品图 · 候选套餐=${plans.map((p) => p.planId).join(",")}`,
+      "阶段 2 · Shuyu 真机出片（干净版，无任何画面文字）",
+      `promptChars=${prompt.length} · ref=原始实拍 · 候选套餐=${plans.map((p) => p.planId).join(",")}`,
     );
     let lastError: unknown;
     let submitted = false;
@@ -354,12 +437,13 @@ async function stageVideo(state: State) {
           const created = await createShuyuVideoTask({
             timeoutMs: 20_000,
             providerRequestKey:
-              `e2e-brand-logo:${plan.planId}:${Date.now()}`.slice(0, 120),
+              `e2e-brand-logo-v2:${plan.planId}:${Date.now()}`.slice(0, 120),
             planId: plan.planId,
             prompt: prompt.slice(0, 4_500),
             duration: 15,
             aspectRatio: "9:16",
-            inputImages: [state.imprint.outputUrl],
+            /// 干净版：参考图给原始实拍。印 logo 静帧绝不进 I2V —— 它会被重绘。
+            inputImages: [state.sourceAsset.url],
           });
           state.video = { externalJobId: created.taskId, planId: plan.planId };
           writeState(state);
@@ -391,7 +475,7 @@ async function stageVideo(state: State) {
   if (!video.videoUrl) {
     try {
       const done = await pollShuyuTaskUntilDone(video.externalJobId, {
-        label: "brand-logo-e2e",
+        label: "brand-logo-e2e-v2",
         pollMs: 6_000,
         maxWaitMs: VIDEO_TIMEOUT_MS,
       });
@@ -430,17 +514,41 @@ async function stageVideo(state: State) {
 
 // ---------------------------------------------------------------- 阶段 3
 
+async function stageHero(state: State) {
+  if (!state.imprint) throw new Error("请先完成阶段 1（imprint）");
+  const { renderStillMotionClip } = await import(
+    "@/lib/video-generation/still-motion-clip"
+  );
+  const clipPath = resolve(OUTPUT_DIR, "hero-logo-insert.mp4");
+  await renderStillMotionClip({
+    stillPath: state.imprint.localPath,
+    outputPath: clipPath,
+    crop: HERO_STILL_CROP,
+    drift: HERO_DRIFT,
+    durationSeconds: HERO_DURATION_SECONDS,
+  });
+  state.hero = { clipPath };
+  writeState(state);
+  log("阶段 3 · 英雄镜头（logo 像素级保真，零供应商费用）", clipPath);
+}
+
+// ---------------------------------------------------------------- 阶段 4
+
 async function stagePackage(state: State) {
   if (!state.video?.localPath) throw new Error("请先完成阶段 2（video）");
+  if (!state.hero?.clipPath) throw new Error("请先完成阶段 3（hero）");
   const { applyClientBrandPackaging } = await import(
     "@/lib/video-generation/brand-packaging-service"
   );
 
   if (state.packaged) {
-    log("阶段 3 · 封装 + 字幕烧录", "已完成，跳过");
+    log("阶段 4 · 封装 + 字幕烧录", "已完成，跳过");
     return;
   }
-  log("阶段 3 · 封装 + 字幕烧录", "角标关 / 尾卡关（验收对象是印在产品上的 logo）· 字幕 + SRT + BGM");
+  log(
+    "阶段 4 · 封装 + 字幕烧录",
+    "语音安全裁尾 · 拼英雄镜头 · 字幕只铺口播窗口 + SRT + BGM · 角标/尾卡关",
+  );
   const packaged = await applyClientBrandPackaging({
     sourceVideoPath: state.video.localPath,
     clientProfileId: "sunnyshutter",
@@ -449,24 +557,37 @@ async function stagePackage(state: State) {
       includeEndCard: false,
       aspectRatio: "9:16",
       postProduction: POST_PRODUCTION,
+      insertClips: [
+        {
+          url: state.hero.clipPath,
+          intendedDurationSec: HERO_DURATION_SECONDS,
+          trimToFit: true,
+        },
+      ],
     },
     outputDir: OUTPUT_DIR,
-    outputId: `brand-logo-e2e-${Date.now().toString(36)}`,
+    outputId: `brand-logo-e2e-v2-${Date.now().toString(36)}`,
   });
   state.packaged = {
     blobUrl: packaged.blobUrl,
     localPath: packaged.localPath,
+    tailTrimmedSeconds: packaged.steps.tailTrimmedSeconds,
+    warnings: packaged.warnings,
   };
   /// 封装模块把 SRT 写在自己的临时目录里不外传；字幕切分是确定性的，
-  /// 这里用同一对函数按成片实际时长重建同一份 SRT 作为交付件。
+  /// 这里用同一对函数按「主片（裁尾后）时长」重建同一份 SRT 作为交付件。
   const { buildDeterministicCues, renderSrtCaptions } = await import(
     "@/lib/video-generation/audio-post-production"
   );
   const finalProbe = await probeStreams(packaged.localPath);
+  const mainWindowSec = Math.max(
+    1,
+    finalProbe.durationSec - HERO_DURATION_SECONDS,
+  );
   const srtPath = resolve(OUTPUT_DIR, "captions.srt");
   writeFileSync(
     srtPath,
-    renderSrtCaptions(buildDeterministicCues(VOICEOVER_SCRIPT, finalProbe.durationSec)),
+    renderSrtCaptions(buildDeterministicCues(VOICEOVER_SCRIPT, mainWindowSec)),
     "utf8",
   );
   state.packaged.srtPath = srtPath;
@@ -474,54 +595,88 @@ async function stagePackage(state: State) {
   log("封装完成", [
     packaged.blobUrl,
     `本地：${packaged.localPath}`,
-    `裁尾=${packaged.steps.tailTrimmedSeconds}s · 角标=${packaged.steps.logoApplied} · 尾卡=${packaged.steps.endCardApplied}`,
+    `实际裁尾=${packaged.steps.tailTrimmedSeconds.toFixed(2)}s · 角标=${packaged.steps.logoApplied} · 尾卡=${packaged.steps.endCardApplied}`,
     packaged.warnings.length ? `警告：${packaged.warnings.join("; ")}` : "无警告",
   ].join("\n  "));
 }
 
-// ---------------------------------------------------------------- 阶段 4
+// ---------------------------------------------------------------- 阶段 5
 
 async function stageVerify(state: State) {
-  if (!state.packaged) throw new Error("请先完成阶段 3（package）");
+  if (!state.packaged) throw new Error("请先完成阶段 4（package）");
   const final = await probeStreams(state.packaged.localPath);
   const framesDir = resolve(OUTPUT_DIR, "frames");
   if (!existsSync(framesDir)) mkdirSync(framesDir, { recursive: true });
-  for (const second of [1, 4, 7, 10, 13]) {
+  const heroProbeAt = Math.max(0, final.durationSec - HERO_DURATION_SECONDS / 2);
+  const stamps: Array<[string, number]> = [
+    ["t1s", 1],
+    ["t4s", 4],
+    ["t7s", 7],
+    ["t10s", 10],
+    ["t13s", 13],
+    ["t-hero", heroProbeAt],
+  ];
+  for (const [name, second] of stamps) {
     await run("ffmpeg", [
       "-y", "-loglevel", "error",
-      "-ss", String(second),
+      "-ss", second.toFixed(2),
       "-i", state.packaged.localPath,
       "-frames:v", "1",
-      resolve(framesDir, `t${second}s.png`),
+      resolve(framesDir, `${name}.png`),
     ]);
   }
 
+  /// 口播完整性 gate：v1 把 "need it." 裁掉的事故在这里机器拦截。
+  const transcript = await transcribeIfPossible(state.packaged.localPath);
+  let speechGate: string;
+  if (transcript === null) {
+    speechGate = "⚠️ 本机无 whisper-cli/模型，未自动转录 —— 请人工听一遍收尾是否完整";
+  } else {
+    const normalized = transcript.toLowerCase().replace(/[^a-z ]+/g, " ").replace(/\s+/g, " ");
+    if (!normalized.includes(NARRATION_TAIL_PHRASE)) {
+      throw new Error(
+        `口播完整性 gate 失败：成片转录里找不到收尾短语「${NARRATION_TAIL_PHRASE}」。\n转录：${transcript}`,
+      );
+    }
+    speechGate = `✅ whisper 转录含完整收尾短语（"…${NARRATION_TAIL_PHRASE}"）`;
+  }
+
   const report = [
-    "# 印上品牌 Logo · 真机验收报告",
+    "# 印上品牌 Logo · 真机验收报告 v2",
     "",
     `- 时间：${new Date().toISOString()}`,
     `- 账号：${ACCOUNT}`,
     `- 源图：${state.sourceAsset?.id}`,
     `- 品牌包：${state.brandPackage?.name}`,
-    `- 印 logo 产品图 job：${state.imprint?.jobId}（${state.imprint?.outputUrl}）`,
-    `- Seedance 任务：${state.video?.externalJobId}`,
+    `- 印 logo 静帧 job：${state.imprint?.jobId}${state.imprint?.adoptedFromLegacy ? "（领养 0804 已验收产物，未新扣积分）" : ""}`,
+    `- Seedance 任务：${state.video?.externalJobId}（干净版：参考图为原始实拍，全文禁字禁标）`,
     `- 成片：${state.packaged.blobUrl}`,
     "",
+    "## 与 v1（0804）的策略差异",
+    "- 品牌字标不再交给 I2V 保真（会被逐帧重绘/涂花）；改为印 logo 静帧的原生像素英雄镜头后期拼入",
+    "- 裁尾语音安全：探测音频活动结束点，宁可不裁也不切口播",
+    "- 字幕：短语边界切分 + 只铺口播窗口（英雄镜头不背字幕）",
+    "",
     "## 机器判据",
-    `- 成片规格：${final.width}x${final.height} · ${final.durationSec.toFixed(1)}s`,
+    `- 成片规格：${final.width}x${final.height} · ${final.durationSec.toFixed(1)}s（含 ${HERO_DURATION_SECONDS}s 英雄镜头）`,
     `- 音轨（口播+BGM）：${final.hasAudio ? "✅ 有" : "❌ 无"}`,
+    `- 口播完整性：${speechGate}`,
+    `- 实际裁尾：${(state.packaged.tailTrimmedSeconds ?? 0).toFixed(2)}s${state.packaged.warnings?.length ? `（${state.packaged.warnings.join("; ")}）` : ""}`,
     `- 字幕：随片烧录（plain/底部/en-US），SRT=${state.packaged.srtPath ?? "（见封装临时目录）"}`,
     `- 台词三句：${NARRATION_LINES.map((l) => `“${l}”`).join(" / ")}`,
     "",
     "## 待人工复核（抽帧在 frames/）",
-    "- [ ] 产品上的 SunnyShutter logo 清晰、无变形、不脱节（t4s 特写帧重点看）",
-    "- [ ] 字幕文本与口播内容一致、时间大致对齐",
-    "- [ ] 画面产品与源图一致（无重设计）",
+    "- [ ] t-hero 帧：SUNNY lockup 与品牌包资产一致、印制感自然（这是全片唯一的字标露出）",
+    "- [ ] t1s–t13s 帧：画面里没有任何模型自画的可读文字/假字标",
+    "- [ ] 画面产品与源图一致（无重设计）；转场无鬼影",
+    "",
+    "> 抽帧复检自动化（PRD §5 B5 Gate）仍排在 M5：目前用视觉模型问帧",
+    "> 「有没有可读文字」即可低成本落地，本轮先人工。",
   ].join("\n");
   const reportPath = resolve(OUTPUT_DIR, "REPORT.md");
   writeFileSync(reportPath, `${report}\n`, "utf8");
 
-  log("阶段 4 · 验收产物", [
+  log("阶段 5 · 验收产物", [
     `成片本地：${state.packaged.localPath}`,
     `成片 URL：${state.packaged.blobUrl}`,
     `抽帧：${framesDir}`,
@@ -540,6 +695,7 @@ async function main() {
   const args = process.argv.slice(2);
   const phaseArg = args.find((a) => a.startsWith("--phase="))?.slice("--phase=".length) ?? "all";
   const redo = args.includes("--redo-imprint");
+  const allow480p = args.includes("--allow-480p");
   const sourceAssetId = args.find((a) => a.startsWith("--source-asset="))?.slice("--source-asset=".length);
 
   const state = readState();
@@ -548,7 +704,8 @@ async function main() {
   if (phaseArg === "all" || phaseArg === "imprint") {
     await stageImprint(state, { redo, sourceAssetId });
   }
-  if (phaseArg === "all" || phaseArg === "video") await stageVideo(state);
+  if (phaseArg === "all" || phaseArg === "video") await stageVideo(state, { allow480p });
+  if (phaseArg === "all" || phaseArg === "hero") await stageHero(state);
   if (phaseArg === "all" || phaseArg === "package") await stagePackage(state);
   if (phaseArg === "all" || phaseArg === "verify") await stageVerify(state);
 

@@ -6,7 +6,8 @@
  *   - 每条视频可选加不加品牌封装（前端 optional 开关）；SunnyShutter 默认开。
  *   - 模块对所有客户通用：传 logo + 联系方式即可；锁死客户走内置 profile。
  *
- * 流程：裁尾（杀模型假名片幻觉）→ logo 角标 → 名片尾卡渲染 → 拼接。
+ * 流程：语音安全裁尾（杀模型假名片幻觉、不切口播）→ logo 角标 →
+ * 追加镜头（静帧英雄镜头等）→ 名片尾卡渲染 → 拼接（字幕只铺主片窗口）。
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -18,7 +19,8 @@ import { runFfmpegNormalizeAndConcatWithPostProduction } from "@/lib/services/st
 import type { PostProductionPlan } from "@/types/video-generation";
 import {
   DEFAULT_TAIL_TRIM_SECONDS,
-  trimVideoTail,
+  probeDurationSeconds,
+  trimVideoTailSpeechSafe,
 } from "@/lib/video-generation/tail-trim";
 import {
   SUNNYSHUTTER_END_CARD_COPY,
@@ -56,6 +58,16 @@ export type BrandPackagingOptions = {
    * 避免二次转码掉画质。null / 省略 = 不做后期，输出干净视频。
    */
   postProduction?: PostProductionPlan | null;
+  /**
+   * 追加在主片之后、尾卡之前的后期镜头（如静帧 logo 英雄镜头，
+   * 见 still-motion-clip.ts）。走同一次归一化拼接；字幕窗口自动锁在
+   * 主片时长内，不会摊到这些镜头上。
+   */
+  insertClips?: Array<{
+    url: string;
+    intendedDurationSec?: number | null;
+    trimToFit?: boolean;
+  }>;
 };
 
 export type BrandPackagingInput = {
@@ -77,6 +89,7 @@ export type BrandPackagingResult = {
   localPath: string;
   blobUrl: string;
   steps: {
+    /** 实际裁掉的秒数（语音安全裁尾可能小于请求值，0 = 保语音放弃裁尾） */
     tailTrimmedSeconds: number;
     logoApplied: boolean;
     endCardApplied: boolean;
@@ -163,18 +176,22 @@ export async function applyClientBrandPackaging(
   if (!isSunnyShutter && !input.custom) {
     throw new Error("brand packaging requires clientProfileId or custom brand info");
   }
-  if (isSunnyShutter && (!includeLogo || !includeEndCard)) {
-    warnings.push(
-      "sunnyshutter default is full branding; logo/end-card was explicitly disabled for this video",
-    );
-  }
+  /// 0805 起 logo 角标/联系方式帧都是逐视频显式选择，关掉不再告警。
 
   mkdirSync(input.outputDir, { recursive: true });
 
-  // 1) 裁尾 — 无条件执行，Seedance 假名片永不流向客户
-  const trimmedPath = await trimVideoTail(input.sourceVideoPath, {
+  // 1) 裁尾 — 无条件执行且语音安全：假名片不流向客户，片尾口播也不许切
+  const trimmed = await trimVideoTailSpeechSafe(input.sourceVideoPath, {
     tailSeconds: tailTrim,
   });
+  if (trimmed.speechLimited) {
+    warnings.push(
+      `tail trim reduced to ${trimmed.trimmedSeconds.toFixed(2)}s to keep the voiceover tail intact`,
+    );
+  }
+  const trimmedPath = trimmed.path;
+  /// 字幕窗口 = 主片（裁尾后）时长：尾卡/追加镜头不背台词
+  const mainDurationSec = await probeDurationSeconds(trimmedPath);
 
   // 2) logo 角标
   let workingUrl = trimmedPath;
@@ -199,9 +216,22 @@ export async function applyClientBrandPackaging(
     workingUrl = overlay.outputUrl;
   }
 
-  // 3) 尾卡渲染 + 拼接
+  // 3) 追加镜头 + 尾卡渲染 + 拼接（同一次归一化，避免多次转码）
+  const insertClips = (opts.insertClips ?? []).map((clip) => ({
+    url: asClipUrl(clip.url),
+    intendedDurationSec: clip.intendedDurationSec ?? null,
+    trimToFit: clip.trimToFit ?? false,
+  }));
   let endCardApplied = false;
   let finalUrl = workingUrl;
+  const clips: Array<{
+    url: string;
+    intendedDurationSec: number | null;
+    trimToFit: boolean;
+  }> = [
+    { url: asClipUrl(workingUrl), intendedDurationSec: null, trimToFit: false },
+    ...insertClips,
+  ];
   if (includeEndCard) {
     const plan = isSunnyShutter
       ? sunnyShutterPlan(aspectRatio)
@@ -218,34 +248,26 @@ export async function applyClientBrandPackaging(
         : `file://${resolve(input.custom!.logoPath)}`,
     });
     if (!endCard?.url) throw new Error("end card render failed");
-    finalUrl = (
-      await runFfmpegNormalizeAndConcatWithPostProduction({
-        finalVideoId: `${input.outputId}-branded`,
-        aspectRatio,
-        clips: [
-          { url: asClipUrl(workingUrl), intendedDurationSec: null, trimToFit: false },
-          {
-            url: endCard.url,
-            intendedDurationSec: plan.endCardDurationSeconds,
-            trimToFit: true,
-          },
-        ],
-        postProduction,
-      })
-    ).stitchedVideoUrl;
+    clips.push({
+      url: endCard.url,
+      intendedDurationSec: plan.endCardDurationSeconds,
+      trimToFit: true,
+    });
     endCardApplied = true;
-  } else if (includeLogo || postProduction) {
-    /// 只有 logo、或只要后期时也走一次归一化：保证成片规格一致，
-    /// 且字幕/BGM/口播与有尾卡分支烧录在同一条链路上。
-    finalUrl = (
-      await runFfmpegNormalizeAndConcatWithPostProduction({
-        finalVideoId: `${input.outputId}-branded`,
-        aspectRatio,
-        clips: [{ url: asClipUrl(workingUrl), intendedDurationSec: null, trimToFit: false }],
-        postProduction,
-      })
-    ).stitchedVideoUrl;
   }
+  /// 归一化无条件执行：即使没有任何附加物（0805 起 brief 交付默认
+  /// 「裁尾即走」），也必须把产物落到 Blob 并保证成片规格一致 ——
+  /// 旧的跳过分支会把本地裁尾路径当 URL fetch（0804 asClipUrl 修的是
+  /// clip 侧，这里是终端产物侧的同款坑，walkthrough 交付实锤）。
+  finalUrl = (
+    await runFfmpegNormalizeAndConcatWithPostProduction({
+      finalVideoId: `${input.outputId}-branded`,
+      aspectRatio,
+      clips,
+      postProduction,
+      captionWindowSec: mainDurationSec,
+    })
+  ).stitchedVideoUrl;
 
   const localPath = resolve(input.outputDir, `${input.outputId}-branded.mp4`);
   const response = await fetch(finalUrl);
@@ -256,7 +278,7 @@ export async function applyClientBrandPackaging(
     localPath,
     blobUrl: finalUrl,
     steps: {
-      tailTrimmedSeconds: tailTrim,
+      tailTrimmedSeconds: trimmed.trimmedSeconds,
       logoApplied: includeLogo,
       endCardApplied,
     },

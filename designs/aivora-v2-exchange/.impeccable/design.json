@@ -1,0 +1,571 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-23T13:10:32-04:00",
+  "title": "Design System: Aivora 增长交易台（Exchange）",
+  "status": "proposal-pending-ceo-approval: 生产仍运行 Aivora Glass（根 DESIGN.md / CLAUDE.md §6 / 玻璃门禁测试）；采纳前 src/ 不得照此实现。",
+  "source": "designs/aivora-v2-exchange/index.html",
+  "extensions": {
+    "colorMeta": {
+      "ink-0": {
+        "role": "neutral",
+        "displayName": "地板 Ink 0",
+        "canonical": "oklch(14.9% 0.005 264.5)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ],
+        "note": "墨阶本身就是项目的色阶：ink-0…ink-4 + dust/ash/bone。"
+      },
+      "ink-1": {
+        "role": "neutral",
+        "displayName": "面板 Ink 1",
+        "canonical": "oklch(18.1% 0.007 258.4)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ]
+      },
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "悬停 Ink 2",
+        "canonical": "oklch(20.8% 0.009 255.6)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "凸起 Ink 3",
+        "canonical": "oklch(24.2% 0.011 254.1)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ]
+      },
+      "ink-4": {
+        "role": "neutral",
+        "displayName": "凸起悬停 Ink 4",
+        "canonical": "oklch(28.7% 0.015 256.8)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ]
+      },
+      "seam": {
+        "role": "neutral",
+        "displayName": "接缝 Seam",
+        "canonical": "rgb(226 232 240 / 0.075)",
+        "note": "alpha 层，叠在 ink-0 上即为面板之间的 1px 接缝。"
+      },
+      "seam-2": {
+        "role": "neutral",
+        "displayName": "控件描边 Seam 2",
+        "canonical": "rgb(226 232 240 / 0.14)"
+      },
+      "seam-3": {
+        "role": "neutral",
+        "displayName": "强描边 Seam 3",
+        "canonical": "rgb(226 232 240 / 0.22)"
+      },
+      "bone": {
+        "role": "neutral",
+        "displayName": "骨白 Bone",
+        "canonical": "oklch(94.0% 0.005 95.1)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ],
+        "note": "主文字与一切完成态；ink-1 上 15.73:1。"
+      },
+      "ash": {
+        "role": "neutral",
+        "displayName": "灰白 Ash",
+        "canonical": "oklch(73.2% 0.013 255.5)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ],
+        "note": "次级文字；ink-1 上 7.92:1。"
+      },
+      "dust": {
+        "role": "neutral",
+        "displayName": "尘灰 Dust",
+        "canonical": "oklch(60.5% 0.015 258.4)",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#101215",
+          "#15181c",
+          "#1c2025",
+          "#262b32",
+          "#7c828b",
+          "#a3a9b1",
+          "#ecebe7"
+        ],
+        "note": "第三级文字；只落在 ink-0–ink-2（ink-3 上仅 4.23:1）。"
+      },
+      "ember": {
+        "role": "primary",
+        "displayName": "余烬橙 Ember",
+        "canonical": "oklch(66.8% 0.224 37.0)",
+        "tonalRamp": [
+          "#1b0300",
+          "#440f01",
+          "#721f03",
+          "#a23107",
+          "#d6430d",
+          "#fe693c",
+          "#ffac94",
+          "#fee9e3"
+        ],
+        "note": "唯一信号：上涨 / 需要你处理；动起来 = Agent 正在干活。"
+      },
+      "ember-hi": {
+        "role": "primary",
+        "displayName": "余烬亮面 Ember Hi",
+        "canonical": "oklch(70.2% 0.197 41.5)",
+        "tonalRamp": [
+          "#1b0300",
+          "#440f01",
+          "#721f03",
+          "#a23107",
+          "#d6430d",
+          "#fe693c",
+          "#ffac94",
+          "#fee9e3"
+        ],
+        "note": "只用于余烬键悬停。"
+      },
+      "ember-ink": {
+        "role": "primary",
+        "displayName": "余烬墨 Ember Ink",
+        "canonical": "oklch(15.0% 0.030 62.3)",
+        "tonalRamp": [
+          "#1b0300",
+          "#440f01",
+          "#721f03",
+          "#a23107",
+          "#d6430d",
+          "#fe693c",
+          "#ffac94",
+          "#fee9e3"
+        ],
+        "note": "余烬面上的前景；5.93:1。"
+      },
+      "ember-08": {
+        "role": "primary",
+        "displayName": "余烬洗底 Ember 08",
+        "canonical": "rgb(255 77 0 / 0.08)"
+      },
+      "ember-16": {
+        "role": "primary",
+        "displayName": "余烬闪光 Ember 16",
+        "canonical": "rgb(255 77 0 / 0.16)"
+      },
+      "ember-40": {
+        "role": "primary",
+        "displayName": "余烬描边 Ember 40",
+        "canonical": "rgb(255 77 0 / 0.42)"
+      },
+      "steel": {
+        "role": "secondary",
+        "displayName": "钢灰 Steel",
+        "canonical": "oklch(70.3% 0.041 255.7)",
+        "tonalRamp": [
+          "#020b1c",
+          "#162537",
+          "#314155",
+          "#4f5f75",
+          "#6d7f96",
+          "#8ea0b8",
+          "#b3c6df",
+          "#e5f0fe"
+        ],
+        "note": "反信号：下跌 / 闲置 / 参照线；不是第二强调色。"
+      },
+      "steel-30": {
+        "role": "secondary",
+        "displayName": "钢灰描边 Steel 30",
+        "canonical": "rgb(143 161 185 / 0.3)"
+      }
+    },
+    "typographyMeta": {
+      "display-figure": {
+        "displayName": "Display Figure",
+        "purpose": "每个视图至多一个的细窄大数字（Archivo 200，字宽 80%）。"
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "报价头与总结里的次级大数字（Archivo 300，字宽 84%）。"
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "视图标题。"
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "面板标题。"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "正文。"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "元信息、面包屑、成交带文字。"
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "表格数值，IBM Plex Mono（11px 下 i/1/l、M/H 可分辨）。"
+      },
+      "data-sm": {
+        "displayName": "Data Small",
+        "purpose": "ID、时间戳、Mission 代号、配方名。"
+      },
+      "led": {
+        "displayName": "LED",
+        "purpose": "Doto 点阵，只在实时成交带里写数字，≥16px，不写字母与 ID。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "edge",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.075)",
+        "purpose": "机加工顶缘：每个面板、选中导航、选中分段、toast。"
+      },
+      {
+        "name": "key-bevel",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.32), inset 0 -2px 0 rgb(0 0 0 / 0.22), 0 1px 2px rgb(0 0 0 / 0.5)",
+        "purpose": "只给余烬键的实体键斜面。"
+      },
+      {
+        "name": "brand-mark-bevel",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.3), inset 0 -2px 0 rgb(0 0 0 / 0.25)",
+        "purpose": "品牌标记的键帽内斜面，无外投影。"
+      },
+      {
+        "name": "float",
+        "value": "0 18px 40px -18px rgb(0 0 0 / 0.9), inset 0 1px 0 rgb(255 255 255 / 0.075)",
+        "purpose": "只给 toast。"
+      },
+      {
+        "name": "player",
+        "value": "0 24px 60px -30px rgb(0 0 0 / 0.9)",
+        "purpose": "只给审片播放器。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "视图入场、toast、闪光、审片标记移动。"
+      },
+      {
+        "name": "view-in",
+        "value": "0.42s",
+        "purpose": "视图切换：不透明度 0.4 → 1、上移 6px。"
+      },
+      {
+        "name": "hover",
+        "value": "0.15s",
+        "purpose": "行、导航、按钮的底色与描边过渡。"
+      },
+      {
+        "name": "tape-crawl",
+        "value": "70s linear infinite",
+        "purpose": "成交带匀速左移，悬停暂停。"
+      },
+      {
+        "name": "fill-in",
+        "value": "1.4s",
+        "purpose": "新成交回报 ember-16 → 透明。"
+      },
+      {
+        "name": "flash",
+        "value": "1s",
+        "purpose": "实时数字更新：余烬字 + ember-08 底 → 透明。"
+      },
+      {
+        "name": "pulse",
+        "value": "2.4s infinite",
+        "purpose": "引擎 / 成交带 / 运行中 Mission 的 7px 余烬脉冲。"
+      },
+      {
+        "name": "beam",
+        "value": "2.4s linear infinite",
+        "purpose": "生成光束绕边一周。"
+      },
+      {
+        "name": "breathe",
+        "value": "1.6s ease-in-out infinite",
+        "purpose": "生成中 chip 的 6px 余烬呼吸点。"
+      },
+      {
+        "name": "toast-in",
+        "value": "0.4s",
+        "purpose": "toast 自下而上入场，3.2s 后消失。"
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "成交带停止并可横向滚动；光束变静态余烬环 60%；循环视频只留首帧；动画与过渡 0.001ms。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "1360px",
+        "note": "≤ 时右侧栏落到下方整行"
+      },
+      {
+        "name": "desk",
+        "value": "1100px",
+        "note": "≤ 时报价头首格独占一行、双栏变单栏、预算条隐藏"
+      },
+      {
+        "name": "mobile",
+        "value": "860px",
+        "note": "≤ 时单列文档流、左栏变底部标签栏、状态栏隐藏"
+      },
+      {
+        "name": "narrow",
+        "value": "520px",
+        "note": "≤ 时大数字固定 76px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Key Button",
+      "kind": "button",
+      "refersTo": "button-key",
+      "description": "余烬键：每个面板同一时刻最多一颗，就是店主此刻最该按的那一下。",
+      "html": "<button class=\"ds-btn-key\" type=\"button\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z\"/><path d=\"m21.854 2.147-10.94 10.939\"/></svg>批准发送</button>",
+      "css": ".ds-btn-key{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;font:500 13px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s;background:var(--ember, #ff4d00);color:var(--ember-ink, #140801);border:1px solid transparent;font-weight:600;box-shadow:inset 0 1px 0 rgb(255 255 255 / .32),inset 0 -2px 0 rgb(0 0 0 / .22),0 1px 2px rgb(0 0 0 / .5);}.ds-btn-key:hover{background:var(--ember-hi, #ff6a26);}.ds-btn-key:active{transform:translateY(1px);}.ds-btn-key:focus-visible{outline:2px solid var(--ember, #ff4d00);outline-offset:2px;}"
+    },
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "默认按钮：ink-3 凸起面 + seam-2 描边。",
+      "html": "<button class=\"ds-btn\" type=\"button\">转给 Bill</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;font:500 13px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s;background:var(--ink-3, #1c2025);color:var(--bone, #ecebe7);border:1px solid var(--seam-2, rgb(226 232 240 / .14));}.ds-btn:hover{background:var(--ink-4, #262b32);border-color:var(--seam-3, rgb(226 232 240 / .22));}.ds-btn:active{transform:translateY(1px);}.ds-btn:focus-visible{outline:2px solid var(--ember, #ff4d00);outline-offset:2px;}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "幽灵按钮：退路与次级跳转（转人工、不发，保留素材）。",
+      "html": "<button class=\"ds-btn-ghost\" type=\"button\">不发，保留素材</button>",
+      "css": ".ds-btn-ghost{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:32px;padding:0 12px;border-radius:8px;font:500 13px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s,transform .1s;background:transparent;color:var(--ash, #a3a9b1);border:1px solid transparent;}.ds-btn-ghost:hover{background:var(--ink-2, #15181c);color:var(--bone, #ecebe7);}.ds-btn-ghost:focus-visible{outline:2px solid var(--ember, #ff4d00);outline-offset:2px;}"
+    },
+    {
+      "name": "Status Chips",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "药丸 chip：余烬 = 领先 / 待处理，骨白 = 赛马中 / 生成中，钢灰 = 降低投放 / 已暂停；L2 等级标签用等宽字。",
+      "html": "<div class=\"ds-chips\"><span class=\"ds-chip ds-chip-ember\">领先</span><span class=\"ds-chip ds-chip-bone\">赛马中</span><span class=\"ds-chip ds-chip-bone\"><i class=\"ds-gen-dot\"></i>生成中 <b>3/4</b></span><span class=\"ds-chip ds-chip-steel\">降低投放</span><span class=\"ds-lvl\">L2</span><span class=\"ds-lvl ds-lvl-3\">L3 报价→人工</span></div>",
+      "css": ".ds-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--ink-1, #101215);padding:12px;}.ds-chip{display:inline-flex;align-items:center;gap:5px;height:22px;padding:0 8px;border-radius:999px;font:500 11.5px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;border:1px solid var(--seam-2, rgb(226 232 240 / .14));color:var(--ash, #a3a9b1);white-space:nowrap;}.ds-chip b{font:500 11.5px/1 \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;font-variant-numeric:tabular-nums;}.ds-chip-ember{color:var(--ember, #ff4d00);border-color:var(--ember-40, rgb(255 77 0 / .42));background:var(--ember-08, rgb(255 77 0 / .08));}.ds-chip-bone{color:var(--bone, #ecebe7);border-color:var(--seam-3, rgb(226 232 240 / .22));}.ds-chip-steel{color:var(--steel, #8fa1b9);border-color:var(--steel-30, rgb(143 161 185 / .3));}.ds-gen-dot{width:6px;height:6px;border-radius:50%;background:var(--ember, #ff4d00);animation:ds-breathe 1.6s ease-in-out infinite;}@keyframes ds-breathe{50%{opacity:.35;}}.ds-lvl{display:inline-flex;align-items:center;height:20px;padding:0 6px;border-radius:5px;font:600 11px/1 \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;border:1px solid var(--seam-3, rgb(226 232 240 / .22));color:var(--bone, #ecebe7);}.ds-lvl-3{color:var(--ember, #ff4d00);border-color:var(--ember-40, rgb(255 77 0 / .42));}@media (prefers-reduced-motion: reduce){.ds-gen-dot{animation:none;}}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "顶栏搜索：ink-1 + seam 描边，⌘K 等宽键帽；焦点为 2px 余烬描边。",
+      "html": "<label class=\"ds-search\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input type=\"search\" placeholder=\"搜索成片、线索、Mission…\"><span class=\"ds-kbd\">⌘K</span></label>",
+      "css": ".ds-search{display:flex;align-items:center;gap:8px;width:320px;height:32px;padding:0 10px;border:1px solid var(--seam, rgb(226 232 240 / .075));border-radius:8px;background:var(--ink-1, #101215);color:var(--dust, #7c828b);}.ds-search:focus-within{outline:2px solid var(--ember, #ff4d00);outline-offset:2px;}.ds-search input{flex:1;min-width:0;background:none;border:0;outline:none;color:var(--bone, #ecebe7);font:13px \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;caret-color:var(--ember, #ff4d00);}.ds-search input::placeholder{color:var(--dust, #7c828b);}.ds-kbd{font:500 11px/1.4 \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;color:var(--dust, #7c828b);border:1px solid var(--seam-2, rgb(226 232 240 / .14));border-radius:5px;padding:1px 5px;}"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-item",
+      "description": "左栏导航：灰白行，悬停 ink-2，当前项 ink-3 + 机加工顶缘；余烬徽标只计待你处理的件数。",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect width=\"7\" height=\"9\" x=\"3\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"14\" y=\"3\" rx=\"1\"/><rect width=\"7\" height=\"9\" x=\"14\" y=\"12\" rx=\"1\"/><rect width=\"7\" height=\"5\" x=\"3\" y=\"16\" rx=\"1\"/></svg><span>交易台</span></a><a href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><circle cx=\"12\" cy=\"12\" r=\"6\"/><circle cx=\"12\" cy=\"12\" r=\"2\"/></svg><span>增长 Mission</span><span class=\"ds-tag\">2</span></a><a href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><polyline points=\"22 12 16 12 14 15 10 15 8 12 2 12\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z\"/></svg><span>互动收件箱</span><span class=\"ds-badge\">4</span></a></nav>",
+      "css": ".ds-nav{display:grid;gap:2px;width:216px;padding:10px;background:var(--ink-0, #0a0b0d);}.ds-nav a{display:flex;align-items:center;gap:10px;height:34px;padding:0 10px;border-radius:8px;font:400 13.5px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;color:var(--ash, #a3a9b1);text-decoration:none;transition:background .15s,color .15s;}.ds-nav a:hover{background:var(--ink-2, #15181c);color:var(--bone, #ecebe7);}.ds-nav a[aria-current=page]{background:var(--ink-3, #1c2025);color:var(--bone, #ecebe7);box-shadow:inset 0 1px 0 rgb(255 255 255 / .075);}.ds-nav a:focus-visible{outline:2px solid var(--ember, #ff4d00);outline-offset:2px;}.ds-badge{margin-left:auto;font:600 11px/18px \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;color:var(--ember-ink, #140801);background:var(--ember, #ff4d00);border-radius:999px;padding:0 6px;}.ds-tag{margin-left:auto;font:400 11px/1 \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;color:var(--dust, #7c828b);}"
+    },
+    {
+      "name": "Seam Wall with Quote Header",
+      "kind": "card",
+      "refersTo": "seam-wall",
+      "description": "接缝拼板墙：面板以 1px 接缝相拼、只有外框有 12px 圆角；报价头的细窄大数字与口径标记。",
+      "html": "<section class=\"ds-wall\"><div class=\"ds-q\"><div class=\"ds-ql\"><i class=\"ds-pv ds-pv-m\"></i>本周有效询盘 · 周一至今</div><div class=\"ds-fig-xl\">23</div><div class=\"ds-qm\"><span class=\"ds-up\">9 较上周同期</span></div></div><div class=\"ds-q\"><div class=\"ds-ql\"><i class=\"ds-pv ds-pv-e\"></i>每条询盘成本</div><div class=\"ds-fig-l\"><small>C$</small>13.60</div><div class=\"ds-qm\"><span class=\"ds-down\">2.40 较上周</span></div></div><a class=\"ds-q ds-q-act\" href=\"#\"><div class=\"ds-ql\">等你批准</div><div class=\"ds-fig-l\">4</div><div class=\"ds-qm\">回复 2 · 上架 1 · 预算 1</div></a></section>",
+      "css": ".ds-wall{display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:1px;background:var(--seam, rgb(226 232 240 / .075));border:1px solid var(--seam, rgb(226 232 240 / .075));border-radius:12px;overflow:hidden;color:var(--bone, #ecebe7);font:400 14px/1.5 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;}.ds-q{display:grid;gap:8px;align-content:start;padding:18px 20px 16px;background:var(--ink-1, #101215);box-shadow:inset 0 1px 0 rgb(255 255 255 / .075);color:inherit;text-decoration:none;}.ds-q-act{background:linear-gradient(180deg,var(--ember-08, rgb(255 77 0 / .08)),transparent 70%),var(--ink-1, #101215);}.ds-q-act .ds-fig-l{color:var(--ember, #ff4d00);}.ds-q-act:focus-visible{outline:2px solid var(--ember, #ff4d00);outline-offset:2px;}.ds-ql{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ash, #a3a9b1);}.ds-fig-xl{font:200 88px/.84 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;font-stretch:80%;letter-spacing:-.035em;font-variant-numeric:tabular-nums;}.ds-fig-l{font:300 46px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;font-stretch:84%;letter-spacing:-.03em;font-variant-numeric:tabular-nums;}.ds-fig-l small{font-size:.42em;color:var(--ash, #a3a9b1);margin-right:4px;letter-spacing:0;}.ds-qm{font-size:12.5px;color:var(--dust, #7c828b);}.ds-up,.ds-down{display:inline-flex;align-items:center;gap:4px;font-family:\"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;font-variant-numeric:tabular-nums;}.ds-up{color:var(--ember, #ff4d00);}.ds-down{color:var(--steel, #8fa1b9);}.ds-up::before,.ds-down::before{content:'';width:7px;height:6px;background:currentColor;}.ds-up::before{clip-path:polygon(50% 0,100% 100%,0 100%);}.ds-down::before{clip-path:polygon(0 0,100% 0,50% 100%);}.ds-pv{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none;}.ds-pv-m{background:var(--bone, #ecebe7);}.ds-pv-e{border:1.5px solid var(--ash, #a3a9b1);}"
+    },
+    {
+      "name": "Live Tape",
+      "kind": "custom",
+      "refersTo": "tape",
+      "description": "实时成交带：LED 行情屏，只播真实业务事件；数字用 Doto 点阵（≥16px，只写数字），悬停暂停。",
+      "html": "<div class=\"ds-tape\"><div class=\"ds-tape-l\"><i class=\"ds-pulse\"></i>实时成交</div><div class=\"ds-tape-v\"><div class=\"ds-tape-t\"><span class=\"ds-fill\"><span class=\"ds-up\">询盘</span><span class=\"ds-lv ds-lv-up\">+1</span><b>Linda W.</b> · Richmond Hill · IG 评论</span><span class=\"ds-fill\"><span class=\"ds-up\">预约</span><span class=\"ds-lv\">10/26 14:00</span>上门量尺</span><span class=\"ds-fill\">播放 <span class=\"ds-lv\">18,412</span><b>CR-2291</b></span><span class=\"ds-fill\"><span class=\"ds-down\">降低投放</span><b>CR-2283</b> · 每询盘 C$<span class=\"ds-lv\">24.50</span></span></div></div></div>",
+      "css": ".ds-tape{display:flex;align-items:stretch;height:34px;background:var(--ink-1, #101215);border-bottom:1px solid var(--seam, rgb(226 232 240 / .075));overflow:hidden;font:400 12.5px/1 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;color:var(--ash, #a3a9b1);}.ds-tape-l{display:flex;align-items:center;gap:8px;padding:0 14px 0 16px;border-right:1px solid var(--seam, rgb(226 232 240 / .075));color:var(--bone, #ecebe7);font-size:12px;flex:none;}.ds-pulse{width:7px;height:7px;border-radius:50%;background:var(--ember, #ff4d00);animation:ds-pulse 2.4s cubic-bezier(.16,1,.3,1) infinite;}@keyframes ds-pulse{0%{box-shadow:0 0 0 0 rgb(255 77 0 / .42);}70%{box-shadow:0 0 0 7px rgb(255 77 0 / 0);}100%{box-shadow:0 0 0 0 rgb(255 77 0 / 0);}}.ds-tape-v{flex:1;min-width:0;overflow:hidden;display:flex;-webkit-mask-image:linear-gradient(90deg,transparent,#000 32px,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,transparent,#000 32px,#000 calc(100% - 48px),transparent);}.ds-tape-t{display:flex;white-space:nowrap;animation:ds-crawl 30s linear infinite;}.ds-tape:hover .ds-tape-t{animation-play-state:paused;}@keyframes ds-crawl{to{transform:translateX(-50%);}}.ds-fill{display:inline-flex;align-items:center;gap:8px;padding:0 18px;border-right:1px solid var(--seam, rgb(226 232 240 / .075));}.ds-fill b{color:var(--bone, #ecebe7);font-weight:500;}.ds-lv{font:900 16px/1 \"Doto\", \"IBM Plex Mono\", monospace;letter-spacing:.02em;color:var(--bone, #ecebe7);}.ds-lv-up{color:var(--ember, #ff4d00);}.ds-up,.ds-down{display:inline-flex;align-items:center;gap:4px;}.ds-up{color:var(--ember, #ff4d00);}.ds-down{color:var(--steel, #8fa1b9);}.ds-up::before,.ds-down::before{content:'';width:7px;height:6px;background:currentColor;}.ds-up::before{clip-path:polygon(50% 0,100% 100%,0 100%);}.ds-down::before{clip-path:polygon(0 0,100% 0,50% 100%);}@media (prefers-reduced-motion: reduce){.ds-tape-t{animation:none;}.ds-tape-v{overflow-x:auto;}.ds-pulse{animation:none;}}"
+    },
+    {
+      "name": "Publish State",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "发布三态：已提交 / 平台接收 / 已发布；拿到平台帖子 ID 才算已发布。口径图例同列。",
+      "html": "<div class=\"ds-pub\"><div class=\"ds-ps ds-on\"><i></i>已提交</div><div class=\"ds-ps ds-on ds-cur\"><i></i>平台接收</div><div class=\"ds-ps\"><i></i>已发布</div><p class=\"ds-note\">IG 与 FB 已接收，正在处理视频… 只有拿到平台回传的帖子 ID，才算「已发布」。</p><div class=\"ds-legend\"><span><i class=\"ds-pv ds-pv-m\"></i>实测</span><span><i class=\"ds-pv ds-pv-e\"></i>估计</span><span><i class=\"ds-pv ds-pv-ai\"></i>AI 建议</span><span><i class=\"ds-pv ds-pv-x\"></i>缺失</span></div></div>",
+      "css": ".ds-pub{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:14px 16px;width:360px;background:var(--ink-1, #101215);box-shadow:inset 0 1px 0 rgb(255 255 255 / .075);font:400 12px/1.4 \"Archivo\", \"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", system-ui, sans-serif;color:var(--dust, #7c828b);}.ds-ps{display:grid;gap:6px;}.ds-ps i{display:block;height:4px;border-radius:4px;background:var(--ink-3, #1c2025);}.ds-on{color:var(--bone, #ecebe7);}.ds-on i{background:var(--bone, #ecebe7);}.ds-cur i{background:var(--ember, #ff4d00);}.ds-note{grid-column:1/-1;margin:6px 0 0;font-size:12.5px;color:var(--ash, #a3a9b1);}.ds-legend{grid-column:1/-1;display:flex;gap:14px;padding-top:10px;border-top:1px solid var(--seam, rgb(226 232 240 / .075));font-size:11.5px;}.ds-legend span{display:inline-flex;align-items:center;gap:6px;}.ds-pv{display:inline-block;width:7px;height:7px;border-radius:50%;flex:none;}.ds-pv-m{background:var(--bone, #ecebe7);}.ds-pv-e{border:1.5px solid var(--ash, #a3a9b1);}.ds-pv-ai{border-radius:1px;border:1.5px dashed var(--ash, #a3a9b1);transform:rotate(45deg);}.ds-pv-x{width:9px;height:1.5px;border-radius:1px;background:var(--dust, #7c828b);}"
+    },
+    {
+      "name": "Generating Beam",
+      "kind": "custom",
+      "refersTo": "chip",
+      "description": "生成光束：只套在机器此刻正在干活的 9:16 媒体或步骤上，完成即撤。原型用 @property --beam 旋转锥形渐变；此片段为 shadow DOM 可用的等效写法。",
+      "html": "<div class=\"ds-beam-wrap\"><span class=\"ds-beam\"><span class=\"ds-frame\"></span></span><span class=\"ds-cap\">CR-2304 · 生成中 3/4</span></div>",
+      "css": ".ds-beam-wrap{display:grid;gap:8px;width:112px;font:500 11px/1.3 \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;color:var(--dust, #7c828b);}.ds-beam{position:relative;display:block;width:112px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:var(--ink-3, #1c2025);}.ds-beam::before{content:'';position:absolute;inset:-40%;background:conic-gradient(transparent 0 62%,rgb(255 77 0 / .2) 72%,#ff4d00 86%,#ffd2b8 92%,transparent 100%);animation:ds-spin 2.4s linear infinite;}.ds-frame{position:absolute;inset:1.5px;border-radius:6.5px;background:linear-gradient(160deg,#2a2f36,#14171b);}@keyframes ds-spin{to{transform:rotate(360deg);}}@media (prefers-reduced-motion: reduce){.ds-beam::before{animation:none;background:#ff4d00;opacity:.6;}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "增长交易台（The Growth Exchange）",
+    "overview": "增长被当成一张实时交易台来读：每条成片是一笔持仓，每条询盘是一笔成交回报。界面的骨架是交易终端 —— 顶栏和实时成交带横跨全宽，左栏是导航与「自选 Mission」，右侧主盘由石墨面板以 1px 接缝拼成一面墙，底部状态栏常驻写明数据口径。信息密度高，数字多，但每个数字都要说清它从哪来：实测、估计、AI 建议，还是缺失。\n\n材质是不透明的机加工石墨：零彩度墨阶由暗到亮分层，面板之间不留空隙只露接缝，面板顶缘一道 1px 高光。颜色几乎全部退出界面：唯一的信号色是余烬橙，静止时只说「上涨」或「需要你处理」，动起来（呼吸脉冲、沿边光束）时只说「Agent 正在为你干活」；钢灰是它的反面，说「下跌 / 闲置」。屏幕上其余的颜色只来自真实成片画面。\n\n这个世界明确拒绝「发光渐变 + 卡片格」的 AI 仪表盘，也拒绝白底 SaaS 模板。它与生产中的 Aivora Glass 是两个世界：Glass 靠半透明模糊材质和随批次抬升的环境光场；Exchange 不透明、不做 backdrop 模糊、没有环境光。两套 token 和规矩不能混用。",
+    "keyCharacteristics": [
+      "零彩度终端黑墨阶（ink-0 → ink-4），只有极轻的冷偏。",
+      "接缝拼板墙：面板之间只有 1px 接缝，整面墙只有一个 12px 圆角外框。",
+      "面板顶缘一道机加工高光（`--edge`），不靠投影分层。",
+      "唯一的余烬信号；钢灰做反信号；涨跌靠「颜色 + 三角」成对表达，不用红绿。",
+      "细而窄的 Archivo 大数字、IBM Plex Mono 数据列、只在成交带出现的 Doto 点阵数字。",
+      "每个指标都带数据口径标记；「已发布」必须指得到平台回传的帖子 ID。",
+      "动效只服务实时性：成交带滚动、引擎脉冲、生成光束、领先成片的静音循环。"
+    ],
+    "rules": [
+      {
+        "name": "The Two Words Rule",
+        "body": "静止的余烬只说两件事：「上涨」或「需要你处理」；动起来的余烬（脉冲、光束、呼吸点）只说「Agent 正在为你干活」。此外它只出现在品牌标记、焦点环、输入光标和文字选区上。完成态一律用骨白，不用余烬。",
+        "section": "colors"
+      },
+      {
+        "name": "The Direction Not Verdict Rule",
+        "body": "涨跌不用红绿。上涨 = 余烬 + 上三角，下跌 = 钢灰 + 下三角，颜色与形状永远成对出现。颜色编码的是数字的方向，不是好坏：本稿里「每条询盘成本下降」同样是钢灰下三角，好坏由标签说。（原型声明了 `.d-good` 却没有使用；成本类指标是否改用余烬，留给评审决定。）",
+        "section": "colors"
+      },
+      {
+        "name": "The Footage Is the Only Color Rule",
+        "body": "除余烬与钢灰外，屏幕上的色彩只能来自真实成片与产品图：9:16 缩略图、领先成片的静音循环、成交链第一环、审片播放器。界面不为渠道、分类、状态另配色相 —— IG / FB 用等宽字描边标签和单色图标表示。",
+        "section": "colors"
+      },
+      {
+        "name": "The Thin Figure Rule",
+        "body": "大数字一律细（200 / 300）、窄（字宽 80–84%）、负字距、等宽数字。不用粗体大数字，也不把大数字换成等宽字体。",
+        "section": "typography"
+      },
+      {
+        "name": "The Tape-Only LED Rule",
+        "body": "Doto 点阵只出现在实时成交带里，字重 900，字号不小于 16px。其他任何地方的数字都用 IBM Plex Mono 或带 tabular-nums 的 Archivo。",
+        "section": "typography"
+      },
+      {
+        "name": "The Every Digit Aligns Rule",
+        "body": "所有数字都是等宽数字：数据单元格、ID、时间戳、金额用 IBM Plex Mono；以 Archivo 排出的数字（面板计数、大数字、收件箱时间）也必须开 tabular-nums。",
+        "section": "typography"
+      },
+      {
+        "name": "The Unambiguous Glyph Rule",
+        "body": "用来排 ID、配方名、代号的等宽字体，在 11px 下必须让 i / 1 / l、M / H 一眼分得开。原型先用过 Azeret Mono，11–12px 时 `i` 读成 `1`（`tpl:demo-first` 显示成 `f1rst`），所以换成 IBM Plex Mono；Doto 点阵也出过 `M` 读成 `H`，所以点阵只写数字与 `+ / : , .`，从不写字母和 ID。换数据字体前，先在 11px 下核对这几组字形。",
+        "section": "typography"
+      },
+      {
+        "name": "The Seam Wall Rule",
+        "body": "面板与面板之间不留空隙，单个面板不各自加圆角或投影：只有 1px 接缝，整面墙只有一个圆角外框。面板内部可以有媒体条带和单个下沉井（草稿框、引用块、取消确认框），但面板本身永远不浮起成卡片。",
+        "section": "layout"
+      },
+      {
+        "name": "The Machined Edge Rule",
+        "body": "面板靠顶缘一道 7.5% 白高光显出厚度，不靠投影。投影只属于真正浮在墙外的东西：toast 与审片播放器。",
+        "section": "elevation"
+      },
+      {
+        "name": "The One Key Rule",
+        "body": "每个面板同一时刻最多一颗余烬键，它就是店主此刻最该按的那一下：批准发送、批准并发布、去审片、标记已上门量尺、确认取消。同一列表里其余的批准按钮降为默认小按钮。",
+        "section": "components"
+      },
+      {
+        "name": "The Way Back Rule",
+        "body": "每颗余烬键旁边都有退路：「不发，保留素材」「只重抽镜头 2」「转人工」「继续运行」「先不动」。取消确认框要写清停掉什么、照实记账多少、保留哪些成片与素材、清掉哪个提交标识。",
+        "section": "components"
+      },
+      {
+        "name": "The Say Where It Came From Rule",
+        "body": "每个指标、每条日志、每条知识、每条证据都带口径标记。图表里实测是实线，AI 估计是灰白虚线外加 8% 灰白区间带；图例常驻状态栏。",
+        "section": "components"
+      },
+      {
+        "name": "The Post ID Rule",
+        "body": "只有拿到平台回传的帖子 ID 才能写「已发布」；回复同理，拿到回复 ID 才能写「平台已确认」。在那之前最多写「已提交」或「平台接收」。成交带、日志、委托单结果、成交链里任何一处写「已发布」，都必须指得到那个 ID。",
+        "section": "components"
+      },
+      {
+        "name": "The Beam Means Working Rule",
+        "body": "光束只套在机器此刻正在干活的东西上，完成即撤；不用于装饰、悬停或强调。",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "**Do** 把每个视图做成接缝墙：外框 1px seam + 12px 圆角 + `overflow: hidden`，墙内 `gap: 1px` 铺在 seam 底上。",
+      "**Do** 给每个面板 ink-1 + 机加工顶缘（`inset 0 1px 0 rgb(255 255 255 / 0.075)`）；页头面板与下沉井用 ink-0。",
+      "**Do** 给每个指标、日志、知识与证据带口径标记（实测 / 估计 / AI 建议 / 缺失）；AI 推测一律灰白虚线。",
+      "**Do** 让涨跌永远「颜色 + 三角」成对：余烬上三角、钢灰下三角。",
+      "**Do** 让真实成片承担色彩：9:16 缩略图进赛马榜、委托单、成交链；领先成片常驻静音循环，其余悬停才播。",
+      "**Do** 在每颗余烬键旁给退路（不发并保留素材、只重抽一个镜头、转人工、继续运行），取消说明写清保留什么、清掉什么。",
+      "**Do** 把尘灰文字只放在 ink-0 到 ink-2 上；落到 ink-3 及更亮的面（选中行、选中导航）时改用灰白。",
+      "**Do** 尊重 `prefers-reduced-motion`：成交带停止并可横向滚动，光束变静态余烬环，循环视频只留首帧，闪光与过渡近乎瞬时。"
+    ],
+    "donts": [
+      "**Don't** 用 backdrop-filter 毛玻璃或环境光场 —— 那是 Aivora Glass 的材质，两个世界不混用。",
+      "**Don't** 在面板之间留间距，也不给单个面板加圆角或投影做成卡片格。",
+      "**Don't** 引入第二个强调色相，也不用红绿表示涨跌；渠道、分类、状态都不配色。",
+      "**Don't** 把余烬用在装饰、完成态或普通进度上：预算条、已完成步骤、管线已过阶段、发布已完成段都用骨白。",
+      "**Don't** 在余烬面上放白字（3.33:1），一律用余烬墨（#140801）。",
+      "**Don't** 用 Doto 点阵写成交带以外的数字、写字母或 ID，或把它用在 16px 以下。",
+      "**Don't** 用比例数字排任何数据，也不用粗体大数字。",
+      "**Don't** 在拿到平台回传的帖子 ID / 回复 ID 之前写「已发布」或「平台已确认」。",
+      "**Don't** 用渐变做装饰或发光；渐变只允许是余烬 8% 洗底（领先行、待批准格）、图表面积填充、深度条的骨白质感、成交带两端遮罩和生成光束。",
+      "**Don't** 把光束或脉冲用在机器此刻没有在干活的元素上。",
+      "**Don't** 给已完成的成片加色调、滤镜或彩色蒙层；画面上的叠加只能是中性的工具标记（安全区虚线、审片标记、ink 底的 chip）。",
+      "**Don't** 用纯黑或纯白做界面面与文字（审片播放器底的 #000 属于画面，不属于界面）。",
+      "**Don't** 在标题上方加眉题或 kicker；面包屑和指标自带的标签不算。"
+    ]
+  }
+}

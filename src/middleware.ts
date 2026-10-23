@@ -1,6 +1,7 @@
 import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import { customerApiError } from "@/lib/contracts/customer-api";
+import { decideDemoAccess, demoBlockedBody } from "@/lib/demo-account";
 
 /**
  * Phase 5 — middleware whitelist:
@@ -77,7 +78,17 @@ export async function middleware(req: NextRequest) {
     secret: process.env.AUTH_SECRET,
   });
 
-  if (!token) {
+  /// 演示账号：生产环境的会话一律作废（不等 AUTH_SECRET 轮换）；允许登录的环境
+  /// 里也只读，写请求 403。判定见 src/lib/demo-account.ts。
+  const demoAccess = token
+    ? decideDemoAccess({
+        email: typeof token.email === "string" ? token.email : null,
+        method: req.method,
+        pathname,
+      })
+    : "allow";
+
+  if (!token || demoAccess === "unauthenticated") {
     if (pathname.startsWith("/api/")) {
       return NextResponse.json(
         customerApiError({
@@ -92,6 +103,10 @@ export async function middleware(req: NextRequest) {
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (demoAccess === "blocked") {
+    return NextResponse.json(demoBlockedBody(), { status: 403 });
   }
 
   return NextResponse.next();

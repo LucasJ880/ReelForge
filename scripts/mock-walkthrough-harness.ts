@@ -5,6 +5,7 @@
  * Run: npm run walkthrough:mock
  */
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import {
   AngleType,
   DeliveryOrderStatus,
@@ -36,7 +37,8 @@ async function ensureHarnessUser() {
     user = await db.adminUser.create({
       data: {
         email: HARNESS_EMAIL,
-        hashedPassword: await bcrypt.hash("testpass123", 10),
+        /// 只供脚本内部调用，从不登录：随机口令，不写进仓库。
+        hashedPassword: await bcrypt.hash(randomBytes(24).toString("base64url"), 10),
         name: "Mock Walkthrough",
         role: "OPERATOR",
         userType: "PERSONAL",

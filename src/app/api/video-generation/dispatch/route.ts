@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AngleType, DeliveryOrderStatus, RoundStatus, VideoBriefStatus } from "@prisma/client";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
+import { canUseRequestedBrandName } from "@/lib/brand/global-brand-access";
 import {
   toCustomerVideoDispatchError,
   toCustomerVideoDispatchResponse,
@@ -137,6 +138,16 @@ export async function POST(req: NextRequest) {
       message: "视频描述或生成设置不合法，请检查后重试。",
       retryable: false,
       action: "fix_request",
+    });
+  }
+
+  /// 自填品牌名能触发受保护客户的尾卡锁（真实电话、地址），与全局品牌包同一权限。
+  if (!(await canUseRequestedBrandName(session.user.id, reqParsed.data.brandKit?.brandName))) {
+    return dispatchErrorResponse(403, {
+      code: "FORBIDDEN",
+      message: "这个品牌名属于受保护的客户品牌，当前账号不能使用。",
+      retryable: false,
+      action: "contact_support",
     });
   }
 

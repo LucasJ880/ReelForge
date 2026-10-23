@@ -17,9 +17,6 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { AuthTransitionScreen } from "@/components/auth/auth-transition-screen";
 
-const DEMO_EMAIL = "demo@aivora.app";
-const DEMO_PASSWORD = "aivora2026";
-
 export default function LoginPage() {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -138,15 +135,6 @@ export default function LoginPage() {
         </form>
 
         <div className="space-y-3 border-t border-border pt-5 text-center">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loading}
-            onClick={() => doLogin(DEMO_EMAIL, DEMO_PASSWORD)}
-            className="w-full"
-          >
-            {copy.demo}
-          </Button>
           <p className="text-meta text-muted-foreground">
             {copy.sessionHint}
           </p>

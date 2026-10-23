@@ -4,7 +4,10 @@ import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { BrandPackageManager } from "@/components/brand/brand-package-manager";
 import { ProductAnchorManager } from "@/components/brand/product-anchor-manager";
-import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
+import {
+  listGlobalBrandWallEntries,
+  listWorkspaceBrandPackagesForUser,
+} from "@/lib/services/workspace-brand-package-service";
 import { listProductAnchorsForUser } from "@/lib/services/product-anchor-service";
 import { productAnchorView } from "@/lib/contracts/product-anchor-api";
 import { getServerLocale } from "@/i18n/server";
@@ -15,8 +18,9 @@ export const dynamic = "force-dynamic";
 export default async function PlatformBrandsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/brands");
-  const [packages, anchors, latestOrder, locale] = await Promise.all([
+  const [packages, wallEntries, anchors, latestOrder, locale] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
+    listGlobalBrandWallEntries(),
     listProductAnchorsForUser(session.user.id),
     db.deliveryOrder.findFirst({
       where: { createdById: session.user.id },
@@ -37,16 +41,8 @@ export default async function PlatformBrandsPage() {
         </p>
       </header>
       <ProductAnchorManager initialAnchors={anchors.map(productAnchorView)} />
-      <CustomerBrandWall
-        english={english}
-        entries={packages.map((item) => ({
-          id: item.id,
-          brandName: item.brandName,
-          logoUrl: item.logoAsset.url,
-          scope: item.scope,
-          clientProfileId: item.clientProfileId,
-        }))}
-      />
+      {/* 展示墙对所有人可见，但只读；能否套用全局包由 visibleBrandPackageScope 决定。 */}
+      <CustomerBrandWall english={english} entries={wallEntries} />
       <BrandPackageManager
         initialPackages={packages}
         logoProjectId={latestOrder?.id ?? null}

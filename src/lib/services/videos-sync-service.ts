@@ -25,7 +25,19 @@ import {
  *
  * 2. **排除 takedown 与样片账号。** takedownAt 是客户要求下架的证据，
  *    样片是注入给所有用户的只读 demo，两者都绝不能被当成客户自己的内容发布出去。
+ *
+ * 3. **只给名单内账号的成片（默认空名单 = 什么都不给）。** 青砚目前把拉到的
+ *    成片全部写进同一个 org，而这里原本不分租户：第二个客户一注册，他的成片就会
+ *    被拉去、可能发到别人的账号上。在 Workspace 映射和独立凭证落地前，
+ *    只放行 `QINGYAN_SYNC_OWNER_USER_IDS` 里的账号。
  */
+
+export function qingyanSyncOwnerUserIds(): string[] {
+  return (process.env.QINGYAN_SYNC_OWNER_USER_IDS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
 
 const briefSelect = {
   id: true,
@@ -157,10 +169,36 @@ function batchJobToItem(job: SyncableBatchJob): VideosApiItem | null {
   };
 }
 
+/// 四处查询（成片两处 + 未封装计数两处）共用的 owner 过滤，抽成纯函数便于单测。
+export function syncOwnerWhere(ownerIds: string[]): {
+  briefOwner: Prisma.VideoBriefWhereInput;
+  batchOwner: Prisma.VideoJobWhereInput;
+} {
+  return {
+    briefOwner: {
+      contentAngle: {
+        round: { deliveryOrder: { createdById: { in: ownerIds } } },
+      },
+    },
+    batchOwner: { batchJob: { is: { userId: { in: ownerIds } } } },
+  };
+}
+
 export async function listSyncableVideos(
   query: VideosApiQuery,
 ): Promise<VideosApiResponse> {
+  const emptyFeed = () =>
+    videosApiResponseSchema.parse({
+      videos: [],
+      meta: { count: 0, skipped_unbranded: 0, next_since: null },
+    });
+  /// 名单为空时不碰库，直接返回空。
+  const configuredOwners = qingyanSyncOwnerUserIds();
+  if (configuredOwners.length === 0) return emptyFeed();
   const showcaseUserId = await getShowcaseUserId();
+  const ownerIds = configuredOwners.filter((id) => id !== showcaseUserId);
+  if (ownerIds.length === 0) return emptyFeed();
+  const { briefOwner, batchOwner } = syncOwnerWhere(ownerIds);
   const brandedSince = query.since ? { gt: query.since } : undefined;
 
   const [briefs, batchJobs] = await Promise.all([
@@ -169,15 +207,7 @@ export async function listSyncableVideos(
         takedownAt: null,
         brandedVideoUrl: { not: null },
         brandedAt: brandedSince ? brandedSince : { not: null },
-        ...(showcaseUserId
-          ? {
-              contentAngle: {
-                round: {
-                  deliveryOrder: { createdById: { not: showcaseUserId } },
-                },
-              },
-            }
-          : {}),
+        ...briefOwner,
       },
       orderBy: { brandedAt: "desc" },
       take: query.limit,
@@ -189,9 +219,7 @@ export async function listSyncableVideos(
         brandedVideoUrl: { not: null },
         brandedAt: brandedSince ? brandedSince : { not: null },
         batchJobId: { not: null },
-        ...(showcaseUserId
-          ? { batchJob: { is: { userId: { not: showcaseUserId } } } }
-          : {}),
+        ...batchOwner,
       },
       orderBy: { brandedAt: "desc" },
       take: query.limit,
@@ -206,6 +234,7 @@ export async function listSyncableVideos(
         takedownAt: null,
         finalVideoUrl: { not: null },
         brandedVideoUrl: null,
+        ...briefOwner,
       },
     }),
     db.videoJob.count({
@@ -214,6 +243,7 @@ export async function listSyncableVideos(
         batchJobId: { not: null },
         outputVideoUrl: { not: null },
         brandedVideoUrl: null,
+        ...batchOwner,
       },
     }),
   ]);

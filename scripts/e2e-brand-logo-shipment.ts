@@ -314,7 +314,7 @@ async function stageImprint(state: State, options: { redo: boolean; sourceAssetI
   });
   if (!pkgRow) throw new Error("找不到全局 SunnyShutter 品牌包");
   const brandPackage = await findWorkspaceBrandPackageForUser(pkgRow.id, user.id);
-  if (!brandPackage) throw new Error("SunnyShutter 品牌包对该账号不可见");
+  if (!brandPackage) throw new Error("SunnyShutter 品牌包对该账号不可见（把该账号的 id 或邮箱加进 GLOBAL_BRAND_PACKAGE_USERS）");
   if (!brandPackage.logoAsset.mimeType.startsWith("image/")) {
     throw new Error("品牌包 logo 资产不是图片");
   }

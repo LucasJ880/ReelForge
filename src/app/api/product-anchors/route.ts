@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { isDemoAccountEmail } from "@/lib/demo-account";
 import {
   createProductAnchorRequestSchema,
   productAnchorView,
@@ -20,8 +21,7 @@ export const dynamic = "force-dynamic";
 /// 抠图同步完成：取原图 + remove.bg（全分辨率可到 ~30s）+ 双上传。
 export const maxDuration = 120;
 
-/// 演示账号不跑付费生成（铁律 #4）：抠图按张计费。
-const DEMO_EMAIL = "demo@aivora.app";
+/// 演示账号不跑付费生成（铁律 #4）：抠图按张计费。middleware 已统一拦写请求，这里是第二道。
 
 /// 一个商家的 SKU 是个位数到两位数；上限挡住脚本滥刷付费抠图。
 const MAX_ANCHORS_PER_USER = 50;
@@ -57,7 +57,7 @@ export function createProductAnchorPostHandler(
     if (!guard.ok) return guard.response;
     const userId = guard.session.user.id;
 
-    if (guard.session.user.email === DEMO_EMAIL) {
+    if (isDemoAccountEmail(guard.session.user.email)) {
       return NextResponse.json(
         {
           ok: false,

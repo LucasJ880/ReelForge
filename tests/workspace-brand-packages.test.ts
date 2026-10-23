@@ -51,7 +51,8 @@ test("workspace brand package is tenant-scoped and wired into creation and deliv
   ]);
   assert.match(schema, /model WorkspaceBrandPackage/);
   assert.match(schema, /workspaceId/);
-  assert.match(service, /ownerId: userId/);
+  /// 租户范围（本人工作区 + 有权限时的全局包）收在 global-brand-access.ts。
+  assert.match(service, /visibleBrandPackageScope\(userId\)/);
   assert.match(service, /logoAsset/);
   assert.match(studio, /data-testid="streamlined-brand-package"/);
   assert.match(studio, /selectedBrandPackageId/);
@@ -110,12 +111,15 @@ test("global brand packages cannot be mutated by workspace routes", () => {
   );
 });
 
-test("global and workspace packages are queried together", async () => {
+test("global and workspace packages are queried together through the shared visibility scope", async () => {
   const service = await readFile(
     "src/lib/services/workspace-brand-package-service.ts",
     "utf8",
   );
-  assert.match(service, /OR:\s*\[\s*\{\s*isGlobal:\s*true\s*\}/);
-  assert.match(service, /workspace:\s*\{\s*ownerId:\s*userId\s*\}/);
+  /// 2026-10-23 起全局包不再对所有人开放：范围统一由 visibleBrandPackageScope 决定。
+  assert.match(service, /OR:\s*await visibleBrandPackageScope\(userId\)/);
   assert.match(service, /isGlobal:\s*"desc"/);
+  const scope = await readFile("src/lib/brand/global-brand-access.ts", "utf8");
+  assert.match(scope, /workspace:\s*\{\s*ownerId:\s*userId\s*\}/);
+  assert.match(scope, /\{\s*isGlobal:\s*true\s*\}/);
 });

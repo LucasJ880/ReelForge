@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { isDemoAccountEmail } from "@/lib/demo-account";
 import { productAnchorView } from "@/lib/contracts/product-anchor-api";
 import {
   getOwnedProductAnchor,
@@ -10,8 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-/// 演示账号不跑付费生成（铁律 #4）：抠图按张计费。
-const DEMO_EMAIL = "demo@aivora.app";
+/// 演示账号不跑付费生成（铁律 #4）：抠图按张计费。middleware 已统一拦写请求，这里是第二道。
 
 interface ProductAnchorRetryDependencies {
   requireAuth: typeof requireAuth;
@@ -43,7 +43,7 @@ export function createProductAnchorRetryHandler(
     const guard = await dependencies.requireAuth();
     if (!guard.ok) return guard.response;
 
-    if (guard.session.user.email === DEMO_EMAIL) {
+    if (isDemoAccountEmail(guard.session.user.email)) {
       return NextResponse.json(
         {
           ok: false,

@@ -36,7 +36,8 @@ npm run dev            # 真机模式（predev 会跑 mode:check）
 npm run typecheck      # tsc --noEmit —— 提交前必过
 npm run lint
 npm test               # node --test tests/**/*.test.ts
-npm run db:migrate     # dotenv -e .env.local（⚠️ 直连生产库，见 §4）
+npm run db:migrate:deploy  # 迁移唯一正路（owner 直连生产，见 §4）
+# db:migrate / db:push / db:seed 有确认闸：CONFIRM_PRODUCTION_DB=<脚本名> 才放行
 npm run context:find -- "..."
 ```
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
+import { demoBlockedBody, isDemoAccountEmail } from "@/lib/demo-account";
 import {
   isBrollRouteAvailable,
   startBrollDelivery,
@@ -12,8 +13,7 @@ export const dynamic = "force-dynamic";
 /// 提交层要做 LLM 拆段 + 逐段 TTS + 上传，串行约 10-30s。
 export const maxDuration = 120;
 
-/// 演示账号不跑付费生成（铁律 #4）：TTS 按量计费。
-const DEMO_EMAIL = "demo@aivora.app";
+/// 演示账号不跑付费生成（铁律 #4）：TTS 按量计费。middleware 已统一拦写请求，这里是第二道。
 
 const dispatchSchema = z.object({
   script: z
@@ -40,16 +40,8 @@ export async function POST(req: NextRequest) {
   if (!guard.ok) return guard.response;
   const session = guard.session;
 
-  if (session.user.email === DEMO_EMAIL) {
-    return NextResponse.json(
-      {
-        ok: false,
-        code: "DEMO_BLOCKED",
-        error: "演示账号不能提交付费生成。注册一个自己的工作区即可体验完整流程。",
-        retryable: false,
-      },
-      { status: 403 },
-    );
+  if (isDemoAccountEmail(session.user.email)) {
+    return NextResponse.json(demoBlockedBody(), { status: 403 });
   }
 
   if (!isBrollRouteAvailable()) {

@@ -31,7 +31,15 @@ export const EDITORIAL_ROUTES: EditorialRoute[] = [
 export async function ensureAuthenticated(page: Page): Promise<void> {
   await page.goto("/app/library");
   if (new URL(page.url()).pathname === "/login") {
-    await page.getByRole("button", { name: /使用演示账号体验/ }).click();
+    /// 登录页的「一键体验」按钮已删除（演示账号凭据曾泄露）：用 E2E_LOGIN_* 填表登录。
+    const email = process.env.E2E_LOGIN_EMAIL;
+    const password = process.env.E2E_LOGIN_PASSWORD;
+    if (!email || !password) {
+      throw new Error("需要 E2E_LOGIN_EMAIL / E2E_LOGIN_PASSWORD 才能登录跑 e2e");
+    }
+    await page.getByLabel("邮箱").fill(email);
+    await page.getByLabel("密码").fill(password);
+    await page.getByRole("button", { name: "登录", exact: true }).click();
     await page.waitForURL(/\/app\/library/, { timeout: 20_000 });
   }
 }

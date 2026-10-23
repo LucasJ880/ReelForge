@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/media-asset-service";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { unifiedVideoGenerationRequestSchema } from "@/lib/schemas/unified-input";
+import { canUseRequestedBrandName } from "@/lib/brand/global-brand-access";
 
 /**
  * POST /api/video-generation/plan
@@ -34,6 +35,14 @@ export async function POST(req: NextRequest) {
         issues: parsed.error.flatten(),
       },
       { status: 400 },
+    );
+  }
+
+  /// 自填品牌名能触发受保护客户的尾卡锁（真实电话、地址），与全局品牌包同一权限。
+  if (!(await canUseRequestedBrandName(guard.session.user.id, parsed.data.brandKit?.brandName))) {
+    return NextResponse.json(
+      { ok: false, error: "这个品牌名属于受保护的客户品牌，当前账号不能使用。" },
+      { status: 403 },
     );
   }
 

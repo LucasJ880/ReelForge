@@ -1,5 +1,6 @@
 import { Prisma, type ContentFormat as DbContentFormat } from "@prisma/client";
 import { db } from "@/lib/db";
+import { visibleBrandPackageScope } from "@/lib/brand/global-brand-access";
 import {
   buildContentPlan,
   type ContentPlanInput,
@@ -98,7 +99,7 @@ export async function createContentPlan(args: CreateContentPlanArgs) {
   /// B3：默认 Brand Kit 的两份视觉配方套进出图提示词（跨形态）。
   const brandPackage = await db.workspaceBrandPackage.findFirst({
     /// 与 workspace-brand-package-service 同一套归属规则：本人工作区优先于全局包。
-    where: { isActive: true, OR: [{ workspace: { ownerId: args.userId } }, { isGlobal: true }] },
+    where: { isActive: true, OR: await visibleBrandPackageScope(args.userId) },
     orderBy: [{ isGlobal: "asc" }, { isDefault: "desc" }, { updatedAt: "desc" }],
     select: { compositionRecipeJson: true, photographyStyleJson: true, brandName: true },
   });

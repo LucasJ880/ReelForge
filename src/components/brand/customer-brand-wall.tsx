@@ -55,8 +55,8 @@ export function CustomerBrandWall({
           </h2>
           <p className="mt-2 text-body text-muted-foreground">
             {english
-              ? "Their brand package is ready to apply. Only platform-approved public assets appear here; private workspace logos are never exposed."
-              : "他们的品牌包可直接套用。这里只展示平台审核并公开的资产，工作区私有 Logo 永远不会进入展示墙。"}
+              ? "Only platform-approved public logos appear here; private workspace logos are never exposed."
+              : "这里只展示平台审核并公开的客户 Logo，工作区私有 Logo 永远不会进入展示墙。"}
           </p>
         </div>
         <p className="font-mono text-meta tabular-nums text-muted-foreground">

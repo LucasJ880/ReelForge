@@ -104,18 +104,24 @@ async function seedAdmin() {
 }
 
 /**
- * Demo 个人演示账号（客户端到端展示用）。
- * 登录页「一键体验」按钮使用同一组默认凭据；可用
- * SEED_DEMO_EMAIL / SEED_DEMO_PASSWORD 覆盖。
+ * Demo 个人演示账号（本地 e2e 用）。
+ * 登录页的「一键体验」按钮已删除，生产环境也禁止演示账号登录（src/lib/demo-account.ts）。
+ * 密码不再有默认值：曾经的默认密码随客户端包公开过，seed 一跑就会把账号重置回
+ * 公开值。没设置 SEED_DEMO_PASSWORD 就跳过。
  */
 async function seedDemoPersonalUser() {
   const email = process.env.SEED_DEMO_EMAIL || "demo@aivora.app";
-  const password = process.env.SEED_DEMO_PASSWORD || "aivora2026";
+  const password = process.env.SEED_DEMO_PASSWORD;
+  if (!password) {
+    console.log(
+      "⚠️  SEED_DEMO_PASSWORD 未设置，跳过 demo 账号 seed（不再使用默认密码）。",
+    );
+    return;
+  }
 
   const existing = await prisma.adminUser.findUnique({ where: { email } });
   if (existing) {
-    /// 幂等：demo 账号每次 seed 都重置为已知凭据 + PERSONAL persona，
-    /// 保证「一键体验」按钮永远能登录（demo 账号无真实数据，重置无风险）。
+    /// 幂等：demo 账号每次 seed 都重置为 SEED_DEMO_PASSWORD + PERSONAL persona。
     await prisma.adminUser.update({
       where: { email },
       data: {
@@ -129,7 +135,7 @@ async function seedDemoPersonalUser() {
       name: existing.name || "Aivora Demo",
       planId: "starter",
     });
-    console.log(`✅ Demo 账号已重置凭据：${email}（密码：${password}）`);
+    console.log(`✅ Demo 账号已重置凭据：${email}`);
     return;
   }
 
@@ -148,7 +154,7 @@ async function seedDemoPersonalUser() {
     name: "Aivora Demo",
     planId: "starter",
   });
-  console.log(`✅ 已创建 Demo 个人账号：${demo.email}（密码：${password}）`);
+  console.log(`✅ 已创建 Demo 个人账号：${demo.email}`);
 }
 
 async function seedStyleTemplates() {

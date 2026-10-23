@@ -3,6 +3,12 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { normalizeUserTypeForRole } from "@/lib/auth-role-policy";
+import {
+  isDemoAccountEmail,
+  isDemoLoginAllowed,
+  isReservedTestEmail,
+  isTestAccountLoginAllowed,
+} from "@/lib/demo-account";
 
 /**
  * 免登录时长（秒）。登录页 `sessionHint` 文案按这个值表述，两者必须一致。
@@ -20,11 +26,19 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
+        /// 演示账号：生产环境禁止登录（凭据曾泄露在客户端包里），见 demo-account.ts。
+        /// 保留测试域名（*.test / *.invalid …）的账号：真实生产禁止登录。
+        const demoLoginBlocked = !isDemoLoginAllowed();
+        const testLoginBlocked = !isTestAccountLoginAllowed();
+        if (demoLoginBlocked && isDemoAccountEmail(credentials.email)) return null;
+        if (testLoginBlocked && isReservedTestEmail(credentials.email)) return null;
 
         const user = await db.adminUser.findUnique({
           where: { email: credentials.email },
         });
         if (!user) return null;
+        if (demoLoginBlocked && isDemoAccountEmail(user.email)) return null;
+        if (testLoginBlocked && isReservedTestEmail(user.email)) return null;
 
         const valid = await bcrypt.compare(
           credentials.password,

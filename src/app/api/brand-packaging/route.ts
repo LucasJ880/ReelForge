@@ -23,6 +23,12 @@ import {
   listWorkspaceBrandPackagesForUser,
   upsertWorkspaceBrandPackageForUser,
 } from "@/lib/services/workspace-brand-package-service";
+import { canUseGlobalBrandPackages } from "@/lib/brand/global-brand-access";
+import {
+  fetchMediaBytes,
+  isTrustedMediaUrl,
+  MediaFetchError,
+} from "@/lib/storage/trusted-media-url";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -98,13 +104,23 @@ export async function PUT(request: Request): Promise<NextResponse> {
   }
 }
 
-async function downloadTo(dir: string, name: string, url: string): Promise<string> {
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(`download failed ${response.status}: ${url.slice(0, 120)}`);
-  }
+const MAX_SOURCE_VIDEO_BYTES = 250 * 1024 * 1024;
+const MAX_LOGO_BYTES = 10 * 1024 * 1024;
+
+/// 用户直接给的 URL 已在入口过 isTrustedMediaUrl，且不跟随重定向；
+/// 库里由服务端写入的 URL 保持原来的跟随行为。
+async function downloadTo(
+  dir: string,
+  name: string,
+  url: string,
+  options: { maxBytes: number; userSupplied: boolean },
+): Promise<string> {
+  const bytes = await fetchMediaBytes(url, {
+    maxBytes: options.maxBytes,
+    followRedirects: !options.userSupplied,
+  });
   const path = join(dir, name);
-  writeFileSync(path, Buffer.from(await response.arrayBuffer()));
+  writeFileSync(path, bytes);
   return path;
 }
 
@@ -122,6 +138,27 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
   const body = parsed.data;
+  /// SunnyShutter 锁死 profile 印的是真实客户的电话和地址，与全局品牌包同一个权限。
+  if (
+    body.clientProfileId === "sunnyshutter" &&
+    !(await canUseGlobalBrandPackages(session.user.id))
+  ) {
+    return NextResponse.json({ error: "brand profile not available" }, { status: 403 });
+  }
+  /// 服务端会去抓这两个 URL：只接受 MEDIA_FETCH_HOST_ALLOWLIST 显式放行的主机（防 SSRF）。
+  /// 界面从不传这两个字段，默认名单为空，等于关闭。
+  if (body.sourceVideoUrl && !isTrustedMediaUrl(body.sourceVideoUrl)) {
+    return NextResponse.json(
+      { error: "sourceVideoUrl host is not allowed" },
+      { status: 400 },
+    );
+  }
+  if (body.custom?.logoUrl && !isTrustedMediaUrl(body.custom.logoUrl)) {
+    return NextResponse.json(
+      { error: "custom.logoUrl host is not allowed" },
+      { status: 400 },
+    );
+  }
   const selectedPackage = body.brandPackageId
     ? await findWorkspaceBrandPackageForUser(body.brandPackageId, session.user.id)
     : null;
@@ -215,10 +252,16 @@ export async function POST(request: Request): Promise<NextResponse> {
 
   try {
     const workDir = mkdtempSync(join(tmpdir(), "brand-pack-"));
-    const sourcePath = await downloadTo(workDir, "source.mp4", sourceVideoUrl!);
+    const sourcePath = await downloadTo(workDir, "source.mp4", sourceVideoUrl!, {
+      maxBytes: MAX_SOURCE_VIDEO_BYTES,
+      userSupplied: Boolean(body.sourceVideoUrl),
+    });
     const packageLogoUrl = selectedPackage?.logoAsset.url ?? body.custom?.logoUrl ?? null;
     const logoPath = packageLogoUrl
-      ? await downloadTo(workDir, "logo.png", packageLogoUrl)
+      ? await downloadTo(workDir, "logo.png", packageLogoUrl, {
+          maxBytes: MAX_LOGO_BYTES,
+          userSupplied: !selectedPackage,
+        })
       : null;
     const selectedSunny = selectedPackage?.clientProfileId === "sunnyshutter";
 
@@ -273,6 +316,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     });
   } catch (error) {
     console.error("[brand-packaging] failed", error);
+    if (error instanceof MediaFetchError) {
+      return NextResponse.json({ error: error.message }, { status: 422 });
+    }
     return NextResponse.json(
       {
         error:

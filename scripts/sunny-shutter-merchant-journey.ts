@@ -7,6 +7,7 @@
  * 前置：.env.local 数据库可用；建议 npm run dev:mock 后浏览器验收。
  */
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import {
   AngleType,
   DeliveryOrderStatus,
@@ -33,7 +34,9 @@ process.env.IMAGE_ENGINE_MOCK = "true";
 process.env.VIDEO_ENGINE_MOCK_LATENCY_MS = "0";
 
 const MERCHANT_EMAIL = "sunny-shutter@aivora.test";
-const MERCHANT_PASSWORD = "testpass123";
+/// 仓库里不写口令：没设环境变量就用随机口令（不打印）。这些脚本跑在 .env.local（= 生产库）上，
+/// 写死的口令等于在生产留后门。2026-10-23 安全止血。
+const MERCHANT_PASSWORD = process.env.MERCHANT_PASSWORD || randomBytes(24).toString("base64url");
 const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
 
 const CURTAIN_ADS: Array<{
@@ -180,7 +183,7 @@ async function waitUntilReady(label: string, briefId: string): Promise<void> {
 
 function printBrowserWalkthrough(orderIds: string[]) {
   console.log("\n--- 浏览器验收路径（npm run dev:mock）---");
-  console.log(`登录: ${MERCHANT_EMAIL} / ${MERCHANT_PASSWORD}`);
+  console.log(`登录: ${MERCHANT_EMAIL}（密码取自 MERCHANT_PASSWORD；账号首次创建时没设则为随机密码）`);
   console.log(`语言: 侧栏或设置切到「中文」\n`);
   const steps = [
     ["1. 创建广告", `${BASE_URL}/business/create-ad-video`],

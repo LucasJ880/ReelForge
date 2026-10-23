@@ -1,5 +1,6 @@
 import { Prisma, type MediaAsset } from "@prisma/client";
 import { db } from "@/lib/db";
+import { visibleBrandPackageScope } from "@/lib/brand/global-brand-access";
 
 const packageInclude = {
   logoAsset: true,
@@ -66,10 +67,7 @@ export async function listWorkspaceBrandPackagesForUser(
   const rows = await db.workspaceBrandPackage.findMany({
     where: {
       isActive: true,
-      OR: [
-        { isGlobal: true },
-        { workspace: { ownerId: userId } },
-      ],
+      OR: await visibleBrandPackageScope(userId),
     },
     include: packageInclude,
     orderBy: [
@@ -81,6 +79,39 @@ export async function listWorkspaceBrandPackagesForUser(
   return rows.map(workspaceBrandPackageView);
 }
 
+/**
+ * 「已服务客户」展示墙：所有登录用户都能看到全局客户包的名字和 logo（0724 的决定，
+ * 作为社交证明），但只读、不能套用——套用权限仍走 visibleBrandPackageScope。
+ * 只取名字和 logo，不带电话、地址这些会被冒用的字段。
+ */
+export async function listGlobalBrandWallEntries(): Promise<
+  Array<{
+    id: string;
+    brandName: string;
+    logoUrl: string;
+    scope: "global";
+    clientProfileId: string | null;
+  }>
+> {
+  const rows = await db.workspaceBrandPackage.findMany({
+    where: { isActive: true, isGlobal: true, clientProfileId: { not: null } },
+    select: {
+      id: true,
+      brandName: true,
+      clientProfileId: true,
+      logoAsset: { select: { url: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    brandName: row.brandName,
+    logoUrl: row.logoAsset.url,
+    scope: "global" as const,
+    clientProfileId: row.clientProfileId,
+  }));
+}
+
 export async function findWorkspaceBrandPackageForUser(
   packageId: string,
   userId: string,
@@ -89,10 +120,7 @@ export async function findWorkspaceBrandPackageForUser(
     where: {
       id: packageId,
       isActive: true,
-      OR: [
-        { isGlobal: true },
-        { workspace: { ownerId: userId } },
-      ],
+      OR: await visibleBrandPackageScope(userId),
     },
     include: packageInclude,
   });

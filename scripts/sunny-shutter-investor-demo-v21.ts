@@ -107,6 +107,7 @@ import { promisify } from "node:util";
 
 import { put } from "@vercel/blob";
 import bcrypt from "bcryptjs";
+import { randomBytes } from "node:crypto";
 import {
   FinalVideoStatus,
   PrismaClient,
@@ -170,8 +171,10 @@ const FFPROBE_BIN = process.env.FFPROBE_BIN || "ffprobe";
 
 const DEMO_USER_EMAIL = process.env.DEMO_USER_EMAIL || "demo@aivora.app";
 const DEMO_USER_NAME = process.env.DEMO_USER_NAME || "Aivora Demo";
+/// 仓库里不写口令：没设环境变量就用随机口令（不打印）。这些脚本跑在 .env.local（= 生产库）上，
+/// 写死的口令等于在生产留后门。2026-10-23 安全止血。
 const DEMO_USER_DEFAULT_PASSWORD =
-  process.env.DEMO_USER_PASSWORD || "SunnyShutter2026!";
+  process.env.DEMO_USER_PASSWORD || randomBytes(24).toString("base64url");
 
 const ORDER_TITLE = "Sunny Shutter — Comfort, with independence.";
 const ORDER_DESCRIPTION =
@@ -552,7 +555,7 @@ async function main() {
   );
   if (state.publishedDeliveryOrderId) {
     console.log(
-      `Sign in at /login as ${DEMO_USER_EMAIL} to view it on /personal/videos.`,
+      `Owner account: ${DEMO_USER_EMAIL} (demo sign-in is disabled in production; review it from an operator account).`,
     );
   }
 }
@@ -1271,7 +1274,7 @@ async function phasePublish() {
     `  PERSONAL user: id=${personal.id} email=${personal.email} userType=${personal.userType}`,
   );
   console.log(
-    `  (NOTE) sign-in password = "${DEMO_USER_DEFAULT_PASSWORD}" — record it now if this is the first run.`,
+    "  (NOTE) new accounts get DEMO_USER_PASSWORD, or a random password that is not printed.",
   );
 
   /// 5.2 Optional reset: drop any prior demo entry for this user (by exact title)

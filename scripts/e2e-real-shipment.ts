@@ -198,8 +198,8 @@ async function main(): Promise<void> {
   });
   if (!brandPack) throw new Error("找不到全局 SunnyShutter 品牌包");
   const resolved = await findWorkspaceBrandPackageForUser(brandPack.id, user.id);
-  if (!resolved) throw new Error("全局品牌包对该用户不可见");
-  log("品牌包已解析", `${brandPack.name}（全局只读，任何账号可选）`);
+  if (!resolved) throw new Error("全局品牌包对该用户不可见（把该账号的 id 或邮箱加进 GLOBAL_BRAND_PACKAGE_USERS）");
+  log("品牌包已解析", `${brandPack.name}（全局只读，名单内账号可选）`);
 
   const workDir = mkdtempSync(join(tmpdir(), "e2e-brand-"));
   const sourcePath = join(workDir, "source.mp4");

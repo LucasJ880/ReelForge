@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import sharp from "sharp";
 
 import { db } from "@/lib/db";
+import { visibleBrandPackageScope } from "@/lib/brand/global-brand-access";
 import type { UnifiedVideoGenerationRequestInput } from "@/lib/schemas/unified-input";
 import type {
   UnifiedVideoGenerationRequest,
@@ -72,7 +73,7 @@ function repository(): MediaAssetRepository {
       const packages = await db.workspaceBrandPackage.findMany({
         where: {
           isActive: true,
-          OR: [{ isGlobal: true }, { workspace: { ownerId: userId } }],
+          OR: await visibleBrandPackageScope(userId),
           AND: {
             OR: [
               { logoAssetId: { in: assetIds } },

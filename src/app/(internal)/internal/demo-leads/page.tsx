@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/features/page-header";
 import { StatusBadge } from "@/components/features/status-badge";
+import { requireInternal } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 
@@ -243,6 +244,8 @@ function Td({ children }: { children: ReactNode }) {
 
 async function updateLeadStatus(formData: FormData) {
   "use server";
+  /// Server Action 是可直接 POST 的入口，layout 的页面守卫管不到它，必须自己鉴权。
+  if (!(await requireInternal()).ok) return;
 
   const id = String(formData.get("id") || "");
   const status = String(formData.get("status") || "");
@@ -263,6 +266,8 @@ async function updateLeadStatus(formData: FormData) {
 
 async function hideTestLead(formData: FormData) {
   "use server";
+  /// Server Action 是可直接 POST 的入口，layout 的页面守卫管不到它，必须自己鉴权。
+  if (!(await requireInternal()).ok) return;
 
   const id = String(formData.get("id") || "");
   if (!id) {
@@ -278,6 +283,8 @@ async function hideTestLead(formData: FormData) {
 
 async function deleteTestLead(formData: FormData) {
   "use server";
+  /// Server Action 是可直接 POST 的入口，layout 的页面守卫管不到它，必须自己鉴权。
+  if (!(await requireInternal()).ok) return;
 
   const id = String(formData.get("id") || "");
   if (!id) {

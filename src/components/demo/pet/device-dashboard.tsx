@@ -21,7 +21,6 @@ export function DeviceDashboard() {
   return (
     <PetSection
       id="devices"
-      eyebrow="实时采集状态 · Demo 模拟"
       title="三类硬件同时在线，自动采集真实宠物场景"
       description="摄像头、智能项圈与宠物垫传感器协同工作，自动捕捉宠物的真实瞬间，并为 AI 内容生产提供原始素材。以下设备状态为 demo 模拟数据，演示套装如何持续产生可用素材。"
     >
@@ -37,7 +36,7 @@ export function DeviceDashboard() {
 function DeviceCard({ device }: { device: PetDeviceDemo }) {
   const Icon = DEVICE_ICON[device.key];
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-5">
+    <div className="border border-border bg-card shadow-panel flex flex-col rounded-(--radius-lg) p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-(--radius-lg) bg-success/10 text-success">
           <Icon size={22} />

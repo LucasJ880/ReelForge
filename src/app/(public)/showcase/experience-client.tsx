@@ -192,7 +192,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
       id="book-demo"
       className="mx-auto w-full max-w-5xl px-4 sm:px-6 lg:px-10"
     >
-      <div className="rounded-(--radius-lg) border border-primary/25 bg-card p-5 shadow-editorial sm:p-8">
+      <div className="rounded-(--radius-lg) border border-primary/25 bg-card p-5 shadow-panel sm:p-8">
         <p className="text-meta font-semibold uppercase tracking-widest text-primary">
           投资人 / 宠物品牌 / 战略合作
         </p>
@@ -222,7 +222,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
         <PetWaitlistForm />
       </div>
 
-      <div className="mt-6 rounded-(--radius-lg) border border-border bg-card p-5 shadow-editorial">
+      <div className="mt-6 rounded-(--radius-lg) border border-border bg-card p-5 shadow-panel">
         <p className="text-meta font-semibold text-foreground">合规说明</p>
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {COMPLIANCE_NOTES.map((note) => (
@@ -230,7 +230,7 @@ function BookDemoSlide({ isAuthenticated }: { isAuthenticated: boolean }) {
               key={note}
               className="flex items-start gap-2 text-meta leading-5 text-muted-foreground"
             >
-              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
+              <span className="mt-1.5 h-1 w-1 shrink-0 rounded-(--radius-sm) bg-primary" />
               {note}
             </li>
           ))}

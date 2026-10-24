@@ -8,7 +8,6 @@ export function ProductProofReport() {
   return (
     <PetSection
       id="proof-report"
-      eyebrow="Product Proof Report · B2B 付费理由"
       title="把真实使用，变成品牌愿意付费的产品证据"
       description={report.summary}
       aside={
@@ -17,7 +16,7 @@ export function ProductProofReport() {
         </span>
       }
     >
-      <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
+      <div className="border border-border bg-card shadow-panel overflow-hidden rounded-(--radius-lg)">
         <div className="grid lg:grid-cols-[320px_1fr]">
           {/* 封面 + 概要 */}
           <div className="relative min-h-56 overflow-hidden border-b border-border lg:border-b-0 lg:border-r">
@@ -27,13 +26,13 @@ export function ProductProofReport() {
               fallbackLabel="真实使用场景"
             />
             <div className="absolute inset-x-0 bottom-0 bg-overlay p-4">
-              <p className="text-xs font-medium text-card">
+              <p className="text-xs font-medium text-muted-foreground">
                 {report.brandName}
               </p>
-              <p className="text-base font-semibold text-card">
+              <p className="text-base font-semibold text-foreground">
                 {report.productName}
               </p>
-              <p className="mt-1 text-meta text-card">{report.period}</p>
+              <p className="mt-1 text-meta text-muted-foreground">{report.period}</p>
             </div>
           </div>
 

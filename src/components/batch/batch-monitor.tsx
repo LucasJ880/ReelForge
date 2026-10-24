@@ -14,12 +14,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   Sheet,
@@ -28,8 +23,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { KpiCard } from "@/components/editorial/kpi-card";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
+import { QuoteHeader } from "@/components/exchange/quote-header";
+import { StatusTick, batchTone, type TickTone } from "@/components/exchange/status-tick";
 import { toast } from "sonner";
 import { useTranslation } from "@/i18n";
 import { getPlatformCopy } from "@/i18n/platform-copy";
@@ -86,6 +82,7 @@ export interface BatchMonitorData {
   failedCount: number;
   cancelledCount: number;
   statusReason: string | null;
+  productName?: string | null;
   template: {
     name: string;
     nameZh: string;
@@ -110,32 +107,14 @@ function firstAssetUrl(value: unknown): string | null {
   return typeof url === "string" ? url : null;
 }
 
-type StatusVariant =
-  | "default"
-  | "secondary"
-  | "destructive"
-  | "success"
-  | "warning";
-
-function jobStatusVariant(
-  status: BatchMonitorJob["status"],
-): StatusVariant {
-  if (status === "SUCCEEDED") return "success";
-  if (status === "FAILED") return "destructive";
-  if (status === "RUNNING") return "default";
-  if (status === "PAUSED") return "warning";
-  return "secondary";
-}
-
-function batchStatusVariant(
-  status: BatchMonitorData["status"],
-): StatusVariant {
-  if (status === "COMPLETED") return "success";
-  if (status === "FAILED" || status === "CANCELLED") return "destructive";
-  if (status === "PAUSED" || status === "PARTIAL_FAILED") return "warning";
-  if (status === "RUNNING") return "default";
-  return "secondary";
-}
+const JOB_TONE: Record<BatchMonitorJob["status"], TickTone> = {
+  QUEUED: "idle",
+  PAUSED: "idle",
+  RUNNING: "live",
+  SUCCEEDED: "filled",
+  FAILED: "fault",
+  CANCELLED: "void",
+};
 
 type BatchFailureCopy = ReturnType<
   typeof getPlatformCopy
@@ -225,6 +204,7 @@ export function BatchMonitor({
       ),
     [batch.videoJobs],
   );
+  const templateName = english ? batch.template.name : batch.template.nameZh;
   const totalProgress = useMemo(() => {
     const runningProgress = batch.videoJobs
       .filter((job) => job.status === "RUNNING")
@@ -306,26 +286,18 @@ export function BatchMonitor({
         </Card>
       )}
 
-      <Card>
-        <CardHeader className="gap-5">
-          <div className="flex min-w-0 flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0 space-y-3">
-              {/* 眉题按 DESIGN.md 禁用;状态 Badge 是内容不是眉题,保留。 */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-                <Badge variant={batchStatusVariant(batch.status)}>
-                  {batchLabels[batch.status]}
-                </Badge>
-              </div>
-              <div className="space-y-2">
-                <h1 className="editorial-display wrap-break-word">
-                  {english ? batch.template.name : batch.template.nameZh}
-                </h1>
-                <CardDescription className="break-all font-mono tabular-nums">
-                  {monitorCopy.batch} {batch.id} · {monitorCopy.templateVersion} v{batch.template.version}
-                </CardDescription>
-              </div>
-            </div>
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      <QuoteHeader
+        title={batch.productName ?? templateName}
+        subtitle={
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <StatusTick tone={batchTone(batch.status)} label={batchLabels[batch.status]} />
+            <span>{templateName} · {monitorCopy.templateVersion} v{batch.template.version}</span>
+            <span className="break-all font-mono text-data tabular-nums text-tertiary">{monitorCopy.batch} {batch.id}</span>
+          </span>
+        }
+        actions={
+          retryableFailedJobs.length > 0 || batch.queuedCount + batch.pausedCount > 0 ? (
+            <>
               {retryableFailedJobs.length > 0 && (
                 <Button
                   type="button"
@@ -366,48 +338,44 @@ export function BatchMonitor({
                   {monitorCopy.cancelUnstarted}
                 </Button>
               )}
-            </div>
-          </div>
+            </>
+          ) : undefined
+        }
+        statsLabel={monitorCopy.progress}
+        stats={[
+          // 委托读数墙：总量 / 成交 / 生成中 / 排队 / 失败 / 进度，零就写零
+          { label: monitorCopy.total, value: batch.requestedCount },
+          { label: monitorCopy.completed, value: batch.completedCount, tone: batch.completedCount > 0 ? "filled" : "neutral" },
+          { label: monitorCopy.running, value: batch.runningCount, tone: batch.runningCount > 0 ? "live" : "neutral" },
+          { label: monitorCopy.queuedPaused, value: batch.queuedCount + batch.pausedCount },
+          { label: monitorCopy.failed, value: batch.failedCount, tone: batch.failedCount > 0 ? "fault" : "neutral" },
+          { label: monitorCopy.progress, value: `${totalProgress}%`, tone: TERMINAL_BATCH.has(batch.status) ? "neutral" : "live" },
+        ]}
+      />
 
-          {batch.status === "PAUSED" && (
-            <div className="flex items-start gap-3 border-l-2 border-warning pl-4 text-meta text-foreground">
-              <PauseCircle
-                className="mt-0.5 size-4 shrink-0 text-warning"
-                aria-hidden
-              />
-              <span>{monitorCopy.paused.replace("{count}", String(batch.pausedCount))}</span>
-            </div>
-          )}
-        </CardHeader>
+      {batch.status === "PAUSED" && (
+        <div className="flex items-start gap-3 border-l-2 border-warning pl-4 text-meta text-foreground">
+          <PauseCircle
+            className="mt-0.5 size-4 shrink-0 text-warning"
+            aria-hidden
+          />
+          <span>{monitorCopy.paused.replace("{count}", String(batch.pausedCount))}</span>
+        </div>
+      )}
 
-        <CardContent className="space-y-6">
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-            <KpiCard label={monitorCopy.total} value={batch.requestedCount} />
-            <KpiCard label={monitorCopy.completed} value={batch.completedCount} />
-            <KpiCard label={monitorCopy.running} value={batch.runningCount} />
-            <KpiCard
-              label={monitorCopy.queuedPaused}
-              value={batch.queuedCount + batch.pausedCount}
-            />
-            <KpiCard label={monitorCopy.failed} value={batch.failedCount} />
-          </div>
-          <KpiCard
-            label={monitorCopy.progress}
-            value={`${totalProgress}%`}
-            progress={totalProgress}
-          />
-          <BatchFilmStrip
-            locale={locale}
-            counts={{
-              completed: batch.completedCount,
-              generating: batch.runningCount,
-              queued: batch.queuedCount + batch.pausedCount,
-              failed: batch.failedCount,
-              cancelled: batch.cancelledCount,
-            }}
-          />
-        </CardContent>
-      </Card>
+      <section aria-label={monitorCopy.progress} className="x-panel space-y-4 p-4 sm:p-5">
+        <Progress value={totalProgress} aria-label={`${monitorCopy.progress} ${totalProgress}%`} />
+        <BatchFilmStrip
+          locale={locale}
+          counts={{
+            completed: batch.completedCount,
+            generating: batch.runningCount,
+            queued: batch.queuedCount + batch.pausedCount,
+            failed: batch.failedCount,
+            cancelled: batch.cancelledCount,
+          }}
+        />
+      </section>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-meta text-muted-foreground">
@@ -463,6 +431,7 @@ export function BatchMonitor({
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
                 data-batch-video-card
+                data-beam={job.status === "RUNNING" ? "row" : undefined}
                 className="absolute left-0 top-0 flex h-14 w-full min-w-[680px] items-center gap-3 border-b border-border px-3 hover:bg-secondary"
                 style={{ transform: `translateY(${virtualRow.start}px)` }}
               >
@@ -517,7 +486,7 @@ export function BatchMonitor({
                   <p className="truncate font-mono text-meta font-semibold text-foreground">{monitorCopy.video} #{(job.batchIndex ?? 0) + 1}</p>
                   <p className="truncate font-mono text-meta text-muted-foreground" title={job.id}>{job.id}</p>
                 </div>
-                <Badge variant={jobStatusVariant(job.status)} className="w-20">{jobLabels[job.status]}</Badge>
+                <StatusTick tone={JOB_TONE[job.status]} label={jobLabels[job.status]} className="w-20" />
                 <div className="min-w-32 flex-1">
                   {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
                   {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures, english)}</p> : null}
@@ -637,7 +606,7 @@ export function BatchMonitor({
                         {done ? (
                           <CheckCircle2 className="size-3.5 shrink-0 text-success" aria-hidden />
                         ) : (
-                          <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/50" aria-hidden />
+                          <span className="size-1.5 shrink-0 rounded-(--radius-sm) bg-muted-foreground/50" aria-hidden />
                         )}
                         <span className={done ? "text-foreground" : "text-muted-foreground"}>{label}</span>
                       </li>

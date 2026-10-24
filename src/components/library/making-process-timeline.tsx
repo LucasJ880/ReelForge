@@ -73,7 +73,7 @@ export function MakingProcessTimeline({
   return (
     <section
       aria-labelledby="making-process-title"
-      className="rounded-(--radius-lg) border border-border bg-card p-5 shadow-editorial md:p-6"
+      className="rounded-(--radius-lg) border border-border bg-card p-5 shadow-panel md:p-6"
     >
       <div className="mb-5 flex items-center gap-2">
         <Clock3 className="size-5 text-primary" aria-hidden />

@@ -3,7 +3,7 @@ import {
   Camera,
   Compass,
   Layers,
-  Sparkles,
+  Film,
   Building2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -32,7 +32,7 @@ const ACTOR: Record<StoryActor, { icon: LucideIcon; chip: string; dot: string }>
     dot: "bg-success",
   },
   ai: {
-    icon: Sparkles,
+    icon: Film,
     chip: "bg-primary/12 text-primary",
     dot: "bg-primary",
   },
@@ -48,7 +48,6 @@ export function DemoStory() {
   return (
     <PetSection
       id="demo-story"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.description}
     >
@@ -72,7 +71,7 @@ function StoryStep({ step }: { step: DemoStoryStepDemo }) {
       <span
         className={`absolute -left-[1.78rem] top-1.5 h-3 w-3 rounded-full ring-4 ring-background ${actor.dot}`}
       />
-      <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-4">
+      <div className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full bg-background px-2.5 py-1 text-xs font-bold tabular-nums text-foreground">
             {step.time}

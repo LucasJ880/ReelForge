@@ -9,7 +9,6 @@ export function TeamSection() {
   return (
     <PetSection
       id="team"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.description}
     >
@@ -55,8 +54,8 @@ export function TeamSection() {
 
 function MemberCard({ member }: { member: TeamMember }) {
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-(--radius-lg) p-6 sm:flex-row sm:items-start">
-      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-(--radius-lg) bg-primary text-xl font-bold text-primary-foreground shadow-editorial">
+    <div className="border border-border bg-card shadow-panel flex flex-col gap-4 rounded-(--radius-lg) p-6 sm:flex-row sm:items-start">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-(--radius-lg) bg-primary text-xl font-bold text-primary-foreground shadow-panel">
         {member.initials}
       </div>
       <div className="min-w-0">

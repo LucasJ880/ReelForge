@@ -19,7 +19,7 @@ export async function CustomerRouteLoading({
       role="status"
       aria-live="polite"
       aria-busy="true"
-      className="editorial-page-stack min-w-0"
+      className="x-stack min-w-0"
     >
       <span className="sr-only">{copy.loading.replace("{area}", area)}</span>
       <header className="max-w-3xl space-y-3" aria-hidden="true">

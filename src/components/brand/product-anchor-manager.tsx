@@ -304,7 +304,7 @@ export function ProductAnchorManager({
       </CardHeader>
       <CardContent>
         {anchors.length === 0 ? (
-          <div className="glass-well rounded-(--radius-md) px-5 py-8 text-center">
+          <div className="x-well rounded-(--radius-md) px-5 py-8 text-center">
             <p className="text-body text-muted-foreground">
               {english
                 ? "No anchors yet. Upload a product photo, draw a box around the product, and name the SKU."
@@ -318,7 +318,7 @@ export function ProductAnchorManager({
                 key={anchor.id}
                 className="flex min-w-0 gap-4 rounded-(--radius-md) border border-border bg-card p-4 transition-colors hover:border-border-strong"
               >
-                <span className="glass-well relative size-20 shrink-0 overflow-hidden rounded-(--radius-sm)">
+                <span className="x-well relative size-20 shrink-0 overflow-hidden rounded-(--radius-sm)">
                   <Image
                     src={anchor.cutoutUrl ?? anchor.sourceImageUrl}
                     alt={anchor.sku}
@@ -404,7 +404,7 @@ export function ProductAnchorManager({
                 <div
                   ref={selectAreaRef}
                   data-testid="product-anchor-select-area"
-                  className="glass-well relative mx-auto touch-none select-none overflow-hidden rounded-(--radius-md)"
+                  className="x-well relative mx-auto touch-none select-none overflow-hidden rounded-(--radius-md)"
                   /// 竖幅产品图不限高会把框选区撑出视口，没法一次框完整个产品
                   /// （0803 验收 390x790 蜂巢帘实测）。宽度按比例钳到 52vh 等效值。
                   style={{

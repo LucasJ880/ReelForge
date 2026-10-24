@@ -56,7 +56,7 @@ export default async function AdminAIUsagePage({
   return (
     <div className="space-y-8">
       <header className="space-y-3 border-b border-border pb-6">
-        <h1 className="editorial-display">AI Usage Dashboard</h1>
+        <h1 className="x-display">AI Usage Dashboard</h1>
         <p className="max-w-3xl text-body text-muted-foreground">
           内部只读 · 最近 {stats.windowDays} 天 OpenAI 调用统计（{stats.totals.calls} 条记录）。
           数据来源 <code className="font-mono text-meta">AIUsageLog</code>，不参与计费，仅做可观测。

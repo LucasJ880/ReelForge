@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, PawPrint, Sparkles } from "lucide-react";
+import { ArrowRight, CirclePlay, Film } from "lucide-react";
 import { PetImage } from "./pet-image";
 import {
   PET_HERO_OPENING,
@@ -27,11 +27,7 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
     <section className="relative isolate overflow-hidden bg-background">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-12 px-4 pb-14 pt-10 sm:px-6 lg:flex-row lg:items-center lg:gap-12 lg:px-10 lg:pb-20 lg:pt-14">
         <div className="flex-1">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-            <PawPrint size={14} />
-            Aivora 宠物内容智能采集套件
-          </div>
-          <h1 className="editorial-display mt-6 max-w-3xl break-keep text-foreground [line-break:strict]">
+          <h1 className="x-display max-w-3xl break-keep text-foreground [line-break:strict]">
             把每一个真实宠物瞬间，
             <br />
             变成<span className="text-primary">可以马上分享</span>的可爱视频。
@@ -40,7 +36,6 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
             {PET_HERO_OPENING}
           </p>
           <p className="mt-4 inline-flex items-center gap-2 rounded-(--radius-lg) border border-success bg-success/10 px-4 py-2 text-sm font-medium text-success">
-            <Sparkles size={15} />
             {PET_SLOGAN}
           </p>
 
@@ -55,7 +50,7 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
               href="#before-after"
               className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold text-foreground hover:bg-secondary"
             >
-              <Sparkles size={15} /> 看真实成片对比
+              <Film size={15} /> 看真实成片对比
             </a>
             <a
               href="#proof-report"
@@ -75,10 +70,10 @@ export function PetHero({ ctaPrimaryHref, ctaPrimaryLabel }: PetHeroProps) {
         <div className="relative flex-1">
           <div className="flex flex-col items-center gap-4">
             <p className="inline-flex items-center gap-1.5 rounded-full border border-success bg-success/10 px-3 py-1 text-meta font-semibold text-success">
-              <Sparkles size={13} /> 60 秒看懂 Aivora · 中文字幕 + 纯音乐
+              <CirclePlay size={13} /> 60 秒看懂 Aivora · 中文字幕 + 纯音乐
             </p>
             {PET_WALKTHROUGH_VIDEO_URL ? (
-              <figure className="w-full max-w-xl overflow-hidden rounded-(--radius-lg) border border-border bg-card p-2 shadow-editorial">
+              <figure className="w-full max-w-xl overflow-hidden rounded-(--radius-lg) border border-border bg-card p-2 shadow-panel">
                 {/* 投资人最先看到的视频：产品讲解片，可播放、有声。 */}
                 <video
                   controls

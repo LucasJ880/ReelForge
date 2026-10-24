@@ -573,7 +573,7 @@ export function BatchCreateWizard({
           {queuedGroups.map((group) => (
             <span
               key={group.id}
-              className="flex items-center gap-2 rounded-full border border-border bg-accent-soft px-3 py-1 text-meta"
+              className="flex items-center gap-2 rounded-(--radius-sm) border border-border bg-accent-soft px-3 py-1 text-meta"
             >
               {group.templateName} × {group.count}
               <button

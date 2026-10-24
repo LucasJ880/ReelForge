@@ -38,7 +38,7 @@ for (const target of routes) {
     setState("empty");
     await page.goto(target.path);
     if (target.empty === "notFound") {
-      await expect(page.getByText("404 · Not Found", { exact: true })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "页面不存在" })).toBeVisible();
     } else {
       await expect(page.locator('[data-route-state="empty"]')).toBeVisible();
     }

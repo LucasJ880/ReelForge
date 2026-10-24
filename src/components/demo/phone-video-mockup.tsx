@@ -94,7 +94,7 @@ export function PhoneVideoMockup({
   return (
     <div
       className={cn(
-        "relative mx-auto rounded-(--radius-lg) border border-border bg-foreground p-2 shadow-editorial",
+        "relative mx-auto rounded-(--radius-lg) border border-border bg-foreground p-2 shadow-panel",
         sizeClassName ?? SIZE_CLASS[size],
         className,
       )}
@@ -159,7 +159,7 @@ export function PhoneVideoMockup({
           <div className="flex h-full w-full flex-col items-center justify-between bg-muted p-5 text-center text-foreground">
             <div className="w-full text-left">
               {statusBadge ? (
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-meta font-medium tracking-wide text-foreground shadow-editorial">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-1 text-meta font-medium tracking-wide text-foreground shadow-panel">
                   {statusBadge}
                 </span>
               ) : null}

@@ -65,7 +65,7 @@ function violations(
   });
 }
 
-describe("Editorial Studio 源码合规", () => {
+describe("Aivora Exchange 源码合规", () => {
   const foundation = FOUNDATION_FILES.map((file) => path.join(ROOT, file));
   const allSource = sourceFiles(path.join(ROOT, "src"));
   const uiFiles = sourceFiles(UI_DIR);

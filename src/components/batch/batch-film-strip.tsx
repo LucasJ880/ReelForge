@@ -63,15 +63,15 @@ export function BatchFilmStrip({
     <div
       role="img"
       aria-label={total > 0 ? (locale === "en-US" ? `Batch status distribution: ${summary}` : `批次状态分布：${summary}`) : (locale === "en-US" ? "Batch status distribution: no jobs" : "批次状态分布：暂无任务")}
-      className={cn("batch-film-strip", className)}
+      className={cn("x-fill-strip", className)}
       style={{ gridTemplateColumns: `repeat(${cellCount}, minmax(0, 1fr))` }}
       data-cell-size={cellSize}
     >
       {Array.from({ length: cellCount }, (_, index) => {
         const state = total > 0 ? stateAt(index, cellSize, counts) : "queued";
         return (
-          <span key={index} className="batch-film-cell" data-state={state} aria-hidden>
-            <span className="batch-film-core" />
+          <span key={index} className="x-fill-cell" data-state={state} aria-hidden>
+            <span className="x-fill-core" />
           </span>
         );
       })}

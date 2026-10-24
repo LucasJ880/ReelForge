@@ -5,27 +5,23 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
-  ArrowRight,
-  Check,
-  ChevronDown,
+  ChevronRight,
   Clapperboard,
-  Clock3,
   Film,
-  Layers3,
+  GalleryHorizontalEnd,
+  ListChecks,
   Loader2,
-  Monitor,
-  Package,
-  Route,
-  Sparkles,
-  WandSparkles,
+  PenLine,
+  SlidersHorizontal,
   X,
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { QuoteHeader } from "@/components/exchange/quote-header";
+import { SectionHead } from "@/components/exchange/section-head";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileDropzone } from "@/components/ui/dropzone";
 import { Textarea } from "@/components/ui/textarea";
 import { BrollQuickCard } from "@/components/video-generation/broll-quick-card";
@@ -39,6 +35,7 @@ import { FirstRunOnboardingDialog } from "@/components/video-generation/first-ru
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
 import {
   StoryboardWorkflowPanel,
+  storyboardFrameTarget,
   type StoryboardRunView,
 } from "@/components/video-generation/storyboard-workflow-panel";
 import {
@@ -113,15 +110,40 @@ interface ResumableStoryboardPayload {
 }
 
 const ZH_COPY = {
-  kicker: "单条视频创作",
   title: "从产品图到故事板，再到最终视频",
   subtitle: "每一步都看得见：上传素材、确认创作方向、审阅 Image 2 故事板，再交给 Aivora 生成视频。",
+  readingsLabel: "创作读数",
+  readingInFlight: "生成中",
+  readingFilled24h: "近 24 小时成片",
+  readingFilled30d: "近 30 天成片 / 月额度",
+  readingRate7d: "近 7 天成功率",
+  readingsScope: "统计口径：本工作区实时读取，不含成品库样片；额度为当前套餐每月成片上限。",
   guideTitle: "第一次使用，顺着五步完成",
   guideBody: "产品图上传后直接进入创作，不经过 AI 审核；故事板会先把产品外观和场景连续性锁定。",
   guideSteps: ["上传产品图", "设置创作方向", "生成 Image 2 故事板", "确认每一帧", "Aivora 生成视频"],
   workflowTitle: "当前创作流程",
-  workflowSteps: ["产品素材", "创作方案", "Image 2 故事板", "Aivora 视频", "成品"],
+  stageDone: "已完成",
   dismissGuide: "知道了，隐藏提示",
+  orderTitle: "本次委托",
+  optional: "可选",
+  rowAssets: "产品素材",
+  rowMode: "生成方式",
+  rowSpecs: "视频规格",
+  rowEnding: "结尾联系方式",
+  rowPrompt: "视频提示词",
+  rowAudio: "口播与字幕",
+  audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
+  summaryProducts: "产品图",
+  summaryReferences: "参考素材",
+  referencesExcluded: "不参与",
+  summaryEnding: "片尾",
+  summaryVoiceover: "口播",
+  summaryCaptions: "字幕",
+  summaryScenes: "AI 镜头",
+  summaryScore: "质量评分",
+  summaryFrames: "关键帧",
+  on: "开",
+  off: "关",
   stepAsset: "选择产品素材（可选）",
   stepAssetHint: "最多 9 张。真实产品建议上传正面、侧面和细节图；不上传则使用纯文字生成。",
   productDropTitle: "拖拽或点击上传产品图",
@@ -146,7 +168,7 @@ const ZH_COPY = {
   advanced: "高级生成",
   advancedHint: "开放模板与品牌片尾设置",
   stepSpecs: "视频规格",
-  stepSpecsHint: "所有选项集中在一栏，提交前可再次核对。",
+  stepSpecsHint: "画幅与时长决定成片样式；改动后需要重新核对方案。",
   route: "生成线路",
   autoRoute: "Aivora 视频通道",
   routeHint: "故事板与视频统一走 Aivora 引擎",
@@ -198,6 +220,7 @@ const ZH_COPY = {
   creatingStoryboard: "正在生成故事板…",
   storyboardFailed: "故事板暂时无法生成，请保留当前方案后重试。",
   editStoryboardConfirm: "修改创作方向会退出当前故事板。已生成的画面仍保留在任务记录中，确定继续吗？",
+  approveFirst: "请先确认故事板",
   generate: "生成视频",
   generating: "正在提交…",
   stickySummary: "{count} 张产品图 · {ratio} · {duration} 秒",
@@ -220,15 +243,40 @@ type StudioCopy = {
 };
 
 const EN_COPY: StudioCopy = {
-  kicker: "SINGLE VIDEO",
   title: "From product images to storyboard to final video",
   subtitle: "See every step: upload assets, confirm direction, review the Image 2 storyboard, then generate through Aivora.",
+  readingsLabel: "Creation readings",
+  readingInFlight: "In production",
+  readingFilled24h: "Finished · 24h",
+  readingFilled30d: "Finished · 30 days / monthly limit",
+  readingRate7d: "Success rate · 7 days",
+  readingsScope: "Live from this workspace; library samples excluded. The limit is your plan's monthly video allowance.",
   guideTitle: "Follow five clear steps for your first video",
   guideBody: "Product uploads go straight into creation without AI review. The storyboard locks product identity and scene continuity first.",
   guideSteps: ["Upload product images", "Set the direction", "Generate Image 2 storyboard", "Approve every frame", "Generate with Aivora"],
   workflowTitle: "Current workflow",
-  workflowSteps: ["Product assets", "Creative plan", "Image 2 storyboard", "Aivora video", "Final asset"],
+  stageDone: "done",
   dismissGuide: "Got it, hide this guide",
+  orderTitle: "This order",
+  optional: "Optional",
+  rowAssets: "Assets",
+  rowMode: "Mode",
+  rowSpecs: "Specs",
+  rowEnding: "End frame",
+  rowPrompt: "Prompt",
+  rowAudio: "Voice & captions",
+  audioHint: "The video speaks your editable script; captions are timed to the finished video.",
+  summaryProducts: "Product images",
+  summaryReferences: "References",
+  referencesExcluded: "excluded",
+  summaryEnding: "End frame",
+  summaryVoiceover: "Voiceover",
+  summaryCaptions: "Captions",
+  summaryScenes: "AI scenes",
+  summaryScore: "Quality score",
+  summaryFrames: "Keyframes",
+  on: "On",
+  off: "Off",
   stepAsset: "Choose product assets (optional)",
   stepAssetHint: "Add up to 9 clear product images, or leave this empty for text-to-video generation.",
   productDropTitle: "Drop or choose product images",
@@ -253,7 +301,7 @@ const EN_COPY: StudioCopy = {
   advanced: "Advanced generation",
   advancedHint: "Template and branded-ending controls",
   stepSpecs: "Video specs",
-  stepSpecsHint: "The important choices stay together in one compact bar for a final check.",
+  stepSpecsHint: "Format and length shape the final video; changing them needs a fresh review.",
   route: "Generation route",
   autoRoute: "Aivora video route",
   routeHint: "Storyboard and video stay on the Aivora engine",
@@ -305,6 +353,7 @@ const EN_COPY: StudioCopy = {
   creatingStoryboard: "Generating storyboard…",
   storyboardFailed: "The storyboard could not be generated right now. Your direction is preserved; try again shortly.",
   editStoryboardConfirm: "Editing the direction exits this storyboard. Generated frames remain in task history. Continue?",
+  approveFirst: "Approve the storyboard first",
   generate: "Generate video",
   generating: "Submitting…",
   stickySummary: "{count} product images · {ratio} · {duration}s",
@@ -320,6 +369,20 @@ const EN_COPY: StudioCopy = {
   planHeading: "Generation plan ready",
 };
 
+/**
+ * 行情头读数：由 server page 读好后以纯数字传入。
+ * 这里只声明形状，不 import 服务端 service（client bundle 铁律）。
+ */
+export type StudioReadings = {
+  inFlight: number;
+  filled24h: number;
+  filled30d: number;
+  /** 当前套餐每月成片上限。 */
+  monthlyLimit: number;
+  /** 0–100；近 7 天没有样本时为 null，界面写「—」。 */
+  successRate7d: number | null;
+};
+
 export function StreamlinedVideoStudio({
   initialAssets = [],
   initialStyleTemplateId,
@@ -329,6 +392,7 @@ export function StreamlinedVideoStudio({
   showInternalVideoRoutes = false,
   forceOnboarding = false,
   brollAvailable = false,
+  readings = null,
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
@@ -338,6 +402,7 @@ export function StreamlinedVideoStudio({
   showInternalVideoRoutes?: boolean;
   forceOnboarding?: boolean;
   brollAvailable?: boolean;
+  readings?: StudioReadings | null;
 }) {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -1149,6 +1214,7 @@ export function StreamlinedVideoStudio({
     && uploadingTarget === null
     && selectedRouteAvailable === true;
   const configurationLocked = Boolean(storyboard);
+  const locked = busy !== null || configurationLocked;
   const currentRequestKey = rawPrompt.trim()
     ? JSON.stringify(buildRequest())
     : null;
@@ -1171,19 +1237,93 @@ export function StreamlinedVideoStudio({
     busy === "dispatch"
     || busy === "storyboard"
     || (creationMode === "quick" && busy === "preview");
-  const workflowActiveIndex = busy === "dispatch" || storyboard?.status === "APPROVED"
-    ? 3
+  /// 委托进度沿用首用提示的五步（guideSteps）：一页只有一套步骤，当前一步只有一个。
+  const stageIndex = busy === "dispatch" || storyboard?.status === "APPROVED"
+    ? 4
     : storyboard
-      ? 2
+      ? 3
       : planIsCurrent
         ? 2
         : rawPrompt.trim()
           ? 1
           : 0;
+  /// 光只给正在发生的事：故事板逐帧生成或正在提交时，当前一步才带扫描光。
+  const stageWorking = storyboardGenerating || busy === "storyboard" || busy === "dispatch";
   const ratioLabel = aspectRatioLabel(selectedAspectRatio, copy);
+  const primaryLabel = busy === "dispatch"
+    ? copy.generating
+    : busy === "storyboard"
+      ? copy.creatingStoryboard
+      : creationMode === "quick" && busy === "preview"
+        ? copy.reviewingSpecs
+        : quickNeedsReview
+          ? copy.reviewSpecs
+          : needsStoryboard
+            ? copy.createStoryboard
+            : storyboardGenerating
+              ? copy.creatingStoryboard
+              : storyboardNeedsApproval
+                ? copy.approveFirst
+                : copy.generate;
+  const PrimaryIcon = primaryIsBusy || storyboardGenerating
+    ? Loader2
+    : quickNeedsReview
+      ? ListChecks
+      : needsStoryboard || storyboardNeedsApproval
+        ? GalleryHorizontalEnd
+        : Clapperboard;
+  const routeNeedsAttention = selectedRouteAvailable !== true;
+  const statusHint = selectedRouteAvailable === null
+    ? copy.routeCheckingHint
+    : selectedRouteAvailable === false
+      ? copy.routeUnavailableHint
+      : selectedVideoRouteId === "buddy"
+        ? copy.shuyuEstimate.replace(
+            "{points}",
+            "900",
+          )
+        : copy.readyHint;
+  const activeRecipe = COMMERCE_TEMPLATE_RECIPES.find((recipe) => recipe.slug === styleTemplateId);
+  const ledger: Array<{ label: string; value: string; numeric?: boolean }> = [
+    { label: copy.summaryProducts, value: `${productAssets.length}/${MAX_PRODUCT_IMAGES}`, numeric: true },
+    {
+      label: copy.summaryReferences,
+      value: referenceMode === "all" || referenceAssets.length === 0
+        ? String(referenceAssets.length)
+        : `${referenceAssets.length} · ${copy.referencesExcluded}`,
+      numeric: true,
+    },
+    { label: copy.stepMode, value: creationMode === "quick" ? copy.quick : copy.advanced },
+    ...(creationMode === "advanced"
+      ? [{
+          label: copy.template,
+          value: activeRecipe
+            ? (english ? activeRecipe.name : activeRecipe.nameZh)
+            : copy.templateAuto,
+        }]
+      : []),
+    { label: copy.aspect, value: ratioLabel },
+    { label: copy.duration, value: `${selectedDuration}s`, numeric: true },
+    { label: copy.summaryEnding, value: selectedBrandPackage?.name ?? copy.endingNone },
+    { label: copy.summaryVoiceover, value: voiceoverEnabled ? copy.on : copy.off },
+    { label: copy.summaryCaptions, value: captionsEnabled ? copy.on : copy.off },
+    ...(plan && planIsCurrent
+      ? [
+          { label: copy.summaryScenes, value: String(plan.planPreview.breakdown.aiClipCount), numeric: true },
+          { label: copy.summaryScore, value: `${plan.qualityReview.score}/100`, numeric: true },
+        ]
+      : []),
+    ...(storyboard
+      ? [{
+          label: copy.summaryFrames,
+          value: `${storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/${storyboardFrameTarget(storyboard.durationSec)}`,
+          numeric: true,
+        }]
+      : []),
+  ];
 
   return (
-    <div className="space-y-6 pb-4" data-testid="streamlined-video-studio">
+    <div className="space-y-8 pb-4" data-testid="streamlined-video-studio">
       <FirstRunOnboardingDialog
         open={onboardingOpen}
         english={english}
@@ -1192,599 +1332,642 @@ export function StreamlinedVideoStudio({
         onSkip={() => closeOnboarding(false)}
         onStart={() => closeOnboarding(true)}
       />
-      <header className="max-w-4xl space-y-3">
-        <h1 className="editorial-display">{copy.title}</h1>
-        <p className="max-w-3xl text-body text-muted-foreground">{copy.subtitle}</p>
-        <CreateModeTabs active="video" />
-      </header>
-
-      <WorkflowRail
-        title={copy.workflowTitle}
-        steps={copy.workflowSteps}
-        activeIndex={workflowActiveIndex}
+      <QuoteHeader
+        title={copy.title}
+        subtitle={copy.subtitle}
+        actions={<CreateModeTabs active="video" />}
+        statsLabel={copy.readingsLabel}
+        stats={readings
+          ? [
+              {
+                label: copy.readingInFlight,
+                value: readings.inFlight,
+                tone: readings.inFlight > 0 ? "live" : "neutral",
+              },
+              {
+                label: copy.readingFilled24h,
+                value: readings.filled24h,
+                tone: readings.filled24h > 0 ? "filled" : "neutral",
+              },
+              {
+                label: copy.readingFilled30d,
+                value: (
+                  <>
+                    {readings.filled30d}
+                    <span className="text-subhead text-muted-foreground"> / {readings.monthlyLimit}</span>
+                  </>
+                ),
+              },
+              {
+                label: copy.readingRate7d,
+                value: readings.successRate7d === null ? "—" : `${readings.successRate7d}%`,
+              },
+            ]
+          : undefined}
+        scope={readings ? copy.readingsScope : undefined}
       />
 
-      {showGuide ? (
-        <section
-          className="studio-panel relative overflow-hidden p-4 sm:p-5"
-          aria-labelledby="streamlined-first-use-heading"
-          data-testid="streamlined-first-use-guide"
+      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="min-w-0 space-y-8">
+          <div className="space-y-3">
+            {showGuide ? (
+              <section
+                className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-raised py-1 pl-3 pr-1 sm:items-center"
+                aria-labelledby="streamlined-first-use-heading"
+                data-testid="streamlined-first-use-guide"
+              >
+                <p className="min-w-0 flex-1 py-1.5 text-meta text-muted-foreground">
+                  <span id="streamlined-first-use-heading" className="font-medium text-foreground">{copy.guideTitle}</span>
+                  <span className="mx-2 text-tertiary" aria-hidden>·</span>
+                  {copy.guideBody}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="shrink-0 text-muted-foreground"
+                  onClick={dismissGuide}
+                  aria-label={copy.dismissGuide}
+                  title={copy.dismissGuide}
+                >
+                  <X aria-hidden />
+                </Button>
+              </section>
+            ) : null}
+
+            {/* 委托单：一面行情墙，一步一行；行本身就是容器，只有真正的输入是下沉井 */}
+            <div className="x-wall @container">
+              <TicketRow
+                data-testid="streamlined-product-assets"
+                step="01"
+                label={copy.rowAssets}
+                optional={copy.optional}
+                reading={copy.productCount.replace("{count}", String(productAssets.length))}
+              >
+                <p className="text-meta text-muted-foreground">{copy.stepAssetHint}</p>
+                <FileDropzone
+                  title={copy.productDropTitle}
+                  description={copy.productDropDescription}
+                  uploading={uploadingTarget === "product"}
+                  disabled={busy !== null
+                    || configurationLocked
+                    || uploadingTarget !== null
+                    || productAssets.length >= MAX_PRODUCT_IMAGES
+                    || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS}
+                  onFiles={(files) => void uploadProductImages(files)}
+                  onRejected={() => {
+                    setUploadError(copy.unsupportedFile);
+                    toast.error(copy.unsupportedFile);
+                  }}
+                  className="py-5"
+                />
+                {productAssets.length > 0 ? (
+                  <>
+                    {initialProductAssets.some((initial) =>
+                      productAssets.some((asset) => asset.id === initial.id),
+                    ) ? (
+                      <p role="status" className="text-meta text-success">
+                        {english
+                          ? "Loaded from Product Image Studio as a product consistency reference."
+                          : "已从产品图工作台载入，并作为产品一致性参考。"}
+                        <span className="ml-1 font-mono text-muted-foreground">
+                          {initialProductAssets
+                            .filter((initial) =>
+                              productAssets.some((asset) => asset.id === initial.id),
+                            )
+                            .map((asset) => asset.fileName)
+                            .join("、")}
+                        </span>
+                      </p>
+                    ) : null}
+                    <AssetGrid
+                      assets={productAssets}
+                      imageLabel={copy.stepAsset}
+                      removeLabel={copy.removeProduct}
+                      onRemove={removeProductAsset}
+                      disabled={locked}
+                    />
+                  </>
+                ) : (
+                  <p className="text-meta text-muted-foreground">{copy.productRequired}</p>
+                )}
+
+                <details className="group" data-testid="streamlined-reference-assets">
+                  <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-(--radius-sm) py-1 text-meta text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                    <ChevronRight className="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden />
+                    <span className="font-medium text-foreground">{copy.optionalReferences}</span>
+                    {referenceAssets.length > 0 ? (
+                      <span className="font-mono text-data tabular-nums">{referenceAssets.length}</span>
+                    ) : null}
+                  </summary>
+                  <div className="mt-3 space-y-3">
+                    <p className="text-meta text-muted-foreground">{copy.optionalReferencesHint}</p>
+                    <FileDropzone
+                      accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
+                      title={copy.referenceDropTitle}
+                      description={copy.referenceDropDescription}
+                      uploading={uploadingTarget === "reference"}
+                      disabled={busy !== null
+                        || configurationLocked
+                        || uploadingTarget !== null
+                        || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS - (productAssets.length === 0 ? 1 : 0)}
+                      onFiles={(files) => void uploadReferenceAssets(files)}
+                      onRejected={() => {
+                        setUploadError(copy.unsupportedFile);
+                        toast.error(copy.unsupportedFile);
+                      }}
+                      className="py-4"
+                    />
+                    {referenceAssets.length > 0 ? (
+                      <AssetGrid
+                        assets={referenceAssets}
+                        imageLabel={copy.optionalReferences}
+                        removeLabel={copy.removeReference}
+                        onRemove={removeReferenceAsset}
+                        disabled={locked}
+                      />
+                    ) : null}
+                  </div>
+                </details>
+                {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
+              </TicketRow>
+
+              <TicketRow data-testid="streamlined-generation-mode" step="02" label={copy.rowMode}>
+                <p className="text-meta text-muted-foreground">{copy.stepModeHint}</p>
+                <div className="grid gap-2 @md:grid-cols-2" role="group" aria-label={copy.stepMode}>
+                  <OptionButton
+                    active={creationMode === "quick"}
+                    title={copy.quick}
+                    description={copy.quickHint}
+                    icon={Zap}
+                    disabled={locked}
+                    onClick={() => {
+                      setCreationMode("quick");
+                      invalidatePlan();
+                    }}
+                  />
+                  <OptionButton
+                    active={creationMode === "advanced"}
+                    title={copy.advanced}
+                    description={copy.advancedHint}
+                    icon={SlidersHorizontal}
+                    disabled={locked}
+                    onClick={() => {
+                      setCreationMode("advanced");
+                      invalidatePlan();
+                    }}
+                  />
+                </div>
+              </TicketRow>
+
+              <TicketRow data-testid="streamlined-video-specs" step="03" label={copy.rowSpecs}>
+                <p className="text-meta text-muted-foreground">{copy.stepSpecsHint}</p>
+                <dl className="grid gap-x-4 gap-y-2 @md:grid-cols-[6.5rem_minmax(0,1fr)] @md:items-center @md:gap-y-3">
+                  <dt className="x-label">{copy.route}</dt>
+                  <dd className="min-w-0 pb-1 @md:pb-0">
+                    {canSelectVideoRoute ? (
+                      <VideoRouteSelector
+                        canSelectVideoRoute={canSelectVideoRoute}
+                        showInternalRoutes={showInternalVideoRoutes}
+                        durationSeconds={selectedDuration}
+                        value={selectedVideoRouteId}
+                        disabled={locked}
+                        onChange={handleVideoRouteChange}
+                        onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
+                      />
+                    ) : (
+                      <p className="text-body">
+                        <span className="font-medium text-foreground">{copy.autoRoute}</span>
+                        <span className="text-meta text-muted-foreground"> · {copy.routeHint}</span>
+                      </p>
+                    )}
+                  </dd>
+                  <dt className="x-label">{copy.referenceMode}</dt>
+                  <dd className="min-w-0 pb-1 @md:pb-0">
+                    <Segmented
+                      label={copy.referenceMode}
+                      value={referenceMode}
+                      disabled={locked}
+                      onChange={(value) => {
+                        setReferenceMode(value as ReferenceMode);
+                        invalidatePlan();
+                      }}
+                      options={[
+                        { value: "all", label: copy.referenceAll },
+                        { value: "product_only", label: copy.referenceProduct },
+                      ]}
+                    />
+                  </dd>
+                  <dt className="x-label">{copy.aspect}</dt>
+                  <dd className="min-w-0 pb-1 @md:pb-0">
+                    <Segmented
+                      label={copy.aspect}
+                      value={selectedAspectRatio}
+                      disabled={locked}
+                      onChange={(value) => {
+                        setSelectedAspectRatio(value as AspectRatio);
+                        invalidatePlan();
+                      }}
+                      options={ASPECT_RATIOS.map((ratio) => ({ value: ratio, label: aspectRatioLabel(ratio, copy) }))}
+                    />
+                  </dd>
+                  <dt className="x-label">{copy.duration}</dt>
+                  <dd className="min-w-0 pb-1 @md:pb-0">
+                    <Segmented
+                      label={copy.duration}
+                      value={String(selectedDuration)}
+                      disabled={locked}
+                      onChange={(value) => {
+                        setSelectedDuration(Number(value) as 15 | 30 | 60);
+                        invalidatePlan();
+                      }}
+                      options={DURATIONS.map((duration) => ({ value: String(duration), label: `${duration}s` }))}
+                    />
+                  </dd>
+                  {creationMode === "advanced" ? (
+                    <>
+                      <dt>
+                        <label htmlFor="streamlined-style-template" className="x-label">{copy.template}</label>
+                      </dt>
+                      <dd className="min-w-0" data-testid="streamlined-advanced-options">
+                        <select
+                          id="streamlined-style-template"
+                          value={styleTemplateId}
+                          disabled={locked}
+                          onChange={(event) => {
+                            setStyleTemplateId(event.target.value);
+                            invalidatePlan();
+                          }}
+                          className="x-select max-w-md"
+                        >
+                          <option value="auto">{copy.templateAuto}</option>
+                          {COMMERCE_TEMPLATE_RECIPES.map((recipe) => (
+                            <option key={recipe.slug} value={recipe.slug}>
+                              {english ? recipe.name : recipe.nameZh}
+                            </option>
+                          ))}
+                        </select>
+                      </dd>
+                    </>
+                  ) : null}
+                </dl>
+              </TicketRow>
+
+              <TicketRow
+                data-testid="streamlined-brand-package"
+                step="04"
+                label={copy.rowEnding}
+                optional={copy.optional}
+              >
+                <p className="text-meta text-muted-foreground">{copy.brandPackageHint}</p>
+                <div className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3" role="group" aria-label={copy.brandPackageStep}>
+                  <OptionButton
+                    active={selectedBrandPackageId === null}
+                    title={copy.cleanVideo}
+                    description={copy.cleanVideoHint}
+                    disabled={locked}
+                    onClick={() => {
+                      setSelectedBrandPackageId(null);
+                      invalidatePlan();
+                    }}
+                  />
+                  {brandPackages.map((brandPackage) => (
+                    <OptionButton
+                      key={brandPackage.id}
+                      active={selectedBrandPackageId === brandPackage.id}
+                      title={brandPackage.name}
+                      description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
+                      disabled={locked}
+                      onClick={() => {
+                        setSelectedBrandPackageId(brandPackage.id);
+                        invalidatePlan();
+                      }}
+                    />
+                  ))}
+                </div>
+                {brandPackages.length === 0 ? (
+                  <p className="text-meta text-muted-foreground">{copy.noBrandPackages}</p>
+                ) : null}
+              </TicketRow>
+
+              <TicketRow
+                id="streamlined-video-prompt"
+                data-testid="streamlined-video-prompt"
+                step="05"
+                label={copy.rowPrompt}
+                className="scroll-mt-24"
+              >
+                <p className="text-meta text-muted-foreground">
+                  {creationMode === "quick" ? copy.stepPromptHintQuick : copy.stepPromptHintAdvanced}
+                </p>
+                <div
+                  className="flex flex-wrap gap-1.5"
+                  role="group"
+                  aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
+                >
+                  {copy.promptPresets.map((label, index) => (
+                    <Button
+                      key={label}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="sm:h-8"
+                      disabled={locked}
+                      onClick={() => {
+                        setRawPrompt(copy.presetPrompts[index] ?? "");
+                        invalidatePlan();
+                      }}
+                    >
+                      <PenLine aria-hidden />
+                      {label}
+                    </Button>
+                  ))}
+                </div>
+                {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填提示词 */}
+                <ProductLinkPrefill
+                  disabled={locked}
+                  onPrefill={(promptText) => {
+                    setRawPrompt((current) => (current.trim() ? `${current}\n${promptText}` : promptText));
+                    invalidatePlan();
+                  }}
+                />
+                <label className="block">
+                  <span className="x-label">{copy.promptLabel}</span>
+                  <Textarea
+                    value={rawPrompt}
+                    maxLength={4000}
+                    rows={7}
+                    disabled={locked}
+                    aria-invalid={Boolean(error && !rawPrompt.trim())}
+                    onChange={(event) => {
+                      setRawPrompt(event.target.value);
+                      invalidatePlan();
+                    }}
+                    placeholder={copy.promptPlaceholder}
+                    className="mt-2 min-h-44 resize-y text-body leading-relaxed"
+                  />
+                </label>
+                <p className="text-right font-mono text-data tabular-nums text-muted-foreground">
+                  {copy.charCount.replace("{count}", String(rawPrompt.length))}
+                </p>
+              </TicketRow>
+
+              {/* 口播 / 字幕 / 配乐是第六行：编号与标题由行承担 */}
+              <TicketRow step="06" label={copy.rowAudio}>
+                <p className="text-meta text-muted-foreground">{copy.audioHint}</p>
+                <AudioCaptionControls
+                  value={audioCaptionSettings}
+                  english={english}
+                  disabled={locked}
+                  onChange={updateAudioCaptionSettings}
+                  onRegenerate={regenerateVoiceoverScript}
+                />
+              </TicketRow>
+            </div>
+          </div>
+
+          {plan ? (
+            <section
+              id="streamlined-plan-preview"
+              className="scroll-mt-24 space-y-3"
+              aria-label={copy.planHeading}
+            >
+              <SectionHead title={copy.planHeading} />
+              <PlanPreviewCard plan={plan} />
+            </section>
+          ) : null}
+
+          {storyboard ? (
+            <div id="single-video-storyboard" className="scroll-mt-24 space-y-2">
+              <StoryboardWorkflowPanel
+                run={storyboard}
+                english={english}
+                busyFrameId={storyboardFrameBusy}
+                approving={approvingStoryboard}
+                onRegenerate={(frameId) => void regenerateStoryboardFrame(frameId)}
+                onApprove={() => void approveStoryboard()}
+                onEditPlan={editStoryboardDirection}
+              />
+              {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
+              <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">
+                <span className="min-w-0 flex-1">{copy.cancelRoundHint}</span>
+                <Button type="button" variant="ghost" size="xs" onClick={cancelCurrentRound}>
+                  <X aria-hidden />
+                  {copy.cancelRound}
+                </Button>
+              </div>
+            </div>
+          ) : null}
+
+          {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机） */}
+          <BrollQuickCard available={brollAvailable} />
+        </div>
+
+        {/* 委托摘要：xl 起是右侧粘性单据；更窄时退成底部粘性操作条（同一个元素，同一枚主按钮）。
+            主按钮放在单据最上方（结账摘要的通行做法）：矮屏首屏也看得到，读数区在下面按需内部滚动。 */}
+        <aside
+          className="x-panel x-frame sticky bottom-20 z-10 p-3 md:bottom-10 xl:bottom-auto xl:top-24 xl:flex xl:max-h-[calc(100dvh-8rem)] xl:flex-col xl:gap-4 xl:p-5"
+          data-testid="streamlined-generate-bar"
+          aria-label={quickNeedsReview
+            ? copy.reviewSpecs
+            : needsStoryboard
+              ? copy.createStoryboard
+              : copy.generate}
         >
-          <div className="flex items-start gap-3 pr-10">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-secondary text-foreground">
-              <Sparkles className="size-4" aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h2 id="streamlined-first-use-heading" className="font-heading text-subhead font-semibold">{copy.guideTitle}</h2>
-              <p className="mt-1 text-meta text-muted-foreground">{copy.guideBody}</p>
-              <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
-                {copy.guideSteps.map((step, index) => (
-                  <li key={step} className="flex items-center gap-2 rounded-(--radius-md) border border-border bg-muted px-3 py-2 text-meta text-foreground">
-                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-secondary font-mono text-[10px] tabular-nums">{index + 1}</span>
-                    {step}
-                  </li>
-                ))}
+          <h2 className="hidden text-subhead font-medium xl:block">{copy.orderTitle}</h2>
+
+          {error ? (
+            <div role="alert" className="mb-3 flex flex-wrap items-start gap-2 rounded-(--radius-md) border border-danger bg-danger-soft px-3 py-2 text-meta text-danger xl:mb-0">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+              <span className="min-w-0 flex-1">{error}</span>
+              {/* 供应商挂了 / 这一轮失败时，用户必须有一条「不再纠缠这一轮」的出口 */}
+              <Button
+                type="button"
+                variant="outline"
+                size="xs"
+                onClick={cancelCurrentRound}
+              >
+                <X aria-hidden />
+                {copy.cancelRound}
+              </Button>
+            </div>
+          ) : null}
+
+          <p
+            className={cn(
+              "text-meta",
+              routeNeedsAttention ? "mb-3 text-gold xl:mb-0" : "hidden text-muted-foreground xl:block",
+            )}
+          >
+            {statusHint}
+          </p>
+
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:flex-col xl:items-stretch">
+            <div className="min-w-0 flex-1 xl:hidden">
+              <p className="truncate text-body font-medium text-foreground">
+                {copy.stickySummary
+                  .replace("{count}", String(productAssets.length))
+                  .replace("{ratio}", ratioLabel)
+                  .replace("{duration}", String(selectedDuration))}
+              </p>
+              <p className="mt-0.5 truncate font-mono text-data tabular-nums text-muted-foreground">
+                {stageIndex + 1}/{copy.guideSteps.length} · {copy.guideSteps[stageIndex]}
+              </p>
+            </div>
+            <div className="grid shrink-0 gap-2 sm:flex xl:grid">
+              {creationMode === "advanced" && !storyboard ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!canReview}
+                  onClick={() => void handlePreview()}
+                >
+                  {busy === "preview" ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <ListChecks aria-hidden />}
+                  {busy === "preview" ? copy.previewing : copy.previewPlan}
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                id="platform-primary-generate"
+                disabled={quickNeedsReview
+                  ? !canReview
+                  : needsStoryboard
+                    ? !canReview || busy !== null
+                    : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
+                onClick={() => {
+                  if (quickNeedsReview) {
+                    void handlePreview();
+                    return;
+                  }
+                  if (needsStoryboard) {
+                    void handleCreateStoryboard();
+                    return;
+                  }
+                  if (storyboardGenerating || storyboardNeedsApproval) {
+                    document.getElementById("single-video-storyboard")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    });
+                    return;
+                  }
+                  void handleGenerate();
+                }}
+                className="min-w-36"
+              >
+                <PrimaryIcon
+                  className={primaryIsBusy || storyboardGenerating ? "animate-spin motion-reduce:animate-none" : undefined}
+                  aria-hidden
+                />
+                {primaryLabel}
+              </Button>
+            </div>
+          </div>
+
+          <div className="hidden min-h-0 space-y-5 border-t border-border pt-4 xl:block xl:overflow-y-auto">
+            <dl className="space-y-2">
+              {ledger.map((row) => (
+                <div key={row.label} className="flex items-baseline justify-between gap-4">
+                  <dt className="x-label shrink-0">{row.label}</dt>
+                  <dd
+                    className={cn(
+                      "min-w-0 truncate text-right text-foreground",
+                      row.numeric ? "font-mono text-data tabular-nums" : "text-meta",
+                    )}
+                  >
+                    {row.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <div className="space-y-2 border-t border-border pt-4">
+              <p id="streamlined-stage-label" className="x-label">{copy.workflowTitle}</p>
+              <ol className="space-y-px" aria-labelledby="streamlined-stage-label" data-testid="creation-workflow-rail">
+                {copy.guideSteps.map((step, index) => {
+                  const state = index < stageIndex ? "done" : index === stageIndex ? "current" : "pending";
+                  return (
+                    <li
+                      key={step}
+                      aria-current={state === "current" ? "step" : undefined}
+                      data-beam={state === "current" && stageWorking ? "row" : undefined}
+                      className={cn(
+                        "flex items-center gap-2.5 rounded-(--radius-sm) px-2 py-1.5 text-meta",
+                        state === "current"
+                          ? "bg-active text-foreground"
+                          : state === "done"
+                            ? "text-muted-foreground"
+                            : "text-tertiary",
+                      )}
+                    >
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "w-3 shrink-0 text-center font-mono text-data",
+                          state === "done" ? "text-success" : state === "current" ? "text-accent" : "text-tertiary",
+                        )}
+                      >
+                        {state === "done" ? "●" : state === "current" ? "▸" : "○"}
+                      </span>
+                      <span className="min-w-0 truncate">{step}</span>
+                      {state === "done" ? <span className="sr-only">{copy.stageDone}</span> : null}
+                    </li>
+                  );
+                })}
               </ol>
             </div>
           </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="absolute right-3 top-3"
-            onClick={dismissGuide}
-            aria-label={copy.dismissGuide}
-            title={copy.dismissGuide}
-          >
-            <X aria-hidden />
-          </Button>
-        </section>
-      ) : null}
-
-      <Card data-testid="streamlined-product-assets">
-        <StepCardHeader number={1} title={copy.stepAsset} hint={copy.stepAssetHint}>
-          <span className="rounded-full border border-border bg-secondary px-2.5 py-1 font-mono text-meta tabular-nums text-muted-foreground">
-            {copy.productCount.replace("{count}", String(productAssets.length))}
-          </span>
-        </StepCardHeader>
-        <CardContent className="space-y-4">
-          <FileDropzone
-            title={copy.productDropTitle}
-            description={copy.productDropDescription}
-            uploading={uploadingTarget === "product"}
-            disabled={busy !== null
-              || configurationLocked
-              || uploadingTarget !== null
-              || productAssets.length >= MAX_PRODUCT_IMAGES
-              || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS}
-            onFiles={(files) => void uploadProductImages(files)}
-            onRejected={() => {
-              setUploadError(copy.unsupportedFile);
-              toast.error(copy.unsupportedFile);
-            }}
-            className="py-5"
-          />
-          {productAssets.length > 0 ? (
-            <>
-              {initialProductAssets.some((initial) =>
-                productAssets.some((asset) => asset.id === initial.id),
-              ) ? (
-                <p role="status" className="text-meta text-success">
-                  {english
-                    ? "Loaded from Product Image Studio as a product consistency reference."
-                    : "已从产品图工作台载入，并作为产品一致性参考。"}
-                  <span className="ml-1 font-mono text-muted-foreground">
-                    {initialProductAssets
-                      .filter((initial) =>
-                        productAssets.some((asset) => asset.id === initial.id),
-                      )
-                      .map((asset) => asset.fileName)
-                      .join("、")}
-                  </span>
-                </p>
-              ) : null}
-              <AssetGrid
-                assets={productAssets}
-                imageLabel={copy.stepAsset}
-                removeLabel={copy.removeProduct}
-                onRemove={removeProductAsset}
-                disabled={busy !== null || configurationLocked}
-              />
-            </>
-          ) : (
-            <p className="flex items-center gap-2 text-meta text-muted-foreground">
-              <Package className="size-4" aria-hidden />
-              {copy.productRequired}
-            </p>
-          )}
-
-          <details className="group rounded-(--radius-md) border border-border bg-muted" data-testid="streamlined-reference-assets">
-            <summary className="flex cursor-pointer list-none items-center gap-3 px-3 py-3 text-left [&::-webkit-details-marker]:hidden">
-              <Layers3 className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-              <span className="min-w-0 flex-1">
-                <span className="block text-body font-medium text-foreground">{copy.optionalReferences}</span>
-                <span className="mt-0.5 block text-meta text-muted-foreground">{copy.optionalReferencesHint}</span>
-              </span>
-              {referenceAssets.length > 0 ? (
-                <span className="rounded-full border border-border bg-card px-2 py-0.5 font-mono text-meta tabular-nums">{referenceAssets.length}</span>
-              ) : null}
-              <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden />
-            </summary>
-            <div className="space-y-3 border-t border-border p-3">
-              <FileDropzone
-                accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
-                title={copy.referenceDropTitle}
-                description={copy.referenceDropDescription}
-                uploading={uploadingTarget === "reference"}
-                disabled={busy !== null
-                  || configurationLocked
-                  || uploadingTarget !== null
-                  || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS - (productAssets.length === 0 ? 1 : 0)}
-                onFiles={(files) => void uploadReferenceAssets(files)}
-                onRejected={() => {
-                  setUploadError(copy.unsupportedFile);
-                  toast.error(copy.unsupportedFile);
-                }}
-                className="bg-card py-4"
-              />
-              {referenceAssets.length > 0 ? (
-                <AssetGrid
-                  assets={referenceAssets}
-                  imageLabel={copy.optionalReferences}
-                  removeLabel={copy.removeReference}
-                  onRemove={removeReferenceAsset}
-                  disabled={busy !== null || configurationLocked}
-                />
-              ) : null}
-            </div>
-          </details>
-          {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
-        </CardContent>
-      </Card>
-
-      <Card data-testid="streamlined-generation-mode">
-        <StepCardHeader number={2} title={copy.stepMode} hint={copy.stepModeHint} />
-        <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2" role="group" aria-label={copy.stepMode}>
-            <ModeButton
-              active={creationMode === "quick"}
-              title={copy.quick}
-              description={copy.quickHint}
-              icon={Zap}
-              disabled={busy !== null || configurationLocked}
-              onClick={() => {
-                setCreationMode("quick");
-                invalidatePlan();
-              }}
-            />
-            <ModeButton
-              active={creationMode === "advanced"}
-              title={copy.advanced}
-              description={copy.advancedHint}
-              icon={WandSparkles}
-              disabled={busy !== null || configurationLocked}
-              onClick={() => {
-                setCreationMode("advanced");
-                invalidatePlan();
-              }}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机） */}
-      <BrollQuickCard available={brollAvailable} />
-
-      <Card data-testid="streamlined-video-specs">
-        <StepCardHeader number={3} title={copy.stepSpecs} hint={copy.stepSpecsHint} />
-        <CardContent className="space-y-4">
-          <div className="rounded-(--radius-lg) border border-border bg-muted p-3">
-            <div className="grid min-w-0 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-              {canSelectVideoRoute ? (
-                <div className="min-w-0 rounded-(--radius-md) border border-border bg-card px-3 py-2">
-                  <VideoRouteSelector
-                    canSelectVideoRoute={canSelectVideoRoute}
-                    showInternalRoutes={showInternalVideoRoutes}
-                    durationSeconds={selectedDuration}
-                    value={selectedVideoRouteId}
-                    disabled={busy !== null || configurationLocked}
-                    onChange={handleVideoRouteChange}
-                    onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
-                  />
-                </div>
-              ) : (
-                <StaticSpec icon={Route} label={copy.route} value={copy.autoRoute} hint={copy.routeHint} />
-              )}
-              <SpecSelect
-                icon={Layers3}
-                label={copy.referenceMode}
-                value={referenceMode}
-                disabled={busy !== null || configurationLocked}
-                onChange={(value) => {
-                  setReferenceMode(value as ReferenceMode);
-                  invalidatePlan();
-                }}
-                options={[
-                  { value: "all", label: copy.referenceAll },
-                  { value: "product_only", label: copy.referenceProduct },
-                ]}
-              />
-              <SpecSelect
-                icon={Monitor}
-                label={copy.aspect}
-                value={selectedAspectRatio}
-                disabled={busy !== null || configurationLocked}
-                onChange={(value) => {
-                  setSelectedAspectRatio(value as AspectRatio);
-                  invalidatePlan();
-                }}
-                options={ASPECT_RATIOS.map((ratio) => ({ value: ratio, label: aspectRatioLabel(ratio, copy) }))}
-              />
-              <SpecSelect
-                icon={Clock3}
-                label={copy.duration}
-                value={String(selectedDuration)}
-                disabled={busy !== null || configurationLocked}
-                onChange={(value) => {
-                  setSelectedDuration(Number(value) as 15 | 30 | 60);
-                  invalidatePlan();
-                }}
-                options={DURATIONS.map((duration) => ({ value: String(duration), label: `${duration}s` }))}
-              />
-            </div>
-          </div>
-
-          {creationMode === "advanced" ? (
-            <div className="border-t border-border pt-4" data-testid="streamlined-advanced-options">
-              <label className="text-meta font-medium text-muted-foreground">
-                {copy.template}
-                <select
-                  value={styleTemplateId}
-                  disabled={busy !== null || configurationLocked}
-                  onChange={(event) => {
-                    setStyleTemplateId(event.target.value);
-                    invalidatePlan();
-                  }}
-                  className="studio-select mt-1"
-                >
-                  <option value="auto">{copy.templateAuto}</option>
-                  {COMMERCE_TEMPLATE_RECIPES.map((recipe) => (
-                    <option key={recipe.slug} value={recipe.slug}>
-                      {english ? recipe.name : recipe.nameZh}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card data-testid="streamlined-brand-package">
-        <StepCardHeader number={4} title={copy.brandPackageStep} hint={copy.brandPackageHint} />
-        <CardContent className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" role="group" aria-label={copy.brandPackageStep}>
-            <ModeButton
-              active={selectedBrandPackageId === null}
-              title={copy.cleanVideo}
-              description={copy.cleanVideoHint}
-              icon={Film}
-              disabled={busy !== null || configurationLocked}
-              onClick={() => {
-                setSelectedBrandPackageId(null);
-                invalidatePlan();
-              }}
-            />
-            {brandPackages.map((brandPackage) => (
-              <ModeButton
-                key={brandPackage.id}
-                active={selectedBrandPackageId === brandPackage.id}
-                title={brandPackage.name}
-                description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
-                icon={Package}
-                disabled={busy !== null || configurationLocked}
-                onClick={() => {
-                  setSelectedBrandPackageId(brandPackage.id);
-                  invalidatePlan();
-                }}
-              />
-            ))}
-          </div>
-          {brandPackages.length === 0 ? (
-            <p className="text-meta text-muted-foreground">{copy.noBrandPackages}</p>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Card data-testid="streamlined-video-prompt">
-        <StepCardHeader
-          number={5}
-          title={copy.stepPrompt}
-          hint={creationMode === "quick" ? copy.stepPromptHintQuick : copy.stepPromptHintAdvanced}
-        />
-        <CardContent className="space-y-3">
-          <div
-            className="flex gap-2 overflow-x-auto pb-1"
-            aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
-          >
-            {copy.promptPresets.map((label, index) => (
-              <Button
-                key={label}
-                type="button"
-                variant="outline"
-                size="sm"
-                className="shrink-0 bg-card"
-                disabled={busy !== null || configurationLocked}
-                onClick={() => {
-                  setRawPrompt(copy.presetPrompts[index] ?? "");
-                  invalidatePlan();
-                }}
-              >
-                <Sparkles aria-hidden />
-                {label}
-              </Button>
-            ))}
-          </div>
-          {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填提示词 */}
-          <ProductLinkPrefill
-            disabled={busy !== null || configurationLocked}
-            onPrefill={(promptText) => {
-              setRawPrompt((current) => (current.trim() ? `${current}\n${promptText}` : promptText));
-              invalidatePlan();
-            }}
-          />
-          <label className="block text-meta font-medium text-muted-foreground">
-            {copy.promptLabel}
-            <Textarea
-              value={rawPrompt}
-              maxLength={4000}
-              rows={7}
-              disabled={busy !== null || configurationLocked}
-              aria-invalid={Boolean(error && !rawPrompt.trim())}
-              onChange={(event) => {
-                setRawPrompt(event.target.value);
-                invalidatePlan();
-              }}
-              placeholder={copy.promptPlaceholder}
-              className="mt-2 min-h-44 resize-y bg-card text-body leading-relaxed"
-            />
-          </label>
-          <p className="text-right font-mono text-meta tabular-nums text-muted-foreground">
-            {copy.charCount.replace("{count}", String(rawPrompt.length))}
-          </p>
-        </CardContent>
-      </Card>
-
-      <AudioCaptionControls
-        value={audioCaptionSettings}
-        english={english}
-        disabled={busy !== null || configurationLocked}
-        onChange={updateAudioCaptionSettings}
-        onRegenerate={regenerateVoiceoverScript}
-      />
-
-      {plan ? (
-        <section id="streamlined-plan-preview" className="scroll-mt-20 space-y-3" aria-labelledby="streamlined-plan-heading">
-          <h2 id="streamlined-plan-heading" className="font-heading text-title font-semibold">{copy.planHeading}</h2>
-          <PlanPreviewCard plan={plan} />
-        </section>
-      ) : null}
-
-      {storyboard ? (
-        <div id="single-video-storyboard" className="scroll-mt-20 space-y-2">
-          <StoryboardWorkflowPanel
-            run={storyboard}
-            english={english}
-            busyFrameId={storyboardFrameBusy}
-            approving={approvingStoryboard}
-            onRegenerate={(frameId) => void regenerateStoryboardFrame(frameId)}
-            onApprove={() => void approveStoryboard()}
-            onEditPlan={editStoryboardDirection}
-          />
-          {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
-          <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">
-            <span className="min-w-0 flex-1">{copy.cancelRoundHint}</span>
-            <Button type="button" variant="ghost" size="xs" onClick={cancelCurrentRound}>
-              <X aria-hidden />
-              {copy.cancelRound}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-
-      <section
-        className="glass-pane sticky bottom-20 z-10 rounded-(--radius-lg) p-3 md:bottom-4"
-        data-testid="streamlined-generate-bar"
-        aria-label={quickNeedsReview
-          ? copy.reviewSpecs
-          : needsStoryboard
-            ? copy.createStoryboard
-            : copy.generate}
-      >
-        {error ? (
-          <div role="alert" className="mb-3 flex flex-wrap items-start gap-2 rounded-(--radius-md) border border-danger bg-card px-3 py-2 text-meta text-danger">
-            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span className="min-w-0 flex-1">{error}</span>
-            {/* 供应商挂了 / 这一轮失败时，用户必须有一条「不再纠缠这一轮」的出口 */}
-            <Button
-              type="button"
-              variant="outline"
-              size="xs"
-              className="bg-card text-foreground"
-              onClick={cancelCurrentRound}
-            >
-              <X aria-hidden />
-              {copy.cancelRound}
-            </Button>
-          </div>
-        ) : null}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-body font-medium text-foreground">
-              {copy.stickySummary
-                .replace("{count}", String(productAssets.length))
-                .replace("{ratio}", ratioLabel)
-                .replace("{duration}", String(selectedDuration))}
-            </p>
-            <p className="mt-0.5 text-meta text-muted-foreground">
-              {selectedRouteAvailable === null
-                ? copy.routeCheckingHint
-                : selectedRouteAvailable === false
-                  ? copy.routeUnavailableHint
-                  : selectedVideoRouteId === "buddy"
-                    ? copy.shuyuEstimate.replace(
-                        "{points}",
-                        "900",
-                      )
-                    : copy.readyHint}
-            </p>
-          </div>
-          <div className="grid shrink-0 gap-2 sm:flex">
-            {creationMode === "advanced" && !storyboard ? (
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!canReview}
-                onClick={() => void handlePreview()}
-                className="bg-card"
-              >
-                {busy === "preview" ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Film aria-hidden />}
-                {busy === "preview" ? copy.previewing : copy.previewPlan}
-              </Button>
-            ) : null}
-            <Button
-              type="button"
-              id="platform-primary-generate"
-              disabled={quickNeedsReview
-                ? !canReview
-                : needsStoryboard
-                  ? !canReview || busy !== null
-                  : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
-              onClick={() => {
-                if (quickNeedsReview) {
-                  void handlePreview();
-                  return;
-                }
-                if (needsStoryboard) {
-                  void handleCreateStoryboard();
-                  return;
-                }
-                if (storyboardGenerating || storyboardNeedsApproval) {
-                  document.getElementById("single-video-storyboard")?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  });
-                  return;
-                }
-                void handleGenerate();
-              }}
-              className="min-w-36"
-            >
-              {primaryIsBusy ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <Sparkles aria-hidden />}
-              {busy === "dispatch"
-                  ? copy.generating
-                  : busy === "storyboard"
-                    ? copy.creatingStoryboard
-                  : creationMode === "quick" && busy === "preview"
-                    ? copy.reviewingSpecs
-                  : quickNeedsReview
-                    ? copy.reviewSpecs
-                    : needsStoryboard
-                      ? copy.createStoryboard
-                      : storyboardGenerating
-                        ? copy.creatingStoryboard
-                        : storyboardNeedsApproval
-                          ? (english ? "Approve storyboard above" : "请先确认上方故事板")
-                    : copy.generate}
-            </Button>
-          </div>
-        </div>
-      </section>
+        </aside>
+      </div>
     </div>
   );
 }
 
-function WorkflowRail({
-  title,
-  steps,
-  activeIndex,
+/**
+ * 委托单的一行：左侧窄槽是等宽步号 + 短标签（窄屏时折到上方），右侧是这一步的控件。
+ * 行本身就是容器——不再套卡片；只有真正的输入（下拉、文本框、上传区）是下沉井。
+ */
+function TicketRow({
+  step,
+  label,
+  optional,
+  reading,
+  className,
+  children,
+  ...props
 }: {
-  title: string;
-  steps: readonly string[];
-  activeIndex: number;
-}) {
-  const icons = [Package, Sparkles, Clapperboard, Film, Check] as const;
+  step: string;
+  label: string;
+  optional?: string;
+  reading?: React.ReactNode;
+  children: React.ReactNode;
+} & Omit<React.ComponentProps<"section">, "children">) {
   return (
     <section
-      className="overflow-hidden rounded-(--radius-lg) border border-border bg-muted"
-      aria-label={title}
-      data-testid="creation-workflow-rail"
+      {...props}
+      aria-label={label}
+      className={cn(
+        "grid min-w-0 gap-x-6 gap-y-3 px-4 py-4 @xl:grid-cols-[8.5rem_minmax(0,1fr)] @xl:px-5 @xl:py-5",
+        className,
+      )}
     >
-      <div className="border-b border-border px-4 py-3 sm:px-5">
-        <p className="studio-label text-muted-foreground">{title}</p>
-      </div>
-      <ol className="grid min-w-[42rem] grid-cols-5 gap-0 overflow-x-auto px-2 py-2 sm:min-w-0">
-        {steps.map((step, index) => {
-          const Icon = icons[index] ?? Sparkles;
-          const complete = index < activeIndex;
-          const active = index === activeIndex;
-          return (
-            <li key={step} className="flex min-w-0 items-center">
-              <div className={cn(
-                "flex min-w-0 flex-1 items-center gap-2 rounded-(--radius-md) px-2.5 py-2",
-                active ? "bg-card text-foreground" : "text-muted-foreground",
-              )}>
-                <span className={cn(
-                  "flex size-7 shrink-0 items-center justify-center rounded-full border",
-                  complete
-                    ? "border-success bg-success text-background"
-                    : active
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card",
-                )}>
-                  {complete ? <Check className="size-3.5" aria-hidden /> : <Icon className="size-3.5" aria-hidden />}
-                </span>
-                <span className="truncate text-meta font-medium">{step}</span>
-              </div>
-              {index < steps.length - 1 ? (
-                <ArrowRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />
-              ) : null}
-            </li>
-          );
-        })}
-      </ol>
+      <header className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 @xl:flex-col @xl:justify-start @xl:gap-2">
+        <h2 className="flex items-baseline gap-2.5">
+          <span className="x-label tabular-nums">{step}</span>
+          <span className="x-label text-muted-foreground">{label}</span>
+        </h2>
+        {reading || optional ? (
+          <p className="flex items-baseline gap-2 font-mono text-data tabular-nums text-muted-foreground">
+            {reading}
+            {optional ? <span className="x-label">{optional}</span> : null}
+          </p>
+        ) : null}
+      </header>
+      <div className="@container min-w-0 space-y-3">{children}</div>
     </section>
   );
 }
 
-function StepCardHeader({
-  number,
-  title,
-  hint,
-  children,
-}: {
-  number: number;
-  title: string;
-  hint: string;
-  children?: React.ReactNode;
-}) {
-  return (
-    <CardHeader className="px-4 py-4 sm:px-5">
-      <div className="flex items-start gap-3">
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full border border-border bg-secondary font-mono text-meta font-semibold tabular-nums text-foreground">
-          {number}
-        </span>
-        <div className="min-w-0 flex-1">
-          <CardTitle className="font-semibold">{title}</CardTitle>
-          <p className="mt-1 text-meta text-muted-foreground">{hint}</p>
-        </div>
-        {children}
-      </div>
-    </CardHeader>
-  );
-}
-
-function ModeButton({
+/** 生成方式 / 片尾这类二选一：选中只用信号青细线与青字，不铺实心色块。 */
+function OptionButton({
   active,
   title,
   description,
@@ -1795,7 +1978,7 @@ function ModeButton({
   active: boolean;
   title: string;
   description: string;
-  icon: typeof Zap;
+  icon?: typeof Zap;
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -1806,39 +1989,31 @@ function ModeButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "flex min-w-0 items-start gap-3 rounded-(--radius-md) border p-3 text-left transition-[border-color,background-color] duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none",
-        active ? "border-primary bg-accent-soft" : "border-border bg-muted hover:border-border-strong",
+        "flex min-w-0 items-start gap-2.5 rounded-(--radius-md) border px-3 py-2.5 text-left transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none",
+        active
+          ? "border-(--accent-line) text-accent"
+          : "border-border text-foreground hover:border-border-strong",
       )}
     >
-      <span className={cn(
-        "flex size-8 shrink-0 items-center justify-center rounded-full border",
-        active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-muted-foreground",
-      )}>
-        <Icon className="size-4" aria-hidden />
-      </span>
+      {Icon ? (
+        <Icon className={cn("mt-0.5 size-4 shrink-0", active ? "text-accent" : "text-muted-foreground")} aria-hidden />
+      ) : null}
       <span className="min-w-0 flex-1">
-        <span className="block text-body font-semibold text-foreground">{title}</span>
-        <span className="mt-1 block text-meta text-muted-foreground">{description}</span>
-      </span>
-      <span className={cn(
-        "flex size-5 shrink-0 items-center justify-center rounded-full border",
-        active ? "border-primary bg-primary text-primary-foreground" : "border-border",
-      )}>
-        {active ? <Check className="size-3" aria-hidden /> : null}
+        <span className="block text-body font-medium">{title}</span>
+        <span className="mt-0.5 block text-meta text-muted-foreground">{description}</span>
       </span>
     </button>
   );
 }
 
-function SpecSelect({
-  icon: Icon,
+/** 规格档位：所有选项一眼看全，一次点击；选中态与 OptionButton 同一套语言。 */
+function Segmented({
   label,
   value,
   options,
   disabled,
   onChange,
 }: {
-  icon: typeof Layers3;
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
@@ -1846,40 +2021,30 @@ function SpecSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="flex min-w-0 items-center gap-2 rounded-(--radius-md) border border-border bg-card px-3 py-2 text-meta font-medium text-muted-foreground">
-      <Icon className="size-4 shrink-0" aria-hidden />
-      <span className="sr-only">{label}</span>
-      <select
-        value={value}
-        disabled={disabled}
-        aria-label={label}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 min-w-0 flex-1 cursor-pointer appearance-auto border-0 bg-transparent p-0 text-body font-medium text-foreground outline-none disabled:cursor-not-allowed"
-      >
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-    </label>
-  );
-}
-
-function StaticSpec({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof Route;
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <div className="flex min-w-0 items-center gap-2 rounded-(--radius-md) border border-border bg-card px-3 py-2">
-      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-      <span className="min-w-0">
-        <span className="block truncate text-body font-medium text-foreground">{value}</span>
-        <span className="block truncate text-meta text-muted-foreground">{label} · {hint}</span>
-      </span>
+    <div role="group" aria-label={label} className="flex flex-wrap gap-1.5">
+      {options.map((option) => {
+        const active = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={active}
+            disabled={disabled}
+            /// 与原生下拉一致：只有真正换档才触发（重复点当前档不会作废已核对的方案）。
+            onClick={() => {
+              if (!active) onChange(option.value);
+            }}
+            className={cn(
+              "inline-flex h-10 items-center rounded-(--radius-md) border px-3 text-meta font-medium tabular-nums transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none sm:h-8",
+              active
+                ? "border-(--accent-line) text-accent"
+                : "border-border text-muted-foreground hover:border-border-strong hover:text-foreground",
+            )}
+          >
+            {option.label}
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1900,7 +2065,7 @@ function AssetGrid({
   return (
     <ul className="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-9" aria-label={imageLabel}>
       {assets.map((asset, index) => (
-        <li key={asset.id} className="group relative aspect-square min-w-0 overflow-hidden rounded-(--radius-md) border border-border bg-card">
+        <li key={asset.id} className="group relative aspect-square min-w-0 overflow-hidden rounded-(--radius-md) border border-border bg-sunken">
           {asset.type === "IMAGE" ? (
             <Image
               src={asset.url}
@@ -1913,14 +2078,14 @@ function AssetGrid({
           ) : (
             <span className="flex h-full flex-col items-center justify-center gap-2 p-2 text-center text-muted-foreground">
               <Film className="size-5" aria-hidden />
-              <span className="line-clamp-2 text-[10px]">{asset.fileName}</span>
+              <span className="line-clamp-2 text-micro">{asset.fileName}</span>
             </span>
           )}
           <button
             type="button"
             disabled={disabled}
             onClick={() => onRemove(asset.id)}
-            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full border border-border bg-overlay text-foreground opacity-100 transition-opacity disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-(--radius-sm) border border-border bg-overlay text-foreground opacity-100 transition-opacity disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
             aria-label={`${removeLabel} ${index + 1}`}
           >
             <X className="size-3.5" aria-hidden />

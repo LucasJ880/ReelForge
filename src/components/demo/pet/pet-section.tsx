@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 
 interface PetSectionProps {
   id?: string;
-  eyebrow: string;
   title: string;
   description?: string;
   /// 区块右上角附加内容（如标识 / 标签）
@@ -14,11 +13,10 @@ interface PetSectionProps {
 
 /**
  * 宠物 demo 通用区块外壳：统一的容器宽度、留白与标题排版。
- * 全部使用语义化 token，配合 Editorial Studio 语义 token呈现暖色风格。
+ * 颜色与字号只走 Aivora Exchange（深海交易所）语义 token；标题自己承重，不加眉题。
  */
 export function PetSection({
   id,
-  eyebrow,
   title,
   description,
   aside,
@@ -35,10 +33,7 @@ export function PetSection({
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="max-w-3xl">
-          <p className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            {eyebrow}
-          </p>
-          <h2 className="mt-4 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
             {title}
           </h2>
           {description ? (

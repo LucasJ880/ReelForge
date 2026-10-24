@@ -35,7 +35,7 @@ export function BrandLogo({
       {failed || !src ? (
         <span
           aria-hidden
-          className="font-heading text-subhead font-semibold text-muted-foreground"
+          className="text-subhead font-medium text-muted-foreground"
         >
           {initials}
         </span>

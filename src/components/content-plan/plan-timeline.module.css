@@ -1,59 +1,42 @@
 /*
- * 玻璃工作台 · 一周内容时间线（Aivora Glass，2026-08 起取代剪辑台方向）。
+ * 本周内容 · 一周交易时段（Aivora Exchange）。
  *
- * 结构装置（玻璃语言，全站共用，不要各自发明，规范见 DESIGN.md）：
- *   时间线轨道 —— 一周不是 7 张卡片，是一条下沉的玻璃轨道（glass-well）；
- *                 今天是发光的播放头；空档画成**真的缺口**（更深的下沉井 + 「空档」）。
- *   镜号标签   —— 等宽、全大写的配方编号，数据的语气，不是装饰。
- *
- * 硬性规矩：颜色/圆角/阴影只从 token 取值、数字一律 tabular-nums、
- * accent 只用在三处（品牌标记 / 当前项 / 需要行动的数字）。
+ * 一周不是 7 张卡片，是一条时段带：7 个交易日的刻度，每个时段里挂着排好的「委托」（帖子）；
+ * 今天是一根信号青的光针；空档画成真的缺口（下沉井 + 「空档」），不是留白。
+ * 颜色/圆角/阴影只从 token 取值；数字一律 tabular-nums；光只给今天与选中的那一笔。
  */
 
 .root {
-  background: transparent;
   color: var(--text-primary);
-  font-size: 13px;
-  line-height: 1.75;
-  /* 制片单据的质感来源，也让列对得齐 */
+  font-size: var(--font-size-body);
+  line-height: 1.7;
   font-variant-numeric: tabular-nums;
   min-height: 100%;
-}
-
-/* 旧齿孔条挂点：玻璃世界不再需要装饰装置（finish review：accent 三处纪律） */
-.perf {
-  display: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 }
 
 .head {
-  padding: 20px 24px 16px;
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 
-.h1 {
-  font-family: var(--font-display-family);
-  font-size: 44px;
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
-  margin: 0 0 6px;
-}
-
-.sub {
-  color: var(--text-secondary);
-  margin: 6px 0 0;
-  max-width: 62ch;
-}
-
-/* ── 一句话入口：一条下沉玻璃槽 + 实心橙行动钮 ── */
+/* ── 一句话入口：一条下沉槽 + 信号青行动钮 ── */
 .intake {
   display: flex;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-md);
-  background: var(--glass-well-bg);
+  background: var(--surface-sunken);
   box-shadow: var(--shadow-well);
-  margin-top: 16px;
+  margin-top: var(--space-4);
+  max-width: 54rem;
+}
+
+.intake:focus-within {
+  border-color: var(--accent-line);
 }
 
 .intake input {
@@ -62,13 +45,13 @@
   background: transparent;
   border: 0;
   color: var(--text-primary);
-  padding: 13px 14px;
+  padding: 12px 14px;
   font: inherit;
   outline: none;
 }
 
 .intake input::placeholder {
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
 }
 
 .intake button {
@@ -77,44 +60,51 @@
   background: var(--accent);
   color: var(--primary-foreground);
   font-family: var(--font-mono-family);
-  font-size: 11.5px;
+  font-size: var(--text-data);
   font-weight: 600;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0 20px;
   cursor: pointer;
+  transition: background-color var(--motion-fast) var(--ease-out);
 }
 
+.intake button:hover:not(:disabled) {
+  background: var(--accent-strong);
+}
+
+/* 没写那一句话时仍是主行动，只是还按不动 */
 .intake button:disabled {
-  background: var(--surface);
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent);
   cursor: default;
 }
 
 /* 排期依据：说清楚这一周是按什么排的 */
 .basis {
-  margin: 12px 0 0;
+  margin: 0;
   padding: 8px 12px;
   border: 1px solid var(--border);
+  border-left: 2px solid var(--iris);
   border-radius: var(--radius-sm);
   background: var(--surface);
-  background-image: var(--glass-sheen);
   color: var(--text-secondary);
+  max-width: 62ch;
 }
 
 .error {
   color: var(--danger);
-  margin: 10px 0 0;
+  margin: 0;
 }
 
-/* ── 时间线轨道：下沉的玻璃槽，光被吸进去 ── */
+/* ── 时段带：7 个交易日，窄屏自己横向滚动，页面不横滚 ── */
 .track {
   position: relative;
-  background: var(--glass-well-bg);
-  box-shadow: var(--shadow-well);
-  border-bottom: 1px solid var(--border);
-  /* 窄屏时轨道自己横向滚动，页面不横向滚 */
   overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
 }
 
 .trackInner {
@@ -126,16 +116,17 @@
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   border-bottom: 1px solid var(--border);
+  background: var(--surface-sunken);
 }
 
 .tick {
-  padding: 7px 10px;
+  padding: 8px 12px;
   border-right: 1px solid var(--border);
   font-family: var(--font-mono-family);
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
+  font-size: var(--text-micro);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
   display: flex;
   justify-content: space-between;
   gap: 6px;
@@ -147,12 +138,13 @@
 
 .tickToday {
   color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .lanes {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  min-height: 132px;
+  min-height: 148px;
 }
 
 .lane {
@@ -171,14 +163,14 @@
   background-image: none;
 }
 
-/* 播放头：今天。一根发光的光针（有偏移有羽化，不是光晕装饰） */
+/* 今天：一根信号青的光针，顶上一枚 ▼ 标记 */
 .playhead {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 1px;
   background: var(--accent);
-  box-shadow: 0 0 8px 0 var(--accent-soft);
+  box-shadow: var(--glow-accent);
   z-index: 3;
 }
 
@@ -192,30 +184,29 @@
   border-top: 6px solid var(--accent);
 }
 
-/* 空档：明确画成缺口，不是留白。玻璃语言里的缺口 = 更深的下沉井，光被吸走。 */
+/* 空档：明确画成缺口，下沉井 + 斜纹 */
 .hole {
   flex: 1;
-  border: 1px solid var(--border);
+  border: 1px dashed var(--border-strong);
   border-radius: var(--radius-sm);
-  background: var(--glass-well-bg);
-  box-shadow: var(--shadow-well);
+  background-color: var(--surface-sunken);
+  background-image: repeating-linear-gradient(135deg, var(--grid-line) 0 1px, transparent 1px 6px);
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
   font-family: var(--font-mono-family);
-  font-size: 9.5px;
+  font-size: var(--text-micro);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   min-height: 56px;
 }
 
-/* 轨道上的一枚玻璃片 clip */
+/* 时段里的一笔委托（帖子）：左缘一道状态色 */
 .clip {
   border: 1px solid var(--border);
+  border-left: 2px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  background: var(--surface);
-  background-image: var(--glass-sheen);
-  box-shadow: var(--glass-edge);
+  background: var(--surface-raised);
   padding: 6px 9px;
   display: flex;
   flex-direction: column;
@@ -225,24 +216,25 @@
   cursor: pointer;
   font: inherit;
   transition:
-    background-color 0.12s,
-    border-color 0.12s;
+    background-color var(--motion-fast) var(--ease-out),
+    border-color var(--motion-fast) var(--ease-out);
 }
 
 .clip:hover,
 .clip:focus-visible {
-  background-color: var(--surface-raised);
+  background-color: var(--surface-active);
   color: var(--text-primary);
 }
 
 .clipSelected {
-  background-color: var(--surface-raised);
-  border-color: var(--accent);
+  background-color: var(--surface-active);
+  border-color: var(--accent-line);
+  border-left-color: var(--accent);
   color: var(--text-primary);
 }
 
 .clipReady {
-  border-color: var(--success);
+  border-left-color: var(--success);
 }
 
 .clipDiscarded {
@@ -255,25 +247,26 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.45;
 }
 
-/* 镜号标签 */
+/* 委托编号：等宽、全大写的配方编号，数据的语气 */
 .shotSlug {
   font-family: var(--font-mono-family);
-  font-size: 9.5px;
-  letter-spacing: 0.1em;
+  font-size: var(--text-micro);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
 }
 
-/* ── 选中帖子的详情：一块内容玻璃卡 ── */
+/* ── 选中这一笔的详情 ── */
 .detail {
   padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-  background: var(--glass-card-bg);
-  background-image: var(--glass-sheen);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
   display: grid;
   gap: 20px;
   grid-template-columns: minmax(0, 1fr) 260px;
@@ -288,18 +281,18 @@
 
 .label {
   font-family: var(--font-mono-family);
-  font-size: 11px;
-  letter-spacing: 0.1em;
+  font-size: var(--text-data);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
   margin: 0 0 4px;
 }
 
 .hook {
   font-family: var(--font-display-family);
-  font-size: 20px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
+  font-size: var(--font-size-title);
+  font-weight: 400;
+  letter-spacing: -0.015em;
   margin: 0 0 8px;
   color: var(--text-primary);
 }
@@ -321,22 +314,22 @@
 
 .tag {
   font-family: var(--font-mono-family);
-  font-size: 10.5px;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 2px 9px;
-  background: var(--surface);
+  font-size: var(--text-micro);
+  color: var(--azure);
+  border: 1px solid var(--azure-soft);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  background: var(--azure-soft);
 }
 
-/* 分段玻璃操作条 */
+/* 分段终端操作条 */
 .actions {
   display: flex;
   margin-top: 14px;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
   width: fit-content;
 }
 
@@ -346,8 +339,8 @@
   background: transparent;
   color: var(--text-secondary);
   font-family: var(--font-mono-family);
-  font-size: 11px;
-  letter-spacing: 0.08em;
+  font-size: var(--text-data);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   padding: 9px 16px;
   cursor: pointer;
@@ -363,7 +356,7 @@
 }
 
 .actions button:disabled {
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
   cursor: default;
 }
 
@@ -381,14 +374,13 @@
 .frame {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--surface);
-  background-image: var(--glass-sheen);
+  background: var(--surface-sunken);
   aspect-ratio: 2 / 3;
   display: grid;
   place-items: center;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
+  color: var(--text-tertiary);
   font-family: var(--font-mono-family);
-  font-size: 10px;
+  font-size: var(--text-micro);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   overflow: hidden;
@@ -410,23 +402,23 @@
   bottom: 8px;
   font-family: var(--font-display-family);
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-primary);
-  text-shadow: 0 1px 6px color-mix(in srgb, var(--bg) 92%, transparent);
+  text-shadow: 0 1px 6px var(--bg);
   text-align: left;
   letter-spacing: -0.01em;
   text-transform: none;
 }
 
+/* 兜底模板排出来的一周：需要商家动手重排，用金色（需行动） */
 .foot {
-  padding: 14px 24px;
-  color: color-mix(in srgb, var(--text-secondary) 72%, transparent);
-  font-family: var(--font-mono-family);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  margin: 0;
+  max-width: 62ch;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--gold);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-secondary);
 }
 
-.footCount {
-  color: var(--accent);
-}

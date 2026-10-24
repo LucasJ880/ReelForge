@@ -28,14 +28,13 @@ export function BenchmarkComparison() {
   return (
     <PetSection
       id="benchmark"
-      eyebrow={b.eyebrow}
       title={b.title}
       description={b.description}
     >
       <p className="mb-2 text-meta font-medium text-muted-foreground/80 lg:hidden">
         ← 左右滑动查看完整对比（含 Aivora Kit）→
       </p>
-      <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
+      <div className="border border-border bg-card shadow-panel overflow-hidden rounded-(--radius-lg)">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[600px] border-collapse text-sm">
             <thead>

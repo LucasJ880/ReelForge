@@ -193,8 +193,8 @@ export function BrollQuickCard({ available }: { available: boolean }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {submission ? (
-          <div className="glass-well flex flex-wrap items-center gap-3 rounded-(--radius-md) px-4 py-3">
-            <span className="size-2 shrink-0 animate-pulse rounded-full bg-primary" aria-hidden />
+          <div className="x-well flex flex-wrap items-center gap-3 rounded-(--radius-md) px-4 py-3">
+            <span className="x-live" aria-hidden />
             <div className="min-w-0 flex-1">
               <p className="text-body font-medium">{copy.submittedTitle}</p>
               <p className="truncate text-meta text-muted-foreground">
@@ -254,7 +254,7 @@ export function BrollQuickCard({ available }: { available: boolean }) {
               value={voiceId}
               disabled={busy !== null}
               onChange={(event) => setVoiceId(event.target.value)}
-              className="studio-select mt-2"
+              className="x-select mt-2"
             >
               {VOICES.map((voice) => (
                 <option key={voice.id} value={voice.id}>
@@ -269,7 +269,7 @@ export function BrollQuickCard({ available }: { available: boolean }) {
               value={aspectRatio}
               disabled={busy !== null}
               onChange={(event) => setAspectRatio(event.target.value === "16:9" ? "16:9" : "9:16")}
-              className="studio-select mt-2"
+              className="x-select mt-2"
             >
               <option value="9:16">9:16</option>
               <option value="16:9">16:9</option>
@@ -281,7 +281,7 @@ export function BrollQuickCard({ available }: { available: boolean }) {
               value={bgmOn ? "on" : "off"}
               disabled={busy !== null}
               onChange={(event) => setBgmOn(event.target.value === "on")}
-              className="studio-select mt-2"
+              className="x-select mt-2"
             >
               <option value="on">{copy.on}</option>
               <option value="off">{copy.off}</option>
@@ -293,7 +293,7 @@ export function BrollQuickCard({ available }: { available: boolean }) {
               value={captionsOn ? "on" : "off"}
               disabled={busy !== null}
               onChange={(event) => setCaptionsOn(event.target.value === "on")}
-              className="studio-select mt-2"
+              className="x-select mt-2"
             >
               <option value="on">{copy.on}</option>
               <option value="off">{copy.off}</option>
@@ -303,8 +303,10 @@ export function BrollQuickCard({ available }: { available: boolean }) {
 
         {error ? <p className="text-meta text-danger">{error}</p> : null}
 
+        {/* 第二条线路：页面唯一的实心主按钮留给委托单，这里用描边 */}
         <Button
           type="button"
+          variant="outline"
           disabled={busy !== null || script.trim().length < 20}
           onClick={() => void handleSubmit()}
         >

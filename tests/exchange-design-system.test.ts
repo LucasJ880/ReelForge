@@ -4,55 +4,59 @@ import { readFile } from "node:fs/promises";
 
 const read = (path: string) => readFile(path, "utf8");
 
-test("Aivora Glass：玻璃世界 token 与字体角色完整落地（2026-08 取代剪辑台）", async () => {
+test("Aivora Exchange：交易大厅 token 与字体角色完整落地（2026-10 取代 Glass）", async () => {
   const [tokens, layout] = await Promise.all([
     read("src/styles/tokens.css"),
     read("src/app/layout.tsx"),
   ]);
   for (const token of [
-    "--bg: #0a0809",
-    "--glass-pane-bg: rgb(24 20 21 / 0.78)",
-    "--glass-well-bg: rgb(0 0 0 / 0.28)",
-    "--border: rgb(255 255 255 / 0.1)",
-    "--text-primary: #f7f4f2",
-    "--accent: #ff4d00",
-    "--success: #58c08a",
-    "--warning: #e9b658",
-    "--danger: #ff6f5b",
-    // #ff4d00 上禁白字：主按钮前景必须是深色
-    "--primary-foreground: #140801",
+    "--bg: #04070e",
+    "--surface: #08101d",
+    "--border: rgb(110 160 230 / 0.13)",
+    "--text-primary: #e8f0fc",
+    "--accent: #22e0ff",
+    "--success: #2fe39b",
+    "--gold: #ffc542",
+    "--danger: #ff5577",
+    "--iris: #a08cff",
+    // 信号青上用深字：主按钮前景必须是深色
+    "--primary-foreground: #00161c",
   ]) assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  // 登录面与 Studio 共用同一玻璃世界，工作区块只收紧密度。
+  // 登录门与工作区共用同一大厅，密度块只收紧密度。
   assert.match(
     tokens,
-    /:root:has\(\.studio-theme\),\s*\n\.studio-theme,\s*\n:root:has\(\.auth-studio-theme\),\s*\n\.auth-studio-theme\s*{/,
+    /:root:has\(\.desk-theme\),\s*\n\.desk-theme,\s*\n:root:has\(\.gate-theme\),\s*\n\.gate-theme\s*{/,
   );
-  assert.match(tokens, /--font-display-family:\s*var\(--font-schibsted-grotesk\),\s*var\(--font-noto-sans-sc\)/);
-  assert.match(tokens, /--font-mono-family:\s*var\(--font-jetbrains-mono\)/);
-  assert.match(layout, /Schibsted_Grotesk/);
+  assert.match(tokens, /--font-display-family:\s*var\(--font-archivo\),\s*var\(--font-noto-sans-sc\)/);
+  assert.match(tokens, /--font-mono-family:\s*var\(--font-martian-mono\)/);
+  assert.match(layout, /Archivo/);
   assert.match(layout, /Noto_Sans_SC/);
-  assert.match(layout, /JetBrains_Mono/);
+  assert.match(layout, /Martian_Mono/);
+  assert.match(layout, /data-design-contract="aivora-abyss-exchange"/);
 });
 
-test("Aivora Glass：壳层结构面用 glass-pane，内容区不再叠不透明底盖住环境光", async () => {
+test("Aivora Exchange：壳层是行情终端——顶部行情条 + 实时成交带 + 编号导轨 + 状态栏", async () => {
   const [shell, authLayout, globals] = await Promise.all([
     read("src/components/platform/platform-shell.tsx"),
     read("src/app/(auth)/layout.tsx"),
     read("src/app/globals.css"),
   ]);
-  assert.match(shell, /className="studio-theme/);
-  assert.match(shell, /aside className="glass-pane/);
-  assert.match(shell, /header className="glass-pane/);
-  // 环境光场必须能透进内容区（曾被 bg-background 盖死）
-  assert.match(shell, /<main className="min-w-0 flex-1">/);
-  assert.match(shell, /className="studio-page editorial-page-enter min-h-full"/);
-  // 光随进行中的生成任务抬升（STORY 表达点）
-  assert.match(shell, /--ambient-glow/);
-  assert.match(globals, /--ambient-glow/);
-  assert.match(authLayout, /className="auth-studio-theme/);
+  assert.match(shell, /className="desk-theme/);
+  assert.match(shell, /<header className="x-pane sticky top-0/);
+  assert.match(shell, /<aside className="x-pane/);
+  assert.match(shell, /<Tape entries=\{tape\}/);
+  assert.match(shell, /<footer className="x-pane/);
+  assert.match(shell, /className="x-page x-enter min-h-full"/);
+  // 实时点只给「正在发生」：生成中批次数决定市场状态
+  assert.match(shell, /const live = activeBatches > 0/);
+  assert.match(globals, /\.x-tape-track/);
+  assert.match(globals, /\.x-live/);
+  // 不做毛玻璃，不铺光晕
+  assert.doesNotMatch(globals, /backdrop-filter|radial-gradient/);
+  assert.match(authLayout, /className="gate-theme/);
 });
 
-test("胶片计数条：五态齐全且 reduced-motion 有静态降级", async () => {
+test("成交梯：五态齐全且 reduced-motion 有静态降级", async () => {
   const [component, globals] = await Promise.all([
     read("src/components/batch/batch-film-strip.tsx"),
     read("src/app/globals.css"),
@@ -62,10 +66,10 @@ test("胶片计数条：五态齐全且 reduced-motion 有静态降级", async (
   }
   assert.match(component, /role="img"/);
   assert.match(component, /data-cell-size/);
-  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.batch-film-cell\[data-state="generating"\][\s\S]*?animation:\s*none/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.x-fill-cell\[data-state="generating"\][\s\S]*?animation:\s*none/);
 });
 
-test("工作区：导航计数来自 owner-scoped 数据，顶栏结构保持精简", async () => {
+test("工作区：导航计数与成交带都来自 owner-scoped 数据，顶栏结构保持精简", async () => {
   const [layout, shell] = await Promise.all([
     read("src/app/(platform)/app/layout.tsx"),
     read("src/components/platform/platform-shell.tsx"),
@@ -73,6 +77,8 @@ test("工作区：导航计数来自 owner-scoped 数据，顶栏结构保持精
   assert.match(layout, /userId:\s*session\.user\.id/);
   assert.match(layout, /activeBatches/);
   assert.match(layout, /failedJobs/);
+  // 成交带：本人最近的批次，不放示例数据
+  assert.match(layout, /db\.batchJob\.findMany\(\{\s*where:\s*\{\s*userId:\s*session\.user\.id\s*\}/);
   assert.match(shell, /shell\.platformShell\.switchWorkspace/);
   assert.match(shell, /type="search"/);
   assert.match(shell, /shell\.platformShell\.accountSignOut/);

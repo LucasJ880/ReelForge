@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { PetSection } from "./pet-section";
 import { PhoneVideoMockup } from "@/components/demo/phone-video-mockup";
 import { BEFORE_AFTER } from "@/lib/demo/pet-content-kit-demo-data";
@@ -8,11 +8,10 @@ export function BeforeAfter() {
   return (
     <PetSection
       id="before-after"
-      eyebrow={b.eyebrow}
       title={b.title}
       description={b.description}
     >
-      <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5 sm:p-6">
+      <div className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5 sm:p-6">
         <div className="grid items-center gap-5 lg:grid-cols-[1fr_auto_1fr]">
           {/* Before */}
           <div className="flex flex-col items-center gap-3">
@@ -53,9 +52,9 @@ export function BeforeAfter() {
               {b.aiSteps.map((s) => (
                 <span
                   key={s}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-meta font-semibold text-primary"
+                  className="inline-flex items-center rounded-full border border-primary/25 bg-primary/10 px-3 py-1 text-meta font-semibold text-primary"
                 >
-                  <Sparkles size={11} /> {s}
+                  {s}
                 </span>
               ))}
             </div>
@@ -82,7 +81,7 @@ export function BeforeAfter() {
                   key={n}
                   className="flex items-start gap-2 text-meta leading-5 text-foreground/80"
                 >
-                  <Sparkles
+                  <Check
                     size={12}
                     className="mt-0.5 shrink-0 text-success"
                   />

@@ -1,63 +1,121 @@
 ---
 name: Aivora
-description: 小商家的内容获客与增长操作系统 —— Aivora Glass 深色毛玻璃工作台
+description: 小商家的内容获客与增长操作系统 —— Aivora Exchange 深海交易所（行情终端 + 行情大屏）
 colors:
-  graphite-air: "#0a0809"
-  text-primary: "#f7f4f2"
-  text-secondary: "#b0a8a4"
-  accent: "#ff4d00"
-  accent-soft: "rgb(255 77 0 / 0.14)"
-  on-accent: "#140801"
-  glass-surface: "rgb(255 255 255 / 0.045)"
-  glass-surface-raised: "rgb(255 255 255 / 0.08)"
-  glass-surface-sunken: "rgb(0 0 0 / 0.3)"
-  glass-pane: "rgb(24 20 21 / 0.78)"
-  glass-card: "rgb(22 18 19 / 0.52)"
-  glass-well: "rgb(0 0 0 / 0.28)"
-  hairline: "rgb(255 255 255 / 0.1)"
-  hairline-strong: "rgb(255 255 255 / 0.2)"
-  popover-solid: "rgb(30 25 26 / 0.94)"
-  overlay: "rgb(8 6 7 / 0.62)"
-  success: "#58c08a"
-  warning: "#e9b658"
-  danger: "#ff6f5b"
+  abyss: "#04070e"
+  abyss-deep: "#020409"
+  hull: "#08101d"
+  deck: "#0d1729"
+  well: "#03060c"
+  bridge: "#102340"
+  seam: "rgb(110 160 230 / 0.13)"
+  seam-strong: "rgb(110 160 230 / 0.24)"
+  seam-bright: "rgb(120 210 255 / 0.42)"
+  grid-line: "rgb(110 160 230 / 0.05)"
+  text-primary: "#e8f0fc"
+  text-secondary: "#91a3bf"
+  text-tertiary: "#7889a8"
+  signal: "#22e0ff"
+  signal-strong: "#8ff1ff"
+  signal-soft: "rgb(34 224 255 / 0.12)"
+  signal-line: "rgb(34 224 255 / 0.45)"
+  on-signal: "#00161c"
+  azure: "#4d8dff"
+  azure-soft: "rgb(77 141 255 / 0.15)"
+  iris: "#a08cff"
+  iris-soft: "rgb(160 140 255 / 0.14)"
+  gold: "#ffc542"
+  gold-soft: "rgb(255 197 66 / 0.14)"
+  fill: "#2fe39b"
+  fill-soft: "rgb(47 227 155 / 0.13)"
+  fault: "#ff5577"
+  fault-soft: "rgb(255 85 119 / 0.14)"
+  popover: "#0a1322"
+  overlay: "rgb(1 3 8 / 0.74)"
+  edge-light: "rgb(170 215 255 / 0.06)"
+  beam-tail: "rgb(34 224 255 / 0.15)"
+  sweep: "rgb(34 224 255 / 0.55)"
+  glow-signal: "rgb(34 224 255 / 0.55)"
+  glow-fill: "rgb(47 227 155 / 0.6)"
+  glow-gold: "rgb(255 197 66 / 0.55)"
+  scrim: "rgb(2 4 9 / 0.88)"
+  shadow-ink: "rgb(0 0 0 / 0.85)"
+  well-shadow: "rgb(0 0 0 / 0.5)"
+  mask-ink: "#000000"
+  brand-tile: "#0d1729"
 typography:
   display:
-    fontFamily: "Schibsted Grotesk, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
-    fontSize: "clamp(32px, 5vw, 56px)"
-    fontWeight: 600
-    lineHeight: 1.1
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontSize: "clamp(40px, 5.2vw, 76px)"
+    fontWeight: 300
+    lineHeight: 1.04
+    letterSpacing: "-0.035em"
+  display-desk:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontSize: "clamp(34px, 3.8vw, 60px)"
+    fontWeight: 300
+    lineHeight: 1.04
+    letterSpacing: "-0.035em"
+  figure:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontSize: "clamp(30px, 3vw, 46px)"
+    fontWeight: 250
+    lineHeight: 1
+    letterSpacing: "-0.02em"
+  wall-figure:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontSize: "clamp(44px, 5.6vw, 112px)"
+    fontWeight: 200
+    lineHeight: 1
     letterSpacing: "-0.03em"
   title:
-    fontFamily: "Schibsted Grotesk, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
     fontSize: "24px"
     fontWeight: 500
     lineHeight: 1.2
   subhead:
-    fontFamily: "Schibsted Grotesk, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
     fontSize: "18px"
     fontWeight: 500
     lineHeight: 1.35
   body:
-    fontFamily: "Inter, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
     fontSize: "15px"
     fontWeight: 400
     lineHeight: 1.6
   label:
-    fontFamily: "Inter, PingFang SC, Microsoft YaHei, Noto Sans CJK SC, system-ui, sans-serif"
-    fontSize: "13px"
+    fontFamily: "Martian Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "10.5px"
     fontWeight: 500
     lineHeight: 1.3
-    letterSpacing: "0.05em"
-  mono:
-    fontFamily: "JetBrains Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
-    fontSize: "13px"
-    fontWeight: 500
-    lineHeight: 1.3
+    letterSpacing: "0.06em"
+  data:
+    fontFamily: "Martian Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "11px"
+    fontWeight: 400
+    lineHeight: 1.35
+  scale:
+    micro: "10px"
+    label: "10.5px"
+    data: "11px"
+    meta: "12px"
+    body-desk: "13px"
+    clip: "14px"
+    body: "15px"
+    wordmark: "15px"
+    subhead-desk: "15px"
+    subhead: "18px"
+    wordmark-wall: "18px"
+    title-desk: "20px"
+    title: "24px"
+    section-desk: "26px"
+    section: "32px"
 rounded:
-  sm: "10px"
-  md: "14px"
-  lg: "20px"
+  sm: "3px"
+  md: "6px"
+  lg: "10px"
+  brand-icon: "14px"
+  pill: "999px"
 spacing:
   space-1: "4px"
   space-2: "8px"
@@ -71,45 +129,45 @@ spacing:
   space-16: "64px"
 components:
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "{colors.on-accent}"
+    backgroundColor: "{colors.signal}"
+    textColor: "{colors.on-signal}"
     rounded: "{rounded.md}"
     height: "40px"
     padding: "0 16px"
-  button-secondary:
-    backgroundColor: "{colors.glass-surface-raised}"
+  button-outline:
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
     height: "40px"
     padding: "0 16px"
-  button-ghost:
+  button-secondary:
+    backgroundColor: "{colors.deck}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
     height: "40px"
     padding: "0 16px"
   button-destructive:
-    backgroundColor: "{colors.danger}"
-    textColor: "{colors.glass-surface}"
+    backgroundColor: "{colors.fault-soft}"
+    textColor: "{colors.fault}"
     rounded: "{rounded.md}"
     height: "40px"
     padding: "0 16px"
   input:
-    backgroundColor: "{colors.glass-well}"
+    backgroundColor: "{colors.well}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.md}"
     height: "40px"
     padding: "8px 12px"
-  card:
-    backgroundColor: "{colors.glass-surface}"
-    textColor: "{colors.text-primary}"
-    rounded: "{rounded.lg}"
-    padding: "24px"
   panel:
-    backgroundColor: "{colors.glass-card}"
+    backgroundColor: "{colors.hull}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.lg}"
+    padding: "20px"
+  quote-cell:
+    backgroundColor: "{colors.hull}"
+    textColor: "{colors.text-primary}"
+    padding: "16px 20px"
   dialog:
-    backgroundColor: "{colors.popover-solid}"
+    backgroundColor: "{colors.popover}"
     textColor: "{colors.text-primary}"
     rounded: "{rounded.lg}"
     padding: "24px"
@@ -117,266 +175,188 @@ components:
 
 # Design System: Aivora
 
-> 2026-08-02 用户决策：全站视觉世界替换为 **Aivora Glass（毛玻璃）**，同时取代旧 Editorial
-> 浅色主题与「剪辑台」方向（PRD §11 圆角 0 / 无阴影等硬规矩作废）。作用域是整站，
-> 含下线中的 `(internal)` 区（那里只做 token 继承，不做新装置）。
+> 2026-10-24 用户决策：旧版「暖石墨 + 品牌橙 + 毛玻璃」（Aivora Glass）整体退役，不留痕迹；
+> 全站换成 **Aivora Exchange（深海交易所）**——交易所行情终端 + 行情大屏，追求科技感与高级感。
+> 旧数据保留，旧风格不保留。作用域是整站（含下线中的 `(internal)` 区，只做 token 继承）。
 > 唯一 token 来源：`src/styles/tokens.css`；材质层：`src/app/globals.css`；
-> 方向契约：`src/app/layout.tsx` 内嵌注释（`data-design-contract="aivora-glass"`）。
+> 交易所组件：`src/components/exchange/`；方向契约：`src/app/layout.tsx` 内嵌注释（`data-design-contract="aivora-abyss-exchange"`）。
 
 ## Overview
 
-**Creative North Star: "玻璃工作台 (Aivora Glass)"**
+**Creative North Star: 「增长交易所」**
 
-小商家的整条出片生产线悬在一块深色玻璃工作台上。一块近黑的暖石墨空气（#0a0809）里，
-右上方挂着一枚品牌橙光源，左下一记冷石板对光，表面铺一层胶片颗粒；三档玻璃悬在这片
-空气中——backdrop 真模糊的结构 pane、薄膜反光的内容卡、吸光的下沉 well。玻璃后透出的
-光就是正在发生的生成任务：环境光的亮度由进行中的批次数实时抬升。这是一个专业出片台，
-不是「白底卡片格 SaaS 仪表盘」——后者是本世界明确拒绝的范式。
+小商家的出片与获客是一面交易所行情墙：批次是正在成交的委托，成片是持仓，赢家是该加仓的标的，
+Agent 的每个动作滚动在成交带上。打开任何一页，商家第一眼看到的是自己的生产线在成交——
+什么在生成、什么已成交、什么失败了、哪条在赢——下一笔该下什么单一目了然。
 
-整站只做深色（`color-scheme: dark`，无浅色主题）。工作区 `/app`（.studio-theme）与
-登录面（.auth-studio-theme）共用同一套颜色与材质，只在**密度**上收紧：字号、控件高度、
-间距整体下调一档，因为工作台是数字密集面。数字信息（积分、批次进度、时长、比分）
-一律等宽 tabular-nums，用 JetBrains Mono 承载，是制片单据的语气。
+场是一块冷蓝近黑的交易大厅（`abyss` #04070e），铺一层极淡的 56px 工程网格；面板是不透明的
+hull，以 1px 冷蓝接缝拼成行情墙。**颜色只来自数据与媒体**：信号青是实时、当前与主行动，成交绿是
+已完成，赢家金是赢家与需要你处理的数字，玫红只给失败，鸢尾紫只做 AI 标注。光只出现在边缘与
+「正在生成」的那一格，不铺在背景里。
+
+整站只做深色（`color-scheme: dark`）。工作区 `/app`（`.desk-theme`）与登录门（`.gate-theme`）共用
+同一套颜色与材质，只在**密度**上收紧。`/wall` 是同一个大厅放大到 3–5 米外可读的行情大屏。
 
 **Key Characteristics:**
-- 暖石墨空气 + 单一品牌橙光源，光强随进行中的任务数变化（活的环境光）
-- 三档玻璃材质分层：pane（真模糊）/ card（薄膜反光）/ well（吸光下沉）
-- 白透明 hairline 边 + 镜面高光边（inset 1px 白 8%）是所有玻璃的封边
-- 圆角三级 10/14/20，阴影有偏移有羽化、承担深度而非装饰
-- 中英双语等价排版，中文标题绝不落回系统默认字体
-- 全部颜色/圆角/阴影字面量只住在 tokens.css（有回归测试把关）
+- 冷蓝近黑大厅 + 极淡工程网格；不做毛玻璃、不铺光晕、不用颗粒
+- 不透明面板 + 1px 接缝的行情墙（`.x-wall`），只有外框一个圆角
+- 大而轻的标题与读数（Archivo 200–300），数字一律等宽 tabular-nums
+- 颜色只给数据：信号青 / 成交绿 / 赢家金 / 失败玫红 / AI 鸢尾紫
+- 壳层是行情终端：顶部行情条 + 实时成交带 + 编号导轨 + 状态栏（实时时钟）
+- 每页以「行情头」开场：标题 + 真实读数墙，零就写零，不放示例数字
 
 ## Colors
 
-一块近黑暖石墨里的白透明玻璃阶梯，加一枚克制到只出现三处的品牌橙光源。
+场是冷蓝近黑，颜色是信号：每一种彩色都对应一种数据状态，不做装饰。
 
 ### Primary
-- **品牌橙 Brand Ember** (#ff4d00, `--accent`): 全站唯一光源色，只用于三处——品牌标记
-  （含登录门主标题的品牌宣言行）、当前项（激活导航、选中 clip、今日播放头）、需要行动的
-  数字（待处理计数、失败数）。主行动按钮是它的实心形态。
-- **橙雾 Ember Haze** (rgb(255 77 0 / 0.14), `--accent-soft`): 品牌橙的 14% 透明形态——
-  激活导航底色、选区 ::selection、生成中的批次格、播放头的羽化光。
-- **橙上深字 On-Ember Ink** (#140801, `--primary-foreground`): 品牌橙上的唯一前景色。
-  #ff4d00 配白字仅 3.32:1，不达 AA；深色前景是无障碍硬约束，不是风格偏好。
+- **信号青 Signal Cyan** (#22e0ff, `--accent`): 实时、当前项、主行动。激活导航的左缘、实时点、
+  生成光束、主按钮实心、焦点环。主按钮前景永远是深字 `on-signal` (#00161c)，对比约 13:1。
+- **亮青 Signal Strong** (#8ff1ff, `--accent-strong`): 主按钮 hover 与链接 hover。
+- **青雾 Signal Soft / Line** (`--accent-soft` 12% / `--accent-line` 45%): 选中底、计数徽章底、角标线、选中边。
+
+### Data Signals
+- **成交绿 Fill** (#2fe39b, `--success`): 已完成、已成交、正向读数。
+- **赢家金 Gold** (#ffc542, `--gold` / `--warning`): 赢家结构、需要你处理的数字（待出图、待处理），也承担警示。
+- **失败玫红 Fault** (#ff5577, `--danger`): 失败与破坏性动作。只给失败，不给装饰。
+- **鸢尾紫 Iris** (#a08cff, `--iris`): AI 标注（「AI Generated」合规标签、排期依据左缘）。不做渐变。
+- **蔚蓝 Azure** (#4d8dff, `--azure`): 次级数据序列与话题标签。
 
 ### Neutral
-- **暖石墨空气 Warm Graphite Air** (#0a0809, `--bg`): 整站唯一的底色，环境光场画在它上面。
-- **主文本 Porcelain** (#f7f4f2, `--text-primary`): 暖白，正文与标题。
-- **次文本 Warm Ash** (#b0a8a4, `--text-secondary`): 暖灰，辅助说明；再弱一档用
-  `color-mix(… 72%, transparent)` 表达（mono 标签、占位符）。
-- **玻璃阶梯 Glass Ladder**: 白透明覆盖三级——`--surface` (白 4.5%，内容卡底) /
-  `--surface-raised` (白 8%，hover 与次级钮) / `--surface-sunken` (黑 30%，muted 区)。
-- **玻璃材质底 Glass Materials**: `--glass-pane-bg` (rgb(24 20 21 / 0.78)，结构面) /
-  `--glass-card-bg` (rgb(22 18 19 / 0.52)，内容面) / `--glass-well-bg` (rgb(0 0 0 / 0.28)，
-  下沉井) / `--popover` (rgb(30 25 26 / 0.94) 实底，模糊可用时降到 0.78)。
-- **发丝边 Hairline** (rgb(255 255 255 / 0.1), `--border`; 强调 0.2, `--border-strong`):
-  所有玻璃的封边与分隔线。
-- **遮罩 Fog** (rgb(8 6 7 / 0.62), `--overlay`): 弹层遮罩，配 6px backdrop 模糊把后景推进雾里。
-
-### Status
-- **成功绿 Ready Green** (#58c08a, `--success`): 就绪态（clip ready 边、维度表达标）。
-- **警示黄 Caution Amber** (#e9b658, `--warning`): 图表与警示。
-- **危险红 Fail Coral** (#ff6f5b, `--danger`): 失败格、破坏性按钮、校验错误。
+- **大厅 Abyss** (#04070e, `--bg`) / **深底 Abyss Deep** (#020409, `--bg-deep`): 场与结构条（行情条、导轨、状态栏）。
+- **面板 Hull** (#08101d, `--surface`) / **甲板 Deck** (#0d1729, `--surface-raised`) /
+  **下沉井 Well** (#03060c, `--surface-sunken`) / **舰桥 Bridge** (#102340, `--surface-active`): 面板、hover、输入、选中行。
+- **文本** 冰白 #e8f0fc / 钢灰 #91a3bf / 板岩 #7889a8（主 / 次 / 三级，三级只给标签与代码）。
+  三级色在面板上 ≥5.3:1、甲板上 ≥5:1、舰桥上 ≥4.4:1——它承载 10.5px 的读数标签，不许再调暗。
+- **接缝** `--border` 13% / `--border-strong` 24% / `--border-bright` 42% 的冷蓝发丝线。
 
 ### Named Rules
-**The One Light Source Rule（唯一光源律）.** #ff4d00 只出现在三处：品牌标记、当前项、
-需要行动的数字。环境光场右上的橙辉是它唯一的氛围性使用，且强度与进行中的批次数挂钩
-（`--ambient-glow` 0.2 → 0.36）——光不是装饰，是正在发生的工作。
-
-**The Dark Ink on Ember Rule（橙上无白字律）.** 品牌橙上的前景永远是 #140801，
-永远不是白色。WCAG AA 是底线（PRODUCT.md 无障碍承诺）。
-
-**The Token Closure Rule（token 闭环律）.** 颜色、圆角、阴影字面量只允许出现在
-`src/styles/tokens.css`；组件与页面只引用 token。由 `tests/design-system-closure.test.ts`
-与 `tests/editorial-source-compliance.test.ts` 机器把关，违例即红。
+**The Data-Only Color Rule（颜色只给数据）.** 任何彩色都必须对应一种数据状态或一个当前项；
+背景、装饰、标题强调不用彩色（登录门宣言的后半句是唯一例外，用信号青）。
+**The Dark Ink on Signal Rule（亮色上深字）.** 信号青、成交绿、赢家金上的前景永远是 `--primary-foreground`。
+**The Token Closure Rule（token 闭环）.** 颜色、圆角、阴影字面量只允许出现在 `src/styles/tokens.css`。
+由 `tests/design-system-closure.test.ts`、`tests/editorial-source-compliance.test.ts`、
+`tests/exchange-design-system.test.ts` 机器把关；旧世界残留（`#ff4d00`、backdrop 模糊、glass/editorial
+材质名）也有专门的门禁。
 
 ## Typography
 
-**Display Font:** Schibsted Grotesk（weights 500/600/700）+ Noto Sans SC（500/700，
-中文标题声音，绝不落回系统默认；fallback PingFang SC / Microsoft YaHei）
-**Body Font:** Inter（fallback PingFang SC / system-ui）
-**Mono Font:** JetBrains Mono（400–700, fallback ui-monospace）
-
-**Character:** 几何有力的双语标题声音配克制的正文，加一层贯穿全站的等宽「制片单据」语气。
-中英文标题同权重排版，负字距（-0.03em）让 Schibsted Grotesk 收紧成块。
+**Display / UI Font:** Archivo（可变字宽 wdth 62–125，wght 100–900）+ Noto Sans SC（中文，标题与正文同一声音）
+**Mono Font:** Martian Mono（可变字宽 75–112.5）——一切代码、时间、计数、标签
+**Character:** 大而轻的标题（300）与更细的读数（200–250）配紧凑的等宽数据，舞台感来自尺寸而不是字重。
 
 ### Hierarchy
-
-默认档（营销/公开面）与 studio 密度档（`/app` 工作区与登录面）并列如下：
-
-- **Display** (600, clamp(32px, 5vw, 56px), lh 1.1, ls -0.03em): 页面主标题。
-  studio 档收紧为 700 / clamp(28px, 3vw, 34px) / ls -0.035em。页面模块（plan/wins）的
-  头题实测用到 44px/700。
-- **Section** (32px / studio 28px, `--font-size-section`): 区块标题。
-- **Title** (24px / studio 20px, `--font-size-title`): 弹层标题（DialogTitle 用 display 家族）。
-- **Subhead** (18px / studio 16px, `--font-size-subhead`): 卡片标题（CardTitle 用 display 家族）。
-- **Body** (400, 15px / studio 13px, lh 1.6 / 1.48): 正文；长段说明限宽约 62ch。
-- **Label/Meta** (500, 13px / studio 11px, ls 0.05em, uppercase): `.studio-label`，
-  表单标签与元信息。
-- **Mono 镜号** (JetBrains Mono, 9.5–11.5px, ls 0.08–0.14em, uppercase): 镜号标签
-  (shot slug)、轨道刻度、操作条按钮文字——数据的语气，不是装饰。
+- **Display** (300, clamp(40px, 5.2vw, 76px)，desk 档 clamp(34px, 3.8vw, 60px), lh 1.04, ls -0.035em, wdth 108%): 页面标题 `.x-display`。
+- **Figure** (250, clamp(30px, 3vw, 46px), wdth 112%): 行情头读数 `.x-figure`；大屏读数 200, clamp(44px, 5.6vw, 112px)。
+- **Title / Subhead** (500, 24/18px，desk 20/15px): 区块与卡片标题。
+- **Body** (400, 15px，desk 13px, lh 1.6/1.5): 正文；长段说明限宽约 62ch。
+- **Label** (Martian Mono 500, 10.5px, ls 0.06em, uppercase, 三级色): `.x-label`，读数与列头的标签。不是眉题。
+- **Data** (Martian Mono 11px, `text-data`) / **Micro** (10px, `text-micro`): 表格、代码、计数、成交带。
 
 ### Named Rules
-**The Tabular Ledger Rule（等宽台账律）.** 一切数字（积分、进度、时长、比分、计数）
-一律 `tabular-nums`，密集数字面用 JetBrains Mono。列必须对得齐，这是制片单据的质感来源。
-
-**The Bilingual Parity Rule（双语等价律）.** 中英文案同权重排版；中文标题必须吃到
-Noto Sans SC 的 display 声音，不为英文优化而牺牲中文可读性。
+**The Big-and-Light Rule（大而轻）.** 标题与读数靠尺寸承重，字重 200–300；只有小号的界面文字用 500–600。
+**The Tabular Ledger Rule（等宽台账）.** 一切数字 tabular-nums；代码、时间、ID 用 Martian Mono。
+**The Bilingual Parity Rule（双语等价）.** 中英文案同权重排版；中文永远吃到 Noto Sans SC。
 
 ## Layout
 
-- **壳层**: 左侧固定 224px（w-56）玻璃侧栏（`.glass-pane`，md 以上显示）+ 顶部 sticky
-  48px（h-12）玻璃工作条；主区为内容玻璃卡阵列。移动端侧栏折叠为底部 64px 玻璃 tab 条。
-- **内容宽度**: `--content-max-width` 默认 75rem，studio 档放宽到 82rem；页面容器
-  `.studio-page` / `.editorial-page` 水平居中，窄屏 padding 收到 space-4。
-- **间距韵律**: 4px 基（space-1 至 space-16 = 4/8/12/16/20/24/32/40/48/64），studio 档
-  把 space-5 及以上整体下调一档（如 space-8: 32→24px）。卡片内边距 24px（studio 18px），
-  卡间 gap 16px（studio 12px）。
-- **控件高度**: `--control-height` 40px，studio 档 36px，但移动端 studio 回到 40px
-  保触控热区。
-- **断点**: 640px（页面 padding 换挡）、768px（Tailwind md，侧栏/底部导航切换）；
-  页面装置各自持有内容断点（时间线详情 720px、战绩三栏 900px）。
-- **横向滚动**: 宽装置（时间线轨道等）在自身容器内 `overflow-x: auto`，页面本身永不横滚。
-- **页面标题由排版承载**：不加标尺、不加眉题（kicker/eyebrow 是被禁装置，见 Don'ts）。
+- **壳层（/app）**: 顶部 sticky 行情条（48px：▲ 标记、AIVORA 字标、工作区芯片、搜索、市场状态、大屏、帮助、账户）
+  + 实时成交带（32px，本工作区最近 12 笔批次，悬停暂停）；左侧固定 224px 编号导轨（1–7 是真快捷键：焦点不在输入框、
+  没有打开的对话框时按数字直达；激活项信号青左缘 + 舰桥底）；底部 28px 状态栏（数据口径 + 本地时钟）。
+  移动端导轨折叠为底部 64px tab 条（两字短名，计数徽标贴在图标右上），状态栏隐藏。
+- **页面开场**: 每个工作区页面都用 `QuoteHeader`——标题 + 副标题（≤62ch）+ 右侧主行动 + 读数墙（2–6 格）+ 一行统计口径。
+  没有数据的页也要开场读数（零就写零）：没有读数墙的页面只剩黑底与青色，就是「黑青单色」，等于没改。
+- **读数口径唯一**: 成片 / 失败 / 成功率 / 生成中等跨页读数只从 `src/lib/services/exchange-readings.ts` 取；
+  同一个名字在两页出现，口径必须相同（批量页的「完成率」= 已成片 ÷ 下单条数，大屏的「成片成功率」= 成片 ÷（成片 + 失败））。
+- **内容宽度**: desk 档 96rem；页面容器 `.x-page`，窄屏 padding 收到 space-4。
+- **行情大屏 /wall**: 全屏，无导轨；读数墙 5 格 + 成交带（最近 6 批）+ 最新成片墙（竖版静音循环）+ 大号时钟 +
+  底部滚动的「成交回报」带（最近 16 条成片 / 失败 / 生成中，尾部写数据口径与 30 秒刷新节拍）。
+  ≥1280px（电视、展位屏、笔记本全屏）整屏定格不滚动：成交带等分剩余高度、成片一排三条占满高度；更窄时自然滚动。
+- **断点**: 640px（页面 padding）、768px（md，导轨 / 底部 tab 切换）、1024 / 1280（读数墙列数）。
+- **横向滚动**: 宽装置（一周时段带、表格）在自身容器内滚动，页面永不横滚。
+- **页面标题由排版承载**：不加标尺、不加眉题（kicker/eyebrow 是被禁装置）。
 
 ## Elevation & Depth
 
-深度由「玻璃的物理」承担：每一块玻璃 = hairline 边 + 镜面高光边 + 有偏移有羽化的投影。
-不做无偏移的光晕装饰——唯二的例外是品牌橙从背后点亮玻璃的两处（完成的批次格、今日
-播放头），那是光源叙事，不是投影装饰。
+交易大厅不靠投影分层，靠**接缝**与**亮度阶梯**（abyss → hull → deck → bridge）：
+- **x-pane（结构条）**: 深底 abyss-deep，1px 接缝分隔。
+- **x-panel（内容面）**: hull + 1px 接缝 + 顶缘 1px 冷光 `--edge`（inset 0 1px 0 白蓝 6%）。
+- **x-well（下沉面）**: well + 吸光内影 `--shadow-well`。
+- **浮层**: popover 实底 + `--shadow-float`（接缝外框 + 远距深影），不做 backdrop 模糊。
 
-三档玻璃材质（只在 `globals.css` 材质层定义，组件不写 blur 工具类）：
-
-- **pane（结构面）**: 侧栏 / 顶栏 / 移动 tab 条 / 弹层 / toast。真 backdrop 模糊
-  `blur(24px) saturate(1.5)`，底色 rgb(24 20 21 / 0.78)，配 `--shadow-float`。全站少数几处。
-- **card（内容面）**: 内容卡不付 backdrop-filter 的性能成本，质感由薄膜反光渐变
-  `--glass-sheen`（165deg 白 7%→2%→透明）+ 高光边 + `--shadow-card` 合成。
-- **well（下沉井）**: 输入框、轨道、空档。底色黑 28%，`--shadow-well` 内影把光吸进去。
-
-### Shadow Vocabulary
-- **glass-edge** (`inset 0 1px 0 rgb(255 255 255 / 0.08)`): 镜面高光边，所有玻璃面的第一层
-  box-shadow，玻璃感的最小单元。
-- **shadow-card** (`glass-edge + 0 1px 2px rgb(0 0 0 / 0.35) + 0 16px 40px -24px rgb(0 0 0 / 0.7)`):
-  内容卡：贴地细影 + 远距柔影。
-- **shadow-float** (`glass-edge + 0 4px 12px rgb(0 0 0 / 0.35) + 0 32px 80px -24px rgb(0 0 0 / 0.75)`):
-  浮空层（pane、弹层、dropdown、sheet）。
-- **shadow-well** (`inset 0 1px 2px rgb(0 0 0 / 0.32) + inset 0 -1px 0 rgb(255 255 255 / 0.04)`):
-  下沉井的吸光内影。
-
-### 环境光场（唯一的一块「空气」）
-`body` 与 `.studio-canvas` 共用同一组 background：胶片颗粒（内联 SVG fractalNoise）
-+ 右上品牌橙辐射光（强度 = `--ambient-glow`，由 PlatformShell 按进行中批次数写入，
-`0.2 + activeBatches × 0.04`，封顶 0.36）+ 左下冷石板对光（rgb(84 100 138 / 0.24)）
-+ 底部微橙地光，`background-attachment: fixed`。
+### Signature Light（只给正在发生的事）
+- **生成光束** `.x-beam`: 沿边框转动的 conic 光（`--beam`），只套在「正在生成」的那一格（独立的卡 / 格）。
+- **行光束** `data-beam="row"`: 光束在列表与表格里的形态——左缘 2px 信号青 + 左起淡青雾 + 底边一条从左扫到右的光。
+  挂在生成中的批次行（批量页、大屏成交带）、生成中的任务行（批次详情）、成品库生产线行；暂停的不挂。
+  减少动态时扫光静止，光束退成一圈静止的信号青细线。
+- **扫光** `--sweep`: 成交梯里生成中的格子、分段成交条里生成中的那一段。
+- **实时点** `.x-live`: 信号青圆点向外扩散的脉冲；空闲时变板岩色、不动。
+- **今天光针**: 一周时段带上的信号青光针（`--glow-accent`）。
 
 ### Named Rules
-**The Three-Glass Rule（三档玻璃律）.** 全站只有 pane / card / well 三种玻璃，
-不发明第四种。backdrop-filter 只住在 globals.css 材质层（结构面与浮层），
-组件文件永远不写 blur 工具类；内容卡永远用 sheen + edge 模拟，不开真模糊。
-
-**The Living Light Rule（活光律）.** 环境橙光的亮度耦合进行中的生成任务数。
-玻璃后透出的光就是正在发生的工作——这是 STORY 承诺的唯一表达点，不另加进度装饰。
-
-**The Feathered Shadow Rule（羽化投影律）.** 投影必须有偏移有羽化，承担深度；
-无偏移光晕只允许出现在品牌橙从背后点亮玻璃的地方（点亮的批次格、播放头）。
+**The No-Glass Rule（不做毛玻璃）.** 全站不写 `backdrop-filter`；面板一律不透明。
+**The Light-Is-Work Rule（光就是工作）.** 光只出现在边缘与正在发生的那一格；不铺背景光晕。
 
 ## Shapes
 
-圆角三级，层级随容器尺度上升：**sm 10px**（小玻璃片：clip、批次格外框、行内搜索、
-小标签）→ **md 14px**（控件：按钮、输入框、计量条、导航项）→ **lg 20px**（卡片、
-面板、弹层）。药丸形（999px/rounded-full)只用于计数徽章、标签 chip、头像钮。
-封边一律 1px hairline（白 10%），hover 升到白 20%；不描粗边、不做斜切。
-分段装置（操作条、计量条）用外框圆角 + 内部 1px 分隔线切格，格子本身在容器内裁切。
+终端的精密感：**sm 3px**（标签、计数徽章、tick、刻度）→ **md 6px**（按钮、输入框、芯片、导航项）→
+**lg 10px**（面板、读数墙外框、弹层）。药丸形只用于实时点。行情墙只有外框一个圆角，格子之间是 1px 接缝。
+**角标** `.x-frame`: 读数墙与登录终端的左上 / 右下各一道信号青 L 形角线——大屏的边框语言，只给主读数区与登录门，不给每张卡。
 
 ## Components
 
-组件基座：shadcn/Base UI，样式经 tokens.css 语义桥（--primary/--card/--popover 等）
-全部落回玻璃 token。
+组件基座：shadcn / Base UI，经 tokens.css 语义桥（`--primary` / `--card` / `--popover` 等）落到交易所 token。
 
 ### Buttons
-- **Character:** 实心、紧凑、立即可按；按下有 0.98 缩放的物理反馈。
-- **Shape:** 控件圆角（14px），高 40px（studio 36px），text-meta 加粗（600）。
-- **Primary:** 品牌橙实心 + #140801 深字——页面上最亮的可按物，一页通常只一枚。
-- **Hover:** 统一 `brightness(0.94)`（120ms ease-out）；ghost 为 bg-secondary。
-- **Focus:** 2px 品牌橙外描边，offset 2px（全站 :focus-visible 统一）。
-- **Secondary / Outline / Ghost / Destructive / Link:** 白 8% 玻璃底 / hairline 边卡底 /
-  透明 / 危险红实心 / 下划线文字。
-- **Reduced motion:** 缩放与过渡全部关掉。
+- **Primary**: 信号青实心 + 深字，hover 变亮青；一页一枚。
+- **Outline**: 透明底 + 强接缝，hover 转信号青边与字。
+- **Secondary / Ghost**: 甲板底 / 透明，hover 甲板。
+- **Destructive**: 玫红雾底 + 玫红字，hover 实心玫红 + 深字。
+- 高 40px（desk 36px，移动端回 40px），按下 0.98 缩放；reduced-motion 关闭。
 
 ### Inputs / Fields
-- **Style:** 下沉井材质（`.glass-well`：黑 28% 底 + 吸光内影 + hairline 边），
-  圆角 14px，高 40px。
-- **Focus:** 边框转品牌橙 + 2px 橙外描边；错误态 `aria-invalid` 边框转危险红。
-- **Select:** `studio-select` utility，同一井材质。
-- **组合槽:** 「一句话入口”把输入框与橙色实心行动钮装进同一条下沉玻璃槽
-  （竖 hairline 分隔，行动钮文字用 mono 全大写）。
+下沉井材质（well + 吸光内影 + 强接缝），圆角 6px；占位符三级色；聚焦信号青边 + 2px 焦点环；错误态玫红边。
 
-### Cards / Containers
-- **Corner Style:** 20px。
-- **Background:** shadcn Card 用白 4.5% 玻璃底；页面级 panel（`.studio-panel` /
-  `.editorial-card`）用 rgb(22 18 19 / 0.52) 内容玻璃底。两者都自动叠薄膜反光
-  `--glass-sheen`（打在 `[data-slot="card"]` 与卡类容器上）。
-- **Shadow Strategy:** `--shadow-card`（含镜面高光边）。
-- **Border:** 1px hairline；可交互卡 hover 时升到白 20%（120ms）。
-- **结构:** CardHeader 白 8% 底 + 下边线；CardFooter muted 底 + 上边线。
+### Exchange Kit（`src/components/exchange/`）
+- **QuoteHeader**: 行情头（标题 + 读数墙 + 主行动 + 统计口径）。读数色调：live 青 / filled 绿 / winner 金 / fault 玫红 / ai 紫。
+- **StatusTick / TickGlyph**: 记号 + 状态词成对（上涨三角=生成中、实心圆=已成交、半圆=部分失败、下跌三角=失败、
+  双竖=暂停、叉=取消），不只靠颜色。记号是一套 12 格自绘 SVG（`TickGlyph`，跟随字号），不用 ▲●◐▼‖× 字符——
+  字体回退会让它们大小粗细各异。成交带、表格、大屏、错误页共用这一套。
+- **FillBar**: 分段成交条（成交绿 / 生成中扫光 / 暂停板岩 / 失败玫红 / 取消斜纹 / 余下为排队空档）。
+- **SectionHead**: 区块抬头（标题 + 等宽计数 + 一句说明）。
+- **ExchangeTape**: 无限滚动的成交带（悬停暂停、减少动态时静止）；壳层里放本工作区最近批次（空时写明「还没有成交记录」
+  并给新建批次入口），大屏底部放成交回报。时间用 `LocalTime` 按访问者时区显示（服务端先渲染占位，避免水合不一致）。
+- **Wall controls**: 大屏的秒级时钟（共享 `useNow`）、30 秒自动刷新、全屏、减少动态时不自动播放的成片。
 
-### Navigation
-- **侧栏:** `.glass-pane` 结构玻璃；导航项高 36px、圆角 14px、text-meta 500；
-  激活态 = 橙雾底 + 主文本色（aria-current="page"），非激活 hover = muted 底。
-  计数徽章 = 药丸 mono tabular-nums（batches 进行数；library 失败数着危险红）。
-- **顶栏:** sticky 48px 结构玻璃：工作区切换钮、全局搜索（白 8% 底、圆角 10px）、
-  帮助与头像圆钮（头像底为橙雾 + mono 首字母）。
-- **移动端:** 底部 64px 玻璃 tab 条，图标 + 10px 文字，徽章浮于图标右上。
-- **图标:** Lucide 全套 stroke-width 1.5、尺寸 16px（size-4）。
+### Batch Fill Ladder（批次成交梯）
+`batch-film-strip.tsx` 渲染 `.x-fill-strip`：每格一条成片；已成交=成交绿实心 + 绿光，生成中=青雾 + 扫光，
+失败=玫红，排队=甲板空格，取消=斜纹。五态齐全，reduced-motion 下扫光关闭。
 
-### Dialog / 浮层
-- **Style:** 弹层玻璃全站统一在材质层声明（dialog/dropdown/select/sheet/toast 共用）：
-  backdrop `blur(24px) saturate(1.5)` + 薄膜反光 + `--shadow-float`，圆角 20px，
-  popover 底色带 @supports 回退（模糊不可用时 0.94 实底保可读）。
-- **Overlay:** 雾遮罩（rgb(8 6 7 / 0.62)）+ 6px backdrop 模糊，把后景推进雾里。
-- **Motion:** fade + zoom-95 进出（120ms）；reduced-motion 全关。
+### Week Session Strip（一周时段带）
+`plan-timeline`：7 个交易日的刻度 + 每日的委托（帖子，左缘一道状态色）；今天是信号青光针；空档画成带斜纹的下沉缺口。
 
-### Batch Film Strip（签名装置：磨砂分段计量条）
-批次进度的玻璃语言（取代旧胶片齿孔）：外层是一条下沉玻璃井（圆角 14px、4px 内衬、
-3px 格距），每格是一枚 6px 圆角的小玻璃片（白 4.5% 底 + sheen + 高光边）。
-**completed** = 被品牌橙从背后点亮（橙实底 + 强薄膜反光 + 橙雾投影）；
-**generating** = 橙雾底 2.4s 呼吸脉动（reduced-motion 时定格 0.72 不透明度）;
-**failed** = 危险红 + 强反光；**cancelled** = 沉底灰 60% 不透明。
+### Media
+成片是舞台：成品库竖版 9:16 原比例展示，底部读数遮罩 `--scrim`；AI 合规标签是等宽鸢尾紫标签，不用 ✨ 图标。
+登录门放一排三条模板库真机样片（静音循环，标「样例」，并写明不是用户数据）+ 模板与样片的真实计数；
+取数失败或超时（1.5 秒）整块不显示，登录表单照常可用。样片只从真机验收白名单（`template-sample.ts`）里取。
 
-### Timeline Track（签名装置：下沉玻璃轨道）
-一周内容不是 7 张卡片，是一条下沉玻璃轨道：mono 全大写刻度尺、7 泳道 hairline 分隔、
-今天是一根 1px 品牌橙**播放头**光针（橙雾羽化 + 顶部三角）；空档画成**真的缺口**
-（更深的下沉井 + mono「空档」标签），不是留白；排期条目是轨道上的小玻璃片 clip
-（选中 = 橙边、就绪 = 绿边、废弃 = 虚线边 55% 不透明）。窄屏时轨道自身横滚。
-
-### Motion（全站动效语法）
-- **Tokens:** `--motion-fast` 120ms（状态过渡）、`--motion-base` 200ms（入场）、
-  `--ease-out` cubic-bezier(0.16, 1, 0.3, 1)。
-- **唯一入场动作:** `.editorial-page-enter`——玻璃从一点雾里升起（opacity 0 /
-  translateY 6px / blur 6px → 清晰），每个新页面整体一次，不逐节重复。
-- **prefers-reduced-motion:** 全站一律压到 1ms 并停用入场与脉动（既有覆盖，重构不得回退）。
+### Motion
+唯一入场：整页一次 300ms 从 4px 下方升起（不做模糊）。其余动效都是「工作」：成交带滚动、实时点脉冲、
+生成扫光与光束、时钟。全站尊重 `prefers-reduced-motion`。
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** 从 `src/styles/tokens.css` 取一切颜色/圆角/阴影；新值先进 tokens 再被引用
-  （closure 测试把关）。
-- **Do** 用三档玻璃现成材质类（`.glass-pane` / `.studio-panel`（卡） / `.glass-well`）
-  拼新界面；签名装置（分段计量条、下沉轨道、播放头、镜号标签）全站复用，不各自发明。
-- **Do** 数字一律 `tabular-nums`，密集数字与镜号用 JetBrains Mono 全大写小字距。
-- **Do** 品牌橙上永远用 #140801 深字；全站文本对比守 WCAG AA。
-- **Do** 长任务状态诚实可读：进行/失败/取消/恢复各有玻璃语言（脉动橙雾/危险红/沉灰），
-  失败永远伴随出路，任务永远可取消。
-- **Do** 宽装置在自身容器内横滚（`overflow-x: auto`），页面永不横向滚动。
+- **Do** 用 `QuoteHeader` 开场，读数墙只放真实数字，零就写零，并写明统计口径。
+- **Do** 让颜色对应数据状态：信号青=实时/当前，成交绿=完成，赢家金=赢家与需要处理，玫红=失败，紫=AI 标注。
+- **Do** 状态用 `StatusTick`（符号 + 颜色成对），进度用 `FillBar` / 成交梯。
+- **Do** 把成片放上舞台：竖版原比例，媒体本身就是这页的颜色。
+- **Do** 一切数字等宽，代码、时间、ID 用 Martian Mono。
 
 ### Don't:
-- **Don't** 在组件或页面里写 backdrop-filter / blur 工具类——模糊只住在 globals.css
-  材质层；内容卡不开真模糊。
-- **Don't** 把品牌橙用到三处（品牌标记/当前项/需行动的数字）之外；不给装饰性图标、
-  普通链接或静态数字上橙。
-- **Don't** 使用胶片/场记板装置（齿孔封边、场记板镜号牌、时间线剪辑台隐喻的装饰件）——
-  2026-08-02 起已整体退役，只留纯玻璃语言；也不要复活 PRD §11 的圆角 0 / 无阴影规矩。
-- **Don't** 加眉题（kicker/eyebrow）、标尺装饰或无偏移光晕；页面标题由排版本身承载，
-  光晕只属于被橙光点亮的玻璃。
-- **Don't** 做浅色主题或白底卡片格仪表盘布局；本世界只有深色暖石墨空气。
-- **Don't** 让中文标题落回系统默认字体，或为英文排版牺牲中文可读性。
+- **Don't** 回到旧世界：不用 `#ff4d00` 品牌橙、不写 backdrop 模糊、不用 glass / editorial 材质类、不铺环境光晕（有门禁测试）。
+- **Don't** 用紫蓝 AI 渐变、发光球、✨ 图标、满屏毛玻璃、三列图标特性卡。
+- **Don't** 在标题上方加眉题或 kicker。
+- **Don't** 放示例数字或编造的读数；大屏与成交带只读本工作区数据（成品库样片不计入）。
+- **Don't** 在亮色（信号青 / 成交绿 / 赢家金）上用白字。
+- **Don't** 给非交互卡片加 hover 高亮，或一页放两枚实心主按钮。

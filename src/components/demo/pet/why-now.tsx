@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles, TrendingUp } from "lucide-react";
+import { ArrowRight, TrendingUp } from "lucide-react";
 import { PetSection } from "./pet-section";
 import { WHY_NOW_SECTION } from "@/lib/demo/pet-content-kit-demo-data";
 
@@ -14,15 +14,14 @@ export function WhyNow() {
   return (
     <PetSection
       id="why-now"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.intro}
     >
       {/* 口红效应 + 从养宠到情绪经济 */}
       <div className="grid gap-5 lg:grid-cols-2">
         {/* The New Lipstick Effect */}
-        <article className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-6">
-          <BlockEyebrow en={s.lipstick.eyebrow} zh={s.lipstick.title} />
+        <article className="border border-border bg-card shadow-panel flex flex-col rounded-(--radius-lg) p-6">
+          <BlockTitle title={s.lipstick.title} />
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             {s.lipstick.body}
           </p>
@@ -42,8 +41,8 @@ export function WhyNow() {
         </article>
 
         {/* From Pet Care to Pet Emotion */}
-        <article className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-6">
-          <BlockEyebrow en={s.emotion.eyebrow} zh={s.emotion.title} />
+        <article className="border border-border bg-card shadow-panel flex flex-col rounded-(--radius-lg) p-6">
+          <BlockTitle title={s.emotion.title} />
           <p className="mt-3 text-sm leading-7 text-muted-foreground">
             {s.emotion.body}
           </p>
@@ -63,7 +62,7 @@ export function WhyNow() {
 
       {/* Why Aivora */}
       <article className="mt-5 rounded-(--radius-lg) border border-success bg-success/10 p-6 sm:p-8">
-        <BlockEyebrow en={s.whyAivora.eyebrow} zh={s.whyAivora.title} />
+        <BlockTitle title={s.whyAivora.title} />
         <p className="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
           {s.whyAivora.body}
         </p>
@@ -74,9 +73,8 @@ export function WhyNow() {
           {s.whyAivora.generates.map((g) => (
             <span
               key={g}
-              className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-medium text-foreground/85 shadow-editorial"
+              className="inline-flex items-center rounded-full bg-card px-3 py-1.5 text-xs font-medium text-foreground/85 shadow-panel"
             >
-              <Sparkles size={12} className="text-success" />
               {g}
             </span>
           ))}
@@ -88,10 +86,10 @@ export function WhyNow() {
 
       {/* The Market Shift */}
       <div className="mt-8">
-        <BlockEyebrow en={s.marketShift.eyebrow} zh={s.marketShift.title} />
+        <BlockTitle title={s.marketShift.title} />
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
           {s.marketShift.items.map((item) => (
-            <div key={item.index} className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
+            <div key={item.index} className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5">
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl font-bold text-primary/70">
                   {item.index}
@@ -110,7 +108,7 @@ export function WhyNow() {
 
       {/* Aivora's Timing · 五个趋势 */}
       <div className="mt-8 rounded-(--radius-lg) border border-border bg-card p-6 sm:p-8">
-        <BlockEyebrow en={s.timing.eyebrow} zh={s.timing.title} />
+        <BlockTitle title={s.timing.title} />
         <p className="mt-3 text-sm leading-7 text-muted-foreground">
           {s.timing.intro}
         </p>
@@ -134,10 +132,7 @@ export function WhyNow() {
 
       {/* Positioning Statement */}
       <div className="mt-8 rounded-(--radius-lg) border border-primary/25 bg-card p-6 sm:p-10">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-primary">
-          Positioning Statement
-        </p>
-        <p className="mt-3 text-xl font-semibold leading-9 text-foreground sm:text-2xl">
+        <p className="text-xl font-semibold leading-9 text-foreground sm:text-2xl">
           {s.positioning.en}
         </p>
         <p className="mt-3 text-sm leading-7 text-muted-foreground sm:text-base">
@@ -150,9 +145,8 @@ export function WhyNow() {
         {s.highlights.map((line) => (
           <p
             key={line}
-            className="flex items-start gap-2.5 rounded-(--radius-lg) border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-7 text-foreground/85"
+            className="rounded-(--radius-lg) border border-primary/20 bg-primary/5 px-4 py-3 text-sm leading-7 text-foreground/85"
           >
-            <Sparkles size={15} className="mt-1 shrink-0 text-primary" />
             {line}
           </p>
         ))}
@@ -161,15 +155,9 @@ export function WhyNow() {
   );
 }
 
-function BlockEyebrow({ en, zh }: { en: string; zh: string }) {
-  return (
-    <div>
-      <p className="text-meta font-semibold uppercase tracking-[0.2em] text-primary">
-        {en}
-      </p>
-      <h3 className="mt-1 text-lg font-semibold text-foreground">{zh}</h3>
-    </div>
-  );
+/** 区块标题：中文标题自己承重，不再在上方压一行英文眉题。 */
+function BlockTitle({ title }: { title: string }) {
+  return <h3 className="text-lg font-semibold text-foreground">{title}</h3>;
 }
 
 function TagGroup({

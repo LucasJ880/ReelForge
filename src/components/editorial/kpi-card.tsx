@@ -17,11 +17,11 @@ export function KpiCard({
   return (
     <div
       className={cn(
-        "rounded-(--radius-lg) border border-border bg-card p-4 shadow-editorial",
+        "rounded-(--radius-lg) border border-border bg-card p-4 shadow-panel",
         className,
       )}
     >
-      <p className="studio-label text-muted-foreground">{label}</p>
+      <p className="x-label text-muted-foreground">{label}</p>
       <p className="mt-1 font-mono text-subhead font-semibold tabular-nums text-foreground">
         {value}
       </p>

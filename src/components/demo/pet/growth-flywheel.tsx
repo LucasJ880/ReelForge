@@ -9,7 +9,6 @@ export function GrowthFlywheel() {
   return (
     <PetSection
       id="flywheel"
-      eyebrow={f.eyebrow}
       title={f.title}
       description={f.description}
       aside={
@@ -18,7 +17,7 @@ export function GrowthFlywheel() {
         </span>
       }
     >
-      <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5 sm:p-6">
+      <div className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5 sm:p-6">
         {/*
           移动端：纵向流（节点之间用向下箭头）；xl 及以上：单行横向流（向右箭头）。
           连接箭头只在节点之间出现，避免在换行处出现指向空白的悬空箭头。

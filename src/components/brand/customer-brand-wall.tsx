@@ -49,8 +49,8 @@ export function CustomerBrandWall({
     <section className="rounded-(--radius-lg) border border-border bg-muted/35 px-5 py-6" aria-labelledby="approved-brand-wall">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
-          <p className="studio-label text-muted-foreground">{english ? "TRUSTED BY" : "已服务客户"}</p>
-          <h2 id="approved-brand-wall" className="mt-2 font-heading text-title font-semibold">
+          <p className="x-label text-muted-foreground">{english ? "TRUSTED BY" : "已服务客户"}</p>
+          <h2 id="approved-brand-wall" className="mt-2 text-title font-medium">
             {english ? "Brands shipping with Aivora" : "正在用 Aivora 出片的品牌"}
           </h2>
           <p className="mt-2 text-body text-muted-foreground">
@@ -75,7 +75,7 @@ export function CustomerBrandWall({
               className="size-12 shrink-0 rounded-(--radius-sm)"
               imageClassName="p-1"
             />
-            <span className="min-w-0 truncate font-heading text-subhead font-semibold">
+            <span className="min-w-0 truncate text-subhead font-medium">
               {entry.brandName}
             </span>
           </li>

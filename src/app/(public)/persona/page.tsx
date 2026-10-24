@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/logo";
 import { getPublicPageCopy } from "@/i18n/public-copy";
@@ -59,9 +58,8 @@ export default async function PersonaPage() {
 
       <main className="flex flex-1 flex-col items-center justify-center px-4 py-12 sm:px-6">
         <section className="w-full max-w-5xl">
-          <div className="mx-auto max-w-3xl text-center">
-            <Badge className="mx-auto">{copy.eyebrow}</Badge>
-            <h1 className="editorial-display mt-5">{copy.title}</h1>
+          <div className="mx-auto max-w-4xl text-center">
+            <h1 className="x-display">{copy.title}</h1>
             <p className="mt-4 text-body text-muted-foreground">{copy.description}</p>
             <p className="mt-3 text-meta text-muted-foreground">
               {copy.partnerLead}{" "}

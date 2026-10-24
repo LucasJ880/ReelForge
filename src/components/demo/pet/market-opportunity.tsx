@@ -13,7 +13,6 @@ export function MarketOpportunity() {
   return (
     <PetSection
       id="market"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.description}
       aside={
@@ -24,7 +23,7 @@ export function MarketOpportunity() {
     >
       <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {s.stats.map((stat) => (
-          <div key={stat.label} className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
+          <div key={stat.label} className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5">
             <dt className="text-2xl font-semibold text-foreground sm:text-3xl">
               {stat.value}
             </dt>
@@ -41,7 +40,7 @@ export function MarketOpportunity() {
       </dl>
 
       <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
-        <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-6">
+        <div className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-6">
           <h3 className="text-sm font-semibold text-foreground">关键趋势</h3>
           <ul className="mt-3 space-y-3">
             {s.trends.map((t) => (

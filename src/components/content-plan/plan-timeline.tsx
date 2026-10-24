@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { QuoteHeader } from "@/components/exchange/quote-header";
 import styles from "./plan-timeline.module.css";
 
 /**
@@ -52,7 +53,7 @@ const FORMAT_LABEL: Record<TimelinePost["format"], string> = {
 };
 
 /**
- * 场记板镜号：把「创意配方」这个抽象概念变成可指认的实体。
+ * 配方代码：把「创意配方」这个抽象概念变成可指认的代码。
  * `post:POV:single_image` → `POV·单图`
  */
 function shotSlug(post: TimelinePost): string {
@@ -86,7 +87,11 @@ export function PlanTimeline({
   }, [posts]);
 
   const selected = posts.find((post) => post.key === selectedKey) ?? null;
-  const emptyDays = byDay.filter((lane) => lane.length === 0).length;
+  // 本周读数：弃用的不算排上；空档按「这一天一条都没有」数。
+  const live = posts.filter((post) => post.status !== "DISCARDED");
+  const ready = live.filter((post) => post.status === "READY").length;
+  const draft = live.length - ready;
+  const openDays = byDay.filter((lane) => !lane.some((post) => post.status !== "DISCARDED")).length;
 
   async function createPlan() {
     setError(null);
@@ -163,15 +168,22 @@ export function PlanTimeline({
 
   return (
     <div className={styles.root} data-testid="cutting-room">
-      <div className={styles.perf} aria-hidden="true" />
-
-      <header className={styles.head}>
-        <h1 className={styles.h1}>{plan?.theme ?? "一句话，排完一周"}</h1>
-        <p className={styles.sub}>
-          {plan
-            ? `${plan.targetAudience} · ${plan.corePainPoint}`
-            : "说清楚你家做什么生意、想让人来干什么，剩下的交给我们。没有独立站也没关系。"}
-        </p>
+      <div className={styles.head}>
+        <QuoteHeader
+          title={plan?.theme ?? "一句话，排完一周"}
+          subtitle={
+            plan
+              ? `${plan.targetAudience} · ${plan.corePainPoint}`
+              : "说清楚你家做什么生意、想让人来干什么，剩下的交给我们。没有独立站也没关系。"
+          }
+          statsLabel="本周读数"
+          stats={[
+            { label: "本周已排", value: live.length, caption: "条内容（不含弃用）" },
+            { label: "已出图", value: ready, tone: ready > 0 ? "filled" : "neutral", caption: "可交给青砚发布" },
+            { label: "待出图", value: draft, tone: draft > 0 ? "winner" : "neutral", caption: "点开那一条出图" },
+            { label: "空档", value: openDays, tone: openDays > 0 ? "winner" : "neutral", caption: "天没有任何内容" },
+          ]}
+        />
 
         <div className={styles.intake}>
           <input
@@ -195,7 +207,7 @@ export function PlanTimeline({
           <p className={styles.basis}>{plan.planBasis}</p>
         ) : null}
         {error ? <p className={styles.error}>{error}</p> : null}
-      </header>
+      </div>
 
       <section className={styles.track} aria-label="本周内容时间线">
         <div className={styles.trackInner}>
@@ -338,19 +350,9 @@ export function PlanTimeline({
         </section>
       ) : null}
 
-      <footer className={styles.foot}>
-        {plan ? (
-          <>
-            本周已排 <span className={styles.footCount}>{posts.length}</span> 条，
-            还有 <span className={styles.footCount}>{emptyDays}</span> 个空档
-            {plan.generatedBy === "heuristic"
-              ? " · 本次由兜底模板生成，建议重新排一次"
-              : ""}
-          </>
-        ) : (
-          "还没有本周计划"
-        )}
-      </footer>
+      {plan?.generatedBy === "heuristic" ? (
+        <footer className={styles.foot}>本次由兜底模板生成，建议重新排一次</footer>
+      ) : null}
     </div>
   );
 }

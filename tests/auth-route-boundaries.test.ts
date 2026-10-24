@@ -7,9 +7,9 @@ test("auth loading and error boundaries preserve the full-viewport continuity an
   const error = readFileSync("src/components/auth/auth-route-error.tsx", "utf8");
   const loadingEntry = readFileSync("src/app/(auth)/loading.tsx", "utf8");
   const errorEntry = readFileSync("src/app/(auth)/error.tsx", "utf8");
-  assert.match(loading, /auth-studio-theme/);
+  assert.match(loading, /gate-theme/);
   assert.match(loading, /min-h-screen/);
-  assert.match(error, /auth-studio-theme/);
+  assert.match(error, /gate-theme/);
   assert.match(error, /min-h-screen/);
   assert.match(errorEntry, /"use client"/);
   assert.match(loadingEntry, /AuthRouteLoading/);

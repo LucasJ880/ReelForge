@@ -71,7 +71,7 @@ export function ImageLightbox({
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-card text-foreground shadow-editorial"
+            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full bg-card text-foreground shadow-panel"
             aria-label="关闭"
             autoFocus
           >
@@ -82,7 +82,7 @@ export function ImageLightbox({
             src={src ?? undefined}
             alt={alt}
             onClick={(e) => e.stopPropagation()}
-            className="max-h-[90vh] max-w-[95vw] cursor-zoom-out rounded-(--radius-lg) object-contain shadow-editorial"
+            className="max-h-[90vh] max-w-[95vw] cursor-zoom-out rounded-(--radius-lg) object-contain shadow-panel"
             draggable={false}
           />
         </div>

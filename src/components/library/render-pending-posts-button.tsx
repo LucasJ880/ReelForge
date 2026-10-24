@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Sparkles } from "lucide-react";
+import { ImagePlus, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/i18n/useTranslation";
 
@@ -71,7 +71,7 @@ export function RenderPendingPostsButton({ items }: { items: PendingPostRef[] })
         {running ? (
           <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden />
         ) : (
-          <Sparkles aria-hidden />
+          <ImagePlus aria-hidden />
         )}
         {running
           ? copy.running

@@ -99,3 +99,8 @@ const VERIFIED_TEMPLATE_VIDEO_SLUGS = new Set([
   "commerce-hard-sell-presenter",
   ...EXPANSION_QA_PASSED_SLUGS,
 ]);
+
+/** 已过真机验收、可对外展示的模板样片 slug（登录门等公开面只从这里取）。 */
+export function hasVerifiedTemplateVideo(slug: string): boolean {
+  return VERIFIED_TEMPLATE_VIDEO_SLUGS.has(slug);
+}

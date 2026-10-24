@@ -16,7 +16,7 @@ export function PageHeader({ title, description, actions, className }: Props) {
       )}
     >
       <div className="min-w-0">
-        <h1 className="editorial-display wrap-break-word">{title}</h1>
+        <h1 className="x-display wrap-break-word">{title}</h1>
         {description && (
           <p className="mt-3 max-w-3xl text-body text-muted-foreground">{description}</p>
         )}

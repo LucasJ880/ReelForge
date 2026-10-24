@@ -563,7 +563,7 @@ function RouteRadioItem({
         <span className="flex min-w-0 items-center justify-between gap-2">
           <span className="truncate font-medium text-foreground">{title}</span>
           <span className={cn(
-            "shrink-0 rounded-full border px-2 py-0.5 font-mono text-[10px]",
+            "shrink-0 rounded-(--radius-sm) border px-2 py-0.5 font-mono text-[10px]",
             warning
               ? "border-warning/40 text-warning"
               : "border-success/40 text-success",

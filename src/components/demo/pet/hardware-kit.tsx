@@ -20,13 +20,12 @@ export function HardwareKit() {
   return (
     <PetSection
       id="hardware-kit"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.description}
     >
       {/* 主视觉海报 + 投资人核心话术 */}
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
-        <figure className="overflow-hidden rounded-(--radius-lg) border border-border bg-card shadow-editorial">
+        <figure className="overflow-hidden rounded-(--radius-lg) border border-border bg-card shadow-panel">
           <ImageLightbox
             src={s.heroImage}
             alt={s.heroImageAlt}
@@ -58,7 +57,7 @@ export function HardwareKit() {
 
 function ProductCard({ product }: { product: HardwareProductDemo }) {
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col overflow-hidden rounded-(--radius-lg)">
+    <div className="border border-border bg-card shadow-panel flex flex-col overflow-hidden rounded-(--radius-lg)">
       <div className="relative bg-muted">
         <PetImage
           src={product.image}

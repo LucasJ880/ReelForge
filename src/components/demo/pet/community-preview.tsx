@@ -11,13 +11,12 @@ export function CommunityPreview() {
   return (
     <PetSection
       id="community"
-      eyebrow="宠物社区生态"
       title="长期沉淀为一个以宠物为核心的内容社区"
       description={community.intro}
     >
       <div className="grid gap-5 lg:grid-cols-[300px_1fr]">
         {/* 宠物主页 */}
-        <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
+        <div className="border border-border bg-card shadow-panel overflow-hidden rounded-(--radius-lg)">
           <div className="relative h-28 w-full overflow-hidden bg-muted">
             <PetImage src={profile.coverUrl} alt="主页封面" fallbackLabel="" />
           </div>
@@ -67,7 +66,7 @@ export function CommunityPreview() {
 
           <div className="grid gap-5 sm:grid-cols-[1fr_1fr]">
             {/* 挑战赛 */}
-            <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
+            <div className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5">
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                 <Trophy size={14} /> 热门挑战赛
               </p>
@@ -94,7 +93,7 @@ export function CommunityPreview() {
             </div>
 
             {/* 品牌试用 */}
-            <div className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
+            <div className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5">
               <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-success">
                 <Gift size={14} /> {community.brandTrial.title}
               </p>
@@ -121,7 +120,7 @@ export function CommunityPreview() {
 
 function FeedCard({ post }: { post: CommunityPostDemo }) {
   return (
-    <div className="border border-border bg-card shadow-editorial overflow-hidden rounded-(--radius-lg)">
+    <div className="border border-border bg-card shadow-panel overflow-hidden rounded-(--radius-lg)">
       <div className="relative aspect-square w-full overflow-hidden bg-muted">
         <PetImage src={post.coverUrl} alt={post.caption} fallbackLabel="" />
         {post.badge ? (

@@ -12,7 +12,6 @@ export function BusinessModel() {
   return (
     <PetSection
       id="business-model"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.description}
     >
@@ -40,7 +39,7 @@ function RevenueCard({
   icon: typeof Coins;
 }) {
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-6">
+    <div className="border border-border bg-card shadow-panel flex flex-col rounded-(--radius-lg) p-6">
       <div className="flex h-11 w-11 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
         <Icon size={20} />
       </div>

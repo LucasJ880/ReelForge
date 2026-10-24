@@ -8,7 +8,8 @@ interface LegalSectionCopy {
 interface PublicPageCopy {
   privacy: {
     metadata: { title: string; description: string };
-    kicker: string;
+    /** 法务状态：不是眉题，放在标题下方的状态行。 */
+    draftStatus: string;
     title: string;
     intro: string;
     information: LegalSectionCopy;
@@ -29,7 +30,8 @@ interface PublicPageCopy {
   };
   terms: {
     metadata: { title: string; description: string };
-    kicker: string;
+    /** 法务状态：不是眉题，放在标题下方的状态行。 */
+    draftStatus: string;
     title: string;
     intro: string;
     usage: LegalSectionCopy;
@@ -50,7 +52,6 @@ interface PublicPageCopy {
     studioLabel: string;
     signIn: string;
     getStarted: string;
-    eyebrow: string;
     title: string;
     description: string;
     partnerLead: string;
@@ -70,7 +71,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "隐私政策草案 · Aivora",
         description: "Aivora 关于信息收集、使用、保存、处理方与用户权利的隐私政策工程草案。",
       },
-      kicker: "草案 · 待加拿大律师复核",
+      draftStatus: "草案 · 待加拿大律师复核",
       title: "隐私政策",
       intro: "适用于由加拿大安大略省团队运营的 Aivora。本草案最后更新于 2026 年 7 月 13 日。",
       information: {
@@ -106,7 +107,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "服务条款草案 · Aivora",
         description: "Aivora 商业试点服务条款工程草案，涵盖输入授权、AI 输出、禁止用途与服务边界。",
       },
-      kicker: "草案 · 待加拿大律师复核",
+      draftStatus: "草案 · 待加拿大律师复核",
       title: "服务条款",
       intro: "供商业试点审阅的工程草案。本草案最后更新于 2026 年 7 月 13 日。",
       usage: {
@@ -148,7 +149,6 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       studioLabel: "创意工作室",
       signIn: "登录",
       getStarted: "开始使用",
-      eyebrow: "AI 视频生产",
       title: "从一支视频开始，扩展到可控的批量生产。",
       description: "创作、模板、批量、赛马与成品都在同一个工作区。新账号默认使用 starter，studio 由正式权益流程授予。",
       partnerLead: "投资人 / 孵化器 / 战略合作？",
@@ -166,7 +166,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "Privacy Policy Draft · Aivora",
         description: "Aivora's engineering draft covering information collection, use, retention, processors, and customer rights.",
       },
-      kicker: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
+      draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
       title: "Privacy Policy",
       intro: "Engineering draft for Aivora, operated from Ontario, Canada. Last updated July 13, 2026.",
       information: {
@@ -202,7 +202,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         title: "Terms of Service Draft · Aivora",
         description: "Aivora's business-pilot terms draft covering input rights, AI output, prohibited use, and service boundaries.",
       },
-      kicker: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
+      draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
       title: "Terms of Service",
       intro: "Engineering draft for business pilot review. Last updated July 13, 2026.",
       usage: {
@@ -244,7 +244,6 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       studioLabel: "Editorial Studio",
       signIn: "Sign in",
       getStarted: "Get started",
-      eyebrow: "AI video production",
       title: "Start with one video. Scale into controlled batch production.",
       description: "Creation, templates, batch production, campaign racing, and deliverables live in one workspace. New accounts start on starter; studio access is granted through the formal entitlement flow.",
       partnerLead: "Investor, incubator, or strategic partner?",

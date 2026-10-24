@@ -52,13 +52,13 @@ export function OpsCreditsCluster({ english }: { english: boolean }) {
         }}
         aria-expanded={open}
         aria-label={english ? "Aivora credits" : "Aivora 积分"}
-        className="flex h-9 items-center gap-1.5 rounded-full border border-border bg-accent-soft px-3 font-mono text-meta tabular-nums text-foreground"
+        className="flex h-9 items-center gap-1.5 rounded-(--radius-sm) border border-border bg-accent-soft px-3 font-mono text-meta tabular-nums text-foreground"
       >
         {points}
         <span className="text-muted-foreground">{english ? "pts" : "积分"}</span>
       </button>
       {open ? (
-        <div className="absolute right-0 top-full z-40 mt-2 w-72 space-y-2 rounded-(--radius-md) border border-border bg-card p-4 shadow-editorial">
+        <div className="absolute right-0 top-full z-40 mt-2 w-72 space-y-2 rounded-(--radius-md) border border-border bg-card p-4 shadow-panel">
           {state.phase === "ready" ? (
             <>
               <div className="flex items-center justify-between text-meta">

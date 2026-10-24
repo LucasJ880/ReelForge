@@ -1,4 +1,4 @@
-import { Droplet, Send, Sparkles, Trophy, UserPlus } from "lucide-react";
+import { Droplet, Send, Trophy, UserPlus } from "lucide-react";
 import { PetSection } from "./pet-section";
 import { viralSharing } from "@/lib/demo/pet-content-kit-demo-data";
 
@@ -8,7 +8,6 @@ export function ViralSharing() {
   return (
     <PetSection
       id="sharing"
-      eyebrow="病毒式分享裂变"
       title="宠物主人天然爱分享，分享就是增长"
       description={viralSharing.intro}
     >
@@ -16,9 +15,9 @@ export function ViralSharing() {
         {/* 分享步骤 */}
         <div className="grid gap-4 sm:grid-cols-2">
           {viralSharing.steps.map((step, i) => {
-            const Icon = STEP_ICON[i] ?? Sparkles;
+            const Icon = STEP_ICON[i] ?? Send;
             return (
-              <div key={step.step} className="border border-border bg-card shadow-editorial rounded-(--radius-lg) p-5">
+              <div key={step.step} className="border border-border bg-card shadow-panel rounded-(--radius-lg) p-5">
                 <div className="flex items-center gap-3">
                   <span className="flex h-10 w-10 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
                     <Icon size={18} />
@@ -39,7 +38,7 @@ export function ViralSharing() {
         </div>
 
         {/* 平台 + 水印 + 指标 */}
-        <div className="border border-border bg-card shadow-editorial flex flex-col gap-5 rounded-(--radius-lg) p-5">
+        <div className="border border-border bg-card shadow-panel flex flex-col gap-5 rounded-(--radius-lg) p-5">
           <div>
             <p className="text-xs font-semibold text-success">
               一键分享到

@@ -63,8 +63,8 @@ npm run db:migrate          # ⚠️ dotenv -e .env.local = 直连生产库
 
 - `'use client'` 文件**不得引用服务端 service 的模块级值**——会把 OpenAI SDK 打进客户端
   bundle，整页 500。有 `client-bundle-safety` 回归测试守着，别绕过它。
-- 新界面走「剪辑台」方向：圆角 0、无阴影、数字 tabular-nums、accent `#ff4d00` 只用三处、
-  只做深色。规矩见 PRD §11。
+- 新界面走「Aivora Exchange 深海交易所」方向：冷蓝近黑 + 只来自数据的信号色、`QuoteHeader` / `StatusTick` /
+  `FillBar`（`src/components/exchange/`）、圆角 3/6/10、数字 tabular-nums、不做毛玻璃。规矩见根目录 `DESIGN.md`。
 
 ## 三、交付门：先验证，再说完成
 

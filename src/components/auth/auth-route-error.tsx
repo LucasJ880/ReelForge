@@ -25,14 +25,14 @@ export function AuthRouteError({
       data-route-state="error"
       role="alert"
       aria-live="assertive"
-      className="auth-studio-theme studio-canvas flex min-h-screen items-center justify-center bg-background px-6 text-foreground"
+      className="gate-theme desk-canvas flex min-h-screen items-center justify-center bg-background px-6 text-foreground"
     >
       <div className="w-full max-w-md rounded-(--radius-lg) border border-danger/40 bg-card p-6 text-center sm:p-8">
         <Logo size={48} className="mx-auto" />
-        <span className="mx-auto mt-6 flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger">
+        <span className="mx-auto mt-6 flex size-10 items-center justify-center rounded-(--radius-sm) bg-danger/10 text-danger">
           <AlertTriangle aria-hidden className="size-5" />
         </span>
-        <h1 className="mt-4 font-heading text-title font-semibold">{title}</h1>
+        <h1 className="mt-4 text-title font-medium">{title}</h1>
         <p className="mt-2 text-body text-muted-foreground">
           {copy.routeStates.errorBody}
         </p>

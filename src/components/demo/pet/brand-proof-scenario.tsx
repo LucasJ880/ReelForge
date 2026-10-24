@@ -1,4 +1,4 @@
-import { Layers, Camera, Sparkles, Building2, ArrowRight } from "lucide-react";
+import { Layers, Camera, Film, Building2, ArrowRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { PetSection } from "./pet-section";
 import {
@@ -6,14 +6,13 @@ import {
   type BrandProofStepDemo,
 } from "@/lib/demo/pet-content-kit-demo-data";
 
-const STEP_ICON: LucideIcon[] = [Layers, Camera, Sparkles, Building2];
+const STEP_ICON: LucideIcon[] = [Layers, Camera, Film, Building2];
 
 export function BrandProofScenario() {
   const s = BRAND_PROOF_SCENARIO;
   return (
     <PetSection
       id="brand-proof-scenario"
-      eyebrow={s.eyebrow}
       title={s.title}
       description={s.description}
     >
@@ -44,9 +43,9 @@ function ScenarioStep({
   index: number;
   isLast: boolean;
 }) {
-  const Icon = STEP_ICON[index] ?? Sparkles;
+  const Icon = STEP_ICON[index] ?? Film;
   return (
-    <div className="relative border border-border bg-card shadow-editorial flex flex-col rounded-(--radius-lg) p-5">
+    <div className="relative border border-border bg-card shadow-panel flex flex-col rounded-(--radius-lg) p-5">
       <div className="flex items-center gap-2">
         <span className="flex h-10 w-10 items-center justify-center rounded-(--radius-lg) bg-primary/10 text-primary">
           <Icon size={18} />
@@ -61,12 +60,12 @@ function ScenarioStep({
           />
         ) : null}
       </div>
-      <p className="mt-3 text-meta font-semibold uppercase tracking-wide text-success">
-        {step.actorLabel}
-      </p>
-      <h3 className="mt-1 text-sm font-semibold text-foreground">
+      <h3 className="mt-3 text-sm font-semibold text-foreground">
         {step.title}
       </h3>
+      <p className="mt-1 text-meta font-medium text-success">
+        {step.actorLabel}
+      </p>
       <p className="mt-1.5 text-xs leading-6 text-muted-foreground">
         {step.detail}
       </p>

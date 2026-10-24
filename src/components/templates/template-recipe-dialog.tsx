@@ -101,7 +101,7 @@ function RecipeBlock({
   return (
     <section className="overflow-hidden rounded-(--radius-md) border border-border bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-        <h3 className="studio-label text-muted-foreground">{title}</h3>
+        <h3 className="x-label text-muted-foreground">{title}</h3>
         <Button type="button" variant="ghost" size="sm" onClick={onCopy} aria-label={copyLabel}>
           {copied ? <Check className="text-success" aria-hidden /> : <Copy aria-hidden />}
           {copied ? copiedLabel : copyLabel}

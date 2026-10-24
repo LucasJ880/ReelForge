@@ -9,7 +9,6 @@ export function AutoVideos() {
   return (
     <PetSection
       id="auto-videos"
-      eyebrow="自动生成视频草稿"
       title="每天自动产出 3-5 条可直接发布的短视频"
       description="系统自动生成宠物语气字幕、标题、文案和话题标签——给主人的可分享内容，也给品牌的种草素材，挑一条就能发。"
     >
@@ -29,7 +28,7 @@ function DraftCard({ draft }: { draft: AutoVideoDraftDemo }) {
       : "border-primary/30 bg-primary/10 text-primary";
 
   return (
-    <div className="border border-border bg-card shadow-editorial flex flex-col gap-4 rounded-(--radius-lg) p-4">
+    <div className="border border-border bg-card shadow-panel flex flex-col gap-4 rounded-(--radius-lg) p-4">
       <div className="flex items-center justify-between gap-2">
         <span
           className={`rounded-full border px-2.5 py-1 text-meta font-semibold ${audienceStyle}`}

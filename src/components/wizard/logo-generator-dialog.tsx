@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Sparkles, Check, Loader2 } from "lucide-react";
+import { Check, Loader2, PenTool } from "lucide-react";
 import { useTranslation } from "@/i18n/useTranslation";
 import {
   Dialog,
@@ -133,7 +133,7 @@ export function LogoGeneratorDialog({
             disabled={disabled}
             className="gap-1.5"
           >
-            <Sparkles className="h-4 w-4" />
+            <PenTool className="size-4" aria-hidden />
             {t(triggerLabelKey)}
           </Button>
         }

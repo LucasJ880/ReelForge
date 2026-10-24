@@ -10,7 +10,6 @@ export function DetectedMoments() {
   return (
     <PetSection
       id="moments"
-      eyebrow="AI 识别精彩瞬间"
       title="从监控画面，变成内容生产"
       description="AI 自动从长视频里筛选出最可爱、最有传播性、最适合展示产品的片段，并给出可爱度与传播潜力评分。"
       aside={
@@ -30,7 +29,7 @@ export function DetectedMoments() {
 
 function MomentCard({ moment }: { moment: DetectedMomentDemo }) {
   return (
-    <div className="border border-border bg-card shadow-editorial group overflow-hidden rounded-(--radius-lg)">
+    <div className="border border-border bg-card shadow-panel group overflow-hidden rounded-(--radius-lg)">
       <div className="relative aspect-[4/5] w-full overflow-hidden">
         <PetImage
           src={moment.imageUrl}

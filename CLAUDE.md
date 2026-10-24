@@ -64,19 +64,20 @@ npm run context:find -- "..."
 改完代码，**先自己验证再报完成**：`npm run typecheck` + `npm run lint` + 相关 test 全绿，
 把命令输出贴出来。失败就说失败，不要用「应该没问题」代替证据。
 
-## 6. 界面：Aivora Glass 毛玻璃方向（2026-08-02 定稿，取代旧剪辑台）
+## 6. 界面：Aivora Exchange 深海交易所（2026-10-24 定稿，取代 Aivora Glass）
 
-全站单一深色玻璃世界，完整规矩见根目录 **`DESIGN.md`**（唯一事实来源）。速记：
+全站单一深色交易大厅，完整规矩见根目录 **`DESIGN.md`**（唯一事实来源）。速记：
 
-- 三档玻璃材质只从 `globals.css` 取用：`glass-pane`（结构面，真 backdrop 模糊）/
-  内容玻璃卡（`--shadow-card` + `--glass-sheen`，不付模糊成本）/ `glass-well`（下沉井）。
-  **blur 不许写成组件里的工具类**，有门禁测试守着。
-- 颜色/圆角/阴影字面量只住 `src/styles/tokens.css`；圆角 10/14/20；数字一律 tabular-nums。
-- accent 品牌橙只用三处：品牌标记（含登录门主标题宣言行）/ 当前项 / 需行动的数字。
-  `#ff4d00` 上禁白字（用 `--primary-foreground`）。
-- 字体：Schibsted Grotesk + Noto Sans SC（显示）/ Inter（正文）/ JetBrains Mono（数字）。
-- 环境光场 `--ambient-glow` 随进行中批次数抬升（PlatformShell），别做成静态装饰。
+- 冷蓝近黑的场（`--bg`）+ 极淡工程网格；面板不透明（`.x-panel`），行情墙用 `.x-wall`
+  1px 接缝拼格，结构条用 `.x-pane`，下沉面用 `.x-well`。**不做毛玻璃、不铺光晕**，
+  有门禁测试守着（`backdrop-filter`、`#ff4d00`、glass/editorial 材质名一律禁止回流）。
+- 颜色只来自数据与媒体：信号青 `--accent`（实时/当前/主行动）、成交绿 `--success`、
+  赢家金 `--gold`（赢家与需要你处理的数字）、失败玫红 `--danger`、AI 鸢尾紫 `--iris`（只做标注）。
+  信号青上用深字 `--primary-foreground`。
+- 颜色/圆角/阴影字面量只住 `src/styles/tokens.css`；圆角 3/6/10；数字一律 tabular-nums。
+- 字体：Archivo（可变字宽，大而轻的标题与读数）+ Noto Sans SC（中文）/ Martian Mono（代码、时间、计数）。
+- 页面开场用 `QuoteHeader`（`src/components/exchange/`）：大而轻的标题 + 真实读数墙，零就写零，不放示例数字。
+  状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
+- 壳层是行情终端：顶部行情条 + 实时成交带（本工作区真实批次）+ 编号导轨 + 状态栏；`/wall` 是行情大屏。
 - 眉题/kicker 一律禁止；页面标题自己承重。
-- 旧剪辑台三装置（齿孔封边/场记板镜号）已废弃；`designs/aivora-os/Aivora OS v2.html`
-  与 PRD §11 的圆角 0/无阴影规矩仅作历史参考，**不要再照着做**。
-- 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-glass`）。
+- 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-abyss-exchange`）。

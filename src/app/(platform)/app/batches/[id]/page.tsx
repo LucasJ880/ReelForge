@@ -40,12 +40,12 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
   }
   const copy = getPlatformCopy(await getServerLocale()).batches;
   return (
-    <div className="editorial-page-stack min-w-0">
+    <div className="x-stack min-w-0">
       <nav aria-label={copy.monitorNav} className="flex flex-wrap items-center justify-between gap-3">
         <Button render={<Link href="/app/batches" />} variant="ghost" size="sm">
           <ArrowLeft aria-hidden />{copy.back}
         </Button>
-        <Button render={<Link href="/app/batches/new" />} size="sm">
+        <Button render={<Link href="/app/batches/new" />} variant="outline" size="sm">
           <Plus aria-hidden />{copy.new}
         </Button>
       </nav>

@@ -44,14 +44,19 @@ test("RF-011 browser overflow regression covers all three desktop widths", async
   assert.match(source, /getBoundingClientRect/);
 });
 
-test("auth hero uses the compact editorial type scale", async () => {
+test("auth hero uses the bounded big-and-light display scale", async () => {
   const source = await readFile(
     path.join(ROOT, "src/app/(auth)/layout.tsx"),
     "utf8",
   );
-  assert.match(source, /clamp\(1\.75rem,3\.2vw,2\.75rem\)/);
-  assert.match(source, /max-w-\[32rem\]/);
-  assert.match(source, /font-mono text-body font-semibold/);
+  // Exchange 登录门：大而轻的宣言，但上限钳住，窄屏不撑破。
+  assert.match(source, /x-display text-\[clamp\(2\.5rem,5\.4vw,5\.25rem\)\]/);
+  assert.match(source, /max-w-\[46ch\]/);
+  // 样片墙：三格等分且整块限宽，窄屏不横滚；取数失败整块不渲染。
+  assert.match(source, /<figure className="max-w-2xl/);
+  assert.match(source, /x-wall x-frame grid-cols-3/);
+  assert.match(source, /catch \{\s*return null;/);
+  assert.match(source, /<section className="min-w-0/);
 });
 
 test("brand manager uses responsive cards without horizontal scrolling", async () => {

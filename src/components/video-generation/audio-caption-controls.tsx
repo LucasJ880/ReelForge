@@ -2,7 +2,6 @@
 
 import { AudioLines, Captions, Music2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type {
   BgmTrackId,
   CaptionPosition,
@@ -132,7 +131,7 @@ function joinWithinEnglishLimit(
 
 /**
  * Produces a short, deterministic first draft. It intentionally stays local:
- * the final wording remains editable and Seedance speaks this exact script.
+ * the final wording remains editable and the video model speaks this exact script.
  */
 export function generateVoiceoverScript(input: VoiceoverScriptInput): string {
   const english = input.language.toLowerCase().startsWith("en");
@@ -172,31 +171,15 @@ export function AudioCaptionControls({
   };
 
   return (
-    <Card data-testid="audio-caption-controls">
-      <CardHeader className="grid grid-cols-[auto_1fr] items-center gap-x-3">
-        <span className="flex size-8 items-center justify-center rounded-full bg-primary font-mono text-meta font-semibold text-primary-foreground">
-          6
-        </span>
-        <div>
-          <CardTitle>
-            {english ? "Voice, captions, and music" : "口播、字幕与配乐"}
-          </CardTitle>
-          <p className="mt-1 text-meta text-muted-foreground">
-            {english
-              ? "Seedance creates native speech from your final script. Captions are timed deterministically after the video is rendered."
-              : "Seedance 按最终脚本生成原生口播；成片后再按实际时长确定性生成字幕。"}
-          </p>
-        </div>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        <section className="rounded-(--radius-md) border border-border bg-secondary p-4">
+    // 下单票第 06 行：编号与标题由所在行承担，这里只放控件（不再自带卡片外壳）。
+    <div data-testid="audio-caption-controls" className="space-y-4">
+        <section className="space-y-3">
           <label className="flex cursor-pointer items-start justify-between gap-4">
             <span className="flex min-w-0 gap-3">
-              <AudioLines className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+              <AudioLines className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
               <span>
                 <span className="block text-body font-semibold text-foreground">
-                  {english ? "Seedance native voiceover" : "Seedance 原生口播"}
+                  {english ? "Native voiceover" : "原生口播"}
                 </span>
                 <span className="mt-0.5 block text-meta text-muted-foreground">
                   {english
@@ -222,7 +205,7 @@ export function AudioCaptionControls({
                 maxLength={2000}
                 rows={5}
                 disabled={disabled || !value.voiceoverEnabled}
-                className="mt-2 min-h-32 w-full resize-y rounded-(--radius-md) border border-input bg-card px-3 py-2 text-body leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
+                className="mt-2 min-h-32 w-full resize-y rounded-(--radius-md) x-well border-input px-3 py-2 text-body leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50"
                 onChange={(event) => update({ voiceoverScript: event.target.value })}
               />
               <span className="mt-1 block text-right font-mono text-meta tabular-nums">
@@ -236,7 +219,7 @@ export function AudioCaptionControls({
                 <select
                   value={value.voiceId}
                   disabled={disabled || !value.voiceoverEnabled}
-                  className="mt-2 h-(--control-height) w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50"
+                  className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50"
                   onChange={(event) => update({ voiceId: event.target.value })}
                 >
                   {VOICE_OPTIONS.map((option) => (
@@ -260,10 +243,10 @@ export function AudioCaptionControls({
           </div>
         </section>
 
-        <details className="group rounded-(--radius-md) border border-border bg-card">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-body font-semibold text-foreground">
+        <details className="group border-t border-border pt-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 py-1 text-body font-semibold text-foreground">
             <span className="flex items-center gap-2">
-              <Captions className="size-5 text-primary" aria-hidden />
+              <Captions className="size-5 text-muted-foreground" aria-hidden />
               {english ? "Caption and BGM controls" : "字幕与 BGM 高级设置"}
             </span>
             <span className="text-meta font-normal text-muted-foreground group-open:hidden">
@@ -274,7 +257,7 @@ export function AudioCaptionControls({
             </span>
           </summary>
 
-          <div className="grid gap-5 border-t border-border px-4 py-4 lg:grid-cols-2">
+          <div className="mt-3 grid gap-5 border-t border-border pt-4 lg:grid-cols-2">
             <section className="space-y-3">
               <label className="flex cursor-pointer items-center justify-between gap-4">
                 <span>
@@ -302,7 +285,7 @@ export function AudioCaptionControls({
                   <select
                     value={value.captionStyle}
                     disabled={disabled || !value.captionsEnabled}
-                    className="mt-2 h-(--control-height) w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground disabled:opacity-50"
+                    className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
                     onChange={(event) => update({
                       captionStyle: event.target.value as CaptionStyle,
                     })}
@@ -323,7 +306,7 @@ export function AudioCaptionControls({
                   <select
                     value={value.captionPosition}
                     disabled={disabled || !value.captionsEnabled}
-                    className="mt-2 h-(--control-height) w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground disabled:opacity-50"
+                    className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
                     onChange={(event) => update({
                       captionPosition: event.target.value as CaptionPosition,
                     })}
@@ -349,7 +332,7 @@ export function AudioCaptionControls({
 
             <section className="space-y-3">
               <div className="flex items-start gap-2">
-                <Music2 className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+                <Music2 className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
                 <div>
                   <p className="text-body font-semibold text-foreground">
                     {english ? "Licensed background music" : "授权背景音乐"}
@@ -367,7 +350,7 @@ export function AudioCaptionControls({
                 <select
                   value={value.bgmTrackId}
                   disabled={disabled}
-                  className="mt-2 h-(--control-height) w-full rounded-(--radius-md) border border-input bg-card px-3 text-body text-foreground disabled:opacity-50"
+                  className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
                   onChange={(event) => update({
                     bgmTrackId: event.target.value as BgmTrackId,
                   })}
@@ -398,13 +381,12 @@ export function AudioCaptionControls({
                 />
               </label>
 
-              <p className="rounded-(--radius-sm) bg-secondary px-3 py-2 text-meta text-muted-foreground">
+              <p className="border-l-2 border-border pl-3 text-meta text-muted-foreground">
                 Wholesome by Kevin MacLeod · CC BY 4.0
               </p>
             </section>
           </div>
         </details>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

@@ -1,5 +1,18 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/*
+ * tokens.css 里自定义的字号（text-data / text-meta / …）必须告诉 tailwind-merge，
+ * 否则它把这些类当成文字颜色，遇到后面的 text-accent 之类就整个丢掉——
+ * StatusTick、Badge、按钮等的字号会悄悄退回继承值。
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: ["micro", "data", "meta", "body", "subhead", "title", "section", "figure"],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

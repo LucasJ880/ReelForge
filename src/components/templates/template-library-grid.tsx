@@ -3,11 +3,13 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Film, Search, ShieldCheck } from "lucide-react";
+import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
+import { TemplateShotTimeline, type TemplateShot } from "@/components/templates/template-shot-timeline";
+import { TEMPLATE_LIBRARY_COPY, fillCount } from "@/components/templates/template-library-copy";
 import { HoverPreviewVideo } from "@/components/library/hover-preview-video";
 import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
@@ -30,11 +32,16 @@ export type TemplateLibraryItem = {
     duration?: number;
     aspectRatio?: string;
   };
+  /// 这一版配方冻结的分镜（promptSkeleton 的 TIMED STORYBOARD），样片待补时画成时间线
+  shots: TemplateShot[];
+  /// 本工作区近 30 天用这个模板（同 slug 的各个版本）建的批次数
+  recentBatchCount: number;
 };
 
 export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryItem[] }) {
   const { locale } = useTranslation();
   const copy = getPlatformCopy(locale).templates;
+  const libraryCopy = TEMPLATE_LIBRARY_COPY[locale];
   const english = locale === "en-US";
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("__all__");
@@ -49,32 +56,33 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
       (!normalized || `${template.nameZh} ${template.name} ${template.category} ${template.slug}`.toLocaleLowerCase().includes(normalized)),
     );
   }, [category, query, templates]);
-  const sampleCount = templates.filter((template) => template.sampleImage || template.sampleVideo).length;
+  /// 跟着筛选走：总数已经在行情头里，这里回答「筛出来的里有几条能看样片」
+  const visibleSampleCount = visible.filter((template) => template.sampleImage || template.sampleVideo).length;
 
   return (
     <div className="space-y-5">
-      <section className="studio-panel rounded-(--radius-lg) p-4" aria-label={copy.filterLabel}>
+      <section className="x-panel p-4" aria-label={copy.filterLabel}>
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <label className="relative block w-full lg:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
             <span className="sr-only">{copy.searchLabel}</span>
             <Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchPlaceholder} className="pl-9" />
           </label>
-          <div className="flex flex-wrap items-center gap-3 font-mono text-meta tabular-nums text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-3 font-mono text-data tabular-nums text-muted-foreground" aria-live="polite">
             <span>{copy.lockedCount.replace("{visible}", String(visible.length)).replace("{total}", String(templates.length))}</span>
             <span aria-hidden>·</span>
-            <span>{sampleCount} {english ? "verified samples" : "个独立样片"}</span>
+            <span>{visibleSampleCount} {english ? "verified samples" : "个独立样片"}</span>
           </div>
         </div>
         <div data-template-filters className="mt-4 flex flex-wrap gap-2" role="group" aria-label={copy.categoryLabel}>
           {categories.map((item) => (
-            <Button key={item} type="button" size="sm" variant={category === item ? "default" : "outline"} onClick={() => setCategory(item)} className="shrink-0">{item === "__all__" ? copy.all : categoryLabel(copy, item)}</Button>
+            <Button key={item} type="button" size="sm" variant={category === item ? "default" : "outline"} aria-pressed={category === item} onClick={() => setCategory(item)} className="shrink-0">{item === "__all__" ? copy.all : categoryLabel(copy, item)}</Button>
           ))}
         </div>
       </section>
 
       {visible.length === 0 ? (
-        <section className="rounded-(--radius-lg) border border-border bg-card px-6 py-10">
+        <section className="x-panel px-6 py-10">
           <p className="text-body text-muted-foreground">{copy.empty}</p>
           <Button type="button" variant="outline" onClick={() => { setCategory("__all__"); setQuery(""); }} className="mt-4">{copy.clear}</Button>
         </section>
@@ -83,42 +91,53 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
           {visible.map((template) => {
             const locked = template.lockedParams;
             const title = english ? template.name : template.nameZh;
+            const hasSample = Boolean(template.sampleImage || template.sampleVideo);
             return (
               <li key={template.id} className="min-w-0 h-full">
-                <article data-template-card className="studio-panel group flex h-full min-w-0 flex-col overflow-hidden transition-colors hover:border-border-strong">
-                  {template.sampleImage || template.sampleVideo ? (
-                    <div className="relative aspect-video overflow-hidden bg-secondary">
-                      {template.sampleVideo ? (
-                        <HoverPreviewVideo
-                          src={template.sampleVideo}
-                          poster={template.sampleImage ?? undefined}
-                          ariaLabel={`${title} ${copy.sample}`}
-                        />
-                      ) : template.sampleImage ? (
-                        <Image src={template.sampleImage} alt={`${title} ${copy.sample}`} fill unoptimized sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
-                      ) : null}
+                <article data-template-card className="x-panel group flex h-full min-w-0 flex-col overflow-hidden transition-colors hover:border-border-strong">
+                  {/* 每张卡同一个 16:9 媒体位：有验收样片放样片，没有就画这份配方的分镜时间线，不编图 */}
+                  <div className="relative aspect-video overflow-hidden bg-sunken">
+                    {template.sampleVideo ? (
+                      <HoverPreviewVideo
+                        src={template.sampleVideo}
+                        poster={template.sampleImage ?? undefined}
+                        ariaLabel={`${title} ${copy.sample}`}
+                      />
+                    ) : template.sampleImage ? (
+                      <Image src={template.sampleImage} alt={`${title} ${copy.sample}`} fill unoptimized sizes="(min-width: 1536px) 22vw, (min-width: 1280px) 30vw, (min-width: 640px) 50vw, 100vw" className="object-cover transition-transform duration-base group-hover:scale-[1.02] motion-reduce:transition-none" />
+                    ) : (
+                      <TemplateShotTimeline
+                        shots={template.shots}
+                        duration={locked.duration}
+                        aspectRatio={locked.aspectRatio}
+                        locale={locale}
+                      />
+                    )}
+                    {hasSample ? (
                       <span className="absolute bottom-2 left-2 rounded-(--radius-sm) bg-overlay px-2 py-1 text-meta text-foreground">{copy.sample}</span>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                   <div className="flex flex-1 flex-col gap-3 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          {!template.sampleImage && !template.sampleVideo ? <Film className="size-4 shrink-0 text-muted-foreground" aria-hidden /> : null}
-                          <h2 className="truncate font-heading text-subhead font-semibold">{title}</h2>
-                        </div>
-                        <p className="mt-1 truncate font-mono text-meta text-muted-foreground">{english ? template.slug : template.name}</p>
+                        <h2 className="truncate text-subhead font-medium">{title}</h2>
+                        <p className="mt-0.5 truncate text-meta text-tertiary">{english ? template.slug : template.name}</p>
                         {template.summary ? <p className="mt-2 line-clamp-2 text-meta leading-relaxed text-muted-foreground">{template.summary}</p> : null}
                       </div>
                       <Badge variant="secondary">{categoryLabel(copy, template.category)}</Badge>
                     </div>
                     <div className="grid grid-cols-3 gap-2 text-meta text-muted-foreground">
-                      <span className="flex items-center gap-1"><ShieldCheck className="size-3.5 text-success" aria-hidden />{locked.stability === "high" ? copy.stable : copy.balanced}</span>
+                      <span className="flex items-center gap-1"><ShieldCheck className="size-3.5 text-tertiary" aria-hidden />{locked.stability === "high" ? copy.stable : copy.balanced}</span>
                       <span className="font-mono tabular-nums">{locked.duration ?? 10}s</span>
                       <span className="font-mono tabular-nums">{locked.aspectRatio ?? "9:16"}</span>
                     </div>
                     <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-                      <p className="font-mono text-meta tabular-nums text-muted-foreground">v{template.version} · {locked.humanInteraction === "none" ? copy.noHuman : copy.controlledHuman}</p>
+                      <p className="font-mono text-data tabular-nums text-muted-foreground">
+                        v{template.version} · {locked.humanInteraction === "none" ? copy.noHuman : copy.controlledHuman}
+                        {template.recentBatchCount > 0 ? (
+                          <span className="text-foreground"> · {fillCount(libraryCopy.recentBatches, template.recentBatchCount)}</span>
+                        ) : null}
+                      </p>
                       <TemplateRecipeDialog name={title} version={template.version} promptSkeleton={template.promptSkeleton} negativePrompt={template.negativePrompt} english={english} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">

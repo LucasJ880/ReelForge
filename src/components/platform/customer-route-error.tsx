@@ -29,13 +29,13 @@ export function CustomerRouteError({
       data-customer-route={route}
       role="alert"
       aria-live="assertive"
-      className="editorial-page-stack min-w-0"
+      className="x-stack min-w-0"
     >
       <div className="max-w-2xl rounded-(--radius-lg) border border-danger/40 bg-card p-6 sm:p-8">
-        <span className="flex size-10 items-center justify-center rounded-full bg-danger/10 text-danger">
+        <span className="flex size-10 items-center justify-center rounded-(--radius-sm) bg-danger/10 text-danger">
           <AlertTriangle aria-hidden className="size-5" />
         </span>
-        <h1 className="mt-5 font-heading text-title font-semibold">
+        <h1 className="mt-5 text-title font-medium">
           {copy.errorTitle.replace("{area}", area)}
         </h1>
         <p className="mt-2 max-w-xl text-body text-muted-foreground">

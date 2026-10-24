@@ -11,7 +11,7 @@ export default async function InternalLayout({
     <div className="flex min-h-screen bg-background text-foreground">
       <InternalSidebar />
       <main className="min-w-0 flex-1 overflow-y-auto pb-16 pt-16 md:pb-0 md:pt-0">
-        <div className="editorial-page">{children}</div>
+        <div className="x-page">{children}</div>
       </main>
     </div>
   );

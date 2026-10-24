@@ -4,20 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  AlertCircle,
   CheckCircle2,
+  ChevronRight,
   Clapperboard,
   Download,
   ImageIcon,
+  ImagePlus,
   Layers,
   Loader2,
   Pencil,
   RefreshCw,
-  Sparkles,
   Upload,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatusTick, type TickTone } from "@/components/exchange/status-tick";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -80,6 +82,15 @@ function outputFileName(output: ProductImageOutputDto, mimeType: string): string
   const extension = (fromUrl && fromUrl.length <= 4 ? fromUrl : fromMime) || "png";
   return `aivora-product-image-${output.position + 1}.${extension}`;
 }
+
+/** 任务状态 → 行情状态（符号 + 颜色成对）；取消不是失败。 */
+const JOB_STATUS: Record<ProductImageStatus, { tone: TickTone; zh: string; en: string }> = {
+  QUEUED: { tone: "live", zh: "排队中", en: "Queued" },
+  PROCESSING: { tone: "live", zh: "生成中", en: "Generating" },
+  SUCCEEDED: { tone: "filled", zh: "已完成", en: "Done" },
+  FAILED: { tone: "fault", zh: "失败", en: "Failed" },
+  CANCELLED: { tone: "void", zh: "已取消", en: "Cancelled" },
+};
 
 const PRESET_IDS = ["white_studio", "lifestyle", "luxury", "social", "macro"] as const;
 const ASPECTS = ["1:1", "4:5", "9:16", "16:9"] as const;
@@ -310,21 +321,26 @@ export function ProductImageStudio({
   }
 
   const results = activeJob?.outputs ?? [];
+  const running = activeJob?.status === "QUEUED" || activeJob?.status === "PROCESSING";
+  const activePresetLabel = presets.find(([value]) => value === preset)?.[1] ?? preset;
+  const statusLabel = (status: ProductImageStatus) =>
+    english ? JOB_STATUS[status].en : JOB_STATUS[status].zh;
   return (
-    <div className="space-y-8">
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)]">
-        <Card>
-          <CardHeader className="space-y-2">
-            <div className="flex items-center justify-between gap-4">
-              <CardTitle>{copy.workbench}</CardTitle>
-              <span className="studio-label text-muted-foreground">Image 2</span>
-            </div>
-            <p className="text-meta text-muted-foreground">
-              {english ? "Reference image optional · audited generation route" : "参考图可选 · 已审计生成线路"}
+    <div className="space-y-10">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] xl:items-start">
+        {/* 工作台：一面接缝墙，一行一个设置；只有真正的输入（上传区、文本框、下拉）是下沉井 */}
+        <section aria-labelledby="product-image-workbench-title" className="x-wall min-w-0">
+          <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-4">
+            <h2 id="product-image-workbench-title" className="text-subhead font-medium">{copy.workbench}</h2>
+            <p className="flex items-baseline gap-2 text-meta text-muted-foreground">
+              <span className="font-mono text-data text-foreground">Image 2</span>
+              <span>{english ? "Reference image optional · audited generation route" : "参考图可选 · 已审计生成线路"}</span>
             </p>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <label className="block cursor-pointer rounded-(--radius-md) border border-dashed border-border-strong bg-muted p-4 text-center hover:border-primary">
+          </header>
+
+          <div className="space-y-2.5 px-5 py-4">
+            <p className="x-label">{english ? "Reference image · optional" : "参考图 · 可选"}</p>
+            <label className="block cursor-pointer rounded-(--radius-md) border border-dashed border-border-strong bg-sunken p-4 text-center transition-colors duration-fast ease-out hover:border-(--accent-line) has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ring motion-reduce:transition-none">
               <input
                 data-testid="product-image-source"
                 type="file"
@@ -334,10 +350,10 @@ export function ProductImageStudio({
               />
               {sourcePreview ? (
                 <span className="grid grid-cols-[5rem_1fr] items-center gap-4 text-left">
-                  <span className="relative aspect-square overflow-hidden rounded-(--radius-sm) bg-card">
+                  <span className="relative aspect-square overflow-hidden rounded-(--radius-sm) border border-border bg-background">
                     <Image src={sourcePreview} alt={copy.optimize} fill sizes="80px" className="object-cover" unoptimized />
                   </span>
-                  <span>
+                  <span className="min-w-0">
                     <span className="block truncate font-medium text-foreground">{source?.name ?? (english ? "Generated image" : "已生成图片")}</span>
                     <span className="mt-1 block text-meta text-muted-foreground">
                       {uploading ? copy.processing : sourceAsset ? (english ? "Uploaded · choose to replace" : "已上传 · 点击可替换") : copy.replace}
@@ -346,18 +362,20 @@ export function ProductImageStudio({
                 </span>
               ) : (
                 <span className="flex min-h-28 flex-col items-center justify-center gap-2">
-                  {uploading ? <Loader2 className="size-5 animate-spin" aria-hidden /> : <Upload className="size-5 text-muted-foreground" aria-hidden />}
+                  {uploading ? <Loader2 className="size-5 animate-spin motion-reduce:animate-none" aria-hidden /> : <Upload className="size-5 text-muted-foreground" aria-hidden />}
                   <span className="font-medium text-foreground">{copy.uploadTitle}</span>
                   <span className="text-meta text-muted-foreground">{copy.uploadHint}</span>
                 </span>
               )}
             </label>
+          </div>
 
+          <div className="px-5 py-4">
             {brandPackages.length > 0 && selectedBrandPackage ? (
               <div
                 className={cn(
-                  "rounded-(--radius-md) border p-4",
-                  logoEnabled && sourceAsset ? "border-primary bg-accent-soft" : "border-border",
+                  "rounded-(--radius-md) border px-3 py-3 transition-colors duration-fast ease-out motion-reduce:transition-none",
+                  logoEnabled && sourceAsset ? "border-(--accent-line)" : "border-border",
                 )}
               >
                 <label className="flex cursor-pointer items-start gap-3">
@@ -369,14 +387,16 @@ export function ProductImageStudio({
                     disabled={!sourceAsset || uploading}
                     onChange={(event) => setLogoEnabled(event.target.checked)}
                   />
-                  <span className="grid flex-1 grid-cols-[1fr_auto] items-center gap-3">
-                    <span>
-                      <span className="block font-medium text-foreground">{copy.brandLogoTitle}</span>
+                  <span className="grid min-w-0 flex-1 grid-cols-[1fr_auto] items-center gap-3">
+                    <span className="min-w-0">
+                      <span className={cn("block font-medium", logoEnabled && sourceAsset ? "text-accent" : "text-foreground")}>
+                        {copy.brandLogoTitle}
+                      </span>
                       <span className="mt-1 block text-meta text-muted-foreground">
                         {sourceAsset ? copy.brandLogoHint : copy.brandLogoNeedsSource}
                       </span>
                     </span>
-                    <span className="relative size-12 overflow-hidden rounded-(--radius-sm) bg-card">
+                    <span className="relative size-12 overflow-hidden rounded-(--radius-sm) border border-border bg-sunken">
                       <Image
                         src={selectedBrandPackage.logoUrl}
                         alt={selectedBrandPackage.brandName}
@@ -389,13 +409,13 @@ export function ProductImageStudio({
                   </span>
                 </label>
                 {logoEnabled && brandPackages.length > 1 ? (
-                  <label className="mt-3 block text-meta font-medium text-muted-foreground">
-                    {copy.brandLogoPackageLabel}
+                  <label className="mt-3 block">
+                    <span className="x-label">{copy.brandLogoPackageLabel}</span>
                     <select
                       data-testid="product-image-brand-logo-package"
                       value={selectedBrandPackage.id}
                       onChange={(event) => setLogoPackageId(event.target.value)}
-                      className="studio-select mt-2"
+                      className="x-select mt-2"
                     >
                       {brandPackages.map((pkg) => (
                         <option key={pkg.id} value={pkg.id}>
@@ -411,93 +431,129 @@ export function ProductImageStudio({
                 {copy.brandLogoEmpty}{" "}
                 <Link
                   href="/app/brands"
-                  className="underline underline-offset-4 hover:text-foreground"
+                  className="text-foreground underline underline-offset-4 hover:text-accent"
                 >
                   {copy.brandLogoEmptyCta}
                 </Link>
               </p>
             )}
+          </div>
 
-            <label className="block text-meta font-medium text-muted-foreground">
-              {copy.describeLabel}
-              <Textarea
-                data-testid="product-image-prompt"
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-                rows={4}
-                maxLength={1200}
-                className="mt-2"
-                placeholder={copy.describePlaceholder}
-              />
-              <span className="mt-1 block text-right font-mono">{prompt.length}/1200</span>
+          <label className="block px-5 py-4">
+            <span className="x-label">{copy.describeLabel}</span>
+            <Textarea
+              data-testid="product-image-prompt"
+              value={prompt}
+              onChange={(event) => setPrompt(event.target.value)}
+              rows={4}
+              maxLength={1200}
+              className="mt-2.5"
+              placeholder={copy.describePlaceholder}
+            />
+            <span className="mt-1.5 block text-right font-mono text-data tabular-nums text-muted-foreground">{prompt.length}/1200</span>
+          </label>
+
+          <div className="grid gap-4 px-5 py-4 sm:grid-cols-3">
+            <label className="block min-w-0">
+              <span className="x-label">{copy.aspect}</span>
+              <select data-testid="product-image-aspect" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value as typeof aspectRatio)} className="x-select mt-2 tabular-nums">
+                {ASPECTS.map((value) => <option key={value}>{value}</option>)}
+              </select>
             </label>
+            <label className="block min-w-0">
+              <span className="x-label">{english ? "Resolution" : "分辨率"}</span>
+              <select data-testid="product-image-resolution" value={resolution} onChange={(event) => setResolution(event.target.value as typeof resolution)} className="x-select mt-2 tabular-nums">
+                {RESOLUTIONS.map((value) => <option key={value}>{value}</option>)}
+              </select>
+            </label>
+            <label className="block min-w-0">
+              <span className="x-label">{english ? "Results" : "结果数量"}</span>
+              <select data-testid="product-image-result-count" value={resultCount} onChange={(event) => setResultCount(Number(event.target.value))} className="x-select mt-2 tabular-nums">
+                {[1, 2, 3, 4].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+          </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <label className="text-meta font-medium text-muted-foreground">
-                {copy.aspect}
-                <select data-testid="product-image-aspect" value={aspectRatio} onChange={(event) => setAspectRatio(event.target.value as typeof aspectRatio)} className="studio-select mt-2">
-                  {ASPECTS.map((value) => <option key={value}>{value}</option>)}
-                </select>
-              </label>
-              <label className="text-meta font-medium text-muted-foreground">
-                {english ? "Resolution" : "分辨率"}
-                <select data-testid="product-image-resolution" value={resolution} onChange={(event) => setResolution(event.target.value as typeof resolution)} className="studio-select mt-2">
-                  {RESOLUTIONS.map((value) => <option key={value}>{value}</option>)}
-                </select>
-              </label>
-              <label className="text-meta font-medium text-muted-foreground">
-                {english ? "Results" : "结果数量"}
-                <select data-testid="product-image-result-count" value={resultCount} onChange={(event) => setResultCount(Number(event.target.value))} className="studio-select mt-2">
-                  {[1, 2, 3, 4].map((value) => <option key={value} value={value}>{value}</option>)}
-                </select>
-              </label>
-            </div>
-
-            <details className="rounded-(--radius-md) border border-border p-4">
-              <summary className="cursor-pointer font-medium text-foreground">{english ? "Advanced styles" : "高级风格"}</summary>
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="px-5 py-4">
+            <details className="group">
+              <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-(--radius-sm) text-meta text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
+                <ChevronRight className="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden />
+                <span className="font-medium text-foreground">{english ? "Advanced styles" : "高级风格"}</span>
+                <span aria-hidden>·</span>
+                <span>{activePresetLabel}</span>
+              </summary>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {presets.map(([value, label, description]) => (
-                  <button key={value} type="button" aria-label={label} onClick={() => setPreset(value)} className={cn("rounded-(--radius-md) border p-3 text-left", preset === value ? "border-primary bg-accent-soft" : "border-border bg-card")}>
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={label}
+                    aria-pressed={preset === value}
+                    onClick={() => setPreset(value)}
+                    className={cn(
+                      "rounded-(--radius-md) border px-3 py-2.5 text-left transition-colors duration-fast ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
+                      preset === value
+                        ? "border-(--accent-line) text-accent"
+                        : "border-border text-foreground hover:border-border-strong",
+                    )}
+                  >
                     <span className="block text-body font-medium">{label}</span>
-                    <span className="mt-1 block text-meta text-muted-foreground">{description}</span>
+                    <span className="mt-0.5 block text-meta text-muted-foreground">{description}</span>
                   </button>
                 ))}
               </div>
             </details>
+          </div>
 
+          <div className="space-y-3 px-5 py-4">
             {error ? <p role="alert" className="text-meta text-danger">{error}</p> : null}
-            <Button data-testid="product-image-submit" type="button" disabled={!canSubmit} onClick={() => void submit()}>
-              {submitting ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <Sparkles className="size-4" aria-hidden />}
-              {submitting ? copy.processing : (english ? "Generate images" : "生成图片")}
-            </Button>
-          </CardContent>
-        </Card>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="font-mono text-data tabular-nums text-muted-foreground">
+                {aspectRatio} · {resolution} · {resultCount} {english ? (resultCount === 1 ? "image" : "images") : "张"}
+              </p>
+              <Button data-testid="product-image-submit" type="button" disabled={!canSubmit} onClick={() => void submit()}>
+                {submitting ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <ImagePlus className="size-4" aria-hidden />}
+                {submitting ? copy.processing : (english ? "Generate images" : "生成图片")}
+              </Button>
+            </div>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader><CardTitle>{copy.preview}</CardTitle></CardHeader>
-          <CardContent>
+        {/* 成品预览：正在生成时，这一格带生成光束 */}
+        <section
+          aria-labelledby="product-image-preview-title"
+          className={cn("x-panel min-w-0", running && "x-beam")}
+        >
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+            <h2 id="product-image-preview-title" className="text-subhead font-medium">{copy.preview}</h2>
+            {activeJob ? (
+              <StatusTick tone={JOB_STATUS[activeJob.status].tone} label={statusLabel(activeJob.status)} />
+            ) : null}
+          </header>
+          <div className="p-5">
             {activeJob?.status === "SUCCEEDED" && results.length ? (
               <div className="space-y-5" data-testid="product-image-result">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className={cn("grid gap-5", results.length > 1 && "sm:grid-cols-2")}>
                   {results.map((output) => (
-                    <article key={output.id} className="space-y-3 rounded-(--radius-md) border border-border p-3">
-                      <div className="relative aspect-square overflow-hidden rounded-(--radius-sm) bg-muted">
+                    <article key={output.id} className="min-w-0 space-y-3">
+                      <div className="relative aspect-square overflow-hidden rounded-(--radius-md) border border-border bg-sunken">
                         <Image src={output.url} alt={english ? `Generated product image ${output.position + 1}` : `生成产品图 ${output.position + 1}`} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-contain" unoptimized />
                         <AiGeneratedLabel className="absolute bottom-2 left-2" />
                       </div>
                       {/* 每个动作都带文字：早期版本是 5 个纯图标按钮（含 3 个箭头），
-                          用户无法判断哪个是下载、哪个进单条 / 批量视频。 */}
+                          用户无法判断哪个是下载、哪个进单条 / 批量视频。
+                          一页只留一枚实心主按钮（生成图片），带进视频用描边按钮。 */}
                       <div className="space-y-2">
                         <div className="grid grid-cols-2 gap-2">
                           {output.handoffId ? (
                             <Link
                               href={`/app/create?productImageResultId=${encodeURIComponent(output.handoffId)}`}
-                              className={buttonVariants({ size: "sm", className: "justify-center" })}
+                              className={buttonVariants({ variant: "outline", size: "sm", className: "justify-center" })}
                             >
                               <Clapperboard aria-hidden />{copy.useSingle}
                             </Link>
                           ) : (
-                            <Button type="button" size="sm" disabled><Clapperboard aria-hidden />{copy.useSingle}</Button>
+                            <Button type="button" variant="outline" size="sm" disabled><Clapperboard aria-hidden />{copy.useSingle}</Button>
                           )}
                           {output.handoffId ? (
                             <Link
@@ -543,13 +599,15 @@ export function ProductImageStudio({
                     <a href="#product-image-history" className="inline-flex items-center gap-2 text-success underline-offset-4 hover:underline">
                       <CheckCircle2 className="size-4" aria-hidden />{copy.approved}
                     </a>
-                    <span className="font-mono text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts{activeJob.brandLogo ? ` · ${copy.brandLogoBadge}` : ""}</span>
+                    <span className="font-mono text-data tabular-nums text-muted-foreground">{activeJob.planId} · {activeJob.resolutionSnapshot} · {activeJob.pointsSnapshot ?? "—"} pts{activeJob.brandLogo ? ` · ${copy.brandLogoBadge}` : ""}</span>
                   </div>
                 </div>
               </div>
             ) : activeJob?.status === "FAILED" ? (
-              <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center">
-                <RefreshCw className="size-6 text-danger" aria-hidden /><p className="font-medium">{copy.failed}</p><p className="max-w-sm text-body text-muted-foreground">{activeJob.errorMessage}</p>
+              <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center sm:min-h-80">
+                <AlertCircle className="size-6 text-danger" aria-hidden />
+                <p className="font-medium">{copy.failed}</p>
+                <p className="max-w-sm text-balance text-body text-muted-foreground">{activeJob.errorMessage}</p>
                 {activeJob.retryableTasks.map((task) => (
                   <Button
                     key={task.id}
@@ -558,20 +616,22 @@ export function ProductImageStudio({
                     disabled={submitting}
                     onClick={() => void retryRejectedTask(task.id)}
                   >
-                    {submitting ? <Loader2 className="size-4 animate-spin" aria-hidden /> : <RefreshCw className="size-4" aria-hidden />}
+                    {submitting ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw className="size-4" aria-hidden />}
                     {english ? `Retry result ${task.ordinal + 1}` : `重试结果 ${task.ordinal + 1}`}
                   </Button>
                 ))}
               </div>
             ) : activeJob?.status === "CANCELLED" ? (
-              <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center">
+              <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center sm:min-h-80">
                 <ImageIcon className="size-7 text-muted-foreground" aria-hidden />
                 <p className="font-medium">{copy.cancelledTitle}</p>
-                <p className="max-w-sm text-body text-muted-foreground">{copy.cancelledBody}</p>
+                <p className="max-w-sm text-balance text-body text-muted-foreground">{copy.cancelledBody}</p>
               </div>
             ) : activeJob ? (
-              <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center" aria-live="polite">
-                <Loader2 className="size-7 animate-spin text-muted-foreground motion-reduce:animate-none" aria-hidden /><p className="font-medium">{copy.processing}</p><p className="text-meta text-muted-foreground">Aivora · {activeJob.resolutionSnapshot ?? resolution}</p>
+              <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center sm:min-h-80" aria-live="polite">
+                <span className="x-live" aria-hidden />
+                <p className="font-medium">{copy.processing}</p>
+                <p className="font-mono text-data text-muted-foreground">Aivora · {activeJob.resolutionSnapshot ?? resolution}</p>
                 {/* 铁律 #7：运行中必须有「不再纠缠这一轮」的出口，且取消永远免费 */}
                 <Button
                   variant="outline"
@@ -583,10 +643,14 @@ export function ProductImageStudio({
                 </Button>
               </div>
             ) : (
-              <div className="flex min-h-80 flex-col items-center justify-center gap-3 text-center"><ImageIcon className="size-7 text-muted-foreground" aria-hidden /><p className="font-medium">{copy.emptyTitle}</p><p className="max-w-sm text-body text-muted-foreground">{copy.emptyBody}</p></div>
+              <div className="flex min-h-64 flex-col items-center justify-center gap-3 text-center sm:min-h-80">
+                <ImageIcon className="size-7 text-muted-foreground" aria-hidden />
+                <p className="font-medium">{copy.emptyTitle}</p>
+                <p className="max-w-sm text-balance text-body text-muted-foreground">{copy.emptyBody}</p>
+              </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
       </div>
 
       <section
@@ -594,20 +658,48 @@ export function ProductImageStudio({
         aria-labelledby="product-image-history-title"
         className="scroll-mt-24 space-y-4"
       >
-        <div className="max-w-2xl">
-          <p className="studio-label text-muted-foreground">{copy.historyKicker}</p>
-          <h2 id="product-image-history-title" className="mt-2 font-heading text-title font-semibold">{copy.historyTitle}</h2>
-          <p className="mt-2 text-body text-muted-foreground">{copy.historySubtitle}</p>
+        <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-1 border-b border-border pb-2">
+          <h2 id="product-image-history-title" className="flex items-baseline gap-2.5 text-subhead font-medium">
+            {copy.historyTitle}
+            <span className="font-mono text-data tabular-nums text-muted-foreground">{jobs.length}</span>
+          </h2>
+          <p className="text-meta text-muted-foreground">{copy.historySubtitle}</p>
         </div>
         {jobs.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {jobs.map((job) => (
-              <button key={job.id} type="button" onClick={() => setActiveJob(job)} className="overflow-hidden rounded-(--radius-md) border border-border bg-card text-left hover:border-border-strong">
-                <div className="relative aspect-square bg-muted">{job.outputs[0]?.url ? <Image src={job.outputs[0].url} alt={copy.historyTitle} fill sizes="25vw" className="object-cover" unoptimized /> : <div className="grid h-full place-items-center"><ImageIcon className="size-5 text-muted-foreground" aria-hidden /></div>}</div>
-                <div className="space-y-1 p-3"><p className="truncate text-body font-medium">{presets.find(([value]) => value === job.preset)?.[1] ?? job.preset}</p><p className="font-mono text-meta text-muted-foreground">{job.aspectRatio} · {job.status}</p></div>
-              </button>
-            ))}
-          </div>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
+            {jobs.map((job) => {
+              const current = job.id === activeJob?.id;
+              return (
+                <li key={job.id} className="min-w-0">
+                  <button
+                    type="button"
+                    aria-pressed={current}
+                    onClick={() => setActiveJob(job)}
+                    data-beam={job.status === "QUEUED" || job.status === "PROCESSING" ? "row" : undefined}
+                    className={cn(
+                      "x-panel x-panel-interactive block w-full overflow-hidden text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                      current && "border-(--accent-line)",
+                    )}
+                  >
+                    <div className="relative aspect-square bg-sunken">
+                      {job.outputs[0]?.url ? (
+                        <Image src={job.outputs[0].url} alt={copy.historyTitle} fill sizes="25vw" className="object-cover" unoptimized />
+                      ) : (
+                        <div className="grid h-full place-items-center"><ImageIcon className="size-5 text-muted-foreground" aria-hidden /></div>
+                      )}
+                    </div>
+                    <div className="space-y-1.5 p-3">
+                      <p className="truncate text-body font-medium">{presets.find(([value]) => value === job.preset)?.[1] ?? job.preset}</p>
+                      <p className="flex items-center justify-between gap-2">
+                        <StatusTick tone={JOB_STATUS[job.status].tone} label={statusLabel(job.status)} />
+                        <span className="font-mono text-data tabular-nums text-muted-foreground">{job.aspectRatio}</span>
+                      </p>
+                    </div>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         ) : <p className="text-body text-muted-foreground">{copy.historyEmpty}</p>}
       </section>
     </div>

@@ -3,12 +3,19 @@
 @import "shadcn/tailwind.css";
 @import "../styles/tokens.css";
 
-@utility studio-select {
+/* 生成光束沿边转动的角度：注册成可插值的属性，conic 才能平滑转 */
+@property --beam-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@utility x-select {
   height: var(--control-height);
   width: 100%;
   border-radius: var(--radius-md);
   border: 1px solid var(--input);
-  background: var(--glass-well-bg);
+  background: var(--surface-sunken);
   padding-inline: 0.75rem;
   color: var(--foreground);
   font-size: var(--text-body);
@@ -27,11 +34,12 @@
     color: var(--text-primary);
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
   }
 
   body {
     min-height: 100%;
-    background: var(--bg);
+    background-color: var(--bg);
     color: var(--text-primary);
     font-size: var(--font-size-body);
     line-height: var(--leading-body);
@@ -60,275 +68,428 @@
 
 @layer components {
   /*
-   * ── 环境光场 ──
-   * 玻璃必须有可透的东西。全站唯一的一块「空气」：
-   * 品牌橙在右上作为光源，左下一记冷石板对光，表面铺一层胶片颗粒。
-   * body 与 .studio-canvas（PlatformShell 会盖住 body）共用同一片空气。
+   * ── 交易大厅的场 ──
+   * 整站唯一的背景纹理：极淡的 56px 工程网格，固定不随页面滚。
+   * 不做光晕、不做颗粒：光只属于数据与正在生成的那一格。
    */
-  /* --ambient-glow 由 PlatformShell 按「进行中批次数」抬升：
-   * 玻璃后透出的光就是正在发生的生成任务（STORY 承诺的唯一表达点）。 */
   body,
-  .studio-canvas {
-    background-image:
-      var(--ambient-noise),
-      var(--ambient-light-accent),
-      var(--ambient-light-cool),
-      var(--ambient-light-floor);
+  .desk-canvas {
+    background-image: var(--field-grid);
+    background-size: var(--field-grid-size);
     background-attachment: fixed;
   }
 
   /*
-   * ── 玻璃材质 ──
-   * pane：结构面（侧栏/顶栏/弹层），真实 backdrop 模糊，全站少数几处。
-   * card 质感由 --shadow-card（含镜面高光边）+ 下面的 sheen 渐变承担，
-   * 内容卡不付 backdrop-filter 的性能成本。
-   * well：下沉容器（输入框/轨道/空档）。
+   * ── 材质：三种，不发明第四种 ──
+   * pane：结构条（顶部行情条、成交带、导轨、状态栏、移动 tab）。比场更深的实底。
+   * panel：内容面（行情格、卡片、表格容器）。不透明 hull + 1px 接缝 + 顶缘冷光。
+   * well：下沉面（输入框、轨道、空档）。
    */
-  .glass-pane {
-    border: 1px solid var(--border);
-    background-color: var(--glass-pane-bg);
-    box-shadow: var(--shadow-float);
-    -webkit-backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
-    backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
+  .x-pane {
+    border: 0 solid var(--border);
+    background-color: var(--bg-deep);
   }
 
-  .glass-well {
+  .x-panel,
+  [data-slot="card"] {
     border: 1px solid var(--border);
-    background-color: var(--glass-well-bg);
+    border-radius: var(--radius-lg);
+    background-color: var(--surface);
+    box-shadow: var(--shadow-card);
+  }
+
+  .x-panel-interactive {
+    transition:
+      border-color var(--motion-fast) var(--ease-out),
+      background-color var(--motion-fast) var(--ease-out);
+  }
+
+  .x-panel-interactive:hover {
+    border-color: var(--border-strong);
+    background-color: var(--surface-raised);
+  }
+
+  .x-well {
+    border: 1px solid var(--border);
+    background-color: var(--surface-sunken);
     box-shadow: var(--shadow-well);
   }
 
-  /* 内容玻璃卡的薄膜反光：打在所有卡类容器上，与 token 的高光边配合 */
-  [data-slot="card"],
-  .editorial-card,
-  .surface-panel,
-  .studio-panel {
-    background-image: var(--glass-sheen);
+  /* 行情墙：格子之间只露 1px 接缝，整面墙只有一个外框圆角 */
+  .x-wall {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background-color: var(--border);
   }
 
-  .editorial-display {
-    font-family: var(--font-display-family);
-    font-size: var(--text-display);
-    font-weight: 600;
-    line-height: var(--leading-display);
-    letter-spacing: -0.03em;
+  .x-wall > * {
+    min-width: 0;
+    background-color: var(--surface);
   }
 
-  .editorial-display-latin,
-  .editorial-display-cjk {
-    font-family: var(--font-display-family);
-    font-style: normal;
+  /* 大屏角标：只给页面的主读数区和成交带，不给每一张卡 */
+  .x-frame {
+    position: relative;
   }
 
-  .editorial-page {
-    margin-inline: auto;
-    width: min(100%, var(--content-max-width));
-    padding: var(--space-8) var(--space-4) var(--space-16);
+  .x-frame::before,
+  .x-frame::after {
+    content: "";
+    position: absolute;
+    z-index: 1;
+    width: 10px;
+    height: 10px;
+    pointer-events: none;
+    border-color: var(--accent-line);
   }
 
-  .editorial-page-stack {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-12);
+  .x-frame::before {
+    top: 0;
+    left: 0;
+    border-top: 1px solid;
+    border-left: 1px solid;
+    border-top-left-radius: var(--radius-lg);
   }
 
-  .editorial-page-stack > section + section,
-  .editorial-page-stack > header + * {
-    margin-top: 0;
+  .x-frame::after {
+    right: 0;
+    bottom: 0;
+    border-right: 1px solid;
+    border-bottom: 1px solid;
+    border-bottom-right-radius: var(--radius-lg);
   }
 
-  .editorial-page-enter {
-    animation: editorial-page-enter var(--motion-base) var(--ease-out);
-  }
-
-  .studio-theme {
-    background-color: var(--bg);
-    color: var(--text-primary);
-    color-scheme: dark;
-  }
-
-  .studio-theme .editorial-display {
-    font-weight: 700;
-    letter-spacing: -0.035em;
-  }
-
-  .studio-theme .studio-label {
-    font-size: var(--font-size-meta);
+  /* 等宽小标签：数据的语气（不是眉题，不放在标题上方） */
+  .x-label {
+    font-family: var(--font-mono-family);
+    font-size: 10.5px;
     font-weight: 500;
-    letter-spacing: 0.05em;
+    font-stretch: 87.5%;
+    letter-spacing: 0.06em;
     line-height: 1.3;
     text-transform: uppercase;
+    color: var(--text-tertiary);
   }
 
-  .studio-page {
+  /* 大而轻的标题：舞台感来自尺寸，不来自字重 */
+  .x-display {
+    font-family: var(--font-display-family);
+    font-size: var(--text-display);
+    font-weight: 300;
+    font-stretch: 108%;
+    line-height: var(--leading-display);
+    letter-spacing: -0.035em;
+    /* 平衡断行 + 严格避头：中文不把「。」「，」甩到行首；keep-all 会把整句中文变成一个词，别用 */
+    text-wrap: balance;
+    line-break: strict;
+    overflow-wrap: break-word;
+  }
+
+  /* 大号读数：细、宽、等宽数字 */
+  .x-figure {
+    font-family: var(--font-display-family);
+    font-size: var(--text-figure);
+    font-weight: 250;
+    font-stretch: 112%;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .x-page {
     margin-inline: auto;
     width: min(100%, var(--content-max-width));
     padding: var(--space-8) var(--space-6) var(--space-12);
   }
 
-  /* 页面标题由排版承载，不加标尺不加眉题。 */
-  .studio-hero {
-    position: relative;
-    padding-top: var(--space-5);
+  .x-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-10);
   }
 
-  .studio-panel {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background-color: var(--glass-card-bg);
-    box-shadow: var(--shadow-card);
+  .x-hero {
+    position: relative;
+  }
+
+  .x-enter {
+    animation: x-enter var(--motion-slow) var(--ease-out);
+  }
+
+  .desk-theme {
+    background-color: var(--bg);
+    color: var(--text-primary);
+    color-scheme: dark;
+  }
+
+  /* 实时点：只给「正在发生」 */
+  .x-live {
+    position: relative;
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    flex: none;
+    border-radius: 999px;
+    background-color: var(--accent);
+    box-shadow: 0 0 0 0 var(--accent-line);
+    animation: x-live 1.8s ease-out infinite;
+  }
+
+  .x-live[data-tone="idle"] {
+    background-color: var(--text-tertiary);
+    animation: none;
+  }
+
+  /* 生成光束：沿边框流动的一道光，只套在「正在生成」的那一格 */
+  .x-beam {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .x-beam::before {
+    content: "";
+    position: absolute;
+    inset: var(--beam-inset, -1px);
+    z-index: -1;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--beam);
+    -webkit-mask:
+      linear-gradient(var(--mask-ink) 0 0) content-box,
+      linear-gradient(var(--mask-ink) 0 0);
+    mask:
+      linear-gradient(var(--mask-ink) 0 0) content-box exclude,
+      linear-gradient(var(--mask-ink) 0 0);
+    animation: x-beam 2.6s linear infinite;
   }
 
   /*
-   * 批次进度：磨砂分段计量条（玻璃语言，取代旧胶片齿孔）。
-   * 每格是一枚小玻璃片；完成的格子被品牌橙从背后点亮。
+   * 光束的行形态：列表/表格里「正在生成」的那一行（data-beam="row"）。左缘一道信号青、底边一条扫描线，
+   * 光从左扫到右；行本身不加框，免得和接缝打架。
    */
-  .batch-film-strip {
+  [data-beam="row"] {
+    position: relative;
+    isolation: isolate;
+    background-image: linear-gradient(90deg, var(--accent-soft), transparent 42%);
+    box-shadow: inset 2px 0 0 var(--accent);
+  }
+
+  [data-beam="row"]::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    z-index: 1;
+    height: 1px;
+    pointer-events: none;
+    background:
+      linear-gradient(90deg, transparent, var(--accent) 50%, transparent) no-repeat,
+      var(--accent-line);
+    background-size: 28% 100%, 100% 100%;
+    animation: x-scan 2.4s linear infinite;
+  }
+
+  /* 会跳的读数：新值进来时整格底色闪一次（涨绿跌玫红），1.4 秒内退回 */
+  .x-ticker {
+    display: inline-block;
+    border-radius: var(--radius-sm);
+  }
+
+  .x-ticker[data-move="up"] {
+    --ticker-flash: var(--success-soft);
+    animation: x-ticker 1.4s var(--ease-out) 1;
+  }
+
+  .x-ticker[data-move="down"] {
+    --ticker-flash: var(--danger-soft);
+    animation: x-ticker 1.4s var(--ease-out) 1;
+  }
+
+  /* ── 实时成交带：行情墙最上面那条滚动带 ── */
+  .x-tape {
+    position: relative;
+    display: flex;
+    overflow: hidden;
+    mask-image: linear-gradient(90deg, transparent, var(--mask-ink) 4%, var(--mask-ink) 96%, transparent);
+  }
+
+  .x-tape-track {
+    display: flex;
+    flex: none;
+    min-width: 100%;
+    gap: var(--space-8);
+    padding-inline: var(--space-4);
+    animation: x-tape var(--tape-duration, 60s) linear infinite;
+  }
+
+  .x-tape:hover .x-tape-track {
+    animation-play-state: paused;
+  }
+
+  /*
+   * 批次成交梯：每格一条成片。已成交=成交绿；生成中=信号青 + 扫光；
+   * 失败=玫红；排队=空格；取消=斜纹。
+   */
+  .x-fill-strip {
     display: grid;
-    min-height: 42px;
-    gap: 3px;
+    min-height: 34px;
+    gap: 2px;
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    background-color: var(--glass-well-bg);
-    box-shadow: var(--shadow-well);
-    padding: 4px;
+    background-color: var(--surface-sunken);
+    padding: 3px;
   }
 
-  .batch-film-cell {
+  .x-fill-cell {
     position: relative;
     min-width: 3px;
     overflow: hidden;
-    border-radius: calc(var(--radius-sm) - 4px);
-    background-color: var(--surface);
-    background-image: var(--glass-sheen);
-    box-shadow: var(--glass-edge);
+    border-radius: var(--radius-sm);
+    background-color: var(--surface-raised);
   }
 
-  .batch-film-core {
+  .x-fill-core {
     display: block;
     width: 100%;
     height: 100%;
-    min-height: 32px;
+    min-height: 26px;
     background: transparent;
   }
 
-  /* accent 纪律:完成态退语义绿;品牌橙只留给「生成中」= 当前项。 */
-  .batch-film-cell[data-state="completed"] {
+  .x-fill-cell[data-state="completed"] {
     background-color: var(--success);
-    background-image: var(--glass-sheen-strong);
-    box-shadow:
-      var(--glass-edge),
-      0 2px 10px -2px color-mix(in oklab, var(--success) 45%, transparent);
+    box-shadow: var(--glow-success);
   }
 
-  .batch-film-cell[data-state="generating"] {
-    background-color: var(--accent);
-    background-image: var(--glass-sheen-strong);
-    animation: film-generating 2.4s ease-in-out infinite;
+  .x-fill-cell[data-state="generating"] {
+    background-color: var(--accent-soft);
+    box-shadow: inset 0 0 0 1px var(--accent-line);
   }
 
-  .batch-film-cell[data-state="failed"] {
+  .x-fill-cell[data-state="generating"] .x-fill-core {
+    background-image: var(--sweep);
+    background-size: 200% 100%;
+    animation: x-sweep 1.6s linear infinite;
+  }
+
+  .x-fill-cell[data-state="failed"] {
     background-color: var(--danger);
-    background-image: var(--glass-sheen-strong);
   }
 
-  .batch-film-cell[data-state="cancelled"] {
-    background-color: var(--surface-sunken);
-    background-image: none;
-    opacity: 0.6;
+  .x-fill-cell[data-state="cancelled"] {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(135deg, var(--border-strong) 0 1px, transparent 1px 5px);
   }
 
-  @keyframes film-generating {
-    0%,
+  /* 分段成交条里的特殊段：生成中带扫光，取消用斜纹 */
+  .x-seg-live {
+    background-color: var(--accent);
+    background-image: var(--sweep);
+    background-size: 200% 100%;
+    animation: x-sweep 1.6s linear infinite;
+  }
+
+  .x-hatch {
+    background-image: repeating-linear-gradient(135deg, var(--border-bright) 0 1px, transparent 1px 4px);
+  }
+
+  @keyframes x-live {
+    0% {
+      box-shadow: 0 0 0 0 var(--accent-line);
+    }
+    70% {
+      box-shadow: 0 0 0 7px transparent;
+    }
     100% {
-      opacity: 0.4;
-    }
-    50% {
-      opacity: 1;
+      box-shadow: 0 0 0 0 transparent;
     }
   }
 
-  .editorial-card,
-  .surface-panel {
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background-color: var(--glass-card-bg);
-    box-shadow: var(--shadow-card);
+  @keyframes x-beam {
+    to {
+      --beam-angle: 360deg;
+    }
   }
 
-  .editorial-card-interactive {
-    transition:
-      border-color var(--motion-fast) var(--ease-out),
-      background-color var(--motion-fast) var(--ease-out),
-      box-shadow var(--motion-fast) var(--ease-out);
+  @keyframes x-sweep {
+    from {
+      background-position: 200% 0;
+    }
+    to {
+      background-position: -200% 0;
+    }
   }
 
-  .editorial-card-interactive:hover {
-    border-color: var(--border-strong);
+  @keyframes x-ticker {
+    from {
+      background-color: var(--ticker-flash);
+      box-shadow: 0 0 0 0.12em var(--ticker-flash);
+    }
+    to {
+      background-color: transparent;
+      box-shadow: 0 0 0 0.12em transparent;
+    }
+  }
+
+  @keyframes x-scan {
+    from {
+      background-position: -45% 0, 0 0;
+    }
+    to {
+      background-position: 145% 0, 0 0;
+    }
+  }
+
+  @keyframes x-tape {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-100%);
+    }
   }
 }
 
 /*
- * ── 浮层玻璃（未分层，覆盖 utilities）──
- * 全站所有弹出面共用一种结构玻璃：backdrop 模糊 + 薄膜反光 + 浮空投影。
- * 组件文件不必各自声明；页面级 className 无法覆盖属于刻意设计。
+ * ── 浮层（未分层，覆盖 utilities）──
+ * 弹出面一律不透明实底 + 浮空投影；不做 backdrop 模糊。
  */
 [data-slot="dialog-content"],
 [data-slot="dropdown-menu-content"],
 [data-slot="dropdown-menu-sub-content"],
 [data-slot="select-content"],
 [data-slot="sheet-content"] {
-  background-image: var(--glass-sheen);
+  background-color: var(--popover);
   box-shadow: var(--shadow-float);
-  -webkit-backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
-  backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
 }
 
-/* 遮罩把后景推进雾里，弹层的玻璃才有东西可透。 */
-[data-slot="dialog-overlay"],
-[data-slot="sheet-overlay"] {
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-
-/* toast 同为结构玻璃；模糊统一住在材质层，组件不写 blur 工具类。 */
-.cn-toast {
-  -webkit-backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
-  backdrop-filter: blur(var(--glass-pane-blur)) saturate(1.5);
-}
-
-/* 唯一的入场动作：玻璃从一点雾里升起来（新页面整体一次，不逐节重复）。 */
-@keyframes editorial-page-enter {
+/* 唯一的入场动作：整页一次，从 4px 下方升起（不逐节重复，不做模糊） */
+@keyframes x-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
-    filter: blur(6px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 
 @media (min-width: 640px) {
-  .editorial-page {
-    padding-inline: var(--space-6);
-    padding-top: var(--space-8);
+  .x-page {
+    padding-inline: var(--space-8);
   }
 }
 
 @media (max-width: 640px) {
-  .editorial-page {
+  .x-page {
     padding: var(--space-6) var(--space-4) var(--space-12);
   }
 
-  .studio-page {
-    padding: var(--space-6) var(--space-4) var(--space-12);
-  }
-
-  .studio-theme {
+  .desk-theme {
     --control-height: 40px;
   }
 }
@@ -343,12 +504,23 @@
     transition-duration: 1ms !important;
   }
 
-  .editorial-page-enter {
+  .x-enter,
+  .x-live,
+  .x-seg-live,
+  .x-tape-track,
+  .x-beam::before,
+  [data-beam="row"]::after,
+  .x-ticker[data-move] {
     animation: none;
   }
 
-  .batch-film-cell[data-state="generating"] {
+  /* 减少动态：光束退成一圈静止的信号青细线 */
+  .x-beam::before {
+    background: var(--accent-line);
+  }
+
+  .x-fill-cell[data-state="generating"] .x-fill-core {
     animation: none;
-    opacity: 0.72;
+    background-image: none;
   }
 }

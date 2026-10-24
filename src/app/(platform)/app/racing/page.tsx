@@ -22,9 +22,9 @@ export default async function PlatformRacingPage() {
   });
   const copy = getPlatformCopy(await getServerLocale()).racing;
   return (
-    <div className="editorial-page-stack">
+    <div className="x-stack">
       <header className="max-w-3xl space-y-3">
-        <h1 className="editorial-display">{copy.title}</h1>
+        <h1 className="x-display">{copy.title}</h1>
         <p className="text-body text-muted-foreground">{copy.subtitle}</p>
       </header>
       {rounds.length === 0 ? <section data-route-state="empty" className="rounded-(--radius-lg) border border-border bg-card px-6 py-12">

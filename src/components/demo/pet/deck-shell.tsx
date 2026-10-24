@@ -199,6 +199,7 @@ export function DeckShell({ slides, brand, cta }: DeckShellProps) {
   );
 }
 
+/// 内容比一屏高时 justify-center 会把顶部挤到滚动原点之外（标题被固定头压住）；safe 居中在溢出时退回顶对齐。
 function DeckSlideBody({
   children,
 }: {
@@ -207,7 +208,7 @@ function DeckSlideBody({
   return (
     <div
       data-deck-inner
-      className="flex h-full flex-col justify-center overflow-y-auto pb-16 pt-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="flex h-full flex-col justify-center-safe overflow-y-auto pb-16 pt-20 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       <div className="flex w-full flex-col gap-8 [&>section]:py-0 sm:gap-12">
         {children}

@@ -1,8 +1,8 @@
 import {
   Activity,
   Moon,
+  Package,
   PawPrint,
-  Sparkles,
   UtensilsCrossed,
   Volume2,
 } from "lucide-react";
@@ -16,7 +16,7 @@ const TYPE_ICON = {
   eating: UtensilsCrossed,
   sleeping: Moon,
   playing: Activity,
-  product: Sparkles,
+  product: Package,
   quiet: Volume2,
   greeting: PawPrint,
 } as const;
@@ -25,7 +25,6 @@ export function ActivityTimeline() {
   return (
     <PetSection
       id="timeline"
-      eyebrow="宠物行为时间线"
       title="AI 看得懂宠物的一整天"
       description="吃饭、睡觉、玩耍、使用产品、异常安静——系统自动识别行为类型并标记关键片段，让你随时了解宠物的日常。"
     >
@@ -48,7 +47,7 @@ function TimelineRow({ event }: { event: ActivityEventDemo }) {
       <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-(--radius-lg) border border-border bg-card text-success">
         <Icon size={18} />
       </span>
-      <div className="border border-border bg-card shadow-editorial flex-1 rounded-(--radius-lg) p-4">
+      <div className="border border-border bg-card shadow-panel flex-1 rounded-(--radius-lg) p-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold tabular-nums text-muted-foreground sm:hidden">
             {event.time}

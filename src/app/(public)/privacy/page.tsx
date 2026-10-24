@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
+import { StatusTick } from "@/components/exchange/status-tick";
 import { getPublicPageCopy } from "@/i18n/public-copy";
 import { getServerLocale } from "@/i18n/server";
 
@@ -17,11 +18,11 @@ export default async function PrivacyPage() {
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-5 py-12 text-body sm:py-16">
       <header className="space-y-3 border-b border-border pb-7">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="studio-label text-primary">{copy.kicker}</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+          <h1 className="x-display">{copy.title}</h1>
           <LanguageSwitcher variant="inline" className="w-auto min-w-32 shrink-0" />
         </div>
-        <h1 className="editorial-display">{copy.title}</h1>
+        <StatusTick tone="partial" label={copy.draftStatus} />
         <p className="text-muted-foreground">{copy.intro}</p>
       </header>
 

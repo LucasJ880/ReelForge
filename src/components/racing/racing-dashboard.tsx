@@ -184,8 +184,8 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
         aria-expanded={expanded}
       >
         <div className="min-w-0">
-          <p className="studio-label text-muted-foreground">{english ? "Round" : "轮次"} {round.roundIndex} · {statusLabel[round.status] ?? round.status}</p>
-          <h2 className="mt-2 truncate font-heading text-title font-semibold">{round.deliveryOrder.title}</h2>
+          <p className="x-label text-muted-foreground">{english ? "Round" : "轮次"} {round.roundIndex} · {statusLabel[round.status] ?? round.status}</p>
+          <h2 className="mt-2 truncate text-title font-medium">{round.deliveryOrder.title}</h2>
           <p className="mt-2 break-all font-mono text-meta text-muted-foreground">{round.id}</p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
@@ -204,7 +204,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
         <div className="space-y-6 p-5">
           <div className="overflow-x-auto">
             <table className="w-full min-w-180 text-left text-body">
-              <thead className="studio-label text-muted-foreground">
+              <thead className="x-label text-muted-foreground">
                 <tr><th className="pb-3">{english ? "Variant" : "变体"}</th><th className="pb-3">{english ? "Placement" : "投放"}</th><th className="pb-3">{english ? "Window" : "窗口"}</th><th className="pb-3 text-right">{english ? "Rank / score" : "排名 / 分数"}</th></tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -225,13 +225,13 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
 
           <div className="grid gap-5 xl:grid-cols-[1.35fr_0.65fr]">
             <form onSubmit={saveMetrics} className="space-y-4 rounded-(--radius-md) border border-border bg-secondary/30 p-4">
-              <div><p className="studio-label text-muted-foreground">{english ? "MANUAL PLACEMENT IMPORT" : "手动投放导入"}</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Import placement metrics" : "录入投放与指标"}</h3></div>
+              <div><p className="x-label text-muted-foreground">{english ? "MANUAL PLACEMENT IMPORT" : "手动投放导入"}</p><h3 className="mt-1 text-subhead font-medium">{english ? "Import placement metrics" : "录入投放与指标"}</h3></div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Field label={english ? "Video variant" : "视频变体"}><select required value={briefId} onChange={(event) => setBriefId(event.target.value)} className="studio-select">{round.variants.map((variant) => <option key={variant.videoBriefId} value={variant.videoBriefId}>{variant.title}</option>)}</select></Field>
-                <Field label={english ? "Platform" : "平台"}><select value={platform} onChange={(event) => setPlatform(event.target.value)} className="studio-select"><option value="tiktok">TikTok</option><option value="instagram_reels">Instagram Reels</option><option value="youtube_shorts">YouTube Shorts</option><option value="facebook">Facebook</option></select></Field>
+                <Field label={english ? "Video variant" : "视频变体"}><select required value={briefId} onChange={(event) => setBriefId(event.target.value)} className="x-select">{round.variants.map((variant) => <option key={variant.videoBriefId} value={variant.videoBriefId}>{variant.title}</option>)}</select></Field>
+                <Field label={english ? "Platform" : "平台"}><select value={platform} onChange={(event) => setPlatform(event.target.value)} className="x-select"><option value="tiktok">TikTok</option><option value="instagram_reels">Instagram Reels</option><option value="youtube_shorts">YouTube Shorts</option><option value="facebook">Facebook</option></select></Field>
                 <Field label={english ? "Post ID" : "贴文 ID"}><Input required value={externalPostId} onChange={(event) => setExternalPostId(event.target.value)} placeholder={english ? "Unique platform ID" : "平台侧唯一 ID"} /></Field>
                 <Field label={english ? "Public URL (optional)" : "公开链接（可选）"}><Input type="url" value={publishUrl} onChange={(event) => setPublishUrl(event.target.value)} placeholder="https://…" /></Field>
-                <Field label={english ? "Observation window" : "观察窗口"}><select value={windowHours} onChange={(event) => setWindowHours(Number(event.target.value) as 12 | 24 | 48)} className="studio-select"><option value={12}>12 {english ? "hours" : "小时"}</option><option value={24}>24 {english ? "hours" : "小时"}</option><option value={48}>48 {english ? "hours" : "小时"}</option></select></Field>
+                <Field label={english ? "Observation window" : "观察窗口"}><select value={windowHours} onChange={(event) => setWindowHours(Number(event.target.value) as 12 | 24 | 48)} className="x-select"><option value={12}>12 {english ? "hours" : "小时"}</option><option value={24}>24 {english ? "hours" : "小时"}</option><option value={48}>48 {english ? "hours" : "小时"}</option></select></Field>
                 <Field label={english ? "Views" : "播放量"}><Input type="number" min={0} value={views} onChange={(event) => setViews(event.target.value)} /></Field>
                 <Field label={english ? "Completion rate" : "完播率"}><Input type="number" min={0} max={100} step="0.1" value={completionRate} onChange={(event) => setCompletionRate(event.target.value)} placeholder="0–100%" /></Field>
                 <Field label={english ? "3-second retention" : "3 秒留存"}><Input type="number" min={0} max={100} step="0.1" value={retention3s} onChange={(event) => setRetention3s(event.target.value)} placeholder="0–100%" /></Field>
@@ -242,9 +242,9 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
             </form>
 
             <section className="space-y-4 rounded-(--radius-md) border border-border bg-secondary/30 p-4">
-              <div><p className="studio-label text-muted-foreground">{english ? "EVIDENCE-AWARE ANALYSIS" : "证据约束分析"}</p><h3 className="mt-1 font-heading text-subhead font-semibold">{english ? "Round findings" : "本轮结论"}</h3></div>
+              <div><p className="x-label text-muted-foreground">{english ? "EVIDENCE-AWARE ANALYSIS" : "证据约束分析"}</p><h3 className="mt-1 text-subhead font-medium">{english ? "Round findings" : "本轮结论"}</h3></div>
               {limitations.map((limitation) => <p key={limitation} className="text-meta text-muted-foreground">{limitation}</p>)}
-              {round.generatedDistillation && <div className="border-l-2 border-accent pl-3"><p className="studio-label text-muted-foreground">{english ? "Next-round recommendation" : "下一轮建议"}</p><p className="mt-2 text-body">{recommendation}</p></div>}
+              {round.generatedDistillation && <div className="border-l-2 border-accent pl-3"><p className="x-label text-muted-foreground">{english ? "Next-round recommendation" : "下一轮建议"}</p><p className="mt-2 text-body">{recommendation}</p></div>}
               <Button type="button" variant="outline" onClick={analyze} disabled={busy || round.confidence.observedSnapshots === 0} className="w-full"><BarChart3 aria-hidden />{english ? "Generate ranking and recommendations" : "生成排名与建议"}</Button>
               {round.generatedDistillation && round.roundIndex < round.deliveryOrder.maxRounds && <Button type="button" onClick={scheduleNext} disabled={busy} className="w-full"><FlaskConical aria-hidden />{english ? "Create next round" : "建立下一轮"}<ArrowRight aria-hidden /></Button>}
             </section>
@@ -258,7 +258,7 @@ function RacingRoundCard({ round }: { round: RacingRound }) {
 }
 
 function Metric({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
-  return <div className="border-r border-border px-4 py-3 last:border-r-0"><p className="studio-label text-muted-foreground">{label}</p><p className={`mt-1 font-mono text-title font-semibold tabular-nums ${accent ? "text-accent" : ""}`}>{value}</p></div>;
+  return <div className="border-r border-border px-4 py-3 last:border-r-0"><p className="x-label text-muted-foreground">{label}</p><p className={`mt-1 font-mono text-title font-semibold tabular-nums ${accent ? "text-accent" : ""}`}>{value}</p></div>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {

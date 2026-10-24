@@ -62,6 +62,7 @@ export function BrandPackageManager({
         readonly: "Read only",
         default: "Default",
         empty: "No workspace brand package yet.",
+        emptyGlobal: "No global brand package has been published yet.",
         save: "Save brand package",
         cancel: "Cancel",
         logo: "Logo",
@@ -81,6 +82,7 @@ export function BrandPackageManager({
         readonly: "只读",
         default: "默认",
         empty: "还没有工作区品牌包。",
+        emptyGlobal: "平台还没有发布全局品牌包。",
         save: "保存品牌包",
         cancel: "取消",
         logo: "Logo",
@@ -225,7 +227,7 @@ export function BrandPackageManager({
         title={copy.global}
         description={copy.globalHint}
         packages={globalPackages}
-        empty={copy.empty}
+        empty={copy.emptyGlobal}
         readonlyLabel={copy.readonly}
         defaultLabel={copy.default}
         editLabel={copy.edit}
@@ -235,10 +237,10 @@ export function BrandPackageManager({
       <section className="min-w-0 space-y-4" aria-labelledby="workspace-brand-packages">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 id="workspace-brand-packages" className="font-heading text-title font-semibold">{copy.workspace}</h2>
+            <h2 id="workspace-brand-packages" className="text-title font-medium">{copy.workspace}</h2>
             <p className="mt-1 max-w-2xl text-body text-muted-foreground">{copy.workspaceHint}</p>
           </div>
-          <Button type="button" onClick={() => { setDraft({ ...EMPTY_DRAFT }); setMessage(null); }}>
+          <Button type="button" variant="outline" onClick={() => { setDraft({ ...EMPTY_DRAFT }); setMessage(null); }}>
             <PackagePlus aria-hidden />{copy.add}
           </Button>
         </div>
@@ -335,7 +337,7 @@ function PackageSection(props: {
   return (
     <section className="min-w-0 space-y-4">
       <div>
-        <h2 className="font-heading text-title font-semibold">{props.title}</h2>
+        <h2 className="text-title font-medium">{props.title}</h2>
         <p className="mt-1 max-w-2xl text-body text-muted-foreground">{props.description}</p>
       </div>
       <PackageCards {...props} />
@@ -373,7 +375,7 @@ function PackageCards({
             />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h3 className="truncate font-heading text-subhead font-semibold">{item.name}</h3>
+                <h3 className="truncate text-subhead font-medium">{item.name}</h3>
                 {item.isDefault ? <Badge variant="secondary">{defaultLabel}</Badge> : null}
               </div>
               <p className="mt-1 truncate text-meta text-muted-foreground">{item.brandName}</p>

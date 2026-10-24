@@ -6,6 +6,7 @@ import {
   resolveShuyuVideoPlan,
   shuyuPriceSchema,
   shuyuVideoPlanPointsForDuration,
+  SHUYU_MIN_REFERENCE_IMAGES,
   SHUYU_VIDEO_MODEL,
 } from "@/lib/providers/shuyu";
 
@@ -93,10 +94,13 @@ const EXPECTED: Array<{
       plan.capabilities.aspect_ratios.includes("1:1"),
   },
   {
+    /// 与审计共用同一个常量：此前探测要求 ≥9、审计只要 ≥4，
+    /// 4 图套餐会被报成「漂移」却照常放行，两把尺子互相打架。
     field: "input_images_max",
-    expected: ">= 9",
+    expected: `>= ${SHUYU_MIN_REFERENCE_IMAGES}`,
     actual: (plan) => String(plan.capabilities.input_images_max),
-    matches: (plan) => plan.capabilities.input_images_max >= 9,
+    matches: (plan) =>
+      plan.capabilities.input_images_max >= SHUYU_MIN_REFERENCE_IMAGES,
   },
   {
     /// 0728 的另一个坑：durations 里 15s 被下线，health 查不出来。

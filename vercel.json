@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/stitch-dispatch",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/capability-probe",
+      "schedule": "0 * * * *"
     }
   ]
 }

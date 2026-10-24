@@ -66,6 +66,7 @@ import {
 } from "@/lib/video-generation/video-route-selection";
 import {
   resolveShuyuVideoPlan,
+  SHUYU_MAX_REFERENCE_IMAGES,
   shuyuVideoPlanPointsForDuration,
 } from "@/lib/providers/shuyu";
 import { resolveVideoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
@@ -987,6 +988,28 @@ function assignmentFromJob(job: VideoJob): AssetAssignment {
   return job.assignedAssets as unknown as AssetAssignment;
 }
 
+/// 任何视频线路单次提交的参考图硬上限（Shuyu 文档上限，也是其它适配器的最大值）。
+/// 按套餐的实际上限由各适配器在解析出套餐后再截断，见 shuyu-video-provider。
+const BATCH_REFERENCE_IMAGES_HARD_MAX = SHUYU_MAX_REFERENCE_IMAGES;
+
+/**
+ * 批量提交的参考图顺序：商家实拍产品图在前，故事板帧在后。
+ *
+ * prompt 在建批次时由 renderBatchTemplatePrompt 按产品图张数写好
+ * 「input_images[1..k]」——槽位编号只有在实拍图真的排在第 1..k 位时才指对图。
+ * 此前故事板帧排在前面，提示词里的产品槽位实际指向 AI 帧（产品细节漂移的根因
+ * 之一）；遇到只收 4 张的套餐时，按位截断还会把实拍图整组挤掉。
+ * 实拍在前之后，任何截断（这里的硬上限、适配器按套餐上限）都只会先丢故事板帧。
+ */
+function orderBatchReferenceImages(args: {
+  productUrls: string[];
+  storyboardUrls: string[];
+}): Array<{ url: string; role: "content" }> {
+  return [...args.productUrls, ...args.storyboardUrls]
+    .slice(0, BATCH_REFERENCE_IMAGES_HARD_MAX)
+    .map((url) => ({ url, role: "content" as const }));
+}
+
 async function submitClaimedJob(
   job: VideoJob & { claimOwner: string },
 ): Promise<void> {
@@ -1060,16 +1083,10 @@ async function submitClaimedJob(
         providerRequestKey,
         prompt: job.promptText ?? "",
         negativePrompt: job.negativePrompt ?? undefined,
-        referenceImages: [
-          ...storyboardReferences.map((url) => ({
-            url,
-            role: "content" as const,
-          })),
-          ...assignment.assets.map((asset) => ({
-            url: asset.url,
-            role: "content" as const,
-          })),
-        ].slice(0, 9),
+        referenceImages: orderBatchReferenceImages({
+          productUrls: assignment.assets.map((asset) => asset.url),
+          storyboardUrls: storyboardReferences,
+        }),
         /// 批量模板的多张产品图是「视觉真值参考」，不是首尾帧。Seedance 2 必须走
         /// Omni-Reference，否则 4 张不同房间的图会被当 first/last frame 强行变形
         /// 拼接（2026-07-20 真机验收发现的幻觉源头）。Seedance-1/Shuyu 适配器会

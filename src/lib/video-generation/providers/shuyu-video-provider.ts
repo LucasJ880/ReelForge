@@ -7,6 +7,8 @@ import {
   markShuyuVideoPlanRejected,
   resolveShuyuVideoPlans,
   resolveShuyuVideoPlanWithCooldown,
+  SHUYU_MAX_REFERENCE_IMAGES,
+  shuyuReferenceImageLimit,
   shuyuVideoPlanPointsForDuration,
   ShuyuApiError,
   type AuditedShuyuVideoPlan,
@@ -21,8 +23,6 @@ import type {
   VideoProvider,
 } from "./types";
 import { getShuyuRouteRuntimeAvailability } from "../shuyu-runtime";
-
-const MAX_REFERENCE_IMAGES = 9;
 
 export class ShuyuVideoProvider implements VideoProvider {
   readonly id = "shuyu" as const;
@@ -87,7 +87,7 @@ export class ShuyuVideoProvider implements VideoProvider {
       .map((image) => image.url.trim())
       .filter(Boolean);
     if (
-      inputImages.length > MAX_REFERENCE_IMAGES ||
+      inputImages.length > SHUYU_MAX_REFERENCE_IMAGES ||
       inputImages.some((url) => {
         try {
           return new URL(url).protocol !== "https:";
@@ -97,7 +97,7 @@ export class ShuyuVideoProvider implements VideoProvider {
       })
     ) {
       throw new ProviderSubmissionError(
-        "Shuyu accepts at most 9 HTTPS reference images",
+        `Shuyu accepts at most ${SHUYU_MAX_REFERENCE_IMAGES} HTTPS reference images`,
         { providerId: this.id, stage: "preflight", retryable: false },
       );
     }
@@ -189,6 +189,16 @@ export class ShuyuVideoProvider implements VideoProvider {
     const attemptedPlanIds: string[] = [];
     for (;;) {
       try {
+        /// 按「本次实际使用的套餐」截断参考图：降级到的下一档上限可能更小。
+        /// 调用方已按优先级排序（实拍产品图在前），截掉的只会是队尾的故事板帧。
+        const planInputImages = inputImages.slice(0, shuyuReferenceImageLimit(plan));
+        if (planInputImages.length < inputImages.length) {
+          console.warn("[shuyu] reference images truncated to plan limit", {
+            planId: plan.planId,
+            sent: planInputImages.length,
+            dropped: inputImages.length - planInputImages.length,
+          });
+        }
         const created = await createShuyuVideoTask({
           ...this.options,
           providerRequestKey: requestKey,
@@ -197,7 +207,7 @@ export class ShuyuVideoProvider implements VideoProvider {
           prompt,
           duration,
           aspectRatio: options.aspectRatio ?? "9:16",
-          inputImages,
+          inputImages: planInputImages,
         });
         return {
           providerJobId: created.taskId,

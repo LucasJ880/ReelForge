@@ -423,13 +423,12 @@ test("QUALITY_BLOCKED displays only short language-matched sanitized blockers", 
 });
 
 test("H1 dispatch wiring: route and direct consumers cannot drift to legacy retry semantics", async () => {
-  const [route, unified, editorial] = await Promise.all([
+  const [route, studio] = await Promise.all([
     readFile("src/app/api/video-generation/dispatch/route.ts", "utf8"),
     readFile(
-      "src/components/video-generation/unified-creative-input.tsx",
+      "src/components/video-generation/streamlined-video-studio.tsx",
       "utf8",
     ),
-    readFile("src/components/personal/glass-create-workflow.tsx", "utf8"),
   ]);
 
   assert.doesNotMatch(
@@ -446,14 +445,13 @@ test("H1 dispatch wiring: route and direct consumers cannot drift to legacy retr
     "post-quota provider failures must not advertise a new paid attempt",
   );
 
-  for (const consumer of [unified, editorial]) {
-    assert.match(consumer, /CustomerVideoDispatchResponse/);
-    assert.match(consumer, /shouldResetDispatchAttempt\(j\)/);
-    assert.match(consumer, /customerDirectDispatchMessage\(\s*j,/);
-    assert.doesNotMatch(consumer, /j\.blockers\?\.\[0\]\s*\?\?\s*j\.error/);
-    assert.doesNotMatch(
-      consumer,
-      /j\.retryable\s*===\s*true[\s\S]{0,80}dispatchAttemptRef\.current\s*=\s*null/,
-    );
-  }
+  // 唯一的直连派发消费方是 /app/create 的 streamlined-video-studio（旧 unified / glass 入口已删除）。
+  assert.match(studio, /CustomerVideoDispatchResponse/);
+  assert.match(studio, /shouldResetDispatchAttempt\(payload\)/);
+  assert.match(studio, /customerDirectDispatchMessage\(\s*payload,/);
+  assert.doesNotMatch(studio, /payload\.blockers\?\.\[0\]\s*\?\?\s*payload\.error/);
+  assert.doesNotMatch(
+    studio,
+    /payload\.retryable\s*===\s*true[\s\S]{0,80}dispatchAttemptRef\.current\s*=\s*null/,
+  );
 });

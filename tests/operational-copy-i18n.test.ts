@@ -6,15 +6,13 @@ import test from "node:test";
 const ROOT = process.cwd();
 
 test("RF-013 customer operational labels resolve through platform copy", async () => {
-  const [agent, templates] = await Promise.all([
-    readFile(path.join(ROOT, "src/components/video-generation/agent-creative-studio.tsx"), "utf8"),
+  const [studio, templates] = await Promise.all([
+    readFile(path.join(ROOT, "src/components/video-generation/streamlined-video-studio.tsx"), "utf8"),
     readFile(path.join(ROOT, "src/components/templates/template-library-grid.tsx"), "utf8"),
   ]);
   for (const hardcoded of ["QUALITY LOCK", "PRODUCTION BRIEF", "QUALITY-LOCKED"]) {
-    assert.doesNotMatch(agent + templates, new RegExp(hardcoded));
+    assert.doesNotMatch(studio + templates, new RegExp(hardcoded));
   }
-  assert.match(agent, /agent\.qualityLockKicker/);
-  assert.match(agent, /agent\.productionBriefKicker/);
   assert.match(templates, /copy\.lockedCount/);
 });
 

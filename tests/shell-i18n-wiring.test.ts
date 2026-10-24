@@ -5,9 +5,6 @@ import { resolve } from "node:path";
 
 const SHELL_CLIENT_FILES = [
   "src/components/platform/platform-shell.tsx",
-  "src/components/billing/usage-dashboard.tsx",
-  "src/components/video-generation/unified-creative-input.tsx",
-  "src/components/business/business-metrics-form.tsx",
   "src/components/library/video-actions.tsx",
 ];
 

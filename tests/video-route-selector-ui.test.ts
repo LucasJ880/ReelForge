@@ -42,7 +42,7 @@ test("legacy role/persona mismatches cannot demote staff or promote customers", 
 test("only audited public routes can be selected and dispatch keeps the route in its idempotency fingerprint", async () => {
   const [selector, input] = await Promise.all([
     readFile("src/components/video-generation/video-route-selector.tsx", "utf8"),
-    readFile("src/components/video-generation/unified-creative-input.tsx", "utf8"),
+    readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8"),
   ]);
 
   assert.match(selector, /value="byteplus_international"/);

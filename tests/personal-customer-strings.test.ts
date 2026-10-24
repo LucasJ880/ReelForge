@@ -11,8 +11,7 @@ const CUSTOMER_FILES = [
   "src/components/library/video-actions.tsx",
   "src/components/platform/platform-shell.tsx",
   "src/components/video-generation/plan-preview-card.tsx",
-  "src/components/video-generation/unified-creative-input.tsx",
-  "src/components/video-generation/unified-creative-input-shell.tsx",
+  "src/components/video-generation/streamlined-video-studio.tsx",
 ];
 
 function customerLiterals(source: string): string[] {

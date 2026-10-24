@@ -141,13 +141,27 @@ function latestDate(
   }, null);
 }
 
+/**
+ * 客户取消过的单条（1025 · 单条可取消）：有被取消的段、且没有在跑 / 排队 / 暂停 / 失败的段。
+ * 取消不是失败——成品库写「已取消」，不叫客户「重试失败片段」。
+ */
+export function isCancelledOrderJobs(jobStatuses: readonly string[]): boolean {
+  return (
+    jobStatuses.includes("CANCELLED") &&
+    !jobStatuses.some((status) => ["QUEUED", "RUNNING", "PAUSED", "FAILED"].includes(status))
+  );
+}
+
 export function deriveMakingProcess(
   evidence: MakingProcessEvidence,
 ): MakingProcessStep[] {
+  const cancelled =
+    !evidence.hasPlayableVideo && isCancelledOrderJobs(evidence.videoJobs.map((job) => job.status));
   const briefFailed =
-    evidence.briefStatus === "RENDER_FAILED" ||
-    evidence.briefStatus === "QA_REJECTED" ||
-    evidence.briefStatus === "DROPPED";
+    !cancelled &&
+    (evidence.briefStatus === "RENDER_FAILED" ||
+      evidence.briefStatus === "QA_REJECTED" ||
+      evidence.briefStatus === "DROPPED");
   const brief: MakingProcessStep = {
     key: "brief",
     status: briefFailed ? "failed" : "completed",
@@ -212,6 +226,9 @@ export function deriveMakingProcess(
   } else if (hasActiveGeneration) {
     generationStatus = "current";
     generationSummary = "generation_running";
+  } else if (cancelled) {
+    generationStatus = "failed";
+    generationSummary = "generation_cancelled";
   } else if (hasFailedGeneration) {
     generationStatus = "failed";
     generationSummary = "generation_failed";
@@ -240,6 +257,9 @@ export function deriveMakingProcess(
   ) {
     postStatus = "completed";
     postSummary = "post_ready";
+  } else if (cancelled) {
+    postStatus = "pending";
+    postSummary = "post_cancelled";
   } else if (evidence.finalVideoStatus === "FAILED") {
     postStatus = "failed";
     postSummary = "post_failed";
@@ -316,7 +336,11 @@ export function toUnifiedLibraryRow(
     jobStatuses,
     ...summarizeRunningJobs(brief?.videoJobs ?? []),
   });
-  const status = refineOrderLibraryStatus(derived.status, jobStatuses);
+  const playable = Boolean(finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl);
+  const status =
+    !playable && isCancelledOrderJobs(jobStatuses)
+      ? "cancelled"
+      : refineOrderLibraryStatus(derived.status, jobStatuses);
   const active = status === "generating" || status === "assembling";
 
   return parseLibraryRow({

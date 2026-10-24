@@ -20,3 +20,16 @@ test("媒体探针：选中 Helvetica / 未知字体都不算通过", () => {
   assert.equal(subtitleFontIsBundledCjk("NotoSansSC-Regular"), true);
   assert.equal(subtitleFontIsBundledCjk("/var/task/node_modules/@expo-google-fonts/noto-sans-sc/400Regular/NotoSansSC_400Regular.ttf"), true);
 });
+
+test("生产拼接 runner（GH Ubuntu + apt ffmpeg）字幕烧录用打包字体：装字体包、传 fontsdir、注入 fonts.conf", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const runner = await readFile("scripts/stitch-runner.ts", "utf8");
+  assert.match(runner, /import \{ ensureMediaFonts \} from "\.\.\/src\/lib\/media\/media-fonts";/);
+  assert.match(runner, /ass=filename='\$\{escapeFfmpegFilterPath\(assPath\)\}'\$\{fontsDirOption\}\[vout\]/);
+  assert.match(runner, /FONTCONFIG_FILE: fontconfigFile/);
+  const workflow = await readFile(".github/workflows/stitch-videos.yml", "utf8");
+  const pkg = JSON.parse(await readFile("package.json", "utf8")) as { dependencies: Record<string, string> };
+  const version = pkg.dependencies["@expo-google-fonts/noto-sans-sc"];
+  assert.ok(version, "app bundles the font");
+  assert.ok(workflow.includes(`@expo-google-fonts/noto-sans-sc@${version}`), "runner installs the same font version as the app");
+});

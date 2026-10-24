@@ -30,9 +30,11 @@ const summaries: Record<string, { zh: string; en: string }> = {
   generation_completed: { zh: "所有镜头均已生成", en: "All scenes generated" },
   generation_running: { zh: "正在生成视频镜头", en: "Generating video scenes" },
   generation_failed: { zh: "部分镜头生成失败", en: "One or more scenes failed" },
+  generation_cancelled: { zh: "已取消，额度已返还", en: "Cancelled, allowance refunded" },
   generation_pending: { zh: "等待视频生成", en: "Waiting for video generation" },
   post_ready: { zh: "拼接与成片处理已完成", en: "Assembly and final processing complete" },
   post_failed: { zh: "成片处理未完成", en: "Final processing failed" },
+  post_cancelled: { zh: "已取消，不再合成", en: "Cancelled, not assembled" },
   post_processing: { zh: "正在拼接并完成成片", en: "Assembling and finishing the video" },
   post_pending: { zh: "等待后期制作", en: "Waiting for post-production" },
 };

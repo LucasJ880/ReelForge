@@ -1366,7 +1366,65 @@ export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {
       });
     }
   }
+  await retryAckUnknownSingleStoryboardFrames().catch((error) => {
+    console.warn("[storyboards] ack-unknown auto retry failed", error instanceof Error ? error.message : String(error));
+  });
   return polled;
+}
+
+/// 单条故事板里「提交确认未知、且没有任务号」的帧自动重投的上限（只重投一次）。
+const SINGLE_ACK_UNKNOWN_AUTO_RETRY_BELOW_ATTEMPT = 2;
+const SINGLE_ACK_UNKNOWN_AUTO_RETRY_WINDOW_MS = 30 * 60_000;
+
+/**
+ * 单条故事板：无任务号的 ACK_UNKNOWN 帧自动按新 attempt 重投一次。
+ *
+ * 1025 真机验收：这类帧的文案写着「系统会自动按新尝试重新生成这一帧」，批量路径确实会
+ * 重投（retryRecoverableBatchFrames），单条路径却没人重投——故事板停在 FAILED，
+ * 客户只能自己发现并点「重做这一帧」。当天约 30 帧里出现 2 次，值得自动兑现。
+ * 只碰本人未取消、未确认派发的单条轮次；重投仍走 regenerateStoryboardFrame 的全部闸门。
+ */
+export async function retryAckUnknownSingleStoryboardFrames(limit = 5, now = new Date()): Promise<number> {
+  const frames = await db.storyboardFrame.findMany({
+    where: {
+      isCurrent: true,
+      status: StoryboardFrameStatus.FAILED,
+      submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+      externalTaskId: null,
+      attempt: { lt: SINGLE_ACK_UNKNOWN_AUTO_RETRY_BELOW_ATTEMPT },
+      /// 只救刚失败的（客户还在页面上）：几个月前放弃的旧轮次不去复活、不花钱（1025 首跑踩过）
+      completedAt: { gte: new Date(now.getTime() - SINGLE_ACK_UNKNOWN_AUTO_RETRY_WINDOW_MS) },
+      storyboardRun: {
+        purpose: "single-video-storyboard",
+        status: { in: [StoryboardRunStatus.GENERATING, StoryboardRunStatus.FAILED] },
+        videoBriefId: null,
+        dispatchReservationKey: null,
+        owner: { disabledAt: null },
+      },
+    },
+    select: { id: true, storyboardRunId: true, storyboardRun: { select: { userId: true } } },
+    orderBy: { updatedAt: "asc" },
+    take: limit,
+  });
+  let retried = 0;
+  for (const frame of frames) {
+    try {
+      await regenerateStoryboardFrame({
+        userId: frame.storyboardRun.userId,
+        runId: frame.storyboardRunId,
+        frameId: frame.id,
+      });
+      retried += 1;
+    } catch (error) {
+      console.warn(JSON.stringify({
+        evt: "single_frame_ack_unknown_retry_failed",
+        runId: frame.storyboardRunId,
+        frameId: frame.id,
+        error: (error instanceof Error ? error.message : String(error)).slice(0, 200),
+      }));
+    }
+  }
+  return retried;
 }
 
 /// 取消后改写的幂等键：同一个键再提交得到全新的一轮，而不是回放已取消的这条。

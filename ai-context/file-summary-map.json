@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:04:59.682Z",
+  "generatedAt": "2026-10-24T21:26:45.559Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -376523,7 +376523,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 74,
-      "sizeBytes": 3025,
+      "sizeBytes": 3063,
       "notes": "GitHub Actions workflow; area=config"
     },
     {
@@ -382186,11 +382186,12 @@
         "../src/lib/video-generation/audio-post-production",
         "../src/lib/video-generation/broll-segment-compose",
         "../src/lib/media/frame-rate",
+        "../src/lib/media/media-fonts",
         "@vercel/blob"
       ],
       "importantSymbols": [],
-      "lineCount": 655,
-      "sizeBytes": 19473,
+      "lineCount": 669,
+      "sizeBytes": 20415,
       "notes": "Maintenance / one-off script (run via tsx); area=ffmpeg"
     },
     {
@@ -383830,8 +383831,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 145,
-      "sizeBytes": 7479,
+      "lineCount": 155,
+      "sizeBytes": 7717,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -385041,7 +385042,8 @@
         "@/lib/demo-account",
         "@/lib/services/broll-assembly-service",
         "@/lib/services/broll-plan-service",
-        "@/lib/services/paid-action-rate-limit"
+        "@/lib/services/paid-action-rate-limit",
+        "@/lib/providers/provider-billing-error"
       ],
       "importantSymbols": [
         "POST",
@@ -385049,8 +385051,8 @@
         "dynamic",
         "maxDuration"
       ],
-      "lineCount": 120,
-      "sizeBytes": 3779,
+      "lineCount": 132,
+      "sizeBytes": 4237,
       "notes": "Next.js API route handler"
     },
     {
@@ -389052,8 +389054,8 @@
       "importantSymbols": [
         "MakingProcessTimeline"
       ],
-      "lineCount": 127,
-      "sizeBytes": 5149,
+      "lineCount": 129,
+      "sizeBytes": 5335,
       "notes": "React component"
     },
     {
@@ -389926,8 +389928,8 @@
         "captionStyleSelectValue",
         "generateVoiceoverScript"
       ],
-      "lineCount": 464,
-      "sizeBytes": 19619,
+      "lineCount": 466,
+      "sizeBytes": 19828,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -390423,8 +390425,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 935,
-      "sizeBytes": 59653,
+      "lineCount": 936,
+      "sizeBytes": 59957,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -392520,6 +392522,21 @@
       "notes": "External API provider wrapper; uses OpenAI SDK; area=ai-providers"
     },
     {
+      "path": "src/lib/providers/provider-billing-error.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "isProviderBillingError"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "isProviderBillingError"
+      ],
+      "lineCount": 16,
+      "sizeBytes": 1025,
+      "notes": "External API provider wrapper; area=ai-providers"
+    },
+    {
       "path": "src/lib/providers/remove-bg.ts",
       "type": "provider",
       "area": "ai-providers",
@@ -394076,6 +394093,7 @@
         "@/lib/exchange/pulse",
         "@/lib/services/lead-service",
         "@/lib/services/quota-service",
+        "@/lib/services/single-video-cancel-service",
         "@/lib/services/unified-library-service"
       ],
       "importantSymbols": [
@@ -394088,8 +394106,8 @@
         "batchFailureWhere",
         "orderFailureWhere"
       ],
-      "lineCount": 493,
-      "sizeBytes": 20810,
+      "lineCount": 505,
+      "sizeBytes": 21414,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -395407,6 +395425,7 @@
         "MakingProcessStepStatus",
         "MakingProcessStep",
         "MakingProcessEvidence",
+        "isCancelledOrderJobs",
         "deriveMakingProcess",
         "refineOrderLibraryStatus",
         "toUnifiedLibraryRow",
@@ -395440,11 +395459,11 @@
         "MakingProcessEvidence",
         "LIBRARY_ROWS_PER_SOURCE",
         "UnifiedLibraryResult",
-        "deriveMakingProcess",
-        "refineOrderLibraryStatus"
+        "isCancelledOrderJobs",
+        "deriveMakingProcess"
       ],
-      "lineCount": 713,
-      "sizeBytes": 24864,
+      "lineCount": 737,
+      "sizeBytes": 25838,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -397402,6 +397421,7 @@
         "requireApprovedStoryboardVideoReferencesForBrief",
         "requireApprovedStoryboardVideoInputsForBrief",
         "pollPendingStoryboardRuns",
+        "retryAckUnknownSingleStoryboardFrames",
         "cancelStoryboardRun",
         "cancelStoryboardRunsForVideoJobs",
         "cancelActiveStoryboardRunsForUser",
@@ -397428,8 +397448,8 @@
         "storyboardFrameCountForDuration",
         "buildStoryboardFramePlans"
       ],
-      "lineCount": 1543,
-      "sizeBytes": 58247,
+      "lineCount": 1601,
+      "sizeBytes": 60836,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -398281,8 +398301,8 @@
         "../src/lib/video-generation/bgm-attribution"
       ],
       "importantSymbols": [],
-      "lineCount": 111,
-      "sizeBytes": 4617,
+      "lineCount": 123,
+      "sizeBytes": 5069,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -399170,11 +399190,13 @@
         "node:test",
         "../src/lib/media/media-fonts",
         "../src/lib/media/media-health",
-        "../src/lib/video-generation/audio-post-production"
+        "../src/lib/video-generation/audio-post-production",
+        "node:fs/promises",
+        "\\.\\.\\/src\\/lib\\/media\\/media-fonts"
       ],
       "importantSymbols": [],
-      "lineCount": 23,
-      "sizeBytes": 1327,
+      "lineCount": 36,
+      "sizeBytes": 2313,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -400873,8 +400895,8 @@
         "../src/lib/media/ffmpeg-bin"
       ],
       "importantSymbols": [],
-      "lineCount": 262,
-      "sizeBytes": 11407,
+      "lineCount": 264,
+      "sizeBytes": 11679,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -401614,6 +401636,22 @@
       "lineCount": 119,
       "sizeBytes": 4031,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
+      "path": "tests/provider-billing-error.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "../src/lib/providers/provider-billing-error"
+      ],
+      "importantSymbols": [],
+      "lineCount": 20,
+      "sizeBytes": 1295,
+      "notes": "Unit / integration test; area=tests"
     },
     {
       "path": "tests/provider-submit-disposition.test.ts",
@@ -402510,6 +402548,22 @@
       "importantSymbols": [],
       "lineCount": 28,
       "sizeBytes": 1133,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/storyboard-ack-unknown-single-retry.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/db",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 34,
+      "sizeBytes": 1727,
       "notes": "Unit / integration test; area=tests"
     },
     {

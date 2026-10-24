@@ -6,6 +6,7 @@ import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import type { ExchangePulse, PulsePlan, TapeEntry } from "@/lib/exchange/pulse";
 import { countNewLeads } from "@/lib/services/lead-service";
 import { getUsageSummary } from "@/lib/services/quota-service";
+import { CUSTOMER_CANCELLED_CLASS } from "@/lib/services/single-video-cancel-service";
 import {
   loadRecentVideoRows,
   templateDisplayName,
@@ -107,13 +108,24 @@ function orderFailureClauses(range?: Range): Prisma.VideoBriefWhereInput[] {
   ];
 }
 
+/**
+ * 客户自己取消的单条（cancelUnifiedOrderForUser 打了 customer_cancelled 标记、且没有失败段）：
+ * 取消不是失败——不进「需要处理」、不拉低成片率（与成品库 isCancelledOrderJobs 同口径）。
+ */
+const CUSTOMER_CANCELLED_ORDER: Prisma.VideoBriefWhereInput = {
+  videoJobs: {
+    some: { status: "CANCELLED", submissionErrorClass: CUSTOMER_CANCELLED_CLASS },
+    none: { status: "FAILED" },
+  },
+};
+
 /** 单条订单失败，时间按各自那一刻算。 */
 export function orderFailureWhere(userId: string, range: Range): Prisma.VideoBriefWhereInput {
-  return { ...ownedBriefWhere(userId), OR: orderFailureClauses(range) };
+  return { ...ownedBriefWhere(userId), OR: orderFailureClauses(range), NOT: CUSTOMER_CANCELLED_ORDER };
 }
 
 /** 不看时间的单条失败判据（用来把失败排除在「成片 / 生成中 / 排队中」之外）。 */
-const ORDER_FAILED_ANY: Prisma.VideoBriefWhereInput = { OR: orderFailureClauses() };
+const ORDER_FAILED_ANY: Prisma.VideoBriefWhereInput = { OR: orderFailureClauses(), NOT: CUSTOMER_CANCELLED_ORDER };
 
 /** 批量成片：成片时刻取 finishedAt，旧数据没有就退回 updatedAt。 */
 export function batchReadyWhere(userId: string, range?: Range): Prisma.VideoJobWhereInput {

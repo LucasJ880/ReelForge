@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:04:59.736Z",
+  "generatedAt": "2026-10-24T21:26:45.615Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -231144,12 +231144,14 @@
         "../src/lib/video-generation/audio-post-production",
         "../src/lib/video-generation/broll-segment-compose",
         "../src/lib/media/frame-rate",
+        "../src/lib/media/media-fonts",
         "@vercel/blob"
       ],
       "localImports": [
         "../src/lib/video-generation/audio-post-production",
         "../src/lib/video-generation/broll-segment-compose",
-        "../src/lib/media/frame-rate"
+        "../src/lib/media/frame-rate",
+        "../src/lib/media/media-fonts"
       ],
       "externalImports": [
         "node:child_process",
@@ -233601,7 +233603,8 @@
         "@/lib/demo-account",
         "@/lib/services/broll-assembly-service",
         "@/lib/services/broll-plan-service",
-        "@/lib/services/paid-action-rate-limit"
+        "@/lib/services/paid-action-rate-limit",
+        "@/lib/providers/provider-billing-error"
       ],
       "localImports": [
         "@/lib/api-auth",
@@ -233609,7 +233612,8 @@
         "@/lib/demo-account",
         "@/lib/services/broll-assembly-service",
         "@/lib/services/broll-plan-service",
-        "@/lib/services/paid-action-rate-limit"
+        "@/lib/services/paid-action-rate-limit",
+        "@/lib/providers/provider-billing-error"
       ],
       "externalImports": [
         "next/server",
@@ -239259,6 +239263,7 @@
         "@/lib/exchange/pulse",
         "@/lib/services/lead-service",
         "@/lib/services/quota-service",
+        "@/lib/services/single-video-cancel-service",
         "@/lib/services/unified-library-service"
       ],
       "localImports": [
@@ -239269,6 +239274,7 @@
         "@/lib/exchange/pulse",
         "@/lib/services/lead-service",
         "@/lib/services/quota-service",
+        "@/lib/services/single-video-cancel-service",
         "@/lib/services/unified-library-service"
       ],
       "externalImports": [
@@ -242244,7 +242250,9 @@
         "node:test",
         "../src/lib/media/media-fonts",
         "../src/lib/media/media-health",
-        "../src/lib/video-generation/audio-post-production"
+        "../src/lib/video-generation/audio-post-production",
+        "node:fs/promises",
+        "\\.\\.\\/src\\/lib\\/media\\/media-fonts"
       ],
       "localImports": [
         "../src/lib/media/media-fonts",
@@ -242253,7 +242261,9 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:test"
+        "node:test",
+        "node:fs/promises",
+        "\\.\\.\\/src\\/lib\\/media\\/media-fonts"
       ]
     },
     {
@@ -244714,6 +244724,23 @@
       ]
     },
     {
+      "file": "tests/provider-billing-error.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "../src/lib/providers/provider-billing-error"
+      ],
+      "localImports": [
+        "../src/lib/providers/provider-billing-error"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/provider-submit-disposition.test.ts",
       "imports": [
         "node:assert/strict",
@@ -245698,6 +245725,23 @@
         "node:assert/strict",
         "node:test",
         "node:fs/promises"
+      ]
+    },
+    {
+      "file": "tests/storyboard-ack-unknown-single-retry.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/db",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {

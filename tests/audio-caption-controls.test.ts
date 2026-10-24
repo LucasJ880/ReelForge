@@ -108,3 +108,15 @@ test("1025：口播初稿不念规格与镜头调度，只在句读处截断", (
   assert.doesNotMatch(en, /15s|vertical|UGC|Close-up|lighting/i);
   assert.match(en, /golden retriever/);
 });
+
+test("1025：「15 秒 9:16：」开头的提示词不会把画幅切出一个「16」进口播", () => {
+  const zh = generateVoiceoverScript({
+    prompt: "15 秒 9:16：橘猫趴在米白色智能宠物垫上打盹，阳光照在客厅木地板上。",
+    durationSec: 15,
+    language: "zh-CN",
+    templateId: null,
+    cta: null,
+  });
+  assert.doesNotMatch(zh, /16|9/);
+  assert.match(zh, /橘猫趴在米白色智能宠物垫上打盹/);
+});

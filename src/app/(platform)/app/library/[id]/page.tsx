@@ -53,7 +53,15 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
             {item.isShowcase ? <MonoTag>{copy.showcaseBadge}</MonoTag> : null}
           </span>
         }
-        subtitle={item.isShowcase ? copy.showcaseHint : item.status === "failed" ? copy.detailFailure : undefined}
+        subtitle={
+          item.isShowcase
+            ? copy.showcaseHint
+            : item.status === "failed"
+              ? copy.detailFailure
+              : item.status === "cancelled"
+                ? copy.detailCancelled
+                : undefined
+        }
         /// 下载与处置跟着成片走（舞台旁边），行情头不另放主钮
         primaryAction={null}
         readingsLabel={copy.detailReadings}
@@ -91,7 +99,9 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               <AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" />
             </div>
           ) : (
-            <p className="py-16 text-center text-body text-muted-foreground">{copy.processing}</p>
+            <p className="py-16 text-center text-body text-muted-foreground">
+              {item.status === "cancelled" ? copy.detailCancelled : copy.processing}
+            </p>
           )}
         </div>
 

@@ -53,7 +53,7 @@ jobs:
         # 只装 runner 需要的 @vercel/blob + tsx，跳过 postinstall (prisma generate) /
         # next build。stitch-runner.ts 是 standalone，不依赖 Next/Prisma。
         run: |
-          npm install --no-save --ignore-scripts --silent @vercel/blob@^2 tsx@^4
+          npm install --no-save --ignore-scripts --silent @vercel/blob@^2 tsx@^4 @expo-google-fonts/noto-sans-sc@0.4.4
 
       - name: Run stitch runner
         env:

@@ -125,9 +125,11 @@ const SPEC_CLAUSE_EN =
 
 function narrationClauses(prompt: string, english: boolean): string[] {
   const clauses = compactText(prompt)
+    /// 画幅（9:16）先整体拿掉：否则按冒号分句会把它切成「15 秒 9」和「16」，后者漏进口播
+    .replace(/\d+\s*[:：]\s*\d+/gu, " ")
     .split(english ? /[.!?;:\n]+|,\s+/u : /[。！？!?；;，,：:\n]+/u)
     .map((clause) => clause.trim())
-    .filter(Boolean);
+    .filter((clause) => clause && !/^[\d\s.]+$/u.test(clause));
   if (english) return clauses.filter((clause) => !SPEC_CLAUSE_EN.test(clause));
   return clauses
     .filter((clause) => !SPEC_CLAUSE_ZH.test(clause) && !CAMERA_CLAUSE_ZH.test(clause) && !LIGHTING_CLAUSE_ZH.test(clause))

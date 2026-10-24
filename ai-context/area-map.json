@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:04:59.770Z",
+  "generatedAt": "2026-10-24T21:26:45.656Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -20130,6 +20130,7 @@
       "tests/production-mock-runtime-guard.test.ts",
       "tests/progress-live-estimation.test.ts",
       "tests/progress-truthfulness.test.ts",
+      "tests/provider-billing-error.test.ts",
       "tests/provider-submit-disposition.test.ts",
       "tests/public-pages-i18n.test.ts",
       "tests/quota-envelope-contract.test.ts",
@@ -20181,6 +20182,7 @@
       "tests/stitch-service-runtime.test.ts",
       "tests/stock-footage.test.ts",
       "tests/storage-migration-candidate-identification.test.ts",
+      "tests/storyboard-ack-unknown-single-retry.test.ts",
       "tests/storyboard-api.test.ts",
       "tests/storyboard-cancel.test.ts",
       "tests/storyboard-gacha-generic.test.ts",
@@ -20664,6 +20666,7 @@
       "src/lib/providers/openai-image.ts",
       "src/lib/providers/openai-tts.ts",
       "src/lib/providers/openai.ts",
+      "src/lib/providers/provider-billing-error.ts",
       "src/lib/providers/remove-bg.ts",
       "src/lib/providers/seedance.ts",
       "src/lib/providers/shuyu-catalog.ts",

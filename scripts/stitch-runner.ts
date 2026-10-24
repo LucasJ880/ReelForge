@@ -40,6 +40,8 @@ import {
 } from "../src/lib/video-generation/broll-segment-compose";
 /// 纯函数模块（零依赖）。runner 用 apt ffmpeg，绝不引用 src/lib/media/ffmpeg-bin / ffmpeg-static。
 import { pickStitchFrameRate } from "../src/lib/media/frame-rate";
+/// 只用 node 内置模块：解析打包的 Noto Sans SC（workflow 里 npm 装同一版本）并生成 fonts.conf。
+import { ensureMediaFonts } from "../src/lib/media/media-fonts";
 
 const execFileAsync = promisify(execFile);
 
@@ -481,8 +483,16 @@ async function applyPostProduction(args: {
 
   const filterParts: string[] = [];
   if (assPath) {
+    /// 1025 真机验收：生产成片的中文字幕全是豆腐块——runner 是 Ubuntu + apt ffmpeg，系统里没有
+    /// 任何中文字体，这里也没传 fontsdir。与应用同一份打包字体：fontsdir 直给 libass，
+    /// fonts.conf（runFfmpeg 注入 FONTCONFIG_FILE）兜住回退。
+    const { fontDir } = ensureMediaFonts();
+    if (!fontDir) {
+      console.warn("::warning::bundled CJK font missing on runner; Chinese captions would render as tofu");
+    }
+    const fontsDirOption = fontDir ? `:fontsdir='${escapeFfmpegFilterPath(fontDir)}'` : "";
     filterParts.push(
-      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'[vout]`,
+      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'${fontsDirOption}[vout]`,
     );
   }
   if (audioPlan.filterComplex) {
@@ -620,7 +630,11 @@ async function runFfmpeg(
   errorCode: string,
 ) {
   try {
-    await execFileAsync(executable, args, { maxBuffer: 1024 * 1024 * 50 });
+    const { fontconfigFile } = ensureMediaFonts();
+    await execFileAsync(executable, args, {
+      maxBuffer: 1024 * 1024 * 50,
+      env: fontconfigFile ? { ...process.env, FONTCONFIG_FILE: fontconfigFile } : process.env,
+    });
   } catch {
     throw new StitchRunnerError(errorCode);
   }

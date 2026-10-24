@@ -104,9 +104,11 @@ function localImportGraph(entryRel: string): Set<string> {
 test("[media-runtime] stitch-runner（GH Actions，apt ffmpeg）依赖图里没有 ffmpeg-bin / ffmpeg-static / Next / Prisma", () => {
   const graph = localImportGraph("scripts/stitch-runner.ts");
   assert.ok(graph.has("src/lib/media/frame-rate.ts"), "runner 应复用纯函数帧率决策");
+  /// 1025：runner 没有中文字体时生产字幕全是豆腐块。media-fonts 只用 node 内置模块，
+  /// workflow 里装同版本字体包，runner 与应用共用同一套字体解析与 fonts.conf。
+  assert.ok(graph.has("src/lib/media/media-fonts.ts"), "runner 应复用打包中文字体");
   for (const forbidden of [
     "src/lib/media/ffmpeg-bin.ts",
-    "src/lib/media/media-fonts.ts",
     "pkg:ffmpeg-static",
     "pkg:@prisma/client",
     "pkg:next/server",

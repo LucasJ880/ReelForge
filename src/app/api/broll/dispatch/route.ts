@@ -9,6 +9,7 @@ import {
 } from "@/lib/services/broll-assembly-service";
 import { BrollPlanError } from "@/lib/services/broll-plan-service";
 import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
+import { isProviderBillingError } from "@/lib/providers/provider-billing-error";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -106,6 +107,17 @@ export async function POST(req: NextRequest) {
       );
     }
     console.error("[broll/dispatch] failed:", (err as Error).message);
+    if (isProviderBillingError(err)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          code: "PROVIDER_UNAVAILABLE",
+          error: "实拍图库线路暂时不可用：AI 拆段与配音服务正在恢复，我们已在处理。可以先用上方主线生成视频。",
+          retryable: false,
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       {
         ok: false,

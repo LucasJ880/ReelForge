@@ -1,5 +1,3 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import { copyFile, mkdir, rm, stat, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
@@ -10,6 +8,7 @@ import {
   SUNNYSHUTTER_CLIENT_LOCK_ID,
 } from "@/lib/video-generation/client-lock-profiles";
 import { applySunnyShutterLogoOverlayLock } from "@/lib/video-generation/sunnyshutter-brand-pack";
+import { probeMedia, runFfmpeg } from "@/lib/media/ffmpeg-bin";
 
 /**
  * Brand Overlay Renderer —— Phase 2 · L2.1
@@ -33,10 +32,8 @@ import { applySunnyShutterLogoOverlayLock } from "@/lib/video-generation/sunnysh
  *   - 路径白名单：只接受 http(s):// + file:// + cwd / os.tmpdir() / /tmp 下的本地路径。
  */
 
-const execFileAsync = promisify(execFile);
-
-const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
-const FFPROBE_BIN = process.env.FFPROBE_BIN || "ffprobe";
+/// ffmpeg 统一经 src/lib/media/ffmpeg-bin 解析（FFMPEG_BIN → 打包的静态二进制 → PATH）；
+/// 尺寸 / 时长用 ffmpeg 本体探测，函数运行时没有 ffprobe。
 
 const DEFAULT_OUTPUT_DIR =
   process.env.BRAND_OVERLAY_CACHE_DIR ||
@@ -281,30 +278,10 @@ export interface ProbedVideo {
 }
 
 export async function probeVideo(localPath: string): Promise<ProbedVideo> {
-  const { stdout } = await execFileAsync(
-    FFPROBE_BIN,
-    [
-      "-v",
-      "error",
-      "-select_streams",
-      "v:0",
-      "-show_entries",
-      "stream=width,height",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "json",
-      localPath,
-    ],
-    { timeout: 10_000, maxBuffer: 1024 * 1024 },
-  );
-  const json = JSON.parse(stdout) as {
-    streams?: Array<{ width?: number; height?: number }>;
-    format?: { duration?: string };
-  };
-  const w = json.streams?.[0]?.width ?? 0;
-  const h = json.streams?.[0]?.height ?? 0;
-  const d = parseFloat(json.format?.duration ?? "0");
+  const probe = await probeMedia(localPath, { timeoutMs: 10_000 });
+  const w = probe.width ?? 0;
+  const h = probe.height ?? 0;
+  const d = probe.durationSec ?? 0;
   if (!w || !h || !Number.isFinite(d) || d <= 0) {
     throw new Error("video metadata probe returned malformed values");
   }
@@ -382,8 +359,7 @@ export async function applyBrandOverlay(
       outDir,
       `overlay-${stableHash(opts, params)}.mp4`,
     );
-    await execFileAsync(
-      FFMPEG_BIN,
+    await runFfmpeg(
       [
         "-y",
         "-loglevel",
@@ -416,7 +392,7 @@ export async function applyBrandOverlay(
         "+faststart",
         outputPath,
       ],
-      { timeout: 120_000, maxBuffer: 1024 * 1024 * 50 },
+      { timeoutMs: 120_000, maxBuffer: 1024 * 1024 * 50 },
     );
 
     if (!(await isReadableNonEmpty(outputPath))) {

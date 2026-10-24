@@ -977,6 +977,8 @@ export async function reconcileVideoJob(jobId: string) {
       jobId,
       provider: job.provider,
       videoUrl: result.videoUrl,
+      /// 历史拦截次数随行带入（免费重抽上限按段累计，重试复用同一行）
+      priorFrameQaDetail: job.frameQaDetail,
     });
     if (gate.action === "defer") {
       return db.videoJob.findUnique({ where: { id: jobId } });

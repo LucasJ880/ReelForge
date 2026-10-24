@@ -91,6 +91,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | VERIFIED H1 light: shared handler wiring + exact public middleware boundary |
 | POST | `/api/auth/register` | Public, rate-limited | VERIFIED H1 light: success wiring + dynamic public validation |
 | GET, HEAD | `/api/health` | Public, sanitized | VERIFIED H1 strict: bounded healthy/degraded 200/503 schemas; secrets rejected |
+| GET | `/api/health/media` | `CRON_SECRET` (handler fail-closed) | NEW 1025-A3: ffmpeg version + bundled CJK font/BGM + 1s synthesis probe (CJK end card + ass subtitles); 200/503; `?frame=1` JPEG |
 | GET | `/api/videos` | Machine auth (Bearer CRON_SECRET), middleware-exact | PRD M0: 青砚 aivora-sync 拉成片；fail-closed，无会话回退；只给已品牌封装、非 takedown、非样片账号的成片 |
 | GET, POST | `/api/content-plans` | Session | PRD M3/O1: 一句话进多形态出；生成不计费，出图才计费 |
 | POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped | PRD M3/O1: 单图/轮播出图；重复出图幂等不重复计费；DELETE 取消保留素材 |

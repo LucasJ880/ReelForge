@@ -1,6 +1,4 @@
-import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { promisify } from "util";
 import { copyFile, mkdir, readFile, rm, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
@@ -17,10 +15,12 @@ import {
   renderAssCaptions,
   renderSrtCaptions,
 } from "@/lib/video-generation/audio-post-production";
+import { probeMedia, runFfmpeg } from "@/lib/media/ffmpeg-bin";
+import { pickStitchFrameRate } from "@/lib/media/frame-rate";
+import { ensureMediaFonts } from "@/lib/media/media-fonts";
 
-const execFileAsync = promisify(execFile);
-const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
-const FFPROBE_BIN = process.env.FFPROBE_BIN || "ffprobe";
+/// ffmpeg 统一经 src/lib/media/ffmpeg-bin 解析（FFMPEG_BIN → 函数里打包的静态
+/// 二进制 → PATH）；时长 / 音轨 / 帧率用 ffmpeg 本体探测，不再依赖 ffprobe。
 
 /**
  * Stitch Service —— 多段 Seedance 段拼接为完整 MP4 的状态机。
@@ -863,11 +863,21 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
 
   try {
     const normalizedFiles: string[] = [];
+    /// 4.5：保留主片（第一段）的源帧率，不再强转 30fps（Shuyu 原片 24fps，
+    /// 24→30 靠重复帧凑数会顿挫）。其余片段（尾卡 / 追加镜头）归一到同一帧率，
+    /// concat demuxer 才能拿到参数一致的分段；探测失败才退回 30。
+    let targetFps: string | null = null;
     for (const [i, clip] of clips.entries()) {
       const ext = path.extname(safePathFromUrl(clip.url) ?? ".mp4") || ".mp4";
       const localInput = path.join(tmpDir, `in-${i}${ext}`);
       const normalized = path.join(tmpDir, `seg-${i}.mp4`);
       await downloadToFile(clip.url, localInput);
+      if (targetFps === null) {
+        const sourceFps = await probeMedia(localInput)
+          .then((probe) => probe.fps)
+          .catch(() => null);
+        targetFps = pickStitchFrameRate([sourceFps]);
+      }
 
       const args: string[] = [
         "-y",
@@ -882,7 +892,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
         "anullsrc=channel_layout=stereo:sample_rate=44100",
         "-filter_complex",
         /// lanczos：720P 母片放到 1080 时保住的锐度肉眼可见（默认 bicubic 偏糊）
-        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30[v];[0:a?][1:a]amerge=inputs=2,pan=stereo|c0=c0|c1=c1[a]`,
+        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${targetFps}[v];[0:a?][1:a]amerge=inputs=2,pan=stereo|c0=c0|c1=c1[a]`,
         "-map",
         "[v]",
         "-map",
@@ -906,9 +916,9 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
       args.push("-shortest", normalized);
 
       try {
-        await execFileAsync(FFMPEG_BIN, args, {
+        await runFfmpeg(args, {
           maxBuffer: 1024 * 1024 * 50,
-          timeout: 60_000,
+          timeoutMs: 60_000,
         });
       } catch (err) {
         /// amerge 在「输入完全没有音轨」时也会报错（没有 a? 流）；
@@ -926,7 +936,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
           "-i",
           "anullsrc=channel_layout=stereo:sample_rate=44100",
           "-vf",
-          `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=30`,
+          `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${targetFps}`,
           "-map",
           "0:v:0",
           "-map",
@@ -949,9 +959,9 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
         }
         fallbackArgs.push("-shortest", normalized);
         try {
-          await execFileAsync(FFMPEG_BIN, fallbackArgs, {
+          await runFfmpeg(fallbackArgs, {
             maxBuffer: 1024 * 1024 * 50,
-            timeout: 60_000,
+            timeoutMs: 60_000,
           });
         } catch (innerErr) {
           throw new Error(
@@ -971,8 +981,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
       "utf8",
     );
     const finalOut = path.join(tmpDir, "final.mp4");
-    await execFileAsync(
-      FFMPEG_BIN,
+    await runFfmpeg(
       [
         "-y",
         "-loglevel",
@@ -993,7 +1002,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
         "+faststart",
         finalOut,
       ],
-      { maxBuffer: 1024 * 1024 * 50, timeout: 120_000 },
+      { maxBuffer: 1024 * 1024 * 50, timeoutMs: 120_000 },
     );
 
     const postProduced = await applyLocalPostProduction({
@@ -1028,22 +1037,7 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
  */
 async function probeHasAudioStream(videoPath: string): Promise<boolean> {
   try {
-    const { stdout } = await execFileAsync(
-      FFPROBE_BIN,
-      [
-        "-v",
-        "error",
-        "-select_streams",
-        "a",
-        "-show_entries",
-        "stream=index",
-        "-of",
-        "csv=p=0",
-        videoPath,
-      ],
-      { timeout: 30_000, maxBuffer: 1024 * 1024 },
-    );
-    return stdout.trim().length > 0;
+    return (await probeMedia(videoPath)).hasAudio;
   } catch {
     /// 探测失败按「无音轨」处理：BGM-only 分支对静音输入始终成立，
     /// 反向假设则会让整条 ffmpeg 崩掉。
@@ -1052,24 +1046,11 @@ async function probeHasAudioStream(videoPath: string): Promise<boolean> {
 }
 
 async function probeMediaDuration(videoPath: string): Promise<number> {
-  const { stdout } = await execFileAsync(
-    FFPROBE_BIN,
-    [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      videoPath,
-    ],
-    { timeout: 30_000, maxBuffer: 1024 * 1024 },
-  );
-  const duration = Number(stdout.trim());
-  if (!Number.isFinite(duration) || duration <= 0) {
-    throw new Error("ffprobe returned an invalid final-video duration");
+  const { durationSec } = await probeMedia(videoPath);
+  if (durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
+    throw new Error("ffmpeg probe returned an invalid final-video duration");
   }
-  return duration;
+  return durationSec;
 }
 
 function escapeFfmpegFilterPath(value: string): string {
@@ -1148,13 +1129,21 @@ async function applyLocalPostProduction(args: {
     ffmpegArgs.push(
       ...audioPlan.bgmInputArgs,
       "-i",
-      path.resolve(process.cwd(), bgm.path),
+      /// turbopackIgnore：动态路径会让文件追踪把整个项目打进每个引用本模块的函数
+      /// （4.7 体积核算实测 ~180MB）；BGM 由 next.config.ts 按路由精确打包。
+      path.resolve(/*turbopackIgnore: true*/ process.cwd(), bgm.path),
     );
   }
   const filterParts: string[] = [];
   if (assPath) {
+    /// 4.2：函数运行时没有系统字体。fontsdir 让 libass 直接加载打包的
+    /// Noto Sans SC，FONTCONFIG_FILE（runFfmpeg 注入）兜住 fontconfig 回退。
+    const { fontDir } = ensureMediaFonts();
+    const fontsDirOption = fontDir
+      ? `:fontsdir='${escapeFfmpegFilterPath(fontDir)}'`
+      : "";
     filterParts.push(
-      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'[vout]`,
+      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'${fontsDirOption}[vout]`,
     );
   }
   if (audioPlan.filterComplex) filterParts.push(audioPlan.filterComplex);
@@ -1183,9 +1172,9 @@ async function applyLocalPostProduction(args: {
     ffmpegArgs.push("-c:a", "copy");
   }
   ffmpegArgs.push("-movflags", "+faststart", "-shortest", outputPath);
-  await execFileAsync(FFMPEG_BIN, ffmpegArgs, {
+  await runFfmpeg(ffmpegArgs, {
     maxBuffer: 1024 * 1024 * 50,
-    timeout: 120_000,
+    timeoutMs: 120_000,
   });
   return { videoPath: outputPath, srtPath };
 }

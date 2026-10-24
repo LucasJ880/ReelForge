@@ -8,6 +8,10 @@
  *
  * 流程：语音安全裁尾（杀模型假名片幻觉、不切口播）→ logo 角标 →
  * 追加镜头（静帧英雄镜头等）→ 名片尾卡渲染 → 拼接（字幕只铺主片窗口）。
+ *
+ * 运行时（2026-10-25）：整条链在 /api/brand-packaging 函数内联执行，ffmpeg、
+ * 中文字体与 BGM 由 next.config.ts 的 outputFileTracingIncludes 精确打进该函数，
+ * 调用统一经 src/lib/media/ffmpeg-bin；拼接保留主片源帧率。
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
@@ -197,9 +201,11 @@ export async function applyClientBrandPackaging(
   let workingUrl = trimmedPath;
   if (includeLogo) {
     const logoPath = isSunnyShutter
-      ? resolve(process.cwd(), SUNNYSHUTTER_LOGO_RELATIVE)
+      ? resolve(/*turbopackIgnore: true*/ process.cwd(), SUNNYSHUTTER_LOGO_RELATIVE)
       : input.custom!.logoPath;
-    if (!existsSync(logoPath)) throw new Error(`logo missing: ${logoPath}`);
+    if (!existsSync(/*turbopackIgnore: true*/ logoPath)) {
+      throw new Error(`logo missing: ${logoPath}`);
+    }
     const logoCfg = sunnyShutterLogoOverlayConfig();
     const overlay = await applyBrandOverlay({
       sourceVideo: trimmedPath,
@@ -239,14 +245,19 @@ export async function applyClientBrandPackaging(
           input.custom!.card,
           Math.max(2, Math.round(opts.endCardDurationSeconds ?? 3)),
         );
-    const endCard = await renderBrandEndCard({
-      briefId: `${input.outputId}-end`,
-      plan,
-      aspectRatio,
-      logoUrl: isSunnyShutter
-        ? sunnyShutterLogoFileUrl()
-        : `file://${resolve(input.custom!.logoPath)}`,
-    });
+    /// 本流程就在当前进程内联跑 ffmpeg（函数里打包了静态二进制），尾卡也必须
+    /// 当场渲染；不 forceLocal 的话生产（STITCH_RUNTIME=external）永远拿不到尾卡 URL。
+    const endCard = await renderBrandEndCard(
+      {
+        briefId: `${input.outputId}-end`,
+        plan,
+        aspectRatio,
+        logoUrl: isSunnyShutter
+          ? sunnyShutterLogoFileUrl()
+          : `file://${resolve(/*turbopackIgnore: true*/ input.custom!.logoPath)}`,
+      },
+      { forceLocal: true },
+    );
     if (!endCard?.url) throw new Error("end card render failed");
     clips.push({
       url: endCard.url,
@@ -269,7 +280,12 @@ export async function applyClientBrandPackaging(
     })
   ).stitchedVideoUrl;
 
-  const localPath = resolve(input.outputDir, `${input.outputId}-branded.mp4`);
+  /// turbopackIgnore（本函数里所有运行时路径）：动态路径会让文件追踪把整个项目
+  /// 打进品牌封装函数，叠加 ffmpeg 后超过 250MB（4.7 实测）。
+  const localPath = resolve(
+    /*turbopackIgnore: true*/ input.outputDir,
+    `${input.outputId}-branded.mp4`,
+  );
   const response = await fetch(finalUrl);
   if (!response.ok) throw new Error(`download branded ${response.status}`);
   writeFileSync(localPath, Buffer.from(await response.arrayBuffer()));

@@ -4,10 +4,26 @@ import { db } from "@/lib/db";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
 import { processBatchTick } from "@/lib/services/batch-service";
+import {
+  CRON_FRAME_QA_BUDGET,
+  frameQaBudgetUsage,
+  runWithFrameQaBudget,
+} from "@/lib/services/frame-qa-gate";
+
+/// D2：批次 tick 里 reconcile 到「供应商已完成」的段在这里跑帧质检（有预算上限），
+/// 质检最坏 45s/次，函数时长放到 300s。
+export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   const authFailure = machineAuthFailure(req);
   if (authFailure) return authFailure;
+  return runWithFrameQaBudget(
+    { label: "cron:process-batches", ...CRON_FRAME_QA_BUDGET },
+    processBatches,
+  );
+}
+
+async function processBatches() {
   const heartbeat = startSchedulerHeartbeat("process-batches");
   try {
     const batches = await db.batchJob.findMany({
@@ -46,6 +62,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       processed: results.length,
       results,
+      frameQa: frameQaBudgetUsage(),
       heartbeat: heartbeatEvent,
     });
   } catch (error) {

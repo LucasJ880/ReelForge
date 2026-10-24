@@ -1,11 +1,11 @@
-import { execFile } from "child_process";
-import { promisify } from "util";
 import { mkdir, readFile, stat, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
 import crypto from "crypto";
 import { pathToFileURL } from "url";
 import type { BrandPackagingPlan } from "@/types/video-generation";
+import { ffmpegVersion, runFfmpeg } from "@/lib/media/ffmpeg-bin";
+import { ensureMediaFonts } from "@/lib/media/media-fonts";
 import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 
 /**
@@ -29,9 +29,12 @@ import editorialDesignTokens from "../../../editorial-design-tokens.generated.js
  *
  * Phase 2.5 计划：将复杂渲染搬到外部 GH Action runner（drawtext+freetype 完整支持），
  *   本模块在 STITCH_RUNTIME=external 时返回「deferred」让上层占位等外部 runner。
+ *
+ * 2026-10-25（4.1 / 4.2）：ffmpeg 经 src/lib/media/ffmpeg-bin 解析（函数里打包了静态
+ * 二进制）；SVG 栅格化前先 ensureMediaFonts()，让 sharp/librsvg 在没有系统字体的
+ * 函数运行时也能用打包的 Noto Sans SC 渲染中文（否则品牌名 / 联系方式整段消失）。
+ * 品牌封装路由在函数内联渲染，用 { forceLocal: true } 绕过 external 延迟。
  */
-
-const execFileAsync = promisify(execFile);
 const { colors } = editorialDesignTokens;
 
 interface AspectDims {
@@ -49,8 +52,6 @@ const ASPECT_DIMS: Record<string, AspectDims> = {
 const DEFAULT_CACHE_DIR =
   process.env.BRAND_END_CARD_CACHE_DIR ??
   path.join(os.tmpdir(), "aivora-brand-end-cards");
-
-const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
 
 export type EndCardSource =
   | "ffmpeg-overlay"
@@ -306,7 +307,7 @@ async function fileExists(p: string): Promise<boolean> {
 
 async function ffmpegAvailable(): Promise<boolean> {
   try {
-    await execFileAsync(FFMPEG_BIN, ["-version"], { timeout: 4_000 });
+    await ffmpegVersion(4_000);
     return true;
   } catch {
     return false;
@@ -406,6 +407,11 @@ async function rasterizeToPng(
   warnings: string[],
 ): Promise<Buffer> {
   const dims = resolveAspect(input.aspectRatio);
+  /// 必须在 sharp 第一次渲染文字之前：fontconfig 只在初始化时读 FONTCONFIG_FILE
+  const fonts = ensureMediaFonts();
+  if (!fonts.fontFile) {
+    warnings.push("No bundled CJK font found; end card CJK text may not render.");
+  }
   const sharpModule = await import("sharp");
   const sharp = sharpModule.default;
 
@@ -521,8 +527,7 @@ async function pngToMp4(
   outputPath: string,
   durationSec: number,
 ): Promise<void> {
-  await execFileAsync(
-    FFMPEG_BIN,
+  await runFfmpeg(
     [
       "-y",
       "-loglevel",
@@ -556,7 +561,7 @@ async function pngToMp4(
       "+faststart",
       outputPath,
     ],
-    { timeout: 30_000, maxBuffer: 1024 * 1024 * 16 },
+    { timeoutMs: 30_000, maxBuffer: 1024 * 1024 * 16 },
   );
 }
 
@@ -588,10 +593,26 @@ async function persistEndCardFile(
 }
 
 /**
+ * 只做「SVG → PNG」栅格化（含中文字体环境），不编码、不上传。
+ * 供 /api/health/media 合成探针验证函数运行时的尾卡文字渲染链。
+ */
+export async function renderBrandEndCardPng(
+  input: BrandEndCardRenderInput,
+): Promise<{ png: Buffer; warnings: string[] }> {
+  const warnings: string[] = [];
+  const png = await rasterizeToPng(input, warnings);
+  return { png, warnings };
+}
+
+/**
  * 主入口。返回 null 表示「这一段不该由 renderer 产出」（比如用户选 uploaded_clip / none）。
+ *
+ * options.forceLocal：调用方本身就在函数里内联跑 ffmpeg（品牌封装路由），
+ * 不能按 STITCH_RUNTIME=external 延迟给外部 runner —— 否则生产上尾卡永远拿不到 URL。
  */
 export async function renderBrandEndCard(
   input: BrandEndCardRenderInput,
+  options: { forceLocal?: boolean } = {},
 ): Promise<BrandEndCardRenderResult | null> {
   const { plan } = input;
   const warnings: string[] = [...(plan.warnings ?? [])];
@@ -606,7 +627,7 @@ export async function renderBrandEndCard(
   /// Production / external runner：本模块不在 Vercel 函数里跑 ffmpeg，
   /// 让 assembly-executor 在 STITCH_RUNTIME=external 时识别 deferred 状态
   /// （Phase 2.5 会真正接外部 runner）
-  if (stitchRuntimeMode() === "external") {
+  if (!options.forceLocal && stitchRuntimeMode() === "external") {
     return {
       url: null,
       durationSec: dur,

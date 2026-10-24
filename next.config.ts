@@ -24,6 +24,35 @@ export const legacyPlatformRedirects = [
 ] as const;
 
 /**
+ * 媒体运行时（4.1 / 4.2）：只给真正要在函数里跑 ffmpeg 的路由打包二进制与素材。
+ *
+ * - ffmpeg：ffmpeg-static 安装时按构建机平台下载的单个二进制（Vercel 构建机即
+ *   linux-x64，约 80MB）。代码从不 import ffmpeg-static（见 src/lib/media/ffmpeg-bin.ts），
+ *   所以它不会被文件追踪带进其它函数；这里按路由精确补进来。
+ * - 中文字体：Noto Sans SC（OFL-1.1）静态 TTF + 授权文本；fontconfig 配置在运行时
+ *   生成到 /tmp（src/lib/media/media-fonts.ts），不需要随包。
+ * - BGM：字幕 / 混音后期引用的授权配乐（BGM_TRACKS）。
+ *
+ * cron 两个函数只做帧质检（抽帧 + 影子检查），只要二进制；品牌封装与健康探针要
+ * 烧字幕、渲染尾卡、混 BGM，才带字体与配乐。
+ */
+const FFMPEG_STATIC_BINARY = "./node_modules/ffmpeg-static/ffmpeg";
+const CJK_FONT_FILES = [
+  "./node_modules/@expo-google-fonts/noto-sans-sc/400Regular/NotoSansSC_400Regular.ttf",
+  "./node_modules/@expo-google-fonts/noto-sans-sc/LICENSE_FONT",
+  "./assets/fonts/NotoSansSC-Regular.*",
+];
+const BGM_FILES = ["./scripts/assets/pet-kit-bgm.mp3"];
+const MEDIA_RENDER_FILES = [FFMPEG_STATIC_BINARY, ...CJK_FONT_FILES, ...BGM_FILES];
+
+export const mediaRuntimeTracingIncludes: Record<string, string[]> = {
+  "/api/cron/poll-videos": [FFMPEG_STATIC_BINARY],
+  "/api/cron/process-batches": [FFMPEG_STATIC_BINARY],
+  "/api/brand-packaging": MEDIA_RENDER_FILES,
+  "/api/health/media": MEDIA_RENDER_FILES,
+};
+
+/**
  * Phase 5 — legacy URL redirects.
  *
  * 老路径 308 permanent redirect 到 /internal/* 或 /business/*；
@@ -33,6 +62,9 @@ export const legacyPlatformRedirects = [
  * 这些路径都是页面 GET，影响等价。
  */
 const nextConfig: NextConfig = {
+  /// 运行时 require 的包不进打包产物（ffmpeg-static 的入口按 __dirname 定位二进制）
+  serverExternalPackages: ["ffmpeg-static"],
+  outputFileTracingIncludes: mediaRuntimeTracingIncludes,
   async redirects() {
     return [
       ...legacyPlatformRedirects,

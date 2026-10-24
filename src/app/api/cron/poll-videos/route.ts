@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
+import {
+  CRON_FRAME_QA_BUDGET,
+  frameQaBudgetUsage,
+  runWithFrameQaBudget,
+} from "@/lib/services/frame-qa-gate";
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { pollPendingProductImageJobs } from "@/lib/services/product-image-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
@@ -12,7 +17,12 @@ import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-ser
  *
  * 顺带执行孤儿/超时清扫（sweep-service）：超时任务转为用户可见的失败状态，
  * 保证「任何任务都不会永远处于进行中」。清扫失败不影响 poll 主流程。
+ *
+ * D2：整次调用跑在帧质检预算上下文里（条数 + 时长上限）。用户面轮询遇到
+ * 「供应商已完成」只 defer，由这里（或 process-batches）真正跑质检并收尾。
  */
+export const maxDuration = 300;
+
 interface PollVideosDependencies {
   machineAuthFailure: typeof machineAuthFailure;
   startSchedulerHeartbeat: typeof startSchedulerHeartbeat;
@@ -39,7 +49,7 @@ export function createPollVideosHandler(
   overrides: Partial<PollVideosDependencies> = {},
 ) {
   const dependencies = { ...defaultDependencies, ...overrides };
-  return async function pollVideosHandler(req: NextRequest) {
+  async function pollVideosHandler(req: NextRequest) {
     const authFailure = dependencies.machineAuthFailure(req);
     if (authFailure) return authFailure;
     const heartbeat = dependencies.startSchedulerHeartbeat("poll-videos");
@@ -99,9 +109,15 @@ export function createPollVideosHandler(
       storyboardError: storyboardFailed ? errorMessage(storyboardResult) : null,
       sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
       degraded,
+      frameQa: frameQaBudgetUsage(),
       heartbeat: heartbeatEvent,
     });
-  };
+  }
+  return (req: NextRequest) =>
+    runWithFrameQaBudget(
+      { label: "cron:poll-videos", ...CRON_FRAME_QA_BUDGET },
+      () => pollVideosHandler(req),
+    );
 }
 
 const pollVideos = createPollVideosHandler();

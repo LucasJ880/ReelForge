@@ -8,7 +8,7 @@ import {
 } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { sweepStuckTasks, __test__ as sweepTest } from "../src/lib/services/sweep-service";
-import { quotaRefundCutoff } from "../src/lib/services/quota-refund-service";
+import { QUOTA_REFUND_CUTOFF_DEFAULT, quotaRefundCutoff } from "../src/lib/services/quota-refund-service";
 
 /**
  * round 1025 · A1b 清扫新增两段的回归：
@@ -223,10 +223,10 @@ test("2.5 范围：只看本轮上线之后创建、且至少 2 分钟前创建�
   assert.ok(briefQuery);
   const where = (briefQuery as { where: Record<string, unknown> }).where;
   assert.deepEqual(where.createdAt, {
-    gt: new Date("2026-10-25T00:00:00.000Z"),
+    gt: new Date(QUOTA_REFUND_CUTOFF_DEFAULT),
     lt: minutesAgo(2),
   });
-  assert.equal(sweepTest.joblessBriefSweepSince().toISOString(), "2026-10-25T00:00:00.000Z");
+  assert.equal(sweepTest.joblessBriefSweepSince().toISOString(), QUOTA_REFUND_CUTOFF_DEFAULT);
   assert.equal(where.status !== undefined && where.videoJobs !== undefined, true);
 });
 

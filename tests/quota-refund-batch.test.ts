@@ -203,14 +203,14 @@ test("D1 ledger: refunds the net charge into the month of the latest positive re
 });
 
 test("D1 cutoff: defaults to the deploy day, honours a valid override, rejects garbage", () => {
-  assert.equal(quotaRefundCutoff({}).toISOString(), "2026-10-25T00:00:00.000Z");
+  assert.equal(quotaRefundCutoff({}).toISOString(), QUOTA_REFUND_CUTOFF_DEFAULT);
   assert.equal(
     quotaRefundCutoff({ QUOTA_REFUND_CUTOFF: "2026-11-01T00:00:00Z" }).toISOString(),
     "2026-11-01T00:00:00.000Z",
   );
   assert.equal(
     quotaRefundCutoff({ QUOTA_REFUND_CUTOFF: "not-a-date" }).toISOString(),
-    "2026-10-25T00:00:00.000Z",
+    QUOTA_REFUND_CUTOFF_DEFAULT,
   );
 });
 

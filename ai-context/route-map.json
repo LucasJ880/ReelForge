@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T15:27:21.641Z",
+  "generatedAt": "2026-10-24T20:19:44.846Z",
   "routes": [
     {
       "routePath": "/",
@@ -113,6 +113,16 @@
       "kind": "api",
       "httpMethods": [
         "PATCH",
+        "DELETE"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/admin/users/[id]/disable",
+      "filePath": "src/app/api/admin/users/[id]/disable/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST",
         "DELETE"
       ],
       "isDynamic": true
@@ -492,12 +502,39 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/exchange/failures-ack",
+      "filePath": "src/app/api/exchange/failures-ack/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/exchange/pulse",
+      "filePath": "src/app/api/exchange/pulse/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/health",
       "filePath": "src/app/api/health/route.ts",
       "kind": "api",
       "httpMethods": [
         "GET",
         "HEAD"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/health/media",
+      "filePath": "src/app/api/health/media/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
       ],
       "isDynamic": false
     },
@@ -572,6 +609,69 @@
       "kind": "api",
       "httpMethods": [
         "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/leads",
+      "filePath": "src/app/api/leads/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/leads/[id]",
+      "filePath": "src/app/api/leads/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "PATCH"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/leads/admin/workspaces",
+      "filePath": "src/app/api/leads/admin/workspaces/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/leads/admin/workspaces/[id]",
+      "filePath": "src/app/api/leads/admin/workspaces/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "PUT"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/leads/links",
+      "filePath": "src/app/api/leads/links/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/leads/links/[id]",
+      "filePath": "src/app/api/leads/links/[id]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "PATCH"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/leads/page",
+      "filePath": "src/app/api/leads/page/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "PUT"
       ],
       "isDynamic": false
     },
@@ -703,6 +803,24 @@
         "POST"
       ],
       "isDynamic": true
+    },
+    {
+      "routePath": "/api/public/leads",
+      "filePath": "src/app/api/public/leads/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/public/pilot-applications",
+      "filePath": "src/app/api/public/pilot-applications/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
     },
     {
       "routePath": "/api/publish",
@@ -922,6 +1040,15 @@
       "isDynamic": true
     },
     {
+      "routePath": "/api/video-generation/storyboards/[id]/cancel",
+      "filePath": "src/app/api/video-generation/storyboards/[id]/cancel/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": true
+    },
+    {
       "routePath": "/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate",
       "filePath": "src/app/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate/route.ts",
       "kind": "api",
@@ -952,6 +1079,13 @@
       "routePath": "/app",
       "filePath": "src/app/(platform)/app/layout.tsx",
       "kind": "layout",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app",
+      "filePath": "src/app/(platform)/app/not-found.tsx",
+      "kind": "not-found",
       "group": "platform",
       "isDynamic": false
     },
@@ -1027,6 +1161,20 @@
     },
     {
       "routePath": "/app/brands",
+      "filePath": "src/app/(platform)/app/brands/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/brands",
+      "filePath": "src/app/(platform)/app/brands/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/brands",
       "filePath": "src/app/(platform)/app/brands/page.tsx",
       "kind": "page",
       "group": "platform",
@@ -1075,6 +1223,27 @@
       "isDynamic": false
     },
     {
+      "routePath": "/app/leads",
+      "filePath": "src/app/(platform)/app/leads/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/leads",
+      "filePath": "src/app/(platform)/app/leads/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/leads",
+      "filePath": "src/app/(platform)/app/leads/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
       "routePath": "/app/library",
       "filePath": "src/app/(platform)/app/library/error.tsx",
       "kind": "error",
@@ -1115,6 +1284,20 @@
       "kind": "page",
       "group": "platform",
       "isDynamic": true
+    },
+    {
+      "routePath": "/app/plan",
+      "filePath": "src/app/(platform)/app/plan/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/plan",
+      "filePath": "src/app/(platform)/app/plan/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
     },
     {
       "routePath": "/app/plan",
@@ -1162,6 +1345,20 @@
       "routePath": "/app/templates",
       "filePath": "src/app/(platform)/app/templates/page.tsx",
       "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/wins",
+      "filePath": "src/app/(platform)/app/wins/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/wins",
+      "filePath": "src/app/(platform)/app/wins/loading.tsx",
+      "kind": "loading",
       "group": "platform",
       "isDynamic": false
     },
@@ -1286,6 +1483,12 @@
       "isDynamic": false
     },
     {
+      "routePath": "/l/[slug]",
+      "filePath": "src/app/l/[slug]/page.tsx",
+      "kind": "page",
+      "isDynamic": true
+    },
+    {
       "routePath": "/login",
       "filePath": "src/app/(auth)/login/page.tsx",
       "kind": "page",
@@ -1319,6 +1522,16 @@
       "kind": "page",
       "group": "public",
       "isDynamic": false
+    },
+    {
+      "routePath": "/t/[code]",
+      "filePath": "src/app/t/[code]/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "HEAD"
+      ],
+      "isDynamic": true
     },
     {
       "routePath": "/terms",

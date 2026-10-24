@@ -47,7 +47,7 @@ import {
  * 上线时把它设成真实部署时刻；没设时退回这个默认值——它不早于部署，只会少处理、
  * 绝不追溯历史（宁少退不多退，历史 brief 不被扫成失败）。
  */
-export const QUOTA_REFUND_CUTOFF_DEFAULT = "2026-10-25T00:00:00.000Z";
+export const QUOTA_REFUND_CUTOFF_DEFAULT = "2026-10-24T20:45:00.000Z";
 
 const METERED_RESOURCES = [
   "VIDEO_DISPATCH",

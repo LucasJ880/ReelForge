@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { BatchCreateWizard } from "@/components/batch/batch-create-wizard";
 import { authOptions } from "@/lib/auth";
+import { isInternalRole } from "@/lib/auth-role-policy";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import { loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
@@ -54,6 +55,7 @@ export default async function PlatformBatchCreatePage({
         batchDetailsBasePath="/app/batches"
         initialTemplateId={initialTemplateId}
         initialImages={initialImages}
+        showProviderPoints={isInternalRole(session.user.role)}
       />
     </div>
   );

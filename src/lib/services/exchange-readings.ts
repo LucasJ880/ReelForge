@@ -1,11 +1,16 @@
 import type { Prisma, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import type { Locale } from "@/i18n/config";
 import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import type { ExchangePulse, PulsePlan, TapeEntry } from "@/lib/exchange/pulse";
 import { countNewLeads } from "@/lib/services/lead-service";
 import { getUsageSummary } from "@/lib/services/quota-service";
-import { loadRecentVideoRows, type UnifiedLibraryRow } from "@/lib/services/unified-library-service";
+import {
+  loadRecentVideoRows,
+  templateDisplayName,
+  type UnifiedLibraryRow,
+} from "@/lib/services/unified-library-service";
 
 /**
  * 交易台读数的唯一口径（1025 · B1.1 / B1.2）：壳层、创作台、批量页、新建批次、成品库、
@@ -161,7 +166,7 @@ export async function loadVideoQuota(userId: string): Promise<ExchangePulse["quo
 
 const TAPE_SIZE = 12;
 
-async function loadTape(userId: string): Promise<TapeEntry[]> {
+async function loadTape(userId: string, locale: Locale): Promise<TapeEntry[]> {
   const batches = await db.batchJob.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -179,7 +184,7 @@ async function loadTape(userId: string): Promise<TapeEntry[]> {
   });
   return batches.map((batch) => ({
     id: batch.id,
-    name: batch.productName ?? batch.template.nameZh ?? batch.template.name,
+    name: batch.productName ?? templateDisplayName(batch.template, locale),
     status: batch.status,
     done: batch.completedCount,
     total: batch.requestedCount,
@@ -231,7 +236,10 @@ export async function loadProductionCounts(userId: string): Promise<ProductionCo
  * 脉搏：壳层市场状态、导轨徽标、生产带、月度额度。全部是 DB count / groupBy，
  * 30 秒拉一次也不扫成品库。
  */
-export async function loadPulse(userId: string, { now = new Date() }: { now?: Date } = {}): Promise<ExchangePulse> {
+export async function loadPulse(
+  userId: string,
+  { now = new Date(), locale = "zh-CN" }: { now?: Date; locale?: Locale } = {},
+): Promise<ExchangePulse> {
   const workspace = await db.workspace.findUnique({
     where: { ownerId: userId },
     select: { id: true, failuresAckedAt: true },
@@ -242,7 +250,7 @@ export async function loadPulse(userId: string, { now = new Date() }: { now?: Da
     countNeedsAttention(userId, since),
     workspace ? countNewLeads(workspace.id) : Promise.resolve(0),
     loadVideoQuota(userId),
-    loadTape(userId),
+    loadTape(userId, locale),
   ]);
   return { ...production, needsAttention, newLeads, quota, tape, at: now.toISOString() };
 }
@@ -268,7 +276,11 @@ export const NEEDS_ATTENTION_LIST_LIMIT = 50;
 
 export async function loadNeedsAttention(
   userId: string,
-  { now = new Date(), take = NEEDS_ATTENTION_LIST_LIMIT }: { now?: Date; take?: number } = {},
+  {
+    now = new Date(),
+    take = NEEDS_ATTENTION_LIST_LIMIT,
+    locale = "zh-CN",
+  }: { now?: Date; take?: number; locale?: Locale } = {},
 ): Promise<{ items: NeedsAttentionItem[]; total: number; since: Date }> {
   const workspace = await db.workspace.findUnique({ where: { ownerId: userId }, select: { failuresAckedAt: true } });
   const since = needsAttentionSince(now, workspace?.failuresAckedAt);
@@ -308,7 +320,7 @@ export async function loadNeedsAttention(
   const items: NeedsAttentionItem[] = [
     ...jobs.flatMap((job): NeedsAttentionItem[] => {
       if (!job.batchJob) return [];
-      const templateName = job.batchJob.template.nameZh ?? job.batchJob.template.name;
+      const templateName = templateDisplayName(job.batchJob.template, locale);
       const error = classifyCustomerGenerationError({
         status: job.status,
         submissionState: job.submissionState,
@@ -413,7 +425,8 @@ export async function loadExchangeReadings(
     now = new Date(),
     mediaLimit = 0,
     recentLimit = 0,
-  }: { now?: Date; mediaLimit?: number; recentLimit?: number } = {},
+    locale = "zh-CN",
+  }: { now?: Date; mediaLimit?: number; recentLimit?: number; locale?: Locale } = {},
 ): Promise<ExchangeReadings> {
   const at = now.getTime();
   const ago = (days: number) => new Date(at - days * DAY_MS);
@@ -426,8 +439,8 @@ export async function loadExchangeReadings(
       countReady(userId, { gte: ago(30) }),
       countFailed(userId, { gte: ago(7) }),
       countFailed(userId, { gte: ago(14), lt: ago(7) }),
-      mediaLimit > 0 ? loadRecentVideoRows(userId, { take: mediaLimit, readyWithMedia: true }) : Promise.resolve([]),
-      recentLimit > 0 ? loadRecentVideoRows(userId, { take: recentLimit }) : Promise.resolve([]),
+      mediaLimit > 0 ? loadRecentVideoRows(userId, { take: mediaLimit, readyWithMedia: true, locale }) : Promise.resolve([]),
+      recentLimit > 0 ? loadRecentVideoRows(userId, { take: recentLimit, locale }) : Promise.resolve([]),
     ]);
   return {
     filled24h,

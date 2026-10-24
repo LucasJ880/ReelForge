@@ -215,7 +215,7 @@ const ZH_COPY = {
   charCount: "{count} / 4000",
   previewPlan: "核对生成方案",
   previewing: "正在准备方案…",
-  reviewSpecs: "核对规格与积分",
+  reviewSpecs: "核对规格",
   reviewingSpecs: "正在核对…",
   createStoryboard: "生成 AI 故事板",
   creatingStoryboard: "正在生成故事板…",
@@ -230,7 +230,7 @@ const ZH_COPY = {
   cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
   routeCheckingHint: "正在检查所选生成线路，请稍候。",
   routeUnavailableHint: "所选线路当前不可用，请在线路菜单中更换后再提交。",
-  shuyuEstimate: "同行线路预计 {points} 积分/支，提交时会再次核对余额。",
+  quotaHint: "成片后计 1 条额度：本月已用 {used} / {limit} 条，失败与取消返还。",
   previewFailed: "暂时无法准备生成方案，请稍后重试。",
   dispatchFailed: "暂时无法提交视频，请稍后重试。",
   qualityBlocked: "视频描述还需要更多细节。请按生成方案中的提示修改后再提交。",
@@ -343,7 +343,7 @@ const EN_COPY: StudioCopy = {
   charCount: "{count} / 4000",
   previewPlan: "Review generation plan",
   previewing: "Preparing the plan…",
-  reviewSpecs: "Review specs & points",
+  reviewSpecs: "Review specs",
   reviewingSpecs: "Checking…",
   createStoryboard: "Generate AI storyboard",
   creatingStoryboard: "Generating storyboard…",
@@ -358,7 +358,7 @@ const EN_COPY: StudioCopy = {
   cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
   routeCheckingHint: "Checking the selected generation route…",
   routeUnavailableHint: "The selected route is unavailable. Choose another route before submitting.",
-  shuyuEstimate: "Partner route estimate: {points} points/video. Balance is checked again at submit.",
+  quotaHint: "Counts as 1 video once delivered: {used} / {limit} used this month; failures and cancels are refunded.",
   previewFailed: "The generation plan is temporarily unavailable. Try again shortly.",
   dispatchFailed: "The video could not be submitted right now. Try again shortly.",
   qualityBlocked: "The brief needs more detail. Update it using the generation-plan guidance, then submit again.",
@@ -1354,15 +1354,16 @@ export function StreamlinedVideoStudio({
         ? GalleryHorizontalEnd
         : Clapperboard;
   const routeNeedsAttention = selectedRouteAvailable !== true;
+  /// 商家的成本是「成片条数」（本月额度，失败与取消返还），不是供应商积分：
+  /// 之前这里给同行线路写死「900 积分/支」——供应商价目早已换成 700 分与按秒计费，客户也从没买过积分。
   const statusHint = selectedRouteAvailable === null
     ? copy.routeCheckingHint
     : selectedRouteAvailable === false
       ? copy.routeUnavailableHint
-      : selectedVideoRouteId === "buddy"
-        ? copy.shuyuEstimate.replace(
-            "{points}",
-            "900",
-          )
+      : readings
+        ? copy.quotaHint
+            .replace("{used}", String(readings.quotaUsed))
+            .replace("{limit}", String(readings.quotaLimit))
         : copy.readyHint;
   const activeRecipe = COMMERCE_TEMPLATE_RECIPES.find((recipe) => recipe.slug === styleTemplateId);
   const ledger: Array<{ label: string; value: string; numeric?: boolean }> = [

@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { isInternalRole } from "@/lib/auth-role-policy";
 import { db } from "@/lib/db";
 import { loadPulse } from "@/lib/services/exchange-readings";
+import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,10 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app");
   const userId = session.user.id;
+  const locale = await getServerLocale();
   const [workspace, pulse] = await Promise.all([
     db.workspace.findUnique({ where: { ownerId: userId }, select: { name: true } }),
-    loadPulse(userId),
+    loadPulse(userId, { locale }),
   ]);
   if (!workspace) throw new Error("默认 Workspace 不存在");
   return (

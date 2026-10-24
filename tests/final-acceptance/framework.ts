@@ -453,7 +453,7 @@ export async function dispatchCurrentSingleVideo(
       response.request().method() === "POST" &&
       response.url().endsWith("/api/video-generation/plan"),
   );
-  await page.getByRole("button", { name: "核对规格与积分" }).click();
+  await page.getByRole("button", { name: "核对规格", exact: true }).click();
   expect((await planResponse).status()).toBe(200);
 
   const storyboardResponse = page.waitForResponse(

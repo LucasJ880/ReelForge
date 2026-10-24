@@ -78,15 +78,15 @@ export default async function PlatformLibraryPage({
   const params = await searchParams;
   const query = params.q?.trim().toLocaleLowerCase() ?? "";
   const highlight = typeof params.highlight === "string" && params.highlight ? params.highlight : null;
-  const routeState = await getCustomerRouteRehearsalState("library");
+  const [routeState, locale] = await Promise.all([getCustomerRouteRehearsalState("library"), getServerLocale()]);
   const empty = routeState === "empty";
-  const [library, attention, production, finished, brandPackages, locale] = await Promise.all([
-    empty ? Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false, perSourceLimit: 0 }) : loadUnifiedLibrary(userId),
-    empty ? Promise.resolve({ items: [] as NeedsAttentionItem[], total: 0 }) : loadNeedsAttention(userId),
+  /// 行标题里的模板名按界面语言取（英文界面不挂中文模板名）
+  const [library, attention, production, finished, brandPackages] = await Promise.all([
+    empty ? Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false, perSourceLimit: 0 }) : loadUnifiedLibrary(userId, { locale }),
+    empty ? Promise.resolve({ items: [] as NeedsAttentionItem[], total: 0 }) : loadNeedsAttention(userId, { locale }),
     empty ? Promise.resolve(EMPTY_PRODUCTION) : loadProductionCounts(userId),
     empty ? Promise.resolve(0) : countFinished(userId),
     listWorkspaceBrandPackagesForUser(userId),
-    getServerLocale(),
   ]);
   const preferredBrandPackage = brandPackages.find((brandPackage) => brandPackage.isDefault)
     ?? brandPackages[0]

@@ -34,6 +34,8 @@ const BANNED_ANY: RegExp[] = [
   /NEXT_PUBLIC_/,
   /旧 TTS|legacy TTS/i,
   /青砚|Qingyan/i,
+  /// 熔断 / circuit breaker 是工程词：暂停横幅只说「生成服务暂时拥堵、恢复后自动续跑」
+  /熔断|circuit breaker/i,
 ];
 /** 中文界面里不许夹英文内部词：workspace（工作区）、套餐原始 id（starter / studio）。 */
 const BANNED_ZH: RegExp[] = [/\bworkspace\b/i, /\bstarter\b/, /\bstudio\b/];

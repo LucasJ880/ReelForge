@@ -49,7 +49,7 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
     "15 秒真实产品演示，保持产品外观一致，先呈现问题，再展示一次清晰使用动作与结果。",
   );
   await expect(generate).toBeEnabled();
-  await expect(generate).toHaveText("核对规格与积分");
+  await expect(generate).toHaveText("核对规格");
   await dismissFirstRunOnboarding(page);
   await generate.click();
   /// 0722 起主流程带故事板前置：核对规格 → 生成 Image 2 故事板 →（确认后）生成视频。

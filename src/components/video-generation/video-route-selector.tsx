@@ -130,6 +130,7 @@ export function VideoRouteSelector({
   planSelectable = false,
   planValue = null,
   onPlanChange,
+  showPlanPoints = true,
 }: {
   canSelectVideoRoute: boolean;
   showInternalRoutes?: boolean;
@@ -147,6 +148,8 @@ export function VideoRouteSelector({
     pointsPerVideo: number | null,
     plan?: ShuyuPlanUiOption | null,
   ) => void;
+  /// false 时套餐只写名称与分辨率、不写供应商积分（客户面：客户的成本是额度里的成片条数）。
+  showPlanPoints?: boolean;
 }) {
   const { locale } = useTranslation();
   const copy = ROUTE_COPY[locale];
@@ -266,8 +269,8 @@ export function VideoRouteSelector({
   };
   const byteplusLabel = directRouteLabel("byteplus_international");
   const volcengineLabel = directRouteLabel("volcengine_cn_legacy");
-  /// 报价随 /prices 实时解析;拿不到就不编数字,退回无价格描述。
-  const shuyuDescription = selectedPlan
+  /// 报价随 /prices 实时解析;拿不到就不编数字,退回无价格描述。客户面不写供应商积分。
+  const shuyuDescription = selectedPlan && showPlanPoints
     ? `${copy.shuyuDescription} · ${copy.shuyuEstimate.replace(
         "{points}",
         shuyuPlanPointsPerVideo(selectedPlan, durationSeconds).toLocaleString(),
@@ -427,8 +430,9 @@ export function VideoRouteSelector({
                             {plan.isDefault ? ` · ${copy.planDefault}` : ""}
                           </span>
                           <span className="mt-0.5 block truncate font-mono text-meta tabular-nums text-muted-foreground">
-                            {plan.resolution} · {plan.unitSalePoints.toLocaleString()} {unitLabel}
-                            {plan.billingUnit === "second"
+                            {plan.resolution}
+                            {showPlanPoints ? ` · ${plan.unitSalePoints.toLocaleString()} ${unitLabel}` : ""}
+                            {showPlanPoints && plan.billingUnit === "second"
                               ? ` · ≈${shuyuPlanPointsPerVideo(plan, durationSeconds).toLocaleString()} ${copy.planPerVideo}`
                               : ""}
                           </span>

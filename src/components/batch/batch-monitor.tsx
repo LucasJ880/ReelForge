@@ -24,6 +24,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
+import { batchMonitorReadings } from "@/components/batch/batch-monitor-readings";
 import { MonoTag } from "@/components/exchange/mono-tag";
 import { QuoteHeader } from "@/components/exchange/quote-header";
 import { StatusTick } from "@/components/exchange/status-tick";
@@ -382,15 +383,12 @@ export function BatchMonitor({
           ) : undefined
         }
         readingsLabel={monitorCopy.progress}
-        readings={[
-          // 委托读数墙：总量 / 成交 / 生成中 / 排队 / 失败 / 进度，零就写零
-          { label: monitorCopy.total, value: batch.requestedCount },
-          { label: monitorCopy.completed, value: batch.completedCount, tone: batch.completedCount > 0 ? "filled" : "neutral" },
-          { label: monitorCopy.running, value: batch.runningCount, tone: batch.runningCount > 0 ? "live" : "neutral" },
-          { label: monitorCopy.queuedPaused, value: batch.queuedCount + batch.pausedCount },
-          { label: monitorCopy.failed, value: batch.failedCount, tone: batch.failedCount > 0 ? "fault" : "neutral" },
-          { label: monitorCopy.progress, value: `${totalProgress}%`, tone: TERMINAL_BATCH.has(batch.status) || readOnly ? "neutral" : "live" },
-        ]}
+        readings={batchMonitorReadings(batch, {
+          copy: monitorCopy,
+          locale,
+          progress: totalProgress,
+          live: !TERMINAL_BATCH.has(batch.status) && !readOnly,
+        })}
         scope={fillCopy(readOnly ? monitorCopy.readOnlyScope : monitorCopy.scope, { n: batch.requestedCount })}
       />
 

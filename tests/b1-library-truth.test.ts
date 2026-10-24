@@ -168,7 +168,7 @@ test("成品库页面：生产线上只放真在生成的行；排队与暂停�
 
 test("需要处理：列出失败（原因 + 重试 / 联系支持，批量链批次详情），「看过了」清零，与徽标同一个查询", () => {
   const page = readFileSync("src/app/(platform)/app/library/page.tsx", "utf8");
-  assert.match(page, /loadNeedsAttention\(userId\)/);
+  assert.match(page, /loadNeedsAttention\(userId, \{ locale \}\)/);
   assert.match(page, /count=\{attention\.total\}/);
   assert.match(page, /<FailuresAckButton/);
   assert.match(page, /failureReason\(item, english/);

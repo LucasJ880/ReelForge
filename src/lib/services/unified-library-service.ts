@@ -6,6 +6,7 @@ import type {
   VideoJobStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import type { Locale } from "@/i18n/config";
 import {
   customerSafeFinalVideoUrl,
   derivePersonalStatus,
@@ -419,17 +420,29 @@ const batchLibraryJobSelect = {
   },
 } satisfies Prisma.VideoJobSelect;
 
+/**
+ * 模板在客户界面上的名字：英文界面用 name，中文界面用 nameZh。
+ * 成品库行、需要处理、大屏与生产带的标题都从这里取——标题拼在服务端、来自数据库，
+ * 文案门禁扫不到，之前英文界面就一直挂着「价值感证明」这类中文模板名（B2.5）。
+ */
+export function templateDisplayName(
+  template: { name: string; nameZh: string | null },
+  locale: Locale,
+): string {
+  return locale === "en-US" ? template.name : (template.nameZh ?? template.name);
+}
+
 export function toBatchLibraryRow(
   job: BatchLibraryJob,
   isShowcase = false,
+  locale: Locale = "zh-CN",
 ): UnifiedLibraryRow | null {
   if (!job.batchJob) return null;
   const status = batchJobStatusToLibraryStatus(job.status);
   /// 曾经这里读的是 snapshot.durationSec / snapshot.aspectRatio —— 顶层没有这两个 key，
   /// 于是所有批量成片的时长与画幅在成品库里恒为空。它们其实冻在 lockedParams 里。
   const snapshot = readTemplateSnapshot(job.templateSnapshot);
-  const templateName =
-    job.batchJob.template.nameZh ?? job.batchJob.template.name;
+  const templateName = templateDisplayName(job.batchJob.template, locale);
   const index = (job.batchIndex ?? 0) + 1;
   return parseLibraryRow({
     id: `batch-${job.id}`,
@@ -565,10 +578,11 @@ function mapRows(
   batchJobs: BatchLibraryJob[],
   contentPosts: ContentPostLibraryRow[],
   isShowcase: boolean,
+  locale: Locale,
 ): UnifiedLibraryRow[] {
   return [
     ...orders.map((order) => toUnifiedLibraryRow(order, isShowcase)),
-    ...batchJobs.map((job) => toBatchLibraryRow(job, isShowcase)),
+    ...batchJobs.map((job) => toBatchLibraryRow(job, isShowcase, locale)),
     ...contentPosts.map((post) => toContentPostLibraryRow(post, isShowcase)),
   ]
     .filter((row): row is UnifiedLibraryRow => row !== null)
@@ -578,6 +592,7 @@ function mapRows(
 async function loadRowsForOwner(
   ownerId: string,
   isShowcase: boolean,
+  locale: Locale,
 ): Promise<{ rows: UnifiedLibraryRow[]; truncated: boolean }> {
   /// 多取一行用来判断是否截断。
   const take = LIBRARY_ROWS_PER_SOURCE + 1;
@@ -608,6 +623,7 @@ async function loadRowsForOwner(
     batchJobs.slice(0, LIBRARY_ROWS_PER_SOURCE),
     contentPosts.slice(0, LIBRARY_ROWS_PER_SOURCE),
     isShowcase,
+    locale,
   );
 
   // 样片只暴露已完成成片，避免把半成品/失败的 demo 内容展示给其他用户。
@@ -619,12 +635,13 @@ async function loadRowsForOwner(
 
 export async function loadUnifiedLibrary(
   userId: string,
+  { locale = "zh-CN" }: { locale?: Locale } = {},
 ): Promise<UnifiedLibraryResult> {
   const showcaseUserId = await resolveShowcaseSourceFor(userId);
   const [own, showcase] = await Promise.all([
-    loadRowsForOwner(userId, false),
+    loadRowsForOwner(userId, false, locale),
     showcaseUserId
-      ? loadRowsForOwner(showcaseUserId, true)
+      ? loadRowsForOwner(showcaseUserId, true, locale)
       : Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false }),
   ]);
   // 访问者本人成片在前，SunnyShutter 客户样片在后（新注册用户仅见样片）。
@@ -641,7 +658,11 @@ export async function loadUnifiedLibrary(
  */
 export async function loadRecentVideoRows(
   userId: string,
-  { take, readyWithMedia = false }: { take: number; readyWithMedia?: boolean },
+  {
+    take,
+    readyWithMedia = false,
+    locale = "zh-CN",
+  }: { take: number; readyWithMedia?: boolean; locale?: Locale },
 ): Promise<UnifiedLibraryRow[]> {
   const [orders, batchJobs] = await Promise.all([
     db.deliveryOrder.findMany({
@@ -661,7 +682,7 @@ export async function loadRecentVideoRows(
       select: batchLibraryJobSelect,
     }),
   ]);
-  const rows = filterCustomerLibraryRows(mapRows(orders, batchJobs, [], false));
+  const rows = filterCustomerLibraryRows(mapRows(orders, batchJobs, [], false, locale));
   return (readyWithMedia ? rows.filter((row) => row.status === "ready" && row.videoUrl) : rows).slice(0, take);
 }
 

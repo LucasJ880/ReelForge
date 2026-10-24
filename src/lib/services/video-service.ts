@@ -59,7 +59,10 @@ import {
 } from "./video-watchdog";
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
 import { decideFrameQaGate } from "./frame-qa-gate";
-import { requireApprovedStoryboardForBrief } from "@/lib/video-generation/storyboard-service";
+import {
+  requireApprovedStoryboardVideoReferencesForBrief,
+  SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
+} from "@/lib/video-generation/storyboard-service";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
@@ -364,10 +367,12 @@ export async function dispatchVideoForBrief(briefId: string) {
   /// Unified-input / DirectorPlan 管线：有 directorPlan 就用 segmentPlan 直发 Seedance
   ///（含 15s 单段；旧 Sunny Shutter / ScenePlan brief 无 directorPlan，仍走下方 legacy 路径）
   if (brief.directorPlan != null) {
-    const storyboardReferences = await requireApprovedStoryboardForBrief(briefId);
+    /// 参考图 = 商家实拍在前 + 已确认的故事板帧在后（此前只剩故事板帧，模型看不到实拍）。
+    /// 写回 brief：分段重试读同一份，首发与重试同参。
+    const videoReferences = await requireApprovedStoryboardVideoReferencesForBrief(briefId);
     await db.videoBrief.update({
       where: { id: briefId },
-      data: { referenceImageUrls: storyboardReferences },
+      data: { referenceImageUrls: videoReferences },
     });
     return dispatchMultiSegmentGeneration(briefId);
   }
@@ -501,7 +506,10 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
   /// 产品/参考图以 Seedance 2.0 Omni-Reference 模式随每段下发（跨镜头产品一致性锚）。
   /// 同行靠「产品板」图片锚定产品外观；我们等价传用户上传的产品/实景图。
   /// Seedance 2 Omni-Reference 上限 9 张，留 1 张余量传 8 张——客户给的真实素材越多越贴。
-  const referenceImageUrls = (brief.referenceImageUrls ?? []).slice(0, 8);
+  const referenceImageUrls = (brief.referenceImageUrls ?? []).slice(
+    0,
+    SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
+  );
 
   const created: Awaited<ReturnType<typeof submitSegmentJob>>[] = [];
   for (const segment of plan.segmentPlan) {
@@ -1524,14 +1532,15 @@ export async function retryFailedSegmentsForBrief(briefId: string) {
 
 /**
  * 轮询并更新所有 RUNNING 状态的 VideoJob。由 Vercel Cron 调用。
+ *
+ * 只管单条（brief）任务：批量任务由批次 tick（process-batches）按租约与槽位推进，
+ * 这里再轮询一遍只会抢掉单条的名额。按「最久没查过」排序（从未查过的排最前）：
+ * 此前按 startedAt 升序且空值排最后，刚提交的单条任务可能永远轮不到。
  */
 export async function pollRunningJobs(limit = 30) {
   const running = await db.videoJob.findMany({
-    where: {
-      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
-      externalJobId: { not: null },
-    },
-    orderBy: { startedAt: "asc" },
+    where: pollRunningJobsWhere(),
+    orderBy: pollRunningJobsOrderBy(),
     take: limit,
   });
 
@@ -1550,6 +1559,21 @@ export async function pollRunningJobs(limit = 30) {
     await syncBriefStatus(id);
   }
   return { polled: running.length, updated };
+}
+
+export function pollRunningJobsWhere(): Prisma.VideoJobWhereInput {
+  return {
+    status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.RUNNING] },
+    externalJobId: { not: null },
+    batchJobId: null,
+  };
+}
+
+export function pollRunningJobsOrderBy(): Prisma.VideoJobOrderByWithRelationInput[] {
+  return [
+    { lastCheckedAt: { sort: "asc", nulls: "first" } },
+    { createdAt: "asc" },
+  ];
 }
 
 /**

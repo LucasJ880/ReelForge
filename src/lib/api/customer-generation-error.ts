@@ -61,6 +61,23 @@ export function classifyCustomerGenerationError(args: {
       action: "contact_support",
     };
   }
+  /// 帧质检拦截（errorMessage 以 video-generation/frame-qa 的 FRAME_QA_ERROR_PREFIX 开头）：
+  /// 供应商已确认完成、产物被判废，结果是确定的。不能落到下面「生成结果尚未确认」那句——
+  /// 那是在说计费状态不明，对被质检拦下的段是错误的原因；也排在素材判据之前，
+  /// 质检摘要里的画面文字不能被误认成「素材失效」。这里不 import frame-qa
+  ///（它带 ffmpeg / vision 依赖），用同一字面量前缀识别。
+  if (/^\[frame-qa\]/.test(args.errorMessage ?? "")) {
+    const retryable = args.billingSafeToRetry !== false;
+    return {
+      code: "PROVIDER_ERROR",
+      message: retryable
+        ? (args.userSafeError ??
+          "画面质检未通过（检测到异常文字），已自动拦截。点击「重试」可重新生成本段。")
+        : "画面质检未通过（检测到异常文字），已自动拦截。本段暂时不能自动重新生成，请联系支持处理。",
+      retryable,
+      action: retryable ? "retry" : "contact_support",
+    };
+  }
   if (looksLikeAssetFailure(raw)) {
     return {
       code: "ASSET_MISSING",

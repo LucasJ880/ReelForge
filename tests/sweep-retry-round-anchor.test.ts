@@ -3,6 +3,7 @@ import test, { type TestContext } from "node:test";
 import { BatchJobStatus, ProviderSubmissionState, VideoJobStatus } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { sweepStuckTasks, __test__ as sweepTest } from "../src/lib/services/sweep-service";
+import { __test__ as videoSvcTest } from "../src/lib/services/video-service";
 
 /**
  * 2.1 重试路径的清扫修复（round 1025 · A1b）。
@@ -310,4 +311,54 @@ test("2.1：排队豁免的每个分支都对 NULL 确定取值（套进 NOT 之
   assert.equal(evalWhere(nullAvailable, exemption), true);
   assert.equal(evalWhere(oldNullAvailable, exemption), false);
   assert.equal(evalWhere(single, exemption), false);
+});
+
+test("money LENS-4：单条任务首轮 12 小时后原地重试，供应商还在渲染时清扫先问供应商、不按首轮 createdAt 盲判", async (t) => {
+  /// claimFailedJobForRetry 用真实时钟写 submittedAt，首轮时间也按真实时钟往前推
+  const dayOneAt = new Date(Date.now() - 26 * 60 * 60_000);
+  const row: Row = {
+    id: "single-retried-next-day",
+    videoBriefId: "brief-day1",
+    batchJobId: null,
+    batchJob: null,
+    status: VideoJobStatus.FAILED,
+    submissionState: ProviderSubmissionState.REJECTED,
+    submitAttempts: 1,
+    externalJobId: null,
+    timeoutAt: dayOneAt,
+    availableAt: null,
+    dispatchQuarantineDecision: null,
+    /// 首轮建于一天多以前
+    createdAt: dayOneAt,
+  };
+  const rows: Row[] = [row];
+  const reconciled = installInMemoryVideoJobs(t, rows);
+  /// 清扫末尾会把 brief 聚合一次：这里没有 brief 行
+  patch(t, db.videoBrief as unknown as Record<string, unknown>, { findUnique: async () => null });
+
+  /// 第 2 天点重试：claimFailedJobForRetry 复用同一行
+  const claim = await videoSvcTest.claimFailedJobForRetry({
+    id: String(row.id),
+    status: VideoJobStatus.FAILED,
+    submissionState: ProviderSubmissionState.REJECTED,
+    submitAttempts: 1,
+  });
+  assert.ok(row.availableAt instanceof Date, "重试必须把这一轮起点写进 availableAt");
+  assert.equal((row.availableAt as Date).getTime(), claim.submittedAt.getTime());
+  assert.equal((row.createdAt as Date).getTime(), dayOneAt.getTime(), "createdAt 仍是首轮");
+
+  /// 供应商已受理（persistAcceptedSubmission 的效果），渲染慢：41 分钟后越过 timeoutAt + 宽限
+  Object.assign(row, {
+    status: VideoJobStatus.RUNNING,
+    submissionState: ProviderSubmissionState.ACCEPTED,
+    externalJobId: "shuyu-ext-retry",
+    timeoutAt: new Date(claim.submittedAt.getTime() + 30 * 60_000),
+  });
+  const sweepAt = new Date(claim.submittedAt.getTime() + 41 * 60_000);
+  const result = await sweepStuckTasks(sweepAt);
+
+  assert.deepEqual(result.timedOutJobs, [], "这一轮才 41 分钟，不能按首轮 createdAt 判「超过绝对上限」");
+  assert.deepEqual(result.reconciledJobs, ["single-retried-next-day"]);
+  assert.deepEqual([...new Set(reconciled)], ["single-retried-next-day"], "判死前先问供应商真实状态");
+  assert.equal(row.status, VideoJobStatus.RUNNING);
 });

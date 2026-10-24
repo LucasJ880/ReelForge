@@ -39,7 +39,14 @@ import {
  * 单条出错只记日志、不影响其它条目，也不会抛进清扫器。
  */
 
-/** 本轮上线日：此前进入终态的条目一律不追溯。可用 QUOTA_REFUND_CUTOFF（ISO）覆盖。 */
+/**
+ * 本轮上线日：此前进入终态的条目一律不追溯。可用 QUOTA_REFUND_CUTOFF（ISO）覆盖。
+ *
+ * QUOTA_REFUND_CUTOFF 是「本轮上线时刻」的唯一来源：按条返还的截止线与清扫器里
+ * 无任务 brief 看门狗的起点（sweep-service.joblessBriefSweepSince）都读 quotaRefundCutoff()。
+ * 上线时把它设成真实部署时刻；没设时退回这个默认值——它不早于部署，只会少处理、
+ * 绝不追溯历史（宁少退不多退，历史 brief 不被扫成失败）。
+ */
 export const QUOTA_REFUND_CUTOFF_DEFAULT = "2026-10-25T00:00:00.000Z";
 
 const METERED_RESOURCES = [
@@ -593,6 +600,47 @@ async function linkBriefDispatchRequest(
   return { kind: "linked", requestId: request.id, briefCount: 1 };
 }
 
+/**
+ * 按即时补偿流水认领：direct_dispatch_compensation 的 metadata.briefIds 点名了本条 brief，
+ * 且只指向一笔请求，就认那笔请求；briefCount 取那次补偿点名的 brief 数（按支均摊）。
+ * 没有点名（历史流水、未补偿过）或点名了多笔请求时返回 null，退回时间窗口认领。
+ */
+async function linkBriefByCompensation(
+  tx: Prisma.TransactionClient,
+  args: { briefId: string; ownerId: string },
+): Promise<Extract<BriefDispatchLink, { kind: "linked" }> | null> {
+  const logs = await tx.usageLog.findMany({
+    where: {
+      userId: args.ownerId,
+      resource: { in: [...METERED_RESOURCES] },
+      amount: { lt: 0 },
+      AND: [
+        {
+          metadata: {
+            path: ["phase"],
+            equals: QUOTA_LEDGER_PHASE.directDispatchCompensation,
+          },
+        },
+        { metadata: { path: ["briefIds"], array_contains: [args.briefId] } },
+      ],
+    },
+    select: { metadata: true },
+    take: 10,
+  });
+  const links = new Map<string, number>();
+  for (const log of logs) {
+    const metadata = jsonRecord(log.metadata);
+    const briefIds = Array.isArray(metadata.briefIds) ? metadata.briefIds : [];
+    if (typeof metadata.requestId !== "string" || !briefIds.includes(args.briefId)) {
+      continue;
+    }
+    links.set(metadata.requestId, briefIds.length);
+  }
+  if (links.size !== 1) return null;
+  const [[requestId, briefCount]] = [...links];
+  return { kind: "linked", requestId, briefCount };
+}
+
 async function loadBriefLedger(
   tx: Prisma.TransactionClient,
   args: { briefId: string; briefCreatedAt: Date; ownerId: string; now: Date },
@@ -605,7 +653,12 @@ async function loadBriefLedger(
       linkage: BriefDispatchLink["kind"];
     }
 > {
-  const link = await linkBriefDispatchRequest(tx, args);
+  /// 即时补偿流水点名过这条 brief（briefIds）：这是数据库里的硬证据，优先于时间窗口认领。
+  /// 并发派发（两个标签页）时窗口里有多笔请求，窗口认领只能判 ambiguous——已补偿的
+  /// brief 再重试就清掉标记、一分不补扣，免费重跑。
+  const link =
+    (await linkBriefByCompensation(tx, args)) ??
+    (await linkBriefDispatchRequest(tx, args));
   if (link.kind === "in_flight") return { kind: "in_flight" };
 
   const entries: QuotaLedgerEntry[] = [];
@@ -697,10 +750,49 @@ const BRIEF_REFUND_SELECT = {
     },
   },
   videoJobs: {
-    select: { status: true, submissionState: true, finishedAt: true },
+    select: {
+      status: true,
+      submissionState: true,
+      submittedAt: true,
+      createdAt: true,
+      finishedAt: true,
+    },
   },
   finalVideo: { select: { finishedAt: true } },
 } as const;
+
+/**
+ * 这一段的提交可能还在路上：SUBMITTING 且提交时刻（缺失时退回建行时刻）在
+ * DISPATCH_IN_FLIGHT_MS 之内。派发 / 重试路由的执行上限远小于这个窗口，
+ * 更老的 SUBMITTING 只能是路由中途被杀、没来得及写回的残留——清扫器把它判
+ * FAILED 时不改 submissionState。它不可能再提交成功，也拿不到供应商任务号、
+ * 不会交付成片，按 D1 照常返还（宁可对客户有利，也不让它永远卡在队头）。
+ */
+function submissionMayBeInFlight(
+  job: { submissionState: ProviderSubmissionState; submittedAt: Date | null; createdAt: Date },
+  now: Date,
+): boolean {
+  if (job.submissionState !== ProviderSubmissionState.SUBMITTING) return false;
+  const startedAt = job.submittedAt ?? job.createdAt;
+  return now.getTime() - startedAt.getTime() < DISPATCH_IN_FLIGHT_MS;
+}
+
+/** 对账候选里排除「还不能处理」的 brief：有段在跑，或有段的提交可能还在路上（与上面同口径）。 */
+function briefRefundNotReadyJobWhere(now: Date): Prisma.VideoJobWhereInput {
+  const inFlightSince = new Date(now.getTime() - DISPATCH_IN_FLIGHT_MS);
+  return {
+    OR: [
+      { status: { in: [...ACTIVE_JOB_STATUSES] } },
+      {
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        OR: [
+          { submittedAt: { gt: inFlightSince } },
+          { submittedAt: null, createdAt: { gt: inFlightSince } },
+        ],
+      },
+    ],
+  };
+}
 
 function briefTerminalAfterCutoff(
   brief: {
@@ -744,11 +836,8 @@ export async function refundFailedBrief(
     if (brief.videoJobs.some((job) => ACTIVE_JOB_STATUSES.includes(job.status))) {
       return "skipped" as const;
     }
-    if (
-      brief.videoJobs.some(
-        (job) => job.submissionState === ProviderSubmissionState.SUBMITTING,
-      )
-    ) {
+    /// 提交可能还在路上就等它落定；早已超出路由上限的 SUBMITTING 残留不再挡住返还。
+    if (brief.videoJobs.some((job) => submissionMayBeInFlight(job, now))) {
       return "skipped" as const;
     }
     if (!briefTerminalAfterCutoff(brief, cutoff)) return "skipped" as const;
@@ -974,6 +1063,9 @@ export async function reconcileUndeliveredQuotaRefunds(
         quotaRefundedAt: null,
         finalVideoUrl: null,
         brandedVideoUrl: null,
+        /// 跳过不打标、也不刷新 updatedAt 的行会一直排在 updatedAt 升序的队头；
+        /// 现在就不能处理的 brief 不进候选，免得 20 条名额被它们长期占满。
+        videoJobs: { none: briefRefundNotReadyJobWhere(now) },
         OR: [
           { createdAt: { gte: cutoff } },
           { videoJobs: { some: { finishedAt: { gte: cutoff } } } },

@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import { Prisma, VideoProvider } from "@prisma/client";
+import { Prisma, VideoJobStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
   FRAME_QA_ERROR_PREFIX,
@@ -47,6 +47,19 @@ export type FrameQaStatus = (typeof FRAME_QA_STATUS)[keyof typeof FRAME_QA_STATU
 
 /** 同一段被帧质检拦截后，平台最多免费重抽的次数；用满后再检出 → WOULD_BLOCK 放行 */
 export const FRAME_QA_FREE_RETRY_CAP = 2;
+
+/**
+ * 质检进行中的占位（frameQaStatus 的一个过程值，不是结论）：真跑质检前 CAS 写入，
+ * frameQaCheckedAt = 占位时刻；结论写回时被 PASSED / BLOCKED / WOULD_BLOCK / SKIPPED 覆盖。
+ *
+ * 为什么要占位：cron 每分钟一次、maxDuration 300s，Vercel 不串行化重叠的调用，
+ * 每次调用各有一份质检预算。上一次调用还在给某段跑质检（单次最坏 45s）时，下一次
+ * 调用按 lastCheckedAt 升序又会先拿到同一段，重复下载、抽帧、调 vision，两份结论
+ * 先后落库。占位之后，并发的调用看到占位未过期就 defer。
+ */
+export const FRAME_QA_CHECKING = "CHECKING";
+/// 占位租期：持有者被平台杀掉时，过了租期别的调用可以接手。远大于单次检查的最坏耗时。
+const FRAME_QA_CLAIM_LEASE_MS = 2 * (FRAME_QA_GATE_TIMEOUT_MS + 10_000);
 
 export const FRAME_QA_BLOCK_USER_ERROR =
   "画面质检未通过（检测到异常文字），已自动拦截。点击「重试」可重新生成本段。";
@@ -145,6 +158,57 @@ function reserveFrameQaCheck(now: number): BudgetReservation {
   /// 同步占位（在任何 await 之前），并发的同上下文调用不会超发
   budget.used += 1;
   return { ok: true, label: budget.label };
+}
+
+/** 预算占了位、但这一段没真跑（别的调用正在质检它）：把名额还回去给别的段用 */
+function releaseFrameQaCheck(): void {
+  const budget = budgetStore.getStore();
+  if (budget && budget.used > 0) {
+    budget.used -= 1;
+    budget.deferred += 1;
+  }
+}
+
+/**
+ * 质检这一段的那次尝试：供应商任务号 + 提交幂等键。重试会换掉其中之一
+ *（单条重试先换 providerRequestKey，批量重试先清空 externalJobId），
+ * 占位与终态写入都钉住它，旧尝试的质检不会写到新一轮上。
+ */
+export interface FrameQaAttemptPin {
+  externalJobId: string | null;
+  providerRequestKey: string | null;
+}
+
+/** 质检占位：仍在跑、仍是同一次尝试、且没有未过期的别人的占位，才占下 */
+export function frameQaClaimWhere(
+  jobId: string,
+  pin: FrameQaAttemptPin,
+  now: Date,
+): Prisma.VideoJobWhereInput {
+  return {
+    id: jobId,
+    status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+    externalJobId: pin.externalJobId,
+    providerRequestKey: pin.providerRequestKey,
+    OR: [
+      { frameQaStatus: null },
+      { frameQaStatus: { not: FRAME_QA_CHECKING } },
+      { frameQaCheckedAt: null },
+      { frameQaCheckedAt: { lt: new Date(now.getTime() - FRAME_QA_CLAIM_LEASE_MS) } },
+    ],
+  };
+}
+
+async function claimFrameQaCheckInDb(
+  jobId: string,
+  pin: FrameQaAttemptPin,
+  now: Date,
+): Promise<boolean> {
+  const claimed = await db.videoJob.updateMany({
+    where: frameQaClaimWhere(jobId, pin, now),
+    data: { frameQaStatus: FRAME_QA_CHECKING, frameQaCheckedAt: now },
+  });
+  return claimed.count === 1;
 }
 
 // ---------- 落库结构 ----------
@@ -288,6 +352,8 @@ export interface FrameQaGateDeps {
   runFrameTextQa: (videoUrl: string) => Promise<FrameQaVerdict>;
   loadPriorDetail: (jobId: string) => Promise<unknown>;
   now: () => Date;
+  /** 质检占位（默认 CAS 写 frameQaStatus=CHECKING）；只在调用方传了 attempt 时调用 */
+  claimCheck?: (jobId: string, pin: FrameQaAttemptPin, now: Date) => Promise<boolean>;
 }
 
 const defaultDeps: FrameQaGateDeps = {
@@ -301,6 +367,7 @@ const defaultDeps: FrameQaGateDeps = {
       })
     )?.frameQaDetail ?? null,
   now: () => new Date(),
+  claimCheck: claimFrameQaCheckInDb,
 };
 
 export async function decideFrameQaGate(
@@ -313,6 +380,11 @@ export async function decideFrameQaGate(
      * 不传则只在真跑质检时查一次（取历史拦截次数）。
      */
     priorFrameQaDetail?: unknown;
+    /**
+     * 这一段当前那次尝试（reconcile 读出的行）。传了就在真跑质检前占位：
+     * 占不到（别的调用正在质检它，或这次尝试已被重试换掉）就 defer，不重复跑。
+     */
+    attempt?: FrameQaAttemptPin;
   },
   deps: FrameQaGateDeps = defaultDeps,
 ): Promise<FrameQaGateDecision> {
@@ -346,6 +418,14 @@ export async function decideFrameQaGate(
   if (!reservation.ok) {
     return { action: "defer", reason: reservation.reason };
   }
+  if (params.attempt) {
+    const claim = deps.claimCheck ?? claimFrameQaCheckInDb;
+    const claimed = await claim(params.jobId, params.attempt, deps.now());
+    if (!claimed) {
+      releaseFrameQaCheck();
+      return { action: "defer", reason: "frame_qa_claimed_elsewhere" };
+    }
+  }
 
   const priorBlockCount =
     knownPrior ?? readFrameQaBlockCount(await deps.loadPriorDetail(params.jobId));
@@ -370,4 +450,9 @@ export async function decideFrameQaGate(
   return decision;
 }
 
-export const __test__ = { reserveFrameQaCheck, outsideBudgetPolicy, PER_CHECK_RESERVE_MS };
+export const __test__ = {
+  reserveFrameQaCheck,
+  outsideBudgetPolicy,
+  PER_CHECK_RESERVE_MS,
+  FRAME_QA_CLAIM_LEASE_MS,
+};

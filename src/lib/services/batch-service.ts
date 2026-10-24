@@ -76,6 +76,7 @@ import {
   shuyuVideoPlanPointsForDuration,
 } from "@/lib/providers/shuyu";
 import { resolveVideoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
+import { FRAME_QA_ERROR_PREFIX } from "@/lib/video-generation/frame-qa";
 import {
   creativeRecipeSnapshot,
   DEFAULT_BRAND_PLACEMENT,
@@ -1651,10 +1652,23 @@ function isBillingSafeManualRetry(job: {
   // rehearsal adapter is zero-cost and deterministically succeeds on retry;
   // real adapters continue through the conservative billing-evidence checks.
   if (providerForJob(job).manualRetryBillingRisk === "none") return true;
+  /// 帧质检拦截：reconcile 拿到了供应商「已完成」并下载了产物才判废，供应商任务是
+  /// 确认终态的，不存在「其实还在跑、重提会双扣」的歧义。重试就是一次新的生成：
+  /// 客户额度照 D1 记（已返还的条目由 requeueRefundedBatchJob 先补扣），平台承担的
+  /// 重抽由 frameQaDetail.blockCount 封顶（batchRetryResetData 不清它，第 3 次检出按
+  /// WOULD_BLOCK 放行）。此前这里一律拒绝：门禁真正生效后，被拦的批量条目永远不能重试，
+  /// 界面还说「生成结果尚未确认」。
+  if (
+    job.errorMessage?.startsWith(FRAME_QA_ERROR_PREFIX) &&
+    job.submissionState === ProviderSubmissionState.ACCEPTED &&
+    job.externalJobId !== null
+  ) {
+    return true;
+  }
   // For a paid/ambiguous adapter, only positive evidence that no external job
-  // exists makes this zero-cost retry path safe. Provider-terminal states and
-  // post-generation QA failures may already be billable and require a new,
-  // explicitly metered regeneration workflow instead.
+  // exists makes this zero-cost retry path safe. Provider-terminal failure states
+  // may already be billable and require a new, explicitly metered regeneration
+  // workflow instead.
   return (
     job.externalJobId === null &&
     (job.submissionState === ProviderSubmissionState.NOT_STARTED ||
@@ -1782,6 +1796,72 @@ async function applyBreaker(
           : "生成服务恢复，自动续跑",
     },
   });
+}
+
+/// cron（process-batches）每次推进的批次上限，与此前一致：函数时长不因选法变化而变长。
+export const CRON_BATCH_TICK_LIMIT = 20;
+/// 其中最多这么多个名额优先给「有段久未被查过」的批次（帧质检等着它们）。
+const CRON_STALE_JOB_BATCH_LIMIT = 5;
+
+/** cron 推进的批次：运行 / 暂停，或已授权仍在拆单的。 */
+function cronActiveBatchWhere(): Prisma.BatchJobWhereInput {
+  return {
+    OR: [
+      { status: { in: [BatchJobStatus.RUNNING, BatchJobStatus.PAUSED] } },
+      { status: BatchJobStatus.EXPANDING, quotaConsumedAt: { not: null } },
+    ],
+  };
+}
+
+/**
+ * process-batches 这一分钟推进哪些批次。
+ *
+ * 只按 BatchJob.updatedAt 升序取前 20 会饿死有人在看的批次：详情页每 15s 一次
+ * processBatchTick，租约抢放与计数同步都刷新 updatedAt，它永远排不进 cron 的前 20；
+ * 而用户面 tick 在预算之外，「供应商已完成」的段只 defer、留给 cron 质检收尾——
+ * 这些段就一直停在「生成中」占着供应商槽位。
+ *
+ * 先取「有已提交、最久没被查过的 RUNNING 段」的批次：defer 不写 lastCheckedAt，
+ * 等着质检的段自然排在最前；还在渲染的段每次 tick 都会刷新 lastCheckedAt，不会挤占。
+ * 再按 updatedAt 升序补满，总数不超过 CRON_BATCH_TICK_LIMIT。
+ */
+export async function selectCronBatchIds(
+  limit = CRON_BATCH_TICK_LIMIT,
+): Promise<string[]> {
+  const activeBatch = cronActiveBatchWhere();
+  const [staleJobs, oldestUpdated] = await Promise.all([
+    db.videoJob.findMany({
+      where: {
+        status: VideoJobStatus.RUNNING,
+        externalJobId: { not: null },
+        batchJobId: { not: null },
+        batchJob: { is: activeBatch },
+      },
+      orderBy: [
+        { lastCheckedAt: { sort: "asc", nulls: "first" } },
+        { createdAt: "asc" },
+      ],
+      select: { batchJobId: true },
+      /// 同一批次的多段会连着出现，多取一些再去重
+      take: CRON_STALE_JOB_BATCH_LIMIT * 4,
+    }),
+    db.batchJob.findMany({
+      where: activeBatch,
+      orderBy: { updatedAt: "asc" },
+      select: { id: true },
+      take: limit,
+    }),
+  ]);
+  const ids = new Set<string>();
+  for (const job of staleJobs) {
+    if (ids.size >= Math.min(CRON_STALE_JOB_BATCH_LIMIT, limit)) break;
+    if (job.batchJobId) ids.add(job.batchJobId);
+  }
+  for (const batch of oldestUpdated) {
+    if (ids.size >= limit) break;
+    ids.add(batch.id);
+  }
+  return [...ids];
 }
 
 /**

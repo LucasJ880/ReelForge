@@ -166,6 +166,8 @@ test("direct dispatch compensation atomically refunds both meters and is replay-
       customerResponseClass: "5xx",
       customerResponseStatus: 503,
       phase: "direct_dispatch_compensation",
+      evidence: "all_jobs_rejected",
+      briefIds: ["brief-1", "brief-2"],
     });
   }
   assert.ok(

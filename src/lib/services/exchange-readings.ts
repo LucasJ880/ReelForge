@@ -47,9 +47,33 @@ export function ownedBriefWhere(userId: string): Prisma.VideoBriefWhereInput {
   };
 }
 
+/**
+ * 「失败那一刻」落在窗口内：取 finishedAt（只在这一轮进入终态时写；重试会清空、再失败重写），
+ * 旧数据没有 finishedAt 才退回 updatedAt。不能直接用 updatedAt：返还打标（quotaRefundedAt）、
+ * 刷新状态这类与失败无关的写入都会刷新它，「看过了」之后失败又冒回徽标、7 天窗口也被重新起算。
+ */
+function failedAtIn(range: Range) {
+  return { OR: [{ finishedAt: range }, { finishedAt: null, updatedAt: range }] };
+}
+
+/**
+ * brief 判失败的那一刻：失败分段或失败成片的 finishedAt；两者都没有时间戳（无任务 brief、
+ * QA 驳回等）才退回 brief 的 updatedAt。
+ */
+function briefFailedAtIn(range: Range): Prisma.VideoBriefWhereInput {
+  const stamped = { status: "FAILED" as const, finishedAt: { not: null } };
+  return {
+    OR: [
+      { videoJobs: { some: { status: "FAILED", finishedAt: range } } },
+      { finalVideo: { is: { status: "FAILED", finishedAt: range } } },
+      { videoJobs: { none: stamped }, NOT: { finalVideo: { is: stamped } }, updatedAt: range },
+    ],
+  };
+}
+
 /** 批量里失败的那一条：当前状态仍是 FAILED（重试会把它改回排队，成功就不再是失败）。 */
 export function batchFailureWhere(userId: string, range: Range): Prisma.VideoJobWhereInput {
-  return { status: "FAILED", batchJob: { userId }, updatedAt: range };
+  return { status: "FAILED", batchJob: { userId }, ...failedAtIn(range) };
 }
 
 /** 还在路上的分段：排队 / 生成中 / 暂停。 */
@@ -63,12 +87,12 @@ const ORDER_READY: Prisma.VideoBriefWhereInput = {
 /**
  * 单条订单失败的四种情形（与 business-status 的 pickStatus + 成品库 refineOrderLibraryStatus 同口径）：
  * brief 判失败 / 成片合成失败 / 分段全部失败 / 有分段失败且没有分段还在路上（也没成片、没在合成）。
- * 传 range 时按「失败那一刻」落在窗口内筛。
+ * 传 range 时按「失败那一刻」落在窗口内筛（finishedAt 为准，见 failedAtIn / briefFailedAtIn）。
  */
 function orderFailureClauses(range?: Range): Prisma.VideoBriefWhereInput[] {
-  const at = range ? { updatedAt: range } : {};
+  const at = range ? failedAtIn(range) : {};
   return [
-    { status: { in: FAILED_BRIEF_STATUSES }, ...at },
+    { status: { in: FAILED_BRIEF_STATUSES }, ...(range ? briefFailedAtIn(range) : {}) },
     { finalVideo: { is: { status: "FAILED", ...at } } },
     { videoJobs: { some: { status: "FAILED", ...at }, every: { status: "FAILED" } } },
     {
@@ -276,7 +300,8 @@ export async function loadNeedsAttention(
   const [jobs, briefs, total] = await Promise.all([
     db.videoJob.findMany({
       where: batchFailureWhere(userId, range),
-      orderBy: { updatedAt: "desc" },
+      /// 与计数同一个时间口径：失败那一刻（finishedAt），旧数据退回 updatedAt
+      orderBy: [{ finishedAt: { sort: "desc", nulls: "last" } }, { updatedAt: "desc" }],
       take,
       select: {
         id: true,
@@ -286,6 +311,7 @@ export async function loadNeedsAttention(
         submissionErrorClass: true,
         errorMessage: true,
         userSafeError: true,
+        finishedAt: true,
         updatedAt: true,
         batchJob: { select: { id: true, productName: true, template: { select: { nameZh: true, name: true } } } },
       },
@@ -298,7 +324,13 @@ export async function loadNeedsAttention(
         id: true,
         errorMessage: true,
         updatedAt: true,
-        finalVideo: { select: { updatedAt: true } },
+        finalVideo: { select: { status: true, finishedAt: true } },
+        videoJobs: {
+          where: { status: "FAILED", finishedAt: { not: null } },
+          select: { finishedAt: true },
+          orderBy: { finishedAt: "desc" },
+          take: 1,
+        },
         contentAngle: { select: { round: { select: { deliveryOrder: { select: { id: true, title: true } } } } } },
       },
     }),
@@ -326,13 +358,18 @@ export async function loadNeedsAttention(
         action: error?.action ?? "retry",
         href: `/app/batches/${job.batchJob.id}`,
         retryHref: null,
-        at: job.updatedAt,
+        at: job.finishedAt ?? job.updatedAt,
       }];
     }),
     ...briefs.map((brief): NeedsAttentionItem => {
       const order = brief.contentAngle.round.deliveryOrder;
       const error = classifyCustomerGenerationError({ status: "FAILED", errorMessage: brief.errorMessage });
-      const at = brief.finalVideo && brief.finalVideo.updatedAt > brief.updatedAt ? brief.finalVideo.updatedAt : brief.updatedAt;
+      /// 失败那一刻：失败成片 / 失败分段的 finishedAt 取较晚者，都没有才退回 brief 的 updatedAt
+      const failedAt = [
+        brief.finalVideo?.status === "FAILED" ? brief.finalVideo.finishedAt : null,
+        brief.videoJobs[0]?.finishedAt ?? null,
+      ].filter((value): value is Date => value instanceof Date);
+      const at = failedAt.length > 0 ? new Date(Math.max(...failedAt.map((value) => value.getTime()))) : brief.updatedAt;
       return {
         kind: "order",
         rowId: order.id,

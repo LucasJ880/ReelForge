@@ -1,9 +1,7 @@
-import { BatchJobStatus } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { machineAuthFailure } from "@/lib/machine-auth";
 import { startSchedulerHeartbeat } from "@/lib/scheduler-heartbeat";
-import { processBatchTick } from "@/lib/services/batch-service";
+import { processBatchTick, selectCronBatchIds } from "@/lib/services/batch-service";
 import {
   CRON_FRAME_QA_BUDGET,
   frameQaBudgetUsage,
@@ -26,20 +24,8 @@ export async function GET(req: NextRequest) {
 async function processBatches() {
   const heartbeat = startSchedulerHeartbeat("process-batches");
   try {
-    const batches = await db.batchJob.findMany({
-      where: {
-        OR: [
-          { status: { in: [BatchJobStatus.RUNNING, BatchJobStatus.PAUSED] } },
-          {
-            status: BatchJobStatus.EXPANDING,
-            quotaConsumedAt: { not: null },
-          },
-        ],
-      },
-      orderBy: { updatedAt: "asc" },
-      select: { id: true },
-      take: 20,
-    });
+    /// 选批次在 batch-service：有段等着质检的批次优先，不会被前端轮询饿死（runtime LENS-5）
+    const batches = (await selectCronBatchIds()).map((id) => ({ id }));
     const results = [];
     for (const batch of batches) {
       try {

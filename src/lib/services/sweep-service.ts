@@ -16,6 +16,7 @@ import {
 } from "./historical-dispatch-quarantine";
 import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
 import {
+  quotaRefundCutoff,
   reconcileUndeliveredQuotaRefunds,
   type QuotaRefundReconcileResult,
 } from "./quota-refund-service";
@@ -85,8 +86,14 @@ const AWAIT_STITCH_TIMEOUT_MIN = () =>
 const ORPHAN_FINAL_VIDEO_MIN = () =>
   Number(process.env.SWEEP_ORPHAN_FINAL_VIDEO_MIN ?? "1440");
 
-/// 无任务 brief 看门狗只处理本轮（2026-10-25）上线之后创建的 brief，历史不追溯。
-const JOBLESS_BRIEF_SWEEP_SINCE = new Date("2026-10-25T00:00:00.000Z");
+/// 无任务 brief 看门狗只处理本轮上线之后创建的 brief，历史不追溯。
+/// 起点与按条返还（D1）共用同一个截止线 quotaRefundCutoff()：上线时在部署环境里
+/// 把 QUOTA_REFUND_CUTOFF 设成真实部署时刻，两处一起生效；未设置时退回保守默认值。
+/// 此前这里另写死一份 2026-10-25T00:00Z、不认环境变量：部署早于它时，
+/// 部署到零点之间创建的无任务 brief 永远不会被收口。
+function joblessBriefSweepSince(): Date {
+  return quotaRefundCutoff();
+}
 /// 派发路由执行时长的上界：Vercel 函数可配置的最长 800s + 100s 余量。
 /// brief 比它还老，创建它的请求必然已经结束或被平台杀掉。
 const JOBLESS_BRIEF_ROUTE_BOUND_MS = () =>
@@ -194,7 +201,8 @@ function videoJobSweepEligibilityWhere(
  * 但 createdAt 永远是首轮的创建时刻。de8f698 只修了首次排队：13 小时前建的
  * 批次点「重试全部」，第 2、3 波按 createdAt 计时一出生就越过绝对上限，
  * 下一分钟就被扫成「生成超时」。排队豁免、绝对上限、提交后先对账的闸门
- * 都必须按这一轮的起点计时。单条任务从不写 availableAt，自然回落到 createdAt。
+ * 都必须按这一轮的起点计时。单条任务首轮不写 availableAt，自然回落到 createdAt；
+ * 单条重试（video-service.claimFailedJobForRetry）复用同一行，把重提时刻写进 availableAt。
  *
  * 每个分支都显式写 availableAt 非空 / 为空：这段条件会被放进 NOT(...)，
  * 「availableAt >= x」遇到 NULL 是 SQL 的 unknown，NOT(unknown) 仍是 unknown，
@@ -534,7 +542,7 @@ async function sweepOrphanFinalVideos(now: Date, result: SweepResult) {
  *  - 自助派发产生的：订单 productInput.source=unified_input 且 requestOrigin=web_app。
  *    内部代运营流程的 brief 停在 SCENE_PROMPT_READY 是正常的「等操作员派发」，
  *    绝不能被扫成失败。
- *  - 本轮上线之后创建的（JOBLESS_BRIEF_SWEEP_SINCE）：历史行不追溯，留给人工。
+ *  - 本轮上线之后创建的（joblessBriefSweepSince = QUOTA_REFUND_CUTOFF）：历史行不追溯，留给人工。
  *  - 创建它的那次派发请求已经不可能还在跑：要么 brief 本身已比路由最长执行时间
  *    再加余量还老（请求一定先于 brief 创建），要么该用户在 brief 创建前的那段
  *    窗口里已没有 PROCESSING 的派发请求（请求已写回终态）。
@@ -548,7 +556,7 @@ async function sweepJoblessSelfServeBriefs(now: Date, result: SweepResult) {
   const candidates = await db.videoBrief.findMany({
     where: {
       ...joblessSelfServeBriefWhere(),
-      createdAt: { gt: JOBLESS_BRIEF_SWEEP_SINCE, lt: settledGraceCutoff },
+      createdAt: { gt: joblessBriefSweepSince(), lt: settledGraceCutoff },
     },
     select: {
       id: true,
@@ -630,7 +638,7 @@ export const __test__ = {
   AWAIT_STITCH_TIMEOUT_ERROR,
   BRIEF_STITCH_FAILED_MESSAGE,
   JOBLESS_BRIEF_FAILED_MESSAGE,
-  JOBLESS_BRIEF_SWEEP_SINCE,
+  joblessBriefSweepSince,
   videoJobSweepEligibilityWhere,
   activeBatchQueueWhere,
   timedOutJobsWhere,

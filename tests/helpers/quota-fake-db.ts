@@ -86,9 +86,19 @@ function matches(
       typeof condition === "object" &&
       "path" in (condition as Row)
     ) {
-      const { path, equals } = condition as { path: string[]; equals: unknown };
+      const { path, equals, array_contains: arrayContains } = condition as {
+        path: string[];
+        equals?: unknown;
+        array_contains?: unknown;
+      };
       let value: unknown = row.metadata;
       for (const segment of path) value = (value as Row | null | undefined)?.[segment];
+      if (arrayContains !== undefined) {
+        const needles = Array.isArray(arrayContains) ? arrayContains : [arrayContains];
+        const haystack: unknown[] = Array.isArray(value) ? value : [];
+        if (!needles.every((needle) => haystack.includes(needle))) return false;
+        continue;
+      }
       if (value !== equals) return false;
       continue;
     }
@@ -123,10 +133,12 @@ export function createQuotaFakeDb(store: QuotaFakeStore) {
       const owner = (((condition.round as Row).deliveryOrder as Row).createdById);
       return row.ownerId === owner;
     },
-    videoJobs: (row, condition) =>
-      store.videoJobs.some(
-        (job) => job.videoBriefId === row.id && matches(job, condition.some as Row),
-      ),
+    videoJobs: (row, condition) => {
+      const own = store.videoJobs.filter((job) => job.videoBriefId === row.id);
+      if (condition.some && !own.some((job) => matches(job, condition.some as Row))) return false;
+      if (condition.none && own.some((job) => matches(job, condition.none as Row))) return false;
+      return true;
+    },
     finalVideo: (row, condition) =>
       !!row.finalVideo && matches(row.finalVideo as Row, condition.is as Row),
   };

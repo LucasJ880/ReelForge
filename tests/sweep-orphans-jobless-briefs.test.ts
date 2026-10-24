@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import { db } from "../src/lib/db";
 import { sweepStuckTasks, __test__ as sweepTest } from "../src/lib/services/sweep-service";
+import { quotaRefundCutoff } from "../src/lib/services/quota-refund-service";
 
 /**
  * round 1025 · A1b 清扫新增两段的回归：
@@ -225,8 +226,39 @@ test("2.5 范围：只看本轮上线之后创建、且至少 2 分钟前创建�
     gt: new Date("2026-10-25T00:00:00.000Z"),
     lt: minutesAgo(2),
   });
-  assert.equal(sweepTest.JOBLESS_BRIEF_SWEEP_SINCE.toISOString(), "2026-10-25T00:00:00.000Z");
+  assert.equal(sweepTest.joblessBriefSweepSince().toISOString(), "2026-10-25T00:00:00.000Z");
   assert.equal(where.status !== undefined && where.videoJobs !== undefined, true);
+});
+
+test("2.5 / D1：看门狗起点与按条返还截止线同源——QUOTA_REFUND_CUTOFF 一处设置两处生效", async (t) => {
+  const previous = process.env.QUOTA_REFUND_CUTOFF;
+  /// 部署早于默认零点：上线时把环境变量设成真实部署时刻
+  process.env.QUOTA_REFUND_CUTOFF = "2026-10-24T21:00:00.000Z";
+  t.after(() => {
+    if (previous === undefined) delete process.env.QUOTA_REFUND_CUTOFF;
+    else process.env.QUOTA_REFUND_CUTOFF = previous;
+  });
+  quietOtherSweeps(t);
+  let briefQuery: Record<string, unknown> | null = null;
+  patch(t, db.videoBrief as unknown as Record<string, unknown>, {
+    findMany: async (args: Record<string, unknown>) => {
+      briefQuery ??= args;
+      return [];
+    },
+  });
+
+  await sweepStuckTasks(NOW);
+
+  assert.ok(briefQuery);
+  const where = (briefQuery as { where: Record<string, unknown> }).where;
+  const deployedAt = new Date("2026-10-24T21:00:00.000Z");
+  assert.deepEqual(
+    where.createdAt,
+    { gt: deployedAt, lt: minutesAgo(2) },
+    "部署到零点之间创建的无任务 brief 也要被看门狗收口",
+  );
+  assert.equal(sweepTest.joblessBriefSweepSince().toISOString(), deployedAt.toISOString());
+  assert.equal(quotaRefundCutoff().toISOString(), deployedAt.toISOString(), "返还截止线读同一个值");
 });
 
 test("2.5：比路由执行上限还老的无任务 brief → RENDER_FAILED（不必再查派发请求）", async (t) => {

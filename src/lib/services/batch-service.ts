@@ -748,38 +748,134 @@ export function isTerminalBatchStatus(status: BatchJobStatus): boolean {
   );
 }
 
+/// syncBatchCounts 的 CAS 落空重读次数。落空意味着另一个写者刚写过这一行，
+/// 重读即可拿到不比它旧的计数；连续落空说明写者在抢，交给下一次 tick 收敛。
+const SYNC_COUNTS_CAS_RETRY_LIMIT = 3;
+
+function isRecordNotFound(error: unknown): boolean {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2025"
+  );
+}
+
+/**
+ * 按任务真实状态重算批次计数与状态。
+ *
+ * 写入带 updatedAt 条件（乐观并发）：先读批次行、再数任务，只有这期间没人写过
+ * 这一行才落库。此前无条件覆盖：两个标签页 / cron 并发 tick 时，先读到旧计数
+ * 的一方可能晚落库，把刚到终态的批次写回「生成中」，或把重试后刚复活的批次写回
+ * 终态——后者会让 processBatchTick 在终态短路，排队行再无人推进。
+ * 读取顺序是语义：批次行在前、计数在后，落库成功即保证计数不比上一个写者旧。
+ */
 export async function syncBatchCounts(batchId: string): Promise<BatchJob> {
-  const [batch, grouped] = await Promise.all([
-    db.batchJob.findUnique({ where: { id: batchId } }),
-    db.videoJob.groupBy({
+  for (let attempt = 0; ; attempt += 1) {
+    const batch = await db.batchJob.findUnique({ where: { id: batchId } });
+    if (!batch) throw new BatchNotFoundError();
+    const grouped = await db.videoJob.groupBy({
       by: ["status"],
       where: { batchJobId: batchId },
       _count: { _all: true },
-    }),
-  ]);
-  if (!batch) throw new BatchNotFoundError();
-  const counts: Partial<Record<VideoJobStatus, number>> = {};
-  for (const row of grouped as StatusCount[]) {
-    counts[row.status] = row._count._all;
+    });
+    const counts: Partial<Record<VideoJobStatus, number>> = {};
+    for (const row of grouped as StatusCount[]) {
+      counts[row.status] = row._count._all;
+    }
+    const status = deriveBatchStatus({
+      requestedCount: batch.requestedCount,
+      counts,
+    });
+    const terminal = isTerminalBatchStatus(status);
+    try {
+      return await db.batchJob.update({
+        where: { id: batchId, updatedAt: batch.updatedAt },
+        data: {
+          status,
+          queuedCount: counts.QUEUED ?? 0,
+          pausedCount: counts.PAUSED ?? 0,
+          runningCount: counts.RUNNING ?? 0,
+          completedCount: counts.SUCCEEDED ?? 0,
+          failedCount: counts.FAILED ?? 0,
+          cancelledCount: counts.CANCELLED ?? 0,
+          finishedAt: terminal ? batch.finishedAt ?? new Date() : null,
+        },
+      });
+    } catch (error) {
+      if (!isRecordNotFound(error)) throw error;
+      if (attempt + 1 >= SYNC_COUNTS_CAS_RETRY_LIMIT) {
+        const latest = await db.batchJob.findUnique({ where: { id: batchId } });
+        if (!latest) throw new BatchNotFoundError();
+        console.warn(JSON.stringify({
+          evt: "batch_sync_counts_cas_contended",
+          batchId,
+          attempts: attempt + 1,
+        }));
+        return latest;
+      }
+    }
   }
-  const status = deriveBatchStatus({
-    requestedCount: batch.requestedCount,
-    counts,
-  });
-  const terminal = isTerminalBatchStatus(status);
-  return db.batchJob.update({
-    where: { id: batchId },
+}
+
+/**
+ * 批次 tick 租约（D3）：放弃 advisory lock——走 pooler 会把锁泄漏在复用连接上
+ * （CLAUDE.md §4.1）——改用 BatchJob.tickLeaseUntil/tickLeaseOwner 做 CAS 抢占。
+ *
+ * 同一批次同一时刻只有一个 tick 在做供应商对账与派发：每多开一个批次详情页，
+ * 不再多出一份供应商查询与帧质检。抢不到就跳过本次 tick（另一个 tick 正在做
+ * 同样的事），持有者在 finally 里释放。
+ *
+ * 时长按「函数被平台杀掉后多久可以接手」取 2 分钟；tick 在故事板阶段之后、派发
+ * 之前各续租一次，慢 tick 不会中途丢锁。若真丢了（续租落空），停止新的派发，
+ * 只保留已做完的对账——最坏情况退化成改造前的并发 tick，任务级 CAS 仍保证不重复提交。
+ */
+const TICK_LEASE_MS = 120_000;
+
+async function acquireBatchTickLease(
+  batchId: string,
+  now: Date,
+): Promise<string | null> {
+  const owner = randomUUID();
+  const acquired = await db.batchJob.updateMany({
+    where: {
+      id: batchId,
+      OR: [{ tickLeaseUntil: null }, { tickLeaseUntil: { lt: now } }],
+    },
     data: {
-      status,
-      queuedCount: counts.QUEUED ?? 0,
-      pausedCount: counts.PAUSED ?? 0,
-      runningCount: counts.RUNNING ?? 0,
-      completedCount: counts.SUCCEEDED ?? 0,
-      failedCount: counts.FAILED ?? 0,
-      cancelledCount: counts.CANCELLED ?? 0,
-      finishedAt: terminal ? batch.finishedAt ?? new Date() : null,
+      tickLeaseOwner: owner,
+      tickLeaseUntil: new Date(now.getTime() + TICK_LEASE_MS),
     },
   });
+  return acquired.count === 1 ? owner : null;
+}
+
+async function renewBatchTickLease(
+  batchId: string,
+  owner: string,
+): Promise<boolean> {
+  const renewed = await db.batchJob.updateMany({
+    where: { id: batchId, tickLeaseOwner: owner },
+    data: { tickLeaseUntil: new Date(Date.now() + TICK_LEASE_MS) },
+  });
+  return renewed.count === 1;
+}
+
+async function releaseBatchTickLease(
+  batchId: string,
+  owner: string,
+): Promise<void> {
+  try {
+    await db.batchJob.updateMany({
+      where: { id: batchId, tickLeaseOwner: owner },
+      data: { tickLeaseOwner: null, tickLeaseUntil: null },
+    });
+  } catch (error) {
+    /// 释放失败不抛：租约最多 TICK_LEASE_MS 后自然过期，不能让它盖掉 tick 的真实结果。
+    console.warn(JSON.stringify({
+      evt: "batch_tick_lease_release_failed",
+      batchId,
+      error: error instanceof Error ? error.message.slice(0, 200) : String(error),
+    }));
+  }
 }
 
 async function recoverExpiredLeases(batchId: string, now: Date): Promise<number> {
@@ -1673,16 +1769,20 @@ async function applyBreaker(
 }
 
 /**
- * 单个 worker tick：回收租约 → 批量调和 → 熔断联动 → 按全局并发槽提交。
+ * 单个 worker tick：抢租约 → 回收租约 → 批量调和 → 熔断联动 → 按全局并发槽提交 → 放租约。
  * 前端只调用 batch status 端点一次；不会为 N 个任务建立 N 条连接。
+ * 多个标签页 / cron 同时 tick 同一批次时只有抢到租约的那个干活，其余直接返回当前行。
  */
 export async function processBatchTick(batchId: string): Promise<BatchJob> {
   // This guard intentionally runs before the first DB read. Route-specific
   // credential readiness is checked from the persisted job snapshot below.
   assertProductionMockRuntimeSealed();
   const now = new Date();
-  const [batch, batchProvider] = await Promise.all([
-    db.batchJob.findUnique({ where: { id: batchId } }),
+  const [batchRow, batchProvider] = await Promise.all([
+    db.batchJob.findUnique({
+      where: { id: batchId },
+      include: { user: { select: { disabledAt: true } } },
+    }),
     db.videoJob.findFirst({
       where: { batchJobId: batchId },
       select: {
@@ -1693,7 +1793,8 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
       },
     }),
   ]);
-  if (!batch) throw new BatchNotFoundError();
+  if (!batchRow) throw new BatchNotFoundError();
+  const { user: owner, ...batch } = batchRow;
   if (isTerminalBatchStatus(batch.status)) {
     return batch;
   }
@@ -1711,27 +1812,55 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
   }
   if (batchProvider) assertPersistedJobProviderReady(batchProvider);
 
-  if (batchProvider?.videoRouteSnapshot === "buddy") {
-    await advanceBatchStoryboards(batchId);
-    await prepareBatchStoryboards(batchId, batch.userId);
+  /// 以上全是只读守卫；从这里开始会写库、会调供应商，先抢 tick 租约。
+  const leaseOwner = await acquireBatchTickLease(batchId, now);
+  if (!leaseOwner) return batch;
+  try {
+    /// 2.8 停用账号：不再推进排队（不建故事板、不重投帧、不领取、不提交），
+    /// 但已提交给合作方的任务照常对账收回素材（铁律 §4.7：保留素材），
+    /// 计数照常同步——排队行由停用流程取消后，批次能自然落到终态。
+    if (owner?.disabledAt) {
+      console.warn(JSON.stringify({
+        evt: "batch_tick_owner_disabled",
+        batchId,
+        userId: batch.userId,
+      }));
+      await recoverExpiredLeases(batchId, now);
+      await reconcileRunningBatchJobs(batchId);
+      return await syncBatchCounts(batchId);
+    }
+
+    if (batchProvider?.videoRouteSnapshot === "buddy") {
+      await advanceBatchStoryboards(batchId);
+      await prepareBatchStoryboards(batchId, batch.userId);
+      await renewBatchTickLease(batchId, leaseOwner);
+    }
+
+    await recoverExpiredLeases(batchId, now);
+    if (batchProvider) {
+      await expireHardDeadlineProviderSlots(batchProvider.provider, now);
+    }
+    await reconcileRunningBatchJobs(batchId);
+    await syncBatchCounts(batchId);
+
+    const breaker = await evaluateDispatchBreaker(now);
+    await applyBreaker(batchId, breaker);
+    if (breaker.state === "open") return await syncBatchCounts(batchId);
+
+    /// 派发前确认租约仍在：慢 tick 若已被别的 tick 接手，这里不再领取提交，
+    /// 避免两份 tick 同时占用供应商槽位。
+    if (!(await renewBatchTickLease(batchId, leaseOwner))) {
+      console.warn(JSON.stringify({ evt: "batch_tick_lease_lost", batchId }));
+      return await syncBatchCounts(batchId);
+    }
+    const maxClaims =
+      breaker.state === "half_open_probe" ? 1 : providerConcurrency();
+    const claimed = await claimJobs({ batchId, maxClaims, now });
+    await mapConcurrent(claimed, providerConcurrency(), submitClaimedJob);
+    return await syncBatchCounts(batchId);
+  } finally {
+    await releaseBatchTickLease(batchId, leaseOwner);
   }
-
-  await recoverExpiredLeases(batchId, now);
-  if (batchProvider) {
-    await expireHardDeadlineProviderSlots(batchProvider.provider, now);
-  }
-  await reconcileRunningBatchJobs(batchId);
-  await syncBatchCounts(batchId);
-
-  const breaker = await evaluateDispatchBreaker(now);
-  await applyBreaker(batchId, breaker);
-  if (breaker.state === "open") return syncBatchCounts(batchId);
-
-  const maxClaims =
-    breaker.state === "half_open_probe" ? 1 : providerConcurrency();
-  const claimed = await claimJobs({ batchId, maxClaims, now });
-  await mapConcurrent(claimed, providerConcurrency(), submitClaimedJob);
-  return syncBatchCounts(batchId);
 }
 
 export async function retryFailedBatchJobs(batchId: string): Promise<number> {

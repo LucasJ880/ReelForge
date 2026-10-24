@@ -387,6 +387,9 @@ export function StreamlinedVideoStudio({
   initialAssets = [],
   initialStyleTemplateId,
   initialPrompt = "",
+  initialDurationSec,
+  initialAspectRatio,
+  retryOfOrderId = null,
   brandPackages = [],
   canSelectVideoRoute,
   showInternalVideoRoutes = false,
@@ -397,6 +400,11 @@ export function StreamlinedVideoStudio({
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
   initialPrompt?: string;
+  /** 成品库「重新生成」带回的原时长 / 画幅。 */
+  initialDurationSec?: 15 | 30 | 60;
+  initialAspectRatio?: AspectRatio;
+  /** 成品库「重新生成」的原订单：有值时不做故事板静默恢复，避免覆盖预填。 */
+  retryOfOrderId?: string | null;
   brandPackages?: WorkspaceBrandPackageView[];
   canSelectVideoRoute: boolean;
   showInternalVideoRoutes?: boolean;
@@ -427,8 +435,12 @@ export function StreamlinedVideoStudio({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [creationMode, setCreationMode] = useState<CreationMode>("quick");
   const [referenceMode, setReferenceMode] = useState<ReferenceMode>("all");
-  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("9:16");
-  const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(15);
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>(
+    initialAspectRatio ?? "9:16",
+  );
+  const [selectedDuration, setSelectedDuration] = useState<15 | 30 | 60>(
+    initialDurationSec ?? 15,
+  );
   const [styleTemplateId, setStyleTemplateId] = useState(seededStyleTemplateId);
   const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
   const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
@@ -443,7 +455,7 @@ export function StreamlinedVideoStudio({
       voiceoverScript: generateVoiceoverScript({
         prompt: initialPrompt,
         cta: null,
-        durationSec: 15,
+        durationSec: initialDurationSec ?? 15,
         language: locale,
         templateId: seededStyleTemplateId === "auto" ? null : seededStyleTemplateId,
       }),
@@ -459,6 +471,7 @@ export function StreamlinedVideoStudio({
   const [storyboard, setStoryboard] = useState<StoryboardRunView | null>(null);
   const [storyboardFrameBusy, setStoryboardFrameBusy] = useState<string | null>(null);
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
+  const [cancellingRound, setCancellingRound] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
@@ -488,9 +501,10 @@ export function StreamlinedVideoStudio({
   }, []);
 
   useEffect(() => {
-    // Arriving from the Product Image Studio expresses intent to start a new
-    // creation, so the silent resume stays out of the way.
-    if (initialProductAssets.length > 0) return;
+    // Arriving from the Product Image Studio (or the regenerate link in the library)
+    // expresses intent to start a new creation, so the silent resume stays out
+    // of the way.
+    if (initialProductAssets.length > 0 || retryOfOrderId) return;
     let cancelled = false;
     const resume = async () => {
       /// 恢复是「必须尽力」而不是「随缘」：0805 实测 APPROVED 故事板在刷新后
@@ -516,6 +530,7 @@ export function StreamlinedVideoStudio({
       if (cancelled || !payload?.ok || !payload.resume) return;
       if (interactedRef.current) return;
       const { run, context } = payload.resume;
+      if (run.status === "CANCELLED") return;
       if (loadDismissedStoryboardRunIds().includes(run.id)) return;
       setStoryboard(run);
       setRawPrompt(context.prompt);
@@ -564,7 +579,17 @@ export function StreamlinedVideoStudio({
     return () => {
       cancelled = true;
     };
-  }, [copy.storyboardFailed, english, initialProductAssets.length]);
+  }, [copy.storyboardFailed, english, initialProductAssets.length, retryOfOrderId]);
+
+  useEffect(() => {
+    if (!retryOfOrderId) return;
+    toast.success(
+      english
+        ? "Loaded the photos and direction from that video. Review them, then start a new storyboard."
+        : "已载入那条视频的产品照片与创作方向。检查一下，再开始新的故事板。",
+      { id: "create-retry-prefill" },
+    );
+  }, [english, retryOfOrderId]);
 
   const selectedBrandPackage = brandPackages.find(
     (brandPackage) => brandPackage.id === selectedBrandPackageId,
@@ -674,14 +699,55 @@ export function StreamlinedVideoStudio({
   }, []);
 
   /**
+   * 服务端真取消：还在出帧 / 等确认的故事板必须让服务端停下来（排队分镜不再提交，
+   * 已提交的分镜继续收回素材），否则后台照样出帧计费，换台设备还会「复活」。
+   * 返回 false 表示服务端没有确认取消：调用方必须保留这一轮并说明原因。
+   */
+  async function cancelStoryboardOnServer(run: StoryboardRunView): Promise<boolean> {
+    if (run.status !== "GENERATING" && run.status !== "AWAITING_APPROVAL") return true;
+    const failed = english
+      ? "Could not cancel this round. Nothing was lost — please try again."
+      : "暂时没能取消这一轮，素材都还在，请再试一次。";
+    try {
+      const response = await fetch(
+        `/api/video-generation/storyboards/${encodeURIComponent(run.id)}/cancel`,
+        { method: "POST" },
+      );
+      const payload = await response.json().catch(() => null) as
+        | { ok: true; run: StoryboardRunView }
+        | { ok: false; code?: string; error?: string }
+        | null;
+      if (response.ok && payload?.ok) return true;
+      // 已确认 / 已失败 / 已不存在：服务端不会再为它出帧，前端放弃即可。
+      if (payload && !payload.ok && (payload.code === "INVALID_STATE" || payload.code === "NOT_FOUND")) {
+        return true;
+      }
+      setError(payload && !payload.ok && payload.error ? payload.error : failed);
+      return false;
+    } catch {
+      setError(failed);
+      return false;
+    }
+  }
+
+  /**
    * 放弃当前这一轮创作。
    *
    * 供应商崩溃、故事板失败、任务卡住时，用户必须能退出这一轮而不是只能一直重试：
-   * 清掉进行中的故事板与失败态，并把这个 run 标记为不再自动恢复（否则下次进页面
-   * 又被恢复回来）。素材和创作描述保留，方便直接改一改重开一轮。
+   * 先让服务端真取消（见 cancelStoryboardOnServer），再清掉本地的故事板、失败态与
+   * 浏览器里的幂等键，并把这个 run 标记为不再自动恢复。素材和创作描述保留，方便
+   * 直接改一改重开一轮。
    */
-  const cancelCurrentRound = useCallback(() => {
-    if (storyboard) markStoryboardRunDismissed(storyboard.id);
+  async function cancelCurrentRound() {
+    if (cancellingRound) return;
+    const run = storyboard;
+    if (run) {
+      setCancellingRound(true);
+      const cancelled = await cancelStoryboardOnServer(run);
+      setCancellingRound(false);
+      if (!cancelled) return;
+      markStoryboardRunDismissed(run.id);
+    }
     invalidatePlan();
     setBusy(null);
     toast.success(
@@ -689,7 +755,7 @@ export function StreamlinedVideoStudio({
         ? "This round was cancelled. Your uploads and direction are kept."
         : "已取消这一轮创作。素材与创作描述都保留着，可以直接改一改重开。",
     );
-  }, [english, invalidatePlan, storyboard]);
+  }
 
   const updateAudioCaptionSettings = useCallback((
     next: AudioCaptionControlValue,
@@ -734,6 +800,15 @@ export function StreamlinedVideoStudio({
         // The durable storyboard remains available after a transient browser error.
       }
       if (cancelled) return;
+      if (next?.status === "CANCELLED") {
+        // 在另一台设备上取消了（或账号停用时被一并取消）：这一轮不会再出帧，退回编辑态。
+        markStoryboardRunDismissed(next.id);
+        setStoryboard(null);
+        storyboardAttemptRef.current = null;
+        persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
+        setError(next.errorMessage ?? copy.storyboardFailed);
+        return;
+      }
       if (next) {
         setStoryboard(next);
         if (next.status === "FAILED") {
@@ -1108,10 +1183,18 @@ export function StreamlinedVideoStudio({
     }
   }
 
-  function editStoryboardDirection() {
+  async function editStoryboardDirection() {
+    if (cancellingRound) return;
     if (!storyboard || window.confirm(copy.editStoryboardConfirm)) {
       interactedRef.current = true;
-      if (storyboard) markStoryboardRunDismissed(storyboard.id);
+      if (storyboard) {
+        // 退出故事板 = 放弃这一轮：仍在出帧的要让服务端停下，不在后台继续计费。
+        setCancellingRound(true);
+        const cancelled = await cancelStoryboardOnServer(storyboard);
+        setCancellingRound(false);
+        if (!cancelled) return;
+        markStoryboardRunDismissed(storyboard.id);
+      }
       setStoryboard(null);
       storyboardAttemptRef.current = null;
       dispatchAttemptRef.current = null;
@@ -1746,12 +1829,18 @@ export function StreamlinedVideoStudio({
                 approving={approvingStoryboard}
                 onRegenerate={(frameId) => void regenerateStoryboardFrame(frameId)}
                 onApprove={() => void approveStoryboard()}
-                onEditPlan={editStoryboardDirection}
+                onEditPlan={() => void editStoryboardDirection()}
               />
               {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
               <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">
                 <span className="min-w-0 flex-1">{copy.cancelRoundHint}</span>
-                <Button type="button" variant="ghost" size="xs" onClick={cancelCurrentRound}>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  disabled={cancellingRound}
+                  onClick={() => void cancelCurrentRound()}
+                >
                   <X aria-hidden />
                   {copy.cancelRound}
                 </Button>
@@ -1785,7 +1874,8 @@ export function StreamlinedVideoStudio({
                 type="button"
                 variant="outline"
                 size="xs"
-                onClick={cancelCurrentRound}
+                disabled={cancellingRound}
+                onClick={() => void cancelCurrentRound()}
               >
                 <X aria-hidden />
                 {copy.cancelRound}

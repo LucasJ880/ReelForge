@@ -14,10 +14,11 @@ const STUDIO = readFileSync(
  * 任何任务都必须有「取消这一轮」的出口。
  */
 test("单条创作页提供取消这一轮的出口", () => {
-  assert.match(STUDIO, /const cancelCurrentRound = useCallback\(/);
-  assert.match(STUDIO, /markStoryboardRunDismissed\(storyboard\.id\)/);
+  // 2026-10-25（round 1025 · A2 3.2）：取消先走服务端真取消，再清本地，所以是 async。
+  assert.match(STUDIO, /async function cancelCurrentRound\(\)/);
+  assert.match(STUDIO, /markStoryboardRunDismissed\(run\.id\)/);
   assert.equal(
-    STUDIO.split("onClick={cancelCurrentRound}").length - 1,
+    STUDIO.split("onClick={() => void cancelCurrentRound()}").length - 1,
     2,
     "失败提示条与故事板面板都要能取消这一轮",
   );
@@ -35,7 +36,7 @@ test("取消这一轮会清掉幂等键，避免下一轮回放失败的旧提�
 
 test("取消后保留素材与创作描述（只清这一轮的运行态）", () => {
   const cancel = STUDIO.slice(
-    STUDIO.indexOf("const cancelCurrentRound = useCallback("),
+    STUDIO.indexOf("async function cancelCurrentRound()"),
     STUDIO.indexOf("const updateAudioCaptionSettings"),
   );
   assert.doesNotMatch(cancel, /setProductAssets\(\[\]\)/);

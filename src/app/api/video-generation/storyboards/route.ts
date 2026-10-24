@@ -65,6 +65,8 @@ export async function POST(req: NextRequest) {
       userId: guard.session.user.id,
       idempotencyKey,
       ...parsed.data,
+      // 创作台直接发起：计入每小时限流（批量内部准备不走这个入口）。
+      userInitiated: true,
     });
     return NextResponse.json({ ok: true, run }, { status: 201 });
   } catch (error) {

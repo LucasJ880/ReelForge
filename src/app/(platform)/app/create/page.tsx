@@ -6,6 +6,7 @@ import {
 } from "@/components/video-generation/streamlined-video-studio";
 import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { authOptions } from "@/lib/auth";
+import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
 import { loadExchangeReadings } from "@/lib/services/exchange-readings";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
 import { getWorkspacePlanForUser } from "@/lib/services/workspace-plan-service";
@@ -25,11 +26,17 @@ const EMPTY_ACTIVITY: Omit<StudioReadings, "monthlyLimit"> = {
 export default async function PlatformCreatePage({
   searchParams,
 }: {
-  searchParams: Promise<{ productImageResultId?: string; styleTemplate?: string; prompt?: string; guide?: string }>;
+  searchParams: Promise<{
+    productImageResultId?: string;
+    styleTemplate?: string;
+    prompt?: string;
+    guide?: string;
+    retry?: string;
+  }>;
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/create");
-  const [{ productImageResultId, styleTemplate, prompt, guide }, locale, routeState] = await Promise.all([
+  const [{ productImageResultId, styleTemplate, prompt, guide, retry }, locale, routeState] = await Promise.all([
     searchParams,
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
@@ -41,6 +48,26 @@ export default async function PlatformCreatePage({
   const result = productImageResultId
     ? await findProductImageResultForUser(productImageResultId, session.user.id)
     : null;
+  /// 成品库「重新生成」：按属主读回原订单的产品照片与创作方向（别人的订单当作不存在）。
+  const retryPrefill = typeof retry === "string" && retry && !result
+    ? await loadCreateRetryPrefill(retry, session.user.id)
+    : null;
+  const retryAssets: UploadedAsset[] = (retryPrefill?.productAssets ?? []).map((asset, index) => ({
+    id: asset.id,
+    assetId: asset.id,
+    type: "IMAGE",
+    inferredRole: "product_image",
+    roleConfidence: 1,
+    url: absoluteAssetUrl(asset.url),
+    mimeType: asset.mimeType,
+    fileName: `product-image-${index + 1}`,
+    width: asset.width,
+    height: asset.height,
+    durationSeconds: null,
+    userAssignedRole: "product_image",
+    suggestedUse: locale === "en-US" ? "Loaded from the video you are regenerating." : "已从要重新生成的那条视频载入。",
+    warnings: [],
+  }));
   const initialAssets: UploadedAsset[] =
     result
       ? [{
@@ -59,13 +86,16 @@ export default async function PlatformCreatePage({
           suggestedUse: locale === "en-US" ? "Loaded from Product Image Studio as a product-consistency reference." : "已从产品图工作台载入，可作为视频的产品一致性参考。",
           warnings: [],
         }]
-      : [];
+      : retryAssets;
   return (
     <div data-route-state={routeState === "empty" ? "empty" : "ready"}>
       <StreamlinedVideoStudio
         initialAssets={initialAssets}
         initialStyleTemplateId={styleTemplate}
-        initialPrompt={prompt?.slice(0, 4000) ?? ""}
+        initialPrompt={(retryPrefill?.prompt || prompt)?.slice(0, 4000) ?? ""}
+        initialDurationSec={retryPrefill?.durationSec ?? undefined}
+        initialAspectRatio={retryPrefill?.aspectRatio ?? undefined}
+        retryOfOrderId={retryPrefill?.orderId ?? null}
         brandPackages={brandPackages}
         canSelectVideoRoute={false}
         showInternalVideoRoutes={false}

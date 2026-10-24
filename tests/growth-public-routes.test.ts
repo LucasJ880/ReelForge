@@ -4,6 +4,7 @@ import test, { type TestContext } from "node:test";
 import { NextRequest } from "next/server";
 
 import { db } from "../src/lib/db";
+import { hashVisitorNetwork, visitorNetworkKey } from "../src/lib/services/rate-limit-service";
 import { POST as postLead } from "../src/app/api/public/leads/route";
 import { POST as postPilot } from "../src/app/api/public/pilot-applications/route";
 import { LEAD_CONSENT_VERSION, PILOT_CONSENT_VERSION, getGrowthCopy } from "../src/i18n/growth-copy";
@@ -109,6 +110,7 @@ test("询盘提交：未开通的询盘页 404；限流 429 并附商家电话",
       name: "Sunny",
       leadPageEnabled: enabled,
       leadPageConfig: { phone: "+1 905 555 0100" },
+      owner: { disabledAt: null },
     }),
   });
   patch(t, db.rateLimitBucket, { upsert: async () => ({ count: 6 }) });
@@ -129,6 +131,81 @@ test("询盘提交：电话不像电话 → 400 phone_invalid", async (t) => {
   const response = await postLead(jsonRequest(LEAD_URL, { ...leadBody, phone: "tomorrow" }));
   assert.equal(response.status, 400);
   assert.equal((await response.json()).reason, "phone_invalid");
+});
+
+/**
+ * 1025 安全复核 LENS-2：访客限流按网段（IPv4 /24、IPv6 /48）聚合后再哈希——
+ * 在一个 IPv6 /64（2^64 个地址）或同一 /24 里换地址刷不出新额度。
+ */
+test("访客网段：IPv4 取 /24、IPv6 取 /48；映射地址、端口、方括号、zone 都归一；认不出的原样返回", () => {
+  assert.equal(visitorNetworkKey("203.0.113.9"), "203.0.113.0/24");
+  assert.equal(visitorNetworkKey(" 203.0.113.250:51234 "), "203.0.113.0/24");
+  assert.equal(visitorNetworkKey("::ffff:203.0.113.77"), "203.0.113.0/24");
+  assert.equal(visitorNetworkKey("2001:DB8:abcd:12::1"), "2001:db8:abcd::/48");
+  assert.equal(visitorNetworkKey("[2001:db8:abcd:ffff:1:2:3:4]:443"), "2001:db8:abcd::/48");
+  assert.equal(visitorNetworkKey("fe80::1%en0"), "fe80:0:0::/48");
+  assert.equal(visitorNetworkKey("2001:0db8:0000:0042::"), "2001:db8:0::/48");
+  assert.equal(visitorNetworkKey("::1"), "0:0:0::/48");
+  assert.equal(visitorNetworkKey("64:ff9b::198.51.100.7"), "64:ff9b:0::/48");
+  for (const raw of ["999.1.1.1", "2001:db8::1::2", "1:2:3:4:5:6:7:8:9", "not-an-ip"]) {
+    assert.equal(visitorNetworkKey(raw), raw, raw);
+  }
+  assert.equal(visitorNetworkKey(null), "unknown");
+  assert.equal(visitorNetworkKey("  "), "unknown");
+
+  assert.equal(hashVisitorNetwork("2001:db8:abcd:1::1"), hashVisitorNetwork("2001:db8:abcd:9999:aaaa::2"));
+  assert.notEqual(hashVisitorNetwork("2001:db8:abcd::1"), hashVisitorNetwork("2001:db8:abce::1"));
+  assert.equal(hashVisitorNetwork("198.51.100.7"), hashVisitorNetwork("198.51.100.200"));
+  assert.notEqual(hashVisitorNetwork("198.51.100.7"), hashVisitorNetwork("198.51.101.7"));
+  assert.match(hashVisitorNetwork("198.51.100.7"), /^[0-9a-f]{32}$/);
+});
+
+test("🔴 公开端点按网段限流：同一 /48、同一 /24 里换地址落到同一个访客桶", async (t) => {
+  patch(t, db.workspace, {
+    findUnique: async () => ({
+      id: "ws-1",
+      name: "Sunny",
+      leadPageEnabled: true,
+      leadPageConfig: { phone: "+1 905 555 0100" },
+      owner: { disabledAt: null },
+    }),
+  });
+  const keys: string[] = [];
+  patch(t, db.rateLimitBucket, {
+    upsert: async (args: { where: { bucketKey_windowKey: { bucketKey: string } } }) => {
+      keys.push(args.where.bucketKey_windowKey.bucketKey);
+      return { count: 6 };
+    },
+  });
+  patch(t, db.pilotApplication, {
+    create: async () => {
+      throw new Error("rate-limited submissions must not be stored");
+    },
+  });
+  for (const ip of ["2001:db8:abcd:1::1", "2001:db8:abcd:ffff::2", "2001:db8:abce::1"]) {
+    assert.equal((await postLead(jsonRequest(LEAD_URL, leadBody, { "x-forwarded-for": ip }))).status, 429);
+  }
+  assert.equal(keys[0], keys[1], "two addresses inside one /48 share a visitor bucket");
+  assert.notEqual(keys[0], keys[2], "a different /48 gets its own bucket");
+  assert.match(keys[0], /^public-lead:ws-1:[0-9a-f]{32}$/);
+
+  keys.length = 0;
+  for (const ip of ["198.51.100.7", "198.51.100.200, 10.0.0.1"]) {
+    assert.equal((await postPilot(jsonRequest(PILOT_URL, pilotBody, { "x-forwarded-for": ip }))).status, 429);
+  }
+  assert.equal(keys[0], keys[1], "two addresses inside one /24 share a visitor bucket");
+  assert.doesNotMatch(keys.join(","), /198\.51\.100/, "raw IPs never reach the database");
+});
+
+test("试点申请路由：过了全局繁忙线照收，但不排通知（service 返回 notify=false）", () => {
+  const route = readFileSync("src/app/api/public/pilot-applications/route.ts", "utf8");
+  assert.match(route, /const \{ id, notify \} = await submitPilotApplication/);
+  assert.match(route, /if \(notify\) runAfterResponse\(\(\) => notifyPilotApplication\(id\)\)/);
+  for (const path of ["src/app/api/public/leads/route.ts", "src/app/api/public/pilot-applications/route.ts"]) {
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /hashVisitorNetwork\(clientIpFromHeaders\(req\.headers\)\)/, path);
+    assert.doesNotMatch(source, /hashVisitorKey\(/, `${path} must aggregate the IP to a network before hashing`);
+  }
 });
 
 test("首页：未登录渲染试点页、已登录仍按身份直达工作台；样片只取公开面零瑕疵名单", () => {

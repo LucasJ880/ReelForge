@@ -12,6 +12,9 @@ import { forgetAccountStatus } from "@/lib/auth";
  * - 登录被拒（auth.ts authorize），已有会话在 API 守卫处立即失效、页面最多 5 分钟内失效；
  * - 同一事务里把该用户**还没提交给供应商**的排队 / 暂停视频任务改成已取消（只改状态）；
  *   已提交的任务不动——它们会照常完成并把素材收回来，花过钱的东西不能丢；
+ * - 公开面随之下线：询盘页 /l、追踪链接 /t、公开询盘提交按 owner.disabledAt 当不存在，
+ *   新询盘邮件不再发给该账号（lead-service / tracked-link-service / notification-service 读停用状态，
+ *   这里不改 leadPageEnabled，所以恢复后自动重新开放）；
  * - 名下所有数据原样保留，恢复（enableAccount，DELETE .../disable）后一切照旧（已取消的任务除外）。
  *
  * 生成中的故事板由 storyboard-service 的取消函数负责（A2），在路由层事务之后调用。

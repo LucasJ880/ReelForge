@@ -1,17 +1,23 @@
 import { randomBytes } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { hashVisitorKey } from "@/lib/services/rate-limit-service";
+import {
+  countRateLimitHit,
+  hashVisitorKey,
+  hashVisitorNetwork,
+  hourlyWindowKey,
+} from "@/lib/services/rate-limit-service";
 import { TRACKED_LINK_CHANNELS, type TrackedLinkChannel } from "@/i18n/growth-copy";
 
 /**
  * 追踪链接 /t/[code]（计划 6.3 / D4）。
  *
- *  - 只对管理员开通了询盘页的工作区生效（leadPageEnabled + publicSlug），否则 404。
+ *  - 只对管理员开通了询盘页、且 owner 账号未停用的工作区生效（leadPageEnabled + publicSlug），否则 404。
  *  - 跳转目标只有两种：本工作区询盘页（带 ?t=code 归因），或超管登记过的 https 商家域名
  *    （leadPageConfig.allowedHosts）。不在名单里的一律回落到询盘页——不做开放跳转。
  *  - 点击日志只记来源域名、是否爬虫、UA 家族；不存 IP 与完整 UA。
  *  - 链接预览爬虫 / HEAD 只记录不计数；同一访客（IP + UA 的单向哈希）30 分钟内只记一次。
+ *  - 单一网段（IPv4 /24、IPv6 /48）每条链接每小时最多记 CLICK_LOG_NETWORK_HOURLY_MAX 次，超了只跳转不记。
  */
 
 /// 与 middleware 放行的 /t/<code> 段完全一致（4–32 位 [A-Za-z0-9_-]）。
@@ -24,6 +30,9 @@ const CODE_LENGTH = 8;
 export const CLICK_DEDUPE_MINUTES = 30;
 /// 去重状态复用 RateLimitBucket（bucketKey 唯一 + updatedAt），不新增表。
 const CLICK_DEDUPE_WINDOW = "click-dedupe";
+/// 每个访客网段每条链接每小时最多记几次点击。小商家一条链接一小时里同一网段来 20 个不同的人已很罕见；
+/// 超了也只是少记，跳转不受影响。
+export const CLICK_LOG_NETWORK_HOURLY_MAX = 20;
 
 export function generateTrackedLinkCode(random: (size: number) => Buffer = randomBytes): string {
   const bytes = random(CODE_LENGTH);
@@ -213,6 +222,22 @@ export type TrackedLinkVisit =
   | { status: "not_found" };
 
 /**
+ * 单一来源的记点击闸。去重键带 UA，换一个 UA 就能绕开 30 分钟去重，所以另按访客网段
+ * （IPv4 /24、IPv6 /48）封顶：每个网段每条链接每小时最多记 CLICK_LOG_NETWORK_HOURLY_MAX 次
+ * （真人 + 爬虫合计，30 分钟内的重复点也占额度）。超了照样跳转，只是不记、不计——
+ * 访客永远打得开链接，读数刷不上天，库里的行数也有上限。去重本身仍按 IP + UA，不误合并同一 NAT 后的真人。
+ */
+async function underClickLogCap(linkId: string, ip: string | null, now: Date): Promise<boolean> {
+  const hits = await countRateLimitHit(`click-net:${linkId}:${hashVisitorNetwork(ip)}`, hourlyWindowKey(now));
+  if (hits <= CLICK_LOG_NETWORK_HOURLY_MAX) return true;
+  /// 每个网段每小时只在刚越线时记一行，被刷时不把日志也刷爆
+  if (hits === CLICK_LOG_NETWORK_HOURLY_MAX + 1) {
+    console.warn("[tracked-link] click log cap reached", { linkId, window: hourlyWindowKey(now) });
+  }
+  return false;
+}
+
+/**
  * /t/[code] 的全部决定：找链接 → 定跳转目标 → 记点击（失败不挡跳转）。
  * 返回的 location 是相对路径（询盘页）或已校验的 https 绝对地址。
  */
@@ -231,10 +256,24 @@ export async function handleTrackedLinkVisit(args: {
       id: true,
       archivedAt: true,
       destinationUrl: true,
-      workspace: { select: { publicSlug: true, leadPageEnabled: true, leadPageConfig: true } },
+      workspace: {
+        select: {
+          publicSlug: true,
+          leadPageEnabled: true,
+          leadPageConfig: true,
+          owner: { select: { disabledAt: true } },
+        },
+      },
     },
   });
-  if (!link || link.archivedAt || !link.workspace.leadPageEnabled || !link.workspace.publicSlug) {
+  /// 账号被停用：它的追踪链接与询盘页一起下线（恢复账号后自动重新生效，不改 leadPageEnabled）
+  if (
+    !link ||
+    link.archivedAt ||
+    !link.workspace.leadPageEnabled ||
+    !link.workspace.publicSlug ||
+    link.workspace.owner.disabledAt
+  ) {
     return { status: "not_found" };
   }
   const location =
@@ -242,10 +281,14 @@ export async function handleTrackedLinkVisit(args: {
     leadPagePath(link.workspace.publicSlug, args.code);
 
   const { isBot, uaFamily } = classifyUserAgent(args.userAgent, args.method);
+  const now = args.now ?? new Date();
   let counted = false;
   try {
+    if (!(await underClickLogCap(link.id, args.ip, now))) {
+      return { status: "redirect", location, counted: false, isBot };
+    }
     const visitorHash = hashVisitorKey(`${args.ip ?? "unknown"}|${args.userAgent ?? ""}`);
-    if (await claimClickSlot(link.id, visitorHash, args.now ?? new Date(), isBot ? "bot" : "human")) {
+    if (await claimClickSlot(link.id, visitorHash, now, isBot ? "bot" : "human")) {
       await db.linkClick.create({
         data: { trackedLinkId: link.id, referrerHost: referrerHost(args.referer), isBot, uaFamily },
       });

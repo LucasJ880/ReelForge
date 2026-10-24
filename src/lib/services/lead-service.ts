@@ -13,6 +13,7 @@ import {
 import {
   RateLimitExceededError,
   bumpRateLimit,
+  countRateLimitHit,
   hourlyWindowKey,
 } from "@/lib/services/rate-limit-service";
 import {
@@ -25,20 +26,24 @@ import {
  * 获客闭环（1025 · A5）：商家询盘 Lead 与公开首页的试点申请 PilotApplication。
  *
  * 不变量：
- *  - 询盘页只对超管开通的工作区生效（leadPageEnabled + publicSlug），slug 有保留词表。
- *  - 同一联系方式 7 天内重复提交 → 更新原询盘，不新建（读数不被刷高）。
+ *  - 询盘页只对超管开通、且 owner 账号未停用的工作区生效（leadPageEnabled + publicSlug），slug 有保留词表。
+ *  - 同一联系方式 7 天内重复提交 → 更新原询盘，不新建（读数不被刷高）；匿名的公开提交只补空字段，不改写已有内容。
  *  - 业务数据只归档（archivedAt），不物理删除；状态流转只补时间戳、不清旧时间戳。
- *  - 公开提交按访客哈希限流；限流 / 校验失败给人话与备用联系方式（路由层负责拼）。
+ *  - 公开提交按访客网段哈希限流；限流 / 校验失败给人话与备用联系方式（路由层负责拼）。
  */
 
 export const LEAD_DEDUPE_WINDOW_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-/// 公开提交限流：每访客每小时 5 次；每个询盘页每小时 60 次（防刷）。
+/// 公开提交限流。按访客网段（IPv4 /24、IPv6 /48，路由层聚合后哈希）每小时 5 次，超了 429——这道闸要紧。
+/// 页级 / 全局只做两件事：过了「繁忙线」照收但打标记、不再发邮件（几个地址刷爆共享桶也锁不住真客户，
+/// 也耗不光发信额度）；过了远高于正常流量的「安全阀」才拒收。
 export const PUBLIC_LEAD_VISITOR_HOURLY_MAX = 5;
-export const PUBLIC_LEAD_PAGE_HOURLY_MAX = 60;
+export const PUBLIC_LEAD_PAGE_HOURLY_NOTIFY_MAX = 60;
+export const PUBLIC_LEAD_PAGE_HOURLY_HARD_MAX = 600;
 export const PUBLIC_PILOT_VISITOR_HOURLY_MAX = 5;
-export const PUBLIC_PILOT_GLOBAL_HOURLY_MAX = 200;
+export const PUBLIC_PILOT_GLOBAL_HOURLY_NOTIFY_MAX = 200;
+export const PUBLIC_PILOT_GLOBAL_HOURLY_HARD_MAX = 2000;
 
 /// 与 middleware 的 /l/<slug> 段一致（[a-z0-9-]{2,64}），且不以连字符开头 / 结尾、不含连续连字符。
 export const LEAD_SLUG_RE = /^(?!.*--)[a-z0-9][a-z0-9-]{0,62}[a-z0-9]$/;
@@ -107,14 +112,24 @@ export type PublicLeadPage = {
   config: LeadPageConfig;
 };
 
-/** 公开询盘页：格式不对、保留词、未开通一律当不存在（404）。 */
+/// 公开面查工作区时一并取 owner 的停用状态：账号停用 = 询盘页、追踪链接、公开提交一起下线。
+/// 不去改 leadPageEnabled，恢复账号（enableAccount）后自动重新开放。
+const PUBLIC_WORKSPACE_SELECT = {
+  id: true,
+  name: true,
+  leadPageEnabled: true,
+  leadPageConfig: true,
+  owner: { select: { disabledAt: true } },
+} satisfies Prisma.WorkspaceSelect;
+
+/** 公开询盘页：格式不对、保留词、未开通、owner 账号已停用，一律当不存在（404）。 */
 export async function getPublicLeadPage(slug: string): Promise<PublicLeadPage | null> {
   if (checkLeadSlug(slug)) return null;
   const workspace = await db.workspace.findUnique({
     where: { publicSlug: slug },
-    select: { id: true, name: true, leadPageEnabled: true, leadPageConfig: true },
+    select: PUBLIC_WORKSPACE_SELECT,
   });
-  if (!workspace?.leadPageEnabled) return null;
+  if (!workspace?.leadPageEnabled || workspace.owner.disabledAt) return null;
   const config = parseLeadPageConfig(workspace.leadPageConfig);
   return {
     workspaceId: workspace.id,
@@ -303,15 +318,24 @@ function jsonObject(value: Prisma.JsonValue | null | undefined): Record<string, 
     : {};
 }
 
+const LEAD_OPTIONAL_FIELDS = ["phone", "email", "serviceInterest", "preferredTime", "selfReportedSource", "message"] as const;
+
 /**
- * 7 天内同一去重键的未归档询盘：有就更新它（最新一次提交的非空字段覆盖旧值，
- * 来源归因保留首次触达），没有就新建。返回 deduped 让调用方决定是否再通知。
+ * 7 天内同一去重键的未归档询盘：有就更新它，没有就新建；来源归因保留首次触达。
+ * 返回 deduped 让调用方决定是否再通知。
+ *
+ * 更新怎么写取决于谁在写（mode）：
+ *  - manual：商家本人在工作台录入，最新一次的非空字段覆盖旧值；
+ *  - public：匿名访客只凭一个电话 / 邮箱就能撞上已有询盘（包括商家手录的、已预约 / 已成交的），
+ *    所以只补原来为空的字段，姓名、电话、邮箱、留言等已有内容一律不改；
+ *    这次提交原样记进 meta.lastSubmission，商家仍看得到对方又来过、这次说了什么。
  */
 async function upsertLeadWithinWindow(args: {
   workspaceId: string;
   fields: LeadFields;
   dedupeKey: string | null;
   now: Date;
+  mode: "public" | "manual";
   create: Omit<Prisma.LeadUncheckedCreateInput, keyof LeadFields | "workspaceId" | "dedupeKey">;
   touch: Record<string, Prisma.JsonValue>;
 }): Promise<{ leadId: string; deduped: boolean; needsNotify: boolean }> {
@@ -324,20 +348,44 @@ async function upsertLeadWithinWindow(args: {
           createdAt: { gte: new Date(args.now.getTime() - LEAD_DEDUPE_WINDOW_DAYS * DAY_MS) },
         },
         orderBy: { createdAt: "desc" },
-        select: { id: true, meta: true, notifiedAt: true },
+        select: {
+          id: true,
+          meta: true,
+          notifiedAt: true,
+          name: true,
+          phone: true,
+          email: true,
+          serviceInterest: true,
+          preferredTime: true,
+          selfReportedSource: true,
+          message: true,
+        },
       })
     : null;
 
   if (existing) {
     const meta = jsonObject(existing.meta);
     const submissions = typeof meta.submissions === "number" ? meta.submissions : 1;
-    const patch: Prisma.LeadUpdateInput = {
-      name: args.fields.name,
-      meta: { ...meta, ...args.touch, submissions: submissions + 1, lastSubmittedAt: args.now.toISOString() },
+    const nextMeta: Record<string, Prisma.JsonValue> = {
+      ...meta,
+      ...args.touch,
+      submissions: submissions + 1,
+      lastSubmittedAt: args.now.toISOString(),
     };
-    for (const key of ["phone", "email", "serviceInterest", "preferredTime", "selfReportedSource", "message"] as const) {
-      if (args.fields[key]) patch[key] = args.fields[key];
+    const patch: Prisma.LeadUpdateInput = {};
+    if (args.mode === "manual") {
+      patch.name = args.fields.name;
+      for (const key of LEAD_OPTIONAL_FIELDS) {
+        if (args.fields[key]) patch[key] = args.fields[key];
+      }
+    } else {
+      /// 姓名必填、库里永远有值，所以公开提交从不改姓名
+      for (const key of LEAD_OPTIONAL_FIELDS) {
+        if (args.fields[key] && !existing[key]) patch[key] = args.fields[key];
+      }
+      nextMeta.lastSubmission = { ...args.fields, at: args.now.toISOString() };
     }
+    patch.meta = nextMeta;
     await db.lead.update({ where: { id: existing.id }, data: patch });
     return { leadId: existing.id, deduped: true, needsNotify: existing.notifiedAt === null };
   }
@@ -362,19 +410,25 @@ export async function submitPublicLead(
   const now = context.now ?? new Date();
   const workspace = await db.workspace.findUnique({
     where: { publicSlug: input.slug },
-    select: { id: true, name: true, leadPageEnabled: true, leadPageConfig: true },
+    select: PUBLIC_WORKSPACE_SELECT,
   });
-  if (!workspace?.leadPageEnabled || checkLeadSlug(input.slug)) throw new LeadPageNotFoundError();
+  if (!workspace?.leadPageEnabled || workspace.owner.disabledAt || checkLeadSlug(input.slug)) {
+    throw new LeadPageNotFoundError();
+  }
   const config = parseLeadPageConfig(workspace.leadPageConfig);
 
+  const window = hourlyWindowKey(now);
   try {
-    const window = hourlyWindowKey(now);
     await bumpRateLimit(`public-lead:${workspace.id}:${context.visitorHash}`, window, PUBLIC_LEAD_VISITOR_HOURLY_MAX);
-    await bumpRateLimit(`public-lead-page:${workspace.id}`, window, PUBLIC_LEAD_PAGE_HOURLY_MAX);
   } catch (error) {
     if (error instanceof RateLimitExceededError) throw new LeadRateLimitedError(config.phone ?? null);
     throw error;
   }
+  /// 页级桶只在访客闸放行后才计数，所以每个网段每小时最多给它添 5 次
+  const pageHits = await countRateLimitHit(`public-lead-page:${workspace.id}`, window);
+  if (pageHits > PUBLIC_LEAD_PAGE_HOURLY_HARD_MAX) throw new LeadRateLimitedError(config.phone ?? null);
+  /// 过了繁忙线：照收（同一小时里的真客户不吃 429），但新询盘打标记待复核、这一单不发邮件
+  const busy = pageHits > PUBLIC_LEAD_PAGE_HOURLY_NOTIFY_MAX;
 
   /// 归因只认本工作区、未停用的追踪链接；别家的码或停用的码按询盘页直达算。
   const trackedLink = input.trackedCode
@@ -386,10 +440,11 @@ export async function submitPublicLead(
 
   const locale: Locale = input.locale ?? config.locale ?? "zh-CN";
   const business = displayBusinessName(config, workspace.name) ?? workspace.name;
-  return upsertLeadWithinWindow({
+  const result = await upsertLeadWithinWindow({
     workspaceId: workspace.id,
     dedupeKey: buildLeadDedupeKey(input.phone, input.email),
     now,
+    mode: "public",
     fields: {
       name: input.name,
       phone: input.phone,
@@ -407,13 +462,18 @@ export async function submitPublicLead(
       utmCampaign: input.utmCampaign,
       consentAt: now,
       consentVersion: input.consentVersion,
-      meta: { locale, consentText: leadConsentText(locale, business) },
+      meta: {
+        locale,
+        consentText: leadConsentText(locale, business),
+        ...(busy ? { flagged: "page_burst" } : {}),
+      },
     },
     touch: {
       lastTrackedLinkId: trackedLink?.id ?? null,
       lastConsentAt: now.toISOString(),
     },
   });
+  return busy ? { ...result, needsNotify: false } : result;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -445,6 +505,7 @@ export async function createManualLead(
     workspaceId,
     dedupeKey: buildLeadDedupeKey(input.phone, input.email),
     now,
+    mode: "manual",
     fields: {
       name: input.name,
       phone: input.phone,
@@ -762,14 +823,19 @@ export async function listLeadPageWorkspaces(): Promise<AdminLeadPageWorkspace[]
 // 试点申请（公开首页；Aivora 自己的获客，不属于任何工作区）
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * 返回 notify：全站这一小时过了繁忙线就照收不发邮件（创始人在后台列表里看得到），
+ * 只有过了安全阀才抛限流错误——几个地址刷爆全局桶锁不住真申请人。
+ */
 export async function submitPilotApplication(
   input: PilotApplicationInput,
   context: { visitorHash: string; now?: Date },
-): Promise<{ id: string }> {
+): Promise<{ id: string; notify: boolean }> {
   const now = context.now ?? new Date();
   const window = hourlyWindowKey(now);
   await bumpRateLimit(`public-pilot:${context.visitorHash}`, window, PUBLIC_PILOT_VISITOR_HOURLY_MAX);
-  await bumpRateLimit("public-pilot-global", window, PUBLIC_PILOT_GLOBAL_HOURLY_MAX);
+  const globalHits = await countRateLimitHit("public-pilot-global", window);
+  if (globalHits > PUBLIC_PILOT_GLOBAL_HOURLY_HARD_MAX) throw new RateLimitExceededError();
   const locale: Locale = input.locale ?? "zh-CN";
   const row = await db.pilotApplication.create({
     data: {
@@ -802,7 +868,7 @@ export async function submitPilotApplication(
     },
     select: { id: true },
   });
-  return row;
+  return { id: row.id, notify: globalHits <= PUBLIC_PILOT_GLOBAL_HOURLY_NOTIFY_MAX };
 }
 
 export async function listPilotApplications(take = 100) {

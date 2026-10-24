@@ -166,6 +166,35 @@ test("试点申请：只发给创始人；没配 AIVORA_FOUNDER_EMAIL 就只记�
   assert.deepEqual(stamps, [{ id: "pilot-1", notifiedAt: null }]);
 });
 
+/** 1025 安全复核 LENS-4：被平台停用的账号不再收到访客的姓名、电话与留言。 */
+test("🔴 owner 账号已停用：新询盘邮件不发给 owner，只回落给创始人；没配创始人就不发", async (t) => {
+  const selects: Array<Record<string, unknown>> = [];
+  patch(t, db.lead, {
+    findUnique: async (args: { select: Record<string, unknown> }) => {
+      selects.push(args.select);
+      return leadRow({
+        workspace: {
+          name: "Sunny Shutter",
+          owner: { email: "owner@sunnyshutter.test", disabledAt: new Date("2026-10-25T00:00:00.000Z") },
+        },
+      });
+    },
+    updateMany: async () => ({ count: 1 }),
+  });
+  const { calls, fetchImpl } = recordingFetch({ ok: true, status: 200 });
+  assert.deepEqual(await notifyNewLead("lead-1", { env: CONFIGURED, fetchImpl, now: NOW }), { sent: true });
+  const workspaceSelect = selects[0].workspace as { select: { owner: { select: Record<string, boolean> } } };
+  assert.equal(workspaceSelect.select.owner.select.disabledAt, true);
+  const body = JSON.parse(String(calls[0].init.body)) as Record<string, unknown>;
+  assert.deepEqual(body.to, ["founder@aivora.test"]);
+  assert.equal("bcc" in body, false);
+  assert.doesNotMatch(String(calls[0].init.body), /owner@sunnyshutter\.test/);
+
+  const noFounder = { ...CONFIGURED, AIVORA_FOUNDER_EMAIL: "" } as unknown as NodeJS.ProcessEnv;
+  assert.deepEqual(await notifyNewLead("lead-1", { env: noFounder, fetchImpl, now: NOW }), { sent: false, reason: "no_recipient" });
+  assert.equal(calls.length, 1, "nothing is sent when the only recipient was the disabled owner");
+});
+
 test("主题行清掉换行与制表符（防邮件头注入）", () => {
   assert.equal(safeSubject("新询盘\r\nBcc: x@y.z\t· 卷帘"), "新询盘 Bcc: x@y.z · 卷帘");
   assert.equal(safeSubject("x".repeat(300)).length, 140);

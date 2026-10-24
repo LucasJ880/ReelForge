@@ -1,5 +1,5 @@
 import type { NextRequest } from "next/server";
-import { hashVisitorKey } from "@/lib/services/rate-limit-service";
+import { hashVisitorNetwork } from "@/lib/services/rate-limit-service";
 import {
   LeadPageNotFoundError,
   LeadRateLimitedError,
@@ -16,8 +16,9 @@ export const dynamic = "force-dynamic";
 /**
  * POST /api/public/leads —— 商家询盘页 /l/[slug] 的表单提交（匿名，middleware 精确放行）。
  *
- * 守卫：体积上限 → 蜜罐（命中假装成功）→ zod（含同意 + 版本号）→ 询盘页必须已开通 →
- * 按访客哈希 + 按页限流（超限回 429 并附商家电话）→ 7 天去重落库 → 响应之后发通知。
+ * 守卫：体积上限 → 蜜罐（命中假装成功）→ zod（含同意 + 版本号）→ 询盘页必须已开通且 owner 未停用 →
+ * 按访客网段（IPv4 /24、IPv6 /48）哈希限流（超限回 429 并附商家电话）→ 页级繁忙线（照收不发信）/ 安全阀 →
+ * 7 天去重落库 → 响应之后发通知。
  */
 export async function POST(req: NextRequest) {
   const read = await readLimitedJson(req);
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const result = await submitPublicLead(parsed.data, {
-      visitorHash: hashVisitorKey(clientIpFromHeaders(req.headers)),
+      visitorHash: hashVisitorNetwork(clientIpFromHeaders(req.headers)),
     });
     if (result.needsNotify) runAfterResponse(() => notifyNewLead(result.leadId));
     return publicSuccess();

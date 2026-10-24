@@ -9,10 +9,9 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { requireAuth } from "@/lib/api-auth";
 import { db } from "@/lib/db";
 import { applyClientBrandPackaging } from "@/lib/video-generation/brand-packaging-service";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
@@ -71,21 +70,21 @@ const packageSchema = z.object({
   isDefault: z.boolean().optional(),
 }).strict();
 
+/// 鉴权一律走 requireAuth（查库复核停用）：裸 getServerSession 只吃 jwt 回调的 5 分钟缓存，
+/// 停用账号在别的实例上还能继续写品牌包、跑 ffmpeg 渲染（A4 5.1）。
 export async function GET(): Promise<NextResponse> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   return NextResponse.json({
     packages: await listWorkspaceBrandPackagesForUser(session.user.id),
   });
 }
 
 export async function PUT(request: Request): Promise<NextResponse> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
   const parsed = packageSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: "invalid brand package" }, { status: 400 });
@@ -125,10 +124,9 @@ async function downloadTo(
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
+  const auth = await requireAuth();
+  if (!auth.ok) return auth.response;
+  const session = auth.session;
 
   const parsed = requestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

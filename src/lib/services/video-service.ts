@@ -28,7 +28,6 @@ import {
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import {
   FRAME_QA_ERROR_PREFIX,
-  runFrameTextQa,
 } from "@/lib/video-generation/frame-qa";
 import {
   createVideoProviderByRouteSnapshot,
@@ -59,6 +58,7 @@ import {
   watchdogGraceMin,
 } from "./video-watchdog";
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
+import { decideFrameQaGate } from "./frame-qa-gate";
 import { requireApprovedStoryboardForBrief } from "@/lib/video-generation/storyboard-service";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
@@ -964,42 +964,40 @@ export async function reconcileVideoJob(jobId: string) {
   }
 
   if (result.status === "completed") {
-    /// 发片前自动 QA 门禁：抽帧 + 画面文字/错字检测。
-    /// 检出烧录字幕/畸形字形 → 该段直接判 FAILED，走既有单段重试闭环，
-    /// 废段永远到不了 stitch / 成片库。门禁自身异常一律 fail-open 不阻塞。
-    if (result.videoUrl && job.provider !== VideoProvider.MOCK) {
-      const qa = await runFrameTextQa(result.videoUrl);
-      if (!qa.ok) {
-        logStatusTransition({
-          taskId: job.id,
-          from: job.status,
-          to: VideoJobStatus.FAILED,
-          reason: `frame_qa_rejected: ${qa.summary}`,
-        });
-        /// CAS：仍在 RUNNING/QUEUED 才写终态（INV-6）
-        await db.videoJob.updateMany({
-          where: {
-            id: jobId,
-            status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
-          },
-          data: {
-            status: VideoJobStatus.FAILED,
-            outputVideoUrl: result.videoUrl,
-            outputThumbUrl: result.thumbnailUrl ?? null,
-            errorMessage: `${FRAME_QA_ERROR_PREFIX} ${qa.summary}`,
-            userSafeError:
-              "画面质检未通过（检测到异常文字），已自动拦截。点击「重试」可重新生成本段。",
-            finishedAt: new Date(),
-            lastCheckedAt: new Date(),
-            lastProviderStatus: result.rawProviderStatus,
-            pollErrors: 0,
-          },
-        });
-        return db.videoJob.findUnique({ where: { id: jobId } });
-      }
-      if (!qa.checked) {
-        console.warn(`[frame-qa] job ${jobId} 门禁跳过: ${qa.skipReason}`);
-      }
+    /// 发片前帧质检门禁：策略全在 frame-qa-gate，这里只按决定迁移状态。
+    const gate = await decideFrameQaGate({
+      jobId,
+      provider: job.provider,
+      videoUrl: result.videoUrl,
+    });
+    if (gate.action === "defer") {
+      return db.videoJob.findUnique({ where: { id: jobId } });
+    }
+    if (gate.action === "block") {
+      logStatusTransition({
+        taskId: job.id,
+        from: job.status,
+        to: VideoJobStatus.FAILED,
+        reason: `frame_qa_rejected: ${gate.summary}`,
+      });
+      /// CAS：仍在 RUNNING/QUEUED 才写终态（INV-6）
+      await db.videoJob.updateMany({
+        where: {
+          id: jobId,
+          status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+        },
+        data: {
+          ...gate.failureData,
+          status: VideoJobStatus.FAILED,
+          outputVideoUrl: result.videoUrl,
+          outputThumbUrl: result.thumbnailUrl ?? null,
+          finishedAt: new Date(),
+          lastCheckedAt: new Date(),
+          lastProviderStatus: result.rawProviderStatus,
+          pollErrors: 0,
+        },
+      });
+      return db.videoJob.findUnique({ where: { id: jobId } });
     }
 
     logStatusTransition({
@@ -1015,6 +1013,7 @@ export async function reconcileVideoJob(jobId: string) {
         status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
       },
       data: {
+        ...gate.successData,
         status: VideoJobStatus.SUCCEEDED,
         outputVideoUrl: result.videoUrl ?? null,
         outputThumbUrl: result.thumbnailUrl ?? null,

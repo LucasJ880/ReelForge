@@ -49,7 +49,14 @@ const exactPublicPaths = [
   "/api/videos",
   /// 青砚回灌渠道指标（PRD §4 R2）。同样由 machineAuthFailure fail-closed 守卫。
   "/api/performance",
+  /// 公开表单（询盘 / 试点申请）：只放行这两个精确的提交端点，handler 内做蜜罐、
+  /// 限流与校验；工作台的询盘管理接口在 /api/leads 下，仍走会话鉴权。
+  "/api/public/leads",
+  "/api/public/pilot-applications",
 ];
+
+/// 匿名访客入口：商家询盘页 /l/[slug] 与追踪链接 /t/[code]，只放行单段路径。
+const publicPatterns = [/^\/l\/[a-z0-9-]{2,64}$/, /^\/t\/[A-Za-z0-9_-]{4,32}$/];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -67,6 +74,7 @@ export async function middleware(req: NextRequest) {
   const isPublic =
     pathname === "/" ||
     exactPublicPaths.includes(pathname) ||
+    publicPatterns.some((pattern) => pattern.test(pathname)) ||
     publicPaths.some((p) => pathname === p || pathname.startsWith(p + "/")) ||
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/internal/");

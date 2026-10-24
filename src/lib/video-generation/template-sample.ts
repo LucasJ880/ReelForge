@@ -107,3 +107,13 @@ const VERIFIED_TEMPLATE_VIDEO_SLUGS = new Set([
 export function hasVerifiedTemplateVideo(slug: string): boolean {
   return VERIFIED_TEMPLATE_VIDEO_SLUGS.has(slug);
 }
+
+/**
+ * 公开面（登录门、公开首页）上墙的样片：必须在白名单里，且 1025 质量复看的
+ * 3 秒预览窗口内零可见瑕疵（无鬼影、无换人、无细节漂移）。换之前先逐帧复看。
+ */
+export const SHOWCASE_SAFE_SLUGS = [
+  "commerce-outdoor-rugged",
+  "commerce-food-sizzle",
+  "commerce-beauty-texture",
+] as const;

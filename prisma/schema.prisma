@@ -33,6 +33,10 @@ model AdminUser {
   subscriptionTier     String    @default("free")
   stripeCustomerId     String?   @unique
   stripeSubscriptionId String?
+  /// 停用（取代物理删除，CLAUDE.md 铁律：业务数据只归档不删除）：
+  /// 非空即不可登录、已有会话在下次复核时失效；名下数据全部保留。
+  disabledAt           DateTime?
+  disabledReason       String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -71,18 +75,27 @@ model PlanEntitlement {
 /// Phase 1 starts with exactly one default workspace per user.
 /// The one-to-one owner constraint can be expanded later without changing job ownership.
 model Workspace {
-  id        String          @id @default(cuid())
-  name      String
-  ownerId   String          @unique
-  owner     AdminUser       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  planId    String
-  plan      PlanEntitlement @relation(fields: [planId], references: [id], onDelete: Restrict)
-  isDefault Boolean         @default(true)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  id              String          @id @default(cuid())
+  name            String
+  ownerId         String          @unique
+  owner           AdminUser       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            PlanEntitlement @relation(fields: [planId], references: [id], onDelete: Restrict)
+  isDefault       Boolean         @default(true)
+  /// 公开询盘页 /l/[publicSlug]；leadPageEnabled 关闭时页面 404
+  publicSlug      String?         @unique
+  leadPageEnabled Boolean         @default(false)
+  /// 询盘页展示配置：标题、服务项、电话、地区等（结构见 lead-service）
+  leadPageConfig  Json?
+  /// 用户最后一次确认「需要处理」失败项的时间；之后的失败才计入徽标
+  failuresAckedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   mediaAssets   MediaAsset[]            @relation("MediaAssetWorkspace")
   brandPackages WorkspaceBrandPackage[]
+  leads         Lead[]
+  trackedLinks  TrackedLink[]
 
   @@index([planId])
 }
@@ -622,7 +635,9 @@ model VideoBrief {
   contentAngleId String       @unique
   contentAngle   ContentAngle @relation(fields: [contentAngleId], references: [id], onDelete: Cascade)
 
-  status VideoBriefStatus @default(BRIEF_PENDING)
+  status          VideoBriefStatus @default(BRIEF_PENDING)
+  /// 单条成片终态失败、未交付时的额度返还幂等标记
+  quotaRefundedAt DateTime?
 
   durationSec  Int          @default(20)
   aspectRatio  String       @default("9:16")
@@ -914,6 +929,12 @@ model BatchJob {
   /// Dispatch remains fail-closed until quota authorization and Batch activation
   /// commit atomically. Existing rows are backfilled during the expand migration.
   quotaConsumedAt              DateTime?
+  /// 批次到终态时对未产出条数的额度返还（幂等标记：非空即已返还）
+  quotaRefundedAt              DateTime?
+  quotaRefundedCount           Int?
+  /// 批次 tick 租约（CAS 抢占，替代会话级 advisory lock——pooler 上会泄漏）
+  tickLeaseUntil               DateTime?
+  tickLeaseOwner               String?
   /// Immutable routing evidence for this batch. Historical rows remain null;
   /// readers must preserve unknown rather than borrowing a runtime default.
   videoRouteSnapshot           String?
@@ -1011,16 +1032,23 @@ model VideoJob {
   dispatchQuarantineAt       DateTime?
   dispatchQuarantineBy       String?
 
-  outputVideoUrl  String?
-  outputThumbUrl  String?
+  outputVideoUrl   String?
+  outputThumbUrl   String?
+  /// 帧质检结果：PASSED / BLOCKED / SKIPPED（null = 未质检，如 MOCK）。
+  /// SKIPPED 不等于通过——质检本身没跑成，需要告警与补检。
+  frameQaStatus    String?
+  frameQaCheckedAt DateTime?
+  frameQaDetail    Json?
+  /// 未交付（失败 / 取消 / 质检拦截）时按条返还额度的幂等标记
+  quotaRefundedAt  DateTime?
   /// 品牌封装成片（logo 角标 + 尾卡）。null = 尚未封装，只有 branded 可对外交付。
-  brandedVideoUrl String?
-  brandedAt       DateTime?
+  brandedVideoUrl  String?
+  brandedAt        DateTime?
   /// 内部/管理员错误（包含原始 Provider 错误，仅 debug 区可见）
-  errorMessage    String?
+  errorMessage     String?
   /// 用户安全的错误描述（已脱敏的中文友好提示，可直接展示给客户）
-  userSafeError   String?
-  retryCount      Int       @default(0)
+  userSafeError    String?
+  retryCount       Int       @default(0)
 
   /// 我们调用 Provider 提交时间
   submittedAt        DateTime?
@@ -1202,7 +1230,7 @@ model ProductImageJob {
   sourceImageUrl String?
   sourceMimeType String?
   sourceAssetId  String?
-  sourceAsset    MediaAsset?                @relation("ProductImageSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
+  sourceAsset    MediaAsset? @relation("ProductImageSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
 
   /// —— 印上品牌 Logo（路径 B：产品照没印 logo，AI 印上去）——
   /// 三列均为提交时快照：与 sourceImageUrl 同语义，属于不可变的已计费请求输入，
@@ -1352,6 +1380,8 @@ enum StoryboardRunStatus {
   AWAITING_APPROVAL
   APPROVED
   FAILED
+  /// 用户取消这一轮：轮询不再推进、不再出帧；已出的帧保留
+  CANCELLED
 }
 
 enum StoryboardFrameStatus {
@@ -1947,6 +1977,8 @@ model ContentPost {
   renderedImageUrls String[]  @default([])
   renderedAt        DateTime?
   renderError       String?
+  /// 出图渲染锁：开始渲染时写入、结束清空；超过时限视为失效锁
+  renderStartedAt   DateTime?
 
   rationale String
 
@@ -2167,4 +2199,130 @@ model CapabilityProbe {
   probedAt         DateTime
 
   @@index([provider, probedAt(sort: Desc)])
+}
+
+// ─────────────────────────────────────────────────────────────
+// 获客闭环（2026-10-25）：询盘页 / 追踪链接 / 试点申请。
+// 外键一律 Restrict：业务数据只归档（archivedAt），不物理删除。
+// ─────────────────────────────────────────────────────────────
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  BOOKED
+  WON
+  LOST
+}
+
+/// 商家收到的一条询盘（来自公开询盘页、追踪链接落地、展位或手工录入）。
+model Lead {
+  id                 String       @id @default(cuid())
+  workspaceId        String
+  workspace          Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  trackedLinkId      String?
+  trackedLink        TrackedLink? @relation(fields: [trackedLinkId], references: [id], onDelete: Restrict)
+  /// lead_page | tracked_link | booth | manual
+  source             String
+  name               String
+  phone              String?
+  email              String?
+  serviceInterest    String?
+  preferredTime      String?
+  message            String?
+  utmSource          String?
+  utmMedium          String?
+  utmCampaign        String?
+  /// 「您从哪里看到我们」：访客自报来源
+  selfReportedSource String?
+  /// 去重键：规范化电话或邮箱；同一人重复提交只算一条
+  dedupeKey          String?
+  status             LeadStatus   @default(NEW)
+  contactedAt        DateTime?
+  bookedAt           DateTime?
+  wonAt              DateTime?
+  /// 商家核实过是真实询盘（用于试点结果口径）
+  verifiedAt         DateTime?
+  /// 已通知商家的时间（邮件或站内）
+  notifiedAt         DateTime?
+  consentAt          DateTime?
+  /// 同意文本的版本号，便于事后举证收集时展示了什么
+  consentVersion     String?
+  meta               Json?
+  archivedAt         DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+  @@index([workspaceId, status])
+  @@index([workspaceId, dedupeKey])
+}
+
+/// 可分享的追踪链接 /t/[code]：点击计数后跳到询盘页或商家网址。
+model TrackedLink {
+  id              String    @id @default(cuid())
+  workspaceId     String
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Restrict)
+  code            String    @unique
+  label           String
+  /// ig_bio | google_business | facebook | qr | post | other
+  channel         String?
+  /// null = 跳到本工作区询盘页
+  destinationUrl  String?
+  contentPostId   String?
+  videoJobId      String?
+  deliveryOrderId String?
+  clickCount      Int       @default(0)
+  archivedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  clicks LinkClick[]
+  leads  Lead[]
+
+  @@index([workspaceId, createdAt(sort: Desc)])
+}
+
+/// 一次点击：只记来源域名，不记 IP 与完整 UA。
+model LinkClick {
+  id            String      @id @default(cuid())
+  trackedLinkId String
+  trackedLink   TrackedLink @relation(fields: [trackedLinkId], references: [id], onDelete: Restrict)
+  referrerHost  String?
+  /// 链接预览爬虫 / 预取：只记录不计数
+  isBot         Boolean     @default(false)
+  uaFamily      String?
+  createdAt     DateTime    @default(now())
+
+  @@index([trackedLinkId, createdAt])
+}
+
+/// 公开首页「申请 30 天试点」表单（Aivora 自己的获客，不属于任何工作区）。
+model PilotApplication {
+  id               String    @id @default(cuid())
+  name             String?
+  company          String?
+  /// 展位线索可能只留 WhatsApp / 微信，所以邮箱可空
+  email            String?
+  whatsapp         String?
+  wechat           String?
+  /// 外部来源的幂等键（例如展位 sid），重复导入不重复建行
+  externalRef      String?   @unique
+  /// 逐渠道同意记录与同意文本版本
+  consentJson      Json?
+  notifiedAt       DateTime?
+  phone            String?
+  website          String?
+  industry         String?
+  city             String?
+  monthlyLeadSpend String?
+  message          String?
+  locale           String?
+  source           String?
+  /// NEW | CONTACTED | ACCEPTED | DECLINED
+  status           String    @default("NEW")
+  archivedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([createdAt])
 }

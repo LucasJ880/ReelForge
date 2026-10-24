@@ -9,6 +9,14 @@ import {
 import type { Session } from "next-auth";
 import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
+import {
+  RateLimitExceededError,
+  bumpRateLimit,
+  dailyWindowKey,
+  hourlyWindowKey,
+} from "./rate-limit-service";
+
+export { RateLimitExceededError };
 
 export class QuotaExceededError extends Error {
   readonly code = "QUOTA_EXCEEDED" as const;
@@ -29,15 +37,6 @@ export class QuotaExceededError extends Error {
     this.used = params.used;
     this.limit = params.limit;
     this.periodKey = params.periodKey;
-  }
-}
-
-export class RateLimitExceededError extends Error {
-  readonly code = "RATE_LIMIT_EXCEEDED" as const;
-
-  constructor(message = "操作过于频繁，请稍后再试") {
-    super(message);
-    this.name = "RateLimitExceededError";
   }
 }
 
@@ -665,21 +664,6 @@ export async function authorizeBatchQuotaForSession(
   }
 }
 
-function hourlyWindowKey(date = new Date()): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  const h = String(date.getUTCHours()).padStart(2, "0");
-  return `${y}-${m}-${d}T${h}`;
-}
-
-function dailyWindowKey(date = new Date()): string {
-  const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
-}
-
 /**
  * 注册限流：IP 每小时 + 邮箱每天（成功注册前只计 IP）。
  */
@@ -727,23 +711,6 @@ export async function assertAuthenticatedActionRateLimit(params: {
     max,
     "图片生成操作过于频繁，请一小时后再试。",
   );
-}
-
-async function bumpRateLimit(
-  bucketKey: string,
-  windowKey: string,
-  max: number,
-  message?: string,
-): Promise<void> {
-  const row = await db.rateLimitBucket.upsert({
-    where: { bucketKey_windowKey: { bucketKey, windowKey } },
-    create: { bucketKey, windowKey, count: 1 },
-    update: { count: { increment: 1 } },
-  });
-
-  if (row.count > max) {
-    throw new RateLimitExceededError(message);
-  }
 }
 
 function userMessageForQuota(resource: UsageResource): string {

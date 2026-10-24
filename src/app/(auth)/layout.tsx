@@ -5,6 +5,7 @@ import { StatusTick } from "@/components/exchange/status-tick";
 import { WallVideo } from "@/components/exchange/wall-controls";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
 import {
+  SHOWCASE_SAFE_SLUGS,
   hasVerifiedTemplateVideo,
   verifiedTemplateSample,
   verifiedTemplateVideo,
@@ -13,8 +14,8 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import Link from "next/link";
 
-/** 登录门上墙的三条模板样片：都在真机验收白名单里，换之前先确认 hasVerifiedTemplateVideo。 */
-const GATE_SAMPLES = ["commerce-dark-luxury-light", "commerce-beauty-texture", "commerce-tech-feature-focus"];
+/** 登录门上墙的样片：统一取公开面零瑕疵名单（template-sample.ts）。 */
+const GATE_SAMPLES: readonly string[] = SHOWCASE_SAFE_SLUGS;
 
 /**
  * 模板读数与样片：只读公开的模板库。登录页不能因为它挂掉——

@@ -10,6 +10,8 @@ export const PLATFORM_PRIMARY_NAV = [
   { id: "library", label: "成品库", href: "/app/library" },
   { id: "brands", label: "品牌", href: "/app/brands" },
   { id: "templates", label: "模板库", href: "/app/templates" },
+  /// 1025 获客闭环（计划 6.4）：询盘、追踪链接与询盘页。放在最后，前 7 个快捷键不变。
+  { id: "leads", label: "询盘", href: "/app/leads" },
 ] as const;
 
 export type PlatformNavId = (typeof PLATFORM_PRIMARY_NAV)[number]["id"];

@@ -16,6 +16,8 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     { label: "成品库", href: "/app/library" },
     { label: "品牌", href: "/app/brands" },
     { label: "模板库", href: "/app/templates" },
+    /// 1025 获客闭环（计划 6.4）：追加在最后，前 7 个快捷键不变。
+    { label: "询盘", href: "/app/leads" },
   ]);
   assert.equal(platformPathAfterGeneration("order 1"), "/app/library?highlight=order%201");
 });
@@ -35,6 +37,7 @@ test("Phase1 unified journey：各一级区页面与批次/成品详情均存在
     "src/app/(platform)/app/library/[id]/page.tsx",
     "src/app/(platform)/app/brands/page.tsx",
     "src/app/(platform)/app/templates/page.tsx",
+    "src/app/(platform)/app/leads/page.tsx",
   ]) await access(file);
 });
 

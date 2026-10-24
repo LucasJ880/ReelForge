@@ -10,6 +10,7 @@ import {
   CircleHelp,
   Clapperboard,
   Film,
+  Inbox,
   Layers3,
   LogOut,
   MonitorPlay,
@@ -40,6 +41,7 @@ const ICONS = {
   library: Film,
   brands: Palette,
   templates: NotebookText,
+  leads: Inbox,
 } satisfies Record<PlatformNavId, typeof Clapperboard>;
 
 function activePath(pathname: string, href: string): boolean {

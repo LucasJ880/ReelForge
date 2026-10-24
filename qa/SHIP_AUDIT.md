@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (94/94 route files)
+## API endpoint inventory (105/105 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -200,6 +200,20 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | PATCH | `/api/internal/reports/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
 | POST | `/api/demo/real-footage-ads/waitlist` | Public | VERIFIED H1 light: dynamic validation/success with in-memory DB stub |
 | POST | `/api/persona` | Session | VERIFIED H1 light: dynamic auth/validation/persisted success |
+
+### Growth loop: inquiries, tracked links, pilot applications (1025 · A5)
+
+| Method | Endpoint | Intended boundary | Contract audit |
+|---|---|---|---|
+| POST | `/api/public/leads` | Public, middleware-exact; honeypot + per-visitor-hash / per-page hourly limits; lead page must be admin-enabled | tests/growth-public-routes + growth-lead-service: 404 when disabled, 429 with merchant phone, 7-day dedupe, consent + version stored |
+| POST | `/api/public/pilot-applications` | Public, middleware-exact; honeypot + per-visitor-hash / global hourly limits | tests/growth-public-routes: contact required, consent + version in consentJson, 429 with fallback email |
+| POST | `/api/leads` | Session, own workspace | Manual inquiry (source=manual) with the same 7-day dedupe |
+| PATCH | `/api/leads/[id]` | Session, own workspace | Status CAS (stamps contactedAt / bookedAt / wonAt, never clears), verify, archive (no delete) |
+| POST | `/api/leads/links` | Session, own workspace | Tracked link per channel; 409 until the lead page is enabled; external destination only on admin-registered https hosts |
+| PATCH | `/api/leads/links/[id]` | Session, own workspace | Disable = archive; click history kept |
+| PUT | `/api/leads/page` | Session, own workspace | Display fields only; slug / enabled / allowed hosts are admin-only |
+| GET | `/api/leads/admin/workspaces` | Super admin | Look up a workspace's lead-page settings by owner email |
+| PUT | `/api/leads/admin/workspaces/[id]` | Super admin | Enable / slug (reserved words, unique) / allowed https hosts |
 
 ### Scheduled tasks and external runners
 

@@ -543,6 +543,7 @@ export const zhCN: Dictionary = {
       library: "成品库",
       brands: "品牌",
       templates: "模板库",
+      leads: "询盘",
     },
     platformShell: {
       primaryNav: "平台主导航",

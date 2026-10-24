@@ -173,8 +173,9 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
         "result-first reveal edit, cinematic hero opening shot, reverse-chronology storytelling, satisfying process montage, warm aspirational home tones, crisp product detail close-ups, high retention pacing with a cut every 2-3 seconds",
       cameraLanguage:
         "slow push-in hero shot, whip cut to handheld process shots, macro detail insert, final wide pull-back",
+      /// 1025：原「quick rewind transition」会被画成叠化重影，改成一刀硬切。
       shotPattern:
-        "0-2s finished result hero shot (the wow moment, nothing else) → quick rewind transition → raw before state → fast process/installation montage → detail close-up of texture and craftsmanship → return to the hero result with styled space",
+        "0-2s finished result hero shot (the wow moment, nothing else) → one hard cut back to the raw before state → fast process/installation montage → detail close-up of texture and craftsmanship → return to the hero result with styled space",
       dialogueStyle: null,
     },
   },
@@ -431,12 +432,13 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     samplePrompt: "前后对比带货：使用前的困扰 vs 使用后的效果，同机位前后对比冲击。",
     defaults: { durationSec: 15, language: "zh-CN" },
     scaffold: {
-      characterHint: "one relatable everyday person, natural look, expressive face",
+      characterHint:
+        "exactly one relatable everyday person, natural look, expressive face; the same face, age, skin tone, hair and outfit in the before and the after state, never a second person",
       lightingHint:
         "before: flat dull light emphasizing the problem; after: bright flattering light emphasizing the result",
       styleKeywords:
-        "before/after split narrative, matched framing comparison, authentic transformation, same camera position contrast, satisfying reveal, UGC realism",
-      cameraLanguage: "locked-off matching frames, whip transition, split-screen feel via match cut",
+        "before/after two-state narrative, matched framing comparison, authentic transformation, same camera position contrast, satisfying reveal, UGC realism",
+      cameraLanguage: "locked-off matching frames, one hard match cut between states, never split screen or dissolve",
       shotPattern:
         "before state with visible problem → product introduced to camera → quick usage montage → after state in the exact same framing, visible improvement",
       dialogueStyle: "first-person honest testimonial, casual and direct",
@@ -453,8 +455,10 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     defaults: { durationSec: 15, language: "zh-CN" },
     featured: true,
     scaffold: {
+      /// 1025 单一主体锁：commerce 的口播 / 真人模板在高级创作路径都映射到这里
+      ///（getStyleTemplate 的 commerceAdapters），换人是该路径最常见的瑕疵。
       characterHint:
-        "relatable content creator vibe, natural imperfect look, expressive reactions",
+        "exactly one relatable content creator for the whole video, natural imperfect look, expressive reactions; once established, the same face, age, skin tone, hairstyle, outfit and accessories in every shot, never a second person",
       environmentHint: "real lived-in home environment, natural clutter, daylight from window",
       styleKeywords:
         "authentic handheld iPhone selfie footage, realistic skin texture, natural motion blur, casual UGC energy, true-to-life color, no beauty filter, slight camera shake",
@@ -474,7 +478,8 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     samplePrompt: "第一视角开箱测评：拆包装、上手把玩细节、给出真实使用感受。",
     defaults: { durationSec: 15, language: "zh-CN" },
     scaffold: {
-      characterHint: "hands-focused creator, only hands and product in most shots",
+      characterHint:
+        "hands-focused creator, only hands and product in most shots; always the same single pair of hands with unchanged skin tone, sleeves, nails and accessories",
       environmentHint: "wooden desk surface with soft window light, minimal props",
       styleKeywords:
         "first-person unboxing POV, hands opening package, tactile close-ups, authentic desk setup, natural daylight, satisfying reveal pacing, honest review energy",
@@ -548,7 +553,7 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
     defaults: { durationSec: 15, language: "zh-CN" },
     scaffold: {
       characterHint:
-        "one adorable pet (same breed, same fur pattern in every shot) as the hero; owner appears only as hands or partial presence",
+        "exactly one adorable pet as the hero, never a second animal: the same species, breed, size, coat color, markings and collar in every shot; owner appears only as one person's hands with unchanged sleeves",
       environmentHint:
         "a warm lived-in apartment: soft rugs, sunny window spot, pet bowls and toys naturally placed",
       lightingHint: "sunny afternoon window light, warm domestic glow",

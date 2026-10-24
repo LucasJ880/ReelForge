@@ -73,6 +73,8 @@ export type CommerceTemplateRecipe = {
   category: CommerceTemplateCategory;
   /// 配方修订版本，缺省为 1。ACTIVE 模板不可原地改，修 beats 必须在这里升版，
   /// seed 会创建新版本行并归档旧 ACTIVE(FK 溯源保留)。
+  /// 全目录统一改动（如 1025 的节拍重排 0-3 / 3-13 / 13-15s、钩子第一秒、主体锁）
+  /// 由 generic-commerce-template 的 COMMERCE_FRAME_REVISION 整体升版，不逐条改这里。
   version?: number;
   summary: string;
   summaryZh: string;
@@ -80,11 +82,22 @@ export type CommerceTemplateRecipe = {
   proof: string;
   cta: string;
   motion: GenericShotMotion;
+  /// 固定三拍「0-3s HOOK / 3-13s PROOF / 13-15s CTA HOLD」，格式被模板库的
+  /// template-shot-timeline 解析成时间线，改格式要同步那边。1025 起：钩子第一秒
+  /// 就是产品最强的一面（原来多是氛围铺垫）；收尾定格 5s→2s（原来 10–15s 静止段
+  /// 是死帧与叠化鬼影的重灾区）。
   beats: readonly [string, string, string];
   coverImage: string;
   cameraStyle: string;
   humanInteraction: "none" | "controlled";
+  /// 单一主体锁（1025 质量复看：creator-reaction 3s/9.5s 两个不同的人、pov 换 4 次
+  /// 衣服、萌宠 0s 贵宾 1–4s 变金毛）。有人入镜（含只出手）的配方必须是 person，
+  /// 宠物配方是 pet；无人配方不填。具体锁定文案见 generic-commerce-template 的
+  /// SUBJECT_LOCKS，进 promptSkeleton，受框架修订号管版本。
+  subjectLock?: CommerceSubjectLock;
 };
+
+export type CommerceSubjectLock = "person" | "pet";
 
 export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
   {
@@ -99,9 +112,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Finish on an uncluttered product hold that gives the spoken CTA room.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: lead with one premium material or lifestyle mood cue; product identity remains readable.",
-      "3-10s PROOF: controlled light travels across the exact referenced surface while the camera makes one gentle push.",
-      "10-15s CTA HOLD: clean product hero with strong negative space; no model-rendered text.",
+      "0-3s HOOK: the product's strongest visible state in the first second, carried by one premium material or lifestyle mood cue on the product itself; product identity remains readable.",
+      "3-13s PROOF: controlled light travels across the exact referenced surface while the camera makes one gentle push.",
+      "13-15s CTA HOLD: clean product hero with strong negative space; no model-rendered text.",
     ],
     coverImage: "/template-previews/commerce-aesthetic-mood.jpg",
     cameraStyle: "slow controlled product dolly, macro-to-medium reveal, stable geometry",
@@ -119,13 +132,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Close with a natural recommendation, not a fabricated review claim.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: presenter delivers a concise lived-experience problem beside the product.",
-      "3-10s PROOF: presenter points without blocking or operating unverified mechanics; product stays large and consistent.",
-      "10-15s CTA HOLD: honest recommendation energy, then product-forward closing frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second, held beside the presenter, who then delivers a concise lived-experience problem.",
+      "3-13s PROOF: presenter points without blocking or operating unverified mechanics; product stays large and consistent.",
+      "13-15s CTA HOLD: honest recommendation energy, then product-forward closing frame.",
     ],
     coverImage: "/template-previews/commerce-ugc-testimonial.jpg",
     cameraStyle: "credible phone-camera UGC, restrained handheld texture, stable product framing",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-demo-first-reveal",
@@ -139,13 +153,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Return to the intact product and one clear reason to try it.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: start on the strongest visibly supported outcome or in-use state.",
-      "3-10s PROOF: match cut to the exact referenced product; use only a reference-supported reveal or keep it static.",
-      "10-15s CTA HOLD: product hero and concise spoken benefit, with no extra transformation.",
+      "0-3s HOOK: the product's strongest visible state in the first second: its most compelling visibly supported outcome or in-use state.",
+      "3-13s PROOF: match cut to the exact referenced product; use only a reference-supported reveal or keep it static.",
+      "13-15s CTA HOLD: product hero and concise spoken benefit, with no extra transformation.",
     ],
     coverImage: "/template-previews/commerce-demo-first-reveal.jpg",
     cameraStyle: "result-first match cut, medium proof framing, stable reveal",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-single-feature-proof",
@@ -159,9 +174,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "End with the feature resolved into a simple buying reason.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: frame one feature as the visual question; keep product identity immediately clear.",
-      "3-10s PROOF: two controlled reference angles show the same feature without redesign or unsupported labels.",
-      "10-15s CTA HOLD: stable hero shot connects the proof to one spoken buying reason.",
+      "0-3s HOOK: the product's strongest visible state in the first second, framing one feature as the visual question; keep product identity immediately clear.",
+      "3-13s PROOF: two controlled reference angles show the same feature without redesign or unsupported labels.",
+      "13-15s CTA HOLD: stable hero shot connects the proof to one spoken buying reason.",
     ],
     coverImage: "/template-previews/commerce-single-feature-proof.jpg",
     cameraStyle: "controlled macro-to-medium proof, precise focus pull, tripod-stable",
@@ -179,13 +194,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Close on the complete product, packaging, and spoken next step.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: supported package or closed-state anticipation; hands remain anatomically controlled.",
-      "3-10s PROOF: one clean cut reveals the exact referenced product, followed by a truthful use-context angle.",
-      "10-15s CTA HOLD: complete product and package remain consistent in a purchase-ready hero frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second, then one hard cut to supported package or closed-state anticipation; hands remain anatomically controlled.",
+      "3-13s PROOF: one clean cut reveals the exact referenced product, followed by a truthful use-context angle.",
+      "13-15s CTA HOLD: complete product and package remain consistent in a purchase-ready hero frame.",
     ],
     coverImage: "/template-previews/commerce-unboxing-transform.jpg",
     cameraStyle: "top-down package reveal into stable three-quarter product hero",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-value-proof",
@@ -199,9 +215,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Conclude with durable-value language without unsupported price claims.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: visual contrast establishes the costly compromise without showing a fake competitor.",
-      "3-10s PROOF: stable camera inspects visible construction, capacity, finish, or included parts from references.",
-      "10-15s CTA HOLD: complete product hero supports a durable-value spoken CTA; no invented price.",
+      "0-3s HOOK: the product's strongest visible state in the first second, then a visual contrast establishes the costly compromise without showing a fake competitor.",
+      "3-13s PROOF: stable camera inspects visible construction, capacity, finish, or included parts from references.",
+      "13-15s CTA HOLD: complete product hero supports a durable-value spoken CTA; no invented price.",
     ],
     coverImage: "/template-previews/commerce-value-proof.jpg",
     cameraStyle: "clean studio inspection, measured orbit, high-clarity value proof",
@@ -219,13 +235,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Return to a clear product-and-outcome frame with one next step.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: relatable use-context friction, filmed without a fake competitor or exaggerated failure.",
-      "3-10s SOLUTION PROOF: cut to the exact referenced product in the same context; preserve scale and geometry.",
-      "10-15s CTA HOLD: resolved context and product stay visible together for the spoken next step.",
+      "0-3s HOOK: the product's strongest visible state in the first second, then one hard cut to relatable use-context friction, filmed without a fake competitor or exaggerated failure.",
+      "3-13s SOLUTION PROOF: cut to the exact referenced product in the same context; preserve scale and geometry.",
+      "13-15s CTA HOLD: resolved context and product stay visible together for the spoken next step.",
     ],
     coverImage: "/template-previews/commerce-problem-solution.jpg",
     cameraStyle: "matched-angle problem/solution cut, stable context continuity",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-hard-sell-presenter",
@@ -239,13 +256,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Finish with urgent spoken action while the product owns the frame.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: energetic presenter names the buyer problem directly beside the product.",
-      "3-10s PROOF: presenter points to one visible feature; never obscures it or invents operation.",
-      "10-15s CTA HOLD: presenter clears the center as the exact product fills frame for an urgent spoken action.",
+      "0-3s HOOK: the product's strongest visible state in the first second, held beside an energetic presenter who names the buyer problem directly.",
+      "3-13s PROOF: presenter points to one visible feature; never obscures it or invents operation.",
+      "13-15s CTA HOLD: presenter clears the center as the exact product fills frame for an urgent spoken action.",
     ],
     coverImage: "/template-previews/commerce-hard-sell-presenter.jpg",
     cameraStyle: "energetic sales gimbal, medium presenter framing, product-dominant close",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   /// ——以下 27 个配方为 2026-08-03 扩容批次——
   /// 类型全部复刻自开源同行资源(scrollclaw / UGC-Factory / cliprise 等),
@@ -262,13 +280,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "An honest verdict lands as the product holds the closing frame.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: casual propped-phone framing at eye level; creator starts mid-sentence about the product visible beside them.",
-      "3-10s PROOF: creator points to one visible benefit of the exact referenced product; camera holds steady, product stays large.",
-      "10-15s CTA HOLD: unpolished honest-verdict energy settles into a stable product-forward closing frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second, right beside a creator in casual propped-phone framing at eye level who starts mid-sentence about it.",
+      "3-13s PROOF: creator points to one visible benefit of the exact referenced product; camera holds steady, product stays large.",
+      "13-15s CTA HOLD: unpolished honest-verdict energy settles into a stable product-forward closing frame.",
     ],
     coverImage: "/template-previews/commerce-talking-head-review.jpg",
     cameraStyle: "propped-phone selfie framing, eye-level static hold, casual room light",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-podcast-authority",
@@ -282,13 +301,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The take lands and the camera settles on the product.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: warm podcast studio with visible microphone and over-ear headphones; the guest is already mid-thought.",
-      "3-10s PROOF: steady tripod framing while the guest points beside the exact referenced product on the table; no invented endorsements or ratings.",
-      "10-15s CTA HOLD: the conversational take concludes and the product owns a calm final frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second on the table of a warm podcast studio with visible microphone and over-ear headphones; the guest is already mid-thought.",
+      "3-13s PROOF: steady tripod framing while the guest points beside the exact referenced product on the table; no invented endorsements or ratings.",
+      "13-15s CTA HOLD: the conversational take concludes and the product owns a calm final frame.",
     ],
     coverImage: "/template-previews/commerce-podcast-authority.jpg",
     cameraStyle: "steady tripod medium close-up, warm amber studio glow, off-center interview framing",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-founder-story",
@@ -305,13 +325,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "A sincere invitation to try it while the product holds center frame.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: grounded workshop or desk context; the maker speaks plainly about the original problem, product already present; exactly one founder appears in this video and keeps the same face, hair, and clothing in every shot.",
-      "3-10s PROOF: the same founder points to one visible crafted detail of the exact referenced product; hands never obscure it; outfit, hair and lighting continue unchanged from the opening shot.",
-      "10-15s CTA HOLD: a sincere spoken invitation over a stable, complete product hero; the founder's appearance stays identical to every earlier shot; no second person ever appears.",
+      "0-3s HOOK: the product's strongest visible state in the first second in a grounded workshop or desk context; the maker speaks plainly about the original problem; exactly one founder appears in this video and keeps the same face, hair, and clothing in every shot.",
+      "3-13s PROOF: the same founder points to one visible crafted detail of the exact referenced product; hands never obscure it; outfit, hair and lighting continue unchanged from the opening shot.",
+      "13-15s CTA HOLD: a sincere spoken invitation over a stable, complete product hero; the founder's appearance stays identical to every earlier shot; no second person ever appears.",
     ],
     coverImage: "/template-previews/commerce-founder-story.jpg",
     cameraStyle: "grounded medium shot, natural workspace light, minimal camera drift",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-street-interview",
@@ -325,13 +346,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "A punchy one-line take, then the product fills the closing frame.",
     motion: "presenter_point",
     beats: [
-      "0-3s HOOK: daylight sidewalk framing with one interviewee reacting to an off-camera question; product already in hand.",
-      "3-10s PROOF: the interviewee points at the exact referenced product for one concrete reason; cast stays a single locked subject.",
-      "10-15s CTA HOLD: a punchy closing line, then a product-forward final frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second, already in hand as one interviewee reacts to an off-camera question in daylight sidewalk framing.",
+      "3-13s PROOF: the interviewee points at the exact referenced product for one concrete reason; cast stays a single locked subject.",
+      "13-15s CTA HOLD: a punchy closing line, then a product-forward final frame.",
     ],
     coverImage: "/template-previews/commerce-street-interview.jpg",
     cameraStyle: "handheld street interview framing, natural daylight, single subject lock",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-hook-face-demo",
@@ -345,13 +367,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The visible result resolves into a product-forward finish.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: tight face close-up holding one strong emotion with minimal motion and no speech; a blink or widening eyes only.",
-      "3-10s PROOF: one hard cut to hands presenting the exact referenced product; only reference-supported handling, one visible benefit.",
-      "10-15s CTA HOLD: the settled result frame with the product large, intact, and centered.",
+      "0-3s HOOK: the product's strongest visible state in the first second, held at face level beside a tight face close-up holding one strong emotion with minimal motion and no speech; a blink or widening eyes only.",
+      "3-13s PROOF: one hard cut to hands presenting the exact referenced product; only reference-supported handling, one visible benefit.",
+      "13-15s CTA HOLD: the settled result frame with the product large, intact, and centered.",
     ],
     coverImage: "/template-previews/commerce-hook-face-demo.jpg",
     cameraStyle: "face close-up into POV hands framing, single hard cut, steady finish",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-triple-proof",
@@ -366,9 +389,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The stacked proof resolves into one clean hero frame.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: the strongest angle opens the one buying reason; product identity immediately readable; the scene contains no people and no hands at any moment.",
-      "3-10s PROOF: three sequential full-frame angles joined by instant straight cuts — never a grid, tile, collage, split screen, dissolve, or picture-in-picture; every part of the product keeps its exact referenced shape, color, and material in all three angles.",
-      "10-15s CTA HOLD: a clean product hero connects the three proofs to one spoken reason; still no people, no hands, no ghosting.",
+      "0-3s HOOK: the product's strongest visible state in the first second, on the angle that opens the one buying reason; product identity immediately readable; the scene contains no people and no hands at any moment.",
+      "3-13s PROOF: three sequential full-frame angles joined by instant straight cuts — never a grid, tile, collage, split screen, dissolve, or picture-in-picture; every part of the product keeps its exact referenced shape, color, and material in all three angles.",
+      "13-15s CTA HOLD: a clean product hero connects the three proofs to one spoken reason; still no people, no hands, no ghosting.",
     ],
     coverImage: "/template-previews/commerce-triple-proof.jpg",
     cameraStyle: "three-angle quick-cut sequence, tripod-stable framing, decisive rhythm",
@@ -387,13 +410,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Delight settles; the product holds the final frame.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: anticipation close-up beside a reference-supported closed or held state; genuine energy, no exaggeration; exactly one creator appears in this video and keeps the same face, hair, and clothing in every shot.",
-      "3-10s PROOF: one supported reveal lands; the same single creator's delight reads true while the exact referenced product takes the frame.",
-      "10-15s CTA HOLD: the reaction settles and the intact product owns the closing hero; no second person ever appears.",
+      "0-3s HOOK: the product's strongest visible state in the first second, then an anticipation close-up beside a reference-supported closed or held state; genuine energy, no exaggeration; exactly one creator appears in this video and keeps the same face, hair, and clothing in every shot.",
+      "3-13s PROOF: one supported reveal lands; the same single creator's delight reads true while the exact referenced product takes the frame.",
+      "13-15s CTA HOLD: the reaction settles and the intact product owns the closing hero; no second person ever appears.",
     ],
     coverImage: "/template-previews/commerce-creator-reaction.jpg",
     cameraStyle: "reaction close-up into product reveal, restrained handheld, warm light",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-before-after-match",
@@ -403,14 +427,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     version: 2,
     summary: "A locked camera axis proves change with one matched cut.",
     summaryZh: "锁定机位的前后同框对切，用真实状态差讲结果。",
-    hook: "Open on the honest before state from the final camera position.",
+    hook: "Flash the after state first, then the honest before state from the same final camera position.",
     proof: "One matched cut to the after state with identical framing and lighting, only when both states are referenced.",
     cta: "Hold the after state with the product clearly present.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: the before state from a fully locked, motionless camera; an empty scene with no people anywhere in the entire video.",
-      "3-10s PROOF: exactly one instant hard cut — never a dissolve, crossfade, or ghosting — to the after state; camera position, framing, lighting, and room geometry stay pixel-stable, and the only change between halves is the referenced product's presence or state, both states visibly supported by references.",
-      "10-15s CTA HOLD: the after state holds motionless with the exact product present for the spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second, shown as the after state from a fully locked, motionless camera, then one instant hard cut to the honest before state in the identical frame; an empty scene with no people anywhere in the entire video.",
+      "3-13s PROOF: exactly one instant hard cut — never a dissolve, crossfade, or ghosting — back to the after state; camera position, framing, lighting, and room geometry stay pixel-stable, and the only change between halves is the referenced product's presence or state, both states visibly supported by references.",
+      "13-15s CTA HOLD: the after state holds motionless with the exact product present for the spoken close.",
     ],
     coverImage: "/template-previews/commerce-before-after-match.jpg",
     cameraStyle: "locked single axis, matched-cut discipline, identical lighting between states",
@@ -429,9 +453,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The orbit eases to a stop on the strongest hero angle.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: the camera is already circling the product — background parallax visibly sweeps behind it from the first frame; no zooming in place.",
-      "3-10s PROOF: the orbit keeps circling at constant height and speed so the product's front, side, and back faces are each revealed in one continuous move; specular highlights travel across the surface while silhouette and labels stay locked; the camera never stops, never pulls back, never merely zooms.",
-      "10-15s CTA HOLD: the orbit eases to a stop on the strongest hero angle for the spoken benefit.",
+      "0-3s HOOK: the product's strongest visible state in the first second, with the camera already circling it — background parallax visibly sweeps behind it from the first frame; no zooming in place.",
+      "3-13s PROOF: the orbit keeps circling at constant height and speed so the product's front, side, and back faces are each revealed in one continuous move; specular highlights travel across the surface while silhouette and labels stay locked; the camera never stops, never pulls back, never merely zooms.",
+      "13-15s CTA HOLD: the orbit eases to a stop on the strongest hero angle for the spoken benefit.",
     ],
     coverImage: "/template-previews/commerce-360-hero-orbit.jpg",
     cameraStyle: "constant-height turntable orbit, controlled speed, clean studio key light",
@@ -449,9 +473,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Settle on the primary variant as the hero.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: a lateral glide reveals the variant lineup; only variants visible in the references, no invented colors or sizes.",
-      "3-10s PROOF: the pan continues with even spacing; each variant keeps exact color, finish, and label fidelity.",
-      "10-15s CTA HOLD: the camera settles on the primary variant as a clean hero with negative space.",
+      "0-3s HOOK: the product's strongest visible state in the first second as a lateral glide reveals the variant lineup; only variants visible in the references, no invented colors or sizes.",
+      "3-13s PROOF: the pan continues with even spacing; each variant keeps exact color, finish, and label fidelity.",
+      "13-15s CTA HOLD: the camera settles on the primary variant as a clean hero with negative space.",
     ],
     coverImage: "/template-previews/commerce-variant-lineup.jpg",
     cameraStyle: "lateral slider glide across a tabletop lineup, even studio light, locked height",
@@ -469,9 +493,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Pull back to the complete set in one purchase-ready frame.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: top-down flat lay with the product centered and included items arranged around it, all reference-supported.",
-      "3-10s PROOF: a slow glide across each included accessory; counts, colors, and labels match the references exactly.",
-      "10-15s CTA HOLD: gentle pull-back to the complete set in one tidy purchase-ready frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second, centered in a top-down flat lay with included items arranged around it, all reference-supported.",
+      "3-13s PROOF: a slow glide across each included accessory; counts, colors, and labels match the references exactly.",
+      "13-15s CTA HOLD: gentle pull-back to the complete set in one tidy purchase-ready frame.",
     ],
     coverImage: "/template-previews/commerce-whats-in-box.jpg",
     cameraStyle: "top-down flat-lay glide with gentle pull-back, even soft light",
@@ -489,13 +513,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The product returns to a clean solo hero with the size story landed.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: the product alone at true scale; a hand enters and holds it, instantly anchoring real-world size.",
-      "3-10s PROOF: one gentle reference-supported turn in hand; proportions and geometry stay exact, fingers never obscure identity.",
-      "10-15s CTA HOLD: the hand withdraws and the product closes as a clean solo hero.",
+      "0-3s HOOK: the product's strongest visible state in the first second, alone at true scale; a hand enters and holds it, instantly anchoring real-world size.",
+      "3-13s PROOF: one gentle reference-supported turn in hand; proportions and geometry stay exact, fingers never obscure identity.",
+      "13-15s CTA HOLD: the hand withdraws and the product closes as a clean solo hero.",
     ],
     coverImage: "/template-previews/commerce-in-hand-scale.jpg",
     cameraStyle: "medium close-up with hand-scale reference, gentle supported turn, neutral light",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-macro-texture-asmr",
@@ -509,9 +534,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Pull back to reveal the full product that texture belongs to.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: extreme macro on the signature texture of the referenced product; immediately tactile.",
-      "3-10s PROOF: slow slider travel with a controlled focus pull across material grain, weave, or finish; geometry never drifts.",
-      "10-15s CTA HOLD: pull back to the complete product hero so the texture connects to the buying reason.",
+      "0-3s HOOK: the product's strongest visible state in the first second as an extreme macro on its signature texture; immediately tactile.",
+      "3-13s PROOF: slow slider travel with a controlled focus pull across material grain, weave, or finish; geometry never drifts.",
+      "13-15s CTA HOLD: pull back to the complete product hero so the texture connects to the buying reason.",
     ],
     coverImage: "/template-previews/commerce-macro-texture-asmr.jpg",
     cameraStyle: "macro slider travel, shallow focus pull, raking key light",
@@ -530,9 +555,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The full product resolves under a final elegant key light.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: a rim light traces the exact silhouette out of a dark field; identity reads before anything else; exactly one product instance exists in the entire video.",
-      "3-10s PROOF: one motivated light sweep travels across material and detail in a single continuous full-frame shot; reflections behave physically, no fantasy glow.",
-      "10-15s CTA HOLD: the same single product resolves under an elegant key light with generous negative space; no second copy ever appears.",
+      "0-3s HOOK: the product's strongest visible state in the first second as a rim light traces its exact silhouette out of a dark field; identity reads before anything else; exactly one product instance exists in the entire video.",
+      "3-13s PROOF: one motivated light sweep travels across material and detail in a single continuous full-frame shot; reflections behave physically, no fantasy glow.",
+      "13-15s CTA HOLD: the same single product resolves under an elegant key light with generous negative space; no second copy ever appears.",
     ],
     coverImage: "/template-previews/commerce-dark-luxury-light.jpg",
     cameraStyle: "low-key studio, motivated light sweep, slow push-in",
@@ -551,13 +576,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The scene settles with the product present and desirable.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: warm window light over a calm morning scene; aspiration reads before the product speaks.",
-      "3-10s PROOF: the exact referenced product — including its package or body as shown in the references — appears clearly inside the routine at least once; only supported states, relaxed and anatomically correct hands.",
-      "10-15s CTA HOLD: the settled scene holds with the referenced product visible and forward for an unhurried spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second, in warm window light over a calm morning scene the buyer aspires to.",
+      "3-13s PROOF: the exact referenced product — including its package or body as shown in the references — appears clearly inside the routine at least once; only supported states, relaxed and anatomically correct hands.",
+      "13-15s CTA HOLD: the settled scene holds with the referenced product visible and forward for a short spoken close.",
     ],
     coverImage: "/template-previews/commerce-morning-routine.jpg",
     cameraStyle: "soft window light, lifestyle medium shots, unhurried push-in",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-pov-immersive",
@@ -571,13 +597,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The product rests in view; the viewer already owns it mentally.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: first-person view looking down as hands reach in toward the referenced product.",
-      "3-10s PROOF: strictly first-person handling in reference-supported ways only; hands stay anatomically correct and never hide identity.",
-      "10-15s CTA HOLD: the product comes to rest in the POV frame, close and ready, for the spoken next step.",
+      "0-3s HOOK: the product's strongest visible state in the first second, seen first-person looking down as hands reach in toward it.",
+      "3-13s PROOF: strictly first-person handling in reference-supported ways only; hands stay anatomically correct and never hide identity.",
+      "13-15s CTA HOLD: the product comes to rest in the POV frame, close and ready, for the spoken next step.",
     ],
     coverImage: "/template-previews/commerce-pov-immersive.jpg",
     cameraStyle: "first-person POV framing, slight natural handheld, close working distance",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-dual-context",
@@ -592,9 +619,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Return to the stronger context for the closing hero.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: the first truthful context establishes with the referenced product already placed; no people and no hands appear anywhere in the entire video.",
-      "3-10s PROOF: one clean cut to a second truthful context; identity, color, and scale stay locked across both rooms; the product sits still — nobody arranges or touches it.",
-      "10-15s CTA HOLD: return to the stronger context and hold product plus setting together for the close, still empty of people.",
+      "0-3s HOOK: the product's strongest visible state in the first second, already placed as the first truthful context establishes; no people and no hands appear anywhere in the entire video.",
+      "3-13s PROOF: one clean cut to a second truthful context; identity, color, and scale stay locked across both rooms; the product sits still — nobody arranges or touches it.",
+      "13-15s CTA HOLD: return to the stronger context and hold product plus setting together for the close, still empty of people.",
     ],
     coverImage: "/template-previews/commerce-dual-context.jpg",
     cameraStyle: "matched framing across two contexts, stable cuts, natural light in both",
@@ -612,13 +639,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "A warm settled moment with the product clearly the enabler.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: pet-level framing catches genuine animal attention with the referenced product already in scene.",
-      "3-10s PROOF: one gentle, physically plausible interaction; the animal stays a single consistent subject and the product stays intact.",
-      "10-15s CTA HOLD: the warm moment settles with the product forward as the reason it happened.",
+      "0-3s HOOK: the product's strongest visible state in the first second at pet-level framing, catching the animal's genuine attention.",
+      "3-13s PROOF: one gentle, physically plausible interaction; the animal stays a single consistent subject and the product stays intact.",
+      "13-15s CTA HOLD: the warm moment settles with the product forward as the reason it happened.",
     ],
     coverImage: "/template-previews/commerce-pet-companion.jpg",
     cameraStyle: "low pet-level framing, patient holds, warm home light",
     humanInteraction: "controlled",
+    subjectLock: "pet",
   },
   {
     slug: "commerce-home-space-styling",
@@ -633,9 +661,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The wide settles back; the space now sells the product.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: a single real room establishes wide; the referenced product draws the eye without effects; the room is empty of people and hands for the entire video.",
-      "3-10s PROOF: the camera pushes along one axis toward the product in context; scale and geometry stay true, one material close-up with no hands touching anything.",
-      "10-15s CTA HOLD: settle back to the wide where room and product sell each other; every prop keeps the exact position it had in the opening frame.",
+      "0-3s HOOK: the product's strongest visible state in the first second as a single real room establishes wide around it; it draws the eye without effects; the room is empty of people and hands for the entire video.",
+      "3-13s PROOF: the camera pushes along one axis toward the product in context; scale and geometry stay true, one material close-up with no hands touching anything.",
+      "13-15s CTA HOLD: settle back to the wide where room and product sell each other; every prop keeps the exact position it had in the opening frame.",
     ],
     coverImage: "/template-previews/commerce-home-space-styling.jpg",
     cameraStyle: "single-room axis push, wide-to-detail progression, daylight interior",
@@ -653,13 +681,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "A styled hero stance closes the look.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: fabric or material texture moves in close-up; weave, grain, and color exactly as referenced.",
-      "3-10s PROOF: the piece worn or displayed as the references support, from two flattering angles; drape and silhouette stay true.",
-      "10-15s CTA HOLD: a styled hero stance holds so the whole look lands with the spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second as its fabric or material texture moves in close-up; weave, grain, and color exactly as referenced.",
+      "3-13s PROOF: the piece worn or displayed as the references support, from two flattering angles; drape and silhouette stay true.",
+      "13-15s CTA HOLD: a styled hero stance holds so the whole look lands with the spoken close.",
     ],
     coverImage: "/template-previews/commerce-fashion-lookbook.jpg",
     cameraStyle: "lookbook pacing, texture close to three-quarter framing, clean daylight",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-beauty-texture",
@@ -673,13 +702,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Packaging hero with the texture story fresh.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: appetizing macro of the product texture as visible in the references; swatch, cream, or liquid reads true.",
-      "3-10s PROOF: one clean reference-supported application gesture; skin and hands stay realistic, no before/after effect is implied.",
-      "10-15s CTA HOLD: the packaging closes as hero while the texture impression is still fresh.",
+      "0-3s HOOK: the product's strongest visible state in the first second as an appetizing macro of its texture as visible in the references; swatch, cream, or liquid reads true.",
+      "3-13s PROOF: one clean reference-supported application gesture; skin and hands stay realistic, no before/after effect is implied.",
+      "13-15s CTA HOLD: the packaging closes as hero while the texture impression is still fresh.",
     ],
     coverImage: "/template-previews/commerce-beauty-texture.jpg",
     cameraStyle: "beauty macro to countertop framing, soft diffused key, true skin tones",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-food-sizzle",
@@ -694,9 +724,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The serve-ready frame holds with packaging identity readable.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: the most appetizing reference-supported state fills the frame with natural saturated color.",
-      "3-10s PROOF: unhurried cuts move only between states visible in the references; textures stay physical, no fake steam or CGI pours; the package keeps its exact referenced color, material, and shape in every single shot.",
-      "10-15s CTA HOLD: the serve-ready frame holds with the same referenced package beside it, its color and finish unchanged from the first appearance.",
+      "0-3s HOOK: the product's strongest visible state in the first second — its most appetizing reference-supported state fills the frame with natural saturated color.",
+      "3-13s PROOF: unhurried cuts move only between states visible in the references; textures stay physical, no fake steam or CGI pours; the package keeps its exact referenced color, material, and shape in every single shot.",
+      "13-15s CTA HOLD: the serve-ready frame holds with the same referenced package beside it, its color and finish unchanged from the first appearance.",
     ],
     coverImage: "/template-previews/commerce-food-sizzle.jpg",
     cameraStyle: "food macro and tabletop framing, natural appetizing light, unhurried cuts",
@@ -715,9 +745,9 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Full device hero with the feature story landed.",
     motion: "static_product",
     beats: [
-      "0-3s HOOK: crisp close-up on the signature design detail that makes the referenced device recognizable; the product rests on clean studio surfaces only — no hands, no people, no mannequins, ear stands, or body-part display props anywhere in the video.",
-      "3-10s PROOF: two precise engineered angles prove the one defining feature; any screen stays an abstract glow with no readable invented interface.",
-      "10-15s CTA HOLD: the full device holds as hero with controlled reflections for the spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second as a crisp close-up on the signature design detail that makes the referenced device recognizable; the product rests on clean studio surfaces only — no hands, no people, no mannequins, ear stands, or body-part display props anywhere in the video.",
+      "3-13s PROOF: two precise engineered angles prove the one defining feature; any screen stays an abstract glow with no readable invented interface.",
+      "13-15s CTA HOLD: the full device holds as hero with controlled reflections for the spoken close.",
     ],
     coverImage: "/template-previews/commerce-tech-feature-focus.jpg",
     cameraStyle: "precision product cinematography, engineered angles, controlled reflections",
@@ -735,13 +765,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The product stands ready in the environment for the final call.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: real outdoor terrain establishes with the referenced product present; natural hard light sets the stakes.",
-      "3-10s PROOF: hands handle the product in reference-supported field use only; one close-up proves visible construction quality.",
-      "10-15s CTA HOLD: the product stands ready in the environment for a confident spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second as real outdoor terrain establishes around it; natural hard light sets the stakes.",
+      "3-13s PROOF: hands handle the product in reference-supported field use only; one close-up proves visible construction quality.",
+      "13-15s CTA HOLD: the product stands ready in the environment for a confident spoken close.",
     ],
     coverImage: "/template-previews/commerce-outdoor-rugged.jpg",
     cameraStyle: "outdoor handheld texture, terrain-wide to detail progression, natural hard light",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-travel-pack-flow",
@@ -756,13 +787,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "The organized final state closes ready to go.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: the neatly packed state teases capacity; the referenced product reads instantly.",
-      "3-10s PROOF: hands perform one reference-supported open or place step; compartments and contents appear only as the references show, and every prop stays generic and unbranded — no third-party device logos, marks, or recognizable brand items.",
-      "10-15s CTA HOLD: the organized ready-to-go state holds for a crisp spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second — its neatly packed state teases capacity; the referenced product reads instantly.",
+      "3-13s PROOF: hands perform one reference-supported open or place step; compartments and contents appear only as the references show, and every prop stays generic and unbranded — no third-party device logos, marks, or recognizable brand items.",
+      "13-15s CTA HOLD: the organized ready-to-go state holds for a crisp spoken close.",
     ],
     coverImage: "/template-previews/commerce-travel-pack-flow.jpg",
     cameraStyle: "top-down and three-quarter packing framing, tidy motion, bright practical light",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
   {
     slug: "commerce-gift-unwrap",
@@ -776,13 +808,14 @@ export const COMMERCE_TEMPLATE_RECIPES: readonly CommerceTemplateRecipe[] = [
     cta: "Product beside its packaging in a gift-ready hero.",
     motion: "reveal_transition",
     beats: [
-      "0-3s HOOK: the closed package as referenced, under soft celebratory light; anticipation without effects.",
-      "3-10s PROOF: hands open the packaging only as its visible construction supports; the exact product emerges identity-locked.",
-      "10-15s CTA HOLD: product and packaging rest together in a gift-ready hero for the spoken close.",
+      "0-3s HOOK: the product's strongest visible state in the first second, then one hard cut to the closed package as referenced under soft celebratory light; anticipation without effects.",
+      "3-13s PROOF: hands open the packaging only as its visible construction supports; the exact product emerges identity-locked.",
+      "13-15s CTA HOLD: product and packaging rest together in a gift-ready hero for the spoken close.",
     ],
     coverImage: "/template-previews/commerce-gift-unwrap.jpg",
     cameraStyle: "soft celebratory light, top-down opening into three-quarter hero, gentle pacing",
     humanInteraction: "controlled",
+    subjectLock: "person",
   },
 ] as const;
 

@@ -2,6 +2,7 @@
 
 import { AudioLines, Captions, Music2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { bgmAttributionForTrack } from "@/lib/video-generation/bgm-attribution";
 import type {
   BgmTrackId,
   CaptionPosition,
@@ -58,6 +59,25 @@ const VOICE_OPTIONS = [
     en: "Calm and premium",
   },
 ] as const;
+
+/**
+ * 字幕样式只列渲染层真实做得到的观感。audio-post-production 的 renderAssCaptions
+ * 只分两档：plain = 常规字重细描边，其余 = 粗体加厚描边；word_by_word / karaoke
+ * 应有的逐词时间轴高亮没有实现，原来那两个选项先隐藏（1025 A6 7.5），别再给客户
+ * 许诺做不到的效果。
+ * 类型与服务端 schema 仍保留三值：已保存 / 默认的 word_by_word、karaoke 照常提交，
+ * 界面上归到它们真实的那一档「醒目描边」，用户不改就不动原值。
+ */
+export const CAPTION_STYLE_OPTIONS = [
+  { value: "word_by_word", zh: "醒目描边", en: "Bold outline" },
+  { value: "plain", zh: "简洁字幕", en: "Clean" },
+] as const satisfies readonly { value: CaptionStyle; zh: string; en: string }[];
+
+export function captionStyleSelectValue(
+  style: CaptionStyle,
+): (typeof CAPTION_STYLE_OPTIONS)[number]["value"] {
+  return style === "plain" ? "plain" : "word_by_word";
+}
 
 function compactText(value: string): string {
   return value.replace(/\s+/gu, " ").trim();
@@ -169,6 +189,7 @@ export function AudioCaptionControls({
   const update = (patch: Partial<AudioCaptionControlValue>) => {
     onChange({ ...value, ...patch });
   };
+  const bgmAttribution = bgmAttributionForTrack(value.bgmTrackId);
 
   return (
     // 下单票第 06 行：编号与标题由所在行承担，这里只放控件（不再自带卡片外壳）。
@@ -283,22 +304,18 @@ export function AudioCaptionControls({
                 <label className="text-meta font-medium text-muted-foreground">
                   {english ? "Style" : "字幕样式"}
                   <select
-                    value={value.captionStyle}
+                    value={captionStyleSelectValue(value.captionStyle)}
                     disabled={disabled || !value.captionsEnabled}
                     className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
                     onChange={(event) => update({
                       captionStyle: event.target.value as CaptionStyle,
                     })}
                   >
-                    <option value="word_by_word">
-                      {english ? "Word by word" : "逐词强调"}
-                    </option>
-                    <option value="karaoke">
-                      {english ? "Karaoke" : "跟读高亮"}
-                    </option>
-                    <option value="plain">
-                      {english ? "Clean" : "简洁字幕"}
-                    </option>
+                    {CAPTION_STYLE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {english ? option.en : option.zh}
+                      </option>
+                    ))}
                   </select>
                 </label>
                 <label className="text-meta font-medium text-muted-foreground">
@@ -381,9 +398,17 @@ export function AudioCaptionControls({
                 />
               </label>
 
-              <p className="border-l-2 border-border pl-3 text-meta text-muted-foreground">
-                Wholesome by Kevin MacLeod · CC BY 4.0
-              </p>
+              {bgmAttribution ? (
+                // CC BY 4.0：客户发布时要带署名，选曲时就把要贴的那一行给到；交付面用同一个 bgm-attribution
+                <p className="border-l-2 border-border pl-3 text-meta text-muted-foreground">
+                  {english
+                    ? "CC BY 4.0 music: credit it in your post caption when you publish."
+                    : "CC BY 4.0 授权配乐：发布时请把下面这行署名放进帖子文案。"}
+                  <span className="mt-1 block break-words text-foreground">
+                    {bgmAttribution}
+                  </span>
+                </p>
+              ) : null}
             </section>
           </div>
         </details>

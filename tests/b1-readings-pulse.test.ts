@@ -216,7 +216,7 @@ test("脉搏与「看过了」接口：会话鉴权、只读写本人", () => {
   const pulse = readFileSync("src/app/api/exchange/pulse/route.ts", "utf8");
   assert.match(pulse, /export async function GET\(\)/);
   assert.match(pulse, /const guard = await requireAuth\(\);\s*if \(!guard\.ok\) return guard\.response;/);
-  assert.match(pulse, /loadPulse\(guard\.session\.user\.id\)/);
+  assert.match(pulse, /loadPulse\(guard\.session\.user\.id, \{ locale: await getServerLocale\(\) \}\)/);
   assert.match(pulse, /status: 500/);
   const ack = readFileSync("src/app/api/exchange/failures-ack/route.ts", "utf8");
   assert.match(ack, /export async function POST\(\)/);

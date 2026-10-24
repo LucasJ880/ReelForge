@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
  *
  * 「首次生成即被接受」是质量北极星（目标 ≥ 60%）。
  * 尺子不另造（PRD 原话）：
- * - 视频：SUCCEEDED 且没有重试（retryCount=0、submitAttempts<=1）
+ * - 视频：SUCCEEDED 且没有重试（retryCount=0、submitAttempts<=1）；样本 = 成片 + 失败，取消不计
  * - 图文帖：出图一次成功（renderedAt 有值且 renderError 为空）
  * - Gate（B5）上线后，视频侧的判据自动收紧为「过 Gate 且无重试」
  *
@@ -37,8 +37,9 @@ export async function videoFirstPassRate(args: {
   const where = {
     ...(args.userId ? { batchJob: { is: { userId: args.userId } } } : {}),
     ...(args.since ? { createdAt: { gte: args.since } } : {}),
-    /// 只统计已终态的：还在跑的没有「通过与否」可言。
-    status: { in: ["SUCCEEDED", "FAILED", "CANCELLED"] as ("SUCCEEDED" | "FAILED" | "CANCELLED")[] },
+    /// 只统计跑出结果的：还在跑的没有「通过与否」可言；取消也不算——取消是商家自己的决定，
+    /// 不是生成质量（与读数注册表「取消不算失败」同口径，之前取消排队批次会把通过率拉低）。
+    status: { in: ["SUCCEEDED", "FAILED"] as ("SUCCEEDED" | "FAILED")[] },
   };
   const [sample, passed] = await Promise.all([
     db.videoJob.count({ where }),

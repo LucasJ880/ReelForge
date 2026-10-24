@@ -10,6 +10,7 @@ import type { Locale } from "@/i18n/config";
 import { LEAD_STATUSES, fillGrowth, getGrowthCopy, labelFor, type LeadStatusKey } from "@/i18n/growth-copy";
 import { cn } from "@/lib/utils";
 import { NativeSelect } from "./form-fields";
+import { leadMilestone } from "./lead-milestone";
 import { LeadTime } from "./lead-time";
 import { sendJson } from "./leads-api";
 
@@ -89,22 +90,16 @@ export function LeadsBoard({ locale, leads }: { locale: Locale; leads: LeadRow[]
             const sourceLabel = labelFor(growth.sources, lead.source) ?? lead.source;
             const channel = lead.trackedLink?.channel ? labelFor(growth.channels, lead.trackedLink.channel) : null;
             const selfReported = labelFor(growth.selfReported, lead.selfReportedSource);
+            /// 里程碑只写当前状态仍然成立的那一步（改回未成交后不再挂「已成交」）
+            const milestone = leadMilestone(lead);
             const busy = busyId === lead.id;
             return (
               <li key={lead.id} className={cn("grid gap-x-4 gap-y-2 px-4 py-3.5", ROW_GRID)} aria-busy={busy || undefined}>
                 <div className="flex flex-col gap-0.5 font-mono text-data tabular-nums text-muted-foreground">
                   <LeadTime iso={lead.createdAt} locale={locale} />
-                  {lead.wonAt ? (
-                    <span className="text-success">
-                      {growth.statuses.WON} <LeadTime iso={lead.wonAt} locale={locale} />
-                    </span>
-                  ) : lead.bookedAt ? (
-                    <span>
-                      {growth.statuses.BOOKED} <LeadTime iso={lead.bookedAt} locale={locale} />
-                    </span>
-                  ) : lead.contactedAt ? (
-                    <span>
-                      {growth.statuses.CONTACTED} <LeadTime iso={lead.contactedAt} locale={locale} />
+                  {milestone ? (
+                    <span className={milestone.status === "WON" ? "text-success" : undefined}>
+                      {growth.statuses[milestone.status]} <LeadTime iso={milestone.at} locale={locale} />
                     </span>
                   ) : null}
                 </div>

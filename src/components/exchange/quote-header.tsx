@@ -28,6 +28,8 @@ const WALL_COLUMNS: Record<number, string> = {
   4: "lg:grid-cols-4",
   5: "lg:grid-cols-5",
   6: "sm:grid-cols-3 lg:grid-cols-6",
+  /// 7 格（批次详情）：四列两行，最后一格（进度）横跨两列补齐，不留空格露出接缝底色
+  7: "sm:grid-cols-4 [&>*:last-child]:col-span-2",
 };
 
 export type QuoteHeaderProps = {
@@ -101,27 +103,28 @@ export function QuoteHeader({
               <div
                 key={stat.label}
                 className={cn(
-                  "relative flex min-w-0 flex-col gap-2.5 px-5 py-4",
+                  "relative flex min-w-0 flex-col gap-2.5 px-4 py-4 sm:px-5",
                   stat.href && "group transition-colors duration-fast ease-out hover:bg-raised focus-within:bg-raised motion-reduce:transition-none",
                 )}
               >
-                <dt className="x-label flex items-center justify-between gap-3">
+                {/* 名字与口径在窄屏折行，不截断：390px 两列一格只有 ~170px，截断后「近 7 天」与口径都读不到（B2.1 读数与口径必填）。只有大数字保留单行。 */}
+                <dt className="x-label flex items-start justify-between gap-3">
                   {stat.href ? (
                     <Link
                       href={stat.href}
-                      className="truncate after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
+                      className="min-w-0 break-words text-pretty after:absolute after:inset-0 after:content-[''] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2 focus-visible:after:outline-ring"
                     >
                       {stat.label}
                     </Link>
                   ) : (
-                    <span className="truncate">{stat.label}</span>
+                    <span className="min-w-0 break-words text-pretty">{stat.label}</span>
                   )}
                   {stat.href ? (
-                    <ArrowRight className="size-3.5 shrink-0 text-tertiary transition-colors group-hover:text-accent" aria-hidden />
+                    <ArrowRight className="mt-px size-3.5 shrink-0 text-tertiary transition-colors group-hover:text-accent" aria-hidden />
                   ) : null}
                 </dt>
                 <dd className={cn("x-figure truncate", TONE[stat.tone ?? "neutral"])}>{stat.value}</dd>
-                {stat.caption ? <dd className="truncate text-meta text-muted-foreground">{stat.caption}</dd> : null}
+                {stat.caption ? <dd className="break-words text-pretty text-meta text-muted-foreground">{stat.caption}</dd> : null}
               </div>
             ))}
           </dl>

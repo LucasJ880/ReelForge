@@ -69,10 +69,10 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       draftStatus: "草案 · 待加拿大律师复核",
       title: "隐私政策",
-      intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 7 月 13 日。",
+      intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 10 月 24 日。",
       information: {
         title: "我们处理的信息",
-        body: "我们会处理账户与工作区资料、你上传的产品图片和视频、提示词与创意指令、生成媒体、任务与质量记录、用量和成本事件，以及保障和运营服务所需的技术日志。",
+        body: "我们会处理账户与工作区资料、你上传的产品图片和视频、提示词与创意指令、生成媒体、任务与质量记录、用量和成本事件，以及保障和运营服务所需的技术日志。在商家询盘页或试点申请表里留下的称呼、电话、邮箱和留言，只用于处理那一次询盘或申请：商家询盘页上的信息由该商家收集，Aivora 代为保存并转交给商家。这类记录会一直保存到你申请删除为止（归档不会清除它们），具体保存期限将在正式版本中写明。",
       },
       purpose: {
         title: "我们为何使用这些信息",
@@ -80,7 +80,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "处理方与数据路径",
-        body: "我们使用的服务商可能包括：Neon（北美数据库托管）、Vercel（应用托管与文件存储）、OpenAI（文字、产品图生成与编辑、视觉理解和内容审核）以及 BytePlus（视频生成）。新增处理方前，我们会先更新本节。",
+        body: "目前参与处理数据的服务商：Neon（数据库托管，北美）；Vercel（应用托管与文件存储，美国）；OpenAI（文字、产品图生成与编辑、视觉理解、配音与内容审核，美国）；Shuyu（合作视频与产品图生成线路，会收到你提交的产品图、提示词与创意指令）。只在用到对应功能时参与：remove.bg 或 Clipdrop（产品图抠图）、Firecrawl（读取你提交的商品链接页面）、Pexels 或 Pixabay（只收到素材检索关键词，不接触你的文件）、Resend（开通邮件通知后，发送新询盘与试点申请提醒）。Seedance 视频线路只在启用时使用：BytePlus（东南亚）或火山引擎（中国北京），以实际启用的一条为准。Shuyu 的处理区域与合同条款仍在确认中，确认后我们会在本节写明。",
       },
       retention: {
         title: "保存与删除",
@@ -160,10 +160,10 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
       title: "Privacy Policy",
-      intro: "Applies to Aivora, operated from Ontario, Canada. Last updated July 13, 2026.",
+      intro: "Applies to Aivora, operated from Ontario, Canada. Last updated October 24, 2026.",
       information: {
         title: "Information we handle",
-        body: "We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service.",
+        body: "We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service. Names, phone numbers, emails and messages left on a business's inquiry page or our pilot application form are used only to handle that inquiry or application; on a business's inquiry page, the business collects the information and Aivora stores it and passes it on to them. These records are kept until you ask us to delete them (archiving does not erase them); exact retention periods will be stated in the final version.",
       },
       purpose: {
         title: "Why we use it",
@@ -171,7 +171,7 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "Processors and data routes",
-        body: "Service providers we use may include Neon (North American database hosting), Vercel (application hosting and file storage), OpenAI (text, product-image generation and editing, vision and moderation) and BytePlus (video generation). We update this section before adding a new processor.",
+        body: "Processors that handle data today: Neon (database hosting, North America); Vercel (application hosting and file storage, United States); OpenAI (text, product-image generation and editing, vision, voiceover and moderation, United States); and Shuyu (partner video and product-image generation route, which receives the product images, prompts and creative instructions you submit). Used only when the matching feature runs: remove.bg or Clipdrop (product cut-outs), Firecrawl (reads the product page link you submit), Pexels or Pixabay (receive stock-search keywords only, never your files), and Resend (sends new-inquiry and pilot-application alerts once email notifications are turned on). Seedance video routes are used only when enabled: BytePlus (Southeast Asia) or Volcengine (Beijing, China), whichever one is actually active. Shuyu's processing region and contract terms are still being confirmed; we will state them in this section once they are.",
       },
       retention: {
         title: "Retention and deletion",

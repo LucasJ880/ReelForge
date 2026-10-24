@@ -57,7 +57,8 @@ export function PilotLanding({
             </h1>
             <p className="max-w-[58ch] text-body leading-relaxed text-muted-foreground">{copy.subtitle}</p>
             <div className="flex flex-wrap items-center gap-3">
-              <Button render={<a href="#pilot-apply" />} size="lg">
+              {/* 一页一枚实心主钮：首页的实心主钮留给申请表的「提交申请」，这里只是跳到表单的描边钮 */}
+              <Button render={<a href="#pilot-apply" />} size="lg" variant="outline">
                 {copy.apply}
                 <ArrowRight aria-hidden />
               </Button>

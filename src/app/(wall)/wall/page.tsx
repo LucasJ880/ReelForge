@@ -57,7 +57,7 @@ export default async function ExchangeWallPage() {
         template: { select: { nameZh: true, name: true } },
       },
     }),
-    loadExchangeReadings(userId, { mediaLimit: 6, recentLimit: 16 }),
+    loadExchangeReadings(userId, { mediaLimit: 6, recentLimit: 16, locale }),
     loadProductionCounts(userId),
   ]);
 

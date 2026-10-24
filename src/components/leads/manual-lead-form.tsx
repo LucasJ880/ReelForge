@@ -47,7 +47,8 @@ export function ManualLeadForm({ locale }: { locale: Locale }) {
   return (
     <form onSubmit={submit} aria-label={copy.manualTitle} className="x-panel min-w-0 space-y-4 p-5" noValidate>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field id="manual-name" label={growth.leadForm.name}>
+        {/* 商家替客户登记：称呼 / 项目 / 来源用商家口吻（访客表单的「怎么称呼你」会让商家填成自己） */}
+        <Field id="manual-name" label={copy.manualName}>
           <Input id="manual-name" value={form.name} onChange={set("name")} maxLength={80} required />
         </Field>
         <Field id="manual-phone" label={growth.leadForm.phone}>
@@ -56,11 +57,11 @@ export function ManualLeadForm({ locale }: { locale: Locale }) {
         <Field id="manual-email" label={growth.leadForm.email}>
           <Input id="manual-email" type="email" value={form.email} onChange={set("email")} maxLength={254} />
         </Field>
-        <Field id="manual-service" label={growth.leadForm.service}>
+        <Field id="manual-service" label={copy.manualService}>
           <Input id="manual-service" value={form.serviceInterest} onChange={set("serviceInterest")} placeholder={growth.leadForm.servicePlaceholder} maxLength={120} />
         </Field>
       </div>
-      <Field id="manual-source" label={growth.leadForm.source}>
+      <Field id="manual-source" label={copy.manualSource}>
         <NativeSelect id="manual-source" value={form.selfReportedSource} onChange={set("selfReportedSource")}>
           <option value="">{growth.leadForm.choose}</option>
           {SELF_REPORTED_SOURCES.map((key) => (

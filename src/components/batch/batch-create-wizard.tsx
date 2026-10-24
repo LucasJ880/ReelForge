@@ -115,10 +115,16 @@ export function BatchCreateWizard({
   batchDetailsBasePath = "/batches",
   initialTemplateId,
   initialImages = [],
+  showProviderPoints = false,
 }: {
   batchDetailsBasePath?: string;
   initialTemplateId?: string;
   initialImages?: Array<{ id: string; url: string; fileName: string }>;
+  /**
+   * 供应商积分只给内部角色看（运营对账）。客户的成本是本月额度里的「成片条数」——
+   * 失败与取消返还；把「本批预计消耗 7,200 积分」摆给客户，读起来像要花一种他从没买过的钱。
+   */
+  showProviderPoints?: boolean;
 } = {}) {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -980,20 +986,25 @@ export function BatchCreateWizard({
                   planSelectable
                   planValue={videoPlanId}
                   onPlanChange={handlePlanChange}
+                  showPlanPoints={showProviderPoints}
                 />
                 <p className="text-meta text-muted-foreground">
                   {selectedRouteAvailable === null
                     ? (english ? "Checking live provider availability…" : "正在检查供应商实时可用性…")
                     : selectedRouteAvailable
-                      ? videoRouteId === "buddy"
-                        ? estimatedPartnerPoints !== null
-                          ? (english
-                              ? `Estimated provider charge: ${estimatedPartnerPoints.toLocaleString()} points for this batch.`
-                              : `本批预计消耗 ${estimatedPartnerPoints.toLocaleString()} 积分。`)
-                          : (english
-                              ? "Charged at the live plan price on submit."
-                              : "按提交时实时套餐价计费。")
-                        : (english ? "The selected route is ready." : "所选线路当前可用。")
+                      ? !showProviderPoints
+                        ? (english
+                            ? `This batch counts ${totalVideoCount} videos against this month's allowance once delivered; failures and cancels are refunded.`
+                            : `本批 ${totalVideoCount} 条按成片计入本月额度，失败与取消返还。`)
+                        : videoRouteId === "buddy"
+                          ? estimatedPartnerPoints !== null
+                            ? (english
+                                ? `Estimated provider charge: ${estimatedPartnerPoints.toLocaleString()} points for this batch.`
+                                : `本批预计消耗 ${estimatedPartnerPoints.toLocaleString()} 积分。`)
+                            : (english
+                                ? "Charged at the live plan price on submit."
+                                : "按提交时实时套餐价计费。")
+                          : (english ? "The selected route is ready." : "所选线路当前可用。")
                       : (english
                           ? "This route is unavailable. Choose another route or wait before continuing."
                           : "所选线路当前不可用，请更换线路或等待恢复后继续。")}
@@ -1054,14 +1065,20 @@ export function BatchCreateWizard({
                         : (english ? "Aivora video route · Seedance 2.0" : "Aivora 视频通道 · Seedance 2.0")
                       : (english ? "Official direct route" : "官方直连线路"),
                   ],
-                  [
-                    english ? "Estimated points" : "预计积分",
-                    videoRouteId === "buddy"
-                      ? (estimatedPartnerPoints !== null
-                          ? estimatedPartnerPoints.toLocaleString()
-                          : (english ? "Live plan price at submit" : "以提交时实时套餐价为准"))
-                      : (english ? "Provider dependent" : "以供应商为准"),
-                  ],
+                  /// 客户看额度（成片条数），内部角色才看供应商积分
+                  !showProviderPoints
+                    ? [
+                        english ? "Allowance" : "计入额度",
+                        english ? `${totalVideoCount} videos once delivered` : `成片后计 ${totalVideoCount} 条`,
+                      ]
+                    : [
+                        english ? "Estimated points" : "预计积分",
+                        videoRouteId === "buddy"
+                          ? (estimatedPartnerPoints !== null
+                              ? estimatedPartnerPoints.toLocaleString()
+                              : (english ? "Live plan price at submit" : "以提交时实时套餐价为准"))
+                          : (english ? "Provider dependent" : "以供应商为准"),
+                      ],
                   [english ? "Estimated time" : "预计耗时", estimateText],
                 ].map(([label, value]) => (
                   <div

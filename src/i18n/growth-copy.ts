@@ -176,6 +176,10 @@ interface GrowthCopy {
     actionFailed: string;
     manualTitle: string;
     manualHint: string;
+    /** 手工登记是商家替客户填：字段用商家的口吻，不借访客表单的「怎么称呼你」。 */
+    manualName: string;
+    manualService: string;
+    manualSource: string;
     manualContactRequired: string;
     manualSubmit: string;
     manualCreated: string;
@@ -414,6 +418,9 @@ const ZH: GrowthCopy = {
     actionFailed: "没改成功，请再试一次。",
     manualTitle: "手工登记",
     manualHint: "电话、到店或熟人介绍来的询盘",
+    manualName: "客户称呼",
+    manualService: "客户想做的项目",
+    manualSource: "客户从哪里知道你（选填）",
     manualContactRequired: "请至少填电话或邮箱，方便跟进。",
     manualSubmit: "登记",
     manualCreated: "已登记。",
@@ -702,6 +709,9 @@ const EN: GrowthCopy = {
     actionFailed: "That didn't save. Please try again.",
     manualTitle: "Log an inquiry",
     manualHint: "Phone calls, walk-ins and referrals",
+    manualName: "Customer name",
+    manualService: "What the customer needs",
+    manualSource: "How the customer found you (optional)",
     manualContactRequired: "Add a phone number or email so you can follow up.",
     manualSubmit: "Log it",
     manualCreated: "Logged.",

@@ -7,6 +7,7 @@ import {
   __test__ as storyboardServiceTest,
   buildStoryboardFramePlans,
   canRegenerateStoryboardFrame,
+  reconcileStoryboardRun,
   storyboardFrameCountForDuration,
   storyboardRunView,
 } from "../src/lib/video-generation/storyboard-service";
@@ -28,36 +29,51 @@ test("short batch clips still receive four continuity-lock frames", () => {
   assert.equal(storyboardFrameCountForDuration(10), 4);
 });
 
-test("storyboard regeneration fails closed unless creation was rejected or refunded", () => {
+test("storyboard regeneration fails closed unless the billing outcome is knowable", () => {
+  // 任务号已知的 ACK_UNKNOWN：真实状态可查，由 reconcile 处置，禁止抢先重生成。
   assert.equal(canRegenerateStoryboardFrame({
     status: "FAILED",
     submissionState: "ACK_UNKNOWN",
     lastProviderStatus: null,
+    externalTaskId: "shuyu-task-1",
   }), false);
+  // 任务号未知的 ACK_UNKNOWN：无按键反查接口，显式计费的新 attempt 是唯一出路
+  //（0804 真机复现的悬死根因——此前该态永久冻结，单帧拖死整个 run）。
+  assert.equal(canRegenerateStoryboardFrame({
+    status: "FAILED",
+    submissionState: "ACK_UNKNOWN",
+    lastProviderStatus: null,
+    externalTaskId: null,
+  }), true);
   assert.equal(canRegenerateStoryboardFrame({
     status: "FAILED",
     submissionState: "ACCEPTED",
     lastProviderStatus: "refund_error",
+    externalTaskId: "shuyu-task-2",
   }), false);
   assert.equal(canRegenerateStoryboardFrame({
     status: "FAILED",
     submissionState: "ACCEPTED",
     lastProviderStatus: "failed",
+    externalTaskId: "shuyu-task-3",
   }), false);
   assert.equal(canRegenerateStoryboardFrame({
     status: "FAILED",
     submissionState: "REJECTED",
     lastProviderStatus: null,
+    externalTaskId: null,
   }), true);
   assert.equal(canRegenerateStoryboardFrame({
     status: "FAILED",
     submissionState: "ACCEPTED",
     lastProviderStatus: "refunded",
+    externalTaskId: "shuyu-task-4",
   }), true);
   assert.equal(canRegenerateStoryboardFrame({
     status: "SUCCEEDED",
     submissionState: "ACCEPTED",
     lastProviderStatus: "success",
+    externalTaskId: "shuyu-task-5",
   }), true);
 });
 
@@ -72,6 +88,8 @@ function fakeFrame(overrides: Record<string, unknown>): Record<string, unknown> 
     status: "QUEUED",
     submissionState: "NOT_STARTED",
     lastProviderStatus: null,
+    externalTaskId: null,
+    submittedAt: null,
     outputUrl: null,
     outputAsset: null,
     errorCode: null,
@@ -200,13 +218,278 @@ test("the run view exposes billing-safe per-frame regeneration flags", () => {
     frames: [
       fakeFrame({ id: "f0", ordinal: 0, status: "SUCCEEDED", submissionState: "ACCEPTED", lastProviderStatus: "completed" }),
       fakeFrame({ id: "f1", ordinal: 1, status: "FAILED", submissionState: "REJECTED" }),
-      fakeFrame({ id: "f2", ordinal: 2, status: "FAILED", submissionState: "ACK_UNKNOWN" }),
-      fakeFrame({ id: "f3", ordinal: 3, status: "FAILED", submissionState: "ACCEPTED", lastProviderStatus: "refunded" }),
+      // 任务号已知的 ACK_UNKNOWN 冻结（reconcile 处置）；任务号未知的可重生成。
+      fakeFrame({ id: "f2", ordinal: 2, status: "FAILED", submissionState: "ACK_UNKNOWN", externalTaskId: "shuyu-task-f2" }),
+      fakeFrame({ id: "f3", ordinal: 3, status: "FAILED", submissionState: "ACK_UNKNOWN", externalTaskId: null }),
     ],
   } as never);
   assert.deepEqual(
     view.frames.map((frame) => frame.canRegenerate),
     [true, true, false, true],
+  );
+});
+
+test("reconcile revives an ACK_UNKNOWN frame with a known task id instead of resubmitting", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
+  const originals = {
+    runFindFirst: runModel.findFirst,
+    runUpdateMany: runModel.updateMany,
+    frameFindUnique: frameModel.findUnique,
+    frameUpdateMany: frameModel.updateMany,
+  };
+  t.after(() => {
+    runModel.findFirst = originals.runFindFirst;
+    runModel.updateMany = originals.runUpdateMany;
+    frameModel.findUnique = originals.frameFindUnique;
+    frameModel.updateMany = originals.frameUpdateMany;
+  });
+  const submitCalls: unknown[] = [];
+  storyboardServiceTest.__setRuntimeDependenciesForTests({
+    submitTask: (async (input: unknown) => {
+      submitCalls.push(input);
+      throw new Error("no submission may happen while reconciling ACK_UNKNOWN");
+    }) as never,
+  });
+  t.after(() => storyboardServiceTest.__setRuntimeDependenciesForTests(null));
+
+  const run = {
+    id: "run-revive",
+    userId: "owner-1",
+    status: "FAILED",
+    approvalPolicy: "AUTO",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: "FRAME_FAILED",
+    errorMessage: "stale",
+    inputImageUrls: [],
+    frames: [
+      fakeFrame({ id: "f0", ordinal: 0, status: "SUCCEEDED", submissionState: "ACCEPTED", outputUrl: "https://assets.example.test/0.png" }),
+      fakeFrame({
+        id: "f1",
+        ordinal: 1,
+        status: "FAILED",
+        submissionState: "ACK_UNKNOWN",
+        externalTaskId: "shuyu-ext-1",
+        errorCode: "SUBMISSION_ACK_UNKNOWN",
+      }),
+      fakeFrame({ id: "f2", ordinal: 2, status: "QUEUED" }),
+      fakeFrame({ id: "f3", ordinal: 3, status: "QUEUED" }),
+    ],
+  } as Record<string, unknown>;
+
+  const frameWrites: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  const runWrites: Array<Record<string, unknown>> = [];
+  runModel.findFirst = async () => ({ ...run });
+  runModel.updateMany = async (args: { data: Record<string, unknown> }) => {
+    runWrites.push(args.data);
+    return { count: 1 };
+  };
+  frameModel.updateMany = async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+    frameWrites.push(args);
+    // 复活 CAS 放行；随后的租约领取 CAS 拒绝，让本测试停在复活边界。
+    if (args.data.status === "PROCESSING" && args.data.submissionState === "ACCEPTED") {
+      return { count: 1 };
+    }
+    return { count: 0 };
+  };
+  frameModel.findUnique = async () => null; // 队列帧的推进在本测试中截断
+
+  await reconcileStoryboardRun("run-revive");
+
+  const revive = frameWrites.find(
+    (write) =>
+      write.where.id === "f1" &&
+      write.data.status === "PROCESSING" &&
+      write.data.submissionState === "ACCEPTED",
+  );
+  assert.ok(revive, "the ACK_UNKNOWN frame with a task id revives into the harvest track");
+  assert.equal(revive!.data.errorCode, null);
+  assert.ok(
+    !frameWrites.some((write) => write.where.id === "f1" && write.data.submissionState === "SUBMITTING"),
+    "reviving must never resubmit the frame (billing-safe: status query only)",
+  );
+  assert.equal(submitCalls.length, 0, "no provider submission may occur during reconciliation");
+  assert.ok(
+    runWrites.some((data) => data.status === "GENERATING"),
+    "the prematurely FAILED run heals so polling keeps driving it",
+  );
+});
+
+test("a frame stuck in SUBMITTING beyond the window is finalized as ACK_UNKNOWN", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
+  const originals = {
+    runFindFirst: runModel.findFirst,
+    runUpdateMany: runModel.updateMany,
+    frameFindUnique: frameModel.findUnique,
+    frameUpdateMany: frameModel.updateMany,
+  };
+  t.after(() => {
+    runModel.findFirst = originals.runFindFirst;
+    runModel.updateMany = originals.runUpdateMany;
+    frameModel.findUnique = originals.frameFindUnique;
+    frameModel.updateMany = originals.frameUpdateMany;
+  });
+
+  const run = {
+    id: "run-stall",
+    userId: "owner-1",
+    status: "GENERATING",
+    approvalPolicy: "AUTO",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: null,
+    errorMessage: null,
+    inputImageUrls: [],
+    frames: [
+      fakeFrame({
+        id: "f0",
+        ordinal: 0,
+        status: "PROCESSING",
+        submissionState: "SUBMITTING",
+        submittedAt: new Date(Date.now() - 11 * 60_000),
+      }),
+      fakeFrame({
+        id: "f1",
+        ordinal: 1,
+        status: "PROCESSING",
+        submissionState: "SUBMITTING",
+        submittedAt: new Date(),
+      }),
+      fakeFrame({ id: "f2", ordinal: 2, status: "QUEUED" }),
+      fakeFrame({ id: "f3", ordinal: 3, status: "QUEUED" }),
+    ],
+  } as Record<string, unknown>;
+
+  const frameWrites: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  runModel.findFirst = async () => ({ ...run });
+  runModel.updateMany = async () => ({ count: 0 });
+  frameModel.updateMany = async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+    frameWrites.push(args);
+    return { count: 1 };
+  };
+  frameModel.findUnique = async () => null;
+
+  await reconcileStoryboardRun("run-stall");
+
+  const finalized = frameWrites.filter(
+    (write) => write.data.submissionState === "ACK_UNKNOWN" && write.data.status === "FAILED",
+  );
+  assert.equal(finalized.length, 1, "only the stalled frame is finalized");
+  assert.equal(finalized[0].where.id, "f0");
+  assert.equal(finalized[0].data.errorCode, "SUBMISSION_ACK_UNKNOWN");
+  assert.ok(
+    !frameWrites.some((write) => write.where.id === "f1" && write.data.status === "FAILED"),
+    "a freshly submitting frame stays untouched",
+  );
+});
+
+function submissionHarnessFrame(): Record<string, unknown> {
+  return {
+    id: "frame-sub",
+    ordinal: 0,
+    attempt: 1,
+    isCurrent: true,
+    beat: "beat",
+    prompt: "prompt",
+    status: "QUEUED",
+    submissionState: "NOT_STARTED",
+    providerRequestKey: "rk-sub-1",
+    planId: null,
+    modelSnapshot: null,
+    resolutionSnapshot: null,
+    pointsSnapshot: null,
+    outputAsset: null,
+    storyboardRun: {
+      id: "run-sub",
+      userId: "owner-1",
+      aspectRatio: "9:16",
+      inputImageUrls: [],
+      frames: [],
+    },
+  };
+}
+
+test("a persistence blip after provider acknowledgement is retried, not declared ACK_UNKNOWN", async (t) => {
+  const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
+  const originals = {
+    findUnique: frameModel.findUnique,
+    updateMany: frameModel.updateMany,
+  };
+  t.after(() => Object.assign(frameModel, originals));
+  storyboardServiceTest.__setRuntimeDependenciesForTests({
+    submitTask: (async () => ({
+      requestKey: "rk-sub-1",
+      externalTaskId: "shuyu-ext-9",
+      planSnapshot: { planId: "p", model: "gpt-image-2", resolution: "2K", points: 32, family: "gpt-image-2" },
+    })) as never,
+  });
+  t.after(() => storyboardServiceTest.__setRuntimeDependenciesForTests(null));
+
+  frameModel.findUnique = async () => submissionHarnessFrame();
+  const writes: Array<{ data: Record<string, unknown> }> = [];
+  let acceptAttempts = 0;
+  frameModel.updateMany = async (args: { data: Record<string, unknown> }) => {
+    writes.push(args);
+    if (args.data.submissionState === "SUBMITTING") return { count: 1 };
+    if (args.data.submissionState === "ACCEPTED") {
+      acceptAttempts += 1;
+      if (acceptAttempts === 1) throw new Error("transient db blip");
+      return { count: 1 };
+    }
+    return { count: 1 };
+  };
+
+  await storyboardServiceTest.submitStoryboardFrame("frame-sub");
+
+  assert.equal(acceptAttempts, 2, "the acknowledged task id is persisted on a second attempt");
+  const accepted = writes.filter((write) => write.data.submissionState === "ACCEPTED");
+  assert.ok(accepted.every((write) => write.data.externalTaskId === "shuyu-ext-9"));
+  assert.ok(
+    !writes.some((write) => write.data.status === "FAILED"),
+    "an acknowledged submission must not be classified as failed",
+  );
+});
+
+test("when persistence keeps failing after acknowledgement, the task id survives on the ACK_UNKNOWN row", async (t) => {
+  const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
+  const originals = {
+    findUnique: frameModel.findUnique,
+    updateMany: frameModel.updateMany,
+  };
+  t.after(() => Object.assign(frameModel, originals));
+  storyboardServiceTest.__setRuntimeDependenciesForTests({
+    submitTask: (async () => ({
+      requestKey: "rk-sub-1",
+      externalTaskId: "shuyu-ext-9",
+      planSnapshot: { planId: "p", model: "gpt-image-2", resolution: "2K", points: 32, family: "gpt-image-2" },
+    })) as never,
+  });
+  t.after(() => storyboardServiceTest.__setRuntimeDependenciesForTests(null));
+
+  frameModel.findUnique = async () => submissionHarnessFrame();
+  const failureWrites: Array<Record<string, unknown>> = [];
+  frameModel.updateMany = async (args: { data: Record<string, unknown> }) => {
+    if (args.data.submissionState === "SUBMITTING") return { count: 1 };
+    if (args.data.submissionState === "ACCEPTED") throw new Error("db down");
+    if (args.data.status === "FAILED") {
+      failureWrites.push(args.data);
+      return { count: 1 };
+    }
+    return { count: 0 };
+  };
+
+  await storyboardServiceTest.submitStoryboardFrame("frame-sub");
+
+  assert.equal(failureWrites.length, 1);
+  assert.equal(failureWrites[0].submissionState, "ACK_UNKNOWN");
+  assert.equal(
+    failureWrites[0].externalTaskId,
+    "shuyu-ext-9",
+    "a known task id is never discarded—reconcile uses it to recover the frame",
   );
 });
 

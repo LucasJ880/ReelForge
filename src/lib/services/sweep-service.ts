@@ -1,6 +1,8 @@
 import {
+  BatchJobStatus,
   FinalVideoStatus,
   Prisma,
+  ProviderSubmissionState,
   VideoBriefStatus,
   VideoJobStatus,
 } from "@prisma/client";
@@ -24,8 +26,19 @@ import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
  *
  *  1. VideoJob 超时 —— RUNNING/QUEUED 且超过 timeoutAt + 宽限期；
  *     或 timeoutAt 为 null（部分创建路径提交前不设）且 createdAt 超过兜底时长。
+ *     → 已提交给合作方的任务（externalJobId 非空）**先走 reconcileVideoJob
+ *       按真实状态收敛**：还在渲染就保活、成了就收割、供应商不可达才判死。
+ *       0803-04 真机取证：波内 deadline 翻页会把已提交仍在渲染的任务孤儿化，
+ *       此前的盲判 FAILED 会推翻 watchdog 的保活决定，「供应商还在渲染却被扫
+ *       成失败」。未提交的行保持零外呼盲判。两类都受绝对上限兜底：超过
+ *       SWEEP_JOB_ABSOLUTE_MAX_MIN 的任务无条件失败化，「任何任务不允许永远
+ *       进行中」不豁免。
  *     → FAILED + userSafeError。用户点「重试」时 retryFailedVideoJob 会先查
  *       Provider 真实状态：若其实已成功则直接翻正、不重复扣费（既有双保险）。
+ *     → 例外：批次里排队等槽位的行（QUEUED + 未提交 + 批次仍活跃）不吃
+ *       createdAt 兜底——大批次低并发下队尾等一小时是健康状态，0803 v2 轮
+ *       19 条零提交阵亡即此误判。它们的生命周期归 processBatchTick 管
+ *       （故事板死局落地 / 熔断 / 取消），绝对上限仍然兜底。
  *
  *  2. FinalVideo 卡在 STITCHING —— runner 领取后崩溃/失联，超过 stitch 超时。
  *     → stitchAttempts+1；未达上限转回 PENDING（可被 runner 重新领取，续跑），
@@ -41,6 +54,7 @@ import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
  * 时长通过环境变量可调（分钟）：
  *   SWEEP_JOB_GRACE_MIN            job 超过 timeoutAt 后的宽限，默认 10
  *   SWEEP_JOB_NO_TIMEOUT_MAX_MIN   timeoutAt 缺失时按 createdAt 兜底，默认 60
+ *   SWEEP_JOB_ABSOLUTE_MAX_MIN     任何 RUNNING/QUEUED 行的绝对寿命上限，默认 720
  *   SWEEP_STITCH_TIMEOUT_MIN       STITCHING 最大时长，默认 30
  *   SWEEP_AWAIT_STITCH_TIMEOUT_MIN 等待合成最大时长，默认 45
  */
@@ -48,6 +62,8 @@ import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
 const JOB_GRACE_MIN = () => Number(process.env.SWEEP_JOB_GRACE_MIN ?? "10");
 const JOB_NO_TIMEOUT_MAX_MIN = () =>
   Number(process.env.SWEEP_JOB_NO_TIMEOUT_MAX_MIN ?? "60");
+const JOB_ABSOLUTE_MAX_MIN = () =>
+  Number(process.env.SWEEP_JOB_ABSOLUTE_MAX_MIN ?? "720");
 const STITCH_TIMEOUT_MIN = () =>
   Number(process.env.SWEEP_STITCH_TIMEOUT_MIN ?? "30");
 const AWAIT_STITCH_TIMEOUT_MIN = () =>
@@ -64,6 +80,9 @@ const BRIEF_STITCH_FAILED_MESSAGE =
 
 export interface SweepResult {
   timedOutJobs: string[];
+  /// 已提交给合作方、超时后改由 reconcileVideoJob 按真实状态收敛的 job
+  /// （保活 / 收割 / 判死由 reconcile 决定，sweep 不再盲判）
+  reconciledJobs: string[];
   /// STITCHING 超时 → 转回 PENDING 续跑的 FinalVideo
   requeuedStitching: string[];
   /// STITCHING 超时且重试耗尽 → FAILED 的 FinalVideo
@@ -75,6 +94,7 @@ export interface SweepResult {
 export async function sweepStuckTasks(now = new Date()): Promise<SweepResult> {
   const result: SweepResult = {
     timedOutJobs: [],
+    reconciledJobs: [],
     requeuedStitching: [],
     failedStitching: [],
     failedAwaitingStitch: [],
@@ -110,6 +130,30 @@ function videoJobSweepEligibilityWhere(
   };
 }
 
+/// 排队等槽位的批次行：QUEUED、从未开始提交、批次仍活跃。这是健康状态而不是
+/// 孤儿——它们的生命周期归 processBatchTick 管，sweep 只在绝对上限后兜底。
+function activeBatchQueueWhere(
+  absoluteCutoff: Date,
+): Prisma.VideoJobWhereInput {
+  return {
+    status: VideoJobStatus.QUEUED,
+    submissionState: ProviderSubmissionState.NOT_STARTED,
+    externalJobId: null,
+    createdAt: { gte: absoluteCutoff },
+    batchJob: {
+      is: {
+        status: {
+          in: [
+            BatchJobStatus.EXPANDING,
+            BatchJobStatus.RUNNING,
+            BatchJobStatus.PAUSED,
+          ],
+        },
+      },
+    },
+  };
+}
+
 /// 1. VideoJob 超时
 async function sweepTimedOutJobs(now: Date, result: SweepResult) {
   const cutoff = new Date(now.getTime() - JOB_GRACE_MIN() * 60_000);
@@ -117,6 +161,11 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
   /// 保证「任何任务都不会永远进行中」没有豁免通道
   const noTimeoutCutoff = new Date(
     now.getTime() - JOB_NO_TIMEOUT_MAX_MIN() * 60_000,
+  );
+  /// 绝对寿命上限：超过它的行无条件失败化，不再问供应商也不再豁免排队行。
+  /// 这是「先按真实状态收敛」引入的保活路径的总兜底。
+  const absoluteCutoff = new Date(
+    now.getTime() - JOB_ABSOLUTE_MAX_MIN() * 60_000,
   );
   const dispatchEligibility = videoJobSweepEligibilityWhere();
   const stuckJobs = await db.videoJob.findMany({
@@ -127,11 +176,13 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
         { timeoutAt: { not: null, lt: cutoff } },
         { timeoutAt: null, createdAt: { lt: noTimeoutCutoff } },
       ],
+      NOT: activeBatchQueueWhere(absoluteCutoff),
     },
     select: {
       id: true,
       videoBriefId: true,
       createdAt: true,
+      externalJobId: true,
       dispatchQuarantineDecision: true,
     },
     take: 50,
@@ -143,6 +194,25 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
     /// Defense in depth：即使查询条件未来被改坏或行在读取后被人工 EXPIRED，
     /// 仍不能把隔离任务改成 FAILED 后送进 retry 重提路径。
     if (isHistoricalDispatchQuarantined(job)) continue;
+
+    /// 已提交给合作方且未超绝对上限：判死前必须问一次真实状态。
+    /// reconcileVideoJob 内联了 watchdog 双信号——还在渲染就保活（供应商还在
+    /// 干活的付费任务绝不丢弃）、完成就收割、供应商不可达才 FAILED。
+    if (job.externalJobId && job.createdAt >= absoluteCutoff) {
+      try {
+        const { reconcileVideoJob } = await import("./video-service");
+        await reconcileVideoJob(job.id);
+        result.reconciledJobs.push(job.id);
+        if (job.videoBriefId) briefIds.add(job.videoBriefId);
+      } catch (err) {
+        /// reconcile 本身异常（非供应商不可达）：留给下一轮，绝对上限兜底。
+        console.warn(
+          `[sweep] reconcileVideoJob(${job.id}) failed:`,
+          (err as Error).message,
+        );
+      }
+      continue;
+    }
 
     /// CAS：仍在 RUNNING/QUEUED 才失败化，避免与并发的 reconcile 冲突
     const updated = await db.videoJob.updateMany({
@@ -156,7 +226,10 @@ async function sweepTimedOutJobs(now: Date, result: SweepResult) {
       data: {
         status: VideoJobStatus.FAILED,
         userSafeError: JOB_TIMEOUT_USER_ERROR,
-        errorMessage: `sweep: job timed out (timeoutAt + ${JOB_GRACE_MIN()}min grace)`,
+        errorMessage:
+          job.createdAt < absoluteCutoff
+            ? `sweep: job exceeded absolute lifetime cap (${JOB_ABSOLUTE_MAX_MIN()}min)`
+            : `sweep: job timed out (timeoutAt + ${JOB_GRACE_MIN()}min grace)`,
         finishedAt: now,
       },
     });
@@ -294,4 +367,5 @@ export const __test__ = {
   AWAIT_STITCH_TIMEOUT_ERROR,
   BRIEF_STITCH_FAILED_MESSAGE,
   videoJobSweepEligibilityWhere,
+  activeBatchQueueWhere,
 };

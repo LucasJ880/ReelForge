@@ -157,6 +157,15 @@ export class BatchDispatchNotAuthorizedError extends Error {
   }
 }
 
+/// 提交已被合作方确认，但 ACCEPTED 的 CAS 干净落空（count=0）——行已被并发
+/// 路径接管。与「落库抛错」区分开：后者值得重试一次持久化，前者不值得。
+class BatchSubmissionPersistenceLostError extends Error {
+  constructor() {
+    super("provider acknowledgement could not be persisted");
+    this.name = "BatchSubmissionPersistenceLostError";
+  }
+}
+
 let videoProviderFactoryOverride:
   | ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter)
   | null = null;
@@ -816,6 +825,8 @@ async function recoverExpiredLeases(batchId: string, now: Date): Promise<number>
         leaseExpiresAt: null,
         heartbeatAt: null,
         availableAt: safeToReplay ? now : null,
+        /// 回队列的行清掉提交期 deadline，排队等待不该消耗渲染时钟。
+        ...(safeToReplay ? { timeoutAt: null } : {}),
       },
     });
     if (result.count > 0) {
@@ -1010,7 +1021,38 @@ async function submitClaimedJob(
   });
   if (intent.count === 0) return;
 
-  let providerAcknowledged = false;
+  /// 合作方一旦返回任务号，提交就已确认；把确认结果捕获在 try 外，
+  /// 落库瞬时失败时重试一次持久化即可救回真实任务（900pt 级），
+  /// 而不是让它掉进「确认未知」黑洞。
+  let acknowledged: {
+    providerJobId: string;
+    providerId: string;
+    providerUnitPoints?: number;
+  } | null = null;
+  const acceptJobSubmission = (ack: NonNullable<typeof acknowledged>) =>
+    db.videoJob.updateMany({
+      where: {
+        id: job.id,
+        status: VideoJobStatus.RUNNING,
+        leaseOwner: job.claimOwner,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+        providerRequestKey,
+      },
+      data: {
+        externalJobId: ack.providerJobId,
+        startedAt: now,
+        lastProviderStatus: "queued",
+        submissionState: ProviderSubmissionState.ACCEPTED,
+        submissionErrorClass: null,
+        leaseOwner: null,
+        leaseExpiresAt: null,
+        heartbeatAt: now,
+        /// 提交级套餐降级后以实际使用的套餐回写计价快照,保证账实一致。
+        ...(ack.providerUnitPoints !== undefined
+          ? { providerUnitPoints: ack.providerUnitPoints }
+          : {}),
+      },
+    });
   try {
     const guarded = await callProviderWithHistoricalGuard({
       record: job,
@@ -1067,6 +1109,9 @@ async function submitClaimedJob(
           leaseOwner: null,
           leaseExpiresAt: null,
           heartbeatAt: null,
+          /// timeoutAt 是提交后的渲染 deadline；回到队列的行不许带着旧钟走，
+          /// 否则会在排队时被 sweep 误判超时。
+          timeoutAt: null,
         },
       });
       console.warn(JSON.stringify({
@@ -1078,30 +1123,12 @@ async function submitClaimedJob(
       return;
     }
     const created = guarded.value;
-    providerAcknowledged = true;
-    const updated = await db.videoJob.updateMany({
-      where: {
-        id: job.id,
-        status: VideoJobStatus.RUNNING,
-        leaseOwner: job.claimOwner,
-        submissionState: ProviderSubmissionState.SUBMITTING,
-        providerRequestKey,
-      },
-      data: {
-        externalJobId: created.providerJobId,
-        startedAt: now,
-        lastProviderStatus: "queued",
-        submissionState: ProviderSubmissionState.ACCEPTED,
-        submissionErrorClass: null,
-        leaseOwner: null,
-        leaseExpiresAt: null,
-        heartbeatAt: now,
-        /// 提交级套餐降级后以实际使用的套餐回写计价快照,保证账实一致。
-        ...(created.providerUnitPoints !== undefined
-          ? { providerUnitPoints: created.providerUnitPoints }
-          : {}),
-      },
-    });
+    acknowledged = {
+      providerJobId: created.providerJobId,
+      providerId: created.providerId,
+      providerUnitPoints: created.providerUnitPoints,
+    };
+    const updated = await acceptJobSubmission(acknowledged);
     if (updated.count > 0) {
       logStatusTransition({
         taskId: job.id,
@@ -1111,7 +1138,7 @@ async function submitClaimedJob(
       });
       return;
     }
-    throw new Error("provider acknowledgement could not be persisted");
+    throw new BatchSubmissionPersistenceLostError();
   } catch (error) {
     /// 0804 取证:同一批「route is not ready」裸文案在多次净进程复现,
     /// 静态检索找不到源——在写入点落完整堆栈定位真实抛出者。
@@ -1126,10 +1153,29 @@ async function submitClaimedJob(
           .join(" <- "),
       });
     }
+    if (
+      acknowledged &&
+      !(error instanceof BatchSubmissionPersistenceLostError)
+    ) {
+      // 提交已确认、只是落库**抛错**（瞬时故障）：重试一次持久化就能救回
+      // 真实任务。CAS 干净落空（count=0，行已被并发路径接管）走的是上面的
+      // 哨兵错误，不重试——重复同一个 CAS 只会再次落空。
+      const recovered = await acceptJobSubmission(acknowledged)
+        .catch(() => ({ count: 0 }));
+      if (recovered.count > 0) {
+        logStatusTransition({
+          taskId: job.id,
+          from: VideoJobStatus.QUEUED,
+          to: VideoJobStatus.RUNNING,
+          reason: `batch_provider_submitted_recovered_persistence (${acknowledged.providerId})`,
+        });
+        return;
+      }
+    }
     const classified = asProviderSubmissionError({
       error,
       providerId: job.videoRouteSnapshot ?? provider.id,
-      evidence: providerAcknowledged
+      evidence: acknowledged
         ? { stage: "persistence" }
         : provider.isMockMode()
           ? { stage: "preflight", retryable: true }
@@ -1163,6 +1209,12 @@ async function submitClaimedJob(
         submissionErrorClass: `${classified.disposition}:${classified.stage}`,
         providerRequestKey: retryable ? null : providerRequestKey,
         availableAt: retryable ? new Date(Date.now() + delayMs) : null,
+        /// 重新排队的行清掉提交期 deadline，避免排队中被 sweep 误判超时；
+        /// 已确认的任务号写进失败行，供人工/对账按真实状态处置。
+        ...(retryable ? { timeoutAt: null } : {}),
+        ...(acknowledgementUnknown && acknowledged
+          ? { externalJobId: acknowledged.providerJobId }
+          : {}),
         errorMessage: acknowledgementUnknown
           ? `${PROVIDER_FAILURE_PREFIX} 提交确认未知；禁止自动重提: ${classified.message}`
           : retryable
@@ -1226,12 +1278,14 @@ function batchStoryboardSpec(job: VideoJob): {
 const BATCH_FRAME_MAX_ATTEMPTS = 3;
 
 /**
- * 把「确定未创建且已退款」的失败帧重投一次。
+ * 把可安全重投的失败帧按新 attempt 重投一次。
  *
  * 0728 真机实测：Shuyu 线路繁忙会对部分帧回 502「积分已退回」，4 帧里 3 帧
  * 因此失败、整个故事板 FAILED，而派发闸门要求 storyboardRun=APPROVED，
- * 于是批次永久停在 QUEUED 无人推进。canRegenerateStoryboardFrame 已能识别
- * 这类可安全重投的帧（REJECTED / refunded），批量路径据此自愈。
+ * 于是批次永久停在 QUEUED 无人推进。canRegenerateStoryboardFrame 识别可安全
+ * 重投的帧（REJECTED / refunded / 无任务号的 ACK_UNKNOWN——0804 真机复现的
+ * 悬死根因），批量路径据此自愈；任务号已知的 ACK_UNKNOWN 帧先让 reconcile
+ * 查真实状态，本轮不重投。
  */
 async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
   const runs = await db.storyboardRun.findMany({
@@ -1247,6 +1301,7 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
           status: true,
           submissionState: true,
           lastProviderStatus: true,
+          externalTaskId: true,
         },
       },
     },
@@ -1254,6 +1309,17 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
   });
 
   for (const run of runs) {
+    /// 真实状态可查的帧（ACK_UNKNOWN + 任务号）由 reconcile 复活或落地；
+    /// 在事实揭晓前重投别的帧只会白花钱，这条 run 本轮跳过。
+    if (
+      run.frames.some(
+        (frame) =>
+          frame.submissionState === ProviderSubmissionState.ACK_UNKNOWN &&
+          frame.externalTaskId !== null,
+      )
+    ) {
+      continue;
+    }
     const retryable = run.frames.filter(
       (frame) =>
         frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
@@ -1280,11 +1346,26 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
 }
 
 async function advanceBatchStoryboards(batchId: string): Promise<void> {
-  await retryRecoverableBatchFrames(batchId);
+  /// 顺序即语义：先按合作方真实状态对账（可复活任务号已知的 ACK_UNKNOWN 帧、
+  /// 终结提交半途僵死的帧），再重投可安全重投的失败帧，最后把确认救不回的
+  /// run 落地成诚实的任务失败——保证 FAILED run + QUEUED job 不会活过一个 tick。
   const runs = await db.storyboardRun.findMany({
     where: {
       videoJob: { batchJobId: batchId },
-      status: "GENERATING",
+      OR: [
+        { status: "GENERATING" },
+        {
+          status: "FAILED",
+          frames: {
+            some: {
+              isCurrent: true,
+              status: "FAILED",
+              submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+              externalTaskId: { not: null },
+            },
+          },
+        },
+      ],
     },
     orderBy: { updatedAt: "asc" },
     select: { id: true },
@@ -1293,6 +1374,102 @@ async function advanceBatchStoryboards(batchId: string): Promise<void> {
   await mapConcurrent(runs, providerConcurrency(), async (run) => {
     await reconcileStoryboardRun(run.id);
   });
+  await retryRecoverableBatchFrames(batchId);
+  await settleDeadStoryboardBatchJobs(batchId);
+}
+
+/**
+ * 0804 真机复现的悬死根因收口：storyboardRun FAILED 且既无法对账（没有任务号
+ * 可查）也无法安全重投（计费冻结帧 / 重投次数耗尽）时，把仍在排队的 VideoJob
+ * 落成诚实失败，而不是让它悬死 QUEUED 等 sweep 用「生成超时」误判。
+ *
+ * 同时把死掉的 run 从任务上解绑（归档保留，不删）：任务重试后 retryCount 抬升，
+ * prepareBatchStoryboards 会用新的幂等键重建全新 run，一键续跑不需要人工 force。
+ */
+async function settleDeadStoryboardBatchJobs(batchId: string): Promise<void> {
+  const runs = await db.storyboardRun.findMany({
+    where: {
+      status: "FAILED",
+      videoJob: {
+        batchJobId: batchId,
+        status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] },
+      },
+    },
+    select: {
+      id: true,
+      videoJobId: true,
+      frames: {
+        where: { isCurrent: true, status: "FAILED" },
+        select: {
+          attempt: true,
+          status: true,
+          submissionState: true,
+          lastProviderStatus: true,
+          externalTaskId: true,
+        },
+      },
+    },
+    take: 50,
+  });
+  const now = new Date();
+  for (const run of runs) {
+    if (!run.videoJobId) continue;
+    /// 没有失败帧的 FAILED run 是可自愈的残留（advanceRun 会翻正），不落地。
+    if (run.frames.length === 0) continue;
+    /// 还有事实可查（任务号已知）→ 留给 reconcile。
+    if (
+      run.frames.some(
+        (frame) =>
+          frame.submissionState === ProviderSubmissionState.ACK_UNKNOWN &&
+          frame.externalTaskId !== null,
+      )
+    ) {
+      continue;
+    }
+    /// 全部帧都可安全重投 → 留给 retryRecoverableBatchFrames。
+    if (
+      run.frames.every(
+        (frame) =>
+          frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
+          canRegenerateStoryboardFrame(frame),
+      )
+    ) {
+      continue;
+    }
+    const settled = await db.$transaction(async (tx) => {
+      const failedJob = await tx.videoJob.updateMany({
+        where: {
+          id: run.videoJobId!,
+          status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] },
+        },
+        data: {
+          status: VideoJobStatus.FAILED,
+          submissionErrorClass: "storyboard_failed",
+          errorMessage: `[storyboard:failed] 故事板锚定失败且无法安全自动重投（runId=${run.id}）`,
+          userSafeError:
+            "分镜图生成失败，本条视频未提交生成、不产生视频扣费。点击「重试」会重新生成分镜后继续；若反复失败请联系支持核对分镜积分。",
+          finishedAt: now,
+          availableAt: null,
+        },
+      });
+      /// CAS 落空（任务已被并发路径接管）时不解绑，避免把 run 从
+      /// 一个未失败的任务上摘走。
+      if (failedJob.count === 0) return failedJob;
+      await tx.storyboardRun.updateMany({
+        where: { id: run.id, videoJobId: run.videoJobId },
+        data: { videoJobId: null },
+      });
+      return failedJob;
+    });
+    if (settled.count > 0) {
+      logStatusTransition({
+        taskId: run.videoJobId,
+        from: VideoJobStatus.QUEUED,
+        to: VideoJobStatus.FAILED,
+        reason: `batch_storyboard_dead_settled (runId=${run.id})`,
+      });
+    }
+  }
 }
 
 async function prepareBatchStoryboards(batchId: string, userId: string): Promise<void> {
@@ -1310,7 +1487,10 @@ async function prepareBatchStoryboards(batchId: string, userId: string): Promise
     const spec = batchStoryboardSpec(job);
     const run = await createStoryboardRun({
       userId,
-      idempotencyKey: `batch-storyboard:${job.id}`,
+      /// 幂等键按 retryCount 分代：settleDeadStoryboardBatchJobs 把死掉的 run
+      /// 解绑归档后，用户重试（retryCount+1）会在这里拿到全新的 run，而不是
+      /// replay 回那条已判死的旧 run——这是「不靠人工 force 重跑」的另一半。
+      idempotencyKey: `batch-storyboard:${job.id}:r${job.retryCount}`,
       prompt: job.promptText ?? "Create a faithful product demonstration.",
       durationSec: spec.durationSec,
       aspectRatio: spec.aspectRatio,
@@ -1981,6 +2161,9 @@ export const __test__ = {
   withSerializableRetry,
   submitClaimedJob,
   isBillingSafeManualRetry,
+  retryRecoverableBatchFrames,
+  settleDeadStoryboardBatchJobs,
+  prepareBatchStoryboards,
   __setVideoProviderFactoryForTests(
     factory: ((job: Pick<VideoJob, "provider">) => VideoProviderAdapter) | null,
   ): void {

@@ -1,7 +1,9 @@
 {
   "detector": {
     "ignoreRules": [],
-    "ignoreFiles": [],
+    "ignoreFiles": [
+      "designs/aivora-v2-exchange/index.html"
+    ],
     "ignoreValues": [
       {
         "rule": "design-system-font-size",

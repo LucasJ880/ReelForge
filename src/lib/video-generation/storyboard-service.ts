@@ -22,6 +22,9 @@ import { asProviderSubmissionError } from "@/lib/video-generation/providers/subm
 
 const STORYBOARD_LEASE_MS = 2 * 60_000;
 const STORYBOARD_POLL_RETRY_MS = 20_000;
+/// 帧停留在 SUBMITTING 的最长时长。单次提交只有一次目录查询 + 一次 POST，
+/// 超过这个窗口只可能是进程在提交半途崩溃——提交结局不可知，按 ACK_UNKNOWN 终结。
+const STORYBOARD_SUBMIT_STALL_MS = 10 * 60_000;
 
 const storyboardInclude = {
   frames: {
@@ -215,10 +218,17 @@ export function canRegenerateStoryboardFrame(frame: {
   status: StoryboardFrameStatus | string;
   submissionState: ProviderSubmissionState | string;
   lastProviderStatus?: string | null;
+  externalTaskId: string | null;
 }): boolean {
   if (frame.status === StoryboardFrameStatus.SUCCEEDED) return true;
   if (frame.status !== StoryboardFrameStatus.FAILED) return false;
   if (frame.submissionState === ProviderSubmissionState.REJECTED) return true;
+  if (frame.submissionState === ProviderSubmissionState.ACK_UNKNOWN) {
+    // 任务号已知时真实状态可查，由 reconcile 复活或落地，禁止抢先重生成；
+    // 任务号未知则合作方无按键反查接口，唯一安全出路是显式计费的新 attempt
+    // （新 Idempotency-Key），重复扣费敞口以单帧图片费用为上限。
+    return frame.externalTaskId == null;
+  }
   return frame.lastProviderStatus === "refunded";
 }
 
@@ -382,7 +392,25 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     ...priorFrames.slice(-2),
     ...frame.storyboardRun.inputImageUrls,
   ].slice(0, 5);
-  let providerAcknowledged = false;
+  /// 合作方一旦返回任务号，提交就已确认；此后任何本地失败都不该把这帧
+  /// 归为「确认未知」。任务号捕获在外层，落库失败时先重试一次持久化，
+  /// 仍失败也要把任务号写进失败行，让后续对账能按它查真实状态。
+  let acknowledgedTaskId: string | null = null;
+  const acceptFrameSubmission = (externalTaskId: string) =>
+    db.storyboardFrame.updateMany({
+      where: {
+        id: frame.id,
+        providerRequestKey: frame.providerRequestKey,
+        submissionState: ProviderSubmissionState.SUBMITTING,
+      },
+      data: {
+        externalTaskId,
+        submissionState: ProviderSubmissionState.ACCEPTED,
+        lastProviderStatus: "queued",
+        lastCheckedAt: new Date(),
+        pollErrors: 0,
+      },
+    });
   try {
     const submitted = await runtime().submitTask({
       requestKey: frame.providerRequestKey,
@@ -419,27 +447,21 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
         if (persisted.count !== 1) throw new StoryboardLeaseLostError();
       },
     });
-    providerAcknowledged = true;
-    const accepted = await db.storyboardFrame.updateMany({
-      where: {
-        id: frame.id,
-        providerRequestKey: frame.providerRequestKey,
-        submissionState: ProviderSubmissionState.SUBMITTING,
-      },
-      data: {
-        externalTaskId: submitted.externalTaskId,
-        submissionState: ProviderSubmissionState.ACCEPTED,
-        lastProviderStatus: "queued",
-        lastCheckedAt: new Date(),
-        pollErrors: 0,
-      },
-    });
+    acknowledgedTaskId = submitted.externalTaskId;
+    const accepted = await acceptFrameSubmission(submitted.externalTaskId);
     if (accepted.count !== 1) throw new StoryboardLeaseLostError();
   } catch (error) {
+    if (acknowledgedTaskId && !(error instanceof StoryboardLeaseLostError)) {
+      // 提交已确认、只是落库瞬时失败：重试一次持久化就能救回真实任务。
+      // CAS 落空（帧已被并发路径接管）时安全退出，不产生任何覆盖。
+      const recovered = await acceptFrameSubmission(acknowledgedTaskId)
+        .catch(() => ({ count: 0 }));
+      if (recovered.count === 1) return;
+    }
     const failure = asProviderSubmissionError({
       error,
       providerId: "shuyu",
-      evidence: providerAcknowledged ? { stage: "persistence" } : undefined,
+      evidence: acknowledgedTaskId ? { stage: "persistence" } : undefined,
     });
     const unknown = failure.disposition === "acknowledgement_unknown";
     const state = unknown
@@ -447,7 +469,9 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
       : ProviderSubmissionState.REJECTED;
     const code = unknown ? "SUBMISSION_ACK_UNKNOWN" : "PROVIDER_REJECTED";
     const message = unknown
-      ? "该分镜的任务可能已被接收。为避免重复计费，系统已停止重提这一帧，请联系支持核对；其余分镜会继续生成。"
+      ? acknowledgedTaskId
+        ? "该分镜任务已被合作方接收，系统稍后会自动核对真实进度，无需重新提交。"
+        : "该分镜的提交确认未知，系统会自动按新尝试重新生成这一帧；其余分镜不受影响。"
       : "Shuyu 明确拒绝了该分镜任务，可重新生成这一帧。";
     // Only this frame fails here. The run settles in advanceRun once every
     // sibling reaches a terminal state, so in-flight paid frames still finish.
@@ -459,6 +483,10 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
         completedAt: new Date(),
         errorCode: code,
         errorMessage: message,
+        // 已知任务号绝不丢弃：reconcile 会按它查合作方真实状态并复活这一帧。
+        ...(unknown && acknowledgedTaskId
+          ? { externalTaskId: acknowledgedTaskId }
+          : {}),
       },
     });
   }
@@ -638,11 +666,12 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
       frame.status === StoryboardFrameStatus.FAILED,
     );
   const anyFailed = run.frames.some((frame) => frame.status === StoryboardFrameStatus.FAILED);
-  if (anyFailed && !settled) {
-    // A frame failed while siblings are still queued or generating. Keep the
-    // run GENERATING so the scheduler and UI polling continue to drive the
-    // remaining frames; paid in-flight work must never be abandoned. This also
-    // heals runs that older code marked FAILED mid-flight.
+  if (!settled && run.status === StoryboardRunStatus.FAILED) {
+    // Frames are still queued, generating, or freshly revived while the run
+    // carries a FAILED verdict (old fail-fast semantics, or an ACK_UNKNOWN
+    // frame that reconcile just brought back). Heal the run to GENERATING so
+    // the scheduler and UI polling continue to drive the remaining frames;
+    // paid in-flight work must never be abandoned.
     await db.storyboardRun.updateMany({
       where: { id: run.id, status: StoryboardRunStatus.FAILED },
       data: { status: StoryboardRunStatus.GENERATING, errorCode: null, errorMessage: null },
@@ -664,8 +693,13 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
     run.frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED)
   ) {
     const auto = run.approvalPolicy === StoryboardApprovalPolicy.AUTO;
+    // FAILED is also a legal source state: a revived ACK_UNKNOWN frame can
+    // finish the run after an earlier premature FAILED verdict.
     await db.storyboardRun.updateMany({
-      where: { id: run.id, status: StoryboardRunStatus.GENERATING },
+      where: {
+        id: run.id,
+        status: { in: [StoryboardRunStatus.GENERATING, StoryboardRunStatus.FAILED] },
+      },
       data: {
         status: auto ? StoryboardRunStatus.APPROVED : StoryboardRunStatus.AWAITING_APPROVAL,
         approvedAt: auto ? new Date() : null,
@@ -687,7 +721,73 @@ export async function reconcileStoryboardRun(
 ): Promise<StoryboardRunRecord> {
   const run = await findRun(runId, userId);
   if (!run) throw new StoryboardRequestError("故事板不存在。", "NOT_FOUND", 404);
+  const now = Date.now();
   for (const frame of run.frames) {
+    // 进程在提交半途崩溃的帧会永远停在 SUBMITTING，没有任何轮询会碰它。
+    // 超过提交窗口后按「确认未知」终结（崩溃前后不可区分），无任务号的
+    // 走显式计费的重新生成解冻，而不是让整条 run 无限等待。
+    if (
+      frame.status === StoryboardFrameStatus.PROCESSING &&
+      frame.submissionState === ProviderSubmissionState.SUBMITTING &&
+      frame.submittedAt &&
+      now - frame.submittedAt.getTime() > STORYBOARD_SUBMIT_STALL_MS
+    ) {
+      await db.storyboardFrame.updateMany({
+        where: {
+          id: frame.id,
+          isCurrent: true,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          submittedAt: frame.submittedAt,
+        },
+        data: {
+          status: StoryboardFrameStatus.FAILED,
+          submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+          completedAt: new Date(),
+          errorCode: "SUBMISSION_ACK_UNKNOWN",
+          errorMessage:
+            "该分镜的提交确认未知，系统会自动按新尝试重新生成这一帧；其余分镜不受影响。",
+        },
+      });
+      continue;
+    }
+    // ACK_UNKNOWN 但任务号已知：合作方真实状态可查。先复活回收割轨道再
+    // reconcile——活着继续渲染、成了就收割、败了按退款语义落地。全程零提交，
+    // billing-safe。
+    if (
+      frame.status === StoryboardFrameStatus.FAILED &&
+      frame.submissionState === ProviderSubmissionState.ACK_UNKNOWN &&
+      frame.externalTaskId
+    ) {
+      const revived = await db.storyboardFrame.updateMany({
+        where: {
+          id: frame.id,
+          isCurrent: true,
+          status: StoryboardFrameStatus.FAILED,
+          submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+          externalTaskId: frame.externalTaskId,
+        },
+        data: {
+          status: StoryboardFrameStatus.PROCESSING,
+          submissionState: ProviderSubmissionState.ACCEPTED,
+          completedAt: null,
+          errorCode: null,
+          errorMessage: null,
+          pollErrors: 0,
+          availableAt: null,
+        },
+      });
+      if (revived.count === 1) {
+        try {
+          await reconcileStoryboardFrame(frame.id);
+        } catch (error) {
+          console.error("[storyboards] ack-unknown frame reconcile failed", {
+            frameId: frame.id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      continue;
+    }
     if (
       frame.status === StoryboardFrameStatus.PROCESSING &&
       frame.submissionState === ProviderSubmissionState.ACCEPTED &&
@@ -1003,7 +1103,24 @@ export async function requireApprovedStoryboardForBrief(
 
 export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {
   const runs = await db.storyboardRun.findMany({
-    where: { status: StoryboardRunStatus.GENERATING },
+    where: {
+      OR: [
+        { status: StoryboardRunStatus.GENERATING },
+        // FAILED 但存在「任务号已知的 ACK_UNKNOWN 帧」的 run 可以按真实状态
+        // 复活，必须持续对账；其余 FAILED run 没有可查的事实，不进队列。
+        {
+          status: StoryboardRunStatus.FAILED,
+          frames: {
+            some: {
+              isCurrent: true,
+              status: StoryboardFrameStatus.FAILED,
+              submissionState: ProviderSubmissionState.ACK_UNKNOWN,
+              externalTaskId: { not: null },
+            },
+          },
+        },
+      ],
+    },
     orderBy: { updatedAt: "asc" },
     take: Math.max(1, Math.min(limit, 50)),
     select: { id: true },

@@ -435,3 +435,97 @@ test("sweep：所有用户可见文案不含内部术语", async () => {
     assert.equal(containsBannedPersonalTerm(text), false, text);
   }
 });
+
+/// ---------- 提交后按真实状态收敛（0803-04 缺口②回归） ----------
+
+test("sweep：已提交且未超绝对上限的超时任务交给 reconcile，不盲判 FAILED", async (t) => {
+  patchEmptyDefaults(t);
+  const reconcileReads: string[] = [];
+  let blindFailWrites = 0;
+  patchModel(t, db.videoJob as unknown as Record<string, unknown>, {
+    findMany: (async () => [
+      {
+        id: "job-live",
+        videoBriefId: null,
+        createdAt: HOURS_AGO(1),
+        externalJobId: "shuyu-ext-1",
+        dispatchQuarantineDecision: null,
+      },
+    ]) as never,
+    /// reconcileVideoJob 的第一步是 findUnique；返回 null 让它立即返回，
+    /// 本测试只验证「sweep 把判定权交给了 reconcile」这条边界。
+    findUnique: (async (args: { where: { id: string } }) => {
+      reconcileReads.push(args.where.id);
+      return null;
+    }) as never,
+    updateMany: (async () => {
+      blindFailWrites++;
+      return { count: 1 };
+    }) as never,
+  });
+
+  const result = await sweepStuckTasks(NOW);
+
+  assert.deepEqual(result.reconciledJobs, ["job-live"]);
+  assert.deepEqual(result.timedOutJobs, []);
+  assert.deepEqual(reconcileReads, ["job-live"], "reconcileVideoJob was consulted");
+  assert.equal(blindFailWrites, 0, "a submitted job is never blind-failed before its provider is asked");
+});
+
+test("sweep：超过绝对寿命上限的任务无条件失败化（包括已提交的）", async (t) => {
+  patchEmptyDefaults(t);
+  const jobUpdates: Array<{ data: Record<string, unknown> }> = [];
+  let reconcileReads = 0;
+  patchModel(t, db.videoJob as unknown as Record<string, unknown>, {
+    findMany: (async () => [
+      {
+        id: "job-ancient",
+        videoBriefId: null,
+        createdAt: HOURS_AGO(13),
+        externalJobId: "shuyu-ext-2",
+        dispatchQuarantineDecision: null,
+      },
+    ]) as never,
+    findUnique: (async () => {
+      reconcileReads++;
+      return null;
+    }) as never,
+    updateMany: (async (args: { data: Record<string, unknown> }) => {
+      jobUpdates.push(args);
+      return { count: 1 };
+    }) as never,
+  });
+
+  const result = await sweepStuckTasks(NOW);
+
+  assert.deepEqual(result.timedOutJobs, ["job-ancient"]);
+  assert.deepEqual(result.reconciledJobs, []);
+  assert.equal(reconcileReads, 0, "beyond the absolute cap no provider round-trip is spent");
+  assert.equal(jobUpdates.length, 1);
+  assert.match(String(jobUpdates[0].data.errorMessage), /absolute lifetime cap/);
+  assert.equal(jobUpdates[0].data.status, VideoJobStatus.FAILED);
+});
+
+test("sweep：活跃批次里排队等槽位的行不吃 createdAt 兜底（查询级豁免）", async (t) => {
+  patchEmptyDefaults(t);
+  let capturedWhere: Record<string, unknown> | null = null;
+  patchModel(t, db.videoJob as unknown as Record<string, unknown>, {
+    findMany: (async (args: { where: Record<string, unknown> }) => {
+      capturedWhere = args.where;
+      return [];
+    }) as never,
+  });
+
+  await sweepStuckTasks(NOW);
+
+  assert.ok(capturedWhere, "sweep queried video jobs");
+  const expectedCutoff = new Date(NOW.getTime() - 720 * 60_000);
+  assert.deepEqual(
+    (capturedWhere as Record<string, unknown>).NOT,
+    sweepTest.activeBatchQueueWhere(expectedCutoff),
+    "queued batch rows in an active batch are exempt until the absolute cap",
+  );
+  const exemption = sweepTest.activeBatchQueueWhere(expectedCutoff);
+  assert.equal(exemption.status, VideoJobStatus.QUEUED);
+  assert.equal(exemption.externalJobId, null);
+});

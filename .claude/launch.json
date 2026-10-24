@@ -4,9 +4,23 @@
     {
       "name": "app",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
+    },
+    {
+      "name": "app-quota",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "QUOTA_ENFORCE=true",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 3000
     },
     {
       "name": "app-localdb",
@@ -14,23 +28,46 @@
       "runtimeArgs": [
         "DATABASE_URL=postgresql://postgres:localdev@localhost:54329/aivora",
         "VIDEO_PROVIDER=mock",
-        "OPENAI_API_KEY=", "ARK_API_KEY=", "BYTEPLUS_ARK_API_KEY=", "APIFY_TOKEN=", "BLOB_READ_WRITE_TOKEN=",
-        "HEYGEN_API_KEY=", "VOLCENGINE_ACCESS_KEY_ID=", "VOLCENGINE_SECRET_ACCESS_KEY=", "VOLC_OMNIHUMAN_REQ_KEY=",
-        "VOLC_TTS_ACCESS_TOKEN=", "PEXELS_API_KEYS=", "REMOVE_BG_API_KEY=", "FIRECRAWL_API_KEY=", "TIKTOK_CLIENT_SECRET=",
-        "npm", "run", "dev:mock"
+        "OPENAI_API_KEY=",
+        "ARK_API_KEY=",
+        "BYTEPLUS_ARK_API_KEY=",
+        "APIFY_TOKEN=",
+        "BLOB_READ_WRITE_TOKEN=",
+        "HEYGEN_API_KEY=",
+        "VOLCENGINE_ACCESS_KEY_ID=",
+        "VOLCENGINE_SECRET_ACCESS_KEY=",
+        "VOLC_OMNIHUMAN_REQ_KEY=",
+        "VOLC_TTS_ACCESS_TOKEN=",
+        "PEXELS_API_KEYS=",
+        "REMOVE_BG_API_KEY=",
+        "FIRECRAWL_API_KEY=",
+        "TIKTOK_CLIENT_SECRET=",
+        "npm",
+        "run",
+        "dev:mock"
       ],
       "port": 3000
     },
     {
       "name": "designs",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4311", "--directory", "designs"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4311",
+        "--directory",
+        "designs"
+      ],
       "port": 4311
     },
     {
       "name": "booth",
       "runtimeExecutable": "node",
-      "runtimeArgs": ["designs/aivora-v2-exchange/booth/relay.mjs", "--port", "4317"],
+      "runtimeArgs": [
+        "designs/aivora-v2-exchange/booth/relay.mjs",
+        "--port",
+        "4317"
+      ],
       "port": 4317
     }
   ]

@@ -122,7 +122,8 @@ export default function LoginPage() {
             </p>
           ) : null}
 
-          <Button type="submit" disabled={loading} className="w-full">
+          {/* 登录门的主行动是「申请试点」（D5）：登录降为描边，一屏只有一枚实心主钮 */}
+          <Button type="submit" variant="outline" disabled={loading} className="w-full">
             {loading ? (
               <Loader2
                 className="animate-spin motion-reduce:animate-none"

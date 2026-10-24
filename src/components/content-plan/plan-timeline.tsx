@@ -1,7 +1,13 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { QuoteHeader } from "@/components/exchange/quote-header";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { useTranslation } from "@/i18n/useTranslation";
+import { cn } from "@/lib/utils";
+import { PLAN_DAYS, apiErrorMessage, planDayDates, planTodayOffset } from "./plan-week";
 import styles from "./plan-timeline.module.css";
 
 /**
@@ -11,6 +17,9 @@ import styles from "./plan-timeline.module.css";
  * 取了服务端模块的值会把 OpenAI / Prisma 打进浏览器 bundle，整页 500。
  * 有 client-bundle-safety 回归测试守着，别绕过它。
  * 所有数据都由 server component 以纯 DTO 传进来。
+ *
+ * 1025 · B2.3：控件一律用共享 Button / Input（不再在 CSS module 里自写按钮）；
+ * 文案全部来自 platform-copy（中英双语）；「今天」在浏览器按计划起始日 + dayOffset 算。
  */
 
 export type TimelinePost = {
@@ -40,35 +49,31 @@ export type TimelinePlan = {
   /// 这一周为什么这么排：自己的战绩 / 借同行结构 / 还没有依据。
   /// 借来的结构必须说明是借来的，不能让商家以为是他自己的数据结论。
   planBasis: string | null;
+  /// 计划起始时刻（ISO）：第 dayOffset 天 = 起始日 + dayOffset，按访问者时区落到日历上。
+  startIso: string;
   posts: TimelinePost[];
 };
 
-const WEEKDAYS = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
+type PlanCopy = ReturnType<typeof getPlatformCopy>["plan"];
 
-const FORMAT_LABEL: Record<TimelinePost["format"], string> = {
-  TEXT: "文案",
-  SINGLE_IMAGE: "单图",
-  CAROUSEL: "轮播",
-  VIDEO: "视频",
-};
-
-/**
- * 配方代码：把「创意配方」这个抽象概念变成可指认的代码。
- * `post:POV:single_image` → `POV·单图`
- */
-function shotSlug(post: TimelinePost): string {
-  const hook = post.hookType ?? "—";
-  return `${hook}·${FORMAT_LABEL[post.format]}`;
+/** 结构代码：`hookType · 形态`（如 `POV · 单图`），不把内部 recipeId 原值摆给商家。 */
+function shotSlug(post: TimelinePost, copy: PlanCopy): string {
+  return `${post.hookType ?? "—"} · ${copy.formats[post.format]}`;
 }
 
-export function PlanTimeline({
-  plan,
-  todayOffset,
-}: {
-  plan: TimelinePlan | null;
-  /// 今天落在这一周的第几天。播放头画在这里。
-  todayOffset: number;
-}) {
+function subscribeNever() {
+  return () => undefined;
+}
+
+/** 水合后才为 true：日期只在浏览器里算，服务端（UTC）先渲染不带日期的占位。 */
+function useHydrated(): boolean {
+  return useSyncExternalStore(subscribeNever, () => true, () => false);
+}
+
+export function PlanTimeline({ plan }: { plan: TimelinePlan | null }) {
+  const { locale } = useTranslation();
+  const copy = getPlatformCopy(locale).plan;
+  const hydrated = useHydrated();
   const [sentence, setSentence] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [selectedKey, setSelectedKey] = useState<string | null>(
@@ -78,10 +83,24 @@ export function PlanTimeline({
   const [busyPostId, setBusyPostId] = useState<string | null>(null);
   const [posts, setPosts] = useState<TimelinePost[]>(plan?.posts ?? []);
 
+  /// 没有计划时，空的一周从今天开始画（排出来的计划也是从今天起）。
+  const days = useMemo(() => {
+    if (!hydrated) return null;
+    const startIso = plan?.startIso ?? new Date().toISOString();
+    const now = new Date();
+    const weekday = new Intl.DateTimeFormat(locale, { weekday: "short" });
+    const monthDay = new Intl.DateTimeFormat(locale, { month: "numeric", day: "numeric" });
+    return {
+      todayOffset: planTodayOffset(startIso, now),
+      labels: planDayDates(startIso).map((date) => ({ weekday: weekday.format(date), date: monthDay.format(date) })),
+    };
+  }, [hydrated, locale, plan?.startIso]);
+  const todayOffset = days?.todayOffset ?? null;
+
   const byDay = useMemo(() => {
-    const lanes: TimelinePost[][] = Array.from({ length: 7 }, () => []);
+    const lanes: TimelinePost[][] = Array.from({ length: PLAN_DAYS }, () => []);
     for (const post of posts) {
-      lanes[Math.min(6, Math.max(0, post.dayOffset))].push(post);
+      lanes[Math.min(PLAN_DAYS - 1, Math.max(0, post.dayOffset))].push(post);
     }
     return lanes;
   }, [posts]);
@@ -109,7 +128,7 @@ export function PlanTimeline({
     });
     const body = await res.json().catch(() => null);
     if (!res.ok) {
-      setError(body?.message ?? "生成失败，请重试");
+      setError(apiErrorMessage(body, copy.createFailed));
       return;
     }
     /// 服务端重新渲染整页，拿到落库后的真实数据，而不是在前端拼一份。
@@ -126,7 +145,7 @@ export function PlanTimeline({
       );
       const body = await res.json().catch(() => null);
       if (!res.ok) {
-        setError(body?.message ?? "出图失败");
+        setError(apiErrorMessage(body, copy.renderFailed));
         return;
       }
       setPosts((current) =>
@@ -141,6 +160,8 @@ export function PlanTimeline({
             : item,
         ),
       );
+    } catch {
+      setError(copy.renderFailed);
     } finally {
       setBusyPostId(null);
     }
@@ -151,109 +172,132 @@ export function PlanTimeline({
    * 失败时只给「重试」是不够的。
    */
   async function discardPost(post: TimelinePost) {
+    setError(null);
     setBusyPostId(post.id);
     try {
-      await fetch(`/api/content-plans/${plan?.id}/posts/${post.id}/render`, {
+      const res = await fetch(`/api/content-plans/${plan?.id}/posts/${post.id}/render`, {
         method: "DELETE",
       });
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        setError(apiErrorMessage(body, copy.discardFailed));
+        return;
+      }
       setPosts((current) =>
         current.map((item) =>
           item.id === post.id ? { ...item, status: "DISCARDED" } : item,
         ),
       );
+    } catch {
+      setError(copy.discardFailed);
     } finally {
       setBusyPostId(null);
     }
   }
 
-  return (
-    <div className={styles.root} data-testid="cutting-room">
-      <div className={styles.head}>
-        <QuoteHeader
-          title={plan?.theme ?? "一句话，排完一周"}
-          subtitle={
-            plan
-              ? `${plan.targetAudience} · ${plan.corePainPoint}`
-              : "说清楚你家做什么生意、想让人来干什么，剩下的交给我们。没有独立站也没关系。"
-          }
-          statsLabel="本周读数"
-          stats={[
-            { label: "本周已排", value: live.length, caption: "条内容（不含弃用）" },
-            { label: "已出图", value: ready, tone: ready > 0 ? "filled" : "neutral", caption: "可交给青砚发布" },
-            { label: "待出图", value: draft, tone: draft > 0 ? "winner" : "neutral", caption: "点开那一条出图" },
-            { label: "空档", value: openDays, tone: openDays > 0 ? "winner" : "neutral", caption: "天没有任何内容" },
-          ]}
-        />
+  /// 一页一枚实心主钮：还没有计划时是「排一周」；有了计划，主行动是选中帖子的「生成配图」，重排降为描边。
+  /// 只有草稿能出图；半套轮播（有图但还是草稿）点同一个钮补齐缺的那几张。已出图 / 已弃用不再触发付费出图。
+  const canRender =
+    selected !== null &&
+    (selected.format === "SINGLE_IMAGE" || selected.format === "CAROUSEL") &&
+    selected.status === "DRAFT";
 
-        <div className={styles.intake}>
-          <input
+  return (
+    <WorkspacePage
+      nav="plan"
+      locale={locale}
+      testId="plan-week"
+      className={styles.root}
+      subtitle={
+        plan ? (
+          <>
+            <span className="text-foreground">{plan.theme}</span>
+            {` · ${plan.targetAudience} · ${plan.corePainPoint}`}
+          </>
+        ) : (
+          copy.subtitle
+        )
+      }
+      primaryAction={null}
+      readingsLabel={copy.readingsLabel}
+      readings={[
+        { label: copy.scheduled, value: live.length, caption: copy.scheduledCaption },
+        { label: copy.ready, value: ready, tone: ready > 0 ? "filled" : "neutral", caption: copy.readyCaption },
+        { label: copy.draft, value: draft, tone: draft > 0 ? "winner" : "neutral", caption: copy.draftCaption },
+        { label: copy.open, value: openDays, tone: openDays > 0 ? "winner" : "neutral", caption: copy.openCaption },
+      ]}
+      scope={copy.scope}
+    >
+      <div className={styles.head}>
+        <form
+          className={styles.intake}
+          onSubmit={(event) => {
+            event.preventDefault();
+            startTransition(createPlan);
+          }}
+        >
+          <Input
             value={sentence}
             onChange={(event) => setSentence(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") startTransition(createPlan);
-            }}
-            placeholder="我家做定制百叶窗，想让人来约免费上门量尺"
-            aria-label="用一句话描述你的生意，或粘贴商品链接"
+            placeholder={copy.inputPlaceholder}
+            aria-label={copy.inputLabel}
+            className="min-w-0 flex-1"
           />
-          <button
-            type="button"
-            disabled={pending || !sentence.trim()}
-            onClick={() => startTransition(createPlan)}
-          >
-            {pending ? "排期中" : "排一周"}
-          </button>
-        </div>
+          <Button type="submit" variant={plan ? "outline" : "default"} disabled={pending || !sentence.trim()}>
+            {pending ? copy.submitting : plan ? copy.replan : copy.submit}
+          </Button>
+        </form>
         {plan?.planBasis ? (
           <p className={styles.basis}>{plan.planBasis}</p>
         ) : null}
-        {error ? <p className={styles.error}>{error}</p> : null}
+        {error ? <p role="alert" className={styles.error}>{error}</p> : null}
       </div>
 
-      <section className={styles.track} aria-label="本周内容时间线">
+      <section className={styles.track} aria-label={copy.trackLabel}>
         <div className={styles.trackInner}>
-          {/* 播放头：今天 */}
-          <div
-            className={styles.playhead}
-            style={{ left: `${((todayOffset + 0.5) / 7) * 100}%` }}
-            aria-hidden="true"
-          />
+          {/* 光针：今天（只在今天落在这 7 天里时画） */}
+          {todayOffset !== null ? (
+            <div
+              className={styles.playhead}
+              style={{ left: `${((todayOffset + 0.5) / PLAN_DAYS) * 100}%` }}
+              aria-hidden="true"
+            />
+          ) : null}
           <div className={styles.ruler}>
-            {WEEKDAYS.map((day, index) => (
-              <div
-                key={day}
-                className={`${styles.tick} ${index === todayOffset ? styles.tickToday : ""}`}
-              >
-                <span>{day}</span>
-                <span>{index === todayOffset ? "今天" : `D${index}`}</span>
-              </div>
-            ))}
+            {Array.from({ length: PLAN_DAYS }, (_, index) => {
+              const label = days?.labels[index];
+              return (
+                <div
+                  key={index}
+                  className={cn(styles.tick, index === todayOffset && styles.tickToday)}
+                >
+                  <span>{label ? label.weekday : `D${index + 1}`}</span>
+                  <span>{index === todayOffset ? copy.today : label ? label.date : ""}</span>
+                </div>
+              );
+            })}
           </div>
           <div className={styles.lanes}>
             {byDay.map((lane, index) => (
-              <div
-                key={index}
-                className={`${styles.lane} ${lane.length === 0 ? styles.laneEmpty : ""}`}
-              >
+              <div key={index} className={styles.lane}>
                 {lane.length === 0 ? (
                   /* 空档画成真的缺口，不是留白 */
-                  <div className={styles.hole}>空档</div>
+                  <div className={styles.hole}>{copy.hole}</div>
                 ) : (
                   lane.map((post) => (
                     <button
                       type="button"
                       key={post.key}
                       onClick={() => setSelectedKey(post.key)}
-                      className={[
+                      className={cn(
                         styles.clip,
-                        post.key === selectedKey ? styles.clipSelected : "",
-                        post.status === "READY" ? styles.clipReady : "",
-                        post.status === "DISCARDED" ? styles.clipDiscarded : "",
-                      ]
-                        .filter(Boolean)
-                        .join(" ")}
+                        post.key === selectedKey && styles.clipSelected,
+                        post.status === "READY" && styles.clipReady,
+                        post.status === "DISCARDED" && styles.clipDiscarded,
+                      )}
                       aria-pressed={post.key === selectedKey}
                     >
-                      <span className={styles.shotSlug}>{shotSlug(post)}</span>
+                      <span className={styles.shotSlug}>{shotSlug(post, copy)}</span>
                       <span className={styles.clipHook}>{post.copyHook}</span>
                     </button>
                   ))
@@ -265,30 +309,30 @@ export function PlanTimeline({
       </section>
 
       {selected ? (
-        <section className={styles.detail} aria-label="内容详情">
+        <section className={styles.detail} aria-label={copy.detailLabel}>
           <div>
-            <p className={styles.label}>
-              {shotSlug(selected)} · {selected.recipeId ?? "无配方"}
-            </p>
+            <p className={styles.label}>{shotSlug(selected, copy)}</p>
             <h2 className={styles.hook}>{selected.copyHook}</h2>
             <p className={styles.body}>{selected.copyBody}</p>
             {selected.copyCta ? (
               <>
-                <p className={styles.label}>行动号召</p>
+                <p className={styles.label}>{copy.cta}</p>
                 <p className={styles.body}>{selected.copyCta}</p>
               </>
             ) : null}
-            <p className={styles.label}>话题标签</p>
-            <ul className={styles.tags}>
-              {selected.hashtags.map((tag) => (
-                <li key={tag} className={styles.tag}>
-                  #{tag}
-                </li>
-              ))}
-            </ul>
-            <p className={styles.label} style={{ marginTop: 14 }}>
-              为什么发这条
-            </p>
+            {selected.hashtags.length > 0 ? (
+              <>
+                <p className={styles.label}>{copy.hashtags}</p>
+                <ul className={styles.tags}>
+                  {selected.hashtags.map((tag) => (
+                    <li key={tag} className={styles.tag}>
+                      #{tag}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : null}
+            <p className={cn(styles.label, styles.labelSpaced)}>{copy.why}</p>
             <p className={styles.body}>{selected.rationale}</p>
             {selected.renderError ? (
               <p className={styles.error}>{selected.renderError}</p>
@@ -297,30 +341,31 @@ export function PlanTimeline({
             <div className={styles.actions}>
               {selected.format === "SINGLE_IMAGE" ||
               selected.format === "CAROUSEL" ? (
-                <button
+                <Button
                   type="button"
-                  className={
-                    selected.renderedImageUrls.length ? "" : styles.primary
-                  }
-                  disabled={busyPostId === selected.id}
+                  variant={canRender ? "default" : "outline"}
+                  disabled={busyPostId === selected.id || !canRender}
                   onClick={() => renderPost(selected)}
                 >
                   {busyPostId === selected.id
-                    ? "出图中"
-                    : selected.renderedImageUrls.length
-                      ? "已出图"
-                      : "生成配图"}
-                </button>
+                    ? copy.rendering
+                    : selected.status === "READY"
+                      ? copy.rendered
+                      : selected.renderedImageUrls.length
+                        ? copy.renderMissing
+                        : copy.render}
+                </Button>
               ) : null}
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 disabled={
                   busyPostId === selected.id || selected.status === "DISCARDED"
                 }
                 onClick={() => discardPost(selected)}
               >
-                {selected.status === "DISCARDED" ? "已弃用" : "不发这条"}
-              </button>
+                {selected.status === "DISCARDED" ? copy.discarded : copy.discard}
+              </Button>
             </div>
           </div>
 
@@ -340,10 +385,10 @@ export function PlanTimeline({
             ) : (
               <div className={styles.frame}>
                 {selected.format === "TEXT"
-                  ? "纯文案 · 无需配图"
+                  ? copy.frameText
                   : selected.format === "VIDEO"
-                    ? "视频请到「创作」出片"
-                    : "未出图"}
+                    ? copy.frameVideo
+                    : copy.frameEmpty}
               </div>
             )}
           </div>
@@ -351,8 +396,8 @@ export function PlanTimeline({
       ) : null}
 
       {plan?.generatedBy === "heuristic" ? (
-        <footer className={styles.foot}>本次由兜底模板生成，建议重新排一次</footer>
+        <footer className={styles.foot}>{copy.heuristic}</footer>
       ) : null}
-    </div>
+    </WorkspacePage>
   );
 }

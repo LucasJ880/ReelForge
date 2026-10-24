@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (105/105 route files)
+## API endpoint inventory (107/107 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -100,6 +100,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |
 | GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警 |
 | GET | `/api/me/usage` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
+| GET | `/api/exchange/pulse` | Session, owner-scoped | Round 1025 B1: shell pulse (generating / queued / active + paused batches / awaiting images / needs-attention / new leads / UTC-month quota / production tape); DB count + groupBy only; 500 instead of zeros on failure |
+| POST | `/api/exchange/failures-ack` | Session, own workspace | Round 1025 B1: library 「看过了」 sets Workspace.failuresAckedAt = now; failure records untouched |
 | POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |
 | GET, POST | `/api/admin/users` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |

@@ -24,6 +24,8 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
   const routeState = await getCustomerRouteRehearsalState("batchDetail");
   if (routeState === "empty") notFound();
   let batch: Awaited<ReturnType<typeof getBatchStatus>>;
+  /// 样片批次（别人的批次）只读：不轮询、不出现重试 / 取消（1025 · B2.9）
+  let readOnly = false;
   try {
     batch = await getBatchStatus(id, session.user.id);
   } catch (error) {
@@ -33,6 +35,7 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
     if (!showcaseUserId) notFound();
     try {
       batch = await getBatchStatus(id, showcaseUserId);
+      readOnly = true;
     } catch (showcaseError) {
       if (showcaseError instanceof BatchNotFoundError) notFound();
       throw showcaseError;
@@ -53,6 +56,7 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
         initialBatch={
           toCustomerBatchStatus(batch) as unknown as BatchMonitorData
         }
+        readOnly={readOnly}
       />
     </div>
   );

@@ -1,8 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { StatusTick } from "@/components/exchange/status-tick";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import { WallVideo } from "@/components/exchange/wall-controls";
+import { PilotCta } from "@/components/auth/pilot-cta";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
 import {
   SHOWCASE_SAFE_SLUGS,
@@ -54,8 +55,9 @@ async function loadGateSamples(english: boolean) {
 }
 
 /**
- * 登录门：交易大厅开盘前的那一屏。左边是大而轻的宣言（信号青只给宣言的后半句）
- * 和一排真机模板样片（标明是样例，不冒充用户数据）；右边是带角标的登录终端。
+ * 登录门：交易大厅开盘前的那一屏。左边是大而轻的宣言（信号青只给宣言的后半句，
+ * 与公开首页同一个定位：批量出片、找到带来询盘的那一条，不再承诺「赛出赢家」）、
+ * 主行动「申请试点」和一排真机模板样片（标明是样例，不冒充用户数据）；右边是带角标的登录终端。
  */
 export default async function AuthLayout({
   children,
@@ -86,9 +88,18 @@ export default async function AuthLayout({
           <h1 className="x-display text-[clamp(2.5rem,5.4vw,5.25rem)]">
             {copy.titleLead}
             <br />
-            <span className="text-accent">{copy.titleAccent}</span>
+            <span className="text-accent">
+              {copy.titleAccent.map((part, index) => (
+                /* 英文段与段之间留一个可断行的空格；中文直接相接 */
+                <span key={part}>
+                  {index > 0 && locale === "en-US" ? " " : null}
+                  <span className="inline-block">{part}</span>
+                </span>
+              ))}
+            </span>
           </h1>
           <p className="max-w-[46ch] text-body leading-relaxed text-muted-foreground">{copy.subtitle}</p>
+          <PilotCta label={copy.pilotCta} hint={copy.pilotHint} />
           {samples && samples.frames.length > 0 ? (
             <figure className="max-w-2xl space-y-2.5">
               <ul aria-label={copy.samples} className="x-wall x-frame grid-cols-3">
@@ -98,7 +109,7 @@ export default async function AuthLayout({
                       <WallVideo src={frame.video} poster={frame.poster} label={frame.name} />
                       <div className="pointer-events-none absolute inset-0 bg-(image:--scrim)" aria-hidden />
                       <span className="absolute left-1.5 top-1.5 hidden rounded-(--radius-sm) bg-sunken/85 px-1.5 py-0.5 sm:block">
-                        <StatusTick tone="filled" label={copy.sampleTag} />
+                        <MonoTag className="border-0 px-0 py-0">{copy.sampleTag}</MonoTag>
                       </span>
                     </div>
                     <p className="truncate px-3 py-2 text-meta text-muted-foreground">{frame.name}</p>

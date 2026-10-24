@@ -23,7 +23,9 @@ test("single video creation exposes the full Aivora workflow and four-frame appr
   assert.match(studio, /\$\{encodeURIComponent\(storyboard\.id\)\}\/approve/);
   assert.match(panel, /onRegenerate/);
   assert.match(panel, /onApprove/);
-  assert.match(panel, />\s*Image 2\s*</);
+  // 1025 · B2.5：故事板标签是「AI 故事板」，不露内部模型名
+  assert.doesNotMatch(panel, /Image 2/);
+  assert.match(panel, /AI 故事板/);
   assert.match(studio, /Aivora 视频通道/);
 
   assert.match(page, /canSelectVideoRoute=\{false\}/);

@@ -7,6 +7,8 @@ import { ArrowRight, Search, ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterChip } from "@/components/ui/segmented";
+import { EmptyState } from "@/components/exchange/empty-state";
 import { TemplateRecipeDialog } from "@/components/templates/template-recipe-dialog";
 import { TemplateShotTimeline, type TemplateShot } from "@/components/templates/template-shot-timeline";
 import { TEMPLATE_LIBRARY_COPY, fillCount } from "@/components/templates/template-library-copy";
@@ -75,17 +77,15 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
           </div>
         </div>
         <div data-template-filters className="mt-4 flex flex-wrap gap-2" role="group" aria-label={copy.categoryLabel}>
+          {/* 选中态 = 青线 + 舰桥底（FilterChip），不是实心主钮：实心青一页只给一枚主行动 */}
           {categories.map((item) => (
-            <Button key={item} type="button" size="sm" variant={category === item ? "default" : "outline"} aria-pressed={category === item} onClick={() => setCategory(item)} className="shrink-0">{item === "__all__" ? copy.all : categoryLabel(copy, item)}</Button>
+            <FilterChip key={item} pressed={category === item} onClick={() => setCategory(item)}>{item === "__all__" ? copy.all : categoryLabel(copy, item)}</FilterChip>
           ))}
         </div>
       </section>
 
       {visible.length === 0 ? (
-        <section className="x-panel px-6 py-10">
-          <p className="text-body text-muted-foreground">{copy.empty}</p>
-          <Button type="button" variant="outline" onClick={() => { setCategory("__all__"); setQuery(""); }} className="mt-4">{copy.clear}</Button>
-        </section>
+        <EmptyState body={copy.empty} action={{ label: copy.clear, onClick: () => { setCategory("__all__"); setQuery(""); } }} />
       ) : (
         <ul className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" aria-label={copy.listLabel}>
           {visible.map((template) => {
@@ -138,7 +138,7 @@ export function TemplateLibraryGrid({ templates }: { templates: TemplateLibraryI
                           <span className="text-foreground"> · {fillCount(libraryCopy.recentBatches, template.recentBatchCount)}</span>
                         ) : null}
                       </p>
-                      <TemplateRecipeDialog name={title} version={template.version} promptSkeleton={template.promptSkeleton} negativePrompt={template.negativePrompt} english={english} />
+                      <TemplateRecipeDialog name={title} version={template.version} promptSkeleton={template.promptSkeleton} negativePrompt={template.negativePrompt} english={english} summary={template.summary} lockedParams={locked} />
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <Button render={<Link href={`/app/create?styleTemplate=${encodeURIComponent(template.slug)}&prompt=${encodeURIComponent(templateStarterPrompt(template, english))}`} />} variant="ghost" size="sm">{copy.useSingle}</Button>

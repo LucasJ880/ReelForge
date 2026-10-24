@@ -1,4 +1,4 @@
-import { StatusTick } from "@/components/exchange/status-tick";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import { TEMPLATE_LIBRARY_COPY, fillCount } from "@/components/templates/template-library-copy";
@@ -69,7 +69,7 @@ export function TemplateShotTimeline({
   return (
     <div className="x-well absolute inset-0 flex flex-col justify-between gap-3 border-0 p-4">
       <div className="flex items-center justify-between gap-3">
-        <StatusTick tone="idle" label={copy.pending} />
+        <MonoTag>{copy.pending}</MonoTag>
         <span className="truncate font-mono text-data tabular-nums text-tertiary">{meta}</span>
       </div>
       {shots.length > 0 ? (

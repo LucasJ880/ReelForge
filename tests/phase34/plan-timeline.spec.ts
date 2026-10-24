@@ -31,7 +31,7 @@ test("一周时间线：轨道、播放头、空档缺口都在", async ({ page 
 test("硬性规矩：圆角 0、无卡片阴影、数字等宽", async ({ page }) => {
   await page.goto("/app/plan");
 
-  const root = page.getByTestId("cutting-room");
+  const root = page.getByTestId("plan-week");
   const numeric = await root.evaluate(
     (node) => getComputedStyle(node).fontVariantNumeric,
   );

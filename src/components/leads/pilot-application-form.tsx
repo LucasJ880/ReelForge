@@ -87,7 +87,7 @@ export function PilotApplicationForm({ locale, fallbackEmail }: { locale: Locale
   if (state === "done") {
     return (
       <div role="status" className="space-y-3 px-6 py-10" data-pilot-application="submitted">
-        <StatusTick tone="filled" label={copy.successTitle} />
+        <StatusTick entity="submission" state="received" locale={locale} />
         <p className="text-body text-muted-foreground">{copy.successBody}</p>
       </div>
     );

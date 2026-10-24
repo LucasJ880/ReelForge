@@ -1,21 +1,14 @@
 import Link from "next/link";
 import { LocalTime } from "@/components/exchange/local-time";
-import { TickGlyph, batchTone, tickToneClass, type TickTone } from "@/components/exchange/status-tick";
-import { getPlatformCopy } from "@/i18n/platform-copy";
+import { TickGlyph, tickToneClass, type TickTone } from "@/components/exchange/status-tick";
+import type { Locale } from "@/i18n/config";
+import { batchState, stateTone, stateWord } from "@/lib/exchange/state-vocab";
+import type { TapeEntry } from "@/lib/exchange/pulse";
 import { cn } from "@/lib/utils";
 
-/** 成交带的一笔批次：来自本工作区真实批次（PlatformLayout 服务端查询），不放示例数据。 */
-export type TapeEntry = {
-  id: string;
-  name: string;
-  status: "EXPANDING" | "RUNNING" | "PAUSED" | "COMPLETED" | "PARTIAL_FAILED" | "FAILED" | "CANCELLED";
-  done: number;
-  total: number;
-  failed: number;
-  at: string;
-};
+export type { TapeEntry } from "@/lib/exchange/pulse";
 
-/** 带上的一格：编号 · 名称 · 状态记号 · 读数 · 本地时间。 */
+/** 带上的一格：编号 · 名称 · 状态记号 · 读数 · 本地时间（非今天带月日）。 */
 export type TapeItem = {
   id: string;
   href: string;
@@ -28,23 +21,26 @@ export type TapeItem = {
   at: string;
 };
 
-export function batchTapeItems(entries: TapeEntry[], locale: string): TapeItem[] {
-  const states = getPlatformCopy(locale === "en-US" ? "en-US" : "zh-CN").shell.batchStates;
-  return entries.map((entry) => ({
-    id: entry.id,
-    href: `/app/batches/${entry.id}`,
-    code: `B·${entry.id.slice(-5).toUpperCase()}`,
-    name: entry.name,
-    tone: batchTone(entry.status),
-    state: states[entry.status],
-    figure: `${entry.done}/${entry.total}`,
-    failed: entry.failed,
-    at: entry.at,
-  }));
+/** 生产带的批次格：状态词与记号都从状态词典取（「已完成」，不是「已成交」）。 */
+export function batchTapeItems(entries: TapeEntry[], locale: Locale): TapeItem[] {
+  return entries.map((entry) => {
+    const state = batchState(entry.status);
+    return {
+      id: entry.id,
+      href: `/app/batches/${entry.id}`,
+      code: `B·${entry.id.slice(-5).toUpperCase()}`,
+      name: entry.name,
+      tone: stateTone("batch", state),
+      state: stateWord("batch", state, locale),
+      figure: `${entry.done}/${entry.total}`,
+      failed: entry.failed,
+      at: entry.at,
+    };
+  });
 }
 
 /**
- * 实时成交带：无限滚动的一条行情（悬停暂停，减少动态时静止）。
+ * 实时生产带：无限滚动的一条行情（悬停暂停，减少动态时静止）。
  * 两条相同的轨道首尾相接；第二条对读屏与键盘隐藏。
  */
 export function ExchangeTape({
@@ -88,7 +84,7 @@ export function ExchangeTape({
               ) : null}
             </span>
           ) : null}
-          <LocalTime iso={item.at} locale={locale} className="tabular-nums text-tertiary" />
+          <LocalTime iso={item.at} locale={locale} variant="datetime" className="tabular-nums text-tertiary" />
         </Link>
       ))}
       {trailing ? <span className="flex shrink-0 items-center whitespace-nowrap font-mono text-data text-tertiary">{trailing}</span> : null}

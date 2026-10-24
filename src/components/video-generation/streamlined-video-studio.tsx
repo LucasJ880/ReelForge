@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { QuoteHeader } from "@/components/exchange/quote-header";
+import { workspaceNavTitle } from "@/components/exchange/workspace-page";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { requestPulseRefresh } from "@/lib/exchange/pulse";
+import { formatRate, quotaStat, readingStat } from "@/lib/exchange/readings-registry";
 import { SectionHead } from "@/components/exchange/section-head";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
@@ -110,17 +114,14 @@ interface ResumableStoryboardPayload {
 }
 
 const ZH_COPY = {
-  title: "从产品图到故事板，再到最终视频",
-  subtitle: "每一步都看得见：上传素材、确认创作方向、审阅 Image 2 故事板，再交给 Aivora 生成视频。",
+  /// 标题是导航名「创作」（行情头从字典取）；口号进副标题（1025 · B2.1）。
+  subtitle: "从产品图到故事板，再到最终视频：上传素材、确认创作方向、审阅 AI 故事板，再交给 Aivora 生成视频。",
   readingsLabel: "创作读数",
-  readingInFlight: "生成中",
-  readingFilled24h: "近 24 小时成片",
-  readingFilled30d: "近 30 天成片 / 月额度",
-  readingRate7d: "近 7 天成功率",
-  readingsScope: "统计口径：本工作区实时读取，不含成品库样片；额度为当前套餐每月成片上限。",
+  readingsScope: "统计口径：本工作区实时读取，不含成品库样片；额度按 UTC 自然月计，失败与取消返还。",
   guideTitle: "第一次使用，顺着五步完成",
   guideBody: "产品图上传后直接进入创作，不经过 AI 审核；故事板会先把产品外观和场景连续性锁定。",
-  guideSteps: ["上传产品图", "设置创作方向", "生成 Image 2 故事板", "确认每一帧", "Aivora 生成视频"],
+  /// 一页只有一套步骤：与首用弹窗同一个来源（platform-copy create.flowSteps）。
+  guideSteps: getPlatformCopy("zh-CN").create.flowSteps.map((step) => step.title),
   workflowTitle: "当前创作流程",
   stageDone: "已完成",
   dismissGuide: "知道了，隐藏提示",
@@ -194,7 +195,7 @@ const ZH_COPY = {
   brandPackageHint: "每条视频单独选择。关闭输出干净视频；开启后在片尾追加一帧品牌联系方式（logo 印在产品上，画面不再盖角标水印）。",
   cleanVideo: "只生成干净视频",
   cleanVideoHint: "不添加品牌 Logo 或尾卡",
-  noBrandPackages: "当前 workspace 还没有可用品牌包；可先保持纯视频输出。",
+  noBrandPackages: "当前工作区还没有可用品牌包；可先保持纯视频输出。",
   brandName: "品牌名称",
   brandNamePlaceholder: "例如 Aivora",
   cta: "行动文案",
@@ -216,7 +217,7 @@ const ZH_COPY = {
   previewing: "正在准备方案…",
   reviewSpecs: "核对规格与积分",
   reviewingSpecs: "正在核对…",
-  createStoryboard: "生成 Image 2 故事板",
+  createStoryboard: "生成 AI 故事板",
   creatingStoryboard: "正在生成故事板…",
   storyboardFailed: "故事板暂时无法生成，请保留当前方案后重试。",
   editStoryboardConfirm: "修改创作方向会退出当前故事板。已生成的画面仍保留在任务记录中，确定继续吗？",
@@ -243,17 +244,12 @@ type StudioCopy = {
 };
 
 const EN_COPY: StudioCopy = {
-  title: "From product images to storyboard to final video",
-  subtitle: "See every step: upload assets, confirm direction, review the Image 2 storyboard, then generate through Aivora.",
+  subtitle: "From product images to storyboard to final video: upload assets, confirm direction, review the AI storyboard, then generate through Aivora.",
   readingsLabel: "Creation readings",
-  readingInFlight: "In production",
-  readingFilled24h: "Finished · 24h",
-  readingFilled30d: "Finished · 30 days / monthly limit",
-  readingRate7d: "Success rate · 7 days",
-  readingsScope: "Live from this workspace; library samples excluded. The limit is your plan's monthly video allowance.",
+  readingsScope: "Live from this workspace; library samples excluded. The allowance runs per UTC month; failures and cancels are refunded.",
   guideTitle: "Follow five clear steps for your first video",
   guideBody: "Product uploads go straight into creation without AI review. The storyboard locks product identity and scene continuity first.",
-  guideSteps: ["Upload product images", "Set the direction", "Generate Image 2 storyboard", "Approve every frame", "Generate with Aivora"],
+  guideSteps: getPlatformCopy("en-US").create.flowSteps.map((step) => step.title),
   workflowTitle: "Current workflow",
   stageDone: "done",
   dismissGuide: "Got it, hide this guide",
@@ -349,7 +345,7 @@ const EN_COPY: StudioCopy = {
   previewing: "Preparing the plan…",
   reviewSpecs: "Review specs & points",
   reviewingSpecs: "Checking…",
-  createStoryboard: "Generate Image 2 storyboard",
+  createStoryboard: "Generate AI storyboard",
   creatingStoryboard: "Generating storyboard…",
   storyboardFailed: "The storyboard could not be generated right now. Your direction is preserved; try again shortly.",
   editStoryboardConfirm: "Editing the direction exits this storyboard. Generated frames remain in task history. Continue?",
@@ -374,11 +370,12 @@ const EN_COPY: StudioCopy = {
  * 这里只声明形状，不 import 服务端 service（client bundle 铁律）。
  */
 export type StudioReadings = {
-  inFlight: number;
+  /** 真在生成的视频条数（与壳层「生成中」同源）。 */
+  generating: number;
   filled24h: number;
-  filled30d: number;
-  /** 当前套餐每月成片上限。 */
-  monthlyLimit: number;
+  /** 本月（UTC）已用视频额度与生效上限（试用 3 条）。 */
+  quotaUsed: number;
+  quotaLimit: number;
   /** 0–100；近 7 天没有样本时为 null，界面写「—」。 */
   successRate7d: number | null;
 };
@@ -1282,6 +1279,7 @@ export function StreamlinedVideoStudio({
       persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
       if (storyboard) markStoryboardRunDismissed(storyboard.id);
+      requestPulseRefresh();
       router.push(payload.nextUrl ?? "/app/library");
       router.refresh();
     } catch {
@@ -1416,38 +1414,26 @@ export function StreamlinedVideoStudio({
         onStart={() => closeOnboarding(true)}
       />
       <QuoteHeader
-        title={copy.title}
+        title={workspaceNavTitle("create", locale)}
         subtitle={copy.subtitle}
-        actions={<CreateModeTabs active="video" />}
-        statsLabel={copy.readingsLabel}
-        stats={readings
+        modeSwitch={<CreateModeTabs active="video" />}
+        primaryAction={null}
+        readingsLabel={copy.readingsLabel}
+        /// 读数取不到时写「—」，不放示例数字
+        readings={readings
           ? [
-              {
-                label: copy.readingInFlight,
-                value: readings.inFlight,
-                tone: readings.inFlight > 0 ? "live" : "neutral",
-              },
-              {
-                label: copy.readingFilled24h,
-                value: readings.filled24h,
-                tone: readings.filled24h > 0 ? "filled" : "neutral",
-              },
-              {
-                label: copy.readingFilled30d,
-                value: (
-                  <>
-                    {readings.filled30d}
-                    <span className="text-subhead text-muted-foreground"> / {readings.monthlyLimit}</span>
-                  </>
-                ),
-              },
-              {
-                label: copy.readingRate7d,
-                value: readings.successRate7d === null ? "—" : `${readings.successRate7d}%`,
-              },
+              readingStat("generating", readings.generating, locale),
+              readingStat("filled24h", readings.filled24h, locale),
+              quotaStat(readings.quotaUsed, readings.quotaLimit, locale),
+              readingStat("successRate7d", formatRate(readings.successRate7d), locale),
             ]
-          : undefined}
-        scope={readings ? copy.readingsScope : undefined}
+          : [
+              readingStat("generating", null, locale),
+              readingStat("filled24h", null, locale),
+              readingStat("monthlyQuota", null, locale),
+              readingStat("successRate7d", null, locale),
+            ]}
+        scope={copy.readingsScope}
       />
 
       <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start 2xl:grid-cols-[minmax(0,1fr)_22rem]">
@@ -1482,7 +1468,6 @@ export function StreamlinedVideoStudio({
             <div className="x-wall @container">
               <TicketRow
                 data-testid="streamlined-product-assets"
-                step="01"
                 label={copy.rowAssets}
                 optional={copy.optional}
                 reading={copy.productCount.replace("{count}", String(productAssets.length))}
@@ -1575,7 +1560,7 @@ export function StreamlinedVideoStudio({
                 {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
               </TicketRow>
 
-              <TicketRow data-testid="streamlined-generation-mode" step="02" label={copy.rowMode}>
+              <TicketRow data-testid="streamlined-generation-mode" label={copy.rowMode}>
                 <p className="text-meta text-muted-foreground">{copy.stepModeHint}</p>
                 <div className="grid gap-2 @md:grid-cols-2" role="group" aria-label={copy.stepMode}>
                   <OptionButton
@@ -1603,7 +1588,7 @@ export function StreamlinedVideoStudio({
                 </div>
               </TicketRow>
 
-              <TicketRow data-testid="streamlined-video-specs" step="03" label={copy.rowSpecs}>
+              <TicketRow data-testid="streamlined-video-specs" label={copy.rowSpecs}>
                 <p className="text-meta text-muted-foreground">{copy.stepSpecsHint}</p>
                 <dl className="grid gap-x-4 gap-y-2 @md:grid-cols-[6.5rem_minmax(0,1fr)] @md:items-center @md:gap-y-3">
                   <dt className="x-label">{copy.route}</dt>
@@ -1698,7 +1683,6 @@ export function StreamlinedVideoStudio({
 
               <TicketRow
                 data-testid="streamlined-brand-package"
-                step="04"
                 label={copy.rowEnding}
                 optional={copy.optional}
               >
@@ -1736,7 +1720,6 @@ export function StreamlinedVideoStudio({
               <TicketRow
                 id="streamlined-video-prompt"
                 data-testid="streamlined-video-prompt"
-                step="05"
                 label={copy.rowPrompt}
                 className="scroll-mt-24"
               >
@@ -1796,7 +1779,7 @@ export function StreamlinedVideoStudio({
               </TicketRow>
 
               {/* 口播 / 字幕 / 配乐是第六行：编号与标题由行承担 */}
-              <TicketRow step="06" label={copy.rowAudio}>
+              <TicketRow label={copy.rowAudio}>
                 <p className="text-meta text-muted-foreground">{copy.audioHint}</p>
                 <AudioCaptionControls
                   value={audioCaptionSettings}
@@ -2015,8 +1998,11 @@ export function StreamlinedVideoStudio({
  * 委托单的一行：左侧窄槽是等宽步号 + 短标签（窄屏时折到上方），右侧是这一步的控件。
  * 行本身就是容器——不再套卡片；只有真正的输入（下拉、文本框、上传区）是下沉井。
  */
+/**
+ * 委托单的一行。不再编 01–06 号：这六项都属于五步流程的前两步，
+ * 另编一套序号就成了「同一个流程三种步数」（1025 · B2.8）。
+ */
 function TicketRow({
-  step,
   label,
   optional,
   reading,
@@ -2024,7 +2010,6 @@ function TicketRow({
   children,
   ...props
 }: {
-  step: string;
   label: string;
   optional?: string;
   reading?: React.ReactNode;
@@ -2040,10 +2025,7 @@ function TicketRow({
       )}
     >
       <header className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1 @xl:flex-col @xl:justify-start @xl:gap-2">
-        <h2 className="flex items-baseline gap-2.5">
-          <span className="x-label tabular-nums">{step}</span>
-          <span className="x-label text-muted-foreground">{label}</span>
-        </h2>
+        <h2 className="x-label text-muted-foreground">{label}</h2>
         {reading || optional ? (
           <p className="flex items-baseline gap-2 font-mono text-data tabular-nums text-muted-foreground">
             {reading}

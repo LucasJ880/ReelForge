@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { StatusTick } from "@/components/exchange/status-tick";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import { getPublicPageCopy } from "@/i18n/public-copy";
 import { getServerLocale } from "@/i18n/server";
 
@@ -22,7 +22,7 @@ export default async function PrivacyPage() {
           <h1 className="x-display">{copy.title}</h1>
           <LanguageSwitcher variant="inline" className="w-auto min-w-32 shrink-0" />
         </div>
-        <StatusTick tone="partial" label={copy.draftStatus} />
+        <MonoTag className="self-start">{copy.draftStatus}</MonoTag>
         <p className="text-muted-foreground">{copy.intro}</p>
       </header>
 
@@ -60,12 +60,6 @@ export default async function PrivacyPage() {
           {locale === "zh-CN" ? "。" : "."}
         </p>
       </section>
-
-      {!process.env.NEXT_PUBLIC_PRIVACY_EMAIL ? (
-        <p className="rounded-(--radius-md) border border-warning bg-card p-4 text-meta">
-          <strong>{copy.assumptionLabel}</strong> {copy.assumption}
-        </p>
-      ) : null}
 
       <p className="border-t border-border pt-6 text-muted-foreground">
         <Link href="/terms" className="text-primary underline">

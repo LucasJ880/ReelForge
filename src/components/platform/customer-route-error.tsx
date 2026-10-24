@@ -1,15 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft, RefreshCw } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { TickGlyph } from "@/components/exchange/status-tick";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { useTranslation } from "@/i18n/useTranslation";
 import {
+  CUSTOMER_ROUTE_FALLBACK_AREAS,
   CUSTOMER_ROUTE_FALLBACKS,
   type CustomerRouteId,
 } from "./customer-route-state";
 
+/**
+ * 区块级错误边界：壳层不被冲掉，只有这一块说「暂时无法加载」。
+ * 记号用失败的下跌三角（TickGlyph），不用警示三角方块；「返回」按钮写明去处。
+ */
 export function CustomerRouteError({
   error,
   reset,
@@ -22,6 +28,7 @@ export function CustomerRouteError({
   const { locale } = useTranslation();
   const copy = getPlatformCopy(locale).routeStates;
   const area = copy.areas[route];
+  const backArea = copy.areas[CUSTOMER_ROUTE_FALLBACK_AREAS[route]];
 
   return (
     <section
@@ -31,11 +38,12 @@ export function CustomerRouteError({
       aria-live="assertive"
       className="x-stack min-w-0"
     >
-      <div className="max-w-2xl rounded-(--radius-lg) border border-danger/40 bg-card p-6 sm:p-8">
-        <span className="flex size-10 items-center justify-center rounded-(--radius-sm) bg-danger/10 text-danger">
-          <AlertTriangle aria-hidden className="size-5" />
-        </span>
-        <h1 className="mt-5 text-title font-medium">
+      <div className="x-panel max-w-2xl border-danger/40 p-6 sm:p-8">
+        <p className="flex items-center gap-2 font-mono text-data uppercase tracking-wide text-danger">
+          <TickGlyph tone="fault" />
+          {area}
+        </p>
+        <h1 className="mt-4 text-title font-medium">
           {copy.errorTitle.replace("{area}", area)}
         </h1>
         <p className="mt-2 max-w-xl text-body text-muted-foreground">
@@ -56,7 +64,7 @@ export function CustomerRouteError({
             variant="outline"
           >
             <ArrowLeft aria-hidden />
-            {copy.back}
+            {copy.backTo.replace("{area}", backArea)}
           </Button>
         </div>
       </div>

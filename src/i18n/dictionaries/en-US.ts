@@ -568,7 +568,7 @@ export const enUS: Dictionary = {
       switchWorkspace: "Switch workspace",
       oneWorkspaceHint: "Only one workspace is available",
       search: "Search videos",
-      accountSignOut: "Account, click to sign out",
+      accountSignOut: "Account menu",
       activeBatches: "Active batches",
       failedJobs: "Failures to review",
     },

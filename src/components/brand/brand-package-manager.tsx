@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Loader2, LockKeyhole, PackagePlus, Pencil, Upload } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { EmptyState } from "@/components/exchange/empty-state";
+import { SectionHead } from "@/components/exchange/section-head";
 import { LogoGeneratorDialog } from "@/components/wizard/logo-generator-dialog";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +44,47 @@ const EMPTY_DRAFT: Draft = {
   isDefault: false,
 };
 
+/**
+ * 页头的主行动「新建品牌包」与下方的编辑表单之间的一根线（1025 · B2.4）：
+ * 品牌页只有一枚实心主钮，放在行情头；表单打开时它退成描边，表单里的「保存」接过实心。
+ */
+type DraftChannel = {
+  /** 每点一次「新建」加一，表单据此打开一份空白草稿。 */
+  newRequest: number;
+  requestNew: () => void;
+  draftOpen: boolean;
+  setDraftOpen: (open: boolean) => void;
+};
+
+const BrandPackageDraftContext = createContext<DraftChannel | null>(null);
+
+export function BrandPackageDraftProvider({ children }: { children: React.ReactNode }) {
+  const [newRequest, setNewRequest] = useState(0);
+  const [draftOpen, setDraftOpen] = useState(false);
+  const requestNew = useCallback(() => setNewRequest((value) => value + 1), []);
+  const value = useMemo(
+    () => ({ newRequest, requestNew, draftOpen, setDraftOpen }),
+    [draftOpen, newRequest, requestNew],
+  );
+  return <BrandPackageDraftContext.Provider value={value}>{children}</BrandPackageDraftContext.Provider>;
+}
+
+export function NewBrandPackageButton({ label }: { label: string }) {
+  const channel = useContext(BrandPackageDraftContext);
+  return (
+    <Button
+      type="button"
+      variant={channel?.draftOpen ? "outline" : "default"}
+      disabled={!channel}
+      onClick={() => channel?.requestNew()}
+      data-testid="brand-package-new"
+    >
+      <PackagePlus aria-hidden />
+      {label}
+    </Button>
+  );
+}
+
 export function BrandPackageManager({
   initialPackages,
   logoProjectId,
@@ -61,14 +104,14 @@ export function BrandPackageManager({
         edit: "Edit",
         readonly: "Read only",
         default: "Default",
-        empty: "No workspace brand package yet.",
+        empty: "No workspace brand package yet. Add your logo, end card and contact details once, then every video can reuse them.",
         emptyGlobal: "No global brand package has been published yet.",
         save: "Save brand package",
         cancel: "Cancel",
         logo: "Logo",
         endCard: "End card (optional)",
         upload: "Upload",
-        aiHint: "AI logo generation becomes available after your first project is created.",
+        aiHint: "AI logo generation unlocks after your first video.",
         saved: "Brand package saved.",
         failed: "Brand package could not be saved.",
       }
@@ -81,14 +124,14 @@ export function BrandPackageManager({
         edit: "编辑",
         readonly: "只读",
         default: "默认",
-        empty: "还没有工作区品牌包。",
+        empty: "还没有工作区品牌包。把 Logo、尾卡和联系方式整理一次，之后每条视频都能直接套用。",
         emptyGlobal: "平台还没有发布全局品牌包。",
         save: "保存品牌包",
         cancel: "取消",
         logo: "Logo",
         endCard: "尾卡（可选）",
         upload: "上传",
-        aiHint: "创建第一个项目后即可使用 AI Logo 生成。",
+        aiHint: "做出第一条视频后，就能用 AI 生成 Logo。",
         saved: "品牌包已保存。",
         failed: "品牌包保存失败。",
       };
@@ -96,6 +139,31 @@ export function BrandPackageManager({
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState<"logo" | "end-card" | "save" | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const channel = useContext(BrandPackageDraftContext);
+  const formRef = useRef<HTMLElement | null>(null);
+  const handledRequest = useRef(channel?.newRequest ?? 0);
+  const draftOpen = draft !== null;
+  const newRequest = channel?.newRequest ?? 0;
+  const setChannelDraftOpen = channel?.setDraftOpen;
+
+  /// 页头「新建品牌包」→ 打开一份空白草稿
+  useEffect(() => {
+    if (newRequest === handledRequest.current) return;
+    handledRequest.current = newRequest;
+    setMessage(null);
+    setDraft({ ...EMPTY_DRAFT });
+  }, [newRequest]);
+
+  /// 表单开合同步给页头主钮；打开时滚到表单
+  useEffect(() => {
+    setChannelDraftOpen?.(draftOpen);
+    if (draftOpen) formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [draftOpen, setChannelDraftOpen]);
+
+  function startNew() {
+    setMessage(null);
+    setDraft({ ...EMPTY_DRAFT });
+  }
   const globalPackages = useMemo(
     () => packages.filter((item) => item.scope === "global"),
     [packages],
@@ -222,40 +290,22 @@ export function BrandPackageManager({
   }
 
   return (
-    <div className="min-w-0 space-y-8">
+    <div className="min-w-0 space-y-10">
       <PackageSection
-        title={copy.global}
-        description={copy.globalHint}
-        packages={globalPackages}
-        empty={copy.emptyGlobal}
+        id="workspace-brand-packages"
+        title={copy.workspace}
+        description={copy.workspaceHint}
+        packages={workspacePackages}
+        empty={copy.empty}
+        emptyAction={draft ? null : { label: copy.add, onClick: startNew, icon: <PackagePlus aria-hidden /> }}
         readonlyLabel={copy.readonly}
         defaultLabel={copy.default}
         editLabel={copy.edit}
         onEdit={editPackage}
       />
 
-      <section className="min-w-0 space-y-4" aria-labelledby="workspace-brand-packages">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 id="workspace-brand-packages" className="text-title font-medium">{copy.workspace}</h2>
-            <p className="mt-1 max-w-2xl text-body text-muted-foreground">{copy.workspaceHint}</p>
-          </div>
-          <Button type="button" variant="outline" onClick={() => { setDraft({ ...EMPTY_DRAFT }); setMessage(null); }}>
-            <PackagePlus aria-hidden />{copy.add}
-          </Button>
-        </div>
-        <PackageCards
-          packages={workspacePackages}
-          empty={copy.empty}
-          readonlyLabel={copy.readonly}
-          defaultLabel={copy.default}
-          editLabel={copy.edit}
-          onEdit={editPackage}
-        />
-      </section>
-
       {draft ? (
-        <section className="rounded-(--radius-lg) border border-border bg-card p-5" aria-label={copy.add}>
+        <section ref={formRef} className="x-panel scroll-mt-28 p-5" aria-label={copy.add}>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label={english ? "Package name" : "品牌包名称"}>
               <Input value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} />
@@ -320,58 +370,88 @@ export function BrandPackageManager({
           </div>
         </section>
       ) : message ? <p role="status" className="text-meta text-muted-foreground">{message}</p> : null}
+
+      <PackageSection
+        id="global-brand-packages"
+        title={copy.global}
+        description={copy.globalHint}
+        packages={globalPackages}
+        empty={copy.emptyGlobal}
+        emptyAction={null}
+        readonlyLabel={copy.readonly}
+        defaultLabel={copy.default}
+        editLabel={copy.edit}
+        onEdit={editPackage}
+      />
     </div>
   );
 }
 
-function PackageSection(props: {
+/** 品牌页的一块：SectionHead（标题 + 计数 + 一句说明）+ 卡片网格或统一空态。 */
+function PackageSection({
+  id,
+  title,
+  description,
+  packages,
+  empty,
+  emptyAction,
+  readonlyLabel,
+  defaultLabel,
+  editLabel,
+  onEdit,
+}: {
+  id: string;
   title: string;
   description: string;
   packages: WorkspaceBrandPackageView[];
   empty: string;
+  emptyAction: { label: string; onClick: () => void; icon?: React.ReactNode } | null;
   readonlyLabel: string;
   defaultLabel: string;
   editLabel: string;
   onEdit: (item: WorkspaceBrandPackageView) => void;
 }) {
   return (
-    <section className="min-w-0 space-y-4">
-      <div>
-        <h2 className="text-title font-medium">{props.title}</h2>
-        <p className="mt-1 max-w-2xl text-body text-muted-foreground">{props.description}</p>
-      </div>
-      <PackageCards {...props} />
+    <section className="min-w-0 space-y-4" aria-labelledby={id}>
+      <SectionHead title={<span id={id}>{title}</span>} count={packages.length} hint={description} />
+      {packages.length === 0 ? (
+        <EmptyState compact body={empty} action={emptyAction} />
+      ) : (
+        <PackageCards
+          packages={packages}
+          readonlyLabel={readonlyLabel}
+          defaultLabel={defaultLabel}
+          editLabel={editLabel}
+          onEdit={onEdit}
+        />
+      )}
     </section>
   );
 }
 
 function PackageCards({
   packages,
-  empty,
   readonlyLabel,
   defaultLabel,
   editLabel,
   onEdit,
 }: {
   packages: WorkspaceBrandPackageView[];
-  empty: string;
   readonlyLabel: string;
   defaultLabel: string;
   editLabel: string;
   onEdit: (item: WorkspaceBrandPackageView) => void;
 }) {
-  if (packages.length === 0) {
-    return <div className="rounded-(--radius-lg) border border-dashed border-border px-5 py-8 text-body text-muted-foreground">{empty}</div>;
-  }
   return (
     <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
       {packages.map((item) => (
-        <article key={item.id} className="min-w-0 rounded-(--radius-lg) border border-border bg-card p-4">
+        <article key={item.id} className="x-panel min-w-0 p-4">
           <div className="flex items-start gap-3">
             <BrandLogo
               src={item.logoAsset.url}
               brandName={item.brandName}
-              className="size-14 shrink-0 rounded-(--radius-md) border border-border bg-white"
+              className="size-14 shrink-0 rounded-(--radius-md) border border-border bg-(--brand-tile)"
+              imageClassName="p-1.5"
             />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -415,11 +495,11 @@ function AssetPicker({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-(--radius-md) border border-border bg-muted p-3">
+    <div className="x-well rounded-(--radius-md) p-3">
       <p className="text-meta font-medium">{label}</p>
       <div className="mt-3 flex min-w-0 items-center gap-3">
-        <div className="relative size-16 shrink-0 overflow-hidden rounded-(--radius-md) border border-border bg-white">
-          {url ? <Image src={url} alt="" fill unoptimized className="object-contain" /> : null}
+        <div className="relative size-16 shrink-0 overflow-hidden rounded-(--radius-md) border border-border bg-(--brand-tile)">
+          {url ? <Image src={url} alt="" fill unoptimized className="object-contain p-1.5" /> : null}
         </div>
         <div className="min-w-0 space-y-2">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-(--radius-md) border border-border bg-card px-3 py-2 text-meta font-medium">

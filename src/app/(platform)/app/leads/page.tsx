@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { QuoteHeader, type QuoteStat } from "@/components/exchange/quote-header";
+import type { QuoteStat } from "@/components/exchange/quote-header";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
 import { SectionHead } from "@/components/exchange/section-head";
 import { Button } from "@/components/ui/button";
 import { LeadsBoard, type LeadRow } from "@/components/leads/leads-board";
@@ -103,25 +104,27 @@ export default async function LeadsPage() {
   }));
 
   return (
-    <div className="x-stack min-w-0" data-testid="leads-page">
-      <QuoteHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={
-          live && workspace.publicSlug ? (
-            <Button
-              render={<a href={leadPagePath(workspace.publicSlug)} target="_blank" rel="noreferrer" />}
-              variant="outline"
-            >
-              {copy.openPage}
-              <ExternalLink aria-hidden />
-            </Button>
-          ) : undefined
-        }
-        statsLabel={copy.statsLabel}
-        stats={stats}
-        scope={copy.scope}
-      />
+    <WorkspacePage
+      nav="leads"
+      locale={locale}
+      testId="leads-page"
+      subtitle={copy.subtitle}
+      primaryAction={null}
+      secondaryActions={
+        live && workspace.publicSlug ? (
+          <Button
+            render={<a href={leadPagePath(workspace.publicSlug)} target="_blank" rel="noreferrer" />}
+            variant="outline"
+          >
+            {copy.openPage}
+            <ExternalLink aria-hidden />
+          </Button>
+        ) : undefined
+      }
+      readingsLabel={copy.statsLabel}
+      readings={stats}
+      scope={copy.scope}
+    >
 
       <section aria-label={copy.listTitle} className="space-y-3">
         <SectionHead title={copy.listTitle} count={leads.length} hint={copy.listHint} />
@@ -173,6 +176,6 @@ export default async function LeadsPage() {
           </section>
         </>
       ) : null}
-    </div>
+    </WorkspacePage>
   );
 }

@@ -56,6 +56,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
   assert.deepEqual(Object.keys(row).sort(), [
     "aspectRatio",
     "batchId",
+    /// 1025 · B1：CC BY 配乐署名随交付（单条读 FinalVideo.postProduction）。
+    "bgmAttribution",
     "brandedVideoUrl",
     "briefId",
     "canRetry",
@@ -67,6 +69,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "isShowcase",
     "label",
     "planId",
+    /// 1025 · B1：短视频帖是「待生产」，按形态分区。
+    "postFormat",
     "progress",
     "source",
     "status",

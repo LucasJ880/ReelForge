@@ -11,7 +11,8 @@ import {
 } from "@/components/templates/template-library-grid";
 import { parseTemplateShots } from "@/components/templates/template-shot-timeline";
 import { TEMPLATE_LIBRARY_COPY, fillCount } from "@/components/templates/template-library-copy";
-import { QuoteHeader } from "@/components/exchange/quote-header";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { EmptyState } from "@/components/exchange/empty-state";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
@@ -21,6 +22,8 @@ import {
 } from "@/lib/video-generation/template-sample";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
+import { readingStat } from "@/lib/exchange/readings-registry";
+import { loadExchangeReadings } from "@/lib/services/exchange-readings";
 
 export const dynamic = "force-dynamic";
 
@@ -30,23 +33,23 @@ type TemplateUsage = {
   /// slug → 批次数：同一个模板的历史版本（已归档）也算在这个 slug 上
   bySlug: Map<string, number>;
   batches: number;
-  requested: number;
-  completed: number;
 };
 
-const NO_USAGE: TemplateUsage = { bySlug: new Map(), batches: 0, requested: 0, completed: 0 };
+const NO_USAGE: TemplateUsage = { bySlug: new Map(), batches: 0 };
 
 function usageWindowStart(): Date {
   return new Date(Date.now() - USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 }
 
-/** 本人近 30 天按模板建了多少批次、下单与成交多少条（只读本工作区，不含样片库）。 */
+/**
+ * 本人近 30 天按模板建了多少批次（只读本工作区，不含样片库）。
+ * 「近 30 天成片」不在这里按批次创建时间另算一套：同名必同值，取 exchange-readings。
+ */
 async function loadTemplateUsage(userId: string): Promise<TemplateUsage> {
   const groups = await db.batchJob.groupBy({
     by: ["templateId"],
     where: { userId, createdAt: { gte: usageWindowStart() } },
     _count: { _all: true },
-    _sum: { requestedCount: true, completedCount: true },
   });
   if (groups.length === 0) return NO_USAGE;
   const templates = await db.styleTemplate.findMany({
@@ -62,8 +65,6 @@ async function loadTemplateUsage(userId: string): Promise<TemplateUsage> {
   return {
     bySlug,
     batches: groups.reduce((sum, group) => sum + group._count._all, 0),
-    requested: groups.reduce((sum, group) => sum + (group._sum.requestedCount ?? 0), 0),
-    completed: groups.reduce((sum, group) => sum + (group._sum.completedCount ?? 0), 0),
   };
 }
 
@@ -75,9 +76,10 @@ export default async function PlatformTemplatesPage() {
     getServerLocale(),
   ]);
   const empty = routeState === "empty";
-  const [templates, usage] = await Promise.all([
+  const [templates, usage, readings] = await Promise.all([
     empty ? Promise.resolve([]) : listActiveStyleTemplates(),
     empty ? Promise.resolve(NO_USAGE) : loadTemplateUsage(session.user.id),
+    empty ? Promise.resolve(null) : loadExchangeReadings(session.user.id),
   ]);
   const copy = getPlatformCopy(locale).templates;
   const board = TEMPLATE_LIBRARY_COPY[locale].board;
@@ -101,43 +103,40 @@ export default async function PlatformTemplatesPage() {
   const categoryCount = new Set(items.map((item) => item.category)).size;
 
   return (
-    <div className="x-stack min-w-0">
-      <QuoteHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={templates.length > 0 ? (
-          <Button
-            render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />}
-            variant="outline"
-          >
-            {copy.recommended}
-            <ArrowRight aria-hidden />
-          </Button>
-        ) : undefined}
-        statsLabel={board.label}
-        stats={[
-          { label: board.recipes, value: items.length, caption: fillCount(board.recipesCaption, categoryCount) },
-          { label: board.samples, value: sampleCount, caption: fillCount(board.samplesCaption, items.length - sampleCount) },
-          { label: board.used, value: usage.batches, caption: fillCount(board.usedCaption, usage.bySlug.size) },
-          {
-            label: board.filled,
-            value: usage.completed,
-            caption: fillCount(board.filledCaption, usage.requested),
-            tone: usage.completed > 0 ? "filled" : "neutral",
-          },
-        ]}
-        scope={board.scope}
-      />
+    <WorkspacePage
+      nav="templates"
+      locale={locale}
+      subtitle={copy.subtitle}
+      primaryAction={null}
+      secondaryActions={templates.length > 0 ? (
+        <Button
+          render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />}
+          variant="outline"
+        >
+          {copy.recommended}
+          <ArrowRight aria-hidden />
+        </Button>
+      ) : undefined}
+      readingsLabel={board.label}
+      readings={[
+        { ...readingStat("templates", items.length, locale), caption: fillCount(board.recipesCaption, categoryCount) },
+        { ...readingStat("verifiedSamples", sampleCount, locale), caption: fillCount(board.samplesCaption, items.length - sampleCount) },
+        { ...readingStat("templateBatches30d", usage.batches, locale), caption: fillCount(board.usedCaption, usage.bySlug.size) },
+        readingStat("filled30d", readings?.filled30d ?? 0, locale),
+      ]}
+      scope={board.scope}
+    >
       {templates.length === 0 ? (
-        <section data-route-state="empty" className="x-panel x-frame px-6 py-12">
-          <p className="max-w-[56ch] text-body text-muted-foreground">{copy.preparing}</p>
-          <Button render={<Link href="/app/create" />} className="mt-5">{copy.start}<ArrowRight aria-hidden /></Button>
-        </section>
+        <EmptyState
+          data-route-state="empty"
+          body={copy.preparing}
+          action={{ label: copy.start, href: "/app/create", icon: <ArrowRight aria-hidden /> }}
+        />
       ) : (
         <div className="min-w-0 grid grid-cols-1">
           <TemplateLibraryGrid templates={items} />
         </div>
       )}
-    </div>
+    </WorkspacePage>
   );
 }

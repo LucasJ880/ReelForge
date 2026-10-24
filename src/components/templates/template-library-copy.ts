@@ -7,14 +7,9 @@ import type { Locale } from "@/i18n/config";
 export type TemplateLibraryCopy = {
   board: {
     label: string;
-    recipes: string;
     recipesCaption: string;
-    samples: string;
     samplesCaption: string;
-    used: string;
     usedCaption: string;
-    filled: string;
-    filledCaption: string;
     scope: string;
   };
   /// 卡片页脚：本工作区近 30 天用这个模板建了几个批次（只在大于 0 时出现）
@@ -32,15 +27,10 @@ export const TEMPLATE_LIBRARY_COPY: Record<Locale, TemplateLibraryCopy> = {
   "zh-CN": {
     board: {
       label: "模板库读数",
-      recipes: "模板配方",
       recipesCaption: "{n} 个分类",
-      samples: "已验收样片",
       samplesCaption: "{n} 条样片待补",
-      used: "近 30 天套用批次",
       usedCaption: "用到 {n} 个模板",
-      filled: "近 30 天成交成片",
-      filledCaption: "下单 {n} 条",
-      scope: "样片只收逐条真机验收通过的；套用与成片按你近 30 天的批次统计",
+      scope: "样片只收逐条真机验收通过的；套用按你近 30 天建的批次，成片按近 30 天出片的视频（单条 + 批量）",
     },
     recentBatches: "近 30 天 {n} 批",
     timeline: {
@@ -53,21 +43,23 @@ export const TEMPLATE_LIBRARY_COPY: Record<Locale, TemplateLibraryCopy> = {
         PROOF: "卖点证明",
         "SOLUTION PROOF": "方案证明",
         "CTA HOLD": "收尾定格",
+        SOLUTION: "解决方案",
+        PAYOFF: "效果呈现",
+        DEMO: "使用演示",
+        "CONFLICT/CONTRAST": "冲突对比",
+        "CONFLICT/RESONANCE": "冲突共鸣",
+        "RETURN TO PRODUCT + CTA ENERGY": "回到产品 · 行动号召",
+        "PAYOFF + CTA ENERGY": "效果 · 行动号召",
       },
     },
   },
   "en-US": {
     board: {
       label: "Template library readings",
-      recipes: "Template recipes",
       recipesCaption: "{n} categories",
-      samples: "Verified samples",
       samplesCaption: "{n} samples pending",
-      used: "Batches · last 30 days",
       usedCaption: "{n} templates used",
-      filled: "Filled videos · last 30 days",
-      filledCaption: "{n} ordered",
-      scope: "Samples count only renders that passed per-template QA; usage and fills count your batches from the last 30 days",
+      scope: "Samples count only renders that passed per-template QA; usage counts batches you built in 30 days, ready counts videos finished in 30 days (single + batch)",
     },
     recentBatches: "{n} batches · 30 days",
     timeline: {
@@ -80,6 +72,13 @@ export const TEMPLATE_LIBRARY_COPY: Record<Locale, TemplateLibraryCopy> = {
         PROOF: "Proof",
         "SOLUTION PROOF": "Solution proof",
         "CTA HOLD": "CTA hold",
+        SOLUTION: "Solution",
+        PAYOFF: "Payoff",
+        DEMO: "Demo",
+        "CONFLICT/CONTRAST": "Conflict / contrast",
+        "CONFLICT/RESONANCE": "Conflict / resonance",
+        "RETURN TO PRODUCT + CTA ENERGY": "Back to product · CTA",
+        "PAYOFF + CTA ENERGY": "Payoff · CTA",
       },
     },
   },

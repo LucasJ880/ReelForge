@@ -1,4 +1,5 @@
 import { BrandLogo } from "@/components/brand/brand-logo";
+import { SectionHead } from "@/components/exchange/section-head";
 
 export type BrandWallEntry = {
   id: string;
@@ -38,41 +39,30 @@ export function filterPublicBrandWallEntries(
 
 export function CustomerBrandWall({
   entries,
-  english,
+  title,
+  hint,
 }: {
   entries: BrandWallEntry[];
-  english: boolean;
+  title: string;
+  hint: string;
 }) {
   const visible = filterPublicBrandWallEntries(entries);
   if (visible.length === 0) return null;
+  /// 不加「已服务客户 / TRUSTED BY」眉题：区块抬头自己承重（DESIGN：眉题是被禁装置）。
   return (
-    <section className="rounded-(--radius-lg) border border-border bg-muted/35 px-5 py-6" aria-labelledby="approved-brand-wall">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div className="max-w-2xl">
-          <p className="x-label text-muted-foreground">{english ? "TRUSTED BY" : "已服务客户"}</p>
-          <h2 id="approved-brand-wall" className="mt-2 text-title font-medium">
-            {english ? "Brands shipping with Aivora" : "正在用 Aivora 出片的品牌"}
-          </h2>
-          <p className="mt-2 text-body text-muted-foreground">
-            {english
-              ? "Only platform-approved public logos appear here; private workspace logos are never exposed."
-              : "这里只展示平台审核并公开的客户 Logo，工作区私有 Logo 永远不会进入展示墙。"}
-          </p>
-        </div>
-        <p className="font-mono text-meta tabular-nums text-muted-foreground">
-          {visible.length} {english ? (visible.length === 1 ? "brand" : "brands") : "个品牌"}
-        </p>
-      </div>
-      <ul className="mt-5 flex flex-wrap gap-3">
+    <section className="min-w-0 space-y-4" aria-labelledby="approved-brand-wall">
+      <SectionHead
+        title={<span id="approved-brand-wall">{title}</span>}
+        count={visible.length}
+        hint={hint}
+      />
+      <ul className="x-wall grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         {visible.map((entry) => (
-          <li
-            key={entry.id}
-            className="group flex min-w-0 flex-1 basis-56 items-center gap-4 rounded-(--radius-md) border border-border bg-card p-4 transition-colors hover:border-border-strong sm:flex-none"
-          >
+          <li key={entry.id} className="flex min-w-0 items-center gap-4 p-4">
             <BrandLogo
               src={entry.logoUrl}
               brandName={entry.brandName}
-              className="size-12 shrink-0 rounded-(--radius-sm)"
+              className="size-12 shrink-0 rounded-(--radius-sm) bg-(--brand-tile)"
               imageClassName="p-1"
             />
             <span className="min-w-0 truncate text-subhead font-medium">

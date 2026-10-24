@@ -122,7 +122,8 @@ export function LeadAdminPanel({ locale, active }: { locale: Locale; active: Adm
                   onClick={() => load(row)}
                   className="inline-flex items-center gap-2 rounded-(--radius-md) border border-border px-2.5 py-1 text-meta hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 >
-                  <StatusTick tone={row.leadPageEnabled ? "live" : "void"} label={row.publicSlug ?? "—"} className="normal-case" />
+                  <StatusTick entity="leadPage" state={row.leadPageEnabled ? "on" : "off"} locale={locale} />
+                  <span className="font-mono text-data text-foreground">{row.publicSlug ?? "—"}</span>
                   <span className="text-muted-foreground">{row.ownerEmail}</span>
                 </button>
               </li>

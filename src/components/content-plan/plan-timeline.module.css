@@ -4,6 +4,8 @@
  * 一周不是 7 张卡片，是一条时段带：7 个交易日的刻度，每个时段里挂着排好的「委托」（帖子）；
  * 今天是一根信号青的光针；空档画成真的缺口（下沉井 + 「空档」），不是留白。
  * 颜色/圆角/阴影只从 token 取值；数字一律 tabular-nums；光只给今天与选中的那一笔。
+ * 按钮与输入框一律用共享 Button / Input（1025 · B2.3）：这里不再写任何 button / input 样式——
+ * 之前 `.actions button`（0,1,1）盖掉了 `.primary`（0,1,0），主钮实测是透明底。
  */
 
 .root {
@@ -12,9 +14,6 @@
   line-height: 1.7;
   font-variant-numeric: tabular-nums;
   min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 }
 
 .head {
@@ -23,61 +22,11 @@
   gap: var(--space-3);
 }
 
-/* ── 一句话入口：一条下沉槽 + 信号青行动钮 ── */
+/* ── 一句话入口：共享 Input + 共享 Button，排成一行 ── */
 .intake {
   display: flex;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-  box-shadow: var(--shadow-well);
-  margin-top: var(--space-4);
+  gap: var(--space-2);
   max-width: 54rem;
-}
-
-.intake:focus-within {
-  border-color: var(--accent-line);
-}
-
-.intake input {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: 0;
-  color: var(--text-primary);
-  padding: 12px 14px;
-  font: inherit;
-  outline: none;
-}
-
-.intake input::placeholder {
-  color: var(--text-tertiary);
-}
-
-.intake button {
-  border: 0;
-  border-left: 1px solid var(--border);
-  background: var(--accent);
-  color: var(--primary-foreground);
-  font-family: var(--font-mono-family);
-  font-size: var(--text-data);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0 20px;
-  cursor: pointer;
-  transition: background-color var(--motion-fast) var(--ease-out);
-}
-
-.intake button:hover:not(:disabled) {
-  background: var(--accent-strong);
-}
-
-/* 没写那一句话时仍是主行动，只是还按不动 */
-.intake button:disabled {
-  background: var(--accent-soft);
-  color: var(--accent);
-  cursor: default;
 }
 
 /* 排期依据：说清楚这一周是按什么排的 */
@@ -157,10 +106,6 @@
 
 .lane:last-child {
   border-right: 0;
-}
-
-.laneEmpty {
-  background-image: none;
 }
 
 /* 今天：一根信号青的光针，顶上一枚 ▼ 标记 */
@@ -288,6 +233,10 @@
   margin: 0 0 4px;
 }
 
+.labelSpaced {
+  margin-top: 14px;
+}
+
 .hook {
   font-family: var(--font-display-family);
   font-size: var(--font-size-title);
@@ -322,48 +271,12 @@
   background: var(--azure-soft);
 }
 
-/* 分段终端操作条 */
+/* 操作条：共享 Button，主钮（生成配图）实心、其余描边 / 幽灵 */
 .actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
   margin-top: 14px;
-  overflow: hidden;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunken);
-  width: fit-content;
-}
-
-.actions button {
-  border: 0;
-  border-right: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-secondary);
-  font-family: var(--font-mono-family);
-  font-size: var(--text-data);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  padding: 9px 16px;
-  cursor: pointer;
-}
-
-.actions button:last-child {
-  border-right: 0;
-}
-
-.actions button:hover:not(:disabled) {
-  background: var(--surface-raised);
-  color: var(--text-primary);
-}
-
-.actions button:disabled {
-  color: var(--text-tertiary);
-  cursor: default;
-}
-
-.primary {
-  background: var(--accent);
-  color: var(--primary-foreground);
-  font-weight: 600;
 }
 
 .frames {

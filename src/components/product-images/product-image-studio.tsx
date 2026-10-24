@@ -19,7 +19,8 @@ import {
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
-import { StatusTick, type TickTone } from "@/components/exchange/status-tick";
+import { StatusTick } from "@/components/exchange/status-tick";
+import { productImageState } from "@/lib/exchange/state-vocab";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/i18n/useTranslation";
@@ -83,14 +84,6 @@ function outputFileName(output: ProductImageOutputDto, mimeType: string): string
   return `aivora-product-image-${output.position + 1}.${extension}`;
 }
 
-/** 任务状态 → 行情状态（符号 + 颜色成对）；取消不是失败。 */
-const JOB_STATUS: Record<ProductImageStatus, { tone: TickTone; zh: string; en: string }> = {
-  QUEUED: { tone: "live", zh: "排队中", en: "Queued" },
-  PROCESSING: { tone: "live", zh: "生成中", en: "Generating" },
-  SUCCEEDED: { tone: "filled", zh: "已完成", en: "Done" },
-  FAILED: { tone: "fault", zh: "失败", en: "Failed" },
-  CANCELLED: { tone: "void", zh: "已取消", en: "Cancelled" },
-};
 
 const PRESET_IDS = ["white_studio", "lifestyle", "luxury", "social", "macro"] as const;
 const ASPECTS = ["1:1", "4:5", "9:16", "16:9"] as const;
@@ -323,8 +316,6 @@ export function ProductImageStudio({
   const results = activeJob?.outputs ?? [];
   const running = activeJob?.status === "QUEUED" || activeJob?.status === "PROCESSING";
   const activePresetLabel = presets.find(([value]) => value === preset)?.[1] ?? preset;
-  const statusLabel = (status: ProductImageStatus) =>
-    english ? JOB_STATUS[status].en : JOB_STATUS[status].zh;
   return (
     <div className="space-y-10">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(22rem,1.1fr)] xl:items-start">
@@ -333,8 +324,8 @@ export function ProductImageStudio({
           <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-4">
             <h2 id="product-image-workbench-title" className="text-subhead font-medium">{copy.workbench}</h2>
             <p className="flex items-baseline gap-2 text-meta text-muted-foreground">
-              <span className="font-mono text-data text-foreground">Image 2</span>
-              <span>{english ? "Reference image optional · audited generation route" : "参考图可选 · 已审计生成线路"}</span>
+              <span className="font-mono text-data text-foreground">{english ? "AI image" : "AI 出图"}</span>
+              <span>{english ? "Reference image optional · your photo sets the product look" : "参考图可选 · 产品外观以你的照片为准"}</span>
             </p>
           </header>
 
@@ -527,7 +518,7 @@ export function ProductImageStudio({
           <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
             <h2 id="product-image-preview-title" className="text-subhead font-medium">{copy.preview}</h2>
             {activeJob ? (
-              <StatusTick tone={JOB_STATUS[activeJob.status].tone} label={statusLabel(activeJob.status)} />
+              <StatusTick entity="image" state={productImageState(activeJob.status)} locale={locale} />
             ) : null}
           </header>
           <div className="p-5">
@@ -691,7 +682,7 @@ export function ProductImageStudio({
                     <div className="space-y-1.5 p-3">
                       <p className="truncate text-body font-medium">{presets.find(([value]) => value === job.preset)?.[1] ?? job.preset}</p>
                       <p className="flex items-center justify-between gap-2">
-                        <StatusTick tone={JOB_STATUS[job.status].tone} label={statusLabel(job.status)} />
+                        <StatusTick entity="image" state={productImageState(job.status)} locale={locale} />
                         <span className="font-mono text-data tabular-nums text-muted-foreground">{job.aspectRatio}</span>
                       </p>
                     </div>

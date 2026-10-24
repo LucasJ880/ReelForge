@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { loadExchangeReadings } from "@/lib/services/exchange-readings";
+import { loadExchangeReadings, loadProductionCounts } from "@/lib/services/exchange-readings";
 import type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
+import { formatRate, readingName } from "@/lib/exchange/readings-registry";
+import { batchState, libraryRowState, stateTone, stateWord } from "@/lib/exchange/state-vocab";
 import { Logo } from "@/components/ui/logo";
 import { FillBar } from "@/components/exchange/fill-bar";
-import { StatusTick, batchTone } from "@/components/exchange/status-tick";
+import { StatusTick } from "@/components/exchange/status-tick";
 import { ExchangeTape, type TapeItem } from "@/components/exchange/exchange-tape";
 import { Delta } from "@/components/exchange/delta";
 import { TickerFigure } from "@/components/exchange/ticker-figure";
@@ -19,8 +21,6 @@ import { getServerLocale } from "@/i18n/server";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
-
-const GENERATING = new Set(["EXPANDING", "RUNNING"]);
 
 function rowHref(row: UnifiedLibraryRow): string {
   return row.source === "batch" && row.batchId ? `/app/batches/${row.batchId}` : `/app/library/${row.id}`;
@@ -38,7 +38,7 @@ export default async function ExchangeWallPage() {
   const locale = await getServerLocale();
   const copy = getPlatformCopy(locale);
 
-  const [workspace, batches, readings] = await Promise.all([
+  const [workspace, batches, readings, production] = await Promise.all([
     db.workspace.findUnique({ where: { ownerId: userId }, select: { name: true } }),
     db.batchJob.findMany({
       where: { userId },
@@ -58,9 +58,11 @@ export default async function ExchangeWallPage() {
       },
     }),
     loadExchangeReadings(userId, { mediaLimit: 6, recentLimit: 16 }),
+    loadProductionCounts(userId),
   ]);
 
-  const live = readings.liveBatches;
+  /// 市场状态与壳层同口径：真在生成的视频条数（排队、暂停不算）。
+  const live = production.generating;
   const rate = readings.successRate7d;
   const cells: Array<{
     label: string;
@@ -69,37 +71,38 @@ export default async function ExchangeWallPage() {
     tone: string;
     delta?: { previous: number; label: string; upIsGood: boolean };
   }> = [
-    { label: copy.wall.live, value: live, tone: live > 0 ? "text-accent" : "text-foreground" },
+    { label: readingName("generating", locale), value: live, tone: live > 0 ? "text-accent" : "text-foreground" },
     {
-      label: copy.wall.filled24,
+      label: readingName("filled24h", locale),
       value: readings.filled24h,
       tone: readings.filled24h > 0 ? "text-success" : "text-foreground",
       delta: { previous: readings.previous.filled24h, label: copy.wall.vsPrev24, upIsGood: true },
     },
     {
-      label: copy.wall.filled7,
+      label: readingName("filled7d", locale),
       value: readings.filled7d,
       tone: readings.filled7d > 0 ? "text-success" : "text-foreground",
       delta: { previous: readings.previous.filled7d, label: copy.wall.vsPrev7, upIsGood: true },
     },
     {
-      label: copy.wall.failed7,
+      label: readingName("failed7d", locale),
       value: readings.failed7d,
       tone: readings.failed7d > 0 ? "text-danger" : "text-foreground",
       delta: { previous: readings.previous.failed7d, label: copy.wall.vsPrev7, upIsGood: false },
     },
-    { label: copy.wall.rate7, value: rate ?? -1, display: rate === null ? "—" : `${rate}%`, tone: "text-foreground" },
+    { label: readingName("successRate7d", locale), value: rate ?? -1, display: formatRate(rate), tone: "text-foreground" },
   ];
+  /// 生产回报：词与记号从状态词典取；暂停 / 排队不写「0%」（之前被读成卡死）。
   const report: TapeItem[] = readings.recent.map((row) => {
-    const inFlight = row.status !== "ready" && row.status !== "failed";
+    const state = libraryRowState(row.status);
     return {
       id: row.id,
       href: rowHref(row),
       code: `#${(row.videoJobId ?? row.id).slice(-5).toUpperCase()}`,
       name: row.title,
-      tone: row.status === "ready" ? "filled" : row.status === "failed" ? "fault" : "live",
-      state: copy.wall.reportStates[row.status === "ready" ? "ready" : row.status === "failed" ? "failed" : "inFlight"],
-      figure: inFlight ? `${row.progress}%` : row.status === "ready" && row.durationSec ? `${row.durationSec}s` : undefined,
+      tone: stateTone("item", state),
+      state: stateWord("item", state, locale),
+      figure: state === "generating" ? `${row.progress}%` : state === "done" && row.durationSec ? `${row.durationSec}s` : undefined,
       at: row.updatedAt.toISOString(),
     };
   });
@@ -161,7 +164,7 @@ export default async function ExchangeWallPage() {
               {batches.map((batch) => (
                 <li
                   key={batch.id}
-                  data-beam={GENERATING.has(batch.status) ? "row" : undefined}
+                  data-beam={batchState(batch.status) === "generating" ? "row" : undefined}
                   className="grid grid-cols-[minmax(0,1fr)_auto] content-center items-center gap-x-4 gap-y-2 px-5 py-3"
                 >
                   <span className="min-w-0">
@@ -170,7 +173,7 @@ export default async function ExchangeWallPage() {
                     </span>
                     <span className="font-mono text-data text-tertiary">B·{batch.id.slice(-5).toUpperCase()}</span>
                   </span>
-                  <StatusTick tone={batchTone(batch.status)} label={copy.shell.batchStates[batch.status]} className="text-[clamp(11px,0.85vw,15px)]" />
+                  <StatusTick entity="batch" state={batchState(batch.status)} locale={locale} className="text-[clamp(11px,0.85vw,15px)]" />
                   <FillBar
                     counts={{
                       completed: batch.completedCount,

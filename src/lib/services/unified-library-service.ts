@@ -15,8 +15,11 @@ import { summarizeRunningJobs } from "@/lib/video-generation/business-status";
 import {
   unifiedLibraryRowSchema,
   type UnifiedLibraryRow,
+  type UnifiedLibraryStatus,
 } from "@/lib/contracts/unified-library";
+import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
 import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
+import { bgmAttributionFor } from "@/lib/video-generation/bgm-attribution";
 import { readTemplateSnapshot } from "@/lib/video-generation/creative-recipe";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
@@ -103,6 +106,8 @@ const unifiedLibraryOrderSelect = {
                   segmentCount: true,
                   startedAt: true,
                   finishedAt: true,
+                  /// 后期快照：读配乐署名（CC BY 要求随交付署名）。
+                  postProduction: true,
                 },
               },
               videoJobs: {
@@ -258,6 +263,39 @@ export function deriveMakingProcess(
   return [brief, storyboard, generation, postProduction];
 }
 
+/**
+ * 成品库行状态的最后一道收口（1025 · B1.4）：派生状态说「生成中 / 准备中」时，按分段的真实状态改判。
+ * 只有供应商侧真有分段在跑才叫「生成中」；排队的是「排队中」，暂停的是「已暂停」，
+ * 没有分段还在路上却有失败的是「失败」（等你重试失败片段），全被取消的是「已取消」。
+ * 与 exchange-readings 的 orderGeneratingWhere / orderQueuedWhere / orderFailureWhere 同口径。
+ */
+export function refineOrderLibraryStatus(
+  derived: PersonalVideoStatus,
+  jobStatuses: VideoJobStatus[],
+): UnifiedLibraryStatus {
+  if (derived !== "generating" && derived !== "planning") return derived;
+  if (jobStatuses.length === 0) return "planning";
+  if (jobStatuses.includes("RUNNING")) return "generating";
+  if (jobStatuses.includes("QUEUED")) return "planning";
+  if (jobStatuses.includes("PAUSED")) return "paused";
+  if (jobStatuses.includes("FAILED")) return "failed";
+  if (jobStatuses.includes("CANCELLED")) return "cancelled";
+  /// 分段都好了、还没合成：合成中。
+  return "assembling";
+}
+
+/** 坏行不拖垮整页（bughunt #24）：丢掉这一行并上报，别的行照常显示。 */
+function parseLibraryRow(candidate: Record<string, unknown>): UnifiedLibraryRow | null {
+  const parsed = unifiedLibraryRowSchema.safeParse(candidate);
+  if (parsed.success) return parsed.data;
+  console.error("[unified-library] dropped invalid row", {
+    id: candidate.id,
+    source: candidate.source,
+    issues: parsed.error.issues.map((issue) => `${issue.path.join(".")}: ${issue.message}`),
+  });
+  return null;
+}
+
 export function toUnifiedLibraryRow(
   order: UnifiedLibraryOrder,
   isShowcase = false,
@@ -277,8 +315,10 @@ export function toUnifiedLibraryRow(
     jobStatuses,
     ...summarizeRunningJobs(brief?.videoJobs ?? []),
   });
+  const status = refineOrderLibraryStatus(derived.status, jobStatuses);
+  const active = status === "generating" || status === "assembling";
 
-  return unifiedLibraryRowSchema.parse({
+  return parseLibraryRow({
     id: order.id,
     briefId: brief?.id ?? null,
     source: "order",
@@ -286,11 +326,13 @@ export function toUnifiedLibraryRow(
     batchId: null,
     isShowcase,
     brandedVideoUrl: customerSafeFinalVideoUrl(brief?.brandedVideoUrl ?? null),
+    bgmAttribution: bgmAttributionFor(finalVideo?.postProduction ?? null),
     title: order.title,
     updatedAt: order.updatedAt,
-    status: derived.status satisfies PersonalVideoStatus,
+    status,
     label: derived.label,
-    progress: Math.round(derived.progressHint * 100),
+    /// 排队与暂停不显示进度（之前暂停写「0%」被读成卡死）。
+    progress: status === "ready" ? 100 : active ? Math.round(derived.progressHint * 100) : 0,
     videoUrl: customerSafeFinalVideoUrl(
       finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl ?? null,
     ),
@@ -300,7 +342,7 @@ export function toUnifiedLibraryRow(
     durationSec: brief?.durationSec ?? null,
     aspectRatio: brief?.aspectRatio ?? null,
     failedSceneCount,
-    canRetry: derived.status === "failed" || failedSceneCount > 0,
+    canRetry: status === "failed" || failedSceneCount > 0,
   });
 }
 
@@ -336,13 +378,22 @@ function toUnifiedLibraryDetail(
 
 /// 批量生产的 VideoJob → 成品库行。成品库文案承诺「单条与批量都汇总在这里」，
 /// 因此批量视频与订单行合并展示；品牌封装按 videoJobId 粒度操作。
-function batchJobStatusToLibraryStatus(
-  status: VideoJobStatus,
-): "planning" | "generating" | "ready" | "failed" {
-  if (status === "SUCCEEDED") return "ready";
-  if (status === "FAILED" || status === "CANCELLED") return "failed";
-  if (status === "QUEUED") return "planning";
-  return "generating";
+/// 暂停是暂停、取消是取消：之前 PAUSED 归「生成中」、CANCELLED 归「失败」（1025 · B1.4）。
+export function batchJobStatusToLibraryStatus(status: VideoJobStatus): UnifiedLibraryStatus {
+  switch (status) {
+    case "SUCCEEDED":
+      return "ready";
+    case "FAILED":
+      return "failed";
+    case "CANCELLED":
+      return "cancelled";
+    case "PAUSED":
+      return "paused";
+    case "QUEUED":
+      return "planning";
+    default:
+      return "generating";
+  }
 }
 
 type BatchLibraryJob = Prisma.VideoJobGetPayload<{
@@ -380,7 +431,7 @@ export function toBatchLibraryRow(
   const templateName =
     job.batchJob.template.nameZh ?? job.batchJob.template.name;
   const index = (job.batchIndex ?? 0) + 1;
-  return unifiedLibraryRowSchema.parse({
+  return parseLibraryRow({
     id: `batch-${job.id}`,
     briefId: null,
     source: "batch",
@@ -388,12 +439,14 @@ export function toBatchLibraryRow(
     batchId: job.batchJob.id,
     isShowcase,
     brandedVideoUrl: customerSafeFinalVideoUrl(job.brandedVideoUrl),
-    title: `${job.batchJob.productName ?? templateName} · ${templateName} #${index}`,
+    bgmAttribution: bgmAttributionFor(readBatchPostProductionFromSnapshot(job.templateSnapshot)),
+    /// 序号放在产品名后面：窄屏截断时吃掉的是模板名，不是唯一能区分的「#12 / #11」。
+    title: `${job.batchJob.productName ?? templateName} #${index} · ${templateName}`,
     updatedAt: job.updatedAt,
     status,
     label: status,
     progress:
-      status === "ready" ? 100 : Math.round((job.lastProgress ?? 0)),
+      status === "ready" ? 100 : status === "generating" ? Math.round(job.lastProgress ?? 0) : 0,
     videoUrl: customerSafeFinalVideoUrl(job.outputVideoUrl),
     thumbnailUrl: customerSafeFinalVideoUrl(job.outputThumbUrl),
     durationSec: snapshot?.durationSec ?? null,
@@ -445,15 +498,17 @@ export function toContentPostLibraryRow(
   const hasImages = post.renderedImageUrls.length > 0;
   /// 未出图 ≠ 生成中：没有任何任务在跑，显示「生成中 0%」会让商家以为卡死了
   /// （0802 录屏抓到的误导）。planning（准备中）才是实情 —— 等商家点「生成配图」。
-  const status = needsImage && !hasImages ? "planning" : "ready";
+  /// 短视频帖只有脚本，视频还没拍：是「待生产」，不是成片（1025 · B1.2：成片只数视频）。
+  const status = (needsImage && !hasImages) || post.format === "VIDEO" ? "planning" : "ready";
 
-  return unifiedLibraryRowSchema.parse({
+  return parseLibraryRow({
     id: `post-${post.id}`,
     briefId: null,
     source: "post",
     videoJobId: null,
     batchId: null,
     planId: post.plan.id,
+    postFormat: post.format,
     isShowcase,
     brandedVideoUrl: null,
     /// 标题用帖子自己的钩子文案：同一计划的多个帖子若都叫「主题 · 形态」，
@@ -478,74 +533,136 @@ export function toContentPostLibraryRow(
  * Terminal failures without playable media are operational records, not useful
  * customer library items. Keep recoverable outputs visible even when their
  * status is failed so support and customers do not lose access to media.
+ *
+ * 失败行由「需要处理」区单独列出（exchange-readings.loadNeedsAttention，与导轨徽标同一个查询），
+ * 取消的没有媒体也不进列表——取消是商家自己的决定，不是待办。
  */
 export function filterCustomerLibraryRows(
   rows: UnifiedLibraryRow[],
 ): UnifiedLibraryRow[] {
   /// 图文帖没有 videoUrl 也可能是完整成品（纯文案帖），
-  /// 所以只对视频来源套「失败且无可播放媒体则隐藏」这条规则。
+  /// 所以只对视频来源套「失败 / 取消且无可播放媒体则隐藏」这条规则。
   return rows.filter(
     (row) =>
-      row.source === "post" || row.status !== "failed" || Boolean(row.videoUrl),
+      row.source === "post" ||
+      (row.status !== "failed" && row.status !== "cancelled") ||
+      Boolean(row.videoUrl),
   );
+}
+
+/** 每个来源最多读这么多行；超出时页面写明截断（游标分页在下一轮）。 */
+export const LIBRARY_ROWS_PER_SOURCE = 300;
+
+export type UnifiedLibraryResult = {
+  rows: UnifiedLibraryRow[];
+  /** 本人数据里有来源超过了每来源上限（只显示最近的 LIBRARY_ROWS_PER_SOURCE 条）。 */
+  truncated: boolean;
+  perSourceLimit: number;
+};
+
+function mapRows(
+  orders: UnifiedLibraryOrder[],
+  batchJobs: BatchLibraryJob[],
+  contentPosts: ContentPostLibraryRow[],
+  isShowcase: boolean,
+): UnifiedLibraryRow[] {
+  return [
+    ...orders.map((order) => toUnifiedLibraryRow(order, isShowcase)),
+    ...batchJobs.map((job) => toBatchLibraryRow(job, isShowcase)),
+    ...contentPosts.map((post) => toContentPostLibraryRow(post, isShowcase)),
+  ]
+    .filter((row): row is UnifiedLibraryRow => row !== null)
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 }
 
 async function loadRowsForOwner(
   ownerId: string,
   isShowcase: boolean,
-): Promise<UnifiedLibraryRow[]> {
+): Promise<{ rows: UnifiedLibraryRow[]; truncated: boolean }> {
+  /// 多取一行用来判断是否截断。
+  const take = LIBRARY_ROWS_PER_SOURCE + 1;
   const [orders, batchJobs, contentPosts] = await Promise.all([
     db.deliveryOrder.findMany({
       where: { createdById: ownerId, productCategory: "unified_input" },
       orderBy: { updatedAt: "desc" },
-      take: 100,
+      take,
       select: unifiedLibraryOrderSelect,
     }),
     db.videoJob.findMany({
       where: { batchJob: { userId: ownerId } },
       orderBy: { updatedAt: "desc" },
-      take: 100,
+      take,
       select: batchLibraryJobSelect,
     }),
     /// PRD §4.3：图文帖与轮播也要进素材库，否则商家出完图就找不到它们了。
     db.contentPost.findMany({
       where: { plan: { userId: ownerId } },
       orderBy: { updatedAt: "desc" },
-      take: 100,
+      take,
       select: contentPostLibrarySelect,
     }),
   ]);
-
-  const rows = [
-    ...orders
-      .map((order) => toUnifiedLibraryRow(order, isShowcase))
-      .filter((row): row is UnifiedLibraryRow => row !== null),
-    ...batchJobs
-      .map((job) => toBatchLibraryRow(job, isShowcase))
-      .filter((row): row is UnifiedLibraryRow => row !== null),
-    ...contentPosts
-      .map((post) => toContentPostLibraryRow(post, isShowcase))
-      .filter((row): row is UnifiedLibraryRow => row !== null),
-  ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+  const truncated = [orders, batchJobs, contentPosts].some((list) => list.length > LIBRARY_ROWS_PER_SOURCE);
+  const rows = mapRows(
+    orders.slice(0, LIBRARY_ROWS_PER_SOURCE),
+    batchJobs.slice(0, LIBRARY_ROWS_PER_SOURCE),
+    contentPosts.slice(0, LIBRARY_ROWS_PER_SOURCE),
+    isShowcase,
+  );
 
   // 样片只暴露已完成成片，避免把半成品/失败的 demo 内容展示给其他用户。
-  return isShowcase
-    ? rows.filter((row) => row.status === "ready")
-    : filterCustomerLibraryRows(rows);
+  return {
+    rows: isShowcase ? rows.filter((row) => row.status === "ready") : filterCustomerLibraryRows(rows),
+    truncated,
+  };
 }
 
 export async function loadUnifiedLibrary(
   userId: string,
-): Promise<UnifiedLibraryRow[]> {
+): Promise<UnifiedLibraryResult> {
   const showcaseUserId = await resolveShowcaseSourceFor(userId);
-  const [ownRows, showcaseRows] = await Promise.all([
+  const [own, showcase] = await Promise.all([
     loadRowsForOwner(userId, false),
     showcaseUserId
       ? loadRowsForOwner(showcaseUserId, true)
-      : Promise.resolve<UnifiedLibraryRow[]>([]),
+      : Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false }),
   ]);
   // 访问者本人成片在前，SunnyShutter 客户样片在后（新注册用户仅见样片）。
-  return [...ownRows, ...showcaseRows];
+  return {
+    rows: [...own.rows, ...showcase.rows],
+    truncated: own.truncated,
+    perSourceLimit: LIBRARY_ROWS_PER_SOURCE,
+  };
+}
+
+/**
+ * 大屏用的「最近几条视频」：只读本人、只取最近 take 条（单条 + 批量，不含图文帖），
+ * 不扫整个成品库。readyWithMedia = 只要可播放的成片。
+ */
+export async function loadRecentVideoRows(
+  userId: string,
+  { take, readyWithMedia = false }: { take: number; readyWithMedia?: boolean },
+): Promise<UnifiedLibraryRow[]> {
+  const [orders, batchJobs] = await Promise.all([
+    db.deliveryOrder.findMany({
+      where: { createdById: userId, productCategory: "unified_input" },
+      orderBy: { updatedAt: "desc" },
+      /// 订单的派生状态在内存里算；成片墙多取几行再筛。
+      take: readyWithMedia ? take * 3 : take,
+      select: unifiedLibraryOrderSelect,
+    }),
+    db.videoJob.findMany({
+      where: {
+        batchJob: { userId },
+        ...(readyWithMedia ? { status: "SUCCEEDED" as const, outputVideoUrl: { not: null } } : {}),
+      },
+      orderBy: { updatedAt: "desc" },
+      take,
+      select: batchLibraryJobSelect,
+    }),
+  ]);
+  const rows = filterCustomerLibraryRows(mapRows(orders, batchJobs, [], false));
+  return (readyWithMedia ? rows.filter((row) => row.status === "ready" && row.videoUrl) : rows).slice(0, take);
 }
 
 export async function getUnifiedLibraryItem(userId: string, orderId: string) {

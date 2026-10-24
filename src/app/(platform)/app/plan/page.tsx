@@ -31,6 +31,8 @@ export default async function PlanPage() {
         corePainPoint: latest.corePainPoint,
         generatedBy: latest.generatedBy,
         planBasis: latest.planBasis,
+        /// 只传 ISO：「今天」与每一天的日期在浏览器里按访问者时区算（服务器是 UTC）。
+        startIso: latest.createdAt.toISOString(),
         posts: latest.posts.map((post) => ({
           id: post.id,
           key: post.key,
@@ -54,9 +56,5 @@ export default async function PlanPage() {
       }
     : null;
 
-  /// 周一为一周之首，与轨道刻度一致。
-  const today = new Date();
-  const todayOffset = (today.getDay() + 6) % 7;
-
-  return <PlanTimeline plan={plan} todayOffset={todayOffset} />;
+  return <PlanTimeline plan={plan} />;
 }

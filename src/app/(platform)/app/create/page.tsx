@@ -7,19 +7,17 @@ import {
 import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { authOptions } from "@/lib/auth";
 import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
-import { loadExchangeReadings } from "@/lib/services/exchange-readings";
+import { loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
-import { getWorkspacePlanForUser } from "@/lib/services/workspace-plan-service";
 import type { UploadedAsset } from "@/types/video-generation";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 
-/// 空态演练：等同一个全新账号，成片读数全为零（零就写零）；额度仍取真实套餐。
-const EMPTY_ACTIVITY: Omit<StudioReadings, "monthlyLimit"> = {
-  inFlight: 0,
+/// 空态演练：等同一个全新账号，成片读数全为零（零就写零）；额度仍取真实计量。
+const EMPTY_ACTIVITY: Pick<StudioReadings, "generating" | "filled24h" | "successRate7d"> = {
+  generating: 0,
   filled24h: 0,
-  filled30d: 0,
   successRate7d: null,
 };
 
@@ -108,20 +106,21 @@ export default async function PlatformCreatePage({
 }
 
 /**
- * 行情头读数：与大屏同一口径（loadExchangeReadings，只数本人数据、不含样片），
- * 月额度取当前套餐（app layout 已保证默认 Workspace 存在）。只把纯数字交给客户端组件。
- * 读失败不吞成空数据（RF-012）：交给本路由的 error.tsx。
+ * 行情头读数：与壳层、大屏同一口径（exchange-readings 的 DB 计数，只数本人数据、不含样片）；
+ * 额度格读本月真实用量（UserUsagePeriod）对生效上限——试用账号是 3 条，不是套餐表里的 30。
+ * 只把纯数字交给客户端组件（client bundle 铁律）。读失败不吞成空数据（RF-012）：交给本路由的 error.tsx。
  */
 async function loadCreateReadings(userId: string, rehearseEmpty: boolean): Promise<StudioReadings> {
-  const [activity, entitlement] = await Promise.all([
-    rehearseEmpty ? Promise.resolve(EMPTY_ACTIVITY) : loadExchangeReadings(userId, { mediaLimit: 0 }),
-    getWorkspacePlanForUser(userId),
+  const [activity, production, quota] = await Promise.all([
+    rehearseEmpty ? Promise.resolve(EMPTY_ACTIVITY) : loadExchangeReadings(userId),
+    rehearseEmpty ? Promise.resolve({ generating: 0 }) : loadProductionCounts(userId),
+    loadVideoQuota(userId),
   ]);
   return {
-    inFlight: activity.inFlight,
+    generating: production.generating,
     filled24h: activity.filled24h,
-    filled30d: activity.filled30d,
-    monthlyLimit: entitlement.monthlyVideoLimit,
+    quotaUsed: quota.used,
+    quotaLimit: quota.limit,
     successRate7d: activity.successRate7d,
   };
 }

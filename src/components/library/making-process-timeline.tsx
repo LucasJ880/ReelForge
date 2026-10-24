@@ -5,6 +5,7 @@ import {
   Loader2,
   TriangleAlert,
 } from "lucide-react";
+import { LocalTime } from "@/components/exchange/local-time";
 import type {
   MakingProcessStep,
   MakingProcessStepStatus,
@@ -52,15 +53,6 @@ function statusIcon(status: MakingProcessStepStatus) {
     return <TriangleAlert className="size-5 text-destructive" aria-hidden />;
   }
   return <CircleDashed className="size-5 text-muted-foreground" aria-hidden />;
-}
-
-function formatTimestamp(value: Date, english: boolean) {
-  return new Intl.DateTimeFormat(english ? "en-CA" : "zh-CN", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(value);
 }
 
 export function MakingProcessTimeline({
@@ -115,12 +107,13 @@ export function MakingProcessTimeline({
                       : ""}
                   </p>
                   {step.timestamp ? (
-                    <time
-                      dateTime={step.timestamp.toISOString()}
+                    /// 服务端（Vercel 是 UTC）只传 ISO，按访问者时区显示，非今天带月日。
+                    <LocalTime
+                      iso={step.timestamp.toISOString()}
+                      locale={english ? "en-US" : "zh-CN"}
+                      variant="datetime"
                       className="block font-mono text-meta tabular-nums text-muted-foreground"
-                    >
-                      {formatTimestamp(step.timestamp, english)}
-                    </time>
+                    />
                   ) : null}
                 </div>
               </div>

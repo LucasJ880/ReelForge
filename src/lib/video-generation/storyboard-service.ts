@@ -1291,11 +1291,14 @@ export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {
   const runs = await db.storyboardRun.findMany({
     where: {
       OR: [
-        { status: StoryboardRunStatus.GENERATING },
+        // 停用账号不再推进：GENERATING / FAILED 复活两路都排除停用用户；
+        // 下面 CANCELLED 一路不过滤——停用时已取消的轮次仍要收回已付费的帧。
+        { status: StoryboardRunStatus.GENERATING, owner: { disabledAt: null } },
         // FAILED 但存在「任务号已知的 ACK_UNKNOWN 帧」的 run 可以按真实状态
         // 复活，必须持续对账；其余 FAILED run 没有可查的事实，不进队列。
         {
           status: StoryboardRunStatus.FAILED,
+          owner: { disabledAt: null },
           frames: {
             some: {
               isCurrent: true,
@@ -1364,7 +1367,7 @@ function storyboardTombstoneKey(runId: string, idempotencyKey: string): string {
  */
 async function cancelStoryboardRunRecord(
   run: { id: string; userId: string; idempotencyKey: string },
-  reason: "user" | "batch",
+  reason: "user" | "batch" | "account_disabled",
 ): Promise<boolean> {
   return db.$transaction(async (tx) => {
     const now = new Date();
@@ -1485,6 +1488,22 @@ export async function cancelStoryboardRunsForVideoJobs(jobIds: string[]): Promis
   let cancelled = 0;
   for (const run of runs) {
     if (await cancelStoryboardRunRecord(run, "batch")) cancelled += 1;
+  }
+  return cancelled;
+}
+
+/**
+ * 账号停用时，把该用户仍在出帧的故事板（单条与批量）全部真取消。
+ * 每条自带事务，所以必须在停用事务提交之后调用。返回实际取消的条数。
+ */
+export async function cancelActiveStoryboardRunsForUser(userId: string): Promise<number> {
+  const runs = await db.storyboardRun.findMany({
+    where: { userId, status: { in: CANCELLABLE_STORYBOARD_STATUSES } },
+    select: { id: true, userId: true, idempotencyKey: true },
+  });
+  let cancelled = 0;
+  for (const run of runs) {
+    if (await cancelStoryboardRunRecord(run, "account_disabled")) cancelled += 1;
   }
   return cancelled;
 }

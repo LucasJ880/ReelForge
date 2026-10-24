@@ -83,6 +83,7 @@ import {
 import {
   attachStoryboardToVideoJob,
   canRegenerateStoryboardFrame,
+  cancelStoryboardRunsForVideoJobs,
   createStoryboardRun,
   reconcileStoryboardRun,
   regenerateStoryboardFrame,
@@ -1412,7 +1413,11 @@ const BATCH_FRAME_MAX_ATTEMPTS = 3;
  */
 async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
   const runs = await db.storyboardRun.findMany({
-    where: { videoJob: { batchJobId: batchId }, status: "FAILED" },
+    /// 只给仍在排队 / 暂停的任务重出帧：已取消任务挂着的失败 run 不能再花钱。
+    where: {
+      videoJob: { batchJobId: batchId, status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] } },
+      status: "FAILED",
+    },
     select: {
       id: true,
       userId: true,
@@ -1474,7 +1479,8 @@ async function advanceBatchStoryboards(batchId: string): Promise<void> {
   /// run 落地成诚实的任务失败——保证 FAILED run + QUEUED job 不会活过一个 tick。
   const runs = await db.storyboardRun.findMany({
     where: {
-      videoJob: { batchJobId: batchId },
+      /// 同上：已取消任务的 run 不再推进（会重投失败帧、产生费用）。
+      videoJob: { batchJobId: batchId, status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] } },
       OR: [
         { status: "GENERATING" },
         {
@@ -2158,9 +2164,18 @@ async function releaseBatchIdempotencyKey(batchId: string): Promise<void> {
  * 取消的条目由清扫器里的对账按条返还额度（D1）。
  */
 export async function cancelPendingBatchJobs(batchId: string): Promise<number> {
-  const result = await db.videoJob.updateMany({
+  const pending = await db.videoJob.findMany({
     where: {
       batchJobId: batchId,
+      status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] },
+    },
+    select: { id: true },
+  });
+  const pendingIds = pending.map((job) => job.id);
+  /// CAS：读与写之间被认领走的任务不在取消之列。
+  const result = await db.videoJob.updateMany({
+    where: {
+      id: { in: pendingIds },
       status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] },
     },
     data: {
@@ -2170,7 +2185,17 @@ export async function cancelPendingBatchJobs(batchId: string): Promise<number> {
       userSafeError: "已取消",
     },
   });
-  if (result.count > 0) await releaseBatchIdempotencyKey(batchId);
+  if (result.count > 0) {
+    await releaseBatchIdempotencyKey(batchId);
+    /// 挂在这些任务上、仍在出帧的故事板一起真取消（各自带事务，放在任务改状态之后）。
+    const cancelledJobs = await db.videoJob.findMany({
+      where: { id: { in: pendingIds }, status: VideoJobStatus.CANCELLED },
+      select: { id: true },
+    });
+    await cancelStoryboardRunsForVideoJobs(cancelledJobs.map((job) => job.id)).catch((err) =>
+      console.warn(`[batch] cancel storyboards for ${batchId} failed:`, (err as Error).message),
+    );
+  }
   await syncBatchCounts(batchId);
   return result.count;
 }

@@ -1,5 +1,6 @@
 import { ProviderSubmissionState, VideoJobStatus, type Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { cancelActiveStoryboardRunsForUser } from "@/lib/video-generation/storyboard-service";
 import { forgetAccountStatus } from "@/lib/auth";
 
 /**
@@ -118,6 +119,11 @@ export async function disableAccount(args: {
   });
 
   forgetAccountStatus(result.userId);
+  /// 仍在出帧的故事板（单条与批量）一起真取消：每条自带事务，所以放在停用事务提交之后；
+  /// 失败只记日志——停用本身已经生效，故事板轮询也会跳过停用账号。
+  await cancelActiveStoryboardRunsForUser(result.userId).catch((err) =>
+    console.warn(`[account-disable] cancel storyboards for ${result.userId} failed:`, (err as Error).message),
+  );
   return result;
 }
 

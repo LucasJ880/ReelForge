@@ -18,8 +18,10 @@ import {
   QUOTA_LEDGER_PHASE,
   QUOTA_REFUND_CUTOFF_DEFAULT,
   rechargeRefundedBriefForSession,
+  reconcileUndeliveredQuotaRefunds,
   refundFailedBrief,
 } from "../src/lib/services/quota-refund-service";
+import { db } from "../src/lib/db";
 import {
   emptyStore,
   installQuotaFakeDb,
@@ -256,6 +258,80 @@ test("D1 single refund: in-flight requests, active segments, delivered and histo
   assert.equal(meterAmount(store, USER, "2026-10", "VIDEO_DISPATCH"), 1);
 });
 
+test("money LENS-1: a FAILED segment left SUBMITTING by a killed route no longer blocks its refund forever", async (t) => {
+  const store = singleStore();
+  /// 路由提交途中被杀：行停在 SUBMITTING、没有任务号；清扫器在 timeoutAt + 宽限后盲判 FAILED，
+  /// 但不改 submissionState。
+  Object.assign(store.videoJobs[0], {
+    submissionState: ProviderSubmissionState.SUBMITTING,
+    externalJobId: null,
+    submittedAt: new Date(NOW.getTime() - 50 * 60_000),
+  });
+  installQuotaFakeDb(t, store);
+
+  // 刚提交几分钟的 SUBMITTING 仍可能在路上：等它落定。
+  const justSubmitted = new Date(store.videoJobs[0].submittedAt as Date);
+  assert.equal(
+    await refundFailedBrief("brief-1", { now: new Date(justSubmitted.getTime() + 5 * 60_000), cutoff: CUTOFF }),
+    "skipped",
+  );
+  assert.equal(brief(store).quotaRefundedAt, null);
+
+  // 早已超出路由执行上限：不可能再提交成功，按 D1 返还。
+  assert.equal(await refundFailedBrief("brief-1", { now: NOW, cutoff: CUTOFF }), "refunded");
+  assert.ok(brief(store).quotaRefundedAt instanceof Date);
+  assert.equal(meterAmount(store, USER, "2026-10", "VIDEO_DISPATCH"), 0);
+  assert.equal(meterAmount(store, USER, "2026-10", "SEEDANCE_SEGMENT"), 0);
+});
+
+test("money LENS-1: the reconciler leaves out briefs it cannot settle yet, so they never pin the queue head", async (t) => {
+  const store = singleStore();
+  store.briefs.push(
+    failedBrief({ id: "brief-inflight" }),
+    failedBrief({ id: "brief-running" }),
+    failedBrief({ id: "brief-stale-submitting" }),
+  );
+  store.videoJobs.push(
+    segmentJob({
+      id: "inflight-seg",
+      videoBriefId: "brief-inflight",
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      submittedAt: new Date(NOW.getTime() - 2 * 60_000),
+    }),
+    segmentJob({ id: "running-seg", videoBriefId: "brief-running", status: VideoJobStatus.RUNNING, finishedAt: null }),
+    segmentJob({
+      id: "stale-seg",
+      videoBriefId: "brief-stale-submitting",
+      submissionState: ProviderSubmissionState.SUBMITTING,
+      submittedAt: new Date(NOW.getTime() - 60 * 60_000),
+    }),
+  );
+  installQuotaFakeDb(t, store);
+  const briefModel = db.videoBrief as unknown as Record<string, (args: unknown) => Promise<Row[]>>;
+  const fakeFindMany = briefModel.findMany;
+  const candidates: string[][] = [];
+  briefModel.findMany = async (args: unknown) => {
+    const rows = await fakeFindMany(args);
+    candidates.push(rows.map((row) => String(row.id)));
+    return rows;
+  };
+  t.after(() => {
+    briefModel.findMany = fakeFindMany;
+  });
+
+  const result = await reconcileUndeliveredQuotaRefunds(NOW, { cutoff: CUTOFF });
+
+  assert.deepEqual(
+    candidates[0]?.slice().sort(),
+    ["brief-1", "brief-stale-submitting"],
+    "有段在跑、提交可能还在路上的 brief 不占对账名额",
+  );
+  assert.equal(result.errors, 0);
+  assert.equal(brief(store, "brief-inflight").quotaRefundedAt, null);
+  assert.equal(brief(store, "brief-running").quotaRefundedAt, null);
+  assert.ok(brief(store, "brief-stale-submitting").quotaRefundedAt instanceof Date);
+});
+
 // ---------------------------------------------------------------------------
 // 重试补扣
 // ---------------------------------------------------------------------------
@@ -337,6 +413,105 @@ test("D1 single retry: a never-refunded brief needs no recharge", async (t) => {
     cleared: false,
   });
   assert.equal(store.usageLogs.length, 2);
+});
+
+test("money LENS-3: a brief refunded by dispatch compensation is re-charged on retry even when two dispatches overlap", async (t) => {
+  enforceQuota(t);
+  const store = emptyStore();
+  /// 两个标签页几秒内各派发一次：A、B 两笔请求的处理窗口互相重叠
+  const B_REQUESTED_AT = new Date(REQUESTED_AT.getTime() + 2_000);
+  store.dispatchRequests.push(
+    dispatchRequest({
+      id: "request-A",
+      state: VideoDispatchRequestState.PROCESSING,
+      completedAt: null,
+      responseBody: null,
+    }),
+    dispatchRequest({
+      id: "request-B",
+      state: VideoDispatchRequestState.PROCESSING,
+      createdAt: B_REQUESTED_AT,
+      completedAt: null,
+      quotaConsumedAt: B_REQUESTED_AT,
+      responseBody: null,
+    }),
+  );
+  store.usageLogs.push(...authorization("request-A"), ...authorization("request-B"));
+  store.briefs.push(
+    failedBrief({ id: "brief-A1" }),
+    failedBrief({ id: "brief-B1", createdAt: new Date(BRIEF_AT.getTime() + 1_000) }),
+  );
+  for (const briefId of ["brief-A1", "brief-B1"]) {
+    for (const index of [0, 1]) {
+      store.videoJobs.push(
+        segmentJob({
+          id: `${briefId}-seg-${index}`,
+          videoBriefId: briefId,
+          submissionState: ProviderSubmissionState.REJECTED,
+          submissionErrorClass: "definitely_not_created:provider_response",
+          externalJobId: null,
+        }),
+      );
+    }
+  }
+  store.meters.push(
+    { userId: USER, periodKey: "2026-10", resource: "VIDEO_DISPATCH", amount: 2 },
+    { userId: USER, periodKey: "2026-10", resource: "SEEDANCE_SEGMENT", amount: 4 },
+  );
+  installQuotaFakeDb(t, store);
+
+  /// 供应商把每段都判定为「肯定没建出任务」：路由按请求即时补偿并给 brief 打返还标记
+  for (const [requestId, briefId] of [
+    ["request-A", "brief-A1"],
+    ["request-B", "brief-B1"],
+  ]) {
+    assert.deepEqual(
+      await compensateDirectDispatchQuota({
+        requestId,
+        userId: USER,
+        briefIds: [briefId],
+        videoDispatchAmount: 1,
+        seedanceSegmentAmount: 2,
+        periodKey: "2026-10",
+        quotaWasMetered: true,
+        reason: "all_jobs_rejected_definitely_not_created",
+        responseStatus: 503,
+      }),
+      { compensated: true, replayed: false },
+    );
+    Object.assign(store.dispatchRequests.find((request) => request.id === requestId)!, {
+      state: VideoDispatchRequestState.FAILED,
+      completedAt: COMPLETED_AT,
+      responseBody: { ok: false, code: "PROVIDER_ERROR" },
+    });
+  }
+  assert.ok(brief(store, "brief-A1").quotaRefundedAt instanceof Date);
+  assert.equal(meterAmount(store, USER, "2026-10", "VIDEO_DISPATCH"), 0);
+  assert.equal(meterAmount(store, USER, "2026-10", "SEEDANCE_SEGMENT"), 0);
+
+  // 窗口认领在这里只能判 ambiguous；补偿流水点名了 brief，重试必须按那笔请求补扣。
+  const period = currentUsagePeriodKey();
+  const before = {
+    video: meterAmount(store, USER, period, "VIDEO_DISPATCH"),
+    segments: meterAmount(store, USER, period, "SEEDANCE_SEGMENT"),
+  };
+  assert.deepEqual(await rechargeRefundedBriefForSession(CUSTOMER, "brief-A1"), {
+    recharged: true,
+    cleared: true,
+  });
+  assert.equal(brief(store, "brief-A1").quotaRefundedAt, null);
+  assert.equal(meterAmount(store, USER, period, "VIDEO_DISPATCH"), before.video + 1);
+  assert.equal(meterAmount(store, USER, period, "SEEDANCE_SEGMENT"), before.segments + 2);
+  assert.deepEqual(
+    briefLogs(store, "brief-A1")
+      .filter((log) => Number(log.amount) > 0)
+      .map((log) => [log.resource, log.amount, (log.metadata as Row).phase]),
+    [
+      ["VIDEO_DISPATCH", 1, "brief_retry_recharge"],
+      ["SEEDANCE_SEGMENT", 2, "brief_retry_recharge"],
+    ],
+  );
+  assert.ok(brief(store, "brief-B1").quotaRefundedAt instanceof Date, "另一条 brief 不受影响");
 });
 
 test("D1 single retry route: re-charge happens before any re-run and quota errors are returned as such", async () => {

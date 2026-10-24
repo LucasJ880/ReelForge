@@ -58,7 +58,7 @@ import {
   watchdogGraceMin,
 } from "./video-watchdog";
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
-import { decideFrameQaGate } from "./frame-qa-gate";
+import { decideFrameQaGate, type FrameQaAttemptPin } from "./frame-qa-gate";
 import {
   requireApprovedStoryboardVideoReferencesForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
@@ -323,6 +323,11 @@ async function claimFailedJobForRetry(job: {
       submissionErrorClass: null,
       providerRequestKey,
       submittedAt,
+      /// 单条重试复用同一行，createdAt 永远是首轮：把这一轮的起点写进 availableAt，
+      /// 清扫器的绝对寿命上限（COALESCE(availableAt, createdAt)）才会从重试这一刻
+      /// 重新计时。否则首轮 12 小时之后点重试，供应商还在渲染就被盲判「超过绝对上限」，
+      /// 跳过「先问供应商」那一步。单条任务不进批次队列查询（都要求 batchJobId 非空）。
+      availableAt: submittedAt,
       finishedAt: null,
       submitAttempts: { increment: 1 },
       errorMessage: null,
@@ -850,6 +855,24 @@ export async function dispatchVideoGeneration(briefId: string) {
 }
 
 /**
+ * reconcile 读到的「这一次尝试」：供应商任务号 + 提交幂等键。终态 CAS 与质检占位都钉住它。
+ *
+ * 只比状态不够：一次 reconcile（尤其是跑 45s 帧质检的那次）进行期间，用户可能已经点了
+ * 重试——单条重试先把行翻回 RUNNING 并换 providerRequestKey、再写新任务号；批量重试
+ * 清空 externalJobId 再重新提交。旧尝试的结论若只按「仍在 RUNNING/QUEUED」写回，
+ * 会把新一轮直接判成 FAILED / SUCCEEDED（还带着旧产物）。两项任一变了就落空。
+ */
+function attemptPin(job: {
+  externalJobId: string | null;
+  providerRequestKey: string | null;
+}): FrameQaAttemptPin {
+  return {
+    externalJobId: job.externalJobId,
+    providerRequestKey: job.providerRequestKey,
+  };
+}
+
+/**
  * 调和单个 VideoJob 的 Provider 状态。
  * - 调用方负责处理批量、聚合到 brief 状态。
  * - 容错：Provider 查询失败时不会把 job 直接判 FAILED，
@@ -979,6 +1002,8 @@ export async function reconcileVideoJob(jobId: string) {
       videoUrl: result.videoUrl,
       /// 历史拦截次数随行带入（免费重抽上限按段累计，重试复用同一行）
       priorFrameQaDetail: job.frameQaDetail,
+      /// 真跑质检前按这次尝试占位：重叠的 cron 调用不重复质检同一段
+      attempt: attemptPin(job),
     });
     if (gate.action === "defer") {
       return db.videoJob.findUnique({ where: { id: jobId } });
@@ -990,11 +1015,12 @@ export async function reconcileVideoJob(jobId: string) {
         to: VideoJobStatus.FAILED,
         reason: `frame_qa_rejected: ${gate.summary}`,
       });
-      /// CAS：仍在 RUNNING/QUEUED 才写终态（INV-6）
+      /// CAS：仍在 RUNNING/QUEUED、且仍是这一次尝试才写终态（INV-6）
       await db.videoJob.updateMany({
         where: {
           id: jobId,
           status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+          ...attemptPin(job),
         },
         data: {
           ...gate.failureData,
@@ -1016,11 +1042,13 @@ export async function reconcileVideoJob(jobId: string) {
       to: VideoJobStatus.SUCCEEDED,
       reason: `provider_completed (${result.rawProviderStatus})`,
     });
-    /// CAS 成功迁移（INV-6：并发的另一次 reconcile 已写终态时这里 count=0，不覆盖）
+    /// CAS 成功迁移（INV-6：并发的另一次 reconcile 已写终态、或这一行已被重试换成
+    /// 新的一次尝试时这里 count=0，不覆盖）
     const succeeded = await db.videoJob.updateMany({
       where: {
         id: jobId,
         status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+        ...attemptPin(job),
       },
       data: {
         ...gate.successData,
@@ -1052,6 +1080,7 @@ export async function reconcileVideoJob(jobId: string) {
       where: {
         id: jobId,
         status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+        ...attemptPin(job),
       },
       data: {
         status: VideoJobStatus.FAILED,
@@ -1104,7 +1133,13 @@ export async function reconcileVideoJob(jobId: string) {
  * 返回更新后的 job；CAS 落空（已被并发路径终态化）返回 null。
  */
 async function failJobIdempotent(
-  job: { id: string; status: VideoJobStatus; videoBriefId: string | null },
+  job: {
+    id: string;
+    status: VideoJobStatus;
+    videoBriefId: string | null;
+    externalJobId: string | null;
+    providerRequestKey: string | null;
+  },
   opts: {
     reason: "timeout" | "provider_stalled";
     errorMessage: string;
@@ -1118,6 +1153,7 @@ async function failJobIdempotent(
     where: {
       id: job.id,
       status: { in: [VideoJobStatus.RUNNING, VideoJobStatus.QUEUED] },
+      ...attemptPin(job),
     },
     data: {
       status: VideoJobStatus.FAILED,
@@ -1592,7 +1628,7 @@ export function pollRunningJobsOrderBy(): Prisma.VideoJobOrderByWithRelationInpu
 export async function syncBriefStatus(briefId: string) {
   const brief = await db.videoBrief.findUnique({
     where: { id: briefId },
-    select: { id: true, finalVideoId: true },
+    select: { id: true, finalVideoId: true, status: true, errorMessage: true },
   });
   if (!brief) return;
 
@@ -1616,12 +1652,21 @@ export async function syncBriefStatus(briefId: string) {
   }
 
   if (failed.length > 0) {
+    const errorMessage =
+      failed[0]?.userSafeError ?? failed[0]?.errorMessage ?? "部分片段生成失败";
+    /// 已经是同一个失败就不再写：「刷新状态」会反复走到这里，空写也会刷新 updatedAt，
+    /// 让用户「看过了」的失败重新冒回徽标与「需要处理」。
+    if (
+      brief.status === VideoBriefStatus.RENDER_FAILED &&
+      brief.errorMessage === errorMessage
+    ) {
+      return;
+    }
     await db.videoBrief.update({
       where: { id: briefId },
       data: {
         status: VideoBriefStatus.RENDER_FAILED,
-        errorMessage:
-          failed[0]?.userSafeError ?? failed[0]?.errorMessage ?? "部分片段生成失败",
+        errorMessage,
       },
     });
     return;

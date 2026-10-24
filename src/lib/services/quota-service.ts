@@ -705,9 +705,11 @@ export async function compensateDirectDispatchQuota(
                     customerResponseClass: httpClass,
                     customerResponseStatus: params.responseStatus,
                     phase: "direct_dispatch_compensation",
-                    ...(evidence === "zero_jobs"
-                      ? { evidence, briefIds: briefIdsToStamp }
-                      : {}),
+                    /// 两种证据都点名本次打了返还标记的 brief：brief 与请求之间没有外键，
+                    /// 重试补扣（rechargeRefundedBriefForSession）靠它把 brief 认回这笔
+                    /// 请求的扣费与补偿；只靠时间窗口认领，并发请求会判 ambiguous、免费重跑。
+                    evidence,
+                    briefIds: briefIdsToStamp,
                   },
                 },
               });

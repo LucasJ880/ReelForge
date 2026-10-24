@@ -108,9 +108,14 @@ test("需要处理：近 7 天、在「看过了」之后——徽标从 ack 那
   const ackedAt = new Date(NOW.getTime() - 2 * DAY);
   const calls = installPulseStubs(t, { ackedAt });
   await loadPulse("user-1", { now: NOW });
-  const batchFailure = (calls["videoJob.count"]![0] as { where: { status: string; updatedAt: { gte: Date } } }).where;
+  const batchFailure = (calls["videoJob.count"]![0] as { where: { status: string; updatedAt?: unknown; OR: unknown } }).where;
   assert.equal(batchFailure.status, "FAILED");
-  assert.equal(batchFailure.updatedAt.gte.toISOString(), ackedAt.toISOString());
+  /// 按「失败那一刻」（finishedAt）起算，旧数据没有 finishedAt 才退回 updatedAt（runtime LENS-4）
+  assert.equal(batchFailure.updatedAt, undefined, "不再按会被无关写入刷新的 updatedAt 计时");
+  assert.deepEqual(batchFailure.OR, [
+    { finishedAt: { gte: ackedAt } },
+    { finishedAt: null, updatedAt: { gte: ackedAt } },
+  ]);
 
   assert.equal(needsAttentionSince(NOW, null).getTime(), NOW.getTime() - NEEDS_ATTENTION_WINDOW_DAYS * DAY);
   const longAgo = new Date(NOW.getTime() - 30 * DAY);

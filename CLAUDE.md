@@ -71,13 +71,14 @@ npm run context:find -- "..."
 - 冷蓝近黑的场（`--bg`）+ 极淡工程网格；面板不透明（`.x-panel`），行情墙用 `.x-wall`
   1px 接缝拼格，结构条用 `.x-pane`，下沉面用 `.x-well`。**不做毛玻璃、不铺光晕**，
   有门禁测试守着（`backdrop-filter`、`#ff4d00`、glass/editorial 材质名一律禁止回流）。
-- 颜色只来自数据与媒体：信号青 `--accent`（实时/当前/主行动）、成交绿 `--success`、
+- 颜色只来自数据与媒体：信号青 `--accent`（实时/当前/主行动）、成片绿 `--success`、
   赢家金 `--gold`（赢家与需要你处理的数字）、失败玫红 `--danger`、AI 鸢尾紫 `--iris`（只做标注）。
   信号青上用深字 `--primary-foreground`。
 - 颜色/圆角/阴影字面量只住 `src/styles/tokens.css`；圆角 3/6/10；数字一律 tabular-nums。
 - 字体：Archivo（可变字宽，大而轻的标题与读数）+ Noto Sans SC（中文）/ Martian Mono（代码、时间、计数）。
 - 页面开场用 `QuoteHeader`（`src/components/exchange/`）：大而轻的标题 + 真实读数墙，零就写零，不放示例数字。
   状态用 `StatusTick`（符号 + 颜色成对），批次进度用 `FillBar`。
-- 壳层是行情终端：顶部行情条 + 实时成交带（本工作区真实批次）+ 编号导轨 + 状态栏；`/wall` 是行情大屏。
+- 壳层是行情终端：顶部行情条 + 实时生产带（本工作区真实批次）+ 编号导轨 + 状态栏；`/wall` 是行情大屏。
+  壳层数字来自同一个脉搏（`/api/exchange/pulse`），读数口径只从读数注册表取；状态词只从 `state-vocab` 取，「成交」只留给询盘。
 - 眉题/kicker 一律禁止；页面标题自己承重。
 - 方向契约在 `src/app/layout.tsx` body 首子节点的 HTML 注释里（grep `aivora-abyss-exchange`）。

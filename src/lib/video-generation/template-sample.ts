@@ -47,6 +47,15 @@ const EXPANSION_QA_PASSED_SLUGS = [
   "commerce-food-sizzle",
 ] as const;
 
+/**
+ * 1025 撤榜：首发 8 个 commerce-*（aesthetic-mood、ugc-testimonial、demo-first-reveal、
+ * single-feature-proof、unboxing-transform、value-proof、problem-solution、
+ * hard-sell-presenter）的 jpg / mp4 与旧模板预览逐字节相同（md5 一致，16 对文件），
+ * 不是这些配方的真机样片——「高转化主持带货」挂的是一只猫。框架版本 2 上线后
+ * 重出、逐条 QA 通过再回到下面两份名单；文件本身暂留在 public/，不再对外展示。
+ * 门禁：tests/template-sample-whitelist.test.ts 要求名单内文件存在且 md5 两两不同。
+ */
+
 /** Slugs whose /template-previews/<slug>.jpg still is committed and QA-passed. */
 const VERIFIED_TEMPLATE_SAMPLE_SLUGS = new Set([
   "before-after-reversal",
@@ -59,14 +68,6 @@ const VERIFIED_TEMPLATE_SAMPLE_SLUGS = new Set([
   "street-style-placement",
   "ugc-handheld-review",
   "white-studio-standard",
-  "commerce-aesthetic-mood",
-  "commerce-ugc-testimonial",
-  "commerce-demo-first-reveal",
-  "commerce-single-feature-proof",
-  "commerce-unboxing-transform",
-  "commerce-value-proof",
-  "commerce-problem-solution",
-  "commerce-hard-sell-presenter",
   ...EXPANSION_QA_PASSED_SLUGS,
 ]);
 
@@ -92,20 +93,23 @@ const VERIFIED_TEMPLATE_VIDEO_SLUGS = new Set([
   "street-style-placement",
   "ugc-handheld-review",
   "white-studio-standard",
-  "commerce-aesthetic-mood",
-  "commerce-ugc-testimonial",
-  "commerce-demo-first-reveal",
-  "commerce-single-feature-proof",
-  "commerce-unboxing-transform",
-  "commerce-value-proof",
-  "commerce-problem-solution",
-  "commerce-hard-sell-presenter",
   ...EXPANSION_QA_PASSED_SLUGS,
 ]);
 
 /** 已过真机验收、可对外展示的模板样片 slug（登录门等公开面只从这里取）。 */
 export function hasVerifiedTemplateVideo(slug: string): boolean {
   return VERIFIED_TEMPLATE_VIDEO_SLUGS.has(slug);
+}
+
+/** 两份白名单的只读快照：给门禁测试核对文件存在与 md5 唯一，不用于运行时判断。 */
+export function verifiedTemplatePreviewSlugs(): {
+  images: readonly string[];
+  videos: readonly string[];
+} {
+  return {
+    images: [...VERIFIED_TEMPLATE_SAMPLE_SLUGS],
+    videos: [...VERIFIED_TEMPLATE_VIDEO_SLUGS],
+  };
 }
 
 /**

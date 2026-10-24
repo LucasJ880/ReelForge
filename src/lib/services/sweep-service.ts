@@ -15,6 +15,10 @@ import {
   isRealVideoDispatchMode,
 } from "./historical-dispatch-quarantine";
 import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
+import {
+  reconcileUndeliveredQuotaRefunds,
+  type QuotaRefundReconcileResult,
+} from "./quota-refund-service";
 
 /**
  * Sweep Service —— 孤儿/超时任务清扫器。
@@ -119,6 +123,8 @@ export interface SweepResult {
   failedOrphanFinalVideos: string[];
   /// 自助派发中途异常、一个任务都没建出来的 brief → RENDER_FAILED
   failedJoblessBriefs: string[];
+  /// 按条返还对账（D1）的结果；对账整体出错时为 null（不影响清扫本身）
+  quotaRefunds?: QuotaRefundReconcileResult | null;
 }
 
 export async function sweepStuckTasks(now = new Date()): Promise<SweepResult> {
@@ -142,6 +148,18 @@ export async function sweepStuckTasks(now = new Date()): Promise<SweepResult> {
   await sweepJoblessSelfServeBriefs(now, result).catch((err) =>
     console.warn("[sweep] jobless brief sweep failed:", (err as Error).message),
   );
+
+  /// 按条返还对账（D1）放在清扫末尾：刚被判死的条目同一轮就能对账；
+  /// 它自带逐条容错，这里再兜一层——对账出任何错都不能让清扫失败。
+  /// 没有数据库连接串（单测 / 纯前端联调）时没有可对的账，直接跳过。
+  if (process.env.DATABASE_URL) {
+    try {
+      result.quotaRefunds = await reconcileUndeliveredQuotaRefunds(now);
+    } catch (err) {
+      result.quotaRefunds = null;
+      console.warn("[sweep] quota refund reconcile failed:", (err as Error).message);
+    }
+  }
   return result;
 }
 

@@ -78,7 +78,8 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /\/api\/batch-style-templates/);
   assert.match(wizard, /\/api\/batches/);
   assert.match(wizard, /BATCH_IMAGE_MIME_TYPES/);
-  assert.match(wizard, /submissionIdentityRef/);
+  // 1025 · 1.3：每个分组各自一把稳定幂等键（取代整次提交共用的一把键）
+  assert.match(wizard, /groupSubmissionKey\(/);
   assert.match(wizard, /const hasEnoughImages =/);
   assert.match(wizard, /missingImages/);
   assert.match(
@@ -96,11 +97,11 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
     /batchCreateErrorMessage\(data\.code, locale, data\.error\)/,
     "batch failures must select customer copy from the machine error code",
   );
-  assert.match(wizard, /fingerprint:\s*string/);
+  assert.match(wizard, /const fingerprint = JSON\.stringify\(requestBody\)/);
   assert.match(
     wizard,
-    /"idempotency-key": submissionIdentityRef\.current\.key/,
-    "网络重试必须复用同一请求的 Idempotency-Key",
+    /groupSubmissionKey\(\s*submissionKeysRef\.current,\s*group\.id,\s*fingerprint,\s*\)[\s\S]{0,300}"idempotency-key": idempotencyKey/,
+    "网络重试必须复用同一分组的 Idempotency-Key",
   );
   for (const mime of ["image/png", "image/jpeg", "image/webp"]) {
     assert.match(wizard, new RegExp(mime.replace("/", "\\/")));

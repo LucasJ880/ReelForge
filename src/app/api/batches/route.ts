@@ -6,6 +6,7 @@ import {
   BatchIdempotencyConflictError,
   BatchProviderInputError,
   BatchTemplateUnavailableError,
+  cancelUnauthorizedBatch,
   createBatchJob,
   getBatchStatus,
   processBatchTick,
@@ -16,6 +17,7 @@ import { quotaErrorResponse } from "@/lib/api-quota";
 import {
   authorizeBatchQuotaForSession,
   BatchQuotaAuthorizationError,
+  QuotaExceededError,
 } from "@/lib/services/quota-service";
 import {
   batchCreateRequestSchema,
@@ -93,10 +95,31 @@ export async function POST(req: NextRequest) {
       // only in diagnostics and historical snapshot readers.
       isInternalStaff: false,
     });
-    const authorization = await authorizeBatchQuotaForSession(
-      guard.session,
-      batch.id,
-    );
+    let authorization: Awaited<ReturnType<typeof authorizeBatchQuotaForSession>>;
+    try {
+      authorization = await authorizeBatchQuotaForSession(
+        guard.session,
+        batch.id,
+      );
+    } catch (authorizationError) {
+      // 授权没通过的批次不能卡在「展开中」：CAS 改已取消、释放幂等键，
+      // 同一份提交（多分组向导的重试）再来会新建批次而不是 replay 死批次。
+      await cancelUnauthorizedBatch({
+        batchId: batch.id,
+        userId: guard.session.user.id,
+        reason:
+          authorizationError instanceof QuotaExceededError
+            ? "本月额度不足，批次未启动（未计入额度）"
+            : "额度授权未完成，批次未启动（未计入额度）",
+      }).catch((cancelError) => {
+        console.error("[batch:create] unauthorized batch cancel failed", {
+          batchId: batch.id,
+          error:
+            cancelError instanceof Error ? cancelError.message : String(cancelError),
+        });
+      });
+      throw authorizationError;
+    }
     // 同一请求内启动首个受控并发 wave；后续由单一 batch status 轮询续跑。
     await processBatchTick(batch.id).catch((error) => {
       console.error("[batch:create] initial tick failed", {

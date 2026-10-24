@@ -67,10 +67,11 @@ test("Phase 2 state audit: mixed child states preserve active, paused, and termi
       expected: BatchJobStatus.PARTIAL_FAILED,
     },
     {
-      name: "success plus cancellation is partial",
+      /// 1025 · 1.5：取消不是失败，「完成 + 取消」是已取消，不再显示部分失败。
+      name: "success plus cancellation is cancelled, not a failure",
       requestedCount: 3,
       counts: { SUCCEEDED: 2, CANCELLED: 1 },
-      expected: BatchJobStatus.PARTIAL_FAILED,
+      expected: BatchJobStatus.CANCELLED,
     },
     {
       name: "failure plus cancellation without success is failed",

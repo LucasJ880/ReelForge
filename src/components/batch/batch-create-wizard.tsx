@@ -43,6 +43,10 @@ import {
   queueTotalPoints,
   type BatchQueueGroup,
 } from "@/lib/batch/batch-queue";
+import {
+  groupSubmissionKey,
+  type GroupSubmissionKeys,
+} from "@/lib/batch/batch-group-submission";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
 import type {
   CustomerApiErrorCode,
@@ -125,10 +129,10 @@ export function BatchCreateWizard({
     ? ["Upload assets", "Choose style", "Set quantity", "Review"]
     : ["上传素材", "选择风格", "生成数量", "确认提交"];
   const uploadControllersRef = useRef(new Map<string, AbortController>());
-  const submissionIdentityRef = useRef<{
-    fingerprint: string;
-    key: string;
-  } | null>(null);
+  /// 每个分组各自一把稳定的幂等键（规则见 batch-group-submission）。
+  const submissionKeysRef = useRef<GroupSubmissionKeys>(new Map());
+  /// 跨多次提交累计已建成的批次（全部成功后决定跳详情还是跳列表）。
+  const createdBatchIdsRef = useRef<string[]>([]);
   const [step, setStep] = useState(0);
   const [uploads, setUploads] = useState<UploadItem[]>(() =>
     initialImages.map((image) => ({
@@ -418,7 +422,8 @@ export function BatchCreateWizard({
           count,
         },
       ];
-      const createdBatchIds: string[] = [];
+      const createdBatchIds = createdBatchIdsRef.current;
+      let createdThisRound = 0;
       for (const group of submissionGroups) {
         const requestBody = {
           templateId: group.templateId,
@@ -430,17 +435,16 @@ export function BatchCreateWizard({
           videoPlanId: videoRouteId === "buddy" ? videoPlanId ?? undefined : undefined,
         };
         const fingerprint = JSON.stringify(requestBody);
-        if (submissionIdentityRef.current?.fingerprint !== fingerprint) {
-          submissionIdentityRef.current = {
-            fingerprint,
-            key: crypto.randomUUID(),
-          };
-        }
+        const idempotencyKey = groupSubmissionKey(
+          submissionKeysRef.current,
+          group.id,
+          fingerprint,
+        );
         const response = await fetch("/api/batches", {
           method: "POST",
           headers: {
             "content-type": "application/json",
-            "idempotency-key": submissionIdentityRef.current.key,
+            "idempotency-key": idempotencyKey,
           },
           body: fingerprint,
         });
@@ -452,17 +456,27 @@ export function BatchCreateWizard({
         };
         if (!response.ok || !data.batch) {
           setRecoveryAction(data.action ?? "retry");
-          const failurePrefix = createdBatchIds.length > 0
+          const remaining = submissionGroups.length - createdThisRound;
+          const failurePrefix = createdThisRound > 0
             ? (english
-                ? `${createdBatchIds.length} of ${submissionGroups.length} batches created. Remaining group failed: `
-                : `已创建 ${createdBatchIds.length}/${submissionGroups.length} 个批次，剩余分组失败：`)
+                ? `${createdThisRound} batch(es) created and removed from the queue; ${remaining} group(s) not submitted: `
+                : `已创建 ${createdThisRound} 个批次并移出队列，剩余 ${remaining} 组未提交：`)
             : "";
           throw new Error(
             failurePrefix + batchCreateErrorMessage(data.code, locale, data.error),
           );
         }
         createdBatchIds.push(data.batch.id);
+        createdThisRound += 1;
+        /// 成功的分组立即出队：再点提交只会提交剩下的分组，绝不重复建批次。
+        submissionKeysRef.current.delete(group.id);
+        if (group.id !== "current") {
+          setQueuedGroups((current) =>
+            current.filter((queued) => queued.id !== group.id),
+          );
+        }
       }
+      createdBatchIdsRef.current = [];
       setQueuedGroups([]);
       if (createdBatchIds.length === 1) {
         router.push(`${batchDetailsBasePath}/${createdBatchIds[0]}`);

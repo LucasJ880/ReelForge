@@ -12,6 +12,8 @@ import {
   customerApiError,
   SubmissionReconciliationRequiredError,
 } from "@/lib/api/customer-generation-error";
+import { quotaErrorResponse } from "@/lib/api-quota";
+import { rechargeRefundedBriefForSession } from "@/lib/services/quota-refund-service";
 
 function canSeeRenderDebug(userType: string | null | undefined): boolean {
   return userType === "OPERATOR" || userType === "SUPER_ADMIN";
@@ -60,12 +62,20 @@ export async function POST(
   }
 
   const body = await req.json().catch(() => ({}));
+  /// 已返还额度的 brief 再重试要先补扣（D1）：只在真有东西要重跑时补扣一次，扣不到就拒绝。
+  let rechargeChecked = false;
+  const rechargeIfRefunded = async () => {
+    if (rechargeChecked) return;
+    rechargeChecked = true;
+    await rechargeRefundedBriefForSession(guard.session, briefId);
+  };
 
   try {
     if (body.all === true) {
       const failed = await db.videoJob.findMany({
         where: { videoBriefId: briefId, status: "FAILED" },
       });
+      if (failed.length > 0) await rechargeIfRefunded();
       for (const job of failed) {
         await retryFailedVideoJob(job.id);
       }
@@ -99,6 +109,7 @@ export async function POST(
           allSegmentsSucceeded
         ) {
           const { retryStitch } = await import("@/lib/services/stitch-service");
+          await rechargeIfRefunded();
           await retryStitch(brief.finalVideoId);
         }
       }
@@ -117,6 +128,7 @@ export async function POST(
           { status: 404 },
         );
       }
+      if (job.status === "FAILED") await rechargeIfRefunded();
       await retryFailedVideoJob(body.jobId);
     } else {
       return NextResponse.json(
@@ -137,6 +149,8 @@ export async function POST(
         : toCustomerBriefRenderSummary(summary),
     );
   } catch (err) {
+    const quotaResponse = quotaErrorResponse(err);
+    if (quotaResponse) return quotaResponse;
     if (err instanceof SubmissionReconciliationRequiredError) {
       return NextResponse.json(
         customerApiError({

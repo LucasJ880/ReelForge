@@ -10,7 +10,13 @@ import {
   type StyleTemplate,
   type VideoJob,
 } from "@prisma/client";
+import type { Session } from "next-auth";
 import { db } from "@/lib/db";
+import { QuotaExceededError } from "./quota-service";
+import {
+  QuotaRechargeUnavailableError,
+  requeueRefundedBatchJob,
+} from "./quota-refund-service";
 import {
   assertMockVideoRuntimeAllowed,
   videoGenerationRuntimeReadiness,
@@ -732,10 +738,14 @@ export function deriveBatchStatus(args: {
   if (queued + running > 0) return BatchJobStatus.RUNNING;
   if (completed === args.requestedCount) return BatchJobStatus.COMPLETED;
   if (cancelled === args.requestedCount) return BatchJobStatus.CANCELLED;
-  if (completed > 0 && failed + cancelled > 0) {
-    return BatchJobStatus.PARTIAL_FAILED;
+  /// 取消不是失败：只有真失败的条目才让批次进入（部分）失败；
+  /// 「完成 + 取消」「全部取消」都是已取消，已完成的成片照常保留。
+  if (failed > 0) {
+    return completed > 0
+      ? BatchJobStatus.PARTIAL_FAILED
+      : BatchJobStatus.FAILED;
   }
-  if (failed > 0) return BatchJobStatus.FAILED;
+  if (cancelled > 0) return BatchJobStatus.CANCELLED;
   return BatchJobStatus.RUNNING;
 }
 
@@ -1863,7 +1873,101 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
   }
 }
 
-export async function retryFailedBatchJobs(batchId: string): Promise<number> {
+export interface BatchRetryOptions {
+  /// 已返还额度的失败条目再重试要先补扣（D1），补扣按这个会话的豁免与套餐口径。
+  /// 脚本不传会话且计量开启时，需要补扣的条目一律拒绝重试。
+  session?: Session | null;
+}
+
+/// 失败条目翻回排队：复用原素材与模板版本，清掉上一轮的提交 / 终态痕迹。
+function batchRetryResetData(): Prisma.VideoJobUpdateManyMutationInput {
+  return {
+    status: VideoJobStatus.QUEUED,
+    submissionState: ProviderSubmissionState.NOT_STARTED,
+    submissionErrorClass: null,
+    providerRequestKey: null,
+    externalJobId: null,
+    errorMessage: null,
+    userSafeError: null,
+    finishedAt: null,
+    submittedAt: null,
+    startedAt: null,
+    lastCheckedAt: null,
+    lastProviderStatus: null,
+    lastProgress: null,
+    timeoutAt: null,
+    pollErrors: 0,
+    submitAttempts: 0,
+    retryCount: { increment: 1 },
+    availableAt: new Date(),
+    /// 新一轮重新计账：已返还的条目在下方同一事务里补扣，再失败由清扫器重新对账。
+    quotaRefundedAt: null,
+  };
+}
+
+/**
+ * 单条失败任务翻回排队。没返还过额度的直接 CAS 重置；已返还的走
+ * requeueRefundedBatchJob：补扣与重置同一个 Serializable 事务，额度不足抛
+ * QuotaExceededError（任务保持 FAILED）。
+ */
+async function requeueFailedBatchJob(args: {
+  batchId: string;
+  job: {
+    id: string;
+    submissionState: ProviderSubmissionState;
+    quotaRefundedAt?: Date | null;
+  };
+  options: BatchRetryOptions;
+  resolveOwnerId: () => Promise<string>;
+}): Promise<boolean> {
+  const casWhere = (refundedAt: Date | null): Prisma.VideoJobWhereInput => ({
+    id: args.job.id,
+    batchJobId: args.batchId,
+    status: VideoJobStatus.FAILED,
+    submissionState: args.job.submissionState,
+    quotaRefundedAt: refundedAt,
+  });
+  if (!args.job.quotaRefundedAt) {
+    const result = await db.videoJob.updateMany({
+      where: casWhere(null),
+      data: batchRetryResetData(),
+    });
+    return result.count > 0;
+  }
+  const outcome = await requeueRefundedBatchJob({
+    session: args.options.session,
+    userId: await args.resolveOwnerId(),
+    batchId: args.batchId,
+    jobId: args.job.id,
+    requeue: async (tx, state) =>
+      (
+        await tx.videoJob.updateMany({
+          where: casWhere(state.refundedAt),
+          data: batchRetryResetData(),
+        })
+      ).count,
+  });
+  return outcome.requeued;
+}
+
+function batchOwnerResolver(batchId: string): () => Promise<string> {
+  let ownerId: string | null = null;
+  return async () => {
+    if (ownerId) return ownerId;
+    const batch = await db.batchJob.findUnique({
+      where: { id: batchId },
+      select: { userId: true },
+    });
+    if (!batch) throw new BatchNotFoundError();
+    ownerId = batch.userId;
+    return ownerId;
+  };
+}
+
+export async function retryFailedBatchJobs(
+  batchId: string,
+  options: BatchRetryOptions = {},
+): Promise<number> {
   // Retry is a dispatch-enabling mutation. Refuse it while the selected video
   // runtime is unavailable instead of leaving newly QUEUED work behind.
   assertProductionMockRuntimeSealed();
@@ -1879,44 +1983,41 @@ export async function retryFailedBatchJobs(batchId: string): Promise<number> {
       externalJobId: true,
       lastProviderStatus: true,
       errorMessage: true,
+      quotaRefundedAt: true,
     },
   });
+  /// 先重试不需要补扣的条目，再逐条补扣已返还的；额度扣不动就停在那里。
+  const ordered = [...failed].sort(
+    (a, b) => Number(!!a.quotaRefundedAt) - Number(!!b.quotaRefundedAt),
+  );
+  const resolveOwnerId = batchOwnerResolver(batchId);
+  let quotaError: QuotaExceededError | null = null;
   let reset = 0;
-  for (const job of failed) {
+  for (const job of ordered) {
     try {
       assertPersistedJobProviderReady(job);
     } catch {
       continue;
     }
     if (!isBillingSafeManualRetry(job)) continue;
-    const result = await db.videoJob.updateMany({
-      where: {
-        id: job.id,
-        status: VideoJobStatus.FAILED,
-        submissionState: job.submissionState,
-      },
-      data: {
-        status: VideoJobStatus.QUEUED,
-        submissionState: ProviderSubmissionState.NOT_STARTED,
-        submissionErrorClass: null,
-        providerRequestKey: null,
-        externalJobId: null,
-        errorMessage: null,
-        userSafeError: null,
-        finishedAt: null,
-        submittedAt: null,
-        startedAt: null,
-        lastCheckedAt: null,
-        lastProviderStatus: null,
-        lastProgress: null,
-        timeoutAt: null,
-        pollErrors: 0,
-        submitAttempts: 0,
-        retryCount: { increment: 1 },
-        availableAt: new Date(),
-      },
-    });
-    if (result.count > 0) {
+    if (job.quotaRefundedAt && quotaError) continue;
+    let requeued: boolean;
+    try {
+      requeued = await requeueFailedBatchJob({
+        batchId,
+        job,
+        options,
+        resolveOwnerId,
+      });
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        quotaError = error;
+        continue;
+      }
+      if (error instanceof QuotaRechargeUnavailableError) continue;
+      throw error;
+    }
+    if (requeued) {
       reset++;
       logStatusTransition({
         taskId: job.id,
@@ -1932,11 +2033,15 @@ export async function retryFailedBatchJobs(batchId: string): Promise<number> {
       data: {
         status: BatchJobStatus.RUNNING,
         finishedAt: null,
-        statusReason: `重试 ${reset} 条失败任务（复用原素材与模板版本）`,
+        statusReason: quotaError
+          ? `重试 ${reset} 条失败任务；其余已返还额度的条目因本月额度不足未重试`
+          : `重试 ${reset} 条失败任务（复用原素材与模板版本）`,
       },
     });
   }
   await syncBatchCounts(batchId);
+  /// 一条都没重试成、且是额度挡住的：让路由按额度错误返回，而不是「重试了 0 条」。
+  if (reset === 0 && quotaError) throw quotaError;
   return reset;
 }
 
@@ -1946,9 +2051,14 @@ export type RetryFailedBatchJobResult =
   | { outcome: "invalid_state" }
   | { outcome: "billing_unsafe" };
 
+/**
+ * 重试单条失败任务。已返还额度的条目先补扣（额度不足抛 QuotaExceededError，
+ * 路由按额度错误返回）；脚本没有会话又需要补扣时按 billing_unsafe 拒绝。
+ */
 export async function retryFailedBatchJob(
   batchId: string,
   jobId: string,
+  options: BatchRetryOptions = {},
 ): Promise<RetryFailedBatchJobResult> {
   // Keep the single-job retry path under the same fail-closed boundary as the
   // retry-all path; preview mock remains allowed by the shared env predicate.
@@ -1968,6 +2078,7 @@ export async function retryFailedBatchJob(
       externalJobId: true,
       lastProviderStatus: true,
       errorMessage: true,
+      quotaRefundedAt: true,
     },
   });
   if (!job) return { outcome: "not_found" };
@@ -1982,35 +2093,21 @@ export async function retryFailedBatchJob(
   if (!isBillingSafeManualRetry(job)) {
     return { outcome: "billing_unsafe" };
   }
-  const result = await db.videoJob.updateMany({
-    where: {
-      id: jobId,
-      batchJobId: batchId,
-      status: VideoJobStatus.FAILED,
-      submissionState: job.submissionState,
-    },
-    data: {
-      status: VideoJobStatus.QUEUED,
-      submissionState: ProviderSubmissionState.NOT_STARTED,
-      submissionErrorClass: null,
-      providerRequestKey: null,
-      externalJobId: null,
-      errorMessage: null,
-      userSafeError: null,
-      finishedAt: null,
-      submittedAt: null,
-      startedAt: null,
-      lastCheckedAt: null,
-      lastProviderStatus: null,
-      lastProgress: null,
-      timeoutAt: null,
-      pollErrors: 0,
-      submitAttempts: 0,
-      retryCount: { increment: 1 },
-      availableAt: new Date(),
-    },
-  });
-  if (result.count === 0) return { outcome: "invalid_state" };
+  let requeued: boolean;
+  try {
+    requeued = await requeueFailedBatchJob({
+      batchId,
+      job: { ...job, id: jobId },
+      options,
+      resolveOwnerId: batchOwnerResolver(batchId),
+    });
+  } catch (error) {
+    if (error instanceof QuotaRechargeUnavailableError) {
+      return { outcome: "billing_unsafe" };
+    }
+    throw error;
+  }
+  if (!requeued) return { outcome: "invalid_state" };
   logStatusTransition({
     taskId: jobId,
     from: VideoJobStatus.FAILED,
@@ -2029,6 +2126,37 @@ export async function retryFailedBatchJob(
   return { outcome: "retried" };
 }
 
+const CANCELLED_IDEMPOTENCY_PREFIX = "cancelled:";
+
+/// 取消即释放幂等键（铁律 §4.7）：改写成 cancelled:<批次id>:<原键>，同一份提交
+/// 再来会新建批次，而不是 replay 一个已取消的批次。已改写过的不再改。
+export function cancelledBatchIdempotencyKey(
+  batchId: string,
+  idempotencyKey: string,
+): string {
+  return idempotencyKey.startsWith(CANCELLED_IDEMPOTENCY_PREFIX)
+    ? idempotencyKey
+    : `${CANCELLED_IDEMPOTENCY_PREFIX}${batchId}:${idempotencyKey}`;
+}
+
+async function releaseBatchIdempotencyKey(batchId: string): Promise<void> {
+  const batch = await db.batchJob.findUnique({
+    where: { id: batchId },
+    select: { idempotencyKey: true },
+  });
+  if (!batch?.idempotencyKey) return;
+  const released = cancelledBatchIdempotencyKey(batchId, batch.idempotencyKey);
+  if (released === batch.idempotencyKey) return;
+  await db.batchJob.updateMany({
+    where: { id: batchId, idempotencyKey: batch.idempotencyKey },
+    data: { idempotencyKey: released },
+  });
+}
+
+/**
+ * 取消尚未开始的任务（排队 / 暂停）。已在生成的条目照常收尾，素材全部保留；
+ * 取消的条目由清扫器里的对账按条返还额度（D1）。
+ */
 export async function cancelPendingBatchJobs(batchId: string): Promise<number> {
   const result = await db.videoJob.updateMany({
     where: {
@@ -2042,8 +2170,74 @@ export async function cancelPendingBatchJobs(batchId: string): Promise<number> {
       userSafeError: "已取消",
     },
   });
+  if (result.count > 0) await releaseBatchIdempotencyKey(batchId);
   await syncBatchCounts(batchId);
   return result.count;
+}
+
+class UnauthorizedBatchCancelRace extends Error {}
+
+/**
+ * 额度授权失败（额度不足 / 授权事务失败）的批次不能卡在「展开中」：
+ * CAS（仍是 EXPANDING 且从未授权）改为已取消、释放幂等键，名下排队任务一并取消
+ * 并打上返还标记（从未授权，没有可返还的额度）。授权已经提交的批次 CAS 不命中，原样保留。
+ */
+export async function cancelUnauthorizedBatch(args: {
+  batchId: string;
+  userId: string;
+  reason: string;
+}): Promise<boolean> {
+  const now = new Date();
+  try {
+    return await db.$transaction(async (tx) => {
+      const batch = await tx.batchJob.findFirst({
+        where: { id: args.batchId, userId: args.userId },
+        select: { idempotencyKey: true, cancelledCount: true },
+      });
+      if (!batch) return false;
+      const jobs = await tx.videoJob.updateMany({
+        where: {
+          batchJobId: args.batchId,
+          status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] },
+        },
+        data: {
+          status: VideoJobStatus.CANCELLED,
+          finishedAt: now,
+          quotaRefundedAt: now,
+          errorMessage: `额度授权未通过，批次未启动：${args.reason}`,
+          userSafeError: "已取消：额度授权未通过，未计入额度",
+        },
+      });
+      const cancelled = await tx.batchJob.updateMany({
+        where: {
+          id: args.batchId,
+          userId: args.userId,
+          status: BatchJobStatus.EXPANDING,
+          quotaConsumedAt: null,
+          idempotencyKey: batch.idempotencyKey,
+        },
+        data: {
+          status: BatchJobStatus.CANCELLED,
+          idempotencyKey: cancelledBatchIdempotencyKey(
+            args.batchId,
+            batch.idempotencyKey,
+          ),
+          statusReason: args.reason,
+          queuedCount: 0,
+          pausedCount: 0,
+          runningCount: 0,
+          cancelledCount: batch.cancelledCount + jobs.count,
+          finishedAt: now,
+        },
+      });
+      /// 授权已在并发请求里提交（或批次已不在展开中）：整体回滚，任务原样保留。
+      if (cancelled.count !== 1) throw new UnauthorizedBatchCancelRace();
+      return true;
+    });
+  } catch (error) {
+    if (error instanceof UnauthorizedBatchCancelRace) return false;
+    throw error;
+  }
 }
 
 export async function getBatchStatus(batchId: string, userId?: string) {
@@ -2207,7 +2401,9 @@ export function toCustomerBatchStatus(
       : batch.status === BatchJobStatus.PARTIAL_FAILED ||
           batch.status === BatchJobStatus.FAILED
         ? "部分视频生成失败，请查看任务详情。"
-        : null;
+        : batch.status === BatchJobStatus.CANCELLED
+          ? "批次已取消：已完成的视频保留，未交付的条目不计额度。"
+          : null;
   return {
     id: batch.id,
     templateId: batch.templateId,

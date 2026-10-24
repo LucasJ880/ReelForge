@@ -1,6 +1,9 @@
 import { cn } from "@/lib/utils";
 
-/** 区块抬头：标题 + 等宽计数 + 右侧一句说明。不加眉题。 */
+/**
+ * 区块抬头：标题 + 等宽计数 + 右侧一句说明与行动。不加眉题。
+ * 说明与行动并成一组贴右（1025 · B2）：三个兄弟节点 justify-between 时，说明会被挤到中间。
+ */
 export function SectionHead({
   title,
   count,
@@ -34,8 +37,12 @@ export function SectionHead({
           </span>
         ) : null}
       </h2>
-      {hint ? <p className="text-meta text-muted-foreground">{hint}</p> : null}
-      {action}
+      {hint || action ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 sm:ml-auto sm:justify-end">
+          {hint ? <p className="min-w-0 text-meta text-muted-foreground sm:text-right">{hint}</p> : null}
+          {action}
+        </div>
+      ) : null}
     </div>
   );
 }

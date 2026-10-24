@@ -19,6 +19,8 @@
   --surface-raised: #0d1729;
   --surface-sunken: #03060c;
   --surface-active: #102340;
+  /* 品牌 Logo / 尾卡预览底：甲板色，不用纯白方块（DESIGN.md colors.brand-tile） */
+  --brand-tile: var(--surface-raised);
   --border: rgb(110 160 230 / 0.13);
   --border-strong: rgb(110 160 230 / 0.24);
   --border-bright: rgb(120 210 255 / 0.42);

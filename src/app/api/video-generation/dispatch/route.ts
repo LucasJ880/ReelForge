@@ -341,7 +341,7 @@ export async function POST(req: NextRequest) {
   if (!storyboardRunId.success) {
     return dispatchErrorResponse(422, {
       code: "VALIDATION_FAILED",
-      message: "请先生成并确认 Image 2 故事板，再生成视频。",
+      message: "请先生成并确认 AI 故事板，再生成视频。",
       retryable: false,
       action: "fix_request",
     });

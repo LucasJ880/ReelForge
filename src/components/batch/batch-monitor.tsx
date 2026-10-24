@@ -24,9 +24,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import { QuoteHeader } from "@/components/exchange/quote-header";
 import { StatusTick } from "@/components/exchange/status-tick";
-import { batchState, videoJobState } from "@/lib/exchange/state-vocab";
+import { batchState, stateWord, videoJobState, type VocabState } from "@/lib/exchange/state-vocab";
 import { requestPulseRefresh } from "@/lib/exchange/pulse";
 import { toast } from "sonner";
 import { useTranslation } from "@/i18n";
@@ -100,6 +101,18 @@ const TERMINAL_BATCH = new Set([
   "CANCELLED",
 ]);
 
+/** 故事板一帧的状态词：从状态词典取，不把 QUEUED / PROCESSING 原值摆给客户。 */
+const FRAME_STATE: Record<"QUEUED" | "PROCESSING" | "SUCCEEDED" | "FAILED", VocabState<"frame">> = {
+  QUEUED: "queued",
+  PROCESSING: "generating",
+  SUCCEEDED: "done",
+  FAILED: "failed",
+};
+
+function fillCopy(template: string, params: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in params ? String(params[key]) : match));
+}
+
 function firstAssetUrl(value: unknown): string | null {
   const assignment = value as
     | { assets?: Array<{ url?: unknown }> }
@@ -133,8 +146,15 @@ function jobFailureSummary(
 
 export function BatchMonitor({
   initialBatch,
+  readOnly = false,
 }: {
   initialBatch: BatchMonitorData;
+  /**
+   * 只读模式（1025 · B2.9）：客户样片批次（SunnyShutter 样片账号）给所有人浏览，
+   * 不是访问者自己的批次——不轮询（状态接口按归属鉴权，轮询只会 404）、
+   * 不出现「重试 / 取消」，只能看和下载成片。
+   */
+  readOnly?: boolean;
 }) {
   const { locale } = useTranslation();
   const english = locale === "en-US";
@@ -168,13 +188,37 @@ export function BatchMonitor({
   }, [initialBatch.id, monitorCopy.refreshFailed]);
 
   // INV-B7：整页唯一轮询器。所有卡片仅消费 batch.videoJobs，不自行 fetch。
+  // 页面切到后台就停（每个开着的标签页都会 POST 一份 tick，bughunt #18）；回到前台先补拉一次再续上节拍。
   useEffect(() => {
-    if (TERMINAL_BATCH.has(batch.status)) return;
-    const timer = window.setInterval(() => {
+    if (readOnly || TERMINAL_BATCH.has(batch.status)) return;
+    let timer: number | null = null;
+    const tick = () => {
       void refresh().catch((reason) => setError((reason as Error).message));
-    }, 15_000);
-    return () => window.clearInterval(timer);
-  }, [batch.status, refresh]);
+    };
+    const start = () => {
+      if (timer === null) timer = window.setInterval(tick, 15_000);
+    };
+    const stop = () => {
+      if (timer !== null) {
+        window.clearInterval(timer);
+        timer = null;
+      }
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        stop();
+        return;
+      }
+      tick();
+      start();
+    };
+    if (document.visibilityState !== "hidden") start();
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [batch.status, readOnly, refresh]);
 
   const virtualizer = useVirtualizer({
     count: batch.videoJobs.length,
@@ -281,15 +325,18 @@ export function BatchMonitor({
 
       <QuoteHeader
         title={batch.productName ?? templateName}
-        subtitle={
+        meta={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <StatusTick entity="batch" state={batchState(batch.status)} locale={locale} />
+            {readOnly ? <MonoTag>{monitorCopy.readOnly}</MonoTag> : null}
             <span>{templateName} · {monitorCopy.templateVersion} v{batch.template.version}</span>
             <span className="break-all font-mono text-data tabular-nums text-tertiary">{monitorCopy.batch} {batch.id}</span>
           </span>
         }
-        actions={
-          retryableFailedJobs.length > 0 || batch.queuedCount + batch.pausedCount > 0 ? (
+        /// 批次详情没有实心主钮：重试 / 取消是描边的次要行动，下载所选在任务列表上方
+        primaryAction={null}
+        secondaryActions={
+          !readOnly && (retryableFailedJobs.length > 0 || batch.queuedCount + batch.pausedCount > 0) ? (
             <>
               {retryableFailedJobs.length > 0 && (
                 <Button
@@ -334,16 +381,17 @@ export function BatchMonitor({
             </>
           ) : undefined
         }
-        statsLabel={monitorCopy.progress}
-        stats={[
+        readingsLabel={monitorCopy.progress}
+        readings={[
           // 委托读数墙：总量 / 成交 / 生成中 / 排队 / 失败 / 进度，零就写零
           { label: monitorCopy.total, value: batch.requestedCount },
           { label: monitorCopy.completed, value: batch.completedCount, tone: batch.completedCount > 0 ? "filled" : "neutral" },
           { label: monitorCopy.running, value: batch.runningCount, tone: batch.runningCount > 0 ? "live" : "neutral" },
           { label: monitorCopy.queuedPaused, value: batch.queuedCount + batch.pausedCount },
           { label: monitorCopy.failed, value: batch.failedCount, tone: batch.failedCount > 0 ? "fault" : "neutral" },
-          { label: monitorCopy.progress, value: `${totalProgress}%`, tone: TERMINAL_BATCH.has(batch.status) ? "neutral" : "live" },
+          { label: monitorCopy.progress, value: `${totalProgress}%`, tone: TERMINAL_BATCH.has(batch.status) || readOnly ? "neutral" : "live" },
         ]}
+        scope={fillCopy(readOnly ? monitorCopy.readOnlyScope : monitorCopy.scope, { n: batch.requestedCount })}
       />
 
       {batch.status === "PAUSED" && (
@@ -424,11 +472,12 @@ export function BatchMonitor({
                 ref={virtualizer.measureElement}
                 data-index={virtualRow.index}
                 data-batch-video-card
-                data-beam={job.status === "RUNNING" ? "row" : undefined}
-                className="absolute left-0 top-0 flex h-14 w-full min-w-[680px] items-center gap-3 border-b border-border px-3 hover:bg-secondary"
+                data-beam={job.status === "RUNNING" && !readOnly ? "row" : undefined}
+                /// 窄屏（<640px）两行卡片：首行 编号 + 状态，次行 进度 / 原因 + 动作；不再 680px 最小宽度横向滑
+                className="absolute left-0 top-0 grid w-full grid-cols-[auto_auto_minmax(0,1fr)] items-center gap-x-3 gap-y-1.5 border-b border-border px-3 py-2.5 hover:bg-secondary sm:flex sm:h-14 sm:min-w-[680px] sm:gap-3 sm:py-0"
                 style={{ transform: `translateY(${virtualRow.start}px)` }}
               >
-                <label className="flex size-5 shrink-0 items-center justify-center">
+                <label className="row-span-2 flex size-5 shrink-0 items-center justify-center sm:row-span-1">
                   <input
                     type="checkbox"
                     disabled={job.status !== "SUCCEEDED"}
@@ -440,7 +489,7 @@ export function BatchMonitor({
                       return next;
                     })}
                     className="size-4 accent-primary"
-                    aria-label={english ? `Select video ${(job.batchIndex ?? 0) + 1}` : `选择视频 ${(job.batchIndex ?? 0) + 1}`}
+                    aria-label={fillCopy(monitorCopy.selectVideo, { n: (job.batchIndex ?? 0) + 1 })}
                   />
                 </label>
                 <button
@@ -457,8 +506,8 @@ export function BatchMonitor({
                       video.currentTime = 0;
                     }
                   }}
-                  className="relative flex h-[54px] w-24 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-sm) bg-secondary font-mono text-meta text-muted-foreground"
-                  aria-label={english ? `View video ${(job.batchIndex ?? 0) + 1}` : `查看视频 ${(job.batchIndex ?? 0) + 1} 详情`}
+                  className="relative row-span-2 flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-(--radius-sm) bg-secondary font-mono text-meta text-muted-foreground sm:row-span-1 sm:h-[54px] sm:w-24"
+                  aria-label={fillCopy(monitorCopy.viewVideo, { n: (job.batchIndex ?? 0) + 1 })}
                 >
                   {job.status === "SUCCEEDED" && job.outputVideoUrl ? (
                     <><video
@@ -475,28 +524,34 @@ export function BatchMonitor({
                     `#${(job.batchIndex ?? 0) + 1}`
                   )}
                 </button>
-                <div className="w-40 min-w-0 shrink-0">
-                  <p className="truncate font-mono text-meta font-semibold text-foreground">{monitorCopy.video} #{(job.batchIndex ?? 0) + 1}</p>
-                  <p className="truncate font-mono text-meta text-muted-foreground" title={job.id}>{job.id}</p>
+                <div className="flex min-w-0 items-center justify-between gap-2 sm:block sm:w-40 sm:shrink-0">
+                  <div className="min-w-0">
+                    <p className="truncate font-mono text-meta font-semibold text-foreground">{monitorCopy.video} #{(job.batchIndex ?? 0) + 1}</p>
+                    <p className="hidden truncate font-mono text-meta text-muted-foreground sm:block" title={job.id}>{job.id}</p>
+                  </div>
+                  <StatusTick entity="item" state={videoJobState(job.status)} locale={locale} className="sm:hidden" />
                 </div>
-                <StatusTick entity="item" state={videoJobState(job.status)} locale={locale} className="w-20" />
-                <div className="min-w-32 flex-1">
-                  {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
+                <StatusTick entity="item" state={videoJobState(job.status)} locale={locale} className="hidden w-20 sm:inline-flex" />
+                <div className="col-start-3 flex min-w-0 items-center gap-2 sm:contents">
+                <div className="min-w-0 flex-1 sm:min-w-32">
+                  {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={fillCopy(monitorCopy.videoProgress, { n: (job.batchIndex ?? 0) + 1, p: job.lastProgress ?? 8 })} /> : null}
                   {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures, english)}</p> : null}
                   {job.status === "SUCCEEDED" ? <p className="flex items-center gap-1.5 text-meta text-success"><CheckCircle2 className="size-3" aria-hidden />{monitorCopy.ready}</p> : null}
                   {job.status === "CANCELLED" ? <p className="flex items-center gap-1.5 text-meta text-muted-foreground"><XCircle className="size-3" aria-hidden />{monitorCopy.cancelled}</p> : null}
                   {job.status === "QUEUED" ? (
                     <p className="truncate text-meta text-muted-foreground">
                       {job.storyboard?.status === "APPROVED"
-                        ? (english ? "Storyboard locked · waiting for Aivora video" : "故事板已锁定 · 等待 Aivora 视频")
+                        ? monitorCopy.storyboardLocked
                         : job.storyboard
-                          ? (english ? `Image 2 storyboard · ${job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/4` : `Image 2 故事板 · ${job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/4`)
-                          : (english ? "Waiting for Image 2 storyboard" : "等待 Image 2 故事板")}
+                          ? fillCopy(monitorCopy.storyboardProgress, { done: job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length })
+                          : monitorCopy.storyboardWaiting}
                     </p>
                   ) : null}
                 </div>
-                <p className="w-14 shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground">{job.retryCount} {monitorCopy.retryCount}</p>
-                {job.status === "FAILED" && job.error?.retryable ? (
+                <p className="shrink-0 text-right font-mono text-meta tabular-nums text-muted-foreground sm:w-14">{job.retryCount} {monitorCopy.retryCount}</p>
+                {readOnly ? (
+                  <span className="hidden w-[72px] sm:block" aria-hidden />
+                ) : job.status === "FAILED" && job.error?.retryable ? (
                   <Button type="button" variant="outline" size="xs" disabled={busy != null} onClick={() => void action(`retry-${job.id}`, `/api/batches/${batch.id}/jobs/${job.id}/retry`)}>
                     {busy === `retry-${job.id}` ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}{monitorCopy.retry}
                   </Button>
@@ -509,7 +564,8 @@ export function BatchMonitor({
                   >
                     {monitorCopy.nextStep}
                   </Button>
-                ) : <span className="w-[72px]" aria-hidden />}
+                ) : <span className="hidden w-[72px] sm:block" aria-hidden />}
+                </div>
               </div>
             );
           })}
@@ -540,7 +596,7 @@ export function BatchMonitor({
 
                 {/* 成片是用户打开抽屉要看的东西 —— 放在最前面，占主视觉。 */}
                 {detailJob.outputVideoUrl ? (
-                  <section className="space-y-3" aria-label={english ? "Finished video" : "成片"}>
+                  <section className="space-y-3" aria-label={monitorCopy.finishedVideo}>
                     <div className="flex justify-center rounded-(--radius-lg) border border-border bg-secondary/30 p-4">
                       <div className="relative inline-block max-w-full">
                         <video
@@ -568,7 +624,7 @@ export function BatchMonitor({
                   </section>
                 ) : null}
 
-                {detailJob.error ? (
+                {detailJob.error && !readOnly ? (
                   <p className="rounded-(--radius-sm) border border-border p-3 text-meta text-foreground">
                     {dispatchRecoveryHint(
                       detailJob.error.action,
@@ -577,13 +633,8 @@ export function BatchMonitor({
                   </p>
                 ) : null}
 
-                <ol className="grid gap-2 text-meta sm:grid-cols-4" aria-label={english ? "Video workflow" : "视频工作流"}>
-                  {[
-                    english ? "1 · Product uploaded" : "1 · 产品图已上传",
-                    english ? "2 · Image 2 storyboard" : "2 · Image 2 故事板",
-                    english ? "3 · Aivora video" : "3 · Aivora 视频生成",
-                    english ? "4 · Delivery" : "4 · 成片交付",
-                  ].map((label, index) => {
+                <ol className="grid gap-2 text-meta sm:grid-cols-4" aria-label={monitorCopy.workflowLabel}>
+                  {monitorCopy.workflowSteps.map((label, index) => {
                     const done =
                       index === 0 ||
                       (index === 1 && detailJob.storyboard?.status === "APPROVED") ||
@@ -613,10 +664,8 @@ export function BatchMonitor({
                   const legacy = !detailJob.storyboard && detailJob.status === "SUCCEEDED";
                   if (legacy) {
                     return (
-                      <p className="rounded-(--radius-sm) border border-dashed border-border px-3 py-2 text-meta text-muted-foreground">
-                        {english
-                          ? "Legacy video · this batch item predates the storyboard workflow, so no frame record exists."
-                          : "历史成片 · 该条生成于故事板工作流上线前，没有分镜记录。"}
+                      <p className="x-well rounded-(--radius-sm) px-3 py-2 text-meta text-muted-foreground">
+                        {monitorCopy.legacyVideo}
                       </p>
                     );
                   }
@@ -625,20 +674,18 @@ export function BatchMonitor({
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div>
                           <h3 id="batch-storyboard-title" className="font-medium text-foreground">
-                            {english ? "Consistency storyboard" : "一致性故事板"}
+                            {monitorCopy.storyboardTitle}
                           </h3>
                           <p className="text-meta text-muted-foreground">
-                            {english
-                              ? "Four Image 2 frames are auto-approved for this batch item before video generation."
-                              : "该条任务先由 Image 2 生成 4 帧并自动确认，再进入视频生成。"}
+                            {monitorCopy.storyboardHint}
                           </p>
                         </div>
                         <Badge variant={detailJob.storyboard?.status === "APPROVED" ? "success" : detailJob.storyboard?.status === "FAILED" ? "destructive" : "secondary"}>
                           {detailJob.storyboard?.status === "APPROVED"
-                            ? (english ? "Auto-approved" : "已自动确认")
+                            ? monitorCopy.storyboardApproved
                             : detailJob.storyboard?.status === "FAILED"
-                              ? (english ? "Needs attention" : "需要处理")
-                              : (english ? "Generating" : "生成中")}
+                              ? monitorCopy.storyboardAttention
+                              : stateWord("frame", "generating", locale)}
                         </Badge>
                       </div>
                       {/* 分镜是参考信息，不该跟成片抢版面：限制每格高度 */}
@@ -658,7 +705,7 @@ export function BatchMonitor({
                                   </div>
                                 )}
                               </div>
-                              <p className="font-mono text-meta text-muted-foreground">{english ? `Frame ${ordinal + 1}` : `分镜 ${ordinal + 1}`} · {frame?.status ?? "QUEUED"}</p>
+                              <p className="font-mono text-meta text-muted-foreground">{fillCopy(monitorCopy.frameLabel, { n: ordinal + 1 })} · {stateWord("frame", FRAME_STATE[frame?.status ?? "QUEUED"], locale)}</p>
                             </div>
                           );
                         })}
@@ -673,7 +720,7 @@ export function BatchMonitor({
                     aria-label={english ? `Video ${(detailJob.batchIndex ?? 0) + 1} progress` : `视频 ${(detailJob.batchIndex ?? 0) + 1} 生成进度`}
                   />
                 )}
-                {detailJob.status === "FAILED" && detailJob.error?.retryable && (
+                {!readOnly && detailJob.status === "FAILED" && detailJob.error?.retryable && (
                   <Button
                     type="button"
                     variant="outline"

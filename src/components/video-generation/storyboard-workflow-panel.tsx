@@ -80,7 +80,7 @@ export function StoryboardWorkflowPanel({
               {english ? "Review your storyboard" : "确认视频故事板"}
             </h2>
             <span className="rounded-(--radius-sm) border border-border px-1.5 py-px font-mono text-data text-muted-foreground">
-              Image 2
+              {english ? "AI storyboard" : "AI 故事板"}
             </span>
             <span
               className={cn(
@@ -159,8 +159,8 @@ export function StoryboardWorkflowPanel({
                       {failed
                         ? frame.errorMessage ?? (english ? "Frame failed" : "此分镜生成失败")
                         : english
-                          ? "Image 2 is drawing this frame"
-                          : "Image 2 正在绘制此分镜"}
+                          ? "Drawing this frame"
+                          : "正在绘制此分镜"}
                     </span>
                   </div>
                 )}

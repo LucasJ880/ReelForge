@@ -9,7 +9,9 @@ test("active image UI is one Aivora workbench with optional reference and compac
   );
   assert.doesNotMatch(source, /setMode|\[mode,/);
   assert.doesNotMatch(source, /GPT Image 2/);
-  assert.match(source, />Image 2</);
+  // 1025 · B2.5：内部模型名不进客户界面
+  assert.doesNotMatch(source, /Image 2/);
+  assert.match(source, /AI image/);
   assert.match(source, /Aivora/);
   assert.match(source, /sourceAssetId/);
   assert.match(source, /resolution/);

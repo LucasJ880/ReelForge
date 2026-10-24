@@ -150,7 +150,9 @@ test("customer UI exposes one optional-reference Aivora workbench and video hand
     readFile("src/components/product-images/product-image-studio.tsx", "utf8"),
     readFile("src/i18n/platform-copy.ts", "utf8"),
   ]);
-  assert.match(ui, />Image 2</);
+  // 1025 · B2.5：内部模型名（Image 2）不再出现在客户界面，工作台标签是「AI 出图」
+  assert.doesNotMatch(ui, /Image 2/);
+  assert.match(ui, /AI 出图/);
   assert.match(ui, /Aivora/);
   assert.match(ui, /sourceAssetId/);
   assert.match(ui, /resultCount/);

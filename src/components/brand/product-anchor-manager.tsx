@@ -5,7 +5,8 @@ import Image from "next/image";
 import { Anchor, Loader2, RefreshCw, Upload } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EmptyState } from "@/components/exchange/empty-state";
+import { SectionHead } from "@/components/exchange/section-head";
 import {
   Dialog,
   DialogContent,
@@ -286,39 +287,42 @@ export function ProductAnchorManager({
       ? `${sourceAsset.width} / ${sourceAsset.height}`
       : "4 / 3";
 
+  /// 品牌页只有一枚实心主钮（页头「新建品牌包」）：锚定入口是描边钮，放在区块抬头上。
+  const anchorLabel = english ? "Anchor a product" : "锚定新产品";
   return (
-    <Card data-testid="product-anchor-manager">
-      <CardHeader className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>{english ? "Product anchors" : "产品锚点"}</CardTitle>
-          <Button type="button" size="sm" onClick={() => setDialogOpen(true)} data-testid="product-anchor-open">
+    <section className="min-w-0 space-y-4" data-testid="product-anchor-manager" aria-labelledby="product-anchors-title">
+      <SectionHead
+        title={<span id="product-anchors-title">{english ? "Product anchors" : "产品锚点"}</span>}
+        count={anchors.length}
+        hint={
+          english
+            ? "One anchor per SKU: we cut the exact product pixels once, then every scene reuses them untouched."
+            : "一个 SKU 锚定一次：先把真实产品像素抠出来，之后每个场景原样复用这份切片，产品不再被模型重画。"
+        }
+        action={
+          <Button type="button" variant="outline" size="sm" onClick={() => setDialogOpen(true)} data-testid="product-anchor-open">
             <Anchor aria-hidden />
-            {english ? "Anchor a product" : "锚定新产品"}
+            {anchorLabel}
           </Button>
-        </div>
-        <p className="max-w-3xl text-meta text-muted-foreground">
-          {english
-            ? "One anchor per SKU: we cut the exact product pixels once, then every generated scene reuses them untouched — no more repainted products."
-            : "一个 SKU 锚定一次：先把真实产品像素抠出来，之后生成的所有场景原样复用这份切片，产品不再被模型重画。"}
-        </p>
-      </CardHeader>
-      <CardContent>
+        }
+      />
         {anchors.length === 0 ? (
-          <div className="x-well rounded-(--radius-md) px-5 py-8 text-center">
-            <p className="text-body text-muted-foreground">
-              {english
+          <EmptyState
+            compact
+            body={
+              english
                 ? "No anchors yet. Upload a product photo, draw a box around the product, and name the SKU."
-                : "还没有锚定的产品。上传产品图、框住产品、填上 SKU 名，就能开始。"}
-            </p>
-          </div>
+                : "还没有锚定的产品。上传产品图、框住产品、填上 SKU 名，就能开始。"
+            }
+          />
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="product-anchor-list">
             {anchors.map((anchor) => (
               <li
                 key={anchor.id}
-                className="flex min-w-0 gap-4 rounded-(--radius-md) border border-border bg-card p-4 transition-colors hover:border-border-strong"
+                className="x-panel flex min-w-0 gap-4 p-4"
               >
-                <span className="x-well relative size-20 shrink-0 overflow-hidden rounded-(--radius-sm)">
+                <span className="relative size-20 shrink-0 overflow-hidden rounded-(--radius-sm) border border-border bg-(--brand-tile)">
                   <Image
                     src={anchor.cutoutUrl ?? anchor.sourceImageUrl}
                     alt={anchor.sku}
@@ -360,7 +364,6 @@ export function ProductAnchorManager({
             ))}
           </ul>
         )}
-      </CardContent>
 
       <Dialog open={dialogOpen} onOpenChange={(open) => (open ? setDialogOpen(true) : closeDialog())}>
         <DialogContent className="max-w-xl">
@@ -503,6 +506,6 @@ export function ProductAnchorManager({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Card>
+    </section>
   );
 }

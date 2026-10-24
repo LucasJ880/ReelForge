@@ -11,7 +11,8 @@ import {
 } from "@/components/templates/template-library-grid";
 import { parseTemplateShots } from "@/components/templates/template-shot-timeline";
 import { TEMPLATE_LIBRARY_COPY, fillCount } from "@/components/templates/template-library-copy";
-import { QuoteHeader } from "@/components/exchange/quote-header";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { EmptyState } from "@/components/exchange/empty-state";
 import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
@@ -102,38 +103,40 @@ export default async function PlatformTemplatesPage() {
   const categoryCount = new Set(items.map((item) => item.category)).size;
 
   return (
-    <div className="x-stack min-w-0">
-      <QuoteHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={templates.length > 0 ? (
-          <Button
-            render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />}
-            variant="outline"
-          >
-            {copy.recommended}
-            <ArrowRight aria-hidden />
-          </Button>
-        ) : undefined}
-        statsLabel={board.label}
-        stats={[
-          { ...readingStat("templates", items.length, locale), caption: fillCount(board.recipesCaption, categoryCount) },
-          { ...readingStat("verifiedSamples", sampleCount, locale), caption: fillCount(board.samplesCaption, items.length - sampleCount) },
-          { ...readingStat("templateBatches30d", usage.batches, locale), caption: fillCount(board.usedCaption, usage.bySlug.size) },
-          readingStat("filled30d", readings?.filled30d ?? 0, locale),
-        ]}
-        scope={board.scope}
-      />
+    <WorkspacePage
+      nav="templates"
+      locale={locale}
+      subtitle={copy.subtitle}
+      primaryAction={null}
+      secondaryActions={templates.length > 0 ? (
+        <Button
+          render={<Link href={`/app/batches/new?template=${encodeURIComponent(templates[0].slug)}`} />}
+          variant="outline"
+        >
+          {copy.recommended}
+          <ArrowRight aria-hidden />
+        </Button>
+      ) : undefined}
+      readingsLabel={board.label}
+      readings={[
+        { ...readingStat("templates", items.length, locale), caption: fillCount(board.recipesCaption, categoryCount) },
+        { ...readingStat("verifiedSamples", sampleCount, locale), caption: fillCount(board.samplesCaption, items.length - sampleCount) },
+        { ...readingStat("templateBatches30d", usage.batches, locale), caption: fillCount(board.usedCaption, usage.bySlug.size) },
+        readingStat("filled30d", readings?.filled30d ?? 0, locale),
+      ]}
+      scope={board.scope}
+    >
       {templates.length === 0 ? (
-        <section data-route-state="empty" className="x-panel x-frame px-6 py-12">
-          <p className="max-w-[56ch] text-body text-muted-foreground">{copy.preparing}</p>
-          <Button render={<Link href="/app/create" />} className="mt-5">{copy.start}<ArrowRight aria-hidden /></Button>
-        </section>
+        <EmptyState
+          data-route-state="empty"
+          body={copy.preparing}
+          action={{ label: copy.start, href: "/app/create", icon: <ArrowRight aria-hidden /> }}
+        />
       ) : (
         <div className="min-w-0 grid grid-cols-1">
           <TemplateLibraryGrid templates={items} />
         </div>
       )}
-    </div>
+    </WorkspacePage>
   );
 }

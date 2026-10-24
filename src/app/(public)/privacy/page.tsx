@@ -61,12 +61,6 @@ export default async function PrivacyPage() {
         </p>
       </section>
 
-      {!process.env.NEXT_PUBLIC_PRIVACY_EMAIL ? (
-        <p className="rounded-(--radius-md) border border-warning bg-card p-4 text-meta">
-          <strong>{copy.assumptionLabel}</strong> {copy.assumption}
-        </p>
-      ) : null}
-
       <p className="border-t border-border pt-6 text-muted-foreground">
         <Link href="/terms" className="text-primary underline">
           {copy.termsLink}

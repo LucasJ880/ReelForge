@@ -324,8 +324,8 @@ export function ProductImageStudio({
           <header className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-5 py-4">
             <h2 id="product-image-workbench-title" className="text-subhead font-medium">{copy.workbench}</h2>
             <p className="flex items-baseline gap-2 text-meta text-muted-foreground">
-              <span className="font-mono text-data text-foreground">Image 2</span>
-              <span>{english ? "Reference image optional · audited generation route" : "参考图可选 · 已审计生成线路"}</span>
+              <span className="font-mono text-data text-foreground">{english ? "AI image" : "AI 出图"}</span>
+              <span>{english ? "Reference image optional · your photo sets the product look" : "参考图可选 · 产品外观以你的照片为准"}</span>
             </p>
           </header>
 

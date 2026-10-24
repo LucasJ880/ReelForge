@@ -23,8 +23,6 @@ interface PublicPageCopy {
     security: LegalSectionCopy;
     contactTitle: string;
     contactLead: string;
-    assumptionLabel: string;
-    assumption: string;
     termsLink: string;
     signInLink: string;
   };
@@ -43,8 +41,6 @@ interface PublicPageCopy {
     questions: string;
     privacyLink: string;
     signInLink: string;
-    assumptionLabel: string;
-    assumption: string;
   };
   persona: {
     metadata: { title: string; description: string };
@@ -68,12 +64,12 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
   "zh-CN": {
     privacy: {
       metadata: {
-        title: "隐私政策草案 · Aivora",
-        description: "Aivora 关于信息收集、使用、保存、处理方与用户权利的隐私政策工程草案。",
+        title: "隐私政策 · Aivora",
+        description: "Aivora 如何收集、使用、保存与处理你的信息，以及你享有的权利。",
       },
       draftStatus: "草案 · 待加拿大律师复核",
       title: "隐私政策",
-      intro: "适用于由加拿大安大略省团队运营的 Aivora。本草案最后更新于 2026 年 7 月 13 日。",
+      intro: "适用于由加拿大安大略省团队运营的 Aivora。最后更新于 2026 年 7 月 13 日。",
       information: {
         title: "我们处理的信息",
         body: "我们会处理账户与工作区资料、你上传的产品图片和视频、提示词与创意指令、生成媒体、任务与质量记录、用量和成本事件，以及保障和运营服务所需的技术日志。",
@@ -84,32 +80,30 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "处理方与数据路径",
-        body: "当前基础设施可能包括：Neon 提供北美数据库托管；Vercel 及其 IAD1 Blob 提供应用与对象存储；OpenAI 承担已配置的语言、产品图生成与编辑、视觉和内容审核任务；BytePlus 国际端点承担已配置的 Seedance 视频生成。只有在 Buddy 的处理区域与合同获得确认且该 provider 正式启用后，我们才会把它加入本节。",
+        body: "我们使用的服务商可能包括：Neon（北美数据库托管）、Vercel（应用托管与文件存储）、OpenAI（文字、产品图生成与编辑、视觉理解和内容审核）以及 BytePlus（视频生成）。新增处理方前，我们会先更新本节。",
       },
       retention: {
         title: "保存与删除",
-        beforeContact: "我们只会为上述运营、合同、安全与审计目的保存记录。客户数据的确切保存期限仍属于上线配置决策，并将在律师复核版本中明确。你可以发送邮件至",
+        beforeContact: "我们只会为上述运营、合同、安全与审计目的保存记录，具体保存期限将在正式版本中写明。你可以发送邮件至",
         afterContact: "申请访问、更正、导出或删除数据。我们会核验身份，并说明因法律或安全原因必须保留的记录。",
       },
       security: {
         title: "安全与跨境处理",
-        body: "生产密钥保存在代码库之外，访问权限按角色限制，生成活动会留痕以便追溯。数据可能在加拿大、美国或其他已披露的 provider 区域内，依据合同保障措施进行处理。",
+        body: "生产密钥保存在代码库之外，访问权限按角色限制，生成活动会留痕以便追溯。数据可能在加拿大、美国或其他已披露的服务商所在区域内，依据合同保障措施进行处理。",
       },
       contactTitle: "联系我们",
       contactLead: "隐私问题或权利请求：",
-      assumptionLabel: "假设：",
-      assumption: "privacy@aivora.ai 是当前草案联系邮箱。运营负责人必须确认该邮箱有人值守，或在客户上线前配置 NEXT_PUBLIC_PRIVACY_EMAIL。",
       termsLink: "阅读服务条款",
       signInLink: "返回登录",
     },
     terms: {
       metadata: {
-        title: "服务条款草案 · Aivora",
-        description: "Aivora 商业试点服务条款工程草案，涵盖输入授权、AI 输出、禁止用途与服务边界。",
+        title: "服务条款 · Aivora",
+        description: "Aivora 商业试点服务条款，涵盖输入授权、AI 输出、禁止用途与服务边界。",
       },
       draftStatus: "草案 · 待加拿大律师复核",
       title: "服务条款",
-      intro: "供商业试点审阅的工程草案。本草案最后更新于 2026 年 7 月 13 日。",
+      intro: "供商业试点使用。最后更新于 2026 年 7 月 13 日。",
       usage: {
         title: "使用 Aivora",
         body: "你必须提供准确的账户信息、妥善保护登录凭据，并且仅将服务用于合法商业目的。发布前，你仍需负责审阅生成媒体，并完成目标分发平台要求的披露。",
@@ -128,17 +122,15 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       plans: {
         title: "套餐、可用性与试点",
-        body: "套餐限制与试点费用以适用的订单或客户协议为准。Provider 与容量可能变化；为保障安全与可靠性，我们可以排队、停止或重新路由任务。当前 B2B 试点不包含自助支付。",
+        body: "套餐限制与试点费用以适用的订单或客户协议为准。服务商与容量可能变化；为保障安全与可靠性，我们可以排队、停止或改用其他线路处理任务。当前试点不包含自助支付。",
       },
       liability: {
-        title: "保证与责任草案",
-        body: "服务适用的保证、责任限制、赔偿、管辖法律与终止条款，以最终律师复核协议为准。这些商业条款在本工程草案中有意保持未定稿状态。",
+        title: "保证与责任",
+        body: "服务适用的保证、责任限制、赔偿、管辖法律与终止条款，以最终签署的协议为准。",
       },
       questions: "问题：",
       privacyLink: "隐私政策",
       signInLink: "返回登录",
-      assumptionLabel: "假设：",
-      assumption: "privacy@aivora.ai 目前仅为草案联系邮箱；运营负责人必须在客户上线前确认该邮箱有人值守。",
     },
     persona: {
       metadata: {
@@ -150,11 +142,11 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       signIn: "登录",
       getStarted: "开始使用",
       title: "从一支视频开始，扩展到可控的批量生产。",
-      description: "创作、模板、批量、赛马与成品都在同一个工作区。新账号默认使用 starter，studio 由正式权益流程授予。",
+      description: "创作、模板、批量与成品都在同一个工作区。新账号从试用额度开始，正式套餐在试点协议里开通。",
       partnerLead: "投资人 / 孵化器 / 战略合作？",
       showcaseLink: "查看真实客户案例展示",
       enterWorkspace: "进入工作区",
-      createStarter: "创建 starter 账号",
+      createStarter: "创建账号",
       browseTemplates: "浏览模板库",
       existingAccount: "登录已有账号",
       footer: "AI 视频增长平台",
@@ -163,12 +155,12 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
   "en-US": {
     privacy: {
       metadata: {
-        title: "Privacy Policy Draft · Aivora",
-        description: "Aivora's engineering draft covering information collection, use, retention, processors, and customer rights.",
+        title: "Privacy Policy · Aivora",
+        description: "How Aivora collects, uses, retains and processes your information, and the rights you have.",
       },
       draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
       title: "Privacy Policy",
-      intro: "Engineering draft for Aivora, operated from Ontario, Canada. Last updated July 13, 2026.",
+      intro: "Applies to Aivora, operated from Ontario, Canada. Last updated July 13, 2026.",
       information: {
         title: "Information we handle",
         body: "We process account and workspace details, product images and videos you upload, prompts and creative instructions, generated media, job and quality records, usage and cost events, and technical logs needed to secure and operate the service.",
@@ -179,11 +171,11 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       processors: {
         title: "Processors and data routes",
-        body: "Current infrastructure may include Neon for North American database hosting, Vercel and its IAD1 Blob store for application and object hosting, OpenAI for configured language, product-image generation and editing, vision, and moderation tasks, and BytePlus international endpoints for configured Seedance video generation. Buddy will be added here only after its processing location and contract are confirmed and the provider is enabled.",
+        body: "Service providers we use may include Neon (North American database hosting), Vercel (application hosting and file storage), OpenAI (text, product-image generation and editing, vision and moderation) and BytePlus (video generation). We update this section before adding a new processor.",
       },
       retention: {
         title: "Retention and deletion",
-        beforeContact: "Records are retained only for the operating, contractual, security, and audit purposes described above. Exact customer retention periods remain a launch configuration decision and will be stated in the lawyer-reviewed version. You may request access, correction, export, or deletion by emailing",
+        beforeContact: "Records are retained only for the operating, contractual, security, and audit purposes described above; exact retention periods will be stated in the final version. You may request access, correction, export, or deletion by emailing",
         afterContact: "We will verify identity and explain any records that must be retained for legal or security reasons.",
       },
       security: {
@@ -192,19 +184,17 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       contactTitle: "Contact",
       contactLead: "Questions or privacy requests:",
-      assumptionLabel: "ASSUMPTION:",
-      assumption: "privacy@aivora.ai is the draft contact address. Human operations must confirm that this mailbox is monitored or configure NEXT_PUBLIC_PRIVACY_EMAIL before customer launch.",
       termsLink: "Read the Terms of Service",
       signInLink: "Return to sign in",
     },
     terms: {
       metadata: {
-        title: "Terms of Service Draft · Aivora",
-        description: "Aivora's business-pilot terms draft covering input rights, AI output, prohibited use, and service boundaries.",
+        title: "Terms of Service · Aivora",
+        description: "Aivora's business-pilot terms covering input rights, AI output, prohibited use, and service boundaries.",
       },
       draftStatus: "DRAFT · PENDING CANADIAN LEGAL REVIEW",
       title: "Terms of Service",
-      intro: "Engineering draft for business pilot review. Last updated July 13, 2026.",
+      intro: "For business pilots. Last updated July 13, 2026.",
       usage: {
         title: "Using Aivora",
         body: "You must provide accurate account information, protect your credentials, and use the service only for lawful business purposes. You remain responsible for reviewing generated media before publication and for disclosures required by the destination platform.",
@@ -223,17 +213,15 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
       },
       plans: {
         title: "Plans, availability, and pilots",
-        body: "Plan limits and any pilot fees are defined in the applicable order form or customer agreement. Providers and capacity may change. We may queue, stop, or reroute work to preserve safety and reliability. Self-serve payment is not part of the current B2B pilot.",
+        body: "Plan limits and any pilot fees are defined in the applicable order form or customer agreement. Service providers and capacity may change. We may queue, stop, or reroute work to preserve safety and reliability. Self-serve payment is not part of the current pilot.",
       },
       liability: {
-        title: "Warranty and liability draft",
-        body: "The service is provided subject to the warranties, liability limits, indemnities, governing law, and termination terms in the final lawyer-reviewed agreement. Those commercial clauses are intentionally not finalized in this engineering draft.",
+        title: "Warranty and liability",
+        body: "The service is provided subject to the warranties, liability limits, indemnities, governing law, and termination terms in the final signed agreement.",
       },
       questions: "Questions:",
       privacyLink: "Privacy Policy",
       signInLink: "Return to sign in",
-      assumptionLabel: "ASSUMPTION:",
-      assumption: "privacy@aivora.ai is a draft contact only; human operations must confirm it before customer launch.",
     },
     persona: {
       metadata: {
@@ -241,15 +229,15 @@ export const PUBLIC_PAGE_COPY: Record<Locale, PublicPageCopy> = {
         description: "Enter Aivora's unified workspace for video creation, templates, batch production, campaign racing, and deliverables.",
       },
       homeLabel: "Aivora home",
-      studioLabel: "Editorial Studio",
+      studioLabel: "Creative studio",
       signIn: "Sign in",
       getStarted: "Get started",
       title: "Start with one video. Scale into controlled batch production.",
-      description: "Creation, templates, batch production, campaign racing, and deliverables live in one workspace. New accounts start on starter; studio access is granted through the formal entitlement flow.",
+      description: "Creation, templates, batch production, and deliverables live in one workspace. New accounts start on a trial allowance; full plans are opened through your pilot agreement.",
       partnerLead: "Investor, incubator, or strategic partner?",
       showcaseLink: "View the customer proof showcase",
       enterWorkspace: "Enter workspace",
-      createStarter: "Create a starter account",
+      createStarter: "Create an account",
       browseTemplates: "Browse templates",
       existingAccount: "Sign in to your account",
       footer: "AI Video Growth Platform",

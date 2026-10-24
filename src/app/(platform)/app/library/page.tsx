@@ -21,7 +21,9 @@ import { LibraryHighlight } from "@/components/library/library-highlight";
 import { RenderPendingPostsButton } from "@/components/library/render-pending-posts-button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { LocalTime } from "@/components/exchange/local-time";
-import { QuoteHeader } from "@/components/exchange/quote-header";
+import type { QuoteStat } from "@/components/exchange/quote-header";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { EmptyState } from "@/components/exchange/empty-state";
 import { SectionHead } from "@/components/exchange/section-head";
 import { StatusTick } from "@/components/exchange/status-tick";
 import { getPlatformCopy, type PlatformCopy } from "@/i18n/platform-copy";
@@ -121,73 +123,46 @@ export default async function PlatformLibraryPage({
   const readyPostRows = rows.filter((row) => row.status === "ready" && isPost(row));
   const nothing = rows.length === 0 && failures.length === 0;
 
-  /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源 */
-  const workflow = [
-    { code: "01", label: readingName("awaitingImages", locale), hint: readingFormula("awaitingImages", locale), count: production.awaitingImages, tone: production.awaitingImages > 0 ? "text-gold" : "text-foreground", href: "/app/plan" },
-    { code: "02", label: readingName("generating", locale), hint: readingFormula("generating", locale), count: production.generating, tone: production.generating > 0 ? "text-accent" : "text-foreground", href: "/app/batches" },
-    { code: "03", label: readingName("finished", locale), hint: readingFormula("finished", locale), count: finished, tone: finished > 0 ? "text-success" : "text-foreground", href: null },
-    { code: "04", label: copy.workflowDeliver, hint: copy.workflowDeliverHint, count: null, tone: "text-foreground", href: null },
-  ] as const;
+  /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源；能去的格子整格可点 */
+  const workflow: QuoteStat[] = [
+    { label: `01 · ${readingName("awaitingImages", locale)}`, caption: readingFormula("awaitingImages", locale), value: production.awaitingImages, tone: production.awaitingImages > 0 ? "winner" : "neutral", href: "/app/plan" },
+    { label: `02 · ${readingName("generating", locale)}`, caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral", href: "/app/batches" },
+    { label: `03 · ${readingName("finished", locale)}`, caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },
+    { label: `04 · ${copy.workflowDeliver}`, caption: copy.workflowDeliverHint, value: "—" },
+  ];
 
   return (
-    <div className="x-stack min-w-0">
+    <WorkspacePage
+      nav="library"
+      locale={locale}
+      subtitle={copy.subtitle}
+      secondaryActions={
+        <Button render={<Link href="/app/batches/new" />} variant="outline">
+          <Layers3 aria-hidden />{copy.batch}
+        </Button>
+      }
+      primaryAction={
+        <Button render={<Link href="/app/create" />}>
+          <Plus aria-hidden />{copy.create}
+        </Button>
+      }
+      readingsLabel={copy.workflowHint}
+      readings={workflow}
+      scope={copy.scope}
+    >
       {highlight ? <LibraryHighlight rowId={highlight} /> : null}
-      <QuoteHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={
-          <>
-            <Button render={<Link href="/app/batches/new" />} variant="outline">
-              <Layers3 aria-hidden />{copy.batch}
-            </Button>
-            <Button render={<Link href="/app/create" />}>
-              <Plus aria-hidden />{copy.create}
-            </Button>
-          </>
-        }
-      />
-
-      <nav aria-label={copy.workflowHint} className="space-y-2">
-        <ol className="x-wall x-frame grid-cols-2 lg:grid-cols-4">
-          {workflow.map((stage) => {
-            const body = (
-              <>
-                <span className="flex items-center justify-between gap-3">
-                  <span className="x-label">{stage.code} · {stage.label}</span>
-                  {stage.href ? <ArrowRight className="size-3.5 text-tertiary transition-colors group-hover:text-accent" aria-hidden /> : null}
-                </span>
-                <span className={cn("x-figure block", stage.tone)}>{stage.count ?? "—"}</span>
-                <span className="block truncate text-meta text-muted-foreground">{stage.hint}</span>
-              </>
-            );
-            return (
-              <li key={stage.code} className="min-w-0">
-                {stage.href ? (
-                  <Link
-                    href={stage.href}
-                    className="group flex h-full flex-col gap-2.5 px-5 py-4 transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
-                  >
-                    {body}
-                  </Link>
-                ) : (
-                  <span className="flex h-full flex-col gap-2.5 px-5 py-4">{body}</span>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-        {library.truncated ? (
-          <p className="font-mono text-data text-tertiary" data-testid="library-truncated">
-            {copy.truncated.replace("{n}", String(library.perSourceLimit))}
-          </p>
-        ) : null}
-      </nav>
+      {library.truncated ? (
+        <p className="-mt-6 font-mono text-data text-tertiary" data-testid="library-truncated">
+          {copy.truncated.replace("{n}", String(library.perSourceLimit))}
+        </p>
+      ) : null}
 
       {nothing ? (
-        <section data-route-state="empty" className="x-panel x-frame px-6 py-12">
-          <p className="max-w-[56ch] text-body text-muted-foreground">{query ? copy.noResults.replace("{query}", query) : copy.empty}</p>
-          <Button render={<Link href="/app/templates" />} className="mt-5">{copy.browse}<ArrowRight aria-hidden /></Button>
-        </section>
+        <EmptyState
+          data-route-state="empty"
+          body={query ? copy.noResults.replace("{query}", query) : copy.empty}
+          action={{ label: copy.browse, href: "/app/templates", icon: <ArrowRight aria-hidden /> }}
+        />
       ) : (
         <>
           {failures.length > 0 ? (
@@ -492,6 +467,6 @@ export default async function PlatformLibraryPage({
           ) : null}
         </>
       )}
-    </div>
+    </WorkspacePage>
   );
 }

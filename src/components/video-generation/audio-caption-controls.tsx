@@ -204,8 +204,8 @@ export function AudioCaptionControls({
                 </span>
                 <span className="mt-0.5 block text-meta text-muted-foreground">
                   {english
-                    ? "Spoken directly by the generated video—no legacy TTS."
-                    : "由生成视频直接说出，不使用旧 TTS 接口。"}
+                    ? "Spoken directly by the generated video, in sync with the picture."
+                    : "由生成视频直接说出，口型与画面同步。"}
                 </span>
               </span>
             </span>

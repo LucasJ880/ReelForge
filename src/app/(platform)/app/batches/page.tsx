@@ -5,7 +5,8 @@ import { ArrowRight, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
-import { QuoteHeader } from "@/components/exchange/quote-header";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { EmptyState } from "@/components/exchange/empty-state";
 import { FillBar } from "@/components/exchange/fill-bar";
 import { LocalTime } from "@/components/exchange/local-time";
 import { StatusTick } from "@/components/exchange/status-tick";
@@ -41,33 +42,32 @@ export default async function PlatformBatchesPage() {
   const completion = requested > 0 ? Math.round((filled / requested) * 100) : null;
 
   return (
-    <div className="x-stack min-w-0">
-      <QuoteHeader
-        title={copy.title}
-        subtitle={copy.subtitle}
-        actions={
-          <Button render={<Link href="/app/batches/new" />}>
-            <Plus aria-hidden />{copy.new}
-          </Button>
-        }
-        statsLabel={copy.board.label}
-        stats={batches.length === 0 || !production || !readings ? undefined : [
-          readingStat("activeBatches", production.activeBatches, locale),
-          readingStat("pausedBatches", production.pausedBatches, locale),
-          readingStat("filled7d", readings.filled7d, locale),
-          readingStat("failed7d", readings.failed7d, locale),
-          readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } }),
-        ]}
-        scope={batches.length > 0 ? copy.board.scope.replace("{n}", String(batches.length)) : undefined}
-      />
-
+    <WorkspacePage
+      nav="batches"
+      locale={locale}
+      subtitle={copy.subtitle}
+      primaryAction={
+        <Button render={<Link href="/app/batches/new" />}>
+          <Plus aria-hidden />{copy.new}
+        </Button>
+      }
+      readingsLabel={copy.board.label}
+      /// 零就写零：没有批次时读数照样开场（DESIGN「没有数据的页也要开场读数」）。
+      readings={[
+        readingStat("activeBatches", production?.activeBatches ?? 0, locale),
+        readingStat("pausedBatches", production?.pausedBatches ?? 0, locale),
+        readingStat("filled7d", readings?.filled7d ?? 0, locale),
+        readingStat("failed7d", readings?.failed7d ?? 0, locale),
+        readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } }),
+      ]}
+      scope={copy.board.scope.replace("{n}", String(batches.length))}
+    >
       {batches.length === 0 ? (
-        <section data-route-state="empty" className="x-panel x-frame px-6 py-12">
-          <p className="max-w-[56ch] text-body text-muted-foreground">{copy.empty}</p>
-          <Button render={<Link href="/app/templates" />} className="mt-5">
-            {copy.browse}<ArrowRight aria-hidden />
-          </Button>
-        </section>
+        <EmptyState
+          data-route-state="empty"
+          body={copy.empty}
+          action={{ label: copy.browse, href: "/app/templates", icon: <ArrowRight aria-hidden /> }}
+        />
       ) : (
         <div className="x-panel min-w-0 overflow-hidden">
           <table className="block w-full table-fixed md:table" aria-label={copy.listLabel}>
@@ -133,6 +133,6 @@ export default async function PlatformBatchesPage() {
           </table>
         </div>
       )}
-    </div>
+    </WorkspacePage>
   );
 }

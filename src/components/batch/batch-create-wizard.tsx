@@ -616,7 +616,7 @@ export function BatchCreateWizard({
             <CardHeader>
               <CardTitle>{english ? "Add product assets" : "添加产品素材"}</CardTitle>
               <CardDescription>
-                {english ? "PNG, JPG, or WebP. Up to 50 images with four concurrent uploads." : "支持 PNG、JPG、WEBP，最多 50 张，并发上传 4 张。"}
+                {english ? "PNG, JPG, or WebP. Up to 50 images." : "支持 PNG、JPG、WebP，最多 50 张。"}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">

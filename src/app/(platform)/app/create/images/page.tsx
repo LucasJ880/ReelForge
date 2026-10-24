@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
-import { QuoteHeader } from "@/components/exchange/quote-header";
+import { WorkspacePage } from "@/components/exchange/workspace-page";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import {
   ProductImageStudio,
@@ -25,7 +25,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const READING_COPY = {
   "zh-CN": {
     label: "产品图读数",
-    inFlight: "生成中",
+    /// 「生成中」在注册表里专指视频；产品图的在途任务叫「出图中」，同名必同值。
+    inFlight: "出图中",
     images30d: "近 30 天出图",
     imagesTotal: "累计出图",
     failed30d: "近 30 天失败",
@@ -33,7 +34,7 @@ const READING_COPY = {
   },
   "en-US": {
     label: "Product image readings",
-    inFlight: "In progress",
+    inFlight: "Rendering",
     images30d: "Images · 30 days",
     imagesTotal: "Images · all time",
     failed30d: "Failed · 30 days",
@@ -161,21 +162,22 @@ export default async function ProductImagesPage() {
     };
   });
   return (
-    <div className="x-stack min-w-0">
-      <QuoteHeader
-        title={copy.pageTitle}
-        subtitle={copy.pageSubtitle}
-        actions={<CreateModeTabs active="image" />}
-        statsLabel={readingCopy.label}
-        stats={[
-          { label: readingCopy.inFlight, value: readings.inFlight, tone: readings.inFlight > 0 ? "live" : "neutral" },
-          { label: readingCopy.images30d, value: readings.images30d, tone: readings.images30d > 0 ? "filled" : "neutral" },
-          { label: readingCopy.imagesTotal, value: readings.imagesTotal },
-          { label: readingCopy.failed30d, value: readings.failed30d, tone: readings.failed30d > 0 ? "fault" : "neutral" },
-        ]}
-        scope={readingCopy.scope}
-      />
+    <WorkspacePage
+      nav="create"
+      locale={locale}
+      subtitle={`${copy.pageTitle}${locale === "en-US" ? ". " : "。"}${copy.pageSubtitle}`}
+      modeSwitch={<CreateModeTabs active="image" />}
+      primaryAction={null}
+      readingsLabel={readingCopy.label}
+      readings={[
+        { label: readingCopy.inFlight, value: readings.inFlight, tone: readings.inFlight > 0 ? "live" : "neutral" },
+        { label: readingCopy.images30d, value: readings.images30d, tone: readings.images30d > 0 ? "filled" : "neutral" },
+        { label: readingCopy.imagesTotal, value: readings.imagesTotal },
+        { label: readingCopy.failed30d, value: readings.failed30d, tone: readings.failed30d > 0 ? "fault" : "neutral" },
+      ]}
+      scope={readingCopy.scope}
+    >
       <ProductImageStudio initialJobs={jobs} brandPackages={brandPackages} />
-    </div>
+    </WorkspacePage>
   );
 }

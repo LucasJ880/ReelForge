@@ -41,12 +41,14 @@ export default async function PlatformBatchCreatePage({
       <QuoteHeader
         title={copy.new}
         subtitle={copy.newSubtitle}
-        statsLabel={copy.newBoard.label}
-        stats={[
+        primaryAction={null}
+        readingsLabel={copy.newBoard.label}
+        readings={[
           readingStat("activeBatches", production.activeBatches, locale),
           quotaStat(quota.used, quota.limit, locale),
           readingStat("templates", templates.length, locale),
         ]}
+        scope={copy.newBoard.scope}
       />
       <BatchCreateWizard
         batchDetailsBasePath="/app/batches"

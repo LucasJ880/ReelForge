@@ -55,12 +55,6 @@ export default async function TermsPage() {
           {copy.signInLink}
         </Link>
       </p>
-
-      {!process.env.NEXT_PUBLIC_PRIVACY_EMAIL ? (
-        <p className="rounded-(--radius-md) border border-warning bg-card p-4 text-meta">
-          <strong>{copy.assumptionLabel}</strong> {copy.assumption}
-        </p>
-      ) : null}
     </main>
   );
 }

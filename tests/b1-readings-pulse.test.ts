@@ -160,7 +160,8 @@ test("各页读数都从注册表与 exchange-readings 取，不再各算各的"
   assert.doesNotMatch(newBatch, /monthlyVideoLimit|filled30d \}/);
 
   const batches = readFileSync("src/app/(platform)/app/batches/page.tsx", "utf8");
-  assert.match(batches, /readingStat\("activeBatches", production\.activeBatches, locale\)/);
+  // 1025 · B2.1：没有批次也开场读数（零就写零），所以读数不再挂在 production 非空上
+  assert.match(batches, /readingStat\("activeBatches", production\?\.activeBatches \?\? 0, locale\)/);
   assert.doesNotMatch(batches, /new Set\(\["EXPANDING", "RUNNING", "PAUSED"\]\)/, "进行中批次不含暂停");
 
   const wall = readFileSync("src/app/(wall)/wall/page.tsx", "utf8");

@@ -129,7 +129,7 @@ test("不是状态的标签（样例 / 草案 / 攒样本 / 样片待补）用�
     ["src/components/leads/pilot-landing.tsx", /<MonoTag[^>]*>\{copy\.sampleTag\}<\/MonoTag>/],
     ["src/app/(public)/privacy/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
     ["src/app/(public)/terms/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
-    ["src/components/wins/dimension-ledger.tsx", /<MonoTag[^>]*>\{ready \? "可判定" : "攒样本"\}<\/MonoTag>/],
+    ["src/components/wins/dimension-ledger.tsx", /<MonoTag[^>]*>\{ready \? copy\.ready : copy\.collecting\}<\/MonoTag>/],
     ["src/components/templates/template-shot-timeline.tsx", /<MonoTag>\{copy\.pending\}<\/MonoTag>/],
   ];
   for (const [file, pattern] of checks) {

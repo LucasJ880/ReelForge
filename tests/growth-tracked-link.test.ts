@@ -6,6 +6,7 @@ import { NextRequest } from "next/server";
 
 import { db } from "../src/lib/db";
 import {
+  CLICK_LOG_NETWORK_HOURLY_MAX,
   TRACKED_LINK_CODE_RE,
   claimClickSlot,
   classifyUserAgent,
@@ -154,6 +155,7 @@ type LinkFixture = {
   leadPageEnabled?: boolean;
   publicSlug?: string | null;
   allowedHosts?: string[];
+  ownerDisabledAt?: Date | null;
 };
 
 function patchVisit(
@@ -165,6 +167,8 @@ function patchVisit(
   const increments: string[] = [];
   /// realDedupe：用内存里的唯一键模拟 RateLimitBucket 的 (bucketKey, windowKey) 唯一约束
   const slots = new Set<string>();
+  /// 小时计数桶（网段记点击闸）：按 bucketKey|windowKey 在内存里累加
+  const counters = new Map<string, number>();
   patch(t, db.trackedLink, {
     findUnique: async () =>
       fixture
@@ -176,6 +180,7 @@ function patchVisit(
               publicSlug: fixture.publicSlug === undefined ? "sunny-shutter" : fixture.publicSlug,
               leadPageEnabled: fixture.leadPageEnabled ?? true,
               leadPageConfig: { allowedHosts: fixture.allowedHosts ?? [] },
+              owner: { disabledAt: fixture.ownerDisabledAt ?? null },
             },
           }
         : null,
@@ -194,6 +199,13 @@ function patchVisit(
       slots.add(args.data.bucketKey);
       return {};
     },
+    upsert: async (args: { where: { bucketKey_windowKey: { bucketKey: string; windowKey: string } } }) => {
+      const { bucketKey, windowKey } = args.where.bucketKey_windowKey;
+      const key = `${bucketKey}|${windowKey}`;
+      const count = (counters.get(key) ?? 0) + 1;
+      counters.set(key, count);
+      return { bucketKey, windowKey, count };
+    },
   });
   patch(t, db.linkClick, {
     create: async (args: { data: Record<string, unknown> }) => {
@@ -202,7 +214,7 @@ function patchVisit(
       return {};
     },
   });
-  return { clicks, increments };
+  return { clicks, increments, slots, counters };
 }
 
 const visit = (overrides: Partial<Parameters<typeof handleTrackedLinkVisit>[0]> = {}) =>
@@ -307,4 +319,64 @@ test("/t/[code] 路由：链接不存在回 404 文本，不跳转", async (t) =
   });
   assert.equal(response.status, 404);
   assert.equal(response.headers.get("location"), null);
+});
+
+/**
+ * 1025 安全复核 LENS-1：去重键带访客自报的 UA，换 UA 就是「新访客」。网段记点击闸把单一来源
+ * 能写进库的点击、去重行与计数封顶；超了照样跳转。
+ */
+test("🔴 换 UA 刷点击：同一 /24 每条链接每小时最多记 20 次；超了照样跳转，但不记、不计、不再新建去重行", async (t) => {
+  const { clicks, increments, slots, counters } = patchVisit(t, {}, { realDedupe: true });
+  const now = new Date("2026-10-25T12:00:00.000Z");
+  for (let n = 0; n < 60; n += 1) {
+    const result = await visit({
+      userAgent: CHROME.replace("Chrome/130.0", `Chrome/130.0.${n}`),
+      ip: `203.0.113.${n % 250}`,
+      now,
+    });
+    assert.equal(result.status, "redirect", "the visitor always gets the redirect");
+  }
+  assert.equal(CLICK_LOG_NETWORK_HOURLY_MAX, 20);
+  assert.equal(clicks.length, CLICK_LOG_NETWORK_HOURLY_MAX);
+  assert.equal(increments.length, CLICK_LOG_NETWORK_HOURLY_MAX, "clickCount stops at the cap");
+  assert.equal(slots.size, CLICK_LOG_NETWORK_HOURLY_MAX, "dedupe rows stop growing once the network is capped");
+  assert.equal(counters.size, 1, "the whole /24 shares one hourly bucket per link");
+  const [bucket] = [...counters.keys()];
+  assert.match(bucket, /^click-net:link-1:[0-9a-f]{32}\|2026-10-25T12$/);
+  assert.doesNotMatch(bucket, /203\.0\.113/, "raw IPs never reach the database");
+});
+
+test("🔴 换爬虫 UA 刷日志：同一 IPv6 /48 也封顶（爬虫只记录不计数，但行数同样有上限）", async (t) => {
+  const { clicks, increments } = patchVisit(t, {});
+  const now = new Date("2026-10-25T12:00:00.000Z");
+  for (let n = 0; n < 40; n += 1) {
+    await visit({ userAgent: `WhatsApp/2.23.20.${n} A`, ip: `2001:db8:abcd:${n.toString(16)}::${n + 1}`, now });
+  }
+  assert.equal(clicks.length, CLICK_LOG_NETWORK_HOURLY_MAX);
+  assert.ok(clicks.every((click) => click.isBot === true));
+  assert.deepEqual(increments, [], "bots are logged, never counted");
+});
+
+test("网段封顶不误伤别人：另一个网段照常计数；下一个小时同一网段重新计", async (t) => {
+  const { increments } = patchVisit(t, {}, { realDedupe: true });
+  const hour = new Date("2026-10-25T12:00:00.000Z");
+  for (let n = 0; n < CLICK_LOG_NETWORK_HOURLY_MAX + 5; n += 1) {
+    await visit({ userAgent: CHROME.replace("Chrome/130.0", `Chrome/130.0.${n}`), ip: "203.0.113.9", now: hour });
+  }
+  assert.equal(increments.length, CLICK_LOG_NETWORK_HOURLY_MAX);
+
+  const other = await visit({ ip: "198.51.100.7", now: hour });
+  assert.equal(other.status === "redirect" && other.counted, true, "a different /24 is unaffected");
+
+  const nextHour = new Date("2026-10-25T13:05:00.000Z");
+  const later = await visit({ userAgent: `${IPHONE} Instagram 312.0.0.32.112`, ip: "203.0.113.50", now: nextHour });
+  assert.equal(later.status === "redirect" && later.counted, true, "the cap is hourly");
+});
+
+/** 1025 安全复核 LENS-4：账号停用后，它的追踪链接与询盘页一起下线。 */
+test("🔴 owner 账号已停用：追踪链接 404，不跳转、不写点击", async (t) => {
+  const { clicks, increments } = patchVisit(t, { ownerDisabledAt: new Date("2026-10-25T00:00:00.000Z") });
+  assert.deepEqual(await visit(), { status: "not_found" });
+  assert.deepEqual(clicks, []);
+  assert.deepEqual(increments, []);
 });

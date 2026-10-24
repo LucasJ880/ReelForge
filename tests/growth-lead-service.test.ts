@@ -10,10 +10,17 @@ import {
   LeadPageNotFoundError,
   LeadRateLimitedError,
   LeadSlugError,
+  PUBLIC_LEAD_PAGE_HOURLY_HARD_MAX,
+  PUBLIC_LEAD_PAGE_HOURLY_NOTIFY_MAX,
+  PUBLIC_PILOT_GLOBAL_HOURLY_HARD_MAX,
+  PUBLIC_PILOT_GLOBAL_HOURLY_NOTIFY_MAX,
   buildLeadDedupeKey,
   checkLeadSlug,
+  createManualLead,
   displayBusinessName,
+  getPublicLeadPage,
   leadPageDisplayInputSchema,
+  manualLeadInputSchema,
   leadStatusTransitionData,
   normalizePhoneForDedupe,
   parseLeadPageConfig,
@@ -54,6 +61,7 @@ function enabledWorkspace(overrides: Record<string, unknown> = {}) {
     name: "Sunny Workspace",
     leadPageEnabled: true,
     leadPageConfig: { businessName: "Sunny Shutter", phone: "+1 905 555 0100", allowedHosts: ["sunnyshutter.ca"] },
+    owner: { disabledAt: null },
     ...overrides,
   };
 }
@@ -313,7 +321,7 @@ test("试点申请：consentJson 存当时的同意文本、版本与逐渠道�
     consent: true,
     consentVersion: PILOT_CONSENT_VERSION,
   });
-  assert.deepEqual(await submitPilotApplication(input, { visitorHash: "v", now: NOW }), { id: "pilot-1" });
+  assert.deepEqual(await submitPilotApplication(input, { visitorHash: "v", now: NOW }), { id: "pilot-1", notify: true });
   const consent = created[0].consentJson as Record<string, unknown>;
   assert.equal(consent.version, PILOT_CONSENT_VERSION);
   assert.equal(consent.acceptedAt, NOW.toISOString());
@@ -390,4 +398,197 @@ test("商家改展示内容不会动到超管登记的跳转域名", async (t) =
     region: "Vaughan",
     locale: "en-US",
   });
+});
+
+// ─────────────────────────────────────────────────────────────
+// 1025 安全复核回归（LENS-2 / LENS-3 / LENS-4）
+// ─────────────────────────────────────────────────────────────
+
+/** 已成交的手录询盘：电话 416-555-0100，商家记过姓名、邮箱、项目与通话备注。 */
+function wonManualLead() {
+  return {
+    id: "lead-won",
+    meta: { submissions: 1, lastManualAt: "2026-10-23T10:00:00.000Z" },
+    notifiedAt: null,
+    name: "王女士",
+    phone: "416-555-0100",
+    email: "wang@example.com",
+    serviceInterest: "电动卷帘",
+    preferredTime: null,
+    selfReportedSource: null,
+    message: "电话里说要 3 扇窗，周六上门量尺寸",
+  };
+}
+
+test("🔴 匿名公开提交撞上已有询盘（手录 / 已成交）：只补空字段，姓名电话邮箱留言一律不改；这次提交记进 meta.lastSubmission", async (t) => {
+  patch(t, db.workspace, { findUnique: async () => enabledWorkspace() });
+  rateLimitOk(t);
+  const finds: Array<{ where: Record<string, unknown>; select: Record<string, unknown> }> = [];
+  const updates: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  patch(t, db.lead, {
+    findFirst: async (args: { where: Record<string, unknown>; select: Record<string, unknown> }) => {
+      finds.push(args);
+      return wonManualLead();
+    },
+    update: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+      updates.push(args);
+      return { id: "lead-won" };
+    },
+    create: async () => {
+      throw new Error("must not create a duplicate lead inside the dedupe window");
+    },
+  });
+  const result = await submitPublicLead(
+    publicLeadInputSchema.parse({
+      ...validPublicLead,
+      phone: "+1 416 555 0100",
+      name: "X",
+      email: "attacker@evil.test",
+      serviceInterest: "退款",
+      preferredTime: "weekday_evening",
+      message: "订单取消，别再联系我",
+    }),
+    { visitorHash: "v", now: NOW },
+  );
+  assert.equal(result.deduped, true);
+  assert.equal(finds[0].where.dedupeKey, "p:4165550100");
+  for (const field of ["name", "phone", "email", "serviceInterest", "message"]) {
+    assert.equal(finds[0].select[field], true, `${field} is read so it can be protected`);
+  }
+  const data = updates[0].data;
+  for (const field of ["name", "phone", "email", "serviceInterest", "message"]) {
+    assert.equal(field in data, false, `an anonymous submission never overwrites ${field}`);
+  }
+  assert.equal(data.preferredTime, "weekday_evening", "empty fields can still be filled in");
+  const meta = data.meta as Record<string, unknown>;
+  assert.equal(meta.submissions, 2);
+  assert.equal(meta.lastManualAt, "2026-10-23T10:00:00.000Z", "existing meta is kept");
+  assert.deepEqual(meta.lastSubmission, {
+    name: "X",
+    phone: "+1 416 555 0100",
+    email: "attacker@evil.test",
+    serviceInterest: "退款",
+    preferredTime: "weekday_evening",
+    selfReportedSource: null,
+    message: "订单取消，别再联系我",
+    at: NOW.toISOString(),
+  });
+  assert.equal("status" in data, false, "the lead's status is never touched by a public submission");
+});
+
+test("商家手工录入撞上同一电话：仍按最新录入覆盖（商家本人写，可信）", async (t) => {
+  const updates: Array<{ data: Record<string, unknown> }> = [];
+  patch(t, db.lead, {
+    findFirst: async () => wonManualLead(),
+    update: async (args: { data: Record<string, unknown> }) => {
+      updates.push(args);
+      return { id: "lead-won" };
+    },
+  });
+  const result = await createManualLead(
+    "ws-1",
+    manualLeadInputSchema.parse({ name: "王女士（已回电）", phone: "416-555-0100", email: "wang.new@example.com" }),
+    NOW,
+  );
+  assert.deepEqual(result, { leadId: "lead-won", deduped: true });
+  assert.equal(updates[0].data.name, "王女士（已回电）");
+  assert.equal(updates[0].data.email, "wang.new@example.com");
+  assert.equal("lastSubmission" in (updates[0].data.meta as Record<string, unknown>), false);
+});
+
+test("🔴 页级繁忙线：几个网段刷满共享桶后，真客户照样提交成功；新询盘打 page_burst 标记、这一单不发邮件", async (t) => {
+  patch(t, db.workspace, { findUnique: async () => enabledWorkspace() });
+  const buckets = rateLimitOk(t, [1, PUBLIC_LEAD_PAGE_HOURLY_NOTIFY_MAX + 1]);
+  patch(t, db.trackedLink, { findFirst: async () => null });
+  const created: Array<Record<string, unknown>> = [];
+  patch(t, db.lead, {
+    findFirst: async () => null,
+    create: async (args: { data: Record<string, unknown> }) => {
+      created.push(args.data);
+      return { id: "lead-burst" };
+    },
+  });
+  const result = await submitPublicLead(publicLeadInputSchema.parse(validPublicLead), { visitorHash: "visitor-real", now: NOW });
+  assert.deepEqual(result, { leadId: "lead-burst", deduped: false, needsNotify: false });
+  assert.equal((created[0].meta as Record<string, unknown>).flagged, "page_burst");
+  assert.deepEqual(
+    buckets.map((bucket) => bucket.bucketKey),
+    ["public-lead:ws-1:visitor-real", "public-lead-page:ws-1"],
+  );
+});
+
+test("页级安全阀：只有远超正常流量（> 600 次/小时）才拒收，并附商家电话；繁忙线以下照常通知", async (t) => {
+  assert.ok(PUBLIC_LEAD_PAGE_HOURLY_HARD_MAX >= PUBLIC_LEAD_PAGE_HOURLY_NOTIFY_MAX * 10);
+  patch(t, db.workspace, { findUnique: async () => enabledWorkspace() });
+  rateLimitOk(t, [1, PUBLIC_LEAD_PAGE_HOURLY_HARD_MAX + 1]);
+  patch(t, db.lead, {
+    findFirst: async () => {
+      throw new Error("rejected submissions must not reach the lead table");
+    },
+  });
+  await assert.rejects(
+    submitPublicLead(publicLeadInputSchema.parse(validPublicLead), { visitorHash: "v", now: NOW }),
+    (error: unknown) => error instanceof LeadRateLimitedError && error.fallbackPhone === "+1 905 555 0100",
+  );
+});
+
+test("访客闸先于页级桶：被访客闸拦下的请求不占页级额度", async (t) => {
+  patch(t, db.workspace, { findUnique: async () => enabledWorkspace() });
+  const buckets = rateLimitOk(t, [6]);
+  await assert.rejects(
+    submitPublicLead(publicLeadInputSchema.parse(validPublicLead), { visitorHash: "v", now: NOW }),
+    LeadRateLimitedError,
+  );
+  assert.deepEqual(buckets.map((bucket) => bucket.bucketKey), ["public-lead:ws-1:v"]);
+});
+
+test("🔴 试点全局繁忙线：过了 200 次照收、不发邮件；过了 2000 次的安全阀才拒收", async (t) => {
+  let globalCount = PUBLIC_PILOT_GLOBAL_HOURLY_NOTIFY_MAX + 1;
+  patch(t, db.rateLimitBucket, {
+    upsert: async (args: { where: { bucketKey_windowKey: { bucketKey: string } } }) => ({
+      count: args.where.bucketKey_windowKey.bucketKey === "public-pilot-global" ? globalCount : 1,
+    }),
+  });
+  let stored = 0;
+  patch(t, db.pilotApplication, {
+    create: async () => {
+      stored += 1;
+      return { id: `pilot-${stored}` };
+    },
+  });
+  const input = pilotApplicationInputSchema.parse({
+    email: "owner@shop.test",
+    consent: true,
+    consentVersion: PILOT_CONSENT_VERSION,
+  });
+  assert.deepEqual(await submitPilotApplication(input, { visitorHash: "v", now: NOW }), { id: "pilot-1", notify: false });
+
+  globalCount = PUBLIC_PILOT_GLOBAL_HOURLY_HARD_MAX + 1;
+  await assert.rejects(submitPilotApplication(input, { visitorHash: "v", now: NOW }), RateLimitExceededError);
+  assert.equal(stored, 1, "only the safety valve refuses to store");
+});
+
+test("🔴 owner 账号已停用：询盘页当不存在；公开提交 404，不计限流、不落库", async (t) => {
+  let disabledAt: Date | null = null;
+  const selects: Array<Record<string, unknown>> = [];
+  patch(t, db.workspace, {
+    findUnique: async (args: { select: Record<string, unknown> }) => {
+      selects.push(args.select);
+      return enabledWorkspace({ owner: { disabledAt } });
+    },
+  });
+  assert.equal((await getPublicLeadPage("sunny-shutter"))?.workspaceId, "ws-1");
+  assert.deepEqual(selects[0].owner, { select: { disabledAt: true } });
+
+  disabledAt = new Date("2026-10-25T00:00:00.000Z");
+  assert.equal(await getPublicLeadPage("sunny-shutter"), null);
+  const boom = async () => {
+    throw new Error("a disabled owner's page must not rate-limit or store anything");
+  };
+  patch(t, db.rateLimitBucket, { upsert: boom });
+  patch(t, db.lead, { findFirst: boom, create: boom, update: boom });
+  await assert.rejects(
+    submitPublicLead(publicLeadInputSchema.parse(validPublicLead), { visitorHash: "v", now: NOW }),
+    LeadPageNotFoundError,
+  );
 });

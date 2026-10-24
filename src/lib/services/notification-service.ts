@@ -99,13 +99,14 @@ export async function notifyNewLead(leadId: string, deps: NotifyDeps = {}): Prom
         source: true,
         notifiedAt: true,
         trackedLink: { select: { label: true, channel: true } },
-        workspace: { select: { name: true, owner: { select: { email: true } } } },
+        workspace: { select: { name: true, owner: { select: { email: true, disabledAt: true } } } },
       },
     });
     if (!lead) return { sent: false, reason: "not_found" };
     if (lead.notifiedAt) return { sent: false, reason: "already_notified" };
 
-    const ownerEmail = lead.workspace.owner.email;
+    /// owner 账号已停用：访客的姓名电话不再发给这个被平台切断的账号，只回落给创始人（没配就不发）
+    const ownerEmail = lead.workspace.owner.disabledAt ? null : lead.workspace.owner.email;
     const founder = founderEmail(env);
     const to = ownerEmail ? [ownerEmail] : founder ? [founder] : [];
     if (to.length === 0) return { sent: false, reason: "no_recipient" };

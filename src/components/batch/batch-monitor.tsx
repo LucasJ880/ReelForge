@@ -25,7 +25,9 @@ import {
 } from "@/components/ui/sheet";
 import { BatchFilmStrip } from "@/components/batch/batch-film-strip";
 import { QuoteHeader } from "@/components/exchange/quote-header";
-import { StatusTick, batchTone, type TickTone } from "@/components/exchange/status-tick";
+import { StatusTick } from "@/components/exchange/status-tick";
+import { batchState, videoJobState } from "@/lib/exchange/state-vocab";
+import { requestPulseRefresh } from "@/lib/exchange/pulse";
 import { toast } from "sonner";
 import { useTranslation } from "@/i18n";
 import { getPlatformCopy } from "@/i18n/platform-copy";
@@ -107,15 +109,6 @@ function firstAssetUrl(value: unknown): string | null {
   return typeof url === "string" ? url : null;
 }
 
-const JOB_TONE: Record<BatchMonitorJob["status"], TickTone> = {
-  QUEUED: "idle",
-  PAUSED: "idle",
-  RUNNING: "live",
-  SUCCEEDED: "filled",
-  FAILED: "fault",
-  CANCELLED: "void",
-};
-
 type BatchFailureCopy = ReturnType<
   typeof getPlatformCopy
 >["batches"]["monitor"]["failures"];
@@ -149,7 +142,6 @@ export function BatchMonitor({
   const monitorCopy = batchCopy.monitor;
   const libraryCopy = getPlatformCopy(locale).library;
   const jobLabels = monitorCopy.jobStatuses;
-  const batchLabels = batchCopy.statuses;
   const [batch, setBatch] = useState(initialBatch);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<string | null>(null);
@@ -233,6 +225,7 @@ export function BatchMonitor({
         throw new Error(monitorCopy.actionFailed);
       }
       setBatch(data.batch);
+      requestPulseRefresh();
       toast.success(monitorCopy.statusUpdated);
     } catch (reason) {
       const message = (reason as Error).message;
@@ -290,7 +283,7 @@ export function BatchMonitor({
         title={batch.productName ?? templateName}
         subtitle={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <StatusTick tone={batchTone(batch.status)} label={batchLabels[batch.status]} />
+            <StatusTick entity="batch" state={batchState(batch.status)} locale={locale} />
             <span>{templateName} · {monitorCopy.templateVersion} v{batch.template.version}</span>
             <span className="break-all font-mono text-data tabular-nums text-tertiary">{monitorCopy.batch} {batch.id}</span>
           </span>
@@ -486,7 +479,7 @@ export function BatchMonitor({
                   <p className="truncate font-mono text-meta font-semibold text-foreground">{monitorCopy.video} #{(job.batchIndex ?? 0) + 1}</p>
                   <p className="truncate font-mono text-meta text-muted-foreground" title={job.id}>{job.id}</p>
                 </div>
-                <StatusTick tone={JOB_TONE[job.status]} label={jobLabels[job.status]} className="w-20" />
+                <StatusTick entity="item" state={videoJobState(job.status)} locale={locale} className="w-20" />
                 <div className="min-w-32 flex-1">
                   {job.status === "RUNNING" ? <Progress value={job.lastProgress ?? 8} aria-label={english ? `Video ${(job.batchIndex ?? 0) + 1} progress ${job.lastProgress ?? 8}%` : `视频 ${(job.batchIndex ?? 0) + 1} 生成进度 ${job.lastProgress ?? 8}%`} /> : null}
                   {job.status === "FAILED" ? <p className="truncate text-meta text-danger">{jobFailureSummary(job, monitorCopy.failures, english)}</p> : null}

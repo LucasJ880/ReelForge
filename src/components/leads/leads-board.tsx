@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Archive, BadgeCheck, Mail, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusTick, type TickTone } from "@/components/exchange/status-tick";
+import { stateTone } from "@/lib/exchange/state-vocab";
 import type { Locale } from "@/i18n/config";
 import { LEAD_STATUSES, fillGrowth, getGrowthCopy, labelFor, type LeadStatusKey } from "@/i18n/growth-copy";
 import { cn } from "@/lib/utils";
@@ -31,17 +32,9 @@ export type LeadRow = {
   trackedLink: { label: string; channel: string | null } | null;
 };
 
-/// 询盘状态记号：新询盘=青（当前要处理），跟进中=半圆，成交=实心绿，未成交=叉。
-const STATUS_TONE: Record<LeadStatusKey, TickTone> = {
-  NEW: "live",
-  CONTACTED: "partial",
-  BOOKED: "partial",
-  WON: "filled",
-  LOST: "void",
-};
-
+/// 询盘状态记号：新询盘=青（当前要处理），跟进中=半圆，成交=实心绿，未成交=叉——都在状态词典里（lead 实体）。
 export function leadStatusTone(status: LeadStatusKey): TickTone {
-  return STATUS_TONE[status];
+  return stateTone("lead", status);
 }
 
 const ROW_GRID = "lg:grid-cols-[8.5rem_minmax(0,1.1fr)_minmax(0,1fr)_minmax(0,0.8fr)_8rem_minmax(11rem,auto)]";
@@ -154,7 +147,7 @@ export function LeadsBoard({ locale, leads }: { locale: Locale; leads: LeadRow[]
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-start gap-x-3 gap-y-1">
-                  <StatusTick tone={leadStatusTone(lead.status)} label={growth.statuses[lead.status]} />
+                  <StatusTick entity="lead" state={lead.status} locale={locale} />
                   {lead.verifiedAt ? (
                     <span className="inline-flex items-center gap-1 font-mono text-data uppercase tracking-wide text-success">
                       <BadgeCheck className="size-3.5" strokeWidth={1.5} aria-hidden />

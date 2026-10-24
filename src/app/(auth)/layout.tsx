@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { StatusTick } from "@/components/exchange/status-tick";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import { WallVideo } from "@/components/exchange/wall-controls";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
 import {
@@ -98,7 +98,7 @@ export default async function AuthLayout({
                       <WallVideo src={frame.video} poster={frame.poster} label={frame.name} />
                       <div className="pointer-events-none absolute inset-0 bg-(image:--scrim)" aria-hidden />
                       <span className="absolute left-1.5 top-1.5 hidden rounded-(--radius-sm) bg-sunken/85 px-1.5 py-0.5 sm:block">
-                        <StatusTick tone="filled" label={copy.sampleTag} />
+                        <MonoTag className="border-0 px-0 py-0">{copy.sampleTag}</MonoTag>
                       </span>
                     </div>
                     <p className="truncate px-3 py-2 text-meta text-muted-foreground">{frame.name}</p>

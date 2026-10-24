@@ -80,7 +80,7 @@ export function LeadPageSettings({
       <dl className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
         <dt className="x-label">{copy.pageTitle}</dt>
         <dd>
-          <StatusTick tone={enabled ? "live" : "void"} label={enabled ? copy.pageEnabled : copy.pageDisabled} />
+          <StatusTick entity="leadPage" state={enabled ? "on" : "off"} locale={locale} />
         </dd>
         <dt className="x-label">{copy.pageAddress}</dt>
         <dd className="flex min-w-0 flex-wrap items-center gap-3">

@@ -21,6 +21,8 @@ import {
 } from "@/lib/video-generation/template-sample";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { commerceTemplateSummary } from "@/lib/video-generation/commerce-template-catalog";
+import { readingStat } from "@/lib/exchange/readings-registry";
+import { loadExchangeReadings } from "@/lib/services/exchange-readings";
 
 export const dynamic = "force-dynamic";
 
@@ -30,23 +32,23 @@ type TemplateUsage = {
   /// slug → 批次数：同一个模板的历史版本（已归档）也算在这个 slug 上
   bySlug: Map<string, number>;
   batches: number;
-  requested: number;
-  completed: number;
 };
 
-const NO_USAGE: TemplateUsage = { bySlug: new Map(), batches: 0, requested: 0, completed: 0 };
+const NO_USAGE: TemplateUsage = { bySlug: new Map(), batches: 0 };
 
 function usageWindowStart(): Date {
   return new Date(Date.now() - USAGE_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 }
 
-/** 本人近 30 天按模板建了多少批次、下单与成交多少条（只读本工作区，不含样片库）。 */
+/**
+ * 本人近 30 天按模板建了多少批次（只读本工作区，不含样片库）。
+ * 「近 30 天成片」不在这里按批次创建时间另算一套：同名必同值，取 exchange-readings。
+ */
 async function loadTemplateUsage(userId: string): Promise<TemplateUsage> {
   const groups = await db.batchJob.groupBy({
     by: ["templateId"],
     where: { userId, createdAt: { gte: usageWindowStart() } },
     _count: { _all: true },
-    _sum: { requestedCount: true, completedCount: true },
   });
   if (groups.length === 0) return NO_USAGE;
   const templates = await db.styleTemplate.findMany({
@@ -62,8 +64,6 @@ async function loadTemplateUsage(userId: string): Promise<TemplateUsage> {
   return {
     bySlug,
     batches: groups.reduce((sum, group) => sum + group._count._all, 0),
-    requested: groups.reduce((sum, group) => sum + (group._sum.requestedCount ?? 0), 0),
-    completed: groups.reduce((sum, group) => sum + (group._sum.completedCount ?? 0), 0),
   };
 }
 
@@ -75,9 +75,10 @@ export default async function PlatformTemplatesPage() {
     getServerLocale(),
   ]);
   const empty = routeState === "empty";
-  const [templates, usage] = await Promise.all([
+  const [templates, usage, readings] = await Promise.all([
     empty ? Promise.resolve([]) : listActiveStyleTemplates(),
     empty ? Promise.resolve(NO_USAGE) : loadTemplateUsage(session.user.id),
+    empty ? Promise.resolve(null) : loadExchangeReadings(session.user.id),
   ]);
   const copy = getPlatformCopy(locale).templates;
   const board = TEMPLATE_LIBRARY_COPY[locale].board;
@@ -116,15 +117,10 @@ export default async function PlatformTemplatesPage() {
         ) : undefined}
         statsLabel={board.label}
         stats={[
-          { label: board.recipes, value: items.length, caption: fillCount(board.recipesCaption, categoryCount) },
-          { label: board.samples, value: sampleCount, caption: fillCount(board.samplesCaption, items.length - sampleCount) },
-          { label: board.used, value: usage.batches, caption: fillCount(board.usedCaption, usage.bySlug.size) },
-          {
-            label: board.filled,
-            value: usage.completed,
-            caption: fillCount(board.filledCaption, usage.requested),
-            tone: usage.completed > 0 ? "filled" : "neutral",
-          },
+          { ...readingStat("templates", items.length, locale), caption: fillCount(board.recipesCaption, categoryCount) },
+          { ...readingStat("verifiedSamples", sampleCount, locale), caption: fillCount(board.samplesCaption, items.length - sampleCount) },
+          { ...readingStat("templateBatches30d", usage.batches, locale), caption: fillCount(board.usedCaption, usage.bySlug.size) },
+          readingStat("filled30d", readings?.filled30d ?? 0, locale),
         ]}
         scope={board.scope}
       />

@@ -119,7 +119,7 @@ export function LeadCaptureForm({
   if (state === "done") {
     return (
       <div role="status" className="space-y-3 px-6 py-10" data-lead-form="submitted">
-        <StatusTick tone="filled" label={copy.successTitle} />
+        <StatusTick entity="submission" state="received" locale={locale} />
         <p className="text-body text-muted-foreground">{fillGrowth(copy.successBody, { business })}</p>
         {phone ? (
           <Button render={<a href={`tel:${phone.replace(/[^\d+]/g, "")}`} />} variant="outline">

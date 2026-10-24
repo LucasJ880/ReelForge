@@ -1,85 +1,442 @@
+import type { Prisma, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
-import { loadUnifiedLibrary } from "@/lib/services/unified-library-service";
-import type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
-
-const LIVE_BATCH_STATUSES = ["EXPANDING", "RUNNING", "PAUSED"] as const;
-const IN_FLIGHT = new Set<UnifiedLibraryRow["status"]>(["planning", "generating", "assembling"]);
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
+import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
+import type { ExchangePulse, PulsePlan, TapeEntry } from "@/lib/exchange/pulse";
+import { countNewLeads } from "@/lib/services/lead-service";
+import { getUsageSummary } from "@/lib/services/quota-service";
+import { loadRecentVideoRows, type UnifiedLibraryRow } from "@/lib/services/unified-library-service";
 
 /**
- * 交易台读数的唯一口径：大屏、创作台、批量页共用，别在页面里各算一套。
- * 只数访问者本人的数据（成品库样片 isShowcase 一律不计）；零就是零。
+ * 交易台读数的唯一口径（1025 · B1.1 / B1.2）：壳层、创作台、批量页、新建批次、成品库、
+ * 模板库、大屏共用。名字与口径写在 src/lib/exchange/readings-registry.ts，数值只从这里来。
+ *
+ * 规则：
+ *  - 一律 DB count / groupBy，不再扫成品库列表（之前每个来源只取 100 行，重度账号的
+ *    成片数被截断、成功率被系统性压低）。
+ *  - 只数访问者本人的数据（成品库样片一律不计）；零就是零。
+ *  - 「生成中」只指供应商侧真有活跃任务的视频（不含排队、暂停与图文帖）；
+ *    「进行中批次」不含暂停；「成片」只数视频，图文帖与短视频帖不算。
  */
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+export const NEEDS_ATTENTION_WINDOW_DAYS = 7;
+
+/** 单条订单「失败」的 brief 状态（与 business-status 的 pickStatus 同口径）。 */
+const FAILED_BRIEF_STATUSES: VideoBriefStatus[] = ["RENDER_FAILED", "QA_REJECTED", "DROPPED"];
+/** 单条订单「已成片」的 brief 状态（QA_PENDING 起即已写入成片）。 */
+const READY_BRIEF_STATUSES: VideoBriefStatus[] = [
+  "QA_PENDING",
+  "QA_APPROVED",
+  "PUBLISH_PENDING",
+  "PUBLISHED",
+  "METRICS_COLLECTING",
+  "SCORED",
+  "ARCHIVED",
+];
+
+type Range = { gte: Date; lt?: Date };
+
+/* ── 共用的 where 片段：计数与「需要处理」列表必须用同一份，才能同名必同值 ── */
+
+/** 本人自助创作（unified_input）的单条订单的 brief，未下架。 */
+export function ownedBriefWhere(userId: string): Prisma.VideoBriefWhereInput {
+  return {
+    takedownAt: null,
+    contentAngle: { round: { deliveryOrder: { createdById: userId, productCategory: "unified_input" } } },
+  };
+}
+
+/** 批量里失败的那一条：当前状态仍是 FAILED（重试会把它改回排队，成功就不再是失败）。 */
+export function batchFailureWhere(userId: string, range: Range): Prisma.VideoJobWhereInput {
+  return { status: "FAILED", batchJob: { userId }, updatedAt: range };
+}
+
+/** 还在路上的分段：排队 / 生成中 / 暂停。 */
+const ACTIVE_JOB_STATUSES = ["QUEUED", "RUNNING", "PAUSED"] as const;
+
+/** 已成片：成片合成完成，或 brief 已进入成片之后的状态。 */
+const ORDER_READY: Prisma.VideoBriefWhereInput = {
+  OR: [{ finalVideo: { is: { status: "READY" } } }, { status: { in: READY_BRIEF_STATUSES } }],
+};
+
+/**
+ * 单条订单失败的四种情形（与 business-status 的 pickStatus + 成品库 refineOrderLibraryStatus 同口径）：
+ * brief 判失败 / 成片合成失败 / 分段全部失败 / 有分段失败且没有分段还在路上（也没成片、没在合成）。
+ * 传 range 时按「失败那一刻」落在窗口内筛。
+ */
+function orderFailureClauses(range?: Range): Prisma.VideoBriefWhereInput[] {
+  const at = range ? { updatedAt: range } : {};
+  return [
+    { status: { in: FAILED_BRIEF_STATUSES }, ...at },
+    { finalVideo: { is: { status: "FAILED", ...at } } },
+    { videoJobs: { some: { status: "FAILED", ...at }, every: { status: "FAILED" } } },
+    {
+      videoJobs: { some: { status: "FAILED", ...at }, none: { status: { in: [...ACTIVE_JOB_STATUSES] } } },
+      NOT: [ORDER_READY, { finalVideo: { is: { status: "STITCHING" } } }],
+    },
+  ];
+}
+
+/** 单条订单失败，时间按各自那一刻算。 */
+export function orderFailureWhere(userId: string, range: Range): Prisma.VideoBriefWhereInput {
+  return { ...ownedBriefWhere(userId), OR: orderFailureClauses(range) };
+}
+
+/** 不看时间的单条失败判据（用来把失败排除在「成片 / 生成中 / 排队中」之外）。 */
+const ORDER_FAILED_ANY: Prisma.VideoBriefWhereInput = { OR: orderFailureClauses() };
+
+/** 批量成片：成片时刻取 finishedAt，旧数据没有就退回 updatedAt。 */
+export function batchReadyWhere(userId: string, range?: Range): Prisma.VideoJobWhereInput {
+  return {
+    status: "SUCCEEDED",
+    batchJob: { userId },
+    ...(range ? { OR: [{ finishedAt: range }, { finishedAt: null, updatedAt: range }] } : {}),
+  };
+}
+
+/** 单条成片；成片时刻取合成完成时间（旧的单段流程没有 FinalVideo，退回 brief 更新时间）。 */
+export function orderReadyWhere(userId: string, range?: Range): Prisma.VideoBriefWhereInput {
+  return {
+    ...ownedBriefWhere(userId),
+    NOT: ORDER_FAILED_ANY,
+    AND: [
+      ORDER_READY,
+      ...(range
+        ? [{ OR: [{ finalVideo: { is: { finishedAt: range } } }, { finalVideoId: null, updatedAt: range }] }]
+        : []),
+    ],
+  };
+}
+
+/** 单条「真在生成」：有分段在供应商侧跑，或分段都好了正在合成。 */
+export function orderGeneratingWhere(userId: string): Prisma.VideoBriefWhereInput {
+  return {
+    ...ownedBriefWhere(userId),
+    NOT: [ORDER_FAILED_ANY, ORDER_READY],
+    OR: [
+      { videoJobs: { some: { status: "RUNNING", batchJobId: null } } },
+      { finalVideo: { is: { status: "STITCHING" } } },
+    ],
+  };
+}
+
+/** 单条「排队中」：有分段在排队、没有分段在跑、也没在合成。 */
+export function orderQueuedWhere(userId: string): Prisma.VideoBriefWhereInput {
+  return {
+    ...ownedBriefWhere(userId),
+    NOT: [ORDER_FAILED_ANY, ORDER_READY, { finalVideo: { is: { status: "STITCHING" } } }],
+    videoJobs: { some: { status: "QUEUED", batchJobId: null }, none: { status: "RUNNING" } },
+  };
+}
+
+/** 待出图：排好但还没出图的单图帖与轮播（短视频帖是「待生产」，不算这里）。 */
+export function awaitingImagesWhere(userId: string): Prisma.ContentPostWhereInput {
+  return {
+    plan: { userId },
+    status: { not: "DISCARDED" },
+    format: { in: ["SINGLE_IMAGE", "CAROUSEL"] },
+    renderedImageUrls: { isEmpty: true },
+  };
+}
+
+/** 「需要处理」从哪一刻算起：近 7 天，与「看过了」之后，取较晚的那个。 */
+export function needsAttentionSince(now: Date, acknowledgedAt: Date | null | undefined): Date {
+  const windowStart = new Date(now.getTime() - NEEDS_ATTENTION_WINDOW_DAYS * DAY_MS);
+  return acknowledgedAt && acknowledgedAt > windowStart ? acknowledgedAt : windowStart;
+}
+
+function pulsePlan(plan: string): PulsePlan {
+  if (plan === "trial") return "trial";
+  if (plan === "studio" || plan === "pro") return "studio";
+  return "starter";
+}
+
+/** 本月视频额度：读 UserUsagePeriod（UTC 自然月），上限按生效档（试用 3 条，不是 PlanEntitlement 的 30）。 */
+export async function loadVideoQuota(userId: string): Promise<ExchangePulse["quota"]> {
+  const summary = await getUsageSummary(userId);
+  const meter = summary.meters.find((item) => item.resource === "VIDEO_DISPATCH");
+  return { used: meter?.used ?? 0, limit: meter?.limit ?? 0, plan: pulsePlan(summary.plan) };
+}
+
+const TAPE_SIZE = 12;
+
+async function loadTape(userId: string): Promise<TapeEntry[]> {
+  const batches = await db.batchJob.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: TAPE_SIZE,
+    select: {
+      id: true,
+      productName: true,
+      status: true,
+      requestedCount: true,
+      completedCount: true,
+      failedCount: true,
+      updatedAt: true,
+      template: { select: { nameZh: true, name: true } },
+    },
+  });
+  return batches.map((batch) => ({
+    id: batch.id,
+    name: batch.productName ?? batch.template.nameZh ?? batch.template.name,
+    status: batch.status,
+    done: batch.completedCount,
+    total: batch.requestedCount,
+    failed: batch.failedCount,
+    at: batch.updatedAt.toISOString(),
+  }));
+}
+
+async function countNeedsAttention(userId: string, since: Date): Promise<number> {
+  const [batch, orders] = await Promise.all([
+    db.videoJob.count({ where: batchFailureWhere(userId, { gte: since }) }),
+    db.videoBrief.count({ where: orderFailureWhere(userId, { gte: since }) }),
+  ]);
+  return batch + orders;
+}
+
+export type ProductionCounts = Pick<ExchangePulse, "generating" | "queued" | "activeBatches" | "pausedBatches" | "awaitingImages">;
+
+/** 生产线现在的样子：生成中 / 排队中 / 进行中与暂停的批次 / 待出图。页面读数与壳层同源。 */
+export async function loadProductionCounts(userId: string): Promise<ProductionCounts> {
+  const [batchStatuses, batchJobStatuses, orderGenerating, orderQueued, awaitingImages] = await Promise.all([
+    db.batchJob.groupBy({
+      by: ["status"],
+      where: { userId, status: { in: ["EXPANDING", "RUNNING", "PAUSED"] } },
+      _count: { _all: true },
+    }),
+    db.videoJob.groupBy({
+      by: ["status"],
+      where: { batchJob: { userId }, status: { in: ["RUNNING", "QUEUED"] } },
+      _count: { _all: true },
+    }),
+    db.videoBrief.count({ where: orderGeneratingWhere(userId) }),
+    db.videoBrief.count({ where: orderQueuedWhere(userId) }),
+    db.contentPost.count({ where: awaitingImagesWhere(userId) }),
+  ]);
+  const batchCount = (status: string) => batchStatuses.find((group) => group.status === status)?._count._all ?? 0;
+  const jobCount = (status: string) => batchJobStatuses.find((group) => group.status === status)?._count._all ?? 0;
+  return {
+    generating: jobCount("RUNNING") + orderGenerating,
+    queued: jobCount("QUEUED") + orderQueued,
+    /// 「进行中批次」不含暂停：暂停的批次没有在出片，算进来就是顶栏「生成中 2」配表格里只有 1 行在跑。
+    activeBatches: batchCount("EXPANDING") + batchCount("RUNNING"),
+    pausedBatches: batchCount("PAUSED"),
+    awaitingImages,
+  };
+}
+
+/**
+ * 脉搏：壳层市场状态、导轨徽标、生产带、月度额度。全部是 DB count / groupBy，
+ * 30 秒拉一次也不扫成品库。
+ */
+export async function loadPulse(userId: string, { now = new Date() }: { now?: Date } = {}): Promise<ExchangePulse> {
+  const workspace = await db.workspace.findUnique({
+    where: { ownerId: userId },
+    select: { id: true, failuresAckedAt: true },
+  });
+  const since = needsAttentionSince(now, workspace?.failuresAckedAt);
+  const [production, needsAttention, newLeads, quota, tape] = await Promise.all([
+    loadProductionCounts(userId),
+    countNeedsAttention(userId, since),
+    workspace ? countNewLeads(workspace.id) : Promise.resolve(0),
+    loadVideoQuota(userId),
+    loadTape(userId),
+  ]);
+  return { ...production, needsAttention, newLeads, quota, tape, at: now.toISOString() };
+}
+
+/* ── 需要处理：成品库列出的那一批，与徽标同一个 where ─────────────────── */
+
+export type NeedsAttentionItem = {
+  kind: "batch" | "order";
+  /** 成品库行 id（batch-<jobId> / 订单 id），?highlight= 用它。 */
+  rowId: string;
+  title: string;
+  /** 客户可见原因（中文）；英文界面按 code 取译文。 */
+  reason: string;
+  code: string;
+  action: CustomerRecoveryAction;
+  /** 批量失败链到批次详情（重试在那里）；单条失败重新生成并预填原素材。 */
+  href: string;
+  retryHref: string | null;
+  at: Date;
+};
+
+export const NEEDS_ATTENTION_LIST_LIMIT = 50;
+
+export async function loadNeedsAttention(
+  userId: string,
+  { now = new Date(), take = NEEDS_ATTENTION_LIST_LIMIT }: { now?: Date; take?: number } = {},
+): Promise<{ items: NeedsAttentionItem[]; total: number; since: Date }> {
+  const workspace = await db.workspace.findUnique({ where: { ownerId: userId }, select: { failuresAckedAt: true } });
+  const since = needsAttentionSince(now, workspace?.failuresAckedAt);
+  const range = { gte: since };
+  const [jobs, briefs, total] = await Promise.all([
+    db.videoJob.findMany({
+      where: batchFailureWhere(userId, range),
+      orderBy: { updatedAt: "desc" },
+      take,
+      select: {
+        id: true,
+        batchIndex: true,
+        status: true,
+        submissionState: true,
+        submissionErrorClass: true,
+        errorMessage: true,
+        userSafeError: true,
+        updatedAt: true,
+        batchJob: { select: { id: true, productName: true, template: { select: { nameZh: true, name: true } } } },
+      },
+    }),
+    db.videoBrief.findMany({
+      where: orderFailureWhere(userId, range),
+      orderBy: { updatedAt: "desc" },
+      take,
+      select: {
+        id: true,
+        errorMessage: true,
+        updatedAt: true,
+        finalVideo: { select: { updatedAt: true } },
+        contentAngle: { select: { round: { select: { deliveryOrder: { select: { id: true, title: true } } } } } },
+      },
+    }),
+    countNeedsAttention(userId, since),
+  ]);
+
+  const items: NeedsAttentionItem[] = [
+    ...jobs.flatMap((job): NeedsAttentionItem[] => {
+      if (!job.batchJob) return [];
+      const templateName = job.batchJob.template.nameZh ?? job.batchJob.template.name;
+      const error = classifyCustomerGenerationError({
+        status: job.status,
+        submissionState: job.submissionState,
+        submissionErrorClass: job.submissionErrorClass,
+        errorMessage: job.errorMessage,
+        userSafeError: job.userSafeError,
+      });
+      return [{
+        kind: "batch",
+        rowId: `batch-${job.id}`,
+        /// 与成品库批量行同一个标题（unified-library-service.toBatchLibraryRow）。
+        title: `${job.batchJob.productName ?? templateName} #${(job.batchIndex ?? 0) + 1} · ${templateName}`,
+        reason: error?.message ?? "视频生成失败。",
+        code: error?.code ?? "PROVIDER_ERROR",
+        action: error?.action ?? "retry",
+        href: `/app/batches/${job.batchJob.id}`,
+        retryHref: null,
+        at: job.updatedAt,
+      }];
+    }),
+    ...briefs.map((brief): NeedsAttentionItem => {
+      const order = brief.contentAngle.round.deliveryOrder;
+      const error = classifyCustomerGenerationError({ status: "FAILED", errorMessage: brief.errorMessage });
+      const at = brief.finalVideo && brief.finalVideo.updatedAt > brief.updatedAt ? brief.finalVideo.updatedAt : brief.updatedAt;
+      return {
+        kind: "order",
+        rowId: order.id,
+        title: order.title,
+        reason: error?.message ?? "视频生成失败。",
+        code: error?.code ?? "PROVIDER_ERROR",
+        action: error?.action ?? "retry",
+        href: `/app/library/${order.id}`,
+        retryHref: `/app/create?retry=${encodeURIComponent(order.id)}`,
+        at,
+      };
+    }),
+  ]
+    .sort((a, b) => b.at.getTime() - a.at.getTime())
+    .slice(0, take);
+
+  return { items, total, since };
+}
+
+/** 「看过了」：把这一刻之前的失败从徽标与「需要处理」里清掉（记录本身不动）。 */
+export async function acknowledgeFailures(userId: string, now = new Date()): Promise<Date> {
+  await db.workspace.update({ where: { ownerId: userId }, data: { failuresAckedAt: now } });
+  return now;
+}
+
+/* ── 成片 / 失败 / 成功率 ───────────────────────────────────────────── */
+
 export type ExchangeReadings = {
-  /** 进行中批次：扩展中 / 生成中 / 暂停。 */
-  liveBatches: number;
-  /** 正在出片的条数（单条创作 + 批量里尚未成片的成品库行）。 */
-  inFlight: number;
   filled24h: number;
   filled7d: number;
   filled30d: number;
-  /** 近 7 天失败条数：批量失败直接数 VideoJob（成品库按 PRD §10.1 折叠了它们），取消不算失败。 */
+  /** 近 7 天失败条数（单条 + 批量），取消不算失败。 */
   failed7d: number;
-  /** 近 7 天成片成功率 = 成片 ÷ (成片 + 失败)，0–100；没有样本时为 null，界面写「—」。 */
+  /** 近 7 天成片率 = 成片 ÷ (成片 + 失败)，0–100；没有样本时为 null，界面写「—」。 */
   successRate7d: number | null;
   /** 上一个同长窗口（24–48 小时前 / 7–14 天前）的同口径读数，用来画涨跌方向。 */
   previous: { filled24h: number; filled7d: number; failed7d: number };
   /** 最近成片（可播放的真实媒体），按更新时间倒序。 */
   media: UnifiedLibraryRow[];
-  /** 成交回报：最近有动静的视频行（成片 / 失败 / 生成中），按更新时间倒序；默认不取。 */
+  /** 生产回报：最近有动静的视频行，按更新时间倒序；默认不取。 */
   recent: UnifiedLibraryRow[];
 };
 
-export async function loadExchangeReadings(
-  userId: string,
-  { now = new Date(), mediaLimit = 6, recentLimit = 0 }: { now?: Date; mediaLimit?: number; recentLimit?: number } = {},
-): Promise<ExchangeReadings> {
-  const at = now.getTime();
-  const [liveBatches, batchFailed7d, batchFailedPrev7d, rows] = await Promise.all([
-    db.batchJob.count({ where: { userId, status: { in: [...LIVE_BATCH_STATUSES] } } }),
-    db.videoJob.count({
-      where: { status: "FAILED", batchJob: { userId }, updatedAt: { gte: new Date(at - 7 * DAY_MS) } },
-    }),
-    db.videoJob.count({
+async function countReady(userId: string, range?: Range): Promise<number> {
+  const [batch, orders] = await Promise.all([
+    db.videoJob.count({ where: batchReadyWhere(userId, range) }),
+    db.videoBrief.count({ where: orderReadyWhere(userId, range) }),
+  ]);
+  return batch + orders;
+}
+
+async function countFailed(userId: string, range: Range): Promise<number> {
+  const [batch, orders] = await Promise.all([
+    db.videoJob.count({ where: batchFailureWhere(userId, range) }),
+    db.videoBrief.count({ where: orderFailureWhere(userId, range) }),
+  ]);
+  return batch + orders;
+}
+
+/** 成品（成品库 03 格）：全部已成片视频 + 已出图的单图 / 轮播 + 纯文案帖；短视频帖是「待生产」不算。 */
+export async function countFinished(userId: string): Promise<number> {
+  const [videos, posts] = await Promise.all([
+    countReady(userId),
+    db.contentPost.count({
       where: {
-        status: "FAILED",
-        batchJob: { userId },
-        updatedAt: { gte: new Date(at - 14 * DAY_MS), lt: new Date(at - 7 * DAY_MS) },
+        plan: { userId },
+        status: { not: "DISCARDED" },
+        OR: [{ format: "TEXT" }, { format: { in: ["SINGLE_IMAGE", "CAROUSEL"] }, renderedImageUrls: { isEmpty: false } }],
       },
     }),
-    loadUnifiedLibrary(userId),
   ]);
+  return videos + posts;
+}
 
-  const own = rows
-    .filter((row) => !row.isShowcase)
-    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
-  const within = (row: UnifiedLibraryRow, ms: number) => at - row.updatedAt.getTime() <= ms;
-  const between = (row: UnifiedLibraryRow, fromMs: number, toMs: number) => {
-    const age = at - row.updatedAt.getTime();
-    return age > fromMs && age <= toMs;
-  };
-  const ready = own.filter((row) => row.status === "ready");
-  const filled7d = ready.filter((row) => within(row, 7 * DAY_MS)).length;
-  const failed7d =
-    batchFailed7d +
-    own.filter((row) => row.status === "failed" && row.source !== "batch" && within(row, 7 * DAY_MS)).length;
-
+export async function loadExchangeReadings(
+  userId: string,
+  {
+    now = new Date(),
+    mediaLimit = 0,
+    recentLimit = 0,
+  }: { now?: Date; mediaLimit?: number; recentLimit?: number } = {},
+): Promise<ExchangeReadings> {
+  const at = now.getTime();
+  const ago = (days: number) => new Date(at - days * DAY_MS);
+  const [filled24h, filledPrev24h, filled7d, filledPrev7d, filled30d, failed7d, failedPrev7d, media, recent] =
+    await Promise.all([
+      countReady(userId, { gte: ago(1) }),
+      countReady(userId, { gte: ago(2), lt: ago(1) }),
+      countReady(userId, { gte: ago(7) }),
+      countReady(userId, { gte: ago(14), lt: ago(7) }),
+      countReady(userId, { gte: ago(30) }),
+      countFailed(userId, { gte: ago(7) }),
+      countFailed(userId, { gte: ago(14), lt: ago(7) }),
+      mediaLimit > 0 ? loadRecentVideoRows(userId, { take: mediaLimit, readyWithMedia: true }) : Promise.resolve([]),
+      recentLimit > 0 ? loadRecentVideoRows(userId, { take: recentLimit }) : Promise.resolve([]),
+    ]);
   return {
-    liveBatches,
-    inFlight: own.filter((row) => IN_FLIGHT.has(row.status)).length,
-    filled24h: ready.filter((row) => within(row, DAY_MS)).length,
+    filled24h,
     filled7d,
-    filled30d: ready.filter((row) => within(row, 30 * DAY_MS)).length,
+    filled30d,
     failed7d,
     successRate7d: filled7d + failed7d > 0 ? Math.round((filled7d / (filled7d + failed7d)) * 100) : null,
-    previous: {
-      filled24h: ready.filter((row) => between(row, DAY_MS, 2 * DAY_MS)).length,
-      filled7d: ready.filter((row) => between(row, 7 * DAY_MS, 14 * DAY_MS)).length,
-      failed7d:
-        batchFailedPrev7d +
-        own.filter((row) => row.status === "failed" && row.source !== "batch" && between(row, 7 * DAY_MS, 14 * DAY_MS)).length,
-    },
-    media: ready.filter((row) => row.source !== "post" && row.videoUrl).slice(0, mediaLimit),
-    recent: own.filter((row) => row.source !== "post").slice(0, recentLimit),
+    previous: { filled24h: filledPrev24h, filled7d: filledPrev7d, failed7d: failedPrev7d },
+    media,
+    recent,
   };
 }

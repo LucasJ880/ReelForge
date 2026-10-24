@@ -8,7 +8,7 @@ import {
   type RacingDimension,
   type RacingVerdict,
 } from "@/lib/services/recipe-racing-service";
-import { StatusTick } from "@/components/exchange/status-tick";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -124,7 +124,7 @@ export function DimensionLedger({
                   {counts.qualified}
                   <span className="text-tertiary"> / {MIN_RECIPES}</span>
                 </span>
-                <StatusTick tone={ready ? "filled" : "idle"} label={ready ? "可判定" : "攒样本"} />
+                <MonoTag className={ready ? "border-success text-success" : undefined}>{ready ? "可判定" : "攒样本"}</MonoTag>
               </span>
               <span className="text-meta tabular-nums text-tertiary">
                 有回流 {counts.withData} 种 · {counts.subjects} 条

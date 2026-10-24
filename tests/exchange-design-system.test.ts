@@ -35,21 +35,25 @@ test("Aivora Exchange：交易大厅 token 与字体角色完整落地（2026-10
   assert.match(layout, /data-design-contract="aivora-abyss-exchange"/);
 });
 
-test("Aivora Exchange：壳层是行情终端——顶部行情条 + 实时成交带 + 编号导轨 + 状态栏", async () => {
+test("Aivora Exchange：壳层是行情终端——顶部行情条 + 实时生产带 + 编号导轨 + 状态栏", async () => {
   const [shell, authLayout, globals] = await Promise.all([
     read("src/components/platform/platform-shell.tsx"),
     read("src/app/(auth)/layout.tsx"),
     read("src/app/globals.css"),
   ]);
   assert.match(shell, /className="desk-theme/);
-  assert.match(shell, /<header className="x-pane sticky top-0/);
-  assert.match(shell, /<aside className="x-pane/);
-  assert.match(shell, /<Tape entries=\{tape\}/);
+  assert.match(shell, /<header className="x-pane sticky top-0 z-30 h-\(--shell-top\)/);
+  /// 导轨在文档流里 sticky，与顶栏共用 --shell-top（不再 fixed top-20 与 81px 顶栏差 1px），矮屏内部滚动
+  assert.match(shell, /<aside className="x-pane sticky top-\(--shell-top\)[^"]*overflow-y-auto/);
+  assert.doesNotMatch(shell, /fixed bottom-7 left-0 top-20|md:ml-56/);
+  assert.match(shell, /<Tape entries=\{pulse\.tape\}/);
   assert.match(shell, /<footer className="x-pane/);
   assert.match(shell, /className="x-page x-enter min-h-full"/);
-  // 实时点只给「正在发生」：生成中批次数决定市场状态
-  assert.match(shell, /const live = activeBatches > 0/);
+  // 实时点只给「正在发生」：真在生成的视频条数决定市场状态（排队、暂停不算）
+  assert.match(shell, /const live = pulse\.generating > 0/);
   assert.match(globals, /\.x-tape-track/);
+  assert.match(globals, /:root:has\(\.desk-theme\)\s*\{\s*overscroll-behavior-y:\s*none/);
+  assert.match(globals, /--shell-top:\s*calc\(var\(--shell-bar\) \+ var\(--shell-tape\) \+ 1px\)/);
   assert.match(globals, /\.x-live/);
   // 不做毛玻璃，不铺光晕
   assert.doesNotMatch(globals, /backdrop-filter|radial-gradient/);
@@ -69,19 +73,27 @@ test("成交梯：五态齐全且 reduced-motion 有静态降级", async () => {
   assert.match(globals, /@media \(prefers-reduced-motion: reduce\)[\s\S]*?\.x-fill-cell\[data-state="generating"\][\s\S]*?animation:\s*none/);
 });
 
-test("工作区：导航计数与成交带都来自 owner-scoped 数据，顶栏结构保持精简", async () => {
-  const [layout, shell] = await Promise.all([
+test("工作区：导航计数与生产带都来自 owner-scoped 脉搏，顶栏结构保持精简", async () => {
+  const [layout, shell, readings] = await Promise.all([
     read("src/app/(platform)/app/layout.tsx"),
     read("src/components/platform/platform-shell.tsx"),
+    read("src/lib/services/exchange-readings.ts"),
   ]);
-  assert.match(layout, /userId:\s*session\.user\.id/);
-  assert.match(layout, /activeBatches/);
-  assert.match(layout, /failedJobs/);
-  // 成交带：本人最近的批次，不放示例数据
-  assert.match(layout, /db\.batchJob\.findMany\(\{\s*where:\s*\{\s*userId:\s*session\.user\.id\s*\}/);
-  assert.match(shell, /shell\.platformShell\.switchWorkspace/);
+  // 首屏脉搏与 /api/exchange/pulse 同一个函数，只读本人
+  assert.match(layout, /loadPulse\(userId\)/);
+  assert.match(layout, /const userId = session\.user\.id/);
+  assert.doesNotMatch(layout, /failedJobs|status:\s*\{\s*in:\s*\["EXPANDING", "RUNNING", "PAUSED"\]/);
+  // 生产带：本人最近的批次，不放示例数据
+  assert.match(readings, /db\.batchJob\.findMany\(\{\s*where:\s*\{\s*userId\s*\}/);
+  // 工作区芯片只有一个工作区：不是按钮、不画假下拉箭头
+  assert.doesNotMatch(shell, /ChevronsUpDown|shell\.platformShell\.switchWorkspace/);
+  assert.match(shell, /data-testid="workspace-chip"/);
   assert.match(shell, /type="search"/);
+  // 头像打开账户菜单，不再一点就退出
   assert.match(shell, /shell\.platformShell\.accountSignOut/);
+  assert.match(shell, /<DropdownMenuTrigger[\s\S]*?data-testid="account-menu-trigger"/);
+  const trigger = shell.slice(shell.indexOf("<DropdownMenuTrigger"), shell.indexOf("</DropdownMenuTrigger>"));
+  assert.doesNotMatch(trigger, /signOut/);
 });
 
 test("工作区数据展示：批次、任务、成品 ID 与时间字段使用 mono", async () => {

@@ -4,7 +4,7 @@ import { Logo } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { SectionHead } from "@/components/exchange/section-head";
-import { StatusTick } from "@/components/exchange/status-tick";
+import { MonoTag } from "@/components/exchange/mono-tag";
 import { WallVideo } from "@/components/exchange/wall-controls";
 import type { Locale } from "@/i18n/config";
 import { getGrowthCopy } from "@/i18n/growth-copy";
@@ -73,7 +73,7 @@ export function PilotLanding({
                       <WallVideo src={sample.video} poster={sample.poster} label={sample.name} />
                       <div className="pointer-events-none absolute inset-0 bg-(image:--scrim)" aria-hidden />
                       <span className="absolute left-1.5 top-1.5 rounded-(--radius-sm) bg-sunken/85 px-1.5 py-0.5">
-                        <StatusTick tone="filled" label={copy.sampleTag} />
+                        <MonoTag className="border-0 px-0 py-0">{copy.sampleTag}</MonoTag>
                       </span>
                     </div>
                     <p className="truncate px-3 py-2 text-meta text-muted-foreground">{sample.name}</p>

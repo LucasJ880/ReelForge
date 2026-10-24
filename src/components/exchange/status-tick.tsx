@@ -1,6 +1,14 @@
+import type { Locale } from "@/i18n/config";
+import {
+  stateTone,
+  stateWord,
+  type TickTone,
+  type VocabEntity,
+  type VocabState,
+} from "@/lib/exchange/state-vocab";
 import { cn } from "@/lib/utils";
 
-export type TickTone = "live" | "filled" | "partial" | "fault" | "idle" | "void";
+export type { TickTone } from "@/lib/exchange/state-vocab";
 
 const TONE_CLASS: Record<TickTone, string> = {
   live: "text-accent",
@@ -9,21 +17,8 @@ const TONE_CLASS: Record<TickTone, string> = {
   fault: "text-danger",
   idle: "text-muted-foreground",
   void: "text-tertiary",
+  queued: "text-muted-foreground",
 };
-
-const BATCH_TONE: Record<string, TickTone> = {
-  EXPANDING: "live",
-  RUNNING: "live",
-  PAUSED: "idle",
-  COMPLETED: "filled",
-  PARTIAL_FAILED: "partial",
-  FAILED: "fault",
-  CANCELLED: "void",
-};
-
-export function batchTone(status: string): TickTone {
-  return BATCH_TONE[status] ?? "idle";
-}
 
 export function tickToneClass(tone: TickTone): string {
   return TONE_CLASS[tone];
@@ -31,8 +26,8 @@ export function tickToneClass(tone: TickTone): string {
 
 /*
  * 行情记号：一套 12 格自绘字形，替代 ▲●◐▼‖× 字符（字体回退会让它们大小粗细各异）。
- * 上涨三角=生成中，实心圆=已成交，半圆=部分成交，下跌三角=失败，双竖=暂停，叉=取消。
- * 尺寸跟随字号（1em 方框内留同样的光学边距）。
+ * 上涨三角=生成中，实心圆=已成片 / 已完成，半圆=部分失败，下跌三角=失败，双竖=暂停，
+ * 叉=取消，空心圈=排队中（还没开始，不是暂停）。尺寸跟随字号（1em 方框内留同样的光学边距）。
  */
 export function TickGlyph({ tone, className }: { tone: TickTone; className?: string }) {
   return (
@@ -55,24 +50,34 @@ export function TickGlyph({ tone, className }: { tone: TickTone; className?: str
       {tone === "void" ? (
         <path d="m2.75 2.75 6.5 6.5m0-6.5-6.5 6.5" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
       ) : null}
+      {tone === "queued" ? <circle cx="6" cy="6" r="3.6" fill="none" stroke="currentColor" strokeWidth="1.3" /> : null}
     </svg>
   );
 }
 
-/** 行情状态：一个方向记号 + 状态词，颜色与形状成对出现（不只靠颜色）。 */
-export function StatusTick({
-  tone,
-  label,
+/**
+ * 行情状态：一个记号 + 一个状态词，都从状态词典（state-vocab）取，颜色与形状成对出现。
+ * 只接收「实体 × 状态」，不接收自由文本——不是状态的标签（样例、草案、攒样本）用 MonoTag。
+ */
+export function StatusTick<E extends VocabEntity>({
+  entity,
+  state,
+  locale,
   className,
 }: {
-  tone: TickTone;
-  label: React.ReactNode;
+  entity: E;
+  state: VocabState<E>;
+  locale: Locale;
   className?: string;
 }) {
+  const tone = stateTone(entity, state);
   return (
-    <span className={cn("inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-data uppercase tracking-wide", TONE_CLASS[tone], className)}>
+    <span
+      data-state={state}
+      className={cn("inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-data uppercase tracking-wide", TONE_CLASS[tone], className)}
+    >
       <TickGlyph tone={tone} />
-      {label}
+      {stateWord(entity, state, locale)}
     </span>
   );
 }

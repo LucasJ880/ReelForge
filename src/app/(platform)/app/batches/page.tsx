@@ -7,33 +7,38 @@ import { db } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { QuoteHeader } from "@/components/exchange/quote-header";
 import { FillBar } from "@/components/exchange/fill-bar";
-import { StatusTick, batchTone } from "@/components/exchange/status-tick";
+import { LocalTime } from "@/components/exchange/local-time";
+import { StatusTick } from "@/components/exchange/status-tick";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { batchState } from "@/lib/exchange/state-vocab";
+import { formatRate, readingStat } from "@/lib/exchange/readings-registry";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
+import { loadExchangeReadings, loadProductionCounts } from "@/lib/services/exchange-readings";
 
 export const dynamic = "force-dynamic";
-
-const LIVE = new Set(["EXPANDING", "RUNNING", "PAUSED"]);
-/** 正在出片的批次才挂光束；暂停的不算「正在发生」。 */
-const GENERATING = new Set(["EXPANDING", "RUNNING"]);
 
 export default async function PlatformBatchesPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/batches");
   const routeState = await getCustomerRouteRehearsalState("batches");
-  const batches = routeState === "empty" ? [] : await db.batchJob.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 50,
-    include: { template: { select: { name: true, nameZh: true, coverImage: true } } },
-  });
-  const locale = await getServerLocale();
+  const empty = routeState === "empty";
+  const [batches, production, readings, locale] = await Promise.all([
+    empty ? Promise.resolve([]) : db.batchJob.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+      include: { template: { select: { name: true, nameZh: true, coverImage: true } } },
+    }),
+    empty ? Promise.resolve(null) : loadProductionCounts(session.user.id),
+    empty ? Promise.resolve(null) : loadExchangeReadings(session.user.id),
+    getServerLocale(),
+  ]);
   const copy = getPlatformCopy(locale).batches;
+  /// 完成率 = 已成片 ÷ 下单条数，按近 N 批（DESIGN「读数口径唯一」）；其余读数与壳层、大屏同源。
   const filled = batches.reduce((sum, batch) => sum + batch.completedCount, 0);
-  const failed = batches.reduce((sum, batch) => sum + batch.failedCount, 0);
   const requested = batches.reduce((sum, batch) => sum + batch.requestedCount, 0);
-  const live = batches.filter((batch) => LIVE.has(batch.status)).length;
+  const completion = requested > 0 ? Math.round((filled / requested) * 100) : null;
 
   return (
     <div className="x-stack min-w-0">
@@ -46,11 +51,12 @@ export default async function PlatformBatchesPage() {
           </Button>
         }
         statsLabel={copy.board.label}
-        stats={batches.length === 0 ? undefined : [
-          { label: copy.board.live, value: live, tone: live > 0 ? "live" : "neutral" },
-          { label: copy.board.filled, value: filled, tone: filled > 0 ? "filled" : "neutral" },
-          { label: copy.board.failed, value: failed, tone: failed > 0 ? "fault" : "neutral" },
-          { label: copy.board.rate, value: requested > 0 ? `${Math.round((filled / requested) * 100)}%` : "—" },
+        stats={batches.length === 0 || !production || !readings ? undefined : [
+          readingStat("activeBatches", production.activeBatches, locale),
+          readingStat("pausedBatches", production.pausedBatches, locale),
+          readingStat("filled7d", readings.filled7d, locale),
+          readingStat("failed7d", readings.failed7d, locale),
+          readingStat("batchCompletion", formatRate(completion), locale, { params: { n: batches.length } }),
         ]}
         scope={batches.length > 0 ? copy.board.scope.replace("{n}", String(batches.length)) : undefined}
       />
@@ -90,7 +96,7 @@ export default async function PlatformBatchesPage() {
                     ? `${batch.template.name} × ${batch.requestedCount}`
                     : `${batch.template.nameZh} × ${batch.requestedCount} 条`;
                 return (
-                  <tr key={batch.id} data-beam={GENERATING.has(batch.status) ? "row" : undefined} className="group block px-4 py-3 transition-colors hover:bg-raised md:table-row md:px-0 md:py-0">
+                  <tr key={batch.id} data-beam={batchState(batch.status) === "generating" ? "row" : undefined} className="group block px-4 py-3 transition-colors hover:bg-raised md:table-row md:px-0 md:py-0">
                     <td data-label={copy.columns.batch} className="block min-w-0 py-2 md:table-cell md:px-4 md:py-3.5">
                       {/* 批次身份优先级:产品名 > 模板×数量。裸 cuid 永远只当追踪码,不当标题。 */}
                       <Link href={`/app/batches/${batch.id}`} className="block min-w-0 hover:text-accent">
@@ -110,10 +116,10 @@ export default async function PlatformBatchesPage() {
                       </div>
                     </td>
                     <td data-label={copy.columns.status} className="block py-1 md:table-cell md:px-4 md:py-3.5">
-                      <StatusTick tone={batchTone(batch.status)} label={copy.statuses[batch.status]} />
+                      <StatusTick entity="batch" state={batchState(batch.status)} locale={locale} />
                     </td>
                     <td data-label={copy.columns.updated} className="block py-1 font-mono text-data text-muted-foreground md:table-cell md:px-4 md:py-3.5">
-                      {batch.updatedAt.toLocaleString(locale === "en-US" ? "en-CA" : "zh-CN", { dateStyle: "short", timeStyle: "short", hour12: false })}
+                      <LocalTime iso={batch.updatedAt.toISOString()} locale={locale} variant="datetime" className="tabular-nums" />
                     </td>
                     <td data-label={copy.columns.action} className="block py-1 text-right md:table-cell md:px-4 md:py-3.5">
                       <Button render={<Link href={`/app/batches/${batch.id}`} />} variant="ghost" size="icon-sm" aria-label={`${copy.view} ${batch.id}`}>

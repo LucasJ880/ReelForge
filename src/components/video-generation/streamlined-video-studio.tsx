@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { QuoteHeader } from "@/components/exchange/quote-header";
+import { requestPulseRefresh } from "@/lib/exchange/pulse";
+import { formatRate, quotaStat, readingStat } from "@/lib/exchange/readings-registry";
 import { SectionHead } from "@/components/exchange/section-head";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
@@ -113,11 +115,7 @@ const ZH_COPY = {
   title: "从产品图到故事板，再到最终视频",
   subtitle: "每一步都看得见：上传素材、确认创作方向、审阅 Image 2 故事板，再交给 Aivora 生成视频。",
   readingsLabel: "创作读数",
-  readingInFlight: "生成中",
-  readingFilled24h: "近 24 小时成片",
-  readingFilled30d: "近 30 天成片 / 月额度",
-  readingRate7d: "近 7 天成功率",
-  readingsScope: "统计口径：本工作区实时读取，不含成品库样片；额度为当前套餐每月成片上限。",
+  readingsScope: "统计口径：本工作区实时读取，不含成品库样片；额度按 UTC 自然月计，失败与取消返还。",
   guideTitle: "第一次使用，顺着五步完成",
   guideBody: "产品图上传后直接进入创作，不经过 AI 审核；故事板会先把产品外观和场景连续性锁定。",
   guideSteps: ["上传产品图", "设置创作方向", "生成 Image 2 故事板", "确认每一帧", "Aivora 生成视频"],
@@ -246,11 +244,7 @@ const EN_COPY: StudioCopy = {
   title: "From product images to storyboard to final video",
   subtitle: "See every step: upload assets, confirm direction, review the Image 2 storyboard, then generate through Aivora.",
   readingsLabel: "Creation readings",
-  readingInFlight: "In production",
-  readingFilled24h: "Finished · 24h",
-  readingFilled30d: "Finished · 30 days / monthly limit",
-  readingRate7d: "Success rate · 7 days",
-  readingsScope: "Live from this workspace; library samples excluded. The limit is your plan's monthly video allowance.",
+  readingsScope: "Live from this workspace; library samples excluded. The allowance runs per UTC month; failures and cancels are refunded.",
   guideTitle: "Follow five clear steps for your first video",
   guideBody: "Product uploads go straight into creation without AI review. The storyboard locks product identity and scene continuity first.",
   guideSteps: ["Upload product images", "Set the direction", "Generate Image 2 storyboard", "Approve every frame", "Generate with Aivora"],
@@ -374,11 +368,12 @@ const EN_COPY: StudioCopy = {
  * 这里只声明形状，不 import 服务端 service（client bundle 铁律）。
  */
 export type StudioReadings = {
-  inFlight: number;
+  /** 真在生成的视频条数（与壳层「生成中」同源）。 */
+  generating: number;
   filled24h: number;
-  filled30d: number;
-  /** 当前套餐每月成片上限。 */
-  monthlyLimit: number;
+  /** 本月（UTC）已用视频额度与生效上限（试用 3 条）。 */
+  quotaUsed: number;
+  quotaLimit: number;
   /** 0–100；近 7 天没有样本时为 null，界面写「—」。 */
   successRate7d: number | null;
 };
@@ -1282,6 +1277,7 @@ export function StreamlinedVideoStudio({
       persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
       if (storyboard) markStoryboardRunDismissed(storyboard.id);
+      requestPulseRefresh();
       router.push(payload.nextUrl ?? "/app/library");
       router.refresh();
     } catch {
@@ -1422,29 +1418,10 @@ export function StreamlinedVideoStudio({
         statsLabel={copy.readingsLabel}
         stats={readings
           ? [
-              {
-                label: copy.readingInFlight,
-                value: readings.inFlight,
-                tone: readings.inFlight > 0 ? "live" : "neutral",
-              },
-              {
-                label: copy.readingFilled24h,
-                value: readings.filled24h,
-                tone: readings.filled24h > 0 ? "filled" : "neutral",
-              },
-              {
-                label: copy.readingFilled30d,
-                value: (
-                  <>
-                    {readings.filled30d}
-                    <span className="text-subhead text-muted-foreground"> / {readings.monthlyLimit}</span>
-                  </>
-                ),
-              },
-              {
-                label: copy.readingRate7d,
-                value: readings.successRate7d === null ? "—" : `${readings.successRate7d}%`,
-              },
+              readingStat("generating", readings.generating, locale),
+              readingStat("filled24h", readings.filled24h, locale),
+              quotaStat(readings.quotaUsed, readings.quotaLimit, locale),
+              readingStat("successRate7d", formatRate(readings.successRate7d), locale),
             ]
           : undefined}
         scope={readings ? copy.readingsScope : undefined}

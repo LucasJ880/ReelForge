@@ -552,7 +552,7 @@ export const zhCN: Dictionary = {
       switchWorkspace: "切换工作区",
       oneWorkspaceHint: "当前仅有一个工作区",
       search: "搜索成品",
-      accountSignOut: "账户，点击退出",
+      accountSignOut: "账户菜单",
       activeBatches: "进行中批次",
       failedJobs: "待处理失败",
     },

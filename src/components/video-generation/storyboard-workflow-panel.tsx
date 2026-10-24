@@ -8,7 +8,8 @@ import {
   RefreshCw,
   ShieldCheck,
 } from "lucide-react";
-import { StatusTick, type TickTone } from "@/components/exchange/status-tick";
+import { StatusTick } from "@/components/exchange/status-tick";
+import type { VocabState } from "@/lib/exchange/state-vocab";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -117,13 +118,15 @@ export function StoryboardWorkflowPanel({
           const regenerating = frame?.id === busyFrameId;
           const regenBlocked = failed && frame?.canRegenerate === false;
           const drawing = regenerating || (pending && run.status === "GENERATING");
-          const tone: TickTone = frame?.status === "SUCCEEDED"
-            ? "filled"
-            : failed && !regenBlocked
-              ? "fault"
-              : drawing
-                ? "live"
-                : "idle";
+          const frameState: VocabState<"frame"> = frame?.status === "SUCCEEDED"
+            ? "done"
+            : regenBlocked
+              ? "held"
+              : failed
+                ? "failed"
+                : drawing
+                  ? "generating"
+                  : "queued";
           return (
             <article key={frame?.id ?? ordinal} className={cn("flex min-w-0 flex-col", drawing && "x-beam")}>
               <div
@@ -170,16 +173,7 @@ export function StoryboardWorkflowPanel({
                   <p className="line-clamp-2 text-meta font-medium text-foreground">
                     {frame?.beat ?? (english ? "Preparing story beat" : "正在准备镜头节奏")}
                   </p>
-                  <StatusTick
-                    tone={tone}
-                    label={frame?.status === "SUCCEEDED"
-                      ? english ? "Ready" : "画面已就绪"
-                      : regenBlocked
-                        ? english ? "Pending billing verification" : "等待计费核对"
-                        : failed
-                          ? english ? "Needs attention" : "需要处理"
-                          : english ? "Generating" : "生成中"}
-                  />
+                  <StatusTick entity="frame" state={frameState} locale={english ? "en-US" : "zh-CN"} />
                 </div>
                 <Button
                   type="button"

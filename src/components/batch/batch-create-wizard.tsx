@@ -48,6 +48,7 @@ import {
   type GroupSubmissionKeys,
 } from "@/lib/batch/batch-group-submission";
 import { MAX_BATCH_VIDEO_COUNT } from "@/lib/contracts/batch-limits";
+import { requestPulseRefresh } from "@/lib/exchange/pulse";
 import type {
   CustomerApiErrorCode,
   CustomerRecoveryAction,
@@ -478,6 +479,7 @@ export function BatchCreateWizard({
       }
       createdBatchIdsRef.current = [];
       setQueuedGroups([]);
+      requestPulseRefresh();
       if (createdBatchIds.length === 1) {
         router.push(`${batchDetailsBasePath}/${createdBatchIds[0]}`);
       } else {

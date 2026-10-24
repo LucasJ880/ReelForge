@@ -122,8 +122,10 @@ export function PlanTimeline({ plan }: { plan: TimelinePlan | null }) {
       body: JSON.stringify({
         source: /^https?:\/\//i.test(input) ? "product_url" : "sentence",
         input,
-        /// 幂等键按输入内容取，重复提交同一句话不会重复生成。
-        idempotencyKey: `plan-${btoa(unescape(encodeURIComponent(input))).slice(0, 60)}`,
+        /// 幂等键按「这一次点击」取（提交中按钮已禁用，防的是同一次请求的重发）。
+        /// 1025 真机验收：原来按输入内容取，「重新排一周」同一句话永远回放旧计划（兜底计划还提示
+        /// 「建议重新排一次」）；而且只截前 60 个 base64 字符，开头相同的两句话会拿到对方的计划。
+        idempotencyKey: `plan-${crypto.randomUUID()}`,
       }),
     });
     const body = await res.json().catch(() => null);

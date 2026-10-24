@@ -404,7 +404,8 @@ async function sweepStuckStitching(now: Date, result: SweepResult) {
           status: FinalVideoStatus.PENDING,
           stitchAttempts: attempts,
           stitchAttemptToken: null,
-          startedAt: null,
+          /// PENDING 上的 startedAt = 重新排队时刻（排队超时从这里起算，见 sweepAwaitingStitchTimeout）
+          startedAt: now,
           ffmpegError: `sweep: stitching timed out after ${STITCH_TIMEOUT_MIN()}min, requeued (attempt ${attempts}/${MAX_STITCH_ATTEMPTS})`,
         },
       });
@@ -455,12 +456,14 @@ async function sweepAwaitingStitchTimeout(now: Date, result: SweepResult) {
       fv.segments.every((s) => s.status === VideoJobStatus.SUCCEEDED);
     if (!allSucceeded) continue;
 
-    /// 锚点用「最后一段完成时间」——updatedAt 会被前端轮询不断刷新，不可靠
+    /// 锚点用「最后一段完成时间」——updatedAt 会被前端轮询不断刷新，不可靠。
+    /// 重新排队（客户点「重试」/ 上面的 STITCHING 超时续跑）会把 startedAt 记成重新排队时刻：
+    /// 1025 真机验收里重试后一分钟内就被这里判「排队超时」——段早就完成了，锚点永远是旧的。
     const lastFinished = fv.segments.reduce<number>(
       (max, s) => Math.max(max, s.finishedAt?.getTime() ?? 0),
       0,
     );
-    const anchor = lastFinished || fv.createdAt.getTime();
+    const anchor = Math.max(lastFinished, fv.startedAt?.getTime() ?? 0) || fv.createdAt.getTime();
     if (now.getTime() - anchor < timeoutMs) continue;
 
     const updated = await db.finalVideo.updateMany({

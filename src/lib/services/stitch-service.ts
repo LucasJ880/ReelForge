@@ -707,7 +707,9 @@ export async function retryStitch(finalVideoId: string) {
       /// 用户主动重试 → 重置尝试预算，否则 attempts>=MAX 的任务重试后
       /// 永远不会被 runner 领取（claim 过滤 attempts < MAX），又回到死区
       stitchAttempts: 0,
-      startedAt: null,
+      /// PENDING 上的 startedAt = 重新排队时刻：排队超时从这里起算，不然段早已完成、
+      /// 重试后下一轮清扫就判「排队超时」（1025 真机验收）
+      startedAt: new Date(),
       finishedAt: null,
       subtitleFileUrl: null,
     },

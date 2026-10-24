@@ -349,11 +349,54 @@ function clampDay(value: unknown, index: number): number {
  * 不把 AI 出的图说成「实拍」。行动号召统一指向主页链接（询盘页），
  * 而不是评论区 / 私信——那两处我们接不住，线索会漏。
  */
+/**
+ * 从商家那句话里取「卖什么」做文案主语（纯函数）。
+ * 1025 真机验收：兜底计划把整句原话塞进每条标题——「我们卖…，想让温哥华的养宠家庭来官网预约试用
+ * 到底怎么挑？」。这里去掉括号补充、「我们卖 / 我家做」这类开头、以及「想让…」后面的目标，
+ * 只留生意本身；取不出像样的主语（链接、空、过长）就用泛称。
+ */
+export function planSubjectFromSentence(sentence: string): string {
+  const fallback = "我们的产品";
+  const text = sentence.trim();
+  if (!text || /^https?:\/\//i.test(text)) return fallback;
+  const firstClause = text
+    .replace(/（[^）]*）|\([^)]*\)/gu, "")
+    .split(/[，,。；;！!？?\n]|想让|希望|想要|为了/u)[0]
+    ?.trim() ?? "";
+  const subject = firstClause
+    .replace(/^(?:我们|我家|本店|我)(?:主要|专门)?(?:是|在|卖|做|开|经营|提供|有)?(?:的是)?\s*/u, "")
+    .replace(/^(?:一家|一个|一间)\s*/u, "")
+    .trim();
+  const length = Array.from(subject).length;
+  return length >= 2 && length <= 24 ? subject : fallback;
+}
+
+/**
+ * 商家原话里除了「卖什么」以外的事实（括号里的产品线、「免费上门量尺」这类商家自己说的优惠），
+ * 原样沿用；「想让 / 希望…」是商家的目标，不是写给顾客看的，不进文案。
+ */
+export function planFactsFromSentence(sentence: string): string[] {
+  const text = sentence.trim();
+  if (!text || /^https?:\/\//i.test(text)) return [];
+  const parenthetical = [...text.matchAll(/（([^）]*)）|\(([^)]*)\)/gu)]
+    .map((match) => (match[1] ?? match[2] ?? "").trim())
+    .filter(Boolean);
+  const clauses = text
+    .replace(/（[^）]*）|\([^)]*\)/gu, "")
+    .split(/[，,。；;！!？?\n]/u)
+    .map((clause) => clause.trim())
+    .filter(Boolean)
+    .slice(1)
+    .filter((clause) => !/想让|希望|想要|为了/u.test(clause));
+  return [...parenthetical, ...clauses].slice(0, 3);
+}
+
 export function heuristicPlan(input: ContentPlanInput): ContentPlan {
-  const subject = input.sentence.trim() || "我们的产品";
+  const subject = planSubjectFromSentence(input.sentence);
   const brand = input.brandName?.trim() || "我们";
   const facts = input.productFacts?.filter(Boolean) ?? [];
-  const factLine = facts.length ? facts.join("；") : subject;
+  const sentenceFacts = facts.length ? facts : planFactsFromSentence(input.sentence);
+  const factLine = sentenceFacts.join("；");
 
   const posts: ContentPost[] = [
     {

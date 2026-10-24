@@ -204,3 +204,17 @@ test("契约拒绝空计划与越界天数", () => {
 test("REQUIRED_FORMATS 覆盖本轮补的三个短板形态", () => {
   assert.deepEqual(REQUIRED_FORMATS, ["text", "single_image", "carousel"]);
 });
+
+test("1025：兜底计划的主语是「卖什么」，不是整句原话；商家目标不进文案，商家事实照用", async () => {
+  const { heuristicPlan, planSubjectFromSentence, planFactsFromSentence } = await import("../src/lib/services/content-plan-service");
+  const sentence = "我们卖 Aivora 智能宠物硬件（项圈摄像头、智能宠物垫），想让温哥华的养宠家庭来官网预约试用";
+  assert.equal(planSubjectFromSentence(sentence), "Aivora 智能宠物硬件");
+  assert.deepEqual(planFactsFromSentence(sentence), ["项圈摄像头、智能宠物垫"]);
+  const plan = heuristicPlan({ sentence });
+  assert.equal(plan.posts[0].copy.hook, "Aivora 智能宠物硬件到底怎么挑？先看这几点");
+  for (const post of plan.posts) {
+    assert.doesNotMatch(`${post.copy.hook}${post.copy.body}`, /想让|预约试用/);
+  }
+  assert.equal(planSubjectFromSentence("https://shop.example.com/p/1"), "我们的产品");
+  assert.equal(planSubjectFromSentence("我们是一家牙科诊所，希望更多人来预约洗牙"), "牙科诊所");
+});

@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { isProviderBillingError } from "@/lib/providers/provider-billing-error";
 import { getAiProvider } from "@/lib/ai";
 import type { AiProvider } from "@/lib/ai/types";
 
@@ -32,6 +33,8 @@ export class ContentPostRenderError extends Error {
       | "wrong_format"
       | "no_prompt"
       | "provider"
+      /// 出图供应商账户层故障（额度用完 / 无模型权限）：原样重试必然再失败
+      | "provider_unavailable"
       /// 另一个请求正在出这条（渲染锁未过期）
       | "in_progress"
       /// 商家已弃用 / 出图期间被取消；已出的图照样保留
@@ -245,6 +248,13 @@ export async function renderContentPost(
             : (failure as Error).message,
       },
     });
+    if (!(failure instanceof ContentPostRenderError) && isProviderBillingError(failure)) {
+      /// 1025 真机验收：OpenAI 无额度时这里写的是「出图失败，请重试」——重试只会再失败。
+      throw new ContentPostRenderError(
+        "配图服务暂时不可用：AI 出图服务正在恢复，我们已在处理。已出的图都保留着，恢复后再点一次即可。",
+        "provider_unavailable",
+      );
+    }
     throw failure instanceof ContentPostRenderError
       ? failure
       : new ContentPostRenderError("出图失败，请重试", "provider");

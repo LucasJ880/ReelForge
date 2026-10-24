@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:26:45.559Z",
+  "generatedAt": "2026-10-24T21:37:09.158Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -385101,8 +385101,8 @@
         "dynamic",
         "maxDuration"
       ],
-      "lineCount": 119,
-      "sizeBytes": 3898,
+      "lineCount": 126,
+      "sizeBytes": 4254,
       "notes": "Next.js API route handler; area=media-processing"
     },
     {
@@ -387569,8 +387569,8 @@
         "TimelinePlan",
         "PlanTimeline"
       ],
-      "lineCount": 404,
-      "sizeBytes": 15229,
+      "lineCount": 406,
+      "sizeBytes": 15498,
       "notes": "React component; client component"
     },
     {
@@ -393763,6 +393763,8 @@
         "ContentPlanInput",
         "buildContentPlan",
         "repairPlan",
+        "planSubjectFromSentence",
+        "planFactsFromSentence",
         "heuristicPlan"
       ],
       "imports": [
@@ -393775,10 +393777,12 @@
         "ContentPlanInput",
         "buildContentPlan",
         "repairPlan",
+        "planSubjectFromSentence",
+        "planFactsFromSentence",
         "heuristicPlan"
       ],
-      "lineCount": 470,
-      "sizeBytes": 18174,
+      "lineCount": 513,
+      "sizeBytes": 20252,
       "notes": "Business logic service"
     },
     {
@@ -393835,6 +393839,7 @@
       ],
       "imports": [
         "@/lib/db",
+        "@/lib/providers/provider-billing-error",
         "@/lib/ai",
         "@/lib/ai/types"
       ],
@@ -393848,8 +393853,8 @@
         "discardContentPost",
         "readSlides"
       ],
-      "lineCount": 348,
-      "sizeBytes": 12114,
+      "lineCount": 358,
+      "sizeBytes": 12786,
       "notes": "Business logic service; area=media-processing"
     },
     {
@@ -395282,8 +395287,8 @@
         "isStitchCandidateReady",
         "processPendingFinalVideos"
       ],
-      "lineCount": 1319,
-      "sizeBytes": 43425,
+      "lineCount": 1321,
+      "sizeBytes": 43626,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -395366,8 +395371,8 @@
         "sweepStuckTasks",
         "__test__"
       ],
-      "lineCount": 649,
-      "sizeBytes": 26983,
+      "lineCount": 652,
+      "sizeBytes": 27411,
       "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
@@ -399372,8 +399377,8 @@
         "../src/lib/services/content-plan-service"
       ],
       "importantSymbols": [],
-      "lineCount": 207,
-      "sizeBytes": 6024,
+      "lineCount": 221,
+      "sizeBytes": 7109,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -401649,8 +401654,8 @@
         "../src/lib/providers/provider-billing-error"
       ],
       "importantSymbols": [],
-      "lineCount": 20,
-      "sizeBytes": 1295,
+      "lineCount": 33,
+      "sizeBytes": 2246,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -402788,8 +402793,8 @@
         "../src/lib/video-generation/personal-status"
       ],
       "importantSymbols": [],
-      "lineCount": 536,
-      "sizeBytes": 18663,
+      "lineCount": 567,
+      "sizeBytes": 19849,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {

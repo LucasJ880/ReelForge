@@ -60,6 +60,13 @@ export async function POST(
         { status: 409 },
       );
     }
+    if (err instanceof ContentPostRenderError && err.reason === "provider_unavailable") {
+      /// 账户层故障：说清楚在恢复，不引导客户反复重试。
+      return NextResponse.json(
+        customerApiError({ code: "SERVICE_UNAVAILABLE", message: err.message, retryable: true, action: "wait" }),
+        { status: 503 },
+      );
+    }
     if (err instanceof ContentPostRenderError) {
       const status = err.reason === "not_found" ? 404 : err.reason === "provider" ? 503 : 400;
       return NextResponse.json(

@@ -533,3 +533,34 @@ test("sweep：活跃批次里排队等槽位的行不吃 createdAt 兜底（查�
   assert.equal(exemption.status, VideoJobStatus.QUEUED);
   assert.equal(exemption.externalJobId, null);
 });
+
+test("1025：客户「重试」/ 超时续跑重新排队后，排队超时从重新排队时刻起算（不再一分钟内就判超时）", async (t) => {
+  patchEmptyDefaults(t);
+  let updateManyCalled = 0;
+  patchModel(t, db.finalVideo as unknown as Record<string, unknown>, {
+    findMany: (async (args: { where: { status?: unknown } }) => {
+      if (args.where.status === FinalVideoStatus.PENDING) {
+        return [
+          {
+            id: "fv_retried",
+            status: FinalVideoStatus.PENDING,
+            segmentCount: 1,
+            createdAt: HOURS_AGO(3),
+            /// 段两小时前就完成了；客户刚点了重试（startedAt = 重新排队时刻）
+            startedAt: new Date(NOW.getTime() - 60_000),
+            brief: { id: "brief_retried" },
+            segments: [{ status: VideoJobStatus.SUCCEEDED, finishedAt: HOURS_AGO(2) }],
+          },
+        ];
+      }
+      return [];
+    }) as never,
+    updateMany: (async () => {
+      updateManyCalled += 1;
+      return { count: 1 };
+    }) as never,
+  });
+  const result = await sweepStuckTasks(NOW);
+  assert.deepEqual(result.failedAwaitingStitch, []);
+  assert.equal(updateManyCalled, 0);
+});

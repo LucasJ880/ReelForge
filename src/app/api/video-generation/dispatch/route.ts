@@ -1033,6 +1033,55 @@ export async function POST(req: NextRequest) {
     return finalResponse(responseBody, 200);
   } catch (err) {
     console.error("[/api/video-generation/dispatch]", err);
+    /// 扣费之后抛异常（D1 / 1.4）：故事板能证明本请求一条任务都没落库
+    /// （brief 事务已回滚、预留仍在；或 brief 挂上了故事板但没有任何 VideoJob）
+    /// 时立即返还。证据不成立就失败关闭，交给清扫器按条对账。
+    try {
+      const compensation = await compensateDirectDispatchQuota({
+        requestId: dispatchRequestId,
+        userId: session.user.id,
+        briefIds: [],
+        videoDispatchAmount: videoDispatchQuotaAmount,
+        seedanceSegmentAmount: seedanceSegmentQuotaAmount,
+        periodKey: quotaReceipt.periodKey,
+        quotaWasMetered: quotaReceipt.consumed,
+        reason: "dispatch_threw_before_any_job",
+        responseStatus: 500,
+        evidence: "zero_jobs",
+        storyboardRunId: storyboardRunId.data,
+      });
+      if (compensation.compensated) {
+        const refundNote = quotaReceipt.consumed ? "本次额度已自动返还。" : "";
+        // 额度已返还：没建出 brief 时 finalResponse 会顺带释放故事板预留，可直接重提。
+        quotaMayBeConsumed = false;
+        return finalResponse(
+          toCustomerVideoDispatchError(
+            providerSubmissionStarted
+              ? {
+                  code: "INTERNAL_ERROR",
+                  message: `视频任务未能开始生成，${refundNote}请重新生成故事板后再提交；若持续发生，请联系支持。`,
+                  retryable: false,
+                  action: "contact_support",
+                }
+              : {
+                  code: "INTERNAL_ERROR",
+                  message: `任务未能完成登记，${refundNote}可以直接重新提交。`,
+                  retryable: true,
+                  action: "retry",
+                },
+          ),
+          500,
+        );
+      }
+    } catch (compensationError) {
+      console.warn("[dispatch] zero-job quota compensation not applicable", {
+        requestId: dispatchRequestId,
+        error:
+          compensationError instanceof Error
+            ? compensationError.message
+            : String(compensationError),
+      });
+    }
     return finalResponse(
       toCustomerVideoDispatchError({
         code: providerSubmissionStarted

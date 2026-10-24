@@ -8,6 +8,7 @@ import {
   toCustomerBatchStatus,
 } from "@/lib/services/batch-service";
 import { customerApiError } from "@/lib/api/customer-generation-error";
+import { quotaErrorResponse } from "@/lib/api-quota";
 import { batchRetryOneResponseSchema } from "@/lib/contracts/batch-api";
 
 export async function POST(
@@ -21,7 +22,10 @@ export async function POST(
   const { id, jobId } = await params;
   try {
     await getBatchStatus(id, guard.session.user.id);
-    const result = await retryFailedBatchJob(id, jobId);
+    // 已返还额度的条目重试要先补扣（D1），额度不足按额度错误返回。
+    const result = await retryFailedBatchJob(id, jobId, {
+      session: guard.session,
+    });
     if (result.outcome === "not_found") {
       return NextResponse.json(
         customerApiError({
@@ -65,6 +69,8 @@ export async function POST(
       }),
     );
   } catch (error) {
+    const quotaResponse = quotaErrorResponse(error);
+    if (quotaResponse) return quotaResponse;
     if (error instanceof BatchNotFoundError) {
       return NextResponse.json(
         customerApiError({

@@ -323,6 +323,94 @@ function isQuotaSerializationConflict(error: unknown): boolean {
   );
 }
 
+/**
+ * 计量写入统一走 Serializable + SSI 冲突退避重试（与授权 / 补偿同一写法）。
+ * 按条返还与重试补扣都用它：检查、标记 CAS、计量与流水必须同一个事务提交。
+ */
+export async function runSerializableQuotaTransaction<T>(
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await db.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      if (!isQuotaSerializationConflict(error) || attempt >= 3) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 10 * 2 ** attempt));
+    }
+  }
+}
+
+/**
+ * 在调用方的 Serializable 事务里按套餐上限检查并计量（口径与
+ * assertQuotaBatchForSession 一致：先全部检查，再逐项 upsert + 正数 UsageLog）。
+ * 超额抛 QuotaExceededError，调用方事务随之整体回滚。
+ */
+export async function chargeMetersInTransaction(
+  tx: Prisma.TransactionClient,
+  params: {
+    userId: string;
+    plan: QuotaPlanId;
+    periodKey: string;
+    items: Array<{
+      resource: UsageResource;
+      amount: number;
+      metadata?: Record<string, unknown>;
+    }>;
+  },
+): Promise<void> {
+  for (const item of params.items) {
+    const limit = getLimitForResource(params.plan, item.resource);
+    const existing = await tx.userUsagePeriod.findUnique({
+      where: {
+        userId_periodKey_resource: {
+          userId: params.userId,
+          periodKey: params.periodKey,
+          resource: item.resource,
+        },
+      },
+    });
+    const used = existing?.amount ?? 0;
+    if (used + item.amount > limit) {
+      throw new QuotaExceededError({
+        resource: item.resource,
+        used,
+        limit,
+        periodKey: params.periodKey,
+      });
+    }
+  }
+  for (const item of params.items) {
+    await tx.userUsagePeriod.upsert({
+      where: {
+        userId_periodKey_resource: {
+          userId: params.userId,
+          periodKey: params.periodKey,
+          resource: item.resource,
+        },
+      },
+      create: {
+        userId: params.userId,
+        periodKey: params.periodKey,
+        resource: item.resource,
+        amount: item.amount,
+      },
+      update: { amount: { increment: item.amount } },
+    });
+    await tx.usageLog.create({
+      data: {
+        userId: params.userId,
+        resource: item.resource,
+        amount: item.amount,
+        metadata: (item.metadata ?? undefined) as
+          | Prisma.InputJsonValue
+          | undefined,
+      },
+    });
+  }
+}
+
 export class DirectDispatchQuotaCompensationError extends Error {
   constructor(message = "direct dispatch quota compensation evidence is unsafe") {
     super(message);
@@ -340,6 +428,16 @@ export interface DirectDispatchQuotaCompensationInput {
   quotaWasMetered: boolean;
   reason: string;
   responseStatus: number;
+  /**
+   * 返还证据（缺省 all_jobs_rejected）：
+   * - all_jobs_rejected：每个任务都被供应商明确拒绝且未创建（既有分支）；
+   * - zero_jobs：扣费后派发途中抛异常，由故事板证明本请求没有留下任何任务行
+   *   （brief 事务回滚 → 预留仍在；或 brief 已挂上故事板但一条 VideoJob 都没有）。
+   *   任务行总是先落库再调供应商，零任务行 = 零外呼。
+   */
+  evidence?: "all_jobs_rejected" | "zero_jobs";
+  /** zero_jobs 必填：本请求预留 / 挂载的故事板（单条派发一次只挂一块故事板） */
+  storyboardRunId?: string;
 }
 
 type DirectDispatchFailureStage =
@@ -364,17 +462,29 @@ function directDispatchFailureStage(
  *
  * Quota-exempt requests still clear the ownership marker after the same strict
  * evidence check, but deliberately do not invent meter or UsageLog activity.
+ *
+ * 返还时同一事务给涉及的 brief 打 `quotaRefundedAt`（CAS：必须全部尚未返还），
+ * 与清扫器里的按条对账互斥——同一条 brief 绝不会被返还两次。
  */
 export async function compensateDirectDispatchQuota(
   params: DirectDispatchQuotaCompensationInput,
 ): Promise<{ compensated: boolean; replayed: boolean }> {
+  const evidence = params.evidence ?? "all_jobs_rejected";
   const uniqueBriefIds = [...new Set(params.briefIds)];
   const reason = params.reason.trim();
+  const storyboardRunId = params.storyboardRunId?.trim() ?? "";
+  const evidenceInputValid =
+    evidence === "zero_jobs"
+      ? // 零任务证据的 brief 由故事板反查，调用方不得自报；单条派发一次只出 1 支。
+        uniqueBriefIds.length === 0 &&
+        params.videoDispatchAmount === 1 &&
+        storyboardRunId.length > 0
+      : uniqueBriefIds.length === params.briefIds.length &&
+        uniqueBriefIds.length === params.videoDispatchAmount;
   if (
     !params.requestId ||
     !params.userId ||
-    uniqueBriefIds.length !== params.briefIds.length ||
-    uniqueBriefIds.length !== params.videoDispatchAmount ||
+    !evidenceInputValid ||
     !Number.isInteger(params.videoDispatchAmount) ||
     params.videoDispatchAmount <= 0 ||
     !Number.isInteger(params.seedanceSegmentAmount) ||
@@ -413,52 +523,105 @@ export async function compensateDirectDispatchQuota(
             );
           }
 
-          const ownedBriefs = await tx.videoBrief.findMany({
-            where: {
-              id: { in: uniqueBriefIds },
-              contentAngle: {
-                round: { deliveryOrder: { createdById: params.userId } },
+          /// 证据成立后要打返还标记的 brief（零任务且 brief 事务已回滚时为空）
+          let briefIdsToStamp: string[];
+          let failureStages: Array<DirectDispatchFailureStage | null>;
+          if (evidence === "zero_jobs") {
+            const run = await tx.storyboardRun.findFirst({
+              where: { id: storyboardRunId, userId: params.userId },
+              select: { videoBriefId: true, dispatchReservationKey: true },
+            });
+            if (!run) {
+              throw new DirectDispatchQuotaCompensationError(
+                "dispatch storyboard does not exist or is not owned by the user",
+              );
+            }
+            if (run.videoBriefId == null) {
+              /// brief 与故事板挂载在同一事务：预留仍归本请求、故事板没挂上任何 brief，
+              /// 就证明本请求一条 brief / 任务都没有落库。
+              if (run.dispatchReservationKey !== params.requestId) {
+                throw new DirectDispatchQuotaCompensationError(
+                  "storyboard reservation is not held by this dispatch request",
+                );
+              }
+              briefIdsToStamp = [];
+            } else {
+              /// 预留只允许本请求挂载，所以挂上的 brief 必是本请求建的；
+              /// 它名下一条 VideoJob 都没有 = 从未调用供应商。
+              const ownedBriefs = await tx.videoBrief.findMany({
+                where: {
+                  id: run.videoBriefId,
+                  contentAngle: {
+                    round: { deliveryOrder: { createdById: params.userId } },
+                  },
+                },
+                select: { id: true },
+              });
+              if (ownedBriefs.length !== 1) {
+                throw new DirectDispatchQuotaCompensationError(
+                  "dispatch brief is missing or not owned by the user",
+                );
+              }
+              const jobCount = await tx.videoJob.count({
+                where: { videoBriefId: run.videoBriefId },
+              });
+              if (jobCount !== 0) {
+                throw new DirectDispatchQuotaCompensationError(
+                  "dispatch brief already has video jobs",
+                );
+              }
+              briefIdsToStamp = [run.videoBriefId];
+            }
+            failureStages = [];
+          } else {
+            const ownedBriefs = await tx.videoBrief.findMany({
+              where: {
+                id: { in: uniqueBriefIds },
+                contentAngle: {
+                  round: { deliveryOrder: { createdById: params.userId } },
+                },
               },
-            },
-            select: { id: true },
-          });
-          if (ownedBriefs.length !== uniqueBriefIds.length) {
-            throw new DirectDispatchQuotaCompensationError(
-              "dispatch briefs are missing or not owned by the user",
-            );
-          }
+              select: { id: true },
+            });
+            if (ownedBriefs.length !== uniqueBriefIds.length) {
+              throw new DirectDispatchQuotaCompensationError(
+                "dispatch briefs are missing or not owned by the user",
+              );
+            }
 
-          const jobs = await tx.videoJob.findMany({
-            where: { videoBriefId: { in: uniqueBriefIds } },
-            select: {
-              id: true,
-              videoBriefId: true,
-              status: true,
-              submissionState: true,
-              submissionErrorClass: true,
-              externalJobId: true,
-            },
-          });
-          const representedBriefIds = new Set(
-            jobs.map((job) => job.videoBriefId).filter(Boolean),
-          );
-          const failureStages = jobs.map((job) =>
-            directDispatchFailureStage(job.submissionErrorClass),
-          );
-          const evidenceIsSafe =
-            jobs.length === params.seedanceSegmentAmount &&
-            representedBriefIds.size === uniqueBriefIds.length &&
-            jobs.every(
-              (job) =>
-                job.status === VideoJobStatus.FAILED &&
-                job.submissionState === ProviderSubmissionState.REJECTED &&
-                job.externalJobId == null,
-            ) &&
-            failureStages.every((stage) => stage !== null);
-          if (!evidenceIsSafe) {
-            throw new DirectDispatchQuotaCompensationError(
-              "not every dispatch job is definitely-not-created and unacknowledged",
+            const jobs = await tx.videoJob.findMany({
+              where: { videoBriefId: { in: uniqueBriefIds } },
+              select: {
+                id: true,
+                videoBriefId: true,
+                status: true,
+                submissionState: true,
+                submissionErrorClass: true,
+                externalJobId: true,
+              },
+            });
+            const representedBriefIds = new Set(
+              jobs.map((job) => job.videoBriefId).filter(Boolean),
             );
+            failureStages = jobs.map((job) =>
+              directDispatchFailureStage(job.submissionErrorClass),
+            );
+            const evidenceIsSafe =
+              jobs.length === params.seedanceSegmentAmount &&
+              representedBriefIds.size === uniqueBriefIds.length &&
+              jobs.every(
+                (job) =>
+                  job.status === VideoJobStatus.FAILED &&
+                  job.submissionState === ProviderSubmissionState.REJECTED &&
+                  job.externalJobId == null,
+              ) &&
+              failureStages.every((stage) => stage !== null);
+            if (!evidenceIsSafe) {
+              throw new DirectDispatchQuotaCompensationError(
+                "not every dispatch job is definitely-not-created and unacknowledged",
+              );
+            }
+            briefIdsToStamp = uniqueBriefIds;
           }
 
           const marker = await tx.videoDispatchRequest.updateMany({
@@ -474,6 +637,19 @@ export async function compensateDirectDispatchQuota(
             throw new DirectDispatchQuotaCompensationError(
               "quota compensation marker CAS failed",
             );
+          }
+
+          if (briefIdsToStamp.length > 0) {
+            /// 与清扫器的按条对账互斥：任一 brief 已被返还就整体失败关闭，绝不二次返还。
+            const stamped = await tx.videoBrief.updateMany({
+              where: { id: { in: briefIdsToStamp }, quotaRefundedAt: null },
+              data: { quotaRefundedAt: new Date() },
+            });
+            if (stamped.count !== briefIdsToStamp.length) {
+              throw new DirectDispatchQuotaCompensationError(
+                "dispatch brief was already refunded",
+              );
+            }
           }
 
           if (params.quotaWasMetered) {
@@ -528,6 +704,9 @@ export async function compensateDirectDispatchQuota(
                     customerResponseClass: httpClass,
                     customerResponseStatus: params.responseStatus,
                     phase: "direct_dispatch_compensation",
+                    ...(evidence === "zero_jobs"
+                      ? { evidence, briefIds: briefIdsToStamp }
+                      : {}),
                   },
                 },
               });

@@ -55,6 +55,7 @@ test("direct dispatch compensation atomically refunds both meters and is replay-
   }> = [];
   const isolationLevels: unknown[] = [];
   let markerCasCalls = 0;
+  const stampedBriefs: string[] = [];
   const jobs = [
     safeJob("job-1", "brief-1"),
     safeJob("job-2", "brief-1"),
@@ -73,6 +74,13 @@ test("direct dispatch compensation atomically refunds both meters and is replay-
     },
     videoBrief: {
       findMany: async () => [{ id: "brief-1" }, { id: "brief-2" }],
+      updateMany: async (args: {
+        where: { id: { in: string[] }; quotaRefundedAt: null };
+      }) => {
+        const fresh = args.where.id.in.filter((id) => !stampedBriefs.includes(id));
+        stampedBriefs.push(...fresh);
+        return { count: fresh.length };
+      },
     },
     videoJob: {
       findMany: async () => jobs,
@@ -130,6 +138,11 @@ test("direct dispatch compensation atomically refunds both meters and is replay-
   assert.deepEqual(replay, { compensated: false, replayed: true });
   assert.equal(request.quotaConsumedAt, null);
   assert.equal(markerCasCalls, 1, "the marker CAS is the replay fence");
+  assert.deepEqual(
+    stampedBriefs,
+    ["brief-1", "brief-2"],
+    "compensated briefs are stamped so the sweep reconciler never refunds them again",
+  );
   assert.deepEqual(Object.fromEntries(meters), {
     VIDEO_DISPATCH: 7,
     SEEDANCE_SEGMENT: 13,
@@ -177,7 +190,10 @@ test("quota-exempt direct dispatch clears the marker without inventing meter act
         return { count: 1 };
       },
     },
-    videoBrief: { findMany: async () => [{ id: "brief-exempt" }] },
+    videoBrief: {
+      findMany: async () => [{ id: "brief-exempt" }],
+      updateMany: async () => ({ count: 1 }),
+    },
     videoJob: {
       findMany: async () => [safeJob("job-exempt", "brief-exempt")],
     },

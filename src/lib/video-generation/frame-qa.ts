@@ -11,26 +11,35 @@
  *
  * 失败策略：门禁自身出错（ffmpeg 缺失 / vision 超时 / 未配置 OPENAI_API_KEY）
  * 一律 fail-open（放行 + 记录 skipReason），质检增强不能变成管线单点故障。
+ * 2026-10-25 起「跳过」不再静默：门禁（frame-qa-gate）把 SKIPPED 与原因落库。
+ *
+ * 影子检查（4.4）：同一份下载的视频顺带跑黑边 / 近静止检测，结果挂在
+ * verdict.shadow 上，只记录、永不影响 ok。
+ *
+ * ffmpeg 一律经 src/lib/media/ffmpeg-bin（函数运行时打包的静态二进制），
+ * 时长用 ffmpeg 自己探测，不再依赖 ffprobe。
  *
  * 开关：FRAME_QA_DISABLED=true 显式关闭；mock 引擎 / LLM mock 模式自动跳过。
  */
 
-import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
-
-const execFileAsync = promisify(execFile);
+import { probeMedia, runFfmpeg, type MediaProbe } from "@/lib/media/ffmpeg-bin";
+import {
+  runFrameQaShadowChecks,
+  type FrameQaShadowResult,
+} from "@/lib/media/frame-qa-shadow";
 
 /** 抽帧数：15s 视频 6 帧 ≈ 每 2.5s 一帧，足以覆盖字幕/水印的持续存在 */
 const DEFAULT_FRAME_COUNT = 6;
 /** 抽帧宽度：low-detail vision 足够识别字幕，同时控制 token 成本 */
 const FRAME_WIDTH = 480;
 /** 单次门禁总超时（下载 + 抽帧 + vision），超时即 fail-open */
-const GATE_TIMEOUT_MS = 45_000;
+export const FRAME_QA_GATE_TIMEOUT_MS = 45_000;
+const GATE_TIMEOUT_MS = FRAME_QA_GATE_TIMEOUT_MS;
 
 export interface FrameQaIssue {
   frameIndex: number;
@@ -47,6 +56,8 @@ export interface FrameQaVerdict {
   issues: FrameQaIssue[];
   /** 给 errorMessage / 日志用的一句话结论 */
   summary: string;
+  /** 影子检查（黑边 / 近静止）：只记录不拦截；没跑到（门禁提前跳过 / 超时）时缺省 */
+  shadow?: FrameQaShadowResult;
 }
 
 const FRAME_QA_SYSTEM = `You are a strict video QA inspector for an AI-generated short-form ad platform.
@@ -126,32 +137,25 @@ async function extractFrames(
   videoPath: string,
   outDir: string,
   frameCount: number,
+  probe: MediaProbe | null,
 ): Promise<string[]> {
-  /// 读时长决定抽帧间隔；拿不到就按 15s 兜底
-  let durationSec = 15;
-  try {
-    const { stdout } = await execFileAsync("ffprobe", [
-      "-v", "error",
-      "-show_entries", "format=duration",
-      "-of", "csv=p=0",
-      videoPath,
-    ]);
-    const parsed = Number.parseFloat(stdout.trim());
-    if (Number.isFinite(parsed) && parsed > 0) durationSec = parsed;
-  } catch {
-    /// ffprobe 缺失时沿用默认时长，抽帧仍可进行
-  }
+  /// 时长决定抽帧间隔；探测不到就按 15s 兜底
+  const durationSec =
+    probe?.durationSec && probe.durationSec > 0 ? probe.durationSec : 15;
 
   const fps = frameCount / durationSec;
-  await execFileAsync("ffmpeg", [
-    "-v", "error",
-    "-i", videoPath,
-    "-vf", `fps=${fps},scale=${FRAME_WIDTH}:-1`,
-    "-frames:v", String(frameCount),
-    "-q:v", "6",
-    join(outDir, "f%02d.jpg"),
-    "-y",
-  ]);
+  await runFfmpeg(
+    [
+      "-v", "error",
+      "-i", videoPath,
+      "-vf", `fps=${fps},scale=${FRAME_WIDTH}:-1`,
+      "-frames:v", String(frameCount),
+      "-q:v", "6",
+      join(outDir, "f%02d.jpg"),
+      "-y",
+    ],
+    { timeoutMs: 30_000 },
+  );
 
   const files = (await readdir(outDir))
     .filter((f) => f.endsWith(".jpg"))
@@ -196,37 +200,56 @@ export async function runFrameTextQa(
       await writeFile(videoPath, Buffer.from(await res.arrayBuffer()));
     }
 
-    const framePaths = await extractFrames(videoPath, workDir, frameCount);
+    /// 探测失败不阻断：抽帧按 15s 兜底，影子检查记 null
+    const probe = await probeMedia(videoPath).catch(() => null);
+    const framePaths = await extractFrames(videoPath, workDir, frameCount, probe);
     if (framePaths.length === 0) throw new Error("抽帧结果为空");
 
-    const dataUrls = await framesToDataUrls(framePaths);
-    const { data } = await analyzeImages(
-      dataUrls,
-      FRAME_QA_SYSTEM,
-      `These are ${framePaths.length} frames sampled evenly from one AI-generated video. Inspect each frame for burned-in text per the policy and respond with the JSON envelope.`,
-    );
+    /// 影子检查与 vision 并行（一个吃 CPU、一个等网络），自身永不 throw
+    const shadowPromise = runFrameQaShadowChecks(videoPath, {
+      width: probe?.width ?? null,
+      height: probe?.height ?? null,
+      durationSec: probe?.durationSec ?? null,
+    });
 
-    const findings = Array.isArray((data as { frames?: unknown }).frames)
-      ? ((data as { frames: RawFrameFinding[] }).frames)
-      : [];
-    if (findings.length === 0) throw new Error("vision 返回缺少 frames 数组");
+    let findings: RawFrameFinding[];
+    try {
+      const dataUrls = await framesToDataUrls(framePaths);
+      const { data } = await analyzeImages(
+        dataUrls,
+        FRAME_QA_SYSTEM,
+        `These are ${framePaths.length} frames sampled evenly from one AI-generated video. Inspect each frame for burned-in text per the policy and respond with the JSON envelope.`,
+      );
+      findings = Array.isArray((data as { frames?: unknown }).frames)
+        ? ((data as { frames: RawFrameFinding[] }).frames)
+        : [];
+      if (findings.length === 0) throw new Error("vision 返回缺少 frames 数组");
+    } catch (err) {
+      /// vision 失败照常 fail-open，但已经跑完的影子检查结果保留
+      return {
+        ...skipVerdict(`门禁执行异常：${(err as Error).message}`),
+        shadow: await shadowPromise,
+      };
+    }
 
-    return decideVerdict(findings, framePaths.length);
+    return { ...decideVerdict(findings, framePaths.length), shadow: await shadowPromise };
   })();
 
+  let timer: ReturnType<typeof setTimeout> | null = null;
   try {
     return await Promise.race([
       gate,
-      new Promise<FrameQaVerdict>((resolve) =>
-        setTimeout(
+      new Promise<FrameQaVerdict>((resolve) => {
+        timer = setTimeout(
           () => resolve(skipVerdict(`门禁超时（>${GATE_TIMEOUT_MS / 1000}s）`)),
           GATE_TIMEOUT_MS,
-        ),
-      ),
+        );
+      }),
     ]);
   } catch (err) {
     return skipVerdict(`门禁执行异常：${(err as Error).message}`);
   } finally {
+    if (timer) clearTimeout(timer);
     if (workDir) {
       rm(workDir, { recursive: true, force: true }).catch(() => {});
     }

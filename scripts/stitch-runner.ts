@@ -38,6 +38,8 @@ import {
   buildBrollComposeArgs,
   type BrollClaimSegment,
 } from "../src/lib/video-generation/broll-segment-compose";
+/// 纯函数模块（零依赖）。runner 用 apt ffmpeg，绝不引用 src/lib/media/ffmpeg-bin / ffmpeg-static。
+import { pickStitchFrameRate } from "../src/lib/media/frame-rate";
 
 const execFileAsync = promisify(execFile);
 
@@ -270,10 +272,13 @@ async function stitchOne(task: StitchTask): Promise<{
         normalized.push(out);
       }
     } else {
+      /// 保留主片（第一段）的源帧率，不再强转 30fps；其余段归一到同一帧率供 concat
+      let targetFps: string | null = null;
       for (const [i, url] of task.segmentUrls.entries()) {
         const localInput = path.join(tmpDir, `seg-${i}.input`);
         const out = path.join(tmpDir, `seg-${i}.mp4`);
         await downloadToFile(url, localInput);
+        targetFps ??= pickStitchFrameRate([await probeFrameRate(localInput)]);
         await runFfmpeg(
           "ffmpeg",
           [
@@ -287,7 +292,7 @@ async function stitchOne(task: StitchTask): Promise<{
             "-c:a",
             "aac",
             "-r",
-            "30",
+            targetFps,
             "-vf",
             padFilter,
             out,
@@ -378,6 +383,26 @@ async function probeDuration(videoPath: string): Promise<number> {
     return duration;
   } catch {
     throw new StitchRunnerError("duration_probe_failed");
+  }
+}
+
+/** 源帧率（r_frame_rate，如 "24/1"）；探测失败返回 null，由 pickStitchFrameRate 兜底 30 */
+async function probeFrameRate(videoPath: string): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "v:0",
+      "-show_entries",
+      "stream=r_frame_rate",
+      "-of",
+      "default=noprint_wrappers=1:nokey=1",
+      videoPath,
+    ]);
+    return stdout.trim().split(/\r?\n/)[0] || null;
+  } catch {
+    return null;
   }
 }
 

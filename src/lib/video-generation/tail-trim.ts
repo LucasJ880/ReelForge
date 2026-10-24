@@ -11,12 +11,13 @@
  * 而烧录字幕还写着这三个词）。宁可留 0.3s 可能的幻觉，不切一个字的人声。
  */
 
-import { execFile } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { dirname, join } from "node:path";
-import { promisify } from "node:util";
-
-const execFileAsync = promisify(execFile);
+import {
+  probeMedia,
+  probeMediaDurationSeconds,
+  runFfmpeg,
+} from "@/lib/media/ffmpeg-bin";
 
 export const DEFAULT_TAIL_TRIM_SECONDS = 0.8;
 /** 裁完至少要剩这么长，防止把短片裁没 */
@@ -29,29 +30,13 @@ const MIN_EFFECTIVE_TRIM_SECONDS = 0.05;
 const SILENCE_NOISE_FLOOR = "-30dB";
 const SILENCE_MIN_DURATION_SECONDS = 0.3;
 
+/// 时长 / 音轨探测走 ffmpeg 本体（函数运行时只打包 ffmpeg，没有 ffprobe）
 export async function probeDurationSeconds(path: string): Promise<number> {
-  const { stdout } = await execFileAsync("ffprobe", [
-    "-v", "error",
-    "-show_entries", "format=duration",
-    "-of", "csv=p=0",
-    path,
-  ]);
-  const parsed = Number.parseFloat(stdout.trim());
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error(`ffprobe duration failed for ${path}`);
-  }
-  return parsed;
+  return probeMediaDurationSeconds(path);
 }
 
 async function probeHasAudioStream(path: string): Promise<boolean> {
-  const { stdout } = await execFileAsync("ffprobe", [
-    "-v", "error",
-    "-select_streams", "a",
-    "-show_entries", "stream=codec_type",
-    "-of", "csv=p=0",
-    path,
-  ]);
-  return stdout.trim().length > 0;
+  return (await probeMedia(path)).hasAudio;
 }
 
 /**
@@ -66,15 +51,14 @@ export async function detectLastAudioActivityEndSeconds(
   if (!(await probeHasAudioStream(path))) return null;
   let stderr: string;
   try {
-    const result = await execFileAsync(
-      "ffmpeg",
+    const result = await runFfmpeg(
       [
         "-hide_banner", "-nostats",
         "-i", path,
         "-af", `silencedetect=noise=${SILENCE_NOISE_FLOOR}:d=${SILENCE_MIN_DURATION_SECONDS}`,
         "-f", "null", "-",
       ],
-      { maxBuffer: 1024 * 1024 * 10 },
+      { maxBuffer: 1024 * 1024 * 10, timeoutMs: 60_000 },
     );
     stderr = result.stderr ?? "";
   } catch {
@@ -172,19 +156,22 @@ export async function trimVideoTailSpeechSafe(
       `trimmed-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.mp4`,
     );
   mkdirSync(dirname(outputPath), { recursive: true });
-  await execFileAsync("ffmpeg", [
-    "-v", "error",
-    "-i", sourcePath,
-    "-t", target.toFixed(3),
-    "-c:v", "libx264",
-    "-preset", "veryfast",
-    "-crf", "18",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac",
-    "-movflags", "+faststart",
-    outputPath,
-    "-y",
-  ]);
+  await runFfmpeg(
+    [
+      "-v", "error",
+      "-i", sourcePath,
+      "-t", target.toFixed(3),
+      "-c:v", "libx264",
+      "-preset", "veryfast",
+      "-crf", "18",
+      "-pix_fmt", "yuv420p",
+      "-c:a", "aac",
+      "-movflags", "+faststart",
+      outputPath,
+      "-y",
+    ],
+    { timeoutMs: 120_000 },
+  );
   return { path: outputPath, trimmedSeconds: trimSec, speechLimited };
 }
 

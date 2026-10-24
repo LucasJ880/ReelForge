@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
+import { rateLimitedResponse } from "@/lib/api-rate-limit";
 import { customerApiError } from "@/lib/api/customer-generation-error";
 import {
   createContentPlan,
@@ -8,6 +9,7 @@ import {
 } from "@/lib/services/content-plan-store";
 import { ProductLinkError } from "@/lib/services/product-link-service";
 import { ProductImageFactsError } from "@/lib/services/product-image-facts-service";
+import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +19,7 @@ export const dynamic = "force-dynamic";
  *
  * 生成一周计划不计费：成本只有一次 LLM 调用，对它收费等于惩罚迭代。
  * 花钱的是出图，计费在渲染那一步。
+ * 不计费 ≠ 不设防：按用户每小时限流（D5），挡住脚本把 LLM / 抓取费用刷穿。
  */
 
 const createSchema = z.object({
@@ -44,6 +47,17 @@ export async function POST(req: NextRequest) {
       }),
       { status: 400 },
     );
+  }
+
+  try {
+    await assertPaidActionRateLimit({
+      action: "content-plan",
+      userId: guard.session.user.id,
+    });
+  } catch (err) {
+    const limited = rateLimitedResponse(err);
+    if (limited) return limited;
+    throw err;
   }
 
   try {

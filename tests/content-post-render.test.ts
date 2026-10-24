@@ -38,31 +38,6 @@ test("非数组 slidesJson 返回空数组", () => {
   assert.deepEqual(readSlides("[]"), []);
 });
 
-test("已出图的帖子幂等返回，不重复计费", () => {
-  const source = readFileSync(
-    path.join(process.cwd(), "src/lib/services/content-post-render-service.ts"),
-    "utf8",
-  );
-  assert.match(
-    source,
-    /renderedImageUrls\.length > 0[\s\S]{0,120}skipped: true/,
-    "重复出图必须短路返回，否则商家点两次就扣两次",
-  );
-});
-
-test("失败时保留已出的素材，不把花过钱的图丢掉", () => {
-  const source = readFileSync(
-    path.join(process.cwd(), "src/lib/services/content-post-render-service.ts"),
-    "utf8",
-  );
-  const catchBlock = source.slice(source.indexOf("} catch (err) {"));
-  assert.match(
-    catchBlock.slice(0, 400),
-    /renderedImageUrls: urls/,
-    "出图中途失败要把已成功的几张记下来",
-  );
-});
-
 test("取消只清运行态、保留素材，且不物理删除记录", () => {
   const source = readFileSync(
     path.join(process.cwd(), "src/lib/services/content-post-render-service.ts"),

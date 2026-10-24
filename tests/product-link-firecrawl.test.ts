@@ -16,6 +16,9 @@ const RENDERED_HTML = `<!doctype html><html><head>
 <meta property="og:image" content="https://cdn.example.com/blinds.jpg" />
 </head><body>rendered</body></html>`;
 
+/// 注入 DNS：测试不出网，也不依赖 example.com 子域名能否真的解析（A4 5.4 起抓取前先解析 DNS）。
+const PUBLIC_DNS = async () => ["93.184.216.34"];
+
 function routedFetch(args: {
   directStatus: number;
   firecrawlBody?: unknown;
@@ -38,6 +41,7 @@ function routedFetch(args: {
 test("直抓 403 且配了 Firecrawl：走托管渲染，共用抽取（og 事实抽出）", async () => {
   process.env.FIRECRAWL_API_KEY = "test-key-not-real";
   const facts = await fetchProductFacts("https://shop.example.com/blinds", {
+    resolveHost: PUBLIC_DNS,
     fetchImpl: routedFetch({ directStatus: 403 }),
   });
   assert.equal(facts.title, "定制百叶窗");
@@ -49,6 +53,7 @@ test("直抓失败且无 Firecrawl key：抛直抓原始错误（可解释性优
   delete process.env.FIRECRAWL_API_KEY;
   await assert.rejects(
     fetchProductFacts("https://shop.example.com/blinds", {
+      resolveHost: PUBLIC_DNS,
       fetchImpl: routedFetch({ directStatus: 403 }),
     }),
     (err: unknown) =>
@@ -60,6 +65,7 @@ test("兜底也失败：仍抛直抓原始错误，不用 Firecrawl 错误盖住
   process.env.FIRECRAWL_API_KEY = "test-key-not-real";
   await assert.rejects(
     fetchProductFacts("https://shop.example.com/blinds", {
+      resolveHost: PUBLIC_DNS,
       fetchImpl: routedFetch({
         directStatus: 404,
         firecrawlBody: { success: false },

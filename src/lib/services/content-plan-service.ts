@@ -343,6 +343,11 @@ function clampDay(value: unknown, index: number): number {
  * 启发式计划：LLM 不可用时的兜底，也是 repairPlan 的补齐来源。
  *
  * 它刻意写得**具体但通用**：宁可让商家改文案，也不要给一份「敬请期待」式的空壳。
+ *
+ * 通用的前提是**不替商家做任何承诺**（A4 5.6）：这份文案会原样发出去，适用于任何行业，
+ * 所以不写商家没说过的优惠（「免费上门量尺」）、不编数据（「上个月最多人选」「真实成交」）、
+ * 不把 AI 出的图说成「实拍」。行动号召统一指向主页链接（询盘页），
+ * 而不是评论区 / 私信——那两处我们接不住，线索会漏。
  */
 export function heuristicPlan(input: ContentPlanInput): ContentPlan {
   const subject = input.sentence.trim() || "我们的产品";
@@ -357,9 +362,9 @@ export function heuristicPlan(input: ContentPlanInput): ContentPlan {
       format: "text",
       hookType: "Pain",
       copy: {
-        hook: `很多人问我们：${subject}到底怎么挑？`,
+        hook: `${subject}到底怎么挑？先看这几点`,
         body: `先说最容易踩的坑，再说我们怎么做的。${factLine}`,
-        cta: "有具体问题可以直接私信问我们",
+        cta: "有具体问题，点主页链接预约，我们一对一回复",
       },
       hashtags: ["本地商家", "选购指南"],
       imagePrompt: null,
@@ -372,14 +377,14 @@ export function heuristicPlan(input: ContentPlanInput): ContentPlan {
       format: "single_image",
       hookType: "Reveal",
       copy: {
-        hook: "实拍：装完之后是这个样子",
-        body: `${brand}的实际交付效果。${factLine}`,
-        cta: "想看你家的效果，把尺寸发给我们",
+        hook: "做好之后，大概是这种感觉",
+        body: `${brand}的效果示意（实际以沟通确认的方案为准）。${factLine}`,
+        cta: "想要同款效果，点主页链接预约",
       },
-      hashtags: ["实拍", "交付效果"],
+      hashtags: ["效果示意", "本地商家"],
       imagePrompt: `Clean realistic product photograph of ${subject}, natural daylight, real home interior, no text, no watermark`,
       slides: [],
-      rationale: "单图帖是最快建立信任的形态：让人看到真东西，而不是听描述",
+      rationale: "单图帖最快让人对效果有画面感；配图是 AI 生成的效果示意，换成实拍会更有说服力",
     },
     {
       key: "p3",
@@ -387,9 +392,9 @@ export function heuristicPlan(input: ContentPlanInput): ContentPlan {
       format: "carousel",
       hookType: "Curiosity",
       copy: {
-        hook: "从量尺到装好，一共几步？",
+        hook: "从咨询到交付，一共几步？",
         body: `拆开讲清楚每一步，心里有数再决定。${factLine}`,
-        cta: "第一步是免费上门量尺，评论区约时间",
+        cta: "第一步只要点主页链接预约",
       },
       hashtags: ["流程拆解", "本地服务"],
       imagePrompt: null,
@@ -397,25 +402,25 @@ export function heuristicPlan(input: ContentPlanInput): ContentPlan {
         {
           order: 0,
           imagePrompt: `Wide establishing shot of ${subject} in a real home, natural light, no text`,
-          overlayText: "第 1 步 · 免费上门量尺",
+          overlayText: "第 1 步 · 说清需求",
           purpose: "开场建立场景",
         },
         {
           order: 1,
           imagePrompt: `Close-up detail of ${subject} material and finish, no text`,
-          overlayText: "第 2 步 · 选材质与颜色",
+          overlayText: "第 2 步 · 选款式与用料",
           purpose: "展示细节与用料",
         },
         {
           order: 2,
-          imagePrompt: `Installation moment for ${subject}, hands working, realistic, no text`,
-          overlayText: "第 3 步 · 安装",
-          purpose: "证明我们真的做这件事",
+          imagePrompt: `Craftsman preparing ${subject}, hands working, realistic, no text`,
+          overlayText: "第 3 步 · 制作与安排",
+          purpose: "展示我们怎么做这件事",
         },
         {
           order: 3,
           imagePrompt: `Finished result of ${subject} in the same room, warm light, no text`,
-          overlayText: "第 4 步 · 完工",
+          overlayText: "第 4 步 · 交付",
           purpose: "收尾对比，落到结果",
         },
       ],
@@ -427,14 +432,14 @@ export function heuristicPlan(input: ContentPlanInput): ContentPlan {
       format: "text",
       hookType: "Stat",
       copy: {
-        hook: "上个月最多人选的是这一款",
-        body: `真实成交里最常被选的组合，以及为什么。${factLine}`,
-        cta: "想知道适不适合你家，报一下窗型",
+        hook: "下单前，先把这 3 个数想清楚",
+        body: `尺寸（或数量）、预算、想要的时间——这三个数定了，方案很快就能定下来。${factLine}`,
+        cta: "把这 3 个数带上，点主页链接预约",
       },
-      hashtags: ["真实数据", "热门选择"],
+      hashtags: ["选购指南", "本地商家"],
       imagePrompt: null,
       slides: [],
-      rationale: "用真实偏好代替自夸，比形容词有效",
+      rationale: "用具体的数字帮人做决定，比形容词有效；不编造销量或成交数据",
     },
     {
       key: "p5",
@@ -442,11 +447,11 @@ export function heuristicPlan(input: ContentPlanInput): ContentPlan {
       format: "video",
       hookType: "Demo",
       copy: {
-        hook: "10 秒看完实际使用",
-        body: `${subject}真实使用中的样子。`,
-        cta: "预约免费上门量尺",
+        hook: "10 秒看懂怎么用",
+        body: `${subject}用起来大概是这样。`,
+        cta: "点主页链接预约",
       },
-      hashtags: ["实拍视频", "使用演示"],
+      hashtags: ["使用演示", "本地商家"],
       imagePrompt: null,
       slides: [],
       rationale: "视频是我们最强的一环，一周收尾用它拿转化",

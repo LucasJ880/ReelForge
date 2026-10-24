@@ -1,20 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { rateLimitedResponse } from "@/lib/api-rate-limit";
 import { customerApiError } from "@/lib/api/customer-generation-error";
 import {
   ContentPostRenderError,
   discardContentPost,
   renderContentPost,
 } from "@/lib/services/content-post-render-service";
+import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+/// 轮播最多 6 屏、逐屏同步出图。渲染锁时限（RENDER_LOCK_TTL_MS）必须长于这里。
+export const maxDuration = 300;
 
 /**
  * 单图帖 / 轮播出图（PRD §3 O1）。
  *
- * POST   出图（已出过则幂等返回，不重复计费）
+ * POST   出图（已出齐则幂等返回，不重复计费；半套轮播只补缺的那几屏）
  * DELETE 取消这一轮：清运行态、**保留已出的素材**
+ *
+ * 并发：服务层用 renderStartedAt 渲染锁 + 只许「草稿 → READY」的 CAS，
+ * 第二个请求拿到 409「正在出图」，不会两边各出一遍。
  */
 
 export async function POST(
@@ -25,13 +32,34 @@ export async function POST(
   if (!guard.ok) return guard.response;
   const { postId } = await ctx.params;
 
+  const userId = guard.session.user.id;
   try {
     const result = await renderContentPost({
-      userId: guard.session.user.id,
+      userId,
       postId,
+      /// 按用户每小时限流（D5）：服务层拿到渲染锁、确认真要出图时才计一次。
+      beforeRender: () =>
+        assertPaidActionRateLimit({ action: "content-post-render", userId }),
     });
     return NextResponse.json(result);
   } catch (err) {
+    const limited = rateLimitedResponse(err);
+    if (limited) return limited;
+    if (
+      err instanceof ContentPostRenderError &&
+      (err.reason === "in_progress" || err.reason === "discarded")
+    ) {
+      /// 状态冲突：刷新就能看到真实结果（另一个请求出完 / 已取消、素材已保留）。
+      return NextResponse.json(
+        customerApiError({
+          code: err.reason === "in_progress" ? "REQUEST_IN_PROGRESS" : "INVALID_STATE",
+          message: err.message,
+          retryable: false,
+          action: "refresh_status",
+        }),
+        { status: 409 },
+      );
+    }
     if (err instanceof ContentPostRenderError) {
       const status = err.reason === "not_found" ? 404 : err.reason === "provider" ? 503 : 400;
       return NextResponse.json(

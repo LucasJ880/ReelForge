@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireAuth } from "@/lib/api-auth";
+import { rateLimitedResponse } from "@/lib/api-rate-limit";
 import { demoBlockedBody, isDemoAccountEmail } from "@/lib/demo-account";
 import {
   isBrollRouteAvailable,
   startBrollDelivery,
 } from "@/lib/services/broll-assembly-service";
 import { BrollPlanError } from "@/lib/services/broll-plan-service";
+import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +71,15 @@ export async function POST(req: NextRequest) {
       },
       { status: 400 },
     );
+  }
+
+  /// 按用户每小时限流（D5）：校验通过之后、拆段 / TTS 花钱之前。
+  try {
+    await assertPaidActionRateLimit({ action: "broll", userId: session.user.id });
+  } catch (err) {
+    const limited = rateLimitedResponse(err);
+    if (limited) return limited;
+    throw err;
   }
 
   try {

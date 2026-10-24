@@ -34,9 +34,11 @@ test("🔴 C2.1 生成一周计划不计费：content-plans 路由没有任何�
   }
 });
 
-test("🔴 C2.1 重复出图不重复计费：已出图短路返回", () => {
+test("🔴 C2.1 重复出图不重复计费：已出齐的帖子短路返回", () => {
   const source = read("src/lib/services/content-post-render-service.ts");
-  assert.match(source, /renderedImageUrls\.length > 0[\s\S]{0,120}skipped: true/);
+  /// A4 5.3 起按 slide 补缺：每屏都有图才短路（以前「有任意一张就返回」，半套轮播永远补不齐）。
+  /// 行为级回归见 tests/content-post-render-lock.test.ts。
+  assert.match(source, /if \(missing\.length === 0\)[\s\S]{0,160}skipped: true/);
 });
 
 test("🔴 C2.3 取消永远免费：discard 路径没有扣费，且保留素材", () => {
@@ -48,9 +50,10 @@ test("🔴 C2.3 取消永远免费：discard 路径没有扣费，且保留素�
 
 test("C2.1 失败零计费：出图失败时保留已产出素材并可重试，无扣费调用", () => {
   const source = read("src/lib/services/content-post-render-service.ts");
-  const catchBlock = source.slice(source.indexOf("} catch (err) {"));
-  assert.match(catchBlock.slice(0, 500), /renderedImageUrls: urls/);
-  assert.doesNotMatch(catchBlock, /quota|credit|charge/i);
+  /// A4 5.3 起失败分支是「if (failure) {」（逐屏出图，失败即停并按位置落库）。
+  const failureBlock = source.slice(source.indexOf("if (failure) {"));
+  assert.match(failureBlock.slice(0, 500), /renderedImageUrls: urls/);
+  assert.doesNotMatch(source, /quota|credit|charge/i);
 });
 
 /// ── 主线五编译产物的完整性 ──

@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (93/93 route files)
+## API endpoint inventory (94/94 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -102,7 +102,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |
 | GET, POST | `/api/admin/users` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
-| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
+| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary; DELETE fixed 405 (round 1025 A4: delete → disable, no physical delete) |
+| POST, DELETE | `/api/admin/users/[id]/disable` | Super admin | Round 1025 A4: POST disables (reason required, cannot disable self, cancels unsubmitted queued jobs, data kept); DELETE lifts the disable |
 
 ### Agent Director, briefs, planning, and rendering
 

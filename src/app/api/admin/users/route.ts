@@ -16,6 +16,9 @@ export async function GET() {
       name: true,
       role: true,
       createdAt: true,
+      /// 停用取代删除（A4 5.1）：列表里如实显示停用状态。
+      disabledAt: true,
+      disabledReason: true,
     },
   });
   return NextResponse.json({ items: users });

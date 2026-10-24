@@ -285,10 +285,10 @@ test("LENS-3 创作台：主按钮不写积分，提示按本月额度写，不�
   assert.match(studio, /reviewSpecs: "核对规格",/);
   assert.match(studio, /reviewSpecs: "Review specs",/);
   assert.doesNotMatch(studio, /shuyuEstimate|"900"/);
-  assert.match(studio, /quotaHint: "成片后计 1 条额度：本月已用 \{used\} \/ \{limit\} 条，失败与取消返还。"/);
+  assert.match(studio, /quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 \{used\} \/ \{limit\} 条。"/);
   assert.match(studio, /copy\.quotaHint\s*\.replace\("\{used\}", String\(readings\.quotaUsed\)\)\s*\.replace\("\{limit\}", String\(readings\.quotaLimit\)\)/);
   /// 读数注册表：英文口径与中文一致（取消也返还）
-  assert.equal(READINGS.monthlyQuota.formula["en-US"], "Used ÷ plan limit · UTC month · failures and cancels refunded");
+  assert.equal(READINGS.monthlyQuota.formula["en-US"], "Used (incl. in progress) ÷ plan limit · UTC month · failures and cancels refunded");
 });
 
 test("LENS-3 新建批次：客户看「计入额度」，供应商积分只在内部角色下出现", () => {
@@ -303,8 +303,8 @@ test("LENS-3 新建批次：客户看「计入额度」，供应商积分只在�
     const before = render.slice(Math.max(0, (match.index ?? 0) - 900), match.index);
     assert.match(before, /!showProviderPoints/, `「${match[0]}」必须在内部角色判断之后`);
   }
-  assert.match(wizard, /成片后计 \$\{totalVideoCount\} 条/);
-  assert.match(wizard, /本批 \$\{totalVideoCount\} 条按成片计入本月额度，失败与取消返还。/);
+  assert.match(wizard, /提交时预占 \$\{totalVideoCount\} 条/);
+  assert.match(wizard, /本批 \$\{totalVideoCount\} 条提交时预占本月额度，失败与取消自动返还——最终只为交付的成片计数。/);
   assert.match(read("src/app/(platform)/app/batches/new/page.tsx"), /showProviderPoints=\{isInternalRole\(session\.user\.role\)\}/);
   const selector = read("src/components/video-generation/video-route-selector.tsx");
   assert.match(selector, /showPlanPoints = true,/);

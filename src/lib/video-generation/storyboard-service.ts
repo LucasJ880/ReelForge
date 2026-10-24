@@ -24,6 +24,7 @@ import {
 } from "@/lib/services/rate-limit-service";
 import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
+import { STORYBOARD_BEATS_LONG, STORYBOARD_BEATS_SHORT } from "@/lib/video-generation/storyboard-beats";
 
 const STORYBOARD_LEASE_MS = 2 * 60_000;
 const STORYBOARD_POLL_RETRY_MS = 20_000;
@@ -166,34 +167,27 @@ export function storyboardFrameCountForDuration(durationSec: number): number {
   return 5;
 }
 
+const SINGLE_SHOT_LOCK =
+  "SINGLE SHOT LOCK: exactly one scene from one camera — never a grid, panels, collage, split screen, picture-in-picture, inset or magnifier circles, before/after halves, or several moments in one image.";
+
 export function buildStoryboardFramePlans(input: {
   prompt: string;
   durationSec: number;
   aspectRatio: string;
 }): StoryboardFramePlan[] {
   const count = storyboardFrameCountForDuration(input.durationSec);
-  const beats = count === 4
-    ? [
-        "0–3s · immediate problem or desire hook",
-        "3–7s · faithful product reveal",
-        "7–11s · simple product demonstration and proof",
-        "11–15s · resolved result with clean CTA-safe composition",
-      ]
-    : [
-        "opening hook",
-        "faithful product reveal",
-        "first demonstration beat",
-        "proof and resolved result",
-        "clean CTA-safe closing composition",
-      ];
+  const beats = count === 4 ? STORYBOARD_BEATS_SHORT : STORYBOARD_BEATS_LONG;
+  // 1025 真机验收：STORY 放在 FRAME 前面时，多镜头描述会被画成拼图（4 格、5 格、圆形放大插图），
+  // 拼图关键帧喂给图生视频会直接毁片。先写这一帧，故事只作连续性背景，并把「单镜头」写成硬约束。
   return beats.map((beat, ordinal) => ({
     ordinal,
     beat,
     prompt: [
-      "Create one photorealistic commercial storyboard keyframe with GPT Image 2.",
-      `STORY: ${input.prompt.trim()}`,
-      `FRAME ${ordinal + 1}/${count}: ${beat}.`,
+      "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
+      `THIS FRAME ${ordinal + 1}/${count}: ${beat}. Depict only this beat.`,
+      `STORY CONTEXT (continuity only — do not depict the other beats in this image): ${input.prompt.trim()}`,
       `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
+      SINGLE_SHOT_LOCK,
       "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
       "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
       "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
@@ -1053,7 +1047,7 @@ export async function regenerateStoryboardFrame(input: {
         attempt,
         isCurrent: true,
         beat: existing.beat,
-        prompt: `${existing.prompt}\nREGENERATION: create a distinct but continuity-faithful alternative for this same beat.`,
+        prompt: `${existing.prompt}\nREGENERATION: create a distinct but continuity-faithful alternative for this same beat.${existing.prompt.includes(SINGLE_SHOT_LOCK) ? "" : `\n${SINGLE_SHOT_LOCK}`}`,
         providerRequestKey: frameRequestKey(existing.storyboardRunId, existing.ordinal, attempt),
       },
     });
@@ -1280,11 +1274,39 @@ export function composeSingleVideoReferenceImages(input: {
 export async function requireApprovedStoryboardVideoReferencesForBrief(
   briefId: string,
 ): Promise<string[]> {
+  return (await requireApprovedStoryboardVideoInputsForBrief(briefId)).references;
+}
+
+/**
+ * 派发单条视频需要的故事板全部输入：参考图（实拍在前、帧在后）+ 商家原话 + 各帧节奏。
+ * 视频提示词据此改写成「按已确认故事板拍」（storyboard-beats.groundSegmentPromptInStoryboard）。
+ */
+export async function requireApprovedStoryboardVideoInputsForBrief(briefId: string): Promise<{
+  references: string[];
+  productPhotoCount: number;
+  story: string;
+  beats: string[];
+  totalDurationSec: number;
+  aspectRatio: string;
+}> {
   const { run, frameUrls } = await loadApprovedStoryboardForBrief(briefId);
-  return composeSingleVideoReferenceImages({
+  const references = composeSingleVideoReferenceImages({
     productImageUrls: run.inputImageUrls,
     storyboardFrameUrls: frameUrls,
   });
+  const beats = run.frames
+    .filter((frame) => frame.isCurrent !== false && frame.status === StoryboardFrameStatus.SUCCEEDED)
+    .sort((a, b) => a.ordinal - b.ordinal)
+    .map((frame) => frame.beat);
+  return {
+    references,
+    /// 帧在上限内总是全部保留（见 composeSingleVideoReferenceImages），排在前面的就是实拍张数
+    productPhotoCount: Math.max(0, references.length - frameUrls.length),
+    story: run.sourcePrompt,
+    beats,
+    totalDurationSec: run.durationSec,
+    aspectRatio: run.aspectRatio,
+  };
 }
 
 export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {

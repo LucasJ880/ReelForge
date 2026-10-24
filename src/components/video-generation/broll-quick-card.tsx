@@ -26,10 +26,10 @@ const VOICES = [
 const COPY = {
   "zh-CN": {
     title: "实拍图库线路",
-    hint: "口播稿直接出片：真实图库素材 + AI 配音 + 字幕，不消耗生成积分。适合讲流程与种草；展示产品细节请用上方主线。",
+    hint: "口播稿直接出片：真实图库素材 + AI 配音 + 字幕，不占本月视频额度。适合讲流程与种草；展示产品细节请用上方主线。",
     scriptLabel: "口播稿",
     scriptPlaceholder:
-      "例：很多人担心自己量不准窗户尺寸。其实你根本不用量。我们免费上门量尺，十分钟搞定……（至少 20 字）",
+      "例：第一次找人上门，最怕报价不透明。我们先上门看、当场报价，满意再开工……（至少 20 字）",
     voiceLabel: "声音风格",
     aspectLabel: "画幅",
     bgmLabel: "背景音乐",
@@ -50,10 +50,10 @@ const COPY = {
   },
   "en-US": {
     title: "Stock footage route",
-    hint: "Script to video with real stock footage, AI voiceover and captions — no generation credits. Great for process and lifestyle stories; use the main flow above for product-accurate shots.",
+    hint: "Script to video with real stock footage, AI voiceover and captions — doesn't count toward your monthly video quota. Great for process and lifestyle stories; use the main flow above for product-accurate shots.",
     scriptLabel: "Voiceover script",
     scriptPlaceholder:
-      "e.g. Most people worry about measuring windows wrong. You don't have to. We measure for free… (at least 20 characters)",
+      "e.g. Hiring someone for the first time? The worst part is a surprise bill. We visit, quote on the spot, and start only when you're happy… (at least 20 characters)",
     voiceLabel: "Voice",
     aspectLabel: "Aspect",
     bgmLabel: "Music bed",

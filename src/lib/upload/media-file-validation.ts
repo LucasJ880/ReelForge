@@ -98,9 +98,10 @@ export function validateMediaMagicBytes(
     };
   }
   if (declaredGroup === "image") {
-    const jpegAliases = new Set(["image/jpeg", "image/jpg"]);
-    if (detected !== normalized && !(detected === "image/jpeg" && jpegAliases.has(normalized))) {
-      return { ok: false, detected, reason: `图片签名为 ${detected}，与声明类型不一致` };
+    // 手机相册、微信转存的图常是「.png 名字、JPEG 内容」。签名本身是受支持的图片就收下，
+    // 由调用方按 detected 存储与声明类型——让小商家「重新导出原始文件」等于拒单（1025 真机验收）。
+    if (!IMAGE_TYPES.has(detected)) {
+      return { ok: false, detected, reason: `图片签名为 ${detected}，不是支持的图片格式` };
     }
   }
   if (normalized === "video/webm" && detected !== "video/webm") {

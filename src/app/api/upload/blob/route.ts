@@ -110,11 +110,13 @@ export function createUploadBlobPostHandler(
       415,
     );
   }
+  /// 以文件签名为准：扩展名与内容不符的图（.png 名字、JPEG 内容）按真实类型存储与声明。
+  const mimeType = magic.detected && magic.detected.split("/")[0] === "image" ? magic.detected : file.type;
   const prefix = (form.get("prefix") as string | null) ?? "uploads";
   if (!SAFE_PREFIX.test(prefix)) {
     return validationError("上传目录不合法，请刷新页面后重试。");
   }
-  const extension = extensionForMime(file.type);
+  const extension = extensionForMime(mimeType);
   const key = `${prefix}/${dependencies.randomUUID()}${extension}`;
 
   let storage: ReturnType<typeof getStorageProvider>;
@@ -157,14 +159,14 @@ export function createUploadBlobPostHandler(
     result = await storage.uploadFile("uploads", file, {
       key,
       access: "public",
-      contentType: file.type || undefined,
+      contentType: mimeType || undefined,
     });
     stage = "asset_persistence";
     const asset = await dependencies.createOwnedMediaAsset({
       userId: guard.session.user.id,
       storageKey: result.key,
       url: result.url,
-      mimeType: file.type,
+      mimeType,
       bytes: Buffer.from(await file.arrayBuffer()),
     });
     assetPersisted = true;

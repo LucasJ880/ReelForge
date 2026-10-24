@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T20:19:44.788Z",
+  "generatedAt": "2026-10-24T21:04:59.681Z",
   "package": {
     "name": "aivora",
     "version": "0.2.0"
@@ -41,31 +41,31 @@
     "Apify TikTok scraper (^2.23.0)"
   ],
   "fileTotals": {
-    "total": 20617,
+    "total": 20625,
     "byType": {
       "unknown": 13586,
       "doc": 2698,
       "style": 75,
       "prisma": 14,
       "server-action": 13,
-      "test": 3509,
+      "test": 3513,
       "workflow": 3,
       "config": 9,
       "schema": 55,
       "script": 87,
       "page": 74,
       "layout": 5,
-      "api": 107,
-      "component": 129,
+      "api": 108,
+      "component": 130,
       "i18n": 14,
-      "util": 140,
+      "util": 141,
       "provider": 14,
-      "service": 83,
+      "service": 84,
       "type": 2
     },
     "byArea": {
-      "unknown": 13482,
-      "media-processing": 1357,
+      "unknown": 13483,
+      "media-processing": 1358,
       "ffmpeg": 214,
       "blob-storage": 139,
       "auth": 295,
@@ -73,15 +73,15 @@
       "upload": 85,
       "demo": 531,
       "real-footage-ads": 140,
-      "video-generation": 131,
+      "video-generation": 132,
       "metrics": 84,
       "publishing": 70,
       "admin": 73,
       "marketing-site": 10,
       "wizard": 17,
-      "tests": 3509,
+      "tests": 3513,
       "config": 10,
-      "shared": 279,
+      "shared": 280,
       "prisma": 47,
       "scripts": 44,
       "shared-ui": 14,
@@ -90,14 +90,14 @@
     }
   },
   "routes": {
-    "total": 187,
+    "total": 188,
     "byKind": {
       "error": 17,
       "layout": 5,
       "loading": 16,
       "not-found": 2,
       "page": 39,
-      "api": 108
+      "api": 109
     }
   },
   "importantFiles": [

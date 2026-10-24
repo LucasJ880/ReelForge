@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T20:19:44.790Z",
+  "generatedAt": "2026-10-24T21:04:59.682Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -8,8 +8,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 38,
-      "sizeBytes": 1167,
+      "lineCount": 75,
+      "sizeBytes": 1574,
       "notes": ""
     },
     {
@@ -376567,7 +376567,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 1,
-      "sizeBytes": 24144,
+      "sizeBytes": 24710,
       "notes": ""
     },
     {
@@ -380873,8 +380873,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 367,
-      "sizeBytes": 38156,
+      "lineCount": 368,
+      "sizeBytes": 38437,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -383811,6 +383811,7 @@
         "@/lib/services/unified-library-service",
         "@/components/ui/button",
         "@/components/library/video-actions",
+        "@/components/library/cancel-video-button",
         "@/components/compliance/ai-generated-label",
         "@/components/library/report-content-button",
         "@/components/library/video-download-link",
@@ -383829,8 +383830,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 129,
-      "sizeBytes": 6683,
+      "lineCount": 145,
+      "sizeBytes": 7479,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -385972,6 +385973,29 @@
       "notes": "Next.js API route handler"
     },
     {
+      "path": "src/app/api/library/[id]/cancel/route.ts",
+      "type": "api",
+      "area": "unknown",
+      "exports": [
+        "runtime",
+        "dynamic",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/single-video-cancel-service"
+      ],
+      "importantSymbols": [
+        "POST",
+        "runtime",
+        "dynamic"
+      ],
+      "lineCount": 31,
+      "sizeBytes": 1372,
+      "notes": "Next.js API route handler"
+    },
+    {
       "path": "src/app/api/me/usage/route.ts",
       "type": "api",
       "area": "unknown",
@@ -386731,8 +386755,8 @@
         "POST",
         "createUploadBlobPostHandler"
       ],
-      "lineCount": 226,
-      "sizeBytes": 7912,
+      "lineCount": 228,
+      "sizeBytes": 8132,
       "notes": "Next.js API route handler; area=blob-storage"
     },
     {
@@ -387297,8 +387321,8 @@
       "importantSymbols": [
         "BatchCreateWizard"
       ],
-      "lineCount": 1152,
-      "sizeBytes": 51363,
+      "lineCount": 1154,
+      "sizeBytes": 51616,
       "notes": "React component; client component"
     },
     {
@@ -388937,6 +388961,26 @@
       "notes": "React component; client component"
     },
     {
+      "path": "src/components/library/cancel-video-button.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "CancelVideoButton"
+      ],
+      "imports": [
+        "react",
+        "next/navigation",
+        "@/components/ui/button",
+        "@/lib/exchange/pulse"
+      ],
+      "importantSymbols": [
+        "CancelVideoButton"
+      ],
+      "lineCount": 69,
+      "sizeBytes": 2445,
+      "notes": "React component; client component"
+    },
+    {
       "path": "src/components/library/failures-ack-button.tsx",
       "type": "component",
       "area": "shared",
@@ -389882,8 +389926,8 @@
         "captionStyleSelectValue",
         "generateVoiceoverScript"
       ],
-      "lineCount": 418,
-      "sizeBytes": 17190,
+      "lineCount": 464,
+      "sizeBytes": 19619,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -389907,7 +389951,7 @@
         "BrollQuickCard"
       ],
       "lineCount": 324,
-      "sizeBytes": 12464,
+      "sizeBytes": 12520,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -389988,6 +390032,7 @@
         "lucide-react",
         "@/components/exchange/status-tick",
         "@/lib/exchange/state-vocab",
+        "@/lib/video-generation/storyboard-beats",
         "@/components/ui/button",
         "@/lib/utils"
       ],
@@ -389997,8 +390042,8 @@
         "StoryboardWorkflowPanel",
         "storyboardFrameTarget"
       ],
-      "lineCount": 226,
-      "sizeBytes": 9810,
+      "lineCount": 227,
+      "sizeBytes": 9929,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -390045,8 +390090,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2240,
-      "sizeBytes": 93521,
+      "lineCount": 2241,
+      "sizeBytes": 93697,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -390076,8 +390121,8 @@
         "parseVideoRouteOverride",
         "shuyuPlanPointsPerVideo"
       ],
-      "lineCount": 584,
-      "sizeBytes": 21416,
+      "lineCount": 587,
+      "sizeBytes": 21687,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -390292,7 +390337,7 @@
         "TrackedLinkChannel"
       ],
       "lineCount": 863,
-      "sizeBytes": 32808,
+      "sizeBytes": 32824,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -390378,8 +390423,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 929,
-      "sizeBytes": 58924,
+      "lineCount": 935,
+      "sizeBytes": 59653,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -391853,7 +391898,7 @@
         "readingFormula"
       ],
       "lineCount": 115,
-      "sizeBytes": 6630,
+      "sizeBytes": 6667,
       "notes": "Utility / helper module"
     },
     {
@@ -392150,6 +392195,7 @@
         "MEDIA_PROBE_SUBTITLE_TEXT",
         "MediaHealthStep",
         "MediaHealthReport",
+        "subtitleFontIsBundledCjk",
         "parseLibassFontLog",
         "runMediaHealthProbe"
       ],
@@ -392168,11 +392214,12 @@
         "MEDIA_PROBE_SUBTITLE_TEXT",
         "MediaHealthStep",
         "MediaHealthReport",
+        "subtitleFontIsBundledCjk",
         "parseLibassFontLog",
         "runMediaHealthProbe"
       ],
-      "lineCount": 312,
-      "sizeBytes": 10524,
+      "lineCount": 325,
+      "sizeBytes": 11304,
       "notes": "Utility / helper module; area=media-processing"
     },
     {
@@ -394816,7 +394863,7 @@
         "quotaRefundCutoff"
       ],
       "lineCount": 1108,
-      "sizeBytes": 37737,
+      "sizeBytes": 37787,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
     },
     {
@@ -395114,6 +395161,31 @@
       "lineCount": 52,
       "sizeBytes": 2061,
       "notes": "Business logic service"
+    },
+    {
+      "path": "src/lib/services/single-video-cancel-service.ts",
+      "type": "service",
+      "area": "media-processing",
+      "exports": [
+        "CUSTOMER_CANCELLED_CLASS",
+        "CUSTOMER_CANCEL_MESSAGE",
+        "CancelUnifiedOrderResult",
+        "cancelUnifiedOrderForUser"
+      ],
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/services/quota-refund-service"
+      ],
+      "importantSymbols": [
+        "CUSTOMER_CANCELLED_CLASS",
+        "CUSTOMER_CANCEL_MESSAGE",
+        "CancelUnifiedOrderResult",
+        "cancelUnifiedOrderForUser"
+      ],
+      "lineCount": 127,
+      "sizeBytes": 4891,
+      "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
       "path": "src/lib/services/stitch-dispatch-service.ts",
@@ -395514,7 +395586,9 @@
         "./video-watchdog",
         "./historical-dispatch-quarantine",
         "./frame-qa-gate",
+        "./single-video-cancel-service",
         "@/lib/video-generation/storyboard-service",
+        "@/lib/video-generation/storyboard-beats",
         "./stitch-service"
       ],
       "importantSymbols": [
@@ -395527,8 +395601,8 @@
         "dispatchVideoGeneration",
         "reconcileVideoJob"
       ],
-      "lineCount": 2030,
-      "sizeBytes": 69271,
+      "lineCount": 2069,
+      "sizeBytes": 70837,
       "notes": "Business logic service; hits Prisma DB; area=media-processing"
     },
     {
@@ -395857,8 +395931,8 @@
         "validateMediaMagicBytes",
         "validateFileMagicBytes"
       ],
-      "lineCount": 118,
-      "sizeBytes": 3759,
+      "lineCount": 119,
+      "sizeBytes": 3906,
       "notes": "Utility / helper module; area=upload"
     },
     {
@@ -396013,6 +396087,7 @@
         "BGM_TRACKS",
         "buildDeterministicCues",
         "renderSrtCaptions",
+        "CAPTION_FONT_FAMILY",
         "renderAssCaptions",
         "AudioFilterPlan",
         "buildAudioFilterPlan"
@@ -396021,14 +396096,15 @@
       "importantSymbols": [
         "CaptionCue",
         "BGM_TRACKS",
+        "CAPTION_FONT_FAMILY",
         "AudioFilterPlan",
         "buildDeterministicCues",
         "renderSrtCaptions",
         "renderAssCaptions",
         "buildAudioFilterPlan"
       ],
-      "lineCount": 328,
-      "sizeBytes": 11017,
+      "lineCount": 336,
+      "sizeBytes": 11568,
       "notes": "Utility / helper module; FFmpeg / audio loudness pipeline; area=ffmpeg"
     },
     {
@@ -396496,8 +396572,8 @@
         "heuristicBrief",
         "__test__"
       ],
-      "lineCount": 211,
-      "sizeBytes": 7896,
+      "lineCount": 210,
+      "sizeBytes": 7992,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -397210,6 +397286,29 @@
       "notes": "Utility / helper module; area=media-processing"
     },
     {
+      "path": "src/lib/video-generation/storyboard-beats.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "STORYBOARD_BEATS_SHORT",
+        "STORYBOARD_BEATS_LONG",
+        "storyboardBeatLabel",
+        "STORYBOARD_GROUNDING_MARKER",
+        "groundSegmentPromptInStoryboard"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "STORYBOARD_BEATS_SHORT",
+        "STORYBOARD_BEATS_LONG",
+        "STORYBOARD_GROUNDING_MARKER",
+        "storyboardBeatLabel",
+        "groundSegmentPromptInStoryboard"
+      ],
+      "lineCount": 113,
+      "sizeBytes": 6083,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/lib/video-generation/storyboard-gacha.ts",
       "type": "util",
       "area": "video-generation",
@@ -397301,6 +397400,7 @@
         "SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT",
         "composeSingleVideoReferenceImages",
         "requireApprovedStoryboardVideoReferencesForBrief",
+        "requireApprovedStoryboardVideoInputsForBrief",
         "pollPendingStoryboardRuns",
         "cancelStoryboardRun",
         "cancelStoryboardRunsForVideoJobs",
@@ -397315,7 +397415,8 @@
         "@/lib/services/media-asset-service",
         "@/lib/services/rate-limit-service",
         "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
+        "@/lib/video-generation/providers/submission-error",
+        "@/lib/video-generation/storyboard-beats"
       ],
       "importantSymbols": [
         "StoryboardFramePlan",
@@ -397327,8 +397428,8 @@
         "storyboardFrameCountForDuration",
         "buildStoryboardFramePlans"
       ],
-      "lineCount": 1521,
-      "sizeBytes": 56611,
+      "lineCount": 1543,
+      "sizeBytes": 58247,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -398180,8 +398281,8 @@
         "../src/lib/video-generation/bgm-attribution"
       ],
       "importantSymbols": [],
-      "lineCount": 82,
-      "sizeBytes": 3158,
+      "lineCount": 111,
+      "sizeBytes": 4617,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -399057,6 +399158,23 @@
       "importantSymbols": [],
       "lineCount": 141,
       "sizeBytes": 5389,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/caption-font-family.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/media/media-fonts",
+        "../src/lib/media/media-health",
+        "../src/lib/video-generation/audio-post-production"
+      ],
+      "importantSymbols": [],
+      "lineCount": 23,
+      "sizeBytes": 1327,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -401727,7 +401845,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 340,
-      "sizeBytes": 19594,
+      "sizeBytes": 19671,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -402147,6 +402265,24 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/single-video-cancel.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/single-video-cancel-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 114,
+      "sizeBytes": 6185,
+      "notes": "Unit / integration test; hits Prisma DB; area=tests"
+    },
+    {
       "path": "tests/single-video-path-round1025.test.ts",
       "type": "test",
       "area": "tests",
@@ -402392,7 +402528,7 @@
         "GET"
       ],
       "lineCount": 54,
-      "sizeBytes": 2545,
+      "sizeBytes": 2556,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -402425,6 +402561,23 @@
       "importantSymbols": [],
       "lineCount": 34,
       "sizeBytes": 1150,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/storyboard-grounded-video-prompt.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 86,
+      "sizeBytes": 5220,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -402759,8 +402912,8 @@
         "../src/types/video-generation"
       ],
       "importantSymbols": [],
-      "lineCount": 126,
-      "sizeBytes": 4128,
+      "lineCount": 128,
+      "sizeBytes": 4376,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -402931,6 +403084,22 @@
       "importantSymbols": [],
       "lineCount": 333,
       "sizeBytes": 15687,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/upload-signature-normalize.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/app/api/upload/blob/route",
+        "../src/lib/upload/media-file-validation"
+      ],
+      "importantSymbols": [],
+      "lineCount": 55,
+      "sizeBytes": 2986,
       "notes": "Unit / integration test; area=tests"
     },
     {

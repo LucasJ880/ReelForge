@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
 import { Button } from "@/components/ui/button";
 import { VideoActions } from "@/components/library/video-actions";
+import { CancelVideoButton } from "@/components/library/cancel-video-button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { ReportContentButton } from "@/components/library/report-content-button";
 import { VideoDownloadLink } from "@/components/library/video-download-link";
@@ -37,6 +38,8 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const locale = await getServerLocale();
   const copy = getPlatformCopy(locale).library;
   const canAct = Boolean(item.briefId) && !item.isShowcase;
+  /// 还在生成 / 暂停的单条可以取消（铁律 #7）：成品库写着「点进去可以看进度或取消」
+  const canCancel = !item.isShowcase && (item.status === "generating" || item.status === "paused");
   return (
     <div className="x-stack min-w-0">
       <Button render={<Link href="/app/library" />} variant="ghost" size="sm" className="self-start">
@@ -92,7 +95,7 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
           )}
         </div>
 
-        {item.videoUrl || item.subtitleFileUrl || canAct || item.bgmAttribution ? (
+        {item.videoUrl || item.subtitleFileUrl || canAct || canCancel || item.bgmAttribution ? (
           <aside className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-wrap gap-2">
               {item.videoUrl ? (
@@ -111,6 +114,19 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                   <span className="break-words">{item.bgmAttribution}</span>
                 </span>
               </p>
+            ) : null}
+            {canCancel ? (
+              <CancelVideoButton
+                orderId={item.id}
+                copy={{
+                  cancelVideo: copy.cancelVideo,
+                  cancelConfirm: copy.cancelConfirm,
+                  cancelKeep: copy.cancelKeep,
+                  cancelConfirmHint: copy.cancelConfirmHint,
+                  cancelling: copy.cancelling,
+                  cancelFailed: copy.cancelFailed,
+                }}
+              />
             ) : null}
             {canAct && item.briefId ? (
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">

@@ -79,3 +79,32 @@ test("automatic scripts are deterministic, localized, and duration-bounded", () 
   assert.match(english, /Learn more/);
   assert.ok(english.split(/\s+/u).length <= 34);
 });
+
+test("1025：口播初稿不念规格与镜头调度，只在句读处截断", () => {
+  const zh = generateVoiceoverScript({
+    prompt:
+      "15 秒 9:16 真实 UGC 演示：一只金毛在公园奔跑，主人在手机上实时看到项圈摄像头拍下的第一视角画面。产品是米白色 Aivora 宠物项圈摄像头，镜头特写展示扣带和镜头模组，最后主人微笑点开回放。温暖自然光。",
+    durationSec: 15,
+    language: "zh-CN",
+    templateId: null,
+    cta: null,
+  });
+  assert.doesNotMatch(zh, /15 秒|9:16|UGC|特写|自然光/);
+  assert.match(zh, /一只金毛在公园奔跑/);
+  // 每个分句要么完整出现、要么不出现：不在半句处截断
+  assert.doesNotMatch(zh, /主人在手机上实时。/);
+  assert.ok(Array.from(zh).length <= 15 * 4);
+
+  const specOnly = generateVoiceoverScript({ prompt: "30 秒 16:9 横屏，特写，暖光", durationSec: 30, language: "zh-CN", templateId: null, cta: null });
+  assert.match(specOnly, /这款产品让日常使用更简单/);
+
+  const en = generateVoiceoverScript({
+    prompt: "15s vertical UGC demo. A golden retriever runs through the park, the owner watches the collar camera live on her phone. Close-up of the buckle. Warm natural lighting.",
+    durationSec: 15,
+    language: "en-US",
+    templateId: null,
+    cta: null,
+  });
+  assert.doesNotMatch(en, /15s|vertical|UGC|Close-up|lighting/i);
+  assert.match(en, /golden retriever/);
+});

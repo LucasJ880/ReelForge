@@ -49,5 +49,5 @@ test("video dispatch requires an approved storyboard before provider submission"
   assert.match(route, /getApprovedStoryboardVideoReferences/);
   assert.match(route, /dispatchReservationKey: dispatchRequestId/);
   // round 1025 · A2 3.4：派发取「实拍在前 + 已确认故事板帧」，仍以已确认故事板为前提。
-  assert.match(service, /requireApprovedStoryboardVideoReferencesForBrief/);
+  assert.match(service, /requireApprovedStoryboardVideo(?:References|Inputs)ForBrief/);
 });

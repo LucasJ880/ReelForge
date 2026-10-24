@@ -230,7 +230,7 @@ const ZH_COPY = {
   cancelRoundHint: "生成服务出问题时，可以随时取消这一轮，素材和描述会保留。",
   routeCheckingHint: "正在检查所选生成线路，请稍候。",
   routeUnavailableHint: "所选线路当前不可用，请在线路菜单中更换后再提交。",
-  quotaHint: "成片后计 1 条额度：本月已用 {used} / {limit} 条，失败与取消返还。",
+  quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 {used} / {limit} 条。",
   previewFailed: "暂时无法准备生成方案，请稍后重试。",
   dispatchFailed: "暂时无法提交视频，请稍后重试。",
   qualityBlocked: "视频描述还需要更多细节。请按生成方案中的提示修改后再提交。",
@@ -358,7 +358,7 @@ const EN_COPY: StudioCopy = {
   cancelRoundHint: "If generation is having trouble, cancel this round anytime — your uploads and direction are kept.",
   routeCheckingHint: "Checking the selected generation route…",
   routeUnavailableHint: "The selected route is unavailable. Choose another route before submitting.",
-  quotaHint: "Counts as 1 video once delivered: {used} / {limit} used this month; failures and cancels are refunded.",
+  quotaHint: "Reserves 1 video at submission, refunded automatically on failure or cancel: {used} / {limit} used this month.",
   previewFailed: "The generation plan is temporarily unavailable. Try again shortly.",
   dispatchFailed: "The video could not be submitted right now. Try again shortly.",
   qualityBlocked: "The brief needs more detail. Update it using the generation-plan guidance, then submit again.",
@@ -1319,10 +1319,11 @@ export function StreamlinedVideoStudio({
     || busy === "storyboard"
     || (creationMode === "quick" && busy === "preview");
   /// 委托进度沿用首用提示的五步（guideSteps）：一页只有一套步骤，当前一步只有一个。
+  /// 关键帧还在画时停在「生成 AI 故事板」，画完才进「确认每一帧」（不在 0/4 时标已完成）。
   const stageIndex = busy === "dispatch" || storyboard?.status === "APPROVED"
     ? 4
     : storyboard
-      ? 3
+      ? (storyboardGenerating ? 2 : 3)
       : planIsCurrent
         ? 2
         : rawPrompt.trim()

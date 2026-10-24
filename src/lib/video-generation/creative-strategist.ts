@@ -167,10 +167,9 @@ function coerceBrief(
 export function heuristicBrief(args: BuildCreativeBriefArgs): CreativeBrief {
   const isBusiness = args.request.userType !== "personal";
   const hook = extractFirstSentence(args.request.rawPrompt);
-  const productHint =
-    args.classifiedAssets.find((a) => effectiveAssetRole(a) === "product_image")?.fileName ??
-    args.request.brandKit?.brandName ??
-    "your product";
+  /// 不用上传文件名当产品名：上传后的文件名是 UUID（1025 真机验收里提示词出现过
+  /// 「Concrete visual of 1232630b-….jpg in use」）。有品牌名用品牌名，否则泛称。
+  const productHint = args.request.brandKit?.brandName?.trim() || "the product";
 
   const sellingPoints: string[] = isBusiness
     ? [
@@ -187,8 +186,8 @@ export function heuristicBrief(args: BuildCreativeBriefArgs): CreativeBrief {
       ? "Buyers who care about practical results"
       : "Friends and casual viewers",
     corePainPoint: isBusiness
-      ? "Customers don't know if this product fits their daily life"
-      : "Standard daily moments worth sharing",
+      ? "the everyday hassle this product solves"
+      : "everyday moments worth sharing",
     emotionalAngle: isBusiness ? "Confidence and clarity" : "Authentic and fun",
     keySellingPoints: sellingPoints,
     cta: isBusiness ? args.request.cta ?? "Tap to learn more" : null,

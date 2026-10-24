@@ -67,6 +67,7 @@ const ROUTE_COPY = {
     unavailable: "暂不可用",
     planGroup: "套餐选择 · 实时价目",
     planDefault: "推荐",
+    planCustomer: "线路 {n}",
     planPerVideo: "积分/支",
     planPerSecond: "积分/秒",
     planInfoOnly: "本入口按推荐套餐提交",
@@ -90,6 +91,7 @@ const ROUTE_COPY = {
     unavailable: "Unavailable",
     planGroup: "Plan selection · live pricing",
     planDefault: "Recommended",
+    planCustomer: "Route {n}",
     planPerVideo: "points/video",
     planPerSecond: "points/second",
     planInfoOnly: "This entry submits on the recommended plan",
@@ -389,7 +391,7 @@ export function VideoRouteSelector({
                     <span className="text-meta text-muted-foreground">{copy.planEmpty}</span>
                   </DropdownMenuItem>
                 ) : (
-                  plans.map((plan) => {
+                  plans.map((plan, planIndex) => {
                     const selected = selectedPlan?.planId === plan.planId;
                     const unitLabel = plan.billingUnit === "generation"
                       ? copy.planPerVideo
@@ -426,7 +428,8 @@ export function VideoRouteSelector({
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-body font-medium text-foreground">
-                            {plan.displayName}
+                            {/* 供应商套餐原名（「视频-Seedance2.0-720P-推荐1」）只给内部角色看 */}
+                            {showPlanPoints ? plan.displayName : copy.planCustomer.replace("{n}", String(planIndex + 1))}
                             {plan.isDefault ? ` · ${copy.planDefault}` : ""}
                           </span>
                           <span className="mt-0.5 block truncate font-mono text-meta tabular-nums text-muted-foreground">

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { StatusTick } from "@/components/exchange/status-tick";
 import type { VocabState } from "@/lib/exchange/state-vocab";
+import { storyboardBeatLabel } from "@/lib/video-generation/storyboard-beats";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -171,7 +172,7 @@ export function StoryboardWorkflowPanel({
               <div className="flex flex-1 flex-col gap-3 p-3">
                 <div className="min-h-12 flex-1 space-y-1.5">
                   <p className="line-clamp-2 text-meta font-medium text-foreground">
-                    {frame?.beat ?? (english ? "Preparing story beat" : "正在准备镜头节奏")}
+                    {frame?.beat ? storyboardBeatLabel(frame.beat, english) : english ? "Preparing story beat" : "正在准备镜头节奏"}
                   </p>
                   <StatusTick entity="frame" state={frameState} locale={english ? "en-US" : "zh-CN"} />
                 </div>

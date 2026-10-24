@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (107/107 route files)
+## API endpoint inventory (108/108 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -116,6 +116,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/product-link` | Session; read-only | VERIFIED: link-to-video prefill (Shopify JSON → direct → Firecrawl fallback), no records created |
 | POST | `/api/broll/dispatch` | Session; demo blocked (paid TTS) | VERIFIED: sync prepare (plan/picks/TTS) then PENDING chain; ffmpeg deferred to stitch runner broll branch |
 | POST | `/api/broll/cancel` | Session + ownership | VERIFIED: broll-only cancel, inputs preserved, jobs CANCELLED so claim never picks it |
+| POST | `/api/library/[id]/cancel` | Session + ownership (own unified_input order) | ADDED 1025: customer cancel for a dispatched single video; unfinished segments CAS→CANCELLED with customer_cancelled marker, brief RENDER_FAILED, quota refunded immediately, inputs preserved |
 | POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |

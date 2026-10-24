@@ -118,8 +118,10 @@ test("[unified-creative-strategist] product image asset surfaces in selling poin
     classification: classFor("business"),
     classifiedAssets: [product],
   });
+  /// 1025：上传文件名（线上是 UUID）不再当产品名进提示词；没有品牌名时泛称 the product
   assert.ok(
-    brief.keySellingPoints.some((sp) => sp.includes("hydra-bottle.jpg")),
+    brief.keySellingPoints.some((sp) => sp.startsWith("Concrete visual of ")),
     "should hint at the uploaded product",
   );
+  assert.ok(!brief.keySellingPoints.some((sp) => sp.includes("hydra-bottle.jpg")), "file names never become product names");
 });

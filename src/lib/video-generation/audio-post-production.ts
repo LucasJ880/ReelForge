@@ -235,6 +235,14 @@ function assAlignment(position: CaptionPosition): number {
   return 2;
 }
 
+/**
+ * 字幕字体 = 打包的 Noto Sans SC 的真实 family 名（必须等于 media-fonts 的 CJK_FONT_FAMILY）。
+ * 1025 真机验收：原来写「Noto Sans CJK SC」，Linux 靠 fontconfig 别名碰巧对上；macOS 的 libass
+ * 走 CoreText 不读 fontconfig，fontsdir 里的字体按 family 名匹配不上，回退 Helvetica，中文全成豆腐块。
+ * 本模块保持纯函数（客户端也会间接读到），所以这里写字面量，由测试锁住与常量一致。
+ */
+export const CAPTION_FONT_FAMILY = "Noto Sans SC";
+
 export function renderAssCaptions(
   cues: CaptionCue[],
   options: {
@@ -257,7 +265,7 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,Noto Sans CJK SC,${fontSize},&H00FFFFFF,&H0000D7FF,&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${assAlignment(options.position)},80,80,${marginV},1
+Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},&H00FFFFFF,&H0000D7FF,&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${assAlignment(options.position)},80,80,${marginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;

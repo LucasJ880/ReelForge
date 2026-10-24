@@ -59,10 +59,12 @@ import {
 } from "./video-watchdog";
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
 import { decideFrameQaGate, type FrameQaAttemptPin } from "./frame-qa-gate";
+import { CUSTOMER_CANCELLED_CLASS } from "./single-video-cancel-service";
 import {
-  requireApprovedStoryboardVideoReferencesForBrief,
+  requireApprovedStoryboardVideoInputsForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
 } from "@/lib/video-generation/storyboard-service";
+import { groundSegmentPromptInStoryboard } from "@/lib/video-generation/storyboard-beats";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
@@ -374,10 +376,36 @@ export async function dispatchVideoForBrief(briefId: string) {
   if (brief.directorPlan != null) {
     /// 参考图 = 商家实拍在前 + 已确认的故事板帧在后（此前只剩故事板帧，模型看不到实拍）。
     /// 写回 brief：分段重试读同一份，首发与重试同参。
-    const videoReferences = await requireApprovedStoryboardVideoReferencesForBrief(briefId);
+    /// 提示词按已确认的故事板改写（商家原话 + 帧序），写回 directorPlan——重试读同一份。
+    const storyboard = await requireApprovedStoryboardVideoInputsForBrief(briefId);
+    /// 计划解析失败就不改写（分段派发会给出带原因的错误），只写回参考图。
+    let plan: DirectorPlan | null = null;
+    try {
+      plan = parseDirectorPlan(brief.directorPlan);
+    } catch {
+      plan = null;
+    }
+    const groundedPlan: DirectorPlan | null = plan && {
+      ...plan,
+      segmentPlan: plan.segmentPlan.map((segment) => ({
+        ...segment,
+        seedancePrompt: groundSegmentPromptInStoryboard(segment.seedancePrompt, {
+          aspectRatio: storyboard.aspectRatio,
+          story: storyboard.story,
+          beats: storyboard.beats,
+          productPhotoCount: storyboard.productPhotoCount,
+          totalDurationSec: storyboard.totalDurationSec,
+          fromSec: segment.fromSec,
+          toSec: segment.toSec,
+        }),
+      })),
+    };
     await db.videoBrief.update({
       where: { id: briefId },
-      data: { referenceImageUrls: videoReferences },
+      data: {
+        referenceImageUrls: storyboard.references,
+        ...(groundedPlan ? { directorPlan: groundedPlan as unknown as Prisma.InputJsonValue } : {}),
+      },
     });
     return dispatchMultiSegmentGeneration(briefId);
   }
@@ -1636,6 +1664,17 @@ export async function syncBriefStatus(briefId: string) {
     where: { videoBriefId: briefId },
   });
   if (jobs.length === 0) return;
+  /// 客户取消过的这一轮（cancelUnifiedOrderForUser 已把 brief 置 RENDER_FAILED）：
+  /// 不再按剩下的已成功段去拼接半成品，也不把状态翻回去。
+  if (
+    jobs.some(
+      (j) =>
+        j.status === VideoJobStatus.CANCELLED &&
+        j.submissionErrorClass === CUSTOMER_CANCELLED_CLASS,
+    )
+  ) {
+    return;
+  }
 
   const succeeded = jobs.filter((j) => j.status === VideoJobStatus.SUCCEEDED);
   const failed = jobs.filter((j) => j.status === VideoJobStatus.FAILED);

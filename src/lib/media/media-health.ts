@@ -90,6 +90,15 @@ function shortError(err: unknown): string {
     .slice(0, 400);
 }
 
+/**
+ * 纯函数：libass 选中的是不是打包的 Noto Sans SC。
+ * 1025 真机验收：macOS 上选中 Helvetica.ttc 时 libass 不报「缺字」（CoreText 路径不打那条日志），
+ * 探针曾经因此给出 missingGlyphs: 0 的假绿灯——中文字幕实际全是豆腐块。只认打包字体。
+ */
+export function subtitleFontIsBundledCjk(subtitleFont: string | null): boolean {
+  return Boolean(subtitleFont && /NotoSansSC|Noto Sans SC/i.test(subtitleFont));
+}
+
 /** 纯函数：从 ffmpeg/libass 的 info 日志里取选中的字体与缺字数 */
 export function parseLibassFontLog(stderr: string): {
   subtitleFont: string | null;
@@ -279,7 +288,11 @@ export async function runMediaHealthProbe(
       synthesisStep.ok =
         synthesisStep.subtitlesBurned &&
         synthesisStep.missingGlyphs === 0 &&
+        subtitleFontIsBundledCjk(synthesisStep.subtitleFont) &&
         (outputBytes ?? 0) > 0;
+      if (synthesisStep.subtitlesBurned && !subtitleFontIsBundledCjk(synthesisStep.subtitleFont)) {
+        synthesisStep.error = `subtitle font is not the bundled Noto Sans SC: ${synthesisStep.subtitleFont ?? "unknown"}`;
+      }
     } else if (!endCardStep.ok) {
       synthesisStep.error = "skipped: end card render failed";
     } else {

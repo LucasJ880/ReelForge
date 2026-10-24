@@ -994,8 +994,8 @@ export function BatchCreateWizard({
                     : selectedRouteAvailable
                       ? !showProviderPoints
                         ? (english
-                            ? `This batch counts ${totalVideoCount} videos against this month's allowance once delivered; failures and cancels are refunded.`
-                            : `本批 ${totalVideoCount} 条按成片计入本月额度，失败与取消返还。`)
+                            ? `This batch reserves ${totalVideoCount} videos from this month's allowance at submission; failures and cancels are refunded automatically, so only delivered videos count.`
+                            : `本批 ${totalVideoCount} 条提交时预占本月额度，失败与取消自动返还——最终只为交付的成片计数。`)
                         : videoRouteId === "buddy"
                           ? estimatedPartnerPoints !== null
                             ? (english
@@ -1043,7 +1043,7 @@ export function BatchCreateWizard({
             <CardContent className="mx-auto w-full max-w-2xl space-y-5">
               <dl className="divide-y divide-border">
                 {[
-                  [english ? "Product images" : "产品图片", english ? `${uploaded.length} uploaded to CDN` : `${uploaded.length} 张（已全部上传 CDN）`],
+                  [english ? "Product images" : "产品图片", english ? `${uploaded.length} uploaded` : `${uploaded.length} 张（已全部上传）`],
                   [
                     english ? "Style template" : "风格模板",
                     `${english ? selectedTemplate.name : selectedTemplate.nameZh} · v${selectedTemplate.version}`,
@@ -1061,7 +1061,9 @@ export function BatchCreateWizard({
                     english ? "Video route" : "视频线路",
                     videoRouteId === "buddy"
                       ? planSummary
-                        ? `Aivora · ${planSummary.displayName} · ${planSummary.resolution}`
+                        ? showProviderPoints
+                          ? `Aivora · ${planSummary.displayName} · ${planSummary.resolution}`
+                          : `${english ? "Aivora video route" : "Aivora 视频通道"} · ${planSummary.resolution}`
                         : (english ? "Aivora video route · Seedance 2.0" : "Aivora 视频通道 · Seedance 2.0")
                       : (english ? "Official direct route" : "官方直连线路"),
                   ],
@@ -1069,7 +1071,7 @@ export function BatchCreateWizard({
                   !showProviderPoints
                     ? [
                         english ? "Allowance" : "计入额度",
-                        english ? `${totalVideoCount} videos once delivered` : `成片后计 ${totalVideoCount} 条`,
+                        english ? `${totalVideoCount} videos reserved at submission` : `提交时预占 ${totalVideoCount} 条`,
                       ]
                     : [
                         english ? "Estimated points" : "预计积分",

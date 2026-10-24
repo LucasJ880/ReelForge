@@ -111,6 +111,42 @@ function englishHook(templateId: string | null): string {
   return "See how it changes the everyday experience";
 }
 
+/*
+ * 视频提示词是写给镜头的（时长、画幅、特写、布光），口播稿是说给观众的。原来整段塞进口播，
+ * 成片会念出「15 秒 9:16 真实 UGC 演示」、还在半句处截断（1025 真机验收）。这里按分句取用：
+ * 丢掉规格与镜头调度分句，只在句读处截断。
+ */
+const SPEC_CLAUSE_ZH = /\d+\s*(?:秒|s\b|sec)|\d+\s*[:：]\s*\d+|竖屏|横屏|方形|画幅|UGC|分镜|4K|高清/iu;
+const CAMERA_CLAUSE_ZH =
+  /^(?:镜头|特写|近景|远景|全景|中景|运镜|慢动作|俯拍|仰拍|航拍|推近|拉远|转场|布光|画面|背景|光线|色调|调色|配乐|背景音乐|BGM|字幕|口播)/iu;
+const LIGHTING_CLAUSE_ZH = /^[^，。]{0,6}(?:光|光线|色调)$/u;
+const SPEC_CLAUSE_EN =
+  /\b\d+\s*(?:s|sec|secs|seconds)\b|\b\d+\s*:\s*\d+\b|\b(?:ugc|vertical|horizontal|square|aspect|close-?up|wide shot|camera|lighting|lit|slow[- ]motion|aerial|pov|b-?roll|4k|storyboard|captions?|voice-?over)\b/iu;
+
+function narrationClauses(prompt: string, english: boolean): string[] {
+  const clauses = compactText(prompt)
+    .split(english ? /[.!?;:\n]+|,\s+/u : /[。！？!?；;，,：:\n]+/u)
+    .map((clause) => clause.trim())
+    .filter(Boolean);
+  if (english) return clauses.filter((clause) => !SPEC_CLAUSE_EN.test(clause));
+  return clauses
+    .filter((clause) => !SPEC_CLAUSE_ZH.test(clause) && !CAMERA_CLAUSE_ZH.test(clause) && !LIGHTING_CLAUSE_ZH.test(clause))
+    .map((clause) => clause.replace(/^(?:产品|商品)(?:是|为)/u, "").trim())
+    .filter(Boolean);
+}
+
+/** 按分句装进预算；一句都放不下时才截断第一句（不留半句话在中间）。 */
+function fitClauses(clauses: string[], budget: number, measure: (text: string) => number, joiner: string): string {
+  const kept: string[] = [];
+  for (const clause of clauses) {
+    const next = [...kept, clause].join(joiner);
+    if (measure(next) > budget) break;
+    kept.push(clause);
+  }
+  if (kept.length > 0 || clauses.length === 0) return kept.join(joiner);
+  return Array.from(clauses[0]).slice(0, Math.max(0, budget)).join("");
+}
+
 function joinWithinChineseLimit(
   hook: string,
   prompt: string,
@@ -125,10 +161,13 @@ function joinWithinChineseLimit(
       - Array.from(hookSentence).length
       - Array.from(ctaSentence).length,
   );
-  const clippedPrompt = Array.from(withoutEndingPunctuation(prompt))
-    .slice(0, Math.max(0, availableForPrompt - 1))
-    .join("");
-  const result = `${hookSentence}${sentence(clippedPrompt, false)}${ctaSentence}`;
+  const body = fitClauses(
+    narrationClauses(prompt, false),
+    Math.max(0, availableForPrompt - 1),
+    (text) => Array.from(text).length,
+    "，",
+  );
+  const result = `${hookSentence}${sentence(body, false)}${ctaSentence}`;
   return Array.from(result).slice(0, maxCharacters).join("");
 }
 
@@ -139,12 +178,18 @@ function joinWithinEnglishLimit(
   maxWords: number,
 ): string {
   const hookWords = withoutEndingPunctuation(hook).split(/\s+/u).filter(Boolean);
-  const promptWords = withoutEndingPunctuation(prompt).split(/\s+/u).filter(Boolean);
   const ctaWords = withoutEndingPunctuation(cta).split(/\s+/u).filter(Boolean);
   const promptBudget = Math.max(0, maxWords - hookWords.length - ctaWords.length);
+  const body = fitClauses(
+    narrationClauses(prompt, true),
+    promptBudget,
+    (text) => text.split(/\s+/u).filter(Boolean).length,
+    ", ",
+  );
+  const bodyWords = body.split(/\s+/u).filter(Boolean).slice(0, promptBudget);
   return [
     sentence(hookWords.join(" "), true),
-    sentence(promptWords.slice(0, promptBudget).join(" "), true),
+    sentence(bodyWords.join(" "), true),
     sentence(ctaWords.join(" "), true),
   ].filter(Boolean).join(" ");
 }
@@ -155,10 +200,11 @@ function joinWithinEnglishLimit(
  */
 export function generateVoiceoverScript(input: VoiceoverScriptInput): string {
   const english = input.language.toLowerCase().startsWith("en");
-  const prompt = compactText(input.prompt)
-    || (english
-      ? "This product makes the everyday routine simpler"
-      : "这款产品让日常使用更简单");
+  const fallbackPrompt = english
+    ? "This product makes the everyday routine simpler"
+    : "这款产品让日常使用更简单";
+  // 提示词只剩规格与镜头调度（没有可说给观众的内容）时，用默认句，不念规格。
+  const prompt = narrationClauses(input.prompt, english).length > 0 ? compactText(input.prompt) : fallbackPrompt;
   const cta = compactText(input.cta ?? "")
     || (english ? "See it in action" : "现在看看实际效果");
 

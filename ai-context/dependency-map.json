@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T20:19:44.847Z",
+  "generatedAt": "2026-10-24T21:04:59.736Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -232537,6 +232537,7 @@
         "@/lib/services/unified-library-service",
         "@/components/ui/button",
         "@/components/library/video-actions",
+        "@/components/library/cancel-video-button",
         "@/components/compliance/ai-generated-label",
         "@/components/library/report-content-button",
         "@/components/library/video-download-link",
@@ -232555,6 +232556,7 @@
         "@/lib/services/unified-library-service",
         "@/components/ui/button",
         "@/components/library/video-actions",
+        "@/components/library/cancel-video-button",
         "@/components/compliance/ai-generated-label",
         "@/components/library/report-content-button",
         "@/components/library/video-download-link",
@@ -234327,6 +234329,21 @@
       "localImports": [
         "@/lib/services/lead-service",
         "./_shared"
+      ],
+      "externalImports": [
+        "next/server"
+      ]
+    },
+    {
+      "file": "src/app/api/library/[id]/cancel/route.ts",
+      "imports": [
+        "next/server",
+        "@/lib/api-auth",
+        "@/lib/services/single-video-cancel-service"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/services/single-video-cancel-service"
       ],
       "externalImports": [
         "next/server"
@@ -236730,6 +236747,23 @@
       ]
     },
     {
+      "file": "src/components/library/cancel-video-button.tsx",
+      "imports": [
+        "react",
+        "next/navigation",
+        "@/components/ui/button",
+        "@/lib/exchange/pulse"
+      ],
+      "localImports": [
+        "@/components/ui/button",
+        "@/lib/exchange/pulse"
+      ],
+      "externalImports": [
+        "react",
+        "next/navigation"
+      ]
+    },
+    {
       "file": "src/components/library/failures-ack-button.tsx",
       "imports": [
         "react",
@@ -237509,12 +237543,14 @@
         "lucide-react",
         "@/components/exchange/status-tick",
         "@/lib/exchange/state-vocab",
+        "@/lib/video-generation/storyboard-beats",
         "@/components/ui/button",
         "@/lib/utils"
       ],
       "localImports": [
         "@/components/exchange/status-tick",
         "@/lib/exchange/state-vocab",
+        "@/lib/video-generation/storyboard-beats",
         "@/components/ui/button",
         "@/lib/utils"
       ],
@@ -239723,6 +239759,21 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/services/single-video-cancel-service.ts",
+      "imports": [
+        "@prisma/client",
+        "@/lib/db",
+        "@/lib/services/quota-refund-service"
+      ],
+      "localImports": [
+        "@/lib/db",
+        "@/lib/services/quota-refund-service"
+      ],
+      "externalImports": [
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "src/lib/services/stitch-dispatch-service.ts",
       "imports": [
         "@prisma/client",
@@ -239953,7 +240004,9 @@
         "./video-watchdog",
         "./historical-dispatch-quarantine",
         "./frame-qa-gate",
+        "./single-video-cancel-service",
         "@/lib/video-generation/storyboard-service",
+        "@/lib/video-generation/storyboard-beats",
         "./stitch-service"
       ],
       "localImports": [
@@ -239973,7 +240026,9 @@
         "./video-watchdog",
         "./historical-dispatch-quarantine",
         "./frame-qa-gate",
+        "./single-video-cancel-service",
         "@/lib/video-generation/storyboard-service",
+        "@/lib/video-generation/storyboard-beats",
         "./stitch-service"
       ],
       "externalImports": [
@@ -240750,7 +240805,8 @@
         "@/lib/services/media-asset-service",
         "@/lib/services/rate-limit-service",
         "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
+        "@/lib/video-generation/providers/submission-error",
+        "@/lib/video-generation/storyboard-beats"
       ],
       "localImports": [
         "@/lib/db",
@@ -240758,7 +240814,8 @@
         "@/lib/services/media-asset-service",
         "@/lib/services/rate-limit-service",
         "@/lib/storage",
-        "@/lib/video-generation/providers/submission-error"
+        "@/lib/video-generation/providers/submission-error",
+        "@/lib/video-generation/storyboard-beats"
       ],
       "externalImports": [
         "node:crypto",
@@ -242177,6 +242234,25 @@
         "node:assert/strict",
         "node:fs",
         "node:path",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/caption-font-family.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/media/media-fonts",
+        "../src/lib/media/media-health",
+        "../src/lib/video-generation/audio-post-production"
+      ],
+      "localImports": [
+        "../src/lib/media/media-fonts",
+        "../src/lib/media/media-health",
+        "../src/lib/video-generation/audio-post-production"
+      ],
+      "externalImports": [
+        "node:assert/strict",
         "node:test"
       ]
     },
@@ -245350,6 +245426,27 @@
       ]
     },
     {
+      "file": "tests/single-video-cancel.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@prisma/client",
+        "../src/lib/db",
+        "../src/lib/services/single-video-cancel-service"
+      ],
+      "localImports": [
+        "../src/lib/db",
+        "../src/lib/services/single-video-cancel-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "@prisma/client"
+      ]
+    },
+    {
       "file": "tests/single-video-path-round1025.test.ts",
       "imports": [
         "node:assert/strict",
@@ -245648,6 +245745,25 @@
       ],
       "externalImports": [
         "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/storyboard-grounded-video-prompt.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
         "node:test"
       ]
     },
@@ -246213,6 +246329,23 @@
         "../src/app/api/product-images/route",
         "../src/lib/db",
         "../src/lib/services/product-image-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/upload-signature-normalize.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/app/api/upload/blob/route",
+        "../src/lib/upload/media-file-validation"
+      ],
+      "localImports": [
+        "../src/app/api/upload/blob/route",
+        "../src/lib/upload/media-file-validation"
       ],
       "externalImports": [
         "node:assert/strict",

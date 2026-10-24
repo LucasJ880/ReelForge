@@ -44,10 +44,10 @@ import {
  *
  * QUOTA_REFUND_CUTOFF 是「本轮上线时刻」的唯一来源：按条返还的截止线与清扫器里
  * 无任务 brief 看门狗的起点（sweep-service.joblessBriefSweepSince）都读 quotaRefundCutoff()。
- * 上线时把它设成真实部署时刻；没设时退回这个默认值——它不早于部署，只会少处理、
+ * 上线时把它设成真实部署时刻；没设时退回这个默认值（= 6e32081 生产部署完成时刻 20:21:31Z）——它不早于部署，只会少处理、
  * 绝不追溯历史（宁少退不多退，历史 brief 不被扫成失败）。
  */
-export const QUOTA_REFUND_CUTOFF_DEFAULT = "2026-10-24T20:45:00.000Z";
+export const QUOTA_REFUND_CUTOFF_DEFAULT = "2026-10-24T20:21:31.000Z";
 
 const METERED_RESOURCES = [
   "VIDEO_DISPATCH",

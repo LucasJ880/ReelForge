@@ -49,7 +49,7 @@ export const READINGS = {
   failed7d: def("近 7 天失败", "Failed · last 7 days", "单条 + 批量视频，取消不算失败", "Single + batch videos; cancels excluded", "readings", "fault"),
   successRate7d: def("近 7 天成片率", "Success rate · 7 days", "成片 ÷（成片 + 失败）", "Ready ÷ (ready + failed)", "readings", "neutral"),
   finished: def("成品", "Finished", "全部已成片视频 + 已出图的图文帖", "All ready videos + posts with images", "readings", "filled"),
-  monthlyQuota: def("本月额度", "This month", "已用 ÷ 套餐上限 · UTC 自然月 · 失败与取消返还", "Used ÷ plan limit · UTC month · failures and cancels refunded", "usage", "neutral"),
+  monthlyQuota: def("本月额度", "This month", "已用（含生成中）÷ 套餐上限 · UTC 自然月 · 失败与取消返还", "Used (incl. in progress) ÷ plan limit · UTC month · failures and cancels refunded", "usage", "neutral"),
   templates: def("风格模板", "Style templates", "每个模板锁定镜头、节奏与提示词", "Each locks shots, pacing and prompts", "templates", "neutral"),
   verifiedSamples: def("已验收样片", "Verified samples", "逐条真机验收通过的模板样片", "Template samples that passed per-render QA", "templates", "neutral"),
   templateBatches30d: def("近 30 天套用批次", "Batches · last 30 days", "你近 30 天按模板建的批次", "Batches you built from templates in 30 days", "batches", "neutral"),

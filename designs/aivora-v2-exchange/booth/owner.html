@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aivora 展台 · 店主台</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="booth.css">
+</head>
+<body>
+<header class="bar"><a class="brand" href="index.html"><span class="mark" id="mk"></span><span><b>Aivora</b><small id="sub"></small></span></a><span class="grow"></span><span id="mode-tag"></span><span id="conn"></span><span id="lang"></span></header>
+<main class="solo" id="app"></main>
+<div class="sr" id="sr-live" aria-live="polite"></div>
+<footer class="solo solo-foot"><button class="btn btn-ghost" type="button" id="export"></button><span class="note" id="export-msg" role="status"></span></footer>
+<script src="assets/icons.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="booth.js"></script>
+<script src="owner.js"></script>
+<script>
+  Booth.loadConfig().then(() => {
+    const b = Booth.bus();
+    let lang = Booth.uiLang("owner");
+    document.getElementById("mk").innerHTML = Booth.MARK;
+    const rehearsal = /[?&]rehearsal\b/.test(location.search);
+    const L = {
+      en: { export: "Copy today's staff tags", copied: "Copied {n} entries.", none: "No tags yet.", fail: "Couldn't copy; select the text below.", rehearsal: "Rehearsal · not counted" },
+      zh: { export: "复制今天的店员标签", copied: "已复制 {n} 条。", none: "还没有标签。", fail: "复制失败，请手动选中下面的文字。", rehearsal: "彩排模式 · 不计数" },
+    };
+    const conn = Booth.connBadge(b, lang);
+    const paint = (l) => {
+      document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
+      document.getElementById("sub").textContent = Booth.t(l, "owner_title");
+      document.getElementById("export").textContent = L[l].export;
+      document.getElementById("mode-tag").innerHTML = rehearsal ? `<span class="chip">${L[l].rehearsal}</span>` : "";
+      conn.setLang(l);
+    };
+    const o = BoothOwner.mount(document.getElementById("app"), b, { lang });
+    document.getElementById("lang").appendChild(Booth.langToggle("owner", lang, (l) => { lang = l; o.setLang(l); paint(l); }));
+    document.getElementById("conn").appendChild(conn.el);
+    paint(lang);
+    document.getElementById("export").addEventListener("click", async () => {
+      const rows = o.exportTags().filter((x) => x.day === Booth.today());
+      const msg = document.getElementById("export-msg");
+      if (!rows.length) { msg.textContent = L[lang].none; return; }
+      const text = JSON.stringify(rows, null, 1);
+      try { await navigator.clipboard.writeText(text); msg.textContent = L[lang].copied.replace("{n}", rows.length); }
+      catch { msg.innerHTML = `${L[lang].fail}<pre class="sel">${Booth.esc(text)}</pre>`; }
+    });
+  });
+</script>
+</body>
+</html>

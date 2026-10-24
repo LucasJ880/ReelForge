@@ -1,0 +1,24 @@
+{
+  "_note": "所有设备都从中继读这一份。开展前要填：resultBase（结果页公网地址）、leadFallback（访客提交失败时的直接联系方式）、consentEntity（征求同意的法律主体）。证据只放真实数据：拿到平台 ID 和书面同意后再填 proof，并设 consentOnFile=true、asOf=日期。",
+  "proof": {
+    "chains": [],
+    "counts": { "posts": 0, "triaged": 0, "booked": 0 },
+    "asOf": null,
+    "relatedParty": true,
+    "consentOnFile": false
+  },
+  "channels": {
+    "live": [{ "en": "Instagram & Facebook comments", "zh": "Instagram 与 Facebook 评论" }],
+    "pending": [{ "en": "Instagram / Facebook DMs", "zh": "Instagram / Facebook 私信" }],
+    "roadmap": [
+      { "en": "WhatsApp", "zh": "WhatsApp" },
+      { "en": "Xiaohongshu (RED)", "zh": "小红书" },
+      { "en": "Douyin", "zh": "抖音" },
+      { "en": "WeChat", "zh": "微信" }
+    ]
+  },
+  "resultBase": "",
+  "leadFallback": { "email": "", "whatsapp": "", "wechat": "" },
+  "consentEntity": { "name": "", "address": "", "email": "" },
+  "idleSeconds": 90
+}

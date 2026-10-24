@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aivora 展台套件</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="booth.css">
+</head>
+<body>
+<header class="bar">
+  <a class="brand" href="index.html"><span class="mark" id="mk"></span><span><b>Aivora</b><small id="sub">Booth kit · 展台套件</small></span></a>
+  <span class="grow"></span>
+  <a class="btn btn-ghost" href="screen.html" target="_blank" rel="noopener" id="open-screen"></a>
+  <span id="conn"></span>
+  <span id="lang"></span>
+</header>
+<main class="split">
+  <section aria-labelledby="lbl-phone">
+    <p class="split-label" id="lbl-phone"></p>
+    <div id="cust"></div>
+  </section>
+  <section aria-labelledby="lbl-owner">
+    <p class="split-label" id="lbl-owner"></p>
+    <div id="owner"></div>
+  </section>
+</main>
+<div class="sr" id="sr-live" aria-live="polite"></div>
+<script src="assets/icons.js"></script>
+<script src="vendor/qrcode.js"></script>
+<script src="booth.js"></script>
+<script src="customer.js"></script>
+<script src="owner.js"></script>
+<script>
+  Booth.loadConfig().then(() => {
+    const b = Booth.bus();
+    let lang = Booth.uiLang("owner");
+    const L = {
+      en: { phone: "iPad A · the customer's phone (visitor holds it)", owner: "iPad B · the shop owner (visitor taps Approve)", screen: "Big screen", sub: "Booth kit · single-screen demo" },
+      zh: { phone: "iPad A · 客户的手机（访客拿着）", owner: "iPad B · 店主台（访客亲手点批准）", screen: "大屏", sub: "展台套件 · 单屏演示" },
+    };
+    const conn = Booth.connBadge(b, lang, { demo: true });
+    const label = (l) => {
+      document.documentElement.lang = l === "zh" ? "zh-CN" : "en";
+      document.getElementById("lbl-phone").innerHTML = `${Booth.icon("smartphone")}${L[l].phone}`;
+      document.getElementById("lbl-owner").innerHTML = `${Booth.icon("tablet")}${L[l].owner}`;
+      document.getElementById("open-screen").innerHTML = `${Booth.icon("monitor")}${L[l].screen}`;
+      document.getElementById("sub").textContent = L[l].sub;
+      conn.setLang(l);
+    };
+    document.getElementById("mk").innerHTML = Booth.MARK;
+    BoothCustomer.mount(document.getElementById("cust"), b);
+    const o = BoothOwner.mount(document.getElementById("owner"), b, { lang });
+    document.getElementById("lang").appendChild(Booth.langToggle("owner", lang, (l) => { lang = l; o.setLang(l); label(l); }));
+    document.getElementById("conn").appendChild(conn.el);
+    label(lang);
+  });
+</script>
+</body>
+</html>

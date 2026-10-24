@@ -21,6 +21,17 @@ colors:
   ember-40: "rgb(255 77 0 / 0.42)"
   steel: "#8fa1b9"
   steel-30: "rgb(143 161 185 / 0.3)"
+  paper: "#f3f2ee"
+  paper-2: "#e7e5df"
+  paper-ink: "#16181b"
+  paper-mute: "#5b6068"
+  paper-line: "rgb(22 24 27 / 0.12)"
+  paper-card: "#fcfbf8"
+  ember-hot: "#ffd2b8"
+  key-bevel-hi: "rgb(255 255 255 / 0.32)"
+  key-bevel-lo: "rgb(0 0 0 / 0.22)"
+  shadow-deep: "rgb(0 0 0 / 0.9)"
+  qr-white: "#ffffff"
 typography:
   display-figure:
     fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
@@ -77,6 +88,46 @@ typography:
     fontWeight: 900
     lineHeight: 1
     letterSpacing: "0.02em"
+  booth-ui:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "15px"
+    fontWeight: 400
+    lineHeight: 1.5
+  booth-input:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "17px"
+    fontWeight: 500
+    lineHeight: 1.4
+  booth-sub:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "18px"
+    fontWeight: 500
+    lineHeight: 1.35
+  booth-lead:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "20px"
+    fontWeight: 500
+    lineHeight: 1.45
+  booth-h3:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "22px"
+    fontWeight: 500
+    lineHeight: 1.3
+  booth-title:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "24px"
+    fontWeight: 500
+    lineHeight: 1.25
+  booth-phone-h:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "26px"
+    fontWeight: 600
+    lineHeight: 1.2
+  booth-hub-h:
+    fontFamily: "Archivo, Noto Sans SC, PingFang SC, Microsoft YaHei, system-ui, sans-serif"
+    fontSize: "34px"
+    fontWeight: 500
+    lineHeight: 1.15
 rounded:
   tag: "4px"
   xs: "5px"
@@ -84,6 +135,9 @@ rounded:
   md: "8px"
   lg: "10px"
   frame: "12px"
+  booth-card: "14px"
+  booth-bubble: "16px"
+  booth-phone: "28px"
   pill: "999px"
 spacing:
   seam: "1px"
@@ -478,3 +532,82 @@ components:
 - **Don't** 给已完成的成片加色调、滤镜或彩色蒙层；画面上的叠加只能是中性的工具标记（安全区虚线、审片标记、ink 底的 chip）。
 - **Don't** 用纯黑或纯白做界面面与文字（审片播放器底的 #000 属于画面，不属于界面）。
 - **Don't** 在标题上方加眉题或 kicker；面包屑和指标自带的标签不算。
+
+## Booth 展台
+
+> 状态同上：提案，待 CEO 批准。展台套件放在 `booth/`（大屏、客户 iPad、店主 iPad、单屏演示、扫码结果页、局域网中继），
+> 对应 2026-10-23 定下的路径 C：产品用户仍是海外家居服务经销安装商；广交会用来招工厂渠道、让经销商现场亲手试；
+> 不排除国内商家，所以中英文同等重要。
+
+展台是 Exchange 世界的一个场景，不是另一个世界：零彩度墨阶、1px 接缝、余烬只表示「待你处理 / 上涨」全部沿用。
+下面只写展台额外要守的规矩。
+
+### 距离可读 · The Three-Metre Rule
+大屏按 1920×1080、3–4 m 视距排字，单位是 `--u = min(1vw, 1.7778vh)`（1080p 下 1u = 19.2px）。
+主张行 4.7u（≈90px），成交链节点名 2.1u（≈40px），**任何必读文字不小于 1.5u（≈29px）**。
+大屏上的必读文字只用骨白；第二语言行用灰白；尘灰不上大屏。
+
+### 触屏字阶 · Booth touch ramp
+iPad 与枢纽页按手持/触屏距离排字，用 frontmatter 里的 `booth-*` 字阶（15 / 17 / 18 / 20 / 22 / 24 / 26 / 34px），
+不沿用交易台 11–14px 的终端密度；输入框与主按钮 17px 起（iOS 不缩放），触控目标不小于 44px。
+
+### 中英等权 · The Two-Language Rule
+- 每一条面向访客的文字都有 EN 和 中文 两份，按钮、提示、错误、预约时段、结果页、Offer、安全阀都不例外。
+- 大屏同时给两种语言：主张屏每次出现换一种语言（英文、中文交替）；其余屏英文在上、中文在下，同一字号层级。
+- 大屏 Offer 只上四条收费结构（2×2），「客户确认的预约」的定义写在下方；席位、导出等写在结果页。
+- 开展前在真大屏上开 `screen.html?fitcheck`：它把每一屏和中英实时链路各渲染一次，列出被裁切的元素，必须显示 FIT OK。
+- 回复语言跟着客户的留言走，与手机界面语言无关；店主界面语言不同时给「对照」，对照是同一份回复计划换语言渲染，
+  不是机器翻译，所以内容和引用的事实一一对应。
+- 回复里的链接文字跟回复的语言走（[booking link] → Book a visit，[预约链接] → 点此预约，繁体回复里是「點此預約」；不要和前面的「选个时间」重复）。
+
+### 不放示例数字 · The Real-Count Rule
+- 对外屏幕（大屏、客户 iPad、结果页）上不出现任何示例经营数字。大屏底栏只在主张屏出现，只有三格真实计数：
+  今天在本展位亲手跑通的人数（为 0 时写「第一个来试」）、上一位从评论到预约的用时（标「模拟渠道」）、真实试点已约上门数。
+- 结果页的 ROI 估算只留空输入框（占位写「你的数字」），由访客自己填；不预填任何行业均值。
+- 没有真实试点链路之前，证据屏写「进行中」并显示 0；`booth/config.json` 只在拿到平台 ID 和书面同意后才填真实链路。
+- 计数可以是 0。0 比漂亮的示例数更可信。
+- 成交链的前两节（成片、帖子）在展台这一轮并没有真的生成和发布，实时链路、店主台和结果页上一律画成虚线并标「示例」。
+
+### 模拟设备 · The Simulated Device Rule
+客户 iPad 用纸色面（`paper` / `paper-2` / `paper-card` / `paper-ink` / `paper-mute` / `paper-line`）表现「这是另一台设备、另一个人」，
+与店主的墨色台面一眼分开。气泡、输入框、时段卡用 `paper-card`，不用纯白；唯一的纯白是二维码底（扫码对比度优先）。模拟评论区顶上常驻一行「展台用的模拟评论区，正式版走 Instagram / Facebook 官方接口」；
+不用任何平台的 logo、配色或界面样式，回复送达写「模拟送达」，绝不写「平台已确认」。
+客户手机上的主按钮用纸墨实心，不用余烬：余烬留给店主那颗「批准并发送」。
+
+### 一颗余烬键 · The One Key Rule（展台版）
+店主台每个状态只有一颗余烬键（批准并发送 / 发送 / 去批准回复），旁边永远有退路：我亲自回、不回复、回到草稿、下一位访客。
+大屏不放可点的余烬键，余烬只用于「你只需要点批准」这句主张、「需要你确认」的转人工标记、生成光束和实时脉冲。
+
+### 动效与声音 · Motion
+- 待机时成交链每 2 秒点亮一节；光束只套在「此刻正在发生」的那一节。
+- 场景停留：主张屏 8 秒（英文、中文交替）穿插在证据 / Offer / 安全阀 / 渠道现状之间，这四屏各 11 秒，一轮 76 秒，
+  过道里的人任何时候抬头都有约一半概率看到主张；访客开始跑时立刻切到实时链路，约好后停 15 秒再回轮播；
+  实时链路超过「闲置秒数 + 30 秒」没有新动静就自动收掉。
+- 减少动效：停留时间翻倍、成交链直接全亮、光束变静态余烬描边、客户手机里的样片不自动播放。
+- 全程无声；样片字幕烧录在画面里。
+
+### Doto 在展台的例外
+修订 The Tape-Only LED Rule：Doto 点阵除了成交带，还可以写**大屏上非零的真实计数**，只写数字，不小于 4u（≈77px）。
+计数为 0 时改用 IBM Plex Mono 写「0」，不让点阵把零渲染成一个醒目的大数字。ID、字母、示例数仍然不用 Doto。
+
+### 店员控制
+- 大屏地址加 `#claim` / `#proof` / `#offer` / `#safety` / `#channels` 可固定一屏（对着一群人讲时用），去掉 `#` 恢复轮播。
+- 结果页公网地址、提交失败时的直接联系方式、征求同意的法律主体都写在 `booth/config.json`，所有设备从中继读同一份；
+  枢纽页（`booth/index.html`）只读显示当前生效的结果页地址，地址是展台局域网时给出警告；清零当天计数要二次确认，并同步到所有设备。
+- 客户 iPad 闲置 90 秒（`idleSeconds`）自动回到开头，约好或不回复之后 30 秒；任何一步都有「重新开始」。
+  店主台每一步都能「结束本轮」；约好的那一屏受保护，下一位访客开始时先排队提示，不会把它冲掉。
+- 彩排用 `owner.html?rehearsal`，不计数。店员标签（A/B/C 三档）存在店主 iPad 本机，可一键复制当天的记录。
+
+### 离线
+字体、图标、二维码库全部本地打包（`booth/assets`、`booth/vendor`）；改了页面文字后重跑 `tools/build-fonts.py`。
+设备之间走笔记本上的 `relay.mjs`；没有中继时同一台设备的多个窗口用 BroadcastChannel 配对，`demo.html` 一屏跑完全流程。
+
+### 展台 Don't
+- **Don't** 在对外屏幕上放示例数字、客户数、提升百分比，或把关联方试点说成独立客户。
+- **Don't** 在模拟评论区里用平台 logo 或仿平台界面；不写「平台已确认」。
+- **Don't** 把访客自己打的字放上过道大屏：大屏只显示内置建议问题的原话，其余显示「访客用自己的话问了一个问题」，旁边照常显示 AI 草稿（访客可能打出私人信息、同行广告或脏话，离线草稿库读不全）。
+- **Don't** 让大屏上任何必读文字小于 1.5u，或用尘灰。
+- **Don't** 只做一种语言的文字；也不要让中文只是英文旁边的小注。
+- **Don't** 在 Offer 上写具体价格或收款条款：只写结构（首个确认预约前不收费、月费 + 按确认预约计费 + 月度封顶、广告费直付 Meta、随时取消可导出）。
+- **Don't** 把规划中的渠道（WhatsApp、小红书、抖音、微信）写成已支持；一律标「规划中 · 未上线」。渠道现状单独占一屏（试点中 / 等平台审核 / 规划中），
+  内容只从 `config.json` 的 `channels` 读。

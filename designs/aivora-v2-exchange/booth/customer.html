@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aivora 展台 · 客户手机</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="booth.css">
+</head>
+<body>
+<main class="solo-phone" id="app" aria-label="Customer phone · 客户手机"></main>
+<div class="sr" id="sr-live" aria-live="polite"></div>
+<script src="assets/icons.js"></script>
+<script src="booth.js"></script>
+<script src="customer.js"></script>
+<script>
+  Booth.loadConfig().then(() => {
+    const b = Booth.bus();
+    BoothCustomer.mount(document.getElementById("app"), b, { badge: Booth.connBadge(b, "en") });
+  });
+</script>
+</body>
+</html>

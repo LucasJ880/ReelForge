@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aivora · Your booth result</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="booth.css">
+</head>
+<body>
+<header class="bar"><span class="brand"><span class="mark" id="mk"></span><span><b>Aivora</b><small id="tagline"></small></span></span><span class="grow"></span><span id="lang"></span></header>
+<main class="rp" id="app"></main>
+<div class="sr" id="sr-live" aria-live="polite"></div>
+<script src="assets/icons.js"></script>
+<script src="booth.js"></script>
+<script>
+(() => {
+  const { esc, t, icon, catOf, draft, translateDraft, chainHtml, mmss, store, b64u, slotLabel, L10 } = Booth;
+  let P = null, sample = false, sid = null, lang = "en", retryArmed = false;
+  /* cur 只在访客自己选过币种后才记住，否则跟着页面语言走（中文默认人民币） */
+  const form = { email: "", wa: "", wx: "", ce: false, cw: false, cx: false, job: "", rate: "", extra: "", cur: "", curSet: false, sent: false, msg: "" };
+  const SAMPLE = {
+    en: { c: "blinds", ci: "Vaughan", q: "Do you install motorized blinds in Vaughan? How much for 3 windows?", by: "approved" },
+    zh: { c: "blinds", ci: "佛山", q: "你们在佛山能装电动窗帘吗？3 扇窗大概多少钱？", by: "approved" },
+  };
+
+  async function load() {
+    const q = new URLSearchParams(location.search);
+    if (q.get("id")) {
+      sid = q.get("id");
+      try { const r = await fetch(`/api/session/${encodeURIComponent(sid)}`, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined }); if (r.ok) P = await r.json(); } catch { /* 离线 */ }
+    }
+    if (!P && q.get("d")) { try { P = b64u.dec(q.get("d")); } catch { P = null; } }
+    if (!P && location.hash === "#last") P = store.get("booth.lastResult", null);
+    if (!P || typeof P !== "object" || typeof P.q !== "string") { sample = true; P = { ...SAMPLE.en }; }
+  }
+
+  const flagHtml = (f) => ({
+    price: `<span class="flag hand">${icon("hand")}${esc(t(lang, "flag_price"))}</span>`,
+    place: `<span class="flag hand">${icon("map-pin")}${esc(t(lang, "flag_place"))}</span>`,
+    unknown: `<span class="flag hand">${icon("hand")}${esc(t(lang, "flag_unknown"))}</span>`,
+    private: `<span class="flag hand">${icon("lock")}${esc(t(lang, "flag_private"))}</span>`,
+    time: `<span class="flag">${icon("timer")}${esc(t(lang, "flag_time"))}</span>`,
+    bot: `<span class="flag">${icon("bot")}${esc(t(lang, "flag_bot"))}</span>`,
+  })[f] || "";
+
+  /* 征求同意的法律主体没填，就不开放线上登记：只给直接联系方式，不在主体不明的情况下收同意 */
+  const entity = () => { const e = Booth.config.consentEntity || {}; return e.name && e.email ? e : null; };
+  function consentLine(e) {
+    return `${esc(t(lang, "consentBy", { name: e.name, addr: e.address ? ` · ${e.address}` : "", mail: ` · ${e.email}` }))}<br>${esc(t(lang, "res_privacy", { name: e.name, email: e.email }))}`;
+  }
+  function contactRows() {
+    const f = Booth.config.leadFallback || {};
+    const sep = lang === "zh" ? "：" : ": ";
+    return [f.email ? `${esc(t(lang, "email"))}${sep}<span class="sel">${esc(f.email)}</span>` : "", f.whatsapp ? `${esc(t(lang, "whatsapp"))}${sep}<span class="sel">${esc(f.whatsapp)}</span>` : "", f.wechat ? `${esc(t(lang, "wechat"))}${sep}<span class="sel">${esc(f.wechat)}</span>` : ""].filter(Boolean);
+  }
+  function fallbackContacts() {
+    const rows = contactRows();
+    return rows.length ? `${esc(t(lang, "notSent"))}<br>${rows.join("<br>")}` : esc(t(lang, "notSentNoContact"));
+  }
+
+  function render() {
+    if (sample) P = { ...SAMPLE[lang] };
+    const c = catOf(P.c);
+    const d = P.r ? null : draft({ text: P.q, cat: P.c, city: P.ci });
+    const reply = P.r || (d ? d.text : "");
+    /* 发出的是没改过的 AI 草稿时，给另一种语言的对照（同一份回复计划换语言渲染）；手写或改过的回复不翻 */
+    const ai = d || (P.by === "approved" ? draft({ text: P.q, cat: P.c, city: P.ci }) : null);
+    const same = ai && (P.cut ? ai.text.startsWith(String(P.r).replace(/…$/, "")) : !P.r || ai.text === P.r);
+    const tr = same && ai.lang !== lang ? translateDraft(ai, { cat: P.c, city: P.ci }, lang) : "";
+    const ent = entity();
+    const pr = Booth.config.proof || {};
+    const related = pr.relatedParty ? t(lang, pr.consentOnFile ? "related" : "relatedAnon") : "";
+    const flags = (Array.isArray(P.f) ? P.f : d ? Object.keys(d.flags || {}).filter((k) => d.flags[k]) : []).map(flagHtml).join("");
+    const qLang = Booth.detectLang(P.q, P.ci) === "zh" ? "zh-CN" : "en";
+    const slot = typeof P.s === "number" ? slotLabel(P.s, lang) : String(P.s || "");
+    const times = sample ? {} : { comment: "0:00", draft: mmss(P.td || 0), approve: mmss(P.ta || 0), booked: mmss(P.tb || 0) };
+    const contactOrder = lang === "zh" ? ["wx", "email", "wa"] : ["email", "wa", "wx"];
+    const contactField = {
+      email: `<label>${esc(t(lang, "email"))}<input class="field" id="email" type="email" autocomplete="email" inputmode="email" value="${esc(form.email)}"></label><label class="check"><input type="checkbox" id="ce" ${form.ce ? "checked" : ""}><span>${esc(t(lang, "consentEmail"))}</span></label>`,
+      wa: `<label>${esc(t(lang, "whatsapp"))}<input class="field num" id="wa" type="tel" autocomplete="tel" inputmode="tel" value="${esc(form.wa)}"></label><label class="check"><input type="checkbox" id="cw" ${form.cw ? "checked" : ""}><span>${esc(t(lang, "consentWa"))}</span></label>`,
+      wx: `<label>${esc(t(lang, "wechat"))}<input class="field" id="wx" autocomplete="off" value="${esc(form.wx)}"></label><label class="check"><input type="checkbox" id="cx" ${form.cx ? "checked" : ""}><span>${esc(t(lang, "consentWx"))}</span></label>`,
+    };
+    const curs = ["CAD", "USD", "CNY", "EUR", "GBP", "AUD"];
+    const cur = form.curSet && form.cur ? form.cur : (lang === "zh" ? "CNY" : "CAD");
+    document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+    document.title = `Aivora · ${t(lang, "res_title")}`;
+    document.getElementById("tagline").textContent = t(lang, "tagline");
+    document.getElementById("app").innerHTML = `
+      ${sample ? `<section class="card card-note"><span class="chip chip-bone">${esc(t(lang, "sample"))}</span><p class="sub">${esc(t(lang, "sampleNote"))}</p></section>` : ""}
+      <section class="card"><h1 class="rp-h">${esc(t(lang, "res_title"))}</h1><p class="sub">${esc(t(lang, sample ? "res_introSample" : "res_intro"))}</p>
+        <p class="sub">${esc(c[lang])} · ${esc(P.ci || "")}${P.day ? ` · <span class="num">${esc(P.day)}</span>` : ""} · ${esc(t(lang, "simChannel"))}</p></section>
+      <section class="card"><h2>${esc(t(lang, "res_q"))}</h2><p lang="${qLang}" class="rp-q">${esc(P.q)}</p>
+        <h2>${esc(t(lang, "res_a"))}${sample ? "" : ` <span class="sub">· ${esc(t(lang, "by_" + (["approved", "edited", "manual"].includes(P.by) ? P.by : "approved")))}</span>`}</h2>
+        <div class="draft-box"><div class="draft-text rp-a" lang="${ai && ai.lang === "zh" ? "zh-CN" : qLang}">${esc(reply)}</div>${tr ? `<div class="draft-tr"><b>${esc(t(lang, "o_tr"))}</b> · ${esc(tr)}</div>` : ""}</div>
+        ${P.cut ? `<p class="note">${esc(t(lang, "res_cut"))}</p>` : ""}
+        ${flags ? `<div class="flags">${flags}</div>` : ""}
+        <p class="note">${esc(t(lang, "sampleFacts"))}</p></section>
+      <section class="card"><h2>${esc(t(lang, "res_timeline"))}</h2>
+        ${chainHtml({ reached: 6, lang, times, cls: "chain pre" })}
+        <p class="note">${esc(t(lang, "elapsed"))}: <b class="num">${sample ? "—" : mmss(P.tb || 0)}</b> · ${esc(t(lang, "simChannel"))}${slot ? ` · ${esc(slot)}` : ""}</p></section>
+      <section class="card"><h2>${esc(t(lang, "offer_h"))}</h2>
+        <ul class="offer">${t(lang, "offer").map((l) => `<li>${icon("check")}<span>${esc(l)}</span></li>`).join("")}</ul>
+        <p class="note">${esc(t(lang, "offer_price"))}</p></section>
+      <section class="card"><h2>${esc(t(lang, "roi_h"))}</h2>
+        <div class="calc">
+          <label>${esc(t(lang, "roi_job"))}<span class="cur-row"><select class="field" id="cur" aria-label="${lang === "zh" ? "币种" : "Currency"}">${curs.map((x) => `<option ${x === cur ? "selected" : ""}>${x}</option>`).join("")}</select><input class="field num" id="job" type="number" inputmode="decimal" min="0" step="100" placeholder="${esc(t(lang, "roi_yours"))}" value="${esc(form.job)}"></span></label>
+          <label>${esc(t(lang, "roi_rate"))}<input class="field num" id="rate" type="number" inputmode="decimal" min="0" max="100" step="5" placeholder="${esc(t(lang, "roi_yours"))}" value="${esc(form.rate)}"></label>
+          <label>${esc(t(lang, "roi_extra"))}<input class="field num" id="extra" type="number" inputmode="numeric" min="0" step="1" placeholder="${esc(t(lang, "roi_yours"))}" value="${esc(form.extra)}"></label>
+          <div><span class="sub">${esc(t(lang, "roi_out"))}</span><div class="calc-out num" id="roi" aria-live="polite">—</div></div>
+          <p class="note">${esc(t(lang, "roi_note"))}</p>
+        </div></section>
+      <section class="card" aria-labelledby="h-cta"><h2 id="h-cta">${esc(t(lang, "res_cta_h"))}</h2><p>${esc(t(lang, "res_cta_p"))}</p>
+        ${ent ? `<form id="lead" class="calc" novalidate>
+          ${contactOrder.map((k) => contactField[k]).join("")}
+          <p class="note">${consentLine(ent)}</p>
+          <button class="btn btn-key btn-lg" type="submit" id="lead-go">${icon("calendar-check")}${esc(t(lang, "submit"))}</button>
+          <p class="note" id="lead-msg" role="status" tabindex="-1"></p>
+        </form>` : `<p>${esc(t(lang, "res_noEntity"))}</p><p class="sub">${contactRows().join("<br>") || esc(t(lang, "res_askStaff"))}</p>`}</section>
+      <section class="card"><h2>${esc(t(lang, "safety_h"))}</h2>
+        <ul class="offer">${t(lang, "safety").map(([a, b]) => `<li>${icon("shield-check")}<span><b>${esc(a)}</b> · ${esc(b)}</span></li>`).join("")}</ul></section>
+      <section class="card"><h2>${esc(t(lang, "channels_h"))}</h2>
+        ${[["ch_live", "live"], ["ch_pending", "pending"], ["ch_roadmap", "roadmap"]].map(([k, key]) => `<p class="sub"><b>${esc(t(lang, k))}</b>${lang === "zh" ? "：" : ": "}${esc(((Booth.config.channels || {})[key] || []).map((x) => L10(x, lang)).join(lang === "zh" ? "、" : ", "))}</p>`).join("")}
+        ${related ? `<p class="sub">${esc(related)}</p>` : ""}</section>`;
+    wire();
+    if (form.msg && document.getElementById("lead-msg")) document.getElementById("lead-msg").innerHTML = form.msg;
+    if (form.sent) document.querySelectorAll("#lead input, #lead button").forEach((x) => (x.disabled = true));
+    roi();
+  }
+
+  function roi() {
+    const job = +document.getElementById("job").value, rate = +document.getElementById("rate").value, extra = +document.getElementById("extra").value;
+    const out = document.getElementById("roi");
+    if (!(job > 0 && rate > 0 && extra > 0)) { out.textContent = "—"; return; }
+    out.textContent = new Intl.NumberFormat(lang === "zh" ? "zh-CN" : "en-US", { style: "currency", currency: document.getElementById("cur").value, maximumFractionDigits: 0 }).format(job * (Math.min(rate, 100) / 100) * extra);
+  }
+
+  function capture() {
+    const v = (id) => document.getElementById(id);
+    if (v("job")) Object.assign(form, { job: v("job").value, rate: v("rate").value, extra: v("extra").value, cur: v("cur").value });
+    if (v("lead")) Object.assign(form, { email: v("email").value, wa: v("wa").value, wx: v("wx").value, ce: v("ce").checked, cw: v("cw").checked, cx: v("cx").checked });
+  }
+
+  function wire() {
+    ["job", "rate", "extra", "cur"].forEach((id) => document.getElementById(id).addEventListener("input", roi));
+    document.getElementById("cur").addEventListener("change", () => { form.curSet = true; });
+    const lead = document.getElementById("lead");
+    if (!lead) return;
+    lead.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      capture();
+      const msg = document.getElementById("lead-msg");
+      const show = (html) => { form.msg = html; msg.innerHTML = html; msg.focus(); };
+      const email = form.email.trim(), wa = form.wa.trim(), wx = form.wx.trim();
+      /* 与中继同口径：邮箱要有 2 位以上顶级域；电话 6–15 位数字；微信号 6–20 位、字母开头，或手机号 */
+      const digits = wa.replace(/\D/g, "").length;
+      const okE = !email || (/^[^\s@\u0000-\u001f]+@[^\s@\u0000-\u001f]+\.[A-Za-z]{2,}$/.test(email) && email.length <= 254);
+      const okW = !wa || (/^\+?[\d\s()-]+\d$/.test(wa) && digits >= 6 && digits <= 15);
+      const okX = !wx || /^[A-Za-z][-_A-Za-z0-9]{5,19}$/.test(wx) || /^\+?\d{6,15}$/.test(wx);
+      if (!okE || !okW || !okX) { show(esc(t(lang, "badContact"))); return; }
+      const useE = email && form.ce, useW = wa && form.cw, useX = wx && form.cx;
+      if (!(useE || useW || useX)) { show(esc(t(lang, "needConsent"))); return; }
+      const lsid = [sid, P.sid].find((x) => typeof x === "string" && /^[A-Za-z0-9_-]{1,32}$/.test(x)) || "";
+      const body = { lang, consentEmail: !!useE, consentWhatsApp: !!useW, consentWeChat: !!useX, ...(lsid ? { sid: lsid } : {}), ...(useE ? { email } : {}), ...(useW ? { whatsapp: wa } : {}), ...(useX ? { wechat: wx } : {}) };
+      let ok = false, rejected = false, offline = false;
+      try {
+        const r = await fetch("/api/lead", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: AbortSignal.timeout ? AbortSignal.timeout(5000) : undefined });
+        const j = await r.json().catch(() => ({}));
+        ok = r.ok && j && j.ok === true;
+        rejected = r.status === 400;
+      } catch { offline = navigator.onLine === false; /* 连不上：如实告诉访客没发出去 */ }
+      if (ok) {
+        form.sent = true;
+        document.querySelectorAll("#lead input, #lead button").forEach((x) => (x.disabled = true));
+        show(esc(t(lang, "thanks")));
+      } else if (offline) {
+        /* 手机没网：表单留着，回到有网时自动再发一次，并如实说「还没发出去」 */
+        show(`${esc(t(lang, "res_queued"))}${contactRows().length ? `<br>${contactRows().join("<br>")}` : ""}`);
+        if (!retryArmed) { retryArmed = true; addEventListener("online", () => { retryArmed = false; document.getElementById("lead")?.requestSubmit(); }, { once: true }); }
+      } else show(rejected ? esc(t(lang, "badContact")) : fallbackContacts());
+    });
+  }
+
+  Booth.loadConfig().then(load).then(() => {
+    document.getElementById("mk").innerHTML = Booth.MARK;
+    const saved = store.get("booth.lang.result", null);
+    lang = saved || (/^zh/i.test(navigator.language || "") ? "zh" : P.ul === "zh" || P.rl === "zh" ? "zh" : "en");
+    document.getElementById("lang").appendChild(Booth.langToggle("result", lang, (l) => { capture(); lang = l; render(); }));
+    render();
+  });
+})();
+</script>
+</body>
+</html>

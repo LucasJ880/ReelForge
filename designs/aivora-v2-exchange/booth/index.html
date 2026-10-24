@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aivora 展台套件 · 设备分配</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="booth.css">
+</head>
+<body>
+<header class="bar"><a class="brand" href="index.html"><span class="mark" id="mk"></span><span><b>Aivora</b><small>Booth kit · 展台套件</small></span></a><span class="grow"></span><span id="conn"></span></header>
+<main class="hub">
+  <h1>每台设备打开哪一页<small>One role per device. The demo runs on the booth Wi-Fi without internet; taking the result home and leaving contacts need the internet. · 演示在展台局域网离线可用；带走结果和留资需要外网。</small></h1>
+  <nav class="roles" aria-label="Roles · 设备角色">
+    <a class="role" href="screen.html"><span data-ic="monitor"></span><b>大屏 · Big screen</b><span>过道模式：中英主张、成交链、证据、Offer、安全阀、渠道现状；访客在跑时切到实时链路，全程标「模拟渠道」。无声。</span><span lang="en">Aisle mode; switches to the live chain (marked "simulated") while a visitor runs it. No sound.</span></a>
+    <a class="role" href="customer.html"><span data-ic="smartphone"></span><b>iPad A · 客户手机</b><span>递给访客：先设好「自己的店」，再扮成自己的客户留言。闲置会自动回到开头。</span><span lang="en">Hand it to the visitor. Resets itself when left idle.</span></a>
+    <a class="role" href="owner.html"><span data-ic="tablet"></span><b>iPad B · 店主台</b><span>访客亲手点「批准」；约好后出二维码，店员记两个标签。彩排请开 <code>owner.html?rehearsal</code>，不计数。</span><span lang="en">The visitor taps Approve. Rehearse with <code>owner.html?rehearsal</code> (not counted).</span></a>
+    <a class="role" href="demo.html"><span data-ic="monitor"></span><b>单屏演示 · One screen</b><span>一台笔记本左右分屏跑完整流程，适合约见、场外分享会和远程演示。</span><span lang="en">Phone and owner side by side on one laptop.</span></a>
+    <a class="role" href="result.html#sample"><span data-ic="qr-code"></span><b>结果页示例 · Result page</b><span>访客扫码带走的页面（这是版式示例，不含数字）。</span><span lang="en">What the visitor takes home (layout sample, no numbers).</span></a>
+  </nav>
+
+  <section class="card" aria-labelledby="h-before">
+    <h2 id="h-before">开展前一晚 · The night before</h2>
+    <ol class="steps-list">
+      <li>在 <code>booth/config.json</code> 填三项：<b>resultBase</b>（结果页公网地址，先把 <code>booth/</code> 部署到我们自己的域名，并同时上线 <code>/api/lead</code>）、<b>leadFallback</b>（访客提交失败时给出的邮箱 / WhatsApp / 微信）、<b>consentEntity</b>（征求同意的法律主体、地址、邮箱）。所有设备都从中继读这一份。<br><span class="dim">Fill resultBase, leadFallback and consentEntity in config.json; every device reads it from the relay.</span></li>
+      <li>跑 <code>node designs/aivora-v2-exchange/booth/tools/relay-selftest.mjs</code> 和 <code>tools/draft-cases.mjs</code>，都应全绿；改过页面文字就跑 <code>tools/build-fonts.py</code>。<br><span class="dim">Run both self-tests; rebuild fonts after text changes.</span></li>
+      <li>在展台大屏上打开 <code>screen.html?fitcheck</code>，底部应显示 <b>FIT OK</b>；否则按列出的元素删短文字。<br><span class="dim">Open screen.html?fitcheck on the actual big screen; it must read FIT OK.</span></li>
+      <li>用一台<b>关掉 Wi-Fi、只用 4G/5G</b>的手机扫店主台的二维码，打开结果页并提交一条测试留资，确认它真的进了库。<br><span class="dim">On a phone with Wi-Fi off, scan the QR, submit a test lead and confirm it arrived.</span></li>
+      <li>证据面只放真实数据：拿到平台 ID 和 Sunny Shutter 书面同意后，再填 <code>proof</code>，并把 <code>consentOnFile</code> 设为 true、<code>asOf</code> 填日期。<br><span class="dim">Proof shows real data only.</span></li>
+    </ol>
+  </section>
+
+  <section class="card" aria-labelledby="h-setup">
+    <h2 id="h-setup">展台上怎么接 · Booth setup</h2>
+    <ol class="steps-list">
+      <li>带一台随身路由器（或手机热点，设密码），笔记本、两台 iPad、大屏都连上它。不要用展馆的开放 Wi-Fi。<br><span class="dim">Bring a travel router or a password-protected phone hotspot; never use open venue Wi-Fi.</span></li>
+      <li>笔记本接电源、不合盖，终端里运行 <code>caffeinate -dims</code> 防休眠，再运行 <code>node designs/aivora-v2-exchange/booth/relay.mjs</code>，在每台设备上打开它打印出来的地址。<br><span class="dim">Keep the laptop awake (caffeinate), run the relay, open the printed URL on each device.</span></li>
+      <li>大屏开「大屏」，用 Chrome 的 kiosk 模式（<code>--kiosk</code>）或按 F11 全屏；点一下屏幕会自动全屏并保持常亮。iPad A 开「客户手机」，iPad B 开「店主台」；两台 iPad 自动锁定设为「永不」，并开「引导式访问」锁在页面上。<br><span class="dim">Big screen full-screen (kiosk/F11); iPads: Auto-Lock never + Guided Access.</span></li>
+      <li>每台设备右上角显示「展台局域网已配对」才算连上；显示「未连上展台网络」就检查 Wi-Fi。<br><span class="dim">Every device must read "Paired over booth Wi-Fi".</span></li>
+      <li>没有笔记本时：需要先把 <code>booth/</code> 部署到公网并联网，用一台设备开「单屏演示」；同一台设备再开一个「大屏」窗口会自动配对（只适合这台设备自己接电视）。随身带一段全流程录屏兜底。<br><span class="dim">No laptop: requires a public deploy and internet; same-device windows pair automatically. Bring a screen recording.</span></li>
+    </ol>
+  </section>
+
+  <section class="card" aria-labelledby="h-set">
+    <h2 id="h-set">设置 · Settings</h2>
+    <p class="sub">当前生效的结果页地址 · Result page address in use: <code id="base" class="sel"></code></p>
+    <p class="note" id="base-note"></p>
+    <p class="o-warn" id="cfg-warn" role="note" hidden></p>
+    <div class="o-acts">
+      <button class="btn btn-ghost" type="button" id="reset-ask">清零今天的展位计数 · Reset today's booth count</button>
+    </div>
+    <div id="reset-box" hidden class="card card-inset">
+      <p>清零会同步到所有在线设备，大屏会显示「第一个来试」。<br><span class="dim">This syncs to every connected device; the big screen goes back to "Be the first".</span></p>
+      <div class="o-acts"><button class="btn" type="button" id="reset-yes">确认清零 · Clear</button><button class="btn btn-ghost" type="button" id="reset-no">取消 · Cancel</button></div>
+    </div>
+    <p class="note" id="saved" role="status"></p>
+  </section>
+</main>
+<script src="assets/icons.js"></script>
+<script src="booth.js"></script>
+<script>
+  Booth.loadConfig().then(() => {
+    const b = Booth.bus();
+    document.getElementById("mk").innerHTML = Booth.MARK;
+    document.querySelectorAll("[data-ic]").forEach((el) => { el.outerHTML = Booth.icon(el.dataset.ic); });
+    document.getElementById("conn").appendChild(Booth.connBadge(b, "zh").el);
+    const base = Booth.resultBase();
+    document.getElementById("base").textContent = base;
+    document.getElementById("base-note").textContent = Booth.isPrivateHost(base)
+      ? "这是展台局域网地址，走 4G/5G 的访客手机打不开。请在 config.json 填 resultBase。 · This is a booth-network address; set resultBase in config.json."
+      : "公网地址：访客手机从任何网络都能打开页面（留资是否入库，请按开展前清单实测）。 · Public address; test a real lead before the fair.";
+    const cfg = Booth.config, miss = [];
+    const fb = cfg.leadFallback || {}, ce = cfg.consentEntity || {};
+    if (!fb.email && !fb.whatsapp && !fb.wechat) miss.push("leadFallback 为空：访客提交失败时没有任何联系方式可给 · leadFallback is empty");
+    if (!ce.name || !ce.email) miss.push("consentEntity 未填：结果页不会开放线上登记，只显示联系方式 · consentEntity is missing; online sign-up stays closed");
+    if (miss.length) { const w = document.getElementById("cfg-warn"); w.hidden = false; w.innerHTML = `${Booth.icon("triangle-alert")}${miss.map(Booth.esc).join("<br>")}`; }
+    const box = document.getElementById("reset-box");
+    document.getElementById("reset-ask").addEventListener("click", () => { box.hidden = false; document.getElementById("reset-no").focus(); });
+    document.getElementById("reset-no").addEventListener("click", () => { box.hidden = true; document.getElementById("reset-ask").focus(); });
+    document.getElementById("reset-yes").addEventListener("click", () => {
+      b.send("stats", { stats: Booth.resetStats() });
+      box.hidden = true; document.getElementById("saved").textContent = "已清零并同步 · Cleared and synced"; document.getElementById("reset-ask").focus();
+    });
+  });
+</script>
+</body>
+</html>

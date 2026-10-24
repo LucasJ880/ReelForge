@@ -13,6 +13,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4311", "--directory", "designs"],
       "port": 4311
+    },
+    {
+      "name": "booth",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["designs/aivora-v2-exchange/booth/relay.mjs", "--port", "4317"],
+      "port": 4317
     }
   ]
 }

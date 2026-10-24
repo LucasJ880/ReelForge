@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Aivora 展台 · 大屏</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="booth.css">
+</head>
+<body>
+<div id="app"></div>
+<script src="assets/icons.js"></script>
+<script src="booth.js"></script>
+<script src="screen.js"></script>
+<script>
+  Booth.loadConfig().then(() => BoothScreen.mount(document.getElementById("app"), Booth.bus()));
+</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-23T13:10:32-04:00",
+  "generatedAt": "2026-10-23T20:54:54-04:00",
   "title": "Design System: Aivora 增长交易台（Exchange）",
   "status": "proposal-pending-ceo-approval: 生产仍运行 Aivora Glass（根 DESIGN.md / CLAUDE.md §6 / 玻璃门禁测试）；采纳前 src/ 不得照此实现。",
-  "source": "designs/aivora-v2-exchange/index.html",
+  "source": "designs/aivora-v2-exchange/index.html（交易台五页） + designs/aivora-v2-exchange/booth/（广交会展台套件）",
   "extensions": {
     "colorMeta": {
       "ink-0": {
@@ -229,6 +229,102 @@
         "role": "secondary",
         "displayName": "钢灰描边 Steel 30",
         "canonical": "rgb(143 161 185 / 0.3)"
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "纸面 Paper",
+        "canonical": "oklch(96.1% 0.005 95.1)",
+        "tonalRamp": [
+          "#16181b",
+          "#2b2e33",
+          "#43474e",
+          "#5b6068",
+          "#8d9096",
+          "#c3c3c0",
+          "#e7e5df",
+          "#fcfbf8"
+        ],
+        "note": "只用于展台的模拟客户手机：表现「另一台设备、另一个人」。"
+      },
+      "paper-2": {
+        "role": "neutral",
+        "displayName": "纸面 2 Paper 2",
+        "canonical": "oklch(92.2% 0.008 91.5)",
+        "tonalRamp": [
+          "#16181b",
+          "#2b2e33",
+          "#43474e",
+          "#5b6068",
+          "#8d9096",
+          "#c3c3c0",
+          "#e7e5df",
+          "#fcfbf8"
+        ],
+        "note": "模拟渠道提示条、语言切换底。"
+      },
+      "paper-card": {
+        "role": "neutral",
+        "displayName": "纸卡 Paper Card",
+        "canonical": "oklch(98.8% 0.004 91.4)",
+        "tonalRamp": [
+          "#16181b",
+          "#2b2e33",
+          "#43474e",
+          "#5b6068",
+          "#8d9096",
+          "#c3c3c0",
+          "#e7e5df",
+          "#fcfbf8"
+        ],
+        "note": "气泡、输入框、时段卡；替代纯白。"
+      },
+      "paper-ink": {
+        "role": "neutral",
+        "displayName": "纸墨 Paper Ink",
+        "canonical": "oklch(20.8% 0.007 258.4)",
+        "tonalRamp": [
+          "#16181b",
+          "#2b2e33",
+          "#43474e",
+          "#5b6068",
+          "#8d9096",
+          "#c3c3c0",
+          "#e7e5df",
+          "#fcfbf8"
+        ],
+        "note": "纸面上的正文与主按钮实心；手机上不用余烬。"
+      },
+      "paper-mute": {
+        "role": "neutral",
+        "displayName": "纸灰 Paper Mute",
+        "canonical": "oklch(48.7% 0.014 259.8)",
+        "tonalRamp": [
+          "#16181b",
+          "#2b2e33",
+          "#43474e",
+          "#5b6068",
+          "#8d9096",
+          "#c3c3c0",
+          "#e7e5df",
+          "#fcfbf8"
+        ],
+        "note": "纸面上的次要文字。"
+      },
+      "paper-line": {
+        "role": "neutral",
+        "displayName": "纸线 Paper Line",
+        "canonical": "rgb(22 24 27 / 0.12)",
+        "tonalRamp": [
+          "#16181b",
+          "#2b2e33",
+          "#43474e",
+          "#5b6068",
+          "#8d9096",
+          "#c3c3c0",
+          "#e7e5df",
+          "#fcfbf8"
+        ],
+        "note": "纸面上的 1px 分隔与描边。"
       }
     },
     "typographyMeta": {
@@ -294,6 +390,16 @@
         "name": "player",
         "value": "0 24px 60px -30px rgb(0 0 0 / 0.9)",
         "purpose": "只给审片播放器。"
+      },
+      {
+        "name": "booth-key-bevel",
+        "value": "inset 0 1px 0 rgb(255 255 255 / 0.32), inset 0 -2px 0 rgb(0 0 0 / 0.22)",
+        "purpose": "余烬键与品牌标记的机加工倒角（展台与交易台共用）"
+      },
+      {
+        "name": "booth-phone",
+        "value": "0 30px 80px -40px rgb(0 0 0 / 0.9)",
+        "purpose": "模拟客户手机浮在墨色台面上的深投影，只用于纸面手机"
       }
     ],
     "motion": [
@@ -456,6 +562,30 @@
       "description": "生成光束：只套在机器此刻正在干活的 9:16 媒体或步骤上，完成即撤。原型用 @property --beam 旋转锥形渐变；此片段为 shadow DOM 可用的等效写法。",
       "html": "<div class=\"ds-beam-wrap\"><span class=\"ds-beam\"><span class=\"ds-frame\"></span></span><span class=\"ds-cap\">CR-2304 · 生成中 3/4</span></div>",
       "css": ".ds-beam-wrap{display:grid;gap:8px;width:112px;font:500 11px/1.3 \"IBM Plex Mono\", \"SFMono-Regular\", Menlo, Consolas, monospace;color:var(--dust, #7c828b);}.ds-beam{position:relative;display:block;width:112px;aspect-ratio:9/16;border-radius:8px;overflow:hidden;background:var(--ink-3, #1c2025);}.ds-beam::before{content:'';position:absolute;inset:-40%;background:conic-gradient(transparent 0 62%,rgb(255 77 0 / .2) 72%,#ff4d00 86%,#ffd2b8 92%,transparent 100%);animation:ds-spin 2.4s linear infinite;}.ds-frame{position:absolute;inset:1.5px;border-radius:6.5px;background:linear-gradient(160deg,#2a2f36,#14171b);}@keyframes ds-spin{to{transform:rotate(360deg);}}@media (prefers-reduced-motion: reduce){.ds-beam::before{animation:none;background:#ff4d00;opacity:.6;}}"
+    },
+    {
+      "name": "Booth Count Cell",
+      "kind": "custom",
+      "refersTo": "booth-count-cell",
+      "description": "大屏底栏的真实计数格：EN 在上、中文在下；为 0 时写「第一个来试」或用 Plex 写 0，Doto 只写非零真实数。",
+      "html": "<div class=\"ds-count\"><div><span class=\"k\">Tried it here today</span><span class=\"k zh\">今天在这里亲手试过</span><span class=\"zero\">Be the first — try it on the iPad</span><span class=\"k zh\">第一个来试 —— iPad 上点开始</span></div><div><span class=\"k\">Real pilot · customer-confirmed visits</span><span class=\"k zh\">真实试点 · 客户确认的上门预约</span><span class=\"n0\">0</span><span class=\"s\">real numbers only · 只放真实数字</span></div></div>",
+      "css": ".ds-count{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--seam,rgb(226 232 240 / .075));border:1px solid var(--seam,rgb(226 232 240 / .075));border-radius:12px;overflow:hidden;font-family:\"Archivo\",\"Noto Sans SC\",system-ui,sans-serif}.ds-count>div{background:#101215;padding:14px 18px;display:grid;gap:3px;align-content:center}.ds-count .k{font-size:14px;line-height:1.2;color:#ecebe7}.ds-count .k.zh{color:#a3a9b1}.ds-count .zero{font:500 20px/1.25 \"Archivo\",system-ui,sans-serif;color:#ecebe7;margin-top:4px}.ds-count .n0{font:600 40px/1.05 \"IBM Plex Mono\",ui-monospace,monospace;color:#ecebe7;font-variant-numeric:tabular-nums;margin-top:4px}.ds-count .s{font-size:13px;color:#a3a9b1}"
+    },
+    {
+      "name": "Simulated Phone Thread",
+      "kind": "custom",
+      "refersTo": "booth-phone",
+      "description": "客户 iPad 上的模拟评论区：纸面、常驻模拟渠道提示、无平台 logo；店主回复署名「AI 助理」，主按钮纸墨实心。",
+      "html": "<div class=\"ds-phone\"><div class=\"sim\">Simulated comment thread for this booth. Our pilot runs on the official Instagram / Facebook API.</div><div class=\"body\"><div class=\"cmt\"><span class=\"av\">M</span><div><div class=\"who\">You · just now</div><div class=\"bub\">Do you do motorized blinds?</div></div></div><div class=\"cmt\"><span class=\"av shop\">V</span><div><div class=\"who\">Vaughan Blinds · simulated delivery</div><div class=\"bub\">Hi! Yes — motorized and manual. Want a free measure? Pick a time here: Book a visit\n— AI assistant, Vaughan Blinds</div></div></div><button class=\"cta\" type=\"button\">Pick a time</button></div></div>",
+      "css": ".ds-phone{width:340px;background:#f3f2ee;color:#16181b;border-radius:28px;overflow:hidden;font-family:\"Archivo\",\"Noto Sans SC\",system-ui,sans-serif;border:1px solid rgb(22 24 27 / .12)}.ds-phone .sim{font-size:12px;line-height:1.45;color:#5b6068;padding:8px 18px;background:#e7e5df;border-bottom:1px solid rgb(22 24 27 / .12)}.ds-phone .body{padding:18px;display:grid;gap:14px}.ds-phone .cmt{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px}.ds-phone .av{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:14px;background:#e7e5df}.ds-phone .av.shop{background:#16181b;color:#f3f2ee}.ds-phone .who{font-size:13px;color:#5b6068;margin-bottom:2px}.ds-phone .bub{background:#fcfbf8;border:1px solid rgb(22 24 27 / .12);border-radius:4px 16px 16px 16px;padding:10px 13px;font-size:16px;line-height:1.5;white-space:pre-line}.ds-phone .cta{min-height:56px;border-radius:14px;border:0;background:#16181b;color:#f3f2ee;font:600 17px/1 inherit;cursor:pointer}.ds-phone .cta:hover{background:#2b2e33}.ds-phone .cta:focus-visible{outline:3px solid #ff4d00;outline-offset:2px}"
+    },
+    {
+      "name": "Booth Time Slot",
+      "kind": "custom",
+      "refersTo": "booth-slot",
+      "description": "客户选上门时段的纸卡；选中用纸墨双线描边，不用余烬；时段按访客语言和本地时间渲染。",
+      "html": "<div class=\"ds-slots\"><button class=\"ds-slot\" type=\"button\" aria-pressed=\"true\">Tue 10:00<span>✓</span></button><button class=\"ds-slot\" type=\"button\" aria-pressed=\"false\">周三 14:00<span></span></button></div>",
+      "css": ".ds-slots{display:grid;gap:8px;width:300px;padding:16px;background:#f3f2ee}.ds-slot{min-height:56px;border-radius:12px;border:1.5px solid rgb(22 24 27 / .12);background:#fcfbf8;color:#16181b;font:400 16px/1 \"IBM Plex Mono\",\"Noto Sans SC\",ui-monospace,monospace;font-variant-numeric:tabular-nums;text-align:left;padding:0 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;transition:border-color .15s}.ds-slot:hover{border-color:#5b6068}.ds-slot[aria-pressed=\"true\"]{border-color:#16181b;box-shadow:inset 0 0 0 1px #16181b}.ds-slot:focus-visible{outline:2px solid #16181b;outline-offset:2px}"
     }
   ],
   "narrative": {
@@ -540,6 +670,26 @@
         "name": "The Beam Means Working Rule",
         "body": "光束只套在机器此刻正在干活的东西上，完成即撤；不用于装饰、悬停或强调。",
         "section": "components"
+      },
+      {
+        "name": "The Three-Metre Rule",
+        "body": "展台大屏按 1920×1080、3–4 m 视距排字，单位 --u = min(1vw, 1.7778vh)；必读文字不小于 1.5u（1080p 下约 29px），只用骨白，第二语言行用灰白，尘灰不上大屏。",
+        "section": "typography"
+      },
+      {
+        "name": "The Two-Language Rule",
+        "body": "展台每一条面向访客的文字都有 EN 和中文两份；大屏主张屏每次出现换一种语言、穿插在其余各屏之间，其余屏英文在上、中文在下同一层级。回复语言跟客户留言走，对照是同一份回复计划换语言渲染。",
+        "section": "typography"
+      },
+      {
+        "name": "The Real-Count Rule",
+        "body": "对外屏幕不出现示例经营数字。大屏底栏只有三格真实计数；为 0 就写 0 或「第一个来试」；证据屏在拿到平台 ID 和书面同意前只写「进行中」。",
+        "section": "colors"
+      },
+      {
+        "name": "The Simulated Device Rule",
+        "body": "客户 iPad 用纸色面表现另一台设备；常驻「模拟评论区」提示，不用平台 logo 或仿平台界面；回复写「模拟送达」；手机主按钮纸墨实心，余烬只留给店主的「批准并发送」。",
+        "section": "colors"
       }
     ],
     "dos": [
@@ -550,7 +700,9 @@
       "**Do** 让真实成片承担色彩：9:16 缩略图进赛马榜、委托单、成交链；领先成片常驻静音循环，其余悬停才播。",
       "**Do** 在每颗余烬键旁给退路（不发并保留素材、只重抽一个镜头、转人工、继续运行），取消说明写清保留什么、清掉什么。",
       "**Do** 把尘灰文字只放在 ink-0 到 ink-2 上；落到 ink-3 及更亮的面（选中行、选中导航）时改用灰白。",
-      "**Do** 尊重 `prefers-reduced-motion`：成交带停止并可横向滚动，光束变静态余烬环，循环视频只留首帧，闪光与过渡近乎瞬时。"
+      "**Do** 尊重 `prefers-reduced-motion`：成交带停止并可横向滚动，光束变静态余烬环，循环视频只留首帧，闪光与过渡近乎瞬时。",
+      "Do 在展台上让访客亲手点「批准」，并在每个状态旁留退路（我亲自回 / 不回复 / 结束本轮）。",
+      "Do 把渠道现状单独占一屏：试点中 / 等平台审核 / 规划中，内容只从 config.json 读。"
     ],
     "donts": [
       "**Don't** 用 backdrop-filter 毛玻璃或环境光场 —— 那是 Aivora Glass 的材质，两个世界不混用。",
@@ -565,7 +717,11 @@
       "**Don't** 把光束或脉冲用在机器此刻没有在干活的元素上。",
       "**Don't** 给已完成的成片加色调、滤镜或彩色蒙层；画面上的叠加只能是中性的工具标记（安全区虚线、审片标记、ink 底的 chip）。",
       "**Don't** 用纯黑或纯白做界面面与文字（审片播放器底的 #000 属于画面，不属于界面）。",
-      "**Don't** 在标题上方加眉题或 kicker；面包屑和指标自带的标签不算。"
+      "**Don't** 在标题上方加眉题或 kicker；面包屑和指标自带的标签不算。",
+      "Don't 在展台对外屏幕上放示例数字、客户数或提升百分比，或把关联方试点说成独立客户。",
+      "Don't 把规划中的渠道（WhatsApp、小红书、抖音、微信）写成已支持。",
+      "Don't 在 Offer 上写具体价格或收款条款，只写结构。",
+      "Don't 把访客自己打的字放上展台过道大屏；大屏只显示内置建议问题的原话，其余用占位句。"
     ]
   }
 }

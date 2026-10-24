@@ -24,6 +24,7 @@ const zh = {
       library: "成品",
       brands: "品牌",
       templates: "模板",
+      leads: "询盘",
     },
     navShortcut: "快捷键 {key}",
     batchStates: {
@@ -440,6 +441,7 @@ const en: CopyShape<typeof zh> = {
       library: "Library",
       brands: "Brand",
       templates: "Recipes",
+      leads: "Leads",
     },
     navShortcut: "Shortcut {key}",
     batchStates: {

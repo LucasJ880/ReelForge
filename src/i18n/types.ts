@@ -438,6 +438,7 @@ export type Dictionary = {
       library: string;
       brands: string;
       templates: string;
+      leads: string;
     };
     platformShell: {
       primaryNav: string;

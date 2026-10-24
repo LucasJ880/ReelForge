@@ -16,7 +16,10 @@ QA_DIR="tmp/real-template-samples/${RUN_KEY}-qa"
 OUT_DIR="public/template-previews"
 
 # slug=起始秒;QA 后针对钩子更强的模板覆写(默认 6)。
-declare -A OFFSETS=()
+declare -A OFFSETS=(
+  # 1025 QA:6s 起只剩纸袋中段与叠化,0s 起是咖啡豆特写 + 手封袋(配方钩子)
+  [commerce-food-sizzle]=0
+)
 
 # 人物主导的模板:9:16 → 16:9 用上部裁切(6% 顶边),否则中央带会砍头。
 declare -A TOPCROP=(

@@ -42,6 +42,9 @@ const EXPANSION_QA_PASSED_SLUGS = [
   "commerce-pov-immersive",
   "commerce-360-hero-orbit",
   "commerce-before-after-match",
+  /// 1025 第四轮:r7 真机成片逐条 QA 通过(穿搭动线、萌宠陪伴未过,见验收记录)
+  "commerce-outdoor-rugged",
+  "commerce-food-sizzle",
 ] as const;
 
 /** Slugs whose /template-previews/<slug>.jpg still is committed and QA-passed. */

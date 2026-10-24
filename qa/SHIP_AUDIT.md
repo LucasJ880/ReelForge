@@ -103,7 +103,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |
 | GET, POST | `/api/admin/users` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
-| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
+| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary; DELETE fixed 405 (round 1025 A4: delete → disable, no physical delete) |
+| POST, DELETE | `/api/admin/users/[id]/disable` | Super admin | Round 1025 A4: POST disables (reason required, cannot disable self, cancels unsubmitted queued jobs, data kept); DELETE lifts the disable |
 
 ### Agent Director, briefs, planning, and rendering
 

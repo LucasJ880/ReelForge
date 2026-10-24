@@ -839,16 +839,24 @@ export async function cancelProductImageJob(args: {
   }
 
   const now = new Date();
-  await db.$transaction([
-    db.productImageJob.update({
-      where: { id: job.id },
+  /// CAS（bughunt #25）：只有仍在 QUEUED / PROCESSING 的任务才能被取消。
+  /// 读完状态到写入之间，poll 可能刚把它收成 SUCCEEDED——无条件 update 会把
+  /// 成功覆盖成已取消，商家就看不到花过钱的图了。抢输了就按「已结束」回 409。
+  const cancelled = await db.$transaction(async (tx) => {
+    const claimed = await tx.productImageJob.updateMany({
+      where: {
+        id: job.id,
+        userId: args.userId,
+        status: { in: [ProductImageStatus.QUEUED, ProductImageStatus.PROCESSING] },
+      },
       data: {
         status: ProductImageStatus.CANCELLED,
         completedAt: now,
         idempotencyKey: `cancelled:${now.getTime()}:${job.idempotencyKey}`.slice(0, 190),
       },
-    }),
-    db.productImageProviderTask.updateMany({
+    });
+    if (claimed.count !== 1) return false;
+    await tx.productImageProviderTask.updateMany({
       where: {
         productImageJobId: job.id,
         status: {
@@ -856,8 +864,12 @@ export async function cancelProductImageJob(args: {
         },
       },
       data: { status: ProductImageStatus.CANCELLED },
-    }),
-  ]);
+    });
+    return true;
+  });
+  if (!cancelled) {
+    throw new ProductImageRequestError("任务已结束，无需取消。", "INVALID_STATE", 409);
+  }
 
   return (await findProductImageJobForUser(job.id, args.userId))!;
 }

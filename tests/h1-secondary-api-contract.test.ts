@@ -68,12 +68,27 @@ const ROUTES: RouteContract[] = [
     successKind: "entity",
     successPatterns: [/NextResponse\.json\(user\)/],
   },
+  /// A4 5.1：删除改停用。DELETE 仍先过超管守卫，再固定回 405（不再物理删除）。
   {
     file: "src/app/api/admin/users/[id]/route.ts",
     method: "DELETE",
     guard: "requireSuperAdmin",
-    successKind: "ok",
-    successPatterns: [/NextResponse\.json\(\{\s*ok:\s*true\s*\}\)/],
+    successKind: "record",
+    successPatterns: [/status:\s*405/],
+  },
+  {
+    file: "src/app/api/admin/users/[id]/disable/route.ts",
+    method: "POST",
+    guard: "requireSuperAdmin",
+    successKind: "record",
+    successPatterns: [/NextResponse\.json\(\{\s*ok:\s*true,\s*userId:/],
+  },
+  {
+    file: "src/app/api/admin/users/[id]/disable/route.ts",
+    method: "DELETE",
+    guard: "requireSuperAdmin",
+    successKind: "record",
+    successPatterns: [/NextResponse\.json\(\{\s*ok:\s*true,\s*\.\.\.result\s*\}\)/],
   },
   {
     file: "src/app/api/delivery-orders/route.ts",
@@ -354,7 +369,7 @@ test("H1 secondary contracts: the declared route-method inventory is complete", 
     ROUTES.map(routeKey).sort(),
     "every second-tier route method must have an explicit contract row",
   );
-  assert.equal(ROUTES.length, 25);
+  assert.equal(ROUTES.length, 27);
 });
 
 test("H1 secondary contracts: every method guards before work and locks its success wire shape", async () => {

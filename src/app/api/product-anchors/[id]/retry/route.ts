@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { rateLimitedResponse } from "@/lib/api-rate-limit";
 import { isDemoAccountEmail } from "@/lib/demo-account";
 import { productAnchorView } from "@/lib/contracts/product-anchor-api";
 import {
   getOwnedProductAnchor,
   runCutout,
 } from "@/lib/services/product-anchor-service";
+import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,12 +18,14 @@ export const maxDuration = 120;
 interface ProductAnchorRetryDependencies {
   requireAuth: typeof requireAuth;
   getOwnedProductAnchor: typeof getOwnedProductAnchor;
+  assertPaidActionRateLimit: typeof assertPaidActionRateLimit;
   runCutout: typeof runCutout;
 }
 
 const defaultRetryDependencies: ProductAnchorRetryDependencies = {
   requireAuth,
   getOwnedProductAnchor,
+  assertPaidActionRateLimit,
   runCutout,
 };
 
@@ -71,6 +75,18 @@ export function createProductAnchorRetryHandler(
     }
     if (anchor.status === "READY") {
       return NextResponse.json({ ok: true, anchor: productAnchorView(anchor) });
+    }
+
+    /// 与新建共用一个限流桶（D5）；READY 短路在前，不占次数。
+    try {
+      await dependencies.assertPaidActionRateLimit({
+        action: "product-anchor",
+        userId: guard.session.user.id,
+      });
+    } catch (error) {
+      const limited = rateLimitedResponse(error);
+      if (limited) return limited;
+      throw error;
     }
 
     try {

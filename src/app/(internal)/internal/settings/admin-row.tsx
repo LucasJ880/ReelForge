@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { RotateCcw, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Props {
@@ -13,6 +13,8 @@ interface Props {
     name: string | null;
     role: "SUPER_ADMIN" | "OPERATOR" | "REVIEWER";
     createdAtText: string;
+    /// 已停用（disabledAt 非空）。停用取代删除：数据全保留、可恢复。
+    disabled?: boolean;
   };
   isSelf: boolean;
   roleLabel: string;
@@ -40,16 +42,50 @@ export function AdminRow({ user, isSelf, roleLabel }: Props) {
     }
   }
 
-  async function remove() {
-    if (!confirm(`确认删除 ${user.email}？`)) return;
+  /**
+   * 停用取代删除（A4 5.1）：删除会沿级联删光名下全部业务数据，违反「只归档不删除」。
+   * 停用只拦登录与会话，并取消未开始的排队任务；数据全部保留，可随时恢复。
+   */
+  async function disable() {
+    const reason = window.prompt(
+      `停用 ${user.email}？\n停用后无法登录，未开始的排队任务会被取消；名下数据全部保留，可随时恢复。\n请填写停用原因：`,
+    );
+    if (reason === null) return;
+    if (!reason.trim()) {
+      toast.error("请填写停用原因");
+      return;
+    }
     setBusy(true);
     try {
-      const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "失败");
-      }
-      toast.success("已删除");
+      const res = await fetch(`/api/admin/users/${user.id}/disable`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "停用失败");
+      toast.success(
+        data.cancelledVideoJobs > 0
+          ? `已停用，取消了 ${data.cancelledVideoJobs} 条未开始的任务`
+          : "已停用",
+      );
+      router.refresh();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function enable() {
+    if (!confirm(`恢复 ${user.email}？恢复后可以重新登录。`)) return;
+    setBusy(true);
+    try {
+      /// 解除停用 = 删掉「停用」这个子资源；账号本身永远不删。
+      const res = await fetch(`/api/admin/users/${user.id}/disable`, { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "恢复失败");
+      toast.success("已恢复");
       router.refresh();
     } catch (err) {
       toast.error((err as Error).message);
@@ -81,18 +117,34 @@ export function AdminRow({ user, isSelf, roleLabel }: Props) {
       </td>
       <td className="text-meta text-muted-foreground">{user.createdAtText}</td>
       <td className="text-right">
-        {!isSelf && (
+        {!isSelf && user.disabled ? (
+          <span className="inline-flex items-center gap-2">
+            <span className="text-meta text-muted-foreground">已停用</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={enable}
+              aria-label={`恢复 ${user.email}`}
+            >
+              <RotateCcw strokeWidth={1.5} aria-hidden />
+              恢复
+            </Button>
+          </span>
+        ) : null}
+        {!isSelf && !user.disabled ? (
           <Button
             size="sm"
             variant="ghost"
             disabled={busy}
-            onClick={remove}
+            onClick={disable}
             className="text-danger hover:text-danger"
-            aria-label={`删除 ${user.email}`}
+            aria-label={`停用 ${user.email}`}
           >
-            <Trash2 strokeWidth={1.5} aria-hidden />
+            <UserX strokeWidth={1.5} aria-hidden />
+            停用
           </Button>
-        )}
+        ) : null}
       </td>
     </tr>
   );

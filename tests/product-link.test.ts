@@ -10,6 +10,9 @@ import {
 
 const URL_UNDER_TEST = "https://shop.example.com/products/roller-shade";
 
+/// 注入 DNS：测试不出网，也不依赖 example.com 子域名能否真的解析（A4 5.4 起抓取前先解析 DNS）。
+const PUBLIC_DNS = async () => ["93.184.216.34"];
+
 test("SSRF 边界：内网与非 http 协议一律拒绝", () => {
   const blocked = [
     "http://localhost:3000/x",
@@ -92,6 +95,7 @@ test("都没有就退到 <title>，再没有就明确报错而不是编", () => 
 test("Shopify 商品页走官方 .json，不去解析 HTML", async () => {
   const calls: string[] = [];
   const facts = await fetchProductFacts(URL_UNDER_TEST, {
+    resolveHost: PUBLIC_DNS,
     fetchImpl: (async (input: string | URL) => {
       const url = input.toString();
       calls.push(url);
@@ -120,6 +124,7 @@ test("Shopify 商品页走官方 .json，不去解析 HTML", async () => {
 
 test("非 Shopify 站点：.json 探测失败后照常解析 HTML", async () => {
   const facts = await fetchProductFacts(URL_UNDER_TEST, {
+    resolveHost: PUBLIC_DNS,
     fetchImpl: (async (input: string | URL) => {
       const url = input.toString();
       if (url.endsWith(".json")) return new Response("nope", { status: 404 });
@@ -136,6 +141,7 @@ test("非 Shopify 站点：.json 探测失败后照常解析 HTML", async () => 
 test("非 HTML 与不可达都给明确 reason，便于前端给对应提示", async () => {
   await assert.rejects(
     fetchProductFacts("https://example.com/a.pdf", {
+      resolveHost: PUBLIC_DNS,
       fetchImpl: (async () =>
         new Response("%PDF", {
           status: 200,
@@ -148,6 +154,7 @@ test("非 HTML 与不可达都给明确 reason，便于前端给对应提示", a
 
   await assert.rejects(
     fetchProductFacts("https://example.com/a", {
+      resolveHost: PUBLIC_DNS,
       fetchImpl: (async () => new Response("", { status: 500 })) as typeof fetch,
     }),
     (err: unknown) =>

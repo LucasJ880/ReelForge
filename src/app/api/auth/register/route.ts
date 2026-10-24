@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { quotaErrorResponse } from "@/lib/api-quota";
+import { TRIAL_SUBSCRIPTION_TIER } from "@/lib/config/quota-tiers";
 import { assertRegisterRateLimit } from "@/lib/services/quota-service";
 
 /**
@@ -27,6 +28,10 @@ import { assertRegisterRateLimit } from "@/lib/services/quota-service";
  *   - role=CUSTOMER，绝不借用 OPERATOR 角色
  *
  * Phase 7 才加 quota / 邮箱验证 / 频率限制；Phase 8.5 加法务勾选
+ *
+ * D5（2026-10-25）：自助注册的新账号进入「试用」额度（每月 3 条视频 / 6 段画面），
+ * 信号是 subscriptionTier = "trial"（见 quota-tiers）。Workspace 仍建 starter：
+ * planId 有外键，且存量账号与脚本建的账号都不经过这里，额度不变。
  */
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email("请输入有效的邮箱"),
@@ -93,6 +98,8 @@ export async function POST(req: NextRequest) {
       role: "CUSTOMER",
       // Temporary compatibility discriminator; removed after test-map review.
       userType: "PERSONAL",
+      /// D5 试用额度标记；Stripe 订阅成功或超管手工转正时改写。
+      subscriptionTier: TRIAL_SUBSCRIPTION_TIER,
       workspace: {
         create: {
           name: name && name.length > 0 ? `${name} Workspace` : "My Workspace",

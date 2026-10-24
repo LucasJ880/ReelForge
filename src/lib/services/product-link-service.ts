@@ -1,3 +1,5 @@
+import { lookup } from "node:dns/promises";
+import { BlockList, isIP } from "node:net";
 import { z } from "zod";
 import {
   firecrawlScrapeHtml,
@@ -29,6 +31,8 @@ export type ProductLinkFacts = z.infer<typeof productLinkFactsSchema>;
 const FETCH_TIMEOUT_MS = 8000;
 /// 商品页不该有几 MB。超了多半抓到的不是商品页，早停比读完再判便宜。
 const MAX_BYTES = 2_000_000;
+/// 跳转最多跟 5 跳，每一跳都重新过 SSRF 检查（短链 → 商品页一般 1–2 跳）。
+export const MAX_REDIRECTS = 5;
 
 export class ProductLinkError extends Error {
   constructor(
@@ -46,10 +50,11 @@ export class ProductLinkError extends Error {
 }
 
 /**
- * 只允许 http/https 的公网地址。
+ * 只允许 http/https 的公网地址（字符串层，第一道）。
  *
  * 这是 SSRF 边界：商家粘进来的 URL 由我们的服务器去请求，
- * 不挡住内网地址等于把内网探测能力送出去。
+ * 不挡住内网地址等于把内网探测能力送出去。字符串层只能挡住明面上的内网写法，
+ * 解析到内网的域名、跳转到内网的链接由 assertPublicDestination 逐跳再查一遍。
  */
 export function assertPublicHttpUrl(raw: string): URL {
   let url: URL;
@@ -61,41 +66,162 @@ export function assertPublicHttpUrl(raw: string): URL {
   if (url.protocol !== "http:" && url.protocol !== "https:") {
     throw new ProductLinkError("只支持 http/https 链接", "invalid_url");
   }
-  const host = url.hostname.toLowerCase();
+  if (url.username || url.password) {
+    throw new ProductLinkError("链接里不能带账号密码", "invalid_url");
+  }
+  /// 结尾的点（"localhost."）同样指向本机，先去掉再比。
+  const host = url.hostname.toLowerCase().replace(/\.$/, "");
+  const literal = host.replace(/^\[|\]$/g, "");
   const blocked =
     host === "localhost" ||
-    host === "0.0.0.0" ||
     host.endsWith(".localhost") ||
     host.endsWith(".internal") ||
     host.endsWith(".local") ||
-    /^127\./.test(host) ||
-    /^10\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    host.startsWith("[") /// IPv6 字面量，含 ::1 与 fc00::/7
-  ;
+    (isIP(literal) !== 0 && isBlockedIpAddress(literal));
   if (blocked) {
     throw new ProductLinkError("不支持内网地址", "invalid_url");
   }
   return url;
 }
 
+/**
+ * 不可对外访问的地址段：回环、私网、链路本地（含云厂商元数据 169.254.169.254、
+ * fd00:ec2::254）、运营商 NAT（含阿里云元数据 100.100.100.200）、保留 / 文档 / 组播段，
+ * 以及会把 IPv4 藏进 IPv6 的过渡前缀（NAT64、6to4、Teredo）。
+ * IPv4 映射地址（::ffff:a.b.c.d）由 BlockList 按 IPv4 规则判定。
+ */
+const BLOCKED_ADDRESSES = (() => {
+  const list = new BlockList();
+  const v4: Array<[string, number]> = [
+    ["0.0.0.0", 8],
+    ["10.0.0.0", 8],
+    ["100.64.0.0", 10],
+    ["127.0.0.0", 8],
+    ["169.254.0.0", 16],
+    ["172.16.0.0", 12],
+    ["192.0.0.0", 24],
+    ["192.0.2.0", 24],
+    ["192.88.99.0", 24],
+    ["192.168.0.0", 16],
+    ["198.18.0.0", 15],
+    ["198.51.100.0", 24],
+    ["203.0.113.0", 24],
+    ["224.0.0.0", 4],
+    ["240.0.0.0", 4],
+  ];
+  for (const [network, prefix] of v4) list.addSubnet(network, prefix, "ipv4");
+  const v6: Array<[string, number]> = [
+    ["::", 128],
+    ["::1", 128],
+    ["::", 96], /// 已废弃的 IPv4 兼容地址
+    ["64:ff9b::", 96], /// NAT64
+    ["64:ff9b:1::", 48],
+    ["100::", 64], /// 丢弃前缀
+    ["2001::", 32], /// Teredo
+    ["2001:db8::", 32], /// 文档
+    ["2002::", 16], /// 6to4
+    ["fc00::", 7], /// 唯一本地（含 fd00:ec2::254）
+    ["fe80::", 10], /// 链路本地
+    ["fec0::", 10], /// 已废弃的站点本地
+    ["ff00::", 8], /// 组播
+  ];
+  for (const [network, prefix] of v6) list.addSubnet(network, prefix, "ipv6");
+  return list;
+})();
+
+export function isBlockedIpAddress(address: string): boolean {
+  const literal = address.trim().replace(/^\[|\]$/g, "").split("%")[0];
+  const family = isIP(literal);
+  /// 不是合法 IP 一律按不安全处理：宁可抓不到，也不放过解析器的边角写法。
+  if (family === 0) return true;
+  return BLOCKED_ADDRESSES.check(literal, family === 6 ? "ipv6" : "ipv4");
+}
+
+/** 域名 → 全部解析结果。可注入，测试不走真实 DNS。 */
+export type HostResolver = (hostname: string) => Promise<string[]>;
+
+const resolveHostWithDns: HostResolver = async (hostname) => {
+  const records = await lookup(hostname, { all: true, verbatim: true });
+  return records.map((record) => record.address);
+};
+
+/**
+ * SSRF 第二道：解析 DNS，任何一个解析结果落在内网段就拒绝
+ * （不挑「好的那个」去连：多记录轮询时我们控制不了实际连到哪一个）。
+ *
+ * 残余风险：检查与真正连接之间域名可以被重新解析（DNS rebinding）。彻底堵住要在
+ * 连接层固定 IP（自定义 dispatcher 的 lookup），需要直接依赖 undici，本轮不做。
+ */
+export async function assertPublicDestination(
+  url: URL,
+  resolveHost: HostResolver = resolveHostWithDns,
+): Promise<void> {
+  assertPublicHttpUrl(url.toString());
+  const host = url.hostname.replace(/^\[|\]$/g, "").replace(/\.$/, "");
+  if (isIP(host) !== 0) return; /// 字面量 IP 已在字符串层判过
+  let addresses: string[];
+  try {
+    addresses = await resolveHost(host);
+  } catch {
+    throw new ProductLinkError("这个链接的域名解析不到，请检查链接", "unreachable");
+  }
+  if (addresses.length === 0) {
+    throw new ProductLinkError("这个链接的域名解析不到，请检查链接", "unreachable");
+  }
+  if (addresses.some(isBlockedIpAddress)) {
+    throw new ProductLinkError("不支持内网地址", "invalid_url");
+  }
+}
+
+const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+
+/**
+ * 手动跟随跳转：每一跳先过 assertPublicDestination 再请求，最多 MAX_REDIRECTS 跳。
+ * `redirect: "follow"` 会让 fetch 自己跳到内网地址，绕过我们所有检查。
+ */
+async function fetchPublic(
+  url: URL,
+  init: RequestInit,
+  doFetch: typeof fetch,
+  resolveHost?: HostResolver,
+): Promise<Response> {
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+    await assertPublicDestination(current, resolveHost);
+    const res = await doFetch(current.toString(), { ...init, redirect: "manual" });
+    if (!REDIRECT_STATUSES.has(res.status)) return res;
+    const location = res.headers.get("location");
+    /// 不读跳转页的正文，直接释放连接。
+    await res.body?.cancel().catch(() => undefined);
+    if (!location) {
+      throw new ProductLinkError(`页面返回 ${res.status}`, "unreachable");
+    }
+    try {
+      current = new URL(location, current);
+    } catch {
+      throw new ProductLinkError("页面跳转到了无效地址", "unreachable");
+    }
+  }
+  throw new ProductLinkError("页面跳转次数过多", "unreachable");
+}
+
 export async function fetchProductFacts(
   rawUrl: string,
-  deps: { fetchImpl?: typeof fetch } = {},
+  deps: { fetchImpl?: typeof fetch; resolveHost?: HostResolver } = {},
 ): Promise<ProductLinkFacts> {
   const url = assertPublicHttpUrl(rawUrl);
   const doFetch = deps.fetchImpl ?? fetch;
+  /// 解析到内网的域名在任何请求之前就拒绝，也不交给 Firecrawl 兜底。
+  await assertPublicDestination(url, deps.resolveHost);
 
   /// Shopify 商品页加 `.json` 就是官方结构化接口，比解析 HTML 稳得多。
-  const shopify = await tryShopifyJson(url, doFetch);
+  const shopify = await tryShopifyJson(url, doFetch, deps.resolveHost);
   if (shopify) return shopify;
 
   /// 直抓优先（免费、快）；抓不到或页面是 JS 渲染壳（抽不出任何事实）时，
   /// 走 Firecrawl 托管渲染兜底（0802 接入），两条路径共用同一套抽取。
   try {
-    const html = await fetchText(url, doFetch);
+    const html = await fetchText(url, doFetch, deps.resolveHost);
     const facts = extractFactsFromHtml(html, url.toString());
     if (facts.source !== "none" || !isFirecrawlAvailable()) return facts;
     return await fetchFactsViaFirecrawl(url, deps.fetchImpl);
@@ -121,19 +247,27 @@ async function fetchFactsViaFirecrawl(
   return extractFactsFromHtml(rendered, url.toString());
 }
 
-async function fetchText(url: URL, doFetch: typeof fetch): Promise<string> {
+async function fetchText(
+  url: URL,
+  doFetch: typeof fetch,
+  resolveHost?: HostResolver,
+): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   try {
-    const res = await doFetch(url.toString(), {
-      signal: controller.signal,
-      redirect: "follow",
-      headers: {
-        /// 不伪装成浏览器：商品页的公开结构化数据不需要绕过任何东西。
-        "User-Agent": "AivoraBot/1.0 (+https://aivora.app)",
-        Accept: "text/html,application/xhtml+xml",
+    const res = await fetchPublic(
+      url,
+      {
+        signal: controller.signal,
+        headers: {
+          /// 不伪装成浏览器：商品页的公开结构化数据不需要绕过任何东西。
+          "User-Agent": "AivoraBot/1.0 (+https://aivora.app)",
+          Accept: "text/html,application/xhtml+xml",
+        },
       },
-    });
+      doFetch,
+      resolveHost,
+    );
     if (!res.ok) {
       throw new ProductLinkError(`页面返回 ${res.status}`, "unreachable");
     }
@@ -164,15 +298,18 @@ async function fetchText(url: URL, doFetch: typeof fetch): Promise<string> {
 async function tryShopifyJson(
   url: URL,
   doFetch: typeof fetch,
+  resolveHost?: HostResolver,
 ): Promise<ProductLinkFacts | null> {
   if (!/\/products\/[^/]+$/.test(url.pathname)) return null;
   const jsonUrl = new URL(url.toString());
   jsonUrl.pathname = `${jsonUrl.pathname}.json`;
   try {
-    const res = await doFetch(jsonUrl.toString(), {
-      headers: { Accept: "application/json" },
-      redirect: "follow",
-    });
+    const res = await fetchPublic(
+      jsonUrl,
+      { headers: { Accept: "application/json" } },
+      doFetch,
+      resolveHost,
+    );
     if (!res.ok) return null;
     const body = (await res.json()) as {
       product?: {

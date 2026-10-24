@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/api-auth";
+import { rateLimitedResponse } from "@/lib/api-rate-limit";
 import { isDemoAccountEmail } from "@/lib/demo-account";
 import {
   createProductAnchorRequestSchema,
@@ -14,6 +15,7 @@ import {
   createProductAnchor,
   listProductAnchorsForUser,
 } from "@/lib/services/product-anchor-service";
+import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
 
 /// sharp + 全分辨率 remove.bg，必须跑在 Node 运行时。
 export const runtime = "nodejs";
@@ -30,6 +32,7 @@ interface ProductAnchorPostDependencies {
   requireAuth: typeof requireAuth;
   resolveOwnedImageAssets: typeof resolveOwnedImageAssets;
   listProductAnchorsForUser: typeof listProductAnchorsForUser;
+  assertPaidActionRateLimit: typeof assertPaidActionRateLimit;
   createProductAnchor: typeof createProductAnchor;
 }
 
@@ -37,6 +40,7 @@ const defaultPostDependencies: ProductAnchorPostDependencies = {
   requireAuth,
   resolveOwnedImageAssets,
   listProductAnchorsForUser,
+  assertPaidActionRateLimit,
   createProductAnchor,
 };
 
@@ -117,6 +121,19 @@ export function createProductAnchorPostHandler(
           { status: 404 },
         );
       }
+      throw error;
+    }
+
+    /// 按用户每小时限流（D5）：放在校验与归属之后、付费抠图之前，
+    /// 填错参数、传错图不占次数。新建与续跑共用一个桶。
+    try {
+      await dependencies.assertPaidActionRateLimit({
+        action: "product-anchor",
+        userId,
+      });
+    } catch (error) {
+      const limited = rateLimitedResponse(error);
+      if (limited) return limited;
       throw error;
     }
 

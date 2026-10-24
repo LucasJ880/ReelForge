@@ -8,6 +8,7 @@ import {
 } from "@prisma/client";
 import type { Session } from "next-auth";
 import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/config/quota-tiers";
+import { QUOTA_PLAN_WORKSPACE_SELECT, quotaPlanFromWorkspace } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
 import {
   RateLimitExceededError,
@@ -66,10 +67,10 @@ export async function resolveQuotaPlan(userId: string): Promise<QuotaPlanId> {
   try {
     const workspace = await db.workspace.findUnique({
       where: { ownerId: userId },
-      select: { planId: true },
+      select: QUOTA_PLAN_WORKSPACE_SELECT,
     });
-    if (workspace?.planId === "studio") return "studio";
-    if (workspace?.planId === "starter") return "starter";
+    /// D5：starter 账号带试用标记时按 trial 计（规则在 quota-tiers）。
+    return quotaPlanFromWorkspace(workspace);
   } catch (err) {
     console.warn("[resolveQuotaPlan] using starter fallback", err);
   }

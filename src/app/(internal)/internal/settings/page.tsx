@@ -25,6 +25,7 @@ export default async function SettingsPage() {
       name: true,
       role: true,
       createdAt: true,
+      disabledAt: true,
     },
   });
 
@@ -69,6 +70,7 @@ export default async function SettingsPage() {
                     name: u.name,
                     role: u.role as "SUPER_ADMIN" | "OPERATOR" | "REVIEWER",
                     createdAtText: formatDate(u.createdAt),
+                    disabled: u.disabledAt !== null,
                   }}
                   isSelf={u.id === session.user.id}
                   roleLabel={ROLE_LABELS[u.role]}

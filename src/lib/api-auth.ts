@@ -1,7 +1,7 @@
 import { getServerSession, type Session } from "next-auth";
 import { NextResponse } from "next/server";
 import { redirect } from "next/navigation";
-import { authOptions } from "@/lib/auth";
+import { authOptions, getActiveServerSession } from "@/lib/auth";
 import { customerApiError } from "@/lib/contracts/customer-api";
 import { decideInternalAccess, isInternalRole } from "@/lib/auth-role-policy";
 
@@ -44,8 +44,9 @@ type Role = "SUPER_ADMIN" | "OPERATOR" | "REVIEWER" | "CUSTOMER";
  */
 export type UserPersona = "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN";
 
+/// API 守卫一律走 getActiveServerSession：停用账号即时拒绝、角色以库为准（A4 5.1）。
 export async function requireAuth(): Promise<AuthGuardResult> {
-  const session = await getServerSession(authOptions);
+  const session = await getActiveServerSession();
   if (!session?.user) {
     return {
       ok: false,
@@ -58,7 +59,7 @@ export async function requireAuth(): Promise<AuthGuardResult> {
 export async function requireRole(
   allowed: readonly Role[],
 ): Promise<AuthGuardResult> {
-  const session = await getServerSession(authOptions);
+  const session = await getActiveServerSession();
   if (!session?.user) {
     return {
       ok: false,

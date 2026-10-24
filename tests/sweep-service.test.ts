@@ -39,12 +39,16 @@ function patchModel(
   });
 }
 
-/// 默认让三个 sweeper 各自查询返回空，单测里按需覆盖某一类
+/// 默认让各个 sweeper 的查询返回空，单测里按需覆盖某一类
 function patchEmptyDefaults(t: TestContext) {
   patchModel(t, db.videoJob as unknown as Record<string, unknown>, {
     findMany: (async () => []) as never,
   });
   patchModel(t, db.finalVideo as unknown as Record<string, unknown>, {
+    findMany: (async () => []) as never,
+  });
+  /// 无任务 brief 看门狗（round 1025 · 2.5）
+  patchModel(t, db.videoBrief as unknown as Record<string, unknown>, {
     findMany: (async () => []) as never,
   });
 }

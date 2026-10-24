@@ -262,7 +262,7 @@ export function shuyuApiKey(
  * 钉死 ID 的审计把一次正常调价误判成了整条线路停机。
  *
  * 新审计只锁**语义边界**:studio-video 家族、720P/480P、9:16 等全画幅、
- * image2video+text2video、支持 15s、参考图 ≥4、单价落在健全区间。
+ * image2video+text2video、支持 15s、参考图 ≥SHUYU_MIN_REFERENCE_IMAGES、单价落在健全区间。
  * 实际扣分仍以 /prices 实时价为准并写入任务计价快照——不存在
  * 「按旧价预估、按新价扣分」的静默漂移,价格越界会直接审计不过。
  */
@@ -275,6 +275,29 @@ export interface AuditedShuyuVideoPlan {
   /** /prices 实时销售价(按 billingUnit 计)。 */
   unitSalePoints: number;
   inputImagesMax: number;
+}
+
+/**
+ * 参考图张数的单一事实来源——审计、适配器、能力探测三处共用（此前三处各写各的：
+ * 审计放行 ≥4、适配器上限 9、探测却要求 ≥9，4 图套餐时实拍图被挤掉或提交被拒）。
+ *
+ * - SHUYU_MIN_REFERENCE_IMAGES：审计放行的套餐至少要收这么多张，探测按同一个数报漂移。
+ *   我方模板每条实拍产品图上限也是它（有测试守着），所以任何审计通过的套餐都收得下
+ *   全部实拍图；故事板帧排在实拍之后，只占套餐剩余的名额。
+ * - SHUYU_MAX_REFERENCE_IMAGES：合作方文档上限，适配器预检的硬顶。
+ * - 实际提交按「选中套餐的 input_images_max」与硬顶取小截断（shuyuReferenceImageLimit），
+ *   调用方负责按优先级排序（实拍在前）。
+ */
+export const SHUYU_MIN_REFERENCE_IMAGES = 4;
+export const SHUYU_MAX_REFERENCE_IMAGES = 9;
+
+export function shuyuReferenceImageLimit(
+  plan: Pick<AuditedShuyuVideoPlan, "inputImagesMax">,
+): number {
+  return Math.max(
+    0,
+    Math.min(SHUYU_MAX_REFERENCE_IMAGES, Math.floor(plan.inputImagesMax)),
+  );
 }
 
 const VIDEO_PLAN_POINT_SANITY = {
@@ -304,8 +327,9 @@ export function auditShuyuVideoPlan(
   if (plan.sale_points < bounds.min || plan.sale_points > bounds.max) {
     return null;
   }
-  /// 我方批量/单条最多送 4 张参考图;不再要求满 9(0728 漂移期曾降到 4)。
-  if (plan.capabilities.input_images_max < 4) return null;
+  /// 套餐至少要收得下我方全部实拍产品图;不再要求满 9(0728 漂移期曾降到 4)。
+  /// 超出套餐上限的故事板帧由适配器按套餐截断,不在审计里一刀切。
+  if (plan.capabilities.input_images_max < SHUYU_MIN_REFERENCE_IMAGES) return null;
   const ratios = plan.capabilities.aspect_ratios;
   if (
     !ratios.includes("9:16") ||

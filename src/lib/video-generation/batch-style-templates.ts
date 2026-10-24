@@ -58,6 +58,10 @@ export function renderBatchTemplatePrompt(args: {
   /// Shuyu/Seedance 的参考图走 API input_images 字段；提示词里只放位置标签。
   /// 完整 URL 既是 token 噪音，又会把 4.6-4.8k 的 SunnyShutter 骨架顶破
   /// 合作方 5000 字符硬上限（0721 真机复现）。
+  /// 槽位 1..k 专指实拍产品图：提交时 batch-service 必须把实拍图排在最前
+  /// （故事板帧在后），编号才指对图。
+  /// 模板每条实拍图上限不得超过 SHUYU_MIN_REFERENCE_IMAGES，有测试守着——
+  /// 否则只收 4 张的套餐会截掉提示词里点名的实拍槽位。
   const refs = args.imageUrls
     .map((_, index) => `input_images[${index + 1}]`)
     .join(", ");

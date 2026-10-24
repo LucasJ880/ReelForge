@@ -15,7 +15,16 @@ test("RF-005 config：Vercel Pro 每分钟覆盖 batch、poll+sweep、stitch dis
     { path: "/api/cron/process-batches", schedule: "* * * * *" },
     { path: "/api/cron/poll-videos", schedule: "* * * * *" },
     { path: "/api/cron/stitch-dispatch", schedule: "* * * * *" },
+    /// round 1025 · 2.6：能力探测此前从未被调度（生产 9 行、最近一次在 30–90 天前），
+    /// Shuyu 接口漂移只能在事故后发现。每小时一次，只读 /prices，不产生费用。
+    { path: "/api/cron/capability-probe", schedule: "0 * * * *" },
   ]);
+  const probeRoute = await readFile(
+    path.join(ROOT, "src/app/api/cron/capability-probe/route.ts"),
+    "utf8",
+  );
+  assert.match(probeRoute, /export async function GET/, "Vercel Cron 只发 GET");
+  assert.match(probeRoute, /machineAuthFailure\(req\)/);
 
   const pollRoute = await readFile(
     path.join(ROOT, "src/app/api/cron/poll-videos/route.ts"),

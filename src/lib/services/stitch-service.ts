@@ -141,6 +141,26 @@ function extractBrollClaimSegments(
   return out;
 }
 
+/**
+ * runner 任务载荷（纯映射，不写库）：生产认领 claimStitchTask 与运维重烧字幕
+ * （scripts/ops/reburn-final-video-captions.ts）共用这一份，两边合成输入不会漂移。
+ * 段须按 segmentIndex 升序传入。
+ */
+export function stitchTaskPayload(fv: {
+  targetDurationSec: number;
+  postProduction: unknown;
+  brief: { aspectRatio: string | null } | null;
+  segments: Array<{ segmentIndex: number | null; outputVideoUrl: string | null; assignedAssets: unknown }>;
+}) {
+  return {
+    segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
+    aspectRatio: fv.brief?.aspectRatio ?? "9:16",
+    targetDurationSec: fv.targetDurationSec,
+    postProduction: parsePersistedPostProduction(fv.postProduction),
+    brollSegments: extractBrollClaimSegments(fv.segments),
+  };
+}
+
 function parsePersistedPostProduction(
   input: unknown,
 ): PostProductionPlan | null {
@@ -524,7 +544,7 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
 
     for (const fv of candidates) {
       if (!isStitchCandidateReady(fv)) continue;
-      const postProduction = parsePersistedPostProduction(fv.postProduction);
+      const payload = stitchTaskPayload(fv);
       /// 注意：不再跳过单段任务（历史 bug：带 unified assemblyPlan 的单段 brief 在
       /// 生产环境被 stitchFinalVideo 打上「awaiting external stitcher」占位 —— 该判定
       /// 先于单段捷径 —— 而这里又跳过 segmentCount<=1，导致没有任何 worker 认领，
@@ -544,15 +564,7 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
       });
       if (claim.count === 0) continue;
 
-      return {
-        finalVideoId: fv.id,
-        attemptToken,
-        segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
-        aspectRatio: fv.brief?.aspectRatio ?? "9:16",
-        targetDurationSec: fv.targetDurationSec,
-        postProduction,
-        brollSegments: extractBrollClaimSegments(fv.segments),
-      };
+      return { finalVideoId: fv.id, attemptToken, ...payload };
     }
 
     if (candidates.length < STITCH_CANDIDATE_PAGE_SIZE) break;

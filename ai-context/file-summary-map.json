@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:37:09.158Z",
+  "generatedAt": "2026-10-25T20:33:13.318Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -376567,7 +376567,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 1,
-      "sizeBytes": 24710,
+      "sizeBytes": 25253,
       "notes": ""
     },
     {
@@ -377654,6 +377654,17 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/acceptance/2026-10-25-reliability-round-acceptance.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 98,
+      "sizeBytes": 10334,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/acceptance/shutter-safe-shot-policy.md",
       "type": "doc",
       "area": "shared",
@@ -377955,6 +377966,17 @@
       "importantSymbols": [],
       "lineCount": 169,
       "sizeBytes": 7023,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/ops/caption-reburn-log.jsonl",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 0,
+      "sizeBytes": 2122,
       "notes": "Documentation"
     },
     {
@@ -381658,6 +381680,23 @@
       "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=demo"
     },
     {
+      "path": "scripts/ops/reburn-final-video-captions.ts",
+      "type": "script",
+      "area": "media-processing",
+      "exports": [],
+      "imports": [
+        "node:fs",
+        "node:path",
+        "../../src/lib/db",
+        "../../src/lib/services/stitch-service",
+        "../stitch-runner"
+      ],
+      "importantSymbols": [],
+      "lineCount": 194,
+      "sizeBytes": 9076,
+      "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
+    },
+    {
       "path": "scripts/persist-recovered-segment.ts",
       "type": "script",
       "area": "scripts",
@@ -382176,7 +382215,11 @@
       "path": "scripts/stitch-runner.ts",
       "type": "script",
       "area": "ffmpeg",
-      "exports": [],
+      "exports": [
+        "StitchTask",
+        "PostProductionSnapshot",
+        "stitchOne"
+      ],
       "imports": [
         "node:child_process",
         "node:util",
@@ -382189,9 +382232,13 @@
         "../src/lib/media/media-fonts",
         "@vercel/blob"
       ],
-      "importantSymbols": [],
-      "lineCount": 669,
-      "sizeBytes": 20415,
+      "importantSymbols": [
+        "StitchTask",
+        "PostProductionSnapshot",
+        "stitchOne"
+      ],
+      "lineCount": 702,
+      "sizeBytes": 21978,
       "notes": "Maintenance / one-off script (run via tsx); area=ffmpeg"
     },
     {
@@ -395246,6 +395293,7 @@
         "isStitchCandidateReady",
         "StitchResult",
         "ClaimedStitchTask",
+        "stitchTaskPayload",
         "processPendingFinalVideos",
         "stitchFinalVideo",
         "claimStitchTask",
@@ -395285,10 +395333,10 @@
         "ClaimedStitchTask",
         "NormalizeAndConcatClip",
         "isStitchCandidateReady",
-        "processPendingFinalVideos"
+        "stitchTaskPayload"
       ],
-      "lineCount": 1321,
-      "sizeBytes": 43626,
+      "lineCount": 1333,
+      "sizeBytes": 44143,
       "notes": "Business logic service; hits Prisma DB; area=ffmpeg"
     },
     {
@@ -401791,6 +401839,26 @@
       "importantSymbols": [],
       "lineCount": 67,
       "sizeBytes": 2793,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/reburn-captions-ops.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [
+        "stitchOne"
+      ],
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "../src/lib/services/stitch-service"
+      ],
+      "importantSymbols": [
+        "stitchOne"
+      ],
+      "lineCount": 93,
+      "sizeBytes": 4849,
       "notes": "Unit / integration test; area=tests"
     },
     {

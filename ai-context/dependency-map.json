@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:37:09.215Z",
+  "generatedAt": "2026-10-25T20:33:13.372Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -230541,6 +230541,25 @@
       ]
     },
     {
+      "file": "scripts/ops/reburn-final-video-captions.ts",
+      "imports": [
+        "node:fs",
+        "node:path",
+        "../../src/lib/db",
+        "../../src/lib/services/stitch-service",
+        "../stitch-runner"
+      ],
+      "localImports": [
+        "../../src/lib/db",
+        "../../src/lib/services/stitch-service",
+        "../stitch-runner"
+      ],
+      "externalImports": [
+        "node:fs",
+        "node:path"
+      ]
+    },
+    {
       "file": "scripts/persist-recovered-segment.ts",
       "imports": [
         "@next/env",
@@ -244897,6 +244916,23 @@
         "node:assert/strict",
         "node:test",
         "node:fs/promises"
+      ]
+    },
+    {
+      "file": "tests/reburn-captions-ops.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test",
+        "../src/lib/services/stitch-service"
+      ],
+      "localImports": [
+        "../src/lib/services/stitch-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs/promises",
+        "node:test"
       ]
     },
     {

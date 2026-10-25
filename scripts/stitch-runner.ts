@@ -64,7 +64,7 @@ class StitchRunnerError extends Error {
   }
 }
 
-interface StitchTask {
+export interface StitchTask {
   finalVideoId: string;
   attemptToken: string;
   segmentUrls: string[];
@@ -75,7 +75,7 @@ interface StitchTask {
   brollSegments?: BrollClaimSegment[] | null;
 }
 
-interface PostProductionSnapshot {
+export interface PostProductionSnapshot {
   audio: {
     voiceover: {
       enabled: boolean;
@@ -230,7 +230,8 @@ async function complete(args: {
   }
 }
 
-async function stitchOne(task: StitchTask): Promise<{
+/// 导出给运维脚本复用（scripts/ops/reburn-final-video-captions.ts）：与生产 runner 同一条合成管线，自身不写库。
+export async function stitchOne(task: StitchTask): Promise<{
   stitchedVideoUrl: string;
   thumbnailUrl: string;
   subtitleFileUrl?: string;
@@ -388,6 +389,28 @@ async function probeDuration(videoPath: string): Promise<number> {
   }
 }
 
+/** b-roll 合成段一定带配音（apad 到段长）；探测不到或探测失败都说明管线出了问题，失败而不是交付哑片。 */
+async function requireBrollVoiceTrack(videoPath: string): Promise<true> {
+  let stdout = "";
+  try {
+    ({ stdout } = await execFileAsync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "a",
+      "-show_entries",
+      "stream=index",
+      "-of",
+      "csv=p=0",
+      videoPath,
+    ]));
+  } catch {
+    throw new StitchRunnerError("audio_probe_failed");
+  }
+  if (!stdout.trim()) throw new StitchRunnerError("broll_voice_track_missing");
+  return true;
+}
+
 /** 源帧率（r_frame_rate，如 "24/1"）；探测失败返回 null，由 pickStitchFrameRate 兜底 30 */
 async function probeFrameRate(videoPath: string): Promise<string | null> {
   try {
@@ -466,9 +489,16 @@ async function applyPostProduction(args: {
     }
   }
 
+  /// 1025：b-roll 的配音已烤进每个合成段，voiceover.enabled 恒为 false——原来照它判，开了背景音乐的
+  /// 实拍成片只剩音乐、口播被整段替换（生产交付物实测与 BGM 相关 0.97、与配音 0.08）。
+  /// 只对 b-roll 改为实测音轨，且没有音轨就报错（不交付哑片）；其余成片保持原判据不变
+  /// （复审：对普通成片改成实测会把「要口播却无音轨」从失败变成静默交付，并在 BGM 下截短视频）。
+  const hasNativeAudio = args.task.brollSegments?.length
+    ? await requireBrollVoiceTrack(args.inputPath)
+    : snapshot.audio.voiceover.enabled;
   const audioPlan = buildAudioFilterPlan({
     bgmVolume: bgmEnabled ? snapshot.audio.bgm.volume : 0,
-    hasNativeAudio: snapshot.audio.voiceover.enabled,
+    hasNativeAudio,
     durationSec: actualDurationSec,
   });
   const outputPath = path.join(args.tmpDir, "post-produced.mp4");
@@ -662,7 +692,10 @@ function safeFailureMessage(err: unknown): string {
   return "stitch_runner_unexpected_failure";
 }
 
-main().catch((err) => {
-  console.error("[stitch-runner] fatal:", safeFailureMessage(err));
-  process.exit(1);
-});
+/// 只在直接运行时进认领循环；被运维脚本 import 时不认领任何任务。
+if (require.main === module) {
+  main().catch((err) => {
+    console.error("[stitch-runner] fatal:", safeFailureMessage(err));
+    process.exit(1);
+  });
+}

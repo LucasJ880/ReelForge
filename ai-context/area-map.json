@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-24T21:37:09.254Z",
+  "generatedAt": "2026-10-25T20:33:13.403Z",
   "areas": {
     "unknown": [
       ".claude/launch.json",
@@ -14792,6 +14792,7 @@
       "scripts/e2e-1025/route-truth-table.ts",
       "scripts/e2e-brand-logo-shipment.ts",
       "scripts/migrate-ceo-videos-to-iad1.ts",
+      "scripts/ops/reburn-final-video-captions.ts",
       "scripts/publish-curtain-videos-to-library.ts",
       "scripts/real-video-acceptance-30s.ts",
       "scripts/real-video-acceptance-branding.ts",
@@ -20138,6 +20139,7 @@
       "tests/quota-refund-single.test.ts",
       "tests/quota-service.test.ts",
       "tests/racing-confidence.test.ts",
+      "tests/reburn-captions-ops.test.ts",
       "tests/recipe-racing.test.ts",
       "tests/reconcile-watchdog-fault-injection.test.ts",
       "tests/retry-stitch-resume.test.ts",
@@ -20277,6 +20279,7 @@
       "docs/SUNNY_SHUTTER_MERCHANT_DEMO.md",
       "docs/TESTING.md",
       "docs/acceptance/2026-08-03-template-expansion-acceptance.md",
+      "docs/acceptance/2026-10-25-reliability-round-acceptance.md",
       "docs/acceptance/shutter-safe-shot-policy.md",
       "docs/acceptance/sunnyshutter-shade-quality-gap-2026-07-20.md",
       "docs/buddy-api-provider-subloop.md",
@@ -20294,6 +20297,7 @@
       "docs/evidence/phase-5a/verification-summary.json",
       "docs/integrations/qingyan-aivora-sync.md",
       "docs/integrations/qingyan-videos-api.md",
+      "docs/ops/caption-reburn-log.jsonl",
       "docs/phase-0-bc-branch-inventory.md",
       "docs/phase-0-completion-audit.md",
       "docs/phase-0-data-route-and-tos-migration-plan.md",

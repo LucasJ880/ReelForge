@@ -299,3 +299,53 @@ Dialogue: 0,0:00:01.70,0:00:02.50,Captions,,0,0,0,,都能完全折回
   assert.equal(report.p95, 560);
   assert.equal(report.passes150ms, false);
 });
+
+// ---------------------------------------------------------------------------
+// word_by_word 字幕：N 条同句 Dialogue 合回一个 cue，参考文本不重复
+// ---------------------------------------------------------------------------
+
+const WORD_BY_WORD_ASS = [
+  "[Events]",
+  "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+  // 首词前的空当：整句在场、无高亮
+  "Dialogue: 0,0:00:00.00,0:00:00.10,Captions,,0,0,0,,一拧即开，随时补水。",
+  "Dialogue: 0,0:00:00.10,0:00:00.60,Captions,,0,0,0,,{\\1c&H0000D7FF&}一拧{\\r}即开，随时补水。",
+  "Dialogue: 0,0:00:00.60,0:00:01.10,Captions,,0,0,0,,一拧{\\1c&H0000D7FF&}即开，{\\r}随时补水。",
+  "Dialogue: 0,0:00:01.10,0:00:01.50,Captions,,0,0,0,,一拧即开，{\\1c&H0000D7FF&}随时{\\r}补水。",
+  "Dialogue: 0,0:00:01.50,0:00:01.80,Captions,,0,0,0,,一拧即开，随时{\\1c&H0000D7FF&}补水。{\\r}",
+  // 下一句：普通整句 cue，文本不同，不该被并进去
+  "Dialogue: 0,0:00:01.80,0:00:03.00,Captions,,0,0,0,,点击下方链接立即预约。",
+].join("\n");
+
+test("word_by_word：同句首尾相接的 Dialogue 合成一个 cue，高亮词还原成逐词起点", () => {
+  const cues = parseAssCues(WORD_BY_WORD_ASS);
+  assert.equal(cues.length, 2, "5 条同句 Dialogue + 1 条下一句 → 2 个 cue");
+  assert.equal(cues[0].text, "一拧即开，随时补水。");
+  assert.equal(cues[0].startMs, 0);
+  assert.equal(cues[0].endMs, 1800);
+  assert.deepEqual(
+    cues[0].words?.map((word) => [word.text, word.startMs]),
+    [["一拧", 100], ["即开，", 600], ["随时", 1100], ["补水。", 1500]],
+    "每条高亮的词按该条 Start 还原；首词前的空当不产生词",
+  );
+  assert.equal(cues[1].text, "点击下方链接立即预约。");
+  assert.equal(cues[1].words, undefined);
+});
+
+test("word_by_word：参考单元不再按 Dialogue 条数重复，高亮词的首字带起点", () => {
+  const [sentence] = parseAssCues(WORD_BY_WORD_ASS);
+  const units = cuesToReferenceUnits([sentence]);
+  assert.equal(units.length, splitUnits("一拧即开，随时补水。").length, "整句只出现一次，不按 Dialogue 条数重复");
+  const started = units.filter((unit) => unit.startMs !== null).map((unit) => [unit.text, unit.startMs]);
+  assert.deepEqual(started, [["一", 100], ["即", 600], ["随", 1100], ["补", 1500]], "只有每个高亮词的首字带起点");
+});
+
+test("普通字幕里两条文本相同但不相接的 Dialogue 不会被合并", () => {
+  const ass = [
+    "[Events]",
+    "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text",
+    "Dialogue: 0,0:00:00.00,0:00:01.00,Captions,,0,0,0,,好用。",
+    "Dialogue: 0,0:00:05.00,0:00:06.00,Captions,,0,0,0,,好用。",
+  ].join("\n");
+  assert.equal(parseAssCues(ass).length, 2);
+});

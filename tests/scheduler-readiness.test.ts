@@ -18,6 +18,8 @@ test("RF-005 config：Vercel Pro 每分钟覆盖 batch、poll+sweep、stitch dis
     /// round 1025 · 2.6：能力探测此前从未被调度（生产 9 行、最近一次在 30–90 天前），
     /// Shuyu 接口漂移只能在事故后发现。每小时一次，只读 /prices，不产生费用。
     { path: "/api/cron/capability-probe", schedule: "0 * * * *" },
+    /// 2026-10-25 审计 B8：创始人每日汇总，每天 13:00 UTC 一次（只读；没配 Resend 只记日志；按 UTC 日幂等）。
+    { path: "/api/cron/founder-digest", schedule: "0 13 * * *" },
   ]);
   const probeRoute = await readFile(
     path.join(ROOT, "src/app/api/cron/capability-probe/route.ts"),

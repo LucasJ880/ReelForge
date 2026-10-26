@@ -26,6 +26,8 @@
       return chainHtml({ reached, now, lang, cls: "chain pre", times: { comment: S.comment ? "0:00" : "", draft: since(S.tDraft), approve: since(S.tReply), booked: since(S.tBook) } });
     }
     const noFallback = () => { const f = B.config.leadFallback || {}; return !(f.email || f.whatsapp || f.wechat); };
+    /* 征求同意的法律主体没填：结果页不开放线上登记。递二维码之前让店员知道，不让这一项「空着不说」 */
+    const noEntity = () => { const e = B.config.consentEntity || {}; return !(e.name && e.email); };
     const endBtn = () => `<button type="button" class="btn btn-ghost" id="o-end">${icon("x")}${esc(t(lang, "endRound"))}</button>`;
 
     function flagsHtml(d) {
@@ -96,7 +98,8 @@
               <div class="qr-side"><b class="qr-title">${esc(t(L, "o_scan"))}</b><span class="dim">${esc(t(L, "o_scan_p"))}</span>
               <span class="qr-time num">${since(S.tBook)}</span><span class="dim">${esc(t(L, "elapsed"))} · ${esc(t(L, "simChannel"))}</span>
               ${lanOnly ? `<span class="o-warn" role="note">${icon("triangle-alert")}${esc(t(L, "o_lanWarn"))}</span>` : ""}
-              ${noFallback() ? `<span class="o-warn" role="note">${icon("triangle-alert")}${esc(t(L, "o_noFallback"))}</span>` : ""}</div></div>
+              ${noFallback() ? `<span class="o-warn" role="note">${icon("triangle-alert")}${esc(t(L, "o_noFallback"))}</span>` : ""}
+              ${noEntity() ? `<span class="o-warn" role="note">${icon("triangle-alert")}${esc(t(L, "o_noEntity"))}</span>` : ""}</div></div>
             <div class="o-meta" id="o-qh">${esc(t(L, "o_qualify"))}</div>
             <div class="tags" role="group" aria-labelledby="o-qh">${t(L, "qual").map((q, i) => `<button type="button" class="tag-btn" id="qual-${i}" data-qual="${i}" aria-pressed="${S.qual === i}">${esc(q)}</button>`).join("")}</div>
             <div class="tags" role="group" aria-label="${esc(t(L, "o_code"))}">${["A", "B", "C"].map((c) => `<button type="button" class="tag-btn" id="code-${c}" data-code="${c}" aria-pressed="${S.code === c}" aria-label="${esc(t(L, "o_code"))} ${c}">${c}</button>`).join("")}</div>

@@ -127,6 +127,23 @@ export function orderFailureWhere(userId: string, range: Range): Prisma.VideoBri
 /** 不看时间的单条失败判据（用来把失败排除在「成片 / 生成中 / 排队中」之外）。 */
 const ORDER_FAILED_ANY: Prisma.VideoBriefWhereInput = { OR: orderFailureClauses(), NOT: CUSTOMER_CANCELLED_ORDER };
 
+/**
+ * 全平台口径（创始人每日汇总用，2026-10-25 审计 B8）：与 orderFailureWhere / batchFailureWhere
+ * 同一套判据——取消不算失败、按「失败那一刻」落窗——只是不限定访问者。只读。
+ */
+export function platformOrderFailureWhere(range: Range): Prisma.VideoBriefWhereInput {
+  return {
+    takedownAt: null,
+    contentAngle: { round: { deliveryOrder: { productCategory: "unified_input" } } },
+    OR: orderFailureClauses(range),
+    NOT: CUSTOMER_CANCELLED_ORDER,
+  };
+}
+
+export function platformBatchFailureWhere(range: Range): Prisma.VideoJobWhereInput {
+  return { status: "FAILED", batchJobId: { not: null }, ...failedAtIn(range) };
+}
+
 /** 批量成片：成片时刻取 finishedAt，旧数据没有就退回 updatedAt。 */
 export function batchReadyWhere(userId: string, range?: Range): Prisma.VideoJobWhereInput {
   return {
@@ -229,7 +246,8 @@ async function loadTape(userId: string, locale: Locale): Promise<TapeEntry[]> {
   }));
 }
 
-async function countNeedsAttention(userId: string, since: Date): Promise<number> {
+/** 「需要处理」条数（与导轨徽标、成品库「需要处理」区同一个 where）。 */
+export async function countNeedsAttention(userId: string, since: Date): Promise<number> {
   const [batch, orders] = await Promise.all([
     db.videoJob.count({ where: batchFailureWhere(userId, { gte: since }) }),
     db.videoBrief.count({ where: orderFailureWhere(userId, { gte: since }) }),

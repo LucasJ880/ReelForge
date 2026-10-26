@@ -12,7 +12,8 @@ const cancelSchema = z.object({
 
 /**
  * b-roll 任务取消（铁律 #7）：素材与口播音频保留，仅终止合成。
- * 只对本人创建、路线为 broll、尚未完成的任务生效。
+ * 只对本人创建、路线为 broll、尚未完成的任务生效；与单条取消同一套约定
+ * （客户取消标记、取消≠失败、立即按条返还），见 cancelBrollDelivery。
  */
 export async function POST(req: NextRequest) {
   const guard = await requireAuth();
@@ -45,5 +46,5 @@ export async function POST(req: NextRequest) {
       { status },
     );
   }
-  return NextResponse.json({ ok: true, state: result.state });
+  return NextResponse.json({ ok: true, state: result.state, refunded: result.refunded });
 }

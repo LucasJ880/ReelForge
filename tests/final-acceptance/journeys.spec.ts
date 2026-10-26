@@ -582,8 +582,9 @@ test("J4：UI 边界、API 非法输入、双击幂等、真实上传、50 图�
   await expect(
     page.getByRole("main").getByText("本月视频生成次数已用完。"),
   ).toBeVisible();
+  /// 审计 A7：额度用完给真实下一步（陪跑试点 / 联系我们），不再叫人去找已下线的用量页或「升级套餐」。
   await expect(
-    page.getByText(/当前套餐额度已用尽，请联系账户负责人核对用量或升级套餐/),
+    page.getByText(/想继续出片：在首页申请陪跑试点（\/#pilot-apply），或联系我们/),
   ).toBeVisible();
   const expected429 = evidence.findings.findIndex(
     (finding) =>

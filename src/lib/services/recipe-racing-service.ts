@@ -63,10 +63,15 @@ export type RecipeStats = {
   recipeId: string;
   /// 这个配方下有几条内容被发布过。**这是能否下结论的关键**，不是曝光量。
   subjectCount: number;
+  /// 累计曝光（impressions，缺了退到 views）——只用来卡「曝光够不够」的门槛。
   trials: number;
+  /// 累计事件数：互动（点赞 + 评论 + 转发 + 收藏）或转化。**是计数不是二项「成功」**：
+  /// 一个人可以既点赞又收藏，事件数完全可以大于曝光数。字段名沿用旧契约。
   successes: number;
+  /// 每次曝光的事件数：各条帖子平滑后比率的平均（见 aggregateByRecipe），可以大于 1。
   rate: number;
-  /// Wilson 区间。样本小时它会很宽 —— 那正是我们要让人看见的东西。
+  /// 95% 区间：按帖子之间的差异算（t 区间），下限不低于抽样噪声。样本小时它会很宽 ——
+  /// 那正是我们要让人看见的东西。
   lower: number;
   upper: number;
 };
@@ -143,13 +148,15 @@ export function groupKeyFor(
   }
 }
 
+/** 事件数：转化，或互动四项之和。是计数，可以大于曝光数；脏的负数按 0 算。 */
 function successesFor(row: PerformanceRow, metric: RacingMetric): number {
-  if (metric === "conversion_rate") return row.conversions ?? 0;
-  return (
+  if (metric === "conversion_rate") return Math.max(0, row.conversions ?? 0);
+  return Math.max(
+    0,
     (row.likes ?? 0) +
-    (row.comments ?? 0) +
-    (row.shares ?? 0) +
-    (row.saves ?? 0)
+      (row.comments ?? 0) +
+      (row.shares ?? 0) +
+      (row.saves ?? 0),
   );
 }
 
@@ -160,10 +167,13 @@ function trialsFor(row: PerformanceRow): number | null {
 }
 
 /**
- * Wilson score 区间。
+ * Wilson score 区间——**只适用于真正的二项比例**（成功数 ≤ 试验数，每次试验成功或不成功）。
  *
  * 为什么不用正态近似（p ± 1.96·√(p(1-p)/n)）：小样本或极端比率下它会给出
- * 负下界这种明显荒谬的区间，而赛马恰好总是在小样本区间工作。
+ * 负下界这种明显荒谬的区间。
+ *
+ * ⚠️ 配方判定不再用它（2026-10-25 审计 B5）：互动数是事件计数、可以大于曝光数，
+ * 喂进来 p > 1，根号里是负数，区间成 NaN。判定改走 postRateInterval。
  */
 export function wilsonInterval(
   successes: number,
@@ -183,6 +193,70 @@ export function wilsonInterval(
   };
 }
 
+/**
+ * 平滑用的伪曝光（M）：每条帖子的比率按 (事件 + 先验率 × M) / (曝光 + M) 算——
+ * 曝光只有几十的帖子被拉向整体水平（20 次曝光 10 个赞不该算 50%），几千曝光的帖子几乎不受影响。
+ * 先验率取同一维度全部可用行的「总事件 ÷ 总曝光」：对所有分组一视同仁，不偏向任何一组。
+ */
+export const RATE_SMOOTHING_EXPOSURE = 100;
+
+const Z_95 = 1.96;
+
+/** 双侧 95% 的 Student t 分位数：自由度 1–30 查表，再往上取不小于真值的保守值。 */
+const T_975 = [
+  12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228,
+  2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086,
+  2.08, 2.074, 2.069, 2.064, 2.06, 2.056, 2.052, 2.048, 2.045, 2.042,
+];
+
+export function studentT975(df: number): number {
+  if (!Number.isFinite(df) || df < 1) return Number.POSITIVE_INFINITY;
+  const whole = Math.floor(df);
+  if (whole <= T_975.length) return T_975[whole - 1];
+  if (whole <= 60) return 2.042;
+  if (whole <= 120) return 2.0;
+  return 1.98;
+}
+
+/** 一条已发布内容在某个窗口里的表现：事件数（互动或转化）与曝光。 */
+export type PostSample = { events: number; exposures: number };
+
+/**
+ * 一组帖子的「每次曝光事件数」与 95% 区间（纯函数，便于单测）。
+ *
+ * 为什么不再用 Wilson：Wilson 是二项比例的区间，要求成功数 ≤ 试验数。互动数是事件计数，
+ * 可以大于曝光数——比率 > 1 时 Wilson 的根号里是负数，区间成 NaN，而 NaN 的比较恒为假，
+ * 「区间重叠就不判赢家」那道闸被直接绕过：任何两组都会被判出赢家。
+ *
+ * 现在：
+ *  - 单位是帖子：每条帖子算自己的平滑比率，组的读数是这些比率的平均——一条爆款只占一票，
+ *    不会因为曝光大就把整组顶上去（条数才是下结论的关键，见 RecipeStats.subjectCount）；
+ *  - 区间 = 平均 ± t(n−1) × 标准误（帖子之间的差异）；帖子再像，也不窄于每条帖子自身的
+ *    抽样噪声（泊松：方差 ≈ 比率 ÷ 曝光），几条恰好相同的帖子不会给出一个点；
+ *  - 只有一条帖子时估不出帖子之间的差异，区间只含抽样噪声——这种组本来就进不了判定
+ *    （MIN_SUBJECTS_PER_RECIPE）。
+ */
+export function postRateInterval(
+  posts: readonly PostSample[],
+  priorRate: number,
+  smoothing = RATE_SMOOTHING_EXPOSURE,
+): { rate: number; lower: number; upper: number } {
+  const usable = posts.filter((post) => post.exposures > 0 && post.events >= 0);
+  if (usable.length === 0) return { rate: 0, lower: 0, upper: 0 };
+  const prior = Number.isFinite(priorRate) && priorRate > 0 ? priorRate : 0;
+  const rates = usable.map((post) => (post.events + prior * smoothing) / (post.exposures + smoothing));
+  const n = rates.length;
+  const mean = rates.reduce((sum, rate) => sum + rate, 0) / n;
+  const samplingVariance =
+    usable.reduce((sum, post) => sum + mean / (post.exposures + smoothing), 0) / (n * n);
+  let halfWidth = Z_95 * Math.sqrt(samplingVariance);
+  if (n >= 2) {
+    const spread = rates.reduce((sum, rate) => sum + (rate - mean) ** 2, 0) / (n - 1);
+    halfWidth = Math.max(halfWidth, studentT975(n - 1) * Math.sqrt(spread / n));
+  }
+  return { rate: mean, lower: Math.max(0, mean - halfWidth), upper: mean + halfWidth };
+}
+
 export function aggregateByRecipe(
   rows: PerformanceRow[],
   metric: RacingMetric,
@@ -190,8 +264,10 @@ export function aggregateByRecipe(
 ): RecipeStats[] {
   const buckets = new Map<
     string,
-    { subjects: Set<string>; trials: number; successes: number }
+    { posts: Map<string, PostSample>; trials: number; successes: number }
   >();
+  let totalEvents = 0;
+  let totalExposures = 0;
 
   for (const row of rows) {
     /// 该维度未知的内容一律排除，不归到某个默认桶里 ——
@@ -200,25 +276,32 @@ export function aggregateByRecipe(
     if (!key) continue;
     const trials = trialsFor(row);
     if (trials === null || trials <= 0) continue;
+    const events = successesFor(row, metric);
 
     const bucket = buckets.get(key) ?? {
-      subjects: new Set<string>(),
+      posts: new Map<string, PostSample>(),
       trials: 0,
       successes: 0,
     };
-    bucket.subjects.add(row.subjectId);
+    /// 同一条内容可能有多行（不同平台）：按内容合并成一个样本，一条内容只占一票。
+    const post = bucket.posts.get(row.subjectId) ?? { events: 0, exposures: 0 };
+    post.events += events;
+    post.exposures += trials;
+    bucket.posts.set(row.subjectId, post);
     bucket.trials += trials;
-    bucket.successes += successesFor(row, metric);
+    bucket.successes += events;
     buckets.set(key, bucket);
+    totalEvents += events;
+    totalExposures += trials;
   }
 
+  const priorRate = totalExposures > 0 ? totalEvents / totalExposures : 0;
   return [...buckets.entries()]
     .map(([recipeId, bucket]) => {
-      const rate = bucket.trials ? bucket.successes / bucket.trials : 0;
-      const { lower, upper } = wilsonInterval(bucket.successes, bucket.trials);
+      const { rate, lower, upper } = postRateInterval([...bucket.posts.values()], priorRate);
       return {
         recipeId,
-        subjectCount: bucket.subjects.size,
+        subjectCount: bucket.posts.size,
         trials: bucket.trials,
         successes: bucket.successes,
         rate,

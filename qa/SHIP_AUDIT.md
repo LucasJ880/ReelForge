@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (108/108 route files)
+## API endpoint inventory (109/109 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -227,6 +227,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/cron/stitch-videos` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/stitch-dispatch` | `CRON_SECRET` | VERIFIED H1 strict: auth plus 200/502/503/500 schemas aligned with heartbeat outcomes |
 | GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| GET, POST | `/api/cron/founder-digest` | `CRON_SECRET` | VERIFIED auth fail-closed; 2026-10-25 B8 创始人每日汇总：只读查询，没配 Resend 只记日志并 200 `{sent:false, reason}`，按 UTC 日幂等（RateLimitBucket 闩锁） |
 | GET, POST | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/internal/digital-human/claim` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |

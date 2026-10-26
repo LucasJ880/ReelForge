@@ -32,7 +32,7 @@ export function founderEmail(env: NodeJS.ProcessEnv = process.env): string | nul
   return founderNotifyEmail(env);
 }
 
-function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string | null {
+export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string | null {
   const configured = (env.APP_BASE_URL || env.NEXT_PUBLIC_APP_URL)?.trim();
   if (configured) return configured.replace(/\/+$/, "");
   return env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${env.VERCEL_PROJECT_PRODUCTION_URL}` : null;

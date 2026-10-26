@@ -7,7 +7,9 @@ import {
   type UsageResource,
 } from "@prisma/client";
 import type { Session } from "next-auth";
+import { contactEmail } from "@/lib/config/contact";
 import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/config/quota-tiers";
+import { quotaNextStepsSentence } from "@/lib/quota-next-steps";
 import { QUOTA_PLAN_WORKSPACE_SELECT, quotaPlanFromWorkspace } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
 import {
@@ -895,20 +897,30 @@ export async function assertAuthenticatedActionRateLimit(params: {
   );
 }
 
-function userMessageForQuota(resource: UsageResource): string {
+/**
+ * 额度用完给客户的话（2026-10-25 审计 A7）：必须带真能走的下一步。
+ * 之前写「去『用量与账单』查看额度，或下月再试」——那个页面早就没了（重定向到创作页）、
+ * 结账接口也没有界面，试用账号只剩「下月再试」。现在一律给：申请陪跑试点（/#pilot-apply）
+ * 与联系我们（对外联系邮箱，contactEmail()）。方案预览本来就有「直接生成」这条路，保持原样。
+ */
+export function userMessageForQuota(
+  resource: UsageResource,
+  env: NodeJS.ProcessEnv = process.env,
+): string {
+  const nextSteps = quotaNextStepsSentence("zh-CN", contactEmail(env));
   switch (resource) {
     case "VIDEO_DISPATCH":
-      return "本月视频生成次数已用完。可在「用量与账单」查看额度，或下月再试。";
+      return `本月视频生成次数已用完。${nextSteps}`;
     case "PLAN_PREVIEW":
       return "本月方案预览次数已用完，请稍后再试或精简描述后直接生成。";
     case "BLOB_UPLOAD_BYTES":
-      return "本月素材上传流量已达上限，请压缩文件或下月再试。";
+      return `本月素材上传流量已达上限，可以先压缩文件再上传。${nextSteps}`;
     case "SEEDANCE_SEGMENT":
-      return "本月 AI 画面生成额度已用完，请下月再试或联系客服。";
+      return `本月 AI 画面生成额度已用完。${nextSteps}`;
     case "DIGITAL_HUMAN_AD":
-      return "本月数字人探店广告生成次数已用完，请下月再试或升级套餐。";
+      return `本月数字人探店广告生成次数已用完。${nextSteps}`;
     default:
-      return "本月用量已达上限，请稍后再试。";
+      return `本月用量已达上限。${nextSteps}`;
   }
 }
 

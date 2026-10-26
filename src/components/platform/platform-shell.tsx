@@ -17,7 +17,6 @@ import {
   NotebookText,
   Palette,
   Search,
-  Trophy,
   UserRound,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
@@ -50,7 +49,7 @@ const ICONS = {
   plan: CalendarRange,
   create: Clapperboard,
   batches: Layers3,
-  wins: Trophy,
+  /// 战绩（wins）入口暂时下线（见 platform-routes）：放回导航时连同 Trophy 图标一起加回。
   library: Film,
   brands: Palette,
   templates: NotebookText,

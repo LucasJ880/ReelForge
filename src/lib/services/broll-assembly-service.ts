@@ -30,6 +30,11 @@ import {
   synthesizeVoiceover,
 } from "@/lib/providers/openai-tts";
 import { isStockFootageAvailable } from "@/lib/providers/stock-footage";
+import { refundFailedBrief } from "@/lib/services/quota-refund-service";
+import {
+  CUSTOMER_CANCEL_MESSAGE,
+  CUSTOMER_CANCELLED_CLASS,
+} from "@/lib/services/single-video-cancel-service";
 import { runFfmpegNormalizeAndConcatWithPostProduction } from "@/lib/services/stitch-service";
 import {
   brollAspectResolution,
@@ -818,56 +823,120 @@ export async function stitchBrollLocally(args: {
 }
 
 export type CancelBrollResult =
-  | { ok: true; state: "cancelled" }
+  | { ok: true; state: "cancelled"; refunded: boolean }
   | { ok: false; reason: "not_found" | "not_broll" | "already_finished" };
+
+/** b-roll 成片还没交付的两种状态：排队等合成 / 合成中。 */
+const BROLL_CANCELLABLE_FINAL_STATUSES: FinalVideoStatus[] = [
+  FinalVideoStatus.PENDING,
+  FinalVideoStatus.STITCHING,
+];
+
+/**
+ * b-roll 的段在提交时就写成 SUCCEEDED——意思是「素材 + 口播音频已备好」，不是成片；
+ * 合成之前它们与排队 / 暂停 / 生成中的段一样都算未交付，取消时一并打客户取消标记。
+ * 已经 FAILED / CANCELLED 的段不动（真失败就是失败，不被取消改写）。
+ */
+const BROLL_CANCELLABLE_JOB_STATUSES: VideoJobStatus[] = [
+  VideoJobStatus.QUEUED,
+  VideoJobStatus.PAUSED,
+  VideoJobStatus.RUNNING,
+  VideoJobStatus.SUCCEEDED,
+];
 
 /**
  * 取消（铁律 #7）：素材与已上传输入全部保留，只终止合成。
- * FinalVideo 置 FAILED（原因写明用户取消，无 CANCELLED 枚举——只加不改的
- * 数据库纪律下留待下次加列）；段任务置 CANCELLED 使 claim 永不再认领。
+ *
+ * 与单条视频的客户取消（single-video-cancel-service · cancelUnifiedOrderForUser）同一套约定，
+ * 之前这里无条件覆盖、不打标记，读数把取消算成失败（进「需要处理」、拉低成片率），成品库却写「已取消」：
+ *  - 只动本人的自助单（createdById + unified_input），别人的 / 样片一律 not_found；
+ *  - FinalVideo 按 PENDING / STITCHING 做 CAS 置 FAILED（没有 CANCELLED 枚举，只加不改的库纪律下
+ *    不为它改枚举）；合成刚好结束就 already_finished，什么都不改。外部 runner 的完成回写带
+ *    STITCHING + attemptToken 条件，取消之后晚到的回调会被判过期，不会把它救活；
+ *  - 未交付的段 CAS 成 CANCELLED 并打 customer_cancelled 标记：exchange-readings 的
+ *    CUSTOMER_CANCELLED_ORDER 据此把它排除在失败 / 需要处理 / 成片率之外，syncBriefStatus 也不再碰它；
+ *    段一旦不是全 SUCCEEDED，stitch claim 永不再认领；
+ *  - brief 置 RENDER_FAILED、订单置 CANCELLED，人话写明「已取消、素材保留」；
+ *  - 立即按条返还（与单条取消同一个 refundFailedBrief）：b-roll 目前不计月度额度，流水净额为 0，
+ *    只打「本次终态已处理」标记、不动计量；以后线路开始计费，返还已经接好。
+ *    返还失败不影响取消本身，清扫器的对账会补上。
+ *  - 幂等键：与单条取消一致，不动任何幂等记录——b-roll 提交本身没有幂等键，重新提交就是一次新提交。
  */
-export async function cancelBrollDelivery(args: {
-  userId: string;
-  briefId: string;
-}): Promise<CancelBrollResult> {
+export async function cancelBrollDelivery(
+  args: { userId: string; briefId: string; now?: Date },
+  deps: { refund: typeof refundFailedBrief } = { refund: refundFailedBrief },
+): Promise<CancelBrollResult> {
+  const now = args.now ?? new Date();
   const brief = await db.videoBrief.findFirst({
     where: {
       id: args.briefId,
       contentAngle: {
-        round: { deliveryOrder: { createdById: args.userId } },
+        round: {
+          deliveryOrder: {
+            createdById: args.userId,
+            productCategory: "unified_input",
+          },
+        },
       },
     },
     select: {
       id: true,
       videoRouteSnapshot: true,
-      finalVideoId: true,
       finalVideo: { select: { id: true, status: true } },
+      contentAngle: { select: { round: { select: { deliveryOrderId: true } } } },
     },
   });
   if (!brief?.finalVideo) return { ok: false, reason: "not_found" };
   if (brief.videoRouteSnapshot !== "broll") {
     return { ok: false, reason: "not_broll" };
   }
-  if (
-    brief.finalVideo.status === FinalVideoStatus.READY ||
-    brief.finalVideo.status === FinalVideoStatus.FAILED
-  ) {
+  if (!BROLL_CANCELLABLE_FINAL_STATUSES.includes(brief.finalVideo.status)) {
     return { ok: false, reason: "already_finished" };
   }
 
-  await db.$transaction([
-    db.finalVideo.update({
-      where: { id: brief.finalVideo.id },
+  const finalVideoId = brief.finalVideo.id;
+  const orderId = brief.contentAngle.round.deliveryOrderId;
+  const cancelled = await db.$transaction(async (tx) => {
+    const finalVideo = await tx.finalVideo.updateMany({
+      where: { id: finalVideoId, status: { in: BROLL_CANCELLABLE_FINAL_STATUSES } },
       data: {
         status: FinalVideoStatus.FAILED,
-        ffmpegError: "用户取消（素材与口播音频已保留，可重新提交）",
-        finishedAt: new Date(),
+        ffmpegError: CUSTOMER_CANCEL_MESSAGE,
+        finishedAt: now,
       },
-    }),
-    db.videoJob.updateMany({
-      where: { finalVideoId: brief.finalVideo.id },
-      data: { status: VideoJobStatus.CANCELLED },
-    }),
-  ]);
-  return { ok: true, state: "cancelled" };
+    });
+    if (finalVideo.count === 0) return false;
+    await tx.videoJob.updateMany({
+      where: { finalVideoId, status: { in: BROLL_CANCELLABLE_JOB_STATUSES } },
+      data: {
+        status: VideoJobStatus.CANCELLED,
+        submissionErrorClass: CUSTOMER_CANCELLED_CLASS,
+        userSafeError: CUSTOMER_CANCEL_MESSAGE,
+        finishedAt: now,
+        leaseOwner: null,
+        leaseExpiresAt: null,
+      },
+    });
+    await tx.videoBrief.update({
+      where: { id: brief.id },
+      data: { status: VideoBriefStatus.RENDER_FAILED, errorMessage: CUSTOMER_CANCEL_MESSAGE },
+    });
+    await tx.deliveryOrder.update({
+      where: { id: orderId },
+      data: { status: DeliveryOrderStatus.CANCELLED, errorMessage: CUSTOMER_CANCEL_MESSAGE },
+    });
+    return true;
+  });
+  if (!cancelled) return { ok: false, reason: "already_finished" };
+
+  let refunded = false;
+  try {
+    refunded = (await deps.refund(brief.id, { now })) === "refunded";
+  } catch (error) {
+    console.warn(
+      `[broll-cancel] refund for brief ${brief.id} deferred to sweep:`,
+      (error as Error).message,
+    );
+  }
+  return { ok: true, state: "cancelled", refunded };
 }

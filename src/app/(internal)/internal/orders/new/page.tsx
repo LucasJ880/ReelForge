@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/features/page-header";
 import { Card, CardContent } from "@/components/ui/card";
+import { SUPPORTED_LOCALES } from "@/lib/services/localization-service";
 import { NewOrderForm } from "./new-order-form";
 
 export default function NewOrderPage() {
@@ -11,7 +12,8 @@ export default function NewOrderPage() {
       />
       <Card>
         <CardContent className="pt-4">
-          <NewOrderForm />
+          {/* 服务端取值、以 props 传给客户端表单（铁律 #5：'use client' 不引服务端 service 的值） */}
+          <NewOrderForm locales={SUPPORTED_LOCALES} />
         </CardContent>
       </Card>
     </div>

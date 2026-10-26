@@ -37,6 +37,8 @@ import {
 } from "@/components/video-generation/audio-caption-controls";
 import { FirstRunOnboardingDialog } from "@/components/video-generation/first-run-onboarding-dialog";
 import { PlanPreviewCard } from "@/components/video-generation/plan-preview-card";
+import { QuotaNextSteps } from "@/components/quota/quota-next-steps";
+import { quotaNextStepsCopy } from "@/lib/quota-next-steps";
 import {
   StoryboardWorkflowPanel,
   storyboardFrameTarget,
@@ -393,6 +395,7 @@ export function StreamlinedVideoStudio({
   forceOnboarding = false,
   brollAvailable = false,
   readings = null,
+  contactEmail = null,
 }: {
   initialAssets?: UploadedAsset[];
   initialStyleTemplateId?: string;
@@ -408,6 +411,8 @@ export function StreamlinedVideoStudio({
   forceOnboarding?: boolean;
   brollAvailable?: boolean;
   readings?: StudioReadings | null;
+  /** 对外联系邮箱：服务端页面用 contactEmail() 取好传进来（额度用完时「联系我们」用；审计 A7）。 */
+  contactEmail?: string | null;
 }) {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -471,6 +476,9 @@ export function StreamlinedVideoStudio({
   const [cancellingRound, setCancellingRound] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
   const [error, setError] = useState<string | null>(null);
+  /// 额度用完那条错误的原文：当前错误就是它时，错误框里给真实下一步（申请陪跑试点 / 联系我们）。
+  /// 只按原文比对，别的错误替换掉它之后入口自然消失，不用在每个 setError 旁边清状态。
+  const [quotaError, setQuotaError] = useState<string | null>(null);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
   const voiceoverEditedRef = useRef(false);
@@ -1270,7 +1278,9 @@ export function StreamlinedVideoStudio({
           dispatchAttemptRef.current = null;
           persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
         }
-        setError(customerDirectDispatchMessage(payload, locale));
+        const message = customerDirectDispatchMessage(payload, locale);
+        setError(message);
+        setQuotaError(payload.code === "QUOTA_EXCEEDED" ? message : null);
         return;
       }
       if (!response.ok) throw new Error(copy.dispatchFailed);
@@ -1355,6 +1365,9 @@ export function StreamlinedVideoStudio({
         ? GalleryHorizontalEnd
         : Clapperboard;
   const routeNeedsAttention = selectedRouteAvailable !== true;
+  /// 本月额度已经用完：提交前就把真实下一步摆出来，不让人做完方案和故事板才在派发时撞墙（审计 A7）。
+  const quotaExhausted = Boolean(readings && readings.quotaLimit > 0 && readings.quotaUsed >= readings.quotaLimit);
+  const showingQuotaError = quotaError !== null && error === quotaError;
   /// 商家的成本是「成片条数」（本月额度，失败与取消返还），不是供应商积分：
   /// 之前这里给同行线路写死「900 积分/支」——供应商价目早已换成 700 分与按秒计费，客户也从没买过积分。
   const statusHint = selectedRouteAvailable === null
@@ -1865,6 +1878,19 @@ export function StreamlinedVideoStudio({
                 <X aria-hidden />
                 {copy.cancelRound}
               </Button>
+              {showingQuotaError ? (
+                <QuotaNextSteps locale={locale} contactEmail={contactEmail} className="basis-full" />
+              ) : null}
+            </div>
+          ) : null}
+
+          {quotaExhausted && !showingQuotaError ? (
+            <div
+              className="mb-3 space-y-2 rounded-(--radius-md) border border-border bg-gold-soft px-3 py-2 xl:mb-0"
+              data-testid="quota-exhausted-notice"
+            >
+              <p className="text-meta font-medium text-gold">{quotaNextStepsCopy(locale).exhausted}</p>
+              <QuotaNextSteps locale={locale} contactEmail={contactEmail} />
             </div>
           ) : null}
 

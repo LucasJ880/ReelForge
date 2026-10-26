@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { contactEmail } from "@/lib/config/contact";
 import {
   BatchNotFoundError,
   getBatchStatus,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
-import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
+import { isShowcaseBatchAllowed, resolveShowcaseFor } from "@/lib/services/showcase-library";
 
 export const dynamic = "force-dynamic";
 
@@ -30,9 +31,11 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
     batch = await getBatchStatus(id, session.user.id);
   } catch (error) {
     if (!(error instanceof BatchNotFoundError)) throw error;
-    // 命中 SunnyShutter 样片账号的批次则以只读方式呈现；否则 404。
-    const showcaseUserId = await resolveShowcaseSourceFor(session.user.id);
-    if (!showcaseUserId) notFound();
+    // 命中 SunnyShutter 样片白名单（src/lib/config/showcase-allowlist.ts）的批次以只读方式呈现；否则 404。
+    // 白名单默认空：样片账号的批次一律 404（2026-10-25 审计 A10）。
+    const showcase = await resolveShowcaseFor(session.user.id);
+    if (!showcase) notFound();
+    const showcaseUserId = showcase.ownerId;
     try {
       batch = await getBatchStatus(id, showcaseUserId);
       readOnly = true;
@@ -40,6 +43,7 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
       if (showcaseError instanceof BatchNotFoundError) notFound();
       throw showcaseError;
     }
+    if (!isShowcaseBatchAllowed(batch.videoJobs, showcase.allow)) notFound();
   }
   const copy = getPlatformCopy(await getServerLocale()).batches;
   return (
@@ -57,6 +61,7 @@ export default async function PlatformBatchPage({ params }: { params: Promise<{ 
           toCustomerBatchStatus(batch) as unknown as BatchMonitorData
         }
         readOnly={readOnly}
+        contactEmail={contactEmail()}
       />
     </div>
   );

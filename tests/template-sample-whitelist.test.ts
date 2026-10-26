@@ -58,8 +58,22 @@ test("白名单里的预览文件 md5 两两不同（不许拿别的模板的样
   }
 });
 
-test("撤榜的首发 8 个 commerce-* 不再作为已验收样片对外展示", () => {
+/// 1026 整合轮：其中 5 个按框架 v2 真机重出并逐条 QA 通过，换上新文件（md5 唯一由上面的门禁保证）；
+/// 其余 3 个仍不过检，继续撤榜。
+const RESHOT_AND_PASSED_1026 = new Set<string>([
+  "commerce-aesthetic-mood",
+  "commerce-demo-first-reveal",
+  "commerce-single-feature-proof",
+  "commerce-problem-solution",
+  "commerce-hard-sell-presenter",
+]);
+
+test("撤榜的首发 8 个 commerce-*：重出过检的才回榜，其余不再作为已验收样片对外展示", () => {
   for (const slug of DUPLICATED_LEGACY_COMMERCE_SLUGS) {
+    if (RESHOT_AND_PASSED_1026.has(slug)) {
+      assert.equal(hasVerifiedTemplateVideo(slug), true, slug);
+      continue;
+    }
     assert.equal(verifiedTemplateSample(slug, `/template-previews/${slug}.jpg`), null, slug);
     assert.equal(verifiedTemplateVideo(slug, `/template-previews/${slug}.mp4`), null, slug);
     assert.equal(hasVerifiedTemplateVideo(slug), false, slug);

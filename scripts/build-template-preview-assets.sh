@@ -19,6 +19,8 @@ OUT_DIR="public/template-previews"
 declare -A OFFSETS=(
   # 1025 QA:6s 起只剩纸袋中段与叠化,0s 起是咖啡豆特写 + 手封袋(配方钩子)
   [commerce-food-sizzle]=0
+  # 1026 QA:6s 起人物正在放靠枕、头被裁掉;11s 起是坐上沙发的「解决后」
+  [commerce-problem-solution]=11
 )
 
 # 人物主导的模板:9:16 → 16:9 用上部裁切(6% 顶边),否则中央带会砍头。
@@ -31,6 +33,7 @@ declare -A TOPCROP=(
   [commerce-fashion-lookbook]=1
   [commerce-morning-routine]=1
   [commerce-beauty-texture]=1
+  [commerce-hard-sell-presenter]=1
 )
 
 mode="${1:-qa}"

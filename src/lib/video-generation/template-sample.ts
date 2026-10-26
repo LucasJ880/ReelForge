@@ -45,6 +45,14 @@ const EXPANSION_QA_PASSED_SLUGS = [
   /// 1025 第四轮:r7 真机成片逐条 QA 通过(穿搭动线、萌宠陪伴未过,见验收记录)
   "commerce-outdoor-rugged",
   "commerce-food-sizzle",
+  /// 1026 整合轮 C5:框架 v2 重出、逐条 QA 通过(一物双景、礼盒、UGC 口碑、开箱转化、价值感未过,见验收记录)
+  "commerce-pet-companion",
+  "commerce-triple-proof",
+  "commerce-aesthetic-mood",
+  "commerce-demo-first-reveal",
+  "commerce-single-feature-proof",
+  "commerce-problem-solution",
+  "commerce-hard-sell-presenter",
 ] as const;
 
 /**

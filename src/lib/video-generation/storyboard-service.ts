@@ -28,6 +28,12 @@ import {
 import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import { STORYBOARD_BEATS_LONG, STORYBOARD_BEATS_SHORT } from "@/lib/video-generation/storyboard-beats";
+import {
+  applyStoryboardReferenceRoles,
+  composeStoryboardFrameInputImages,
+  planStoryboardFrameInputs,
+  STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+} from "@/lib/video-generation/storyboard-frame-inputs";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
 
 const STORYBOARD_LEASE_MS = 2 * 60_000;
@@ -186,6 +192,12 @@ export function buildStoryboardFramePlans(input: {
   prompt: string;
   durationSec: number;
   aspectRatio: string;
+  /// P02-B：参考图张数，只用来按同一套入参规则预演每帧的 REFERENCE ROLES 序号与首帧 PRESENTER LOCK；
+  /// 省略 = 纯文字起稿，不写 REFERENCE ROLES 行。提交时按真实图片重算并对齐。
+  productImageCount?: number;
+  anchorCutoutCount?: number;
+  personImageCount?: number;
+  maxInputImages?: number;
 }): StoryboardFramePlan[] {
   const count = storyboardFrameCountForDuration(input.durationSec);
   const beats = count === 4 ? STORYBOARD_BEATS_SHORT : STORYBOARD_BEATS_LONG;
@@ -194,16 +206,25 @@ export function buildStoryboardFramePlans(input: {
   return beats.map((beat, ordinal) => ({
     ordinal,
     beat,
-    prompt: [
-      "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
-      `THIS FRAME ${ordinal + 1}/${count}: ${beat}. Depict only this beat.`,
-      `STORY CONTEXT (continuity only — do not depict the other beats in this image): ${input.prompt.trim()}`,
-      `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
-      SINGLE_SHOT_LOCK,
-      "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
-      "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
-      "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
-    ].join("\n"),
+    prompt: applyStoryboardReferenceRoles(
+      [
+        "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
+        `THIS FRAME ${ordinal + 1}/${count}: ${beat}. Depict only this beat.`,
+        `STORY CONTEXT (continuity only — do not depict the other beats in this image): ${input.prompt.trim()}`,
+        `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
+        SINGLE_SHOT_LOCK,
+        "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
+        "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
+        "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
+      ].join("\n"),
+      planStoryboardFrameInputs({
+        ordinal,
+        productImageCount: input.productImageCount ?? 0,
+        anchorCutoutCount: input.anchorCutoutCount ?? 0,
+        personImageCount: input.personImageCount ?? 0,
+        max: input.maxInputImages,
+      }),
+    ),
   }));
 }
 
@@ -419,7 +440,13 @@ export async function createStoryboardRun(
   if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId);
 
   const id = randomUUID();
-  const plans = buildStoryboardFramePlans(input);
+  const plans = buildStoryboardFramePlans({
+    prompt: input.prompt,
+    durationSec: input.durationSec,
+    aspectRatio: input.aspectRatio,
+    productImageCount: assets.length,
+    personImageCount: personAssetIds.length,
+  });
   let run: StoryboardRunRecord;
   try {
     run = await db.storyboardRun.create({
@@ -472,6 +499,25 @@ export async function createStoryboardRun(
   return storyboardRunView((await findRun(run.id, input.userId)) ?? run);
 }
 
+/**
+ * 主播参考图 URL 按 StoryboardRun.personAssetIds 列解析（只取本人素材，按列内顺序）；列为空不查库。
+ */
+async function loadStoryboardPersonImageUrls(run: {
+  userId: string;
+  personAssetIds?: string[] | null;
+}): Promise<string[]> {
+  const assetIds = [...new Set(run.personAssetIds ?? [])];
+  if (assetIds.length === 0) return [];
+  const assets = await db.mediaAsset.findMany({
+    where: { id: { in: assetIds }, userId: run.userId },
+    select: { id: true, url: true },
+  });
+  const urlById = new Map(assets.map((asset) => [asset.id, asset.url]));
+  return assetIds
+    .map((assetId) => urlById.get(assetId))
+    .filter((url): url is string => Boolean(url));
+}
+
 async function submitStoryboardFrame(frameId: string): Promise<void> {
   const frame = await db.storyboardFrame.findUnique({
     where: { id: frameId },
@@ -517,10 +563,45 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     )
     .sort((a, b) => a.ordinal - b.ordinal)
     .map((candidate) => candidate.outputUrl!);
-  const inputImages = [
-    ...priorFrames.slice(-2),
-    ...frame.storyboardRun.inputImageUrls,
-  ].slice(0, 5);
+  const run = frame.storyboardRun;
+  /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 5 兜底（提到 6 留给 P02-B2）。
+  const planSnapshot =
+    frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
+      ? {
+          planId: frame.planId,
+          model: frame.modelSnapshot,
+          resolution: frame.resolutionSnapshot as "1K" | "2K" | "4K",
+          points: frame.pointsSnapshot,
+          family: "gpt-image-2" as const,
+          inputImagesMax: STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+        }
+      : undefined;
+  /// 主播参考图只进首帧（还没有已成功的前帧）；其余帧不查库。
+  const personImages = priorFrames.length === 0 ? await loadStoryboardPersonImageUrls(run) : [];
+  const composedInputs = composeStoryboardFrameInputImages({
+    productImages: run.inputImageUrls,
+    /// anchorCutoutUrls 由 P02-F(s) 写入；本阶段恒为空数组，这里只是把接口接上。
+    anchorCutouts: run.anchorCutoutUrls ?? [],
+    personImages,
+    priorFrames,
+    max: planSnapshot?.inputImagesMax ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+  });
+  const inputImages = composedInputs.map((image) => image.url);
+  /// REFERENCE ROLES 序号按真正提交的图片重算：前帧全部失败等边角情形下与建 run 时的预演不同。
+  const prompt = applyStoryboardReferenceRoles(frame.prompt, composedInputs);
+  if (prompt !== frame.prompt) {
+    // 回写只为让界面与供应商看到同一份提示词；写不进去不影响提交（提示词已在内存里）。
+    await db.storyboardFrame
+      .updateMany({
+        where: {
+          id: frame.id,
+          providerRequestKey: frame.providerRequestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+        },
+        data: { prompt },
+      })
+      .catch(() => undefined);
+  }
   /// 合作方一旦返回任务号，提交就已确认；此后任何本地失败都不该把这帧
   /// 归为「确认未知」。任务号捕获在外层，落库失败时先重试一次持久化，
   /// 仍失败也要把任务号写进失败行，让后续对账能按它查真实状态。
@@ -543,22 +624,13 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
   try {
     const submitted = await runtime().submitTask({
       requestKey: frame.providerRequestKey,
-      prompt: frame.prompt,
+      prompt,
       aspectRatio: frame.storyboardRun.aspectRatio as "9:16" | "16:9" | "1:1",
       /// 合作方 0728 起下线 1K 档，目录最低为 2K。成本让位于可用性：
       /// 宁可每帧多几个积分，也不让整条产线因档位缺失而停摆。
       resolution: "2K",
       inputImages,
-      planSnapshot:
-        frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
-          ? {
-              planId: frame.planId,
-              model: frame.modelSnapshot,
-              resolution: frame.resolutionSnapshot as "1K" | "2K" | "4K",
-              points: frame.pointsSnapshot,
-              family: "gpt-image-2",
-            }
-          : undefined,
+      planSnapshot,
       onPlanSelected: async (plan) => {
         const persisted = await db.storyboardFrame.updateMany({
           where: {

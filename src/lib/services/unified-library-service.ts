@@ -21,6 +21,11 @@ import {
 import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
 import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
 import { bgmAttributionFor } from "@/lib/video-generation/bgm-attribution";
+import {
+  LIVE_CONTENT_POST_IMAGE_STATUSES,
+  contentPostSlidePrompts,
+  isContentPostRendering,
+} from "@/lib/services/content-post-render-state";
 import { readTemplateSnapshot } from "@/lib/video-generation/creative-recipe";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
@@ -508,9 +513,16 @@ const contentPostLibrarySelect = {
   format: true,
   status: true,
   copyHook: true,
+  imagePrompt: true,
+  slidesJson: true,
   renderedImageUrls: true,
+  renderStartedAt: true,
   updatedAt: true,
   plan: { select: { id: true, theme: true } },
+  /// C2：还没结束的 Shuyu 出图任务——有就是「出图中」，进成品库的出图中分区，不会从列表里消失。
+  _count: {
+    select: { imageTasks: { where: { status: { in: LIVE_CONTENT_POST_IMAGE_STATUSES } } } },
+  },
 } satisfies Prisma.ContentPostSelect;
 
 type ContentPostLibraryRow = Prisma.ContentPostGetPayload<{
@@ -527,16 +539,29 @@ const POST_FORMAT_LABEL: Record<string, string> = {
 export function toContentPostLibraryRow(
   post: ContentPostLibraryRow,
   isShowcase = false,
+  now: Date = new Date(),
 ): UnifiedLibraryRow | null {
   /// 商家主动弃用的内容不进素材库，但记录仍在（不物理删除）。
   if (post.status === "DISCARDED") return null;
 
   const needsImage = post.format === "SINGLE_IMAGE" || post.format === "CAROUSEL";
-  const hasImages = post.renderedImageUrls.length > 0;
+  /// 轮播中途失败会在 renderedImageUrls 里留 "" 空位：成品库只摆真实的图
+  /// （空串过不了 URL 校验，会把整行丢掉）。
+  const images = post.renderedImageUrls.filter((url) => url.trim() !== "");
+  const hasImages = images.length > 0;
+  /// C2：Shuyu 出图是异步的，点完「生成配图」要等几分钟——这段时间它是「生成中」（真有任务在跑），
+  /// 进度按已出的张数算，不再是「准备中」，也不会因为不在待出图里就从列表消失。
+  const rendering =
+    needsImage && isContentPostRendering(post, post._count?.imageTasks ?? 0, now);
+  const slideTotal = Math.max(1, contentPostSlidePrompts(post).length);
   /// 未出图 ≠ 生成中：没有任何任务在跑，显示「生成中 0%」会让商家以为卡死了
   /// （0802 录屏抓到的误导）。planning（准备中）才是实情 —— 等商家点「生成配图」。
   /// 短视频帖只有脚本，视频还没拍：是「待生产」，不是成片（1025 · B1.2：成片只数视频）。
-  const status = (needsImage && !hasImages) || post.format === "VIDEO" ? "planning" : "ready";
+  const status = rendering
+    ? "generating"
+    : (needsImage && !hasImages) || post.format === "VIDEO"
+      ? "planning"
+      : "ready";
 
   return parseLibraryRow({
     id: `post-${post.id}`,
@@ -554,15 +579,20 @@ export function toContentPostLibraryRow(
     updatedAt: post.updatedAt,
     status,
     label: status,
-    progress: status === "ready" ? 100 : 0,
+    progress:
+      status === "ready"
+        ? 100
+        : rendering
+          ? Math.round((Math.min(images.length, slideTotal) / slideTotal) * 100)
+          : 0,
     /// 图文帖没有视频；配图走 imageUrls，UI 据此渲染图而不是播放器。
     videoUrl: null,
-    thumbnailUrl: post.renderedImageUrls[0] ?? null,
-    imageUrls: post.renderedImageUrls,
+    thumbnailUrl: images[0] ?? null,
+    imageUrls: images,
     durationSec: null,
     aspectRatio: needsImage ? "2:3" : null,
     failedSceneCount: 0,
-    canRetry: needsImage && !hasImages,
+    canRetry: needsImage && !hasImages && !rendering,
   });
 }
 

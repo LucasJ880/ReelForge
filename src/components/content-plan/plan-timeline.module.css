@@ -182,6 +182,11 @@
   border-left-color: var(--success);
 }
 
+/* 正在出图：左缘信号青（实时 = 信号青），出完转成成片绿 */
+.clipRendering {
+  border-left-color: var(--accent);
+}
+
 .clipDiscarded {
   border-style: dashed;
   opacity: 0.55;
@@ -269,6 +274,37 @@
   border-radius: var(--radius-sm);
   padding: 2px 7px;
   background: var(--azure-soft);
+}
+
+/* 出图进度（C2）：记号 + 等宽张数 + 分段成交条 + 一句说明（后台出图 / 停止后收回中） */
+.progress {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+}
+
+.progressHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.progressCount {
+  font-family: var(--font-mono-family);
+  font-size: var(--text-data);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.progressNote {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--text-meta);
 }
 
 /* 操作条：共享 Button，主钮（生成配图）实心、其余描边 / 幽灵 */

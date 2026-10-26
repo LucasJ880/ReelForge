@@ -189,12 +189,13 @@ test("写作暂停：照抄验收口径——脚本与周计划先用模板生�
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
 
-test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周计划 / 口播稿 = 写作；配图与 Logo = OpenAI 图像；画面质检 = 看图", () => {
+test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；画面质检 = 看图", () => {
   assert.deepEqual([...FEATURES.broll.needs], ["text", "voice", "stock"]);
   assert.deepEqual([...FEATURES.contentPlanWriting.needs], ["text"]);
   assert.deepEqual([...FEATURES.narrationDraft.needs], ["text"]);
   assert.deepEqual([...FEATURES.scriptWriting.needs], ["text"]);
-  assert.deepEqual([...FEATURES.imagePosts.needs], ["graphics"]);
+  /// C2：图文配图默认走 Shuyu 图像线路
+  assert.deepEqual([...FEATURES.imagePosts.needs], ["image"]);
   assert.deepEqual([...FEATURES.logo.needs], ["graphics"]);
   assert.deepEqual([...FEATURES.productImages.needs], ["image"]);
   assert.deepEqual([...FEATURES.storyboardFrames.needs], ["image"]);
@@ -205,7 +206,8 @@ test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周�
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);
   }
   assert.deepEqual(featuresForCapability("voice"), ["broll"]);
-  assert.deepEqual(featuresForCapability("graphics"), ["imagePosts", "logo"]);
+  assert.deepEqual(featuresForCapability("graphics"), ["logo"]);
+  assert.ok(featuresForCapability("image").includes("imagePosts"));
 });
 
 test("状态词典有 capability 一行：记号与颜色成对（暂停 = 失败记号，未开通 = 叉）", () => {

@@ -67,6 +67,8 @@ test("submits only the audited Shuyu Image 2 plan and returns its durable snapsh
     resolution: "1K",
     points: 24,
     family: "gpt-image-2",
+    /// C2：价目表声明的画幅一并保留（图文帖按画幅筛套餐）。
+    aspectRatios: ["1:1", "4:5", "9:16", "16:9"],
   });
   const post = calls.find((call) => call.url.endsWith("/images/generations"));
   assert.ok(post);

@@ -357,8 +357,8 @@ type FeatureSpec = {
 };
 
 /**
- * 功能 → 能力依赖。图文配图与 Logo 走 OpenAI 图像模型（graphics），
- * 产品图与故事板走 Shuyu 图像线路（image）。
+ * 功能 → 能力依赖。Logo 走 OpenAI 图像模型（graphics）；产品图、故事板与图文配图走 Shuyu 图像线路（image）——
+ * 图文配图 C2 起默认 Shuyu 异步出图（CONTENT_POST_IMAGE_PROVIDER=openai 才回到 graphics，属回滚，不在这里分支）。
  */
 export const FEATURES: Record<FeatureKey, FeatureSpec> = {
   broll: {
@@ -394,7 +394,7 @@ export const FEATURES: Record<FeatureKey, FeatureSpec> = {
     ),
   },
   imagePosts: {
-    needs: ["graphics"],
+    needs: ["image"],
     label: b("图文配图", "Post images"),
     whenBlocked: b(
       "文案照常排好，图文帖先不出图；已出的图都保留，恢复后再点「生成配图」。",

@@ -8,6 +8,7 @@ import {
 } from "@/lib/services/frame-qa-gate";
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { pollPendingProductImageJobs } from "@/lib/services/product-image-service";
+import { pollPendingContentPostRenders } from "@/lib/services/content-post-image-job-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-service";
 
@@ -20,6 +21,8 @@ import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-ser
  *
  * D2：整次调用跑在帧质检预算上下文里（条数 + 时长上限）。用户面轮询遇到
  * 「供应商已完成」只 defer，由这里（或 process-batches）真正跑质检并收尾。
+ *
+ * C2：图文帖的 Shuyu 配图也在这里推进（商家关了页面，在途的图照样收回、这一轮照样收尾）。
  */
 export const maxDuration = 300;
 
@@ -29,6 +32,7 @@ interface PollVideosDependencies {
   pollRunningJobs: typeof pollRunningJobs;
   pollPendingProductImageJobs: typeof pollPendingProductImageJobs;
   pollPendingStoryboardRuns: typeof pollPendingStoryboardRuns;
+  pollPendingContentPostRenders: typeof pollPendingContentPostRenders;
   sweepStuckTasks: typeof sweepStuckTasks;
 }
 
@@ -38,6 +42,7 @@ const defaultDependencies: PollVideosDependencies = {
   pollRunningJobs,
   pollPendingProductImageJobs,
   pollPendingStoryboardRuns,
+  pollPendingContentPostRenders,
   sweepStuckTasks,
 };
 
@@ -53,21 +58,26 @@ export function createPollVideosHandler(
     const authFailure = dependencies.machineAuthFailure(req);
     if (authFailure) return authFailure;
     const heartbeat = dependencies.startSchedulerHeartbeat("poll-videos");
-    const [videoResult, imageResult, storyboardResult] = await Promise.allSettled([
+    const [videoResult, imageResult, storyboardResult, contentPostResult] = await Promise.allSettled([
       dependencies.pollRunningJobs(30),
       dependencies.pollPendingProductImageJobs(20),
       dependencies.pollPendingStoryboardRuns(20),
+      dependencies.pollPendingContentPostRenders(20),
     ] as const);
     const [sweepResult] = await Promise.allSettled([dependencies.sweepStuckTasks()]);
 
     const imageFailed = imageResult.status === "rejected";
     const storyboardFailed = storyboardResult.status === "rejected";
+    const contentPostFailed = contentPostResult.status === "rejected";
     const sweepFailed = sweepResult.status === "rejected";
     if (imageFailed) {
       console.warn("[cron/poll-videos] image poll failed:", errorMessage(imageResult));
     }
     if (storyboardFailed) {
       console.warn("[cron/poll-videos] storyboard poll failed:", errorMessage(storyboardResult));
+    }
+    if (contentPostFailed) {
+      console.warn("[cron/poll-videos] content-post image poll failed:", errorMessage(contentPostResult));
     }
     if (sweepFailed) {
       console.warn("[cron/poll-videos] sweep failed:", errorMessage(sweepResult));
@@ -79,6 +89,7 @@ export function createPollVideosHandler(
         polled: 0,
         imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
         storyboardPolled: storyboardResult.status === "fulfilled" ? storyboardResult.value : 0,
+        contentPostPolled: contentPostResult.status === "fulfilled" ? contentPostResult.value : 0,
         sweepCompleted: !sweepFailed,
       });
       return NextResponse.json(
@@ -87,6 +98,7 @@ export function createPollVideosHandler(
           imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
           imageError: imageFailed ? errorMessage(imageResult) : null,
           storyboardError: storyboardFailed ? errorMessage(storyboardResult) : null,
+          contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
           sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
           heartbeat: heartbeatEvent,
         },
@@ -94,11 +106,12 @@ export function createPollVideosHandler(
       );
     }
 
-    const degraded = imageFailed || storyboardFailed || sweepFailed;
+    const degraded = imageFailed || storyboardFailed || contentPostFailed || sweepFailed;
     const heartbeatEvent = heartbeat.finish(degraded ? "degraded" : "ok", {
       polled: videoResult.value.polled,
       imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
       storyboardPolled: storyboardResult.status === "fulfilled" ? storyboardResult.value : 0,
+      contentPostPolled: contentPostResult.status === "fulfilled" ? contentPostResult.value : 0,
       sweepCompleted: !sweepFailed,
     });
     return NextResponse.json({
@@ -107,6 +120,8 @@ export function createPollVideosHandler(
       imageRecovered: imageResult.status === "fulfilled" ? imageResult.value.recovered : 0,
       imageError: imageFailed ? errorMessage(imageResult) : null,
       storyboardError: storyboardFailed ? errorMessage(storyboardResult) : null,
+      contentPostPolled: contentPostResult.status === "fulfilled" ? contentPostResult.value : 0,
+      contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
       sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
       degraded,
       frameQa: frameQaBudgetUsage(),

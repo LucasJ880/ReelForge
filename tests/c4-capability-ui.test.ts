@@ -184,7 +184,8 @@ test("本周内容：写作或配图暂停时，时间线上方一条细通知�
   );
   assert.match(html, /role="status"/);
   assert.match(html, /周计划撰写暂停：AI 写作暂不可用。周计划先按模板排好/);
-  assert.match(html, /图文配图暂停：配图与 Logo 暂不可用/, "账户没额度 → 配图一起停");
+  /// C2 起图文配图走 Shuyu（image）：OpenAI 没额度不再连带图文出图，只剩周计划撰写一条通知
+  assert.doesNotMatch(html, /图文配图暂停/, "图文配图走 Shuyu，不随 OpenAI 账户停");
   assert.match(html, /href="\/app\/status"/);
   assert.equal(
     renderToStaticMarkup(

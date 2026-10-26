@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (112/112 route files)
+## API endpoint inventory (113/113 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -96,7 +96,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET | `/api/health/media` | `CRON_SECRET` (handler fail-closed) | NEW 1025-A3: ffmpeg version + bundled CJK font/BGM + 1s synthesis probe (CJK end card + ass subtitles); 200/503; `?frame=1` JPEG |
 | GET | `/api/videos` | Machine auth (Bearer CRON_SECRET), middleware-exact | PRD M0: 青砚 aivora-sync 拉成片；fail-closed，无会话回退；只给已品牌封装、非 takedown、非样片账号的成片 |
 | GET, POST | `/api/content-plans` | Session | PRD M3/O1: 一句话进多形态出；生成不计费，出图才计费 |
-| POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped | PRD M3/O1: 单图/轮播出图；重复出图幂等不重复计费；DELETE 取消保留素材 |
+| GET, POST, DELETE | `/api/content-plans/[id]/posts/[postId]/render` | Session, owner-scoped; POST demo-blocked | PRD M3/O1 + C2: 单图/轮播出图默认走 Shuyu 异步（POST 开一轮回 202，GET 读时对账；`CONTENT_POST_IMAGE_PROVIDER=openai` 回滚同步线路）；重复出图幂等不重复计费；DELETE 弃用保留素材并取消未提交的屏 |
+| POST | `/api/content-plans/[id]/posts/[postId]/render/cancel` | Session, owner-scoped | C2: 停止出图——未提交的屏取消（不计费），已提交的照常收回落库，这一轮不再变可发布 |
 | POST | `/api/performance` | Machine auth (Bearer CRON_SECRET) | PRD M2/R2: 青砚回灌渠道指标；配方只从我方 subject 读，回流方不得指定 |
 | GET | `/api/racing` | Session, owner-scoped | PRD M2/R3: 配方维度胜负；样本不足明确返回 insufficient，不给方向性结论 |
 | POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |

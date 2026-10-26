@@ -5,6 +5,8 @@ import { listContentPlans } from "@/lib/services/content-plan-store";
 import { readSlides } from "@/lib/services/content-post-render-service";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 import { CapabilityNotice } from "@/components/capabilities/capability-notice";
+import { loadContentPostRenderViews } from "@/lib/services/content-post-image-job-service";
+import type { ContentPostRenderView } from "@/lib/contracts/content-post-render";
 import {
   PlanTimeline,
   type TimelinePlan,
@@ -22,6 +24,9 @@ const PLAN_CAPABILITY_FEATURES = ["contentPlanWriting", "imagePosts"] as const;
  *
  * 服务端取数、拼成纯 DTO 交给 client 组件 ——
  * client 组件绝不能自己 import service（会把 Prisma/OpenAI 打进浏览器 bundle）。
+ *
+ * C2：每条图文帖带上出图视图（是否在出图、每屏状态）：刷新页面后接着显示进度、接着轮询，
+ * 不会把一轮正在后台出的图当成「没出图」。
  */
 export default async function PlanPage() {
   const session = await getServerSession(authOptions);
@@ -34,6 +39,12 @@ export default async function PlanPage() {
     getServerLocale(),
   ]);
   const latest = plans[0] ?? null;
+  const renderViews = latest
+    ? await loadContentPostRenderViews(
+        session.user.id,
+        latest.posts.map((post) => post.id),
+      )
+    : new Map<string, ContentPostRenderView>();
 
   const plan: TimelinePlan | null = latest
     ? {
@@ -64,6 +75,7 @@ export default async function PlanPage() {
             (slide) => slide.overlayText,
           ),
           renderError: post.renderError,
+          render: renderViews.get(post.id) ?? null,
         })),
       }
     : null;

@@ -56,6 +56,14 @@ export const STATE_VOCAB = {
     done: entry("filled", "已出图", "Drawn"),
     failed: FAILED,
   },
+  /** 图文帖的一屏配图（C2 · Shuyu 异步出图）。cancelled = 停止出图时还没提交，不产生费用。 */
+  slide: {
+    queued: QUEUED,
+    generating: GENERATING,
+    done: entry("filled", "已出图", "Drawn"),
+    failed: FAILED,
+    cancelled: CANCELLED,
+  },
   /** 一轮产品图。 */
   image: {
     queued: QUEUED,

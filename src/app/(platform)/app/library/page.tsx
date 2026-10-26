@@ -19,6 +19,7 @@ import { BrandPackageButton } from "@/components/library/brand-package-button";
 import { FailuresAckButton } from "@/components/library/failures-ack-button";
 import { LibraryHighlight } from "@/components/library/library-highlight";
 import { RenderPendingPostsButton } from "@/components/library/render-pending-posts-button";
+import { PostRenderWatcher } from "@/components/library/post-render-watcher";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { LocalTime } from "@/components/exchange/local-time";
 import type { QuoteStat } from "@/components/exchange/quote-header";
@@ -105,7 +106,8 @@ export default async function PlatformLibraryPage({
   /*
    * 成品库按「一条生产线」的业务对象与阶段组织（PRD §4.3 按业务对象 / §10.5 新 IA）：
    *   需要处理   —— 近 7 天失败、未重试成功、没看过的视频（与导轨红色徽标同一个查询）。
-   *   生产线上   —— 供应商侧真在生成的视频（点入可跟踪/取消）。只有这里挂光束。
+   *   生产线上   —— 供应商侧真在生成的视频（点入可跟踪/取消）。挂光束。
+   *   出图中     —— 已交给出图服务（Shuyu 异步）的图文帖：真有任务在跑，挂光束，进度按已出张数（C2）。
    *   排队与暂停 —— 还没开始或已暂停的视频：不挂光束、不写 0%。
    *   待生成配图 —— 本周内容排好的图文帖，没有任务在跑，等商家动作。
    *   待生产     —— 短视频帖只有脚本，不是成片。
@@ -114,6 +116,8 @@ export default async function PlatformLibraryPage({
    */
   const isPost = (row: UnifiedLibraryRow) => row.source === "post";
   const makingRows = rows.filter((row) => !isPost(row) && (row.status === "generating" || row.status === "assembling"));
+  /// C2：正在出图的图文帖（不在「待生成配图」里——商家已经点过了，那里只放没有任务在跑的）。
+  const renderingPostRows = rows.filter((row) => isPost(row) && row.status === "generating");
   const waitingRows = rows.filter((row) => !isPost(row) && (row.status === "planning" || row.status === "paused"));
   const actionRows = rows.filter((row) => isPost(row) && row.status === "planning" && row.postFormat !== "VIDEO");
   const toProduceRows = rows.filter((row) => isPost(row) && row.status === "planning" && row.postFormat === "VIDEO");
@@ -264,6 +268,52 @@ export default async function PlatformLibraryPage({
             </section>
           ) : null}
 
+          {renderingPostRows.length > 0 ? (
+            <section aria-label={copy.sectionRendering} className="space-y-3">
+              <SectionHead
+                title={copy.sectionRendering}
+                count={renderingPostRows.length}
+                countTone="live"
+                hint={copy.sectionRenderingHint}
+                action={
+                  <PostRenderWatcher
+                    items={renderingPostRows.map((row) => ({ planId: row.planId ?? "", postId: postIdOf(row) })).filter((item) => item.planId)}
+                  />
+                }
+              />
+              <ul className="x-panel overflow-hidden">
+                {renderingPostRows.map((row) => (
+                  <li
+                    key={row.id}
+                    data-beam="row"
+                    data-library-row={row.id}
+                    data-highlighted={isHighlighted(row.id)}
+                    className="border-b border-border last:border-b-0"
+                  >
+                    <Link
+                      href={detailHref(row)}
+                      className="flex items-center gap-4 px-4 py-3 transition-colors hover:bg-raised focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+                      aria-label={`${row.title} ${copy.viewProgress}`}
+                    >
+                      <span className="x-live" aria-hidden />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-body font-medium">{row.title}</p>
+                        <p className="font-mono text-data tabular-nums text-muted-foreground">
+                          {copy.sourceLabels.post} · {copy.statuses[row.status]} · <LocalTime iso={row.updatedAt.toISOString()} locale={locale} variant="relative" />
+                        </p>
+                      </div>
+                      <div className="hidden w-40 shrink-0 sm:block">
+                        <Progress value={row.progress} aria-label={`${row.title} ${copy.progress}`} />
+                      </div>
+                      <span className="w-11 shrink-0 text-right font-mono text-data tabular-nums text-accent">{row.progress}%</span>
+                      <ArrowRight className="size-4 shrink-0 text-tertiary" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
+
           {waitingRows.length > 0 ? (
             <section aria-label={copy.sectionQueued} className="space-y-3">
               <SectionHead title={copy.sectionQueued} count={waitingRows.length} hint={copy.sectionQueuedHint} />
@@ -306,6 +356,7 @@ export default async function PlatformLibraryPage({
                 action={
                   <RenderPendingPostsButton
                     items={actionRows.map((row) => ({ planId: row.planId ?? "", postId: postIdOf(row) })).filter((item) => item.planId)}
+                    renderingItems={renderingPostRows.map((row) => ({ planId: row.planId ?? "", postId: postIdOf(row) })).filter((item) => item.planId)}
                   />
                 }
               />

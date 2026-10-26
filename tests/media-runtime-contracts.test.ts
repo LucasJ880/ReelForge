@@ -203,6 +203,7 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在帧质检预算上
     },
     pollPendingProductImageJobs: async () => ({ polled: 0, recovered: 0 }) as never,
     pollPendingStoryboardRuns: async () => 0 as never,
+    pollPendingContentPostRenders: async () => 0 as never,
     sweepStuckTasks: async () => {
       seen.push(frameQaBudgetUsage()?.label ?? null);
       return {} as never;

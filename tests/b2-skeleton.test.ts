@@ -173,7 +173,8 @@ test("B2.3 接口错误读 body.error（customerApiError 的人话），读不�
   assert.equal(apiErrorMessage({ error: "   " }, "兜底"), "兜底");
   const timeline = read("src/components/content-plan/plan-timeline.tsx");
   assert.doesNotMatch(timeline, /body\?\.message/);
-  assert.equal((timeline.match(/apiErrorMessage\(body, copy\./g) ?? []).length, 3);
+  /// 排一周 / 生成配图 / 停止出图（C2 新增）/ 弃用：四个接口的错误都读 body.error。
+  assert.equal((timeline.match(/apiErrorMessage\(body, copy\./g) ?? []).length, 4);
 });
 
 test("B2.3 「今天」在浏览器里按计划起始日 + dayOffset 算，服务端只传 ISO", () => {

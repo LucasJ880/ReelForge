@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 /** Bump when schema changes so dev HMR does not keep a stale PrismaClient. */
-const PRISMA_CLIENT_GENERATION = "20261025_capability_status";
+const PRISMA_CLIENT_GENERATION = "20261026_c1_c2_c4_merged";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;

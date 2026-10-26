@@ -76,6 +76,8 @@ test("preserves the audited provider resolution when an Image 2 plan ID differs 
       resolution: "4K",
       points: 48,
       family: "gpt-image-2",
+      /// C2：价目表声明的画幅一并保留（图文帖按画幅筛套餐）。
+      aspectRatios: ["9:16"],
     },
   ]);
 });

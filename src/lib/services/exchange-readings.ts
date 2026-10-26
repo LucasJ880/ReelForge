@@ -7,6 +7,7 @@ import type { ExchangePulse, PulsePlan, TapeEntry } from "@/lib/exchange/pulse";
 import { countNewLeads } from "@/lib/services/lead-service";
 import { getUsageSummary } from "@/lib/services/quota-service";
 import { CUSTOMER_CANCELLED_CLASS } from "@/lib/services/single-video-cancel-service";
+import { contentPostRenderingWhere } from "@/lib/services/content-post-render-state";
 import {
   loadRecentVideoRows,
   templateDisplayName,
@@ -171,13 +172,18 @@ export function orderQueuedWhere(userId: string): Prisma.VideoBriefWhereInput {
   };
 }
 
-/** 待出图：排好但还没出图的单图帖与轮播（短视频帖是「待生产」，不算这里）。 */
-export function awaitingImagesWhere(userId: string): Prisma.ContentPostWhereInput {
+/**
+ * 待出图：排好、还没出图、也不在出图中的单图帖与轮播（短视频帖是「待生产」，不算这里）。
+ * C2：Shuyu 出图是异步的，一轮可能要好几分钟——商家已经点过「生成配图」的不再算待办，
+ * 「出图中」的口径与本周内容 / 成品库同一个（content-post-render-state）。
+ */
+export function awaitingImagesWhere(userId: string, now: Date = new Date()): Prisma.ContentPostWhereInput {
   return {
     plan: { userId },
     status: { not: "DISCARDED" },
     format: { in: ["SINGLE_IMAGE", "CAROUSEL"] },
     renderedImageUrls: { isEmpty: true },
+    NOT: contentPostRenderingWhere(now),
   };
 }
 

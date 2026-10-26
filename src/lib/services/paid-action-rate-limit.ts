@@ -22,7 +22,8 @@ export const PAID_ACTION_RATE_LIMITS = {
     envKey: "CONTENT_PLAN_RATE_LIMIT_PER_HOUR",
     message: "内容计划生成过于频繁，请一小时后再试。",
   },
-  /// 图文出图：每次 1 张（单图）到 6 张（轮播）gpt-image
+  /// 图文出图：每轮 1 张（单图）到 6 张（轮播）——默认 Shuyu 异步出图（C2），回滚线路是 gpt-image；
+  /// 按「开一轮」计一次（拿到渲染锁之后），轮询、对账、自动重投都不计
   "content-post-render": {
     perHour: 20,
     envKey: "CONTENT_POST_RENDER_RATE_LIMIT_PER_HOUR",

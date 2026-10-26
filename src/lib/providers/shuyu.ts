@@ -4,6 +4,7 @@ import {
   parseShuyuCatalog,
   selectAuditedImage2Plan,
   type AuditedShuyuImagePlan,
+  type ShuyuAspectRatio,
 } from "./shuyu-catalog";
 
 export const SHUYU_API_BASE_URL =
@@ -730,7 +731,11 @@ export function __resetShuyuImagePlanCache(): void {
 }
 
 export async function resolveShuyuImagePlan(
-  requested: { resolution?: "1K" | "2K" | "4K" } & ShuyuFetchOptions = {},
+  requested: {
+    resolution?: "1K" | "2K" | "4K";
+    /// C2：只在价目表声明支持该画幅的档位里选（不传 = 不按画幅筛选，既有调用方行为不变）。
+    aspectRatio?: ShuyuAspectRatio;
+  } & ShuyuFetchOptions = {},
 ): Promise<AuditedShuyuImagePlan> {
   const now = Date.now();
   if (!imagePlanCache || now - imagePlanCache.at > IMAGE_PLAN_CACHE_TTL_MS) {
@@ -740,6 +745,7 @@ export async function resolveShuyuImagePlan(
   return selectAuditedImage2Plan(
     { imagePlans: imagePlanCache.plans },
     requested.resolution ?? "2K",
+    { aspectRatio: requested.aspectRatio },
   );
 }
 

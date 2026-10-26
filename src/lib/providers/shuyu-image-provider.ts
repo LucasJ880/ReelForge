@@ -1,5 +1,9 @@
-import type { AuditedShuyuImagePlan, ShuyuResolution } from "./shuyu-catalog";
-import { selectAuditedImage2Plan } from "./shuyu-catalog";
+import type {
+  AuditedShuyuImagePlan,
+  ShuyuAspectRatio,
+  ShuyuResolution,
+} from "./shuyu-catalog";
+import { SHUYU_IMAGE_ASPECT_RATIOS, selectAuditedImage2Plan } from "./shuyu-catalog";
 import { randomUUID } from "node:crypto";
 import { isDryRun } from "@/lib/config/dry-run";
 import { isProductionRuntime } from "@/lib/config/env";
@@ -8,6 +12,7 @@ import {
   createShuyuImageTask,
   getAvailableShuyuImagePlans,
   getShuyuVideoTask,
+  resolveShuyuImagePlan,
   type ShuyuFetchOptions,
 } from "./shuyu";
 
@@ -46,18 +51,24 @@ function mockPlan(resolution: ShuyuResolution): AuditedShuyuImagePlan {
     resolution,
     points,
     family: "gpt-image-2",
+    aspectRatios: [...SHUYU_IMAGE_ASPECT_RATIOS],
   };
 }
 
-export type ShuyuImageAspectRatio =
-  | "1:1"
-  | "2:3"
-  | "3:2"
-  | "3:4"
-  | "4:3"
-  | "4:5"
-  | "9:16"
-  | "16:9";
+export type ShuyuImageAspectRatio = ShuyuAspectRatio;
+
+/**
+ * C2 · 按「分辨率 + 画幅」解析一轮出图要用的套餐（实时目录，5 分钟缓存）。
+ *
+ * 图文帖每轮只解析一次、把快照写进每一屏的任务行，之后提交 / 自动重投都按快照原样重放。
+ * 与 submitShuyuImageTask 同一套 mock 判据：dry-run / IMAGE_ENGINE_MOCK 下不打真实价目表。
+ */
+export async function resolveShuyuImagePlanForAspect(
+  input: { resolution: ShuyuResolution; aspectRatio: ShuyuImageAspectRatio } & ShuyuFetchOptions,
+): Promise<AuditedShuyuImagePlan> {
+  if (mockImageRuntime()) return mockPlan(input.resolution);
+  return resolveShuyuImagePlan(input);
+}
 
 export interface SubmitShuyuImageTaskInput extends ShuyuFetchOptions {
   requestKey: string;

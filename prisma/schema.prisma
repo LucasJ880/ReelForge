@@ -120,6 +120,7 @@ model MediaAsset {
   productImageSourceJobs ProductImageJob[]       @relation("ProductImageSourceAsset")
   productImageResults    ProductImageResult[]
   storyboardFrames       StoryboardFrame[]
+  contentPostImageTasks  ContentPostImageTask[]
   brandPackageLogos      WorkspaceBrandPackage[] @relation("WorkspaceBrandPackageLogo")
   brandPackageEndCards   WorkspaceBrandPackage[] @relation("WorkspaceBrandPackageEndCard")
 
@@ -1979,6 +1980,11 @@ model ContentPost {
   renderError       String?
   /// 出图渲染锁：开始渲染时写入、结束清空；超过时限视为失效锁
   renderStartedAt   DateTime?
+  /// C2 · 当前（或最近一轮）Shuyu 异步出图的轮次号，与 renderStartedAt 同时写入。
+  /// 「出图中」不另设状态：= DRAFT 且 renderStartedAt 非空。READY 的 CAS 只认同一轮；
+  /// 「停止出图」把它改写成 `cancelled:<轮次号>`（墓碑），那一轮从此不能变 READY。
+  /// 同步 OpenAI 回滚线路拿锁时清空它，两条线路的锁归属不会混。
+  renderRunId       String?
 
   rationale String
 
@@ -1990,10 +1996,82 @@ model ContentPost {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  imageTasks ContentPostImageTask[]
+
   @@unique([planId, key])
   @@index([planId, dayOffset])
   @@index([recipeId])
   @@index([status, createdAt])
+}
+
+/// C2 · 图文帖一屏配图的 Shuyu 出图任务状态。
+enum ContentPostImageStatus {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  /// 「停止出图」/ 弃用时还没提交给 Shuyu 的那几屏：从未提交、不产生费用
+  CANCELLED
+}
+
+/// C2 · 图文帖（单图 / 轮播）的一屏一次 Shuyu 出图尝试，模仿 StoryboardFrame。
+///
+/// 每次新尝试一行（attempt 递增，新的 providerRequestKey），isCurrent 标记这一屏当前那次；
+/// 同一次尝试里「Shuyu 明确没建任务」的自动重投复用同一个 key（重放同一份已审计请求）。
+/// 出图成功先落 MediaAsset + outputUrl，再在锁住帖子行的事务里按位置并进
+/// ContentPost.renderedImageUrls——花过钱的图永远不丢，取消 / 弃用也照样收回。
+model ContentPostImageTask {
+  id          String                 @id @default(cuid())
+  postId      String
+  post        ContentPost            @relation(fields: [postId], references: [id], onDelete: Restrict)
+  /// 发起人快照（不建外键）；越权校验一律走 post → plan.userId。
+  userId      String
+  /// 所属轮次（发起时的 ContentPost.renderRunId）。
+  renderRunId String
+  /// 第几屏：与 renderedImageUrls 的位置一一对应（单图恒为 0）。
+  slideIndex  Int
+  attempt     Int                    @default(1)
+  isCurrent   Boolean                @default(true)
+  /// 提交给 Shuyu 的完整提示词快照（已加「禁止画字」硬尾巴），重投按它原样重放。
+  prompt      String
+  aspectRatio String
+  status      ContentPostImageStatus @default(QUEUED)
+
+  /// 幂等键：`content-post:{postId}:s{slideIndex}:a{attempt}`（8–120 字符，Shuyu 要求）。
+  providerRequestKey String                  @unique
+  externalTaskId     String?                 @unique
+  submissionState    ProviderSubmissionState @default(NOT_STARTED)
+  provider           String                  @default("shuyu")
+  /// 同一 key 已提交的次数（含「明确没建任务」后的自动重投，上限见 service）。
+  submitAttempts     Int                     @default(0)
+  /// 套餐快照：每轮解析一次，同一轮的每一屏按同一个套餐提交与对账。
+  planId             String?
+  modelSnapshot      String?
+  resolutionSnapshot String?
+  pointsSnapshot     Int?
+  outputUrl          String?
+  outputAssetId      String?                 @unique
+  outputAsset        MediaAsset?             @relation(fields: [outputAssetId], references: [id], onDelete: SetNull)
+
+  leaseOwner         String?
+  leaseExpiresAt     DateTime?
+  /// 下一次可以提交 / 轮询的时刻（自动重投退避、轮询节流）。
+  availableAt        DateTime?
+  lastProviderStatus String?
+  lastCheckedAt      DateTime?
+  pollErrors         Int       @default(0)
+  errorCode          String?
+  errorMessage       String?
+  submittedAt        DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@unique([postId, slideIndex, attempt])
+  @@index([postId, isCurrent, slideIndex])
+  @@index([status, availableAt])
+  @@index([status, leaseExpiresAt])
+  @@index([renderRunId])
 }
 
 // =========================================================

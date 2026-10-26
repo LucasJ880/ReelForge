@@ -38,7 +38,10 @@ export class ContentPostRenderError extends Error {
       /// 另一个请求正在出这条（渲染锁未过期）
       | "in_progress"
       /// 商家已弃用 / 出图期间被取消；已出的图照样保留
-      | "discarded",
+      | "discarded"
+      /// C2（Shuyu 异步线路）：缺的那几屏上一次失败且供应商没确认退款，
+      /// 为避免重复扣费不自动重出，需要人工核对
+      | "billing_review",
   ) {
     super(message);
     this.name = "ContentPostRenderError";
@@ -179,8 +182,11 @@ export async function renderContentPost(
         { renderStartedAt: null },
         { renderStartedAt: { lt: new Date(lockedAt.getTime() - RENDER_LOCK_TTL_MS) } },
       ],
+      /// C2：异步线路（Shuyu）还有没结束的任务时，这条帖子的锁属于那一轮，不论锁多旧都不接管。
+      imageTasks: { none: { status: { in: ["QUEUED", "PROCESSING"] } } },
     },
-    data: { renderStartedAt: lockedAt },
+    /// 清掉轮次号：锁归同步线路，异步线路的收尾（只认自己的轮次号）不会误放这把锁。
+    data: { renderStartedAt: lockedAt, renderRunId: null },
   });
   if (lock.count !== 1) {
     const current = await db.contentPost.findFirst({

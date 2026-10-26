@@ -1,11 +1,30 @@
 export type ShuyuResolution = "1K" | "2K" | "4K";
 
+/** Shuyu 价目表 capabilities.aspect_ratios 的全部合法取值（与 shuyuPriceSchema 同一份枚举）。 */
+export const SHUYU_IMAGE_ASPECT_RATIOS = [
+  "1:1",
+  "2:3",
+  "3:2",
+  "3:4",
+  "4:3",
+  "4:5",
+  "9:16",
+  "16:9",
+] as const;
+
+export type ShuyuAspectRatio = (typeof SHUYU_IMAGE_ASPECT_RATIOS)[number];
+
 export interface AuditedShuyuImagePlan {
   planId: string;
   model: string;
   resolution: ShuyuResolution;
   points: number;
   family: "gpt-image-2";
+  /**
+   * 价目表声明这档支持的画幅（capabilities.aspect_ratios）。可选：从任务行
+   * 重建的计价快照不带它；目录里没声明时解析为空数组——按画幅筛选时视为不支持（fail closed）。
+   */
+  aspectRatios?: ShuyuAspectRatio[];
 }
 
 export interface ShuyuCatalog {
@@ -71,11 +90,24 @@ export function parseShuyuCatalog(input: unknown): ShuyuCatalog {
         resolution,
         points,
         family: "gpt-image-2",
+        aspectRatios: parseAspectRatios(value.capabilities),
       },
     ];
   });
 
   return { imagePlans };
+}
+
+function parseAspectRatios(capabilities: unknown): ShuyuAspectRatio[] {
+  if (!isRecord(capabilities) || !Array.isArray(capabilities.aspect_ratios)) return [];
+  const known = new Set<string>(SHUYU_IMAGE_ASPECT_RATIOS);
+  return [
+    ...new Set(
+      capabilities.aspect_ratios.filter(
+        (ratio): ratio is ShuyuAspectRatio => typeof ratio === "string" && known.has(ratio),
+      ),
+    ),
+  ];
 }
 
 const RESOLUTION_RANK: Record<ShuyuResolution, number> = { "1K": 1, "2K": 2, "4K": 3 };
@@ -89,10 +121,14 @@ const RESOLUTION_RANK: Record<ShuyuResolution, number> = { "1K": 1, "2K": 2, "4K
  *
  * 现在按「不低于请求档位、同档取积分最低」选取；低档下线时允许向上升级，
  * 但高档下线时必须报错，不能静默降低客户请求的画质。
+ *
+ * C2：传 aspectRatio 时只在价目表声明支持该画幅的档位里选（图文帖要 2:3 竖版）；
+ * 不传则不按画幅筛选（故事板 / 产品图的既有行为不变）。
  */
 export function selectAuditedImage2Plan(
   catalog: ShuyuCatalog,
   resolution: ShuyuResolution,
+  options: { aspectRatio?: ShuyuAspectRatio } = {},
 ): AuditedShuyuImagePlan {
   const image2 = catalog.imagePlans.filter(
     (candidate) => candidate.family === "gpt-image-2",
@@ -100,8 +136,17 @@ export function selectAuditedImage2Plan(
   if (image2.length === 0) {
     throw new ShuyuPlanUnavailableError("Image 2 is unavailable");
   }
+  const aspectRatio = options.aspectRatio;
+  const framed = aspectRatio
+    ? image2.filter((candidate) => candidate.aspectRatios?.includes(aspectRatio) ?? false)
+    : image2;
+  if (framed.length === 0) {
+    throw new ShuyuPlanUnavailableError(
+      `Image 2 with aspect ratio ${aspectRatio} is unavailable`,
+    );
+  }
   const wanted = RESOLUTION_RANK[resolution];
-  const atOrAbove = image2.filter(
+  const atOrAbove = framed.filter(
     (candidate) => RESOLUTION_RANK[candidate.resolution] >= wanted,
   );
   if (atOrAbove.length === 0) {

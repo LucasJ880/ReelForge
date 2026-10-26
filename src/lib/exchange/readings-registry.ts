@@ -41,7 +41,7 @@ export const READINGS = {
   queued: def("排队中", "Queued", "已下单、还没开始生成的视频", "Ordered videos not started yet", "pulse", "neutral"),
   activeBatches: def("进行中批次", "Active batches", "拆单中与生成中，不含已暂停", "Expanding or generating; paused excluded", "pulse", "live"),
   pausedBatches: def("已暂停批次", "Paused batches", "等待恢复的批次", "Batches waiting to resume", "pulse", "neutral"),
-  awaitingImages: def("待出图", "Awaiting images", "排好、还没出图的图文帖", "Scheduled posts with no images yet", "pulse", "winner"),
+  awaitingImages: def("待出图", "Awaiting images", "排好、还没出图、也不在出图中的图文帖", "Scheduled posts with no images yet and none rendering", "pulse", "winner"),
   needsAttention: def("需要处理", "Needs attention", "近 7 天未重试成功、还没看过的失败视频", "Unreviewed failures from the last 7 days", "pulse", "fault"),
   filled24h: def("近 24 小时成片", "Ready · last 24 h", "单条 + 批量视频，不含图文帖", "Single + batch videos; posts excluded", "readings", "filled"),
   filled7d: def("近 7 天成片", "Ready · last 7 days", "单条 + 批量视频，不含图文帖", "Single + batch videos; posts excluded", "readings", "filled"),

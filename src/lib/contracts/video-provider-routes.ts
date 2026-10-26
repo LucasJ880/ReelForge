@@ -64,7 +64,8 @@ export const shuyuVideoProviderRouteSchema = z
     configured: z.boolean(),
     funded: z.boolean(),
     unavailableReason: z.enum(shuyuRouteUnavailableReasons).nullable(),
-    plans: z.array(shuyuVideoPlanSchema).max(1),
+    /// 0803 起是实时审计清单(多档);此前 max(1) 是单套餐时代的遗留,多档时内部发现 API 会 500。
+    plans: z.array(shuyuVideoPlanSchema).max(20),
     contract: shuyuApiContractSchema,
   })
   .strict();

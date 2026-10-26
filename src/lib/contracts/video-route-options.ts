@@ -3,12 +3,17 @@ import { z } from "zod";
 /**
  * 客户可选的视频套餐(买断制线路;来自 /prices 实时审计,2026-08-03 起)。
  * 只暴露展示与计价必需字段;不暴露供应商余额或原始价目结构。
+ *
+ * 2026-10-26(P03-A1)起套餐分档:draft(720P/480P)对所有人可见;final(1080P)
+ * 客户定价未定,routes API 只对内部员工返回,客户面永远收不到 tier="final" 的套餐。
  */
 export const publicVideoPlanOptionSchema = z
   .object({
     planId: z.string().min(1).max(200),
     displayName: z.string().min(1).max(500),
-    resolution: z.enum(["480P", "720P"]),
+    resolution: z.enum(["480P", "720P", "1080P"]),
+    /// 可选:旧部署/旧客户端缺失时按 draft 理解。
+    tier: z.enum(["draft", "final"]).optional(),
     billingUnit: z.enum(["generation", "second"]),
     unitSalePoints: z.number().int().positive(),
     /** 15s 一条的有效积分成本,便于前端直接展示比较。 */

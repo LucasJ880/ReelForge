@@ -115,6 +115,43 @@ test("Shuyu discovery only uses documented read-only health, prices and balance 
   assert.doesNotMatch(serialized, /available_points|api_key|authorization/i);
 });
 
+test("多档价目(含 1080P final 档)通过内部发现契约:plans.max(1) 遗留会 500 已修", async () => {
+  /// 1026 实价形态:720P 按条 + 720P 按秒 + 480P 按秒 + 1080P 按秒(final)。
+  const market = [
+    { ...videoPlan, plan_id: "video-plan-01", sale_points: 700, capabilities: { ...videoPlan.capabilities, quality: undefined } },
+    { ...videoPlan, plan_id: "video-plan-03", unit: "second", sale_points: 88, capabilities: { ...videoPlan.capabilities, quality: undefined } },
+    { ...videoPlan, plan_id: "video-plan-07", unit: "second", resolution: "480P", sale_points: 68, capabilities: { ...videoPlan.capabilities, quality: "480P" } },
+    { ...videoPlan, plan_id: "video-plan-13", unit: "second", resolution: "1080P", sale_points: 240, capabilities: { ...videoPlan.capabilities, quality: "1080P" } },
+  ];
+  const discovered = await discoverShuyuVideoRoute({
+    env: { SHUYU_API_KEY: "canonical-test-key" },
+    fetchImpl: async (input) => {
+      const url = String(input);
+      if (url.endsWith("/health")) return new Response(JSON.stringify(healthPayload), { status: 200 });
+      if (url.endsWith("/prices")) {
+        return new Response(JSON.stringify({ object: "list", data: market }), { status: 200 });
+      }
+      return new Response(
+        JSON.stringify({ object: "balance", available_points: 10_000, unit: "points" }),
+        { status: 200 },
+      );
+    },
+  });
+  /// 此前 shuyuVideoProviderRouteSchema.plans 是 max(1):0803 起多档时这一行就会抛。
+  const response = internalVideoProviderRoutesResponseSchema.parse({ ok: true, routes: [discovered] });
+  assert.equal(response.routes[0].availability, "available");
+  assert.deepEqual(
+    response.routes[0].plans.map((plan) => [plan.planId, plan.resolution, plan.salePoints]),
+    [
+      ["video-plan-01", "720P", 700],
+      ["video-plan-03", "720P", 88],
+      ["video-plan-07", "480P", 68],
+      ["video-plan-13", "1080P", 240],
+    ],
+    "排序 720P → 480P → 1080P,默认(首位)仍是最便宜的 720P",
+  );
+});
+
 test("prices parser strips unknown fields and keeps the exact documented plan shape", async () => {
   const prices = await getShuyuPrices({
     env: { SHUYU_API_KEY: "canonical-test-key" },

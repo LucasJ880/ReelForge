@@ -82,22 +82,44 @@ test("🔴 计价漂移：健全区间内调价是常态，越界必须精确报
   assert.equal(drift.actual, "5000/generation");
 });
 
-test("分辨率出族与画幅缺失都能逐字段定位(480P 已入审计族)", () => {
+test("分辨率出族与画幅缺失都能逐字段定位(480P / 1080P 已入审计族,4K 出族)", () => {
+  /// 1026 实价:4K 640 点/秒在售但不在审计族内;1080P 已入族(final 档),见下。
   const result = diagnoseDrift([
     goodPlan({
-      resolution: "1080P",
+      resolution: "4K",
+      unit: "second",
+      sale_points: 640,
       capabilities: { aspect_ratios: ["16:9"], input_images_max: 9 },
     }),
   ]);
   const fields = result.drifts.map((d) => d.field);
   assert.ok(fields.includes("resolution"));
   assert.ok(fields.includes("aspect_ratios"));
+  /// 4K 的 640/秒按 draft 区间兜底也越界,会同时报 sale_points;断言只要求 resolution 被精确定位。
+  const resolutionDrift = result.drifts.find((d) => d.field === "resolution");
+  assert.ok(resolutionDrift);
+  assert.equal(resolutionDrift.actual, "4K");
+  assert.match(resolutionDrift.expected, /1080P/);
 
   /// 480P 按秒档 0803 起是合法审计族成员,不得再报分辨率漂移。
   const budget = diagnoseDrift([
     goodPlan({ resolution: "480P", sale_points: 68, unit: "second" }),
   ]);
   assert.equal(budget.auditedPlanFound, true);
+
+  /// 1080P 按秒 240(1026 实价)1026 起是审计族成员(final 档):探针与审计同一把尺子。
+  const final = goodPlan({ resolution: "1080P", sale_points: 240, unit: "second" });
+  assert.equal(isAuditedShuyuVideoPlan(final), true);
+  assert.equal(diagnoseDrift([final]).auditedPlanFound, true);
+  /// 1080P 计价越界(按秒 >400)要精确报到 sale_points,且期望值写出 1080P 自己的区间。
+  const insaneFinal = diagnoseDrift([
+    goodPlan({ resolution: "1080P", sale_points: 500, unit: "second" }),
+  ]);
+  assert.equal(insaneFinal.auditedPlanFound, false);
+  const priceDrift = insaneFinal.drifts.find((d) => d.field === "sale_points");
+  assert.ok(priceDrift);
+  assert.match(priceDrift.expected, /1080P 按条 100-8000 \/ 按秒 100-400/);
+  assert.equal(priceDrift.actual, "500/second");
 });
 
 test("video 套餐整体消失是最严重一档，单独标记", () => {

@@ -9,7 +9,9 @@ import {
   ShuyuApiError,
   shuyuApiKey,
   shuyuPriceSchema,
+  shuyuVideoPlanPointBounds,
   shuyuVideoPlanPointsForDuration,
+  shuyuVideoPlanResolution,
   SHUYU_MIN_REFERENCE_IMAGES,
   SHUYU_VIDEO_MODEL,
 } from "@/lib/providers/shuyu";
@@ -95,22 +97,27 @@ const EXPECTED: Array<{
     matches: (plan) => plan.unit === "generation" || plan.unit === "second",
   },
   {
+    /// 1026(P03-A1)起 1080P 入审计族(final 档);4K 仍出族。白名单与审计同一个函数。
     field: "resolution",
-    expected: "720P 或 480P",
+    expected: "720P、480P 或 1080P",
     actual: (plan) => plan.resolution,
-    matches: (plan) =>
-      plan.resolution === "720P" || plan.resolution === "480P",
+    matches: (plan) => shuyuVideoPlanResolution(plan.resolution) !== null,
   },
   {
     /// 计价漂移最危险:实际扣分随 /prices 走,这里只守健全区间——
     /// 越界(疯涨/疑似错价)会让审计不过并阻断线路,而不是照单扣。
+    /// 区间按分辨率分区,与审计共用 shuyuVideoPlanPointBounds(同一把尺子)。
     field: "sale_points",
-    expected: "按条 100-2000 / 按秒 10-300",
+    expected:
+      "720P/480P 按条 100-2000 / 按秒 10-300;1080P 按条 100-8000 / 按秒 100-400",
     actual: (plan) => `${plan.sale_points}/${plan.unit}`,
-    matches: (plan) =>
-      plan.unit === "generation"
-        ? plan.sale_points >= 100 && plan.sale_points <= 2_000
-        : plan.sale_points >= 10 && plan.sale_points <= 300,
+    matches: (plan) => {
+      const resolution = shuyuVideoPlanResolution(plan.resolution);
+      /// 分辨率出族时由 resolution 判据报漂移;这里按 draft 档区间兜底,避免同一套餐
+      /// 既报分辨率漂移又报一个无意义的计价漂移。
+      const bounds = shuyuVideoPlanPointBounds(resolution ?? "720P", plan.unit);
+      return plan.sale_points >= bounds.min && plan.sale_points <= bounds.max;
+    },
   },
   {
     field: "status",

@@ -110,57 +110,6 @@ export async function requirePageRole(allowed: readonly Role[]): Promise<Session
   return session;
 }
 
-/** Wizard 全部页面用：仅 SUPER_ADMIN / OPERATOR
- *
- * @deprecated Phase 5 — Wizard 已下线，保留 helper 仅为兼容旧 import；
- * 任何调用都会 redirect 到 /business/create-ad-video。
- */
-export function requireWizardPage() {
-  return requirePageRole(["SUPER_ADMIN", "OPERATOR"]);
-}
-
-/**
- * Server Component / Page 层的 persona guard。
- *
- * - 未登录          → /login?from=<intended>
- * - 登录但 persona 不匹配（且非内部 staff） → 跳到他自己 persona 的根页面，
- *   避免「BUSINESS 用户跑去 /personal 被踢回 /login，看到登录框，懵」。
- * - 内部 staff     → 直接放行
- *
- * 使用方式：在 layout.tsx 顶部 await，函数永不 return 给错误用户。
- */
-export async function requirePersonaPage(
-  allowed: readonly ("BUSINESS" | "PERSONAL")[],
-  intendedPath: string,
-): Promise<Session> {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
-  }
-  const userType = session.user.userType;
-
-  if (userType === "OPERATOR" || userType === "SUPER_ADMIN") {
-    return session;
-  }
-
-  if (
-    (userType === "BUSINESS" || userType === "PERSONAL") &&
-    allowed.includes(userType)
-  ) {
-    return session;
-  }
-
-  /// 已登录但 persona 不在允许列表 → 跳他自己的家
-  if (userType === "BUSINESS") {
-    redirect("/business");
-  }
-  if (userType === "PERSONAL") {
-    redirect("/personal");
-  }
-  /// 没选过 persona → /persona 选一次
-  redirect("/persona");
-}
-
 /**
  * Phase 5 — Persona-aware guards.
  *

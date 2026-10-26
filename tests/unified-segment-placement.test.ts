@@ -98,3 +98,27 @@ test("[unified-segment-placement] logo / product_image NOT placed on timeline", 
   });
   assert.equal(plan.decisions.length, 0);
 });
+
+test("[unified-segment-placement] person（主播参考图）不进时间轴，也不挤掉其他素材", () => {
+  const plan = buildClipPlacementPlan({
+    classifiedAssets: [
+      asset({
+        id: "p1",
+        type: "IMAGE",
+        inferredRole: "reference_image",
+        userAssignedRole: "person",
+        url: "https://example.com/presenter.jpg",
+        mimeType: "image/jpeg",
+        fileName: "presenter.jpg",
+        durationSeconds: null,
+      }),
+      asset({ id: "a1", inferredRole: "ad_clip" }),
+    ],
+    classification: baseClassification,
+    targetDurationSec: 30,
+    hasBrandEndCard: true,
+  });
+  assert.equal(plan.decisions.some((d) => d.uploadedAssetId === "p1"), false);
+  assert.equal(plan.decisions.filter((d) => d.role === "ad_clip").length, 1);
+  assert.equal(plan.warnings.length, 0);
+});

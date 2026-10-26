@@ -78,6 +78,8 @@ test("preserves the audited provider resolution when an Image 2 plan ID differs 
       family: "gpt-image-2",
       /// C2：价目表声明的画幅一并保留（图文帖按画幅筛套餐）。
       aspectRatios: ["9:16"],
+      /// P02-B：价目表声明的参考图上限一并保留（故事板入参按它截断，P02-B2 起生效）。
+      inputImagesMax: 4,
     },
   ]);
 });

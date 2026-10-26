@@ -14,7 +14,7 @@
  */
 
 import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
-import type { UploadedAsset } from "@/types/video-generation";
+import { effectiveAssetRole, type UploadedAsset } from "@/types/video-generation";
 
 export interface VisualReferenceAnalysis {
   /// 参考图是否包含一个真实场所（店铺/门头/室内实景）
@@ -63,8 +63,12 @@ export async function analyzeVisualReferences(
   assets: UploadedAsset[],
   briefHint: string,
 ): Promise<VisualReferenceAnalysis | null> {
-  /// GPT-4o 一次最多看 8 张（低清模式）；Seedance Omni-Reference 同样吃得下 8 张
-  const images = assets.filter((a) => a.type === "IMAGE").slice(0, 8);
+  /// GPT-4o 一次最多看 8 张（低清模式）；Seedance Omni-Reference 同样吃得下 8 张。
+  /// 主播参考图（person）不是场所 / 产品实拍，不进视觉盘点（P02-A）；logo 照旧参与——
+  /// SYSTEM_PROMPT 还要从它上面读 signageText，logo 是否进盘点不在本轮范围。
+  const images = assets
+    .filter((a) => a.type === "IMAGE" && effectiveAssetRole(a) !== "person")
+    .slice(0, 8);
   if (images.length === 0) return null;
   if (isLLMForcedMock() || !isLLMAvailable()) return null;
 

@@ -102,3 +102,26 @@ test("[unified-input-classifier] short prompt produces warning", () => {
   const c = classifyInput(makeRequest({ rawPrompt: "Cat video." }));
   assert.ok(c.warnings.some((w) => w.toLowerCase().includes("short")));
 });
+
+test("[unified-input-classifier] 只有 person（主播参考图）不判成 image_to_video", () => {
+  const c = classifyInput(
+    makeRequest({
+      attachments: [makeAsset({ id: "p1", inferredRole: "reference_image", userAssignedRole: "person" })],
+    }),
+  );
+  assert.equal(c.generationMode, "text_to_video_ad");
+  assert.equal(c.videoGoal, "product_ad");
+});
+
+test("[unified-input-classifier] person + product_image 仍按商品图判 image_to_video_ad", () => {
+  const c = classifyInput(
+    makeRequest({
+      attachments: [
+        makeAsset({ id: "p1", inferredRole: "reference_image", userAssignedRole: "person" }),
+        makeAsset({ id: "img1" }),
+      ],
+    }),
+  );
+  assert.equal(c.generationMode, "image_to_video_ad");
+  assert.equal(c.videoGoal, "product_showcase");
+});

@@ -64,3 +64,21 @@ test("fails closed when Image 2 is absent", () => {
     /Image 2.*unavailable/i,
   );
 });
+
+test("P02-B：解析图像档 capabilities.input_images_max 为 inputImagesMax；缺省 / 非正整数回落 undefined", () => {
+  const catalog = parseShuyuCatalog({
+    object: "list",
+    data: [
+      { ...priceFixture.data[0], plan_id: "with-max", capabilities: { input_images_max: 6, aspect_ratios: ["9:16"] } },
+      { ...priceFixture.data[1], plan_id: "no-caps" },
+      { ...priceFixture.data[1], plan_id: "string-max", capabilities: { input_images_max: "6" } },
+      { ...priceFixture.data[1], plan_id: "zero-max", capabilities: { input_images_max: 0 } },
+    ],
+  });
+  const byId = new Map(catalog.imagePlans.map((plan) => [plan.planId, plan]));
+  assert.equal(byId.get("with-max")?.inputImagesMax, 6);
+  assert.equal(byId.get("no-caps")?.inputImagesMax, undefined);
+  assert.ok(!("inputImagesMax" in byId.get("no-caps")!), "解析不到时不带这个键（计价快照 deepEqual 不受影响）");
+  assert.equal(byId.get("string-max")?.inputImagesMax, undefined);
+  assert.equal(byId.get("zero-max")?.inputImagesMax, undefined);
+});

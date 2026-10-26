@@ -1,21 +1,43 @@
 import { z } from "zod";
+import {
+  SHUYU_VIDEO_PLAN_LIST_MAX,
+  shuyuVideoPlanSalePointsWithinBounds,
+} from "@/lib/providers/shuyu-video-plan-tiers";
 
 /**
  * 客户可选的视频套餐(买断制线路;来自 /prices 实时审计,2026-08-03 起)。
  * 只暴露展示与计价必需字段;不暴露供应商余额或原始价目结构。
+ *
+ * 2026-10-26(P03-A1)起套餐分档:draft(720P/480P)对所有人可见;final(1080P)
+ * 客户定价未定,routes API 只对内部员工返回,客户面永远收不到 tier="final" 的套餐。
  */
 export const publicVideoPlanOptionSchema = z
   .object({
     planId: z.string().min(1).max(200),
     displayName: z.string().min(1).max(500),
-    resolution: z.enum(["480P", "720P"]),
+    resolution: z.enum(["480P", "720P", "1080P"]),
+    /// 可选:旧部署/旧客户端缺失时按 draft 理解。
+    tier: z.enum(["draft", "final"]).optional(),
     billingUnit: z.enum(["generation", "second"]),
     unitSalePoints: z.number().int().positive(),
     /** 15s 一条的有效积分成本,便于前端直接展示比较。 */
     pointsPer15s: z.number().int().positive(),
     isDefault: z.boolean(),
   })
-  .strict();
+  .strict()
+  .superRefine((plan, context) => {
+    /// 单价区间按 resolution × unit 调审计同一张表(shuyu-video-plan-tiers 是纯模块,
+    /// 本契约会进 'use client' 的选择器 bundle,所以不能从 providers/shuyu 导入)。
+    if (
+      !shuyuVideoPlanSalePointsWithinBounds(plan.resolution, plan.billingUnit, plan.unitSalePoints)
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["unitSalePoints"],
+        message: `unitSalePoints ${plan.unitSalePoints}/${plan.billingUnit} is outside the audited range for ${plan.resolution}`,
+      });
+    }
+  });
 
 export type PublicVideoPlanOption = z.infer<typeof publicVideoPlanOptionSchema>;
 
@@ -42,7 +64,8 @@ export const publicVideoRouteOptionSchema = z
       ])
       .nullable(),
     /// 审计通过的可选套餐,默认套餐排首位;线路不可用时为空数组。
-    plans: z.array(publicVideoPlanOptionSchema).max(20).default([]),
+    /// 输出方(video-route-options-service)按同一个常量截断,这里只兜底。
+    plans: z.array(publicVideoPlanOptionSchema).max(SHUYU_VIDEO_PLAN_LIST_MAX).default([]),
   })
   .strict();
 

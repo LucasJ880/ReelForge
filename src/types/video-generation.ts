@@ -89,6 +89,8 @@ export interface PostProductionPlan {
  * - product_image: 商品主图，用作 image-to-video 参考
  * - reference_image: 风格/概念参考，不强制 product consistency
  * - logo: 品牌 logo（透明背景或方形小图）—— 不进 Seedance prompt
+ * - person: 主播参考图（真人出镜者的人物参考）—— 不进时间轴、不算商品图，只锚人物一致性；
+ *   目前只能由用户显式指定（分类器不会推断出这个角色）
  * - intro_clip: 短开场（≤5s）
  * - outro_clip / logo_animation: 末尾（≤5s）
  * - ad_clip / product_demo_clip: 中段商业素材（5-15s）
@@ -99,6 +101,7 @@ export type AssetRole =
   | "product_image"
   | "reference_image"
   | "logo"
+  | "person"
   | "intro_clip"
   | "outro_clip"
   | "ad_clip"

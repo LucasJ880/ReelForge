@@ -433,6 +433,7 @@ export async function dispatchVideoForBrief(briefId: string) {
           totalDurationSec: storyboard.totalDurationSec,
           fromSec: segment.fromSec,
           toSec: segment.toSec,
+          negativePrompt: segment.negativePrompt,
         }),
       })),
     };

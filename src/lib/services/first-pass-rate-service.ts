@@ -41,13 +41,29 @@ export async function videoFirstPassRate(args: {
     /// 只统计跑出结果的：还在跑的没有「通过与否」可言；取消也不算——取消是商家自己的决定，
     /// 不是生成质量（与读数注册表「取消不算失败」同口径，之前取消排队批次会把通过率拉低）。
     status: { in: ["SUCCEEDED", "FAILED"] as ("SUCCEEDED" | "FAILED")[] },
+    /// P01-F0：成片后「点名重做」产生的候选行（replacesJobId 非空）不是首次生成，不进样本；
+    /// 被替换的旧行留在样本里，但按「未通过」计（见下）——商家重做它，说明首次没被接受。
+    replacesJobId: null,
     /// X-SCAF-0：实验批次（exp-2611-*）不是商家的生成质量，不进北极星样本；单条任务不受影响。
     AND: [notExperimentVideoJobWhere()],
   };
   const [sample, passed] = await Promise.all([
     db.videoJob.count({ where }),
     db.videoJob.count({
-      where: { ...where, status: "SUCCEEDED", retryCount: 0, submitAttempts: { lte: 1 } },
+      where: {
+        ...where,
+        status: "SUCCEEDED",
+        retryCount: 0,
+        submitAttempts: { lte: 1 },
+        /// 被重做替换掉的旧段不算通过
+        supersededAt: null,
+        /// 帧质检用满免费重抽后按上限放行的（WOULD_BLOCK）也不算通过；
+        /// 列可空（未质检 / MOCK），Prisma 的 not 会把 NULL 一起排掉，所以要显式放行 null。
+        AND: [
+          notExperimentVideoJobWhere(),
+          { OR: [{ frameQaStatus: null }, { frameQaStatus: { not: "WOULD_BLOCK" } }] },
+        ],
+      },
     }),
   ]);
   return toRate(passed, sample);

@@ -59,6 +59,7 @@ export const assetRoleSchema = z.enum([
   "product_image",
   "reference_image",
   "logo",
+  "person",
   "intro_clip",
   "outro_clip",
   "ad_clip",
@@ -68,6 +69,13 @@ export const assetRoleSchema = z.enum([
   "existing_commercial",
   "unknown",
 ]);
+
+/**
+ * 分类器从不推断出 person（主播参考图只能由用户显式指定）：新建请求里客户端传 inferredRole=person 一律拒绝，
+ * 免得绕过 STORYBOARD_PERSON_REFS 的门（文字锚按 userAssignedRole ?? inferredRole 判断）。
+ * 历史 plan 快照（uploadedAssetSchema）不受此限。
+ */
+export const inferredAssetRoleSchema = assetRoleSchema.exclude(["person"]);
 
 export const uploadedAssetSchema = z.object({
   /** Server-owned ID for new creation requests; absent only on historical plans. */
@@ -91,7 +99,7 @@ export const uploadedAssetSchema = z.object({
 export const ownedCreationAssetSchema = z
   .object({
     assetId: z.string().min(1),
-    inferredRole: assetRoleSchema,
+    inferredRole: inferredAssetRoleSchema,
     roleConfidence: z.number().min(0).max(1),
     fileName: z.string().min(1),
     durationSeconds: z.number().nonnegative().nullable().optional(),

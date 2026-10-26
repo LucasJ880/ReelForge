@@ -86,10 +86,12 @@ export function buildClipPlacementPlan(
         break;
 
       case "logo":
+      case "person":
       case "product_image":
       case "reference_image":
       case "unknown":
         // 不进时间轴；这些是 prompt-intelligence / brand-packaging 的输入
+        //（person = 主播参考图，只锚人物一致性，P02-A）
         break;
     }
   }

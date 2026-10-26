@@ -18,7 +18,12 @@ export function classifyInput(
   const attachments = request.attachments ?? [];
   const hasAttachments = attachments.length > 0;
 
-  const hasImage = attachments.some((a) => a.type === "IMAGE" && effectiveAssetRole(a) !== "logo");
+  /// logo 与主播参考图（person）都不是商品图：只有它们时不算 image-to-video（P02-A）。
+  const hasImage = attachments.some((a) => {
+    if (a.type !== "IMAGE") return false;
+    const role = effectiveAssetRole(a);
+    return role !== "logo" && role !== "person";
+  });
   const hasVideo = attachments.some((a) => a.type === "VIDEO");
   const hasLogo = attachments.some((a) => effectiveAssetRole(a) === "logo");
   const hasUploadedClip = attachments.some((a) => {
@@ -45,7 +50,7 @@ export function classifyInput(
   } else if (hasImage) {
     generationMode = isBusiness ? "image_to_video_ad" : "image_to_video";
   } else {
-    // 只有 logo 没有 image / video — 视为 text-to-video，logo 走 brand packaging
+    // 只有 logo / 主播参考图，没有商品图或视频 — 视为 text-to-video，logo 走 brand packaging
     generationMode = isBusiness ? "text_to_video_ad" : "text_to_video";
   }
 

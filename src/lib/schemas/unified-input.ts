@@ -59,6 +59,7 @@ export const assetRoleSchema = z.enum([
   "product_image",
   "reference_image",
   "logo",
+  "person",
   "intro_clip",
   "outro_clip",
   "ad_clip",

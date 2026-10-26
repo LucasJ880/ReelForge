@@ -284,3 +284,14 @@ test("[media-runtime] 尾卡：生产默认 inprocess 当场渲染、external（
   assert.equal(inline?.source, "skipped", "forceLocal 必须真去找 ffmpeg，而不是延迟");
   assert.match(read("src/lib/video-generation/brand-packaging-service.ts"), /forceLocal: true/);
 });
+
+test("函数包排除仓库杂物（C3 上线时品牌封装 299.6MB 超过 Vercel 250MB），但不排除运行时要读的素材", async () => {
+  const { runtimeTracingExcludes } = await import("../next.config");
+  const all = runtimeTracingExcludes["*"] ?? [];
+  for (const dir of ["./public/**", "./docs/**", "./designs/**", "./visual-baseline/**", "./ai-context/**", "./tmp/**", "./test-results/**"]) {
+    assert.ok(all.includes(dir), dir);
+  }
+  for (const needed of ["assets", "scripts", "node_modules"]) {
+    assert.ok(!all.some((glob) => glob.startsWith(`./${needed}`)), `${needed} 是运行时素材（字体 / 尾卡 / BGM / ffmpeg），不能排除`);
+  }
+});

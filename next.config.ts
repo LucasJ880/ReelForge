@@ -55,6 +55,31 @@ export const mediaRuntimeTracingIncludes: Record<string, string[]> = {
 };
 
 /**
+ * 函数包里永远用不到的仓库目录（C3 上线时 /api/brand-packaging 299.6MB 超过 Vercel 250MB 上限）。
+ *
+ * 媒体代码里有 `process.cwd()` 拼路径，文件追踪会保守地把整个仓库带进去；这里显式排除：
+ * public/ 走 CDN、运行时从不读盘；文档 / 设计稿 / 视觉基线 / 代码索引 / 测试 / 本地产物都不在运行时。
+ * 运行时真正读的仓库文件（assets/fonts、assets/sunnyshutter、scripts/assets 的 BGM）不在排除之列。
+ */
+export const runtimeTracingExcludes: Record<string, string[]> = {
+  "*": [
+    "./public/**",
+    "./docs/**",
+    "./designs/**",
+    "./visual-baseline/**",
+    "./ai-context/**",
+    "./tests/**",
+    "./e2e/**",
+    "./qa/**",
+    "./tmp/**",
+    "./test-results/**",
+    "./playwright-report/**",
+    "./prisma/migrations/**",
+    "./.github/**",
+  ],
+};
+
+/**
  * Phase 5 — legacy URL redirects.
  *
  * 老路径 308 permanent redirect 到 /internal/* 或 /business/*；
@@ -67,6 +92,7 @@ const nextConfig: NextConfig = {
   /// 运行时 require 的包不进打包产物（ffmpeg-static 的入口按 __dirname 定位二进制）
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: mediaRuntimeTracingIncludes,
+  outputFileTracingExcludes: runtimeTracingExcludes,
   async redirects() {
     return [
       ...legacyPlatformRedirects,

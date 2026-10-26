@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-25T20:33:13.372Z",
+  "generatedAt": "2026-10-26T03:17:41.436Z",
   "routes": [
     {
       "routePath": "/",
@@ -133,6 +133,24 @@
       "kind": "api",
       "httpMethods": [],
       "isDynamic": true
+    },
+    {
+      "routePath": "/api/auth/password-reset/confirm",
+      "filePath": "src/app/api/auth/password-reset/confirm/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/auth/password-reset/request",
+      "filePath": "src/app/api/auth/password-reset/request/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
     },
     {
       "routePath": "/api/auth/register",
@@ -320,6 +338,15 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/capabilities",
+      "filePath": "src/app/api/capabilities/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/content-plans",
       "filePath": "src/app/api/content-plans/route.ts",
       "kind": "api",
@@ -334,8 +361,18 @@
       "filePath": "src/app/api/content-plans/[id]/posts/[postId]/render/route.ts",
       "kind": "api",
       "httpMethods": [
+        "GET",
         "POST",
         "DELETE"
+      ],
+      "isDynamic": true
+    },
+    {
+      "routePath": "/api/content-plans/[id]/posts/[postId]/render/cancel",
+      "filePath": "src/app/api/content-plans/[id]/posts/[postId]/render/cancel/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
       ],
       "isDynamic": true
     },
@@ -345,6 +382,16 @@
       "kind": "api",
       "httpMethods": [
         "GET"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/cron/founder-digest",
+      "filePath": "src/app/api/cron/founder-digest/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "POST"
       ],
       "isDynamic": false
     },
@@ -676,6 +723,15 @@
       "isDynamic": false
     },
     {
+      "routePath": "/api/leads/page/activation-request",
+      "filePath": "src/app/api/leads/page/activation-request/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
       "routePath": "/api/library/[id]/cancel",
       "filePath": "src/app/api/library/[id]/cancel/route.ts",
       "kind": "api",
@@ -699,6 +755,25 @@
       "kind": "api",
       "httpMethods": [
         "GET",
+        "POST"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/onboarding",
+      "filePath": "src/app/api/onboarding/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "GET",
+        "PUT"
+      ],
+      "isDynamic": false
+    },
+    {
+      "routePath": "/api/onboarding/complete",
+      "filePath": "src/app/api/onboarding/complete/route.ts",
+      "kind": "api",
+      "httpMethods": [
         "POST"
       ],
       "isDynamic": false
@@ -1337,6 +1412,27 @@
       "isDynamic": false
     },
     {
+      "routePath": "/app/status",
+      "filePath": "src/app/(platform)/app/status/error.tsx",
+      "kind": "error",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/status",
+      "filePath": "src/app/(platform)/app/status/loading.tsx",
+      "kind": "loading",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/status",
+      "filePath": "src/app/(platform)/app/status/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
       "routePath": "/app/templates",
       "filePath": "src/app/(platform)/app/templates/error.tsx",
       "kind": "error",
@@ -1353,6 +1449,13 @@
     {
       "routePath": "/app/templates",
       "filePath": "src/app/(platform)/app/templates/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/welcome",
+      "filePath": "src/app/(platform)/app/welcome/page.tsx",
       "kind": "page",
       "group": "platform",
       "isDynamic": false
@@ -1376,6 +1479,13 @@
       "filePath": "src/app/(platform)/app/wins/page.tsx",
       "kind": "page",
       "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/forgot-password",
+      "filePath": "src/app/(auth)/forgot-password/page.tsx",
+      "kind": "page",
+      "group": "auth",
       "isDynamic": false
     },
     {
@@ -1521,6 +1631,13 @@
     {
       "routePath": "/register",
       "filePath": "src/app/(auth)/register/page.tsx",
+      "kind": "page",
+      "group": "auth",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/reset-password",
+      "filePath": "src/app/(auth)/reset-password/page.tsx",
       "kind": "page",
       "group": "auth",
       "isDynamic": false

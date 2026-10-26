@@ -1,6 +1,6 @@
 # Agent Entry — ai-context
 
-> 自动生成于 2026-10-25T20:33:13.410Z。AI agent 在做任何代码任务前，必须先读这份文档。
+> 自动生成于 2026-10-26T03:17:41.493Z。AI agent 在做任何代码任务前，必须先读这份文档。
 > 不要先扫整个 repo，不要先读大文件，不要重复读取 `public/generated` 或构建产物。
 
 ## 项目快照
@@ -8,8 +8,8 @@
 - 包名：`aivora` (v0.2.0)
 - 顶层目录：.claude, .cursor, .github, .impeccable, .superpowers, .worktrees, artifacts, assets, deploy, designs, docs, e2e, playwright-report, prisma, public, qa, scripts, src, test-results, tests, visual-baseline
 - 主要技术栈：Next.js (16.2.10), React (19.2.4), Prisma ORM (^6.19.3), Vercel Blob (^2.6.1), NextAuth.js (^4.24.14), OpenAI SDK (^6.46.0), Tailwind CSS (^4), Framer Motion (^12.38.0), Zod schemas (^3.25.76), bcryptjs (^3.0.3), Apify TikTok scraper (^2.23.0)
-- 已索引源文件：20632
-- 路由：39 个 page，109 个 API endpoint
+- 已索引源文件：28403
+- 路由：43 个 page，117 个 API endpoint
 
 ## ai-context 文件清单
 

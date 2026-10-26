@@ -67,12 +67,13 @@ test("RF-027：批量向导与 API 共享 250 条商单认证上限", () => {
   assert.match(wizard, /50 - uploads\.length/);
   assert.match(limits, /MAX_BATCH_IMAGE_COUNT = 50/);
   assert.match(limits, /MAX_BATCH_VIDEO_COUNT = 250/);
+  /// C1：上限 = 共享上限与本月剩余额度取小（countCap 由 MAX_BATCH_VIDEO_COUNT 推出）
+  assert.match(wizard, /Math\.min\(MAX_BATCH_VIDEO_COUNT, remainingVideos\)\)\s*:\s*MAX_BATCH_VIDEO_COUNT;/);
   assert.equal(
-    (wizard.match(/max=\{MAX_BATCH_VIDEO_COUNT\}/g) ?? []).length,
+    (wizard.match(/max=\{countCap\}/g) ?? []).length,
     2,
-    "number 与 range 两个输入都必须使用共享上限",
+    "number 与 range 两个输入都必须使用同一个上限",
   );
-  assert.match(wizard, /Math\.min\(\s*MAX_BATCH_VIDEO_COUNT/);
   assert.match(wizard, /上传素材.*选择风格.*生成数量.*确认提交/);
   assert.match(wizard, /\/api\/upload\/blob/);
   assert.match(wizard, /\/api\/batch-style-templates/);

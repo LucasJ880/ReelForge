@@ -9,9 +9,8 @@
 | Shuyu 余额 | **11,964 点**（`getShuyuBalance`，2026-10-26） | 预留线 ≈7,000 点不动；本轮按 1080P 验收估算需 ≈340k 点（见计划 §8 与下表），建议充到 **≥350k** |
 | OpenAI | `/v1/models` 200（23 个模型），`chat/completions` **429 no credits**（2026-10-26） | 充值；E13/E17、P01 系列真机、TTS 参考轨都等它 |
 | OpenAI 模型清单 | **无** `gpt-realtime-2.1-mini`；TTS 只有 `tts-1 / tts-1-hd / *-1106`（2027-01-06 关停） | → E3a 结论：Realtime TTS 在此 key 不可用，TTS 供应商只能选第三方 |
-| BytePlus ModelArk | 未开户 | 开户 + 充 ≥USD 30（加拿大在官方可售名单） |
-| fal | 未开户 | 开户拿 `FAL_KEY`（bake-off 首选通道） |
-| 阿里云国际站 Model Studio | 未开户 | 第 1 天提交开户（不充值） |
+| fal | 未开户 | 开户拿 `FAL_KEY`——**本轮唯一的二线试验通道**（Seedance 2.5 `/us/`、Wan 3.0、Kling 4.0 各 20 条 bake-off） |
+| BytePlus ModelArk / 阿里云国际站 | **撤下**（2026-10-26 决策 D-2 二次修订） | 等 E7 bake-off 的 G2 结论再议 |
 | TTS 试用 key | 无 | ElevenLabs 或 MiniMax 任一（带逐词时间戳） |
 | remove.bg / Clipdrop | 未配 | E14 与 P02-E 需要 |
 | Sync Labs | 无 | E8 需要（可后置） |
@@ -27,7 +26,9 @@
 | P0-1 验收：批量 20 条 | 20 × 1080P | ≈78k |
 | P0-2 验收：3 模板 × 3 次 | 9 × 1080P | ≈35k |
 | P0-5 验收：重做/重拼 | ≈6 段 | ≈22k |
-| 合计 | | **≈340k**（含 20% 余量约 400k） |
+| E7 Shuyu 1080P 对照臂 | 20 × 1080P | ≈72k |
+| E8′ Shuyu + TTS + Sync 后置口型 | 4 × 1080P | ≈14.4k |
+| 合计 | | **≈428k**（预留线另计；建议充到 450k） |
 
 ## E1 · Shuyu `/prices` 只读核对（2026-10-26，已完成）
 

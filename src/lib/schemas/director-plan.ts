@@ -51,6 +51,9 @@ export const segmentPlanSchema = z.object({
   continuityNotes: z.string().default(""),
   referenceAssetHints: z.array(z.string()).default([]),
   expectedOutput: z.string().default(""),
+  /// 派发时分到该段的口播台词（splitVoiceoverScript 按段时长加权切分；P04-C 起持久化，
+  /// 字幕对齐 / 质检直接读它，不必再重切）。没开口播或没有台词的计划不写。
+  voiceoverChunk: z.string().max(2000).optional(),
 });
 
 export const editingPlanSchema = z.object({

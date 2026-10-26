@@ -22,6 +22,7 @@ import {
   DIRECTOR_PROMPT_VERSION,
   directorPlanSchema,
 } from "@/lib/schemas/director-plan";
+import { splitVoiceoverScript } from "@/lib/video-generation/prompt-intelligence";
 import type { VideoGenerationPlan, VideoSegment } from "@/types/video-generation";
 
 export interface MapToDirectorArgs {
@@ -38,6 +39,9 @@ export function mapPlanToDirectorPlan(args: MapToDirectorArgs): DirectorPlan {
   const language = args.language ?? "en";
 
   const aiSegments = plan.segments.filter((s) => s.type === "ai_generated_clip");
+  /// P04-C：每段分到的口播台词随计划持久化。与 prompt-intelligence 同一函数、同一输入
+  /// （AI 段时长 = slot.durationSec），所以这里切出来的就是写进各段 seedancePrompt 的那句。
+  const voiceoverChunks = voiceoverChunksForSegments(plan, aiSegments);
   if (aiSegments.length === 0) {
     // 兜底：如果全是上传 clip，构造 1 个最小占位 AI 段，避免 directorPlan.segmentPlan.min(1) 报错
     aiSegments.push(syntheticPlaceholderSegment(plan));
@@ -58,6 +62,7 @@ export function mapPlanToDirectorPlan(args: MapToDirectorArgs): DirectorPlan {
       i === 0 ? "Establish look and tone" : `Continue look from segment ${i - 1}`,
     referenceAssetHints: seg.sourceAssetIds,
     expectedOutput: seg.purpose,
+    ...(voiceoverChunks?.[i] ? { voiceoverChunk: voiceoverChunks[i] } : {}),
   }));
 
   const timelineScript: TimelineBlock[] = segmentPlan.map((s) => ({
@@ -141,6 +146,24 @@ function clampNegativeForMergedCap(prompt: string, negative: string): string {
     out = out.slice(0, out.lastIndexOf(",")).trimEnd();
   }
   return out.length <= room ? out : out.slice(0, room);
+}
+
+/**
+ * 开了口播且有台词的计划：按 AI 段时长加权切分口播稿（与派发 prompt 用的同一函数）。
+ * 占位 AI 段（全是上传片段时构造的）不念台词，所以在它加入之前算。
+ */
+function voiceoverChunksForSegments(
+  plan: VideoGenerationPlan,
+  aiSegments: VideoSegment[],
+): string[] | null {
+  const voiceover = plan.postProduction?.audio.voiceover;
+  if (!voiceover?.enabled || !voiceover.script.trim() || aiSegments.length === 0) {
+    return null;
+  }
+  return splitVoiceoverScript(
+    voiceover.script,
+    aiSegments.map((segment) => ({ durationSec: segment.durationSeconds })),
+  );
 }
 
 function computeFromSec(segments: VideoSegment[], idx: number): number {

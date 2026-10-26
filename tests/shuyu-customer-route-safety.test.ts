@@ -317,9 +317,7 @@ test("direct dispatch replays before provider checks and checks the whole batch 
     "src/app/api/video-generation/dispatch/route.ts",
     "utf8",
   );
-  const availabilityIndex = source.indexOf(
-    "await getVideoRouteSnapshotRuntimeAvailability",
-  );
+  const availabilityIndex = source.indexOf("await resolveRouteWithFailover");
   const claimIndex = source.indexOf("await claimVideoDispatchRequest");
   const quotaIndex = source.indexOf("await assertQuotaBatchForSession");
   assert.ok(availabilityIndex > 0);
@@ -355,13 +353,9 @@ test("Shuyu adapters preserve content review and batch provider preflight bounda
   assert.ok(reviewIndex > 0 && reviewIndex < submitIndex);
 
   const replayIndex = batchSource.indexOf("if (existing)");
-  const availabilityIndex = batchSource.indexOf(
-    "await getVideoRouteSnapshotRuntimeAvailability",
-  );
-  assert.equal(
-    batchSource.match(/await getVideoRouteSnapshotRuntimeAvailability/g)?.length,
-    1,
-  );
+  const availabilityIndex = batchSource.indexOf("await resolveRouteWithFailover");
+  assert.equal(batchSource.match(/await resolveRouteWithFailover/g)?.length, 1);
+  assert.match(batchSource, /allowFailover:\s*false/);
   assert.ok(replayIndex < availabilityIndex);
   const transactionIndex = batchSource.indexOf("return await db.$transaction");
   assert.ok(replayIndex > 0 && replayIndex < availabilityIndex);

@@ -2,9 +2,16 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  createVideoRouteSnapshot,
+  type VideoRouteSnapshot,
+} from "../src/lib/video-generation/video-route-registry";
+import {
   CUSTOMER_FAILOVER_ROUTE_ID,
   customerFailoverRouteSnapshot,
+  resolveRouteWithFailover,
+  type RouteFailoverDeps,
   selectVideoRouteSnapshot,
+  type VideoRouteRuntimeAvailability,
   VideoRouteSelectionError,
 } from "../src/lib/video-generation/video-route-selection";
 
@@ -73,22 +80,156 @@ test("mock 演练不参与降级，保持确定性", () => {
   );
 });
 
-test("dispatch 只在主线路仍是 buddy 且不可用时才 503；余额不足不降级", async () => {
-  const source = await readFile(
-    "src/app/api/video-generation/dispatch/route.ts",
-    "utf8",
+function availability(
+  reason: VideoRouteRuntimeAvailability["reason"],
+): VideoRouteRuntimeAvailability {
+  return reason === null
+    ? { available: true, funded: true, reason: null }
+    : { available: false, funded: reason !== "insufficient_balance", reason };
+}
+
+/// 注入依赖的记录桩：availability 按调用顺序出队，failover 快照可配
+function fakeDeps(args: {
+  availabilities: VideoRouteRuntimeAvailability[];
+  failover?: VideoRouteSnapshot | null;
+}) {
+  const calls = {
+    availability: [] as Array<{ snapshot: VideoRouteSnapshot; shuyuRequiredPoints?: number }>,
+    failoverSnapshot: 0,
+  };
+  const queue = [...args.availabilities];
+  const deps: RouteFailoverDeps = {
+    getAvailability: async (input) => {
+      calls.availability.push(input);
+      const next = queue.shift();
+      assert.ok(next, "unexpected availability probe");
+      return next;
+    },
+    failoverSnapshot: () => {
+      calls.failoverSnapshot += 1;
+      return args.failover === undefined
+        ? createVideoRouteSnapshot(CUSTOMER_FAILOVER_ROUTE_ID)
+        : args.failover;
+    },
+  };
+  return { deps, calls };
+}
+
+const BUDDY = createVideoRouteSnapshot("buddy");
+
+test("主线路可用：不探备用线路，快照原样返回", async () => {
+  const { deps, calls } = fakeDeps({ availabilities: [availability(null)] });
+  const result = await resolveRouteWithFailover({
+    snapshot: BUDDY,
+    shuyuRequiredPoints: 1_400,
+    allowFailover: true,
+    deps,
+  });
+  assert.equal(result.snapshot, BUDDY);
+  assert.equal(result.failedOver, false);
+  assert.equal(result.primaryAvailability.available, true);
+  assert.deepEqual(calls.availability, [
+    { snapshot: BUDDY, shuyuRequiredPoints: 1_400 },
+  ]);
+  assert.equal(calls.failoverSnapshot, 0);
+});
+
+test("余额不足不降级：换线路只会把成本转嫁到另一条线上", async () => {
+  const { deps, calls } = fakeDeps({
+    availabilities: [availability("insufficient_balance")],
+  });
+  const result = await resolveRouteWithFailover({
+    snapshot: BUDDY,
+    allowFailover: true,
+    deps,
+  });
+  assert.equal(result.snapshot, BUDDY);
+  assert.equal(result.failedOver, false);
+  assert.equal(result.primaryAvailability.reason, "insufficient_balance");
+  assert.equal(calls.failoverSnapshot, 0);
+  assert.equal(calls.availability.length, 1);
+});
+
+test("备用线路未配置：保持原快照，由调用方按原原因 503", async () => {
+  const { deps, calls } = fakeDeps({
+    availabilities: [availability("upstream_unavailable")],
+    failover: null,
+  });
+  const result = await resolveRouteWithFailover({
+    snapshot: BUDDY,
+    allowFailover: true,
+    deps,
+  });
+  assert.equal(result.snapshot, BUDDY);
+  assert.equal(result.failedOver, false);
+  assert.equal(result.primaryAvailability.reason, "upstream_unavailable");
+  assert.equal(calls.failoverSnapshot, 1);
+  assert.equal(calls.availability.length, 1);
+});
+
+test("降级前必须复核备用线路：备用不可用时不切换", async () => {
+  const { deps, calls } = fakeDeps({
+    availabilities: [availability("timeout"), availability("not_configured")],
+  });
+  const result = await resolveRouteWithFailover({
+    snapshot: BUDDY,
+    allowFailover: true,
+    deps,
+  });
+  assert.equal(result.snapshot, BUDDY);
+  assert.equal(result.failedOver, false);
+  assert.equal(result.primaryAvailability.reason, "timeout");
+  assert.equal(calls.availability.length, 2);
+  assert.equal(
+    calls.availability[1]?.snapshot.videoRouteSnapshot,
+    CUSTOMER_FAILOVER_ROUTE_ID,
   );
-  assert.match(source, /customerFailoverRouteSnapshot\(\)/);
-  /// 余额不足是账户问题，换线路只会把成本转嫁到另一条线上
+  /// 备用线路不是买断线路，不带积分需求
+  assert.equal(calls.availability[1]?.shuyuRequiredPoints, undefined);
+});
+
+test("成功降级：返回备用快照，原线路的不可用原因原样保留", async () => {
+  const { deps } = fakeDeps({
+    availabilities: [availability("upstream_unavailable"), availability(null)],
+  });
+  const result = await resolveRouteWithFailover({
+    snapshot: BUDDY,
+    shuyuRequiredPoints: 700,
+    allowFailover: true,
+    deps,
+  });
+  assert.equal(result.failedOver, true);
+  assert.equal(result.snapshot.videoRouteSnapshot, CUSTOMER_FAILOVER_ROUTE_ID);
+  assert.equal(result.primaryAvailability.available, false);
+  assert.equal(result.primaryAvailability.reason, "upstream_unavailable");
+});
+
+test("allowFailover:false：上游不可用也绝不碰备用线路", async () => {
+  const { deps, calls } = fakeDeps({
+    availabilities: [availability("upstream_unavailable")],
+  });
+  const result = await resolveRouteWithFailover({
+    snapshot: BUDDY,
+    allowFailover: false,
+    deps,
+  });
+  assert.equal(result.snapshot, BUDDY);
+  assert.equal(result.failedOver, false);
+  assert.equal(calls.failoverSnapshot, 0);
+  assert.equal(calls.availability.length, 1);
+});
+
+test("dispatch 单条允许降级、批量禁止降级", async () => {
+  const [dispatchSource, batchSource] = await Promise.all([
+    readFile("src/app/api/video-generation/dispatch/route.ts", "utf8"),
+    readFile("src/lib/services/batch-service.ts", "utf8"),
+  ]);
   assert.match(
-    source,
-    /reason === "insufficient_balance"\s*\?\s*null\s*:\s*customerFailoverRouteSnapshot/,
+    dispatchSource,
+    /resolveRouteWithFailover\(\{[\s\S]*?allowFailover:\s*true/,
   );
-  /// 降级成功后不能再落到 503 分支
   assert.match(
-    source,
-    /!selectedRouteAvailability\.available &&\s*videoRouteSnapshot\.videoRouteSnapshot === "buddy"/,
+    batchSource,
+    /resolveRouteWithFailover\(\{[\s\S]*?allowFailover:\s*false/,
   );
-  /// 降级前必须复核备用线路真的可用
-  assert.match(source, /failoverAvailability\.available/);
 });

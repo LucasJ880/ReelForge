@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   FRAME_QA_BUCKETS,
+  FRAME_QA_REPORT_MAX_DETAIL_ROWS,
+  FRAME_QA_REPORT_ORDER_BY,
   bucketOf,
   clampFrameQaWindow,
+  frameQaDetailWhere,
+  frameQaReportWhere,
+  normalizeSkipReason,
   summarizeFrameQa,
   type FrameQaReportRow,
 } from "../src/lib/services/frame-qa-report-service";
@@ -50,6 +55,7 @@ test("空输入：六个桶都是 0、比例 0、列表空、漂移未接入—�
   );
   assert.ok(report.byStatus.every((bucket) => bucket.count === 0 && bucket.ratio === 0));
   assert.deepEqual(report.skipReasons, []);
+  assert.deepEqual(report.blockEvents, { total: 0, rows: 0 });
   assert.deepEqual(report.wouldBlock, []);
   assert.deepEqual(report.shadow, {
     sampled: 0,
@@ -101,8 +107,86 @@ test("跳过原因：从 frameQaDetail.skipReason 取，按条数降序，比例
   assert.deepEqual(report.skipReasons, [
     { reason: "frame_qa_budget_time_exhausted", count: 3, ratio: 0.5 },
     { reason: "(未记录原因)", count: 2, ratio: 2 / 6 },
-    { reason: "门禁未启用（FRAME_QA_DISABLED / mock 模式 / 未配置 vision key）", count: 1, ratio: 1 / 6 },
+    /// 归一化到前缀，原文留在 sample 给排障
+    { reason: "门禁未启用", count: 1, ratio: 1 / 6, sample: "门禁未启用（FRAME_QA_DISABLED / mock 模式 / 未配置 vision key）" },
   ]);
+});
+
+test("跳过原因归一化：动态报文（异常信息 / 超时秒数）并进同一桶；稳定代码原样；未知原因截到第一个冒号或括号", () => {
+  assert.equal(normalizeSkipReason("门禁执行异常：ECONNRESET"), "门禁执行异常");
+  assert.equal(normalizeSkipReason("门禁执行异常：vision 返回了空响应"), "门禁执行异常");
+  assert.equal(normalizeSkipReason("门禁超时（>45s）"), "门禁超时");
+  assert.equal(normalizeSkipReason("门禁未启用（mock 模式或未配置）"), "门禁未启用");
+  assert.equal(normalizeSkipReason("门禁未启用（FRAME_QA_DISABLED / mock 模式 / 未配置 vision key）"), "门禁未启用");
+  assert.equal(normalizeSkipReason("视频 URL 不可下载"), "视频 URL 不可下载");
+  assert.equal(normalizeSkipReason("供应商未返回视频地址"), "供应商未返回视频地址");
+  assert.equal(normalizeSkipReason("frame_qa_budget_time_exhausted"), "frame_qa_budget_time_exhausted");
+  assert.equal(normalizeSkipReason("ffmpeg exited 1: no such file"), "ffmpeg exited 1");
+  assert.equal(normalizeSkipReason("something new (detail)"), "something new");
+
+  const rows = [
+    row({ id: "1", frameQaStatus: "SKIPPED", frameQaDetail: { skipReason: "门禁执行异常：ECONNRESET" } }),
+    row({ id: "2", frameQaStatus: "SKIPPED", frameQaDetail: { skipReason: "门禁执行异常：ETIMEDOUT" } }),
+    row({ id: "3", frameQaStatus: "SKIPPED", frameQaDetail: { skipReason: "门禁超时（>45s）" } }),
+  ];
+  const report = summarizeFrameQa(rows, 7);
+  assert.deepEqual(report.skipReasons, [
+    { reason: "门禁执行异常", count: 2, ratio: 2 / 3, sample: "门禁执行异常：ECONNRESET" },
+    { reason: "门禁超时", count: 1, ratio: 1 / 3, sample: "门禁超时（>45s）" },
+  ]);
+});
+
+test("状态桶可以来自库里的 groupBy：总数与比例按 groupBy 算，不受明细行数影响；null 归未质检", () => {
+  const rows = [row({ id: "only-detail", frameQaStatus: "PASSED" })];
+  const report = summarizeFrameQa(rows, 7, {
+    statusCounts: [
+      { frameQaStatus: "PASSED", count: 70 },
+      { frameQaStatus: "BLOCKED", count: 5 },
+      { frameQaStatus: "WOULD_BLOCK", count: 1 },
+      { frameQaStatus: "SKIPPED", count: 4 },
+      { frameQaStatus: "CHECKING", count: 2 },
+      { frameQaStatus: null, count: 18 },
+      { frameQaStatus: "WEIRD", count: 2 },
+    ],
+  });
+  const byStatus = Object.fromEntries(report.byStatus.map((bucket) => [bucket.status, bucket]));
+  assert.equal(report.total, 102);
+  assert.equal(byStatus.PASSED.count, 70);
+  assert.equal(byStatus.PASSED.ratio, 70 / 102);
+  assert.equal(byStatus.UNCHECKED.count, 20, "null 与未知值都归未质检");
+  assert.equal(byStatus.CHECKING.count, 2);
+});
+
+test("拦截事件数与当前状态分开：重抽后 PASSED 的段仍算一次拦截；坏的 blockCount 不计", () => {
+  const rows = [
+    row({ id: "1", frameQaStatus: "PASSED", frameQaDetail: { blockCount: 1 } }),
+    row({ id: "2", frameQaStatus: "BLOCKED", frameQaDetail: { blockCount: 2 } }),
+    row({ id: "3", frameQaStatus: "WOULD_BLOCK", frameQaDetail: { blockCount: 2 } }),
+    row({ id: "4", frameQaStatus: "PASSED", frameQaDetail: { blockCount: 0 } }),
+    row({ id: "5", frameQaStatus: "PASSED", frameQaDetail: { blockCount: "2" } }),
+    row({ id: "6", frameQaStatus: "PASSED" }),
+  ];
+  const report = summarizeFrameQa(rows, 7);
+  assert.deepEqual(report.blockEvents, { total: 5, rows: 3 });
+  assert.equal(report.byStatus.find((bucket) => bucket.status === "BLOCKED")?.count, 1, "状态桶只数当前仍在拦截态的");
+});
+
+test("查询形状：最近质检排前、null 放最后（Postgres DESC 默认 NULLS FIRST 会让未质检行占满上限）；明细只拉进过门禁的行", () => {
+  assert.deepEqual(FRAME_QA_REPORT_ORDER_BY, [
+    { frameQaCheckedAt: { sort: "desc", nulls: "last" } },
+    { createdAt: "desc" },
+  ]);
+  const since = new Date("2026-10-19T00:00:00.000Z");
+  assert.deepEqual(frameQaReportWhere(since), {
+    OR: [
+      { frameQaCheckedAt: { gte: since } },
+      { frameQaCheckedAt: null, status: "SUCCEEDED", createdAt: { gte: since } },
+    ],
+  });
+  assert.deepEqual(frameQaDetailWhere(since), {
+    AND: [frameQaReportWhere(since), { frameQaStatus: { not: null } }],
+  });
+  assert.equal(FRAME_QA_REPORT_MAX_DETAIL_ROWS, 3000);
 });
 
 test("跳过原因：超过 12 种时后面的合并成「其它」，条数不丢", () => {

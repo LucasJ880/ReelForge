@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 const BUCKET_COPY: Record<FrameQaBucket, { label: string; caption: string; tone: QuoteTone }> = {
   PASSED: { label: "通过", caption: "抽帧未检出叠加文字", tone: "filled" },
-  BLOCKED: { label: "拦截", caption: "检出文字，已判失败并免费重抽", tone: "fault" },
+  BLOCKED: { label: "拦截中", caption: "当前仍处于拦截态（检出文字、已判失败）；重抽后通过的段不在这里，看下方拦截事件", tone: "fault" },
   WOULD_BLOCK: { label: "本该拦截", caption: "免费重抽用满，按上限放行，需人工复核", tone: "winner" },
   SKIPPED: { label: "跳过", caption: "质检本身没跑成，不等于通过", tone: "winner" },
   CHECKING: { label: "质检中", caption: "占位中，结论未落库", tone: "live" },
@@ -68,11 +68,30 @@ export default async function InternalFrameQaPage({
         readingsLabel="帧质检读数"
         scope={
           <>
-            最近 {report.windowDays} 天 · {report.total} 条 · 口径：质检时刻落在窗口内的成片，加上窗口内成片却从没进过门禁的条目（算未质检）
-            {report.truncated ? ` · 只看了最近 ${report.total} 条，窗口内还有更多` : ""}
+            最近 {report.windowDays} 天 · {report.total} 条 · 口径：质检时刻落在窗口内的成片，加上窗口内成片却从没进过门禁的条目（算未质检）；状态桶来自全量计数
+            {report.truncated ? "，下方明细只看了最近 3000 条进过门禁的行" : ""}
           </>
         }
       />
+
+      <section className="x-panel min-w-0 px-5 py-4">
+        <SectionHead
+          title="拦截事件"
+          count={report.blockEvents.total}
+          countTone={report.blockEvents.total > 0 ? "fault" : "neutral"}
+          hint="与上面的状态分开算：一段被拦截、免费重抽后通过，状态是「通过」，拦截事件仍记在这里（detail.blockCount 求和）"
+        />
+        <dl className="mt-3 grid gap-x-6 gap-y-2 font-mono text-data tabular-nums sm:grid-cols-2">
+          <div className="flex items-baseline gap-2">
+            <dt className="x-label">拦截次数合计</dt>
+            <dd className={cn(report.blockEvents.total > 0 ? "text-danger" : "text-foreground")}>{report.blockEvents.total}</dd>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <dt className="x-label">被拦截过的段</dt>
+            <dd className="text-muted-foreground">{report.blockEvents.rows}</dd>
+          </div>
+        </dl>
+      </section>
 
       <div className="grid min-w-0 gap-4 xl:grid-cols-2">
         <section className="x-panel min-w-0 px-5 py-4">
@@ -80,7 +99,7 @@ export default async function InternalFrameQaPage({
             title="跳过原因"
             count={report.byStatus.find((bucket) => bucket.status === "SKIPPED")?.count ?? 0}
             countTone="winner"
-            hint="来自 frameQaDetail.skipReason；比例按跳过行计"
+            hint="来自 frameQaDetail.skipReason，按前缀归一化分桶（原文见每行下方）；比例按跳过行计"
           />
           {report.skipReasons.length === 0 ? (
             <p className="py-4 text-meta text-muted-foreground">窗口内没有跳过的质检。</p>
@@ -96,7 +115,14 @@ export default async function InternalFrameQaPage({
               <tbody>
                 {report.skipReasons.map((row) => (
                   <tr key={row.reason} className="border-t border-border align-top">
-                    <td className="py-1.5 pr-3 font-mono text-data text-foreground break-words">{row.reason}</td>
+                    <td className="py-1.5 pr-3 font-mono text-data text-foreground break-words">
+                      {row.reason}
+                      {row.sample ? (
+                        <span className="mt-0.5 block max-w-[48ch] truncate text-micro text-tertiary" title={row.sample}>
+                          例：{row.sample}
+                        </span>
+                      ) : null}
+                    </td>
                     <td className="py-1.5 text-right font-mono tabular-nums">{row.count}</td>
                     <td className="py-1.5 text-right font-mono tabular-nums text-muted-foreground">{percent(row.ratio)}</td>
                   </tr>

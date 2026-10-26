@@ -10,6 +10,12 @@
         "value": "10px",
         "createdAt": "2026-08-02T21:24:45.651Z",
         "reason": "10px 为密度层微标签档（计数徽章/移动导航标签），用户确认"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#16181b",
+        "createdAt": "2026-10-26T02:17:01.724Z",
+        "reason": "QR code ink on the booth kit"
       }
     ]
   }

@@ -219,6 +219,9 @@ C1 删 `remove-bg.ts` legacy 路径；C2 废弃 `SHUYU_VIDEO_POINTS_PER_GENERATI
 ### 7.1 每个 PR
 `npm run typecheck` + `npm run lint` + 相关 `tests/*.test.ts` 全绿并贴输出；前端在 preview 点一遍并查 console；合成/字幕跑 `tests/stitch-pipeline.test.ts`（本机 ffmpeg+libass）；函数体积以 preview 部署后 Vercel 实际尺寸为准。
 
+### 7.0 额度不足期间的验收口径（创始人 2026-10-26 晚定）
+代码先全部落地；额度 / key 未到位时，**mock 与真机结合**：状态机、计费与退额、回滚、幂等、降级文案这类逻辑用 mock provider（`VIDEO_PROVIDER=mock`，rehearsal 库）全路径验；**质量判据**（漂移漏检率、口型对齐、字幕偏差、商品/人物一致）只能用真机出片验，额度到位前只做小样本抽检并在验收文档里标「待全量真机」。这是对 CLAUDE.md 铁律 3「不做 mock 充当验收」的一次有记录的例外，仅限本轮额度到位之前，且 mock 结果不得写成「质量通过」。
+
 ### 7.2 每个 P0 项（写入 `docs/acceptance/2026-11-core-round-acceptance.md`；判据、真值、工具三者齐全才算门）
 
 | P0 | 判据 | 真值 | 工具 |

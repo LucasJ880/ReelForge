@@ -142,3 +142,24 @@ test("迁移只加可空列（铁律：只加不删）", () => {
     assert.ok(sql.includes(`ADD COLUMN "${column}"`), column);
   }
 });
+
+test("批量向导：默认数量与上限按本月剩余额度钳制（试用 3 条不再默认 10 条），内部角色不钳", () => {
+  const wizard = read("src/components/batch/batch-create-wizard.tsx");
+  assert.match(wizard, /remainingVideos = null,/);
+  assert.match(wizard, /Math\.max\(1, Math\.min\(MAX_BATCH_VIDEO_COUNT, remainingVideos\)\)/);
+  assert.match(wizard, /useState\(Math\.min\(10, countCap\)\)/);
+  assert.match(wizard, /max=\{countCap\}/);
+  const page = read("src/app/(platform)/app/batches/new/page.tsx");
+  assert.match(page, /remainingVideos=\{isInternalRole\(session\.user\.role\) \|\| quota\.limit <= 0 \? null : Math\.max\(0, quota\.limit - quota\.used\)\}/);
+});
+
+test("询盘页设置：没开通时给「申请开通」，申请过显示已申请（不再只说联系对接人）", () => {
+  const settings = read("src/components/leads/lead-page-settings.tsx");
+  assert.match(settings, /sendJson\("\/api\/leads\/page\/activation-request", "POST", \{\}\)/);
+  assert.match(settings, /requestedAt \? \(/);
+  for (const locale of ["zh-CN", "en-US"] as const) {
+    const leads = getGrowthCopy(locale).leads;
+    assert.doesNotMatch(leads.pageNotEnabledHint, /对接人|Aivora contact/);
+    assert.ok(leads.pageRequest && leads.pageRequested);
+  }
+});

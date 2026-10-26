@@ -116,6 +116,7 @@ export function BatchCreateWizard({
   initialTemplateId,
   initialImages = [],
   showProviderPoints = false,
+  remainingVideos = null,
 }: {
   batchDetailsBasePath?: string;
   initialTemplateId?: string;
@@ -125,6 +126,11 @@ export function BatchCreateWizard({
    * 失败与取消返还；把「本批预计消耗 7,200 积分」摆给客户，读起来像要花一种他从没买过的钱。
    */
   showProviderPoints?: boolean;
+  /**
+   * 本月还剩几条视频额度（C1）：试用只有 3 条，默认数量与上限都按它钳制，免得默认 10 条一提交就被拒。
+   * null = 不限 / 取不到（内部角色），按批量上限走；服务端额度校验照旧是最终把关。
+   */
+  remainingVideos?: number | null;
 } = {}) {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -157,7 +163,11 @@ export function BatchCreateWizard({
   const [templateId, setTemplateId] = useState("");
   const [templateQuery, setTemplateQuery] = useState("");
   const [templateCategory, setTemplateCategory] = useState("__all__");
-  const [count, setCount] = useState(10);
+  /// 数量上限：批量硬上限与本月剩余额度取小（剩 0 条时仍给 1，提交会被服务端如实拒绝并给去处）
+  const countCap = remainingVideos !== null && remainingVideos >= 0
+    ? Math.max(1, Math.min(MAX_BATCH_VIDEO_COUNT, remainingVideos))
+    : MAX_BATCH_VIDEO_COUNT;
+  const [count, setCount] = useState(Math.min(10, countCap));
   const [queuedGroups, setQueuedGroups] = useState<BatchQueueGroup[]>([]);
   const [productName, setProductName] = useState("");
   const [videoRouteId, setVideoRouteId] =
@@ -949,12 +959,12 @@ export function BatchCreateWizard({
                     aria-label={english ? "Video quantity" : "生成数量输入"}
                     type="number"
                     min={1}
-                    max={MAX_BATCH_VIDEO_COUNT}
+                    max={countCap}
                     value={count}
                     onChange={(event) =>
                       setCount(
                         Math.min(
-                          MAX_BATCH_VIDEO_COUNT,
+                          countCap,
                           Math.max(1, Number(event.target.value) || 1),
                         ),
                       )
@@ -966,11 +976,18 @@ export function BatchCreateWizard({
                   id="batch-count"
                   type="range"
                   min={1}
-                  max={MAX_BATCH_VIDEO_COUNT}
+                  max={countCap}
                   value={count}
-                  onChange={(event) => setCount(Number(event.target.value))}
+                  onChange={(event) => setCount(Math.min(countCap, Number(event.target.value)))}
                   className="w-full accent-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                 />
+                {remainingVideos !== null ? (
+                  <p className="font-mono text-data tabular-nums text-muted-foreground">
+                    {english
+                      ? `${remainingVideos} videos left in this month's allowance`
+                      : `本月额度还剩 ${remainingVideos} 条`}
+                  </p>
+                ) : null}
               </div>
               <div className="space-y-2">
                 <p className="text-meta font-medium text-foreground">

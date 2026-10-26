@@ -56,6 +56,7 @@ export default async function PlatformBatchCreatePage({
         initialTemplateId={initialTemplateId}
         initialImages={initialImages}
         showProviderPoints={isInternalRole(session.user.role)}
+        remainingVideos={isInternalRole(session.user.role) || quota.limit <= 0 ? null : Math.max(0, quota.limit - quota.used)}
       />
     </div>
   );

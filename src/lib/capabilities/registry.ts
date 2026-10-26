@@ -147,6 +147,7 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
   vision: {
     label: b("AI 看图", "AI vision"),
     messages: {
+      /// 只写现在真有的检查（画面里的错字与水印）。商品 / 人物一致性检查等 P01-B 落地再写进来。
       available: b(
         "AI 看图正常：成片会自动检查画面里的错字与水印。",
         "AI vision is on: finished clips are checked automatically for burned-in text and watermarks.",
@@ -205,9 +206,10 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     label: b("视频生成", "Video generation"),
     messages: {
       available: b("视频生成正常。", "Video generation is running normally."),
+      /// 不承诺「已切换备用线路」：生产没有可切的备用套餐，只有自动重试。
       degraded: b(
-        "视频生成线路有波动：已自动切换备用线路，生成可能稍慢。",
-        "The video line is fluctuating: we switched to a backup line automatically, so generation may be slower.",
+        "视频生成线路有波动：正在自动重试，生成可能稍慢；已完成的成片不受影响。",
+        "The video line is fluctuating: we're retrying automatically, so generation may be slower. Finished videos are unaffected.",
       ),
       unavailable: b(
         "视频生成暂停：暂时无法提交新视频；已完成的成片不受影响，恢复后自动启用。",
@@ -339,6 +341,7 @@ export const FEATURE_KEYS = [
   "logo",
   "productImages",
   "storyboardFrames",
+  "storyboardReview",
   "videoGeneration",
   "frameQa",
   "uploadReview",
@@ -423,6 +426,14 @@ export const FEATURES: Record<FeatureKey, FeatureSpec> = {
     whenBlocked: b(
       "故事板暂时出不了图；已出的帧都保留，恢复后可以单帧重出。",
       "Storyboard frames can't render right now. Finished frames are kept and can be redone one by one after it recovers.",
+    ),
+  },
+  storyboardReview: {
+    needs: ["vision"],
+    label: b("故事板 AI 审帧", "Storyboard AI review"),
+    whenBlocked: b(
+      "故事板跳过 AI 审帧，照常生成。",
+      "Storyboards skip the AI review and still render.",
     ),
   },
   videoGeneration: {

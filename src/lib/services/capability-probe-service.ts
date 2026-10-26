@@ -5,7 +5,6 @@ import {
   getShuyuPrices,
   isAuditedShuyuDraftVideoPlan,
   listAuditedShuyuVideoPlans,
-  resolveShuyuVideoPlan,
   ShuyuApiError,
   shuyuApiKey,
   shuyuPriceSchema,
@@ -330,24 +329,6 @@ export async function probeShuyuCapabilities(
   return result;
 }
 
-/** 用户侧一句话：当前线路与预计消耗（PRD C1 的另一半）。 */
-export async function currentRouteSummary(): Promise<string> {
-  const latest = await db.capabilityProbe.findFirst({
-    where: { provider: "shuyu" },
-    orderBy: { probedAt: "desc" },
-  });
-  if (!latest || latest.ok) {
-    /// 报价随 /prices 实时解析;解析不到时不编数字。
-    try {
-      const plan = await resolveShuyuVideoPlan();
-      return `当前线路：Shuyu ${plan.model} · 每条约 ${shuyuVideoPlanPointsForDuration(plan, 15)} 积分`;
-    } catch {
-      return "当前线路：Shuyu studio-video";
-    }
-  }
-  return "主线路能力异常，已自动切换备用线路；生成可能稍慢";
-}
-
 /* ════════════════════════════════════════════════════════════════════
  * C4 · 全能力探测：每小时一轮，把每个能力的结论写进 CapabilityStatus。
  *
@@ -654,7 +635,7 @@ export type ShuyuBalanceOutcome =
 
 /**
  * Shuyu /prices 探测 + 余额 → 图像（产品图与故事板）与视频两条能力。
- *  - 视频：契约匹配 → 正常；套餐还在但漂移 → 不稳定（路由层已切备用线路）；视频套餐整体消失 → 暂停
+ *  - 视频：契约匹配 → 正常；套餐还在但漂移 → 不稳定（提交照常走、自动重试；生产没有可切的备用套餐）；视频套餐整体消失 → 暂停
  *  - 图像：没有可用的图像套餐 → 暂停
  *  - 余额不够一条 15 秒视频 / 一张图 → 对应能力暂停（提交必然 402）
  */
@@ -810,13 +791,15 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
   else if (text) add("text", text);
   else keep("text");
 
-  // vision：与文本同一个模型就直接沿用文本结论，否则单独 1 token 探一次（analyzeImages 没有回退链）
+  // vision：链首与文本同一个模型就直接沿用文本结论，否则把整条 vision 链交给 probeOpenAiChat
+  //（与文本探测同写法：404 / 没权限就试下一档，和 analyzeImages 的回退一致）
   if (!configured.vision) add("vision", notConfigured(), "config");
   else if (!openAiChat || !text) keep("vision");
   else {
-    const visionModel = deps.models?.vision ?? openAiProbePlan().visionModel;
+    const visionModels = deps.models?.vision ? [deps.models.vision] : openAiProbePlan().visionModels;
+    const visionModel = visionModels[0]!;
     if (visionModel === text.detail?.model) add("vision", withDetail(text, { model: visionModel }));
-    else add("vision", await safely(() => probeOpenAiChat(ctx, [visionModel])));
+    else add("vision", await safely(() => probeOpenAiChat(ctx, visionModels)));
   }
 
   // voice：每 24 小时最多一次真实 TTS

@@ -63,6 +63,7 @@ import {
   COMMERCE_TEMPLATE_RECIPES,
   COMMERCE_TEMPLATE_SLUGS,
 } from "@/lib/video-generation/commerce-template-catalog";
+import { detectScriptLanguage } from "@/lib/video-generation/detect-script-language";
 import { toOwnedCreationRequest } from "@/types/video-generation";
 import type {
   AspectRatio,
@@ -1030,7 +1031,8 @@ export function StreamlinedVideoStudio({
         voiceover: {
           enabled: voiceoverEnabled,
           voiceId,
-          language: locale,
+          /// P04-B：口播 / 字幕语言看稿子本身（含汉字 → zh-CN），不再拿界面 locale 代替
+          language: detectScriptLanguage(voiceoverScript, locale),
           script: voiceoverScript.trim(),
         },
         bgm: {
@@ -1041,7 +1043,7 @@ export function StreamlinedVideoStudio({
       captions: {
         enabled: captionsEnabled,
         style: captionStyle,
-        language: locale,
+        language: detectScriptLanguage(voiceoverScript, locale),
         position: captionPosition,
         exportSrt,
       },

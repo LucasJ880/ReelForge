@@ -51,6 +51,9 @@ export const segmentPlanSchema = z.object({
   continuityNotes: z.string().default(""),
   referenceAssetHints: z.array(z.string()).default([]),
   expectedOutput: z.string().default(""),
+  /// 派发时分到该段的口播台词（splitVoiceoverScript 按段时长加权切分；P04-C 起持久化，
+  /// 字幕对齐 / 质检直接读它，不必再重切）。没开口播或没有台词的计划不写。
+  voiceoverChunk: z.string().max(2000).optional(),
 });
 
 export const editingPlanSchema = z.object({
@@ -92,6 +95,29 @@ export type TimelineBlock = z.infer<typeof timelineBlockSchema>;
 export type SegmentPlan = z.infer<typeof segmentPlanSchema>;
 export type EditingPlan = z.infer<typeof editingPlanSchema>;
 export type DirectorPlan = z.infer<typeof directorPlanSchema>;
+
+/**
+ * 从持久化的 directorPlan（任意 JSON，可能是旧版本）读出各 AI 段的口播台词，按 segmentIndex 升序。
+ * 任一段缺 voiceoverChunk → null：全有字幕才能逐段对上，缺的让调用方按计划时长重切。
+ * 不走 zod 全量校验——旧计划可能不满足现在的 schema，这里只认这一个字段。
+ */
+export function readDirectorPlanVoiceoverChunks(input: unknown): string[] | null {
+  if (!input || typeof input !== "object") return null;
+  const segmentPlan = (input as { segmentPlan?: unknown }).segmentPlan;
+  if (!Array.isArray(segmentPlan) || segmentPlan.length === 0) return null;
+  const rows: Array<{ index: number; chunk: string }> = [];
+  for (const [position, item] of segmentPlan.entries()) {
+    if (!item || typeof item !== "object") return null;
+    const { segmentIndex, voiceoverChunk } = item as Record<string, unknown>;
+    if (typeof voiceoverChunk !== "string") return null;
+    rows.push({
+      index: typeof segmentIndex === "number" && Number.isFinite(segmentIndex) ? segmentIndex : position,
+      chunk: voiceoverChunk,
+    });
+  }
+  rows.sort((a, b) => a.index - b.index);
+  return rows.map((row) => row.chunk);
+}
 
 export function parseDirectorPlan(input: unknown): DirectorPlan {
   return directorPlanSchema.parse(input);

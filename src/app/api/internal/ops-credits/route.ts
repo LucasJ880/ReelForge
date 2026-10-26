@@ -14,9 +14,10 @@ export const dynamic = "force-dynamic";
 
 /**
  * Internal-only credits snapshot for the ops topbar.
- * 今日消耗 = 今日创建且走 buddy 线路的 VideoJob 各自的计价快照之和
- * (providerUnitPoints 在任务创建时按实时套餐落列;历史无快照行不计入,
- * 近似值,与供应商账单以 Shuyu 后台为准)。
+ * 今日消耗 = 今日创建且走 buddy 线路的 VideoJob 各自的计价快照之和。
+ * providerUnitPoints 在任务创建时按默认套餐估价落列,供应商受理后回写成
+ * 本次实际使用的套餐(单条与批量都是,P03-B),所以这里直接读行、不按默认
+ * 套餐 × 条数反推;历史无快照行不计入,近似值,与供应商账单以 Shuyu 后台为准。
  */
 export async function GET() {
   const auth = await requireOperator();

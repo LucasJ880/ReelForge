@@ -9,8 +9,8 @@ import {
  * 线路健康画像（PRD C1 的「尺子」）。
  *
  * 每条生成任务已经把线路证据落在 VideoJob 上（videoRouteSnapshot /
- * videoModelSnapshot / providerUnitPriceUsd / submittedAt / finishedAt），
- * 这里只做只读聚合，回答三个问题：
+ * videoModelSnapshot / providerUnitPriceUsd / providerUnitPoints / submittedAt /
+ * finishedAt），这里只做只读聚合，回答三个问题：
  *
  *   1. 这条线路最近还活着吗（成功率、连续失败）
  *   2. 出一条片要多久（P50 / P95）
@@ -22,6 +22,10 @@ import {
  * - 聚合逻辑与 DB 分离（`summarizeVideoRouteHealth` 是纯函数），便于单测覆盖
  *   边界：零样本、全失败、时钟倒挂、缺价格。
  * - 永远兜底，不抛错：可观测性不能成为生产链路的新故障点。
+ * - 成本只认行上的快照，不按默认套餐反推：单条与批量行在供应商受理时都已
+ *   回写成「本次实际使用的套餐」（P03-B），读库查询不区分单条 / 批量行，
+ *   avgCostPoints 自然把两类行一起平均；创建后从未受理的行成本列仍是估价，
+ *   但它们不会进入 SUCCEEDED 样本。
  */
 
 /** 终态：进入统计的样本 */
@@ -42,7 +46,10 @@ export interface VideoRouteJobSample {
   submittedAt: Date | null;
   finishedAt: Date | null;
   providerUnitPriceUsd: number | null;
-  /** 按积分计价的线路（如 Shuyu）用这个；与 USD 并存，不做隐式换算 */
+  /**
+   * 按积分计价的线路（如 Shuyu）用这个；与 USD 并存，不做隐式换算。
+   * 受理后已回写为实际套餐的积分（提交级降级会改变它），不是创建时的估价。
+   */
   providerUnitPoints: number | null;
 }
 

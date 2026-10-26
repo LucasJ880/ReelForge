@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { VideoJobStatus } from "@prisma/client";
+import { db } from "../src/lib/db";
 import {
   MIN_ROUTE_HEALTH_SAMPLES,
   UNHEALTHY_SUCCESS_RATE,
   findRouteHealth,
+  getVideoRouteHealthReport,
   summarizeVideoRouteHealth,
   type VideoRouteJobSample,
 } from "../src/lib/services/video-route-health-service";
@@ -138,4 +140,43 @@ test("多线路互不串味", () => {
   const report = summarizeVideoRouteHealth(rows);
   assert.equal(findRouteHealth(report, "buddy")!.succeeded, 0);
   assert.equal(findRouteHealth(report, "byteplus_international")!.succeeded, 2);
+});
+
+test("P03-B：读库画像把单条行与批量行一起统计，积分成本取行上受理后回写的实际快照", async (t) => {
+  const model = db.videoJob as unknown as Record<string, unknown>;
+  const originalFindMany = model.findMany;
+  let capturedWhere: Record<string, unknown> | null = null;
+  model.findMany = async (args: { where: Record<string, unknown> }) => {
+    capturedWhere = args.where;
+    const terminal = {
+      videoRouteSnapshot: "buddy",
+      videoModelSnapshot: "studio-video",
+      status: VideoJobStatus.SUCCEEDED,
+      submittedAt: BASE,
+      finishedAt: new Date(BASE.getTime() + 60_000),
+      providerUnitPriceUsd: null,
+    };
+    return [
+      /// 批量行：批次创建时的默认套餐 900，受理时未降级
+      { ...terminal, batchJobId: "batch-1", segmentIndex: null, providerUnitPoints: 900 },
+      /// 单条段行：创建时估 900，提交级降级后受理回写 700（P03-B 之前这里会一直是 900）
+      { ...terminal, batchJobId: null, segmentIndex: 0, providerUnitPoints: 700 },
+      /// 单条旧路径行：同样是单条，受理回写 1100
+      { ...terminal, batchJobId: null, segmentIndex: null, providerUnitPoints: 1100 },
+    ];
+  };
+  t.after(() => {
+    model.findMany = originalFindMany;
+  });
+
+  const report = await getVideoRouteHealthReport({ windowHours: 24 });
+  const buddy = findRouteHealth(report, "buddy")!;
+
+  assert.equal(buddy.samples, 3, "单条行与批量行都进样本");
+  assert.equal(buddy.avgCostPoints, (900 + 700 + 1100) / 3);
+  const where = capturedWhere as Record<string, unknown> | null;
+  assert.ok(where);
+  assert.ok(!("batchJobId" in where), "读库查询不能把单条行（batchJobId 为空）筛掉");
+  assert.ok(!("segmentIndex" in where), "读库查询不能按段号筛掉旧路径单条行");
+  assert.ok(!("videoBriefId" in where), "读库查询不能把批量行（videoBriefId 为空）筛掉");
 });

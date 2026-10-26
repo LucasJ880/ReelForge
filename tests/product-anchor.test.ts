@@ -232,3 +232,225 @@ test("composeReferenceImage 已支持 mask 参数（路径 A 只差的那个参�
   assert.match(source, /mask\?: ReferenceImageInput/);
   assert.match(source, /maskFile \? \{ mask: maskFile \} : \{\}/);
 });
+
+/* ── P02-E0 · 已就绪锚点查找 + cron 接线（2026-10-26）─────────────────── */
+
+import { NextRequest } from "next/server";
+import {
+  ANCHOR_CUTOUT_CRON_BUDGET_MS,
+  ANCHOR_CUTOUT_CRON_LIMIT,
+  findReadyAnchorCutoutsForImages,
+  isAnchorCutoutCronEnabled,
+  processPendingAnchors,
+  sweepProductAnchorCutouts,
+  type AnchorLookupClient,
+} from "../src/lib/services/product-anchor-service";
+import * as pollVideosRoute from "../src/app/api/cron/poll-videos/route";
+
+type AnchorRow = { id: string; userId: string; status: string; sourceImageUrl: string; cutoutUrl: string | null };
+type AssetRow = { userId: string; url: string; sha256: string };
+
+/** 内存版 Prisma 子集：按 where 真正过滤，并记录每次查询的 where，验证 userId 收窄。 */
+function fakeClient(anchors: AnchorRow[], assets: AssetRow[]) {
+  const wheres: Array<Record<string, unknown>> = [];
+  const client = {
+    productAnchor: {
+      findMany: async (args: { where: Record<string, unknown> }) => {
+        wheres.push(args.where);
+        const where = args.where as {
+          userId: string;
+          status: string;
+          cutoutUrl: { not: null };
+          sourceImageUrl: { in: string[] };
+        };
+        return anchors
+          .filter(
+            (row) =>
+              row.userId === where.userId &&
+              row.status === where.status &&
+              row.cutoutUrl !== null &&
+              where.sourceImageUrl.in.includes(row.sourceImageUrl),
+          )
+          .map(({ id, sourceImageUrl, cutoutUrl }) => ({ id, sourceImageUrl, cutoutUrl }));
+      },
+    },
+    mediaAsset: {
+      findMany: async (args: { where: Record<string, unknown> }) => {
+        wheres.push(args.where);
+        const where = args.where as { userId: string; url?: { in: string[] }; sha256?: { in: string[] } };
+        return assets
+          .filter(
+            (row) =>
+              row.userId === where.userId &&
+              (!where.url || where.url.in.includes(row.url)) &&
+              (!where.sha256 || where.sha256.in.includes(row.sha256)),
+          )
+          .map(({ url, sha256 }) => ({ url, sha256 }));
+      },
+    },
+  };
+  return { client: client as unknown as AnchorLookupClient, wheres };
+}
+
+const U = "user-a";
+const ANCHORS: AnchorRow[] = [
+  { id: "anc-1", userId: U, status: "READY", sourceImageUrl: "https://blob/u-a/mug-v1.jpg", cutoutUrl: "https://blob/anchors/anc-1/cutout.png" },
+  { id: "anc-2", userId: U, status: "PENDING_CUTOUT", sourceImageUrl: "https://blob/u-a/lamp.jpg", cutoutUrl: null },
+  { id: "anc-3", userId: U, status: "FAILED", sourceImageUrl: "https://blob/u-a/chair.jpg", cutoutUrl: null },
+  { id: "anc-x", userId: "user-b", status: "READY", sourceImageUrl: "https://blob/u-b/mug.jpg", cutoutUrl: "https://blob/anchors/anc-x/cutout.png" },
+];
+const ASSETS: AssetRow[] = [
+  { userId: U, url: "https://blob/u-a/mug-v1.jpg", sha256: "sha-mug" },
+  { userId: U, url: "https://blob/u-a/mug-reupload.jpg", sha256: "sha-mug" },
+  { userId: U, url: "https://blob/u-a/lamp.jpg", sha256: "sha-lamp" },
+  { userId: "user-b", url: "https://blob/u-b/mug.jpg", sha256: "sha-mug" },
+];
+
+test("锚点查找：按 sourceImageUrl 精确匹配 READY 锚点；PENDING / FAILED 不算；顺序跟输入一致、去重", async () => {
+  const { client, wheres } = fakeClient(ANCHORS, ASSETS);
+  const hits = await findReadyAnchorCutoutsForImages(
+    U,
+    ["https://blob/u-a/lamp.jpg", "https://blob/u-a/mug-v1.jpg", "https://blob/u-a/mug-v1.jpg", "  "],
+    client,
+  );
+  assert.deepEqual(hits, [
+    { imageUrl: "https://blob/u-a/mug-v1.jpg", cutoutUrl: "https://blob/anchors/anc-1/cutout.png", anchorId: "anc-1" },
+  ]);
+  assert.ok(wheres.every((where) => where.userId === U), "每次查询都先按 userId 收窄");
+});
+
+test("锚点查找：地址对不上就用 MediaAsset.sha256 兜底——同一张图重新上传换了 blob 地址仍能命中", async () => {
+  const { client } = fakeClient(ANCHORS, ASSETS);
+  const hits = await findReadyAnchorCutoutsForImages(U, ["https://blob/u-a/mug-reupload.jpg"], client);
+  assert.deepEqual(hits, [
+    { imageUrl: "https://blob/u-a/mug-reupload.jpg", cutoutUrl: "https://blob/anchors/anc-1/cutout.png", anchorId: "anc-1" },
+  ]);
+});
+
+test("锚点查找：sha256 相同但属于别的商家 → 不借用；没有 MediaAsset 记录的外链 → 空", async () => {
+  const { client } = fakeClient(ANCHORS, ASSETS);
+  /// user-b 的图与 user-a 的 mug 内容哈希一样，但查的是 user-b：user-b 自己有 READY 锚点 anc-x
+  const own = await findReadyAnchorCutoutsForImages("user-b", ["https://blob/u-b/mug.jpg"], client);
+  assert.deepEqual(own.map((hit) => hit.anchorId), ["anc-x"]);
+  /// user-c 什么都没有：不能拿到 user-a / user-b 的切片
+  const stranger = await findReadyAnchorCutoutsForImages("user-c", ["https://blob/u-a/mug-v1.jpg", "https://blob/u-a/mug-reupload.jpg"], client);
+  assert.deepEqual(stranger, []);
+  assert.deepEqual(await findReadyAnchorCutoutsForImages(U, ["https://cdn.example.com/external.jpg"], client), []);
+  assert.deepEqual(await findReadyAnchorCutoutsForImages(U, [], client), []);
+  assert.deepEqual(await findReadyAnchorCutoutsForImages("", ["https://blob/u-a/mug-v1.jpg"], client), []);
+});
+
+test("processPendingAnchors：有时间预算就到点停，剩下的留给下一轮；返回 scanned / processed / ready", async () => {
+  let clock = 0;
+  const ran: string[] = [];
+  const result = await processPendingAnchors(5, {
+    budgetMs: 1000,
+    runner: {
+      listPending: async (limit) => {
+        assert.equal(limit, 5);
+        return [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }];
+      },
+      runCutout: async (id) => {
+        ran.push(id);
+        clock += 600;
+        return { status: id === "b" ? "FAILED" : "READY" };
+      },
+      now: () => clock,
+    },
+  });
+  assert.deepEqual(ran, ["a", "b"], "第三个开始前已过预算");
+  assert.deepEqual(result, { scanned: 4, processed: 2, ready: 1, budgetExhausted: true });
+
+  const unbudgeted = await processPendingAnchors(20, {
+    runner: {
+      listPending: async () => [{ id: "x" }],
+      runCutout: async () => ({ status: "READY" }),
+      now: () => 0,
+    },
+  });
+  assert.deepEqual(unbudgeted, { scanned: 1, processed: 1, ready: 1, budgetExhausted: false });
+});
+
+test("cron 开关：PRODUCT_ANCHOR_CUTOUT_CRON 默认关，on / 1 / true 才开", () => {
+  assert.equal(isAnchorCutoutCronEnabled({}), false);
+  assert.equal(isAnchorCutoutCronEnabled({ PRODUCT_ANCHOR_CUTOUT_CRON: "off" }), false);
+  assert.equal(isAnchorCutoutCronEnabled({ PRODUCT_ANCHOR_CUTOUT_CRON: "on" }), true);
+  assert.equal(isAnchorCutoutCronEnabled({ PRODUCT_ANCHOR_CUTOUT_CRON: " ON " }), true);
+  assert.equal(isAnchorCutoutCronEnabled({ PRODUCT_ANCHOR_CUTOUT_CRON: "1" }), true);
+  assert.equal(isAnchorCutoutCronEnabled({ PRODUCT_ANCHOR_CUTOUT_CRON: "true" }), true);
+  assert.equal(ANCHOR_CUTOUT_CRON_LIMIT, 5);
+  assert.equal(ANCHOR_CUTOUT_CRON_BUDGET_MS, 20_000);
+});
+
+test("cron 一轮：开关关 → 不碰库；开着但抠图能力不可用 → 跳过并打一条 debug；都齐了 → 5 个 / 20s 预算", async () => {
+  let runs = 0;
+  const debug: string[] = [];
+  const log = { debug: (message: string) => debug.push(message) };
+  const run = async (limit: number, options: { budgetMs: number }) => {
+    runs += 1;
+    assert.equal(limit, 5);
+    assert.equal(options.budgetMs, 20_000);
+    return { scanned: 2, processed: 2, ready: 1, budgetExhausted: false };
+  };
+
+  const off = await sweepProductAnchorCutouts({ env: {}, isCutoutAvailable: () => true, processPendingAnchors: run, log });
+  assert.deepEqual(off, { enabled: false, reason: "flag_off" });
+
+  const noKey = await sweepProductAnchorCutouts({
+    env: { PRODUCT_ANCHOR_CUTOUT_CRON: "on" },
+    isCutoutAvailable: () => false,
+    processPendingAnchors: run,
+    log,
+  });
+  assert.deepEqual(noKey, { enabled: false, reason: "cutout_unavailable" });
+  assert.equal(debug.length, 1);
+  assert.match(debug[0]!, /抠图能力不可用/);
+  assert.equal(runs, 0, "前两种情况都不许去跑抠图");
+
+  const on = await sweepProductAnchorCutouts({
+    env: { PRODUCT_ANCHOR_CUTOUT_CRON: "on" },
+    isCutoutAvailable: () => true,
+    processPendingAnchors: run,
+    log,
+  });
+  assert.deepEqual(on, { enabled: true, scanned: 2, processed: 2, ready: 1, budgetExhausted: false });
+  assert.equal(runs, 1);
+});
+
+test("poll-videos cron 把锚点续跑放进同一个 allSettled：结果进响应，失败只算 degraded 不拖垮视频轮询", async () => {
+  const base = {
+    machineAuthFailure: () => null,
+    startSchedulerHeartbeat: (() => ({ finish: (status: string) => ({ status }) })) as never,
+    pollRunningJobs: async () => ({ polled: 0, updated: 0 }) as never,
+    pollPendingProductImageJobs: async () => ({ polled: 0, recovered: 0 }) as never,
+    pollPendingStoryboardRuns: async () => 0 as never,
+    pollPendingContentPostRenders: async () => 0,
+    sweepStuckTasks: async () => ({}) as never,
+  };
+  const handler = pollVideosRoute.createPollVideosHandler({
+    ...base,
+    sweepProductAnchorCutouts: async () => ({ enabled: true, scanned: 3, processed: 3, ready: 2, budgetExhausted: false }),
+  });
+  const response = await handler(new NextRequest("http://localhost/api/cron/poll-videos"));
+  const body = (await response.json()) as { anchorCutout?: unknown; anchorCutoutError?: unknown; degraded?: boolean };
+  assert.equal(response.status, 200);
+  assert.deepEqual(body.anchorCutout, { enabled: true, scanned: 3, processed: 3, ready: 2, budgetExhausted: false });
+  assert.equal(body.anchorCutoutError, null);
+  assert.equal(body.degraded, false);
+
+  const failing = pollVideosRoute.createPollVideosHandler({
+    ...base,
+    sweepProductAnchorCutouts: async () => {
+      throw new Error("remove.bg 402");
+    },
+  });
+  const failed = await failing(new NextRequest("http://localhost/api/cron/poll-videos"));
+  const failedBody = (await failed.json()) as { anchorCutout?: unknown; anchorCutoutError?: string; degraded?: boolean };
+  assert.equal(failed.status, 200, "锚点续跑失败不是视频轮询失败");
+  assert.equal(failedBody.anchorCutout, null);
+  assert.match(failedBody.anchorCutoutError ?? "", /402/);
+  assert.equal(failedBody.degraded, true);
+
+  const route = readFileSync(path.join(process.cwd(), "src/app/api/cron/poll-videos/route.ts"), "utf8");
+  assert.match(route, /dependencies\.sweepProductAnchorCutouts\(\)/);
+});

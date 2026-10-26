@@ -1,3 +1,4 @@
+import type { PrismaClient } from "@prisma/client";
 import sharp from "sharp";
 import { db } from "@/lib/db";
 import { getStorageProvider } from "@/lib/storage";
@@ -192,20 +193,203 @@ export async function getOwnedProductAnchor(userId: string, anchorId: string) {
   return db.productAnchor.findFirst({ where: { id: anchorId, userId } });
 }
 
-/** key 后配时的续跑入口：扫所有停在待抠图的锚点。 */
-export async function processPendingAnchors(limit = 20) {
-  const pending = await db.productAnchor.findMany({
-    where: { status: "PENDING_CUTOUT" },
-    orderBy: { createdAt: "asc" },
-    take: limit,
-    select: { id: true },
-  });
+/** processPendingAnchors 的可注入依赖：测试不打库、不打 remove.bg。 */
+export type PendingAnchorRunner = {
+  listPending: (limit: number) => Promise<Array<{ id: string }>>;
+  runCutout: (anchorId: string) => Promise<{ status: string }>;
+  now: () => number;
+};
+
+const defaultPendingAnchorRunner: PendingAnchorRunner = {
+  listPending: (limit) =>
+    db.productAnchor.findMany({
+      where: { status: "PENDING_CUTOUT" },
+      orderBy: { createdAt: "asc" },
+      take: limit,
+      select: { id: true },
+    }),
+  runCutout,
+  now: () => Date.now(),
+};
+
+export type ProcessPendingAnchorsResult = {
+  /** 这次捞到的待抠图锚点数（≤ limit） */
+  scanned: number;
+  /** 真正跑了抠图的个数（预算用完会少于 scanned） */
+  processed: number;
+  /** 跑完变成 READY 的个数 */
+  ready: number;
+  /** 时间预算用完提前停了：剩下的留给下一轮，不算失败 */
+  budgetExhausted: boolean;
+};
+
+/**
+ * key 后配时的续跑入口：扫所有停在待抠图的锚点。
+ *
+ * P02-E0：加了时间预算——cron 里每轮只处理少量、超时就停，剩下的下一轮接着来；
+ * 单个锚点失败由 runCutout 自己落 FAILED / failureReason，不中断整轮。
+ */
+export async function processPendingAnchors(
+  limit = 20,
+  options: { budgetMs?: number; runner?: PendingAnchorRunner } = {},
+): Promise<ProcessPendingAnchorsResult> {
+  const runner = options.runner ?? defaultPendingAnchorRunner;
+  const startedAt = runner.now();
+  const pending = await runner.listPending(limit);
   let ready = 0;
+  let processed = 0;
+  let budgetExhausted = false;
   for (const anchor of pending) {
-    const updated = await runCutout(anchor.id);
+    if (options.budgetMs !== undefined && runner.now() - startedAt >= options.budgetMs) {
+      budgetExhausted = true;
+      break;
+    }
+    const updated = await runner.runCutout(anchor.id);
+    processed += 1;
     if (updated.status === "READY") ready += 1;
   }
-  return { scanned: pending.length, ready };
+  return { scanned: pending.length, processed, ready, budgetExhausted };
+}
+
+/* ── P02-E0 · cron 接线（默认关） ─────────────────────────────────────── */
+
+/** 每轮 cron 最多处理的锚点数与总时间预算：poll-videos 还要给视频轮询与帧质检留时间。 */
+export const ANCHOR_CUTOUT_CRON_LIMIT = 5;
+export const ANCHOR_CUTOUT_CRON_BUDGET_MS = 20_000;
+
+/** `PRODUCT_ANCHOR_CUTOUT_CRON=on` 才开；默认关。接受 on / 1 / true。 */
+export function isAnchorCutoutCronEnabled(env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env): boolean {
+  const raw = env.PRODUCT_ANCHOR_CUTOUT_CRON?.trim().toLowerCase();
+  return raw === "on" || raw === "1" || raw === "true";
+}
+
+export type AnchorCutoutSweepResult =
+  | { enabled: false; reason: "flag_off" | "cutout_unavailable" }
+  | ({ enabled: true } & ProcessPendingAnchorsResult);
+
+export type AnchorCutoutSweepDeps = {
+  env: NodeJS.ProcessEnv | Record<string, string | undefined>;
+  isCutoutAvailable: () => boolean;
+  processPendingAnchors: (
+    limit: number,
+    options: { budgetMs: number },
+  ) => Promise<ProcessPendingAnchorsResult>;
+  log: Pick<Console, "debug">;
+};
+
+/**
+ * cron 一轮的锚点续跑：开关关着 → 什么都不做；抠图能力不可用（没 key）→ 跳过并打一条 debug，
+ * 不去逐个 runCutout 把同一句「等待抠图服务接入」重写 N 遍。
+ */
+export async function sweepProductAnchorCutouts(
+  deps: Partial<AnchorCutoutSweepDeps> = {},
+): Promise<AnchorCutoutSweepResult> {
+  const env = deps.env ?? process.env;
+  if (!isAnchorCutoutCronEnabled(env)) return { enabled: false, reason: "flag_off" };
+  const cutoutAvailable = deps.isCutoutAvailable ?? isCutoutAvailable;
+  if (!cutoutAvailable()) {
+    (deps.log ?? console).debug(
+      "[product-anchor] PRODUCT_ANCHOR_CUTOUT_CRON=on 但抠图能力不可用（无 REMOVE_BG_API_KEY / CLIPDROP_API_KEY），本轮跳过",
+    );
+    return { enabled: false, reason: "cutout_unavailable" };
+  }
+  const run = deps.processPendingAnchors ?? processPendingAnchors;
+  const result = await run(ANCHOR_CUTOUT_CRON_LIMIT, { budgetMs: ANCHOR_CUTOUT_CRON_BUDGET_MS });
+  return { enabled: true, ...result };
+}
+
+/* ── P02-E0 · 已就绪锚点查找 ─────────────────────────────────────────── */
+
+export type ReadyAnchorCutout = {
+  imageUrl: string;
+  cutoutUrl: string;
+  anchorId: string;
+};
+
+export type AnchorLookupClient = Pick<PrismaClient, "productAnchor" | "mediaAsset">;
+
+/**
+ * 给一批产品图找已就绪的锚点切片。
+ *
+ * 先按 sourceImageUrl 精确匹配；匹配不上的用 MediaAsset.sha256 兜底——同一张图重新上传
+ * 会得到不同的 blob 地址，但内容哈希一样。两步查询都先按 userId 收窄：锚点是商家私有资产，
+ * 不许跨商家借用别人的切片。
+ *
+ * 返回只含匹配上的图，顺序跟 imageUrls 一致；没匹配到的不占位。
+ */
+export async function findReadyAnchorCutoutsForImages(
+  userId: string,
+  imageUrls: readonly string[],
+  client: AnchorLookupClient = db,
+): Promise<ReadyAnchorCutout[]> {
+  const wanted = [...new Set(imageUrls.map((url) => url.trim()).filter(Boolean))];
+  if (!userId || wanted.length === 0) return [];
+
+  const readyWhere = { userId, status: "READY" as const, cutoutUrl: { not: null } };
+  const select = { id: true, sourceImageUrl: true, cutoutUrl: true } as const;
+
+  const exact = await client.productAnchor.findMany({
+    where: { ...readyWhere, sourceImageUrl: { in: wanted } },
+    select,
+  });
+  const bySource = new Map<string, { id: string; cutoutUrl: string }>();
+  for (const anchor of exact) {
+    if (anchor.cutoutUrl && !bySource.has(anchor.sourceImageUrl)) {
+      bySource.set(anchor.sourceImageUrl, { id: anchor.id, cutoutUrl: anchor.cutoutUrl });
+    }
+  }
+
+  const unmatched = wanted.filter((url) => !bySource.has(url));
+  const byUrl = new Map<string, { id: string; cutoutUrl: string }>(bySource);
+  if (unmatched.length > 0) {
+    /// 兜底：图 → 它的 sha256 → 同哈希的所有地址 → 以其中任一地址为源图的 READY 锚点
+    const assets = await client.mediaAsset.findMany({
+      where: { userId, url: { in: unmatched } },
+      select: { url: true, sha256: true },
+    });
+    const shaOfUrl = new Map(assets.map((asset) => [asset.url, asset.sha256]));
+    const shas = [...new Set(assets.map((asset) => asset.sha256).filter(Boolean))];
+    if (shas.length > 0) {
+      const sameContent = await client.mediaAsset.findMany({
+        where: { userId, sha256: { in: shas } },
+        select: { url: true, sha256: true },
+      });
+      const urlsOfSha = new Map<string, string[]>();
+      for (const asset of sameContent) {
+        const list = urlsOfSha.get(asset.sha256) ?? [];
+        list.push(asset.url);
+        urlsOfSha.set(asset.sha256, list);
+      }
+      const candidateSources = [...new Set(sameContent.map((asset) => asset.url))];
+      const anchors = candidateSources.length
+        ? await client.productAnchor.findMany({
+            where: { ...readyWhere, sourceImageUrl: { in: candidateSources } },
+            select,
+          })
+        : [];
+      const anchorBySource = new Map<string, { id: string; cutoutUrl: string }>();
+      for (const anchor of anchors) {
+        if (anchor.cutoutUrl && !anchorBySource.has(anchor.sourceImageUrl)) {
+          anchorBySource.set(anchor.sourceImageUrl, { id: anchor.id, cutoutUrl: anchor.cutoutUrl });
+        }
+      }
+      for (const url of unmatched) {
+        const sha = shaOfUrl.get(url);
+        if (!sha) continue;
+        const hit = (urlsOfSha.get(sha) ?? [])
+          .map((source) => anchorBySource.get(source))
+          .find((anchor): anchor is { id: string; cutoutUrl: string } => Boolean(anchor));
+        if (hit) byUrl.set(url, hit);
+      }
+    }
+  }
+
+  return wanted
+    .filter((url) => byUrl.has(url))
+    .map((url) => {
+      const hit = byUrl.get(url)!;
+      return { imageUrl: url, cutoutUrl: hit.cutoutUrl, anchorId: hit.id };
+    });
 }
 
 /**

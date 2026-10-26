@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Menu,
   Flag,
+  ScanEye,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -67,6 +68,13 @@ const INTERNAL_NAV: NavItem[] = [
     href: "/internal/ai-usage",
     labelKey: "nav.aiUsage",
     icon: Activity,
+    roles: ["SUPER_ADMIN", "OPERATOR"],
+  },
+  /// P01-C：帧质检运维页（只读）。中文直写，不进 i18n 表：这是内部运维入口，不是客户面。
+  {
+    href: "/internal/frame-qa",
+    label: "帧质检",
+    icon: ScanEye,
     roles: ["SUPER_ADMIN", "OPERATOR"],
   },
   {

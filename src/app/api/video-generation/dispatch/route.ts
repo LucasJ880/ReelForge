@@ -26,6 +26,7 @@ import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
+import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
 import {
   claimVideoDispatchRequest,
   completeVideoDispatchRequest,
@@ -265,6 +266,17 @@ export async function POST(req: NextRequest) {
       });
     }
     throw error;
+  }
+  /// P04-D：所选口播驱动方式这条线路做不到就在登记与扣额之前拒绝（零提交）。
+  const voiceover = request.audio?.voiceover;
+  const driveCheck = await evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot });
+  if (!driveCheck.ok) {
+    return dispatchErrorResponse(422, {
+      code: "VALIDATION_FAILED",
+      message: driveCheck.message,
+      retryable: false,
+      action: "fix_request",
+    });
   }
   const requestHash = hashVideoDispatchRequest(body, videoRouteSnapshot);
 
@@ -582,6 +594,18 @@ export async function POST(req: NextRequest) {
     /// 快照在此处改写；requestHash 仍按原始请求计算，
     /// 因为「同一个创作请求」的幂等身份不该随线路变化而分裂。
     videoRouteSnapshot = routeResolution.snapshot;
+    const failoverDriveCheck = await evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot });
+    if (!failoverDriveCheck.ok) {
+      return finalResponse(
+        toCustomerVideoDispatchError({
+          code: "VALIDATION_FAILED",
+          message: failoverDriveCheck.message,
+          retryable: false,
+          action: "fix_request",
+        }),
+        422,
+      );
+    }
   }
   if (
     !selectedRouteAvailability.available &&

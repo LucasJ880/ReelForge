@@ -2,17 +2,23 @@
  * Server-only, non-billing Shuyu route discovery.
  *
  * The upstream contract documents GET /health, GET /prices and GET
- * /account/balance. No model/OpenAPI guessing is performed. Only the single
- * audited video plan and a funded boolean cross this module boundary; raw
- * balance and responses do not.
+ * /account/balance. No model/OpenAPI guessing is performed. Only the audited
+ * video plan list (truncated to the contract cap) and a funded boolean cross
+ * this module boundary; raw balance and responses do not.
+ *
+ * 可用性(contractMatches)只看 draft 档:价目表只剩 1080P(final)时与 0803/0804 的
+ * 整体轮换一样报 price_contract_mismatch,因为默认解析在 draft 档内取不到套餐。
  */
 
 import {
+  defaultAuditedShuyuVideoPlan,
   getShuyuBalance,
   getShuyuHealth,
   getShuyuPrices,
   listAuditedShuyuVideoPlans,
   SHUYU_API_BASE_URL,
+  SHUYU_VIDEO_PLAN_LIST_MAX,
+  type AuditedShuyuVideoPlan,
   SHUYU_TASK_STATUSES,
   shuyuApiKey,
   ShuyuApiError,
@@ -43,11 +49,11 @@ const CONTRACT: ShuyuVideoProviderRoute["contract"] = {
 };
 
 /// 0803 起套餐从 /prices 实时审计,不再有固定的单一 AUDITED_PLAN;
-/// discovery 返回实时审计清单映射后的套餐列表。
+/// discovery 返回实时审计清单映射后的套餐列表(输出前截断到契约上限)。
 function auditedPlanList(
-  videoPlans: Parameters<typeof listAuditedShuyuVideoPlans>[0],
+  audited: ReadonlyArray<AuditedShuyuVideoPlan>,
 ): ShuyuVideoPlan[] {
-  return listAuditedShuyuVideoPlans(videoPlans).map((plan) => ({
+  return audited.slice(0, SHUYU_VIDEO_PLAN_LIST_MAX).map((plan) => ({
     planId: plan.planId,
     kind: "video" as const,
     model: plan.model,
@@ -112,8 +118,10 @@ export async function discoverShuyuVideoRoute(
       getShuyuBalance(options),
     ]);
     const videoPlans = prices.data.filter((item) => item.kind === "video");
-    const plans = auditedPlanList(videoPlans);
-    const contractMatches = plans.length > 0;
+    const audited = listAuditedShuyuVideoPlans(videoPlans);
+    const plans = auditedPlanList(audited);
+    /// 只剩 final 档(1080P)不算契约就位——默认档(draft)必须在。
+    const contractMatches = defaultAuditedShuyuVideoPlan(audited) !== undefined;
     const funded = balance.available_points > 0;
     return route({
       configured: true,

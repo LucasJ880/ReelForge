@@ -8,6 +8,28 @@ import {
   type AuditedShuyuImagePlan,
   type ShuyuAspectRatio,
 } from "./shuyu-catalog";
+import {
+  SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuVideoPlanPointBounds,
+  shuyuVideoPlanResolution,
+  shuyuVideoPlanTier,
+  type ShuyuVideoPlanResolution,
+  type ShuyuVideoPlanTier,
+} from "./shuyu-video-plan-tiers";
+
+/// 分档的纯定义住在 shuyu-video-plan-tiers.ts(契约与 'use client' 选择器也要用,
+/// 不能反向依赖本文件);这里 re-export,调用方照旧从 @/lib/providers/shuyu 导入。
+export {
+  SHUYU_VIDEO_PLAN_LIST_MAX,
+  SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuVideoPlanPointBounds,
+  shuyuVideoPlanResolution,
+  shuyuVideoPlanSalePointsWithinBounds,
+  shuyuVideoPlanTier,
+  type ShuyuVideoPlanBillingUnit,
+  type ShuyuVideoPlanResolution,
+  type ShuyuVideoPlanTier,
+} from "./shuyu-video-plan-tiers";
 
 export const SHUYU_API_BASE_URL =
   "https://shuyu-tiktok-tool.pages.dev/api/v1" as const;
@@ -272,11 +294,9 @@ export function shuyuApiKey(
  * 2026-10-26(P03-A1)起套餐分两档:
  * - draft(720P/480P):默认档与客户可选档;默认永远是最便宜的 720P。
  * - final(1080P):审计放行、员工/实验标记可选;对客户不可见、不可选
- *   (1080P 客户定价未定)。排序在 draft 之后,冷却跳档不跨档。
+ *   (1080P 客户定价未定)。排序在 draft 之后,冷却跳档不跨档。可用性判断
+ *   (runtime / discovery / 探针)只看 draft 档:价目表只剩 1080P = 默认线路停机。
  */
-export type ShuyuVideoPlanTier = "draft" | "final";
-export type ShuyuVideoPlanResolution = "480P" | "720P" | "1080P";
-
 export interface AuditedShuyuVideoPlan {
   planId: string;
   model: typeof SHUYU_VIDEO_MODEL;
@@ -288,13 +308,6 @@ export interface AuditedShuyuVideoPlan {
   /** /prices 实时销售价(按 billingUnit 计)。 */
   unitSalePoints: number;
   inputImagesMax: number;
-}
-
-/** 分辨率 → 档位的唯一映射(审计、排序、选档、客户面过滤共用)。 */
-export function shuyuVideoPlanTier(
-  resolution: ShuyuVideoPlanResolution,
-): ShuyuVideoPlanTier {
-  return resolution === "1080P" ? "final" : "draft";
 }
 
 /**
@@ -318,44 +331,6 @@ export function shuyuReferenceImageLimit(
     0,
     Math.min(SHUYU_MAX_REFERENCE_IMAGES, Math.floor(plan.inputImagesMax)),
   );
-}
-
-/**
- * 单价健全区间按分辨率分区(1026 实价:1080P 240 点/秒、4K 640 点/秒;
- * 4K 不在审计族内)。720P/480P 保持 0803 的现值;1080P 按秒 100–400、
- * 按条上限放宽到 8000。探针(capability-probe)用同一张表,两把尺子一致。
- */
-const DRAFT_POINT_SANITY = {
-  generation: { min: 100, max: 2_000 },
-  second: { min: 10, max: 300 },
-} as const;
-const VIDEO_PLAN_POINT_SANITY: Record<
-  ShuyuVideoPlanResolution,
-  Record<"generation" | "second", { readonly min: number; readonly max: number }>
-> = {
-  "720P": DRAFT_POINT_SANITY,
-  "480P": DRAFT_POINT_SANITY,
-  "1080P": {
-    generation: { min: 100, max: 8_000 },
-    second: { min: 100, max: 400 },
-  },
-};
-
-/** 审计放行的分辨率白名单;其余(4K/1K/2K…)一律出族。 */
-export function shuyuVideoPlanResolution(
-  value: string,
-): ShuyuVideoPlanResolution | null {
-  return value === "720P" || value === "480P" || value === "1080P"
-    ? value
-    : null;
-}
-
-/** 该分辨率 × 计费单位的单价健全区间(探针与审计共用的那把尺子)。 */
-export function shuyuVideoPlanPointBounds(
-  resolution: ShuyuVideoPlanResolution,
-  unit: "generation" | "second",
-): { readonly min: number; readonly max: number } {
-  return VIDEO_PLAN_POINT_SANITY[resolution][unit];
 }
 
 export function auditShuyuVideoPlan(
@@ -410,6 +385,13 @@ export function isAuditedShuyuVideoPlan(
   return auditShuyuVideoPlan(plan) !== null;
 }
 
+/** 审计通过且在默认档(draft)内——可用性探针的判据,final 档不算「线路可用」。 */
+export function isAuditedShuyuDraftVideoPlan(
+  plan: z.infer<typeof shuyuPriceSchema>,
+): boolean {
+  return auditShuyuVideoPlan(plan)?.tier === "draft";
+}
+
 /** 一条成片在该套餐下的实际积分成本(按条计费返回单价,按秒计费乘时长)。 */
 export function shuyuVideoPlanPointsForDuration(
   plan: AuditedShuyuVideoPlan,
@@ -425,11 +407,7 @@ export function shuyuVideoPlanPointsForDuration(
  * 列表第一个即默认套餐——始终是最便宜的 720P(draft 档);final 档(1080P)
  * 永远排在全部 draft 档之后,所以六处 `resolveShuyuVideoPlan()` 默认成本不变。
  */
-const RESOLUTION_RANK: Record<ShuyuVideoPlanResolution, number> = {
-  "720P": 0,
-  "480P": 1,
-  "1080P": 2,
-};
+const RESOLUTION_RANK = SHUYU_VIDEO_PLAN_RESOLUTION_RANK;
 
 export function listAuditedShuyuVideoPlans(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
@@ -451,13 +429,25 @@ export function listAuditedShuyuVideoPlans(
     });
 }
 
-/** Locate the default audited video plan among a multi-plan price list. */
+/**
+ * 默认档套餐 = 已排序清单里第一个 draft(最便宜的 720P)。价目表只剩 final(1080P)
+ * 时返回 undefined——runtime / discovery / 探针 / routes API 的可用性与默认档都看它,
+ * 这样「只剩 1080P」与 0803/0804 的整体轮换一样是 price_contract_mismatch(fail-closed),
+ * 而不是报可用却在默认解析时抛「draft tier 无套餐」、批量在没有成本快照下建出来。
+ */
+export function defaultAuditedShuyuVideoPlan(
+  ranked: ReadonlyArray<AuditedShuyuVideoPlan>,
+): AuditedShuyuVideoPlan | undefined {
+  return ranked.find((plan) => plan.tier === "draft");
+}
+
+/** Locate the default (draft-tier) audited video plan among a multi-plan price list. */
 export function findAuditedShuyuVideoPlan(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
 ): z.infer<typeof shuyuPriceSchema> | undefined {
-  const ranked = listAuditedShuyuVideoPlans(plans);
-  if (ranked.length === 0) return undefined;
-  return plans.find((plan) => plan.plan_id === ranked[0].planId);
+  const fallback = defaultAuditedShuyuVideoPlan(listAuditedShuyuVideoPlans(plans));
+  if (!fallback) return undefined;
+  return plans.find((plan) => plan.plan_id === fallback.planId);
 }
 
 const VIDEO_PLAN_CACHE_TTL_MS = 60_000;
@@ -523,9 +513,11 @@ export interface ResolveShuyuVideoPlanArgs extends ShuyuFetchOptions {
  * (浏览器端永远 false)。它只影响「显式选 final」——显式 final planId 或 tier="final";
  * 默认解析仍在 draft 档内,六处默认成本调用点不变。
  *
- * ⚠️ 只在跑脚本的 shell 里设,不要设到 Vercel 生产环境变量:生产开着的话,任何登录用户
- * 经 /api/batches 显式传 1080P planId 都会被放行(batch-service 尚未按 isInternalStaff
- * 传 allowFinal:false 硬关,见 P03-D0)。routes API 的客户面过滤按角色,不受此 env 影响。
+ * **生产(VERCEL_ENV=production)一律忽略该 env**:batch-service 的客户显式套餐路径尚未按
+ * isInternalStaff 传 allowFinal:false 硬关(P03-D0 接上后再放开),若生产读了这个开关,任何
+ * 登录用户经 /api/batches 显式传 1080P planId 都会被放行并按 3600 点/段计费。本地验收脚本
+ * (VERCEL_ENV 未设)不受影响;显式 allowFinal:true 在任何环境都有效。
+ * routes API 的客户面过滤按角色,不受此 env 影响。
  */
 export const SHUYU_ALLOW_FINAL_TIER_ENV = "SHUYU_ALLOW_FINAL_TIER" as const;
 
@@ -533,6 +525,7 @@ export function shuyuFinalTierAllowedByEnv(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
 ): boolean {
   if (typeof window !== "undefined") return false;
+  if (env.VERCEL_ENV === "production") return false;
   const raw = env[SHUYU_ALLOW_FINAL_TIER_ENV]?.trim().toLowerCase();
   return raw === "1" || raw === "true";
 }

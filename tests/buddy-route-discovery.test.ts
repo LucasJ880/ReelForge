@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { internalVideoProviderRoutesResponseSchema } from "../src/lib/contracts/video-provider-routes";
+import {
+  internalVideoProviderRoutesResponseSchema,
+  shuyuVideoPlanSchema,
+} from "../src/lib/contracts/video-provider-routes";
 import {
   SHUYU_API_BASE_URL,
   getShuyuPrices,
@@ -339,4 +342,62 @@ test("missing key performs no upstream discovery", async () => {
       ],
     },
   });
+});
+
+/// P03-A1:可用性只看 draft 档;清单输出前截断到契约上限;单价区间与审计同一张表。
+function discoveryFetch(plans: Array<Record<string, unknown>>): typeof fetch {
+  return async (input) => {
+    const url = String(input);
+    if (url.endsWith("/health")) return new Response(JSON.stringify(healthPayload), { status: 200 });
+    if (url.endsWith("/prices")) {
+      return new Response(JSON.stringify({ object: "list", data: plans }), { status: 200 });
+    }
+    return new Response(
+      JSON.stringify({ object: "balance", available_points: 100_000, unit: "points" }),
+      { status: 200 },
+    );
+  };
+}
+
+test("价目表只剩 1080P(final 档)时 discovery 报 price_contract_mismatch,清单仍列出 final 套餐", async () => {
+  const discovered = await discoverShuyuVideoRoute({
+    env: { SHUYU_API_KEY: "canonical-test-key" },
+    fetchImpl: discoveryFetch([
+      { ...videoPlan, plan_id: "video-plan-13", unit: "second", resolution: "1080P", sale_points: 240, capabilities: { ...videoPlan.capabilities, quality: "1080P" } },
+    ]),
+  });
+  assert.equal(discovered.availability, "unavailable");
+  assert.equal(discovered.unavailableReason, "price_contract_mismatch");
+  assert.deepEqual(
+    discovered.plans.map((plan) => [plan.planId, plan.resolution]),
+    [["video-plan-13", "1080P"]],
+  );
+  internalVideoProviderRoutesResponseSchema.parse({ ok: true, routes: [discovered] });
+});
+
+test("审计清单超过契约上限时输出前截断到 20,内部发现 API 不再 500", async () => {
+  const many = Array.from({ length: 25 }, (_, index) => ({
+    ...videoPlan,
+    plan_id: `video-plan-${String(index + 1).padStart(2, "0")}`,
+    unit: "second",
+    sale_points: 50 + index,
+    capabilities: { ...videoPlan.capabilities, quality: undefined },
+  }));
+  const discovered = await discoverShuyuVideoRoute({
+    env: { SHUYU_API_KEY: "canonical-test-key" },
+    fetchImpl: discoveryFetch(many),
+  });
+  assert.equal(discovered.availability, "available");
+  assert.equal(discovered.plans.length, 20);
+  assert.equal(discovered.plans[0].planId, "video-plan-01", "截断保留最便宜的在前");
+  internalVideoProviderRoutesResponseSchema.parse({ ok: true, routes: [discovered] });
+});
+
+test("内部发现契约的 salePoints 按 resolution × unit 调审计同一张表", () => {
+  const base = { planId: "video-plan-13", kind: "video", model: "studio-video", unit: "second", resolution: "1080P", salePoints: 240 };
+  assert.equal(shuyuVideoPlanSchema.parse(base).salePoints, 240);
+  assert.throws(() => shuyuVideoPlanSchema.parse({ ...base, salePoints: 500 }), /outside the audited range for 1080P/);
+  assert.throws(() => shuyuVideoPlanSchema.parse({ ...base, resolution: "720P", salePoints: 301 }));
+  assert.equal(shuyuVideoPlanSchema.parse({ ...base, resolution: "1080P", unit: "generation", salePoints: 8_000 }).salePoints, 8_000);
+  assert.throws(() => shuyuVideoPlanSchema.parse({ ...base, resolution: "720P", unit: "generation", salePoints: 8_000 }));
 });

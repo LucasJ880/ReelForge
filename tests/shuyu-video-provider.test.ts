@@ -540,7 +540,7 @@ test("options.resolution=\"1080p\" 不等于要 final 档:默认仍是最便宜�
   }
 });
 
-test("客户显式选 1080P planId 在适配器层被拒(预检、不可重试、零提交);qualityTier=final 开闸才放行", async () => {
+test("客户显式选 1080P planId 在适配器层被拒(预检、不可重试、零提交);qualityTier 只是诉求,不是授权", async () => {
   __testVideoPlans__.resetVideoPlanCache();
   try {
     const submissions: Array<Record<string, unknown>> = [];
@@ -548,6 +548,11 @@ test("客户显式选 1080P planId 在适配器层被拒(预检、不可重试�
       fetchImpl: tieredFetch([DRAFT_FLAT, FINAL_1080], [], submissions),
       env: { SHUYU_API_KEY: "configured" },
     });
+    const rejectedAsFinal = (error: unknown) =>
+      error instanceof ProviderSubmissionError &&
+      error.stage === "preflight" &&
+      error.retryable === false &&
+      /final-tier/.test(error.message);
     await assert.rejects(
       () =>
         provider.createVideoJob({
@@ -556,34 +561,87 @@ test("客户显式选 1080P planId 在适配器层被拒(预检、不可重试�
           durationSec: 5,
           providerPlanId: "video-plan-13",
         }),
-      (error: unknown) =>
-        error instanceof ProviderSubmissionError &&
-        error.stage === "preflight" &&
-        error.retryable === false &&
-        /final-tier/.test(error.message),
+      rejectedAsFinal,
+    );
+    /// 「请求 final」不推出「准许 final」:qualityTier=final 没有授权(env / 显式)同样被拒。
+    await assert.rejects(
+      () =>
+        provider.createVideoJob({
+          providerRequestKey: "tier-request-final-no-auth-1",
+          prompt: "Show the product.",
+          durationSec: 5,
+          ...({ qualityTier: "final" } as Record<string, unknown>),
+        }),
+      rejectedAsFinal,
     );
     assert.equal(submissions.length, 0, "被拒的 final 选择不得产生任何提交");
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});
 
-    /// 等 P03-D0 定型前,final 只认显式 qualityTier(结构化读取;types.ts 尚无该字段)。
-    const result = await provider.createVideoJob({
-      providerRequestKey: "tier-staff-final-attempt-1",
-      prompt: "Show the product.",
-      durationSec: 5,
-      providerPlanId: "video-plan-13",
-      ...({ qualityTier: "final" } as Record<string, unknown>),
+test("诉求 final + 授权(env):默认取 1080P 档首位;显式 planId 指向 draft 时如实拒绝,不静默降档", async () => {
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const submissions: Array<Record<string, unknown>> = [];
+    const provider = new ShuyuVideoProvider("studio-video", {
+      fetchImpl: tieredFetch([DRAFT_FLAT, DRAFT_PER_SECOND, FINAL_1080], [], submissions),
+      env: { SHUYU_API_KEY: "configured", SHUYU_ALLOW_FINAL_TIER: "1" },
     });
-    assert.equal(result.providerPlanId, "video-plan-13");
-    assert.equal(result.providerUnitPoints, 240 * 5);
-    assert.deepEqual(submissions.map((body) => body.plan_id), ["video-plan-13"]);
-
-    /// qualityTier=final 不指定 planId → final 档默认(最便宜的 1080P)。
     const finalDefault = await provider.createVideoJob({
-      providerRequestKey: "tier-staff-final-default-1",
+      providerRequestKey: "tier-final-default-1",
       prompt: "Show the product.",
       durationSec: 5,
       ...({ qualityTier: "final" } as Record<string, unknown>),
     });
     assert.equal(finalDefault.providerPlanId, "video-plan-13");
+    assert.equal(finalDefault.providerUnitPoints, 240 * 5);
+
+    const explicitFinal = await provider.createVideoJob({
+      providerRequestKey: "tier-final-explicit-1",
+      prompt: "Show the product.",
+      durationSec: 5,
+      providerPlanId: "video-plan-13",
+      ...({ qualityTier: "final" } as Record<string, unknown>),
+    });
+    assert.equal(explicitFinal.providerPlanId, "video-plan-13");
+
+    await assert.rejects(
+      () =>
+        provider.createVideoJob({
+          providerRequestKey: "tier-final-but-draft-plan-1",
+          prompt: "Show the product.",
+          durationSec: 5,
+          providerPlanId: "video-plan-01",
+          ...({ qualityTier: "final" } as Record<string, unknown>),
+        }),
+      (error: unknown) =>
+        error instanceof ProviderSubmissionError &&
+        error.stage === "preflight" &&
+        error.retryable === false &&
+        /draft tier but a final-tier/.test(error.message),
+    );
+    assert.deepEqual(submissions.map((body) => body.plan_id), ["video-plan-13", "video-plan-13"]);
+
+    /// 生产(VERCEL_ENV=production)忽略 env:同样的显式 1080P 请求被拒、零提交。
+    __testVideoPlans__.resetVideoPlanCache();
+    const productionSubmissions: Array<Record<string, unknown>> = [];
+    const production = new ShuyuVideoProvider("studio-video", {
+      fetchImpl: tieredFetch([DRAFT_FLAT, FINAL_1080], [], productionSubmissions),
+      env: { SHUYU_API_KEY: "configured", SHUYU_ALLOW_FINAL_TIER: "1", VERCEL_ENV: "production" },
+    });
+    await assert.rejects(
+      () =>
+        production.createVideoJob({
+          providerRequestKey: "tier-final-production-1",
+          prompt: "Show the product.",
+          durationSec: 5,
+          providerPlanId: "video-plan-13",
+        }),
+      (error: unknown) =>
+        error instanceof ProviderSubmissionError && /final-tier/.test(error.message),
+    );
+    assert.equal(productionSubmissions.length, 0);
   } finally {
     __testVideoPlans__.resetVideoPlanCache();
   }

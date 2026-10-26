@@ -3,6 +3,8 @@ import test from "node:test";
 import { z } from "zod";
 import {
   auditShuyuVideoPlan,
+  defaultAuditedShuyuVideoPlan,
+  findAuditedShuyuVideoPlan,
   listAuditedShuyuVideoPlans,
   markShuyuVideoPlanRejected,
   resolveShuyuVideoPlan,
@@ -112,6 +114,14 @@ test("1026 市场夹具:1080P 审计通过且 tier=final、排在最后,默认�
     cheapFinal.map((plan) => plan.planId),
     ["video-plan-04", "video-plan-20"],
   );
+  /// 默认档 = 清单里第一个 draft;runtime / discovery / 探针 / routes API 的可用性都看它。
+  assert.equal(defaultAuditedShuyuVideoPlan(ranked)?.planId, "video-plan-01");
+  assert.equal(findAuditedShuyuVideoPlan(MARKET_1026)?.plan_id, "video-plan-01");
+  /// 价目表只剩 final(1080P):没有默认档 → undefined,等于默认线路停机(price_contract_mismatch)。
+  const onlyFinal = MARKET_1026.filter((plan) => plan.resolution === "1080P");
+  assert.equal(listAuditedShuyuVideoPlans(onlyFinal).length, 2, "1080P 本身审计通过");
+  assert.equal(defaultAuditedShuyuVideoPlan(listAuditedShuyuVideoPlans(onlyFinal)), undefined);
+  assert.equal(findAuditedShuyuVideoPlan(onlyFinal), undefined);
 });
 
 test("0803 市场夹具:语义审计放行全部四档,默认 = 最便宜的 720P(700 分/条)", () => {
@@ -387,6 +397,44 @@ test("SHUYU_ALLOW_FINAL_TIER=1(服务端 env)开闸:显式选 1080P 放行;默�
     await assert.rejects(
       () => resolveShuyuVideoPlan({ ...envOff, planId: "video-plan-13" }),
       ShuyuPlanUnavailableError,
+    );
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});
+
+test("生产环境(VERCEL_ENV=production)下 env 开闸不生效;显式 allowFinal:true 仍有效", async () => {
+  /// batch-service 的客户显式套餐路径尚未按 isInternalStaff 硬关(P03-D0),生产若读这个 env,
+  /// 任何登录用户经 /api/batches 显式传 1080P planId 都会被放行并按 3600 点/段计费。
+  assert.equal(
+    shuyuFinalTierAllowedByEnv({ SHUYU_ALLOW_FINAL_TIER: "1", VERCEL_ENV: "production" }),
+    false,
+  );
+  assert.equal(
+    shuyuFinalTierAllowedByEnv({ SHUYU_ALLOW_FINAL_TIER: "1", VERCEL_ENV: "preview" }),
+    true,
+    "preview / 本地(未设 VERCEL_ENV)不受影响",
+  );
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const production = {
+      env: { SHUYU_API_KEY: "test-only", SHUYU_ALLOW_FINAL_TIER: "1", VERCEL_ENV: "production" },
+      fetchImpl: pricesFetch(MARKET_1026),
+    };
+    await assert.rejects(
+      () => resolveShuyuVideoPlan({ ...production, planId: "video-plan-13" }),
+      ShuyuPlanUnavailableError,
+    );
+    await assert.rejects(
+      () => resolveShuyuVideoPlanWithCooldown({ ...production, tier: "final" }),
+      ShuyuPlanUnavailableError,
+    );
+    /// 默认档照旧。
+    assert.equal((await resolveShuyuVideoPlan(production)).planId, "video-plan-01");
+    /// 显式授权不看 env,生产也有效(P03-D0 接 isInternalStaff 时走这条)。
+    assert.equal(
+      (await resolveShuyuVideoPlan({ ...production, planId: "video-plan-13", allowFinal: true })).tier,
+      "final",
     );
   } finally {
     __testVideoPlans__.resetVideoPlanCache();

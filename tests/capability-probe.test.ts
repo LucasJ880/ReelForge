@@ -92,10 +92,14 @@ test("分辨率出族与画幅缺失都能逐字段定位(480P / 1080P 已入审
       capabilities: { aspect_ratios: ["16:9"], input_images_max: 9 },
     }),
   ]);
+  /// 分辨率出族只由 resolution 判据报;sale_points / tier 判据在出族时直接算匹配,
+  /// 不叠一个无意义的「640/秒越界」或「档位」漂移。(夹具整体覆盖了 capabilities,
+  /// 所以 modes / durations 也会如实报缺失——那是夹具的真实漂移。)
   const fields = result.drifts.map((d) => d.field);
   assert.ok(fields.includes("resolution"));
   assert.ok(fields.includes("aspect_ratios"));
-  /// 4K 的 640/秒按 draft 区间兜底也越界,会同时报 sale_points;断言只要求 resolution 被精确定位。
+  assert.ok(!fields.includes("sale_points"), "出族分辨率不叠计价漂移");
+  assert.ok(!fields.includes("tier"), "出族分辨率不叠档位漂移");
   const resolutionDrift = result.drifts.find((d) => d.field === "resolution");
   assert.ok(resolutionDrift);
   assert.equal(resolutionDrift.actual, "4K");
@@ -107,10 +111,31 @@ test("分辨率出族与画幅缺失都能逐字段定位(480P / 1080P 已入审
   ]);
   assert.equal(budget.auditedPlanFound, true);
 
-  /// 1080P 按秒 240(1026 实价)1026 起是审计族成员(final 档):探针与审计同一把尺子。
+  /// 1080P 按秒 240(1026 实价)1026 起审计通过(final 档),但探针的「线路可用」只看默认档:
+  /// 价目表只剩 1080P 等于默认线路停机(与 0803/0804 整体轮换同口径),必须精确报到 tier。
   const final = goodPlan({ resolution: "1080P", sale_points: 240, unit: "second" });
   assert.equal(isAuditedShuyuVideoPlan(final), true);
-  assert.equal(diagnoseDrift([final]).auditedPlanFound, true);
+  const onlyFinal = diagnoseDrift([final]);
+  assert.equal(onlyFinal.auditedPlanFound, false);
+  assert.deepEqual(onlyFinal.drifts.map((d) => d.field), ["tier"]);
+  assert.equal(onlyFinal.drifts[0].actual, "final");
+  assert.match(onlyFinal.drifts[0].expected, /draft/);
+  /// 1080P 旁边只要有一个 draft 档审计通过,线路就是健康的。
+  assert.equal(diagnoseDrift([final, goodPlan()]).auditedPlanFound, true);
+  /// 诊断候选优先挑 draft 分辨率:720P 缺 15s + 1080P 正常 → 报 durations,而不是拿 1080P 报 tier。
+  const draftBroken = diagnoseDrift([
+    final,
+    goodPlan({
+      capabilities: {
+        aspect_ratios: ["9:16", "16:9", "1:1"],
+        input_images_max: 9,
+        modes: ["text2video", "image2video"],
+        durations: [5, 10],
+      },
+    }),
+  ]);
+  assert.equal(draftBroken.auditedPlanFound, false);
+  assert.deepEqual(draftBroken.drifts.map((d) => d.field), ["durations"]);
   /// 1080P 计价越界(按秒 >400)要精确报到 sale_points,且期望值写出 1080P 自己的区间。
   const insaneFinal = diagnoseDrift([
     goodPlan({ resolution: "1080P", sale_points: 500, unit: "second" }),

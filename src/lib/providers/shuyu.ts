@@ -4,6 +4,7 @@ import { ProviderSubmissionError } from "@/lib/video-generation/providers/submis
 import {
   parseShuyuCatalog,
   selectAuditedImage2Plan,
+  ShuyuPlanUnavailableError,
   type AuditedShuyuImagePlan,
   type ShuyuAspectRatio,
 } from "./shuyu-catalog";
@@ -493,20 +494,71 @@ export async function resolveShuyuVideoPlans(
   return videoPlanInflight;
 }
 
-/** 解析指定/默认视频套餐;指定 ID 不在审计清单内一律拒绝(fail-closed)。 */
-export async function resolveShuyuVideoPlan(
-  args: { planId?: string | null } & ShuyuFetchOptions = {},
-): Promise<AuditedShuyuVideoPlan> {
+/**
+ * 选档参数(P03-A1)。
+ *
+ * - 缺省只在 draft 档(720P/480P)内取默认与冷却跳档,`plans[0]` 仍是最便宜的 720P,
+ *   六处 `resolveShuyuVideoPlan()` 默认成本调用点无感。
+ * - final 档(1080P)客户定价未定:显式 planId 命中 final、或 tier="final",
+ *   都必须 `allowFinal === true`,否则抛 ShuyuPlanUnavailableError(fail-closed)。
+ *   客户面调用链(batch-service / dispatch)不传 allowFinal → 客户显式传 final planId 被拒。
+ */
+export interface ResolveShuyuVideoPlanArgs extends ShuyuFetchOptions {
+  /** 显式套餐 ID;不在审计清单内一律拒绝(fail-closed)。 */
+  planId?: string | null;
+  /** 默认解析与冷却跳档所在的档;缺省 draft。显式 planId 时以套餐自身 tier 为准。 */
+  tier?: ShuyuVideoPlanTier;
+  /** final 档闸门;只有内部员工 / 实验标记的调用链才传 true。 */
+  allowFinal?: boolean;
+}
+
+function noAuditedVideoPlanError(tier?: ShuyuVideoPlanTier): ShuyuApiError {
+  return new ShuyuApiError(
+    tier
+      ? `No audited Shuyu video plan is currently available in the ${tier} tier`
+      : "No audited Shuyu video plan is currently available",
+    "not_found",
+    200,
+  );
+}
+
+function assertShuyuFinalTierAllowed(
+  tier: ShuyuVideoPlanTier,
+  allowFinal: boolean | undefined,
+  planId?: string,
+): void {
+  if (tier !== "final" || allowFinal === true) return;
+  throw new ShuyuPlanUnavailableError(
+    planId
+      ? `Shuyu video plan ${planId} is a final-tier (1080P) plan and is not selectable here`
+      : "Shuyu final-tier (1080P) video plans are not selectable here",
+  );
+}
+
+/** 该档内审计通过的套餐(保持总排序:最便宜的在前)。 */
+async function resolveShuyuVideoPlanPool(
+  args: ResolveShuyuVideoPlanArgs,
+): Promise<AuditedShuyuVideoPlan[]> {
   const plans = await resolveShuyuVideoPlans(args);
-  if (plans.length === 0) {
-    throw new ShuyuApiError(
-      "No audited Shuyu video plan is currently available",
-      "not_found",
-      200,
-    );
-  }
+  if (plans.length === 0) throw noAuditedVideoPlanError();
+  const tier = args.tier ?? "draft";
+  assertShuyuFinalTierAllowed(tier, args.allowFinal);
+  const pool = plans.filter((plan) => plan.tier === tier);
+  if (pool.length === 0) throw noAuditedVideoPlanError(tier);
+  return pool;
+}
+
+/**
+ * 解析指定/默认视频套餐;指定 ID 不在审计清单内一律拒绝(fail-closed),
+ * 命中 final 档且未 allowFinal 同样拒绝。缺省返回 draft 档首位(最便宜的 720P)。
+ */
+export async function resolveShuyuVideoPlan(
+  args: ResolveShuyuVideoPlanArgs = {},
+): Promise<AuditedShuyuVideoPlan> {
   const requested = args.planId?.trim();
-  if (!requested) return plans[0];
+  if (!requested) return (await resolveShuyuVideoPlanPool(args))[0];
+  const plans = await resolveShuyuVideoPlans(args);
+  if (plans.length === 0) throw noAuditedVideoPlanError();
   const match = plans.find((plan) => plan.planId === requested);
   if (!match) {
     throw new ShuyuApiError(
@@ -515,6 +567,7 @@ export async function resolveShuyuVideoPlan(
       200,
     );
   }
+  assertShuyuFinalTierAllowed(match.tier, args.allowFinal, match.planId);
   return match;
 }
 
@@ -541,21 +594,17 @@ export function isShuyuVideoPlanCoolingDown(planId: string): boolean {
   return true;
 }
 
-/** 默认解析顺位中跳过冷却套餐;全部在冷却时回退到完整清单(总比直接拒好)。 */
+/**
+ * 默认解析顺位中跳过冷却套餐;全部在冷却时回退到该档完整清单(总比直接拒好)。
+ * 跳档只在同一 tier 内:draft 档全冷却也不会跳到 final(1080P)去扣费。
+ */
 export async function resolveShuyuVideoPlanWithCooldown(
-  args: { planId?: string | null } & ShuyuFetchOptions = {},
+  args: ResolveShuyuVideoPlanArgs = {},
 ): Promise<AuditedShuyuVideoPlan> {
   if (args.planId?.trim()) return resolveShuyuVideoPlan(args);
-  const plans = await resolveShuyuVideoPlans(args);
-  if (plans.length === 0) {
-    throw new ShuyuApiError(
-      "No audited Shuyu video plan is currently available",
-      "not_found",
-      200,
-    );
-  }
-  const warm = plans.filter((plan) => !isShuyuVideoPlanCoolingDown(plan.planId));
-  return (warm[0] ?? plans[0]);
+  const pool = await resolveShuyuVideoPlanPool(args);
+  const warm = pool.filter((plan) => !isShuyuVideoPlanCoolingDown(plan.planId));
+  return warm[0] ?? pool[0];
 }
 
 export const __testVideoPlans__ = {

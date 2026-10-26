@@ -4,9 +4,14 @@ import { z } from "zod";
 import {
   auditShuyuVideoPlan,
   listAuditedShuyuVideoPlans,
+  markShuyuVideoPlanRejected,
+  resolveShuyuVideoPlan,
+  resolveShuyuVideoPlanWithCooldown,
   shuyuPriceSchema,
   shuyuVideoPlanPointsForDuration,
+  __testVideoPlans__,
 } from "../src/lib/providers/shuyu";
+import { ShuyuPlanUnavailableError } from "../src/lib/providers/shuyu-catalog";
 
 type ShuyuPlan = z.infer<typeof shuyuPriceSchema>;
 
@@ -245,4 +250,95 @@ test("模型出族与非 available 状态一律不进审计清单", () => {
     marketPlan({ model: "other-video-model" }),
   ]);
   assert.equal(ranked.length, 0);
+});
+
+/// 选档与冷却走真实的 /prices 解析路径(fetch 打桩),不绕过 60s 缓存与 single-flight。
+function pricesFetch(plans: ShuyuPlan[]): typeof fetch {
+  return async (input) => {
+    assert.ok(String(input).endsWith("/prices"), `只允许读 /prices,实际 ${String(input)}`);
+    return new Response(JSON.stringify({ object: "list", data: plans }), { status: 200 });
+  };
+}
+
+const RESOLVE_ENV = { env: { SHUYU_API_KEY: "test-only" } };
+
+test("全部草稿档在冷却时不会跳到 final:跳档只在同 tier 内", async () => {
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const args = { ...RESOLVE_ENV, fetchImpl: pricesFetch(MARKET_1026) };
+    /// 无冷却:默认 = draft 首位(最便宜的 720P)。
+    assert.equal((await resolveShuyuVideoPlanWithCooldown(args)).planId, "video-plan-01");
+    /// 默认档冷却 → 跳到同档下一个(720P 88 分/秒),不是 1080P。
+    markShuyuVideoPlanRejected("video-plan-01");
+    assert.equal((await resolveShuyuVideoPlanWithCooldown(args)).planId, "video-plan-03");
+    /// draft 四档全冷却 → 回退到 draft 档首位,绝不跳到 final 去扣 1080P 的费。
+    for (const id of ["video-plan-03", "video-plan-04", "video-plan-07"]) {
+      markShuyuVideoPlanRejected(id);
+    }
+    const fallback = await resolveShuyuVideoPlanWithCooldown(args);
+    assert.equal(fallback.planId, "video-plan-01");
+    assert.equal(fallback.tier, "draft");
+    /// 显式要 final 并开闸 → final 档内取首位;冷却同样只在 final 档内看。
+    const final = await resolveShuyuVideoPlanWithCooldown({ ...args, tier: "final", allowFinal: true });
+    assert.equal(final.planId, "video-plan-13");
+    assert.equal(final.tier, "final");
+    markShuyuVideoPlanRejected("video-plan-13");
+    assert.equal(
+      (await resolveShuyuVideoPlanWithCooldown({ ...args, tier: "final", allowFinal: true })).planId,
+      "video-plan-15",
+    );
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});
+
+test("客户显式选 1080P planId 被拒(fail-closed);只有 allowFinal 开闸才放行", async () => {
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const args = { ...RESOLVE_ENV, fetchImpl: pricesFetch(MARKET_1026) };
+    /// 默认解析(六处默认成本调用点的写法)仍是 video-plan-01 / 700 分。
+    const defaultPlan = await resolveShuyuVideoPlan(args);
+    assert.equal(defaultPlan.planId, "video-plan-01");
+    assert.equal(shuyuVideoPlanPointsForDuration(defaultPlan, 15), 700);
+    /// 客户面调用链不传 allowFinal:显式 final planId 一律拒绝,不静默换档。
+    await assert.rejects(
+      () => resolveShuyuVideoPlan({ ...args, planId: "video-plan-13" }),
+      (error: unknown) =>
+        error instanceof ShuyuPlanUnavailableError && /final-tier/.test(error.message),
+    );
+    await assert.rejects(
+      () => resolveShuyuVideoPlanWithCooldown({ ...args, planId: "video-plan-13" }),
+      ShuyuPlanUnavailableError,
+    );
+    /// tier=final 但没开闸同样拒绝。
+    await assert.rejects(
+      () => resolveShuyuVideoPlan({ ...args, tier: "final" }),
+      ShuyuPlanUnavailableError,
+    );
+    /// 显式 draft planId 不受影响。
+    assert.equal((await resolveShuyuVideoPlan({ ...args, planId: "video-plan-07" })).planId, "video-plan-07");
+    /// 开闸 → 放行,且返回的就是那条 final 套餐。
+    const allowed = await resolveShuyuVideoPlan({ ...args, planId: "video-plan-13", allowFinal: true });
+    assert.equal(allowed.tier, "final");
+    assert.equal(shuyuVideoPlanPointsForDuration(allowed, 15), 240 * 15);
+    /// 不在审计清单的 ID 仍按原语义拒绝(not_found)。
+    await assert.rejects(
+      () => resolveShuyuVideoPlan({ ...args, planId: "video-plan-99", allowFinal: true }),
+      /not in the audited available list/,
+    );
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});
+
+test("价目表只剩 final 档时,默认(draft)解析如实报无可用套餐,不偷用 1080P", async () => {
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const onlyFinal = MARKET_1026.filter((plan) => plan.resolution === "1080P");
+    const args = { ...RESOLVE_ENV, fetchImpl: pricesFetch(onlyFinal) };
+    await assert.rejects(() => resolveShuyuVideoPlan(args), /draft tier/);
+    await assert.rejects(() => resolveShuyuVideoPlanWithCooldown(args), /draft tier/);
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
 });

@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  * 讲流程 / 种草可用；展示产品细节请走上方主线（b-roll 做不了产品一致性）。
  */
 
-/// 与 audio-caption-controls 的 VOICE_OPTIONS 同一套 id（openai-tts 做映射）
+/// 与 audio-caption-controls 的 VOICE_OPTIONS 同一套 id（providers/tts 的 VOICE_MAP 按供应商映射）
 const VOICES = [
   { id: "warm-confident", zh: "温暖自信", en: "Warm and confident" },
   { id: "natural-friendly", zh: "自然亲切", en: "Natural and friendly" },

@@ -45,6 +45,13 @@ export type CaptionStyle = "word_by_word" | "karaoke" | "plain";
 export type CaptionPosition = "top" | "center" | "bottom";
 export type BgmTrackId = "none" | "wholesome";
 
+/**
+ * 口播由谁驱动。native = 视频模型自己说（现状）；
+ * tts_lipsync = 外部 TTS 音轨 + 后置对口型（D-13 / P04-F）；
+ * audio_reference = TTS 音轨作参考音频驱动生成（P04-E，G2′ 之后）。
+ */
+export type VoiceoverDrive = "native" | "tts_lipsync" | "audio_reference";
+
 export interface VoiceoverSettings {
   enabled: boolean;
   /** Product-facing voice style identifier; Seedance receives it in the prompt. */
@@ -52,6 +59,8 @@ export interface VoiceoverSettings {
   language: string;
   /** Final user-editable wording spoken by Seedance; maximum 2,000 characters. */
   script: string;
+  /** 缺省 = native（旧快照没有这个字段）。 */
+  drive?: VoiceoverDrive;
 }
 
 export interface AudioSettings {

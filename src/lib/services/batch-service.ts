@@ -60,6 +60,7 @@ import {
 import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
 import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
 import type { BatchPostProductionInput } from "@/lib/schemas/unified-input";
+import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
 import {
   createVideoRouteSnapshot,
   readVideoRouteSnapshot,
@@ -566,6 +567,13 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
     if (imagesPerVideo.max > 9) {
       throw new BatchProviderInputError("合作方线路每支视频最多接受 9 张参考图");
     }
+  }
+  const driveCheck = await evaluateVoiceoverDrive({
+    voiceover: input.postProduction?.audio.voiceover,
+    routeSnapshot: videoRouteSnapshot,
+  });
+  if (!driveCheck.ok) {
+    throw new BatchProviderInputError(driveCheck.message);
   }
   /// 买断制线路按实时审计套餐估算积分需求;解析失败时交给可用性探针给出
   /// 具体原因(price_contract_mismatch 等),不用过期常量高/低估。

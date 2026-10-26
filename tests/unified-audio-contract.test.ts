@@ -92,6 +92,7 @@ test("supervisor carries a normalized post-production snapshot", async () => {
         voiceId: "warm-confident",
         language: "zh-CN",
         script: "一拧即开，随时补水。",
+        drive: "native",
       },
       bgm: { trackId: "wholesome", volume: 0.2 },
     },

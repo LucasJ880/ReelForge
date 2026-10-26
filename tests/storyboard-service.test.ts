@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 
 import { db } from "../src/lib/db";
 import { parseStoryboardArtifact } from "../src/lib/video-generation/storyboard-lock";
@@ -545,4 +545,148 @@ test("manual storyboard waits for approval while auto policy approves", () => {
   assert.equal(manual.canApprove, true);
   assert.equal(automatic.status, "APPROVED");
   assert.equal(automatic.canApprove, false);
+});
+
+// ---------------------------------------------------------------------------
+// P02-D(s) · 主播参考图：落 personAssetIds 列、不进 inputImageUrls、幂等键向后兼容
+// ---------------------------------------------------------------------------
+import { createHash } from "node:crypto";
+import { __setMediaAssetRepositoryForTests } from "../src/lib/services/media-asset-service";
+import {
+  createStoryboardRun,
+  requireApprovedStoryboardVideoInputsForBrief,
+  StoryboardRequestError,
+} from "../src/lib/video-generation/storyboard-service";
+
+const CREATE_INPUT = {
+  userId: "owner-1",
+  idempotencyKey: "idem-person-1",
+  prompt: "Show the shade lowering over a sunny window at breakfast time",
+  durationSec: 15,
+  aspectRatio: "9:16" as const,
+  sourceAssetIds: ["prod-1"],
+};
+
+test("P02-D(s)：没有主播图时 requestHash 与改动前的公式一字不差；有主播图才进 hash", () => {
+  const urls = ["https://assets.example.test/prod-1.jpg"];
+  const legacy = createHash("sha256")
+    .update(JSON.stringify({
+      prompt: CREATE_INPUT.prompt.trim(),
+      durationSec: CREATE_INPUT.durationSec,
+      aspectRatio: CREATE_INPUT.aspectRatio,
+      sourceAssetIds: ["prod-1"],
+      assetUrls: urls,
+      approvalPolicy: "MANUAL",
+      purpose: "single-video-storyboard",
+    }))
+    .digest("hex");
+  assert.equal(storyboardServiceTest.requestHash(CREATE_INPUT, urls), legacy);
+  assert.equal(storyboardServiceTest.requestHash(CREATE_INPUT, urls, []), legacy);
+  assert.equal(
+    storyboardServiceTest.requestHash({ ...CREATE_INPUT, personAssetIds: [] }, urls, []),
+    legacy,
+  );
+  const withPerson = storyboardServiceTest.requestHash(CREATE_INPUT, urls, ["p-2", "p-1"]);
+  assert.notEqual(withPerson, legacy);
+  // 顺序无关
+  assert.equal(storyboardServiceTest.requestHash(CREATE_INPUT, urls, ["p-1", "p-2"]), withPerson);
+});
+
+function mediaRecord(id: string, mimeType = "image/jpeg") {
+  return {
+    id,
+    userId: "owner-1",
+    workspaceId: null,
+    storageKey: `uploads/${id}.bin`,
+    url: `https://assets.example.test/${id}.jpg`,
+    mimeType,
+    byteSize: 1,
+    sha256: id,
+    width: 1080,
+    height: 1920,
+  };
+}
+
+function createHarness(t: TestContext, records: ReturnType<typeof mediaRecord>[]) {
+  __setMediaAssetRepositoryForTests({
+    create: async () => { throw new Error("no uploads in this test"); },
+    findMany: async ({ where }) =>
+      records.filter((record) => where.id.in.includes(record.id) && record.userId === where.userId) as never,
+  });
+  t.after(() => __setMediaAssetRepositoryForTests(null));
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const originals = { findUnique: runModel.findUnique, create: runModel.create, findFirst: runModel.findFirst };
+  t.after(() => Object.assign(runModel, originals));
+  const creates: Array<Record<string, unknown>> = [];
+  let created: Record<string, unknown> | null = null;
+  runModel.findUnique = async () => null;
+  runModel.create = async (args: { data: Record<string, unknown> }) => {
+    creates.push(args.data);
+    // 帧留空：不触发首帧提交（提交路径在 P02-B 单独测）。
+    created = { ...args.data, frames: [], approvedAt: null, errorCode: null, errorMessage: null };
+    return created;
+  };
+  runModel.findFirst = async () => created;
+  return { creates };
+}
+
+test("P02-D(s)：主播参考图落 personAssetIds 列；inputAssetIds / inputImageUrls 只放商家实拍", async (t) => {
+  const h = createHarness(t, [mediaRecord("prod-1"), mediaRecord("person-1"), mediaRecord("person-2")]);
+  const view = await createStoryboardRun({ ...CREATE_INPUT, personAssetIds: ["person-1", "person-2", "person-1"] });
+  assert.equal(view.status, "GENERATING");
+  assert.equal(h.creates.length, 1);
+  const data = h.creates[0];
+  assert.deepEqual(data.personAssetIds, ["person-1", "person-2"], "去重后落列");
+  assert.deepEqual(data.inputAssetIds, ["prod-1"]);
+  assert.deepEqual(data.inputImageUrls, ["https://assets.example.test/prod-1.jpg"], "主播图 URL 不混进实拍列");
+});
+
+test("P02-D(s)：主播参考图校验——同图不能兼任商品图、最多 4 张、必须是图片、必须归本人", async (t) => {
+  createHarness(t, [mediaRecord("prod-1"), mediaRecord("person-1"), mediaRecord("clip-1", "video/mp4")]);
+  const rejects = async (personAssetIds: string[], code: string, status = 400) => {
+    await assert.rejects(
+      createStoryboardRun({ ...CREATE_INPUT, personAssetIds }),
+      (error: unknown) =>
+        error instanceof StoryboardRequestError && error.code === code && error.status === status,
+      `expected ${code} for ${JSON.stringify(personAssetIds)}`,
+    );
+  };
+  await rejects(["prod-1"], "VALIDATION_FAILED");
+  await rejects(["a", "b", "c", "d", "e"], "VALIDATION_FAILED");
+  await rejects(["clip-1"], "VALIDATION_FAILED");
+  await rejects(["someone-elses"], "NOT_FOUND", 404);
+});
+
+test("P02-D(s)：派发取参考图时主播图不算实拍——productPhotoCount 只数 inputImageUrls", async (t) => {
+  const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+  const original = runModel.findUnique;
+  t.after(() => { runModel.findUnique = original; });
+  const frameUrls = [0, 1, 2, 3].map((i) => `https://assets.example.test/frame-${i}.png`);
+  runModel.findUnique = async () => ({
+    id: "run-approved",
+    userId: "owner-1",
+    status: "APPROVED",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    sourcePrompt: "story",
+    inputAssetIds: ["prod-1", "prod-2"],
+    inputImageUrls: ["https://assets.example.test/prod-1.jpg", "https://assets.example.test/prod-2.jpg"],
+    personAssetIds: ["person-1"],
+    anchorCutoutUrls: [],
+    frames: frameUrls.map((url, ordinal) => fakeFrame({
+      id: `f${ordinal}`,
+      ordinal,
+      status: "SUCCEEDED",
+      outputUrl: url,
+      outputAsset: { userId: "owner-1", url },
+    })),
+  });
+  const inputs = await requireApprovedStoryboardVideoInputsForBrief("brief-1");
+  assert.equal(inputs.productPhotoCount, 2);
+  assert.deepEqual(inputs.references, [
+    "https://assets.example.test/prod-1.jpg",
+    "https://assets.example.test/prod-2.jpg",
+    ...frameUrls,
+  ]);
+  assert.ok(inputs.references.every((url) => !/person/.test(url)));
 });

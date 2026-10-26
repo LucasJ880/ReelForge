@@ -15,6 +15,9 @@ import {
 } from "@/lib/providers/shuyu-image-provider";
 import {
   createOwnedMediaAsset,
+  MediaAssetNotFoundError,
+  MediaAssetTypeError,
+  resolveOwnedImageAssets,
   resolveOwnedMediaAssets,
 } from "@/lib/services/media-asset-service";
 import {
@@ -25,6 +28,7 @@ import {
 import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import { STORYBOARD_BEATS_LONG, STORYBOARD_BEATS_SHORT } from "@/lib/video-generation/storyboard-beats";
+import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
 
 const STORYBOARD_LEASE_MS = 2 * 60_000;
 const STORYBOARD_POLL_RETRY_MS = 20_000;
@@ -77,6 +81,9 @@ export interface CreateStoryboardRunInput {
   durationSec: number;
   aspectRatio: "9:16" | "16:9" | "1:1";
   sourceAssetIds?: string[];
+  /// 主播参考图（P02-D(s)）：最多 4 张，落 StoryboardRun.personAssetIds（M1 列）；
+  /// 不进 inputAssetIds / inputImageUrls（那两列只放商家实拍），不算实拍张数。
+  personAssetIds?: string[];
   approvalPolicy?: "MANUAL" | "AUTO";
   purpose?: string;
   /// 用户在创作台直接发起时为 true：新建 run 前按小时计数限流。
@@ -110,17 +117,22 @@ export interface StoryboardRunView {
   }>;
 }
 
+interface ResumableStoryboardAsset {
+  id: string;
+  url: string;
+  mimeType: string;
+  width: number | null;
+  height: number | null;
+}
+
 export interface ResumableStoryboardContext {
   prompt: string;
   durationSec: number;
   aspectRatio: string;
-  sourceAssets: Array<{
-    id: string;
-    url: string;
-    mimeType: string;
-    width: number | null;
-    height: number | null;
-  }>;
+  /// 商家实拍（inputAssetIds）。
+  sourceAssets: ResumableStoryboardAsset[];
+  /// 主播参考图（personAssetIds，M1 列）；创作台露出留 P02-D2。
+  personAssets: ResumableStoryboardAsset[];
 }
 
 interface StoryboardRuntimeDependencies {
@@ -301,7 +313,11 @@ export function canRegenerateStoryboardFrame(frame: {
   return frame.lastProviderStatus === "refunded";
 }
 
-function requestHash(input: CreateStoryboardRunInput, assetUrls: string[]): string {
+function requestHash(
+  input: CreateStoryboardRunInput,
+  assetUrls: string[],
+  personAssetIds: readonly string[] = [],
+): string {
   return createHash("sha256")
     .update(JSON.stringify({
       prompt: input.prompt.trim(),
@@ -311,8 +327,29 @@ function requestHash(input: CreateStoryboardRunInput, assetUrls: string[]): stri
       assetUrls,
       approvalPolicy: input.approvalPolicy ?? "MANUAL",
       purpose: input.purpose ?? "single-video-storyboard",
+      /// 只在非空时入 hash：没有主播图的请求与 P02-D(s) 之前算出的幂等键一字不差（刷新重提不冲突）。
+      ...(personAssetIds.length > 0 ? { personAssetIds: [...personAssetIds].sort() } : {}),
     }))
     .digest("hex");
+}
+
+/**
+ * 主播参考图归属与类型校验：必须是本人可用的图片素材。错误翻译成故事板的人话错误码，
+ * 不让 MediaAsset 层的异常以 500 漏出去。
+ */
+async function assertStoryboardPersonAssets(userId: string, assetIds: string[]): Promise<void> {
+  if (assetIds.length === 0) return;
+  try {
+    await resolveOwnedImageAssets({ userId, assetIds });
+  } catch (error) {
+    if (error instanceof MediaAssetTypeError) {
+      throw new StoryboardRequestError("主播参考图只接受图片素材。", "VALIDATION_FAILED");
+    }
+    if (error instanceof MediaAssetNotFoundError) {
+      throw new StoryboardRequestError("主播参考图不存在或无权访问。", "NOT_FOUND", 404);
+    }
+    throw error;
+  }
 }
 
 function frameRequestKey(runId: string, ordinal: number, attempt: number): string {
@@ -336,13 +373,29 @@ export async function createStoryboardRun(
     throw new StoryboardRequestError("视频时长不受支持。", "VALIDATION_FAILED");
   }
   const assetIds = [...new Set(input.sourceAssetIds ?? [])];
+  const personAssetIds = [...new Set(input.personAssetIds ?? [])];
+  if (personAssetIds.length > STORYBOARD_PERSON_REFS_MAX) {
+    throw new StoryboardRequestError(
+      `主播参考图最多 ${STORYBOARD_PERSON_REFS_MAX} 张。`,
+      "VALIDATION_FAILED",
+    );
+  }
+  if (personAssetIds.some((assetId) => assetIds.includes(assetId))) {
+    throw new StoryboardRequestError(
+      "同一张图不能既是商品图又是主播参考图。",
+      "VALIDATION_FAILED",
+    );
+  }
   const assets = assetIds.length
     ? await resolveOwnedMediaAssets({ userId: input.userId, assetIds })
     : [];
   if (assets.some((asset) => !asset.mimeType.startsWith("image/"))) {
     throw new StoryboardRequestError("故事板只接受图片素材。", "VALIDATION_FAILED");
   }
-  const hash = requestHash(input, assets.map((asset) => asset.url));
+  // 主播图只校验归属与类型、落 id 列；URL 在提交每帧时按列重新解析（见 submitStoryboardFrame），
+  // 不混进 inputImageUrls——那一列只放商家实拍，派发时据此数实拍张数。
+  await assertStoryboardPersonAssets(input.userId, personAssetIds);
+  const hash = requestHash(input, assets.map((asset) => asset.url), personAssetIds);
   const existing = await db.storyboardRun.findUnique({
     where: {
       userId_idempotencyKey: {
@@ -386,6 +439,7 @@ export async function createStoryboardRun(
         sourcePrompt: input.prompt.trim(),
         inputAssetIds: assetIds,
         inputImageUrls: assets.map((asset) => asset.url),
+        personAssetIds,
         frames: {
           create: plans.map((plan) => ({
             ordinal: plan.ordinal,
@@ -934,29 +988,35 @@ export async function findResumableStoryboardRunForUser(userId: string): Promise
   });
   if (!candidate) return null;
   const run = await reconcileStoryboardRun(candidate.id, userId);
-  const assets = run.inputAssetIds.length
+  /// 旧行没有 personAssetIds 列值时按空数组处理（M1 迁移默认 []，这里只是防御）。
+  const personAssetIds = run.personAssetIds ?? [];
+  const wantedAssetIds = [...new Set([...run.inputAssetIds, ...personAssetIds])];
+  const assets = wantedAssetIds.length
     ? await db.mediaAsset.findMany({
-        where: { id: { in: run.inputAssetIds }, userId },
+        where: { id: { in: wantedAssetIds }, userId },
         select: { id: true, url: true, mimeType: true, width: true, height: true },
       })
     : [];
   const assetsById = new Map(assets.map((asset) => [asset.id, asset]));
+  const pick = (assetIds: readonly string[]): ResumableStoryboardAsset[] =>
+    assetIds
+      .map((assetId) => assetsById.get(assetId))
+      .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset))
+      .map((asset) => ({
+        id: asset.id,
+        url: asset.url,
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+      }));
   return {
     run: storyboardRunView(run),
     context: {
       prompt: run.sourcePrompt,
       durationSec: run.durationSec,
       aspectRatio: run.aspectRatio,
-      sourceAssets: run.inputAssetIds
-        .map((assetId) => assetsById.get(assetId))
-        .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset))
-        .map((asset) => ({
-          id: asset.id,
-          url: asset.url,
-          mimeType: asset.mimeType,
-          width: asset.width,
-          height: asset.height,
-        })),
+      sourceAssets: pick(run.inputAssetIds),
+      personAssets: pick(personAssetIds),
     },
   };
 }
@@ -1290,6 +1350,8 @@ export async function requireApprovedStoryboardVideoInputsForBrief(briefId: stri
   aspectRatio: string;
 }> {
   const { run, frameUrls } = await loadApprovedStoryboardForBrief(briefId);
+  /// inputImageUrls 只放商家实拍：主播参考图在 personAssetIds 列，不进这里，也不算实拍张数（P02-D(s)）。
+  /// 主播图是否随派发进视频参考、以及分组返回，留 P02-F(s)。
   const references = composeSingleVideoReferenceImages({
     productImageUrls: run.inputImageUrls,
     storyboardFrameUrls: frameUrls,
@@ -1597,4 +1659,5 @@ export const __test__ = {
   submitStoryboardFrame,
   reconcileStoryboardFrame,
   advanceRun,
+  requestHash,
 };

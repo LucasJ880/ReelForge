@@ -73,6 +73,13 @@ export type FounderDigestData = {
     items: Array<{ at: Date; kind: "single" | "batch"; owner: string | null; title: string; reason: string }>;
   };
   needsAttention: Array<{ owner: string; workspace: string | null; count: number }>;
+  /** C1：窗口内自助注册的新账号（首页「免费试做」入口）。 */
+  signups: {
+    total: number;
+    items: Array<{ createdAt: Date; email: string; workspace: string; industry: string | null; city: string | null }>;
+  };
+  /** C1：申请了开通询盘页、还没开通的工作区——不限窗口，每一条都等你处理。 */
+  activationRequests: Array<{ requestedAt: Date; workspace: string; owner: string }>;
 };
 
 export type FounderDigestCounts = {
@@ -81,6 +88,8 @@ export type FounderDigestCounts = {
   failedVideos: number;
   needsAttentionAccounts: number;
   needsAttentionItems: number;
+  signups: number;
+  activationRequests: number;
 };
 
 export function digestCounts(data: FounderDigestData): FounderDigestCounts {
@@ -90,6 +99,8 @@ export function digestCounts(data: FounderDigestData): FounderDigestCounts {
     failedVideos: data.failedVideos.single + data.failedVideos.batch,
     needsAttentionAccounts: data.needsAttention.length,
     needsAttentionItems: data.needsAttention.reduce((sum, row) => sum + row.count, 0),
+    signups: data.signups.total,
+    activationRequests: data.activationRequests.length,
   };
 }
 
@@ -101,7 +112,8 @@ export async function loadFounderDigestData(now = new Date()): Promise<FounderDi
   const leadWhere = { createdAt: range, archivedAt: null, source: { in: LEAD_PAGE_SOURCES } };
   const pilotWhere = { createdAt: range, archivedAt: null };
 
-  const [pilotRows, pilotTotal, leadRows, leadTotal, batchRows, batchTotal, briefRows, briefTotal, needsAttention] =
+  const signupWhere = { createdAt: range, role: "CUSTOMER" as const };
+  const [pilotRows, pilotTotal, leadRows, leadTotal, batchRows, batchTotal, briefRows, briefTotal, needsAttention, signupRows, signupTotal, requestRows] =
     await Promise.all([
       db.pilotApplication.findMany({
         where: pilotWhere,
@@ -176,6 +188,19 @@ export async function loadFounderDigestData(now = new Date()): Promise<FounderDi
       }),
       db.videoBrief.count({ where: platformOrderFailureWhere(range) }),
       loadNeedsAttentionAccounts(now),
+      db.adminUser.findMany({
+        where: signupWhere,
+        orderBy: { createdAt: "desc" },
+        take: FOUNDER_DIGEST_LIST_LIMIT,
+        select: { createdAt: true, email: true, workspace: { select: { name: true, businessProfile: true } } },
+      }),
+      db.adminUser.count({ where: signupWhere }),
+      db.workspace.findMany({
+        where: { leadPageRequestedAt: { not: null }, leadPageEnabled: false },
+        orderBy: { leadPageRequestedAt: "asc" },
+        take: FOUNDER_DIGEST_LIST_LIMIT,
+        select: { name: true, leadPageRequestedAt: true, owner: { select: { email: true } } },
+      }),
     ]);
 
   const failedItems: FounderDigestData["failedVideos"]["items"] = [
@@ -251,6 +276,24 @@ export async function loadFounderDigestData(now = new Date()): Promise<FounderDi
     },
     failedVideos: { single: briefTotal, batch: batchTotal, items: failedItems },
     needsAttention,
+    signups: {
+      total: signupTotal,
+      items: signupRows.map((row) => {
+        const profile = (row.workspace?.businessProfile ?? {}) as { industry?: unknown; city?: unknown };
+        return {
+          createdAt: row.createdAt,
+          email: row.email,
+          workspace: row.workspace?.name ?? "—",
+          industry: typeof profile.industry === "string" ? profile.industry : null,
+          city: typeof profile.city === "string" ? profile.city : null,
+        };
+      }),
+    },
+    activationRequests: requestRows.map((row) => ({
+      requestedAt: row.leadPageRequestedAt ?? now,
+      workspace: row.name,
+      owner: row.owner.email,
+    })),
   };
 }
 
@@ -368,6 +411,14 @@ export function buildFounderDigest(
   const attention = data.needsAttention.map((row) =>
     [owner(row.owner), row.workspace, `${row.count} 条`].filter(Boolean).join(" · "),
   );
+  const signups = data.signups.items.map((item) =>
+    [utcShort(item.createdAt), item.workspace, [item.industry, item.city].filter(Boolean).join(" · "), owner(item.email)]
+      .filter(Boolean)
+      .join(" · "),
+  );
+  const requests = data.activationRequests.map((item) =>
+    [utcShort(item.requestedAt), item.workspace, owner(item.owner)].join(" · "),
+  );
   const base = options.baseUrl?.replace(/\/+$/, "") ?? null;
 
   const text = [
@@ -376,6 +427,13 @@ export function buildFounderDigest(
     "",
     ...section("试点申请 / Pilot applications", counts.pilotApplications, pilots, pilots.length),
     ...section("询盘页新询盘 / New lead-page inquiries", counts.leads, leads, leads.length),
+    ...section("自助注册（免费试做）/ New self-serve sign-ups", counts.signups, signups, signups.length),
+    ...section(
+      "待开通的询盘页（不限窗口，管理员面板开通）/ Inquiry pages awaiting activation",
+      counts.activationRequests,
+      requests,
+      requests.length,
+    ),
     ...section(
       `失败的视频 / Failed videos（单条 ${data.failedVideos.single} · 批量 ${data.failedVideos.batch}）`,
       counts.failedVideos,

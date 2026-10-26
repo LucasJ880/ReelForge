@@ -75,6 +75,11 @@ function sampleData(overrides: Partial<FounderDigestData> = {}): FounderDigestDa
       ],
     },
     needsAttention: [{ owner: "owner@sunny.test", workspace: "Sunny Shutter", count: 3 }],
+    signups: {
+      total: 1,
+      items: [{ createdAt: new Date("2026-10-25T10:00:00.000Z"), email: "new@shop.test", workspace: "Maple Blinds", industry: "window_coverings", city: "Vancouver" }],
+    },
+    activationRequests: [{ requestedAt: new Date("2026-10-23T18:00:00.000Z"), workspace: "Maple Blinds", owner: "new@shop.test" }],
     ...overrides,
   };
 }
@@ -103,7 +108,7 @@ function fakeDeps(overrides: Partial<FounderDigestDeps> = {}) {
   return { calls, deps };
 }
 
-test("汇总正文：四节齐全、中英标题、纯文本；空节写「无」", () => {
+test("汇总正文：六节齐全、中英标题、纯文本；空节写「无」", () => {
   const digest = buildFounderDigest(sampleData(), { day: "2026-10-25", baseUrl: "https://aivora.test/" });
   assert.equal(digest.subject, "Aivora 每日汇总 2026-10-25 · 试点 2 · 询盘 1 · 失败 3 · 需处理 3");
   assert.match(digest.text, /^Aivora 每日汇总 \/ Daily digest · 2026-10-25（UTC）/);
@@ -118,10 +123,10 @@ test("汇总正文：四节齐全、中英标题、纯文本；空节写「无�
   assert.doesNotMatch(digest.text, /<[a-z]/i, "纯文本，不带 HTML");
 
   const empty = buildFounderDigest(
-    sampleData({ pilotApplications: { total: 0, items: [] }, leads: { total: 0, items: [] }, failedVideos: { single: 0, batch: 0, items: [] }, needsAttention: [] }),
+    sampleData({ pilotApplications: { total: 0, items: [] }, leads: { total: 0, items: [] }, failedVideos: { single: 0, batch: 0, items: [] }, needsAttention: [], signups: { total: 0, items: [] }, activationRequests: [] }),
     { day: "2026-10-25" },
   );
-  assert.equal((empty.text.match(/无 \/ none/g) ?? []).length, 4);
+  assert.equal((empty.text.match(/无 \/ none/g) ?? []).length, 6);
   assert.match(empty.subject, /试点 0 · 询盘 0 · 失败 0 · 需处理 0$/);
 });
 
@@ -132,7 +137,7 @@ test("没配 RESEND_API_KEY / EMAIL_FROM：汇总打进日志，返回 not_confi
     sent: false,
     reason: "not_configured",
     day: "2026-10-25",
-    counts: { pilotApplications: 2, leads: 1, failedVideos: 3, needsAttentionAccounts: 1, needsAttentionItems: 3 },
+    counts: { pilotApplications: 2, leads: 1, failedVideos: 3, needsAttentionAccounts: 1, needsAttentionItems: 3, signups: 1, activationRequests: 1 },
   });
   assert.equal(calls.claims.length, 0);
   assert.equal(calls.sends.length, 0);
@@ -229,6 +234,8 @@ test("取数只用只读查询：过去 24 小时、询盘只算询盘页（含�
   patch(t, anyDb.adminUser, "findMany", record("adminUser.findMany", [
     { id: "user-1", email: "owner@sunny.test", workspace: { name: "Sunny Shutter", failuresAckedAt: null } },
   ]));
+  patch(t, anyDb.adminUser, "count", record("adminUser.count", 0));
+  patch(t, anyDb.workspace, "findMany", record("workspace.findMany", []));
 
   const data = await loadFounderDigestData(NOW);
 
@@ -241,7 +248,11 @@ test("取数只用只读查询：过去 24 小时、询盘只算询盘页（含�
   });
   /// 失败口径与 exchange-readings 同源：单条排除客户取消
   assert.ok(JSON.stringify((seen["videoBrief.count"][0] as { where: unknown }).where).includes("customer_cancelled"));
-  assert.deepEqual((seen["adminUser.findMany"][0] as { where: unknown }).where, { id: { in: ["user-1", "user-2"] } });
+  /// adminUser.findMany 两处：自助注册（按 createdAt + CUSTOMER）与需要处理（按 id）
+  const userWheres = (seen["adminUser.findMany"] as Array<{ where: Record<string, unknown> }>).map((call) => call.where);
+  assert.ok(userWheres.some((where) => JSON.stringify(where) === JSON.stringify({ id: { in: ["user-1", "user-2"] } })));
+  assert.ok(userWheres.some((where) => where.role === "CUSTOMER"));
+  assert.deepEqual((seen["workspace.findMany"][0] as { where: unknown }).where, { leadPageRequestedAt: { not: null }, leadPageEnabled: false });
 
   assert.equal(data.pilotApplications.total, 1);
   assert.deepEqual(data.pilotApplications.items[0].contacts, ["a@sunny.test", "微信 sunny_wx"]);
@@ -264,4 +275,13 @@ test("接线：路由先过 CRON_SECRET 鉴权再跑汇总；vercel.json 每天�
   const vercel = JSON.parse(await readFile("vercel.json", "utf8")) as { crons: Array<{ path: string; schedule: string }> };
   const entries = vercel.crons.filter((cron) => cron.path === "/api/cron/founder-digest");
   assert.deepEqual(entries, [{ path: "/api/cron/founder-digest", schedule: "0 13 * * *" }]);
+});
+
+test("C1：汇总带上自助注册与待开通的询盘页（日志版账号邮箱打码）", () => {
+  const full = buildFounderDigest(sampleData(), { day: "2026-10-25" });
+  assert.match(full.text, /自助注册（免费试做）\/ New self-serve sign-ups: 1/);
+  assert.match(full.text, /Maple Blinds · window_coverings · Vancouver · new@shop\.test/);
+  assert.match(full.text, /待开通的询盘页（不限窗口，管理员面板开通）\/ Inquiry pages awaiting activation: 1/);
+  const logged = buildFounderDigest(sampleData(), { day: "2026-10-25", redact: true });
+  assert.doesNotMatch(logged.text, /new@shop\.test/);
 });

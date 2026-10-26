@@ -29,5 +29,11 @@ export type ShowcaseSample = {
 };
 
 export const SHOWCASE_SAMPLES: readonly ShowcaseSample[] = [
-  // { kind: "final_video", id: "<FinalVideo.id>", note: "SunnyShutter 遮阳帘 · 9:16 · 已获书面许可" },
+  /// 1026 整合轮：SunnyShutter（关联方）窗帘广告 5 条，与公开首页「真实交付」同源；
+  /// 依据是 0721 创始人决定向所有用户开放 SunnyShutter 样片（逐条抽帧核过画面，无第三方品牌、无文字瑕疵）。
+  { kind: "order", id: "cmr8j6ge70001linzcmvaoilf", note: "窗帘爆款广告 · 成果前置 · 奶油奢华卧室" },
+  { kind: "order", id: "cmr8j6se9000clinztc4wrw2w", note: "窗帘爆款广告 · 空间焕新对比 · 卧室遮光改造" },
+  { kind: "order", id: "cmr8j70vt000nlinz3xffsqur", note: "窗帘爆款广告 · 痛点狙击 · 清晨刺眼阳光" },
+  { kind: "order", id: "cmr8j7baz000ylinzcnwkuxq0", note: "窗帘爆款广告 · 光影质感沉浸 · 白纱光影" },
+  { kind: "order", id: "cmr8j7imr0019linzg7sk5tbq", note: "窗帘爆款广告 · 成果前置 · 通顶玻璃门" },
 ];

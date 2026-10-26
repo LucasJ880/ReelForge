@@ -4,6 +4,11 @@ import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { canUseRequestedBrandName } from "@/lib/brand/global-brand-access";
 import {
+  canSubmitStoryboardPersonRefs,
+  hasPersonTaggedAttachment,
+  storyboardPersonRefsMode,
+} from "@/lib/video-generation/storyboard-person-refs";
+import {
   toCustomerVideoDispatchError,
   toCustomerVideoDispatchResponse,
   type CustomerVideoDispatchErrorInput,
@@ -190,6 +195,19 @@ export async function POST(req: NextRequest) {
         action: "contact_support",
       });
     }
+  }
+
+  /// 主播参考图（userAssignedRole=person）与故事板走同一个开关 STORYBOARD_PERSON_REFS（P02-D(s)）。
+  if (
+    hasPersonTaggedAttachment(reqParsed.data.attachments) &&
+    !canSubmitStoryboardPersonRefs({ mode: storyboardPersonRefsMode(), isInternal: isInternalStaff })
+  ) {
+    return dispatchErrorResponse(400, {
+      code: "VALIDATION_FAILED",
+      message: "主播参考图暂未开放，请去掉标为主播参考图的素材后再提交。",
+      retryable: false,
+      action: "fix_request",
+    });
   }
 
   let request: UnifiedVideoGenerationRequest;

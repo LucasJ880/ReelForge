@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  NEGATIVE_CONSTRAINTS_SEPARATOR,
   STORYBOARD_BEATS_LONG,
   STORYBOARD_BEATS_SHORT,
   STORYBOARD_GROUNDING_MARKER,
   groundSegmentPromptInStoryboard,
   storyboardBeatLabel,
 } from "../src/lib/video-generation/storyboard-beats";
+import { __test__ as promptIntelTest } from "../src/lib/video-generation/prompt-intelligence";
 import { buildStoryboardFramePlans } from "../src/lib/video-generation/storyboard-service";
 
 /**
@@ -77,9 +79,152 @@ test("界面上的节奏名按语言显示，未知的原样显示", () => {
   assert.equal(storyboardBeatLabel("custom beat", false), "custom beat");
 });
 
-test("接线：派发前按故事板改写提示词并写回 directorPlan", async () => {
+test("接线：派发前按故事板改写提示词并写回 directorPlan；该段负面提示词一并传入预算", async () => {
   const service = await readFile("src/lib/services/video-service.ts", "utf8");
   assert.match(service, /requireApprovedStoryboardVideoInputsForBrief\(briefId\)/);
   assert.match(service, /seedancePrompt: groundSegmentPromptInStoryboard\(segment\.seedancePrompt/);
+  assert.match(service, /negativePrompt: segment\.negativePrompt,/);
   assert.match(service, /directorPlan: groundedPlan as unknown as Prisma\.InputJsonValue/);
+  // 视频 provider 真正发出的拼接方式必须与预算用的分隔符一致
+  for (const file of [
+    "src/lib/video-generation/providers/shuyu-video-provider.ts",
+    "src/lib/video-generation/providers/byteplus-video-provider.ts",
+  ]) {
+    const provider = await readFile(file, "utf8");
+    assert.ok(provider.includes(JSON.stringify(NEGATIVE_CONSTRAINTS_SEPARATOR).slice(1, -1)), file);
+  }
+});
+
+/**
+ * P02-C：bible 落进提示词的人物 / 产品行（CHARACTER ( / PRODUCT ( / PRODUCT: / NO on-camera person）
+ * 在按故事板改写时必须保留——故事板帧只锚镜头，主播参考与产品描述的文字锚不能整行丢掉。
+ * 口播链路依赖 `Audio:` 与 `Spoken dialogue` 行，同样必须原样保留。
+ */
+const BIBLE_TEMPLATE = [
+  "9:16 vertical UGC-style short video shot on a phone, 15s continuous story told in 4 quick cuts.",
+  "",
+  "CHARACTER (must match the presenter reference photo — same face, hair, skin tone and build; keep 100% identical in every cut): The exact person in the presenter reference photo, oat-colored loungewear.",
+  "LOCATION: real lived-in home environment, natural clutter, daylight from window",
+  "PRODUCT (must exactly match the reference images): a navy linen roman shade with a white cord lock.",
+  "LIGHTING: bright natural morning daylight through the window",
+  "0-4s: tight close-up on the character's face.",
+  "",
+  "Audio: generate native speech for the approved voice-only dialogue below, with subtle real room ambience.",
+  'Spoken dialogue (voice only, exact wording, zh-CN, warm confident): "带它出门。"',
+  "Do not render subtitles, captions, readable text, or a music bed.",
+  "Style: authentic handheld iPhone footage",
+].join("\n");
+
+test("P02-C：CHARACTER ( / PRODUCT ( 行在 grounding 后保留，LOCATION / LIGHTING / 镜头表仍被替换", () => {
+  const out = groundSegmentPromptInStoryboard(BIBLE_TEMPLATE, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.match(out, /^CHARACTER \(must match the presenter reference photo[^\n]*oat-colored loungewear\.$/m);
+  assert.match(out, /^PRODUCT \(must exactly match the reference images\): a navy linen roman shade/m);
+  assert.doesNotMatch(out, /^LOCATION: |^LIGHTING: |^0-4s: tight close-up|^Style: /m);
+  // 保留行排在故事板镜头表之后
+  assert.ok(out.indexOf(STORYBOARD_GROUNDING_MARKER) < out.indexOf("CHARACTER ("));
+});
+
+test("P02-C：PRODUCT: 行保留；纯产品模版的 NO on-camera person 不保留（谁在镜头前由商家原话与故事板决定）", () => {
+  const productOnly = BIBLE_TEMPLATE
+    .replace(/^CHARACTER \([^\n]*$/m, "NO on-camera person: the product is the only hero of every shot.")
+    .replace(/^PRODUCT \([^\n]*$/m, "PRODUCT: a navy linen roman shade with a white cord lock.");
+  const out = groundSegmentPromptInStoryboard(productOnly, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 0, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.doesNotMatch(out, /NO on-camera person/);
+  assert.match(out, /^PRODUCT: a navy linen roman shade with a white cord lock\.$/m);
+  assert.doesNotMatch(out, /PRODUCT IDENTITY LOCK/);
+});
+
+test("P02-C 负向：没有主播图时，bible 自编的 CHARACTER (keep 100% identical…) 行不随派发保留（1025 修掉的「模板盖过商家原话」不回流）", () => {
+  const generic = BIBLE_TEMPLATE.replace(
+    /^CHARACTER \([^\n]*$/m,
+    "CHARACTER (keep 100% identical in every cut): One woman in her late 20s, shoulder-length dark brown hair, oat-colored loungewear.",
+  );
+  const out = groundSegmentPromptInStoryboard(generic, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.doesNotMatch(out, /^CHARACTER \(keep 100% identical/m);
+  assert.doesNotMatch(out, /One woman in her late 20s/);
+  // 身份锁（用户选的一致性锁）与产品行照旧保留
+  assert.match(out, /^PRODUCT \(must exactly match the reference images\)/m);
+});
+
+test("P02-C：带超长 CHARACTER / PRODUCT / 五把锁 / 长台词时，grounding 总长仍 ≤ 5000（故事动态让位，锁与台词不裁）", () => {
+  const long = (n: number, s = "word ") => s.repeat(Math.ceil(n / s.length)).slice(0, n);
+  const heavy = [
+    "9:16 vertical UGC-style short video shot on a phone, 15s continuous story told in 5 quick cuts.",
+    `CHARACTER (must match the presenter reference photo — same face, hair, skin tone and build; keep 100% identical in every cut): ${long(600)}`,
+    `LOCATION: ${long(400)}`,
+    `PRODUCT (must exactly match the reference images): ${long(400)}`,
+    `LIGHTING: ${long(200)}`,
+    `CHARACTER IDENTITY LOCK: ${long(200)}`,
+    `SCENE GEOMETRY LOCK: ${long(200)}`,
+    `PRODUCT SHAPE LOCK: ${long(200)}`,
+    `LIP-SYNC LOCK: ${long(200)}`,
+    `LIGHTING CONTINUITY LOCK: ${long(200)}`,
+    `0-3s: ${long(300)}`,
+    `Audio: generate native speech for the approved voice-only dialogue below, with subtle real room ambience. ${long(100)}`,
+    `Spoken dialogue (voice only, exact wording, zh-CN, warm confident): "${long(700, "带它出门，")}"`,
+    "Do not render subtitles, captions, readable text, or a music bed.",
+    `Style: ${long(300)}`,
+  ].join("\n");
+  const ground = (negativePrompt: string | null) => groundSegmentPromptInStoryboard(heavy, {
+    aspectRatio: "9:16", story: "很".repeat(4000), beats: STORYBOARD_BEATS_LONG, productPhotoCount: 3, totalDurationSec: 30, fromSec: 0, toSec: 15, negativePrompt,
+  });
+  const sent = (prompt: string, negative: string) => `${prompt}${NEGATIVE_CONSTRAINTS_SEPARATOR}${negative}`;
+  // provider 发出的是 prompt + "\nNegative constraints: " + negativePrompt：按真正发出的长度断言
+  const llmNegative = "no mirrored signage, no duplicated storefront text, no extra windows, ".repeat(9).slice(0, 600);
+  for (const negative of [promptIntelTest.DEFAULT_NEGATIVE_PROMPT, llmNegative]) {
+    const out = ground(negative);
+    const wire = sent(out, negative);
+    assert.ok(wire.length <= 5000, `sent length ${wire.length} with ${negative.length}-char negative`);
+    assert.ok(wire.length <= 4900, `≥100 margin left: ${wire.length}`);
+    assert.match(out, /^Spoken dialogue \(voice only, exact wording, zh-CN, warm confident\): "带它出门，/m);
+    assert.match(out, /^CHARACTER \(must match the presenter reference photo/m);
+    assert.match(out, /^LIP-SYNC LOCK: /m);
+    assert.match(out, /STORY \(the merchant's own description[^\n]*很/, "故事仍有内容，只是让位");
+  }
+  // 负面越长，故事让出的越多；没有负面时故事最多
+  assert.ok(ground(null).length > ground(llmNegative).length);
+});
+
+test("P02-C：emoji 故事按供应商 UTF-16 预算截断，保留完整代理对与锁行台词", () => {
+  const product = `PRODUCT: ${"p".repeat(2400)}`;
+  const dialogue = `Spoken dialogue: ${"d".repeat(300)}`;
+  const original = `${product}\n${dialogue}`;
+  for (const story of ["😀".repeat(2000), "金毛😀".repeat(1000)]) {
+    // 两种负面长度覆盖奇偶预算：截断点不能留下半个 emoji。
+    for (const negativePrompt of ["n".repeat(599), "n".repeat(600)]) {
+      const out = groundSegmentPromptInStoryboard(original, {
+        aspectRatio: "9:16", story, beats: STORYBOARD_BEATS_LONG, productPhotoCount: 3,
+        totalDurationSec: 30, fromSec: 0, toSec: 15, negativePrompt,
+      });
+      const wire = `${out}${NEGATIVE_CONSTRAINTS_SEPARATOR}${negativePrompt}`;
+      assert.ok(wire.length <= 4900, `UTF-16 wire length ${wire.length} must leave 100 units of margin`);
+      assert.ok(out.includes(product), "产品锁原样保留");
+      assert.ok(out.includes(dialogue), "口播台词原样保留");
+      const storyLine = out.split("\n").find((line) => line.startsWith("STORY ("))!;
+      const retainedStory = storyLine.slice(storyLine.indexOf(": ") + 2);
+      assert.ok(retainedStory.length > 0, "预算内仍保留故事");
+      assert.ok(story.startsWith(retainedStory), "截断只保留原始故事的前缀");
+      assert.doesNotMatch(retainedStory, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u);
+    }
+  }
+});
+
+test("P02-C：Audio: 与 Spoken dialogue 开头的行在 grounding 后原样保留（口播链路依赖）", () => {
+  const out = groundSegmentPromptInStoryboard(BIBLE_TEMPLATE, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.match(out, /^Audio: generate native speech for the approved voice-only dialogue below, with subtle ambient sound that fits the location\.$/m);
+  assert.match(out, /^Spoken dialogue \(voice only, exact wording, zh-CN, warm confident\): "带它出门。"$/m);
+  assert.match(out, /^Do not render subtitles, captions, readable text, or a music bed\.$/m);
+  // 幂等：二次改写不丢这些行
+  const again = groundSegmentPromptInStoryboard(out, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.equal(again, out);
 });

@@ -25,6 +25,11 @@ export interface AuditedShuyuImagePlan {
    * 重建的计价快照不带它；目录里没声明时解析为空数组——按画幅筛选时视为不支持（fail closed）。
    */
   aspectRatios?: ShuyuAspectRatio[];
+  /**
+   * 价目表声明这档单次可带的参考图上限（capabilities.input_images_max；E1 实测图像档全部 = 6）。
+   * 可选：解析不到回落 undefined；从任务行重建的计价快照由调用方按默认上限兜底（P02-B）。
+   */
+  inputImagesMax?: number;
 }
 
 export interface ShuyuCatalog {
@@ -83,6 +88,7 @@ export function parseShuyuCatalog(input: unknown): ShuyuCatalog {
     ) {
       return [];
     }
+    const inputImagesMax = parseInputImagesMax(value.capabilities);
     return [
       {
         planId,
@@ -91,6 +97,7 @@ export function parseShuyuCatalog(input: unknown): ShuyuCatalog {
         points,
         family: "gpt-image-2",
         aspectRatios: parseAspectRatios(value.capabilities),
+        ...(inputImagesMax !== undefined ? { inputImagesMax } : {}),
       },
     ];
   });
@@ -108,6 +115,13 @@ function parseAspectRatios(capabilities: unknown): ShuyuAspectRatio[] {
       ),
     ),
   ];
+}
+
+/** 只认正整数；字符串 / 0 / 负数 / 缺省一律视为「价目表没说」。 */
+function parseInputImagesMax(capabilities: unknown): number | undefined {
+  if (!isRecord(capabilities)) return undefined;
+  const value = capabilities.input_images_max;
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
 const RESOLUTION_RANK: Record<ShuyuResolution, number> = { "1K": 1, "2K": 2, "4K": 3 };

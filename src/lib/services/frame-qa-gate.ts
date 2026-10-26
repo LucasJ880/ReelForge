@@ -5,8 +5,19 @@ import {
   FRAME_QA_GATE_TIMEOUT_MS,
   isFrameQaEnabled,
   runFrameTextQa,
+  type FrameDriftRequest,
   type FrameQaVerdict,
 } from "@/lib/video-generation/frame-qa";
+import {
+  FRAME_DRIFT_TIMEOUT_MS,
+  batchDriftReferences,
+  briefDriftReferences,
+  frameDriftMode,
+  unavailableDriftReferences,
+  type FrameDriftMode,
+  type FrameDriftReferences,
+  type FrameDriftResult,
+} from "@/lib/video-generation/frame-drift";
 import { budgetStore } from "@/lib/services/vision-budget-context";
 
 /**
@@ -27,6 +38,8 @@ import { budgetStore } from "@/lib/services/vision-budget-context";
  * - 同一段被拦截后平台最多免费重抽 2 次；第 3 次仍检出就按 WOULD_BLOCK 放行
  *   并告警，不再无限付费重抽。计数存在 frameQaDetail.blockCount（重试复用同一行）。
  * - 黑边 / 近静止是影子检查：只写 frameQaDetail.shadow，永不拦截。
+ * - 段级漂移（P01-B，FRAME_QA_DRIFT_MODE=shadow）：按行类型取参考图，结论只写 frameQaDetail.drift，
+ *   永不改放行结论；off（默认）不取参考图、不调 vision。
  */
 export type FrameQaGateDecision =
   | { action: "pass"; successData: Prisma.VideoJobUpdateManyMutationInput }
@@ -89,6 +102,12 @@ export const CRON_FRAME_QA_BUDGET = {
 /// 单次检查的最坏耗时（门禁超时 + 余量）：剩余窗口不够就 defer，
 /// 不把函数拖过 maxDuration（被平台杀掉会连带丢掉本轮其它状态迁移）。
 const PER_CHECK_RESERVE_MS = FRAME_QA_GATE_TIMEOUT_MS + 10_000;
+/// 开了漂移影子：漂移 vision 在抽帧之后起跑、自带 30s 超时，最坏比烧字门禁多出这 30s
+const PER_CHECK_RESERVE_WITH_DRIFT_MS = PER_CHECK_RESERVE_MS + FRAME_DRIFT_TIMEOUT_MS;
+
+function perCheckReserveMs(driftMode: FrameDriftMode): number {
+  return driftMode === "shadow" ? PER_CHECK_RESERVE_WITH_DRIFT_MS : PER_CHECK_RESERVE_MS;
+}
 
 /** 当前上下文的预算用量（cron 响应体里回显，便于观察） */
 export function frameQaBudgetUsage():
@@ -128,7 +147,7 @@ type BudgetReservation =
   | { ok: true; label: string }
   | { ok: false; reason: string };
 
-function reserveFrameQaCheck(now: number): BudgetReservation {
+function reserveFrameQaCheck(now: number, reserveMs = PER_CHECK_RESERVE_MS): BudgetReservation {
   const budget = budgetStore.getStore();
   if (!budget) {
     return outsideBudgetPolicy() === "inline"
@@ -139,7 +158,7 @@ function reserveFrameQaCheck(now: number): BudgetReservation {
     budget.deferred += 1;
     return { ok: false, reason: "frame_qa_budget_checks_exhausted" };
   }
-  if (Math.min(budget.deadline, budget.totalDeadline) - now < PER_CHECK_RESERVE_MS) {
+  if (Math.min(budget.deadline, budget.totalDeadline) - now < reserveMs) {
     budget.deferred += 1;
     return { ok: false, reason: "frame_qa_budget_time_exhausted" };
   }
@@ -226,6 +245,8 @@ export interface FrameQaDetail {
   freeRetryCap: number;
   warning?: string;
   shadow?: FrameQaVerdict["shadow"] | null;
+  /** 段级漂移影子结论（P01-B）：只记录，不参与 status */
+  drift?: FrameDriftResult | null;
   budget?: string;
   checkedAt: string;
 }
@@ -267,6 +288,7 @@ function skippedDecision(args: {
     blockCount: args.priorBlockCount,
     freeRetryCap: FRAME_QA_FREE_RETRY_CAP,
     ...(args.verdict?.shadow ? { shadow: args.verdict.shadow } : {}),
+    ...(args.verdict?.drift ? { drift: args.verdict.drift } : {}),
     ...(args.budget ? { budget: args.budget } : {}),
     checkedAt: args.checkedAt.toISOString(),
   };
@@ -304,6 +326,8 @@ export function decideFromVerdict(args: {
     issues: verdict.issues,
     freeRetryCap: FRAME_QA_FREE_RETRY_CAP,
     ...(verdict.shadow ? { shadow: verdict.shadow } : {}),
+    /// 漂移影子只落库，不进下面的放行判断（FRAME_QA_DRIFT_MODE=shadow 不改 ok）
+    ...(verdict.drift ? { drift: verdict.drift } : {}),
     ...(args.budget ? { budget: args.budget } : {}),
     checkedAt: checkedAt.toISOString(),
   };
@@ -347,19 +371,56 @@ export function decideFromVerdict(args: {
   };
 }
 
+/**
+ * 漂移参考图的来源（reconcile 读出的整行里取）：批量行有 assignedAssets，单条段行只有 videoBriefId。
+ */
+export interface FrameQaDriftSource {
+  assignedAssets: unknown;
+  videoBriefId: string | null;
+}
+
+/** 默认参考图解析：批量行读 assignedAssets；单条段行读 brief.referenceImageUrls + directorPlan.referenceLayout */
+export async function loadFrameDriftReferences(source: FrameQaDriftSource): Promise<FrameDriftReferences> {
+  if (source.assignedAssets != null) return batchDriftReferences(source.assignedAssets);
+  if (!source.videoBriefId) return unavailableDriftReferences("none", "既不是批量行也不是单条段行");
+  const brief = await db.videoBrief.findUnique({
+    where: { id: source.videoBriefId },
+    select: { referenceImageUrls: true, directorPlan: true },
+  });
+  if (!brief) return unavailableDriftReferences("brief_storyboard", "brief 不存在");
+  return briefDriftReferences(brief.referenceImageUrls, brief.directorPlan);
+}
+
 export interface FrameQaGateDeps {
   isFrameQaEnabled: () => boolean;
-  runFrameTextQa: (videoUrl: string) => Promise<FrameQaVerdict>;
+  /** 不带 opts = 只跑烧字门禁（漂移 off）；带 opts.drift = 同一份抽帧顺带跑漂移影子 */
+  runFrameTextQa: (videoUrl: string, opts?: { drift?: FrameDriftRequest }) => Promise<FrameQaVerdict>;
   loadPriorDetail: (jobId: string) => Promise<unknown>;
   now: () => Date;
   /** 质检占位（默认 CAS 写 frameQaStatus=CHECKING）；只在调用方传了 attempt 时调用 */
   claimCheck?: (jobId: string, pin: FrameQaAttemptPin, now: Date) => Promise<boolean>;
+  /** 漂移开关（默认读 FRAME_QA_DRIFT_MODE） */
+  driftMode?: () => FrameDriftMode;
+  /** 漂移参考图（默认 loadFrameDriftReferences）；只在 shadow 时调用 */
+  references?: (source: FrameQaDriftSource) => Promise<FrameDriftReferences>;
+}
+
+async function resolveDriftReferences(
+  source: FrameQaDriftSource | undefined,
+  load: (source: FrameQaDriftSource) => Promise<FrameDriftReferences>,
+): Promise<FrameDriftReferences> {
+  if (!source) return unavailableDriftReferences("none", "调用方未提供参考图来源");
+  try {
+    return await load(source);
+  } catch (error) {
+    return unavailableDriftReferences("none", `参考图读取失败：${(error as Error).message}`);
+  }
 }
 
 const defaultDeps: FrameQaGateDeps = {
   isFrameQaEnabled,
-  runFrameTextQa: async (videoUrl) => {
-    const verdict = await runFrameTextQa(videoUrl);
+  runFrameTextQa: async (videoUrl, opts) => {
+    const verdict = await runFrameTextQa(videoUrl, opts);
     if (!verdict.checked && GATE_FAILURE_REASON.test(verdict.skipReason ?? "")) {
       noteFrameQaVisionFailure();
     }
@@ -374,6 +435,8 @@ const defaultDeps: FrameQaGateDeps = {
     )?.frameQaDetail ?? null,
   now: () => new Date(),
   claimCheck: claimFrameQaCheckInDb,
+  driftMode: () => frameDriftMode(),
+  references: loadFrameDriftReferences,
 };
 
 export async function decideFrameQaGate(
@@ -391,6 +454,8 @@ export async function decideFrameQaGate(
      * 占不到（别的调用正在质检它，或这次尝试已被重试换掉）就 defer，不重复跑。
      */
     attempt?: FrameQaAttemptPin;
+    /** 漂移参考图的来源（整行里的 assignedAssets / videoBriefId）；只在漂移 shadow 时读 */
+    driftSource?: FrameQaDriftSource;
   },
   deps: FrameQaGateDeps = defaultDeps,
 ): Promise<FrameQaGateDecision> {
@@ -419,8 +484,9 @@ export async function decideFrameQaGate(
     });
   }
 
-  /// 预算按真实时钟计（deadline 在进入上下文时用 Date.now() 定下）
-  const reservation = reserveFrameQaCheck(Date.now());
+  const driftMode = (deps.driftMode ?? frameDriftMode)();
+  /// 预算按真实时钟计（deadline 在进入上下文时用 Date.now() 定下）；开漂移影子时多留 30s
+  const reservation = reserveFrameQaCheck(Date.now(), perCheckReserveMs(driftMode));
   if (!reservation.ok) {
     return { action: "defer", reason: reservation.reason };
   }
@@ -435,7 +501,20 @@ export async function decideFrameQaGate(
 
   const priorBlockCount =
     knownPrior ?? readFrameQaBlockCount(await deps.loadPriorDetail(params.jobId));
-  const verdict = await deps.runFrameTextQa(params.videoUrl);
+  const verdict =
+    driftMode === "shadow"
+      ? await deps.runFrameTextQa(params.videoUrl, {
+          drift: {
+            references: await resolveDriftReferences(
+              params.driftSource,
+              deps.references ?? loadFrameDriftReferences,
+            ),
+          },
+        })
+      : await deps.runFrameTextQa(params.videoUrl);
+  if (verdict.drift && !verdict.drift.ok) {
+    console.warn(`[frame-qa] job ${params.jobId} 漂移影子检出（不拦截）: ${verdict.drift.summary}`);
+  }
   if (!verdict.checked) {
     console.warn(`[frame-qa] job ${params.jobId} 门禁跳过: ${verdict.skipReason}`);
   }
@@ -460,5 +539,6 @@ export const __test__ = {
   reserveFrameQaCheck,
   outsideBudgetPolicy,
   PER_CHECK_RESERVE_MS,
+  PER_CHECK_RESERVE_WITH_DRIFT_MS,
   FRAME_QA_CLAIM_LEASE_MS,
 };

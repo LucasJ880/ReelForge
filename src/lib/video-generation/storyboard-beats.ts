@@ -68,6 +68,55 @@ function beatWithoutTime(beat: string): string {
 }
 
 /**
+ * 单条视频参考图的分组布局（P02-F(v)）：brief.referenceImageUrls 按 实拍 → 切片 → 主播 → 帧 排，
+ * 各组张数 + 派发时用的张数上限随 directorPlan 写回（`referenceLayout`）。
+ * 重试 / 重做按同一个上限截断，帧质检按它切出实拍与故事板首帧——不靠位置猜。
+ */
+export interface StoryboardReferenceLayout {
+  productPhotoCount: number;
+  anchorCount: number;
+  personCount: number;
+  frameCount: number;
+  limit: number;
+}
+
+function layoutCount(value: unknown): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null;
+}
+
+/** 从持久化的 directorPlan（任意 JSON）读 referenceLayout；没有或坏数据 → null。 */
+export function readStoryboardReferenceLayout(directorPlan: unknown): StoryboardReferenceLayout | null {
+  if (!directorPlan || typeof directorPlan !== "object" || Array.isArray(directorPlan)) return null;
+  const raw = (directorPlan as { referenceLayout?: unknown }).referenceLayout;
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const record = raw as Record<string, unknown>;
+  const productPhotoCount = layoutCount(record.productPhotoCount);
+  const anchorCount = layoutCount(record.anchorCount);
+  const personCount = layoutCount(record.personCount);
+  const frameCount = layoutCount(record.frameCount);
+  const limit = layoutCount(record.limit);
+  if (
+    productPhotoCount === null ||
+    anchorCount === null ||
+    personCount === null ||
+    frameCount === null ||
+    limit === null ||
+    limit < 1
+  ) {
+    return null;
+  }
+  return { productPhotoCount, anchorCount, personCount, frameCount, limit };
+}
+
+function imageSpan(from: number, to: number): string {
+  return from === to ? `image ${from} is` : `images ${from}-${to} are`;
+}
+
+function capitalize(sentence: string): string {
+  return sentence.charAt(0).toUpperCase() + sentence.slice(1);
+}
+
+/**
  * 把一段视频提示词改写成「按已确认故事板拍」（纯函数）。
  *
  * 1025 真机验收：单条视频的提示词来自通用 UGC 配方——LOCATION 写死「居家、窗边晨光」，
@@ -84,6 +133,9 @@ export function groundSegmentPromptInStoryboard(
     beats: readonly string[];
     /// 参考图里排在故事板帧前面的实拍张数（0 = 纯文字起稿，没有实拍）
     productPhotoCount: number;
+    /// 排在实拍之后、帧之前的切片与主播张数（P02-F(v)；缺省 0 = 与分组前逐字节一致）
+    anchorCount?: number;
+    personCount?: number;
     totalDurationSec: number;
     fromSec: number;
     toSec: number;
@@ -96,19 +148,40 @@ export function groundSegmentPromptInStoryboard(
   const span = input.totalDurationSec / count;
   const segmentSec = Math.max(1, input.toSec - input.fromSec);
   const photos = input.productPhotoCount;
+  const anchors = input.anchorCount ?? 0;
+  const persons = input.personCount ?? 0;
+  /// 帧在参考图里的序号要跳过排在它前面的实拍、切片与主播
+  const frameOffset = photos + anchors + persons;
   const shots = input.beats
     .map((beat, index) => ({ index, from: index * span, to: (index + 1) * span, beat: beatWithoutTime(beat) }))
     .filter((shot) => shot.to > input.fromSec && shot.from < input.toSec)
     .map((shot) => {
       const from = Math.max(0, Math.round(shot.from - input.fromSec));
       const to = Math.min(segmentSec, Math.round(shot.to - input.fromSec));
-      return `${from}-${to}s: recreate storyboard keyframe ${shot.index + 1} (reference image ${photos + shot.index + 1}) — ${shot.beat}.`;
+      return `${from}-${to}s: recreate storyboard keyframe ${shot.index + 1} (reference image ${frameOffset + shot.index + 1}) — ${shot.beat}.`;
     });
   const normalizedStory = input.story.replace(/\s+/gu, " ").trim();
-  const photoRange = photos === 1 ? "image 1 is a real photo" : `images 1-${photos} are real photos`;
-  const references = photos > 0
-    ? `REFERENCE IMAGES: ${photoRange} of the product — match it exactly. Images ${photos + 1}-${photos + count} are the approved storyboard keyframes in story order — match their people, location, wardrobe, light and framing.`
-    : `REFERENCE IMAGES: images 1-${count} are the approved storyboard keyframes in story order — match their people, location, wardrobe, light, framing and the product they show.`;
+  const roles: string[] = [];
+  if (photos > 0) {
+    roles.push(`${photos === 1 ? "image 1 is a real photo" : `images 1-${photos} are real photos`} of the product — match it exactly.`);
+  }
+  if (anchors > 0) {
+    roles.push(
+      anchors === 1
+        ? `image ${photos + 1} is a cut-out view of the same product — match it exactly.`
+        : `images ${photos + 1}-${photos + anchors} are cut-out views of the same product — match it exactly.`,
+    );
+  }
+  if (persons > 0) {
+    roles.push(
+      `${imageSpan(photos + anchors + 1, frameOffset)} the presenter reference ${persons === 1 ? "photo" : "photos"} — the on-camera person must be this exact person (same face, hair, skin tone and build).`,
+    );
+  }
+  const productReferenced = photos + anchors > 0;
+  roles.push(
+    `images ${frameOffset + 1}-${frameOffset + count} are the approved storyboard keyframes in story order — match their people, location, wardrobe, light${productReferenced ? " and framing" : ", framing and the product they show"}.`,
+  );
+  const references = `REFERENCE IMAGES: ${roles.map((role, index) => (index === 0 ? role : capitalize(role))).join(" ")}`;
   const kept = original
     .split("\n")
     .map((line) => line.trim())

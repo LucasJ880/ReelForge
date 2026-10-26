@@ -12,10 +12,10 @@
  *   npm run frame:qa -- final.mp4 --json > evidence.json
  *
  * 选项：
- *   --refs <url,url>   商品参考图。runFrameTextQa 目前的签名只有 { frameCount }，没有
- *                      references 字段，所以这里只在输出里回显并标注「待 P01-B 接入」；
- *                      P01-B 落地后把 refs 传进 opts 即可，不改本文件以外的东西。
- *   --json             把完整 verdict（含 issues / shadow / 回显的 refs）作为 JSON 数组打到 stdout；
+ *   --refs <url,url>   商品参考图（https URL）。给了就同一份抽帧顺带跑 P01-B 段级漂移判据
+ *                      （与生产同一组函数，不看 FRAME_QA_DRIFT_MODE），结论在 verdict.drift；
+ *                      漂移只记录，不影响退出码（与生产影子模式一致）。会多一次付费 vision 调用。
+ *   --json             把完整 verdict（含 issues / shadow / drift / refs）作为 JSON 数组打到 stdout；
  *                      人读的进度行改走 stderr，stdout 保持纯 JSON 可直接重定向。
  *
  * 退出码：0 = 全部通过；1 = 存在被拦截的视频；2 = 用法错误 / 门禁未启用 / 执行失败。
@@ -59,7 +59,7 @@ function splitRefs(value: string): string[] {
     .filter((ref) => ref.length > 0);
 }
 
-const REFS_NOTE = "references 待 P01-B 接入 runFrameTextQa；本次仅回显，未参与判定";
+const REFS_NOTE = "references 只用于 P01-B 漂移影子（verdict.drift），不参与烧字拦截与退出码";
 
 async function main() {
   /// loadEnvConfig 之后再 import，确保 OPENAI_API_KEY 等已注入
@@ -91,20 +91,25 @@ async function main() {
   const results: Array<{
     target: string;
     references: string[];
-    referencesApplied: false;
+    referencesApplied: boolean;
     referencesNote: string;
     verdict: Awaited<ReturnType<typeof runFrameTextQa>>;
   }> = [];
+  const drift =
+    args.refs.length > 0
+      ? { references: { source: "manual" as const, productUrls: args.refs, storyboardUrls: [] } }
+      : undefined;
   for (const target of args.targets) {
     say(`→ ${target}`);
-    const verdict = await runFrameTextQa(target);
+    const verdict = await runFrameTextQa(target, drift ? { drift } : undefined);
     results.push({
       target,
       references: args.refs,
-      referencesApplied: false,
+      referencesApplied: Boolean(verdict.drift?.checked),
       referencesNote: REFS_NOTE,
       verdict,
     });
+    if (verdict.drift) say(`  ${verdict.drift.checked ? (verdict.drift.ok ? "◇" : "◆") : "⚠"} ${verdict.drift.summary}`);
     if (!verdict.checked) {
       say(`  ⚠ ${verdict.summary}`);
       continue;

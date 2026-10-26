@@ -87,7 +87,11 @@ import {
   requireApprovedStoryboardVideoInputsForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
 } from "@/lib/video-generation/storyboard-service";
-import { groundSegmentPromptInStoryboard } from "@/lib/video-generation/storyboard-beats";
+import {
+  groundSegmentPromptInStoryboard,
+  readStoryboardReferenceLayout,
+  type StoryboardReferenceLayout,
+} from "@/lib/video-generation/storyboard-beats";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
@@ -418,7 +422,10 @@ const POLL_ERROR_THRESHOLD = Number(
  * 调用方应优先用 dispatchVideoForBrief，让 video-service 自己决定路径，
  * 避免在路由里重复判断逻辑。
  */
-export async function dispatchVideoForBrief(briefId: string) {
+export async function dispatchVideoForBrief(
+  briefId: string,
+  options: { referenceImageLimit?: number } = {},
+) {
   const brief = await db.videoBrief.findUnique({
     where: { id: briefId },
     select: {
@@ -435,7 +442,13 @@ export async function dispatchVideoForBrief(briefId: string) {
     /// 参考图 = 商家实拍在前 + 已确认的故事板帧在后（此前只剩故事板帧，模型看不到实拍）。
     /// 写回 brief：分段重试读同一份，首发与重试同参。
     /// 提示词按已确认的故事板改写（商家原话 + 帧序），写回 directorPlan——重试读同一份。
-    const storyboard = await requireApprovedStoryboardVideoInputsForBrief(briefId);
+    /// P02-F(v)：参考图按 实拍 → 切片 → 主播 → 帧 分组，帧序号跳过切片与主播；
+    /// 各组张数与上限写进 directorPlan.referenceLayout，重试 / 重做 / 帧质检按它对齐。
+    const referenceImageLimit = segmentReferenceImageLimit(null, options.referenceImageLimit);
+    const storyboard = await requireApprovedStoryboardVideoInputsForBrief(briefId, {
+      includeAnchorAndPersonReferences: true,
+      limit: referenceImageLimit,
+    });
     /// 计划解析失败就不改写（分段派发会给出带原因的错误），只写回参考图。
     let plan: DirectorPlan | null = null;
     try {
@@ -452,6 +465,8 @@ export async function dispatchVideoForBrief(briefId: string) {
           story: storyboard.story,
           beats: storyboard.beats,
           productPhotoCount: storyboard.productPhotoCount,
+          anchorCount: storyboard.anchorCount,
+          personCount: storyboard.personCount,
           totalDurationSec: storyboard.totalDurationSec,
           fromSec: segment.fromSec,
           toSec: segment.toSec,
@@ -459,14 +474,25 @@ export async function dispatchVideoForBrief(briefId: string) {
         }),
       })),
     };
+    const referenceLayout: StoryboardReferenceLayout = {
+      productPhotoCount: storyboard.productPhotoCount,
+      anchorCount: storyboard.anchorCount,
+      personCount: storyboard.personCount,
+      frameCount: storyboard.frameCount,
+      limit: referenceImageLimit,
+    };
     await db.videoBrief.update({
       where: { id: briefId },
       data: {
         referenceImageUrls: storyboard.references,
-        ...(groundedPlan ? { directorPlan: groundedPlan as unknown as Prisma.InputJsonValue } : {}),
+        ...(groundedPlan
+          ? {
+              directorPlan: { ...groundedPlan, referenceLayout } as unknown as Prisma.InputJsonValue,
+            }
+          : {}),
       },
     });
-    return dispatchMultiSegmentGeneration(briefId);
+    return dispatchMultiSegmentGeneration(briefId, { referenceImageLimit });
   }
   return dispatchVideoGeneration(briefId);
 }
@@ -483,7 +509,10 @@ export async function dispatchVideoForBrief(briefId: string) {
  * 幂等保护：
  * - 已经有 RUNNING 的多段任务时（finalVideoId 关联），不重新提交，直接 reconcile。
  */
-export async function dispatchMultiSegmentGeneration(briefId: string) {
+export async function dispatchMultiSegmentGeneration(
+  briefId: string,
+  options: { referenceImageLimit?: number } = {},
+) {
   const brief = await db.videoBrief.findUnique({
     where: { id: briefId },
   });
@@ -601,9 +630,10 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
   /// 产品/参考图以 Seedance 2.0 Omni-Reference 模式随每段下发（跨镜头产品一致性锚）。
   /// 同行靠「产品板」图片锚定产品外观；我们等价传用户上传的产品/实景图。
   /// Seedance 2 Omni-Reference 上限 9 张，留 1 张余量传 8 张——客户给的真实素材越多越贴。
+  /// 上限与重试 / 重做同一个解析（segmentReferenceImageLimit），截断位置一致，帧序号不错位。
   const referenceImageUrls = (brief.referenceImageUrls ?? []).slice(
     0,
-    SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
+    segmentReferenceImageLimit(brief.directorPlan, options.referenceImageLimit),
   );
 
   const created: Awaited<ReturnType<typeof submitSegmentJob>>[] = [];
@@ -785,6 +815,17 @@ const SEGMENT_SUBMIT_BRIEF_SELECT = {
 } as const;
 
 /**
+ * 单条视频每段随行的参考图张数上限：显式传入 > 首派写回 directorPlan.referenceLayout 的上限 > 默认 8。
+ * 首派、失败段重试、成功段重做都走这里——grounding 写进提示词的帧序号是按首派的截断算的，
+ * 重提用别的上限会让序号错位。P02-F2 再在派发入口按线路传值。
+ */
+export function segmentReferenceImageLimit(directorPlan: unknown, override?: number): number {
+  const limit =
+    override ?? readStoryboardReferenceLayout(directorPlan)?.limit ?? SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT;
+  return Math.max(1, Math.floor(limit));
+}
+
+/**
  * 分段重提的供应商参数（失败段重试、成功段重做、重做候选行重试共用一份）：
  * 段计划按 segmentIndex 从 directorPlan 取——计划是唯一来源，重提永远不在上一次的提示词上累加；
  * 与首次 dispatch 同参：参考图 Omni-Reference + 1080p + 口播开关。
@@ -797,6 +838,8 @@ export function buildSegmentSubmitInput(args: {
   providerRequestKey: string;
   model: string;
   redoNote?: string | null;
+  /// 参考图张数上限；缺省按首派写回的上限（见 segmentReferenceImageLimit）
+  referenceImageLimit?: number;
 }): { options: CreateVideoJobOptions; segment: SegmentPlan; segmentCount: number } {
   if (!args.brief.directorPlan) {
     throw new Error("Brief 缺少 DirectorPlan，无法重提该段");
@@ -812,7 +855,10 @@ export function buildSegmentSubmitInput(args: {
     throw new Error(`找不到 segmentIndex=${args.segmentIndex} 的段计划`);
   }
   /// 此前重试丢失参考图与 1080p → 重试段产品外观漂移、分辨率降档，成片段间质量不一致。
-  const refs = (args.brief.referenceImageUrls ?? []).slice(0, 8);
+  const refs = (args.brief.referenceImageUrls ?? []).slice(
+    0,
+    segmentReferenceImageLimit(args.brief.directorPlan, args.referenceImageLimit),
+  );
   const hasRefs = refs.length > 0;
   const generateAudio =
     (
@@ -1184,6 +1230,8 @@ export async function reconcileVideoJob(jobId: string) {
       priorFrameQaDetail: job.frameQaDetail,
       /// 真跑质检前按这次尝试占位：重叠的 cron 调用不重复质检同一段
       attempt: attemptPin(job),
+      /// 漂移影子的参考图按行类型取：批量行 assignedAssets，单条段行 brief 的参考图布局
+      driftSource: { assignedAssets: job.assignedAssets, videoBriefId: job.videoBriefId },
     });
     if (gate.action === "defer") {
       return db.videoJob.findUnique({ where: { id: jobId } });

@@ -9,13 +9,12 @@
 /* ── 生产判据适配层 ───────────────────────────────────────────────── */
 
 /**
- * P01-B 合入后判据所在的模块（按顺序尝试）。plan §3 链 V 写的是 frame-qa.ts 里新增
- * `FrameQaVerdict.drift` / `FRAME_DRIFT_SYSTEM` / `decideDriftVerdict`；若实现时拆成独立文件，
- * 把路径加在这里即可，脚本其余部分不用动。
+ * P01-B 判据所在的模块：判据本体在 frame-drift.ts（校准脚本直接 import 它），
+ * frame-qa.ts 原样再导出同一组函数（FrameQaVerdict.drift 由它编排）。
  */
 export const PRODUCTION_DRIFT_MODULES = [
-  "src/lib/video-generation/frame-qa.ts",
   "src/lib/video-generation/frame-drift.ts",
+  "src/lib/video-generation/frame-qa.ts",
 ] as const;
 
 export interface ProductionDriftJudge {

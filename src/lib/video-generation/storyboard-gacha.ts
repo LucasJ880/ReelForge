@@ -20,12 +20,18 @@ export type GachaJudgeVerdict = {
   note: string;
 };
 
+/// 身份与几何两条扣分条目：段级漂移判据（frame-drift.FRAME_DRIFT_SYSTEM）只复用这两条，信封自己写。
+export const STORYBOARD_RUBRIC_IDENTITY_PENALTIES = [
+  "- product identity, room, camera, or cast drift vs the CONTEXT images",
+  "- invented or warped product geometry, controls, parts, labels, accessories, packaging, or unsupported states",
+] as const;
+
 /// 扣分条目：N 选 1 的抽卡评审与逐帧审帧（reviewStoryboardFrames）共用这一份，信封各写各的。
 const STORYBOARD_RUBRIC_PENALTIES = [
   "- any visible text, logo, watermark, caption, phone number, or QR code (instant score ≤ 2)",
-  "- product identity, room, camera, or cast drift vs the CONTEXT images",
+  STORYBOARD_RUBRIC_IDENTITY_PENALTIES[0],
   "- the product not being the clear visual protagonist of the composition",
-  "- invented or warped product geometry, controls, parts, labels, accessories, packaging, or unsupported states",
+  STORYBOARD_RUBRIC_IDENTITY_PENALTIES[1],
   "- an intended action that is unclear, physically impossible, or not supported by the reference images",
   "- distorted human anatomy, extra fingers, merged hands, or hands obscuring the proof",
   "- weak proof clarity, incoherent continuity, or a composition that contradicts the requested beat",

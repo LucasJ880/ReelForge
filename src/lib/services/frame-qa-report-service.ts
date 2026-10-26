@@ -93,9 +93,9 @@ export interface FrameQaWouldBlockItem {
 }
 
 /**
- * P01-B 之后 frameQaDetail.drift 才会有数据（商品 / 人物一致性漂移）。
- * 形状未定，这里只做最保守的读取：有对象就算接入，`detected / flagged === true`
- * 或 `ok === false` 算命中，`score` 是数字就取平均。
+ * P01-B 之后 frameQaDetail.drift 才会有数据（商品 / 人物一致性漂移，FRAME_QA_DRIFT_MODE=shadow）。
+ * 形状见 frame-drift.FrameDriftResult；这里只做保守读取：`checked === false`（没跑成）不计，
+ * `detected / flagged === true` 或 `ok === false` 算命中，`score` 是数字就取平均。
  */
 export type FrameQaDriftSummary =
   | { available: false }
@@ -291,7 +291,8 @@ function summarizeDrift(rows: readonly FrameQaReportRow[]): FrameQaDriftSummary 
   for (const row of rows) {
     const detail = isRecord(row.frameQaDetail) ? row.frameQaDetail : null;
     const drift = detail && isRecord(detail.drift) ? detail.drift : null;
-    if (!drift) continue;
+    /// 没跑成的（drift.checked=false，超时 / 无参考图）不进分母
+    if (!drift || drift.checked === false) continue;
     count += 1;
     if (drift.detected === true || drift.flagged === true || drift.ok === false) flagged += 1;
     const score = asFiniteNumber(drift.score);

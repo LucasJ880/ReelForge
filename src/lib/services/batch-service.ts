@@ -1179,8 +1179,8 @@ async function submitClaimedJob(
         leaseOwner: null,
         leaseExpiresAt: null,
         heartbeatAt: now,
-        /// 提交级套餐降级后以实际使用的套餐回写计价快照,保证账实一致。
-        /// 套餐 ID 与积分一起落（P03-B）：没返回就不写，保留批次创建时的快照。
+        /// 提交级套餐降级后以实际使用的套餐回写计价快照。
+        /// providerPlanId 只在受理后才有值（创建时不落列）；两者没返回就不写。
         ...(ack.providerPlanId !== undefined
           ? { providerPlanId: ack.providerPlanId }
           : {}),

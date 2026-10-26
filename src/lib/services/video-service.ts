@@ -181,42 +181,6 @@ async function submitVideoJob(
   };
 }
 
-/**
- * 受理回写用的计价快照（P03-B 账实一致）。
- *
- * - `providerPlanId` / `providerUnitPoints` 只认供应商受理时返回的值：有就以实际
- *   套餐覆盖创建时的估价；没返回就留 undefined，`persistAcceptedSubmission` 不写，
- *   行上保留创建时的快照。
- * - `providerUnitPriceUsd`：buddy 按积分计价，美元位恒为 null；其他线路沿用创建时
- *   的同一口径（`resolveVideoRouteCostSnapshot`），它尚未接入美元价时同样不写。
- */
-async function acceptedSubmissionCostSnapshot(args: {
-  routeSnapshot: Pick<VideoRouteSnapshot, "videoRouteSnapshot">;
-  durationSec: number;
-  accepted: AcceptedSubmission;
-}): Promise<{
-  providerPlanId?: string;
-  providerUnitPoints?: number;
-  providerUnitPriceUsd?: number | null;
-}> {
-  const { routeSnapshot, durationSec, accepted } = args;
-  const providerUnitPriceUsd =
-    routeSnapshot.videoRouteSnapshot === "buddy"
-      ? null
-      : (
-          await resolveVideoRouteCostSnapshot(
-            routeSnapshot.videoRouteSnapshot,
-            durationSec,
-            accepted.providerPlanId ?? null,
-          )
-        ).providerUnitPriceUsd;
-  return {
-    providerPlanId: accepted.providerPlanId,
-    providerUnitPoints: accepted.providerUnitPoints,
-    providerUnitPriceUsd,
-  };
-}
-
 function toDirectProviderStatus(
   result: VideoJobStatusResult,
 ): DirectProviderStatus {
@@ -333,11 +297,10 @@ async function persistAcceptedSubmission(args: {
   externalJobId: string;
   submittedAt: Date;
   retryCount?: number;
-  /// 受理时的实际计价快照：有值才写，undefined 保留创建时的估价（见
-  /// acceptedSubmissionCostSnapshot）。CAS 条件不因此改变。
+  /// 受理时供应商报告的实际套餐（P03-B）：有值才写，undefined 保留创建时的估价。
+  /// CAS 条件不因此改变。
   providerPlanId?: string;
   providerUnitPoints?: number;
-  providerUnitPriceUsd?: number | null;
 }) {
   const updated = await db.videoJob.updateMany({
     where: {
@@ -367,9 +330,6 @@ async function persistAcceptedSubmission(args: {
       ...(args.providerUnitPoints === undefined
         ? {}
         : { providerUnitPoints: args.providerUnitPoints }),
-      ...(args.providerUnitPriceUsd === undefined
-        ? {}
-        : { providerUnitPriceUsd: args.providerUnitPriceUsd }),
     },
   });
   if (updated.count !== 1) {
@@ -761,11 +721,8 @@ async function submitSegmentJob(params: {
       providerRequestKey,
       externalJobId: accepted.jobId,
       submittedAt,
-      ...(await acceptedSubmissionCostSnapshot({
-        routeSnapshot,
-        durationSec: segment.durationSec,
-        accepted,
-      })),
+      providerPlanId: accepted.providerPlanId,
+      providerUnitPoints: accepted.providerUnitPoints,
     });
   } catch (err) {
     logStatusTransition({
@@ -945,11 +902,8 @@ export async function dispatchVideoGeneration(briefId: string) {
           providerRequestKey,
           externalJobId: accepted.jobId,
           submittedAt,
-          ...(await acceptedSubmissionCostSnapshot({
-            routeSnapshot,
-            durationSec: scene.durationSec,
-            accepted,
-          })),
+          providerPlanId: accepted.providerPlanId,
+          providerUnitPoints: accepted.providerUnitPoints,
         });
       } catch (err) {
         return failDirectSubmission({
@@ -1523,11 +1477,8 @@ export async function retryFailedVideoJob(jobId: string) {
         externalJobId: accepted.jobId,
         submittedAt,
         retryCount: (job.retryCount ?? 0) + 1,
-        ...(await acceptedSubmissionCostSnapshot({
-          routeSnapshot: jobRouteSnapshot,
-          durationSec: segment.durationSec,
-          accepted,
-        })),
+        providerPlanId: accepted.providerPlanId,
+        providerUnitPoints: accepted.providerUnitPoints,
       });
       /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试
       await db.finalVideo.update({
@@ -1615,11 +1566,8 @@ export async function retryFailedVideoJob(jobId: string) {
       externalJobId: accepted.jobId,
       submittedAt,
       retryCount: (job.retryCount ?? 0) + 1,
-      ...(await acceptedSubmissionCostSnapshot({
-        routeSnapshot: jobRouteSnapshot,
-        durationSec: scene.durationSec,
-        accepted,
-      })),
+      providerPlanId: accepted.providerPlanId,
+      providerUnitPoints: accepted.providerUnitPoints,
     });
   } catch (err) {
     return failDirectSubmission({

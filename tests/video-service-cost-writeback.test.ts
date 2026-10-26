@@ -25,7 +25,9 @@ import { parseDirectorPlan } from "../src/lib/schemas/director-plan";
  *   2. dispatchVideoGeneration（按镜头提交，旧单段流）
  *   3. retryFailedVideoJob 段重试分支
  *   4. retryFailedVideoJob 单段旧路径重试分支
- * 以及两条守卫：供应商没返回套餐时不覆盖创建时快照；CAS 落空时什么都不写。
+ * 调用点 3 / 4 与「不覆盖」守卫各跑 byteplus 与 buddy 两种线路快照；
+ * 另有 CAS 落空时什么都不写的守卫。回写范围只有 providerPlanId / providerUnitPoints，
+ * providerUnitPriceUsd 不在本轮（任何路径都不得写它）。
  */
 
 type Row = Record<string, unknown>;
@@ -46,8 +48,13 @@ const BUDDY_ROUTE = {
 const ESTIMATED_AT_CREATE = {
   providerPlanId: null,
   providerUnitPoints: 900,
-  providerUnitPriceUsd: null,
 };
+/// 受理回写只允许动这两列；美元位不在 P03-B 范围内，任何线路都不得写
+const COST_COLUMNS = ["providerPlanId", "providerUnitPoints", "providerUnitPriceUsd"] as const;
+const ROUTE_VARIANTS = [
+  ["byteplus_international", BYTEPLUS_ROUTE],
+  ["buddy", BUDDY_ROUTE],
+] as const;
 /// 供应商受理时报告的实际套餐（提交级降级后换到的档）
 const ACTUAL_AT_ACCEPT = {
   providerPlanId: "video-plan-fallback",
@@ -197,12 +204,13 @@ function assertActualSnapshotPersisted(table: ReturnType<typeof fakeVideoJobTabl
   const { data } = table.acceptWrite();
   assert.equal(data.providerPlanId, ACTUAL_AT_ACCEPT.providerPlanId);
   assert.equal(data.providerUnitPoints, ACTUAL_AT_ACCEPT.providerUnitPoints);
+  assert.ok(!("providerUnitPriceUsd" in data), "美元位不在回写范围内");
   assert.equal(table.row.submissionState, ProviderSubmissionState.ACCEPTED);
   assert.equal(table.row.providerPlanId, ACTUAL_AT_ACCEPT.providerPlanId);
   assert.equal(table.row.providerUnitPoints, ACTUAL_AT_ACCEPT.providerUnitPoints);
 }
 
-test("调用点 1 · submitSegmentJob：受理后以实际套餐覆盖创建时估价；buddy 线路美元位为 null", async (t) => {
+test("调用点 1 · submitSegmentJob（buddy）：受理后以实际套餐覆盖创建时估价", async (t) => {
   installRealMode(t);
   const table = fakeVideoJobTable(t);
   const plan = directorPlan();
@@ -223,14 +231,13 @@ test("调用点 1 · submitSegmentJob：受理后以实际套餐覆盖创建时�
 
   assert.equal(job?.externalJobId, "shuyu-task-1");
   assertActualSnapshotPersisted(table);
-  const { where, data } = table.acceptWrite();
-  assert.equal(data.providerUnitPriceUsd, null, "积分计价线路不记美元单价");
+  const { where } = table.acceptWrite();
   /// CAS 条件不因回写而改变
   assert.equal(where.submissionState, ProviderSubmissionState.SUBMITTING);
   assert.equal(where.providerRequestKey, table.row.providerRequestKey);
 });
 
-test("调用点 2 · dispatchVideoGeneration：按镜头提交同样回写；非 buddy 线路不写美元位（口径尚未接入）", async (t) => {
+test("调用点 2 · dispatchVideoGeneration（byteplus）：按镜头提交同样回写", async (t) => {
   installRealMode(t);
   const table = fakeVideoJobTable(t);
   const brief = {
@@ -275,106 +282,107 @@ test("调用点 2 · dispatchVideoGeneration：按镜头提交同样回写；非
   assert.equal(created.length, 1);
   assert.equal(created[0]?.externalJobId, "ark-task-1");
   assertActualSnapshotPersisted(table);
-  const { data } = table.acceptWrite();
-  assert.ok(
-    !("providerUnitPriceUsd" in data),
-    "resolveVideoRouteCostSnapshot 尚未接入美元价：不写、不写 null 盖掉",
-  );
 });
 
-test("调用点 3 · retryFailedVideoJob 段重试：重试受理后回写实际套餐，retryCount 同步", async (t) => {
-  installRealMode(t);
-  const table = fakeVideoJobTable(t, failedSegmentJob());
-  patch(t, db.videoBrief as unknown as Row, {
-    findUnique: async () => ({
+for (const [routeLabel, route] of ROUTE_VARIANTS) {
+  test(`调用点 3 · retryFailedVideoJob 段重试（${routeLabel}）：重试受理后回写实际套餐，retryCount 同步`, async (t) => {
+    installRealMode(t);
+    const table = fakeVideoJobTable(t, failedSegmentJob({ ...route }));
+    patch(t, db.videoBrief as unknown as Row, {
+      findUnique: async () => ({
+        aspectRatio: "9:16",
+        directorPlan: directorPlan(),
+        referenceImageUrls: [],
+        videoGenerationPlan: null,
+      }),
+    });
+    patch(t, db.finalVideo as unknown as Row, { update: async () => ({}) });
+    videoTest.__setStatusFetcherForTests(async () => ({
+      jobId: "provider-original",
+      status: "failed",
+      rawProviderStatus: "failed",
+    }));
+    videoTest.__setSubmitterForTests(async () => ({
+      jobId: "provider-retry",
+      ...ACTUAL_AT_ACCEPT,
+    }));
+
+    const updated = await retryFailedVideoJob("job-cost-retry");
+
+    assert.equal(updated.externalJobId, "provider-retry");
+    assert.equal(updated.videoRouteSnapshot, route.videoRouteSnapshot);
+    assertActualSnapshotPersisted(table);
+    assert.equal(table.acceptWrite().data.retryCount, 1);
+  });
+
+  test(`调用点 4 · retryFailedVideoJob 单段旧路径（${routeLabel}）：从 ScenePlan 重提后同样回写`, async (t) => {
+    installRealMode(t);
+    const table = fakeVideoJobTable(
+      t,
+      failedSegmentJob({
+        ...route,
+        segmentIndex: null,
+        finalVideoId: null,
+        externalJobId: null,
+        submissionState: ProviderSubmissionState.REJECTED,
+        providerRequestKey: null,
+      }),
+    );
+    patch(t, db.scenePlan as unknown as Row, {
+      findFirst: async () => ({
+        id: "scene-legacy",
+        sceneIndex: 0,
+        durationSec: 12,
+        videoPrompts: [
+          {
+            promptText: "Legacy single scene",
+            provider: VideoProvider.SEEDANCE_T2V,
+            params: { ratio: "9:16" },
+            referenceImageUrl: null,
+          },
+        ],
+      }),
+    });
+    patch(t, db.videoBrief as unknown as Row, {
+      findUnique: async () => ({ referenceImageUrls: [] }),
+    });
+    videoTest.__setSubmitterForTests(async () => ({
+      jobId: "provider-legacy-retry",
+      ...ACTUAL_AT_ACCEPT,
+    }));
+
+    const updated = await retryFailedVideoJob("job-cost-retry");
+
+    assert.equal(updated.externalJobId, "provider-legacy-retry");
+    assert.equal(updated.videoRouteSnapshot, route.videoRouteSnapshot);
+    assertActualSnapshotPersisted(table);
+  });
+
+  test(`供应商没返回套餐（${routeLabel}）：受理写入不带任何计价键，创建时的快照原样保留`, async (t) => {
+    installRealMode(t);
+    const table = fakeVideoJobTable(t);
+    const plan = directorPlan();
+    videoTest.__setSubmitterForTests(async () => ({ jobId: "task-plain" }));
+
+    await videoTest.submitSegmentJob({
+      briefId: "brief-cost-plain",
+      finalVideoId: "final-cost-plain",
       aspectRatio: "9:16",
-      directorPlan: directorPlan(),
+      segment: plan.segmentPlan[0],
+      segmentCount: 1,
       referenceImageUrls: [],
-      videoGenerationPlan: null,
-    }),
+      routeSnapshot: route,
+    });
+
+    const { data } = table.acceptWrite();
+    for (const column of COST_COLUMNS) {
+      assert.ok(!(column in data), `没值就不写 ${column}`);
+    }
+    assert.equal(table.row.submissionState, ProviderSubmissionState.ACCEPTED);
+    assert.equal(table.row.providerUnitPoints, ESTIMATED_AT_CREATE.providerUnitPoints);
+    assert.equal(table.row.providerPlanId, ESTIMATED_AT_CREATE.providerPlanId);
   });
-  patch(t, db.finalVideo as unknown as Row, { update: async () => ({}) });
-  videoTest.__setStatusFetcherForTests(async () => ({
-    jobId: "provider-original",
-    status: "failed",
-    rawProviderStatus: "failed",
-  }));
-  videoTest.__setSubmitterForTests(async () => ({
-    jobId: "provider-retry",
-    ...ACTUAL_AT_ACCEPT,
-  }));
-
-  const updated = await retryFailedVideoJob("job-cost-retry");
-
-  assert.equal(updated.externalJobId, "provider-retry");
-  assertActualSnapshotPersisted(table);
-  assert.equal(table.acceptWrite().data.retryCount, 1);
-});
-
-test("调用点 4 · retryFailedVideoJob 单段旧路径：从 ScenePlan 重提后同样回写", async (t) => {
-  installRealMode(t);
-  const table = fakeVideoJobTable(
-    t,
-    failedSegmentJob({
-      segmentIndex: null,
-      finalVideoId: null,
-      externalJobId: null,
-      submissionState: ProviderSubmissionState.REJECTED,
-      providerRequestKey: null,
-    }),
-  );
-  patch(t, db.scenePlan as unknown as Row, {
-    findFirst: async () => ({
-      id: "scene-legacy",
-      sceneIndex: 0,
-      durationSec: 12,
-      videoPrompts: [
-        {
-          promptText: "Legacy single scene",
-          provider: VideoProvider.SEEDANCE_T2V,
-          params: { ratio: "9:16" },
-          referenceImageUrl: null,
-        },
-      ],
-    }),
-  });
-  patch(t, db.videoBrief as unknown as Row, {
-    findUnique: async () => ({ referenceImageUrls: [] }),
-  });
-  videoTest.__setSubmitterForTests(async () => ({
-    jobId: "provider-legacy-retry",
-    ...ACTUAL_AT_ACCEPT,
-  }));
-
-  const updated = await retryFailedVideoJob("job-cost-retry");
-
-  assert.equal(updated.externalJobId, "provider-legacy-retry");
-  assertActualSnapshotPersisted(table);
-});
-
-test("供应商没返回套餐（byteplus / mock）：不覆盖创建时的计价快照", async (t) => {
-  installRealMode(t);
-  const table = fakeVideoJobTable(t);
-  const plan = directorPlan();
-  videoTest.__setSubmitterForTests(async () => ({ jobId: "ark-task-plain" }));
-
-  await videoTest.submitSegmentJob({
-    briefId: "brief-cost-plain",
-    finalVideoId: "final-cost-plain",
-    aspectRatio: "9:16",
-    segment: plan.segmentPlan[0],
-    segmentCount: 1,
-    referenceImageUrls: [],
-    routeSnapshot: BYTEPLUS_ROUTE,
-  });
-
-  const { data } = table.acceptWrite();
-  assert.ok(!("providerPlanId" in data), "没值就不写 providerPlanId");
-  assert.ok(!("providerUnitPoints" in data), "没值就不写 providerUnitPoints");
-  assert.equal(table.row.submissionState, ProviderSubmissionState.ACCEPTED);
-  assert.equal(table.row.providerUnitPoints, ESTIMATED_AT_CREATE.providerUnitPoints);
-  assert.equal(table.row.providerPlanId, ESTIMATED_AT_CREATE.providerPlanId);
-});
+}
 
 test("CAS 落空（幂等键已被另一轮接管）：受理回写整体不落地，计价快照保持原值", async (t) => {
   installRealMode(t);

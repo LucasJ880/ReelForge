@@ -352,7 +352,6 @@ test("P03-B: 提交级降级后，行上落的是实际受理的套餐与积分�
   assert.equal(acceptWrites.length, 1);
   assert.equal(acceptWrites[0].providerPlanId, "video-plan-degrade-next");
   assert.equal(acceptWrites[0].providerUnitPoints, 1200);
-  assert.equal(acceptWrites[0].providerUnitPriceUsd, null);
   const persisted = row as unknown as Record<string, unknown>;
   assert.equal(persisted.providerPlanId, "video-plan-degrade-next");
   assert.equal(persisted.providerUnitPoints, 1200);

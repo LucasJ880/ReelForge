@@ -42,23 +42,14 @@ export async function resolveVideoRouteUnitPoints(
 }
 
 /**
- * 单条成片的计价快照，供 videoJob.create 直接展开，也供供应商受理后的回写
- * （video-service `persistAcceptedSubmission`）取美元口径：拿不到计价时返回
- * 空对象，让该列保持 null，而不是写一个假的 0 污染成本统计。
- *
- * `providerUnitPriceUsd` 是 byteplus 系线路的美元单价位，目前尚未接入
- * （恒不返回）；接入后创建与受理回写两处会同时带上，不必再改调用方。
+ * 供 videoJob.create 直接展开：拿不到计价时返回空对象，
+ * 让该列保持 null，而不是写一个假的 0 污染成本统计。
  */
-export type VideoRouteCostSnapshot = {
-  providerUnitPoints?: number;
-  providerUnitPriceUsd?: number;
-};
-
 export async function resolveVideoRouteCostSnapshot(
   routeId: string,
   durationSec = 15,
   planId?: string | null,
-): Promise<VideoRouteCostSnapshot> {
+): Promise<{ providerUnitPoints?: number }> {
   const points = await resolveVideoRouteUnitPoints(routeId, durationSec, planId);
   return points === null ? {} : { providerUnitPoints: points };
 }

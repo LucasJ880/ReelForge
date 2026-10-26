@@ -545,7 +545,62 @@ test("manual storyboard waits for approval while auto policy approves", () => {
   assert.equal(manual.canApprove, true);
   assert.equal(automatic.status, "APPROVED");
   assert.equal(automatic.canApprove, false);
+  /// P01-D block 档：AUTO 停在 AWAITING_APPROVAL 等审帧，这道闸只由 cron 放行，用户不能手动确认。
+  const reviewing = storyboardRunView({ ...manual, id: "auto-reviewing", approvalPolicy: "AUTO", frames } as never);
+  assert.equal(reviewing.status, "AWAITING_APPROVAL");
+  assert.equal(reviewing.canApprove, false);
 });
+
+for (const [mode, expected] of [
+  [undefined, "APPROVED"],
+  ["off", "APPROVED"],
+  ["shadow", "APPROVED"],
+  ["block", "AWAITING_APPROVAL"],
+] as const) {
+  test(`advanceRun：STORYBOARD_AI_REVIEW=${mode ?? "(unset)"} 时全部出图的 AUTO run → ${expected}；MANUAL 恒等确认`, async (t) => {
+    const runModel = db.storyboardRun as unknown as Record<string, unknown>;
+    const originals = { findFirst: runModel.findFirst, updateMany: runModel.updateMany };
+    const previousMode = process.env.STORYBOARD_AI_REVIEW;
+    t.after(() => {
+      Object.assign(runModel, originals);
+      if (previousMode === undefined) delete process.env.STORYBOARD_AI_REVIEW;
+      else process.env.STORYBOARD_AI_REVIEW = previousMode;
+      storyboardServiceTest.__setRuntimeDependenciesForTests(null);
+    });
+    if (mode === undefined) delete process.env.STORYBOARD_AI_REVIEW;
+    else process.env.STORYBOARD_AI_REVIEW = mode;
+    storyboardServiceTest.__setRuntimeDependenciesForTests({ visionAvailable: () => true });
+    const frames = [0, 1, 2, 3].map((ordinal) =>
+      fakeFrame({ id: `f${ordinal}`, ordinal, status: "SUCCEEDED", submissionState: "ACCEPTED", outputUrl: `https://assets.example.test/${ordinal}.png` }),
+    );
+    const updates: Array<Record<string, unknown>> = [];
+    let policy = "AUTO";
+    runModel.findFirst = async () => ({
+      id: "run-modes",
+      userId: "owner-1",
+      status: "GENERATING",
+      approvalPolicy: policy,
+      durationSec: 15,
+      aspectRatio: "9:16",
+      aiReviewSummary: null,
+      frames,
+    });
+    runModel.updateMany = async (args: { data: Record<string, unknown> }) => {
+      updates.push(args.data);
+      return { count: 1 };
+    };
+    await storyboardServiceTest.advanceRun("run-modes");
+    assert.equal(updates[0]?.status, expected);
+    assert.equal(updates[0]?.approvedAt instanceof Date, expected === "APPROVED");
+    assert.equal("aiReviewSummary" in updates[0]!, mode === "block", "只有 block 写审帧汇总");
+
+    policy = "MANUAL";
+    updates.length = 0;
+    await storyboardServiceTest.advanceRun("run-modes");
+    assert.equal(updates[0]?.status, "AWAITING_APPROVAL");
+    assert.equal(updates[0]?.approvedAt, null);
+  });
+}
 
 // ---------------------------------------------------------------------------
 // P02-D(s) · 主播参考图：落 personAssetIds 列、不进 inputImageUrls、幂等键向后兼容、开关校验在幂等回放之后

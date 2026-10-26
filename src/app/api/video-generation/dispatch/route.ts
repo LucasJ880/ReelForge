@@ -26,6 +26,7 @@ import { db } from "@/lib/db";
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "@/lib/video-generation/plan-to-director";
 import { dispatchVideoForBrief } from "@/lib/services/video-service";
+import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
 import {
   claimVideoDispatchRequest,
   completeVideoDispatchRequest,
@@ -43,8 +44,7 @@ import { z } from "zod";
 import { videoGenerationRuntimeReadiness } from "@/lib/config/env";
 import {
   canVideoRouteOverrideDefaultRuntimeFailure,
-  customerFailoverRouteSnapshot,
-  getVideoRouteSnapshotRuntimeAvailability,
+  resolveRouteWithFailover,
   selectVideoRouteSnapshot,
   VideoRouteSelectionError,
 } from "@/lib/video-generation/video-route-selection";
@@ -266,6 +266,17 @@ export async function POST(req: NextRequest) {
       });
     }
     throw error;
+  }
+  /// P04-D：所选口播驱动方式这条线路做不到就在登记与扣额之前拒绝（零提交）。
+  const voiceover = request.audio?.voiceover;
+  const driveCheck = await evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot });
+  if (!driveCheck.ok) {
+    return dispatchErrorResponse(422, {
+      code: "VALIDATION_FAILED",
+      message: driveCheck.message,
+      retryable: false,
+      action: "fix_request",
+    });
   }
   const requestHash = hashVideoDispatchRequest(body, videoRouteSnapshot);
 
@@ -558,46 +569,42 @@ export async function POST(req: NextRequest) {
       buddyPerVideoPoints = undefined;
     }
   }
-  const selectedRouteAvailability =
-    await getVideoRouteSnapshotRuntimeAvailability({
-      snapshot: videoRouteSnapshot,
-      shuyuRequiredPoints:
-        buddyPerVideoPoints !== undefined
-          ? batchCount * buddyPerVideoPoints
-          : undefined,
-    });
+  /// 备用线路也不行时，照旧 503，用户可以用「取消这一轮」免费退出。
+  const routeResolution = await resolveRouteWithFailover({
+    snapshot: videoRouteSnapshot,
+    shuyuRequiredPoints:
+      buddyPerVideoPoints !== undefined
+        ? batchCount * buddyPerVideoPoints
+        : undefined,
+    allowFailover: true,
+  });
+  const selectedRouteAvailability = routeResolution.primaryAvailability;
   if (!selectedRouteAvailability.available) {
     console.error("[dispatch] selected video route unavailable", {
       videoRouteId: videoRouteSnapshot.videoRouteSnapshot,
       reason: selectedRouteAvailability.reason,
     });
-    /**
-     * 主线路不可用时自动降级（PRD C1）。
-     *
-     * 客户依然无权自己选线路 —— 这是平台替客户做的决定。降级前必须确认备用线路
-     * 真的可用，否则只是把必死的提交换了个地方死。备用线路也不行时，照旧 503，
-     * 用户可以用「取消这一轮」免费退出。
-     *
-     * 余额不足不降级：那是账户问题，换线路只会把成本转嫁到另一条线上。
-     */
-    const failoverSnapshot =
-      selectedRouteAvailability.reason === "insufficient_balance"
-        ? null
-        : customerFailoverRouteSnapshot();
-    if (failoverSnapshot) {
-      const failoverAvailability = await getVideoRouteSnapshotRuntimeAvailability({
-        snapshot: failoverSnapshot,
-      });
-      if (failoverAvailability.available) {
-        console.warn("[dispatch] failing over to backup video route", {
-          from: videoRouteSnapshot.videoRouteSnapshot,
-          to: failoverSnapshot.videoRouteSnapshot,
-          reason: selectedRouteAvailability.reason,
-        });
-        /// 快照在此处改写；requestHash 仍按原始请求计算，
-        /// 因为「同一个创作请求」的幂等身份不该随线路变化而分裂。
-        videoRouteSnapshot = failoverSnapshot;
-      }
+  }
+  if (routeResolution.failedOver) {
+    console.warn("[dispatch] failing over to backup video route", {
+      from: videoRouteSnapshot.videoRouteSnapshot,
+      to: routeResolution.snapshot.videoRouteSnapshot,
+      reason: selectedRouteAvailability.reason,
+    });
+    /// 快照在此处改写；requestHash 仍按原始请求计算，
+    /// 因为「同一个创作请求」的幂等身份不该随线路变化而分裂。
+    videoRouteSnapshot = routeResolution.snapshot;
+    const failoverDriveCheck = await evaluateVoiceoverDrive({ voiceover, routeSnapshot: videoRouteSnapshot });
+    if (!failoverDriveCheck.ok) {
+      return finalResponse(
+        toCustomerVideoDispatchError({
+          code: "VALIDATION_FAILED",
+          message: failoverDriveCheck.message,
+          retryable: false,
+          action: "fix_request",
+        }),
+        422,
+      );
     }
   }
   if (

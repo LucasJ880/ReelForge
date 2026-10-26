@@ -60,6 +60,7 @@ import {
 import { classifyCustomerGenerationError } from "@/lib/api/customer-generation-error";
 import { hashVideoDispatchRequest } from "./video-dispatch-idempotency";
 import type { BatchPostProductionInput } from "@/lib/schemas/unified-input";
+import { evaluateVoiceoverDrive } from "@/lib/services/voiceover-drive-service";
 import {
   createVideoRouteSnapshot,
   readVideoRouteSnapshot,
@@ -67,7 +68,7 @@ import {
 } from "@/lib/video-generation/video-route-registry";
 import {
   canVideoRouteOverrideDefaultRuntimeFailure,
-  getVideoRouteSnapshotRuntimeAvailability,
+  resolveRouteWithFailover,
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
 import {
@@ -89,7 +90,14 @@ import {
   reconcileStoryboardRun,
   regenerateStoryboardFrame,
   requireApprovedStoryboardForVideoJob,
+  reviewAutoStoryboardRun,
+  shadowReviewStoryboardRun,
 } from "@/lib/video-generation/storyboard-service";
+import {
+  storyboardAiReviewMode,
+  storyboardAiReviewProgress,
+  storyboardProviderAttempts,
+} from "@/lib/video-generation/storyboard-ai-review";
 
 const MAX_SUBMIT_ATTEMPTS = 3;
 const LEASE_MS = 60_000;
@@ -567,6 +575,13 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       throw new BatchProviderInputError("合作方线路每支视频最多接受 9 张参考图");
     }
   }
+  const driveCheck = await evaluateVoiceoverDrive({
+    voiceover: input.postProduction?.audio.voiceover,
+    routeSnapshot: videoRouteSnapshot,
+  });
+  if (!driveCheck.ok) {
+    throw new BatchProviderInputError(driveCheck.message);
+  }
   /// 买断制线路按实时审计套餐估算积分需求;解析失败时交给可用性探针给出
   /// 具体原因(price_contract_mismatch 等),不用过期常量高/低估。
   const lockedDurationSec =
@@ -603,12 +618,14 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       }
     }
   }
-  const availability = await getVideoRouteSnapshotRuntimeAvailability({
+  /// 批量禁止降级：线路、计价、快照在建批次时定死，不可用就按原原因拒绝。
+  const { primaryAvailability: availability } = await resolveRouteWithFailover({
     snapshot: videoRouteSnapshot,
     shuyuRequiredPoints:
       buddyPerVideoPoints !== undefined
         ? input.requestedCount * buddyPerVideoPoints
         : undefined,
+    allowFailover: false,
   });
   if (!availability.available) {
     throw new VideoGenerationRuntimeUnavailableError(
@@ -1406,6 +1423,7 @@ function batchStoryboardSpec(job: VideoJob): {
  * 因此这里代为重试。上限存在的意义是：供应商真的长时间不可用时，
  * 批次应当以失败收敛，而不是无限重投烧积分。
  */
+/// 按供应商侧尝试数算（storyboardProviderAttempts）：AI 审帧重抽（P01-D）不占这里的名额。
 const BATCH_FRAME_MAX_ATTEMPTS = 3;
 
 /**
@@ -1437,6 +1455,7 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
           submissionState: true,
           lastProviderStatus: true,
           externalTaskId: true,
+          aiReview: true,
         },
       },
     },
@@ -1457,7 +1476,7 @@ async function retryRecoverableBatchFrames(batchId: string): Promise<void> {
     }
     const retryable = run.frames.filter(
       (frame) =>
-        frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
+        storyboardProviderAttempts(frame) < BATCH_FRAME_MAX_ATTEMPTS &&
         canRegenerateStoryboardFrame(frame),
     );
     /// 存在无法安全重投的帧（计费状态未确认）时整条留给人工，不碰。
@@ -1512,6 +1531,61 @@ async function advanceBatchStoryboards(batchId: string): Promise<void> {
   });
   await retryRecoverableBatchFrames(batchId);
   await settleDeadStoryboardBatchJobs(batchId);
+  await reviewBatchStoryboards(batchId);
+}
+
+/**
+ * P01-D AI 审帧（D-1）。block 档：全部出图后停在 {AWAITING_APPROVAL, AUTO} 的 run 逐条审（串行：
+ * 审帧预算 ≤60s/tick，一次占 30s，最多两条真调 vision）；这一路不看开关——开关关掉后残留的 run
+ * 由 reviewAutoStoryboardRun 直接批准放行。shadow 档：已批准、还没审过的 AUTO run 旁路审，不改状态。
+ */
+async function reviewBatchStoryboards(batchId: string): Promise<void> {
+  const awaiting = await db.storyboardRun.findMany({
+    where: {
+      videoJob: { batchJobId: batchId, status: { in: [VideoJobStatus.QUEUED, VideoJobStatus.PAUSED] } },
+      status: "AWAITING_APPROVAL",
+      approvalPolicy: "AUTO",
+    },
+    orderBy: { updatedAt: "asc" },
+    select: { id: true },
+    take: providerConcurrency(),
+  });
+  for (const run of awaiting) {
+    const outcome = await reviewAutoStoryboardRun(run.id).catch((error) => {
+      console.warn(JSON.stringify({
+        evt: "batch_storyboard_ai_review_failed",
+        batchId,
+        runId: run.id,
+        error: (error as Error).message.slice(0, 200),
+      }));
+      return "error";
+    });
+    if (outcome !== "not_eligible" && outcome !== "busy") {
+      console.info(JSON.stringify({ evt: "batch_storyboard_ai_review", batchId, runId: run.id, outcome }));
+    }
+  }
+  if (storyboardAiReviewMode() !== "shadow") return;
+  const approved = await db.storyboardRun.findMany({
+    where: {
+      videoJob: { batchJobId: batchId },
+      status: "APPROVED",
+      approvalPolicy: "AUTO",
+      aiReviewSummary: { equals: Prisma.AnyNull },
+    },
+    orderBy: { updatedAt: "asc" },
+    select: { id: true },
+    take: 2,
+  });
+  for (const run of approved) {
+    await shadowReviewStoryboardRun(run.id).catch((error) => {
+      console.warn(JSON.stringify({
+        evt: "batch_storyboard_ai_shadow_failed",
+        batchId,
+        runId: run.id,
+        error: (error as Error).message.slice(0, 200),
+      }));
+    });
+  }
 }
 
 /**
@@ -1542,6 +1616,7 @@ async function settleDeadStoryboardBatchJobs(batchId: string): Promise<void> {
           submissionState: true,
           lastProviderStatus: true,
           externalTaskId: true,
+          aiReview: true,
         },
       },
     },
@@ -1566,7 +1641,7 @@ async function settleDeadStoryboardBatchJobs(batchId: string): Promise<void> {
     if (
       run.frames.every(
         (frame) =>
-          frame.attempt < BATCH_FRAME_MAX_ATTEMPTS &&
+          storyboardProviderAttempts(frame) < BATCH_FRAME_MAX_ATTEMPTS &&
           canRegenerateStoryboardFrame(frame),
       )
     ) {
@@ -1935,7 +2010,11 @@ export async function processBatchTick(batchId: string): Promise<BatchJob> {
     if (batchProvider?.videoRouteSnapshot === "buddy") {
       await advanceBatchStoryboards(batchId);
       await prepareBatchStoryboards(batchId, batch.userId);
-      await renewBatchTickLease(batchId, leaseOwner);
+      /// 审帧（P01-D）可能占掉近一分钟：租约丢了说明别的 tick 已接手，这一份不再往下推进。
+      if (!(await renewBatchTickLease(batchId, leaseOwner))) {
+        console.warn(JSON.stringify({ evt: "batch_tick_lease_lost", batchId, stage: "storyboards" }));
+        return await syncBatchCounts(batchId);
+      }
     }
 
     await recoverExpiredLeases(batchId, now);
@@ -2391,6 +2470,7 @@ export async function getBatchStatus(batchId: string, userId?: string) {
               id: true,
               status: true,
               approvalPolicy: true,
+              aiReviewSummary: true,
               frames: {
                 where: { isCurrent: true },
                 orderBy: { ordinal: "asc" },
@@ -2456,6 +2536,8 @@ export type CustomerBatchStatus = {
       id: string;
       status: string;
       approvalPolicy: string;
+      /// P01-D block 档的审帧进度；不在审 / 不在重抽时为 null。
+      aiReview: ReturnType<typeof storyboardAiReviewProgress>;
       frames: Array<{
         id: string;
         ordinal: number;
@@ -2555,6 +2637,7 @@ export function toCustomerBatchStatus(
             id: job.storyboardRun.id,
             status: String(job.storyboardRun.status),
             approvalPolicy: String(job.storyboardRun.approvalPolicy),
+            aiReview: storyboardAiReviewProgress(job.storyboardRun.aiReviewSummary),
             frames: job.storyboardRun.frames.map((frame) => ({
               id: frame.id,
               ordinal: frame.ordinal,

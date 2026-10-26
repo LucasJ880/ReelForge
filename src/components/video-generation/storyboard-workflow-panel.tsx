@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import {
   Check,
+  ChevronDown,
   ImageIcon,
   Loader2,
   RefreshCw,
@@ -11,7 +13,12 @@ import {
 import { StatusTick } from "@/components/exchange/status-tick";
 import type { VocabState } from "@/lib/exchange/state-vocab";
 import { storyboardBeatLabel } from "@/lib/video-generation/storyboard-beats";
+import {
+  STORYBOARD_FRAME_DIRECTION_MAX,
+  STORYBOARD_FRAME_SOURCE_ASSETS_MAX,
+} from "@/lib/video-generation/storyboard-frame-inputs";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 
 export interface StoryboardFrameView {
@@ -46,11 +53,33 @@ export function storyboardFrameTarget(durationSec: number): number {
   return durationSec <= 15 ? 4 : 5;
 }
 
+/** 重做一帧时可选的商家图（创作台已上传的产品图）。 */
+export interface StoryboardReferenceOption {
+  assetId: string;
+  url: string;
+  label: string;
+}
+
+/** 重做一帧的可选输入：不填 = 按原方案重抽。 */
+export interface StoryboardFrameRegenerateOptions {
+  promptOverride?: string;
+  sourceAssetIds?: string[];
+}
+
+interface FrameDraft {
+  open: boolean;
+  direction: string;
+  assetIds: string[];
+}
+
+const EMPTY_DRAFT: FrameDraft = { open: false, direction: "", assetIds: [] };
+
 export function StoryboardWorkflowPanel({
   run,
   english,
   busyFrameId,
   approving,
+  referenceOptions = [],
   onRegenerate,
   onApprove,
   onEditPlan,
@@ -59,10 +88,15 @@ export function StoryboardWorkflowPanel({
   english: boolean;
   busyFrameId: string | null;
   approving: boolean;
-  onRegenerate: (frameId: string) => void;
+  referenceOptions?: StoryboardReferenceOption[];
+  onRegenerate: (frameId: string, options: StoryboardFrameRegenerateOptions) => void;
   onApprove: () => void;
   onEditPlan: () => void;
 }) {
+  /// 按帧序号存草稿：重做后帧 id 会换，序号不变，补充要求留着方便再改一次。
+  const [drafts, setDrafts] = useState<Record<number, FrameDraft>>({});
+  const updateDraft = (ordinal: number, patch: Partial<FrameDraft>) =>
+    setDrafts((current) => ({ ...current, [ordinal]: { ...(current[ordinal] ?? EMPTY_DRAFT), ...patch } }));
   const approved = run.status === "APPROVED";
   const ready = run.status === "AWAITING_APPROVAL";
   const generatedCount = run.frames.filter((frame) => frame.status === "SUCCEEDED").length;
@@ -118,6 +152,8 @@ export function StoryboardWorkflowPanel({
           const failed = frame?.status === "FAILED";
           const regenerating = frame?.id === busyFrameId;
           const regenBlocked = failed && frame?.canRegenerate === false;
+          const regenDisabled = !frame || pending || approved || regenerating || regenBlocked;
+          const draft = drafts[ordinal] ?? EMPTY_DRAFT;
           const drawing = regenerating || (pending && run.status === "GENERATING");
           const frameState: VocabState<"frame"> = frame?.status === "SUCCEEDED"
             ? "done"
@@ -176,18 +212,28 @@ export function StoryboardWorkflowPanel({
                   </p>
                   <StatusTick entity="frame" state={frameState} locale={english ? "en-US" : "zh-CN"} />
                 </div>
+                {!approved ? (
+                  <FrameRegenerateOptionsField
+                    ordinal={ordinal}
+                    english={english}
+                    draft={draft}
+                    referenceOptions={referenceOptions}
+                    disabled={regenDisabled}
+                    onChange={(patch) => updateDraft(ordinal, patch)}
+                  />
+                ) : null}
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   className="w-full"
-                  disabled={!frame || pending || approved || regenerating || regenBlocked}
+                  disabled={regenDisabled}
                   title={regenBlocked
                     ? english
                       ? "This frame is locked until the provider confirms whether it was billed."
                       : "需等待合作方确认这一帧是否已计费，暂不能重做。"
                     : undefined}
-                  onClick={() => frame && onRegenerate(frame.id)}
+                  onClick={() => frame && onRegenerate(frame.id, regenerateOptions(draft))}
                 >
                   {regenerating ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <RefreshCw aria-hidden />}
                   {regenBlocked
@@ -222,5 +268,115 @@ export function StoryboardWorkflowPanel({
         )}
       </div>
     </section>
+  );
+}
+
+function regenerateOptions(draft: FrameDraft): StoryboardFrameRegenerateOptions {
+  const promptOverride = draft.direction.trim();
+  return {
+    ...(promptOverride ? { promptOverride } : {}),
+    ...(draft.assetIds.length > 0 ? { sourceAssetIds: draft.assetIds } : {}),
+  };
+}
+
+/** 每帧折叠的「补充要求 + 参考图」：默认收起，不填就按原方案重抽。 */
+function FrameRegenerateOptionsField({
+  ordinal,
+  english,
+  draft,
+  referenceOptions,
+  disabled,
+  onChange,
+}: {
+  ordinal: number;
+  english: boolean;
+  draft: FrameDraft;
+  referenceOptions: StoryboardReferenceOption[];
+  disabled: boolean;
+  onChange: (patch: Partial<FrameDraft>) => void;
+}) {
+  const panelId = `storyboard-frame-${ordinal}-regenerate-options`;
+  const filled = draft.direction.trim().length > 0 || draft.assetIds.length > 0;
+  const atLimit = draft.assetIds.length >= STORYBOARD_FRAME_SOURCE_ASSETS_MAX;
+  const toggleAsset = (assetId: string) =>
+    onChange({
+      assetIds: draft.assetIds.includes(assetId)
+        ? draft.assetIds.filter((id) => id !== assetId)
+        : [...draft.assetIds, assetId].slice(0, STORYBOARD_FRAME_SOURCE_ASSETS_MAX),
+    });
+  return (
+    <div className="space-y-2">
+      <button
+        type="button"
+        aria-expanded={draft.open}
+        aria-controls={panelId}
+        onClick={() => onChange({ open: !draft.open })}
+        className="inline-flex items-center gap-1.5 text-meta text-muted-foreground transition-colors duration-fast hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
+      >
+        <ChevronDown className={cn("size-3.5 transition-transform duration-fast motion-reduce:transition-none", draft.open && "rotate-180")} aria-hidden />
+        {english ? "Adjust before regenerating" : "重做前补充要求"}
+        {filled ? (
+          <>
+            <span aria-hidden className="size-1.5 rounded-(--radius-sm) bg-accent" />
+            <span className="sr-only">{english ? "(filled in)" : "（已填写）"}</span>
+          </>
+        ) : null}
+      </button>
+      {draft.open ? (
+        <div id={panelId} className="space-y-2.5">
+          <div className="space-y-1">
+            <Textarea
+              value={draft.direction}
+              maxLength={STORYBOARD_FRAME_DIRECTION_MAX}
+              rows={3}
+              disabled={disabled}
+              aria-label={english ? `Direction for frame ${ordinal + 1}` : `第 ${ordinal + 1} 帧的补充要求`}
+              placeholder={english ? "Optional, e.g. closer shot showing the zipper" : "可选，例如：镜头再近一点，露出拉链细节"}
+              className="min-h-20 text-meta"
+              onChange={(event) => onChange({ direction: event.target.value })}
+            />
+            <p className="text-right font-mono text-micro tabular-nums text-tertiary">
+              {draft.direction.length}/{STORYBOARD_FRAME_DIRECTION_MAX}
+            </p>
+          </div>
+          {referenceOptions.length > 0 ? (
+            <div className="space-y-1.5">
+              <p className="text-micro text-muted-foreground">
+                {english
+                  ? `Reference photos · up to ${STORYBOARD_FRAME_SOURCE_ASSETS_MAX}; none selected keeps all product photos`
+                  : `参考图 · 最多 ${STORYBOARD_FRAME_SOURCE_ASSETS_MAX} 张；不选则沿用全部产品图`}
+              </p>
+              <div className="grid grid-cols-3 gap-1.5" role="group" aria-label={english ? "Reference photos" : "参考图"}>
+                {referenceOptions.map((option) => {
+                  const pressed = draft.assetIds.includes(option.assetId);
+                  return (
+                    <button
+                      key={option.assetId}
+                      type="button"
+                      aria-pressed={pressed}
+                      aria-label={option.label}
+                      title={option.label}
+                      disabled={disabled || (!pressed && atLimit)}
+                      onClick={() => toggleAsset(option.assetId)}
+                      className={cn(
+                        "relative aspect-square overflow-hidden rounded-(--radius-sm) border bg-sunken transition-colors duration-fast focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:opacity-50 motion-reduce:transition-none",
+                        pressed ? "border-(--accent-line) bg-active" : "border-border hover:border-border-strong",
+                      )}
+                    >
+                      <Image src={option.url} alt="" fill sizes="64px" className="object-cover" unoptimized />
+                      {pressed ? (
+                        <span className="absolute right-0.5 top-0.5 inline-flex size-4 items-center justify-center rounded-(--radius-sm) bg-overlay text-accent">
+                          <Check className="size-3" aria-hidden />
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }

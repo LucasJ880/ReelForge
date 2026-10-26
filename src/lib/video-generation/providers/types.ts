@@ -24,6 +24,15 @@ export interface VideoJobReferenceImage {
   role?: "first_frame" | "last_frame" | "content";
 }
 
+/// 参考视频 / 参考音频。适配器能力位为 false 时必须在提交前拒绝，不得静默丢弃。
+export interface VideoJobReferenceMedia {
+  url: string;
+  durationSec?: number;
+}
+
+/// draft = 720P/480P 草稿档（默认）；final = 1080P 成片档。
+export type VideoQualityTier = "draft" | "final";
+
 export interface CreateVideoJobOptions {
   /**
    * Stable per-attempt request key persisted before the provider call.
@@ -34,6 +43,13 @@ export interface CreateVideoJobOptions {
   /// 模板锁定的固定负面词；Provider 不支持独立字段时应确定性并入 prompt
   negativePrompt?: string;
   referenceImages?: VideoJobReferenceImage[];
+  referenceVideos?: VideoJobReferenceMedia[];
+  referenceAudios?: VideoJobReferenceMedia[];
+  /**
+   * 本次任务**诉求**的质量档，缺省 draft。诉求 ≠ 授权：`"final"` 绝不能推出
+   * 「准许 1080P 扣费」，授权只来自各适配器独立的闸门（Shuyu 见 allowFinal）。
+   */
+  qualityTier?: VideoQualityTier;
   /// Provider-specific interpretation for reference images when supported.
   referenceMode?: "i2v" | "reference";
   durationSec?: number;
@@ -101,6 +117,10 @@ export interface VideoProvider {
    * flags. Only `none` may make an otherwise ambiguous manual retry safe.
    */
   readonly manualRetryBillingRisk: "none" | "possible";
+  /// 静态能力位：只描述适配器已接 wire 的能力，与当前 env 无关。
+  readonly supportsReferenceAudio: boolean;
+  /// 适配器能送达供应商的参考图硬顶；套餐级上限可能更小。
+  readonly maxReferenceImages: number;
 
   isConfigured(): boolean;
   isMockMode(): boolean;

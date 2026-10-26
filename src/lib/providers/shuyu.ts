@@ -102,7 +102,7 @@ export const shuyuPriceSchema = z
           .array(z.enum(["text2video", "image2video", "frames2video"]))
           .max(3)
           .optional(),
-        durations: z.array(z.number().int().min(1).max(15)).max(15).optional(),
+        durations: z.array(z.number().int().min(1).max(60)).max(30).optional(),
         quality: z.enum(["480P", "720P", "1080P", "1K", "2K", "4K"]).optional(),
       })
       .strip(),
@@ -110,10 +110,20 @@ export const shuyuPriceSchema = z
   })
   .strip();
 
+/// 逐条校验：供应商新上一档（新 mode / 新画幅 / 30s 等）只丢掉那一条，不让整张价目表失效。
+/// 单条仍严格——认不出的档宁可缺席，也不能被当成已审计的旧档计价。
 export const shuyuPricesResponseSchema = z
   .object({
     object: z.literal("list"),
-    data: z.array(shuyuPriceSchema).max(100),
+    data: z
+      .array(z.unknown())
+      .max(100)
+      .transform((entries) =>
+        entries.flatMap((entry) => {
+          const plan = shuyuPriceSchema.safeParse(entry);
+          return plan.success ? [plan.data] : [];
+        }),
+      ),
   })
   .strip();
 
@@ -836,6 +846,13 @@ export async function getShuyuPrices(
       "invalid_response",
       response.status,
     );
+  }
+  const listed = (payload as { data: unknown[] }).data.length;
+  if (parsed.data.data.length < listed) {
+    console.warn("[shuyu] prices: dropped plans that failed the per-plan schema", {
+      listed,
+      kept: parsed.data.data.length,
+    });
   }
   return parsed.data;
 }

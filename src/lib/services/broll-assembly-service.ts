@@ -24,10 +24,7 @@ import {
   type BrollPick,
   type BrollPlan,
 } from "@/lib/services/broll-plan-service";
-import {
-  isOpenAiTtsAvailable,
-  synthesizeVoiceover,
-} from "@/lib/providers/openai-tts";
+import { getTtsProvider, isTtsConfigured } from "@/lib/providers/tts";
 import { isStockFootageAvailable } from "@/lib/providers/stock-footage";
 import { refundFailedBrief } from "@/lib/services/quota-refund-service";
 import {
@@ -100,7 +97,7 @@ export type ComposeBrollResult = {
 };
 
 export function isBrollRouteAvailable(): boolean {
-  return isStockFootageAvailable() && isOpenAiTtsAvailable();
+  return isStockFootageAvailable() && isTtsConfigured();
 }
 
 function aspectToStock(aspect: BrollAspectRatio): "portrait" | "landscape" {
@@ -240,12 +237,14 @@ export async function composeBrollSegments(args: {
   aspectRatio: BrollAspectRatio;
   voiceId?: string | null;
 }): Promise<ComposeBrollResult> {
-  if (!isOpenAiTtsAvailable()) {
+  if (!isTtsConfigured()) {
     throw new BrollPlanError(
-      "TTS 配音尚未接入（缺 OPENAI_API_KEY 的 tts 权限）",
+      "TTS 配音尚未接入（当前配音供应商缺少配置）",
       "footage_unavailable",
     );
   }
+  const tts = getTtsProvider();
+  const language = hasCjk(args.script) ? "zh" : "en";
 
   const plan = await buildBrollPlan({
     script: args.script,
@@ -274,9 +273,10 @@ export async function composeBrollSegments(args: {
       const clip = pick.candidates[0];
 
       const ttsPath = path.join(tmpDir, `tts-${i}.mp3`);
-      const audio = await synthesizeVoiceover({
+      const { audio } = await tts.synthesize({
         text: pick.segment.narration,
         voiceId: args.voiceId,
+        language,
       });
       await writeFile(ttsPath, audio);
       const ttsDuration = await probeDurationSec(ttsPath);
@@ -578,12 +578,14 @@ export async function prepareBrollInputs(args: {
   aspectRatio: BrollAspectRatio;
   voiceId?: string | null;
 }): Promise<{ runId: string; plan: BrollPlan; prepared: PreparedBrollSegment[] }> {
-  if (!isOpenAiTtsAvailable()) {
+  if (!isTtsConfigured()) {
     throw new BrollPlanError(
-      "TTS 配音尚未接入（缺 OPENAI_API_KEY 的 tts 权限）",
+      "TTS 配音尚未接入（当前配音供应商缺少配置）",
       "footage_unavailable",
     );
   }
+  const tts = getTtsProvider();
+  const language = hasCjk(args.script) ? "zh" : "en";
   const plan = await buildBrollPlan({
     script: args.script,
     aspect: aspectToStock(args.aspectRatio),
@@ -602,14 +604,15 @@ export async function prepareBrollInputs(args: {
   const prepared: PreparedBrollSegment[] = [];
   for (const pick of picks) {
     const clip = pick.candidates[0];
-    const audio = await synthesizeVoiceover({
+    const { audio, mime } = await tts.synthesize({
       text: pick.segment.narration,
       voiceId: args.voiceId,
+      language,
     });
     const uploaded = await storage.uploadBuffer("renders", audio, {
       key: `broll/${runId}/tts-${pick.segment.order}.mp3`,
       access: "public",
-      contentType: "audio/mpeg",
+      contentType: mime,
       overwrite: true,
     });
     prepared.push({

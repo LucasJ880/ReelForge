@@ -16,8 +16,11 @@ import {
   SHUYU_VIDEO_MODEL,
 } from "@/lib/providers/shuyu";
 import { parseShuyuCatalog } from "@/lib/providers/shuyu-catalog";
+import { detectShuyuSeedance25 } from "@/lib/providers/shuyu-seedance25-probe";
 import { openAiProbePlan, openAiTokenLimitParam } from "@/lib/ai/providers/openai-provider";
-import { OPENAI_TTS_ENDPOINT, OPENAI_TTS_MODEL } from "@/lib/providers/openai-tts";
+import { resolveTtsProviderId, type TtsProviderId } from "@/lib/providers/tts/config";
+import { OPENAI_TTS_ENDPOINT, OPENAI_TTS_MODEL } from "@/lib/providers/tts/openai";
+import { resolveTtsVoice } from "@/lib/providers/tts/voices";
 import { classifyHttpStatus, classifyNetworkError, safeNote } from "@/lib/capabilities/classify";
 import {
   isFailingStatus,
@@ -60,6 +63,10 @@ export type ShuyuCatalogSummary = {
   imagePlanCount: number;
   cheapestImagePoints: number | null;
   cheapestVideo15sPoints: number | null;
+  /// X-SCAF-4：价目表里是否出现 Seedance 2.5 档（E7′ 触发器）。这里拿到的是严格解析后的套餐，
+  /// 只能认出 display_name / model 含「2.5」且 durations ≤15 的条目；带 30s 的新档会让严格解析整体
+  /// 失败（落在 fetchError），完整信号由 route-truth-table 读原始 /prices 给出。
+  seedance25?: { detected: boolean; candidatePlanIds: string[] };
 };
 
 export type ProbeResult = {
@@ -257,10 +264,15 @@ export function summarizeShuyuCatalog(plans: ShuyuPlan[]): ShuyuCatalogSummary {
   const videoPoints = listAuditedShuyuVideoPlans(plans.filter((plan) => plan.kind === "video"))
     .filter((plan) => plan.tier === "draft")
     .map((plan) => shuyuVideoPlanPointsForDuration(plan, 15));
+  const seedance25 = detectShuyuSeedance25(plans);
   return {
     imagePlanCount: imagePoints.length,
     cheapestImagePoints: imagePoints.length ? Math.min(...imagePoints) : null,
     cheapestVideo15sPoints: videoPoints.length ? Math.min(...videoPoints) : null,
+    seedance25: {
+      detected: seedance25.detected,
+      candidatePlanIds: seedance25.candidates.map((candidate) => candidate.planId ?? "?"),
+    },
   };
 }
 
@@ -501,7 +513,7 @@ export async function probeOpenAiChat(ctx: ProbeContext, models: string[]): Prom
   return last ?? { status: "degraded", reason: "unknown", detail: { provider: "openai", note: "no model candidates" } };
 }
 
-/** 1 个字符的 TTS（与 synthesizeVoiceover 同一个模型与端点）。 */
+/** 1 个字符的 TTS（与 providers/tts/openai 的生产合成同一个模型与端点）。 */
 export async function probeOpenAiTts(ctx: ProbeContext): Promise<CapabilityObservation> {
   const key = envValue(ctx, "OPENAI_API_KEY");
   if (!key) return notConfigured();
@@ -511,11 +523,25 @@ export async function probeOpenAiTts(ctx: ProbeContext): Promise<CapabilityObser
     {
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model: OPENAI_TTS_MODEL, voice: "nova", input: "a", response_format: "mp3" }),
+      body: JSON.stringify({
+        model: OPENAI_TTS_MODEL,
+        voice: resolveTtsVoice("openai", null),
+        input: "a",
+        response_format: "mp3",
+      }),
     },
     { binary: true },
   );
   return fromHttp(outcome, { provider: "openai", model: OPENAI_TTS_MODEL });
+}
+
+const TTS_PROBES: Record<TtsProviderId, (ctx: ProbeContext) => Promise<CapabilityObservation>> = {
+  openai: probeOpenAiTts,
+};
+
+/** 探当前 TTS_PROVIDER 选中的那一家：探测与生产必须是同一个供应商。 */
+export function probeTts(ctx: ProbeContext): Promise<CapabilityObservation> {
+  return TTS_PROBES[resolveTtsProviderId(ctx.env)](ctx);
 }
 
 export async function probeOpenAiModeration(ctx: ProbeContext): Promise<CapabilityObservation> {
@@ -802,10 +828,11 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
     else add("vision", await safely(() => probeOpenAiChat(ctx, visionModels)));
   }
 
-  // voice：每 24 小时最多一次真实 TTS
+  // voice：每 24 小时最多一次真实 TTS；只有 OpenAI 配音才跟着 OpenAI 账户恢复补探
+  const ttsAccount = resolveTtsProviderId(ctx.env) === "openai" ? text : null;
   if (!configured.voice) add("voice", notConfigured(), "config");
-  else if (shouldProbeTts({ prev: previous.get("voice"), account: text, now, force: deps.force ?? false })) {
-    const observation = await safely(() => probeOpenAiTts(ctx));
+  else if (shouldProbeTts({ prev: previous.get("voice"), account: ttsAccount, now, force: deps.force ?? false })) {
+    const observation = await safely(() => probeTts(ctx));
     add("voice", withDetail(observation, { ttsProbedAt: now.toISOString() }));
   } else keep("voice");
 

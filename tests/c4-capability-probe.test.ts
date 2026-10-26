@@ -165,7 +165,12 @@ test("Shuyu 目录摘要：最便宜的图与 15 秒视频（与审计同一套�
       status: "available",
     },
   ] as never);
-  assert.deepEqual(summary, { imagePlanCount: 1, cheapestImagePoints: 40, cheapestVideo15sPoints: 700 });
+  assert.deepEqual(summary, {
+    imagePlanCount: 1,
+    cheapestImagePoints: 40,
+    cheapestVideo15sPoints: 700,
+    seedance25: { detected: false, candidatePlanIds: [] },
+  });
 });
 
 /* ── TTS 节流 ───────────────────────────────────────────────────────── */

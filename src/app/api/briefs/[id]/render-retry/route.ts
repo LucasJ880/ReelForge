@@ -47,9 +47,11 @@ export async function POST(
 
   const access = await checkBriefAccess(briefId, guard.session);
   if (!access.allowed) {
+    /// P05-D：404 / 403 用契约里的真实错误码（customer-api.ts），不再一律 INTERNAL_ERROR——
+    /// 客户端按 code 分流（找不到 vs 无权），INTERNAL_ERROR 会被当成「稍后重试」。
     return NextResponse.json(
       customerApiError({
-        code: "INTERNAL_ERROR",
+        code: access.reason === "not-found" ? "RESOURCE_NOT_FOUND" : "FORBIDDEN",
         message:
           access.reason === "not-found"
             ? "生成记录不存在。"
@@ -120,7 +122,7 @@ export async function POST(
       if (!job || job.videoBriefId !== briefId) {
         return NextResponse.json(
           customerApiError({
-            code: "INTERNAL_ERROR",
+            code: "RESOURCE_NOT_FOUND",
             message: "待重试的生成任务不存在。",
             retryable: false,
             action: "contact_support",
@@ -133,10 +135,10 @@ export async function POST(
     } else {
       return NextResponse.json(
         customerApiError({
-          code: "INTERNAL_ERROR",
+          code: "VALIDATION_FAILED",
           message: "请选择一个失败任务，或重试全部可恢复任务。",
           retryable: false,
-          action: "contact_support",
+          action: "fix_request",
         }),
         { status: 400 },
       );

@@ -7,6 +7,7 @@ import { decideDemoAccess, demoBlockedBody } from "@/lib/demo-account";
  * Phase 5 — middleware whitelist:
  *
  *  - `/login`, `/register`, `/api/auth/*` → 登录 / 公开注册 / NextAuth
+ *  - `/forgot-password`, `/reset-password` → 密码找回两页（接口在 `/api/auth/password-reset/*`，随 `/api/auth` 放行）
  *  - `/persona`, `/showcase`, `/privacy`, `/terms` → public landing / legal pages
  *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
@@ -25,6 +26,9 @@ import { decideDemoAccess, demoBlockedBody } from "@/lib/demo-account";
 const publicPaths = [
   "/login",
   "/register",
+  /// 忘记密码 / 设置新密码：没登录的人才用得上
+  "/forgot-password",
+  "/reset-password",
   "/api/auth",
   "/persona",
   "/showcase",

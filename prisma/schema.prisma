@@ -60,6 +60,26 @@ model AdminUser {
   mediaAssets           MediaAsset[]           @relation("MediaAssetOwner")
   storyboardRuns        StoryboardRun[]        @relation("StoryboardRunOwner")
   approvedStoryboards   StoryboardRun[]        @relation("StoryboardRunApprover")
+  passwordResetTokens   PasswordResetToken[]
+}
+
+/// 密码找回链接（1025 整合轮）：库里只存令牌的 sha256，明文只出现在发给用户的那封邮件里。
+/// 30 分钟有效、只能用一次（消费时对 usedAt 做条件更新）；同一用户再次申请或重置成功时，
+/// 其余未用的链接一律写 usedAt 作废——只改状态，不删行。见 src/lib/services/password-reset-service.ts。
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  userId      String
+  user        AdminUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// sha256(明文令牌) 的十六进制
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  /// 已用或已被作废的时间；为空且未过期 = 仍可用
+  usedAt      DateTime?
+  /// 申请来源：访客网段的单向哈希（hashVisitorNetwork，与限流同一口径）；库里不存原始 IP
+  requestedIp String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model PlanEntitlement {

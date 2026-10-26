@@ -1,11 +1,13 @@
 import { after } from "next/server";
 import { db } from "@/lib/db";
+import type { Locale } from "@/i18n/config";
 import { getGrowthCopy, labelFor } from "@/i18n/growth-copy";
-import { founderNotifyEmail } from "@/lib/config/contact";
+import { getPasswordResetCopy } from "@/i18n/password-reset-copy";
+import { contactEmail, founderNotifyEmail } from "@/lib/config/contact";
 import { markCapability } from "@/lib/services/capability-status-service";
 
 /**
- * 新询盘 / 试点申请的通知（计划 D8）。
+ * 新询盘 / 试点申请 / 密码重置的邮件（计划 D8；密码重置为 1025 整合轮）。
  *
  *  - 配了 RESEND_API_KEY + EMAIL_FROM 才发邮件：直接调 Resend REST，不引 SDK。
  *  - 没配就只打一行日志（站内角标与每日汇总兜底）；发信 key 与域名 DNS 是创始人提供的外部依赖。
@@ -33,6 +35,10 @@ export function founderEmail(env: NodeJS.ProcessEnv = process.env): string | nul
   return founderNotifyEmail(env);
 }
 
+/**
+ * 邮件里链接的站点根地址：只认部署配置（APP_BASE_URL / NEXT_PUBLIC_APP_URL / Vercel 生产域名），
+ * 从不取请求的 Host 头——否则伪造 Host 就能让重置邮件里的链接指向别人的站点。
+ */
 export function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string | null {
   const configured = (env.APP_BASE_URL || env.NEXT_PUBLIC_APP_URL)?.trim();
   if (configured) return configured.replace(/\/+$/, "");
@@ -248,6 +254,67 @@ export async function notifyPilotApplication(applicationId: string, deps: Notify
   } catch (error) {
     console.warn("[notify] pilot application email failed", {
       applicationId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return { sent: false, reason: "send_failed" };
+  }
+}
+
+/**
+ * 密码重置邮件正文（纯文本、中英双语）：申请时界面用的语言排在前面，另一种语言跟在后面，
+ * 两段都带链接——收件人不管看哪一段都能直接点。
+ */
+export function passwordResetEmailMessage(input: {
+  link: string;
+  locale: Locale;
+  expiresInMinutes: number;
+  contact: string;
+}): { subject: string; text: string } {
+  const order: Locale[] = input.locale === "en-US" ? ["en-US", "zh-CN"] : ["zh-CN", "en-US"];
+  const minutes = String(input.expiresInMinutes);
+  const blocks = order.map((locale) => {
+    const copy = getPasswordResetCopy(locale).email;
+    return [
+      copy.intro,
+      "",
+      copy.action.replace("{minutes}", minutes),
+      input.link,
+      "",
+      copy.ignore,
+      copy.help.replace("{contact}", input.contact),
+    ].join("\n");
+  });
+  return {
+    subject: order.map((locale) => getPasswordResetCopy(locale).email.subject).join(" / "),
+    text: blocks.join("\n\n--\n\n"),
+  };
+}
+
+/**
+ * 发密码重置邮件。与其它通知同一规矩：没配发信只记日志，任何失败都只记日志、绝不抛出；
+ * 日志里不写收件人、不写链接（链接里就是令牌）。
+ */
+export async function sendPasswordResetEmail(
+  input: { to: string; link: string; locale: Locale; expiresInMinutes: number },
+  deps: NotifyDeps = {},
+): Promise<NotifyOutcome> {
+  const env = deps.env ?? process.env;
+  try {
+    const config = emailConfig(env);
+    if (!config) {
+      console.info("[notify] 未配置 RESEND_API_KEY / EMAIL_FROM，跳过密码重置邮件");
+      return { sent: false, reason: "not_configured" };
+    }
+    const message = passwordResetEmailMessage({
+      link: input.link,
+      locale: input.locale,
+      expiresInMinutes: input.expiresInMinutes,
+      contact: contactEmail(env),
+    });
+    const ok = await sendEmail({ to: [input.to], subject: message.subject, text: message.text }, config, deps.fetchImpl);
+    return ok ? { sent: true } : { sent: false, reason: "send_failed" };
+  } catch (error) {
+    console.warn("[notify] password reset email failed", {
       error: error instanceof Error ? error.message : String(error),
     });
     return { sent: false, reason: "send_failed" };

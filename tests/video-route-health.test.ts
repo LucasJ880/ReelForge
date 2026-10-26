@@ -1,13 +1,21 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { type TestContext } from "node:test";
 import { VideoJobStatus } from "@prisma/client";
+import { db } from "../src/lib/db";
 import {
   MIN_ROUTE_HEALTH_SAMPLES,
   UNHEALTHY_SUCCESS_RATE,
   findRouteHealth,
+  getVideoRouteHealthReport,
   summarizeVideoRouteHealth,
   type VideoRouteJobSample,
 } from "../src/lib/services/video-route-health-service";
+import {
+  RUN_KEY_DEFAULT_WINDOW_HOURS,
+  parseReportArgs,
+  renderMarkdown,
+  reportRows,
+} from "../scripts/report-video-route-health";
 
 const BASE = new Date("2026-07-29T00:00:00.000Z");
 
@@ -138,4 +146,123 @@ test("多线路互不串味", () => {
   const report = summarizeVideoRouteHealth(rows);
   assert.equal(findRouteHealth(report, "buddy")!.succeeded, 0);
   assert.equal(findRouteHealth(report, "byteplus_international")!.succeeded, 2);
+});
+
+/* ── X-SCAF-0：按批次筛（实验对照） ───────────────────────────────────── */
+
+type Calls = Record<string, unknown[]>;
+
+/** 把 db.<model>.<method> 换成桩，记录每次的入参；测试结束还原。 */
+function stub(t: TestContext, calls: Calls, model: string, method: string, impl: (args: unknown) => unknown) {
+  const target = (db as unknown as Record<string, Record<string, unknown>>)[model];
+  const original = target[method];
+  target[method] = async (args: unknown) => {
+    (calls[`${model}.${method}`] ??= []).push(args);
+    return impl(args);
+  };
+  t.after(() => {
+    target[method] = original;
+  });
+}
+
+type FindManyArgs = { where: { batchJobId?: { in: string[] }; status: unknown; finishedAt: unknown }; take: number };
+
+test("读库版：传 batchJobIds 时 where 里按 batchJobId in 筛，其余判据不变", async (t) => {
+  const calls: Calls = {};
+  stub(t, calls, "videoJob", "findMany", () => [
+    { videoRouteSnapshot: "buddy", videoModelSnapshot: "studio-video", status: VideoJobStatus.SUCCEEDED, submittedAt: BASE, finishedAt: new Date(BASE.getTime() + 60_000), providerUnitPriceUsd: null, providerUnitPoints: 900 },
+  ]);
+  const report = await getVideoRouteHealthReport({ windowHours: 48, batchJobIds: ["batch-a", "batch-b"] });
+  const args = calls["videoJob.findMany"]![0] as FindManyArgs;
+  assert.deepEqual(args.where.batchJobId, { in: ["batch-a", "batch-b"] });
+  assert.deepEqual(args.where.status, { in: ["SUCCEEDED", "FAILED", "CANCELLED"] }, "终态判据照旧");
+  assert.ok(args.where.finishedAt, "时间窗照旧");
+  assert.equal(findRouteHealth(report, "buddy")!.avgCostPoints, 900);
+});
+
+test("读库版：不传 batchJobIds 时 where 里没有 batchJobId（全量口径不变）", async (t) => {
+  const calls: Calls = {};
+  stub(t, calls, "videoJob", "findMany", () => []);
+  await getVideoRouteHealthReport({ windowHours: 1 });
+  const args = calls["videoJob.findMany"]![0] as FindManyArgs;
+  assert.equal("batchJobId" in args.where, false);
+});
+
+test("读库版：空数组 = 一条不看，不退回全量", async (t) => {
+  const calls: Calls = {};
+  stub(t, calls, "videoJob", "findMany", () => []);
+  await getVideoRouteHealthReport({ batchJobIds: [] });
+  const args = calls["videoJob.findMany"]![0] as FindManyArgs;
+  assert.deepEqual(args.where.batchJobId, { in: [] });
+});
+
+/* ── 速查脚本：--run-key / --md 与积分列 ────────────────────────────── */
+
+test("速查脚本参数：窗口小时数、--run-key=<前缀>、--md；坏参数直接报错", () => {
+  assert.deepEqual(parseReportArgs([]), { windowHours: null, runKey: null, md: false });
+  assert.deepEqual(parseReportArgs(["72"]), { windowHours: 72, runKey: null, md: false });
+  assert.deepEqual(parseReportArgs(["--run-key=exp-2611-bakeoff", "--md"]), { windowHours: null, runKey: "exp-2611-bakeoff", md: true });
+  assert.throws(() => parseReportArgs(["--run-key"]), /--run-key=<前缀>/);
+  assert.throws(() => parseReportArgs(["--run-key="]), /幂等键前缀/);
+  assert.throws(() => parseReportArgs(["--nope"]), /不认识的参数/);
+  assert.equal(RUN_KEY_DEFAULT_WINDOW_HOURS, 24 * 30, "--run-key 默认窗口 30 天");
+});
+
+test("速查脚本 markdown：每条线路一行，带单条积分列，标题写运行键与批次数", () => {
+  const report = summarizeVideoRouteHealth(
+    [
+      sample({ providerUnitPriceUsd: null, providerUnitPoints: 900 }),
+      sample({ providerUnitPriceUsd: null, providerUnitPoints: 700 }),
+      sample({ routeId: "byteplus_international", providerUnitPriceUsd: 0.5, providerUnitPoints: null }),
+    ],
+    { windowHours: 720, generatedAt: BASE },
+  );
+  const md = renderMarkdown(report, { runKey: "exp-2611-bakeoff", batchCount: 2 });
+  assert.match(md, /^### 线路健康画像 · 运行键 `exp-2611-bakeoff`（2 个批次） · 最近 720 小时/);
+  assert.match(md, /\| 线路 \| 模型 \| 样本 \| 成功 \| 失败 \| 取消 \| 成功率 \| P50 \| P95 \| 单条成本 \| 单条积分 \| 判定 \|/);
+  assert.match(md, /\| buddy \| studio-video \| 2 \| 2 \| 0 \| 0 \| 100\.0% \| 1\.0 分 \| 1\.0 分 \| — \| 800 \| 样本不足 \|/);
+  assert.match(md, /\| byteplus_international \| studio-video \| 1 \| 1 \| 0 \| 0 \| 100\.0% \| 1\.0 分 \| 1\.0 分 \| \$0\.5000 \| — \| 样本不足 \|/);
+  /// 没有运行键时标题只写窗口
+  assert.match(renderMarkdown(report), /^### 线路健康画像 · 最近 720 小时\n/);
+  /// 终端表格也带积分列
+  assert.ok(Object.keys(reportRows(report)[0]).includes("单条积分"));
+});
+
+test("P03-B：读库画像把单条行与批量行一起统计，积分成本取行上受理后回写的实际快照", async (t) => {
+  const model = db.videoJob as unknown as Record<string, unknown>;
+  const originalFindMany = model.findMany;
+  let capturedWhere: Record<string, unknown> | null = null;
+  model.findMany = async (args: { where: Record<string, unknown> }) => {
+    capturedWhere = args.where;
+    const terminal = {
+      videoRouteSnapshot: "buddy",
+      videoModelSnapshot: "studio-video",
+      status: VideoJobStatus.SUCCEEDED,
+      submittedAt: BASE,
+      finishedAt: new Date(BASE.getTime() + 60_000),
+      providerUnitPriceUsd: null,
+    };
+    return [
+      /// 批量行：批次创建时的默认套餐 900，受理时未降级
+      { ...terminal, batchJobId: "batch-1", segmentIndex: null, providerUnitPoints: 900 },
+      /// 单条段行：创建时估 900，提交级降级后受理回写 700（P03-B 之前这里会一直是 900）
+      { ...terminal, batchJobId: null, segmentIndex: 0, providerUnitPoints: 700 },
+      /// 单条旧路径行：同样是单条，受理回写 1100
+      { ...terminal, batchJobId: null, segmentIndex: null, providerUnitPoints: 1100 },
+    ];
+  };
+  t.after(() => {
+    model.findMany = originalFindMany;
+  });
+
+  const report = await getVideoRouteHealthReport({ windowHours: 24 });
+  const buddy = findRouteHealth(report, "buddy")!;
+
+  assert.equal(buddy.samples, 3, "单条行与批量行都进样本");
+  assert.equal(buddy.avgCostPoints, (900 + 700 + 1100) / 3);
+  const where = capturedWhere as Record<string, unknown> | null;
+  assert.ok(where);
+  assert.ok(!("batchJobId" in where), "读库查询不能把单条行（batchJobId 为空）筛掉");
+  assert.ok(!("segmentIndex" in where), "读库查询不能按段号筛掉旧路径单条行");
+  assert.ok(!("videoBriefId" in where), "读库查询不能把批量行（videoBriefId 为空）筛掉");
 });

@@ -9,6 +9,7 @@ import {
 import { pollRunningJobs } from "@/lib/services/video-service";
 import { pollPendingProductImageJobs } from "@/lib/services/product-image-service";
 import { pollPendingContentPostRenders } from "@/lib/services/content-post-image-job-service";
+import { sweepProductAnchorCutouts } from "@/lib/services/product-anchor-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-service";
 
@@ -23,6 +24,9 @@ import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-ser
  * 「供应商已完成」只 defer，由这里（或 process-batches）真正跑质检并收尾。
  *
  * C2：图文帖的 Shuyu 配图也在这里推进（商家关了页面，在途的图照样收回、这一轮照样收尾）。
+ *
+ * P02-E0：产品锚点的待抠图续跑也挂在这里（每轮最多 5 个、总预算 20s），
+ * 由 PRODUCT_ANCHOR_CUTOUT_CRON=on 打开，默认关；抠图能力不可用时直接跳过。
  */
 export const maxDuration = 300;
 
@@ -34,6 +38,7 @@ interface PollVideosDependencies {
   pollPendingStoryboardRuns: typeof pollPendingStoryboardRuns;
   pollPendingContentPostRenders: typeof pollPendingContentPostRenders;
   sweepStuckTasks: typeof sweepStuckTasks;
+  sweepProductAnchorCutouts: typeof sweepProductAnchorCutouts;
 }
 
 const defaultDependencies: PollVideosDependencies = {
@@ -44,6 +49,7 @@ const defaultDependencies: PollVideosDependencies = {
   pollPendingStoryboardRuns,
   pollPendingContentPostRenders,
   sweepStuckTasks,
+  sweepProductAnchorCutouts,
 };
 
 function errorMessage(result: PromiseRejectedResult): string {
@@ -58,17 +64,19 @@ export function createPollVideosHandler(
     const authFailure = dependencies.machineAuthFailure(req);
     if (authFailure) return authFailure;
     const heartbeat = dependencies.startSchedulerHeartbeat("poll-videos");
-    const [videoResult, imageResult, storyboardResult, contentPostResult] = await Promise.allSettled([
+    const [videoResult, imageResult, storyboardResult, contentPostResult, anchorResult] = await Promise.allSettled([
       dependencies.pollRunningJobs(30),
       dependencies.pollPendingProductImageJobs(20),
       dependencies.pollPendingStoryboardRuns(20),
       dependencies.pollPendingContentPostRenders(20),
+      dependencies.sweepProductAnchorCutouts(),
     ] as const);
     const [sweepResult] = await Promise.allSettled([dependencies.sweepStuckTasks()]);
 
     const imageFailed = imageResult.status === "rejected";
     const storyboardFailed = storyboardResult.status === "rejected";
     const contentPostFailed = contentPostResult.status === "rejected";
+    const anchorFailed = anchorResult.status === "rejected";
     const sweepFailed = sweepResult.status === "rejected";
     if (imageFailed) {
       console.warn("[cron/poll-videos] image poll failed:", errorMessage(imageResult));
@@ -78,6 +86,9 @@ export function createPollVideosHandler(
     }
     if (contentPostFailed) {
       console.warn("[cron/poll-videos] content-post image poll failed:", errorMessage(contentPostResult));
+    }
+    if (anchorFailed) {
+      console.warn("[cron/poll-videos] product anchor cutout sweep failed:", errorMessage(anchorResult));
     }
     if (sweepFailed) {
       console.warn("[cron/poll-videos] sweep failed:", errorMessage(sweepResult));
@@ -99,6 +110,8 @@ export function createPollVideosHandler(
           imageError: imageFailed ? errorMessage(imageResult) : null,
           storyboardError: storyboardFailed ? errorMessage(storyboardResult) : null,
           contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
+          anchorCutout: anchorResult.status === "fulfilled" ? anchorResult.value : null,
+          anchorCutoutError: anchorFailed ? errorMessage(anchorResult) : null,
           sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
           heartbeat: heartbeatEvent,
         },
@@ -106,7 +119,7 @@ export function createPollVideosHandler(
       );
     }
 
-    const degraded = imageFailed || storyboardFailed || contentPostFailed || sweepFailed;
+    const degraded = imageFailed || storyboardFailed || contentPostFailed || anchorFailed || sweepFailed;
     const heartbeatEvent = heartbeat.finish(degraded ? "degraded" : "ok", {
       polled: videoResult.value.polled,
       imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
@@ -122,6 +135,8 @@ export function createPollVideosHandler(
       storyboardError: storyboardFailed ? errorMessage(storyboardResult) : null,
       contentPostPolled: contentPostResult.status === "fulfilled" ? contentPostResult.value : 0,
       contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
+      anchorCutout: anchorResult.status === "fulfilled" ? anchorResult.value : null,
+      anchorCutoutError: anchorFailed ? errorMessage(anchorResult) : null,
       sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
       degraded,
       frameQa: frameQaBudgetUsage(),

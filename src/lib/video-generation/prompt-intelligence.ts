@@ -268,16 +268,28 @@ function nearestSpeechBoundary(
 }
 
 /**
- * Split the approved wording into contiguous, non-repeating segment chunks.
- * Joining the chunks reproduces the trimmed script exactly.
+ * Split the approved wording into contiguous, non-repeating segment chunks,
+ * weighted by each AI segment's duration (P04-C, 2026-10-26): a 5s CTA segment
+ * gets about a third of the wording a 15s segment gets instead of an equal share,
+ * so the model is not asked to cram 15s of speech into 5s of footage.
+ * Cuts snap to speech boundaries; joining the chunks reproduces the trimmed
+ * script exactly.
+ *
+ * 同一规则在 audio-post-production.splitScriptByWindows 里还有一份（字幕按段窗口
+ * 回退时要和派发时各段拿到的台词一致；拼接器 / runner 不能 import 本模块）。
+ * 两边由 tests/unified-audio-contract.test.ts 的一致性用例锁住。
  */
 export function splitVoiceoverScript(
   script: string,
-  segmentCount: number,
+  slots: ReadonlyArray<{ durationSec: number }>,
 ): string[] {
+  const segmentCount = slots.length;
   if (segmentCount <= 0) return [];
   const graphemes = Array.from(script.trim());
   if (graphemes.length === 0) return Array.from({ length: segmentCount }, () => "");
+  const weights = slots.map((slot) =>
+    Number.isFinite(slot.durationSec) && slot.durationSec > 0 ? slot.durationSec : 1,
+  );
   const chunks: string[] = [];
   let cursor = 0;
   for (let index = 0; index < segmentCount; index++) {
@@ -286,7 +298,12 @@ export function splitVoiceoverScript(
       break;
     }
     const remainingSegments = segmentCount - index;
-    const ideal = cursor + Math.round((graphemes.length - cursor) / remainingSegments);
+    const remainingWeight = weights
+      .slice(index)
+      .reduce((sum, weight) => sum + weight, 0);
+    const ideal =
+      cursor +
+      Math.round((graphemes.length - cursor) * (weights[index] / remainingWeight));
     const minimum = Math.min(graphemes.length, cursor + 1);
     const maximum = Math.max(
       minimum,
@@ -310,8 +327,8 @@ function voiceoverChunkForSegment(
   segmentIndex: number,
 ): string {
   if (!args.voiceover?.enabled) return "";
-  const count = args.segmentSlots.filter((slot) => slot.source === "ai").length;
-  return splitVoiceoverScript(args.voiceover.script, count)[segmentIndex] ?? "";
+  const aiSlots = args.segmentSlots.filter((slot) => slot.source === "ai");
+  return splitVoiceoverScript(args.voiceover.script, aiSlots)[segmentIndex] ?? "";
 }
 
 function escapeDialogueForPrompt(value: string): string {

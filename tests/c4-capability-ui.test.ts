@@ -221,6 +221,34 @@ test("壳层：状态栏挂能力提示（首屏用服务端值）；layout 传�
   assert.match(unstable, /Some AI features unstable/);
 });
 
+test("状态页：视频不稳定不承诺备用线路——套餐漂移 / 限流 / 上游抖动都只写正在自动重试（P03-K）", () => {
+  for (const reason of ["contract_drift", "rate_limited", "upstream"] as const) {
+    const zh = renderToStaticMarkup(
+      React.createElement(CapabilityBoard, {
+        capabilities: view([{ key: "video", status: "degraded", reason, failingSince: NOW.toISOString() }]),
+        locale: "zh-CN",
+      }),
+    );
+    assert.match(zh, /视频生成线路有波动：正在自动重试/, reason);
+    assert.doesNotMatch(zh, /备用线路|备用套餐/, reason);
+    const en = renderToStaticMarkup(
+      React.createElement(CapabilityBoard, {
+        capabilities: view([{ key: "video", status: "degraded", reason, failingSince: NOW.toISOString() }]),
+        locale: "en-US",
+      }),
+    );
+    assert.match(en, /retrying automatically/, reason);
+    assert.doesNotMatch(en, /backup/i, reason);
+  }
+});
+
+test("状态页：看图暂停时「影响」一栏同时列出故事板 AI 审帧与画面质检（P01-F）", () => {
+  const html = renderToStaticMarkup(React.createElement(CapabilityBoard, { capabilities: PRODUCTION_1025, locale: "zh-CN" }));
+  assert.match(html, /故事板 AI 审帧/);
+  assert.match(html, /画面质检/);
+  assert.doesNotMatch(html, /一致性/, "一致性检查还没落地，文案不许先承诺");
+});
+
 test("状态页：行情头读数（零就写零）+ 每个能力一格（StatusTick 记号与颜色成对、一句人话、影响哪些功能）", () => {
   assert.ok(existsSync("src/app/(platform)/app/status/page.tsx"));
   assert.match(read("src/app/(platform)/app/status/loading.tsx"), /<CustomerRouteLoading route="status" \/>/);

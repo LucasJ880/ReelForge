@@ -83,7 +83,24 @@ type DirectProviderStatus = {
 
 type DirectSubmitterOverride = (
   options: CreateVideoJobOptions,
-) => Promise<{ jobId?: string; providerJobId?: string }>;
+) => Promise<{
+  jobId?: string;
+  providerJobId?: string;
+  providerPlanId?: string;
+  providerUnitPoints?: number;
+}>;
+
+/**
+ * 供应商受理结果：任务号 + 「本次实际使用的套餐」。
+ * Shuyu 有提交级降级（默认套餐被拒 → 换下一档），实际套餐可能与创建行时按
+ * 默认套餐估的 providerUnitPoints 不同；不透传这两个字段，成本快照就停留在估价。
+ * byteplus / mock 适配器不返回它们（undefined），回写时按「没值不覆盖」处理。
+ */
+type AcceptedSubmission = {
+  jobId: string;
+  providerPlanId?: string;
+  providerUnitPoints?: number;
+};
 let statusFetcherOverride:
   | ((providerJobId: string) => Promise<DirectProviderStatus>)
   | null = null;
@@ -137,12 +154,16 @@ function requiredJobVideoRouteSnapshot(
 async function submitVideoJob(
   options: CreateVideoJobOptions,
   persistedRoute: PersistedVideoRouteSnapshotInput,
-): Promise<{ jobId: string }> {
+): Promise<AcceptedSubmission> {
   if (submitterOverride) {
     const overridden = await submitterOverride(options);
     const jobId = overridden.jobId ?? overridden.providerJobId;
     if (!jobId) throw new Error("test submitter returned no provider job id");
-    return { jobId };
+    return {
+      jobId,
+      providerPlanId: overridden.providerPlanId,
+      providerUnitPoints: overridden.providerUnitPoints,
+    };
   }
   const snapshot = requiredVideoRouteSnapshot(persistedRoute);
   if (snapshot.videoRouteSnapshot === "mock") {
@@ -153,7 +174,47 @@ async function submitVideoJob(
   const result = await createVideoProviderByRouteSnapshot(
     snapshot,
   ).createVideoJob(options);
-  return { jobId: result.providerJobId };
+  return {
+    jobId: result.providerJobId,
+    providerPlanId: result.providerPlanId,
+    providerUnitPoints: result.providerUnitPoints,
+  };
+}
+
+/**
+ * 受理回写用的计价快照（P03-B 账实一致）。
+ *
+ * - `providerPlanId` / `providerUnitPoints` 只认供应商受理时返回的值：有就以实际
+ *   套餐覆盖创建时的估价；没返回就留 undefined，`persistAcceptedSubmission` 不写，
+ *   行上保留创建时的快照。
+ * - `providerUnitPriceUsd`：buddy 按积分计价，美元位恒为 null；其他线路沿用创建时
+ *   的同一口径（`resolveVideoRouteCostSnapshot`），它尚未接入美元价时同样不写。
+ */
+async function acceptedSubmissionCostSnapshot(args: {
+  routeSnapshot: Pick<VideoRouteSnapshot, "videoRouteSnapshot">;
+  durationSec: number;
+  accepted: AcceptedSubmission;
+}): Promise<{
+  providerPlanId?: string;
+  providerUnitPoints?: number;
+  providerUnitPriceUsd?: number | null;
+}> {
+  const { routeSnapshot, durationSec, accepted } = args;
+  const providerUnitPriceUsd =
+    routeSnapshot.videoRouteSnapshot === "buddy"
+      ? null
+      : (
+          await resolveVideoRouteCostSnapshot(
+            routeSnapshot.videoRouteSnapshot,
+            durationSec,
+            accepted.providerPlanId ?? null,
+          )
+        ).providerUnitPriceUsd;
+  return {
+    providerPlanId: accepted.providerPlanId,
+    providerUnitPoints: accepted.providerUnitPoints,
+    providerUnitPriceUsd,
+  };
 }
 
 function toDirectProviderStatus(
@@ -272,6 +333,11 @@ async function persistAcceptedSubmission(args: {
   externalJobId: string;
   submittedAt: Date;
   retryCount?: number;
+  /// 受理时的实际计价快照：有值才写，undefined 保留创建时的估价（见
+  /// acceptedSubmissionCostSnapshot）。CAS 条件不因此改变。
+  providerPlanId?: string;
+  providerUnitPoints?: number;
+  providerUnitPriceUsd?: number | null;
 }) {
   const updated = await db.videoJob.updateMany({
     where: {
@@ -295,6 +361,15 @@ async function persistAcceptedSubmission(args: {
       ...(args.retryCount === undefined
         ? {}
         : { retryCount: args.retryCount }),
+      ...(args.providerPlanId === undefined
+        ? {}
+        : { providerPlanId: args.providerPlanId }),
+      ...(args.providerUnitPoints === undefined
+        ? {}
+        : { providerUnitPoints: args.providerUnitPoints }),
+      ...(args.providerUnitPriceUsd === undefined
+        ? {}
+        : { providerUnitPriceUsd: args.providerUnitPriceUsd }),
     },
   });
   if (updated.count !== 1) {
@@ -647,7 +722,7 @@ async function submitSegmentJob(params: {
   let providerAcknowledged = false;
   try {
     const hasRefs = (referenceImageUrls?.length ?? 0) > 0;
-    const { jobId } = await submitVideoJob(
+    const accepted = await submitVideoJob(
       {
         providerRequestKey,
         prompt: segment.seedancePrompt,
@@ -679,13 +754,18 @@ async function submitSegmentJob(params: {
       taskId: job.id,
       from: VideoJobStatus.RUNNING,
       to: VideoJobStatus.RUNNING,
-      reason: `submitted (external=${jobId})`,
+      reason: `submitted (external=${accepted.jobId})`,
     });
     return await persistAcceptedSubmission({
       jobId: job.id,
       providerRequestKey,
-      externalJobId: jobId,
+      externalJobId: accepted.jobId,
       submittedAt,
+      ...(await acceptedSubmissionCostSnapshot({
+        routeSnapshot,
+        durationSec: segment.durationSec,
+        accepted,
+      })),
     });
   } catch (err) {
     logStatusTransition({
@@ -833,7 +913,7 @@ export async function dispatchVideoGeneration(briefId: string) {
       try {
         const ratio =
           (prompt.params as { ratio?: string } | null)?.ratio ?? brief.aspectRatio;
-        const { jobId } = await submitVideoJob(
+        const accepted = await submitVideoJob(
           {
             providerRequestKey,
             prompt: prompt.promptText,
@@ -863,8 +943,13 @@ export async function dispatchVideoGeneration(briefId: string) {
         return await persistAcceptedSubmission({
           jobId: job.id,
           providerRequestKey,
-          externalJobId: jobId,
+          externalJobId: accepted.jobId,
           submittedAt,
+          ...(await acceptedSubmissionCostSnapshot({
+            routeSnapshot,
+            durationSec: scene.durationSec,
+            accepted,
+          })),
         });
       } catch (err) {
         return failDirectSubmission({
@@ -1400,7 +1485,7 @@ export async function retryFailedVideoJob(jobId: string) {
       await claimFailedJobForRetry(job);
     let providerAcknowledged = false;
     try {
-      const { jobId: newExternalId } = await submitVideoJob(
+      const accepted = await submitVideoJob(
         {
           providerRequestKey,
           prompt: segment.seedancePrompt,
@@ -1430,14 +1515,19 @@ export async function retryFailedVideoJob(jobId: string) {
         taskId: job.id,
         from: job.status,
         to: VideoJobStatus.RUNNING,
-        reason: `retry_resubmitted (external=${newExternalId}, attempt=${(job.retryCount ?? 0) + 1})`,
+        reason: `retry_resubmitted (external=${accepted.jobId}, attempt=${(job.retryCount ?? 0) + 1})`,
       });
       const updated = await persistAcceptedSubmission({
         jobId: job.id,
         providerRequestKey,
-        externalJobId: newExternalId,
+        externalJobId: accepted.jobId,
         submittedAt,
         retryCount: (job.retryCount ?? 0) + 1,
+        ...(await acceptedSubmissionCostSnapshot({
+          routeSnapshot: jobRouteSnapshot,
+          durationSec: segment.durationSec,
+          accepted,
+        })),
       });
       /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试
       await db.finalVideo.update({
@@ -1485,7 +1575,7 @@ export async function retryFailedVideoJob(jobId: string) {
           (p) => p.url,
         )
       : [];
-    const { jobId: newExternalId } = await submitVideoJob(
+    const accepted = await submitVideoJob(
       {
         providerRequestKey,
         prompt: prompt.promptText,
@@ -1517,14 +1607,19 @@ export async function retryFailedVideoJob(jobId: string) {
       taskId: job.id,
       from: job.status,
       to: VideoJobStatus.RUNNING,
-      reason: `retry_resubmitted_legacy (external=${newExternalId}, attempt=${(job.retryCount ?? 0) + 1})`,
+      reason: `retry_resubmitted_legacy (external=${accepted.jobId}, attempt=${(job.retryCount ?? 0) + 1})`,
     });
     return persistAcceptedSubmission({
       jobId: job.id,
       providerRequestKey,
-      externalJobId: newExternalId,
+      externalJobId: accepted.jobId,
       submittedAt,
       retryCount: (job.retryCount ?? 0) + 1,
+      ...(await acceptedSubmissionCostSnapshot({
+        routeSnapshot: jobRouteSnapshot,
+        durationSec: scene.durationSec,
+        accepted,
+      })),
     });
   } catch (err) {
     return failDirectSubmission({

@@ -1158,6 +1158,7 @@ async function submitClaimedJob(
   let acknowledged: {
     providerJobId: string;
     providerId: string;
+    providerPlanId?: string;
     providerUnitPoints?: number;
   } | null = null;
   const acceptJobSubmission = (ack: NonNullable<typeof acknowledged>) =>
@@ -1179,6 +1180,10 @@ async function submitClaimedJob(
         leaseExpiresAt: null,
         heartbeatAt: now,
         /// 提交级套餐降级后以实际使用的套餐回写计价快照,保证账实一致。
+        /// 套餐 ID 与积分一起落（P03-B）：没返回就不写，保留批次创建时的快照。
+        ...(ack.providerPlanId !== undefined
+          ? { providerPlanId: ack.providerPlanId }
+          : {}),
         ...(ack.providerUnitPoints !== undefined
           ? { providerUnitPoints: ack.providerUnitPoints }
           : {}),
@@ -1251,6 +1256,7 @@ async function submitClaimedJob(
     acknowledged = {
       providerJobId: created.providerJobId,
       providerId: created.providerId,
+      providerPlanId: created.providerPlanId,
       providerUnitPoints: created.providerUnitPoints,
     };
     const updated = await acceptJobSubmission(acknowledged);

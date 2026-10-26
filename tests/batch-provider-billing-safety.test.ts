@@ -18,6 +18,7 @@ import {
 import { FRAME_QA_ERROR_PREFIX } from "../src/lib/video-generation/frame-qa";
 import type {
   CreateVideoJobOptions,
+  CreateVideoJobResult,
   VideoProvider as VideoProviderAdapter,
 } from "../src/lib/video-generation/providers/types";
 
@@ -61,7 +62,7 @@ function claimedJob(overrides: Partial<VideoJob> = {}) {
 }
 
 function provider(
-  create: (options: CreateVideoJobOptions) => Promise<{ providerJobId: string; providerId: string }>,
+  create: (options: CreateVideoJobOptions) => Promise<CreateVideoJobResult>,
 ): VideoProviderAdapter {
   return {
     id: "byteplus",
@@ -145,6 +146,58 @@ test("RF-003: provider acknowledgement followed by DB persistence loss fails clo
   assert.equal(updates[2].submissionState, ProviderSubmissionState.ACK_UNKNOWN);
   assert.equal(updates[2].status, VideoJobStatus.FAILED);
   assert.match(String(updates[2].submissionErrorClass), /persistence/);
+});
+
+test("P03-B: provider acknowledgement writes the actual plan id and points onto the accepted row", async (t) => {
+  installProvider(
+    t,
+    provider(async () => ({
+      providerJobId: "accepted-degraded",
+      providerId: "shuyu",
+      providerPlanId: "video-plan-degrade-next",
+      providerUnitPoints: 1200,
+    })),
+  );
+  const updates: Array<Record<string, unknown>> = [];
+  patch(t, db.videoJob as unknown as Record<string, unknown>, {
+    updateMany: async (args: { data: Record<string, unknown> }) => {
+      updates.push(args.data);
+      return { count: 1 };
+    },
+  });
+
+  await batchTest.submitClaimedJob(claimedJob());
+
+  const accept = updates.find(
+    (data) => data.submissionState === ProviderSubmissionState.ACCEPTED,
+  );
+  assert.ok(accept, "acknowledgement write exists");
+  assert.equal(accept.externalJobId, "accepted-degraded");
+  assert.equal(accept.providerPlanId, "video-plan-degrade-next");
+  assert.equal(accept.providerUnitPoints, 1200);
+});
+
+test("P03-B: a provider that reports no plan leaves the batch creation-time cost snapshot untouched", async (t) => {
+  installProvider(
+    t,
+    provider(async () => ({ providerJobId: "accepted-plain", providerId: "byteplus" })),
+  );
+  const updates: Array<Record<string, unknown>> = [];
+  patch(t, db.videoJob as unknown as Record<string, unknown>, {
+    updateMany: async (args: { data: Record<string, unknown> }) => {
+      updates.push(args.data);
+      return { count: 1 };
+    },
+  });
+
+  await batchTest.submitClaimedJob(claimedJob());
+
+  const accept = updates.find(
+    (data) => data.submissionState === ProviderSubmissionState.ACCEPTED,
+  );
+  assert.ok(accept, "acknowledgement write exists");
+  assert.ok(!("providerPlanId" in accept));
+  assert.ok(!("providerUnitPoints" in accept));
 });
 
 test("RF-003: expired lease requeues only before submission; SUBMITTING is quarantined", async (t) => {

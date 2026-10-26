@@ -63,8 +63,9 @@ export default async function PersonaPage() {
             <p className="mt-4 text-body text-muted-foreground">{copy.description}</p>
             <p className="mt-3 text-meta text-muted-foreground">
               {copy.partnerLead}{" "}
+              {/* C1：指向首页「真实交付」（关联方 SunnyShutter 的成片），不再指向宠物店投资人演示 */}
               <Link
-                href="/showcase"
+                href="/#landing-proof"
                 className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
               >
                 {copy.showcaseLink}

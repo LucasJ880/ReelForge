@@ -81,6 +81,12 @@ export const STATE_VOCAB = {
   submission: {
     received: entry("filled", "已收到", "Received"),
   },
+  /** 上手向导的一步（/app/welcome）：做没做完从真实数据推出来；进行中 = 等你接着做。 */
+  setupStep: {
+    todo: entry("queued", "待完成", "To do"),
+    started: entry("partial", "进行中", "In progress"),
+    done: entry("filled", "已完成", "Done"),
+  },
 } as const satisfies Record<string, Record<string, VocabEntry>>;
 
 export type VocabEntity = keyof typeof STATE_VOCAB;

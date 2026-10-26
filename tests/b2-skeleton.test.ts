@@ -287,7 +287,7 @@ test("B2.5 配方弹窗给人话摘要，不再展示提示词原文与 Negative
 
 /* ── B2.6 登录与法务 ───────────────────────────────────────────────── */
 
-test("B2.6 登录门：口号与首页同一定位（不再「赛出赢家」），主行动「申请试点」，注册降为次要", () => {
+test("B2.6 登录门：口号与首页同一定位（不再「赛出赢家」）；C1 起实心钮是登录 / 创建账号，「申请试点」描边", () => {
   const zh = getPlatformCopy("zh-CN").auth;
   const en = getPlatformCopy("en-US").auth;
   assert.doesNotMatch(`${zh.titleLead}${zh.titleAccent.join("")}${zh.subtitle}`, /赛出赢家|加仓|赢家/);
@@ -300,11 +300,15 @@ test("B2.6 登录门：口号与首页同一定位（不再「赛出赢家」）
   assert.match(layout, /<PilotCta label=\{copy\.pilotCta\} hint=\{copy\.pilotHint\} \/>/);
   const cta = read("src/components/auth/pilot-cta.tsx");
   assert.match(cta, /href="\/#pilot-apply"/);
-  assert.match(cta, /variant=\{primary \? "default" : "outline"\}/);
+  /// C1：登录页的主行动就是登录（旅程审计：实心钮是「申请试点」让登录难找），申请试点一律描边
+  assert.match(cta, /variant="outline"/);
+  assert.doesNotMatch(cta, /variant=\{/);
   assert.ok(read("src/components/leads/pilot-landing.tsx").includes('id="pilot-apply"'), "首页确有试点申请锚点");
   const login = read("src/app/(auth)/login/page.tsx");
-  assert.match(login, /<Button type="submit" variant="outline"/);
+  assert.match(login, /<Button type="submit" disabled=\{loading\} className="w-full">/);
   assert.match(login, /href="\/register"/);
+  /// 登录后默认直达创作页（RF-009：不多一跳重定向）；新注册的人由注册页直接进 /app/welcome
+  assert.match(login, /: "\/app\/create";/);
 });
 
 test("B2.6 隐私 / 条款：正文没有运营待办与环境变量名，保留法务草案状态行", () => {

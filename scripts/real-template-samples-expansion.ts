@@ -202,6 +202,15 @@ const TEMPLATE_PLAN: Array<{ slug: string; set: keyof typeof PRODUCT_SETS }> = [
   { slug: "commerce-outdoor-rugged", set: "backpack" },
   { slug: "commerce-travel-pack-flow", set: "backpack" },
   { slug: "commerce-gift-unwrap", set: "serum" },
+  /// 框架 v2（1024）新增 8 个电商带货模板，1025 整合轮补样片。
+  { slug: "commerce-aesthetic-mood", set: "serum" },
+  { slug: "commerce-ugc-testimonial", set: "bottle" },
+  { slug: "commerce-demo-first-reveal", set: "earbuds" },
+  { slug: "commerce-single-feature-proof", set: "backpack" },
+  { slug: "commerce-unboxing-transform", set: "earbuds" },
+  { slug: "commerce-value-proof", set: "watch" },
+  { slug: "commerce-problem-solution", set: "pillow" },
+  { slug: "commerce-hard-sell-presenter", set: "coffee" },
 ];
 
 const SLUG_FILTER: Set<string> | null = (() => {

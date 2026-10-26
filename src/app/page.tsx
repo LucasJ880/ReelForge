@@ -2,15 +2,11 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { PilotLanding, type LandingSample } from "@/components/leads/pilot-landing";
+import { PilotLanding, type LandingCounts } from "@/components/leads/pilot-landing";
 import { getGrowthCopy } from "@/i18n/growth-copy";
 import { getServerLocale } from "@/i18n/server";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
-import {
-  SHOWCASE_SAFE_SLUGS,
-  verifiedTemplateSample,
-  verifiedTemplateVideo,
-} from "@/lib/video-generation/template-sample";
+import { hasVerifiedTemplateVideo } from "@/lib/video-generation/template-sample";
 import { contactEmail } from "@/lib/config/contact";
 
 export const dynamic = "force-dynamic";
@@ -21,40 +17,32 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * 公开首页的样片：只取公开面零瑕疵名单，且必须仍在真机验收白名单里（verified* 返回 null 即撤下）。
- * 模板名从模板库取（1.5 秒超时）；取不到就用通用名——样片本身不依赖数据库。
+ * 公开首页行情条上的模板库计数：只读公开的模板库（1.5 秒超时）。
+ * 取不到就是 null——含计数的事实整条不显示，不写示例数字。
  */
-async function loadLandingSamples(english: boolean, fallbackName: string): Promise<LandingSample[]> {
+async function loadLandingCounts(): Promise<LandingCounts | null> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let names = new Map<string, string>();
   try {
     const templates = await Promise.race([
       listActiveStyleTemplates(),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("landing samples timeout")), 1500);
+        timer = setTimeout(() => reject(new Error("landing counts timeout")), 1500);
       }),
     ]);
-    names = new Map(templates.map((template) => [template.slug, english ? template.name : template.nameZh]));
+    return {
+      templates: templates.length,
+      samples: templates.filter((template) => hasVerifiedTemplateVideo(template.slug)).length,
+    };
   } catch {
-    /// 名字只是标签，取不到不挡样片
+    return null;
   } finally {
     clearTimeout(timer);
   }
-  return SHOWCASE_SAFE_SLUGS.flatMap((slug) => {
-    const video = verifiedTemplateVideo(slug, `/template-previews/${slug}.mp4`);
-    if (!video) return [];
-    return [{
-      slug,
-      name: names.get(slug) ?? fallbackName,
-      video,
-      poster: verifiedTemplateSample(slug, `/template-previews/${slug}.jpg`) ?? undefined,
-    }];
-  });
 }
 
 /**
  * Routing matrix（1025 起）:
- *  - 未登录 → 公开首页：30 天试点结构 + 申请表（计划 6.1）
+ *  - 未登录 → 公开首页：主行动「免费试做 3 条」→ 注册 → /app/welcome；次行动「申请 30 天陪跑」→ 本页申请表
  *  - userType=BUSINESS → /business
  *  - userType=PERSONAL → /personal
  *  - userType=OPERATOR / SUPER_ADMIN → /internal/orders
@@ -79,8 +67,7 @@ export default async function HomePage() {
   }
 
   const locale = await getServerLocale();
-  const copy = getGrowthCopy(locale).landing;
-  const samples = await loadLandingSamples(locale === "en-US", copy.sampleFallbackName);
+  const counts = await loadLandingCounts();
   const fallbackEmail = contactEmail();
-  return <PilotLanding locale={locale} samples={samples} fallbackEmail={fallbackEmail} />;
+  return <PilotLanding locale={locale} counts={counts} fallbackEmail={fallbackEmail} />;
 }

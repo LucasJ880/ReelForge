@@ -1,4 +1,5 @@
 import type { Locale } from "./config";
+import type { LandingHeroScene } from "@/lib/config/landing-media";
 
 /**
  * 获客闭环（1025 · A5）的全部界面文案：公开首页（试点申请）、商家询盘页 /l/[slug]、
@@ -44,29 +45,48 @@ export type PreferredTime = (typeof PREFERRED_TIMES)[number];
 export const MONTHLY_LEAD_SPEND = ["none", "under_300", "300_1000", "over_1000", "unsure"] as const;
 export type MonthlyLeadSpend = (typeof MONTHLY_LEAD_SPEND)[number];
 
-interface PilotStep {
-  when: string;
-  title: string;
-  body: string;
-}
-
 interface GrowthCopy {
   landing: {
     metaTitle: string;
     metaDescription: string;
     home: string;
     signIn: string;
-    /** 标题按意群分行（避免在词中间折行），整句见 metaTitle 与读屏。 */
+    /** 标题按意群分行（避免在词中间折行）；最后一行是宣言的后半句（信号青）。整句见 metaTitle 与读屏。 */
     titleLines: string[];
     subtitle: string;
+    /** 主行动（全页唯一实心钮）：自助注册，免费试做。 */
+    trial: string;
+    /** 主行动下一行：试用额度与不绑卡的事实。 */
+    trialHint: string;
+    /** 次行动：申请 30 天陪跑试点（跳到申请表）。 */
     apply: string;
-    samples: string;
+    /** 行情条上的公开事实；{templates} / {samples} 换成模板库真实计数，取不到整条不显示。 */
+    tape: string[];
+    tapeLabel: string;
+    heroWallLabel: string;
+    heroScenes: Record<LandingHeroScene, string>;
+    heroNote: string;
+    /** 「样例」：一周样例里的界面示意，不是任何人的数据。 */
     sampleTag: string;
-    sampleFallbackName: string;
-    sampleNote: string;
-    structureTitle: string;
-    structureHint: string;
-    steps: PilotStep[];
+    weekTitle: string;
+    weekHint: string;
+    week: Array<{ day: string; title: string; body: string }>;
+    weekSpecimen: {
+      days: string[];
+      storyboard: string;
+      linkCodes: string[];
+      inquiryName: string;
+      inquiryNeed: string;
+      inquiryAt: string;
+    };
+    proofTitle: string;
+    proofHint: string;
+    proofTag: string;
+    proofNote: string;
+    proofItems: string[];
+    templateCounts: string;
+    pathsTitle: string;
+    paths: Array<{ title: string; points: string[]; cta: string }>;
     rulesTitle: string;
     rules: Array<{ title: string; body: string }>;
     applyTitle: string;
@@ -210,6 +230,9 @@ interface GrowthCopy {
     pageNoAddress: string;
     pageAdminOnly: string;
     pageNotEnabledHint: string;
+    pageRequest: string;
+    pageRequesting: string;
+    pageRequested: string;
     pageBusinessName: string;
     pageHeadline: string;
     pageIntro: string;
@@ -265,40 +288,71 @@ interface GrowthCopy {
 
 const ZH: GrowthCopy = {
   landing: {
-    metaTitle: "Aivora · 30 天试点",
-    metaDescription: "给上门服务的小商家：每周内容由我们出，询盘页与追踪链接把每一条询盘记在账上。先试 30 天。",
+    metaTitle: "Aivora · 上门服务的内容与询盘",
+    metaDescription:
+      "给上门服务的小商家：每周的短视频和图文，加一张询盘页和按渠道区分的追踪链接，每一条询盘都记在账上。免费试做 3 条视频。",
     home: "Aivora 首页",
     signIn: "登录",
-    titleLines: ["先试 30 天：", "内容我们来做，", "询盘你来数。"],
+    titleLines: ["内容我们来做，", "询盘你来数。"],
     subtitle:
-      "给上门服务的小商家——窗帘、装修、清洁、园艺。每周的短视频和图文由我们出，另配一张询盘页和按渠道区分的追踪链接：每条询盘从哪来、跟进到哪一步，都记在你的工作台里。",
-    apply: "申请 30 天试点",
-    samples: "模板库样片",
+      "给上门服务的小商家——窗帘、装修、清洁、园艺。每周的短视频和图文由 Aivora 出，再配一张询盘页和按渠道区分的追踪链接：每条询盘从哪来、跟进到哪一步，都记在你的工作台里。",
+    trial: "免费试做 3 条",
+    trialHint: "注册即用 · 每月 3 条视频额度 · 不用绑卡",
+    apply: "申请 30 天陪跑",
+    tape: [
+      "模板库 {templates} 个风格",
+      "{samples} 个有真机样片",
+      "故事板逐帧确认后才生成",
+      "失败与取消返还额度",
+      "每个渠道一条追踪链接",
+      "每条询盘记下来源",
+      "中文 / English",
+    ],
+    tapeLabel: "Aivora 的公开事实",
+    heroWallLabel: "AI 生成的上门服务场景",
+    heroScenes: {
+      blinds: "窗饰 · 夜景客厅",
+      kitchen: "橱柜 · 收尾安装",
+      garden: "园艺 · 蓝调庭院",
+      inquiry: "询盘 · 手机亮起",
+    },
+    heroNote: "画面由 Aivora 接入的视频模型生成，用来展示画质与镜头；不是客户实拍，也不是客户数据。",
     sampleTag: "样例",
-    sampleFallbackName: "模板样片",
-    sampleNote: "模板库真机样片，不是客户数据",
-    structureTitle: "试点怎么走",
-    structureHint: "30 天 · 每一步都看得见",
-    steps: [
+    weekTitle: "一周会发生什么",
+    weekHint: "一家窗饰店的一周",
+    week: [
+      { day: "周一", title: "排一周", body: "说一句你的生意和地区，Aivora 排好 7 天的短视频和图文；你确认之后才发。" },
+      { day: "周二", title: "出片", body: "上传作品照片，先出 AI 故事板逐帧确认，再生成竖版成片；不满意随时取消，额度返还。" },
+      { day: "周三", title: "发出去", body: "每个渠道一条追踪链接：IG 主页、Google 商家主页、Facebook、门店二维码。" },
+      { day: "周四", title: "询盘进来", body: "客人在你的询盘页留下电话，自动记一笔，并标明来自哪个渠道。" },
+      { day: "周日", title: "数清楚", body: "从新询盘到成交，每一步都有时间；读数只来自追踪到的数据，不替你估算。" },
+    ],
+    weekSpecimen: {
+      days: ["一", "二", "三", "四", "五", "六", "日"],
+      storyboard: "AI 故事板 · 逐帧确认",
+      linkCodes: ["/t/k7q2m", "/t/g4b9x", "/t/q8r1n"],
+      inquiryName: "王女士",
+      inquiryNeed: "客厅电动卷帘，想约周六上门量尺",
+      inquiryAt: "周四 19:42",
+    },
+    proofTitle: "真实交付",
+    proofHint: "SunnyShutter 窗饰",
+    proofTag: "关联方",
+    proofNote:
+      "SunnyShutter 是 Aivora 的关联方，不是第三方客户。这三条竖版广告由 Aivora 生成，结构分别是痛点狙击、前后对比和成果前置。",
+    proofItems: ["痛点狙击 · 清晨刺眼阳光", "前后对比 · 卧室遮光改造", "成果前置 · 奶油色卧室"],
+    templateCounts: "模板库：{templates} 个风格模板，其中 {samples} 个有真机样片",
+    pathsTitle: "两种开始方式",
+    paths: [
       {
-        when: "第 0 周",
-        title: "开通",
-        body: "整理品牌包，开通你的询盘页，按渠道建好追踪链接：IG 主页、Google 商家主页、Facebook、二维码。",
+        title: "自己做",
+        points: ["注册即用，每月 3 条视频额度", "上传作品照片 → AI 故事板 → 竖版成片", "生成你的询盘页预览，满意再申请开通"],
+        cta: "免费试做 3 条",
       },
       {
-        when: "第 1–4 周",
-        title: "每周内容",
-        body: "按你的服务和地区排好一周的短视频与图文，你确认之后再发。",
-      },
-      {
-        when: "全程",
-        title: "询盘登记",
-        body: "表单来的询盘自动入账，电话来的你手工记一笔；每一条都有来源和跟进状态。",
-      },
-      {
-        when: "第 30 天",
-        title: "一起复盘",
-        body: "对着追踪到的点击和询盘，决定继续、调整还是停。",
+        title: "我们陪你做 30 天",
+        points: ["每周的短视频和图文由我们出，你确认后再发", "开通询盘页，按渠道建好追踪链接", "第 30 天对着追踪到的询盘一起复盘"],
+        cta: "申请 30 天陪跑",
       },
     ],
     rulesTitle: "规则写在前面",
@@ -311,7 +365,7 @@ const ZH: GrowthCopy = {
       { title: "只看追踪到的数字", body: "我们不替你估算效果：读数只来自询盘页、追踪链接和你手工登记的询盘。" },
       { title: "随时可停", body: "不想继续就停；已交付的内容和询盘记录照样保留。" },
     ],
-    applyTitle: "申请试点",
+    applyTitle: "申请 30 天陪跑",
     applyLead: "留下至少一种联系方式。我们会用它和你约时间，先了解你的生意，再定试点安排。",
     applyNext: ["我们用你留下的方式联系你", "约一次通话，了解你的服务、地区和现在的获客方式", "约定试点内容、费用与结果口径后再开通"],
     privacy: "隐私政策",
@@ -450,7 +504,10 @@ const ZH: GrowthCopy = {
     pageAddress: "地址",
     pageNoAddress: "还没有地址",
     pageAdminOnly: "地址与开通状态由 Aivora 管理员设置。",
-    pageNotEnabledHint: "询盘页由 Aivora 为试点商家开通；需要的话，联系你的 Aivora 对接人。",
+    pageNotEnabledHint: "询盘页由 Aivora 开通并分配地址：点「申请开通」，我们会尽快联系你。下面的展示内容现在就能先填好。",
+    pageRequest: "申请开通",
+    pageRequesting: "提交中…",
+    pageRequested: "已申请 · 我们开通后会联系你",
     pageBusinessName: "店名",
     pageHeadline: "页面标题",
     pageIntro: "介绍",
@@ -543,41 +600,99 @@ const ZH: GrowthCopy = {
 
 const EN: GrowthCopy = {
   landing: {
-    metaTitle: "Aivora · 30-day pilot",
+    metaTitle: "Aivora · Content and inquiries for local services",
     metaDescription:
-      "For local service businesses: we produce your weekly content, and an inquiry page plus tracked links log every inquiry. Try it for 30 days.",
+      "For local service businesses: weekly short videos and posts, plus an inquiry page and per-channel tracked links that log every inquiry. Make 3 videos free.",
     home: "Aivora home",
     signIn: "Sign in",
-    titleLines: ["Try it for 30 days:", "we make the content,", "you count the inquiries."],
+    titleLines: ["We make the content.", "You count the inquiries."],
     subtitle:
-      "For local service businesses — blinds, renovation, cleaning, landscaping. We produce your weekly short videos and posts, plus an inquiry page and per-channel tracked links: every inquiry, where it came from and how far it got, is logged in your dashboard.",
+      "For local service businesses — blinds, renovation, cleaning, landscaping. Aivora produces your weekly short videos and posts, plus an inquiry page and per-channel tracked links: every inquiry, where it came from and how far it got, is logged in your dashboard.",
+    trial: "Make 3 videos free",
+    trialHint: "Start right after sign-up · 3 videos a month · no card needed",
     apply: "Apply for the 30-day pilot",
-    samples: "Template samples",
+    tape: [
+      "{templates} style templates",
+      "{samples} with verified renders",
+      "Storyboard approved frame by frame before generation",
+      "Failures and cancellations refund quota",
+      "One tracked link per channel",
+      "Every inquiry logged with its source",
+      "Chinese and English",
+    ],
+    tapeLabel: "Public facts about Aivora",
+    heroWallLabel: "AI-generated local service scenes",
+    heroScenes: {
+      blinds: "Window shades · Living room at dusk",
+      kitchen: "Cabinetry · Final fitting",
+      garden: "Landscaping · Garden at blue hour",
+      inquiry: "Inquiry · Phone lights up",
+    },
+    heroNote: "Generated by the video models Aivora runs, to show image quality and camera work — not customer footage or customer data.",
     sampleTag: "Sample",
-    sampleFallbackName: "Template sample",
-    sampleNote: "Real renders from our template library — not customer data",
-    structureTitle: "How the pilot runs",
-    structureHint: "30 days · every step visible",
-    steps: [
+    weekTitle: "What a week looks like",
+    weekHint: "A week at a window-shade shop",
+    week: [
       {
-        when: "Week 0",
-        title: "Set up",
-        body: "We assemble your brand kit, open your inquiry page and create a tracked link per channel: Instagram bio, Google Business Profile, Facebook, QR code.",
+        day: "Mon",
+        title: "Plan the week",
+        body: "Describe your business and area in a sentence; Aivora lays out seven days of short videos and posts. Nothing goes out until you approve it.",
       },
       {
-        when: "Weeks 1–4",
-        title: "Weekly content",
-        body: "A week of short videos and posts planned around your services and area; nothing goes out until you approve it.",
+        day: "Tue",
+        title: "Make the videos",
+        body: "Upload photos of your work, approve an AI storyboard frame by frame, then render the vertical video. Cancel any time and the quota comes back.",
       },
       {
-        when: "Throughout",
-        title: "Inquiry log",
-        body: "Form inquiries are logged automatically; log phone calls with one entry. Every inquiry carries its source and follow-up status.",
+        day: "Wed",
+        title: "Post them",
+        body: "One tracked link per channel: Instagram bio, Google Business Profile, Facebook, an in-store QR code.",
       },
       {
-        when: "Day 30",
-        title: "Review together",
-        body: "Look at the tracked clicks and inquiries, then decide to continue, adjust or stop.",
+        day: "Thu",
+        title: "Inquiries arrive",
+        body: "A customer leaves a phone number on your inquiry page; it's logged automatically with the channel it came from.",
+      },
+      {
+        day: "Sun",
+        title: "Count them",
+        body: "From new inquiry to won, every step is timestamped. Readings come only from tracked data — we never estimate for you.",
+      },
+    ],
+    weekSpecimen: {
+      days: ["M", "T", "W", "T", "F", "S", "S"],
+      storyboard: "AI storyboard · approve each frame",
+      linkCodes: ["/t/k7q2m", "/t/g4b9x", "/t/q8r1n"],
+      inquiryName: "Ms. Wang",
+      inquiryNeed: "Motorized roller shades for the living room — wants a Saturday measure",
+      inquiryAt: "Thu 19:42",
+    },
+    proofTitle: "Real deliveries",
+    proofHint: "SunnyShutter window coverings",
+    proofTag: "Related party",
+    proofNote:
+      "SunnyShutter is a related party of Aivora, not an independent customer. These three vertical ads were generated with Aivora — a pain-point opener, a before-and-after and a result-first cut.",
+    proofItems: ["Pain point · Harsh morning sun", "Before and after · Bedroom blackout", "Result first · Cream bedroom"],
+    templateCounts: "Template library: {templates} styles, {samples} with verified renders",
+    pathsTitle: "Two ways to start",
+    paths: [
+      {
+        title: "Do it yourself",
+        points: [
+          "Start right after sign-up, 3 videos a month",
+          "Work photos → AI storyboard → vertical video",
+          "Preview your inquiry page, then ask us to switch it on",
+        ],
+        cta: "Make 3 videos free",
+      },
+      {
+        title: "We run it with you for 30 days",
+        points: [
+          "We produce your weekly videos and posts; you approve before anything goes out",
+          "We open your inquiry page and set up a tracked link per channel",
+          "On day 30 we review the tracked inquiries together",
+        ],
+        cta: "Apply for the 30-day pilot",
       },
     ],
     rulesTitle: "Ground rules, up front",
@@ -596,7 +711,7 @@ const EN: GrowthCopy = {
       },
       { title: "Stop any time", body: "Stop whenever you like; delivered content and your inquiry log stay on record." },
     ],
-    applyTitle: "Apply for a pilot",
+    applyTitle: "Apply for the 30-day pilot",
     applyLead: "Leave at least one way to reach you. We'll use it to book a time, learn about your business, then plan the pilot.",
     applyNext: [
       "We reach out using the contact you leave",
@@ -741,7 +856,10 @@ const EN: GrowthCopy = {
     pageAddress: "Address",
     pageNoAddress: "No address yet",
     pageAdminOnly: "The address and live status are set by an Aivora admin.",
-    pageNotEnabledHint: "Inquiry pages are switched on by Aivora for pilot businesses — ask your Aivora contact.",
+    pageNotEnabledHint: "Aivora switches inquiry pages on and assigns the address: request activation and we'll be in touch. You can fill in the content below now.",
+    pageRequest: "Request activation",
+    pageRequesting: "Sending…",
+    pageRequested: "Requested · we'll get in touch once it's live",
     pageBusinessName: "Business name",
     pageHeadline: "Page title",
     pageIntro: "Introduction",

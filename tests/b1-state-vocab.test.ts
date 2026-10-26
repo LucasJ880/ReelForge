@@ -125,7 +125,6 @@ test("StatusTick 只接收「实体 × 状态」，全站没有自由文本 labe
 
 test("不是状态的标签（样例 / 草案 / 攒样本 / 样片待补）用中性 MonoTag，不借状态记号", () => {
   const checks: Array<[string, RegExp]> = [
-    ["src/app/(auth)/layout.tsx", /<MonoTag[^>]*>\{copy\.sampleTag\}<\/MonoTag>/],
     ["src/components/leads/pilot-landing.tsx", /<MonoTag[^>]*>\{copy\.sampleTag\}<\/MonoTag>/],
     ["src/app/(public)/privacy/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
     ["src/app/(public)/terms/page.tsx", /<MonoTag[^>]*>\{copy\.draftStatus\}<\/MonoTag>/],
@@ -137,4 +136,8 @@ test("不是状态的标签（样例 / 草案 / 攒样本 / 样片待补）用�
     assert.match(source, pattern, file);
     assert.doesNotMatch(source, /StatusTick/, `${file} 不该再用状态记号`);
   }
+  /// C1：登录门上墙的是 AI 生成的上门服务场景，标 AI 合规标签（不是模板样片，也不借状态记号）
+  const gate = readFileSync("src/app/(auth)/layout.tsx", "utf8");
+  assert.match(gate, /<AiGeneratedLabel compact \/>/);
+  assert.doesNotMatch(gate, /StatusTick/);
 });

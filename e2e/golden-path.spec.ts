@@ -58,14 +58,19 @@ test("golden path: register, login, create, mock complete, preview, and download
   await test.step("register and arrive naturally in the workspace", async () => {
     await page.goto("/register");
     await page.getByLabel("邮箱").fill(GOLDEN_PATH_EMAIL);
-    await page.getByLabel("昵称（可选）").fill(GOLDEN_PATH_NAME);
     await page.getByLabel("密码（至少 8 位）").fill(GOLDEN_PATH_PASSWORD);
+    await page.getByLabel("店名 / 公司名").fill(GOLDEN_PATH_NAME);
+    await page.getByLabel("做什么生意").selectOption("other");
+    await page.getByLabel(/我已阅读并同意/).check();
     const registration = page.waitForResponse(
       (response) => response.request().method() === "POST"
         && response.url().endsWith("/api/auth/register"),
     );
     await page.getByRole("button", { name: "创建账号" }).click();
     expect((await registration).status()).toBe(200);
+    /// C1：注册后先进上手向导；跳过后进创作页
+    await expect(page).toHaveURL((url) => url.pathname === "/app/welcome");
+    await page.getByRole("button", { name: "先跳过，去创作" }).click();
     await expect(page).toHaveURL((url) => url.pathname === "/app/create");
     await expect(page.locator(".studio-theme")).toBeVisible();
   });

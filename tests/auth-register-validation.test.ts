@@ -14,6 +14,7 @@ const registerSchema = z.object({
   password: z.string().min(8, "密码至少 8 位").max(128, "密码过长"),
   name: z.string().trim().max(80, "昵称过长").optional(),
 });
+/// C1：首页「免费试做 3 条」入口的必填项（店名 / 行业 / 条款同意），见 route 文件契约测试。
 
 test("register schema: 合法 payload 通过", () => {
   const r = registerSchema.safeParse({
@@ -102,9 +103,9 @@ test("register route 文件契约：POST + CUSTOMER/starter，拒绝公开提权
 });
 
 /**
- * 跨文件契约：注册成功进入统一创作区，不再经过 B/C persona 选择。
+ * 跨文件契约（C1）：注册成功先进上手向导 /app/welcome，不再经过 B/C persona 选择。
  */
-test("register page 契约：成功后 router.push('/app/create')", async () => {
+test("register page 契约：成功后 router.push('/app/welcome')", async () => {
   const fs = await import("node:fs");
   const path = await import("node:path");
   const file = path.resolve(
@@ -112,7 +113,23 @@ test("register page 契约：成功后 router.push('/app/create')", async () => 
     "src/app/(auth)/register/page.tsx",
   );
   const content = fs.readFileSync(file, "utf8");
-  assert.match(content, /router\.push\("\/app\/create"\)/, "must enter the unified studio post-signup");
+  assert.match(content, /router\.push\("\/app\/welcome"\)/, "must enter the onboarding wizard post-signup");
   assert.doesNotMatch(content, /router\.push\("\/(?:business|personal)"\)/);
   assert.match(content, /signIn\(/, "must auto-login via next-auth signIn");
+});
+
+test("register route（C1）：店名、行业、条款同意必填；同意时间与条款版本入库；错误带稳定 code", async () => {
+  const fs = await import("node:fs");
+  const content = fs.readFileSync("src/app/api/auth/register/route.ts", "utf8");
+  assert.match(content, /businessName: z\.string\(\)\.trim\(\)\.min\(1/);
+  assert.match(content, /industry: z\.enum\(BUSINESS_INDUSTRIES/);
+  assert.match(content, /acceptTerms: z\.literal\(true/);
+  assert.match(content, /termsAcceptedAt: new Date\(\)/);
+  assert.match(content, /termsVersion: TERMS_VERSION/);
+  assert.match(content, /name: businessName/, "workspace is named after the business");
+  for (const code of ["EMAIL_TAKEN", "RATE_LIMITED", "INVALID_INPUT"]) {
+    assert.ok(content.includes(`"${code}" satisfies RegisterErrorCode`), code);
+  }
+  const page = fs.readFileSync("src/app/(auth)/register/page.tsx", "utf8");
+  assert.match(page, /reg\.errors\[code\]/, "page localizes errors by code");
 });

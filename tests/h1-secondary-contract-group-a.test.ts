@@ -340,6 +340,7 @@ test("H1 group A DYNAMIC EDGE: auth handlers stay public and registration valida
     assert.equal(invalid.status, 400);
     assert.deepEqual(await invalid.json(), {
       ok: false,
+      code: "INVALID_INPUT",
       error: "请求格式错误",
     });
   } finally {

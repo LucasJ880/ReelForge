@@ -155,7 +155,8 @@ export function PilotApplicationForm({ locale, fallbackEmail }: { locale: Locale
 
       {error ? <FormAlert tone="error">{error}</FormAlert> : null}
 
-      <Button type="submit" disabled={state === "submitting"} className="w-full">
+      {/* 一页一枚实心主钮：首页的实心钮是英雄区的「免费试做」，陪跑申请是第二条路，提交用描边 */}
+      <Button type="submit" variant="outline" disabled={state === "submitting"} className="w-full">
         {state === "submitting" ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}
         {state === "submitting" ? copy.submitting : copy.submit}
       </Button>

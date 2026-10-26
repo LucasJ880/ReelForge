@@ -46,7 +46,7 @@ export default async function LeadsPage() {
     getServerLocale(),
     db.workspace.findUnique({
       where: { ownerId: session.user.id },
-      select: { id: true, publicSlug: true, leadPageEnabled: true, leadPageConfig: true },
+      select: { id: true, publicSlug: true, leadPageEnabled: true, leadPageConfig: true, leadPageRequestedAt: true },
     }),
     headers(),
   ]);
@@ -149,6 +149,7 @@ export default async function LeadsPage() {
           baseUrl={baseUrl}
           slug={workspace.publicSlug}
           enabled={live}
+          requestedAt={workspace.leadPageRequestedAt?.toISOString() ?? null}
           display={{
             businessName: config.businessName ?? "",
             headline: config.headline ?? "",

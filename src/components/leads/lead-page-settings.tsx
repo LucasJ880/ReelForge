@@ -25,18 +25,21 @@ export type LeadPageDisplay = {
 /**
  * 询盘页设置：地址与开通状态只读（超管才能改，见管理员面板）；
  * 展示内容（店名、标题、介绍、服务项、电话、地区、默认语言）商家自己改。
+ * 没开通时给「申请开通」（C1：之前只写「联系对接人」，自助注册的商家没有对接人）——只记时间、提醒创始人。
  */
 export function LeadPageSettings({
   locale,
   baseUrl,
   slug,
   enabled,
+  requestedAt,
   display,
 }: {
   locale: Locale;
   baseUrl: string;
   slug: string | null;
   enabled: boolean;
+  requestedAt: string | null;
   display: LeadPageDisplay;
 }) {
   const growth = getGrowthCopy(locale);
@@ -44,6 +47,7 @@ export function LeadPageSettings({
   const router = useRouter();
   const [form, setForm] = useState({ ...display, services: display.services.join("\n") });
   const [busy, setBusy] = useState(false);
+  const [requesting, setRequesting] = useState(false);
   const [notice, setNotice] = useState<{ tone: "error" | "info"; text: string } | null>(null);
   const pageUrl = slug ? `${baseUrl}/l/${slug}` : null;
 
@@ -72,6 +76,15 @@ export function LeadPageSettings({
       return setNotice({ tone: "error", text: result.reason === "phone_invalid" ? growth.leadForm.phoneInvalid : copy.actionFailed });
     }
     setNotice({ tone: "info", text: copy.pageSaved });
+    router.refresh();
+  }
+
+  async function requestActivation() {
+    setNotice(null);
+    setRequesting(true);
+    const result = await sendJson("/api/leads/page/activation-request", "POST", {});
+    setRequesting(false);
+    if (!result.ok) return setNotice({ tone: "error", text: copy.actionFailed });
     router.refresh();
   }
 
@@ -104,7 +117,17 @@ export function LeadPageSettings({
           )}
         </dd>
       </dl>
-      <p className="text-meta text-muted-foreground">{enabled ? copy.pageAdminOnly : copy.pageNotEnabledHint}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="max-w-[62ch] text-meta text-muted-foreground">{enabled ? copy.pageAdminOnly : copy.pageNotEnabledHint}</p>
+        {enabled ? null : requestedAt ? (
+          <span className="text-meta text-foreground">{copy.pageRequested}</span>
+        ) : (
+          <Button type="button" variant="outline" disabled={requesting} onClick={() => void requestActivation()}>
+            {requesting ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : null}
+            {requesting ? copy.pageRequesting : copy.pageRequest}
+          </Button>
+        )}
+      </div>
 
       <form onSubmit={save} aria-label={copy.pageTitle} className="space-y-4 border-t border-border pt-5" noValidate>
         <div className="grid gap-4 sm:grid-cols-2">

@@ -37,6 +37,9 @@ model AdminUser {
   /// 非空即不可登录、已有会话在下次复核时失效；名下数据全部保留。
   disabledAt           DateTime?
   disabledReason       String?
+  /// 自助注册时勾选同意服务条款与隐私政策的时间与条款版本（举证：同意的是哪一版）
+  termsAcceptedAt      DateTime?
+  termsVersion         String?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
@@ -75,22 +78,28 @@ model PlanEntitlement {
 /// Phase 1 starts with exactly one default workspace per user.
 /// The one-to-one owner constraint can be expanded later without changing job ownership.
 model Workspace {
-  id              String          @id @default(cuid())
-  name            String
-  ownerId         String          @unique
-  owner           AdminUser       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  planId          String
-  plan            PlanEntitlement @relation(fields: [planId], references: [id], onDelete: Restrict)
-  isDefault       Boolean         @default(true)
+  id                    String          @id @default(cuid())
+  name                  String
+  ownerId               String          @unique
+  owner                 AdminUser       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  planId                String
+  plan                  PlanEntitlement @relation(fields: [planId], references: [id], onDelete: Restrict)
+  isDefault             Boolean         @default(true)
   /// 公开询盘页 /l/[publicSlug]；leadPageEnabled 关闭时页面 404
-  publicSlug      String?         @unique
-  leadPageEnabled Boolean         @default(false)
+  publicSlug            String?         @unique
+  leadPageEnabled       Boolean         @default(false)
   /// 询盘页展示配置：标题、服务项、电话、地区等（结构见 lead-service）
-  leadPageConfig  Json?
+  leadPageConfig        Json?
   /// 用户最后一次确认「需要处理」失败项的时间；之后的失败才计入徽标
-  failuresAckedAt DateTime?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  failuresAckedAt       DateTime?
+  /// 上手向导填写的生意档案：行业、城市、网站、一句话介绍（结构见 onboarding-service）
+  businessProfile       Json?
+  /// 上手向导走完或跳过的时间；null = /app 先进 /app/welcome
+  onboardingCompletedAt DateTime?
+  /// 商家在工作台点「申请开通询盘页」的时间（开通仍归超管；重复点不重复提醒）
+  leadPageRequestedAt   DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   mediaAssets   MediaAsset[]            @relation("MediaAssetWorkspace")
   brandPackages WorkspaceBrandPackage[]

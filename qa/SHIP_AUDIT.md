@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (108/108 route files)
+## API endpoint inventory (111/111 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -90,6 +90,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 |---|---|---|---|
 | GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | VERIFIED H1 light: shared handler wiring + exact public middleware boundary |
 | POST | `/api/auth/register` | Public, rate-limited | VERIFIED H1 light: success wiring + dynamic public validation |
+| GET, PUT | `/api/onboarding` | Session, own workspace | C1: onboarding state derived from real data; PUT saves business name + profile |
+| POST | `/api/onboarding/complete` | Session, own workspace | C1: finish or skip the welcome wizard (first time only) |
 | GET, HEAD | `/api/health` | Public, sanitized | VERIFIED H1 strict: bounded healthy/degraded 200/503 schemas; secrets rejected |
 | GET | `/api/health/media` | `CRON_SECRET` (handler fail-closed) | NEW 1025-A3: ffmpeg version + bundled CJK font/BGM + 1s synthesis probe (CJK end card + ass subtitles); 200/503; `?frame=1` JPEG |
 | GET | `/api/videos` | Machine auth (Bearer CRON_SECRET), middleware-exact | PRD M0: 青砚 aivora-sync 拉成片；fail-closed，无会话回退；只给已品牌封装、非 takedown、非样片账号的成片 |
@@ -215,6 +217,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/leads/links` | Session, own workspace | Tracked link per channel; 409 until the lead page is enabled; external destination only on admin-registered https hosts |
 | PATCH | `/api/leads/links/[id]` | Session, own workspace | Disable = archive; click history kept |
 | PUT | `/api/leads/page` | Session, own workspace | Display fields only; slug / enabled / allowed hosts are admin-only |
+| POST | `/api/leads/page/activation-request` | Session, own workspace | C1: records the first request time (CAS) and alerts the founder once; activation stays admin-only |
 | GET | `/api/leads/admin/workspaces` | Super admin | Look up a workspace's lead-page settings by owner email |
 | PUT | `/api/leads/admin/workspaces/[id]` | Super admin | Enable / slug (reserved words, unique) / allowed https hosts |
 

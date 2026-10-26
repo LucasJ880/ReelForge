@@ -77,7 +77,14 @@ async function login() {
   step(1, "注册/登录 demo 账号");
   const reg = await req("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify({ email: EMAIL, password: PASSWORD, name: "Demo Rehearsal" }),
+    body: JSON.stringify({
+      email: EMAIL,
+      password: PASSWORD,
+      name: "Demo Rehearsal",
+      businessName: "Demo Rehearsal",
+      industry: "other",
+      acceptTerms: true,
+    }),
   });
   if (reg.status !== 200 && reg.status !== 409) {
     fail(`注册接口异常 HTTP ${reg.status}: ${JSON.stringify(reg.json)}`);

@@ -1,51 +1,36 @@
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
-import { MonoTag } from "@/components/exchange/mono-tag";
+import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { WallVideo } from "@/components/exchange/wall-controls";
 import { PilotCta } from "@/components/auth/pilot-cta";
 import { listActiveStyleTemplates } from "@/lib/services/style-template-service";
-import {
-  SHOWCASE_SAFE_SLUGS,
-  hasVerifiedTemplateVideo,
-  verifiedTemplateSample,
-  verifiedTemplateVideo,
-} from "@/lib/video-generation/template-sample";
+import { hasVerifiedTemplateVideo } from "@/lib/video-generation/template-sample";
+import { LANDING_HERO_SCENES } from "@/lib/config/landing-media";
+import { getGrowthCopy } from "@/i18n/growth-copy";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import Link from "next/link";
 
-/** 登录门上墙的样片：统一取公开面零瑕疵名单（template-sample.ts）。 */
-const GATE_SAMPLES: readonly string[] = SHOWCASE_SAFE_SLUGS;
+/** 登录门上墙的画面：与公开首页同一组上门服务场景（AI 生成，标 AI 合规标签），不再放电商样片。 */
+const GATE_SCENES = LANDING_HERO_SCENES.filter((item) => item.scene !== "kitchen");
 
 /**
- * 模板读数与样片：只读公开的模板库。登录页不能因为它挂掉——
- * 取数失败或超过 1.5 秒就整块不显示，登录表单照常可用。
+ * 模板库读数：只读公开的模板库。登录页不能因为它挂掉——
+ * 取数失败或超过 1.5 秒就不显示计数，画面与登录表单照常可用。
  */
-async function loadGateSamples(english: boolean) {
+async function loadGateCounts() {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const templates = await Promise.race([
       listActiveStyleTemplates(),
       new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(new Error("gate samples timeout")), 1500);
+        timer = setTimeout(() => reject(new Error("gate counts timeout")), 1500);
       }),
     ]);
-    const frames = GATE_SAMPLES.flatMap((slug) => {
-      const template = templates.find((item) => item.slug === slug);
-      const video = template ? verifiedTemplateVideo(slug, `/template-previews/${slug}.mp4`) : null;
-      if (!template || !video) return [];
-      return [{
-        slug,
-        name: english ? template.name : template.nameZh,
-        video,
-        poster: verifiedTemplateSample(slug, template.coverImage) ?? undefined,
-      }];
-    });
     return {
       templateCount: templates.length,
       sampleCount: templates.filter((template) => hasVerifiedTemplateVideo(template.slug)).length,
-      frames,
     };
   } catch {
     return null;
@@ -57,7 +42,8 @@ async function loadGateSamples(english: boolean) {
 /**
  * 登录门：交易大厅开盘前的那一屏。左边是大而轻的宣言（信号青只给宣言的后半句，
  * 与公开首页同一个定位：批量出片、找到带来询盘的那一条，不再承诺「赛出赢家」）、
- * 主行动「申请试点」和一排真机模板样片（标明是样例，不冒充用户数据）；右边是带角标的登录终端。
+ * 描边的「申请试点」和一排上门服务场景（AI 生成、标 AI 合规标签，不冒充客户实拍）；
+ * 右边是带角标的登录终端，它的提交钮是这一屏唯一的实心钮。
  */
 export default async function AuthLayout({
   children,
@@ -66,7 +52,8 @@ export default async function AuthLayout({
 }) {
   const locale = await getServerLocale();
   const copy = getPlatformCopy(locale).auth;
-  const samples = await loadGateSamples(locale === "en-US");
+  const landing = getGrowthCopy(locale).landing;
+  const counts = await loadGateCounts();
   return (
     <div className="gate-theme desk-canvas relative flex min-h-screen flex-col bg-background text-foreground">
       <header className="x-pane relative z-10 flex h-16 items-center justify-between border-b px-4 sm:px-8">
@@ -100,31 +87,30 @@ export default async function AuthLayout({
           </h1>
           <p className="max-w-[46ch] text-body leading-relaxed text-muted-foreground">{copy.subtitle}</p>
           <PilotCta label={copy.pilotCta} hint={copy.pilotHint} />
-          {samples && samples.frames.length > 0 ? (
-            <figure className="max-w-2xl space-y-2.5">
-              <ul aria-label={copy.samples} className="x-wall x-frame grid-cols-3">
-                {samples.frames.map((frame) => (
-                  <li key={frame.slug} className="min-w-0">
-                    <div className="relative aspect-video overflow-hidden bg-sunken">
-                      <WallVideo src={frame.video} poster={frame.poster} label={frame.name} />
-                      <div className="pointer-events-none absolute inset-0 bg-(image:--scrim)" aria-hidden />
-                      <span className="absolute left-1.5 top-1.5 hidden rounded-(--radius-sm) bg-sunken/85 px-1.5 py-0.5 sm:block">
-                        <MonoTag className="border-0 px-0 py-0">{copy.sampleTag}</MonoTag>
-                      </span>
-                    </div>
-                    <p className="truncate px-3 py-2 text-meta text-muted-foreground">{frame.name}</p>
-                  </li>
-                ))}
-              </ul>
-              <figcaption className="font-mono text-data tabular-nums text-tertiary">
-                {copy.counts
-                  .replace("{templates}", String(samples.templateCount))
-                  .replace("{samples}", String(samples.sampleCount))}
-                {" · "}
-                {copy.sampleNote}
-              </figcaption>
-            </figure>
-          ) : null}
+          <figure className="max-w-2xl space-y-2.5">
+            <ul aria-label={landing.heroWallLabel} className="x-wall x-frame grid-cols-3">
+              {GATE_SCENES.map((item) => (
+                <li key={item.scene} className="min-w-0">
+                  <div className="relative aspect-video overflow-hidden bg-sunken">
+                    <WallVideo src={item.video} poster={item.poster} label={landing.heroScenes[item.scene]} />
+                    <div className="pointer-events-none absolute inset-0 bg-(image:--scrim)" aria-hidden />
+                    <span className="absolute left-1.5 top-1.5 hidden sm:block">
+                      <AiGeneratedLabel compact />
+                    </span>
+                  </div>
+                  <p className="truncate px-3 py-2 text-meta text-muted-foreground">{landing.heroScenes[item.scene]}</p>
+                </li>
+              ))}
+            </ul>
+            <figcaption className="font-mono text-data tabular-nums text-tertiary">
+              {counts
+                ? `${copy.counts
+                    .replace("{templates}", String(counts.templateCount))
+                    .replace("{samples}", String(counts.sampleCount))} · `
+                : null}
+              {landing.heroNote}
+            </figcaption>
+          </figure>
         </section>
         <Card className="x-frame w-full min-w-0">{children}</Card>
       </main>

@@ -18,8 +18,10 @@ test("P6：新用户从注册到首条成片少于 10 分钟", async ({ page }, 
   await page.context().clearCookies();
   await page.goto("/register");
   await page.getByLabel("邮箱").fill(email);
-  await page.getByLabel("昵称（可选）").fill("First Video QA");
   await page.getByLabel("密码（至少 8 位）").fill(password);
+  await page.getByLabel("店名 / 公司名").fill("First Video QA");
+  await page.getByLabel("做什么生意").selectOption("other");
+  await page.getByLabel(/我已阅读并同意/).check();
   const registration = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&

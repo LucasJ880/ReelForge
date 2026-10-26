@@ -324,10 +324,12 @@ test("LENS-9 暂停横幅：不说熔断 / circuit breaker，只说拥堵与自�
 
 /* ── LENS-10 首页一页一枚实心主钮 ───────────────────────────────────── */
 
-test("LENS-10 首页：hero 的「申请试点」是描边钮，实心主钮只留给表单提交", () => {
+test("LENS-10 首页（C1 改）：hero 的「申请 30 天陪跑」描边；全页唯一实心钮是「免费试做」→ 注册，表单提交描边", () => {
   const landing = read("src/components/leads/pilot-landing.tsx");
   const form = read("src/components/leads/pilot-application-form.tsx");
   assert.match(landing, /<Button render=\{<a href="#pilot-apply" \/>\} size="lg" variant="outline">/);
+  assert.match(landing, /<Button render=\{<Link href="\/register" \/>\} size="lg">/);
+  assert.match(form, /<Button type="submit" variant="outline"/);
   /// 没写 variant 的 <Button> 就是实心主钮：两份文件加起来只能有一枚
   const solid = [landing, form]
     /// render={<a … />} 里的「>」会截断开标签：先把 render 属性折叠掉再找开标签
@@ -335,5 +337,6 @@ test("LENS-10 首页：hero 的「申请试点」是描边钮，实心主钮只�
     .flatMap((source) => [...source.matchAll(/<Button\b[^>]*>/g)].map((match) => match[0]))
     .filter((tag) => !/\bvariant=/.test(tag));
   assert.equal(solid.length, 1, `实心主钮：${solid.join(" | ")}`);
-  assert.match(solid[0]!, /type="submit"/);
+  assert.match(solid[0]!, /size="lg"/);
+  assert.doesNotMatch(solid[0]!, /type="submit"/);
 });

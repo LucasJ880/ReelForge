@@ -175,3 +175,10 @@ test("C1 摩擦：周计划视频帖带脚本去创作；没品牌包给去处�
   assert.match(wizard, /<QuotaNextSteps locale=\{english \? "en-US" : "zh-CN"\} contactEmail=\{contactEmail\} \/>/);
   assert.match(read("src/app/(platform)/app/batches/new/page.tsx"), /contactEmail=\{contactEmail\(\)\}/);
 });
+
+test("A6：原生口播不再承诺口型同步（Shuyu 不接受显式音频开关，口播只是尽力而为）", () => {
+  const controls = read("src/components/video-generation/audio-caption-controls.tsx");
+  assert.doesNotMatch(controls, /口型与画面同步|in sync with the picture/);
+  assert.match(controls, /不保证口型同步/);
+  assert.match(controls, /lip-sync and exact wording aren't guaranteed/);
+});

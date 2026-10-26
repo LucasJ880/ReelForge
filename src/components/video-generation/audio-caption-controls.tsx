@@ -259,9 +259,10 @@ export function AudioCaptionControls({
                   {english ? "Native voiceover" : "原生口播"}
                 </span>
                 <span className="mt-0.5 block text-meta text-muted-foreground">
+                  {/* A6：视频模型按口播稿尽力说出，不保证口型同步，也不保证逐字（以成片为准） */}
                   {english
-                    ? "Spoken directly by the generated video, in sync with the picture."
-                    : "由生成视频直接说出，口型与画面同步。"}
+                    ? "The video model voices your script as best it can — lip-sync and exact wording aren't guaranteed; check the finished video."
+                    : "由视频模型按口播稿尽力直接说出；不保证口型同步、也不保证逐字，以成片为准。"}
                 </span>
               </span>
             </span>

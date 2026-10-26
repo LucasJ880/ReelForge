@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Clapperboard, Loader2, X } from "lucide-react";
+import { TickGlyph, tickToneClass } from "@/components/exchange/status-tick";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useTranslation } from "@/i18n/useTranslation";
+import type { FeatureGate } from "@/lib/capabilities/registry";
+import { cn } from "@/lib/utils";
 
 /**
  * b-roll 实拍图库线路 · 创作页入口（自包含，不接故事板状态机）。
@@ -47,6 +50,8 @@ const COPY = {
     dismiss: "知道了",
     unavailable: "实拍图库线路尚未配置（缺图库 key 或 TTS 权限）。",
     errorFallback: "提交失败，请稍后重试。",
+    paused: "实拍图库线路暂停，恢复后这里自动开放。",
+    statusLink: "查看能力状态",
   },
   "en-US": {
     title: "Stock footage route",
@@ -72,6 +77,8 @@ const COPY = {
     dismiss: "Got it",
     unavailable: "Stock route is not fully configured (stock keys or TTS access missing).",
     errorFallback: "Submission failed. Please retry.",
+    paused: "The stock footage route is paused and reopens automatically once it recovers.",
+    statusLink: "View service status",
   },
 } as const;
 
@@ -79,11 +86,23 @@ const STORAGE_KEY = "aivora-broll-last-submission";
 
 type Submission = { briefId: string; orderId: string; title: string };
 
-export function BrollQuickCard({ available }: { available: boolean }) {
+export function BrollQuickCard({
+  available,
+  gate = null,
+}: {
+  available: boolean;
+  /**
+   * C4 · 能力闸门（写作 + 配音 + 图库）。被挡住时提交按钮禁用并写明原因——
+   * 之前按钮照常可点，提交后 LLM / TTS 失败才 503。已提交那一条的取消入口不受影响（铁律 #7）。
+   */
+  gate?: FeatureGate | null;
+}) {
   const router = useRouter();
   const { locale } = useTranslation();
   const copy = COPY[locale === "en-US" ? "en-US" : "zh-CN"];
   const english = locale === "en-US";
+  const blocked = gate?.status === "blocked";
+  const blockedReason = blocked ? gate?.message?.[english ? "en-US" : "zh-CN"] ?? copy.paused : null;
 
   const [script, setScript] = useState("");
   const [voiceId, setVoiceId] = useState<string>(VOICES[0].id);
@@ -303,11 +322,30 @@ export function BrollQuickCard({ available }: { available: boolean }) {
 
         {error ? <p className="text-meta text-danger">{error}</p> : null}
 
+        {blockedReason ? (
+          <p
+            id="broll-capability-blocked"
+            role="status"
+            data-testid="broll-capability-blocked"
+            data-blocked-by={gate?.blockedBy.join(" ")}
+            className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-raised px-3 py-2.5 text-meta text-foreground"
+          >
+            <TickGlyph tone="fault" className={cn("mt-[0.3em]", tickToneClass("fault"))} />
+            <span className="min-w-0 text-pretty">
+              {blockedReason}{" "}
+              <Link href="/app/status" prefetch={false} className="text-accent hover:text-accent-strong">
+                {copy.statusLink}
+              </Link>
+            </span>
+          </p>
+        ) : null}
+
         {/* 第二条线路：页面唯一的实心主按钮留给委托单，这里用描边 */}
         <Button
           type="button"
           variant="outline"
-          disabled={busy !== null || script.trim().length < 20}
+          disabled={blocked || busy !== null || script.trim().length < 20}
+          aria-describedby={blocked ? "broll-capability-blocked" : undefined}
           onClick={() => void handleSubmit()}
         >
           {busy === "submit" ? (

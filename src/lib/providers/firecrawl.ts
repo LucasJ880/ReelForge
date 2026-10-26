@@ -8,6 +8,8 @@
  * 无 key 时诚实不可用（与 stock-footage / remove-bg / openai-tts 同一模式）。
  */
 
+import { markCapability } from "@/lib/services/capability-status-service";
+
 const FIRECRAWL_ENDPOINT = "https://api.firecrawl.dev/v1/scrape";
 const SCRAPE_TIMEOUT_MS = 20_000;
 
@@ -54,11 +56,18 @@ export async function firecrawlScrapeHtml(
     if (!res.ok) {
       /// 日志脱敏：状态码 + 截断响应体，不落 key
       const body = (await res.text().catch(() => "")).slice(0, 200);
-      throw new FirecrawlError(
+      const error = new FirecrawlError(
         `Firecrawl 抓取失败：HTTP ${res.status} ${body}`,
         res.status,
       );
+      /// C4 · 「链接抓取」实时回写：只认额度用完（402）与 key 被拒（401）。
+      /// 403 / 4xx / 5xx 多半是目标站点不让抓，换个链接就好，不改能力状态。
+      if (res.status === 401 || res.status === 402) {
+        await markCapability("scrape", { error }, { detail: { provider: "firecrawl" } });
+      }
+      throw error;
     }
+    await markCapability("scrape", "success", { detail: { provider: "firecrawl" } });
     const payload = (await res.json()) as {
       success?: boolean;
       data?: { html?: unknown };

@@ -47,6 +47,7 @@ import {
   type VideoRouteOverride,
 } from "@/components/video-generation/video-route-selector";
 import { useTranslation } from "@/i18n/useTranslation";
+import { featureGate, type PublicCapabilities } from "@/lib/capabilities/registry";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
 import {
   customerDirectDispatchMessage,
@@ -166,6 +167,10 @@ const ZH_COPY = {
   stepModeHint: "第一次使用建议选快速生成；需要控制模板或品牌片尾时再用高级生成。",
   quick: "快速生成",
   quickHint: "系统自动完成镜头与质量检查",
+  /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划；看图暂停 = 画面质检跳过、成片照常
+  quickHintNoQa: "系统自动完成镜头规划；画面质检暂停，成片照常生成",
+  quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
+  quickHintTemplateShotsNoQa: "镜头先按模板规划；画面质检暂停，成片照常生成",
   advanced: "高级生成",
   advancedHint: "开放模板与品牌片尾设置",
   stepSpecs: "视频规格",
@@ -294,6 +299,9 @@ const EN_COPY: StudioCopy = {
   stepModeHint: "Quick generation is best for a first video. Use advanced mode when you need a template or branded ending.",
   quick: "Quick generation",
   quickHint: "Automatic shot planning and quality checks",
+  quickHintNoQa: "Automatic shot planning; frame checks are paused, videos still render",
+  quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
+  quickHintTemplateShotsNoQa: "Shots are planned from templates and frame checks are paused; videos still render",
   advanced: "Advanced generation",
   advancedHint: "Template and branded-ending controls",
   stepSpecs: "Video specs",
@@ -392,6 +400,7 @@ export function StreamlinedVideoStudio({
   showInternalVideoRoutes = false,
   forceOnboarding = false,
   brollAvailable = false,
+  capabilities = null,
   readings = null,
 }: {
   initialAssets?: UploadedAsset[];
@@ -407,12 +416,26 @@ export function StreamlinedVideoStudio({
   showInternalVideoRoutes?: boolean;
   forceOnboarding?: boolean;
   brollAvailable?: boolean;
+  /** C4 · 服务端读好的能力状态（纯 DTO）；缺省 = 不拦（老调用方、读失败）。 */
+  capabilities?: PublicCapabilities | null;
   readings?: StudioReadings | null;
 }) {
   const router = useRouter();
   const { locale } = useTranslation();
   const english = locale === "en-US";
   const copy = english ? EN_COPY : ZH_COPY;
+  /// C4 · 能力闸门：实拍线路要 写作 + 配音 + 图库；口播稿起草与镜头规划要写作；画面质检要看图。
+  const brollGate = featureGate(capabilities, "broll");
+  const narrationFromTemplate = featureGate(capabilities, "narrationDraft").status === "blocked";
+  const shotsFromTemplate = featureGate(capabilities, "scriptWriting").status === "blocked";
+  const frameQaPaused = featureGate(capabilities, "frameQa").status === "blocked";
+  const quickModeHint = shotsFromTemplate && frameQaPaused
+    ? copy.quickHintTemplateShotsNoQa
+    : frameQaPaused
+      ? copy.quickHintNoQa
+      : shotsFromTemplate
+        ? copy.quickHintTemplateShots
+        : copy.quickHint;
   const initialProductAssets = initialAssets
     .filter((asset) => asset.type === "IMAGE")
     .slice(0, MAX_PRODUCT_IMAGES)
@@ -1568,7 +1591,7 @@ export function StreamlinedVideoStudio({
                   <OptionButton
                     active={creationMode === "quick"}
                     title={copy.quick}
-                    description={copy.quickHint}
+                    description={quickModeHint}
                     icon={Zap}
                     disabled={locked}
                     onClick={() => {
@@ -1789,6 +1812,7 @@ export function StreamlinedVideoStudio({
                   disabled={locked}
                   onChange={updateAudioCaptionSettings}
                   onRegenerate={regenerateVoiceoverScript}
+                  draftFromTemplate={narrationFromTemplate}
                 />
               </TicketRow>
             </div>
@@ -1833,8 +1857,8 @@ export function StreamlinedVideoStudio({
             </div>
           ) : null}
 
-          {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机） */}
-          <BrollQuickCard available={brollAvailable} />
+          {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机）；能力暂停时禁用提交并写明原因 */}
+          <BrollQuickCard available={brollAvailable} gate={brollGate} />
         </div>
 
         {/* 委托摘要：xl 起是右侧粘性单据；更窄时退成底部粘性操作条（同一个元素，同一枚主按钮）。

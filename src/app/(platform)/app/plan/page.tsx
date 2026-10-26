@@ -3,12 +3,19 @@ import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { listContentPlans } from "@/lib/services/content-plan-store";
 import { readSlides } from "@/lib/services/content-post-render-service";
+import { getCapabilities } from "@/lib/services/capability-status-service";
+import { CapabilityNotice } from "@/components/capabilities/capability-notice";
 import {
   PlanTimeline,
   type TimelinePlan,
 } from "@/components/content-plan/plan-timeline";
+import { getPlatformCopy } from "@/i18n/platform-copy";
+import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
+
+/** 本周内容依赖的功能：周计划撰写（AI 写作）与图文配图（配图与 Logo）。 */
+const PLAN_CAPABILITY_FEATURES = ["contentPlanWriting", "imagePosts"] as const;
 
 /**
  * O1 · 本周内容（PRD §3 / M3）。
@@ -20,7 +27,12 @@ export default async function PlanPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login?from=/app/plan");
 
-  const plans = await listContentPlans(session.user.id, 1);
+  const [plans, capabilities, locale] = await Promise.all([
+    listContentPlans(session.user.id, 1),
+    /// C4：AI 写作或配图暂停时，在时间线上方说清楚「周计划先用模板 / 图文帖先不出图」。永不抛出。
+    getCapabilities(),
+    getServerLocale(),
+  ]);
   const latest = plans[0] ?? null;
 
   const plan: TimelinePlan | null = latest
@@ -56,5 +68,17 @@ export default async function PlanPage() {
       }
     : null;
 
-  return <PlanTimeline plan={plan} />;
+  return (
+    <>
+      <CapabilityNotice
+        capabilities={capabilities}
+        features={PLAN_CAPABILITY_FEATURES}
+        locale={locale}
+        linkLabel={getPlatformCopy(locale).status.noticeLink}
+        className="mb-6"
+        testId="plan-capability-notice"
+      />
+      <PlanTimeline plan={plan} />
+    </>
+  );
 }

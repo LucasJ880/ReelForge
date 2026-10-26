@@ -8,10 +8,13 @@
 
 import {
   analyzeImages as legacyAnalyzeImages,
+  buildTokenLimitParam,
   chatJson as legacyChatJson,
   chatJsonByTier as legacyChatJsonByTier,
   isLLMAvailable,
   isLLMForcedMock,
+  resolveFallbackChain,
+  resolveModelForTier,
   type OpenAITier,
 } from "@/lib/providers/openai";
 import {
@@ -29,6 +32,26 @@ import type {
   AiProvider,
   AiVisionAnalyzeOptions,
 } from "../types";
+
+/**
+ * C4 · 能力探测要用的模型解析：与生产调用同一套规则——文本 = fast 档回退链（OPENAI_MODEL 优先，
+ * 已知无权限的 4 系沉底），看图 = vision 档首选（analyzeImages 没有回退链）。
+ * 探测走这里而不是直连 providers/openai，守住「LLM 只经 AI provider 抽象」的门禁。
+ */
+export function openAiProbePlan(): { textModels: string[]; visionModel: string } {
+  return {
+    textModels: resolveFallbackChain("fast").slice(0, 3),
+    visionModel: resolveModelForTier("vision"),
+  };
+}
+
+/** 与 chatJson 同一条规则：5.x / o 系只收 max_completion_tokens。 */
+export function openAiTokenLimitParam(
+  model: string,
+  limit: number,
+): { max_tokens?: number; max_completion_tokens?: number } {
+  return buildTokenLimitParam(model, limit);
+}
 
 export class OpenAiProvider implements AiProvider {
   readonly id = "openai" as const;

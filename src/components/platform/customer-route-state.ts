@@ -11,7 +11,8 @@ export type CustomerRouteId =
   | "plan"
   | "wins"
   | "brands"
-  | "leads";
+  | "leads"
+  | "status";
 
 export const CUSTOMER_ROUTE_FALLBACKS = {
   create: "/app/create",
@@ -27,6 +28,7 @@ export const CUSTOMER_ROUTE_FALLBACKS = {
   wins: "/app/plan",
   brands: "/app/create",
   leads: "/app/plan",
+  status: "/app/create",
 } as const satisfies Record<CustomerRouteId, string>;
 
 /**
@@ -47,6 +49,7 @@ export const CUSTOMER_ROUTE_FALLBACK_AREAS = {
   wins: "plan",
   brands: "create",
   leads: "plan",
+  status: "create",
 } as const satisfies Record<CustomerRouteId, CustomerRouteId>;
 
 /** 骨架屏的读数墙格数：与该页真实行情头的读数格数一致，切页不跳。 */
@@ -64,4 +67,5 @@ export const CUSTOMER_ROUTE_WALL_CELLS = {
   wins: 4,
   brands: 3,
   leads: 3,
+  status: 4,
 } as const satisfies Record<CustomerRouteId, number>;

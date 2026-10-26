@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (108/108 route files)
+## API endpoint inventory (109/109 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -98,7 +98,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/performance` | Machine auth (Bearer CRON_SECRET) | PRD M2/R2: 青砚回灌渠道指标；配方只从我方 subject 读，回流方不得指定 |
 | GET | `/api/racing` | Session, owner-scoped | PRD M2/R3: 配方维度胜负；样本不足明确返回 insufficient，不给方向性结论 |
 | POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |
-| GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警 |
+| GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警。C4：同一轮探测全部能力（OpenAI 文本 1 token / 看图 / TTS 每 24h 一次 / 审核、Pexels、Firecrawl 额度、remove.bg 账户、Shuyu 余额、邮件配置）写入 CapabilityStatus；`?force=1` 强制 TTS |
+| GET | `/api/capabilities` | Session (any signed-in user) | C4: 能力注册表客户视图（状态 / 最近检测 / 异常起点 / 中英人话 / 受影响功能）；route 只做鉴权 + getCapabilities()；service 永不抛出（状态表读不到时按配置显示） |
 | GET | `/api/me/usage` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/exchange/pulse` | Session, owner-scoped | Round 1025 B1: shell pulse (generating / queued / active + paused batches / awaiting images / needs-attention / new leads / UTC-month quota / production tape); DB count + groupBy only; 500 instead of zeros on failure |
 | POST | `/api/exchange/failures-ack` | Session, own workspace | Round 1025 B1: library 「看过了」 sets Workspace.failuresAckedAt = now; failure records untouched |

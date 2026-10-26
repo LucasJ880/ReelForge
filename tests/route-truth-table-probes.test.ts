@@ -49,15 +49,19 @@ test("2.5 上架：按 display_name / model 认出候选，报 30s、音频/视�
   assert.deepEqual(signal.referencePlanIds, ["video-plan-25-1080"]);
 });
 
-test("2.5 带 30s 上架会打穿严格 schema：探针必须读原始 JSON，并把这一点写进结论", () => {
+test("2.5 带 30s / 新 mode 上架不打穿价目表：只丢那一档，2.0 档照常可审计；探针读原始 JSON 报出被丢的档", () => {
   const payload = fixture("shuyu-prices-seedance25.json");
-  const strictSchemaOk = shuyuPricesResponseSchema.safeParse(payload).success;
-  assert.equal(strictSchemaOk, false);
-  const line = describeSeedance25Signal(detectShuyuSeedance25(payload), strictSchemaOk);
+  const parsed = shuyuPricesResponseSchema.safeParse(payload);
+  assert.equal(parsed.success, true, "一档不认识不能让整张表 invalid_response");
+  const kept = parsed.success ? parsed.data.data.map((plan) => plan.plan_id) : [];
+  assert.ok(kept.includes("video-plan-04"), "现有 2.0 档保留");
+  assert.equal(kept.includes("video-plan-25-1080"), false, "带未知 mode 的档整条丢弃，不能被当成旧档计价");
+  const line = describeSeedance25Signal(detectShuyuSeedance25(payload), parsed.success, ["video-plan-25-1080"]);
   assert.match(line, /出现 2\.5 候选档 2 个/);
   assert.match(line, /含 30s/);
   assert.match(line, /有音频\/视频参考字段/);
-  assert.match(line, /严格 schema 解析失败/);
+  assert.match(line, /逐条校验丢弃 1 档.*video-plan-25-1080/);
+  assert.doesNotMatch(line, /外层 schema 解析失败/);
 });
 
 test("识别规则：2.5 的写法变体都认，25/2.50/12.5 之类不误报；非 video 条目忽略；畸形输入不抛", () => {

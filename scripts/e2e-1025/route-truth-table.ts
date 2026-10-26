@@ -7,7 +7,7 @@
  * 2026-10-26（X-SCAF-4）补齐本轮实验探针：
  *   - Sync Labs / TTS 试用 / 抠图 key 只报「配没配」，不触网、绝不打印值；
  *   - Shuyu 原始 /prices 里是否出现 Seedance 2.5 档（E7′ 触发器）：2.5 候选、30s、音频/视频参考字段，
- *     以及严格 schema 是否仍能解析（解析失败 = 生产 getShuyuPrices 整体报错）。
+ *     以及 schema 是否仍能解析、哪些条目被逐条校验丢弃（被丢的档生产不可见）。
  *
  * 用法：
  *   npx tsx --env-file=.env.local scripts/e2e-1025/route-truth-table.ts [--base=https://reelforge-delta.vercel.app] [--json=out.json]
@@ -18,6 +18,7 @@ import { writeFileSync } from "node:fs";
 import {
   SHUYU_API_BASE_URL,
   getShuyuBalance,
+  shuyuPriceSchema,
   shuyuPricesResponseSchema,
 } from "../../src/lib/providers/shuyu";
 import {
@@ -177,17 +178,21 @@ async function main() {
     probe("Shuyu 目录 · Seedance 2.5 档（E7′ 触发器）", async () => {
       const key = env("SHUYU_API_KEY", "shuyu_api_key");
       if (!key) return { verdict: "未配置", detail: "缺 SHUYU_API_KEY" };
-      /// 读原始 JSON 而不是 getShuyuPrices：严格 schema 会把 30s 新档整份拒掉、新字段 strip 掉。
+      /// 读原始 JSON 而不是 getShuyuPrices：逐条校验会把带新 mode 的 2.5 档整条丢掉、新字段 strip 掉。
       const res = await http(`${SHUYU_API_BASE_URL}/prices`, {
         headers: { Accept: "application/json", Authorization: `Bearer ${key}` },
       });
       if (res.status !== 200) return { verdict: statusVerdict(res.status), detail: `HTTP ${res.status}` };
       const payload: unknown = JSON.parse(res.text);
       const strictSchemaOk = shuyuPricesResponseSchema.safeParse(payload).success;
+      const entries = (payload as { data?: unknown }).data;
+      const droppedPlanIds = (Array.isArray(entries) ? entries : [])
+        .filter((entry) => !shuyuPriceSchema.safeParse(entry).success)
+        .map((entry) => String((entry as { plan_id?: unknown } | null)?.plan_id ?? "?"));
       const signal = detectShuyuSeedance25(payload);
       return {
         verdict: strictSchemaOk ? "通" : "不通",
-        detail: describeSeedance25Signal(signal, strictSchemaOk),
+        detail: describeSeedance25Signal(signal, strictSchemaOk, droppedPlanIds),
       };
     }),
     probe("HeyGen（数字人）", async () => {

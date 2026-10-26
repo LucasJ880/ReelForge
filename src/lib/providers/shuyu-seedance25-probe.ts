@@ -2,15 +2,15 @@
  * Shuyu 价目表里的 Seedance 2.5 档探针（X-SCAF-4，E7′ / E2″ 的触发器）。
  *
  * 纯函数，**不依赖任何服务端模块**，输入是 `/prices` 的原始 JSON（unknown）而不是
- * 严格 schema 解析后的结果——这一点是刻意的：`shuyuPriceSchema` 把 durations 卡在 ≤15，
- * 2.5 档一旦带着 30s 上架，严格解析会让整份价目表失败、新档字段也会被 strip 掉，
+ * schema 解析后的结果——这一点是刻意的：`shuyuPricesResponseSchema` 逐条严格校验，
+ * 带新 mode / 新字段的 2.5 档会被整条丢掉、新字段也会被 strip 掉，
  * 那样探针恰好在最该报警的时候什么都看不见。这里宽松读取每一条，只摘信号：
  *
  * - 候选：video 条目里 display_name 或 model 含「2.5」（含 `2-5` / `2_5` 写法）；
  * - durations 是否含 30（E7′ 的 30s 多镜头臂、E11 的前提）；
  * - capabilities 里是否出现音频 / 视频参考类字段（E4″ 的前提），以及审计不认识的新字段与新 mode。
  *
- * 调用方另行报告「严格 schema 是否仍能解析」（它决定生产 /prices 会不会整体失败）。
+ * 调用方另行报告「schema 是否仍能解析」与「哪些条目被逐条校验丢弃」（被丢的档生产上不可见、不计价）。
  */
 
 /** 审计已知的 capabilities 字段；其余一律当「新字段」报出来。 */
@@ -138,6 +138,7 @@ export function detectShuyuSeedance25(raw: unknown): Seedance25CatalogSignal {
 export function describeSeedance25Signal(
   signal: Seedance25CatalogSignal,
   strictSchemaOk: boolean | null,
+  droppedPlanIds: readonly string[] = [],
 ): string {
   const parts: string[] = [];
   if (signal.detected) {
@@ -167,7 +168,10 @@ export function describeSeedance25Signal(
     if (signal.referencePlanIds.length) parts.push(`但有参考字段：${signal.referencePlanIds.join(",")}`);
   }
   if (strictSchemaOk === false) {
-    parts.push("⚠ 严格 schema 解析失败：生产 getShuyuPrices 会整体报 invalid_response（buddy 线路停机）");
+    parts.push("⚠ 价目表外层 schema 解析失败：生产 getShuyuPrices 会整体报 invalid_response（buddy 线路停机）");
+  }
+  if (droppedPlanIds.length) {
+    parts.push(`逐条校验丢弃 ${droppedPlanIds.length} 档（生产不可见、不计价）：${droppedPlanIds.join(",")}`);
   }
   return parts.join("；");
 }

@@ -67,7 +67,7 @@ import {
 } from "@/lib/video-generation/video-route-registry";
 import {
   canVideoRouteOverrideDefaultRuntimeFailure,
-  getVideoRouteSnapshotRuntimeAvailability,
+  resolveRouteWithFailover,
   selectVideoRouteSnapshot,
 } from "@/lib/video-generation/video-route-selection";
 import {
@@ -603,12 +603,14 @@ export async function createBatchJob(input: CreateBatchInput): Promise<BatchJob>
       }
     }
   }
-  const availability = await getVideoRouteSnapshotRuntimeAvailability({
+  /// 批量禁止降级：线路、计价、快照在建批次时定死，不可用就按原原因拒绝。
+  const { primaryAvailability: availability } = await resolveRouteWithFailover({
     snapshot: videoRouteSnapshot,
     shuyuRequiredPoints:
       buddyPerVideoPoints !== undefined
         ? input.requestedCount * buddyPerVideoPoints
         : undefined,
+    allowFailover: false,
   });
   if (!availability.available) {
     throw new VideoGenerationRuntimeUnavailableError(

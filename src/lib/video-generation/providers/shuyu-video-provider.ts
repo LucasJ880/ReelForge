@@ -144,7 +144,9 @@ export class ShuyuVideoProvider implements VideoProvider {
     /// 套餐从 /prices 动态解析:默认取所在档审计清单首位(draft 档 = 最便宜的 720P,
     /// 跳过提交被拒后处于冷却中的套餐);调用方显式指定的套餐必须在审计清单内,
     /// 否则 fail-closed,且显式选择绝不静默替换。final 档(1080P)只有本次任务显式
-    /// 要求 final 时才放行——客户面显式传 1080P planId 在这里也会被拒。
+    /// 要求 final、或服务端 env SHUYU_ALLOW_FINAL_TIER=1(真机验收脚本 / 内部员工)
+    /// 才放行——生产不设该 env,客户面显式传 1080P planId 在这里也会被拒。
+    /// allowFinal 缺省(而非 false)是为了把判断交给 env;默认解析仍在 draft 档内。
     const tier = requestedShuyuVideoPlanTier(options);
     const explicitPlanId = options.providerPlanId?.trim() || null;
     let plan: AuditedShuyuVideoPlan;
@@ -153,7 +155,7 @@ export class ShuyuVideoProvider implements VideoProvider {
         ...this.options,
         planId: explicitPlanId,
         tier,
-        allowFinal: tier === "final",
+        allowFinal: tier === "final" ? true : undefined,
       });
     } catch (error) {
       throw new ProviderSubmissionError(

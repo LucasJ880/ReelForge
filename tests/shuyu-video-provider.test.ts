@@ -588,3 +588,36 @@ test("客户显式选 1080P planId 在适配器层被拒(预检、不可重试�
     __testVideoPlans__.resetVideoPlanCache();
   }
 });
+
+test("脚本路径:SHUYU_ALLOW_FINAL_TIER=1 + 显式 1080P planId → 放行;不传 planId 默认仍是 720P", async () => {
+  /// 真机验收脚本用 ShuyuVideoProvider 出 1080P:shell 里设 env,再显式传 providerPlanId。
+  /// env 只开「显式选 final」,默认解析照旧走 draft 档首位。
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const submissions: Array<Record<string, unknown>> = [];
+    const provider = new ShuyuVideoProvider("studio-video", {
+      fetchImpl: tieredFetch([DRAFT_FLAT, DRAFT_PER_SECOND, FINAL_1080], [], submissions),
+      env: { SHUYU_API_KEY: "configured", SHUYU_ALLOW_FINAL_TIER: "1" },
+    });
+    const byDefault = await provider.createVideoJob({
+      providerRequestKey: "env-final-default-1",
+      prompt: "Show the product.",
+      durationSec: 15,
+      resolution: "1080p",
+    });
+    assert.equal(byDefault.providerPlanId, "video-plan-01");
+    assert.equal(byDefault.providerUnitPoints, 700);
+
+    const explicit = await provider.createVideoJob({
+      providerRequestKey: "env-final-explicit-1",
+      prompt: "Show the product.",
+      durationSec: 5,
+      providerPlanId: "video-plan-13",
+    });
+    assert.equal(explicit.providerPlanId, "video-plan-13");
+    assert.equal(explicit.providerUnitPoints, 240 * 5);
+    assert.deepEqual(submissions.map((body) => body.plan_id), ["video-plan-01", "video-plan-13"]);
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});

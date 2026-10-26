@@ -7,6 +7,7 @@ import {
   markShuyuVideoPlanRejected,
   resolveShuyuVideoPlan,
   resolveShuyuVideoPlanWithCooldown,
+  shuyuFinalTierAllowedByEnv,
   shuyuPriceSchema,
   shuyuVideoPlanPointsForDuration,
   __testVideoPlans__,
@@ -338,6 +339,55 @@ test("价目表只剩 final 档时,默认(draft)解析如实报无可用套餐,�
     const args = { ...RESOLVE_ENV, fetchImpl: pricesFetch(onlyFinal) };
     await assert.rejects(() => resolveShuyuVideoPlan(args), /draft tier/);
     await assert.rejects(() => resolveShuyuVideoPlanWithCooldown(args), /draft tier/);
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});
+
+test("SHUYU_ALLOW_FINAL_TIER=1(服务端 env)开闸:显式选 1080P 放行;默认档不变;allowFinal:false 硬关", async () => {
+  /// 真机验收脚本 / 内部员工用 env 开闸,不用改调用方签名。默认关:1|true 才算开。
+  assert.equal(shuyuFinalTierAllowedByEnv({ SHUYU_ALLOW_FINAL_TIER: "1" }), true);
+  assert.equal(shuyuFinalTierAllowedByEnv({ SHUYU_ALLOW_FINAL_TIER: " true " }), true);
+  assert.equal(shuyuFinalTierAllowedByEnv({ SHUYU_ALLOW_FINAL_TIER: "0" }), false);
+  assert.equal(shuyuFinalTierAllowedByEnv({ SHUYU_ALLOW_FINAL_TIER: "yes" }), false);
+  assert.equal(shuyuFinalTierAllowedByEnv({}), false);
+
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const envOn = {
+      env: { SHUYU_API_KEY: "test-only", SHUYU_ALLOW_FINAL_TIER: "1" },
+      fetchImpl: pricesFetch(MARKET_1026),
+    };
+    /// env 开着也不动默认档:六处无参 resolveShuyuVideoPlan() 仍是 700 分的 720P。
+    assert.equal((await resolveShuyuVideoPlan(envOn)).planId, "video-plan-01");
+    assert.equal((await resolveShuyuVideoPlanWithCooldown(envOn)).planId, "video-plan-01");
+    /// 显式 1080P planId / tier=final → 放行(脚本选 1080P 的路径)。
+    const explicit = await resolveShuyuVideoPlan({ ...envOn, planId: "video-plan-13" });
+    assert.equal(explicit.tier, "final");
+    assert.equal(shuyuVideoPlanPointsForDuration(explicit, 15), 240 * 15);
+    assert.equal(
+      (await resolveShuyuVideoPlanWithCooldown({ ...envOn, planId: "video-plan-13" })).planId,
+      "video-plan-13",
+    );
+    assert.equal(
+      (await resolveShuyuVideoPlanWithCooldown({ ...envOn, tier: "final" })).planId,
+      "video-plan-13",
+    );
+    /// allowFinal:false 是硬关,忽略 env——客户面调用链接上 isInternalStaff 后靠它守住。
+    await assert.rejects(
+      () => resolveShuyuVideoPlan({ ...envOn, planId: "video-plan-13", allowFinal: false }),
+      ShuyuPlanUnavailableError,
+    );
+    await assert.rejects(
+      () => resolveShuyuVideoPlanWithCooldown({ ...envOn, tier: "final", allowFinal: false }),
+      ShuyuPlanUnavailableError,
+    );
+    /// env=0 / 未设 → 仍然 fail-closed。
+    const envOff = { ...envOn, env: { SHUYU_API_KEY: "test-only", SHUYU_ALLOW_FINAL_TIER: "0" } };
+    await assert.rejects(
+      () => resolveShuyuVideoPlan({ ...envOff, planId: "video-plan-13" }),
+      ShuyuPlanUnavailableError,
+    );
   } finally {
     __testVideoPlans__.resetVideoPlanCache();
   }

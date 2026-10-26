@@ -499,17 +499,42 @@ export async function resolveShuyuVideoPlans(
  *
  * - 缺省只在 draft 档(720P/480P)内取默认与冷却跳档,`plans[0]` 仍是最便宜的 720P,
  *   六处 `resolveShuyuVideoPlan()` 默认成本调用点无感。
- * - final 档(1080P)客户定价未定:显式 planId 命中 final、或 tier="final",
- *   都必须 `allowFinal === true`,否则抛 ShuyuPlanUnavailableError(fail-closed)。
- *   客户面调用链(batch-service / dispatch)不传 allowFinal → 客户显式传 final planId 被拒。
+ * - final 档(1080P)客户定价未定:显式 planId 命中 final、或 tier="final",都要过
+ *   allowFinal 闸门(显式 true,或服务端 env SHUYU_ALLOW_FINAL_TIER=1),否则抛
+ *   ShuyuPlanUnavailableError(fail-closed)。客户面调用链(batch-service / dispatch)
+ *   不传 allowFinal,生产不设该 env → 客户显式传 final planId 被拒。
  */
 export interface ResolveShuyuVideoPlanArgs extends ShuyuFetchOptions {
   /** 显式套餐 ID;不在审计清单内一律拒绝(fail-closed)。 */
   planId?: string | null;
   /** 默认解析与冷却跳档所在的档;缺省 draft。显式 planId 时以套餐自身 tier 为准。 */
   tier?: ShuyuVideoPlanTier;
-  /** final 档闸门;只有内部员工 / 实验标记的调用链才传 true。 */
+  /**
+   * final 档闸门,三值:
+   * - true:开(内部员工 / 实验标记的调用链显式传)。
+   * - false:硬关,忽略 env(客户面调用链接到 isInternalStaff 后应显式传它,见 P03-D0)。
+   * - 缺省:看服务端 env SHUYU_ALLOW_FINAL_TIER(真机验收脚本 / 内部员工用;默认关)。
+   */
   allowFinal?: boolean;
+}
+
+/**
+ * final 档的服务端 env 开闸:`SHUYU_ALLOW_FINAL_TIER=1|true`,默认关,只在服务端读取
+ * (浏览器端永远 false)。它只影响「显式选 final」——显式 final planId 或 tier="final";
+ * 默认解析仍在 draft 档内,六处默认成本调用点不变。
+ *
+ * ⚠️ 只在跑脚本的 shell 里设,不要设到 Vercel 生产环境变量:生产开着的话,任何登录用户
+ * 经 /api/batches 显式传 1080P planId 都会被放行(batch-service 尚未按 isInternalStaff
+ * 传 allowFinal:false 硬关,见 P03-D0)。routes API 的客户面过滤按角色,不受此 env 影响。
+ */
+export const SHUYU_ALLOW_FINAL_TIER_ENV = "SHUYU_ALLOW_FINAL_TIER" as const;
+
+export function shuyuFinalTierAllowedByEnv(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  if (typeof window !== "undefined") return false;
+  const raw = env[SHUYU_ALLOW_FINAL_TIER_ENV]?.trim().toLowerCase();
+  return raw === "1" || raw === "true";
 }
 
 function noAuditedVideoPlanError(tier?: ShuyuVideoPlanTier): ShuyuApiError {
@@ -524,10 +549,13 @@ function noAuditedVideoPlanError(tier?: ShuyuVideoPlanTier): ShuyuApiError {
 
 function assertShuyuFinalTierAllowed(
   tier: ShuyuVideoPlanTier,
-  allowFinal: boolean | undefined,
+  args: Pick<ResolveShuyuVideoPlanArgs, "allowFinal" | "env">,
   planId?: string,
 ): void {
-  if (tier !== "final" || allowFinal === true) return;
+  if (tier !== "final") return;
+  /// 三值:true 开;false 硬关(忽略 env);缺省看服务端 env。
+  const allowed = args.allowFinal ?? shuyuFinalTierAllowedByEnv(args.env);
+  if (allowed) return;
   throw new ShuyuPlanUnavailableError(
     planId
       ? `Shuyu video plan ${planId} is a final-tier (1080P) plan and is not selectable here`
@@ -542,7 +570,7 @@ async function resolveShuyuVideoPlanPool(
   const plans = await resolveShuyuVideoPlans(args);
   if (plans.length === 0) throw noAuditedVideoPlanError();
   const tier = args.tier ?? "draft";
-  assertShuyuFinalTierAllowed(tier, args.allowFinal);
+  assertShuyuFinalTierAllowed(tier, args);
   const pool = plans.filter((plan) => plan.tier === tier);
   if (pool.length === 0) throw noAuditedVideoPlanError(tier);
   return pool;
@@ -567,7 +595,7 @@ export async function resolveShuyuVideoPlan(
       200,
     );
   }
-  assertShuyuFinalTierAllowed(match.tier, args.allowFinal, match.planId);
+  assertShuyuFinalTierAllowed(match.tier, args, match.planId);
   return match;
 }
 

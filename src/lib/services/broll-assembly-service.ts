@@ -1,9 +1,8 @@
-import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import {
   AngleType,
   DeliveryOrderStatus,
@@ -35,16 +34,26 @@ import {
   CUSTOMER_CANCEL_MESSAGE,
   CUSTOMER_CANCELLED_CLASS,
 } from "@/lib/services/single-video-cancel-service";
-import { runFfmpegNormalizeAndConcatWithPostProduction } from "@/lib/services/stitch-service";
+import {
+  composeAndPersistTimeline,
+  type NormalizeAndConcatClip,
+} from "@/lib/services/stitch-service";
 import {
   brollAspectResolution,
   brollSegmentDurationSec,
   buildBrollComposeArgs,
+  type BrollClaimSegment,
 } from "@/lib/video-generation/broll-segment-compose";
-
-const execFileAsync = promisify(execFile);
-const FFMPEG_BIN = process.env.FFMPEG_BIN || "ffmpeg";
-const FFPROBE_BIN = process.env.FFPROBE_BIN || "ffprobe";
+/// ffmpeg 统一经 ffmpeg-bin 解析（FFMPEG_BIN → 函数里打包的静态二进制 → PATH）；
+/// 时长用 ffmpeg 本体探测——Vercel 函数里没有 ffprobe，也没有 PATH 上的 ffmpeg。
+import { probeMediaDurationSeconds } from "@/lib/media/ffmpeg-bin";
+import {
+  runStitchStep,
+  stepTimeout,
+  StitchBudgetExceededError,
+  type MediaBudget,
+} from "@/lib/media/stitch-pipeline";
+import { resolveStitchRuntimeMode } from "@/lib/media/stitch-runtime";
 
 /**
  * b-roll 第三条线路 · 编排层（2026-08-02 接通，计划见
@@ -99,29 +108,40 @@ function aspectToStock(aspect: BrollAspectRatio): "portrait" | "landscape" {
 /// 与 runner 共用的纯模块统一供给（两端 ffmpeg 参数不漂移）
 export const segmentDurationSec = brollSegmentDurationSec;
 
-async function probeDurationSec(filePath: string): Promise<number> {
-  const { stdout } = await execFileAsync(
-    FFPROBE_BIN,
-    [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      filePath,
-    ],
-    { timeout: 30_000, maxBuffer: 1024 * 1024 },
-  );
-  const duration = Number(stdout.trim());
-  if (!Number.isFinite(duration) || duration <= 0) {
-    throw new Error(`ffprobe 读不到时长：${path.basename(filePath)}`);
+async function probeDurationSec(
+  filePath: string,
+  budget?: MediaBudget,
+): Promise<number> {
+  try {
+    return await probeMediaDurationSeconds(filePath, {
+      timeoutMs: stepTimeout(budget, "probe", 1).timeoutMs,
+    });
+  } catch (err) {
+    if (err instanceof StitchBudgetExceededError) throw err;
+    throw new Error(`读不到时长：${path.basename(filePath)}`);
   }
-  return duration;
 }
 
-async function downloadToFile(url: string, filePath: string): Promise<void> {
-  const res = await fetch(url);
+async function downloadToFile(
+  url: string,
+  filePath: string,
+  budget?: MediaBudget,
+): Promise<void> {
+  if (url.startsWith("file://")) {
+    await copyFile(fileURLToPath(url), filePath);
+    return;
+  }
+  const { timeoutMs, capped } = stepTimeout(budget, "download", 1);
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  } catch (err) {
+    const name = (err as Error)?.name;
+    if ((name === "TimeoutError" || name === "AbortError") && capped) {
+      throw new StitchBudgetExceededError("download");
+    }
+    throw new Error(`素材下载失败：${name === "TimeoutError" ? "timeout" : "fetch failed"}`);
+  }
   if (!res.ok) {
     throw new Error(`素材下载失败：HTTP ${res.status}`);
   }
@@ -132,8 +152,9 @@ async function downloadToFile(url: string, filePath: string): Promise<void> {
  * 单段合成：图库素材 + TTS 音轨 → 归一化段视频。
  *
  * `-stream_loop -1` 让素材短于口播时循环补长；`apad` 让音轨补齐到视频尾；
- * 输出统一 1080 档 / 30fps / H.264+AAC，与主线段规格一致，
- * 后续 stitch 的归一化因此几乎是直通。
+ * 输出统一 1080 档 / 30fps / H.264+AAC，与主线段规格一致。
+ * 只有同步交付路径（composeBrollSegments：每段单独落 Blob）还用它；拼接器的 b-roll
+ * 分支把「素材 + 配音」直接交给单遍合成（prepareBrollTimelineClips），不再先单独编码每段。
  */
 async function composeSegmentFile(args: {
   clipPath: string;
@@ -141,10 +162,10 @@ async function composeSegmentFile(args: {
   outPath: string;
   aspect: BrollAspectRatio;
   targetDurationSec: number;
+  budget?: MediaBudget;
 }): Promise<void> {
   const { width, height } = brollAspectResolution(args.aspect);
-  await execFileAsync(
-    FFMPEG_BIN,
+  await runStitchStep(
     buildBrollComposeArgs({
       clipPath: args.clipPath,
       ttsPath: args.ttsPath,
@@ -153,7 +174,12 @@ async function composeSegmentFile(args: {
       height,
       targetDurationSec: args.targetDurationSec,
     }),
-    { maxBuffer: 1024 * 1024 * 50, timeout: 120_000 },
+    {
+      step: "broll_compose",
+      label: `b-roll segment ${path.basename(args.outPath)}`,
+      mediaSec: args.targetDurationSec,
+      budget: args.budget,
+    },
   );
 }
 
@@ -161,11 +187,46 @@ async function extractThumbnail(
   segmentPath: string,
   outPath: string,
 ): Promise<void> {
-  await execFileAsync(
-    FFMPEG_BIN,
+  await runStitchStep(
     ["-y", "-loglevel", "error", "-ss", "0.3", "-i", segmentPath, "-frames:v", "1", "-q:v", "3", outPath],
-    { maxBuffer: 1024 * 1024 * 10, timeout: 30_000 },
+    { step: "thumbnail", label: "b-roll thumbnail", mediaSec: 1 },
   );
+}
+
+/** b-roll 段统一 30fps（图库素材帧率五花八门；与 runner 的 broll-segment-compose 一致） */
+export const BROLL_FRAME_RATE = "30";
+
+/**
+ * 拼接器 b-roll 分支：逐段下载 TTS 配音 → 实测时长 → 组成单遍合成的时间线片段
+ * （素材画面循环补长、配音替换素材原声、段长 = 口播时长 + 呼吸间隙）。
+ * 素材本身由 composeAndPersistTimeline 下载；配音落在 workDir（调用方负责清理）。
+ * 不再先单独编码每一段——整条片子只编码一次。
+ */
+export async function prepareBrollTimelineClips(args: {
+  segments: BrollClaimSegment[];
+  workDir: string;
+  budget?: MediaBudget;
+  checkpoint?: () => Promise<void>;
+}): Promise<NormalizeAndConcatClip[]> {
+  const ordered = [...args.segments].sort((a, b) => a.segmentIndex - b.segmentIndex);
+  const out: NormalizeAndConcatClip[] = [];
+  for (const seg of ordered) {
+    await args.checkpoint?.();
+    const ttsPath = path.join(args.workDir, `tts-${seg.segmentIndex}.mp3`);
+    await downloadToFile(seg.ttsAudioUrl, ttsPath, args.budget);
+    const ttsDuration = await probeDurationSec(ttsPath, args.budget);
+    out.push({
+      url: seg.clipUrl,
+      audioUrl: pathToFileURL(ttsPath).href,
+      loopVideo: true,
+      targetDurationSec: segmentDurationSec(ttsDuration),
+      intendedDurationSec: null,
+      trimToFit: false,
+      requireAudio: true,
+      role: "broll",
+    });
+  }
+  return out;
 }
 
 /**
@@ -365,15 +426,18 @@ export async function createBrollDelivery(args: {
   /// FinalVideo id 预生成：后期函数用它命名 Blob 路径，建链时按同 id 落库。
   const finalVideoId = `broll_${randomUUID()}`;
   const { stitchedVideoUrl, subtitleFileUrl } =
-    await runFfmpegNormalizeAndConcatWithPostProduction({
+    await composeAndPersistTimeline({
       finalVideoId,
       aspectRatio: args.aspectRatio,
       clips: composed.segments.map((seg) => ({
         url: seg.url,
         intendedDurationSec: seg.durationSec,
-        /// 段在合成时已精确到目标时长，这里不再截断
+        /// 段在合成时已精确到目标时长，这里不再截断；配音必须在
         trimToFit: false,
+        requireAudio: true,
+        role: "broll" as const,
       })),
+      frameRate: BROLL_FRAME_RATE,
       postProduction,
     });
 
@@ -704,9 +768,10 @@ export async function startBrollDelivery(args: {
     return { orderId: order.id, briefId: brief.id };
   });
 
-  /// 本地 dev：进程内直接推进（fire-and-forget，dev server 常驻）。
-  /// 生产：stitch-dispatch cron 会派 GH runner，这里不阻塞请求。
-  if (process.env.NODE_ENV !== "production") {
+  /// local（dev）：进程内直接推进（fire-and-forget，dev server 常驻）。
+  /// inprocess（生产）：stitch-dispatch 函数每分钟认领合成；external：派 GH runner。
+  /// 两者都不在用户请求里合成。
+  if (resolveStitchRuntimeMode() === "local") {
     const { stitchFinalVideo } = await import("@/lib/services/stitch-service");
     void stitchFinalVideo(finalVideoId).catch((err) => {
       console.error("[broll] 本地 stitch 推进失败:", (err as Error).message);
@@ -739,10 +804,9 @@ export function readBrollJobInput(assignedAssets: unknown): {
 }
 
 /**
- * 本地运行时的 b-roll 合成（stitchFinalVideo 的 broll 分支调用；
- * 调用方负责 PENDING→STITCHING 的 CAS 与结果落库）。
- * 逐段：下载素材+TTS → ffprobe 实测 → 合成；然后走既有拼接后期。
- * 合成段以 file:// 直通拼接（downloadToFile 原生支持），不重复上传。
+ * b-roll 合成（兼容入口；拼接器走 stitch-composer 的同一条路径）：
+ * 逐段下载 TTS → 实测时长 → 素材 + 配音交给单遍合成（一次编码）→ 后期 → 成片缩略图。
+ * 不写库：调用方负责 CAS 与结果落库（finishStitchTask）。
  */
 export async function stitchBrollLocally(args: {
   finalVideoId: string;
@@ -753,6 +817,7 @@ export async function stitchBrollLocally(args: {
     clipUrl: string;
     ttsAudioUrl: string;
   }>;
+  budget?: MediaBudget;
 }): Promise<{
   stitchedVideoUrl: string;
   subtitleFileUrl: string | null;
@@ -762,61 +827,29 @@ export async function stitchBrollLocally(args: {
     args.aspectRatio === "16:9" ? "16:9" : "9:16";
   const tmpDir = path.join(
     os.tmpdir(),
-    `aivora-broll-local-${args.finalVideoId}`,
+    `aivora-broll-local-${args.finalVideoId}-${Date.now()}`,
   );
   await mkdir(tmpDir, { recursive: true });
   try {
-    const clips: Array<{ url: string; intendedDurationSec: number | null; trimToFit: boolean }> = [];
-    let thumbnailUrl: string | null = null;
-    const ordered = [...args.segments].sort(
-      (a, b) => a.segmentIndex - b.segmentIndex,
-    );
-    for (const seg of ordered) {
-      const i = seg.segmentIndex;
-      const ttsPath = path.join(tmpDir, `tts-${i}.mp3`);
-      const clipPath = path.join(tmpDir, `clip-${i}.mp4`);
-      await downloadToFile(seg.ttsAudioUrl, ttsPath);
-      await downloadToFile(seg.clipUrl, clipPath);
-      const ttsDuration = await probeDurationSec(ttsPath);
-      const targetDuration = segmentDurationSec(ttsDuration);
-      const outPath = path.join(tmpDir, `seg-${i}.mp4`);
-      await composeSegmentFile({
-        clipPath,
-        ttsPath,
-        outPath,
-        aspect,
-        targetDurationSec: targetDuration,
-      });
-      if (clips.length === 0) {
-        const thumbPath = path.join(tmpDir, "thumb.jpg");
-        await extractThumbnail(outPath, thumbPath);
-        const storage = getStorageProvider();
-        const thumb = await storage.uploadBuffer(
-          "renders",
-          await readFile(thumbPath),
-          {
-            key: `broll/${args.finalVideoId}/thumb.jpg`,
-            access: "public",
-            contentType: "image/jpeg",
-            overwrite: true,
-          },
-        );
-        thumbnailUrl = thumb.url;
-      }
-      clips.push({
-        url: `file://${outPath}`,
-        intendedDurationSec: targetDuration,
-        trimToFit: false,
-      });
-    }
-
-    const result = await runFfmpegNormalizeAndConcatWithPostProduction({
+    const clips = await prepareBrollTimelineClips({
+      segments: args.segments,
+      workDir: tmpDir,
+      budget: args.budget,
+    });
+    const result = await composeAndPersistTimeline({
       finalVideoId: args.finalVideoId,
       aspectRatio: aspect,
       clips,
+      frameRate: BROLL_FRAME_RATE,
       postProduction: args.postProduction,
+      extractThumbnail: true,
+      budget: args.budget,
     });
-    return { ...result, thumbnailUrl };
+    return {
+      stitchedVideoUrl: result.stitchedVideoUrl,
+      subtitleFileUrl: result.subtitleFileUrl,
+      thumbnailUrl: result.thumbnailUrl,
+    };
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }

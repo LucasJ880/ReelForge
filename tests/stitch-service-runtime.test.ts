@@ -13,7 +13,8 @@ import { db } from "../src/lib/db";
  * Stitch Service —— 运行时分支与 BLOB 强约束的单元测试。
  *
  * 关键契约（不能破）：
- *   1. 生产环境 stitchFinalVideo 不调 ffmpeg —— 只写 ffmpegError="awaiting external stitcher"。
+ *   1. external（回滚）模式 stitchFinalVideo 不调 ffmpeg —— 只写 ffmpegError="awaiting external stitcher"。
+ *      （inprocess 生产默认模式的「绝不内联合成」见 stitch-runtime-modes.test.ts）
  *   2. 单段（segmentCount === 1）走 fast path：直接复用首段 URL，不走外部 runner。
  *   3. 缺 BLOB_READ_WRITE_TOKEN 时 persistStitchedFile 必须 throw（不再静默写 file://）。
  *   4. claimStitchTask CAS PENDING → STITCHING；并发时只有一条 runner 抢到。
@@ -74,9 +75,14 @@ function withEnv(
 
 /// ---------- Pure logic: stitchRuntimeMode ----------
 
-test("stitchRuntimeMode：未设置 + NODE_ENV=production → external", (t) => {
+test("stitchRuntimeMode：未设置 + NODE_ENV=production → inprocess（C3：生产只有应用内合成器）", (t) => {
   withEnv(t, { STITCH_RUNTIME: undefined, NODE_ENV: "production" });
-  assert.equal(stitchRuntimeMode(), "external");
+  assert.equal(stitchRuntimeMode(), "inprocess");
+});
+
+test("stitchRuntimeMode：STITCH_RUNTIME=inprocess 显式生效（即使 dev）", (t) => {
+  withEnv(t, { STITCH_RUNTIME: "inprocess", NODE_ENV: "development" });
+  assert.equal(stitchRuntimeMode(), "inprocess");
 });
 
 test("stitchRuntimeMode：未设置 + NODE_ENV=development → local", (t) => {

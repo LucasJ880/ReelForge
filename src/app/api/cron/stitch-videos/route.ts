@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { machineAuthFailure } from "@/lib/machine-auth";
+import { resolveStitchRuntimeMode } from "@/lib/media/stitch-runtime";
 import { processPendingFinalVideos } from "@/lib/services/stitch-service";
 
 /**
- * 遗留 cron 路由 —— Vercel Cron 用过的「在函数里 spawn ffmpeg」入口。
+ * 遗留 cron 路由 —— 不在 vercel.json 里，只为旧配置 / 手动 curl 保留。
  *
- * 现状（2026-05 重构后）：
- *   - 真正的 ffmpeg 拼接已搬到 GitHub Action runner（见 .github/workflows/stitch-videos.yml）。
- *   - 本路由保留向后兼容：旧 Vercel Cron / 误配置的 GH Action 仍可能打到这里。
- *   - 默认行为：直接返回 `{ skipped: true, reason: "delegated to external runner" }`，
- *     不会 spawn ffmpeg（在 Vercel 里必失败）。
- *
- * 何时仍会真实拼接？
- *   - 仅当 STITCH_RUNTIME=local（本地 dev / `next dev` + 手动 curl）时，
- *     processPendingFinalVideos 会真正调 stitchFinalVideo 走本地 ffmpeg。
+ * 现状（C3，2026-10-25）：
+ *   - 生产合成由 /api/cron/stitch-dispatch 完成（inprocess：专用函数里跑应用内合成器；
+ *     external：派发 GitHub runner）。本路由默认只返回 skipped，不合成。
+ *   - 仅当显式 STITCH_RUNTIME=local（本地 dev + 手动 curl）时，
+ *     processPendingFinalVideos 会真正调 stitchFinalVideo 在本进程合成。
  *
  * 不要删除路由本身：避免 GH Secrets / Vercel Cron 配置还指着它的版本失败。
  */
@@ -21,12 +18,17 @@ export async function GET(req: NextRequest) {
   const authFailure = machineAuthFailure(req);
   if (authFailure) return authFailure;
 
-  const runtime = (process.env.STITCH_RUNTIME ?? "").trim().toLowerCase();
-  if (runtime !== "local") {
+  const explicit = (process.env.STITCH_RUNTIME ?? "").trim().toLowerCase();
+  if (explicit !== "local") {
+    const inprocess = resolveStitchRuntimeMode() === "inprocess";
     return NextResponse.json({
       skipped: true,
-      reason: "delegated to external runner",
-      hint: "GitHub Action workflow 'stitch-videos' will pick up pending FinalVideos every 5 min",
+      reason: inprocess
+        ? "composed in-process by /api/cron/stitch-dispatch"
+        : "delegated to external runner",
+      hint: inprocess
+        ? "the stitch-dispatch cron claims ready FinalVideos every minute"
+        : "GitHub Action workflow 'stitch-videos' is dispatched by /api/cron/stitch-dispatch",
     });
   }
 

@@ -7,9 +7,38 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import {
   detectLastAudioActivityEndSeconds,
+  planSpeechSafeTailTrim,
   resolveSpeechSafeTailTrim,
   trimVideoTailSpeechSafe,
 } from "../src/lib/video-generation/tail-trim";
+
+test("planSpeechSafeTailTrim：裁完不足 5s 的短段不裁（拼接器对短 AI 段同样适用）", () => {
+  assert.deepEqual(
+    planSpeechSafeTailTrim({ durationSec: 5.5, requestedTailSec: 0.8, activityEndSec: null }),
+    { trimSec: 0, keepSec: 5.5, speechLimited: false },
+  );
+});
+
+test("planSpeechSafeTailTrim：无音轨盲裁、口播早结束全裁、keepSec = 时长 - 裁量", () => {
+  assert.deepEqual(
+    planSpeechSafeTailTrim({ durationSec: 15, requestedTailSec: 0.8, activityEndSec: null }),
+    { trimSec: 0.8, keepSec: 14.2, speechLimited: false },
+  );
+  const early = planSpeechSafeTailTrim({ durationSec: 15, requestedTailSec: 0.8, activityEndSec: 12 });
+  assert.equal(early.trimSec, 0.8);
+  assert.ok(Math.abs(early.keepSec - 14.2) < 1e-9);
+});
+
+test("planSpeechSafeTailTrim：口播讲到片尾 → 放弃裁尾（不切一个字）", () => {
+  assert.deepEqual(
+    planSpeechSafeTailTrim({ durationSec: 15, requestedTailSec: 0.8, activityEndSec: 15 }),
+    { trimSec: 0, keepSec: 15, speechLimited: true },
+  );
+  assert.deepEqual(
+    planSpeechSafeTailTrim({ durationSec: 15, requestedTailSec: 0, activityEndSec: null }),
+    { trimSec: 0, keepSec: 15, speechLimited: false },
+  );
+});
 
 const execFileAsync = promisify(execFile);
 

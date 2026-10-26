@@ -235,7 +235,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/cron/stitch-dispatch` | `CRON_SECRET` | VERIFIED H1 strict: auth plus 200/502/503/500 schemas aligned with heartbeat outcomes |
 | GET, POST | `/api/cron/sweep-stuck-tasks` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/cron/founder-digest` | `CRON_SECRET` | VERIFIED auth fail-closed; 2026-10-25 B8 创始人每日汇总：只读查询，没配 Resend 只记日志并 200 `{sent:false, reason}`，按 UTC 日幂等（RateLimitBucket 闩锁） |
-| GET, POST | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed |
+| POST (GET → 405) | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed; C3: claim only on POST, `task: null` while `STITCH_RUNTIME=inprocess` |
 | POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
 | GET, POST | `/api/internal/digital-human/claim` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |
 | POST | `/api/internal/digital-human/complete` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |
@@ -261,8 +261,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 |---|---|---|---|---|
 | Batch processor | Vercel `/api/cron/process-batches`; manual-only GitHub fallback | Expand and lease queued batch work; submit eligible jobs | Lease CAS, breaker, historical dispatch guard, persisted submission acknowledgement | Code HEALTHY; production minute cadence pending RF-005 evidence |
 | Video poller | Vercel `/api/cron/poll-videos`; status endpoint opportunistic polling | Map provider state to internal jobs and synchronize brief/batch state | Poll-error threshold + watchdog + opportunistic sweep | Code HEALTHY; production minute cadence pending RF-005 evidence |
-| Stitch coordinator | Vercel `/api/cron/stitch-dispatch`; manual-only GitHub runner | Detect ready assemblies and dispatch one external runner | PostgreSQL advisory lock, active-run de-duplication, claim CAS, retry cap | RF-004 VERIFIED; production minute cadence pending RF-005 evidence |
-| External stitch runner | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim writes attempt token; completion is `id + STITCHING + token` CAS | HEALTHY: RF-004 and machine authentication VERIFIED |
+| Stitch coordinator | Vercel `/api/cron/stitch-dispatch` (maxDuration 300) | C3 default `inprocess`: claim ready assemblies (same CAS as runner claim) and compose in-process with the app composer; `external` (rollback): dispatch one GitHub runner | Claim CAS + attempt token, 150 s start budget, deadline abort → requeue, sweeper requeues killed attempts, retry cap | C3 code + local tests; production verification pending |
+| External stitch runner (rollback) | `scripts/stitch-runner.ts` → claim/complete APIs | Download, normalize, concatenate, upload, complete | Claim writes attempt token; completion is `id + STITCHING + token` CAS; caption font fail-closed | HEALTHY: RF-004 and machine authentication VERIFIED; only active with `STITCH_RUNTIME=external` |
 | Stuck-task sweeper | `/api/cron/sweep-stuck-tasks`; also called by poller | Requeue/fail abandoned video and final-video work | Status/quarantine CAS and max attempts | HEALTHY at quarantine depth; RF-007 VERIFIED |
 | Video watchdog | Status reads, dispatch/retry checks, cron fallback | Fail jobs beyond provider deadline/grace | CAS from `RUNNING/QUEUED` to `FAILED`; existing unit coverage | Code HEALTHY; production cadence pending RF-005 evidence |
 | Product image worker | Product image service claim path | Claim and run queued Image 2 jobs | Job ownership/status guard; dynamic concurrency test deferred | HEALTHY at static depth |

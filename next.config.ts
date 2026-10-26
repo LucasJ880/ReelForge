@@ -33,8 +33,9 @@ export const legacyPlatformRedirects = [
  *   生成到 /tmp（src/lib/media/media-fonts.ts），不需要随包。
  * - BGM：字幕 / 混音后期引用的授权配乐（BGM_TRACKS）。
  *
- * cron 两个函数只做帧质检（抽帧 + 影子检查），只要二进制；品牌封装与健康探针要
- * 烧字幕、渲染尾卡、混 BGM，才带字体与配乐。
+ * cron 两个函数只做帧质检（抽帧 + 影子检查），只要二进制；品牌封装、健康探针与
+ * 成片合成（C3：/api/cron/stitch-dispatch 在 STITCH_RUNTIME=inprocess 下就是生产合成器）
+ * 要烧字幕、渲染尾卡、混 BGM，才带字体与配乐。
  */
 const FFMPEG_STATIC_BINARY = "./node_modules/ffmpeg-static/ffmpeg";
 const CJK_FONT_FILES = [
@@ -50,6 +51,7 @@ export const mediaRuntimeTracingIncludes: Record<string, string[]> = {
   "/api/cron/process-batches": [FFMPEG_STATIC_BINARY],
   "/api/brand-packaging": MEDIA_RENDER_FILES,
   "/api/health/media": MEDIA_RENDER_FILES,
+  "/api/cron/stitch-dispatch": MEDIA_RENDER_FILES,
 };
 
 /**

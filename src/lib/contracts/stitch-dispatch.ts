@@ -6,7 +6,26 @@ export const stitchDispatchSuccessOutcomes = [
   "no_pending",
   "already_active",
   "dispatched",
+  /// inprocess（C3 生产默认）：本次函数调用认领并合成了 ≥1 条
+  "stitched_inprocess",
+  /// inprocess：有就绪任务，但都已被并发调用认领 / 本次预算放不下
+  "inprocess_idle",
 ] as const;
+
+/** inprocess 一次调用的计数（只有 stitched_inprocess / inprocess_idle 带） */
+export const stitchDispatchInprocessSchema = z
+  .object({
+    claimed: z.number().int().nonnegative(),
+    succeeded: z.number().int().nonnegative(),
+    failed: z.number().int().nonnegative(),
+    requeued: z.number().int().nonnegative(),
+    lost: z.number().int().nonnegative(),
+    stoppedBecause: z.enum(["no_pending", "drained", "budget", "max_tasks", "concurrency"]),
+    elapsedMs: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const INPROCESS_OUTCOMES = new Set<string>(["stitched_inprocess", "inprocess_idle"]);
 
 export const stitchDispatchFailureOutcomes = [
   "config_missing",
@@ -33,6 +52,11 @@ export const stitchDispatchHeartbeatSchema = z
       .object({
         outcome: stitchDispatchOutcomeSchema,
         pending: z.number().int().nonnegative(),
+        claimed: z.number().int().nonnegative().optional(),
+        succeeded: z.number().int().nonnegative().optional(),
+        failed: z.number().int().nonnegative().optional(),
+        requeued: z.number().int().nonnegative().optional(),
+        lost: z.number().int().nonnegative().optional(),
       })
       .strict(),
   })
@@ -44,6 +68,7 @@ export const stitchDispatchSuccessSchema = z
     dispatched: z.boolean(),
     outcome: z.enum(stitchDispatchSuccessOutcomes),
     pending: z.number().int().nonnegative(),
+    inprocess: stitchDispatchInprocessSchema.optional(),
     heartbeat: stitchDispatchHeartbeatSchema,
   })
   .strict()
@@ -55,8 +80,17 @@ export const stitchDispatchSuccessSchema = z
         message: "dispatched must match outcome",
       });
     }
+    if (Boolean(payload.inprocess) !== INPROCESS_OUTCOMES.has(payload.outcome)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["inprocess"],
+        message: "inprocess counters are present exactly for inprocess outcomes",
+      });
+    }
     const expectedHeartbeatOutcome =
-      payload.outcome === "dispatched" ? "ok" : "skipped";
+      payload.outcome === "dispatched" || payload.outcome === "stitched_inprocess"
+        ? "ok"
+        : "skipped";
     if (payload.heartbeat.outcome !== expectedHeartbeatOutcome) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

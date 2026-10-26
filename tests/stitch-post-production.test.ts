@@ -107,7 +107,8 @@ test("post-production persistence and runner contracts are explicit", async () =
     migration,
     service,
     stitchService,
-    assembly,
+    pipeline,
+    composer,
     runner,
     completeRoute,
   ] = await Promise.all([
@@ -118,7 +119,8 @@ test("post-production persistence and runner contracts are explicit", async () =
     ),
     readFile("src/lib/services/video-service.ts", "utf8"),
     readFile("src/lib/services/stitch-service.ts", "utf8"),
-    readFile("src/lib/video-generation/assembly-executor.ts", "utf8"),
+    readFile("src/lib/media/stitch-pipeline.ts", "utf8"),
+    readFile("src/lib/services/stitch-composer.ts", "utf8"),
     readFile("scripts/stitch-runner.ts", "utf8"),
     readFile("src/app/api/internal/stitch/complete/route.ts", "utf8"),
   ]);
@@ -127,9 +129,14 @@ test("post-production persistence and runner contracts are explicit", async () =
   assert.match(migration, /"postProduction"/);
   assert.match(migration, /"subtitleFileUrl"/);
   assert.match(service, /postProduction:/);
-  assert.match(stitchService, /applyLocalPostProduction/);
-  assert.match(stitchService, /probeMediaDuration/);
-  assert.match(assembly, /runFfmpegNormalizeAndConcatWithPostProduction/);
+  /// C3：应用内合成器（生产 inprocess 与开发 local 同一实现）——单遍合成：字幕 + 混音 + 唯一一次编码
+  assert.match(stitchService, /composeTimeline\(/);
+  assert.match(pipeline, /buildDeterministicCues/);
+  assert.match(pipeline, /renderAssCaptions/);
+  assert.match(pipeline, /buildAudioFilterPlan/);
+  assert.match(pipeline, /probeMedia/);
+  /// 每一个分支（b-roll / assembly / legacy）都把持久化的后期快照交给合成器
+  assert.equal(composer.match(/postProduction,/g)?.length, 3);
   assert.match(runner, /ffprobe/);
   assert.match(runner, /buildDeterministicCues/);
   assert.match(runner, /sidechaincompress/);

@@ -54,8 +54,15 @@ test("任务载荷：b-roll 段带出素材 + 配音，普通段只给段 URL；
 
 test("生产认领用同一份载荷（claimStitchTask 不再内联拼对象）", async () => {
   const service = await readFile("src/lib/services/stitch-service.ts", "utf8");
-  assert.match(service, /const payload = stitchTaskPayload\(fv\);/);
-  assert.match(service, /return \{ finalVideoId: fv\.id, attemptToken, \.\.\.payload \};/);
+  /// C3：runner 认领与进程内合成器共用 claimNextReadyFinalVideo 的 CAS；runner 载荷仍只由
+  /// stitchTaskPayload 生成，且在 CAS 之前算出（算不出就不认领）。
+  assert.match(service, /prepare: \(fv\) => stitchTaskPayload\(fv\),/);
+  assert.match(service, /attemptToken: claimed\.attemptToken,\s*\.\.\.claimed\.prepared,/);
+  assert.ok(
+    service.indexOf("const prepared = options.prepare(fv);") <
+      service.indexOf("const claim = await db.finalVideo.updateMany({\n        where: { id: fv.id, status: FinalVideoStatus.PENDING },"),
+    "载荷在 CAS 之前计算",
+  );
 });
 
 test("runner：只有 b-roll 按实测音轨混音（缺音轨就失败），普通成片判据不变；被 import 时不进认领循环", async () => {

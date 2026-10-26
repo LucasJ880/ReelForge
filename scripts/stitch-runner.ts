@@ -4,8 +4,13 @@
  * 这是一个「无 Next / 无 Prisma」的独立脚本：仅依赖 Node 内置 + `@vercel/blob`，
  * 通过 Aivora 后端的 internal API 拉任务、做拼接、写回结果。
  *
+ * C3（2026-10-25）起这是回滚路径：生产默认 STITCH_RUNTIME=inprocess，由应用内合成器在
+ * /api/cron/stitch-dispatch 函数里合成，claim 路由在该模式下一律返回 task=null。
+ * 回滚 = Vercel 设 STITCH_RUNTIME=external，stitch-dispatch 恢复派发本 workflow。
+ *
  * 流程（最多循环 LOOP_LIMIT 次，每次处理一条 FinalVideo）：
- *   1. GET  $APP_URL/api/internal/stitch/claim   → { task: {finalVideoId, attemptToken, segmentUrls[], aspectRatio, ...} | null }
+ *   1. POST $APP_URL/api/internal/stitch/claim   → { task: {finalVideoId, attemptToken, segmentUrls[], aspectRatio, ...} | null }
+ *      （认领有副作用，只接受 POST；GET 返回 405）
  *   2. 下载所有段 mp4 到 tmp 目录
  *   3. 用本地 ffmpeg（GH Action runner 自带）转码 + concat 成最终 mp4
  *   4. 按持久化快照生成字幕/混音，再抽取 JPEG 预览帧并上传成片与可选 SRT
@@ -190,7 +195,7 @@ async function main() {
 
 async function claim(): Promise<StitchTask | null> {
   const res = await fetch(`${APP_URL}/api/internal/stitch/claim`, {
-    method: "GET",
+    method: "POST",
     headers: { authorization: `Bearer ${CRON_SECRET}` },
   });
   if (!res.ok) {
@@ -243,7 +248,8 @@ export async function stitchOne(task: StitchTask): Promise<{
   await mkdir(tmpDir, { recursive: true });
   try {
     const { width, height } = aspectToDimensions(task.aspectRatio);
-    const padFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2`;
+    /// lanczos + setsar=1：与应用内合成器同一缩放（720P 母片放到 1080 时 bicubic 偏糊）
+    const padFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1`;
 
     const normalized: string[] = [];
     if (task.brollSegments && task.brollSegments.length > 0) {
@@ -277,32 +283,34 @@ export async function stitchOne(task: StitchTask): Promise<{
     } else {
       /// 保留主片（第一段）的源帧率，不再强转 30fps；其余段归一到同一帧率供 concat
       let targetFps: string | null = null;
+      let silentSegments = 0;
       for (const [i, url] of task.segmentUrls.entries()) {
         const localInput = path.join(tmpDir, `seg-${i}.input`);
         const out = path.join(tmpDir, `seg-${i}.mp4`);
         await downloadToFile(url, localInput);
         targetFps ??= pickStitchFrameRate([await probeFrameRate(localInput)]);
+        const silentPadSec = await silentPadDuration(localInput);
+        if (silentPadSec !== null) silentSegments += 1;
         await runFfmpeg(
           "ffmpeg",
-          [
-            "-y",
-            "-i",
-            localInput,
-            "-c:v",
-            "libx264",
-            "-pix_fmt",
-            "yuv420p",
-            "-c:a",
-            "aac",
-            "-r",
+          buildRunnerNormalizeArgs({
+            input: localInput,
+            output: out,
             targetFps,
-            "-vf",
             padFilter,
-            out,
-          ],
+            silentPadSec,
+          }),
           "segment_normalization_failed",
         );
         normalized.push(out);
+      }
+      /// 补静音不能把「要口播却一条音轨都没有」变成静默交付哑片（与应用内合成器同一规则）
+      if (
+        task.postProduction?.audio.voiceover.enabled &&
+        task.segmentUrls.length > 0 &&
+        silentSegments === task.segmentUrls.length
+      ) {
+        throw new StitchRunnerError("voiceover_track_missing");
       }
     }
 
@@ -411,6 +419,79 @@ async function requireBrollVoiceTrack(videoPath: string): Promise<true> {
   return true;
 }
 
+/**
+ * 纯函数：runner 的单段归一化参数。没有音轨的段补一条与画面等长的静音轨——concat 时
+ * 各段流结构必须一致，缺音轨的段会让后面的段音画错位、后期混音引用不到音轨。
+ * silentPadSec = null：段自带音轨（或探测失败），参数与改造前一致。
+ */
+export function buildRunnerNormalizeArgs(args: {
+  input: string;
+  output: string;
+  targetFps: string;
+  padFilter: string;
+  silentPadSec: number | null;
+}): string[] {
+  const { targetFps } = args;
+  const pad = args.silentPadSec !== null && args.silentPadSec > 0;
+  return [
+    "-y",
+    "-i",
+    args.input,
+    ...(pad
+      ? [
+          "-f",
+          "lavfi",
+          "-t",
+          (args.silentPadSec as number).toFixed(3),
+          "-i",
+          "anullsrc=channel_layout=stereo:sample_rate=44100",
+          "-map",
+          "0:v:0",
+          "-map",
+          "1:a:0",
+        ]
+      : []),
+    "-c:v",
+    "libx264",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "-r",
+    targetFps,
+    "-vf",
+    args.padFilter,
+    ...(pad ? ["-shortest"] : []),
+    args.output,
+  ];
+}
+
+/** 段没有音轨时返回要补的静音时长（= 段时长）；有音轨或探测失败返回 null（不补，保持旧行为）。 */
+async function silentPadDuration(videoPath: string): Promise<number | null> {
+  let stdout = "";
+  try {
+    ({ stdout } = await execFileAsync("ffprobe", [
+      "-v",
+      "error",
+      "-select_streams",
+      "a",
+      "-show_entries",
+      "stream=index",
+      "-of",
+      "csv=p=0",
+      videoPath,
+    ]));
+  } catch {
+    return null;
+  }
+  if (stdout.trim()) return null;
+  try {
+    return await probeDuration(videoPath);
+  } catch {
+    return null;
+  }
+}
+
 /** 源帧率（r_frame_rate，如 "24/1"）；探测失败返回 null，由 pickStitchFrameRate 兜底 30 */
 async function probeFrameRate(videoPath: string): Promise<string | null> {
   try {
@@ -429,6 +510,15 @@ async function probeFrameRate(videoPath: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** 要烧字幕但打包的中文字体不在 → 任务失败（caption_font_missing），绝不交付豆腐块。 */
+export function requireCaptionFontDir(fontDir: string | null): string {
+  if (!fontDir) {
+    console.error("::error::bundled CJK caption font missing on runner; failing the task instead of burning tofu captions");
+    throw new StitchRunnerError("caption_font_missing");
+  }
+  return fontDir;
 }
 
 function escapeFfmpegFilterPath(value: string): string {
@@ -517,10 +607,8 @@ async function applyPostProduction(args: {
     /// 任何中文字体，这里也没传 fontsdir。与应用同一份打包字体：fontsdir 直给 libass，
     /// fonts.conf（runFfmpeg 注入 FONTCONFIG_FILE）兜住回退。
     const { fontDir } = ensureMediaFonts();
-    if (!fontDir) {
-      console.warn("::warning::bundled CJK font missing on runner; Chinese captions would render as tofu");
-    }
-    const fontsDirOption = fontDir ? `:fontsdir='${escapeFfmpegFilterPath(fontDir)}'` : "";
+    /// C3：缺字体直接判失败（清晰机器码），不再只打 ::warning:: 然后交付豆腐块字幕。
+    const fontsDirOption = `:fontsdir='${escapeFfmpegFilterPath(requireCaptionFontDir(fontDir))}'`;
     filterParts.push(
       `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'${fontsDirOption}[vout]`,
     );

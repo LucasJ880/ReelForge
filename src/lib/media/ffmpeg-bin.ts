@@ -116,6 +116,11 @@ export interface FfmpegRunOptions {
   timeoutMs?: number;
   maxBuffer?: number;
   /**
+   * 超时时发给 ffmpeg 的信号（默认 SIGTERM）。SIGTERM 让 ffmpeg 尝试优雅收尾，
+   * 卡死时可能迟迟不退；合成器在函数预算内必须准时停手，用 SIGKILL。
+   */
+  killSignal?: NodeJS.Signals;
+  /**
    * true = 非 0 退出码也视为「跑完了」并返回 stdout/stderr。
    * 用于 `ffmpeg -i <file>`（没有输出文件时必然以 1 退出）这类只读输出信息的调用。
    * 超时 / 被杀 / 找不到二进制仍然 reject。
@@ -155,6 +160,7 @@ export async function runFfmpeg(
       env: mediaProcessEnv(),
       timeout: opts.timeoutMs ?? 0,
       maxBuffer: opts.maxBuffer ?? 1024 * 1024 * 16,
+      killSignal: opts.killSignal ?? "SIGTERM",
       windowsHide: true,
       encoding: "utf8",
     });

@@ -2,10 +2,11 @@
  * A3 媒体运行时契约：
  * - 4.1 ffmpeg 调用只走 src/lib/media/ffmpeg-bin；函数运行时不再依赖 ffprobe；
  *   GitHub Actions 拼接 runner 的依赖图里没有 ffmpeg-bin / ffmpeg-static。
- * - 4.1/4.2 二进制、中文字体、BGM 只精确打进需要的 4 个函数。
+ * - 4.1/4.2 二进制、中文字体、BGM 只精确打进需要的 5 个函数（C3 加上 stitch-dispatch 合成函数）。
  * - 4.3 两个 cron 设 maxDuration 并在帧质检预算上下文里跑。
  * - 4.5 两处拼接不再强转 30fps。
- * - 品牌封装内联渲染尾卡：生产（STITCH_RUNTIME=external）也不被延迟。
+ * - 尾卡：生产默认（inprocess）当场渲染；只有回滚模式 external 才延迟给 runner；
+ *   品牌封装 forceLocal 任何模式都内联。
  */
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
@@ -19,6 +20,8 @@ import { frameQaBudgetUsage } from "../src/lib/services/frame-qa-gate";
 import { renderBrandEndCard } from "../src/lib/video-generation/brand-end-card-renderer";
 import * as pollVideosRoute from "../src/app/api/cron/poll-videos/route";
 import * as processBatchesRoute from "../src/app/api/cron/process-batches/route";
+import * as stitchDispatchRoute from "../src/app/api/cron/stitch-dispatch/route";
+import { STITCH_DISPATCH_MAX_DURATION_SEC } from "../src/lib/services/stitch-dispatch-service";
 import { __test__ as binTest } from "../src/lib/media/ffmpeg-bin";
 
 const ROOT = process.cwd();
@@ -38,6 +41,10 @@ const MEDIA_FILES = [
   "src/lib/video-generation/brand-overlay-renderer.ts",
   "src/lib/video-generation/brand-packaging-service.ts",
   "src/lib/services/stitch-service.ts",
+  "src/lib/services/stitch-composer.ts",
+  /// C3：b-roll 合成在 inprocess 合成函数里跑——Vercel 上没有 PATH 上的 ffmpeg，也没有 ffprobe
+  "src/lib/services/broll-assembly-service.ts",
+  "src/lib/media/stitch-pipeline.ts",
   "src/lib/media/frame-qa-shadow.ts",
   "src/lib/media/media-health.ts",
 ];
@@ -127,13 +134,16 @@ test("[media-runtime] 4.7 不让 Turbopack 把整个项目追进函数（叠加 
   /// 运行时拼出来的 cwd 路径一律带 turbopackIgnore
   const raw = (rel: string) => read(rel);
   assert.match(
-    raw("src/lib/services/stitch-service.ts"),
-    /path\.resolve\(\/\*turbopackIgnore: true\*\/ process\.cwd\(\), bgm\.path\)/,
+    raw("src/lib/media/stitch-pipeline.ts"),
+    /path\.resolve\(\/\*turbopackIgnore: true\*\/ process\.cwd\(\), effects\.bgmPath\)/,
   );
   for (const rel of [
     "src/lib/media/ffmpeg-bin.ts",
     "src/lib/media/media-fonts.ts",
     "src/lib/media/media-health.ts",
+    "src/lib/media/stitch-pipeline.ts",
+    "src/lib/services/stitch-service.ts",
+    "src/lib/services/stitch-composer.ts",
     "src/lib/video-generation/brand-packaging-service.ts",
   ]) {
     const src = raw(rel);
@@ -146,17 +156,19 @@ test("[media-runtime] 4.7 不让 Turbopack 把整个项目追进函数（叠加 
 
 test("[media-runtime] 4.5 两处拼接不再强转 30fps", () => {
   assert.doesNotMatch(code("src/lib/services/stitch-service.ts"), /fps=30\b/);
-  assert.match(code("src/lib/services/stitch-service.ts"), /pickStitchFrameRate/);
+  assert.doesNotMatch(code("src/lib/media/stitch-pipeline.ts"), /fps=30\b/);
+  assert.match(code("src/lib/media/stitch-pipeline.ts"), /pickStitchFrameRate/);
   const runner = code("scripts/stitch-runner.ts");
   assert.doesNotMatch(runner, /"-r",\s*"30"/);
   assert.match(runner, /"-r",\s*targetFps/);
 });
 
-test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 4 个函数，路径与运行时解析一致", () => {
+test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 5 个函数，路径与运行时解析一致", () => {
   assert.deepEqual(Object.keys(mediaRuntimeTracingIncludes).sort(), [
     "/api/brand-packaging",
     "/api/cron/poll-videos",
     "/api/cron/process-batches",
+    "/api/cron/stitch-dispatch",
     "/api/health/media",
   ]);
   assert.equal(nextConfig.outputFileTracingIncludes, mediaRuntimeTracingIncludes);
@@ -167,7 +179,8 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 4 个函数，�
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/poll-videos"], [binary]);
   assert.deepEqual(mediaRuntimeTracingIncludes["/api/cron/process-batches"], [binary]);
   const bgmPath = BGM_TRACKS.find((track) => track.path)?.path;
-  for (const route of ["/api/brand-packaging", "/api/health/media"]) {
+  /// C3：stitch-dispatch 在 inprocess 下就是生产合成器（烧字幕 / 渲染尾卡 / 混 BGM）
+  for (const route of ["/api/brand-packaging", "/api/health/media", "/api/cron/stitch-dispatch"]) {
     const includes = mediaRuntimeTracingIncludes[route];
     assert.ok(includes.includes(binary), route);
     assert.ok(includes.includes(`./${BUNDLED_CJK_FONT_CANDIDATES[2]}`), `${route} 字体`);
@@ -179,9 +192,12 @@ test("[media-runtime] tracing：二进制 / 字体 / BGM 只进 4 个函数，�
   assert.ok(existsSync(path.join(ROOT, String(bgmPath))));
 });
 
-test("[media-runtime] 4.3 两个 cron 设 maxDuration=300", () => {
+test("[media-runtime] 4.3 两个 cron 设 maxDuration=300（C3：stitch-dispatch 合成函数同样 300，且与时间预算常量一致）", () => {
   assert.equal(pollVideosRoute.maxDuration, 300);
   assert.equal(processBatchesRoute.maxDuration, 300);
+  assert.equal(stitchDispatchRoute.maxDuration, 300);
+  assert.equal(stitchDispatchRoute.maxDuration, STITCH_DISPATCH_MAX_DURATION_SEC);
+  assert.equal(stitchDispatchRoute.runtime, "nodejs");
   assert.match(code("src/app/api/cron/process-batches/route.ts"), /runWithFrameQaBudget\(/);
 });
 
@@ -223,7 +239,7 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在帧质检预算上
   assert.equal(frameQaBudgetUsage(), null);
 });
 
-test("[media-runtime] 品牌封装内联尾卡：forceLocal 时生产也不延迟给外部 runner", async (t: TestContext) => {
+test("[media-runtime] 尾卡：生产默认 inprocess 当场渲染、external（回滚）才延迟；forceLocal 任何模式都内联", async (t: TestContext) => {
   const env = process.env as Record<string, string | undefined>;
   const previous = {
     NODE_ENV: env.NODE_ENV,
@@ -255,8 +271,14 @@ test("[media-runtime] 品牌封装内联尾卡：forceLocal 时生产也不延�
     },
   } as unknown as Parameters<typeof renderBrandEndCard>[0];
 
+  /// 生产默认（NODE_ENV=production、未设 STITCH_RUNTIME）= inprocess：assembly 在合成函数里跑，
+  /// 必须真去找 ffmpeg 渲染（这里指向不存在的二进制 → skipped），而不是延迟给已不存在的 runner。
+  const productionDefault = await renderBrandEndCard(input);
+  assert.equal(productionDefault?.source, "skipped", "inprocess 必须当场渲染尾卡");
+
+  env.STITCH_RUNTIME = "external";
   const deferred = await renderBrandEndCard(input);
-  assert.equal(deferred?.source, "deferred-external", "assembly 路径在生产仍交给外部 runner");
+  assert.equal(deferred?.source, "deferred-external", "回滚模式 external 仍交给外部 runner");
 
   const inline = await renderBrandEndCard(input, { forceLocal: true });
   assert.equal(inline?.source, "skipped", "forceLocal 必须真去找 ffmpeg，而不是延迟");

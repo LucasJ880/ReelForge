@@ -9,49 +9,51 @@ import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
 import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
-  BGM_TRACKS,
-  buildAudioFilterPlan,
-  buildDeterministicCues,
-  renderAssCaptions,
-  renderSrtCaptions,
-} from "@/lib/video-generation/audio-post-production";
-import { probeMedia, runFfmpeg } from "@/lib/media/ffmpeg-bin";
-import { pickStitchFrameRate } from "@/lib/media/frame-rate";
-import { ensureMediaFonts } from "@/lib/media/media-fonts";
-
-/// ffmpeg 统一经 src/lib/media/ffmpeg-bin 解析（FFMPEG_BIN → 函数里打包的静态
-/// 二进制 → PATH）；时长 / 音轨 / 帧率用 ffmpeg 本体探测，不再依赖 ffprobe。
+  composeTimeline,
+  resolveAspectResolution,
+  stepTimeout,
+  StitchBudgetExceededError,
+  StitchCompositionError,
+  type MediaBudget,
+  type TimelineClip,
+  type TimelineClipReport,
+  type TimelineClipRole,
+} from "@/lib/media/stitch-pipeline";
+import {
+  resolveStitchRuntimeMode,
+  type StitchRuntimeMode,
+} from "@/lib/media/stitch-runtime";
 
 /**
- * Stitch Service —— 多段 Seedance 段拼接为完整 MP4 的状态机。
+ * Stitch Service —— 多段成片的状态机 + 唯一的成功写入点。
  *
- * 架构（2026-05 重构）：
+ * C3（2026-10-25）：生产只有一套合成实现 —— 应用内合成器（本文件 + stitch-composer +
+ * src/lib/media/stitch-pipeline），跑在专用 Vercel 函数里（/api/cron/stitch-dispatch）。
  *
- *   - Vercel Serverless 不带 ffmpeg 二进制，强行 spawn 必然 ENOENT；因此把真实的
- *     ffmpeg 拼接搬到 GitHub Actions runner（自带 apt ffmpeg）执行。
- *   - 本文件保留三类 entrypoint：
- *       1) stitchFinalVideo(id) —— 本地 / dev 环境直接跑 ffmpeg；生产环境只「占位」
- *          （标记 awaiting external stitcher），不实际拼接，等外部 runner 拉。
- *       2) claimStitchTask() —— 外部 runner（GH Action）通过 internal API 拉一个
- *          就绪任务（PENDING + 所有段 SUCCEEDED），CAS 转 STITCHING 并返回段 URL 列表。
- *       3) finishStitchTask(...) —— 外部 runner 拼接 + 上传 Blob 完成后回调，写
- *          stitchedVideoUrl + status=READY/FAILED。
+ *   运行模式（src/lib/media/stitch-runtime.ts）：
+ *     inprocess（生产默认）—— 用户请求 / poll-videos 里只把 FinalVideo 留在 PENDING（就绪），
+ *                不写库、不跑 ffmpeg；stitch-dispatch cron 用 claim 同一套 CAS 认领后进程内合成。
+ *     external（回滚）    —— 与改造前完全一致：写「awaiting external stitcher」占位，
+ *                由 GitHub Actions runner（scripts/stitch-runner.ts）经 internal API 认领。
+ *     local（开发）       —— 在触发它的请求里直接认领 + 合成（与 inprocess 同一合成器）。
  *
- *   - 运行模式判定（stitchRuntimeMode）：
- *       STITCH_RUNTIME=local      → 本地跑 ffmpeg（dev 调试 / 手动脚本）
- *       STITCH_RUNTIME=external   → 显式走外部 runner（即使本机有 ffmpeg）
- *       未设置：NODE_ENV=production → external，否则 → local。
+ *   entrypoint：
+ *     1) stitchFinalVideo(id)         —— 按模式决定：占位 / 留 PENDING / 内联合成
+ *     2) claimStitchTask()            —— 外部 runner 认领（CAS PENDING→STITCHING + attemptToken）
+ *        claimNextReadyFinalVideo()   —— 同一个 CAS，进程内合成器用（可按剩余预算挑任务）
+ *     3) finishStitchTask(...)        —— 唯一成功写入点：审核 → READY + 成片 / 缩略图 / 字幕
+ *                                        → brief QA_PENDING（markBriefReady）。runner 回调与
+ *                                        进程内合成都走这里，失败同样在这里落 FAILED。
+ *     4) runClaimedStitchAttempt(...) —— 进程内 / 本地：合成 → finishStitchTask；预算不够
+ *                                        → 放回 PENDING；任务被取消 / 收回 → 不写任何东西。
  *
- *   - 失败处理：拼接失败累计 stitchAttempts；>=3 不再自动重试，UI 暴露重试按钮。
- *
- *   - 兼容性：
- *       * 单段（segmentCount === 1）直接复用首段 URL，不走外部 runner。
- *       * ENABLE_VIDEO_STITCHING=false 演示模式同上。
- *       * Sunny Shutter 旧 brief（finalVideoId IS NULL）不进入本服务。
+ *   失败处理：拼接失败累计 stitchAttempts；>=3 不再自动重试，UI 暴露重试按钮。
+ *   函数被平台杀掉 → 行停在 STITCHING → sweep-service 超时后转回 PENDING 续跑。
  */
 
 export const MAX_STITCH_ATTEMPTS = 3;
 export const STALE_STITCH_ATTEMPT_CODE = "STALE_STITCH_ATTEMPT";
+export const STITCH_ATTEMPT_LOST_CODE = "STITCH_ATTEMPT_LOST";
 export const STITCH_CANDIDATE_PAGE_SIZE = 20;
 const AWAITING_EXTERNAL_STITCHER = "awaiting external stitcher";
 
@@ -92,8 +94,10 @@ export interface StitchResult {
   skipped?: boolean;
   /// 外部 runner 的 attempt token 已过期；调用方应返回 HTTP 409，不得重放写入。
   conflict?: boolean;
-  /// 仅在生产环境（external runner）下置为 true：表示已记录占位，等 GH Action 拉
+  /// external 模式：已记录占位，等 GH Action 拉
   awaitingExternal?: boolean;
+  /// inprocess 模式：已就绪留在 PENDING，等 stitch-dispatch 函数认领合成
+  awaitingInprocess?: boolean;
 }
 
 export interface ClaimedStitchTask {
@@ -112,7 +116,7 @@ export interface ClaimedStitchTask {
  * 从段任务的 assignedAssets 提取 b-roll 输入（全部段都带 broll 标记才算
  * b-roll 任务；混合形态不存在——startBrollDelivery 整链同源写入）。
  */
-function extractBrollClaimSegments(
+export function extractBrollClaimSegments(
   segments: Array<{
     segmentIndex: number | null;
     outputVideoUrl: string | null;
@@ -161,7 +165,7 @@ export function stitchTaskPayload(fv: {
   };
 }
 
-function parsePersistedPostProduction(
+export function parsePersistedPostProduction(
   input: unknown,
 ): PostProductionPlan | null {
   if (input == null) return null;
@@ -173,8 +177,7 @@ function parsePersistedPostProduction(
 }
 
 /**
- * 拾取并处理所有 ready-to-stitch 的 FinalVideo（旧 cron 调用）。
- * 生产环境下每条只做「占位」（不真实拼接）；本地 dev 下会真实拼接。
+ * 拾取并处理所有 ready-to-stitch 的 FinalVideo（遗留 stitch-videos cron，仅 local 模式调用）。
  */
 export async function processPendingFinalVideos(limit = 5): Promise<{
   scanned: number;
@@ -198,7 +201,7 @@ export async function processPendingFinalVideos(limit = 5): Promise<{
   let awaiting = 0;
   for (const fv of candidates) {
     const result = await stitchFinalVideo(fv.id);
-    if (result.awaitingExternal) awaiting++;
+    if (result.awaitingExternal || result.awaitingInprocess) awaiting++;
     else if (result.skipped) skipped++;
     else if (result.ok) stitched++;
     else failed++;
@@ -206,13 +209,59 @@ export async function processPendingFinalVideos(limit = 5): Promise<{
   return { scanned: candidates.length, stitched, failed, skipped, awaiting };
 }
 
+export type StitchDecision =
+  /// external（或演示模式下的 b-roll）：写占位，等外部 runner 认领
+  | "await_external"
+  /// inprocess：什么都不写，留 PENDING 等 stitch-dispatch 函数认领
+  | "await_inprocess"
+  /// legacy 单段 + 持久 URL：直接复用首段（external / local 的旧捷径，保持不变）
+  | "reuse_single_segment"
+  /// ENABLE_VIDEO_STITCHING=false 演示模式：复用首段 URL
+  | "reuse_first_segment_demo"
+  /// local：在本请求里认领 + 合成
+  | "compose_inline";
+
 /**
- * 拼接一个 FinalVideo：状态机入口。
- *
- * - 单段：复用首段 URL → status=READY（无需外部 runner）
- * - ENABLE_VIDEO_STITCHING=false：演示模式复用首段
- * - 多段 + local runtime：在本进程跑 ffmpeg
- * - 多段 + external runtime（生产默认）：只记录占位，等 GH Action 拉
+ * 纯决策：一条就绪的 FinalVideo 在当前运行模式下怎么推进。
+ * external / local 的分支顺序与改造前逐条一致（回滚 = 原样）；inprocess 一律不内联合成。
+ */
+export function decideStitchPath(args: {
+  mode: StitchRuntimeMode;
+  isBroll: boolean;
+  isUnified: boolean;
+  segmentCount: number;
+  firstSegmentUrl: string | null;
+  demo: boolean;
+}): StitchDecision {
+  if (args.isBroll) {
+    /// b-roll 段是「素材 + TTS 输入」而非成品视频，必须先合成 ——
+    /// 绝不能落进单段捷径/演示捷径（把图库原片直接当成片交付）。
+    if (args.mode === "external" || args.demo) return "await_external";
+    return args.mode === "inprocess" ? "await_inprocess" : "compose_inline";
+  }
+  if (args.isUnified) {
+    if (args.mode === "external") return "await_external";
+    return args.mode === "inprocess" ? "await_inprocess" : "compose_inline";
+  }
+  if (args.mode === "inprocess") {
+    /// 生产：单段也走合成器（语音安全裁尾杀假名片 + 成片缩略图 + 转存持久存储）
+    return args.demo ? "reuse_first_segment_demo" : "await_inprocess";
+  }
+  /// 单段：直接复用首段 URL。临时签名 URL（Seedance TOS 24h 过期）除外 ——
+  /// 过期后 403，用户视角等于视频丢失；这类必须走真实 stitch 转存持久存储。
+  if (
+    args.segmentCount === 1 &&
+    args.firstSegmentUrl &&
+    !isEphemeralSignedUrl(args.firstSegmentUrl)
+  ) {
+    return "reuse_single_segment";
+  }
+  if (args.demo) return "reuse_first_segment_demo";
+  return args.mode === "external" ? "await_external" : "compose_inline";
+}
+
+/**
+ * 拼接一个 FinalVideo：状态机入口（reconcile / poll-videos / 重试 / 本地 cron 都调这里）。
  */
 export async function stitchFinalVideo(
   finalVideoId: string,
@@ -252,15 +301,28 @@ export async function stitchFinalVideo(
     };
   }
 
-  /// b-roll 任务：段是「素材+TTS 输入」而非成品视频，必须先合成 ——
-  /// 绝不能落进下面的单段捷径/演示捷径（把图库原片直接当成片交付）。
-  const brollSegments = extractBrollClaimSegments(fv.segments);
-  if (brollSegments) {
-    if (
-      stitchRuntimeMode() === "external" ||
-      process.env.ENABLE_VIDEO_STITCHING === "false"
-    ) {
-      /// 生产（或无本地 ffmpeg 的演示模式）：留占位等外部 runner 认领。
+  const mode = stitchRuntimeMode();
+  const isBroll = extractBrollClaimSegments(fv.segments) !== null;
+  /// 只有 b-roll 之外才需要查 unified plan（与改造前的判定顺序一致）
+  const isUnified = !isBroll && (await briefHasUnifiedAssembly(fv.brief?.id));
+  const decision = decideStitchPath({
+    mode,
+    isBroll,
+    isUnified,
+    segmentCount: fv.segmentCount,
+    firstSegmentUrl: fv.segments[0]?.outputVideoUrl ?? null,
+    demo: process.env.ENABLE_VIDEO_STITCHING === "false",
+  });
+
+  switch (decision) {
+    case "await_inprocess":
+      return {
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.PENDING,
+        awaitingInprocess: true,
+      };
+    case "await_external":
       await db.finalVideo.updateMany({
         where: { id: fv.id, status: FinalVideoStatus.PENDING },
         data: { ffmpegError: AWAITING_EXTERNAL_STITCHER },
@@ -272,45 +334,22 @@ export async function stitchFinalVideo(
         awaitingExternal: true,
         error: AWAITING_EXTERNAL_STITCHER,
       };
-    }
-
-    const brollClaim = await db.finalVideo.updateMany({
-      where: { id: fv.id, status: FinalVideoStatus.PENDING },
-      data: {
-        status: FinalVideoStatus.STITCHING,
-        startedAt: new Date(),
-        ffmpegError: null,
-      },
-    });
-    if (brollClaim.count === 0) {
-      return { finalVideoId, ok: false, status: fv.status, skipped: true };
-    }
-
-    try {
-      /// 动态 import 断开 broll-assembly-service ↔ stitch-service 的模块环
-      const { stitchBrollLocally } = await import(
-        "@/lib/services/broll-assembly-service"
-      );
-      const output = await stitchBrollLocally({
-        finalVideoId: fv.id,
-        aspectRatio: (await briefAspectRatio(fv.brief?.id)) ?? "9:16",
-        postProduction: parsePersistedPostProduction(fv.postProduction),
-        segments: brollSegments,
-      });
+    case "reuse_single_segment":
+    case "reuse_first_segment_demo": {
+      const first = fv.segments[0];
       await reviewGeneratedVideo(
-        output.stitchedVideoUrl,
-        output.thumbnailUrl,
+        first.outputVideoUrl as string,
+        first.outputThumbUrl,
         finalVideoId,
       );
       await db.finalVideo.update({
         where: { id: fv.id },
         data: {
           status: FinalVideoStatus.READY,
-          stitchedVideoUrl: output.stitchedVideoUrl,
-          thumbnailUrl: output.thumbnailUrl,
-          subtitleFileUrl: output.subtitleFileUrl,
+          stitchedVideoUrl: first.outputVideoUrl,
+          thumbnailUrl: first.outputThumbUrl,
+          startedAt: new Date(),
           finishedAt: new Date(),
-          stitchAttempts: fv.stitchAttempts + 1,
         },
       });
       if (fv.brief) await markBriefReady(fv.brief.id);
@@ -318,208 +357,69 @@ export async function stitchFinalVideo(
         finalVideoId,
         ok: true,
         status: FinalVideoStatus.READY,
-        stitchedVideoUrl: output.stitchedVideoUrl,
-      };
-    } catch (err) {
-      await db.finalVideo.update({
-        where: { id: fv.id },
-        data: {
-          status: FinalVideoStatus.FAILED,
-          ffmpegError: (err as Error).message.slice(0, 500),
-          finishedAt: new Date(),
-          stitchAttempts: fv.stitchAttempts + 1,
-        },
-      });
-      return {
-        finalVideoId,
-        ok: false,
-        status: FinalVideoStatus.FAILED,
-        error: (err as Error).message,
-      };
-    }
-  }
-
-  /// Phase 2：如果 brief 有 unified VideoGenerationPlan（assemblyPlan 描述了
-  /// AI clips + uploaded clips + end card 的完整顺序），交给 assembly-executor 处理。
-  /// 旧 brief（含 Sunny Shutter / 单纯 AI 多段无 unified plan）继续走下面 legacy 路径。
-  if (await briefHasUnifiedAssembly(fv.brief?.id)) {
-    /// external runtime 仍然不在本进程跑 ffmpeg —— 保留占位让外部 runner 拉
-    if (stitchRuntimeMode() === "external") {
-      await db.finalVideo.updateMany({
-        where: { id: fv.id, status: FinalVideoStatus.PENDING },
-        data: { ffmpegError: AWAITING_EXTERNAL_STITCHER },
-      });
-      return {
-        finalVideoId,
-        ok: false,
-        status: FinalVideoStatus.PENDING,
-        awaitingExternal: true,
-        error: AWAITING_EXTERNAL_STITCHER,
-      };
-    }
-    const { executeAssembly } = await import(
-      "@/lib/video-generation/assembly-executor"
-    );
-    const r = await executeAssembly(finalVideoId);
-    return {
-      finalVideoId,
-      ok: r.ok,
-      status: r.status,
-      stitchedVideoUrl: r.stitchedVideoUrl ?? null,
-      error: r.error ?? null,
-      awaitingExternal: r.awaitingExternal,
-      skipped: r.skipped,
-    };
-  }
-
-  /// 单段：直接复用首段 URL，不走外部拼接。
-  /// 例外：临时签名 URL（Seedance TOS 24h 过期）不能直接当成片 —— 过期后 403，
-  /// 用户视角等于视频丢失；这类必须落到下面的真实 stitch 路径转存持久存储。
-  if (
-    fv.segmentCount === 1 &&
-    fv.segments[0]?.outputVideoUrl &&
-    !isEphemeralSignedUrl(fv.segments[0].outputVideoUrl)
-  ) {
-    const single = fv.segments[0];
-    await reviewGeneratedVideo(single.outputVideoUrl as string, single.outputThumbUrl, finalVideoId);
-    await db.finalVideo.update({
-      where: { id: fv.id },
-      data: {
-        status: FinalVideoStatus.READY,
-        stitchedVideoUrl: single.outputVideoUrl,
-        thumbnailUrl: single.outputThumbUrl,
-        startedAt: new Date(),
-        finishedAt: new Date(),
-      },
-    });
-    if (fv.brief) await markBriefReady(fv.brief.id);
-    return {
-      finalVideoId,
-      ok: true,
-      status: FinalVideoStatus.READY,
-      stitchedVideoUrl: single.outputVideoUrl,
-    };
-  }
-
-  /// 演示模式：跳过真实 ffmpeg，把第一段 URL 当成片
-  if (process.env.ENABLE_VIDEO_STITCHING === "false") {
-    const first = fv.segments[0];
-    await reviewGeneratedVideo(first.outputVideoUrl as string, first.outputThumbUrl, finalVideoId);
-    await db.finalVideo.update({
-      where: { id: fv.id },
-      data: {
-        status: FinalVideoStatus.READY,
         stitchedVideoUrl: first.outputVideoUrl,
-        thumbnailUrl: first.outputThumbUrl,
-        startedAt: new Date(),
-        finishedAt: new Date(),
-      },
-    });
-    if (fv.brief) await markBriefReady(fv.brief.id);
-    return {
-      finalVideoId,
-      ok: true,
-      status: FinalVideoStatus.READY,
-      stitchedVideoUrl: first.outputVideoUrl,
-    };
+      };
+    }
+    case "compose_inline": {
+      const attemptToken = await claimFinalVideoForStitch(fv.id);
+      if (!attemptToken) {
+        return { finalVideoId, ok: false, status: fv.status, skipped: true };
+      }
+      const outcome = await runClaimedStitchAttempt({ finalVideoId, attemptToken });
+      return outcome.result;
+    }
   }
+}
 
-  /// 生产模式：不在本进程跑 ffmpeg，只「占位」等外部 runner 拉
-  if (stitchRuntimeMode() === "external") {
-    await db.finalVideo.updateMany({
-      where: { id: fv.id, status: FinalVideoStatus.PENDING },
-      data: { ffmpegError: AWAITING_EXTERNAL_STITCHER },
-    });
-    return {
-      finalVideoId,
-      ok: false,
-      status: FinalVideoStatus.PENDING,
-      awaitingExternal: true,
-      error: AWAITING_EXTERNAL_STITCHER,
-    };
-  }
-
-  /// 本地 / dev 模式：CAS PENDING → STITCHING，在本进程跑 ffmpeg
+/**
+ * local 模式：对指定 FinalVideo 做与 claimStitchTask 同一个 CAS
+ * （PENDING → STITCHING + attemptToken + startedAt）。抢不到返回 null。
+ */
+export async function claimFinalVideoForStitch(
+  finalVideoId: string,
+): Promise<string | null> {
+  const attemptToken = randomUUID();
   const claim = await db.finalVideo.updateMany({
-    where: { id: fv.id, status: FinalVideoStatus.PENDING },
+    where: { id: finalVideoId, status: FinalVideoStatus.PENDING },
     data: {
       status: FinalVideoStatus.STITCHING,
+      stitchAttemptToken: attemptToken,
       startedAt: new Date(),
       ffmpegError: null,
     },
   });
-  if (claim.count === 0) {
-    return {
-      finalVideoId,
-      ok: false,
-      status: fv.status,
-      skipped: true,
-    };
-  }
-
-  const segmentUrls = fv.segments.map((s) => s.outputVideoUrl as string);
-  const thumbnailUrl: string | null = fv.segments[0]?.outputThumbUrl ?? null;
-  /// legacy 路径：不知道 aspectRatio 就用 brief.aspectRatio（旧 brief 也有该字段）
-  const briefAspect = await briefAspectRatio(fv.brief?.id);
-
-  let stitchedUrl: string | null = null;
-  let error: string | null = null;
-  try {
-    stitchedUrl = await runFfmpegConcat(fv.id, segmentUrls, briefAspect);
-  } catch (err) {
-    error = (err as Error).message;
-  }
-
-  if (stitchedUrl) {
-    await reviewGeneratedVideo(stitchedUrl, thumbnailUrl, finalVideoId);
-    await db.finalVideo.update({
-      where: { id: fv.id },
-      data: {
-        status: FinalVideoStatus.READY,
-        stitchedVideoUrl: stitchedUrl,
-        thumbnailUrl,
-        finishedAt: new Date(),
-        stitchAttempts: fv.stitchAttempts + 1,
-      },
-    });
-    if (fv.brief) await markBriefReady(fv.brief.id);
-    return {
-      finalVideoId,
-      ok: true,
-      status: FinalVideoStatus.READY,
-      stitchedVideoUrl: stitchedUrl,
-    };
-  }
-
-  await db.finalVideo.update({
-    where: { id: fv.id },
-    data: {
-      status: FinalVideoStatus.FAILED,
-      ffmpegError: error,
-      finishedAt: new Date(),
-      stitchAttempts: fv.stitchAttempts + 1,
-    },
-  });
-  return {
-    finalVideoId,
-    ok: false,
-    status: FinalVideoStatus.FAILED,
-    error,
-  };
+  return claim.count > 0 ? attemptToken : null;
 }
 
+type StitchCandidateRow = {
+  id: string;
+  segmentCount: number;
+  targetDurationSec: number;
+  stitchAttempts: number;
+  postProduction: unknown;
+  brief: { aspectRatio: string | null } | null;
+  segments: Array<{
+    segmentIndex: number | null;
+    status: VideoJobStatus;
+    outputVideoUrl: string | null;
+    assignedAssets: unknown;
+  }>;
+};
+
 /**
- * 外部 runner（GH Action）拉取一个就绪任务：
- *   - 找一个 PENDING + 所有段 SUCCEEDED + stitchAttempts < MAX 的 FinalVideo
- *   - CAS PENDING → STITCHING（防多 runner 抢同一条）
- *   - 返回段 URL 列表 + aspectRatio + targetDurationSec
- *
- * 返回 null 表示当前没有可拼任务，runner 可以直接退出。
+ * 认领核心（外部 runner 与进程内合成器共用同一个 CAS）：
+ *   - 找 PENDING + 所有段 SUCCEEDED + stitchAttempts < MAX 的 FinalVideo（稳定分页，防饿死）
+ *   - accept 返回 false 的候选跳过（进程内合成器按剩余预算挑「放得下」的任务）
+ *   - prepare 在 CAS 之前计算载荷：载荷算不出来就不认领，不会留下认领了却没法合成的行
+ *   - CAS PENDING → STITCHING + attemptToken + startedAt（防多个 worker 抢同一条）
  */
-export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
+export async function claimNextReadyFinalVideo<T>(options: {
+  prepare: (candidate: StitchCandidateRow) => T;
+  accept?: (candidate: StitchCandidateRow) => boolean;
+}): Promise<{ finalVideoId: string; attemptToken: string; prepared: T } | null> {
   let cursor: string | undefined;
   while (true) {
-    const candidates = await db.finalVideo.findMany({
+    const candidates = (await db.finalVideo.findMany({
       where: {
         status: FinalVideoStatus.PENDING,
         stitchAttempts: { lt: MAX_STITCH_ATTEMPTS },
@@ -540,18 +440,19 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
         brief: { select: { aspectRatio: true } },
         segments: { orderBy: { segmentIndex: "asc" } },
       },
-    });
+    })) as unknown as StitchCandidateRow[];
 
     for (const fv of candidates) {
       if (!isStitchCandidateReady(fv)) continue;
-      const payload = stitchTaskPayload(fv);
+      if (options.accept && !options.accept(fv)) continue;
       /// 注意：不再跳过单段任务（历史 bug：带 unified assemblyPlan 的单段 brief 在
       /// 生产环境被 stitchFinalVideo 打上「awaiting external stitcher」占位 —— 该判定
       /// 先于单段捷径 —— 而这里又跳过 segmentCount<=1，导致没有任何 worker 认领，
-      /// 任务永久卡在「正在合成 85%」）。单段走 runner 会被归一化并转存持久存储，
+      /// 任务永久卡在「正在合成 85%」）。单段走合成器会被归一化并转存持久存储，
       /// 顺带避免把 24h 过期的 Seedance 签名 URL 直接当成片 URL。
+      const prepared = options.prepare(fv);
 
-      /// CAS：从 PENDING → STITCHING；若已被别的 runner 抢走则继续找下一条
+      /// CAS：从 PENDING → STITCHING；若已被别的 worker 抢走则继续找下一条
       const attemptToken = randomUUID();
       const claim = await db.finalVideo.updateMany({
         where: { id: fv.id, status: FinalVideoStatus.PENDING },
@@ -564,7 +465,7 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
       });
       if (claim.count === 0) continue;
 
-      return { finalVideoId: fv.id, attemptToken, ...payload };
+      return { finalVideoId: fv.id, attemptToken, prepared };
     }
 
     if (candidates.length < STITCH_CANDIDATE_PAGE_SIZE) break;
@@ -576,10 +477,27 @@ export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
 }
 
 /**
- * 外部 runner（GH Action）完成拼接后的回调：
- *   - 成功：写 stitchedVideoUrl + thumbnailUrl + status=READY
+ * 外部 runner（GH Action）拉取一个就绪任务（返回段 URL 列表 + aspectRatio + 后期快照）。
+ * 返回 null 表示当前没有可拼任务，runner 可以直接退出。
+ */
+export async function claimStitchTask(): Promise<ClaimedStitchTask | null> {
+  const claimed = await claimNextReadyFinalVideo({
+    prepare: (fv) => stitchTaskPayload(fv),
+  });
+  if (!claimed) return null;
+  return {
+    finalVideoId: claimed.finalVideoId,
+    attemptToken: claimed.attemptToken,
+    ...claimed.prepared,
+  };
+}
+
+/**
+ * 唯一的成功写入点（外部 runner 回调与进程内 / 本地合成共用）：
+ *   - 成功：内容审核 → 写 stitchedVideoUrl + thumbnailUrl + subtitleFileUrl + status=READY
+ *           → brief QA_PENDING + finalVideoUrl / finalThumbnailUrl（markBriefReady）
  *   - 失败：写 ffmpegError + status=FAILED（stitchAttempts++）
- *   - 同时推进 brief → QA_PENDING（仅成功时）
+ *   - 两者都对 STITCHING + attemptToken 做 CAS：取消 / 清扫收回 / 重新认领之后的旧回调一律 409。
  */
 export async function finishStitchTask(args: {
   finalVideoId: string;
@@ -610,7 +528,7 @@ export async function finishStitchTask(args: {
     };
   }
 
-  /// attempt token 是外部 runner 对这一次 STITCHING 的所有权凭证。
+  /// attempt token 是这一次 STITCHING 的所有权凭证。
   /// 先快速拒绝明显 stale 回调；最终写入仍会再做一次 CAS，
   /// 防止内容审核期间 sweep/reclaim 导致的 TOCTOU 竞态。
   const expectedAttemptToken = attemptToken ?? null;
@@ -696,6 +614,200 @@ function staleStitchAttempt(
   };
 }
 
+/** 任务在合成途中被取消 / 被清扫器收回 / 被重新认领：立刻停手，不写任何东西。 */
+export class StitchAttemptLostError extends Error {
+  readonly code = STITCH_ATTEMPT_LOST_CODE;
+  constructor(readonly finalVideoId: string) {
+    super(`${STITCH_ATTEMPT_LOST_CODE}: ${finalVideoId} is no longer owned by this attempt`);
+    this.name = "StitchAttemptLostError";
+  }
+}
+
+/**
+ * 合成途中的所有权检查点（每个重步骤之前调用）：行已不是 STITCHING + 本 token
+ * （客户取消 → FAILED、清扫超时 → PENDING、重试重新认领）就中止。铁律 #7：每轮任务可取消。
+ */
+export function stitchOwnershipCheckpoint(
+  finalVideoId: string,
+  attemptToken: string,
+): () => Promise<void> {
+  return async () => {
+    const owned = await db.finalVideo.count({
+      where: {
+        id: finalVideoId,
+        status: FinalVideoStatus.STITCHING,
+        stitchAttemptToken: attemptToken,
+      },
+    });
+    if (owned === 0) throw new StitchAttemptLostError(finalVideoId);
+  };
+}
+
+/**
+ * 预算耗尽时把本次认领放回 PENDING（stitchAttempts+1，与清扫器同语义）；
+ * 达上限转 FAILED（经 finishStitchTask，与其它失败同一写入点）。
+ */
+export async function requeueStitchAttempt(args: {
+  finalVideoId: string;
+  attemptToken: string;
+  reason: string;
+  now?: Date;
+}): Promise<{ outcome: "requeued" | "failed" | "stale" }> {
+  const now = args.now ?? new Date();
+  const fv = await db.finalVideo.findUnique({
+    where: { id: args.finalVideoId },
+    select: { status: true, stitchAttemptToken: true, stitchAttempts: true },
+  });
+  if (
+    !fv ||
+    fv.status !== FinalVideoStatus.STITCHING ||
+    fv.stitchAttemptToken !== args.attemptToken
+  ) {
+    return { outcome: "stale" };
+  }
+  const attempts = fv.stitchAttempts + 1;
+  if (attempts < MAX_STITCH_ATTEMPTS) {
+    const updated = await db.finalVideo.updateMany({
+      where: {
+        id: args.finalVideoId,
+        status: FinalVideoStatus.STITCHING,
+        stitchAttemptToken: args.attemptToken,
+      },
+      data: {
+        status: FinalVideoStatus.PENDING,
+        stitchAttempts: attempts,
+        stitchAttemptToken: null,
+        /// PENDING 上的 startedAt = 重新排队时刻（排队超时从这里起算）
+        startedAt: now,
+        ffmpegError: `inprocess: ${args.reason}, requeued (attempt ${attempts}/${MAX_STITCH_ATTEMPTS})`,
+      },
+    });
+    return { outcome: updated.count > 0 ? "requeued" : "stale" };
+  }
+  const result = await finishStitchTask({
+    finalVideoId: args.finalVideoId,
+    attemptToken: args.attemptToken,
+    error: `${args.reason}; gave up after ${MAX_STITCH_ATTEMPTS} attempts`,
+  });
+  return { outcome: result.conflict ? "stale" : "failed" };
+}
+
+export type StitchAttemptOutcome = {
+  kind: "succeeded" | "failed" | "requeued" | "lost";
+  result: StitchResult;
+};
+
+/** 失败落库的说明：稳定机器码优先，不带任何 URL / 签名参数。 */
+export function stitchFailureMessage(err: unknown): string {
+  if (err instanceof StitchCompositionError) return err.message.slice(0, 500);
+  const message = err instanceof Error ? err.message : String(err);
+  return message
+    .replace(/https?:\/\/\S+/g, "<url>")
+    .slice(0, 500);
+}
+
+/**
+ * 进程内 / 本地：对已认领的任务跑应用内合成器，结果只经 finishStitchTask 写回。
+ *   - 合成成功 → finishStitchTask（审核 → READY → brief QA_PENDING）
+ *   - 合成失败 → finishStitchTask({ error })（FAILED, attempts++，UI 暴露重试）
+ *   - 预算不够 → requeueStitchAttempt（放回 PENDING，下一轮函数从头拿完整预算）
+ *   - 任务被取消 / 收回 → 不写任何东西（素材已在 Blob，不删）
+ */
+export async function runClaimedStitchAttempt(args: {
+  finalVideoId: string;
+  attemptToken: string;
+  budget?: MediaBudget;
+  compose?: (input: {
+    finalVideoId: string;
+    budget?: MediaBudget;
+    checkpoint?: () => Promise<void>;
+  }) => Promise<{
+    stitchedVideoUrl: string;
+    thumbnailUrl: string | null;
+    subtitleFileUrl: string | null;
+  }>;
+  checkpoint?: () => Promise<void>;
+  finish?: typeof finishStitchTask;
+  requeue?: typeof requeueStitchAttempt;
+}): Promise<StitchAttemptOutcome> {
+  const { finalVideoId, attemptToken } = args;
+  const finish = args.finish ?? finishStitchTask;
+  const requeue = args.requeue ?? requeueStitchAttempt;
+  const checkpoint =
+    args.checkpoint ?? stitchOwnershipCheckpoint(finalVideoId, attemptToken);
+  const compose =
+    args.compose ??
+    (async (input) => {
+      /// 动态 import 断开 stitch-composer ↔ stitch-service 的模块环
+      const { composeFinalVideoForStitch } = await import(
+        "@/lib/services/stitch-composer"
+      );
+      return composeFinalVideoForStitch(input);
+    });
+
+  let output: Awaited<ReturnType<typeof compose>>;
+  try {
+    output = await compose({ finalVideoId, budget: args.budget, checkpoint });
+  } catch (err) {
+    if (err instanceof StitchAttemptLostError) {
+      return { kind: "lost", result: staleStitchAttempt(finalVideoId, FinalVideoStatus.STITCHING) };
+    }
+    if (err instanceof StitchBudgetExceededError) {
+      const requeued = await requeue({
+        finalVideoId,
+        attemptToken,
+        reason: `${err.code} at ${err.step}`,
+      });
+      const status =
+        requeued.outcome === "requeued"
+          ? FinalVideoStatus.PENDING
+          : requeued.outcome === "failed"
+            ? FinalVideoStatus.FAILED
+            : FinalVideoStatus.STITCHING;
+      return {
+        kind: requeued.outcome === "stale" ? "lost" : requeued.outcome,
+        result: {
+          finalVideoId,
+          ok: false,
+          status,
+          error: err.code,
+          conflict: requeued.outcome === "stale" || undefined,
+        },
+      };
+    }
+    const message = stitchFailureMessage(err);
+    console.error("[stitch] composition failed", { finalVideoId, error: message });
+    const result = await finish({ finalVideoId, attemptToken, error: message });
+    return { kind: result.conflict ? "lost" : "failed", result };
+  }
+
+  try {
+    const result = await finish({
+      finalVideoId,
+      attemptToken,
+      stitchedVideoUrl: output.stitchedVideoUrl,
+      thumbnailUrl: output.thumbnailUrl,
+      subtitleFileUrl: output.subtitleFileUrl,
+    });
+    if (result.conflict) return { kind: "lost", result };
+    return { kind: result.ok ? "succeeded" : "failed", result };
+  } catch (err) {
+    /// 成功写入抛错（内容审核拒绝 / 审核不可用 / 数据库抖动）：成片已在 Blob，
+    /// 记一次失败让 UI 暴露重试，而不是让行卡在 STITCHING 等 30 分钟清扫。
+    const message = `completion_failed: ${stitchFailureMessage(err)}`.slice(0, 500);
+    console.error("[stitch] completion failed", { finalVideoId, error: message });
+    const result = await finish({ finalVideoId, attemptToken, error: message }).catch(
+      (): StitchResult => ({
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.STITCHING,
+        error: message,
+      }),
+    );
+    return { kind: result.conflict ? "lost" : "failed", result };
+  }
+}
+
 /**
  * 重置 FinalVideo 拼接状态以便再次尝试（不重新提交 Seedance）。
  * 用户在「合成失败」UI 上点重试时调用。
@@ -776,53 +888,14 @@ async function ensureQAPendingStub(briefId: string) {
   });
 }
 
-/**
- * 运行时模式判定：
- *   STITCH_RUNTIME=local     → 本地直接跑 ffmpeg
- *   STITCH_RUNTIME=external  → 显式走外部 runner（GH Action）
- *   未设置且 NODE_ENV=production → external（Vercel 函数没有 ffmpeg，必须委托外部）
- *   未设置且非 production         → local（dev / 测试 / 手动脚本方便）
- */
-function stitchRuntimeMode(): "local" | "external" {
-  const explicit = (process.env.STITCH_RUNTIME ?? "").trim().toLowerCase();
-  if (explicit === "local") return "local";
-  if (explicit === "external") return "external";
-  return process.env.NODE_ENV === "production" ? "external" : "local";
+/** 运行时模式（唯一判定见 src/lib/media/stitch-runtime.ts） */
+function stitchRuntimeMode(): StitchRuntimeMode {
+  return resolveStitchRuntimeMode();
 }
 
-/**
- * 用 ffmpeg concat demuxer 把 N 段 mp4 拼成 1 段。
- * 仅 stitchRuntimeMode() === "local" 时走这条路径。
- *
- * 旧 legacy 入口（无 unified plan 的 brief 走这里）。新 brief 走
- * runFfmpegNormalizeAndConcat（aspect-aware + 支持 trim）。
- */
-async function runFfmpegConcat(
-  finalVideoId: string,
-  urls: string[],
-  aspectRatio: string,
-): Promise<string> {
-  return runFfmpegNormalizeAndConcat({
-    finalVideoId,
-    aspectRatio,
-    clips: urls.map((u) => ({ url: u, intendedDurationSec: null, trimToFit: false })),
-  });
-}
-
-interface AspectDimensions {
-  width: number;
-  height: number;
-}
-
-const ASPECT_RESOLUTION: Record<string, AspectDimensions> = {
-  "9:16": { width: 1080, height: 1920 },
-  "16:9": { width: 1920, height: 1080 },
-  "1:1": { width: 1080, height: 1080 },
-};
-
-function resolveAspectResolution(aspectRatio: string): AspectDimensions {
-  return ASPECT_RESOLUTION[aspectRatio] ?? ASPECT_RESOLUTION["9:16"];
-}
+// ---------------------------------------------------------------------------
+// 合成 + 持久化（所有调用方共用：拼接器 / 品牌封装 / b-roll 同步交付）
+// ---------------------------------------------------------------------------
 
 export interface NormalizeAndConcatClip {
   url: string;
@@ -830,367 +903,153 @@ export interface NormalizeAndConcatClip {
   intendedDurationSec: number | null;
   /// true = 该 clip 长度可能超出，按 intendedDurationSec 裁剪；false = 用原长
   trimToFit: boolean;
+  /// 片段来源（AI 段 / 客户上传 / 尾卡 / b-roll）：决定裁尾与口播守卫
+  role?: TimelineClipRole;
+  /// AI 生成段的语音安全裁尾秒数（见 stitch-pipeline TimelineClip.tailTrimSec）
+  tailTrimSec?: number;
+  /// 必须带真实音轨（b-roll 配音）
+  requireAudio?: boolean;
+  /// 尾卡 / CTA 卡：不背字幕
+  excludeFromCaptions?: boolean;
+  /// 音轨取自这个 URL（b-roll TTS 配音），片段原声丢弃
+  audioUrl?: string;
+  /// 画面循环补长（b-roll 素材短于口播）
+  loopVideo?: boolean;
+  /// 显式输出时长（b-roll：配音时长 + 呼吸间隙）
+  targetDurationSec?: number;
+}
+
+export interface ComposedTimelineUrls {
+  stitchedVideoUrl: string;
+  subtitleFileUrl: string | null;
+  thumbnailUrl: string | null;
+  durationSec: number;
+  /// 字幕实际铺到的秒数（null = 铺满全片）
+  captionWindowSec: number | null;
+  clips: TimelineClipReport[];
+  timings: Record<string, number>;
 }
 
 /**
- * Phase 2 · L4 — aspect-aware normalize + concat。
- *
- * 输入混合 URL（http(s)/file://）+ 期望时长，输出 stitched MP4 的 Blob URL。
- * 每个 clip：
- *   1. download/copy 到本地 tmp
- *   2. ffmpeg scale+pad 到 target resolution（按 aspectRatio 决定 1080x1920/1920x1080/1080x1080）
- *   3. （trimToFit 且 intendedDurationSec）→ -t N 强制截断；缺音轨补 anullsrc
- *   4. 全部 normalized 后 concat demuxer 拼成最终 MP4
- *   5. persistStitchedFile 上传 Blob 返回 URL
+ * 下载片段 → 应用内单遍合成（逐段归一化 + 拼接 + 字幕混音，只编码一次 / 缩略图）→ 上传。
+ * 不写库：落库只经 finishStitchTask（拼接器）或调用方自己的写入（品牌封装 / b-roll 同步交付）。
  */
-export async function runFfmpegNormalizeAndConcat(params: {
-  finalVideoId: string;
-  aspectRatio: string;
-  clips: NormalizeAndConcatClip[];
-}): Promise<string> {
-  const result = await runFfmpegNormalizeAndConcatWithPostProduction(params);
-  return result.stitchedVideoUrl;
-}
-
-export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
+export async function composeAndPersistTimeline(params: {
   finalVideoId: string;
   aspectRatio: string;
   clips: NormalizeAndConcatClip[];
   postProduction?: PostProductionPlan | null;
   /**
    * 字幕只允许铺到成片的前 N 秒（= 口播所在主片段的时长）。
-   * 不传 = 铺满全片。拼了尾卡/追加镜头时必须传，否则确定性切分会把
-   * 台词摊到没有口播的片段上（0804 验收：字幕时间轴整体后漂 ~1s）。
+   * 不传 = 按 excludeFromCaptions 片段的实际时长自动扣除；都没有则铺满全片。
    */
   captionWindowSec?: number | null;
-}): Promise<{
-  stitchedVideoUrl: string;
-  subtitleFileUrl: string | null;
-}> {
-  const { finalVideoId, aspectRatio, clips } = params;
-  const { width, height } = resolveAspectResolution(aspectRatio);
+  /// 强制帧率（b-roll：30）；不传 = 主片源帧率
+  frameRate?: string;
+  extractThumbnail?: boolean;
+  budget?: MediaBudget;
+  checkpoint?: () => Promise<void>;
+}): Promise<ComposedTimelineUrls> {
   const tmpDir = path.join(
     os.tmpdir(),
-    `aivora-stitch-${finalVideoId}-${Date.now()}`,
+    `aivora-stitch-${params.finalVideoId.replace(/[^A-Za-z0-9_-]/g, "_")}-${Date.now()}`,
   );
   await mkdir(tmpDir, { recursive: true });
-
   try {
-    const normalizedFiles: string[] = [];
-    /// 4.5：保留主片（第一段）的源帧率，不再强转 30fps（Shuyu 原片 24fps，
-    /// 24→30 靠重复帧凑数会顿挫）。其余片段（尾卡 / 追加镜头）归一到同一帧率，
-    /// concat demuxer 才能拿到参数一致的分段；探测失败才退回 30。
-    let targetFps: string | null = null;
-    for (const [i, clip] of clips.entries()) {
+    const localClips: TimelineClip[] = [];
+    for (const [i, clip] of params.clips.entries()) {
+      await params.checkpoint?.();
       const ext = path.extname(safePathFromUrl(clip.url) ?? ".mp4") || ".mp4";
       const localInput = path.join(tmpDir, `in-${i}${ext}`);
-      const normalized = path.join(tmpDir, `seg-${i}.mp4`);
-      await downloadToFile(clip.url, localInput);
-      if (targetFps === null) {
-        const sourceFps = await probeMedia(localInput)
-          .then((probe) => probe.fps)
-          .catch(() => null);
-        targetFps = pickStitchFrameRate([sourceFps]);
+      await downloadToFile(clip.url, localInput, { index: i, budget: params.budget });
+      let localAudio: string | undefined;
+      if (clip.audioUrl) {
+        const audioExt = path.extname(safePathFromUrl(clip.audioUrl) ?? ".mp3") || ".mp3";
+        localAudio = path.join(tmpDir, `in-${i}-audio${audioExt}`);
+        await downloadToFile(clip.audioUrl, localAudio, { index: i, budget: params.budget });
       }
-
-      const args: string[] = [
-        "-y",
-        "-loglevel",
-        "error",
-        "-i",
-        localInput,
-        /// 静音 anullsrc 兜底：如果输入没有音轨也保证输出有，方便 concat
-        "-f",
-        "lavfi",
-        "-i",
-        "anullsrc=channel_layout=stereo:sample_rate=44100",
-        "-filter_complex",
-        /// lanczos：720P 母片放到 1080 时保住的锐度肉眼可见（默认 bicubic 偏糊）
-        `[0:v]scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${targetFps}[v];[0:a?][1:a]amerge=inputs=2,pan=stereo|c0=c0|c1=c1[a]`,
-        "-map",
-        "[v]",
-        "-map",
-        "[a]",
-        "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-preset",
-        "ultrafast",
-        "-c:a",
-        "aac",
-        "-ar",
-        "44100",
-        "-ac",
-        "2",
-      ];
-      if (clip.trimToFit && clip.intendedDurationSec) {
-        args.push("-t", String(Math.max(1, clip.intendedDurationSec)));
-      }
-      args.push("-shortest", normalized);
-
-      try {
-        await runFfmpeg(args, {
-          maxBuffer: 1024 * 1024 * 50,
-          timeoutMs: 60_000,
-        });
-      } catch (err) {
-        /// amerge 在「输入完全没有音轨」时也会报错（没有 a? 流）；
-        /// 重试一次：丢弃原音、强制 anullsrc 充当静音轨
-        const fallbackArgs: string[] = [
-          "-y",
-          "-loglevel",
-          "error",
-          "-i",
-          localInput,
-          "-f",
-          "lavfi",
-          "-t",
-          String(Math.max(1, clip.intendedDurationSec ?? 60)),
-          "-i",
-          "anullsrc=channel_layout=stereo:sample_rate=44100",
-          "-vf",
-          `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps=${targetFps}`,
-          "-map",
-          "0:v:0",
-          "-map",
-          "1:a:0",
-          "-c:v",
-          "libx264",
-          "-pix_fmt",
-          "yuv420p",
-          "-preset",
-          "ultrafast",
-          "-c:a",
-          "aac",
-          "-ar",
-          "44100",
-          "-ac",
-          "2",
-        ];
-        if (clip.trimToFit && clip.intendedDurationSec) {
-          fallbackArgs.push("-t", String(Math.max(1, clip.intendedDurationSec)));
-        }
-        fallbackArgs.push("-shortest", normalized);
-        try {
-          await runFfmpeg(fallbackArgs, {
-            maxBuffer: 1024 * 1024 * 50,
-            timeoutMs: 60_000,
-          });
-        } catch (innerErr) {
-          throw new Error(
-            `ffmpeg normalize failed for clip #${i} (${clip.url.slice(0, 80)}): ${(innerErr as Error).message || (err as Error).message}`,
-          );
-        }
-      }
-      normalizedFiles.push(normalized);
+      localClips.push({
+        path: localInput,
+        intendedDurationSec: clip.intendedDurationSec,
+        trimToFit: clip.trimToFit,
+        role: clip.role,
+        tailTrimSec: clip.tailTrimSec,
+        requireAudio: clip.requireAudio,
+        excludeFromCaptions: clip.excludeFromCaptions,
+        audioPath: localAudio,
+        loopVideo: clip.loopVideo,
+        targetDurationSec: clip.targetDurationSec,
+      });
     }
 
-    const concatList = path.join(tmpDir, "concat.txt");
-    await writeFile(
-      concatList,
-      normalizedFiles
-        .map((s) => `file '${s.replaceAll("'", "'\\''")}'`)
-        .join("\n"),
-      "utf8",
-    );
-    const finalOut = path.join(tmpDir, "final.mp4");
-    await runFfmpeg(
-      [
-        "-y",
-        "-loglevel",
-        "error",
-        "-f",
-        "concat",
-        "-safe",
-        "0",
-        "-i",
-        concatList,
-        "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-movflags",
-        "+faststart",
-        finalOut,
-      ],
-      { maxBuffer: 1024 * 1024 * 50, timeoutMs: 120_000 },
-    );
-
-    const postProduced = await applyLocalPostProduction({
-      inputPath: finalOut,
-      tmpDir,
-      aspectRatio,
+    const composed = await composeTimeline({
+      clips: localClips,
+      aspectRatio: params.aspectRatio,
       postProduction: params.postProduction ?? null,
       captionWindowSec: params.captionWindowSec ?? null,
+      workDir: path.join(tmpDir, "work"),
+      frameRate: params.frameRate,
+      budget: params.budget,
+      checkpoint: params.checkpoint,
+      extractThumbnail: params.extractThumbnail ?? false,
     });
-    const url = await persistStitchedFile(
-      postProduced.videoPath,
-      `final-videos/${finalVideoId}/${Date.now()}.mp4`,
-    );
-    const subtitleFileUrl = postProduced.srtPath
-      ? await persistStitchedSubtitleFile(
-          postProduced.srtPath,
-          `final-videos/${finalVideoId}/${Date.now()}.srt`,
-        )
-      : null;
-    return { stitchedVideoUrl: url, subtitleFileUrl };
+
+    await params.checkpoint?.();
+    const stamp = Date.now();
+    const keyBase = `final-videos/${params.finalVideoId}/${stamp}`;
+    const stitchedVideoUrl = await persistStitchedFile(composed.videoPath, `${keyBase}.mp4`);
+    const [subtitleFileUrl, thumbnailUrl] = await Promise.all([
+      composed.srtPath
+        ? persistStitchedSubtitleFile(composed.srtPath, `${keyBase}.srt`)
+        : Promise.resolve(null),
+      composed.thumbnailPath
+        ? persistStitchedThumbnail(composed.thumbnailPath, `${keyBase}.jpg`)
+        : Promise.resolve(null),
+    ]);
+    return {
+      stitchedVideoUrl,
+      subtitleFileUrl,
+      thumbnailUrl,
+      durationSec: composed.durationSec,
+      captionWindowSec: composed.captionWindowSec,
+      clips: composed.clips,
+      timings: composed.timings,
+    };
   } finally {
     await rm(tmpDir, { recursive: true, force: true });
   }
 }
 
 /**
- * 探测文件里是否真的存在音轨。
- *
- * 不能拿 `voiceover.enabled` 这个**请求标志**代替。Shuyu 代理虽然不接受
- * generate_audio 开关，但历史原片会按提示词返回原生音轨；同时供应商异常时
- * 也可能返回静音文件。以实际媒体流为准，避免 ffmpeg 引用不存在的 [0:a]。
+ * 兼容入口：只要成片 URL（assembly logo 角标转存等）。
  */
-async function probeHasAudioStream(videoPath: string): Promise<boolean> {
-  try {
-    return (await probeMedia(videoPath)).hasAudio;
-  } catch {
-    /// 探测失败按「无音轨」处理：BGM-only 分支对静音输入始终成立，
-    /// 反向假设则会让整条 ffmpeg 崩掉。
-    return false;
-  }
-}
-
-async function probeMediaDuration(videoPath: string): Promise<number> {
-  const { durationSec } = await probeMedia(videoPath);
-  if (durationSec === null || !Number.isFinite(durationSec) || durationSec <= 0) {
-    throw new Error("ffmpeg probe returned an invalid final-video duration");
-  }
-  return durationSec;
-}
-
-function escapeFfmpegFilterPath(value: string): string {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll(":", "\\:")
-    .replaceAll("'", "\\'");
-}
-
-async function applyLocalPostProduction(args: {
-  inputPath: string;
-  tmpDir: string;
+export async function runFfmpegNormalizeAndConcat(params: {
+  finalVideoId: string;
   aspectRatio: string;
-  postProduction: PostProductionPlan | null;
+  clips: NormalizeAndConcatClip[];
+}): Promise<string> {
+  const result = await composeAndPersistTimeline(params);
+  return result.stitchedVideoUrl;
+}
+
+/**
+ * 兼容入口：品牌封装 / b-roll 同步交付沿用的签名（成片 + 可选 SRT）。
+ */
+export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
+  finalVideoId: string;
+  aspectRatio: string;
+  clips: NormalizeAndConcatClip[];
+  postProduction?: PostProductionPlan | null;
   captionWindowSec?: number | null;
-}): Promise<{ videoPath: string; srtPath?: string }> {
-  const snapshot = args.postProduction;
-  if (!snapshot) return { videoPath: args.inputPath };
-  const script = snapshot.audio.voiceover.script.trim();
-  const captionsEnabled = snapshot.captions.enabled && Boolean(script);
-  const bgm = BGM_TRACKS.find(
-    (track) => track.id === snapshot.audio.bgm.trackId,
-  );
-  if (!bgm) throw new Error("Unknown licensed BGM track");
-  const bgmEnabled =
-    bgm.path !== null && snapshot.audio.bgm.volume > 0;
-  if (
-    !captionsEnabled &&
-    !bgmEnabled &&
-    !snapshot.audio.voiceover.enabled
-  ) {
-    return { videoPath: args.inputPath };
-  }
-
-  const actualDurationSec = await probeMediaDuration(args.inputPath);
-  let assPath: string | undefined;
-  let srtPath: string | undefined;
-  if (captionsEnabled) {
-    /// 台词只属于口播所在的主片段：窗口外（尾卡/静帧英雄镜头）不背字幕。
-    const captionSpanSec =
-      args.captionWindowSec && args.captionWindowSec > 0
-        ? Math.min(actualDurationSec, args.captionWindowSec)
-        : actualDurationSec;
-    const cues = buildDeterministicCues(script, captionSpanSec);
-    assPath = path.join(args.tmpDir, "captions.ass");
-    const aspectRatio =
-      args.aspectRatio === "16:9" || args.aspectRatio === "1:1"
-        ? args.aspectRatio
-        : "9:16";
-    await writeFile(
-      assPath,
-      renderAssCaptions(cues, {
-        aspectRatio,
-        position: snapshot.captions.position,
-        style: snapshot.captions.style,
-      }),
-      "utf8",
-    );
-    if (snapshot.captions.exportSrt) {
-      srtPath = path.join(args.tmpDir, "captions.srt");
-      await writeFile(srtPath, renderSrtCaptions(cues), "utf8");
-    }
-  }
-
-  /// Shuyu 口播属于生成模型的原生音轨，拼接阶段只负责保留/标准化并与 BGM
-  /// 混音，绝不再调用另一家 TTS 覆盖音色。是否有音轨以 ffprobe 实测为准。
-  const hasNativeAudio = await probeHasAudioStream(args.inputPath);
-  const audioPlan = buildAudioFilterPlan({
-    bgmVolume: bgmEnabled ? snapshot.audio.bgm.volume : 0,
-    hasNativeAudio,
-    durationSec: actualDurationSec,
-  });
-  const outputPath = path.join(args.tmpDir, "post-produced.mp4");
-  const ffmpegArgs = ["-y", "-loglevel", "error", "-i", args.inputPath];
-  if (bgmEnabled && bgm.path) {
-    ffmpegArgs.push(
-      ...audioPlan.bgmInputArgs,
-      "-i",
-      /// turbopackIgnore：动态路径会让文件追踪把整个项目打进每个引用本模块的函数
-      /// （4.7 体积核算实测 ~180MB）；BGM 由 next.config.ts 按路由精确打包。
-      path.resolve(/*turbopackIgnore: true*/ process.cwd(), bgm.path),
-    );
-  }
-  const filterParts: string[] = [];
-  if (assPath) {
-    /// 4.2：函数运行时没有系统字体。fontsdir 让 libass 直接加载打包的
-    /// Noto Sans SC，FONTCONFIG_FILE（runFfmpeg 注入）兜住 fontconfig 回退。
-    const { fontDir } = ensureMediaFonts();
-    const fontsDirOption = fontDir
-      ? `:fontsdir='${escapeFfmpegFilterPath(fontDir)}'`
-      : "";
-    filterParts.push(
-      `[0:v]ass=filename='${escapeFfmpegFilterPath(assPath)}'${fontsDirOption}[vout]`,
-    );
-  }
-  if (audioPlan.filterComplex) filterParts.push(audioPlan.filterComplex);
-  if (filterParts.length > 0) {
-    ffmpegArgs.push("-filter_complex", filterParts.join(";"));
-  }
-  ffmpegArgs.push("-map", assPath ? "[vout]" : "0:v:0");
-  ffmpegArgs.push("-map", audioPlan.outputLabel ?? "0:a?");
-  if (assPath) {
-    ffmpegArgs.push(
-      "-c:v",
-      "libx264",
-      "-crf",
-      "18",
-      "-preset",
-      "medium",
-      "-pix_fmt",
-      "yuv420p",
-    );
-  } else {
-    ffmpegArgs.push("-c:v", "copy");
-  }
-  if (audioPlan.outputLabel) {
-    ffmpegArgs.push("-c:a", "aac", "-b:a", "192k");
-  } else {
-    ffmpegArgs.push("-c:a", "copy");
-  }
-  ffmpegArgs.push("-movflags", "+faststart", "-shortest", outputPath);
-  await runFfmpeg(ffmpegArgs, {
-    maxBuffer: 1024 * 1024 * 50,
-    timeoutMs: 120_000,
-  });
-  return { videoPath: outputPath, srtPath };
+}): Promise<{
+  stitchedVideoUrl: string;
+  subtitleFileUrl: string | null;
+}> {
+  const result = await composeAndPersistTimeline(params);
+  return {
+    stitchedVideoUrl: result.stitchedVideoUrl,
+    subtitleFileUrl: result.subtitleFileUrl,
+  };
 }
 
 /**
@@ -1225,19 +1084,34 @@ function safePathFromUrl(url: string): string | null {
 
 /**
  * 支持 http(s) 和 file:// 两种 URL：
- *  - http(s) → fetch 下载到 dest
- *  - file:// → copyFile 复制到 dest（dev/local mock 路径常用）
+ *  - http(s) → fetch 下载到 dest（带超时，封顶在预算内）
+ *  - file:// → copyFile 复制到 dest（尾卡缓存 / b-roll 合成段 / 品牌封装裁尾产物）
+ * 错误信息只带片段序号与 HTTP 状态，不带 URL（签名参数不进日志 / 库字段）。
  */
-async function downloadToFile(url: string, dest: string) {
+async function downloadToFile(
+  url: string,
+  dest: string,
+  opts: { index: number; budget?: MediaBudget },
+) {
   if (url.startsWith("file://")) {
-    const localPath = fileURLToPath(url);
-    await copyFile(localPath, dest);
+    await copyFile(fileURLToPath(url), dest);
     return;
   }
-  const res = await fetch(url);
+  const { timeoutMs, capped } = stepTimeout(opts.budget, "download", 1);
+  let res: Response;
+  try {
+    res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
+  } catch (err) {
+    const name = (err as Error)?.name;
+    if (name === "TimeoutError" || name === "AbortError") {
+      if (capped) throw new StitchBudgetExceededError("download");
+      throw new Error(`下载段失败：clip #${opts.index} timed out after ${Math.round(timeoutMs / 1000)}s`);
+    }
+    throw new Error(`下载段失败：clip #${opts.index} ${(err as Error)?.message ?? "fetch failed"}`);
+  }
   if (!res.ok) {
     throw new Error(
-      `下载段失败 (${res.status} ${res.statusText}) URL=${url.slice(0, 80)}`,
+      `下载段失败：clip #${opts.index} (${res.status} ${res.statusText})`,
     );
   }
   const buf = Buffer.from(await res.arrayBuffer());
@@ -1245,8 +1119,8 @@ async function downloadToFile(url: string, dest: string) {
 }
 
 /**
- * 检查 brief 是否带有 unified VideoGenerationPlan.assemblyPlan，是 → 走 assembly-executor。
- * 旧 Sunny Shutter / 没经过 unified-input dispatch 的 brief 返回 false → 走 legacy stitch。
+ * 检查 brief 是否带有 unified VideoGenerationPlan.assemblyPlan，是 → 走 assembly 分支。
+ * 旧 Sunny Shutter / 没经过 unified-input dispatch 的 brief 返回 false → 走 legacy 分支。
  */
 async function briefAspectRatio(
   briefId: string | null | undefined,
@@ -1259,17 +1133,42 @@ async function briefAspectRatio(
   return brief?.aspectRatio || "9:16";
 }
 
+/** 纯函数：plan 里是否有可执行的 assemblyPlan.clips */
+export function planHasUnifiedAssembly(plan: unknown): boolean {
+  const typed = plan as { assemblyPlan?: { clips?: unknown[] } } | null | undefined;
+  return Array.isArray(typed?.assemblyPlan?.clips) && (typed?.assemblyPlan?.clips?.length ?? 0) > 0;
+}
+
 async function briefHasUnifiedAssembly(briefId: string | null | undefined): Promise<boolean> {
   if (!briefId) return false;
   const brief = await db.videoBrief.findUnique({
     where: { id: briefId },
     select: { videoGenerationPlan: true },
   });
-  const plan = brief?.videoGenerationPlan as
-    | { assemblyPlan?: { clips?: unknown[] } }
-    | null
-    | undefined;
-  return Array.isArray(plan?.assemblyPlan?.clips) && (plan?.assemblyPlan?.clips?.length ?? 0) > 0;
+  return planHasUnifiedAssembly(brief?.videoGenerationPlan);
+}
+
+async function uploadRender(
+  filePath: string,
+  blobPath: string,
+  contentType: string,
+  what: string,
+): Promise<string> {
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
+    throw new Error(
+      `Storage provider "${storage.id}" not configured; refusing to ${what}`,
+    );
+  }
+  const buffer = await readFile(filePath);
+  const obj = await storage.uploadBuffer("renders", buffer, {
+    key: blobPath,
+    access: "public",
+    contentType,
+    overwrite: true,
+  });
+  return obj.url;
 }
 
 /**
@@ -1283,42 +1182,31 @@ async function persistStitchedFile(
   filePath: string,
   blobPath: string,
 ): Promise<string> {
-  const { getStorageProvider } = await import("@/lib/storage");
-  const storage = getStorageProvider();
-  if (!storage.isConfigured()) {
-    throw new Error(
-      `Storage provider "${storage.id}" not configured; refusing to silently persist stitched mp4 to file://`,
-    );
-  }
-  const buffer = await readFile(filePath);
-  const obj = await storage.uploadBuffer("renders", buffer, {
-    key: blobPath,
-    access: "public",
-    contentType: "video/mp4",
-    overwrite: true,
-  });
-  return obj.url;
+  return uploadRender(
+    filePath,
+    blobPath,
+    "video/mp4",
+    "silently persist stitched mp4 to file://",
+  );
 }
 
 async function persistStitchedSubtitleFile(
   filePath: string,
   blobPath: string,
 ): Promise<string> {
-  const { getStorageProvider } = await import("@/lib/storage");
-  const storage = getStorageProvider();
-  if (!storage.isConfigured()) {
-    throw new Error(
-      `Storage provider "${storage.id}" not configured; refusing to persist subtitle output`,
-    );
-  }
-  const buffer = await readFile(filePath);
-  const obj = await storage.uploadBuffer("renders", buffer, {
-    key: blobPath,
-    access: "public",
-    contentType: "text/plain; charset=utf-8",
-    overwrite: true,
-  });
-  return obj.url;
+  return uploadRender(
+    filePath,
+    blobPath,
+    "text/plain; charset=utf-8",
+    "persist subtitle output",
+  );
+}
+
+async function persistStitchedThumbnail(
+  filePath: string,
+  blobPath: string,
+): Promise<string> {
+  return uploadRender(filePath, blobPath, "image/jpeg", "persist thumbnail output");
 }
 
 /// 仅供测试导入

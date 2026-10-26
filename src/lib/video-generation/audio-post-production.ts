@@ -291,11 +291,17 @@ export function buildAudioFilterPlan(options: {
   hasNativeAudio: boolean;
   durationSec?: number;
   sourceAudioInputIndex?: number;
+  /**
+   * 原生音轨来自滤镜图里的某个标签（如单遍合成里 concat 出来的 "[acat]"），
+   * 而不是某个输入文件的音频流。给了就优先于 sourceAudioInputIndex。
+   */
+  sourceAudioLabel?: string;
   bgmInputIndex?: number;
 }): AudioFilterPlan {
   const volume = Math.min(0.35, Math.max(0, options.bgmVolume));
   const hasBgm = volume > 0;
   const sourceIndex = options.sourceAudioInputIndex ?? 0;
+  const source = options.sourceAudioLabel ?? `[${sourceIndex}:a]`;
   const bgmIndex = options.bgmInputIndex ?? 1;
   const trim =
     options.durationSec && options.durationSec > 0
@@ -308,7 +314,7 @@ export function buildAudioFilterPlan(options: {
   }
   if (!hasBgm) {
     return {
-      filterComplex: `[${sourceIndex}:a]${normalize}[aout]`,
+      filterComplex: `${source}${normalize}[aout]`,
       outputLabel: "[aout]",
       bgmInputArgs: [],
     };
@@ -324,7 +330,7 @@ export function buildAudioFilterPlan(options: {
   }
   return {
     filterComplex: [
-      `[${sourceIndex}:a]asplit=2[voice_mix][voice_sidechain]`,
+      `${source}asplit=2[voice_mix][voice_sidechain]`,
       bgmChain,
       "[bgm][voice_sidechain]sidechaincompress=threshold=0.035:ratio=8:attack=20:release=300[ducked_bgm]",
       `[voice_mix][ducked_bgm]amix=inputs=2:duration=first:dropout_transition=2,${normalize}[aout]`,

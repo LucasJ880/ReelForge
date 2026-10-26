@@ -193,7 +193,7 @@ function checkOpenAIImage(): ProviderState {
 }
 
 function checkStitchRuntime(): ProviderState {
-  /// 与 src/lib/services/stitch-service.ts 的 stitchRuntimeMode 同构
+  /// 与 src/lib/media/stitch-runtime.ts 的 resolveStitchRuntimeMode 同构（本脚本刻意不引用 src/）
   const explicit = (process.env.STITCH_RUNTIME ?? "").trim().toLowerCase();
   const enable = process.env.ENABLE_VIDEO_STITCHING;
   if (enable === "false") {
@@ -205,17 +205,20 @@ function checkStitchRuntime(): ProviderState {
       estimatedCostNote: "$0 (no real stitch)",
     };
   }
-  let runtime: "local" | "external";
+  let runtime: "local" | "external" | "inprocess";
   let reason: string;
   if (explicit === "local") {
     runtime = "local";
     reason = "STITCH_RUNTIME=local (explicit)";
   } else if (explicit === "external") {
     runtime = "external";
-    reason = "STITCH_RUNTIME=external (explicit)";
+    reason = "STITCH_RUNTIME=external (explicit, rollback path)";
+  } else if (["inprocess", "in-process", "in_process"].includes(explicit)) {
+    runtime = "inprocess";
+    reason = "STITCH_RUNTIME=inprocess (explicit)";
   } else if (process.env.NODE_ENV === "production") {
-    runtime = "external";
-    reason = "NODE_ENV=production (auto external)";
+    runtime = "inprocess";
+    reason = "NODE_ENV=production (auto inprocess)";
   } else {
     runtime = "local";
     reason = "non-production + no STITCH_RUNTIME (auto local)";
@@ -226,8 +229,10 @@ function checkStitchRuntime(): ProviderState {
     reason,
     detail:
       runtime === "local"
-        ? "in-process ffmpeg (needs `which ffmpeg` on PATH)"
-        : "delegated to GH Action runner (.github/workflows/stitch-videos.yml)",
+        ? "in-process ffmpeg in the triggering request (ffmpeg-static / FFMPEG_BIN / PATH)"
+        : runtime === "inprocess"
+          ? "app composer inside the /api/cron/stitch-dispatch Vercel function (ffmpeg-static bundled)"
+          : "delegated to GH Action runner (.github/workflows/stitch-videos.yml)",
     estimatedCostNote: "~$0.001 / final video (Blob upload)",
   };
 }

@@ -47,18 +47,22 @@ async function probeHasAudioStream(path: string): Promise<boolean> {
 export async function detectLastAudioActivityEndSeconds(
   path: string,
   durationSec: number,
+  opts: { hasAudio?: boolean; timeoutMs?: number } = {},
 ): Promise<number | null> {
-  if (!(await probeHasAudioStream(path))) return null;
+  const hasAudio = opts.hasAudio ?? (await probeHasAudioStream(path));
+  if (!hasAudio) return null;
   let stderr: string;
   try {
     const result = await runFfmpeg(
       [
         "-hide_banner", "-nostats",
         "-i", path,
+        /// 只解码音轨：silencedetect 不需要画面，省掉整条视频解码
+        "-vn",
         "-af", `silencedetect=noise=${SILENCE_NOISE_FLOOR}:d=${SILENCE_MIN_DURATION_SECONDS}`,
         "-f", "null", "-",
       ],
-      { maxBuffer: 1024 * 1024 * 10, timeoutMs: 60_000 },
+      { maxBuffer: 1024 * 1024 * 10, timeoutMs: opts.timeoutMs ?? 60_000 },
     );
     stderr = result.stderr ?? "";
   } catch {
@@ -117,6 +121,70 @@ export type TailTrimOutcome = {
   speechLimited: boolean;
 };
 
+export type TailTrimPlan = {
+  /** 实际要裁掉的秒数；0 = 不裁 */
+  trimSec: number;
+  /** 裁完保留的时长（= durationSec - trimSec） */
+  keepSec: number;
+  speechLimited: boolean;
+};
+
+/**
+ * 纯决策（含最短保留 / 最小有效裁剪两道闸）：品牌封装的裁尾与拼接器对 AI 段的
+ * 默认裁尾共用这一份，两边不会漂移。
+ *   - 裁完不足 MIN_KEEP_SECONDS → 不裁（短片不能被裁没）
+ *   - 语音安全收缩后不足 MIN_EFFECTIVE_TRIM_SECONDS → 不裁（省一次转码）
+ */
+export function planSpeechSafeTailTrim(args: {
+  durationSec: number;
+  requestedTailSec: number;
+  activityEndSec: number | null;
+}): TailTrimPlan {
+  const durationSec = Math.max(0, args.durationSec);
+  const requested = Math.max(0, args.requestedTailSec);
+  if (requested <= 0 || durationSec - requested < MIN_KEEP_SECONDS) {
+    return { trimSec: 0, keepSec: durationSec, speechLimited: false };
+  }
+  const { trimSec, speechLimited } = resolveSpeechSafeTailTrim({
+    durationSec,
+    requestedTailSec: requested,
+    activityEndSec: args.activityEndSec,
+  });
+  if (trimSec < MIN_EFFECTIVE_TRIM_SECONDS) {
+    return { trimSec: 0, keepSec: durationSec, speechLimited };
+  }
+  return { trimSec, keepSec: durationSec - trimSec, speechLimited };
+}
+
+/**
+ * 只测量、不转码：探测音频活动结束点并给出裁尾方案。拼接器把 keepSec 直接并进
+ * 单遍合成本来就要做的那次编码（按帧截断），不额外多一代转码。
+ * durationSec / hasAudio 已探测过时传进来，省掉重复探测。
+ */
+export async function measureSpeechSafeTailTrim(
+  sourcePath: string,
+  opts: {
+    requestedTailSec: number;
+    durationSec?: number;
+    hasAudio?: boolean;
+    timeoutMs?: number;
+  },
+): Promise<TailTrimPlan> {
+  const durationSec = opts.durationSec ?? (await probeDurationSeconds(sourcePath));
+  if (opts.requestedTailSec <= 0 || durationSec - opts.requestedTailSec < MIN_KEEP_SECONDS) {
+    return { trimSec: 0, keepSec: durationSec, speechLimited: false };
+  }
+  const activityEndSec = await detectLastAudioActivityEndSeconds(sourcePath, durationSec, {
+    hasAudio: opts.hasAudio,
+    timeoutMs: opts.timeoutMs,
+  });
+  return planSpeechSafeTailTrim({
+    durationSec,
+    requestedTailSec: opts.requestedTailSec,
+    activityEndSec,
+  });
+}
+
 /**
  * 语音安全裁尾：探测音频活动结束点后裁掉尾部（重编码，精确到帧）。
  * respectAudio=false 恢复旧的盲裁行为（仅限确认无口播的素材）。
@@ -139,12 +207,12 @@ export async function trimVideoTailSpeechSafe(
     (opts.respectAudio ?? true)
       ? await detectLastAudioActivityEndSeconds(sourcePath, duration)
       : null;
-  const { trimSec, speechLimited } = resolveSpeechSafeTailTrim({
+  const { trimSec, speechLimited } = planSpeechSafeTailTrim({
     durationSec: duration,
     requestedTailSec: requested,
     activityEndSec: activityEnd,
   });
-  if (trimSec < MIN_EFFECTIVE_TRIM_SECONDS) {
+  if (trimSec <= 0) {
     return { path: sourcePath, trimmedSeconds: 0, speechLimited };
   }
 

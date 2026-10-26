@@ -121,6 +121,20 @@ test("[health/media] libass 日志解析：选中字体与缺字数", () => {
   assert.match(MEDIA_PROBE_SUBTITLE_TEXT, /[一-鿿]/);
 });
 
+test("[health/media] 探针 = 拼接器真实路径：调用 composeTimeline + 加粗字幕 + BGM，不再自带一段平行的 ffmpeg", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const source = await readFile("src/lib/media/media-health.ts", "utf8");
+  assert.match(source, /import \{ composeTimeline \} from "\.\/stitch-pipeline";/);
+  assert.match(source, /composeTimeline\(\{/);
+  assert.doesNotMatch(source, /ass=filename=/, "字幕烧录参数只住在 stitch-pipeline");
+  const { mediaProbePostProduction } = await import("../src/lib/media/media-health");
+  const plan = mediaProbePostProduction();
+  assert.equal(plan.captions.enabled, true);
+  assert.equal(plan.captions.style, "word_by_word", "加粗描边样式");
+  assert.equal(plan.audio.bgm.trackId, "wholesome");
+  assert.ok(plan.audio.bgm.volume > 0, "开 BGM 走闪避混音");
+});
+
 test("integration: 本机真跑探针——尾卡中文 SVG 栅格化成功，报告结构完整、永不 throw", async (t) => {
   try {
     await runFfmpeg(["-hide_banner", "-version"], { timeoutMs: 5_000 });
@@ -133,6 +147,11 @@ test("integration: 本机真跑探针——尾卡中文 SVG 栅格化成功，�
   assert.equal(report.probe.endCard.ok, true, report.probe.endCard.error);
   assert.ok((report.probe.endCard.bytes ?? 0) > 1000);
   assert.equal(report.bgm.present, true);
+  /// C3：探针跑的是拼接器自己的合成函数（不是一段平行的小 ffmpeg 片段）
+  assert.equal(report.probe.synthesis.pipeline, "stitch-pipeline.composeTimeline");
+  if (report.probe.synthesis.subtitlesBurned) {
+    assert.equal(report.probe.synthesis.audioMixed, true, "加粗字幕 + BGM 闪避混音都走过");
+  }
   /// 本机 ffmpeg 可能不带 libass（Homebrew 8.x 默认就没有）：此时探针必须如实报
   /// 字幕失败并给出 503，而不是假装成功；带 libass 时必须真烧出来并产出字节。
   if (report.probe.synthesis.subtitlesBurned) {

@@ -6,6 +6,7 @@ import { pathToFileURL } from "url";
 import type { BrandPackagingPlan } from "@/types/video-generation";
 import { ffmpegVersion, runFfmpeg } from "@/lib/media/ffmpeg-bin";
 import { ensureMediaFonts } from "@/lib/media/media-fonts";
+import { resolveStitchRuntimeMode } from "@/lib/media/stitch-runtime";
 import editorialDesignTokens from "../../../editorial-design-tokens.generated.json";
 
 /**
@@ -27,8 +28,9 @@ import editorialDesignTokens from "../../../editorial-design-tokens.generated.js
  *  - sharp 报错 → 退回纯色 + 简化版 SVG（无文字，仅色块），仍输出 MP4
  *  - ffmpeg 缺失 → 抛清晰错误（assembly-executor 会向 UI 暴露）
  *
- * Phase 2.5 计划：将复杂渲染搬到外部 GH Action runner（drawtext+freetype 完整支持），
- *   本模块在 STITCH_RUNTIME=external 时返回「deferred」让上层占位等外部 runner。
+ * 运行模式（src/lib/media/stitch-runtime.ts）：只有 STITCH_RUNTIME=external（回滚到 GitHub
+ *   runner）时返回「deferred」；inprocess（C3 生产默认）下本模块就在 stitch-dispatch 合成
+ *   函数里被调用，当场渲染——改造前生产 runner 不渲染尾卡，客户选的联系方式尾卡从未上线。
  *
  * 2026-10-25（4.1 / 4.2）：ffmpeg 经 src/lib/media/ffmpeg-bin 解析（函数里打包了静态
  * 二进制）；SVG 栅格化前先 ensureMediaFonts()，让 sharp/librsvg 在没有系统字体的
@@ -624,9 +626,7 @@ export async function renderBrandEndCard(
   const cacheKey = computeCacheKey(input);
   const dur = Math.max(2, Math.round(plan.endCardDurationSeconds || 3));
 
-  /// Production / external runner：本模块不在 Vercel 函数里跑 ffmpeg，
-  /// 让 assembly-executor 在 STITCH_RUNTIME=external 时识别 deferred 状态
-  /// （Phase 2.5 会真正接外部 runner）
+  /// 回滚模式（external）：合成在 GitHub runner 上，本进程不渲染，返回 deferred。
   if (!options.forceLocal && stitchRuntimeMode() === "external") {
     return {
       url: null,
@@ -684,11 +684,10 @@ export async function renderBrandEndCard(
   };
 }
 
-function stitchRuntimeMode(): "local" | "external" {
-  const explicit = (process.env.STITCH_RUNTIME ?? "").trim().toLowerCase();
-  if (explicit === "local") return "local";
-  if (explicit === "external") return "external";
-  return process.env.NODE_ENV === "production" ? "external" : "local";
+/// 唯一判定见 src/lib/media/stitch-runtime.ts：只有 external（回滚到 GitHub runner）才延迟；
+/// inprocess（生产默认）下本模块就在合成函数里跑，必须当场渲染出尾卡。
+function stitchRuntimeMode() {
+  return resolveStitchRuntimeMode();
 }
 
 /// 仅供测试导入

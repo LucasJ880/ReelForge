@@ -1,13 +1,9 @@
-import {
-  FinalVideoStatus,
-  VideoBriefStatus,
-  VideoJobStatus,
-} from "@prisma/client";
+import { FinalVideoStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-renderer";
 import { applyBrandOverlayIfConfigured } from "@/lib/video-generation/brand-overlay-renderer";
 import { CORNER_LOGO_WATERMARK_ENABLED } from "@/lib/video-generation/brand-watermark-policy";
-import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
+import { StitchCompositionError } from "@/lib/media/stitch-pipeline";
 import {
   effectiveAssetRole,
   type AssemblyPlan,
@@ -16,21 +12,20 @@ import {
   type SegmentType,
   type UploadedAsset,
   type VideoGenerationPlan,
-  type PostProductionPlan,
 } from "@/types/video-generation";
 
 /**
- * Phase 2 · L3 — Assembly Executor。
+ * Phase 2 · L3 — Assembly Executor（C3 起只负责「解析」，不再写库、不再自己拼接）。
  *
- * 职责：把 VideoGenerationPlan.assemblyPlan.clips 里的每个 clip 真的物化成
- *      可拼接 URL（http(s) / file://），交给 stitch-service 完成最终 ffmpeg。
- *
+ * 职责：把 VideoGenerationPlan.assemblyPlan.clips 里的每个 clip 物化成可拼接 URL：
  *  - ai_generated_clip → 找对应 VideoJob.outputVideoUrl
- *  - uploaded_clip     → 找 classifiedAssets[id].url
- *  - brand_end_card    → renderBrandEndCard 现场渲染
- *  - cta_card          → Phase 2 视为 brand_end_card（同一份模板）
+ *  - uploaded_clip     → 找 classifiedAssets[id].url（客户自己上传的片段）
+ *  - brand_end_card    → renderBrandEndCard 现场渲染（客户选的联系方式尾卡）
+ *  - cta_card          → 视为 brand_end_card（同一份模板）
  *
- * 不真的跑 ffmpeg；ffmpeg 由 stitch-service.runFfmpegNormalizeAndConcat 统一处理。
+ * 拼接、后期、缩略图由 stitch-composer → stitch-service.composeAndPersistTimeline 统一完成，
+ * 结果只经 finishStitchTask 写回。生产（inprocess）与开发（local）走同一条路径——
+ * 改造前生产 runner 根本不读 assemblyPlan，客户选的尾卡 / 上传片段在线上从未生效。
  */
 
 export interface AssemblyClipInput {
@@ -51,46 +46,108 @@ export interface AssembleResult {
   error?: string | null;
   awaitingExternal?: boolean;
   warnings: string[];
-  /// 调试用：实际收齐的 clip URL 列表（在 stitch 之前）
-  resolvedClips?: AssemblyClipInput[];
   skipped?: boolean;
 }
 
+export interface AssemblyFinalVideoInput {
+  id: string;
+  brief: {
+    id: string;
+    aspectRatio: string | null;
+    videoGenerationPlan: unknown;
+    contentAngle?: {
+      round?: {
+        deliveryOrder?: { productInput: unknown } | null;
+      } | null;
+    } | null;
+  } | null;
+  segments: Array<{
+    id: string;
+    segmentIndex: number | null;
+    outputVideoUrl: string | null;
+  }>;
+}
+
+export interface AssemblyInputs {
+  plan: VideoGenerationPlan;
+  aspectRatio: AspectRatio;
+  clips: AssemblyClipInput[];
+  warnings: string[];
+  brandKitLogoUrl: string | null;
+}
+
+/** 纯函数：尾卡 / CTA 卡不背字幕（字幕窗口按实际时长自动扣掉它们） */
+export function isEndCardClipType(type: string): boolean {
+  return type === "brand_end_card" || type === "cta_card";
+}
+
 /**
- * 主入口：执行 finalVideoId 的完整组装。
- *
- * - 找 brief.videoGenerationPlan
- * - 解析 assemblyPlan.clips
- * - 收齐每段 URL（AI VideoJob / uploaded asset / 现场渲染 end card）
- * - 调 stitch-service.runFfmpegNormalizeAndConcat
- * - 写回 FinalVideo + brief 状态
+ * 解析一条 unified FinalVideo 的完整装配输入（AI 段 / 上传片段 / 现场渲染尾卡）。
+ * 不写库；解析不出可拼片段时抛 StitchCompositionError（由调用方经 finishStitchTask 落 FAILED）。
+ */
+export async function resolveAssemblyInputs(
+  fv: AssemblyFinalVideoInput,
+): Promise<AssemblyInputs> {
+  const plan = fv.brief?.videoGenerationPlan as VideoGenerationPlan | null | undefined;
+  if (!plan?.assemblyPlan) {
+    throw new StitchCompositionError(
+      "ASSEMBLY_PLAN_MISSING",
+      "brief has no unified VideoGenerationPlan.assemblyPlan",
+    );
+  }
+  const aspectRatio = (fv.brief?.aspectRatio ?? "9:16") as AspectRatio;
+  const warnings: string[] = [];
+  /// 解析 brandKit logoUrl 用于 end card 渲染
+  const brandKit = extractBrandKit(
+    fv.brief?.contentAngle?.round?.deliveryOrder?.productInput ?? null,
+  );
+
+  let clips: AssemblyClipInput[];
+  try {
+    clips = await resolveClips({
+      assemblyPlan: plan.assemblyPlan,
+      brandPackaging: plan.brandPackagingPlan,
+      classifiedAssets: plan.classifiedAssets ?? [],
+      brandKit,
+      aiJobs: fv.segments,
+      briefId: fv.brief?.id ?? fv.id,
+      aspectRatio,
+      warnings,
+    });
+  } catch (err) {
+    throw new StitchCompositionError(
+      "ASSEMBLY_RESOLVE_FAILED",
+      `Resolve clips failed: ${(err as Error).message}`,
+    );
+  }
+  /// 装配期警告必须留痕：0805 walkthrough 首拼把联系方式帧静默跳过，
+  /// 事后无任何日志可查（重拼即成功，属偶发）。跳过类警告一律落 server log。
+  if (warnings.length > 0) {
+    console.warn("[assembly]", fv.id, JSON.stringify(warnings));
+  }
+  if (clips.length === 0) {
+    throw new StitchCompositionError("NO_ASSEMBLABLE_CLIPS", "No assemblable clips found");
+  }
+  return {
+    plan,
+    aspectRatio,
+    clips,
+    warnings,
+    brandKitLogoUrl: brandKit?.logoUrl ?? null,
+  };
+}
+
+/**
+ * 兼容入口（无生产调用方）：本地认领 + 统一合成器 + 唯一成功写入点。
+ * 改造前这里有自己的一套 READY 写入与 markBriefReady，现已收敛到 stitch-service。
  */
 export async function executeAssembly(
   finalVideoId: string,
 ): Promise<AssembleResult> {
   const fv = await db.finalVideo.findUnique({
     where: { id: finalVideoId },
-    include: {
-      brief: {
-        select: {
-          id: true,
-          aspectRatio: true,
-          videoGenerationPlan: true,
-          contentAngle: {
-            select: {
-              round: {
-                select: {
-                  deliveryOrder: { select: { productInput: true } },
-                },
-              },
-            },
-          },
-        },
-      },
-      segments: { orderBy: { segmentIndex: "asc" } },
-    },
+    select: { status: true },
   });
-
   if (!fv) {
     return {
       finalVideoId,
@@ -100,253 +157,28 @@ export async function executeAssembly(
       warnings: [],
     };
   }
-
-  const plan = fv.brief?.videoGenerationPlan as
-    | VideoGenerationPlan
-    | null
-    | undefined;
-  /// 没有 unified plan 的旧 brief（含 Sunny Shutter）→ 不在本 executor 范围
-  if (!plan?.assemblyPlan) {
-    return {
-      finalVideoId,
-      ok: false,
-      status: fv.status,
-      skipped: true,
-      warnings: ["No unified VideoGenerationPlan; falling back to legacy stitch."],
-    };
-  }
-
-  /// 段必须齐 + 全 SUCCEEDED 才能开拼（否则等下一轮 cron）
-  const aiJobs = fv.segments;
-  const allAiSucceeded =
-    aiJobs.length === fv.segmentCount &&
-    aiJobs.every(
-      (s) => s.status === VideoJobStatus.SUCCEEDED && !!s.outputVideoUrl,
-    );
-  if (!allAiSucceeded) {
-    return {
-      finalVideoId,
-      ok: false,
-      status: FinalVideoStatus.PENDING,
-      skipped: true,
-      warnings: ["Not all AI segments succeeded yet."],
-    };
-  }
-
-  const aspectRatio = (fv.brief?.aspectRatio ?? "9:16") as AspectRatio;
-  const warnings: string[] = [];
-  let postProduction: PostProductionPlan | null = null;
-  if (fv.postProduction != null) {
-    const parsed = postProductionPlanSchema.safeParse(fv.postProduction);
-    if (!parsed.success) {
-      return {
-        finalVideoId,
-        ok: false,
-        status: FinalVideoStatus.FAILED,
-        error: "FinalVideo post-production snapshot is invalid",
-        warnings,
-      };
-    }
-    postProduction = parsed.data;
-  }
-
-  /// 解析 brandKit logoUrl 用于 end card 渲染
-  const brandKitFromOrder = extractBrandKit(
-    fv.brief?.contentAngle?.round?.deliveryOrder?.productInput ?? null,
+  const { claimFinalVideoForStitch, runClaimedStitchAttempt } = await import(
+    "@/lib/services/stitch-service"
   );
-
-  let resolvedClips: AssemblyClipInput[];
-  try {
-    resolvedClips = await resolveClips({
-      assemblyPlan: plan.assemblyPlan,
-      brandPackaging: plan.brandPackagingPlan,
-      classifiedAssets: plan.classifiedAssets ?? [],
-      brandKit: brandKitFromOrder,
-      aiJobs,
-      briefId: fv.brief?.id ?? finalVideoId,
-      aspectRatio,
-      warnings,
-    });
-  } catch (err) {
-    return {
-      finalVideoId,
-      ok: false,
-      status: FinalVideoStatus.FAILED,
-      error: `Resolve clips failed: ${(err as Error).message}`,
-      warnings,
-    };
+  const attemptToken = await claimFinalVideoForStitch(finalVideoId);
+  if (!attemptToken) {
+    return { finalVideoId, ok: false, status: fv.status, skipped: true, warnings: [] };
   }
-
-  if (resolvedClips.length === 0) {
-    return {
-      finalVideoId,
-      ok: false,
-      status: FinalVideoStatus.FAILED,
-      error: "No assemblable clips found",
-      warnings,
-    };
-  }
-
-  /// 单 clip 直通：不需要拼接，直接复用该 clip URL
-  if (resolvedClips.length === 1) {
-    const only = resolvedClips[0];
-    const { isEphemeralSignedUrl } = await import(
-      "@/lib/services/stitch-service"
-    );
-    /// 单 clip 是 AI 段且 URL 是公网 https 时直接复用；其他情况仍要走 stitch 来归一化。
-    /// 临时签名 URL（Seedance TOS 24h 过期）除外 —— 必须走 stitch 转存持久存储，
-    /// 否则成片链接一天后 403。
-    const needsPostProduction =
-      Boolean(postProduction?.captions.enabled) ||
-      Boolean(postProduction?.audio.voiceover.enabled) ||
-      (postProduction?.audio.bgm.trackId !== "none" &&
-        (postProduction?.audio.bgm.volume ?? 0) > 0);
-    if (
-      only.type === "ai_generated_clip" &&
-      /^https?:\/\//.test(only.url) &&
-      !isEphemeralSignedUrl(only.url) &&
-      !needsPostProduction
-    ) {
-      const deliveredUrl = await applyConfiguredLogoOverlay({
-        finalVideoId,
-        aspectRatio,
-        sourceVideoUrl: only.url,
-        plan: plan.brandPackagingPlan,
-        assets: plan.classifiedAssets ?? [],
-        fallbackLogoUrl: brandKitFromOrder?.logoUrl ?? null,
-        warnings,
-      });
-      await db.finalVideo.update({
-        where: { id: fv.id },
-        data: {
-          status: FinalVideoStatus.READY,
-          stitchedVideoUrl: deliveredUrl,
-          finishedAt: new Date(),
-        },
-      });
-      if (fv.brief?.id) await markBriefReady(fv.brief.id);
-      return {
-        finalVideoId,
-        ok: true,
-        status: FinalVideoStatus.READY,
-        stitchedVideoUrl: deliveredUrl,
-        warnings,
-        resolvedClips,
-      };
-    }
-  }
-
-  /// CAS PENDING → STITCHING
-  const claim = await db.finalVideo.updateMany({
-    where: { id: fv.id, status: FinalVideoStatus.PENDING },
-    data: {
-      status: FinalVideoStatus.STITCHING,
-      startedAt: new Date(),
-      ffmpegError: null,
-    },
-  });
-  if (claim.count === 0) {
-    return {
-      finalVideoId,
-      ok: false,
-      status: fv.status,
-      skipped: true,
-      warnings,
-    };
-  }
-
-  /// 装配期警告必须留痕：0805 walkthrough 首拼把联系方式帧静默跳过，
-  /// 事后无任何日志可查（重拼即成功，属偶发）。跳过类警告一律落 server log。
-  if (warnings.length > 0) {
-    console.warn("[assembly]", finalVideoId, JSON.stringify(warnings));
-  }
-
-  let stitchedUrl: string | null = null;
-  let subtitleFileUrl: string | null = null;
-  let error: string | null = null;
-  try {
-    const { runFfmpegNormalizeAndConcatWithPostProduction } = await import(
-      "@/lib/services/stitch-service"
-    );
-    /// 字幕只铺口播所在的主内容窗口：尾卡/CTA 卡不背台词
-    ///（0805，与 brand-packaging-service 的 captionWindowSec 语义一致）。
-    const isEndCardClip = (c: { type: string }) =>
-      c.type === "brand_end_card" || c.type === "cta_card";
-    const endCardSeconds = resolvedClips
-      .filter(isEndCardClip)
-      .reduce((sum, c) => sum + (c.intendedDurationSec ?? 0), 0);
-    const mainWindowSec = resolvedClips
-      .filter((c) => !isEndCardClip(c))
-      .reduce((sum, c) => sum + (c.intendedDurationSec ?? 0), 0);
-    const stitched = await runFfmpegNormalizeAndConcatWithPostProduction({
-      finalVideoId,
-      aspectRatio,
-      clips: resolvedClips.map((c) => ({
-        url: c.url,
-        intendedDurationSec: c.intendedDurationSec,
-        trimToFit: c.trimToFit,
-      })),
-      postProduction,
-      captionWindowSec:
-        endCardSeconds > 0 && mainWindowSec > 0 ? mainWindowSec : null,
-    });
-    stitchedUrl = stitched.stitchedVideoUrl;
-    subtitleFileUrl = stitched.subtitleFileUrl;
-  } catch (err) {
-    error = (err as Error).message;
-  }
-
-  if (stitchedUrl) {
-    stitchedUrl = await applyConfiguredLogoOverlay({
-      finalVideoId,
-      aspectRatio,
-      sourceVideoUrl: stitchedUrl,
-      plan: plan.brandPackagingPlan,
-      assets: plan.classifiedAssets ?? [],
-      fallbackLogoUrl: brandKitFromOrder?.logoUrl ?? null,
-      warnings,
-    });
-    await db.finalVideo.update({
-      where: { id: fv.id },
-      data: {
-        status: FinalVideoStatus.READY,
-        stitchedVideoUrl: stitchedUrl,
-        subtitleFileUrl,
-        finishedAt: new Date(),
-        stitchAttempts: fv.stitchAttempts + 1,
-      },
-    });
-    if (fv.brief?.id) await markBriefReady(fv.brief.id);
-    return {
-      finalVideoId,
-      ok: true,
-      status: FinalVideoStatus.READY,
-      stitchedVideoUrl: stitchedUrl,
-      warnings,
-      resolvedClips,
-    };
-  }
-
-  await db.finalVideo.update({
-    where: { id: fv.id },
-    data: {
-      status: FinalVideoStatus.FAILED,
-      ffmpegError: error,
-      finishedAt: new Date(),
-      stitchAttempts: fv.stitchAttempts + 1,
-    },
-  });
+  const outcome = await runClaimedStitchAttempt({ finalVideoId, attemptToken });
   return {
     finalVideoId,
-    ok: false,
-    status: FinalVideoStatus.FAILED,
-    error,
-    warnings,
-    resolvedClips,
+    ok: outcome.result.ok,
+    status: outcome.result.status,
+    stitchedVideoUrl: outcome.result.stitchedVideoUrl ?? null,
+    error: outcome.result.error ?? null,
+    warnings: [],
   };
 }
 
-async function applyConfiguredLogoOverlay(input: {
+/**
+ * logo 角标（0805 起平台策略关闭：CORNER_LOGO_WATERMARK_ENABLED=false 时原样返回）。
+ */
+export async function applyAssemblyLogoOverlay(input: {
   finalVideoId: string;
   aspectRatio: AspectRatio;
   sourceVideoUrl: string;
@@ -538,30 +370,6 @@ function extractBrandKit(
   const bk = brandKit as Record<string, unknown>;
   const logoUrl = typeof bk.logoUrl === "string" ? bk.logoUrl : null;
   return { logoUrl };
-}
-
-async function markBriefReady(briefId: string) {
-  const brief = await db.videoBrief.findUnique({
-    where: { id: briefId },
-    select: { finalVideo: true },
-  });
-  if (!brief?.finalVideo) return;
-  await db.videoBrief.update({
-    where: { id: briefId },
-    data: {
-      status: VideoBriefStatus.QA_PENDING,
-      finalVideoUrl: brief.finalVideo.stitchedVideoUrl,
-      finalThumbnailUrl: brief.finalVideo.thumbnailUrl,
-    },
-  });
-  const existing = await db.qAReview.findFirst({
-    where: { videoBriefId: briefId, status: "PENDING" },
-  });
-  if (!existing) {
-    await db.qAReview.create({
-      data: { videoBriefId: briefId, status: "PENDING" },
-    });
-  }
 }
 
 /// 仅供测试导入（纯函数辅助）

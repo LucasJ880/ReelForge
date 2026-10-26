@@ -14,7 +14,6 @@ import {
   isLLMAvailable,
   isLLMForcedMock,
   resolveFallbackChain,
-  resolveModelForTier,
   type OpenAITier,
 } from "@/lib/providers/openai";
 import {
@@ -34,14 +33,15 @@ import type {
 } from "../types";
 
 /**
- * C4 · 能力探测要用的模型解析：与生产调用同一套规则——文本 = fast 档回退链（OPENAI_MODEL 优先，
- * 已知无权限的 4 系沉底），看图 = vision 档首选（analyzeImages 首选不可用时也按 vision 链回退）。
+ * C4 · 能力探测要用的模型解析：与生产调用同一套规则——文本 = fast 档回退链，看图 = vision 档回退链
+ * （env 显式模型优先，已知无权限的 4 系沉底）。两边都取 resolveFallbackChain，探测与生产选的是同一个链首：
+ * 之前看图取 resolveModelForTier，env 写了 gpt-4o 时探测会去打一个生产根本不会用的 403 模型。
  * 探测走这里而不是直连 providers/openai，守住「LLM 只经 AI provider 抽象」的门禁。
  */
-export function openAiProbePlan(): { textModels: string[]; visionModel: string } {
+export function openAiProbePlan(): { textModels: string[]; visionModels: string[] } {
   return {
     textModels: resolveFallbackChain("fast").slice(0, 3),
-    visionModel: resolveModelForTier("vision"),
+    visionModels: resolveFallbackChain("vision").slice(0, 3),
   };
 }
 

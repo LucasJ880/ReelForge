@@ -375,9 +375,15 @@ export async function chatJsonByTier<T = unknown>(
     : new Error("OpenAI 调用失败：所有候选模型都不可用");
 }
 
+/**
+ * 「模型不存在 / 没权限」才回退到下一档。
+ * 429 与 5xx 一律不算：那是限流或上游抖动，换个模型只会多花一次钱，而且会把
+ * 「服务暂时不可用」这种账户层外的事实瞒过能力状态；报文里哪怕写着 "model … unavailable" 也不算。
+ */
 function isModelMissingError(err: unknown): boolean {
   if (!err || typeof err !== "object") return false;
   const status = (err as { status?: number }).status;
+  if (typeof status === "number" && (status === 429 || status >= 500)) return false;
   if (status === 404) return true;
   const code = (err as { code?: string }).code;
   if (code === "model_not_found") return true;

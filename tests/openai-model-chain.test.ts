@@ -106,8 +106,8 @@ test("链内无重复：重复候选只会白白多打一次请求", () => {
 /* ── P01-A · vision 参数化与回退（2026-10-26）────────────────────────── */
 
 import { mock } from "node:test";
-import { analyzeImages, openai } from "../src/lib/providers/openai";
-import { OpenAiProvider } from "../src/lib/ai/providers/openai-provider";
+import { __test__, analyzeImages, openai } from "../src/lib/providers/openai";
+import { OpenAiProvider, openAiProbePlan } from "../src/lib/ai/providers/openai-provider";
 
 async function withEnvAsync(
   vars: Record<string, string | undefined>,
@@ -254,6 +254,63 @@ test("AiProvider 抽象层：OpenAiProvider.analyzeImages 把 detail / maxTokens
         .filter((part) => part.type === "image_url");
       assert.equal(images[0]?.image_url?.detail, "auto");
       assert.equal(calls[0]!.max_completion_tokens, 900);
+    } finally {
+      mock.restoreAll();
+    }
+  });
+});
+
+test("旧 env 写了 4 系（OPENAI_MODEL=gpt-4o-mini / OPENAI_VISION_MODEL=gpt-4o）：vision 链首仍是 sol，4 系沉到链尾", () => {
+  withEnv({ OPENAI_MODEL: "gpt-4o-mini", OPENAI_VISION_MODEL: undefined }, () => {
+    assert.deepEqual(resolveFallbackChain("vision"), ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-4o-mini"]);
+  });
+  withEnv({ OPENAI_MODEL: undefined, OPENAI_VISION_MODEL: "gpt-4o" }, () => {
+    assert.deepEqual(resolveFallbackChain("vision"), ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-4o"]);
+    /// 探测与生产同源：探测计划的链首就是 analyzeImages 会先打的模型，不再是 env 里那个 403 的 4o
+    const plan = openAiProbePlan();
+    assert.deepEqual(plan.visionModels, resolveFallbackChain("vision"));
+    assert.equal(plan.visionModels[0], "gpt-5.6-sol");
+  });
+});
+
+test("isModelMissingError：404 / model_not_found / 「does not exist」算模型缺失；429 与 5xx 哪怕报文写 unavailable 也不算", () => {
+  const missing = __test__.isModelMissingError;
+  assert.equal(missing(Object.assign(new Error("x"), { status: 404 })), true);
+  assert.equal(missing(Object.assign(new Error("x"), { code: "model_not_found" })), true);
+  assert.equal(missing(new Error("The model `gpt-5.6-sol` does not exist or you do not have access to it.")), true);
+  assert.equal(missing(Object.assign(new Error("The model gpt-5.6-sol is currently unavailable"), { status: 503 })), false);
+  assert.equal(missing(Object.assign(new Error("Rate limit reached for model gpt-5.6-sol"), { status: 429 })), false);
+  assert.equal(missing(Object.assign(new Error("Bad gateway"), { status: 502 })), false);
+  assert.equal(missing(null), false);
+});
+
+test("analyzeImages：整条 vision 链都 404 → 两个模型都试过，抛出最后一个错（能力回写走错误分支）", async () => {
+  await withEnvAsync(VISION_ENV, async () => {
+    const calls = stubCreate((params) => {
+      throw modelMissing(params.model);
+    });
+    try {
+      await assert.rejects(
+        analyzeImages(["https://x/1.jpg"], "sys", "user"),
+        /gpt-5\.6-terra.*does not exist/,
+      );
+      assert.deepEqual(calls.map((c) => c.model), ["gpt-5.6-sol", "gpt-5.6-terra"]);
+    } finally {
+      mock.restoreAll();
+    }
+  });
+});
+
+test("analyzeImages：503 且报文含 model … unavailable → 不回退、直接抛（上游抖动不是模型选错）", async () => {
+  await withEnvAsync(VISION_ENV, async () => {
+    const calls = stubCreate((params) => {
+      const err = new Error(`The model ${params.model} is currently unavailable`) as Error & { status?: number };
+      err.status = 503;
+      throw err;
+    });
+    try {
+      await assert.rejects(analyzeImages(["https://x/1.jpg"], "sys", "user"), /currently unavailable/);
+      assert.deepEqual(calls.map((c) => c.model), ["gpt-5.6-sol"]);
     } finally {
       mock.restoreAll();
     }

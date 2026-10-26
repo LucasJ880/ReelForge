@@ -145,6 +145,9 @@ export interface ClaimedStitchTask {
   /// b-roll 任务附带：runner 需要先「素材+TTS→段合成」再进拼接后期。
   /// null/缺省 = 普通任务（段已是成品视频）。
   brollSegments?: BrollClaimSegment[] | null;
+  /// P04-C：派发时持久化的各段台词（stitchTaskPayload 从 brief.directorPlan 读）；缺省 = runner 按段时长切字幕。
+  /// 与 scripts/stitch-runner.ts 的 StitchTask 同形。
+  voiceoverChunks?: string[] | null;
 }
 
 /**
@@ -435,7 +438,7 @@ type StitchCandidateRow = {
   targetDurationSec: number;
   stitchAttempts: number;
   postProduction: unknown;
-  brief: { aspectRatio: string | null } | null;
+  brief: { aspectRatio: string | null; directorPlan?: unknown } | null;
   segments: Array<{
     segmentIndex: number | null;
     status: VideoJobStatus;
@@ -475,7 +478,9 @@ export async function claimNextReadyFinalVideo<T>(options: {
       orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
-        brief: { select: { aspectRatio: true } },
+        /// P04-C：带上 directorPlan，外部 runner 的载荷（stitchTaskPayload）才有各段台词 voiceoverChunks；
+        /// 否则 runner 按段时长均分字幕——首次合成与只重拼（P05-B）都一样。进程内合成器自己从库里读。
+        brief: { select: { aspectRatio: true, directorPlan: true } },
         segments: { orderBy: { segmentIndex: "asc" } },
       },
     })) as unknown as StitchCandidateRow[];

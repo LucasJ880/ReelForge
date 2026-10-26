@@ -7,6 +7,7 @@ import { NextRequest } from "next/server";
 import { db } from "../src/lib/db";
 import { __test__ as authTest } from "../src/lib/auth";
 import {
+  claimStitchTask,
   finishStitchTask,
   restitchReadyFinalVideo,
   rollbackRestitch,
@@ -188,6 +189,43 @@ test("restitchReadyFinalVideo：CAS READY→PENDING，写旧 URL / attempts 0 / 
   /// external：转为可领取的占位，零生成计费
   assert.equal(result.awaitingExternal, true);
   assert.equal(calls.length, 2);
+});
+
+test("只重拼带上各段台词（P04-C）：external 认领载荷有 voiceoverChunks，进程内合成器自己从库读 directorPlan", async (t) => {
+  withEnv(t, { STITCH_RUNTIME: "external", ENABLE_VIDEO_STITCHING: undefined });
+  const directorPlan = {
+    segmentPlan: [
+      { segmentIndex: 1, voiceoverChunk: "第二段台词" },
+      { segmentIndex: 0, voiceoverChunk: "第一段台词" },
+    ],
+  };
+  let status: FinalVideoStatus = FinalVideoStatus.READY;
+  let findManyInclude: Record<string, unknown> | undefined;
+  patchModel(t, db.finalVideo, {
+    findUnique: async () => readyFinalVideo({ status }),
+    updateMany: async (args: UpdateManyCall) => {
+      if (typeof args.data.status === "string") status = args.data.status as FinalVideoStatus;
+      return { count: 1 };
+    },
+    /// 认领查询：带 directorPlan 的 brief（候选行形状），只在 PENDING 时有候选
+    findMany: async (args: { include?: Record<string, unknown> }) => {
+      findManyInclude = args.include;
+      if (status !== FinalVideoStatus.PENDING) return [];
+      return [readyFinalVideo({ status, brief: { aspectRatio: "9:16", directorPlan } })];
+    },
+  });
+  patchModel(t, db.videoBrief, { findUnique: async () => ({ videoGenerationPlan: null }) });
+
+  await restitchReadyFinalVideo("fv-1", { bgm: { trackId: "wholesome", volume: 0.2 } }, { now: NOW });
+  assert.equal(status, FinalVideoStatus.PENDING);
+  const claimed = await claimStitchTask();
+  assert.ok(claimed, "重拼后的行可被认领");
+  assert.deepEqual(claimed.voiceoverChunks, ["第一段台词", "第二段台词"], "runner 载荷带各段台词，字幕不退回均分");
+  assert.deepEqual((findManyInclude?.brief as { select?: unknown })?.select, { aspectRatio: true, directorPlan: true });
+  /// 进程内 / local：composeFinalVideoForStitch 自己 select brief.directorPlan（#10），重拼路径同样经过它
+  const composer = await readFile("src/lib/services/stitch-composer.ts", "utf8");
+  assert.match(composer, /directorPlan: true,/);
+  assert.match(composer, /readDirectorPlanVoiceoverChunks\(fv\.brief\?\.directorPlan\)/);
 });
 
 test("restitchReadyFinalVideo：非 READY / 无快照 / 设置没变 一律拒绝，不写库", async (t) => {

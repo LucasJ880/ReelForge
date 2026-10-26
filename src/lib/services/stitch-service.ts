@@ -37,6 +37,10 @@ import {
 } from "@/lib/video-generation/restitch-patch";
 import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
+  isSegmentRedoCandidate,
+  SegmentRedoRejectedError,
+} from "@/lib/video-generation/segment-redo";
+import {
   composeTimeline,
   resolveAspectResolution,
   stepTimeout,
@@ -96,8 +100,20 @@ type StitchReadinessCandidate = {
   segments: ReadonlyArray<{
     status: VideoJobStatus;
     outputVideoUrl: string | null;
+    segmentIndex?: number | null;
   }>;
 };
+
+/** 每个 segmentIndex 只能挂一行（P05-C 换挂若漏摘旧行，按条数凑满会拼出重复段）。 */
+function hasDuplicateSegmentIndex(segments: StitchReadinessCandidate["segments"]): boolean {
+  const seen = new Set<number>();
+  for (const segment of segments) {
+    if (segment.segmentIndex == null) continue;
+    if (seen.has(segment.segmentIndex)) return true;
+    seen.add(segment.segmentIndex);
+  }
+  return false;
+}
 
 /**
  * Readiness remains an application-level invariant because Prisma cannot
@@ -110,6 +126,7 @@ export function isStitchCandidateReady(
 ): boolean {
   return (
     candidate.segments.length === candidate.segmentCount &&
+    !hasDuplicateSegmentIndex(candidate.segments) &&
     candidate.segments.every(
       (segment) =>
         segment.status === VideoJobStatus.SUCCEEDED &&
@@ -1060,6 +1077,221 @@ export async function restitchReadyFinalVideo(
   const prepared = await prepareRestitch(finalVideoId, patchInput);
   await options.beforeCommit?.(prepared);
   return commitRestitch(prepared, { now: options.now });
+}
+
+/**
+ * P05-C 成功段重做的成片侧预检（只读，在扣费之前跑）：新段生成成功后要走只重拼路径换上，
+ * 所以只重拼会拒绝的状态这里也拒绝——READY、没有重拼在途、brief 可改成片、段齐、
+ * 其余段原片不是会过期的临时签名地址（被重做的那一段除外，它会被换掉）、不是 b-roll、
+ * 不会落进 reuse_single_segment / reuse_first_segment_demo（那两条不经过合成器，也不清回滚依据）。
+ */
+export async function prepareSegmentRedoStitch(
+  finalVideoId: string,
+  segmentIndex: number,
+): Promise<{
+  finalVideoId: string;
+  replacedJob: { id: string; segmentDurationSec: number | null; frameQaDetail: unknown };
+}> {
+  const fv = await db.finalVideo.findUnique({
+    where: { id: finalVideoId },
+    include: {
+      brief: { select: { id: true, status: true } },
+      segments: { orderBy: { segmentIndex: "asc" } },
+    },
+  });
+  if (!fv) throw new SegmentRedoRejectedError("RESOURCE_NOT_FOUND", "成片不存在。");
+  if (fv.status !== FinalVideoStatus.READY || !fv.stitchedVideoUrl || fv.previousStitchedVideoUrl) {
+    throw new SegmentRedoRejectedError(
+      "INVALID_STATE",
+      fv.previousStitchedVideoUrl
+        ? "这条成片正在按新设置重拼，完成后再重做片段。"
+        : "只有已完成的成片可以重做某一段；正在合成或失败的请先等它完成或重试。",
+    );
+  }
+  if (fv.brief && !canRestitchBriefStatus(fv.brief.status)) {
+    throw new SegmentRedoRejectedError("INVALID_STATE", "这条视频已归档或弃用，不能再更改成片。");
+  }
+  if (!isStitchCandidateReady(fv)) {
+    throw new SegmentRedoRejectedError("INVALID_STATE", "分段素材不完整，不能单独重做某一段。");
+  }
+  if (extractBrollClaimSegments(fv.segments) !== null) {
+    throw new SegmentRedoRejectedError("INVALID_STATE", "实拍图库成片的段不是 AI 生成的，不能单独重做。");
+  }
+  const replaced = fv.segments.find((segment) => segment.segmentIndex === segmentIndex);
+  if (!replaced) {
+    throw new SegmentRedoRejectedError("RESOURCE_NOT_FOUND", `这条成片没有第 ${segmentIndex + 1} 段。`);
+  }
+  if (
+    fv.segments.some(
+      (segment) =>
+        segment.id !== replaced.id &&
+        segment.outputVideoUrl &&
+        isEphemeralSignedUrl(segment.outputVideoUrl),
+    )
+  ) {
+    throw new SegmentRedoRejectedError(
+      "INVALID_STATE",
+      "其余分段原片是会过期的临时地址，可能已失效，换上新段后没法重新合成；请整条重新生成。",
+    );
+  }
+  try {
+    parsePersistedPostProduction(fv.postProduction);
+  } catch (err) {
+    throw new SegmentRedoRejectedError("INVALID_STATE", (err as Error).message);
+  }
+  const isUnified = await briefHasUnifiedAssembly(fv.brief?.id);
+  const decision = decideStitchPath({
+    mode: stitchRuntimeMode(),
+    isBroll: false,
+    isUnified,
+    segmentCount: fv.segmentCount,
+    /// 换段后首段 URL 会变成新段的：按「新段是持久地址、会被单段复用」从严判
+    firstSegmentUrl: "https://segment-redo.invalid/persistent.mp4",
+    demo: process.env.ENABLE_VIDEO_STITCHING === "false",
+  });
+  if (decision === "reuse_single_segment" || decision === "reuse_first_segment_demo") {
+    throw new SegmentRedoRejectedError(
+      "INVALID_STATE",
+      "这条成片直接复用了单段原片、没有经过合成器，不能单独重做；可以整条重新生成。",
+    );
+  }
+  return {
+    finalVideoId,
+    replacedJob: {
+      id: replaced.id,
+      segmentDurationSec: replaced.segmentDurationSec,
+      frameQaDetail: replaced.frameQaDetail,
+    },
+  };
+}
+
+export type SegmentRedoAdoption =
+  | { adopted: true; result: StitchResult }
+  | {
+      adopted: false;
+      reason: "not_candidate" | "replaced_row_detached" | "final_video_busy" | "conflict";
+    };
+
+class SegmentRedoAdoptionConflict extends Error {}
+
+/**
+ * P05-C 重做候选行成功 → 换挂 + 只重拼（同一个事务里三步 CAS，任何一步落空整体回滚）：
+ *   ① 旧行：仍挂在这条成片上、没被替换 → finalVideoId = null + supersededAt = now（素材保留）；
+ *   ② 候选行：仍是 SUCCEEDED 且没挂 → finalVideoId = 成片；
+ *   ③ FinalVideo：READY 且没有只重拼在途 → PENDING，写 previousStitchedVideoUrl = 当前成片、
+ *      previousPostProduction = 当前快照（后期设置不变）、stitchAttempts 0、startedAt now——
+ *      与 commitRestitch 同一套回滚依据，于是合成失败 / 清扫超时 / 取消都走 rollbackRestitch 回到旧成片。
+ * 成片当时不空闲（正在重拼 / 合成）就不换挂，留给下一轮（adoptPendingRedoCandidates）。
+ * 旧行已经不在成片上（被别的重做换掉了）：这次候选落选，打 supersededAt 让它不再挡后续重做。
+ *
+ * 回滚只恢复成片与后期快照，不把段换回去：新段是付过费的素材，留在成片上，下一次重拼会用到它。
+ */
+export async function commitSegmentRedoRestitch(
+  candidateJobId: string,
+  options: { now?: Date } = {},
+): Promise<SegmentRedoAdoption> {
+  const now = options.now ?? new Date();
+  const candidate = await db.videoJob.findUnique({
+    where: { id: candidateJobId },
+    select: {
+      id: true,
+      status: true,
+      replacesJobId: true,
+      finalVideoId: true,
+      supersededAt: true,
+      outputVideoUrl: true,
+    },
+  });
+  if (
+    !candidate?.replacesJobId ||
+    !isSegmentRedoCandidate(candidate) ||
+    candidate.status !== VideoJobStatus.SUCCEEDED ||
+    !candidate.outputVideoUrl
+  ) {
+    return { adopted: false, reason: "not_candidate" };
+  }
+  const replaced = await db.videoJob.findUnique({
+    where: { id: candidate.replacesJobId },
+    select: { id: true, finalVideoId: true, supersededAt: true },
+  });
+  if (!replaced?.finalVideoId || replaced.supersededAt) {
+    await db.videoJob.updateMany({
+      where: { id: candidate.id, finalVideoId: null, supersededAt: null },
+      data: { supersededAt: now },
+    });
+    console.warn("[segment-redo] replaced row no longer attached; candidate retired", {
+      candidateJobId,
+      replacesJobId: candidate.replacesJobId,
+    });
+    return { adopted: false, reason: "replaced_row_detached" };
+  }
+  const finalVideoId = replaced.finalVideoId;
+  const fv = await db.finalVideo.findUnique({
+    where: { id: finalVideoId },
+    select: {
+      status: true,
+      stitchedVideoUrl: true,
+      stitchAttemptToken: true,
+      previousStitchedVideoUrl: true,
+      postProduction: true,
+    },
+  });
+  if (!fv || fv.status !== FinalVideoStatus.READY || !fv.stitchedVideoUrl || fv.previousStitchedVideoUrl) {
+    return { adopted: false, reason: "final_video_busy" };
+  }
+  const currentUrl = fv.stitchedVideoUrl;
+
+  try {
+    await db.$transaction(async (tx) => {
+      const detached = await tx.videoJob.updateMany({
+        where: { id: replaced.id, finalVideoId, supersededAt: null },
+        data: { finalVideoId: null, supersededAt: now },
+      });
+      if (detached.count !== 1) throw new SegmentRedoAdoptionConflict("replaced row moved");
+      const attached = await tx.videoJob.updateMany({
+        where: {
+          id: candidate.id,
+          status: VideoJobStatus.SUCCEEDED,
+          finalVideoId: null,
+          supersededAt: null,
+        },
+        data: { finalVideoId },
+      });
+      if (attached.count !== 1) throw new SegmentRedoAdoptionConflict("candidate moved");
+      const reset = await tx.finalVideo.updateMany({
+        where: {
+          id: finalVideoId,
+          status: FinalVideoStatus.READY,
+          stitchedVideoUrl: currentUrl,
+          stitchAttemptToken: fv.stitchAttemptToken,
+          previousStitchedVideoUrl: null,
+        },
+        data: {
+          status: FinalVideoStatus.PENDING,
+          previousStitchedVideoUrl: currentUrl,
+          previousPostProduction:
+            fv.postProduction == null ? Prisma.DbNull : (fv.postProduction as Prisma.InputJsonValue),
+          stitchAttempts: 0,
+          stitchAttemptToken: null,
+          startedAt: now,
+          finishedAt: null,
+          ffmpegError: null,
+        },
+      });
+      if (reset.count !== 1) throw new SegmentRedoAdoptionConflict("final video moved");
+    });
+  } catch (err) {
+    if (err instanceof SegmentRedoAdoptionConflict) {
+      return { adopted: false, reason: "conflict" };
+    }
+    throw err;
+  }
+  console.info("[segment-redo] candidate adopted; restitching", {
+    candidateJobId,
+    replacesJobId: replaced.id,
+    finalVideoId,
+  });
+  return { adopted: true, result: await stitchFinalVideo(finalVideoId) };
 }
 
 export interface RollbackRestitchOptions {

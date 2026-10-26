@@ -64,6 +64,11 @@ export const QUOTA_LEDGER_PHASE = {
   directDispatchCompensation: "direct_dispatch_compensation",
   briefRetryRecharge: "brief_retry_recharge",
   briefRefund: "brief_refund",
+  /// P05-C 成功段重做：按候选行（metadata.candidateJobId）记账，每次 1 段 SEEDANCE_SEGMENT，
+  /// 不扣 VIDEO_DISPATCH（成片还是那一支）。与 brief 的流水 phase 不同，brief 对账不会把它算进去。
+  segmentRedoAuthorization: "segment_redo_authorization",
+  segmentRedoRetryRecharge: "segment_redo_retry_recharge",
+  segmentRedoRefund: "segment_redo_refund",
 } as const;
 
 /// 单条派发请求在这段时间内可能仍在路由里做即时补偿（Vercel 函数时长远小于此），
@@ -972,6 +977,200 @@ export async function rechargeRefundedBriefForSession(
 }
 
 // ---------------------------------------------------------------------------
+// 成功段重做：按候选行记账（P05-C）
+// ---------------------------------------------------------------------------
+
+/**
+ * 在调用方的 Serializable 事务里为一条重做候选行扣 1 段 SEEDANCE_SEGMENT（与建候选行同一事务：
+ * 额度不足整体回滚，不会留下没扣费的候选行，也不会扣了费却没有候选行）。
+ */
+export async function chargeSegmentRedoInTransaction(
+  tx: Prisma.TransactionClient,
+  args: {
+    userId: string;
+    plan: Awaited<ReturnType<typeof resolveQuotaPlan>>;
+    periodKey: string;
+    candidateJobId: string;
+    replacesJobId: string;
+    briefId: string;
+    segmentIndex: number;
+  },
+): Promise<void> {
+  await chargeMetersInTransaction(tx, {
+    userId: args.userId,
+    plan: args.plan,
+    periodKey: args.periodKey,
+    items: [
+      {
+        resource: "SEEDANCE_SEGMENT",
+        amount: 1,
+        metadata: {
+          candidateJobId: args.candidateJobId,
+          replacesJobId: args.replacesJobId,
+          briefId: args.briefId,
+          segmentIndex: args.segmentIndex,
+          phase: QUOTA_LEDGER_PHASE.segmentRedoAuthorization,
+        },
+      },
+    ],
+  });
+}
+
+async function loadSegmentRedoLedger(
+  tx: Prisma.TransactionClient,
+  args: { userId: string; candidateJobId: string },
+): Promise<QuotaLedgerEntry[]> {
+  const logs: LedgerLog[] = await tx.usageLog.findMany({
+    where: {
+      userId: args.userId,
+      resource: { in: [...METERED_RESOURCES] },
+      metadata: { path: ["candidateJobId"], equals: args.candidateJobId },
+    },
+    select: LEDGER_LOG_SELECT,
+  });
+  const entries: QuotaLedgerEntry[] = [];
+  for (const log of logs) {
+    if (!isMeteredResource(log.resource)) continue;
+    const phase = logPhase(log);
+    const positive =
+      phase === QUOTA_LEDGER_PHASE.segmentRedoAuthorization ||
+      phase === QUOTA_LEDGER_PHASE.segmentRedoRetryRecharge;
+    if ((positive && log.amount > 0) || (phase === QUOTA_LEDGER_PHASE.segmentRedoRefund && log.amount < 0)) {
+      entries.push({ resource: log.resource, amount: log.amount, createdAt: log.createdAt, phase });
+    }
+  }
+  return entries;
+}
+
+const SEGMENT_REDO_REFUND_SELECT = {
+  id: true,
+  status: true,
+  replacesJobId: true,
+  batchJobId: true,
+  videoBriefId: true,
+  quotaRefundedAt: true,
+  submissionState: true,
+  submittedAt: true,
+  createdAt: true,
+  finishedAt: true,
+  videoBrief: {
+    select: {
+      contentAngle: {
+        select: { round: { select: { deliveryOrder: { select: { createdById: true } } } } },
+      },
+    },
+  },
+} as const;
+
+/**
+ * 一条重做候选行终态未交付（FAILED / CANCELLED：提交被拒、供应商失败、帧质检拦截、超时、客户取消）：
+ * 退回它扣的那 1 段。幂等：VideoJob.quotaRefundedAt CAS，与计量递减、负数流水同一个 Serializable 事务。
+ * 提交可能还在路上 / 刚补扣过（重试马上要重提）就先不退，等下一轮清扫。
+ */
+export async function refundFailedSegmentRedo(
+  candidateJobId: string,
+  options: { now?: Date; cutoff?: Date; reason?: string } = {},
+): Promise<QuotaRefundOutcome> {
+  const now = options.now ?? new Date();
+  const cutoff = options.cutoff ?? quotaRefundCutoff();
+  return runSerializableQuotaTransaction(async (tx) => {
+    const job = await tx.videoJob.findUnique({
+      where: { id: candidateJobId },
+      select: SEGMENT_REDO_REFUND_SELECT,
+    });
+    if (!job?.replacesJobId || job.batchJobId || job.quotaRefundedAt) return "skipped" as const;
+    if (!UNDELIVERED_JOB_STATUSES.includes(job.status)) return "skipped" as const;
+    if (submissionMayBeInFlight(job, now)) return "skipped" as const;
+    if (!jobTerminalAfterCutoff(job, cutoff)) return "skipped" as const;
+
+    const ownerId = job.videoBrief?.contentAngle.round.deliveryOrder.createdById ?? null;
+    const entries = ownerId
+      ? await loadSegmentRedoLedger(tx, { userId: ownerId, candidateJobId })
+      : [];
+    const rechargedRecently = entries.some(
+      (entry) =>
+        entry.phase === QUOTA_LEDGER_PHASE.segmentRedoRetryRecharge &&
+        now.getTime() - entry.createdAt.getTime() < RECENT_RECHARGE_GRACE_MS,
+    );
+    if (rechargedRecently) return "skipped" as const;
+
+    const stamped = await tx.videoJob.updateMany({
+      where: { id: candidateJobId, status: job.status, quotaRefundedAt: null },
+      data: { quotaRefundedAt: now },
+    });
+    if (stamped.count !== 1) return "skipped" as const;
+    if (!ownerId) return "stamped" as const;
+
+    const refunded = await applyLedgerRefund(tx, {
+      userId: ownerId,
+      entries,
+      metadata: {
+        candidateJobId,
+        replacesJobId: job.replacesJobId,
+        briefId: job.videoBriefId,
+        phase: QUOTA_LEDGER_PHASE.segmentRedoRefund,
+        reason:
+          options.reason ?? (job.status === VideoJobStatus.CANCELLED ? "cancelled" : "failed"),
+      },
+    });
+    return refunded ? ("refunded" as const) : ("stamped" as const);
+  });
+}
+
+/**
+ * 重试一条已退额的重做候选行前调用（render-retry）：按最近一次正向数额补扣 1 段，同事务清掉退额标记；
+ * 额度不足抛 QuotaExceededError，调用方拒绝重试。没退过额（多数情况：帧质检拦截后马上重试）不补扣。
+ * 豁免会话 / 未开启计量：只清标记不补扣。
+ */
+export async function rechargeRefundedSegmentRedoForSession(
+  session: Session,
+  candidateJobId: string,
+): Promise<{ recharged: boolean; cleared: boolean }> {
+  const enforce = isQuotaEnforced() && !isQuotaExemptSession(session);
+  const plan = enforce ? await resolveQuotaPlan(session.user.id) : null;
+  const periodKey = currentUsagePeriodKey();
+  return runSerializableQuotaTransaction(async (tx) => {
+    const job = await tx.videoJob.findUnique({
+      where: { id: candidateJobId },
+      select: SEGMENT_REDO_REFUND_SELECT,
+    });
+    if (!job?.replacesJobId || !job.quotaRefundedAt) return { recharged: false, cleared: false };
+    const ownerId = job.videoBrief?.contentAngle.round.deliveryOrder.createdById ?? null;
+    const recharge = ownerId
+      ? planLedgerRecharge(await loadSegmentRedoLedger(tx, { userId: ownerId, candidateJobId }))
+      : [];
+    const mustCharge = enforce && recharge.length > 0;
+    if (mustCharge && ownerId !== session.user.id) {
+      throw new QuotaRechargeUnavailableError();
+    }
+    const cleared = await tx.videoJob.updateMany({
+      where: { id: candidateJobId, quotaRefundedAt: job.quotaRefundedAt },
+      data: { quotaRefundedAt: null },
+    });
+    if (cleared.count !== 1) return { recharged: false, cleared: false };
+    if (mustCharge && ownerId && plan) {
+      await chargeMetersInTransaction(tx, {
+        userId: ownerId,
+        plan,
+        periodKey,
+        items: recharge.map((item) => ({
+          resource: item.resource,
+          amount: item.amount,
+          metadata: {
+            candidateJobId,
+            replacesJobId: job.replacesJobId,
+            briefId: job.videoBriefId,
+            phase: QUOTA_LEDGER_PHASE.segmentRedoRetryRecharge,
+          },
+        })),
+      });
+      return { recharged: true, cleared: true };
+    }
+    return { recharged: false, cleared: true };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // 清扫器入口
 // ---------------------------------------------------------------------------
 
@@ -980,6 +1179,9 @@ export interface QuotaRefundReconcileResult {
   stampedJobs: number;
   refundedBriefs: string[];
   stampedBriefs: number;
+  /// P05-C：失败 / 取消的重做候选行
+  refundedRedoCandidates: string[];
+  stampedRedoCandidates: number;
   errors: number;
 }
 
@@ -989,7 +1191,7 @@ export interface QuotaRefundReconcileResult {
  */
 export async function reconcileUndeliveredQuotaRefunds(
   now = new Date(),
-  options: { batchLimit?: number; briefLimit?: number; cutoff?: Date } = {},
+  options: { batchLimit?: number; briefLimit?: number; redoLimit?: number; cutoff?: Date } = {},
 ): Promise<QuotaRefundReconcileResult> {
   const cutoff = options.cutoff ?? quotaRefundCutoff();
   const result: QuotaRefundReconcileResult = {
@@ -997,6 +1199,8 @@ export async function reconcileUndeliveredQuotaRefunds(
     stampedJobs: 0,
     refundedBriefs: [],
     stampedBriefs: 0,
+    refundedRedoCandidates: [],
+    stampedRedoCandidates: 0,
     errors: 0,
   };
 
@@ -1092,6 +1296,54 @@ export async function reconcileUndeliveredQuotaRefunds(
   } catch (error) {
     result.errors += 1;
     console.warn("[quota-refund] brief scan failed:", (error as Error).message);
+  }
+
+  /// 重做候选行：brief 本身多半是已交付的成片（不会进上面的 RENDER_FAILED 候选），按行单独退。
+  try {
+    const inFlightSince = new Date(now.getTime() - DISPATCH_IN_FLIGHT_MS);
+    const candidates = await db.videoJob.findMany({
+      where: {
+        replacesJobId: { not: null },
+        batchJobId: null,
+        status: { in: [...UNDELIVERED_JOB_STATUSES] },
+        quotaRefundedAt: null,
+        AND: [
+          /// 提交可能还在路上的（SUBMITTING 且刚起步）不进候选，免得长期占着队头
+          {
+            OR: [
+              { submissionState: { not: ProviderSubmissionState.SUBMITTING } },
+              { submittedAt: { lte: inFlightSince } },
+              { submittedAt: null, createdAt: { lte: inFlightSince } },
+            ],
+          },
+          {
+            OR: [
+              { finishedAt: { gte: cutoff } },
+              { finishedAt: null, createdAt: { gte: cutoff } },
+            ],
+          },
+        ],
+      },
+      select: { id: true },
+      orderBy: { updatedAt: "asc" },
+      take: options.redoLimit ?? 20,
+    });
+    for (const candidate of candidates) {
+      try {
+        const outcome = await refundFailedSegmentRedo(candidate.id, { now, cutoff });
+        if (outcome === "refunded") result.refundedRedoCandidates.push(candidate.id);
+        if (outcome === "stamped") result.stampedRedoCandidates += 1;
+      } catch (error) {
+        result.errors += 1;
+        console.warn(
+          `[quota-refund] redo candidate ${candidate.id} failed:`,
+          (error as Error).message,
+        );
+      }
+    }
+  } catch (error) {
+    result.errors += 1;
+    console.warn("[quota-refund] redo candidate scan failed:", (error as Error).message);
   }
 
   return result;

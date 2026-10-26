@@ -18,6 +18,23 @@ export const unifiedLibraryStatusSchema = z.enum([
 export type UnifiedLibraryStatus = z.infer<typeof unifiedLibraryStatusSchema>;
 
 /**
+ * P05-C 成片里的一段（单条订单行才有）。redo 是这一段最近一次重做的状态：
+ * none = 没在重做；running = 在生成；adopting = 新段已出、等换上成片；
+ * failed = 这次重做没成（额度已退回，可再试或换说明重做）；cancelled = 已取消。
+ */
+export const unifiedLibrarySegmentSchema = z.object({
+  segmentIndex: z.number().int().nonnegative(),
+  durationSec: z.number().int().positive().nullable(),
+  redo: z.enum(["none", "running", "adopting", "failed", "cancelled"]),
+  /// 最近一次重做的候选行 id（失败时「再试这次重做」用）；没重做过为 null。
+  redoJobId: z.string().min(1).nullable(),
+  redoError: z.string().min(1).nullable(),
+  canRedo: z.boolean(),
+});
+
+export type UnifiedLibrarySegment = z.infer<typeof unifiedLibrarySegmentSchema>;
+
+/**
  * Server Component DTO contract. Dates intentionally remain Date instances;
  * this service is consumed directly by SSR pages rather than serialized over
  * an HTTP boundary.
@@ -57,6 +74,10 @@ export const unifiedLibraryRowSchema = z.object({
   canRetry: z.boolean(),
   /// P05-B 只重拼：成片 READY、带后期快照且不是直接复用单段原片的，才能换字幕样式 / 配乐。
   canRestitch: z.boolean().default(false),
+  /// P05-C 成片的各段与重做入口；非单条订单行为空数组。
+  segments: z.array(unifiedLibrarySegmentSchema).default([]),
+  /// P05-C 有一段正在重做（生成中或等换上成片）：这时不能再重做别的段，也不能只重拼。
+  redoInFlight: z.boolean().default(false),
 });
 
 export type UnifiedLibraryRow = z.infer<typeof unifiedLibraryRowSchema>;

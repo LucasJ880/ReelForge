@@ -102,6 +102,20 @@ export async function resolveAssemblyInputs(
     fv.brief?.contentAngle?.round?.deliveryOrder?.productInput ?? null,
   );
 
+  /// P05-C：重做换挂后每个 segmentIndex 只能挂一行；挂了两行说明旧行没摘下来，
+  /// aiJobs.find 会静默取到其中一行（可能是被替换掉的旧段）——宁可合成失败回滚到旧成片。
+  const seenSegmentIndexes = new Set<number>();
+  for (const job of fv.segments) {
+    if (job.segmentIndex == null) continue;
+    if (seenSegmentIndexes.has(job.segmentIndex)) {
+      throw new StitchCompositionError(
+        "DUPLICATE_SEGMENT_INDEX",
+        `FinalVideo ${fv.id} has more than one segment attached at segmentIndex=${job.segmentIndex}`,
+      );
+    }
+    seenSegmentIndexes.add(job.segmentIndex);
+  }
+
   let clips: AssemblyClipInput[];
   try {
     clips = await resolveClips({

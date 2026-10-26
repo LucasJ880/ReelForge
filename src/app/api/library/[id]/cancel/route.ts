@@ -32,5 +32,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     refunded: result.refundedBriefs > 0,
     /// P05-B：只重拼中取消 = 回滚到旧成片的条数（订单未取消、无返还）
     restitchRolledBack: result.restitchRolledBack ?? 0,
+    /// P05-C：只取消了重做中的片段（订单未取消，每段已退回）
+    cancelledRedos: result.cancelledRedos ?? 0,
   });
 }

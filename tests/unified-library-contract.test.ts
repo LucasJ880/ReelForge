@@ -74,6 +74,10 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     /// 1025 · B1：短视频帖是「待生产」，按形态分区。
     "postFormat",
     "progress",
+    /// P05-C：段重做在途时不能再重做别的段、也不能只重拼。
+    "redoInFlight",
+    /// P05-C：成片各段与「重做这一段」入口。
+    "segments",
     "source",
     "status",
     "thumbnailUrl",

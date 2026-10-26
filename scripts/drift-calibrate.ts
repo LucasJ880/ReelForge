@@ -2,8 +2,8 @@
  * 漂移判据校准（X-SCAF-7 / E13）：抽帧 → 生产 vision 判据 + 可选本地 DINOv2-small 相似度 →
  * 与人工标签比召回 / 误杀，输出阈值表。
  *
- * - vision 只用生产 P01-B 的 `FRAME_DRIFT_SYSTEM` + `decideDriftVerdict`（适配层见
- *   scripts/lib/drift-calibration.ts）；P01-B 未合入时 vision 步骤跳过并说明，不自造判据。
+ * - vision 只用生产 P01-B 的 `FRAME_DRIFT_SYSTEM` + `buildDriftUserPrompt` + `decideDriftVerdict`
+ *   （直接 import src/lib/video-generation/frame-drift.ts，适配层见 scripts/lib/drift-calibration.ts），不自造判据。
  * - DINOv2（D-10，免采购）走本机 onnxruntime-node + 本地 onnx 模型文件；依赖不在 package.json 里，
  *   没装就跳过并提示安装方式（`npm i --no-save onnxruntime-node`），不往仓库加重依赖。
  * - 默认干跑：只核对视频 / 标签 / 参考图 / 判据 / 依赖是否齐，不抽帧、不调 OpenAI。
@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import * as productionDrift from "../src/lib/video-generation/frame-drift";
 import {
   PRODUCTION_DRIFT_MODULES,
   confusionBySplit,
@@ -177,20 +177,12 @@ function loadRefs(cli: Cli): (label: DriftLabel) => string[] {
   return () => [];
 }
 
-async function resolveJudge(): Promise<DriftJudgeResolution> {
-  const reasons: string[] = [];
-  for (const relative of PRODUCTION_DRIFT_MODULES) {
-    const file = path.resolve(process.cwd(), relative);
-    if (!existsSync(file)) {
-      reasons.push(`${relative} 不存在`);
-      continue;
-    }
-    const mod = (await import(pathToFileURL(file).href).catch(() => null)) as Record<string, unknown> | null;
-    const resolution = resolveProductionDriftJudge(relative, mod);
-    if (resolution.ok) return resolution;
-    reasons.push(resolution.reason);
-  }
-  return { ok: false, reason: reasons.join("；") };
+/** 直接 import 生产判据（X-SCAF-7：校准跑的必须是冻结后的生产函数，不另写一份）。 */
+function resolveJudge(): DriftJudgeResolution {
+  return resolveProductionDriftJudge(
+    PRODUCTION_DRIFT_MODULES[0],
+    productionDrift as unknown as Record<string, unknown>,
+  );
 }
 
 type OrtModule = {
@@ -233,7 +225,7 @@ async function main(): Promise<void> {
   const refsOf = loadRefs(cli);
   const matched = labels.filter((label) => fileById.has(label.videoId));
   const missingRefs = matched.filter((label) => refsOf(label).length === 0).map((label) => label.videoId);
-  const judge = await resolveJudge();
+  const judge = resolveJudge();
   const onnx = cli.dinov2Model ? await loadOnnxRuntime() : { ort: null, reason: "未指定 --dinov2-model" };
   const dinoReady = Boolean(onnx.ort && cli.dinov2Model && existsSync(cli.dinov2Model));
   const visionCalls = matched.length;
@@ -349,9 +341,16 @@ async function main(): Promise<void> {
         const findings = Array.isArray((response.data as { frames?: unknown }).frames)
           ? ((response.data as { frames: unknown[] }).frames)
           : [];
-        const decision = normalizeDriftDecision(judge.ok ? judge.judge.decide(findings, framePaths.length) : null);
-        visionPredictions.set(label.videoId, decision.drifted);
-        row.vision = { drifted: decision.drifted, ms: Date.now() - started, model: response.modelUsed, tokenUsage: response.tokenUsage, decision: decision.detail };
+        const decided = judge.ok ? judge.judge.decide(findings, framePaths.length) : null;
+        const skipped = (decided as { checked?: unknown; skipped?: unknown } | null)?.checked === false;
+        if (skipped) {
+          /// 判据没跑成（vision 没给 frames）不算一次预测，免得「没判」被统计成「没漂移」
+          row.vision = { skipped: (decided as { skipped?: unknown }).skipped ?? "判据未执行", ms: Date.now() - started, model: response.modelUsed, tokenUsage: response.tokenUsage };
+        } else {
+          const decision = normalizeDriftDecision(decided);
+          visionPredictions.set(label.videoId, decision.drifted);
+          row.vision = { drifted: decision.drifted, ms: Date.now() - started, model: response.modelUsed, tokenUsage: response.tokenUsage, decision: decision.detail };
+        }
       } else if (runVision) {
         row.vision = { skipped: "没有参考图" };
       }

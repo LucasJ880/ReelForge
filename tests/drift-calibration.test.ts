@@ -19,13 +19,41 @@ import {
   videoSimilarityScore,
   wilsonLowerBound,
 } from "../scripts/lib/drift-calibration";
+import * as frameDrift from "../src/lib/video-generation/frame-drift";
 import * as frameQa from "../src/lib/video-generation/frame-qa";
 
-test("适配层：当前 frame-qa 还没有 P01-B 判据 → 明确报未合入，不兜底", () => {
-  const resolution = resolveProductionDriftJudge("src/lib/video-generation/frame-qa.ts", frameQa as Record<string, unknown>);
-  assert.equal(resolution.ok, false);
-  if (!resolution.ok) assert.match(resolution.reason, /FRAME_DRIFT_SYSTEM \/ decideDriftVerdict（P01-B 未合入）/);
+test("适配层：P01-B 已合入——frame-drift 与 frame-qa 解析出同一组生产判据；缺导出仍明确报未合入", () => {
+  for (const [modulePath, mod] of [
+    ["src/lib/video-generation/frame-drift.ts", frameDrift],
+    ["src/lib/video-generation/frame-qa.ts", frameQa],
+  ] as const) {
+    const resolution = resolveProductionDriftJudge(modulePath, mod as unknown as Record<string, unknown>);
+    assert.equal(resolution.ok, true, modulePath);
+    if (resolution.ok) {
+      assert.equal(resolution.judge.system, frameDrift.FRAME_DRIFT_SYSTEM);
+      assert.equal(resolution.judge.decide, frameDrift.decideDriftVerdict);
+      assert.equal(resolution.judge.buildUserPrompt, frameDrift.buildDriftUserPrompt);
+    }
+  }
+  const missing = resolveProductionDriftJudge("m", { FRAME_DRIFT_SYSTEM: "S" });
+  assert.equal(missing.ok, false);
+  if (!missing.ok) assert.match(missing.reason, /decideDriftVerdict（P01-B 未合入）/);
   assert.equal(resolveProductionDriftJudge("x", null).ok, false);
+});
+
+test("生产判据的返回能被校准归一：漂移 / 不漂移；没跑成的带 checked=false 由脚本跳过而不是当成不漂移", () => {
+  const drifted = frameDrift.decideDriftVerdict([{ index: 0, productMatch: false, personConsistent: true, score: 7, issues: "瓶盖颜色不对" }], 1);
+  assert.equal(normalizeDriftDecision(drifted).drifted, true);
+  const clean = frameDrift.decideDriftVerdict([{ index: 0, productMatch: true, personConsistent: true, score: 9, issues: "" }], 1);
+  assert.equal(normalizeDriftDecision(clean).drifted, false);
+  assert.equal(frameDrift.decideDriftVerdict([], 6).checked, false);
+});
+
+test("校准脚本直接 import 生产 frame-drift，不再按路径动态找判据", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const script = await readFile("scripts/drift-calibrate.ts", "utf8");
+  assert.match(script, /import \* as productionDrift from "\.\.\/src\/lib\/video-generation\/frame-drift";/);
+  assert.match(script, /\?\.checked === false/);
 });
 
 test("适配层：P01-B 合入后的导出形状被原样接上，可选 user 提示词构造器", () => {

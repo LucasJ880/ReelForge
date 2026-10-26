@@ -1230,6 +1230,8 @@ export async function reconcileVideoJob(jobId: string) {
       priorFrameQaDetail: job.frameQaDetail,
       /// 真跑质检前按这次尝试占位：重叠的 cron 调用不重复质检同一段
       attempt: attemptPin(job),
+      /// 漂移影子的参考图按行类型取：批量行 assignedAssets，单条段行 brief 的参考图布局
+      driftSource: { assignedAssets: job.assignedAssets, videoBriefId: job.videoBriefId },
     });
     if (gate.action === "defer") {
       return db.videoJob.findUnique({ where: { id: jobId } });

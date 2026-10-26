@@ -1715,8 +1715,8 @@ export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
  * 视频提示词据此改写成「按已确认故事板拍」（storyboard-beats.groundSegmentPromptInStoryboard）。
  *
  * 按列切分（P02-F(s)）：实拍 = inputImageUrls，切片 = anchorCutoutUrls，主播 = personAssetIds 按本人素材解析。
- * `includeAnchorAndPersonReferences` 默认 false：grounding 目前只认「实拍在前、帧在后」，把切片 / 主播插进去
- * 会让帧序号错位；P02-F(v) 把 anchorCount / personCount 传给 grounding 时再打开。关着时两组恒为 0、不查主播素材。
+ * `includeAnchorAndPersonReferences` 默认 false：不把 anchorCount / personCount 传给 grounding 的调用方
+ * 打开它会让帧序号错位。单条派发（P02-F(v)）已打开并传张数。关着时两组恒为 0、不查主播素材。
  */
 export async function requireApprovedStoryboardVideoInputsForBrief(
   briefId: string,

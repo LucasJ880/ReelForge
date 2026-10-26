@@ -81,10 +81,10 @@ test("界面上的节奏名按语言显示，未知的原样显示", () => {
 
 test("接线：派发前按故事板改写提示词并写回 directorPlan；该段负面提示词一并传入预算", async () => {
   const service = await readFile("src/lib/services/video-service.ts", "utf8");
-  assert.match(service, /requireApprovedStoryboardVideoInputsForBrief\(briefId\)/);
+  assert.match(service, /requireApprovedStoryboardVideoInputsForBrief\(briefId, \{\n\s*includeAnchorAndPersonReferences: true,/);
   assert.match(service, /seedancePrompt: groundSegmentPromptInStoryboard\(segment\.seedancePrompt/);
   assert.match(service, /negativePrompt: segment\.negativePrompt,/);
-  assert.match(service, /directorPlan: groundedPlan as unknown as Prisma\.InputJsonValue/);
+  assert.match(service, /directorPlan: \{ \.\.\.groundedPlan, referenceLayout \} as unknown as Prisma\.InputJsonValue/);
   // 视频 provider 真正发出的拼接方式必须与预算用的分隔符一致
   for (const file of [
     "src/lib/video-generation/providers/shuyu-video-provider.ts",

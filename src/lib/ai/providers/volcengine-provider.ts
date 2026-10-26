@@ -227,6 +227,8 @@ export class VolcengineProvider implements AiProvider {
     const baseUrl = getBaseUrl();
     const visionModel = resolveTextModel("vision");
 
+    /// options.detail 是 OpenAI 的 image_url.detail 语义，Ark 没有对应参数：忽略。
+    /// maxTokens 也不下发：Ark 视觉模型按自家默认输出上限，与历史行为一致。
     const imageParts = options.imageUrls.slice(0, 5).map((url) => ({
       type: "image_url" as const,
       image_url: { url },

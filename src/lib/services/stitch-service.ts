@@ -10,6 +10,7 @@ import {
   VideoJobStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import { readDirectorPlanVoiceoverChunks } from "@/lib/schemas/director-plan";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
 import {
@@ -187,15 +188,18 @@ export function extractBrollClaimSegments(
 export function stitchTaskPayload(fv: {
   targetDurationSec: number;
   postProduction: unknown;
-  brief: { aspectRatio: string | null } | null;
+  brief: { aspectRatio: string | null; directorPlan?: unknown } | null;
   segments: Array<{ segmentIndex: number | null; outputVideoUrl: string | null; assignedAssets: unknown }>;
 }) {
+  /// P04-C：派发时持久化的各段台词（查询没带 directorPlan / 旧计划没有 → 不带，runner 按段时长切）
+  const voiceoverChunks = readDirectorPlanVoiceoverChunks(fv.brief?.directorPlan);
   return {
     segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
     aspectRatio: fv.brief?.aspectRatio ?? "9:16",
     targetDurationSec: fv.targetDurationSec,
     postProduction: parsePersistedPostProduction(fv.postProduction),
     brollSegments: extractBrollClaimSegments(fv.segments),
+    ...(voiceoverChunks ? { voiceoverChunks } : {}),
   };
 }
 
@@ -1246,6 +1250,8 @@ export interface NormalizeAndConcatClip {
   loopVideo?: boolean;
   /// 显式输出时长（b-roll：配音时长 + 呼吸间隙）
   targetDurationSec?: number;
+  /// 计划时长（legacy 段 = VideoJob.segmentDurationSec）：旧数据没有持久化台词时字幕按它切，不按裁尾后的实测
+  plannedDurationSec?: number | null;
 }
 
 export interface ComposedTimelineUrls {
@@ -1275,6 +1281,8 @@ export async function composeAndPersistTimeline(params: {
   captionWindowSec?: number | null;
   /// 强制帧率（b-roll：30）；不传 = 主片源帧率
   frameRate?: string;
+  /// P04-C：派发时持久化的各 AI 段台词（DirectorPlan.segmentPlan[].voiceoverChunk，按段序）；字幕逐段对齐用
+  voiceoverChunks?: ReadonlyArray<string> | null;
   extractThumbnail?: boolean;
   budget?: MediaBudget;
   checkpoint?: () => Promise<void>;
@@ -1308,6 +1316,7 @@ export async function composeAndPersistTimeline(params: {
         audioPath: localAudio,
         loopVideo: clip.loopVideo,
         targetDurationSec: clip.targetDurationSec,
+        plannedDurationSec: clip.plannedDurationSec,
       });
     }
 
@@ -1316,6 +1325,7 @@ export async function composeAndPersistTimeline(params: {
       aspectRatio: params.aspectRatio,
       postProduction: params.postProduction ?? null,
       captionWindowSec: params.captionWindowSec ?? null,
+      voiceoverChunks: params.voiceoverChunks ?? null,
       workDir: path.join(tmpDir, "work"),
       frameRate: params.frameRate,
       budget: params.budget,

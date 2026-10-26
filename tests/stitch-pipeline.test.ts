@@ -9,8 +9,9 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { probeMedia } from "../src/lib/media/ffmpeg-bin";
-import { __test__ as fontsTest } from "../src/lib/media/media-fonts";
+import { readFileSync, writeFileSync } from "node:fs";
+import { probeMedia, runFfmpeg } from "../src/lib/media/ffmpeg-bin";
+import { __test__ as fontsTest, ensureMediaFonts } from "../src/lib/media/media-fonts";
 import {
   buildTimelineFilterGraph,
   composeTimeline,
@@ -27,6 +28,13 @@ import {
   stepTimeout,
   thumbnailSeekSeconds,
 } from "../src/lib/media/stitch-pipeline";
+import {
+  buildTimedCues,
+  renderAssCaptions,
+  splitScriptByDurations,
+  type CaptionWord,
+} from "../src/lib/video-generation/audio-post-production";
+import { splitVoiceoverScript } from "../src/lib/video-generation/prompt-intelligence";
 import type { PostProductionPlan } from "../src/types/video-generation";
 import {
   ffmpegHasLibass,
@@ -62,6 +70,17 @@ function plan(overrides: {
     },
   } as PostProductionPlan;
 }
+
+/// 夹具：「一拧即开，随时补水。点击下方链接立即预约。」的逐词时间戳（毫秒，相对成片起点）
+const KARAOKE_WORDS: CaptionWord[] = [
+  { text: "一拧", startMs: 150, endMs: 650 },
+  { text: "即开，", startMs: 650, endMs: 1_200 },
+  { text: "随时", startMs: 1_350, endMs: 1_850 },
+  { text: "补水。", startMs: 1_850, endMs: 2_500 },
+  { text: "点击", startMs: 2_800, endMs: 3_200 },
+  { text: "下方链接", startMs: 3_200, endMs: 3_800 },
+  { text: "立即预约。", startMs: 3_800, endMs: 4_600 },
+];
 
 // ---------------------------------------------------------------------------
 // 纯函数
@@ -322,6 +341,132 @@ test("integration：加粗字幕烧录用的是打包 Noto Sans SC、字幕窗�
   assert.ok(result.captionWindowSec && Math.abs(result.captionWindowSec - 4) < 0.05, `caption window ${result.captionWindowSec}`);
   assert.match(result.stderr, /fontselect: \([^)]*\) -> [^\n]*NotoSansSC/);
   assert.doesNotMatch(result.stderr, /failed to find any fallback with glyph/);
+});
+
+/** "0:00:04.00" → 4000 */
+function assMs(stamp: string): number {
+  const [hours, minutes, seconds] = stamp.split(":");
+  return Math.round((Number(hours) * 3_600 + Number(minutes) * 60 + Number(seconds)) * 1_000);
+}
+
+test("integration：P04-C 持久化台词逐段对齐——两个 AI 段各背派发时分到的那句，窗口按量化后的实测段时长", async (t) => {
+  if (!(await ffmpegUsable()) || !(await ffmpegHasLibass())) return t.skip("ffmpeg with libass not installed");
+  if (!useBundledCjkFont(t)) return t.skip("bundled CJK font package not installed");
+  const dir = mkdtempSync(path.join(tmpdir(), "pipeline-chunks-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const first = await makeClip(path.join(dir, "first.mp4"), { durationSec: 4, audio: { kind: "tone", hz: 330, speechSec: 4 } });
+  const second = await makeClip(path.join(dir, "second.mp4"), { durationSec: 2, audio: { kind: "tone", hz: 440, speechSec: 2 } });
+  const workDir = path.join(dir, "work");
+  const chunks = ["一拧即开，随时补水。", "点击下方链接立即预约。"];
+  const result = await composeTimeline({
+    clips: [
+      { path: first, intendedDurationSec: 4, trimToFit: true, role: "ai_generated" },
+      { path: second, intendedDurationSec: 2, trimToFit: true, role: "ai_generated" },
+    ],
+    aspectRatio: "9:16",
+    postProduction: plan({ captions: true, style: "plain" }),
+    voiceoverChunks: chunks,
+    workDir,
+  });
+  assert.equal(result.applied.captions, true);
+  const ass = readFileSync(path.join(workDir, "captions.ass"), "utf8");
+  const dialogues = ass
+    .split("\n")
+    .filter((line) => line.startsWith("Dialogue:"))
+    .map((line) => {
+      const fields = line.split(",");
+      return { startMs: assMs(fields[1]), endMs: assMs(fields[2]), text: fields.slice(9).join(",") };
+    });
+  assert.ok(dialogues.length >= 2);
+  const inFirst = dialogues.filter((d) => d.endMs <= 4_000);
+  const inSecond = dialogues.filter((d) => d.startMs >= 4_000);
+  assert.equal(inFirst.length + inSecond.length, dialogues.length, "没有 cue 跨段");
+  assert.equal(inFirst.map((d) => d.text).join(""), chunks[0]);
+  assert.equal(inSecond.map((d) => d.text).join(""), chunks[1]);
+  assert.equal(inFirst[0]?.startMs, 0);
+  assert.equal(inSecond.at(-1)?.endMs, 6_000);
+});
+
+test("integration：legacy 段 + 语音安全裁尾 + 无持久化台词 → 字幕按计划时长（segmentDurationSec）切，不按裁尾后的实测", async (t) => {
+  if (!(await ffmpegUsable()) || !(await ffmpegHasLibass())) return t.skip("ffmpeg with libass not installed");
+  if (!useBundledCjkFont(t)) return t.skip("bundled CJK font package not installed");
+  const dir = mkdtempSync(path.join(tmpdir(), "pipeline-legacy-planned-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  /// 段 0：口播 6s 后静音到 7s → 裁 0.8s（实测 6.2s；裁尾要求裁完 ≥ 5s）；段 1：说满 7s → 不裁。计划都是 7s。
+  const first = await makeClip(path.join(dir, "first.mp4"), { durationSec: 7, audio: { kind: "tone", hz: 330, speechSec: 6 } });
+  const second = await makeClip(path.join(dir, "second.mp4"), { durationSec: 7, audio: { kind: "tone", hz: 440, speechSec: 7 } });
+  const script =
+    "Morning glare again? Not in this bedroom. Custom blackout curtains from SunnyShutter, measured and made for your exact window.";
+  const planned = splitVoiceoverScript(script, [{ durationSec: 7 }, { durationSec: 7 }]);
+  const workDir = path.join(dir, "work");
+  const result = await composeTimeline({
+    /// 与 stitch-composer.legacySegmentsToTimeline 同一形状：不填 intendedDurationSec、不 trimToFit、带裁尾、带计划时长
+    clips: [
+      { path: first, intendedDurationSec: null, trimToFit: false, role: "ai_generated", tailTrimSec: 0.8, plannedDurationSec: 7 },
+      { path: second, intendedDurationSec: null, trimToFit: false, role: "ai_generated", tailTrimSec: 0.8, plannedDurationSec: 7 },
+    ],
+    aspectRatio: "9:16",
+    postProduction: plan({ captions: true, style: "plain", script }),
+    workDir,
+  });
+  assert.ok((result.clips[0]?.tailTrimmedSec ?? 0) > 0.7, `segment 0 trimmed ${result.clips[0]?.tailTrimmedSec}`);
+  assert.equal(result.clips[1]?.tailTrimmedSec, 0, "说满的段不裁");
+  const boundaryMs = Math.round((result.clips[0]?.durationSec ?? 0) * 1_000);
+  assert.ok(boundaryMs < 6_300 && boundaryMs > 6_100, `measured boundary ${boundaryMs}`);
+  /// 这个夹具下按实测时长切会得到不同的边界（"Custom blackout | curtains"）——用例因此有区分度
+  assert.notDeepEqual(splitScriptByDurations(script, result.clips.map((clip) => clip.durationSec)), planned);
+  const ass = readFileSync(path.join(workDir, "captions.ass"), "utf8");
+  const dialogues = ass
+    .split("\n")
+    .filter((line) => line.startsWith("Dialogue:"))
+    .map((line) => {
+      const fields = line.split(",");
+      return { startMs: assMs(fields[1]), endMs: assMs(fields[2]), text: fields.slice(9).join(",") };
+    });
+  const squash = (value: string) => value.replace(/\s+/gu, " ").trim();
+  const textIn = (predicate: (d: { startMs: number; endMs: number }) => boolean) =>
+    squash(dialogues.filter(predicate).map((d) => d.text).join(" "));
+  /// 按中点归窗（窗界 3208ms 在 ASS 里落成 0:00:03.20）
+  assert.equal(textIn((d) => (d.startMs + d.endMs) / 2 < boundaryMs), squash(planned[0]), "段 0 字幕 = 按计划时长切出的第 1 句");
+  assert.equal(textIn((d) => (d.startMs + d.endMs) / 2 >= boundaryMs), squash(planned[1]), "段 1 字幕 = 按计划时长切出的第 2 句");
+  /// 窗口位置仍按实测：段 0 的字幕在 3.2s 前结束，段 1 从 3.2s 起
+  assert.ok(dialogues.filter((d) => (d.startMs + d.endMs) / 2 < boundaryMs).every((d) => d.endMs <= boundaryMs + 10));
+  assert.ok(dialogues.filter((d) => (d.startMs + d.endMs) / 2 >= boundaryMs).every((d) => d.startMs >= boundaryMs - 10));
+});
+
+test("integration：P04-B karaoke 字幕夹具实烧——Karaoke 样式 + 逐词 \\kf 标签，libass 用打包字体、无报错", async (t) => {
+  if (!(await ffmpegUsable()) || !(await ffmpegHasLibass())) return t.skip("ffmpeg with libass not installed");
+  if (!useBundledCjkFont(t)) return t.skip("bundled CJK font package not installed");
+  const dir = mkdtempSync(path.join(tmpdir(), "pipeline-karaoke-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const main = await makeClip(path.join(dir, "main.mp4"), { durationSec: 5, audio: { kind: "tone", hz: 330, speechSec: 5 } });
+  /// Phase 1 没有逐词时间戳来源，合成器不会走到这里；这条锁的是渲染器产物真的能被 libass 吃下
+  const cues = buildTimedCues(KARAOKE_WORDS, { language: "zh-CN" });
+  const ass = renderAssCaptions(cues, { aspectRatio: "9:16", position: "bottom", style: "karaoke", language: "zh-CN" });
+  assert.match(ass, /^Style: Captions,Noto Sans SC,/mu, "Captions 样式原样");
+  assert.match(ass, /^Style: Karaoke,Noto Sans SC,58,&H0000D7FF,&H00FFFFFF,/mu);
+  assert.match(ass, /^; Language: zh-CN$/mu);
+  const dialogues = ass.split("\n").filter((line) => line.startsWith("Dialogue:"));
+  assert.equal(dialogues.length, 2, "两句 → 两条 karaoke Dialogue");
+  assert.ok(dialogues.every((line) => line.includes(",Karaoke,,") && /\{\\kf\d+\}一拧|\{\\kf\d+\}点击/u.test(line)));
+  const assPath = path.join(dir, "captions.ass");
+  writeFileSync(assPath, ass, "utf8");
+  const { fontDir } = ensureMediaFonts();
+  assert.ok(fontDir, "bundled font dir");
+  const escape = (value: string) => value.replaceAll("\\", "\\\\").replaceAll(":", "\\:").replaceAll("'", "\\'");
+  const burn = await runFfmpeg(
+    [
+      "-hide_banner", "-loglevel", "info", "-nostats",
+      "-i", main,
+      "-vf", `scale=1080:1920,ass=filename='${escape(assPath)}':fontsdir='${escape(fontDir as string)}'`,
+      "-t", "2", "-f", "null", "-",
+    ],
+    { timeoutMs: 60_000 },
+  );
+  /// libass：字体选中打包的 Noto Sans SC，没有缺字回退、没有解析报错
+  assert.match(burn.stderr, /fontselect: \([^)]*\) -> [^\n]*NotoSansSC/);
+  assert.doesNotMatch(burn.stderr, /failed to find any fallback with glyph/);
+  assert.doesNotMatch(burn.stderr, /\[ass\][^\n]*(?:error|Error|failed|invalid)/u);
 });
 
 test("integration：卡在无限流上的 ffmpeg 到点被 SIGKILL 准时停；被预算封顶的超时转成预算异常", async (t) => {

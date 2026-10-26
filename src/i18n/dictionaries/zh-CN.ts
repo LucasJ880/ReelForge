@@ -47,6 +47,7 @@ export const zhCN: Dictionary = {
     distillation: "创意蒸馏",
     demoLeads: "线索",
     aiUsage: "AI 用量",
+    frameQa: "帧质检",
     settings: "设置",
     classicWizard: "向导（旧）",
     contentReports: "内容举报",

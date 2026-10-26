@@ -21,6 +21,7 @@ import {
   ChevronRight,
   Menu,
   Flag,
+  ScanEye,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
@@ -67,6 +68,12 @@ const INTERNAL_NAV: NavItem[] = [
     href: "/internal/ai-usage",
     labelKey: "nav.aiUsage",
     icon: Activity,
+    roles: ["SUPER_ADMIN", "OPERATOR"],
+  },
+  {
+    href: "/internal/frame-qa",
+    labelKey: "nav.frameQa",
+    icon: ScanEye,
     roles: ["SUPER_ADMIN", "OPERATOR"],
   },
   {

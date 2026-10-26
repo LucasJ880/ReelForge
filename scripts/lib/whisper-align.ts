@@ -466,12 +466,17 @@ function unescapeAssPlainText(value: string): string {
 export function parseAssDialogueText(
   text: string,
   cueStartMs: number,
-): { text: string; words?: TimedWord[] } {
+): { text: string; words?: TimedWord[]; highlight?: string } {
   const plainParts: string[] = [];
   const words: TimedWord[] = [];
   let sawKaraoke = false;
   let cursorMs = cueStartMs;
   let pendingDurationMs: number | null = null;
+  /// word_by_word 字幕：每条 Dialogue 是整句，只有当前词被 `{\1c&H…&}词{\r}` 包住。
+  /// 记下被包住的那个词，parseAssCues 才能把 N 条同句 Dialogue 合回一个 cue 并还原逐词起点。
+  let capturingHighlight = false;
+  let highlightBuffer = "";
+  let highlight: string | undefined;
 
   const pushSyllable = (raw: string) => {
     const syllable = unescapeAssPlainText(raw).trim();
@@ -510,11 +515,19 @@ export function parseAssDialogueText(
         buffer = "";
         sawKaraoke = true;
         pendingDurationMs = Math.round(Number(karaoke[1]) * 10);
+      } else if (/\\(?:1c|c)&H/u.test(block)) {
+        capturingHighlight = true;
+        highlightBuffer = "";
+      } else if (capturingHighlight && /\\r(?![a-z])/u.test(block)) {
+        capturingHighlight = false;
+        const captured = unescapeAssPlainText(highlightBuffer).trim();
+        if (captured.length > 0 && highlight === undefined) highlight = captured;
       }
       i = close + 1;
       continue;
     }
     buffer += ch;
+    if (capturingHighlight) highlightBuffer += ch;
     i += 1;
   }
   if (sawKaraoke) pushSyllable(buffer);
@@ -523,12 +536,63 @@ export function parseAssDialogueText(
   const plain = unescapeAssPlainText(plainParts.join(""))
     .replace(/\s+/gu, " ")
     .trim();
-  return sawKaraoke ? { text: plain, words } : { text: plain };
+  const base = sawKaraoke ? { text: plain, words } : { text: plain };
+  return highlight !== undefined ? { ...base, highlight } : base;
+}
+
+/** 相邻 Dialogue 的起止间隙在这个范围内就视为同一段 word_by_word 序列（渲染按厘秒首尾相接）。 */
+const WORD_BY_WORD_GAP_TOLERANCE_MS = 20;
+
+/**
+ * word_by_word 字幕把一句话渲染成 N 条首尾相接、纯文本相同的 Dialogue（每条高亮一个词）。
+ * 直接当 N 个 cue 会让参考文本重复 N 次，LCS 对齐与 P95 全部失真。这里把这样的连续段合回一个 cue：
+ * 起点取首条、终点取末条；每条高亮的词按该条的 Start 还原成逐词起点（没有高亮的条，比如首词前的
+ * 空当，只贡献时间范围）。普通字幕（文本不同或不相接）原样保留。
+ */
+export function mergeWordByWordRuns(
+  cues: ReadonlyArray<AssCue & { highlight?: string }>,
+): AssCue[] {
+  const merged: AssCue[] = [];
+  let run: Array<AssCue & { highlight?: string }> = [];
+
+  const flush = () => {
+    if (run.length === 0) return;
+    if (run.length === 1 && run[0].highlight === undefined) {
+      /// 没有 highlight 键的普通 cue 原样保留（只在解析到高亮时才会带这个键）
+      merged.push(run[0]);
+    } else {
+      const words = run
+        .filter((cue) => cue.highlight !== undefined)
+        .map((cue) => ({ text: cue.highlight as string, startMs: cue.startMs, endMs: cue.endMs }));
+      merged.push({
+        startMs: run[0].startMs,
+        endMs: Math.max(...run.map((cue) => cue.endMs)),
+        text: run[0].text,
+        ...(words.length > 0 ? { words } : {}),
+      });
+    }
+    run = [];
+  };
+
+  for (const cue of cues) {
+    const prev = run[run.length - 1];
+    const continuesRun =
+      prev !== undefined &&
+      cue.words === undefined &&
+      prev.words === undefined &&
+      cue.text === prev.text &&
+      cue.startMs >= prev.startMs &&
+      cue.startMs <= prev.endMs + WORD_BY_WORD_GAP_TOLERANCE_MS;
+    if (!continuesRun) flush();
+    run.push(cue);
+  }
+  flush();
+  return merged;
 }
 
 /** 读 ASS 文本里的 `Dialogue:` 行（跳过 Comment），按 [Events] 的 Format 行定位 Start/End/Text。 */
 export function parseAssCues(assText: string): AssCue[] {
-  const cues: AssCue[] = [];
+  const cues: Array<AssCue & { highlight?: string }> = [];
   let format = DEFAULT_EVENT_FORMAT;
   let inEvents = false;
   for (const rawLine of assText.split(/\r?\n/u)) {
@@ -552,9 +616,15 @@ export function parseAssCues(assText: string): AssCue[] {
     const startMs = parseAssTimestamp(fields[startIdx] ?? "");
     const endMs = parseAssTimestamp(fields[endIdx] ?? "");
     const parsed = parseAssDialogueText(fields[textIdx] ?? "", startMs);
-    cues.push({ startMs, endMs, text: parsed.text, ...(parsed.words ? { words: parsed.words } : {}) });
+    cues.push({
+      startMs,
+      endMs,
+      text: parsed.text,
+      ...(parsed.words ? { words: parsed.words } : {}),
+      ...(parsed.highlight !== undefined ? { highlight: parsed.highlight } : {}),
+    });
   }
-  return cues;
+  return mergeWordByWordRuns(cues);
 }
 
 /** 前 n-1 个逗号切分，最后一个字段（Text）保留其中的逗号。 */

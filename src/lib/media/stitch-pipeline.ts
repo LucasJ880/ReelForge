@@ -26,7 +26,7 @@ import type { PostProductionPlan } from "@/types/video-generation";
 import {
   BGM_TRACKS,
   buildAudioFilterPlan,
-  buildDeterministicCues,
+  planCaptionCues,
   renderAssCaptions,
   renderSrtCaptions,
 } from "@/lib/video-generation/audio-post-production";
@@ -241,6 +241,11 @@ export interface TimelineClip {
   loopVideo?: boolean;
   /** 显式输出时长（秒）：给了就不按源时长 / 裁尾推算（b-roll 由配音时长驱动） */
   targetDurationSec?: number;
+  /**
+   * 计划时长（秒；legacy 段 = VideoJob.segmentDurationSec）。只给字幕用：旧数据没有持久化台词时按它
+   * 切，不按裁尾后的实测。不影响裁剪（裁剪只看 intendedDurationSec + trimToFit / 裁尾）。
+   */
+  plannedDurationSec?: number | null;
 }
 
 export interface TimelineClipReport {
@@ -454,6 +459,11 @@ export interface ComposeTimelineInput {
    * 片段，按量化后的实际时长 = 总长 - 被排除片段时长。
    */
   captionWindowSec?: number | null;
+  /**
+   * P04-C：派发时持久化的各 AI 段台词（DirectorPlan.segmentPlan[].voiceoverChunk，按段序）。
+   * 字幕按段窗口逐段对齐时直接用它；没有（旧计划）按各段计划时长重切。
+   */
+  voiceoverChunks?: ReadonlyArray<string> | null;
   workDir: string;
   /** 强制帧率（b-roll：30）；不传 = 主片（第一段）源帧率 */
   frameRate?: string;
@@ -686,7 +696,18 @@ export async function composeTimeline(
     /// 台词只属于口播所在的主片段：窗口外（尾卡/静帧英雄镜头）不背字幕。
     const captionSpanSec =
       captionWindowSec && captionWindowSec > 0 ? Math.min(totalSec, captionWindowSec) : totalSec;
-    const cues = buildDeterministicCues(effects.script, captionSpanSec);
+    /// P04-B：按 AI 段窗口铺字幕（窗口位置 = 量化后的实测段时长；台词 = 派发时持久化的 chunk，
+    /// 没有就按计划时长重切）；没有 AI 段（b-roll / 全上传）才整片均分
+    const { cues } = planCaptionCues({
+      script: effects.script,
+      segments: states.map((state) => ({
+        durationSec: state.durationSec,
+        plannedDurationSec: state.clip.plannedDurationSec ?? state.clip.intendedDurationSec,
+        captioned: state.role === "ai_generated",
+      })),
+      captionSpanSec,
+      voiceoverChunks: input.voiceoverChunks,
+    });
     const assPath = path.join(input.workDir, "captions.ass");
     const aspectRatio =
       input.aspectRatio === "16:9" || input.aspectRatio === "1:1" ? input.aspectRatio : "9:16";
@@ -696,6 +717,7 @@ export async function composeTimeline(
         aspectRatio,
         position: input.postProduction.captions.position,
         style: input.postProduction.captions.style,
+        language: input.postProduction.captions.language,
       }),
       "utf8",
     );

@@ -44,7 +44,7 @@ RULES:
 - No brand names, no logos, no on-screen text instructions.`;
 
 /// 有主播参考图（开关放行且素材标了 person）时追加的规则（P02-C）：人物身份以主播参考图为准，
-/// 描述要具体但不许和那张照片打架。（主播图何时真正进视频参考由 P02-F(s) 决定，这里不做承诺。）
+/// 描述要具体但不许和那张照片打架。（主播图何时真正进视频参考由 P02-F(v) 决定，这里不做承诺。）
 const PRESENTER_REFERENCE_RULE =
   `- A PRESENTER REFERENCE PHOTO is attached: characterProfile MUST describe the person in that photo. Open with "the exact person in the presenter reference photo", then give a concrete, reproducible description (hair, skin tone, build, age range, EXACT outfit, vibe) that stays faithful to that person and the brief. Never invent a different person.`;
 

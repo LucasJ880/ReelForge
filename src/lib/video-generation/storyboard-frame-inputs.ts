@@ -7,7 +7,7 @@
  *
  * 规则（总数 ≤ max，默认 5）：
  * 1. 商家实拍至少 min(实拍数, 3) 张排最前（产品身份优先于一切，含前帧）；
- * 2. 商品锚点切片其次（本阶段恒为空数组，P02-F(s) 接 anchorCutoutUrls 列）；
+ * 2. 商品锚点切片其次（取 anchorCutoutUrls 列；P02-E 写入之前恒为空数组）；
  * 3. 主播参考图只在第 0 帧（`isFirstFrame`，含重做第 0 帧）且最多 1 张——帧是流水线提交的，
  *    前帧有没有出来不能当首帧判据；
  * 4. 前帧只留 1 张（最近一张已成功的），放最后；没有已成功的前帧就不占位；
@@ -37,7 +37,7 @@ export interface StoryboardFrameInputImage {
 export interface ComposeStoryboardFrameInputImagesInput {
   /// 商家实拍（StoryboardRun.inputImageUrls）
   productImages: readonly string[];
-  /// 商品锚点切片（StoryboardRun.anchorCutoutUrls；P02-F(s) 之前恒空）
+  /// 商品锚点切片（StoryboardRun.anchorCutoutUrls；P02-E 之前恒空）
   anchorCutouts?: readonly string[];
   /// 主播参考图 URL（按 StoryboardRun.personAssetIds 解析，首张 = 主播）
   personImages?: readonly string[];

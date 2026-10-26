@@ -512,7 +512,7 @@ export async function createStoryboardRun(
     throw new StoryboardRequestError("故事板只接受图片素材。", "VALIDATION_FAILED");
   }
   // 主播图只校验归属与类型、落 id 列；URL 在提交第 0 帧时用同一个解析器按列重新解析
-  //（M1 没有主播 URL 列，快照落列等 P02-F(s) 的列），不混进 inputImageUrls——那一列只放商家实拍。
+  //（M1 没有主播 URL 列；派发分组也按 personAssetIds 解析），不混进 inputImageUrls——那一列只放商家实拍。
   const personAssets = await resolveStoryboardPersonImages(input.userId, personAssetIds);
   if (personAssets.length !== personAssetIds.length) {
     throw new StoryboardRequestError("主播参考图不存在或无权访问。", "NOT_FOUND", 404);
@@ -1584,21 +1584,65 @@ export const SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT = 8;
  *
  * 此前单条路径用故事板帧整体覆盖了原图，视频模型从头到尾看不到商家实拍，
  * 产品细节只能靠 AI 帧转述而漂移。实拍锚产品外观、故事板帧锚镜头连续性，
- * 两者都要：实拍最多占到「上限 − 帧数」个位置（至少 1 张），保证在常规上限内
+ * 两者都要：帧之外的位置是「上限 − 帧数」个（至少 1 张），保证在常规上限内
  * 故事板帧不被挤掉；供应商侧若再按套餐上限截断，也是从队尾（帧）开始丢。
+ *
+ * P02-F(s) 起按角色分组，顺序 实拍 → 切片 → 主播 → 帧（切片在 P02-E 之前恒为空）。帧之外的位置先给
+ * 实拍保底 min(实拍数, 2)，再给主播 1 张（首张 = 主播，其余角度只进故事板首帧），再给切片，余下补实拍。
+ * 没有切片与主播时与分组前逐张一致。
  */
-export function composeSingleVideoReferenceImages(input: {
+export const SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS = 2;
+
+export interface SingleVideoReferenceGroups {
+  references: string[];
+  productPhotoCount: number;
+  anchorCount: number;
+  personCount: number;
+  frameCount: number;
+}
+
+export function composeSingleVideoReferenceGroups(input: {
   productImageUrls: readonly string[];
+  anchorCutoutUrls?: readonly string[];
+  personUrls?: readonly string[];
   storyboardFrameUrls: readonly string[];
   limit?: number;
-}): string[] {
+}): SingleVideoReferenceGroups {
   const limit = Math.max(1, input.limit ?? SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);
-  const frames = [...new Set(input.storyboardFrameUrls.filter(Boolean))];
-  const frameSet = new Set(frames);
-  const photos = [...new Set(input.productImageUrls.filter(Boolean))]
-    .filter((url) => !frameSet.has(url));
-  const photoSlots = Math.max(1, limit - frames.length);
-  return [...photos.slice(0, photoSlots), ...frames].slice(0, limit);
+  const taken = new Set<string>();
+  const unique = (urls: readonly string[] | undefined) => {
+    const out = [...new Set((urls ?? []).filter(Boolean))].filter((url) => !taken.has(url));
+    out.forEach((url) => taken.add(url));
+    return out;
+  };
+  const frames = unique(input.storyboardFrameUrls);
+  const photos = unique(input.productImageUrls);
+  const cutouts = unique(input.anchorCutoutUrls);
+  const persons = unique(input.personUrls);
+  let slots = Math.max(1, limit - frames.length);
+  const guaranteedPhotos = photos.slice(0, Math.min(photos.length, SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS, slots));
+  slots -= guaranteedPhotos.length;
+  const person = persons.length > 0 && slots > 0 ? [persons[0]] : [];
+  slots -= person.length;
+  const pickedCutouts = cutouts.slice(0, Math.max(0, slots));
+  slots -= pickedCutouts.length;
+  const pickedPhotos = photos.slice(0, guaranteedPhotos.length + Math.max(0, slots));
+  /// 只有帧数 ≥ 上限时这里才会截掉队尾的帧；张数按截断后的真实列表数。
+  const references = [...pickedPhotos, ...pickedCutouts, ...person, ...frames].slice(0, limit);
+  const count = (group: readonly string[]) => references.filter((url) => group.includes(url)).length;
+  return {
+    references,
+    productPhotoCount: count(pickedPhotos),
+    anchorCount: count(pickedCutouts),
+    personCount: count(person),
+    frameCount: count(frames),
+  };
+}
+
+export function composeSingleVideoReferenceImages(
+  input: Parameters<typeof composeSingleVideoReferenceGroups>[0],
+): string[] {
+  return composeSingleVideoReferenceGroups(input).references;
 }
 
 /**
@@ -1611,33 +1655,43 @@ export async function requireApprovedStoryboardVideoReferencesForBrief(
   return (await requireApprovedStoryboardVideoInputsForBrief(briefId)).references;
 }
 
-/**
- * 派发单条视频需要的故事板全部输入：参考图（实拍在前、帧在后）+ 商家原话 + 各帧节奏。
- * 视频提示词据此改写成「按已确认故事板拍」（storyboard-beats.groundSegmentPromptInStoryboard）。
- */
-export async function requireApprovedStoryboardVideoInputsForBrief(briefId: string): Promise<{
-  references: string[];
-  productPhotoCount: number;
+export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
   story: string;
   beats: string[];
   totalDurationSec: number;
   aspectRatio: string;
-}> {
+}
+
+/**
+ * 派发单条视频需要的故事板全部输入：参考图（实拍 → 切片 → 主播 → 帧）+ 各组张数 + 商家原话 + 各帧节奏。
+ * 视频提示词据此改写成「按已确认故事板拍」（storyboard-beats.groundSegmentPromptInStoryboard）。
+ *
+ * 按列切分（P02-F(s)）：实拍 = inputImageUrls，切片 = anchorCutoutUrls，主播 = personAssetIds 按本人素材解析。
+ * `includeAnchorAndPersonReferences` 默认 false：grounding 目前只认「实拍在前、帧在后」，把切片 / 主播插进去
+ * 会让帧序号错位；P02-F(v) 把 anchorCount / personCount 传给 grounding 时再打开。关着时两组恒为 0、不查主播素材。
+ */
+export async function requireApprovedStoryboardVideoInputsForBrief(
+  briefId: string,
+  options: { includeAnchorAndPersonReferences?: boolean; limit?: number } = {},
+): Promise<StoryboardVideoInputs> {
   const { run, frameUrls } = await loadApprovedStoryboardForBrief(briefId);
-  /// inputImageUrls 只放商家实拍：主播参考图在 personAssetIds 列，不进这里，也不算实拍张数（P02-D(s)）。
-  /// 主播图是否随派发进视频参考、以及分组返回，留 P02-F(s)。
-  const references = composeSingleVideoReferenceImages({
+  const grouped = options.includeAnchorAndPersonReferences === true;
+  const personUrls = grouped
+    ? (await resolveStoryboardPersonImages(run.userId, run.personAssetIds ?? [])).map((asset) => asset.url)
+    : [];
+  const groups = composeSingleVideoReferenceGroups({
     productImageUrls: run.inputImageUrls,
+    anchorCutoutUrls: grouped ? run.anchorCutoutUrls ?? [] : [],
+    personUrls,
     storyboardFrameUrls: frameUrls,
+    limit: options.limit,
   });
   const beats = run.frames
     .filter((frame) => frame.isCurrent !== false && frame.status === StoryboardFrameStatus.SUCCEEDED)
     .sort((a, b) => a.ordinal - b.ordinal)
     .map((frame) => frame.beat);
   return {
-    references,
-    /// 帧在上限内总是全部保留（见 composeSingleVideoReferenceImages），排在前面的就是实拍张数
-    productPhotoCount: Math.max(0, references.length - frameUrls.length),
+    ...groups,
     story: run.sourcePrompt,
     beats,
     totalDurationSec: run.durationSec,

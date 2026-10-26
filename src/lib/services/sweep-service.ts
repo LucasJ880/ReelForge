@@ -14,7 +14,7 @@ import {
   isHistoricalDispatchQuarantined,
   isRealVideoDispatchMode,
 } from "./historical-dispatch-quarantine";
-import { MAX_STITCH_ATTEMPTS } from "./stitch-service";
+import { MAX_STITCH_ATTEMPTS, rollbackRestitch } from "./stitch-service";
 import {
   quotaRefundCutoff,
   reconcileUndeliveredQuotaRefunds,
@@ -52,10 +52,13 @@ import {
  *  2. FinalVideo 卡在 STITCHING —— runner 领取后崩溃/失联，超过 stitch 超时。
  *     → stitchAttempts+1；未达上限转回 PENDING（可被 runner 重新领取，续跑），
  *       达上限转 FAILED（UI 暴露重试）。
+ *     → P05-B：只重拼中的行（previousStitchedVideoUrl 非空）达上限不落 FAILED，
+ *       走 rollbackRestitch 回到旧成片，brief 不动。
  *
  *  3. FinalVideo 卡在「等待合成」—— PENDING + 所有段 SUCCEEDED，但自最后一段
  *     完成起超过等待超时仍没被任何 worker 领取（本次事故的形态）。
  *     → FAILED + 人话 ffmpegError。重试走 retryStitch 续跑（复用已付费段）。
+ *       只重拼中的行同样回滚到旧成片而不是 FAILED。
  *     没有 brief 也没有段、超过一天的 PENDING 孤儿只改状态归档为 FAILED。
  *
  *  4. 自助派发中途异常留下的「无任务 brief」—— 严格限定范围，见
@@ -126,6 +129,8 @@ export interface SweepResult {
   failedStitching: string[];
   /// 等待合成超时 → FAILED 的 FinalVideo
   failedAwaitingStitch: string[];
+  /// P05-B：只重拼中超时（STITCHING 达上限 / 等合成超时）→ 回滚到旧成片的 FinalVideo
+  rolledBackRestitch: string[];
   /// 没有 brief 也没有分段的 PENDING 孤儿 → 归档为 FAILED（只改状态）
   failedOrphanFinalVideos: string[];
   /// 自助派发中途异常、一个任务都没建出来的 brief → RENDER_FAILED
@@ -141,6 +146,7 @@ export async function sweepStuckTasks(now = new Date()): Promise<SweepResult> {
     requeuedStitching: [],
     failedStitching: [],
     failedAwaitingStitch: [],
+    rolledBackRestitch: [],
     failedOrphanFinalVideos: [],
     failedJoblessBriefs: [],
   };
@@ -410,6 +416,14 @@ async function sweepStuckStitching(now: Date, result: SweepResult) {
         },
       });
       if (updated.count > 0) result.requeuedStitching.push(fv.id);
+    } else if (fv.previousStitchedVideoUrl) {
+      /// P05-B：只重拼反复超时 → 回到旧成片，不落 FAILED、不碰 brief
+      const rolled = await rollbackRestitch(fv.id, `sweep: ${STITCH_TIMEOUT_ERROR}`, {
+        status: [FinalVideoStatus.STITCHING],
+        attemptToken: fv.stitchAttemptToken,
+        now,
+      });
+      if (rolled.rolledBack) result.rolledBackRestitch.push(fv.id);
     } else {
       const updated = await db.finalVideo.updateMany({
         where: {
@@ -465,6 +479,16 @@ async function sweepAwaitingStitchTimeout(now: Date, result: SweepResult) {
     );
     const anchor = Math.max(lastFinished, fv.startedAt?.getTime() ?? 0) || fv.createdAt.getTime();
     if (now.getTime() - anchor < timeoutMs) continue;
+
+    /// P05-B：只重拼排队超时 → 回到旧成片，不落 FAILED、不碰 brief
+    if (fv.previousStitchedVideoUrl) {
+      const rolled = await rollbackRestitch(fv.id, `sweep: ${AWAIT_STITCH_TIMEOUT_ERROR}`, {
+        status: [FinalVideoStatus.PENDING],
+        now,
+      });
+      if (rolled.rolledBack) result.rolledBackRestitch.push(fv.id);
+      continue;
+    }
 
     const updated = await db.finalVideo.updateMany({
       where: { id: fv.id, status: FinalVideoStatus.PENDING },
@@ -636,6 +660,8 @@ async function markBriefStitchFailed(briefId: string) {
 }
 
 export const __test__ = {
+  sweepStuckStitching,
+  sweepAwaitingStitchTimeout,
   JOB_TIMEOUT_USER_ERROR,
   STITCH_TIMEOUT_ERROR,
   AWAIT_STITCH_TIMEOUT_ERROR,

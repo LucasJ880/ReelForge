@@ -60,6 +60,7 @@ import {
 import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantine";
 import { decideFrameQaGate, type FrameQaAttemptPin } from "./frame-qa-gate";
 import { CUSTOMER_CANCELLED_CLASS } from "./single-video-cancel-service";
+import { isDeliveredBriefStatus } from "@/lib/video-generation/brief-delivery-state";
 import {
   requireApprovedStoryboardVideoInputsForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
@@ -529,6 +530,9 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         subtitleFileUrl: null,
         ffmpegError: null,
         stitchAttemptToken: null,
+        /// 重新生成 = 一次全新成片，不再是只重拼：清掉回滚依据（P05-B）
+        previousStitchedVideoUrl: null,
+        previousPostProduction: Prisma.DbNull,
         startedAt: null,
         finishedAt: null,
         segmentCount: plan.segmentPlan.length,
@@ -1481,7 +1485,7 @@ export async function retryFailedVideoJob(jobId: string) {
         providerPlanId: accepted.providerPlanId,
         providerUnitPoints: accepted.providerUnitPoints,
       });
-      /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试
+      /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试；段重跑后的成片不是只重拼，清掉回滚依据（P05-B）
       await db.finalVideo.update({
         where: { id: job.finalVideoId },
         data: {
@@ -1489,6 +1493,8 @@ export async function retryFailedVideoJob(jobId: string) {
           ffmpegError: null,
           stitchAttemptToken: null,
           subtitleFileUrl: null,
+          previousStitchedVideoUrl: null,
+          previousPostProduction: Prisma.DbNull,
         },
       });
       return updated;
@@ -1794,6 +1800,17 @@ async function onAllSegmentsSucceeded(finalVideoId: string, briefId: string) {
       status: FinalVideoStatus.PENDING,
     },
   });
+  /// P05-B：已交付（QA 通过 / 待发布 / 已发布）的 brief 不因只重拼被打回 RENDERING；
+  /// 只重拼在途（previousStitchedVideoUrl 非空）时 brief 也不动——成片一直都在，
+  /// 重拼失败会回滚到旧片，brief 从头到尾都该是「有成片」的状态。
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: { status: true, finalVideo: { select: { previousStitchedVideoUrl: true } } },
+  });
+  if (!brief) return;
+  if (isDeliveredBriefStatus(brief.status) || brief.finalVideo?.previousStitchedVideoUrl) {
+    return;
+  }
   /// brief 仍标 RENDERING（用户视角：「正在合成完整视频」）
   await db.videoBrief.update({
     where: { id: briefId },

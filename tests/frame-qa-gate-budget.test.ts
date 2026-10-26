@@ -245,6 +245,7 @@ test("[frame-qa-gate] cron 预算内：真跑质检，历史拦截次数从库�
         used: 1,
         maxChecks: 2,
         deferred: 0,
+        visionFailures: 0,
       });
       return result;
     },

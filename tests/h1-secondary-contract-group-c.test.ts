@@ -169,10 +169,17 @@ test("H1 secondary contracts group C", async (t) => {
         videoBrief: { id: "brief-1" },
       }),
       findFirst: async () => ({ id: "qa-ai-existing" }),
-      update: async (args: { where: { id: string } }) =>
-        args.where.id === "qa-ai-existing"
-          ? { id: "qa-ai-existing", status: "PENDING", aiOverallScore: 7 }
-          : { id: "qa-review-1", status: "APPROVED", reviewerId: sessions.reviewer.user.id },
+      update: async () => ({ id: "qa-review-1", status: "APPROVED", reviewerId: sessions.reviewer.user.id }),
+    });
+    /// runAIQA 更新既有行走事务内 JSON CAS（qa-review-write）
+    patch(st, db as unknown as MutableRecord, {
+      $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn({
+          qAReview: {
+            findUnique: async () => ({ id: "qa-ai-existing", status: "PENDING", aiScoreBreakdown: null, aiIssues: null }),
+            updateMany: async () => ({ count: 1 }),
+          },
+        }),
     });
     patch(st, videoBrief, {
       findUnique: async () => ({
@@ -283,13 +290,15 @@ test("H1 secondary contracts group C", async (t) => {
       { id: "qa-review-1", status: "APPROVED", reviewerId: sessions.reviewer.user.id },
     );
 
-    await assertJson(
-      await briefQa(
-        briefQaRequest(),
-        { params: Promise.resolve({ id: "brief-ai-1" }) },
-      ),
-      200,
-      { id: "qa-ai-existing", status: "PENDING", aiOverallScore: 7 },
+    const aiQa = await briefQa(
+      briefQaRequest(),
+      { params: Promise.resolve({ id: "brief-ai-1" }) },
+    );
+    assert.equal(aiQa.status, 200);
+    const aiQaBody = (await aiQa.json()) as Record<string, unknown>;
+    assert.deepEqual(
+      { id: aiQaBody.id, status: aiQaBody.status, aiOverallScore: aiQaBody.aiOverallScore },
+      { id: "qa-ai-existing", status: "PENDING", aiOverallScore: 70 },
     );
   });
 

@@ -12,6 +12,10 @@ import { pollPendingContentPostRenders } from "@/lib/services/content-post-image
 import { sweepProductAnchorCutouts } from "@/lib/services/product-anchor-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-service";
+import {
+  FINAL_FRAME_QA_BATCH,
+  runPendingFinalFrameQa,
+} from "@/lib/services/final-frame-qa-service";
 
 /**
  * Vercel Cron 调用：每 1-5 分钟扫描一次正在运行的 VideoJob，
@@ -27,6 +31,9 @@ import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-ser
  *
  * P02-E0：产品锚点的待抠图续跑也挂在这里（每轮最多 5 个、总预算 20s），
  * 由 PRODUCT_ANCHOR_CUTOUT_CRON=on 打开，默认关；抠图能力不可用时直接跳过。
+ *
+ * P01-E（影子）：成片级复检在同一份帧质检预算里跟在轮询 / 清扫之后跑，每次最多 2 条，
+ * 由 FINAL_FRAME_QA_MODE=shadow 打开，默认 off；结论只记进 QAReview，不拦任何东西。
  */
 export const maxDuration = 300;
 
@@ -39,6 +46,7 @@ interface PollVideosDependencies {
   pollPendingContentPostRenders: typeof pollPendingContentPostRenders;
   sweepStuckTasks: typeof sweepStuckTasks;
   sweepProductAnchorCutouts: typeof sweepProductAnchorCutouts;
+  runPendingFinalFrameQa: typeof runPendingFinalFrameQa;
 }
 
 const defaultDependencies: PollVideosDependencies = {
@@ -50,6 +58,7 @@ const defaultDependencies: PollVideosDependencies = {
   pollPendingContentPostRenders,
   sweepStuckTasks,
   sweepProductAnchorCutouts,
+  runPendingFinalFrameQa,
 };
 
 function errorMessage(result: PromiseRejectedResult): string {
@@ -72,12 +81,17 @@ export function createPollVideosHandler(
       dependencies.sweepProductAnchorCutouts(),
     ] as const);
     const [sweepResult] = await Promise.allSettled([dependencies.sweepStuckTasks()]);
+    /// 成片级复检排在最后：段级门禁先用预算，复检吃剩下的（都在同一个 runWithFrameQaBudget 里）
+    const [finalFrameQaResult] = await Promise.allSettled([
+      dependencies.runPendingFinalFrameQa(FINAL_FRAME_QA_BATCH),
+    ]);
 
     const imageFailed = imageResult.status === "rejected";
     const storyboardFailed = storyboardResult.status === "rejected";
     const contentPostFailed = contentPostResult.status === "rejected";
     const anchorFailed = anchorResult.status === "rejected";
     const sweepFailed = sweepResult.status === "rejected";
+    const finalFrameQaFailed = finalFrameQaResult.status === "rejected";
     if (imageFailed) {
       console.warn("[cron/poll-videos] image poll failed:", errorMessage(imageResult));
     }
@@ -92,6 +106,9 @@ export function createPollVideosHandler(
     }
     if (sweepFailed) {
       console.warn("[cron/poll-videos] sweep failed:", errorMessage(sweepResult));
+    }
+    if (finalFrameQaFailed) {
+      console.warn("[cron/poll-videos] final-frame qa failed:", errorMessage(finalFrameQaResult));
     }
 
     if (videoResult.status === "rejected") {
@@ -113,13 +130,16 @@ export function createPollVideosHandler(
           anchorCutout: anchorResult.status === "fulfilled" ? anchorResult.value : null,
           anchorCutoutError: anchorFailed ? errorMessage(anchorResult) : null,
           sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
+          finalFrameQa: finalFrameQaResult.status === "fulfilled" ? finalFrameQaResult.value : null,
+          finalFrameQaError: finalFrameQaFailed ? errorMessage(finalFrameQaResult) : null,
           heartbeat: heartbeatEvent,
         },
         { status: 500 },
       );
     }
 
-    const degraded = imageFailed || storyboardFailed || contentPostFailed || anchorFailed || sweepFailed;
+    const degraded =
+      imageFailed || storyboardFailed || contentPostFailed || anchorFailed || sweepFailed || finalFrameQaFailed;
     const heartbeatEvent = heartbeat.finish(degraded ? "degraded" : "ok", {
       polled: videoResult.value.polled,
       imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
@@ -138,6 +158,8 @@ export function createPollVideosHandler(
       anchorCutout: anchorResult.status === "fulfilled" ? anchorResult.value : null,
       anchorCutoutError: anchorFailed ? errorMessage(anchorResult) : null,
       sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
+      finalFrameQa: finalFrameQaResult.status === "fulfilled" ? finalFrameQaResult.value : null,
+      finalFrameQaError: finalFrameQaFailed ? errorMessage(finalFrameQaResult) : null,
       degraded,
       frameQa: frameQaBudgetUsage(),
       heartbeat: heartbeatEvent,

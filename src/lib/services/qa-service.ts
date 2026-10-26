@@ -1,6 +1,8 @@
 import { Prisma, QAStatus, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chatJsonByTier, isLLMAvailable } from "@/lib/ai";
+import { mergeAiQaReview } from "@/lib/services/qa-review-merge";
+import { writeQaReview } from "@/lib/services/qa-review-write";
 import {
   QA_CRITERIA,
   calcOverallScore,
@@ -91,18 +93,24 @@ ${script.fullText}
     orderBy: { createdAt: "desc" },
   });
 
+  /// P01-E1：按归属合并——AI QA 整块替换自己的 8 维打分与自己的问题，只保留同一行上
+  /// 成片级复检（P01-E）的 finalFrameQa 子对象与「[成片复检]」前缀的问题，不做通用并集。
   const saved = existing
-    ? await db.qAReview.update({
-        where: { id: existing.id },
-        data: {
-          aiOverallScore: overall,
-          aiScoreBreakdown: breakdown as unknown as Prisma.InputJsonValue,
-          aiIssues: issues as unknown as Prisma.InputJsonValue,
-          aiSuggestions: suggestions as unknown as Prisma.InputJsonValue,
-          aiReviewRoute: route,
-          reviewerComment: reasoning,
+    ? await writeQaReview(
+        (tx) => tx.qAReview.findUnique({ where: { id: existing.id } }),
+        (fresh) => {
+          const data = {
+            aiOverallScore: overall,
+            ...mergeAiQaReview(fresh, {
+              breakdown: breakdown as unknown as Record<string, unknown>, issues,
+            }),
+            aiSuggestions: suggestions as unknown as Prisma.InputJsonValue,
+            aiReviewRoute: route,
+            reviewerComment: reasoning,
+          };
+          return { data, result: { ...fresh, ...data } };
         },
-      })
+      )
     : await db.qAReview.create({
         data: {
           videoBriefId: briefId,
@@ -116,6 +124,7 @@ ${script.fullText}
         },
       });
 
+  if (!saved) throw new Error("QA 记录已变化，请重试");
   return saved;
 }
 

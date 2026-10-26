@@ -141,6 +141,38 @@ test("合成中也能取消；返还真的退回额度时如实返回 refunded",
   assert.deepEqual(result, { ok: true, state: "cancelled", refunded: true });
 });
 
+test("只重拼中取消（P05-B 第五个回滚出口）：回滚到旧成片 + 旧快照，不开事务、不取消订单、不返还", async (t) => {
+  const OLD_URL = "https://abc.public.blob.vercel-storage.com/final-videos/broll_fv-1/old.mp4";
+  const OLD_PLAN = { audio: { voiceover: { enabled: false, voiceId: "warm-confident", language: "zh", script: "" }, bgm: { trackId: "none", volume: 0 } }, captions: { enabled: true, style: "plain", language: "zh", position: "bottom", exportSrt: false } };
+  const calls = stubDb(t, {
+    ...brollBrief({ finalStatus: FinalVideoStatus.STITCHING }),
+    finalVideo: { id: "broll_fv-1", status: FinalVideoStatus.STITCHING, previousStitchedVideoUrl: OLD_URL },
+  });
+  const rollbacks: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  const anyDb = db as unknown as Record<string, Record<string, unknown>>;
+  patch(t, anyDb.finalVideo, "findUnique", async () => ({ previousStitchedVideoUrl: OLD_URL, previousPostProduction: OLD_PLAN }));
+  patch(t, anyDb.finalVideo, "updateMany", async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => { rollbacks.push(args); return { count: 1 }; });
+  t.mock.method(console, "warn", () => undefined);
+
+  const result = await cancelBrollDelivery(
+    { userId: "user-1", briefId: "brief-1", now: NOW },
+    { refund: async (briefId) => { calls.refunds.push(briefId); return "refunded"; } },
+  );
+  assert.deepEqual(result, { ok: true, state: "restitch_rolled_back", refunded: false });
+  assert.equal(calls.transactions, 0, "不开取消事务：段 / brief / 订单都不动");
+  assert.deepEqual(calls.refunds, [], "成片一直都在，没有额度可返还");
+  assert.equal(rollbacks.length, 1);
+  assert.deepEqual(rollbacks[0].where, {
+    id: "broll_fv-1",
+    previousStitchedVideoUrl: OLD_URL,
+    status: { in: [FinalVideoStatus.PENDING, FinalVideoStatus.STITCHING] },
+  });
+  assert.equal(rollbacks[0].data.status, FinalVideoStatus.READY);
+  assert.equal(rollbacks[0].data.stitchedVideoUrl, OLD_URL);
+  assert.deepEqual(rollbacks[0].data.postProduction, OLD_PLAN, "后期快照回到旧版");
+  assert.equal(rollbacks[0].data.previousStitchedVideoUrl, null);
+});
+
 test("合成刚好结束（CAS 落空）：already_finished，不碰段、brief、订单，也不返还", async (t) => {
   const calls = stubDb(t, brollBrief({ finalStatus: FinalVideoStatus.STITCHING }), 0);
   const result = await cancelBrollDelivery(

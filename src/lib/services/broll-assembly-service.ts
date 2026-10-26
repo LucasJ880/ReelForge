@@ -31,12 +31,14 @@ import {
 import { isStockFootageAvailable } from "@/lib/providers/stock-footage";
 import { refundFailedBrief } from "@/lib/services/quota-refund-service";
 import {
-  CUSTOMER_CANCEL_MESSAGE,
   CUSTOMER_CANCELLED_CLASS,
+  CUSTOMER_CANCEL_MESSAGE,
+  RESTITCH_CANCEL_MESSAGE,
 } from "@/lib/services/single-video-cancel-service";
 import {
   composeAndPersistTimeline,
   type NormalizeAndConcatClip,
+  rollbackRestitch,
 } from "@/lib/services/stitch-service";
 import {
   brollAspectResolution,
@@ -856,7 +858,8 @@ export async function stitchBrollLocally(args: {
 }
 
 export type CancelBrollResult =
-  | { ok: true; state: "cancelled"; refunded: boolean }
+  /// restitch_rolled_back：只重拼中取消 = 回滚到旧成片，订单 / brief / 额度都不动（P05-B 第五个回滚出口）
+  | { ok: true; state: "cancelled" | "restitch_rolled_back"; refunded: boolean }
   | { ok: false; reason: "not_found" | "not_broll" | "already_finished" };
 
 /** b-roll 成片还没交付的两种状态：排队等合成 / 合成中。 */
@@ -915,7 +918,7 @@ export async function cancelBrollDelivery(
     select: {
       id: true,
       videoRouteSnapshot: true,
-      finalVideo: { select: { id: true, status: true } },
+      finalVideo: { select: { id: true, status: true, previousStitchedVideoUrl: true } },
       contentAngle: { select: { round: { select: { deliveryOrderId: true } } } },
     },
   });
@@ -925,6 +928,16 @@ export async function cancelBrollDelivery(
   }
   if (!BROLL_CANCELLABLE_FINAL_STATUSES.includes(brief.finalVideo.status)) {
     return { ok: false, reason: "already_finished" };
+  }
+  /// P05-B 只重拼中取消 = 回滚到旧成片：成片一直都在，不取消订单、不返还、不改 brief、不碰段。
+  if (brief.finalVideo.previousStitchedVideoUrl) {
+    const rolled = await rollbackRestitch(brief.finalVideo.id, RESTITCH_CANCEL_MESSAGE, {
+      status: BROLL_CANCELLABLE_FINAL_STATUSES,
+      now,
+    });
+    return rolled.rolledBack
+      ? { ok: true, state: "restitch_rolled_back", refunded: false }
+      : { ok: false, reason: "already_finished" };
   }
 
   const finalVideoId = brief.finalVideo.id;

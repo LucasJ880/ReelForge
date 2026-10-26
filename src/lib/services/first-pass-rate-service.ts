@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { notExperimentVideoJobWhere } from "@/lib/experiments/run-key";
 
 /**
  * C3 · 一次通过率（PRD §6 / M7）。
@@ -40,6 +41,8 @@ export async function videoFirstPassRate(args: {
     /// 只统计跑出结果的：还在跑的没有「通过与否」可言；取消也不算——取消是商家自己的决定，
     /// 不是生成质量（与读数注册表「取消不算失败」同口径，之前取消排队批次会把通过率拉低）。
     status: { in: ["SUCCEEDED", "FAILED"] as ("SUCCEEDED" | "FAILED")[] },
+    /// X-SCAF-0：实验批次（exp-2611-*）不是商家的生成质量，不进北极星样本；单条任务不受影响。
+    AND: [notExperimentVideoJobWhere()],
   };
   const [sample, passed] = await Promise.all([
     db.videoJob.count({ where }),

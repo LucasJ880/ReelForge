@@ -163,3 +163,15 @@ test("询盘页设置：没开通时给「申请开通」，申请过显示已�
     assert.ok(leads.pageRequest && leads.pageRequested);
   }
 });
+
+test("C1 摩擦：周计划视频帖带脚本去创作；没品牌包给去处；批量额度用完给能点的去处", () => {
+  const timeline = read("src/components/content-plan/plan-timeline.tsx");
+  assert.match(timeline, /href=\{`\/app\/create\?prompt=\$\{encodeURIComponent\(videoScriptPrompt\(selected\)\)\}`\}/);
+  assert.match(timeline, /\[post\.copyHook, post\.copyBody, post\.copyCta\]\.filter\(Boolean\)\.join\("\\n"\)\.slice\(0, 4000\)/);
+  const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
+  assert.match(studio, /<Link href="\/app\/brands"[^>]*>\s*\{copy\.setUpBrandPackage\}/);
+  const wizard = read("src/components/batch/batch-create-wizard.tsx");
+  assert.match(wizard, /recoveryAction === "view_usage" \? \(/);
+  assert.match(wizard, /<QuotaNextSteps locale=\{english \? "en-US" : "zh-CN"\} contactEmail=\{contactEmail\} \/>/);
+  assert.match(read("src/app/(platform)/app/batches/new/page.tsx"), /contactEmail=\{contactEmail\(\)\}/);
+});

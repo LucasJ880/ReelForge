@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { QuotaNextSteps } from "@/components/quota/quota-next-steps";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -117,6 +118,7 @@ export function BatchCreateWizard({
   initialImages = [],
   showProviderPoints = false,
   remainingVideos = null,
+  contactEmail = null,
 }: {
   batchDetailsBasePath?: string;
   initialTemplateId?: string;
@@ -131,6 +133,8 @@ export function BatchCreateWizard({
    * null = 不限 / 取不到（内部角色），按批量上限走；服务端额度校验照旧是最终把关。
    */
   remainingVideos?: number | null;
+  /** 额度用完时「联系我们」的地址：服务端页面用 contactEmail() 取好传进来（本文件是 'use client'）。 */
+  contactEmail?: string | null;
 } = {}) {
   const router = useRouter();
   const { locale } = useTranslation();
@@ -571,7 +575,10 @@ export function BatchCreateWizard({
         <Card size="sm" role="alert" className="border-danger">
           <CardContent className="space-y-2 text-meta text-danger">
             <p>{error}</p>
-            {recoveryAction ? (
+            {recoveryAction === "view_usage" ? (
+              /* 额度用完：给能点的去处（申请陪跑 / 写信），不再只复述一遍文字 */
+              <QuotaNextSteps locale={english ? "en-US" : "zh-CN"} contactEmail={contactEmail} />
+            ) : recoveryAction ? (
               <p className="text-foreground">
                 {dispatchRecoveryHint(
                   recoveryAction,

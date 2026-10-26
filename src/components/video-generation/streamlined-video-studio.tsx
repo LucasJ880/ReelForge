@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -203,6 +205,7 @@ const ZH_COPY = {
   cleanVideo: "只生成干净视频",
   cleanVideoHint: "不添加品牌 Logo 或尾卡",
   noBrandPackages: "当前工作区还没有可用品牌包；可先保持纯视频输出。",
+  setUpBrandPackage: "去建品牌包",
   brandName: "品牌名称",
   brandNamePlaceholder: "例如 Aivora",
   cta: "行动文案",
@@ -334,6 +337,7 @@ const EN_COPY: StudioCopy = {
   cleanVideo: "Clean video only",
   cleanVideoHint: "No brand logo or end card",
   noBrandPackages: "This workspace has no active brand package yet. You can continue with a clean video.",
+  setUpBrandPackage: "Set up a brand kit",
   brandName: "Brand name",
   brandNamePlaceholder: "Example: Aivora",
   cta: "Call to action",
@@ -1751,7 +1755,13 @@ export function StreamlinedVideoStudio({
                   ))}
                 </div>
                 {brandPackages.length === 0 ? (
-                  <p className="text-meta text-muted-foreground">{copy.noBrandPackages}</p>
+                  <p className="text-meta text-muted-foreground">
+                    {copy.noBrandPackages}{" "}
+                    {/* C1：给去处——上传 logo、留联系方式，成片结尾的联系卡就有了 */}
+                    <Link href="/app/brands" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
+                      {copy.setUpBrandPackage}
+                    </Link>
+                  </p>
                 ) : null}
               </TicketRow>
 

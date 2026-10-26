@@ -10,6 +10,7 @@ import { QuoteHeader } from "@/components/exchange/quote-header";
 import { quotaStat, readingStat } from "@/lib/exchange/readings-registry";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
+import { contactEmail } from "@/lib/config/contact";
 
 export default async function PlatformBatchCreatePage({
   searchParams,
@@ -56,6 +57,7 @@ export default async function PlatformBatchCreatePage({
         initialTemplateId={initialTemplateId}
         initialImages={initialImages}
         showProviderPoints={isInternalRole(session.user.role)}
+        contactEmail={contactEmail()}
         remainingVideos={isInternalRole(session.user.role) || quota.limit <= 0 ? null : Math.max(0, quota.limit - quota.used)}
       />
     </div>

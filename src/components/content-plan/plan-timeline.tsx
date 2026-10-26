@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import Link from "next/link";
 import { FillBar } from "@/components/exchange/fill-bar";
 import { StatusTick } from "@/components/exchange/status-tick";
 import { WorkspacePage } from "@/components/exchange/workspace-page";
@@ -591,6 +592,16 @@ export function PlanTimeline({ plan }: { plan: TimelinePlan | null }) {
                     : copy.frameEmpty}
               </div>
             )}
+            {selected.format === "VIDEO" ? (
+              /* C1：视频帖一键带脚本去创作（之前只写「请到创作出片」，没有链接、也不预填） */
+              <Button
+                render={<Link href={`/app/create?prompt=${encodeURIComponent(videoScriptPrompt(selected))}`} />}
+                variant="outline"
+                className="mt-3"
+              >
+                {copy.frameVideoAction}
+              </Button>
+            ) : null}
           </div>
         </section>
       ) : null}
@@ -600,4 +611,9 @@ export function PlanTimeline({ plan }: { plan: TimelinePlan | null }) {
       ) : null}
     </WorkspacePage>
   );
+}
+
+/** 视频帖 → 创作页的预填：钩子、正文与行动号召连成一段创作方向（创作页上限 4,000 字）。 */
+function videoScriptPrompt(post: Pick<TimelinePost, "copyHook" | "copyBody" | "copyCta">): string {
+  return [post.copyHook, post.copyBody, post.copyCta].filter(Boolean).join("\n").slice(0, 4000);
 }

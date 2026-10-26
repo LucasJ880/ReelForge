@@ -88,9 +88,13 @@ export function assemblyClipsToTimeline(
   });
 }
 
-/** 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。 */
+/**
+ * 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。
+ * 段的计划时长（VideoJob.segmentDurationSec）只给字幕：旧数据没有持久化台词时按它切，
+ * 不按语音安全裁尾后的实测（实测不等长会把语句边界吸偏）。不填 intendedDurationSec，裁剪规则不变。
+ */
 export function legacySegmentsToTimeline(
-  segments: Array<{ outputVideoUrl: string | null }>,
+  segments: Array<{ outputVideoUrl: string | null; segmentDurationSec?: number | null }>,
   aiTailTrimSec: number,
 ): NormalizeAndConcatClip[] {
   return segments.map((segment) => ({
@@ -99,6 +103,9 @@ export function legacySegmentsToTimeline(
     trimToFit: false,
     role: "ai_generated" as const,
     ...(aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
+    ...(segment.segmentDurationSec && segment.segmentDurationSec > 0
+      ? { plannedDurationSec: segment.segmentDurationSec }
+      : {}),
   }));
 }
 

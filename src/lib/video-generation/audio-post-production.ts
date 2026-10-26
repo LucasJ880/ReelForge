@@ -326,23 +326,6 @@ export function captionWindowsFromSegments(
   return windows;
 }
 
-/** 任意持久化 JSON → 合法的逐词时间戳列表；不是数组 / 项不合法 / 为空 → null（调用方回退） */
-export function parseCaptionWords(input: unknown): CaptionWord[] | null {
-  if (!Array.isArray(input) || input.length === 0) return null;
-  const words: CaptionWord[] = [];
-  for (const item of input) {
-    if (!item || typeof item !== "object") return null;
-    const { text, startMs, endMs } = item as Record<string, unknown>;
-    if (typeof text !== "string") return null;
-    if (typeof startMs !== "number" || typeof endMs !== "number") return null;
-    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
-    const trimmed = text.trim();
-    if (!trimmed) continue;
-    words.push({ text: trimmed, startMs, endMs });
-  }
-  return words.length > 0 ? words : null;
-}
-
 export type CaptionPlanSegment = {
   /** 成片里的实测（已量化）时长：只用来放窗口位置 */
   durationSec: number;

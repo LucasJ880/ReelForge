@@ -7,7 +7,6 @@ import {
   buildTimedCues,
   buildWindowedCues,
   captionWindowsFromSegments,
-  parseCaptionWords,
   planCaptionCues,
   renderAssCaptions,
   renderSrtCaptions,
@@ -472,14 +471,4 @@ test("splitScriptByWindows + captionWindowsFromSegments：按段时长加权切�
   assert.ok(ratio >= 2.5 && ratio <= 3.5, `ratio ${ratio}`);
   assert.deepEqual(splitScriptByWindows("", [{ startMs: 0, endMs: 1 }]), [""]);
   assert.deepEqual(splitScriptByWindows("x", []), []);
-});
-
-test("parseCaptionWords：只认合法的持久化形状，空 / 坏数据回 null 让调用方回退", () => {
-  assert.deepEqual(parseCaptionWords([{ text: " 一拧 ", startMs: 0, endMs: 500 }]), [{ text: "一拧", startMs: 0, endMs: 500 }]);
-  assert.equal(parseCaptionWords(null), null);
-  assert.equal(parseCaptionWords([]), null);
-  assert.equal(parseCaptionWords([{ text: "x", startMs: "0", endMs: 1 }]), null);
-  assert.equal(parseCaptionWords([{ text: "x", startMs: Number.NaN, endMs: 1 }]), null);
-  assert.equal(parseCaptionWords([{ text: "   ", startMs: 0, endMs: 1 }]), null);
-  assert.equal(parseCaptionWords("一拧即开"), null);
 });

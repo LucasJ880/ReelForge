@@ -921,6 +921,8 @@ export interface NormalizeAndConcatClip {
   loopVideo?: boolean;
   /// 显式输出时长（b-roll：配音时长 + 呼吸间隙）
   targetDurationSec?: number;
+  /// 计划时长（legacy 段 = VideoJob.segmentDurationSec）：旧数据没有持久化台词时字幕按它切，不按裁尾后的实测
+  plannedDurationSec?: number | null;
 }
 
 export interface ComposedTimelineUrls {
@@ -985,6 +987,7 @@ export async function composeAndPersistTimeline(params: {
         audioPath: localAudio,
         loopVideo: clip.loopVideo,
         targetDurationSec: clip.targetDurationSec,
+        plannedDurationSec: clip.plannedDurationSec,
       });
     }
 

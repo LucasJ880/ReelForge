@@ -241,6 +241,11 @@ export interface TimelineClip {
   loopVideo?: boolean;
   /** 显式输出时长（秒）：给了就不按源时长 / 裁尾推算（b-roll 由配音时长驱动） */
   targetDurationSec?: number;
+  /**
+   * 计划时长（秒；legacy 段 = VideoJob.segmentDurationSec）。只给字幕用：旧数据没有持久化台词时按它
+   * 切，不按裁尾后的实测。不影响裁剪（裁剪只看 intendedDurationSec + trimToFit / 裁尾）。
+   */
+  plannedDurationSec?: number | null;
 }
 
 export interface TimelineClipReport {
@@ -697,7 +702,7 @@ export async function composeTimeline(
       script: effects.script,
       segments: states.map((state) => ({
         durationSec: state.durationSec,
-        plannedDurationSec: state.clip.intendedDurationSec,
+        plannedDurationSec: state.clip.plannedDurationSec ?? state.clip.intendedDurationSec,
         captioned: state.role === "ai_generated",
       })),
       captionSpanSec,

@@ -102,6 +102,24 @@ test("裁尾规则：只给 AI 生成段（不裁 b-roll / 客户上传片段 / 
     ],
   );
   assert.equal(legacySegmentsToTimeline([{ outputVideoUrl: "https://cdn/a.mp4" }], 0)[0]?.tailTrimSec, undefined);
+  /// P04-C：段的计划时长（VideoJob.segmentDurationSec）只给字幕用——旧数据没有持久化台词时按它切，
+  /// 不按裁尾后的实测；不填 intendedDurationSec，裁剪规则不变
+  const planned = legacySegmentsToTimeline(
+    [
+      { outputVideoUrl: "https://cdn/a.mp4", segmentDurationSec: 15 },
+      { outputVideoUrl: "https://cdn/b.mp4", segmentDurationSec: null },
+      { outputVideoUrl: "https://cdn/c.mp4" },
+    ],
+    0.8,
+  );
+  assert.deepEqual(
+    planned.map((clip) => [clip.plannedDurationSec, clip.intendedDurationSec, clip.trimToFit]),
+    [
+      [15, null, false],
+      [undefined, null, false],
+      [undefined, null, false],
+    ],
+  );
 });
 
 test("STITCH_AI_TAIL_TRIM_SEC：默认 0.8（与品牌封装同值），0/off 关闭，上限 3s", () => {

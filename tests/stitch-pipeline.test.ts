@@ -31,8 +31,10 @@ import {
 import {
   buildTimedCues,
   renderAssCaptions,
+  splitScriptByDurations,
   type CaptionWord,
 } from "../src/lib/video-generation/audio-post-production";
+import { splitVoiceoverScript } from "../src/lib/video-generation/prompt-intelligence";
 import type { PostProductionPlan } from "../src/types/video-generation";
 import {
   ffmpegHasLibass,
@@ -383,6 +385,53 @@ test("integration：P04-C 持久化台词逐段对齐——两个 AI 段各背�
   assert.equal(inSecond.map((d) => d.text).join(""), chunks[1]);
   assert.equal(inFirst[0]?.startMs, 0);
   assert.equal(inSecond.at(-1)?.endMs, 6_000);
+});
+
+test("integration：legacy 段 + 语音安全裁尾 + 无持久化台词 → 字幕按计划时长（segmentDurationSec）切，不按裁尾后的实测", async (t) => {
+  if (!(await ffmpegUsable()) || !(await ffmpegHasLibass())) return t.skip("ffmpeg with libass not installed");
+  if (!useBundledCjkFont(t)) return t.skip("bundled CJK font package not installed");
+  const dir = mkdtempSync(path.join(tmpdir(), "pipeline-legacy-planned-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  /// 段 0：口播 6s 后静音到 7s → 裁 0.8s（实测 6.2s；裁尾要求裁完 ≥ 5s）；段 1：说满 7s → 不裁。计划都是 7s。
+  const first = await makeClip(path.join(dir, "first.mp4"), { durationSec: 7, audio: { kind: "tone", hz: 330, speechSec: 6 } });
+  const second = await makeClip(path.join(dir, "second.mp4"), { durationSec: 7, audio: { kind: "tone", hz: 440, speechSec: 7 } });
+  const script =
+    "Morning glare again? Not in this bedroom. Custom blackout curtains from SunnyShutter, measured and made for your exact window.";
+  const planned = splitVoiceoverScript(script, [{ durationSec: 7 }, { durationSec: 7 }]);
+  const workDir = path.join(dir, "work");
+  const result = await composeTimeline({
+    /// 与 stitch-composer.legacySegmentsToTimeline 同一形状：不填 intendedDurationSec、不 trimToFit、带裁尾、带计划时长
+    clips: [
+      { path: first, intendedDurationSec: null, trimToFit: false, role: "ai_generated", tailTrimSec: 0.8, plannedDurationSec: 7 },
+      { path: second, intendedDurationSec: null, trimToFit: false, role: "ai_generated", tailTrimSec: 0.8, plannedDurationSec: 7 },
+    ],
+    aspectRatio: "9:16",
+    postProduction: plan({ captions: true, style: "plain", script }),
+    workDir,
+  });
+  assert.ok((result.clips[0]?.tailTrimmedSec ?? 0) > 0.7, `segment 0 trimmed ${result.clips[0]?.tailTrimmedSec}`);
+  assert.equal(result.clips[1]?.tailTrimmedSec, 0, "说满的段不裁");
+  const boundaryMs = Math.round((result.clips[0]?.durationSec ?? 0) * 1_000);
+  assert.ok(boundaryMs < 6_300 && boundaryMs > 6_100, `measured boundary ${boundaryMs}`);
+  /// 这个夹具下按实测时长切会得到不同的边界（"Custom blackout | curtains"）——用例因此有区分度
+  assert.notDeepEqual(splitScriptByDurations(script, result.clips.map((clip) => clip.durationSec)), planned);
+  const ass = readFileSync(path.join(workDir, "captions.ass"), "utf8");
+  const dialogues = ass
+    .split("\n")
+    .filter((line) => line.startsWith("Dialogue:"))
+    .map((line) => {
+      const fields = line.split(",");
+      return { startMs: assMs(fields[1]), endMs: assMs(fields[2]), text: fields.slice(9).join(",") };
+    });
+  const squash = (value: string) => value.replace(/\s+/gu, " ").trim();
+  const textIn = (predicate: (d: { startMs: number; endMs: number }) => boolean) =>
+    squash(dialogues.filter(predicate).map((d) => d.text).join(" "));
+  /// 按中点归窗（窗界 3208ms 在 ASS 里落成 0:00:03.20）
+  assert.equal(textIn((d) => (d.startMs + d.endMs) / 2 < boundaryMs), squash(planned[0]), "段 0 字幕 = 按计划时长切出的第 1 句");
+  assert.equal(textIn((d) => (d.startMs + d.endMs) / 2 >= boundaryMs), squash(planned[1]), "段 1 字幕 = 按计划时长切出的第 2 句");
+  /// 窗口位置仍按实测：段 0 的字幕在 3.2s 前结束，段 1 从 3.2s 起
+  assert.ok(dialogues.filter((d) => (d.startMs + d.endMs) / 2 < boundaryMs).every((d) => d.endMs <= boundaryMs + 10));
+  assert.ok(dialogues.filter((d) => (d.startMs + d.endMs) / 2 >= boundaryMs).every((d) => d.startMs >= boundaryMs - 10));
 });
 
 test("integration：P04-B karaoke 字幕夹具实烧——Karaoke 样式 + 逐词 \\kf 标签，libass 用打包字体、无报错", async (t) => {

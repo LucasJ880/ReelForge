@@ -101,7 +101,7 @@ export function roiFormValue(region: CutoutRegion): string {
  */
 export async function cutoutProduct(
   image: Buffer,
-  options: { roi?: CutoutRegion | null; fetchImpl?: typeof fetch } = {},
+  options: { roi?: CutoutRegion | null; fetchImpl?: typeof fetch; signal?: AbortSignal } = {},
 ): Promise<CutoutResult> {
   const provider = availableCutoutProvider();
   if (!provider) throw new CutoutUnavailableError();
@@ -121,6 +121,7 @@ export async function cutoutProduct(
       method: "POST",
       headers: { "X-Api-Key": process.env.REMOVE_BG_API_KEY!.trim() },
       body: form,
+      signal: options.signal,
     });
     if (!res.ok) {
       const error = new CutoutFailedError(
@@ -145,6 +146,7 @@ export async function cutoutProduct(
     method: "POST",
     headers: { "x-api-key": process.env.CLIPDROP_API_KEY!.trim() },
     body: form,
+    signal: options.signal,
   });
   if (!res.ok) {
     const error = new CutoutFailedError(

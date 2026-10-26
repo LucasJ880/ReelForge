@@ -253,7 +253,8 @@ test("唯一成功写入点：缩略图同时写进 FinalVideo.thumbnailUrl 与 
   });
   const briefWrites: Array<Record<string, unknown>> = [];
   patchModel(t, db.videoBrief as unknown as Record<string, unknown>, {
-    findUnique: async () => ({ finalVideoId: "fv_writer", finalVideo: row }),
+    /// P05-B 白名单：成片就位只有交付前渲染态才置 QA_PENDING；真库里 brief 一定带 status
+    findUnique: async () => ({ finalVideoId: "fv_writer", status: "RENDERING", brandedVideoUrl: null, finalVideo: row }),
     update: async (args: { data: Record<string, unknown> }) => {
       briefWrites.push(args.data);
       return {};

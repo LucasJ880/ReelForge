@@ -13,6 +13,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { analyzeImages } from "@/lib/ai";
 import { probeMedia } from "@/lib/media/ffmpeg-bin";
+import { fetchMediaBytes } from "@/lib/storage/trusted-media-url";
 import {
   extractFrames,
   framesToDataUrls,
@@ -24,6 +25,8 @@ import type { FinalFrameQaIssue, FinalFrameQaMark } from "@/lib/video-generation
 export type { FinalFrameQaIssue } from "@/lib/video-generation/final-frame-qa-mark";
 
 const DEFAULT_FRAME_COUNT = 6;
+/** 成片下载上限：60s 1080P 成片通常几十 MB，超过就不是我们合成的东西（#16 item 11） */
+export const FINAL_FRAME_QA_MAX_BYTES = 200 * 1024 * 1024;
 
 export interface FinalFrameQaResult {
   status: "ok" | "issues" | "skipped";
@@ -31,6 +34,8 @@ export interface FinalFrameQaResult {
   checkedAt: string;
   frameCount: number;
   skipReason?: string;
+  /// skipped 且 true = 这次是超时 / 下载被中止之类的瞬时原因，消费者可重排 pending 再试（有次数上限）
+  retryable?: boolean;
   referenceUsed: boolean;
 }
 
@@ -89,8 +94,20 @@ export function decideFinalFrameVerdict(
   };
 }
 
-export function skippedFinalFrameVerdict(reason: string, checkedAt = new Date()): FinalFrameQaResult {
-  return { status: "skipped", issues: [], checkedAt: checkedAt.toISOString(), frameCount: 0, skipReason: reason, referenceUsed: false };
+export function skippedFinalFrameVerdict(
+  reason: string,
+  checkedAt = new Date(),
+  options: { retryable?: boolean } = {},
+): FinalFrameQaResult {
+  return {
+    status: "skipped",
+    issues: [],
+    checkedAt: checkedAt.toISOString(),
+    frameCount: 0,
+    skipReason: reason,
+    ...(options.retryable ? { retryable: true } : {}),
+    referenceUsed: false,
+  };
 }
 
 export interface FinalFrameQaDeps {
@@ -111,9 +128,13 @@ async function defaultSampleFrames(videoUrlOrPath: string, frameCount: number): 
     let videoPath = videoUrlOrPath;
     if (isRemote) {
       videoPath = join(workDir, "final.mp4");
-      const res = await fetch(videoUrlOrPath);
-      if (!res.ok) throw new Error(`下载成片失败 HTTP ${res.status}`);
-      await writeFile(videoPath, Buffer.from(await res.arrayBuffer()));
+      /// 边读边计数 + AbortController 超时（库里服务端写入的 URL，允许跟随重定向）；错误信息不带 URL
+      const bytes = await fetchMediaBytes(videoUrlOrPath, {
+        maxBytes: FINAL_FRAME_QA_MAX_BYTES,
+        followRedirects: true,
+        timeoutMs: Math.max(5_000, FRAME_QA_GATE_TIMEOUT_MS - 10_000),
+      });
+      await writeFile(videoPath, bytes);
     }
     const probe = await probeMedia(videoPath).catch(() => null);
     const framePaths = await extractFrames(videoPath, workDir, frameCount, probe);
@@ -168,22 +189,35 @@ export async function runFinalFrameQa(
       check,
       new Promise<FinalFrameQaResult>((resolve) => {
         timer = setTimeout(
-          () => resolve(skippedFinalFrameVerdict(`复检超时（>${Math.round(deps.timeoutMs / 1000)}s）`, deps.now())),
+          () =>
+            resolve(
+              skippedFinalFrameVerdict(`复检超时（>${Math.round(deps.timeoutMs / 1000)}s）`, deps.now(), {
+                retryable: true,
+              }),
+            ),
           deps.timeoutMs,
         );
       }),
     ]);
   } catch (err) {
-    return skippedFinalFrameVerdict(`复检执行异常：${(err as Error).message}`, deps.now());
+    const message = (err as Error).message;
+    return skippedFinalFrameVerdict(`复检执行异常：${message}`, deps.now(), {
+      retryable: /timed out|超时/i.test(message),
+    });
   } finally {
     if (timer) clearTimeout(timer);
   }
 }
 
-/** 结论 → 挂回 QAReview.aiScoreBreakdown.finalFrameQa 的标记（保留 requestedAt 由合并写负责）。 */
-export function finalFrameQaMarkFromResult(result: FinalFrameQaResult): FinalFrameQaMark {
+/** 结论 → 挂回 QAReview.aiScoreBreakdown.finalFrameQa 的标记；requestedAt / attempts 从上一版标记带过来。 */
+export function finalFrameQaMarkFromResult(
+  result: FinalFrameQaResult,
+  prior?: Pick<FinalFrameQaMark, "requestedAt" | "attempts"> | null,
+): FinalFrameQaMark {
   return {
     status: result.status,
+    ...(prior?.requestedAt ? { requestedAt: prior.requestedAt } : {}),
+    ...(prior?.attempts ? { attempts: prior.attempts } : {}),
     checkedAt: result.checkedAt,
     frameCount: result.frameCount,
     issues: result.issues,

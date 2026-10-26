@@ -776,7 +776,7 @@ test("cron 路由把图文出图轮询放进同一个 allSettled（注入式依�
       return 4;
     },
     sweepStuckTasks: async () => ({}) as never,
-    runPendingFinalFrameQa: async () => ({ scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0 }),
+    runPendingFinalFrameQa: async () => ({ mode: "off" as const, scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0, requeued: 0 }),
   });
   const response = await handler(new NextRequest("http://localhost/api/cron/poll-videos"));
   const body = (await response.json()) as { contentPostPolled?: number; degraded?: boolean };

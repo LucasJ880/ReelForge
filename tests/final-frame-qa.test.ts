@@ -6,25 +6,32 @@ import { db } from "../src/lib/db";
 import {
   CRON_FRAME_QA_BUDGET,
   frameQaBudgetUsage,
+  noteFrameQaVisionFailure,
   runWithFrameQaBudget,
 } from "../src/lib/services/frame-qa-gate";
 import {
+  buildFinalFrameQaWrite,
   FINAL_FRAME_QA_BATCH,
+  FINAL_FRAME_QA_MAX_ATTEMPTS,
+  finalFrameQaMode,
   pendingFinalFrameQaWhere,
   referenceImageFromPlan,
   runPendingFinalFrameQa,
+  type FinalFrameQaClaim,
+  type FinalFrameQaWrite,
   type PendingFinalFrameQaRow,
 } from "../src/lib/services/final-frame-qa-service";
+import { FINAL_FRAME_QA_ISSUE_PREFIX } from "../src/lib/services/qa-review-merge";
 import {
   decideFinalFrameVerdict,
   FINAL_FRAME_QA_SYSTEM,
   finalFrameQaMarkFromResult,
   runFinalFrameQa,
-  type FinalFrameQaResult,
 } from "../src/lib/video-generation/final-frame-qa";
 import {
   pendingFinalFrameQaMark,
   readFinalFrameQaMark,
+  type FinalFrameQaMark,
 } from "../src/lib/video-generation/final-frame-qa-mark";
 import { finishStitchTask } from "../src/lib/services/stitch-service";
 import { createPollVideosHandler } from "../src/app/api/cron/poll-videos/route";
@@ -150,6 +157,8 @@ test("runFinalFrameQa fail-open：vision 不可用 / 抽帧失败 / vision 出�
   });
   assert.equal(timedOut.status, "skipped");
   assert.match(timedOut.skipReason ?? "", /超时/);
+  assert.equal(timedOut.retryable, true, "超时是瞬时原因，消费者可重排");
+  assert.equal(visionDown.retryable, undefined, "vision 报错不算瞬时原因");
 });
 
 // ---------------------------------------------------------------------------
@@ -187,13 +196,15 @@ test("ensureQAPendingStub（stitch-service 这一份）：新桩带 finalFrameQa
 
   /// 只重拼换了成片：已有桩上带着 8 维打分与旧结论 → 重新挂 pending，打分原样
   state.status = "STITCHING"; state.stitchAttemptToken = "tok2";
-  existing = { id: "qa-1", aiScoreBreakdown: { hook_quality: 8, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["旧"] };
+  existing = { id: "qa-1", aiScoreBreakdown: { hook_quality: 8, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["旧", "[成片复检] 第1帧 旧片的假字"] };
   await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "tok2", stitchedVideoUrl: "https://x.test/new2.mp4" });
   assert.equal(created.length, 1, "已有 PENDING 桩不再新建");
   assert.equal(updated.length, 1);
   const merged = updated[0].aiScoreBreakdown as Record<string, unknown>;
   assert.equal(merged.hook_quality, 8);
   assert.equal(readFinalFrameQaMark(merged)?.status, "pending");
+  assert.deepEqual(readFinalFrameQaMark(merged), readFinalFrameQaMark(merged) && { status: "pending", requestedAt: readFinalFrameQaMark(merged)?.requestedAt }, "整体覆盖 finalFrameQa 对象，旧结论不残留");
+  assert.deepEqual(updated[0].aiIssues, ["旧"], "上一版成片的「[成片复检]」问题被清掉，别人的问题保留");
 
   /// video-service 的旧单段副本不在本轮改
   const videoService = await readFile("src/lib/services/video-service.ts", "utf8");
@@ -202,7 +213,7 @@ test("ensureQAPendingStub（stitch-service 这一份）：新桩带 finalFrameQa
 });
 
 // ---------------------------------------------------------------------------
-// 4. 消费者：每次 ≤2 条；预算共用；vision 不可用记 skipped；结论合并写回
+// 4. 消费者：开关 / 让路 / 每次 ≤2 条 / 认领凭证 / 原子落库 / 超时重排
 // ---------------------------------------------------------------------------
 
 function row(id: string, extra: Partial<PendingFinalFrameQaRow> = {}): PendingFinalFrameQaRow {
@@ -219,15 +230,71 @@ function row(id: string, extra: Partial<PendingFinalFrameQaRow> = {}): PendingFi
   };
 }
 
-test("消费者：每次最多 2 条（findPending 收到 limit 2、多给也只处理 2），结论合并写回并追加 [成片复检] 问题", async () => {
+const CLAIM_MS = NOW.getTime();
+
+/// 内存版 claim / saveClaimed：凭证 = 认领时刻；saveClaimed 把 build(prior) 的结果记下来
+function memoryStore(saved: Array<{ id: string; write: FinalFrameQaWrite }>) {
+  return {
+    claim: async (r: PendingFinalFrameQaRow): Promise<FinalFrameQaClaim | null> => ({
+      checkingAtMs: CLAIM_MS,
+      videoUrl: r.videoBrief?.finalVideo?.stitchedVideoUrl ?? "",
+    }),
+    saveClaimed: async (r: PendingFinalFrameQaRow, _claim: FinalFrameQaClaim, build: (prior: FinalFrameQaMark | null) => FinalFrameQaWrite) => {
+      saved.push({ id: r.id, write: build(readFinalFrameQaMark(r.aiScoreBreakdown)) });
+      return true;
+    },
+    saveUnclaimed: async (r: PendingFinalFrameQaRow, write: FinalFrameQaWrite) => {
+      saved.push({ id: r.id, write });
+      return true;
+    },
+  };
+}
+
+test("开关：FINAL_FRAME_QA_MODE 默认 off（不查库、不跑）；只有 shadow 才消费", async (t) => {
+  assert.equal(finalFrameQaMode({}), "off");
+  assert.equal(finalFrameQaMode({ FINAL_FRAME_QA_MODE: "shadow" }), "shadow");
+  assert.equal(finalFrameQaMode({ FINAL_FRAME_QA_MODE: "on" }), "off", "只认 shadow，别的值一律 off");
+  let queried = false;
+  const off = await runPendingFinalFrameQa(2, {
+    mode: () => "off",
+    findPending: async () => { queried = true; return [row("qa-1")]; },
+  });
+  assert.deepEqual(off, { mode: "off", scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0, requeued: 0 });
+  assert.equal(queried, false);
+  t.diagnostic("shadow 路径由下面的用例覆盖");
+});
+
+test("让路：本轮段级门禁有 deferred 或 vision 报错 → 整轮跳过，不查库", async () => {
+  let queried = 0;
+  const deferred = await runPendingFinalFrameQa(2, {
+    mode: () => "shadow",
+    budgetUsage: () => ({ deferred: 1, visionFailures: 0 }),
+    findPending: async () => { queried += 1; return []; },
+  });
+  assert.equal(deferred.skippedRound, "segment_gate_deferred");
+  const visionDown = await runPendingFinalFrameQa(2, {
+    mode: () => "shadow",
+    budgetUsage: () => ({ deferred: 0, visionFailures: 2 }),
+    findPending: async () => { queried += 1; return []; },
+  });
+  assert.equal(visionDown.skippedRound, "segment_gate_vision_failed");
+  assert.equal(queried, 0);
+  /// 预算上下文里记 vision 失败的钩子
+  await runWithFrameQaBudget({ label: "t", ...CRON_FRAME_QA_BUDGET }, async () => {
+    noteFrameQaVisionFailure();
+    assert.equal(frameQaBudgetUsage()?.visionFailures, 1);
+  });
+});
+
+test("消费者：每次最多 2 条（findPending 收到 limit 2、多给也只处理 2），结论按归属落回并追加 [成片复检] 问题", async () => {
   const limits: number[] = [];
-  const saved: Array<{ id: string; result: FinalFrameQaResult }> = [];
+  const saved: Array<{ id: string; write: FinalFrameQaWrite }> = [];
   const ran: Array<{ url: string; ref: string | null | undefined }> = [];
   const sweep = await runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, () =>
     runPendingFinalFrameQa(FINAL_FRAME_QA_BATCH, {
+      mode: () => "shadow",
+      ...memoryStore(saved),
       findPending: async (limit) => { limits.push(limit); return [row("qa-1"), row("qa-2"), row("qa-3")]; },
-      claim: async () => true,
-      save: async (r, result) => { saved.push({ id: r.id, result }); },
       run: async (url, opts) => {
         ran.push({ url, ref: opts?.firstFrameRef });
         return decideFinalFrameVerdict([{ index: 0, fakeLabel: true, textContent: "NEW!" }], 6, true, NOW);
@@ -239,18 +306,22 @@ test("消费者：每次最多 2 条（findPending 收到 limit 2、多给也只
   assert.deepEqual(limits, [2]);
   assert.equal(ran.length, 2, "cron 每次最多 2 条");
   assert.deepEqual(ran.map((r) => r.ref), [REF, REF], "参考图取 plan 里的 product_image");
-  assert.deepEqual(sweep, { scanned: 2, checked: 2, issues: 2, skipped: 0, deferred: 0 });
+  assert.deepEqual(sweep, { mode: "shadow", scanned: 2, checked: 2, issues: 2, skipped: 0, deferred: 0, requeued: 0 });
   assert.deepEqual(saved.map((s) => s.id), ["qa-1", "qa-2"]);
+  assert.equal(saved[0].write.mark.status, "issues");
+  assert.equal(saved[0].write.mark.requestedAt, NOW.toISOString(), "requestedAt 从上一版标记带过来");
+  assert.deepEqual(saved[0].write.issues, ["第1帧 检测到假字标（模型画上去的标签 / 徽章 / 价签）「NEW!」"]);
 });
 
-test("消费者：vision 不可用 → 直接记 skipped + 原因，不占预算、不认领；预算用完 → 留在 pending", async () => {
-  const saved: Array<{ id: string; result: FinalFrameQaResult }> = [];
+test("消费者：vision 不可用 → 不认领、不占预算，走 saveUnclaimed 记 skipped + 原因；预算用完 → 留在 pending", async () => {
+  const saved: Array<{ id: string; write: FinalFrameQaWrite }> = [];
   let claimed = 0;
   const sweep = await runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, async () => {
     const out = await runPendingFinalFrameQa(2, {
+      mode: () => "shadow",
+      ...memoryStore(saved),
+      claim: async () => { claimed += 1; return { checkingAtMs: CLAIM_MS, videoUrl: "x" }; },
       findPending: async () => [row("qa-1")],
-      claim: async () => { claimed += 1; return true; },
-      save: async (r, result) => { saved.push({ id: r.id, result }); },
       run: async () => { throw new Error("不该跑"); },
       isVisionAvailable: () => false,
       now: () => NOW,
@@ -259,51 +330,116 @@ test("消费者：vision 不可用 → 直接记 skipped + 原因，不占预算
     return out;
   });
   assert.equal(claimed, 0);
-  assert.deepEqual(sweep, { scanned: 1, checked: 0, issues: 0, skipped: 1, deferred: 0 });
-  assert.equal(saved[0].result.status, "skipped");
-  assert.match(saved[0].result.skipReason ?? "", /vision 不可用/);
+  assert.equal(sweep.skipped, 1);
+  assert.equal(saved[0].write.mark.status, "skipped");
+  assert.match(saved[0].write.mark.skipReason ?? "", /vision 不可用/);
 
-  /// 预算耗尽（maxChecks 0）：什么都不写，下一轮再来
   const untouched = await runWithFrameQaBudget({ label: "test", maxChecks: 0, timeBudgetMs: 60_000 }, () =>
     runPendingFinalFrameQa(2, {
+      mode: () => "shadow",
       findPending: async () => [row("qa-1"), row("qa-2")],
       claim: async () => { throw new Error("预算没了不该认领"); },
-      save: async () => { throw new Error("预算没了不该写"); },
+      saveClaimed: async () => { throw new Error("预算没了不该写"); },
+      saveUnclaimed: async () => { throw new Error("预算没了不该写"); },
       run: async () => { throw new Error("不该跑"); },
       isVisionAvailable: () => true,
       now: () => NOW,
     }),
   );
-  assert.deepEqual(untouched, { scanned: 2, checked: 0, issues: 0, skipped: 0, deferred: 2 });
+  assert.deepEqual(untouched, { mode: "shadow", scanned: 2, checked: 0, issues: 0, skipped: 0, deferred: 2, requeued: 0 });
 });
 
-test("消费者默认 save：合并写——保留 requestedAt 与 8 维打分，问题去重追加「[成片复检] …」", async (t) => {
-  const updates: Array<{ data: Record<string, unknown> }> = [];
-  patchModel(t, db.qAReview, {
-    update: async (args: { data: Record<string, unknown> }) => { updates.push(args); return {}; },
-    updateMany: async () => ({ count: 1 }),
-  });
-  await runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, () =>
+test("超时重排：瞬时失败在次数内回到 pending（attempts+1），到上限改记 skipped 放弃", async () => {
+  const timeout = { status: "skipped" as const, issues: [], checkedAt: NOW.toISOString(), frameCount: 0, skipReason: "复检超时（>45s）", retryable: true, referenceUsed: false };
+  const first = buildFinalFrameQaWrite({ status: "checking", requestedAt: "t0" }, timeout, NOW);
+  assert.equal(first.requeued, true);
+  assert.deepEqual(first.mark, { status: "pending", requestedAt: "t0", attempts: 1 });
+  const last = buildFinalFrameQaWrite({ status: "checking", requestedAt: "t0", attempts: FINAL_FRAME_QA_MAX_ATTEMPTS - 1 }, timeout, NOW);
+  assert.equal(last.requeued, false);
+  assert.equal(last.mark.status, "skipped");
+  assert.equal(last.mark.attempts, FINAL_FRAME_QA_MAX_ATTEMPTS);
+  assert.match(last.mark.skipReason ?? "", /放弃/);
+  /// 非瞬时的 skipped（vision 报错）不重排
+  const hard = buildFinalFrameQaWrite(null, { ...timeout, retryable: undefined, skipReason: "复检执行异常：429" }, NOW);
+  assert.equal(hard.requeued, false);
+  assert.equal(hard.mark.status, "skipped");
+
+  const saved: Array<{ id: string; write: FinalFrameQaWrite }> = [];
+  const sweep = await runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, () =>
     runPendingFinalFrameQa(1, {
+      mode: () => "shadow",
+      ...memoryStore(saved),
       findPending: async () => [row("qa-1")],
-      run: async () => decideFinalFrameVerdict([{ index: 2, fakeText: true, textContent: "曬" }], 6, true, NOW),
+      run: async () => timeout,
       isVisionAvailable: () => true,
       now: () => NOW,
     }),
   );
-  assert.equal(updates.length, 1);
-  const breakdown = updates[0].data.aiScoreBreakdown as Record<string, unknown>;
+  assert.equal(sweep.requeued, 1);
+  assert.equal(sweep.skipped, 0);
+  assert.equal(saved[0].write.mark.status, "pending");
+});
+
+test("默认 claim / saveClaimed：事务里重读，凭证不符或成片已换就不写；相符才按归属合并写回", async (t) => {
+  const claims: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  patchModel(t, db.qAReview, {
+    updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => { claims.push(args); return { count: 1 }; },
+  });
+  const writes: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
+  let fresh: Record<string, unknown> = {};
+  patchModel(t, db as unknown as object, {
+    $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        qAReview: {
+          findUnique: async () => fresh,
+          updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => { writes.push(args); return { count: 1 }; },
+        },
+      }),
+  });
+  const base = row("qa-1", { aiIssues: ["旧问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 上一版的问题`] });
+  const run = (freshRow: Record<string, unknown>) => {
+    fresh = freshRow;
+    return runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, () =>
+      runPendingFinalFrameQa(1, {
+        mode: () => "shadow",
+        findPending: async () => [base],
+        run: async () => decideFinalFrameVerdict([{ index: 2, fakeText: true, textContent: "曬" }], 6, true, NOW),
+        isVisionAvailable: () => true,
+        now: () => NOW,
+      }),
+    );
+  };
+
+  /// 认领 CAS：pending → checking，带认领时刻
+  const checking = { ...base, aiScoreBreakdown: { hook_quality: 7, finalFrameQa: { status: "checking", requestedAt: NOW.toISOString(), checkingAtMs: NOW.getTime() } } };
+  const ok = await run(checking);
+  assert.equal(ok.checked, 1);
+  assert.deepEqual(claims[0].where, { id: "qa-1", aiScoreBreakdown: { path: ["finalFrameQa", "status"], equals: "pending" } });
+  assert.equal(readFinalFrameQaMark(claims[0].data.aiScoreBreakdown)?.status, "checking");
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0].where, { id: "qa-1", aiScoreBreakdown: { path: ["finalFrameQa", "checkingAtMs"], equals: NOW.getTime() } });
+  const breakdown = writes[0].data.aiScoreBreakdown as Record<string, unknown>;
   assert.equal(breakdown.hook_quality, 7, "不覆盖打分");
   const mark = readFinalFrameQaMark(breakdown);
   assert.equal(mark?.status, "issues");
   assert.equal(mark?.requestedAt, NOW.toISOString(), "requestedAt 保留");
-  assert.equal(mark?.checkedAt, NOW.toISOString());
-  assert.deepEqual(updates[0].data.aiIssues, ["旧问题", "[成片复检] 第3帧 检测到假字 / 畸形字形「曬」"]);
+  assert.deepEqual(writes[0].data.aiIssues, ["旧问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 第3帧 检测到假字 / 畸形字形「曬」`], "旧复检问题整体替换，别人的问题保留");
+
+  /// 凭证不符（别的调用接手）→ 不写
+  writes.length = 0;
+  const stolen = await run({ ...checking, aiScoreBreakdown: { finalFrameQa: { status: "checking", checkingAtMs: NOW.getTime() + 1 } } });
+  assert.equal(writes.length, 0);
+  assert.equal(stolen.deferred, 1);
+
+  /// 成片已换（只重拼成功后重新挂 pending）→ 不写
+  const swapped = await run({ ...checking, videoBrief: { ...base.videoBrief, finalVideo: { stitchedVideoUrl: "https://abc.public.blob.vercel-storage.com/new.mp4" } } });
+  assert.equal(writes.length, 0);
+  assert.equal(swapped.deferred, 1);
 });
 
-test("where：按 JSON 路径取 pending，或 checking 且租期已过；参考图优先用户指定角色", () => {
+test("where：按 JSON 路径取 pending，或 checking 且租期已过；不限 QAReview.status；参考图优先用户指定角色", () => {
   const where = pendingFinalFrameQaWhere(NOW);
-  assert.equal(where.status, "PENDING");
+  assert.equal("status" in where, false, "已交付 brief 的标记挂在 APPROVED 行上");
   assert.deepEqual((where.OR as unknown[])[0], { aiScoreBreakdown: { path: ["finalFrameQa", "status"], equals: "pending" } });
   assert.equal(referenceImageFromPlan({ classifiedAssets: [{ inferredRole: "product_image", userAssignedRole: "logo", url: "https://x.test/logo.png" }, { inferredRole: "reference_image", userAssignedRole: "product_image", url: REF }] }), REF);
   assert.equal(referenceImageFromPlan(null), null);
@@ -321,17 +457,18 @@ test("poll-videos：成片级复检作为注入依赖跟在轮询 / 清扫之后
     pollPendingContentPostRenders: async () => 0 as never,
     sweepStuckTasks: async () => ({}) as never,
   };
+  const sweep = { mode: "shadow" as const, scanned: 1, checked: 1, issues: 0, skipped: 0, deferred: 0, requeued: 0 };
   const ok = createPollVideosHandler({
     ...base,
     runPendingFinalFrameQa: async (limit?: number) => {
       limits.push(limit ?? -1);
       assert.equal(frameQaBudgetUsage()?.label, "cron:poll-videos", "跑在同一份预算上下文里");
-      return { scanned: 1, checked: 1, issues: 0, skipped: 0, deferred: 0 };
+      return sweep;
     },
   });
   const body = (await (await ok(new NextRequest("http://localhost/api/cron/poll-videos"))).json()) as Record<string, unknown>;
   assert.deepEqual(limits, [2]);
-  assert.deepEqual(body.finalFrameQa, { scanned: 1, checked: 1, issues: 0, skipped: 0, deferred: 0 });
+  assert.deepEqual(body.finalFrameQa, sweep);
   assert.equal(body.degraded, false);
 
   const down = createPollVideosHandler({

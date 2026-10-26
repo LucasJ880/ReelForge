@@ -224,7 +224,7 @@ test("[media-runtime] 4.3 poll-videos 的轮询 / 清扫跑在帧质检预算上
       seen.push(frameQaBudgetUsage()?.label ?? null);
       return {} as never;
     },
-    runPendingFinalFrameQa: async () => ({ scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0 }),
+    runPendingFinalFrameQa: async () => ({ mode: "off" as const, scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0, requeued: 0 }),
   });
   const response = await handler(
     new NextRequest("http://localhost/api/cron/poll-videos", {

@@ -141,7 +141,8 @@ function installFakeDb(t: TestContext, row: FakeRow) {
     },
   });
   patchModel(t, db.videoBrief as unknown as Record<string, unknown>, {
-    findUnique: async () => ({ finalVideoId: row.id, finalVideo: row }),
+    /// P05-B 白名单：成片就位只有交付前渲染态才置 QA_PENDING；真库里 brief 一定带 status，假库也给一个
+    findUnique: async () => ({ finalVideoId: row.id, status: "RENDERING", brandedVideoUrl: null, finalVideo: row }),
     update: async (args: { data: Record<string, unknown> }) => {
       briefWrites.push(args.data);
       return {};

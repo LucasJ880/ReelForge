@@ -29,6 +29,8 @@ import {
 } from "@/lib/services/content-post-render-state";
 import { readTemplateSnapshot } from "@/lib/video-generation/creative-recipe";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
+import { isEphemeralSignedUrl } from "@/lib/media/ephemeral-url";
+import { canRestitchBriefStatus } from "@/lib/video-generation/brief-delivery-state";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
 
@@ -351,18 +353,23 @@ export function toUnifiedLibraryRow(
       ? "cancelled"
       : refineOrderLibraryStatus(derived.status, jobStatuses);
   const active = status === "generating" || status === "assembling";
-  /// P05-B 只重拼：READY + 有后期快照 + 不是直接复用某段原片（reuse_single_segment /
-  /// reuse_first_segment_demo 会把首段 URL 原样写进 stitchedVideoUrl，没经过合成器，换设置不会生效）。
+  /// P05-B 只重拼（与 stitch-service prepareRestitch 同一套判据）：READY + 有后期快照 +
+  /// brief 在可改成片的状态（归档 / 弃用不行）+ 段原片不是会过期的临时签名地址 +
+  /// 不是直接复用某段原片（reuse_single_segment / reuse_first_segment_demo 会把首段 URL 原样写进
+  /// stitchedVideoUrl，没经过合成器，换设置不会生效）。
+  const segmentUrls = (brief?.videoJobs ?? [])
+    .map((job) => job.outputVideoUrl)
+    .filter((url): url is string => Boolean(url));
   const reusedSegmentUrl =
     Boolean(finalVideo?.stitchedVideoUrl) &&
-    (brief?.videoJobs ?? []).some(
-      (job) => Boolean(job.outputVideoUrl) && job.outputVideoUrl === finalVideo?.stitchedVideoUrl,
-    );
+    segmentUrls.some((url) => url === finalVideo?.stitchedVideoUrl);
   const canRestitch =
     !isShowcase &&
     finalVideo?.status === "READY" &&
     Boolean(finalVideo.stitchedVideoUrl) &&
     finalVideo.postProduction != null &&
+    canRestitchBriefStatus(brief?.status) &&
+    !segmentUrls.some(isEphemeralSignedUrl) &&
     !reusedSegmentUrl;
 
   return parseLibraryRow({

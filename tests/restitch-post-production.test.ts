@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import test, { type TestContext } from "node:test";
-import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
+import { FinalVideoStatus, Prisma, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { db } from "../src/lib/db";
 import { __test__ as authTest } from "../src/lib/auth";
@@ -23,6 +23,7 @@ import {
   RestitchRejectedError,
 } from "../src/lib/video-generation/restitch-patch";
 import { POST as renderRetry } from "../src/app/api/briefs/[id]/render-retry/route";
+import { bgmAttributionFor } from "../src/lib/video-generation/bgm-attribution";
 import type { PostProductionPlan } from "../src/types/video-generation";
 
 /**
@@ -33,8 +34,9 @@ import type { PostProductionPlan } from "../src/types/video-generation";
  *     │   等合成超时(sweep) │   合成失败 / STITCHING 超时达上限(sweep) / 取消
  *     └───────────────────┴───────────────────┘   rollbackRestitch → READY（旧片）
  *
- * 零生成计费；只放行 captions / bgm；三条回滚边全部回到 READY + 旧 URL，不碰 brief；
- * 已交付 brief 不打回 QA_PENDING / RENDERING。全部 monkey-patch Prisma，不连库、不跑 ffmpeg。
+ * 零生成计费；只放行 captions / bgm；三条回滚边全部回到 READY + 旧 URL + 旧后期快照（配乐署名随之复原），
+ * 不碰 brief；已交付 brief 不打回 QA_PENDING / RENDERING；归档 / 弃用的不能重拼也不被改状态。
+ * 全部 monkey-patch Prisma，不连库、不跑 ffmpeg。
  */
 
 const require = createRequire(import.meta.url);
@@ -88,6 +90,12 @@ const BASE_PLAN: PostProductionPlan = {
   captions: { enabled: true, style: "plain", language: "zh", position: "bottom", exportSrt: true },
 };
 
+/// 重拼写进去的新设置（配乐开了）；回滚后必须回到 BASE_PLAN（配乐关、无署名）
+const MERGED_PLAN: PostProductionPlan = {
+  audio: { voiceover: BASE_PLAN.audio.voiceover, bgm: { trackId: "wholesome", volume: 0.2 } },
+  captions: { ...BASE_PLAN.captions, style: "word_by_word" },
+};
+
 function readyFinalVideo(overrides: Record<string, unknown> = {}) {
   return {
     id: "fv-1",
@@ -102,7 +110,8 @@ function readyFinalVideo(overrides: Record<string, unknown> = {}) {
     subtitleFileUrl: null,
     ffmpegError: null,
     postProduction: BASE_PLAN,
-    brief: { id: "brief-1" },
+    previousPostProduction: null,
+    brief: { id: "brief-1", status: VideoBriefStatus.QA_PENDING },
     segments: [
       { segmentIndex: 0, status: VideoJobStatus.SUCCEEDED, outputVideoUrl: "https://abc.public.blob.vercel-storage.com/seg0.mp4", outputThumbUrl: null, assignedAssets: null },
       { segmentIndex: 1, status: VideoJobStatus.SUCCEEDED, outputVideoUrl: "https://abc.public.blob.vercel-storage.com/seg1.mp4", outputThumbUrl: null, assignedAssets: null },
@@ -166,6 +175,7 @@ test("restitchReadyFinalVideo：CAS READY→PENDING，写旧 URL / attempts 0 / 
   });
   assert.equal(reset.data.status, FinalVideoStatus.PENDING);
   assert.equal(reset.data.previousStitchedVideoUrl, OLD_URL, "旧片 URL 是回滚依据");
+  assert.deepEqual(reset.data.previousPostProduction, BASE_PLAN, "旧快照是回滚依据之二（#16 blocker 1）");
   assert.equal(reset.data.stitchAttempts, 0, "照抄 retryStitch：重置尝试预算");
   assert.equal(reset.data.stitchAttemptToken, null);
   assert.equal((reset.data.startedAt as Date).toISOString(), NOW.toISOString(), "排队超时从重新排队时刻起算");
@@ -206,6 +216,33 @@ test("restitchReadyFinalVideo：非 READY / 无快照 / 设置没变 一律拒�
   assert.equal(calls.length, 0);
 });
 
+test("段原片是临时签名地址 / brief 已归档：拒绝，不写库（#16 item 2 / 6）", async (t) => {
+  withEnv(t, { STITCH_RUNTIME: "external" });
+  const calls: UpdateManyCall[] = [];
+  let row: Record<string, unknown> = readyFinalVideo({
+    segments: [
+      { segmentIndex: 0, status: VideoJobStatus.SUCCEEDED, outputVideoUrl: "https://tos.example.com/seg0.mp4?X-Tos-Expires=86400&X-Tos-Signature=abc", outputThumbUrl: null, assignedAssets: null },
+      { segmentIndex: 1, status: VideoJobStatus.SUCCEEDED, outputVideoUrl: "https://abc.public.blob.vercel-storage.com/seg1.mp4", outputThumbUrl: null, assignedAssets: null },
+    ],
+  });
+  patchModel(t, db.finalVideo, {
+    findUnique: async () => row,
+    updateMany: async (args: UpdateManyCall) => { calls.push(args); return { count: 1 }; },
+  });
+  patchModel(t, db.videoBrief, { findUnique: async () => ({ videoGenerationPlan: null }) });
+  const patch = { bgm: { trackId: "wholesome" as const, volume: 0.2 } };
+  await assert.rejects(restitchReadyFinalVideo("fv-1", patch), (err: unknown) =>
+    err instanceof RestitchRejectedError && err.code === "INVALID_STATE" && /临时地址/.test(err.message));
+
+  row = readyFinalVideo({ brief: { id: "brief-1", status: VideoBriefStatus.ARCHIVED } });
+  await assert.rejects(restitchReadyFinalVideo("fv-1", patch), (err: unknown) =>
+    err instanceof RestitchRejectedError && err.code === "INVALID_STATE" && /归档/.test(err.message));
+  row = readyFinalVideo({ brief: { id: "brief-1", status: VideoBriefStatus.DROPPED } });
+  await assert.rejects(restitchReadyFinalVideo("fv-1", patch), (err: unknown) =>
+    err instanceof RestitchRejectedError && err.code === "INVALID_STATE");
+  assert.equal(calls.length, 0);
+});
+
 test("单段复用拒绝：会走 reuse_single_segment 的行（legacy 单段 + 持久 URL）不能只重拼", async (t) => {
   withEnv(t, { STITCH_RUNTIME: "external", ENABLE_VIDEO_STITCHING: undefined });
   const calls: UpdateManyCall[] = [];
@@ -240,6 +277,8 @@ type MutableRow = {
   thumbnailUrl: string | null;
   subtitleFileUrl: string | null;
   finishedAt: Date | null;
+  postProduction: unknown;
+  previousPostProduction: unknown;
 };
 
 /// 带 CAS 语义的 FinalVideo 内存行：where 里的 status / token / previousStitchedVideoUrl 不匹配就 count 0
@@ -262,7 +301,8 @@ function stateMachine(t: TestContext, state: MutableRow, extra: Record<string, u
         if (key === "stitchAttempts" && value && typeof value === "object" && "increment" in value) {
           state.stitchAttempts += (value as { increment: number }).increment;
         } else if (key in state) {
-          (state as unknown as Record<string, unknown>)[key] = value;
+          /// Prisma.DbNull = 清空 JSON 列
+          (state as unknown as Record<string, unknown>)[key] = value === Prisma.DbNull ? null : value;
         }
       }
       return { count: 1 };
@@ -282,6 +322,9 @@ function restitchingRow(status: FinalVideoStatus, token: string | null): Mutable
     thumbnailUrl: null,
     subtitleFileUrl: null,
     finishedAt: null,
+    /// 重拼 CAS 之后的形态：新设置已写进 postProduction，旧快照在 previousPostProduction
+    postProduction: MERGED_PLAN,
+    previousPostProduction: BASE_PLAN,
   };
 }
 
@@ -312,6 +355,9 @@ test("回滚边 ①：finishStitchTask 失败 → 回滚到 READY + 旧 URL，�
   assert.equal(state.previousStitchedVideoUrl, null, "回滚后清掉回滚依据");
   assert.equal(state.stitchAttemptToken, null);
   assert.match(state.ffmpegError ?? "", /restitch failed: ffmpeg exit 1/);
+  assert.deepEqual(state.postProduction, BASE_PLAN, "后期快照回到旧版（不是那套从没渲染成功的新设置）");
+  assert.equal(state.previousPostProduction, null);
+  assert.equal(bgmAttributionFor(state.postProduction), null, "配乐署名读数随快照复原（旧片没有配乐）");
 });
 
 test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；已发布 brief 不打回 QA_PENDING、清空旧品牌封装", async (t) => {
@@ -327,21 +373,56 @@ test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；
     }),
     update: async (args: { data: Record<string, unknown> }) => { briefUpdates.push(args); return {}; },
   });
+  /// 已交付：不建 PENDING 桩；复检标记挂到最近一条（已 APPROVED 的）QAReview 上（#16 item 12）
+  const reviewFinds: Array<Record<string, unknown>> = [];
+  const reviewUpdates: Array<{ where: { id: string }; data: Record<string, unknown> }> = [];
   patchModel(t, db.qAReview, {
-    findFirst: async () => { throw new Error("已交付 brief 不该建 QA 桩"); },
+    findFirst: async (args: Record<string, unknown>) => {
+      reviewFinds.push(args);
+      return { id: "qa-approved", status: "APPROVED", aiScoreBreakdown: { hook_quality: 9, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["[成片复检] 旧片问题", "人工备注"] };
+    },
+    update: async (args: { where: { id: string }; data: Record<string, unknown> }) => { reviewUpdates.push(args); return {}; },
     create: async () => { throw new Error("已交付 brief 不该建 QA 桩"); },
   });
-  t.mock.method(console, "warn", () => undefined);
+  const warned: unknown[][] = [];
+  t.mock.method(console, "warn", (...args: unknown[]) => { warned.push(args); });
 
   const result = await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "attempt-2", stitchedVideoUrl: NEW_URL });
   assert.equal(result.ok, true);
   assert.equal(state.status, FinalVideoStatus.READY);
   assert.equal(state.stitchedVideoUrl, NEW_URL);
   assert.equal(state.previousStitchedVideoUrl, null, "成功后不再需要回滚依据");
+  assert.equal(state.previousPostProduction, null, "两份回滚依据都清掉");
+  assert.deepEqual(state.postProduction, MERGED_PLAN, "成功：新设置就是当前快照");
   assert.equal(briefUpdates.length, 1);
   assert.equal("status" in briefUpdates[0].data, false, "已发布 brief 状态不动");
   assert.equal(briefUpdates[0].data.finalVideoUrl, NEW_URL);
-  assert.equal(briefUpdates[0].data.brandedVideoUrl, null, "旧封装作废，需要重新品牌封装");
+  assert.equal("brandedVideoUrl" in briefUpdates[0].data, false, "品牌封装指针保留（#16 item 9），只记日志");
+  assert.ok(warned.some((args) => /需要重新品牌封装/.test(String(args[0]))), "日志提示需重新封装");
+  assert.deepEqual((reviewFinds[0] as { orderBy?: unknown }).orderBy, { createdAt: "desc" }, "挂到最近一条 QAReview");
+  assert.equal(reviewUpdates.length, 1);
+  assert.equal(reviewUpdates[0].where.id, "qa-approved");
+  const stamped = reviewUpdates[0].data.aiScoreBreakdown as Record<string, unknown>;
+  assert.equal((stamped.finalFrameQa as { status: string }).status, "pending");
+  assert.equal(stamped.hook_quality, 9, "打分不动");
+  assert.deepEqual(reviewUpdates[0].data.aiIssues, ["人工备注"], "旧片的复检问题清掉，别人的保留");
+});
+
+test("成功：ARCHIVED brief 只刷新 URL，状态不动、不建桩、不挂标记（#16 item 6 白名单）", async (t) => {
+  const state = restitchingRow(FinalVideoStatus.STITCHING, "attempt-archived");
+  stateMachine(t, state, { brief: { id: "brief-1" } });
+  const briefUpdates: Array<{ data: Record<string, unknown> }> = [];
+  patchModel(t, db.videoBrief, {
+    findUnique: async () => ({ finalVideoId: "fv-1", status: VideoBriefStatus.ARCHIVED, brandedVideoUrl: null, finalVideo: { stitchedVideoUrl: state.stitchedVideoUrl, thumbnailUrl: null } }),
+    update: async (args: { data: Record<string, unknown> }) => { briefUpdates.push(args); return {}; },
+  });
+  patchModel(t, db.qAReview, {
+    findFirst: async () => { throw new Error("归档 brief 不该碰 QAReview"); },
+    create: async () => { throw new Error("归档 brief 不该碰 QAReview"); },
+  });
+  await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "attempt-archived", stitchedVideoUrl: NEW_URL });
+  assert.equal(briefUpdates.length, 1);
+  assert.deepEqual(Object.keys(briefUpdates[0].data).sort(), ["finalThumbnailUrl", "finalVideoUrl"]);
 });
 
 test("成功：未交付（QA_PENDING）brief 仍走 QA_PENDING + QA 桩（原行为不变）", async (t) => {
@@ -384,7 +465,10 @@ test("回滚边 ②：清扫 STITCHING 超时达上限 → 回滚而不是 FAILE
   const updates: UpdateManyCall[] = [];
   patchModel(t, db.finalVideo, {
     findMany: async () => [restitch, plain],
-    findUnique: async (args: { where: { id: string } }) => (args.where.id === "fv-1" ? { previousStitchedVideoUrl: OLD_URL } : { previousStitchedVideoUrl: null }),
+    findUnique: async (args: { where: { id: string } }) =>
+      args.where.id === "fv-1"
+        ? { previousStitchedVideoUrl: OLD_URL, previousPostProduction: BASE_PLAN }
+        : { previousStitchedVideoUrl: null, previousPostProduction: null },
     updateMany: async (args: UpdateManyCall) => { updates.push(args); return { count: 1 }; },
   });
   const briefUpdates: Array<{ where: { id: string }; data: Record<string, unknown> }> = [];
@@ -402,6 +486,9 @@ test("回滚边 ②：清扫 STITCHING 超时达上限 → 回滚而不是 FAILE
   assert.equal(rollback.data.status, FinalVideoStatus.READY);
   assert.equal(rollback.data.stitchedVideoUrl, OLD_URL);
   assert.equal(rollback.data.previousStitchedVideoUrl, null);
+  assert.deepEqual(rollback.data.postProduction, BASE_PLAN, "后期快照回到旧版");
+  assert.equal(rollback.data.previousPostProduction, Prisma.DbNull);
+  assert.equal(bgmAttributionFor(rollback.data.postProduction), null, "配乐署名随快照复原");
   assert.match(String(rollback.data.ffmpegError), /sweep/);
   /// 只有普通行的 brief 被打成 RENDER_FAILED
   assert.deepEqual(briefUpdates.map((u) => u.where.id), ["brief-b"]);
@@ -425,7 +512,7 @@ test("回滚边 ③：清扫等合成超时 → 回滚而不是 FAILED，不碰 
   const updates: UpdateManyCall[] = [];
   patchModel(t, db.finalVideo, {
     findMany: async () => [row],
-    findUnique: async () => ({ previousStitchedVideoUrl: OLD_URL }),
+    findUnique: async () => ({ previousStitchedVideoUrl: OLD_URL, previousPostProduction: BASE_PLAN }),
     updateMany: async (args: UpdateManyCall) => { updates.push(args); return { count: 1 }; },
   });
   forbidBriefWrites(t);
@@ -439,6 +526,8 @@ test("回滚边 ③：清扫等合成超时 → 回滚而不是 FAILED，不碰 
   assert.deepEqual(updates[0].where, { id: "fv-1", previousStitchedVideoUrl: OLD_URL, status: { in: [FinalVideoStatus.PENDING] } });
   assert.equal(updates[0].data.status, FinalVideoStatus.READY);
   assert.equal(updates[0].data.stitchedVideoUrl, OLD_URL);
+  assert.deepEqual(updates[0].data.postProduction, BASE_PLAN, "后期快照回到旧版");
+  assert.equal(bgmAttributionFor(updates[0].data.postProduction), null);
 });
 
 test("回滚边 ④：重拼中取消 = 回滚到旧片，不取消订单、不返还、不改 brief", async (t) => {
@@ -458,7 +547,7 @@ test("回滚边 ④：重拼中取消 = 回滚到旧片，不取消订单、不�
   patchModel(t, db as unknown as object, { $transaction: async () => { throw new Error("没有可取消的任务，不该开事务"); } });
   const updates: UpdateManyCall[] = [];
   patchModel(t, db.finalVideo, {
-    findUnique: async () => ({ previousStitchedVideoUrl: OLD_URL }),
+    findUnique: async () => ({ previousStitchedVideoUrl: OLD_URL, previousPostProduction: BASE_PLAN }),
     updateMany: async (args: UpdateManyCall) => { updates.push(args); return { count: 1 }; },
   });
   forbidBriefWrites(t);
@@ -474,13 +563,15 @@ test("回滚边 ④：重拼中取消 = 回滚到旧片，不取消订单、不�
   assert.deepEqual(updates[0].where.status, { in: [FinalVideoStatus.PENDING, FinalVideoStatus.STITCHING] });
   assert.equal(updates[0].data.status, FinalVideoStatus.READY);
   assert.equal(updates[0].data.stitchedVideoUrl, OLD_URL);
+  assert.deepEqual(updates[0].data.postProduction, BASE_PLAN, "后期快照回到旧版");
+  assert.equal(bgmAttributionFor(updates[0].data.postProduction), null);
   assert.match(String(updates[0].data.ffmpegError), /已取消本次换字幕/);
 });
 
 test("rollbackRestitch：没有旧 URL 的行不是重拼，什么都不做", async (t) => {
   let touched = false;
   patchModel(t, db.finalVideo, {
-    findUnique: async () => ({ previousStitchedVideoUrl: null }),
+    findUnique: async () => ({ previousStitchedVideoUrl: null, previousPostProduction: null }),
     updateMany: async () => { touched = true; return { count: 1 }; },
   });
   assert.deepEqual(await rollbackRestitch("fv-x", "why"), { rolledBack: false, stitchedVideoUrl: null });
@@ -585,8 +676,15 @@ test("接线：路由先限流（action restitch，不补扣额度）再重拼�
     .replace(/^\s*\/\/\/.*$/gm, "");
   assert.ok(branch.length > 0, "restitch 分支排在 all / jobId 之前");
   assert.match(branch, /assertAuthenticatedActionRateLimit\(\{\s*action: "restitch"/);
-  assert.ok(branch.indexOf("assertAuthenticatedActionRateLimit") < branch.indexOf("restitchReadyFinalVideo("), "限流先于重拼");
+  /// #16 item 10：解析补丁 + 只读预检 → 限流 → 写入；没成（本请求内合成失败已回滚）→ 409
+  assert.ok(branch.indexOf("prepareRestitch(") < branch.indexOf("assertAuthenticatedActionRateLimit"), "限流在补丁解析与状态预检之后");
+  assert.ok(branch.indexOf("assertAuthenticatedActionRateLimit") < branch.indexOf("commitRestitch("), "限流先于写入");
+  assert.match(branch, /if \(result\.rolledBack\) \{\s*throw new RestitchRejectedError\(\s*"INVALID_STATE"/);
   assert.doesNotMatch(branch, /rechargeIfRefunded/, "只重拼零生成计费，不补扣额度");
+  const cancelRoute = await readFile("src/app/api/library/[id]/cancel/route.ts", "utf8");
+  assert.match(cancelRoute, /restitchRolledBack: result\.restitchRolledBack \?\? 0/, "取消路由透传回滚条数");
+  const service = await readFile("src/lib/services/stitch-service.ts", "utf8");
+  assert.doesNotMatch(service.slice(service.indexOf("async function markBriefReady")), /brandedVideoUrl: null/, "不清空 brandedVideoUrl（#16 item 9）");
 
   const quota = await readFile("src/lib/services/quota-service.ts", "utf8");
   assert.match(quota, /restitch: \{\s*envKey: "RESTITCH_RATE_LIMIT_PER_HOUR"/);
@@ -634,6 +732,12 @@ test("成品库契约：canRestitch = READY + 有后期快照 + 不是直接复�
     false,
     "成片 URL 就是某段原片 = 单段复用，没过合成器",
   );
+  const archived = structuredClone(base) as unknown as { rounds: Array<{ angles: Array<{ videoBrief: { status: string } }> }> };
+  archived.rounds[0].angles[0].videoBrief.status = "ARCHIVED";
+  assert.equal(toUnifiedLibraryRow(archived as unknown as Input)?.canRestitch, false, "归档的不能改成片（与 prepareRestitch 同一判据）");
+  const ephemeral = structuredClone(base) as unknown as { rounds: Array<{ angles: Array<{ videoBrief: { videoJobs: Array<{ outputVideoUrl: string }> } }> }> };
+  ephemeral.rounds[0].angles[0].videoBrief.videoJobs[1].outputVideoUrl = "https://tos.example.com/seg1.mp4?X-Tos-Expires=86400";
+  assert.equal(toUnifiedLibraryRow(ephemeral as unknown as Input)?.canRestitch, false, "段原片是临时签名地址");
   assert.deepEqual(restitchDefaultsFor(BASE_PLAN), { captions: BASE_PLAN.captions, bgm: BASE_PLAN.audio.bgm });
   assert.equal(restitchDefaultsFor({ broken: true }), null);
 });

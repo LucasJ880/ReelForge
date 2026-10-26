@@ -79,8 +79,9 @@ export async function POST(
 
   try {
     if (body.restitch !== undefined) {
-      /// 只重拼不是「重试失败环节」：不走 rechargeIfRefunded（没有生成费可补扣），
-      /// 只按账号限频，防止循环点击把合成器函数打满。
+      /// 只重拼不是「重试失败环节」：不走 rechargeIfRefunded（没有生成费可补扣）。
+      /// 顺序：解析补丁 + 只读状态预检（prepareRestitch）→ 账号限频 → CAS 写入并重拼——
+      /// 不合法的补丁与明显不能重拼的状态不消耗限频名额。
       const brief = await db.videoBrief.findUnique({
         where: { id: briefId },
         select: { finalVideoId: true },
@@ -88,12 +89,20 @@ export async function POST(
       if (!brief?.finalVideoId) {
         throw new RestitchRejectedError("INVALID_STATE", "这条视频还没有成片，不能更换字幕 / 配乐。");
       }
+      const { prepareRestitch, commitRestitch } = await import("@/lib/services/stitch-service");
+      const prepared = await prepareRestitch(brief.finalVideoId, body.restitch);
       await assertAuthenticatedActionRateLimit({
         action: "restitch",
         userId: guard.session.user.id,
       });
-      const { restitchReadyFinalVideo } = await import("@/lib/services/stitch-service");
-      await restitchReadyFinalVideo(brief.finalVideoId, body.restitch);
+      const result = await commitRestitch(prepared);
+      /// local 模式会在本请求内合成：没成就已经回滚到旧成片，如实告知而不是 200
+      if (result.rolledBack) {
+        throw new RestitchRejectedError(
+          "INVALID_STATE",
+          `重拼没有成功，已恢复旧成片：${result.error ?? "合成失败"}`,
+        );
+      }
     } else if (body.all === true) {
       const failed = await db.videoJob.findMany({
         where: { videoBriefId: briefId, status: "FAILED" },

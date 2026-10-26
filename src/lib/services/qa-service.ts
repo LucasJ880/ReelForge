@@ -1,7 +1,7 @@
 import { Prisma, QAStatus, VideoBriefStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { chatJsonByTier, isLLMAvailable } from "@/lib/ai";
-import { mergeQaReviewAiFields } from "@/lib/services/qa-review-merge";
+import { mergeAiQaReview } from "@/lib/services/qa-review-merge";
 import {
   QA_CRITERIA,
   calcOverallScore,
@@ -92,15 +92,14 @@ ${script.fullText}
     orderBy: { createdAt: "desc" },
   });
 
-  /// P01-E1：合并写而不是整块覆盖——同一行的 aiScoreBreakdown 还挂着成片级复检的
-  /// finalFrameQa 子对象（P01-E），aiIssues 里也可能已有复检追加的问题；8 维打分同键新值胜出，
-  /// 其它键保留，问题列表去重追加。
+  /// P01-E1：按归属合并——AI QA 整块替换自己的 8 维打分与自己的问题，只保留同一行上
+  /// 成片级复检（P01-E）的 finalFrameQa 子对象与「[成片复检]」前缀的问题，不做通用并集。
   const saved = existing
     ? await db.qAReview.update({
         where: { id: existing.id },
         data: {
           aiOverallScore: overall,
-          ...mergeQaReviewAiFields(existing, {
+          ...mergeAiQaReview(existing, {
             breakdown: breakdown as unknown as Record<string, unknown>,
             issues,
           }),

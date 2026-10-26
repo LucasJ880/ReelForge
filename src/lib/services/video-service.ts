@@ -494,6 +494,9 @@ export async function dispatchMultiSegmentGeneration(briefId: string) {
         subtitleFileUrl: null,
         ffmpegError: null,
         stitchAttemptToken: null,
+        /// 重新生成 = 一次全新成片，不再是只重拼：清掉回滚依据（P05-B）
+        previousStitchedVideoUrl: null,
+        previousPostProduction: Prisma.DbNull,
         startedAt: null,
         finishedAt: null,
         segmentCount: plan.segmentPlan.length,
@@ -1440,7 +1443,7 @@ export async function retryFailedVideoJob(jobId: string) {
         submittedAt,
         retryCount: (job.retryCount ?? 0) + 1,
       });
-      /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试
+      /// 重置 FinalVideo 状态，避免还在 FAILED 卡住拼接重试；段重跑后的成片不是只重拼，清掉回滚依据（P05-B）
       await db.finalVideo.update({
         where: { id: job.finalVideoId },
         data: {
@@ -1448,6 +1451,8 @@ export async function retryFailedVideoJob(jobId: string) {
           ffmpegError: null,
           stitchAttemptToken: null,
           subtitleFileUrl: null,
+          previousStitchedVideoUrl: null,
+          previousPostProduction: Prisma.DbNull,
         },
       });
       return updated;

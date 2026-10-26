@@ -1,12 +1,14 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
+  frameQaBudgetUsage,
   releaseFrameQaBudgetSlot,
   reserveFrameQaBudgetSlot,
 } from "@/lib/services/frame-qa-gate";
-import { mergeQaReviewAiFields } from "@/lib/services/qa-review-merge";
+import { mergeFinalFrameQaReview } from "@/lib/services/qa-review-merge";
 import {
   FINAL_FRAME_QA_KEY,
+  newPendingFinalFrameQa,
   readFinalFrameQaMark,
   type FinalFrameQaMark,
 } from "@/lib/video-generation/final-frame-qa-mark";
@@ -20,20 +22,29 @@ import { isFrameQaEnabled } from "@/lib/video-generation/frame-qa";
 
 /**
  * 成片级复检消费者（P01-E，影子）。poll-videos cron 每次最多取 FINAL_FRAME_QA_BATCH 条
- * `aiScoreBreakdown.finalFrameQa.status = "pending"` 的 QAReview，在既有帧质检预算里跑复检
- * （段级门禁先用预算，复检吃剩下的；预算不够就留到下一轮）。
+ * `aiScoreBreakdown.finalFrameQa.status = "pending"` 的 QAReview，在既有帧质检预算里跑复检。
  *
+ *   - 开关 FINAL_FRAME_QA_MODE=off|shadow，默认 off（生产 OpenAI 额度紧张时影子不能挤真实门禁配额）；
+ *   - 让路：本轮段级门禁有 deferred 或 vision 报错时整轮跳过（段级门禁先用预算，复检吃剩下的）；
  *   - 认领：CAS pending → checking（checkingAtMs 租期过了别的调用可接手），重叠的 cron 不会重复跑；
- *   - 结论用合并写落回（P01-E1），不覆盖 8 维打分；问题以「[成片复检] …」追加进 aiIssues；
+ *   - 落库原子：save 在事务里重读行，确认仍是本次认领（checking + 同一 checkingAtMs）且成片 URL 没变
+ *     （只重拼换片后会重新挂 pending），再按归属合并写回（不覆盖 8 维打分）；
+ *   - 超时是瞬时原因：重排 pending（attempts+1），到 FINAL_FRAME_QA_MAX_ATTEMPTS 改记 skipped；
  *   - vision 不可用：直接记 skipped + 原因，不占预算；
  *   - 影子：不改 QAReview.status、不改 brief 状态。
  *
  * Vercel 函数里不 await 的异步会被冻结，所以这里全部 await，由调用方放进 allSettled。
  */
 export const FINAL_FRAME_QA_BATCH = 2;
+export const FINAL_FRAME_QA_MAX_ATTEMPTS = 3;
 /// 认领租期：远大于单次复检最坏耗时（45s 超时）
 export const FINAL_FRAME_QA_CLAIM_LEASE_MS = 5 * 60_000;
-const ISSUE_PREFIX = "[成片复检]";
+
+export type FinalFrameQaMode = "off" | "shadow";
+
+export function finalFrameQaMode(env: Record<string, string | undefined> = process.env): FinalFrameQaMode {
+  return env.FINAL_FRAME_QA_MODE?.trim().toLowerCase() === "shadow" ? "shadow" : "off";
+}
 
 export interface PendingFinalFrameQaRow {
   id: string;
@@ -46,18 +57,40 @@ export interface PendingFinalFrameQaRow {
   } | null;
 }
 
+export interface FinalFrameQaClaim {
+  checkingAtMs: number;
+  videoUrl: string;
+}
+
 export interface FinalFrameQaSweep {
+  mode: FinalFrameQaMode;
   scanned: number;
   checked: number;
   issues: number;
   skipped: number;
   deferred: number;
+  /// 超时重排回 pending 的条数
+  requeued: number;
+  /// 整轮让路的原因（段级门禁有 deferred / vision 报错）
+  skippedRound?: "segment_gate_deferred" | "segment_gate_vision_failed";
 }
 
+export type FinalFrameQaWrite = { mark: FinalFrameQaMark; issues: string[] };
+
 export interface FinalFrameQaServiceDeps {
+  mode: () => FinalFrameQaMode;
+  budgetUsage: () => { deferred: number; visionFailures: number } | null;
   findPending: (limit: number, now: Date) => Promise<PendingFinalFrameQaRow[]>;
-  claim: (row: PendingFinalFrameQaRow, now: Date) => Promise<boolean>;
-  save: (row: PendingFinalFrameQaRow, result: FinalFrameQaResult) => Promise<void>;
+  /** CAS pending（或过期 checking）→ checking；抢到返回认领凭证 */
+  claim: (row: PendingFinalFrameQaRow, now: Date) => Promise<FinalFrameQaClaim | null>;
+  /** 认领后的落库：事务里重读、核对认领凭证与成片 URL，再按归属合并写回；凭证不对返回 false */
+  saveClaimed: (
+    row: PendingFinalFrameQaRow,
+    claim: FinalFrameQaClaim,
+    build: (prior: FinalFrameQaMark | null) => FinalFrameQaWrite,
+  ) => Promise<boolean>;
+  /** 没认领的落库（vision 不可用 / 没有 URL）：CAS 仍为 pending 才写 */
+  saveUnclaimed: (row: PendingFinalFrameQaRow, write: FinalFrameQaWrite) => Promise<boolean>;
   run: typeof runFinalFrameQa;
   isVisionAvailable: () => boolean;
   reserve: () => { ok: true; label: string } | { ok: false; reason: string };
@@ -65,10 +98,9 @@ export interface FinalFrameQaServiceDeps {
   now: () => Date;
 }
 
-/** 待复检：pending，或 checking 但租期已过（持有者被平台杀掉） */
+/** 待复检：pending，或 checking 但租期已过（持有者被平台杀掉）。不限 QAReview.status——已交付 brief 的标记挂在 APPROVED 行上。 */
 export function pendingFinalFrameQaWhere(now: Date): Prisma.QAReviewWhereInput {
   return {
-    status: "PENDING",
     OR: [
       { aiScoreBreakdown: { path: [FINAL_FRAME_QA_KEY, "status"], equals: "pending" } },
       {
@@ -99,37 +131,68 @@ export function referenceImageFromPlan(plan: unknown): string | null {
   return null;
 }
 
-function markPatch(row: PendingFinalFrameQaRow, next: FinalFrameQaMark): Record<string, unknown> {
-  const prior = readFinalFrameQaMark(row.aiScoreBreakdown);
+export function finalVideoUrlOf(row: Pick<PendingFinalFrameQaRow, "videoBrief">): string | null {
+  return row.videoBrief?.finalVideo?.stitchedVideoUrl ?? row.videoBrief?.finalVideoUrl ?? null;
+}
+
+/** 结论 → 这一行要写的标记与问题（纯函数）：超时在次数内重排 pending，否则按结论落。 */
+export function buildFinalFrameQaWrite(
+  prior: FinalFrameQaMark | null,
+  result: FinalFrameQaResult,
+  now: Date,
+): FinalFrameQaWrite & { requeued: boolean } {
+  const attempts = (prior?.attempts ?? 0) + 1;
+  if (result.status === "skipped" && result.retryable && attempts < FINAL_FRAME_QA_MAX_ATTEMPTS) {
+    const requeued = newPendingFinalFrameQa(now, attempts);
+    return {
+      mark: { ...requeued, ...(prior?.requestedAt ? { requestedAt: prior.requestedAt } : {}) },
+      issues: [],
+      requeued: true,
+    };
+  }
+  const base = finalFrameQaMarkFromResult(result, prior);
+  const mark: FinalFrameQaMark =
+    result.status === "skipped" && result.retryable
+      ? { ...base, attempts, skipReason: `${result.skipReason ?? "复检超时"}（已重试 ${attempts} 次，放弃）` }
+      : base;
   return {
-    [FINAL_FRAME_QA_KEY]: {
-      ...(prior?.requestedAt ? { requestedAt: prior.requestedAt } : {}),
-      ...next,
-    },
+    mark,
+    issues: result.issues.map((issue) => `第${issue.frameIndex + 1}帧 ${issue.detail}`),
+    requeued: false,
   };
 }
 
+const pendingRowSelect = {
+  id: true,
+  aiScoreBreakdown: true,
+  aiIssues: true,
+  videoBrief: {
+    select: {
+      finalVideoUrl: true,
+      videoGenerationPlan: true,
+      finalVideo: { select: { stitchedVideoUrl: true } },
+    },
+  },
+} as const;
+
 const defaultDeps: FinalFrameQaServiceDeps = {
+  mode: () => finalFrameQaMode(),
+  budgetUsage: () => {
+    const usage = frameQaBudgetUsage();
+    return usage ? { deferred: usage.deferred, visionFailures: usage.visionFailures } : null;
+  },
   findPending: (limit, now) =>
     db.qAReview.findMany({
       where: pendingFinalFrameQaWhere(now),
       orderBy: { createdAt: "asc" },
       take: limit,
-      select: {
-        id: true,
-        aiScoreBreakdown: true,
-        aiIssues: true,
-        videoBrief: {
-          select: {
-            finalVideoUrl: true,
-            videoGenerationPlan: true,
-            finalVideo: { select: { stitchedVideoUrl: true } },
-          },
-        },
-      },
+      select: pendingRowSelect,
     }) as unknown as Promise<PendingFinalFrameQaRow[]>,
   claim: async (row, now) => {
     const prior = readFinalFrameQaMark(row.aiScoreBreakdown);
+    const videoUrl = finalVideoUrlOf(row);
+    if (!videoUrl) return null;
+    const checkingAtMs = now.getTime();
     const claimed = await db.qAReview.updateMany({
       where: {
         id: row.id,
@@ -142,26 +205,53 @@ const defaultDeps: FinalFrameQaServiceDeps = {
               AND: [{
                 aiScoreBreakdown: {
                   path: [FINAL_FRAME_QA_KEY, "checkingAtMs"],
-                  lt: now.getTime() - FINAL_FRAME_QA_CLAIM_LEASE_MS,
+                  lt: checkingAtMs - FINAL_FRAME_QA_CLAIM_LEASE_MS,
                 },
               }],
             }
           : {}),
       },
-      data: mergeQaReviewAiFields(row, {
-        breakdown: markPatch(row, { status: "checking", checkingAtMs: now.getTime() }),
+      data: mergeFinalFrameQaReview(row, {
+        mark: {
+          status: "checking",
+          checkingAtMs,
+          ...(prior?.requestedAt ? { requestedAt: prior.requestedAt } : {}),
+          ...(prior?.attempts ? { attempts: prior.attempts } : {}),
+        },
+        /// 认领时保留上一版复检问题；结论写回时整体替换
+        issues: ((Array.isArray(row.aiIssues) ? row.aiIssues : []) as unknown[])
+          .filter((issue): issue is string => typeof issue === "string" && issue.startsWith("[成片复检]")),
       }),
     });
-    return claimed.count === 1;
+    return claimed.count === 1 ? { checkingAtMs, videoUrl } : null;
   },
-  save: async (row, result) => {
-    await db.qAReview.update({
-      where: { id: row.id },
-      data: mergeQaReviewAiFields(row, {
-        breakdown: markPatch(row, finalFrameQaMarkFromResult(result)),
-        issues: result.issues.map((issue) => `${ISSUE_PREFIX} 第${issue.frameIndex + 1}帧 ${issue.detail}`),
-      }),
+  saveClaimed: async (row, claim, build) =>
+    db.$transaction(async (tx) => {
+      const fresh = (await tx.qAReview.findUnique({
+        where: { id: row.id },
+        select: pendingRowSelect,
+      })) as unknown as PendingFinalFrameQaRow | null;
+      if (!fresh) return false;
+      const mark = readFinalFrameQaMark(fresh.aiScoreBreakdown);
+      /// 认领凭证不对（租期过了被别人接手 / 只重拼换片后重新挂了 pending）或成片已换：这份结论作废
+      if (mark?.status !== "checking" || mark.checkingAtMs !== claim.checkingAtMs) return false;
+      if (finalVideoUrlOf(fresh) !== claim.videoUrl) return false;
+      const write = build(mark);
+      const updated = await tx.qAReview.updateMany({
+        where: {
+          id: row.id,
+          aiScoreBreakdown: { path: [FINAL_FRAME_QA_KEY, "checkingAtMs"], equals: claim.checkingAtMs },
+        },
+        data: mergeFinalFrameQaReview(fresh, write),
+      });
+      return updated.count === 1;
+    }),
+  saveUnclaimed: async (row, write) => {
+    const updated = await db.qAReview.updateMany({
+      where: { id: row.id, aiScoreBreakdown: { path: [FINAL_FRAME_QA_KEY, "status"], equals: "pending" } },
+      data: mergeFinalFrameQaReview(row, write),
     });
+    return updated.count === 1;
   },
   run: runFinalFrameQa,
   isVisionAvailable: isFrameQaEnabled,
@@ -170,55 +260,78 @@ const defaultDeps: FinalFrameQaServiceDeps = {
   now: () => new Date(),
 };
 
-export function finalVideoUrlOf(row: PendingFinalFrameQaRow): string | null {
-  return row.videoBrief?.finalVideo?.stitchedVideoUrl ?? row.videoBrief?.finalVideoUrl ?? null;
-}
-
 export async function runPendingFinalFrameQa(
   limit = FINAL_FRAME_QA_BATCH,
   overrides: Partial<FinalFrameQaServiceDeps> = {},
 ): Promise<FinalFrameQaSweep> {
   const deps = { ...defaultDeps, ...overrides };
+  const mode = deps.mode();
+  const sweep: FinalFrameQaSweep = { mode, scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0, requeued: 0 };
+  if (mode === "off") return sweep;
+
+  /// 让路：段级门禁这一轮没跑完（预算不够）或 vision 在报错，影子复检不再添乱
+  const usage = deps.budgetUsage();
+  if (usage && usage.deferred > 0) return { ...sweep, skippedRound: "segment_gate_deferred" };
+  if (usage && usage.visionFailures > 0) return { ...sweep, skippedRound: "segment_gate_vision_failed" };
+
   const batch = Math.max(1, Math.min(limit, FINAL_FRAME_QA_BATCH));
   const now = deps.now();
   const rows = (await deps.findPending(batch, now)).slice(0, batch);
-  const sweep: FinalFrameQaSweep = { scanned: rows.length, checked: 0, issues: 0, skipped: 0, deferred: 0 };
+  sweep.scanned = rows.length;
 
-  for (const row of rows) {
+  for (const [index, row] of rows.entries()) {
+    const prior = readFinalFrameQaMark(row.aiScoreBreakdown);
     const videoUrl = finalVideoUrlOf(row);
     if (!videoUrl) {
-      await deps.save(row, skippedFinalFrameVerdict("成片没有可下载的 URL", deps.now()));
+      const write = buildFinalFrameQaWrite(prior, skippedFinalFrameVerdict("成片没有可下载的 URL", deps.now()), deps.now());
+      await deps.saveUnclaimed(row, write);
       sweep.skipped += 1;
       continue;
     }
     /// vision 不可用：记 skipped + 原因，不占预算、不认领（结论是确定的）
     if (!deps.isVisionAvailable()) {
-      await deps.save(row, skippedFinalFrameVerdict("vision 不可用（未配置 / mock 模式 / FRAME_QA_DISABLED）", deps.now()));
+      const write = buildFinalFrameQaWrite(
+        prior,
+        skippedFinalFrameVerdict("vision 不可用（未配置 / mock 模式 / FRAME_QA_DISABLED）", deps.now()),
+        deps.now(),
+      );
+      await deps.saveUnclaimed(row, write);
       sweep.skipped += 1;
       continue;
     }
     const reservation = deps.reserve();
     if (!reservation.ok) {
-      /// 本轮预算用完：剩下的留在 pending，下一轮再来
-      sweep.deferred += rows.length - sweep.checked - sweep.skipped - sweep.deferred;
+      /// 本轮预算用完：这一条和后面的都留在 pending，下一轮再来
+      sweep.deferred += rows.length - index;
       break;
     }
-    if (!(await deps.claim(row, deps.now()))) {
+    const claim = await deps.claim(row, deps.now());
+    if (!claim) {
       deps.release();
       sweep.deferred += 1;
       continue;
     }
-    const result = await deps.run(videoUrl, {
+    const result = await deps.run(claim.videoUrl, {
       firstFrameRef: referenceImageFromPlan(row.videoBrief?.videoGenerationPlan),
     });
-    await deps.save(row, result);
-    if (result.status === "skipped") sweep.skipped += 1;
+    let requeued = false;
+    const saved = await deps.saveClaimed(row, claim, (fresh) => {
+      const write = buildFinalFrameQaWrite(fresh, result, deps.now());
+      requeued = write.requeued;
+      return { mark: write.mark, issues: write.issues };
+    });
+    if (!saved) {
+      sweep.deferred += 1;
+      continue;
+    }
+    if (requeued) sweep.requeued += 1;
+    else if (result.status === "skipped") sweep.skipped += 1;
     else {
       sweep.checked += 1;
       if (result.status === "issues") sweep.issues += 1;
     }
     if (result.status !== "ok") {
-      console.warn(`[final-frame-qa] review ${row.id}: ${result.status}`, {
+      console.warn(`[final-frame-qa] review ${row.id}: ${result.status}${requeued ? " (requeued)" : ""}`, {
         issues: result.issues.length,
         skipReason: result.skipReason,
       });

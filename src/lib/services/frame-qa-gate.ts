@@ -79,6 +79,8 @@ interface FrameQaBudgetState extends FrameQaBudgetOptions {
   deadline: number;
   used: number;
   deferred: number;
+  /// 本轮段级门禁里 vision / 下载 / 抽帧出错或超时的次数（成片级复检据此让路，#16 item 7）
+  visionFailures: number;
 }
 
 /**
@@ -106,6 +108,7 @@ export function runWithFrameQaBudget<T>(
       deadline: Date.now() + options.timeBudgetMs,
       used: 0,
       deferred: 0,
+      visionFailures: 0,
     },
     fn,
   );
@@ -113,7 +116,7 @@ export function runWithFrameQaBudget<T>(
 
 /** 当前上下文的预算用量（cron 响应体里回显，便于观察） */
 export function frameQaBudgetUsage():
-  | { label: string; used: number; maxChecks: number; deferred: number }
+  | { label: string; used: number; maxChecks: number; deferred: number; visionFailures: number }
   | null {
   const budget = budgetStore.getStore();
   if (!budget) return null;
@@ -122,8 +125,17 @@ export function frameQaBudgetUsage():
     used: budget.used,
     maxChecks: budget.maxChecks,
     deferred: budget.deferred,
+    visionFailures: budget.visionFailures,
   };
 }
+
+/** 段级门禁这一次没跑成（vision 出错 / 下载抽帧异常 / 超时）：记一笔，供成片级复检判断本轮要不要让路。 */
+export function noteFrameQaVisionFailure(): void {
+  const budget = budgetStore.getStore();
+  if (budget) budget.visionFailures += 1;
+}
+
+const GATE_FAILURE_REASON = /执行异常|超时/;
 
 /**
  * 预算上下文之外的策略。生产默认 defer（D2：用户面请求不跑质检）；
@@ -370,7 +382,13 @@ export interface FrameQaGateDeps {
 
 const defaultDeps: FrameQaGateDeps = {
   isFrameQaEnabled,
-  runFrameTextQa: (videoUrl) => runFrameTextQa(videoUrl),
+  runFrameTextQa: async (videoUrl) => {
+    const verdict = await runFrameTextQa(videoUrl);
+    if (!verdict.checked && GATE_FAILURE_REASON.test(verdict.skipReason ?? "")) {
+      noteFrameQaVisionFailure();
+    }
+    return verdict;
+  },
   loadPriorDetail: async (jobId) =>
     (
       await db.videoJob.findUnique({

@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 import { db } from "../src/lib/db";
 import {
-  mergeJsonArray,
-  mergeJsonObject,
-  mergeQaReviewAiFields,
+  FINAL_FRAME_QA_ISSUE_PREFIX,
+  mergeAiQaReview,
+  mergeFinalFrameQaReview,
 } from "../src/lib/services/qa-review-merge";
 import { runAIQA } from "../src/lib/services/qa-service";
 
 /**
- * P01-E1（链 T）：qa-service 对 aiScoreBreakdown / aiIssues 合并写，不整块覆盖。
- * 同一 QAReview 行还挂着成片级复检（P01-E）的 finalFrameQa 子对象与追加的问题。
+ * P01-E1（链 T）：QAReview 的 aiScoreBreakdown / aiIssues 按归属合并（#16 审查 item 4 否决了通用并集）：
+ *   - runAIQA 整块替换自己的 8 维打分与自己的问题，只保留 finalFrameQa 键与「[成片复检]」前缀的问题；
+ *   - 成片级复检整体替换 finalFrameQa 与自己前缀的问题，不碰 8 维打分与别人的问题。
  * monkey-patch Prisma，不连库；brief 没有脚本 → runAIQA 走 mock 打分，不调 LLM。
  */
 
@@ -26,39 +27,48 @@ function patchModel(t: TestContext, model: object, patches: Record<string, unkno
   });
 }
 
-test("mergeJsonObject：深合并，同键新值胜出，其它键保留；嵌套数组去重追加；undefined 不覆盖", () => {
-  const merged = mergeJsonObject(
-    { hook_quality: 3, finalFrameQa: { status: "pending", requestedAt: "t0", issues: ["a"] }, keep: true },
-    { hook_quality: 8, finalFrameQa: { status: "ok", checkedAt: "t1", issues: ["a", "b"] }, gone: undefined },
+const RECHECK_ISSUE = `${FINAL_FRAME_QA_ISSUE_PREFIX} 第3帧 检测到假字标`;
+
+test("mergeAiQaReview：替换自己的打分与问题，保留 finalFrameQa 键与复检前缀问题；旧打分 / 旧问题不残留", () => {
+  const merged = mergeAiQaReview(
+    {
+      aiScoreBreakdown: { hook_quality: 3, stale_dimension: 1, finalFrameQa: { status: "ok", checkedAt: "t1" } },
+      aiIssues: ["旧的 AI 问题", RECHECK_ISSUE],
+    },
+    { breakdown: { hook_quality: 8, cta_quality: 6 }, issues: ["新的 AI 问题"] },
   );
-  assert.deepEqual(merged, {
+  assert.deepEqual(merged.aiScoreBreakdown, {
     hook_quality: 8,
-    finalFrameQa: { status: "ok", requestedAt: "t0", checkedAt: "t1", issues: ["a", "b"] },
-    keep: true,
+    cta_quality: 6,
+    finalFrameQa: { status: "ok", checkedAt: "t1" },
   });
-  /// 坏数据（非对象）按空对象起步
-  assert.deepEqual(mergeJsonObject(null, { a: 1 }), { a: 1 });
-  assert.deepEqual(mergeJsonObject(["x"], { a: 1 }), { a: 1 });
-  assert.deepEqual(mergeJsonObject({ a: 1 }, "junk"), { a: 1 });
+  assert.deepEqual(merged.aiIssues, ["新的 AI 问题", RECHECK_ISSUE]);
+  /// 没有复检键 / 坏数据：只写自己的
+  assert.deepEqual(mergeAiQaReview({ aiScoreBreakdown: null, aiIssues: "junk" }, { breakdown: { a: 1 }, issues: [] }), {
+    aiScoreBreakdown: { a: 1 },
+    aiIssues: [],
+  });
 });
 
-test("mergeJsonArray：保留旧顺序，追加未出现的新项；对象按 JSON 身份判重", () => {
-  assert.deepEqual(mergeJsonArray(["旧问题", "重复"], ["重复", "新问题"]), ["旧问题", "重复", "新问题"]);
-  assert.deepEqual(mergeJsonArray(null, ["a"]), ["a"]);
-  assert.deepEqual(mergeJsonArray([{ k: 1 }], [{ k: 1 }, { k: 2 }]), [{ k: 1 }, { k: 2 }]);
-  assert.deepEqual(mergeJsonArray(["a"], undefined), ["a"]);
+test("mergeFinalFrameQaReview：整体替换 finalFrameQa（不深合并）与自己前缀的问题；打分与别人的问题原样", () => {
+  const existing = {
+    aiScoreBreakdown: { hook_quality: 7, finalFrameQa: { status: "issues", requestedAt: "t0", issues: [{ frameIndex: 2 }] } },
+    aiIssues: ["AI 问题", RECHECK_ISSUE],
+  };
+  /// 先出 issues、再复检为 ok：旧问题子对象与「[成片复检]」问题都要清空
+  const ok = mergeFinalFrameQaReview(existing, { mark: { status: "ok", requestedAt: "t0", checkedAt: "t2" }, issues: [] });
+  assert.deepEqual(ok.aiScoreBreakdown, { hook_quality: 7, finalFrameQa: { status: "ok", requestedAt: "t0", checkedAt: "t2" } });
+  assert.deepEqual(ok.aiIssues, ["AI 问题"]);
+
+  const issues = mergeFinalFrameQaReview(existing, { mark: { status: "issues" }, issues: ["第1帧 假字", `${FINAL_FRAME_QA_ISSUE_PREFIX} 已带前缀`] });
+  assert.deepEqual(issues.aiIssues, ["AI 问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 第1帧 假字`, `${FINAL_FRAME_QA_ISSUE_PREFIX} 已带前缀`]);
+  assert.deepEqual(mergeFinalFrameQaReview({ aiScoreBreakdown: null, aiIssues: null }, { mark: { status: "pending" }, issues: [] }), {
+    aiScoreBreakdown: { finalFrameQa: { status: "pending" } },
+    aiIssues: [],
+  });
 });
 
-test("mergeQaReviewAiFields：只返回被触碰的列", () => {
-  const out = mergeQaReviewAiFields(
-    { aiScoreBreakdown: { finalFrameQa: { status: "pending" } }, aiIssues: ["旧"] },
-    { breakdown: { hook_quality: 7 } },
-  );
-  assert.deepEqual(out, { aiScoreBreakdown: { finalFrameQa: { status: "pending" }, hook_quality: 7 } });
-  assert.deepEqual(mergeQaReviewAiFields({ aiScoreBreakdown: null, aiIssues: null }, {}), {});
-});
-
-test("runAIQA 更新既有 PENDING 行：8 维打分合并进去，finalFrameQa 子对象与已有问题保留，重复问题不翻倍", async (t) => {
+test("runAIQA 更新既有 PENDING 行：8 维打分整块替换，finalFrameQa 与复检问题保留，旧 AI 问题不残留", async (t) => {
   patchModel(t, db.videoBrief, {
     findUnique: async () => ({
       id: "brief-1",
@@ -71,8 +81,8 @@ test("runAIQA 更新既有 PENDING 行：8 维打分合并进去，finalFrameQa 
   });
   const existing = {
     id: "qa-1",
-    aiScoreBreakdown: { finalFrameQa: { status: "pending", requestedAt: "2026-10-26T12:00:00.000Z" } },
-    aiIssues: ["[成片复检] 第3帧 检测到假字标", "[Mock] LLM 未配置，全维度按 7 分打分"],
+    aiScoreBreakdown: { hook_quality: 3, finalFrameQa: { status: "pending", requestedAt: "2026-10-26T12:00:00.000Z" } },
+    aiIssues: [RECHECK_ISSUE, "上一轮 AI 的旧问题"],
   };
   const updates: Array<{ where: { id: string }; data: Record<string, unknown> }> = [];
   patchModel(t, db.qAReview, {
@@ -89,8 +99,8 @@ test("runAIQA 更新既有 PENDING 行：8 维打分合并进去，finalFrameQa 
   const data = updates[0].data;
   const breakdown = data.aiScoreBreakdown as Record<string, unknown>;
   assert.deepEqual(breakdown.finalFrameQa, existing.aiScoreBreakdown.finalFrameQa, "成片复检标记不被覆盖");
-  assert.equal(breakdown.hook_quality, 7);
+  assert.equal(breakdown.hook_quality, 7, "自己的打分整块替换");
   assert.equal(breakdown.technical_completeness, 7);
-  assert.deepEqual(data.aiIssues, existing.aiIssues, "旧问题保留，重复的 mock 问题不翻倍");
+  assert.deepEqual(data.aiIssues, ["[Mock] LLM 未配置，全维度按 7 分打分", RECHECK_ISSUE], "旧 AI 问题不残留，复检问题保留");
   assert.equal(typeof data.aiOverallScore, "number");
 });

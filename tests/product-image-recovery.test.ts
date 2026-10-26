@@ -518,7 +518,7 @@ test("cron isolates image polling errors so video polling and sweep still comple
     pollPendingStoryboardRuns: async () => { calls.push("storyboard"); return 2; },
     pollPendingContentPostRenders: async () => { calls.push("content-post"); return 1; },
     sweepStuckTasks: async () => { calls.push("sweep"); return { swept: 2 }; },
-    runPendingFinalFrameQa: async () => ({ scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0 }),
+    runPendingFinalFrameQa: async () => ({ mode: "off" as const, scanned: 0, checked: 0, issues: 0, skipped: 0, deferred: 0, requeued: 0 }),
   });
   const response = await handler(new Request("http://localhost/api/cron/poll-videos"));
   assert.equal(response.status, 200);

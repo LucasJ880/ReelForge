@@ -29,8 +29,7 @@ export function VideoActions({
   /// 重试前要先补扣已返还的那一条额度；额度用完时接口回 QUOTA_EXCEEDED，这里给真实下一步而不是笼统的「重试失败」。
   const [quotaExhausted, setQuotaExhausted] = useState(false);
 
-  /// body 可传：重试默认 { all: true }；只重拼等其它 render-retry 分支复用同一个出口。
-  async function post(kind: "refresh" | "retry", body?: Record<string, unknown>) {
+  async function post(kind: "refresh" | "retry") {
     setFeedback(null);
     setQuotaExhausted(false);
     if (kind === "refresh") setRefreshing(true);
@@ -43,7 +42,7 @@ export function VideoActions({
           : {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify(body ?? { all: true }),
+              body: JSON.stringify({ all: true }),
             },
       );
       if (!response.ok) {

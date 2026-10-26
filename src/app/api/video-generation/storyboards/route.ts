@@ -84,27 +84,17 @@ export function createStoryboardPostHandler(
         { status: 400 },
       );
     }
-    if (
-      parsed.data.personAssetIds.length > 0 &&
-      !canSubmitStoryboardPersonRefs({
-        mode: dependencies.personRefsMode(),
-        isInternal: isInternalRole(guard.session.user.role),
-      })
-    ) {
-      return NextResponse.json(
-        {
-          ok: false,
-          code: "VALIDATION_FAILED",
-          error: "主播参考图暂未开放，请去掉主播参考图后再提交。",
-        },
-        { status: 400 },
-      );
-    }
     try {
       const run = await dependencies.createStoryboardRun({
         userId: guard.session.user.id,
         idempotencyKey,
         ...parsed.data,
+        // 主播参考图的放行由路由按开关 + 角色算好；service 在幂等回放之后才校验，
+        // 同一键的旧请求刷新重提不会因为开关关掉而 400。
+        personRefsAllowed: canSubmitStoryboardPersonRefs({
+          mode: dependencies.personRefsMode(),
+          isInternal: isInternalRole(guard.session.user.role),
+        }),
         // 创作台直接发起：计入每小时限流（批量内部准备不走这个入口）。
         userInitiated: true,
       });

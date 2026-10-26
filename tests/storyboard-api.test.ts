@@ -96,15 +96,16 @@ function storyboardHarness(options: {
   return { handler, received };
 }
 
-test("personAssetIds：开关 off（默认）时非空即 400 VALIDATION_FAILED，不进 service", async () => {
+test("personAssetIds：路由只做形状校验并算好 personRefsAllowed；开关 off 时非空也进 service（由 service 在幂等回放之后给 400）", async () => {
   const h = storyboardHarness({ mode: "off" });
   const response = await h.handler(storyboardRequest({ ...validBody, personAssetIds: ["person-1"] }) as never);
-  assert.equal(response.status, 400);
-  assert.equal((await response.json()).code, "VALIDATION_FAILED");
-  assert.equal(h.received.length, 0);
+  assert.equal(response.status, 201);
+  assert.equal(h.received.length, 1);
+  assert.deepEqual(h.received[0].personAssetIds, ["person-1"]);
+  assert.equal(h.received[0].personRefsAllowed, false);
 });
 
-test("personAssetIds：开关 off 时空数组（或省略）照常创建，service 收到空数组", async () => {
+test("personAssetIds：省略或空数组照常创建，service 收到空数组与 personRefsAllowed=false（开关 off）", async () => {
   const h = storyboardHarness({ mode: "off" });
   const omitted = await h.handler(storyboardRequest(validBody) as never);
   assert.equal(omitted.status, 201);
@@ -113,15 +114,17 @@ test("personAssetIds：开关 off 时空数组（或省略）照常创建，serv
   assert.equal(h.received.length, 2);
   assert.deepEqual(h.received[0].personAssetIds, []);
   assert.deepEqual(h.received[1].personAssetIds, []);
+  assert.equal(h.received[0].personRefsAllowed, false);
   assert.equal(h.received[0].userInitiated, true);
 });
 
-test("personAssetIds：开关 on 时接受 ≤4 张并原样传给 service；第 5 张被 zod 拒绝", async () => {
+test("personAssetIds：开关 on 时 ≤4 张原样传给 service 且 personRefsAllowed=true；第 5 张被 zod 拒绝", async () => {
   const h = storyboardHarness({ mode: "on" });
   const four = ["p1", "p2", "p3", "p4"];
   const accepted = await h.handler(storyboardRequest({ ...validBody, personAssetIds: four }) as never);
   assert.equal(accepted.status, 201);
-  assert.deepEqual(h.received[0].personAssetIds, four);
+  assert.deepEqual(h.received[0].personAssetIds, four, "保留原始顺序（首张 = 主播）");
+  assert.equal(h.received[0].personRefsAllowed, true);
   assert.deepEqual(h.received[0].sourceAssetIds, ["asset-1"]);
 
   const rejected = await h.handler(
@@ -132,14 +135,26 @@ test("personAssetIds：开关 on 时接受 ≤4 张并原样传给 service；第
   assert.equal(h.received.length, 1);
 });
 
-test("personAssetIds：开关 internal 时只有内部员工可传，客户账号 400", async () => {
+test("personAssetIds：开关 internal 时只有内部员工放行（SUPER_ADMIN / OPERATOR），客户账号 personRefsAllowed=false", async () => {
   const customer = storyboardHarness({ mode: "internal", role: "CUSTOMER" });
-  const denied = await customer.handler(storyboardRequest({ ...validBody, personAssetIds: ["p1"] }) as never);
-  assert.equal(denied.status, 400);
-  assert.equal(customer.received.length, 0);
+  await customer.handler(storyboardRequest({ ...validBody, personAssetIds: ["p1"] }) as never);
+  assert.equal(customer.received[0].personRefsAllowed, false);
 
-  const operator = storyboardHarness({ mode: "internal", role: "OPERATOR" });
-  const allowed = await operator.handler(storyboardRequest({ ...validBody, personAssetIds: ["p1"] }) as never);
-  assert.equal(allowed.status, 201);
-  assert.deepEqual(operator.received[0].personAssetIds, ["p1"]);
+  for (const role of ["OPERATOR", "SUPER_ADMIN"] as const) {
+    const staff = storyboardHarness({ mode: "internal", role });
+    await staff.handler(storyboardRequest({ ...validBody, personAssetIds: ["p1"] }) as never);
+    assert.equal(staff.received[0].personRefsAllowed, true, role);
+  }
+});
+
+test("统一创作路由（/plan、/dispatch）的 userAssignedRole=person 受同一个开关控制（静态接线）", async () => {
+  const [plan, dispatch] = await Promise.all([
+    readFile(new URL("../src/app/api/video-generation/plan/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../src/app/api/video-generation/dispatch/route.ts", import.meta.url), "utf8"),
+  ]);
+  for (const source of [plan, dispatch]) {
+    assert.match(source, /hasPersonTaggedAttachment\(/);
+    assert.match(source, /canSubmitStoryboardPersonRefs\(/);
+    assert.match(source, /storyboardPersonRefsMode\(\)/);
+  }
 });

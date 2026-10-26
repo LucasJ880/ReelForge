@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireUserOfTypeForGeneration } from "@/lib/api-auth";
+import { isInternalRole } from "@/lib/auth-role-policy";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { assertQuotaForSession } from "@/lib/services/quota-service";
 import {
@@ -9,6 +10,11 @@ import {
 import { buildPlan } from "@/lib/video-generation/generation-supervisor";
 import { unifiedVideoGenerationRequestSchema } from "@/lib/schemas/unified-input";
 import { canUseRequestedBrandName } from "@/lib/brand/global-brand-access";
+import {
+  canSubmitStoryboardPersonRefs,
+  hasPersonTaggedAttachment,
+  storyboardPersonRefsMode,
+} from "@/lib/video-generation/storyboard-person-refs";
 
 /**
  * POST /api/video-generation/plan
@@ -43,6 +49,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { ok: false, error: "这个品牌名属于受保护的客户品牌，当前账号不能使用。" },
       { status: 403 },
+    );
+  }
+
+  /// 主播参考图（userAssignedRole=person）与故事板走同一个开关 STORYBOARD_PERSON_REFS（P02-D(s)）。
+  if (
+    hasPersonTaggedAttachment(parsed.data.attachments) &&
+    !canSubmitStoryboardPersonRefs({
+      mode: storyboardPersonRefsMode(),
+      isInternal: isInternalRole(guard.session.user.role),
+    })
+  ) {
+    return NextResponse.json(
+      { ok: false, error: "主播参考图暂未开放，请去掉标为主播参考图的素材后再提交。" },
+      { status: 400 },
     );
   }
 

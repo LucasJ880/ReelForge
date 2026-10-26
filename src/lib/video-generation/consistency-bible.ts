@@ -14,6 +14,7 @@
 
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import { effectiveAssetRole } from "@/types/video-generation";
+import { presenterReferenceAssets } from "@/lib/video-generation/storyboard-person-refs";
 import type {
   ConsistencyBible,
   CreativeBrief,
@@ -42,18 +43,14 @@ RULES:
 - lightingArc length MUST equal the number of segments given, and lighting must PROGRESS the story, not stay static.
 - No brand names, no logos, no on-screen text instructions.`;
 
-/// 有主播参考图（AssetRole person）时追加的规则（P02-C）：人物身份以照片为准——文字只给服装 / 气质方向，
-/// 不许凭空编一张脸去和视频模型看到的真人照片打架。
+/// 有主播参考图（开关放行且素材标了 person）时追加的规则（P02-C）：人物身份以主播参考图为准，
+/// 描述要具体但不许和那张照片打架。（主播图何时真正进视频参考由 P02-F(s) 决定，这里不做承诺。）
 const PRESENTER_REFERENCE_RULE =
-  `- A PRESENTER REFERENCE PHOTO is provided and is also fed to the video model: characterProfile MUST describe the person in that photo. Open with "the exact person in the presenter reference photo", defer every identity trait (face, hair, skin tone, build, age) to the photo, and add only wardrobe and vibe direction that fits the brief. Never invent a different person.`;
+  `- A PRESENTER REFERENCE PHOTO is attached: characterProfile MUST describe the person in that photo. Open with "the exact person in the presenter reference photo", then give a concrete, reproducible description (hair, skin tone, build, age range, EXACT outfit, vibe) that stays faithful to that person and the brief. Never invent a different person.`;
 
-/// 无 LLM 时的主播兜底：与主播参考图同一人。
-const PRESENTER_HEURISTIC_CHARACTER =
-  "The exact person in the presenter reference photo — same face, hair, skin tone, build and age in every shot; wardrobe and overall vibe as seen in that photo (a real relatable presenter, not a model).";
-
-function presenterReferenceAssets(assets: UploadedAsset[]): UploadedAsset[] {
-  return assets.filter((a) => effectiveAssetRole(a) === "person");
-}
+/// 无 LLM 时的主播兜底：在具体人物描述后追加「与主播参考图同一人」。
+const PRESENTER_HEURISTIC_SUFFIX =
+  "Must be the exact person in the presenter reference photo — same face, hair, skin tone, build and age in every shot.";
 
 export interface BuildConsistencyBibleArgs {
   creativeBrief: CreativeBrief;
@@ -90,7 +87,7 @@ export async function buildConsistencyBible(
     const presenterSection =
       presenterAssets.length > 0
         ? `
-# Presenter reference photo(s) (the real on-camera person; also fed to the video model)
+# Presenter reference photo(s) (the real on-camera person)
 ${presenterAssets.map((a) => `- ${a.fileName}`).join("\n")}
 `
         : "";
@@ -191,13 +188,13 @@ export function heuristicBible(args: BuildConsistencyBibleArgs): ConsistencyBibl
   const langIsZh = args.language.toLowerCase().startsWith("zh");
   const tpl = args.styleTemplate;
   const refs = args.visualRefs;
-  /// 有主播参考图时人物就是照片里那个人，模版的角色 hint 让位（没有 person 图时保持现状）。
-  const hasPresenterReference = presenterReferenceAssets(args.classifiedAssets).length > 0;
+  /// 有主播参考图（且开关放行）时，在具体人物描述后追加「与主播参考图同一人」；没有时保持现状。
+  const presenterAnchored = presenterReferenceAssets(args.classifiedAssets).length > 0;
+  const baseCharacter =
+    tpl?.scaffold.characterHint ??
+    "One woman in her late 20s, shoulder-length dark brown hair loosely tied, warm light-tan skin, oval face, wearing an oat-colored long-sleeve loungewear set, friendly relatable everyday vibe (not a model).";
   return {
-    characterProfile:
-      (hasPresenterReference ? PRESENTER_HEURISTIC_CHARACTER : null) ??
-      tpl?.scaffold.characterHint ??
-      "One woman in her late 20s, shoulder-length dark brown hair loosely tied, warm light-tan skin, oval face, wearing an oat-colored long-sleeve loungewear set, friendly relatable everyday vibe (not a model).",
+    characterProfile: presenterAnchored ? `${baseCharacter} ${PRESENTER_HEURISTIC_SUFFIX}` : baseCharacter,
     environmentProfile:
       (refs?.isRealLocation ? refs.locationDescription : null) ??
       tpl?.scaffold.environmentHint ??

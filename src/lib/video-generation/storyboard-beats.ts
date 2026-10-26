@@ -42,15 +42,20 @@ export function storyboardBeatLabel(beat: string, english: boolean): string {
 /** 已按故事板改写过的段提示词带这个标记：重试 / 重复派发不再二次改写。 */
 export const STORYBOARD_GROUNDING_MARKER = "APPROVED STORYBOARD (recreate these keyframes in order):";
 
-/// 模板里与故事板无冲突、必须保留的约束行（身份 / 场景 / 产品 / 口型 / 光线锁，bible 的人物与产品行，与口播台词）。
-/// `CHARACTER (` / `PRODUCT (` / `PRODUCT:` / `NO on-camera person` 是 bible 落进提示词的人物与产品文字锚（P02-C）：
-/// 故事板帧只锚镜头，这几行若被丢掉，主播参考与产品描述在派发时整行消失。
+/// 模板里与故事板无冲突、必须保留的约束行（身份 / 场景 / 产品 / 口型 / 光线锁，产品描述行，与口播台词）。
+/// P02-C：bible 的 PRODUCT 行保留（产品描述不与故事板冲突）；CHARACTER 行**只保留带主播前缀的**
+/// `CHARACTER (must match the presenter reference photo…`——通用配方自编的人物与 `NO on-camera person`
+/// 都是 1025 修掉的「模板盖过商家原话」，谁在镜头前由商家原话与故事板帧决定。
 /// `Audio:` 与 `Spoken dialogue` 是口播链路的依赖，必须原样保留。
 const KEEP_TEMPLATE_LINE =
-  /^(?:CHARACTER IDENTITY LOCK|CHARACTER \(|PRODUCT(?: \(|:)|NO on-camera person|SCENE GEOMETRY LOCK|PRODUCT SHAPE LOCK|LIP-SYNC LOCK|LIGHTING CONTINUITY LOCK|Audio:|Spoken dialogue|Do not render)/;
+  /^(?:CHARACTER IDENTITY LOCK|CHARACTER \(must match the presenter reference photo|PRODUCT(?: \(|:)|SCENE GEOMETRY LOCK|PRODUCT SHAPE LOCK|LIP-SYNC LOCK|LIGHTING CONTINUITY LOCK|Audio:|Spoken dialogue|Do not render)/;
 
-/// 供应商提示词上限 5000 字（shuyu）；商家描述最多 4000 字，这里给故事留 1500，余量给约束与台词。
+/// 供应商提示词上限 5000 字（shuyu）；商家描述最多 4000 字，这里给故事最多留 1500，余量给约束与台词。
 const STORY_CHAR_BUDGET = 1500;
+/// 整段上限与安全余量：bible 的人物 / 产品行与口播台词都可能很长，故事按「上限 − 余量 − 其余所有行」动态收缩，
+/// 余量给负面约束与供应商侧可能追加的内容。锁行与台词（exact wording）永不裁。
+const VIDEO_PROMPT_LIMIT = 5000;
+const VIDEO_PROMPT_SAFETY = 200;
 
 function beatWithoutTime(beat: string): string {
   return beat.replace(/^\s*\d+\s*[–-]\s*\d+\s*s\s*·\s*/u, "").trim();
@@ -91,7 +96,7 @@ export function groundSegmentPromptInStoryboard(
       const to = Math.min(segmentSec, Math.round(shot.to - input.fromSec));
       return `${from}-${to}s: recreate storyboard keyframe ${shot.index + 1} (reference image ${photos + shot.index + 1}) — ${shot.beat}.`;
     });
-  const story = Array.from(input.story.replace(/\s+/gu, " ").trim()).slice(0, STORY_CHAR_BUDGET).join("");
+  const normalizedStory = input.story.replace(/\s+/gu, " ").trim();
   const photoRange = photos === 1 ? "image 1 is a real photo" : `images 1-${photos} are real photos`;
   const references = photos > 0
     ? `REFERENCE IMAGES: ${photoRange} of the product — match it exactly. Images ${photos + 1}-${photos + count} are the approved storyboard keyframes in story order — match their people, location, wardrobe, light and framing.`
@@ -102,7 +107,7 @@ export function groundSegmentPromptInStoryboard(
     .filter((line) => KEEP_TEMPLATE_LINE.test(line))
     /// 模板默认室内；场景由故事板决定，环境声跟着场景走
     .map((line) => line.replace("subtle real room ambience", "subtle ambient sound that fits the location"));
-  return [
+  const assemble = (story: string) => [
     `${input.aspectRatio} short video, ${segmentSec}s, one continuous photorealistic story.`,
     `STORY (the merchant's own description; it decides who is on screen, where, and what happens): ${story}`,
     references,
@@ -112,4 +117,9 @@ export function groundSegmentPromptInStoryboard(
     "",
     ...kept,
   ].join("\n");
+  const storyBudget = Math.max(
+    0,
+    Math.min(STORY_CHAR_BUDGET, VIDEO_PROMPT_LIMIT - VIDEO_PROMPT_SAFETY - assemble("").length),
+  );
+  return assemble(Array.from(normalizedStory).slice(0, storyBudget).join(""));
 }

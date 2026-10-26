@@ -548,7 +548,7 @@ test("manual storyboard waits for approval while auto policy approves", () => {
 });
 
 // ---------------------------------------------------------------------------
-// P02-D(s) · 主播参考图：落 personAssetIds 列、不进 inputImageUrls、幂等键向后兼容
+// P02-D(s) · 主播参考图：落 personAssetIds 列、不进 inputImageUrls、幂等键向后兼容、开关校验在幂等回放之后
 // ---------------------------------------------------------------------------
 import { createHash } from "node:crypto";
 import { __setMediaAssetRepositoryForTests } from "../src/lib/services/media-asset-service";
@@ -565,9 +565,10 @@ const CREATE_INPUT = {
   durationSec: 15,
   aspectRatio: "9:16" as const,
   sourceAssetIds: ["prod-1"],
+  personRefsAllowed: true,
 };
 
-test("P02-D(s)：没有主播图时 requestHash 与改动前的公式一字不差；有主播图才进 hash", () => {
+test("P02-D(s)：没有主播图时 requestHash 与改动前的公式一字不差；有主播图才进 hash，且保留顺序（首张 = 主播）", () => {
   const urls = ["https://assets.example.test/prod-1.jpg"];
   const legacy = createHash("sha256")
     .update(JSON.stringify({
@@ -586,10 +587,13 @@ test("P02-D(s)：没有主播图时 requestHash 与改动前的公式一字不�
     storyboardServiceTest.requestHash({ ...CREATE_INPUT, personAssetIds: [] }, urls, []),
     legacy,
   );
-  const withPerson = storyboardServiceTest.requestHash(CREATE_INPUT, urls, ["p-2", "p-1"]);
+  const withPerson = storyboardServiceTest.requestHash(CREATE_INPUT, urls, ["p-1", "p-2"]);
   assert.notEqual(withPerson, legacy);
-  // 顺序无关
-  assert.equal(storyboardServiceTest.requestHash(CREATE_INPUT, urls, ["p-1", "p-2"]), withPerson);
+  assert.notEqual(
+    storyboardServiceTest.requestHash(CREATE_INPUT, urls, ["p-2", "p-1"]),
+    withPerson,
+    "换序 = 另一份内容（首张是主播）",
+  );
 });
 
 function mediaRecord(id: string, mimeType = "image/jpeg") {
@@ -607,6 +611,7 @@ function mediaRecord(id: string, mimeType = "image/jpeg") {
   };
 }
 
+/// 商家实拍走 media-asset-service 仓库；主播图走 db.mediaAsset.findMany（建 run 与提交同一个解析器）。
 function createHarness(t: TestContext, records: ReturnType<typeof mediaRecord>[]) {
   __setMediaAssetRepositoryForTests({
     create: async () => { throw new Error("no uploads in this test"); },
@@ -615,28 +620,43 @@ function createHarness(t: TestContext, records: ReturnType<typeof mediaRecord>[]
   });
   t.after(() => __setMediaAssetRepositoryForTests(null));
   const runModel = db.storyboardRun as unknown as Record<string, unknown>;
-  const originals = { findUnique: runModel.findUnique, create: runModel.create, findFirst: runModel.findFirst };
-  t.after(() => Object.assign(runModel, originals));
+  const assetModel = db.mediaAsset as unknown as Record<string, unknown>;
+  const originals = {
+    findUnique: runModel.findUnique, create: runModel.create, findFirst: runModel.findFirst,
+    assetFindMany: assetModel.findMany,
+  };
+  t.after(() => {
+    Object.assign(runModel, { findUnique: originals.findUnique, create: originals.create, findFirst: originals.findFirst });
+    assetModel.findMany = originals.assetFindMany;
+  });
+  assetModel.findMany = async (args: { where: { id: { in: string[] }; userId: string } }) =>
+    records
+      .filter((record) => args.where.id.in.includes(record.id) && record.userId === args.where.userId)
+      .map(({ id, url, mimeType }) => ({ id, url, mimeType }));
   const creates: Array<Record<string, unknown>> = [];
+  let existing: Record<string, unknown> | null = null;
   let created: Record<string, unknown> | null = null;
-  runModel.findUnique = async () => null;
+  runModel.findUnique = async () => existing;
   runModel.create = async (args: { data: Record<string, unknown> }) => {
     creates.push(args.data);
     // 帧留空：不触发首帧提交（提交路径在 P02-B 单独测）。
     created = { ...args.data, frames: [], approvedAt: null, errorCode: null, errorMessage: null };
     return created;
   };
-  runModel.findFirst = async () => created;
-  return { creates };
+  runModel.findFirst = async () => created ?? existing;
+  return {
+    creates,
+    setExisting(run: Record<string, unknown> | null) { existing = run; },
+  };
 }
 
-test("P02-D(s)：主播参考图落 personAssetIds 列；inputAssetIds / inputImageUrls 只放商家实拍", async (t) => {
+test("P02-D(s)：主播参考图落 personAssetIds 列（保留顺序）；inputAssetIds / inputImageUrls 只放商家实拍", async (t) => {
   const h = createHarness(t, [mediaRecord("prod-1"), mediaRecord("person-1"), mediaRecord("person-2")]);
-  const view = await createStoryboardRun({ ...CREATE_INPUT, personAssetIds: ["person-1", "person-2", "person-1"] });
+  const view = await createStoryboardRun({ ...CREATE_INPUT, personAssetIds: ["person-2", "person-1", "person-2"] });
   assert.equal(view.status, "GENERATING");
   assert.equal(h.creates.length, 1);
   const data = h.creates[0];
-  assert.deepEqual(data.personAssetIds, ["person-1", "person-2"], "去重后落列");
+  assert.deepEqual(data.personAssetIds, ["person-2", "person-1"], "去重但不排序");
   assert.deepEqual(data.inputAssetIds, ["prod-1"]);
   assert.deepEqual(data.inputImageUrls, ["https://assets.example.test/prod-1.jpg"], "主播图 URL 不混进实拍列");
 });
@@ -655,6 +675,36 @@ test("P02-D(s)：主播参考图校验——同图不能兼任商品图、最多
   await rejects(["a", "b", "c", "d", "e"], "VALIDATION_FAILED");
   await rejects(["clip-1"], "VALIDATION_FAILED");
   await rejects(["someone-elses"], "NOT_FOUND", 404);
+});
+
+test("P02-D(s)：开关未放行且带主播图 → VALIDATION_FAILED、不建 run；但同键回放发生在校验之前，开关关掉后旧 run 仍能拿回", async (t) => {
+  const h = createHarness(t, [mediaRecord("prod-1"), mediaRecord("person-1")]);
+  const input = { ...CREATE_INPUT, personAssetIds: ["person-1"], personRefsAllowed: false };
+  await assert.rejects(
+    createStoryboardRun(input),
+    (error: unknown) => error instanceof StoryboardRequestError && error.code === "VALIDATION_FAILED",
+  );
+  assert.equal(h.creates.length, 0);
+
+  h.setExisting({
+    id: "run-existing",
+    userId: "owner-1",
+    idempotencyKey: CREATE_INPUT.idempotencyKey,
+    requestHash: storyboardServiceTest.requestHash(input, ["https://assets.example.test/prod-1.jpg"], ["person-1"]),
+    status: "GENERATING",
+    approvalPolicy: "MANUAL",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    approvedAt: null,
+    errorCode: null,
+    errorMessage: null,
+    inputImageUrls: ["https://assets.example.test/prod-1.jpg"],
+    personAssetIds: ["person-1"],
+    frames: [],
+  });
+  const replay = await createStoryboardRun(input);
+  assert.equal(replay.id, "run-existing");
+  assert.equal(h.creates.length, 0);
 });
 
 test("P02-D(s)：派发取参考图时主播图不算实拍——productPhotoCount 只数 inputImageUrls", async (t) => {
@@ -692,13 +742,17 @@ test("P02-D(s)：派发取参考图时主播图不算实拍——productPhotoCou
 });
 
 // ---------------------------------------------------------------------------
-// P02-B · 故事板入参纯函数：每帧 ≤5、实拍保底 3、主播图只进首帧、前帧只留 1 张放最后，
-// REFERENCE ROLES 序号与真正提交的图片出自同一个函数
+// P02-B · 故事板入参纯函数：每帧 ≤5、实拍保底 3、主播图只进第 0 帧（isFirstFrame）、前帧只留 1 张放最后，
+// REFERENCE ROLES 序号与真正提交的图片出自同一个函数；出帧提示词 5000 字预算
 // ---------------------------------------------------------------------------
 import {
   applyStoryboardReferenceRoles,
   composeStoryboardFrameInputImages,
+  fitStoryboardFramePrompt,
+  STORYBOARD_FRAME_PROMPT_LIMIT,
   STORYBOARD_PRESENTER_LOCK,
+  STORYBOARD_REGENERATION_LINE,
+  STORYBOARD_STORY_CONTEXT_PREFIX,
   storyboardReferenceRolesLine,
 } from "../src/lib/video-generation/storyboard-frame-inputs";
 
@@ -713,6 +767,7 @@ test("P02-B：每帧入参 ≤5；商家 5 张实拍时第 2 帧起仍有 ≥3 �
       anchorCutouts: [],
       personImages: [PRESENTER],
       priorFrames: FRAMES.slice(0, priorCount),
+      isFirstFrame: priorCount === 0,
     });
     assert.ok(composed.length <= 5, `frame with ${priorCount} priors has ${composed.length} inputs`);
     const products = composed.filter((image) => image.role === "product");
@@ -728,24 +783,35 @@ test("P02-B：每帧入参 ≤5；商家 5 张实拍时第 2 帧起仍有 ≥3 �
   }
 });
 
-test("P02-B：主播参考图只进首帧且最多 1 张；有前帧的帧不带主播图", () => {
+test("P02-B：主播参考图只进第 0 帧（isFirstFrame 显式判定）且最多 1 张；前帧有无只决定 prior_frame 槽位", () => {
   const first = composeStoryboardFrameInputImages({
     productImages: PRODUCTS.slice(0, 2),
     personImages: [PRESENTER, "https://assets.example.test/presenter-2.jpg"],
     priorFrames: [],
+    isFirstFrame: true,
   });
   assert.deepEqual(first.map((image) => image.role), ["product", "product", "person"]);
   assert.equal(first[2].url, PRESENTER);
+
+  // 第 1 帧而第 0 帧还在途（流水线提交）：没有前帧也不带主播图、不占前帧位
+  const secondInFlight = composeStoryboardFrameInputImages({
+    productImages: PRODUCTS.slice(0, 2),
+    personImages: [PRESENTER],
+    priorFrames: [],
+    isFirstFrame: false,
+  });
+  assert.deepEqual(secondInFlight.map((image) => image.role), ["product", "product"]);
 
   const second = composeStoryboardFrameInputImages({
     productImages: PRODUCTS.slice(0, 2),
     personImages: [PRESENTER],
     priorFrames: [FRAMES[0]],
+    isFirstFrame: false,
   });
   assert.deepEqual(second.map((image) => image.role), ["product", "product", "prior_frame"]);
 
-  // 5 张实拍 + 主播图：首帧 = 3 张保底 + 主播 + 1 张补位实拍，总数 5
-  const crowded = composeStoryboardFrameInputImages({ productImages: PRODUCTS, personImages: [PRESENTER], priorFrames: [] });
+  // 5 张实拍 + 主播图：首帧 = 3 张保底 + 1 张补位实拍 + 主播（主播排在实拍之后），总数 5
+  const crowded = composeStoryboardFrameInputImages({ productImages: PRODUCTS, personImages: [PRESENTER], priorFrames: [], isFirstFrame: true });
   assert.equal(crowded.length, 5);
   assert.deepEqual(crowded.map((image) => image.role), ["product", "product", "product", "product", "person"]);
 });
@@ -757,14 +823,15 @@ test("P02-B：切片接口就位（排在实拍之后、主播之前）；去重
     anchorCutouts: [cutout, PRODUCTS[0]],
     personImages: [PRESENTER],
     priorFrames: [],
+    isFirstFrame: true,
   });
   assert.deepEqual(withCutout.map((image) => image.role), ["product", "anchor_cutout", "person"]);
-  const capped = composeStoryboardFrameInputImages({ productImages: PRODUCTS, priorFrames: [FRAMES[0]], max: 4 });
+  const capped = composeStoryboardFrameInputImages({ productImages: PRODUCTS, priorFrames: [FRAMES[0]], isFirstFrame: false, max: 4 });
   assert.deepEqual(capped.map((image) => image.url), [PRODUCTS[0], PRODUCTS[1], PRODUCTS[2], FRAMES[0]]);
   // 上限只够 3 张时实拍保底优先于前帧（产品身份 > 连续性）
-  const tight = composeStoryboardFrameInputImages({ productImages: PRODUCTS, priorFrames: [FRAMES[0]], max: 3 });
+  const tight = composeStoryboardFrameInputImages({ productImages: PRODUCTS, priorFrames: [FRAMES[0]], isFirstFrame: false, max: 3 });
   assert.deepEqual(tight.map((image) => image.url), [PRODUCTS[0], PRODUCTS[1], PRODUCTS[2]]);
-  assert.deepEqual(composeStoryboardFrameInputImages({ productImages: [], priorFrames: [] }), []);
+  assert.deepEqual(composeStoryboardFrameInputImages({ productImages: [], priorFrames: [], isFirstFrame: true }), []);
   assert.equal(storyboardReferenceRolesLine([]), null);
 });
 
@@ -773,6 +840,7 @@ test("P02-B：REFERENCE ROLES 序号与入参顺序一致；applyStoryboardRefer
     productImages: PRODUCTS.slice(0, 2),
     personImages: [PRESENTER],
     priorFrames: [],
+    isFirstFrame: true,
   });
   const line = storyboardReferenceRolesLine(composed)!;
   assert.match(line, /^REFERENCE ROLES: image 1 = real photo of the merchant's product[^;]*; image 2 = real photo[^;]*; image 3 = presenter reference photo[^.]*\.$/);
@@ -788,14 +856,14 @@ test("P02-B：REFERENCE ROLES 序号与入参顺序一致；applyStoryboardRefer
   // 布局变了（第 2 帧：没有主播、多了前帧）→ 只替换这两行，其余原样
   const next = applyStoryboardReferenceRoles(
     once,
-    composeStoryboardFrameInputImages({ productImages: PRODUCTS.slice(0, 2), personImages: [PRESENTER], priorFrames: [FRAMES[0]] }),
+    composeStoryboardFrameInputImages({ productImages: PRODUCTS.slice(0, 2), personImages: [PRESENTER], priorFrames: [FRAMES[0]], isFirstFrame: false }),
   );
   assert.doesNotMatch(next, /PRESENTER LOCK/);
   assert.match(next, /^REFERENCE ROLES: image 1 = [^;]*; image 2 = [^;]*; image 3 = previous approved storyboard keyframe/m);
   assert.equal(next.split("\n").filter((l) => l.startsWith("REFERENCE ROLES:")).length, 1);
 });
 
-test("P02-B：buildStoryboardFramePlans 每帧带 REFERENCE ROLES，首帧有主播图时带 PRESENTER LOCK；纯文字起稿不写", () => {
+test("P02-B：buildStoryboardFramePlans 每帧带 REFERENCE ROLES，首帧有主播图时带 PRESENTER LOCK；纯文字起稿首帧不写", () => {
   const plans = buildStoryboardFramePlans({
     prompt: "Show the shade lowering over a sunny window",
     durationSec: 15,
@@ -826,10 +894,51 @@ test("P02-B：buildStoryboardFramePlans 每帧带 REFERENCE ROLES，首帧有主
   }
 });
 
+test("P02-B：出帧提示词 5000 字预算——4000 字故事 + 9 张实拍 + 主播图 + 重做 3 次，每帧仍 ≤ 5000；锁行不被裁", () => {
+  const story = "很".repeat(4000);
+  const plans = buildStoryboardFramePlans({
+    prompt: story, durationSec: 30, aspectRatio: "9:16", productImageCount: 9, personImageCount: 1,
+  });
+  const nine = Array.from({ length: 9 }, (_, i) => `https://assets.example.test/many-${i}.jpg`);
+  for (const [ordinal, plan] of plans.entries()) {
+    const storyLine = plan.prompt.split("\n").find((line) => line.startsWith(STORYBOARD_STORY_CONTEXT_PREFIX))!;
+    assert.ok(storyLine.length - STORYBOARD_STORY_CONTEXT_PREFIX.length < story.length, "故事被截到预算内");
+    assert.ok(storyLine.length - STORYBOARD_STORY_CONTEXT_PREFIX.length > 1000, "预算仍给故事留了实在的空间");
+    const regenerated = `${plan.prompt}${`\n${STORYBOARD_REGENERATION_LINE}`.repeat(3)}`;
+    const composed = composeStoryboardFrameInputImages({
+      productImages: nine,
+      personImages: [PRESENTER],
+      priorFrames: ordinal > 0 ? [FRAMES[0]] : [],
+      isFirstFrame: ordinal === 0,
+    });
+    const submitted = applyStoryboardReferenceRoles(regenerated, composed);
+    assert.ok(
+      submitted.length <= STORYBOARD_FRAME_PROMPT_LIMIT,
+      `frame ${ordinal}: ${submitted.length} > ${STORYBOARD_FRAME_PROMPT_LIMIT}`,
+    );
+    assert.equal(fitStoryboardFramePrompt(submitted), submitted, "预算足够时兜底不动它");
+    assert.match(submitted, /^PRODUCT IDENTITY LOCK: /m);
+    assert.match(submitted, /^CONTINUITY LOCK: /m);
+  }
+
+  // 兜底：旧数据 / 手工提示词超限时先缩 STORY CONTEXT，锁行与 REFERENCE ROLES 原样
+  const bloated = [
+    "THIS FRAME 1/4: hook.",
+    `${STORYBOARD_STORY_CONTEXT_PREFIX}${"故".repeat(6000)}`,
+    "REFERENCE ROLES: image 1 = real photo of the merchant's product — match it exactly.",
+    "PRODUCT IDENTITY LOCK: keep it.",
+  ].join("\n");
+  const fitted = fitStoryboardFramePrompt(bloated);
+  assert.ok(fitted.length <= STORYBOARD_FRAME_PROMPT_LIMIT);
+  assert.match(fitted, /^REFERENCE ROLES: image 1 = real photo/m);
+  assert.match(fitted, /^PRODUCT IDENTITY LOCK: keep it\.$/m);
+  assert.match(fitted, /^STORY CONTEXT \(continuity only[^\n]*故/m);
+});
+
 function inputsHarness(
   t: TestContext,
   frame: Record<string, unknown>,
-  personAssets: Array<{ id: string; url: string }> | null,
+  personAssets: Array<{ id: string; url: string; mimeType?: string }> | null,
 ) {
   const frameModel = db.storyboardFrame as unknown as Record<string, unknown>;
   const assetModel = db.mediaAsset as unknown as Record<string, unknown>;
@@ -861,31 +970,78 @@ function inputsHarness(
   assetModel.findMany = async () => {
     assetQueries += 1;
     if (!personAssets) throw new Error("person assets must not be queried for this frame");
-    return personAssets;
+    return personAssets.map((asset) => ({ mimeType: "image/jpeg", ...asset }));
   };
   return { submitted, writes, assetQueries: () => assetQueries };
 }
 
-test("P02-B：首帧提交 = 实拍 + 主播图（按 personAssetIds 列解析），提示词的 REFERENCE ROLES 与之对齐、无需回写", async (t) => {
+function runWith(overrides: Record<string, unknown>): Record<string, unknown> {
+  return {
+    id: "run-sub", userId: "owner-1", aspectRatio: "9:16",
+    inputImageUrls: PRODUCTS.slice(0, 2), personAssetIds: ["person-1"], anchorCutoutUrls: [], frames: [],
+    ...overrides,
+  };
+}
+
+test("P02-B：第 0 帧提交 = 实拍 + 主播图（按 personAssetIds 列解析），REFERENCE ROLES 与之对齐、无需回写；主播解析发生在抢占之前", async (t) => {
   const [plan] = buildStoryboardFramePlans({
     prompt: "story", durationSec: 15, aspectRatio: "9:16", productImageCount: 2, personImageCount: 1,
   });
-  const h = inputsHarness(t, {
-    ...submissionHarnessFrame(),
-    prompt: plan.prompt,
-    storyboardRun: {
-      id: "run-sub", userId: "owner-1", aspectRatio: "9:16",
-      inputImageUrls: PRODUCTS.slice(0, 2), personAssetIds: ["person-1"], anchorCutoutUrls: [], frames: [],
-    },
-  }, [{ id: "person-1", url: PRESENTER }]);
+  const h = inputsHarness(t, { ...submissionHarnessFrame(), prompt: plan.prompt, storyboardRun: runWith({}) }, [
+    { id: "person-1", url: PRESENTER },
+  ]);
+  let claimedAfterResolve = false;
+  const assetModel = db.mediaAsset as unknown as Record<string, unknown>;
+  const resolve = assetModel.findMany as () => Promise<unknown>;
+  assetModel.findMany = async () => {
+    assert.equal(h.writes.length, 0, "抢占（SUBMITTING）必须发生在主播解析之后");
+    claimedAfterResolve = true;
+    return resolve();
+  };
 
   await storyboardServiceTest.submitStoryboardFrame("frame-sub");
 
+  assert.ok(claimedAfterResolve);
   assert.equal(h.submitted.length, 1);
   assert.deepEqual(h.submitted[0].inputImages, [PRODUCTS[0], PRODUCTS[1], PRESENTER]);
   assert.equal(h.submitted[0].prompt, plan.prompt, "预演布局与真实布局一致 → 提示词原样");
   assert.ok(!h.writes.some((write) => "prompt" in write.data), "布局一致时不回写提示词");
-  assert.equal(h.assetQueries(), 1);
+});
+
+test("P02-B：重做第 0 帧（attempt 2）同样带主播图——首帧判据是 ordinal，不是「有没有前帧」", async (t) => {
+  const [plan] = buildStoryboardFramePlans({
+    prompt: "story", durationSec: 15, aspectRatio: "9:16", productImageCount: 2, personImageCount: 1,
+  });
+  const h = inputsHarness(t, {
+    ...submissionHarnessFrame(), attempt: 2, prompt: `${plan.prompt}\n${STORYBOARD_REGENERATION_LINE}`, storyboardRun: runWith({}),
+  }, [{ id: "person-1", url: PRESENTER }]);
+  await storyboardServiceTest.submitStoryboardFrame("frame-sub");
+  assert.deepEqual(h.submitted[0].inputImages, [PRODUCTS[0], PRODUCTS[1], PRESENTER]);
+  assert.ok((h.submitted[0].prompt as string).includes(STORYBOARD_PRESENTER_LOCK));
+  assert.match(h.submitted[0].prompt as string, /REGENERATION: create a distinct/);
+});
+
+test("P02-B：第 0 帧 PROCESSING 时提交第 1 帧（流水线）——不带主播图、不占前帧位、不查主播素材、回写对齐后的提示词", async (t) => {
+  const plans = buildStoryboardFramePlans({
+    prompt: "story", durationSec: 15, aspectRatio: "9:16", productImageCount: 2, personImageCount: 1,
+  });
+  const h = inputsHarness(t, {
+    ...submissionHarnessFrame(), ordinal: 1, prompt: plans[1].prompt,
+    storyboardRun: runWith({
+      frames: [fakeFrame({ id: "f0", ordinal: 0, status: "PROCESSING", submissionState: "ACCEPTED", outputUrl: null })],
+    }),
+  }, null);
+
+  await storyboardServiceTest.submitStoryboardFrame("frame-sub");
+
+  const sent = h.submitted[0];
+  assert.deepEqual(sent.inputImages, [PRODUCTS[0], PRODUCTS[1]]);
+  assert.doesNotMatch(sent.prompt as string, /PRESENTER LOCK|presenter reference photo|previous approved storyboard keyframe/);
+  assert.match(sent.prompt as string, /^REFERENCE ROLES: image 1 = real photo[^;]*; image 2 = real photo[^.]*\.$/m);
+  assert.equal(h.assetQueries(), 0);
+  const promptWrite = h.writes.find((write) => "prompt" in write.data);
+  assert.ok(promptWrite, "预演里有前帧、真实没有 → 回写");
+  assert.equal(promptWrite!.data.prompt, sent.prompt);
 });
 
 test("P02-B：第 3 帧提交 = 实拍 + 最近 1 张前帧放最后；不带主播图、不查主播素材", async (t) => {
@@ -893,17 +1049,14 @@ test("P02-B：第 3 帧提交 = 实拍 + 最近 1 张前帧放最后；不带主
     prompt: "story", durationSec: 15, aspectRatio: "9:16", productImageCount: 5, personImageCount: 1,
   });
   const h = inputsHarness(t, {
-    ...submissionHarnessFrame(),
-    ordinal: 2,
-    prompt: plans[2].prompt,
-    storyboardRun: {
-      id: "run-sub", userId: "owner-1", aspectRatio: "9:16",
-      inputImageUrls: PRODUCTS, personAssetIds: ["person-1"], anchorCutoutUrls: [],
+    ...submissionHarnessFrame(), ordinal: 2, prompt: plans[2].prompt,
+    storyboardRun: runWith({
+      inputImageUrls: PRODUCTS,
       frames: [
         fakeFrame({ id: "f0", ordinal: 0, status: "SUCCEEDED", outputUrl: FRAMES[0] }),
         fakeFrame({ id: "f1", ordinal: 1, status: "SUCCEEDED", outputUrl: FRAMES[1] }),
       ],
-    },
+    }),
   }, null);
 
   await storyboardServiceTest.submitStoryboardFrame("frame-sub");
@@ -913,32 +1066,25 @@ test("P02-B：第 3 帧提交 = 实拍 + 最近 1 张前帧放最后；不带主
   assert.equal(h.assetQueries(), 0);
 });
 
-test("P02-B：前帧全部失败时按真实入参重算 REFERENCE ROLES（当作首帧：带主播图）并回写提示词；重试快照补 inputImagesMax=5", async (t) => {
+test("P02-B：前帧全部失败的第 1 帧——只喂实拍（不当首帧、不带主播）；重试快照补 inputImagesMax=5", async (t) => {
   const plans = buildStoryboardFramePlans({
     prompt: "story", durationSec: 15, aspectRatio: "9:16", productImageCount: 1, personImageCount: 1,
   });
   const h = inputsHarness(t, {
-    ...submissionHarnessFrame(),
-    ordinal: 1,
-    prompt: plans[1].prompt,
+    ...submissionHarnessFrame(), ordinal: 1, prompt: plans[1].prompt,
     planId: "plan-2k", modelSnapshot: "gpt-image-2", resolutionSnapshot: "2K", pointsSnapshot: 48,
-    storyboardRun: {
-      id: "run-sub", userId: "owner-1", aspectRatio: "9:16",
-      inputImageUrls: [PRODUCTS[0]], personAssetIds: ["person-1"], anchorCutoutUrls: [],
+    storyboardRun: runWith({
+      inputImageUrls: [PRODUCTS[0]],
       frames: [fakeFrame({ id: "f0", ordinal: 0, status: "FAILED", outputUrl: null })],
-    },
-  }, [{ id: "person-1", url: PRESENTER }]);
+    }),
+  }, null);
 
   await storyboardServiceTest.submitStoryboardFrame("frame-sub");
 
   const sent = h.submitted[0];
-  assert.deepEqual(sent.inputImages, [PRODUCTS[0], PRESENTER]);
-  assert.match(sent.prompt as string, /^REFERENCE ROLES: image 1 = real photo[^;]*; image 2 = presenter reference photo/m);
-  assert.ok((sent.prompt as string).includes(STORYBOARD_PRESENTER_LOCK));
+  assert.deepEqual(sent.inputImages, [PRODUCTS[0]]);
+  assert.doesNotMatch(sent.prompt as string, /PRESENTER LOCK|presenter reference photo/);
   assert.notEqual(sent.prompt, plans[1].prompt);
-  const promptWrite = h.writes.find((write) => "prompt" in write.data);
-  assert.ok(promptWrite, "真实布局与预演不同时回写提示词");
-  assert.equal(promptWrite!.data.prompt, sent.prompt);
   assert.deepEqual(sent.planSnapshot, {
     planId: "plan-2k", model: "gpt-image-2", resolution: "2K", points: 48, family: "gpt-image-2", inputImagesMax: 5,
   });

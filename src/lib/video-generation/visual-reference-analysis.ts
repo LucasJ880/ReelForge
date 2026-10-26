@@ -64,13 +64,10 @@ export async function analyzeVisualReferences(
   briefHint: string,
 ): Promise<VisualReferenceAnalysis | null> {
   /// GPT-4o 一次最多看 8 张（低清模式）；Seedance Omni-Reference 同样吃得下 8 张。
-  /// logo 与主播参考图（person）不是场所 / 产品实拍，不进视觉盘点（P02-A）。
+  /// 主播参考图（person）不是场所 / 产品实拍，不进视觉盘点（P02-A）；logo 照旧参与——
+  /// SYSTEM_PROMPT 还要从它上面读 signageText，logo 是否进盘点不在本轮范围。
   const images = assets
-    .filter((a) => {
-      if (a.type !== "IMAGE") return false;
-      const role = effectiveAssetRole(a);
-      return role !== "logo" && role !== "person";
-    })
+    .filter((a) => a.type === "IMAGE" && effectiveAssetRole(a) !== "person")
     .slice(0, 8);
   if (images.length === 0) return null;
   if (isLLMForcedMock() || !isLLMAvailable()) return null;

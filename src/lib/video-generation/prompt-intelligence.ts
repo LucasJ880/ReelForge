@@ -24,6 +24,7 @@
 
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
 import { effectiveAssetRole } from "@/types/video-generation";
+import { presenterReferenceAssets } from "@/lib/video-generation/storyboard-person-refs";
 import type {
   AspectRatio,
   ConsistencyBible,
@@ -439,9 +440,10 @@ function composeSeedancePrompt(params: {
     params.args.styleTemplate != null &&
     !params.args.styleTemplate.scaffold.characterHint &&
     params.args.styleTemplate.scaffold.dialogueStyle == null;
-  /// 有主播参考图（AssetRole person）时，人物身份以照片为准（P02-C）
-  const hasPresenterRef = args.classifiedAssets.some((a) => effectiveAssetRole(a) === "person");
-  const characterLine = productOnly
+  /// 有主播参考图（开关放行且素材标了 person）时，人物身份以照片为准（P02-C）；纯产品模版遇到主播图时
+  /// 主播优先——不写「NO on-camera person」去和主播锁自相矛盾。
+  const hasPresenterRef = presenterReferenceAssets(args.classifiedAssets).length > 0;
+  const characterLine = productOnly && !hasPresenterRef
     ? "NO on-camera person: the product is the only hero of every shot."
     : `CHARACTER (${hasPresenterRef ? "must match the presenter reference photo — same face, hair, skin tone and build; " : ""}keep 100% identical in every cut): ${bible.characterProfile}`;
 

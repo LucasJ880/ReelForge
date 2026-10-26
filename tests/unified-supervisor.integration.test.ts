@@ -173,3 +173,36 @@ test("[unified-generation-supervisor] Seedance brand-violation prompt is blocked
     assert.doesNotMatch(seg.prompt!, /\blink\s+in\s+bio\b/i);
   }
 });
+
+test("[unified-generation-supervisor] 自动产品形状锁看生效角色：推断为商品图但用户改标 person（主播参考图）→ 不挂 PRODUCT SHAPE LOCK", async () => {
+  const base: UploadedAsset = {
+    id: "p1",
+    type: "IMAGE",
+    inferredRole: "product_image",
+    roleConfidence: 0.85,
+    url: "https://example.com/hero.jpg",
+    mimeType: "image/jpeg",
+    fileName: "hero.jpg",
+    width: 1080,
+    height: 1920,
+  };
+  const asProduct = await buildPlan(
+    req({ selectedDuration: 15, styleTemplateId: "tpl_perfume_macro", attachments: [base] }),
+  );
+  assert.ok(
+    asProduct.seedancePrompts.every((sp) => /PRODUCT SHAPE LOCK/.test(sp.prompt)),
+    "商品图在场时自动挂产品形状锁",
+  );
+  const asPresenter = await buildPlan(
+    req({
+      selectedDuration: 15,
+      styleTemplateId: "tpl_perfume_macro",
+      attachments: [{ ...base, userAssignedRole: "person" }],
+    }),
+  );
+  assert.ok(
+    asPresenter.seedancePrompts.every((sp) => !/PRODUCT SHAPE LOCK/.test(sp.prompt)),
+    "同一张图改标主播参考图后不再自动挂产品形状锁",
+  );
+  assert.equal(asPresenter.inputClassification.generationMode, "text_to_video_ad");
+});

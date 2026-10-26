@@ -36,11 +36,12 @@ import { buildAssemblyPlan } from "@/lib/video-generation/video-assembly-plan";
 import { buildQualityReview } from "@/lib/video-generation/quality-reviewer";
 import { buildPlanPreview } from "@/lib/video-generation/plan-preview";
 import { resolveClientLockProfile } from "@/lib/video-generation/client-lock-profiles";
-import type {
-  UnifiedVideoGenerationRequest,
-  VideoGenerationPlan,
-  UploadedAsset,
-  PostProductionPlan,
+import {
+  effectiveAssetRole,
+  type UnifiedVideoGenerationRequest,
+  type VideoGenerationPlan,
+  type UploadedAsset,
+  type PostProductionPlan,
 } from "@/types/video-generation";
 
 export function normalizePostProductionSettings(
@@ -131,7 +132,8 @@ export async function buildPlan(
         "lock_character_identity",
         "lock_scene_geometry",
         "lock_lighting",
-        ...(classifiedAssets.some((asset) => asset.inferredRole === "product_image") ? ["lock_product_shape"] : []),
+        /// 看生效角色：用户把推断成商品图的素材改标成 person（主播参考图）后，不再自动挂产品形状锁。
+        ...(classifiedAssets.some((asset) => effectiveAssetRole(asset) === "product_image") ? ["lock_product_shape"] : []),
         ...(styleTemplate.scaffold.dialogueStyle ? ["lock_lipsync"] : []),
       ]
     : [];

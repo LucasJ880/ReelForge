@@ -15,9 +15,6 @@ import {
 } from "@/lib/providers/shuyu-image-provider";
 import {
   createOwnedMediaAsset,
-  MediaAssetNotFoundError,
-  MediaAssetTypeError,
-  resolveOwnedImageAssets,
   resolveOwnedMediaAssets,
 } from "@/lib/services/media-asset-service";
 import {
@@ -31,8 +28,13 @@ import { STORYBOARD_BEATS_LONG, STORYBOARD_BEATS_SHORT } from "@/lib/video-gener
 import {
   applyStoryboardReferenceRoles,
   composeStoryboardFrameInputImages,
+  fitStoryboardFramePrompt,
   planStoryboardFrameInputs,
   STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+  STORYBOARD_REGENERATION_LINE,
+  STORYBOARD_STORY_CONTEXT_PREFIX,
+  storyboardFrameStoryBudget,
+  truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
 
@@ -87,9 +89,12 @@ export interface CreateStoryboardRunInput {
   durationSec: number;
   aspectRatio: "9:16" | "16:9" | "1:1";
   sourceAssetIds?: string[];
-  /// 主播参考图（P02-D(s)）：最多 4 张，落 StoryboardRun.personAssetIds（M1 列）；
+  /// 主播参考图（P02-D(s)）：最多 4 张，落 StoryboardRun.personAssetIds（M1 列，首张 = 主播，保留顺序）；
   /// 不进 inputAssetIds / inputImageUrls（那两列只放商家实拍），不算实拍张数。
   personAssetIds?: string[];
+  /// 路由按开关 STORYBOARD_PERSON_REFS + 角色算好：personAssetIds 非空而未放行 → 400。
+  /// 只在幂等回放之后、真正新建之前校验，刷新重提同一键的旧请求不受开关变化影响。
+  personRefsAllowed?: boolean;
   approvalPolicy?: "MANUAL" | "AUTO";
   purpose?: string;
   /// 用户在创作台直接发起时为 true：新建 run 前按小时计数限流。
@@ -203,29 +208,41 @@ export function buildStoryboardFramePlans(input: {
   const beats = count === 4 ? STORYBOARD_BEATS_SHORT : STORYBOARD_BEATS_LONG;
   // 1025 真机验收：STORY 放在 FRAME 前面时，多镜头描述会被画成拼图（4 格、5 格、圆形放大插图），
   // 拼图关键帧喂给图生视频会直接毁片。先写这一帧，故事只作连续性背景，并把「单镜头」写成硬约束。
-  return beats.map((beat, ordinal) => ({
-    ordinal,
-    beat,
-    prompt: applyStoryboardReferenceRoles(
-      [
-        "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
-        `THIS FRAME ${ordinal + 1}/${count}: ${beat}. Depict only this beat.`,
-        `STORY CONTEXT (continuity only — do not depict the other beats in this image): ${input.prompt.trim()}`,
-        `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
-        SINGLE_SHOT_LOCK,
-        "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
-        "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
-        "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
-      ].join("\n"),
-      planStoryboardFrameInputs({
-        ordinal,
-        productImageCount: input.productImageCount ?? 0,
-        anchorCutoutCount: input.anchorCutoutCount ?? 0,
-        personImageCount: input.personImageCount ?? 0,
-        max: input.maxInputImages,
-      }),
-    ),
-  }));
+  const maxInputImages = input.maxInputImages ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX;
+  const story = input.prompt.trim();
+  return beats.map((beat, ordinal) => {
+    const lines = (storyText: string) => [
+      "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
+      `THIS FRAME ${ordinal + 1}/${count}: ${beat}. Depict only this beat.`,
+      `${STORYBOARD_STORY_CONTEXT_PREFIX}${storyText}`,
+      `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
+      SINGLE_SHOT_LOCK,
+      "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
+      "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
+      "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
+    ];
+    /// 5000 字预算（Shuyu 图像提示词硬上限，超了不可重试）：故事让位给固定锁行、REFERENCE ROLES 最坏长度、
+    /// PRESENTER LOCK 与最多 3 次重做追加的行；提交前还会按同一上限兜底一次。
+    const budget = storyboardFrameStoryBudget({
+      fixedPromptLength: lines("").join("\n").length,
+      maxInputImages,
+      regenerations: STORYBOARD_FRAME_MAX_REGENERATIONS,
+    });
+    return {
+      ordinal,
+      beat,
+      prompt: applyStoryboardReferenceRoles(
+        lines(truncateStoryText(story, budget)).join("\n"),
+        planStoryboardFrameInputs({
+          ordinal,
+          productImageCount: input.productImageCount ?? 0,
+          anchorCutoutCount: input.anchorCutoutCount ?? 0,
+          personImageCount: input.personImageCount ?? 0,
+          max: maxInputImages,
+        }),
+      ),
+    };
+  });
 }
 
 export function storyboardRunView(run: StoryboardRunRecord): StoryboardRunView {
@@ -349,28 +366,30 @@ function requestHash(
       approvalPolicy: input.approvalPolicy ?? "MANUAL",
       purpose: input.purpose ?? "single-video-storyboard",
       /// 只在非空时入 hash：没有主播图的请求与 P02-D(s) 之前算出的幂等键一字不差（刷新重提不冲突）。
-      ...(personAssetIds.length > 0 ? { personAssetIds: [...personAssetIds].sort() } : {}),
+      /// 保留原始顺序（首张 = 主播），换序就是另一份内容。
+      ...(personAssetIds.length > 0 ? { personAssetIds: [...personAssetIds] } : {}),
     }))
     .digest("hex");
 }
 
 /**
- * 主播参考图归属与类型校验：必须是本人可用的图片素材。错误翻译成故事板的人话错误码，
- * 不让 MediaAsset 层的异常以 500 漏出去。
+ * 主播参考图解析器（建 run 校验与提交解析共用）：只取本人素材，按 personAssetIds 列内顺序返回
+ *（首张 = 主播），缺失的直接丢弃，由调用方决定是报错（建 run）还是告警继续（提交）。
  */
-async function assertStoryboardPersonAssets(userId: string, assetIds: string[]): Promise<void> {
-  if (assetIds.length === 0) return;
-  try {
-    await resolveOwnedImageAssets({ userId, assetIds });
-  } catch (error) {
-    if (error instanceof MediaAssetTypeError) {
-      throw new StoryboardRequestError("主播参考图只接受图片素材。", "VALIDATION_FAILED");
-    }
-    if (error instanceof MediaAssetNotFoundError) {
-      throw new StoryboardRequestError("主播参考图不存在或无权访问。", "NOT_FOUND", 404);
-    }
-    throw error;
-  }
+async function resolveStoryboardPersonImages(
+  userId: string,
+  assetIds: readonly string[],
+): Promise<Array<{ id: string; url: string; mimeType: string }>> {
+  const ids = [...new Set(assetIds)];
+  if (ids.length === 0) return [];
+  const assets = await db.mediaAsset.findMany({
+    where: { id: { in: ids }, userId },
+    select: { id: true, url: true, mimeType: true },
+  });
+  const byId = new Map(assets.map((asset) => [asset.id, asset]));
+  return ids
+    .map((assetId) => byId.get(assetId))
+    .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
 }
 
 function frameRequestKey(runId: string, ordinal: number, attempt: number): string {
@@ -413,9 +432,15 @@ export async function createStoryboardRun(
   if (assets.some((asset) => !asset.mimeType.startsWith("image/"))) {
     throw new StoryboardRequestError("故事板只接受图片素材。", "VALIDATION_FAILED");
   }
-  // 主播图只校验归属与类型、落 id 列；URL 在提交每帧时按列重新解析（见 submitStoryboardFrame），
-  // 不混进 inputImageUrls——那一列只放商家实拍，派发时据此数实拍张数。
-  await assertStoryboardPersonAssets(input.userId, personAssetIds);
+  // 主播图只校验归属与类型、落 id 列；URL 在提交第 0 帧时用同一个解析器按列重新解析
+  //（M1 没有主播 URL 列，快照落列等 P02-F(s) 的列），不混进 inputImageUrls——那一列只放商家实拍。
+  const personAssets = await resolveStoryboardPersonImages(input.userId, personAssetIds);
+  if (personAssets.length !== personAssetIds.length) {
+    throw new StoryboardRequestError("主播参考图不存在或无权访问。", "NOT_FOUND", 404);
+  }
+  if (personAssets.some((asset) => !asset.mimeType.toLowerCase().startsWith("image/"))) {
+    throw new StoryboardRequestError("主播参考图只接受图片素材。", "VALIDATION_FAILED");
+  }
   const hash = requestHash(input, assets.map((asset) => asset.url), personAssetIds);
   const existing = await db.storyboardRun.findUnique({
     where: {
@@ -435,6 +460,13 @@ export async function createStoryboardRun(
       );
     }
     return storyboardRunView(await reconcileStoryboardRun(existing.id, input.userId));
+  }
+  // 主播参考图的放行校验放在幂等回放之后：开关关掉后，同一键的旧请求刷新重提仍能拿回原 run。
+  if (personAssetIds.length > 0 && !input.personRefsAllowed) {
+    throw new StoryboardRequestError(
+      "主播参考图暂未开放，请去掉主播参考图后再提交。",
+      "VALIDATION_FAILED",
+    );
   }
   // 只给「真正新建」计数：同一幂等键的回放（刷新后重提）不占名额。
   if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId);
@@ -499,25 +531,6 @@ export async function createStoryboardRun(
   return storyboardRunView((await findRun(run.id, input.userId)) ?? run);
 }
 
-/**
- * 主播参考图 URL 按 StoryboardRun.personAssetIds 列解析（只取本人素材，按列内顺序）；列为空不查库。
- */
-async function loadStoryboardPersonImageUrls(run: {
-  userId: string;
-  personAssetIds?: string[] | null;
-}): Promise<string[]> {
-  const assetIds = [...new Set(run.personAssetIds ?? [])];
-  if (assetIds.length === 0) return [];
-  const assets = await db.mediaAsset.findMany({
-    where: { id: { in: assetIds }, userId: run.userId },
-    select: { id: true, url: true },
-  });
-  const urlById = new Map(assets.map((asset) => [asset.id, asset.url]));
-  return assetIds
-    .map((assetId) => urlById.get(assetId))
-    .filter((url): url is string => Boolean(url));
-}
-
 async function submitStoryboardFrame(frameId: string): Promise<void> {
   const frame = await db.storyboardFrame.findUnique({
     where: { id: frameId },
@@ -533,6 +546,62 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     frame.submissionState !== ProviderSubmissionState.NOT_STARTED ||
     frame.storyboardRun.status === StoryboardRunStatus.CANCELLED
   ) return;
+  const run = frame.storyboardRun;
+  const priorFrames = run.frames
+    .filter((candidate) =>
+      candidate.isCurrent &&
+      candidate.ordinal < frame.ordinal &&
+      candidate.status === StoryboardFrameStatus.SUCCEEDED &&
+      candidate.outputUrl,
+    )
+    .sort((a, b) => a.ordinal - b.ordinal)
+    .map((candidate) => candidate.outputUrl!);
+  /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 5 兜底（提到 6 留给 P02-B2）。
+  const planSnapshot =
+    frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
+      ? {
+          planId: frame.planId,
+          model: frame.modelSnapshot,
+          resolution: frame.resolutionSnapshot as "1K" | "2K" | "4K",
+          points: frame.pointsSnapshot,
+          family: "gpt-image-2" as const,
+          inputImagesMax: STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+        }
+      : undefined;
+  /// 主播参考图只进第 0 帧（含重做第 0 帧）；其余帧不查库。解析放在抢占之前：查库失败时帧仍是
+  /// QUEUED / NOT_STARTED，下一轮推进会重试，不会把一次 DB 抖动记成供应商拒绝。
+  const personAssetIds = run.personAssetIds ?? [];
+  const personAssets =
+    frame.ordinal === 0 ? await resolveStoryboardPersonImages(run.userId, personAssetIds) : [];
+  if (frame.ordinal === 0 && personAssetIds.length > 0 && personAssets.length === 0) {
+    console.warn("[storyboard] presenter references resolved to nothing; submitting without them", {
+      frameId: frame.id,
+      runId: run.id,
+      personAssetIds,
+    });
+  }
+  const composedInputs = composeStoryboardFrameInputImages({
+    productImages: run.inputImageUrls,
+    /// anchorCutoutUrls 由 P02-F(s) 写入；本阶段恒为空数组，这里只是把接口接上。
+    anchorCutouts: run.anchorCutoutUrls ?? [],
+    personImages: personAssets.map((asset) => asset.url),
+    priorFrames,
+    isFirstFrame: frame.ordinal === 0,
+    max: planSnapshot?.inputImagesMax ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+  });
+  const inputImages = composedInputs.map((image) => image.url);
+  /// REFERENCE ROLES 序号按真正提交的图片重算（前帧还没出来 / 全部失败时与建 run 的预演不同），
+  /// 再按 5000 字上限兜底一次（旧数据或多次重做叠加的提示词）。
+  const aligned = applyStoryboardReferenceRoles(frame.prompt, composedInputs);
+  const prompt = fitStoryboardFramePrompt(aligned);
+  if (prompt !== aligned) {
+    console.warn("[storyboard] frame prompt exceeded the provider limit and was trimmed", {
+      frameId: frame.id,
+      before: aligned.length,
+      after: prompt.length,
+    });
+  }
+
   const submittedAt = new Date();
   // 取消会把 QUEUED 帧就地落成终态；这里的帧级 CAS 与它互斥，外加 run 级
   // 兜底：已取消的一轮永远不会再有新的提交。
@@ -554,43 +623,8 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
   });
   if (claimed.count !== 1) return;
 
-  const priorFrames = frame.storyboardRun.frames
-    .filter((candidate) =>
-      candidate.isCurrent &&
-      candidate.ordinal < frame.ordinal &&
-      candidate.status === StoryboardFrameStatus.SUCCEEDED &&
-      candidate.outputUrl,
-    )
-    .sort((a, b) => a.ordinal - b.ordinal)
-    .map((candidate) => candidate.outputUrl!);
-  const run = frame.storyboardRun;
-  /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 5 兜底（提到 6 留给 P02-B2）。
-  const planSnapshot =
-    frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
-      ? {
-          planId: frame.planId,
-          model: frame.modelSnapshot,
-          resolution: frame.resolutionSnapshot as "1K" | "2K" | "4K",
-          points: frame.pointsSnapshot,
-          family: "gpt-image-2" as const,
-          inputImagesMax: STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
-        }
-      : undefined;
-  /// 主播参考图只进首帧（还没有已成功的前帧）；其余帧不查库。
-  const personImages = priorFrames.length === 0 ? await loadStoryboardPersonImageUrls(run) : [];
-  const composedInputs = composeStoryboardFrameInputImages({
-    productImages: run.inputImageUrls,
-    /// anchorCutoutUrls 由 P02-F(s) 写入；本阶段恒为空数组，这里只是把接口接上。
-    anchorCutouts: run.anchorCutoutUrls ?? [],
-    personImages,
-    priorFrames,
-    max: planSnapshot?.inputImagesMax ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
-  });
-  const inputImages = composedInputs.map((image) => image.url);
-  /// REFERENCE ROLES 序号按真正提交的图片重算：前帧全部失败等边角情形下与建 run 时的预演不同。
-  const prompt = applyStoryboardReferenceRoles(frame.prompt, composedInputs);
   if (prompt !== frame.prompt) {
-    // 回写只为让界面与供应商看到同一份提示词；写不进去不影响提交（提示词已在内存里）。
+    // 回写只为让界面与供应商看到同一份提示词；写不进去不影响提交（提示词已在内存里），只留日志。
     await db.storyboardFrame
       .updateMany({
         where: {
@@ -600,7 +634,12 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
         },
         data: { prompt },
       })
-      .catch(() => undefined);
+      .catch((error: unknown) => {
+        console.warn("[storyboard] frame prompt write-back failed", {
+          frameId: frame.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      });
   }
   /// 合作方一旦返回任务号，提交就已确认；此后任何本地失败都不该把这帧
   /// 归为「确认未知」。任务号捕获在外层，落库失败时先重试一次持久化，
@@ -1179,7 +1218,7 @@ export async function regenerateStoryboardFrame(input: {
         attempt,
         isCurrent: true,
         beat: existing.beat,
-        prompt: `${existing.prompt}\nREGENERATION: create a distinct but continuity-faithful alternative for this same beat.${existing.prompt.includes(SINGLE_SHOT_LOCK) ? "" : `\n${SINGLE_SHOT_LOCK}`}`,
+        prompt: `${existing.prompt}\n${STORYBOARD_REGENERATION_LINE}${existing.prompt.includes(SINGLE_SHOT_LOCK) ? "" : `\n${SINGLE_SHOT_LOCK}`}`,
         providerRequestKey: frameRequestKey(existing.storyboardRunId, existing.ordinal, attempt),
       },
     });

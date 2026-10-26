@@ -6,14 +6,19 @@
  * 提示词里的 REFERENCE ROLES 序号与真正提交的图片顺序出自同一个函数，不会两处各算。
  *
  * 规则（总数 ≤ max，默认 5）：
- * 1. 商家实拍至少 min(实拍数, 3) 张排最前；
+ * 1. 商家实拍至少 min(实拍数, 3) 张排最前（产品身份优先于一切，含前帧）；
  * 2. 商品锚点切片其次（本阶段恒为空数组，P02-F(s) 接 anchorCutoutUrls 列）；
- * 3. 主播参考图只在首帧（还没有已成功的前帧）且最多 1 张；
- * 4. 前帧只留 1 张（最近一张已成功的），放最后；
+ * 3. 主播参考图只在第 0 帧（`isFirstFrame`，含重做第 0 帧）且最多 1 张——帧是流水线提交的，
+ *    前帧有没有出来不能当首帧判据；
+ * 4. 前帧只留 1 张（最近一张已成功的），放最后；没有已成功的前帧就不占位；
  * 5. 还有余位时按「切片 → 更多实拍」补满。
  *
  * max 默认 5：E1 实测 Shuyu 图像档 `input_images_max` 全部 = 6，但 shuyu.ts 对 >5 张仍硬拒，
  * 提到 6 留给 P02-B2（那时从套餐的 inputImagesMax 取）。
+ *
+ * 另附出帧提示词的 5000 字预算（Shuyu 图像提示词 >5000 字硬拒且不可重试）：
+ * STORY CONTEXT 在建 run 时按「5000 − 固定行 − REFERENCE ROLES 最坏长度 − PRESENTER LOCK − 重做余量」截断，
+ * 提交前再按同一上限兜底一次。
  *
  * 纯数据模块：服务端 storyboard-service 与测试共用，不得引入服务端依赖。
  */
@@ -34,10 +39,12 @@ export interface ComposeStoryboardFrameInputImagesInput {
   productImages: readonly string[];
   /// 商品锚点切片（StoryboardRun.anchorCutoutUrls；P02-F(s) 之前恒空）
   anchorCutouts?: readonly string[];
-  /// 主播参考图 URL（按 StoryboardRun.personAssetIds 解析）
+  /// 主播参考图 URL（按 StoryboardRun.personAssetIds 解析，首张 = 主播）
   personImages?: readonly string[];
-  /// 已成功的前帧输出，按 ordinal 升序
+  /// 已成功的前帧输出，按 ordinal 升序；为空表示前帧还没出来（或都失败了），只影响 prior_frame 槽位
   priorFrames: readonly string[];
+  /// 是否第 0 帧（含重做第 0 帧）：只有它带主播参考图
+  isFirstFrame: boolean;
   /// 供应商单次可接受的参考图上限；缺省 5
   max?: number;
 }
@@ -55,7 +62,6 @@ export function composeStoryboardFrameInputImages(
   const cutouts = uniqueUrls(input.anchorCutouts).filter((url) => !productSet.has(url));
   const persons = uniqueUrls(input.personImages);
   const priors = uniqueUrls(input.priorFrames);
-  const isFirstFrame = priors.length === 0;
 
   const guaranteedProducts = products.slice(
     0,
@@ -63,10 +69,10 @@ export function composeStoryboardFrameInputImages(
   );
   let remaining = max - guaranteedProducts.length;
 
-  const priorFrame = !isFirstFrame && remaining > 0 ? [priors[priors.length - 1]] : [];
+  const priorFrame = priors.length > 0 && remaining > 0 ? [priors[priors.length - 1]] : [];
   remaining -= priorFrame.length;
 
-  const person = isFirstFrame && persons.length > 0 && remaining > 0 ? [persons[0]] : [];
+  const person = input.isFirstFrame && persons.length > 0 && remaining > 0 ? [persons[0]] : [];
   remaining -= person.length;
 
   const pickedCutouts = cutouts.slice(0, Math.max(0, remaining));
@@ -104,6 +110,7 @@ export function planStoryboardFrameInputs(input: {
     anchorCutouts: tokens("cutout", input.anchorCutoutCount ?? 0),
     personImages: tokens("person", input.personImageCount ?? 0),
     priorFrames: input.ordinal > 0 ? ["prior:1"] : [],
+    isFirstFrame: input.ordinal === 0,
     max: input.max,
   });
 }
@@ -156,4 +163,77 @@ export function applyStoryboardReferenceRoles(
   const anchor = lines.findIndex((line) => line.startsWith(PRODUCT_IDENTITY_LOCK_PREFIX));
   if (anchor === -1) return [...lines, ...inserted].join("\n");
   return [...lines.slice(0, anchor), ...inserted, ...lines.slice(anchor)].join("\n");
+}
+
+// ---------------------------------------------------------------------------
+// 出帧提示词长度预算
+// ---------------------------------------------------------------------------
+
+/// Shuyu 图像提示词上限（shuyu.ts preflight：>5000 字硬拒、不可重试）。
+export const STORYBOARD_FRAME_PROMPT_LIMIT = 5000;
+export const STORYBOARD_STORY_CONTEXT_PREFIX =
+  "STORY CONTEXT (continuity only — do not depict the other beats in this image): ";
+/// 重做一帧时追加在旧提示词后面的一行（P05-A 改成从 plan 重建前，预算要给它留余量）。
+export const STORYBOARD_REGENERATION_LINE =
+  "REGENERATION: create a distinct but continuity-faithful alternative for this same beat.";
+/// 换行与零碎标点的安全余量。
+const STORY_BUDGET_SAFETY = 40;
+
+/** 最坏情况的 REFERENCE ROLES 行：max 张图全是描述最长的那种角色。 */
+export function worstCaseStoryboardReferenceRolesLine(maxInputImages: number): string {
+  const longest = Object.values(ROLE_DESCRIPTION).reduce((a, b) => (b.length > a.length ? b : a));
+  const count = Math.max(1, Math.floor(maxInputImages));
+  return `${STORYBOARD_REFERENCE_ROLES_PREFIX} ${Array.from(
+    { length: count },
+    (_, index) => `image ${index + 1} = ${longest}`,
+  ).join("; ")}.`;
+}
+
+/**
+ * STORY CONTEXT 可用字数 = 5000 − 固定行 − REFERENCE ROLES 最坏长度 − PRESENTER LOCK − regenerations 次重做追加行 − 余量。
+ * fixedPromptLength 是「故事为空」时整段提示词的长度（含 STORY CONTEXT 前缀与所有换行）。
+ */
+export function storyboardFrameStoryBudget(input: {
+  fixedPromptLength: number;
+  maxInputImages: number;
+  regenerations: number;
+}): number {
+  const reserved =
+    input.fixedPromptLength +
+    worstCaseStoryboardReferenceRolesLine(input.maxInputImages).length + 1 +
+    STORYBOARD_PRESENTER_LOCK.length + 1 +
+    Math.max(0, Math.floor(input.regenerations)) * (STORYBOARD_REGENERATION_LINE.length + 1) +
+    STORY_BUDGET_SAFETY;
+  return Math.max(0, STORYBOARD_FRAME_PROMPT_LIMIT - reserved);
+}
+
+/** 按 UTF-16 长度预算截断，但不在代理对中间切开。 */
+export function truncateStoryText(text: string, budget: number): string {
+  if (budget <= 0) return "";
+  if (text.length <= budget) return text;
+  let out = Array.from(text).slice(0, budget).join("");
+  while (out.length > budget) out = Array.from(out).slice(0, -1).join("");
+  return out;
+}
+
+/**
+ * 提交前的兜底：超过上限就先缩 STORY CONTEXT（锁行与 REFERENCE ROLES 原样保留），
+ * 没有故事行可缩才硬截——那是旧数据或手工提示词，调用方应记日志。
+ */
+export function fitStoryboardFramePrompt(
+  prompt: string,
+  limit: number = STORYBOARD_FRAME_PROMPT_LIMIT,
+): string {
+  if (prompt.length <= limit) return prompt;
+  const lines = prompt.split("\n");
+  const storyAt = lines.findIndex((line) => line.startsWith(STORYBOARD_STORY_CONTEXT_PREFIX));
+  if (storyAt !== -1) {
+    const overflow = prompt.length - limit;
+    const story = lines[storyAt].slice(STORYBOARD_STORY_CONTEXT_PREFIX.length);
+    lines[storyAt] = `${STORYBOARD_STORY_CONTEXT_PREFIX}${truncateStoryText(story, story.length - overflow)}`;
+    const fitted = lines.join("\n");
+    if (fitted.length <= limit) return fitted;
+    return fitted.slice(0, limit);
+  }
+  return prompt.slice(0, limit);
 }

@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { db } from "@/lib/db";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
-import type { PostProductionPlan } from "@/types/video-generation";
+import type { CaptionWordTiming, PostProductionPlan } from "@/types/video-generation";
 import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
   composeTimeline,
@@ -917,6 +917,8 @@ export interface NormalizeAndConcatClip {
   loopVideo?: boolean;
   /// 显式输出时长（b-roll：配音时长 + 呼吸间隙）
   targetDurationSec?: number;
+  /// 该段口播的逐词时间戳（相对段起点；VideoJob.assignedAssets.voiceover.words），字幕按词对齐用
+  voiceoverWords?: CaptionWordTiming[] | null;
 }
 
 export interface ComposedTimelineUrls {
@@ -979,6 +981,7 @@ export async function composeAndPersistTimeline(params: {
         audioPath: localAudio,
         loopVideo: clip.loopVideo,
         targetDurationSec: clip.targetDurationSec,
+        voiceoverWords: clip.voiceoverWords,
       });
     }
 

@@ -147,6 +147,15 @@ export const audioSettingsSchema = z
   })
   .strict();
 
+/// 逐词时间戳（P04-B）：毫秒、相对字幕窗口起点；2000 字稿按词算不会超 4000 项
+export const captionWordTimingSchema = z
+  .object({
+    text: z.string().max(200),
+    startMs: z.number().min(0).finite(),
+    endMs: z.number().min(0).finite(),
+  })
+  .strict();
+
 export const captionSettingsSchema = z
   .object({
     enabled: z.boolean(),
@@ -154,6 +163,7 @@ export const captionSettingsSchema = z
     language: z.string().trim().min(2).max(20),
     position: z.enum(["top", "center", "bottom"]),
     exportSrt: z.boolean(),
+    words: z.array(captionWordTimingSchema).max(4000).nullable().optional(),
   })
   .strict();
 

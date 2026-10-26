@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { unifiedVideoGenerationRequestSchema } from "../src/lib/schemas/unified-input";
 import { buildPlan } from "../src/lib/video-generation/generation-supervisor";
+import { splitScriptByWindows } from "../src/lib/video-generation/audio-post-production";
 import { mapPlanToDirectorPlan } from "../src/lib/video-generation/plan-to-director";
 import { splitVoiceoverScript } from "../src/lib/video-generation/prompt-intelligence";
 import type { UnifiedVideoGenerationRequest } from "../src/types/video-generation";
@@ -198,4 +199,31 @@ test("P04-C：DirectorPlan.segmentPlan 持久化每段分到的台词，且与�
   );
   const silentDirector = mapPlanToDirectorPlan({ plan: silent, language: "zh-CN" });
   assert.ok(silentDirector.segmentPlan.every((segment) => segment.voiceoverChunk === undefined));
+});
+
+test("P04-B：字幕回退路径的按段切分与派发时的口播切分是同一规则（两份实现逐字一致）", () => {
+  const fixtures = [
+    PHRASED_ZH_SCRIPT,
+    PHRASED_EN_SCRIPT,
+    "先看它如何改变日常体验。一拧即开，随时补水。点击下方链接立即预约。",
+    "Morning glare again? Not in this bedroom. Custom blackout curtains from SunnyShutter, measured and made for your exact window. Soft light when you want it, total blackout when you need it.",
+    "没有任何标点的一长串台词连着念下去直到结束为止",
+  ];
+  const layouts = [[15], [15, 15], [5, 15], [15, 15, 15, 5], [15, 15, 15, 15]];
+  for (const script of fixtures) {
+    for (const layout of layouts) {
+      const slots = layout.map((durationSec) => ({ durationSec }));
+      let cursor = 0;
+      const windows = layout.map((durationSec) => {
+        const window = { startMs: cursor * 1_000, endMs: (cursor + durationSec) * 1_000 };
+        cursor += durationSec;
+        return window;
+      });
+      assert.deepEqual(
+        splitScriptByWindows(script, windows),
+        splitVoiceoverScript(script, slots),
+        `layout ${layout.join("/")} :: ${script.slice(0, 12)}`,
+      );
+    }
+  }
 });

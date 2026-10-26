@@ -27,8 +27,15 @@ import {
   BGM_TRACKS,
   buildAudioFilterPlan,
   buildDeterministicCues,
+  buildTimedCues,
+  buildWindowedCues,
+  captionWindowsFromSegments,
+  parseCaptionWords,
   renderAssCaptions,
   renderSrtCaptions,
+  splitScriptByWindows,
+  type CaptionCue,
+  type CaptionWord,
 } from "@/lib/video-generation/audio-post-production";
 import { measureSpeechSafeTailTrim } from "@/lib/video-generation/tail-trim";
 import { probeMedia, runFfmpeg, type MediaProbe } from "./ffmpeg-bin";
@@ -241,6 +248,11 @@ export interface TimelineClip {
   loopVideo?: boolean;
   /** 显式输出时长（秒）：给了就不按源时长 / 裁尾推算（b-roll 由配音时长驱动） */
   targetDurationSec?: number;
+  /**
+   * 该段口播的逐词时间戳（毫秒，相对本段起点；来自 VideoJob.assignedAssets.voiceover.words）。
+   * 有它字幕按词对齐；没有按段窗口铺（P04-B）。Phase 1 还没有供应商会写它。
+   */
+  voiceoverWords?: CaptionWord[] | null;
 }
 
 export interface TimelineClipReport {
@@ -519,6 +531,66 @@ export function resolvePostProductionEffects(snapshot: PostProductionPlan | null
   };
 }
 
+/**
+ * 纯函数（P04-B）：字幕时间轴怎么定。
+ *   1. 有持久化逐词时间戳 —— 整片一份（postProduction.captions.words）优先；否则把各 AI 段
+ *      自己的词按该段在成片里的累计偏移平移后拼起来 —— 用 buildTimedCues 按词对齐。
+ *   2. 否则有 AI 段：口播稿按各段时长加权切成每段一句（与派发时同一规则），每段只在自己的
+ *      窗口里铺字幕（buildWindowedCues）。
+ *   3. 都没有（b-roll / 全是上传片段）：整片按字重均分（1025 之前的行为）。
+ * 窗口 / 词都裁到字幕窗口（尾卡不背字幕）。
+ */
+export function planCaptionCues(args: {
+  script: string;
+  /** 已量化的段序列（成片顺序） */
+  clips: ReadonlyArray<{
+    durationSec: number;
+    role: TimelineClipRole;
+    voiceoverWords?: CaptionWord[] | null;
+  }>;
+  captionSpanSec: number;
+  /** postProduction.captions.words（毫秒，相对成片起点） */
+  filmWords?: unknown;
+}): { cues: CaptionCue[]; source: "words" | "windows" | "uniform" } {
+  const captionSpanMs = Math.max(1, Math.round(args.captionSpanSec * 1_000));
+  const filmWords = parseCaptionWords(args.filmWords);
+  if (filmWords) {
+    return { cues: buildTimedCues(filmWords, { maxEndMs: captionSpanMs }), source: "words" };
+  }
+  const shifted: CaptionWord[] = [];
+  let offsetMs = 0;
+  for (const clip of args.clips) {
+    const durationMs = Math.max(0, Math.round(clip.durationSec * 1_000));
+    const words = clip.role === "ai_generated" ? parseCaptionWords(clip.voiceoverWords) : null;
+    if (words) {
+      for (const word of words) {
+        /// 裁尾 / trimToFit 截掉的那段里的词不进字幕
+        if (word.startMs >= durationMs) continue;
+        shifted.push({
+          text: word.text,
+          startMs: offsetMs + word.startMs,
+          endMs: offsetMs + Math.min(word.endMs, durationMs),
+        });
+      }
+    }
+    offsetMs += durationMs;
+  }
+  if (shifted.length > 0) {
+    return { cues: buildTimedCues(shifted, { maxEndMs: captionSpanMs }), source: "words" };
+  }
+  const windows = captionWindowsFromSegments(
+    args.clips.map((clip) => ({ durationSec: clip.durationSec, captioned: clip.role === "ai_generated" })),
+    captionSpanMs,
+  );
+  if (windows.length > 0) {
+    return {
+      cues: buildWindowedCues(splitScriptByWindows(args.script, windows), windows),
+      source: "windows",
+    };
+  }
+  return { cues: buildDeterministicCues(args.script, args.captionSpanSec), source: "uniform" };
+}
+
 interface PlannedClipState {
   clip: TimelineClip;
   role: TimelineClipRole;
@@ -686,7 +758,17 @@ export async function composeTimeline(
     /// 台词只属于口播所在的主片段：窗口外（尾卡/静帧英雄镜头）不背字幕。
     const captionSpanSec =
       captionWindowSec && captionWindowSec > 0 ? Math.min(totalSec, captionWindowSec) : totalSec;
-    const cues = buildDeterministicCues(effects.script, captionSpanSec);
+    /// P04-B：有逐词时间戳按词；否则按 AI 段窗口（段时长已按帧量化）；都没有才整片均分
+    const { cues } = planCaptionCues({
+      script: effects.script,
+      clips: states.map((state) => ({
+        durationSec: state.durationSec,
+        role: state.role,
+        voiceoverWords: state.clip.voiceoverWords,
+      })),
+      captionSpanSec,
+      filmWords: input.postProduction.captions.words,
+    });
     const assPath = path.join(input.workDir, "captions.ass");
     const aspectRatio =
       input.aspectRatio === "16:9" || input.aspectRatio === "1:1" ? input.aspectRatio : "9:16";
@@ -696,6 +778,7 @@ export async function composeTimeline(
         aspectRatio,
         position: input.postProduction.captions.position,
         style: input.postProduction.captions.style,
+        language: input.postProduction.captions.language,
       }),
       "utf8",
     );

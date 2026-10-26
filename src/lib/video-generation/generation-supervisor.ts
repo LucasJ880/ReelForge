@@ -72,6 +72,8 @@ export function normalizePostProductionSettings(
       language: captions?.language.trim() || language,
       position: captions?.position ?? "bottom",
       exportSrt: captions?.exportSrt ?? false,
+      /// 逐词时间戳只在真给了时带上（P04-B；Phase 1 没有来源，快照形状与旧数据一致）
+      ...(captions?.words && captions.words.length > 0 ? { words: captions.words } : {}),
     },
   };
 }

@@ -7,8 +7,9 @@ import {
   type MediaBudget,
   type TimelineClipReport,
 } from "@/lib/media/stitch-pipeline";
+import { parseAssignedVoiceoverWords } from "@/lib/video-generation/audio-post-production";
 import { DEFAULT_TAIL_TRIM_SECONDS } from "@/lib/video-generation/tail-trim";
-import type { UploadedAsset } from "@/types/video-generation";
+import type { CaptionWordTiming, UploadedAsset } from "@/types/video-generation";
 import {
   composeAndPersistTimeline,
   extractBrollClaimSegments,
@@ -70,6 +71,8 @@ export function assemblyClipsToTimeline(
     url: string;
     intendedDurationSec: number;
     trimToFit: boolean;
+    /// AI 段口播的逐词时间戳（P04-B；来自该段 VideoJob.assignedAssets.voiceover.words）
+    voiceoverWords?: CaptionWordTiming[] | null;
   }>,
   aiTailTrimSec: number,
 ): NormalizeAndConcatClip[] {
@@ -83,22 +86,27 @@ export function assemblyClipsToTimeline(
       role: isAi ? "ai_generated" : isEndCard ? "end_card" : clip.type === "uploaded_clip" ? "uploaded" : "other",
       ...(isAi && aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
       ...(isEndCard ? { excludeFromCaptions: true } : {}),
+      ...(isAi && clip.voiceoverWords?.length ? { voiceoverWords: clip.voiceoverWords } : {}),
     } satisfies NormalizeAndConcatClip;
   });
 }
 
-/** 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。 */
+/** 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。段上持久化了逐词时间戳就带给字幕。 */
 export function legacySegmentsToTimeline(
-  segments: Array<{ outputVideoUrl: string | null }>,
+  segments: Array<{ outputVideoUrl: string | null; assignedAssets?: unknown }>,
   aiTailTrimSec: number,
 ): NormalizeAndConcatClip[] {
-  return segments.map((segment) => ({
-    url: segment.outputVideoUrl as string,
-    intendedDurationSec: null,
-    trimToFit: false,
-    role: "ai_generated" as const,
-    ...(aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
-  }));
+  return segments.map((segment) => {
+    const voiceoverWords = parseAssignedVoiceoverWords(segment.assignedAssets);
+    return {
+      url: segment.outputVideoUrl as string,
+      intendedDurationSec: null,
+      trimToFit: false,
+      role: "ai_generated" as const,
+      ...(aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
+      ...(voiceoverWords ? { voiceoverWords } : {}),
+    };
+  });
 }
 
 export async function composeFinalVideoForStitch(args: {

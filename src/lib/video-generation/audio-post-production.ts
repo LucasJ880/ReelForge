@@ -2,11 +2,19 @@ type AspectRatio = "9:16" | "16:9" | "1:1";
 type CaptionPosition = "top" | "center" | "bottom";
 type CaptionStyle = "word_by_word" | "karaoke" | "plain";
 
+/** 一个词的时间戳（绝对毫秒）。Phase 1 还没有供应商来源；字段先定好，有了就能点亮逐词高亮。 */
+export type CaptionWord = { text: string; startMs: number; endMs: number };
+
+/** 字幕窗口（绝对毫秒）：一个 AI 段在成片里的起止 */
+export type CaptionWindow = { startMs: number; endMs: number };
+
 export type CaptionCue = {
   index: number;
   text: string;
   startMs: number;
   endMs: number;
+  /** 逐词时间戳（绝对毫秒）；有它 karaoke / word_by_word 才是真高亮，没有就回退到整句 */
+  words?: CaptionWord[];
 };
 
 export const BGM_TRACKS = [
@@ -145,8 +153,45 @@ function readableWeight(text: string): number {
 }
 
 /**
+ * 把已断好的可读短句铺进一个时间窗：每句至少 MIN_READABLE_CUE_MS（窗太短则等分），
+ * 余量按字重分配；最后一句吸收取整误差，恰好铺到 endMs。
+ */
+function allocateCuesInWindow(
+  chunks: string[],
+  startMs: number,
+  endMs: number,
+  indexFrom: number,
+): CaptionCue[] {
+  const durationMs = Math.max(1, endMs - startMs);
+  const merged = mergeToDuration(chunks, durationMs);
+  const minimumMs = Math.max(
+    1,
+    Math.min(MIN_READABLE_CUE_MS, Math.floor(durationMs / merged.length)),
+  );
+  const distributableMs = durationMs - minimumMs * merged.length;
+  const weights = merged.map(readableWeight);
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+
+  let cursor = startMs;
+  return merged.map((text, index) => {
+    const last = index === merged.length - 1;
+    const allocated =
+      minimumMs + Math.floor(distributableMs * (weights[index] / totalWeight));
+    const cue: CaptionCue = {
+      index: indexFrom + index,
+      text,
+      startMs: cursor,
+      endMs: last ? endMs : cursor + allocated,
+    };
+    cursor = cue.endMs;
+    return cue;
+  });
+}
+
+/**
  * Build stable caption timings from the approved script and probed media
  * duration. No provider timestamps or guessed progress clocks are involved.
+ * 整片一个窗口（没有 AI 段信息时的兜底：b-roll / 单段 / 旧数据）。
  */
 export function buildDeterministicCues(
   script: string,
@@ -158,31 +203,250 @@ export function buildDeterministicCues(
   const durationMs = Math.max(1, Math.round(durationSec * 1_000));
   const sourceChunks = readableChunks(script);
   if (sourceChunks.length === 0) return [];
-  const chunks = mergeToDuration(sourceChunks, durationMs);
-  const minimumMs = Math.max(
-    1,
-    Math.min(MIN_READABLE_CUE_MS, Math.floor(durationMs / chunks.length)),
-  );
-  const distributableMs = durationMs - minimumMs * chunks.length;
-  const weights = chunks.map(readableWeight);
-  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  return allocateCuesInWindow(sourceChunks, 0, durationMs, 1);
+}
 
-  let cursor = 0;
-  return chunks.map((text, index) => {
-    const allocated =
-      index === chunks.length - 1
-        ? durationMs - cursor
-        : minimumMs +
-          Math.floor(distributableMs * (weights[index] / totalWeight));
-    const cue = {
-      index: index + 1,
-      text,
-      startMs: cursor,
-      endMs: index === chunks.length - 1 ? durationMs : cursor + allocated,
-    };
-    cursor = cue.endMs;
-    return cue;
+/**
+ * P04-B：按 AI 段窗口铺字幕，而不是在整片里均分——每段只背自己那句台词，
+ * 段内再按字重均分。这是没有逐词时间戳时的默认路径。
+ * chunks[i] 对应 windows[i]（多出来的 chunk 并进最后一个窗；缺的窗不出字幕）。
+ * 任何 cue 都不跨窗。
+ */
+export function buildWindowedCues(
+  chunks: string[],
+  windows: CaptionWindow[],
+): CaptionCue[] {
+  const cues: CaptionCue[] = [];
+  windows.forEach((window, index) => {
+    if (!Number.isFinite(window.startMs) || !Number.isFinite(window.endMs) || window.endMs <= window.startMs) {
+      throw new Error(`Caption window #${index} must end after it starts`);
+    }
+    const text =
+      index === windows.length - 1
+        ? chunks.slice(index).reduce((left, right) => joinChunks(left, right), "")
+        : (chunks[index] ?? "");
+    const readable = readableChunks(text);
+    if (readable.length === 0) return;
+    cues.push(
+      ...allocateCuesInWindow(readable, window.startMs, window.endMs, cues.length + 1),
+    );
   });
+  return cues;
+}
+
+function nearestSpeechBoundary(
+  graphemes: string[],
+  ideal: number,
+  min: number,
+  max: number,
+): number {
+  const isBoundary = (index: number) =>
+    /[。！？!?；;，,\s]/u.test(graphemes[index - 1] ?? "");
+  for (let offset = 0; offset <= Math.max(ideal - min, max - ideal); offset++) {
+    const after = ideal + offset;
+    if (after >= min && after <= max && isBoundary(after)) return after;
+    const before = ideal - offset;
+    if (before >= min && before <= max && isBoundary(before)) return before;
+  }
+  return Math.min(max, Math.max(min, ideal));
+}
+
+/**
+ * 把整篇口播稿按各窗口时长加权切成每段一句（在语句边界切，拼回去逐字相等）。
+ * 与 prompt-intelligence.splitVoiceoverScript 是同一规则——派发时每段被要求念的就是这一句，
+ * 字幕回退路径必须切出同样的结果才对得上口型；拼接器 / runner 不能 import 那边（LLM 依赖），
+ * 所以这里保留一份，tests/unified-audio-contract.test.ts 锁住两边一致。
+ */
+export function splitScriptByWindows(
+  script: string,
+  windows: ReadonlyArray<{ startMs: number; endMs: number }>,
+): string[] {
+  const segmentCount = windows.length;
+  if (segmentCount <= 0) return [];
+  const graphemes = Array.from(script.trim());
+  if (graphemes.length === 0) return Array.from({ length: segmentCount }, () => "");
+  const weights = windows.map((window) => {
+    const span = window.endMs - window.startMs;
+    return Number.isFinite(span) && span > 0 ? span : 1;
+  });
+  const chunks: string[] = [];
+  let cursor = 0;
+  for (let index = 0; index < segmentCount; index++) {
+    if (index === segmentCount - 1) {
+      chunks.push(graphemes.slice(cursor).join(""));
+      break;
+    }
+    const remainingSegments = segmentCount - index;
+    const remainingWeight = weights
+      .slice(index)
+      .reduce((sum, weight) => sum + weight, 0);
+    const ideal =
+      cursor +
+      Math.round((graphemes.length - cursor) * (weights[index] / remainingWeight));
+    const minimum = Math.min(graphemes.length, cursor + 1);
+    const maximum = Math.max(minimum, graphemes.length - (remainingSegments - 1));
+    const boundary = nearestSpeechBoundary(graphemes, ideal, minimum, maximum);
+    chunks.push(graphemes.slice(cursor, boundary).join(""));
+    cursor = boundary;
+  }
+  while (chunks.length < segmentCount) chunks.push("");
+  return chunks;
+}
+
+/**
+ * 段序列 → 字幕窗口（绝对毫秒）：按顺序累计偏移，只给 captioned 的段开窗，
+ * 并裁到 maxEndMs（字幕窗口 = 主片时长，尾卡不背字幕）。
+ */
+export function captionWindowsFromSegments(
+  segments: ReadonlyArray<{ durationSec: number; captioned: boolean }>,
+  maxEndMs?: number,
+): CaptionWindow[] {
+  const windows: CaptionWindow[] = [];
+  let cursorMs = 0;
+  for (const segment of segments) {
+    const durationMs = Math.max(0, Math.round(segment.durationSec * 1_000));
+    const startMs = cursorMs;
+    cursorMs += durationMs;
+    if (!segment.captioned) continue;
+    const endMs =
+      maxEndMs !== undefined && Number.isFinite(maxEndMs) ? Math.min(cursorMs, maxEndMs) : cursorMs;
+    if (endMs > startMs) windows.push({ startMs, endMs });
+  }
+  return windows;
+}
+
+/** 任意持久化 JSON → 合法的逐词时间戳列表；不是数组 / 项不合法 / 为空 → null（调用方回退） */
+export function parseCaptionWords(input: unknown): CaptionWord[] | null {
+  if (!Array.isArray(input) || input.length === 0) return null;
+  const words: CaptionWord[] = [];
+  for (const item of input) {
+    if (!item || typeof item !== "object") return null;
+    const { text, startMs, endMs } = item as Record<string, unknown>;
+    if (typeof text !== "string") return null;
+    if (typeof startMs !== "number" || typeof endMs !== "number") return null;
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs)) return null;
+    const trimmed = text.trim();
+    if (!trimmed) continue;
+    words.push({ text: trimmed, startMs, endMs });
+  }
+  return words.length > 0 ? words : null;
+}
+
+/**
+ * VideoJob.assignedAssets（任意 JSON）里该段口播的逐词时间戳：`{ voiceover: { words: [...] } }`。
+ * 形状不对 / 没有 → null（Phase 1 没有供应商写它，所有现存任务都走 null）。
+ */
+export function parseAssignedVoiceoverWords(assignedAssets: unknown): CaptionWord[] | null {
+  if (!assignedAssets || typeof assignedAssets !== "object") return null;
+  const voiceover = (assignedAssets as { voiceover?: unknown }).voiceover;
+  if (!voiceover || typeof voiceover !== "object") return null;
+  return parseCaptionWords((voiceover as { words?: unknown }).words);
+}
+
+function hasCjk(value: string): boolean {
+  return /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u.test(
+    value,
+  );
+}
+
+/** 两个相邻词之间的连接符：任一侧含 CJK 直接相接，否则空格；都没有字母时听 language 提示 */
+function wordSeparator(left: string, right: string, cjkHint: boolean | null): string {
+  if (hasCjk(left) || hasCjk(right)) return "";
+  if (!/\p{L}/u.test(left + right) && cjkHint) return "";
+  return " ";
+}
+
+function joinWords(words: ReadonlyArray<CaptionWord>, cjkHint: boolean | null): string {
+  return words.reduce(
+    (text, word, index) =>
+      index === 0 ? word.text : `${text}${wordSeparator(words[index - 1].text, word.text, cjkHint)}${word.text}`,
+    "",
+  );
+}
+
+function countNonSpaceGraphemes(value: string): number {
+  return Array.from(value).filter((character) => !/\s/u.test(character)).length;
+}
+
+function readableLimit(text: string): number {
+  return isMostlyCjk(text) ? CJK_READABLE_GRAPHEMES : LATIN_READABLE_GRAPHEMES;
+}
+
+/**
+ * P04-B：有逐词时间戳时，按 readableChunks 同一套断句规则把词分组成 cue，
+ * cue 起止取组内首词 / 末词的真实时间。词永不被切开：断句边界落在词中间时整词归前一句。
+ * 短于 MIN_READABLE_CUE_MS 的组并进前一句（只要并完仍在可读字数内），避免闪字。
+ */
+export function buildTimedCues(
+  words: ReadonlyArray<CaptionWord>,
+  options: { maxEndMs?: number; language?: string } = {},
+): CaptionCue[] {
+  const cjkHint = options.language ? /^(zh|ja|ko)/iu.test(options.language) : null;
+  const maxEndMs =
+    options.maxEndMs !== undefined && Number.isFinite(options.maxEndMs) && options.maxEndMs > 0
+      ? options.maxEndMs
+      : null;
+  const clean = words
+    .map((word) => ({
+      text: word.text.trim(),
+      startMs: Math.round(word.startMs),
+      endMs: Math.round(word.endMs),
+    }))
+    .filter(
+      (word) =>
+        word.text.length > 0 &&
+        Number.isFinite(word.startMs) &&
+        Number.isFinite(word.endMs) &&
+        word.endMs >= word.startMs &&
+        word.startMs >= 0 &&
+        (maxEndMs === null || word.startMs < maxEndMs),
+    )
+    .map((word) => ({
+      ...word,
+      endMs: maxEndMs === null ? word.endMs : Math.min(word.endMs, maxEndMs),
+    }))
+    .sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+  if (clean.length === 0) return [];
+
+  const chunks = readableChunks(joinWords(clean, cjkHint));
+  const groups: CaptionWord[][] = [];
+  let wordCursor = 0;
+  let consumedGraphemes = 0;
+  let targetGraphemes = 0;
+  for (const chunk of chunks) {
+    targetGraphemes += countNonSpaceGraphemes(chunk);
+    const group: CaptionWord[] = [];
+    while (wordCursor < clean.length && consumedGraphemes < targetGraphemes) {
+      const word = clean[wordCursor++];
+      group.push(word);
+      consumedGraphemes += countNonSpaceGraphemes(word.text);
+    }
+    if (group.length > 0) groups.push(group);
+  }
+  if (wordCursor < clean.length) groups.push(clean.slice(wordCursor));
+
+  /// 太短的组并进前一句（并完仍可读才并）
+  const merged: CaptionWord[][] = [];
+  for (const group of groups) {
+    const previous = merged[merged.length - 1];
+    const spanMs = Math.max(...group.map((word) => word.endMs)) - group[0].startMs;
+    if (previous && spanMs < MIN_READABLE_CUE_MS) {
+      const combined = joinWords([...previous, ...group], cjkHint);
+      if (countNonSpaceGraphemes(combined) <= readableLimit(combined)) {
+        previous.push(...group);
+        continue;
+      }
+    }
+    merged.push([...group]);
+  }
+
+  return merged.map((group, index) => ({
+    index: index + 1,
+    text: joinWords(group, cjkHint),
+    startMs: group[0].startMs,
+    endMs: Math.max(...group.map((word) => word.endMs)),
+    words: group,
+  }));
 }
 
 function srtTimestamp(ms: number): string {
@@ -243,12 +507,70 @@ function assAlignment(position: CaptionPosition): number {
  */
 export const CAPTION_FONT_FAMILY = "Noto Sans SC";
 
+/** 赢家金（样式表里是 AABBGGRR；行内 \1c 覆盖写 &HBBGGRR&）：当前词 / 已念过的词 */
+const ASS_GOLD = "&H0000D7FF";
+const ASS_GOLD_INLINE = "&H00D7FF&";
+const ASS_WHITE = "&H00FFFFFF";
+
+function assTimeCs(ms: number): number {
+  return Math.floor(ms / 10);
+}
+
+/**
+ * karaoke：一条 Dialogue，每个词前缀 {\kf<厘秒>}。\kf 的语义是「未念 = SecondaryColour、
+ * 念过 = PrimaryColour、念到哪填到哪」，所以 Karaoke 样式 Primary=金、Secondary=白。
+ * 各词厘秒合计恰好等于 cue 时长（按与 Dialogue 时间戳相同的向下取整算）。
+ */
+function karaokeDialogue(cue: CaptionCue, words: ReadonlyArray<CaptionWord>, cjkHint: boolean | null): string {
+  const startCs = assTimeCs(cue.startMs);
+  const totalCs = Math.max(1, assTimeCs(cue.endMs) - startCs);
+  const boundaries: number[] = [];
+  for (const [index, word] of words.entries()) {
+    const raw = Math.min(totalCs, Math.max(0, assTimeCs(word.startMs) - startCs));
+    boundaries.push(index === 0 ? raw : Math.max(raw, boundaries[index - 1]));
+  }
+  let text = boundaries[0] > 0 ? `{\\kf${boundaries[0]}}` : "";
+  words.forEach((word, index) => {
+    const next = index + 1 < words.length ? boundaries[index + 1] : totalCs;
+    const durationCs = Math.max(0, next - boundaries[index]);
+    const separator = index === 0 ? "" : wordSeparator(words[index - 1].text, word.text, cjkHint);
+    text += `${separator}{\\kf${durationCs}}${escapeAssText(word.text)}`;
+  });
+  return `Dialogue: 0,${assTimestamp(cue.startMs)},${assTimestamp(cue.endMs)},Karaoke,,0,0,0,,${text}`;
+}
+
+/** word_by_word：每个词一条 Dialogue，整句都在、只有当前词是金色（{\r} 回到样式默认色） */
+function wordByWordDialogues(cue: CaptionCue, words: ReadonlyArray<CaptionWord>, cjkHint: boolean | null): string[] {
+  const line = (highlight: number | null) =>
+    words
+      .map((word, index) => {
+        const separator = index === 0 ? "" : wordSeparator(words[index - 1].text, word.text, cjkHint);
+        const escaped = escapeAssText(word.text);
+        return `${separator}${index === highlight ? `{\\1c${ASS_GOLD_INLINE}}${escaped}{\\r}` : escaped}`;
+      })
+      .join("");
+  const events: string[] = [];
+  const firstStart = Math.max(cue.startMs, words[0].startMs);
+  if (assTimeCs(firstStart) > assTimeCs(cue.startMs)) {
+    events.push(`Dialogue: 0,${assTimestamp(cue.startMs)},${assTimestamp(firstStart)},Captions,,0,0,0,,${line(null)}`);
+  }
+  words.forEach((word, index) => {
+    const startMs = Math.max(cue.startMs, word.startMs);
+    const endMs = index + 1 < words.length ? Math.max(startMs, words[index + 1].startMs) : cue.endMs;
+    if (assTimeCs(endMs) <= assTimeCs(startMs)) return;
+    events.push(`Dialogue: 0,${assTimestamp(startMs)},${assTimestamp(endMs)},Captions,,0,0,0,,${line(index)}`);
+  });
+  return events;
+}
+
 export function renderAssCaptions(
   cues: CaptionCue[],
   options: {
     aspectRatio: AspectRatio;
     position: CaptionPosition;
     style: CaptionStyle;
+    /** 口播 / 字幕语言（如 zh-CN）：写进 Script Info，并在词与词之间都没有字母时决定是否留空格 */
+    language?: string;
   },
 ): string {
   const resolution = assResolution(options.aspectRatio);
@@ -256,8 +578,11 @@ export function renderAssCaptions(
   const outline = options.style === "plain" ? 2 : 4;
   const bold = options.style === "plain" ? 0 : -1;
   const marginV = options.aspectRatio === "9:16" ? 150 : 90;
+  const alignment = assAlignment(options.position);
+  const language = options.language?.trim().replace(/[\r\n]+/gu, " ");
+  const cjkHint = language ? /^(zh|ja|ko)/iu.test(language) : null;
   const header = `[Script Info]
-ScriptType: v4.00+
+ScriptType: v4.00+${language ? `\n; Language: ${language}` : ""}
 PlayResX: ${resolution.width}
 PlayResY: ${resolution.height}
 ScaledBorderAndShadow: yes
@@ -265,14 +590,23 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},&H00FFFFFF,&H0000D7FF,&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${assAlignment(options.position)},80,80,${marginV},1
+Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},${ASS_WHITE},${ASS_GOLD},&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${alignment},80,80,${marginV},1
+Style: Karaoke,${CAPTION_FONT_FAMILY},${fontSize},${ASS_GOLD},${ASS_WHITE},&H90000000,&H50000000,-1,0,0,0,100,100,0,0,1,4,1,${alignment},80,80,${marginV},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;
-  const events = cues.map(
-    (cue) =>
-      `Dialogue: 0,${assTimestamp(cue.startMs)},${assTimestamp(cue.endMs)},Captions,,0,0,0,,${escapeAssText(cue.text)}`,
-  );
+  const events = cues.flatMap((cue) => {
+    const words = cue.words?.filter((word) => word.text.trim().length > 0) ?? [];
+    /// 没有逐词时间戳（Phase 1 的常态）或 plain：整句一条，与 1025 之前完全一致
+    if (words.length === 0 || options.style === "plain") {
+      return [
+        `Dialogue: 0,${assTimestamp(cue.startMs)},${assTimestamp(cue.endMs)},Captions,,0,0,0,,${escapeAssText(cue.text)}`,
+      ];
+    }
+    return options.style === "karaoke"
+      ? [karaokeDialogue(cue, words, cjkHint)]
+      : wordByWordDialogues(cue, words, cjkHint);
+  });
   return `${header}\n${events.join("\n")}\n`;
 }
 

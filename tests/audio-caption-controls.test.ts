@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   CAPTION_STYLE_OPTIONS,
+  TIMED_CAPTION_STYLE_OPTIONS,
+  captionStyleOptions,
   captionStyleSelectValue,
   generateVoiceoverScript,
 } from "../src/components/video-generation/audio-caption-controls";
@@ -39,17 +41,50 @@ test("BGM disclosure includes license attribution", () => {
   assert.match(attribution, /CC BY 4\.0/);
 });
 
-test("字幕样式只列渲染层做得到的两档，逐词强调 / 跟读高亮先隐藏", () => {
-  assert.doesNotMatch(source, /逐词强调|跟读高亮|Word by word|Karaoke/);
+test("字幕样式分档由 wordTimestampsAvailable 控制：默认仍只列两档，有逐词时间戳才放出跟读高亮 / 逐词强调", () => {
+  /// 默认（Phase 1 没有 TTS 时间戳来源）：与 1025 A6 7.5 完全一致——两档、旧值折叠到「醒目描边」
+  assert.deepEqual(
+    captionStyleOptions(false).map((option) => option.value),
+    ["word_by_word", "plain"],
+  );
   assert.deepEqual(
     CAPTION_STYLE_OPTIONS.map((option) => option.value),
     ["word_by_word", "plain"],
   );
-  /// 已保存 / 默认的旧值不改写，只在界面上归到它们真实的观感
   assert.equal(captionStyleSelectValue("word_by_word"), "word_by_word");
   assert.equal(captionStyleSelectValue("karaoke"), "word_by_word");
   assert.equal(captionStyleSelectValue("plain"), "plain");
-  assert.match(source, /value=\{captionStyleSelectValue\(value\.captionStyle\)\}/);
+  assert.ok(
+    CAPTION_STYLE_OPTIONS.every((option) => !/逐词强调|跟读高亮|Word by word|Karaoke/.test(`${option.zh} ${option.en}`)),
+    "默认档不许诺逐词高亮",
+  );
+
+  /// 有逐词时间戳：三档真分档，保存的值原样显示
+  assert.deepEqual(
+    captionStyleOptions(true).map((option) => option.value),
+    ["karaoke", "word_by_word", "plain"],
+  );
+  assert.deepEqual(captionStyleOptions(true), TIMED_CAPTION_STYLE_OPTIONS);
+  assert.equal(captionStyleSelectValue("karaoke", true), "karaoke");
+  assert.equal(captionStyleSelectValue("word_by_word", true), "word_by_word");
+  assert.equal(captionStyleSelectValue("plain", true), "plain");
+
+  /// 组件：prop 默认 false，select 的值与选项都走同一个 prop
+  assert.match(source, /wordTimestampsAvailable\?: boolean/);
+  assert.match(source, /wordTimestampsAvailable = false/);
+  assert.match(
+    source,
+    /value=\{captionStyleSelectValue\(value\.captionStyle, wordTimestampsAvailable\)\}/,
+  );
+  assert.match(source, /captionStyleOptions\(wordTimestampsAvailable\)\.map/);
+  /// 真站调用处还没有传 prop（没有时间戳来源）：界面行为与现在一致
+  assert.doesNotMatch(studio, /wordTimestampsAvailable/);
+});
+
+test("P04-B：口播 / 字幕语言按口播稿检测，不再拿界面 locale 代替", () => {
+  assert.match(studio, /import \{ detectScriptLanguage \} from "@\/lib\/video-generation\/detect-script-language";/);
+  assert.match(studio, /voiceover:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(voiceoverScript, locale\)/);
+  assert.match(studio, /captions:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(voiceoverScript, locale\)/);
 });
 
 test("automatic scripts are deterministic, localized, and duration-bounded", () => {

@@ -1,0 +1,41 @@
+{
+  "experiment": "E7",
+  "durationSec": 15,
+  "aspectRatio": "9:16",
+  "language": "en-US",
+  "sourceNote": "示例清单：URL 为占位。D-11——只用 34 模板产品集与已在公开广告露出过的 SunnyShutter 图，住户室内实拍不外发。正式 E7′ 清单固定 20 条，跑之前冻结并记 manifestSha256。",
+  "items": [
+    {
+      "id": "bottle-terracotta",
+      "productName": "Matte terracotta thermal bottle",
+      "productImages": [
+        "https://example.com/e7/bottle-1.png",
+        "https://example.com/e7/bottle-2.png",
+        "https://example.com/e7/bottle-3.png"
+      ],
+      "storyboardFrames": [
+        "https://example.com/e7/bottle-frame-1.png",
+        "https://example.com/e7/bottle-frame-2.png"
+      ],
+      "brief": {
+        "corePainPoint": "coffee going cold before the first meeting ends",
+        "keySellingPoints": ["keeps drinks hot for 12 hours", "leak-proof brushed steel lid"]
+      }
+    },
+    {
+      "id": "sunnyshutter-zebra",
+      "productName": "SunnyShutter zebra roller shade",
+      "productImages": [
+        "https://example.com/e7/sunnyshutter-1.jpg",
+        "https://example.com/e7/sunnyshutter-2.jpg",
+        "https://example.com/e7/sunnyshutter-3.jpg",
+        "https://example.com/e7/sunnyshutter-4.jpg"
+      ],
+      "storyboardFrames": [],
+      "brief": {
+        "corePainPoint": "harsh afternoon glare on the TV",
+        "keySellingPoints": ["switch between light-filtering and privacy in one pull"]
+      }
+    }
+  ]
+}

@@ -6,13 +6,15 @@
 #   scripts/build-template-preview-assets.sh qa       # 逐条出 15 帧接触表供人工检查
 #   scripts/build-template-preview-assets.sh build    # 全部装配进 public/template-previews/
 #   scripts/build-template-preview-assets.sh build commerce-food-sizzle   # 只装配指定 slug
+#   VIDEO_DIR=tmp/experiments-2026-11/E7/videos QA_DIR=tmp/experiments-2026-11/E7/qa \
+#     scripts/build-template-preview-assets.sh qa                         # 任意成片目录出接触表（E13 标注用）
 #
 # 每个 slug 的预览起始秒数默认 6(中段 proof 拍),可在 OFFSETS 里按 QA 结论覆写。
 set -euo pipefail
 
 RUN_KEY="${REAL_SAMPLES_RUN_KEY:-template-samples-20260803-v1}"
-VIDEO_DIR="tmp/real-template-samples/${RUN_KEY}-videos"
-QA_DIR="tmp/real-template-samples/${RUN_KEY}-qa"
+VIDEO_DIR="${VIDEO_DIR:-tmp/real-template-samples/${RUN_KEY}-videos}"
+QA_DIR="${QA_DIR:-tmp/real-template-samples/${RUN_KEY}-qa}"
 OUT_DIR="public/template-previews"
 
 # slug=起始秒;QA 后针对钩子更强的模板覆写(默认 6)。

@@ -1,17 +1,24 @@
 /**
- * 2026-08-03 模板库扩容 · 27 个新模板逐一真机出样片。
+ * 2026-08-03 模板库扩容 · 模板逐一真机出样片；2026-10-26 起多线路化（X-SCAF-1）。
  *
- * 线路 = 客户真实线路（buddy / Shuyu image2video studio-video，900pt/条），
- * 与 real-video-acceptance-batch20.ts 同构：持久化批量管线 + canary 先行 +
- * 幂等键续跑 + JSON 报告。产品参考图用 gpt-image-2 现场生成并落 blob
- * （每个模板配品类贴合的产品，样片即门面，不能全库一个产品）。
+ * 线路 = 客户真实线路（buddy / Shuyu image2video studio-video，单价按 /prices 实时审计），
+ * 与 real-video-acceptance-batch20.ts 同构：持久化批量管线 + 幂等键续跑 + JSON 报告。
+ * 产品参考图用 gpt-image-2 现场生成并落 blob（每个模板配品类贴合的产品，样片即门面）。
  *
- * 用法（默认只补产品参考图并打印花费计划，不提交付费视频）：
- *   npx tsx scripts/real-template-samples-expansion.ts
- * 确认提交付费视频：
- *   REAL_SAMPLES_CONFIRM_SPEND=1 npx tsx scripts/real-template-samples-expansion.ts
+ * 默认是安全的：不带 REAL_SAMPLES_CONFIRM_SPEND=1 时不生成参考图、不连库、不触网，
+ * 只按本地报告打印待跑清单（加 --live-price 才读一次 Shuyu /prices 给出实时估价）。
+ *
+ * 用法：
+ *   npx tsx scripts/real-template-samples-expansion.ts --help
+ *   npx tsx scripts/real-template-samples-expansion.ts                     # 干跑：待跑清单
+ *   npx tsx scripts/real-template-samples-expansion.ts --live-price        # 干跑 + 实时估价（只读 /prices）
+ *   REAL_SAMPLES_CONFIRM_SPEND=1 REAL_SAMPLES_MAX_POINTS=20000 npx tsx scripts/real-template-samples-expansion.ts
+ * 多线路对照（运行键必须 exp-2611- 开头，并发自动压到 ≤2；1080P 档还要 SHUYU_ALLOW_FINAL_TIER=1）：
+ *   REAL_SAMPLES_RUN_KEY=exp-2611-e12-a REAL_SAMPLES_ROUTE=buddy,buddy@<1080P planId> \
+ *   SHUYU_ALLOW_FINAL_TIER=1 REAL_SAMPLES_SLUGS=commerce-food-sizzle \
+ *   REAL_SAMPLES_CONFIRM_SPEND=1 REAL_SAMPLES_MAX_POINTS=8000 npx tsx scripts/real-template-samples-expansion.ts
  * 局部重跑（修配方后重出个别模板）：
- *   REAL_SAMPLES_SLUGS=commerce-food-sizzle REAL_SAMPLES_CONFIRM_SPEND=1 npx tsx ...
+ *   REAL_SAMPLES_SLUGS=commerce-food-sizzle REAL_SAMPLES_FORCE=1 REAL_SAMPLES_CONFIRM_SPEND=1 ...
  */
 import {
   existsSync,
@@ -35,31 +42,59 @@ import {
 import { authorizeBatchQuotaForSession } from "@/lib/services/quota-service";
 import { VOLCENGINE_CN_ARK_BASE_URL } from "@/lib/config/seedance-runtime";
 import { generateImages } from "@/lib/providers/openai-image";
-import { getShuyuBalance, SHUYU_VIDEO_POINTS_PER_GENERATION } from "@/lib/providers/shuyu";
+import {
+  getShuyuBalance,
+  resolveShuyuVideoPlan,
+  shuyuVideoPlanPointsForDuration,
+} from "@/lib/providers/shuyu";
+import {
+  SHUYU_RESERVE_POINTS_DEFAULT,
+  checkBudgetGate,
+  estimateSpend,
+  parsePositiveLimit,
+  type SpendLine,
+} from "./lib/experiment-budget";
+import {
+  BATCH_KEY_REV,
+  advanceTiming,
+  assertRunKeyForArms,
+  effectiveWaveSize,
+  emptyQa,
+  inferLegacyArmId,
+  isCurrentRevKey,
+  isExperimentRun,
+  itemIdentity,
+  parseSampleArms,
+  sampleIdempotencyKey,
+  sampleVideoFileName,
+  type SampleArm,
+  type SampleQa,
+} from "./lib/real-samples-plan";
 
-loadEnvConfig(process.cwd(), true);
+const HELP = `real-template-samples-expansion —— 模板样片真机出片（多线路，默认干跑）
 
-/// 真机硬开关：本脚本存在的意义就是真实出片，杜绝被本地 mock 静默降级。
-process.env.VIDEO_ENGINE_MOCK = "false";
-process.env.IMAGE_ENGINE_MOCK = "false";
+env：
+  REAL_SAMPLES_ROUTE           逗号分隔的线路臂：buddy | buddy@<planId> | volcengine_cn_legacy（默认 buddy）
+  REAL_SAMPLES_RUN_KEY         运行键（默认 template-samples-20260803-v1；多臂/显式套餐必须 exp-2611- 开头）
+  REAL_SAMPLES_SLUGS           只跑这些模板（逗号分隔）
+  REAL_SAMPLES_FORCE=1         配合 SLUGS：已成功的也重出
+  REAL_SAMPLES_WAVE_SIZE       每波批次数（默认 6；对照实验强制 ≤2）
+  REAL_SAMPLES_CONFIRM_SPEND=1 真的花钱（生成参考图 + 提交视频）；不设 = 干跑
+  REAL_SAMPLES_MAX_POINTS      Shuyu 积分硬上限（花钱时必填）
+  REAL_SAMPLES_RESERVE_POINTS  余额预留线（默认 ${SHUYU_RESERVE_POINTS_DEFAULT}）
+  REAL_SAMPLES_MAX_USD         美元硬上限（volcengine 臂花钱时必填）
+  REAL_SAMPLES_VOLC_USD_PER_SECOND  volcengine 臂的美元单价/秒（没有就拒绝花钱）
+  REAL_SAMPLES_USD_PER_POINT   可选：把 Shuyu 积分折成 costUsd 写进报告
+  SHUYU_ALLOW_FINAL_TIER=1     允许 buddy@<1080P planId>（生产 Vercel 环境一律忽略）
 
-/// 线路选择：默认走客户主线路 buddy(Shuyu)。Shuyu 长时间不可用时可切
-/// REAL_SAMPLES_ROUTE=volcengine_cn_legacy——这是平台 C1 客户故障转移的
-/// 同一条真实线路(batch20 验收同款配置)，报告里会逐条记录 providerRoute。
-const SAMPLE_ROUTE =
-  process.env.REAL_SAMPLES_ROUTE === "volcengine_cn_legacy"
-    ? ("volcengine_cn_legacy" as const)
-    : ("buddy" as const);
-if (SAMPLE_ROUTE === "volcengine_cn_legacy") {
-  process.env.VIDEO_PROVIDER = "byteplus";
-  process.env.SEEDANCE_RUNTIME_PROFILE = "volcengine_cn_legacy";
-  process.env.ARK_BASE_URL = VOLCENGINE_CN_ARK_BASE_URL;
-  process.env.ARK_VIDEO_MODEL =
-    process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
-} else {
-  process.env.VIDEO_PROVIDER = "shuyu";
-}
+flag：
+  --help         打印本说明
+  --live-price   干跑时读一次 Shuyu /prices（只读、免费）给出实时估价；默认干跑完全不触网`;
 
+const CLI_ARGS = new Set(process.argv.slice(2));
+const LIVE_PRICE = CLI_ARGS.has("--live-price");
+
+const ARMS: SampleArm[] = parseSampleArms(process.env.REAL_SAMPLES_ROUTE);
 const RUN_KEY =
   process.env.REAL_SAMPLES_RUN_KEY?.trim() || "template-samples-20260803-v1";
 const OUTPUT_DIR = resolve(process.cwd(), "tmp/real-template-samples");
@@ -68,16 +103,31 @@ const VIDEO_DIR = resolve(OUTPUT_DIR, `${RUN_KEY}-videos`);
 const TICK_SPACING_MS = 1_200;
 const POLL_MS = 20_000;
 const CONFIRM_SPEND = process.env.REAL_SAMPLES_CONFIRM_SPEND === "1";
-/// 批次幂等键修订号：v1 用了裸 URL 假 asset id，被故事板锚定管线
-/// （resolveOwnedMediaAssets）正确拒绝；v2 起参考图先注册为 MediaAsset；
-/// v3 改分波提交——27 个批次一次性全建会让排队尾部越过 timeoutAt+10min
-/// 宽限被 sweep 判死（v2 实测 19 条未提交即被扫）。
-const BATCH_KEY_REV = "v3";
-/// 每波批次数：与计划并发窗口同量级，建了立刻能被派发。
-const WAVE_SIZE = Math.max(
-  1,
+const DEFAULT_DURATION_SEC = 15;
+/// 每波批次数：与计划并发窗口同量级，建了立刻能被派发；对照实验按 X-SCAF-0 压到 ≤2。
+const WAVE_SIZE = effectiveWaveSize(
   Number.parseInt(process.env.REAL_SAMPLES_WAVE_SIZE ?? "6", 10) || 6,
+  ARMS,
 );
+
+/// 真机硬开关 + 线路 env：只在真的要跑时设置（--help 不碰进程环境）。
+function applyRuntimeEnv(): void {
+  loadEnvConfig(process.cwd(), true);
+  /// 本脚本存在的意义就是真实出片，杜绝被本地 mock 静默降级。
+  process.env.VIDEO_ENGINE_MOCK = "false";
+  process.env.IMAGE_ENGINE_MOCK = "false";
+  /// volcengine_cn_legacy 是平台 C1 客户故障转移的同一条真实线路（batch20 验收同款配置），
+  /// 靠进程级 env 切 provider，所以 parseSampleArms 保证它只能单独跑。
+  if (ARMS.some((arm) => arm.routeId === "volcengine_cn_legacy")) {
+    process.env.VIDEO_PROVIDER = "byteplus";
+    process.env.SEEDANCE_RUNTIME_PROFILE = "volcengine_cn_legacy";
+    process.env.ARK_BASE_URL = VOLCENGINE_CN_ARK_BASE_URL;
+    process.env.ARK_VIDEO_MODEL =
+      process.env.ARK_VIDEO_MODEL || "doubao-seedance-2-0-260128";
+  } else {
+    process.env.VIDEO_PROVIDER = "shuyu";
+  }
+}
 
 /// 产品参考图公共约束：写实商品摄影、零文字零商标（画面文字是样片红线）。
 const PHOTO_SUFFIX =
@@ -227,10 +277,15 @@ const FORCE_RERUN = process.env.REAL_SAMPLES_FORCE === "1" && SLUG_FILTER !== nu
 type ReportItem = {
   slug: string;
   set: string;
+  /** 线路臂（v4 起必有；v3 及更早的条目由 inferLegacyArmId 补齐）。 */
+  armId?: string;
+  routeId?: SampleArm["routeId"];
+  planId?: string | null;
   idempotencyKey: string;
   templateId?: string;
   templateVersion?: number;
   templateNameZh?: string;
+  durationSec?: number;
   batchId?: string;
   videoJobId?: string;
   externalJobId?: string | null;
@@ -239,23 +294,53 @@ type ReportItem = {
   outputVideoUrl?: string | null;
   localPath?: string | null;
   error?: string | null;
+  /** 库里 VideoJob.submittedAt（提交给供应商的时刻）。 */
+  submittedAt?: string | null;
+  /** 轮询第一次观察到供应商处理中的时刻（精度 = 轮询间隔；库里没有对应列）。 */
+  firstProcessingAt?: string | null;
+  /** 库里 VideoJob.finishedAt。 */
+  finishedAt?: string | null;
+  /** 单条积分：优先库里 providerUnitPoints 快照，没有就用提交前的实时估价。 */
+  costPoints?: number | null;
+  costPointsSource?: "snapshot" | "estimate" | null;
+  /** 单条美元：库里 providerUnitPriceUsd，或按 REAL_SAMPLES_USD_PER_POINT / VOLC 单价折算；未知 = null。 */
+  costUsd?: number | null;
+  /** 人工 QA 0–2（商品 / 人物 / 口型），脚本只建空位，由评审回填；重跑新片时清空。 */
+  qa?: SampleQa;
 };
 
 type Report = {
   runKey: string;
   purpose: "template-library-expansion-samples";
-  providerRoute: "buddy";
+  /** v4 之前只有 "buddy"；v4 起是本轮全部臂。 */
+  providerRoute: string;
+  arms?: SampleArm[];
+  batchKeyRev?: string;
   startedAt: string;
   finishedAt?: string;
   productImages: Record<string, string[]>;
   /// 参考图注册成 MediaAsset 后的 {id, url}，与 productImages 同序。
   productAssets?: Record<string, Array<{ id: string; url: string }>>;
+  /** 最近一次花钱前的预估与闸门结论。 */
+  budget?: {
+    at: string;
+    estimate: ReturnType<typeof estimateSpend>;
+    availablePoints: number | null;
+    maxPoints: number | null;
+    maxUsd: number | null;
+    reservePoints: number;
+  };
   items: ReportItem[];
 };
 
 function readReport(): Report | null {
   if (!existsSync(REPORT_PATH)) return null;
-  return JSON.parse(readFileSync(REPORT_PATH, "utf8")) as Report;
+  const report = JSON.parse(readFileSync(REPORT_PATH, "utf8")) as Report;
+  for (const item of report.items) {
+    item.armId ??= inferLegacyArmId(item);
+    item.qa ??= emptyQa();
+  }
+  return report;
 }
 
 function writeReport(report: Report): void {
@@ -284,6 +369,14 @@ async function ensureProductImages(report: Report): Promise<void> {
       console.log(`ref image ready: ${setId} ${index + 1}/${set.prompts.length}`);
     }
   }
+}
+
+function missingProductImageCount(report: Report): number {
+  return Object.entries(PRODUCT_SETS).reduce(
+    (sum, [setId, set]) =>
+      sum + Math.max(0, set.prompts.length - (report.productImages[setId]?.length ?? 0)),
+    0,
+  );
 }
 
 /// 生成的参考图必须是验收用户名下的真实 MediaAsset，故事板锚定管线才认。
@@ -323,19 +416,77 @@ async function ensureMediaAssets(report: Report, userId: string): Promise<void> 
   }
 }
 
+type PlanEntry = (typeof TEMPLATE_PLAN)[number];
+type PendingRun = { entry: PlanEntry; arm: SampleArm };
+
+/** 每个臂的单条实时价（Shuyu /prices 审计）；volcengine 臂按 env 的美元单价。 */
+async function priceArms(
+  arms: ReadonlyArray<SampleArm>,
+  durationSec: number,
+): Promise<Map<string, { unitPoints: number | null; unitUsd: number | null; note: string }>> {
+  const usdPerPoint = parsePositiveLimit(process.env.REAL_SAMPLES_USD_PER_POINT);
+  const volcUsdPerSecond = parsePositiveLimit(process.env.REAL_SAMPLES_VOLC_USD_PER_SECOND);
+  const out = new Map<string, { unitPoints: number | null; unitUsd: number | null; note: string }>();
+  for (const arm of arms) {
+    if (arm.routeId === "volcengine_cn_legacy") {
+      out.set(arm.id, {
+        unitPoints: null,
+        unitUsd: volcUsdPerSecond === null ? null : volcUsdPerSecond * durationSec,
+        note: volcUsdPerSecond === null ? "缺 REAL_SAMPLES_VOLC_USD_PER_SECOND" : `$${volcUsdPerSecond}/s`,
+      });
+      continue;
+    }
+    try {
+      const plan = await resolveShuyuVideoPlan({ planId: arm.planId });
+      const unitPoints = shuyuVideoPlanPointsForDuration(plan, durationSec);
+      out.set(arm.id, {
+        unitPoints,
+        unitUsd: usdPerPoint === null ? null : unitPoints * usdPerPoint,
+        note: `${plan.planId} ${plan.resolution} ${plan.unitSalePoints}/${plan.billingUnit}`,
+      });
+    } catch (error) {
+      out.set(arm.id, { unitPoints: null, unitUsd: null, note: (error as Error).message.slice(0, 160) });
+    }
+  }
+  return out;
+}
+
+function spendLines(
+  pending: ReadonlyArray<PendingRun>,
+  pricing: Map<string, { unitPoints: number | null; unitUsd: number | null }>,
+): SpendLine[] {
+  return ARMS.map((arm) => ({
+    armId: arm.id,
+    count: pending.filter((run) => run.arm.id === arm.id).length,
+    unitPoints: pricing.get(arm.id)?.unitPoints ?? null,
+    unitUsd: pricing.get(arm.id)?.unitUsd ?? null,
+  }));
+}
+
+function templateDurationSec(lockedParams: unknown): number {
+  const duration = (lockedParams as { duration?: unknown } | null)?.duration;
+  return typeof duration === "number" && duration > 0 ? duration : DEFAULT_DURATION_SEC;
+}
+
 async function main(): Promise<void> {
-  mkdirSync(OUTPUT_DIR, { recursive: true });
+  if (CLI_ARGS.has("--help") || CLI_ARGS.has("-h")) {
+    console.log(HELP);
+    return;
+  }
+  assertRunKeyForArms(RUN_KEY, ARMS);
+  applyRuntimeEnv();
+
   const report: Report = readReport() ?? {
     runKey: RUN_KEY,
     purpose: "template-library-expansion-samples",
-    providerRoute: "buddy",
+    providerRoute: ARMS.map((arm) => arm.id).join(","),
     startedAt: new Date().toISOString(),
     productImages: {},
     items: [],
   };
-  writeReport(report);
-
-  await ensureProductImages(report);
+  report.providerRoute = ARMS.map((arm) => arm.id).join(",");
+  report.arms = ARMS;
+  report.batchKeyRev = BATCH_KEY_REV;
 
   const plan = TEMPLATE_PLAN.filter(
     (entry) => !SLUG_FILTER || SLUG_FILTER.has(entry.slug),
@@ -347,22 +498,35 @@ async function main(): Promise<void> {
           item.status === "SUCCEEDED" &&
           !(FORCE_RERUN && SLUG_FILTER?.has(item.slug)),
       )
-      .map((item) => item.slug),
+      .map((item) => itemIdentity(item.slug, item.armId!)),
   );
-  const pending = plan.filter((entry) => !done.has(entry.slug));
-  const plannedPoints = pending.length * SHUYU_VIDEO_POINTS_PER_GENERATION;
+  const pending: PendingRun[] = plan.flatMap((entry) =>
+    ARMS.filter((arm) => !done.has(itemIdentity(entry.slug, arm.id))).map((arm) => ({ entry, arm })),
+  );
 
   if (!CONFIRM_SPEND) {
+    /// 干跑：不写报告、不生成参考图、不连库；只有 --live-price 才读一次 /prices。
+    const pricing = LIVE_PRICE ? await priceArms(ARMS, DEFAULT_DURATION_SEC) : null;
+    const estimate = pricing ? estimateSpend(spendLines(pending, pricing)) : null;
     console.log(
       JSON.stringify(
         {
           mode: "dry-plan",
+          runKey: RUN_KEY,
+          arms: ARMS.map((arm) => arm.id),
+          experimentRun: isExperimentRun(ARMS),
+          waveSize: WAVE_SIZE,
+          batchKeyRev: BATCH_KEY_REV,
           refsReady: Object.fromEntries(
             Object.entries(report.productImages).map(([k, v]) => [k, v.length]),
           ),
-          pendingVideos: pending.map((entry) => entry.slug),
-          plannedPoints,
-          hint: "REAL_SAMPLES_CONFIRM_SPEND=1 重新运行以提交真机视频",
+          refImagesToGenerate: missingProductImageCount(report),
+          pendingVideos: pending.map((run) => `${run.entry.slug} @ ${run.arm.id}`),
+          pricing: pricing
+            ? Object.fromEntries([...pricing.entries()].map(([armId, value]) => [armId, value]))
+            : `未估价（加 --live-price 读一次 Shuyu /prices；按 ${DEFAULT_DURATION_SEC}s 估）`,
+          estimate,
+          hint: "REAL_SAMPLES_CONFIRM_SPEND=1 + REAL_SAMPLES_MAX_POINTS=<上限> 重新运行才会花钱",
         },
         null,
         2,
@@ -370,16 +534,6 @@ async function main(): Promise<void> {
     );
     return;
   }
-
-  const balance = await getShuyuBalance();
-  if (balance.available_points < plannedPoints + 2 * SHUYU_VIDEO_POINTS_PER_GENERATION) {
-    throw new Error(
-      `Shuyu 余额不足：available=${balance.available_points}，本轮需 ${plannedPoints}（含重试余量）`,
-    );
-  }
-  console.log(
-    `Shuyu balance ok: ${balance.available_points} points, planned ${plannedPoints}`,
-  );
 
   const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
   const user = await db.adminUser.findFirst({
@@ -401,6 +555,40 @@ async function main(): Promise<void> {
     );
   }
 
+  /// 预算闸：按模板锁定时长 × 各臂实时单价逐条估算，过上限 / 余额预留线才花钱。
+  const durations = [...new Set(pending.map((run) => templateDurationSec(templateBySlug.get(run.entry.slug)!.lockedParams)))];
+  const pricingByDuration = new Map<number, Awaited<ReturnType<typeof priceArms>>>();
+  for (const duration of durations) pricingByDuration.set(duration, await priceArms(ARMS, duration));
+  const lines: SpendLine[] = pending.map((run) => {
+    const duration = templateDurationSec(templateBySlug.get(run.entry.slug)!.lockedParams);
+    const price = pricingByDuration.get(duration)!.get(run.arm.id)!;
+    return { armId: run.arm.id, count: 1, unitPoints: price.unitPoints, unitUsd: price.unitUsd };
+  });
+  const estimate = estimateSpend(lines);
+  const needsShuyu = estimate.totalPoints > 0;
+  const availablePoints = needsShuyu ? (await getShuyuBalance()).available_points : null;
+  const maxPoints = parsePositiveLimit(process.env.REAL_SAMPLES_MAX_POINTS);
+  const maxUsd = parsePositiveLimit(process.env.REAL_SAMPLES_MAX_USD);
+  const reservePoints =
+    parsePositiveLimit(process.env.REAL_SAMPLES_RESERVE_POINTS) ?? SHUYU_RESERVE_POINTS_DEFAULT;
+  report.budget = {
+    at: new Date().toISOString(),
+    estimate,
+    availablePoints,
+    maxPoints,
+    maxUsd,
+    reservePoints,
+  };
+  writeReport(report);
+  console.log(
+    `预估：${pending.length} 条，${estimate.totalPoints} 点${estimate.totalUsd ? ` / $${estimate.totalUsd}` : ""}；` +
+      `余额 ${availablePoints ?? "—"}，上限 ${maxPoints ?? "—"} 点，预留线 ${reservePoints}`,
+  );
+  const gate = checkBudgetGate({ estimate, maxPoints, maxUsd, availablePoints, reservePoints });
+  if (!gate.ok) throw new Error(`预算闸拒绝：\n  - ${gate.reasons.join("\n  - ")}`);
+
+  await ensureProductImages(report);
+
   const session = {
     user: {
       id: user.id,
@@ -418,44 +606,42 @@ async function main(): Promise<void> {
   /// 已 SUCCEEDED 的条目无论修订号一律保留——它们是已付费的有效样片。
   for (const item of report.items) {
     if (!item.batchId || item.status === "SUCCEEDED") continue;
-    if (item.idempotencyKey.includes(`:${BATCH_KEY_REV}`)) continue;
+    if (isCurrentRevKey(item.idempotencyKey)) continue;
     const cancelled = await cancelPendingBatchJobs(item.batchId);
-    console.log(`cancelled stale batch ${item.batchId} (${item.slug}): ${cancelled} jobs`);
+    console.log(`cancelled stale batch ${item.batchId} (${item.slug} @ ${item.armId}): ${cancelled} jobs`);
   }
   report.items = report.items.filter(
-    (item) =>
-      item.status === "SUCCEEDED" ||
-      item.idempotencyKey.includes(`:${BATCH_KEY_REV}`),
+    (item) => item.status === "SUCCEEDED" || isCurrentRevKey(item.idempotencyKey),
   );
   writeReport(report);
 
   /// 分波提交：一波建满立刻打到终态，再开下一波。
   /// timeoutAt 在批次创建时就定死，一次性全建会让队尾在拿到并发窗口前先过期。
-  const pendingEntries = plan.filter((entry) => !done.has(entry.slug));
-  const waves: Array<typeof pendingEntries> = [];
-  for (let i = 0; i < pendingEntries.length; i += WAVE_SIZE) {
-    waves.push(pendingEntries.slice(i, i + WAVE_SIZE));
+  const waves: Array<PendingRun[]> = [];
+  for (let i = 0; i < pending.length; i += WAVE_SIZE) {
+    waves.push(pending.slice(i, i + WAVE_SIZE));
   }
 
   for (const [waveIndex, wave] of waves.entries()) {
     console.log(
-      `wave ${waveIndex + 1}/${waves.length}: ${wave.map((w) => w.slug).join(", ")}`,
+      `wave ${waveIndex + 1}/${waves.length}: ${wave.map((w) => `${w.entry.slug}@${w.arm.id}`).join(", ")}`,
     );
     const waveItems: ReportItem[] = [];
-    for (const entry of wave) {
+    for (const { entry, arm } of wave) {
       const template = templateBySlug.get(entry.slug)!;
+      const durationSec = templateDurationSec(template.lockedParams);
       const assets = report.productAssets?.[entry.set] ?? [];
       if (assets.length === 0) throw new Error(`产品集 ${entry.set} 没有已注册的参考资产`);
-      /// 幂等键并入线路与（force 时的）模板版本：requestHash 含路由快照与
+      /// 幂等键并入线路臂与（force 时的）模板版本：requestHash 含路由快照、套餐与
       /// templateVersion，同键换任一个都会被判重放冲突。
-      const routeSuffix = SAMPLE_ROUTE === "volcengine_cn_legacy" ? ":vol" : "";
-      const idempotencyKey = FORCE_RERUN
-        ? `${RUN_KEY}:${entry.slug}:${BATCH_KEY_REV}${routeSuffix}:t${template.version}${
-            process.env.REAL_SAMPLES_RETRY_REV
-              ? `:r${process.env.REAL_SAMPLES_RETRY_REV}`
-              : ""
-          }`
-        : `${RUN_KEY}:${entry.slug}:${BATCH_KEY_REV}${routeSuffix}`;
+      const idempotencyKey = sampleIdempotencyKey({
+        runKey: RUN_KEY,
+        slug: entry.slug,
+        armId: arm.id,
+        force: FORCE_RERUN
+          ? { templateVersion: template.version, retryRev: process.env.REAL_SAMPLES_RETRY_REV }
+          : null,
+      });
       const batch = await createBatchJob({
         userId: user.id,
         templateId: template.id,
@@ -464,24 +650,42 @@ async function main(): Promise<void> {
         requestedCount: 1,
         productName: PRODUCT_SETS[entry.set].productName,
         idempotencyKey,
-        videoRouteId: SAMPLE_ROUTE,
+        videoRouteId: arm.routeId,
+        videoPlanId: arm.planId,
         isInternalStaff: true,
       });
       await authorizeBatchQuotaForSession(session, batch.id);
-      const priorIndex = report.items.findIndex((item) => item.slug === entry.slug);
+      const priorIndex = report.items.findIndex(
+        (item) => item.slug === entry.slug && item.armId === arm.id,
+      );
+      const prior = priorIndex >= 0 ? report.items[priorIndex] : undefined;
+      const sameBatch = prior?.batchId === batch.id;
+      const estimated = pricingByDuration.get(durationSec)?.get(arm.id);
       const item: ReportItem = {
-        ...(priorIndex >= 0 ? report.items[priorIndex] : {}),
+        ...(prior ?? {}),
         slug: entry.slug,
         set: entry.set,
+        armId: arm.id,
+        routeId: arm.routeId,
+        planId: arm.planId,
         idempotencyKey,
         templateId: template.id,
         templateVersion: template.version,
         templateNameZh: template.nameZh,
+        durationSec,
         batchId: batch.id,
         status: undefined,
         externalJobId: null,
         outputVideoUrl: null,
         error: null,
+        /// 新批次 = 新成片：时间戳与人工 QA 清空；幂等命中同一批次（续跑）则保留。
+        submittedAt: sameBatch ? prior?.submittedAt ?? null : null,
+        firstProcessingAt: sameBatch ? prior?.firstProcessingAt ?? null : null,
+        finishedAt: sameBatch ? prior?.finishedAt ?? null : null,
+        costPoints: estimated?.unitPoints ?? null,
+        costPointsSource: estimated?.unitPoints != null ? "estimate" : null,
+        costUsd: estimated?.unitUsd ?? null,
+        qa: sameBatch ? prior?.qa ?? emptyQa() : emptyQa(),
       };
       if (priorIndex >= 0) report.items[priorIndex] = item;
       else report.items.push(item);
@@ -489,6 +693,7 @@ async function main(): Promise<void> {
       writeReport(report);
     }
 
+    const usdPerPoint = parsePositiveLimit(process.env.REAL_SAMPLES_USD_PER_POINT);
     const waveDeadline = Date.now() + 30 * 60_000;
     for (;;) {
       let terminalCount = 0;
@@ -506,6 +711,33 @@ async function main(): Promise<void> {
         item.providerStatus = job?.lastProviderStatus;
         item.outputVideoUrl = job?.outputVideoUrl;
         item.error = job?.errorMessage ?? job?.userSafeError ?? null;
+        if (job?.id) {
+          /// 只读：时间戳与计价快照以库为准。
+          const facts = await db.videoJob.findUnique({
+            where: { id: job.id },
+            select: {
+              submittedAt: true,
+              finishedAt: true,
+              providerUnitPoints: true,
+              providerUnitPriceUsd: true,
+            },
+          });
+          Object.assign(
+            item,
+            advanceTiming(item, {
+              now: new Date(),
+              submittedAt: facts?.submittedAt ?? null,
+              finishedAt: facts?.finishedAt ?? null,
+              providerStatus: job.lastProviderStatus,
+            }),
+          );
+          if (facts?.providerUnitPoints != null) {
+            item.costPoints = facts.providerUnitPoints;
+            item.costPointsSource = "snapshot";
+            if (usdPerPoint !== null) item.costUsd = facts.providerUnitPoints * usdPerPoint;
+          }
+          if (facts?.providerUnitPriceUsd != null) item.costUsd = Number(facts.providerUnitPriceUsd);
+        }
         if (isTerminalBatchStatus(after.status)) terminalCount += 1;
       }
       writeReport(report);
@@ -539,7 +771,7 @@ async function main(): Promise<void> {
   mkdirSync(VIDEO_DIR, { recursive: true });
   for (const item of report.items) {
     if (!item.outputVideoUrl) continue;
-    const path = resolve(VIDEO_DIR, `${item.slug}.mp4`);
+    const path = resolve(VIDEO_DIR, sampleVideoFileName(item.slug, item.armId!));
     /// 强制重跑的 slug 永远以最新成片为准，旧文件直接覆盖。
     if (FORCE_RERUN && SLUG_FILTER?.has(item.slug) && existsSync(path)) {
       const response = await fetch(item.outputVideoUrl);
@@ -561,7 +793,7 @@ async function main(): Promise<void> {
   report.finishedAt = new Date().toISOString();
   writeReport(report);
   const ranItems = report.items.filter((item) =>
-    plan.some((entry) => entry.slug === item.slug),
+    plan.some((entry) => entry.slug === item.slug) && ARMS.some((arm) => arm.id === item.armId),
   );
   const failed = ranItems.filter((item) => item.status !== "SUCCEEDED");
   console.log(
@@ -569,7 +801,7 @@ async function main(): Promise<void> {
       {
         reportPath: REPORT_PATH,
         succeeded: ranItems.length - failed.length,
-        failed: failed.map((item) => ({ slug: item.slug, error: item.error })),
+        failed: failed.map((item) => ({ slug: item.slug, armId: item.armId, error: item.error })),
       },
       null,
       2,
@@ -580,7 +812,7 @@ async function main(): Promise<void> {
 
 void main()
   .catch((error) => {
-    console.error(error);
+    console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
   })
   .finally(async () => {

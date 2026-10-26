@@ -5,7 +5,7 @@
  * 不伪装浏览器）覆盖常规商品页；JS 渲染页与反爬站点（Amazon 等）直抓
  * 拿不到内容时，才走 Firecrawl 的托管渲染。青砚侧已有同款 key，可共享。
  *
- * 无 key 时诚实不可用（与 stock-footage / remove-bg / openai-tts 同一模式）。
+ * 无 key 时诚实不可用（与 stock-footage / remove-bg / tts 同一模式）。
  */
 
 import { markCapability } from "@/lib/services/capability-status-service";

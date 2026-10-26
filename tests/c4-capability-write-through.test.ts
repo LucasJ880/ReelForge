@@ -15,7 +15,7 @@ import {
   rowToCapabilityRecord,
   type CapabilityStore,
 } from "../src/lib/services/capability-status-service";
-import { synthesizeVoiceover } from "../src/lib/providers/openai-tts";
+import { getTtsProvider } from "../src/lib/providers/tts";
 import { searchStockClips } from "../src/lib/providers/stock-footage";
 import { chatJsonByTier, openai } from "../src/lib/providers/openai";
 
@@ -219,12 +219,12 @@ test("TTS：403 没有模型权限 → 配音暂停；成功合成 → 正常", 
   withEnv(t, { OPENAI_API_KEY: "sk-test-key" });
   const denied = (async () =>
     new Response(JSON.stringify({ error: { message: "Project proj_x does not have access to model tts-1" } }), { status: 403 })) as typeof fetch;
-  await assert.rejects(synthesizeVoiceover({ text: "你好", fetchImpl: denied }));
+  await assert.rejects(getTtsProvider({ fetchImpl: denied }).synthesize({ text: "你好", language: "zh" }));
   assert.equal(store.records.get("voice")?.status, "unavailable");
   assert.equal(store.records.get("voice")?.reason, "permission");
 
   const ok = (async () => new Response(new Uint8Array(2048), { status: 200 })) as typeof fetch;
-  const audio = await synthesizeVoiceover({ text: "你好", fetchImpl: ok });
+  const { audio } = await getTtsProvider({ fetchImpl: ok }).synthesize({ text: "你好", language: "zh" });
   assert.equal(audio.byteLength, 2048);
   assert.equal(store.records.get("voice")?.status, "available");
 });

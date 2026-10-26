@@ -7,11 +7,7 @@ import {
   segmentDurationSec,
 } from "../src/lib/services/broll-assembly-service";
 import { buildBrollComposeArgs } from "../src/lib/video-generation/broll-segment-compose";
-import {
-  OpenAiTtsError,
-  resolveTtsVoice,
-  synthesizeVoiceover,
-} from "../src/lib/providers/openai-tts";
+import { getTtsProvider, resolveTtsVoice, TtsError } from "../src/lib/providers/tts";
 import { postProductionPlanSchema } from "../src/lib/schemas/unified-input";
 
 /**
@@ -31,12 +27,13 @@ test("段时长：口播驱动，夹取到最短 2s 并留呼吸间隙", () => {
 });
 
 test("音色映射：产品音色 id → OpenAI voice，未识别一律 nova", () => {
-  assert.equal(resolveTtsVoice("warm-confident"), "nova");
-  assert.equal(resolveTtsVoice("natural-friendly"), "shimmer");
-  assert.equal(resolveTtsVoice("energetic-creator"), "alloy");
-  assert.equal(resolveTtsVoice("unknown-style"), "nova");
-  assert.equal(resolveTtsVoice(null), "nova");
-  assert.equal(resolveTtsVoice(undefined), "nova");
+  assert.equal(resolveTtsVoice("openai", "warm-confident"), "nova");
+  assert.equal(resolveTtsVoice("openai", "natural-friendly"), "shimmer");
+  assert.equal(resolveTtsVoice("openai", "energetic-creator"), "alloy");
+  assert.equal(resolveTtsVoice("openai", "calm-premium"), "onyx");
+  assert.equal(resolveTtsVoice("openai", "unknown-style"), "nova");
+  assert.equal(resolveTtsVoice("openai", null), "nova");
+  assert.equal(resolveTtsVoice("openai", undefined), "nova");
 });
 
 test("后期快照：通过契约校验，口播 enabled=false（TTS 已烘进段音轨，绝不二次覆盖）", () => {
@@ -74,19 +71,23 @@ function fakeTtsFetch(status: number, body: BufferSource | string): typeof fetch
     new Response(body as BodyInit, { status })) as unknown as typeof fetch;
 }
 
+function synthesizeWith(fetchImpl: typeof fetch) {
+  return getTtsProvider({ fetchImpl }).synthesize({ text: "你好", language: "zh" });
+}
+
 test("TTS 错误分类：429/5xx 可重试，4xx 不可重试，短音频判异常", async () => {
   await assert.rejects(
-    synthesizeVoiceover({ text: "你好", fetchImpl: fakeTtsFetch(429, "rate limited") }),
-    (err: unknown) => err instanceof OpenAiTtsError && err.retryable && err.status === 429,
+    synthesizeWith(fakeTtsFetch(429, "rate limited")),
+    (err: unknown) => err instanceof TtsError && err.retryable && err.status === 429,
   );
   await assert.rejects(
-    synthesizeVoiceover({ text: "你好", fetchImpl: fakeTtsFetch(400, "bad request") }),
-    (err: unknown) => err instanceof OpenAiTtsError && !err.retryable && err.status === 400,
+    synthesizeWith(fakeTtsFetch(400, "bad request")),
+    (err: unknown) => err instanceof TtsError && !err.retryable && err.status === 400,
   );
   /// 200 但音频小于 1KB：供应商异常返回，判可重试
   await assert.rejects(
-    synthesizeVoiceover({ text: "你好", fetchImpl: fakeTtsFetch(200, Buffer.alloc(64)) }),
-    (err: unknown) => err instanceof OpenAiTtsError && err.retryable,
+    synthesizeWith(fakeTtsFetch(200, Buffer.alloc(64))),
+    (err: unknown) => err instanceof TtsError && err.retryable,
   );
 });
 
@@ -126,10 +127,11 @@ test("提交层时长估算：中文 4.5 字/秒，段下限 2s", () => {
 
 test("TTS 正常路径：返回音频 Buffer", async () => {
   const audio = Buffer.alloc(4096, 1);
-  const result = await synthesizeVoiceover({
+  const result = await getTtsProvider({ fetchImpl: fakeTtsFetch(200, audio) }).synthesize({
     text: "让每一扇窗都刚刚好",
     voiceId: "warm-confident",
-    fetchImpl: fakeTtsFetch(200, audio),
+    language: "zh",
   });
-  assert.equal(result.byteLength, 4096);
+  assert.equal(result.audio.byteLength, 4096);
+  assert.equal(result.mime, "audio/mpeg");
 });

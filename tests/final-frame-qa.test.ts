@@ -407,11 +407,11 @@ test("默认 claim / saveClaimed：事务里重读，凭证不符或成片已换
     );
 
   /// 认领：事务里重读 pending → checking，带认领时刻；落库带成片 URL 守卫
-  let claimedMark: FinalFrameQaMark | null = null;
-  const ok = await run(() => { claimedMark = readFinalFrameQaMark(store.get().aiScoreBreakdown); });
+  const claimed: { mark: FinalFrameQaMark | null } = { mark: null };
+  const ok = await run(() => { claimed.mark = readFinalFrameQaMark(store.get().aiScoreBreakdown); });
   assert.equal(ok.checked, 1);
-  assert.equal(claimedMark?.status, "checking");
-  assert.equal(claimedMark?.checkingAtMs, NOW.getTime());
+  assert.equal(claimed.mark?.status, "checking");
+  assert.equal(claimed.mark?.checkingAtMs, NOW.getTime());
   assert.equal(store.writes.length, 2, "认领一次、写回一次");
   assert.ok(store.writes.every((write) => write.where.AND.some((entry) => "videoBrief" in entry)), "每次落库都在同一条 UPDATE 里复核成片 URL");
   const saved = store.get();
@@ -438,7 +438,7 @@ test("默认 claim / saveClaimed：事务里重读，凭证不符或成片已换
   /// 成片已换（只重拼成功后重新挂 pending）→ 不写结论
   store.set(base);
   const swapped = await run(() => {
-    store.set({ ...store.get(), videoBrief: { ...base.videoBrief, finalVideo: { stitchedVideoUrl: "https://abc.public.blob.vercel-storage.com/new.mp4" } } });
+    store.set({ ...store.get(), videoBrief: { ...base.videoBrief!, finalVideo: { stitchedVideoUrl: "https://abc.public.blob.vercel-storage.com/new.mp4" } } });
   });
   assert.equal(swapped.deferred, 1);
   assert.equal(readFinalFrameQaMark(store.get().aiScoreBreakdown)?.status, "checking", "旧片结论没写进新片的行");

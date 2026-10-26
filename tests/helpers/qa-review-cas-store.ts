@@ -3,14 +3,14 @@ import type { TestContext } from "node:test";
 import { Prisma } from "@prisma/client";
 import { db } from "../../src/lib/db";
 
-type Row = { id: string; aiScoreBreakdown: unknown; aiIssues: unknown; [key: string]: unknown };
+type Row = { id: string; aiScoreBreakdown: unknown; aiIssues: unknown };
 type Write = { where: { AND: Array<Record<string, unknown>> }; data: Record<string, unknown> };
 
 /** In-memory database boundary: model the JSON CAS, not just unconditional success. */
-export function mockQaReviewCasStore(t: TestContext, initial: Row) {
+export function mockQaReviewCasStore<T extends Row>(t: TestContext, initial: T) {
   let state = structuredClone(initial);
   const writes: Write[] = [];
-  let beforeWrite: ((row: Row, write: Write) => void) | null = null;
+  let beforeWrite: ((row: T, write: Write) => void) | null = null;
   const model = {
     findUnique: async () => structuredClone(state),
     updateMany: async (write: Write) => {
@@ -31,7 +31,7 @@ export function mockQaReviewCasStore(t: TestContext, initial: Row) {
   return {
     writes,
     get: () => structuredClone(state),
-    set: (next: Row) => { state = structuredClone(next); },
-    beforeWrite: (hook: ((row: Row, write: Write) => void) | null) => { beforeWrite = hook; },
+    set: (next: T) => { state = structuredClone(next); },
+    beforeWrite: (hook: ((row: T, write: Write) => void) | null) => { beforeWrite = hook; },
   };
 }

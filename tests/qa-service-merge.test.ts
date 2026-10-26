@@ -80,7 +80,7 @@ test("runAIQA 更新既有 PENDING 行：8 维打分整块替换，finalFrameQa 
       videoJobs: [],
     }),
   });
-  const existing = {
+  const existing: { id: string; aiScoreBreakdown: unknown; aiIssues: unknown } = {
     id: "qa-1",
     aiScoreBreakdown: { hook_quality: 3, finalFrameQa: { status: "pending", requestedAt: "2026-10-26T12:00:00.000Z" } },
     aiIssues: [RECHECK_ISSUE, "上一轮 AI 的旧问题"],
@@ -102,7 +102,7 @@ test("runAIQA 更新既有 PENDING 行：8 维打分整块替换，finalFrameQa 
 
   const saved = await runAIQA("brief-1");
   assert.equal(store.writes.length, 2, "第一次 CAS 冲突，第二次落库");
-  const data = store.get();
+  const data = store.get() as typeof existing & { aiOverallScore?: unknown };
   const breakdown = data.aiScoreBreakdown as Record<string, unknown>;
   assert.deepEqual(breakdown.finalFrameQa, recheck, "成片复检标记不被覆盖");
   assert.equal(breakdown.hook_quality, 7, "自己的打分整块替换");

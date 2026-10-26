@@ -13,6 +13,7 @@ import {
   ShuyuApiError,
   type AuditedShuyuVideoPlan,
   type ShuyuFetchOptions,
+  type ShuyuVideoPlanTier,
 } from "@/lib/providers/shuyu";
 import { ProviderSubmissionError } from "./submission-error";
 import type {
@@ -23,6 +24,27 @@ import type {
   VideoProvider,
 } from "./types";
 import { getShuyuRouteRuntimeAvailability } from "../shuyu-runtime";
+
+/**
+ * 本次任务**诉求**的套餐档(P03-A1):缺省 draft(720P/480P,默认 = 最便宜的 720P)。
+ *
+ * 诉求 ≠ 授权。`qualityTier === "final"` 只表达「这次想要 1080P」,**不**推出「准许 1080P」:
+ * 授权来自 resolveShuyuVideoPlan 的 allowFinal 闸门(服务端 env SHUYU_ALLOW_FINAL_TIER,
+ * 生产忽略;或调用链显式 allowFinal:true)。适配器一律不传 allowFinal(交给闸门),
+ * P03-D0 要在 CreateVideoJobOptions 里引入**独立的授权标记**(例如 allowFinalTier,
+ * 由 isInternalStaff 推出)再接到这里;qualityTier 本身也等 P03-D0 正式进 types.ts,
+ * 在那之前按结构读取,不改 providers/types.ts。
+ *
+ * **不能**从 `options.resolution === "1080p"` 推断:模板锁参(generic/sunnyshutter
+ * commerce template)与 video-service 今天一律传 "1080p"(成片拉伸口径),按它推断
+ * 会把全部客户任务静默切到 1080P 档计费,直接违反「默认档必须仍是最便宜的 720P」。
+ */
+function requestedShuyuVideoPlanTier(
+  options: CreateVideoJobOptions,
+): ShuyuVideoPlanTier {
+  const value = (options as { qualityTier?: unknown }).qualityTier;
+  return value === "final" ? "final" : "draft";
+}
 
 export class ShuyuVideoProvider implements VideoProvider {
   readonly id = "shuyu" as const;
@@ -122,15 +144,19 @@ export class ShuyuVideoProvider implements VideoProvider {
       );
     }
 
-    /// 套餐从 /prices 动态解析:默认取审计清单首位(最便宜的 720P,跳过
-    /// 提交被拒后处于冷却中的套餐);调用方显式指定的套餐必须在审计清单内,
-    /// 否则 fail-closed,且显式选择绝不静默替换。
+    /// 套餐从 /prices 动态解析:默认取所在档审计清单首位(draft 档 = 最便宜的 720P,
+    /// 跳过提交被拒后处于冷却中的套餐);调用方显式指定的套餐必须在审计清单内,
+    /// 否则 fail-closed,且显式选择绝不静默替换。final 档(1080P)的授权只来自闸门
+    /// (服务端 env SHUYU_ALLOW_FINAL_TIER,生产忽略;P03-D0 再接独立授权标记)——
+    /// 适配器不传 allowFinal,也不从 qualityTier 诉求推出授权;默认解析仍在 draft 档内。
+    const requestedTier = requestedShuyuVideoPlanTier(options);
     const explicitPlanId = options.providerPlanId?.trim() || null;
     let plan: AuditedShuyuVideoPlan;
     try {
       plan = await resolveShuyuVideoPlanWithCooldown({
         ...this.options,
         planId: explicitPlanId,
+        tier: requestedTier,
       });
     } catch (error) {
       throw new ProviderSubmissionError(
@@ -144,6 +170,13 @@ export class ShuyuVideoProvider implements VideoProvider {
             error instanceof ShuyuApiError && error.code !== "not_found",
           cause: error,
         },
+      );
+    }
+    /// 诉求 final 却解析出 draft(显式 planId 指向 720P/480P):如实拒绝,不静默降档出片。
+    if (requestedTier === "final" && plan.tier !== "final") {
+      throw new ProviderSubmissionError(
+        `Shuyu plan ${plan.planId} is ${plan.tier} tier but a final-tier (1080P) video was requested`,
+        { providerId: this.id, stage: "preflight", retryable: false },
       );
     }
     const availability = await getShuyuRouteRuntimeAvailability({
@@ -184,7 +217,8 @@ export class ShuyuVideoProvider implements VideoProvider {
     /// 历史原始成片证明代理在省略开关时仍可返回自带音轨的视频。
     /// 提交级套餐降级:/prices 说 available 的套餐仍可能在提交时被
     /// 「video option is unavailable」拒绝(0804 真机:限时特价档大面积拒单)。
-    /// 默认套餐被拒 → 冷却该套餐并按顺位换下一档重试(至多 3 档);
+    /// 默认套餐被拒 → 冷却该套餐并按顺位换**同档**下一个套餐重试(至多 3 个);
+    /// draft 档全被拒也不跳到 final(1080P)去扣费。
     /// 显式选择的套餐被拒 → 如实失败,不做静默替换。
     const attemptedPlanIds: string[] = [];
     for (;;) {
@@ -224,8 +258,10 @@ export class ShuyuVideoProvider implements VideoProvider {
         attemptedPlanIds.push(plan.planId);
         if (attemptedPlanIds.length >= 3) throw error;
         const plans = await resolveShuyuVideoPlans(this.options);
+        const rejectedPlan = plan;
         const next = plans.find(
           (candidate) =>
+            candidate.tier === rejectedPlan.tier &&
             !attemptedPlanIds.includes(candidate.planId) &&
             !isShuyuVideoPlanCoolingDown(candidate.planId),
         );
@@ -233,6 +269,7 @@ export class ShuyuVideoProvider implements VideoProvider {
         console.warn("[shuyu] plan rejected at submit; falling back", {
           from: plan.planId,
           to: next.planId,
+          tier: next.tier,
         });
         plan = next;
       }

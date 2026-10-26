@@ -24,7 +24,8 @@
  *   npm run e2e:brand-logo -- --phase=hero       # 只重渲英雄镜头（免费，可反复调）
  *   npm run e2e:brand-logo -- --redo-imprint     # 印得不满意，重抽一张
  *   npm run e2e:brand-logo -- --source-asset=<mediaAssetId>  # 指定源图
- *   npm run e2e:brand-logo -- --allow-480p       # Shuyu 只剩 480P 时仍放行（默认拒）
+ *   npm run e2e:brand-logo -- --allow-480p       # Shuyu draft 档只剩 480P 时仍放行（默认拒）
+ *   npm run e2e:brand-logo -- --final-1080p      # 用 final 档（1080P，240 点/秒）出片；默认只在 draft 档内降级
  */
 import { loadEnvConfig } from "@next/env";
 import { execFile } from "node:child_process";
@@ -398,11 +399,14 @@ async function stageImprint(state: State, options: { redo: boolean; sourceAssetI
 
 // ---------------------------------------------------------------- 阶段 2
 
-async function stageVideo(state: State, options: { allow480p: boolean }) {
+async function stageVideo(
+  state: State,
+  options: { allow480p: boolean; final1080p: boolean },
+) {
   if (!state.sourceAsset) throw new Error("请先完成阶段 1（imprint，或至少解析出源图）");
   /// 生产视频线路 = Shuyu（转售 seedance 模型），BytePlus 直连凭证已废弃
   /// （2026-08-04 真机验证 401）。提交/轮询范式照抄 sunnyshutter-shade-pipeline。
-  const { createShuyuVideoTask, resolveShuyuVideoPlans } = await import(
+  const { createShuyuVideoTask, resolveShuyuVideoPlan, resolveShuyuVideoPlans } = await import(
     "@/lib/providers/shuyu"
   );
   const { pollShuyuTaskUntilDone } = await import(
@@ -410,17 +414,36 @@ async function stageVideo(state: State, options: { allow480p: boolean }) {
   );
 
   if (!state.video?.externalJobId) {
-    /// 套餐 ID 会轮换（f99f8b3 教训），一律按实时目录解析已审计套餐，
-    /// 逐个降级提交；720P 优先（Shuyu 目录上限就是 720P）。
+    /// 套餐 ID 会轮换（f99f8b3 教训），一律按实时目录解析已审计套餐，逐个降级提交。
+    /// 清单已按 RANK（720P → 480P → 1080P）与 15s 成本排好，不再自己 sort。
+    /// P03-A1：默认只在 draft 档（720P/480P）内降级，绝不滑到 1080P（final，240 点/秒）去扣费；
+    /// 要 1080P 必须显式 --final-1080p，走进程内显式授权（不依赖 SHUYU_ALLOW_FINAL_TIER）。
     const refunded = new Set(state.refundedPlanIds ?? []);
-    const plans = (await resolveShuyuVideoPlans({ timeoutMs: 20_000 }))
-      .filter((plan) => plan.inputImagesMax >= 1 && !refunded.has(plan.planId))
-      .sort((a, b) => (a.resolution === b.resolution ? 0 : a.resolution === "720P" ? -1 : 1));
-    if (plans.length === 0) throw new Error("Shuyu 无可用已审计视频套餐（或全部已被退款拉黑）");
-    if (plans[0].resolution !== "720P" && !options.allow480p) {
-      throw new Error(
-        "Shuyu 目录当前最高只剩 480P —— 交付级成片默认拒绝（--allow-480p 可强行放行）",
+    const usable = (plan: { inputImagesMax: number; planId: string }) =>
+      plan.inputImagesMax >= 1 && !refunded.has(plan.planId);
+    let plans: Awaited<ReturnType<typeof resolveShuyuVideoPlans>>;
+    if (options.final1080p) {
+      const finalPlan = await resolveShuyuVideoPlan({
+        tier: "final",
+        allowFinal: true,
+        timeoutMs: 20_000,
+      });
+      plans = [finalPlan].filter(usable);
+      if (plans.length === 0) {
+        throw new Error("Shuyu 1080P（final 档）套餐已被退款拉黑或不收参考图");
+      }
+    } else {
+      plans = (await resolveShuyuVideoPlans({ timeoutMs: 20_000 })).filter(
+        (plan) => plan.tier === "draft" && usable(plan),
       );
+      if (plans.length === 0) {
+        throw new Error("Shuyu 无可用已审计 draft 档视频套餐（或全部已被退款拉黑）");
+      }
+      if (plans[0].resolution !== "720P" && !options.allow480p) {
+        throw new Error(
+          "Shuyu draft 档当前只剩 480P —— 交付级成片默认拒绝（--allow-480p 可强行放行；要 1080P 用 --final-1080p）",
+        );
+      }
     }
 
     const prompt = buildVideoPrompt();
@@ -696,6 +719,7 @@ async function main() {
   const phaseArg = args.find((a) => a.startsWith("--phase="))?.slice("--phase=".length) ?? "all";
   const redo = args.includes("--redo-imprint");
   const allow480p = args.includes("--allow-480p");
+  const final1080p = args.includes("--final-1080p");
   const sourceAssetId = args.find((a) => a.startsWith("--source-asset="))?.slice("--source-asset=".length);
 
   const state = readState();
@@ -704,7 +728,7 @@ async function main() {
   if (phaseArg === "all" || phaseArg === "imprint") {
     await stageImprint(state, { redo, sourceAssetId });
   }
-  if (phaseArg === "all" || phaseArg === "video") await stageVideo(state, { allow480p });
+  if (phaseArg === "all" || phaseArg === "video") await stageVideo(state, { allow480p, final1080p });
   if (phaseArg === "all" || phaseArg === "hero") await stageHero(state);
   if (phaseArg === "all" || phaseArg === "package") await stagePackage(state);
   if (phaseArg === "all" || phaseArg === "verify") await stageVerify(state);

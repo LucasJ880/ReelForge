@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  SHUYU_VIDEO_PLAN_LIST_MAX,
+  shuyuVideoPlanSalePointsWithinBounds,
+} from "@/lib/providers/shuyu-video-plan-tiers";
 
 export const shuyuRouteUnavailableReasons = [
   "not_configured",
@@ -12,17 +16,28 @@ export const shuyuRouteUnavailableReasons = [
 ] as const;
 
 /// 0803 起套餐 ID/单价随 /prices 轮换,契约只锁语义边界(与 auditShuyuVideoPlan
-/// 一致):studio-video 家族、按条或按秒计费、720P/480P、价格在健全区间。
+/// 一致):studio-video 家族、按条或按秒计费、720P/480P/1080P、价格在健全区间。
+/// 1026(P03-A1)起 1080P 入审计族(final 档);单价区间按 resolution × unit 调审计同一张表
+/// (shuyuVideoPlanSalePointsWithinBounds),不再写一个与审计脱节的上限常量。
 export const shuyuVideoPlanSchema = z
   .object({
     planId: z.string().min(1).max(200),
     kind: z.literal("video"),
     model: z.literal("studio-video"),
     unit: z.enum(["generation", "second"]),
-    resolution: z.enum(["720P", "480P"]),
-    salePoints: z.number().int().positive().max(2_000),
+    resolution: z.enum(["720P", "480P", "1080P"]),
+    salePoints: z.number().int().positive(),
   })
-  .strict();
+  .strict()
+  .superRefine((plan, context) => {
+    if (!shuyuVideoPlanSalePointsWithinBounds(plan.resolution, plan.unit, plan.salePoints)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["salePoints"],
+        message: `salePoints ${plan.salePoints}/${plan.unit} is outside the audited range for ${plan.resolution}`,
+      });
+    }
+  });
 
 export const shuyuApiContractSchema = z
   .object({
@@ -63,7 +78,9 @@ export const shuyuVideoProviderRouteSchema = z
     configured: z.boolean(),
     funded: z.boolean(),
     unavailableReason: z.enum(shuyuRouteUnavailableReasons).nullable(),
-    plans: z.array(shuyuVideoPlanSchema).max(1),
+    /// 0803 起是实时审计清单(多档);此前 max(1) 是单套餐时代的遗留,多档时内部发现 API 会 500。
+    /// 输出方(buddy-route-discovery)按同一个常量截断,这里只兜底。
+    plans: z.array(shuyuVideoPlanSchema).max(SHUYU_VIDEO_PLAN_LIST_MAX),
     contract: shuyuApiContractSchema,
   })
   .strict();

@@ -4,9 +4,32 @@ import { ProviderSubmissionError } from "@/lib/video-generation/providers/submis
 import {
   parseShuyuCatalog,
   selectAuditedImage2Plan,
+  ShuyuPlanUnavailableError,
   type AuditedShuyuImagePlan,
   type ShuyuAspectRatio,
 } from "./shuyu-catalog";
+import {
+  SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuVideoPlanPointBounds,
+  shuyuVideoPlanResolution,
+  shuyuVideoPlanTier,
+  type ShuyuVideoPlanResolution,
+  type ShuyuVideoPlanTier,
+} from "./shuyu-video-plan-tiers";
+
+/// 分档的纯定义住在 shuyu-video-plan-tiers.ts(契约与 'use client' 选择器也要用,
+/// 不能反向依赖本文件);这里 re-export,调用方照旧从 @/lib/providers/shuyu 导入。
+export {
+  SHUYU_VIDEO_PLAN_LIST_MAX,
+  SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuVideoPlanPointBounds,
+  shuyuVideoPlanResolution,
+  shuyuVideoPlanSalePointsWithinBounds,
+  shuyuVideoPlanTier,
+  type ShuyuVideoPlanBillingUnit,
+  type ShuyuVideoPlanResolution,
+  type ShuyuVideoPlanTier,
+} from "./shuyu-video-plan-tiers";
 
 export const SHUYU_API_BASE_URL =
   "https://shuyu-tiktok-tool.pages.dev/api/v1" as const;
@@ -263,16 +286,24 @@ export function shuyuApiKey(
  * (900 分/条)从 /prices 下架,出现 700 分/条限时档与 88/104 分/秒新档,
  * 钉死 ID 的审计把一次正常调价误判成了整条线路停机。
  *
- * 新审计只锁**语义边界**:studio-video 家族、720P/480P、9:16 等全画幅、
+ * 新审计只锁**语义边界**:studio-video 家族、720P/480P/1080P、9:16 等全画幅、
  * image2video+text2video、支持 15s、参考图 ≥SHUYU_MIN_REFERENCE_IMAGES、单价落在健全区间。
  * 实际扣分仍以 /prices 实时价为准并写入任务计价快照——不存在
  * 「按旧价预估、按新价扣分」的静默漂移,价格越界会直接审计不过。
+ *
+ * 2026-10-26(P03-A1)起套餐分两档:
+ * - draft(720P/480P):默认档与客户可选档;默认永远是最便宜的 720P。
+ * - final(1080P):审计放行、员工/实验标记可选;对客户不可见、不可选
+ *   (1080P 客户定价未定)。排序在 draft 之后,冷却跳档不跨档。可用性判断
+ *   (runtime / discovery / 探针)只看 draft 档:价目表只剩 1080P = 默认线路停机。
  */
 export interface AuditedShuyuVideoPlan {
   planId: string;
   model: typeof SHUYU_VIDEO_MODEL;
   displayName: string;
-  resolution: "480P" | "720P";
+  resolution: ShuyuVideoPlanResolution;
+  /** 1080P = final,720P/480P = draft;由 resolution 唯一决定。 */
+  tier: ShuyuVideoPlanTier;
   billingUnit: "generation" | "second";
   /** /prices 实时销售价(按 billingUnit 计)。 */
   unitSalePoints: number;
@@ -302,11 +333,6 @@ export function shuyuReferenceImageLimit(
   );
 }
 
-const VIDEO_PLAN_POINT_SANITY = {
-  generation: { min: 100, max: 2_000 },
-  second: { min: 10, max: 300 },
-} as const;
-
 export function auditShuyuVideoPlan(
   plan: z.infer<typeof shuyuPriceSchema>,
 ): AuditedShuyuVideoPlan | null {
@@ -314,10 +340,7 @@ export function auditShuyuVideoPlan(
   if (plan.model !== SHUYU_VIDEO_MODEL) return null;
   if (plan.status !== "available") return null;
   if (plan.unit !== "generation" && plan.unit !== "second") return null;
-  const resolution =
-    plan.resolution === "720P" || plan.resolution === "480P"
-      ? plan.resolution
-      : null;
+  const resolution = shuyuVideoPlanResolution(plan.resolution);
   if (!resolution) return null;
   if (
     plan.capabilities.quality !== undefined &&
@@ -325,7 +348,7 @@ export function auditShuyuVideoPlan(
   ) {
     return null;
   }
-  const bounds = VIDEO_PLAN_POINT_SANITY[plan.unit];
+  const bounds = shuyuVideoPlanPointBounds(resolution, plan.unit);
   if (plan.sale_points < bounds.min || plan.sale_points > bounds.max) {
     return null;
   }
@@ -349,6 +372,7 @@ export function auditShuyuVideoPlan(
     model: SHUYU_VIDEO_MODEL,
     displayName: plan.display_name,
     resolution,
+    tier: shuyuVideoPlanTier(resolution),
     billingUnit: plan.unit,
     unitSalePoints: plan.sale_points,
     inputImagesMax: plan.capabilities.input_images_max,
@@ -361,6 +385,13 @@ export function isAuditedShuyuVideoPlan(
   return auditShuyuVideoPlan(plan) !== null;
 }
 
+/** 审计通过且在默认档(draft)内——可用性探针的判据,final 档不算「线路可用」。 */
+export function isAuditedShuyuDraftVideoPlan(
+  plan: z.infer<typeof shuyuPriceSchema>,
+): boolean {
+  return auditShuyuVideoPlan(plan)?.tier === "draft";
+}
+
 /** 一条成片在该套餐下的实际积分成本(按条计费返回单价,按秒计费乘时长)。 */
 export function shuyuVideoPlanPointsForDuration(
   plan: AuditedShuyuVideoPlan,
@@ -371,10 +402,13 @@ export function shuyuVideoPlanPointsForDuration(
 }
 
 /**
- * 审计通过的套餐排序:720P 优先(模板质量底线),同分辨率按 15s 有效成本
- * 升序,并列时按条计费优先(总价确定、无时长歧义),最后按 plan_id 稳定排序。
- * 列表第一个即默认套餐。
+ * 审计通过的套餐排序:分辨率按 RANK(720P → 480P → 1080P),同分辨率按 15s
+ * 有效成本升序,并列时按条计费优先(总价确定、无时长歧义),最后按 plan_id 稳定排序。
+ * 列表第一个即默认套餐——始终是最便宜的 720P(draft 档);final 档(1080P)
+ * 永远排在全部 draft 档之后,所以六处 `resolveShuyuVideoPlan()` 默认成本不变。
  */
+const RESOLUTION_RANK = SHUYU_VIDEO_PLAN_RESOLUTION_RANK;
+
 export function listAuditedShuyuVideoPlans(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
 ): AuditedShuyuVideoPlan[] {
@@ -383,7 +417,7 @@ export function listAuditedShuyuVideoPlans(
     .filter((plan): plan is AuditedShuyuVideoPlan => plan !== null)
     .sort((left, right) => {
       if (left.resolution !== right.resolution) {
-        return left.resolution === "720P" ? -1 : 1;
+        return RESOLUTION_RANK[left.resolution] - RESOLUTION_RANK[right.resolution];
       }
       const leftCost = shuyuVideoPlanPointsForDuration(left, 15);
       const rightCost = shuyuVideoPlanPointsForDuration(right, 15);
@@ -395,13 +429,25 @@ export function listAuditedShuyuVideoPlans(
     });
 }
 
-/** Locate the default audited video plan among a multi-plan price list. */
+/**
+ * 默认档套餐 = 已排序清单里第一个 draft(最便宜的 720P)。价目表只剩 final(1080P)
+ * 时返回 undefined——runtime / discovery / 探针 / routes API 的可用性与默认档都看它,
+ * 这样「只剩 1080P」与 0803/0804 的整体轮换一样是 price_contract_mismatch(fail-closed),
+ * 而不是报可用却在默认解析时抛「draft tier 无套餐」、批量在没有成本快照下建出来。
+ */
+export function defaultAuditedShuyuVideoPlan(
+  ranked: ReadonlyArray<AuditedShuyuVideoPlan>,
+): AuditedShuyuVideoPlan | undefined {
+  return ranked.find((plan) => plan.tier === "draft");
+}
+
+/** Locate the default (draft-tier) audited video plan among a multi-plan price list. */
 export function findAuditedShuyuVideoPlan(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
 ): z.infer<typeof shuyuPriceSchema> | undefined {
-  const ranked = listAuditedShuyuVideoPlans(plans);
-  if (ranked.length === 0) return undefined;
-  return plans.find((plan) => plan.plan_id === ranked[0].planId);
+  const fallback = defaultAuditedShuyuVideoPlan(listAuditedShuyuVideoPlans(plans));
+  if (!fallback) return undefined;
+  return plans.find((plan) => plan.plan_id === fallback.planId);
 }
 
 const VIDEO_PLAN_CACHE_TTL_MS = 60_000;
@@ -438,20 +484,102 @@ export async function resolveShuyuVideoPlans(
   return videoPlanInflight;
 }
 
-/** 解析指定/默认视频套餐;指定 ID 不在审计清单内一律拒绝(fail-closed)。 */
-export async function resolveShuyuVideoPlan(
-  args: { planId?: string | null } & ShuyuFetchOptions = {},
-): Promise<AuditedShuyuVideoPlan> {
+/**
+ * 选档参数(P03-A1)。
+ *
+ * - 缺省只在 draft 档(720P/480P)内取默认与冷却跳档,`plans[0]` 仍是最便宜的 720P,
+ *   六处 `resolveShuyuVideoPlan()` 默认成本调用点无感。
+ * - final 档(1080P)客户定价未定:显式 planId 命中 final、或 tier="final",都要过
+ *   allowFinal 闸门(显式 true,或服务端 env SHUYU_ALLOW_FINAL_TIER=1),否则抛
+ *   ShuyuPlanUnavailableError(fail-closed)。客户面调用链(batch-service / dispatch)
+ *   不传 allowFinal,生产不设该 env → 客户显式传 final planId 被拒。
+ */
+export interface ResolveShuyuVideoPlanArgs extends ShuyuFetchOptions {
+  /** 显式套餐 ID;不在审计清单内一律拒绝(fail-closed)。 */
+  planId?: string | null;
+  /** 默认解析与冷却跳档所在的档;缺省 draft。显式 planId 时以套餐自身 tier 为准。 */
+  tier?: ShuyuVideoPlanTier;
+  /**
+   * final 档闸门,三值:
+   * - true:开(内部员工 / 实验标记的调用链显式传)。
+   * - false:硬关,忽略 env(客户面调用链接到 isInternalStaff 后应显式传它,见 P03-D0)。
+   * - 缺省:看服务端 env SHUYU_ALLOW_FINAL_TIER(真机验收脚本 / 内部员工用;默认关)。
+   */
+  allowFinal?: boolean;
+}
+
+/**
+ * final 档的服务端 env 开闸:`SHUYU_ALLOW_FINAL_TIER=1|true`,默认关,只在服务端读取
+ * (浏览器端永远 false)。它只影响「显式选 final」——显式 final planId 或 tier="final";
+ * 默认解析仍在 draft 档内,六处默认成本调用点不变。
+ *
+ * **生产(VERCEL_ENV=production)一律忽略该 env**:batch-service 的客户显式套餐路径尚未按
+ * isInternalStaff 传 allowFinal:false 硬关(P03-D0 接上后再放开),若生产读了这个开关,任何
+ * 登录用户经 /api/batches 显式传 1080P planId 都会被放行并按 3600 点/段计费。本地验收脚本
+ * (VERCEL_ENV 未设)不受影响;显式 allowFinal:true 在任何环境都有效。
+ * routes API 的客户面过滤按角色,不受此 env 影响。
+ */
+export const SHUYU_ALLOW_FINAL_TIER_ENV = "SHUYU_ALLOW_FINAL_TIER" as const;
+
+export function shuyuFinalTierAllowedByEnv(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): boolean {
+  if (typeof window !== "undefined") return false;
+  if (env.VERCEL_ENV === "production") return false;
+  const raw = env[SHUYU_ALLOW_FINAL_TIER_ENV]?.trim().toLowerCase();
+  return raw === "1" || raw === "true";
+}
+
+function noAuditedVideoPlanError(tier?: ShuyuVideoPlanTier): ShuyuApiError {
+  return new ShuyuApiError(
+    tier
+      ? `No audited Shuyu video plan is currently available in the ${tier} tier`
+      : "No audited Shuyu video plan is currently available",
+    "not_found",
+    200,
+  );
+}
+
+function assertShuyuFinalTierAllowed(
+  tier: ShuyuVideoPlanTier,
+  args: Pick<ResolveShuyuVideoPlanArgs, "allowFinal" | "env">,
+  planId?: string,
+): void {
+  if (tier !== "final") return;
+  /// 三值:true 开;false 硬关(忽略 env);缺省看服务端 env。
+  const allowed = args.allowFinal ?? shuyuFinalTierAllowedByEnv(args.env);
+  if (allowed) return;
+  throw new ShuyuPlanUnavailableError(
+    planId
+      ? `Shuyu video plan ${planId} is a final-tier (1080P) plan and is not selectable here`
+      : "Shuyu final-tier (1080P) video plans are not selectable here",
+  );
+}
+
+/** 该档内审计通过的套餐(保持总排序:最便宜的在前)。 */
+async function resolveShuyuVideoPlanPool(
+  args: ResolveShuyuVideoPlanArgs,
+): Promise<AuditedShuyuVideoPlan[]> {
   const plans = await resolveShuyuVideoPlans(args);
-  if (plans.length === 0) {
-    throw new ShuyuApiError(
-      "No audited Shuyu video plan is currently available",
-      "not_found",
-      200,
-    );
-  }
+  if (plans.length === 0) throw noAuditedVideoPlanError();
+  const tier = args.tier ?? "draft";
+  assertShuyuFinalTierAllowed(tier, args);
+  const pool = plans.filter((plan) => plan.tier === tier);
+  if (pool.length === 0) throw noAuditedVideoPlanError(tier);
+  return pool;
+}
+
+/**
+ * 解析指定/默认视频套餐;指定 ID 不在审计清单内一律拒绝(fail-closed),
+ * 命中 final 档且未 allowFinal 同样拒绝。缺省返回 draft 档首位(最便宜的 720P)。
+ */
+export async function resolveShuyuVideoPlan(
+  args: ResolveShuyuVideoPlanArgs = {},
+): Promise<AuditedShuyuVideoPlan> {
   const requested = args.planId?.trim();
-  if (!requested) return plans[0];
+  if (!requested) return (await resolveShuyuVideoPlanPool(args))[0];
+  const plans = await resolveShuyuVideoPlans(args);
+  if (plans.length === 0) throw noAuditedVideoPlanError();
   const match = plans.find((plan) => plan.planId === requested);
   if (!match) {
     throw new ShuyuApiError(
@@ -460,6 +588,7 @@ export async function resolveShuyuVideoPlan(
       200,
     );
   }
+  assertShuyuFinalTierAllowed(match.tier, args, match.planId);
   return match;
 }
 
@@ -486,21 +615,17 @@ export function isShuyuVideoPlanCoolingDown(planId: string): boolean {
   return true;
 }
 
-/** 默认解析顺位中跳过冷却套餐;全部在冷却时回退到完整清单(总比直接拒好)。 */
+/**
+ * 默认解析顺位中跳过冷却套餐;全部在冷却时回退到该档完整清单(总比直接拒好)。
+ * 跳档只在同一 tier 内:draft 档全冷却也不会跳到 final(1080P)去扣费。
+ */
 export async function resolveShuyuVideoPlanWithCooldown(
-  args: { planId?: string | null } & ShuyuFetchOptions = {},
+  args: ResolveShuyuVideoPlanArgs = {},
 ): Promise<AuditedShuyuVideoPlan> {
   if (args.planId?.trim()) return resolveShuyuVideoPlan(args);
-  const plans = await resolveShuyuVideoPlans(args);
-  if (plans.length === 0) {
-    throw new ShuyuApiError(
-      "No audited Shuyu video plan is currently available",
-      "not_found",
-      200,
-    );
-  }
-  const warm = plans.filter((plan) => !isShuyuVideoPlanCoolingDown(plan.planId));
-  return (warm[0] ?? plans[0]);
+  const pool = await resolveShuyuVideoPlanPool(args);
+  const warm = pool.filter((plan) => !isShuyuVideoPlanCoolingDown(plan.planId));
+  return warm[0] ?? pool[0];
 }
 
 export const __testVideoPlans__ = {

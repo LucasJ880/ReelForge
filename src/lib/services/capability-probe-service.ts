@@ -3,12 +3,15 @@ import { db } from "@/lib/db";
 import {
   getShuyuBalance,
   getShuyuPrices,
-  isAuditedShuyuVideoPlan,
+  isAuditedShuyuDraftVideoPlan,
   listAuditedShuyuVideoPlans,
   ShuyuApiError,
   shuyuApiKey,
   shuyuPriceSchema,
   shuyuVideoPlanPointsForDuration,
+  shuyuVideoPlanResolution,
+  shuyuVideoPlanSalePointsWithinBounds,
+  shuyuVideoPlanTier,
   SHUYU_MIN_REFERENCE_IMAGES,
   SHUYU_VIDEO_MODEL,
 } from "@/lib/providers/shuyu";
@@ -62,7 +65,8 @@ export type ShuyuCatalogSummary = {
 export type ProbeResult = {
   provider: "shuyu";
   ok: boolean;
-  /// 契约完全匹配的套餐（正常时恰好一个）
+  /// 默认档(draft:720P/480P)里有审计通过的套餐。只剩 final 档(1080P)算 false:
+  /// 默认解析在 draft 内取不到套餐,等于默认线路停机。
   auditedPlanFound: boolean;
   drifts: CapabilityDrift[];
   /// 上游完全没返回 video 套餐时为 true —— 这是最严重的一档
@@ -94,22 +98,40 @@ const EXPECTED: Array<{
     matches: (plan) => plan.unit === "generation" || plan.unit === "second",
   },
   {
+    /// 1026(P03-A1)起 1080P 入审计族(final 档);4K 仍出族。白名单与审计同一个函数。
     field: "resolution",
-    expected: "720P 或 480P",
+    expected: "720P、480P 或 1080P",
     actual: (plan) => plan.resolution,
-    matches: (plan) =>
-      plan.resolution === "720P" || plan.resolution === "480P",
+    matches: (plan) => shuyuVideoPlanResolution(plan.resolution) !== null,
+  },
+  {
+    /// 默认档必须在:只剩 1080P(final)时默认解析取不到套餐,等于默认线路停机。
+    /// 分辨率出族时交给上面的 resolution 判据报,这里不重复。
+    field: "tier",
+    expected: "draft 档(720P/480P)至少一个;1080P 只是 final 档",
+    actual: (plan) => {
+      const resolution = shuyuVideoPlanResolution(plan.resolution);
+      return resolution ? shuyuVideoPlanTier(resolution) : plan.resolution;
+    },
+    matches: (plan) => {
+      const resolution = shuyuVideoPlanResolution(plan.resolution);
+      return resolution === null || shuyuVideoPlanTier(resolution) === "draft";
+    },
   },
   {
     /// 计价漂移最危险:实际扣分随 /prices 走,这里只守健全区间——
     /// 越界(疯涨/疑似错价)会让审计不过并阻断线路,而不是照单扣。
+    /// 区间按分辨率分区,与审计共用 shuyuVideoPlanPointBounds(同一把尺子);
+    /// 分辨率出族时交给 resolution 判据单独报,这里直接算匹配,不叠一个无意义的计价漂移。
     field: "sale_points",
-    expected: "按条 100-2000 / 按秒 10-300",
+    expected:
+      "720P/480P 按条 100-2000 / 按秒 10-300;1080P 按条 100-8000 / 按秒 100-400",
     actual: (plan) => `${plan.sale_points}/${plan.unit}`,
-    matches: (plan) =>
-      plan.unit === "generation"
-        ? plan.sale_points >= 100 && plan.sale_points <= 2_000
-        : plan.sale_points >= 10 && plan.sale_points <= 300,
+    matches: (plan) => {
+      const resolution = shuyuVideoPlanResolution(plan.resolution);
+      if (resolution === null) return true;
+      return shuyuVideoPlanSalePointsWithinBounds(resolution, plan.unit, plan.sale_points);
+    },
   },
   {
     field: "status",
@@ -162,7 +184,7 @@ const EXPECTED: Array<{
 ];
 
 /**
- * 探测判据必须与 isAuditedShuyuVideoPlan **一一对应**：
+ * 探测判据必须与 isAuditedShuyuDraftVideoPlan **一一对应**(审计 + 默认档)：
  * 判据比审计松会出现「审计不过但报不出漂移」，比审计紧会报假漂移。
  * 有测试拿完整契约套餐同时过两者来守住这一点。
  */
@@ -194,12 +216,21 @@ export function diagnoseDrift(plans: ShuyuPlan[]): {
     };
   }
 
-  if (videoPlans.some((plan) => isAuditedShuyuVideoPlan(plan))) {
+  if (videoPlans.some((plan) => isAuditedShuyuDraftVideoPlan(plan))) {
     return { auditedPlanFound: true, videoPlansGone: false, drifts: [] };
   }
 
-  /// 找最像的候选：先按 model 家族，最后拿第一个(plan_id 轮换是常态,不参与匹配)。
+  /// 找最像的候选：先按 model 家族里的 draft 分辨率(默认档的候选最该被诊断),
+  /// 再按 model 家族,最后拿第一个(plan_id 轮换是常态,不参与匹配)。
   const candidate =
+    videoPlans.find((plan) => {
+      const resolution = shuyuVideoPlanResolution(plan.resolution);
+      return (
+        plan.model === SHUYU_VIDEO_MODEL &&
+        resolution !== null &&
+        shuyuVideoPlanTier(resolution) === "draft"
+      );
+    }) ??
     videoPlans.find((plan) => plan.model === SHUYU_VIDEO_MODEL) ??
     videoPlans[0];
 
@@ -222,9 +253,10 @@ export function summarizeShuyuCatalog(plans: ShuyuPlan[]): ShuyuCatalogSummary {
   } catch {
     imagePoints = [];
   }
-  const videoPoints = listAuditedShuyuVideoPlans(plans.filter((plan) => plan.kind === "video")).map((plan) =>
-    shuyuVideoPlanPointsForDuration(plan, 15),
-  );
+  /// 「一条视频最少多少积分」只看默认档(draft):final 档对客户不可选,不进能力口径。
+  const videoPoints = listAuditedShuyuVideoPlans(plans.filter((plan) => plan.kind === "video"))
+    .filter((plan) => plan.tier === "draft")
+    .map((plan) => shuyuVideoPlanPointsForDuration(plan, 15));
   return {
     imagePlanCount: imagePoints.length,
     cheapestImagePoints: imagePoints.length ? Math.min(...imagePoints) : null,

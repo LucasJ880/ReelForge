@@ -42,6 +42,11 @@ interface AudioCaptionControlsProps {
    * （起稿本身一直是本地确定性模板，见 generateVoiceoverScript——这里不许暗示 AI 在写。）
    */
   draftFromTemplate?: boolean;
+  /**
+   * P04-B · 这条成片能拿到逐词时间戳时为 true：字幕样式放出「跟读高亮 / 逐词强调」真分档。
+   * 默认 false（Phase 1 还没有 TTS 时间戳来源）：行为与 1025 A6 7.5 完全一致，只列两档。
+   */
+  wordTimestampsAvailable?: boolean;
 }
 
 const VOICE_OPTIONS = [
@@ -68,21 +73,38 @@ const VOICE_OPTIONS = [
 ] as const;
 
 /**
- * 字幕样式只列渲染层真实做得到的观感。audio-post-production 的 renderAssCaptions
- * 只分两档：plain = 常规字重细描边，其余 = 粗体加厚描边；word_by_word / karaoke
- * 应有的逐词时间轴高亮没有实现，原来那两个选项先隐藏（1025 A6 7.5），别再给客户
- * 许诺做不到的效果。
- * 类型与服务端 schema 仍保留三值：已保存 / 默认的 word_by_word、karaoke 照常提交，
- * 界面上归到它们真实的那一档「醒目描边」，用户不改就不动原值。
+ * 字幕样式只列渲染层真实做得到的观感。
+ *
+ * 没有逐词时间戳（Phase 1 的常态）：renderAssCaptions 只分两档——plain = 常规字重细描边，
+ * 其余 = 粗体加厚描边；word_by_word / karaoke 的逐词高亮渲染不出来，所以只列两档
+ * （1025 A6 7.5），别给客户许诺做不到的效果。已保存 / 默认的 word_by_word、karaoke
+ * 照常提交，界面上归到它们真实的那一档「醒目描边」，用户不改就不动原值。
+ *
+ * 有逐词时间戳（P04-B，由 wordTimestampsAvailable 打开）：渲染层真的会逐词染金
+ * （karaoke 用 \kf 填充、word_by_word 每词一条 Dialogue），三档全列、不再折叠。
  */
 export const CAPTION_STYLE_OPTIONS = [
   { value: "word_by_word", zh: "醒目描边", en: "Bold outline" },
   { value: "plain", zh: "简洁字幕", en: "Clean" },
 ] as const satisfies readonly { value: CaptionStyle; zh: string; en: string }[];
 
+export const TIMED_CAPTION_STYLE_OPTIONS = [
+  { value: "karaoke", zh: "跟读高亮", en: "Karaoke highlight" },
+  { value: "word_by_word", zh: "逐词强调", en: "Word by word" },
+  { value: "plain", zh: "简洁字幕", en: "Clean" },
+] as const satisfies readonly { value: CaptionStyle; zh: string; en: string }[];
+
+export function captionStyleOptions(
+  wordTimestampsAvailable: boolean,
+): readonly { value: CaptionStyle; zh: string; en: string }[] {
+  return wordTimestampsAvailable ? TIMED_CAPTION_STYLE_OPTIONS : CAPTION_STYLE_OPTIONS;
+}
+
 export function captionStyleSelectValue(
   style: CaptionStyle,
-): (typeof CAPTION_STYLE_OPTIONS)[number]["value"] {
+  wordTimestampsAvailable = false,
+): CaptionStyle {
+  if (wordTimestampsAvailable) return style;
   return style === "plain" ? "plain" : "word_by_word";
 }
 
@@ -241,6 +263,7 @@ export function AudioCaptionControls({
   onChange,
   onRegenerate,
   draftFromTemplate = false,
+  wordTimestampsAvailable = false,
 }: AudioCaptionControlsProps) {
   const update = (patch: Partial<AudioCaptionControlValue>) => {
     onChange({ ...value, ...patch });
@@ -374,14 +397,14 @@ export function AudioCaptionControls({
                 <label className="text-meta font-medium text-muted-foreground">
                   {english ? "Style" : "字幕样式"}
                   <select
-                    value={captionStyleSelectValue(value.captionStyle)}
+                    value={captionStyleSelectValue(value.captionStyle, wordTimestampsAvailable)}
                     disabled={disabled || !value.captionsEnabled}
                     className="mt-2 h-(--control-height) w-full rounded-(--radius-md) x-well border-input px-3 text-body text-foreground disabled:opacity-50"
                     onChange={(event) => update({
                       captionStyle: event.target.value as CaptionStyle,
                     })}
                   >
-                    {CAPTION_STYLE_OPTIONS.map((option) => (
+                    {captionStyleOptions(wordTimestampsAvailable).map((option) => (
                       <option key={option.value} value={option.value}>
                         {english ? option.en : option.zh}
                       </option>

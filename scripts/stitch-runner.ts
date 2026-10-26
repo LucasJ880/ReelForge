@@ -35,8 +35,10 @@ import {
   BGM_TRACKS,
   buildAudioFilterPlan,
   buildDeterministicCues,
+  planCaptionCues,
   renderAssCaptions,
   renderSrtCaptions,
+  type CaptionCue,
 } from "../src/lib/video-generation/audio-post-production";
 import {
   brollSegmentDurationSec,
@@ -78,6 +80,8 @@ export interface StitchTask {
   postProduction: PostProductionSnapshot | null;
   /// b-roll 任务：段 = 图库素材 + TTS 音频输入，runner 先合成再拼接。
   brollSegments?: BrollClaimSegment[] | null;
+  /// P04-C：派发时持久化的各 AI 段台词（按段序）；没有 → 字幕按段时长重切
+  voiceoverChunks?: string[] | null;
 }
 
 export interface PostProductionSnapshot {
@@ -252,6 +256,8 @@ export async function stitchOne(task: StitchTask): Promise<{
     const padFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1`;
 
     const normalized: string[] = [];
+    /// P04-B：AI 段归一化后的文件 → 字幕按段开窗（b-roll 段各自烤了配音，不开窗）
+    const aiSegmentPaths: string[] = [];
     if (task.brollSegments && task.brollSegments.length > 0) {
       /// b-roll 分支：素材 + TTS → 段合成（时长由 TTS 实测驱动）。
       /// 合成参数与服务端共用 broll-segment-compose，两端不漂移。
@@ -303,6 +309,7 @@ export async function stitchOne(task: StitchTask): Promise<{
           "segment_normalization_failed",
         );
         normalized.push(out);
+        aiSegmentPaths.push(out);
       }
       /// 补静音不能把「要口播却一条音轨都没有」变成静默交付哑片（与应用内合成器同一规则）
       if (
@@ -348,6 +355,7 @@ export async function stitchOne(task: StitchTask): Promise<{
       task,
       inputPath: finalOut,
       tmpDir,
+      aiSegmentPaths,
     });
     const timestamp = Date.now();
     const thumbnailOut = path.join(tmpDir, "thumbnail.jpg");
@@ -536,6 +544,8 @@ async function applyPostProduction(args: {
   task: StitchTask;
   inputPath: string;
   tmpDir: string;
+  /// 归一化后的各 AI 段文件（b-roll 任务为空数组）：字幕按段开窗时探测各段实测时长
+  aiSegmentPaths: string[];
 }): Promise<{ videoPath: string; srtPath?: string }> {
   const snapshot = args.task.postProduction;
   if (!snapshot) return { videoPath: args.inputPath };
@@ -559,7 +569,24 @@ async function applyPostProduction(args: {
   let assPath: string | undefined;
   let srtPath: string | undefined;
   if (captionsEnabled) {
-    const cues = buildDeterministicCues(script, actualDurationSec);
+    /// P04-B：与进程内合成器同一个 planCaptionCues。各段实测时长只用来放窗口位置（runner 不裁尾，
+    /// 实测 = 源片长）；台词用派发时持久化的 chunk，没有才按段时长重切。段时长探测失败不判任务失败，
+    /// 退回整片均分（1025 之前的行为）。
+    let cues: CaptionCue[];
+    try {
+      const aiSegmentDurationsSec: number[] = [];
+      for (const segmentPath of args.aiSegmentPaths) {
+        aiSegmentDurationsSec.push(await probeDuration(segmentPath));
+      }
+      cues = planCaptionCues({
+        script,
+        segments: aiSegmentDurationsSec.map((durationSec) => ({ durationSec, captioned: true })),
+        captionSpanSec: actualDurationSec,
+        voiceoverChunks: args.task.voiceoverChunks,
+      }).cues;
+    } catch {
+      cues = buildDeterministicCues(script, actualDurationSec);
+    }
     assPath = path.join(args.tmpDir, "captions.ass");
     await writeFile(
       assPath,
@@ -570,6 +597,7 @@ async function applyPostProduction(args: {
             : "9:16",
         position: snapshot.captions.position,
         style: snapshot.captions.style,
+        language: snapshot.captions.language,
       }),
       "utf8",
     );

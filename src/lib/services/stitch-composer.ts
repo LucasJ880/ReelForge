@@ -7,6 +7,7 @@ import {
   type MediaBudget,
   type TimelineClipReport,
 } from "@/lib/media/stitch-pipeline";
+import { readDirectorPlanVoiceoverChunks } from "@/lib/schemas/director-plan";
 import { DEFAULT_TAIL_TRIM_SECONDS } from "@/lib/video-generation/tail-trim";
 import type { UploadedAsset } from "@/types/video-generation";
 import {
@@ -87,9 +88,13 @@ export function assemblyClipsToTimeline(
   });
 }
 
-/** 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。 */
+/**
+ * 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。
+ * 段的计划时长（VideoJob.segmentDurationSec）只给字幕：旧数据没有持久化台词时按它切，
+ * 不按语音安全裁尾后的实测（实测不等长会把语句边界吸偏）。不填 intendedDurationSec，裁剪规则不变。
+ */
 export function legacySegmentsToTimeline(
-  segments: Array<{ outputVideoUrl: string | null }>,
+  segments: Array<{ outputVideoUrl: string | null; segmentDurationSec?: number | null }>,
   aiTailTrimSec: number,
 ): NormalizeAndConcatClip[] {
   return segments.map((segment) => ({
@@ -98,6 +103,9 @@ export function legacySegmentsToTimeline(
     trimToFit: false,
     role: "ai_generated" as const,
     ...(aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
+    ...(segment.segmentDurationSec && segment.segmentDurationSec > 0
+      ? { plannedDurationSec: segment.segmentDurationSec }
+      : {}),
   }));
 }
 
@@ -116,6 +124,8 @@ export async function composeFinalVideoForStitch(args: {
           id: true,
           aspectRatio: true,
           videoGenerationPlan: true,
+          /// P04-C：各段台词（segmentPlan[].voiceoverChunk）给字幕逐段对齐
+          directorPlan: true,
           contentAngle: {
             select: {
               round: {
@@ -148,6 +158,8 @@ export async function composeFinalVideoForStitch(args: {
   const aspectRatio = fv.brief?.aspectRatio || "9:16";
   const aiTailTrimSec = resolveAiTailTrimSeconds(env);
   const warnings: string[] = [];
+  /// 派发时持久化的各 AI 段台词；旧计划没有 → null，字幕按计划时长重切
+  const voiceoverChunks = readDirectorPlanVoiceoverChunks(fv.brief?.directorPlan);
 
   // ---------------- b-roll ----------------
   const brollSegments = extractBrollClaimSegments(fv.segments);
@@ -199,6 +211,7 @@ export async function composeFinalVideoForStitch(args: {
       aspectRatio: inputs.aspectRatio,
       clips: assemblyClipsToTimeline(inputs.clips, aiTailTrimSec),
       postProduction,
+      voiceoverChunks,
       extractThumbnail: true,
       budget: args.budget,
       checkpoint: args.checkpoint,
@@ -221,6 +234,7 @@ export async function composeFinalVideoForStitch(args: {
     aspectRatio,
     clips: legacySegmentsToTimeline(fv.segments, aiTailTrimSec),
     postProduction,
+    voiceoverChunks,
     extractThumbnail: true,
     budget: args.budget,
     checkpoint: args.checkpoint,

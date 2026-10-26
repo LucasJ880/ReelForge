@@ -97,3 +97,39 @@ test("换链：生产写库闸 + 全量 CAS，只换 URL，不碰状态 / 完成
     assert.doesNotMatch(code, forbidden);
   }
 });
+
+test("任务载荷：brief 带 directorPlan 时按 segmentIndex 升序带出各段台词；没有 / 缺段就不带这个键", () => {
+  const withChunks = stitchTaskPayload({
+    targetDurationSec: 30,
+    postProduction: POST_PRODUCTION,
+    brief: {
+      aspectRatio: "9:16",
+      directorPlan: {
+        segmentPlan: [
+          { segmentIndex: 1, voiceoverChunk: "点击下方链接立即预约。" },
+          { segmentIndex: 0, voiceoverChunk: "一拧即开，随时补水。" },
+        ],
+      },
+    },
+    segments: [
+      { segmentIndex: 0, outputVideoUrl: "https://r2.test/0", assignedAssets: null },
+      { segmentIndex: 1, outputVideoUrl: "https://r2.test/1", assignedAssets: null },
+    ],
+  });
+  assert.deepEqual(withChunks.voiceoverChunks, ["一拧即开，随时补水。", "点击下方链接立即预约。"]);
+
+  const partial = stitchTaskPayload({
+    targetDurationSec: 30,
+    postProduction: POST_PRODUCTION,
+    brief: { aspectRatio: "9:16", directorPlan: { segmentPlan: [{ segmentIndex: 0, voiceoverChunk: "A" }, { segmentIndex: 1 }] } },
+    segments: [{ segmentIndex: 0, outputVideoUrl: "https://r2.test/0", assignedAssets: null }],
+  });
+  assert.equal("voiceoverChunks" in partial, false, "缺一段就整个不带（runner 按段时长重切）");
+  const legacy = stitchTaskPayload({
+    targetDurationSec: 15,
+    postProduction: POST_PRODUCTION,
+    brief: { aspectRatio: "9:16", directorPlan: { segmentPlan: [{ segmentIndex: 0, seedancePrompt: "old plan without chunks" }] } },
+    segments: [{ segmentIndex: 0, outputVideoUrl: "https://r2.test/0", assignedAssets: null }],
+  });
+  assert.equal("voiceoverChunks" in legacy, false);
+});

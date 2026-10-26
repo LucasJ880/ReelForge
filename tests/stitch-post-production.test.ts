@@ -131,7 +131,8 @@ test("post-production persistence and runner contracts are explicit", async () =
   assert.match(service, /postProduction:/);
   /// C3：应用内合成器（生产 inprocess 与开发 local 同一实现）——单遍合成：字幕 + 混音 + 唯一一次编码
   assert.match(stitchService, /composeTimeline\(/);
-  assert.match(pipeline, /buildDeterministicCues/);
+  /// P04-B：字幕时间轴决策收口在 audio-post-production.planCaptionCues（进程内与 runner 共用）
+  assert.match(pipeline, /planCaptionCues/);
   assert.match(pipeline, /renderAssCaptions/);
   assert.match(pipeline, /buildAudioFilterPlan/);
   assert.match(pipeline, /probeMedia/);

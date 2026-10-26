@@ -45,9 +45,15 @@ export function presenterReferenceAssets<T extends UploadedAsset>(
   return assets.filter((asset) => effectiveAssetRole(asset) === "person");
 }
 
-/** 统一创作请求（/plan、/dispatch）里是否有人把素材标成了主播参考图。 */
+/**
+ * 统一创作请求（/plan、/dispatch）里是否有素材按生效角色（userAssignedRole ?? inferredRole）算主播参考图——
+ * 与文字锚用的 effectiveAssetRole 同一判据，客户端填 inferredRole=person 也绕不过门
+ *（schema 另有一道：新建请求的 inferredRole 不接受 person，分类器从不推断它）。
+ */
 export function hasPersonTaggedAttachment(
-  attachments: ReadonlyArray<{ userAssignedRole?: string | null }>,
+  attachments: ReadonlyArray<{ inferredRole?: string | null; userAssignedRole?: string | null }>,
 ): boolean {
-  return attachments.some((attachment) => attachment.userAssignedRole === "person");
+  return attachments.some(
+    (attachment) => (attachment.userAssignedRole ?? attachment.inferredRole) === "person",
+  );
 }

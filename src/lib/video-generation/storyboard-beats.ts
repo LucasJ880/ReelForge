@@ -52,10 +52,14 @@ const KEEP_TEMPLATE_LINE =
 
 /// 供应商提示词上限 5000 字（shuyu）；商家描述最多 4000 字，这里给故事最多留 1500，余量给约束与台词。
 const STORY_CHAR_BUDGET = 1500;
-/// 整段上限与安全余量：bible 的人物 / 产品行与口播台词都可能很长，故事按「上限 − 余量 − 其余所有行」动态收缩，
-/// 余量给负面约束与供应商侧可能追加的内容。锁行与台词（exact wording）永不裁。
+/// 视频 provider（providers/shuyu-video-provider.ts、byteplus-video-provider.ts）发出的是
+/// `${prompt}\nNegative constraints: ${negativePrompt}`：预算必须把这条尾巴算进去，否则 grounding 4800 + 负面 250
+/// 就撞 5000 不可重试拒绝。分隔符在这里定一份，测试读 provider 源码盯它不漂移。
+export const NEGATIVE_CONSTRAINTS_SEPARATOR = "\nNegative constraints: ";
+/// 整段上限与安全余量：bible 的人物 / 产品行与口播台词都可能很长，故事按
+/// 「上限 − 负面尾巴 − 余量 − 其余所有行」动态收缩；余量给 provider 侧其余拼接。锁行与台词（exact wording）永不裁。
 const VIDEO_PROMPT_LIMIT = 5000;
-const VIDEO_PROMPT_SAFETY = 200;
+const VIDEO_PROMPT_SAFETY = 100;
 
 function beatWithoutTime(beat: string): string {
   return beat.replace(/^\s*\d+\s*[–-]\s*\d+\s*s\s*·\s*/u, "").trim();
@@ -81,6 +85,8 @@ export function groundSegmentPromptInStoryboard(
     totalDurationSec: number;
     fromSec: number;
     toSec: number;
+    /// 该段的负面提示词：provider 会以 NEGATIVE_CONSTRAINTS_SEPARATOR 拼在正向提示词后面一起发，预算据此扣除
+    negativePrompt?: string | null;
   },
 ): string {
   if (original.includes(STORYBOARD_GROUNDING_MARKER) || input.beats.length === 0) return original;
@@ -117,9 +123,14 @@ export function groundSegmentPromptInStoryboard(
     "",
     ...kept,
   ].join("\n");
+  const negative = input.negativePrompt?.trim() ?? "";
+  const negativeTail = negative ? `${NEGATIVE_CONSTRAINTS_SEPARATOR}${negative}` : "";
   const storyBudget = Math.max(
     0,
-    Math.min(STORY_CHAR_BUDGET, VIDEO_PROMPT_LIMIT - VIDEO_PROMPT_SAFETY - assemble("").length),
+    Math.min(
+      STORY_CHAR_BUDGET,
+      VIDEO_PROMPT_LIMIT - VIDEO_PROMPT_SAFETY - negativeTail.length - assemble("").length,
+    ),
   );
   return assemble(Array.from(normalizedStory).slice(0, storyBudget).join(""));
 }

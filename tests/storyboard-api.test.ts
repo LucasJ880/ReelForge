@@ -155,6 +155,7 @@ test("统一创作路由（/plan、/dispatch）的 userAssignedRole=person 受�
   for (const source of [plan, dispatch]) {
     assert.match(source, /hasPersonTaggedAttachment\(/);
     assert.match(source, /canSubmitStoryboardPersonRefs\(/);
-    assert.match(source, /storyboardPersonRefsMode\(\)/);
+    // plan 路由走依赖注入（dependencies.personRefsMode()），dispatch 直接调模块函数
+    assert.match(source, /(?:storyboardPersonRefsMode|personRefsMode)\(\)/);
   }
 });

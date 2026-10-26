@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
+  NEGATIVE_CONSTRAINTS_SEPARATOR,
   STORYBOARD_BEATS_LONG,
   STORYBOARD_BEATS_SHORT,
   STORYBOARD_GROUNDING_MARKER,
   groundSegmentPromptInStoryboard,
   storyboardBeatLabel,
 } from "../src/lib/video-generation/storyboard-beats";
+import { __test__ as promptIntelTest } from "../src/lib/video-generation/prompt-intelligence";
 import { buildStoryboardFramePlans } from "../src/lib/video-generation/storyboard-service";
 
 /**
@@ -77,11 +79,20 @@ test("界面上的节奏名按语言显示，未知的原样显示", () => {
   assert.equal(storyboardBeatLabel("custom beat", false), "custom beat");
 });
 
-test("接线：派发前按故事板改写提示词并写回 directorPlan", async () => {
+test("接线：派发前按故事板改写提示词并写回 directorPlan；该段负面提示词一并传入预算", async () => {
   const service = await readFile("src/lib/services/video-service.ts", "utf8");
   assert.match(service, /requireApprovedStoryboardVideoInputsForBrief\(briefId\)/);
   assert.match(service, /seedancePrompt: groundSegmentPromptInStoryboard\(segment\.seedancePrompt/);
+  assert.match(service, /negativePrompt: segment\.negativePrompt,/);
   assert.match(service, /directorPlan: groundedPlan as unknown as Prisma\.InputJsonValue/);
+  // 视频 provider 真正发出的拼接方式必须与预算用的分隔符一致
+  for (const file of [
+    "src/lib/video-generation/providers/shuyu-video-provider.ts",
+    "src/lib/video-generation/providers/byteplus-video-provider.ts",
+  ]) {
+    const provider = await readFile(file, "utf8");
+    assert.ok(provider.includes(JSON.stringify(NEGATIVE_CONSTRAINTS_SEPARATOR).slice(1, -1)), file);
+  }
 });
 
 /**
@@ -160,14 +171,24 @@ test("P02-C：带超长 CHARACTER / PRODUCT / 五把锁 / 长台词时，groundi
     "Do not render subtitles, captions, readable text, or a music bed.",
     `Style: ${long(300)}`,
   ].join("\n");
-  const out = groundSegmentPromptInStoryboard(heavy, {
-    aspectRatio: "9:16", story: "很".repeat(4000), beats: STORYBOARD_BEATS_LONG, productPhotoCount: 3, totalDurationSec: 30, fromSec: 0, toSec: 15,
+  const ground = (negativePrompt: string | null) => groundSegmentPromptInStoryboard(heavy, {
+    aspectRatio: "9:16", story: "很".repeat(4000), beats: STORYBOARD_BEATS_LONG, productPhotoCount: 3, totalDurationSec: 30, fromSec: 0, toSec: 15, negativePrompt,
   });
-  assert.ok(out.length <= 4800, `length ${out.length} must leave ≥200 margin under 5000`);
-  assert.match(out, /^Spoken dialogue \(voice only, exact wording, zh-CN, warm confident\): "带它出门，/m);
-  assert.match(out, /^CHARACTER \(must match the presenter reference photo/m);
-  assert.match(out, /^LIP-SYNC LOCK: /m);
-  assert.match(out, /STORY \(the merchant's own description[^\n]*很/);
+  const sent = (prompt: string, negative: string) => `${prompt}${NEGATIVE_CONSTRAINTS_SEPARATOR}${negative}`;
+  // provider 发出的是 prompt + "\nNegative constraints: " + negativePrompt：按真正发出的长度断言
+  const llmNegative = "no mirrored signage, no duplicated storefront text, no extra windows, ".repeat(9).slice(0, 600);
+  for (const negative of [promptIntelTest.DEFAULT_NEGATIVE_PROMPT, llmNegative]) {
+    const out = ground(negative);
+    const wire = sent(out, negative);
+    assert.ok(wire.length <= 5000, `sent length ${wire.length} with ${negative.length}-char negative`);
+    assert.ok(wire.length <= 4900, `≥100 margin left: ${wire.length}`);
+    assert.match(out, /^Spoken dialogue \(voice only, exact wording, zh-CN, warm confident\): "带它出门，/m);
+    assert.match(out, /^CHARACTER \(must match the presenter reference photo/m);
+    assert.match(out, /^LIP-SYNC LOCK: /m);
+    assert.match(out, /STORY \(the merchant's own description[^\n]*很/, "故事仍有内容，只是让位");
+  }
+  // 负面越长，故事让出的越多；没有负面时故事最多
+  assert.ok(ground(null).length > ground(llmNegative).length);
 });
 
 test("P02-C：Audio: 与 Spoken dialogue 开头的行在 grounding 后原样保留（口播链路依赖）", () => {

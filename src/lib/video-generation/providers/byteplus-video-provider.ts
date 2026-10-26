@@ -32,6 +32,9 @@ export class BytePlusVideoProvider implements VideoProvider {
   readonly id = "byteplus" as const;
   readonly displayName = "BytePlus ModelArk (Seedance)";
   readonly manualRetryBillingRisk = "possible" as const;
+  /// 音频参考的 wire 层未接(P03-D);参考图上限跟 seedance.ts 的 Omni-Reference 截断一致。
+  readonly supportsReferenceAudio = false;
+  readonly maxReferenceImages = 9;
 
   private readonly runtimeAdapter: SeedanceRuntimeAdapter | null;
 

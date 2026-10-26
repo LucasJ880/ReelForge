@@ -68,6 +68,8 @@ function provider(
     id: "byteplus",
     displayName: "Billing safety fixture",
     manualRetryBillingRisk: "possible",
+    supportsReferenceAudio: false,
+    maxReferenceImages: 9,
     isConfigured: () => true,
     isMockMode: () => false,
     createVideoJob: create,

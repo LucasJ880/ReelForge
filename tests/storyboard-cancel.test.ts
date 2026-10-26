@@ -7,11 +7,13 @@ import {
   __test__ as storyboardServiceTest,
   cancelStoryboardRun,
   cancelStoryboardRunsForVideoJobs,
+  composeSingleVideoReferenceGroups,
   composeSingleVideoReferenceImages,
   createStoryboardRun,
   findResumableStoryboardRunForUser,
   pollPendingStoryboardRuns,
   regenerateStoryboardFrame,
+  requireApprovedStoryboardVideoInputsForBrief,
   requireApprovedStoryboardVideoReferencesForBrief,
   storyboardRunView,
   StoryboardRequestError,
@@ -560,6 +562,129 @@ test("单条视频参考图：实拍在前、故事板帧在后，去重并截�
     [many[0], ...frames.slice(0, 3)],
     "even under a tight cap at least one real photo leads",
   );
+});
+
+test("P02-F(s)：单条视频参考图按角色分组——实拍 → 切片 → 主播 → 帧，去重、各组张数按最终列表数", () => {
+  const frames = ["https://a.test/f0.png", "https://a.test/f1.png", "https://a.test/f2.png", "https://a.test/f3.png"];
+  const photos = ["https://a.test/p0.jpg", "https://a.test/p1.jpg", "https://a.test/p2.jpg"];
+  const cutout = "https://a.test/cut.png";
+  const presenter = "https://a.test/person-0.jpg";
+
+  // 8 张上限、4 帧：帧之外 4 格 = 实拍保底 2 + 主播 1 + 切片 1；剩下的实拍让位
+  const full = composeSingleVideoReferenceGroups({
+    productImageUrls: photos,
+    anchorCutoutUrls: [cutout, photos[0]],
+    personUrls: [presenter, "https://a.test/person-1.jpg"],
+    storyboardFrameUrls: frames,
+  });
+  assert.deepEqual(full.references, [photos[0], photos[1], cutout, presenter, ...frames]);
+  assert.deepEqual(
+    { productPhotoCount: full.productPhotoCount, anchorCount: full.anchorCount, personCount: full.personCount, frameCount: full.frameCount },
+    { productPhotoCount: 2, anchorCount: 1, personCount: 1, frameCount: 4 },
+  );
+
+  // 切片在 P02-E 之前恒空：余位回补实拍；只放首张主播
+  const noCutout = composeSingleVideoReferenceGroups({
+    productImageUrls: photos,
+    personUrls: [presenter, "https://a.test/person-1.jpg"],
+    storyboardFrameUrls: frames,
+  });
+  assert.deepEqual(noCutout.references, [...photos, presenter, ...frames]);
+  assert.equal(noCutout.productPhotoCount, 3);
+  assert.equal(noCutout.personCount, 1);
+
+  // 5 帧只剩 3 格：实拍保底 2 + 主播 1
+  const fiveFrames = [...frames, "https://a.test/f4.png"];
+  const tight = composeSingleVideoReferenceGroups({ productImageUrls: photos, personUrls: [presenter], storyboardFrameUrls: fiveFrames });
+  assert.deepEqual(tight.references, [photos[0], photos[1], presenter, ...fiveFrames]);
+
+  // 没有切片与主播：与分组前的 composeSingleVideoReferenceImages 逐张一致
+  const many = Array.from({ length: 9 }, (_, index) => `https://a.test/p${index}.jpg`);
+  for (const limit of [undefined, 4, 6]) {
+    const legacy = composeSingleVideoReferenceImages({ productImageUrls: many, storyboardFrameUrls: frames, limit });
+    const grouped = composeSingleVideoReferenceGroups({ productImageUrls: many, storyboardFrameUrls: frames, limit });
+    assert.deepEqual(grouped.references, legacy);
+    assert.equal(grouped.anchorCount + grouped.personCount, 0);
+    assert.equal(grouped.productPhotoCount + grouped.frameCount, legacy.length);
+  }
+
+  // 帧数 ≥ 上限：帧之外仍保 1 格给实拍，队尾的帧被截掉，frameCount 按截断后数
+  const capped = composeSingleVideoReferenceGroups({ productImageUrls: photos, personUrls: [presenter], storyboardFrameUrls: frames, limit: 4 });
+  assert.deepEqual(capped.references, [photos[0], ...frames.slice(0, 3)]);
+  assert.deepEqual([capped.productPhotoCount, capped.personCount, capped.frameCount], [1, 0, 3]);
+
+  // 没有实拍：主播拿到帧之外的那一格
+  const textOnly = composeSingleVideoReferenceGroups({ productImageUrls: [], personUrls: [presenter], storyboardFrameUrls: frames });
+  assert.deepEqual(textOnly.references, [presenter, ...frames]);
+  assert.deepEqual([textOnly.productPhotoCount, textOnly.personCount], [0, 1]);
+});
+
+function approvedRunWithRoles(): Record<string, unknown> {
+  return run({
+    status: "APPROVED",
+    sourcePrompt: "story",
+    inputImageUrls: ["https://a.test/real-1.jpg", "https://a.test/real-2.jpg"],
+    anchorCutoutUrls: ["https://a.test/cut-1.png"],
+    personAssetIds: ["person-1"],
+    frames: Array.from({ length: 4 }, (_, ordinal) =>
+      frame({
+        id: `f${ordinal}`,
+        ordinal,
+        beat: `beat-${ordinal}`,
+        status: "SUCCEEDED",
+        submissionState: "ACCEPTED",
+        outputAsset: { userId: "owner-1", url: `https://a.test/frame-${ordinal}.png` },
+      }),
+    ),
+  });
+}
+
+test("P02-F(s)：派发输入默认不放切片 / 主播（grounding 未接张数前帧序号不能错位），不查主播素材", async (t) => {
+  patch(t, db.storyboardRun as unknown as Record<string, unknown>, { findUnique: async () => approvedRunWithRoles() });
+  patch(t, db.mediaAsset as unknown as Record<string, unknown>, {
+    findMany: async () => { throw new Error("presenter assets must not be queried by default"); },
+  });
+  const inputs = await requireApprovedStoryboardVideoInputsForBrief("brief-1");
+  assert.deepEqual(inputs.references, [
+    "https://a.test/real-1.jpg",
+    "https://a.test/real-2.jpg",
+    ...[0, 1, 2, 3].map((i) => `https://a.test/frame-${i}.png`),
+  ]);
+  assert.deepEqual(
+    [inputs.productPhotoCount, inputs.anchorCount, inputs.personCount, inputs.frameCount],
+    [2, 0, 0, 4],
+  );
+  assert.deepEqual(inputs.beats, ["beat-0", "beat-1", "beat-2", "beat-3"]);
+});
+
+test("P02-F(s)：打开分组后按新列切分——切片取 anchorCutoutUrls、主播按 personAssetIds 解析本人素材，返回各组张数", async (t) => {
+  patch(t, db.storyboardRun as unknown as Record<string, unknown>, { findUnique: async () => approvedRunWithRoles() });
+  const queries: Array<{ where: { id: { in: string[] }; userId: string } }> = [];
+  patch(t, db.mediaAsset as unknown as Record<string, unknown>, {
+    findMany: async (args: { where: { id: { in: string[] }; userId: string } }) => {
+      queries.push(args);
+      return [{ id: "person-1", url: "https://a.test/person-1.jpg", mimeType: "image/jpeg" }];
+    },
+  });
+  const inputs = await requireApprovedStoryboardVideoInputsForBrief("brief-1", { includeAnchorAndPersonReferences: true });
+  assert.deepEqual(inputs.references, [
+    "https://a.test/real-1.jpg",
+    "https://a.test/real-2.jpg",
+    "https://a.test/cut-1.png",
+    "https://a.test/person-1.jpg",
+    ...[0, 1, 2, 3].map((i) => `https://a.test/frame-${i}.png`),
+  ]);
+  assert.deepEqual(
+    [inputs.productPhotoCount, inputs.anchorCount, inputs.personCount, inputs.frameCount],
+    [2, 1, 1, 4],
+  );
+  assert.equal(queries.length, 1);
+  assert.equal(queries[0].where.userId, "owner-1", "主播素材只取 run 属主本人的");
+  assert.deepEqual(queries[0].where.id.in, ["person-1"]);
+
+  // 上限参数透传：6 张时帧之外只剩 2 格 = 实拍保底 2，切片与主播让位
+  const narrow = await requireApprovedStoryboardVideoInputsForBrief("brief-1", { includeAnchorAndPersonReferences: true, limit: 6 });
+  assert.deepEqual([narrow.productPhotoCount, narrow.anchorCount, narrow.personCount, narrow.frameCount], [2, 0, 0, 4]);
 });
 
 test("派发取参考图：已确认故事板 + 这轮故事板的源图（商家实拍）", async (t) => {

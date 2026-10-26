@@ -1200,6 +1200,9 @@ model FinalVideo {
   /// 非空 = 重拼中；合成失败、清扫超时、客户取消都据此回滚到 READY + 旧 URL，而不是打成 FAILED。
   /// 不放进 postProduction JSON：那块会被重派发整块覆盖、被非 strict schema 剥掉。
   previousStitchedVideoUrl String?
+  /// 只重拼回滚依据之二（#16 审查）：重拼 CAS 把合并后的新设置写进 postProduction 时，旧快照存这里；
+  /// 回滚在同一个 CAS 里把它写回 postProduction 并清空两个 previous 字段，配乐署名等读数随之复原。
+  previousPostProduction   Json?
 
   startedAt  DateTime?
   finishedAt DateTime?

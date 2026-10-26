@@ -3,11 +3,38 @@ import { copyFile, mkdir, readFile, rm, writeFile } from "fs/promises";
 import os from "os";
 import path from "path";
 import { fileURLToPath } from "url";
-import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
+import {
+  FinalVideoStatus,
+  Prisma,
+  VideoBriefStatus,
+  VideoJobStatus,
+} from "@prisma/client";
 import { db } from "@/lib/db";
 import { readDirectorPlanVoiceoverChunks } from "@/lib/schemas/director-plan";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
+import {
+  canRestitchBriefStatus,
+  isDeliveredBriefStatus,
+  isPreDeliveryBriefStatus,
+} from "@/lib/video-generation/brief-delivery-state";
+import {
+  newPendingFinalFrameQa,
+  pendingFinalFrameQaMark,
+  readFinalFrameQaMark,
+} from "@/lib/video-generation/final-frame-qa-mark";
+import { mergeFinalFrameQaReview } from "@/lib/services/qa-review-merge";
+import { writeQaReview } from "@/lib/services/qa-review-write";
+import { isEphemeralSignedUrl } from "@/lib/media/ephemeral-url";
+
+/// 原本定义在这里；抽成轻模块后原样再导出，调用方（scripts / tests）不用改。
+export { isEphemeralSignedUrl };
+import {
+  mergeRestitchPatch,
+  parseRestitchPatch,
+  RestitchRejectedError,
+  restitchPatchIsNoop,
+} from "@/lib/video-generation/restitch-patch";
 import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
   composeTimeline,
@@ -47,9 +74,15 @@ import {
  *                                        进程内合成都走这里，失败同样在这里落 FAILED。
  *     4) runClaimedStitchAttempt(...) —— 进程内 / 本地：合成 → finishStitchTask；预算不够
  *                                        → 放回 PENDING；任务被取消 / 收回 → 不写任何东西。
+ *     5) restitchReadyFinalVideo(...)  —— P05-B 只重拼：READY 成片换字幕样式 / 配乐，
+ *                                        CAS READY → PENDING 并把旧成片 URL 存进
+ *                                        previousStitchedVideoUrl，再走同一套合成器。
+ *        rollbackRestitch(...)         —— 只重拼的统一回滚出口：失败 / 清扫超时 / 取消都回到
+ *                                        READY + 旧成片，不改 brief；四处调用见函数注释。
  *
  *   失败处理：拼接失败累计 stitchAttempts；>=3 不再自动重试，UI 暴露重试按钮。
  *   函数被平台杀掉 → 行停在 STITCHING → sweep-service 超时后转回 PENDING 续跑。
+ *   只重拼（previousStitchedVideoUrl 非空）的失败一律回滚到旧片，永远不落 FAILED。
  */
 
 export const MAX_STITCH_ATTEMPTS = 3;
@@ -99,6 +132,8 @@ export interface StitchResult {
   awaitingExternal?: boolean;
   /// inprocess 模式：已就绪留在 PENDING，等 stitch-dispatch 函数认领合成
   awaitingInprocess?: boolean;
+  /// 只重拼失败：已回滚到旧成片（status 回 READY，stitchedVideoUrl 为旧 URL）
+  rolledBack?: boolean;
 }
 
 export interface ClaimedStitchTask {
@@ -111,6 +146,9 @@ export interface ClaimedStitchTask {
   /// b-roll 任务附带：runner 需要先「素材+TTS→段合成」再进拼接后期。
   /// null/缺省 = 普通任务（段已是成品视频）。
   brollSegments?: BrollClaimSegment[] | null;
+  /// P04-C：派发时持久化的各段台词（stitchTaskPayload 从 brief.directorPlan 读）；缺省 = runner 按段时长切字幕。
+  /// 与 scripts/stitch-runner.ts 的 StitchTask 同形。
+  voiceoverChunks?: string[] | null;
 }
 
 /**
@@ -401,7 +439,7 @@ type StitchCandidateRow = {
   targetDurationSec: number;
   stitchAttempts: number;
   postProduction: unknown;
-  brief: { aspectRatio: string | null } | null;
+  brief: { aspectRatio: string | null; directorPlan?: unknown } | null;
   segments: Array<{
     segmentIndex: number | null;
     status: VideoJobStatus;
@@ -441,7 +479,9 @@ export async function claimNextReadyFinalVideo<T>(options: {
       orderBy: [{ updatedAt: "asc" }, { id: "asc" }],
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       include: {
-        brief: { select: { aspectRatio: true } },
+        /// P04-C：带上 directorPlan，外部 runner 的载荷（stitchTaskPayload）才有各段台词 voiceoverChunks；
+        /// 否则 runner 按段时长均分字幕——首次合成与只重拼（P05-B）都一样。进程内合成器自己从库里读。
+        brief: { select: { aspectRatio: true, directorPlan: true } },
         segments: { orderBy: { segmentIndex: "asc" } },
       },
     })) as unknown as StitchCandidateRow[];
@@ -544,6 +584,25 @@ export async function finishStitchTask(args: {
   }
 
   if (error || !stitchedVideoUrl) {
+    const failure = error ?? "external stitcher returned no URL";
+    /// P05-B：只重拼失败不落 FAILED——回滚到旧成片（READY + 旧 URL），brief 不动。
+    if (fv.previousStitchedVideoUrl) {
+      const rolled = await rollbackRestitch(finalVideoId, `restitch failed: ${failure}`, {
+        status: [FinalVideoStatus.STITCHING],
+        attemptToken: expectedAttemptToken,
+      });
+      if (!rolled.rolledBack) {
+        return staleStitchAttempt(finalVideoId, fv.status);
+      }
+      return {
+        finalVideoId,
+        ok: false,
+        status: FinalVideoStatus.READY,
+        stitchedVideoUrl: rolled.stitchedVideoUrl,
+        error: failure,
+        rolledBack: true,
+      };
+    }
     const finished = await db.finalVideo.updateMany({
       where: {
         id: fv.id,
@@ -552,7 +611,7 @@ export async function finishStitchTask(args: {
       },
       data: {
         status: FinalVideoStatus.FAILED,
-        ffmpegError: error ?? "external stitcher returned no URL",
+        ffmpegError: failure,
         finishedAt: new Date(),
         stitchAttempts: { increment: 1 },
         stitchAttemptToken: null,
@@ -565,7 +624,7 @@ export async function finishStitchTask(args: {
       finalVideoId,
       ok: false,
       status: FinalVideoStatus.FAILED,
-      error: error ?? "external stitcher returned no URL",
+      error: failure,
     };
   }
 
@@ -590,6 +649,9 @@ export async function finishStitchTask(args: {
       stitchAttempts: { increment: 1 },
       ffmpegError: null,
       stitchAttemptToken: null,
+      /// 只重拼成功：新片已就位，两份回滚依据都不再需要
+      previousStitchedVideoUrl: null,
+      previousPostProduction: Prisma.DbNull,
     },
   });
   if (finished.count === 0) {
@@ -848,6 +910,224 @@ export async function retryStitch(finalVideoId: string) {
   return stitchFinalVideo(finalVideoId);
 }
 
+/**
+ * P05-B 只重拼：READY 成片换字幕样式 / 配乐，零生成计费（段都在，只跑合成器）。
+ *
+ *   - 只放行 captions / bgm（parseRestitchPatch；带口播一律 INVALID_STATE）；
+ *   - brief 必须在可改成片的状态（canRestitchBriefStatus：交付前渲染态或已交付态，
+ *     归档 / 弃用一律拒绝）；
+ *   - 段原片若是会过期的临时签名地址（isEphemeralSignedUrl）直接拒绝——下载时多半已 403；
+ *   - 用 decideStitchPath 判一次：会直接复用首段 URL 的行（reuse_single_segment /
+ *     reuse_first_segment_demo）没有经过合成器，换了设置也不会体现 → 直接拒绝；
+ *   - CAS READY → PENDING，同时写 previousStitchedVideoUrl = 当前成片、previousPostProduction = 当前快照
+ *     （两份回滚依据）、stitchAttempts: 0、startedAt: now（排队超时从这里起算）与合并后的 postProduction；
+ *   - 然后走 stitchFinalVideo：inprocess 留 PENDING 等 stitch-dispatch 认领，local 内联合成。
+ *
+ * 分两段：prepareRestitch 只读（解析 + 校验 + 算合并快照），commitRestitch 才写——路由把限流放在两者之间，
+ * 不合法的补丁与明显不能重拼的状态不消耗限频名额（#16 审查 item 10）。
+ * 旧成片 URL 在重拼期间仍留在 stitchedVideoUrl：成品库照常能看能下载；
+ * 成功由 finishStitchTask 覆盖并清掉两个 previous 字段，失败走 rollbackRestitch。
+ */
+export interface PreparedRestitch {
+  finalVideoId: string;
+  briefId: string | null;
+  /// CAS 期望值：READY 行的当前成片与（应为 null 的）attempt token
+  expect: { stitchedVideoUrl: string; stitchAttemptToken: string | null };
+  previousPostProduction: PostProductionPlan;
+  merged: PostProductionPlan;
+}
+
+export async function prepareRestitch(
+  finalVideoId: string,
+  patchInput: unknown,
+): Promise<PreparedRestitch> {
+  const patch = parseRestitchPatch(patchInput);
+  const fv = await db.finalVideo.findUnique({
+    where: { id: finalVideoId },
+    include: {
+      brief: { select: { id: true, status: true } },
+      segments: { orderBy: { segmentIndex: "asc" } },
+    },
+  });
+  if (!fv) {
+    throw new RestitchRejectedError("RESOURCE_NOT_FOUND", "成片不存在。");
+  }
+  if (fv.status !== FinalVideoStatus.READY || !fv.stitchedVideoUrl) {
+    throw new RestitchRejectedError(
+      "INVALID_STATE",
+      fv.previousStitchedVideoUrl
+        ? "这条成片正在按新设置重拼，完成后再改。"
+        : "只有已完成的成片可以更换字幕样式 / 配乐；正在合成或失败的请先等它完成或重试。",
+    );
+  }
+  if (fv.brief && !canRestitchBriefStatus(fv.brief.status)) {
+    throw new RestitchRejectedError("INVALID_STATE", "这条视频已归档或弃用，不能再更改成片。");
+  }
+  if (!isStitchCandidateReady(fv)) {
+    throw new RestitchRejectedError("INVALID_STATE", "分段素材不完整，不能只重拼。");
+  }
+  if (fv.segments.some((segment) => segment.outputVideoUrl && isEphemeralSignedUrl(segment.outputVideoUrl))) {
+    throw new RestitchRejectedError(
+      "INVALID_STATE",
+      "分段原片是会过期的临时地址，可能已失效，不能只重拼；请重新生成。",
+    );
+  }
+  let base: PostProductionPlan | null;
+  try {
+    base = parsePersistedPostProduction(fv.postProduction);
+  } catch (err) {
+    throw new RestitchRejectedError("INVALID_STATE", (err as Error).message);
+  }
+  if (!base) {
+    throw new RestitchRejectedError(
+      "INVALID_STATE",
+      "这条成片没有后期设置快照（旧流程产物），不能只重拼；请重新生成。",
+    );
+  }
+
+  const mode = stitchRuntimeMode();
+  const isBroll = extractBrollClaimSegments(fv.segments) !== null;
+  const isUnified = !isBroll && (await briefHasUnifiedAssembly(fv.brief?.id));
+  const decision = decideStitchPath({
+    mode,
+    isBroll,
+    isUnified,
+    segmentCount: fv.segmentCount,
+    firstSegmentUrl: fv.segments[0]?.outputVideoUrl ?? null,
+    demo: process.env.ENABLE_VIDEO_STITCHING === "false",
+  });
+  if (decision === "reuse_single_segment" || decision === "reuse_first_segment_demo") {
+    throw new RestitchRejectedError(
+      "INVALID_STATE",
+      "这条成片直接复用了单段原片，没有经过合成器，更换字幕 / 配乐不会生效。",
+    );
+  }
+
+  const merged = mergeRestitchPatch(base, patch);
+  if (restitchPatchIsNoop(base, merged)) {
+    throw new RestitchRejectedError(
+      "VALIDATION_FAILED",
+      "字幕与配乐设置和当前成片一致，没有需要重拼的改动。",
+    );
+  }
+  return {
+    finalVideoId,
+    briefId: fv.brief?.id ?? null,
+    expect: { stitchedVideoUrl: fv.stitchedVideoUrl, stitchAttemptToken: fv.stitchAttemptToken },
+    previousPostProduction: base,
+    merged,
+  };
+}
+
+export async function commitRestitch(
+  prepared: PreparedRestitch,
+  options: { now?: Date } = {},
+): Promise<StitchResult> {
+  const now = options.now ?? new Date();
+  const reset = await db.finalVideo.updateMany({
+    where: {
+      id: prepared.finalVideoId,
+      status: FinalVideoStatus.READY,
+      stitchedVideoUrl: prepared.expect.stitchedVideoUrl,
+      stitchAttemptToken: prepared.expect.stitchAttemptToken,
+    },
+    data: {
+      status: FinalVideoStatus.PENDING,
+      /// 两份回滚依据：失败 / 超时 / 取消都回到这一版成片 + 这一版设置
+      previousStitchedVideoUrl: prepared.expect.stitchedVideoUrl,
+      previousPostProduction: prepared.previousPostProduction as unknown as Prisma.InputJsonValue,
+      postProduction: prepared.merged as unknown as Prisma.InputJsonValue,
+      /// 照抄 retryStitch：重置尝试预算，否则 claim 的 attempts < MAX 过滤会跳过它
+      stitchAttempts: 0,
+      stitchAttemptToken: null,
+      /// PENDING 上的 startedAt = 重新排队时刻（排队超时从这里起算）
+      startedAt: now,
+      finishedAt: null,
+      ffmpegError: null,
+    },
+  });
+  if (reset.count !== 1) {
+    throw new RestitchRejectedError("INVALID_STATE", "成片状态已变化，请刷新后重试。");
+  }
+  return stitchFinalVideo(prepared.finalVideoId);
+}
+
+export async function restitchReadyFinalVideo(
+  finalVideoId: string,
+  patchInput: unknown,
+  options: { now?: Date; beforeCommit?: (prepared: PreparedRestitch) => Promise<void> } = {},
+): Promise<StitchResult> {
+  const prepared = await prepareRestitch(finalVideoId, patchInput);
+  await options.beforeCommit?.(prepared);
+  return commitRestitch(prepared, { now: options.now });
+}
+
+export interface RollbackRestitchOptions {
+  /// 事务内调用时传 tx（single-video-cancel-service）
+  client?: Pick<Prisma.TransactionClient, "finalVideo">;
+  /// 只在这些状态下回滚（CAS 条件之一）；缺省 = 任何状态
+  status?: FinalVideoStatus[];
+  /// 只在仍持有这个 attempt token 时回滚（finishStitchTask / 清扫 STITCHING 超时）；
+  /// undefined = 不检查 token
+  attemptToken?: string | null;
+  now?: Date;
+}
+
+/**
+ * P05-B 统一回滚出口：只重拼没成（合成失败 / 清扫超时 / 客户取消）→ 回到旧成片。
+ *
+ *   识别依据 previousStitchedVideoUrl != null；CAS 钉住这个 URL（Prisma 不能列对列赋值，
+ *   先读再按读到的值做条件写）。同一个 CAS 里写回 status: READY、stitchedVideoUrl = 旧 URL、
+ *   postProduction = previousPostProduction（旧快照，#16 blocker 1：否则回滚后快照是一套从没渲染成功的设置，
+ *   配乐署名等读数会错）、清空两个 previous 字段、ffmpegError = reason；**不改 brief 状态**——
+ *   客户视角成片一直都在，只是这次换设置没成。
+ *
+ *   五处调用：finishStitchTask 失败分支、sweepStuckStitching（STITCHING 超时达上限）、
+ *   sweepAwaitingStitchTimeout（等合成超时）、cancelUnifiedOrderForUser 与 cancelBrollDelivery（重拼中取消）。
+ */
+export async function rollbackRestitch(
+  finalVideoId: string,
+  reason: string,
+  options: RollbackRestitchOptions = {},
+): Promise<{ rolledBack: boolean; stitchedVideoUrl: string | null }> {
+  const client = options.client ?? db;
+  const now = options.now ?? new Date();
+  const row = await client.finalVideo.findUnique({
+    where: { id: finalVideoId },
+    select: { previousStitchedVideoUrl: true, previousPostProduction: true },
+  });
+  const previous = row?.previousStitchedVideoUrl ?? null;
+  if (!previous) return { rolledBack: false, stitchedVideoUrl: null };
+  const previousPostProduction = row?.previousPostProduction ?? null;
+
+  const updated = await client.finalVideo.updateMany({
+    where: {
+      id: finalVideoId,
+      previousStitchedVideoUrl: previous,
+      ...(options.status ? { status: { in: options.status } } : {}),
+      ...(options.attemptToken !== undefined ? { stitchAttemptToken: options.attemptToken } : {}),
+    },
+    data: {
+      status: FinalVideoStatus.READY,
+      stitchedVideoUrl: previous,
+      previousStitchedVideoUrl: null,
+      /// 旧快照写回（没存到就不动 postProduction——迁移前的在途行）
+      ...(previousPostProduction != null
+        ? { postProduction: previousPostProduction as Prisma.InputJsonValue }
+        : {}),
+      previousPostProduction: Prisma.DbNull,
+      ffmpegError: reason.replace(/https?:\/\/\S+/g, "<url>").slice(0, 500),
+      stitchAttemptToken: null,
+      finishedAt: now,
+    },
+  });
+  const rolledBack = updated.count > 0;
+  if (rolledBack) {
+    console.warn("[stitch] restitch rolled back to previous video", { finalVideoId, reason });
+  }
+  return { rolledBack, stitchedVideoUrl: previous };
+}
+
 async function reviewGeneratedVideo(
   videoUrl: string,
   thumbnailUrl: string | null,
@@ -865,31 +1145,88 @@ async function reviewGeneratedVideo(
   });
 }
 
+/**
+ * 成片就位 → brief 同步（#16 审查 item 6 改成白名单）。
+ *   - 交付前渲染态（RENDER_QUEUED / RENDERING / RENDER_SUCCEEDED / RENDER_FAILED / QA_PENDING / QA_REJECTED）：
+ *     brief → QA_PENDING + 成片 / 缩略图 URL，建 QA 桩（挂成片级复检标记）。
+ *   - 已交付（QA_APPROVED / PUBLISH_PENDING / PUBLISHED / METRICS_COLLECTING / SCORED）：状态不动、不建 QA 桩，
+ *     只刷新 URL；复检标记挂到最近一条 QAReview 上（item 12）。
+ *   - 其它（ARCHIVED / DROPPED / 更早阶段）：只刷新 URL，状态一律不动。
+ *   - 已有品牌封装成片（brandedVideoUrl）的：封装的是旧片，**保留指针**只记日志「需要重新品牌封装」
+ *     （item 9；brandedAt 也不动）。
+ */
 async function markBriefReady(briefId: string) {
   const brief = await db.videoBrief.findUnique({
     where: { id: briefId },
-    select: { finalVideoId: true, finalVideo: true },
+    select: { finalVideoId: true, status: true, brandedVideoUrl: true, finalVideo: true },
   });
   if (!brief?.finalVideo) return;
+  const preDelivery = isPreDeliveryBriefStatus(brief.status);
+  if (brief.brandedVideoUrl) {
+    console.warn("[stitch] 需要重新品牌封装：成片已更新，现有品牌封装成片对应的是旧片（指针保留）", {
+      briefId,
+      briefStatus: brief.status,
+    });
+  }
   await db.videoBrief.update({
     where: { id: briefId },
     data: {
-      status: VideoBriefStatus.QA_PENDING,
+      ...(preDelivery ? { status: VideoBriefStatus.QA_PENDING } : {}),
       finalVideoUrl: brief.finalVideo.stitchedVideoUrl,
       finalThumbnailUrl: brief.finalVideo.thumbnailUrl,
     },
   });
-  await ensureQAPendingStub(briefId);
+  if (preDelivery) {
+    await ensureQAPendingStub(briefId);
+    return;
+  }
+  if (isDeliveredBriefStatus(brief.status)) {
+    await stampFinalFrameQaOnLatestReview(briefId);
+  }
 }
 
+/**
+ * QA 桩 + 成片级复检标记（P01-E 影子）：成片就位时在 aiScoreBreakdown 上挂
+ * finalFrameQa = { status: "pending", requestedAt }，由 poll-videos cron 在帧质检预算内消费。
+ * 已有 PENDING 桩（只重拼换了成片）就整体覆盖 finalFrameQa 对象并清掉上一版成片的「[成片复检]」问题，
+ * 8 维打分与别人的问题原样（按归属合并，见 qa-review-merge）。
+ * video-service.ts 里旧单段路径的同名副本不在此改（留给 C4）。
+ */
 async function ensureQAPendingStub(briefId: string) {
   const existing = await db.qAReview.findFirst({
     where: { videoBriefId: briefId, status: "PENDING" },
   });
-  if (existing) return;
+  if (existing) {
+    /// 已经在排队复检就不重复写（避免每次刷新都刷 updatedAt）
+    if (readFinalFrameQaMark(existing.aiScoreBreakdown)?.status === "pending") return;
+    await stampFinalFrameQa(existing.id);
+    return;
+  }
   await db.qAReview.create({
-    data: { videoBriefId: briefId, status: "PENDING" },
+    data: {
+      videoBriefId: briefId,
+      status: "PENDING",
+      aiScoreBreakdown: pendingFinalFrameQaMark() as unknown as Prisma.InputJsonValue,
+    },
   });
+}
+
+/** 已交付 brief 只重拼成功：复检标记挂到最近一条 QAReview（不新建 PENDING 桩，不进审核队列）。 */
+async function stampFinalFrameQaOnLatestReview(briefId: string) {
+  const latest = await db.qAReview.findFirst({
+    where: { videoBriefId: briefId },
+    orderBy: { createdAt: "desc" },
+  });
+  if (!latest) return;
+  await stampFinalFrameQa(latest.id);
+}
+
+async function stampFinalFrameQa(reviewId: string) {
+  const mark = newPendingFinalFrameQa();
+  await writeQaReview(
+    (tx) => tx.qAReview.findUnique({ where: { id: reviewId } }),
+    (fresh) => ({ data: mergeFinalFrameQaReview(fresh, { mark, issues: [] }), result: true }),
+  );
 }
 
 /** 运行时模式（唯一判定见 src/lib/media/stitch-runtime.ts） */
@@ -1060,26 +1397,6 @@ export async function runFfmpegNormalizeAndConcatWithPostProduction(params: {
     stitchedVideoUrl: result.stitchedVideoUrl,
     subtitleFileUrl: result.subtitleFileUrl,
   };
-}
-
-/**
- * 判断 URL 是否为「带过期签名的临时地址」（如火山 TOS / S3 预签名，24h 失效）。
- * 这类 URL 绝不能直接写进 stitchedVideoUrl —— 过期后成片 403，用户视角等于视频丢失。
- */
-export function isEphemeralSignedUrl(url: string): boolean {
-  try {
-    const u = new URL(url);
-    const params = u.searchParams;
-    return (
-      params.has("X-Tos-Expires") ||
-      params.has("X-Amz-Expires") ||
-      params.has("X-Tos-Signature") ||
-      params.has("X-Amz-Signature") ||
-      params.has("Expires")
-    );
-  } catch {
-    return false;
-  }
 }
 
 function safePathFromUrl(url: string): string | null {

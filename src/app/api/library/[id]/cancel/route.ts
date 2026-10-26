@@ -26,5 +26,11 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       { status: result.reason === "not_found" ? 404 : 409 },
     );
   }
-  return NextResponse.json({ ok: true, cancelledJobs: result.cancelledJobs, refunded: result.refundedBriefs > 0 });
+  return NextResponse.json({
+    ok: true,
+    cancelledJobs: result.cancelledJobs,
+    refunded: result.refundedBriefs > 0,
+    /// P05-B：只重拼中取消 = 回滚到旧成片的条数（订单未取消、无返还）
+    restitchRolledBack: result.restitchRolledBack ?? 0,
+  });
 }

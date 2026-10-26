@@ -30,10 +30,8 @@ import { getShuyuRouteRuntimeAvailability } from "../shuyu-runtime";
  *
  * 诉求 ≠ 授权。`qualityTier === "final"` 只表达「这次想要 1080P」,**不**推出「准许 1080P」:
  * 授权来自 resolveShuyuVideoPlan 的 allowFinal 闸门(服务端 env SHUYU_ALLOW_FINAL_TIER,
- * 生产忽略;或调用链显式 allowFinal:true)。适配器一律不传 allowFinal(交给闸门),
- * P03-D0 要在 CreateVideoJobOptions 里引入**独立的授权标记**(例如 allowFinalTier,
- * 由 isInternalStaff 推出)再接到这里;qualityTier 本身也等 P03-D0 正式进 types.ts,
- * 在那之前按结构读取,不改 providers/types.ts。
+ * 生产忽略;或调用链显式 allowFinal:true)。适配器一律不传 allowFinal(交给闸门);
+ * 将来若要按调用方放开 final 档,必须另设**独立的授权标记**,不得复用 qualityTier。
  *
  * **不能**从 `options.resolution === "1080p"` 推断:模板锁参(generic/sunnyshutter
  * commerce template)与 video-service 今天一律传 "1080p"(成片拉伸口径),按它推断
@@ -42,14 +40,16 @@ import { getShuyuRouteRuntimeAvailability } from "../shuyu-runtime";
 function requestedShuyuVideoPlanTier(
   options: CreateVideoJobOptions,
 ): ShuyuVideoPlanTier {
-  const value = (options as { qualityTier?: unknown }).qualityTier;
-  return value === "final" ? "final" : "draft";
+  return options.qualityTier === "final" ? "final" : "draft";
 }
 
 export class ShuyuVideoProvider implements VideoProvider {
   readonly id = "shuyu" as const;
   readonly displayName = "Shuyu API (Seedance partner route)";
   readonly manualRetryBillingRisk = "possible" as const;
+  /// Shuyu 请求体没有经过审计的音频/视频参考字段(P03-D″ 以 E2″ 实证为准再接)。
+  readonly supportsReferenceAudio = false;
+  readonly maxReferenceImages = SHUYU_MAX_REFERENCE_IMAGES;
 
   constructor(
     private readonly model: string = SHUYU_VIDEO_MODEL,
@@ -123,6 +123,19 @@ export class ShuyuVideoProvider implements VideoProvider {
         { providerId: this.id, stage: "preflight", retryable: false },
       );
     }
+    /// 静默丢弃会让客户以为声音/动作参考生效了;必须在任何网络请求(含内容审核)前拒绝。
+    if ((options.referenceAudios?.length ?? 0) > 0) {
+      throw new ProviderSubmissionError(
+        "Shuyu route does not support reference audio",
+        { providerId: this.id, stage: "preflight", retryable: false },
+      );
+    }
+    if ((options.referenceVideos?.length ?? 0) > 0) {
+      throw new ProviderSubmissionError(
+        "Shuyu route does not support reference videos",
+        { providerId: this.id, stage: "preflight", retryable: false },
+      );
+    }
 
     try {
       const { reviewTextOrThrow } = await import("@/lib/content-review");
@@ -147,7 +160,7 @@ export class ShuyuVideoProvider implements VideoProvider {
     /// 套餐从 /prices 动态解析:默认取所在档审计清单首位(draft 档 = 最便宜的 720P,
     /// 跳过提交被拒后处于冷却中的套餐);调用方显式指定的套餐必须在审计清单内,
     /// 否则 fail-closed,且显式选择绝不静默替换。final 档(1080P)的授权只来自闸门
-    /// (服务端 env SHUYU_ALLOW_FINAL_TIER,生产忽略;P03-D0 再接独立授权标记)——
+    /// (服务端 env SHUYU_ALLOW_FINAL_TIER,生产忽略)——
     /// 适配器不传 allowFinal,也不从 qualityTier 诉求推出授权;默认解析仍在 draft 档内。
     const requestedTier = requestedShuyuVideoPlanTier(options);
     const explicitPlanId = options.providerPlanId?.trim() || null;

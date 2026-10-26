@@ -570,7 +570,7 @@ test("客户显式选 1080P planId 在适配器层被拒(预检、不可重试�
           providerRequestKey: "tier-request-final-no-auth-1",
           prompt: "Show the product.",
           durationSec: 5,
-          ...({ qualityTier: "final" } as Record<string, unknown>),
+          qualityTier: "final",
         }),
       rejectedAsFinal,
     );
@@ -592,7 +592,7 @@ test("诉求 final + 授权(env):默认取 1080P 档首位;显式 planId 指向 
       providerRequestKey: "tier-final-default-1",
       prompt: "Show the product.",
       durationSec: 5,
-      ...({ qualityTier: "final" } as Record<string, unknown>),
+      qualityTier: "final",
     });
     assert.equal(finalDefault.providerPlanId, "video-plan-13");
     assert.equal(finalDefault.providerUnitPoints, 240 * 5);
@@ -602,7 +602,7 @@ test("诉求 final + 授权(env):默认取 1080P 档首位;显式 planId 指向 
       prompt: "Show the product.",
       durationSec: 5,
       providerPlanId: "video-plan-13",
-      ...({ qualityTier: "final" } as Record<string, unknown>),
+      qualityTier: "final",
     });
     assert.equal(explicitFinal.providerPlanId, "video-plan-13");
 
@@ -613,7 +613,7 @@ test("诉求 final + 授权(env):默认取 1080P 档首位;显式 planId 指向 
           prompt: "Show the product.",
           durationSec: 5,
           providerPlanId: "video-plan-01",
-          ...({ qualityTier: "final" } as Record<string, unknown>),
+          qualityTier: "final",
         }),
       (error: unknown) =>
         error instanceof ProviderSubmissionError &&
@@ -675,6 +675,79 @@ test("脚本路径:SHUYU_ALLOW_FINAL_TIER=1 + 显式 1080P planId → 放行;不
     assert.equal(explicit.providerPlanId, "video-plan-13");
     assert.equal(explicit.providerUnitPoints, 240 * 5);
     assert.deepEqual(submissions.map((body) => body.plan_id), ["video-plan-01", "video-plan-13"]);
+  } finally {
+    __testVideoPlans__.resetVideoPlanCache();
+  }
+});
+
+test("P03-D0:非空参考音频/视频在预检拒绝(不可重试),内容审核与 Shuyu 均零网络请求", async (t) => {
+  let shuyuCalls = 0;
+  let globalCalls = 0;
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    globalCalls += 1;
+    throw new Error("must not fetch");
+  }) as typeof fetch;
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  const provider = new ShuyuVideoProvider("studio-video", {
+    env: { SHUYU_API_KEY: "configured" },
+    fetchImpl: async () => {
+      shuyuCalls += 1;
+      throw new Error("must not fetch");
+    },
+  });
+  const base = {
+    providerRequestKey: "reference-media-key-1",
+    prompt: "Show the product.",
+    durationSec: 5,
+  };
+  const rejectedPreflight = (pattern: RegExp) => (error: unknown) =>
+    error instanceof ProviderSubmissionError &&
+    error.stage === "preflight" &&
+    error.retryable === false &&
+    error.disposition === "definitely_not_created" &&
+    pattern.test(error.message);
+
+  await assert.rejects(
+    () =>
+      provider.createVideoJob({
+        ...base,
+        referenceAudios: [{ url: "https://cdn.example.test/voice.mp3", durationSec: 8 }],
+      }),
+    rejectedPreflight(/reference audio/),
+  );
+  await assert.rejects(
+    () =>
+      provider.createVideoJob({
+        ...base,
+        referenceVideos: [{ url: "https://cdn.example.test/motion.mp4" }],
+      }),
+    rejectedPreflight(/reference videos/),
+  );
+  assert.equal(shuyuCalls, 0);
+  assert.equal(globalCalls, 0);
+});
+
+test("P03-D0:空数组的参考音频/视频等同未传,照常走到提交", async () => {
+  __testVideoPlans__.resetVideoPlanCache();
+  try {
+    const submissions: Array<Record<string, unknown>> = [];
+    const provider = new ShuyuVideoProvider("studio-video", {
+      fetchImpl: tieredFetch([DRAFT_FLAT], [], submissions),
+      env: { SHUYU_API_KEY: "configured" },
+    });
+    await provider.createVideoJob({
+      providerRequestKey: "reference-media-empty-1",
+      prompt: "Show the product.",
+      durationSec: 5,
+      referenceAudios: [],
+      referenceVideos: [],
+    });
+    assert.equal(submissions.length, 1);
+    assert.equal("reference_audios" in submissions[0]!, false);
+    assert.equal("reference_videos" in submissions[0]!, false);
   } finally {
     __testVideoPlans__.resetVideoPlanCache();
   }

@@ -7,6 +7,7 @@ import { contactEmail } from "@/lib/config/contact";
 import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
 import { Button } from "@/components/ui/button";
 import { VideoActions } from "@/components/library/video-actions";
+import { RestitchForm } from "@/components/library/restitch-form";
 import { CancelVideoButton } from "@/components/library/cancel-video-button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { ReportContentButton } from "@/components/library/report-content-button";
@@ -144,6 +145,26 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} contactEmail={contactEmail()} />
                 <ReportContentButton briefId={item.briefId} />
               </div>
+            ) : null}
+            {/* P05-B 只重拼：READY 成片换字幕样式 / BGM，零生成计费；失败自动回滚到旧成片 */}
+            {canAct && item.briefId && item.canRestitch && item.restitchDefaults ? (
+              <RestitchForm
+                briefId={item.briefId}
+                english={locale === "en-US"}
+                defaults={item.restitchDefaults}
+                branded={Boolean(item.brandedVideoUrl)}
+                copy={{
+                  title: copy.restitchTitle,
+                  hint: copy.restitchHint,
+                  submit: copy.restitchSubmit,
+                  submitting: copy.restitchSubmitting,
+                  started: copy.restitchStarted,
+                  invalidState: copy.restitchInvalidState,
+                  rateLimited: copy.restitchRateLimited,
+                  failed: copy.restitchFailed,
+                  repackageHint: copy.restitchRepackageHint,
+                }}
+              />
             ) : null}
           </aside>
         ) : null}

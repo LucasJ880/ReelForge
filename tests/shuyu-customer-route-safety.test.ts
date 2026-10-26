@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { publicVideoRouteOptionsResponseSchema } from "../src/lib/contracts/video-route-options";
+import {
+  publicVideoPlanOptionSchema,
+  publicVideoRouteOptionsResponseSchema,
+} from "../src/lib/contracts/video-route-options";
 import { createVideoRouteSnapshot } from "../src/lib/video-generation/video-route-registry";
 import {
   getVideoRouteSnapshotRuntimeAvailability,
@@ -130,6 +133,37 @@ test("zero Shuyu balance is unavailable before submission and exposes no raw bal
     ],
     }),
   );
+});
+
+test("routes API:final 档(1080P)只对内部员工返回;客户清单只剩 draft;显示名按档位出", async () => {
+  /// P03-A1:1080P 客户定价未定。客户面 GET /api/video-generation/routes 不得返回
+  /// tier="final" 的套餐;员工判定与 requireOperator 同口径(isInternalRole)。
+  const source = await readFile("src/app/api/video-generation/routes/route.ts", "utf8");
+  assert.match(source, /isInternalRole\(guard\.session\.user\.role\)/);
+  assert.match(source, /auditedPlans\.filter\(\(plan\) => plan\.tier === "draft"\)/);
+  assert.match(source, /tier: plan\.tier/);
+  assert.doesNotMatch(source, /Seedance 720P"/, "显示名不再写死 720P");
+  /// 默认档仍取清单首位(排序保证 draft 的 720P 在前),六处默认成本口径之一。
+  assert.match(source, /const defaultPlan = plans\[0\]/);
+
+  /// 公开契约:1080P/final 可表达(给员工看),未知档位与 4K 一律拒绝。
+  const finalOption = publicVideoPlanOptionSchema.parse({
+    planId: "video-plan-13",
+    displayName: "视频-Seedance2.0-1080P-推荐1",
+    resolution: "1080P",
+    tier: "final",
+    billingUnit: "second",
+    unitSalePoints: 240,
+    pointsPer15s: 3_600,
+    isDefault: false,
+  });
+  assert.equal(finalOption.tier, "final");
+  assert.throws(() => publicVideoPlanOptionSchema.parse({ ...finalOption, tier: "premium" }));
+  assert.throws(() => publicVideoPlanOptionSchema.parse({ ...finalOption, resolution: "4K" }));
+  /// tier 可选:旧客户端/旧 payload 缺失时仍能解析。
+  const { tier: _omitted, ...withoutTier } = finalOption;
+  void _omitted;
+  assert.equal(publicVideoPlanOptionSchema.parse(withoutTier).tier, undefined);
 });
 
 test("direct dispatch replays before provider checks and checks the whole batch before quota", async () => {

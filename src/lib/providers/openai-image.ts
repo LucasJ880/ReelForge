@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { toFile } from "openai/uploads";
 import { buildLogoPrompt } from "@/lib/ai/logo-prompt";
 import { isDryRun } from "@/lib/config/dry-run";
+import { markCapability } from "@/lib/services/capability-status-service";
 import { getStorageProvider } from "@/lib/storage";
 
 /**
@@ -90,13 +91,20 @@ export async function generateImages(
   /// gpt-image-1/2 单次最多 10 张；同步调用即可。
   /// 注意：size 入参在新模型（gpt-image-2）下可以是任意满足约束的分辨率字符串，
   /// SDK 类型对其它字符串可能严格 → 这里用 unknown 强转避开类型墙，运行时由 OpenAI 校验。
-  const response = await openai.images.generate({
-    model,
-    prompt: args.prompt,
-    n,
-    size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
-    quality: args.quality,
-  });
+  const response = await openai.images
+    .generate({
+      model,
+      prompt: args.prompt,
+      n,
+      size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
+      quality: args.quality,
+    })
+    .catch(async (err: unknown) => {
+      /// C4 · 「配图与 Logo」能力实时回写：额度 / 权限错误即暂停（超时与 5xx 不改状态）。
+      await markCapability("graphics", { error: err }, { detail: { provider: "openai", model } });
+      throw err;
+    });
+  await markCapability("graphics", "success", { detail: { provider: "openai", model } });
 
   /// gpt-image-1 默认返回 b64_json（不返回 url），需要我们把 base64 持久化成 Blob 拿到稳定 URL
   const items = (response.data ?? []).filter(Boolean);
@@ -232,14 +240,20 @@ export async function composeReferenceImage(
       )
     : undefined;
 
-  const response = await openai.images.edit({
-    model,
-    image: files,
-    ...(maskFile ? { mask: maskFile } : {}),
-    prompt: args.prompt,
-    size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
-    quality: args.quality,
-  });
+  const response = await openai.images
+    .edit({
+      model,
+      image: files,
+      ...(maskFile ? { mask: maskFile } : {}),
+      prompt: args.prompt,
+      size: size as unknown as "1024x1024" | "1024x1536" | "1536x1024",
+      quality: args.quality,
+    })
+    .catch(async (err: unknown) => {
+      await markCapability("graphics", { error: err }, { detail: { provider: "openai", model } });
+      throw err;
+    });
+  await markCapability("graphics", "success", { detail: { provider: "openai", model } });
 
   const item = (response.data ?? []).filter(Boolean)[0];
   if (!item) throw new Error("OpenAI 图像合成返回空结果");

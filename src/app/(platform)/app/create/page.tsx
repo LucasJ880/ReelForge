@@ -5,6 +5,7 @@ import {
   type StudioReadings,
 } from "@/components/video-generation/streamlined-video-studio";
 import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
+import { getCapabilities } from "@/lib/services/capability-status-service";
 import { authOptions } from "@/lib/auth";
 import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
 import { loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
@@ -39,9 +40,11 @@ export default async function PlatformCreatePage({
     getServerLocale(),
     getCustomerRouteRehearsalState("create"),
   ]);
-  const [brandPackages, readings] = await Promise.all([
+  const [brandPackages, readings, capabilities] = await Promise.all([
     listWorkspaceBrandPackagesForUser(session.user.id),
     loadCreateReadings(session.user.id, routeState === "empty"),
+    /// C4：能力状态（纯 DTO）交给客户端——实拍线路、口播稿起草与画面质检说明据此诚实显示。永不抛出。
+    getCapabilities(),
   ]);
   const result = productImageResultId
     ? await findProductImageResultForUser(productImageResultId, session.user.id)
@@ -99,6 +102,7 @@ export default async function PlatformCreatePage({
         showInternalVideoRoutes={false}
         forceOnboarding={guide === "open"}
         brollAvailable={isBrollRouteAvailable()}
+        capabilities={capabilities}
         readings={readings}
       />
     </div>

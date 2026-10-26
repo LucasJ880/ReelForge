@@ -1,7 +1,9 @@
 "use client";
 
 import { AudioLines, Captions, Music2, RefreshCw } from "lucide-react";
+import { TickGlyph, tickToneClass } from "@/components/exchange/status-tick";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { bgmAttributionForTrack } from "@/lib/video-generation/bgm-attribution";
 import type {
   BgmTrackId,
@@ -35,6 +37,11 @@ interface AudioCaptionControlsProps {
   disabled?: boolean;
   onChange: (next: AudioCaptionControlValue) => void;
   onRegenerate: () => void;
+  /**
+   * C4 · AI 写作暂停时为 true：按钮写明「按模板」，并提示这份稿是模板起的、要按产品改一改。
+   * （起稿本身一直是本地确定性模板，见 generateVoiceoverScript——这里不许暗示 AI 在写。）
+   */
+  draftFromTemplate?: boolean;
 }
 
 const VOICE_OPTIONS = [
@@ -233,6 +240,7 @@ export function AudioCaptionControls({
   disabled = false,
   onChange,
   onRegenerate,
+  draftFromTemplate = false,
 }: AudioCaptionControlsProps) {
   const update = (patch: Partial<AudioCaptionControlValue>) => {
     onChange({ ...value, ...patch });
@@ -304,12 +312,25 @@ export function AudioCaptionControls({
                 className="w-full"
                 disabled={disabled}
                 onClick={onRegenerate}
+                data-draft-source={draftFromTemplate ? "template" : undefined}
               >
                 <RefreshCw aria-hidden />
-                {english ? "Generate voiceover script" : "生成口播稿"}
+                {draftFromTemplate
+                  ? english ? "Draft script from template" : "按模板生成口播稿"
+                  : english ? "Generate voiceover script" : "生成口播稿"}
               </Button>
             </div>
           </div>
+          {draftFromTemplate ? (
+            <p data-testid="voiceover-template-notice" className="flex items-start gap-2 text-meta text-muted-foreground">
+              <TickGlyph tone="fault" className={cn("mt-[0.3em]", tickToneClass("fault"))} />
+              <span className="text-pretty">
+                {english
+                  ? "AI writing is paused: this draft comes from a template, so tailor it to your product before generating."
+                  : "AI 写作暂停：这份口播稿按模板起稿，请按你的产品改一改再生成。"}
+              </span>
+            </p>
+          ) : null}
         </section>
 
         <details className="group border-t border-border pt-3">

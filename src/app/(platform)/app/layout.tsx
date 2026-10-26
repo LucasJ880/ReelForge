@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { isInternalRole } from "@/lib/auth-role-policy";
 import { db } from "@/lib/db";
 import { loadPulse } from "@/lib/services/exchange-readings";
+import { getCapabilities } from "@/lib/services/capability-status-service";
 import { getServerLocale } from "@/i18n/server";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,11 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   if (!session?.user?.id) redirect("/login?from=/app");
   const userId = session.user.id;
   const locale = await getServerLocale();
-  const [workspace, pulse] = await Promise.all([
+  const [workspace, pulse, capabilities] = await Promise.all([
     db.workspace.findUnique({ where: { ownerId: userId }, select: { name: true } }),
     loadPulse(userId, { locale }),
+    /// C4：能力状态（进程内缓存 60 秒，永不抛出）——状态栏据此亮「部分 AI 能力暂停」。
+    getCapabilities(),
   ]);
   if (!workspace) throw new Error("默认 Workspace 不存在");
   return (
@@ -28,6 +31,7 @@ export default async function PlatformLayout({ children }: { children: React.Rea
       email={session.user.email ?? ""}
       workspaceName={workspace.name}
       initialPulse={pulse}
+      initialCapabilities={capabilities}
       showOpsCredits={isInternalRole(session.user.role)}
     >
       {children}

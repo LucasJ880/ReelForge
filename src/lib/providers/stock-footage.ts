@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { markCapability } from "@/lib/services/capability-status-service";
 
 /**
  * 免费图库视频素材适配器（Pexels + Pixabay）。
@@ -76,6 +77,17 @@ export class StockFootageUnavailableError extends Error {
   }
 }
 
+/** 图库 HTTP 失败：带上状态码，能力状态（C4）据此区分「key 被拒」与「临时抖动」。 */
+export class StockFootageHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+    this.name = "StockFootageHttpError";
+  }
+}
+
 /**
  * 日志脱敏（MPT 的 _redact_request_error 思路）：
  * 错误信息里可能带完整请求 URL，Pixabay 的 key 就在 query 上。
@@ -113,7 +125,7 @@ async function searchPexels(args: {
     headers: { Authorization: args.key },
   });
   if (!res.ok) {
-    throw new Error(`Pexels ${res.status}: ${redactSecrets(await res.text())}`);
+    throw new StockFootageHttpError(`Pexels ${res.status}: ${redactSecrets(await res.text())}`, res.status);
   }
   const body = (await res.json()) as {
     videos?: Array<{
@@ -178,8 +190,9 @@ async function searchPixabay(args: {
 
   const res = await args.fetchImpl(url.toString());
   if (!res.ok) {
-    throw new Error(
+    throw new StockFootageHttpError(
       `Pixabay ${res.status}: ${redactSecrets(await res.text())}`,
+      res.status,
     );
   }
   const body = (await res.json()) as {
@@ -272,10 +285,17 @@ export async function searchStockClips(args: {
     )
     .flatMap((result) => result.value);
 
+  const rejected = results.filter((result): result is PromiseRejectedResult => result.status === "rejected");
+  if (rejected.length < results.length) {
+    /// C4 · 至少一个图库答上了话：「图库素材」正常（同状态 10 分钟只写一次，永不抛出）。
+    await markCapability("stock", "success", { detail: { provider: pexelsKeys.length ? "pexels" : "pixabay" } });
+  } else if (rejected.length > 0) {
+    /// 全挂了：只有 key 被拒（401/403）这类账户层错误才标暂停，抖动不改状态。
+    await markCapability("stock", { error: rejected[0]?.reason }, { detail: { provider: pexelsKeys.length ? "pexels" : "pixabay" } });
+  }
+
   if (clips.length === 0) {
-    const errors = results
-      .filter((result): result is PromiseRejectedResult => result.status === "rejected")
-      .map((result) => redactSecrets(String(result.reason)));
+    const errors = rejected.map((result) => redactSecrets(String(result.reason)));
     if (errors.length === results.length && errors.length > 0) {
       throw new Error(`图库搜索全部失败：${errors.join(" | ")}`);
     }

@@ -13,6 +13,8 @@
  * 假装处理过会让下游把整图当成 RGBA 切片用。
  */
 
+import { markCapability } from "@/lib/services/capability-status-service";
+
 export type CutoutProviderId = "remove_bg" | "clipdrop";
 
 export class CutoutUnavailableError extends Error {
@@ -28,9 +30,25 @@ export class CutoutFailedError extends Error {
   constructor(
     readonly provider: CutoutProviderId,
     message: string,
+    /** HTTP 状态码（C4 能力状态据此区分额度 / key 问题与单张图的问题） */
+    readonly status?: number,
   ) {
     super(`[${provider}] 抠图失败：${message}`);
     this.name = "CutoutFailedError";
+  }
+}
+
+/**
+ * C4 · 「产品抠图」实时回写：额度用完（402）/ key 被拒（401/403）→ 暂停；
+ * 400（图片本身不合格、roi 不合法）是这一张图的问题，不改能力状态。
+ */
+async function markCutout(provider: CutoutProviderId, outcome: "success" | CutoutFailedError): Promise<void> {
+  if (outcome === "success") {
+    await markCapability("cutout", "success", { detail: { provider } });
+    return;
+  }
+  if (outcome.status === 401 || outcome.status === 402 || outcome.status === 403) {
+    await markCapability("cutout", { error: outcome }, { detail: { provider } });
   }
 }
 
@@ -105,11 +123,15 @@ export async function cutoutProduct(
       body: form,
     });
     if (!res.ok) {
-      throw new CutoutFailedError(
+      const error = new CutoutFailedError(
         "remove_bg",
         `HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`,
+        res.status,
       );
+      await markCutout("remove_bg", error);
+      throw error;
     }
+    await markCutout("remove_bg", "success");
     return { rgba: Buffer.from(await res.arrayBuffer()), provider };
   }
 
@@ -125,10 +147,14 @@ export async function cutoutProduct(
     body: form,
   });
   if (!res.ok) {
-    throw new CutoutFailedError(
+    const error = new CutoutFailedError(
       "clipdrop",
       `HTTP ${res.status} ${(await res.text().catch(() => "")).slice(0, 200)}`,
+      res.status,
     );
+    await markCutout("clipdrop", error);
+    throw error;
   }
+  await markCutout("clipdrop", "success");
   return { rgba: Buffer.from(await res.arrayBuffer()), provider };
 }

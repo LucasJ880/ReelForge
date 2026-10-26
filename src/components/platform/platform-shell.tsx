@@ -34,6 +34,8 @@ import { useNow } from "@/components/exchange/use-now";
 import { usePulse } from "@/components/exchange/use-pulse";
 import { ExchangeTape, batchTapeItems, type TapeEntry } from "@/components/exchange/exchange-tape";
 import { OpsCreditsCluster } from "@/components/platform/ops-credits-cluster";
+import { CapabilityIndicator } from "@/components/capabilities/capability-indicator";
+import type { PublicCapabilities } from "@/lib/capabilities/registry";
 import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { LOCALES, LOCALE_LABELS, type Locale } from "@/i18n/config";
 import type { ExchangePulse } from "@/lib/exchange/pulse";
@@ -259,6 +261,7 @@ export function PlatformShell({
   email,
   workspaceName,
   initialPulse,
+  initialCapabilities = null,
   showOpsCredits = false,
 }: {
   children: React.ReactNode;
@@ -266,6 +269,8 @@ export function PlatformShell({
   workspaceName: string;
   /** 服务端首屏脉搏（loadPulse）；之后由 usePulse 每 30 秒刷新。 */
   initialPulse: ExchangePulse;
+  /** C4 · 服务端首屏能力状态（getCapabilities）；之后由 useCapabilities 每 5 分钟刷新。 */
+  initialCapabilities?: PublicCapabilities | null;
   showOpsCredits?: boolean;
 }) {
   const pathname = usePathname();
@@ -386,13 +391,17 @@ export function PlatformShell({
       </div>
 
       <footer className="x-pane fixed inset-x-0 bottom-0 z-30 hidden h-(--shell-status) items-center gap-4 border-t px-4 text-data text-muted-foreground md:flex">
-        <span className="flex items-center gap-2">
+        <span className="flex min-w-0 items-center gap-2">
           <span className="x-live" data-tone={live ? "live" : "idle"} aria-hidden />
-          <span>{copy.statusSource}</span>
+          <span className="truncate">{copy.statusSource}</span>
         </span>
-        <span className="ml-auto flex items-center gap-2">
-          <span className="text-tertiary">{copy.statusClock}</span>
-          <Clock label={copy.statusClock} />
+        <span className="ml-auto flex shrink-0 items-center gap-4">
+          {/* C4：有 AI 能力暂停 / 不稳定时亮出来，点进去看哪些停了、系统改用什么 */}
+          <CapabilityIndicator initial={initialCapabilities} locale={locale} />
+          <span className="flex items-center gap-2">
+            <span className="text-tertiary">{copy.statusClock}</span>
+            <Clock label={copy.statusClock} />
+          </span>
         </span>
       </footer>
 

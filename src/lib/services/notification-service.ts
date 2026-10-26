@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { db } from "@/lib/db";
 import { getGrowthCopy, labelFor } from "@/i18n/growth-copy";
 import { founderNotifyEmail } from "@/lib/config/contact";
+import { markCapability } from "@/lib/services/capability-status-service";
 
 /**
  * 新询盘 / 试点申请的通知（计划 D8）。
@@ -63,6 +64,13 @@ export async function sendEmail(
   if (!response.ok) {
     /// 不把 Resend 的响应体整段打进日志（可能回显收件人）；状态码足够排查
     console.warn("[notify] resend rejected", { status: response.status });
+  }
+  /// C4 · 「邮件通知」实时回写：发出去了 → 正常；key 无效 / 发信域名未验证（401/403）→ 暂停。
+  /// 422（某个收件人地址不合法）是这一封信的问题，不改能力状态。
+  if (response.ok) {
+    await markCapability("email", "success", { detail: { provider: "resend" } });
+  } else if (response.status === 401 || response.status === 403) {
+    await markCapability("email", { error: { status: response.status } }, { detail: { provider: "resend" } });
   }
   return response.ok;
 }

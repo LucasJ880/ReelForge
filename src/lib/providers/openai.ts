@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { isDryRun } from "@/lib/config/dry-run";
+import { markCapability } from "@/lib/services/capability-status-service";
 
 /**
  * OpenAI 模型分层（2026-05 Phase Lifecycle Hardening）：
@@ -251,6 +252,21 @@ export function isLLMForcedMock(): boolean {
 export async function chatJson<T = unknown>(
   options: ChatJsonOptions,
 ): Promise<ChatJsonResult<T>> {
+  try {
+    const result = await chatJsonOnce<T>(options);
+    /// C4 · 能力状态实时回写：成功即「AI 写作正常」，账户层错误即「暂停」（同状态 10 分钟只写一次，永不抛出）。
+    await markCapability("text", "success", { detail: { provider: "openai", model: result.modelUsed } });
+    return result;
+  } catch (err) {
+    await markCapability("text", { error: err }, { detail: { provider: "openai", model: options.model } });
+    throw err;
+  }
+}
+
+/** 单次调用，不回写能力状态：chatJsonByTier 走完整条回退链后只回写一次结论。 */
+async function chatJsonOnce<T = unknown>(
+  options: ChatJsonOptions,
+): Promise<ChatJsonResult<T>> {
   if (isLLMForcedMock()) {
     throw new Error(
       "LLM_FORCE_MOCK is true; refusing to send real OpenAI request — caller must short-circuit to mock before invoking chatJson.",
@@ -326,7 +342,7 @@ export async function chatJsonByTier<T = unknown>(
   for (let i = 0; i < chain.length; i++) {
     const candidate = chain[i];
     try {
-      const result = await chatJson<T>({
+      const result = await chatJsonOnce<T>({
         ...options,
         model: candidate,
       });
@@ -335,11 +351,13 @@ export async function chatJsonByTier<T = unknown>(
         `[openai] stage=${stageLabel} tier=${options.tier} model=${candidate}` +
           (fallbackUsed ? ` fallback=true (preferred=${chain[0]})` : ""),
       );
+      await markCapability("text", "success", { detail: { provider: "openai", model: candidate } });
       return { ...result, fallbackUsed, tier: options.tier };
     } catch (err) {
       lastErr = err;
       if (!isModelMissingError(err)) {
         /// 非「模型不存在」错误（限流、上下文超长、内容审核等）—— 不要静默吞掉
+        await markCapability("text", { error: err }, { detail: { provider: "openai", model: candidate } });
         throw err;
       }
       console.warn(
@@ -348,6 +366,8 @@ export async function chatJsonByTier<T = unknown>(
       );
     }
   }
+  /// 整条回退链的模型都不存在 / 没权限：同样是账户层结论，回写一次。
+  await markCapability("text", { error: lastErr }, { detail: { provider: "openai", model: chain[chain.length - 1] } });
   throw lastErr instanceof Error
     ? lastErr
     : new Error("OpenAI 调用失败：所有候选模型都不可用");
@@ -369,6 +389,22 @@ function isModelMissingError(err: unknown): boolean {
  * 视觉分析（GPT-4o）：用于参考图的内容提取。
  */
 export async function analyzeImages(
+  imageUrls: string[],
+  system: string,
+  userPrompt: string,
+): Promise<ChatJsonResult<Record<string, unknown>>> {
+  try {
+    const result = await analyzeImagesOnce(imageUrls, system, userPrompt);
+    /// C4 · 「AI 看图」实时回写（画面质检、参考图理解都走这里）。
+    await markCapability("vision", "success", { detail: { provider: "openai", model: result.modelUsed } });
+    return result;
+  } catch (err) {
+    await markCapability("vision", { error: err }, { detail: { provider: "openai", model: resolveModelForTier("vision") } });
+    throw err;
+  }
+}
+
+async function analyzeImagesOnce(
   imageUrls: string[],
   system: string,
   userPrompt: string,

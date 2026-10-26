@@ -87,6 +87,16 @@ export const STATE_VOCAB = {
     started: entry("partial", "进行中", "In progress"),
     done: entry("filled", "已完成", "Done"),
   },
+  /**
+   * 一项 AI / 供应商能力（C4 能力注册表，src/lib/capabilities/registry.ts）。
+   * 暂停是供应商侧故障（额度、权限、宕机），用失败记号；未开通是配置，用叉。
+   */
+  capability: {
+    available: entry("filled", "正常", "Operational"),
+    degraded: entry("partial", "不稳定", "Unstable"),
+    unavailable: entry("fault", "暂停", "Paused"),
+    not_configured: entry("void", "未开通", "Not set up"),
+  },
 } as const satisfies Record<string, Record<string, VocabEntry>>;
 
 export type VocabEntity = keyof typeof STATE_VOCAB;

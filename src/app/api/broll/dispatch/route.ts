@@ -10,6 +10,9 @@ import {
 import { BrollPlanError } from "@/lib/services/broll-plan-service";
 import { assertPaidActionRateLimit } from "@/lib/services/paid-action-rate-limit";
 import { isProviderBillingError } from "@/lib/providers/provider-billing-error";
+import { featureGate } from "@/lib/capabilities/registry";
+import { getCapabilities } from "@/lib/services/capability-status-service";
+import { getServerLocale } from "@/i18n/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -53,6 +56,23 @@ export async function POST(req: NextRequest) {
         ok: false,
         code: "ROUTE_UNAVAILABLE",
         error: "实拍图库线路尚未配置齐全（图库 key 或 TTS 权限缺失）。",
+        retryable: false,
+      },
+      { status: 503 },
+    );
+  }
+
+  /// C4：能力注册表说拆段（AI 写作）/ 配音 / 图库有一项暂停，就在拆段与 TTS 花钱之前说清楚，
+  /// 不再等 LLM 或 TTS 真的失败后才 503（1025 真机验收：额度用完时提交后才报错）。
+  const brollGate = featureGate(await getCapabilities(), "broll");
+  if (brollGate.status === "blocked") {
+    const locale = await getServerLocale();
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "CAPABILITY_UNAVAILABLE",
+        error: brollGate.message?.[locale] ?? "实拍图库线路暂停，恢复后自动开放。",
+        blockedBy: brollGate.blockedBy,
         retryable: false,
       },
       { status: 503 },

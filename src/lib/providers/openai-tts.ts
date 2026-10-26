@@ -12,8 +12,11 @@
  * 绝不在主线成片上二次覆盖 TTS（stitch-service 的既有纪律）。
  */
 
-const OPENAI_TTS_ENDPOINT = "https://api.openai.com/v1/audio/speech";
-const OPENAI_TTS_MODEL = "tts-1";
+import { markCapability } from "@/lib/services/capability-status-service";
+
+/** 导出给能力探测（C4）：探测与生产合成必须打同一个端点、同一个模型。 */
+export const OPENAI_TTS_ENDPOINT = "https://api.openai.com/v1/audio/speech";
+export const OPENAI_TTS_MODEL = "tts-1";
 
 /**
  * 产品音色（audio-caption-controls 的 VOICE_OPTIONS id）→ OpenAI voice。
@@ -86,12 +89,16 @@ export async function synthesizeVoiceover(args: {
     /// 日志脱敏：只留状态码与截断的错误体，不落 key、不落完整口播稿。
     const body = (await response.text().catch(() => "")).slice(0, 200);
     const retryable = response.status === 429 || response.status >= 500;
-    throw new OpenAiTtsError(
+    const error = new OpenAiTtsError(
       `TTS 合成失败：HTTP ${response.status} ${body}`,
       response.status,
       retryable,
     );
+    /// C4 · 「AI 配音」实时回写：403 没有模型权限 / 429 额度用完 → 暂停；5xx 与普通限流不改状态。
+    await markCapability("voice", { error }, { detail: { provider: "openai", model: OPENAI_TTS_MODEL } });
+    throw error;
   }
+  await markCapability("voice", "success", { detail: { provider: "openai", model: OPENAI_TTS_MODEL } });
 
   const audio = Buffer.from(await response.arrayBuffer());
   if (audio.byteLength < 1024) {

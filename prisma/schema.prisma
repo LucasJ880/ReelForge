@@ -2210,6 +2210,23 @@ model CapabilityProbe {
   @@index([provider, probedAt(sort: Desc)])
 }
 
+/// C4 · 能力注册表的当前状态：每个能力一行，key 即 src/lib/capabilities/registry.ts 的 CapabilityKey
+/// （text / vision / image / graphics / video / voice / moderation / stock / scrape / cutout / email）。
+/// 只存「现在」：每小时探测（/api/cron/capability-probe）+ 生产调用实时回写；探测历史仍在 CapabilityProbe。
+model CapabilityStatus {
+  key          String    @id
+  /// available | degraded | unavailable | not_configured
+  status       String
+  /// { reason, source, provider?, httpStatus?, model?, note?, ttsProbedAt?, balancePoints? }
+  /// 只给运维看，不进客户视图；不存 key、请求体或完整报错。
+  detail       Json?
+  /// 最近一次检测（探测或生产调用）
+  checkedAt    DateTime
+  /// 从什么时候开始不稳定 / 暂停；正常或未开通时为 null
+  failingSince DateTime?
+  updatedAt    DateTime  @updatedAt
+}
+
 // ─────────────────────────────────────────────────────────────
 // 获客闭环（2026-10-25）：询盘页 / 追踪链接 / 试点申请。
 // 外键一律 Restrict：业务数据只归档（archivedAt），不物理删除。

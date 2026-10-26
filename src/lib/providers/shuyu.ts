@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { markCapability } from "@/lib/services/capability-status-service";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
   parseShuyuCatalog,
@@ -624,6 +625,19 @@ async function readBoundedJson(
   }
 }
 
+/**
+ * C4 · 提交结果回写到能力状态（image = 产品图与故事板，video = 视频生成）：
+ * 受理（2xx）→ 正常；402 余额不足 / 401·403 key 被拒 → 暂停；
+ * 429、5xx（含 0728「繁忙、积分已退回」）与参数类 4xx 不改状态。永不抛出。
+ */
+async function markShuyuSubmission(key: "image" | "video", status: number): Promise<void> {
+  if (status >= 200 && status < 300) {
+    await markCapability(key, "success", { detail: { provider: "shuyu" } });
+  } else if (status === 401 || status === 402 || status === 403) {
+    await markCapability(key, { error: { status } }, { detail: { provider: "shuyu" } });
+  }
+}
+
 function getErrorCode(status: number): ShuyuApiError["code"] {
   if (status === 401 || status === 403) return "authentication_rejected";
   if (status === 402) return "insufficient_balance";
@@ -940,7 +954,11 @@ export async function createShuyuImageTask(
       },
     );
   }
-  if (!response.ok) throw createSubmissionError({ response, payload });
+  if (!response.ok) {
+    await markShuyuSubmission("image", response.status);
+    throw createSubmissionError({ response, payload });
+  }
+  await markShuyuSubmission("image", response.status);
 
   const parsed = shuyuCreateTaskResponseSchema.safeParse(payload);
   if (!parsed.success) {
@@ -1026,7 +1044,11 @@ export async function createShuyuVideoTask(
       },
     );
   }
-  if (!response.ok) throw createSubmissionError({ response, payload });
+  if (!response.ok) {
+    await markShuyuSubmission("video", response.status);
+    throw createSubmissionError({ response, payload });
+  }
+  await markShuyuSubmission("video", response.status);
 
   const parsed = shuyuCreateTaskResponseSchema.safeParse(payload);
   if (!parsed.success) {

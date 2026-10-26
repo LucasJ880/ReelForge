@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { markCapability } from "@/lib/services/capability-status-service";
 import type {
   ContentReviewProvider,
   MediaReviewInput,
@@ -65,8 +66,10 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
           input: input.text,
         }),
       );
+      await markModeration("success");
       return mapResult(response.id, response.results[0] as unknown as ModerationResult | undefined);
-    } catch {
+    } catch (error) {
+      await markModeration({ error });
       return failedClosed("内容安全检查暂时不可用，请稍后重试");
     }
   }
@@ -100,11 +103,18 @@ export class OpenAiModerationProvider implements ContentReviewProvider {
           input: [{ type: "image_url", image_url: { url: imageUrl } }],
         }),
       );
+      await markModeration("success");
       return mapResult(response.id, response.results[0] as unknown as ModerationResult | undefined);
-    } catch {
+    } catch (error) {
+      await markModeration({ error });
       return failedClosed("媒体安全检查暂时不可用，请稍后重试");
     }
   }
+}
+
+/** C4 · 「内容审核」能力实时回写：key 无审核权限（0721 线上事故）会立刻显示为暂停。永不抛出。 */
+function markModeration(outcome: "success" | { error: unknown }): Promise<void> {
+  return markCapability("moderation", outcome, { detail: { provider: "openai", model: MODEL } });
 }
 
 /**

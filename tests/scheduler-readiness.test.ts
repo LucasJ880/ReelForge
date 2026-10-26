@@ -16,7 +16,8 @@ test("RF-005 config：Vercel Pro 每分钟覆盖 batch、poll+sweep、stitch dis
     { path: "/api/cron/poll-videos", schedule: "* * * * *" },
     { path: "/api/cron/stitch-dispatch", schedule: "* * * * *" },
     /// round 1025 · 2.6：能力探测此前从未被调度（生产 9 行、最近一次在 30–90 天前），
-    /// Shuyu 接口漂移只能在事故后发现。每小时一次，只读 /prices，不产生费用。
+    /// Shuyu 接口漂移只能在事故后发现。每小时一次。C4 起同一轮探全部能力：
+    /// 绝大多数是免费端点；只有 OpenAI 文本 1 token（每小时）与 TTS 1 个字符（每 24 小时）计费，可忽略。
     { path: "/api/cron/capability-probe", schedule: "0 * * * *" },
   ]);
   const probeRoute = await readFile(

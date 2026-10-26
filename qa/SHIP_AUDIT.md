@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (111/111 route files)
+## API endpoint inventory (113/113 route files)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -90,6 +90,8 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 |---|---|---|---|
 | GET, POST | `/api/auth/[...nextauth]` | Public NextAuth handler | VERIFIED H1 light: shared handler wiring + exact public middleware boundary |
 | POST | `/api/auth/register` | Public, rate-limited | VERIFIED H1 light: success wiring + dynamic public validation |
+| POST | `/api/auth/password-reset/request` | Public (`/api/auth` prefix), rate-limited per visitor network + per email (hashed buckets) | NEW 1025: identical `{ ok, delivery }` for registered / unknown / disabled emails; account lookup, token write and email run after the response; `delivery:"unavailable"` only when sending is not configured site-wide; codes `INVALID_EMAIL` / `INVALID_INPUT` / `RATE_LIMITED`; `tests/password-reset.test.ts` |
+| POST | `/api/auth/password-reset/confirm` | Public (`/api/auth` prefix), token-gated | NEW 1025: 32-byte token stored as sha256 only, 30-minute expiry, single use via CAS on `usedAt: null` in one transaction (bcrypt 12); codes `INVALID_OR_EXPIRED` / `WEAK_PASSWORD` / `INVALID_INPUT`; `tests/password-reset.test.ts` |
 | GET, PUT | `/api/onboarding` | Session, own workspace | C1: onboarding state derived from real data; PUT saves business name + profile |
 | POST | `/api/onboarding/complete` | Session, own workspace | C1: finish or skip the welcome wizard (first time only) |
 | GET, HEAD | `/api/health` | Public, sanitized | VERIFIED H1 strict: bounded healthy/degraded 200/503 schemas; secrets rejected |

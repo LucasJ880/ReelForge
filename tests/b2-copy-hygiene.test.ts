@@ -4,6 +4,7 @@ import test from "node:test";
 import { getPlatformCopy } from "../src/i18n/platform-copy";
 import { getPublicPageCopy } from "../src/i18n/public-copy";
 import { getGrowthCopy } from "../src/i18n/growth-copy";
+import { getPasswordResetCopy } from "../src/i18n/password-reset-copy";
 import { zhCN } from "../src/i18n/dictionaries/zh-CN";
 import { enUS } from "../src/i18n/dictionaries/en-US";
 import { TEMPLATE_LIBRARY_COPY } from "../src/components/templates/template-library-copy";
@@ -47,6 +48,7 @@ function customerCopy(locale: Locale): Record<string, unknown> {
     platform: getPlatformCopy(locale),
     public: getPublicPageCopy(locale),
     growth: getGrowthCopy(locale),
+    passwordReset: getPasswordResetCopy(locale),
     templates: TEMPLATE_LIBRARY_COPY[locale],
     dictionary: locale === "zh-CN" ? zhCN : enUS,
   };

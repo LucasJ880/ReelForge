@@ -26,6 +26,8 @@ export default function LoginPage() {
   /// 会话过期由 SessionExpiryWatcher / middleware 带过来，登录页负责解释原因，
   /// 否则用户只会看到「莫名其妙又要登录一次」。
   const sessionExpired = searchParams.get("reason") === "expired";
+  /// 从 /reset-password 设置好新密码后回到这里：告诉用户密码已经换好
+  const passwordReset = searchParams.get("reset") === "done";
   const from = requestedFrom?.startsWith("/") && !requestedFrom.startsWith("//")
     ? requestedFrom
     : "/app/create";
@@ -81,6 +83,14 @@ export default function LoginPage() {
             {copy.sessionExpired}
           </p>
         ) : null}
+        {passwordReset ? (
+          <p
+            role="status"
+            className="rounded-(--radius-md) border border-border bg-muted px-3 py-2 text-meta text-muted-foreground"
+          >
+            {copy.passwordResetDone}
+          </p>
+        ) : null}
         <form onSubmit={handleSubmit} className="min-w-0 space-y-4">
           <div className="space-y-2">
             <label htmlFor="email" className="text-body font-medium">
@@ -111,6 +121,14 @@ export default function LoginPage() {
               placeholder={copy.passwordPlaceholder}
               aria-invalid={Boolean(error)}
             />
+            <p className="text-right">
+              <Link
+                href="/forgot-password"
+                className="text-meta text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                {copy.forgotPassword}
+              </Link>
+            </p>
           </div>
 
           {error ? (

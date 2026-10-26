@@ -6,6 +6,7 @@ import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import type { ExchangePulse, PulsePlan, TapeEntry } from "@/lib/exchange/pulse";
 import { countNewLeads } from "@/lib/services/lead-service";
 import { getUsageSummary } from "@/lib/services/quota-service";
+import { notExperimentBatchWhere } from "@/lib/experiments/run-key";
 import { CUSTOMER_CANCELLED_CLASS } from "@/lib/services/single-video-cancel-service";
 import { contentPostRenderingWhere } from "@/lib/services/content-post-render-state";
 import {
@@ -142,7 +143,8 @@ export function platformOrderFailureWhere(range: Range): Prisma.VideoBriefWhereI
 }
 
 export function platformBatchFailureWhere(range: Range): Prisma.VideoJobWhereInput {
-  return { status: "FAILED", batchJobId: { not: null }, ...failedAtIn(range) };
+  /// X-SCAF-0：实验批次（exp-2611-*）走生产管线写库，但不是平台故障，不进创始人汇总与「需要处理」候选。
+  return { status: "FAILED", batchJobId: { not: null }, batchJob: notExperimentBatchWhere(), ...failedAtIn(range) };
 }
 
 /** 批量成片：成片时刻取 finishedAt，旧数据没有就退回 updatedAt。 */

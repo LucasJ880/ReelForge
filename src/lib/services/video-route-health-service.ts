@@ -175,7 +175,15 @@ export function findRouteHealth(
  * 不应该让用户的生成请求整个失败。
  */
 export async function getVideoRouteHealthReport(
-  options: { windowHours?: number; maxScan?: number } = {},
+  options: {
+    windowHours?: number;
+    maxScan?: number;
+    /**
+     * 只看这些批次里的任务（X-SCAF-0 实验对照：按 BatchJob.idempotencyKey 前缀找出批次再传入）。
+     * 传了就按它筛，空数组 = 一条不看，而不是退回全量。
+     */
+    batchJobIds?: string[];
+  } = {},
 ): Promise<VideoRouteHealthReport> {
   const windowHours = options.windowHours ?? DEFAULT_ROUTE_HEALTH_WINDOW_HOURS;
   const since = new Date(Date.now() - windowHours * 3_600_000);
@@ -185,6 +193,7 @@ export async function getVideoRouteHealthReport(
         status: { in: [...TERMINAL_STATUSES] },
         videoRouteSnapshot: { not: null },
         finishedAt: { gte: since },
+        ...(options.batchJobIds ? { batchJobId: { in: options.batchJobIds } } : {}),
       },
       orderBy: { finishedAt: "desc" },
       take: options.maxScan ?? 2_000,

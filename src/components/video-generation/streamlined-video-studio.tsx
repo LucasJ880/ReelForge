@@ -44,6 +44,8 @@ import { quotaNextStepsCopy } from "@/lib/quota-next-steps";
 import {
   StoryboardWorkflowPanel,
   storyboardFrameTarget,
+  type StoryboardFrameRegenerateOptions,
+  type StoryboardReferenceOption,
   type StoryboardRunView,
 } from "@/components/video-generation/storyboard-workflow-panel";
 import {
@@ -709,6 +711,15 @@ export function StreamlinedVideoStudio({
       ...brandPackageAssets.filter((asset) => !seen.has(asset.assetId ?? asset.id)),
     ];
   }, [brandPackageAssets, productAssets, referenceAssets, referenceMode]);
+  /// 重做单帧时可改选的参考图：只给创作台里的产品图（故事板的商家实拍就是这几张）。
+  const storyboardReferenceOptions = useMemo<StoryboardReferenceOption[]>(
+    () => productAssets.map((asset) => ({
+      assetId: asset.assetId ?? asset.id,
+      url: asset.url,
+      label: asset.fileName,
+    })),
+    [productAssets],
+  );
 
   useEffect(() => {
     if (voiceoverEditedRef.current) return;
@@ -1169,14 +1180,18 @@ export function StreamlinedVideoStudio({
     }
   }
 
-  async function regenerateStoryboardFrame(frameId: string) {
+  async function regenerateStoryboardFrame(frameId: string, options: StoryboardFrameRegenerateOptions = {}) {
     if (!storyboard || storyboardFrameBusy || approvingStoryboard) return;
     setStoryboardFrameBusy(frameId);
     setError(null);
     try {
       const response = await fetch(
         `/api/video-generation/storyboards/${encodeURIComponent(storyboard.id)}/frames/${encodeURIComponent(frameId)}/regenerate`,
-        { method: "POST" },
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(options),
+        },
       );
       const payload = await response.json().catch(() => null) as
         | { ok: true; run: StoryboardRunView }
@@ -1861,7 +1876,8 @@ export function StreamlinedVideoStudio({
                 english={english}
                 busyFrameId={storyboardFrameBusy}
                 approving={approvingStoryboard}
-                onRegenerate={(frameId) => void regenerateStoryboardFrame(frameId)}
+                referenceOptions={storyboardReferenceOptions}
+                onRegenerate={(frameId, options) => void regenerateStoryboardFrame(frameId, options)}
                 onApprove={() => void approveStoryboard()}
                 onEditPlan={() => void editStoryboardDirection()}
               />

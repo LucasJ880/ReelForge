@@ -52,6 +52,22 @@ test("the studio survives refresh: resumes the active storyboard and replays ide
   assert.match(panel, /regenBlocked/);
 });
 
+test("P05-A：重做这一帧带 body——可选补充要求（≤1000 字）与参考图（≤5 张，只给产品图）", async () => {
+  const [studio, panel] = await Promise.all([
+    readFile(STUDIO, "utf8"),
+    readFile(STORYBOARD, "utf8"),
+  ]);
+  assert.match(studio, /body: JSON\.stringify\(options\)/);
+  assert.match(studio, /referenceOptions=\{storyboardReferenceOptions\}/);
+  assert.match(studio, /productAssets\.map\(\(asset\) => \(\{\s*assetId: asset\.assetId \?\? asset\.id/);
+  assert.match(panel, /maxLength=\{STORYBOARD_FRAME_DIRECTION_MAX\}/);
+  assert.match(panel, /STORYBOARD_FRAME_SOURCE_ASSETS_MAX/);
+  assert.match(panel, /aria-pressed=\{pressed\}/);
+  assert.match(panel, /重做前补充要求/);
+  // 共享上限来自纯数据模块，'use client' 面板不引服务端 service
+  assert.doesNotMatch(panel, /storyboard-service/);
+});
+
 test("creation uploads skip AI classification while retaining server-side security upload", async () => {
   const [studio, uploadAssets, uploadRoute] = await Promise.all([
     readFile(STUDIO, "utf8"),

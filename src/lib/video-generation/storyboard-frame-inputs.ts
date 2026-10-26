@@ -173,9 +173,25 @@ export function applyStoryboardReferenceRoles(
 export const STORYBOARD_FRAME_PROMPT_LIMIT = 5000;
 export const STORYBOARD_STORY_CONTEXT_PREFIX =
   "STORY CONTEXT (continuity only — do not depict the other beats in this image): ";
-/// 重做一帧时追加在旧提示词后面的一行（P05-A 改成从 plan 重建前，预算要给它留余量）。
+/// 重做一帧时的尾行。P05-A 起重做从 plan 重建提示词、只带这一行一次；建 run 的预算仍按 3 次留余量，
+/// 兜住 P05-A 之前按旧逻辑累加过的帧行。
 export const STORYBOARD_REGENERATION_LINE =
   "REGENERATION: create a distinct but continuity-faithful alternative for this same beat.";
+
+/// 重做一帧时用户补充的要求（P05-A）：路由 zod 与创作台输入框共用这两个上限。
+export const STORYBOARD_FRAME_DIRECTION_MAX = 1000;
+export const STORYBOARD_FRAME_SOURCE_ASSETS_MAX = 5;
+export const STORYBOARD_USER_DIRECTION_PREFIX =
+  "USER DIRECTION (this frame only; never overrides PRODUCT IDENTITY LOCK): ";
+
+/**
+ * 用户补充要求压成一行（换行会被当成新的提示词行，可能伪造 REFERENCE ROLES 等行），按 UTF-16 上限截断；
+ * 空白返回 null。每次重做只带最新一条——提示词从 plan 重建，旧要求自然消失。
+ */
+export function storyboardUserDirectionLine(direction: string | null | undefined): string | null {
+  const text = truncateStoryText((direction ?? "").replace(/\s+/gu, " ").trim(), STORYBOARD_FRAME_DIRECTION_MAX);
+  return text ? `${STORYBOARD_USER_DIRECTION_PREFIX}${text}` : null;
+}
 /// 换行与零碎标点的安全余量。
 const STORY_BUDGET_SAFETY = 40;
 

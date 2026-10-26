@@ -133,7 +133,8 @@ function skipVerdict(reason: string): FrameQaVerdict {
   };
 }
 
-async function extractFrames(
+/// 导出给成片级复检（final-frame-qa）复用同一套抽帧；runFrameTextQa 的签名与逻辑不变。
+export async function extractFrames(
   videoPath: string,
   outDir: string,
   frameCount: number,
@@ -163,7 +164,7 @@ async function extractFrames(
   return files.map((f) => join(outDir, f));
 }
 
-async function framesToDataUrls(framePaths: string[]): Promise<string[]> {
+export async function framesToDataUrls(framePaths: string[]): Promise<string[]> {
   const urls: string[] = [];
   for (const p of framePaths) {
     const buf = await readFile(p);

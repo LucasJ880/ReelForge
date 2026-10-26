@@ -14,6 +14,8 @@ import {
 } from "@/lib/api/customer-generation-error";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { rechargeRefundedBriefForSession } from "@/lib/services/quota-refund-service";
+import { assertAuthenticatedActionRateLimit } from "@/lib/services/quota-service";
+import { RestitchRejectedError } from "@/lib/video-generation/restitch-patch";
 
 function canSeeRenderDebug(userType: string | null | undefined): boolean {
   return userType === "OPERATOR" || userType === "SUPER_ADMIN";
@@ -28,6 +30,9 @@ function canSeeRenderDebug(userType: string | null | undefined): boolean {
  * Body:
  *   { "jobId": "videojob_id" }    // 重试单个 job
  *   { "all": true }               // 重试当前 brief 下所有失败环节（段 + 合成）
+ *   { "restitch": { "captions"?, "bgm"? } }
+ *                                 // P05-B 只重拼：READY 成片换字幕样式 / 配乐。零生成计费，
+ *                                 // 不补扣额度；限流 action "restitch"；失败回滚到旧成片。
  *
  * 安全门禁（与 Seedance 计费安全相关）：
  * 1. 调用方必须是该 brief 的 owner（unified-input 流程：DeliveryOrder.createdById），
@@ -47,9 +52,11 @@ export async function POST(
 
   const access = await checkBriefAccess(briefId, guard.session);
   if (!access.allowed) {
+    /// P05-D：404 / 403 用契约里的真实错误码（customer-api.ts），不再一律 INTERNAL_ERROR——
+    /// 客户端按 code 分流（找不到 vs 无权），INTERNAL_ERROR 会被当成「稍后重试」。
     return NextResponse.json(
       customerApiError({
-        code: "INTERNAL_ERROR",
+        code: access.reason === "not-found" ? "RESOURCE_NOT_FOUND" : "FORBIDDEN",
         message:
           access.reason === "not-found"
             ? "生成记录不存在。"
@@ -71,7 +78,32 @@ export async function POST(
   };
 
   try {
-    if (body.all === true) {
+    if (body.restitch !== undefined) {
+      /// 只重拼不是「重试失败环节」：不走 rechargeIfRefunded（没有生成费可补扣）。
+      /// 顺序：解析补丁 + 只读状态预检（prepareRestitch）→ 账号限频 → CAS 写入并重拼——
+      /// 不合法的补丁与明显不能重拼的状态不消耗限频名额。
+      const brief = await db.videoBrief.findUnique({
+        where: { id: briefId },
+        select: { finalVideoId: true },
+      });
+      if (!brief?.finalVideoId) {
+        throw new RestitchRejectedError("INVALID_STATE", "这条视频还没有成片，不能更换字幕 / 配乐。");
+      }
+      const { prepareRestitch, commitRestitch } = await import("@/lib/services/stitch-service");
+      const prepared = await prepareRestitch(brief.finalVideoId, body.restitch);
+      await assertAuthenticatedActionRateLimit({
+        action: "restitch",
+        userId: guard.session.user.id,
+      });
+      const result = await commitRestitch(prepared);
+      /// local 模式会在本请求内合成：没成就已经回滚到旧成片，如实告知而不是 200
+      if (result.rolledBack) {
+        throw new RestitchRejectedError(
+          "INVALID_STATE",
+          `重拼没有成功，已恢复旧成片：${result.error ?? "合成失败"}`,
+        );
+      }
+    } else if (body.all === true) {
       const failed = await db.videoJob.findMany({
         where: { videoBriefId: briefId, status: "FAILED" },
       });
@@ -120,7 +152,7 @@ export async function POST(
       if (!job || job.videoBriefId !== briefId) {
         return NextResponse.json(
           customerApiError({
-            code: "INTERNAL_ERROR",
+            code: "RESOURCE_NOT_FOUND",
             message: "待重试的生成任务不存在。",
             retryable: false,
             action: "contact_support",
@@ -133,10 +165,10 @@ export async function POST(
     } else {
       return NextResponse.json(
         customerApiError({
-          code: "INTERNAL_ERROR",
+          code: "VALIDATION_FAILED",
           message: "请选择一个失败任务，或重试全部可恢复任务。",
           retryable: false,
-          action: "contact_support",
+          action: "fix_request",
         }),
         { status: 400 },
       );
@@ -151,6 +183,25 @@ export async function POST(
   } catch (err) {
     const quotaResponse = quotaErrorResponse(err);
     if (quotaResponse) return quotaResponse;
+    if (err instanceof RestitchRejectedError) {
+      return NextResponse.json(
+        customerApiError({
+          code: err.code,
+          message: err.message,
+          retryable: false,
+          action:
+            err.code === "VALIDATION_FAILED"
+              ? "fix_request"
+              : err.code === "INVALID_STATE"
+                ? "refresh_status"
+                : "contact_support",
+        }),
+        {
+          status:
+            err.code === "VALIDATION_FAILED" ? 400 : err.code === "INVALID_STATE" ? 409 : 404,
+        },
+      );
+    }
     if (err instanceof SubmissionReconciliationRequiredError) {
       return NextResponse.json(
         customerApiError({

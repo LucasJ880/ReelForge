@@ -10,6 +10,7 @@
  */
 
 import { z } from "zod";
+import type { VoiceoverDrive } from "@/types/video-generation";
 
 export const SUPPORTED_DURATIONS = [15, 30, 60] as const;
 export const supportedDurationSchema = z.union([
@@ -123,12 +124,16 @@ export const ownedBrandKitSchema = brandKitSchema
   .omit({ logoUrl: true })
   .strict();
 
+export const VOICEOVER_DRIVES = ["native", "tts_lipsync", "audio_reference"] as const satisfies readonly VoiceoverDrive[];
+
 export const voiceoverSettingsSchema = z
   .object({
     enabled: z.boolean(),
     voiceId: z.string().trim().min(1).max(80),
     language: z.string().trim().min(2).max(20),
     script: z.string().max(2_000),
+    /// 不用 .default("native")：缺省时保持缺省，旧快照与批量幂等哈希逐字节不变；读取方按 native 处理。
+    drive: z.enum(VOICEOVER_DRIVES).optional(),
   })
   .strict()
   .superRefine((value, context) => {

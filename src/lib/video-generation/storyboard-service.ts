@@ -15,6 +15,9 @@ import {
 } from "@/lib/providers/shuyu-image-provider";
 import {
   createOwnedMediaAsset,
+  MediaAssetNotFoundError,
+  MediaAssetTypeError,
+  resolveOwnedImageAssets,
   resolveOwnedMediaAssets,
 } from "@/lib/services/media-asset-service";
 import {
@@ -30,10 +33,14 @@ import {
   composeStoryboardFrameInputImages,
   fitStoryboardFramePrompt,
   planStoryboardFrameInputs,
+  STORYBOARD_FRAME_DIRECTION_MAX,
   STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+  STORYBOARD_FRAME_SOURCE_ASSETS_MAX,
   STORYBOARD_REGENERATION_LINE,
   STORYBOARD_STORY_CONTEXT_PREFIX,
+  type StoryboardFrameInputImage,
   storyboardFrameStoryBudget,
+  storyboardUserDirectionLine,
   truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
@@ -206,42 +213,94 @@ export function buildStoryboardFramePlans(input: {
 }): StoryboardFramePlan[] {
   const count = storyboardFrameCountForDuration(input.durationSec);
   const beats = count === 4 ? STORYBOARD_BEATS_SHORT : STORYBOARD_BEATS_LONG;
+  const maxInputImages = input.maxInputImages ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX;
+  return beats.map((beat, ordinal) => ({
+    ordinal,
+    beat,
+    prompt: buildStoryboardFramePrompt({
+      story: input.prompt,
+      ordinal,
+      count,
+      beat,
+      aspectRatio: input.aspectRatio,
+      inputs: planStoryboardFrameInputs({
+        ordinal,
+        productImageCount: input.productImageCount ?? 0,
+        anchorCutoutCount: input.anchorCutoutCount ?? 0,
+        personImageCount: input.personImageCount ?? 0,
+        max: maxInputImages,
+      }),
+      maxInputImages,
+      tailLines: [],
+      reservedRegenerations: STORYBOARD_FRAME_MAX_REGENERATIONS,
+    }),
+  }));
+}
+
+/** 一帧出帧提示词：建 run 与重做（P05-A）共用，保证重做是「从 plan 重建」而不是在旧提示词后累加。 */
+function buildStoryboardFramePrompt(input: {
+  story: string;
+  ordinal: number;
+  count: number;
+  beat: string;
+  aspectRatio: string;
+  inputs: readonly StoryboardFrameInputImage[];
+  maxInputImages: number;
+  /// 追加在末尾的行（重做时的 REGENERATION / USER DIRECTION），计入预算的固定部分。
+  tailLines: readonly string[];
+  /// 额外为「旧逻辑累加的重做行」预留的次数；从 plan 重建的重做传 0。
+  reservedRegenerations: number;
+}): string {
   // 1025 真机验收：STORY 放在 FRAME 前面时，多镜头描述会被画成拼图（4 格、5 格、圆形放大插图），
   // 拼图关键帧喂给图生视频会直接毁片。先写这一帧，故事只作连续性背景，并把「单镜头」写成硬约束。
-  const maxInputImages = input.maxInputImages ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX;
-  const story = input.prompt.trim();
-  return beats.map((beat, ordinal) => {
-    const lines = (storyText: string) => [
-      "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
-      `THIS FRAME ${ordinal + 1}/${count}: ${beat}. Depict only this beat.`,
-      `${STORYBOARD_STORY_CONTEXT_PREFIX}${storyText}`,
-      `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
-      SINGLE_SHOT_LOCK,
-      "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
-      "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
-      "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
-    ];
-    /// 5000 字预算（Shuyu 图像提示词硬上限，超了不可重试）：故事让位给固定锁行、REFERENCE ROLES 最坏长度、
-    /// PRESENTER LOCK 与最多 3 次重做追加的行；提交前还会按同一上限兜底一次。
-    const budget = storyboardFrameStoryBudget({
-      fixedPromptLength: lines("").join("\n").length,
-      maxInputImages,
-      regenerations: STORYBOARD_FRAME_MAX_REGENERATIONS,
-    });
-    return {
-      ordinal,
-      beat,
-      prompt: applyStoryboardReferenceRoles(
-        lines(truncateStoryText(story, budget)).join("\n"),
-        planStoryboardFrameInputs({
-          ordinal,
-          productImageCount: input.productImageCount ?? 0,
-          anchorCutoutCount: input.anchorCutoutCount ?? 0,
-          personImageCount: input.personImageCount ?? 0,
-          max: maxInputImages,
-        }),
-      ),
-    };
+  const lines = (storyText: string) => [
+    "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
+    `THIS FRAME ${input.ordinal + 1}/${input.count}: ${input.beat}. Depict only this beat.`,
+    `${STORYBOARD_STORY_CONTEXT_PREFIX}${storyText}`,
+    `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
+    SINGLE_SHOT_LOCK,
+    "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
+    "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
+    "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
+    ...input.tailLines,
+  ];
+  /// 5000 字预算（Shuyu 图像提示词硬上限，超了不可重试）：故事让位给固定锁行与尾行、REFERENCE ROLES 最坏长度、
+  /// PRESENTER LOCK 与预留的重做行；提交前还会按同一上限兜底一次。
+  const budget = storyboardFrameStoryBudget({
+    fixedPromptLength: lines("").join("\n").length,
+    maxInputImages: input.maxInputImages,
+    regenerations: input.reservedRegenerations,
+  });
+  return applyStoryboardReferenceRoles(
+    lines(truncateStoryText(input.story.trim(), budget)).join("\n"),
+    input.inputs,
+  );
+}
+
+/**
+ * 重做一帧的提示词（P05-A，纯函数）：从商家原话 + 这一帧的节奏重新生成，只带一行 REGENERATION 与最新一条
+ * USER DIRECTION；REFERENCE ROLES 按这次真正要提交的入参写。故事按同一把 UTF-16 尺子在 5000 字内截断。
+ */
+export function buildRegeneratedStoryboardFramePrompt(input: {
+  story: string;
+  durationSec: number;
+  aspectRatio: string;
+  ordinal: number;
+  beat: string;
+  inputs: readonly StoryboardFrameInputImage[];
+  direction?: string | null;
+}): string {
+  const direction = storyboardUserDirectionLine(input.direction);
+  return buildStoryboardFramePrompt({
+    story: input.story,
+    ordinal: input.ordinal,
+    count: storyboardFrameCountForDuration(input.durationSec),
+    beat: input.beat,
+    aspectRatio: input.aspectRatio,
+    inputs: input.inputs,
+    maxInputImages: Math.max(1, input.inputs.length),
+    tailLines: [STORYBOARD_REGENERATION_LINE, ...(direction ? [direction] : [])],
+    reservedRegenerations: 0,
   });
 }
 
@@ -379,10 +438,11 @@ function requestHash(
 async function resolveStoryboardPersonImages(
   userId: string,
   assetIds: readonly string[],
+  client: Pick<Prisma.TransactionClient, "mediaAsset"> = db,
 ): Promise<Array<{ id: string; url: string; mimeType: string }>> {
   const ids = [...new Set(assetIds)];
   if (ids.length === 0) return [];
-  const assets = await db.mediaAsset.findMany({
+  const assets = await client.mediaAsset.findMany({
     where: { id: { in: ids }, userId },
     select: { id: true, url: true, mimeType: true },
   });
@@ -390,6 +450,25 @@ async function resolveStoryboardPersonImages(
   return ids
     .map((assetId) => byId.get(assetId))
     .filter((asset): asset is NonNullable<typeof asset> => Boolean(asset));
+}
+
+/** 重做一帧时改用的商家图（P05-A）：与建 run 同一个归属解析器（本人素材 + 可见品牌包），只收图片，保留顺序。 */
+async function resolveStoryboardSourceAssets(
+  userId: string,
+  assetIds: string[],
+): Promise<Array<{ id: string; url: string }>> {
+  try {
+    const assets = await resolveOwnedImageAssets({ userId, assetIds });
+    return assets.map((asset) => ({ id: asset.id, url: asset.url }));
+  } catch (error) {
+    if (error instanceof MediaAssetNotFoundError) {
+      throw new StoryboardRequestError("参考图不存在或无权访问。", "NOT_FOUND", 404);
+    }
+    if (error instanceof MediaAssetTypeError) {
+      throw new StoryboardRequestError("重做这一帧只接受图片作为参考图。", "VALIDATION_FAILED");
+    }
+    throw error;
+  }
 }
 
 function frameRequestKey(runId: string, ordinal: number, attempt: number): string {
@@ -433,7 +512,7 @@ export async function createStoryboardRun(
     throw new StoryboardRequestError("故事板只接受图片素材。", "VALIDATION_FAILED");
   }
   // 主播图只校验归属与类型、落 id 列；URL 在提交第 0 帧时用同一个解析器按列重新解析
-  //（M1 没有主播 URL 列，快照落列等 P02-F(s) 的列），不混进 inputImageUrls——那一列只放商家实拍。
+  //（M1 没有主播 URL 列；派发分组也按 personAssetIds 解析），不混进 inputImageUrls——那一列只放商家实拍。
   const personAssets = await resolveStoryboardPersonImages(input.userId, personAssetIds);
   if (personAssets.length !== personAssetIds.length) {
     throw new StoryboardRequestError("主播参考图不存在或无权访问。", "NOT_FOUND", 404);
@@ -531,6 +610,62 @@ export async function createStoryboardRun(
   return storyboardRunView((await findRun(run.id, input.userId)) ?? run);
 }
 
+/**
+ * 按 run 的列编排第 ordinal 帧的入参（提交与重做共用）：前帧取当前已成功的；主播参考图只进第 0 帧
+ *（含重做第 0 帧），其余帧不查库。主播解析放在抢占 / 建帧之前：查库失败时不会把一次 DB 抖动记成供应商拒绝。
+ */
+async function composeRunFrameInputImages(input: {
+  run: {
+    id: string;
+    userId: string;
+    anchorCutoutUrls?: string[] | null;
+    personAssetIds?: string[] | null;
+    frames?: Array<{
+      isCurrent: boolean;
+      ordinal: number;
+      status: StoryboardFrameStatus | string;
+      outputUrl: string | null;
+    }>;
+  };
+  frameId: string;
+  ordinal: number;
+  productImages: readonly string[];
+  max: number;
+  client?: Pick<Prisma.TransactionClient, "mediaAsset">;
+}): Promise<StoryboardFrameInputImage[]> {
+  const { run } = input;
+  const priorFrames = (run.frames ?? [])
+    .filter((candidate) =>
+      candidate.isCurrent &&
+      candidate.ordinal < input.ordinal &&
+      candidate.status === StoryboardFrameStatus.SUCCEEDED &&
+      candidate.outputUrl,
+    )
+    .sort((a, b) => a.ordinal - b.ordinal)
+    .map((candidate) => candidate.outputUrl!);
+  const personAssetIds = run.personAssetIds ?? [];
+  const personAssets =
+    input.ordinal === 0
+      ? await resolveStoryboardPersonImages(run.userId, personAssetIds, input.client)
+      : [];
+  if (input.ordinal === 0 && personAssetIds.length > 0 && personAssets.length === 0) {
+    console.warn("[storyboard] presenter references resolved to nothing; submitting without them", {
+      frameId: input.frameId,
+      runId: run.id,
+      personAssetIds,
+    });
+  }
+  return composeStoryboardFrameInputImages({
+    productImages: input.productImages,
+    /// anchorCutoutUrls 由 P02-E 写入；之前恒为空数组，这里只是把接口接上。
+    anchorCutouts: run.anchorCutoutUrls ?? [],
+    personImages: personAssets.map((asset) => asset.url),
+    priorFrames,
+    isFirstFrame: input.ordinal === 0,
+    max: input.max,
+  });
+}
+
 async function submitStoryboardFrame(frameId: string): Promise<void> {
   const frame = await db.storyboardFrame.findUnique({
     where: { id: frameId },
@@ -547,15 +682,6 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     frame.storyboardRun.status === StoryboardRunStatus.CANCELLED
   ) return;
   const run = frame.storyboardRun;
-  const priorFrames = run.frames
-    .filter((candidate) =>
-      candidate.isCurrent &&
-      candidate.ordinal < frame.ordinal &&
-      candidate.status === StoryboardFrameStatus.SUCCEEDED &&
-      candidate.outputUrl,
-    )
-    .sort((a, b) => a.ordinal - b.ordinal)
-    .map((candidate) => candidate.outputUrl!);
   /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 5 兜底（提到 6 留给 P02-B2）。
   const planSnapshot =
     frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
@@ -568,31 +694,26 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
           inputImagesMax: STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
         }
       : undefined;
-  /// 主播参考图只进第 0 帧（含重做第 0 帧）；其余帧不查库。解析放在抢占之前：查库失败时帧仍是
-  /// QUEUED / NOT_STARTED，下一轮推进会重试，不会把一次 DB 抖动记成供应商拒绝。
-  const personAssetIds = run.personAssetIds ?? [];
-  const personAssets =
-    frame.ordinal === 0 ? await resolveStoryboardPersonImages(run.userId, personAssetIds) : [];
-  if (frame.ordinal === 0 && personAssetIds.length > 0 && personAssets.length === 0) {
-    console.warn("[storyboard] presenter references resolved to nothing; submitting without them", {
+  let inputImages: string[];
+  let aligned: string;
+  const frameInputImages = frame.inputImageUrls ?? [];
+  if (frameInputImages.length > 0) {
+    /// 重做（P05-A）建帧时已按当时的入参写好帧级 URL 与 REFERENCE ROLES：原样提交，不再按 run 重算。
+    inputImages = [...frameInputImages];
+    aligned = frame.prompt;
+  } else {
+    const composedInputs = await composeRunFrameInputImages({
+      run,
       frameId: frame.id,
-      runId: run.id,
-      personAssetIds,
+      ordinal: frame.ordinal,
+      productImages: run.inputImageUrls,
+      max: planSnapshot?.inputImagesMax ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
     });
+    inputImages = composedInputs.map((image) => image.url);
+    /// REFERENCE ROLES 序号按真正提交的图片重算（前帧还没出来 / 全部失败时与建 run 的预演不同）。
+    aligned = applyStoryboardReferenceRoles(frame.prompt, composedInputs);
   }
-  const composedInputs = composeStoryboardFrameInputImages({
-    productImages: run.inputImageUrls,
-    /// anchorCutoutUrls 由 P02-F(s) 写入；本阶段恒为空数组，这里只是把接口接上。
-    anchorCutouts: run.anchorCutoutUrls ?? [],
-    personImages: personAssets.map((asset) => asset.url),
-    priorFrames,
-    isFirstFrame: frame.ordinal === 0,
-    max: planSnapshot?.inputImagesMax ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
-  });
-  const inputImages = composedInputs.map((image) => image.url);
-  /// REFERENCE ROLES 序号按真正提交的图片重算（前帧还没出来 / 全部失败时与建 run 的预演不同），
-  /// 再按 5000 字上限兜底一次（旧数据或多次重做叠加的提示词）。
-  const aligned = applyStoryboardReferenceRoles(frame.prompt, composedInputs);
+  /// 按 5000 字上限兜底一次（旧数据或 P05-A 之前多次重做叠加的提示词）。
   const prompt = fitStoryboardFramePrompt(aligned);
   if (prompt !== aligned) {
     console.warn("[storyboard] frame prompt exceeded the provider limit and was trimmed", {
@@ -1138,7 +1259,28 @@ export async function regenerateStoryboardFrame(input: {
   frameId: string;
   /// 创作台用户点「重做这一帧」时为 true（计入每小时限流）；批量自动重投不传。
   userInitiated?: boolean;
+  /// P05-A：这一帧的补充要求（≤1000 字），只保留这一条；P01-D 审帧 issues 也走这里。
+  promptOverride?: string | null;
+  /// P05-A：这一帧改用的商家图（≤5 张，必须归本人）；不传 = 沿用这轮的商家实拍。
+  sourceAssetIds?: string[];
 }): Promise<StoryboardRunView> {
+  const sourceAssetIds = [...new Set(input.sourceAssetIds ?? [])];
+  if (sourceAssetIds.length > STORYBOARD_FRAME_SOURCE_ASSETS_MAX) {
+    throw new StoryboardRequestError(
+      `重做这一帧最多选 ${STORYBOARD_FRAME_SOURCE_ASSETS_MAX} 张参考图。`,
+      "VALIDATION_FAILED",
+    );
+  }
+  if ((input.promptOverride ?? "").trim().length > STORYBOARD_FRAME_DIRECTION_MAX) {
+    throw new StoryboardRequestError(
+      `补充要求最多 ${STORYBOARD_FRAME_DIRECTION_MAX} 字。`,
+      "VALIDATION_FAILED",
+    );
+  }
+  /// 归属校验放在限流之前：传错图不占重做名额。
+  const sourceAssets = sourceAssetIds.length
+    ? await resolveStoryboardSourceAssets(input.userId, sourceAssetIds)
+    : [];
   if (input.userInitiated) await bumpStoryboardRateLimit("frame-regenerate", input.userId);
   const created = await db.$transaction(async (tx) => {
     const existing = await tx.storyboardFrame.findFirst({
@@ -1148,7 +1290,7 @@ export async function regenerateStoryboardFrame(input: {
         isCurrent: true,
         storyboardRun: { userId: input.userId },
       },
-      include: { storyboardRun: true },
+      include: { storyboardRun: { include: { frames: { where: { isCurrent: true } } } } },
     });
     if (!existing) return null;
     if (existing.storyboardRun.status === StoryboardRunStatus.CANCELLED) {
@@ -1211,6 +1353,16 @@ export async function regenerateStoryboardFrame(input: {
       throw new StoryboardRequestError("故事板分镜已变化，请刷新后再试。", "INVALID_STATE", 409);
     }
     const attempt = existing.attempt + 1;
+    const run = existing.storyboardRun;
+    /// 入参与 REFERENCE ROLES 在建帧时一次算定并落帧级列，提交时原样使用（submitStoryboardFrame）。
+    const inputs = await composeRunFrameInputImages({
+      run,
+      frameId: existing.id,
+      ordinal: existing.ordinal,
+      productImages: sourceAssets.length ? sourceAssets.map((asset) => asset.url) : run.inputImageUrls ?? [],
+      max: STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX,
+      client: tx,
+    });
     return tx.storyboardFrame.create({
       data: {
         storyboardRunId: existing.storyboardRunId,
@@ -1218,7 +1370,18 @@ export async function regenerateStoryboardFrame(input: {
         attempt,
         isCurrent: true,
         beat: existing.beat,
-        prompt: `${existing.prompt}\n${STORYBOARD_REGENERATION_LINE}${existing.prompt.includes(SINGLE_SHOT_LOCK) ? "" : `\n${SINGLE_SHOT_LOCK}`}`,
+        /// 从 plan 重建，不在旧提示词后累加：多次重做的提示词长度不增长，旧的补充要求不残留。
+        prompt: buildRegeneratedStoryboardFramePrompt({
+          story: run.sourcePrompt ?? "",
+          durationSec: run.durationSec,
+          aspectRatio: run.aspectRatio,
+          ordinal: existing.ordinal,
+          beat: existing.beat,
+          inputs,
+          direction: input.promptOverride,
+        }),
+        inputAssetIds: sourceAssets.map((asset) => asset.id),
+        inputImageUrls: inputs.map((image) => image.url),
         providerRequestKey: frameRequestKey(existing.storyboardRunId, existing.ordinal, attempt),
       },
     });
@@ -1421,21 +1584,65 @@ export const SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT = 8;
  *
  * 此前单条路径用故事板帧整体覆盖了原图，视频模型从头到尾看不到商家实拍，
  * 产品细节只能靠 AI 帧转述而漂移。实拍锚产品外观、故事板帧锚镜头连续性，
- * 两者都要：实拍最多占到「上限 − 帧数」个位置（至少 1 张），保证在常规上限内
+ * 两者都要：帧之外的位置是「上限 − 帧数」个（至少 1 张），保证在常规上限内
  * 故事板帧不被挤掉；供应商侧若再按套餐上限截断，也是从队尾（帧）开始丢。
+ *
+ * P02-F(s) 起按角色分组，顺序 实拍 → 切片 → 主播 → 帧（切片在 P02-E 之前恒为空）。帧之外的位置先给
+ * 实拍保底 min(实拍数, 2)，再给主播 1 张（首张 = 主播，其余角度只进故事板首帧），再给切片，余下补实拍。
+ * 没有切片与主播时与分组前逐张一致。
  */
-export function composeSingleVideoReferenceImages(input: {
+export const SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS = 2;
+
+export interface SingleVideoReferenceGroups {
+  references: string[];
+  productPhotoCount: number;
+  anchorCount: number;
+  personCount: number;
+  frameCount: number;
+}
+
+export function composeSingleVideoReferenceGroups(input: {
   productImageUrls: readonly string[];
+  anchorCutoutUrls?: readonly string[];
+  personUrls?: readonly string[];
   storyboardFrameUrls: readonly string[];
   limit?: number;
-}): string[] {
+}): SingleVideoReferenceGroups {
   const limit = Math.max(1, input.limit ?? SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT);
-  const frames = [...new Set(input.storyboardFrameUrls.filter(Boolean))];
-  const frameSet = new Set(frames);
-  const photos = [...new Set(input.productImageUrls.filter(Boolean))]
-    .filter((url) => !frameSet.has(url));
-  const photoSlots = Math.max(1, limit - frames.length);
-  return [...photos.slice(0, photoSlots), ...frames].slice(0, limit);
+  const taken = new Set<string>();
+  const unique = (urls: readonly string[] | undefined) => {
+    const out = [...new Set((urls ?? []).filter(Boolean))].filter((url) => !taken.has(url));
+    out.forEach((url) => taken.add(url));
+    return out;
+  };
+  const frames = unique(input.storyboardFrameUrls);
+  const photos = unique(input.productImageUrls);
+  const cutouts = unique(input.anchorCutoutUrls);
+  const persons = unique(input.personUrls);
+  let slots = Math.max(1, limit - frames.length);
+  const guaranteedPhotos = photos.slice(0, Math.min(photos.length, SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS, slots));
+  slots -= guaranteedPhotos.length;
+  const person = persons.length > 0 && slots > 0 ? [persons[0]] : [];
+  slots -= person.length;
+  const pickedCutouts = cutouts.slice(0, Math.max(0, slots));
+  slots -= pickedCutouts.length;
+  const pickedPhotos = photos.slice(0, guaranteedPhotos.length + Math.max(0, slots));
+  /// 只有帧数 ≥ 上限时这里才会截掉队尾的帧；张数按截断后的真实列表数。
+  const references = [...pickedPhotos, ...pickedCutouts, ...person, ...frames].slice(0, limit);
+  const count = (group: readonly string[]) => references.filter((url) => group.includes(url)).length;
+  return {
+    references,
+    productPhotoCount: count(pickedPhotos),
+    anchorCount: count(pickedCutouts),
+    personCount: count(person),
+    frameCount: count(frames),
+  };
+}
+
+export function composeSingleVideoReferenceImages(
+  input: Parameters<typeof composeSingleVideoReferenceGroups>[0],
+): string[] {
+  return composeSingleVideoReferenceGroups(input).references;
 }
 
 /**
@@ -1448,33 +1655,43 @@ export async function requireApprovedStoryboardVideoReferencesForBrief(
   return (await requireApprovedStoryboardVideoInputsForBrief(briefId)).references;
 }
 
-/**
- * 派发单条视频需要的故事板全部输入：参考图（实拍在前、帧在后）+ 商家原话 + 各帧节奏。
- * 视频提示词据此改写成「按已确认故事板拍」（storyboard-beats.groundSegmentPromptInStoryboard）。
- */
-export async function requireApprovedStoryboardVideoInputsForBrief(briefId: string): Promise<{
-  references: string[];
-  productPhotoCount: number;
+export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
   story: string;
   beats: string[];
   totalDurationSec: number;
   aspectRatio: string;
-}> {
+}
+
+/**
+ * 派发单条视频需要的故事板全部输入：参考图（实拍 → 切片 → 主播 → 帧）+ 各组张数 + 商家原话 + 各帧节奏。
+ * 视频提示词据此改写成「按已确认故事板拍」（storyboard-beats.groundSegmentPromptInStoryboard）。
+ *
+ * 按列切分（P02-F(s)）：实拍 = inputImageUrls，切片 = anchorCutoutUrls，主播 = personAssetIds 按本人素材解析。
+ * `includeAnchorAndPersonReferences` 默认 false：grounding 目前只认「实拍在前、帧在后」，把切片 / 主播插进去
+ * 会让帧序号错位；P02-F(v) 把 anchorCount / personCount 传给 grounding 时再打开。关着时两组恒为 0、不查主播素材。
+ */
+export async function requireApprovedStoryboardVideoInputsForBrief(
+  briefId: string,
+  options: { includeAnchorAndPersonReferences?: boolean; limit?: number } = {},
+): Promise<StoryboardVideoInputs> {
   const { run, frameUrls } = await loadApprovedStoryboardForBrief(briefId);
-  /// inputImageUrls 只放商家实拍：主播参考图在 personAssetIds 列，不进这里，也不算实拍张数（P02-D(s)）。
-  /// 主播图是否随派发进视频参考、以及分组返回，留 P02-F(s)。
-  const references = composeSingleVideoReferenceImages({
+  const grouped = options.includeAnchorAndPersonReferences === true;
+  const personUrls = grouped
+    ? (await resolveStoryboardPersonImages(run.userId, run.personAssetIds ?? [])).map((asset) => asset.url)
+    : [];
+  const groups = composeSingleVideoReferenceGroups({
     productImageUrls: run.inputImageUrls,
+    anchorCutoutUrls: grouped ? run.anchorCutoutUrls ?? [] : [],
+    personUrls,
     storyboardFrameUrls: frameUrls,
+    limit: options.limit,
   });
   const beats = run.frames
     .filter((frame) => frame.isCurrent !== false && frame.status === StoryboardFrameStatus.SUCCEEDED)
     .sort((a, b) => a.ordinal - b.ordinal)
     .map((frame) => frame.beat);
   return {
-    references,
-    /// 帧在上限内总是全部保留（见 composeSingleVideoReferenceImages），排在前面的就是实拍张数
-    productPhotoCount: Math.max(0, references.length - frameUrls.length),
+    ...groups,
     story: run.sourcePrompt,
     beats,
     totalDurationSec: run.durationSec,

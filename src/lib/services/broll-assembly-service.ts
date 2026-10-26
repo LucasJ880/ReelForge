@@ -24,19 +24,18 @@ import {
   type BrollPick,
   type BrollPlan,
 } from "@/lib/services/broll-plan-service";
-import {
-  isOpenAiTtsAvailable,
-  synthesizeVoiceover,
-} from "@/lib/providers/openai-tts";
+import { getTtsProvider, isTtsConfigured } from "@/lib/providers/tts";
 import { isStockFootageAvailable } from "@/lib/providers/stock-footage";
 import { refundFailedBrief } from "@/lib/services/quota-refund-service";
 import {
-  CUSTOMER_CANCEL_MESSAGE,
   CUSTOMER_CANCELLED_CLASS,
+  CUSTOMER_CANCEL_MESSAGE,
+  RESTITCH_CANCEL_MESSAGE,
 } from "@/lib/services/single-video-cancel-service";
 import {
   composeAndPersistTimeline,
   type NormalizeAndConcatClip,
+  rollbackRestitch,
 } from "@/lib/services/stitch-service";
 import {
   brollAspectResolution,
@@ -98,7 +97,7 @@ export type ComposeBrollResult = {
 };
 
 export function isBrollRouteAvailable(): boolean {
-  return isStockFootageAvailable() && isOpenAiTtsAvailable();
+  return isStockFootageAvailable() && isTtsConfigured();
 }
 
 function aspectToStock(aspect: BrollAspectRatio): "portrait" | "landscape" {
@@ -238,12 +237,14 @@ export async function composeBrollSegments(args: {
   aspectRatio: BrollAspectRatio;
   voiceId?: string | null;
 }): Promise<ComposeBrollResult> {
-  if (!isOpenAiTtsAvailable()) {
+  if (!isTtsConfigured()) {
     throw new BrollPlanError(
-      "TTS 配音尚未接入（缺 OPENAI_API_KEY 的 tts 权限）",
+      "TTS 配音尚未接入（当前配音供应商缺少配置）",
       "footage_unavailable",
     );
   }
+  const tts = getTtsProvider();
+  const language = hasCjk(args.script) ? "zh" : "en";
 
   const plan = await buildBrollPlan({
     script: args.script,
@@ -272,9 +273,10 @@ export async function composeBrollSegments(args: {
       const clip = pick.candidates[0];
 
       const ttsPath = path.join(tmpDir, `tts-${i}.mp3`);
-      const audio = await synthesizeVoiceover({
+      const { audio } = await tts.synthesize({
         text: pick.segment.narration,
         voiceId: args.voiceId,
+        language,
       });
       await writeFile(ttsPath, audio);
       const ttsDuration = await probeDurationSec(ttsPath);
@@ -576,12 +578,14 @@ export async function prepareBrollInputs(args: {
   aspectRatio: BrollAspectRatio;
   voiceId?: string | null;
 }): Promise<{ runId: string; plan: BrollPlan; prepared: PreparedBrollSegment[] }> {
-  if (!isOpenAiTtsAvailable()) {
+  if (!isTtsConfigured()) {
     throw new BrollPlanError(
-      "TTS 配音尚未接入（缺 OPENAI_API_KEY 的 tts 权限）",
+      "TTS 配音尚未接入（当前配音供应商缺少配置）",
       "footage_unavailable",
     );
   }
+  const tts = getTtsProvider();
+  const language = hasCjk(args.script) ? "zh" : "en";
   const plan = await buildBrollPlan({
     script: args.script,
     aspect: aspectToStock(args.aspectRatio),
@@ -600,14 +604,15 @@ export async function prepareBrollInputs(args: {
   const prepared: PreparedBrollSegment[] = [];
   for (const pick of picks) {
     const clip = pick.candidates[0];
-    const audio = await synthesizeVoiceover({
+    const { audio, mime } = await tts.synthesize({
       text: pick.segment.narration,
       voiceId: args.voiceId,
+      language,
     });
     const uploaded = await storage.uploadBuffer("renders", audio, {
       key: `broll/${runId}/tts-${pick.segment.order}.mp3`,
       access: "public",
-      contentType: "audio/mpeg",
+      contentType: mime,
       overwrite: true,
     });
     prepared.push({
@@ -856,7 +861,8 @@ export async function stitchBrollLocally(args: {
 }
 
 export type CancelBrollResult =
-  | { ok: true; state: "cancelled"; refunded: boolean }
+  /// restitch_rolled_back：只重拼中取消 = 回滚到旧成片，订单 / brief / 额度都不动（P05-B 第五个回滚出口）
+  | { ok: true; state: "cancelled" | "restitch_rolled_back"; refunded: boolean }
   | { ok: false; reason: "not_found" | "not_broll" | "already_finished" };
 
 /** b-roll 成片还没交付的两种状态：排队等合成 / 合成中。 */
@@ -915,7 +921,7 @@ export async function cancelBrollDelivery(
     select: {
       id: true,
       videoRouteSnapshot: true,
-      finalVideo: { select: { id: true, status: true } },
+      finalVideo: { select: { id: true, status: true, previousStitchedVideoUrl: true } },
       contentAngle: { select: { round: { select: { deliveryOrderId: true } } } },
     },
   });
@@ -925,6 +931,16 @@ export async function cancelBrollDelivery(
   }
   if (!BROLL_CANCELLABLE_FINAL_STATUSES.includes(brief.finalVideo.status)) {
     return { ok: false, reason: "already_finished" };
+  }
+  /// P05-B 只重拼中取消 = 回滚到旧成片：成片一直都在，不取消订单、不返还、不改 brief、不碰段。
+  if (brief.finalVideo.previousStitchedVideoUrl) {
+    const rolled = await rollbackRestitch(brief.finalVideo.id, RESTITCH_CANCEL_MESSAGE, {
+      status: BROLL_CANCELLABLE_FINAL_STATUSES,
+      now,
+    });
+    return rolled.rolledBack
+      ? { ok: true, state: "restitch_rolled_back", refunded: false }
+      : { ok: false, reason: "already_finished" };
   }
 
   const finalVideoId = brief.finalVideo.id;

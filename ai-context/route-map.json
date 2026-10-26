@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T03:17:41.436Z",
+  "generatedAt": "2026-10-26T19:44:08.093Z",
   "routes": [
     {
       "routePath": "/",
@@ -1520,6 +1520,13 @@
     {
       "routePath": "/internal/distillation",
       "filePath": "src/app/(internal)/internal/distillation/page.tsx",
+      "kind": "page",
+      "group": "internal",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/internal/frame-qa",
+      "filePath": "src/app/(internal)/internal/frame-qa/page.tsx",
       "kind": "page",
       "group": "internal",
       "isDynamic": false

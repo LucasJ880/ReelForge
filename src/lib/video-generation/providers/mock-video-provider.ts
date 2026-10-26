@@ -110,6 +110,9 @@ export class MockVideoProvider implements VideoProvider {
   readonly id = "mock" as const;
   readonly displayName = "Aivora Mock Video Provider";
   readonly manualRetryBillingRisk = "none" as const;
+  /// 与客户唯一线路 Shuyu 的硬顶对齐，演练不放开真实线路做不到的能力。
+  readonly supportsReferenceAudio = false;
+  readonly maxReferenceImages = 9;
 
   isConfigured(): boolean {
     return true;

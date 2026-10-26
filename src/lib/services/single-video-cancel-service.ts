@@ -18,6 +18,10 @@ import { refundFailedBrief } from "@/lib/services/quota-refund-service";
  *  - 未完成的 FinalVideo 置 FAILED，brief 置 RENDER_FAILED（人话写明「已取消、素材保留」）；
  *  - 立即按条返还本月额度（D1），不等下一轮清扫——客户点完取消就能看到额度回来；
  *  - 素材（上传图、故事板、描述）一律保留，不删除任何东西。
+ *
+ * P05-B 只重拼中取消：段都已成功、没有可取消的任务，FinalVideo 在 PENDING / STITCHING 且
+ * previousStitchedVideoUrl 非空 → 回滚到旧成片（rollbackRestitch）。这不是取消订单：
+ * 成片一直都在，订单 / brief / 额度都不动，只是放弃这次换设置。
  */
 export const CUSTOMER_CANCELLED_CLASS = "customer_cancelled";
 export const CUSTOMER_CANCEL_MESSAGE = "已取消：素材与描述已保留，可以修改后重新提交。";
@@ -29,8 +33,14 @@ const CANCELLABLE_JOB_STATUSES: VideoJobStatus[] = [
 ];
 
 export type CancelUnifiedOrderResult =
-  | { ok: true; cancelledJobs: number; refundedBriefs: number }
+  | { ok: true; cancelledJobs: number; refundedBriefs: number; restitchRolledBack?: number }
   | { ok: false; reason: "not_found" | "already_finished" };
+
+const RESTITCH_IN_FLIGHT_STATUSES: FinalVideoStatus[] = [
+  FinalVideoStatus.PENDING,
+  FinalVideoStatus.STITCHING,
+];
+export const RESTITCH_CANCEL_MESSAGE = "已取消本次换字幕 / 配乐，成片保持原样。";
 
 export async function cancelUnifiedOrderForUser(
   userId: string,
@@ -51,6 +61,7 @@ export async function cancelUnifiedOrderForUser(
                   id: true,
                   finalVideoId: true,
                   videoJobs: { select: { id: true, status: true } },
+                  finalVideo: { select: { status: true, previousStitchedVideoUrl: true } },
                 },
               },
             },
@@ -68,7 +79,31 @@ export async function cancelUnifiedOrderForUser(
   const cancellable = briefs.filter((brief) =>
     brief.videoJobs.some((job) => CANCELLABLE_JOB_STATUSES.includes(job.status)),
   );
-  if (cancellable.length === 0) return { ok: false, reason: "already_finished" };
+  if (cancellable.length === 0) {
+    /// 只重拼中取消 = 回滚到旧片，不取消订单、不返还、不改 brief。
+    const restitching = briefs.filter(
+      (brief) =>
+        brief.finalVideoId &&
+        brief.finalVideo &&
+        RESTITCH_IN_FLIGHT_STATUSES.includes(brief.finalVideo.status) &&
+        Boolean(brief.finalVideo.previousStitchedVideoUrl),
+    );
+    let restitchRolledBack = 0;
+    if (restitching.length === 0) return { ok: false, reason: "already_finished" };
+    /// 动态 import：stitch-service 带着合成器依赖，不让取消路由的函数包背上它
+    const { rollbackRestitch } = await import("@/lib/services/stitch-service");
+    for (const brief of restitching) {
+      const rolled = await rollbackRestitch(brief.finalVideoId as string, RESTITCH_CANCEL_MESSAGE, {
+        status: RESTITCH_IN_FLIGHT_STATUSES,
+        now,
+      });
+      if (rolled.rolledBack) restitchRolledBack += 1;
+    }
+    if (restitchRolledBack > 0) {
+      return { ok: true, cancelledJobs: 0, refundedBriefs: 0, restitchRolledBack };
+    }
+    return { ok: false, reason: "already_finished" };
+  }
 
   let cancelledJobs = 0;
   const cancelledBriefIds: string[] = [];

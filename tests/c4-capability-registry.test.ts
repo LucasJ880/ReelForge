@@ -10,6 +10,7 @@ import {
   FEATURE_KEYS,
   featureGate,
   featuresForCapability,
+  capabilityCopyFor,
   nextCapabilityRecord,
   resolveCapabilities,
   type CapabilityKey,
@@ -189,6 +190,53 @@ test("写作暂停：照抄验收口径——脚本与周计划先用模板生�
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
 
+test("P01-F：看图文案四种状态都说到商品 / 人物一致性检查（不只是错字与水印）", () => {
+  for (const status of CAPABILITY_STATUSES) {
+    assert.match(CAPABILITY_COPY.vision.messages[status]["zh-CN"], /商品 \/ 人物一致性/, status);
+    assert.match(CAPABILITY_COPY.vision.messages[status]["en-US"], /product \/ people consistency/, status);
+  }
+  assert.match(CAPABILITY_COPY.vision.messages.available["zh-CN"], /错字、水印/);
+});
+
+test("P03-K：视频「不稳定」默认不承诺备用线路（生产没有可用备用线），只说正在自动重试", () => {
+  const degraded = CAPABILITY_COPY.video.messages.degraded;
+  assert.doesNotMatch(degraded["zh-CN"], /备用/);
+  assert.doesNotMatch(degraded["en-US"], /backup/i);
+  assert.match(degraded["zh-CN"], /正在自动重试/);
+  assert.match(degraded["zh-CN"], /已完成的成片不受影响/);
+  // 只有真的切了套餐（contract_drift）才许提备用；限流 / 上游抖动 / 未知原因都回到默认句
+  assert.match(capabilityCopyFor("video", "degraded", "contract_drift")["zh-CN"], /已自动切到备用套餐/);
+  assert.match(capabilityCopyFor("video", "degraded", "contract_drift")["en-US"], /backup plan/);
+  for (const reason of ["rate_limited", "upstream", "unknown"] as const) {
+    assert.deepEqual(capabilityCopyFor("video", "degraded", reason), degraded, reason);
+  }
+  // 原因只影响「不稳定」；暂停 / 正常不按原因换词
+  assert.deepEqual(capabilityCopyFor("video", "unavailable", "contract_drift"), CAPABILITY_COPY.video.messages.unavailable);
+  assert.deepEqual(capabilityCopyFor("video", "available", "ok"), CAPABILITY_COPY.video.messages.available);
+  // 其它能力没有按原因的句子：不稳定一律默认句
+  for (const key of CAPABILITY_KEYS.filter((item) => item !== "video")) {
+    assert.deepEqual(capabilityCopyFor(key, "degraded", "contract_drift"), CAPABILITY_COPY[key].messages.degraded, key);
+  }
+});
+
+test("视图：视频按原因换词——套餐漂移写「已切备用套餐」，限流写「正在自动重试」", () => {
+  const drift = resolveCapabilities({
+    records: [record("video", { status: "degraded", reason: "contract_drift", checkedAt: NOW.toISOString() })],
+    configured: ALL_CONFIGURED,
+    now: NOW,
+  });
+  assert.match(drift.items.find((item) => item.key === "video")!.message["zh-CN"], /已自动切到备用套餐/);
+  const limited = resolveCapabilities({
+    records: [record("video", { status: "degraded", reason: "rate_limited", checkedAt: NOW.toISOString() })],
+    configured: ALL_CONFIGURED,
+    now: NOW,
+  });
+  const message = limited.items.find((item) => item.key === "video")!.message;
+  assert.match(message["zh-CN"], /正在自动重试/);
+  assert.doesNotMatch(message["zh-CN"], /备用/);
+  assert.doesNotMatch(message["en-US"], /backup/i);
+});
+
 test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；画面质检 = 看图", () => {
   assert.deepEqual([...FEATURES.broll.needs], ["text", "voice", "stock"]);
   assert.deepEqual([...FEATURES.contentPlanWriting.needs], ["text"]);
@@ -199,8 +247,12 @@ test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周�
   assert.deepEqual([...FEATURES.logo.needs], ["graphics"]);
   assert.deepEqual([...FEATURES.productImages.needs], ["image"]);
   assert.deepEqual([...FEATURES.storyboardFrames.needs], ["image"]);
+  /// P01-F：故事板抽卡评审靠看图；看图暂停时跳过评审、照常生成（fail-open）
+  assert.deepEqual([...FEATURES.storyboardReview.needs], ["vision"]);
+  assert.equal(FEATURES.storyboardReview.whenBlocked["zh-CN"], "故事板跳过 AI 审帧，照常生成。");
   assert.deepEqual([...FEATURES.videoGeneration.needs], ["video"]);
   assert.deepEqual([...FEATURES.frameQa.needs], ["vision"]);
+  assert.deepEqual(featuresForCapability("vision"), ["storyboardReview", "frameQa"]);
   for (const feature of FEATURE_KEYS) {
     assert.doesNotMatch(FEATURES[feature].whenBlocked["en-US"], CJK, feature);
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);

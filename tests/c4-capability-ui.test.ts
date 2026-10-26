@@ -221,6 +221,39 @@ test("壳层：状态栏挂能力提示（首屏用服务端值）；layout 传�
   assert.match(unstable, /Some AI features unstable/);
 });
 
+test("状态页：视频不稳定按原因说话——限流 / 上游抖动不承诺备用线路，套餐漂移才写已切备用套餐（P03-K）", () => {
+  const retrying = renderToStaticMarkup(
+    React.createElement(CapabilityBoard, {
+      capabilities: view([{ key: "video", status: "degraded", reason: "rate_limited", failingSince: NOW.toISOString() }]),
+      locale: "zh-CN",
+    }),
+  );
+  assert.match(retrying, /视频生成线路有波动：正在自动重试/);
+  assert.doesNotMatch(retrying, /备用线路|备用套餐/);
+  const drifted = renderToStaticMarkup(
+    React.createElement(CapabilityBoard, {
+      capabilities: view([{ key: "video", status: "degraded", reason: "contract_drift", failingSince: NOW.toISOString() }]),
+      locale: "zh-CN",
+    }),
+  );
+  assert.match(drifted, /已自动切到备用套餐/);
+  const en = renderToStaticMarkup(
+    React.createElement(CapabilityBoard, {
+      capabilities: view([{ key: "video", status: "degraded", reason: "upstream", failingSince: NOW.toISOString() }]),
+      locale: "en-US",
+    }),
+  );
+  assert.match(en, /retrying automatically/);
+  assert.doesNotMatch(en, /backup/i);
+});
+
+test("状态页：看图暂停时「影响」一栏同时列出故事板 AI 审帧与画面质检（P01-F）", () => {
+  const html = renderToStaticMarkup(React.createElement(CapabilityBoard, { capabilities: PRODUCTION_1025, locale: "zh-CN" }));
+  assert.match(html, /故事板 AI 审帧/);
+  assert.match(html, /画面质检/);
+  assert.match(html, /商品 \/ 人物一致性/);
+});
+
 test("状态页：行情头读数（零就写零）+ 每个能力一格（StatusTick 记号与颜色成对、一句人话、影响哪些功能）", () => {
   assert.ok(existsSync("src/app/(platform)/app/status/page.tsx"));
   assert.match(read("src/app/(platform)/app/status/loading.tsx"), /<CustomerRouteLoading route="status" \/>/);

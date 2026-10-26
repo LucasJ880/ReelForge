@@ -53,6 +53,7 @@ export type Dictionary = {
     distillation: string;
     demoLeads: string;
     aiUsage: string;
+    frameQa: string;
     settings: string;
     classicWizard: string;
     contentReports: string;

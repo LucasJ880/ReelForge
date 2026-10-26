@@ -189,6 +189,37 @@ test("写作暂停：照抄验收口径——脚本与周计划先用模板生�
   assert.match(CAPABILITY_COPY.vision.messages.unavailable["zh-CN"], /成片照常生成/);
 });
 
+test("看图文案只写现在真有的检查（错字与水印）：商品 / 人物一致性等 P01-B 落地再写", () => {
+  for (const status of CAPABILITY_STATUSES) {
+    assert.doesNotMatch(CAPABILITY_COPY.vision.messages[status]["zh-CN"], /一致性/, status);
+    assert.doesNotMatch(CAPABILITY_COPY.vision.messages[status]["en-US"], /consistency/i, status);
+  }
+  assert.equal(CAPABILITY_COPY.vision.messages.available["zh-CN"], "AI 看图正常：成片会自动检查画面里的错字与水印。");
+});
+
+test("P03-K：视频「不稳定」不承诺备用线路（生产没有可切的套餐），无论什么原因都只说正在自动重试", () => {
+  const degraded = CAPABILITY_COPY.video.messages.degraded;
+  assert.doesNotMatch(degraded["zh-CN"], /备用/);
+  assert.doesNotMatch(degraded["en-US"], /backup/i);
+  assert.match(degraded["zh-CN"], /正在自动重试/);
+  assert.match(degraded["zh-CN"], /已完成的成片不受影响/);
+  for (const key of CAPABILITY_KEYS) {
+    for (const status of CAPABILITY_STATUSES) {
+      assert.doesNotMatch(CAPABILITY_COPY[key].messages[status]["zh-CN"], /备用线路|备用套餐/, `${key}.${status}`);
+      assert.doesNotMatch(CAPABILITY_COPY[key].messages[status]["en-US"], /backup (line|plan)/i, `${key}.${status}`);
+    }
+  }
+  /// 文案只看状态，不按原因换词：套餐漂移与限流说的是同一句
+  for (const reason of ["contract_drift", "rate_limited", "upstream"] as const) {
+    const view = resolveCapabilities({
+      records: [record("video", { status: "degraded", reason, checkedAt: NOW.toISOString() })],
+      configured: ALL_CONFIGURED,
+      now: NOW,
+    });
+    assert.deepEqual(view.items.find((item) => item.key === "video")!.message, degraded, reason);
+  }
+});
+
 test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周计划 / 口播稿 = 写作；图文配图 = Shuyu 图像、Logo = OpenAI 图像；画面质检 = 看图", () => {
   assert.deepEqual([...FEATURES.broll.needs], ["text", "voice", "stock"]);
   assert.deepEqual([...FEATURES.contentPlanWriting.needs], ["text"]);
@@ -199,8 +230,12 @@ test("功能依赖写在一处：实拍线路 = 写作 + 配音 + 图库；周�
   assert.deepEqual([...FEATURES.logo.needs], ["graphics"]);
   assert.deepEqual([...FEATURES.productImages.needs], ["image"]);
   assert.deepEqual([...FEATURES.storyboardFrames.needs], ["image"]);
+  /// P01-F：故事板抽卡评审靠看图；看图暂停时跳过评审、照常生成（fail-open）
+  assert.deepEqual([...FEATURES.storyboardReview.needs], ["vision"]);
+  assert.equal(FEATURES.storyboardReview.whenBlocked["zh-CN"], "故事板跳过 AI 审帧，照常生成。");
   assert.deepEqual([...FEATURES.videoGeneration.needs], ["video"]);
   assert.deepEqual([...FEATURES.frameQa.needs], ["vision"]);
+  assert.deepEqual(featuresForCapability("vision"), ["storyboardReview", "frameQa"]);
   for (const feature of FEATURE_KEYS) {
     assert.doesNotMatch(FEATURES[feature].whenBlocked["en-US"], CJK, feature);
     assert.match(FEATURES[feature].whenBlocked["zh-CN"], CJK, feature);

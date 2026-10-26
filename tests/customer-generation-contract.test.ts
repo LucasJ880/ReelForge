@@ -383,6 +383,8 @@ test("Phase 2 contract: customer batch serializer strips raw submission diagnost
     "userSafeError",
   ]);
   assert.deepEqual(Object.keys(customer.videoJobs[0].storyboard!).sort(), [
+    /// P01-D：只露审帧进度（审帧中 / 重抽第 N 次），不露 issues、分数与内部 warning。
+    "aiReview",
     "approvalPolicy",
     "frames",
     "id",

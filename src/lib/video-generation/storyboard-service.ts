@@ -8,6 +8,11 @@ import {
   type MediaAsset,
 } from "@prisma/client";
 import { db } from "@/lib/db";
+import { isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import {
+  reserveStoryboardReviewBudget,
+  STORYBOARD_REVIEW_OUTSIDE_BUDGET,
+} from "@/lib/services/vision-budget-context";
 import {
   fetchShuyuOutputImage,
   pollShuyuImageTask,
@@ -44,6 +49,22 @@ import {
   truncateStoryText,
 } from "@/lib/video-generation/storyboard-frame-inputs";
 import { STORYBOARD_PERSON_REFS_MAX } from "@/lib/video-generation/storyboard-person-refs";
+import { reviewStoryboardFrames } from "@/lib/video-generation/storyboard-gacha";
+import {
+  aiReviewRegenerationDirection,
+  blockReviewFallbackReason,
+  enterBlockReviewSummary,
+  readAiReviewSummary,
+  readFrameAiReview,
+  STORYBOARD_AI_REVIEW_LEASE_MS,
+  STORYBOARD_AI_REVIEW_MAX_REGENS_PER_FRAME,
+  STORYBOARD_AI_REVIEW_RESERVE_MS,
+  STORYBOARD_AI_REVIEW_WARNINGS,
+  storyboardAiReviewMode,
+  storyboardProviderAttempts,
+  type StoryboardAiReviewSummary,
+  type StoryboardFrameAiReview,
+} from "@/lib/video-generation/storyboard-ai-review";
 
 const STORYBOARD_LEASE_MS = 2 * 60_000;
 const STORYBOARD_POLL_RETRY_MS = 20_000;
@@ -159,6 +180,8 @@ interface StoryboardRuntimeDependencies {
   fetchOutput: typeof fetchShuyuOutputImage;
   storage: typeof getStorageProvider;
   createAsset: typeof createOwnedMediaAsset;
+  reviewFrames: typeof reviewStoryboardFrames;
+  visionAvailable: () => boolean;
 }
 
 const defaultRuntime: StoryboardRuntimeDependencies = {
@@ -167,6 +190,8 @@ const defaultRuntime: StoryboardRuntimeDependencies = {
   fetchOutput: fetchShuyuOutputImage,
   storage: getStorageProvider,
   createAsset: createOwnedMediaAsset,
+  reviewFrames: reviewStoryboardFrames,
+  visionAvailable: () => isLLMAvailable() && !isLLMForcedMock(),
 };
 let runtimeOverride: Partial<StoryboardRuntimeDependencies> | null = null;
 const runtime = (): StoryboardRuntimeDependencies => ({
@@ -1064,6 +1089,21 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
     run.frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED)
   ) {
     const auto = run.approvalPolicy === StoryboardApprovalPolicy.AUTO;
+    const now = new Date();
+    /// D-1：off / shadow 下 AUTO 照旧直接 APPROVED（shadow 只在批量 tick 里旁路审）；
+    /// block 下 AUTO 停在 AWAITING_APPROVAL 等 cron 审帧。vision 不可用时不插闸，记 skipped 直接批准。
+    const block = auto && storyboardAiReviewMode() === "block";
+    const visionOff = block && !runtime().visionAvailable();
+    const approveNow = auto && (!block || visionOff);
+    const summary: StoryboardAiReviewSummary | null = !block
+      ? null
+      : visionOff
+        ? {
+            ...enterBlockReviewSummary(run.aiReviewSummary, now),
+            state: "skipped",
+            note: "vision review unavailable",
+          }
+        : enterBlockReviewSummary(run.aiReviewSummary, now);
     // FAILED is also a legal source state: a revived ACK_UNKNOWN frame can
     // finish the run after an earlier premature FAILED verdict.
     await db.storyboardRun.updateMany({
@@ -1072,10 +1112,11 @@ async function advanceRun(runId: string): Promise<StoryboardRunRecord> {
         status: { in: [StoryboardRunStatus.GENERATING, StoryboardRunStatus.FAILED] },
       },
       data: {
-        status: auto ? StoryboardRunStatus.APPROVED : StoryboardRunStatus.AWAITING_APPROVAL,
-        approvedAt: auto ? new Date() : null,
+        status: approveNow ? StoryboardRunStatus.APPROVED : StoryboardRunStatus.AWAITING_APPROVAL,
+        approvedAt: approveNow ? now : null,
         errorCode: null,
         errorMessage: null,
+        ...(summary ? { aiReviewSummary: summary as unknown as Prisma.InputJsonValue } : {}),
       },
     });
     return (await findRun(run.id))!;
@@ -1263,6 +1304,8 @@ export async function regenerateStoryboardFrame(input: {
   promptOverride?: string | null;
   /// P05-A：这一帧改用的商家图（≤5 张，必须归本人）；不传 = 沿用这轮的商家实拍。
   sourceAssetIds?: string[];
+  /// P01-D：审帧不过触发的重抽——新行 aiReview.regenCount +1，不占供应商重试名额。
+  aiReviewRegen?: boolean;
 }): Promise<StoryboardRunView> {
   const sourceAssetIds = [...new Set(input.sourceAssetIds ?? [])];
   if (sourceAssetIds.length > STORYBOARD_FRAME_SOURCE_ASSETS_MAX) {
@@ -1300,7 +1343,8 @@ export async function regenerateStoryboardFrame(input: {
         409,
       );
     }
-    if (existing.attempt - 1 >= STORYBOARD_FRAME_MAX_REGENERATIONS) {
+    /// 审帧重抽（aiReview.regenCount）另有上限，不算进这里的重做次数。
+    if (storyboardProviderAttempts(existing) - 1 >= STORYBOARD_FRAME_MAX_REGENERATIONS) {
       throw new StoryboardRequestError(
         `这一帧已经重做了 ${STORYBOARD_FRAME_MAX_REGENERATIONS} 次。继续重抽很少变好：建议换一张更清楚的产品照片，或把创作描述写得更具体，再开新的一轮。`,
         "FRAME_REGENERATION_LIMIT",
@@ -1354,6 +1398,7 @@ export async function regenerateStoryboardFrame(input: {
     }
     const attempt = existing.attempt + 1;
     const run = existing.storyboardRun;
+    const regenCount = readFrameAiReview(existing.aiReview).regenCount + (input.aiReviewRegen ? 1 : 0);
     /// 入参与 REFERENCE ROLES 在建帧时一次算定并落帧级列，提交时原样使用（submitStoryboardFrame）。
     const inputs = await composeRunFrameInputImages({
       run,
@@ -1383,6 +1428,9 @@ export async function regenerateStoryboardFrame(input: {
         inputAssetIds: sourceAssets.map((asset) => asset.id),
         inputImageUrls: inputs.map((image) => image.url),
         providerRequestKey: frameRequestKey(existing.storyboardRunId, existing.ordinal, attempt),
+        ...(regenCount > 0
+          ? { aiReview: { regenCount } satisfies StoryboardFrameAiReview as unknown as Prisma.InputJsonValue }
+          : {}),
       },
     });
   });
@@ -1699,6 +1747,378 @@ export async function requireApprovedStoryboardVideoInputsForBrief(
   };
 }
 
+// ---------------------------------------------------------------------------
+// P01-D · AI 审帧（D-1 三档 STORYBOARD_AI_REVIEW=off|shadow|block，默认 off）
+// ---------------------------------------------------------------------------
+
+export type StoryboardAutoReviewOutcome =
+  | "not_eligible"
+  | "busy"
+  | "deferred_budget"
+  | "deferred"
+  | "regenerating"
+  | "approved"
+  | "approved_skipped"
+  | "approved_with_warning"
+  | "cas_lost";
+
+function summaryJson(summary: StoryboardAiReviewSummary): Prisma.InputJsonValue {
+  return summary as unknown as Prisma.InputJsonValue;
+}
+
+function frameReviewJson(review: StoryboardFrameAiReview): Prisma.InputJsonValue {
+  return review as unknown as Prisma.InputJsonValue;
+}
+
+function withoutReviewLease(summary: StoryboardAiReviewSummary): StoryboardAiReviewSummary {
+  const copy = { ...summary };
+  delete copy.reviewLeaseUntil;
+  return copy;
+}
+
+/** block 档出口：只从 {AWAITING_APPROVAL, AUTO} CAS 到 APPROVED，汇总一并写入。 */
+async function approveAutoRunAfterReview(
+  runId: string,
+  summary: StoryboardAiReviewSummary,
+  outcome: "approved" | "approved_skipped" | "approved_with_warning",
+  now: Date,
+): Promise<StoryboardAutoReviewOutcome> {
+  const rest = withoutReviewLease(summary);
+  const approved = await db.storyboardRun.updateMany({
+    where: {
+      id: runId,
+      status: StoryboardRunStatus.AWAITING_APPROVAL,
+      approvalPolicy: StoryboardApprovalPolicy.AUTO,
+    },
+    data: {
+      status: StoryboardRunStatus.APPROVED,
+      approvedAt: now,
+      aiReviewSummary: summaryJson({ ...rest, updatedAt: now.toISOString() }),
+    },
+  });
+  return approved.count === 1 ? outcome : "cas_lost";
+}
+
+/**
+ * block 档：一条全部出图、停在 {AWAITING_APPROVAL, AUTO} 的 run 审一次帧（批量 tick 与 cron 单条轮询共用）。
+ *
+ * 顺序：模式已关 / vision 不可用 → 直接批准；兜底（停留 > 20 分钟、连续 3 个 tick 预算不足）→ 带 warning 批准，
+ * 不依赖本 tick 有预算；向 tick 预算占位 → 按 updatedAt CAS 占住这条 run → 一次 vision 看整轮 →
+ * 逐帧写 aiReview → 不过的帧以 issues 作 promptOverride 重抽（每帧最多 2 次，FRAME_REGENERATION_LIMIT 也算用满）
+ * → 全过 / 用满后批准。审帧调用失败 fail-open 带 warning 批准，不让审帧变成管线单点故障。
+ */
+export async function reviewAutoStoryboardRun(
+  runId: string,
+  now = new Date(),
+): Promise<StoryboardAutoReviewOutcome> {
+  const run = await findRun(runId);
+  if (
+    !run ||
+    run.status !== StoryboardRunStatus.AWAITING_APPROVAL ||
+    run.approvalPolicy !== StoryboardApprovalPolicy.AUTO
+  ) {
+    return "not_eligible";
+  }
+  const frames = [...run.frames].sort((a, b) => a.ordinal - b.ordinal);
+  if (
+    frames.length !== storyboardFrameCountForDuration(run.durationSec) ||
+    !frames.every((frame) => frame.status === StoryboardFrameStatus.SUCCEEDED && frame.outputUrl)
+  ) {
+    return "not_eligible";
+  }
+  const previous = readAiReviewSummary(run.aiReviewSummary);
+  const base: StoryboardAiReviewSummary = previous ?? enterBlockReviewSummary(null, run.updatedAt);
+  const stamp = { updatedAt: now.toISOString() };
+
+  if (storyboardAiReviewMode() !== "block") {
+    return approveAutoRunAfterReview(run.id, { ...base, ...stamp, state: "skipped", note: "review mode is not block" }, "approved_skipped", now);
+  }
+  if (!runtime().visionAvailable()) {
+    return approveAutoRunAfterReview(run.id, { ...base, ...stamp, state: "skipped", note: "vision review unavailable" }, "approved_skipped", now);
+  }
+  if (base.reviewLeaseUntil && Date.parse(base.reviewLeaseUntil) > now.getTime()) return "busy";
+
+  const timedOut = blockReviewFallbackReason({ summary: base, runUpdatedAt: run.updatedAt, now });
+  if (timedOut) {
+    return approveAutoRunAfterReview(
+      run.id,
+      { ...base, ...stamp, state: "approved_with_warning", warning: STORYBOARD_AI_REVIEW_WARNINGS[timedOut] },
+      "approved_with_warning",
+      now,
+    );
+  }
+
+  const reviews = frames.map((frame) => readFrameAiReview(frame.aiReview));
+  const pending = frames
+    .map((_, index) => index)
+    .filter((index) => !reviews[index]!.verdict && !reviews[index]!.exhausted);
+
+  if (pending.length > 0) {
+    const reservation = reserveStoryboardReviewBudget(STORYBOARD_AI_REVIEW_RESERVE_MS, now.getTime());
+    if (!reservation.ok) {
+      if (reservation.reason === STORYBOARD_REVIEW_OUTSIDE_BUDGET) return "deferred";
+      const fallback = blockReviewFallbackReason({
+        summary: base,
+        runUpdatedAt: run.updatedAt,
+        now,
+        budgetShortThisTick: true,
+      });
+      if (fallback) {
+        return approveAutoRunAfterReview(
+          run.id,
+          { ...base, ...stamp, state: "approved_with_warning", warning: STORYBOARD_AI_REVIEW_WARNINGS[fallback] },
+          "approved_with_warning",
+          now,
+        );
+      }
+      await db.storyboardRun.updateMany({
+        where: { id: run.id, status: StoryboardRunStatus.AWAITING_APPROVAL, approvalPolicy: StoryboardApprovalPolicy.AUTO },
+        data: {
+          aiReviewSummary: summaryJson({
+            ...base,
+            ...stamp,
+            state: "reviewing",
+            budgetShortTicks: base.budgetShortTicks + 1,
+            note: reservation.reason,
+          }),
+        },
+      });
+      return "deferred_budget";
+    }
+    /// 按 updatedAt CAS 占住这条 run：并发的 cron（批量 tick 与单条轮询）只有一份真调 vision。
+    const claimed = await db.storyboardRun.updateMany({
+      where: {
+        id: run.id,
+        status: StoryboardRunStatus.AWAITING_APPROVAL,
+        approvalPolicy: StoryboardApprovalPolicy.AUTO,
+        updatedAt: run.updatedAt,
+      },
+      data: {
+        aiReviewSummary: summaryJson({
+          ...base,
+          ...stamp,
+          state: "reviewing",
+          reviewLeaseUntil: new Date(now.getTime() + STORYBOARD_AI_REVIEW_LEASE_MS).toISOString(),
+        }),
+      },
+    });
+    if (claimed.count !== 1) {
+      reservation.settle(0);
+      return "busy";
+    }
+    const startedAt = Date.now();
+    const result = await runtime().reviewFrames({
+      frameUrls: frames.map((frame) => frame.outputAsset?.url ?? frame.outputUrl!),
+      productUrls: run.inputImageUrls,
+      beats: frames.map((frame) => frame.beat),
+    });
+    reservation.settle(Date.now() - startedAt);
+    if (!result.checked) {
+      const skipped = result.reason === "vision_unavailable";
+      return approveAutoRunAfterReview(
+        run.id,
+        {
+          ...base,
+          ...stamp,
+          state: skipped ? "skipped" : "approved_with_warning",
+          budgetShortTicks: 0,
+          note: result.note,
+          ...(skipped ? {} : { warning: STORYBOARD_AI_REVIEW_WARNINGS.reviewFailed }),
+        },
+        skipped ? "approved_skipped" : "approved_with_warning",
+        now,
+      );
+    }
+    const reviewedAt = new Date().toISOString();
+    for (const index of pending) {
+      const item = result.frames[index];
+      if (!item) continue;
+      reviews[index] = {
+        ...reviews[index]!,
+        verdict: { pass: item.pass, score: item.score, issues: item.issues, mode: "block", reviewedAt },
+      };
+      await db.storyboardFrame.updateMany({
+        where: { id: frames[index]!.id, isCurrent: true },
+        data: { aiReview: frameReviewJson(reviews[index]!) },
+      });
+    }
+    base.note = result.note;
+  }
+
+  let launched = 0;
+  let stuck = 0;
+  for (const [index, frame] of frames.entries()) {
+    const review = reviews[index]!;
+    if (!review.verdict || review.verdict.pass || review.exhausted) continue;
+    const markExhausted = async () => {
+      reviews[index] = { ...review, exhausted: true };
+      await db.storyboardFrame.updateMany({
+        where: { id: frame.id, isCurrent: true },
+        data: { aiReview: frameReviewJson(reviews[index]!) },
+      });
+    };
+    if (review.regenCount >= STORYBOARD_AI_REVIEW_MAX_REGENS_PER_FRAME) {
+      await markExhausted();
+      continue;
+    }
+    try {
+      await regenerateStoryboardFrame({
+        userId: run.userId,
+        runId: run.id,
+        frameId: frame.id,
+        promptOverride: aiReviewRegenerationDirection(review.verdict.issues),
+        aiReviewRegen: true,
+      });
+      launched += 1;
+    } catch (error) {
+      if (error instanceof StoryboardRequestError && error.code === "FRAME_REGENERATION_LIMIT") {
+        await markExhausted();
+        continue;
+      }
+      stuck += 1;
+      console.warn(JSON.stringify({
+        evt: "storyboard_ai_review_regen_failed",
+        runId: run.id,
+        frameId: frame.id,
+        error: (error instanceof Error ? error.message : String(error)).slice(0, 200),
+      }));
+    }
+  }
+
+  if (launched > 0) {
+    /// 重做已把 run 拉回 GENERATING；出完图 advanceRun 会再次进入 AWAITING_APPROVAL 并只审新行。
+    await db.storyboardRun.updateMany({
+      where: { id: run.id, status: StoryboardRunStatus.GENERATING },
+      data: {
+        aiReviewSummary: summaryJson({
+          mode: "block",
+          state: "regenerating",
+          regenRound: base.regenRound + launched,
+          budgetShortTicks: 0,
+          ...(base.note ? { note: base.note } : {}),
+          ...stamp,
+        }),
+      },
+    });
+    return "regenerating";
+  }
+  if (stuck > 0) {
+    /// 重抽没发出去（状态并发变化等）：清掉占位，下个 tick 不再调 vision、直接重试重抽；20 分钟兜底仍生效。
+    await db.storyboardRun.updateMany({
+      where: { id: run.id, status: StoryboardRunStatus.AWAITING_APPROVAL, approvalPolicy: StoryboardApprovalPolicy.AUTO },
+      data: {
+        aiReviewSummary: summaryJson({ ...withoutReviewLease(base), ...stamp, state: "reviewing", budgetShortTicks: 0 }),
+      },
+    });
+    return "deferred";
+  }
+  const anyExhausted = reviews.some((review) => review.exhausted);
+  return approveAutoRunAfterReview(
+    run.id,
+    {
+      ...base,
+      ...stamp,
+      state: anyExhausted ? "approved_with_warning" : "passed",
+      budgetShortTicks: 0,
+      ...(anyExhausted ? { warning: STORYBOARD_AI_REVIEW_WARNINGS.exhausted } : {}),
+    },
+    anyExhausted ? "approved_with_warning" : "approved",
+    now,
+  );
+}
+
+/**
+ * shadow 档：已 APPROVED 的 AUTO run 旁路审一次（只在批量 tick 的预算里跑）。不改 run / 帧的状态，
+ * 结论写进每帧 aiReview 与 run.aiReviewSummary（shadow_done / skipped）。预算不够就什么都不写，下个 tick 再来。
+ */
+export async function shadowReviewStoryboardRun(
+  runId: string,
+  now = new Date(),
+): Promise<"not_eligible" | "deferred_budget" | "busy" | "skipped" | "reviewed"> {
+  if (storyboardAiReviewMode() !== "shadow") return "not_eligible";
+  const run = await findRun(runId);
+  if (
+    !run ||
+    run.status !== StoryboardRunStatus.APPROVED ||
+    run.approvalPolicy !== StoryboardApprovalPolicy.AUTO ||
+    readAiReviewSummary(run.aiReviewSummary)
+  ) {
+    return "not_eligible";
+  }
+  const frames = [...run.frames].sort((a, b) => a.ordinal - b.ordinal);
+  const urls = frames.map((frame) => frame.outputAsset?.url ?? frame.outputUrl);
+  if (frames.length === 0 || urls.some((url) => !url)) return "not_eligible";
+  const shadowSummary = (patch: Partial<StoryboardAiReviewSummary>): Prisma.InputJsonValue =>
+    summaryJson({
+      mode: "shadow",
+      state: "shadow_done",
+      regenRound: 0,
+      budgetShortTicks: 0,
+      updatedAt: new Date().toISOString(),
+      ...patch,
+    });
+  if (!runtime().visionAvailable()) {
+    await db.storyboardRun.updateMany({
+      where: { id: run.id, updatedAt: run.updatedAt },
+      data: { aiReviewSummary: shadowSummary({ state: "skipped", note: "vision review unavailable" }) },
+    });
+    return "skipped";
+  }
+  const reservation = reserveStoryboardReviewBudget(STORYBOARD_AI_REVIEW_RESERVE_MS, now.getTime());
+  if (!reservation.ok) return "deferred_budget";
+  const claimed = await db.storyboardRun.updateMany({
+    where: { id: run.id, status: StoryboardRunStatus.APPROVED, updatedAt: run.updatedAt },
+    data: {
+      aiReviewSummary: shadowSummary({
+        state: "reviewing",
+        reviewLeaseUntil: new Date(now.getTime() + STORYBOARD_AI_REVIEW_LEASE_MS).toISOString(),
+      }),
+    },
+  });
+  if (claimed.count !== 1) {
+    reservation.settle(0);
+    return "busy";
+  }
+  const startedAt = Date.now();
+  const result = await runtime().reviewFrames({
+    frameUrls: urls as string[],
+    productUrls: run.inputImageUrls,
+    beats: frames.map((frame) => frame.beat),
+  });
+  reservation.settle(Date.now() - startedAt);
+  if (!result.checked) {
+    await db.storyboardRun.updateMany({
+      where: { id: run.id },
+      data: { aiReviewSummary: shadowSummary({ state: "skipped", note: result.note }) },
+    });
+    return "skipped";
+  }
+  const reviewedAt = new Date().toISOString();
+  for (const item of result.frames) {
+    const frame = frames[item.index];
+    if (!frame) continue;
+    await db.storyboardFrame.updateMany({
+      where: { id: frame.id, isCurrent: true },
+      data: {
+        aiReview: frameReviewJson({
+          ...readFrameAiReview(frame.aiReview),
+          verdict: { pass: item.pass, score: item.score, issues: item.issues, mode: "shadow", reviewedAt },
+        }),
+      },
+    });
+  }
+  const wouldBlock = result.frames.filter((item) => !item.pass).length;
+  await db.storyboardRun.updateMany({
+    where: { id: run.id },
+    data: {
+      aiReviewSummary: shadowSummary({
+        note: `${result.note}${wouldBlock ? ` · would block ${wouldBlock}` : ""}`.slice(0, 500),
+      }),
+    },
+  });
+  return "reviewed";
+}
+
 export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {
   const runs = await db.storyboardRun.findMany({
     where: {
@@ -1706,6 +2126,13 @@ export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {
         // 停用账号不再推进：GENERATING / FAILED 复活两路都排除停用用户；
         // 下面 CANCELLED 一路不过滤——停用时已取消的轮次仍要收回已付费的帧。
         { status: StoryboardRunStatus.GENERATING, owner: { disabledAt: null } },
+        // P01-D block 档：API 建的单条 AUTO run 出完图停在这里等审帧（批量 run 由批次 tick 审，不在这一路）。
+        {
+          status: StoryboardRunStatus.AWAITING_APPROVAL,
+          approvalPolicy: StoryboardApprovalPolicy.AUTO,
+          videoJobId: null,
+          owner: { disabledAt: null },
+        },
         // FAILED 但存在「任务号已知的 ACK_UNKNOWN 帧」的 run 可以按真实状态
         // 复活，必须持续对账；其余 FAILED run 没有可查的事实，不进队列。
         {
@@ -1742,12 +2169,19 @@ export async function pollPendingStoryboardRuns(limit = 10): Promise<number> {
     },
     orderBy: { updatedAt: "asc" },
     take: Math.max(1, Math.min(limit, 50)),
-    select: { id: true },
+    select: { id: true, status: true, approvalPolicy: true },
   });
   let polled = 0;
   for (const run of runs) {
     try {
-      await reconcileStoryboardRun(run.id);
+      if (
+        run.status === StoryboardRunStatus.AWAITING_APPROVAL &&
+        run.approvalPolicy === StoryboardApprovalPolicy.AUTO
+      ) {
+        await reviewAutoStoryboardRun(run.id);
+      } else {
+        await reconcileStoryboardRun(run.id);
+      }
       polled += 1;
     } catch (error) {
       console.error("[storyboards] reconcile failed", {

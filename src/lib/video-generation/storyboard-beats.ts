@@ -42,9 +42,12 @@ export function storyboardBeatLabel(beat: string, english: boolean): string {
 /** 已按故事板改写过的段提示词带这个标记：重试 / 重复派发不再二次改写。 */
 export const STORYBOARD_GROUNDING_MARKER = "APPROVED STORYBOARD (recreate these keyframes in order):";
 
-/// 模板里与故事板无冲突、必须保留的约束行（身份 / 场景 / 产品 / 口型 / 光线锁，与口播台词）。
+/// 模板里与故事板无冲突、必须保留的约束行（身份 / 场景 / 产品 / 口型 / 光线锁，bible 的人物与产品行，与口播台词）。
+/// `CHARACTER (` / `PRODUCT (` / `PRODUCT:` / `NO on-camera person` 是 bible 落进提示词的人物与产品文字锚（P02-C）：
+/// 故事板帧只锚镜头，这几行若被丢掉，主播参考与产品描述在派发时整行消失。
+/// `Audio:` 与 `Spoken dialogue` 是口播链路的依赖，必须原样保留。
 const KEEP_TEMPLATE_LINE =
-  /^(?:CHARACTER IDENTITY LOCK|SCENE GEOMETRY LOCK|PRODUCT SHAPE LOCK|LIP-SYNC LOCK|LIGHTING CONTINUITY LOCK|Audio:|Spoken dialogue|Do not render)/;
+  /^(?:CHARACTER IDENTITY LOCK|CHARACTER \(|PRODUCT(?: \(|:)|NO on-camera person|SCENE GEOMETRY LOCK|PRODUCT SHAPE LOCK|LIP-SYNC LOCK|LIGHTING CONTINUITY LOCK|Audio:|Spoken dialogue|Do not render)/;
 
 /// 供应商提示词上限 5000 字（shuyu）；商家描述最多 4000 字，这里给故事留 1500，余量给约束与台词。
 const STORY_CHAR_BUDGET = 1500;

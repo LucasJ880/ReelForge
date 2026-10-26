@@ -83,3 +83,60 @@ test("接线：派发前按故事板改写提示词并写回 directorPlan", asyn
   assert.match(service, /seedancePrompt: groundSegmentPromptInStoryboard\(segment\.seedancePrompt/);
   assert.match(service, /directorPlan: groundedPlan as unknown as Prisma\.InputJsonValue/);
 });
+
+/**
+ * P02-C：bible 落进提示词的人物 / 产品行（CHARACTER ( / PRODUCT ( / PRODUCT: / NO on-camera person）
+ * 在按故事板改写时必须保留——故事板帧只锚镜头，主播参考与产品描述的文字锚不能整行丢掉。
+ * 口播链路依赖 `Audio:` 与 `Spoken dialogue` 行，同样必须原样保留。
+ */
+const BIBLE_TEMPLATE = [
+  "9:16 vertical UGC-style short video shot on a phone, 15s continuous story told in 4 quick cuts.",
+  "",
+  "CHARACTER (must match the presenter reference photo — same face, hair, skin tone and build; keep 100% identical in every cut): The exact person in the presenter reference photo, oat-colored loungewear.",
+  "LOCATION: real lived-in home environment, natural clutter, daylight from window",
+  "PRODUCT (must exactly match the reference images): a navy linen roman shade with a white cord lock.",
+  "LIGHTING: bright natural morning daylight through the window",
+  "0-4s: tight close-up on the character's face.",
+  "",
+  "Audio: generate native speech for the approved voice-only dialogue below, with subtle real room ambience.",
+  'Spoken dialogue (voice only, exact wording, zh-CN, warm confident): "带它出门。"',
+  "Do not render subtitles, captions, readable text, or a music bed.",
+  "Style: authentic handheld iPhone footage",
+].join("\n");
+
+test("P02-C：CHARACTER ( / PRODUCT ( 行在 grounding 后保留，LOCATION / LIGHTING / 镜头表仍被替换", () => {
+  const out = groundSegmentPromptInStoryboard(BIBLE_TEMPLATE, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.match(out, /^CHARACTER \(must match the presenter reference photo[^\n]*oat-colored loungewear\.$/m);
+  assert.match(out, /^PRODUCT \(must exactly match the reference images\): a navy linen roman shade/m);
+  assert.doesNotMatch(out, /^LOCATION: |^LIGHTING: |^0-4s: tight close-up|^Style: /m);
+  // 保留行排在故事板镜头表之后
+  assert.ok(out.indexOf(STORYBOARD_GROUNDING_MARKER) < out.indexOf("CHARACTER ("));
+});
+
+test("P02-C：PRODUCT: 与 NO on-camera person（纯产品模版）行也保留", () => {
+  const productOnly = BIBLE_TEMPLATE
+    .replace(/^CHARACTER \([^\n]*$/m, "NO on-camera person: the product is the only hero of every shot.")
+    .replace(/^PRODUCT \([^\n]*$/m, "PRODUCT: a navy linen roman shade with a white cord lock.");
+  const out = groundSegmentPromptInStoryboard(productOnly, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 0, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.match(out, /^NO on-camera person: the product is the only hero of every shot\.$/m);
+  assert.match(out, /^PRODUCT: a navy linen roman shade with a white cord lock\.$/m);
+  assert.doesNotMatch(out, /PRODUCT IDENTITY LOCK/);
+});
+
+test("P02-C：Audio: 与 Spoken dialogue 开头的行在 grounding 后原样保留（口播链路依赖）", () => {
+  const out = groundSegmentPromptInStoryboard(BIBLE_TEMPLATE, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.match(out, /^Audio: generate native speech for the approved voice-only dialogue below, with subtle ambient sound that fits the location\.$/m);
+  assert.match(out, /^Spoken dialogue \(voice only, exact wording, zh-CN, warm confident\): "带它出门。"$/m);
+  assert.match(out, /^Do not render subtitles, captions, readable text, or a music bed\.$/m);
+  // 幂等：二次改写不丢这些行
+  const again = groundSegmentPromptInStoryboard(out, {
+    aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,
+  });
+  assert.equal(again, out);
+});

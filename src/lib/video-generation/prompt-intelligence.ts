@@ -439,9 +439,11 @@ function composeSeedancePrompt(params: {
     params.args.styleTemplate != null &&
     !params.args.styleTemplate.scaffold.characterHint &&
     params.args.styleTemplate.scaffold.dialogueStyle == null;
+  /// 有主播参考图（AssetRole person）时，人物身份以照片为准（P02-C）
+  const hasPresenterRef = args.classifiedAssets.some((a) => effectiveAssetRole(a) === "person");
   const characterLine = productOnly
     ? "NO on-camera person: the product is the only hero of every shot."
-    : `CHARACTER (keep 100% identical in every cut): ${bible.characterProfile}`;
+    : `CHARACTER (${hasPresenterRef ? "must match the presenter reference photo — same face, hair, skin tone and build; " : ""}keep 100% identical in every cut): ${bible.characterProfile}`;
 
   const prompt = [
     openingLine,

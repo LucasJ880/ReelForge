@@ -170,6 +170,18 @@ function releaseFrameQaCheck(): void {
 }
 
 /**
+ * 给成片级复检（P01-E，final-frame-qa-service）共用同一份 cron 预算：段级门禁先用，复检吃剩下的。
+ * 只是把上面两个内部函数暴露出去，不改任何决策。
+ */
+export function reserveFrameQaBudgetSlot(now = Date.now()): BudgetReservation {
+  return reserveFrameQaCheck(now);
+}
+
+export function releaseFrameQaBudgetSlot(): void {
+  releaseFrameQaCheck();
+}
+
+/**
  * 质检这一段的那次尝试：供应商任务号 + 提交幂等键。重试会换掉其中之一
  *（单条重试先换 providerRequestKey，批量重试先清空 externalJobId），
  * 占位与终态写入都钉住它，旧尝试的质检不会写到新一轮上。

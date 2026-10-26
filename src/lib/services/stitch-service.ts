@@ -14,6 +14,11 @@ import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 import type { PostProductionPlan } from "@/types/video-generation";
 import { isDeliveredBriefStatus } from "@/lib/video-generation/brief-delivery-state";
 import {
+  pendingFinalFrameQaMark,
+  readFinalFrameQaMark,
+} from "@/lib/video-generation/final-frame-qa-mark";
+import { mergeQaReviewAiFields } from "@/lib/services/qa-review-merge";
+import {
   mergeRestitchPatch,
   parseRestitchPatch,
   RestitchRejectedError,
@@ -1101,13 +1106,32 @@ async function markBriefReady(briefId: string) {
   if (!delivered) await ensureQAPendingStub(briefId);
 }
 
+/**
+ * QA 桩 + 成片级复检标记（P01-E 影子）：成片就位时在 aiScoreBreakdown 上挂
+ * finalFrameQa = { status: "pending", requestedAt }，由 poll-videos cron 在帧质检预算内消费。
+ * 已有 PENDING 桩（只重拼换了成片）就合并写回「待复检」，其它 AI 字段原样。
+ * video-service.ts 里旧单段路径的同名副本不在此改（留给 C4）。
+ */
 async function ensureQAPendingStub(briefId: string) {
+  const mark = pendingFinalFrameQaMark();
   const existing = await db.qAReview.findFirst({
     where: { videoBriefId: briefId, status: "PENDING" },
   });
-  if (existing) return;
+  if (existing) {
+    /// 已经在排队复检就不重复写（避免每次刷新都刷 updatedAt）
+    if (readFinalFrameQaMark(existing.aiScoreBreakdown)?.status === "pending") return;
+    await db.qAReview.update({
+      where: { id: existing.id },
+      data: mergeQaReviewAiFields(existing, { breakdown: mark }),
+    });
+    return;
+  }
   await db.qAReview.create({
-    data: { videoBriefId: briefId, status: "PENDING" },
+    data: {
+      videoBriefId: briefId,
+      status: "PENDING",
+      aiScoreBreakdown: mark as unknown as Prisma.InputJsonValue,
+    },
   });
 }
 

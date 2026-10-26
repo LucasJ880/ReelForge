@@ -150,6 +150,8 @@ function installFakeDb(t: TestContext, row: FakeRow) {
   patchModel(t, db.qAReview as unknown as Record<string, unknown>, {
     findFirst: async () => ({ id: "qa" }),
     create: async () => ({}),
+    /// P01-E：已有 PENDING 桩会被合并写回「待复检」标记
+    update: async () => ({}),
   });
   return briefWrites;
 }

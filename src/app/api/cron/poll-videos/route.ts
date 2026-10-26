@@ -11,6 +11,10 @@ import { pollPendingProductImageJobs } from "@/lib/services/product-image-servic
 import { pollPendingContentPostRenders } from "@/lib/services/content-post-image-job-service";
 import { sweepStuckTasks } from "@/lib/services/sweep-service";
 import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-service";
+import {
+  FINAL_FRAME_QA_BATCH,
+  runPendingFinalFrameQa,
+} from "@/lib/services/final-frame-qa-service";
 
 /**
  * Vercel Cron 调用：每 1-5 分钟扫描一次正在运行的 VideoJob，
@@ -23,6 +27,9 @@ import { pollPendingStoryboardRuns } from "@/lib/video-generation/storyboard-ser
  * 「供应商已完成」只 defer，由这里（或 process-batches）真正跑质检并收尾。
  *
  * C2：图文帖的 Shuyu 配图也在这里推进（商家关了页面，在途的图照样收回、这一轮照样收尾）。
+ *
+ * P01-E（影子）：成片级复检在同一份帧质检预算里跟在轮询 / 清扫之后跑，每次最多 2 条，
+ * 结论只记进 QAReview，不拦任何东西。
  */
 export const maxDuration = 300;
 
@@ -34,6 +41,7 @@ interface PollVideosDependencies {
   pollPendingStoryboardRuns: typeof pollPendingStoryboardRuns;
   pollPendingContentPostRenders: typeof pollPendingContentPostRenders;
   sweepStuckTasks: typeof sweepStuckTasks;
+  runPendingFinalFrameQa: typeof runPendingFinalFrameQa;
 }
 
 const defaultDependencies: PollVideosDependencies = {
@@ -44,6 +52,7 @@ const defaultDependencies: PollVideosDependencies = {
   pollPendingStoryboardRuns,
   pollPendingContentPostRenders,
   sweepStuckTasks,
+  runPendingFinalFrameQa,
 };
 
 function errorMessage(result: PromiseRejectedResult): string {
@@ -65,11 +74,16 @@ export function createPollVideosHandler(
       dependencies.pollPendingContentPostRenders(20),
     ] as const);
     const [sweepResult] = await Promise.allSettled([dependencies.sweepStuckTasks()]);
+    /// 成片级复检排在最后：段级门禁先用预算，复检吃剩下的（都在同一个 runWithFrameQaBudget 里）
+    const [finalFrameQaResult] = await Promise.allSettled([
+      dependencies.runPendingFinalFrameQa(FINAL_FRAME_QA_BATCH),
+    ]);
 
     const imageFailed = imageResult.status === "rejected";
     const storyboardFailed = storyboardResult.status === "rejected";
     const contentPostFailed = contentPostResult.status === "rejected";
     const sweepFailed = sweepResult.status === "rejected";
+    const finalFrameQaFailed = finalFrameQaResult.status === "rejected";
     if (imageFailed) {
       console.warn("[cron/poll-videos] image poll failed:", errorMessage(imageResult));
     }
@@ -81,6 +95,9 @@ export function createPollVideosHandler(
     }
     if (sweepFailed) {
       console.warn("[cron/poll-videos] sweep failed:", errorMessage(sweepResult));
+    }
+    if (finalFrameQaFailed) {
+      console.warn("[cron/poll-videos] final-frame qa failed:", errorMessage(finalFrameQaResult));
     }
 
     if (videoResult.status === "rejected") {
@@ -106,7 +123,8 @@ export function createPollVideosHandler(
       );
     }
 
-    const degraded = imageFailed || storyboardFailed || contentPostFailed || sweepFailed;
+    const degraded =
+      imageFailed || storyboardFailed || contentPostFailed || sweepFailed || finalFrameQaFailed;
     const heartbeatEvent = heartbeat.finish(degraded ? "degraded" : "ok", {
       polled: videoResult.value.polled,
       imagePolled: imageResult.status === "fulfilled" ? imageResult.value.polled : 0,
@@ -123,6 +141,8 @@ export function createPollVideosHandler(
       contentPostPolled: contentPostResult.status === "fulfilled" ? contentPostResult.value : 0,
       contentPostError: contentPostFailed ? errorMessage(contentPostResult) : null,
       sweep: sweepResult.status === "fulfilled" ? sweepResult.value : null,
+      finalFrameQa: finalFrameQaResult.status === "fulfilled" ? finalFrameQaResult.value : null,
+      finalFrameQaError: finalFrameQaFailed ? errorMessage(finalFrameQaResult) : null,
       degraded,
       frameQa: frameQaBudgetUsage(),
       heartbeat: heartbeatEvent,

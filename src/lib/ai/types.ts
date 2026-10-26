@@ -100,6 +100,13 @@ export interface AiVisionAnalyzeOptions {
   imageUrls: string[];
   system: string;
   user: string;
+  /**
+   * 图片解析精度（OpenAI `image_url.detail`）。默认 "low"：帧质检 480px 抽帧用 low 足够识别字幕，
+   * 商品 / 人物一致性检查需要 "high" 才看得清细节。volcengine 忽略此项。
+   */
+  detail?: "low" | "high" | "auto";
+  /** 回答 token 上限，默认 1200（帧质检 JSON 信封够用；长结构化输出自己加）。 */
+  maxTokens?: number;
 }
 
 /**

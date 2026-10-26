@@ -20,7 +20,11 @@ import type {
   AiChatJsonByTierOptions,
   AiChatJsonOptions,
   AiChatJsonResult,
+  AiVisionAnalyzeOptions,
 } from "./types";
+
+/** analyzeImages 的可选参数：只有精度与输出上限，图与提示词走位置参数。 */
+export type AiVisionCallOptions = Pick<AiVisionAnalyzeOptions, "detail" | "maxTokens">;
 
 let cached: AiProvider | null = null;
 
@@ -73,13 +77,18 @@ export function chatJsonByTier<T = unknown>(
   return getAiProvider().chatJsonByTier<T>(options);
 }
 
+/**
+ * 视觉分析。位置参数保持兼容（frame-qa / storyboard-gacha / visual-reference 都这样调），
+ * 第四个参数透传 detail / maxTokens（P01-A：帧质检要能调精度与输出上限，不再写死在 provider 里）。
+ */
 export function analyzeImages(
   imageUrls: string[],
   system: string,
   user: string,
+  options?: AiVisionCallOptions,
 ): Promise<AiChatJsonResult<Record<string, unknown>>> {
-  return getAiProvider().analyzeImages({ imageUrls, system, user });
+  return getAiProvider().analyzeImages({ imageUrls, system, user, ...options });
 }
 
-export type { AiProvider, AiTier, AiChatJsonResult, AiChatJsonByTierOptions } from "./types";
+export type { AiProvider, AiTier, AiChatJsonResult, AiChatJsonByTierOptions, AiVisionAnalyzeOptions } from "./types";
 export { ProviderCapabilityNotImplementedError } from "./types";

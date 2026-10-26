@@ -778,7 +778,7 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
   else if (text) add("text", text);
   else keep("text");
 
-  // vision：与文本同一个模型就直接沿用文本结论，否则单独 1 token 探一次（analyzeImages 没有回退链）
+  // vision：与文本同一个模型就直接沿用文本结论，否则单独 1 token 探一次（只探链首；analyzeImages 自己会按 vision 链回退）
   if (!configured.vision) add("vision", notConfigured(), "config");
   else if (!openAiChat || !text) keep("vision");
   else {

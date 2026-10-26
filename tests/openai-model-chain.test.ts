@@ -102,3 +102,160 @@ test("链内无重复：重复候选只会白白多打一次请求", () => {
     }
   });
 });
+
+/* ── P01-A · vision 参数化与回退（2026-10-26）────────────────────────── */
+
+import { mock } from "node:test";
+import { analyzeImages, openai } from "../src/lib/providers/openai";
+import { OpenAiProvider } from "../src/lib/ai/providers/openai-provider";
+
+async function withEnvAsync(
+  vars: Record<string, string | undefined>,
+  run: () => Promise<void>,
+) {
+  const saved: Record<string, string | undefined> = {};
+  for (const [key, value] of Object.entries(vars)) {
+    saved[key] = process.env[key];
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  try {
+    await run();
+  } finally {
+    for (const [key, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+const VISION_ENV = {
+  OPENAI_API_KEY: "sk-test-vision",
+  OPENAI_MODEL: undefined,
+  OPENAI_VISION_MODEL: undefined,
+  LLM_FORCE_MOCK: undefined,
+  DRY_RUN: undefined,
+};
+
+type CreateParams = {
+  model: string;
+  messages: Array<{ role: string; content: unknown }>;
+  max_tokens?: number;
+  max_completion_tokens?: number;
+};
+
+function okResponse(payload: Record<string, unknown>) {
+  return {
+    choices: [{ message: { content: JSON.stringify(payload) } }],
+    usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+  };
+}
+
+function modelMissing(model: string) {
+  const err = new Error(`The model \`${model}\` does not exist or you do not have access to it.`) as Error & {
+    status?: number;
+    code?: string;
+  };
+  err.status = 404;
+  err.code = "model_not_found";
+  return err;
+}
+
+/** 把 chat.completions.create 换成记录参数的假实现；返回捕获到的每次调用参数。 */
+function stubCreate(impl: (params: CreateParams, callIndex: number) => unknown): CreateParams[] {
+  const calls: CreateParams[] = [];
+  mock.method(openai.chat.completions, "create", (async (params: CreateParams) => {
+    calls.push(params);
+    return impl(params, calls.length - 1);
+  }) as never);
+  return calls;
+}
+
+test("vision 链：首选 sol，备用 terra；不再把 403 的 gpt-4o 当备用线", () => {
+  withEnv({ OPENAI_MODEL: undefined, OPENAI_VISION_MODEL: undefined }, () => {
+    assert.deepEqual(resolveFallbackChain("vision"), ["gpt-5.6-sol", "gpt-5.6-terra"]);
+  });
+});
+
+test("analyzeImages：首选模型 404 / model_not_found 时回退到 terra，结果标 fallbackUsed", async () => {
+  await withEnvAsync(VISION_ENV, async () => {
+    const calls = stubCreate((params) => {
+      if (params.model === "gpt-5.6-sol") throw modelMissing(params.model);
+      return okResponse({ frames: [] });
+    });
+    try {
+      const result = await analyzeImages(["data:image/jpeg;base64,AAAA"], "sys", "user");
+      assert.deepEqual(calls.map((c) => c.model), ["gpt-5.6-sol", "gpt-5.6-terra"]);
+      assert.equal(result.modelUsed, "gpt-5.6-terra");
+      assert.equal(result.fallbackUsed, true);
+      assert.equal(result.tier, "vision");
+      assert.deepEqual(result.data, { frames: [] });
+    } finally {
+      mock.restoreAll();
+    }
+  });
+});
+
+test("analyzeImages：限流 / 5xx 不回退——那不是模型选错，换模型只会多花一次钱", async () => {
+  await withEnvAsync(VISION_ENV, async () => {
+    const calls = stubCreate(() => {
+      const err = new Error("Rate limit reached") as Error & { status?: number };
+      err.status = 429;
+      throw err;
+    });
+    try {
+      await assert.rejects(analyzeImages(["https://x/1.jpg"], "sys", "user"), /Rate limit/);
+      assert.deepEqual(calls.map((c) => c.model), ["gpt-5.6-sol"], "只打一次，不去试 terra");
+    } finally {
+      mock.restoreAll();
+    }
+  });
+});
+
+test("analyzeImages：默认 detail=low、max 1200（历史行为不变）；传了 detail / maxTokens 就透传", async () => {
+  await withEnvAsync(VISION_ENV, async () => {
+    const calls = stubCreate(() => okResponse({ ok: true }));
+    try {
+      await analyzeImages(["https://x/1.jpg", "https://x/2.jpg"], "sys", "user");
+      const first = calls[0]!;
+      const firstImages = (first.messages[1]!.content as Array<{ type: string; image_url?: { detail?: string } }>)
+        .filter((part) => part.type === "image_url");
+      assert.equal(firstImages.length, 2);
+      assert.ok(firstImages.every((part) => part.image_url?.detail === "low"));
+      /// 5.x 系只收 max_completion_tokens（与 chatJson 同一条规则）
+      assert.equal(first.max_completion_tokens, 1200);
+      assert.equal(first.max_tokens, undefined);
+
+      await analyzeImages(["https://x/1.jpg"], "sys", "user", { detail: "high", maxTokens: 400 });
+      const second = calls[1]!;
+      const secondImages = (second.messages[1]!.content as Array<{ type: string; image_url?: { detail?: string } }>)
+        .filter((part) => part.type === "image_url");
+      assert.equal(secondImages[0]?.image_url?.detail, "high");
+      assert.equal(second.max_completion_tokens, 400);
+    } finally {
+      mock.restoreAll();
+    }
+  });
+});
+
+test("AiProvider 抽象层：OpenAiProvider.analyzeImages 把 detail / maxTokens 带到底层", async () => {
+  await withEnvAsync(VISION_ENV, async () => {
+    const calls = stubCreate(() => okResponse({ ok: true }));
+    try {
+      const provider = new OpenAiProvider();
+      await provider.analyzeImages({
+        imageUrls: ["https://x/1.jpg"],
+        system: "sys",
+        user: "user",
+        detail: "auto",
+        maxTokens: 900,
+      });
+      const images = (calls[0]!.messages[1]!.content as Array<{ type: string; image_url?: { detail?: string } }>)
+        .filter((part) => part.type === "image_url");
+      assert.equal(images[0]?.image_url?.detail, "auto");
+      assert.equal(calls[0]!.max_completion_tokens, 900);
+    } finally {
+      mock.restoreAll();
+    }
+  });
+});

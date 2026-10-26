@@ -35,7 +35,7 @@ import type {
 
 /**
  * C4 · 能力探测要用的模型解析：与生产调用同一套规则——文本 = fast 档回退链（OPENAI_MODEL 优先，
- * 已知无权限的 4 系沉底），看图 = vision 档首选（analyzeImages 没有回退链）。
+ * 已知无权限的 4 系沉底），看图 = vision 档首选（analyzeImages 首选不可用时也按 vision 链回退）。
  * 探测走这里而不是直连 providers/openai，守住「LLM 只经 AI provider 抽象」的门禁。
  */
 export function openAiProbePlan(): { textModels: string[]; visionModel: string } {
@@ -84,7 +84,10 @@ export class OpenAiProvider implements AiProvider {
   async analyzeImages(
     options: AiVisionAnalyzeOptions,
   ): Promise<AiChatJsonResult<Record<string, unknown>>> {
-    return legacyAnalyzeImages(options.imageUrls, options.system, options.user);
+    return legacyAnalyzeImages(options.imageUrls, options.system, options.user, {
+      detail: options.detail,
+      maxTokens: options.maxTokens,
+    });
   }
 
   async generateImages(

@@ -14,7 +14,7 @@ import { markCapability } from "@/lib/services/capability-status-service";
  *   qa         → gpt-4.1-mini（带推理的轻量打分；可手动升 gpt-4.1 / o4-mini）
  *   fast       → gpt-4o-mini（分类/抽取/补字段）
  *   research   → gpt-4o-mini（市场调研结构化压缩；fast 也可）
- *   vision     → gpt-4o（图像理解，硬编码因为目前只有 4o 支持图像分析 + JSON）
+ *   vision     → gpt-5.6-sol，备用 gpt-5.6-terra（图像理解 + JSON；analyzeImages 按 vision 链回退）
  *
  * 想试 gpt-5.5 / o4 系列？只需在 .env 里覆写：
  *   OPENAI_CREATIVE_MODEL=gpt-5.5
@@ -78,6 +78,8 @@ const DEFAULTS: Record<OpenAITier, string> = {
  *    脚本与 Seedance prompt。
  * 2. 链尾保留 4 系是给尚未换 key 的部署兜底；当前生产用不到它们。
  *    **不要把 4 系放到链首**，那会让每次调用白白吃三个 403。
+ * 3. vision 链此前是 [sol, gpt-4o]：sol 一旦 404 就直接掉到 403 的 4o，等于没有备用线。
+ *    P01-A 起备用是 gpt-5.6-terra（生产 key 有权限，也支持图像输入），analyzeImages 真的会走这条链。
  */
 const FALLBACK_CHAIN: Record<OpenAITier, string[]> = {
   director: ["gpt-5.6-sol", "gpt-5.5", "gpt-4.1"],
@@ -87,7 +89,7 @@ const FALLBACK_CHAIN: Record<OpenAITier, string[]> = {
   qa: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4.1-mini"],
   fast: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4o-mini"],
   research: ["gpt-5.6-terra", "gpt-5.6-sol", "gpt-4o-mini"],
-  vision: ["gpt-5.6-sol", "gpt-4o"],
+  vision: ["gpt-5.6-sol", "gpt-5.6-terra"],
 };
 
 /**
@@ -385,29 +387,70 @@ function isModelMissingError(err: unknown): boolean {
   );
 }
 
+/** analyzeImages 的调用参数：精度与输出上限。默认值 = 帧质检历史行为（low / 1200）。 */
+export interface VisionAnalyzeOptions {
+  /** OpenAI `image_url.detail`。low 省 token 够看字幕；商品 / 人物一致性检查用 high。 */
+  detail?: "low" | "high" | "auto";
+  /** 回答 token 上限（5.x 系自动落到 max_completion_tokens）。 */
+  maxTokens?: number;
+}
+
+export const VISION_DEFAULT_DETAIL: NonNullable<VisionAnalyzeOptions["detail"]> = "low";
+export const VISION_DEFAULT_MAX_TOKENS = 1200;
+
 /**
- * 视觉分析（GPT-4o）：用于参考图的内容提取。
+ * 视觉分析：参考图理解 / 帧质检 / 故事板抽卡评审都走这里。
+ *
+ * P01-A（2026-10-26）：
+ * - detail / maxTokens 由调用方决定，不再写死在请求里（默认值保持 low / 1200，行为不变）。
+ * - 首选模型「不存在 / 没权限」时按 vision 回退链继续（与 chatJsonByTier 同一规则）。
+ *   限流、超时、内容审核等错误不回退——那不是模型选错，重试另一个模型只会多花一次钱。
  */
 export async function analyzeImages(
   imageUrls: string[],
   system: string,
   userPrompt: string,
+  options: VisionAnalyzeOptions = {},
 ): Promise<ChatJsonResult<Record<string, unknown>>> {
-  try {
-    const result = await analyzeImagesOnce(imageUrls, system, userPrompt);
-    /// C4 · 「AI 看图」实时回写（画面质检、参考图理解都走这里）。
-    await markCapability("vision", "success", { detail: { provider: "openai", model: result.modelUsed } });
-    return result;
-  } catch (err) {
-    await markCapability("vision", { error: err }, { detail: { provider: "openai", model: resolveModelForTier("vision") } });
-    throw err;
+  const chain = resolveFallbackChain("vision");
+  let lastErr: unknown = null;
+  for (let i = 0; i < chain.length; i++) {
+    const candidate = chain[i];
+    try {
+      const result = await analyzeImagesOnce(candidate, imageUrls, system, userPrompt, options);
+      const fallbackUsed = i > 0;
+      if (fallbackUsed) {
+        console.warn(
+          `[openai] stage=vision model=${candidate} fallback=true (preferred=${chain[0]})`,
+        );
+      }
+      /// C4 · 「AI 看图」实时回写（画面质检、参考图理解都走这里）。
+      await markCapability("vision", "success", { detail: { provider: "openai", model: candidate } });
+      return { ...result, fallbackUsed };
+    } catch (err) {
+      lastErr = err;
+      if (!isModelMissingError(err)) {
+        await markCapability("vision", { error: err }, { detail: { provider: "openai", model: candidate } });
+        throw err;
+      }
+      console.warn(
+        `[openai] stage=vision model=${candidate} 不可用，将回退到 ${chain[i + 1] ?? "无"}`,
+        (err as Error).message,
+      );
+    }
   }
+  await markCapability("vision", { error: lastErr }, { detail: { provider: "openai", model: chain[chain.length - 1] } });
+  throw lastErr instanceof Error
+    ? lastErr
+    : new Error("OpenAI 视觉调用失败：所有候选模型都不可用");
 }
 
 async function analyzeImagesOnce(
+  visionModel: string,
   imageUrls: string[],
   system: string,
   userPrompt: string,
+  options: VisionAnalyzeOptions,
 ): Promise<ChatJsonResult<Record<string, unknown>>> {
   if (isLLMForcedMock()) {
     throw new Error(
@@ -419,13 +462,13 @@ async function analyzeImagesOnce(
   }
   refreshOpenAiKeyFromEnv();
 
-  const visionModel = resolveModelForTier("vision");
+  const detail = options.detail ?? VISION_DEFAULT_DETAIL;
   const imageContent = imageUrls.slice(0, 8).map((url) => ({
     type: "image_url" as const,
-    image_url: { url, detail: "low" as const },
+    image_url: { url, detail },
   }));
 
-  const tokenLimit = buildTokenLimitParam(visionModel, 1200);
+  const tokenLimit = buildTokenLimitParam(visionModel, options.maxTokens ?? VISION_DEFAULT_MAX_TOKENS);
   const response = await openai.chat.completions.create({
     model: visionModel,
     messages: [

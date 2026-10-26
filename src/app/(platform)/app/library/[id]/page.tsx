@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Music } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { contactEmail } from "@/lib/config/contact";
 import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
 import { Button } from "@/components/ui/button";
 import { VideoActions } from "@/components/library/video-actions";
@@ -140,7 +141,7 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
             ) : null}
             {canAct && item.briefId ? (
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
-                <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} />
+                <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} contactEmail={contactEmail()} />
                 <ReportContentButton briefId={item.briefId} />
               </div>
             ) : null}

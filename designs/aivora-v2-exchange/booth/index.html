@@ -45,6 +45,7 @@
     <h2 id="h-set">设置 · Settings</h2>
     <p class="sub">当前生效的结果页地址 · Result page address in use: <code id="base" class="sel"></code></p>
     <p class="note" id="base-note"></p>
+    <p class="sub">征求同意的主体 · Consent entity: <code id="entity" class="sel"></code></p>
     <p class="o-warn" id="cfg-warn" role="note" hidden></p>
     <div class="o-acts">
       <button class="btn btn-ghost" type="button" id="reset-ask">清零今天的展位计数 · Reset today's booth count</button>
@@ -71,6 +72,10 @@
       : "公网地址：访客手机从任何网络都能打开页面（留资是否入库，请按开展前清单实测）。 · Public address; test a real lead before the fair.";
     const cfg = Booth.config, miss = [];
     const fb = cfg.leadFallback || {}, ce = cfg.consentEntity || {};
+    /* 没填就写明待填，不留空白：结果页要等它填好才开放线上登记 */
+    document.getElementById("entity").textContent = ce.name && ce.email
+      ? [ce.name, ce.address, ce.email].filter(Boolean).join(" · ")
+      : "【待填】法律主体名称 + 邮箱（config.json → consentEntity）· [To fill] legal entity name + email";
     if (!fb.email && !fb.whatsapp && !fb.wechat) miss.push("leadFallback 为空：访客提交失败时没有任何联系方式可给 · leadFallback is empty");
     if (!ce.name || !ce.email) miss.push("consentEntity 未填：结果页不会开放线上登记，只显示联系方式 · consentEntity is missing; online sign-up stays closed");
     if (miss.length) { const w = document.getElementById("cfg-warn"); w.hidden = false; w.innerHTML = `${Booth.icon("triangle-alert")}${miss.map(Booth.esc).join("<br>")}`; }

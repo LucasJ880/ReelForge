@@ -1,5 +1,5 @@
 {
-  "_note": "所有设备都从中继读这一份。开展前要填：resultBase（结果页公网地址）、leadFallback（访客提交失败时的直接联系方式）、consentEntity（征求同意的法律主体）。证据只放真实数据：拿到平台 ID 和书面同意后再填 proof，并设 consentOnFile=true、asOf=日期。",
+  "_note": "所有设备都从中继读这一份。2026-10-25 已填 resultBase（生产站地址）与 leadFallback（创始人邮箱）。注意 resultBase 会被拼成「resultBase?d=…」：展台结果页 booth/result.html 与 /api/lead 还没部署到生产，所以访客扫码会打开生产首页（首页有试点表单），不是逐人的结果页；把 booth/ 部署上去后改成 …/booth/result.html。consentEntity（征求同意的法律主体名称、地址、邮箱）还要填：没填时结果页不开放线上登记，只给联系方式。证据只放真实数据：拿到平台 ID 和书面同意后再填 proof，并设 consentOnFile=true、asOf=日期。渠道只写真实状态：Instagram / Facebook 评论还没有接入。",
   "proof": {
     "chains": [],
     "counts": { "posts": 0, "triaged": 0, "booked": 0 },
@@ -8,17 +8,18 @@
     "consentOnFile": false
   },
   "channels": {
-    "live": [{ "en": "Instagram & Facebook comments", "zh": "Instagram 与 Facebook 评论" }],
+    "live": [{ "en": "Your inquiry page (link in bio · QR)", "zh": "你的询盘页（主页链接 · 二维码）" }],
     "pending": [{ "en": "Instagram / Facebook DMs", "zh": "Instagram / Facebook 私信" }],
     "roadmap": [
+      { "en": "IG / FB comments", "zh": "IG / FB 评论" },
       { "en": "WhatsApp", "zh": "WhatsApp" },
       { "en": "Xiaohongshu (RED)", "zh": "小红书" },
       { "en": "Douyin", "zh": "抖音" },
       { "en": "WeChat", "zh": "微信" }
     ]
   },
-  "resultBase": "",
-  "leadFallback": { "email": "", "whatsapp": "", "wechat": "" },
+  "resultBase": "https://reelforge-delta.vercel.app",
+  "leadFallback": { "email": "lucas@sunnyshutter.ca", "whatsapp": "", "wechat": "" },
   "consentEntity": { "name": "", "address": "", "email": "" },
   "idleSeconds": 90
 }

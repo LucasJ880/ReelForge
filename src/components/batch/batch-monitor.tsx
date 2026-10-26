@@ -36,6 +36,7 @@ import { getPlatformCopy } from "@/i18n/platform-copy";
 import type { CustomerGenerationError } from "@/lib/api/customer-generation-error";
 import type { CustomerRecoveryAction } from "@/lib/contracts/customer-api";
 import { dispatchRecoveryHint } from "@/lib/api/customer-video-dispatch-recovery";
+import { QuotaNextSteps } from "@/components/quota/quota-next-steps";
 import { cn } from "@/lib/utils";
 
 export interface BatchMonitorJob {
@@ -148,8 +149,11 @@ function jobFailureSummary(
 export function BatchMonitor({
   initialBatch,
   readOnly = false,
+  contactEmail = null,
 }: {
   initialBatch: BatchMonitorData;
+  /** 对外联系邮箱：服务端页面用 contactEmail() 取好传进来；额度用完（view_usage）时给「联系我们」入口（审计 A7）。 */
+  contactEmail?: string | null;
   /**
    * 只读模式（1025 · B2.9）：客户样片批次（SunnyShutter 样片账号）给所有人浏览，
    * 不是访问者自己的批次——不轮询（状态接口按归属鉴权，轮询只会 404）、
@@ -319,6 +323,9 @@ export function BatchMonitor({
                   english ? "en-US" : "zh-CN",
                 )}
               </p>
+            ) : null}
+            {errorAction === "view_usage" ? (
+              <QuotaNextSteps locale={english ? "en-US" : "zh-CN"} contactEmail={contactEmail} />
             ) : null}
           </CardContent>
         </Card>
@@ -623,12 +630,17 @@ export function BatchMonitor({
                 ) : null}
 
                 {detailJob.error && !readOnly ? (
-                  <p className="rounded-(--radius-sm) border border-border p-3 text-meta text-foreground">
-                    {dispatchRecoveryHint(
-                      detailJob.error.action,
-                      english ? "en-US" : "zh-CN",
-                    )}
-                  </p>
+                  <div className="space-y-2 rounded-(--radius-sm) border border-border p-3 text-meta text-foreground">
+                    <p>
+                      {dispatchRecoveryHint(
+                        detailJob.error.action,
+                        english ? "en-US" : "zh-CN",
+                      )}
+                    </p>
+                    {detailJob.error.action === "view_usage" ? (
+                      <QuotaNextSteps locale={english ? "en-US" : "zh-CN"} contactEmail={contactEmail} />
+                    ) : null}
+                  </div>
                 ) : null}
 
                 <ol className="grid gap-2 text-meta sm:grid-cols-4" aria-label={monitorCopy.workflowLabel}>

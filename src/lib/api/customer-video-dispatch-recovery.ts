@@ -2,6 +2,7 @@ import type {
   CustomerApiErrorCode,
   CustomerRecoveryAction,
 } from "@/lib/contracts/customer-api";
+import { quotaNextStepsCopy, quotaNextStepsSentence } from "@/lib/quota-next-steps";
 
 export interface DispatchRecoveryInput {
   retryable: boolean;
@@ -46,9 +47,9 @@ export function dispatchRecoveryHint(
         ? "Keep this request open and contact support; do not submit it again until it is reconciled."
         : "请保留当前请求并联系支持；核对完成前不要重复提交。";
     case "view_usage":
-      return english
-        ? "Your plan limit has been reached. Contact your account owner to review usage or upgrade the plan."
-        : "当前套餐额度已用尽，请联系账户负责人核对用量或升级套餐。";
+      /// 额度用完的真实下一步（审计 A7）：申请陪跑试点 / 联系我们。之前写「联系账户负责人核对用量或升级套餐」，
+      /// 而用量页早已下线、升级没有界面——是死路。邮箱只在服务端取，能拿到的界面另外渲染可点的入口。
+      return quotaNextStepsSentence(english ? "en-US" : "zh-CN");
     case "replace_asset":
       return english
         ? "Remove the unavailable asset, upload a valid replacement, and submit again."
@@ -154,10 +155,7 @@ export function customerDirectDispatchMessage(
       );
       break;
     case "QUOTA_EXCEEDED":
-      summary = localized(
-        "The current plan does not have enough video quota.",
-        "当前套餐的视频额度不足。",
-      );
+      summary = quotaNextStepsCopy(locale).exhausted;
       break;
     case "QUOTA_CHECK_UNAVAILABLE":
       summary = localized(
@@ -255,9 +253,11 @@ export function batchCreateErrorMessage(
         "批次提交过于频繁，请稍后再试。",
       );
     case "QUOTA_EXCEEDED":
+      /// 中文界面沿用服务端那句（带陪跑试点与联系邮箱，见 quota-service.userMessageForQuota）；
+      /// 英文界面只写事实，下一步由紧跟着的恢复提示（view_usage）给出。
       return localized(
-        "Your current plan does not have enough video quota for this batch.",
-        "当前套餐的视频额度不足以创建该批次。",
+        "This month's video allowance can't cover this batch.",
+        "本月视频额度不够创建这一批。",
       );
     case "QUOTA_CHECK_UNAVAILABLE":
       return localized(

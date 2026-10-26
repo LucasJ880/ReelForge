@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
@@ -20,6 +21,7 @@ import {
 import type { QuoteStat } from "@/components/exchange/quote-header";
 import { SectionHead } from "@/components/exchange/section-head";
 import { WorkspacePage } from "@/components/exchange/workspace-page";
+import { Button } from "@/components/ui/button";
 import {
   DimensionLedger,
   explainVerdictCopy,
@@ -42,6 +44,10 @@ export const dynamic = "force-dynamic";
  * 数据全部来自新赛马（judgeRecipes），与旧 racing-service 无关 ——
  * 旧「投放与赛马」页按 PRD §10.4 做 A 级下线：导航移除，路由保留可直达。
  * 1025 · B2.7：标题 = 导航名「战绩」，文案全部来自 platform-copy（中英双语）。
+ *
+ * 2026-10-25 审计 B5：表现数据回流（青砚同步）还没开，本页入口已撤出导航（路由保留可直达）。
+ * 一条表现数据都没有时不摆判定台账——六行「再发几条」会让人以为多发就能出结论——
+ * 只如实写「还没有表现数据回流」，读数格照常写零。
  */
 
 function fill(template: string, params: Record<string, string | number>): string {
@@ -66,6 +72,7 @@ export default async function WinsPage() {
   const verdict = judgeRecipes(rows);
   const dimensions = judgeAllDimensions(rows);
   const latestPlan = plans[0] ?? null;
+  const hasPerformanceData = rows.length > 0;
   const publishedSubjects = new Set(rows.map((row) => row.subjectId)).size;
   const recipeCounts = sampleCounts(verdict);
 
@@ -119,14 +126,26 @@ export default async function WinsPage() {
           title={copy.ledger}
           hint={fill(copy.ledgerHint, { subjects: MIN_SUBJECTS_PER_RECIPE, trials: MIN_TRIALS_PER_RECIPE, recipes: MIN_RECIPES })}
         />
-        <p className="max-w-[62ch] text-body text-muted-foreground">{explainVerdictCopy(verdict, copy, formats)}</p>
-        <DimensionLedger
-          dimensions={dimensions}
-          referenceStructureCount={derivation.referenceStructures.length}
-          plan={latestPlan ? { theme: latestPlan.theme, postCount: latestPlan.posts.length, basis: latestPlan.planBasis } : null}
-          copy={copy}
-          formats={formats}
-        />
+        {hasPerformanceData ? (
+          <>
+            <p className="max-w-[62ch] text-body text-muted-foreground">{explainVerdictCopy(verdict, copy, formats)}</p>
+            <DimensionLedger
+              dimensions={dimensions}
+              referenceStructureCount={derivation.referenceStructures.length}
+              plan={latestPlan ? { theme: latestPlan.theme, postCount: latestPlan.posts.length, basis: latestPlan.planBasis } : null}
+              copy={copy}
+              formats={formats}
+            />
+          </>
+        ) : (
+          <div className="x-well space-y-3 rounded-(--radius-md) px-4 py-4" data-testid="wins-empty">
+            <p className="text-body font-medium">{copy.emptyTitle}</p>
+            <p className="max-w-[62ch] text-body text-muted-foreground">{copy.emptyBody}</p>
+            <Button render={<Link href="/app/plan" />} variant="outline" size="sm">
+              {latestPlan ? copy.planOpen : copy.planStart}
+            </Button>
+          </div>
+        )}
       </section>
     </WorkspacePage>
   );

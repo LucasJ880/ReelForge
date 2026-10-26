@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SUPPORTED_LOCALES } from "@/lib/services/localization-service";
+
+/// 目标市场 / 语言选项由服务端父组件（page.tsx）从 localization-service 取好、以 props 传进来：
+/// 'use client' 文件不得引用服务端 service 的模块级值（CLAUDE.md 铁律 #5）。
+export type NewOrderLocaleOption = {
+  code: string;
+  language: string;
+  country: string;
+  label: string;
+};
 
 const PRODUCT_CATEGORIES = [
   { value: "pet_products", label: "宠物用品" },
@@ -30,7 +38,7 @@ interface UploadedAsset {
   name: string;
 }
 
-export function NewOrderForm() {
+export function NewOrderForm({ locales }: { locales: readonly NewOrderLocaleOption[] }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -110,8 +118,8 @@ export function NewOrderForm() {
     setSubmitting(true);
     try {
       const locale =
-        SUPPORTED_LOCALES.find((l) => l.code === form.targetLocale) ??
-        SUPPORTED_LOCALES[0];
+        locales.find((l) => l.code === form.targetLocale) ??
+        locales[0];
 
       const payload = {
         title: form.title,
@@ -201,7 +209,7 @@ export function NewOrderForm() {
             onChange={(e) => setForm({ ...form, targetLocale: e.target.value })}
             className={INPUT}
           >
-            {SUPPORTED_LOCALES.map((l) => (
+            {locales.map((l) => (
               <option key={l.code} value={l.code}>
                 {l.label} ({l.code})
               </option>

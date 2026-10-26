@@ -6,6 +6,8 @@ import {
   judgeRecipes,
   MIN_SUBJECTS_PER_RECIPE,
   MIN_TRIALS_PER_RECIPE,
+  postRateInterval,
+  studentT975,
   wilsonInterval,
   type PerformanceRow,
 } from "../src/lib/services/recipe-racing-service";
@@ -228,4 +230,109 @@ test("给商家的结论不用统计术语，但不把不确定说成确定", ()
 test("门槛常量是刻意选的，改动要有理由", () => {
   assert.equal(MIN_SUBJECTS_PER_RECIPE, 3, "两条里爆一条就是 50% 被单点主导");
   assert.ok(MIN_TRIALS_PER_RECIPE >= 300);
+});
+
+/* ── 2026-10-25 审计 B5：互动数是事件计数，不是「曝光里的成功次数」 ─────────── */
+
+/** 造 n 条同配方内容，每条 impressions 曝光、events 个互动（可以多于曝光）。 */
+function eventRows(recipeId: string, n: number, impressions: number, events: number): PerformanceRow[] {
+  return Array.from({ length: n }, (_, i) => row(recipeId, `${recipeId}-${i}`, impressions, events));
+}
+
+function assertFiniteInterval(stats: { rate: number; lower: number; upper: number }) {
+  assert.ok(Number.isFinite(stats.rate), `比率必须是有限数：${stats.rate}`);
+  assert.ok(Number.isFinite(stats.lower) && Number.isFinite(stats.upper), `区间必须是有限数：${stats.lower}–${stats.upper}`);
+  assert.ok(stats.lower >= 0, "下限不为负");
+  assert.ok(stats.lower <= stats.rate && stats.rate <= stats.upper, "比率落在区间里");
+}
+
+test("🔴 互动数可以超过曝光数：Wilson 在这里会出 NaN，判定口径照常给出有限的比率与区间", () => {
+  /// 一个人可以既点赞又收藏：互动数 > 曝光数是真实数据，不是脏数据
+  assert.ok(Number.isNaN(wilsonInterval(150, 100).lower), "成功数 > 试验数不是二项比例，Wilson 不适用");
+  const stats = aggregateByRecipe(
+    [
+      { ...row("r", "a", 100, 80), saves: 70 },
+      { ...row("r", "b", 100, 90), saves: 60 },
+      { ...row("r", "c", 100, 85), saves: 65 },
+    ],
+    "engagement_rate",
+  );
+  assert.equal(stats[0].successes, 450);
+  assert.equal(stats[0].trials, 300);
+  assert.ok(stats[0].rate > 1, `每次曝光 1.5 个互动，比率应大于 1：${stats[0].rate}`);
+  assertFiniteInterval(stats[0]);
+});
+
+test("🔴 旧口径的 NaN 区间绕过了「区间重叠不判赢家」：两组几乎一样的高互动内容不能判出赢家", () => {
+  const verdict = judgeRecipes([
+    ...eventRows("post:Pain:text", 3, 200, 300),
+    ...eventRows("post:Demo:text", 3, 200, 290),
+  ]);
+  assert.equal(verdict.status, "no_difference", "每次曝光 1.5 vs 1.45 个互动，三条样本分不出高下");
+  for (const stats of verdict.ranked) assertFiniteInterval(stats);
+});
+
+test("🔴 一条爆款撑起的配方：按帖子算、一条只占一票，不能靠一条爆款判赢", () => {
+  /// 按曝光合并的话这一组是 2060 / 12000 ≈ 17%，对面 5%——旧口径会直接判它赢。
+  /// 实际上它的另外两条只有 3%，比对面还低。
+  const verdict = judgeRecipes([
+    row("post:Reveal:carousel", "viral", 10_000, 2_000),
+    row("post:Reveal:carousel", "flat-1", 1_000, 30),
+    row("post:Reveal:carousel", "flat-2", 1_000, 30),
+    ...recipeRows("post:Pain:text", 3, 1_000, 0.05),
+  ]);
+  assert.notEqual(verdict.status, "winner");
+  assert.equal(verdict.ranked.find((stats) => stats.recipeId === "post:Reveal:carousel")?.subjectCount, 3);
+});
+
+test("区间随条数收窄、随帖子之间的差异放宽，但帖子再像也不会压成一个点", () => {
+  const spread = [
+    { events: 20, exposures: 1_000 },
+    { events: 50, exposures: 1_000 },
+    { events: 80, exposures: 1_000 },
+  ];
+  const width = (posts: Array<{ events: number; exposures: number }>) => {
+    const interval = postRateInterval(posts, 0.05);
+    return interval.upper - interval.lower;
+  };
+  assert.ok(width([...spread, ...spread, ...spread]) < width(spread), "同样的差异，九条比三条窄");
+  const alike = Array.from({ length: 3 }, () => ({ events: 50, exposures: 1_000 }));
+  assert.ok(width(alike) < width(spread), "帖子之间差得越多，区间越宽");
+  assert.ok(width(alike) > 0, "三条恰好相同的帖子仍有抽样噪声，区间不是一个点");
+  assert.deepEqual(postRateInterval([], 0.05), { rate: 0, lower: 0, upper: 0 });
+});
+
+test("平滑：曝光只有几十的帖子被拉向整体水平", () => {
+  const stats = aggregateByRecipe(
+    [row("tiny", "tiny-1", 20, 10), ...recipeRows("steady", 3, 5_000, 0.05)],
+    "engagement_rate",
+  );
+  const tiny = stats.find((item) => item.recipeId === "tiny");
+  assert.ok(tiny);
+  assert.ok(tiny.rate < 0.2, `20 次曝光 10 个赞不该被当成 50%：${tiny.rate}`);
+  assert.ok(tiny.rate > 0.05, "也不是直接抹成整体水平");
+});
+
+test("同一条内容的多平台行合并成一个样本（一条内容只占一票）", () => {
+  const stats = aggregateByRecipe(
+    [row("r", "a", 1_000, 50), row("r", "a", 500, 25), row("r", "b", 1_000, 50)],
+    "engagement_rate",
+  );
+  assert.equal(stats[0].subjectCount, 2);
+  assert.equal(stats[0].trials, 2_500);
+  assert.equal(stats[0].successes, 125);
+});
+
+test("t 分位数：自由度越小越宽，永远不窄于正态的 1.96", () => {
+  assert.equal(studentT975(1), 12.706);
+  assert.equal(studentT975(2), 4.303);
+  assert.equal(studentT975(30), 2.042);
+  assert.equal(studentT975(0), Number.POSITIVE_INFINITY);
+  let previous = Number.POSITIVE_INFINITY;
+  for (let df = 1; df <= 200; df += 1) {
+    const quantile = studentT975(df);
+    assert.ok(quantile <= previous, `df=${df} 不应比 df=${df - 1} 更宽`);
+    assert.ok(quantile > 1.96, `df=${df} 的分位数不能比正态还窄`);
+    previous = quantile;
+  }
 });

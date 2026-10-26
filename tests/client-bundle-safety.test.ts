@@ -12,7 +12,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
-import { join, resolve, dirname } from "node:path";
+import { join, resolve, dirname, sep } from "node:path";
 
 /// 测试从仓库根运行（package.json 的 `test` 脚本）。
 const SRC = resolve(process.cwd(), "src");
@@ -104,11 +104,15 @@ function findServerOnlyChain(entry: string): string[] | null {
   return null;
 }
 
-test("no \"use client\" component pulls OpenAI/Prisma into the browser bundle", () => {
-  const clientFiles = walk(SRC).filter((file) => {
+function useClientFiles(): string[] {
+  return walk(SRC).filter((file) => {
     const head = readFileSync(file, "utf8").slice(0, 200);
     return /^\s*["']use client["']/m.test(head);
   });
+}
+
+test("no \"use client\" component pulls OpenAI/Prisma into the browser bundle", () => {
+  const clientFiles = useClientFiles();
 
   assert.ok(clientFiles.length > 0, "应当扫描到至少一个 use client 组件");
 
@@ -126,5 +130,59 @@ test("no \"use client\" component pulls OpenAI/Prisma into the browser bundle", 
     violations,
     [],
     `以下客户端组件会把服务端模块打进浏览器 bundle：\n\n${violations.join("\n\n")}\n`,
+  );
+});
+
+/**
+ * 铁律 #5 的字面要求（CLAUDE.md §4）：'use client' 文件不得引用服务端 service 的模块级值。
+ *
+ * 上面的传递检查只挡「一进浏览器就抛异常」的那几个模块（openai / @/lib/db / @/lib/ai），
+ * 只 import 了 @prisma/client 枚举的 service 它看不见——2026-10-25 审计 D4 抓到的
+ * internal/orders/new/new-order-form.tsx 从 localization-service 取 SUPPORTED_LOCALES 就是这样漏过去的。
+ * service 层就是服务端代码：今天无害，明天那个 service 加一行 db 查询就是整页 500（0726 事故同款）。
+ *
+ * 唯一的例外：专门拆出来给客户端用的纯常量模块——自身没有任何值导入（例如 logo-style-keys）。
+ */
+const SERVICES_DIR = join(SRC, "lib", "services");
+
+function serviceValueImportViolations(file: string, source: string): string[] {
+  const violations: string[] = [];
+  for (const spec of valueImports(source)) {
+    const target = resolveAlias(spec, file);
+    if (!target || !target.startsWith(`${SERVICES_DIR}${sep}`)) continue;
+    /// 纯常量模块（没有任何值导入）可以给客户端用
+    if (valueImports(readFileSync(target, "utf8")).length === 0) continue;
+    violations.push(`${file.replace(SRC, "src")} → ${spec}`);
+  }
+  return violations;
+}
+
+test("no \"use client\" component value-imports a server service module (iron rule #5)", () => {
+  const violations = useClientFiles().flatMap((file) =>
+    serviceValueImportViolations(file, readFileSync(file, "utf8")),
+  );
+  assert.deepEqual(
+    violations,
+    [],
+    `以下客户端组件直接取了服务端 service 的值（把值挪到服务端父组件、以 props 传下去）：\n\n${violations.join("\n")}\n`,
+  );
+});
+
+test("iron rule #5 check would have caught the D4 form, and still allows client-safe constant modules", () => {
+  const form = join(SRC, "app", "(internal)", "internal", "orders", "new", "new-order-form.tsx");
+  const before = `"use client";\nimport { SUPPORTED_LOCALES } from "@/lib/services/localization-service";\n`;
+  assert.deepEqual(serviceValueImportViolations(form, before), [
+    "src/app/(internal)/internal/orders/new/new-order-form.tsx → @/lib/services/localization-service",
+  ]);
+  /// import type 编译期擦除，不算
+  assert.deepEqual(
+    serviceValueImportViolations(form, `import type { LocaleCheckIssue } from "@/lib/services/localization-service";\n`),
+    [],
+  );
+  /// logo-style-keys 自身没有任何值导入：专为客户端拆出来的常量模块，放行
+  const dialog = join(SRC, "components", "wizard", "logo-generator-dialog.tsx");
+  assert.deepEqual(
+    serviceValueImportViolations(dialog, `import { LOGO_STYLE_KEYS } from "@/lib/services/logo-style-keys";\n`),
+    [],
   );
 });

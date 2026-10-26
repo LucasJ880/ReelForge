@@ -8,7 +8,8 @@
 
 ## 1. 找代码：先查索引，别扫 repo
 
-493 个 src 文件、81 个 API route、80+ npm scripts。全 repo grep 是本项目最大的 token 漏斗。
+600+ 个 src 文件、100+ 个 API route、70+ 个 npm scripts（2026-10-25 实数：src 下 608 个文件 / 604 个 .ts·tsx，
+`src/app/api` 下 109 个 `route.ts`，package.json 71 个 scripts）。全 repo grep 是本项目最大的 token 漏斗。
 
 ```bash
 npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + 阅读顺序
@@ -23,10 +24,11 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 | 位置 | 内容 |
 |---|---|
 | `src/app/(platform)/` | 客户自助面 —— 新定位的主战场 |
-| `src/app/(internal)/` | 旧代运营中台，19 页，**A 级下线中**，别加新功能 |
-| `src/app/(business)/ (personal)/ (public)/ (auth)/` | 商单面 / 个人面 / 落地页 / 登录 |
+| `src/app/(internal)/` | 旧代运营中台，16 页，**A 级下线中**，别加新功能 |
+| `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页（试点申请）/ 法务与公开样例页 / 登录注册 / 行情大屏 `/wall` |
+| `src/app/l/[slug]` · `src/app/t/[code]` | 商家询盘页（匿名可访问）/ 追踪链接跳转（`route.ts`） |
 | `src/app/api/` | 路由只做鉴权 + 参数校验，业务委托 `src/lib/services/` |
-| `src/lib/services/` | 业务层（40+ service），Provider 层封装外部 API |
+| `src/lib/services/` | 业务层（80+ service），Provider 层封装外部 API |
 | `src/lib/contracts/` | 对外契约（`customer-api` / `batch-api` / …），M0 的 `/api/videos` 在这层定 |
 
 ## 3. 常用命令
@@ -38,6 +40,7 @@ npm run lint
 npm test               # node --test tests/**/*.test.ts
 npm run db:migrate:deploy  # 迁移唯一正路（owner 直连生产，见 §4）
 # db:migrate / db:push / db:seed 有确认闸：CONFIRM_PRODUCTION_DB=<脚本名> 才放行
+# npx playwright test 的视觉夹具默认不写生产库：给专用库 E2E_DATABASE_URL，或 CONFIRM_PRODUCTION_DB=e2e:seed
 npm run context:find -- "..."
 ```
 

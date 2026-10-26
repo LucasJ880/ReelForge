@@ -7,6 +7,7 @@ import {
 import { isBrollRouteAvailable } from "@/lib/services/broll-assembly-service";
 import { getCapabilities } from "@/lib/services/capability-status-service";
 import { authOptions } from "@/lib/auth";
+import { contactEmail } from "@/lib/config/contact";
 import { loadCreateRetryPrefill } from "@/lib/services/create-retry-prefill-service";
 import { loadExchangeReadings, loadProductionCounts, loadVideoQuota } from "@/lib/services/exchange-readings";
 import { findProductImageResultForUser } from "@/lib/services/product-image-service";
@@ -104,6 +105,8 @@ export default async function PlatformCreatePage({
         brollAvailable={isBrollRouteAvailable()}
         capabilities={capabilities}
         readings={readings}
+        /// 额度用完时「联系我们」的邮箱：服务端取值、以 props 传下去（客户端不读环境变量；审计 A7）
+        contactEmail={contactEmail()}
       />
     </div>
   );

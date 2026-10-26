@@ -22,7 +22,7 @@ import {
   toCustomerVideoDispatchJob,
   toCustomerVideoDispatchResponse,
 } from "../src/lib/api/customer-video-dispatch";
-import { QuotaExceededError } from "../src/lib/services/quota-service";
+import { QuotaExceededError, userMessageForQuota } from "../src/lib/services/quota-service";
 import { unifiedVideoGenerationRequestSchema } from "../src/lib/schemas/unified-input";
 
 test("customer generation contract accepts optional post-production without changing legacy requests", () => {
@@ -139,7 +139,8 @@ test("Phase 2 contract: quota exhaustion is fail-closed with a customer recovery
   assert.deepEqual(json, {
     ok: false,
     code: "QUOTA_EXCEEDED",
-    error: "本月 AI 画面生成额度已用完，请下月再试或联系客服。",
+    /// 审计 A7：额度用完给真实下一步（陪跑试点 / 联系邮箱），不再只写「下月再试」
+    error: userMessageForQuota("SEEDANCE_SEGMENT"),
     resource: "VIDEO_GENERATION",
     used: 60,
     limit: 60,
@@ -148,6 +149,9 @@ test("Phase 2 contract: quota exhaustion is fail-closed with a customer recovery
     action: "view_usage",
   });
   assert.doesNotMatch(JSON.stringify(json), /SEEDANCE/);
+  assert.match(json.error, /^本月 AI 画面生成额度已用完。/);
+  assert.match(json.error, /申请陪跑试点（\/#pilot-apply）/);
+  assert.doesNotMatch(json.error, /下月再试|用量与账单/);
 });
 
 test("Phase 2 contract: customer brief serializer strips every provider and ffmpeg diagnostic", () => {

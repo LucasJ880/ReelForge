@@ -19,7 +19,8 @@ import {
   type UnifiedLibraryStatus,
 } from "@/lib/contracts/unified-library";
 import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
-import { resolveShowcaseSourceFor } from "@/lib/services/showcase-library";
+import { SHOWCASE_SAMPLES, type ShowcaseSample } from "@/lib/config/showcase-allowlist";
+import { resolveShowcaseFor, type ShowcaseAllowlist } from "@/lib/services/showcase-library";
 import { bgmAttributionFor } from "@/lib/video-generation/bgm-attribution";
 import {
   LIVE_CONTENT_POST_IMAGE_STATUSES,
@@ -687,20 +688,81 @@ async function loadRowsForOwner(
   };
 }
 
+/**
+ * 样片账号名下、被白名单点名的单条订单（按订单 id，或按它的成片 FinalVideo id）。
+ * 白名单里没有单条来源时返回 null——不查。
+ */
+export function showcaseOrderWhere(
+  ownerId: string,
+  allow: ShowcaseAllowlist,
+): Prisma.DeliveryOrderWhereInput | null {
+  const clauses: Prisma.DeliveryOrderWhereInput[] = [];
+  if (allow.orderIds.length > 0) clauses.push({ id: { in: allow.orderIds } });
+  if (allow.finalVideoIds.length > 0) {
+    clauses.push({
+      rounds: { some: { angles: { some: { videoBrief: { is: { finalVideoId: { in: allow.finalVideoIds } } } } } } },
+    });
+  }
+  if (clauses.length === 0) return null;
+  return { createdById: ownerId, productCategory: "unified_input", OR: clauses };
+}
+
+/**
+ * 白名单样片（2026-10-25 审计 A10）：只查被点名、且属于样片账号的条目，标 isShowcase、只留已成片。
+ * 之前是把样片账号的全部已完成内容注入进来（混着非 SunnyShutter 的测试片）。
+ */
+async function loadShowcaseRows(
+  ownerId: string,
+  allow: ShowcaseAllowlist,
+  locale: Locale,
+): Promise<UnifiedLibraryRow[]> {
+  const orderWhere = showcaseOrderWhere(ownerId, allow);
+  const [orders, batchJobs, contentPosts] = await Promise.all([
+    orderWhere
+      ? db.deliveryOrder.findMany({
+          where: orderWhere,
+          orderBy: { updatedAt: "desc" },
+          take: LIBRARY_ROWS_PER_SOURCE,
+          select: unifiedLibraryOrderSelect,
+        })
+      : Promise.resolve([] as UnifiedLibraryOrder[]),
+    allow.batchVideoJobIds.length > 0
+      ? db.videoJob.findMany({
+          where: { id: { in: allow.batchVideoJobIds }, batchJob: { userId: ownerId } },
+          orderBy: { updatedAt: "desc" },
+          take: LIBRARY_ROWS_PER_SOURCE,
+          select: batchLibraryJobSelect,
+        })
+      : Promise.resolve([] as BatchLibraryJob[]),
+    allow.contentPostIds.length > 0
+      ? db.contentPost.findMany({
+          where: { id: { in: allow.contentPostIds }, plan: { userId: ownerId } },
+          orderBy: { updatedAt: "desc" },
+          take: LIBRARY_ROWS_PER_SOURCE,
+          select: contentPostLibrarySelect,
+        })
+      : Promise.resolve([] as ContentPostLibraryRow[]),
+  ]);
+  return mapRows(orders, batchJobs, contentPosts, true, locale).filter((row) => row.status === "ready");
+}
+
 export async function loadUnifiedLibrary(
   userId: string,
-  { locale = "zh-CN" }: { locale?: Locale } = {},
+  {
+    locale = "zh-CN",
+    showcaseSamples = SHOWCASE_SAMPLES,
+  }: { locale?: Locale; showcaseSamples?: readonly ShowcaseSample[] } = {},
 ): Promise<UnifiedLibraryResult> {
-  const showcaseUserId = await resolveShowcaseSourceFor(userId);
-  const [own, showcase] = await Promise.all([
+  const showcase = await resolveShowcaseFor(userId, showcaseSamples);
+  const [own, samples] = await Promise.all([
     loadRowsForOwner(userId, false, locale),
-    showcaseUserId
-      ? loadRowsForOwner(showcaseUserId, true, locale)
-      : Promise.resolve({ rows: [] as UnifiedLibraryRow[], truncated: false }),
+    showcase
+      ? loadShowcaseRows(showcase.ownerId, showcase.allow, locale)
+      : Promise.resolve([] as UnifiedLibraryRow[]),
   ]);
-  // 访问者本人成片在前，SunnyShutter 客户样片在后（新注册用户仅见样片）。
+  // 访问者本人成片在前，白名单里的 SunnyShutter 客户样片在后（白名单默认空：新账号看到的是真实空态）。
   return {
-    rows: [...own.rows, ...showcase.rows],
+    rows: [...own.rows, ...samples],
     truncated: own.truncated,
     perSourceLimit: LIBRARY_ROWS_PER_SOURCE,
   };
@@ -740,7 +802,11 @@ export async function loadRecentVideoRows(
   return (readyWithMedia ? rows.filter((row) => row.status === "ready" && row.videoUrl) : rows).slice(0, take);
 }
 
-export async function getUnifiedLibraryItem(userId: string, orderId: string) {
+export async function getUnifiedLibraryItem(
+  userId: string,
+  orderId: string,
+  showcaseSamples: readonly ShowcaseSample[] = SHOWCASE_SAMPLES,
+) {
   const own = await db.deliveryOrder.findFirst({
     where: {
       id: orderId,
@@ -751,16 +817,15 @@ export async function getUnifiedLibraryItem(userId: string, orderId: string) {
   });
   if (own) return toUnifiedLibraryDetail(own);
 
-  // 命中样片账号的成片则以只读样片形式返回。
-  const showcaseUserId = await resolveShowcaseSourceFor(userId);
-  if (!showcaseUserId) return null;
-  const showcase = await db.deliveryOrder.findFirst({
-    where: {
-      id: orderId,
-      createdById: showcaseUserId,
-      productCategory: "unified_input",
-    },
+  // 命中白名单样片（且属于样片账号、已成片）才以只读样片形式返回；白名单默认空 ⇒ 404。
+  const showcase = await resolveShowcaseFor(userId, showcaseSamples);
+  if (!showcase) return null;
+  const sampleWhere = showcaseOrderWhere(showcase.ownerId, showcase.allow);
+  if (!sampleWhere) return null;
+  const sample = await db.deliveryOrder.findFirst({
+    where: { ...sampleWhere, id: orderId },
     select: unifiedLibraryOrderSelect,
   });
-  return showcase ? toUnifiedLibraryDetail(showcase, true) : null;
+  const detail = sample ? toUnifiedLibraryDetail(sample, true) : null;
+  return detail && detail.status === "ready" ? detail : null;
 }

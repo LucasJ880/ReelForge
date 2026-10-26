@@ -3,41 +3,35 @@ import { expect, test } from "@playwright/test";
 /**
  * R5 · 战绩页验收（PRD §4.3）。
  * 一页只回答三件事，落在一面判定台账里；样本不足时只报数（达标 n / 需要 2），不给假排名。
+ *
+ * 2026-10-25 审计 B5：表现数据回流（青砚同步）还没开——入口撤出导航（路由保留可直达），
+ * 一条表现数据都没有时只写空态，不摆判定台账。
  */
 
-test("战绩页：判定台账齐全，样本不足时只报数不判赢家", async ({ page }) => {
+test("战绩页：没有表现数据时如实写空态，读数写零、不判赢家", async ({ page }) => {
   await page.goto("/app/wins");
   await expect(page).toHaveURL((url) => url.pathname === "/app/wins");
 
   const root = page.getByTestId("wins-page");
   await expect(root).toBeVisible();
 
-  /// 三个问题 = 台账的三列 + 末行本周计划；不该再拆成三张等宽卡片。
-  const ledger = root.getByRole("table", { name: "判定台账" });
-  await expect(ledger).toBeVisible();
-  for (const column of ["已有样本", "当前领先", "下一步动作"]) {
-    await expect(ledger.getByRole("columnheader", { name: column })).toBeVisible();
-  }
-  await expect(ledger.getByRole("rowheader", { name: "本周计划", exact: true })).toBeVisible();
-
-  /// 演练库里没有表现数据 → 领先结构读数是「0 / 2 种配方」，绝不显示一个假赢家。
+  /// 演练库里没有表现数据 → 领先结构读数是「0 / 2」，绝不显示一个假赢家。
   const readings = root.getByLabel("战绩读数");
   await expect(readings).toContainText("0 / 2");
-  await expect(readings).toContainText("种配方");
-  await expect(root.getByText(/还判不出哪种结构更好/)).toBeVisible();
 
-  /// 六个维度的行都在。
-  for (const dim of ["结构", "钩子", "模板", "时长", "画幅", "植入"]) {
-    await expect(ledger.getByRole("rowheader", { name: dim, exact: true })).toBeVisible();
-  }
+  const empty = root.getByTestId("wins-empty");
+  await expect(empty).toBeVisible();
+  await expect(empty).toContainText("还没有表现数据回流");
+  /// 没有数据就不摆「再发几条」的六行判定台账
+  await expect(root.getByRole("table", { name: "判定台账" })).toHaveCount(0);
 });
 
-test("导航：战绩替换旧赛马入口，旧路由仍可直达", async ({ page }) => {
+test("导航：战绩入口暂时撤下，路由与旧赛马路由仍可直达", async ({ page }) => {
   await page.goto("/app/wins");
   const nav = page.getByRole("navigation", { name: "平台主导航" });
-  await expect(nav.getByRole("link", { name: "战绩" })).toBeVisible();
   await expect(nav.getByRole("link", { name: "本周内容" })).toBeVisible();
   /// A 级下线 = 导航移除，不是路由删除。
+  await expect(nav.getByRole("link", { name: "战绩" })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "投放与赛马" })).toHaveCount(0);
   const res = await page.goto("/app/racing");
   expect(res!.status()).toBeLessThan(400);

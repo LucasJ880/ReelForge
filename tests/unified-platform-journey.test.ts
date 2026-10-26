@@ -11,20 +11,25 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     { label: "本周内容", href: "/app/plan" },
     { label: "创作", href: "/app/create" },
     { label: "批量生产", href: "/app/batches" },
-    /// R5 替换旧赛马页（PRD §10.4 A 级：导航移除，旧路由保留可直达）。
-    { label: "战绩", href: "/app/wins" },
+    /// 「战绩」入口暂时下线（2026-10-25 审计 B5）：表现数据回流没开，页面只能是零；
+    /// /app/wins 路由保留可直达（见下一个测试），有真实数据后再放回导航。
     { label: "成品库", href: "/app/library" },
     { label: "品牌", href: "/app/brands" },
     { label: "模板库", href: "/app/templates" },
-    /// 1025 获客闭环（计划 6.4）：追加在最后，前 7 个快捷键不变。
+    /// 1025 获客闭环（计划 6.4）：追加在最后。
     { label: "询盘", href: "/app/leads" },
   ]);
+  assert.ok(
+    !PLATFORM_PRIMARY_NAV.map((item): string => item.href).includes("/app/wins"),
+    "没有真实表现数据之前，战绩页不进导航",
+  );
   assert.equal(platformPathAfterGeneration("order 1"), "/app/library?highlight=order%201");
 });
 
 test("Phase1 unified journey：各一级区页面与批次/成品详情均存在", async () => {
   for (const file of [
     "src/app/(platform)/app/plan/page.tsx",
+    /// 战绩入口撤了导航，路由保留可直达（A 级下线只动导航）。
     "src/app/(platform)/app/wins/page.tsx",
     /// A 级下线只动导航：旧 racing 路由必须仍然存在（可直达）。
     "src/app/(platform)/app/racing/page.tsx",

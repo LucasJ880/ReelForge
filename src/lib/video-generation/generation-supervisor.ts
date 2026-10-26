@@ -58,6 +58,8 @@ export function normalizePostProductionSettings(
         voiceId: voiceover?.voiceId.trim() || "warm-confident",
         language: voiceover?.language.trim() || language,
         script: voiceover?.script ?? "",
+        /// 只透传；该线路做不做得到由派发入口的能力闸判断。
+        drive: voiceover?.drive ?? "native",
       },
       bgm: {
         trackId: bgm?.trackId ?? "none",

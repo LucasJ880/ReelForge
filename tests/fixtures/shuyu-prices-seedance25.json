@@ -1,0 +1,58 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "plan_id": "video-plan-04",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "generation",
+      "resolution": "720P",
+      "sale_points": 700,
+      "display_name": "Seedance 2.0 · 720P",
+      "capabilities": {
+        "aspect_ratios": ["9:16", "16:9", "1:1"],
+        "input_images_max": 9,
+        "modes": ["text2video", "image2video"],
+        "durations": [5, 10, 15],
+        "quality": "720P"
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-25-1080",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 320,
+      "display_name": "Seedance 2.5 · 1080P",
+      "capabilities": {
+        "aspect_ratios": ["9:16", "16:9", "1:1"],
+        "input_images_max": 9,
+        "modes": ["text2video", "image2video", "reference2video"],
+        "durations": [5, 10, 15, 20, 30],
+        "quality": "1080P",
+        "input_audios_max": 1,
+        "input_videos_max": 1,
+        "generate_audio": true
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-25-720",
+      "kind": "video",
+      "model": "studio-video-2.5",
+      "unit": "generation",
+      "resolution": "720P",
+      "sale_points": 1100,
+      "display_name": "Studio Video Pro",
+      "capabilities": {
+        "aspect_ratios": ["9:16", "16:9", "1:1"],
+        "input_images_max": 9,
+        "modes": ["text2video", "image2video"],
+        "durations": [5, 10, 15]
+      },
+      "status": "available"
+    }
+  ]
+}

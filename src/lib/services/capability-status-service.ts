@@ -8,11 +8,13 @@ import {
   type CapabilityDetail,
   type CapabilityKey,
   type CapabilityObservation,
+  type CapabilityProviders,
   type CapabilityRecord,
   type CapabilitySource,
   type PublicCapabilities,
 } from "@/lib/capabilities/registry";
 import { classifyRuntimeFailure } from "@/lib/capabilities/classify";
+import { isTtsConfigured, resolveTtsProviderId } from "@/lib/providers/tts/config";
 
 /**
  * C4 · 能力状态的读写（服务端）。
@@ -224,13 +226,18 @@ export function capabilityConfiguration(env: EnvLike = process.env): Record<Capa
     image: shuyu,
     graphics: chat && env.IMAGE_ENGINE_MOCK !== "true",
     video: shuyu,
-    voice: openai,
+    voice: isTtsConfigured(env),
     moderation: openai,
     stock: hasList(env, "PEXELS_API_KEYS") || hasList(env, "PIXABAY_API_KEYS"),
     scrape: has(env, "FIRECRAWL_API_KEY"),
     cutout: has(env, "REMOVE_BG_API_KEY") || has(env, "CLIPDROP_API_KEY"),
     email: has(env, "RESEND_API_KEY") && has(env, "EMAIL_FROM"),
   };
+}
+
+/** 能力背后可切换的供应商（目前只有配音）：决定它是否跟着 OpenAI 账户一起停。 */
+export function capabilityProviders(env: EnvLike = process.env): CapabilityProviders {
+  return { voice: resolveTtsProviderId(env) };
 }
 
 /* ── 进程内缓存 ─────────────────────────────────────────────────────── */
@@ -306,7 +313,12 @@ export async function getCapabilities(
   } catch {
     records = [];
   }
-  return resolveCapabilities({ records, configured: capabilityConfiguration(env), now });
+  return resolveCapabilities({
+    records,
+    configured: capabilityConfiguration(env),
+    providers: capabilityProviders(env),
+    now,
+  });
 }
 
 /* ── 生产回写 ───────────────────────────────────────────────────────── */

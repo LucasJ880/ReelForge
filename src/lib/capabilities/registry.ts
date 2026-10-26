@@ -565,6 +565,14 @@ export type PublicCapabilities = {
 const OPENAI_ACCOUNT_DEPENDENTS: ReadonlySet<CapabilityKey> = new Set(["vision", "graphics", "voice"]);
 const ACCOUNT_LEVEL_REASONS: ReadonlySet<CapabilityReason> = new Set(["quota", "auth"]);
 
+/** 可切换供应商的能力当前用的是哪家（TTS_PROVIDER）。缺省 = openai，与切换前的行为一致。 */
+export type CapabilityProviders = Partial<Record<"voice", string>>;
+
+function dependsOnOpenAiAccount(key: CapabilityKey, providers: CapabilityProviders): boolean {
+  if (!OPENAI_ACCOUNT_DEPENDENTS.has(key)) return false;
+  return key !== "voice" || (providers.voice ?? "openai") === "openai";
+}
+
 function laterOrEqual(a: string, b: string): boolean {
   return Date.parse(a) >= Date.parse(b);
 }
@@ -575,12 +583,13 @@ function resolveOne(
   key: CapabilityKey,
   byKey: ReadonlyMap<CapabilityKey, CapabilityRecord>,
   configured: Readonly<Record<CapabilityKey, boolean>>,
+  providers: CapabilityProviders,
 ): Resolved {
   const record = byKey.get(key);
   if (!configured[key]) {
     return { status: "not_configured", reason: "not_configured", checkedAt: record?.checkedAt ?? null, failingSince: null };
   }
-  if (OPENAI_ACCOUNT_DEPENDENTS.has(key) && configured.text) {
+  if (dependsOnOpenAiAccount(key, providers) && configured.text) {
     const account = byKey.get("text");
     if (
       account &&
@@ -614,6 +623,7 @@ function resolveOne(
 export function resolveCapabilities(input: {
   records: ReadonlyArray<CapabilityRecord>;
   configured: Readonly<Record<CapabilityKey, boolean>>;
+  providers?: CapabilityProviders;
   now: Date;
 }): PublicCapabilities {
   const byKey = new Map<CapabilityKey, CapabilityRecord>();
@@ -628,7 +638,7 @@ export function resolveCapabilities(input: {
   };
   let lastCheckedAt: string | null = null;
   const items = CAPABILITY_KEYS.map((key): PublicCapability => {
-    const resolved = resolveOne(key, byKey, input.configured);
+    const resolved = resolveOne(key, byKey, input.configured, input.providers ?? {});
     counts[resolved.status] += 1;
     if (resolved.checkedAt && (!lastCheckedAt || laterOrEqual(resolved.checkedAt, lastCheckedAt))) {
       lastCheckedAt = resolved.checkedAt;

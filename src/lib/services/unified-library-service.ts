@@ -16,8 +16,10 @@ import { summarizeRunningJobs } from "@/lib/video-generation/business-status";
 import {
   unifiedLibraryRowSchema,
   type UnifiedLibraryRow,
+  type UnifiedLibrarySegment,
   type UnifiedLibraryStatus,
 } from "@/lib/contracts/unified-library";
+import { isCurrentSegmentJob, isSegmentRedoCandidate } from "@/lib/video-generation/segment-redo";
 import { readBatchPostProductionFromSnapshot } from "@/lib/services/batch-service";
 import { SHOWCASE_SAMPLES, type ShowcaseSample } from "@/lib/config/showcase-allowlist";
 import { resolveShowcaseFor, type ShowcaseAllowlist } from "@/lib/services/showcase-library";
@@ -129,6 +131,14 @@ const unifiedLibraryOrderSelect = {
                   createdAt: true,
                   /// 只重拼判据：成片 URL 等于某段原片 URL = 直接复用单段、没过合成器
                   outputVideoUrl: true,
+                  /// P05-C 段重做：区分在成片里的段 / 重做候选行 / 被替换掉的旧行
+                  id: true,
+                  segmentIndex: true,
+                  segmentDurationSec: true,
+                  finalVideoId: true,
+                  replacesJobId: true,
+                  supersededAt: true,
+                  userSafeError: true,
                 },
               },
             },
@@ -335,7 +345,11 @@ export function toUnifiedLibraryRow(
   const brief = order.rounds[0]?.angles[0]?.videoBrief ?? null;
   if (brief?.takedownAt) return null;
   const finalVideo = brief?.finalVideo ?? null;
-  const jobStatuses = (brief?.videoJobs.map((job) => job.status) ?? []) as VideoJobStatus[];
+  /// P05-C：重做候选行与被替换的旧行不参与成品状态（旧片照常 READY，新段还没换上去）
+  const allJobs = brief?.videoJobs ?? [];
+  const currentJobs = allJobs.filter(isCurrentSegmentJob);
+  const redoCandidates = allJobs.filter(isSegmentRedoCandidate);
+  const jobStatuses = currentJobs.map((job) => job.status) as VideoJobStatus[];
   const segmentCount = finalVideo?.segmentCount ?? jobStatuses.length;
   const segmentsSucceeded = jobStatuses.filter((status) => status === "SUCCEEDED").length;
   const failedSceneCount = jobStatuses.filter((status) => status === "FAILED").length;
@@ -345,7 +359,7 @@ export function toUnifiedLibraryRow(
     segmentsSucceeded,
     segmentsTotal: segmentCount,
     jobStatuses,
-    ...summarizeRunningJobs(brief?.videoJobs ?? []),
+    ...summarizeRunningJobs(currentJobs),
   });
   const playable = Boolean(finalVideo?.stitchedVideoUrl ?? brief?.finalVideoUrl);
   const status =
@@ -357,13 +371,13 @@ export function toUnifiedLibraryRow(
   /// brief 在可改成片的状态（归档 / 弃用不行）+ 段原片不是会过期的临时签名地址 +
   /// 不是直接复用某段原片（reuse_single_segment / reuse_first_segment_demo 会把首段 URL 原样写进
   /// stitchedVideoUrl，没经过合成器，换设置不会生效）。
-  const segmentUrls = (brief?.videoJobs ?? [])
+  const segmentUrls = currentJobs
     .map((job) => job.outputVideoUrl)
     .filter((url): url is string => Boolean(url));
   const reusedSegmentUrl =
     Boolean(finalVideo?.stitchedVideoUrl) &&
     segmentUrls.some((url) => url === finalVideo?.stitchedVideoUrl);
-  const canRestitch =
+  const canChangeFilm =
     !isShowcase &&
     finalVideo?.status === "READY" &&
     Boolean(finalVideo.stitchedVideoUrl) &&
@@ -371,6 +385,11 @@ export function toUnifiedLibraryRow(
     canRestitchBriefStatus(brief?.status) &&
     !segmentUrls.some(isEphemeralSignedUrl) &&
     !reusedSegmentUrl;
+  const redoInFlight = redoCandidates.some((job) => REDO_IN_FLIGHT_STATUSES.has(job.status));
+  const canRestitch = canChangeFilm && !redoInFlight;
+  const segments = isShowcase
+    ? []
+    : librarySegments(currentJobs, redoCandidates, canChangeFilm && !redoInFlight);
 
   return parseLibraryRow({
     id: order.id,
@@ -398,7 +417,71 @@ export function toUnifiedLibraryRow(
     failedSceneCount,
     canRetry: status === "failed" || failedSceneCount > 0,
     canRestitch,
+    segments,
+    redoInFlight,
   });
+}
+
+const REDO_IN_FLIGHT_STATUSES: ReadonlySet<string> = new Set([
+  "QUEUED",
+  "RUNNING",
+  "PAUSED",
+  "SUCCEEDED",
+]);
+
+type LibrarySegmentJob = {
+  id?: string;
+  status: VideoJobStatus;
+  segmentIndex?: number | null;
+  segmentDurationSec?: number | null;
+  outputVideoUrl?: string | null;
+  replacesJobId?: string | null;
+  userSafeError?: string | null;
+  createdAt?: Date | null;
+};
+
+/** 成片里每段一行（只列已成功、有原片的段），带这一段最近一次重做的状态。 */
+function librarySegments(
+  currentJobs: LibrarySegmentJob[],
+  redoCandidates: LibrarySegmentJob[],
+  canRedo: boolean,
+): UnifiedLibrarySegment[] {
+  const latestRedo = new Map<number, LibrarySegmentJob>();
+  for (const job of redoCandidates) {
+    if (job.segmentIndex == null) continue;
+    const prior = latestRedo.get(job.segmentIndex);
+    if (!prior || (job.createdAt?.getTime() ?? 0) >= (prior.createdAt?.getTime() ?? 0)) {
+      latestRedo.set(job.segmentIndex, job);
+    }
+  }
+  return currentJobs
+    .filter(
+      (job): job is LibrarySegmentJob & { segmentIndex: number } =>
+        job.segmentIndex != null && job.status === "SUCCEEDED" && Boolean(job.outputVideoUrl),
+    )
+    .sort((a, b) => a.segmentIndex - b.segmentIndex)
+    .map((job) => {
+      const latest = latestRedo.get(job.segmentIndex);
+      /// 比在用这段还早的候选行是上一轮的残留（之后已有一次重做换上了成片）
+      const redo =
+        latest && (latest.createdAt?.getTime() ?? 0) >= (job.createdAt?.getTime() ?? 0) ? latest : undefined;
+      return {
+        segmentIndex: job.segmentIndex,
+        durationSec: job.segmentDurationSec && job.segmentDurationSec > 0 ? job.segmentDurationSec : null,
+        redo: redoStateOf(redo?.status),
+        redoJobId: redo?.id ?? null,
+        redoError: redo?.status === "FAILED" ? redo.userSafeError || null : null,
+        canRedo,
+      };
+    });
+}
+
+function redoStateOf(status: VideoJobStatus | undefined): UnifiedLibrarySegment["redo"] {
+  if (!status) return "none";
+  if (status === "SUCCEEDED") return "adopting";
+  if (status === "FAILED") return "failed";
+  if (status === "CANCELLED") return "cancelled";
+  return "running";
 }
 
 /** 只重拼表单的初值：当前成片的字幕 / 配乐设置（快照读不懂就不给表单）。 */
@@ -430,7 +513,7 @@ function toUnifiedLibraryDetail(
       storyboardCreatedAt: brief?.storyboardRun?.createdAt,
       storyboardApprovedAt: brief?.storyboardRun?.approvedAt,
       storyboardUpdatedAt: brief?.storyboardRun?.updatedAt,
-      videoJobs: brief?.videoJobs ?? [],
+      videoJobs: (brief?.videoJobs ?? []).filter(isCurrentSegmentJob),
       finalVideoStatus: finalVideo?.status ?? null,
       finalVideoStartedAt: finalVideo?.startedAt,
       finalVideoFinishedAt: finalVideo?.finishedAt,

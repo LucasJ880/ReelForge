@@ -61,6 +61,28 @@ import { isHistoricalDispatchQuarantined } from "./historical-dispatch-quarantin
 import { decideFrameQaGate, type FrameQaAttemptPin } from "./frame-qa-gate";
 import { CUSTOMER_CANCELLED_CLASS } from "./single-video-cancel-service";
 import { isDeliveredBriefStatus } from "@/lib/video-generation/brief-delivery-state";
+import type { Session } from "next-auth";
+import { isDemoAccountEmail } from "@/lib/demo-account";
+import {
+  composeSegmentRedoPrompt,
+  isCurrentSegmentJob,
+  isSegmentRedoCandidate,
+  SegmentRedoRejectedError,
+  segmentRedoLogicalJobKey,
+} from "@/lib/video-generation/segment-redo";
+import { readFrameQaBlockCount } from "./frame-qa-gate";
+import {
+  currentUsagePeriodKey,
+  isQuotaEnforced,
+  isQuotaExemptSession,
+  resolveQuotaPlan,
+  runSerializableQuotaTransaction,
+} from "./quota-service";
+import {
+  chargeSegmentRedoInTransaction,
+  QuotaRechargeUnavailableError,
+  refundFailedSegmentRedo,
+} from "./quota-refund-service";
 import {
   requireApprovedStoryboardVideoInputsForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
@@ -748,6 +770,92 @@ async function submitSegmentJob(params: {
   }
 }
 
+type SegmentSubmitBrief = {
+  aspectRatio: string;
+  directorPlan: Prisma.JsonValue | null;
+  referenceImageUrls: string[] | null;
+  videoGenerationPlan: Prisma.JsonValue | null;
+};
+
+const SEGMENT_SUBMIT_BRIEF_SELECT = {
+  aspectRatio: true,
+  directorPlan: true,
+  referenceImageUrls: true,
+  videoGenerationPlan: true,
+} as const;
+
+/**
+ * 分段重提的供应商参数（失败段重试、成功段重做、重做候选行重试共用一份）：
+ * 段计划按 segmentIndex 从 directorPlan 取——计划是唯一来源，重提永远不在上一次的提示词上累加；
+ * 与首次 dispatch 同参：参考图 Omni-Reference + 1080p + 口播开关。
+ * redoNote 只有重做候选行才有（候选行自己的说明，见 composeSegmentRedoPrompt）。
+ */
+export function buildSegmentSubmitInput(args: {
+  briefId: string;
+  brief: SegmentSubmitBrief;
+  segmentIndex: number;
+  providerRequestKey: string;
+  model: string;
+  redoNote?: string | null;
+}): { options: CreateVideoJobOptions; segment: SegmentPlan; segmentCount: number } {
+  if (!args.brief.directorPlan) {
+    throw new Error("Brief 缺少 DirectorPlan，无法重提该段");
+  }
+  let plan: DirectorPlan;
+  try {
+    plan = parseDirectorPlan(args.brief.directorPlan);
+  } catch (err) {
+    throw new Error(`DirectorPlan 解析失败: ${(err as Error).message}`);
+  }
+  const segment = plan.segmentPlan.find((s) => s.segmentIndex === args.segmentIndex);
+  if (!segment) {
+    throw new Error(`找不到 segmentIndex=${args.segmentIndex} 的段计划`);
+  }
+  /// 此前重试丢失参考图与 1080p → 重试段产品外观漂移、分辨率降档，成片段间质量不一致。
+  const refs = (args.brief.referenceImageUrls ?? []).slice(0, 8);
+  const hasRefs = refs.length > 0;
+  const generateAudio =
+    (
+      args.brief.videoGenerationPlan as
+        | { postProduction?: { audio?: { voiceover?: { enabled?: unknown } } } }
+        | null
+    )?.postProduction?.audio?.voiceover?.enabled === true;
+  const prompt =
+    args.redoNote === undefined
+      ? segment.seedancePrompt
+      : composeSegmentRedoPrompt({
+          planPrompt: segment.seedancePrompt,
+          note: args.redoNote,
+          negativePrompt: segment.negativePrompt,
+        });
+  return {
+    segment,
+    segmentCount: plan.segmentPlan.length,
+    options: {
+      providerRequestKey: args.providerRequestKey,
+      prompt,
+      durationSec: segment.durationSec,
+      aspectRatio: args.brief.aspectRatio,
+      model: args.model,
+      generateAudio,
+      negativePrompt: segment.negativePrompt || undefined,
+      referenceImages: hasRefs
+        ? refs.map((url) => ({ url, role: "content" as const }))
+        : undefined,
+      referenceMode: hasRefs ? "reference" : undefined,
+      resolution: "1080p",
+      mockHints: {
+        briefId: args.briefId,
+        segmentIndex: segment.segmentIndex,
+        segmentCount: plan.segmentPlan.length,
+        durationSec: segment.durationSec,
+        aspectRatio: args.brief.aspectRatio,
+        purpose: segment.role,
+      },
+    },
+  };
+}
+
 /**
  * 触发一个 VideoBrief 的视频生成：把每个 scene 的 prompt 提交成一个 VideoJob。
  * 第一个 scene 若包含 I2V 参考图，会先经过抠图预处理。
@@ -1134,6 +1242,11 @@ export async function reconcileVideoJob(jobId: string) {
       },
     });
     const updated = await db.videoJob.findUnique({ where: { id: jobId } });
+    /// P05-C 重做候选行成功：事务内摘旧行、挂新行，FinalVideo 走只重拼路径（失败回滚到旧片）
+    if (succeeded.count > 0 && updated && isSegmentRedoCandidate(updated)) {
+      await adoptRedoCandidate(updated.id);
+      return db.videoJob.findUnique({ where: { id: jobId } });
+    }
     /// 多段流的 fast-path：本段成功且是该 brief 最后一段时立即触发 stitch（无需等下一轮 cron）
     if (succeeded.count > 0 && updated?.finalVideoId) {
       await maybeTriggerStitch(updated.finalVideoId);
@@ -1264,6 +1377,7 @@ export async function reconcileBriefRenderStatus(briefId: string) {
   for (const job of inflight) {
     await reconcileVideoJob(job.id);
   }
+  await adoptPendingRedoCandidates({ briefId });
   await syncBriefStatus(briefId);
 
   /// 兜底：HMR 后 maybeTriggerStitch 可能已在单段 reconcile 时错过，此处再试一次 stitch
@@ -1398,77 +1512,107 @@ export async function retryFailedVideoJob(jobId: string) {
   }
 
   /// Provider 端确认失败 / 不存在 → 重新提交
+  /// 重做候选行（P05-C）：finalVideoId 为空，不能掉进下方的旧 ScenePlan 分支；
+  /// 按计划 + 候选行自己的说明重组提示词，不重置 FinalVideo（旧成片一直是 READY）。
+  if (job.replacesJobId && job.segmentIndex != null) {
+    if (job.finalVideoId || job.supersededAt) {
+      throw new SegmentRedoRejectedError("INVALID_STATE", "这次重做已经换上成片，无需重试。");
+    }
+    const replaced = await db.videoJob.findUnique({
+      where: { id: job.replacesJobId },
+      select: { finalVideoId: true, supersededAt: true },
+    });
+    if (!replaced?.finalVideoId || replaced.supersededAt) {
+      throw new SegmentRedoRejectedError(
+        "INVALID_STATE",
+        "这一段已经换成了别的版本，这次重做不能再重试；需要的话请重新点「重做这一段」。",
+      );
+    }
+    const otherActive = await db.videoJob.count({
+      where: { ...segmentRedoInFlightWhere(videoBriefId), id: { not: job.id } },
+    });
+    if (otherActive > 0) {
+      throw new SegmentRedoRejectedError("INVALID_STATE", "这条视频已有一段正在重做，等它结束再试。");
+    }
+    const briefForRedo = await db.videoBrief.findUnique({
+      where: { id: videoBriefId },
+      select: SEGMENT_SUBMIT_BRIEF_SELECT,
+    });
+    if (!briefForRedo) throw new Error("Brief 不存在");
+    const redoInput = (providerRequestKey: string) =>
+      buildSegmentSubmitInput({
+        briefId: videoBriefId,
+        brief: briefForRedo,
+        segmentIndex: job.segmentIndex as number,
+        providerRequestKey,
+        model: jobRouteSnapshot.videoModelSnapshot,
+        redoNote: job.promptText ?? null,
+      });
+    /// 计划 / 提示词不合法要在认领之前抛，认领后再抛会把行卡在 SUBMITTING
+    redoInput("preflight");
+    const { submittedAt, providerRequestKey } = await claimFailedJobForRetry(job);
+    let providerAcknowledged = false;
+    try {
+      const { options } = redoInput(providerRequestKey);
+      const accepted = await submitVideoJob(options, jobRouteSnapshot);
+      providerAcknowledged = true;
+      logStatusTransition({
+        taskId: job.id,
+        from: job.status,
+        to: VideoJobStatus.RUNNING,
+        reason: `segment_redo_retry_resubmitted (external=${accepted.jobId}, attempt=${(job.retryCount ?? 0) + 1})`,
+      });
+      return await persistAcceptedSubmission({
+        jobId: job.id,
+        providerRequestKey,
+        externalJobId: accepted.jobId,
+        submittedAt,
+        retryCount: (job.retryCount ?? 0) + 1,
+        providerPlanId: accepted.providerPlanId,
+        providerUnitPoints: accepted.providerUnitPoints,
+      });
+    } catch (err) {
+      return failDirectSubmission({
+        jobId: job.id,
+        providerRequestKey,
+        error: err,
+        providerAcknowledged,
+        providerId: jobRouteSnapshot.videoRouteSnapshot,
+      });
+    }
+  }
+
   /// 多段流：优先用 directorPlan.segmentPlan 的对应段（防双重计费的关键 — 只重试该段）
   if (job.segmentIndex != null && job.finalVideoId) {
     const briefForRetry = await db.videoBrief.findUnique({
       where: { id: videoBriefId },
-      select: {
-        aspectRatio: true,
-        directorPlan: true,
-        referenceImageUrls: true,
-        videoGenerationPlan: true,
-      },
+      select: SEGMENT_SUBMIT_BRIEF_SELECT,
     });
     if (!briefForRetry?.directorPlan) {
       throw new Error("Brief 缺少 DirectorPlan，无法重试该段");
     }
-    let plan: DirectorPlan;
-    try {
-      plan = parseDirectorPlan(briefForRetry.directorPlan);
-    } catch (err) {
-      throw new Error(`DirectorPlan 解析失败: ${(err as Error).message}`);
-    }
-    const segment = plan.segmentPlan.find(
-      (s) => s.segmentIndex === job.segmentIndex,
-    );
-    if (!segment) {
-      throw new Error(`找不到 segmentIndex=${job.segmentIndex} 的段计划`);
-    }
-
-    /// 与首次 dispatch 完全同参：参考图 Omni-Reference + 1080p。
-    /// 此前重试丢失这两项 → 重试段产品外观漂移、分辨率降档，成片段间质量不一致。
-    const retryRefs = (briefForRetry.referenceImageUrls ?? []).slice(0, 8);
-    const retryHasRefs = retryRefs.length > 0;
-    const retryGenerateAudio =
-      (
-        briefForRetry.videoGenerationPlan as
-          | {
-              postProduction?: {
-                audio?: { voiceover?: { enabled?: unknown } };
-              };
-            }
-          | null
-      )?.postProduction?.audio?.voiceover?.enabled === true;
+    const segmentIndex = job.segmentIndex;
+    /// 计划解析失败 / 找不到段要在认领之前抛：认领后再抛会把行卡在 SUBMITTING
+    buildSegmentSubmitInput({
+      briefId: videoBriefId,
+      brief: briefForRetry,
+      segmentIndex,
+      providerRequestKey: "preflight",
+      model: jobRouteSnapshot.videoModelSnapshot,
+    });
 
     const { submittedAt, providerRequestKey } =
       await claimFailedJobForRetry(job);
     let providerAcknowledged = false;
     try {
-      const accepted = await submitVideoJob(
-        {
-          providerRequestKey,
-          prompt: segment.seedancePrompt,
-          durationSec: segment.durationSec,
-          aspectRatio: briefForRetry.aspectRatio,
-          model: jobRouteSnapshot.videoModelSnapshot,
-          generateAudio: retryGenerateAudio,
-          negativePrompt: segment.negativePrompt || undefined,
-          referenceImages: retryHasRefs
-            ? retryRefs.map((url) => ({ url, role: "content" as const }))
-            : undefined,
-          referenceMode: retryHasRefs ? "reference" : undefined,
-          resolution: "1080p",
-          mockHints: {
-            briefId: videoBriefId,
-            segmentIndex: segment.segmentIndex,
-            segmentCount: plan.segmentPlan.length,
-            durationSec: segment.durationSec,
-            aspectRatio: briefForRetry.aspectRatio,
-            purpose: segment.role,
-          },
-        },
-        jobRouteSnapshot,
-      );
+      const { options } = buildSegmentSubmitInput({
+        briefId: videoBriefId,
+        brief: briefForRetry,
+        segmentIndex,
+        providerRequestKey,
+        model: jobRouteSnapshot.videoModelSnapshot,
+      });
+      const accepted = await submitVideoJob(options, jobRouteSnapshot);
       providerAcknowledged = true;
       logStatusTransition({
         taskId: job.id,
@@ -1620,13 +1764,17 @@ async function maybeTriggerStitch(finalVideoId: string): Promise<void> {
  * UI 的「重试失败片段」按钮调这个。
  */
 export async function retryFailedSegmentsForBrief(briefId: string) {
-  const failed = await db.videoJob.findMany({
-    where: {
-      videoBriefId: briefId,
-      status: VideoJobStatus.FAILED,
-    },
-    orderBy: { segmentIndex: "asc" },
-  });
+  /// 被重做替换掉的旧行不重试；重做候选行要按候选行补扣（render-retry 有会话），这里不碰。
+  const failed = (
+    await db.videoJob.findMany({
+      where: {
+        videoBriefId: briefId,
+        status: VideoJobStatus.FAILED,
+        supersededAt: null,
+      },
+      orderBy: { segmentIndex: "asc" },
+    })
+  ).filter(isCurrentSegmentJob);
   if (failed.length === 0) return [];
 
   const results = [];
@@ -1644,6 +1792,335 @@ export async function retryFailedSegmentsForBrief(briefId: string) {
   }
   await syncBriefStatus(briefId);
   return results;
+}
+
+// ---------------------------------------------------------------------------
+// P05-C 成功段重做
+// ---------------------------------------------------------------------------
+
+/**
+ * 这条 brief 上「还没了结」的重做候选行：在跑的，或已成功但还没换挂上成片的。
+ * 同一条成片同一时刻只允许一个——换挂要把 FinalVideo 从 READY 推进重拼，两个候选会互相踩。
+ */
+export function segmentRedoInFlightWhere(briefId: string): Prisma.VideoJobWhereInput {
+  return {
+    videoBriefId: briefId,
+    replacesJobId: { not: null },
+    finalVideoId: null,
+    supersededAt: null,
+    status: {
+      in: [
+        VideoJobStatus.QUEUED,
+        VideoJobStatus.RUNNING,
+        VideoJobStatus.PAUSED,
+        VideoJobStatus.SUCCEEDED,
+      ],
+    },
+  };
+}
+
+export interface PreparedSegmentRedo {
+  briefId: string;
+  finalVideoId: string;
+  segmentIndex: number;
+  replacesJobId: string;
+  segmentDurationSec: number | null;
+  priorFrameQaBlockCount: number;
+  note: string | null;
+  routeSnapshot: VideoRouteSnapshot;
+  brief: SegmentSubmitBrief;
+}
+
+/**
+ * 只读预检（路由把限流放在它和 commitSegmentRedo 之间：明显不能重做的请求不消耗限频名额）。
+ * 成片侧的判据（READY、没有重拼在途、段都齐、不是临时签名地址、不是单段直接复用、不是 b-roll）
+ * 由 stitch-service.prepareSegmentRedoStitch 判，与只重拼同一套。
+ */
+export async function prepareSegmentRedo(
+  briefId: string,
+  segmentIndex: number,
+  options: { promptOverride?: string } = {},
+): Promise<PreparedSegmentRedo> {
+  const brief = await db.videoBrief.findUnique({
+    where: { id: briefId },
+    select: {
+      ...SEGMENT_SUBMIT_BRIEF_SELECT,
+      id: true,
+      finalVideoId: true,
+      videoRouteSnapshot: true,
+      videoModelSnapshot: true,
+      videoProviderAdapterSnapshot: true,
+    },
+  });
+  if (!brief) throw new SegmentRedoRejectedError("RESOURCE_NOT_FOUND", "生成记录不存在。");
+  if (!brief.finalVideoId || !brief.directorPlan) {
+    throw new SegmentRedoRejectedError(
+      "INVALID_STATE",
+      "这条视频不是分段生成的成片，不能单独重做某一段；可以整条重新生成。",
+    );
+  }
+  const { prepareSegmentRedoStitch } = await import("./stitch-service");
+  const stitch = await prepareSegmentRedoStitch(brief.finalVideoId, segmentIndex);
+  const active = await db.videoJob.count({ where: segmentRedoInFlightWhere(briefId) });
+  if (active > 0) {
+    throw new SegmentRedoRejectedError("INVALID_STATE", "这条视频已有一段正在重做，等它结束再试。");
+  }
+  const note = options.promptOverride?.trim() || null;
+  /// 提示词从计划重新组装；说明太长在这里就拒绝，不扣费、不建行
+  buildSegmentSubmitInput({
+    briefId,
+    brief,
+    segmentIndex,
+    providerRequestKey: "preflight",
+    model: "preflight",
+    redoNote: note,
+  });
+  return {
+    briefId,
+    finalVideoId: brief.finalVideoId,
+    segmentIndex,
+    replacesJobId: stitch.replacedJob.id,
+    segmentDurationSec: stitch.replacedJob.segmentDurationSec,
+    priorFrameQaBlockCount: readFrameQaBlockCount(stitch.replacedJob.frameQaDetail),
+    note,
+    routeSnapshot: requiredVideoRouteSnapshot(brief),
+    brief,
+  };
+}
+
+export interface CommitSegmentRedoOptions {
+  /// 扣费归属：豁免会话（运营 / 超管）与未开启计量时不扣
+  session?: Session | null;
+  now?: Date;
+}
+
+/**
+ * 建候选行 + 扣 1 段（同一 Serializable 事务）→ 提交供应商；提交失败立即退回这 1 段。
+ *
+ *   - 事务内再查一次「没有未了结的候选」与「旧行仍挂在成片上」（预检之后可能被并发请求改了）；
+ *   - logicalJobKey = `${briefId}:segment:${i}:redo:${n}`，n = 这一段历史候选数 + 1：
+ *     双击的两个请求算出同一个 n，唯一约束让后到的那个冲突，重放事务时被上一条拦下 → 只扣一次；
+ *   - frameQa 的累计拦截次数从旧行继承（免费重抽上限按段累计，重做不重置）。
+ */
+export async function commitSegmentRedo(
+  prepared: PreparedSegmentRedo,
+  options: CommitSegmentRedoOptions = {},
+) {
+  const now = options.now ?? new Date();
+  const session = options.session ?? null;
+  const enforce = isQuotaEnforced() && !!session && !isQuotaExemptSession(session);
+  const plan = enforce && session ? await resolveQuotaPlan(session.user.id) : null;
+  const periodKey = currentUsagePeriodKey(now);
+  const durationSec = prepared.segmentDurationSec ?? undefined;
+  const costSnapshot = durationSec
+    ? await resolveVideoRouteCostSnapshot(prepared.routeSnapshot.videoRouteSnapshot, durationSec)
+    : {};
+  const id = randomUUID();
+  const providerRequestKey = `${id}:attempt:1`;
+
+  let job;
+  try {
+    job = await runSerializableQuotaTransaction(async (tx) => {
+      const active = await tx.videoJob.count({ where: segmentRedoInFlightWhere(prepared.briefId) });
+      if (active > 0) {
+        throw new SegmentRedoRejectedError("INVALID_STATE", "这条视频已有一段正在重做，等它结束再试。");
+      }
+      const replaced = await tx.videoJob.findFirst({
+        where: {
+          id: prepared.replacesJobId,
+          finalVideoId: prepared.finalVideoId,
+          supersededAt: null,
+          status: VideoJobStatus.SUCCEEDED,
+        },
+        select: { id: true },
+      });
+      if (!replaced) {
+        throw new SegmentRedoRejectedError("INVALID_STATE", "这一段刚刚变了，请刷新后再试。");
+      }
+      const ownerId = enforce
+        ? (
+            await tx.videoBrief.findUnique({
+              where: { id: prepared.briefId },
+              select: {
+                contentAngle: {
+                  select: { round: { select: { deliveryOrder: { select: { createdById: true } } } } },
+                },
+              },
+            })
+          )?.contentAngle.round.deliveryOrder.createdById ?? null
+        : null;
+      /// 只给 brief 的主人扣；非豁免会话替别人重做属于越权，失败关闭（与补扣同一规则）
+      if (enforce && session && ownerId !== session.user.id) {
+        throw new QuotaRechargeUnavailableError("只有这条视频的主人可以重做片段。");
+      }
+      const previousRedos = await tx.videoJob.count({
+        where: {
+          videoBriefId: prepared.briefId,
+          segmentIndex: prepared.segmentIndex,
+          replacesJobId: { not: null },
+        },
+      });
+      const created = await tx.videoJob.create({
+        data: {
+          id,
+          logicalJobKey: segmentRedoLogicalJobKey(
+            prepared.briefId,
+            prepared.segmentIndex,
+            previousRedos + 1,
+          ),
+          providerRequestKey,
+          submissionState: ProviderSubmissionState.SUBMITTING,
+          submitAttempts: 1,
+          submittedAt: now,
+          timeoutAt: new Date(now.getTime() + deadlineMs()),
+          videoBriefId: prepared.briefId,
+          provider:
+            prepared.routeSnapshot.videoRouteSnapshot === "mock"
+              ? VideoProvider.MOCK
+              : VideoProvider.SEEDANCE_T2V,
+          status: VideoJobStatus.RUNNING,
+          segmentIndex: prepared.segmentIndex,
+          segmentDurationSec: prepared.segmentDurationSec,
+          finalVideoId: null,
+          replacesJobId: prepared.replacesJobId,
+          /// 候选行自己的说明（null = 按计划原样重做）；重试同一候选行时与计划重新组装
+          promptText: prepared.note,
+          ...(prepared.priorFrameQaBlockCount > 0
+            ? {
+                frameQaDetail: {
+                  v: 1,
+                  inheritedFromJobId: prepared.replacesJobId,
+                  blockCount: prepared.priorFrameQaBlockCount,
+                } as Prisma.InputJsonValue,
+              }
+            : {}),
+          ...prepared.routeSnapshot,
+          ...costSnapshot,
+          ...briefCreativeRecipe(prepared.brief.aspectRatio),
+        },
+      });
+      if (enforce && session && plan) {
+        await chargeSegmentRedoInTransaction(tx, {
+          userId: session.user.id,
+          plan,
+          periodKey,
+          candidateJobId: id,
+          replacesJobId: prepared.replacesJobId,
+          briefId: prepared.briefId,
+          segmentIndex: prepared.segmentIndex,
+        });
+      }
+      return created;
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new SegmentRedoRejectedError("INVALID_STATE", "这一段已经在重做了，请勿重复提交。");
+    }
+    throw error;
+  }
+
+  let providerAcknowledged = false;
+  try {
+    const { options: submitOptions } = buildSegmentSubmitInput({
+      briefId: prepared.briefId,
+      brief: prepared.brief,
+      segmentIndex: prepared.segmentIndex,
+      providerRequestKey,
+      model: prepared.routeSnapshot.videoModelSnapshot,
+      redoNote: prepared.note,
+    });
+    const accepted = await submitVideoJob(submitOptions, prepared.routeSnapshot);
+    providerAcknowledged = true;
+    logStatusTransition({
+      taskId: job.id,
+      from: VideoJobStatus.RUNNING,
+      to: VideoJobStatus.RUNNING,
+      reason: `segment_redo_submitted (external=${accepted.jobId}, replaces=${prepared.replacesJobId})`,
+    });
+    return await persistAcceptedSubmission({
+      jobId: job.id,
+      providerRequestKey,
+      externalJobId: accepted.jobId,
+      submittedAt: now,
+      providerPlanId: accepted.providerPlanId,
+      providerUnitPoints: accepted.providerUnitPoints,
+    });
+  } catch (err) {
+    logStatusTransition({
+      taskId: job.id,
+      from: VideoJobStatus.RUNNING,
+      to: VideoJobStatus.FAILED,
+      reason: providerAcknowledged ? "segment_redo_ack_persistence_unknown" : "segment_redo_submit_failed",
+    });
+    const failed = await failDirectSubmission({
+      jobId: job.id,
+      providerRequestKey,
+      error: err,
+      providerAcknowledged,
+      providerId: prepared.routeSnapshot.videoRouteSnapshot,
+    });
+    /// 提交没成 = 没交付：立刻退回这 1 段（D1）；退额本身失败就交给清扫器对账
+    try {
+      await refundFailedSegmentRedo(job.id, { now: new Date(), reason: "submit_failed" });
+    } catch (refundError) {
+      console.warn(
+        `[segment-redo] refund for ${job.id} deferred to sweep:`,
+        (refundError as Error).message,
+      );
+    }
+    return failed;
+  }
+}
+
+/** 预检 + 提交（脚本与测试用；路由在两者之间插入限流）。 */
+export async function redoSucceededSegment(
+  briefId: string,
+  segmentIndex: number,
+  options: CommitSegmentRedoOptions & { promptOverride?: string } = {},
+) {
+  if (options.session && isDemoAccountEmail(options.session.user.email)) {
+    throw new SegmentRedoRejectedError("INVALID_STATE", "演示账号不能发起付费生成。");
+  }
+  const prepared = await prepareSegmentRedo(briefId, segmentIndex, {
+    promptOverride: options.promptOverride,
+  });
+  return commitSegmentRedo(prepared, options);
+}
+
+/**
+ * 成功但还没换挂的候选行：换挂并触发重拼（stitch-service.commitSegmentRedoRestitch）。
+ * 成片当时不空闲（正在重拼 / 合成）就留着，下一轮再试；失败只记日志。
+ */
+async function adoptRedoCandidate(candidateJobId: string): Promise<void> {
+  try {
+    const { commitSegmentRedoRestitch } = await import("./stitch-service");
+    await commitSegmentRedoRestitch(candidateJobId);
+  } catch (err) {
+    console.warn(
+      `[segment-redo] adopt ${candidateJobId} failed, will retry:`,
+      (err as Error).message,
+    );
+  }
+}
+
+/** 兜底：把成功了却没换挂上的候选行再推一次（cron 与「刷新状态」都会调）。 */
+export async function adoptPendingRedoCandidates(
+  where: { briefId?: string; limit?: number } = {},
+): Promise<number> {
+  const pending = await db.videoJob.findMany({
+    where: {
+      ...(where.briefId ? { videoBriefId: where.briefId } : {}),
+      replacesJobId: { not: null },
+      finalVideoId: null,
+      supersededAt: null,
+      status: VideoJobStatus.SUCCEEDED,
+    },
+    select: { id: true },
+    orderBy: { finishedAt: "asc" },
+    take: where.limit ?? 5,
+  });
+  for (const candidate of pending) await adoptRedoCandidate(candidate.id);
+  return pending.length;
 }
 
 /**
@@ -1674,6 +2151,10 @@ export async function pollRunningJobs(limit = 30) {
   for (const id of affectedBriefs) {
     await syncBriefStatus(id);
   }
+  /// 成功时成片正忙（只重拼在途）没能换挂的重做候选行：成片空出来后由这里接上
+  await adoptPendingRedoCandidates({ limit: 5 }).catch((err) =>
+    console.warn("[segment-redo] adopt sweep failed:", (err as Error).message),
+  );
   return { polled: running.length, updated };
 }
 
@@ -1710,9 +2191,13 @@ export async function syncBriefStatus(briefId: string) {
   });
   if (!brief) return;
 
-  const jobs = await db.videoJob.findMany({
-    where: { videoBriefId: briefId },
-  });
+  /// P05-C：重做候选行（还没换挂）与被替换掉的旧行都不代表这条视频的状态——
+  /// 成片一直是 READY；候选行的成败只在重做面板里显示，不把 brief 打成 RENDERING / RENDER_FAILED。
+  const jobs = (
+    await db.videoJob.findMany({
+      where: { videoBriefId: briefId },
+    })
+  ).filter(isCurrentSegmentJob);
   if (jobs.length === 0) return;
   /// 客户取消过的这一轮（cancelUnifiedOrderForUser 已把 brief 置 RENDER_FAILED）：
   /// 不再按剩下的已成功段去拼接半成品，也不把状态翻回去。
@@ -1874,6 +2359,15 @@ export type BriefRenderSummary = {
       adminError: string | null;
     };
   }>;
+  /// P05-C 重做候选行（还没换挂上成片的）：不计入上面的计数与 jobs，成片照旧可看
+  redoCandidates?: Array<{
+    id: string;
+    segmentIndex: number | null;
+    replacesJobId: string;
+    status: VideoJobStatus;
+    userStatusKey: BriefRenderUserStatus;
+    userSafeError: string | null;
+  }>;
 };
 
 export type BriefRenderUserStatus =
@@ -1900,11 +2394,27 @@ export async function summarizeBriefRender(
     },
   });
   if (!brief) throw new Error("Brief 不存在");
-  const jobs = await db.videoJob.findMany({
+  const allJobs = await db.videoJob.findMany({
     where: { videoBriefId: briefId },
     orderBy: [{ segmentIndex: "asc" }, { createdAt: "asc" }],
   });
+  /// 被重做替换掉的旧行不再展示；候选行单独列出（redoCandidates）
+  const jobs = allJobs.filter(isCurrentSegmentJob);
   const now = Date.now();
+  const redoCandidates = allJobs.filter(isSegmentRedoCandidate).map((j) => {
+    const isStuck =
+      (j.status === VideoJobStatus.RUNNING || j.status === VideoJobStatus.QUEUED) &&
+      j.timeoutAt != null &&
+      j.timeoutAt.getTime() < now;
+    return {
+      id: j.id,
+      segmentIndex: j.segmentIndex,
+      replacesJobId: j.replacesJobId as string,
+      status: j.status,
+      userStatusKey: classifyUserStatus(j, isStuck),
+      userSafeError: j.userSafeError ?? toUserSafeIfMissing(j.errorMessage),
+    };
+  });
 
   const counts = {
     succeeded: 0,
@@ -2004,6 +2514,7 @@ export async function summarizeBriefRender(
     lastCheckedAt,
     finalVideo,
     jobs: mapped,
+    redoCandidates,
   };
 }
 

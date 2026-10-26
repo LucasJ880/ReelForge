@@ -8,6 +8,8 @@ import { getUnifiedLibraryItem } from "@/lib/services/unified-library-service";
 import { Button } from "@/components/ui/button";
 import { VideoActions } from "@/components/library/video-actions";
 import { RestitchForm } from "@/components/library/restitch-form";
+import { SegmentRedoPanel } from "@/components/library/segment-redo-panel";
+import { SEGMENT_REDO_NOTE_MAX } from "@/lib/video-generation/segment-redo";
 import { CancelVideoButton } from "@/components/library/cancel-video-button";
 import { AiGeneratedLabel } from "@/components/compliance/ai-generated-label";
 import { ReportContentButton } from "@/components/library/report-content-button";
@@ -42,6 +44,8 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const canAct = Boolean(item.briefId) && !item.isShowcase;
   /// 还在生成 / 暂停的单条可以取消（铁律 #7）：成品库写着「点进去可以看进度或取消」
   const canCancel = !item.isShowcase && (item.status === "generating" || item.status === "paused");
+  /// P05-C 某一段在重做：成片本身 READY，取消只针对这次重做（取消服务只动候选行）
+  const canCancelRedo = !item.isShowcase && !canCancel && item.redoInFlight;
   return (
     <div className="x-stack min-w-0">
       <Button render={<Link href="/app/library" />} variant="ghost" size="sm" className="self-start">
@@ -140,6 +144,19 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 }}
               />
             ) : null}
+            {canCancelRedo ? (
+              <CancelVideoButton
+                orderId={item.id}
+                copy={{
+                  cancelVideo: copy.cancelRedo,
+                  cancelConfirm: copy.cancelConfirm,
+                  cancelKeep: copy.cancelRedoKeep,
+                  cancelConfirmHint: copy.cancelRedoHint,
+                  cancelling: copy.cancelling,
+                  cancelFailed: copy.cancelFailed,
+                }}
+              />
+            ) : null}
             {canAct && item.briefId ? (
               <div className="flex flex-wrap gap-2 border-t border-border pt-4">
                 <VideoActions briefId={item.briefId} failedSceneCount={item.failedSceneCount} canRetry={item.canRetry} contactEmail={contactEmail()} />
@@ -163,6 +180,42 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                   rateLimited: copy.restitchRateLimited,
                   failed: copy.restitchFailed,
                   repackageHint: copy.restitchRepackageHint,
+                }}
+              />
+            ) : null}
+            {/* P05-C 重做某一段：扣 1 段；新段拼进成片前旧成片一直保留；没做成退回 */}
+            {canAct && item.briefId && item.segments.some((segment) => segment.canRedo || segment.redo !== "none") ? (
+              <SegmentRedoPanel
+                briefId={item.briefId}
+                segments={item.segments}
+                redoInFlight={item.redoInFlight}
+                noteMax={SEGMENT_REDO_NOTE_MAX}
+                contactEmail={contactEmail()}
+                copy={{
+                  title: copy.redoTitle,
+                  hint: copy.redoHint,
+                  segmentLabel: copy.redoSegmentLabel,
+                  pick: copy.redoPick,
+                  noteLabel: copy.redoNoteLabel,
+                  notePlaceholder: copy.redoNotePlaceholder,
+                  submit: copy.redoSubmit,
+                  submitting: copy.redoSubmitting,
+                  started: copy.redoStarted,
+                  back: copy.redoBack,
+                  running: copy.redoRunning,
+                  adopting: copy.redoAdopting,
+                  failed: copy.redoFailed,
+                  cancelled: copy.redoCancelled,
+                  retry: copy.redoRetry,
+                  retrying: copy.redoRetrying,
+                  rewrite: copy.redoRewrite,
+                  contact: copy.redoContact,
+                  inFlightHint: copy.redoInFlightHint,
+                  invalidState: copy.redoInvalidState,
+                  rateLimited: copy.redoRateLimited,
+                  quotaExceeded: copy.redoQuotaExceeded,
+                  demoBlocked: copy.redoDemoBlocked,
+                  submitFailed: copy.redoSubmitFailed,
                 }}
               />
             ) : null}

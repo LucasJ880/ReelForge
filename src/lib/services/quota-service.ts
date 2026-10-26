@@ -889,6 +889,12 @@ const AUTHENTICATED_ACTION_RATE_LIMITS = {
     fallback: 6,
     message: "更换字幕 / 配乐过于频繁，请一小时后再试。",
   },
+  /// P05-C 成功段重做：每次扣 1 段 AI 画面额度并调用付费生成，限频防止循环点击烧钱。
+  "segment-redo": {
+    envKey: "SEGMENT_REDO_RATE_LIMIT_PER_HOUR",
+    fallback: 6,
+    message: "重做片段过于频繁，请一小时后再试。",
+  },
 } as const;
 
 export type AuthenticatedRateLimitedAction = keyof typeof AUTHENTICATED_ACTION_RATE_LIMITS;

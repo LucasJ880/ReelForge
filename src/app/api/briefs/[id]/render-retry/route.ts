@@ -4,8 +4,11 @@ import { requireAuth } from "@/lib/api-auth";
 import { checkBriefAccess } from "@/lib/services/brief-access";
 import { db } from "@/lib/db";
 import {
+  commitSegmentRedo,
+  prepareSegmentRedo,
   retryFailedVideoJob,
   reconcileBriefRenderStatus,
+  segmentRedoInFlightWhere,
   toCustomerBriefRenderSummary,
 } from "@/lib/services/video-service";
 import {
@@ -13,9 +16,21 @@ import {
   SubmissionReconciliationRequiredError,
 } from "@/lib/api/customer-generation-error";
 import { quotaErrorResponse } from "@/lib/api-quota";
-import { rechargeRefundedBriefForSession } from "@/lib/services/quota-refund-service";
+import { demoBlockedBody, isDemoAccountEmail } from "@/lib/demo-account";
+import {
+  QuotaRechargeUnavailableError,
+  rechargeRefundedBriefForSession,
+  rechargeRefundedSegmentRedoForSession,
+} from "@/lib/services/quota-refund-service";
 import { assertAuthenticatedActionRateLimit } from "@/lib/services/quota-service";
 import { RestitchRejectedError } from "@/lib/video-generation/restitch-patch";
+import {
+  isSegmentRedoCandidate,
+  isSupersededSegmentJob,
+  parseSegmentRedoRequest,
+  SegmentRedoRejectedError,
+  selectAllRetryTargets,
+} from "@/lib/video-generation/segment-redo";
 
 function canSeeRenderDebug(userType: string | null | undefined): boolean {
   return userType === "OPERATOR" || userType === "SUPER_ADMIN";
@@ -33,6 +48,13 @@ function canSeeRenderDebug(userType: string | null | undefined): boolean {
  *   { "restitch": { "captions"?, "bgm"? } }
  *                                 // P05-B 只重拼：READY 成片换字幕样式 / 配乐。零生成计费，
  *                                 // 不补扣额度；限流 action "restitch"；失败回滚到旧成片。
+ *   { "redoSegment": { "segmentIndex": 1, "promptOverride"?: "这一段别出现文字" } }
+ *                                 // P05-C 重做成片里的某一段：扣 1 段 SEEDANCE_SEGMENT，限流 action
+ *                                 // "segment-redo"；旧成片保持 READY，新段成功后换挂并只重拼，
+ *                                 // 合成失败回滚到旧成片；提交失败 / 生成失败 / 取消都退回这 1 段。
+ *
+ * 重做候选行（还没换挂上成片的）与被替换掉的旧行：all:true 只重试每段最新的那条失败候选行，
+ * 按候选行补扣（不走 brief 的补扣）；旧行一律不重试。
  *
  * 安全门禁（与 Seedance 计费安全相关）：
  * 1. 调用方必须是该 brief 的 owner（unified-input 流程：DeliveryOrder.createdById），
@@ -76,6 +98,12 @@ export async function POST(
     rechargeChecked = true;
     await rechargeRefundedBriefForSession(guard.session, briefId);
   };
+  /// 重做候选行按候选行补扣（它扣的是自己那 1 段，与 brief 的额度无关）
+  const retryRedoCandidate = async (jobId: string) => {
+    await rechargeRefundedSegmentRedoForSession(guard.session, jobId);
+    await retryFailedVideoJob(jobId);
+  };
+  let redo: { jobId: string; status: VideoJobStatus } | null = null;
 
   try {
     if (body.restitch !== undefined) {
@@ -91,6 +119,10 @@ export async function POST(
       }
       const { prepareRestitch, commitRestitch } = await import("@/lib/services/stitch-service");
       const prepared = await prepareRestitch(brief.finalVideoId, body.restitch);
+      /// 有一段正在重做：新段成功后要换挂并重拼，这时再换设置会被它覆盖
+      if ((await db.videoJob.count({ where: segmentRedoInFlightWhere(briefId) })) > 0) {
+        throw new RestitchRejectedError("INVALID_STATE", "有一段正在重做，等它换上成片后再换字幕 / 配乐。");
+      }
       await assertAuthenticatedActionRateLimit({
         action: "restitch",
         userId: guard.session.user.id,
@@ -103,13 +135,34 @@ export async function POST(
           `重拼没有成功，已恢复旧成片：${result.error ?? "合成失败"}`,
         );
       }
-    } else if (body.all === true) {
-      const failed = await db.videoJob.findMany({
-        where: { videoBriefId: briefId, status: "FAILED" },
+    } else if (body.redoSegment !== undefined) {
+      /// 铁律 4：演示账号不跑付费生成（middleware 也拦，这里在付费入口再守一次）
+      if (isDemoAccountEmail(guard.session.user.email)) {
+        return NextResponse.json(demoBlockedBody(), { status: 403 });
+      }
+      /// 顺序：参数 → 只读预检 → 账号限频 → 事务内建候选行 + 扣 1 段 → 提交
+      const request = parseSegmentRedoRequest(body.redoSegment);
+      const prepared = await prepareSegmentRedo(briefId, request.segmentIndex, {
+        promptOverride: request.promptOverride,
       });
+      await assertAuthenticatedActionRateLimit({
+        action: "segment-redo",
+        userId: guard.session.user.id,
+      });
+      const job = await commitSegmentRedo(prepared, { session: guard.session });
+      redo = { jobId: job.id, status: job.status };
+    } else if (body.all === true) {
+      const rows = await db.videoJob.findMany({
+        where: { videoBriefId: briefId, supersededAt: null },
+        orderBy: { createdAt: "asc" },
+      });
+      const { current: failed, candidates } = selectAllRetryTargets(rows);
       if (failed.length > 0) await rechargeIfRefunded();
       for (const job of failed) {
         await retryFailedVideoJob(job.id);
+      }
+      for (const job of candidates) {
+        await retryRedoCandidate(job.id);
       }
 
       /// 合成失败续跑：段全部成功但 FinalVideo FAILED（含 sweep 超时失败化的）
@@ -160,8 +213,16 @@ export async function POST(
           { status: 404 },
         );
       }
-      if (job.status === "FAILED") await rechargeIfRefunded();
-      await retryFailedVideoJob(body.jobId);
+      if (isSupersededSegmentJob(job)) {
+        throw new SegmentRedoRejectedError("INVALID_STATE", "这一段已经换成了重做后的新版本，旧版本不能重试。");
+      }
+      if (isSegmentRedoCandidate(job)) {
+        if (job.status === VideoJobStatus.FAILED) await retryRedoCandidate(body.jobId);
+        else await retryFailedVideoJob(body.jobId);
+      } else {
+        if (job.status === "FAILED") await rechargeIfRefunded();
+        await retryFailedVideoJob(body.jobId);
+      }
     } else {
       return NextResponse.json(
         customerApiError({
@@ -175,15 +236,25 @@ export async function POST(
     }
 
     const summary = await reconcileBriefRenderStatus(briefId);
-    return NextResponse.json(
-      canSeeRenderDebug(guard.session.user.userType)
-        ? summary
-        : toCustomerBriefRenderSummary(summary),
-    );
+    const visible = canSeeRenderDebug(guard.session.user.userType)
+      ? summary
+      : toCustomerBriefRenderSummary(summary);
+    return NextResponse.json(redo ? { ...visible, redo } : visible);
   } catch (err) {
     const quotaResponse = quotaErrorResponse(err);
     if (quotaResponse) return quotaResponse;
-    if (err instanceof RestitchRejectedError) {
+    if (err instanceof QuotaRechargeUnavailableError) {
+      return NextResponse.json(
+        customerApiError({
+          code: "FORBIDDEN",
+          message: err.message,
+          retryable: false,
+          action: "contact_support",
+        }),
+        { status: 403 },
+      );
+    }
+    if (err instanceof RestitchRejectedError || err instanceof SegmentRedoRejectedError) {
       return NextResponse.json(
         customerApiError({
           code: err.code,

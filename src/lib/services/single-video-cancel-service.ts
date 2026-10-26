@@ -4,7 +4,11 @@ import {
   VideoJobStatus,
 } from "@prisma/client";
 import { db } from "@/lib/db";
-import { refundFailedBrief } from "@/lib/services/quota-refund-service";
+import {
+  refundFailedBrief,
+  refundFailedSegmentRedo,
+} from "@/lib/services/quota-refund-service";
+import { isCurrentSegmentJob, isSegmentRedoCandidate } from "@/lib/video-generation/segment-redo";
 
 /**
  * 客户取消一条已提交的单条视频（铁律 #7：每一轮任务都必须可取消）。
@@ -22,9 +26,15 @@ import { refundFailedBrief } from "@/lib/services/quota-refund-service";
  * P05-B 只重拼中取消：段都已成功、没有可取消的任务，FinalVideo 在 PENDING / STITCHING 且
  * previousStitchedVideoUrl 非空 → 回滚到旧成片（rollbackRestitch）。这不是取消订单：
  * 成片一直都在，订单 / brief / 额度都不动，只是放弃这次换设置。
+ *
+ * P05-C 重做某一段中取消：只取消重做候选行（打 segment_redo_cancelled，清掉 logicalJobKey 这个幂等键，
+ * 下一次重做不受它影响），立即退回这 1 段；订单、brief、成片都不动——旧成片一直是 READY。
+ * 候选行已换挂、正在重拼时取消，走上面的只重拼回滚（新段留在成片上，成片回到旧片）。
  */
 export const CUSTOMER_CANCELLED_CLASS = "customer_cancelled";
 export const CUSTOMER_CANCEL_MESSAGE = "已取消：素材与描述已保留，可以修改后重新提交。";
+export const SEGMENT_REDO_CANCELLED_CLASS = "segment_redo_cancelled";
+export const SEGMENT_REDO_CANCEL_MESSAGE = "已取消这次重做，成片保持原样，这 1 段额度已退回。";
 
 const CANCELLABLE_JOB_STATUSES: VideoJobStatus[] = [
   VideoJobStatus.QUEUED,
@@ -33,7 +43,13 @@ const CANCELLABLE_JOB_STATUSES: VideoJobStatus[] = [
 ];
 
 export type CancelUnifiedOrderResult =
-  | { ok: true; cancelledJobs: number; refundedBriefs: number; restitchRolledBack?: number }
+  | {
+      ok: true;
+      cancelledJobs: number;
+      refundedBriefs: number;
+      restitchRolledBack?: number;
+      cancelledRedos?: number;
+    }
   | { ok: false; reason: "not_found" | "already_finished" };
 
 const RESTITCH_IN_FLIGHT_STATUSES: FinalVideoStatus[] = [
@@ -46,7 +62,10 @@ export async function cancelUnifiedOrderForUser(
   userId: string,
   orderId: string,
   now = new Date(),
-  deps: { refund: typeof refundFailedBrief } = { refund: refundFailedBrief },
+  deps: {
+    refund: typeof refundFailedBrief;
+    refundRedo?: typeof refundFailedSegmentRedo;
+  } = { refund: refundFailedBrief, refundRedo: refundFailedSegmentRedo },
 ): Promise<CancelUnifiedOrderResult> {
   const order = await db.deliveryOrder.findFirst({
     where: { id: orderId, createdById: userId, productCategory: "unified_input" },
@@ -60,7 +79,15 @@ export async function cancelUnifiedOrderForUser(
                 select: {
                   id: true,
                   finalVideoId: true,
-                  videoJobs: { select: { id: true, status: true } },
+                  videoJobs: {
+                    select: {
+                      id: true,
+                      status: true,
+                      replacesJobId: true,
+                      finalVideoId: true,
+                      supersededAt: true,
+                    },
+                  },
                   finalVideo: { select: { status: true, previousStitchedVideoUrl: true } },
                 },
               },
@@ -76,10 +103,49 @@ export async function cancelUnifiedOrderForUser(
     .flatMap((round) => round.angles)
     .map((angle) => angle.videoBrief)
     .filter((brief): brief is NonNullable<typeof brief> => Boolean(brief));
+  /// 订单级取消只看「当前段」：重做候选行在跑不代表这一单还没交付（旧成片是 READY）
   const cancellable = briefs.filter((brief) =>
-    brief.videoJobs.some((job) => CANCELLABLE_JOB_STATUSES.includes(job.status)),
+    brief.videoJobs.some(
+      (job) => isCurrentSegmentJob(job) && CANCELLABLE_JOB_STATUSES.includes(job.status),
+    ),
   );
   if (cancellable.length === 0) {
+    /// 重做某一段中取消 = 只取消候选行并退回这 1 段；同一单里若还有只重拼在途，一并回滚。
+    const cancelledRedoIds: string[] = [];
+    for (const brief of briefs) {
+      const redoIds = brief.videoJobs
+        .filter((job) => isSegmentRedoCandidate(job) && CANCELLABLE_JOB_STATUSES.includes(job.status))
+        .map((job) => job.id);
+      if (redoIds.length === 0) continue;
+      const cancelled = await db.videoJob.updateMany({
+        where: {
+          id: { in: redoIds },
+          replacesJobId: { not: null },
+          finalVideoId: null,
+          status: { in: CANCELLABLE_JOB_STATUSES },
+        },
+        data: {
+          status: VideoJobStatus.CANCELLED,
+          submissionErrorClass: SEGMENT_REDO_CANCELLED_CLASS,
+          userSafeError: SEGMENT_REDO_CANCEL_MESSAGE,
+          finishedAt: now,
+          /// 清幂等键：候选行的 `…:redo:n` 不再占位（n 按历史候选数算，不会撞回来）
+          logicalJobKey: null,
+          leaseOwner: null,
+          leaseExpiresAt: null,
+        },
+      });
+      if (cancelled.count > 0) cancelledRedoIds.push(...redoIds);
+    }
+    const refundRedo = deps.refundRedo ?? refundFailedSegmentRedo;
+    for (const jobId of cancelledRedoIds) {
+      try {
+        await refundRedo(jobId, { now, reason: "cancelled" });
+      } catch (error) {
+        console.warn(`[single-cancel] redo refund for ${jobId} deferred to sweep:`, (error as Error).message);
+      }
+    }
+
     /// 只重拼中取消 = 回滚到旧片，不取消订单、不返还、不改 brief。
     const restitching = briefs.filter(
       (brief) =>
@@ -89,18 +155,25 @@ export async function cancelUnifiedOrderForUser(
         Boolean(brief.finalVideo.previousStitchedVideoUrl),
     );
     let restitchRolledBack = 0;
-    if (restitching.length === 0) return { ok: false, reason: "already_finished" };
-    /// 动态 import：stitch-service 带着合成器依赖，不让取消路由的函数包背上它
-    const { rollbackRestitch } = await import("@/lib/services/stitch-service");
-    for (const brief of restitching) {
-      const rolled = await rollbackRestitch(brief.finalVideoId as string, RESTITCH_CANCEL_MESSAGE, {
-        status: RESTITCH_IN_FLIGHT_STATUSES,
-        now,
-      });
-      if (rolled.rolledBack) restitchRolledBack += 1;
+    if (restitching.length > 0) {
+      /// 动态 import：stitch-service 带着合成器依赖，不让取消路由的函数包背上它
+      const { rollbackRestitch } = await import("@/lib/services/stitch-service");
+      for (const brief of restitching) {
+        const rolled = await rollbackRestitch(brief.finalVideoId as string, RESTITCH_CANCEL_MESSAGE, {
+          status: RESTITCH_IN_FLIGHT_STATUSES,
+          now,
+        });
+        if (rolled.rolledBack) restitchRolledBack += 1;
+      }
     }
-    if (restitchRolledBack > 0) {
-      return { ok: true, cancelledJobs: 0, refundedBriefs: 0, restitchRolledBack };
+    if (restitchRolledBack > 0 || cancelledRedoIds.length > 0) {
+      return {
+        ok: true,
+        cancelledJobs: cancelledRedoIds.length,
+        refundedBriefs: 0,
+        restitchRolledBack,
+        ...(cancelledRedoIds.length > 0 ? { cancelledRedos: cancelledRedoIds.length } : {}),
+      };
     }
     return { ok: false, reason: "already_finished" };
   }

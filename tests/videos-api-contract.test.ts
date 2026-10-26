@@ -155,8 +155,8 @@ test("三处 VideoJob 创建点都要落配方快照", () => {
   const briefWrites = video.match(/briefCreativeRecipe\(/g) ?? [];
   assert.equal(
     briefWrites.length,
-    3,
-    "video-service 的单段与多段两个 create 都要落配方（含函数定义共 3 处）",
+    4,
+    "video-service 的单段、多段与段重做候选行（P05-C）三个 create 都要落配方（含函数定义共 4 处）",
   );
 });
 

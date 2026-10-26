@@ -12,15 +12,16 @@ export const shuyuRouteUnavailableReasons = [
 ] as const;
 
 /// 0803 起套餐 ID/单价随 /prices 轮换,契约只锁语义边界(与 auditShuyuVideoPlan
-/// 一致):studio-video 家族、按条或按秒计费、720P/480P、价格在健全区间。
+/// 一致):studio-video 家族、按条或按秒计费、720P/480P/1080P、价格在健全区间。
+/// 1026(P03-A1)起 1080P 入审计族(final 档);单价上限跟审计的最宽区间(按条 8000)。
 export const shuyuVideoPlanSchema = z
   .object({
     planId: z.string().min(1).max(200),
     kind: z.literal("video"),
     model: z.literal("studio-video"),
     unit: z.enum(["generation", "second"]),
-    resolution: z.enum(["720P", "480P"]),
-    salePoints: z.number().int().positive().max(2_000),
+    resolution: z.enum(["720P", "480P", "1080P"]),
+    salePoints: z.number().int().positive().max(8_000),
   })
   .strict();
 

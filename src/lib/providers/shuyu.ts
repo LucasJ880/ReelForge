@@ -263,20 +263,37 @@ export function shuyuApiKey(
  * (900 分/条)从 /prices 下架,出现 700 分/条限时档与 88/104 分/秒新档,
  * 钉死 ID 的审计把一次正常调价误判成了整条线路停机。
  *
- * 新审计只锁**语义边界**:studio-video 家族、720P/480P、9:16 等全画幅、
+ * 新审计只锁**语义边界**:studio-video 家族、720P/480P/1080P、9:16 等全画幅、
  * image2video+text2video、支持 15s、参考图 ≥SHUYU_MIN_REFERENCE_IMAGES、单价落在健全区间。
  * 实际扣分仍以 /prices 实时价为准并写入任务计价快照——不存在
  * 「按旧价预估、按新价扣分」的静默漂移,价格越界会直接审计不过。
+ *
+ * 2026-10-26(P03-A1)起套餐分两档:
+ * - draft(720P/480P):默认档与客户可选档;默认永远是最便宜的 720P。
+ * - final(1080P):审计放行、员工/实验标记可选;对客户不可见、不可选
+ *   (1080P 客户定价未定)。排序在 draft 之后,冷却跳档不跨档。
  */
+export type ShuyuVideoPlanTier = "draft" | "final";
+export type ShuyuVideoPlanResolution = "480P" | "720P" | "1080P";
+
 export interface AuditedShuyuVideoPlan {
   planId: string;
   model: typeof SHUYU_VIDEO_MODEL;
   displayName: string;
-  resolution: "480P" | "720P";
+  resolution: ShuyuVideoPlanResolution;
+  /** 1080P = final,720P/480P = draft;由 resolution 唯一决定。 */
+  tier: ShuyuVideoPlanTier;
   billingUnit: "generation" | "second";
   /** /prices 实时销售价(按 billingUnit 计)。 */
   unitSalePoints: number;
   inputImagesMax: number;
+}
+
+/** 分辨率 → 档位的唯一映射(审计、排序、选档、客户面过滤共用)。 */
+export function shuyuVideoPlanTier(
+  resolution: ShuyuVideoPlanResolution,
+): ShuyuVideoPlanTier {
+  return resolution === "1080P" ? "final" : "draft";
 }
 
 /**
@@ -302,10 +319,43 @@ export function shuyuReferenceImageLimit(
   );
 }
 
-const VIDEO_PLAN_POINT_SANITY = {
+/**
+ * 单价健全区间按分辨率分区(1026 实价:1080P 240 点/秒、4K 640 点/秒;
+ * 4K 不在审计族内)。720P/480P 保持 0803 的现值;1080P 按秒 100–400、
+ * 按条上限放宽到 8000。探针(capability-probe)用同一张表,两把尺子一致。
+ */
+const DRAFT_POINT_SANITY = {
   generation: { min: 100, max: 2_000 },
   second: { min: 10, max: 300 },
 } as const;
+const VIDEO_PLAN_POINT_SANITY: Record<
+  ShuyuVideoPlanResolution,
+  Record<"generation" | "second", { readonly min: number; readonly max: number }>
+> = {
+  "720P": DRAFT_POINT_SANITY,
+  "480P": DRAFT_POINT_SANITY,
+  "1080P": {
+    generation: { min: 100, max: 8_000 },
+    second: { min: 100, max: 400 },
+  },
+};
+
+/** 审计放行的分辨率白名单;其余(4K/1K/2K…)一律出族。 */
+export function shuyuVideoPlanResolution(
+  value: string,
+): ShuyuVideoPlanResolution | null {
+  return value === "720P" || value === "480P" || value === "1080P"
+    ? value
+    : null;
+}
+
+/** 该分辨率 × 计费单位的单价健全区间(探针与审计共用的那把尺子)。 */
+export function shuyuVideoPlanPointBounds(
+  resolution: ShuyuVideoPlanResolution,
+  unit: "generation" | "second",
+): { readonly min: number; readonly max: number } {
+  return VIDEO_PLAN_POINT_SANITY[resolution][unit];
+}
 
 export function auditShuyuVideoPlan(
   plan: z.infer<typeof shuyuPriceSchema>,
@@ -314,10 +364,7 @@ export function auditShuyuVideoPlan(
   if (plan.model !== SHUYU_VIDEO_MODEL) return null;
   if (plan.status !== "available") return null;
   if (plan.unit !== "generation" && plan.unit !== "second") return null;
-  const resolution =
-    plan.resolution === "720P" || plan.resolution === "480P"
-      ? plan.resolution
-      : null;
+  const resolution = shuyuVideoPlanResolution(plan.resolution);
   if (!resolution) return null;
   if (
     plan.capabilities.quality !== undefined &&
@@ -325,7 +372,7 @@ export function auditShuyuVideoPlan(
   ) {
     return null;
   }
-  const bounds = VIDEO_PLAN_POINT_SANITY[plan.unit];
+  const bounds = shuyuVideoPlanPointBounds(resolution, plan.unit);
   if (plan.sale_points < bounds.min || plan.sale_points > bounds.max) {
     return null;
   }
@@ -349,6 +396,7 @@ export function auditShuyuVideoPlan(
     model: SHUYU_VIDEO_MODEL,
     displayName: plan.display_name,
     resolution,
+    tier: shuyuVideoPlanTier(resolution),
     billingUnit: plan.unit,
     unitSalePoints: plan.sale_points,
     inputImagesMax: plan.capabilities.input_images_max,

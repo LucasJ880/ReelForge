@@ -191,6 +191,30 @@ test("P02-C：带超长 CHARACTER / PRODUCT / 五把锁 / 长台词时，groundi
   assert.ok(ground(null).length > ground(llmNegative).length);
 });
 
+test("P02-C：emoji 故事按供应商 UTF-16 预算截断，保留完整代理对与锁行台词", () => {
+  const product = `PRODUCT: ${"p".repeat(2400)}`;
+  const dialogue = `Spoken dialogue: ${"d".repeat(300)}`;
+  const original = `${product}\n${dialogue}`;
+  for (const story of ["😀".repeat(2000), "金毛😀".repeat(1000)]) {
+    // 两种负面长度覆盖奇偶预算：截断点不能留下半个 emoji。
+    for (const negativePrompt of ["n".repeat(599), "n".repeat(600)]) {
+      const out = groundSegmentPromptInStoryboard(original, {
+        aspectRatio: "9:16", story, beats: STORYBOARD_BEATS_LONG, productPhotoCount: 3,
+        totalDurationSec: 30, fromSec: 0, toSec: 15, negativePrompt,
+      });
+      const wire = `${out}${NEGATIVE_CONSTRAINTS_SEPARATOR}${negativePrompt}`;
+      assert.ok(wire.length <= 4900, `UTF-16 wire length ${wire.length} must leave 100 units of margin`);
+      assert.ok(out.includes(product), "产品锁原样保留");
+      assert.ok(out.includes(dialogue), "口播台词原样保留");
+      const storyLine = out.split("\n").find((line) => line.startsWith("STORY ("))!;
+      const retainedStory = storyLine.slice(storyLine.indexOf(": ") + 2);
+      assert.ok(retainedStory.length > 0, "预算内仍保留故事");
+      assert.ok(story.startsWith(retainedStory), "截断只保留原始故事的前缀");
+      assert.doesNotMatch(retainedStory, /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u);
+    }
+  }
+});
+
 test("P02-C：Audio: 与 Spoken dialogue 开头的行在 grounding 后原样保留（口播链路依赖）", () => {
   const out = groundSegmentPromptInStoryboard(BIBLE_TEMPLATE, {
     aspectRatio: "9:16", story: STORY, beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15,

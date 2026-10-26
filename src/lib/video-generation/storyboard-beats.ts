@@ -2,6 +2,8 @@
  * 故事板镜头节奏：英文原句写进出图提示词（模型读），界面按语言显示译名（客户读）。
  * 纯数据模块——服务端 storyboard-service 与客户端分镜面板共用，不得引入服务端依赖。
  */
+import { truncateStoryText } from "@/lib/video-generation/storyboard-frame-inputs";
+
 export const STORYBOARD_BEATS_SHORT = [
   "0–3s · immediate problem or desire hook",
   "3–7s · faithful product reveal",
@@ -132,5 +134,6 @@ export function groundSegmentPromptInStoryboard(
       VIDEO_PROMPT_LIMIT - VIDEO_PROMPT_SAFETY - negativeTail.length - assemble("").length,
     ),
   );
-  return assemble(Array.from(normalizedStory).slice(0, storyBudget).join(""));
+  // 与 provider 的 string.length 校验同用 UTF-16 单位；按码点 slice 会让 emoji 稿超限。
+  return assemble(truncateStoryText(normalizedStory, storyBudget));
 }

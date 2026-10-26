@@ -35,13 +35,9 @@ import {
   BGM_TRACKS,
   buildAudioFilterPlan,
   buildDeterministicCues,
-  buildTimedCues,
-  buildWindowedCues,
-  captionWindowsFromSegments,
-  parseCaptionWords,
+  planCaptionCues,
   renderAssCaptions,
   renderSrtCaptions,
-  splitScriptByWindows,
   type CaptionCue,
 } from "../src/lib/video-generation/audio-post-production";
 import {
@@ -84,6 +80,8 @@ export interface StitchTask {
   postProduction: PostProductionSnapshot | null;
   /// b-roll 任务：段 = 图库素材 + TTS 音频输入，runner 先合成再拼接。
   brollSegments?: BrollClaimSegment[] | null;
+  /// P04-C：派发时持久化的各 AI 段台词（按段序）；没有 → 字幕按段时长重切
+  voiceoverChunks?: string[] | null;
 }
 
 export interface PostProductionSnapshot {
@@ -105,8 +103,6 @@ export interface PostProductionSnapshot {
     language: string;
     position: "top" | "center" | "bottom";
     exportSrt: boolean;
-    /// P04-B：持久化的逐词时间戳（毫秒，相对成片起点）；没有就按 AI 段窗口铺
-    words?: Array<{ text: string; startMs: number; endMs: number }> | null;
   };
 }
 
@@ -260,8 +256,8 @@ export async function stitchOne(task: StitchTask): Promise<{
     const padFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease:flags=lanczos,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2,setsar=1`;
 
     const normalized: string[] = [];
-    /// P04-B：AI 段归一化后的实测时长 → 字幕按段开窗（b-roll 段各自烤了配音，不开窗）
-    const aiSegmentDurationsSec: number[] = [];
+    /// P04-B：AI 段归一化后的文件 → 字幕按段开窗（b-roll 段各自烤了配音，不开窗）
+    const aiSegmentPaths: string[] = [];
     if (task.brollSegments && task.brollSegments.length > 0) {
       /// b-roll 分支：素材 + TTS → 段合成（时长由 TTS 实测驱动）。
       /// 合成参数与服务端共用 broll-segment-compose，两端不漂移。
@@ -313,7 +309,7 @@ export async function stitchOne(task: StitchTask): Promise<{
           "segment_normalization_failed",
         );
         normalized.push(out);
-        aiSegmentDurationsSec.push(await probeDuration(out));
+        aiSegmentPaths.push(out);
       }
       /// 补静音不能把「要口播却一条音轨都没有」变成静默交付哑片（与应用内合成器同一规则）
       if (
@@ -359,7 +355,7 @@ export async function stitchOne(task: StitchTask): Promise<{
       task,
       inputPath: finalOut,
       tmpDir,
-      aiSegmentDurationsSec,
+      aiSegmentPaths,
     });
     const timestamp = Date.now();
     const thumbnailOut = path.join(tmpDir, "thumbnail.jpg");
@@ -544,35 +540,12 @@ function escapeFfmpegFilterPath(value: string): string {
  * Applies the same deterministic planner used by local assembly. Native speech
  * is retained while sidechaincompress ducks the licensed music bed beneath it.
  */
-/**
- * 纯函数：与 stitch-pipeline 同一套字幕时间轴决策——有逐词时间戳就按词（buildTimedCues），
- * 否则有 AI 段窗口就按段铺（buildWindowedCues + splitScriptByWindows），都没有才整片均分。
- */
-export function planRunnerCaptionCues(args: {
-  script: string;
-  durationSec: number;
-  aiSegmentDurationsSec: number[];
-  words: unknown;
-}): CaptionCue[] {
-  const durationMs = Math.round(args.durationSec * 1_000);
-  const words = parseCaptionWords(args.words);
-  if (words) return buildTimedCues(words, { maxEndMs: durationMs });
-  const windows = captionWindowsFromSegments(
-    args.aiSegmentDurationsSec.map((durationSec) => ({ durationSec, captioned: true })),
-    durationMs,
-  );
-  if (windows.length > 0) {
-    return buildWindowedCues(splitScriptByWindows(args.script, windows), windows);
-  }
-  return buildDeterministicCues(args.script, args.durationSec);
-}
-
 async function applyPostProduction(args: {
   task: StitchTask;
   inputPath: string;
   tmpDir: string;
-  /// 归一化后各 AI 段实测时长（b-roll 任务为空数组）
-  aiSegmentDurationsSec: number[];
+  /// 归一化后的各 AI 段文件（b-roll 任务为空数组）：字幕按段开窗时探测各段实测时长
+  aiSegmentPaths: string[];
 }): Promise<{ videoPath: string; srtPath?: string }> {
   const snapshot = args.task.postProduction;
   if (!snapshot) return { videoPath: args.inputPath };
@@ -596,12 +569,24 @@ async function applyPostProduction(args: {
   let assPath: string | undefined;
   let srtPath: string | undefined;
   if (captionsEnabled) {
-    const cues = planRunnerCaptionCues({
-      script,
-      durationSec: actualDurationSec,
-      aiSegmentDurationsSec: args.aiSegmentDurationsSec,
-      words: snapshot.captions.words,
-    });
+    /// P04-B：与进程内合成器同一个 planCaptionCues。各段实测时长只用来放窗口位置（runner 不裁尾，
+    /// 实测 = 源片长）；台词用派发时持久化的 chunk，没有才按段时长重切。段时长探测失败不判任务失败，
+    /// 退回整片均分（1025 之前的行为）。
+    let cues: CaptionCue[];
+    try {
+      const aiSegmentDurationsSec: number[] = [];
+      for (const segmentPath of args.aiSegmentPaths) {
+        aiSegmentDurationsSec.push(await probeDuration(segmentPath));
+      }
+      cues = planCaptionCues({
+        script,
+        segments: aiSegmentDurationsSec.map((durationSec) => ({ durationSec, captioned: true })),
+        captionSpanSec: actualDurationSec,
+        voiceoverChunks: args.task.voiceoverChunks,
+      }).cues;
+    } catch {
+      cues = buildDeterministicCues(script, actualDurationSec);
+    }
     assPath = path.join(args.tmpDir, "captions.ass");
     await writeFile(
       assPath,

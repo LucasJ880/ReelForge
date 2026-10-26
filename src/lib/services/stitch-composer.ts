@@ -7,9 +7,9 @@ import {
   type MediaBudget,
   type TimelineClipReport,
 } from "@/lib/media/stitch-pipeline";
-import { parseAssignedVoiceoverWords } from "@/lib/video-generation/audio-post-production";
+import { readDirectorPlanVoiceoverChunks } from "@/lib/schemas/director-plan";
 import { DEFAULT_TAIL_TRIM_SECONDS } from "@/lib/video-generation/tail-trim";
-import type { CaptionWordTiming, UploadedAsset } from "@/types/video-generation";
+import type { UploadedAsset } from "@/types/video-generation";
 import {
   composeAndPersistTimeline,
   extractBrollClaimSegments,
@@ -71,8 +71,6 @@ export function assemblyClipsToTimeline(
     url: string;
     intendedDurationSec: number;
     trimToFit: boolean;
-    /// AI 段口播的逐词时间戳（P04-B；来自该段 VideoJob.assignedAssets.voiceover.words）
-    voiceoverWords?: CaptionWordTiming[] | null;
   }>,
   aiTailTrimSec: number,
 ): NormalizeAndConcatClip[] {
@@ -86,27 +84,22 @@ export function assemblyClipsToTimeline(
       role: isAi ? "ai_generated" : isEndCard ? "end_card" : clip.type === "uploaded_clip" ? "uploaded" : "other",
       ...(isAi && aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
       ...(isEndCard ? { excludeFromCaptions: true } : {}),
-      ...(isAi && clip.voiceoverWords?.length ? { voiceoverWords: clip.voiceoverWords } : {}),
     } satisfies NormalizeAndConcatClip;
   });
 }
 
-/** 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。段上持久化了逐词时间戳就带给字幕。 */
+/** 纯函数：legacy 段（全部是 AI 生成段）→ 时间线片段。 */
 export function legacySegmentsToTimeline(
-  segments: Array<{ outputVideoUrl: string | null; assignedAssets?: unknown }>,
+  segments: Array<{ outputVideoUrl: string | null }>,
   aiTailTrimSec: number,
 ): NormalizeAndConcatClip[] {
-  return segments.map((segment) => {
-    const voiceoverWords = parseAssignedVoiceoverWords(segment.assignedAssets);
-    return {
-      url: segment.outputVideoUrl as string,
-      intendedDurationSec: null,
-      trimToFit: false,
-      role: "ai_generated" as const,
-      ...(aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
-      ...(voiceoverWords ? { voiceoverWords } : {}),
-    };
-  });
+  return segments.map((segment) => ({
+    url: segment.outputVideoUrl as string,
+    intendedDurationSec: null,
+    trimToFit: false,
+    role: "ai_generated" as const,
+    ...(aiTailTrimSec > 0 ? { tailTrimSec: aiTailTrimSec } : {}),
+  }));
 }
 
 export async function composeFinalVideoForStitch(args: {
@@ -124,6 +117,8 @@ export async function composeFinalVideoForStitch(args: {
           id: true,
           aspectRatio: true,
           videoGenerationPlan: true,
+          /// P04-C：各段台词（segmentPlan[].voiceoverChunk）给字幕逐段对齐
+          directorPlan: true,
           contentAngle: {
             select: {
               round: {
@@ -156,6 +151,8 @@ export async function composeFinalVideoForStitch(args: {
   const aspectRatio = fv.brief?.aspectRatio || "9:16";
   const aiTailTrimSec = resolveAiTailTrimSeconds(env);
   const warnings: string[] = [];
+  /// 派发时持久化的各 AI 段台词；旧计划没有 → null，字幕按计划时长重切
+  const voiceoverChunks = readDirectorPlanVoiceoverChunks(fv.brief?.directorPlan);
 
   // ---------------- b-roll ----------------
   const brollSegments = extractBrollClaimSegments(fv.segments);
@@ -207,6 +204,7 @@ export async function composeFinalVideoForStitch(args: {
       aspectRatio: inputs.aspectRatio,
       clips: assemblyClipsToTimeline(inputs.clips, aiTailTrimSec),
       postProduction,
+      voiceoverChunks,
       extractThumbnail: true,
       budget: args.budget,
       checkpoint: args.checkpoint,
@@ -229,6 +227,7 @@ export async function composeFinalVideoForStitch(args: {
     aspectRatio,
     clips: legacySegmentsToTimeline(fv.segments, aiTailTrimSec),
     postProduction,
+    voiceoverChunks,
     extractThumbnail: true,
     budget: args.budget,
     checkpoint: args.checkpoint,

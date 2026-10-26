@@ -62,7 +62,7 @@ export function mapPlanToDirectorPlan(args: MapToDirectorArgs): DirectorPlan {
       i === 0 ? "Establish look and tone" : `Continue look from segment ${i - 1}`,
     referenceAssetHints: seg.sourceAssetIds,
     expectedOutput: seg.purpose,
-    ...(voiceoverChunks?.[i] ? { voiceoverChunk: voiceoverChunks[i] } : {}),
+    ...(voiceoverChunks ? { voiceoverChunk: normalizeVoiceoverChunk(voiceoverChunks[i] ?? "") } : {}),
   }));
 
   const timelineScript: TimelineBlock[] = segmentPlan.map((s) => ({
@@ -149,7 +149,16 @@ function clampNegativeForMergedCap(prompt: string, negative: string): string {
 }
 
 /**
+ * 持久化前的空白归一：与 prompt-intelligence.escapeDialogueForPrompt 同样合并空白（多行稿的换行、
+ * 连续空格），再去首尾——持久化的是台词本身，引号 / 反斜杠转义只属于 prompt 文本。
+ */
+function normalizeVoiceoverChunk(chunk: string): string {
+  return chunk.replace(/\s+/gu, " ").trim();
+}
+
+/**
  * 开了口播且有台词的计划：按 AI 段时长加权切分口播稿（与派发 prompt 用的同一函数）。
+ * 没分到台词的段写空串（「这段不念」也是事实，字幕才能按段序对上）。
  * 占位 AI 段（全是上传片段时构造的）不念台词，所以在它加入之前算。
  */
 function voiceoverChunksForSegments(

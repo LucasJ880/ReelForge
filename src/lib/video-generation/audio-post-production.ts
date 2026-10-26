@@ -252,23 +252,23 @@ function nearestSpeechBoundary(
 }
 
 /**
- * 把整篇口播稿按各窗口时长加权切成每段一句（在语句边界切，拼回去逐字相等）。
+ * 把整篇口播稿按各段时长加权切成每段一句（在语句边界切，拼回去逐字相等）。
  * 与 prompt-intelligence.splitVoiceoverScript 是同一规则——派发时每段被要求念的就是这一句，
  * 字幕回退路径必须切出同样的结果才对得上口型；拼接器 / runner 不能 import 那边（LLM 依赖），
  * 所以这里保留一份，tests/unified-audio-contract.test.ts 锁住两边一致。
+ * 传**计划**时长（不是裁尾后的实测）：实测不等长会让 nearestSpeechBoundary 吸到别的边界。
  */
-export function splitScriptByWindows(
+export function splitScriptByDurations(
   script: string,
-  windows: ReadonlyArray<{ startMs: number; endMs: number }>,
+  durationsSec: ReadonlyArray<number>,
 ): string[] {
-  const segmentCount = windows.length;
+  const segmentCount = durationsSec.length;
   if (segmentCount <= 0) return [];
   const graphemes = Array.from(script.trim());
   if (graphemes.length === 0) return Array.from({ length: segmentCount }, () => "");
-  const weights = windows.map((window) => {
-    const span = window.endMs - window.startMs;
-    return Number.isFinite(span) && span > 0 ? span : 1;
-  });
+  const weights = durationsSec.map((durationSec) =>
+    Number.isFinite(durationSec) && durationSec > 0 ? durationSec : 1,
+  );
   const chunks: string[] = [];
   let cursor = 0;
   for (let index = 0; index < segmentCount; index++) {
@@ -291,6 +291,17 @@ export function splitScriptByWindows(
   }
   while (chunks.length < segmentCount) chunks.push("");
   return chunks;
+}
+
+/** 同上，权重取窗口跨度。 */
+export function splitScriptByWindows(
+  script: string,
+  windows: ReadonlyArray<{ startMs: number; endMs: number }>,
+): string[] {
+  return splitScriptByDurations(
+    script,
+    windows.map((window) => (window.endMs - window.startMs) / 1_000),
+  );
 }
 
 /**
@@ -332,15 +343,47 @@ export function parseCaptionWords(input: unknown): CaptionWord[] | null {
   return words.length > 0 ? words : null;
 }
 
+export type CaptionPlanSegment = {
+  /** 成片里的实测（已量化）时长：只用来放窗口位置 */
+  durationSec: number;
+  /** 背字幕的段（AI 口播段）；上传片段 / 尾卡 / b-roll 为 false */
+  captioned: boolean;
+  /** 计划时长（段计划里的 toSec-fromSec）；没有持久化台词时按它切，不按裁尾后的实测 */
+  plannedDurationSec?: number | null;
+};
+
 /**
- * VideoJob.assignedAssets（任意 JSON）里该段口播的逐词时间戳：`{ voiceover: { words: [...] } }`。
- * 形状不对 / 没有 → null（Phase 1 没有供应商写它，所有现存任务都走 null）。
+ * 纯函数（P04-B / P04-C）：字幕时间轴怎么定。进程内合成器与 runner 共用这一个。
+ *   1. 有背字幕的段 → 每段一个窗口（位置按实测时长累计，裁到字幕窗口）。台词优先用派发时持久化的
+ *      voiceoverChunks（与各段数量一致才用——它就是每段被要求念的那句）；旧数据没有 chunk 时按
+ *      **计划**时长重切（同一规则），裁尾造成的实测不等长不会把边界吸偏。
+ *   2. 没有背字幕的段（b-roll / 全是上传片段）→ 整片按字重均分（1025 之前的行为）。
  */
-export function parseAssignedVoiceoverWords(assignedAssets: unknown): CaptionWord[] | null {
-  if (!assignedAssets || typeof assignedAssets !== "object") return null;
-  const voiceover = (assignedAssets as { voiceover?: unknown }).voiceover;
-  if (!voiceover || typeof voiceover !== "object") return null;
-  return parseCaptionWords((voiceover as { words?: unknown }).words);
+export function planCaptionCues(args: {
+  script: string;
+  segments: ReadonlyArray<CaptionPlanSegment>;
+  captionSpanSec: number;
+  voiceoverChunks?: ReadonlyArray<string> | null;
+}): { cues: CaptionCue[]; source: "chunks" | "planned" | "uniform" } {
+  const captionSpanMs = Math.max(1, Math.round(args.captionSpanSec * 1_000));
+  const windows = captionWindowsFromSegments(args.segments, captionSpanMs);
+  if (windows.length === 0) {
+    return { cues: buildDeterministicCues(args.script, args.captionSpanSec), source: "uniform" };
+  }
+  const captioned = args.segments.filter((segment) => segment.captioned);
+  const chunks = args.voiceoverChunks;
+  if (chunks && chunks.length === captioned.length) {
+    return { cues: buildWindowedCues(chunks.slice(0, windows.length), windows), source: "chunks" };
+  }
+  const plannedDurations = captioned.slice(0, windows.length).map((segment) =>
+    segment.plannedDurationSec && segment.plannedDurationSec > 0
+      ? segment.plannedDurationSec
+      : segment.durationSec,
+  );
+  return {
+    cues: buildWindowedCues(splitScriptByDurations(args.script, plannedDurations), windows),
+    source: "planned",
+  };
 }
 
 function hasCjk(value: string): boolean {
@@ -386,7 +429,7 @@ export function buildTimedCues(
     options.maxEndMs !== undefined && Number.isFinite(options.maxEndMs) && options.maxEndMs > 0
       ? options.maxEndMs
       : null;
-  const clean = words
+  const sorted = words
     .map((word) => ({
       text: word.text.trim(),
       startMs: Math.round(word.startMs),
@@ -406,6 +449,17 @@ export function buildTimedCues(
       endMs: maxEndMs === null ? word.endMs : Math.min(word.endMs, maxEndMs),
     }))
     .sort((a, b) => a.startMs - b.startMs || a.endMs - b.endMs);
+  /// 只有标点的 token（供应商常把「，」「.」单独给）直接贴到前一个词上，不占独立的高亮段、不加空格
+  const clean: CaptionWord[] = [];
+  for (const word of sorted) {
+    const previous = clean[clean.length - 1];
+    if (previous && !/[\p{L}\p{N}]/u.test(word.text)) {
+      previous.text = `${previous.text}${word.text}`;
+      previous.endMs = Math.max(previous.endMs, word.endMs);
+      continue;
+    }
+    clean.push({ ...word });
+  }
   if (clean.length === 0) return [];
 
   const chunks = readableChunks(joinWords(clean, cjkHint));
@@ -440,13 +494,19 @@ export function buildTimedCues(
     merged.push([...group]);
   }
 
-  return merged.map((group, index) => ({
+  const cues: CaptionCue[] = merged.map((group, index) => ({
     index: index + 1,
     text: joinWords(group, cjkHint),
     startMs: group[0].startMs,
     endMs: Math.max(...group.map((word) => word.endMs)),
     words: group,
   }));
+  /// 相邻 cue 不重叠：上一句最晚只到下一句开口（供应商给的词尾常拖过下一词的起点）
+  for (let index = 0; index + 1 < cues.length; index++) {
+    const nextStart = cues[index + 1].startMs;
+    cues[index].endMs = Math.min(cues[index].endMs, Math.max(cues[index].startMs + 1, nextStart));
+  }
+  return cues;
 }
 
 function srtTimestamp(ms: number): string {
@@ -470,13 +530,16 @@ export function renderSrtCaptions(cues: CaptionCue[]): string {
     .concat(cues.length > 0 ? "\n" : "");
 }
 
-function assTimestamp(ms: number): string {
-  const centiseconds = Math.floor(ms / 10);
+function assTimestampFromCs(centiseconds: number): string {
   const hours = Math.floor(centiseconds / 360_000);
   const minutes = Math.floor((centiseconds % 360_000) / 6_000);
   const seconds = Math.floor((centiseconds % 6_000) / 100);
   const remainder = centiseconds % 100;
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(remainder).padStart(2, "0")}`;
+}
+
+function assTimestamp(ms: number): string {
+  return assTimestampFromCs(Math.floor(ms / 10));
 }
 
 function escapeAssText(value: string): string {
@@ -549,16 +612,21 @@ function wordByWordDialogues(cue: CaptionCue, words: ReadonlyArray<CaptionWord>,
         return `${separator}${index === highlight ? `{\\1c${ASS_GOLD_INLINE}}${escaped}{\\r}` : escaped}`;
       })
       .join("");
+  const dialogue = (startCs: number, endCs: number, text: string) =>
+    `Dialogue: 0,${assTimestampFromCs(startCs)},${assTimestampFromCs(endCs)},Captions,,0,0,0,,${text}`;
   const events: string[] = [];
-  const firstStart = Math.max(cue.startMs, words[0].startMs);
-  if (assTimeCs(firstStart) > assTimeCs(cue.startMs)) {
-    events.push(`Dialogue: 0,${assTimestamp(cue.startMs)},${assTimestamp(firstStart)},Captions,,0,0,0,,${line(null)}`);
-  }
+  const cueStartCs = assTimeCs(cue.startMs);
+  const cueEndCs = Math.max(cueStartCs + 1, assTimeCs(cue.endMs));
+  const firstStartCs = Math.max(cueStartCs, assTimeCs(words[0].startMs));
+  if (firstStartCs > cueStartCs) events.push(dialogue(cueStartCs, firstStartCs, line(null)));
+  let cursorCs = firstStartCs;
   words.forEach((word, index) => {
-    const startMs = Math.max(cue.startMs, word.startMs);
-    const endMs = index + 1 < words.length ? Math.max(startMs, words[index + 1].startMs) : cue.endMs;
-    if (assTimeCs(endMs) <= assTimeCs(startMs)) return;
-    events.push(`Dialogue: 0,${assTimestamp(startMs)},${assTimestamp(endMs)},Captions,,0,0,0,,${line(index)}`);
+    const startCs = Math.max(cursorCs, assTimeCs(word.startMs));
+    const nextCs = index + 1 < words.length ? assTimeCs(words[index + 1].startMs) : cueEndCs;
+    /// 同一厘秒起点的词也至少亮 1cs——零长的 Dialogue 等于这个词从没被高亮过
+    const endCs = Math.max(startCs + 1, nextCs);
+    events.push(dialogue(startCs, endCs, line(index)));
+    cursorCs = endCs;
   });
   return events;
 }
@@ -581,8 +649,14 @@ export function renderAssCaptions(
   const alignment = assAlignment(options.position);
   const language = options.language?.trim().replace(/[\r\n]+/gu, " ");
   const cjkHint = language ? /^(zh|ja|ko)/iu.test(language) : null;
+  /// 逐词渲染的门槛：样式不是 plain，且至少一个 cue 真带逐词时间戳。
+  /// 不满足就整句渲染，输出与 1025 之前**逐字节一致**（不多一个 Style、不多一行注释）。
+  const timedWords = (cue: CaptionCue) =>
+    cue.words?.filter((word) => word.text.trim().length > 0) ?? [];
+  const karaoke =
+    options.style === "karaoke" && cues.some((cue) => timedWords(cue).length > 0);
   const header = `[Script Info]
-ScriptType: v4.00+${language ? `\n; Language: ${language}` : ""}
+ScriptType: v4.00+${karaoke && language ? `\n; Language: ${language}` : ""}
 PlayResX: ${resolution.width}
 PlayResY: ${resolution.height}
 ScaledBorderAndShadow: yes
@@ -590,14 +664,17 @@ WrapStyle: 0
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},${ASS_WHITE},${ASS_GOLD},&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${alignment},80,80,${marginV},1
-Style: Karaoke,${CAPTION_FONT_FAMILY},${fontSize},${ASS_GOLD},${ASS_WHITE},&H90000000,&H50000000,-1,0,0,0,100,100,0,0,1,4,1,${alignment},80,80,${marginV},1
+Style: Captions,${CAPTION_FONT_FAMILY},${fontSize},${ASS_WHITE},${ASS_GOLD},&H90000000,&H50000000,${bold},0,0,0,100,100,0,0,1,${outline},1,${alignment},80,80,${marginV},1${
+    karaoke
+      ? `\nStyle: Karaoke,${CAPTION_FONT_FAMILY},${fontSize},${ASS_GOLD},${ASS_WHITE},&H90000000,&H50000000,-1,0,0,0,100,100,0,0,1,4,1,${alignment},80,80,${marginV},1`
+      : ""
+  }
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text`;
   const events = cues.flatMap((cue) => {
-    const words = cue.words?.filter((word) => word.text.trim().length > 0) ?? [];
-    /// 没有逐词时间戳（Phase 1 的常态）或 plain：整句一条，与 1025 之前完全一致
+    const words = timedWords(cue);
+    /// 没有逐词时间戳（Phase 1 的常态）或 plain：整句一条
     if (words.length === 0 || options.style === "plain") {
       return [
         `Dialogue: 0,${assTimestamp(cue.startMs)},${assTimestamp(cue.endMs)},Captions,,0,0,0,,${escapeAssText(cue.text)}`,

@@ -26,16 +26,9 @@ import type { PostProductionPlan } from "@/types/video-generation";
 import {
   BGM_TRACKS,
   buildAudioFilterPlan,
-  buildDeterministicCues,
-  buildTimedCues,
-  buildWindowedCues,
-  captionWindowsFromSegments,
-  parseCaptionWords,
+  planCaptionCues,
   renderAssCaptions,
   renderSrtCaptions,
-  splitScriptByWindows,
-  type CaptionCue,
-  type CaptionWord,
 } from "@/lib/video-generation/audio-post-production";
 import { measureSpeechSafeTailTrim } from "@/lib/video-generation/tail-trim";
 import { probeMedia, runFfmpeg, type MediaProbe } from "./ffmpeg-bin";
@@ -248,11 +241,6 @@ export interface TimelineClip {
   loopVideo?: boolean;
   /** 显式输出时长（秒）：给了就不按源时长 / 裁尾推算（b-roll 由配音时长驱动） */
   targetDurationSec?: number;
-  /**
-   * 该段口播的逐词时间戳（毫秒，相对本段起点；来自 VideoJob.assignedAssets.voiceover.words）。
-   * 有它字幕按词对齐；没有按段窗口铺（P04-B）。Phase 1 还没有供应商会写它。
-   */
-  voiceoverWords?: CaptionWord[] | null;
 }
 
 export interface TimelineClipReport {
@@ -466,6 +454,11 @@ export interface ComposeTimelineInput {
    * 片段，按量化后的实际时长 = 总长 - 被排除片段时长。
    */
   captionWindowSec?: number | null;
+  /**
+   * P04-C：派发时持久化的各 AI 段台词（DirectorPlan.segmentPlan[].voiceoverChunk，按段序）。
+   * 字幕按段窗口逐段对齐时直接用它；没有（旧计划）按各段计划时长重切。
+   */
+  voiceoverChunks?: ReadonlyArray<string> | null;
   workDir: string;
   /** 强制帧率（b-roll：30）；不传 = 主片（第一段）源帧率 */
   frameRate?: string;
@@ -529,66 +522,6 @@ export function resolvePostProductionEffects(snapshot: PostProductionPlan | null
     bgmVolume: bgmEnabled ? snapshot.audio.bgm.volume : 0,
     script,
   };
-}
-
-/**
- * 纯函数（P04-B）：字幕时间轴怎么定。
- *   1. 有持久化逐词时间戳 —— 整片一份（postProduction.captions.words）优先；否则把各 AI 段
- *      自己的词按该段在成片里的累计偏移平移后拼起来 —— 用 buildTimedCues 按词对齐。
- *   2. 否则有 AI 段：口播稿按各段时长加权切成每段一句（与派发时同一规则），每段只在自己的
- *      窗口里铺字幕（buildWindowedCues）。
- *   3. 都没有（b-roll / 全是上传片段）：整片按字重均分（1025 之前的行为）。
- * 窗口 / 词都裁到字幕窗口（尾卡不背字幕）。
- */
-export function planCaptionCues(args: {
-  script: string;
-  /** 已量化的段序列（成片顺序） */
-  clips: ReadonlyArray<{
-    durationSec: number;
-    role: TimelineClipRole;
-    voiceoverWords?: CaptionWord[] | null;
-  }>;
-  captionSpanSec: number;
-  /** postProduction.captions.words（毫秒，相对成片起点） */
-  filmWords?: unknown;
-}): { cues: CaptionCue[]; source: "words" | "windows" | "uniform" } {
-  const captionSpanMs = Math.max(1, Math.round(args.captionSpanSec * 1_000));
-  const filmWords = parseCaptionWords(args.filmWords);
-  if (filmWords) {
-    return { cues: buildTimedCues(filmWords, { maxEndMs: captionSpanMs }), source: "words" };
-  }
-  const shifted: CaptionWord[] = [];
-  let offsetMs = 0;
-  for (const clip of args.clips) {
-    const durationMs = Math.max(0, Math.round(clip.durationSec * 1_000));
-    const words = clip.role === "ai_generated" ? parseCaptionWords(clip.voiceoverWords) : null;
-    if (words) {
-      for (const word of words) {
-        /// 裁尾 / trimToFit 截掉的那段里的词不进字幕
-        if (word.startMs >= durationMs) continue;
-        shifted.push({
-          text: word.text,
-          startMs: offsetMs + word.startMs,
-          endMs: offsetMs + Math.min(word.endMs, durationMs),
-        });
-      }
-    }
-    offsetMs += durationMs;
-  }
-  if (shifted.length > 0) {
-    return { cues: buildTimedCues(shifted, { maxEndMs: captionSpanMs }), source: "words" };
-  }
-  const windows = captionWindowsFromSegments(
-    args.clips.map((clip) => ({ durationSec: clip.durationSec, captioned: clip.role === "ai_generated" })),
-    captionSpanMs,
-  );
-  if (windows.length > 0) {
-    return {
-      cues: buildWindowedCues(splitScriptByWindows(args.script, windows), windows),
-      source: "windows",
-    };
-  }
-  return { cues: buildDeterministicCues(args.script, args.captionSpanSec), source: "uniform" };
 }
 
 interface PlannedClipState {
@@ -758,16 +691,17 @@ export async function composeTimeline(
     /// 台词只属于口播所在的主片段：窗口外（尾卡/静帧英雄镜头）不背字幕。
     const captionSpanSec =
       captionWindowSec && captionWindowSec > 0 ? Math.min(totalSec, captionWindowSec) : totalSec;
-    /// P04-B：有逐词时间戳按词；否则按 AI 段窗口（段时长已按帧量化）；都没有才整片均分
+    /// P04-B：按 AI 段窗口铺字幕（窗口位置 = 量化后的实测段时长；台词 = 派发时持久化的 chunk，
+    /// 没有就按计划时长重切）；没有 AI 段（b-roll / 全上传）才整片均分
     const { cues } = planCaptionCues({
       script: effects.script,
-      clips: states.map((state) => ({
+      segments: states.map((state) => ({
         durationSec: state.durationSec,
-        role: state.role,
-        voiceoverWords: state.clip.voiceoverWords,
+        plannedDurationSec: state.clip.intendedDurationSec,
+        captioned: state.role === "ai_generated",
       })),
       captionSpanSec,
-      filmWords: input.postProduction.captions.words,
+      voiceoverChunks: input.voiceoverChunks,
     });
     const assPath = path.join(input.workDir, "captions.ass");
     const aspectRatio =

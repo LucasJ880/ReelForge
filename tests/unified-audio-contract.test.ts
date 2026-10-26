@@ -164,21 +164,24 @@ test("P04-C：5s + 15s 两段时，长段分到约 3 倍台词；拼回去与原
   );
 });
 
-test("P04-C：DirectorPlan.segmentPlan 持久化每段分到的台词，且与各段 seedancePrompt 里的台词一致", async () => {
+/// 从 seedancePrompt 里抽台词块：Spoken dialogue (voice only, exact wording, zh-CN, …): "…"
+const DIALOGUE_BLOCK = /Spoken dialogue \([^)]*\): "((?:[^"\\]|\\.)*)"/u;
+const unescapeDialogue = (value: string) => value.replace(/\\(["\\])/gu, "$1");
+
+async function voicedPlan(script: string, selectedDuration: 15 | 30 | 60 = 30) {
   const request = unifiedVideoGenerationRequestSchema.parse({
     ...legacyFixture,
-    selectedDuration: 30,
+    selectedDuration,
     audio: {
-      voiceover: {
-        enabled: true,
-        voiceId: "warm-confident",
-        language: "zh-CN",
-        script: PHRASED_ZH_SCRIPT,
-      },
+      voiceover: { enabled: true, voiceId: "warm-confident", language: "zh-CN", script },
       bgm: { trackId: "none", volume: 0 },
     },
   });
-  const plan = await buildPlan(request as UnifiedVideoGenerationRequest);
+  return buildPlan(request as UnifiedVideoGenerationRequest);
+}
+
+test("P04-C：DirectorPlan.segmentPlan 持久化每段分到的台词，且与各段 seedancePrompt 里的台词块一致", async () => {
+  const plan = await voicedPlan(PHRASED_ZH_SCRIPT);
   const director = mapPlanToDirectorPlan({ plan, language: "zh-CN" });
   const aiSegments = plan.segments.filter((segment) => segment.type === "ai_generated_clip");
   assert.ok(director.segmentPlan.length >= 2, "30s = 两个 AI 段");
@@ -187,10 +190,9 @@ test("P04-C：DirectorPlan.segmentPlan 持久化每段分到的台词，且与�
   assert.equal(chunks.join(""), PHRASED_ZH_SCRIPT.trim(), "各段台词拼回去就是原稿");
   for (const [index, segment] of director.segmentPlan.entries()) {
     assert.ok(segment.voiceoverChunk, `segment ${index} carries its chunk`);
-    assert.ok(
-      segment.seedancePrompt.includes(segment.voiceoverChunk),
-      `segment ${index} prompt speaks exactly its persisted chunk`,
-    );
+    const block = DIALOGUE_BLOCK.exec(segment.seedancePrompt);
+    assert.ok(block, `segment ${index} prompt has a spoken-dialogue block`);
+    assert.equal(unescapeDialogue(block[1]).trim(), segment.voiceoverChunk, `segment ${index} speaks exactly its persisted chunk`);
   }
 
   /// 不开口播：不写该字段（旧计划 / schema 兼容）
@@ -199,6 +201,57 @@ test("P04-C：DirectorPlan.segmentPlan 持久化每段分到的台词，且与�
   );
   const silentDirector = mapPlanToDirectorPlan({ plan: silent, language: "zh-CN" });
   assert.ok(silentDirector.segmentPlan.every((segment) => segment.voiceoverChunk === undefined));
+});
+
+test("P04-C：持久化前做与 prompt 同样的空白归一——多行稿、双空格、英文引号与反斜杠", async () => {
+  const multiline = "第一句台词在这里。\n\n第二句台词换了行，还有  双空格。\n第三句收尾。\n";
+  const zh = mapPlanToDirectorPlan({ plan: await voicedPlan(multiline), language: "zh-CN" });
+  for (const segment of zh.segmentPlan) {
+    assert.ok(segment.voiceoverChunk !== undefined);
+    assert.doesNotMatch(segment.voiceoverChunk, /\n|\s{2,}|^\s|\s$/u, `normalized: ${JSON.stringify(segment.voiceoverChunk)}`);
+    const block = DIALOGUE_BLOCK.exec(segment.seedancePrompt);
+    assert.ok(block);
+    assert.equal(unescapeDialogue(block[1]).trim(), segment.voiceoverChunk);
+  }
+  /// 归一 = 合并空白为单个空格 + 去首尾（与 escapeDialogueForPrompt 一致）；中文段界可能落在逗号后，
+  /// 所以比对时两边都去掉空白，只看字序没丢没多
+  assert.equal(
+    zh.segmentPlan.map((segment) => segment.voiceoverChunk).join("").replace(/\s+/gu, ""),
+    multiline.replace(/\s+/gu, ""),
+  );
+  assert.ok(zh.segmentPlan.some((segment) => segment.voiceoverChunk?.includes("第二句台词换了行， 还有 双空格。") || segment.voiceoverChunk?.includes("还有 双空格。")), "多行与双空格都收成单个空格");
+
+  const quoted = 'Say "yes" to the C:\\path backslash test. Then keep going with the rest of the line.';
+  const en = mapPlanToDirectorPlan({ plan: await voicedPlan(quoted), language: "en-US" });
+  const joined = en.segmentPlan.map((segment) => segment.voiceoverChunk ?? "").join(" ").replace(/\s+/gu, " ").trim();
+  assert.equal(joined, quoted, "持久化的是台词本身：引号 / 反斜杠不转义");
+  for (const segment of en.segmentPlan) {
+    const block = DIALOGUE_BLOCK.exec(segment.seedancePrompt);
+    assert.ok(block, "prompt 里引号已转义，台词块仍能完整抽出");
+    assert.equal(unescapeDialogue(block[1]).trim(), segment.voiceoverChunk);
+  }
+});
+
+test("P04-C：当前规划器 AI 段恒 15s（加权 = 均分）；director 级直接构造 5s + 15s 覆盖加权路径", async () => {
+  const plan = await voicedPlan(PHRASED_ZH_SCRIPT);
+  const aiDurations = plan.segments.filter((segment) => segment.type === "ai_generated_clip").map((segment) => segment.durationSeconds);
+  assert.deepEqual(aiDurations, [15, 15], "现状：加权切分在真实计划上是 no-op");
+
+  let aiSeen = 0;
+  const unequal = {
+    ...plan,
+    segments: plan.segments.map((segment) =>
+      segment.type === "ai_generated_clip" ? { ...segment, durationSeconds: aiSeen++ === 0 ? 5 : 15 } : segment,
+    ),
+  };
+  const director = mapPlanToDirectorPlan({ plan: unequal, language: "zh-CN" });
+  assert.deepEqual(director.segmentPlan.map((segment) => segment.durationSec), [5, 15]);
+  assert.equal(director.targetDurationSec, 20);
+  const chunks = director.segmentPlan.map((segment) => segment.voiceoverChunk ?? "");
+  assert.equal(chunks.join(""), PHRASED_ZH_SCRIPT.trim());
+  const ratio = Array.from(chunks[1]).length / Array.from(chunks[0]).length;
+  assert.ok(ratio >= 2.5 && ratio <= 3.5, `weighted ratio ${ratio} (${chunks[0]} | …)`);
+  assert.deepEqual(chunks, splitVoiceoverScript(PHRASED_ZH_SCRIPT, [{ durationSec: 5 }, { durationSec: 15 }]));
 });
 
 test("P04-B：字幕回退路径的按段切分与派发时的口播切分是同一规则（两份实现逐字一致）", () => {

@@ -63,21 +63,12 @@ export interface AudioSettings {
   };
 }
 
-/** 逐词时间戳（毫秒，相对成片字幕窗口起点）。Phase 1 没有供应商来源，字段先定好。 */
-export interface CaptionWordTiming {
-  text: string;
-  startMs: number;
-  endMs: number;
-}
-
 export interface CaptionSettings {
   enabled: boolean;
   style: CaptionStyle;
   language: string;
   position: CaptionPosition;
   exportSrt: boolean;
-  /** 持久化的逐词时间戳；有它 karaoke / word_by_word 才是真逐词高亮（P04-B） */
-  words?: CaptionWordTiming[] | null;
 }
 
 export interface PostProductionPlan {

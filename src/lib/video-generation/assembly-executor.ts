@@ -4,13 +4,11 @@ import { renderBrandEndCard } from "@/lib/video-generation/brand-end-card-render
 import { applyBrandOverlayIfConfigured } from "@/lib/video-generation/brand-overlay-renderer";
 import { CORNER_LOGO_WATERMARK_ENABLED } from "@/lib/video-generation/brand-watermark-policy";
 import { StitchCompositionError } from "@/lib/media/stitch-pipeline";
-import { parseAssignedVoiceoverWords } from "@/lib/video-generation/audio-post-production";
 import {
   effectiveAssetRole,
   type AssemblyPlan,
   type AspectRatio,
   type BrandPackagingPlan,
-  type CaptionWordTiming,
   type SegmentType,
   type UploadedAsset,
   type VideoGenerationPlan,
@@ -38,8 +36,6 @@ export interface AssemblyClipInput {
   /// trimToFit=true 表示该 clip 长度可能超出，stitch 时按 intendedDurationSec 裁剪
   trimToFit: boolean;
   notes?: string;
-  /// AI 段口播的逐词时间戳（P04-B；VideoJob.assignedAssets.voiceover.words，相对段起点）
-  voiceoverWords?: CaptionWordTiming[] | null;
 }
 
 export interface AssembleResult {
@@ -69,7 +65,6 @@ export interface AssemblyFinalVideoInput {
     id: string;
     segmentIndex: number | null;
     outputVideoUrl: string | null;
-    assignedAssets?: unknown;
   }>;
 }
 
@@ -242,7 +237,6 @@ interface ResolveArgs {
     id: string;
     segmentIndex: number | null;
     outputVideoUrl: string | null;
-    assignedAssets?: unknown;
   }>;
   briefId: string;
   aspectRatio: string;
@@ -295,7 +289,6 @@ async function resolveClips(args: ResolveArgs): Promise<AssemblyClipInput[]> {
         );
         continue;
       }
-      const voiceoverWords = parseAssignedVoiceoverWords(job.assignedAssets);
       out.push({
         segmentOrder: clip.segmentOrder,
         type: "ai_generated_clip",
@@ -303,7 +296,6 @@ async function resolveClips(args: ResolveArgs): Promise<AssemblyClipInput[]> {
         intendedDurationSec: intendedDur,
         trimToFit: true,
         notes: `AI seg ${aiIdx}`,
-        ...(voiceoverWords ? { voiceoverWords } : {}),
       });
       continue;
     }

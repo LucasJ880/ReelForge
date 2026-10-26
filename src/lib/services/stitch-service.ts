@@ -5,8 +5,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { FinalVideoStatus, VideoBriefStatus, VideoJobStatus } from "@prisma/client";
 import { db } from "@/lib/db";
+import { readDirectorPlanVoiceoverChunks } from "@/lib/schemas/director-plan";
 import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
-import type { CaptionWordTiming, PostProductionPlan } from "@/types/video-generation";
+import type { PostProductionPlan } from "@/types/video-generation";
 import type { BrollClaimSegment } from "@/lib/video-generation/broll-segment-compose";
 import {
   composeTimeline,
@@ -153,15 +154,18 @@ export function extractBrollClaimSegments(
 export function stitchTaskPayload(fv: {
   targetDurationSec: number;
   postProduction: unknown;
-  brief: { aspectRatio: string | null } | null;
+  brief: { aspectRatio: string | null; directorPlan?: unknown } | null;
   segments: Array<{ segmentIndex: number | null; outputVideoUrl: string | null; assignedAssets: unknown }>;
 }) {
+  /// P04-C：派发时持久化的各段台词（查询没带 directorPlan / 旧计划没有 → 不带，runner 按段时长切）
+  const voiceoverChunks = readDirectorPlanVoiceoverChunks(fv.brief?.directorPlan);
   return {
     segmentUrls: fv.segments.map((s) => s.outputVideoUrl as string),
     aspectRatio: fv.brief?.aspectRatio ?? "9:16",
     targetDurationSec: fv.targetDurationSec,
     postProduction: parsePersistedPostProduction(fv.postProduction),
     brollSegments: extractBrollClaimSegments(fv.segments),
+    ...(voiceoverChunks ? { voiceoverChunks } : {}),
   };
 }
 
@@ -917,8 +921,6 @@ export interface NormalizeAndConcatClip {
   loopVideo?: boolean;
   /// 显式输出时长（b-roll：配音时长 + 呼吸间隙）
   targetDurationSec?: number;
-  /// 该段口播的逐词时间戳（相对段起点；VideoJob.assignedAssets.voiceover.words），字幕按词对齐用
-  voiceoverWords?: CaptionWordTiming[] | null;
 }
 
 export interface ComposedTimelineUrls {
@@ -948,6 +950,8 @@ export async function composeAndPersistTimeline(params: {
   captionWindowSec?: number | null;
   /// 强制帧率（b-roll：30）；不传 = 主片源帧率
   frameRate?: string;
+  /// P04-C：派发时持久化的各 AI 段台词（DirectorPlan.segmentPlan[].voiceoverChunk，按段序）；字幕逐段对齐用
+  voiceoverChunks?: ReadonlyArray<string> | null;
   extractThumbnail?: boolean;
   budget?: MediaBudget;
   checkpoint?: () => Promise<void>;
@@ -981,7 +985,6 @@ export async function composeAndPersistTimeline(params: {
         audioPath: localAudio,
         loopVideo: clip.loopVideo,
         targetDurationSec: clip.targetDurationSec,
-        voiceoverWords: clip.voiceoverWords,
       });
     }
 
@@ -990,6 +993,7 @@ export async function composeAndPersistTimeline(params: {
       aspectRatio: params.aspectRatio,
       postProduction: params.postProduction ?? null,
       captionWindowSec: params.captionWindowSec ?? null,
+      voiceoverChunks: params.voiceoverChunks ?? null,
       workDir: path.join(tmpDir, "work"),
       frameRate: params.frameRate,
       budget: params.budget,

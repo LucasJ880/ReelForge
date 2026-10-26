@@ -25,7 +25,9 @@ import {
 } from "../src/lib/video-generation/restitch-patch";
 import { POST as renderRetry } from "../src/app/api/briefs/[id]/render-retry/route";
 import { bgmAttributionFor } from "../src/lib/video-generation/bgm-attribution";
+import { readFinalFrameQaMark } from "../src/lib/video-generation/final-frame-qa-mark";
 import type { PostProductionPlan } from "../src/types/video-generation";
+import { mockQaReviewCasStore } from "./helpers/qa-review-cas-store";
 
 /**
  * P05-B（链 T）只重拼：READY 成片换字幕样式 / BGM。
@@ -398,7 +400,7 @@ test("回滚边 ①：finishStitchTask 失败 → 回滚到 READY + 旧 URL，�
   assert.equal(bgmAttributionFor(state.postProduction), null, "配乐署名读数随快照复原（旧片没有配乐）");
 });
 
-test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；已发布 brief 不打回 QA_PENDING、清空旧品牌封装", async (t) => {
+test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；已发布 brief 不打回 QA_PENDING、保留品牌封装指针", async (t) => {
   const state = restitchingRow(FinalVideoStatus.STITCHING, "attempt-2");
   stateMachine(t, state, { brief: { id: "brief-1" } });
   const briefUpdates: Array<{ data: Record<string, unknown> }> = [];
@@ -413,15 +415,15 @@ test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；
   });
   /// 已交付：不建 PENDING 桩；复检标记挂到最近一条（已 APPROVED 的）QAReview 上（#16 item 12）
   const reviewFinds: Array<Record<string, unknown>> = [];
-  const reviewUpdates: Array<{ where: { id: string }; data: Record<string, unknown> }> = [];
+  const approved = { id: "qa-approved", status: "APPROVED", aiScoreBreakdown: { hook_quality: 9, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["[成片复检] 旧片问题", "人工备注"] };
   patchModel(t, db.qAReview, {
     findFirst: async (args: Record<string, unknown>) => {
       reviewFinds.push(args);
-      return { id: "qa-approved", status: "APPROVED", aiScoreBreakdown: { hook_quality: 9, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["[成片复检] 旧片问题", "人工备注"] };
+      return approved;
     },
-    update: async (args: { where: { id: string }; data: Record<string, unknown> }) => { reviewUpdates.push(args); return {}; },
     create: async () => { throw new Error("已交付 brief 不该建 QA 桩"); },
   });
+  const reviewStore = mockQaReviewCasStore(t, approved);
   const warned: unknown[][] = [];
   t.mock.method(console, "warn", (...args: unknown[]) => { warned.push(args); });
 
@@ -438,12 +440,13 @@ test("成功：finishStitchTask 写新 URL 并清空 previousStitchedVideoUrl；
   assert.equal("brandedVideoUrl" in briefUpdates[0].data, false, "品牌封装指针保留（#16 item 9），只记日志");
   assert.ok(warned.some((args) => /需要重新品牌封装/.test(String(args[0]))), "日志提示需重新封装");
   assert.deepEqual((reviewFinds[0] as { orderBy?: unknown }).orderBy, { createdAt: "desc" }, "挂到最近一条 QAReview");
-  assert.equal(reviewUpdates.length, 1);
-  assert.equal(reviewUpdates[0].where.id, "qa-approved");
-  const stamped = reviewUpdates[0].data.aiScoreBreakdown as Record<string, unknown>;
+  assert.equal(reviewStore.writes.length, 1);
+  assert.equal((reviewStore.writes[0].where as unknown as { id: string }).id, "qa-approved");
+  const stampedRow = reviewStore.get();
+  const stamped = stampedRow.aiScoreBreakdown as Record<string, unknown>;
   assert.equal((stamped.finalFrameQa as { status: string }).status, "pending");
   assert.equal(stamped.hook_quality, 9, "打分不动");
-  assert.deepEqual(reviewUpdates[0].data.aiIssues, ["人工备注"], "旧片的复检问题清掉，别人的保留");
+  assert.deepEqual(stampedRow.aiIssues, ["人工备注"], "旧片的复检问题清掉，别人的保留");
 });
 
 test("成功：ARCHIVED brief 只刷新 URL，状态不动、不建桩、不挂标记（#16 item 6 白名单）", async (t) => {
@@ -477,15 +480,17 @@ test("成功：未交付（QA_PENDING）brief 仍走 QA_PENDING + QA 桩（原�
     }),
     update: async (args: { data: Record<string, unknown> }) => { briefUpdates.push(args); return {}; },
   });
+  const stub = { id: "qa-1", aiScoreBreakdown: null, aiIssues: null };
   patchModel(t, db.qAReview, {
-    findFirst: async () => { stubChecked = true; return { id: "qa-1" }; },
-    update: async () => ({}),
+    findFirst: async () => { stubChecked = true; return stub; },
     create: async () => { throw new Error("已有 PENDING 桩不该再建"); },
   });
+  const stubStore = mockQaReviewCasStore(t, stub);
   await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "attempt-3", stitchedVideoUrl: NEW_URL });
   assert.equal(briefUpdates[0]?.data.status, VideoBriefStatus.QA_PENDING);
   assert.equal("brandedVideoUrl" in (briefUpdates[0]?.data ?? {}), false, "没封装过就不碰 brandedVideoUrl");
   assert.equal(stubChecked, true);
+  assert.equal(readFinalFrameQaMark(stubStore.get().aiScoreBreakdown)?.status, "pending", "已有桩挂上待复检");
 });
 
 function emptySweepResult(): SweepResult {

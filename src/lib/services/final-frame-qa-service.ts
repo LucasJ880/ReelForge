@@ -6,6 +6,7 @@ import {
   reserveFrameQaBudgetSlot,
 } from "@/lib/services/frame-qa-gate";
 import { mergeFinalFrameQaReview } from "@/lib/services/qa-review-merge";
+import { writeQaReview } from "@/lib/services/qa-review-write";
 import {
   FINAL_FRAME_QA_KEY,
   newPendingFinalFrameQa,
@@ -135,6 +136,21 @@ export function finalVideoUrlOf(row: Pick<PendingFinalFrameQaRow, "videoBrief">)
   return row.videoBrief?.finalVideo?.stitchedVideoUrl ?? row.videoBrief?.finalVideoUrl ?? null;
 }
 
+/** Recheck the effective URL in the same UPDATE as the JSON CAS. */
+function videoUrlGuard(videoUrl: string | null): Prisma.QAReviewWhereInput {
+  return {
+    videoBrief: { is: {
+        OR: [
+          ...(videoUrl === null ? [] : [{ finalVideo: { is: { stitchedVideoUrl: videoUrl } } }]),
+          {
+            finalVideoUrl: videoUrl,
+            OR: [{ finalVideo: { is: null } }, { finalVideo: { is: { stitchedVideoUrl: null } } }],
+          },
+        ],
+    } },
+  };
+}
+
 /** 结论 → 这一行要写的标记与问题（纯函数）：超时在次数内重排 pending，否则按结论落。 */
 export function buildFinalFrameQaWrite(
   prior: FinalFrameQaMark | null,
@@ -188,71 +204,58 @@ const defaultDeps: FinalFrameQaServiceDeps = {
       take: limit,
       select: pendingRowSelect,
     }) as unknown as Promise<PendingFinalFrameQaRow[]>,
-  claim: async (row, now) => {
-    const prior = readFinalFrameQaMark(row.aiScoreBreakdown);
-    const videoUrl = finalVideoUrlOf(row);
-    if (!videoUrl) return null;
-    const checkingAtMs = now.getTime();
-    const claimed = await db.qAReview.updateMany({
-      where: {
-        id: row.id,
-        aiScoreBreakdown: {
-          path: [FINAL_FRAME_QA_KEY, "status"],
-          equals: prior?.status === "checking" ? "checking" : "pending",
-        },
-        ...(prior?.status === "checking"
-          ? {
-              AND: [{
-                aiScoreBreakdown: {
-                  path: [FINAL_FRAME_QA_KEY, "checkingAtMs"],
-                  lt: checkingAtMs - FINAL_FRAME_QA_CLAIM_LEASE_MS,
-                },
-              }],
-            }
-          : {}),
-      },
-      data: mergeFinalFrameQaReview(row, {
-        mark: {
-          status: "checking",
-          checkingAtMs,
-          ...(prior?.requestedAt ? { requestedAt: prior.requestedAt } : {}),
-          ...(prior?.attempts ? { attempts: prior.attempts } : {}),
-        },
-        /// 认领时保留上一版复检问题；结论写回时整体替换
-        issues: ((Array.isArray(row.aiIssues) ? row.aiIssues : []) as unknown[])
-          .filter((issue): issue is string => typeof issue === "string" && issue.startsWith("[成片复检]")),
-      }),
-    });
-    return claimed.count === 1 ? { checkingAtMs, videoUrl } : null;
-  },
-  saveClaimed: async (row, claim, build) =>
-    db.$transaction(async (tx) => {
-      const fresh = (await tx.qAReview.findUnique({
-        where: { id: row.id },
-        select: pendingRowSelect,
-      })) as unknown as PendingFinalFrameQaRow | null;
-      if (!fresh) return false;
+  claim: (row, now) => writeQaReview(
+    (tx) => tx.qAReview.findUnique({ where: { id: row.id }, select: pendingRowSelect }),
+    (fresh) => {
+      const prior = readFinalFrameQaMark(fresh.aiScoreBreakdown);
+      const videoUrl = finalVideoUrlOf(fresh);
+      const checkingAtMs = now.getTime();
+      const eligible = prior?.status === "pending" ||
+        (prior?.status === "checking" && prior.checkingAtMs != null &&
+          prior.checkingAtMs < checkingAtMs - FINAL_FRAME_QA_CLAIM_LEASE_MS);
+      if (!videoUrl || !eligible) return null;
+      return {
+        where: videoUrlGuard(videoUrl),
+        data: mergeFinalFrameQaReview(fresh, {
+          mark: {
+            status: "checking", checkingAtMs,
+            ...(prior?.requestedAt ? { requestedAt: prior.requestedAt } : {}),
+            ...(prior?.attempts ? { attempts: prior.attempts } : {}),
+          },
+          issues: ((Array.isArray(fresh.aiIssues) ? fresh.aiIssues : []) as unknown[])
+            .filter((issue): issue is string => typeof issue === "string" && issue.startsWith("[成片复检]")),
+        }),
+        result: { checkingAtMs, videoUrl },
+      };
+    },
+  ),
+  saveClaimed: async (row, claim, build) => Boolean(await writeQaReview(
+    (tx) => tx.qAReview.findUnique({ where: { id: row.id }, select: pendingRowSelect }),
+    (fresh) => {
       const mark = readFinalFrameQaMark(fresh.aiScoreBreakdown);
-      /// 认领凭证不对（租期过了被别人接手 / 只重拼换片后重新挂了 pending）或成片已换：这份结论作废
-      if (mark?.status !== "checking" || mark.checkingAtMs !== claim.checkingAtMs) return false;
-      if (finalVideoUrlOf(fresh) !== claim.videoUrl) return false;
-      const write = build(mark);
-      const updated = await tx.qAReview.updateMany({
-        where: {
-          id: row.id,
-          aiScoreBreakdown: { path: [FINAL_FRAME_QA_KEY, "checkingAtMs"], equals: claim.checkingAtMs },
-        },
+      if (mark?.status !== "checking" || mark.checkingAtMs !== claim.checkingAtMs) return null;
+      if (finalVideoUrlOf(fresh) !== claim.videoUrl) return null;
+      return {
+        where: videoUrlGuard(claim.videoUrl),
+        data: mergeFinalFrameQaReview(fresh, build(mark)),
+        result: true,
+      };
+    },
+  )),
+  saveUnclaimed: async (row, write) => Boolean(await writeQaReview(
+    (tx) => tx.qAReview.findUnique({ where: { id: row.id }, select: pendingRowSelect }),
+    (fresh) => {
+      const prior = readFinalFrameQaMark(fresh.aiScoreBreakdown);
+      // The decision used the scanned version: a newer restitch must keep its marker.
+      if (prior?.status !== "pending" || prior.requestedAt !== readFinalFrameQaMark(row.aiScoreBreakdown)?.requestedAt ||
+          finalVideoUrlOf(fresh) !== finalVideoUrlOf(row)) return null;
+      return {
+        where: videoUrlGuard(finalVideoUrlOf(row)),
         data: mergeFinalFrameQaReview(fresh, write),
-      });
-      return updated.count === 1;
-    }),
-  saveUnclaimed: async (row, write) => {
-    const updated = await db.qAReview.updateMany({
-      where: { id: row.id, aiScoreBreakdown: { path: [FINAL_FRAME_QA_KEY, "status"], equals: "pending" } },
-      data: mergeFinalFrameQaReview(row, write),
-    });
-    return updated.count === 1;
-  },
+        result: true,
+      };
+    },
+  )),
   run: runFinalFrameQa,
   isVisionAvailable: isFrameQaEnabled,
   reserve: () => reserveFrameQaBudgetSlot(),
@@ -284,8 +287,8 @@ export async function runPendingFinalFrameQa(
     const videoUrl = finalVideoUrlOf(row);
     if (!videoUrl) {
       const write = buildFinalFrameQaWrite(prior, skippedFinalFrameVerdict("成片没有可下载的 URL", deps.now()), deps.now());
-      await deps.saveUnclaimed(row, write);
-      sweep.skipped += 1;
+      if (await deps.saveUnclaimed(row, write)) sweep.skipped += 1;
+      else sweep.deferred += 1;
       continue;
     }
     /// vision 不可用：记 skipped + 原因，不占预算、不认领（结论是确定的）
@@ -295,8 +298,8 @@ export async function runPendingFinalFrameQa(
         skippedFinalFrameVerdict("vision 不可用（未配置 / mock 模式 / FRAME_QA_DISABLED）", deps.now()),
         deps.now(),
       );
-      await deps.saveUnclaimed(row, write);
-      sweep.skipped += 1;
+      if (await deps.saveUnclaimed(row, write)) sweep.skipped += 1;
+      else sweep.deferred += 1;
       continue;
     }
     const reservation = deps.reserve();

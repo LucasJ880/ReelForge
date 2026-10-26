@@ -7,6 +7,7 @@ import {
   mergeFinalFrameQaReview,
 } from "../src/lib/services/qa-review-merge";
 import { runAIQA } from "../src/lib/services/qa-service";
+import { mockQaReviewCasStore } from "./helpers/qa-review-cas-store";
 
 /**
  * P01-E1（链 T）：QAReview 的 aiScoreBreakdown / aiIssues 按归属合并（#16 审查 item 4 否决了通用并集）：
@@ -84,23 +85,29 @@ test("runAIQA 更新既有 PENDING 行：8 维打分整块替换，finalFrameQa 
     aiScoreBreakdown: { hook_quality: 3, finalFrameQa: { status: "pending", requestedAt: "2026-10-26T12:00:00.000Z" } },
     aiIssues: [RECHECK_ISSUE, "上一轮 AI 的旧问题"],
   };
-  const updates: Array<{ where: { id: string }; data: Record<string, unknown> }> = [];
   patchModel(t, db.qAReview, {
     findFirst: async () => existing,
-    update: async (args: { where: { id: string }; data: Record<string, unknown> }) => {
-      updates.push(args);
-      return { id: args.where.id, ...args.data };
-    },
     create: async () => { throw new Error("已有 PENDING 行不该新建"); },
   });
+  const store = mockQaReviewCasStore(t, existing);
+  /// 打分期间成片复检把结论写回：CAS 冲突后按新快照重合并，复检的新结论与新问题不被盖掉
+  const recheck = { status: "issues", requestedAt: "2026-10-26T12:00:00.000Z", checkedAt: "2026-10-26T12:01:00.000Z" };
+  let raced = false;
+  store.beforeWrite((current) => {
+    if (raced) return;
+    raced = true;
+    current.aiScoreBreakdown = { ...(current.aiScoreBreakdown as Record<string, unknown>), finalFrameQa: recheck };
+    current.aiIssues = ["上一轮 AI 的旧问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 新结论`];
+  });
 
-  await runAIQA("brief-1");
-  assert.equal(updates.length, 1);
-  const data = updates[0].data;
+  const saved = await runAIQA("brief-1");
+  assert.equal(store.writes.length, 2, "第一次 CAS 冲突，第二次落库");
+  const data = store.get();
   const breakdown = data.aiScoreBreakdown as Record<string, unknown>;
-  assert.deepEqual(breakdown.finalFrameQa, existing.aiScoreBreakdown.finalFrameQa, "成片复检标记不被覆盖");
+  assert.deepEqual(breakdown.finalFrameQa, recheck, "成片复检标记不被覆盖");
   assert.equal(breakdown.hook_quality, 7, "自己的打分整块替换");
   assert.equal(breakdown.technical_completeness, 7);
-  assert.deepEqual(data.aiIssues, ["[Mock] LLM 未配置，全维度按 7 分打分", RECHECK_ISSUE], "旧 AI 问题不残留，复检问题保留");
+  assert.deepEqual(data.aiIssues, ["[Mock] LLM 未配置，全维度按 7 分打分", `${FINAL_FRAME_QA_ISSUE_PREFIX} 新结论`], "旧 AI 问题不残留，复检问题保留");
   assert.equal(typeof data.aiOverallScore, "number");
+  assert.equal(saved.id, "qa-1");
 });

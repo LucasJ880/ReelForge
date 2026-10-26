@@ -35,6 +35,7 @@ import {
 } from "../src/lib/video-generation/final-frame-qa-mark";
 import { finishStitchTask } from "../src/lib/services/stitch-service";
 import { createPollVideosHandler } from "../src/app/api/cron/poll-videos/route";
+import { mockQaReviewCasStore } from "./helpers/qa-review-cas-store";
 
 /**
  * P01-E（链 T）成片级复检（影子）：
@@ -180,12 +181,10 @@ test("ensureQAPendingStub（stitch-service 这一份）：新桩带 finalFrameQa
     update: async () => ({}),
   });
   const created: Array<Record<string, unknown>> = [];
-  const updated: Array<Record<string, unknown>> = [];
   let existing: Record<string, unknown> | null = null;
   patchModel(t, db.qAReview, {
     findFirst: async () => existing,
     create: async (args: { data: Record<string, unknown> }) => { created.push(args.data); return {}; },
-    update: async (args: { data: Record<string, unknown> }) => { updated.push(args.data); return {}; },
   });
 
   await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "tok", stitchedVideoUrl: "https://x.test/new.mp4" });
@@ -197,14 +196,23 @@ test("ensureQAPendingStub（stitch-service 这一份）：新桩带 finalFrameQa
   /// 只重拼换了成片：已有桩上带着 8 维打分与旧结论 → 重新挂 pending，打分原样
   state.status = "STITCHING"; state.stitchAttemptToken = "tok2";
   existing = { id: "qa-1", aiScoreBreakdown: { hook_quality: 8, finalFrameQa: { status: "ok", checkedAt: "t1" } }, aiIssues: ["旧", "[成片复检] 第1帧 旧片的假字"] };
+  const store = mockQaReviewCasStore(t, existing as { id: string; aiScoreBreakdown: unknown; aiIssues: unknown });
+  /// 读到快照后 runAIQA 抢先写了一版：CAS 失败 → 从新快照重合并，不吞掉对方的写入
+  let raced = false;
+  store.beforeWrite((current) => {
+    if (raced) return;
+    raced = true;
+    current.aiScoreBreakdown = { ...(current.aiScoreBreakdown as Record<string, unknown>), hook_quality: 9 };
+    current.aiIssues = ["新"];
+  });
   await finishStitchTask({ finalVideoId: "fv-1", attemptToken: "tok2", stitchedVideoUrl: "https://x.test/new2.mp4" });
   assert.equal(created.length, 1, "已有 PENDING 桩不再新建");
-  assert.equal(updated.length, 1);
-  const merged = updated[0].aiScoreBreakdown as Record<string, unknown>;
-  assert.equal(merged.hook_quality, 8);
-  assert.equal(readFinalFrameQaMark(merged)?.status, "pending");
-  assert.deepEqual(readFinalFrameQaMark(merged), readFinalFrameQaMark(merged) && { status: "pending", requestedAt: readFinalFrameQaMark(merged)?.requestedAt }, "整体覆盖 finalFrameQa 对象，旧结论不残留");
-  assert.deepEqual(updated[0].aiIssues, ["旧"], "上一版成片的「[成片复检]」问题被清掉，别人的问题保留");
+  assert.equal(store.writes.length, 2, "第一次 CAS 冲突，第二次落库");
+  const saved = store.get();
+  const merged = saved.aiScoreBreakdown as Record<string, unknown>;
+  assert.equal(merged.hook_quality, 9, "并发写入的打分保留");
+  assert.deepEqual(readFinalFrameQaMark(merged), { status: "pending", requestedAt: readFinalFrameQaMark(merged)?.requestedAt }, "整体覆盖 finalFrameQa 对象，旧结论不残留");
+  assert.deepEqual(saved.aiIssues, ["新"], "上一版成片的「[成片复检]」问题被清掉，别人的问题保留");
 
   /// video-service 的旧单段副本不在本轮改
   const videoService = await readFile("src/lib/services/video-service.ts", "utf8");
@@ -381,60 +389,72 @@ test("超时重排：瞬时失败在次数内回到 pending（attempts+1），�
 });
 
 test("默认 claim / saveClaimed：事务里重读，凭证不符或成片已换就不写；相符才按归属合并写回", async (t) => {
-  const claims: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
-  patchModel(t, db.qAReview, {
-    updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => { claims.push(args); return { count: 1 }; },
-  });
-  const writes: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = [];
-  let fresh: Record<string, unknown> = {};
-  patchModel(t, db as unknown as object, {
-    $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
-      fn({
-        qAReview: {
-          findUnique: async () => fresh,
-          updateMany: async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => { writes.push(args); return { count: 1 }; },
-        },
-      }),
-  });
   const base = row("qa-1", { aiIssues: ["旧问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 上一版的问题`] });
-  const run = (freshRow: Record<string, unknown>) => {
-    fresh = freshRow;
-    return runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, () =>
+  const store = mockQaReviewCasStore(t, base);
+  /// vision 跑的这段时间里库被别人改了：用 duringRun 模拟
+  const run = (duringRun: () => void = () => {}) =>
+    runWithFrameQaBudget({ label: "test", ...CRON_FRAME_QA_BUDGET }, () =>
       runPendingFinalFrameQa(1, {
         mode: () => "shadow",
         findPending: async () => [base],
-        run: async () => decideFinalFrameVerdict([{ index: 2, fakeText: true, textContent: "曬" }], 6, true, NOW),
+        run: async () => {
+          duringRun();
+          return decideFinalFrameVerdict([{ index: 2, fakeText: true, textContent: "曬" }], 6, true, NOW);
+        },
         isVisionAvailable: () => true,
         now: () => NOW,
       }),
     );
-  };
 
-  /// 认领 CAS：pending → checking，带认领时刻
-  const checking = { ...base, aiScoreBreakdown: { hook_quality: 7, finalFrameQa: { status: "checking", requestedAt: NOW.toISOString(), checkingAtMs: NOW.getTime() } } };
-  const ok = await run(checking);
+  /// 认领：事务里重读 pending → checking，带认领时刻；落库带成片 URL 守卫
+  let claimedMark: FinalFrameQaMark | null = null;
+  const ok = await run(() => { claimedMark = readFinalFrameQaMark(store.get().aiScoreBreakdown); });
   assert.equal(ok.checked, 1);
-  assert.deepEqual(claims[0].where, { id: "qa-1", aiScoreBreakdown: { path: ["finalFrameQa", "status"], equals: "pending" } });
-  assert.equal(readFinalFrameQaMark(claims[0].data.aiScoreBreakdown)?.status, "checking");
-  assert.equal(writes.length, 1);
-  assert.deepEqual(writes[0].where, { id: "qa-1", aiScoreBreakdown: { path: ["finalFrameQa", "checkingAtMs"], equals: NOW.getTime() } });
-  const breakdown = writes[0].data.aiScoreBreakdown as Record<string, unknown>;
+  assert.equal(claimedMark?.status, "checking");
+  assert.equal(claimedMark?.checkingAtMs, NOW.getTime());
+  assert.equal(store.writes.length, 2, "认领一次、写回一次");
+  assert.ok(store.writes.every((write) => write.where.AND.some((entry) => "videoBrief" in entry)), "每次落库都在同一条 UPDATE 里复核成片 URL");
+  const saved = store.get();
+  const breakdown = saved.aiScoreBreakdown as Record<string, unknown>;
   assert.equal(breakdown.hook_quality, 7, "不覆盖打分");
   const mark = readFinalFrameQaMark(breakdown);
   assert.equal(mark?.status, "issues");
   assert.equal(mark?.requestedAt, NOW.toISOString(), "requestedAt 保留");
-  assert.deepEqual(writes[0].data.aiIssues, ["旧问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 第3帧 检测到假字 / 畸形字形「曬」`], "旧复检问题整体替换，别人的问题保留");
+  assert.deepEqual(saved.aiIssues, ["旧问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 第3帧 检测到假字 / 畸形字形「曬」`], "旧复检问题整体替换，别人的问题保留");
 
-  /// 凭证不符（别的调用接手）→ 不写
-  writes.length = 0;
-  const stolen = await run({ ...checking, aiScoreBreakdown: { finalFrameQa: { status: "checking", checkingAtMs: NOW.getTime() + 1 } } });
-  assert.equal(writes.length, 0);
+  /// 已经落了结论（非 pending、非过期 checking）→ 不认领
+  const done = await run();
+  assert.equal(done.deferred, 1);
+  assert.equal(store.writes.length, 2);
+
+  /// 凭证不符（租期内被别的调用接手）→ 不写结论
+  store.set(base);
+  const stolen = await run(() => {
+    store.set({ ...store.get(), aiScoreBreakdown: { finalFrameQa: { status: "checking", checkingAtMs: NOW.getTime() + 1 } } });
+  });
   assert.equal(stolen.deferred, 1);
+  assert.equal(readFinalFrameQaMark(store.get().aiScoreBreakdown)?.checkingAtMs, NOW.getTime() + 1, "接手方的认领不被覆盖");
 
-  /// 成片已换（只重拼成功后重新挂 pending）→ 不写
-  const swapped = await run({ ...checking, videoBrief: { ...base.videoBrief, finalVideo: { stitchedVideoUrl: "https://abc.public.blob.vercel-storage.com/new.mp4" } } });
-  assert.equal(writes.length, 0);
+  /// 成片已换（只重拼成功后重新挂 pending）→ 不写结论
+  store.set(base);
+  const swapped = await run(() => {
+    store.set({ ...store.get(), videoBrief: { ...base.videoBrief, finalVideo: { stitchedVideoUrl: "https://abc.public.blob.vercel-storage.com/new.mp4" } } });
+  });
   assert.equal(swapped.deferred, 1);
+  assert.equal(readFinalFrameQaMark(store.get().aiScoreBreakdown)?.status, "checking", "旧片结论没写进新片的行");
+
+  /// 写回前 runAIQA 并发改了问题列表：CAS 冲突后按新快照重合并，对方的问题保留
+  store.set(base);
+  let raced = false;
+  store.beforeWrite((current) => {
+    if (raced || readFinalFrameQaMark(current.aiScoreBreakdown)?.status !== "checking") return;
+    raced = true;
+    current.aiIssues = ["AI 新问题"];
+  });
+  const retried = await run();
+  assert.equal(retried.checked, 1);
+  assert.deepEqual(store.get().aiIssues, ["AI 新问题", `${FINAL_FRAME_QA_ISSUE_PREFIX} 第3帧 检测到假字 / 畸形字形「曬」`]);
+  store.beforeWrite(null);
 });
 
 test("where：按 JSON 路径取 pending，或 checking 且租期已过；不限 QAReview.status；参考图优先用户指定角色", () => {

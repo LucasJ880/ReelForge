@@ -24,6 +24,7 @@ import {
   readFinalFrameQaMark,
 } from "@/lib/video-generation/final-frame-qa-mark";
 import { mergeFinalFrameQaReview } from "@/lib/services/qa-review-merge";
+import { writeQaReview } from "@/lib/services/qa-review-write";
 import { isEphemeralSignedUrl } from "@/lib/media/ephemeral-url";
 
 /// 原本定义在这里；抽成轻模块后原样再导出，调用方（scripts / tests）不用改。
@@ -1198,10 +1199,7 @@ async function ensureQAPendingStub(briefId: string) {
   if (existing) {
     /// 已经在排队复检就不重复写（避免每次刷新都刷 updatedAt）
     if (readFinalFrameQaMark(existing.aiScoreBreakdown)?.status === "pending") return;
-    await db.qAReview.update({
-      where: { id: existing.id },
-      data: mergeFinalFrameQaReview(existing, { mark: newPendingFinalFrameQa(), issues: [] }),
-    });
+    await stampFinalFrameQa(existing.id);
     return;
   }
   await db.qAReview.create({
@@ -1220,10 +1218,15 @@ async function stampFinalFrameQaOnLatestReview(briefId: string) {
     orderBy: { createdAt: "desc" },
   });
   if (!latest) return;
-  await db.qAReview.update({
-    where: { id: latest.id },
-    data: mergeFinalFrameQaReview(latest, { mark: newPendingFinalFrameQa(), issues: [] }),
-  });
+  await stampFinalFrameQa(latest.id);
+}
+
+async function stampFinalFrameQa(reviewId: string) {
+  const mark = newPendingFinalFrameQa();
+  await writeQaReview(
+    (tx) => tx.qAReview.findUnique({ where: { id: reviewId } }),
+    (fresh) => ({ data: mergeFinalFrameQaReview(fresh, { mark, issues: [] }), result: true }),
+  );
 }
 
 /** 运行时模式（唯一判定见 src/lib/media/stitch-runtime.ts） */

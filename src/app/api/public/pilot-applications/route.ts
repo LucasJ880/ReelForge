@@ -8,12 +8,13 @@ import {
 import { clientIpFromHeaders } from "@/lib/services/tracked-link-service";
 import { notifyPilotApplication, runAfterResponse } from "@/lib/services/notification-service";
 import { honeypotTripped, publicFailure, publicSuccess, readLimitedJson } from "../_shared";
+import { contactEmail } from "@/lib/config/contact";
 
 export const dynamic = "force-dynamic";
 
 /** 限流 / 故障时给访客的备用联系邮箱（没配就不给，只说稍后再试）。 */
 function fallbackEmail(): string | null {
-  return process.env.AIVORA_CONTACT_EMAIL?.trim() || process.env.NEXT_PUBLIC_PRIVACY_EMAIL?.trim() || null;
+  return contactEmail();
 }
 
 /**

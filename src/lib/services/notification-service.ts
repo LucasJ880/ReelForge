@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { db } from "@/lib/db";
 import { getGrowthCopy, labelFor } from "@/i18n/growth-copy";
+import { founderNotifyEmail } from "@/lib/config/contact";
 
 /**
  * 新询盘 / 试点申请的通知（计划 D8）。
@@ -28,8 +29,7 @@ export function emailConfig(env: NodeJS.ProcessEnv = process.env): EmailConfig |
 }
 
 export function founderEmail(env: NodeJS.ProcessEnv = process.env): string | null {
-  const value = env.AIVORA_FOUNDER_EMAIL?.trim();
-  return value ? value : null;
+  return founderNotifyEmail(env);
 }
 
 function appBaseUrl(env: NodeJS.ProcessEnv = process.env): string | null {

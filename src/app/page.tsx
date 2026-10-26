@@ -11,6 +11,7 @@ import {
   verifiedTemplateSample,
   verifiedTemplateVideo,
 } from "@/lib/video-generation/template-sample";
+import { contactEmail } from "@/lib/config/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -80,6 +81,6 @@ export default async function HomePage() {
   const locale = await getServerLocale();
   const copy = getGrowthCopy(locale).landing;
   const samples = await loadLandingSamples(locale === "en-US", copy.sampleFallbackName);
-  const fallbackEmail = process.env.AIVORA_CONTACT_EMAIL?.trim() || process.env.NEXT_PUBLIC_PRIVACY_EMAIL?.trim() || null;
+  const fallbackEmail = contactEmail();
   return <PilotLanding locale={locale} samples={samples} fallbackEmail={fallbackEmail} />;
 }

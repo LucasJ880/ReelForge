@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
 
 import { db } from "../src/lib/db";
+import { DEFAULT_CONTACT_EMAIL } from "../src/lib/config/contact";
 import {
   notifyNewLead,
   notifyPilotApplication,
@@ -128,7 +129,7 @@ test("Resend 拒收或网络异常：不写 notifiedAt、不抛（留给角标�
   assert.equal(stamped, 0);
 });
 
-test("试点申请：只发给创始人；没配 AIVORA_FOUNDER_EMAIL 就只记日志", async (t) => {
+test("试点申请：只发给创始人；没配 AIVORA_FOUNDER_EMAIL 时回落到对外联系人（默认 CEO 邮箱）", async (t) => {
   const stamps: Array<Record<string, unknown>> = [];
   patch(t, db.pilotApplication, {
     findUnique: async () => ({
@@ -154,20 +155,21 @@ test("试点申请：只发给创始人；没配 AIVORA_FOUNDER_EMAIL 就只记�
     },
   });
   const { calls, fetchImpl } = recordingFetch({ ok: true, status: 200 });
+  /// 1025：创始人指定 lucas@sunnyshutter.ca 为对外联系人；没单独配提醒收件人时发到这里，不再静默丢弃
   const noFounder = { ...CONFIGURED, AIVORA_FOUNDER_EMAIL: "" } as NodeJS.ProcessEnv;
-  assert.deepEqual(await notifyPilotApplication("pilot-1", { env: noFounder, fetchImpl }), { sent: false, reason: "no_recipient" });
-  assert.equal(calls.length, 0);
+  assert.deepEqual(await notifyPilotApplication("pilot-1", { env: noFounder, fetchImpl, now: NOW }), { sent: true });
+  assert.deepEqual((JSON.parse(String(calls[0].init.body)) as Record<string, unknown>).to, [DEFAULT_CONTACT_EMAIL]);
 
   assert.deepEqual(await notifyPilotApplication("pilot-1", { env: CONFIGURED, fetchImpl, now: NOW }), { sent: true });
-  const body = JSON.parse(String(calls[0].init.body)) as Record<string, unknown>;
+  const body = JSON.parse(String(calls[1].init.body)) as Record<string, unknown>;
   assert.deepEqual(body.to, ["founder@aivora.test"]);
   assert.match(String(body.subject), /Sunny Shutter/);
   assert.match(String(body.text), /Under CA\$300/);
-  assert.deepEqual(stamps, [{ id: "pilot-1", notifiedAt: null }]);
+  assert.deepEqual(stamps, [{ id: "pilot-1", notifiedAt: null }, { id: "pilot-1", notifiedAt: null }]);
 });
 
 /** 1025 安全复核 LENS-4：被平台停用的账号不再收到访客的姓名、电话与留言。 */
-test("🔴 owner 账号已停用：新询盘邮件不发给 owner，只回落给创始人；没配创始人就不发", async (t) => {
+test("🔴 owner 账号已停用：新询盘邮件不发给 owner，只回落给创始人（没单独配时是对外联系人）", async (t) => {
   const selects: Array<Record<string, unknown>> = [];
   patch(t, db.lead, {
     findUnique: async (args: { select: Record<string, unknown> }) => {
@@ -191,8 +193,10 @@ test("🔴 owner 账号已停用：新询盘邮件不发给 owner，只回落给
   assert.doesNotMatch(String(calls[0].init.body), /owner@sunnyshutter\.test/);
 
   const noFounder = { ...CONFIGURED, AIVORA_FOUNDER_EMAIL: "" } as unknown as NodeJS.ProcessEnv;
-  assert.deepEqual(await notifyNewLead("lead-1", { env: noFounder, fetchImpl, now: NOW }), { sent: false, reason: "no_recipient" });
-  assert.equal(calls.length, 1, "nothing is sent when the only recipient was the disabled owner");
+  assert.deepEqual(await notifyNewLead("lead-1", { env: noFounder, fetchImpl, now: NOW }), { sent: true });
+  const fallback = JSON.parse(String(calls[1].init.body)) as Record<string, unknown>;
+  assert.deepEqual(fallback.to, [DEFAULT_CONTACT_EMAIL]);
+  assert.doesNotMatch(String(calls[1].init.body), /owner@sunnyshutter\.test/, "the disabled owner never receives it");
 });
 
 test("主题行清掉换行与制表符（防邮件头注入）", () => {

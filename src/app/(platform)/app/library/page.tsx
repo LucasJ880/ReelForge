@@ -33,6 +33,7 @@ import { libraryRowState } from "@/lib/exchange/state-vocab";
 import { getCustomerRouteRehearsalState } from "@/lib/qa/customer-route-state-rehearsal";
 import { listWorkspaceBrandPackagesForUser } from "@/lib/services/workspace-brand-package-service";
 import { cn } from "@/lib/utils";
+import { contactEmail } from "@/lib/config/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,7 @@ export default async function PlatformLibraryPage({
   const allCopy = getPlatformCopy(locale);
   const copy = allCopy.library;
   const english = locale === "en-US";
-  const supportEmail = process.env.AIVORA_CONTACT_EMAIL?.trim() || process.env.NEXT_PUBLIC_PRIVACY_EMAIL?.trim() || null;
+  const supportEmail = contactEmail();
   const isHighlighted = (rowId: string) => (highlight === rowId ? "true" : undefined);
 
   /*

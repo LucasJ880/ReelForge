@@ -4,6 +4,7 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { MonoTag } from "@/components/exchange/mono-tag";
 import { getPublicPageCopy } from "@/i18n/public-copy";
 import { getServerLocale } from "@/i18n/server";
+import { contactEmail } from "@/lib/config/contact";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -13,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PrivacyPage() {
   const locale = await getServerLocale();
   const copy = getPublicPageCopy(locale).privacy;
-  const contact = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "privacy@aivora.ai";
+  const contact = contactEmail();
 
   return (
     <main className="mx-auto max-w-3xl space-y-8 px-5 py-12 text-body sm:py-16">

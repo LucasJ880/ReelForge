@@ -4,6 +4,7 @@ import { LanguageSwitcher } from "@/components/layout/language-switcher";
 import { MonoTag } from "@/components/exchange/mono-tag";
 import { getPublicPageCopy } from "@/i18n/public-copy";
 import { getServerLocale } from "@/i18n/server";
+import { contactEmail } from "@/lib/config/contact";
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = await getServerLocale();
@@ -13,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function TermsPage() {
   const locale = await getServerLocale();
   const copy = getPublicPageCopy(locale).terms;
-  const contact = process.env.NEXT_PUBLIC_PRIVACY_EMAIL ?? "privacy@aivora.ai";
+  const contact = contactEmail();
   const sections = [
     copy.usage,
     copy.inputs,

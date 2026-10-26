@@ -60,6 +60,14 @@ export const customerBatchJobSchema = z
         id: z.string().min(1),
         status: z.nativeEnum(StoryboardRunStatus),
         approvalPolicy: z.nativeEnum(StoryboardApprovalPolicy),
+        /// P01-D：block 档 AI 审帧进度；不在审帧 / 重抽时为 null。
+        aiReview: z
+          .object({
+            state: z.enum(["reviewing", "regenerating"]),
+            regenRound: z.number().int().nonnegative(),
+          })
+          .strict()
+          .nullable(),
         frames: z.array(
           z
             .object({

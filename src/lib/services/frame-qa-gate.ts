@@ -1,4 +1,3 @@
-import { AsyncLocalStorage } from "node:async_hooks";
 import { Prisma, VideoJobStatus, VideoProvider } from "@prisma/client";
 import { db } from "@/lib/db";
 import {
@@ -8,6 +7,7 @@ import {
   runFrameTextQa,
   type FrameQaVerdict,
 } from "@/lib/video-generation/frame-qa";
+import { budgetStore } from "@/lib/services/vision-budget-context";
 
 /**
  * 发片前帧质检门禁的唯一入口。reconcileVideoJob 只按这里给的决定执行状态迁移，
@@ -66,53 +66,29 @@ export const FRAME_QA_BLOCK_USER_ERROR =
 
 // ---------- 质检预算上下文 ----------
 
-export interface FrameQaBudgetOptions {
-  /** 记进 frameQaDetail.budget，便于在库里区分是哪条 cron 跑的 */
-  label: string;
-  /** 本次调用最多真跑几次质检 */
-  maxChecks: number;
-  /** 从进入上下文起，质检必须在这个窗口内跑完（毫秒） */
-  timeBudgetMs: number;
-}
-
-interface FrameQaBudgetState extends FrameQaBudgetOptions {
-  deadline: number;
-  used: number;
-  deferred: number;
-  /// 本轮段级门禁里 vision / 下载 / 抽帧出错或超时的次数（成片级复检据此让路，#16 item 7）
-  visionFailures: number;
-}
+export {
+  reserveStoryboardReviewBudget,
+  runWithFrameQaBudget,
+  STORYBOARD_REVIEW_OUTSIDE_BUDGET,
+  type FrameQaBudgetOptions,
+  type StoryboardReviewReservation,
+} from "@/lib/services/vision-budget-context";
 
 /**
  * cron 默认预算：poll-videos / process-batches 都设 maxDuration=300。
  * 4 次 × 单次最坏 45s 门禁超时 ≈ 3 分钟，留出轮询 / 清扫的余量。
+ * 故事板审帧（P01-D）与帧质检共用总窗口 200s，审帧自己最多 60s。
  */
 export const CRON_FRAME_QA_BUDGET = {
   maxChecks: 4,
   timeBudgetMs: 180_000,
+  totalBudgetMs: 200_000,
+  storyboardReviewBudgetMs: 60_000,
 } as const;
 
 /// 单次检查的最坏耗时（门禁超时 + 余量）：剩余窗口不够就 defer，
 /// 不把函数拖过 maxDuration（被平台杀掉会连带丢掉本轮其它状态迁移）。
 const PER_CHECK_RESERVE_MS = FRAME_QA_GATE_TIMEOUT_MS + 10_000;
-
-const budgetStore = new AsyncLocalStorage<FrameQaBudgetState>();
-
-export function runWithFrameQaBudget<T>(
-  options: FrameQaBudgetOptions,
-  fn: () => Promise<T>,
-): Promise<T> {
-  return budgetStore.run(
-    {
-      ...options,
-      deadline: Date.now() + options.timeBudgetMs,
-      used: 0,
-      deferred: 0,
-      visionFailures: 0,
-    },
-    fn,
-  );
-}
 
 /** 当前上下文的预算用量（cron 响应体里回显，便于观察） */
 export function frameQaBudgetUsage():
@@ -163,7 +139,7 @@ function reserveFrameQaCheck(now: number): BudgetReservation {
     budget.deferred += 1;
     return { ok: false, reason: "frame_qa_budget_checks_exhausted" };
   }
-  if (budget.deadline - now < PER_CHECK_RESERVE_MS) {
+  if (Math.min(budget.deadline, budget.totalDeadline) - now < PER_CHECK_RESERVE_MS) {
     budget.deferred += 1;
     return { ok: false, reason: "frame_qa_budget_time_exhausted" };
   }

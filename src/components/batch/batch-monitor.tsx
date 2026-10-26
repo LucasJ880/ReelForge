@@ -60,6 +60,8 @@ export interface BatchMonitorJob {
     id: string;
     status: "GENERATING" | "AWAITING_APPROVAL" | "APPROVED" | "FAILED";
     approvalPolicy: "AUTO" | "MANUAL";
+    /// P01-D：AI 审帧进度（block 档），不在审时为 null；旧接口没有这个字段。
+    aiReview?: { state: "reviewing" | "regenerating"; regenRound: number } | null;
     frames: Array<{
       id: string;
       ordinal: number;
@@ -547,9 +549,13 @@ export function BatchMonitor({
                     <p className="truncate text-meta text-muted-foreground">
                       {job.storyboard?.status === "APPROVED"
                         ? monitorCopy.storyboardLocked
-                        : job.storyboard
-                          ? fillCopy(monitorCopy.storyboardProgress, { done: job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length })
-                          : monitorCopy.storyboardWaiting}
+                        : job.storyboard?.aiReview?.state === "regenerating"
+                          ? fillCopy(monitorCopy.storyboardAiRegenerating, { n: job.storyboard.aiReview.regenRound })
+                          : job.storyboard?.aiReview?.state === "reviewing"
+                            ? monitorCopy.storyboardAiReviewing
+                            : job.storyboard
+                              ? fillCopy(monitorCopy.storyboardProgress, { done: job.storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length })
+                              : monitorCopy.storyboardWaiting}
                     </p>
                   ) : null}
                 </div>

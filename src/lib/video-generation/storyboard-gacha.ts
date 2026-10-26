@@ -20,18 +20,23 @@ export type GachaJudgeVerdict = {
   note: string;
 };
 
+/// 扣分条目：N 选 1 的抽卡评审与逐帧审帧（reviewStoryboardFrames）共用这一份，信封各写各的。
+const STORYBOARD_RUBRIC_PENALTIES = [
+  "- any visible text, logo, watermark, caption, phone number, or QR code (instant score ≤ 2)",
+  "- product identity, room, camera, or cast drift vs the CONTEXT images",
+  "- the product not being the clear visual protagonist of the composition",
+  "- invented or warped product geometry, controls, parts, labels, accessories, packaging, or unsupported states",
+  "- an intended action that is unclear, physically impossible, or not supported by the reference images",
+  "- distorted human anatomy, extra fingers, merged hands, or hands obscuring the proof",
+  "- weak proof clarity, incoherent continuity, or a composition that contradicts the requested beat",
+].join("\n");
+
 const JUDGE_SYSTEM = `You are a strict casting director for ecommerce product video ads.
 You will receive images in two groups, in order:
 1) CONTEXT images (already-locked storyboard frames and/or product reference photos). Product reference photos are the only truth for product identity, visible parts, material, color, proportions, packaging, and supported states. Locked storyboard frames define the room, camera, cast, and continuity that a later candidate MUST reproduce.
 2) CANDIDATE images — alternative generations for ONE storyboard frame.
 Score each CANDIDATE 0-10 against the criteria given by the user. Heavily penalize:
-- any visible text, logo, watermark, caption, phone number, or QR code (instant score ≤ 2)
-- product identity, room, camera, or cast drift vs the CONTEXT images
-- the product not being the clear visual protagonist of the composition
-- invented or warped product geometry, controls, parts, labels, accessories, packaging, or unsupported states
-- an intended action that is unclear, physically impossible, or not supported by the reference images
-- distorted human anatomy, extra fingers, merged hands, or hands obscuring the proof
-- weak proof clarity, incoherent continuity, or a composition that contradicts the requested beat
+${STORYBOARD_RUBRIC_PENALTIES}
 Respond with JSON only:
 {"scores":[{"index":0,"score":7,"issues":"..."}],"best":0}
 "index" is the 0-based index WITHIN THE CANDIDATE GROUP. "best" is the winning candidate index.`;
@@ -112,8 +117,11 @@ export function gachaCandidateCount(): number {
 }
 
 /**
- * Select the first successful Shuyu candidate in submission order. Public
- * Shuyu storyboard paths use this rather than an unaudited platform judge.
+ * Select the first successful Shuyu candidate in submission order. Shuyu
+ * storyboard paths never pick among candidates with a judge; quality review
+ * happens afterwards, per frame, through reviewStoryboardFrames (D-1:
+ * STORYBOARD_AI_REVIEW=off|shadow|block, default off — the two locked
+ * SunnyShutter pipelines stay judge-free).
  */
 export async function generateFrameDeterministically(args: {
   generateOnce: (candidateIndex: number) => Promise<string>;
@@ -191,4 +199,147 @@ export async function generateFrameWithGacha(args: {
     candidateUrls,
     judge,
   };
+}
+
+// ---------- 逐帧审帧（P01-D，D-1） ----------
+
+export interface StoryboardFrameReviewItem {
+  /** 0 起的帧序号（与传入的 frameUrls 顺序一致） */
+  index: number;
+  pass: boolean;
+  score: number;
+  /** 不过时给重抽用的修正要求（英文，作 promptOverride）；过了可为空 */
+  issues: string;
+}
+
+export type StoryboardFrameReviewResult =
+  | { checked: true; frames: StoryboardFrameReviewItem[]; note: string }
+  | {
+      checked: false;
+      reason: "vision_unavailable" | "no_frames" | "timeout" | "error";
+      note: string;
+    };
+
+/// 单次审帧（一整轮 4–5 帧一起看）的超时；调用方按它 + 余量向 tick 预算占位。
+export const STORYBOARD_REVIEW_TIMEOUT_MS = 25_000;
+/// 低于这个分即判不过（模型自己给的 pass=false 也算不过）。阈值校准等 E13。
+export const STORYBOARD_REVIEW_PASS_SCORE = 6;
+const REVIEW_PRODUCT_REFS_MAX = 3;
+const REVIEW_ISSUES_MAX = 600;
+
+const REVIEW_SYSTEM = `You are a strict quality reviewer for ecommerce product video storyboards.
+You will receive images in two groups, in order:
+1) PRODUCT reference photos (may be empty). They are the only truth for product identity, visible parts, material, color, proportions, packaging, and supported states.
+2) STORYBOARD frames of ONE storyboard, in story order. Every frame must stay in the same room, camera language, cast, and product identity as the other frames.
+Review EVERY storyboard frame independently and score it 0-10. Heavily penalize:
+${STORYBOARD_RUBRIC_PENALTIES}
+A frame passes only when it can safely be used as a keyframe for image-to-video generation.
+For a failing frame, "issues" must be one short corrective instruction for redrawing that frame (what to fix, not what is wrong in general).
+Respond with JSON only:
+{"frames":[{"index":0,"pass":true,"score":8,"issues":""}]}
+"index" is the 0-based index WITHIN THE STORYBOARD GROUP. Include exactly one entry per storyboard frame.`;
+
+export function storyboardReviewSystem(): string {
+  return REVIEW_SYSTEM;
+}
+
+/** 纯函数：把模型回包解析成逐帧结论；条目缺失 / 越界 / 重复即整包不合法（抛错，由调用方记 skipped）。 */
+export function parseStoryboardFrameReview(
+  data: unknown,
+  frameCount: number,
+  passScore = STORYBOARD_REVIEW_PASS_SCORE,
+): StoryboardFrameReviewItem[] {
+  const raw = (data as { frames?: unknown } | null)?.frames;
+  if (!Array.isArray(raw)) throw new Error("review returned no frames array");
+  const byIndex = new Map<number, StoryboardFrameReviewItem>();
+  for (const entry of raw as Array<Record<string, unknown>>) {
+    const index = Number(entry?.index);
+    const score = Number(entry?.score);
+    if (!Number.isInteger(index) || index < 0 || index >= frameCount) {
+      throw new Error(`review returned invalid index=${String(entry?.index)}`);
+    }
+    if (byIndex.has(index)) throw new Error(`review returned duplicate index=${index}`);
+    if (!Number.isFinite(score)) throw new Error(`review returned invalid score for #${index}`);
+    const issues = typeof entry.issues === "string"
+      ? entry.issues.replace(/\s+/gu, " ").trim().slice(0, REVIEW_ISSUES_MAX)
+      : "";
+    const clamped = Math.max(0, Math.min(10, score));
+    byIndex.set(index, {
+      index,
+      pass: entry.pass !== false && clamped >= passScore,
+      score: clamped,
+      issues,
+    });
+  }
+  if (byIndex.size !== frameCount) {
+    throw new Error(`review covered ${byIndex.size}/${frameCount} frames`);
+  }
+  return [...byIndex.values()].sort((a, b) => a.index - b.index);
+}
+
+/**
+ * 一整轮故事板逐帧审：一次 vision 调用看全部帧（连续性要横向比），每帧给 {index, pass, score, issues}。
+ * 只复用抽卡评审的扣分条目，不复用它的 N 选 1 解析。
+ *
+ * 失败策略与抽卡一致：vision 不可用 / 超时 / 回包不合法 → checked=false，调用方据此不阻塞。
+ */
+export async function reviewStoryboardFrames(args: {
+  frameUrls: string[];
+  productUrls?: string[];
+  beats?: string[];
+  timeoutMs?: number;
+  passScore?: number;
+  analyze?: typeof analyzeImages;
+  visionAvailable?: () => boolean;
+}): Promise<StoryboardFrameReviewResult> {
+  const { frameUrls } = args;
+  if (frameUrls.length === 0) return { checked: false, reason: "no_frames", note: "no frames" };
+  const available = args.visionAvailable ?? (() => isLLMAvailable() && !isLLMForcedMock());
+  if (!available()) {
+    return { checked: false, reason: "vision_unavailable", note: "vision review unavailable" };
+  }
+  const analyze = args.analyze ?? analyzeImages;
+  const productUrls = (args.productUrls ?? []).slice(0, REVIEW_PRODUCT_REFS_MAX);
+  const timeoutMs = args.timeoutMs ?? STORYBOARD_REVIEW_TIMEOUT_MS;
+  const beats = (args.beats ?? [])
+    .slice(0, frameUrls.length)
+    .map((beat, index) => `#${index}: ${beat}`)
+    .join("\n");
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const reviewed = (async (): Promise<StoryboardFrameReviewResult> => {
+      const { data } = await analyze(
+        [...productUrls, ...frameUrls],
+        REVIEW_SYSTEM,
+        [
+          `The first ${productUrls.length} image(s) are PRODUCT references; the following ${frameUrls.length} image(s) are STORYBOARD frames.`,
+          ...(beats ? [`Intended beat per frame:\n${beats}`] : []),
+          "Review every storyboard frame. JSON only.",
+        ].join("\n"),
+        { detail: "low", maxTokens: 900 },
+      );
+      const frames = parseStoryboardFrameReview(data, frameUrls.length, args.passScore);
+      const note = frames
+        .map((frame) => `#${frame.index}:${frame.score}${frame.pass ? "" : "✗"}`)
+        .join(" ");
+      return { checked: true, frames, note };
+    })();
+    return await Promise.race([
+      reviewed,
+      new Promise<StoryboardFrameReviewResult>((resolve) => {
+        timer = setTimeout(
+          () => resolve({ checked: false, reason: "timeout", note: `review timeout >${timeoutMs / 1000}s` }),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } catch (error) {
+    return {
+      checked: false,
+      reason: "error",
+      note: `review error: ${(error instanceof Error ? error.message : String(error)).slice(0, 300)}`,
+    };
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
 }

@@ -18,6 +18,8 @@ import {
   pollShuyuImageTask,
   submitShuyuImageTask,
 } from "@/lib/providers/shuyu-image-provider";
+import { SHUYU_MAX_REFERENCE_IMAGES } from "@/lib/providers/shuyu";
+import type { VideoProviderAdapterSnapshot } from "@/lib/video-generation/video-route-registry";
 import {
   createOwnedMediaAsset,
   MediaAssetNotFoundError,
@@ -707,7 +709,7 @@ async function submitStoryboardFrame(frameId: string): Promise<void> {
     frame.storyboardRun.status === StoryboardRunStatus.CANCELLED
   ) return;
   const run = frame.storyboardRun;
-  /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 5 兜底（提到 6 留给 P02-B2）。
+  /// 重试沿用首次选定的套餐快照；帧行没存 input_images_max，按默认上限 6 兜底（E1：图像档全部 = 6，P02-B2）。
   const planSnapshot =
     frame.planId && frame.modelSnapshot && frame.resolutionSnapshot && frame.pointsSnapshot != null
       ? {
@@ -1624,8 +1626,20 @@ export async function requireApprovedStoryboardForBrief(
   return (await loadApprovedStoryboardForBrief(briefId)).frameUrls;
 }
 
-/// 单条视频随每段下发的参考图上限：Omni-Reference 最多 9 张，留 1 张余量。
+/// 单条视频随每段下发的参考图上限（线路未知 / 历史行的缺省）：Omni-Reference 最多 9 张，留 1 张余量。
 export const SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT = 8;
+
+/**
+ * P02-F2 · 参考图上限按线路适配器取：Shuyu（buddy）按 E1 实测的视频档 input_images_max = 9 给满
+ * （适配器提交前还会按选中套餐的上限截断，从队尾的帧开始丢，实拍不受影响）；其它适配器与
+ * 历史行沿用 8。首派把它写进 directorPlan.referenceLayout.limit，重试 / 重做 / 帧质检按同一个数对齐。
+ */
+export function singleVideoReferenceImageLimitForAdapter(
+  adapter: VideoProviderAdapterSnapshot | null | undefined,
+): number {
+  if (adapter === "shuyu") return SHUYU_MAX_REFERENCE_IMAGES;
+  return SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT;
+}
 
 /**
  * 单条视频的参考图编排：商家实拍在前、故事板帧在后（去重），按上限截断。

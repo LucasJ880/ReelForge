@@ -1,4 +1,5 @@
 import { resolveTtsProviderId, type TtsProviderId } from "@/lib/providers/tts/config";
+import { createElevenLabsTtsProvider } from "@/lib/providers/tts/elevenlabs";
 import { createOpenAiTtsProvider } from "@/lib/providers/tts/openai";
 import type { TtsProvider } from "@/lib/providers/tts/types";
 
@@ -17,6 +18,7 @@ type EnvLike = NodeJS.ProcessEnv | Record<string, string | undefined>;
 
 const FACTORIES: Record<TtsProviderId, (options: { fetchImpl?: typeof fetch; env: EnvLike }) => TtsProvider> = {
   openai: createOpenAiTtsProvider,
+  elevenlabs: createElevenLabsTtsProvider,
 };
 
 /** 按 TTS_PROVIDER 取当前供应商。fetchImpl / env 只给测试注入。 */

@@ -5,7 +5,7 @@
  * 第 2 帧起只喂前 3 张实拍，前帧占掉两格；提示词里也没说清第几张是什么。这里改成一套显式规则，
  * 提示词里的 REFERENCE ROLES 序号与真正提交的图片顺序出自同一个函数，不会两处各算。
  *
- * 规则（总数 ≤ max，默认 5）：
+ * 规则（总数 ≤ max，默认 6）：
  * 1. 商家实拍至少 min(实拍数, 3) 张排最前（产品身份优先于一切，含前帧）；
  * 2. 商品锚点切片其次（取 anchorCutoutUrls 列；P02-E 写入之前恒为空数组）；
  * 3. 主播参考图只在第 0 帧（`isFirstFrame`，含重做第 0 帧）且最多 1 张——帧是流水线提交的，
@@ -13,8 +13,8 @@
  * 4. 前帧只留 1 张（最近一张已成功的），放最后；没有已成功的前帧就不占位；
  * 5. 还有余位时按「切片 → 更多实拍」补满。
  *
- * max 默认 5：E1 实测 Shuyu 图像档 `input_images_max` 全部 = 6，但 shuyu.ts 对 >5 张仍硬拒，
- * 提到 6 留给 P02-B2（那时从套餐的 inputImagesMax 取）。
+ * max 默认 6（P02-B2）：E1 实测 Shuyu 图像档 `input_images_max` 全部 = 6；提交时仍以选中套餐的
+ * inputImagesMax 为准（submitShuyuImageTask 选套餐后截断，shuyu.ts 按硬顶 6 兜底截断，不再硬拒）。
  *
  * 另附出帧提示词的 5000 字预算（Shuyu 图像提示词 >5000 字硬拒且不可重试）：
  * STORY CONTEXT 在建 run 时按「5000 − 固定行 − REFERENCE ROLES 最坏长度 − PRESENTER LOCK − 重做余量」截断，
@@ -23,7 +23,7 @@
  * 纯数据模块：服务端 storyboard-service 与测试共用，不得引入服务端依赖。
  */
 
-export const STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX = 5;
+export const STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX = 6;
 /// 实拍保底张数：商家传够时，任何一帧至少喂这么多张实拍（产品身份比前帧连续性优先）。
 export const STORYBOARD_FRAME_GUARANTEED_PRODUCT_IMAGES = 3;
 
@@ -45,7 +45,7 @@ export interface ComposeStoryboardFrameInputImagesInput {
   priorFrames: readonly string[];
   /// 是否第 0 帧（含重做第 0 帧）：只有它带主播参考图
   isFirstFrame: boolean;
-  /// 供应商单次可接受的参考图上限；缺省 5
+  /// 供应商单次可接受的参考图上限；缺省 6（E1：Shuyu 图像档 input_images_max）
   max?: number;
 }
 

@@ -66,3 +66,16 @@
 | P0-3 供应商 / 分辨率 | P03-A1/B/C1/D0 已合入 | 代码判据已过（客户 1080P → 422、多档不 500）；**待真机**：余额差对账、E12/E10、E7′ 2.0 臂 |
 | P0-4 口播 / 字幕 | P04-A1/B/C/D 已合入 | **待真机**：E3b TTS key、E16 金标、E8′ Sync Labs |
 | P0-5 局部重做 | P05-A/B/C/D 已合入 | 失败路径已由单测覆盖；**待真机**：成功路径（重做一段只扣 1 段、换字幕 / BGM 零计费） |
+
+## 6. 第二轮 · Phase 2 代码先行（2026-10-26 晚；计划 `docs/superpowers/plans/2026-11-round2-phase2.md`）
+
+口径同 §7.0：额度 / key 未到位，只落代码 + 单测；凡「待真机」不得写成通过。
+
+| 任务 | 解锁依据 | 改动 | 开关 / 默认 | 验证 | 待真机 |
+|---|---|---|---|---|---|
+| P02-B2 | E1（图像档 `input_images_max` 全部 = 6） | 故事板入参上限 5 → 6（`STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX`）；`createShuyuImageTask` >6 张由硬拒改按硬顶截断；`submitShuyuImageTask` 选套餐后按 `inputImagesMax` 截断 | — | `tests/storyboard-input-cap-p02b2.test.ts`（硬顶 / 套餐 / 兜底三种截断，零硬拒）；`tests/storyboard-service.test.ts` 重试快照改 6 | 故事板真机出图核验每帧入参 = min(实拍, 3) + 1 前帧（P0-2 判据） |
+| P02-F2 | E1（视频档 = 9）+ D-2 | `singleVideoReferenceImageLimitForAdapter`：Shuyu 9、其它 / 历史 8；`dispatchVideoForBrief` 按 brief 持久化线路取并写进 `referenceLayout.limit`，重试 / 重做沿用 | — | `tests/single-video-reference-limit-route.test.ts`；`tests/video-reference-layout.test.ts` 两个「与改动前逐字节一致」摘要不变（mock 线路仍 8） | 真机派发核验 Shuyu 收到 9 张（实拍 2 张不再被帧挤掉） |
+| P04-A2 | E3a（OpenAI 无 realtime） | ElevenLabs 适配器 `providers/tts/elevenlabs.ts`：`/with-timestamps`，字符对齐 → 逐词（中文逐字、英文空白切词、标点并入前词），`supportsWordTimestamps=true`；探测 `GET /v1/user`；`VOICE_MAP.elevenlabs` 预置音色 | `TTS_PROVIDER=openai`（缺省不变）；`elevenlabs` 需 `ELEVENLABS_API_KEY`，模型 `ELEVENLABS_TTS_MODEL` | `tests/tts-elevenlabs.test.ts`（注入 fetch：端点 / 头 / 模型 / 逐词 / 错误分类 / 探测）；`tests/tts-provider.test.ts` 回归 | **E3b**（三家时间戳偏差）、**E16** 金标；words 目前无消费方（stitch 管线未接 words，P04-G / P04-B Phase 2） |
+| P04-F（适配器层） | D-13 | Sync Labs 客户端 `providers/sync-labs.ts`：`POST /v2/generate` + `GET /v2/generate/{id}`，`x-api-key`、`Idempotency-Key`，模型缺省 `sync-3`、`sync_mode` 缺省 `silence`、成本上界 0.133 USD/s；状态映射 REJECTED 不可重试 | `SYNC_API_KEY`；**派发未接**：`voiceover.drive=tts_lipsync` 仍对所有线路 422 | `tests/sync-labs-provider.test.ts`（注入 fetch：契约 / 前置校验零出网 / 错误分类） | **E8′** 口型分与模型档；段级编排（poll-videos 推进、换挂重拼、失败回退原段 + 叠音轨、成本进额度）为下一步 |
+
+本轮不做：P03-A2（等 D-3 定价）、P02-E / P02-G / P02-D2（等 E14 / E15）、P01-G / P01-B2 / P01-D(block)（等 E13）、P04-G / P04-H（等 E16 / E3b）、Shuyu 2.5 任务组（等 G2′）。

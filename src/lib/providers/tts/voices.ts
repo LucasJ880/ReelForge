@@ -23,6 +23,19 @@ export const VOICE_MAP: Record<TtsProviderId, { voices: Record<ProductVoiceId, s
     },
     fallback: "nova",
   },
+  /**
+   * ElevenLabs 预置音色（premade voices，所有账号可用）的 voice_id；E3b 真机试听后可换。
+   * 列音色而不是列名字：/v1/text-to-speech/{voice_id} 只认 id。
+   */
+  elevenlabs: {
+    voices: {
+      "warm-confident": "21m00Tcm4TlvDq8ikWAM", // Rachel
+      "natural-friendly": "EXAVITQu4vr4xnSDxMaL", // Bella
+      "energetic-creator": "TxGEqnHWrfWFTfGW9XjX", // Josh
+      "calm-premium": "pNInz6obpgDQGcFmaJgB", // Adam
+    },
+    fallback: "21m00Tcm4TlvDq8ikWAM",
+  },
 };
 
 export function resolveTtsVoice(provider: TtsProviderId, voiceId: string | null | undefined): string {

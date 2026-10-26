@@ -86,6 +86,7 @@ import {
 import {
   requireApprovedStoryboardVideoInputsForBrief,
   SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT,
+  singleVideoReferenceImageLimitForAdapter,
 } from "@/lib/video-generation/storyboard-service";
 import {
   groundSegmentPromptInStoryboard,
@@ -432,6 +433,10 @@ export async function dispatchVideoForBrief(
       id: true,
       targetDurationSec: true,
       directorPlan: true,
+      /// P02-F2：参考图上限按持久化线路的适配器取
+      videoRouteSnapshot: true,
+      videoModelSnapshot: true,
+      videoProviderAdapterSnapshot: true,
     },
   });
   if (!brief) throw new Error("Brief 不存在");
@@ -444,7 +449,15 @@ export async function dispatchVideoForBrief(
     /// 提示词按已确认的故事板改写（商家原话 + 帧序），写回 directorPlan——重试读同一份。
     /// P02-F(v)：参考图按 实拍 → 切片 → 主播 → 帧 分组，帧序号跳过切片与主播；
     /// 各组张数与上限写进 directorPlan.referenceLayout，重试 / 重做 / 帧质检按它对齐。
-    const referenceImageLimit = segmentReferenceImageLimit(null, options.referenceImageLimit);
+    /// P02-F2：显式覆盖 > 线路适配器上限（Shuyu 9）> 历史 / 未知线路缺省 8；写进 referenceLayout 后重试沿用。
+    const routeRead = readVideoRouteSnapshot(brief);
+    const referenceImageLimit = segmentReferenceImageLimit(
+      null,
+      options.referenceImageLimit ??
+        (routeRead.state === "historical_unknown"
+          ? undefined
+          : singleVideoReferenceImageLimitForAdapter(routeRead.videoProviderAdapterSnapshot)),
+    );
     const storyboard = await requireApprovedStoryboardVideoInputsForBrief(briefId, {
       includeAnchorAndPersonReferences: true,
       limit: referenceImageLimit,

@@ -9,6 +9,7 @@ import { isDryRun } from "@/lib/config/dry-run";
 import { isProductionRuntime } from "@/lib/config/env";
 import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import {
+  SHUYU_IMAGE_MAX_REFERENCE_IMAGES,
   createShuyuImageTask,
   getAvailableShuyuImagePlans,
   getShuyuVideoTask,
@@ -124,8 +125,22 @@ export async function submitShuyuImageTask(
       },
     );
   }
+  /// P02-B2：选定套餐后按它的 input_images_max 截断（调用方已按 实拍 → 切片 → 主播 → 前帧 排好优先级），
+  /// 解析不到套餐上限时按图像档硬顶兜底；多出来的从队尾丢，不再让整帧硬拒。
+  const planInputImages = (input.inputImages ?? []).slice(
+    0,
+    Math.max(1, planSnapshot.inputImagesMax ?? SHUYU_IMAGE_MAX_REFERENCE_IMAGES),
+  );
+  if (planInputImages.length < (input.inputImages?.length ?? 0)) {
+    console.warn("[shuyu] image reference images truncated to plan input_images_max", {
+      planId: planSnapshot.planId,
+      requested: input.inputImages?.length ?? 0,
+      kept: planInputImages.length,
+    });
+  }
   const created = await createShuyuImageTask({
     ...input,
+    inputImages: planInputImages,
     providerRequestKey: input.requestKey,
     planId: planSnapshot.planId,
     model: planSnapshot.model,

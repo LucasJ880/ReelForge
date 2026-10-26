@@ -6,7 +6,7 @@
  * 调用方一律经 getTtsProvider()，不直接碰某一家的实现。
  */
 
-export const TTS_PROVIDER_IDS = ["openai"] as const;
+export const TTS_PROVIDER_IDS = ["openai", "elevenlabs"] as const;
 export type TtsProviderId = (typeof TTS_PROVIDER_IDS)[number];
 
 export const DEFAULT_TTS_PROVIDER: TtsProviderId = "openai";
@@ -16,6 +16,8 @@ type EnvLike = NodeJS.ProcessEnv | Record<string, string | undefined>;
 /** 每家供应商要齐的 env（全部非空才算配置齐全）。 */
 const REQUIRED_ENV: Record<TtsProviderId, readonly string[]> = {
   openai: ["OPENAI_API_KEY"],
+  /// P04-A2：第二家（带逐词时间戳）。E3a 证实此 OpenAI key 无 realtime 模型，替代只能是第三方。
+  elevenlabs: ["ELEVENLABS_API_KEY"],
 };
 
 const warnedUnknown = new Set<string>();

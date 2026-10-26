@@ -815,7 +815,7 @@ const PRODUCTS = [1, 2, 3, 4, 5].map((i) => `https://assets.example.test/prod-${
 const FRAMES = [0, 1, 2, 3].map((i) => `https://assets.example.test/frame-${i}.png`);
 const PRESENTER = "https://assets.example.test/presenter.jpg";
 
-test("P02-B：每帧入参 ≤5；商家 5 张实拍时第 2 帧起仍有 ≥3 张实拍，前帧只留 1 张且在最后", () => {
+test("P02-B：每帧入参 ≤6（P02-B2，E1 图像档上限）；商家 5 张实拍时第 2 帧起仍有 ≥3 张实拍，前帧只留 1 张且在最后", () => {
   for (const priorCount of [0, 1, 2, 3]) {
     const composed = composeStoryboardFrameInputImages({
       productImages: PRODUCTS,
@@ -824,7 +824,7 @@ test("P02-B：每帧入参 ≤5；商家 5 张实拍时第 2 帧起仍有 ≥3 �
       priorFrames: FRAMES.slice(0, priorCount),
       isFirstFrame: priorCount === 0,
     });
-    assert.ok(composed.length <= 5, `frame with ${priorCount} priors has ${composed.length} inputs`);
+    assert.ok(composed.length <= 6, `frame with ${priorCount} priors has ${composed.length} inputs`);
     const products = composed.filter((image) => image.role === "product");
     assert.ok(products.length >= 3, `frame with ${priorCount} priors keeps ${products.length} product photos`);
     assert.deepEqual(composed.slice(0, products.length).map((image) => image.role), products.map(() => "product"), "实拍排最前");
@@ -865,10 +865,13 @@ test("P02-B：主播参考图只进第 0 帧（isFirstFrame 显式判定）且�
   });
   assert.deepEqual(second.map((image) => image.role), ["product", "product", "prior_frame"]);
 
-  // 5 张实拍 + 主播图：首帧 = 3 张保底 + 1 张补位实拍 + 主播（主播排在实拍之后），总数 5
+  // 5 张实拍 + 主播图：首帧 = 3 张保底 + 2 张补位实拍 + 主播（主播排在实拍之后），总数 6（P02-B2 上限 6）
   const crowded = composeStoryboardFrameInputImages({ productImages: PRODUCTS, personImages: [PRESENTER], priorFrames: [], isFirstFrame: true });
-  assert.equal(crowded.length, 5);
-  assert.deepEqual(crowded.map((image) => image.role), ["product", "product", "product", "product", "person"]);
+  assert.equal(crowded.length, 6);
+  assert.deepEqual(crowded.map((image) => image.role), ["product", "product", "product", "product", "product", "person"]);
+  // 上限收到 5（套餐只收 5 张）时仍是 4 实拍 + 主播
+  const capped = composeStoryboardFrameInputImages({ productImages: PRODUCTS, personImages: [PRESENTER], priorFrames: [], isFirstFrame: true, max: 5 });
+  assert.deepEqual(capped.map((image) => image.role), ["product", "product", "product", "product", "person"]);
 });
 
 test("P02-B：切片接口就位（排在实拍之后、主播之前）；去重与 max 生效；纯文字起稿为空", () => {
@@ -1116,12 +1119,13 @@ test("P02-B：第 3 帧提交 = 实拍 + 最近 1 张前帧放最后；不带主
 
   await storyboardServiceTest.submitStoryboardFrame("frame-sub");
 
-  assert.deepEqual(h.submitted[0].inputImages, [PRODUCTS[0], PRODUCTS[1], PRODUCTS[2], PRODUCTS[3], FRAMES[1]]);
+  /// P02-B2：上限 6 = 5 张实拍全部进 + 最近 1 张前帧放最后
+  assert.deepEqual(h.submitted[0].inputImages, [...PRODUCTS, FRAMES[1]]);
   assert.equal(h.submitted[0].prompt, plans[2].prompt);
   assert.equal(h.assetQueries(), 0);
 });
 
-test("P02-B：前帧全部失败的第 1 帧——只喂实拍（不当首帧、不带主播）；重试快照补 inputImagesMax=5", async (t) => {
+test("P02-B：前帧全部失败的第 1 帧——只喂实拍（不当首帧、不带主播）；重试快照补 inputImagesMax=6（P02-B2）", async (t) => {
   const plans = buildStoryboardFramePlans({
     prompt: "story", durationSec: 15, aspectRatio: "9:16", productImageCount: 1, personImageCount: 1,
   });
@@ -1141,6 +1145,6 @@ test("P02-B：前帧全部失败的第 1 帧——只喂实拍（不当首帧、
   assert.doesNotMatch(sent.prompt as string, /PRESENTER LOCK|presenter reference photo/);
   assert.notEqual(sent.prompt, plans[1].prompt);
   assert.deepEqual(sent.planSnapshot, {
-    planId: "plan-2k", model: "gpt-image-2", resolution: "2K", points: 48, family: "gpt-image-2", inputImagesMax: 5,
+    planId: "plan-2k", model: "gpt-image-2", resolution: "2K", points: 48, family: "gpt-image-2", inputImagesMax: 6,
   });
 });

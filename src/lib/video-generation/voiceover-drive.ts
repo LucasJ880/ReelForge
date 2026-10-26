@@ -8,7 +8,8 @@ import type { VoiceoverDrive, VoiceoverSettings } from "@/types/video-generation
 
 /**
  * 非 native 驱动方式各自能走哪些线路。都为空 = 现在没有线路做得到：
- * tts_lipsync 等 P04-F（Sync Labs 后置对口型），audio_reference 等 P04-E（Shuyu 2.5 档参考音频）。
+ * tts_lipsync 等 P04-F 的段级编排（供应商客户端已在 providers/sync-labs.ts，TTS 逐词在 providers/tts/elevenlabs.ts；
+ * 编排：段成片 → TTS 音轨 → Sync 对口型 → 换挂重拼，失败回退原段 + 叠音轨），audio_reference 等 P04-E（Shuyu 2.5 档参考音频）。
  */
 const DRIVE_ROUTES: Record<Exclude<VoiceoverDrive, "native">, readonly VideoRouteId[]> = {
   tts_lipsync: [],

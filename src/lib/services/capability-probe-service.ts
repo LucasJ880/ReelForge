@@ -19,6 +19,7 @@ import { parseShuyuCatalog } from "@/lib/providers/shuyu-catalog";
 import { detectShuyuSeedance25 } from "@/lib/providers/shuyu-seedance25-probe";
 import { openAiProbePlan, openAiTokenLimitParam } from "@/lib/ai/providers/openai-provider";
 import { resolveTtsProviderId, type TtsProviderId } from "@/lib/providers/tts/config";
+import { ELEVENLABS_API_BASE, resolveElevenLabsTtsModel } from "@/lib/providers/tts/elevenlabs";
 import { OPENAI_TTS_ENDPOINT, OPENAI_TTS_MODEL } from "@/lib/providers/tts/openai";
 import { resolveTtsVoice } from "@/lib/providers/tts/voices";
 import { classifyHttpStatus, classifyNetworkError, safeNote } from "@/lib/capabilities/classify";
@@ -535,8 +536,20 @@ export async function probeOpenAiTts(ctx: ProbeContext): Promise<CapabilityObser
   return fromHttp(outcome, { provider: "openai", model: OPENAI_TTS_MODEL });
 }
 
+/** ElevenLabs：GET /v1/user 只校验 key 与订阅（不耗字符额度）；401 → auth，与生产合成同一把 key。 */
+export async function probeElevenLabsTts(ctx: ProbeContext): Promise<CapabilityObservation> {
+  const key = envValue(ctx, "ELEVENLABS_API_KEY");
+  if (!key) return notConfigured();
+  const outcome = await httpProbe(ctx, `${ELEVENLABS_API_BASE}/v1/user`, {
+    method: "GET",
+    headers: { "xi-api-key": key },
+  });
+  return fromHttp(outcome, { provider: "elevenlabs", model: resolveElevenLabsTtsModel(ctx.env) });
+}
+
 const TTS_PROBES: Record<TtsProviderId, (ctx: ProbeContext) => Promise<CapabilityObservation>> = {
   openai: probeOpenAiTts,
+  elevenlabs: probeElevenLabsTts,
 };
 
 /** 探当前 TTS_PROVIDER 选中的那一家：探测与生产必须是同一个供应商。 */

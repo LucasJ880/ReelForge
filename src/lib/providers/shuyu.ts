@@ -333,6 +333,8 @@ export interface AuditedShuyuVideoPlan {
  */
 export const SHUYU_MIN_REFERENCE_IMAGES = 4;
 export const SHUYU_MAX_REFERENCE_IMAGES = 9;
+/** 图像档参考图硬顶（E1 实测全部图像档 input_images_max = 6）；套餐级上限以 AuditedShuyuImagePlan.inputImagesMax 为准。 */
+export const SHUYU_IMAGE_MAX_REFERENCE_IMAGES = 6;
 
 export function shuyuReferenceImageLimit(
   plan: Pick<AuditedShuyuVideoPlan, "inputImagesMax">,
@@ -1030,14 +1032,17 @@ export async function createShuyuImageTask(
       { providerId: "shuyu", stage: "preflight", retryable: false },
     );
   }
-  const inputImages = (input.inputImages ?? [])
+  const requestedInputImages = (input.inputImages ?? [])
     .map((url) => url.trim())
     .filter(Boolean);
-  if (inputImages.length > 5) {
-    throw new ProviderSubmissionError(
-      "Shuyu image accepts at most 5 HTTPS reference images",
-      { providerId: "shuyu", stage: "preflight", retryable: false },
-    );
+  /// P02-B2：超出硬顶不再硬拒（整帧失败且不可重试），按调用方排好的优先级从队尾截断；
+  /// 套餐级上限由 submitShuyuImageTask 选套餐后先截一次，这里只是硬顶兜底。
+  const inputImages = requestedInputImages.slice(0, SHUYU_IMAGE_MAX_REFERENCE_IMAGES);
+  if (requestedInputImages.length > inputImages.length) {
+    console.warn("[shuyu] image reference images truncated to provider hard cap", {
+      requested: requestedInputImages.length,
+      kept: inputImages.length,
+    });
   }
   if (inputImages.some((value) => {
     try {

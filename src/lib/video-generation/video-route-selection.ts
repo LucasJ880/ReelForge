@@ -230,3 +230,72 @@ export async function getVideoRouteSnapshotRuntimeAvailability(args: {
     reason: available ? null : "not_configured",
   };
 }
+
+export type VideoRouteRuntimeAvailability = Awaited<
+  ReturnType<typeof getVideoRouteSnapshotRuntimeAvailability>
+>;
+
+export interface RouteFailoverDeps {
+  getAvailability: (args: {
+    snapshot: VideoRouteSnapshot;
+    shuyuRequiredPoints?: number;
+  }) => Promise<VideoRouteRuntimeAvailability>;
+  failoverSnapshot: () => VideoRouteSnapshot | null;
+}
+
+const DEFAULT_ROUTE_FAILOVER_DEPS: RouteFailoverDeps = {
+  getAvailability: (args) => getVideoRouteSnapshotRuntimeAvailability(args),
+  failoverSnapshot: () => customerFailoverRouteSnapshot(),
+};
+
+export interface RouteFailoverResolution {
+  /// 原线路的可用性：调用方的拒绝文案/原因必须按它给，不按备用线路
+  primaryAvailability: VideoRouteRuntimeAvailability;
+  /// 最终用于提交的快照；未切换时与入参是同一个对象
+  snapshot: VideoRouteSnapshot;
+  failedOver: boolean;
+}
+
+/**
+ * 主线路可用性检查 + 自动降级（PRD C1）。
+ *
+ * 客户依然无权自己选线路 —— 这是平台替客户做的决定。降级前必须确认备用线路
+ * 真的可用，否则只是把必死的提交换了个地方死。备用线路也不行时保持原快照，
+ * 由调用方按原线路的不可用原因拒绝。
+ *
+ * 余额不足不降级：那是账户问题，换线路只会把成本转嫁到另一条线上。
+ *
+ * 批量必须 `allowFailover:false`：批次的线路、计价与快照在建批次时一次定死，
+ * 不可用就按原原因拒绝，绝不换线路。
+ */
+export async function resolveRouteWithFailover(args: {
+  snapshot: VideoRouteSnapshot;
+  shuyuRequiredPoints?: number;
+  allowFailover: boolean;
+  deps?: Partial<RouteFailoverDeps>;
+}): Promise<RouteFailoverResolution> {
+  const deps = { ...DEFAULT_ROUTE_FAILOVER_DEPS, ...args.deps };
+  const primaryAvailability = await deps.getAvailability({
+    snapshot: args.snapshot,
+    shuyuRequiredPoints: args.shuyuRequiredPoints,
+  });
+  const unchanged = {
+    primaryAvailability,
+    snapshot: args.snapshot,
+    failedOver: false,
+  };
+  if (
+    primaryAvailability.available ||
+    !args.allowFailover ||
+    primaryAvailability.reason === "insufficient_balance"
+  ) {
+    return unchanged;
+  }
+  const failoverSnapshot = deps.failoverSnapshot();
+  if (!failoverSnapshot) return unchanged;
+  const failoverAvailability = await deps.getAvailability({
+    snapshot: failoverSnapshot,
+  });
+  if (!failoverAvailability.available) return unchanged;
+  return { primaryAvailability, snapshot: failoverSnapshot, failedOver: true };
+}

@@ -778,13 +778,15 @@ export async function runCapabilityProbeCycle(deps: CapabilityProbeDeps = {}): P
   else if (text) add("text", text);
   else keep("text");
 
-  // vision：与文本同一个模型就直接沿用文本结论，否则单独 1 token 探一次（只探链首；analyzeImages 自己会按 vision 链回退）
+  // vision：链首与文本同一个模型就直接沿用文本结论，否则把整条 vision 链交给 probeOpenAiChat
+  //（与文本探测同写法：404 / 没权限就试下一档，和 analyzeImages 的回退一致）
   if (!configured.vision) add("vision", notConfigured(), "config");
   else if (!openAiChat || !text) keep("vision");
   else {
-    const visionModel = deps.models?.vision ?? openAiProbePlan().visionModel;
+    const visionModels = deps.models?.vision ? [deps.models.vision] : openAiProbePlan().visionModels;
+    const visionModel = visionModels[0]!;
     if (visionModel === text.detail?.model) add("vision", withDetail(text, { model: visionModel }));
-    else add("vision", await safely(() => probeOpenAiChat(ctx, [visionModel])));
+    else add("vision", await safely(() => probeOpenAiChat(ctx, visionModels)));
   }
 
   // voice：每 24 小时最多一次真实 TTS

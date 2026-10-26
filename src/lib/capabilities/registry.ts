@@ -112,12 +112,6 @@ export function isBlockingStatus(status: CapabilityStatus): boolean {
 type CapabilityCopy = {
   label: Bilingual;
   messages: Record<CapabilityStatus, Bilingual>;
-  /**
-   * 「不稳定」按原因换一句话（P03-K）。只有真的发生了线路切换的原因才许提「备用线路」：
-   * 视频的 contract_drift = 审计过的套餐漂移、路由层已切到别的套餐；限流 / 上游抖动没有备用线，
-   * 只能说「正在自动重试」。没有对应原因的一律回到 messages.degraded。
-   */
-  degradedByReason?: Partial<Record<CapabilityReason, Bilingual>>;
 };
 
 function b(zh: string, en: string): Bilingual {
@@ -153,21 +147,22 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
   vision: {
     label: b("AI 看图", "AI vision"),
     messages: {
+      /// 只写现在真有的检查（画面里的错字与水印）。商品 / 人物一致性检查等 P01-B 落地再写进来。
       available: b(
-        "AI 看图正常：成片会自动检查画面里的错字、水印，以及商品 / 人物一致性。",
-        "AI vision is on: finished clips are checked automatically for burned-in text, watermarks and product / people consistency.",
+        "AI 看图正常：成片会自动检查画面里的错字与水印。",
+        "AI vision is on: finished clips are checked automatically for burned-in text and watermarks.",
       ),
       degraded: b(
-        "AI 看图不稳定：个别成片可能跳过画面质检与商品 / 人物一致性检查，成片照常生成。",
-        "AI vision is unstable: some clips may skip frame checks and product / people consistency checks; videos still render.",
+        "AI 看图不稳定：个别成片可能跳过画面质检，成片照常生成。",
+        "AI vision is unstable: some clips may skip frame checks; videos still render.",
       ),
       unavailable: b(
-        "画面质检暂停：成片照常生成，但暂不自动检查错字、水印与商品 / 人物一致性；恢复后自动启用。",
-        "Frame checks are paused: videos still render, but burned-in text, watermarks and product / people consistency aren't checked automatically. They resume once it recovers.",
+        "画面质检暂停：成片照常生成，但暂不自动检查错字与水印；恢复后自动启用。",
+        "Frame checks are paused: videos still render, but burned-in text and watermarks aren't checked automatically. They resume once it recovers.",
       ),
       not_configured: b(
-        "画面质检未开通：成片照常生成，不做自动画面检查与商品 / 人物一致性检查。",
-        "Frame checks aren't set up: videos render without automatic frame checks or product / people consistency checks.",
+        "画面质检未开通：成片照常生成，不做自动画面检查。",
+        "Frame checks aren't set up: videos render without automatic frame checks.",
       ),
     },
   },
@@ -211,6 +206,7 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
     label: b("视频生成", "Video generation"),
     messages: {
       available: b("视频生成正常。", "Video generation is running normally."),
+      /// 不承诺「已切换备用线路」：生产没有可切的备用套餐，只有自动重试。
       degraded: b(
         "视频生成线路有波动：正在自动重试，生成可能稍慢；已完成的成片不受影响。",
         "The video line is fluctuating: we're retrying automatically, so generation may be slower. Finished videos are unaffected.",
@@ -220,13 +216,6 @@ export const CAPABILITY_COPY: Record<CapabilityKey, CapabilityCopy> = {
         "Video generation is paused: new videos can't be submitted right now. Finished videos are unaffected, and it resumes once it recovers.",
       ),
       not_configured: b("视频生成未开通。", "Video generation isn't set up."),
-    },
-    degradedByReason: {
-      /// 审计过的视频套餐漂移、路由层已切到别的套餐：这时「备用线路」是事实，可以说。
-      contract_drift: b(
-        "视频生成线路有变动：已自动切到备用套餐，生成可能稍慢；已完成的成片不受影响。",
-        "The video line changed: we switched to a backup plan automatically, so generation may be slower. Finished videos are unaffected.",
-      ),
     },
   },
   voice: {
@@ -337,18 +326,8 @@ export function capabilityLabel(key: CapabilityKey, locale: Lang): string {
   return CAPABILITY_COPY[key].label[locale];
 }
 
-/** 这条能力在这个状态（与原因）下该说的那句话：不稳定按原因换词，其余只看状态。 */
-export function capabilityCopyFor(key: CapabilityKey, status: CapabilityStatus, reason?: CapabilityReason): Bilingual {
-  const copy = CAPABILITY_COPY[key];
-  if (status === "degraded" && reason) {
-    const byReason = copy.degradedByReason?.[reason];
-    if (byReason) return byReason;
-  }
-  return copy.messages[status];
-}
-
-export function capabilityMessage(key: CapabilityKey, status: CapabilityStatus, locale: Lang, reason?: CapabilityReason): string {
-  return capabilityCopyFor(key, status, reason)[locale];
+export function capabilityMessage(key: CapabilityKey, status: CapabilityStatus, locale: Lang): string {
+  return CAPABILITY_COPY[key].messages[status][locale];
 }
 
 /* ── 功能依赖 ───────────────────────────────────────────────────────── */
@@ -658,7 +637,7 @@ export function resolveCapabilities(input: {
       key,
       ...resolved,
       label: CAPABILITY_COPY[key].label,
-      message: capabilityCopyFor(key, resolved.status, resolved.reason),
+      message: CAPABILITY_COPY[key].messages[resolved.status],
       features: featuresForCapability(key),
     };
   });

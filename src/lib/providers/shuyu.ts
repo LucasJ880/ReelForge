@@ -419,10 +419,17 @@ export function shuyuVideoPlanPointsForDuration(
 }
 
 /**
- * 审计通过的套餐排序:720P 优先(模板质量底线),同分辨率按 15s 有效成本
- * 升序,并列时按条计费优先(总价确定、无时长歧义),最后按 plan_id 稳定排序。
- * 列表第一个即默认套餐。
+ * 审计通过的套餐排序:分辨率按 RANK(720P → 480P → 1080P),同分辨率按 15s
+ * 有效成本升序,并列时按条计费优先(总价确定、无时长歧义),最后按 plan_id 稳定排序。
+ * 列表第一个即默认套餐——始终是最便宜的 720P(draft 档);final 档(1080P)
+ * 永远排在全部 draft 档之后,所以六处 `resolveShuyuVideoPlan()` 默认成本不变。
  */
+const RESOLUTION_RANK: Record<ShuyuVideoPlanResolution, number> = {
+  "720P": 0,
+  "480P": 1,
+  "1080P": 2,
+};
+
 export function listAuditedShuyuVideoPlans(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
 ): AuditedShuyuVideoPlan[] {
@@ -431,7 +438,7 @@ export function listAuditedShuyuVideoPlans(
     .filter((plan): plan is AuditedShuyuVideoPlan => plan !== null)
     .sort((left, right) => {
       if (left.resolution !== right.resolution) {
-        return left.resolution === "720P" ? -1 : 1;
+        return RESOLUTION_RANK[left.resolution] - RESOLUTION_RANK[right.resolution];
       }
       const leftCost = shuyuVideoPlanPointsForDuration(left, 15);
       const rightCost = shuyuVideoPlanPointsForDuration(right, 15);

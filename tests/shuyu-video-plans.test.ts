@@ -55,6 +55,59 @@ const MARKET_0803: ShuyuPlan[] = [
   }),
 ];
 
+/// 1026 实价快照:0803 四档之上多了 1080P 按秒档(240 点/秒,video-plan-13/15)。
+const MARKET_1026: ShuyuPlan[] = [
+  marketPlan({
+    plan_id: "video-plan-15",
+    unit: "second",
+    resolution: "1080P",
+    sale_points: 240,
+    display_name: "视频-Seedance2.0-1080P-推荐1 VIP",
+  }),
+  ...MARKET_0803,
+  marketPlan({
+    plan_id: "video-plan-13",
+    unit: "second",
+    resolution: "1080P",
+    sale_points: 240,
+    display_name: "视频-Seedance2.0-1080P-推荐1",
+  }),
+];
+
+test("1026 市场夹具:1080P 审计通过且 tier=final、排在最后,默认档仍是 video-plan-01", () => {
+  const ranked = listAuditedShuyuVideoPlans(MARKET_1026);
+  assert.equal(ranked.length, 6);
+  /// 默认档 = plans[0] = 最便宜的 720P,与 0803 完全一致——六处默认成本调用点不变。
+  assert.equal(ranked[0].planId, "video-plan-01");
+  assert.equal(ranked[0].tier, "draft");
+  assert.equal(shuyuVideoPlanPointsForDuration(ranked[0], 15), 700);
+  /// RANK:720P → 480P → 1080P;同档内按 15s 成本升序,并列按 plan_id 稳定。
+  assert.deepEqual(
+    ranked.map((plan) => plan.planId),
+    [
+      "video-plan-01",
+      "video-plan-03",
+      "video-plan-04",
+      "video-plan-07",
+      "video-plan-13",
+      "video-plan-15",
+    ],
+  );
+  assert.deepEqual(
+    ranked.map((plan) => plan.tier),
+    ["draft", "draft", "draft", "draft", "final", "final"],
+  );
+  /// final 档即使比某个 draft 档便宜,也绝不能插队到 draft 之前。
+  const cheapFinal = listAuditedShuyuVideoPlans([
+    marketPlan({ plan_id: "video-plan-04", unit: "second", sale_points: 104 }),
+    marketPlan({ plan_id: "video-plan-20", resolution: "1080P", sale_points: 1_000 }),
+  ]);
+  assert.deepEqual(
+    cheapFinal.map((plan) => plan.planId),
+    ["video-plan-04", "video-plan-20"],
+  );
+});
+
 test("0803 市场夹具:语义审计放行全部四档,默认 = 最便宜的 720P(700 分/条)", () => {
   const ranked = listAuditedShuyuVideoPlans(MARKET_0803);
   assert.equal(ranked.length, 4);

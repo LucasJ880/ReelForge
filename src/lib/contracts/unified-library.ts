@@ -55,6 +55,8 @@ export const unifiedLibraryRowSchema = z.object({
   aspectRatio: z.string().min(1).nullable(),
   failedSceneCount: z.number().int().nonnegative(),
   canRetry: z.boolean(),
+  /// P05-B 只重拼：成片 READY、带后期快照且不是直接复用单段原片的，才能换字幕样式 / 配乐。
+  canRestitch: z.boolean().default(false),
 });
 
 export type UnifiedLibraryRow = z.infer<typeof unifiedLibraryRowSchema>;

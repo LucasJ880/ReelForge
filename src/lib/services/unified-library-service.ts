@@ -28,6 +28,7 @@ import {
   isContentPostRendering,
 } from "@/lib/services/content-post-render-state";
 import { readTemplateSnapshot } from "@/lib/video-generation/creative-recipe";
+import { postProductionPlanSchema } from "@/lib/schemas/unified-input";
 
 export type { UnifiedLibraryRow } from "@/lib/contracts/unified-library";
 
@@ -124,6 +125,8 @@ const unifiedLibraryOrderSelect = {
                   submittedAt: true,
                   finishedAt: true,
                   createdAt: true,
+                  /// 只重拼判据：成片 URL 等于某段原片 URL = 直接复用单段、没过合成器
+                  outputVideoUrl: true,
                 },
               },
             },
@@ -348,6 +351,19 @@ export function toUnifiedLibraryRow(
       ? "cancelled"
       : refineOrderLibraryStatus(derived.status, jobStatuses);
   const active = status === "generating" || status === "assembling";
+  /// P05-B 只重拼：READY + 有后期快照 + 不是直接复用某段原片（reuse_single_segment /
+  /// reuse_first_segment_demo 会把首段 URL 原样写进 stitchedVideoUrl，没经过合成器，换设置不会生效）。
+  const reusedSegmentUrl =
+    Boolean(finalVideo?.stitchedVideoUrl) &&
+    (brief?.videoJobs ?? []).some(
+      (job) => Boolean(job.outputVideoUrl) && job.outputVideoUrl === finalVideo?.stitchedVideoUrl,
+    );
+  const canRestitch =
+    !isShowcase &&
+    finalVideo?.status === "READY" &&
+    Boolean(finalVideo.stitchedVideoUrl) &&
+    finalVideo.postProduction != null &&
+    !reusedSegmentUrl;
 
   return parseLibraryRow({
     id: order.id,
@@ -374,7 +390,15 @@ export function toUnifiedLibraryRow(
     aspectRatio: brief?.aspectRatio ?? null,
     failedSceneCount,
     canRetry: status === "failed" || failedSceneCount > 0,
+    canRestitch,
   });
+}
+
+/** 只重拼表单的初值：当前成片的字幕 / 配乐设置（快照读不懂就不给表单）。 */
+export function restitchDefaultsFor(postProduction: unknown) {
+  const parsed = postProductionPlanSchema.safeParse(postProduction);
+  if (!parsed.success) return null;
+  return { captions: parsed.data.captions, bgm: parsed.data.audio.bgm };
 }
 
 function toUnifiedLibraryDetail(
@@ -390,6 +414,7 @@ function toUnifiedLibraryDetail(
     subtitleFileUrl: customerSafeFinalVideoUrl(
       finalVideo?.subtitleFileUrl ?? null,
     ),
+    restitchDefaults: row.canRestitch ? restitchDefaultsFor(finalVideo?.postProduction ?? null) : null,
     makingProcess: deriveMakingProcess({
       orderCreatedAt: order.createdAt,
       briefCreatedAt: brief?.createdAt,
@@ -496,6 +521,7 @@ export function toBatchLibraryRow(
     aspectRatio: snapshot?.aspectRatio ?? null,
     failedSceneCount: 0,
     canRetry: false,
+    canRestitch: false,
   });
 }
 
@@ -594,6 +620,7 @@ export function toContentPostLibraryRow(
     aspectRatio: needsImage ? "2:3" : null,
     failedSceneCount: 0,
     canRetry: needsImage && !hasImages && !rendering,
+    canRestitch: false,
   });
 }
 

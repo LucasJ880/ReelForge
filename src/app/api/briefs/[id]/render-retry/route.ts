@@ -14,6 +14,8 @@ import {
 } from "@/lib/api/customer-generation-error";
 import { quotaErrorResponse } from "@/lib/api-quota";
 import { rechargeRefundedBriefForSession } from "@/lib/services/quota-refund-service";
+import { assertAuthenticatedActionRateLimit } from "@/lib/services/quota-service";
+import { RestitchRejectedError } from "@/lib/video-generation/restitch-patch";
 
 function canSeeRenderDebug(userType: string | null | undefined): boolean {
   return userType === "OPERATOR" || userType === "SUPER_ADMIN";
@@ -28,6 +30,9 @@ function canSeeRenderDebug(userType: string | null | undefined): boolean {
  * Body:
  *   { "jobId": "videojob_id" }    // 重试单个 job
  *   { "all": true }               // 重试当前 brief 下所有失败环节（段 + 合成）
+ *   { "restitch": { "captions"?, "bgm"? } }
+ *                                 // P05-B 只重拼：READY 成片换字幕样式 / 配乐。零生成计费，
+ *                                 // 不补扣额度；限流 action "restitch"；失败回滚到旧成片。
  *
  * 安全门禁（与 Seedance 计费安全相关）：
  * 1. 调用方必须是该 brief 的 owner（unified-input 流程：DeliveryOrder.createdById），
@@ -73,7 +78,23 @@ export async function POST(
   };
 
   try {
-    if (body.all === true) {
+    if (body.restitch !== undefined) {
+      /// 只重拼不是「重试失败环节」：不走 rechargeIfRefunded（没有生成费可补扣），
+      /// 只按账号限频，防止循环点击把合成器函数打满。
+      const brief = await db.videoBrief.findUnique({
+        where: { id: briefId },
+        select: { finalVideoId: true },
+      });
+      if (!brief?.finalVideoId) {
+        throw new RestitchRejectedError("INVALID_STATE", "这条视频还没有成片，不能更换字幕 / 配乐。");
+      }
+      await assertAuthenticatedActionRateLimit({
+        action: "restitch",
+        userId: guard.session.user.id,
+      });
+      const { restitchReadyFinalVideo } = await import("@/lib/services/stitch-service");
+      await restitchReadyFinalVideo(brief.finalVideoId, body.restitch);
+    } else if (body.all === true) {
       const failed = await db.videoJob.findMany({
         where: { videoBriefId: briefId, status: "FAILED" },
       });
@@ -153,6 +174,25 @@ export async function POST(
   } catch (err) {
     const quotaResponse = quotaErrorResponse(err);
     if (quotaResponse) return quotaResponse;
+    if (err instanceof RestitchRejectedError) {
+      return NextResponse.json(
+        customerApiError({
+          code: err.code,
+          message: err.message,
+          retryable: false,
+          action:
+            err.code === "VALIDATION_FAILED"
+              ? "fix_request"
+              : err.code === "INVALID_STATE"
+                ? "refresh_status"
+                : "contact_support",
+        }),
+        {
+          status:
+            err.code === "VALIDATION_FAILED" ? 400 : err.code === "INVALID_STATE" ? 409 : 404,
+        },
+      );
+    }
     if (err instanceof SubmissionReconciliationRequiredError) {
       return NextResponse.json(
         customerApiError({

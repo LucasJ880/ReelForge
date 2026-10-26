@@ -60,6 +60,8 @@ test("RF-029: list and detail share one runtime-validated SSR DTO mapper", () =>
     "bgmAttribution",
     "brandedVideoUrl",
     "briefId",
+    /// P05-B：只重拼（换字幕样式 / 配乐）入口随行下发。
+    "canRestitch",
     "canRetry",
     "durationSec",
     "failedSceneCount",

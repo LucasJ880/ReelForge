@@ -876,24 +876,42 @@ export async function assertRegisterRateLimit(params: {
  * browser loop or duplicated client request from causing an abrupt spend
  * spike without inventing a new commercial entitlement.
  */
+const AUTHENTICATED_ACTION_RATE_LIMITS = {
+  "product-image": {
+    envKey: "PRODUCT_IMAGE_RATE_LIMIT_PER_HOUR",
+    fallback: 5,
+    message: "图片生成操作过于频繁，请一小时后再试。",
+  },
+  /// P05-B 只重拼（换字幕样式 / 配乐）：零生成计费，但每次都要跑一遍合成器函数，
+  /// 限频防止循环点击把 stitch-dispatch 打满。
+  restitch: {
+    envKey: "RESTITCH_RATE_LIMIT_PER_HOUR",
+    fallback: 6,
+    message: "更换字幕 / 配乐过于频繁，请一小时后再试。",
+  },
+} as const;
+
+export type AuthenticatedRateLimitedAction = keyof typeof AUTHENTICATED_ACTION_RATE_LIMITS;
+
 export async function assertAuthenticatedActionRateLimit(params: {
-  action: "product-image";
+  action: AuthenticatedRateLimitedAction;
   userId: string;
   maxPerHour?: number;
 }): Promise<void> {
   if (!isQuotaEnforced() && process.env.NODE_ENV !== "production") return;
 
+  const policy = AUTHENTICATED_ACTION_RATE_LIMITS[params.action];
   const configured = Number.parseInt(
-    process.env.PRODUCT_IMAGE_RATE_LIMIT_PER_HOUR ?? "5",
+    process.env[policy.envKey] ?? String(policy.fallback),
     10,
   );
-  const fallback = Number.isFinite(configured) ? configured : 5;
+  const fallback = Number.isFinite(configured) ? configured : policy.fallback;
   const max = Math.max(1, Math.min(params.maxPerHour ?? fallback, 100));
   await bumpRateLimit(
     `${params.action}:user:${params.userId}`,
     hourlyWindowKey(),
     max,
-    "图片生成操作过于频繁，请一小时后再试。",
+    policy.message,
   );
 }
 

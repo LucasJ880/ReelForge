@@ -10,6 +10,7 @@ import {
 } from "./shuyu-catalog";
 import {
   SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuVideoPlanFamily,
   shuyuVideoPlanPointBounds,
   shuyuVideoPlanResolution,
   shuyuVideoPlanTier,
@@ -22,11 +23,13 @@ import {
 export {
   SHUYU_VIDEO_PLAN_LIST_MAX,
   SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuVideoPlanFamily,
   shuyuVideoPlanPointBounds,
   shuyuVideoPlanResolution,
   shuyuVideoPlanSalePointsWithinBounds,
   shuyuVideoPlanTier,
   type ShuyuVideoPlanBillingUnit,
+  type ShuyuVideoPlanFamily,
   type ShuyuVideoPlanResolution,
   type ShuyuVideoPlanTier,
 } from "./shuyu-video-plan-tiers";
@@ -83,6 +86,19 @@ const httpsUrlSchema = z
   .url()
   .refine((value) => value.startsWith("https://"), "HTTPS URL required");
 
+const SHUYU_PRICE_ASPECT_RATIOS = ["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "9:16", "16:9"] as const;
+const SHUYU_PRICE_VIDEO_MODES = ["text2video", "image2video", "frames2video"] as const;
+
+function knownValues<const T extends readonly [string, ...string[]]>(values: T) {
+  const known = new Set<string>(values);
+  return z
+    .array(z.string().max(64))
+    .max(32)
+    .transform((list) => [
+      ...new Set(list.filter((value): value is T[number] => known.has(value))),
+    ]);
+}
+
 export const shuyuPriceSchema = z
   .object({
     plan_id: boundedIdentifier,
@@ -94,30 +110,29 @@ export const shuyuPriceSchema = z
     display_name: z.string().trim().min(1).max(500),
     capabilities: z
       .object({
-        aspect_ratios: z
-          .array(z.enum(["1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "9:16", "16:9"]))
-          .max(8),
-        input_images_max: z.number().int().min(0).max(9),
-        modes: z
-          .array(z.enum(["text2video", "image2video", "frames2video"]))
-          .max(3)
-          .optional(),
-        durations: z.array(z.number().int().min(1).max(60)).max(30).optional(),
-        quality: z.enum(["480P", "720P", "1080P", "1K", "2K", "4K"]).optional(),
+        /// 认识的取值才留下；供应商新增的画幅 / mode（1027：21:9、first-frame-to-video）
+        /// 只是被忽略，不让整档出局——审计再按「必须包含哪些」判。
+        aspect_ratios: knownValues(SHUYU_PRICE_ASPECT_RATIOS),
+        /// 套餐自报上限（1027：Seedance 2.5 = 30）；实际提交另由 SHUYU_MAX_REFERENCE_IMAGES 截断。
+        input_images_max: z.number().int().min(0).max(100),
+        modes: knownValues(SHUYU_PRICE_VIDEO_MODES).optional(),
+        durations: z.array(z.number().int().min(1).max(60)).max(60).optional(),
+        quality: boundedIdentifier.optional(),
       })
       .strip(),
     status: z.literal("available"),
   })
   .strip();
 
-/// 逐条校验：供应商新上一档（新 mode / 新画幅 / 30s 等）只丢掉那一条，不让整张价目表失效。
-/// 单条仍严格——认不出的档宁可缺席，也不能被当成已审计的旧档计价。
+/// 逐条校验：结构坏掉的档只丢掉那一条，不让整张价目表失效（1027：目录涨到 110 档、
+/// 全部带 21:9，旧的 max(100) + 严格枚举让视频与图像线路整体停机）。
+/// 「这档是不是我们审计过的模型」由 auditShuyuVideoPlan / parseShuyuCatalog 按家族判，不靠 schema。
 export const shuyuPricesResponseSchema = z
   .object({
     object: z.literal("list"),
     data: z
       .array(z.unknown())
-      .max(100)
+      .max(500)
       .transform((entries) =>
         entries.flatMap((entry) => {
           const plan = shuyuPriceSchema.safeParse(entry);
@@ -296,7 +311,7 @@ export function shuyuApiKey(
  * (900 分/条)从 /prices 下架,出现 700 分/条限时档与 88/104 分/秒新档,
  * 钉死 ID 的审计把一次正常调价误判成了整条线路停机。
  *
- * 新审计只锁**语义边界**:studio-video 家族、720P/480P/1080P、9:16 等全画幅、
+ * 新审计只锁**语义边界**:studio-video 且 display_name 属 Seedance 2.0 家族、720P/480P/1080P、9:16 等全画幅、
  * image2video+text2video、支持 15s、参考图 ≥SHUYU_MIN_REFERENCE_IMAGES、单价落在健全区间。
  * 实际扣分仍以 /prices 实时价为准并写入任务计价快照——不存在
  * 「按旧价预估、按新价扣分」的静默漂移,价格越界会直接审计不过。
@@ -350,6 +365,7 @@ export function auditShuyuVideoPlan(
 ): AuditedShuyuVideoPlan | null {
   if (plan.kind !== "video") return null;
   if (plan.model !== SHUYU_VIDEO_MODEL) return null;
+  if (shuyuVideoPlanFamily(plan.display_name) === null) return null;
   if (plan.status !== "available") return null;
   if (plan.unit !== "generation" && plan.unit !== "second") return null;
   const resolution = shuyuVideoPlanResolution(plan.resolution);

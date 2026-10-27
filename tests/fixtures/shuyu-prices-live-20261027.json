@@ -1,0 +1,3827 @@
+{
+  "object": "list",
+  "data": [
+    {
+      "plan_id": "image-plan-01",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 32,
+      "display_name": "SY GPT Image 2 · Medium · 1K · 方案 1",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-02",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 40,
+      "display_name": "SY GPT Image 2 · Medium · 2K · 方案 2",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-03",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2 · Medium · 4K · 方案 3",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-04",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 32,
+      "display_name": "SY GPT Image 2 · Medium · 1K · 方案 4",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-05",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 40,
+      "display_name": "SY GPT Image 2 · Medium · 2K · 方案 5",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-06",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2 · Medium · 4K · 方案 6",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-07",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 24,
+      "display_name": "SY GPT Image 2 · Low · 1K · 方案 7",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-08",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 32,
+      "display_name": "SY GPT Image 2 · Low · 2K · 方案 8",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-09",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 48,
+      "display_name": "SY GPT Image 2 · Low · 4K · 方案 9",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-10",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 48,
+      "display_name": "SY Gemini 3 Pro Image · 1K · 方案 10",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-11",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 56,
+      "display_name": "SY Gemini 3 Pro Image · 2K · 方案 11",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-12",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 88,
+      "display_name": "SY Gemini 3 Pro Image · 4K · 方案 12",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-13",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 32,
+      "display_name": "SY Gemini 3.1 Flash Image · 1K · 方案 13",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-14",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 48,
+      "display_name": "SY Gemini 3.1 Flash Image · 2K · 方案 14",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-15",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 80,
+      "display_name": "SY Gemini 3.1 Flash Image · 4K · 方案 15",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-16",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 40,
+      "display_name": "SY GPT Image 2 · High · 1K · 方案 16",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-17",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 48,
+      "display_name": "SY GPT Image 2 · High · 2K · 方案 17",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-18",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 72,
+      "display_name": "SY GPT Image 2 · High · 4K · 方案 18",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 9,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-19",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 48,
+      "display_name": "SY GPT Image 2.5 Flare · High · 1K · 方案 19",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-20",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 56,
+      "display_name": "SY GPT Image 2.5 Flare · High · 2K · 方案 20",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-21",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 72,
+      "display_name": "SY GPT Image 2.5 Flare · High · 4K · 方案 21",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-22",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 40,
+      "display_name": "SY GPT Image 2.5 Flare · Medium · 1K · 方案 22",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-23",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 48,
+      "display_name": "SY GPT Image 2.5 Flare · Medium · 2K · 方案 23",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-24",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2.5 Flare · Medium · 4K · 方案 24",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-25",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 32,
+      "display_name": "SY GPT Image 2.5 Flare · Low · 1K · 方案 25",
+      "capabilities": {
+        "aspect_ratios": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-26",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 40,
+      "display_name": "SY GPT Image 2.5 Flare · Low · 2K · 方案 26",
+      "capabilities": {
+        "aspect_ratios": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-27",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 56,
+      "display_name": "SY GPT Image 2.5 Flare · Low · 4K · 方案 27",
+      "capabilities": {
+        "aspect_ratios": [
+          "1:1",
+          "9:16",
+          "16:9",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-28",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 56,
+      "display_name": "SY GPT Image 2.5 Sunburst · High · 1K · 方案 28",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-29",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2.5 Sunburst · High · 2K · 方案 29",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-30",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 80,
+      "display_name": "SY GPT Image 2.5 Sunburst · High · 4K · 方案 30",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-31",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 48,
+      "display_name": "SY GPT Image 2.5 Sunburst · Medium · 1K · 方案 31",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-32",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 56,
+      "display_name": "SY GPT Image 2.5 Sunburst · Medium · 2K · 方案 32",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-33",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 80,
+      "display_name": "SY GPT Image 2.5 Sunburst · Medium · 4K · 方案 33",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-34",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 40,
+      "display_name": "SY GPT Image 2.5 Sunburst · Low · 1K · 方案 34",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-35",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 48,
+      "display_name": "SY GPT Image 2.5 Sunburst · Low · 2K · 方案 35",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-36",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2.5 Sunburst · Low · 4K · 方案 36",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-37",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 56,
+      "display_name": "SY Seedream 5 Pro · 1K · 方案 37",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-38",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 72,
+      "display_name": "SY Seedream 5 Pro · 2K · 方案 38",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-39",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 64,
+      "display_name": "SY Seedream 5 Lite · 4K · 方案 39",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-40",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 56,
+      "display_name": "SY GPT Image 2.5 Flare · Xhigh · 1K · 方案 40",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-41",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2.5 Flare · Xhigh · 2K · 方案 41",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-42",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 80,
+      "display_name": "SY GPT Image 2.5 Flare · Xhigh · 4K · 方案 42",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-43",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2.5 Sunburst · Xhigh · 1K · 方案 43",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-44",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 72,
+      "display_name": "SY GPT Image 2.5 Sunburst · Xhigh · 2K · 方案 44",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-45",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 88,
+      "display_name": "SY GPT Image 2.5 Sunburst · Xhigh · 4K · 方案 45",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-46",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 64,
+      "display_name": "SY GPT Image 2.5 Flare · Max · 1K · 方案 46",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-47",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 72,
+      "display_name": "SY GPT Image 2.5 Flare · Max · 2K · 方案 47",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-48",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 88,
+      "display_name": "SY GPT Image 2.5 Flare · Max · 4K · 方案 48",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-49",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 72,
+      "display_name": "SY GPT Image 2.5 Sunburst · Max · 1K · 方案 49",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-50",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 80,
+      "display_name": "SY GPT Image 2.5 Sunburst · Max · 2K · 方案 50",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-51",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 96,
+      "display_name": "SY GPT Image 2.5 Sunburst · Max · 4K · 方案 51",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-52",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "1K",
+      "sale_points": 64,
+      "display_name": "SY Gemini Nano Banana 2.1 · 1K · 方案 52",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "1K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-53",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 72,
+      "display_name": "SY Gemini Nano Banana 2.1 · 2K · 方案 53",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-54",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "4K",
+      "sale_points": 96,
+      "display_name": "SY Gemini Nano Banana 2.1 · 4K · 方案 54",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "resolutions": [
+          "4K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "image-plan-55",
+      "kind": "image",
+      "model": "studio-image",
+      "unit": "generation",
+      "resolution": "2K",
+      "sale_points": 48,
+      "display_name": "SY Seedream 5 Lite · 2K · 方案 55",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 6,
+        "resolutions": [
+          "2K"
+        ]
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-03",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 84,
+      "display_name": "SY Seedance 2.0 Fast VIP · 720P · 方案 3",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-04",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 104,
+      "display_name": "SY Seedance 2.0 VIP · 720P · 方案 4",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-05",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 84,
+      "display_name": "SY Seedance 2.0 Fast VIP · 720P · 方案 5",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-06",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 104,
+      "display_name": "SY Seedance 2.0 VIP · 720P · 方案 6",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-07",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 64,
+      "display_name": "SY Seedance 2.0 Fast VIP · 480P · 方案 7",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-08",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 80,
+      "display_name": "SY Seedance 2.0 VIP · 480P · 方案 8",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-09",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 64,
+      "display_name": "SY Seedance 2.0 Fast VIP · 480P · 方案 9",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-10",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 80,
+      "display_name": "SY Seedance 2.0 VIP · 480P · 方案 10",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-100",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 104,
+      "display_name": "SY WAN 3.0（标准版） · 1080P · 方案 100",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "image2video",
+          "text2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 5,
+        "input_audios_max": 5
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-101",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 56,
+      "display_name": "SY Wan 3.0 Preme（优速版） · 480P · 方案 101",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "480P",
+        "input_videos_max": 5,
+        "input_audios_max": 5
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-102",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 72,
+      "display_name": "SY Wan 3.0 Preme（优速版） · 720P · 方案 102",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 5,
+        "input_audios_max": 5
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-103",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 116,
+      "display_name": "SY Wan 3.0 Preme（优速版） · 1080P · 方案 103",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 5,
+        "input_audios_max": 5
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-104",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 18,
+      "display_name": "SY Grok 1.0 · 480P · 方案 104",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "2:3",
+          "3:2",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "first-frame-to-video",
+          "text2video"
+        ],
+        "durations": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-105",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 24,
+      "display_name": "SY Grok 1.5 · 480P · 方案 105",
+      "capabilities": {
+        "aspect_ratios": [
+          "9:16",
+          "16:9"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "first-frame-to-video",
+          "text2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-106",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 56,
+      "display_name": "SY Grok 1.5 · 1080P · 方案 106",
+      "capabilities": {
+        "aspect_ratios": [
+          "9:16",
+          "16:9"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "first-frame-to-video",
+          "text2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-107",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 52,
+      "display_name": "SY Kling 4.0 · 720P · 方案 107",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 5,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-108",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 64,
+      "display_name": "SY Kling 4.0 · 1080P · 方案 108",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "21:9"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 5,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-109",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 40,
+      "display_name": "SY Kling 3.0 · 720P · 方案 109",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "input_images_max": 2,
+        "modes": [
+          "text2video",
+          "first-frame-to-video",
+          "frames2video"
+        ],
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-11",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 80,
+      "display_name": "SY Seedance 2.0 VIP · 480P · 方案 11",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-110",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 48,
+      "display_name": "SY Kling 3.0 · 1080P · 方案 110",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "input_images_max": 2,
+        "modes": [
+          "text2video",
+          "first-frame-to-video",
+          "frames2video"
+        ],
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-111",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 48,
+      "display_name": "SY Kling 3.0 Omni · 720P · 方案 111",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "text2video"
+        ],
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 1,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-112",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 60,
+      "display_name": "SY Kling 3.0 Omni · 1080P · 方案 112",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "text2video"
+        ],
+        "durations": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 1,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-12",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 116,
+      "display_name": "SY Seedance 2.0 VIP · 720P · 方案 12",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-13",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 240,
+      "display_name": "SY Seedance 2.0 VIP · 1080P · 方案 13",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-14",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "4K",
+      "sale_points": 640,
+      "display_name": "SY Seedance 2.0 VIP · 4K · 方案 14",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "4K",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-15",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 240,
+      "display_name": "SY Seedance 2.0 VIP · 1080P · 方案 15",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-16",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "4K",
+      "sale_points": 640,
+      "display_name": "SY Seedance 2.0 VIP · 4K · 方案 16",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "4K",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-21",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 32,
+      "display_name": "SY Grok 1.5 · 720P · 方案 21",
+      "capabilities": {
+        "aspect_ratios": [
+          "9:16",
+          "16:9"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "first-frame-to-video",
+          "text2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-22",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 32,
+      "display_name": "SY Grok 1.5 · 720P · 方案 22",
+      "capabilities": {
+        "aspect_ratios": [
+          "9:16",
+          "16:9"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "first-frame-to-video",
+          "text2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-23",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 24,
+      "display_name": "SY Grok 1.0 · 720P · 方案 23",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "2:3",
+          "3:2",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 7,
+        "modes": [
+          "image2video",
+          "first-frame-to-video",
+          "text2video"
+        ],
+        "durations": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-24",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "generation",
+      "resolution": "720P",
+      "sale_points": 300,
+      "display_name": "SY Gemini Omni Flash · 720P · 方案 24",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16"
+        ],
+        "input_images_max": 6,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          10
+        ],
+        "quality": "720P",
+        "input_videos_max": 0,
+        "input_audios_max": 0
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-76",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 76,
+      "display_name": "SY Seedance 2.5 · 480P · 方案 76",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "480P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-77",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 130,
+      "display_name": "SY Seedance 2.5 · 720P · 方案 77",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-78",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 360,
+      "display_name": "SY Seedance 2.5 · 1080P · 方案 78",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-79",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 180,
+      "display_name": "SY Seedance 2.5 VIP · 480P · 方案 79",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "480P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-80",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 300,
+      "display_name": "SY Seedance 2.5 VIP · 720P · 方案 80",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-81",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 560,
+      "display_name": "SY Seedance 2.5 VIP · 1080P · 方案 81",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-82",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 56,
+      "display_name": "SY Seedance 2.0 Fast VIP · 480P · 方案 82",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-83",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 72,
+      "display_name": "SY Seedance 2.0 VIP · 480P · 方案 83",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-84",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 160,
+      "display_name": "SY Seedance 2.0 VIP · 1080P · 方案 84",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-85",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "4K",
+      "sale_points": 520,
+      "display_name": "SY Seedance 2.0 VIP · 4K · 方案 85",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "4K",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-86",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 90,
+      "display_name": "SY Seedance 2.5 VIP · 480P · 方案 86",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "480P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-87",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 144,
+      "display_name": "SY Seedance 2.5 VIP · 720P · 方案 87",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-88",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 420,
+      "display_name": "SY Seedance 2.5 VIP · 1080P · 方案 88",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-89",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 96,
+      "display_name": "SY Seedance 2.0 Fast VIP · 720P · 方案 89",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "720P",
+        "input_videos_max": 3,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-90",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 100,
+      "display_name": "SY Seedance 2.5 VIP · 480P · 方案 90",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "480P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-91",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 160,
+      "display_name": "SY Seedance 2.5 VIP · 720P · 方案 91",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-92",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 520,
+      "display_name": "SY Seedance 2.5 VIP · 1080P · 方案 92",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 30,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "1080P",
+        "input_videos_max": 10,
+        "input_audios_max": 10
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-93",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 16,
+      "display_name": "SY MiniMax H3 · 480P · 方案 93",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "480P",
+        "input_videos_max": 0,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-94",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "768P",
+      "sale_points": 24,
+      "display_name": "SY MiniMax H3 · 768P · 方案 94",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "768P",
+        "input_videos_max": 0,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-95",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "1080P",
+      "sale_points": 32,
+      "display_name": "SY MiniMax H3 · 1080P · 方案 95",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "1080P",
+        "input_videos_max": 0,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-96",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "2K",
+      "sale_points": 50,
+      "display_name": "SY MiniMax H3 · 2K · 方案 96",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "2K",
+        "input_videos_max": 0,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-97",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "4K",
+      "sale_points": 80,
+      "display_name": "SY MiniMax H3 · 4K · 方案 97",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4",
+          "21:9"
+        ],
+        "input_images_max": 9,
+        "modes": [
+          "text2video",
+          "image2video"
+        ],
+        "durations": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15
+        ],
+        "quality": "4K",
+        "input_videos_max": 0,
+        "input_audios_max": 3
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-98",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "480P",
+      "sale_points": 48,
+      "display_name": "SY WAN 3.0（标准版） · 480P · 方案 98",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "image2video",
+          "text2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "480P",
+        "input_videos_max": 5,
+        "input_audios_max": 5
+      },
+      "status": "available"
+    },
+    {
+      "plan_id": "video-plan-99",
+      "kind": "video",
+      "model": "studio-video",
+      "unit": "second",
+      "resolution": "720P",
+      "sale_points": 64,
+      "display_name": "SY WAN 3.0（标准版） · 720P · 方案 99",
+      "capabilities": {
+        "aspect_ratios": [
+          "16:9",
+          "9:16",
+          "1:1",
+          "4:3",
+          "3:4"
+        ],
+        "input_images_max": 10,
+        "modes": [
+          "image2video",
+          "text2video"
+        ],
+        "durations": [
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30
+        ],
+        "quality": "720P",
+        "input_videos_max": 5,
+        "input_audios_max": 5
+      },
+      "status": "available"
+    }
+  ]
+}

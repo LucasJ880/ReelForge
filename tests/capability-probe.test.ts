@@ -23,7 +23,7 @@ function goodPlan(overrides: Record<string, unknown> = {}) {
     unit: "generation" as const,
     resolution: "720P",
     sale_points: SHUYU_VIDEO_POINTS_PER_GENERATION,
-    display_name: "Studio Video",
+    display_name: "Seedance 2.0 · 720P",
     capabilities: {
       aspect_ratios: ["9:16", "16:9", "1:1"] as const,
       input_images_max: 9,
@@ -164,6 +164,20 @@ test("多个 video 套餐时优先对比 studio-video 家族成员", () => {
   ]);
   assert.equal(result.drifts.length, 1);
   assert.equal(result.drifts[0].field, "sale_points");
+});
+
+test("同一个 model 下混着别家模型：只拿 Seedance 2.0 家族诊断，别家档报 family 漂移", () => {
+  /// 1027 真机：Kling / Wan 与 Seedance 共用 model=studio-video，只有 display_name 能区分。
+  const mixed = diagnoseDrift([
+    goodPlan({ plan_id: "kling", display_name: "SY Kling 4.0 · 720P", unit: "second", sale_points: 52 }),
+    goodPlan({ sale_points: 5000 }),
+  ]);
+  assert.deepEqual(mixed.drifts.map((d) => d.field), ["sale_points"]);
+  const onlyOthers = diagnoseDrift([
+    goodPlan({ plan_id: "kling", display_name: "SY Kling 4.0 · 720P", unit: "second", sale_points: 52 }),
+  ]);
+  assert.equal(onlyOthers.auditedPlanFound, false);
+  assert.deepEqual(onlyOthers.drifts.map((d) => d.field), ["family"]);
 });
 
 test("探测结果落库且漂移走 stderr 告警；降级不重复做", () => {

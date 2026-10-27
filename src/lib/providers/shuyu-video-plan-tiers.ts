@@ -32,6 +32,17 @@ export function shuyuVideoPlanTier(
   return resolution === "1080P" ? "final" : "draft";
 }
 
+/**
+ * 模型家族白名单。1027 真机:/prices 里 Seedance / Kling / Wan / Grok / MiniMax / Gemini
+ * 全部共用 `model=studio-video`,只有 display_name 能区分——不认家族,最便宜的 720P
+ * 就会是 Kling 4.0,成片被静默换成另一家模型。Seedance 2.5 要等适配器支持 30s / 30 图后再入族。
+ */
+export type ShuyuVideoPlanFamily = "seedance-2.0";
+
+export function shuyuVideoPlanFamily(displayName: string): ShuyuVideoPlanFamily | null {
+  return /\bseedance\s*2\.0(?![.\d])/i.test(displayName) ? "seedance-2.0" : null;
+}
+
 /** 审计放行的分辨率白名单;其余(4K/1K/2K…)一律出族。 */
 export function shuyuVideoPlanResolution(
   value: string,

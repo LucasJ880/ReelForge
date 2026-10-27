@@ -5,7 +5,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { shuyuPricesResponseSchema } from "../src/lib/providers/shuyu";
+import { listAuditedShuyuVideoPlans, shuyuPricesResponseSchema } from "../src/lib/providers/shuyu";
 import {
   describeSeedance25Signal,
   detectShuyuSeedance25,
@@ -55,7 +55,10 @@ test("2.5 带 30s / 新 mode 上架不打穿价目表：只丢那一档，2.0 �
   assert.equal(parsed.success, true, "一档不认识不能让整张表 invalid_response");
   const kept = parsed.success ? parsed.data.data.map((plan) => plan.plan_id) : [];
   assert.ok(kept.includes("video-plan-04"), "现有 2.0 档保留");
-  assert.equal(kept.includes("video-plan-25-1080"), false, "带未知 mode 的档整条丢弃，不能被当成旧档计价");
+  /// 未知 mode 只被忽略，档本身保留；不被当成旧档计价靠的是审计的家族判据（2.5 不在审计族）。
+  assert.ok(kept.includes("video-plan-25-1080"));
+  const audited = parsed.success ? listAuditedShuyuVideoPlans(parsed.data.data).map((plan) => plan.planId) : [];
+  assert.deepEqual(audited, ["video-plan-04"]);
   const line = describeSeedance25Signal(detectShuyuSeedance25(payload), parsed.success, ["video-plan-25-1080"]);
   assert.match(line, /出现 2\.5 候选档 2 个/);
   assert.match(line, /含 30s/);

@@ -155,7 +155,7 @@ test("Shuyu 目录摘要：最便宜的图与 15 秒视频（与审计同一套�
       unit: "generation",
       resolution: "720P",
       sale_points: 700,
-      display_name: "Studio Video",
+      display_name: "Seedance 2.0 · 720P",
       capabilities: {
         aspect_ratios: ["9:16", "16:9", "1:1"],
         input_images_max: 9,

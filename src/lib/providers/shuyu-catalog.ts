@@ -57,7 +57,9 @@ function isGptImage2Plan(plan: UnknownRecord): boolean {
   const model = typeof plan.model === "string" ? plan.model : "";
   const displayName =
     typeof plan.display_name === "string" ? plan.display_name : "";
-  return /gpt[ -]?image[ -]?2/i.test(model) || /gpt[ -]?image[ -]?2/i.test(displayName);
+  /// 1027：目录出现「GPT Image 2.5 Flare / Sunburst」，前缀同样匹配 gpt image 2——未审计的新型号不得混进 Image 2 档。
+  const image2 = /gpt[ -]?image[ -]?2(?![.\d])/i;
+  return image2.test(model) || image2.test(displayName);
 }
 
 /**

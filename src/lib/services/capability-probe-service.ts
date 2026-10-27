@@ -8,6 +8,7 @@ import {
   ShuyuApiError,
   shuyuApiKey,
   shuyuPriceSchema,
+  shuyuVideoPlanFamily,
   shuyuVideoPlanPointsForDuration,
   shuyuVideoPlanResolution,
   shuyuVideoPlanSalePointsWithinBounds,
@@ -98,6 +99,12 @@ const EXPECTED: Array<{
     expected: SHUYU_VIDEO_MODEL,
     actual: (plan) => plan.model,
     matches: (plan) => plan.model === SHUYU_VIDEO_MODEL,
+  },
+  {
+    field: "family",
+    expected: "display_name 属 Seedance 2.0",
+    actual: (plan) => plan.display_name,
+    matches: (plan) => shuyuVideoPlanFamily(plan.display_name) !== null,
   },
   {
     field: "unit",
@@ -230,8 +237,13 @@ export function diagnoseDrift(plans: ShuyuPlan[]): {
 
   /// 找最像的候选：先按 model 家族里的 draft 分辨率(默认档的候选最该被诊断),
   /// 再按 model 家族,最后拿第一个(plan_id 轮换是常态,不参与匹配)。
+  /// 1027 起同一个 model 下混着多家模型,家族相同的候选优先(否则会去诊断 Kling)。
+  const sameFamily = videoPlans.filter(
+    (plan) => shuyuVideoPlanFamily(plan.display_name) !== null,
+  );
+  const pool = sameFamily.length > 0 ? sameFamily : videoPlans;
   const candidate =
-    videoPlans.find((plan) => {
+    pool.find((plan) => {
       const resolution = shuyuVideoPlanResolution(plan.resolution);
       return (
         plan.model === SHUYU_VIDEO_MODEL &&
@@ -239,8 +251,8 @@ export function diagnoseDrift(plans: ShuyuPlan[]): {
         shuyuVideoPlanTier(resolution) === "draft"
       );
     }) ??
-    videoPlans.find((plan) => plan.model === SHUYU_VIDEO_MODEL) ??
-    videoPlans[0];
+    pool.find((plan) => plan.model === SHUYU_VIDEO_MODEL) ??
+    pool[0];
 
   const drifts = EXPECTED.filter((check) => !check.matches(candidate)).map(
     (check) => ({

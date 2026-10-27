@@ -55,8 +55,39 @@
 
 解锁：P04-A2 选型范围；E3b 范围收窄。
 
+## E2″ · Shuyu Seedance 2.5 参数实证（2026-10-27，已完成）
+
+只读部分：真值表 + `/prices` 原样快照（夹具 `tests/fixtures/shuyu-prices-live-20261027.json`）。
+
+- 目录从 57 档涨到 **110 档**；视频档里 Seedance 2.0 / 2.5、Kling 3.0/4.0、Wan 3.0、Grok、MiniMax H3、Gemini Omni **全部 `model=studio-video`**，只能靠 display_name 区分。几乎每档都多了 `21:9`；2.5 / Wan / Kling 的 `input_images_max` 为 10–30。
+- **生产事故**：旧 schema 外层 `max(100)` + 严格枚举 → `getShuyuPrices` 整表 `invalid_response`，视频与故事板线路停机（发现时 `resolveShuyuVideoPlans` 真机复现）。热修复 #27：放宽结构校验 + 按 display_name 锁家族（不锁的话最便宜的 720P 会是 Kling 4.0，成片被静默换模型）；图像档同时排除「GPT Image 2.5 Flare / Sunburst」。
+- Seedance 2.5 档：标准 480P 76 / 720P 130 / 1080P 360 点/秒（`video-plan-76/77/78`）；VIP 三组 480P 90–180 / 720P 144–300 / 1080P 420–560；durations **4–30**；`input_images_max = 30`；`input_videos_max = 10`、`input_audios_max = 10`；modes 仍是 text2video / image2video；无 4K。
+- OpenAI：chat / moderation 恢复；TTS 生产模型 `tts-1` / `tts-1-hd` 200（真值表原先测的是未开通的 `gpt-4o-mini-tts`，误报 403，已改成测生产模型）。
+- Shuyu 余额：**10-27 仍是 11,964**，充值尚未到账（下表扣点从这个数起算）。
+
+试提交（全部 5s、9:16、`exp-2611-e2pp-*` 幂等键、并发 ≤2）：
+
+| 套餐 | 参考图 | 结果 | 成片 | 耗时 | 扣点 |
+|---|---|---|---|---|---|
+| 2.5 1080P `video-plan-78` | 2 张（一张 `.png` 实为 JPEG） | 预检拒：`invalid_reference_image`（Content-Type 与内容不符） | — | — | 0 |
+| 2.5 1080P `video-plan-78` | 2 张 JPEG | `generation_failed`（could not start this task） | — | — | 0 |
+| 2.0 Fast VIP 480P `video-plan-82`（对照） | 2 张 JPEG | completed | 496×864 · 24fps · AAC | 328s | 280 |
+| 2.5 480P `video-plan-76` | 无（text2video） | completed | 496×864 · 24fps · AAC | <25min | 380 |
+| 2.5 480P `video-plan-76` | 1 张 | completed | 496×864 · 24fps · AAC | <25min | 380 |
+| 2.5 1080P `video-plan-78` | 1 张 | `generation_failed` | — | — | 0 |
+| 2.5 VIP 1080P `video-plan-88` | 1 张 | `generation_failed` | — | — | 0 |
+| 2.5 720P `video-plan-77` | 1 张 | completed | **720×1280** · 24fps · AAC | 474s | 650 |
+
+合计 1,690 点，余额 11,964 → 10,274（与单价逐条吻合，失败的提交零扣点）。
+
+结论：
+- **2.5 的 1080P 目前在 Shuyu 侧启动不了**（标准版与 VIP 都是，价目表却标 available）；480P / 720P 正常出片且自带原生音轨。需向 Shuyu 反馈。
+- 默认线路先落 **Seedance 2.5 · 720P**（实测可出片的最高档，15s = 1,950 点，是原默认 2.0 Fast 720P 的 1.55×）；1080P 修好后设 `SHUYU_DEFAULT_VIDEO_LANE=seedance-2.5-1080p`（15s = 5,400 点）。
+- `.png` 扩展名、JPEG 内容的图会被 Shuyu 预检拒单——客户素材走 blob 时 Content-Type 必须按真实内容写（待查上传链路）。
+- 参考图仍按 9 张硬顶提交（>9 张未实证）；单段仍切 15s（30s 单段待 E11 验证再放开规划器）。
+
 ## 待跑
 
 现在就能跑（等 Shuyu 充值 / OpenAI 生效 / TTS、Sync、remove.bg key）：E12、E14、E15、E8′、E7′ 2.0 臂（兼 E10）、E3b、E16、E13、E17、E9。
-等 Shuyu 上线 Seedance 2.5：E2″、E7′ 2.5 臂（含 E11）、可选 E4″ → G2′。
+Seedance 2.5 已上线（E2″ 已完成，创始人已拍板默认用 2.5，G2′ 视为通过）：E7′ 2.5 臂（含 E11）、可选 E4″ 待 1080P 修好与充值到账。
 已搁置：E5、E6（Wan / Kling）、原 E2 / E2′（BytePlus / fal 参数实证）。

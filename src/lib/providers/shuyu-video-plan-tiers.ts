@@ -35,12 +35,59 @@ export function shuyuVideoPlanTier(
 /**
  * 模型家族白名单。1027 真机:/prices 里 Seedance / Kling / Wan / Grok / MiniMax / Gemini
  * 全部共用 `model=studio-video`,只有 display_name 能区分——不认家族,最便宜的 720P
- * 就会是 Kling 4.0,成片被静默换成另一家模型。Seedance 2.5 要等适配器支持 30s / 30 图后再入族。
+ * 就会是 Kling 4.0,成片被静默换成另一家模型。
  */
-export type ShuyuVideoPlanFamily = "seedance-2.0";
+export type ShuyuVideoPlanFamily = "seedance-2.0" | "seedance-2.5";
 
 export function shuyuVideoPlanFamily(displayName: string): ShuyuVideoPlanFamily | null {
-  return /\bseedance\s*2\.0(?![.\d])/i.test(displayName) ? "seedance-2.0" : null;
+  if (/\bseedance\s*2\.0(?![.\d])/i.test(displayName)) return "seedance-2.0";
+  if (/\bseedance\s*2\.5(?![.\d])/i.test(displayName)) return "seedance-2.5";
+  return null;
+}
+
+/**
+ * 默认线路(2026-10-27 创始人拍板:后续视频一律 Seedance 2.5 + 最高清)。
+ *
+ * 不带 tier 的默认解析先取该线路里最便宜的档;线路在价目表里缺席时回落到旧默认
+ * (draft 首位,最便宜的 720P),能力探针记一条 lane 漂移——2.5 下架不该让整条线停机。
+ *
+ * 代码默认是 2.5 · 720P:1027 真机 2.5 的 1080P(标准 78、VIP 88)在 /prices 标 available,
+ * 提交却一律 `generation_failed`(could not start),480P / 720P 正常出片。Shuyu 修好后
+ * 设 `SHUYU_DEFAULT_VIDEO_LANE=seedance-2.5-1080p` 切到 1080P;`legacy` 回到 2.0 最便宜档。
+ * 只在服务端读。
+ */
+export interface ShuyuVideoLane {
+  family: ShuyuVideoPlanFamily;
+  resolution: ShuyuVideoPlanResolution;
+}
+
+export const SHUYU_DEFAULT_VIDEO_LANE_ENV = "SHUYU_DEFAULT_VIDEO_LANE" as const;
+export const SHUYU_PREFERRED_VIDEO_LANE: ShuyuVideoLane = {
+  family: "seedance-2.5",
+  resolution: "720P",
+};
+
+export function parseShuyuVideoLane(raw: string): ShuyuVideoLane | null | undefined {
+  const value = raw.trim().toLowerCase();
+  if (value === "legacy") return null;
+  const match = /^seedance-(2\.0|2\.5)-(480p|720p|1080p)$/.exec(value);
+  if (!match) return undefined;
+  return {
+    family: match[1] === "2.5" ? "seedance-2.5" : "seedance-2.0",
+    resolution: match[2]!.toUpperCase() as ShuyuVideoPlanResolution,
+  };
+}
+
+export function shuyuDefaultVideoLane(
+  env: Record<string, string | undefined> = typeof process === "undefined" ? {} : process.env,
+): ShuyuVideoLane | null {
+  const raw = env[SHUYU_DEFAULT_VIDEO_LANE_ENV];
+  const parsed = raw ? parseShuyuVideoLane(raw) : undefined;
+  return parsed === undefined ? SHUYU_PREFERRED_VIDEO_LANE : parsed;
+}
+
+export function shuyuVideoLaneLabel(lane: ShuyuVideoLane): string {
+  return `${lane.family === "seedance-2.5" ? "Seedance 2.5" : "Seedance 2.0"} · ${lane.resolution}`;
 }
 
 /** 审计放行的分辨率白名单;其余(4K/1K/2K…)一律出族。 */

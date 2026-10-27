@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T21:07:15.338Z",
+  "generatedAt": "2026-10-27T21:09:28.146Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -664963,12 +664963,14 @@
     {
       "file": "scripts/e2e-1025/route-truth-table.ts",
       "imports": [
+        "../../src/lib/providers/tts/openai",
         "node:fs",
         "../../src/lib/providers/shuyu",
         "../../src/lib/providers/shuyu-seedance25-probe",
         "../lib/experiment-key-presence"
       ],
       "localImports": [
+        "../../src/lib/providers/tts/openai",
         "../../src/lib/providers/shuyu",
         "../../src/lib/providers/shuyu-seedance25-probe",
         "../lib/experiment-key-presence"
@@ -674378,15 +674380,33 @@
       ]
     },
     {
+      "file": "src/lib/providers/tts/elevenlabs.ts",
+      "imports": [
+        "@/lib/services/capability-status-service",
+        "@/lib/providers/tts/config",
+        "@/lib/providers/tts/types",
+        "@/lib/providers/tts/voices"
+      ],
+      "localImports": [
+        "@/lib/services/capability-status-service",
+        "@/lib/providers/tts/config",
+        "@/lib/providers/tts/types",
+        "@/lib/providers/tts/voices"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/providers/tts/index.ts",
       "imports": [
         "@/lib/providers/tts/config",
+        "@/lib/providers/tts/elevenlabs",
         "@/lib/providers/tts/openai",
         "@/lib/providers/tts/types",
         "@/lib/providers/tts/voices"
       ],
       "localImports": [
         "@/lib/providers/tts/config",
+        "@/lib/providers/tts/elevenlabs",
         "@/lib/providers/tts/openai",
         "@/lib/providers/tts/types",
         "@/lib/providers/tts/voices"
@@ -674942,6 +674962,7 @@
         "@/lib/providers/shuyu-seedance25-probe",
         "@/lib/ai/providers/openai-provider",
         "@/lib/providers/tts/config",
+        "@/lib/providers/tts/elevenlabs",
         "@/lib/providers/tts/openai",
         "@/lib/providers/tts/voices",
         "@/lib/capabilities/classify",
@@ -674955,6 +674976,7 @@
         "@/lib/providers/shuyu-seedance25-probe",
         "@/lib/ai/providers/openai-provider",
         "@/lib/providers/tts/config",
+        "@/lib/providers/tts/elevenlabs",
         "@/lib/providers/tts/openai",
         "@/lib/providers/tts/voices",
         "@/lib/capabilities/classify",
@@ -677185,6 +677207,8 @@
         "@/lib/ai",
         "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
+        "@/lib/providers/shuyu",
+        "@/lib/video-generation/video-route-registry",
         "@/lib/services/media-asset-service",
         "@/lib/services/rate-limit-service",
         "@/lib/storage",
@@ -677200,6 +677224,8 @@
         "@/lib/ai",
         "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
+        "@/lib/providers/shuyu",
+        "@/lib/video-generation/video-route-registry",
         "@/lib/services/media-asset-service",
         "@/lib/services/rate-limit-service",
         "@/lib/storage",
@@ -682717,6 +682743,37 @@
       ]
     },
     {
+      "file": "tests/shuyu-prices-live-catalog.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/providers/shuyu",
+        "../src/lib/providers/shuyu-catalog",
+        "../src/lib/services/capability-probe-service",
+        "../src/lib/services/video-route-options-service",
+        "../src/lib/providers/shuyu-video-plan-tiers",
+        "../src/lib/video-generation/providers/shuyu-video-provider",
+        "../src/lib/video-generation/providers/submission-error",
+        "../src/lib/video-generation/shuyu-runtime"
+      ],
+      "localImports": [
+        "../src/lib/providers/shuyu",
+        "../src/lib/providers/shuyu-catalog",
+        "../src/lib/services/capability-probe-service",
+        "../src/lib/services/video-route-options-service",
+        "../src/lib/providers/shuyu-video-plan-tiers",
+        "../src/lib/video-generation/providers/shuyu-video-provider",
+        "../src/lib/video-generation/providers/submission-error",
+        "../src/lib/video-generation/shuyu-runtime"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/shuyu-product-image-service.test.ts",
       "imports": [
         "node:assert/strict",
@@ -682877,6 +682934,25 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/single-video-reference-limit-route.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/shuyu",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "localImports": [
+        "../src/lib/providers/shuyu",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
         "node:test"
       ]
     },
@@ -683413,6 +683489,25 @@
       ]
     },
     {
+      "file": "tests/storyboard-input-cap-p02b2.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/storyboard-frame-inputs",
+        "../src/lib/providers/shuyu",
+        "../src/lib/providers/shuyu-image-provider"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/storyboard-frame-inputs",
+        "../src/lib/providers/shuyu",
+        "../src/lib/providers/shuyu-image-provider"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/storyboard-lock.test.ts",
       "imports": [
         "node:assert/strict",
@@ -683622,6 +683717,21 @@
       ]
     },
     {
+      "file": "tests/sync-labs-provider.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/sync-labs"
+      ],
+      "localImports": [
+        "../src/lib/providers/sync-labs"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/tail-trim-speech-safe.test.ts",
       "imports": [
         "node:assert/strict",
@@ -683737,6 +683847,27 @@
       "externalImports": [
         "node:assert/strict",
         "node:fs/promises",
+        "node:test"
+      ]
+    },
+    {
+      "file": "tests/tts-elevenlabs.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/tts",
+        "../src/lib/providers/tts/elevenlabs",
+        "../src/lib/services/capability-probe-service",
+        "../src/lib/services/capability-status-service"
+      ],
+      "localImports": [
+        "../src/lib/providers/tts",
+        "../src/lib/providers/tts/elevenlabs",
+        "../src/lib/services/capability-probe-service",
+        "../src/lib/services/capability-status-service"
+      ],
+      "externalImports": [
+        "node:assert/strict",
         "node:test"
       ]
     },

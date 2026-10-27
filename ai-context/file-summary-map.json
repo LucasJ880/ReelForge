@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-26T21:07:15.155Z",
+  "generatedAt": "2026-10-27T21:09:27.986Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -1063752,7 +1063752,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 0,
-      "sizeBytes": 13141,
+      "sizeBytes": 14330,
       "notes": "area=config"
     },
     {
@@ -1063840,7 +1063840,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 1,
-      "sizeBytes": 15472,
+      "sizeBytes": 15059,
       "notes": ""
     },
     {
@@ -1064955,8 +1064955,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 69,
-      "sizeBytes": 7373,
+      "lineCount": 95,
+      "sizeBytes": 12304,
       "notes": "Documentation"
     },
     {
@@ -1064966,8 +1064966,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 63,
-      "sizeBytes": 4810,
+      "lineCount": 94,
+      "sizeBytes": 8172,
       "notes": "Documentation"
     },
     {
@@ -1065816,6 +1065816,17 @@
       "importantSymbols": [],
       "lineCount": 51,
       "sizeBytes": 3803,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-11-round2-phase2.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 37,
+      "sizeBytes": 3836,
       "notes": "Documentation"
     },
     {
@@ -1068744,14 +1068755,15 @@
       "area": "media-processing",
       "exports": [],
       "imports": [
+        "../../src/lib/providers/tts/openai",
         "node:fs",
         "../../src/lib/providers/shuyu",
         "../../src/lib/providers/shuyu-seedance25-probe",
         "../lib/experiment-key-presence"
       ],
       "importantSymbols": [],
-      "lineCount": 237,
-      "sizeBytes": 12411,
+      "lineCount": 238,
+      "sizeBytes": 12477,
       "notes": "Maintenance / one-off script (run via tsx); area=media-processing"
     },
     {
@@ -1081629,8 +1081641,8 @@
         "parseShuyuCatalog",
         "selectAuditedImage2Plan"
       ],
-      "lineCount": 177,
-      "sizeBytes": 6119,
+      "lineCount": 179,
+      "sizeBytes": 6286,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1081666,8 +1081678,8 @@
         "pollShuyuImageTask",
         "validateShuyuOutputUrl"
       ],
-      "lineCount": 348,
-      "sizeBytes": 11657,
+      "lineCount": 363,
+      "sizeBytes": 12423,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1081702,6 +1081714,14 @@
         "SHUYU_VIDEO_PLAN_RESOLUTION_RANK",
         "SHUYU_VIDEO_PLAN_LIST_MAX",
         "shuyuVideoPlanTier",
+        "ShuyuVideoPlanFamily",
+        "shuyuVideoPlanFamily",
+        "ShuyuVideoLane",
+        "SHUYU_DEFAULT_VIDEO_LANE_ENV",
+        "SHUYU_PREFERRED_VIDEO_LANE",
+        "parseShuyuVideoLane",
+        "shuyuDefaultVideoLane",
+        "shuyuVideoLaneLabel",
         "shuyuVideoPlanResolution",
         "shuyuVideoPlanPointBounds",
         "shuyuVideoPlanSalePointsWithinBounds"
@@ -1081713,12 +1081733,12 @@
         "ShuyuVideoPlanBillingUnit",
         "SHUYU_VIDEO_PLAN_RESOLUTION_RANK",
         "SHUYU_VIDEO_PLAN_LIST_MAX",
-        "shuyuVideoPlanTier",
-        "shuyuVideoPlanResolution",
-        "shuyuVideoPlanPointBounds"
+        "ShuyuVideoPlanFamily",
+        "ShuyuVideoLane",
+        "SHUYU_DEFAULT_VIDEO_LANE_ENV"
       ],
-      "lineCount": 80,
-      "sizeBytes": 3218,
+      "lineCount": 138,
+      "sizeBytes": 5727,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1081753,9 +1081773,9 @@
         "shuyuApiKey",
         "AuditedShuyuVideoPlan",
         "SHUYU_MIN_REFERENCE_IMAGES",
+        "SHUYU_MAX_VIDEO_DURATION_SEC",
         "SHUYU_MAX_REFERENCE_IMAGES",
-        "shuyuReferenceImageLimit",
-        "auditShuyuVideoPlan"
+        "SHUYU_IMAGE_MAX_REFERENCE_IMAGES"
       ],
       "imports": [
         "zod",
@@ -1081774,8 +1081794,8 @@
         "SHUYU_IMAGE_PLAN_ID",
         "SHUYU_IMAGE_MODEL"
       ],
-      "lineCount": 1271,
-      "sizeBytes": 45073,
+      "lineCount": 1341,
+      "sizeBytes": 48955,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1081813,6 +1081833,50 @@
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
+      "path": "src/lib/providers/sync-labs.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "SYNC_API_BASE",
+        "SYNC_DEFAULT_LIPSYNC_MODEL",
+        "SYNC_LIPSYNC_MODELS",
+        "SyncLipsyncModel",
+        "SYNC_LIPSYNC_SYNC_MODES",
+        "SyncLipsyncSyncMode",
+        "SYNC_DEFAULT_SYNC_MODE",
+        "SYNC_DEFAULT_USD_PER_SECOND",
+        "SYNC_GENERATION_STATUSES",
+        "SyncGenerationStatus",
+        "SyncFetchOptions",
+        "SyncGeneration",
+        "SyncLipsyncStage",
+        "SyncLipsyncError",
+        "isSyncConfigured",
+        "resolveSyncLipsyncModel",
+        "resolveSyncLipsyncSyncMode",
+        "resolveSyncUsdPerSecond",
+        "estimateSyncLipsyncCostUsd",
+        "mapSyncGenerationStatus",
+        "CreateSyncLipsyncInput",
+        "createSyncLipsyncGeneration",
+        "getSyncLipsyncGeneration"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "SYNC_API_BASE",
+        "SYNC_DEFAULT_LIPSYNC_MODEL",
+        "SYNC_LIPSYNC_MODELS",
+        "SyncLipsyncModel",
+        "SYNC_LIPSYNC_SYNC_MODES",
+        "SyncLipsyncSyncMode",
+        "SYNC_DEFAULT_SYNC_MODE",
+        "SYNC_DEFAULT_USD_PER_SECOND"
+      ],
+      "lineCount": 269,
+      "sizeBytes": 11213,
+      "notes": "External API provider wrapper; area=ai-providers"
+    },
+    {
       "path": "src/lib/providers/tts/config.ts",
       "type": "provider",
       "area": "ai-providers",
@@ -1081833,8 +1081897,42 @@
         "isTtsProviderConfigured",
         "isTtsConfigured"
       ],
-      "lineCount": 47,
-      "sizeBytes": 1893,
+      "lineCount": 49,
+      "sizeBytes": 2071,
+      "notes": "External API provider wrapper; area=ai-providers"
+    },
+    {
+      "path": "src/lib/providers/tts/elevenlabs.ts",
+      "type": "provider",
+      "area": "ai-providers",
+      "exports": [
+        "ELEVENLABS_API_BASE",
+        "ELEVENLABS_DEFAULT_TTS_MODEL",
+        "ELEVENLABS_OUTPUT_FORMAT",
+        "resolveElevenLabsTtsModel",
+        "elevenLabsTtsEndpoint",
+        "ElevenLabsAlignment",
+        "wordsFromCharacterAlignment",
+        "createElevenLabsTtsProvider"
+      ],
+      "imports": [
+        "@/lib/services/capability-status-service",
+        "@/lib/providers/tts/config",
+        "@/lib/providers/tts/types",
+        "@/lib/providers/tts/voices"
+      ],
+      "importantSymbols": [
+        "ELEVENLABS_API_BASE",
+        "ELEVENLABS_DEFAULT_TTS_MODEL",
+        "ELEVENLABS_OUTPUT_FORMAT",
+        "ElevenLabsAlignment",
+        "resolveElevenLabsTtsModel",
+        "elevenLabsTtsEndpoint",
+        "wordsFromCharacterAlignment",
+        "createElevenLabsTtsProvider"
+      ],
+      "lineCount": 193,
+      "sizeBytes": 8105,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1081855,6 +1081953,7 @@
       ],
       "imports": [
         "@/lib/providers/tts/config",
+        "@/lib/providers/tts/elevenlabs",
         "@/lib/providers/tts/openai",
         "@/lib/providers/tts/types",
         "@/lib/providers/tts/voices"
@@ -1081869,8 +1081968,8 @@
         "isTtsConfigured",
         "isTtsProviderConfigured"
       ],
-      "lineCount": 27,
-      "sizeBytes": 1195,
+      "lineCount": 29,
+      "sizeBytes": 1316,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1081941,8 +1082040,8 @@
         "VOICE_MAP",
         "resolveTtsVoice"
       ],
-      "lineCount": 33,
-      "sizeBytes": 1079,
+      "lineCount": 46,
+      "sizeBytes": 1592,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1082977,6 +1083076,7 @@
         "textProbeModels",
         "probeOpenAiChat",
         "probeOpenAiTts",
+        "probeElevenLabsTts",
         "probeTts",
         "probeOpenAiModeration",
         "probeStockFootage",
@@ -1082995,6 +1083095,7 @@
         "@/lib/providers/shuyu-seedance25-probe",
         "@/lib/ai/providers/openai-provider",
         "@/lib/providers/tts/config",
+        "@/lib/providers/tts/elevenlabs",
         "@/lib/providers/tts/openai",
         "@/lib/providers/tts/voices",
         "@/lib/capabilities/classify",
@@ -1083011,8 +1083112,8 @@
         "CapabilityProbeReport",
         "ShuyuBalanceOutcome"
       ],
-      "lineCount": 892,
-      "sizeBytes": 37735,
+      "lineCount": 943,
+      "sizeBytes": 40110,
       "notes": "Business logic service"
     },
     {
@@ -1085425,8 +1085526,8 @@
         "buildPublicVideoRouteOptions",
         "loadPublicVideoRouteOptions"
       ],
-      "lineCount": 104,
-      "sizeBytes": 4058,
+      "lineCount": 109,
+      "sizeBytes": 4252,
       "notes": "Business logic service"
     },
     {
@@ -1085502,8 +1085603,8 @@
         "dispatchVideoForBrief",
         "dispatchMultiSegmentGeneration"
       ],
-      "lineCount": 2689,
-      "sizeBytes": 95411,
+      "lineCount": 2702,
+      "sizeBytes": 96012,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check; area=media-processing"
     },
     {
@@ -1087223,8 +1087324,8 @@
       "importantSymbols": [
         "ShuyuVideoProvider"
       ],
-      "lineCount": 354,
-      "sizeBytes": 13414,
+      "lineCount": 370,
+      "sizeBytes": 14274,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -1087602,7 +1087703,7 @@
         "STORYBOARD_FRAME_PROMPT_LIMIT"
       ],
       "lineCount": 256,
-      "sizeBytes": 12375,
+      "sizeBytes": 12477,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -1087733,14 +1087834,14 @@
         "requireApprovedStoryboardForVideoJob",
         "requireApprovedStoryboardForBrief",
         "SINGLE_VIDEO_REFERENCE_IMAGE_LIMIT",
+        "singleVideoReferenceImageLimitForAdapter",
         "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS",
         "SingleVideoReferenceGroups",
         "composeSingleVideoReferenceGroups",
         "composeSingleVideoReferenceImages",
         "requireApprovedStoryboardVideoReferencesForBrief",
         "StoryboardVideoInputs",
-        "requireApprovedStoryboardVideoInputsForBrief",
-        "StoryboardAutoReviewOutcome"
+        "requireApprovedStoryboardVideoInputsForBrief"
       ],
       "imports": [
         "node:crypto",
@@ -1087749,6 +1087850,8 @@
         "@/lib/ai",
         "@/lib/services/vision-budget-context",
         "@/lib/providers/shuyu-image-provider",
+        "@/lib/providers/shuyu",
+        "@/lib/video-generation/video-route-registry",
         "@/lib/services/media-asset-service",
         "@/lib/services/rate-limit-service",
         "@/lib/storage",
@@ -1087769,8 +1087872,8 @@
         "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS",
         "SingleVideoReferenceGroups"
       ],
-      "lineCount": 2426,
-      "sizeBytes": 94375,
+      "lineCount": 2440,
+      "sizeBytes": 95224,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -1088195,8 +1088298,8 @@
         "voiceoverDriveOf",
         "checkVoiceoverDrive"
       ],
-      "lineCount": 52,
-      "sizeBytes": 1894,
+      "lineCount": 53,
+      "sizeBytes": 2085,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -1089606,7 +1089709,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 505,
-      "sizeBytes": 25085,
+      "sizeBytes": 25093,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089691,8 +1089794,8 @@
         "../src/lib/providers/shuyu"
       ],
       "importantSymbols": [],
-      "lineCount": 188,
-      "sizeBytes": 8035,
+      "lineCount": 202,
+      "sizeBytes": 8798,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1090969,6 +1091072,17 @@
       "importantSymbols": [],
       "lineCount": 51,
       "sizeBytes": 1338,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/fixtures/shuyu-prices-live-20261027.json",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 3827,
+      "sizeBytes": 78194,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093093,8 +1093207,8 @@
         "../scripts/lib/experiment-key-presence"
       ],
       "importantSymbols": [],
-      "lineCount": 128,
-      "sizeBytes": 6601,
+      "lineCount": 132,
+      "sizeBytes": 6935,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093454,6 +1093568,29 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/shuyu-prices-live-catalog.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:fs",
+        "node:test",
+        "../src/lib/providers/shuyu",
+        "../src/lib/providers/shuyu-catalog",
+        "../src/lib/services/capability-probe-service",
+        "../src/lib/services/video-route-options-service",
+        "../src/lib/providers/shuyu-video-plan-tiers",
+        "../src/lib/video-generation/providers/shuyu-video-provider",
+        "../src/lib/video-generation/providers/submission-error",
+        "../src/lib/video-generation/shuyu-runtime"
+      ],
+      "importantSymbols": [],
+      "lineCount": 218,
+      "sizeBytes": 10941,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/shuyu-product-image-service.test.ts",
       "type": "test",
       "area": "tests",
@@ -1093597,6 +1093734,23 @@
       ],
       "lineCount": 253,
       "sizeBytes": 10167,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/single-video-reference-limit-route.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/shuyu",
+        "../src/lib/services/video-service",
+        "../src/lib/video-generation/storyboard-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 43,
+      "sizeBytes": 2579,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1094065,6 +1094219,23 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/storyboard-input-cap-p02b2.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/storyboard-frame-inputs",
+        "../src/lib/providers/shuyu",
+        "../src/lib/providers/shuyu-image-provider"
+      ],
+      "importantSymbols": [],
+      "lineCount": 116,
+      "sizeBytes": 4318,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/storyboard-lock.test.ts",
       "type": "test",
       "area": "tests",
@@ -1094117,8 +1094288,8 @@
         "../src/lib/video-generation/storyboard-frame-inputs"
       ],
       "importantSymbols": [],
-      "lineCount": 1147,
-      "sizeBytes": 49174,
+      "lineCount": 1151,
+      "sizeBytes": 49624,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1094245,6 +1094416,21 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/sync-labs-provider.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/sync-labs"
+      ],
+      "importantSymbols": [],
+      "lineCount": 150,
+      "sizeBytes": 7153,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/tail-trim-speech-safe.test.ts",
       "type": "test",
       "area": "tests",
@@ -1094339,6 +1094525,24 @@
       "importantSymbols": [],
       "lineCount": 239,
       "sizeBytes": 10448,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/tts-elevenlabs.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/providers/tts",
+        "../src/lib/providers/tts/elevenlabs",
+        "../src/lib/services/capability-probe-service",
+        "../src/lib/services/capability-status-service"
+      ],
+      "importantSymbols": [],
+      "lineCount": 151,
+      "sizeBytes": 7342,
       "notes": "Unit / integration test; area=tests"
     },
     {

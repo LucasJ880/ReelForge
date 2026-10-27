@@ -14,6 +14,7 @@
  *   npx tsx scripts/e2e-1025/route-truth-table.ts --keys-only   # 只看实验 key 配置，不发任何请求
  *   npx tsx scripts/e2e-1025/route-truth-table.ts --help
  */
+import { OPENAI_TTS_MODEL } from "../../src/lib/providers/tts/openai";
 import { writeFileSync } from "node:fs";
 import {
   SHUYU_API_BASE_URL,
@@ -126,9 +127,9 @@ async function main() {
       const res = await http("https://api.openai.com/v1/audio/speech", {
         method: "POST",
         headers: { Authorization: `Bearer ${openaiKey}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model: env("OPENAI_TTS_MODEL") ?? "gpt-4o-mini-tts", voice: "alloy", input: "OK" }),
+        body: JSON.stringify({ model: OPENAI_TTS_MODEL, voice: "alloy", input: "OK" }),
       });
-      return { verdict: statusVerdict(res.status), detail: `HTTP ${res.status} · ${res.status === 200 ? "已返回音频" : res.text.slice(0, 100)}` };
+      return { verdict: statusVerdict(res.status), detail: `HTTP ${res.status} · ${OPENAI_TTS_MODEL} · ${res.status === 200 ? "已返回音频" : res.text.slice(0, 100)}` };
     }),
     probe("OpenAI 内容审核", async () => {
       if (!openaiKey) return { verdict: "未配置", detail: "缺 OPENAI_API_KEY" };

@@ -79,3 +79,16 @@
 | P04-F（适配器层） | D-13 | Sync Labs 客户端 `providers/sync-labs.ts`：`POST /v2/generate` + `GET /v2/generate/{id}`，`x-api-key`、`Idempotency-Key`，模型缺省 `sync-3`、`sync_mode` 缺省 `silence`、成本上界 0.133 USD/s；状态映射 REJECTED 不可重试 | `SYNC_API_KEY`；**派发未接**：`voiceover.drive=tts_lipsync` 仍对所有线路 422 | `tests/sync-labs-provider.test.ts`（注入 fetch：契约 / 前置校验零出网 / 错误分类） | **E8′** 口型分与模型档；段级编排（poll-videos 推进、换挂重拼、失败回退原段 + 叠音轨、成本进额度）为下一步 |
 
 本轮不做：P03-A2（等 D-3 定价）、P02-E / P02-G / P02-D2（等 E14 / E15）、P01-G / P01-B2 / P01-D(block)（等 E13）、P04-G / P04-H（等 E16 / E3b）、Shuyu 2.5 任务组（等 G2′）。
+
+## 7. 2026-10-27 · Shuyu 目录事故热修 + Seedance 2.5 默认线路
+
+背景：创始人拍板「后续视频一律 Seedance 2.5 + 最高清」，Shuyu 与 OpenAI 已充值（Shuyu 余额 10-27 仍显示 11,964，充值未到账）；第三方 TTS / Sync Labs / remove.bg 暂不开通。实证见 `2026-11-experiments.md` E2″。
+
+| 任务 | PR | 改动 | 开关 / 默认 | 验证 | 待真机 |
+|---|---|---|---|---|---|
+| 热修：价目表 110 档打穿线路 | #27 | 外层上限 100 → 500；画幅 / mode 只留认识的值；`input_images_max` ≤100；`shuyuVideoPlanFamily` 按 display_name 锁家族（同 model 下混着 Kling / Wan / Grok…）；图像档排除 GPT Image 2.5；探针加 family 判据 | — | `tests/shuyu-prices-live-catalog.test.ts`（1027 真机快照）；真机复核：审计 16 档、图像 `image-plan-08`、探针无漂移 | — |
+| P03-D″（部分）+ 默认线路 | 本 PR | 家族加 `seedance-2.5`；`AuditedShuyuVideoPlan.family / maxDurationSec`；默认线路 `shuyuDefaultVideoLane`：排序与不带 tier 的默认解析先取线路，线路缺席回落 draft 并由探针记 `lane` 漂移；线路内的档不过 final 闸门；提交被拒只在线路内换档；适配器时长上限 15 → 按套餐（硬顶 30） | `SHUYU_DEFAULT_VIDEO_LANE`：缺省 **2.5 · 720P**；`seedance-2.5-1080p` / `legacy` | 同上测试文件（默认 / 1080P / legacy 三种线路、显式 planId 闸门、适配器 30s 放行与 2.0 档 30s 拒绝、routes 清单）；E2″ 真机：2.5 480P / 720P 出片 | 2.5 1080P 在 Shuyu 侧 `generation_failed`（标准 + VIP），修好后切 env 并补一条 1080P 真机 |
+
+本 PR 不做（有意留到实证之后）：参考图 >9 张（P03-I 的 2.5 放量，未实证）、单段 30s 的分段规划器（E11）、音频 / 视频参考透传（2.5 modes 里没有 reference 模式，E4″）。
+
+成本口径变化：默认 15s 段 1,260 点（2.0 Fast 720P）→ **1,950 点（2.5 720P）**；切 1080P 后 5,400 点。客户按条数计配额，不受影响；Shuyu 侧消耗按此估算。

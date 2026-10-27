@@ -3,8 +3,11 @@ import { db } from "@/lib/db";
 import {
   getShuyuBalance,
   getShuyuPrices,
-  isAuditedShuyuDraftVideoPlan,
+  auditShuyuVideoPlan,
+  isShuyuVideoPlanInLane,
   listAuditedShuyuVideoPlans,
+  shuyuDefaultVideoLane,
+  shuyuVideoLaneLabel,
   ShuyuApiError,
   shuyuApiKey,
   shuyuPriceSchema,
@@ -102,7 +105,7 @@ const EXPECTED: Array<{
   },
   {
     field: "family",
-    expected: "display_name 属 Seedance 2.0",
+    expected: "display_name 属 Seedance 2.0 / 2.5",
     actual: (plan) => plan.display_name,
     matches: (plan) => shuyuVideoPlanFamily(plan.display_name) !== null,
   },
@@ -231,7 +234,13 @@ export function diagnoseDrift(plans: ShuyuPlan[]): {
     };
   }
 
-  if (videoPlans.some((plan) => isAuditedShuyuDraftVideoPlan(plan))) {
+  /// 默认线路(2.5 · 1080P)的档也算找到默认档:它在 draft 之外,但正是默认解析会取的档。
+  const lane = shuyuDefaultVideoLane();
+  const isDefaultCandidate = (plan: ShuyuPlan) => {
+    const audited = auditShuyuVideoPlan(plan);
+    return audited !== null && (audited.tier === "draft" || isShuyuVideoPlanInLane(audited, lane));
+  };
+  if (videoPlans.some(isDefaultCandidate)) {
     return { auditedPlanFound: true, videoPlansGone: false, drifts: [] };
   }
 
@@ -273,9 +282,12 @@ export function summarizeShuyuCatalog(plans: ShuyuPlan[]): ShuyuCatalogSummary {
   } catch {
     imagePoints = [];
   }
-  /// 「一条视频最少多少积分」只看默认档(draft):final 档对客户不可选,不进能力口径。
-  const videoPoints = listAuditedShuyuVideoPlans(plans.filter((plan) => plan.kind === "video"))
-    .filter((plan) => plan.tier === "draft")
+  /// 「一条视频最少多少积分」按默认解析会取的那一组档算:默认线路在场就看线路,
+  /// 缺席才看 draft 档(其余 final 档对客户不可选,不进能力口径)。
+  const lane = shuyuDefaultVideoLane();
+  const audited = listAuditedShuyuVideoPlans(plans.filter((plan) => plan.kind === "video"), lane);
+  const lanePlans = audited.filter((plan) => isShuyuVideoPlanInLane(plan, lane));
+  const videoPoints = (lanePlans.length > 0 ? lanePlans : audited.filter((plan) => plan.tier === "draft"))
     .map((plan) => shuyuVideoPlanPointsForDuration(plan, 15));
   const seedance25 = detectShuyuSeedance25(plans);
   return {
@@ -315,6 +327,20 @@ export async function probeShuyuCapabilities(
         ],
       }
     : diagnoseDrift(plans);
+  /// 默认线路缺席不判停机(默认解析回落 draft),但要留痕:成片在被静默降回旧档。
+  const lane = shuyuDefaultVideoLane();
+  if (
+    !fetchError &&
+    lane &&
+    !listAuditedShuyuVideoPlans(plans.filter((plan) => plan.kind === "video"), lane).some((plan) =>
+      isShuyuVideoPlanInLane(plan, lane),
+    )
+  ) {
+    diagnosis.drifts = [
+      ...diagnosis.drifts,
+      { field: "lane", expected: shuyuVideoLaneLabel(lane), actual: "价目表无审计通过的档,默认解析已回落 draft" },
+    ];
+  }
 
   const result: ProbeResult = {
     provider: "shuyu",

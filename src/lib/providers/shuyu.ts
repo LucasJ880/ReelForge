@@ -10,10 +10,13 @@ import {
 } from "./shuyu-catalog";
 import {
   SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
+  shuyuDefaultVideoLane,
   shuyuVideoPlanFamily,
   shuyuVideoPlanPointBounds,
   shuyuVideoPlanResolution,
   shuyuVideoPlanTier,
+  type ShuyuVideoLane,
+  type ShuyuVideoPlanFamily,
   type ShuyuVideoPlanResolution,
   type ShuyuVideoPlanTier,
 } from "./shuyu-video-plan-tiers";
@@ -21,6 +24,11 @@ import {
 /// 分档的纯定义住在 shuyu-video-plan-tiers.ts(契约与 'use client' 选择器也要用,
 /// 不能反向依赖本文件);这里 re-export,调用方照旧从 @/lib/providers/shuyu 导入。
 export {
+  SHUYU_DEFAULT_VIDEO_LANE_ENV,
+  SHUYU_PREFERRED_VIDEO_LANE,
+  shuyuDefaultVideoLane,
+  shuyuVideoLaneLabel,
+  type ShuyuVideoLane,
   SHUYU_VIDEO_PLAN_LIST_MAX,
   SHUYU_VIDEO_PLAN_RESOLUTION_RANK,
   shuyuVideoPlanFamily,
@@ -321,11 +329,17 @@ export function shuyuApiKey(
  * - final(1080P):审计放行、员工/实验标记可选;对客户不可见、不可选
  *   (1080P 客户定价未定)。排序在 draft 之后,冷却跳档不跨档。可用性判断
  *   (runtime / discovery / 探针)只看 draft 档:价目表只剩 1080P = 默认线路停机。
+ *
+ * 2026-10-27 起默认线路 = Seedance 2.5 · 1080P(shuyuDefaultVideoLane):排序与默认解析
+ * 先取线路内的档,它不过 final 闸门;线路缺席回落上面的 draft 默认。其余 1080P 仍按 final 闸门管。
  */
 export interface AuditedShuyuVideoPlan {
   planId: string;
   model: typeof SHUYU_VIDEO_MODEL;
   displayName: string;
+  family: ShuyuVideoPlanFamily;
+  /** 价目表声明的最长单段时长(2.0 = 15,2.5 = 30)。 */
+  maxDurationSec: number;
   resolution: ShuyuVideoPlanResolution;
   /** 1080P = final,720P/480P = draft;由 resolution 唯一决定。 */
   tier: ShuyuVideoPlanTier;
@@ -347,6 +361,8 @@ export interface AuditedShuyuVideoPlan {
  *   调用方负责按优先级排序（实拍在前）。
  */
 export const SHUYU_MIN_REFERENCE_IMAGES = 4;
+/** 适配器单段时长硬顶(1027 /prices:Seedance 2.5 durations 4–30);实际上限取套餐的 maxDurationSec。 */
+export const SHUYU_MAX_VIDEO_DURATION_SEC = 30;
 export const SHUYU_MAX_REFERENCE_IMAGES = 9;
 /** 图像档参考图硬顶（E1 实测全部图像档 input_images_max = 6）；套餐级上限以 AuditedShuyuImagePlan.inputImagesMax 为准。 */
 export const SHUYU_IMAGE_MAX_REFERENCE_IMAGES = 6;
@@ -365,7 +381,8 @@ export function auditShuyuVideoPlan(
 ): AuditedShuyuVideoPlan | null {
   if (plan.kind !== "video") return null;
   if (plan.model !== SHUYU_VIDEO_MODEL) return null;
-  if (shuyuVideoPlanFamily(plan.display_name) === null) return null;
+  const family = shuyuVideoPlanFamily(plan.display_name);
+  if (family === null) return null;
   if (plan.status !== "available") return null;
   if (plan.unit !== "generation" && plan.unit !== "second") return null;
   const resolution = shuyuVideoPlanResolution(plan.resolution);
@@ -399,6 +416,8 @@ export function auditShuyuVideoPlan(
     planId: plan.plan_id,
     model: SHUYU_VIDEO_MODEL,
     displayName: plan.display_name,
+    family,
+    maxDurationSec: Math.min(SHUYU_MAX_VIDEO_DURATION_SEC, Math.max(...plan.capabilities.durations!)),
     resolution,
     tier: shuyuVideoPlanTier(resolution),
     billingUnit: plan.unit,
@@ -437,13 +456,24 @@ export function shuyuVideoPlanPointsForDuration(
  */
 const RESOLUTION_RANK = SHUYU_VIDEO_PLAN_RESOLUTION_RANK;
 
+export function isShuyuVideoPlanInLane(
+  plan: Pick<AuditedShuyuVideoPlan, "family" | "resolution">,
+  lane: ShuyuVideoLane | null,
+): boolean {
+  return lane !== null && plan.family === lane.family && plan.resolution === lane.resolution;
+}
+
+/** 默认线路(见 shuyuDefaultVideoLane)的档排在最前,其余保持上面的排序。 */
 export function listAuditedShuyuVideoPlans(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
+  lane: ShuyuVideoLane | null = shuyuDefaultVideoLane(),
 ): AuditedShuyuVideoPlan[] {
   return plans
     .map(auditShuyuVideoPlan)
     .filter((plan): plan is AuditedShuyuVideoPlan => plan !== null)
     .sort((left, right) => {
+      const leftInLane = isShuyuVideoPlanInLane(left, lane);
+      if (leftInLane !== isShuyuVideoPlanInLane(right, lane)) return leftInLane ? -1 : 1;
       if (left.resolution !== right.resolution) {
         return RESOLUTION_RANK[left.resolution] - RESOLUTION_RANK[right.resolution];
       }
@@ -465,15 +495,20 @@ export function listAuditedShuyuVideoPlans(
  */
 export function defaultAuditedShuyuVideoPlan(
   ranked: ReadonlyArray<AuditedShuyuVideoPlan>,
+  lane: ShuyuVideoLane | null = shuyuDefaultVideoLane(),
 ): AuditedShuyuVideoPlan | undefined {
-  return ranked.find((plan) => plan.tier === "draft");
+  return (
+    ranked.find((plan) => isShuyuVideoPlanInLane(plan, lane)) ??
+    ranked.find((plan) => plan.tier === "draft")
+  );
 }
 
 /** Locate the default (draft-tier) audited video plan among a multi-plan price list. */
 export function findAuditedShuyuVideoPlan(
   plans: ReadonlyArray<z.infer<typeof shuyuPriceSchema>>,
+  lane: ShuyuVideoLane | null = shuyuDefaultVideoLane(),
 ): z.infer<typeof shuyuPriceSchema> | undefined {
-  const fallback = defaultAuditedShuyuVideoPlan(listAuditedShuyuVideoPlans(plans));
+  const fallback = defaultAuditedShuyuVideoPlan(listAuditedShuyuVideoPlans(plans, lane), lane);
   if (!fallback) return undefined;
   return plans.find((plan) => plan.plan_id === fallback.planId);
 }
@@ -501,6 +536,7 @@ export async function resolveShuyuVideoPlans(
         const prices = await getShuyuPrices(options);
         const plans = listAuditedShuyuVideoPlans(
           prices.data.filter((plan) => plan.kind === "video"),
+          shuyuDefaultVideoLane(options.env ?? process.env),
         );
         videoPlanCache = { at: Date.now(), plans };
         return plans;
@@ -525,7 +561,10 @@ export async function resolveShuyuVideoPlans(
 export interface ResolveShuyuVideoPlanArgs extends ShuyuFetchOptions {
   /** 显式套餐 ID;不在审计清单内一律拒绝(fail-closed)。 */
   planId?: string | null;
-  /** 默认解析与冷却跳档所在的档;缺省 draft。显式 planId 时以套餐自身 tier 为准。 */
+  /**
+   * 默认解析与冷却跳档所在的档。缺省 = 默认线路(Seedance 2.5 · 1080P;线路缺席回落 draft 档)。
+   * 显式 planId 时以套餐自身 tier 为准。
+   */
   tier?: ShuyuVideoPlanTier;
   /**
    * final 档闸门,三值:
@@ -590,6 +629,13 @@ async function resolveShuyuVideoPlanPool(
 ): Promise<AuditedShuyuVideoPlan[]> {
   const plans = await resolveShuyuVideoPlans(args);
   if (plans.length === 0) throw noAuditedVideoPlanError();
+  /// 默认线路是产品默认(创始人拍板),不过 final 闸门;闸门只管「显式要别的 1080P」。
+  /// 诉求的 tier 与线路同档(final ↔ 1080P 线路)时同样先取线路。
+  const lane = shuyuDefaultVideoLane(args.env ?? process.env);
+  if (lane && (!args.tier || args.tier === shuyuVideoPlanTier(lane.resolution))) {
+    const lanePool = plans.filter((plan) => isShuyuVideoPlanInLane(plan, lane));
+    if (lanePool.length > 0) return lanePool;
+  }
   const tier = args.tier ?? "draft";
   assertShuyuFinalTierAllowed(tier, args);
   const pool = plans.filter((plan) => plan.tier === tier);
@@ -599,7 +645,8 @@ async function resolveShuyuVideoPlanPool(
 
 /**
  * 解析指定/默认视频套餐;指定 ID 不在审计清单内一律拒绝(fail-closed),
- * 命中 final 档且未 allowFinal 同样拒绝。缺省返回 draft 档首位(最便宜的 720P)。
+ * 命中默认线路以外的 final 档且未 allowFinal 同样拒绝。缺省返回默认线路首位
+ * (Seedance 2.5 · 1080P;线路缺席回落 draft 档首位)。
  */
 export async function resolveShuyuVideoPlan(
   args: ResolveShuyuVideoPlanArgs = {},
@@ -616,7 +663,9 @@ export async function resolveShuyuVideoPlan(
       200,
     );
   }
-  assertShuyuFinalTierAllowed(match.tier, args, match.planId);
+  if (!isShuyuVideoPlanInLane(match, shuyuDefaultVideoLane(args.env ?? process.env))) {
+    assertShuyuFinalTierAllowed(match.tier, args, match.planId);
+  }
   return match;
 }
 

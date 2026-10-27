@@ -8,6 +8,9 @@ import {
   resolveShuyuVideoPlans,
   resolveShuyuVideoPlanWithCooldown,
   SHUYU_MAX_REFERENCE_IMAGES,
+  SHUYU_MAX_VIDEO_DURATION_SEC,
+  isShuyuVideoPlanInLane,
+  shuyuDefaultVideoLane,
   shuyuReferenceImageLimit,
   shuyuVideoPlanPointsForDuration,
   ShuyuApiError,
@@ -26,7 +29,8 @@ import type {
 import { getShuyuRouteRuntimeAvailability } from "../shuyu-runtime";
 
 /**
- * 本次任务**诉求**的套餐档(P03-A1):缺省 draft(720P/480P,默认 = 最便宜的 720P)。
+ * 本次任务**诉求**的套餐档(P03-A1)。缺省不带 tier = 默认线路(Seedance 2.5 · 1080P,
+ * 线路缺席回落 draft 首位);显式 "draft" 才取最便宜的 720P。
  *
  * 诉求 ≠ 授权。`qualityTier === "final"` 只表达「这次想要 1080P」,**不**推出「准许 1080P」:
  * 授权来自 resolveShuyuVideoPlan 的 allowFinal 闸门(服务端 env SHUYU_ALLOW_FINAL_TIER,
@@ -39,8 +43,8 @@ import { getShuyuRouteRuntimeAvailability } from "../shuyu-runtime";
  */
 function requestedShuyuVideoPlanTier(
   options: CreateVideoJobOptions,
-): ShuyuVideoPlanTier {
-  return options.qualityTier === "final" ? "final" : "draft";
+): ShuyuVideoPlanTier | undefined {
+  return options.qualityTier;
 }
 
 export class ShuyuVideoProvider implements VideoProvider {
@@ -75,9 +79,9 @@ export class ShuyuVideoProvider implements VideoProvider {
       );
     }
     const duration = options.durationSec ?? 5;
-    if (!Number.isInteger(duration) || duration < 5 || duration > 15) {
+    if (!Number.isInteger(duration) || duration < 5 || duration > SHUYU_MAX_VIDEO_DURATION_SEC) {
       throw new ProviderSubmissionError(
-        "Shuyu video duration must be an integer from 5 to 15 seconds",
+        `Shuyu video duration must be an integer from 5 to ${SHUYU_MAX_VIDEO_DURATION_SEC} seconds`,
         { providerId: this.id, stage: "preflight", retryable: false },
       );
     }
@@ -192,6 +196,12 @@ export class ShuyuVideoProvider implements VideoProvider {
         { providerId: this.id, stage: "preflight", retryable: false },
       );
     }
+    if (duration > plan.maxDurationSec) {
+      throw new ProviderSubmissionError(
+        `Shuyu plan ${plan.planId} supports at most ${plan.maxDurationSec}s per segment`,
+        { providerId: this.id, stage: "preflight", retryable: false },
+      );
+    }
     const availability = await getShuyuRouteRuntimeAvailability({
       ...this.options,
       requiredPoints: shuyuVideoPlanPointsForDuration(plan, duration),
@@ -272,9 +282,15 @@ export class ShuyuVideoProvider implements VideoProvider {
         if (attemptedPlanIds.length >= 3) throw error;
         const plans = await resolveShuyuVideoPlans(this.options);
         const rejectedPlan = plan;
+        /// 默认线路内被拒只在线路内换档(不静默降到 2.0 / 720P);其余按同 tier 换。
+        const lane = shuyuDefaultVideoLane(this.options.env ?? process.env);
+        const rejectedInLane = isShuyuVideoPlanInLane(rejectedPlan, lane);
         const next = plans.find(
           (candidate) =>
-            candidate.tier === rejectedPlan.tier &&
+            (rejectedInLane
+              ? isShuyuVideoPlanInLane(candidate, lane)
+              : candidate.tier === rejectedPlan.tier) &&
+            candidate.maxDurationSec >= duration &&
             !attemptedPlanIds.includes(candidate.planId) &&
             !isShuyuVideoPlanCoolingDown(candidate.planId),
         );

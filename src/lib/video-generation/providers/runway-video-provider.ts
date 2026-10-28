@@ -166,7 +166,7 @@ export function normalizeRunwayStatus(raw: string): NormalizedVideoStatus {
  * - 4xx（含 429）= 请求在建任务之前就被拒，一定没建；只有 429 值得原样重试；
  * - 5xx、超时、网络断、200 却没有任务 id = 不确定是否已建，不自动重放。
  */
-function submissionError(error: unknown): ProviderSubmissionError {
+export function runwaySubmissionError(error: unknown): ProviderSubmissionError {
   if (!(error instanceof RunwayApiError)) return asProviderSubmissionError({ error, providerId: PROVIDER_ID });
   if (error.status >= 400 && error.status < 500) {
     return new ProviderSubmissionError(error.message, {
@@ -224,7 +224,7 @@ export class RunwayVideoProvider implements VideoProvider {
       const task = await createRunwayTask(request, this.fetchOptions);
       return { providerJobId: task.id, providerId: this.id };
     } catch (error) {
-      throw submissionError(error);
+      throw runwaySubmissionError(error);
     }
   }
 

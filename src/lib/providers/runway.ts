@@ -179,8 +179,37 @@ async function runwayFetch(
   return body;
 }
 
+/// 出图（故事板分镜）：GPT Image 2，最多 16 张参考图，提示词上限 32000 字（SDK 注释）
+export interface RunwayImageRequest {
+  endpoint: "/v1/text_to_image";
+  body: {
+    model: "gpt_image_2";
+    promptText: string;
+    ratio: string;
+    referenceImages?: Array<{ uri: string }>;
+    quality?: "low" | "medium" | "high" | "auto";
+    outputCount?: number;
+  };
+}
+
+export const RUNWAY_IMAGE_REFERENCES_MAX = 16;
+
+/// 竖 / 横 / 方三种画幅在 GPT Image 2 上的像素比（SDK 的 ratio 枚举里没有 1080:1920，最接近的竖屏是 1088:1920）
+export function runwayImageRatio(aspectRatio: string): string | null {
+  switch (aspectRatio.trim()) {
+    case "9:16":
+      return "1088:1920";
+    case "16:9":
+      return "1920:1088";
+    case "1:1":
+      return "1920:1920";
+    default:
+      return null;
+  }
+}
+
 export async function createRunwayTask(
-  request: RunwayVideoRequest,
+  request: RunwayVideoRequest | RunwayImageRequest,
   options: RunwayFetchOptions = {},
 ): Promise<{ id: string; estimatedCredits: number | null }> {
   const body = await runwayFetch(request.endpoint, { method: "POST", body: request.body }, options);
@@ -245,3 +274,33 @@ export const RUNWAY_MODEL_LIMITS: Record<RunwayVideoModel, { promptMax: number |
 export function runwayCreditsToUsd(credits: number): number {
   return Math.round(credits * RUNWAY_USD_PER_CREDIT * 100) / 100;
 }
+
+const OUTPUT_IMAGE_MAX_BYTES = 30 * 1024 * 1024;
+
+function sniffImageMime(bytes: Buffer): string | null {
+  if (bytes.length >= 8 && bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) return "image/png";
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "image/jpeg";
+  if (bytes.length >= 12 && bytes.subarray(0, 4).toString("latin1") === "RIFF" && bytes.subarray(8, 12).toString("latin1") === "WEBP") return "image/webp";
+  return null;
+}
+
+/**
+ * 下载 Runway 的产出图（24–48 小时过期，拿到就转存）。地址来自 Runway 的任务结果、由服务端读取，不是用户给的 URL；
+ * 只认 https、限大小、按文件头判类型（不信响应头），不是图就抛。
+ */
+export async function fetchRunwayOutputImage(
+  url: string,
+  options: { fetchImpl?: typeof fetch; timeoutMs?: number } = {},
+): Promise<{ bytes: Buffer; mimeType: string }> {
+  if (!url.startsWith("https://")) throw new RunwayApiError("Runway 产出地址不是 https", 0, false);
+  const response = await (options.fetchImpl ?? fetch)(url, { signal: AbortSignal.timeout(options.timeoutMs ?? 60_000) });
+  if (!response.ok) throw new RunwayApiError(`Runway 产出图下载失败（${response.status}）`, response.status, isRetryableStatus(response.status));
+  const declared = Number(response.headers.get("content-length") ?? "");
+  if (Number.isFinite(declared) && declared > OUTPUT_IMAGE_MAX_BYTES) throw new RunwayApiError("Runway 产出图过大", 0, false);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  if (bytes.length > OUTPUT_IMAGE_MAX_BYTES) throw new RunwayApiError("Runway 产出图过大", 0, false);
+  const mimeType = sniffImageMime(bytes);
+  if (!mimeType) throw new RunwayApiError("Runway 产出不是可识别的图片", 0, false);
+  return { bytes, mimeType };
+}
+

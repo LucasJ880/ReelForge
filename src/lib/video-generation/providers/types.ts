@@ -110,7 +110,7 @@ export interface VideoJobStatusResult {
 }
 
 export interface VideoProvider {
-  readonly id: "byteplus" | "shuyu" | "mock";
+  readonly id: "byteplus" | "shuyu" | "runway" | "mock";
   readonly displayName: string;
   /**
    * Static billing capability of this adapter, independent of current env

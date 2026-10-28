@@ -62,6 +62,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { defaultBrandPackageId } from "@/lib/brand/default-brand-package";
+import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import {
   COMMERCE_TEMPLATE_RECIPES,
   COMMERCE_TEMPLATE_SLUGS,
@@ -572,6 +573,12 @@ export function StreamlinedVideoStudio({
       if (loadDismissedStoryboardRunIds().includes(run.id)) return;
       setStoryboard(run);
       setRawPrompt(context.prompt);
+      /// 故事板恢复了，口播稿也要回来：商家改过 / AI 写过的稿子不能悄悄退回模板稿
+      const voiceoverDraft = loadVoiceoverDraft(sessionStorage, context.prompt);
+      if (voiceoverDraft !== null) {
+        voiceoverEditedRef.current = true;
+        setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: voiceoverDraft }));
+      }
       if ((DURATIONS as readonly number[]).includes(context.durationSec)) {
         setSelectedDuration(context.durationSec as 15 | 30 | 60);
       }
@@ -733,6 +740,11 @@ export function StreamlinedVideoStudio({
     ));
   }, [autoVoiceoverScript]);
 
+  /// 改过 / AI 写过的口播稿跟描述一起存进 sessionStorage，刷新后随故事板一起恢复
+  useEffect(() => {
+    if (voiceoverEditedRef.current) saveVoiceoverDraft(sessionStorage, rawPrompt, voiceoverScript);
+  }, [rawPrompt, voiceoverScript]);
+
   const invalidatePlan = useCallback(() => {
     interactedRef.current = true;
     setPlan(null);
@@ -822,6 +834,7 @@ export function StreamlinedVideoStudio({
   const regenerateVoiceoverScript = useCallback(async () => {
     const applyTemplate = () => {
       voiceoverEditedRef.current = false;
+      saveVoiceoverDraft(sessionStorage, rawPrompt, null);
       setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: autoVoiceoverScript }));
     };
     if (!rawPrompt.trim() || narrationFromTemplate) {
@@ -1367,6 +1380,7 @@ export function StreamlinedVideoStudio({
       dispatchAttemptRef.current = null;
       persistStoredAttempt(DISPATCH_ATTEMPT_STORAGE_KEY, null);
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, null);
+      saveVoiceoverDraft(sessionStorage, rawPrompt, null);
       if (storyboard) markStoryboardRunDismissed(storyboard.id);
       requestPulseRefresh();
       router.push(payload.nextUrl ?? "/app/library");

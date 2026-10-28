@@ -8,6 +8,7 @@ import {
   seedanceApiKey,
 } from "@/lib/config/seedance-runtime";
 import { runwayApiKey } from "@/lib/providers/runway";
+import { usesRunwayVideo, type RolloutAccount } from "./runway-rollout";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 import { getShuyuRouteRuntimeAvailability } from "./shuyu-runtime";
 import {
@@ -24,15 +25,16 @@ export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
 
 /**
  * 客户的视频线路（2026-10-28）：平台开关，不是客户的选项。
- * VIDEO_CUSTOMER_ROUTE=runway 切到 Runway（CEO 批了，key 到位、小样对比过了再拨）；缺省或其它值都是 buddy（Shuyu）。
- * buddy 始终是审计过的客户线路：切到 Runway 之后，显式点名 buddy 的旧调用方照样放行。
+ * VIDEO_CUSTOMER_ROUTE=runway 全员切到 Runway；灰度名单 RUNWAY_PILOT_ACCOUNTS 里的账号先切（runway-rollout.ts）；
+ * 其余都是 buddy（Shuyu）。buddy 始终是审计过的客户线路：切到 Runway 之后，显式点名 buddy 的旧调用方照样放行。
  */
 export type CustomerVideoRouteId = "buddy" | "runway";
 
 export function customerVideoRouteId(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+  account?: RolloutAccount | null,
 ): CustomerVideoRouteId {
-  return env.VIDEO_CUSTOMER_ROUTE?.trim().toLowerCase() === "runway" ? "runway" : "buddy";
+  return usesRunwayVideo(account, env) ? "runway" : "buddy";
 }
 
 export type StaffSelectableVideoRouteId =
@@ -57,6 +59,8 @@ function isStaffSelectableRouteId(
 export function selectCustomerVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
   env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
+  /// 发起人：灰度名单按它判（邮箱或 user id）
+  account?: RolloutAccount | null;
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
   if (isMockVideoRuntime(env)) {
@@ -68,7 +72,7 @@ export function selectCustomerVideoRouteSnapshot(args: {
     }
     return createVideoRouteSnapshot("mock");
   }
-  const customerRoute = customerVideoRouteId(env);
+  const customerRoute = customerVideoRouteId(env, args.account);
   if (
     args.requestedRouteId !== undefined &&
     args.requestedRouteId !== "buddy" &&
@@ -105,10 +109,15 @@ export const CUSTOMER_FAILOVER_ROUTE_ID = "volcengine_cn_legacy" as const;
  */
 export function customerFailoverRouteSnapshot(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+  /// 主线路：Runway 的备用是 Shuyu（2026-10-28 晚：两家互为备用的第一步，火山直连欠费不再兜 Runway）；
+  /// 其余主线路照旧降到 CUSTOMER_FAILOVER_ROUTE_ID。
+  primaryRouteId?: string,
 ): VideoRouteSnapshot | null {
   /// mock 演练不参与降级：演练线路必须保持确定性
   if (isMockVideoRuntime(env)) return null;
-  const snapshot = createVideoRouteSnapshot(CUSTOMER_FAILOVER_ROUTE_ID);
+  const snapshot = createVideoRouteSnapshot(
+    primaryRouteId === "runway" ? "buddy" : CUSTOMER_FAILOVER_ROUTE_ID,
+  );
   return isVideoRouteSnapshotRuntimeReady(snapshot, env) ? snapshot : null;
 }
 
@@ -121,6 +130,7 @@ export function selectVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
   isInternalStaff: boolean;
   env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
+  account?: RolloutAccount | null;
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
   if (!args.isInternalStaff) {
@@ -129,6 +139,7 @@ export function selectVideoRouteSnapshot(args: {
         ? { requestedRouteId: args.requestedRouteId }
         : {}),
       env,
+      account: args.account ?? null,
     });
   }
   const hasOverride = args.requestedRouteId !== undefined;
@@ -275,12 +286,13 @@ export interface RouteFailoverDeps {
     snapshot: VideoRouteSnapshot;
     shuyuRequiredPoints?: number;
   }) => Promise<VideoRouteRuntimeAvailability>;
-  failoverSnapshot: () => VideoRouteSnapshot | null;
+  /// 按主线路给备用（Runway 降到 Shuyu；其余降到 CUSTOMER_FAILOVER_ROUTE_ID）
+  failoverSnapshot: (primary: VideoRouteSnapshot) => VideoRouteSnapshot | null;
 }
 
 const DEFAULT_ROUTE_FAILOVER_DEPS: RouteFailoverDeps = {
   getAvailability: (args) => getVideoRouteSnapshotRuntimeAvailability(args),
-  failoverSnapshot: () => customerFailoverRouteSnapshot(),
+  failoverSnapshot: (primary) => customerFailoverRouteSnapshot(process.env, primary.videoRouteSnapshot),
 };
 
 export interface RouteFailoverResolution {
@@ -326,7 +338,7 @@ export async function resolveRouteWithFailover(args: {
   ) {
     return unchanged;
   }
-  const failoverSnapshot = deps.failoverSnapshot();
+  const failoverSnapshot = deps.failoverSnapshot(args.snapshot);
   if (!failoverSnapshot) return unchanged;
   const failoverAvailability = await deps.getAvailability({
     snapshot: failoverSnapshot,

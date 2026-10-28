@@ -252,6 +252,8 @@ export async function POST(req: NextRequest) {
       // `/app/create` is a customer-facing production surface even when an
       // operator is rehearsing it. Never inherit a legacy provider default.
       isInternalStaff: false,
+      /// Runway 灰度名单按发起人判（runway-rollout.ts）
+      account: { userId: session.user.id, email: session.user.email ?? null },
     });
   } catch (error) {
     if (error instanceof VideoRouteSelectionError) {

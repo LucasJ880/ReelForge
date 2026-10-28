@@ -62,6 +62,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
+import { BROLL_ROUTE_ENTRY_ENABLED, PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED } from "@/lib/create/entry-policy";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import {
   COMMERCE_TEMPLATE_RECIPES,
@@ -1547,7 +1548,8 @@ export function StreamlinedVideoStudio({
       <QuoteHeader
         title={workspaceNavTitle("create", locale)}
         subtitle={copy.subtitle}
-        modeSwitch={<CreateModeTabs active="video" />}
+        /// 「生成视频 / 产品图片」切换 A 级下线（entry-policy.ts）：商品图改进品牌套件
+        modeSwitch={PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED ? <CreateModeTabs active="video" /> : undefined}
         primaryAction={null}
         readingsLabel={copy.readingsLabel}
         /// 读数取不到时写「—」，不放示例数字
@@ -1981,7 +1983,7 @@ export function StreamlinedVideoStudio({
           ) : null}
 
           {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机）；能力暂停时禁用提交并写明原因 */}
-          <BrollQuickCard available={brollAvailable} gate={brollGate} />
+          {BROLL_ROUTE_ENTRY_ENABLED ? <BrollQuickCard available={brollAvailable} gate={brollGate} /> : null}
         </div>
 
         {/* 委托摘要：xl 起是右侧粘性单据；更窄时退成底部粘性操作条（同一个元素，同一枚主按钮）。

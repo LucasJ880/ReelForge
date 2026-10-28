@@ -77,3 +77,29 @@ test("计价与分辨率：runway 不记合作方积分；出片默认 720p，�
   assert.equal(runwayVideoResolution({ RUNWAY_VIDEO_RESOLUTION: "1080P" }), "1080p");
   assert.equal(runwayVideoResolution({ RUNWAY_VIDEO_RESOLUTION: "4k" }), "720p");
 });
+
+test("灰度名单：名单里的账号（邮箱不分大小写或 user id）走 Runway，其余照旧 Shuyu；全员开关优先", async () => {
+  const { isRunwayPilotAccount, usesRunwayStoryboardImages } = await import("../src/lib/video-generation/runway-rollout");
+  const env = { ...REAL, RUNWAY_PILOT_ACCOUNTS: " CEO.Test@Example.com , user_42 " };
+  assert.equal(isRunwayPilotAccount({ email: "ceo.test@example.com" }, env), true);
+  assert.equal(isRunwayPilotAccount({ userId: "user_42" }, env), true);
+  assert.equal(isRunwayPilotAccount({ email: "someone@example.com", userId: "user_7" }, env), false);
+  assert.equal(isRunwayPilotAccount(null, env), false);
+  assert.equal(customerVideoRouteId(env, { email: "ceo.test@example.com" }), "runway");
+  assert.equal(customerVideoRouteId(env, { email: "someone@example.com" }), "buddy");
+  assert.equal(
+    selectCustomerVideoRouteSnapshot({ env, account: { userId: "user_42" } }).videoRouteSnapshot,
+    "runway",
+  );
+  /// 全员开关打开时名单失效（人人都是 Runway）
+  assert.equal(customerVideoRouteId({ ...env, VIDEO_CUSTOMER_ROUTE: "runway" }, { email: "someone@example.com" }), "runway");
+  /// 故事板出图还要有 key：没 key 留在 Shuyu
+  assert.equal(usesRunwayStoryboardImages({ userId: "user_42" }, env), false);
+  assert.equal(usesRunwayStoryboardImages({ userId: "user_42" }, { ...env, RUNWAYML_API_SECRET: "key" }), true);
+});
+
+test("降级：Runway 主线路不可用时降到 Shuyu（Shuyu 没配也不硬降）；其余主线路照旧", async () => {
+  const { customerFailoverRouteSnapshot } = await import("../src/lib/video-generation/video-route-selection");
+  assert.equal(customerFailoverRouteSnapshot({ ...REAL, SHUYU_API_KEY: "shuyu" }, "runway")?.videoRouteSnapshot, "buddy");
+  assert.equal(customerFailoverRouteSnapshot({ ...REAL }, "runway"), null);
+});

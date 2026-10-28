@@ -90,7 +90,8 @@ test("B2.1 一级区页面都用 WorkspacePage 开场，口号进副标题", () 
   // 创作页标题也是导航名，模式切换在自己的插槽里
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
   assert.match(studio, /title=\{workspaceNavTitle\("create", locale\)\}/);
-  assert.match(studio, /modeSwitch=\{<CreateModeTabs active="video" \/>\}/);
+  /// 2026-10-28 晚：「生成视频 / 产品图片」切换 A 级下线，插槽保留、按 entry-policy 开关渲染
+  assert.match(studio, /modeSwitch=\{PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED \? <CreateModeTabs active="video" \/> : undefined\}/);
 });
 
 test("B2.1 每个行情头都显式写出主行动与统计口径（新建批次、批次详情、成品库补齐口径）", () => {

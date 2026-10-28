@@ -110,4 +110,11 @@ test("2.3 参考图：实拍产品图排在最前，故事板帧在后——提�
       "https://cdn.example.test/frame-3.jpg",
     ],
   );
+  // 2026-10-28：提示词按真正发出的顺序写「参考图说明」——槽位 1-2 是实拍，3-6 是故事板帧，模板原句保留。
+  const prompt = String(captured[0].prompt);
+  assert.match(
+    prompt,
+    /^REFERENCE IMAGES: input_images\[1\]-input_images\[2\] are real photos of the product .* input_images\[3\]-input_images\[6\] are the approved storyboard keyframes in story order/m,
+  );
+  assert.match(prompt, /Use input_images\[1\], input_images\[2\] as the product truth\./);
 });

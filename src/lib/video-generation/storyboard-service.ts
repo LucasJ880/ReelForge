@@ -36,6 +36,13 @@ import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
 import { STORYBOARD_BEATS_LONG, STORYBOARD_BEATS_SHORT } from "@/lib/video-generation/storyboard-beats";
 import {
+  SHOT_CARD_LINE_PREFIX,
+  designStoryboardShotCards,
+  formatShotCard,
+  readShotCardFromFramePrompt,
+  type StoryboardShotCard,
+} from "@/lib/video-generation/shot-cards";
+import {
   applyStoryboardReferenceRoles,
   composeStoryboardFrameInputImages,
   fitStoryboardFramePrompt,
@@ -224,6 +231,10 @@ export function storyboardFrameCountForDuration(durationSec: number): number {
   return 5;
 }
 
+function storyboardBeatsForDuration(durationSec: number): readonly string[] {
+  return storyboardFrameCountForDuration(durationSec) === 4 ? STORYBOARD_BEATS_SHORT : STORYBOARD_BEATS_LONG;
+}
+
 const SINGLE_SHOT_LOCK =
   "SINGLE SHOT LOCK: exactly one scene from one camera — never a grid, panels, collage, split screen, picture-in-picture, inset or magnifier circles, before/after halves, or several moments in one image.";
 
@@ -237,9 +248,11 @@ export function buildStoryboardFramePlans(input: {
   anchorCutoutCount?: number;
   personImageCount?: number;
   maxInputImages?: number;
+  /// 镜头卡（shot-cards.ts，按节奏顺序）；省略 / null = 旧的模板节奏，出帧提示词逐字节不变。
+  shotCards?: ReadonlyArray<StoryboardShotCard | null> | null;
 }): StoryboardFramePlan[] {
   const count = storyboardFrameCountForDuration(input.durationSec);
-  const beats = count === 4 ? STORYBOARD_BEATS_SHORT : STORYBOARD_BEATS_LONG;
+  const beats = storyboardBeatsForDuration(input.durationSec);
   const maxInputImages = input.maxInputImages ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX;
   return beats.map((beat, ordinal) => ({
     ordinal,
@@ -249,6 +262,7 @@ export function buildStoryboardFramePlans(input: {
       ordinal,
       count,
       beat,
+      shotCard: input.shotCards?.[ordinal] ? formatShotCard(input.shotCards[ordinal]!) : null,
       aspectRatio: input.aspectRatio,
       inputs: planStoryboardFrameInputs({
         ordinal,
@@ -270,6 +284,8 @@ function buildStoryboardFramePrompt(input: {
   ordinal: number;
   count: number;
   beat: string;
+  /// 格式化后的镜头卡正文；有卡时帧按卡构图（镜头动作开始的那一刻），并原样落一行供派发视频读回。
+  shotCard?: string | null;
   aspectRatio: string;
   inputs: readonly StoryboardFrameInputImage[];
   maxInputImages: number;
@@ -280,9 +296,13 @@ function buildStoryboardFramePrompt(input: {
 }): string {
   // 1025 真机验收：STORY 放在 FRAME 前面时，多镜头描述会被画成拼图（4 格、5 格、圆形放大插图），
   // 拼图关键帧喂给图生视频会直接毁片。先写这一帧，故事只作连续性背景，并把「单镜头」写成硬约束。
+  const shotCard = input.shotCard?.trim() || null;
   const lines = (storyText: string) => [
     "Create ONE photorealistic commercial storyboard keyframe with GPT Image 2: a single continuous camera shot of one moment, full-bleed edge to edge.",
-    `THIS FRAME ${input.ordinal + 1}/${input.count}: ${input.beat}. Depict only this beat.`,
+    shotCard
+      ? `THIS FRAME ${input.ordinal + 1}/${input.count}: ${input.beat}. Depict only this beat, framed exactly as the shot card below at the moment its action begins.`
+      : `THIS FRAME ${input.ordinal + 1}/${input.count}: ${input.beat}. Depict only this beat.`,
+    ...(shotCard ? [`${SHOT_CARD_LINE_PREFIX}${shotCard}`] : []),
     `${STORYBOARD_STORY_CONTEXT_PREFIX}${storyText}`,
     `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
     SINGLE_SHOT_LOCK,
@@ -314,6 +334,8 @@ export function buildRegeneratedStoryboardFramePrompt(input: {
   aspectRatio: string;
   ordinal: number;
   beat: string;
+  /// 原帧提示词里的镜头卡（readShotCardFromFramePrompt）：重做沿用同一张卡，派发视频才读得回来。
+  shotCard?: string | null;
   inputs: readonly StoryboardFrameInputImage[];
   direction?: string | null;
 }): string {
@@ -323,6 +345,7 @@ export function buildRegeneratedStoryboardFramePrompt(input: {
     ordinal: input.ordinal,
     count: storyboardFrameCountForDuration(input.durationSec),
     beat: input.beat,
+    shotCard: input.shotCard,
     aspectRatio: input.aspectRatio,
     inputs: input.inputs,
     maxInputImages: Math.max(1, input.inputs.length),
@@ -578,12 +601,25 @@ export async function createStoryboardRun(
   if (input.userInitiated) await bumpStoryboardRateLimit("create", input.userId);
 
   const id = randomUUID();
+  /// 镜头卡只给单条故事板：批量视频的提示词沿用模板自己的时间线，帧按卡构图会和它打架。
+  const isBatchRun = (input.purpose ?? "").startsWith("batch-");
+  const shotCards = isBatchRun
+    ? null
+    : await designStoryboardShotCards({
+        story: input.prompt,
+        beats: storyboardBeatsForDuration(input.durationSec),
+        durationSec: input.durationSec,
+        aspectRatio: input.aspectRatio,
+        productImageCount: assets.length,
+        personImageCount: personAssetIds.length,
+      });
   const plans = buildStoryboardFramePlans({
     prompt: input.prompt,
     durationSec: input.durationSec,
     aspectRatio: input.aspectRatio,
     productImageCount: assets.length,
     personImageCount: personAssetIds.length,
+    shotCards,
   });
   let run: StoryboardRunRecord;
   try {
@@ -1424,6 +1460,7 @@ export async function regenerateStoryboardFrame(input: {
           aspectRatio: run.aspectRatio,
           ordinal: existing.ordinal,
           beat: existing.beat,
+          shotCard: readShotCardFromFramePrompt(existing.prompt),
           inputs,
           direction: input.promptOverride,
         }),
@@ -1720,6 +1757,8 @@ export async function requireApprovedStoryboardVideoReferencesForBrief(
 export interface StoryboardVideoInputs extends SingleVideoReferenceGroups {
   story: string;
   beats: string[];
+  /// 与 beats 对齐的镜头卡正文（从帧提示词读回）；旧 run 全为 null。
+  shotCards: Array<string | null>;
   totalDurationSec: number;
   aspectRatio: string;
 }
@@ -1748,14 +1787,14 @@ export async function requireApprovedStoryboardVideoInputsForBrief(
     storyboardFrameUrls: frameUrls,
     limit: options.limit,
   });
-  const beats = run.frames
+  const approvedFrames = run.frames
     .filter((frame) => frame.isCurrent !== false && frame.status === StoryboardFrameStatus.SUCCEEDED)
-    .sort((a, b) => a.ordinal - b.ordinal)
-    .map((frame) => frame.beat);
+    .sort((a, b) => a.ordinal - b.ordinal);
   return {
     ...groups,
     story: run.sourcePrompt,
-    beats,
+    beats: approvedFrames.map((frame) => frame.beat),
+    shotCards: approvedFrames.map((frame) => readShotCardFromFramePrompt(frame.prompt)),
     totalDurationSec: run.durationSec,
     aspectRatio: run.aspectRatio,
   };

@@ -484,6 +484,7 @@ export async function dispatchVideoForBrief(
           fromSec: segment.fromSec,
           toSec: segment.toSec,
           negativePrompt: segment.negativePrompt,
+          shotCards: storyboard.shotCards,
         }),
       })),
     };

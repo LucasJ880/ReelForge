@@ -115,4 +115,7 @@ export function createStoryboardPostHandler(
   };
 }
 
+/// 建 run 会先设计镜头卡（LLM，≤40s 超时退回模板）再同步提交第 0 帧，给足预算。
+export const maxDuration = 120;
+
 export const POST = createStoryboardPostHandler();

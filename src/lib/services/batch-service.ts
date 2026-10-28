@@ -78,6 +78,7 @@ import {
 } from "@/lib/providers/shuyu";
 import { resolveVideoRouteCostSnapshot } from "@/lib/video-generation/video-route-cost";
 import { FRAME_QA_ERROR_PREFIX } from "@/lib/video-generation/frame-qa";
+import { withBatchReferenceManifest } from "@/lib/video-generation/batch-reference-manifest";
 import {
   creativeRecipeSnapshot,
   DEFAULT_BRAND_PLACEMENT,
@@ -1206,17 +1207,23 @@ async function submitClaimedJob(
           : {}),
       },
     });
+  const productUrls = assignment.assets.map((asset) => asset.url);
+  const referenceImages = orderBatchReferenceImages({ productUrls, storyboardUrls: storyboardReferences });
+  /// 按截断后真正发出去的张数写「参考图说明」：实拍在前，故事板帧在后。
+  const sentProductPhotos = Math.min(productUrls.length, referenceImages.length);
+  const prompt = withBatchReferenceManifest(job.promptText ?? "", {
+    productPhotoCount: sentProductPhotos,
+    frameCount: referenceImages.length - sentProductPhotos,
+    negativePrompt: job.negativePrompt,
+  });
   try {
     const guarded = await callProviderWithHistoricalGuard({
       record: job,
       call: () => provider.createVideoJob({
         providerRequestKey,
-        prompt: job.promptText ?? "",
+        prompt,
         negativePrompt: job.negativePrompt ?? undefined,
-        referenceImages: orderBatchReferenceImages({
-          productUrls: assignment.assets.map((asset) => asset.url),
-          storyboardUrls: storyboardReferences,
-        }),
+        referenceImages,
         /// 批量模板的多张产品图是「视觉真值参考」，不是首尾帧。Seedance 2 必须走
         /// Omni-Reference，否则 4 张不同房间的图会被当 first/last frame 强行变形
         /// 拼接（2026-07-20 真机验收发现的幻觉源头）。Seedance-1/Shuyu 适配器会

@@ -141,6 +141,8 @@ export function groundSegmentPromptInStoryboard(
     toSec: number;
     /// 该段的负面提示词：provider 会以 NEGATIVE_CONSTRAINTS_SEPARATOR 拼在正向提示词后面一起发，预算据此扣除
     negativePrompt?: string | null;
+    /// 与 beats 对齐的镜头卡正文（shot-cards.ts，从帧提示词读回）。全空 / 省略 = 旧格式，逐字节不变。
+    shotCards?: ReadonlyArray<string | null>;
   },
 ): string {
   if (original.includes(STORYBOARD_GROUNDING_MARKER) || input.beats.length === 0) return original;
@@ -152,13 +154,23 @@ export function groundSegmentPromptInStoryboard(
   const persons = input.personCount ?? 0;
   /// 帧在参考图里的序号要跳过排在它前面的实拍、切片与主播
   const frameOffset = photos + anchors + persons;
-  const shots = input.beats
+  const segmentShots = input.beats
     .map((beat, index) => ({ index, from: index * span, to: (index + 1) * span, beat: beatWithoutTime(beat) }))
     .filter((shot) => shot.to > input.fromSec && shot.from < input.toSec)
-    .map((shot) => {
-      const from = Math.max(0, Math.round(shot.from - input.fromSec));
-      const to = Math.min(segmentSec, Math.round(shot.to - input.fromSec));
-      return `${from}-${to}s: recreate storyboard keyframe ${shot.index + 1} (reference image ${frameOffset + shot.index + 1}) — ${shot.beat}.`;
+    .map((shot) => ({
+      ...shot,
+      from: Math.max(0, Math.round(shot.from - input.fromSec)),
+      to: Math.min(segmentSec, Math.round(shot.to - input.fromSec)),
+      card: input.shotCards?.[shot.index]?.trim() || null,
+    }));
+  /// LibTV 式镜头卡模式：只要本段有一张卡就切换（旧 run 没有卡，输出与之前逐字节一致）。
+  const cardMode = segmentShots.some((shot) => shot.card);
+  const shotLines = (cardLimit: number) =>
+    segmentShots.map((shot, order) => {
+      const keyframe = `recreate storyboard keyframe ${shot.index + 1} (reference image ${frameOffset + shot.index + 1}) — ${shot.beat}.`;
+      if (!cardMode) return `${shot.from}-${shot.to}s: ${keyframe}`;
+      const card = shot.card && cardLimit >= SHOT_CARD_MIN_CHARS ? ` ${clipText(shot.card, cardLimit)}` : "";
+      return `${shot.from}-${shot.to}s · shot ${order + 1}${order > 0 ? " (hard cut)" : ""}: ${keyframe}${card}`;
     });
   const normalizedStory = input.story.replace(/\s+/gu, " ").trim();
   const roles: string[] = [];
@@ -188,25 +200,63 @@ export function groundSegmentPromptInStoryboard(
     .filter((line) => KEEP_TEMPLATE_LINE.test(line))
     /// 模板默认室内；场景由故事板决定，环境声跟着场景走
     .map((line) => line.replace("subtle real room ambience", "subtle ambient sound that fits the location"));
-  const assemble = (story: string) => [
+  /// 镜头卡模式额外三行（LibTV 画布里每条视频提示词都有的「全局质感 / 产品不变量 / 旁白时间窗」）。
+  const cardModeLines = cardMode
+    ? [
+        LOOK_LINE,
+        ...(productReferenced ? [productInvariantsLine(photos + anchors)] : []),
+        ...(kept.some((line) => line.startsWith("Spoken dialogue")) ? [speechTimingLine(segmentSec)] : []),
+      ]
+    : [];
+  const assemble = (story: string, cardLimit: number) => [
     `${input.aspectRatio} short video, ${segmentSec}s, one continuous photorealistic story.`,
     `STORY (the merchant's own description; it decides who is on screen, where, and what happens): ${story}`,
     references,
+    ...cardModeLines,
     "",
     STORYBOARD_GROUNDING_MARKER,
-    ...shots,
+    ...shotLines(cardLimit),
     "",
     ...kept,
   ].join("\n");
   const negative = input.negativePrompt?.trim() ?? "";
   const negativeTail = negative ? `${NEGATIVE_CONSTRAINTS_SEPARATOR}${negative}` : "";
-  const storyBudget = Math.max(
-    0,
-    Math.min(
-      STORY_CHAR_BUDGET,
-      VIDEO_PROMPT_LIMIT - VIDEO_PROMPT_SAFETY - negativeTail.length - assemble("").length,
-    ),
-  );
+  const available = (cardLimit: number) =>
+    VIDEO_PROMPT_LIMIT - VIDEO_PROMPT_SAFETY - negativeTail.length - assemble("", cardLimit).length;
+  /// 镜头卡与故事抢同一个 5000 字：故事先保底 STORY_RESERVE（商家原话决定谁出镜），余下平分给本段的卡，再把剩的还给故事。
+  const cardsInSegment = segmentShots.filter((shot) => shot.card).length;
+  const cardLimit = cardsInSegment === 0
+    ? 0
+    : Math.min(
+        SHOT_CARD_SEGMENT_MAX_CHARS,
+        Math.floor(
+          Math.max(0, available(0) - Math.min(normalizedStory.length, STORY_RESERVE_WITH_CARDS)) / cardsInSegment,
+        ) - 1,
+      );
+  const storyBudget = Math.max(0, Math.min(STORY_CHAR_BUDGET, available(cardLimit)));
   // 与 provider 的 string.length 校验同用 UTF-16 单位；按码点 slice 会让 emoji 稿超限。
-  return assemble(truncateStoryText(normalizedStory, storyBudget));
+  return assemble(truncateStoryText(normalizedStory, storyBudget), cardLimit);
+}
+
+/// 与 shot-cards.ts 的 SHOT_CARD_MAX_CHARS 同值（本模块客户端也引用，不能 import 那个服务端模块）。
+const SHOT_CARD_SEGMENT_MAX_CHARS = 640;
+/// 预算挤到这个长度以下的卡整张不写（半句镜头卡比没有更误导）。
+const SHOT_CARD_MIN_CHARS = 60;
+const STORY_RESERVE_WITH_CARDS = 600;
+
+const LOOK_LINE =
+  "LOOK: photoreal live-action commercial footage with one consistent grade; natural skin texture; physically correct materials, reflections, liquids and contact shadows; slow, steady, motivated camera moves. No cartoon, CGI or game look, no oversharpening, no HDR glow, no neon, no floating UI, no on-screen text or subtitles, no background music.";
+
+function productInvariantsLine(productImages: number): string {
+  const images = productImages === 1 ? "image 1" : `images 1-${productImages}`;
+  return `PRODUCT INVARIANTS: in every shot the product keeps the exact silhouette, proportions, colors, controls and printed marks of ${images}; it never morphs, never shows a side or part the photos do not show, never gains extra parts, buttons or text, and keeps its real scale next to hands and furniture.`;
+}
+
+function speechTimingLine(segmentSec: number): string {
+  const end = Math.max(1, segmentSec - 1);
+  return `SPEECH TIMING: one narrator only; start the spoken line after the first half second and finish the complete line by ${end}s; never cut off mid-word, never repeat it, no second voice.`;
+}
+
+function clipText(text: string, max: number): string {
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }

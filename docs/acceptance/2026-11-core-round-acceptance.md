@@ -92,3 +92,28 @@
 本 PR 不做（有意留到实证之后）：参考图 >9 张（P03-I 的 2.5 放量，未实证）、单段 30s 的分段规划器（E11）、音频 / 视频参考透传（2.5 modes 里没有 reference 模式，E4″）。
 
 成本口径变化：默认 15s 段 1,260 点（2.0 Fast 720P）→ **1,950 点（2.5 720P）**；切 1080P 后 5,400 点。客户按条数计配额，不受影响；Shuyu 侧消耗按此估算。
+
+## 8. 2026-10-28 · Shuyu 充值到账后的复测 + LibTV 借鉴（镜头卡 / 批量参考图说明）
+
+背景：Shuyu 充值到账（`getShuyuBalance` 10-28：**170,274 点**）；OpenAI 文本 / TTS / 审核 200；remove.bg 200。Sync Labs / 第三方 TTS 仍未配置。
+
+### 8.1 E2″ 复测（直连、不写库，`tmp/experiments-2026-11/E2/e2pp-1028-*.json`）
+
+| 套餐 | 参考图 | 结果 | 扣点 |
+|---|---|---|---|
+| 2.5 1080P `video-plan-78` | 1 张 JPEG | 提交即 `generation_failed`（could not start this task）——**与 10-27 相同，Shuyu 侧仍未修** | 0 |
+| 2.5 720P `video-plan-77` | 11 张 JPEG（>9） | 受理后 317s 转 `refunded` | 0（退回） |
+
+**同日目录漂移**：10:2x（EDT）起 `/prices` 里**标准版 Seedance 2.5（video-plan-76/77/78）整组下架**，只剩 2.5 VIP（86/90 480P 90/100、87/91 720P 144/160、88/92 1080P 420/520 点/秒，durations 4–30，input_images_max 30）。生产代码按 display_name 锁家族，默认线路自动落到 **video-plan-87（2.5 VIP · 720P，144 点/秒）**——不停机、零改动；成本 15s 段 1,950 → **2,160 点**（+11%）。直连 `video-plan-77` 的提交被拒「The requested video option is unavailable」。
+
+结论：默认线路继续 2.5·720P；1080P 需 Shuyu 修复后再切 `SHUYU_DEFAULT_VIDEO_LANE=seedance-2.5-1080p`。参考图维持 9 张硬顶（>9 张这次被判失败退款；样本含人像海报，原因未定，不放量）。
+
+### 8.2 LibTV 借鉴落地（拆解见 `docs/roadmap/2026-10-28-libtv-generation-teardown.md`）
+
+| 任务 | 改动 | 开关 / 默认 | 验证 |
+|---|---|---|---|
+| 故事板镜头卡 | `shot-cards.ts`：建单条故事板时 LLM（fast 档 → gpt-5.6-terra，40s 超时）按商家原话每帧写一张卡（焦段景别 / 机位与运镜幅度 / 前中后景 / 动作 / 结束状态 / 同步声）；写进帧提示词 `SHOT CARD:` 行（免迁移），重做沿用；派发视频时读回接到镜头行（`· shot n (hard cut)`），并加 `LOOK` / `PRODUCT INVARIANTS` / `SPEECH TIMING` 三行。批量故事板不设计卡 | `STORYBOARD_SHOT_CARDS`（缺省开，`off` 关）；LLM 不可用 / 超时 / 不合格 → 与改动前逐字节一致 | `tests/storyboard-shot-cards.test.ts`（7）；`storyboard-grounded-video-prompt` / `video-reference-layout` 的逐字节用例不变；同题模型实测：sol 15–31s、terra 13.8s、5.2 10.8s、4o-mini 5.1s（质量最弱） |
+| 批量参考图说明 | `batch-reference-manifest.ts`：按截断后真正发出的张数写「input_images[1]-[k] 实拍、[k+1]-[m] 故事板帧，冲突以实拍为准」，与模板 `{IMAGE_REFS}` 同一记法；超 5000 字原样返回 | — | `tests/storyboard-shot-cards.test.ts`、`tests/batch-reference-order.test.ts`（整条 submitClaimedJob 提交路径断言说明行） |
+| 建故事板接口 | `storyboards/route.ts` 显式 `maxDuration = 120`（镜头卡 ≤40s + 同步提交第 0 帧） | — | typecheck |
+
+门：`npm run typecheck` 0；改动文件 `eslint` 0（`npm run lint` 的 12 个报错全在 gitignore 的 `tmp/scratch/*.ts` 旧草稿，非本轮）；`npm test` **2469 / pass 2468 / fail 0**。

@@ -16,8 +16,8 @@ test("approved theme topology: 全站单一深海交易大厅，工作区与登�
   const desk = tokens.match(
     /:root:has\(\.desk-theme\),\s*\n\.desk-theme,\s*\n:root:has\(\.gate-theme\),\s*\n\.gate-theme\s*\{([\s\S]*?)\n\}/,
   )?.[1] ?? "";
-  // 2026-10-24 决策：Aivora Exchange 取代 Aivora Glass，整站一块冷蓝近黑的交易大厅。
-  assert.match(root, /--bg:\s*#04070e/i);
+  // 2026-10-28：场换成 LibTV 式中性近黑（Exchange 的冷蓝退役），信号色语义不变。
+  assert.match(root, /--bg:\s*#141414/i);
   assert.match(root, /color-scheme:\s*dark/);
   // 密度块不得再声明颜色——颜色全站统一，只允许密度差异。
   assert.ok(desk.length > 0);

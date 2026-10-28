@@ -41,6 +41,9 @@ const zh = {
       leads: "询盘",
     },
     navShortcut: "快捷键 {key}",
+    /** 2026-10-28 侧栏（学 LibTV）：顶部唯一实心主行动 + 三组导航 */
+    newVideo: "新建视频",
+    navGroups: { make: "创作", assets: "资产", grow: "获客" },
     newLeadsBadge: "新询盘",
     batchStates: batchStatusWords("zh-CN"),
     capabilitiesPaused: "部分 AI 能力暂停",
@@ -704,6 +707,8 @@ const en: CopyShape<typeof zh> = {
       leads: "Leads",
     },
     navShortcut: "Shortcut {key}",
+    newVideo: "New video",
+    navGroups: { make: "Create", assets: "Assets", grow: "Grow" },
     newLeadsBadge: "New inquiries",
     batchStates: batchStatusWords("en-US"),
     capabilitiesPaused: "Some AI features paused",

@@ -16,6 +16,7 @@ import {
   MonitorPlay,
   NotebookText,
   Palette,
+  Plus,
   Search,
   UserRound,
 } from "lucide-react";
@@ -29,9 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNow } from "@/components/exchange/use-now";
 import { usePulse } from "@/components/exchange/use-pulse";
-import { ExchangeTape, batchTapeItems, type TapeEntry } from "@/components/exchange/exchange-tape";
 import { OpsCreditsCluster } from "@/components/platform/ops-credits-cluster";
 import { CapabilityIndicator } from "@/components/capabilities/capability-indicator";
 import type { PublicCapabilities } from "@/lib/capabilities/registry";
@@ -84,6 +83,13 @@ function emailInitial(email: string): string {
   return local ? local.slice(0, 1).toUpperCase() : "A";
 }
 
+/// 侧栏分组（学 LibTV）：顺序与 PLATFORM_PRIMARY_NAV 一致，快捷键 1–7 不变。
+const NAV_GROUPS: ReadonlyArray<{ id: "make" | "assets" | "grow"; items: readonly PlatformNavId[] }> = [
+  { id: "make", items: ["plan", "create", "batches"] },
+  { id: "assets", items: ["library", "brands", "templates"] },
+  { id: "grow", items: ["leads"] },
+];
+
 function Nav({
   pathname,
   mobile = false,
@@ -95,111 +101,85 @@ function Nav({
 }) {
   const { t, locale } = useTranslation();
   const shell = getPlatformCopy(locale).shell;
-  return (
-    <nav
-      aria-label={t(mobile ? "shell.platformShell.mobileNav" : "shell.platformShell.primaryNav")}
-      className={mobile ? "x-pane grid h-16 auto-cols-fr grid-flow-col border-t" : "flex flex-col py-3"}
-    >
-      {PLATFORM_PRIMARY_NAV.map((item, index) => {
-        const Icon = ICONS[item.id];
-        const active = activePath(pathname, item.href);
-        const badge = badges[item.id];
-        const count = badge?.count ?? 0;
-        return (
-          <Link
-            key={item.id}
-            href={item.href}
-            // These protected destinations must not prefetch while NextAuth is
-            // clearing the session during sign-out. A prefetch in that narrow
-            // window follows the middleware redirect to /login and produces a
-            // customer-visible navigation race before the intended redirect.
-            prefetch={false}
-            aria-current={active ? "page" : undefined}
-            aria-keyshortcuts={mobile ? undefined : String(index + 1)}
-            title={mobile ? undefined : shell.navShortcut.replace("{key}", String(index + 1))}
+  const link = (id: PlatformNavId) => {
+    const index = PLATFORM_PRIMARY_NAV.findIndex((entry) => entry.id === id);
+    const item = PLATFORM_PRIMARY_NAV[index]!;
+    const Icon = ICONS[item.id];
+    const active = activePath(pathname, item.href);
+    const badge = badges[item.id];
+    const count = badge?.count ?? 0;
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        // These protected destinations must not prefetch while NextAuth is
+        // clearing the session during sign-out. A prefetch in that narrow
+        // window follows the middleware redirect to /login and produces a
+        // customer-visible navigation race before the intended redirect.
+        prefetch={false}
+        aria-current={active ? "page" : undefined}
+        aria-keyshortcuts={mobile ? undefined : String(index + 1)}
+        title={mobile ? undefined : shell.navShortcut.replace("{key}", String(index + 1))}
+        className={cn(
+          mobile
+            ? "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-micro font-medium"
+            : "relative flex h-9 shrink-0 items-center gap-3 rounded-(--radius-md) px-3 text-meta font-medium transition-colors",
+          mobile
+            ? active
+              ? "text-foreground"
+              : "text-muted-foreground"
+            : active
+              ? "bg-active text-foreground"
+              : "text-muted-foreground hover:bg-raised hover:text-foreground",
+        )}
+      >
+        <span className="relative flex shrink-0">
+          <Icon className="size-4 stroke-[1.5]" aria-hidden />
+          {mobile && badge && count > 0 ? (
+            <span
+              aria-label={`${badge.label} ${count}`}
+              className={cn(
+                "absolute -right-2.5 -top-1.5 min-w-4 rounded-(--radius-sm) px-1 text-center font-mono text-micro leading-4 tabular-nums ring-2 ring-(--bg)",
+                BADGE_TONE[badge.tone],
+              )}
+            >
+              {count > 99 ? "99+" : count}
+            </span>
+          ) : null}
+        </span>
+        <span className={mobile ? "w-full truncate text-center" : "truncate"}>
+          {mobile ? shell.navShort[item.id] : t(`shell.platformNav.${item.id}`)}
+        </span>
+        {!mobile && badge && count > 0 ? (
+          <span
+            aria-label={`${badge.label} ${count}`}
             className={cn(
-              mobile
-                ? "relative flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-micro font-medium"
-                : "group relative flex h-10 shrink-0 items-center gap-3 border-l-2 px-4 text-meta font-medium transition-colors",
-              mobile
-                ? active
-                  ? "text-accent"
-                  : "text-muted-foreground"
-                : active
-                  ? "border-accent bg-active text-foreground"
-                  : "border-transparent text-muted-foreground hover:bg-raised hover:text-foreground",
+              "ml-auto min-w-6 rounded-(--radius-sm) px-1.5 py-0.5 text-center font-mono text-data leading-4 tabular-nums",
+              BADGE_TONE[badge.tone],
             )}
           >
-            {mobile ? null : (
-              <kbd
-                aria-hidden
-                className={cn(
-                  "flex size-5 shrink-0 items-center justify-center rounded-(--radius-sm) border font-mono text-micro tabular-nums",
-                  active ? "border-accent-line text-accent" : "border-border text-tertiary group-hover:text-muted-foreground",
-                )}
-              >
-                {index + 1}
-              </kbd>
-            )}
-            <span className="relative flex shrink-0">
-              <Icon className={cn("size-4 stroke-[1.5]", active && "text-accent")} aria-hidden />
-              {mobile && badge && count > 0 ? (
-                <span
-                  aria-label={`${badge.label} ${count}`}
-                  className={cn(
-                    "absolute -right-2.5 -top-1.5 min-w-4 rounded-(--radius-sm) px-1 text-center font-mono text-micro leading-4 tabular-nums ring-2 ring-(--bg)",
-                    BADGE_TONE[badge.tone],
-                  )}
-                >
-                  {count > 99 ? "99+" : count}
-                </span>
-              ) : null}
-            </span>
-            <span className={mobile ? "w-full truncate text-center" : "truncate"}>
-              {mobile ? shell.navShort[item.id] : t(`shell.platformNav.${item.id}`)}
-            </span>
-            {!mobile && badge && count > 0 ? (
-              <span
-                aria-label={`${badge.label} ${count}`}
-                className={cn(
-                  "ml-auto min-w-6 rounded-(--radius-sm) px-1.5 py-0.5 text-center font-mono text-data leading-4 tabular-nums",
-                  BADGE_TONE[badge.tone],
-                )}
-              >
-                {count > 99 ? "99+" : count}
-              </span>
-            ) : null}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
-function Tape({ entries, locale }: { entries: TapeEntry[]; locale: Locale }) {
-  const copy = getPlatformCopy(locale).shell;
-  if (entries.length === 0) {
+            {count > 99 ? "99+" : count}
+          </span>
+        ) : null}
+      </Link>
+    );
+  };
+  if (mobile) {
     return (
-      <div className="flex h-(--shell-tape) min-w-0 items-center gap-3 px-4 text-meta text-muted-foreground">
-        <span className="x-live" data-tone="idle" aria-hidden />
-        <span className="truncate">{copy.tapeEmpty}</span>
-        <Link href="/app/batches/new" prefetch={false} className="ml-auto shrink-0 font-mono text-data uppercase tracking-wider text-accent hover:text-accent-strong">
-          {copy.tapeEmptyAction} →
-        </Link>
-      </div>
+      <nav aria-label={t("shell.platformShell.mobileNav")} className="grid h-16 auto-cols-fr grid-flow-col border-t bg-sidebar">
+        {PLATFORM_PRIMARY_NAV.map((item) => link(item.id))}
+      </nav>
     );
   }
-  return <ExchangeTape items={batchTapeItems(entries, locale)} locale={locale} label={copy.tape} className="h-(--shell-tape)" />;
-}
-
-function Clock({ label }: { label: string }) {
-  const now = useNow();
   return (
-    <span className="font-mono tabular-nums text-foreground" aria-label={label}>
-      {now
-        ? new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(now)
-        : "--:--:--"}
-    </span>
+    <nav aria-label={t("shell.platformShell.primaryNav")} className="flex flex-col gap-5 px-3 py-2">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.id} className="flex flex-col gap-0.5">
+          <span className="px-3 pb-1 text-data text-tertiary">{shell.navGroups[group.id]}</span>
+          {group.items.map((id) => link(id))}
+        </div>
+      ))}
+    </nav>
   );
 }
 
@@ -211,7 +191,7 @@ function AccountMenu({ email }: { email: string }) {
     <DropdownMenu>
       <DropdownMenuTrigger
         data-testid="account-menu-trigger"
-        className="flex size-8 shrink-0 items-center justify-center rounded-(--radius-md) border border-border-bright bg-active font-mono text-meta font-semibold text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border-strong bg-active font-mono text-meta font-semibold text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
         aria-label={`${t("shell.platformShell.accountSignOut")} · ${email}`}
         title={email}
       >
@@ -300,109 +280,102 @@ export function PlatformShell({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [router]);
   return (
-    <div className="desk-theme desk-canvas relative flex min-h-screen flex-col bg-background text-foreground">
-      <header className="x-pane sticky top-0 z-30 h-(--shell-top) border-b">
-        <div className="flex h-(--shell-bar) items-center gap-3 border-b px-3 md:px-4">
-          <Link href="/app/create" prefetch={false} className="flex shrink-0 items-center gap-2.5" aria-label={copy.home}>
-            <Logo size={30} />
-            <span className="hidden font-heading text-[15px] font-semibold tracking-[0.14em] sm:inline">AIVORA</span>
+    <div className="desk-theme relative flex min-h-screen bg-background text-foreground">
+      {/* 侧栏（学 LibTV 工作台）：标识、唯一实心主行动「新建视频」、三组导航；底部是额度、生成状态与能力提示。
+          不再有行情条、状态栏时钟与编号键帽——快捷键 1–7 仍在（aria-keyshortcuts）。 */}
+      <aside className="studio-side sticky top-0 z-20 hidden h-dvh w-60 shrink-0 flex-col overflow-y-auto overscroll-contain border-r bg-sidebar md:flex">
+        <div className="flex h-(--shell-bar) shrink-0 items-center gap-2.5 px-5">
+          <Link href="/app/create" prefetch={false} className="flex min-w-0 items-center gap-2.5" aria-label={copy.home}>
+            <Logo size={26} />
+            <span className="truncate font-heading text-[14px] font-semibold tracking-[0.14em]">AIVORA</span>
           </Link>
-          <span className="hidden h-5 w-px bg-border md:block" aria-hidden />
-          {/* 只有一个工作区：芯片只是标识，不画下拉箭头装作能切换。 */}
-          <div
-            data-testid="workspace-chip"
-            className="hidden h-8 max-w-64 items-center gap-2 rounded-(--radius-md) border border-border bg-raised px-2.5 text-meta text-foreground md:flex"
-            title={workspaceName}
+        </div>
+        <div className="px-3 pb-3 pt-1">
+          <Link
+            href="/app/create"
+            prefetch={false}
+            data-testid="sidebar-new-video"
+            className="flex h-10 items-center justify-center gap-2 rounded-full bg-foreground text-meta font-semibold text-background transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
+            <Plus className="size-4" aria-hidden />
+            {copy.newVideo}
+          </Link>
+        </div>
+        <Nav pathname={pathname} badges={badges} />
+        <footer className="mt-auto space-y-2.5 border-t px-5 py-4 text-meta">
+          {/* 只有一个工作区：芯片只是标识，不画下拉箭头装作能切换。 */}
+          <div data-testid="workspace-chip" className="flex min-w-0 items-center gap-2" title={workspaceName}>
             <span className="rounded-(--radius-sm) bg-accent-soft px-1.5 font-mono text-micro leading-4 text-accent">{planName}</span>
-            <span className="truncate">{workspaceName}</span>
+            <span className="truncate text-foreground">{workspaceName}</span>
           </div>
-          <div className="shrink-0 md:hidden" data-mobile-language-switcher>
-            <LanguageSwitcher variant="inline" className="size-9 justify-center gap-0 p-0 [&>span]:sr-only" />
+          <div className="flex items-baseline justify-between gap-2">
+            <span className="text-muted-foreground">{readingName("monthlyQuota", locale)}</span>
+            <span className={cn("font-mono tabular-nums", pulse.quota.limit > 0 && pulse.quota.used >= pulse.quota.limit ? "text-gold" : "text-foreground")}>
+              {pulse.quota.used} / {pulse.quota.limit}
+            </span>
           </div>
-          <form action="/app/library" className="relative ml-auto min-w-0 w-full max-w-sm md:ml-2">
-            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
-            <input
-              type="search"
-              name="q"
-              aria-label={t("shell.platformShell.search")}
-              placeholder={t("shell.platformShell.search")}
-              className="h-8 w-full rounded-(--radius-md) border border-border bg-sunken pl-9 pr-3 text-body text-foreground outline-none placeholder:text-tertiary focus-visible:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-            />
-          </form>
-          <div className="hidden items-center gap-2 rounded-(--radius-md) border border-border px-2.5 py-1 lg:flex" role="status" data-testid="market-status">
+          <div className="flex items-center gap-2" role="status" data-testid="market-status">
             <span className="x-live" data-tone={live ? "live" : "idle"} aria-hidden />
-            <span className={cn("font-mono text-data uppercase tracking-wider", live ? "text-accent" : "text-muted-foreground")}>
+            <span className={live ? "text-accent" : "text-muted-foreground"}>
               {live ? copy.marketLive : queued ? copy.marketQueued : copy.marketIdle}
             </span>
             {live || queued ? (
-              <span className="font-mono text-data tabular-nums text-foreground">{live ? pulse.generating : pulse.queued}</span>
+              <span className="font-mono tabular-nums text-foreground">{live ? pulse.generating : pulse.queued}</span>
             ) : null}
           </div>
+          {/* C4：有 AI 能力暂停 / 不稳定时亮出来，点进去看哪些停了、系统改用什么 */}
+          <CapabilityIndicator initial={initialCapabilities} locale={locale} />
           <Link
             href="/wall"
             target="_blank"
             rel="noopener"
             prefetch={false}
             title={copy.openWallHint}
-            className="hidden h-8 shrink-0 items-center gap-1.5 rounded-(--radius-md) border border-border px-2.5 text-meta text-muted-foreground hover:border-accent-line hover:text-accent md:flex"
+            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
           >
             <MonitorPlay className="size-4" aria-hidden />
             {copy.openWall}
           </Link>
-          {showOpsCredits ? <OpsCreditsCluster english={locale === "en-US"} /> : null}
-          <Link
-            href="/app/create?guide=open"
-            prefetch={false}
-            data-testid="topbar-help"
-            aria-label={locale === "en-US" ? "Open the getting-started guide" : "打开新手指引"}
-            className="flex size-8 shrink-0 items-center justify-center rounded-(--radius-md) border border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
-          >
-            <CircleHelp className="size-4" aria-hidden />
+        </footer>
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 flex h-(--shell-bar) shrink-0 items-center gap-3 border-b bg-background px-3 md:px-6">
+          <Link href="/app/create" prefetch={false} className="flex shrink-0 items-center md:hidden" aria-label={copy.home}>
+            <Logo size={28} />
           </Link>
-          <AccountMenu email={email} />
-        </div>
-        <Tape entries={pulse.tape} locale={locale} />
-      </header>
-
-      <div className="flex min-h-0 flex-1">
-        {/* 导轨在文档流里 sticky：与顶栏一起动（不再 fixed 钉在视口上），矮屏时自己滚。 */}
-        <aside className="x-pane sticky top-(--shell-top) z-20 hidden h-[calc(100dvh-var(--shell-top)-var(--shell-status))] w-56 shrink-0 flex-col self-start overflow-y-auto overscroll-contain border-r md:flex">
-          <Nav pathname={pathname} badges={badges} />
-          <div className="mt-auto space-y-1.5 border-t p-4">
-            <span className="x-label">{copy.equity}</span>
-            <div className="flex items-baseline justify-between gap-2 text-meta">
-              <span className="text-muted-foreground">{readingName("monthlyQuota", locale)}</span>
-              <span className={cn("font-mono tabular-nums", pulse.quota.limit > 0 && pulse.quota.used >= pulse.quota.limit ? "text-gold" : "text-foreground")}>
-                {pulse.quota.used} / {pulse.quota.limit}
-              </span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2 text-meta">
-              <span className="text-muted-foreground">{t("shell.platformShell.currentPlan")}</span>
-              <span className="text-accent">{planName}</span>
-            </div>
+          <div className="shrink-0 md:hidden" data-mobile-language-switcher>
+            <LanguageSwitcher variant="inline" className="size-9 justify-center gap-0 p-0 [&>span]:sr-only" />
           </div>
-        </aside>
+          <form action="/app/library" className="relative min-w-0 w-full max-w-md">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden />
+            <input
+              type="search"
+              name="q"
+              aria-label={t("shell.platformShell.search")}
+              placeholder={t("shell.platformShell.search")}
+              className="h-9 w-full rounded-full border border-border bg-raised pl-10 pr-4 text-body text-foreground outline-none placeholder:text-tertiary focus-visible:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            />
+          </form>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {showOpsCredits ? <OpsCreditsCluster english={locale === "en-US"} /> : null}
+            <Link
+              href="/app/create?guide=open"
+              prefetch={false}
+              data-testid="topbar-help"
+              aria-label={locale === "en-US" ? "Open the getting-started guide" : "打开新手指引"}
+              className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
+            >
+              <CircleHelp className="size-4" aria-hidden />
+            </Link>
+            <AccountMenu email={email} />
+          </div>
+        </header>
 
-        <main className="min-w-0 flex-1 pb-16 md:pb-(--shell-status)">
+        <main className="min-w-0 flex-1 pb-16 md:pb-0">
           <div className="x-page x-enter min-h-full">{children}</div>
         </main>
       </div>
-
-      <footer className="x-pane fixed inset-x-0 bottom-0 z-30 hidden h-(--shell-status) items-center gap-4 border-t px-4 text-data text-muted-foreground md:flex">
-        <span className="flex min-w-0 items-center gap-2">
-          <span className="x-live" data-tone={live ? "live" : "idle"} aria-hidden />
-          <span className="truncate">{copy.statusSource}</span>
-        </span>
-        <span className="ml-auto flex shrink-0 items-center gap-4">
-          {/* C4：有 AI 能力暂停 / 不稳定时亮出来，点进去看哪些停了、系统改用什么 */}
-          <CapabilityIndicator initial={initialCapabilities} locale={locale} />
-          <span className="flex items-center gap-2">
-            <span className="text-tertiary">{copy.statusClock}</span>
-            <Clock label={copy.statusClock} />
-          </span>
-        </span>
-      </footer>
 
       <div className="fixed inset-x-0 bottom-0 z-30 md:hidden">
         <Nav pathname={pathname} mobile badges={badges} />

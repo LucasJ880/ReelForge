@@ -223,11 +223,10 @@
     background-color: var(--bg);
     color: var(--text-primary);
     color-scheme: dark;
-    /* 壳层几何只在这里定一次：行情条 + 生产带 + 1px 底缝 = 顶栏高 = 导轨的 top（1025 · B1.8） */
-    --shell-bar: 3rem;
-    --shell-tape: 2rem;
-    --shell-status: 1.75rem;
-    --shell-top: calc(var(--shell-bar) + var(--shell-tape) + 1px);
+    /* 壳层几何只在这里定一次（2026-10-28 学 LibTV）：侧栏顶部标识行与内容区顶栏同高，
+       吸顶元素以 --shell-top 为基准；不再有行情条与底部状态栏。 */
+    --shell-bar: 3.5rem;
+    --shell-top: calc(var(--shell-bar) + 1px);
   }
 
   /* 触控板回弹会让 sticky 顶栏跟着文档下坠、导轨原地不动：工作区里关掉根滚动的回弹 */

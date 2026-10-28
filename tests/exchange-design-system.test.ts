@@ -10,10 +10,11 @@ test("Aivora Exchange：交易大厅 token 与字体角色完整落地（2026-10
     read("src/app/layout.tsx"),
   ]);
   for (const token of [
-    "--bg: #04070e",
-    "--surface: #08101d",
-    "--border: rgb(110 160 230 / 0.13)",
-    "--text-primary: #e8f0fc",
+    /// 2026-10-28 学 LibTV：场与面板换成中性近黑 + 白 8% 发丝线
+    "--bg: #141414",
+    "--surface: #1a1a1a",
+    "--border: rgb(255 255 255 / 0.08)",
+    "--text-primary: #f7f7f7",
     "--accent: #22e0ff",
     "--success: #2fe39b",
     "--gold: #ffc542",
@@ -35,25 +36,23 @@ test("Aivora Exchange：交易大厅 token 与字体角色完整落地（2026-10
   assert.match(layout, /data-design-contract="aivora-abyss-exchange"/);
 });
 
-test("Aivora Exchange：壳层是行情终端——顶部行情条 + 实时生产带 + 编号导轨 + 状态栏", async () => {
+test("工作区壳层（2026-10-28 学 LibTV）：240px 分组侧栏 + 细顶栏；不再有行情条、状态栏时钟与编号键帽", async () => {
   const [shell, authLayout, globals] = await Promise.all([
     read("src/components/platform/platform-shell.tsx"),
     read("src/app/(auth)/layout.tsx"),
     read("src/app/globals.css"),
   ]);
   assert.match(shell, /className="desk-theme/);
-  assert.match(shell, /<header className="x-pane sticky top-0 z-30 h-\(--shell-top\)/);
-  /// 导轨在文档流里 sticky，与顶栏共用 --shell-top（不再 fixed top-20 与 81px 顶栏差 1px），矮屏内部滚动
-  assert.match(shell, /<aside className="x-pane sticky top-\(--shell-top\)[^"]*overflow-y-auto/);
-  assert.doesNotMatch(shell, /fixed bottom-7 left-0 top-20|md:ml-56/);
-  assert.match(shell, /<Tape entries=\{pulse\.tape\}/);
-  assert.match(shell, /<footer className="x-pane/);
+  assert.match(shell, /<aside className="studio-side sticky top-0 z-20 hidden h-dvh w-60 [^"]*overflow-y-auto/);
+  assert.match(shell, /<header className="sticky top-0 z-30 flex h-\(--shell-bar\)/);
+  assert.match(shell, /data-testid="sidebar-new-video"/);
+  assert.match(shell, /shell\.navGroups\[group\.id\]/);
   assert.match(shell, /className="x-page x-enter min-h-full"/);
-  // 实时点只给「正在发生」：真在生成的视频条数决定市场状态（排队、暂停不算）
+  // 实时点只给「正在发生」：真在生成的视频条数决定状态（排队、暂停不算）
   assert.match(shell, /const live = pulse\.generating > 0/);
-  assert.match(globals, /\.x-tape-track/);
+  assert.doesNotMatch(shell, /<Tape |ExchangeTape|function Clock|<kbd/);
   assert.match(globals, /:root:has\(\.desk-theme\)\s*\{\s*overscroll-behavior-y:\s*none/);
-  assert.match(globals, /--shell-top:\s*calc\(var\(--shell-bar\) \+ var\(--shell-tape\) \+ 1px\)/);
+  assert.match(globals, /--shell-top:\s*calc\(var\(--shell-bar\) \+ 1px\)/);
   assert.match(globals, /\.x-live/);
   // 不铺光晕；毛玻璃只给首页展厅压在视频上的控件（.on-media，2026-10-28 学 Seedance 2.5 官网）
   assert.doesNotMatch(globals, /radial-gradient/);

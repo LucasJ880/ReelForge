@@ -48,16 +48,14 @@ test("服务端渲染的日期都走 LocalTime（服务端只传 ISO），生产
   assert.match(localTime, /useSyncExternalStore\(\s*subscribe,[\s\S]*?\(\) => null,\s*\)/, "服务端快照为占位，避免水合不一致");
 });
 
-test("壳层几何：顶栏高度与导轨 top 共用 --shell-top；导轨内部可滚；止住回弹", () => {
+test("壳层几何（2026-10-28 学 LibTV）：侧栏整屏高、内部可滚；顶栏高 = --shell-bar；止住回弹", () => {
   const globals = readFileSync("src/app/globals.css", "utf8");
-  assert.match(globals, /--shell-top: calc\(var\(--shell-bar\) \+ var\(--shell-tape\) \+ 1px\)/);
+  assert.match(globals, /--shell-top: calc\(var\(--shell-bar\) \+ 1px\)/);
   assert.match(globals, /:root:has\(\.desk-theme\) \{\s*overscroll-behavior-y: none;/);
   const shell = readFileSync("src/components/platform/platform-shell.tsx", "utf8");
-  assert.match(shell, /<header className="x-pane sticky top-0 z-30 h-\(--shell-top\) border-b">/);
-  assert.match(shell, /<div className="flex h-\(--shell-bar\) items-center/);
-  assert.match(shell, /className="h-\(--shell-tape\)"/);
-  assert.match(shell, /<aside className="x-pane sticky top-\(--shell-top\)[^"]*h-\[calc\(100dvh-var\(--shell-top\)-var\(--shell-status\)\)\][^"]*overflow-y-auto/);
-  assert.doesNotMatch(shell, /top-20|bottom-7|md:ml-56/);
+  assert.match(shell, /<header className="sticky top-0 z-30 flex h-\(--shell-bar\)/);
+  assert.match(shell, /<aside className="studio-side sticky top-0 [^"]*h-dvh w-60 [^"]*overflow-y-auto overscroll-contain/);
+  assert.doesNotMatch(shell, /top-20|bottom-7|md:ml-56|--shell-status|--shell-tape/);
 });
 
 test("头像打开账户菜单（邮箱、语言、隐私 / 条款、退出登录），不再一点就退出", () => {

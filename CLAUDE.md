@@ -69,6 +69,9 @@ npm run context:find -- "..."
 
 ## 6. 界面：Aivora Exchange 深海交易所（2026-10-24 定稿，取代 Aivora Glass）
 
+> **2026-10-28 起调整中**：首页改「展厅」（学 Seedance 2.5 官网，全屏视频 + 浅灰画廊），工作区换中性近黑 + LibTV 式分组侧栏；
+> 毛玻璃只允许在视频之上的 `.on-media` 规则里。详见 DESIGN.md 顶部说明与 `docs/reference/taste/`。下文与之冲突处以 DESIGN.md 顶部为准。
+
 全站单一深色交易大厅，完整规矩见根目录 **`DESIGN.md`**（唯一事实来源）。速记：
 
 - 冷蓝近黑的场（`--bg`）+ 极淡工程网格；面板不透明（`.x-panel`），行情墙用 `.x-wall`

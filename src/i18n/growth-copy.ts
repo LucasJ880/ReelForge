@@ -394,7 +394,7 @@ const ZH: GrowthCopy = {
     showroom: {
       nav: { samples: "样片", how: "怎么做", apply: "申请陪跑" },
       heroTitle: "Aivora",
-      heroLead: "给小商家的短视频工作室：一张商品图起稿，按你点头的故事板拍成片，每一条询盘都记在账上。",
+      heroLead: "给小商家的短视频工作室：一张商品图起稿，按你点头的故事板拍成片，口播、字幕和品牌片尾一次带齐。",
       ctaSamples: "看样片",
       sceneLabel: "AI 生成场景",
       pairsTitle: "一张商品图，拍成一条广告",
@@ -768,7 +768,7 @@ const EN: GrowthCopy = {
     showroom: {
       nav: { samples: "Samples", how: "How it works", apply: "Apply" },
       heroTitle: "Aivora",
-      heroLead: "A video studio for small businesses: start from one product photo, shoot from the storyboard you approve, and count every inquiry it brings in.",
+      heroLead: "A video studio for small businesses: start from one product photo, shoot from the storyboard you approve, and get voice-over, captions and your brand end card in one go.",
       ctaSamples: "See samples",
       sceneLabel: "AI-generated scene",
       pairsTitle: "One product photo, one finished ad",

@@ -38,6 +38,7 @@ test("本轮不启用 fal / 阿里线路 id(D-2 / D-8)", async () => {
     "src/lib/video-generation/providers/types.ts",
     "utf8",
   );
-  assert.match(source, /readonly id: "byteplus" \| "shuyu" \| "mock";/);
+  /// 2026-10-28 CEO 批了 Runway（官方开发者 API）；fal / 阿里仍不启用
+  assert.match(source, /readonly id: "byteplus" \| "shuyu" \| "runway" \| "mock";/);
   assert.doesNotMatch(source, /alibaba_wan|"fal"/);
 });

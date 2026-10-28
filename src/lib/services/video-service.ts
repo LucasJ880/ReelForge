@@ -63,6 +63,7 @@ import { CUSTOMER_CANCELLED_CLASS } from "./single-video-cancel-service";
 import { isDeliveredBriefStatus } from "@/lib/video-generation/brief-delivery-state";
 import type { Session } from "next-auth";
 import { isDemoAccountEmail } from "@/lib/demo-account";
+import { fetchMediaBytes } from "@/lib/storage/trusted-media-url";
 import {
   composeSegmentRedoPrompt,
   isCurrentSegmentJob,
@@ -158,7 +159,9 @@ function requiredVideoRouteSnapshot(
       ? "mock"
       : read.videoRouteSnapshot === "buddy"
         ? "shuyu"
-        : "byteplus";
+        : read.videoRouteSnapshot === "runway"
+          ? "runway"
+          : "byteplus";
   if (read.videoProviderAdapterSnapshot !== expectedAdapter) {
     throw new Error("持久化视频线路与 adapter 快照不一致，拒绝 provider 调用");
   }
@@ -252,11 +255,48 @@ async function fetchVideoJobStatus(
   ) {
     throw new Error("VideoJob provider 与持久化路线快照不一致");
   }
-  return toDirectProviderStatus(
+  const status = toDirectProviderStatus(
     await createVideoProviderByRouteSnapshot(snapshot).getVideoJobStatus(
       job.externalJobId,
     ),
   );
+  /// Runway 的产出地址 24–48 小时就过期：成功时先转存到自己的存储再交给下游——重拼、换字幕、
+  /// 重做一段几天后还要用这一段。转存失败就抛，这一轮按轮询异常记，下一轮再试（原地址还能用一整天）。
+  if (
+    snapshot.videoProviderAdapterSnapshot === "runway" &&
+    status.status === "completed" &&
+    status.videoUrl
+  ) {
+    return {
+      ...status,
+      videoUrl: await mirrorEphemeralProviderVideo(job.externalJobId, status.videoUrl),
+    };
+  }
+  return status;
+}
+
+/// 单段视频转存上限：15 秒 1080p 远小于它，超过就是异常响应
+const PROVIDER_VIDEO_MIRROR_MAX_BYTES = 400 * 1024 * 1024;
+
+async function mirrorEphemeralProviderVideo(providerJobId: string, url: string): Promise<string> {
+  const { getStorageProvider } = await import("@/lib/storage");
+  const storage = getStorageProvider();
+  if (!storage.isConfigured()) {
+    throw new Error(`Storage provider "${storage.id}" not configured; refusing to mirror provider output`);
+  }
+  const bytes = await fetchMediaBytes(url, {
+    maxBytes: PROVIDER_VIDEO_MIRROR_MAX_BYTES,
+    /// 地址来自供应商的任务结果、由服务端写入，不是用户给的 URL（同 trusted-media-url 的约定）
+    followRedirects: true,
+    timeoutMs: 120_000,
+  });
+  const stored = await storage.uploadBuffer("renders", bytes, {
+    key: `renders/provider-outputs/runway/${encodeURIComponent(providerJobId)}.mp4`,
+    access: "public",
+    contentType: "video/mp4",
+    overwrite: true,
+  });
+  return stored.url;
 }
 
 function isUniqueConstraintError(error: unknown): boolean {

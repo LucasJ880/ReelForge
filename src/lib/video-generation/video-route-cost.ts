@@ -23,6 +23,8 @@ const STATIC_UNIT_POINTS: Record<VideoRouteId, number | null> = {
   byteplus_international: null,
   volcengine_cn_legacy: null,
   mock: 0,
+  /// Runway 按 credit 计费（1 credit = $0.01），不是合作方积分；成本按任务 credits 另记
+  runway: null,
 };
 
 export async function resolveVideoRouteUnitPoints(

@@ -111,15 +111,25 @@ Runway 的开发者 API 现在是一个**模型聚合平台**，一个 key 能�
   2. 按秒计费不便宜：15 秒 Seedance 2.5 起步约 $3。要和 Shuyu 的真实单条成本比过再决定。
 - 「Muse 也用 Runway」没查到确证；Runway 的模型列表里有一个 `muse_image` 图像模型，可能是 CEO 看到的那个。
 
-落地方式：
+落地方式（CEO 已批，2026-10-28 晚已接好，等 key）：
 
-1. P0 不受影响，照做。
-2. P2 之前加一步「小样对比」：同一个带 logo 的商品、同一份故事板，分别跑
-   ① Shuyu Seedance 2.5（现状）② Runway `seedance2_5` 1080p ③ Runway Kling O3 带商品参考图，
-   再拿 `aleph2` 对一段试换商品。按关键帧 logo 准确度、成本、耗时打分。预算几十美元以内。
-3. 接入方式是新增 `src/lib/providers/runway.ts`，挂到现有的 `video-route-registry` 下，作为一条路线。
-   商品流程不依赖哪家引擎，对比结果出来再决定默认走哪条。
-4. 需要 Evan / CEO 开 Runway 开发者账号并预充 API 额度（dev.runwayml.com）。
+1. P0 已完成（6559734）。
+2. 已接好的部分：
+   - `src/lib/providers/runway.ts`（HTTP 客户端）与 `runway-video-provider.ts`（实现 VideoProvider）。
+   - `runway` 线路已注册，适配器为 Runway，模型为 Seedance 2.5；派发、轮询、取消都按线路快照走。
+   - Runway 产出 24–48 小时过期：成功时先转存到自己的 blob，再交给拼接，以免几天后重拼、换字幕找不到这一段。
+   - 开关：
+     - `RUNWAYML_API_SECRET`：key。
+     - `VIDEO_CUSTOMER_ROUTE=runway`：把客户线路切到 Runway，缺省仍是 Shuyu。
+     - `RUNWAY_VIDEO_RESOLUTION=1080p`：缺省 720p，最便宜。
+   - 单测全过；真机未验证。
+3. key 到了怎么验：先只在本地 `.env.local` 配上 key 和 `VIDEO_CUSTOMER_ROUTE=runway`，用 CEO 测试账号走一遍真实界面。
+   在成品库对本轮 E2E 那条 NORDA 测试订单点「重新生成」（同一张图、同一段描述），跟 Shuyu 出的那条比 logo、成本和耗时。过了再在 Vercel 上拨开关。
+4. 还没做：
+   - 员工线路选择器（`video-route-options` 契约仍只有 Shuyu）。
+   - Kling O3 / Aleph 的线路，现在只在适配器里。
+   - 故事板出帧仍走 Shuyu 图像接口（Runway 也有 GPT Image 2，可后续切过去）。
+   - Runway 的参考音频可以补上「参考音频口播」（P04-E）。
 
 来源：[Runway API 模型列表](https://docs.dev.runwayml.com/guides/models/)、
 [API 额度与订阅分开计费](https://www.eesel.ai/blog/runway-ai-pricing)、

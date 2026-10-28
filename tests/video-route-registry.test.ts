@@ -15,6 +15,8 @@ test("video route registry explicitly allowlists audited routes", () => {
     "volcengine_cn_legacy",
     "mock",
     "buddy",
+    /// 2026-10-28 CEO 批的 Runway 开发者 API（官方计费）；客户默认仍是 buddy，VIDEO_CUSTOMER_ROUTE 切换
+    "runway",
   ]);
   assert.deepEqual(Object.keys(VIDEO_ROUTE_REGISTRY), VIDEO_ROUTE_IDS);
 
@@ -33,6 +35,13 @@ test("video route registry explicitly allowlists audited routes", () => {
     processingRegion: "cn-beijing",
   });
   assert.equal(isEnabledVideoRouteId("mock"), true);
+  assert.deepEqual(getVideoRouteContract("runway"), {
+    id: "runway",
+    enabled: true,
+    providerAdapter: "runway",
+    model: "seedance2_5",
+    processingRegion: null,
+  });
 });
 
 test("Shuyu partner route is enabled only for the audited studio-video contract", () => {

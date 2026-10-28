@@ -12,12 +12,13 @@ export const VIDEO_ROUTE_IDS = [
   "volcengine_cn_legacy",
   "mock",
   "buddy",
+  "runway",
 ] as const;
 
 export type VideoRouteId = (typeof VIDEO_ROUTE_IDS)[number];
 export type EnabledVideoRouteId = VideoRouteId;
 
-export type VideoProviderAdapterSnapshot = "byteplus" | "shuyu" | "mock";
+export type VideoProviderAdapterSnapshot = "byteplus" | "shuyu" | "runway" | "mock";
 
 export interface VideoRouteContract {
   readonly id: VideoRouteId;
@@ -63,6 +64,15 @@ const ROUTES = {
     model: "studio-video",
     processingRegion: null,
   },
+  /// 2026-10-28 CEO 批的 Runway 开发者 API（官方计费）：Seedance 2.5，1080p、最多 30 张参考图。
+  /// 注册不等于可用：没有 RUNWAYML_API_SECRET 时运行就绪检查不过；客户默认线路由 VIDEO_CUSTOMER_ROUTE 决定（默认仍是 buddy）。
+  runway: {
+    id: "runway",
+    enabled: true,
+    providerAdapter: "runway",
+    model: "seedance2_5",
+    processingRegion: null,
+  },
 } as const satisfies Record<VideoRouteId, VideoRouteContract>;
 
 export const VIDEO_ROUTE_REGISTRY: Readonly<
@@ -104,7 +114,7 @@ function isVideoRouteId(value: string): value is VideoRouteId {
 function isProviderAdapterSnapshot(
   value: string,
 ): value is VideoProviderAdapterSnapshot {
-  return value === "byteplus" || value === "shuyu" || value === "mock";
+  return value === "byteplus" || value === "shuyu" || value === "runway" || value === "mock";
 }
 
 export function getVideoRouteContract(routeId: VideoRouteId): VideoRouteContract {

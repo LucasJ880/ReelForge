@@ -34,6 +34,12 @@ export function runwayApiKey(env: Env = process.env): string | null {
   return env.RUNWAYML_API_SECRET?.trim() || null;
 }
 
+/// 出片分辨率：缺省 720p（最便宜档）；RUNWAY_VIDEO_RESOLUTION=1080p 才出 1080p。
+/// 不跟 CreateVideoJobOptions.resolution 走——video-service 今天一律传 1080p（成片拉伸口径），按它出会把每条都切到贵的档。
+export function runwayVideoResolution(env: Env = process.env): "720p" | "1080p" {
+  return env.RUNWAY_VIDEO_RESOLUTION?.trim().toLowerCase() === "1080p" ? "1080p" : "720p";
+}
+
 export function runwayBaseUrl(env: Env = process.env): string {
   return (env.RUNWAYML_BASE_URL?.trim() || RUNWAY_API_BASE_URL).replace(/\/+$/, "");
 }

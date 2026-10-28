@@ -23,6 +23,7 @@ import {
   runwayApiKey,
   RunwayApiError,
   runwayRatio,
+  runwayVideoResolution,
   type RunwayFetchOptions,
   type RunwayPromptImage,
   type RunwayVideoModel,
@@ -214,7 +215,11 @@ export class RunwayVideoProvider implements VideoProvider {
     if (options.model && options.model !== this.model) {
       throw preflight(`Runway 适配器绑定的是 ${this.model}，请求要的是 ${options.model}`);
     }
-    const request = buildRunwayVideoRequest(options, this.model);
+    /// 分辨率由本线路的配置决定（runwayVideoResolution），不信调用方的 resolution（见那里的注释）
+    const request = buildRunwayVideoRequest(
+      { ...options, resolution: runwayVideoResolution(this.fetchOptions.env) },
+      this.model,
+    );
     try {
       const task = await createRunwayTask(request, this.fetchOptions);
       return { providerJobId: task.id, providerId: this.id };

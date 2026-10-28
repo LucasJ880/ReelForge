@@ -6,14 +6,16 @@
  *   const provider = getVideoProvider();
  *   const { providerJobId } = await provider.createVideoJob({ prompt, ... });
  *
- * 当前唯一真实实现：BytePlus ModelArk（Seedance）。
- * 未来如果接入其他 video model（Runway / Pika），在此添加并扩展 VIDEO_PROVIDER 枚举。
+ * 真实实现：BytePlus ModelArk（Seedance）、Shuyu（buddy 线路）、Runway（runway 线路，2026-10-28）。
+ * 线路由快照决定（createVideoProviderByRouteSnapshot）；VIDEO_PROVIDER 只管默认运行时。
  */
 
 import { getAppEnv } from "@/lib/config/env";
 import { MockVideoProvider } from "./mock-video-provider";
 import { BytePlusVideoProvider } from "./byteplus-video-provider";
 import { ShuyuVideoProvider } from "./shuyu-video-provider";
+import { RunwayVideoProvider } from "./runway-video-provider";
+import { isRunwayVideoModel } from "@/lib/providers/runway";
 import type { VideoProvider } from "./types";
 import type { VideoRouteSnapshot } from "../video-route-registry";
 
@@ -44,10 +46,11 @@ export function createVideoProvider(): VideoProvider {
 }
 
 export function createVideoProviderById(
-  id: "byteplus" | "shuyu" | "mock",
+  id: "byteplus" | "shuyu" | "runway" | "mock",
 ): VideoProvider {
   if (id === "mock") return new MockVideoProvider();
   if (id === "shuyu") return new ShuyuVideoProvider();
+  if (id === "runway") return new RunwayVideoProvider();
   return new BytePlusVideoProvider();
 }
 
@@ -65,6 +68,15 @@ export function createVideoProviderByRouteSnapshot(
       throw new Error("Shuyu route snapshot has an incompatible adapter");
     }
     return new ShuyuVideoProvider(snapshot.videoModelSnapshot);
+  }
+  if (snapshot.videoRouteSnapshot === "runway") {
+    if (snapshot.videoProviderAdapterSnapshot !== "runway") {
+      throw new Error("Runway route snapshot has an incompatible adapter");
+    }
+    if (!isRunwayVideoModel(snapshot.videoModelSnapshot)) {
+      throw new Error(`Runway route snapshot has an unknown model: ${snapshot.videoModelSnapshot}`);
+    }
+    return new RunwayVideoProvider(snapshot.videoModelSnapshot);
   }
   if (snapshot.videoProviderAdapterSnapshot !== "byteplus") {
     throw new Error("Seedance route snapshot has an incompatible adapter");

@@ -609,15 +609,18 @@ export async function POST(req: NextRequest) {
   }
   if (
     !selectedRouteAvailability.available &&
-    videoRouteSnapshot.videoRouteSnapshot === "buddy"
+    (videoRouteSnapshot.videoRouteSnapshot === "buddy" ||
+      videoRouteSnapshot.videoRouteSnapshot === "runway")
   ) {
     return finalResponse(
       toCustomerVideoDispatchError({
         code: "SERVICE_UNAVAILABLE",
         message:
-          selectedRouteAvailability.reason === "insufficient_balance"
-            ? "合作方视频线路暂时余额不足，请稍后重试；若持续发生，请联系支持。"
-            : "合作方视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。",
+          videoRouteSnapshot.videoRouteSnapshot === "runway"
+            ? "视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。"
+            : selectedRouteAvailability.reason === "insufficient_balance"
+              ? "合作方视频线路暂时余额不足，请稍后重试；若持续发生，请联系支持。"
+              : "合作方视频生成服务暂时不可用，请稍后重试；若持续发生，请联系支持。",
         retryable: true,
         action: "retry",
       }),

@@ -7,6 +7,7 @@ import {
   resolveSeedanceRuntimeProfile,
   seedanceApiKey,
 } from "@/lib/config/seedance-runtime";
+import { runwayApiKey } from "@/lib/providers/runway";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 import { getShuyuRouteRuntimeAvailability } from "./shuyu-runtime";
 import {
@@ -18,7 +19,21 @@ export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
   "byteplus_international",
   "volcengine_cn_legacy",
   "buddy",
+  "runway",
 ] as const;
+
+/**
+ * 客户的视频线路（2026-10-28）：平台开关，不是客户的选项。
+ * VIDEO_CUSTOMER_ROUTE=runway 切到 Runway（CEO 批了，key 到位、小样对比过了再拨）；缺省或其它值都是 buddy（Shuyu）。
+ * buddy 始终是审计过的客户线路：切到 Runway 之后，显式点名 buddy 的旧调用方照样放行。
+ */
+export type CustomerVideoRouteId = "buddy" | "runway";
+
+export function customerVideoRouteId(
+  env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
+): CustomerVideoRouteId {
+  return env.VIDEO_CUSTOMER_ROUTE?.trim().toLowerCase() === "runway" ? "runway" : "buddy";
+}
 
 export type StaffSelectableVideoRouteId =
   (typeof STAFF_SELECTABLE_VIDEO_ROUTE_IDS)[number];
@@ -53,13 +68,20 @@ export function selectCustomerVideoRouteSnapshot(args: {
     }
     return createVideoRouteSnapshot("mock");
   }
-  if (args.requestedRouteId !== undefined && args.requestedRouteId !== "buddy") {
+  const customerRoute = customerVideoRouteId(env);
+  if (
+    args.requestedRouteId !== undefined &&
+    args.requestedRouteId !== "buddy" &&
+    args.requestedRouteId !== customerRoute
+  ) {
     throw new VideoRouteSelectionError(
       "FORBIDDEN",
-      "Customers may only use the audited Shuyu partner route",
+      "Customers may only use the platform's customer video route",
     );
   }
-  return createVideoRouteSnapshot("buddy");
+  return createVideoRouteSnapshot(
+    args.requestedRouteId === "buddy" ? "buddy" : customerRoute,
+  );
 }
 
 /**
@@ -149,6 +171,9 @@ export function isVideoRouteSnapshotRuntimeReady(
   if (snapshot.videoRouteSnapshot === "buddy") {
     return Boolean(shuyuApiKey(env));
   }
+  if (snapshot.videoRouteSnapshot === "runway") {
+    return Boolean(runwayApiKey(env));
+  }
   if (!seedanceApiKey(snapshot.videoRouteSnapshot, env)) return false;
   try {
     resolveSeedanceArkBaseUrl(
@@ -181,6 +206,16 @@ export function canVideoRouteOverrideDefaultRuntimeFailure(
 
   if (snapshot.videoRouteSnapshot === "buddy") {
     return byteplusFailure || volcengineFailure;
+  }
+  /// Runway 自有 key：默认运行时（Shuyu / Seedance 直连）的配置问题都不归它管
+  if (snapshot.videoRouteSnapshot === "runway") {
+    return (
+      reason === "shuyu_key_missing" ||
+      reason === "shuyu_insufficient_balance" ||
+      reason === "shuyu_unavailable" ||
+      byteplusFailure ||
+      volcengineFailure
+    );
   }
   if (snapshot.videoRouteSnapshot === "byteplus_international") {
     return reason === "shuyu_key_missing" || volcengineFailure;

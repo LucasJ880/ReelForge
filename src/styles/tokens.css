@@ -53,11 +53,6 @@
   --danger-soft: rgb(255 85 119 / 0.14);
   --overlay: rgb(0 0 0 / 0.72);
 
-  /* 工程网格：整站唯一的背景纹理，极淡，不做光晕 */
-  --field-grid:
-    linear-gradient(var(--grid-line) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
-  --field-grid-size: 56px 56px;
   /* 行情墙高光：面板顶缘一道 1px 冷光，不是投影 */
   --edge: inset 0 1px 0 rgb(255 255 255 / 0.04);
   /* 生成光束：沿边流动的那道光（只给「正在生成」） */

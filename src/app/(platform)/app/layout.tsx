@@ -20,12 +20,23 @@ export default async function PlatformLayout({ children }: { children: React.Rea
   const userId = session.user.id;
   const locale = await getServerLocale();
   const [workspace, pulse, capabilities] = await Promise.all([
-    db.workspace.findUnique({ where: { ownerId: userId }, select: { name: true } }),
+    /// 2026-10-28 /persona 选择页删除后，无身份类型、没有工作区的存量账号会直接进 /app：
+    /// 补建一个入门版默认工作区（与注册时同一形状），不再 500。
+    db.workspace.upsert({
+      where: { ownerId: userId },
+      update: {},
+      create: {
+        ownerId: userId,
+        name: session.user.email?.split("@")[0] || "Aivora",
+        planId: "starter",
+        isDefault: true,
+      },
+      select: { name: true },
+    }),
     loadPulse(userId, { locale }),
     /// C4：能力状态（进程内缓存 60 秒，永不抛出）——状态栏据此亮「部分 AI 能力暂停」。
     getCapabilities(),
   ]);
-  if (!workspace) throw new Error("默认 Workspace 不存在");
   return (
     <PlatformShell
       email={session.user.email ?? ""}

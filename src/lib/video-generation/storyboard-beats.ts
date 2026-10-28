@@ -233,6 +233,10 @@ export function groundSegmentPromptInStoryboard(
           Math.max(0, available(0) - Math.min(normalizedStory.length, STORY_RESERVE_WITH_CARDS)) / cardsInSegment,
         ) - 1,
       );
+  /// 预算挤到放不下任何一张卡：整段退回旧格式（不留只加行、不加卡的半成品）
+  if (cardsInSegment > 0 && cardLimit < SHOT_CARD_MIN_CHARS) {
+    return groundSegmentPromptInStoryboard(original, { ...input, shotCards: undefined });
+  }
   const storyBudget = Math.max(0, Math.min(STORY_CHAR_BUDGET, available(cardLimit)));
   // 与 provider 的 string.length 校验同用 UTF-16 单位；按码点 slice 会让 emoji 稿超限。
   return assemble(truncateStoryText(normalizedStory, storyBudget), cardLimit);

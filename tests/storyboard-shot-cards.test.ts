@@ -193,3 +193,20 @@ test("批量参考图说明：按真正发出去的张数编号，与模板 inpu
   const huge = `Opening.\n${"p".repeat(4300)}`;
   assert.equal(withBatchReferenceManifest(huge, { productPhotoCount: 2, frameCount: 4, negativePrompt: "n".repeat(300) }), huge);
 });
+
+test("派发预算：连一张卡都放不下时整段退回旧格式（不留只加 LOOK / 不变量行、没有卡的半成品）", () => {
+  const base = {
+    aspectRatio: "9:16",
+    story: "午后客厅太刺眼，拉一下斑马帘就柔和了。",
+    beats: STORYBOARD_BEATS_SHORT,
+    productPhotoCount: 2,
+    totalDurationSec: 15,
+    fromSec: 0,
+    toSec: 15,
+    negativePrompt: "n".repeat(3900),
+  };
+  const plain = groundSegmentPromptInStoryboard(TEMPLATE, base);
+  const carded = groundSegmentPromptInStoryboard(TEMPLATE, { ...base, shotCards: CARDS.map(formatShotCard) });
+  assert.equal(carded, plain);
+  assert.doesNotMatch(carded, /LOOK:|PRODUCT INVARIANTS/);
+});

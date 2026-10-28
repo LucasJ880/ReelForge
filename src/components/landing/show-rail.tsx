@@ -30,6 +30,9 @@ export function ShowRail({
     const rail = railRef.current;
     if (!section || !rail) return;
     const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    /// 脚本接管后才把还没进视口的节藏起来；没有 JS 时整节始终可见
+    const box = section.getBoundingClientRect();
+    if (!still && box.top > window.innerHeight) section.dataset.shown = "false";
     const reveal = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {

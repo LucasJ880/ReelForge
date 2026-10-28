@@ -72,12 +72,7 @@
    * 整站唯一的背景纹理：极淡的 56px 工程网格，固定不随页面滚。
    * 不做光晕、不做颗粒：光只属于数据与正在生成的那一格。
    */
-  body,
-  .desk-canvas {
-    background-image: var(--field-grid);
-    background-size: var(--field-grid-size);
-    background-attachment: fixed;
-  }
+  /* 工程网格 2026-10-28 随冷蓝色调退役（学 LibTV：场就是一块中性近黑实底） */
 
   /*
    * ── 材质：三种，不发明第四种 ──
@@ -815,17 +810,17 @@
   object-fit: cover;
 }
 
+/* 入场只在脚本接管后才隐藏（data-shown="false" 由 ShowRail 挂载时写入）：
+   没有 JS、水合失败、爬虫与链接预览看到的都是完整可见的画廊。 */
 .show-reveal {
-  opacity: 0;
-  transform: translateY(24px);
   transition:
     opacity var(--reveal-base) var(--ease-cinema),
     transform var(--reveal-slow) var(--ease-cinema);
 }
 
-.show-reveal[data-shown="true"] {
-  opacity: 1;
-  transform: none;
+.show-reveal[data-shown="false"] {
+  opacity: 0;
+  transform: translateY(24px);
 }
 
 /* 登录门：压在视频上的口号（比首页标题小一档，中文两行） */

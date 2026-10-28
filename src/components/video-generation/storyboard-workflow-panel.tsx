@@ -5,6 +5,7 @@ import Image from "next/image";
 import {
   Check,
   ChevronDown,
+  ChevronRight,
   ImageIcon,
   Loader2,
   RefreshCw,
@@ -13,6 +14,7 @@ import {
 import { StatusTick } from "@/components/exchange/status-tick";
 import type { VocabState } from "@/lib/exchange/state-vocab";
 import { storyboardBeatLabel } from "@/lib/video-generation/storyboard-beats";
+import { customerVisibleFramePrompt } from "@/lib/video-generation/storyboard-prompt-display";
 import {
   STORYBOARD_FRAME_DIRECTION_MAX,
   STORYBOARD_FRAME_SOURCE_ASSETS_MAX,
@@ -211,6 +213,23 @@ export function StoryboardWorkflowPanel({
                     {frame?.beat ? storyboardBeatLabel(frame.beat, english) : english ? "Preparing story beat" : "正在准备镜头节奏"}
                   </p>
                   <StatusTick entity="frame" state={frameState} locale={english ? "en-US" : "zh-CN"} />
+                  {/* 查看提示词（上线审核 §3）：原文给想研究的人看，只供参考、不要求改 */}
+                  {frame?.prompt ? (
+                    <details className="group/prompt" data-testid="storyboard-frame-prompt">
+                      <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded-(--radius-sm) text-micro text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+                        <ChevronRight className="size-3 shrink-0 transition-transform group-open/prompt:rotate-90 motion-reduce:transition-none" aria-hidden />
+                        {english ? "View prompt" : "查看提示词"}
+                      </summary>
+                      <p className="mt-1.5 text-micro text-tertiary">
+                        {english
+                          ? "The exact text used to draw this frame, for reference only. No need to edit it."
+                          : "这是画这一帧时发出去的原文，只供参考，不用改。"}
+                      </p>
+                      <p className="mt-1.5 max-h-40 overflow-y-auto whitespace-pre-wrap break-words rounded-(--radius-sm) bg-sunken p-2 font-mono text-micro leading-relaxed text-muted-foreground">
+                        {customerVisibleFramePrompt(frame.prompt)}
+                      </p>
+                    </details>
+                  ) : null}
                 </div>
                 {!approved ? (
                   <FrameRegenerateOptionsField

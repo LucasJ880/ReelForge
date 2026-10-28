@@ -35,7 +35,9 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
 
   /// 0722 改版后客户面**不再暴露线路选择**（统一走 Aivora 引擎，线路由
   /// C1 自动路由决定）。守两个方向：选择器不回潮 + 说明文案在场。
+  /// 2026-10-28 晚对话框改版：线路说明、参考方式、口播字幕收进卡下的「更多设置」。
   await expect(page.getByRole("button", { name: /视频生成接口/ })).toHaveCount(0);
+  await page.getByRole("button", { name: /更多设置/ }).click();
   await expect(page.getByText(/统一走 Aivora 引擎/)).toBeVisible();
 
   await page.locator('input[type="file"]').first().setInputFiles({
@@ -54,8 +56,8 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
   await expect(generate).toHaveText("生成 AI 故事板");
   await dismissFirstRunOnboarding(page);
 
-  await page.getByRole("button", { name: /高级生成/ }).click();
-  await expect(page.getByTestId("streamlined-advanced-options")).toBeVisible();
+  /// 快速 / 高级生成并进模板芯片：选一个模板；「核对生成方案」在更多设置里，可选
+  await page.getByTestId("streamlined-generation-mode").locator("select").selectOption({ index: 1 });
   await expect(page.getByRole("button", { name: "核对生成方案" })).toBeVisible();
 
   await page.getByRole("button", { name: "知道了，隐藏提示" }).click();

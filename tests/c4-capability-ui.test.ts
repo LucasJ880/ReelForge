@@ -158,7 +158,10 @@ test("口播稿：写作暂停时按钮写明「按模板」，并提示这份�
 test("创作页：看图暂停时「快速生成」的说明不再承诺质量检查；写作暂停时写明镜头按模板规划", () => {
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
   assert.match(studio, /featureGate\(capabilities, "frameQa"\)\.status === "blocked"/);
-  assert.match(studio, /description=\{quickModeHint\}/);
+  /// 2026-10-28 晚：生成方式并进模板芯片——说明挂在芯片上，能力暂停时卡下再明写一行
+  assert.match(studio, /hint=\{quickModeHint\}/);
+  assert.match(studio, /const capabilityDegraded = shotsFromTemplate \|\| frameQaPaused;/);
+  assert.match(studio, /data-testid="create-capability-notice">\{quickModeHint\}/);
   assert.match(studio, /quickHintNoQa: "系统自动完成镜头规划；画面质检暂停，成片照常生成"/);
   assert.match(studio, /quickHintNoQa: "Automatic shot planning; frame checks are paused, videos still render"/);
   assert.match(studio, /quickHintTemplateShotsNoQa:/);

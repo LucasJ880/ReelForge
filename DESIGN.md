@@ -195,6 +195,9 @@ components:
 > - **信号色**：实时 / 当前 / 链接 / 焦点从信号青换成长春花蓝 `--accent #7497fc`（黑底 7.6:1）。成片绿、赢家金、失败玫红、AI 鸢尾紫语义不变。亮色实底（如失败玫红）上的字用 `--background`。
 > - **圆角**：控件 6 / 8 / 12，卡片 20，主创作卡 `--radius-prompt` 24。
 > - 未做：浅色模式（Runway 跟随系统明暗；我们仍只有深色，`color-scheme: dark`）。
+> - **创作页对话框优先**（上线审核 §4，学 Runway 首页）：不用 `QuoteHeader`，开场是一句轻问句（`.create-hero-title`，400 字重）
+>   + 一行紧凑读数（同一读数注册表与色调表 `QUOTE_TONE_CLASS`）+ 一张 24px 圆角提示卡（素材缩略 · 描述 · 帮我写 · 唯一主按钮）；
+>   时长 / 画幅 / 模板是卡下 12px 圆角芯片，口播字幕、参考方式、线路收进「更多设置」。其余工作区页面仍按下文用 `WorkspacePage` 开场。
 
 > **2026-10-28 方向调整（Evan：首页学 Seedance 2.5 官网，工作台学 LibTV；「现在的交互和 UI 落伍、复杂」）——进行中。**
 > 逆向分析：`docs/reference/taste/seed.bytedance.com.md`、`docs/reference/taste/liblib.tv.md`；计划：`docs/superpowers/plans/2026-10-28-ui-seedance-libtv.md`。

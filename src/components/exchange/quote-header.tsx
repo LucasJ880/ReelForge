@@ -13,7 +13,8 @@ export type QuoteStat = {
   href?: string;
 };
 
-const TONE: Record<QuoteTone, string> = {
+/** 读数色调：行情头与创作页的紧凑读数行共用一张表。 */
+export const QUOTE_TONE_CLASS: Record<QuoteTone, string> = {
   neutral: "text-foreground",
   live: "text-accent",
   filled: "text-success",
@@ -113,7 +114,7 @@ export function QuoteHeader({
                     <ArrowRight className="mt-px size-3.5 shrink-0 text-tertiary transition-colors group-hover:text-accent" aria-hidden />
                   ) : null}
                 </dt>
-                <dd className={cn("truncate text-subhead font-semibold tabular-nums", TONE[stat.tone ?? "neutral"])}>{stat.value}</dd>
+                <dd className={cn("truncate text-subhead font-semibold tabular-nums", QUOTE_TONE_CLASS[stat.tone ?? "neutral"])}>{stat.value}</dd>
                 {/* 口径说明不再撑大卡片：悬停可见（title），读屏照常读到 */}
                 {stat.caption ? <dd className="sr-only">{stat.caption}</dd> : null}
               </div>

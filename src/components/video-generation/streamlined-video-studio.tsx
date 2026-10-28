@@ -7,20 +7,23 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
-  ChevronRight,
+  Check,
+  ChevronDown,
   Clapperboard,
   Film,
   GalleryHorizontalEnd,
+  ImagePlus,
+  Link2,
   ListChecks,
   Loader2,
+  Paperclip,
   PenLine,
-  SlidersHorizontal,
+  Settings2,
   X,
-  Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { QuoteHeader } from "@/components/exchange/quote-header";
-import { workspaceNavTitle } from "@/components/exchange/workspace-page";
+import { QUOTE_TONE_CLASS } from "@/components/exchange/quote-header";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { requestPulseRefresh } from "@/lib/exchange/pulse";
 import { formatRate, quotaStat, readingStat } from "@/lib/exchange/readings-registry";
@@ -28,7 +31,6 @@ import { SectionHead } from "@/components/exchange/section-head";
 import { CreateModeTabs } from "@/components/product-images/create-mode-tabs";
 import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import { Button } from "@/components/ui/button";
-import { FileDropzone } from "@/components/ui/dropzone";
 import { Textarea } from "@/components/ui/textarea";
 import { BrollQuickCard } from "@/components/video-generation/broll-quick-card";
 import { ProductLinkPrefill } from "@/components/video-generation/product-link-prefill";
@@ -43,7 +45,6 @@ import { QuotaNextSteps } from "@/components/quota/quota-next-steps";
 import { quotaNextStepsCopy } from "@/lib/quota-next-steps";
 import {
   StoryboardWorkflowPanel,
-  storyboardFrameTarget,
   type StoryboardFrameRegenerateOptions,
   type StoryboardReferenceOption,
   type StoryboardRunView,
@@ -125,8 +126,6 @@ interface ResumableStoryboardPayload {
 }
 
 const ZH_COPY = {
-  /// 标题是导航名「创作」（行情头从字典取）；口号进副标题（1025 · B2.1）。
-  subtitle: "从产品图到故事板，再到最终视频：上传素材、确认创作方向、审阅 AI 故事板，再交给 Aivora 生成视频。",
   readingsLabel: "创作读数",
   readingsScope: "统计口径：本工作区实时读取，不含成品库样片；额度按 UTC 自然月计，失败与取消返还。",
   guideTitle: "第一次使用，顺着五步完成",
@@ -136,55 +135,34 @@ const ZH_COPY = {
   workflowTitle: "当前创作流程",
   stageDone: "已完成",
   dismissGuide: "知道了，隐藏提示",
-  orderTitle: "本次委托",
   optional: "可选",
   rowAssets: "产品素材",
-  rowMode: "生成方式",
   rowSpecs: "视频规格",
   rowEnding: "结尾联系方式",
-  rowPrompt: "视频提示词",
   rowAudio: "口播与字幕",
   audioHint: "口播由成片直接说出，口播稿可随时修改；字幕在成片完成后按实际时长生成。",
-  summaryProducts: "产品图",
-  summaryReferences: "参考素材",
-  referencesExcluded: "不参与",
-  summaryEnding: "片尾",
   summaryVoiceover: "口播",
   summaryCaptions: "字幕",
-  summaryScenes: "AI 镜头",
-  summaryScore: "质量评分",
-  summaryFrames: "关键帧",
   on: "开",
   off: "关",
   stepAsset: "选择产品素材（可选）",
   stepAssetHint: "最多 9 张。真实产品建议上传正面、侧面和细节图；不上传则使用纯文字生成。",
-  productDropTitle: "拖拽或点击上传产品图",
-  productDropDescription: "JPG / PNG / WebP · 单次可选择多张",
   productCount: "{count} / 9 张",
   productRequired: "暂未上传产品图，将使用纯文字生成。",
   removeProduct: "移除产品图",
   optionalReferences: "参考图与成片视频（可选）",
   optionalReferencesHint: "参考图用于补充风格；上传的视频可作为真实片段用于成片。",
-  referenceDropTitle: "添加参考图或成片片段",
-  referenceDropDescription: "JPG / PNG / WebP / MP4 / MOV / WebM",
   removeReference: "移除参考素材",
   unsupportedFile: "请选择受支持的图片或视频文件。",
   tooManyProducts: "产品图最多 9 张，多出的文件未上传。",
   tooManyReferences: "本次创作最多使用 20 个素材，多出的文件未上传。",
   uploaded: "已添加 {count} 个素材",
   uploadFailed: "素材上传未完成，请检查文件后重试。",
-  stepMode: "生成方式",
-  stepModeHint: "第一次使用建议选快速生成；想指定创意模板时再用高级生成。",
-  quick: "快速生成",
   quickHint: "系统自动完成镜头与质量检查",
   /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划；看图暂停 = 画面质检跳过、成片照常
   quickHintNoQa: "系统自动完成镜头规划；画面质检暂停，成片照常生成",
   quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
   quickHintTemplateShotsNoQa: "镜头先按模板规划；画面质检暂停，成片照常生成",
-  advanced: "高级生成",
-  advancedHint: "开放创意模板选择",
-  stepSpecs: "视频规格",
-  stepSpecsHint: "画幅与时长决定成片样式；改动后需要重新核对方案。",
   route: "生成线路",
   autoRoute: "Aivora 视频通道",
   routeHint: "故事板与视频统一走 Aivora 引擎",
@@ -203,24 +181,14 @@ const ZH_COPY = {
   templatePain: "痛点解决",
   templateUgc: "UGC 测评",
   templateSensory: "光影质感",
-  ending: "品牌片尾",
-  endingNone: "不添加",
-  endingAuto: "自动生成",
   brandPackageStep: "结尾联系方式帧（可选）",
   brandPackageHint: "每条视频单独选择。关闭输出干净视频；开启后在片尾追加一帧品牌联系方式（logo 印在产品上，画面不再盖角标水印）。",
   cleanVideo: "只生成干净视频",
   cleanVideoHint: "不添加品牌 Logo 或尾卡",
   noBrandPackages: "当前工作区还没有可用品牌包；可先保持纯视频输出。",
   setUpBrandPackage: "去建品牌包",
-  brandName: "品牌名称",
-  brandNamePlaceholder: "例如 Aivora",
-  cta: "行动文案",
-  ctaPlaceholder: "例如 立即了解",
-  stepPrompt: "视频提示词",
-  stepPromptHintQuick: "一句话写清产品、受众、场景和效果即可。系统会自动拆分镜头。",
-  stepPromptHintAdvanced: "可写分秒节奏、人物动作、镜头语言和不希望出现的内容。",
   promptLabel: "描述你想生成的视频",
-  promptPlaceholder: "例如：15 秒 9:16 真实 UGC 产品演示。年轻人在明亮浴室中直接展示产品如何解决具体问题；产品颜色、材质和包装全程与上传图片一致，结尾干净自然，不出现字幕、水印或虚构功能。",
+  promptPlaceholder: "例：把这只保温杯拍成通勤广告——清晨地铁站拿出来喝一口，到了办公室放在桌上，热气还在。",
   promptRequired: "请填写视频提示词。",
   promptPresets: ["真实 UGC 演示", "产品质感展示", "痛点到效果"],
   presetPrompts: [
@@ -252,6 +220,24 @@ const ZH_COPY = {
   dispatchFailed: "暂时无法提交视频，请稍后重试。",
   qualityBlocked: "视频描述还需要更多细节。请按生成方案中的提示修改后再提交。",
   planHeading: "生成方案已准备",
+  /// 2026-10-28 晚：创作页改成对话框优先（上线审核 §4）
+  heroTitle: "今天想拍什么？",
+  attachProduct: "商品图",
+  attachReference: "参考",
+  referenceTag: "参考",
+  helpWrite: "帮我写",
+  helpPolish: "帮我润色",
+  helpWriting: "正在写…",
+  helpWriteHint: "AI 看商品图（和你已经写的字）写两三句「拍什么」，你可以直接改；不占视频额度。",
+  helpWriteNeedsInput: "先上传商品图，或写一句想拍什么。",
+  helpWriteFailed: "这次没写出来，你原来的字都还在，可以再点一次。",
+  helpWriteDone: "写好了，可以直接改。",
+  tryThese: "试试这些",
+  pasteLink: "贴商品链接",
+  moreSettings: "更多设置",
+  referenceModeHint: "全能参考：商品图和参考素材一起用；仅产品图：参考素材不参与生成。",
+  rowPlan: "生成方案",
+  previewPlanHint: "想先看 AI 打算怎么拍、能不能过，可以先核对方案；不核对也会在出故事板时一并生成。",
 } as const;
 
 type StudioCopy = {
@@ -261,7 +247,6 @@ type StudioCopy = {
 };
 
 const EN_COPY: StudioCopy = {
-  subtitle: "From product images to storyboard to final video: upload assets, confirm direction, review the AI storyboard, then generate through Aivora.",
   readingsLabel: "Creation readings",
   readingsScope: "Live from this workspace; library samples excluded. The allowance runs per UTC month; failures and cancels are refunded.",
   guideTitle: "Follow five clear steps for your first video",
@@ -270,54 +255,33 @@ const EN_COPY: StudioCopy = {
   workflowTitle: "Current workflow",
   stageDone: "done",
   dismissGuide: "Got it, hide this guide",
-  orderTitle: "This order",
   optional: "Optional",
   rowAssets: "Assets",
-  rowMode: "Mode",
   rowSpecs: "Specs",
   rowEnding: "End frame",
-  rowPrompt: "Prompt",
   rowAudio: "Voice & captions",
   audioHint: "The video speaks your editable script; captions are timed to the finished video.",
-  summaryProducts: "Product images",
-  summaryReferences: "References",
-  referencesExcluded: "excluded",
-  summaryEnding: "End frame",
   summaryVoiceover: "Voiceover",
   summaryCaptions: "Captions",
-  summaryScenes: "AI scenes",
-  summaryScore: "Quality score",
-  summaryFrames: "Keyframes",
   on: "On",
   off: "Off",
   stepAsset: "Choose product assets (optional)",
   stepAssetHint: "Add up to 9 clear product images, or leave this empty for text-to-video generation.",
-  productDropTitle: "Drop or choose product images",
-  productDropDescription: "JPG / PNG / WebP · select multiple files at once",
   productCount: "{count} / 9 images",
   productRequired: "No product image added. This will use text-to-video generation.",
   removeProduct: "Remove product image",
   optionalReferences: "Reference images and final-footage clips (optional)",
   optionalReferencesHint: "Images guide style. Uploaded videos can be used as real footage in the final edit.",
-  referenceDropTitle: "Add reference images or final-footage clips",
-  referenceDropDescription: "JPG / PNG / WebP / MP4 / MOV / WebM",
   removeReference: "Remove reference asset",
   unsupportedFile: "Choose a supported image or video file.",
   tooManyProducts: "You can use up to 9 product images. Extra files were not uploaded.",
   tooManyReferences: "A creation can use up to 20 assets. Extra files were not uploaded.",
   uploaded: "Added {count} assets",
   uploadFailed: "The upload did not finish. Check the files and try again.",
-  stepMode: "Generation mode",
-  stepModeHint: "Quick generation is best for a first video. Use advanced mode when you want to pick a creative template.",
-  quick: "Quick generation",
   quickHint: "Automatic shot planning and quality checks",
   quickHintNoQa: "Automatic shot planning; frame checks are paused, videos still render",
   quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
   quickHintTemplateShotsNoQa: "Shots are planned from templates and frame checks are paused; videos still render",
-  advanced: "Advanced generation",
-  advancedHint: "Creative template controls",
-  stepSpecs: "Video specs",
-  stepSpecsHint: "Format and length shape the final video; changing them needs a fresh review.",
   route: "Generation route",
   autoRoute: "Aivora video route",
   routeHint: "Storyboard and video stay on the Aivora engine",
@@ -336,24 +300,14 @@ const EN_COPY: StudioCopy = {
   templatePain: "Pain to proof",
   templateUgc: "UGC review",
   templateSensory: "Material and light",
-  ending: "Brand ending",
-  endingNone: "None",
-  endingAuto: "Generate automatically",
   brandPackageStep: "Contact end frame (optional)",
   brandPackageHint: "Choose per video. Off produces a clean video; on appends one brand contact frame at the end (no corner watermark — the logo lives on the product).",
   cleanVideo: "Clean video only",
   cleanVideoHint: "No brand logo or end card",
   noBrandPackages: "This workspace has no active brand package yet. You can continue with a clean video.",
   setUpBrandPackage: "Set up a brand kit",
-  brandName: "Brand name",
-  brandNamePlaceholder: "Example: Aivora",
-  cta: "Call to action",
-  ctaPlaceholder: "Example: Learn more",
-  stepPrompt: "Video prompt",
-  stepPromptHintQuick: "One sentence covering the product, audience, setting, and outcome is enough. Shots are planned automatically.",
-  stepPromptHintAdvanced: "You can specify timing, actions, camera direction, and anything that must not appear.",
   promptLabel: "Describe the video you want to generate",
-  promptPlaceholder: "Example: A realistic 15-second 9:16 UGC product demo. A young adult shows how the product solves one specific problem in a bright bathroom. Keep its color, material, and packaging identical to the uploaded images. End naturally with no captions, watermark, or invented features.",
+  promptPlaceholder: "Example: Turn this tumbler into a commute ad. A sip on the morning subway, then it sits on the office desk, still steaming.",
   promptRequired: "Write a video prompt.",
   promptPresets: ["Real UGC demo", "Material showcase", "Pain to result"],
   presetPrompts: [
@@ -385,6 +339,23 @@ const EN_COPY: StudioCopy = {
   dispatchFailed: "The video could not be submitted right now. Try again shortly.",
   qualityBlocked: "The brief needs more detail. Update it using the generation-plan guidance, then submit again.",
   planHeading: "Generation plan ready",
+  heroTitle: "What will you create today?",
+  attachProduct: "Product photos",
+  attachReference: "Reference",
+  referenceTag: "Ref",
+  helpWrite: "Write it for me",
+  helpPolish: "Polish my words",
+  helpWriting: "Writing…",
+  helpWriteHint: "AI looks at your product photos (and anything you wrote) and drafts two or three sentences you can edit. It doesn't use your video allowance.",
+  helpWriteNeedsInput: "Add a product photo or a few words first.",
+  helpWriteFailed: "Couldn't write it this time. Your text is kept, so you can try again.",
+  helpWriteDone: "Draft ready. Edit it as you like.",
+  tryThese: "Try these",
+  pasteLink: "Paste a product link",
+  moreSettings: "More settings",
+  referenceModeHint: "Use all references: product photos and references work together. Product only: references are left out.",
+  rowPlan: "Generation plan",
+  previewPlanHint: "Want to see how the AI plans to shoot it first? Review the plan, or skip it: it's built with the storyboard anyway.",
 };
 
 /**
@@ -520,6 +491,12 @@ export function StreamlinedVideoStudio({
   /// 额度用完那条错误的原文：当前错误就是它时，错误框里给真实下一步（申请陪跑试点 / 联系我们）。
   /// 只按原文比对，别的错误替换掉它之后入口自然消失，不用在每个 setError 旁边清状态。
   const [quotaError, setQuotaError] = useState<string | null>(null);
+  /// 「帮我写」进行中：输入框与主按钮一起锁住，免得 AI 稿盖掉刚敲的字、或拿旧描述出方案
+  const [draftingPrompt, setDraftingPrompt] = useState(false);
+  /// 卡下「更多设置」与「贴商品链接」默认收起：默认值都替商家定好，不展开也能出片
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const storyboardAttemptRef = useRef<StoredAttempt | null>(null);
   const dispatchAttemptRef = useRef<StoredAttempt | null>(null);
   const voiceoverEditedRef = useRef(false);
@@ -1426,6 +1403,7 @@ export function StreamlinedVideoStudio({
     rawPrompt.trim().length > 0
     && busy === null
     && uploadingTarget === null
+    && !draftingPrompt
     && selectedRouteAvailable === true;
   const configurationLocked = Boolean(storyboard);
   const locked = busy !== null || configurationLocked;
@@ -1494,49 +1472,217 @@ export function StreamlinedVideoStudio({
             .replace("{used}", String(readings.quotaUsed))
             .replace("{limit}", String(readings.quotaLimit))
         : copy.readyHint;
-  const activeRecipe = COMMERCE_TEMPLATE_RECIPES.find((recipe) => recipe.slug === styleTemplateId);
-  const ledger: Array<{ label: string; value: string; numeric?: boolean }> = [
-    { label: copy.summaryProducts, value: `${productAssets.length}/${MAX_PRODUCT_IMAGES}`, numeric: true },
-    {
-      label: copy.summaryReferences,
-      value: referenceMode === "all" || referenceAssets.length === 0
-        ? String(referenceAssets.length)
-        : `${referenceAssets.length} · ${copy.referencesExcluded}`,
-      numeric: true,
-    },
-    { label: copy.stepMode, value: creationMode === "quick" ? copy.quick : copy.advanced },
-    ...(creationMode === "advanced"
-      ? [{
-          label: copy.template,
-          value: activeRecipe
-            ? (english ? activeRecipe.name : activeRecipe.nameZh)
-            : copy.templateAuto,
-        }]
-      : []),
-    { label: copy.aspect, value: ratioLabel },
-    { label: copy.duration, value: `${selectedDuration}s`, numeric: true },
-    ...(BRAND_END_CARD_ENTRY_ENABLED
-      ? [{ label: copy.summaryEnding, value: selectedBrandPackage?.name ?? copy.endingNone }]
-      : []),
-    { label: copy.summaryVoiceover, value: voiceoverEnabled ? copy.on : copy.off },
-    { label: copy.summaryCaptions, value: captionsEnabled ? copy.on : copy.off },
-    ...(plan && planIsCurrent
-      ? [
-          { label: copy.summaryScenes, value: String(plan.planPreview.breakdown.aiClipCount), numeric: true },
-          { label: copy.summaryScore, value: `${plan.qualityReview.score}/100`, numeric: true },
-        ]
-      : []),
-    ...(storyboard
-      ? [{
-          label: copy.summaryFrames,
-          value: `${storyboard.frames.filter((frame) => frame.status === "SUCCEEDED").length}/${storyboardFrameTarget(storyboard.durationSec)}`,
-          numeric: true,
-        }]
+  const attachDisabled = busy !== null || configurationLocked || uploadingTarget !== null || draftingPrompt;
+  const productSlotsFull = productAssets.length >= MAX_PRODUCT_IMAGES
+    || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS;
+  const referenceSlotsFull = productAssets.length + referenceAssets.length
+    >= MAX_ATTACHMENTS - (productAssets.length === 0 ? 1 : 0);
+
+  /// 「帮我写 / 帮我润色」（2026-10-28 晚，上线审核 §3，回应 CEO「没有自动生成提示词，商家嫌写字麻烦」）：
+  /// AI 看商品图（和已写的字）用商家的语言写两三句「拍什么」，商家直接改。只写文本、不扣额度；任何失败都保留原字。
+  async function draftPrompt() {
+    if (draftingPrompt || locked || uploadingTarget !== null) return;
+    const hint = rawPrompt.trim();
+    if (productAssets.length === 0 && !hint) {
+      toast.error(copy.helpWriteNeedsInput);
+      return;
+    }
+    interactedRef.current = true;
+    setDraftingPrompt(true);
+    try {
+      const response = await fetch("/api/video-generation/prompt-draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          assetIds: productAssets.map((asset) => asset.assetId ?? asset.id).slice(0, 6),
+          hint: hint || null,
+          durationSec: selectedDuration,
+          language: locale,
+        }),
+      });
+      const payload = await response.json().catch(() => null) as { ok?: boolean; description?: string | null } | null;
+      if (response.ok && payload?.description) {
+        setRawPrompt(payload.description);
+        invalidatePlan();
+        toast.success(copy.helpWriteDone);
+      } else {
+        toast.error(response.status === 400 ? copy.helpWriteNeedsInput : copy.helpWriteFailed);
+      }
+    } catch {
+      toast.error(copy.helpWriteFailed);
+    } finally {
+      setDraftingPrompt(false);
+    }
+  }
+
+  /// 拖到整张提示卡上也能传：有图先当商品图（满了转参考），只有视频就进参考
+  function dropFiles(files: File[]) {
+    if (files.length === 0) return;
+    const images = files.filter((file) => isSupportedImage(file));
+    if (images.length > 0 && !productSlotsFull) {
+      void uploadProductImages(images);
+      return;
+    }
+    void uploadReferenceAssets(files);
+  }
+
+  const loadedFromStudio = initialProductAssets.filter((initial) =>
+    productAssets.some((asset) => asset.id === initial.id),
+  );
+  /// 读数取不到时写「—」，不放示例数字
+  const readingStats = readings
+    ? [
+        readingStat("generating", readings.generating, locale),
+        readingStat("filled24h", readings.filled24h, locale),
+        quotaStat(readings.quotaUsed, readings.quotaLimit, locale),
+        readingStat("successRate7d", formatRate(readings.successRate7d), locale),
+      ]
+    : [
+        readingStat("generating", null, locale),
+        readingStat("filled24h", null, locale),
+        readingStat("monthlyQuota", null, locale),
+        readingStat("successRate7d", null, locale),
+      ];
+  /// 模板芯片：「自动」= 系统按描述匹配；选了模板就按它的镜头配方走（原「快速 / 高级生成」并进这里，2026-10-28 晚）。
+  /// 从模板库带进来的老模板不在配方表里，单独补一项，下拉显示才与实际一致。
+  const templateOptions = [
+    { value: "auto", label: copy.templateAuto },
+    ...COMMERCE_TEMPLATE_RECIPES.map((recipe) => ({
+      value: recipe.slug,
+      label: english ? recipe.name : recipe.nameZh,
+    })),
+    ...(activeStyleTemplateId !== "auto"
+      && !COMMERCE_TEMPLATE_RECIPES.some((recipe) => recipe.slug === activeStyleTemplateId)
+      ? [{ value: activeStyleTemplateId, label: legacyTemplateLabel(activeStyleTemplateId, copy) }]
       : []),
   ];
+  /// 写作 / 看图能力暂停时，在卡下明说镜头怎么规划、质检是否照常（C4 · 诚实说明）
+  const capabilityDegraded = shotsFromTemplate || frameQaPaused;
+  const moreSummary = `${copy.summaryVoiceover} ${voiceoverEnabled ? copy.on : copy.off} · ${copy.summaryCaptions} ${captionsEnabled ? copy.on : copy.off}`;
+
+  /// 错误与额度提醒：没有故事板时贴在提示卡下面，有故事板时进底部操作条——同一份元素只渲染一处
+  const statusNotices = (
+    <>
+      {error ? (
+        <div role="alert" className="flex flex-wrap items-start gap-2 rounded-(--radius-md) border border-danger bg-danger-soft px-3 py-2 text-meta text-danger">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span className="min-w-0 flex-1">{error}</span>
+          {/* 供应商挂了 / 这一轮失败时，用户必须有一条「不再纠缠这一轮」的出口 */}
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            disabled={cancellingRound}
+            onClick={() => void cancelCurrentRound()}
+          >
+            <X aria-hidden />
+            {copy.cancelRound}
+          </Button>
+          {showingQuotaError ? (
+            <QuotaNextSteps locale={locale} contactEmail={contactEmail} className="basis-full" />
+          ) : null}
+        </div>
+      ) : null}
+      {quotaExhausted && !showingQuotaError ? (
+        <div
+          className="space-y-2 rounded-(--radius-md) border border-border bg-gold-soft px-3 py-2"
+          data-testid="quota-exhausted-notice"
+        >
+          <p className="text-meta font-medium text-gold">{quotaNextStepsCopy(locale).exhausted}</p>
+          <QuotaNextSteps locale={locale} contactEmail={contactEmail} />
+        </div>
+      ) : null}
+    </>
+  );
+
+  /// 主按钮只有一枚：没有故事板时在提示卡右下角（像 Runway 的 Generate），有故事板时进故事板下面的操作条
+  const generateBar = (
+    <div
+      role="group"
+      aria-label={needsStoryboard ? copy.createStoryboard : copy.generate}
+      data-testid="streamlined-generate-bar"
+      className="flex flex-wrap items-center justify-end gap-2"
+    >
+      {/* 出方案要 40–60 秒，期间页面锁住：给一个出口（素材与描述原样保留） */}
+      {busy === "preview" || planningShots ? (
+        <Button type="button" variant="ghost" size="sm" onClick={cancelPlanning} data-testid="cancel-planning">
+          <X aria-hidden />
+          {copy.cancelPlanning}
+        </Button>
+      ) : null}
+      <Button
+        type="button"
+        id="platform-primary-generate"
+        disabled={needsStoryboard
+          ? !canReview || busy !== null
+          : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
+        onClick={() => {
+          if (needsStoryboard) {
+            void handleCreateStoryboard();
+            return;
+          }
+          if (storyboardGenerating || storyboardNeedsApproval) {
+            document.getElementById("single-video-storyboard")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+            return;
+          }
+          void handleGenerate();
+        }}
+        className="min-w-36"
+      >
+        <PrimaryIcon
+          className={primaryIsBusy || storyboardGenerating ? "animate-spin motion-reduce:animate-none" : undefined}
+          aria-hidden
+        />
+        {primaryLabel}
+      </Button>
+    </div>
+  );
+
+  /// 五步流程（与首用提示同一个来源）：一页只有一套步骤，当前一步只有一个
+  const workflowRail = (
+    <ol
+      aria-label={copy.workflowTitle}
+      className="flex flex-wrap items-center justify-center gap-1"
+      data-testid="creation-workflow-rail"
+    >
+      {copy.guideSteps.map((step, index) => {
+        const state = index < stageIndex ? "done" : index === stageIndex ? "current" : "pending";
+        return (
+          <li
+            key={step}
+            aria-current={state === "current" ? "step" : undefined}
+            data-beam={state === "current" && stageWorking ? "row" : undefined}
+            className={cn(
+              "flex items-center gap-1.5 rounded-(--radius-pill) px-2.5 py-1 text-meta",
+              state === "current"
+                ? "bg-active text-foreground"
+                : state === "done"
+                  ? "text-muted-foreground"
+                  : "text-tertiary",
+            )}
+          >
+            <span
+              aria-hidden
+              className={cn(
+                "font-mono text-data tabular-nums",
+                state === "done" ? "text-success" : state === "current" ? "text-accent" : "text-tertiary",
+              )}
+            >
+              {state === "done" ? <Check className="size-3" /> : index + 1}
+            </span>
+            <span className="whitespace-nowrap">{step}</span>
+            {state === "done" ? <span className="sr-only">{copy.stageDone}</span> : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
 
   return (
-    <div className="space-y-8 pb-4" data-testid="streamlined-video-studio">
+    <div className="space-y-10 pb-4" data-testid="streamlined-video-studio">
       <FirstRunOnboardingDialog
         open={onboardingOpen}
         english={english}
@@ -1545,353 +1691,267 @@ export function StreamlinedVideoStudio({
         onSkip={() => closeOnboarding(false)}
         onStart={() => closeOnboarding(true)}
       />
-      <QuoteHeader
-        title={workspaceNavTitle("create", locale)}
-        subtitle={copy.subtitle}
-        /// 「生成视频 / 产品图片」切换 A 级下线（entry-policy.ts）：商品图改进品牌套件
-        modeSwitch={PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED ? <CreateModeTabs active="video" /> : undefined}
-        primaryAction={null}
-        readingsLabel={copy.readingsLabel}
-        /// 读数取不到时写「—」，不放示例数字
-        readings={readings
-          ? [
-              readingStat("generating", readings.generating, locale),
-              readingStat("filled24h", readings.filled24h, locale),
-              quotaStat(readings.quotaUsed, readings.quotaLimit, locale),
-              readingStat("successRate7d", formatRate(readings.successRate7d), locale),
-            ]
-          : [
-              readingStat("generating", null, locale),
-              readingStat("filled24h", null, locale),
-              readingStat("monthlyQuota", null, locale),
-              readingStat("successRate7d", null, locale),
-            ]}
-        scope={copy.readingsScope}
-      />
 
-      <div className="flex flex-col gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start 2xl:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="min-w-0 space-y-8">
+      {/* 对话框优先（2026-10-28 晚，上线审核 §4）：学 Runway 首页——一句轻标题 + 一张提示卡，规格芯片在卡下面；
+          默认值都替商家定好，口播 / 字幕 / 参考方式收进「更多设置」，不展开也能出片 */}
+      <section aria-labelledby="create-hero-title" className="mx-auto w-full max-w-[52.5rem] space-y-4 pt-2 md:pt-6">
+        {/* 「生成视频 / 产品图片」切换 A 级下线（entry-policy.ts）：商品图改进品牌套件 */}
+        {PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED ? <CreateModeTabs active="video" /> : null}
+        <header className="space-y-3 text-center">
+          <h1 id="create-hero-title" className="create-hero-title">{copy.heroTitle}</h1>
+          <dl
+            aria-label={copy.readingsLabel}
+            title={copy.readingsScope}
+            className="flex flex-wrap items-baseline justify-center gap-x-4 gap-y-1 text-meta"
+            data-testid="create-readings"
+          >
+            {readingStats.map((stat) => (
+              <div key={stat.label} className="flex items-baseline gap-1.5">
+                <dt className="text-tertiary">{stat.label}</dt>
+                <dd className={cn("font-mono text-data tabular-nums", QUOTE_TONE_CLASS[stat.tone ?? "neutral"])}>{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </header>
+
+        {showGuide ? (
+          <section
+            className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-raised py-1 pl-3 pr-1 sm:items-center"
+            aria-labelledby="streamlined-first-use-heading"
+            data-testid="streamlined-first-use-guide"
+          >
+            <p className="min-w-0 flex-1 py-1.5 text-meta text-muted-foreground">
+              <span id="streamlined-first-use-heading" className="font-medium text-foreground">{copy.guideTitle}</span>
+              <span className="mx-2 text-tertiary" aria-hidden>·</span>
+              {copy.guideBody}
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 text-muted-foreground"
+              onClick={dismissGuide}
+              aria-label={copy.dismissGuide}
+              title={copy.dismissGuide}
+            >
+              <X aria-hidden />
+            </Button>
+          </section>
+        ) : null}
+
+        {/* 提示卡：素材在上、描述在中、帮我写与主按钮在右下；整张卡都能拖进文件 */}
+        <div
+          id="streamlined-video-prompt"
+          data-testid="streamlined-video-prompt"
+          className={cn(
+            "scroll-mt-24 rounded-(--radius-prompt) border bg-surface p-3 transition-colors duration-fast ease-out focus-within:border-(--accent-line) motion-reduce:transition-none sm:p-4",
+            dragOver ? "border-(--accent-line)" : "border-border",
+          )}
+          onDragOver={(event) => {
+            if (attachDisabled || !event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragOver(false);
+          }}
+          onDrop={(event) => {
+            if (attachDisabled || !event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            setDragOver(false);
+            dropFiles(Array.from(event.dataTransfer.files));
+          }}
+        >
+          <div
+            role="group"
+            aria-label={copy.rowAssets}
+            className="flex flex-wrap items-center gap-2"
+            data-testid="streamlined-product-assets"
+          >
+            <AttachButton
+              label={copy.attachProduct}
+              hint={productAssets.length === 0 ? copy.productRequired : copy.stepAssetHint}
+              accept="image/png,image/jpeg,image/webp"
+              icon={ImagePlus}
+              uploading={uploadingTarget === "product"}
+              disabled={attachDisabled || productSlotsFull}
+              onFiles={(files) => void uploadProductImages(files)}
+            />
+            <AssetThumbs
+              assets={productAssets}
+              imageLabel={copy.stepAsset}
+              removeLabel={copy.removeProduct}
+              onRemove={removeProductAsset}
+              disabled={locked}
+            />
+            <AttachButton
+              label={copy.attachReference}
+              hint={copy.optionalReferencesHint}
+              accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
+              icon={Paperclip}
+              uploading={uploadingTarget === "reference"}
+              disabled={attachDisabled || referenceSlotsFull}
+              onFiles={(files) => void uploadReferenceAssets(files)}
+            />
+            <AssetThumbs
+              assets={referenceAssets}
+              imageLabel={copy.optionalReferences}
+              removeLabel={copy.removeReference}
+              referenceTag={copy.referenceTag}
+              onRemove={removeReferenceAsset}
+              disabled={locked}
+            />
+            <span className="ml-auto self-end font-mono text-data tabular-nums text-tertiary">
+              {copy.productCount.replace("{count}", String(productAssets.length))}
+            </span>
+          </div>
+          <Textarea
+            value={rawPrompt}
+            maxLength={4000}
+            rows={4}
+            disabled={locked || draftingPrompt}
+            aria-label={copy.promptLabel}
+            aria-invalid={Boolean(error && !rawPrompt.trim())}
+            onChange={(event) => {
+              setRawPrompt(event.target.value);
+              invalidatePlan();
+            }}
+            onBlur={() => {
+              /// 写完描述离开输入框：口播稿还没被手动改过，就请 AI 按描述起一版（学 LibTV：AI 先写，人来改）
+              if (!voiceoverEditedRef.current && voiceoverEnabled && rawPrompt.trim().length >= 12 && !voiceoverDrafting) {
+                void regenerateVoiceoverScript();
+              }
+            }}
+            placeholder={copy.promptPlaceholder}
+            className="mt-3 max-h-80 min-h-28 resize-none border-0 bg-transparent px-1 py-1 text-body leading-relaxed shadow-none focus-visible:outline-none disabled:bg-transparent"
+          />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="font-mono text-data tabular-nums text-tertiary">
+              {copy.charCount.replace("{count}", String(rawPrompt.length))}
+            </span>
+            <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={locked || draftingPrompt || uploadingTarget !== null}
+                onClick={() => void draftPrompt()}
+                title={copy.helpWriteHint}
+                data-testid="prompt-draft"
+                className="[&_svg]:text-iris"
+              >
+                {draftingPrompt ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <PenLine aria-hidden />}
+                {draftingPrompt ? copy.helpWriting : rawPrompt.trim() ? copy.helpPolish : copy.helpWrite}
+              </Button>
+              {!storyboard ? generateBar : null}
+            </div>
+          </div>
+        </div>
+
+        {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
+        {loadedFromStudio.length > 0 ? (
+          <p role="status" className="text-meta text-success">
+            {english
+              ? "Loaded from Product Image Studio as a product consistency reference."
+              : "已从产品图工作台载入，并作为产品一致性参考。"}
+            <span className="ml-1 font-mono text-muted-foreground">
+              {loadedFromStudio.map((asset) => asset.fileName).join("、")}
+            </span>
+          </p>
+        ) : null}
+        {!storyboard ? statusNotices : null}
+
+        {/* 卡下的规格芯片：时长 · 画幅 · 模板 · 更多设置 */}
+        <div
+          role="group"
+          aria-label={copy.rowSpecs}
+          className="flex flex-wrap items-center justify-center gap-2"
+          data-testid="streamlined-video-specs"
+        >
+          <ChipSelect
+            label={copy.duration}
+            value={String(selectedDuration)}
+            disabled={locked}
+            options={DURATIONS.map((duration) => ({ value: String(duration), label: `${duration}s` }))}
+            onChange={(value) => {
+              setSelectedDuration(Number(value) as 15 | 30 | 60);
+              invalidatePlan();
+            }}
+          />
+          <ChipSelect
+            label={copy.aspect}
+            value={selectedAspectRatio}
+            disabled={locked}
+            options={ASPECT_RATIOS.map((ratio) => ({ value: ratio, label: aspectRatioLabel(ratio, copy) }))}
+            onChange={(value) => {
+              setSelectedAspectRatio(value as AspectRatio);
+              invalidatePlan();
+            }}
+          />
+          <ChipSelect
+            label={copy.template}
+            showLabel
+            value={activeStyleTemplateId}
+            disabled={locked}
+            hint={quickModeHint}
+            options={templateOptions}
+            onChange={(value) => {
+              setCreationMode("advanced");
+              setStyleTemplateId(value);
+              invalidatePlan();
+            }}
+            data-testid="streamlined-generation-mode"
+          />
+          <button
+            type="button"
+            aria-expanded={moreOpen}
+            aria-controls="streamlined-more-settings"
+            onClick={() => setMoreOpen((open) => !open)}
+            className={cn(CHIP_CLASS, moreOpen && "border-(--accent-line)")}
+          >
+            <Settings2 aria-hidden />
+            {copy.moreSettings}
+            <span className="font-normal text-tertiary">{moreSummary}</span>
+          </button>
+        </div>
+
+        {/* 试试这些：一点就把描述填好（模板化的说法），也可以贴商品链接自动起草 */}
+        {!storyboard ? (
           <div className="space-y-3">
-            {showGuide ? (
-              <section
-                className="flex items-start gap-2 rounded-(--radius-md) border border-border bg-raised py-1 pl-3 pr-1 sm:items-center"
-                aria-labelledby="streamlined-first-use-heading"
-                data-testid="streamlined-first-use-guide"
-              >
-                <p className="min-w-0 flex-1 py-1.5 text-meta text-muted-foreground">
-                  <span id="streamlined-first-use-heading" className="font-medium text-foreground">{copy.guideTitle}</span>
-                  <span className="mx-2 text-tertiary" aria-hidden>·</span>
-                  {copy.guideBody}
-                </p>
-                <Button
+            <div
+              role="group"
+              aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
+              className="flex flex-wrap items-center justify-center gap-1.5"
+            >
+              <span className="mr-1 text-meta text-tertiary">{copy.tryThese}</span>
+              {copy.promptPresets.map((label, index) => (
+                <button
+                  key={label}
                   type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="shrink-0 text-muted-foreground"
-                  onClick={dismissGuide}
-                  aria-label={copy.dismissGuide}
-                  title={copy.dismissGuide}
-                >
-                  <X aria-hidden />
-                </Button>
-              </section>
-            ) : null}
-
-            {/* 委托单：一面行情墙，一步一行；行本身就是容器，只有真正的输入是下沉井 */}
-            <div className="x-wall @container">
-              <TicketRow
-                data-testid="streamlined-product-assets"
-                label={copy.rowAssets}
-                optional={copy.optional}
-                reading={copy.productCount.replace("{count}", String(productAssets.length))}
-              >
-                <p className="text-meta text-muted-foreground">{copy.stepAssetHint}</p>
-                <FileDropzone
-                  title={copy.productDropTitle}
-                  description={copy.productDropDescription}
-                  uploading={uploadingTarget === "product"}
-                  disabled={busy !== null
-                    || configurationLocked
-                    || uploadingTarget !== null
-                    || productAssets.length >= MAX_PRODUCT_IMAGES
-                    || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS}
-                  onFiles={(files) => void uploadProductImages(files)}
-                  onRejected={() => {
-                    setUploadError(copy.unsupportedFile);
-                    toast.error(copy.unsupportedFile);
+                  className={CHIP_CLASS}
+                  disabled={locked || draftingPrompt}
+                  onClick={() => {
+                    setRawPrompt(copy.presetPrompts[index] ?? "");
+                    invalidatePlan();
                   }}
-                  className="py-5"
-                />
-                {productAssets.length > 0 ? (
-                  <>
-                    {initialProductAssets.some((initial) =>
-                      productAssets.some((asset) => asset.id === initial.id),
-                    ) ? (
-                      <p role="status" className="text-meta text-success">
-                        {english
-                          ? "Loaded from Product Image Studio as a product consistency reference."
-                          : "已从产品图工作台载入，并作为产品一致性参考。"}
-                        <span className="ml-1 font-mono text-muted-foreground">
-                          {initialProductAssets
-                            .filter((initial) =>
-                              productAssets.some((asset) => asset.id === initial.id),
-                            )
-                            .map((asset) => asset.fileName)
-                            .join("、")}
-                        </span>
-                      </p>
-                    ) : null}
-                    <AssetGrid
-                      assets={productAssets}
-                      imageLabel={copy.stepAsset}
-                      removeLabel={copy.removeProduct}
-                      onRemove={removeProductAsset}
-                      disabled={locked}
-                    />
-                  </>
-                ) : (
-                  <p className="text-meta text-muted-foreground">{copy.productRequired}</p>
-                )}
-
-                <details className="group" data-testid="streamlined-reference-assets">
-                  <summary className="flex w-fit cursor-pointer list-none items-center gap-2 rounded-(--radius-sm) py-1 text-meta text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring [&::-webkit-details-marker]:hidden">
-                    <ChevronRight className="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden />
-                    <span className="font-medium text-foreground">{copy.optionalReferences}</span>
-                    {referenceAssets.length > 0 ? (
-                      <span className="font-mono text-data tabular-nums">{referenceAssets.length}</span>
-                    ) : null}
-                  </summary>
-                  <div className="mt-3 space-y-3">
-                    <p className="text-meta text-muted-foreground">{copy.optionalReferencesHint}</p>
-                    <FileDropzone
-                      accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"
-                      title={copy.referenceDropTitle}
-                      description={copy.referenceDropDescription}
-                      uploading={uploadingTarget === "reference"}
-                      disabled={busy !== null
-                        || configurationLocked
-                        || uploadingTarget !== null
-                        || productAssets.length + referenceAssets.length >= MAX_ATTACHMENTS - (productAssets.length === 0 ? 1 : 0)}
-                      onFiles={(files) => void uploadReferenceAssets(files)}
-                      onRejected={() => {
-                        setUploadError(copy.unsupportedFile);
-                        toast.error(copy.unsupportedFile);
-                      }}
-                      className="py-4"
-                    />
-                    {referenceAssets.length > 0 ? (
-                      <AssetGrid
-                        assets={referenceAssets}
-                        imageLabel={copy.optionalReferences}
-                        removeLabel={copy.removeReference}
-                        onRemove={removeReferenceAsset}
-                        disabled={locked}
-                      />
-                    ) : null}
-                  </div>
-                </details>
-                {uploadError ? <p role="alert" className="text-meta text-danger">{uploadError}</p> : null}
-              </TicketRow>
-
-              <TicketRow data-testid="streamlined-generation-mode" label={copy.rowMode}>
-                <p className="text-meta text-muted-foreground">{copy.stepModeHint}</p>
-                <div className="grid gap-2 @md:grid-cols-2" role="group" aria-label={copy.stepMode}>
-                  <OptionButton
-                    active={creationMode === "quick"}
-                    title={copy.quick}
-                    description={quickModeHint}
-                    icon={Zap}
-                    disabled={locked}
-                    onClick={() => {
-                      setCreationMode("quick");
-                      invalidatePlan();
-                    }}
-                  />
-                  <OptionButton
-                    active={creationMode === "advanced"}
-                    title={copy.advanced}
-                    description={copy.advancedHint}
-                    icon={SlidersHorizontal}
-                    disabled={locked}
-                    onClick={() => {
-                      setCreationMode("advanced");
-                      invalidatePlan();
-                    }}
-                  />
-                </div>
-              </TicketRow>
-
-              <TicketRow data-testid="streamlined-video-specs" label={copy.rowSpecs}>
-                <p className="text-meta text-muted-foreground">{copy.stepSpecsHint}</p>
-                <dl className="grid gap-x-4 gap-y-2 @md:grid-cols-[6.5rem_minmax(0,1fr)] @md:items-center @md:gap-y-3">
-                  <dt className="x-label">{copy.route}</dt>
-                  <dd className="min-w-0 pb-1 @md:pb-0">
-                    {canSelectVideoRoute ? (
-                      <VideoRouteSelector
-                        canSelectVideoRoute={canSelectVideoRoute}
-                        showInternalRoutes={showInternalVideoRoutes}
-                        durationSeconds={selectedDuration}
-                        value={selectedVideoRouteId}
-                        disabled={locked}
-                        onChange={handleVideoRouteChange}
-                        onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
-                      />
-                    ) : (
-                      <p className="text-body">
-                        <span className="font-medium text-foreground">{copy.autoRoute}</span>
-                        <span className="text-meta text-muted-foreground"> · {copy.routeHint}</span>
-                      </p>
-                    )}
-                  </dd>
-                  <dt className="x-label">{copy.referenceMode}</dt>
-                  <dd className="min-w-0 pb-1 @md:pb-0">
-                    <Segmented
-                      label={copy.referenceMode}
-                      value={referenceMode}
-                      disabled={locked}
-                      onChange={(value) => {
-                        setReferenceMode(value as ReferenceMode);
-                        invalidatePlan();
-                      }}
-                      options={[
-                        { value: "all", label: copy.referenceAll },
-                        { value: "product_only", label: copy.referenceProduct },
-                      ]}
-                    />
-                  </dd>
-                  <dt className="x-label">{copy.aspect}</dt>
-                  <dd className="min-w-0 pb-1 @md:pb-0">
-                    <Segmented
-                      label={copy.aspect}
-                      value={selectedAspectRatio}
-                      disabled={locked}
-                      onChange={(value) => {
-                        setSelectedAspectRatio(value as AspectRatio);
-                        invalidatePlan();
-                      }}
-                      options={ASPECT_RATIOS.map((ratio) => ({ value: ratio, label: aspectRatioLabel(ratio, copy) }))}
-                    />
-                  </dd>
-                  <dt className="x-label">{copy.duration}</dt>
-                  <dd className="min-w-0 pb-1 @md:pb-0">
-                    <Segmented
-                      label={copy.duration}
-                      value={String(selectedDuration)}
-                      disabled={locked}
-                      onChange={(value) => {
-                        setSelectedDuration(Number(value) as 15 | 30 | 60);
-                        invalidatePlan();
-                      }}
-                      options={DURATIONS.map((duration) => ({ value: String(duration), label: `${duration}s` }))}
-                    />
-                  </dd>
-                  {creationMode === "advanced" ? (
-                    <>
-                      <dt>
-                        <label htmlFor="streamlined-style-template" className="x-label">{copy.template}</label>
-                      </dt>
-                      <dd className="min-w-0" data-testid="streamlined-advanced-options">
-                        <select
-                          id="streamlined-style-template"
-                          value={styleTemplateId}
-                          disabled={locked}
-                          onChange={(event) => {
-                            setStyleTemplateId(event.target.value);
-                            invalidatePlan();
-                          }}
-                          className="x-select max-w-md"
-                        >
-                          <option value="auto">{copy.templateAuto}</option>
-                          {COMMERCE_TEMPLATE_RECIPES.map((recipe) => (
-                            <option key={recipe.slug} value={recipe.slug}>
-                              {english ? recipe.name : recipe.nameZh}
-                            </option>
-                          ))}
-                        </select>
-                      </dd>
-                    </>
-                  ) : null}
-                </dl>
-              </TicketRow>
-
-              {/* 品牌尾卡入口 A 级下线（2026-10-28，见 brand-end-card-policy.ts）：品牌跟着商品走，不再在片尾贴卡 */}
-              {BRAND_END_CARD_ENTRY_ENABLED ? (
-                <TicketRow
-                  data-testid="streamlined-brand-package"
-                  label={copy.rowEnding}
-                  optional={copy.optional}
                 >
-                  <p className="text-meta text-muted-foreground">{copy.brandPackageHint}</p>
-                  <div className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3" role="group" aria-label={copy.brandPackageStep}>
-                    <OptionButton
-                      active={selectedBrandPackageId === null}
-                      title={copy.cleanVideo}
-                      description={copy.cleanVideoHint}
-                      disabled={locked}
-                      onClick={() => {
-                        setSelectedBrandPackageId(null);
-                        invalidatePlan();
-                      }}
-                    />
-                    {brandPackages.map((brandPackage) => (
-                      <OptionButton
-                        key={brandPackage.id}
-                        active={selectedBrandPackageId === brandPackage.id}
-                        title={brandPackage.name}
-                        description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
-                        disabled={locked}
-                        onClick={() => {
-                          setSelectedBrandPackageId(brandPackage.id);
-                          invalidatePlan();
-                        }}
-                      />
-                    ))}
-                  </div>
-                  {brandPackages.length === 0 ? (
-                    <p className="text-meta text-muted-foreground">
-                      {copy.noBrandPackages}{" "}
-                      {/* C1：给去处——上传 logo、留联系方式，成片结尾的联系卡就有了 */}
-                      <Link href="/app/brands" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
-                        {copy.setUpBrandPackage}
-                      </Link>
-                    </p>
-                  ) : null}
-                </TicketRow>
-              ) : null}
-
-              <TicketRow
-                id="streamlined-video-prompt"
-                data-testid="streamlined-video-prompt"
-                label={copy.rowPrompt}
-                className="scroll-mt-24"
+                  {label}
+                </button>
+              ))}
+              <button
+                type="button"
+                aria-expanded={linkOpen}
+                className={cn(CHIP_CLASS, linkOpen && "border-(--accent-line)")}
+                disabled={locked}
+                onClick={() => setLinkOpen((open) => !open)}
               >
-                <p className="text-meta text-muted-foreground">
-                  {creationMode === "quick" ? copy.stepPromptHintQuick : copy.stepPromptHintAdvanced}
-                </p>
-                <div
-                  className="flex flex-wrap gap-1.5"
-                  role="group"
-                  aria-label={english ? "Video prompt presets" : "视频提示词快捷选项"}
-                >
-                  {copy.promptPresets.map((label, index) => (
-                    <Button
-                      key={label}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="sm:h-8"
-                      disabled={locked}
-                      onClick={() => {
-                        setRawPrompt(copy.presetPrompts[index] ?? "");
-                        invalidatePlan();
-                      }}
-                    >
-                      <PenLine aria-hidden />
-                      {label}
-                    </Button>
-                  ))}
-                </div>
-                {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填提示词 */}
+                <Link2 aria-hidden />
+                {copy.pasteLink}
+              </button>
+            </div>
+            {/* 链接起片（PRD O1）：有独立站的商家贴链接自动预填描述 */}
+            {linkOpen ? (
+              <div className="mx-auto w-full max-w-xl">
                 <ProductLinkPrefill
                   disabled={locked}
                   onPrefill={(promptText) => {
@@ -1899,269 +1959,210 @@ export function StreamlinedVideoStudio({
                     invalidatePlan();
                   }}
                 />
-                <label className="block">
-                  <span className="x-label">{copy.promptLabel}</span>
-                  <Textarea
-                    value={rawPrompt}
-                    maxLength={4000}
-                    rows={7}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {/* 更多设置：收起时也保持挂载（线路可用性检查照常跑），只是不显示 */}
+        <div
+          id="streamlined-more-settings"
+          hidden={!moreOpen}
+          className="@container divide-y divide-border rounded-(--radius-card) border border-border bg-surface"
+          data-testid="streamlined-more-settings"
+        >
+          <TicketRow label={copy.route}>
+            {canSelectVideoRoute ? (
+              <VideoRouteSelector
+                canSelectVideoRoute={canSelectVideoRoute}
+                showInternalRoutes={showInternalVideoRoutes}
+                durationSeconds={selectedDuration}
+                value={selectedVideoRouteId}
+                disabled={locked}
+                onChange={handleVideoRouteChange}
+                onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
+              />
+            ) : (
+              <p className="text-body">
+                <span className="font-medium text-foreground">{copy.autoRoute}</span>
+                <span className="text-meta text-muted-foreground"> · {copy.routeHint}</span>
+              </p>
+            )}
+          </TicketRow>
+          <TicketRow label={copy.referenceMode}>
+            <p className="text-meta text-muted-foreground">{copy.referenceModeHint}</p>
+            <Segmented
+              label={copy.referenceMode}
+              value={referenceMode}
+              disabled={locked}
+              onChange={(value) => {
+                setReferenceMode(value as ReferenceMode);
+                invalidatePlan();
+              }}
+              options={[
+                { value: "all", label: copy.referenceAll },
+                { value: "product_only", label: copy.referenceProduct },
+              ]}
+            />
+          </TicketRow>
+          {/* 口播 / 字幕 / 配乐：默认开口播与逐词字幕，口播稿 AI 先写、人来改 */}
+          <TicketRow label={copy.rowAudio}>
+            <p className="text-meta text-muted-foreground">{copy.audioHint}</p>
+            <AudioCaptionControls
+              value={audioCaptionSettings}
+              english={english}
+              disabled={locked}
+              onChange={updateAudioCaptionSettings}
+              onRegenerate={() => void regenerateVoiceoverScript()}
+              regenerating={voiceoverDrafting}
+              draftFromTemplate={narrationFromTemplate}
+            />
+          </TicketRow>
+          {/* 品牌尾卡入口 A 级下线（2026-10-28，见 brand-end-card-policy.ts）：品牌跟着商品走，不再在片尾贴卡 */}
+          {BRAND_END_CARD_ENTRY_ENABLED ? (
+            <TicketRow
+              data-testid="streamlined-brand-package"
+              label={copy.rowEnding}
+              optional={copy.optional}
+            >
+              <p className="text-meta text-muted-foreground">{copy.brandPackageHint}</p>
+              <div className="grid gap-2 @md:grid-cols-2" role="group" aria-label={copy.brandPackageStep}>
+                <OptionButton
+                  active={selectedBrandPackageId === null}
+                  title={copy.cleanVideo}
+                  description={copy.cleanVideoHint}
+                  disabled={locked}
+                  onClick={() => {
+                    setSelectedBrandPackageId(null);
+                    invalidatePlan();
+                  }}
+                />
+                {brandPackages.map((brandPackage) => (
+                  <OptionButton
+                    key={brandPackage.id}
+                    active={selectedBrandPackageId === brandPackage.id}
+                    title={brandPackage.name}
+                    description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
                     disabled={locked}
-                    aria-invalid={Boolean(error && !rawPrompt.trim())}
-                    onChange={(event) => {
-                      setRawPrompt(event.target.value);
+                    onClick={() => {
+                      setSelectedBrandPackageId(brandPackage.id);
                       invalidatePlan();
                     }}
-                    onBlur={() => {
-                      /// 写完描述离开输入框：口播稿还没被手动改过，就请 AI 按描述起一版（学 LibTV：AI 先写，人来改）
-                      if (!voiceoverEditedRef.current && voiceoverEnabled && rawPrompt.trim().length >= 12 && !voiceoverDrafting) {
-                        void regenerateVoiceoverScript();
-                      }
-                    }}
-                    placeholder={copy.promptPlaceholder}
-                    className="mt-2 min-h-44 resize-y text-body leading-relaxed"
                   />
-                </label>
-                <p className="text-right font-mono text-data tabular-nums text-muted-foreground">
-                  {copy.charCount.replace("{count}", String(rawPrompt.length))}
-                </p>
-              </TicketRow>
-
-              {/* 口播 / 字幕 / 配乐是第六行：编号与标题由行承担 */}
-              <TicketRow label={copy.rowAudio}>
-                <p className="text-meta text-muted-foreground">{copy.audioHint}</p>
-                <AudioCaptionControls
-                  value={audioCaptionSettings}
-                  english={english}
-                  disabled={locked}
-                  onChange={updateAudioCaptionSettings}
-                  onRegenerate={() => void regenerateVoiceoverScript()}
-                  regenerating={voiceoverDrafting}
-                  draftFromTemplate={narrationFromTemplate}
-                />
-              </TicketRow>
-            </div>
-          </div>
-
-          {plan ? (
-            <section
-              id="streamlined-plan-preview"
-              className="scroll-mt-24 space-y-3"
-              aria-label={copy.planHeading}
-            >
-              <SectionHead title={copy.planHeading} />
-              <PlanPreviewCard plan={plan} />
-            </section>
-          ) : null}
-
-          {storyboard ? (
-            <div id="single-video-storyboard" className="scroll-mt-24 space-y-2">
-              <StoryboardWorkflowPanel
-                run={storyboard}
-                english={english}
-                busyFrameId={storyboardFrameBusy}
-                approving={approvingStoryboard}
-                referenceOptions={storyboardReferenceOptions}
-                onRegenerate={(frameId, options) => void regenerateStoryboardFrame(frameId, options)}
-                onApprove={() => void approveStoryboard()}
-                onEditPlan={() => void editStoryboardDirection()}
-              />
-              {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
-              <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">
-                <span className="min-w-0 flex-1">{copy.cancelRoundHint}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="xs"
-                  disabled={cancellingRound}
-                  onClick={() => void cancelCurrentRound()}
-                >
-                  <X aria-hidden />
-                  {copy.cancelRound}
-                </Button>
+                ))}
               </div>
-            </div>
+              {brandPackages.length === 0 ? (
+                <p className="text-meta text-muted-foreground">
+                  {copy.noBrandPackages}{" "}
+                  {/* C1：给去处——上传 logo、留联系方式，成片结尾的联系卡就有了 */}
+                  <Link href="/app/brands" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
+                    {copy.setUpBrandPackage}
+                  </Link>
+                </p>
+              ) : null}
+            </TicketRow>
           ) : null}
-
-          {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机）；能力暂停时禁用提交并写明原因 */}
-          {BROLL_ROUTE_ENTRY_ENABLED ? <BrollQuickCard available={brollAvailable} gate={brollGate} /> : null}
-        </div>
-
-        {/* 委托摘要：xl 起是右侧粘性单据；更窄时退成底部粘性操作条（同一个元素，同一枚主按钮）。
-            主按钮放在单据最上方（结账摘要的通行做法）：矮屏首屏也看得到，读数区在下面按需内部滚动。 */}
-        <aside
-          className="x-panel x-frame sticky bottom-20 z-10 p-3 md:bottom-10 xl:bottom-auto xl:top-24 xl:flex xl:max-h-[calc(100dvh-8rem)] xl:flex-col xl:gap-4 xl:p-5"
-          data-testid="streamlined-generate-bar"
-          aria-label={needsStoryboard ? copy.createStoryboard : copy.generate}
-        >
-          <h2 className="hidden text-subhead font-medium xl:block">{copy.orderTitle}</h2>
-
-          {error ? (
-            <div role="alert" className="mb-3 flex flex-wrap items-start gap-2 rounded-(--radius-md) border border-danger bg-danger-soft px-3 py-2 text-meta text-danger xl:mb-0">
-              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <span className="min-w-0 flex-1">{error}</span>
-              {/* 供应商挂了 / 这一轮失败时，用户必须有一条「不再纠缠这一轮」的出口 */}
+          {/* 想先看 AI 怎么拍的人：可选的「核对生成方案」（不核对也会在出故事板时一并出方案） */}
+          {!storyboard ? (
+            <TicketRow label={copy.rowPlan}>
+              <p className="text-meta text-muted-foreground">{copy.previewPlanHint}</p>
               <Button
                 type="button"
                 variant="outline"
-                size="xs"
-                disabled={cancellingRound}
-                onClick={() => void cancelCurrentRound()}
+                size="sm"
+                className="w-fit"
+                disabled={!canReview}
+                onClick={() => void handlePreview()}
               >
-                <X aria-hidden />
-                {copy.cancelRound}
+                {busy === "preview" ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <ListChecks aria-hidden />}
+                {busy === "preview" ? copy.previewing : copy.previewPlan}
               </Button>
-              {showingQuotaError ? (
-                <QuotaNextSteps locale={locale} contactEmail={contactEmail} className="basis-full" />
-              ) : null}
-            </div>
+            </TicketRow>
           ) : null}
+        </div>
 
-          {quotaExhausted && !showingQuotaError ? (
-            <div
-              className="mb-3 space-y-2 rounded-(--radius-md) border border-border bg-gold-soft px-3 py-2 xl:mb-0"
-              data-testid="quota-exhausted-notice"
-            >
-              <p className="text-meta font-medium text-gold">{quotaNextStepsCopy(locale).exhausted}</p>
-              <QuotaNextSteps locale={locale} contactEmail={contactEmail} />
-            </div>
-          ) : null}
-
-          <p
-            className={cn(
-              "text-meta",
-              routeNeedsAttention ? "mb-3 text-gold xl:mb-0" : "hidden text-muted-foreground xl:block",
-            )}
-          >
+        {capabilityDegraded ? (
+          <p className="text-center text-meta text-gold" data-testid="create-capability-notice">{quickModeHint}</p>
+        ) : null}
+        {!storyboard ? (
+          <p className={cn("text-center text-meta", routeNeedsAttention ? "text-gold" : "text-tertiary")}>
             {statusHint}
           </p>
+        ) : null}
+        {workflowRail}
+      </section>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center xl:flex-col xl:items-stretch">
-            <div className="min-w-0 flex-1 xl:hidden">
-              <p className="truncate text-body font-medium text-foreground">
-                {copy.stickySummary
-                  .replace("{count}", String(productAssets.length))
-                  .replace("{ratio}", ratioLabel)
-                  .replace("{duration}", String(selectedDuration))}
-              </p>
-              <p className="mt-0.5 truncate font-mono text-data tabular-nums text-muted-foreground">
-                {stageIndex + 1}/{copy.guideSteps.length} · {copy.guideSteps[stageIndex]}
-              </p>
-            </div>
-            <div className="grid shrink-0 gap-2 sm:flex xl:grid">
-              {creationMode === "advanced" && !storyboard ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={!canReview}
-                  onClick={() => void handlePreview()}
-                >
-                  {busy === "preview" ? <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden /> : <ListChecks aria-hidden />}
-                  {busy === "preview" ? copy.previewing : copy.previewPlan}
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                id="platform-primary-generate"
-                disabled={needsStoryboard
-                  ? !canReview || busy !== null
-                  : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
-                onClick={() => {
-                  if (needsStoryboard) {
-                    void handleCreateStoryboard();
-                    return;
-                  }
-                  if (storyboardGenerating || storyboardNeedsApproval) {
-                    document.getElementById("single-video-storyboard")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start",
-                    });
-                    return;
-                  }
-                  void handleGenerate();
-                }}
-                className="min-w-36"
-              >
-                <PrimaryIcon
-                  className={primaryIsBusy || storyboardGenerating ? "animate-spin motion-reduce:animate-none" : undefined}
-                  aria-hidden
-                />
-                {primaryLabel}
-              </Button>
-              {/* 出方案要 40–60 秒，期间页面锁住：给一个出口（素材与描述原样保留） */}
-              {busy === "preview" || planningShots ? (
-                <Button type="button" variant="ghost" size="sm" onClick={cancelPlanning} data-testid="cancel-planning">
-                  <X aria-hidden />
-                  {copy.cancelPlanning}
-                </Button>
-              ) : null}
+      {plan ? (
+        <section
+          id="streamlined-plan-preview"
+          className="scroll-mt-24 space-y-3"
+          aria-label={copy.planHeading}
+        >
+          <SectionHead title={copy.planHeading} />
+          <PlanPreviewCard plan={plan} />
+        </section>
+      ) : null}
+
+      {storyboard ? (
+        <div id="single-video-storyboard" className="scroll-mt-24 space-y-3">
+          <StoryboardWorkflowPanel
+            run={storyboard}
+            english={english}
+            busyFrameId={storyboardFrameBusy}
+            approving={approvingStoryboard}
+            referenceOptions={storyboardReferenceOptions}
+            onRegenerate={(frameId, options) => void regenerateStoryboardFrame(frameId, options)}
+            onApprove={() => void approveStoryboard()}
+            onEditPlan={() => void editStoryboardDirection()}
+          />
+          {/* 任何一轮创作都要有退出口：卡在生成中或失败时，用户不必只能等或只能重试 */}
+          <div className="flex flex-wrap items-center justify-end gap-2 text-meta text-muted-foreground">
+            <span className="min-w-0 flex-1">{copy.cancelRoundHint}</span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              disabled={cancellingRound}
+              onClick={() => void cancelCurrentRound()}
+            >
+              <X aria-hidden />
+              {copy.cancelRound}
+            </Button>
+          </div>
+          {/* 有故事板之后的操作条：贴底常驻（窄屏也看得到唯一的主按钮） */}
+          <div className="sticky bottom-20 z-10 space-y-3 rounded-(--radius-card) border border-border bg-surface p-3 md:bottom-10">
+            {statusNotices}
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-body font-medium text-foreground">
+                  {copy.stickySummary
+                    .replace("{count}", String(productAssets.length))
+                    .replace("{ratio}", ratioLabel)
+                    .replace("{duration}", String(selectedDuration))}
+                </p>
+                <p className={cn("mt-0.5 truncate text-meta", routeNeedsAttention ? "text-gold" : "text-muted-foreground")}>
+                  {statusHint}
+                </p>
+              </div>
+              {generateBar}
             </div>
           </div>
+        </div>
+      ) : null}
 
-          <div className="hidden min-h-0 space-y-5 border-t border-border pt-4 xl:block xl:overflow-y-auto">
-            <dl className="space-y-2">
-              {ledger.map((row) => (
-                <div key={row.label} className="flex items-baseline justify-between gap-4">
-                  <dt className="x-label shrink-0">{row.label}</dt>
-                  <dd
-                    className={cn(
-                      "min-w-0 truncate text-right text-foreground",
-                      row.numeric ? "font-mono text-data tabular-nums" : "text-meta",
-                    )}
-                  >
-                    {row.value}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-            <div className="space-y-2 border-t border-border pt-4">
-              <p id="streamlined-stage-label" className="x-label">{copy.workflowTitle}</p>
-              <ol className="space-y-px" aria-labelledby="streamlined-stage-label" data-testid="creation-workflow-rail">
-                {copy.guideSteps.map((step, index) => {
-                  const state = index < stageIndex ? "done" : index === stageIndex ? "current" : "pending";
-                  return (
-                    <li
-                      key={step}
-                      aria-current={state === "current" ? "step" : undefined}
-                      data-beam={state === "current" && stageWorking ? "row" : undefined}
-                      className={cn(
-                        "flex items-center gap-2.5 rounded-(--radius-sm) px-2 py-1.5 text-meta",
-                        state === "current"
-                          ? "bg-active text-foreground"
-                          : state === "done"
-                            ? "text-muted-foreground"
-                            : "text-tertiary",
-                      )}
-                    >
-                      <span
-                        aria-hidden
-                        className={cn(
-                          "w-3 shrink-0 text-center font-mono text-data",
-                          state === "done" ? "text-success" : state === "current" ? "text-accent" : "text-tertiary",
-                        )}
-                      >
-                        {state === "done" ? "●" : state === "current" ? "▸" : "○"}
-                      </span>
-                      <span className="min-w-0 truncate">{step}</span>
-                      {state === "done" ? <span className="sr-only">{copy.stageDone}</span> : null}
-                    </li>
-                  );
-                })}
-              </ol>
-            </div>
-          </div>
-        </aside>
-      </div>
+      {/* 第三条线路：实拍图库 b-roll（自包含，不接故事板状态机）；能力暂停时禁用提交并写明原因 */}
+      {BROLL_ROUTE_ENTRY_ENABLED ? <BrollQuickCard available={brollAvailable} gate={brollGate} /> : null}
     </div>
   );
 }
 
+/// 卡下芯片与「试试这些」共用一套外观（学 Runway 模型芯片：约 38px 高、12px 圆角、二级面）
+const CHIP_CLASS =
+  "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-(--radius-lg) border border-border bg-raised px-3 text-meta font-medium text-foreground transition-colors duration-fast ease-out hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none [&_svg]:size-3.5 [&_svg]:shrink-0 [&_svg]:text-muted-foreground";
+
 /**
- * 委托单的一行：左侧窄槽是等宽步号 + 短标签（窄屏时折到上方），右侧是这一步的控件。
- * 行本身就是容器——不再套卡片；只有真正的输入（下拉、文本框、上传区）是下沉井。
- */
-/**
- * 委托单的一行。不再编 01–06 号：这六项都属于五步流程的前两步，
- * 另编一套序号就成了「同一个流程三种步数」（1025 · B2.8）。
+ * 「更多设置」里的一行：左侧短标签（窄屏时折到上方），右侧是这一项的控件。
+ * 行本身就是容器——不再套卡片；只有真正的输入（下拉、文本框）是下沉井。
  */
 function TicketRow({
   label,
@@ -2199,7 +2200,7 @@ function TicketRow({
   );
 }
 
-/** 生成方式 / 片尾这类二选一：选中只用信号青细线与青字，不铺实心色块。 */
+/** 片尾这类二选一：选中只用信号色细线与信号色字，不铺实心色块。 */
 function OptionButton({
   active,
   title,
@@ -2211,7 +2212,7 @@ function OptionButton({
   active: boolean;
   title: string;
   description: string;
-  icon?: typeof Zap;
+  icon?: LucideIcon;
   disabled: boolean;
   onClick: () => void;
 }) {
@@ -2239,7 +2240,7 @@ function OptionButton({
   );
 }
 
-/** 规格档位：所有选项一眼看全，一次点击；选中态与 OptionButton 同一套语言。 */
+/** 参考方式这类档位：所有选项一眼看全，一次点击；选中态与 OptionButton 同一套语言。 */
 function Segmented({
   label,
   value,
@@ -2282,51 +2283,184 @@ function Segmented({
   );
 }
 
-function AssetGrid({
+/**
+ * 卡下的规格芯片：透明的原生下拉铺满整枚芯片——点哪里都能打开，键盘与读屏开箱即用；
+ * 只有真正换档才触发（重复选当前档不会作废已核对的方案）。
+ */
+function ChipSelect({
+  label,
+  showLabel = false,
+  value,
+  options,
+  disabled,
+  hint,
+  onChange,
+  className,
+  ...props
+}: {
+  label: string;
+  /// 芯片上显示「模板」这类前缀；时长、画幅的值自己就说明了，只给读屏
+  showLabel?: boolean;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  disabled: boolean;
+  hint?: string;
+  onChange: (value: string) => void;
+} & Omit<React.ComponentProps<"label">, "onChange" | "children">) {
+  const selected = options.find((option) => option.value === value);
+  return (
+    <label
+      {...props}
+      title={hint}
+      className={cn(
+        CHIP_CLASS,
+        "relative pr-8 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
+        disabled ? "cursor-not-allowed opacity-50 hover:border-border" : "cursor-pointer",
+        className,
+      )}
+    >
+      <span className={showLabel ? "text-muted-foreground" : "sr-only"}>{label}</span>
+      <span aria-hidden className="max-w-56 truncate">{selected?.label ?? value}</span>
+      <ChevronDown className="pointer-events-none absolute right-3" aria-hidden />
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(event) => {
+          if (event.target.value !== value) onChange(event.target.value);
+        }}
+        className="absolute inset-0 cursor-pointer appearance-none opacity-0 disabled:cursor-not-allowed"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+/** 提示卡里的「+ 商品图 / + 参考」：按钮代点隐藏的文件框；拖到整张卡上也能传（见提示卡的 onDrop）。 */
+function AttachButton({
+  label,
+  hint,
+  accept,
+  icon: Icon,
+  uploading,
+  disabled,
+  onFiles,
+}: {
+  label: string;
+  hint: string;
+  accept: string;
+  icon: LucideIcon;
+  uploading: boolean;
+  disabled: boolean;
+  onFiles: (files: File[]) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <input
+        ref={inputRef}
+        type="file"
+        accept={accept}
+        multiple
+        disabled={disabled}
+        tabIndex={-1}
+        aria-hidden
+        className="sr-only"
+        onChange={(event) => {
+          const files = Array.from(event.target.files ?? []);
+          event.target.value = "";
+          if (files.length > 0) onFiles(files);
+        }}
+      />
+      <button
+        type="button"
+        disabled={disabled}
+        title={hint}
+        onClick={() => inputRef.current?.click()}
+        className="inline-flex h-14 shrink-0 items-center gap-1.5 rounded-(--radius-md) border border-dashed border-border-strong px-3 text-meta font-medium text-muted-foreground transition-colors duration-fast ease-out hover:border-(--accent-line) hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none"
+      >
+        {uploading ? <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> : <Icon className="size-4" aria-hidden />}
+        {label}
+      </button>
+    </>
+  );
+}
+
+/** 提示卡里的素材缩略图：参考素材带角标；移除按钮悬停 / 聚焦时出现（触屏常显），锁定时不给。 */
+function AssetThumbs({
   assets,
   imageLabel,
   removeLabel,
+  referenceTag,
   onRemove,
   disabled,
 }: {
   assets: UploadedAsset[];
   imageLabel: string;
   removeLabel: string;
+  referenceTag?: string;
   onRemove: (assetId: string) => void;
   disabled: boolean;
 }) {
+  if (assets.length === 0) return null;
   return (
-    <ul className="grid min-w-0 grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-7 xl:grid-cols-9" aria-label={imageLabel}>
+    <ul className="flex min-w-0 flex-wrap items-center gap-2" aria-label={imageLabel}>
       {assets.map((asset, index) => (
-        <li key={asset.id} className="group relative aspect-square min-w-0 overflow-hidden rounded-(--radius-md) border border-border bg-sunken">
+        <li key={asset.id} className="group relative size-14 shrink-0 overflow-hidden rounded-(--radius-md) border border-border bg-sunken">
           {asset.type === "IMAGE" ? (
             <Image
               src={asset.url}
               alt={`${imageLabel} ${index + 1}`}
               fill
               unoptimized
-              sizes="(min-width:1280px) 8vw, (min-width:640px) 16vw, 30vw"
+              sizes="56px"
               className="object-cover"
             />
           ) : (
-            <span className="flex h-full flex-col items-center justify-center gap-2 p-2 text-center text-muted-foreground">
-              <Film className="size-5" aria-hidden />
-              <span className="line-clamp-2 text-micro">{asset.fileName}</span>
+            <span className="flex h-full items-center justify-center text-muted-foreground" title={asset.fileName}>
+              <Film className="size-4" aria-hidden />
+              <span className="sr-only">{asset.fileName}</span>
             </span>
           )}
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={() => onRemove(asset.id)}
-            className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-(--radius-sm) border border-border bg-overlay text-foreground opacity-100 transition-opacity disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-            aria-label={`${removeLabel} ${index + 1}`}
-          >
-            <X className="size-3.5" aria-hidden />
-          </button>
+          {referenceTag ? (
+            <span aria-hidden className="absolute bottom-0.5 left-0.5 rounded-(--radius-sm) bg-overlay px-1 text-micro text-foreground">
+              {referenceTag}
+            </span>
+          ) : null}
+          {disabled ? null : (
+            <button
+              type="button"
+              onClick={() => onRemove(asset.id)}
+              className="absolute right-0.5 top-0.5 flex size-6 items-center justify-center rounded-(--radius-sm) bg-overlay text-foreground opacity-100 transition-opacity focus-visible:outline-2 focus-visible:outline-ring sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+              aria-label={`${removeLabel} ${index + 1}`}
+            >
+              <X className="size-3.5" aria-hidden />
+            </button>
+          )}
         </li>
       ))}
     </ul>
   );
+}
+
+/** 从模板库带进来的老模板（不在配方表里）在模板芯片上的名字。 */
+function legacyTemplateLabel(templateId: string, copy: StudioCopy): string {
+  switch (templateId) {
+    case "tpl_event_watch_party":
+      return copy.templateEvent;
+    case "tpl_viral_result_first":
+      return copy.templateResult;
+    case "tpl_viral_pain_solution":
+      return copy.templatePain;
+    case "tpl_ugc_review":
+      return copy.templateUgc;
+    case "tpl_viral_sensory_texture":
+      return copy.templateSensory;
+    default:
+      return templateId;
+  }
 }
 
 function isSupportedImage(file: File): boolean {

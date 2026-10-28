@@ -32,7 +32,7 @@ test("单页工作流提供中英文五步首用提示，并可持久隐藏", as
   assert.match(studio, /aria-label=\{copy\.dismissGuide\}/);
 });
 
-test("产品图限制、可选参考素材与移动端零最小宽度网格均明确落地", async () => {
+test("产品图限制、可选参考素材与提示卡里的缩略图条均明确落地", async () => {
   const studio = await readFile(STUDIO_PATH, "utf8");
 
   assert.match(studio, /const MAX_PRODUCT_IMAGES = 9/);
@@ -41,8 +41,10 @@ test("产品图限制、可选参考素材与移动端零最小宽度网格均�
   assert.match(studio, /forceRole: "reference_image"/);
   assert.match(studio, /forceRole: "product_demo_clip"/);
   assert.match(studio, /referenceMode === "all"/);
-  assert.match(studio, /grid min-w-0 grid-cols-3/);
-  assert.match(studio, /sm:grid-cols-5/);
+  /// 2026-10-28 晚对话框改版：素材是提示卡里一条可换行的缩略图（零最小宽度，窄屏不撑破卡片）
+  assert.match(studio, /<ul className="flex min-w-0 flex-wrap items-center gap-2" aria-label=\{imageLabel\}>/);
+  assert.match(studio, /disabled=\{attachDisabled \|\| productSlotsFull\}/);
+  assert.match(studio, /disabled=\{attachDisabled \|\| referenceSlotsFull\}/);
   assert.doesNotMatch(studio, /if \(productAssets\.length === 0\) return copy\.productRequired/);
   assert.match(studio, /text-to-video generation/);
 });

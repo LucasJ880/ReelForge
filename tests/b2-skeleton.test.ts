@@ -87,11 +87,14 @@ test("B2.1 一级区页面都用 WorkspacePage 开场，口号进副标题", () 
   assert.match(zh.plan.subtitle, /^一句话，排完一周/);
   assert.match(zh.brands.subtitle, /^可复用品牌包/);
   assert.match(zh.wins.subtitle, /^哪种内容在替你赚钱/);
-  // 创作页标题也是导航名，模式切换在自己的插槽里
+  /// 创作页 2026-10-28 晚改成对话框优先（上线审核 §4，学 Runway 首页）：不再用行情头，
+  /// 标题是一句轻问句，读数退成一行；「生成视频 / 产品图片」切换 A 级下线，按 entry-policy 开关渲染
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
-  assert.match(studio, /title=\{workspaceNavTitle\("create", locale\)\}/);
-  /// 2026-10-28 晚：「生成视频 / 产品图片」切换 A 级下线，插槽保留、按 entry-policy 开关渲染
-  assert.match(studio, /modeSwitch=\{PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED \? <CreateModeTabs active="video" \/> : undefined\}/);
+  assert.doesNotMatch(studio, /<QuoteHeader\b/);
+  assert.match(studio, /<h1 id="create-hero-title" className="create-hero-title">\{copy\.heroTitle\}<\/h1>/);
+  assert.match(studio, /heroTitle: "今天想拍什么？"/);
+  assert.match(studio, /aria-label=\{copy\.readingsLabel\}\s+title=\{copy\.readingsScope\}/);
+  assert.match(studio, /\{PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED \? <CreateModeTabs active="video" \/> : null\}/);
 });
 
 test("B2.1 每个行情头都显式写出主行动与统计口径（新建批次、批次详情、成品库补齐口径）", () => {

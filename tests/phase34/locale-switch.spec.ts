@@ -26,11 +26,11 @@ async function expectLocaleState(
 test("RF-037 customer locale switch persists across the complete Studio journey", async ({ page }) => {
   await page.goto("/app/create");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.getByRole("heading", { name: "从产品图到故事板，再到最终视频" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "今天想拍什么？" })).toBeVisible();
 
   await switchLocale(page, "切换语言", "English");
   await expectLocaleState(page, "en-US");
-  await expect(page.getByRole("heading", { name: "From product images to storyboard to final video" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What will you create today?" })).toBeVisible();
 
   const englishJourney = [
     ["/app/templates", "Template library"],
@@ -93,5 +93,5 @@ test("RF-037 mobile Studio exposes the same persistent locale control", async ({
   await switcher.click();
   await page.getByRole("menuitem", { name: "English", exact: true }).click();
   await expectLocaleState(page, "en-US");
-  await expect(page.getByRole("heading", { name: "From product images to storyboard to final video" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What will you create today?" })).toBeVisible();
 });

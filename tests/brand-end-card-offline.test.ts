@@ -20,7 +20,9 @@ test("尾卡入口关着：创作页默认干净视频，那一步与摘要行�
   assert.match(studio, /\[selectedBrandPackageId, setSelectedBrandPackageId\] = useState<string \| null>\(null\)/);
   assert.doesNotMatch(studio, /defaultBrandPackageId/);
   assert.match(studio, /\{BRAND_END_CARD_ENTRY_ENABLED \? \(\s*<TicketRow\s+data-testid="streamlined-brand-package"/);
-  assert.match(studio, /\.\.\.\(BRAND_END_CARD_ENTRY_ENABLED\s*\? \[\{ label: copy\.summaryEnding/);
+  /// 「更多设置」芯片上的摘要只写口播与字幕，不提片尾
+  assert.match(studio, /const moreSummary = `\$\{copy\.summaryVoiceover\}/);
+  assert.doesNotMatch(studio, /summaryEnding/);
   /// 「高级生成」的说明不再拿品牌片尾当卖点
   assert.doesNotMatch(studio, /模板与品牌片尾|模板或品牌片尾|branded ending|branded-ending/);
   const planCard = await readFile("src/components/video-generation/plan-preview-card.tsx", "utf8");

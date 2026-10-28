@@ -123,8 +123,10 @@ Runway 的开发者 API 现在是一个**模型聚合平台**，一个 key 能�
      - `VIDEO_CUSTOMER_ROUTE=runway`：把客户线路切到 Runway，缺省仍是 Shuyu。
      - `RUNWAY_VIDEO_RESOLUTION=1080p`：缺省 720p，最便宜。
    - 单测全过；真机未验证。
-3. key 到了怎么验：先只在本地 `.env.local` 配上 key 和 `VIDEO_CUSTOMER_ROUTE=runway`，用 CEO 测试账号走一遍真实界面。
-   在成品库对本轮 E2E 那条 NORDA 测试订单点「重新生成」（同一张图、同一段描述），跟 Shuyu 出的那条比 logo、成本和耗时。过了再在 Vercel 上拨开关。
+3. key 到了怎么验（详细步骤见 [2026-10-28-handoff.md](2026-10-28-handoff.md) §2）：
+   - **先在 Vercel 线上配 key，但不切线路。** 本地提交的任务是由线上定时任务轮询的，线上没 key 时，轮询连续失败 3 次就会判失败。
+   - 再在本地 `.env.local` 配上 key 和 `VIDEO_CUSTOMER_ROUTE=runway`，用 CEO 测试账号对本轮那条 NORDA 测试订单点「重新生成」。
+   - 跟 Shuyu 出的那条比 logo、成本和耗时；过了再在 Vercel 上切线路。
 4. 还没做：
    - 员工线路选择器（`video-route-options` 契约仍只有 Shuyu）。
    - Kling O3 / Aleph 的线路，现在只在适配器里。

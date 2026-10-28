@@ -39,14 +39,26 @@ import type { ConsistencyLock, StyleTemplate } from "@/lib/video-generation/styl
 import type { VisualReferenceAnalysis } from "@/lib/video-generation/visual-reference-analysis";
 import { resolutionForAspectRatio, type UnifiedSegmentSlot } from "@/lib/video-generation/segment-planner-adapter";
 
+/**
+ * 1028 商品主体轮 P0：品牌跟着商品走。商品自己印着的 logo / 标签字样是商品的一部分，必须照参考图保留。
+ * 旧写法把「no logo, no brand text, no readable text」一刀切写进负面（Shuyu 把负面拼成
+ * 「Negative constraints: …」直接给模型读），模型会把保温杯上自己印的 logo 也抹掉或糊掉。
+ * 现在只禁「额外添加」的字和 logo，拼错 / 乱码的字照禁。整句不含逗号：负面按逗号切分去重。
+ */
+const PRODUCT_PRINT_GUARD =
+  "no logo added and no brand text added (keep any logo or label printed on the product exactly as in the reference photos), no invented or misspelled lettering, no URLs, no QR codes";
+/// 旧版一刀切的禁字项：LLM 按旧规则写进负面时整项剔掉（会抹掉商品自带的印字）。
+const BLANKET_TEXT_BANS = new Set(["no logo", "no logos", "no brand text", "no brand names", "no readable text", "no text"]);
+
 const SEEDANCE_BRAND_GUARD_RULE = `
 ABSOLUTE BRAND CONSTRAINT (most important rule, never violate):
-- DO NOT instruct the model to render exact logos, brand names, slogans, URLs, QR codes, promo text, CTA button text, or any specific on-screen text that must be precise.
-- These are post-processed by Aivora's overlay layer, not by the AI video model.
+- DO NOT instruct the model to ADD logos, brand names, slogans, URLs, QR codes, promo text, CTA button text, or any specific on-screen text that must be precise.
+- Captions and CTA text are post-processed by Aivora's overlay layer, not by the AI video model.
+- The product's own printed marks are part of the product: a logo, label or lettering physically printed on the product in the reference photos must stay exactly as photographed. Never ask the model to remove, blur, hide or replace them, and never move them onto other surfaces.
 - You MAY describe spatial regions that will receive overlays later (e.g., "leave a clean lower-third area for caption overlay").
 - For end-card / CTA moments, focus on visual atmosphere, NOT the literal text.
 - Dialogue is VOICE ONLY: the model must never burn subtitles/captions into the frame. AI video models misrender CJK glyphs (wrong or archaic characters), so all captions are added by the post-production overlay layer instead.
-- Negative prompts MUST include: "no logo, no brand text, no URLs, no readable text, no QR codes, no watermarks, no subtitles, no captions, no on-screen text".
+- Negative prompts MUST include: "${PRODUCT_PRINT_GUARD}, no watermarks, no subtitles, no captions, no on-screen text". Never write a bare "no logo", "no brand text" or "no readable text": it erases the product's own printed marks.
 `.trim();
 
 const SEEDANCE_CONTINUITY_RULE = `
@@ -88,7 +100,7 @@ ${SEEDANCE_BRAND_GUARD_RULE}
 Output JSON only, in this exact envelope: {"segments": [ ...one entry per segment slot, same order... ]}`;
 
 const DEFAULT_NEGATIVE_PROMPT =
-  "low quality, blurry, distorted hands, extra fingers, morphing face, inconsistent character, text artifacts, watermark, no logo, no brand text, no URLs, no readable text, no QR codes, no subtitles, no captions, no on-screen text";
+  `low quality, blurry, distorted hands, extra fingers, morphing face, inconsistent character, text artifacts, watermark, ${PRODUCT_PRINT_GUARD}, no subtitles, no captions, no on-screen text`;
 
 export interface ShotLine {
   fromSec: number;
@@ -403,28 +415,33 @@ function composeSeedancePrompt(params: {
     args.voiceover?.enabled && voiceoverChunk
       ? [
           `Spoken dialogue (voice only, exact wording, ${args.voiceover.language}, ${voiceStyle}): "${escapeDialogueForPrompt(voiceoverChunk)}"`,
-          "Do not render subtitles, captions, readable text, or a music bed.",
+          /// 1028 P0：不再写「readable text」——那会让模型连商品自己印的字一起抹掉；这行只管台词别烧成字幕
+          "Do not render subtitles, captions, on-screen text, or a music bed.",
         ].join("\n")
       : "";
-
-  const productLine = hasProductRefs
-    ? `PRODUCT (must exactly match the reference images): ${bible.productDescription}`
-    : `PRODUCT: ${bible.productDescription}`;
 
   /// 真实场所参考图 → 强制画面复现实拍场景（与 Omni-Reference 图片锚配合）
   const refs = args.visualRefs;
   /// 0805：品牌文字按物理落位分道 —— 店招「室内禁止出现」，产品印字
   /// 「原位保留、禁止放大/复制/抹除」。旧数据无 signageKind 时按店招（旧行为）。
-  const signageLine = refs?.signageText
-    ? refs.signageKind === "product_print"
-      ? `The brand mark printed on the product reads exactly "${refs.signageText}" — reproduce it faithfully exactly where it appears on the product in the reference photos, same size, position and finish; never enlarge it, never duplicate it onto walls, glass or other surfaces, and never erase it.`
-      : `The storefront sign reads exactly "${refs.signageText}" — render this text accurately ONLY on the exterior storefront facade; the signage must NEVER appear inside the store, reflected, mirrored or duplicated on interior walls or glass.`
+  /// 1028 P0：产品印字跟着商品走——写进 PRODUCT 行，不再只在真实场所时才写
+  ///（白底商品图也要保留印字；故事板 grounding 也只保留 PRODUCT 行，REAL LOCATION 行会被换掉）。
+  const productPrintSentence = refs?.signageText && refs.signageKind === "product_print"
+    ? ` The brand mark printed on the product reads exactly "${refs.signageText}" — reproduce it faithfully exactly where it appears on the product in the reference photos, same size, position and finish; never enlarge it, never duplicate it onto walls, glass or other surfaces, and never erase it.`
     : "";
+  const storefrontSignLine = refs?.signageText && refs.signageKind !== "product_print"
+    ? `The storefront sign reads exactly "${refs.signageText}" — render this text accurately ONLY on the exterior storefront facade; the signage must NEVER appear inside the store, reflected, mirrored or duplicated on interior walls or glass.`
+    : "";
+
+  const productLine = hasProductRefs
+    ? `PRODUCT (must exactly match the reference images): ${bible.productDescription}${productPrintSentence}`
+    : `PRODUCT: ${bible.productDescription}${productPrintSentence}`;
+
   const realLocationLine =
     refs?.isRealLocation
       ? [
           "REAL LOCATION (the reference images are actual photos of this place): reproduce the photographed location faithfully — same layout, same furniture, same materials and colors. Do not redesign or restyle the space.",
-          signageLine,
+          storefrontSignLine,
           refs.keyFeatures.length > 0
             ? `Signature features that must stay recognizable: ${refs.keyFeatures.join("; ")}.`
             : "",
@@ -815,12 +832,17 @@ function subjectFromBrief(brief: CreativeBrief): string {
 /**
  * 真实门店有招牌文字时，放开 negative 里的「禁一切可读文字/logo」，
  * 否则 Seedance 会主动抹掉客户的真实招牌；改为只禁「乱码/拼错的文字」。
+ * 1028 P0：商品印字不再只认「真实场所」——白底商品图上印的 logo 一样要防复制、放大、抹除；
+ * 「不准脑补房间」只对真实场所的照片成立（商品图的场景由故事板决定，不加）。
  */
 function adjustNegativeForRealSignage(
   negative: string,
   refs?: VisualReferenceAnalysis | null,
 ): string {
-  if (!refs?.isRealLocation || !refs.signageText) return negative;
+  if (!refs?.signageText) return negative;
+  const productPrint = refs.signageKind === "product_print";
+  if (!refs.isRealLocation && !productPrint) return negative;
+  const roomBounds = refs.isRealLocation ? ", invented rooms, space extending beyond reference photos" : "";
   const cleaned = negative
     .split(",")
     .map((s) => s.trim())
@@ -836,10 +858,10 @@ function adjustNegativeForRealSignage(
     .join(", ");
   /// 0805：产品印字禁的是「复制/放大/挪位」，绝不能禁「室内出现」——
   /// 印字本来就在室内的产品上（店招负面照旧）。
-  if (refs.signageKind === "product_print") {
-    return `${cleaned}, misspelled brand text, gibberish lettering, warped text, duplicated brand mark, brand text on walls or glass, oversized brand mark, invented rooms, space extending beyond reference photos`;
+  if (productPrint) {
+    return `${cleaned}, misspelled brand text, gibberish lettering, warped text, duplicated brand mark, brand text on walls or glass, oversized brand mark${roomBounds}`;
   }
-  return `${cleaned}, misspelled signage, gibberish lettering, warped text, signage visible indoors, duplicated signage, mirrored signage text, invented rooms, space extending beyond reference photos`;
+  return `${cleaned}, misspelled signage, gibberish lettering, warped text, signage visible indoors, duplicated signage, mirrored signage text${roomBounds}`;
 }
 
 /** 一致性锁的 negative 片段追加（去重靠简单包含判断） */
@@ -851,16 +873,22 @@ function withLockNegatives(negative: string, locks?: ConsistencyLock[]): string 
   return `${negative}, ${frags.join(", ")}`;
 }
 
+/// AI 模型烧录的中文字幕常出现错字/异体字（如「晒」→「曬」），字幕一律走后期 overlay
+const CAPTION_GUARD_ITEMS = ["no subtitles", "no captions", "no on-screen text"];
+
 function appendBrandGuard(negative: string): string {
-  let out = negative.trim().replace(/[,\s]+$/, "");
-  if (!out.toLowerCase().includes("no logo")) {
-    out = `${out}, no logo, no brand text, no URLs, no readable text, no QR codes`;
+  /// 1028 P0：先剔掉一刀切的禁字项（LLM 照旧规则写的），再补「只禁额外添加」的守卫与字幕守卫；同项去重
+  const items = negative
+    .split(",")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0 && !BLANKET_TEXT_BANS.has(item.toLowerCase()));
+  const seen = new Set(items.map((item) => item.toLowerCase()));
+  for (const item of [...PRODUCT_PRINT_GUARD.split(", "), ...CAPTION_GUARD_ITEMS]) {
+    if (seen.has(item.toLowerCase())) continue;
+    items.push(item);
+    seen.add(item.toLowerCase());
   }
-  /// AI 模型烧录的中文字幕常出现错字/异体字（如「晒」→「曬」），字幕一律走后期 overlay
-  if (!out.toLowerCase().includes("no subtitles")) {
-    out = `${out}, no subtitles, no captions, no on-screen text`;
-  }
-  return out;
+  return items.join(", ");
 }
 
 function descriptionForRole(

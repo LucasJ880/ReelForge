@@ -41,7 +41,7 @@ RULES:
 - If product photos are provided, the productDescription MUST describe what is actually in those photos (you are given their filenames + classifier notes; be faithful, never invent a different product).
 - The character must fit the target audience (relatable, not a fashion model).
 - lightingArc length MUST equal the number of segments given, and lighting must PROGRESS the story, not stay static.
-- No brand names, no logos, no on-screen text instructions.`;
+- No brand names, no logos, no on-screen text instructions — except what is physically printed on the product in the photos: productDescription names that printed logo or label (where it sits, its color) so it stays on the product.`;
 
 /// 有主播参考图（开关放行且素材标了 person）时追加的规则（P02-C）：人物身份以主播参考图为准，
 /// 描述要具体但不许和那张照片打架。（主播图何时真正进视频参考由 P02-F(v) 决定，这里不做承诺。）

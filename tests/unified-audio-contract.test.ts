@@ -111,7 +111,7 @@ test("supervisor carries a normalized post-production snapshot", async () => {
   );
   assert.match(
     plan.seedancePrompts[0]?.prompt ?? "",
-    /Do not render subtitles, captions, readable text, or a music bed\./,
+    /Do not render subtitles, captions, on-screen text, or a music bed\./,
   );
 });
 

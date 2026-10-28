@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { HoverPreviewVideo } from "@/components/library/hover-preview-video";
 import { BrandPackageButton } from "@/components/library/brand-package-button";
+import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
 import { FailuresAckButton } from "@/components/library/failures-ack-button";
 import { LibraryHighlight } from "@/components/library/library-highlight";
 import { RenderPendingPostsButton } from "@/components/library/render-pending-posts-button";
@@ -457,7 +458,8 @@ export default async function PlatformLibraryPage({
                               <BrandPackageButton
                                 videoJobId={row.videoJobId}
                                 briefId={row.briefId}
-                                brandPackageId={preferredBrandPackage?.id ?? null}
+                                /// 封装入口随品牌尾卡 A 级下线：不给包就只剩「下载已封装成片」，以前封装过的照旧能下
+                                brandPackageId={BRAND_END_CARD_ENTRY_ENABLED ? preferredBrandPackage?.id ?? null : null}
                                 brandedVideoUrl={row.brandedVideoUrl}
                                 aspectRatio={row.aspectRatio}
                                 copy={{

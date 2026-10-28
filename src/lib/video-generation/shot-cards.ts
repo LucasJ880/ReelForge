@@ -99,7 +99,7 @@ Rules:
 - Keep one coherent location, one light direction and one wardrobe across all cards unless the merchant clearly describes a change.
 - The product must look exactly like the merchant's photos: never invent sides, buttons, labels or text that the photos do not show; keep its real scale next to hands and furniture.
 - Use concrete physical words (materials, distances, light direction). No marketing adjectives such as "stunning", "amazing", "premium".
-- Vary shot sizes across cards (wide → medium → close-up) so the cut reads like an edited commercial, and make the last card a clean, readable composition with empty space for an end card.
+- Vary shot sizes across cards (wide → medium → close-up) so the cut reads like an edited commercial, and make the last card a clean closing hero shot: the whole product clearly visible, its own printed logo or label facing the camera if it has one.
 - English only. Each field at most 25 words.
 
 Return JSON only: {"shots":[{"lens":"","camera":"","composition":"","action":"","endState":"","sound":""}]}`;

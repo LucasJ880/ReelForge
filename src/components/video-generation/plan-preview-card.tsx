@@ -9,6 +9,7 @@ import type {
 } from "@/types/video-generation";
 import { useTranslation } from "@/i18n/useTranslation";
 import type { Locale } from "@/i18n/config";
+import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
 
 interface PlanPreviewCardProps {
   plan: VideoGenerationPlan;
@@ -61,11 +62,14 @@ function PlanBreakdown({ preview, locale }: { preview: PlanPreview; locale: Loca
   const items: Array<{ label: string; value: string; numeric: boolean }> = [
     { label: isEn ? "AI scenes" : "AI 镜头", value: String(preview.breakdown.aiClipCount), numeric: true },
     { label: isEn ? "Your clips" : "自有片段", value: String(preview.breakdown.uploadedClipCount), numeric: true },
-    {
-      label: isEn ? "End card" : "片尾",
-      value: preview.breakdown.hasBrandEndCard ? (isEn ? "Included" : "已包含") : (isEn ? "None" : "无"),
-      numeric: false,
-    },
+    /// 尾卡入口下线后不再常驻一行「片尾：无」；真带了尾卡（旧入口 / 显式请求）仍如实列出
+    ...(BRAND_END_CARD_ENTRY_ENABLED || preview.breakdown.hasBrandEndCard
+      ? [{
+          label: isEn ? "End card" : "片尾",
+          value: preview.breakdown.hasBrandEndCard ? (isEn ? "Included" : "已包含") : (isEn ? "None" : "无"),
+          numeric: false,
+        }]
+      : []),
     { label: isEn ? "Length" : "时长", value: `${preview.breakdown.finalDurationSec}s`, numeric: true },
     { label: isEn ? "Format" : "画幅", value: orientationLabel(preview.breakdown.aspectRatio, isEn), numeric: false },
   ];

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { QuoteHeader } from "@/components/exchange/quote-header";
 import { OnboardingExit, WelcomeSteps } from "@/components/onboarding/welcome-steps";
 import { authOptions } from "@/lib/auth";
+import { ONBOARDING_STEP_ORDER } from "@/lib/onboarding/steps";
 import { loadOnboardingState } from "@/lib/services/onboarding-service";
 import { getOnboardingCopy } from "@/i18n/onboarding-copy";
 import { getServerLocale } from "@/i18n/server";
@@ -15,8 +16,8 @@ export async function generateMetadata() {
 
 /**
  * 上手向导（1025 整合轮 C1）：注册后的第一站，也是「第一周清单」。
- * 行情头的读数全是真实状态（零就写零）：几步做完、本月额度、品牌包、询盘页；
- * 四步的表单在客户端小岛里，保存后 router.refresh() 让这里的读数跟着变。
+ * 行情头的读数全是真实状态（零就写零）：几步做完、本月额度；
+ * 每一步的表单在客户端小岛里，保存后 router.refresh() 让这里的读数跟着变。
  */
 export default async function WelcomePage() {
   const session = await getServerSession(authOptions);
@@ -24,8 +25,9 @@ export default async function WelcomePage() {
   const locale = await getServerLocale();
   const copy = getOnboardingCopy(locale).welcome;
   const state = await loadOnboardingState(session.user.id, locale);
-  /// 2026-10-28 询盘入口下线：上手只算三步（生意、品牌、第一条视频）
-  const done = [state.steps.business, state.steps.brand, state.steps.video].filter((status) => status === "done").length;
+  /// 只数上手引导实际展示的步骤（询盘页、品牌两步已 A 级下线，见 lib/onboarding/steps.ts）
+  const total = ONBOARDING_STEP_ORDER.length;
+  const done = ONBOARDING_STEP_ORDER.filter((key) => state.steps[key] === "done").length;
 
   return (
     <div className="x-stack min-w-0" data-testid="welcome-page">
@@ -36,13 +38,12 @@ export default async function WelcomePage() {
         secondaryActions={<OnboardingExit mode="skip" locale={locale} />}
         readingsLabel={copy.readingsLabel}
         readings={[
-          { label: copy.readingSteps, value: `${done} / 3`, tone: done === 3 ? "filled" : "neutral" },
+          { label: copy.readingSteps, value: `${done} / ${total}`, tone: done === total ? "filled" : "neutral" },
           {
             label: copy.readingQuota,
             value: `${state.quota.used} / ${state.quota.limit}`,
             caption: copy.readingQuotaCaption,
           },
-          { label: copy.readingBrand, value: state.brandPackageName ?? copy.readingBrandNone },
         ]}
         scope={copy.scope}
       />

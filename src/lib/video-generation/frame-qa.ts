@@ -87,7 +87,7 @@ const FRAME_QA_SYSTEM = `You are a strict video QA inspector for an AI-generated
 The platform policy is ZERO burned-in text: captions/subtitles are always added later by a post-production overlay layer, never by the AI video model (AI models frequently misrender CJK glyphs).
 You will receive several frames sampled evenly from ONE generated video.
 For EACH frame decide:
-- hasOverlayText: any burned-in subtitles, captions, titles, watermarks, logos, UI elements, or floating lettering/numbers overlaid on the footage. Small incidental real-world text physically present in the scene (e.g. a thermostat digit, a faint book spine) does NOT count.
+- hasOverlayText: any burned-in subtitles, captions, titles, watermarks, logos, UI elements, or floating lettering/numbers overlaid on the footage. Small incidental real-world text physically present in the scene (e.g. a thermostat digit, a faint book spine) does NOT count, and neither does a logo, label or lettering printed on the advertised product itself.
 - malformedText: any lettering anywhere (overlay OR in-scene) that is gibberish, warped, or contains wrong/archaic CJK character variants.
 - textContent: the literal text you can read, if any (empty string if none).
 Respond with JSON only: {"frames":[{"index":0,"hasOverlayText":false,"malformedText":false,"textContent":"","note":""}, ...]} — one entry per frame, in the same order as given.`;

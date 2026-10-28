@@ -15,14 +15,11 @@ import { uploadFilesToAssets } from "@/components/personal/upload-assets";
 import type { Locale } from "@/i18n/config";
 import { getOnboardingCopy } from "@/i18n/onboarding-copy";
 import { BUSINESS_INDUSTRIES, type BusinessIndustry } from "@/lib/onboarding/industries";
+import { ONBOARDING_STEP_ORDER as STEP_ORDER, type OnboardingStepKey as StepKey } from "@/lib/onboarding/steps";
 import type { OnboardingState } from "@/lib/services/onboarding-service";
 import { cn } from "@/lib/utils";
 
-type StepKey = keyof OnboardingState["steps"];
 type Copy = ReturnType<typeof getOnboardingCopy>;
-
-/// 2026-10-28 询盘入口 A 级下线：上手引导收成三步（询盘页一步的组件与接口保留，放回导航时加回这里）
-const STEP_ORDER: readonly StepKey[] = ["business", "brand", "video"];
 /// 老账号的默认工作区名，不当成店名预填
 const PLACEHOLDER_NAMES = new Set(["My Workspace"]);
 
@@ -73,7 +70,7 @@ export function OnboardingExit({ mode, locale, solid = false }: { mode: "skip" |
 }
 
 /**
- * 上手四步：生意 → 品牌 → 第一条视频 → 询盘页。
+ * 上手步骤按 ONBOARDING_STEP_ORDER（现在是：生意 → 第一条视频；品牌、询盘页两步的组件保留未展示）。
  * 默认展开第一个没做完的一步；它的主按钮是这一页唯一的实心钮（都做完了，实心钮交给「完成上手」）。
  * 保存后 router.refresh()：行情头读数与每一步的状态都从服务端真实数据重读。
  */

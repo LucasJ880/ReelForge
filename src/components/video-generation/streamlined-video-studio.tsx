@@ -61,7 +61,7 @@ import {
 } from "@/lib/api/customer-video-dispatch-recovery";
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
-import { defaultBrandPackageId } from "@/lib/brand/default-brand-package";
+import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
 import {
   COMMERCE_TEMPLATE_RECIPES,
@@ -173,7 +173,7 @@ const ZH_COPY = {
   uploaded: "已添加 {count} 个素材",
   uploadFailed: "素材上传未完成，请检查文件后重试。",
   stepMode: "生成方式",
-  stepModeHint: "第一次使用建议选快速生成；需要控制模板或品牌片尾时再用高级生成。",
+  stepModeHint: "第一次使用建议选快速生成；想指定创意模板时再用高级生成。",
   quick: "快速生成",
   quickHint: "系统自动完成镜头与质量检查",
   /// C4：能力暂停时这句说明要诚实——写作暂停 = 镜头按模板规划；看图暂停 = 画面质检跳过、成片照常
@@ -181,7 +181,7 @@ const ZH_COPY = {
   quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
   quickHintTemplateShotsNoQa: "镜头先按模板规划；画面质检暂停，成片照常生成",
   advanced: "高级生成",
-  advancedHint: "开放模板与品牌片尾设置",
+  advancedHint: "开放创意模板选择",
   stepSpecs: "视频规格",
   stepSpecsHint: "画幅与时长决定成片样式；改动后需要重新核对方案。",
   route: "生成线路",
@@ -306,14 +306,14 @@ const EN_COPY: StudioCopy = {
   uploaded: "Added {count} assets",
   uploadFailed: "The upload did not finish. Check the files and try again.",
   stepMode: "Generation mode",
-  stepModeHint: "Quick generation is best for a first video. Use advanced mode when you need a template or branded ending.",
+  stepModeHint: "Quick generation is best for a first video. Use advanced mode when you want to pick a creative template.",
   quick: "Quick generation",
   quickHint: "Automatic shot planning and quality checks",
   quickHintNoQa: "Automatic shot planning; frame checks are paused, videos still render",
   quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
   quickHintTemplateShotsNoQa: "Shots are planned from templates and frame checks are paused; videos still render",
   advanced: "Advanced generation",
-  advancedHint: "Template and branded-ending controls",
+  advancedHint: "Creative template controls",
   stepSpecs: "Video specs",
   stepSpecsHint: "Format and length shape the final video; changing them needs a fresh review.",
   route: "Generation route",
@@ -476,9 +476,9 @@ export function StreamlinedVideoStudio({
     initialDurationSec ?? 15,
   );
   const [styleTemplateId, setStyleTemplateId] = useState(seededStyleTemplateId);
-  const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(() =>
-    defaultBrandPackageId(brandPackages),
-  );
+  /// 默认出干净视频。1028 闭环轮曾改成默认选中品牌包，保温杯片尾因此冒出窗帘厂尾卡，当天撤回；
+  /// 尾卡入口也已 A 级下线（BRAND_END_CARD_ENTRY_ENABLED），入口关着时这里恒为 null。
+  const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
   const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
@@ -1493,7 +1493,9 @@ export function StreamlinedVideoStudio({
       : []),
     { label: copy.aspect, value: ratioLabel },
     { label: copy.duration, value: `${selectedDuration}s`, numeric: true },
-    { label: copy.summaryEnding, value: selectedBrandPackage?.name ?? copy.endingNone },
+    ...(BRAND_END_CARD_ENTRY_ENABLED
+      ? [{ label: copy.summaryEnding, value: selectedBrandPackage?.name ?? copy.endingNone }]
+      : []),
     { label: copy.summaryVoiceover, value: voiceoverEnabled ? copy.on : copy.off },
     { label: copy.summaryCaptions, value: captionsEnabled ? copy.on : copy.off },
     ...(plan && planIsCurrent
@@ -1789,47 +1791,50 @@ export function StreamlinedVideoStudio({
                 </dl>
               </TicketRow>
 
-              <TicketRow
-                data-testid="streamlined-brand-package"
-                label={copy.rowEnding}
-                optional={copy.optional}
-              >
-                <p className="text-meta text-muted-foreground">{copy.brandPackageHint}</p>
-                <div className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3" role="group" aria-label={copy.brandPackageStep}>
-                  <OptionButton
-                    active={selectedBrandPackageId === null}
-                    title={copy.cleanVideo}
-                    description={copy.cleanVideoHint}
-                    disabled={locked}
-                    onClick={() => {
-                      setSelectedBrandPackageId(null);
-                      invalidatePlan();
-                    }}
-                  />
-                  {brandPackages.map((brandPackage) => (
+              {/* 品牌尾卡入口 A 级下线（2026-10-28，见 brand-end-card-policy.ts）：品牌跟着商品走，不再在片尾贴卡 */}
+              {BRAND_END_CARD_ENTRY_ENABLED ? (
+                <TicketRow
+                  data-testid="streamlined-brand-package"
+                  label={copy.rowEnding}
+                  optional={copy.optional}
+                >
+                  <p className="text-meta text-muted-foreground">{copy.brandPackageHint}</p>
+                  <div className="grid gap-2 @md:grid-cols-2 @3xl:grid-cols-3" role="group" aria-label={copy.brandPackageStep}>
                     <OptionButton
-                      key={brandPackage.id}
-                      active={selectedBrandPackageId === brandPackage.id}
-                      title={brandPackage.name}
-                      description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
+                      active={selectedBrandPackageId === null}
+                      title={copy.cleanVideo}
+                      description={copy.cleanVideoHint}
                       disabled={locked}
                       onClick={() => {
-                        setSelectedBrandPackageId(brandPackage.id);
+                        setSelectedBrandPackageId(null);
                         invalidatePlan();
                       }}
                     />
-                  ))}
-                </div>
-                {brandPackages.length === 0 ? (
-                  <p className="text-meta text-muted-foreground">
-                    {copy.noBrandPackages}{" "}
-                    {/* C1：给去处——上传 logo、留联系方式，成片结尾的联系卡就有了 */}
-                    <Link href="/app/brands" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
-                      {copy.setUpBrandPackage}
-                    </Link>
-                  </p>
-                ) : null}
-              </TicketRow>
+                    {brandPackages.map((brandPackage) => (
+                      <OptionButton
+                        key={brandPackage.id}
+                        active={selectedBrandPackageId === brandPackage.id}
+                        title={brandPackage.name}
+                        description={`${brandPackage.brandName} · ${english ? "contact end frame" : "联系方式帧"}`}
+                        disabled={locked}
+                        onClick={() => {
+                          setSelectedBrandPackageId(brandPackage.id);
+                          invalidatePlan();
+                        }}
+                      />
+                    ))}
+                  </div>
+                  {brandPackages.length === 0 ? (
+                    <p className="text-meta text-muted-foreground">
+                      {copy.noBrandPackages}{" "}
+                      {/* C1：给去处——上传 logo、留联系方式，成片结尾的联系卡就有了 */}
+                      <Link href="/app/brands" className="font-medium text-foreground underline underline-offset-4 hover:text-accent">
+                        {copy.setUpBrandPackage}
+                      </Link>
+                    </p>
+                  ) : null}
+                </TicketRow>
+              ) : null}
 
               <TicketRow
                 id="streamlined-video-prompt"

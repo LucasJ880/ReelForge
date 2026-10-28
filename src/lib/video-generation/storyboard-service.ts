@@ -304,9 +304,10 @@ function buildStoryboardFramePrompt(input: {
       : `THIS FRAME ${input.ordinal + 1}/${input.count}: ${input.beat}. Depict only this beat.`,
     ...(shotCard ? [`${SHOT_CARD_LINE_PREFIX}${shotCard}`] : []),
     `${STORYBOARD_STORY_CONTEXT_PREFIX}${storyText}`,
-    `FORMAT: ${input.aspectRatio}. No text, subtitles, logos, watermark, split screen, or collage.`,
+    /// 1028 P0：只禁「额外添加」的字和 logo；商品自己印的 logo / 标签是商品的一部分，照原样保留
+    `FORMAT: ${input.aspectRatio}. Add no text, subtitles, logos, watermark, split screen, or collage; a logo or lettering printed on the product itself stays exactly as in the product photos.`,
     SINGLE_SHOT_LOCK,
-    "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, and hardware; do not invent or remove details.",
+    "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, hardware, and printed logo or label; do not invent or remove details.",
     "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
     "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
     ...input.tailLines,

@@ -448,20 +448,19 @@ export async function dispatchCurrentSingleVideo(
   await page
     .getByRole("textbox", { name: "描述你想生成的视频" })
     .fill(prompt);
+  /// 1028 闭环轮起一键出故事板：主按钮先出方案（/plan），再建故事板（/storyboards）
   const planResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
       response.url().endsWith("/api/video-generation/plan"),
   );
-  await page.getByRole("button", { name: "核对规格", exact: true }).click();
-  expect((await planResponse).status()).toBe(200);
-
   const storyboardResponse = page.waitForResponse(
     (response) =>
       response.request().method() === "POST" &&
       response.url().endsWith("/api/video-generation/storyboards"),
   );
-  await page.getByRole("button", { name: "生成 Image 2 故事板" }).click();
+  await page.getByRole("button", { name: "生成 AI 故事板", exact: true }).click();
+  expect((await planResponse).status()).toBe(200);
   expect((await storyboardResponse).status()).toBe(201);
   await expect(page.getByTestId("storyboard-frame-grid").locator("article")).toHaveCount(4);
 

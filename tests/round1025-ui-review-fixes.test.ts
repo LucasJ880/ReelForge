@@ -285,8 +285,10 @@ test("LENS-7 手工登记表单用商家口吻的字段名，不借访客表单�
 
 test("LENS-3 创作台：主按钮不写积分，提示按本月额度写，不再写死 900 积分", () => {
   const studio = read("src/components/video-generation/streamlined-video-studio.tsx");
-  assert.match(studio, /reviewSpecs: "核对规格",/);
-  assert.match(studio, /reviewSpecs: "Review specs",/);
+  /// 1028 闭环轮：快速模式不再单独「核对规格」，主按钮直接「生成 AI 故事板」（方案在里面一并出）
+  assert.match(studio, /createStoryboard: "生成 AI 故事板",/);
+  assert.match(studio, /createStoryboard: "Generate AI storyboard",/);
+  assert.doesNotMatch(studio, /reviewSpecs/);
   assert.doesNotMatch(studio, /shuyuEstimate|"900"/);
   assert.match(studio, /quotaHint: "提交时预占 1 条额度，失败与取消自动返还：本月已用 \{used\} \/ \{limit\} 条。"/);
   assert.match(studio, /copy\.quotaHint\s*\.replace\("\{used\}", String\(readings\.quotaUsed\)\)\s*\.replace\("\{limit\}", String\(readings\.quotaLimit\)\)/);

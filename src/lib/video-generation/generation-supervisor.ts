@@ -95,12 +95,17 @@ export async function buildPlan(
 
   const classification = classifyInput({ ...request, attachments: classifiedAssets });
 
-  /// 2. Creative brief（可能调 LLM）
-  const creativeBrief = await buildCreativeBrief({
-    request: { ...request, attachments: classifiedAssets },
-    classification,
-    classifiedAssets,
-  });
+  /// 2. Creative brief（可能调 LLM）与 5.45 参考图视觉分析：
+  /// 视觉分析让 GPT 真正「看」参考图，提取真实门店 / 产品实拍细节，让文字锚（bible / prompt）和图片锚描述同一个真实场景。
+  /// 两步互不依赖，并行跑（1028 闭环轮 E2E #7：出方案要 40–60 秒，串行时看图白等创意简报）；两者失败都自带兜底，不会拖垮对方。
+  const [creativeBrief, visualRefs] = await Promise.all([
+    buildCreativeBrief({
+      request: { ...request, attachments: classifiedAssets },
+      classification,
+      classifiedAssets,
+    }),
+    analyzeVisualReferences(classifiedAssets, request.rawPrompt),
+  ]);
 
   /// 3. Brand packaging
   const brandPackagingPlan = buildBrandPackagingPlan({
@@ -143,10 +148,6 @@ export async function buildPlan(
     ...autoLockIds,
     ...(request.consistencyLockIds ?? []),
   ]);
-
-  /// 5.45 参考图视觉分析：GPT-4o 真正「看」参考图，提取真实门店/产品实拍细节，
-  /// 让文字锚（bible/prompt）和 Omni-Reference 图片锚描述同一个真实场景
-  const visualRefs = await analyzeVisualReferences(classifiedAssets, request.rawPrompt);
 
   /// 5.5 Consistency bible（跨镜头一致性锚：角色/场景/产品/光线弧，一次生成逐段复用）
   const aiSlotCount = segmentSlots.filter((s) => s.source === "ai").length;

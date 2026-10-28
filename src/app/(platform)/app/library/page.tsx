@@ -129,12 +129,12 @@ export default async function PlatformLibraryPage({
   const readyPostRows = rows.filter((row) => row.status === "ready" && isPost(row));
   const nothing = rows.length === 0 && failures.length === 0;
 
-  /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源；能去的格子整格可点 */
+  /* 持仓读数墙：这页在整条生产线里的位置，名字与口径来自读数注册表，与壳层同源；能去的格子整格可点。
+     1028 闭环轮：「待出图」（图文帖）一格撤掉——图文帖入口已 A 级下线，这格只会把人带去一个导航里没有的页面 */
   const workflow: QuoteStat[] = [
-    { label: `01 · ${readingName("awaitingImages", locale)}`, caption: readingFormula("awaitingImages", locale), value: production.awaitingImages, tone: production.awaitingImages > 0 ? "winner" : "neutral", href: "/app/plan" },
-    { label: `02 · ${readingName("generating", locale)}`, caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral", href: "/app/batches" },
-    { label: `03 · ${readingName("finished", locale)}`, caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },
-    { label: `04 · ${copy.workflowDeliver}`, caption: copy.workflowDeliverHint, value: "—" },
+    { label: `01 · ${readingName("generating", locale)}`, caption: readingFormula("generating", locale), value: production.generating, tone: production.generating > 0 ? "live" : "neutral", href: "/app/batches" },
+    { label: `02 · ${readingName("finished", locale)}`, caption: readingFormula("finished", locale), value: finished, tone: finished > 0 ? "filled" : "neutral" },
+    { label: `03 · ${copy.workflowDeliver}`, caption: copy.workflowDeliverHint, value: "—" },
   ];
 
   return (

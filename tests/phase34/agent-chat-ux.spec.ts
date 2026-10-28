@@ -49,13 +49,10 @@ test("RF-038: creation follows one upload-to-generate flow with a persistent fin
     "15 秒真实产品演示，保持产品外观一致，先呈现问题，再展示一次清晰使用动作与结果。",
   );
   await expect(generate).toBeEnabled();
-  await expect(generate).toHaveText("核对规格");
-  await dismissFirstRunOnboarding(page);
-  await generate.click();
-  /// 0722 起主流程带故事板前置：核对规格 → 生成 Image 2 故事板 →（确认后）生成视频。
+  /// 1028 闭环轮起一键出故事板（方案在里面一并出）：生成 AI 故事板 →（确认后）生成视频。
   /// 主按钮持久在场、文案随阶段推进 —— 这正是「持久主操作」要守的不变量。
-  await expect(generate).toHaveText("生成 Image 2 故事板");
-  await expect(generate).toBeEnabled();
+  await expect(generate).toHaveText("生成 AI 故事板");
+  await dismissFirstRunOnboarding(page);
 
   await page.getByRole("button", { name: /高级生成/ }).click();
   await expect(page.getByTestId("streamlined-advanced-options")).toBeVisible();

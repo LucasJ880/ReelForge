@@ -230,8 +230,9 @@ const ZH_COPY = {
   charCount: "{count} / 4000",
   previewPlan: "核对生成方案",
   previewing: "正在准备方案…",
-  reviewSpecs: "核对规格",
-  reviewingSpecs: "正在核对…",
+  planningShots: "正在规划镜头…",
+  cancelPlanning: "取消",
+  planningCancelled: "已取消，素材和描述都保留着。",
   createStoryboard: "生成 AI 故事板",
   creatingStoryboard: "正在生成故事板…",
   storyboardFailed: "故事板暂时无法生成，请保留当前方案后重试。",
@@ -362,8 +363,9 @@ const EN_COPY: StudioCopy = {
   charCount: "{count} / 4000",
   previewPlan: "Review generation plan",
   previewing: "Preparing the plan…",
-  reviewSpecs: "Review specs",
-  reviewingSpecs: "Checking…",
+  planningShots: "Planning shots…",
+  cancelPlanning: "Cancel",
+  planningCancelled: "Cancelled. Your uploads and description are kept.",
   createStoryboard: "Generate AI storyboard",
   creatingStoryboard: "Generating storyboard…",
   storyboardFailed: "The storyboard could not be generated right now. Your direction is preserved; try again shortly.",
@@ -509,6 +511,10 @@ export function StreamlinedVideoStudio({
   const [approvingStoryboard, setApprovingStoryboard] = useState(false);
   const [cancellingRound, setCancellingRound] = useState(false);
   const [busy, setBusy] = useState<BusyState>(null);
+  /// 「生成 AI 故事板」里先出方案（40–60 秒）再建故事板：前半段主按钮写「正在规划镜头…」，别让人以为帧已经在画
+  const [planningShots, setPlanningShots] = useState(false);
+  /// 出方案期间也要能退出（每一轮都可取消）：只是不再等这次结果——出方案没有副作用、不占额度
+  const planAbortRef = useRef<AbortController | null>(null);
   const [error, setError] = useState<string | null>(null);
   /// 额度用完那条错误的原文：当前错误就是它时，错误框里给真实下一步（申请陪跑试点 / 联系我们）。
   /// 只按原文比对，别的错误替换掉它之后入口自然消失，不用在每个 setError 旁边清状态。
@@ -548,14 +554,17 @@ export function StreamlinedVideoStudio({
     const resume = async () => {
       /// 恢复是「必须尽力」而不是「随缘」：0805 实测 APPROVED 故事板在刷新后
       /// 悬空 —— 挂载期这次 fetch 撞上瞬时失败（dev 重编译/网络抖动）就被旧的
-      /// 静默 catch 吞掉，用户以为白做了。改为重试三次 + 失败留 console 痕。
+      /// 静默 catch 吞掉，用户以为白做了。改为重试 + 失败留 console 痕。
+      /// 1028 闭环轮实测：三次（共约 3 秒）扛不住一次重编译 / 冷启动，放宽到五次、退避约 15 秒；
+      /// 用户这期间动了任何输入就放弃恢复（interactedRef），不会盖掉新意图。
       let payload:
         | { ok: true; resume: ResumableStoryboardPayload | null }
         | { ok: false }
         | null = null;
-      for (let attempt = 0; attempt < 3 && !cancelled; attempt += 1) {
+      const RESUME_BACKOFF_MS = [0, 800, 2_000, 4_000, 8_000];
+      for (let attempt = 0; attempt < RESUME_BACKOFF_MS.length && !cancelled; attempt += 1) {
         if (attempt > 0) {
-          await new Promise((r) => setTimeout(r, attempt === 1 ? 800 : 2_000));
+          await new Promise((r) => setTimeout(r, RESUME_BACKOFF_MS[attempt]));
         }
         try {
           const response = await fetch("/api/video-generation/storyboards", { cache: "no-store" });
@@ -1121,11 +1130,13 @@ export function StreamlinedVideoStudio({
 
   async function fetchPlan(
     request: OwnedUnifiedVideoGenerationRequest,
+    signal?: AbortSignal,
   ): Promise<VideoGenerationPlan> {
     const response = await fetch("/api/video-generation/plan", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(request),
+      signal,
     });
     const payload = await response.json().catch(() => null) as
       | { ok: true; plan: VideoGenerationPlan }
@@ -1145,8 +1156,10 @@ export function StreamlinedVideoStudio({
     const requestKey = JSON.stringify(request);
     setError(null);
     setBusy("preview");
+    const controller = new AbortController();
+    planAbortRef.current = controller;
     try {
-      const nextPlan = await fetchPlan(request);
+      const nextPlan = await fetchPlan(request, controller.signal);
       setPlan(nextPlan);
       setPlanRequestKey(requestKey);
       if (!nextPlan.qualityReview.canDispatch) {
@@ -1159,10 +1172,16 @@ export function StreamlinedVideoStudio({
         });
       });
     } catch {
-      setError(copy.previewFailed);
+      if (controller.signal.aborted) toast.success(copy.planningCancelled);
+      else setError(copy.previewFailed);
     } finally {
+      planAbortRef.current = null;
       setBusy(null);
     }
+  }
+
+  function cancelPlanning() {
+    planAbortRef.current?.abort();
   }
 
   async function handleCreateStoryboard() {
@@ -1178,7 +1197,21 @@ export function StreamlinedVideoStudio({
     try {
       let activePlan = plan;
       if (!activePlan || planRequestKey !== requestKey) {
-        activePlan = await fetchPlan(request);
+        const controller = new AbortController();
+        planAbortRef.current = controller;
+        setPlanningShots(true);
+        try {
+          activePlan = await fetchPlan(request, controller.signal);
+        } catch (reason) {
+          if (controller.signal.aborted) {
+            toast.success(copy.planningCancelled);
+            return;
+          }
+          throw reason;
+        } finally {
+          planAbortRef.current = null;
+          setPlanningShots(false);
+        }
         setPlan(activePlan);
         setPlanRequestKey(requestKey);
       }
@@ -1321,14 +1354,10 @@ export function StreamlinedVideoStudio({
     setError(null);
     setBusy("dispatch");
     try {
-      const key = JSON.stringify(request);
-      let activePlan = plan;
-      if (!activePlan || planRequestKey !== key) {
-        activePlan = await fetchPlan(request);
-        setPlan(activePlan);
-        setPlanRequestKey(key);
-      }
-      if (!activePlan.qualityReview.canDispatch) {
+      /// 派发时服务端会重新出方案并做质量把关（拦下时回 QUALITY_BLOCKED，有专门提示），这里不再先等一遍 40–60 秒的方案——
+      /// 刷新后恢复的故事板没有本页方案，以前得先「核对规格」再生成（1028 闭环轮 E2E #6）。
+      /// 本页已有的当期方案若已判定不能生成，照旧直接拦下。
+      if (plan && planRequestKey === JSON.stringify(request) && !plan.qualityReview.canDispatch) {
         setError(copy.qualityBlocked);
         requestAnimationFrame(() => {
           document.getElementById("streamlined-plan-preview")?.scrollIntoView({
@@ -1405,22 +1434,20 @@ export function StreamlinedVideoStudio({
   const planIsCurrent = Boolean(
     plan && currentRequestKey && planRequestKey === currentRequestKey,
   );
+  /// 本页当期方案已判定不能生成（要改描述或素材）；没有方案不算——方案在「生成 AI 故事板」里一并出，派发时服务端再把关。
+  const planBlocksDispatch = Boolean(planIsCurrent && plan && !plan.qualityReview.canDispatch);
+  /// 有故事板（含刷新后恢复的）就只按故事板走，不再要求本页先有方案（1028 闭环轮 E2E #6）。
   const canGenerate = Boolean(
     canReview
-      && planIsCurrent
-      && plan?.qualityReview.canDispatch
+      && !planBlocksDispatch
       && storyboard?.status === "APPROVED",
   );
-  const quickNeedsReview = creationMode === "quick" && !planIsCurrent;
-  const needsStoryboard = Boolean(
-    planIsCurrent && plan?.qualityReview.canDispatch && !storyboard,
-  );
+  /// 快速、高级两种模式都一键出故事板：不再单独「核对规格」（首用五步里本来就没有这一步，学 LibTV 一键出分镜）；
+  /// 高级模式的「核对生成方案」留作可选预览。
+  const needsStoryboard = !storyboard && !planBlocksDispatch;
   const storyboardGenerating = storyboard?.status === "GENERATING";
   const storyboardNeedsApproval = storyboard?.status === "AWAITING_APPROVAL";
-  const primaryIsBusy =
-    busy === "dispatch"
-    || busy === "storyboard"
-    || (creationMode === "quick" && busy === "preview");
+  const primaryIsBusy = busy === "dispatch" || busy === "storyboard";
   /// 委托进度沿用首用提示的五步（guideSteps）：一页只有一套步骤，当前一步只有一个。
   /// 关键帧还在画时停在「生成 AI 故事板」，画完才进「确认每一帧」（不在 0/4 时标已完成）。
   const stageIndex = busy === "dispatch" || storyboard?.status === "APPROVED"
@@ -1438,25 +1465,19 @@ export function StreamlinedVideoStudio({
   const primaryLabel = busy === "dispatch"
     ? copy.generating
     : busy === "storyboard"
-      ? copy.creatingStoryboard
-      : creationMode === "quick" && busy === "preview"
-        ? copy.reviewingSpecs
-        : quickNeedsReview
-          ? copy.reviewSpecs
-          : needsStoryboard
-            ? copy.createStoryboard
-            : storyboardGenerating
-              ? copy.creatingStoryboard
-              : storyboardNeedsApproval
-                ? copy.approveFirst
-                : copy.generate;
+      ? (planningShots ? copy.planningShots : copy.creatingStoryboard)
+      : needsStoryboard
+        ? copy.createStoryboard
+        : storyboardGenerating
+          ? copy.creatingStoryboard
+          : storyboardNeedsApproval
+            ? copy.approveFirst
+            : copy.generate;
   const PrimaryIcon = primaryIsBusy || storyboardGenerating
     ? Loader2
-    : quickNeedsReview
-      ? ListChecks
-      : needsStoryboard || storyboardNeedsApproval
-        ? GalleryHorizontalEnd
-        : Clapperboard;
+    : needsStoryboard || storyboardNeedsApproval
+      ? GalleryHorizontalEnd
+      : Clapperboard;
   const routeNeedsAttention = selectedRouteAvailable !== true;
   /// 本月额度已经用完：提交前就把真实下一步摆出来，不让人做完方案和故事板才在派发时撞墙（审计 A7）。
   const quotaExhausted = Boolean(readings && readings.quotaLimit > 0 && readings.quotaUsed >= readings.quotaLimit);
@@ -1968,11 +1989,7 @@ export function StreamlinedVideoStudio({
         <aside
           className="x-panel x-frame sticky bottom-20 z-10 p-3 md:bottom-10 xl:bottom-auto xl:top-24 xl:flex xl:max-h-[calc(100dvh-8rem)] xl:flex-col xl:gap-4 xl:p-5"
           data-testid="streamlined-generate-bar"
-          aria-label={quickNeedsReview
-            ? copy.reviewSpecs
-            : needsStoryboard
-              ? copy.createStoryboard
-              : copy.generate}
+          aria-label={needsStoryboard ? copy.createStoryboard : copy.generate}
         >
           <h2 className="hidden text-subhead font-medium xl:block">{copy.orderTitle}</h2>
 
@@ -2043,16 +2060,10 @@ export function StreamlinedVideoStudio({
               <Button
                 type="button"
                 id="platform-primary-generate"
-                disabled={quickNeedsReview
-                  ? !canReview
-                  : needsStoryboard
-                    ? !canReview || busy !== null
-                    : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
+                disabled={needsStoryboard
+                  ? !canReview || busy !== null
+                  : storyboardGenerating || storyboardNeedsApproval || !canGenerate}
                 onClick={() => {
-                  if (quickNeedsReview) {
-                    void handlePreview();
-                    return;
-                  }
                   if (needsStoryboard) {
                     void handleCreateStoryboard();
                     return;
@@ -2074,6 +2085,13 @@ export function StreamlinedVideoStudio({
                 />
                 {primaryLabel}
               </Button>
+              {/* 出方案要 40–60 秒，期间页面锁住：给一个出口（素材与描述原样保留） */}
+              {busy === "preview" || planningShots ? (
+                <Button type="button" variant="ghost" size="sm" onClick={cancelPlanning} data-testid="cancel-planning">
+                  <X aria-hidden />
+                  {copy.cancelPlanning}
+                </Button>
+              ) : null}
             </div>
           </div>
 

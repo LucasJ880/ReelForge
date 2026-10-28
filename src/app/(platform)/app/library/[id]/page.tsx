@@ -20,6 +20,9 @@ import { LocalTime } from "@/components/exchange/local-time";
 import { MonoTag } from "@/components/exchange/mono-tag";
 import { QuoteHeader } from "@/components/exchange/quote-header";
 import { StatusTick } from "@/components/exchange/status-tick";
+import { Progress } from "@/components/ui/progress";
+import { ProcessingRefresher } from "@/components/library/processing-refresher";
+import { libraryDisplayTitle } from "@/lib/library/display-title";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 import { getServerLocale } from "@/i18n/server";
 import { libraryRowState } from "@/lib/exchange/state-vocab";
@@ -46,13 +49,15 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
   const canCancel = !item.isShowcase && (item.status === "generating" || item.status === "paused");
   /// P05-C 某一段在重做：成片本身 READY，取消只针对这次重做（取消服务只动候选行）
   const canCancelRedo = !item.isShowcase && !canCancel && item.redoInFlight;
+  /// 单条成片的 title 是商家整段描述：标题只放第一句，全文落到副标题
+  const displayTitle = libraryDisplayTitle(item.title);
   return (
     <div className="x-stack min-w-0">
       <Button render={<Link href="/app/library" />} variant="ghost" size="sm" className="self-start">
         <ArrowLeft aria-hidden />{copy.back}
       </Button>
       <QuoteHeader
-        title={item.title}
+        title={displayTitle}
         meta={
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <StatusTick entity="item" state={libraryRowState(item.status)} locale={locale} />
@@ -66,7 +71,9 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
               ? copy.detailFailure
               : item.status === "cancelled"
                 ? copy.detailCancelled
-                : undefined
+                : displayTitle !== item.title
+                  ? item.title
+                  : undefined
         }
         /// 下载与处置跟着成片走（舞台旁边），行情头不另放主钮
         primaryAction={null}
@@ -103,6 +110,18 @@ export default async function PlatformLibraryItemPage({ params }: { params: Prom
                 {copy.cannotPlay}
               </video>
               <AiGeneratedLabel className="pointer-events-none absolute left-3 top-3" />
+            </div>
+          ) : item.status === "generating" ? (
+            /// 生成中：进度条 + 百分比，15 秒自动刷新一次（学 LibTV 的任务卡，不用手动刷新）
+            <div className="flex w-full max-w-sm flex-col items-center gap-3 py-16 text-center">
+              <ProcessingRefresher />
+              <p className="text-body text-muted-foreground">{copy.processing}</p>
+              <div className="flex w-full items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <Progress value={item.progress} aria-label={`${displayTitle} ${copy.progress}`} />
+                </div>
+                <span className="w-11 shrink-0 text-right font-mono text-data tabular-nums text-accent">{item.progress}%</span>
+              </div>
             </div>
           ) : (
             <p className="py-16 text-center text-body text-muted-foreground">

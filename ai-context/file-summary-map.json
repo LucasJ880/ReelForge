@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T15:44:15.113Z",
+  "generatedAt": "2026-10-28T17:01:49.530Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -1063840,7 +1063840,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 1,
-      "sizeBytes": 15392,
+      "sizeBytes": 15952,
       "notes": ""
     },
     {
@@ -1064101,7 +1064101,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 91,
-      "sizeBytes": 6285,
+      "sizeBytes": 6353,
       "notes": "Documentation"
     },
     {
@@ -1064955,8 +1064955,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 120,
-      "sizeBytes": 15485,
+      "lineCount": 134,
+      "sizeBytes": 17633,
       "notes": "Documentation"
     },
     {
@@ -1066116,8 +1066116,8 @@
         "runtimeTracingExcludes",
         "default"
       ],
-      "lineCount": 134,
-      "sizeBytes": 7551,
+      "lineCount": 130,
+      "sizeBytes": 7062,
       "notes": "Build / runtime config; area=media-processing"
     },
     {
@@ -1066127,8 +1066127,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 130,
-      "sizeBytes": 8151,
+      "lineCount": 129,
+      "sizeBytes": 8080,
       "notes": "Build / runtime config; area=config"
     },
     {
@@ -1068401,8 +1068401,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 376,
-      "sizeBytes": 41075,
+      "lineCount": 345,
+      "sizeBytes": 37374,
       "notes": "Documentation; area=media-processing"
     },
     {
@@ -1069011,23 +1069011,6 @@
       "lineCount": 43,
       "sizeBytes": 1240,
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
-    },
-    {
-      "path": "scripts/generate-pet-evidence-clips.ts",
-      "type": "script",
-      "area": "ffmpeg",
-      "exports": [],
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "importantSymbols": [],
-      "lineCount": 363,
-      "sizeBytes": 12073,
-      "notes": "Maintenance / one-off script (run via tsx); calls Seedance video generator; FFmpeg / audio loudness pipeline; area=ffmpeg"
     },
     {
       "path": "scripts/generate-pet-kit-voiceover.ts",
@@ -1070054,29 +1070037,6 @@
       "notes": "Maintenance / one-off script (run via tsx); area=scripts"
     },
     {
-      "path": "scripts/smoke-closed-loop.ts",
-      "type": "script",
-      "area": "scripts",
-      "exports": [],
-      "imports": [
-        "@prisma/client",
-        "../src/lib/services/discovery-service",
-        "../src/lib/services/selling-point-service",
-        "../src/lib/services/round-service",
-        "../src/lib/services/angle-service",
-        "../src/lib/services/brief-service",
-        "../src/lib/services/script-service",
-        "../src/lib/services/scene-service",
-        "../src/lib/services/prompt-service",
-        "../src/lib/services/video-service",
-        "../src/lib/services/qa-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 197,
-      "sizeBytes": 7473,
-      "notes": "Maintenance / one-off script (run via tsx); hits Prisma DB; area=scripts"
-    },
-    {
       "path": "scripts/stitch-pet-kit-walkthrough-video.ts",
       "type": "script",
       "area": "demo",
@@ -1070409,10 +1070369,8 @@
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
         "@/components/compliance/ai-generated-label",
-        "@/components/exchange/wall-controls",
+        "@/components/landing/hero-reel",
         "@/components/auth/pilot-cta",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/template-sample",
         "@/lib/config/landing-media",
         "@/i18n/growth-copy",
         "@/i18n/platform-copy",
@@ -1070423,8 +1070381,8 @@
         "AuthLayout",
         "default"
       ],
-      "lineCount": 124,
-      "sizeBytes": 6027,
+      "lineCount": 79,
+      "sizeBytes": 3708,
       "notes": "Next.js App Router layout; area=auth"
     },
     {
@@ -1070553,139 +1070511,6 @@
       "notes": "Next.js App Router page; client component; area=admin"
     },
     {
-      "path": "src/app/(internal)/internal/ai-usage/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "AdminAIUsagePage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "@/lib/api-auth",
-        "@/components/ui/card",
-        "@/components/ui/badge",
-        "@/lib/services/ai-usage-stats-service",
-        "@prisma/client"
-      ],
-      "importantSymbols": [
-        "AdminAIUsagePage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 353,
-      "sizeBytes": 13472,
-      "notes": "Next.js App Router page; hits Prisma DB; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/briefs/[id]/actions.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "BriefActions"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/lib/labels-user"
-      ],
-      "importantSymbols": [
-        "BriefActions"
-      ],
-      "lineCount": 116,
-      "sizeBytes": 3831,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/briefs/[id]/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "BriefPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "@/components/features/render-progress",
-        "@/lib/services/video-service",
-        "./actions"
-      ],
-      "importantSymbols": [
-        "BriefPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 345,
-      "sizeBytes": 13390,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/demo-leads/page.tsx",
-      "type": "page",
-      "area": "demo",
-      "exports": [
-        "dynamic",
-        "DemoLeadsPage",
-        "default"
-      ],
-      "imports": [
-        "react",
-        "next/cache",
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/lib/api-auth",
-        "@/lib/db",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "DemoLeadsPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 321,
-      "sizeBytes": 11161,
-      "notes": "Next.js App Router page; area=demo"
-    },
-    {
-      "path": "src/app/(internal)/internal/distillation/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "DistillationPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "DistillationPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 67,
-      "sizeBytes": 2430,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
       "path": "src/app/(internal)/internal/frame-qa/page.tsx",
       "type": "page",
       "area": "media-processing",
@@ -1070711,519 +1070536,6 @@
       "lineCount": 309,
       "sizeBytes": 14110,
       "notes": "Next.js App Router page; area=media-processing"
-    },
-    {
-      "path": "src/app/(internal)/internal/metrics/metrics-import.tsx",
-      "type": "unknown",
-      "area": "metrics",
-      "exports": [
-        "MetricsImport"
-      ],
-      "imports": [
-        "react",
-        "sonner",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/textarea"
-      ],
-      "importantSymbols": [
-        "MetricsImport"
-      ],
-      "lineCount": 90,
-      "sizeBytes": 2990,
-      "notes": "area=metrics"
-    },
-    {
-      "path": "src/app/(internal)/internal/metrics/page.tsx",
-      "type": "page",
-      "area": "metrics",
-      "exports": [
-        "dynamic",
-        "MetricsPage",
-        "default"
-      ],
-      "imports": [
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/db",
-        "@/lib/utils",
-        "./metrics-import"
-      ],
-      "importantSymbols": [
-        "MetricsPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 102,
-      "sizeBytes": 3605,
-      "notes": "Next.js App Router page; area=metrics"
-    },
-    {
-      "path": "src/app/(internal)/internal/orders/[id]/actions.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "OrderActions"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "importantSymbols": [
-        "OrderActions"
-      ],
-      "lineCount": 149,
-      "sizeBytes": 4350,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/orders/[id]/asset-actions.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "AssetActions"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/input"
-      ],
-      "importantSymbols": [
-        "AssetActions"
-      ],
-      "lineCount": 152,
-      "sizeBytes": 4606,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/orders/[id]/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "OrderDetailPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "lucide-react",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "@/lib/services/order-service",
-        "@/lib/utils",
-        "./asset-actions",
-        "./actions"
-      ],
-      "importantSymbols": [
-        "OrderDetailPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 380,
-      "sizeBytes": 15496,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/orders/new/new-order-form.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "NewOrderLocaleOption",
-        "NewOrderForm"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "importantSymbols": [
-        "NewOrderLocaleOption",
-        "NewOrderForm"
-      ],
-      "lineCount": 430,
-      "sizeBytes": 15889,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/orders/new/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "NewOrderPage",
-        "default"
-      ],
-      "imports": [
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/services/localization-service",
-        "./new-order-form"
-      ],
-      "importantSymbols": [
-        "NewOrderPage",
-        "default"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 807,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/orders/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "OrdersPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/card",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/lib/labels",
-        "@/lib/services/order-service",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "OrdersPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 84,
-      "sizeBytes": 3376,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "InternalIndexPage",
-        "default"
-      ],
-      "imports": [
-        "next/navigation"
-      ],
-      "importantSymbols": [
-        "InternalIndexPage",
-        "default"
-      ],
-      "lineCount": 12,
-      "sizeBytes": 343,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/publish/page.tsx",
-      "type": "page",
-      "area": "publishing",
-      "exports": [
-        "dynamic",
-        "PublishPage",
-        "default"
-      ],
-      "imports": [
-        "@/lib/services/publish-service",
-        "@/components/features/page-header",
-        "./publish-list"
-      ],
-      "importantSymbols": [
-        "PublishPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 18,
-      "sizeBytes": 595,
-      "notes": "Next.js App Router page; area=publishing"
-    },
-    {
-      "path": "src/app/(internal)/internal/publish/publish-list.tsx",
-      "type": "unknown",
-      "area": "publishing",
-      "exports": [
-        "PublishList"
-      ],
-      "imports": [
-        "next/link",
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/components/features/status-badge",
-        "@/lib/labels",
-        "@prisma/client"
-      ],
-      "importantSymbols": [
-        "PublishList"
-      ],
-      "lineCount": 209,
-      "sizeBytes": 7666,
-      "notes": "area=publishing"
-    },
-    {
-      "path": "src/app/(internal)/internal/qa/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "QAPage",
-        "default"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "./qa-list"
-      ],
-      "importantSymbols": [
-        "QAPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 32,
-      "sizeBytes": 833,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/qa/qa-list.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "QAList"
-      ],
-      "imports": [
-        "next/link",
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/ui/textarea",
-        "@/components/features/status-badge"
-      ],
-      "importantSymbols": [
-        "QAList"
-      ],
-      "lineCount": 184,
-      "sizeBytes": 6240,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/reports/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "ReportsPage",
-        "default"
-      ],
-      "imports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/badge",
-        "@/components/internal/report-actions"
-      ],
-      "importantSymbols": [
-        "ReportsPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 23,
-      "sizeBytes": 1931,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/rounds/[id]/actions.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "RoundActions"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/lib/labels-user"
-      ],
-      "importantSymbols": [
-        "RoundActions"
-      ],
-      "lineCount": 104,
-      "sizeBytes": 3358,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/rounds/[id]/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "RoundDetailPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "./actions"
-      ],
-      "importantSymbols": [
-        "RoundDetailPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 230,
-      "sizeBytes": 9002,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/rounds/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "RoundsPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "RoundsPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 59,
-      "sizeBytes": 2250,
-      "notes": "Next.js App Router page; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/settings/admin-row.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "AdminRow"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "importantSymbols": [
-        "AdminRow"
-      ],
-      "lineCount": 152,
-      "sizeBytes": 4988,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/settings/create-admin-form.tsx",
-      "type": "unknown",
-      "area": "admin",
-      "exports": [
-        "CreateAdminForm"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/input"
-      ],
-      "importantSymbols": [
-        "CreateAdminForm"
-      ],
-      "lineCount": 93,
-      "sizeBytes": 2864,
-      "notes": "area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/settings/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "SettingsPage",
-        "default"
-      ],
-      "imports": [
-        "next/navigation",
-        "next-auth",
-        "@/lib/auth",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/utils",
-        "./create-admin-form",
-        "./admin-row"
-      ],
-      "importantSymbols": [
-        "SettingsPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 87,
-      "sizeBytes": 2610,
-      "notes": "Next.js App Router page; NextAuth session check; area=admin"
-    },
-    {
-      "path": "src/app/(internal)/internal/videos/page.tsx",
-      "type": "page",
-      "area": "admin",
-      "exports": [
-        "dynamic",
-        "VideosPage",
-        "default"
-      ],
-      "imports": [
-        "next/link",
-        "@/components/ui/card",
-        "@/components/features/page-header",
-        "@/lib/db",
-        "@/i18n/server"
-      ],
-      "importantSymbols": [
-        "VideosPage",
-        "dynamic",
-        "default"
-      ],
-      "lineCount": 131,
-      "sizeBytes": 4121,
-      "notes": "Next.js App Router page; area=admin"
     },
     {
       "path": "src/app/(internal)/layout.tsx",
@@ -1071691,6 +1071003,58 @@
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
+      "path": "src/app/(platform)/app/guide/[slug]/page.tsx",
+      "type": "page",
+      "area": "unknown",
+      "exports": [
+        "generateMetadata",
+        "GuideArticlePage",
+        "default"
+      ],
+      "imports": [
+        "next",
+        "next/link",
+        "next/navigation",
+        "lucide-react",
+        "@/i18n/server",
+        "@/lib/config/contact",
+        "@/lib/guide/guide-articles"
+      ],
+      "importantSymbols": [
+        "GuideArticlePage",
+        "generateMetadata",
+        "default"
+      ],
+      "lineCount": 102,
+      "sizeBytes": 4747,
+      "notes": "Next.js App Router page"
+    },
+    {
+      "path": "src/app/(platform)/app/guide/page.tsx",
+      "type": "page",
+      "area": "unknown",
+      "exports": [
+        "generateMetadata",
+        "GuidePage",
+        "default"
+      ],
+      "imports": [
+        "next",
+        "next/link",
+        "lucide-react",
+        "@/i18n/server",
+        "@/lib/guide/guide-articles"
+      ],
+      "importantSymbols": [
+        "GuidePage",
+        "generateMetadata",
+        "default"
+      ],
+      "lineCount": 92,
+      "sizeBytes": 3894,
+      "notes": "Next.js App Router page"
+    },
+    {
       "path": "src/app/(platform)/app/layout.tsx",
       "type": "layout",
       "area": "unknown",
@@ -1071715,8 +1071079,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 41,
-      "sizeBytes": 1725,
+      "lineCount": 52,
+      "sizeBytes": 2063,
       "notes": "Next.js App Router layout; NextAuth session check"
     },
     {
@@ -1071870,6 +1071234,9 @@
         "@/components/exchange/mono-tag",
         "@/components/exchange/quote-header",
         "@/components/exchange/status-tick",
+        "@/components/ui/progress",
+        "@/components/library/processing-refresher",
+        "@/lib/library/display-title",
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/lib/exchange/state-vocab"
@@ -1071879,8 +1071246,8 @@
         "dynamic",
         "default"
       ],
-      "lineCount": 230,
-      "sizeBytes": 11395,
+      "lineCount": 249,
+      "sizeBytes": 12626,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -1072321,8 +1071688,8 @@
         "generateMetadata",
         "default"
       ],
-      "lineCount": 58,
-      "sizeBytes": 2468,
+      "lineCount": 53,
+      "sizeBytes": 2323,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -1072432,7 +1071799,7 @@
         "default"
       ],
       "lineCount": 16,
-      "sizeBytes": 315,
+      "sizeBytes": 312,
       "notes": "Next.js App Router layout; area=marketing-site"
     },
     {
@@ -1072453,35 +1071820,6 @@
       "lineCount": 6,
       "sizeBytes": 168,
       "notes": "Next.js App Router page; area=marketing-site"
-    },
-    {
-      "path": "src/app/(public)/persona/page.tsx",
-      "type": "page",
-      "area": "marketing-site",
-      "exports": [
-        "generateMetadata",
-        "PersonaPage",
-        "default"
-      ],
-      "imports": [
-        "next",
-        "next/link",
-        "next-auth",
-        "@/components/layout/language-switcher",
-        "@/components/ui/button",
-        "@/components/ui/logo",
-        "@/i18n/public-copy",
-        "@/i18n/server",
-        "@/lib/auth"
-      ],
-      "importantSymbols": [
-        "PersonaPage",
-        "generateMetadata",
-        "default"
-      ],
-      "lineCount": 96,
-      "sizeBytes": 3838,
-      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
     },
     {
       "path": "src/app/(public)/privacy/page.tsx",
@@ -1072509,91 +1071847,6 @@
       "lineCount": 77,
       "sizeBytes": 2815,
       "notes": "Next.js App Router page; area=marketing-site"
-    },
-    {
-      "path": "src/app/(public)/showcase/experience-client.tsx",
-      "type": "unknown",
-      "area": "marketing-site",
-      "exports": [
-        "RealFootageDemoExperience"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/components/ui/logo",
-        "@/components/demo/pet/pet-hero",
-        "@/components/demo/pet/hardware-kit",
-        "@/components/demo/pet/demo-story",
-        "@/components/demo/pet/device-dashboard",
-        "@/components/demo/pet/activity-timeline",
-        "@/components/demo/pet/detected-moments",
-        "@/components/demo/pet/companion-mode",
-        "@/components/demo/pet/collar-pov",
-        "@/components/demo/pet/auto-videos",
-        "@/components/demo/pet/before-after",
-        "@/components/demo/pet/viral-sharing",
-        "@/components/demo/pet/brand-proof-scenario",
-        "@/components/demo/pet/product-proof-report",
-        "@/components/demo/pet/community-preview",
-        "@/components/demo/pet/benchmark-comparison",
-        "@/components/demo/pet/why-now",
-        "@/components/demo/pet/market-opportunity",
-        "@/components/demo/pet/growth-flywheel",
-        "@/components/demo/pet/pet-investor-highlights",
-        "@/components/demo/pet/business-model",
-        "@/components/demo/pet/team-section",
-        "@/components/demo/pet/deck-shell",
-        "@/lib/demo/pet-content-kit-demo-data",
-        "./pet-waitlist-form"
-      ],
-      "importantSymbols": [
-        "RealFootageDemoExperience"
-      ],
-      "lineCount": 242,
-      "sizeBytes": 8492,
-      "notes": "area=marketing-site"
-    },
-    {
-      "path": "src/app/(public)/showcase/page.tsx",
-      "type": "page",
-      "area": "marketing-site",
-      "exports": [
-        "metadata",
-        "RealFootageAdsDemoPage",
-        "default"
-      ],
-      "imports": [
-        "next",
-        "next-auth",
-        "@/lib/auth",
-        "./experience-client"
-      ],
-      "importantSymbols": [
-        "RealFootageAdsDemoPage",
-        "metadata",
-        "default"
-      ],
-      "lineCount": 30,
-      "sizeBytes": 1549,
-      "notes": "Next.js App Router page; NextAuth session check; area=marketing-site"
-    },
-    {
-      "path": "src/app/(public)/showcase/pet-waitlist-form.tsx",
-      "type": "unknown",
-      "area": "marketing-site",
-      "exports": [
-        "PetWaitlistForm"
-      ],
-      "imports": [
-        "react",
-        "lucide-react"
-      ],
-      "importantSymbols": [
-        "PetWaitlistForm"
-      ],
-      "lineCount": 176,
-      "sizeBytes": 5978,
-      "notes": "area=marketing-site"
     },
     {
       "path": "src/app/(public)/terms/page.tsx",
@@ -1072662,93 +1071915,6 @@
       "lineCount": 239,
       "sizeBytes": 12362,
       "notes": "Next.js App Router page; NextAuth session check"
-    },
-    {
-      "path": "src/app/api/ad-plans/[id]/render/route.ts",
-      "type": "api",
-      "area": "media-processing",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-render-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 23,
-      "sizeBytes": 608,
-      "notes": "Next.js API route handler; area=media-processing"
-    },
-    {
-      "path": "src/app/api/admin/users/[id]/disable/route.ts",
-      "type": "api",
-      "area": "admin",
-      "exports": [
-        "POST",
-        "DELETE"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/account-disable-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "DELETE"
-      ],
-      "lineCount": 87,
-      "sizeBytes": 2647,
-      "notes": "Next.js API route handler; area=admin"
-    },
-    {
-      "path": "src/app/api/admin/users/[id]/route.ts",
-      "type": "api",
-      "area": "admin",
-      "exports": [
-        "PATCH",
-        "DELETE"
-      ],
-      "imports": [
-        "next/server",
-        "bcryptjs",
-        "@/lib/api-auth",
-        "@/lib/auth",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "PATCH",
-        "DELETE"
-      ],
-      "lineCount": 53,
-      "sizeBytes": 1908,
-      "notes": "Next.js API route handler; area=admin"
-    },
-    {
-      "path": "src/app/api/admin/users/route.ts",
-      "type": "api",
-      "area": "admin",
-      "exports": [
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "bcryptjs",
-        "@/lib/api-auth",
-        "@/lib/db",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST"
-      ],
-      "lineCount": 56,
-      "sizeBytes": 1767,
-      "notes": "Next.js API route handler; area=admin"
     },
     {
       "path": "src/app/api/auth/[...nextauth]/route.ts",
@@ -1073001,25 +1072167,6 @@
       "lineCount": 257,
       "sizeBytes": 8178,
       "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/billing/checkout/route.ts",
-      "type": "api",
-      "area": "payments",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/stripe-billing-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 44,
-      "sizeBytes": 1475,
-      "notes": "Next.js API route handler; area=payments"
     },
     {
       "path": "src/app/api/brand-packaging/route.ts",
@@ -1073288,26 +1072435,6 @@
       "lineCount": 152,
       "sizeBytes": 5123,
       "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/business/metrics/route.ts",
-      "type": "api",
-      "area": "metrics",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/business-metrics-import",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 35,
-      "sizeBytes": 1102,
-      "notes": "Next.js API route handler; area=metrics"
     },
     {
       "path": "src/app/api/capabilities/route.ts",
@@ -1073604,132 +1072731,6 @@
       "notes": "Next.js API route handler"
     },
     {
-      "path": "src/app/api/delivery-orders/[id]/assets/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@prisma/client",
-        "@/lib/api-auth",
-        "@/lib/services/asset-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST"
-      ],
-      "lineCount": 85,
-      "sizeBytes": 2374,
-      "notes": "Next.js API route handler; hits Prisma DB"
-    },
-    {
-      "path": "src/app/api/delivery-orders/[id]/research/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/discovery-service",
-        "@/lib/services/selling-point-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 31,
-      "sizeBytes": 944,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/delivery-orders/[id]/rounds/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/round-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 36,
-      "sizeBytes": 1122,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/delivery-orders/[id]/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET",
-        "PATCH"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/order-service",
-        "@/lib/services/round-service"
-      ],
-      "importantSymbols": [
-        "GET",
-        "PATCH"
-      ],
-      "lineCount": 40,
-      "sizeBytes": 1322,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/delivery-orders/[id]/selling-points/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/selling-point-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 634,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/delivery-orders/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/order-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST"
-      ],
-      "lineCount": 37,
-      "sizeBytes": 1265,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
       "type": "api",
       "area": "real-footage-ads",
@@ -1073750,93 +1072751,6 @@
       "lineCount": 59,
       "sizeBytes": 1640,
       "notes": "Next.js API route handler; hits Prisma DB; area=real-footage-ads"
-    },
-    {
-      "path": "src/app/api/digital-human/avatars/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/video-generation/digital-human/avatar-catalog",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 27,
-      "sizeBytes": 870,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/digital-human/jobs/[id]/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 30,
-      "sizeBytes": 1087,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/digital-human/jobs/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST",
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/quota-service",
-        "@/lib/services/digital-human-service",
-        "@/lib/video-generation/digital-human/avatar-catalog",
-        "@/lib/video-generation/digital-human/voice-catalog",
-        "@/lib/features/digital-human",
-        "@/lib/services/media-asset-service"
-      ],
-      "importantSymbols": [
-        "POST",
-        "GET"
-      ],
-      "lineCount": 134,
-      "sizeBytes": 4258,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/digital-human/voices/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/video-generation/digital-human/voice-catalog",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 29,
-      "sizeBytes": 839,
-      "notes": "Next.js API route handler"
     },
     {
       "path": "src/app/api/exchange/failures-ack/route.ts",
@@ -1073934,49 +1072848,6 @@
       ],
       "lineCount": 155,
       "sizeBytes": 5045,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/internal/digital-human/claim/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/machine-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST"
-      ],
-      "lineCount": 35,
-      "sizeBytes": 1191,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/internal/digital-human/complete/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/machine-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 55,
-      "sizeBytes": 1740,
       "notes": "Next.js API route handler"
     },
     {
@@ -1074084,31 +1072955,6 @@
       "lineCount": 85,
       "sizeBytes": 2645,
       "notes": "Next.js API route handler; area=ffmpeg"
-    },
-    {
-      "path": "src/app/api/internal/video-provider-routes/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "runtime",
-        "dynamic",
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/contracts/video-provider-routes",
-        "@/lib/machine-auth",
-        "@/lib/server/buddy-route-discovery"
-      ],
-      "importantSymbols": [
-        "GET",
-        "runtime",
-        "dynamic"
-      ],
-      "lineCount": 46,
-      "sizeBytes": 1502,
-      "notes": "Next.js API route handler"
     },
     {
       "path": "src/app/api/leads/_shared.ts",
@@ -1074346,49 +1073192,6 @@
       "notes": "Next.js API route handler"
     },
     {
-      "path": "src/app/api/me/usage/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "dynamic",
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/usage-payload"
-      ],
-      "importantSymbols": [
-        "GET",
-        "dynamic"
-      ],
-      "lineCount": 30,
-      "sizeBytes": 821,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/metrics/import/route.ts",
-      "type": "api",
-      "area": "metrics",
-      "exports": [
-        "GET",
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/metrics-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "GET",
-        "POST"
-      ],
-      "lineCount": 63,
-      "sizeBytes": 1930,
-      "notes": "Next.js API route handler; area=metrics"
-    },
-    {
       "path": "src/app/api/onboarding/complete/route.ts",
       "type": "api",
       "area": "unknown",
@@ -1074457,46 +1073260,6 @@
       ],
       "lineCount": 40,
       "sizeBytes": 1472,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/persona/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 40,
-      "sizeBytes": 1190,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/personal/agent-chat/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/ai"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 148,
-      "sizeBytes": 7284,
       "notes": "Next.js API route handler"
     },
     {
@@ -1074849,45 +1073612,6 @@
       "notes": "Next.js API route handler; area=publishing"
     },
     {
-      "path": "src/app/api/qa/[id]/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/qa-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 36,
-      "sizeBytes": 994,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/qa/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 30,
-      "sizeBytes": 817,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/racing/rounds/[id]/analyze/route.ts",
       "type": "api",
       "area": "unknown",
@@ -1074972,26 +1073696,6 @@
       "notes": "Next.js API route handler"
     },
     {
-      "path": "src/app/api/raw-assets/[id]/preprocess/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/asset-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 32,
-      "sizeBytes": 948,
-      "notes": "Next.js API route handler"
-    },
-    {
       "path": "src/app/api/reports/route.ts",
       "type": "api",
       "area": "unknown",
@@ -1075010,123 +1073714,6 @@
       ],
       "lineCount": 32,
       "sizeBytes": 1258,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/rounds/[id]/ad-plans/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-agent-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 32,
-      "sizeBytes": 981,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/rounds/[id]/angles/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/angle-service",
-        "@/lib/services/brief-service",
-        "@/lib/validators"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 36,
-      "sizeBytes": 1126,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/rounds/[id]/distill/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/distillation-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 618,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/rounds/[id]/iteration/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/iteration-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 23,
-      "sizeBytes": 636,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/rounds/[id]/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "GET"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "GET"
-      ],
-      "lineCount": 49,
-      "sizeBytes": 1483,
-      "notes": "Next.js API route handler"
-    },
-    {
-      "path": "src/app/api/rounds/[id]/score/route.ts",
-      "type": "api",
-      "area": "unknown",
-      "exports": [
-        "POST"
-      ],
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/scoring-service"
-      ],
-      "importantSymbols": [
-        "POST"
-      ],
-      "lineCount": 22,
-      "sizeBytes": 597,
       "notes": "Next.js API route handler"
     },
     {
@@ -1075385,6 +1073972,28 @@
       "notes": "Next.js API route handler; area=video-generation"
     },
     {
+      "path": "src/app/api/video-generation/voiceover-draft/route.ts",
+      "type": "api",
+      "area": "video-generation",
+      "exports": [
+        "maxDuration",
+        "POST"
+      ],
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/video-generation/voiceover-writer"
+      ],
+      "importantSymbols": [
+        "POST",
+        "maxDuration"
+      ],
+      "lineCount": 33,
+      "sizeBytes": 1275,
+      "notes": "Next.js API route handler; area=video-generation"
+    },
+    {
       "path": "src/app/api/videos/route.ts",
       "type": "api",
       "area": "unknown",
@@ -1075463,8 +1074072,8 @@
         "../styles/tokens.css"
       ],
       "importantSymbols": [],
-      "lineCount": 972,
-      "sizeBytes": 21496,
+      "lineCount": 1045,
+      "sizeBytes": 23550,
       "notes": "Stylesheet"
     },
     {
@@ -1075539,7 +1074148,7 @@
         "default"
       ],
       "lineCount": 84,
-      "sizeBytes": 3850,
+      "sizeBytes": 3868,
       "notes": "Next.js App Router layout; NextAuth session check"
     },
     {
@@ -1075595,7 +1074204,7 @@
         "default"
       ],
       "lineCount": 47,
-      "sizeBytes": 1662,
+      "sizeBytes": 1709,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -1076159,511 +1074768,6 @@
       "notes": "React component"
     },
     {
-      "path": "src/components/demo/pet/activity-timeline.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "ActivityTimeline"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "ActivityTimeline"
-      ],
-      "lineCount": 78,
-      "sizeBytes": 2655,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/auto-videos.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "AutoVideos"
-      ],
-      "imports": [
-        "@/components/demo/phone-video-mockup",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "AutoVideos"
-      ],
-      "lineCount": 77,
-      "sizeBytes": 2495,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/before-after.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "BeforeAfter"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/components/demo/phone-video-mockup",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "BeforeAfter"
-      ],
-      "lineCount": 101,
-      "sizeBytes": 3853,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/benchmark-comparison.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "BenchmarkComparison"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "BenchmarkComparison"
-      ],
-      "lineCount": 112,
-      "sizeBytes": 3952,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/brand-proof-scenario.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "BrandProofScenario"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "BrandProofScenario"
-      ],
-      "lineCount": 75,
-      "sizeBytes": 2237,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/business-model.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "BusinessModel"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "BusinessModel"
-      ],
-      "lineCount": 69,
-      "sizeBytes": 2086,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/collar-pov.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "CollarPov"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "CollarPov"
-      ],
-      "lineCount": 81,
-      "sizeBytes": 3072,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/community-preview.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "CommunityPreview"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "CommunityPreview"
-      ],
-      "lineCount": 151,
-      "sizeBytes": 5852,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/companion-mode.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "CompanionMode"
-      ],
-      "imports": [
-        "lucide-react",
-        "@/components/demo/phone-video-mockup",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "CompanionMode"
-      ],
-      "lineCount": 110,
-      "sizeBytes": 4586,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/deck-shell.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "DeckSlideDef",
-        "DeckShell"
-      ],
-      "imports": [
-        "react",
-        "lucide-react"
-      ],
-      "importantSymbols": [
-        "DeckSlideDef",
-        "DeckShell"
-      ],
-      "lineCount": 301,
-      "sizeBytes": 9390,
-      "notes": "React component; client component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/demo-story.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "DemoStory"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "DemoStory"
-      ],
-      "lineCount": 100,
-      "sizeBytes": 2835,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/detected-moments.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "DetectedMoments"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "DetectedMoments"
-      ],
-      "lineCount": 62,
-      "sizeBytes": 2214,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/device-dashboard.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "DeviceDashboard"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "DeviceDashboard"
-      ],
-      "lineCount": 96,
-      "sizeBytes": 3175,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/growth-flywheel.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "GrowthFlywheel"
-      ],
-      "imports": [
-        "react",
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "GrowthFlywheel"
-      ],
-      "lineCount": 60,
-      "sizeBytes": 2586,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/hardware-kit.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "HardwareKit"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "./image-lightbox",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "HardwareKit"
-      ],
-      "lineCount": 142,
-      "sizeBytes": 4964,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/image-lightbox.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "ImageLightbox"
-      ],
-      "imports": [
-        "react",
-        "lucide-react",
-        "./pet-image"
-      ],
-      "importantSymbols": [
-        "ImageLightbox"
-      ],
-      "lineCount": 93,
-      "sizeBytes": 2906,
-      "notes": "React component; client component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/market-opportunity.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "MarketOpportunity"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "MarketOpportunity"
-      ],
-      "lineCount": 86,
-      "sizeBytes": 2934,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/pet-hero.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "PetHero"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "PetHero"
-      ],
-      "lineCount": 146,
-      "sizeBytes": 6027,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/pet-image.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "PetImage"
-      ],
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "PetImage"
-      ],
-      "lineCount": 60,
-      "sizeBytes": 1346,
-      "notes": "React component; client component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/pet-investor-highlights.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "PetInvestorHighlights"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "PetInvestorHighlights"
-      ],
-      "lineCount": 107,
-      "sizeBytes": 3669,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/pet-section.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "PetSection"
-      ],
-      "imports": [
-        "react",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "PetSection"
-      ],
-      "lineCount": 51,
-      "sizeBytes": 1364,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/product-proof-report.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "ProductProofReport"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "ProductProofReport"
-      ],
-      "lineCount": 104,
-      "sizeBytes": 3986,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/team-section.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "TeamSection"
-      ],
-      "imports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "TeamSection"
-      ],
-      "lineCount": 92,
-      "sizeBytes": 3108,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/viral-sharing.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "ViralSharing"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "ViralSharing"
-      ],
-      "lineCount": 85,
-      "sizeBytes": 3255,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/pet/why-now.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "WhyNow"
-      ],
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "importantSymbols": [
-        "WhyNow"
-      ],
-      "lineCount": 192,
-      "sizeBytes": 7156,
-      "notes": "React component; area=demo"
-    },
-    {
-      "path": "src/components/demo/phone-video-mockup.tsx",
-      "type": "component",
-      "area": "demo",
-      "exports": [
-        "PhoneVideoMockup"
-      ],
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "PhoneVideoMockup"
-      ],
-      "lineCount": 209,
-      "sizeBytes": 8100,
-      "notes": "React component; client component; area=demo"
-    },
-    {
       "path": "src/components/editorial/empty-upload-illustration.tsx",
       "type": "component",
       "area": "upload",
@@ -1076677,24 +1074781,6 @@
       "lineCount": 36,
       "sizeBytes": 799,
       "notes": "React component; area=upload"
-    },
-    {
-      "path": "src/components/editorial/kpi-card.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "KpiCard"
-      ],
-      "imports": [
-        "@/components/ui/progress",
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "KpiCard"
-      ],
-      "lineCount": 39,
-      "sizeBytes": 1003,
-      "notes": "React component"
     },
     {
       "path": "src/components/exchange/delta.tsx",
@@ -1076840,8 +1074926,8 @@
         "QuoteHeaderProps",
         "QuoteHeader"
       ],
-      "lineCount": 137,
-      "sizeBytes": 5738,
+      "lineCount": 128,
+      "sizeBytes": 5552,
       "notes": "React component"
     },
     {
@@ -1076988,100 +1075074,6 @@
       "notes": "React component"
     },
     {
-      "path": "src/components/features/page-header.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "PageHeader"
-      ],
-      "imports": [
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "PageHeader"
-      ],
-      "lineCount": 30,
-      "sizeBytes": 837,
-      "notes": "React component"
-    },
-    {
-      "path": "src/components/features/render-progress.tsx",
-      "type": "component",
-      "area": "media-processing",
-      "exports": [
-        "RenderJobView",
-        "FinalVideoView",
-        "RenderSummaryView",
-        "RenderProgress"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/features/status-badge",
-        "@/lib/labels-user",
-        "@/i18n/useTranslation",
-        "@/lib/services/video-service",
-        "@prisma/client"
-      ],
-      "importantSymbols": [
-        "RenderJobView",
-        "FinalVideoView",
-        "RenderSummaryView",
-        "RenderProgress"
-      ],
-      "lineCount": 422,
-      "sizeBytes": 13677,
-      "notes": "React component; hits Prisma DB; client component; area=media-processing"
-    },
-    {
-      "path": "src/components/features/status-badge.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "StatusBadge",
-        "deliveryTone",
-        "briefTone",
-        "qaTone",
-        "publishTone"
-      ],
-      "imports": [
-        "@/lib/utils"
-      ],
-      "importantSymbols": [
-        "StatusBadge",
-        "deliveryTone",
-        "briefTone",
-        "qaTone",
-        "publishTone"
-      ],
-      "lineCount": 58,
-      "sizeBytes": 1829,
-      "notes": "React component"
-    },
-    {
-      "path": "src/components/internal/report-actions.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "ReportActions"
-      ],
-      "imports": [
-        "react",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "importantSymbols": [
-        "ReportActions"
-      ],
-      "lineCount": 28,
-      "sizeBytes": 1853,
-      "notes": "React component; client component"
-    },
-    {
       "path": "src/components/landing/hero-reel.tsx",
       "type": "component",
       "area": "shared",
@@ -1077114,8 +1075106,8 @@
       "importantSymbols": [
         "ShowRail"
       ],
-      "lineCount": 91,
-      "sizeBytes": 2735,
+      "lineCount": 94,
+      "sizeBytes": 2959,
       "notes": "React component; client component"
     },
     {
@@ -1077168,8 +1075160,8 @@
       "importantSymbols": [
         "InternalSidebar"
       ],
-      "lineCount": 296,
-      "sizeBytes": 10681,
+      "lineCount": 266,
+      "sizeBytes": 9674,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -1077511,40 +1075503,6 @@
       "notes": "React component"
     },
     {
-      "path": "src/components/leads/pilot-landing.tsx",
-      "type": "component",
-      "area": "shared",
-      "exports": [
-        "LandingCounts",
-        "PilotLanding"
-      ],
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/components/ui/logo",
-        "@/components/ui/button",
-        "@/components/layout/language-switcher",
-        "@/components/compliance/ai-generated-label",
-        "@/components/exchange/section-head",
-        "@/components/exchange/mono-tag",
-        "@/components/exchange/status-tick",
-        "@/components/exchange/wall-controls",
-        "@/i18n/config",
-        "@/i18n/growth-copy",
-        "@/lib/config/landing-media",
-        "@/lib/exchange/state-vocab",
-        "@/lib/utils",
-        "./pilot-application-form"
-      ],
-      "importantSymbols": [
-        "LandingCounts",
-        "PilotLanding"
-      ],
-      "lineCount": 396,
-      "sizeBytes": 18125,
-      "notes": "React component"
-    },
-    {
       "path": "src/components/leads/tracked-links-panel.tsx",
       "type": "component",
       "area": "shared",
@@ -1077707,6 +1075665,24 @@
       "lineCount": 77,
       "sizeBytes": 2763,
       "notes": "React component; client component; area=media-processing"
+    },
+    {
+      "path": "src/components/library/processing-refresher.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "ProcessingRefresher"
+      ],
+      "imports": [
+        "react",
+        "next/navigation"
+      ],
+      "importantSymbols": [
+        "ProcessingRefresher"
+      ],
+      "lineCount": 25,
+      "sizeBytes": 887,
+      "notes": "React component; client component"
     },
     {
       "path": "src/components/library/render-pending-posts-button.tsx",
@@ -1077892,8 +1075868,8 @@
         "OnboardingExit",
         "WelcomeSteps"
       ],
-      "lineCount": 552,
-      "sizeBytes": 23558,
+      "lineCount": 553,
+      "sizeBytes": 23688,
       "notes": "React component; client component"
     },
     {
@@ -1078056,8 +1076032,8 @@
       "importantSymbols": [
         "PlatformShell"
       ],
-      "lineCount": 386,
-      "sizeBytes": 17235,
+      "lineCount": 371,
+      "sizeBytes": 16665,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -1078352,8 +1076328,8 @@
         "Button",
         "buttonVariants"
       ],
-      "lineCount": 61,
-      "sizeBytes": 2370,
+      "lineCount": 62,
+      "sizeBytes": 2457,
       "notes": "React component; area=shared-ui"
     },
     {
@@ -1078689,8 +1076665,8 @@
         "captionStyleSelectValue",
         "generateVoiceoverScript"
       ],
-      "lineCount": 511,
-      "sizeBytes": 22469,
+      "lineCount": 516,
+      "sizeBytes": 22803,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -1078863,8 +1076839,8 @@
         "StudioReadings",
         "StreamlinedVideoStudio"
       ],
-      "lineCount": 2319,
-      "sizeBytes": 98685,
+      "lineCount": 2361,
+      "sizeBytes": 100758,
       "notes": "React component; client component; area=video-generation"
     },
     {
@@ -1079025,8 +1077001,8 @@
         "enUS",
         "default"
       ],
-      "lineCount": 907,
-      "sizeBytes": 34116,
+      "lineCount": 908,
+      "sizeBytes": 34138,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079067,8 +1077043,8 @@
         "zhCN",
         "default"
       ],
-      "lineCount": 878,
-      "sizeBytes": 34145,
+      "lineCount": 879,
+      "sizeBytes": 34174,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079111,7 +1077087,7 @@
         "TrackedLinkChannel"
       ],
       "lineCount": 1050,
-      "sizeBytes": 42589,
+      "sizeBytes": 42692,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079200,7 +1077176,7 @@
         "getOnboardingCopy"
       ],
       "lineCount": 388,
-      "sizeBytes": 14726,
+      "sizeBytes": 14638,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079242,8 +1077218,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1083,
-      "sizeBytes": 69893,
+      "lineCount": 1085,
+      "sizeBytes": 69929,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079326,8 +1077302,8 @@
         "DotPath",
         "TranslationKey"
       ],
-      "lineCount": 772,
-      "sizeBytes": 18466,
+      "lineCount": 773,
+      "sizeBytes": 18487,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079516,7 +1077492,7 @@
         "requirePageRole"
       ],
       "lineCount": 290,
-      "sizeBytes": 9374,
+      "sizeBytes": 9429,
       "notes": "Utility / helper module; NextAuth session check; area=auth"
     },
     {
@@ -1079741,6 +1077717,21 @@
       ],
       "lineCount": 24,
       "sizeBytes": 602,
+      "notes": "Utility / helper module"
+    },
+    {
+      "path": "src/lib/brand/default-brand-package.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "defaultBrandPackageId"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "defaultBrandPackageId"
+      ],
+      "lineCount": 9,
+      "sizeBytes": 574,
       "notes": "Utility / helper module"
     },
     {
@@ -1080609,59 +1078600,6 @@
       "notes": "Utility / helper module; area=upload"
     },
     {
-      "path": "src/lib/contracts/video-dispatch-error.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "videoDispatchErrorSchema"
-      ],
-      "imports": [
-        "zod",
-        "@/lib/contracts/customer-api"
-      ],
-      "importantSymbols": [
-        "videoDispatchErrorSchema"
-      ],
-      "lineCount": 17,
-      "sizeBytes": 644,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/contracts/video-provider-routes.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "shuyuRouteUnavailableReasons",
-        "shuyuVideoPlanSchema",
-        "shuyuApiContractSchema",
-        "shuyuVideoProviderRouteSchema",
-        "internalVideoProviderRoutesResponseSchema",
-        "ShuyuVideoPlan",
-        "ShuyuApiContract",
-        "ShuyuVideoProviderRoute",
-        "InternalVideoProviderRoutesResponse",
-        "BuddyApiContract",
-        "BuddyVideoProviderRoute"
-      ],
-      "imports": [
-        "zod",
-        "@/lib/providers/shuyu-video-plan-tiers"
-      ],
-      "importantSymbols": [
-        "ShuyuVideoPlan",
-        "ShuyuApiContract",
-        "ShuyuVideoProviderRoute",
-        "InternalVideoProviderRoutesResponse",
-        "BuddyApiContract",
-        "BuddyVideoProviderRoute",
-        "shuyuRouteUnavailableReasons",
-        "shuyuVideoPlanSchema"
-      ],
-      "lineCount": 108,
-      "sizeBytes": 3786,
-      "notes": "Utility / helper module"
-    },
-    {
       "path": "src/lib/contracts/video-route-options.ts",
       "type": "util",
       "area": "shared",
@@ -1080770,57 +1078708,6 @@
       ],
       "lineCount": 110,
       "sizeBytes": 4125,
-      "notes": "Utility / helper module; area=demo"
-    },
-    {
-      "path": "src/lib/demo/pet-content-kit-demo-data.ts",
-      "type": "util",
-      "area": "demo",
-      "exports": [
-        "PET_BRAND_NAME",
-        "PET_POSITIONING",
-        "PET_SLOGAN",
-        "PET_HERO_OPENING",
-        "SAMPLE_DATA_BADGE_LABEL",
-        "SAMPLE_DATA_DISCLAIMER",
-        "PET_WALKTHROUGH_VIDEO_URL",
-        "PET_WALKTHROUGH_VIDEO_POSTER",
-        "PET_RENDER",
-        "HeroStat",
-        "heroStats",
-        "PetDeviceDemo",
-        "petDevices",
-        "ActivityEventDemo",
-        "activityTimeline",
-        "DetectedMomentDemo",
-        "detectedMoments",
-        "DailyClipDemo",
-        "dailyClip",
-        "PetDiaryEntryDemo",
-        "petDiary",
-        "MoodCardDemo",
-        "moodCard",
-        "desktopPet",
-        "AutoVideoDraftDemo",
-        "autoVideoDrafts",
-        "ShareStepDemo",
-        "viralSharing",
-        "ProofMetricDemo",
-        "productProofReport"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "PET_BRAND_NAME",
-        "PET_POSITIONING",
-        "PET_SLOGAN",
-        "PET_HERO_OPENING",
-        "SAMPLE_DATA_BADGE_LABEL",
-        "SAMPLE_DATA_DISCLAIMER",
-        "PET_WALKTHROUGH_VIDEO_URL",
-        "PET_WALKTHROUGH_VIDEO_POSTER"
-      ],
-      "lineCount": 1383,
-      "sizeBytes": 57899,
       "notes": "Utility / helper module; area=demo"
     },
     {
@@ -1080985,26 +1078872,30 @@
       "notes": "Utility / helper module; hits Prisma DB"
     },
     {
-      "path": "src/lib/features/digital-human.ts",
+      "path": "src/lib/guide/guide-articles.ts",
       "type": "util",
       "area": "shared",
       "exports": [
-        "DIGITAL_HUMAN_FEATURE_STATE",
-        "isDigitalHumanFeatureEnabled",
-        "assertDigitalHumanFeatureEnabled",
-        "runDigitalHumanTrigger",
-        "DIGITAL_HUMAN_SEALED_RESPONSE"
+        "GuideSlug",
+        "GuideSection",
+        "GuideArticle",
+        "guideArticles",
+        "guideArticle",
+        "GUIDE_PAGE_COPY"
       ],
-      "imports": [],
+      "imports": [
+        "@/i18n/config"
+      ],
       "importantSymbols": [
-        "DIGITAL_HUMAN_FEATURE_STATE",
-        "DIGITAL_HUMAN_SEALED_RESPONSE",
-        "isDigitalHumanFeatureEnabled",
-        "assertDigitalHumanFeatureEnabled",
-        "runDigitalHumanTrigger"
+        "GuideSlug",
+        "GuideSection",
+        "GuideArticle",
+        "GUIDE_PAGE_COPY",
+        "guideArticles",
+        "guideArticle"
       ],
-      "lineCount": 26,
-      "sizeBytes": 824,
+      "lineCount": 406,
+      "sizeBytes": 20492,
       "notes": "Utility / helper module"
     },
     {
@@ -1081078,6 +1078969,21 @@
       "lineCount": 123,
       "sizeBytes": 3208,
       "notes": "Utility / helper module; hits Prisma DB"
+    },
+    {
+      "path": "src/lib/library/display-title.ts",
+      "type": "util",
+      "area": "shared",
+      "exports": [
+        "libraryDisplayTitle"
+      ],
+      "imports": [],
+      "importantSymbols": [
+        "libraryDisplayTitle"
+      ],
+      "lineCount": 11,
+      "sizeBytes": 619,
+      "notes": "Utility / helper module"
     },
     {
       "path": "src/lib/machine-auth.ts",
@@ -1081397,38 +1079303,8 @@
         "PlatformNavId",
         "platformPathAfterGeneration"
       ],
-      "lineCount": 25,
-      "sizeBytes": 1502,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/prompts/client-script.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "PROMPT_VERSION",
-        "CLIENT_SCRIPT_SYSTEM",
-        "ClientScriptInput",
-        "buildClientScriptUser",
-        "defaultLanguageForIndustry",
-        "mockClientScript"
-      ],
-      "imports": [
-        "./index",
-        "@/lib/schemas/client-brief",
-        "@/lib/schemas/creative-evidence",
-        "@/lib/schemas/script-output"
-      ],
-      "importantSymbols": [
-        "PROMPT_VERSION",
-        "CLIENT_SCRIPT_SYSTEM",
-        "ClientScriptInput",
-        "buildClientScriptUser",
-        "defaultLanguageForIndustry",
-        "mockClientScript"
-      ],
-      "lineCount": 191,
-      "sizeBytes": 7366,
+      "lineCount": 24,
+      "sizeBytes": 1557,
       "notes": "Utility / helper module"
     },
     {
@@ -1081473,34 +1079349,6 @@
       "lineCount": 15,
       "sizeBytes": 413,
       "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/providers/apify-tiktok.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "TikTokVideoSample",
-        "TikTokCommentSample",
-        "TikTokResearchSignals",
-        "isApifyAvailable",
-        "fetchTikTokSignals",
-        "fetchTikTokPostSignals"
-      ],
-      "imports": [
-        "apify-client",
-        "@/lib/config/dry-run"
-      ],
-      "importantSymbols": [
-        "TikTokVideoSample",
-        "TikTokCommentSample",
-        "TikTokResearchSignals",
-        "isApifyAvailable",
-        "fetchTikTokSignals",
-        "fetchTikTokPostSignals"
-      ],
-      "lineCount": 346,
-      "sizeBytes": 11266,
-      "notes": "External API provider wrapper; area=ai-providers"
     },
     {
       "path": "src/lib/providers/cutout.ts",
@@ -1081553,32 +1079401,6 @@
       ],
       "lineCount": 93,
       "sizeBytes": 3178,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
-      "path": "src/lib/providers/omnihuman.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "OmniHumanSubmitOptions",
-        "OmniHumanJobResult",
-        "isOmniHumanConfigured",
-        "submitOmniHumanJob",
-        "getOmniHumanStatus"
-      ],
-      "imports": [
-        "@/lib/config/dry-run",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "OmniHumanSubmitOptions",
-        "OmniHumanJobResult",
-        "isOmniHumanConfigured",
-        "submitOmniHumanJob",
-        "getOmniHumanStatus"
-      ],
-      "lineCount": 48,
-      "sizeBytes": 1239,
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
@@ -1082176,28 +1079998,6 @@
       "notes": "External API provider wrapper; area=ai-providers"
     },
     {
-      "path": "src/lib/providers/volc-tts.ts",
-      "type": "provider",
-      "area": "ai-providers",
-      "exports": [
-        "VolcTtsOptions",
-        "isVolcTtsConfigured",
-        "synthesizeSpeech"
-      ],
-      "imports": [
-        "@/lib/config/dry-run",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "VolcTtsOptions",
-        "isVolcTtsConfigured",
-        "synthesizeSpeech"
-      ],
-      "lineCount": 33,
-      "sizeBytes": 950,
-      "notes": "External API provider wrapper; area=ai-providers"
-    },
-    {
       "path": "src/lib/qa/customer-route-state-rehearsal.ts",
       "type": "util",
       "area": "shared",
@@ -1082306,77 +1080106,6 @@
       "lineCount": 124,
       "sizeBytes": 4275,
       "notes": "Schema / validation; area=media-processing"
-    },
-    {
-      "path": "src/lib/schemas/asset-qa.ts",
-      "type": "schema",
-      "area": "shared",
-      "exports": [
-        "QA_CHECK_RULES",
-        "QACheckRule",
-        "qaCheckSchema",
-        "qaResultSchema",
-        "QAResult",
-        "QACheck",
-        "missingShotSchema",
-        "missingShotReportSchema",
-        "MissingShotReport",
-        "MissingShotRow",
-        "parseQAResult",
-        "parseMissingShotReport"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "QA_CHECK_RULES",
-        "QACheckRule",
-        "QAResult",
-        "QACheck",
-        "MissingShotReport",
-        "MissingShotRow",
-        "qaCheckSchema",
-        "qaResultSchema"
-      ],
-      "lineCount": 107,
-      "sizeBytes": 3574,
-      "notes": "Schema / validation"
-    },
-    {
-      "path": "src/lib/schemas/client-brief.ts",
-      "type": "schema",
-      "area": "shared",
-      "exports": [
-        "VIDEO_LENGTHS",
-        "VideoLength",
-        "BRAND_TONES",
-        "BrandTone",
-        "brandAssetsSchema",
-        "clientBriefSchema",
-        "ClientBrief",
-        "clientBriefPatchSchema",
-        "ClientBriefPatch",
-        "parseClientBrief",
-        "parseClientBriefPatch"
-      ],
-      "imports": [
-        "zod",
-        "../../../editorial-design-tokens.generated.json",
-        "./creative-evidence"
-      ],
-      "importantSymbols": [
-        "VIDEO_LENGTHS",
-        "VideoLength",
-        "BRAND_TONES",
-        "BrandTone",
-        "ClientBrief",
-        "ClientBriefPatch",
-        "brandAssetsSchema",
-        "clientBriefSchema"
-      ],
-      "lineCount": 123,
-      "sizeBytes": 3762,
-      "notes": "Schema / validation"
     },
     {
       "path": "src/lib/schemas/content-plan.ts",
@@ -1082493,31 +1080222,6 @@
       "notes": "Schema / validation"
     },
     {
-      "path": "src/lib/schemas/script-output.ts",
-      "type": "schema",
-      "area": "shared",
-      "exports": [
-        "scriptCaptionSchema",
-        "scriptOutputSchema",
-        "ScriptOutput",
-        "ScriptCaption",
-        "parseScriptOutput"
-      ],
-      "imports": [
-        "zod"
-      ],
-      "importantSymbols": [
-        "ScriptOutput",
-        "ScriptCaption",
-        "scriptCaptionSchema",
-        "scriptOutputSchema",
-        "parseScriptOutput"
-      ],
-      "lineCount": 59,
-      "sizeBytes": 2107,
-      "notes": "Schema / validation"
-    },
-    {
       "path": "src/lib/schemas/unified-input.ts",
       "type": "schema",
       "area": "media-processing",
@@ -1082570,60 +1080274,6 @@
       "lineCount": 423,
       "sizeBytes": 13540,
       "notes": "Schema / validation; area=media-processing"
-    },
-    {
-      "path": "src/lib/server/buddy-route-discovery.ts",
-      "type": "util",
-      "area": "shared",
-      "exports": [
-        "BUDDY_API_BASE_URL",
-        "SHUYU_PRICES_PATH",
-        "discoverShuyuVideoRoute",
-        "discoverBuddyVideoRoute"
-      ],
-      "imports": [
-        "@/lib/providers/shuyu",
-        "@/lib/contracts/video-provider-routes"
-      ],
-      "importantSymbols": [
-        "BUDDY_API_BASE_URL",
-        "SHUYU_PRICES_PATH",
-        "discoverShuyuVideoRoute",
-        "discoverBuddyVideoRoute"
-      ],
-      "lineCount": 148,
-      "sizeBytes": 4281,
-      "notes": "Utility / helper module"
-    },
-    {
-      "path": "src/lib/services/account-disable-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "AccountDisableError",
-        "DISABLE_REASON_MAX_LENGTH",
-        "cancellableVideoJobsWhere",
-        "DisableAccountResult",
-        "disableAccount",
-        "enableAccount"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/video-generation/storyboard-service",
-        "@/lib/auth"
-      ],
-      "importantSymbols": [
-        "AccountDisableError",
-        "DISABLE_REASON_MAX_LENGTH",
-        "DisableAccountResult",
-        "cancellableVideoJobsWhere",
-        "disableAccount",
-        "enableAccount"
-      ],
-      "lineCount": 154,
-      "sizeBytes": 6032,
-      "notes": "Business logic service; hits Prisma DB"
     },
     {
       "path": "src/lib/services/ad-agent-service.ts",
@@ -1082740,130 +1080390,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/ai-usage-stats-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "AIUsageStatsFilter",
-        "AIUsageStats",
-        "AIUsageRowForStats",
-        "aggregateAIUsageRows",
-        "getAIUsageStats",
-        "AIUsageRecentRow",
-        "getRecentAIUsage",
-        "KNOWN_AI_FEATURES"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "AIUsageStatsFilter",
-        "AIUsageStats",
-        "AIUsageRowForStats",
-        "AIUsageRecentRow",
-        "KNOWN_AI_FEATURES",
-        "aggregateAIUsageRows",
-        "getAIUsageStats",
-        "getRecentAIUsage"
-      ],
-      "lineCount": 233,
-      "sizeBytes": 6151,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/angle-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "SINGLE_DIRECTION_ANGLE_TITLE",
-        "AngleLLMOutput",
-        "GenerateAnglesArgs",
-        "generateAnglesForRound",
-        "listThemePool",
-        "EnsureSingleDirectionRoundResult",
-        "SingleDirectionDBClient",
-        "ensureSingleDirectionRound",
-        "ensureSingleDirectionRoundWith"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/config/blanket-themes"
-      ],
-      "importantSymbols": [
-        "SINGLE_DIRECTION_ANGLE_TITLE",
-        "AngleLLMOutput",
-        "GenerateAnglesArgs",
-        "EnsureSingleDirectionRoundResult",
-        "SingleDirectionDBClient",
-        "generateAnglesForRound",
-        "listThemePool",
-        "ensureSingleDirectionRound"
-      ],
-      "lineCount": 398,
-      "sizeBytes": 15063,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/asset-qa-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "AssetQAOptions",
-        "RunAssetQARowInput",
-        "evaluateAssetQA",
-        "runAssetQAForRawAsset",
-        "detectMissingShotsForBrief",
-        "ASSET_QA_DEFAULTS"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/schemas/asset-qa"
-      ],
-      "importantSymbols": [
-        "AssetQAOptions",
-        "RunAssetQARowInput",
-        "ASSET_QA_DEFAULTS",
-        "evaluateAssetQA",
-        "runAssetQAForRawAsset",
-        "detectMissingShotsForBrief"
-      ],
-      "lineCount": 400,
-      "sizeBytes": 13113,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/asset-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "RegisterRawAssetInput",
-        "PreprocessRawAssetOptions",
-        "registerRawAsset",
-        "listRawAssets",
-        "preprocessRawAsset",
-        "preprocessDeliveryOrderAssets"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "RegisterRawAssetInput",
-        "PreprocessRawAssetOptions",
-        "registerRawAsset",
-        "listRawAssets",
-        "preprocessRawAsset",
-        "preprocessDeliveryOrderAssets"
-      ],
-      "lineCount": 340,
-      "sizeBytes": 10083,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/batch-service.ts",
       "type": "service",
       "area": "shared",
@@ -1082942,27 +1080468,6 @@
       "lineCount": 2716,
       "sizeBytes": 96491,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
-    },
-    {
-      "path": "src/lib/services/brand-placement-policy.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "PlacementContext",
-        "PlacementDecision",
-        "resolveBrandPlacement"
-      ],
-      "imports": [
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "importantSymbols": [
-        "PlacementContext",
-        "PlacementDecision",
-        "resolveBrandPlacement"
-      ],
-      "lineCount": 68,
-      "sizeBytes": 2836,
-      "notes": "Business logic service; area=media-processing"
     },
     {
       "path": "src/lib/services/brief-access.ts",
@@ -1083549,40 +1081054,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/digital-human-service.ts",
-      "type": "service",
-      "area": "media-processing",
-      "exports": [
-        "MAX_DH_ATTEMPTS",
-        "CreateDigitalHumanAdJobInput",
-        "createDigitalHumanAdJob",
-        "DigitalHumanAdJobDTO",
-        "getDigitalHumanAdJobForUser",
-        "listDigitalHumanAdJobsForUser",
-        "ClaimedDigitalHumanAdJob",
-        "claimDigitalHumanAdJob",
-        "completeDigitalHumanAdJob"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/features/digital-human"
-      ],
-      "importantSymbols": [
-        "MAX_DH_ATTEMPTS",
-        "CreateDigitalHumanAdJobInput",
-        "DigitalHumanAdJobDTO",
-        "ClaimedDigitalHumanAdJob",
-        "createDigitalHumanAdJob",
-        "getDigitalHumanAdJobForUser",
-        "listDigitalHumanAdJobsForUser",
-        "claimDigitalHumanAdJob"
-      ],
-      "lineCount": 210,
-      "sizeBytes": 6758,
-      "notes": "Business logic service; hits Prisma DB; area=media-processing"
-    },
-    {
       "path": "src/lib/services/director-service.ts",
       "type": "service",
       "area": "shared",
@@ -1083623,30 +1081094,6 @@
       ],
       "lineCount": 619,
       "sizeBytes": 24042,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/discovery-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "ResearchStructured",
-        "ResearchDebug",
-        "startMarketResearch"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/providers/apify-tiktok"
-      ],
-      "importantSymbols": [
-        "ResearchStructured",
-        "ResearchDebug",
-        "startMarketResearch"
-      ],
-      "lineCount": 326,
-      "sizeBytes": 11865,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -1084095,29 +1081542,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/localization-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "LocaleCheckInput",
-        "LocaleCheckIssue",
-        "checkLocaleConsistency",
-        "SUPPORTED_LOCALES"
-      ],
-      "imports": [
-        "@prisma/client"
-      ],
-      "importantSymbols": [
-        "LocaleCheckInput",
-        "LocaleCheckIssue",
-        "SUPPORTED_LOCALES",
-        "checkLocaleConsistency"
-      ],
-      "lineCount": 62,
-      "sizeBytes": 2164,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/logo-fidelity-gate.ts",
       "type": "service",
       "area": "shared",
@@ -1084360,30 +1081784,6 @@
       ],
       "lineCount": 328,
       "sizeBytes": 12306,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/order-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "CreateOrderArgs",
-        "createDeliveryOrder",
-        "listDeliveryOrders",
-        "getDeliveryOrderDetail"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "CreateOrderArgs",
-        "createDeliveryOrder",
-        "listDeliveryOrders",
-        "getDeliveryOrderDetail"
-      ],
-      "lineCount": 102,
-      "sizeBytes": 3049,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -1085117,26 +1082517,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/selling-point-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "extractSellingPoints"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "./discovery-service"
-      ],
-      "importantSymbols": [
-        "extractSellingPoints"
-      ],
-      "lineCount": 154,
-      "sizeBytes": 5241,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
       "path": "src/lib/services/showcase-library.ts",
       "type": "service",
       "area": "shared",
@@ -1085541,32 +1082921,6 @@
       "notes": "Business logic service; hits Prisma DB"
     },
     {
-      "path": "src/lib/services/usage-payload.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "UsageMeterPayload",
-        "UsagePayload",
-        "buildDefaultUsagePayload",
-        "loadUsagePayloadForSession"
-      ],
-      "imports": [
-        "next-auth",
-        "@prisma/client",
-        "@/lib/config/quota-tiers",
-        "@/lib/services/quota-service"
-      ],
-      "importantSymbols": [
-        "UsageMeterPayload",
-        "UsagePayload",
-        "buildDefaultUsagePayload",
-        "loadUsagePayloadForSession"
-      ],
-      "lineCount": 75,
-      "sizeBytes": 1843,
-      "notes": "Business logic service; hits Prisma DB; NextAuth session check"
-    },
-    {
       "path": "src/lib/services/video-dispatch-idempotency.ts",
       "type": "service",
       "area": "shared",
@@ -1085874,31 +1083228,6 @@
       "notes": "Business logic service"
     },
     {
-      "path": "src/lib/services/wizard-smoke-helpers.ts",
-      "type": "service",
-      "area": "wizard",
-      "exports": [
-        "SmokeStepStatus",
-        "SmokeStepResult",
-        "SmokeWizardResult",
-        "evaluateSmokeResult",
-        "parseSmokeArgs",
-        "shouldRefuseDueToProduction"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "SmokeStepStatus",
-        "SmokeStepResult",
-        "SmokeWizardResult",
-        "evaluateSmokeResult",
-        "parseSmokeArgs",
-        "shouldRefuseDueToProduction"
-      ],
-      "lineCount": 108,
-      "sizeBytes": 3367,
-      "notes": "Business logic service; area=wizard"
-    },
-    {
       "path": "src/lib/services/workspace-brand-package-service.ts",
       "type": "service",
       "area": "shared",
@@ -1085929,40 +1083258,6 @@
       ],
       "lineCount": 219,
       "sizeBytes": 6709,
-      "notes": "Business logic service; hits Prisma DB"
-    },
-    {
-      "path": "src/lib/services/workspace-plan-service.ts",
-      "type": "service",
-      "area": "shared",
-      "exports": [
-        "PLAN_STARTER",
-        "PLAN_STUDIO",
-        "WorkspacePlanId",
-        "PlatformFeature",
-        "PlanEntitlementSnapshot",
-        "PLAN_ENTITLEMENT_DEFAULTS",
-        "planForLegacyUserType",
-        "isSystemRole",
-        "isFeatureEnabledForPlan",
-        "getWorkspacePlanForUser"
-      ],
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "importantSymbols": [
-        "PLAN_STARTER",
-        "PLAN_STUDIO",
-        "WorkspacePlanId",
-        "PlatformFeature",
-        "PlanEntitlementSnapshot",
-        "PLAN_ENTITLEMENT_DEFAULTS",
-        "planForLegacyUserType",
-        "isSystemRole"
-      ],
-      "lineCount": 77,
-      "sizeBytes": 2234,
       "notes": "Business logic service; hits Prisma DB"
     },
     {
@@ -1086842,142 +1084137,6 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
-      "path": "src/lib/video-generation/digital-human/avatar-catalog.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "DigitalHumanAvatar",
-        "AVATARS",
-        "getAvatarById",
-        "listAvatars"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "DigitalHumanAvatar",
-        "AVATARS",
-        "getAvatarById",
-        "listAvatars"
-      ],
-      "lineCount": 66,
-      "sizeBytes": 2582,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/digital-human/store-ad-director.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "StoreRefKey",
-        "StoreAdShot",
-        "StoreAdBrief",
-        "buildStoreAdStoryboard",
-        "DynamicStoreAdBrief",
-        "DynamicStoreAdShot",
-        "buildDynamicStoreAdStoryboard",
-        "buildStoreAdNarration",
-        "KEYFRAME_STYLE",
-        "MOTION_STYLE"
-      ],
-      "imports": [
-        "@/lib/providers/openai"
-      ],
-      "importantSymbols": [
-        "StoreRefKey",
-        "StoreAdShot",
-        "StoreAdBrief",
-        "DynamicStoreAdBrief",
-        "DynamicStoreAdShot",
-        "KEYFRAME_STYLE",
-        "MOTION_STYLE",
-        "buildStoreAdStoryboard"
-      ],
-      "lineCount": 438,
-      "sizeBytes": 18455,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/digital-human/store-ad-pipeline.ts",
-      "type": "util",
-      "area": "ffmpeg",
-      "exports": [
-        "DigitalHumanAdInput",
-        "DigitalHumanAdResult",
-        "PipelineOptions",
-        "runDigitalHumanAdPipeline"
-      ],
-      "imports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@/lib/providers/seedance",
-        "@/lib/providers/volc-tts",
-        "@/lib/features/digital-human",
-        "@/lib/video-generation/digital-human/store-ad-director"
-      ],
-      "importantSymbols": [
-        "DigitalHumanAdInput",
-        "DigitalHumanAdResult",
-        "PipelineOptions",
-        "runDigitalHumanAdPipeline"
-      ],
-      "lineCount": 556,
-      "sizeBytes": 19282,
-      "notes": "Utility / helper module; calls Seedance video generator; FFmpeg / audio loudness pipeline; area=ffmpeg"
-    },
-    {
-      "path": "src/lib/video-generation/digital-human/voice-catalog.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "DigitalHumanVoice",
-        "VOICES",
-        "DEFAULT_VOICE_ID",
-        "getVoiceById",
-        "listVoices"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "DigitalHumanVoice",
-        "VOICES",
-        "DEFAULT_VOICE_ID",
-        "getVoiceById",
-        "listVoices"
-      ],
-      "lineCount": 73,
-      "sizeBytes": 2346,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
-      "path": "src/lib/video-generation/director-methodology.ts",
-      "type": "util",
-      "area": "video-generation",
-      "exports": [
-        "RETAKE_VERDICTS",
-        "RetakeVerdict",
-        "ONE_VARIABLE_RULE",
-        "ATTEMPT_BUDGET",
-        "triageRetake",
-        "MECHANISM_DIAGNOSIS",
-        "diagnoseBySymptom",
-        "DELIVERY_PREFLIGHT",
-        "QC_FAILURE_ROUTING"
-      ],
-      "imports": [],
-      "importantSymbols": [
-        "RETAKE_VERDICTS",
-        "RetakeVerdict",
-        "ONE_VARIABLE_RULE",
-        "ATTEMPT_BUDGET",
-        "MECHANISM_DIAGNOSIS",
-        "DELIVERY_PREFLIGHT",
-        "QC_FAILURE_ROUTING",
-        "triageRetake"
-      ],
-      "lineCount": 199,
-      "sizeBytes": 8971,
-      "notes": "Utility / helper module; area=video-generation"
-    },
-    {
       "path": "src/lib/video-generation/final-frame-qa-mark.ts",
       "type": "util",
       "area": "media-processing",
@@ -1087847,8 +1085006,8 @@
         "readStoryboardReferenceLayout",
         "groundSegmentPromptInStoryboard"
       ],
-      "lineCount": 263,
-      "sizeBytes": 14515,
+      "lineCount": 267,
+      "sizeBytes": 14784,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -1088492,6 +1085651,31 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/voiceover-writer.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "VoiceoverDraftInput",
+        "VoiceoverDraftDeps",
+        "voiceoverBudget",
+        "VOICEOVER_WRITER_SYSTEM_PROMPT",
+        "writeVoiceoverScript"
+      ],
+      "imports": [
+        "@/lib/ai"
+      ],
+      "importantSymbols": [
+        "VoiceoverDraftInput",
+        "VoiceoverDraftDeps",
+        "VOICEOVER_WRITER_SYSTEM_PROMPT",
+        "voiceoverBudget",
+        "writeVoiceoverScript"
+      ],
+      "lineCount": 82,
+      "sizeBytes": 3829,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/middleware.ts",
       "type": "unknown",
       "area": "unknown",
@@ -1088509,8 +1085693,8 @@
         "middleware",
         "config"
       ],
-      "lineCount": 143,
-      "sizeBytes": 5956,
+      "lineCount": 141,
+      "sizeBytes": 5892,
       "notes": ""
     },
     {
@@ -1088520,8 +1085704,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 342,
-      "sizeBytes": 13306,
+      "lineCount": 341,
+      "sizeBytes": 13238,
       "notes": "Stylesheet"
     },
     {
@@ -1088726,39 +1085910,14 @@
       "exports": [],
       "imports": [
         "node:assert/strict",
-        "node:fs",
-        "node:fs/promises",
         "node:test",
         "../src/lib/db",
         "../src/lib/services/product-image-service",
         "../src/lib/services/content-plan-service"
       ],
       "importantSymbols": [],
-      "lineCount": 155,
-      "sizeBytes": 6176,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/account-disable.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [
-        "$"
-      ],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "bcryptjs",
-        "../src/lib/db",
-        "../src/lib/auth",
-        "../src/lib/services/account-disable-service"
-      ],
-      "importantSymbols": [
-        "$"
-      ],
-      "lineCount": 407,
-      "sizeBytes": 15517,
+      "lineCount": 140,
+      "sizeBytes": 5318,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1088855,21 +1086014,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/ai-usage-stats.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/ai-usage-stats-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 99,
-      "sizeBytes": 2701,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/api-auth-persona-matrix.test.ts",
       "type": "test",
       "area": "tests",
@@ -1088913,23 +1086057,6 @@
       "lineCount": 176,
       "sizeBytes": 5552,
       "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/asset-qa-rules.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/asset-qa-service",
-        "../src/lib/schemas/asset-qa"
-      ],
-      "importantSymbols": [],
-      "lineCount": 113,
-      "sizeBytes": 3550,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
       "path": "tests/audio-caption-controls.test.ts",
@@ -1089099,8 +1086226,8 @@
         "GET",
         "POST"
       ],
-      "lineCount": 228,
-      "sizeBytes": 12393,
+      "lineCount": 229,
+      "sizeBytes": 12512,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089118,8 +1086245,8 @@
         "../src/i18n/growth-copy"
       ],
       "importantSymbols": [],
-      "lineCount": 144,
-      "sizeBytes": 6678,
+      "lineCount": 143,
+      "sizeBytes": 6582,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089165,8 +1086292,8 @@
         "../src/lib/services/recipe-racing-service"
       ],
       "importantSymbols": [],
-      "lineCount": 417,
-      "sizeBytes": 24697,
+      "lineCount": 418,
+      "sizeBytes": 24805,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089608,13 +1086735,12 @@
         "node:fs",
         "node:path",
         "node:test",
-        "../src/lib/services/brand-placement-policy",
         "../src/lib/video-generation/category-lock-registry",
         "../src/lib/video-generation/client-lock-profiles"
       ],
       "importantSymbols": [],
-      "lineCount": 106,
-      "sizeBytes": 3935,
+      "lineCount": 62,
+      "sizeBytes": 2372,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089700,43 +1086826,6 @@
       "lineCount": 136,
       "sizeBytes": 4764,
       "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/buddy-route-discovery.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/contracts/video-provider-routes",
-        "../src/lib/providers/shuyu",
-        "../src/lib/server/buddy-route-discovery"
-      ],
-      "importantSymbols": [],
-      "lineCount": 404,
-      "sizeBytes": 14511,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/buddy-video-provider-routes-access.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:module",
-        "node:test",
-        "next/server",
-        "../src/lib/api-auth",
-        "next-auth/next",
-        "../src/app/api/internal/video-provider-routes/route.ts"
-      ],
-      "importantSymbols": [],
-      "lineCount": 204,
-      "sizeBytes": 6263,
-      "notes": "Unit / integration test; calls Seedance video generator; NextAuth session check; area=tests"
     },
     {
       "path": "tests/business-display-title.test.ts",
@@ -1089874,12 +1086963,11 @@
         "node:assert/strict",
         "node:fs",
         "node:path",
-        "node:test",
-        "../src/lib/video-generation/director-methodology"
+        "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 117,
-      "sizeBytes": 4584,
+      "lineCount": 54,
+      "sizeBytes": 2393,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089947,7 +1087035,7 @@
         "GET"
       ],
       "lineCount": 282,
-      "sizeBytes": 15257,
+      "sizeBytes": 15260,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1090090,36 +1087178,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/client-brief-schema.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/client-brief"
-      ],
-      "importantSymbols": [],
-      "lineCount": 69,
-      "sizeBytes": 2045,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/client-brief-write.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/client-brief"
-      ],
-      "importantSymbols": [],
-      "lineCount": 73,
-      "sizeBytes": 2391,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/client-bundle-safety.test.ts",
       "type": "test",
       "area": "tests",
@@ -1090130,12 +1087188,12 @@
         "node:fs",
         "node:path",
         "x",
-        "@/lib/services/localization-service",
+        "@/lib/services/quota-service",
         "@/lib/services/logo-style-keys"
       ],
       "importantSymbols": [],
-      "lineCount": 189,
-      "sizeBytes": 7452,
+      "lineCount": 190,
+      "sizeBytes": 7524,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -1090485,6 +1087543,21 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
+      "path": "tests/default-brand-package.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/lib/brand/default-brand-package"
+      ],
+      "importantSymbols": [],
+      "lineCount": 23,
+      "sizeBytes": 666,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/demo-account-guard.test.ts",
       "type": "test",
       "area": "tests",
@@ -1090538,25 +1087611,6 @@
       "importantSymbols": [],
       "lineCount": 24,
       "sizeBytes": 1689,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/digital-human-sealed.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "../src/lib/db",
-        "../src/lib/features/digital-human",
-        "../src/lib/services/digital-human-service",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline"
-      ],
-      "importantSymbols": [],
-      "lineCount": 171,
-      "sizeBytes": 6287,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1090660,14 +1087714,11 @@
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
         "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/providers/volc-tts",
-        "../src/lib/providers/omnihuman",
-        "../src/lib/providers/apify-tiktok",
         "../src/lib/video-generation/frame-qa"
       ],
       "importantSymbols": [],
-      "lineCount": 190,
-      "sizeBytes": 6711,
+      "lineCount": 152,
+      "sizeBytes": 5493,
       "notes": "Unit / integration test; calls Seedance video generator; area=tests"
     },
     {
@@ -1091199,8 +1088250,8 @@
         "../src/i18n/platform-copy"
       ],
       "importantSymbols": [],
-      "lineCount": 68,
-      "sizeBytes": 3702,
+      "lineCount": 70,
+      "sizeBytes": 4023,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091536,7 +1088587,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 256,
-      "sizeBytes": 12716,
+      "sizeBytes": 12714,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091575,14 +1088626,13 @@
         "../src/lib/api-auth",
         "../src/lib/contracts/customer-api",
         "../src/lib/db",
-        "../src/lib/services/business-metrics-import",
         "../src/lib/services/racing-service"
       ],
       "importantSymbols": [
         "$"
       ],
-      "lineCount": 543,
-      "sizeBytes": 15805,
+      "lineCount": 331,
+      "sizeBytes": 9823,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091605,8 +1088655,8 @@
       "importantSymbols": [
         "$"
       ],
-      "lineCount": 386,
-      "sizeBytes": 12825,
+      "lineCount": 349,
+      "sizeBytes": 11761,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091623,8 +1088673,6 @@
         "stripe",
         "next-auth/next",
         "../src/lib/db.ts",
-        "../src/app/api/qa/route.ts",
-        "../src/app/api/qa/[id]/route.ts",
         "../src/app/api/briefs/[id]/qa/route.ts",
         "../src/app/api/publish/route.ts",
         "../src/app/api/publish/[id]/route.ts",
@@ -1091632,20 +1088680,13 @@
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
         "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
-        "../src/app/api/persona/route.ts",
-        "../src/app/api/digital-human/avatars/route.ts",
-        "../src/app/api/digital-human/voices/route.ts",
-        "../src/app/api/digital-human/jobs/route.ts",
-        "../src/app/api/digital-human/jobs/[id]/route.ts",
-        "../src/app/api/internal/digital-human/claim/route.ts",
-        "../src/app/api/internal/digital-human/complete/route.ts",
         "../src/app/api/webhooks/stripe/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
       "importantSymbols": [],
-      "lineCount": 780,
-      "sizeBytes": 26844,
+      "lineCount": 547,
+      "sizeBytes": 18447,
       "notes": "Unit / integration test; NextAuth session check; area=tests"
     },
     {
@@ -1091886,8 +1088927,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 71,
-      "sizeBytes": 2832,
+      "lineCount": 56,
+      "sizeBytes": 2214,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091903,6 +1088944,21 @@
       "importantSymbols": [],
       "lineCount": 46,
       "sizeBytes": 1880,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/library-display-title.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/lib/library/display-title"
+      ],
+      "importantSymbols": [],
+      "lineCount": 15,
+      "sizeBytes": 765,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091989,13 +1089045,11 @@
         "../src/app/api/cron/sweep-stuck-tasks/route",
         "../src/app/api/cron/founder-digest/route",
         "../src/app/api/internal/stitch/claim/route",
-        "../src/app/api/internal/stitch/complete/route",
-        "../src/app/api/internal/digital-human/claim/route",
-        "../src/app/api/internal/digital-human/complete/route"
+        "../src/app/api/internal/stitch/complete/route"
       ],
       "importantSymbols": [],
-      "lineCount": 71,
-      "sizeBytes": 3655,
+      "lineCount": 67,
+      "sizeBytes": 3208,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1092027,8 +1089081,8 @@
         "../src/lib/services/media-asset-service"
       ],
       "importantSymbols": [],
-      "lineCount": 271,
-      "sizeBytes": 8140,
+      "lineCount": 261,
+      "sizeBytes": 7818,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1092345,8 +1089399,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 38,
-      "sizeBytes": 1654,
+      "lineCount": 39,
+      "sizeBytes": 1729,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1092440,22 +1089494,6 @@
       "importantSymbols": [],
       "lineCount": 119,
       "sizeBytes": 5537,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/persona-page-onboarding.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "node:path"
-      ],
-      "importantSymbols": [],
-      "lineCount": 41,
-      "sizeBytes": 1804,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1092990,8 +1090028,8 @@
       "importantSymbols": [
         "generateMetadata"
       ],
-      "lineCount": 61,
-      "sizeBytes": 2568,
+      "lineCount": 59,
+      "sizeBytes": 2460,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093351,8 +1090389,8 @@
         "cancelPendingBatchJobs",
         "pollPendingStoryboardRuns"
       ],
-      "lineCount": 40,
-      "sizeBytes": 2286,
+      "lineCount": 33,
+      "sizeBytes": 1921,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093377,8 +1090415,8 @@
         "../src/components/leads/lead-milestone"
       ],
       "importantSymbols": [],
-      "lineCount": 339,
-      "sizeBytes": 19683,
+      "lineCount": 342,
+      "sizeBytes": 19993,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093438,23 +1090476,6 @@
       ],
       "lineCount": 92,
       "sizeBytes": 3786,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/script-output-schema.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/script-output",
-        "../src/lib/prompts/client-script",
-        "../src/lib/schemas/client-brief"
-      ],
-      "importantSymbols": [],
-      "lineCount": 65,
-      "sizeBytes": 1869,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093612,8 +1090633,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 35,
-      "sizeBytes": 1397,
+      "lineCount": 34,
+      "sizeBytes": 1288,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093867,22 +1090888,6 @@
       "importantSymbols": [],
       "lineCount": 359,
       "sizeBytes": 12050,
-      "notes": "Unit / integration test; hits Prisma DB; area=tests"
-    },
-    {
-      "path": "tests/single-direction-flow.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/angle-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 204,
-      "sizeBytes": 7083,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -1094495,8 +1091500,8 @@
         "../src/lib/video-generation/batch-reference-manifest"
       ],
       "importantSymbols": [],
-      "lineCount": 196,
-      "sizeBytes": 11389,
+      "lineCount": 213,
+      "sizeBytes": 12077,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1094940,7 +1091945,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 87,
-      "sizeBytes": 4931,
+      "sizeBytes": 5004,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1095040,25 +1092045,6 @@
       "importantSymbols": [],
       "lineCount": 55,
       "sizeBytes": 2986,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/video-dispatch-error-contract.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/api/customer-video-dispatch",
-        "../src/lib/api/customer-video-dispatch-recovery",
-        "../src/lib/contracts/customer-api",
-        "../src/lib/contracts/video-dispatch-error"
-      ],
-      "importantSymbols": [],
-      "lineCount": 458,
-      "sizeBytes": 13518,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1095398,6 +1092384,21 @@
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
+      "path": "tests/voiceover-writer.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/voiceover-writer"
+      ],
+      "importantSymbols": [],
+      "lineCount": 50,
+      "sizeBytes": 2864,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
       "path": "tests/whisper-word-alignment.test.ts",
       "type": "test",
       "area": "tests",
@@ -1095454,21 +1092455,6 @@
       "notes": "Unit / integration test; area=tests"
     },
     {
-      "path": "tests/wizard-smoke-helpers.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/wizard-smoke-helpers"
-      ],
-      "importantSymbols": [],
-      "lineCount": 112,
-      "sizeBytes": 3362,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
       "path": "tests/workspace-brand-packages.test.ts",
       "type": "test",
       "area": "tests",
@@ -1095484,24 +1092470,6 @@
       "importantSymbols": [],
       "lineCount": 126,
       "sizeBytes": 4725,
-      "notes": "Unit / integration test; area=tests"
-    },
-    {
-      "path": "tests/workspace-plan-permissions.test.ts",
-      "type": "test",
-      "area": "tests",
-      "exports": [],
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "../src/lib/services/workspace-plan-service",
-        "../src/lib/config/quota-tiers",
-        "../src/lib/services/batch-service"
-      ],
-      "importantSymbols": [],
-      "lineCount": 104,
-      "sizeBytes": 4700,
       "notes": "Unit / integration test; area=tests"
     },
     {

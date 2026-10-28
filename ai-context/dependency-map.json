@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T15:44:15.340Z",
+  "generatedAt": "2026-10-28T17:01:49.751Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -665188,25 +665188,6 @@
       ]
     },
     {
-      "file": "scripts/generate-pet-evidence-clips.ts",
-      "imports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "../src/lib/providers/seedance"
-      ],
-      "localImports": [
-        "../src/lib/providers/seedance"
-      ],
-      "externalImports": [
-        "@next/env",
-        "node:child_process",
-        "node:fs",
-        "node:path"
-      ]
-    },
-    {
       "file": "scripts/generate-pet-kit-voiceover.ts",
       "imports": [
         "@next/env",
@@ -666057,37 +666038,6 @@
       "externalImports": []
     },
     {
-      "file": "scripts/smoke-closed-loop.ts",
-      "imports": [
-        "@prisma/client",
-        "../src/lib/services/discovery-service",
-        "../src/lib/services/selling-point-service",
-        "../src/lib/services/round-service",
-        "../src/lib/services/angle-service",
-        "../src/lib/services/brief-service",
-        "../src/lib/services/script-service",
-        "../src/lib/services/scene-service",
-        "../src/lib/services/prompt-service",
-        "../src/lib/services/video-service",
-        "../src/lib/services/qa-service"
-      ],
-      "localImports": [
-        "../src/lib/services/discovery-service",
-        "../src/lib/services/selling-point-service",
-        "../src/lib/services/round-service",
-        "../src/lib/services/angle-service",
-        "../src/lib/services/brief-service",
-        "../src/lib/services/script-service",
-        "../src/lib/services/scene-service",
-        "../src/lib/services/prompt-service",
-        "../src/lib/services/video-service",
-        "../src/lib/services/qa-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "scripts/stitch-pet-kit-walkthrough-video.ts",
       "imports": [
         "@next/env",
@@ -666403,10 +666353,8 @@
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
         "@/components/compliance/ai-generated-label",
-        "@/components/exchange/wall-controls",
+        "@/components/landing/hero-reel",
         "@/components/auth/pilot-cta",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/template-sample",
         "@/lib/config/landing-media",
         "@/i18n/growth-copy",
         "@/i18n/platform-copy",
@@ -666418,10 +666366,8 @@
         "@/components/ui/logo",
         "@/components/layout/language-switcher",
         "@/components/compliance/ai-generated-label",
-        "@/components/exchange/wall-controls",
+        "@/components/landing/hero-reel",
         "@/components/auth/pilot-cta",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/template-sample",
         "@/lib/config/landing-media",
         "@/i18n/growth-copy",
         "@/i18n/platform-copy",
@@ -666537,125 +666483,6 @@
       "externalImports": []
     },
     {
-      "file": "src/app/(internal)/internal/ai-usage/page.tsx",
-      "imports": [
-        "next/link",
-        "@/lib/api-auth",
-        "@/components/ui/card",
-        "@/components/ui/badge",
-        "@/lib/services/ai-usage-stats-service",
-        "@prisma/client"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/components/ui/card",
-        "@/components/ui/badge",
-        "@/lib/services/ai-usage-stats-service"
-      ],
-      "externalImports": [
-        "next/link",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/briefs/[id]/actions.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/lib/labels-user"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/lib/labels-user"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/briefs/[id]/page.tsx",
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "@/components/features/render-progress",
-        "@/lib/services/video-service",
-        "./actions"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "@/components/features/render-progress",
-        "@/lib/services/video-service",
-        "./actions"
-      ],
-      "externalImports": [
-        "next/link",
-        "next/navigation"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/demo-leads/page.tsx",
-      "imports": [
-        "react",
-        "next/cache",
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/lib/api-auth",
-        "@/lib/db",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/lib/api-auth",
-        "@/lib/db",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "react",
-        "next/cache"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/distillation/page.tsx",
-      "imports": [
-        "next/link",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link"
-      ]
-    },
-    {
       "file": "src/app/(internal)/internal/frame-qa/page.tsx",
       "imports": [
         "next/link",
@@ -666673,451 +666500,6 @@
         "@/components/exchange/section-head",
         "@/lib/services/frame-qa-report-service",
         "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/metrics/metrics-import.tsx",
-      "imports": [
-        "react",
-        "sonner",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/textarea"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/ui/textarea"
-      ],
-      "externalImports": [
-        "react",
-        "sonner",
-        "next/navigation",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/metrics/page.tsx",
-      "imports": [
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/db",
-        "@/lib/utils",
-        "./metrics-import"
-      ],
-      "localImports": [
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/db",
-        "@/lib/utils",
-        "./metrics-import"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/internal/orders/[id]/actions.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "localImports": [
-        "@/components/ui/button"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/orders/[id]/asset-actions.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/input"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/ui/input"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/orders/[id]/page.tsx",
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "lucide-react",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "@/lib/services/order-service",
-        "@/lib/utils",
-        "./asset-actions",
-        "./actions"
-      ],
-      "localImports": [
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "@/lib/services/order-service",
-        "@/lib/utils",
-        "./asset-actions",
-        "./actions"
-      ],
-      "externalImports": [
-        "next/link",
-        "next/navigation",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/orders/new/new-order-form.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "localImports": [
-        "@/components/ui/button"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/orders/new/page.tsx",
-      "imports": [
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/services/localization-service",
-        "./new-order-form"
-      ],
-      "localImports": [
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/services/localization-service",
-        "./new-order-form"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/internal/orders/page.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/card",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/lib/labels",
-        "@/lib/services/order-service",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/ui/card",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/lib/labels",
-        "@/lib/services/order-service",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/page.tsx",
-      "imports": [
-        "next/navigation"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "next/navigation"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/publish/page.tsx",
-      "imports": [
-        "@/lib/services/publish-service",
-        "@/components/features/page-header",
-        "./publish-list"
-      ],
-      "localImports": [
-        "@/lib/services/publish-service",
-        "@/components/features/page-header",
-        "./publish-list"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/internal/publish/publish-list.tsx",
-      "imports": [
-        "next/link",
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/components/features/status-badge",
-        "@/lib/labels",
-        "@prisma/client"
-      ],
-      "localImports": [
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/ui/input",
-        "@/components/features/status-badge",
-        "@/lib/labels"
-      ],
-      "externalImports": [
-        "next/link",
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/qa/page.tsx",
-      "imports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "./qa-list"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "./qa-list"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/internal/qa/qa-list.tsx",
-      "imports": [
-        "next/link",
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/ui/textarea",
-        "@/components/features/status-badge"
-      ],
-      "localImports": [
-        "@/components/ui/card",
-        "@/components/ui/button",
-        "@/components/ui/textarea",
-        "@/components/features/status-badge"
-      ],
-      "externalImports": [
-        "next/link",
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/reports/page.tsx",
-      "imports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/badge",
-        "@/components/internal/report-actions"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/badge",
-        "@/components/internal/report-actions"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/app/(internal)/internal/rounds/[id]/actions.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/lib/labels-user"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/lib/labels-user"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/rounds/[id]/page.tsx",
-      "imports": [
-        "next/link",
-        "next/navigation",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "./actions"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/labels-user",
-        "./actions"
-      ],
-      "externalImports": [
-        "next/link",
-        "next/navigation"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/rounds/page.tsx",
-      "imports": [
-        "next/link",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/features/status-badge",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "next/link"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/settings/admin-row.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "localImports": [
-        "@/components/ui/button"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/settings/create-admin-form.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/ui/input"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/ui/input"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/settings/page.tsx",
-      "imports": [
-        "next/navigation",
-        "next-auth",
-        "@/lib/auth",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/utils",
-        "./create-admin-form",
-        "./admin-row"
-      ],
-      "localImports": [
-        "@/lib/auth",
-        "@/lib/db",
-        "@/components/features/page-header",
-        "@/components/ui/card",
-        "@/lib/labels",
-        "@/lib/utils",
-        "./create-admin-form",
-        "./admin-row"
-      ],
-      "externalImports": [
-        "next/navigation",
-        "next-auth"
-      ]
-    },
-    {
-      "file": "src/app/(internal)/internal/videos/page.tsx",
-      "imports": [
-        "next/link",
-        "@/components/ui/card",
-        "@/components/features/page-header",
-        "@/lib/db",
-        "@/i18n/server"
-      ],
-      "localImports": [
-        "@/components/ui/card",
-        "@/components/features/page-header",
-        "@/lib/db",
-        "@/i18n/server"
       ],
       "externalImports": [
         "next/link"
@@ -667484,6 +666866,48 @@
       ]
     },
     {
+      "file": "src/app/(platform)/app/guide/[slug]/page.tsx",
+      "imports": [
+        "next",
+        "next/link",
+        "next/navigation",
+        "lucide-react",
+        "@/i18n/server",
+        "@/lib/config/contact",
+        "@/lib/guide/guide-articles"
+      ],
+      "localImports": [
+        "@/i18n/server",
+        "@/lib/config/contact",
+        "@/lib/guide/guide-articles"
+      ],
+      "externalImports": [
+        "next",
+        "next/link",
+        "next/navigation",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/app/(platform)/app/guide/page.tsx",
+      "imports": [
+        "next",
+        "next/link",
+        "lucide-react",
+        "@/i18n/server",
+        "@/lib/guide/guide-articles"
+      ],
+      "localImports": [
+        "@/i18n/server",
+        "@/lib/guide/guide-articles"
+      ],
+      "externalImports": [
+        "next",
+        "next/link",
+        "lucide-react"
+      ]
+    },
+    {
       "file": "src/app/(platform)/app/layout.tsx",
       "imports": [
         "next-auth",
@@ -667626,6 +667050,9 @@
         "@/components/exchange/mono-tag",
         "@/components/exchange/quote-header",
         "@/components/exchange/status-tick",
+        "@/components/ui/progress",
+        "@/components/library/processing-refresher",
+        "@/lib/library/display-title",
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/lib/exchange/state-vocab"
@@ -667649,6 +667076,9 @@
         "@/components/exchange/mono-tag",
         "@/components/exchange/quote-header",
         "@/components/exchange/status-tick",
+        "@/components/ui/progress",
+        "@/components/library/processing-refresher",
+        "@/lib/library/display-title",
         "@/i18n/platform-copy",
         "@/i18n/server",
         "@/lib/exchange/state-vocab"
@@ -668101,33 +667531,6 @@
       "externalImports": []
     },
     {
-      "file": "src/app/(public)/persona/page.tsx",
-      "imports": [
-        "next",
-        "next/link",
-        "next-auth",
-        "@/components/layout/language-switcher",
-        "@/components/ui/button",
-        "@/components/ui/logo",
-        "@/i18n/public-copy",
-        "@/i18n/server",
-        "@/lib/auth"
-      ],
-      "localImports": [
-        "@/components/layout/language-switcher",
-        "@/components/ui/button",
-        "@/components/ui/logo",
-        "@/i18n/public-copy",
-        "@/i18n/server",
-        "@/lib/auth"
-      ],
-      "externalImports": [
-        "next",
-        "next/link",
-        "next-auth"
-      ]
-    },
-    {
       "file": "src/app/(public)/privacy/page.tsx",
       "imports": [
         "next",
@@ -668148,98 +667551,6 @@
       "externalImports": [
         "next",
         "next/link"
-      ]
-    },
-    {
-      "file": "src/app/(public)/showcase/experience-client.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/components/ui/logo",
-        "@/components/demo/pet/pet-hero",
-        "@/components/demo/pet/hardware-kit",
-        "@/components/demo/pet/demo-story",
-        "@/components/demo/pet/device-dashboard",
-        "@/components/demo/pet/activity-timeline",
-        "@/components/demo/pet/detected-moments",
-        "@/components/demo/pet/companion-mode",
-        "@/components/demo/pet/collar-pov",
-        "@/components/demo/pet/auto-videos",
-        "@/components/demo/pet/before-after",
-        "@/components/demo/pet/viral-sharing",
-        "@/components/demo/pet/brand-proof-scenario",
-        "@/components/demo/pet/product-proof-report",
-        "@/components/demo/pet/community-preview",
-        "@/components/demo/pet/benchmark-comparison",
-        "@/components/demo/pet/why-now",
-        "@/components/demo/pet/market-opportunity",
-        "@/components/demo/pet/growth-flywheel",
-        "@/components/demo/pet/pet-investor-highlights",
-        "@/components/demo/pet/business-model",
-        "@/components/demo/pet/team-section",
-        "@/components/demo/pet/deck-shell",
-        "@/lib/demo/pet-content-kit-demo-data",
-        "./pet-waitlist-form"
-      ],
-      "localImports": [
-        "@/components/ui/logo",
-        "@/components/demo/pet/pet-hero",
-        "@/components/demo/pet/hardware-kit",
-        "@/components/demo/pet/demo-story",
-        "@/components/demo/pet/device-dashboard",
-        "@/components/demo/pet/activity-timeline",
-        "@/components/demo/pet/detected-moments",
-        "@/components/demo/pet/companion-mode",
-        "@/components/demo/pet/collar-pov",
-        "@/components/demo/pet/auto-videos",
-        "@/components/demo/pet/before-after",
-        "@/components/demo/pet/viral-sharing",
-        "@/components/demo/pet/brand-proof-scenario",
-        "@/components/demo/pet/product-proof-report",
-        "@/components/demo/pet/community-preview",
-        "@/components/demo/pet/benchmark-comparison",
-        "@/components/demo/pet/why-now",
-        "@/components/demo/pet/market-opportunity",
-        "@/components/demo/pet/growth-flywheel",
-        "@/components/demo/pet/pet-investor-highlights",
-        "@/components/demo/pet/business-model",
-        "@/components/demo/pet/team-section",
-        "@/components/demo/pet/deck-shell",
-        "@/lib/demo/pet-content-kit-demo-data",
-        "./pet-waitlist-form"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/(public)/showcase/page.tsx",
-      "imports": [
-        "next",
-        "next-auth",
-        "@/lib/auth",
-        "./experience-client"
-      ],
-      "localImports": [
-        "@/lib/auth",
-        "./experience-client"
-      ],
-      "externalImports": [
-        "next",
-        "next-auth"
-      ]
-    },
-    {
-      "file": "src/app/(public)/showcase/pet-waitlist-form.tsx",
-      "imports": [
-        "react",
-        "lucide-react"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "react",
-        "lucide-react"
       ]
     },
     {
@@ -668314,76 +667625,6 @@
         "next-auth",
         "next/navigation",
         "lucide-react"
-      ]
-    },
-    {
-      "file": "src/app/api/ad-plans/[id]/render/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-render-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/ad-render-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/admin/users/[id]/disable/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/account-disable-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/account-disable-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/admin/users/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "bcryptjs",
-        "@/lib/api-auth",
-        "@/lib/auth",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/auth",
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "next/server",
-        "bcryptjs"
-      ]
-    },
-    {
-      "file": "src/app/api/admin/users/route.ts",
-      "imports": [
-        "next/server",
-        "bcryptjs",
-        "@/lib/api-auth",
-        "@/lib/db",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/db",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server",
-        "bcryptjs"
       ]
     },
     {
@@ -668612,21 +667853,6 @@
         "@/lib/contracts/batch-api",
         "@/lib/config/env",
         "@/lib/services/media-asset-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/billing/checkout/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/stripe-billing-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/stripe-billing-service"
       ],
       "externalImports": [
         "next/server"
@@ -668872,23 +668098,6 @@
       ]
     },
     {
-      "file": "src/app/api/business/metrics/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/business-metrics-import",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/business-metrics-import",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/capabilities/route.ts",
       "imports": [
         "next/server",
@@ -669108,108 +668317,6 @@
       ]
     },
     {
-      "file": "src/app/api/delivery-orders/[id]/assets/route.ts",
-      "imports": [
-        "next/server",
-        "@prisma/client",
-        "@/lib/api-auth",
-        "@/lib/services/asset-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/asset-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/app/api/delivery-orders/[id]/research/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/discovery-service",
-        "@/lib/services/selling-point-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/discovery-service",
-        "@/lib/services/selling-point-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/delivery-orders/[id]/rounds/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/round-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/round-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/delivery-orders/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/order-service",
-        "@/lib/services/round-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/order-service",
-        "@/lib/services/round-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/delivery-orders/[id]/selling-points/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/selling-point-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/selling-point-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/delivery-orders/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/order-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/order-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
       "imports": [
         "next/server",
@@ -669224,84 +668331,6 @@
         "next/server",
         "@prisma/client",
         "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/digital-human/avatars/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/video-generation/digital-human/avatar-catalog",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/video-generation/digital-human/avatar-catalog",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/digital-human/jobs/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/digital-human/jobs/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/services/quota-service",
-        "@/lib/services/digital-human-service",
-        "@/lib/video-generation/digital-human/avatar-catalog",
-        "@/lib/video-generation/digital-human/voice-catalog",
-        "@/lib/features/digital-human",
-        "@/lib/services/media-asset-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/quota-service",
-        "@/lib/services/digital-human-service",
-        "@/lib/video-generation/digital-human/avatar-catalog",
-        "@/lib/video-generation/digital-human/voice-catalog",
-        "@/lib/features/digital-human",
-        "@/lib/services/media-asset-service"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/digital-human/voices/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/video-generation/digital-human/voice-catalog",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/video-generation/digital-human/voice-catalog",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": [
-        "next/server"
       ]
     },
     {
@@ -669374,42 +668403,6 @@
       ],
       "externalImports": [
         "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/internal/digital-human/claim/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/machine-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/machine-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/internal/digital-human/complete/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/machine-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/machine-auth",
-        "@/lib/services/digital-human-service",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
       ]
     },
     {
@@ -669495,25 +668488,6 @@
       "externalImports": [
         "next/server",
         "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/internal/video-provider-routes/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/contracts/video-provider-routes",
-        "@/lib/machine-auth",
-        "@/lib/server/buddy-route-discovery"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/contracts/video-provider-routes",
-        "@/lib/machine-auth",
-        "@/lib/server/buddy-route-discovery"
-      ],
-      "externalImports": [
-        "next/server"
       ]
     },
     {
@@ -669689,38 +668663,6 @@
       ]
     },
     {
-      "file": "src/app/api/me/usage/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/usage-payload"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/usage-payload"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/metrics/import/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/metrics-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/metrics-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/onboarding/complete/route.ts",
       "imports": [
         "next/server",
@@ -669771,40 +668713,6 @@
       ],
       "externalImports": [
         "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/persona/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/personal/agent-chat/route.ts",
-      "imports": [
-        "next/server",
-        "zod",
-        "@/lib/api-auth",
-        "@/lib/ai"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/ai"
-      ],
-      "externalImports": [
-        "next/server",
-        "zod"
       ]
     },
     {
@@ -670080,38 +668988,6 @@
       ]
     },
     {
-      "file": "src/app/api/qa/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/qa-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/qa-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/qa/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/racing/rounds/[id]/analyze/route.ts",
       "imports": [
         "next/server",
@@ -670180,23 +669056,6 @@
       ]
     },
     {
-      "file": "src/app/api/raw-assets/[id]/preprocess/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/asset-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/asset-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
       "file": "src/app/api/reports/route.ts",
       "imports": [
         "next/server",
@@ -670213,102 +669072,6 @@
       "externalImports": [
         "next/server",
         "zod"
-      ]
-    },
-    {
-      "file": "src/app/api/rounds/[id]/ad-plans/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/ad-agent-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/ad-agent-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/rounds/[id]/angles/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/angle-service",
-        "@/lib/services/brief-service",
-        "@/lib/validators"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/angle-service",
-        "@/lib/services/brief-service",
-        "@/lib/validators"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/rounds/[id]/distill/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/distillation-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/distillation-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/rounds/[id]/iteration/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/iteration-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/iteration-service"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/rounds/[id]/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "next/server"
-      ]
-    },
-    {
-      "file": "src/app/api/rounds/[id]/score/route.ts",
-      "imports": [
-        "next/server",
-        "@/lib/api-auth",
-        "@/lib/services/scoring-service"
-      ],
-      "localImports": [
-        "@/lib/api-auth",
-        "@/lib/services/scoring-service"
-      ],
-      "externalImports": [
-        "next/server"
       ]
     },
     {
@@ -670545,6 +669308,23 @@
         "@/lib/auth-role-policy",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-person-refs"
+      ],
+      "externalImports": [
+        "next/server",
+        "zod"
+      ]
+    },
+    {
+      "file": "src/app/api/video-generation/voiceover-draft/route.ts",
+      "imports": [
+        "next/server",
+        "zod",
+        "@/lib/api-auth",
+        "@/lib/video-generation/voiceover-writer"
+      ],
+      "localImports": [
+        "@/lib/api-auth",
+        "@/lib/video-generation/voiceover-writer"
       ],
       "externalImports": [
         "next/server",
@@ -671218,423 +669998,6 @@
       ]
     },
     {
-      "file": "src/components/demo/pet/activity-timeline.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/auto-videos.tsx",
-      "imports": [
-        "@/components/demo/phone-video-mockup",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "@/components/demo/phone-video-mockup",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/components/demo/pet/before-after.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/components/demo/phone-video-mockup",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/components/demo/phone-video-mockup",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/benchmark-comparison.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/brand-proof-scenario.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/business-model.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/collar-pov.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/community-preview.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/companion-mode.tsx",
-      "imports": [
-        "lucide-react",
-        "@/components/demo/phone-video-mockup",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "@/components/demo/phone-video-mockup",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/deck-shell.tsx",
-      "imports": [
-        "react",
-        "lucide-react"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/demo-story.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/detected-moments.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/device-dashboard.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/growth-flywheel.tsx",
-      "imports": [
-        "react",
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/hardware-kit.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "./image-lightbox",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "./pet-image",
-        "./image-lightbox",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/image-lightbox.tsx",
-      "imports": [
-        "react",
-        "lucide-react",
-        "./pet-image"
-      ],
-      "localImports": [
-        "./pet-image"
-      ],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/market-opportunity.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/pet-hero.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/pet-image.tsx",
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/pet-investor-highlights.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/pet-section.tsx",
-      "imports": [
-        "react",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/product-proof-report.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "./pet-image",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/team-section.tsx",
-      "imports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/components/demo/pet/viral-sharing.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/pet/why-now.tsx",
-      "imports": [
-        "lucide-react",
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "localImports": [
-        "./pet-section",
-        "@/lib/demo/pet-content-kit-demo-data"
-      ],
-      "externalImports": [
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/demo/phone-video-mockup.tsx",
-      "imports": [
-        "react",
-        "lucide-react",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/utils"
-      ],
-      "externalImports": [
-        "react",
-        "lucide-react"
-      ]
-    },
-    {
-      "file": "src/components/editorial/kpi-card.tsx",
-      "imports": [
-        "@/components/ui/progress",
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/components/ui/progress",
-        "@/lib/utils"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/components/exchange/delta.tsx",
       "imports": [
         "@/components/exchange/status-tick",
@@ -671821,72 +670184,6 @@
         "./quote-header"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/components/features/page-header.tsx",
-      "imports": [
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/utils"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/components/features/render-progress.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@/components/ui/button",
-        "@/components/features/status-badge",
-        "@/lib/labels-user",
-        "@/i18n/useTranslation",
-        "@/lib/services/video-service",
-        "@prisma/client"
-      ],
-      "localImports": [
-        "@/components/ui/button",
-        "@/components/features/status-badge",
-        "@/lib/labels-user",
-        "@/i18n/useTranslation",
-        "@/lib/services/video-service"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "sonner",
-        "lucide-react",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/components/features/status-badge.tsx",
-      "imports": [
-        "@/lib/utils"
-      ],
-      "localImports": [
-        "@/lib/utils"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/components/internal/report-actions.tsx",
-      "imports": [
-        "react",
-        "next/navigation",
-        "lucide-react",
-        "@/components/ui/button"
-      ],
-      "localImports": [
-        "@/components/ui/button"
-      ],
-      "externalImports": [
-        "react",
-        "next/navigation",
-        "lucide-react"
-      ]
     },
     {
       "file": "src/components/landing/hero-reel.tsx",
@@ -672255,47 +670552,6 @@
       "externalImports": []
     },
     {
-      "file": "src/components/leads/pilot-landing.tsx",
-      "imports": [
-        "next/link",
-        "lucide-react",
-        "@/components/ui/logo",
-        "@/components/ui/button",
-        "@/components/layout/language-switcher",
-        "@/components/compliance/ai-generated-label",
-        "@/components/exchange/section-head",
-        "@/components/exchange/mono-tag",
-        "@/components/exchange/status-tick",
-        "@/components/exchange/wall-controls",
-        "@/i18n/config",
-        "@/i18n/growth-copy",
-        "@/lib/config/landing-media",
-        "@/lib/exchange/state-vocab",
-        "@/lib/utils",
-        "./pilot-application-form"
-      ],
-      "localImports": [
-        "@/components/ui/logo",
-        "@/components/ui/button",
-        "@/components/layout/language-switcher",
-        "@/components/compliance/ai-generated-label",
-        "@/components/exchange/section-head",
-        "@/components/exchange/mono-tag",
-        "@/components/exchange/status-tick",
-        "@/components/exchange/wall-controls",
-        "@/i18n/config",
-        "@/i18n/growth-copy",
-        "@/lib/config/landing-media",
-        "@/lib/exchange/state-vocab",
-        "@/lib/utils",
-        "./pilot-application-form"
-      ],
-      "externalImports": [
-        "next/link",
-        "lucide-react"
-      ]
-    },
-    {
       "file": "src/components/leads/tracked-links-panel.tsx",
       "imports": [
         "react",
@@ -672428,6 +670684,18 @@
         "@/lib/contracts/content-post-render",
         "./render-pending-posts-button"
       ],
+      "externalImports": [
+        "react",
+        "next/navigation"
+      ]
+    },
+    {
+      "file": "src/components/library/processing-refresher.tsx",
+      "imports": [
+        "react",
+        "next/navigation"
+      ],
+      "localImports": [],
       "externalImports": [
         "react",
         "next/navigation"
@@ -674003,32 +672271,6 @@
       ]
     },
     {
-      "file": "src/lib/contracts/video-dispatch-error.ts",
-      "imports": [
-        "zod",
-        "@/lib/contracts/customer-api"
-      ],
-      "localImports": [
-        "@/lib/contracts/customer-api"
-      ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/contracts/video-provider-routes.ts",
-      "imports": [
-        "zod",
-        "@/lib/providers/shuyu-video-plan-tiers"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu-video-plan-tiers"
-      ],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/contracts/video-route-options.ts",
       "imports": [
         "zod",
@@ -674103,6 +672345,16 @@
       "externalImports": [
         "@prisma/client"
       ]
+    },
+    {
+      "file": "src/lib/guide/guide-articles.ts",
+      "imports": [
+        "@/i18n/config"
+      ],
+      "localImports": [
+        "@/i18n/config"
+      ],
+      "externalImports": []
     },
     {
       "file": "src/lib/labels-user.ts",
@@ -674239,22 +672491,6 @@
       ]
     },
     {
-      "file": "src/lib/prompts/client-script.ts",
-      "imports": [
-        "./index",
-        "@/lib/schemas/client-brief",
-        "@/lib/schemas/creative-evidence",
-        "@/lib/schemas/script-output"
-      ],
-      "localImports": [
-        "./index",
-        "@/lib/schemas/client-brief",
-        "@/lib/schemas/creative-evidence",
-        "@/lib/schemas/script-output"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/prompts/creative-evidence-breakdown.ts",
       "imports": [
         "./index",
@@ -674265,19 +672501,6 @@
         "@/lib/schemas/creative-evidence"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/apify-tiktok.ts",
-      "imports": [
-        "apify-client",
-        "@/lib/config/dry-run"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run"
-      ],
-      "externalImports": [
-        "apify-client"
-      ]
     },
     {
       "file": "src/lib/providers/cutout.ts",
@@ -674296,18 +672519,6 @@
       ],
       "localImports": [
         "@/lib/services/capability-status-service"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/providers/omnihuman.ts",
-      "imports": [
-        "@/lib/config/dry-run",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run",
-        "@/lib/features/digital-human"
       ],
       "externalImports": []
     },
@@ -674493,18 +672704,6 @@
       "externalImports": []
     },
     {
-      "file": "src/lib/providers/volc-tts.ts",
-      "imports": [
-        "@/lib/config/dry-run",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/config/dry-run",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": []
-    },
-    {
       "file": "src/lib/qa/customer-route-state-rehearsal.ts",
       "imports": [
         "next/headers",
@@ -674535,31 +672734,6 @@
         "zod"
       ],
       "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/schemas/asset-qa.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
-      "file": "src/lib/schemas/client-brief.ts",
-      "imports": [
-        "zod",
-        "../../../editorial-design-tokens.generated.json",
-        "./creative-evidence"
-      ],
-      "localImports": [
-        "../../../editorial-design-tokens.generated.json",
-        "./creative-evidence"
-      ],
       "externalImports": [
         "zod"
       ]
@@ -674598,16 +672772,6 @@
       ]
     },
     {
-      "file": "src/lib/schemas/script-output.ts",
-      "imports": [
-        "zod"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "zod"
-      ]
-    },
-    {
       "file": "src/lib/schemas/unified-input.ts",
       "imports": [
         "zod",
@@ -674618,35 +672782,6 @@
       ],
       "externalImports": [
         "zod"
-      ]
-    },
-    {
-      "file": "src/lib/server/buddy-route-discovery.ts",
-      "imports": [
-        "@/lib/providers/shuyu",
-        "@/lib/contracts/video-provider-routes"
-      ],
-      "localImports": [
-        "@/lib/providers/shuyu",
-        "@/lib/contracts/video-provider-routes"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/services/account-disable-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/video-generation/storyboard-service",
-        "@/lib/auth"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/video-generation/storyboard-service",
-        "@/lib/auth"
-      ],
-      "externalImports": [
-        "@prisma/client"
       ]
     },
     {
@@ -674728,64 +672863,6 @@
       ]
     },
     {
-      "file": "src/lib/services/ai-usage-stats-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/angle-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/config/blanket-themes"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/config/blanket-themes"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/asset-qa-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/schemas/asset-qa"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/schemas/asset-qa"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/asset-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/batch-service.ts",
       "imports": [
         "node:crypto",
@@ -674851,16 +672928,6 @@
         "@prisma/client",
         "next-auth"
       ]
-    },
-    {
-      "file": "src/lib/services/brand-placement-policy.ts",
-      "imports": [
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "localImports": [
-        "@/lib/video-generation/creative-recipe"
-      ],
-      "externalImports": []
     },
     {
       "file": "src/lib/services/brief-access.ts",
@@ -675189,21 +673256,6 @@
       ]
     },
     {
-      "file": "src/lib/services/digital-human-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/features/digital-human"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/features/digital-human"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/director-service.ts",
       "imports": [
         "@prisma/client",
@@ -675228,23 +673280,6 @@
       "externalImports": [
         "@prisma/client",
         "zod"
-      ]
-    },
-    {
-      "file": "src/lib/services/discovery-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/providers/apify-tiktok"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "@/lib/providers/apify-tiktok"
-      ],
-      "externalImports": [
-        "@prisma/client"
       ]
     },
     {
@@ -675466,16 +673501,6 @@
       ]
     },
     {
-      "file": "src/lib/services/localization-service.ts",
-      "imports": [
-        "@prisma/client"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/logo-fidelity-gate.ts",
       "imports": [
         "sharp"
@@ -675593,19 +673618,6 @@
       ],
       "externalImports": [
         "zod",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/order-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
-      ],
-      "externalImports": [
         "@prisma/client"
       ]
     },
@@ -675941,23 +673953,6 @@
       ]
     },
     {
-      "file": "src/lib/services/selling-point-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db",
-        "@/lib/ai",
-        "./discovery-service"
-      ],
-      "localImports": [
-        "@/lib/db",
-        "@/lib/ai",
-        "./discovery-service"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/showcase-library.ts",
       "imports": [
         "@/lib/db",
@@ -676205,23 +674200,6 @@
       ]
     },
     {
-      "file": "src/lib/services/usage-payload.ts",
-      "imports": [
-        "next-auth",
-        "@prisma/client",
-        "@/lib/config/quota-tiers",
-        "@/lib/services/quota-service"
-      ],
-      "localImports": [
-        "@/lib/config/quota-tiers",
-        "@/lib/services/quota-service"
-      ],
-      "externalImports": [
-        "next-auth",
-        "@prisma/client"
-      ]
-    },
-    {
       "file": "src/lib/services/video-dispatch-idempotency.ts",
       "imports": [
         "node:crypto",
@@ -676418,19 +674396,6 @@
       "localImports": [
         "@/lib/db",
         "@/lib/brand/global-brand-access"
-      ],
-      "externalImports": [
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "src/lib/services/workspace-plan-service.ts",
-      "imports": [
-        "@prisma/client",
-        "@/lib/db"
-      ],
-      "localImports": [
-        "@/lib/db"
       ],
       "externalImports": [
         "@prisma/client"
@@ -676792,39 +674757,6 @@
         "@/types/video-generation"
       ],
       "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/digital-human/store-ad-director.ts",
-      "imports": [
-        "@/lib/providers/openai"
-      ],
-      "localImports": [
-        "@/lib/providers/openai"
-      ],
-      "externalImports": []
-    },
-    {
-      "file": "src/lib/video-generation/digital-human/store-ad-pipeline.ts",
-      "imports": [
-        "node:child_process",
-        "node:fs",
-        "node:path",
-        "@/lib/providers/seedance",
-        "@/lib/providers/volc-tts",
-        "@/lib/features/digital-human",
-        "@/lib/video-generation/digital-human/store-ad-director"
-      ],
-      "localImports": [
-        "@/lib/providers/seedance",
-        "@/lib/providers/volc-tts",
-        "@/lib/features/digital-human",
-        "@/lib/video-generation/digital-human/store-ad-director"
-      ],
-      "externalImports": [
-        "node:child_process",
-        "node:fs",
-        "node:path"
-      ]
     },
     {
       "file": "src/lib/video-generation/final-frame-qa.ts",
@@ -677463,6 +675395,16 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/voiceover-writer.ts",
+      "imports": [
+        "@/lib/ai"
+      ],
+      "localImports": [
+        "@/lib/ai"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/middleware.ts",
       "imports": [
         "next-auth/jwt",
@@ -677545,8 +675487,6 @@
       "file": "tests/a4-cancel-cas-and-copy.test.ts",
       "imports": [
         "node:assert/strict",
-        "node:fs",
-        "node:fs/promises",
         "node:test",
         "../src/lib/db",
         "../src/lib/services/product-image-service",
@@ -677559,32 +675499,7 @@
       ],
       "externalImports": [
         "node:assert/strict",
-        "node:fs",
-        "node:fs/promises",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/account-disable.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "bcryptjs",
-        "../src/lib/db",
-        "../src/lib/auth",
-        "../src/lib/services/account-disable-service"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/auth",
-        "../src/lib/services/account-disable-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "bcryptjs"
       ]
     },
     {
@@ -677682,21 +675597,6 @@
       ]
     },
     {
-      "file": "tests/ai-usage-stats.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/ai-usage-stats-service"
-      ],
-      "localImports": [
-        "../src/lib/services/ai-usage-stats-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/api-auth-persona-matrix.test.ts",
       "imports": [
         "node:assert/strict",
@@ -677739,25 +675639,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/asset-qa-rules.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/asset-qa-service",
-        "../src/lib/schemas/asset-qa"
-      ],
-      "localImports": [
-        "../src/lib/services/asset-qa-service",
-        "../src/lib/schemas/asset-qa"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
       ]
     },
     {
@@ -678504,12 +676385,10 @@
         "node:fs",
         "node:path",
         "node:test",
-        "../src/lib/services/brand-placement-policy",
         "../src/lib/video-generation/category-lock-registry",
         "../src/lib/video-generation/client-lock-profiles"
       ],
       "localImports": [
-        "../src/lib/services/brand-placement-policy",
         "../src/lib/video-generation/category-lock-registry",
         "../src/lib/video-generation/client-lock-profiles"
       ],
@@ -678610,50 +676489,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/buddy-route-discovery.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/contracts/video-provider-routes",
-        "../src/lib/providers/shuyu",
-        "../src/lib/server/buddy-route-discovery"
-      ],
-      "localImports": [
-        "../src/lib/contracts/video-provider-routes",
-        "../src/lib/providers/shuyu",
-        "../src/lib/server/buddy-route-discovery"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/buddy-video-provider-routes-access.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:module",
-        "node:test",
-        "next/server",
-        "../src/lib/api-auth",
-        "next-auth/next",
-        "../src/app/api/internal/video-provider-routes/route.ts"
-      ],
-      "localImports": [
-        "../src/lib/api-auth",
-        "../src/app/api/internal/video-provider-routes/route.ts"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:module",
-        "node:test",
-        "next/server",
-        "next-auth/next"
       ]
     },
     {
@@ -678795,12 +676630,9 @@
         "node:assert/strict",
         "node:fs",
         "node:path",
-        "node:test",
-        "../src/lib/video-generation/director-methodology"
+        "node:test"
       ],
-      "localImports": [
-        "../src/lib/video-generation/director-methodology"
-      ],
+      "localImports": [],
       "externalImports": [
         "node:assert/strict",
         "node:fs",
@@ -679049,36 +676881,6 @@
       ]
     },
     {
-      "file": "tests/client-brief-schema.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/client-brief"
-      ],
-      "localImports": [
-        "../src/lib/schemas/client-brief"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
-      "file": "tests/client-brief-write.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/client-brief"
-      ],
-      "localImports": [
-        "../src/lib/schemas/client-brief"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/client-bundle-safety.test.ts",
       "imports": [
         "node:assert/strict",
@@ -679086,11 +676888,11 @@
         "node:fs",
         "node:path",
         "x",
-        "@/lib/services/localization-service",
+        "@/lib/services/quota-service",
         "@/lib/services/logo-style-keys"
       ],
       "localImports": [
-        "@/lib/services/localization-service",
+        "@/lib/services/quota-service",
         "@/lib/services/logo-style-keys"
       ],
       "externalImports": [
@@ -679469,6 +677271,21 @@
       ]
     },
     {
+      "file": "tests/default-brand-package.test.ts",
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/lib/brand/default-brand-package"
+      ],
+      "localImports": [
+        "../src/lib/brand/default-brand-package"
+      ],
+      "externalImports": [
+        "node:test",
+        "node:assert/strict"
+      ]
+    },
+    {
       "file": "tests/demo-account-guard.test.ts",
       "imports": [
         "node:assert/strict",
@@ -679524,29 +677341,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/digital-human-sealed.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "../src/lib/db",
-        "../src/lib/features/digital-human",
-        "../src/lib/services/digital-human-service",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline"
-      ],
-      "localImports": [
-        "../src/lib/db",
-        "../src/lib/features/digital-human",
-        "../src/lib/services/digital-human-service",
-        "../src/lib/video-generation/digital-human/store-ad-pipeline"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises"
       ]
     },
     {
@@ -679659,9 +677453,6 @@
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
         "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/providers/volc-tts",
-        "../src/lib/providers/omnihuman",
-        "../src/lib/providers/apify-tiktok",
         "../src/lib/video-generation/frame-qa"
       ],
       "localImports": [
@@ -679670,9 +677461,6 @@
         "../src/lib/providers/openai",
         "../src/lib/providers/openai-image",
         "../src/lib/providers/shuyu-image-provider",
-        "../src/lib/providers/volc-tts",
-        "../src/lib/providers/omnihuman",
-        "../src/lib/providers/apify-tiktok",
         "../src/lib/video-generation/frame-qa"
       ],
       "externalImports": [
@@ -680446,14 +678234,12 @@
         "../src/lib/api-auth",
         "../src/lib/contracts/customer-api",
         "../src/lib/db",
-        "../src/lib/services/business-metrics-import",
         "../src/lib/services/racing-service"
       ],
       "localImports": [
         "../src/lib/api-auth",
         "../src/lib/contracts/customer-api",
         "../src/lib/db",
-        "../src/lib/services/business-metrics-import",
         "../src/lib/services/racing-service"
       ],
       "externalImports": [
@@ -680500,8 +678286,6 @@
         "stripe",
         "next-auth/next",
         "../src/lib/db.ts",
-        "../src/app/api/qa/route.ts",
-        "../src/app/api/qa/[id]/route.ts",
         "../src/app/api/briefs/[id]/qa/route.ts",
         "../src/app/api/publish/route.ts",
         "../src/app/api/publish/[id]/route.ts",
@@ -680509,21 +678293,12 @@
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
         "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
-        "../src/app/api/persona/route.ts",
-        "../src/app/api/digital-human/avatars/route.ts",
-        "../src/app/api/digital-human/voices/route.ts",
-        "../src/app/api/digital-human/jobs/route.ts",
-        "../src/app/api/digital-human/jobs/[id]/route.ts",
-        "../src/app/api/internal/digital-human/claim/route.ts",
-        "../src/app/api/internal/digital-human/complete/route.ts",
         "../src/app/api/webhooks/stripe/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
       ],
       "localImports": [
         "../src/lib/db.ts",
-        "../src/app/api/qa/route.ts",
-        "../src/app/api/qa/[id]/route.ts",
         "../src/app/api/briefs/[id]/qa/route.ts",
         "../src/app/api/publish/route.ts",
         "../src/app/api/publish/[id]/route.ts",
@@ -680531,13 +678306,6 @@
         "../src/app/api/internal/reports/route.ts",
         "../src/app/api/internal/reports/[id]/route.ts",
         "../src/app/api/demo/real-footage-ads/waitlist/route.ts",
-        "../src/app/api/persona/route.ts",
-        "../src/app/api/digital-human/avatars/route.ts",
-        "../src/app/api/digital-human/voices/route.ts",
-        "../src/app/api/digital-human/jobs/route.ts",
-        "../src/app/api/digital-human/jobs/[id]/route.ts",
-        "../src/app/api/internal/digital-human/claim/route.ts",
-        "../src/app/api/internal/digital-human/complete/route.ts",
         "../src/app/api/webhooks/stripe/route.ts",
         "../src/app/api/auth/[...nextauth]/route.ts",
         "../src/middleware.ts"
@@ -680769,6 +678537,21 @@
       ]
     },
     {
+      "file": "tests/library-display-title.test.ts",
+      "imports": [
+        "node:test",
+        "node:assert/strict",
+        "../src/lib/library/display-title"
+      ],
+      "localImports": [
+        "../src/lib/library/display-title"
+      ],
+      "externalImports": [
+        "node:test",
+        "node:assert/strict"
+      ]
+    },
+    {
       "file": "tests/library-post-row.test.ts",
       "imports": [
         "node:assert/strict",
@@ -680848,9 +678631,7 @@
         "../src/app/api/cron/sweep-stuck-tasks/route",
         "../src/app/api/cron/founder-digest/route",
         "../src/app/api/internal/stitch/claim/route",
-        "../src/app/api/internal/stitch/complete/route",
-        "../src/app/api/internal/digital-human/claim/route",
-        "../src/app/api/internal/digital-human/complete/route"
+        "../src/app/api/internal/stitch/complete/route"
       ],
       "localImports": [
         "../src/app/api/cron/process-batches/route",
@@ -680860,9 +678641,7 @@
         "../src/app/api/cron/sweep-stuck-tasks/route",
         "../src/app/api/cron/founder-digest/route",
         "../src/app/api/internal/stitch/claim/route",
-        "../src/app/api/internal/stitch/complete/route",
-        "../src/app/api/internal/digital-human/claim/route",
-        "../src/app/api/internal/digital-human/complete/route"
+        "../src/app/api/internal/stitch/complete/route"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -681372,22 +679151,6 @@
       "externalImports": [
         "node:assert/strict",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/persona-page-onboarding.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "node:path"
-      ],
-      "localImports": [],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "node:path"
       ]
     },
     {
@@ -682465,25 +680228,6 @@
       ]
     },
     {
-      "file": "tests/script-output-schema.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/schemas/script-output",
-        "../src/lib/prompts/client-script",
-        "../src/lib/schemas/client-brief"
-      ],
-      "localImports": [
-        "../src/lib/schemas/script-output",
-        "../src/lib/prompts/client-script",
-        "../src/lib/schemas/client-brief"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/seedance-generate-audio.test.ts",
       "imports": [
         "node:assert/strict",
@@ -682938,23 +680682,6 @@
         "../src/lib/video-generation/video-route-registry",
         "../src/lib/video-generation/shuyu-runtime",
         "../src/lib/providers/shuyu"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client"
-      ]
-    },
-    {
-      "file": "tests/single-direction-flow.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "@prisma/client",
-        "../src/lib/services/angle-service"
-      ],
-      "localImports": [
-        "../src/lib/services/angle-service"
       ],
       "externalImports": [
         "node:assert/strict",
@@ -684277,29 +682004,6 @@
       ]
     },
     {
-      "file": "tests/video-dispatch-error-contract.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test",
-        "../src/lib/api/customer-video-dispatch",
-        "../src/lib/api/customer-video-dispatch-recovery",
-        "../src/lib/contracts/customer-api",
-        "../src/lib/contracts/video-dispatch-error"
-      ],
-      "localImports": [
-        "../src/lib/api/customer-video-dispatch",
-        "../src/lib/api/customer-video-dispatch-recovery",
-        "../src/lib/contracts/customer-api",
-        "../src/lib/contracts/video-dispatch-error"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:fs/promises",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/video-dispatch-idempotency.test.ts",
       "imports": [
         "node:assert/strict",
@@ -684701,6 +682405,21 @@
       ]
     },
     {
+      "file": "tests/voiceover-writer.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/voiceover-writer"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/voiceover-writer"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
+      ]
+    },
+    {
       "file": "tests/whisper-word-alignment.test.ts",
       "imports": [
         "node:assert/strict",
@@ -684756,21 +682475,6 @@
       ]
     },
     {
-      "file": "tests/wizard-smoke-helpers.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "../src/lib/services/wizard-smoke-helpers"
-      ],
-      "localImports": [
-        "../src/lib/services/wizard-smoke-helpers"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test"
-      ]
-    },
-    {
       "file": "tests/workspace-brand-packages.test.ts",
       "imports": [
         "node:assert/strict",
@@ -684789,27 +682493,6 @@
         "node:assert/strict",
         "node:fs/promises",
         "node:test"
-      ]
-    },
-    {
-      "file": "tests/workspace-plan-permissions.test.ts",
-      "imports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises",
-        "../src/lib/services/workspace-plan-service",
-        "../src/lib/config/quota-tiers",
-        "../src/lib/services/batch-service"
-      ],
-      "localImports": [
-        "../src/lib/services/workspace-plan-service",
-        "../src/lib/config/quota-tiers",
-        "../src/lib/services/batch-service"
-      ],
-      "externalImports": [
-        "node:assert/strict",
-        "node:test",
-        "node:fs/promises"
       ]
     }
   ]

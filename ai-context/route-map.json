@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-28T15:44:15.339Z",
+  "generatedAt": "2026-10-28T17:01:49.750Z",
   "routes": [
     {
       "routePath": "/",
@@ -89,45 +89,6 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/ad-plans/[id]/render",
-      "filePath": "src/app/api/ad-plans/[id]/render/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/admin/users",
-      "filePath": "src/app/api/admin/users/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/admin/users/[id]",
-      "filePath": "src/app/api/admin/users/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "PATCH",
-        "DELETE"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/admin/users/[id]/disable",
-      "filePath": "src/app/api/admin/users/[id]/disable/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST",
-        "DELETE"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/auth/[...nextauth]",
       "filePath": "src/app/api/auth/[...nextauth]/route.ts",
       "kind": "api",
@@ -215,15 +176,6 @@
         "POST"
       ],
       "isDynamic": true
-    },
-    {
-      "routePath": "/api/billing/checkout",
-      "filePath": "src/app/api/billing/checkout/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
     },
     {
       "routePath": "/api/brand-packaging",
@@ -322,15 +274,6 @@
     {
       "routePath": "/api/broll/dispatch",
       "filePath": "src/app/api/broll/dispatch/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/business/metrics",
-      "filePath": "src/app/api/business/metrics/route.ts",
       "kind": "api",
       "httpMethods": [
         "POST"
@@ -446,105 +389,11 @@
       "isDynamic": false
     },
     {
-      "routePath": "/api/delivery-orders",
-      "filePath": "src/app/api/delivery-orders/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/delivery-orders/[id]",
-      "filePath": "src/app/api/delivery-orders/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "PATCH"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/delivery-orders/[id]/assets",
-      "filePath": "src/app/api/delivery-orders/[id]/assets/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/delivery-orders/[id]/research",
-      "filePath": "src/app/api/delivery-orders/[id]/research/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/delivery-orders/[id]/rounds",
-      "filePath": "src/app/api/delivery-orders/[id]/rounds/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/delivery-orders/[id]/selling-points",
-      "filePath": "src/app/api/delivery-orders/[id]/selling-points/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/demo/real-footage-ads/waitlist",
       "filePath": "src/app/api/demo/real-footage-ads/waitlist/route.ts",
       "kind": "api",
       "httpMethods": [
         "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/digital-human/avatars",
-      "filePath": "src/app/api/digital-human/avatars/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/digital-human/jobs",
-      "filePath": "src/app/api/digital-human/jobs/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/digital-human/jobs/[id]",
-      "filePath": "src/app/api/digital-human/jobs/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/digital-human/voices",
-      "filePath": "src/app/api/digital-human/voices/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
       ],
       "isDynamic": false
     },
@@ -582,25 +431,6 @@
       "kind": "api",
       "httpMethods": [
         "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/internal/digital-human/claim",
-      "filePath": "src/app/api/internal/digital-human/claim/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/internal/digital-human/complete",
-      "filePath": "src/app/api/internal/digital-human/complete/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
       ],
       "isDynamic": false
     },
@@ -647,15 +477,6 @@
       "kind": "api",
       "httpMethods": [
         "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/internal/video-provider-routes",
-      "filePath": "src/app/api/internal/video-provider-routes/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
       ],
       "isDynamic": false
     },
@@ -741,25 +562,6 @@
       "isDynamic": true
     },
     {
-      "routePath": "/api/me/usage",
-      "filePath": "src/app/api/me/usage/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/metrics/import",
-      "filePath": "src/app/api/metrics/import/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET",
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
       "routePath": "/api/onboarding",
       "filePath": "src/app/api/onboarding/route.ts",
       "kind": "api",
@@ -781,24 +583,6 @@
     {
       "routePath": "/api/performance",
       "filePath": "src/app/api/performance/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/persona",
-      "filePath": "src/app/api/persona/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/personal/agent-chat",
-      "filePath": "src/app/api/personal/agent-chat/route.ts",
       "kind": "api",
       "httpMethods": [
         "POST"
@@ -925,24 +709,6 @@
       "isDynamic": true
     },
     {
-      "routePath": "/api/qa",
-      "filePath": "src/app/api/qa/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": false
-    },
-    {
-      "routePath": "/api/qa/[id]",
-      "filePath": "src/app/api/qa/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/racing",
       "filePath": "src/app/api/racing/route.ts",
       "kind": "api",
@@ -979,15 +745,6 @@
       "isDynamic": true
     },
     {
-      "routePath": "/api/raw-assets/[id]/preprocess",
-      "filePath": "src/app/api/raw-assets/[id]/preprocess/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
       "routePath": "/api/reports",
       "filePath": "src/app/api/reports/route.ts",
       "kind": "api",
@@ -995,60 +752,6 @@
         "POST"
       ],
       "isDynamic": false
-    },
-    {
-      "routePath": "/api/rounds/[id]",
-      "filePath": "src/app/api/rounds/[id]/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "GET"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/rounds/[id]/ad-plans",
-      "filePath": "src/app/api/rounds/[id]/ad-plans/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/rounds/[id]/angles",
-      "filePath": "src/app/api/rounds/[id]/angles/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/rounds/[id]/distill",
-      "filePath": "src/app/api/rounds/[id]/distill/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/rounds/[id]/iteration",
-      "filePath": "src/app/api/rounds/[id]/iteration/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
-    },
-    {
-      "routePath": "/api/rounds/[id]/score",
-      "filePath": "src/app/api/rounds/[id]/score/route.ts",
-      "kind": "api",
-      "httpMethods": [
-        "POST"
-      ],
-      "isDynamic": true
     },
     {
       "routePath": "/api/upload/blob",
@@ -1140,6 +843,15 @@
         "POST"
       ],
       "isDynamic": true
+    },
+    {
+      "routePath": "/api/video-generation/voiceover-draft",
+      "filePath": "src/app/api/video-generation/voiceover-draft/route.ts",
+      "kind": "api",
+      "httpMethods": [
+        "POST"
+      ],
+      "isDynamic": false
     },
     {
       "routePath": "/api/videos",
@@ -1305,6 +1017,20 @@
       "kind": "page",
       "group": "platform",
       "isDynamic": false
+    },
+    {
+      "routePath": "/app/guide",
+      "filePath": "src/app/(platform)/app/guide/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": false
+    },
+    {
+      "routePath": "/app/guide/[slug]",
+      "filePath": "src/app/(platform)/app/guide/[slug]/page.tsx",
+      "kind": "page",
+      "group": "platform",
+      "isDynamic": true
     },
     {
       "routePath": "/app/leads",
@@ -1489,121 +1215,8 @@
       "isDynamic": false
     },
     {
-      "routePath": "/internal",
-      "filePath": "src/app/(internal)/internal/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/ai-usage",
-      "filePath": "src/app/(internal)/internal/ai-usage/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/briefs/[id]",
-      "filePath": "src/app/(internal)/internal/briefs/[id]/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": true
-    },
-    {
-      "routePath": "/internal/demo-leads",
-      "filePath": "src/app/(internal)/internal/demo-leads/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false,
-      "notes": "contains 'use server' directive"
-    },
-    {
-      "routePath": "/internal/distillation",
-      "filePath": "src/app/(internal)/internal/distillation/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
       "routePath": "/internal/frame-qa",
       "filePath": "src/app/(internal)/internal/frame-qa/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/metrics",
-      "filePath": "src/app/(internal)/internal/metrics/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/orders",
-      "filePath": "src/app/(internal)/internal/orders/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/orders/[id]",
-      "filePath": "src/app/(internal)/internal/orders/[id]/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": true
-    },
-    {
-      "routePath": "/internal/orders/new",
-      "filePath": "src/app/(internal)/internal/orders/new/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/publish",
-      "filePath": "src/app/(internal)/internal/publish/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/qa",
-      "filePath": "src/app/(internal)/internal/qa/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/reports",
-      "filePath": "src/app/(internal)/internal/reports/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/rounds",
-      "filePath": "src/app/(internal)/internal/rounds/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/rounds/[id]",
-      "filePath": "src/app/(internal)/internal/rounds/[id]/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": true
-    },
-    {
-      "routePath": "/internal/settings",
-      "filePath": "src/app/(internal)/internal/settings/page.tsx",
-      "kind": "page",
-      "group": "internal",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/internal/videos",
-      "filePath": "src/app/(internal)/internal/videos/page.tsx",
       "kind": "page",
       "group": "internal",
       "isDynamic": false
@@ -1619,13 +1232,6 @@
       "filePath": "src/app/(auth)/login/page.tsx",
       "kind": "page",
       "group": "auth",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/persona",
-      "filePath": "src/app/(public)/persona/page.tsx",
-      "kind": "page",
-      "group": "public",
       "isDynamic": false
     },
     {
@@ -1647,13 +1253,6 @@
       "filePath": "src/app/(auth)/reset-password/page.tsx",
       "kind": "page",
       "group": "auth",
-      "isDynamic": false
-    },
-    {
-      "routePath": "/showcase",
-      "filePath": "src/app/(public)/showcase/page.tsx",
-      "kind": "page",
-      "group": "public",
       "isDynamic": false
     },
     {

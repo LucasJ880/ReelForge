@@ -5,15 +5,13 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
-  CalendarRange,
+  BookOpen,
   Check,
   CircleHelp,
   Clapperboard,
   Film,
-  Inbox,
   Layers3,
   LogOut,
-  MonitorPlay,
   NotebookText,
   Palette,
   Plus,
@@ -47,17 +45,16 @@ import { useTranslation } from "@/i18n/useTranslation";
 import { getPlatformCopy } from "@/i18n/platform-copy";
 
 const ICONS = {
-  plan: CalendarRange,
   create: Clapperboard,
   batches: Layers3,
   /// 战绩（wins）入口暂时下线（见 platform-routes）：放回导航时连同 Trophy 图标一起加回。
   library: Film,
   brands: Palette,
   templates: NotebookText,
-  leads: Inbox,
+  guide: BookOpen,
 } satisfies Record<PlatformNavId, typeof Clapperboard>;
 
-/** 导轨徽标：批量 = 进行中批次（青）；成品库 = 需要处理（玫红，与成品库「需要处理」区同一批）；询盘 = 新询盘（金）。 */
+/** 导轨徽标：批量 = 进行中批次（青）；成品库 = 需要处理（玫红，与成品库「需要处理」区同一批）。询盘入口 2026-10-28 下线。 */
 type NavBadge = { count: number; tone: "live" | "fault" | "winner"; label: string };
 
 const BADGE_TONE: Record<NavBadge["tone"], string> = {
@@ -66,11 +63,10 @@ const BADGE_TONE: Record<NavBadge["tone"], string> = {
   winner: "bg-gold-soft text-gold",
 };
 
-function navBadges(pulse: ExchangePulse, locale: Locale, newLeadsLabel: string): Partial<Record<PlatformNavId, NavBadge>> {
+function navBadges(pulse: ExchangePulse, locale: Locale): Partial<Record<PlatformNavId, NavBadge>> {
   return {
     batches: { count: pulse.activeBatches, tone: "live", label: readingName("activeBatches", locale) },
     library: { count: pulse.needsAttention, tone: "fault", label: readingName("needsAttention", locale) },
-    leads: { count: pulse.newLeads, tone: "winner", label: newLeadsLabel },
   };
 }
 
@@ -84,10 +80,10 @@ function emailInitial(email: string): string {
 }
 
 /// 侧栏分组（学 LibTV）：顺序与 PLATFORM_PRIMARY_NAV 一致，快捷键 1–7 不变。
-const NAV_GROUPS: ReadonlyArray<{ id: "make" | "assets" | "grow"; items: readonly PlatformNavId[] }> = [
-  { id: "make", items: ["plan", "create", "batches"] },
+const NAV_GROUPS: ReadonlyArray<{ id: "make" | "assets" | "help"; items: readonly PlatformNavId[] }> = [
+  { id: "make", items: ["create", "batches"] },
   { id: "assets", items: ["library", "brands", "templates"] },
-  { id: "grow", items: ["leads"] },
+  { id: "help", items: ["guide"] },
 ];
 
 function Nav({
@@ -261,7 +257,7 @@ export function PlatformShell({
   const live = pulse.generating > 0;
   const queued = !live && pulse.queued > 0;
   const planName = copy.planNames[pulse.quota.plan];
-  const badges = navBadges(pulse, locale, copy.newLeadsBadge);
+  const badges = navBadges(pulse, locale);
 
   // 导轨编号即快捷键：焦点不在输入框、没有打开的对话框时，按 1–7 直达对应页面。
   useEffect(() => {
@@ -325,17 +321,6 @@ export function PlatformShell({
           </div>
           {/* C4：有 AI 能力暂停 / 不稳定时亮出来，点进去看哪些停了、系统改用什么 */}
           <CapabilityIndicator initial={initialCapabilities} locale={locale} />
-          <Link
-            href="/wall"
-            target="_blank"
-            rel="noopener"
-            prefetch={false}
-            title={copy.openWallHint}
-            className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <MonitorPlay className="size-4" aria-hidden />
-            {copy.openWall}
-          </Link>
         </footer>
       </aside>
 
@@ -360,10 +345,10 @@ export function PlatformShell({
           <div className="ml-auto flex shrink-0 items-center gap-2">
             {showOpsCredits ? <OpsCreditsCluster english={locale === "en-US"} /> : null}
             <Link
-              href="/app/create?guide=open"
+              href="/app/guide"
               prefetch={false}
               data-testid="topbar-help"
-              aria-label={locale === "en-US" ? "Open the getting-started guide" : "打开新手指引"}
+              aria-label={locale === "en-US" ? "Open the user guide" : "打开使用指南"}
               className="flex size-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground hover:border-border-strong hover:text-foreground"
             >
               <CircleHelp className="size-4" aria-hidden />

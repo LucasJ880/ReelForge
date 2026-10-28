@@ -94,9 +94,12 @@ test("LENS-1 QuoteHeader：读数名与口径不再 truncate，只有大数字�
   const truncated = [...wall.matchAll(/className=(?:"([^"]*)"|\{cn\("([^"]*)")/g)]
     .map((match) => match[1] ?? match[2])
     .filter((className) => /\btruncate\b/.test(className));
-  assert.deepEqual(truncated, ["x-figure truncate"], "只有 x-figure 可以截断");
+  /// 2026-10-28 读数墙改成一排小数据卡（学 LibTV）：仍然只有数字可以截断
+  assert.deepEqual(truncated, ["truncate text-subhead font-semibold tabular-nums"], "只有读数数字可以截断");
   assert.match(wall, /<span className="min-w-0 break-words text-pretty">\{stat\.label\}<\/span>/);
-  assert.match(wall, /<dd className="break-words text-pretty text-meta text-muted-foreground">\{stat\.caption\}<\/dd>/);
+  /// 2026-10-28：口径说明收进悬停提示与读屏文本，不再撑大数据卡
+  assert.match(wall, /<dd className="sr-only">\{stat\.caption\}<\/dd>/);
+  assert.match(wall, /title=\{typeof stat\.caption === "string" \? stat\.caption : undefined\}/);
 });
 
 /* ── LENS-4 英文界面不挂中文模板名 ──────────────────────────────────── */
@@ -218,8 +221,8 @@ test("LENS-5 批次读数墙：已取消单独一格，各格加起来等于总�
   }
   const monitor = read("src/components/batch/batch-monitor.tsx");
   assert.match(monitor, /readings=\{batchMonitorReadings\(batch, \{/);
-  /// 7 格墙：四列两行，最后一格补齐，不留空格
-  assert.match(read("src/components/exchange/quote-header.tsx"), /7: "sm:grid-cols-4 \[&>\*:last-child\]:col-span-2"/);
+  /// 2026-10-28 读数改成自动换行的一排小数据卡：7 格也不会留空格
+  assert.match(read("src/components/exchange/quote-header.tsx"), /<dl aria-label=\{readingsLabel\} className="flex flex-wrap gap-2">/);
 });
 
 /* ── LENS-6 战绩页一次通过率：取消不算失败 ──────────────────────────── */

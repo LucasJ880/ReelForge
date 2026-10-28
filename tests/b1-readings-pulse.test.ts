@@ -197,7 +197,8 @@ test("壳层是 30 秒自刷新的客户端小岛；提交 / 取消 / 派发后�
   const shell = readFileSync("src/components/platform/platform-shell.tsx", "utf8");
   assert.match(shell, /const pulse = usePulse\(initialPulse, pathname\)/);
   assert.match(shell, /library: \{ count: pulse\.needsAttention, tone: "fault"/);
-  assert.match(shell, /leads: \{ count: pulse\.newLeads, tone: "winner"/);
+  /// 询盘入口 2026-10-28 下线：新询盘徽标随导航撤掉（脉搏里的 newLeads 仍在，放回导航时接回）
+  assert.doesNotMatch(shell, /leads: \{ count: pulse\.newLeads/);
   assert.match(shell, /batches: \{ count: pulse\.activeBatches, tone: "live"/);
   for (const file of [
     "src/components/batch/batch-create-wizard.tsx",

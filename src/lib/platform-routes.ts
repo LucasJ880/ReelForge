@@ -1,7 +1,6 @@
 export const PLATFORM_PRIMARY_NAV = [
-  /// 一句话进、一周排完（PRD §3 O1）。放在最前：它是新定位的主入口 ——
-  /// 小商家的痛点是发不出去、发得不连续，不是单条不够好。
-  { id: "plan", label: "本周内容", href: "/app/plan" },
+  /// 2026-10-28 瘦身（学 LibTV，只留 SunnyShutter 真实用过的主线）：「本周内容」（/app/plan）与「询盘」
+  ///（/app/leads，含询盘页与追踪链接）A 级下线——只撤导航，路由与代码保留可直达，要用时放回这里。
   { id: "create", label: "创作", href: "/app/create" },
   { id: "batches", label: "批量生产", href: "/app/batches" },
   /// R5 战绩页替换旧「投放与赛马」（PRD §10.4 A 级下线：导航移除，/app/racing 路由保留可直达）。
@@ -11,8 +10,8 @@ export const PLATFORM_PRIMARY_NAV = [
   { id: "library", label: "成品库", href: "/app/library" },
   { id: "brands", label: "品牌", href: "/app/brands" },
   { id: "templates", label: "模板库", href: "/app/templates" },
-  /// 1025 获客闭环（计划 6.4）：询盘、追踪链接与询盘页。放在最后。
-  { id: "leads", label: "询盘", href: "/app/leads" },
+  /// 2026-10-28 CEO 要的客户使用指南（学 LibTV「学院」）：侧栏底部，顶栏问号也直达。
+  { id: "guide", label: "使用指南", href: "/app/guide" },
 ] as const;
 
 export type PlatformNavId = (typeof PLATFORM_PRIMARY_NAV)[number]["id"];

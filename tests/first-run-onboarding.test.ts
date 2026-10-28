@@ -55,13 +55,15 @@ test("弹层由 studio 首启挂载，支持 guide=open 重开，且保留可隐
   assert.match(studio, /第一次使用，顺着五步完成/);
 });
 
-test("create 页透传 guide 参数；顶栏有重开入口", async () => {
-  const [page, shell] = await Promise.all([
+test("create 页透传 guide 参数；顶栏问号进使用指南，指南的上手篇重开新手指引", async () => {
+  const [page, shell, guide] = await Promise.all([
     readFile(CREATE_PAGE_PATH, "utf8"),
     readFile(SHELL_PATH, "utf8"),
+    readFile("src/lib/guide/guide-articles.ts", "utf8"),
   ]);
   assert.match(page, /guide/);
   assert.match(page, /forceOnboarding/);
-  assert.match(shell, /\/app\/create\?guide=open/);
-  assert.match(shell, /data-testid="topbar-help"/);
+  /// 2026-10-28：顶栏问号直达使用指南；「10 分钟做出第一条视频」的主行动带 guide=open 重开页内新手指引
+  assert.match(shell, /href="\/app\/guide"[\s\S]{0,80}data-testid="topbar-help"/);
+  assert.match(guide, /slug: "quick-start",[\s\S]{0,120}href: "\/app\/create\?guide=open"/);
 });

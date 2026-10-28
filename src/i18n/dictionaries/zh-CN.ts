@@ -545,6 +545,7 @@ export const zhCN: Dictionary = {
       brands: "品牌",
       templates: "模板库",
       leads: "询盘",
+      guide: "使用指南",
     },
     platformShell: {
       primaryNav: "平台主导航",

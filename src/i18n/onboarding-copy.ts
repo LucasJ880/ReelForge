@@ -151,7 +151,7 @@ const ZH: OnboardingCopy = {
   },
   welcome: {
     title: "上手",
-    subtitle: "四步把你的生意、品牌、第一条视频和询盘页接起来。每一步都能先跳过，之后在对应页面接着做。",
+    subtitle: "三步把你的生意、品牌和第一条视频接起来。每一步都能先跳过，之后在对应页面接着做。",
     readingsLabel: "上手进度",
     readingSteps: "已完成",
     readingQuota: "本月视频额度",
@@ -162,7 +162,7 @@ const ZH: OnboardingCopy = {
     leadPageOff: "未开通",
     leadPageRequested: "已申请",
     leadPageLive: "已开通",
-    scope: "数据口径：本工作区实时读取；每一步做没做完，按档案、品牌包、成片和询盘页的真实状态判断",
+    scope: "数据口径：本工作区实时读取；每一步做没做完，按档案、品牌包和成片的真实状态判断",
     skip: "先跳过，去创作",
     finish: "完成上手，去创作",
     finishing: "正在进入创作…",
@@ -172,7 +172,7 @@ const ZH: OnboardingCopy = {
     failed: "没保存成功，请稍后再试。",
     business: {
       title: "你的生意",
-      body: "店名、行业和城市会用在推荐模板、视频结尾的联系卡和询盘页上。",
+      body: "店名、行业和城市会用在推荐模板和视频结尾的联系卡上。",
       businessName: "店名 / 公司名",
       website: "网站或主页（选填）",
       websitePlaceholder: "例如：sunnyshutter.ca",
@@ -285,7 +285,7 @@ const EN: OnboardingCopy = {
   },
   welcome: {
     title: "Get started",
-    subtitle: "Four steps connect your business, brand, first video and inquiry page. Skip any step and pick it up later on its own page.",
+    subtitle: "Three steps connect your business, brand and first video. Skip any step and pick it up later on its own page.",
     readingsLabel: "Setup progress",
     readingSteps: "Done",
     readingQuota: "Videos this month",
@@ -296,7 +296,7 @@ const EN: OnboardingCopy = {
     leadPageOff: "Off",
     leadPageRequested: "Requested",
     leadPageLive: "Live",
-    scope: "Live from this workspace; each step counts as done from the real profile, brand kits, videos and inquiry page state",
+    scope: "Live from this workspace; each step counts as done from the real profile, brand kits and videos",
     skip: "Skip for now, go create",
     finish: "Finish setup, go create",
     finishing: "Opening the studio…",
@@ -306,7 +306,7 @@ const EN: OnboardingCopy = {
     failed: "Couldn't save. Please try again.",
     business: {
       title: "Your business",
-      body: "Your name, trade and city shape the recommended templates, the contact card at the end of each video and your inquiry page.",
+      body: "Your name, trade and city shape the recommended templates and the contact card at the end of each video.",
       businessName: "Business name",
       website: "Website or profile (optional)",
       websitePlaceholder: "e.g. sunnyshutter.ca",

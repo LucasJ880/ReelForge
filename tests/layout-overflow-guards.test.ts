@@ -33,19 +33,15 @@ test("RF-011 browser overflow regression covers all three desktop widths", async
   assert.match(source, /getBoundingClientRect/);
 });
 
-test("auth hero uses the bounded big-and-light display scale", async () => {
+test("auth gate: video half only from lg up, form column bounded, no wall that can overflow", async () => {
   const source = await readFile(
     path.join(ROOT, "src/app/(auth)/layout.tsx"),
     "utf8",
   );
-  // Exchange 登录门：大而轻的宣言，但上限钳住，窄屏不撑破。
-  assert.match(source, /x-display text-\[clamp\(2\.5rem,5\.4vw,5\.25rem\)\]/);
-  assert.match(source, /max-w-\[46ch\]/);
-  // 样片墙：三格等分且整块限宽，窄屏不横滚；取数失败整块不渲染。
-  assert.match(source, /<figure className="max-w-2xl/);
-  assert.match(source, /x-wall x-frame grid-cols-3/);
-  assert.match(source, /catch \{\s*return null;/);
-  assert.match(source, /<section className="min-w-0/);
+  // 2026-10-28 登录门与首页展厅同一语言：左半屏视频（窄屏隐藏），右侧表单限宽，不再有三格样片墙。
+  assert.match(source, /<section className="show-hero on-media hidden h-auto min-h-screen lg:block"/);
+  assert.match(source, /<div className="w-full max-w-md space-y-6">/);
+  assert.doesNotMatch(source, /x-wall|listActiveStyleTemplates/);
 });
 
 test("brand manager uses responsive cards without horizontal scrolling", async () => {

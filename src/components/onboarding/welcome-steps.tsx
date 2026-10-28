@@ -21,7 +21,8 @@ import { cn } from "@/lib/utils";
 type StepKey = keyof OnboardingState["steps"];
 type Copy = ReturnType<typeof getOnboardingCopy>;
 
-const STEP_ORDER: readonly StepKey[] = ["business", "brand", "video", "leadPage"];
+/// 2026-10-28 询盘入口 A 级下线：上手引导收成三步（询盘页一步的组件与接口保留，放回导航时加回这里）
+const STEP_ORDER: readonly StepKey[] = ["business", "brand", "video"];
 /// 老账号的默认工作区名，不当成店名预填
 const PLACEHOLDER_NAMES = new Set(["My Workspace"]);
 

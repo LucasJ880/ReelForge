@@ -33,7 +33,7 @@ const martianMono = Martian_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Aivora — AI Growth Exchange",
+  title: "Aivora — AI video studio for small businesses",
   description:
     "AI-powered short-form video creation: project setup, brand assets, AI direction, multi-segment video generation, preview and publish.",
 };

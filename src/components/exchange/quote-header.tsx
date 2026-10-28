@@ -22,15 +22,6 @@ const TONE: Record<QuoteTone, string> = {
   ai: "text-iris",
 };
 
-const WALL_COLUMNS: Record<number, string> = {
-  2: "",
-  3: "lg:grid-cols-3",
-  4: "lg:grid-cols-4",
-  5: "lg:grid-cols-5",
-  6: "sm:grid-cols-3 lg:grid-cols-6",
-  /// 7 格（批次详情）：四列两行，最后一格（进度）横跨两列补齐，不留空格露出接缝底色
-  7: "sm:grid-cols-4 [&>*:last-child]:col-span-2",
-};
 
 export type QuoteHeaderProps = {
   /** 标题：工作区页面一律是导航名（用 WorkspacePage 传 nav）；详情页是这一条的名字。 */
@@ -57,7 +48,8 @@ export type QuoteHeaderProps = {
 };
 
 /**
- * 行情头：每个工作区页面的开场。大而轻的标题 + 一面读数墙 + 一行统计口径。
+ * 页面头：每个工作区页面的开场。2026-10-28 学 LibTV：一个页面标题 + 一句说明 + 右侧行动；
+ * 读数不再是一面大格子墙，而是一排紧凑的小数据卡（真实数字，零就写零）+ 一行小字统计口径。
  * 主行动 / 次要行动 / 模式切换各有插槽；不加眉题，标题自己承重。
  */
 export function QuoteHeader({
@@ -77,9 +69,9 @@ export function QuoteHeader({
     <header className={cn("space-y-6", className)} data-quote-header>
       <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="min-w-0 max-w-4xl space-y-3">
-          <h1 className="x-display">{title}</h1>
+          <h1 className="studio-title">{title}</h1>
           {meta ? <div className="text-meta text-muted-foreground">{meta}</div> : null}
-          {subtitle ? <p className="max-w-[62ch] text-body text-muted-foreground text-pretty">{subtitle}</p> : null}
+          {subtitle ? <p className="studio-subtitle text-pretty">{subtitle}</p> : null}
         </div>
         {modeSwitch || hasActions ? (
           <div className="flex shrink-0 flex-wrap items-center gap-3">
@@ -95,20 +87,18 @@ export function QuoteHeader({
       </div>
       <div className="space-y-2">
         {readings.length > 0 ? (
-          <dl
-            aria-label={readingsLabel}
-            className={cn("x-wall x-frame grid-cols-2 max-lg:[&>*:last-child:nth-child(odd)]:col-span-2", WALL_COLUMNS[readings.length] ?? "lg:grid-cols-4")}
-          >
+          <dl aria-label={readingsLabel} className="flex flex-wrap gap-2">
             {readings.map((stat) => (
               <div
                 key={stat.label}
+                title={typeof stat.caption === "string" ? stat.caption : undefined}
                 className={cn(
-                  "relative flex min-w-0 flex-col gap-2.5 px-4 py-4 sm:px-5",
+                  "studio-stat relative flex min-w-36 max-w-full flex-col gap-1",
                   stat.href && "group transition-colors duration-fast ease-out hover:bg-raised focus-within:bg-raised motion-reduce:transition-none",
                 )}
               >
                 {/* 名字与口径在窄屏折行，不截断：390px 两列一格只有 ~170px，截断后「近 7 天」与口径都读不到（B2.1 读数与口径必填）。只有大数字保留单行。 */}
-                <dt className="x-label flex items-start justify-between gap-3">
+                <dt className="flex items-start justify-between gap-3 text-meta text-tertiary">
                   {stat.href ? (
                     <Link
                       href={stat.href}
@@ -123,13 +113,14 @@ export function QuoteHeader({
                     <ArrowRight className="mt-px size-3.5 shrink-0 text-tertiary transition-colors group-hover:text-accent" aria-hidden />
                   ) : null}
                 </dt>
-                <dd className={cn("x-figure truncate", TONE[stat.tone ?? "neutral"])}>{stat.value}</dd>
-                {stat.caption ? <dd className="break-words text-pretty text-meta text-muted-foreground">{stat.caption}</dd> : null}
+                <dd className={cn("truncate text-subhead font-semibold tabular-nums", TONE[stat.tone ?? "neutral"])}>{stat.value}</dd>
+                {/* 口径说明不再撑大卡片：悬停可见（title），读屏照常读到 */}
+                {stat.caption ? <dd className="sr-only">{stat.caption}</dd> : null}
               </div>
             ))}
           </dl>
         ) : null}
-        <p className="font-mono text-data text-tertiary text-pretty" data-slot="scope">{scope}</p>
+        <p className="text-meta text-tertiary text-pretty" data-slot="scope">{scope}</p>
       </div>
     </header>
   );

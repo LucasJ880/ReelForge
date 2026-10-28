@@ -561,6 +561,7 @@ export const enUS: Dictionary = {
       brands: "Brands",
       templates: "Template library",
       leads: "Inquiries",
+      guide: "Guide",
     },
     platformShell: {
       primaryNav: "Platform navigation",

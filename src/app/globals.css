@@ -93,7 +93,7 @@
   .x-panel,
   [data-slot="card"] {
     border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-card);
     background-color: var(--surface);
     box-shadow: var(--shadow-card);
   }
@@ -115,88 +115,57 @@
     box-shadow: var(--shadow-well);
   }
 
-  /* 行情墙：格子之间只露 1px 接缝，整面墙只有一个外框圆角 */
+  /* 2026-10-28 学 LibTV：原「行情墙」1px 接缝拼格改成有间距的卡片网格——每格自己一张中性卡 */
   .x-wall {
     display: grid;
-    gap: 1px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    background-color: var(--border);
+    gap: var(--space-3);
   }
 
   .x-wall > * {
     min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-card);
     background-color: var(--surface);
   }
 
-  /* 大屏角标：只给页面的主读数区和成交带，不给每一张卡 */
   .x-frame {
     position: relative;
   }
 
+  /* 角标装饰（行情大屏的取景框）2026-10-28 退役：LibTV 的卡片不带装饰线 */
   .x-frame::before,
   .x-frame::after {
-    content: "";
-    position: absolute;
-    z-index: 1;
-    width: 10px;
-    height: 10px;
-    pointer-events: none;
-    border-color: var(--accent-line);
+    content: none;
   }
 
-  .x-frame::before {
-    top: 0;
-    left: 0;
-    border-top: 1px solid;
-    border-left: 1px solid;
-    border-top-left-radius: var(--radius-lg);
-  }
-
-  .x-frame::after {
-    right: 0;
-    bottom: 0;
-    border-right: 1px solid;
-    border-bottom: 1px solid;
-    border-bottom-right-radius: var(--radius-lg);
-  }
-
-  /* 等宽小标签：数据的语气（不是眉题，不放在标题上方） */
+  /* 小标签：2026-10-28 起不再等宽大写，就是一行小字（LibTV 的界面字都是系统字） */
   .x-label {
-    font-family: var(--font-mono-family);
-    font-size: 10.5px;
+    font-size: var(--font-size-meta);
     font-weight: 500;
-    font-stretch: 87.5%;
-    letter-spacing: 0.06em;
-    line-height: 1.3;
-    text-transform: uppercase;
+    line-height: 1.4;
     color: var(--text-tertiary);
   }
 
-  /* 大而轻的标题：舞台感来自尺寸，不来自字重 */
+  /* 页面大标题：2026-10-28 学 LibTV，实字重、正常字宽（不再大而轻） */
   .x-display {
     font-family: var(--font-display-family);
-    font-size: var(--text-display);
-    font-weight: 300;
-    font-stretch: 108%;
-    line-height: var(--leading-display);
-    letter-spacing: -0.035em;
-    /* 平衡断行 + 严格避头：中文不把「。」「，」甩到行首；keep-all 会把整句中文变成一个词，别用 */
+    font-size: var(--font-size-section);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
     text-wrap: balance;
     line-break: strict;
     overflow-wrap: break-word;
   }
 
-  /* 大号读数：细、宽、等宽数字 */
+  /* 读数：等宽数字、实字重 */
   .x-figure {
     font-family: var(--font-display-family);
     font-size: var(--text-figure);
-    font-weight: 250;
-    font-stretch: 112%;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
-    letter-spacing: -0.02em;
-    line-height: 1;
+    letter-spacing: -0.01em;
+    line-height: 1.1;
   }
 
   .x-page {
@@ -859,6 +828,16 @@
   transform: none;
 }
 
+/* 登录门：压在视频上的口号（比首页标题小一档，中文两行） */
+.show-gate-title {
+  font-family: var(--font-display-family);
+  font-size: var(--show-text-gate-title);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--show-on-media);
+}
+
 .show-wordmark {
   font-size: var(--show-text-wordmark);
   font-weight: 600;
@@ -927,6 +906,105 @@
   .show-arrow {
     display: none;
   }
+}
+
+/*
+ * 工作区页面（2026-10-28 学 LibTV 工作台，docs/reference/taste/liblib.tv.md）：
+ * 一个页面标题 + 一句说明 + 内容；卡片是中性实底 + 发丝线 + 16px 圆角，悬停只抬一档底色，不加投影。
+ */
+.studio-page {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+
+.studio-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4) var(--space-8);
+}
+
+.studio-title {
+  font-family: var(--font-display-family);
+  font-size: var(--font-size-section);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.studio-subtitle {
+  max-width: 64ch;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-body);
+  line-height: var(--leading-body);
+  color: var(--text-secondary);
+}
+
+.studio-section-title {
+  font-size: var(--font-size-subhead);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.studio-card {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background-color: var(--surface);
+  transition:
+    border-color var(--motion-fast) var(--ease-out),
+    background-color var(--motion-fast) var(--ease-out);
+}
+
+a.studio-card:hover,
+.studio-card[data-interactive="true"]:hover {
+  border-color: var(--border-strong);
+  background-color: var(--surface-raised);
+}
+
+.studio-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-pill);
+  background-color: var(--surface-raised);
+  font-size: var(--font-size-meta);
+  color: var(--text-secondary);
+}
+
+.studio-stat {
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tile);
+  background-color: var(--surface);
+}
+
+.studio-cta {
+  display: inline-flex;
+  height: var(--control-height);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-pill);
+  background-color: var(--text-primary);
+  font-size: var(--font-size-body);
+  font-weight: 600;
+  color: var(--bg);
+  transition: opacity var(--motion-fast) var(--ease-out);
+}
+
+.studio-cta:hover {
+  opacity: 0.9;
+}
+
+.studio-cta:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {

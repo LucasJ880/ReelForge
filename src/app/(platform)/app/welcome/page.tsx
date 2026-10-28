@@ -24,12 +24,8 @@ export default async function WelcomePage() {
   const locale = await getServerLocale();
   const copy = getOnboardingCopy(locale).welcome;
   const state = await loadOnboardingState(session.user.id, locale);
-  const done = Object.values(state.steps).filter((status) => status === "done").length;
-  const leadPageWord = state.leadPage.enabled
-    ? copy.leadPageLive
-    : state.leadPage.requestedAt
-      ? copy.leadPageRequested
-      : copy.leadPageOff;
+  /// 2026-10-28 询盘入口下线：上手只算三步（生意、品牌、第一条视频）
+  const done = [state.steps.business, state.steps.brand, state.steps.video].filter((status) => status === "done").length;
 
   return (
     <div className="x-stack min-w-0" data-testid="welcome-page">
@@ -40,14 +36,13 @@ export default async function WelcomePage() {
         secondaryActions={<OnboardingExit mode="skip" locale={locale} />}
         readingsLabel={copy.readingsLabel}
         readings={[
-          { label: copy.readingSteps, value: `${done} / 4`, tone: done === 4 ? "filled" : "neutral" },
+          { label: copy.readingSteps, value: `${done} / 3`, tone: done === 3 ? "filled" : "neutral" },
           {
             label: copy.readingQuota,
             value: `${state.quota.used} / ${state.quota.limit}`,
             caption: copy.readingQuotaCaption,
           },
           { label: copy.readingBrand, value: state.brandPackageName ?? copy.readingBrandNone },
-          { label: copy.readingLeadPage, value: leadPageWord, tone: state.leadPage.enabled ? "live" : "neutral" },
         ]}
         scope={copy.scope}
       />

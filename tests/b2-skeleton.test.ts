@@ -293,7 +293,8 @@ test("B2.6 登录门：口号与首页同一定位（不再「赛出赢家」）
   const en = getPlatformCopy("en-US").auth;
   assert.doesNotMatch(`${zh.titleLead}${zh.titleAccent.join("")}${zh.subtitle}`, /赛出赢家|加仓|赢家/);
   assert.doesNotMatch(`${en.titleLead}${en.titleAccent.join(" ")}`, /Race|winner/i);
-  assert.equal(`${zh.titleLead}${zh.titleAccent.join("")}`, "批量出片，找到带来询盘的那一条。");
+  /// 2026-10-28 询盘入口下线、首页改「展厅」：登录门口号与首页同一句定位
+  assert.equal(`${zh.titleLead}${zh.titleAccent.join("")}`, "一张商品图，拍成一条能直接发的广告。");
   // 宣言后半句按意群分段、各段不折行
   assert.match(read("src/app/(auth)/layout.tsx"), /copy\.titleAccent\.map\(\(part, index\) => \([\s\S]*?<span className="inline-block">\{part\}<\/span>/);
   assert.equal(zh.pilotCta, "申请试点");

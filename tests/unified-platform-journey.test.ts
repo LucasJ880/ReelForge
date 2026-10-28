@@ -8,7 +8,7 @@ import { PLATFORM_PRIMARY_NAV, platformPathAfterGeneration } from "../src/lib/pl
 /// 这里仍然逐项断言而不是只数个数 —— 一级区的增减必须是有意的产品决定。
 test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
   assert.deepEqual(PLATFORM_PRIMARY_NAV.map(({ label, href }) => ({ label, href })), [
-    { label: "本周内容", href: "/app/plan" },
+    /// 2026-10-28 瘦身（学 LibTV）：「本周内容」与「询盘」A 级下线，路由保留可直达。
     { label: "创作", href: "/app/create" },
     { label: "批量生产", href: "/app/batches" },
     /// 「战绩」入口暂时下线（2026-10-25 审计 B5）：表现数据回流没开，页面只能是零；
@@ -16,8 +16,8 @@ test("Phase1 unified journey：一级区只有一套 /app 路径", () => {
     { label: "成品库", href: "/app/library" },
     { label: "品牌", href: "/app/brands" },
     { label: "模板库", href: "/app/templates" },
-    /// 1025 获客闭环（计划 6.4）：追加在最后。
-    { label: "询盘", href: "/app/leads" },
+    /// 2026-10-28 客户使用指南（学 LibTV「学院」）
+    { label: "使用指南", href: "/app/guide" },
   ]);
   assert.ok(
     !PLATFORM_PRIMARY_NAV.map((item): string => item.href).includes("/app/wins"),

@@ -258,7 +258,7 @@ test("状态页：行情头读数（零就写零）+ 每个能力一格（Status
 
   const html = renderToStaticMarkup(React.createElement(CapabilityBoard, { capabilities: PRODUCTION_1025, locale: "zh-CN" }));
   assert.match(html, /data-testid="capability-board"/);
-  assert.match(html, /<h1 class="x-display">能力状态<\/h1>/);
+  assert.match(html, /<h1 class="studio-title">能力状态<\/h1>/);
   assert.match(html, /x-wall/);
   // 读数墙四格：正常 / 不稳定 / 暂停 / 未开通（状态词从词典取）
   for (const word of ["正常", "不稳定", "暂停", "未开通"]) assert.match(html, new RegExp(`>${word}<`));

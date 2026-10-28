@@ -100,6 +100,9 @@
   --radius-sm: 3px;
   --radius-md: 6px;
   --radius-lg: 10px;
+  /* 工作区卡片（2026-10-28 学 LibTV：媒体卡 16px、缩略图 12px） */
+  --radius-card: 16px;
+  --radius-tile: 12px;
   /* 深度：接缝 + 顶缘冷光；只有浮层有投影 */
   --shadow-card: var(--edge);
   --shadow-float:
@@ -158,6 +161,7 @@
   /* 展厅字阶（Seedance 2.5 官网：首屏 100 / 节标题 32 / 正文 16 / 导航 14 / 角标 13） */
   --show-text-title: clamp(56px, 7vw, 100px);
   --show-text-section: clamp(26px, 2.6vw, 32px);
+  --show-text-gate-title: clamp(40px, 3.6vw, 56px);
   --show-text-body: 16px;
   --show-text-ui: 14px;
   --show-text-chip: 13px;

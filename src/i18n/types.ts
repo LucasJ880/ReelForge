@@ -440,6 +440,7 @@ export type Dictionary = {
       brands: string;
       templates: string;
       leads: string;
+      guide: string;
     };
     platformShell: {
       primaryNav: string;

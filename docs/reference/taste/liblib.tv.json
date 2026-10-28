@@ -1,0 +1,69 @@
+{
+  "source": "https://www.liblib.tv/ (workspace home, logged out) + https://www.liblib.tv/creation/process?id=… (read-only canvas and 故事板 view)",
+  "tokens": {
+    "spacing": { "scale": [2, 4, 6, 8, 12, 16, 28, 40, 48], "base_unit": 4 },
+    "typography": {
+      "families": ["-apple-system (system UI stack)"],
+      "scale": [
+        { "role": "section-title", "size": "20px", "weight": "600" },
+        { "role": "primary-ui", "size": "14px", "weight": "400-500" },
+        { "role": "secondary-ui", "size": "13px", "weight": "400" },
+        { "role": "meta", "size": "12px", "weight": "400" },
+        { "role": "badge", "size": "11px", "weight": "500" }
+      ]
+    },
+    "colors": [
+      { "role": "page", "value": "#141414" },
+      { "role": "sidebar", "value": "#121212" },
+      { "role": "panel", "value": "#171717" },
+      { "role": "raised-surface", "value": "rgba(255,255,255,0.05-0.06)" },
+      { "role": "chip", "value": "#363636" },
+      { "role": "hairline", "value": "1px rgba(255,255,255,0.08)" },
+      { "role": "text-primary", "value": "#F7F7F7" },
+      { "role": "text-secondary", "value": "#A8A8A8" },
+      { "role": "text-tertiary", "value": "rgba(255,255,255,0.6)" },
+      { "role": "accent (badges only)", "value": "#04CAF6 on rgba(8,182,221,0.12)" },
+      { "role": "primary-cta", "value": "#FFFFFF pill with dark text" }
+    ],
+    "radius": ["4px", "6px", "8px", "16px", "20px", "9999px"],
+    "shadows": [],
+    "motion": ["color/background 0.15s cubic-bezier(0.4,0,0.2,1)", "width 0.2s cubic-bezier(0,0,0.2,1)", "transform 0.45s"],
+    "image_ratios": [
+      { "usage": "home quick-tool tile", "ratio": "133x86 tile, 98x56 icon box" },
+      { "usage": "new-canvas hero card", "ratio": "1120x160" },
+      { "usage": "storyboard image wall", "ratio": "square-ish thumbnails, 9 per row" },
+      { "usage": "storyboard video wall", "ratio": "16:9 thumbnails, 5 per row, duration badge top-right" }
+    ],
+    "grid": { "sidebar": "240px fixed", "content": "fluid, 1120px at 1440", "columns": "8 quick tools / 5 cards / 9 image tiles" }
+  },
+  "taste": [
+    {
+      "name": "One giant verb, then shortcuts",
+      "trigger": "When a returning creator lands on the workspace home",
+      "decision": "Chose a single 1120x160 '新建画布创作' card with one + button, followed by a row of 8 equal model/tool tiles, over a dashboard of stats, onboarding checklists or project tables",
+      "reason": "The only thing a creator wants on arrival is to start making; everything else (models, past work, community) is a shortcut into that same act",
+      "evidence": ["new-canvas card 1120x160 at the top of the content column", "8 tiles 133x86 with 98x56 icon boxes rgba(255,255,255,0.05), radius 16px", "no numbers or charts on the home"]
+    },
+    {
+      "name": "Grey chrome, media carries the color",
+      "trigger": "When the workspace is full of thumbnails and generated clips",
+      "decision": "Chose four near-black neutrals (#121212/#141414/#171717 + 5-6% white surfaces) and #F7F7F7/#A8A8A8 text, keeping the single cyan #04CAF6 for tiny badges, over themed panels or colored section headers",
+      "reason": "Hundreds of colorful thumbnails already compete; neutral chrome lets a creator judge the output's color without a tinted frame around it",
+      "evidence": ["72.6% of area #141414", "no box-shadows in use", "cyan appears only on 11-12px badges with a 12% tint background"]
+    },
+    {
+      "name": "Assets sorted by role, not by date",
+      "trigger": "When a project has dozens of generated images and clips",
+      "decision": "Chose a 故事板 view that groups images into 角色 / 场景 / 物品 tabs and videos into 视频片段 / 成片, with duration badges, over one chronological stream",
+      "reason": "A creator assembling a shot asks 'which character sheet / which scene plate', so the asset wall answers in those terms — the same roles the generation prompts reference",
+      "evidence": ["图片 43 with tabs 全部/角色/场景/物品/其他", "视频 16 with tabs 全部/视频片段/成片 and '4秒/14秒' badges", "文本 and 音频 (背景音乐 03:06, 旁白音色 00:02) in a left rail"]
+    },
+    {
+      "name": "Dense UI, no decoration",
+      "trigger": "When choosing the density of a pro tool",
+      "decision": "Chose 11-14px system type, a 4px spacing base and zero shadows over a spacious marketing-style UI",
+      "reason": "Creators keep the workspace open for hours next to large media; small, quiet controls leave the pixels to the work",
+      "evidence": ["font sizes 14/13/12/11 cover 101 of 118 text nodes", "4px is the most common spacing (107 uses)", "only system font stack"]
+    }
+  ]
+}

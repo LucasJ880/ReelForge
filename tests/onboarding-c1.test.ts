@@ -128,9 +128,12 @@ test("首页媒体：都在生产 Blob（不走 /brand/*），英雄墙标 AI �
     assert.match(url, /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/renders\/marketing\/landing-1025\//, url);
     assert.doesNotMatch(url, /\/brand\//, url);
   }
-  const landing = read("src/components/leads/pilot-landing.tsx");
-  assert.match(landing, /<AiGeneratedLabel compact=\{index !== 0\} \/>/);
-  assert.match(landing, /<MonoTag>\{copy\.proofTag\}<\/MonoTag>/);
+  /// 2026-10-28 展厅：首屏视频与每张成片卡都标 AI 生成；关联方交付写明关系
+  const landing = read("src/components/landing/showroom-landing.tsx");
+  assert.match(landing, /<AiGeneratedLabel compact className="mb-4" \/>/);
+  assert.ok((landing.match(/<AiGeneratedLabel compact \/>/g) ?? []).length >= 4, "每张成片卡都有 AI 标注");
+  assert.match(getGrowthCopy("zh-CN").landing.showroom.deliveredBody, /关联方 SunnyShutter/);
+  assert.match(getGrowthCopy("en-US").landing.showroom.deliveredBody, /affiliate SunnyShutter/);
   assert.match(getGrowthCopy("zh-CN").landing.proofNote, /关联方，不是第三方客户/);
   assert.match(getGrowthCopy("en-US").landing.proofNote, /related party of Aivora, not an independent customer/);
 });

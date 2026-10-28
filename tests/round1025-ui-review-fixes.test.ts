@@ -324,19 +324,15 @@ test("LENS-9 暂停横幅：不说熔断 / circuit breaker，只说拥堵与自�
 
 /* ── LENS-10 首页一页一枚实心主钮 ───────────────────────────────────── */
 
-test("LENS-10 首页（C1 改）：hero 的「申请 30 天陪跑」描边；全页唯一实心钮是「免费试做」→ 注册，表单提交描边", () => {
-  const landing = read("src/components/leads/pilot-landing.tsx");
+test("LENS-10 首页（2026-10-28 展厅）：全页唯一实心主行动是「免费试做」白色胶囊 → 注册；看样片 / 申请陪跑是玻璃胶囊；表单提交描边", () => {
+  const landing = read("src/components/landing/showroom-landing.tsx");
   const form = read("src/components/leads/pilot-application-form.tsx");
-  assert.match(landing, /<Button render=\{<a href="#pilot-apply" \/>\} size="lg" variant="outline">/);
-  assert.match(landing, /<Button render=\{<Link href="\/register" \/>\} size="lg">/);
+  const primaries = [...landing.matchAll(/<(?:Link|a)\b[^>]*data-primary="true"[^>]*>/g)].map((match) => match[0]);
+  assert.equal(primaries.length, 1, `实心主行动：${primaries.join(" | ")}`);
+  assert.match(primaries[0]!, /href="\/register"/);
+  assert.match(landing, /<a href="#pilot-apply" className="show-glass">/);
+  assert.match(landing, /<a href="#samples" className="show-glass">/);
+  /// 展厅里不再用 <Button> 实心钮；申请表的提交仍然描边
+  assert.doesNotMatch(landing, /<Button\b/);
   assert.match(form, /<Button type="submit" variant="outline"/);
-  /// 没写 variant 的 <Button> 就是实心主钮：两份文件加起来只能有一枚
-  const solid = [landing, form]
-    /// render={<a … />} 里的「>」会截断开标签：先把 render 属性折叠掉再找开标签
-    .map((source) => source.replace(/render=\{<[^}]*\/>\}/g, "render"))
-    .flatMap((source) => [...source.matchAll(/<Button\b[^>]*>/g)].map((match) => match[0]))
-    .filter((tag) => !/\bvariant=/.test(tag));
-  assert.equal(solid.length, 1, `实心主钮：${solid.join(" | ")}`);
-  assert.match(solid[0]!, /size="lg"/);
-  assert.doesNotMatch(solid[0]!, /type="submit"/);
 });

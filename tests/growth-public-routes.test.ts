@@ -208,13 +208,12 @@ test("试点申请路由：过了全局繁忙线照收，但不排通知（servi
   }
 });
 
-test("首页：未登录渲染首页、已登录仍按身份直达工作台；模板计数取真实模板库（取不到就不显示）", () => {
+test("首页：未登录渲染展厅首页、已登录仍按身份直达工作台；首屏不放读数", () => {
   const page = readFileSync("src/app/page.tsx", "utf8");
-  /// C1：电商样片墙换成上门服务场景（landing-media），首页只读模板库计数
-  assert.match(page, /hasVerifiedTemplateVideo\(template\.slug\)/);
-  assert.match(page, /setTimeout\(\(\) => reject\(new Error\("landing counts timeout"\)\), 1500\)/);
-  assert.match(page, /<PilotLanding locale=\{locale\} counts=\{counts\}/);
-  assert.match(page, /<PilotLanding /);
+  /// 2026-10-28：首页换成「展厅」（学 Seedance 2.5 官网）——首屏只有视频、一句标题、一句话和三个胶囊，
+  /// 不再读模板库计数（Taste DNA：The hero speaks once, at the bottom），也就不再查库。
+  assert.match(page, /<ShowroomLanding locale=\{locale\} fallbackEmail=\{contactEmail\(\)\} \/>/);
+  assert.doesNotMatch(page, /listActiveStyleTemplates|PilotLanding/);
   for (const target of ['redirect("/business")', 'redirect("/personal")', 'redirect("/internal/orders")', 'redirect("/persona")']) {
     assert.ok(page.includes(target), target);
   }

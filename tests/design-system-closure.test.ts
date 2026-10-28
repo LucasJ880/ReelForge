@@ -57,10 +57,17 @@ test("font and motion roles are tokenized and motion is capped at 300ms", () => 
   assert.match(readFileSync("src/app/globals.css", "utf8"), /prefers-reduced-motion:\s*reduce/);
 });
 
-test("旧玻璃世界零残留：没有品牌橙、没有毛玻璃、没有 glass/editorial 材质名", () => {
+/// 2026-10-28 首页展厅（学 Seedance 2.5 官网）：毛玻璃只允许出现在 globals.css 里 `.on-media` 开头的规则中
+/// （压在全屏视频上的胶囊）。把这些规则体剔掉后，全站不得再出现 backdrop 模糊。
+function withoutOnMediaRules(source: string): string {
+  return source.replace(/(^|\n)\s*\.on-media[^{]*\{[^}]*\}/g, "$1");
+}
+
+test("旧玻璃世界零残留：没有品牌橙、没有毛玻璃（视频之上的 .on-media 例外）、没有 glass/editorial 材质名", () => {
   const sources = walk("src").filter((file) => /\.(?:css|tsx?)$/.test(file));
   const offenders = sources.flatMap((file) => {
-    const source = readFileSync(file, "utf8");
+    const raw = readFileSync(file, "utf8");
+    const source = file === "src/app/globals.css" ? withoutOnMediaRules(raw) : raw;
     const hits = [
       /ff4d00/i.test(source) ? "brand orange #ff4d00" : "",
       /backdrop-filter|backdrop-blur/.test(source) ? "backdrop blur" : "",
@@ -71,6 +78,8 @@ test("旧玻璃世界零残留：没有品牌橙、没有毛玻璃、没有 glas
     return hits.map((hit) => `${file}: ${hit}`);
   });
   assert.deepEqual(offenders, []);
+  // 例外是真的被用上了，而且只在视频之上
+  assert.match(readFileSync("src/app/globals.css", "utf8"), /\.on-media \.show-glass \{[^}]*backdrop-filter/);
   // 品牌标记不再是胶片 / 场记板意象
   assert.doesNotMatch(readFileSync("src/components/ui/logo.tsx", "utf8"), /Clapperboard/);
 });

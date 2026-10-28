@@ -25,6 +25,41 @@ export const LANDING_PROOF_VIDEOS: ReadonlyArray<{ video: string; poster: string
   { video: `${BASE}/proof-c1.mp4`, poster: `${BASE}/proof-c1.jpg` },
 ];
 
+/**
+ * 首页展厅（2026-10-28，学 Seedance 2.5 官网「输入 → 成片」配对轮播）：左上角是输入（商品图），整卡是成片。
+ * 成片只取 SHOWCASE_SAFE_SLUGS（template-sample.ts，1025 逐帧复看过的公开安全样片）；商品图是同一批样片的输入集
+ * （tmp/real-template-samples/template-samples-20260803-v1.json 的 productImages），都在生产 Blob。
+ */
+const SAMPLE_INPUTS = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1";
+
+export type ShowroomPair = {
+  slug: "commerce-beauty-texture" | "commerce-food-sizzle" | "commerce-outdoor-rugged";
+  inputs: readonly string[];
+  video: string;
+  poster: string;
+};
+
+export const SHOWROOM_PRODUCT_PAIRS: ReadonlyArray<ShowroomPair> = [
+  {
+    slug: "commerce-beauty-texture",
+    inputs: [`${SAMPLE_INPUTS}/serum/1785771935289-0.png`, `${SAMPLE_INPUTS}/serum/1785771977211-0.png`],
+    video: "/template-previews/commerce-beauty-texture.mp4",
+    poster: "/template-previews/commerce-beauty-texture.jpg",
+  },
+  {
+    slug: "commerce-food-sizzle",
+    inputs: [`${SAMPLE_INPUTS}/coffee/1785772718006-0.png`, `${SAMPLE_INPUTS}/coffee/1785772760730-0.png`],
+    video: "/template-previews/commerce-food-sizzle.mp4",
+    poster: "/template-previews/commerce-food-sizzle.jpg",
+  },
+  {
+    slug: "commerce-outdoor-rugged",
+    inputs: [`${SAMPLE_INPUTS}/backpack/1785772401409-0.png`, `${SAMPLE_INPUTS}/backpack/1785772447829-0.png`],
+    video: "/template-previews/commerce-outdoor-rugged.mp4",
+    poster: "/template-previews/commerce-outdoor-rugged.jpg",
+  },
+];
+
 export const LANDING_STORYBOARD_FRAMES: readonly string[] = [
   `${BASE}/storyboard-0.8.jpg`,
   `${BASE}/storyboard-4.6.jpg`,

@@ -94,6 +94,27 @@ interface GrowthCopy {
     applyNext: string[];
     privacy: string;
     terms: string;
+    /** 2026-10-28 首页展厅（学 Seedance 2.5 官网）：一句标题、一句话、三个等宽胶囊；每节一个标题 + 一句话 + 配对轮播。 */
+    showroom: {
+      nav: { samples: string; how: string; apply: string };
+      heroTitle: string;
+      heroLead: string;
+      ctaSamples: string;
+      sceneLabel: string;
+      pairsTitle: string;
+      pairsBody: string;
+      inputChip: string;
+      outputChip: string;
+      pairNames: Record<"commerce-beauty-texture" | "commerce-food-sizzle" | "commerce-outdoor-rugged", string>;
+      storyboardTitle: string;
+      storyboardBody: string;
+      storyboardChip: string;
+      deliveredTitle: string;
+      deliveredBody: string;
+      deliveredChip: string;
+      prev: string;
+      next: string;
+    };
   };
   pilotForm: {
     label: string;
@@ -370,6 +391,30 @@ const ZH: GrowthCopy = {
     applyNext: ["我们用你留下的方式联系你", "约一次通话，了解你的服务、地区和现在的获客方式", "约定试点内容、费用与结果口径后再开通"],
     privacy: "隐私政策",
     terms: "服务条款",
+    showroom: {
+      nav: { samples: "样片", how: "怎么做", apply: "申请陪跑" },
+      heroTitle: "Aivora",
+      heroLead: "给小商家的短视频工作室：一张商品图起稿，按你点头的故事板拍成片，每一条询盘都记在账上。",
+      ctaSamples: "看样片",
+      sceneLabel: "AI 生成场景",
+      pairsTitle: "一张商品图，拍成一条广告",
+      pairsBody: "上传商品实拍，Aivora 先写镜头、出四帧故事板，再按它拍 15 秒成片；商品长什么样，成片里就是什么样。",
+      inputChip: "商品图",
+      outputChip: "成片",
+      pairNames: {
+        "commerce-beauty-texture": "精华液 · 质感特写",
+        "commerce-food-sizzle": "咖啡 · 现做现拍",
+        "commerce-outdoor-rugged": "背包 · 户外实景",
+      },
+      storyboardTitle: "按你点头的故事板拍",
+      storyboardBody: "每一镜写清焦段、机位和动作，先给你看四帧，确认了才开拍；哪一帧不满意，只重抽那一帧。",
+      storyboardChip: "故事板",
+      deliveredTitle: "真实交付",
+      deliveredBody: "关联方 SunnyShutter 用 Aivora 做的三条窗饰广告，已在他们的渠道上投放。",
+      deliveredChip: "已投放",
+      prev: "上一组",
+      next: "下一组",
+    },
   },
   pilotForm: {
     label: "试点申请表",
@@ -720,6 +765,30 @@ const EN: GrowthCopy = {
     ],
     privacy: "Privacy",
     terms: "Terms",
+    showroom: {
+      nav: { samples: "Samples", how: "How it works", apply: "Apply" },
+      heroTitle: "Aivora",
+      heroLead: "A video studio for small businesses: start from one product photo, shoot from the storyboard you approve, and count every inquiry it brings in.",
+      ctaSamples: "See samples",
+      sceneLabel: "AI-generated scene",
+      pairsTitle: "One product photo, one finished ad",
+      pairsBody: "Upload real photos of your product. Aivora writes the shots, shows you four storyboard frames, then films a 15-second ad from them — the product looks the way it really does.",
+      inputChip: "Product photo",
+      outputChip: "Finished ad",
+      pairNames: {
+        "commerce-beauty-texture": "Serum · texture close-ups",
+        "commerce-food-sizzle": "Coffee · made to order",
+        "commerce-outdoor-rugged": "Backpack · on the trail",
+      },
+      storyboardTitle: "Filmed from the storyboard you approve",
+      storyboardBody: "Every shot names its lens, camera position and action. You see four frames first and filming starts only after you approve; redo just the frame you don't like.",
+      storyboardChip: "Storyboard",
+      deliveredTitle: "Delivered work",
+      deliveredBody: "Three window-shade ads our affiliate SunnyShutter made with Aivora and runs on its own channels.",
+      deliveredChip: "Running",
+      prev: "Previous",
+      next: "Next",
+    },
   },
   pilotForm: {
     label: "Pilot application",

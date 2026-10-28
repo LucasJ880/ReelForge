@@ -111,6 +111,58 @@
   --motion-base: 200ms;
   --motion-slow: 300ms;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /*
+   * 公开首页「展厅」（2026-10-28，学 Seedance 2.5 官网，docs/reference/taste/seed.bytedance.com.md）：
+   * 第一幕全屏静音视频（--show-field 垫底），文字只放在底部；第二幕浅灰画廊（--show-canvas），
+   * 「输入 → 成片」配对卡。界面是灰的，颜色只来自成片；毛玻璃只给压在视频上的控件（.on-media）。
+   */
+  --show-field: #18191b;
+  --show-canvas: #f8f8f8;
+  --show-ink: #212121;
+  --show-ink-2: rgb(33 33 33 / 0.8);
+  --show-ink-3: rgb(33 33 33 / 0.5);
+  --show-hairline: rgb(33 33 33 / 0.08);
+  --show-on-media: #ffffff;
+  --show-on-media-2: rgb(255 255 255 / 0.72);
+  --show-glass: rgb(255 255 255 / 0.2);
+  --show-glass-hover: rgb(255 255 255 / 0.3);
+  --show-primary: #ffffff;
+  --show-primary-hover: #ececee;
+  --show-primary-ink: #18191b;
+  --show-glass-blur: blur(12px);
+  --show-pill-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.5),
+    inset 0 -1px 0 rgb(255 255 255 / 0.1),
+    0 8px 32px rgb(0 0 0 / 0.1);
+  --show-nav-pill: rgb(249 249 251 / 0.08);
+  --show-nav-pill-hover: rgb(249 249 251 / 0.16);
+  --show-chip: rgb(0 0 0 / 0.45);
+  --show-chip-ink: rgb(255 255 255 / 0.85);
+  --show-arrow: #ececee;
+  --show-arrow-hover: #e2e2e5;
+  --show-scrim-bottom: linear-gradient(to top, rgb(0 0 0 / 0.62), rgb(0 0 0 / 0.18) 38%, rgb(0 0 0 / 0) 60%);
+  --show-scrim-top: linear-gradient(to bottom, rgb(0 0 0 / 0.42), rgb(0 0 0 / 0) 22%);
+  --show-card-scrim: linear-gradient(to bottom, rgb(0 0 0 / 0.38), rgb(0 0 0 / 0) 34%);
+  --radius-show-card: 20px;
+  --radius-show-feature: 30px;
+  --radius-show-chip: 4px;
+  --radius-show-panel: 12px;
+  --radius-show-frame: 10px;
+  --radius-show-thumb: 8px;
+  --radius-pill: 999px;
+  /* 展厅字阶（Seedance 2.5 官网：首屏 100 / 节标题 32 / 正文 16 / 导航 14 / 角标 13） */
+  --show-text-title: clamp(56px, 7vw, 100px);
+  --show-text-section: clamp(26px, 2.6vw, 32px);
+  --show-text-body: 16px;
+  --show-text-ui: 14px;
+  --show-text-chip: 13px;
+  --show-text-wordmark: 15px;
+  --show-text-caption: 15px;
+  /* 展厅入场与轮播：电影感慢曲线（只用于首页第一幕与画廊入场；prefers-reduced-motion 下关闭） */
+  --reveal-base: 600ms;
+  --reveal-slow: 1200ms;
+  --ease-cinema: cubic-bezier(0.32, 0.94, 0.6, 1);
   --control-height: 40px;
   --control-padding-inline: 16px;
   --card-padding-x: 24px;

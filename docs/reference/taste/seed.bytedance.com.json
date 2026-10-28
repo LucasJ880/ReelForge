@@ -1,0 +1,79 @@
+{
+  "source": "https://seed.bytedance.com/en/seedance2_5",
+  "tokens": {
+    "spacing": {
+      "scale": [8, 13, 16, 20, 32, 40, 48, 56, 120],
+      "base_unit": 8
+    },
+    "typography": {
+      "families": ["Stack Sans Headline"],
+      "scale": [
+        { "role": "hero", "size": "100px", "weight": "600", "line_height": "100px", "letter_spacing": "-2px", "family": "Stack Sans Headline" },
+        { "role": "section-title", "size": "32px", "weight": "500", "line_height": "44px", "letter_spacing": "normal", "family": "Stack Sans Headline" },
+        { "role": "nav-and-button", "size": "16px", "weight": "400-500", "line_height": "normal", "letter_spacing": "0.32px", "family": "Stack Sans Headline" },
+        { "role": "body", "size": "16px", "weight": "400", "line_height": "20px", "family": "Stack Sans Headline" },
+        { "role": "chip-and-footer", "size": "14px", "weight": "400-500", "line_height": "22px", "family": "Stack Sans Headline" },
+        { "role": "legal", "size": "12px", "weight": "400", "line_height": "18px", "family": "Stack Sans Headline" }
+      ]
+    },
+    "colors": [
+      { "role": "hero-field (behind video)", "value": "#18191B" },
+      { "role": "gallery-canvas", "value": "#F8F8F8" },
+      { "role": "text-primary-on-light", "value": "#212121" },
+      { "role": "text-secondary-on-light", "value": "rgba(33,33,33,0.8)" },
+      { "role": "text-tertiary-on-light", "value": "rgba(33,33,33,0.5)" },
+      { "role": "text-on-video", "value": "#FFFFFF" },
+      { "role": "glass-button-on-video", "value": "rgba(255,255,255,0.20) + backdrop-filter blur(12px)" },
+      { "role": "nav-pill-on-video", "value": "rgba(249,249,251,0.08) / 0.14 hover" },
+      { "role": "mode-chip-on-media", "value": "rgba(0,0,0,0.45) bg, rgba(255,255,255,0.85) text" },
+      { "role": "carousel-arrow-on-light", "value": "#F7F8FA" }
+    ],
+    "radius": ["2px", "4px", "16px", "20px", "30px", "999px"],
+    "shadows": [
+      "0 8px 32px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.50), inset 0 -1px 0 rgba(255,255,255,0.10)"
+    ],
+    "motion": [
+      "opacity 0.6s cubic-bezier(0.32,0.94,0.6,1)",
+      "transform 0.8s cubic-bezier(0.32,0.94,0.6,1)",
+      "transform 1.2s cubic-bezier(0.66,0,0.34,1) with 0.1s stagger",
+      "color/background 0.25s cubic-bezier(0.4,0,0.2,1)"
+    ],
+    "image_ratios": [
+      { "usage": "hero video (full-bleed, 1440x900 viewport, source 1280x720)", "ratio": "16:10 viewport crop of 16:9" },
+      { "usage": "feature video", "ratio": "16:9 (1200x675)" },
+      { "usage": "capability carousel cards", "ratio": "530-1067 x 600 (0.88:1 to 1.78:1)" },
+      { "usage": "showcase masonry", "ratio": "mixed portrait/landscape in 3 columns" }
+    ],
+    "grid": { "max_width": "1214px content (x=113 left edge at 1440)", "columns": 3, "gutter": "~16px (masonry)", "section_padding": "120px" }
+  },
+  "taste": [
+    {
+      "name": "Footage is the only pigment",
+      "trigger": "When the product being sold is generated video",
+      "decision": "Chose grayscale chrome (#18191B hero field, #F8F8F8 canvas, #212121 text, every button a white alpha) over a brand accent color in the UI",
+      "reason": "Any saturated UI color sits next to the clips and color-casts them; with zero chrome color, the only warm or saturated pixels on the page are the model's output, so every hue the visitor notices is a demo",
+      "evidence": ["55.7% of painted area #18191B, 42.7% #F8F8F8", "accent candidates are #212121 / #FCFCFD / white alphas only", "mode chips rgba(0,0,0,0.45) instead of a colored badge"]
+    },
+    {
+      "name": "The hero speaks once, at the bottom",
+      "trigger": "When the first screen is a moving image",
+      "decision": "Chose one 100px headline + one 16px sentence + three equal pills anchored in the bottom 268px over a centered hero with eyebrow, bullets, stats or badges",
+      "reason": "Text in the upper 70% of a video frame covers the subject; anchoring all copy to the lower-left gutter keeps faces and action readable and makes the type feel like a film title card rather than an ad",
+      "evidence": ["content block top 632px, height 268px on a 900px viewport", "h1 100px/100px, weight 600, letter-spacing -2px", "no eyebrow, no feature list, no numbers above the fold", "3 CTAs equal width ~234px, 48px tall"]
+    },
+    {
+      "name": "Prove with paired clips, not paragraphs",
+      "trigger": "When explaining each capability (length, reference, editing, production)",
+      "decision": "Chose one 32px title + one 16px sentence (max 780px) + a horizontal carousel of 600px-tall input→output video cards over icon/feature grids or long copy",
+      "reason": "A visitor trusts a reference image beside its generated result more than any adjective; the copy only names the capability, the card pair shows it",
+      "evidence": ["4 sections, each exactly h1 32/500/44 + one paragraph 16/400/20", "cards 530-1067 x 600, radius 20px", "Prompt/Reference panel shown beside the output; R2V/T2V chips 14px, radius 4px"]
+    },
+    {
+      "name": "Glass only where something moves behind it",
+      "trigger": "When choosing button material across a dark video act and a light gallery act",
+      "decision": "Chose translucent blurred pills (white 20%, blur 12px, inset top highlight) only over the hero video, and flat solid #F7F8FA circles on the light canvas, over one button style everywhere",
+      "reason": "Blur only reads as material when there is motion to blur; on a flat #F8F8F8 field it would be invisible cost, so the page drops it the moment the video ends",
+      "evidence": ["hero buttons rgba(255,255,255,0.2) + backdrop-filter blur(12px) + 0 8px 32px rgba(0,0,0,0.1)", "nav pills rgba(249,249,251,0.08)", "carousel arrows 40px solid #F7F8FA, no blur"]
+    }
+  ]
+}

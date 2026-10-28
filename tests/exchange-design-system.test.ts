@@ -55,8 +55,9 @@ test("Aivora Exchange：壳层是行情终端——顶部行情条 + 实时生�
   assert.match(globals, /:root:has\(\.desk-theme\)\s*\{\s*overscroll-behavior-y:\s*none/);
   assert.match(globals, /--shell-top:\s*calc\(var\(--shell-bar\) \+ var\(--shell-tape\) \+ 1px\)/);
   assert.match(globals, /\.x-live/);
-  // 不做毛玻璃，不铺光晕
-  assert.doesNotMatch(globals, /backdrop-filter|radial-gradient/);
+  // 不铺光晕；毛玻璃只给首页展厅压在视频上的控件（.on-media，2026-10-28 学 Seedance 2.5 官网）
+  assert.doesNotMatch(globals, /radial-gradient/);
+  assert.doesNotMatch(globals.replace(/(^|\n)\s*\.on-media[^{]*\{[^}]*\}/g, "$1"), /backdrop-filter/);
   assert.match(authLayout, /className="gate-theme/);
 });
 

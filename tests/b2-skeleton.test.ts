@@ -304,7 +304,7 @@ test("B2.6 登录门：口号与首页同一定位（不再「赛出赢家」）
   /// C1：登录页的主行动就是登录（旅程审计：实心钮是「申请试点」让登录难找），申请试点一律描边
   assert.match(cta, /variant="outline"/);
   assert.doesNotMatch(cta, /variant=\{/);
-  assert.ok(read("src/components/leads/pilot-landing.tsx").includes('id="pilot-apply"'), "首页确有试点申请锚点");
+  assert.ok(read("src/components/landing/showroom-landing.tsx").includes('id="pilot-apply"'), "首页确有试点申请锚点");
   const login = read("src/app/(auth)/login/page.tsx");
   assert.match(login, /<Button type="submit" disabled=\{loading\} className="w-full">/);
   assert.match(login, /href="\/register"/);

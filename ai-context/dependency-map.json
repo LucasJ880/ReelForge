@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T21:09:28.146Z",
+  "generatedAt": "2026-10-28T15:44:15.340Z",
   "entries": [
     {
       "file": ".claude/skills/impeccable/reference/optimize.md",
@@ -670707,20 +670707,16 @@
         "next-auth",
         "@/lib/auth",
         "next/navigation",
-        "@/components/leads/pilot-landing",
+        "@/components/landing/showroom-landing",
         "@/i18n/growth-copy",
         "@/i18n/server",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/template-sample",
         "@/lib/config/contact"
       ],
       "localImports": [
         "@/lib/auth",
-        "@/components/leads/pilot-landing",
+        "@/components/landing/showroom-landing",
         "@/i18n/growth-copy",
         "@/i18n/server",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/template-sample",
         "@/lib/config/contact"
       ],
       "externalImports": [
@@ -671893,6 +671889,57 @@
       ]
     },
     {
+      "file": "src/components/landing/hero-reel.tsx",
+      "imports": [
+        "react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react"
+      ]
+    },
+    {
+      "file": "src/components/landing/show-rail.tsx",
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "localImports": [],
+      "externalImports": [
+        "react",
+        "lucide-react"
+      ]
+    },
+    {
+      "file": "src/components/landing/showroom-landing.tsx",
+      "imports": [
+        "next/link",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
+        "@/components/compliance/ai-generated-label",
+        "@/components/leads/pilot-application-form",
+        "@/i18n/config",
+        "@/i18n/growth-copy",
+        "@/lib/config/landing-media",
+        "./hero-reel",
+        "./show-rail"
+      ],
+      "localImports": [
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
+        "@/components/compliance/ai-generated-label",
+        "@/components/leads/pilot-application-form",
+        "@/i18n/config",
+        "@/i18n/growth-copy",
+        "@/lib/config/landing-media",
+        "./hero-reel",
+        "./show-rail"
+      ],
+      "externalImports": [
+        "next/link"
+      ]
+    },
+    {
       "file": "src/components/layout/internal-sidebar.tsx",
       "imports": [
         "react",
@@ -672659,9 +672706,7 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/ui/dropdown-menu",
-        "@/components/exchange/use-now",
         "@/components/exchange/use-pulse",
-        "@/components/exchange/exchange-tape",
         "@/components/platform/ops-credits-cluster",
         "@/components/capabilities/capability-indicator",
         "@/lib/capabilities/registry",
@@ -672677,9 +672722,7 @@
       "localImports": [
         "@/components/ui/logo",
         "@/components/ui/dropdown-menu",
-        "@/components/exchange/use-now",
         "@/components/exchange/use-pulse",
-        "@/components/exchange/exchange-tape",
         "@/components/platform/ops-credits-cluster",
         "@/components/capabilities/capability-indicator",
         "@/lib/capabilities/registry",
@@ -674770,6 +674813,7 @@
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-cost",
         "@/lib/video-generation/frame-qa",
+        "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-ai-review"
@@ -674797,6 +674841,7 @@
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-cost",
         "@/lib/video-generation/frame-qa",
+        "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-ai-review"
@@ -676518,6 +676563,16 @@
       "externalImports": []
     },
     {
+      "file": "src/lib/video-generation/batch-reference-manifest.ts",
+      "imports": [
+        "@/lib/video-generation/storyboard-beats"
+      ],
+      "localImports": [
+        "@/lib/video-generation/storyboard-beats"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/video-generation/batch-style-templates.ts",
       "imports": [
         "@/lib/video-generation/generic-commerce-template"
@@ -677121,6 +677176,16 @@
       ]
     },
     {
+      "file": "src/lib/video-generation/shot-cards.ts",
+      "imports": [
+        "@/lib/ai"
+      ],
+      "localImports": [
+        "@/lib/ai"
+      ],
+      "externalImports": []
+    },
+    {
       "file": "src/lib/video-generation/shuyu-runtime.ts",
       "imports": [
         "@/lib/providers/shuyu"
@@ -677214,6 +677279,7 @@
         "@/lib/storage",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/storyboard-beats",
+        "@/lib/video-generation/shot-cards",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/storyboard-gacha",
@@ -677231,6 +677297,7 @@
         "@/lib/storage",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/storyboard-beats",
+        "@/lib/video-generation/shot-cards",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/storyboard-gacha",
@@ -683574,6 +683641,27 @@
         "node:assert/strict",
         "node:test",
         "node:crypto"
+      ]
+    },
+    {
+      "file": "tests/storyboard-shot-cards.test.ts",
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/shot-cards",
+        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/storyboard-service",
+        "../src/lib/video-generation/batch-reference-manifest"
+      ],
+      "localImports": [
+        "../src/lib/video-generation/shot-cards",
+        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/storyboard-service",
+        "../src/lib/video-generation/batch-reference-manifest"
+      ],
+      "externalImports": [
+        "node:assert/strict",
+        "node:test"
       ]
     },
     {

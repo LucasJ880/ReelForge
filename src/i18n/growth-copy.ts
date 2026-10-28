@@ -309,9 +309,9 @@ interface GrowthCopy {
 
 const ZH: GrowthCopy = {
   landing: {
-    metaTitle: "Aivora · 上门服务的内容与询盘",
+    metaTitle: "Aivora · 一张商品图，拍成能直接发的广告",
     metaDescription:
-      "给上门服务的小商家：每周的短视频和图文，加一张询盘页和按渠道区分的追踪链接，每一条询盘都记在账上。免费试做 3 条视频。",
+      "给小商家的 AI 短视频工作室：上传商品图，写一句想拍什么，逐帧确认故事板后生成带口播、字幕和品牌片尾的竖屏广告。免费试做 3 条视频。",
     home: "Aivora 首页",
     signIn: "登录",
     titleLines: ["内容我们来做，", "询盘你来数。"],
@@ -645,9 +645,9 @@ const ZH: GrowthCopy = {
 
 const EN: GrowthCopy = {
   landing: {
-    metaTitle: "Aivora · Content and inquiries for local services",
+    metaTitle: "Aivora · Turn one product photo into a ready-to-post ad",
     metaDescription:
-      "For local service businesses: weekly short videos and posts, plus an inquiry page and per-channel tracked links that log every inquiry. Make 3 videos free.",
+      "An AI short-video studio for small businesses: upload a product photo, say what to shoot, approve the storyboard frame by frame, and get a vertical ad with voice-over, captions and your brand end card. Make 3 videos free.",
     home: "Aivora home",
     signIn: "Sign in",
     titleLines: ["We make the content.", "You count the inquiries."],

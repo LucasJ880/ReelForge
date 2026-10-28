@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-27T21:09:27.986Z",
+  "generatedAt": "2026-10-28T15:44:15.113Z",
   "files": [
     {
       "path": ".claude/launch.json",
@@ -1063840,7 +1063840,7 @@
       "imports": [],
       "importantSymbols": [],
       "lineCount": 1,
-      "sizeBytes": 15059,
+      "sizeBytes": 15392,
       "notes": ""
     },
     {
@@ -1064100,8 +1064100,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 88,
-      "sizeBytes": 5944,
+      "lineCount": 91,
+      "sizeBytes": 6285,
       "notes": "Documentation"
     },
     {
@@ -1064343,8 +1064343,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 369,
-      "sizeBytes": 21146,
+      "lineCount": 379,
+      "sizeBytes": 22956,
       "notes": "Documentation"
     },
     {
@@ -1064955,8 +1064955,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 95,
-      "sizeBytes": 12304,
+      "lineCount": 120,
+      "sizeBytes": 15485,
       "notes": "Documentation"
     },
     {
@@ -1065530,6 +1065530,50 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/reference/taste/liblib.tv.json",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 70,
+      "sizeBytes": 4723,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/reference/taste/liblib.tv.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 71,
+      "sizeBytes": 4665,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/reference/taste/seed.bytedance.com.json",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 80,
+      "sizeBytes": 5793,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/reference/taste/seed.bytedance.com.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 76,
+      "sizeBytes": 5761,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/RELEASE_HARDENING_CHECKLIST.md",
       "type": "doc",
       "area": "shared",
@@ -1065697,6 +1065741,17 @@
       "notes": "Documentation"
     },
     {
+      "path": "docs/roadmap/2026-10-28-libtv-generation-teardown.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 50,
+      "sizeBytes": 5763,
+      "notes": "Documentation"
+    },
+    {
       "path": "docs/s5-ceo-video-confirmation-table.md",
       "type": "doc",
       "area": "shared",
@@ -1065805,6 +1065860,17 @@
       "importantSymbols": [],
       "lineCount": 27,
       "sizeBytes": 1869,
+      "notes": "Documentation"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-10-28-ui-seedance-libtv.md",
+      "type": "doc",
+      "area": "shared",
+      "exports": [],
+      "imports": [],
+      "importantSymbols": [],
+      "lineCount": 31,
+      "sizeBytes": 2939,
       "notes": "Documentation"
     },
     {
@@ -1075297,6 +1075363,7 @@
       "exports": [
         "GET",
         "createStoryboardPostHandler",
+        "maxDuration",
         "POST"
       ],
       "imports": [
@@ -1075310,10 +1075377,11 @@
       "importantSymbols": [
         "GET",
         "POST",
-        "createStoryboardPostHandler"
+        "createStoryboardPostHandler",
+        "maxDuration"
       ],
-      "lineCount": 119,
-      "sizeBytes": 4547,
+      "lineCount": 122,
+      "sizeBytes": 4693,
       "notes": "Next.js API route handler; area=video-generation"
     },
     {
@@ -1075395,8 +1075463,8 @@
         "../styles/tokens.css"
       ],
       "importantSymbols": [],
-      "lineCount": 544,
-      "sizeBytes": 13041,
+      "lineCount": 972,
+      "sizeBytes": 21496,
       "notes": "Stylesheet"
     },
     {
@@ -1075515,11 +1075583,9 @@
         "next-auth",
         "@/lib/auth",
         "next/navigation",
-        "@/components/leads/pilot-landing",
+        "@/components/landing/showroom-landing",
         "@/i18n/growth-copy",
         "@/i18n/server",
-        "@/lib/services/style-template-service",
-        "@/lib/video-generation/template-sample",
         "@/lib/config/contact"
       ],
       "importantSymbols": [
@@ -1075528,8 +1075594,8 @@
         "generateMetadata",
         "default"
       ],
-      "lineCount": 74,
-      "sizeBytes": 2632,
+      "lineCount": 47,
+      "sizeBytes": 1662,
       "notes": "Next.js App Router page; NextAuth session check"
     },
     {
@@ -1077016,6 +1077082,69 @@
       "notes": "React component; client component"
     },
     {
+      "path": "src/components/landing/hero-reel.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "HeroReelScene",
+        "HeroReel"
+      ],
+      "imports": [
+        "react"
+      ],
+      "importantSymbols": [
+        "HeroReelScene",
+        "HeroReel"
+      ],
+      "lineCount": 86,
+      "sizeBytes": 2681,
+      "notes": "React component; client component"
+    },
+    {
+      "path": "src/components/landing/show-rail.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "ShowRail"
+      ],
+      "imports": [
+        "react",
+        "lucide-react"
+      ],
+      "importantSymbols": [
+        "ShowRail"
+      ],
+      "lineCount": 91,
+      "sizeBytes": 2735,
+      "notes": "React component; client component"
+    },
+    {
+      "path": "src/components/landing/showroom-landing.tsx",
+      "type": "component",
+      "area": "shared",
+      "exports": [
+        "ShowroomLanding"
+      ],
+      "imports": [
+        "next/link",
+        "@/components/ui/logo",
+        "@/components/layout/language-switcher",
+        "@/components/compliance/ai-generated-label",
+        "@/components/leads/pilot-application-form",
+        "@/i18n/config",
+        "@/i18n/growth-copy",
+        "@/lib/config/landing-media",
+        "./hero-reel",
+        "./show-rail"
+      ],
+      "importantSymbols": [
+        "ShowroomLanding"
+      ],
+      "lineCount": 224,
+      "sizeBytes": 9348,
+      "notes": "React component"
+    },
+    {
       "path": "src/components/layout/internal-sidebar.tsx",
       "type": "component",
       "area": "shared",
@@ -1077911,9 +1078040,7 @@
         "lucide-react",
         "@/components/ui/logo",
         "@/components/ui/dropdown-menu",
-        "@/components/exchange/use-now",
         "@/components/exchange/use-pulse",
-        "@/components/exchange/exchange-tape",
         "@/components/platform/ops-credits-cluster",
         "@/components/capabilities/capability-indicator",
         "@/lib/capabilities/registry",
@@ -1077929,8 +1078056,8 @@
       "importantSymbols": [
         "PlatformShell"
       ],
-      "lineCount": 413,
-      "sizeBytes": 18999,
+      "lineCount": 386,
+      "sizeBytes": 17235,
       "notes": "React component; NextAuth session check; client component"
     },
     {
@@ -1078983,8 +1079110,8 @@
         "TRACKED_LINK_CHANNELS",
         "TrackedLinkChannel"
       ],
-      "lineCount": 981,
-      "sizeBytes": 39080,
+      "lineCount": 1050,
+      "sizeBytes": 42589,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079115,8 +1079242,8 @@
         "PlatformCopy",
         "getPlatformCopy"
       ],
-      "lineCount": 1078,
-      "sizeBytes": 69611,
+      "lineCount": 1083,
+      "sizeBytes": 69893,
       "notes": "i18n / localization; area=i18n"
     },
     {
@@ -1079872,6 +1079999,8 @@
         "LandingHeroScene",
         "LANDING_HERO_SCENES",
         "LANDING_PROOF_VIDEOS",
+        "ShowroomPair",
+        "SHOWROOM_PRODUCT_PAIRS",
         "LANDING_STORYBOARD_FRAMES"
       ],
       "imports": [],
@@ -1079879,10 +1080008,12 @@
         "LandingHeroScene",
         "LANDING_HERO_SCENES",
         "LANDING_PROOF_VIDEOS",
+        "ShowroomPair",
+        "SHOWROOM_PRODUCT_PAIRS",
         "LANDING_STORYBOARD_FRAMES"
       ],
-      "lineCount": 34,
-      "sizeBytes": 1812,
+      "lineCount": 69,
+      "sizeBytes": 3444,
       "notes": "Utility / helper module"
     },
     {
@@ -1082793,6 +1082924,7 @@
         "@/lib/providers/shuyu",
         "@/lib/video-generation/video-route-cost",
         "@/lib/video-generation/frame-qa",
+        "@/lib/video-generation/batch-reference-manifest",
         "@/lib/video-generation/creative-recipe",
         "@/lib/video-generation/storyboard-service",
         "@/lib/video-generation/storyboard-ai-review"
@@ -1082807,8 +1082939,8 @@
         "BatchDispatchNotAuthorizedError",
         "CreateBatchInput"
       ],
-      "lineCount": 2709,
-      "sizeBytes": 95996,
+      "lineCount": 2716,
+      "sizeBytes": 96491,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check"
     },
     {
@@ -1085603,8 +1085735,8 @@
         "dispatchVideoForBrief",
         "dispatchMultiSegmentGeneration"
       ],
-      "lineCount": 2702,
-      "sizeBytes": 96012,
+      "lineCount": 2703,
+      "sizeBytes": 96055,
       "notes": "Business logic service; hits Prisma DB; NextAuth session check; area=media-processing"
     },
     {
@@ -1086176,6 +1086308,27 @@
       "lineCount": 736,
       "sizeBytes": 28954,
       "notes": "Utility / helper module; FFmpeg / audio loudness pipeline; area=ffmpeg"
+    },
+    {
+      "path": "src/lib/video-generation/batch-reference-manifest.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "BATCH_REFERENCE_MANIFEST_PREFIX",
+        "batchReferenceManifestLine",
+        "withBatchReferenceManifest"
+      ],
+      "imports": [
+        "@/lib/video-generation/storyboard-beats"
+      ],
+      "importantSymbols": [
+        "BATCH_REFERENCE_MANIFEST_PREFIX",
+        "batchReferenceManifestLine",
+        "withBatchReferenceManifest"
+      ],
+      "lineCount": 52,
+      "sizeBytes": 2847,
+      "notes": "Utility / helper module; area=video-generation"
     },
     {
       "path": "src/lib/video-generation/batch-style-templates.ts",
@@ -1087513,6 +1087666,41 @@
       "notes": "Utility / helper module; area=video-generation"
     },
     {
+      "path": "src/lib/video-generation/shot-cards.ts",
+      "type": "util",
+      "area": "video-generation",
+      "exports": [
+        "StoryboardShotCard",
+        "SHOT_CARD_LINE_PREFIX",
+        "SHOT_CARD_MAX_CHARS",
+        "storyboardShotCardsEnabled",
+        "normalizeShotCards",
+        "formatShotCard",
+        "readShotCardFromFramePrompt",
+        "SHOT_CARD_SYSTEM_PROMPT",
+        "DesignShotCardsInput",
+        "DesignShotCardsDeps",
+        "buildShotCardUserPrompt",
+        "designStoryboardShotCards"
+      ],
+      "imports": [
+        "@/lib/ai"
+      ],
+      "importantSymbols": [
+        "StoryboardShotCard",
+        "SHOT_CARD_LINE_PREFIX",
+        "SHOT_CARD_MAX_CHARS",
+        "SHOT_CARD_SYSTEM_PROMPT",
+        "DesignShotCardsInput",
+        "DesignShotCardsDeps",
+        "storyboardShotCardsEnabled",
+        "normalizeShotCards"
+      ],
+      "lineCount": 186,
+      "sizeBytes": 9751,
+      "notes": "Utility / helper module; area=video-generation"
+    },
+    {
       "path": "src/lib/video-generation/shutter-shot-policy.ts",
       "type": "util",
       "area": "video-generation",
@@ -1087659,8 +1087847,8 @@
         "readStoryboardReferenceLayout",
         "groundSegmentPromptInStoryboard"
       ],
-      "lineCount": 213,
-      "sizeBytes": 11073,
+      "lineCount": 263,
+      "sizeBytes": 14515,
       "notes": "Utility / helper module; area=video-generation"
     },
     {
@@ -1087857,6 +1088045,7 @@
         "@/lib/storage",
         "@/lib/video-generation/providers/submission-error",
         "@/lib/video-generation/storyboard-beats",
+        "@/lib/video-generation/shot-cards",
         "@/lib/video-generation/storyboard-frame-inputs",
         "@/lib/video-generation/storyboard-person-refs",
         "@/lib/video-generation/storyboard-gacha",
@@ -1087872,8 +1088061,8 @@
         "SINGLE_VIDEO_GUARANTEED_PRODUCT_PHOTOS",
         "SingleVideoReferenceGroups"
       ],
-      "lineCount": 2440,
-      "sizeBytes": 95224,
+      "lineCount": 2479,
+      "sizeBytes": 97396,
       "notes": "Utility / helper module; hits Prisma DB; area=video-generation"
     },
     {
@@ -1088331,8 +1088520,8 @@
       "exports": [],
       "imports": [],
       "importantSymbols": [],
-      "lineCount": 286,
-      "sizeBytes": 10595,
+      "lineCount": 342,
+      "sizeBytes": 13306,
       "notes": "Stylesheet"
     },
     {
@@ -1088884,8 +1089073,8 @@
       "importantSymbols": [
         "PlatformShell"
       ],
-      "lineCount": 92,
-      "sizeBytes": 6034,
+      "lineCount": 90,
+      "sizeBytes": 5869,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1088977,7 +1089166,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 417,
-      "sizeBytes": 24692,
+      "sizeBytes": 24697,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1089157,8 +1089346,8 @@
         "../src/lib/video-generation/providers/types"
       ],
       "importantSymbols": [],
-      "lineCount": 114,
-      "sizeBytes": 3991,
+      "lineCount": 121,
+      "sizeBytes": 4494,
       "notes": "Unit / integration test; hits Prisma DB; area=tests"
     },
     {
@@ -1090332,8 +1090521,8 @@
       "importantSymbols": [
         "TickGlyph"
       ],
-      "lineCount": 96,
-      "sizeBytes": 4828,
+      "lineCount": 105,
+      "sizeBytes": 5494,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1090660,7 +1090849,7 @@
       ],
       "importantSymbols": [],
       "lineCount": 123,
-      "sizeBytes": 6045,
+      "sizeBytes": 6139,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1091346,8 +1091535,8 @@
         "../src/i18n/growth-copy"
       ],
       "importantSymbols": [],
-      "lineCount": 257,
-      "sizeBytes": 12714,
+      "lineCount": 256,
+      "sizeBytes": 12716,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1092079,8 +1092268,8 @@
       "importantSymbols": [
         "needsOnboarding"
       ],
-      "lineCount": 185,
-      "sizeBytes": 10662,
+      "lineCount": 188,
+      "sizeBytes": 11015,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1092484,8 +1092673,8 @@
         "node:test"
       ],
       "importantSymbols": [],
-      "lineCount": 22,
-      "sizeBytes": 824,
+      "lineCount": 25,
+      "sizeBytes": 1103,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1093188,8 +1093377,8 @@
         "../src/components/leads/lead-milestone"
       ],
       "importantSymbols": [],
-      "lineCount": 343,
-      "sizeBytes": 19922,
+      "lineCount": 339,
+      "sizeBytes": 19683,
       "notes": "Unit / integration test; area=tests"
     },
     {
@@ -1094290,6 +1094479,24 @@
       "importantSymbols": [],
       "lineCount": 1151,
       "sizeBytes": 49624,
+      "notes": "Unit / integration test; area=tests"
+    },
+    {
+      "path": "tests/storyboard-shot-cards.test.ts",
+      "type": "test",
+      "area": "tests",
+      "exports": [],
+      "imports": [
+        "node:assert/strict",
+        "node:test",
+        "../src/lib/video-generation/shot-cards",
+        "../src/lib/video-generation/storyboard-beats",
+        "../src/lib/video-generation/storyboard-service",
+        "../src/lib/video-generation/batch-reference-manifest"
+      ],
+      "importantSymbols": [],
+      "lineCount": 196,
+      "sizeBytes": 11389,
       "notes": "Unit / integration test; area=tests"
     },
     {

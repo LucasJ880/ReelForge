@@ -61,6 +61,7 @@ import {
 } from "@/lib/api/customer-video-dispatch-recovery";
 import { cn } from "@/lib/utils";
 import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-package-service";
+import { defaultBrandPackageId } from "@/lib/brand/default-brand-package";
 import {
   COMMERCE_TEMPLATE_RECIPES,
   COMMERCE_TEMPLATE_SLUGS,
@@ -474,7 +475,9 @@ export function StreamlinedVideoStudio({
     initialDurationSec ?? 15,
   );
   const [styleTemplateId, setStyleTemplateId] = useState(seededStyleTemplateId);
-  const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
+  const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(() =>
+    defaultBrandPackageId(brandPackages),
+  );
   const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
@@ -813,14 +816,46 @@ export function StreamlinedVideoStudio({
     invalidatePlan();
   }, [invalidatePlan]);
 
-  const regenerateVoiceoverScript = useCallback(() => {
-    voiceoverEditedRef.current = false;
-    setAudioCaptionSettings((current) => ({
-      ...current,
-      voiceoverScript: autoVoiceoverScript,
-    }));
-    invalidatePlan();
-  }, [autoVoiceoverScript, invalidatePlan]);
+  /// 2026-10-28：「生成口播稿」由 AI 按商家原话写（/api/video-generation/voiceover-draft）；
+  /// AI 不可用、超时或超长时退回本地模板稿（与之前同一份）。AI 稿视同用户确认过的稿，描述再改也不被模板覆盖。
+  const [voiceoverDrafting, setVoiceoverDrafting] = useState(false);
+  const regenerateVoiceoverScript = useCallback(async () => {
+    const applyTemplate = () => {
+      voiceoverEditedRef.current = false;
+      setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: autoVoiceoverScript }));
+    };
+    if (!rawPrompt.trim() || narrationFromTemplate) {
+      applyTemplate();
+      invalidatePlan();
+      return;
+    }
+    setVoiceoverDrafting(true);
+    try {
+      const response = await fetch("/api/video-generation/voiceover-draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          prompt: rawPrompt,
+          durationSec: selectedDuration,
+          language: locale,
+          cta: selectedBrandPackage?.cta ?? null,
+        }),
+      });
+      const payload = await response.json().catch(() => null) as { ok?: boolean; script?: string | null } | null;
+      if (response.ok && payload?.script) {
+        voiceoverEditedRef.current = true;
+        const script = payload.script;
+        setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: script }));
+      } else {
+        applyTemplate();
+      }
+    } catch {
+      applyTemplate();
+    } finally {
+      setVoiceoverDrafting(false);
+      invalidatePlan();
+    }
+  }, [autoVoiceoverScript, invalidatePlan, locale, narrationFromTemplate, rawPrompt, selectedBrandPackage?.cta, selectedDuration]);
 
   useEffect(() => {
     if (!storyboard || storyboard.status !== "GENERATING") return;
@@ -1834,6 +1869,12 @@ export function StreamlinedVideoStudio({
                       setRawPrompt(event.target.value);
                       invalidatePlan();
                     }}
+                    onBlur={() => {
+                      /// 写完描述离开输入框：口播稿还没被手动改过，就请 AI 按描述起一版（学 LibTV：AI 先写，人来改）
+                      if (!voiceoverEditedRef.current && voiceoverEnabled && rawPrompt.trim().length >= 12 && !voiceoverDrafting) {
+                        void regenerateVoiceoverScript();
+                      }
+                    }}
                     placeholder={copy.promptPlaceholder}
                     className="mt-2 min-h-44 resize-y text-body leading-relaxed"
                   />
@@ -1851,7 +1892,8 @@ export function StreamlinedVideoStudio({
                   english={english}
                   disabled={locked}
                   onChange={updateAudioCaptionSettings}
-                  onRegenerate={regenerateVoiceoverScript}
+                  onRegenerate={() => void regenerateVoiceoverScript()}
+                  regenerating={voiceoverDrafting}
                   draftFromTemplate={narrationFromTemplate}
                 />
               </TicketRow>

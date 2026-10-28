@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (84/84 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个)
+## API endpoint inventory (85/85 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -122,6 +122,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
 | POST | `/api/video-generation/storyboards` | Session; idempotency required | VERIFIED: owner-scoped durable Shuyu Image 2 storyboard creation |
+| POST | `/api/video-generation/voiceover-draft` | Session (generation persona) | 2026-10-28: AI voice-over draft from the merchant description; returns null → client keeps the template draft; no quota, no generation |
 | GET | `/api/video-generation/storyboards/[id]` | Session + ownership | VERIFIED: reconciles and returns only the owner's current frame attempts |
 | POST | `/api/video-generation/storyboards/[id]/approve` | Session + ownership | VERIFIED: manual approval only after every current frame succeeds |
 | POST | `/api/video-generation/storyboards/[id]/cancel` | Session + ownership | VERIFIED: real cancel of GENERATING/AWAITING_APPROVAL only; queued frames never submitted, submitted frames keep reconciling; refuses once dispatch reserved/attached |

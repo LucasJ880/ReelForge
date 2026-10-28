@@ -42,6 +42,8 @@ interface AudioCaptionControlsProps {
    * （起稿本身一直是本地确定性模板，见 generateVoiceoverScript——这里不许暗示 AI 在写。）
    */
   draftFromTemplate?: boolean;
+  /** AI 正在写口播稿：按钮转圈、禁用，避免连点 */
+  regenerating?: boolean;
   /**
    * P04-B · 这条成片能拿到逐词时间戳时为 true：字幕样式放出「跟读高亮 / 逐词强调」真分档。
    * 默认 false（Phase 1 还没有 TTS 时间戳来源）：行为与 1025 A6 7.5 完全一致，只列两档。
@@ -263,6 +265,7 @@ export function AudioCaptionControls({
   onChange,
   onRegenerate,
   draftFromTemplate = false,
+  regenerating = false,
   wordTimestampsAvailable = false,
 }: AudioCaptionControlsProps) {
   const update = (patch: Partial<AudioCaptionControlValue>) => {
@@ -334,14 +337,16 @@ export function AudioCaptionControls({
                 type="button"
                 variant="outline"
                 className="w-full"
-                disabled={disabled}
+                disabled={disabled || regenerating}
                 onClick={onRegenerate}
                 data-draft-source={draftFromTemplate ? "template" : undefined}
               >
-                <RefreshCw aria-hidden />
-                {draftFromTemplate
-                  ? english ? "Draft script from template" : "按模板生成口播稿"
-                  : english ? "Generate voiceover script" : "生成口播稿"}
+                <RefreshCw aria-hidden className={regenerating ? "animate-spin motion-reduce:animate-none" : undefined} />
+                {regenerating
+                  ? english ? "Writing the script…" : "正在写口播稿…"
+                  : draftFromTemplate
+                    ? english ? "Draft script from template" : "按模板生成口播稿"
+                    : english ? "Generate voiceover script" : "生成口播稿"}
               </Button>
             </div>
           </div>

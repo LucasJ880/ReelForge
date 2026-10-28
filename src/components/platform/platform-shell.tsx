@@ -291,9 +291,12 @@ export function PlatformShell({
             href="/app/create"
             prefetch={false}
             data-testid="sidebar-new-video"
-            className="flex h-10 items-center justify-center gap-2 rounded-full bg-foreground text-meta font-semibold text-background transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            /// 2026-10-28 晚学 Runway「New Chat」：侧栏入口是一行低调按钮（抬升底 + 蓝紫圆点图标），主按钮的电光蓝紫只留给页面里那一个
+            className="flex h-10 items-center gap-2.5 rounded-(--radius-md) border border-border bg-raised px-3 text-meta font-semibold text-foreground transition-colors duration-fast hover:border-border-strong hover:bg-active focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none"
           >
-            <Plus className="size-4" aria-hidden />
+            <span className="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground" aria-hidden>
+              <Plus className="size-3.5" />
+            </span>
             {copy.newVideo}
           </Link>
         </div>

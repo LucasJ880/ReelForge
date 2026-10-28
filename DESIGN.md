@@ -12,14 +12,26 @@ colors:
   seam-strong: "rgb(110 160 230 / 0.24)"
   seam-bright: "rgb(120 210 255 / 0.42)"
   grid-line: "rgb(110 160 230 / 0.05)"
-  text-primary: "#e8f0fc"
-  text-secondary: "#91a3bf"
-  text-tertiary: "#7889a8"
-  signal: "#22e0ff"
-  signal-strong: "#8ff1ff"
-  signal-soft: "rgb(34 224 255 / 0.12)"
-  signal-line: "rgb(34 224 255 / 0.45)"
-  on-signal: "#00161c"
+  # 2026-10-28 晚学 Runway 工作台深色模式：场与面板（tokens.css --bg / --bg-deep / --surface*）
+  field: "#000000"
+  side: "#0c0d11"
+  panel: "#131416"
+  raised: "#1b1e23"
+  active: "#2c3037"
+  sunken: "#0b0c0e"
+  nav-selected: "rgb(207 213 255 / 0.12)"
+  text-primary: "#ffffff"
+  text-secondary: "#a1afc5"
+  text-tertiary: "#818a9d"
+  # 信号色（实时 / 当前 / 链接 / 焦点）：信号青换成长春花蓝
+  signal: "#7497fc"
+  signal-strong: "#a9bdff"
+  signal-soft: "rgb(116 151 252 / 0.14)"
+  signal-line: "rgb(116 151 252 / 0.45)"
+  # 主行动：唯一的电光蓝紫实底，上面用白字
+  primary-fill: "#2c22fa"
+  primary-fill-hover: "#4339ff"
+  on-primary: "#ffffff"
   azure: "#4d8dff"
   azure-soft: "rgb(77 141 255 / 0.15)"
   iris: "#a08cff"
@@ -30,12 +42,12 @@ colors:
   fill-soft: "rgb(47 227 155 / 0.13)"
   fault: "#ff5577"
   fault-soft: "rgb(255 85 119 / 0.14)"
-  popover: "#0a1322"
+  popover: "#1b1e23"
   overlay: "rgb(1 3 8 / 0.74)"
   edge-light: "rgb(170 215 255 / 0.06)"
-  beam-tail: "rgb(34 224 255 / 0.15)"
-  sweep: "rgb(34 224 255 / 0.55)"
-  glow-signal: "rgb(34 224 255 / 0.55)"
+  beam-tail: "rgb(116 151 252 / 0.15)"
+  sweep: "rgb(116 151 252 / 0.55)"
+  glow-signal: "rgb(116 151 252 / 0.55)"
   glow-fill: "rgb(47 227 155 / 0.6)"
   glow-gold: "rgb(255 197 66 / 0.55)"
   scrim: "rgb(2 4 9 / 0.88)"
@@ -129,8 +141,8 @@ spacing:
   space-16: "64px"
 components:
   button-primary:
-    backgroundColor: "{colors.signal}"
-    textColor: "{colors.on-signal}"
+    backgroundColor: "{colors.primary-fill}"
+    textColor: "{colors.on-primary}"
     rounded: "{rounded.md}"
     height: "40px"
     padding: "0 16px"
@@ -174,6 +186,15 @@ components:
 ---
 
 # Design System: Aivora
+
+> **2026-10-28 晚 工作区配色改学 Runway 工作台（CEO 点名喜欢；逆向分析 `docs/reference/taste/app.runwayml.com.md`）——与下文冲突处以本条为准。**
+> - **场与面板**：纯黑场 `--bg #000` + 分层冷调蓝灰：面板 `--surface #131416`、抬升 `--surface-raised #1b1e23`、按下 `--surface-active #2c3037`、下沉 `--surface-sunken #0b0c0e`。
+>   结构条与侧栏 `--bg-deep #0c0d11`（黑上 6.7% 长春花紫叠色），比场**略亮**而不是更深：分层靠亮度，不靠分隔线。
+> - **文字**：白 / `#a1afc5` / `#818a9d`，偏蓝的灰，不再是中性灰。
+> - **主行动**：唯一的电光蓝紫 `--primary-fill #2c22fa` 实底白字，8px 圆角（不再是白色胶囊）；一屏一个。侧栏选中项是 `--nav-selected`（长春花白 12%）。
+> - **信号色**：实时 / 当前 / 链接 / 焦点从信号青换成长春花蓝 `--accent #7497fc`（黑底 7.6:1）。成片绿、赢家金、失败玫红、AI 鸢尾紫语义不变。亮色实底（如失败玫红）上的字用 `--background`。
+> - **圆角**：控件 6 / 8 / 12，卡片 20，主创作卡 `--radius-prompt` 24。
+> - 未做：浅色模式（Runway 跟随系统明暗；我们仍只有深色，`color-scheme: dark`）。
 
 > **2026-10-28 方向调整（Evan：首页学 Seedance 2.5 官网，工作台学 LibTV；「现在的交互和 UI 落伍、复杂」）——进行中。**
 > 逆向分析：`docs/reference/taste/seed.bytedance.com.md`、`docs/reference/taste/liblib.tv.md`；计划：`docs/superpowers/plans/2026-10-28-ui-seedance-libtv.md`。
@@ -220,10 +241,12 @@ hull，以 1px 冷蓝接缝拼成行情墙。**颜色只来自数据与媒体**�
 场是冷蓝近黑，颜色是信号：每一种彩色都对应一种数据状态，不做装饰。
 
 ### Primary
-- **信号青 Signal Cyan** (#22e0ff, `--accent`): 实时、当前项、主行动。激活导航的左缘、实时点、
-  生成光束、主按钮实心、焦点环。主按钮前景永远是深字 `on-signal` (#00161c)，对比约 13:1。
-- **亮青 Signal Strong** (#8ff1ff, `--accent-strong`): 主按钮 hover 与链接 hover。
-- **青雾 Signal Soft / Line** (`--accent-soft` 12% / `--accent-line` 45%): 选中底、计数徽章底、角标线、选中边。
+- **长春花蓝 Signal** (#7497fc, `--accent`；2026-10-28 晚取代信号青 #22e0ff): 实时、当前项、链接。实时点、
+  生成光束、焦点环、选中边。黑底对比约 7.6:1。
+- **电光蓝紫 Primary Fill** (#2c22fa, `--primary-fill`): 主行动实心（一屏一个），前景白字 `on-primary`，对比约 7.7:1；
+  hover `--primary-fill-hover` (#4339ff)。
+- **亮长春花 Signal Strong** (#a9bdff, `--accent-strong`): 链接 hover。
+- **长春花雾 Signal Soft / Line** (`--accent-soft` 14% / `--accent-line` 45%): 选中底、计数徽章底、角标线、选中边。
 
 ### Data Signals
 - **成交绿 Fill** (#2fe39b, `--success`): 已成片、已完成、正向读数（「成交」一词只留给询盘）。

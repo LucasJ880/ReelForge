@@ -10,18 +10,21 @@ test("Aivora Exchange：交易大厅 token 与字体角色完整落地（2026-10
     read("src/app/layout.tsx"),
   ]);
   for (const token of [
-    /// 2026-10-28 学 LibTV：场与面板换成中性近黑 + 白 8% 发丝线
-    "--bg: #141414",
-    "--surface: #1a1a1a",
+    /// 2026-10-28 晚学 Runway 工作台深色模式：纯黑场 + 分层冷调蓝灰 + 白 8% 发丝线
+    "--bg: #000000",
+    "--surface: #131416",
     "--border: rgb(255 255 255 / 0.08)",
-    "--text-primary: #f7f7f7",
-    "--accent: #22e0ff",
+    "--text-primary: #ffffff",
+    "--text-secondary: #a1afc5",
+    // 信号色（实时 / 当前 / 链接）换成长春花蓝；成片绿、赢家金、失败玫红、AI 鸢尾紫不变
+    "--accent: #7497fc",
     "--success: #2fe39b",
     "--gold: #ffc542",
     "--danger: #ff5577",
     "--iris: #a08cff",
-    // 信号青上用深字：主按钮前景必须是深色
-    "--primary-foreground: #00161c",
+    // 主行动是唯一的电光蓝紫实底，上面用白字
+    "--primary-fill: #2c22fa",
+    "--primary-foreground: #ffffff",
   ]) assert.match(tokens, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   // 登录门与工作区共用同一大厅，密度块只收紧密度。
   assert.match(

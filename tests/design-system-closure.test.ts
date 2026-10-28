@@ -16,8 +16,8 @@ test("approved theme topology: 全站单一深海交易大厅，工作区与登�
   const desk = tokens.match(
     /:root:has\(\.desk-theme\),\s*\n\.desk-theme,\s*\n:root:has\(\.gate-theme\),\s*\n\.gate-theme\s*\{([\s\S]*?)\n\}/,
   )?.[1] ?? "";
-  // 2026-10-28：场换成 LibTV 式中性近黑（Exchange 的冷蓝退役），信号色语义不变。
-  assert.match(root, /--bg:\s*#141414/i);
+  // 2026-10-28 晚：场换成 Runway 工作台式纯黑 + 分层冷调蓝灰（LibTV 中性近黑退役），信号色语义不变。
+  assert.match(root, /--bg:\s*#000000/i);
   assert.match(root, /color-scheme:\s*dark/);
   // 密度块不得再声明颜色——颜色全站统一，只允许密度差异。
   assert.ok(desk.length > 0);

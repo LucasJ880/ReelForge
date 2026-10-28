@@ -1,6 +1,14 @@
 /*
  * Aivora Studio（2026-10-28 起，学 LibTV 工作台 + Seedance 2.5 官网；docs/reference/taste/）
  * 全站唯一视觉 token 来源。组件与页面不得声明颜色、圆角或阴影字面量。
+ *
+ * 2026-10-28 晚：工作区配色改学 Runway 工作台深色模式（docs/reference/taste/app.runwayml.com.md，CEO 点名喜欢）：
+ * 纯黑场 + 分层冷调蓝灰（#131416 / #1b1e23 / #2c3037），侧栏是黑上 6.7% 长春花紫叠色而不是分隔线；
+ * 文字白 / #a1afc5 / #818a9d（偏蓝的灰，不是中性灰）；主行动是唯一的电光蓝紫 #2c22fa 白字；
+ * 实时 / 当前 / 链接的信号色从信号青换成长春花蓝 #7497fc（黑底对比 7.6:1）；圆角放柔到 6 / 8 / 12，卡片 20。
+ * 成片绿 / 赢家金 / 失败玫红 / AI 鸢尾紫的语义不变。
+ *
+ * 以下为 LibTV 那一轮的说明（中性近黑已被上面的冷调蓝灰取代）：
  * 场与面板换成中性近黑（#111 / #141414 / #1a1a1a，白 8% 发丝线），去掉冷蓝色调与工程网格：
  * 界面是灰的，颜色只来自成片与数据信号（信号青 / 成片绿 / 赢家金 / 失败玫红 / AI 鸢尾紫保留）。
  *
@@ -17,12 +25,13 @@
   color-scheme: dark;
 
   /* 场与面板（不透明，不做毛玻璃） */
-  --bg: #141414;
-  --bg-deep: #111111;
-  --surface: #1a1a1a;
-  --surface-raised: #212121;
-  --surface-sunken: #0e0e0e;
-  --surface-active: #2a2a2a;
+  --bg: #000000;
+  /* 结构条（x-pane）与侧栏：黑上 6.7% 长春花紫叠色（Runway rgba(179,187,255,0.067)），比场略亮而不是更深 */
+  --bg-deep: #0c0d11;
+  --surface: #131416;
+  --surface-raised: #1b1e23;
+  --surface-sunken: #0b0c0e;
+  --surface-active: #2c3037;
   /* 品牌 Logo / 尾卡预览底：甲板色，不用纯白方块（DESIGN.md colors.brand-tile） */
   --brand-tile: var(--surface-raised);
   --border: rgb(255 255 255 / 0.08);
@@ -31,15 +40,20 @@
   --grid-line: transparent;
   --content-max-width: 88rem;
 
-  --text-primary: #f7f7f7;
-  --text-secondary: #a8a8a8;
-  --text-tertiary: #8c8c8c;
+  --text-primary: #ffffff;
+  --text-secondary: #a1afc5;
+  --text-tertiary: #818a9d;
 
   /* 信号色：只给数据、状态与当前项 */
-  --accent: #22e0ff;
-  --accent-strong: #8ff1ff;
-  --accent-soft: rgb(34 224 255 / 0.12);
-  --accent-line: rgb(34 224 255 / 0.45);
+  --accent: #7497fc;
+  --accent-strong: #a9bdff;
+  --accent-soft: rgb(116 151 252 / 0.14);
+  --accent-line: rgb(116 151 252 / 0.45);
+  /* 主行动：Runway 的电光蓝紫，一屏只给一个主按钮；白字对比约 7.7:1 */
+  --primary-fill: #2c22fa;
+  --primary-fill-hover: #4339ff;
+  /* 侧栏选中项：Runway rgba(207,213,255,0.118) */
+  --nav-selected: rgb(207 213 255 / 0.12);
   --azure: #4d8dff;
   --azure-soft: rgb(77 141 255 / 0.15);
   --iris: #a08cff;
@@ -56,8 +70,8 @@
   /* 行情墙高光：面板顶缘一道 1px 冷光，不是投影 */
   --edge: inset 0 1px 0 rgb(255 255 255 / 0.04);
   /* 生成光束：沿边流动的那道光（只给「正在生成」） */
-  --beam: conic-gradient(from var(--beam-angle, 0deg), transparent 0 64%, rgb(34 224 255 / 0.15) 74%, var(--accent) 86%, var(--accent-strong) 92%, transparent 100%);
-  --sweep: linear-gradient(90deg, transparent, rgb(34 224 255 / 0.55), transparent);
+  --beam: conic-gradient(from var(--beam-angle, 0deg), transparent 0 64%, rgb(116 151 252 / 0.15) 74%, var(--accent) 86%, var(--accent-strong) 92%, transparent 100%);
+  --sweep: linear-gradient(90deg, transparent, rgb(116 151 252 / 0.55), transparent);
   /* 媒体底部的读数遮罩：让叠在成片上的标签可读 */
   --scrim: linear-gradient(180deg, transparent 45%, rgb(0 0 0 / 0.82));
   /* 遮罩用的实心墨（mask 只看 alpha） */
@@ -91,13 +105,13 @@
   --media-mock-olive-background: #2a3a0c;
   --media-mock-olive-accent: #a3e635;
 
-  /* 圆角：终端的精密感，不做胶囊卡片 */
-  --radius-sm: 3px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
-  /* 工作区卡片（2026-10-28 学 LibTV：媒体卡 16px、缩略图 12px） */
-  --radius-card: 16px;
+  /* 圆角（2026-10-28 晚学 Runway：控件 6 / 8 / 12，按钮与芯片 8，卡片 20，主创作卡 24） */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-card: 20px;
   --radius-tile: 12px;
+  --radius-prompt: 24px;
   /* 深度：接缝 + 顶缘冷光；只有浮层有投影 */
   --shadow-card: var(--edge);
   --shadow-float:
@@ -106,7 +120,7 @@
   --shadow-well: inset 0 1px 2px rgb(0 0 0 / 0.5);
   --glow-accent:
     0 0 0 1px var(--accent-line),
-    0 0 22px -6px rgb(34 224 255 / 0.55);
+    0 0 22px -6px rgb(116 151 252 / 0.55);
   --glow-success: 0 0 16px -6px rgb(47 227 155 / 0.6);
   --glow-gold: 0 0 18px -6px rgb(255 197 66 / 0.55);
   --motion-fast: 120ms;
@@ -203,11 +217,11 @@
   --foreground: var(--text-primary);
   --card: var(--surface);
   --card-foreground: var(--text-primary);
-  --popover: #1c1c1c;
+  --popover: #1b1e23;
   --popover-foreground: var(--text-primary);
-  --primary: var(--accent);
-  /* 信号青上用深字：#22e0ff 与 #00161c 的对比约 13:1。 */
-  --primary-foreground: #00161c;
+  --primary: var(--primary-fill);
+  /* 电光蓝紫上用白字：#2c22fa 与 #ffffff 的对比约 7.7:1。亮色实底（如失败玫红）上的字用 --background。 */
+  --primary-foreground: #ffffff;
   --secondary: var(--surface-raised);
   --secondary-foreground: var(--text-primary);
   --muted: var(--surface-sunken);
@@ -218,9 +232,9 @@
   --ring: var(--accent);
   --sidebar: var(--bg-deep);
   --sidebar-foreground: var(--text-secondary);
-  --sidebar-primary: var(--accent);
+  --sidebar-primary: var(--primary-fill);
   --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent-soft);
+  --sidebar-accent: var(--nav-selected);
   --sidebar-accent-foreground: var(--text-primary);
   --sidebar-border: var(--border);
   --sidebar-ring: var(--accent);
@@ -275,6 +289,8 @@
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-hover: var(--primary-fill-hover);
+  --color-nav-selected: var(--nav-selected);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);

@@ -1,0 +1,80 @@
+{
+  "source": "https://app.runwayml.com (guest workspace: Home /ai-tools/generate, Brand Kits /ai-tools/brand, Apps › Product Shot Video Builder), captured 2026-10-28 at 1440x900 in light and dark schemes",
+  "tokens": {
+    "spacing": { "scale": [4, 6, 8, 12, 16, 20, 40, 48], "base_unit": 8 },
+    "typography": {
+      "families": ["Normal (Runway custom grotesk)"],
+      "scale": [
+        { "role": "page-headline", "size": "36px", "weight": "400", "letter_spacing": "-0.36px", "line_height": "40px" },
+        { "role": "section-title", "size": "24px", "weight": "600", "letter_spacing": "-0.24px" },
+        { "role": "card-title", "size": "16px", "weight": "500" },
+        { "role": "ui-body", "size": "14px", "weight": "400-600", "line_height": "20px" },
+        { "role": "meta", "size": "12px", "weight": "400" }
+      ]
+    },
+    "colors": {
+      "dark": [
+        { "role": "page", "value": "#000000" },
+        { "role": "sidebar", "value": "rgba(179,187,255,0.067) over #000 (~#0C0D11)" },
+        { "role": "panel-level1", "value": "#131416" },
+        { "role": "prompt-card", "value": "#121314" },
+        { "role": "raised-level2", "value": "#1B1E23" },
+        { "role": "active-control", "value": "#2C3037" },
+        { "role": "hairline", "value": "1px rgba(255,255,255,0.05)" },
+        { "role": "nav-selected", "value": "rgba(207,213,255,0.118)" },
+        { "role": "text-primary", "value": "#FFFFFF" },
+        { "role": "text-secondary", "value": "#A1AFC5" },
+        { "role": "text-inactive", "value": "#818A9D" },
+        { "role": "primary-action", "value": "#2C22FA", "foreground": "#FFFFFF" },
+        { "role": "link", "value": "#7497FC" }
+      ],
+      "light": [
+        { "role": "page", "value": "#FFFFFF" },
+        { "role": "chip-card", "value": "#F0F2F5" },
+        { "role": "sidebar", "value": "rgba(0,7,55,0.05)" },
+        { "role": "hairline", "value": "#E8EAF0" },
+        { "role": "text", "value": "#000000 / #5F6673 / #818A9D" },
+        { "role": "primary-action", "value": "#2C22FA" }
+      ],
+      "gray_ramp": ["#FFFFFF", "#F0F2F5", "#E8EAF0", "#DEE4EC", "#A1AFC5", "#818A9D", "#5F6673", "#2C3037", "#1B1E23", "#131416", "#000000"]
+    },
+    "radius": { "pill": "100px", "control": "8px", "chip": "10px", "card-small": "12px", "control-small": "6px", "strip": "20px", "prompt-card": "24px" },
+    "shadows": {
+      "dark_floating": "0 8px 16px rgba(0,0,0,0.5)",
+      "light_prompt_card": "0 40px 140px rgba(12,62,97,0.05), 0 8px 32px rgba(97,39,12,0.03), 0 0 10px rgba(97,12,18,0.02)"
+    },
+    "motion": { "layout": "0.25s cubic-bezier(0.4,0,0.2,1)", "hover": "0.12s cubic-bezier(0.2,0,0,1)" },
+    "layout": { "sidebar_width": "240px", "prompt_card": "840x189", "gallery_row_height": "200px", "grid": "3 columns, 12px gap" }
+  },
+  "taste": [
+    {
+      "name": "Ask first, pick a model later",
+      "trigger": "When a creator lands on the workspace with something to make",
+      "decision": "One 840x189 prompt card under a 36px weight-400 question, Reference/Sketch slots inside it and model chips below it, over a tool grid or a model picker as the first thing on screen",
+      "reason": "The agent routes intent to the model; choosing Seedance vs. GPT Image before stating intent front-loads a decision the user can't make well",
+      "evidence": ["prompt card radius 24px, the only 24px radius on the page", "model chips 38px tall below the card", "Product Shot Video Builder: upload a product image and 'we'll extract a tailored brief for you'"]
+    },
+    {
+      "name": "Cool gray chrome, one electric color",
+      "trigger": "When the page is full of colorful generated media",
+      "decision": "All chrome from one blue-leaning gray ramp with a single saturated #2C22FA for the one primary action, over multiple accents or tinted panels",
+      "reason": "The frame must recede behind thumbnails; a cool cast keeps it from reading as plain gray and one electric color makes the next step unmistakable",
+      "evidence": ["#2C22FA on exactly two elements", "links use the lighter #7497FC for readability on black", "no gradients in the chrome"]
+    },
+    {
+      "name": "Depth from tinted levels, not borders",
+      "trigger": "When a dark UI needs sidebar, panels and menus to read as separate planes",
+      "decision": "Named levels #000 -> #131416 -> #1B1E23 and a 6.7% periwinkle-tinted sidebar instead of divider lines or stacked shadows",
+      "reason": "Lines multiply fast in a tool UI; luminance steps keep the screen quiet while a 5% hairline on cards carries the edge",
+      "evidence": ["--rw-level0/1/2-bg|div|ui tokens", "sidebar rgba(179,187,255,0.067)", "only floating menus carry a drop shadow in dark mode"],
+      "restraint": true
+    },
+    {
+      "name": "Light headline, dense controls",
+      "trigger": "When a tool page has one headline and many small controls",
+      "decision": "36px weight-400 headline with -1% tracking; everything else 14px at 400-600 on an 8/6px rhythm, over a bold display headline or roomy 16px controls",
+      "reason": "The weight belongs to the media; dense 14px controls fit slots, chips and tabs in one row",
+      "evidence": ["h1 36px/400/40px", "65 of ~92 text nodes at 14px", "spacing led by 8px (64) and 6px (57)"]
+    }
+  ]
+}

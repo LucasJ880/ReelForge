@@ -54,29 +54,6 @@ const contracts: RouteMethodContract[] = [
       /NextResponse\.json\(\{ ok: true, persona: "PERSONAL" \}\)/,
   },
   {
-    method: "GET",
-    route: "/api/me/usage",
-    file: "src/app/api/me/usage/route.ts",
-    boundary: "session",
-    successMarker:
-      /loadUsagePayloadForSession[\s\S]*return NextResponse\.json\(payload\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/billing/checkout",
-    file: "src/app/api/billing/checkout/route.ts",
-    boundary: "session",
-    successMarker: /NextResponse\.json\(\{ url: result\.url \}\)/,
-  },
-  {
-    method: "POST",
-    route: "/api/personal/agent-chat",
-    file: "src/app/api/personal/agent-chat/route.ts",
-    boundary: "generation-session",
-    successMarker:
-      /NextResponse\.json\(\{ ok: true, \.\.\.fallbackReply\([\s\S]*\}\)/,
-  },
-  {
     method: "POST",
     route: "/api/video-generation/plan",
     file: "src/app/api/video-generation/plan/route.ts",
@@ -168,13 +145,6 @@ const contracts: RouteMethodContract[] = [
     successMarker: /runAIQA\(id\)[\s\S]*NextResponse\.json\(review\)/,
   },
   {
-    method: "POST",
-    route: "/api/ad-plans/contract-plan/render",
-    file: "src/app/api/ad-plans/[id]/render/route.ts",
-    boundary: "operator",
-    successMarker: /renderAdEditPlan\(id\)[\s\S]*NextResponse\.json\(plan\)/,
-  },
-  {
     method: "GET",
     route: "/api/product-images",
     file: "src/app/api/product-images/route.ts",
@@ -188,14 +158,6 @@ const contracts: RouteMethodContract[] = [
     boundary: "session",
     successMarker:
       /duplicate: false,[\s\S]*job: productImageJobView\(job\),[\s\S]*asset: assetView\(job\.sourceAsset\)[\s\S]*\{ status: 201 \}/,
-  },
-  {
-    method: "POST",
-    route: "/api/raw-assets/contract-asset/preprocess",
-    file: "src/app/api/raw-assets/[id]/preprocess/route.ts",
-    boundary: "operator",
-    successMarker:
-      /preprocessRawAsset\(id, parsed\.data\)[\s\S]*NextResponse\.json\(asset\)/,
   },
   {
     method: "POST",
@@ -228,8 +190,9 @@ function routeSource(file: string): string {
   return readFileSync(path.join(process.cwd(), file), "utf8");
 }
 
-test("H1 group A STATIC: all 24 route methods lock a success shape and handler boundary", () => {
-  assert.equal(contracts.length, 24);
+test("H1 group A STATIC: all 19 route methods lock a success shape and handler boundary", () => {
+  /// 2026-10-28 me/usage、billing/checkout、personal/agent-chat、ad-plans render、raw-assets preprocess 随删：24 → 19
+  assert.equal(contracts.length, 19);
   assert.equal(
     new Set(contracts.map(({ method, route }) => `${method} ${route}`)).size,
     contracts.length,

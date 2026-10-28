@@ -22,8 +22,6 @@ type ContractSession = {
 const nextAuthRuntime = require("next-auth/next") as MutableRecord;
 const { db } = require("../src/lib/db.ts") as { db: Record<string, unknown> };
 
-const qaRoute = require("../src/app/api/qa/route.ts") as MutableRecord;
-const qaDecisionRoute = require("../src/app/api/qa/[id]/route.ts") as MutableRecord;
 const briefQaRoute = require("../src/app/api/briefs/[id]/qa/route.ts") as MutableRecord;
 const publishRoute = require("../src/app/api/publish/route.ts") as MutableRecord;
 const publishItemRoute = require("../src/app/api/publish/[id]/route.ts") as MutableRecord;
@@ -31,13 +29,6 @@ const reportsRoute = require("../src/app/api/reports/route.ts") as MutableRecord
 const internalReportsRoute = require("../src/app/api/internal/reports/route.ts") as MutableRecord;
 const internalReportRoute = require("../src/app/api/internal/reports/[id]/route.ts") as MutableRecord;
 const waitlistRoute = require("../src/app/api/demo/real-footage-ads/waitlist/route.ts") as MutableRecord;
-const personaRoute = require("../src/app/api/persona/route.ts") as MutableRecord;
-const digitalHumanAvatarsRoute = require("../src/app/api/digital-human/avatars/route.ts") as MutableRecord;
-const digitalHumanVoicesRoute = require("../src/app/api/digital-human/voices/route.ts") as MutableRecord;
-const digitalHumanJobsRoute = require("../src/app/api/digital-human/jobs/route.ts") as MutableRecord;
-const digitalHumanJobRoute = require("../src/app/api/digital-human/jobs/[id]/route.ts") as MutableRecord;
-const digitalHumanClaimRoute = require("../src/app/api/internal/digital-human/claim/route.ts") as MutableRecord;
-const digitalHumanCompleteRoute = require("../src/app/api/internal/digital-human/complete/route.ts") as MutableRecord;
 const stripeWebhookRoute = require("../src/app/api/webhooks/stripe/route.ts") as MutableRecord;
 const nextAuthRoute = require("../src/app/api/auth/[...nextauth]/route.ts") as MutableRecord;
 const { middleware } = require("../src/middleware.ts") as {
@@ -60,10 +51,6 @@ const FORBIDDEN = {
   action: "contact_support",
 };
 
-const SEALED = {
-  error: "该功能当前不可用",
-  code: "FEATURE_SEALED",
-};
 
 const sessions = {
   customer: {
@@ -151,17 +138,11 @@ test("H1 secondary contracts group C", async (t) => {
     getServerSession: async () => activeSession,
   });
 
-  await t.test("QA GET/POST and brief QA lock auth, validation, and success shapes", async (st) => {
+  await t.test("brief QA locks auth, validation, and success shapes（/api/qa 列表与决策 2026-10-28 随旧中台删除）", async (st) => {
     const qaReview = db.qAReview as MutableRecord;
     const videoBrief = db.videoBrief as MutableRecord;
     const publishRecord = db.publishRecord as MutableRecord;
-    let listArgs: unknown;
-
     patch(st, qaReview, {
-      findMany: async (args: unknown) => {
-        listArgs = args;
-        return [{ id: "qa-list-1", status: "PENDING" }];
-      },
       findUnique: async () => ({
         id: "qa-review-1",
         videoBriefId: "brief-1",
@@ -195,32 +176,12 @@ test("H1 secondary contracts group C", async (t) => {
     patch(st, publishRecord, {
       findFirst: async () => ({ id: "publish-existing" }),
     });
-
-    const decision = handler<
-      (request: NextRequest, context: { params: Promise<{ id: string }> }) => Promise<Response>
-    >(qaDecisionRoute, "POST");
     const briefQa = handler<
       (request: NextRequest, context: { params: Promise<{ id: string }> }) => Promise<Response>
     >(briefQaRoute, "POST");
-    const validDecisionRequest = () =>
-      jsonRequest("/api/qa/qa-review-1", "POST", { decision: "APPROVED" });
     const briefQaRequest = () => jsonRequest("/api/briefs/brief-ai-1/qa", "POST", {});
 
     activeSession = null;
-    await assertJson(
-      await handler<(request: NextRequest) => Promise<Response>>(qaRoute, "GET")(
-        new NextRequest("http://localhost/api/qa"),
-      ),
-      401,
-      AUTH_REQUIRED,
-    );
-    await assertJson(
-      await decision(validDecisionRequest(), {
-        params: Promise.resolve({ id: "qa-review-1" }),
-      }),
-      401,
-      AUTH_REQUIRED,
-    );
     await assertJson(
       await briefQa(briefQaRequest(), {
         params: Promise.resolve({ id: "brief-ai-1" }),
@@ -230,20 +191,6 @@ test("H1 secondary contracts group C", async (t) => {
     );
     activeSession = sessions.customer;
     await assertJson(
-      await handler<(request: NextRequest) => Promise<Response>>(qaRoute, "GET")(
-        new NextRequest("http://localhost/api/qa"),
-      ),
-      403,
-      FORBIDDEN,
-    );
-    await assertJson(
-      await decision(validDecisionRequest(), {
-        params: Promise.resolve({ id: "qa-review-1" }),
-      }),
-      403,
-      FORBIDDEN,
-    );
-    await assertJson(
       await briefQa(briefQaRequest(), {
         params: Promise.resolve({ id: "brief-ai-1" }),
       }),
@@ -252,43 +199,6 @@ test("H1 secondary contracts group C", async (t) => {
     );
 
     activeSession = sessions.reviewer;
-    await assertJson(
-      await handler<(request: NextRequest) => Promise<Response>>(qaRoute, "GET")(
-        new NextRequest("http://localhost/api/qa?status=all"),
-      ),
-      200,
-      { items: [{ id: "qa-list-1", status: "PENDING" }] },
-    );
-    assert.deepEqual((listArgs as { where: unknown }).where, {});
-
-    await assertJson(
-      await decision(jsonRequest("/api/qa/qa-review-1", "POST", { decision: "INVALID" }), {
-        params: Promise.resolve({ id: "qa-review-1" }),
-      }),
-      400,
-      {
-        error: "参数错误",
-        details: {
-          formErrors: [],
-          fieldErrors: {
-            decision: [
-              "Invalid enum value. Expected 'APPROVED' | 'REJECTED' | 'CHANGES_REQUESTED', received 'INVALID'",
-            ],
-          },
-        },
-      },
-    );
-    await assertJson(
-      await decision(
-        jsonRequest("/api/qa/qa-review-1", "POST", {
-          decision: "APPROVED",
-          comment: "contract approved",
-        }),
-        { params: Promise.resolve({ id: "qa-review-1" }) },
-      ),
-      200,
-      { id: "qa-review-1", status: "APPROVED", reviewerId: sessions.reviewer.user.id },
-    );
 
     const aiQa = await briefQa(
       briefQaRequest(),
@@ -507,141 +417,7 @@ test("H1 secondary contracts group C", async (t) => {
     });
   });
 
-  await t.test("persona POST locks anonymous, validation, and persisted success shapes", async (st) => {
-    const adminUser = db.adminUser as MutableRecord;
-    let updateArgs: unknown;
-    patch(st, adminUser, {
-      update: async (args: unknown) => {
-        updateArgs = args;
-        return { id: sessions.customer.user.id };
-      },
-    });
-    const post = handler<(request: NextRequest) => Promise<Response>>(personaRoute, "POST");
 
-    activeSession = null;
-    await assertJson(
-      await post(jsonRequest("/api/persona", "POST", { persona: "PERSONAL" })),
-      401,
-      AUTH_REQUIRED,
-    );
-    activeSession = sessions.customer;
-    const invalid = await post(jsonRequest("/api/persona", "POST", { persona: "OPERATOR" }));
-    assert.equal(invalid.status, 400);
-    const invalidBody = (await invalid.json()) as Record<string, unknown>;
-    assert.equal(invalidBody.ok, false);
-    assert.equal(invalidBody.error, "Invalid persona");
-    assert.ok(invalidBody.issues);
-
-    await assertJson(
-      await post(jsonRequest("/api/persona", "POST", { persona: "BUSINESS" })),
-      200,
-      { ok: true, persona: "BUSINESS" },
-    );
-    assert.deepEqual(updateArgs, {
-      where: { id: sessions.customer.user.id },
-      data: { userType: "BUSINESS" },
-    });
-  });
-
-  await t.test("all digital-human HTTP methods remain sealed before user/service work", async (st) => {
-    const previousSecret = process.env.CRON_SECRET;
-    st.after(() => {
-      if (previousSecret === undefined) delete process.env.CRON_SECRET;
-      else process.env.CRON_SECRET = previousSecret;
-    });
-
-    const sealedResponses: Array<Promise<Response>> = [
-      handler<() => Promise<Response>>(digitalHumanAvatarsRoute, "GET")(),
-      handler<() => Promise<Response>>(digitalHumanVoicesRoute, "GET")(),
-      handler<() => Promise<Response>>(digitalHumanJobsRoute, "GET")(),
-      handler<(request: NextRequest) => Promise<Response>>(digitalHumanJobsRoute, "POST")(
-        jsonRequest("/api/digital-human/jobs", "POST", {}),
-      ),
-      handler<
-        (request: NextRequest, context: { params: Promise<{ id: string }> }) => Promise<Response>
-      >(digitalHumanJobRoute, "GET")(
-        new NextRequest("http://localhost/api/digital-human/jobs/sealed"),
-        { params: Promise.resolve({ id: "sealed" }) },
-      ),
-    ];
-    for (const response of await Promise.all(sealedResponses)) {
-      await assertJson(response, 404, SEALED);
-    }
-
-    const claimGet = handler<(request: NextRequest) => Promise<Response>>(digitalHumanClaimRoute, "GET");
-    const claimPost = handler<(request: NextRequest) => Promise<Response>>(digitalHumanClaimRoute, "POST");
-    const complete = handler<(request: NextRequest) => Promise<Response>>(digitalHumanCompleteRoute, "POST");
-
-    delete process.env.CRON_SECRET;
-    await assertJson(
-      await claimGet(new NextRequest("http://localhost/api/internal/digital-human/claim")),
-      503,
-      { error: "service unavailable" },
-    );
-
-    process.env.CRON_SECRET = "contract-machine-secret";
-    const wrongAuth = { authorization: "Bearer wrong" };
-    await assertJson(
-      await claimGet(
-        new NextRequest("http://localhost/api/internal/digital-human/claim", { headers: wrongAuth }),
-      ),
-      401,
-      { error: "unauthorized" },
-    );
-    await assertJson(
-      await claimPost(
-        new NextRequest("http://localhost/api/internal/digital-human/claim", {
-          method: "POST",
-          headers: wrongAuth,
-        }),
-      ),
-      401,
-      { error: "unauthorized" },
-    );
-    await assertJson(
-      await complete(
-        jsonRequest(
-          "/api/internal/digital-human/complete",
-          "POST",
-          {},
-          wrongAuth,
-        ),
-      ),
-      401,
-      { error: "unauthorized" },
-    );
-
-    const validAuth = { authorization: "Bearer contract-machine-secret" };
-    await assertJson(
-      await claimGet(
-        new NextRequest("http://localhost/api/internal/digital-human/claim", { headers: validAuth }),
-      ),
-      404,
-      SEALED,
-    );
-    await assertJson(
-      await claimPost(
-        new NextRequest("http://localhost/api/internal/digital-human/claim", {
-          method: "POST",
-          headers: validAuth,
-        }),
-      ),
-      404,
-      SEALED,
-    );
-    await assertJson(
-      await complete(
-        jsonRequest(
-          "/api/internal/digital-human/complete",
-          "POST",
-          {},
-          validAuth,
-        ),
-      ),
-      404,
-      SEALED,
-    );
-  });
 
   await t.test("Stripe webhook locks missing/invalid signatures and offline valid receipt", async (st) => {
     const previousKey = process.env.STRIPE_SECRET_KEY;
@@ -743,8 +519,6 @@ test("H1 secondary contracts group C", async (t) => {
 
   await t.test("route-method matrix and NextAuth handler wiring are explicit", async () => {
     const matrix: Array<[string, MutableRecord, string[]]> = [
-      ["/api/qa", qaRoute, ["GET"]],
-      ["/api/qa/[id]", qaDecisionRoute, ["POST"]],
       ["/api/briefs/[id]/qa", briefQaRoute, ["POST"]],
       ["/api/publish", publishRoute, ["GET"]],
       ["/api/publish/[id]", publishItemRoute, ["POST"]],
@@ -752,13 +526,6 @@ test("H1 secondary contracts group C", async (t) => {
       ["/api/internal/reports", internalReportsRoute, ["GET"]],
       ["/api/internal/reports/[id]", internalReportRoute, ["PATCH"]],
       ["/api/demo/real-footage-ads/waitlist", waitlistRoute, ["POST"]],
-      ["/api/persona", personaRoute, ["POST"]],
-      ["/api/digital-human/avatars", digitalHumanAvatarsRoute, ["GET"]],
-      ["/api/digital-human/voices", digitalHumanVoicesRoute, ["GET"]],
-      ["/api/digital-human/jobs", digitalHumanJobsRoute, ["GET", "POST"]],
-      ["/api/digital-human/jobs/[id]", digitalHumanJobRoute, ["GET"]],
-      ["/api/internal/digital-human/claim", digitalHumanClaimRoute, ["GET", "POST"]],
-      ["/api/internal/digital-human/complete", digitalHumanCompleteRoute, ["POST"]],
       ["/api/webhooks/stripe", stripeWebhookRoute, ["POST"]],
       ["/api/auth/[...nextauth]", nextAuthRoute, ["GET", "POST"]],
     ];

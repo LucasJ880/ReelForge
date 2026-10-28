@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (116/116 route files)
+## API endpoint inventory (84/84 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -105,20 +105,14 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/product-images/[id]/cancel` | Session, owner-scoped | 铁律 #7：取消这一轮产品图；清幂等键、保留素材、取消不计费 |
 | GET | `/api/cron/capability-probe` | Machine auth (Bearer CRON_SECRET) | PRD M7/C1: 能力探测（非存活探测）；逐字段漂移诊断落库；漂移返回 503 供拨测告警。C4：同一轮探测全部能力（OpenAI 文本 1 token / 看图 / TTS 每 24h 一次 / 审核、Pexels、Firecrawl 额度、remove.bg 账户、Shuyu 余额、邮件配置）写入 CapabilityStatus；`?force=1` 强制 TTS |
 | GET | `/api/capabilities` | Session (any signed-in user) | C4: 能力注册表客户视图（状态 / 最近检测 / 异常起点 / 中英人话 / 受影响功能）；route 只做鉴权 + getCapabilities()；service 永不抛出（状态表读不到时按配置显示） |
-| GET | `/api/me/usage` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/exchange/pulse` | Session, owner-scoped | Round 1025 B1: shell pulse (generating / queued / active + paused batches / awaiting images / needs-attention / new leads / UTC-month quota / production tape); DB count + groupBy only; 500 instead of zeros on failure |
 | POST | `/api/exchange/failures-ack` | Session, own workspace | Round 1025 B1: library 「看过了」 sets Workspace.failuresAckedAt = now; failure records untouched |
-| POST | `/api/billing/checkout` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/upload/blob` | Session | VERIFIED H1 strict: success, auth, validation, review, quota, storage and 5xx schemas |
-| GET, POST | `/api/admin/users` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary |
-| PATCH, DELETE | `/api/admin/users/[id]` | Super admin | VERIFIED H1 light: success schemas + super-admin boundary; DELETE fixed 405 (round 1025 A4: delete → disable, no physical delete) |
-| POST, DELETE | `/api/admin/users/[id]/disable` | Super admin | Round 1025 A4: POST disables (reason required, cannot disable self, cancels unsubmitted queued jobs, data kept); DELETE lifts the disable |
 
 ### Agent Director, briefs, planning, and rendering
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| POST | `/api/personal/agent-chat` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/product-link` | Session; read-only | VERIFIED: link-to-video prefill (Shopify JSON → direct → Firecrawl fallback), no records created |
 | POST | `/api/broll/dispatch` | Session; demo blocked (paid TTS) | VERIFIED: sync prepare (plan/picks/TTS) then PENDING chain; ffmpeg deferred to stitch runner broll branch |
 | POST | `/api/broll/cancel` | Session + ownership | VERIFIED: broll-only cancel, inputs preserved, jobs CANCELLED so claim never picks it |
@@ -132,7 +126,6 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/video-generation/storyboards/[id]/approve` | Session + ownership | VERIFIED: manual approval only after every current frame succeeds |
 | POST | `/api/video-generation/storyboards/[id]/cancel` | Session + ownership | VERIFIED: real cancel of GENERATING/AWAITING_APPROVAL only; queued frames never submitted, submitted frames keep reconciling; refuses once dispatch reserved/attached |
 | POST | `/api/video-generation/storyboards/[id]/frames/[frameId]/regenerate` | Session + ownership | VERIFIED: immutable new attempt; fails closed for ambiguous billing/refund state |
-| GET | `/api/internal/video-provider-routes` | Operator/Super Admin session or `CRON_SECRET`; read-only | VERIFIED strict: authentication precedes all upstream reads; response is bounded/sanitized; invalid, anonymous and customer callers trigger zero Buddy requests; no submission path exists |
 | GET | `/api/internal/ops-credits` | Operator/Super Admin session; read-only | ADDED post-H1: raw Shuyu balance is deliberately internal-only (customer routes API never exposes it); zod-parsed response, no-store, upstream failures map to 502 without leaking provider payloads |
 | GET, PATCH | `/api/briefs/[id]` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/briefs/[id]/ad-plan` | Operator | VERIFIED H1 light: success wiring + operator boundary |
@@ -142,7 +135,6 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/briefs/[id]/render-status` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
 | POST | `/api/briefs/[id]/render-retry` | Session + ownership | VERIFIED H1 light: customer DTO wiring, shared 401 and ownership check |
 | POST | `/api/briefs/[id]/qa` | Reviewer | VERIFIED H1 light: dynamic success/auth + reviewer boundary |
-| POST | `/api/ad-plans/[id]/render` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 
 ### Batch generation and templates
 
@@ -165,7 +157,6 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/product-anchors` | Session; demo blocked (paid cutout) | PRD §5/M5 B1: 品牌页「锚定这个产品」入口；服务端资产 ID + 框选 roi 防抠错主体；同 SKU upsert 天然幂等；抠图失败落库为 FAILED+failureReason 不报 HTTP 错 |
 | POST | `/api/product-anchors/[id]/retry` | Session + ownership; demo blocked | PRD §5/M5 B1: FAILED 原地重跑 + PENDING_CUTOUT（key 后配）界面续跑；READY 短路不重复扣费 |
 | GET, PUT, POST | `/api/brand-packaging` | Session + workspace ownership | VERIFIED: tenant package listing/upsert plus owner-scoped optional post-production packaging |
-| POST | `/api/raw-assets/[id]/preprocess` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/generate` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 | POST | `/api/projects/[id]/logo/select` | Operator | VERIFIED H1 light: success wiring + operator boundary |
 
@@ -173,20 +164,6 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET, POST | `/api/delivery-orders` | Operator | VERIFIED H1 light: success schemas + operator boundary |
-| GET, PATCH | `/api/delivery-orders/[id]` | Operator | VERIFIED H1 light: success schemas + operator boundary |
-| GET, POST | `/api/delivery-orders/[id]/assets` | Operator | VERIFIED H1 light: success schemas + operator boundary |
-| POST | `/api/delivery-orders/[id]/research` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/delivery-orders/[id]/selling-points` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/delivery-orders/[id]/rounds` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| GET | `/api/rounds/[id]` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/rounds/[id]/angles` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/rounds/[id]/ad-plans` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/rounds/[id]/score` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/rounds/[id]/iteration` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| POST | `/api/rounds/[id]/distill` | Operator | VERIFIED H1 light: success schema + operator boundary |
-| GET, POST | `/api/metrics/import` | Operator | VERIFIED H1 light: both methods now guard before CSV/JSON success |
-| POST | `/api/business/metrics` | Business customer + ownership | VERIFIED H1 light: success schema + persona/owner service predicate |
 
 ### Racing MVP
 
@@ -200,15 +177,12 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET | `/api/qa` | Reviewer | VERIFIED H1 light: dynamic success, 401 and customer 403 |
-| POST | `/api/qa/[id]` | Reviewer | VERIFIED H1 light: dynamic validation/success and reviewer boundary |
 | GET | `/api/publish` | Operator | VERIFIED H1 light: dynamic success, 401 and customer 403 |
 | POST | `/api/publish/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
 | POST | `/api/reports` | Session + ownership | VERIFIED H1 light: dynamic validation/ownership/success contract |
 | GET | `/api/internal/reports` | Operator | VERIFIED H1 light: dynamic success, 401 and customer 403 |
 | PATCH | `/api/internal/reports/[id]` | Operator | VERIFIED H1 light: dynamic validation/success, 401 and customer 403 |
 | POST | `/api/demo/real-footage-ads/waitlist` | Public | VERIFIED H1 light: dynamic validation/success with in-memory DB stub |
-| POST | `/api/persona` | Session | VERIFIED H1 light: dynamic auth/validation/persisted success |
 
 ### Growth loop: inquiries, tracked links, pilot applications (1025 · A5)
 
@@ -237,17 +211,11 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | GET, POST | `/api/cron/founder-digest` | `CRON_SECRET` | VERIFIED auth fail-closed; 2026-10-25 B8 创始人每日汇总：只读查询，没配 Resend 只记日志并 200 `{sent:false, reason}`，按 UTC 日幂等（RateLimitBucket 闩锁） |
 | POST (GET → 405) | `/api/internal/stitch/claim` | `CRON_SECRET` | VERIFIED auth fail-closed; C3: claim only on POST, `task: null` while `STITCH_RUNTIME=inprocess` |
 | POST | `/api/internal/stitch/complete` | `CRON_SECRET` | VERIFIED auth fail-closed |
-| GET, POST | `/api/internal/digital-human/claim` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |
-| POST | `/api/internal/digital-human/complete` | `CRON_SECRET`; feature sealed | VERIFIED auth before sealed response |
 
 ### Digital human sealed surface
 
 | Method | Endpoint | Intended boundary | Contract audit |
 |---|---|---|---|
-| GET | `/api/digital-human/avatars` | Session; fail-closed by feature flag | VERIFIED H1 light: authenticated surface remains sealed 404 |
-| GET | `/api/digital-human/voices` | Session; fail-closed by feature flag | VERIFIED H1 light: authenticated surface remains sealed 404 |
-| GET, POST | `/api/digital-human/jobs` | Session; fail-closed by feature flag | VERIFIED H1 light: both methods remain sealed 404 before service work |
-| GET | `/api/digital-human/jobs/[id]` | Session; fail-closed by feature flag | VERIFIED H1 light: sealed 404 before lookup |
 
 ### Third-party webhooks
 

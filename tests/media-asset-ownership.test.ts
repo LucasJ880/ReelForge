@@ -256,15 +256,5 @@ test("creation routes resolve ownership before quota, persistence, or provider w
   assert.ok(batchResolve < batchRoute.indexOf("await createBatchJob"));
   assert.ok(batchResolve < batchRoute.indexOf("await authorizeBatchQuotaForSession"));
   assert.ok(batchResolve < batchRoute.indexOf("await processBatchTick"));
-
-  const digitalHumanRoute = await readFile(
-    "src/app/api/digital-human/jobs/route.ts",
-    "utf8",
-  );
-  assert.match(digitalHumanRoute, /storeImageAssetIds/);
-  assert.doesNotMatch(digitalHumanRoute, /storeImageUrls: z\.array/);
-  assert.ok(
-    digitalHumanRoute.indexOf("await resolveOwnedImageAssets") <
-      digitalHumanRoute.indexOf("await assertQuotaForSession"),
-  );
+  /// 数字人 jobs 路由 2026-10-28 随封存链删除。
 });

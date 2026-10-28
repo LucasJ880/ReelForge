@@ -21,13 +21,6 @@ test("批量故事板重出帧与推进只针对仍在排队 / 暂停的任务",
   }
 });
 
-test("账号停用后真取消其故事板，且放在停用事务之外", async () => {
-  const disable = await readFile("src/lib/services/account-disable-service.ts", "utf8");
-  const call = disable.indexOf("cancelActiveStoryboardRunsForUser(result.userId)");
-  assert.ok(call > 0);
-  assert.ok(call > disable.indexOf("forgetAccountStatus(result.userId)"));
-});
-
 test("故事板轮询跳过停用账号的新出帧，但已取消轮次仍收回已付费的帧", async () => {
   const storyboard = await readFile("src/lib/video-generation/storyboard-service.ts", "utf8");
   const poll = storyboard.slice(storyboard.indexOf("export async function pollPendingStoryboardRuns"));

@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { readFile } from "node:fs/promises";
 import test, { type TestContext } from "node:test";
 import { db } from "../src/lib/db";
 import {
@@ -90,19 +88,6 @@ test("产品图取消 CAS 抢到：任务与未终态 provider task 一起改已
   assert.equal(claim.data.status, "CANCELLED");
   assert.match(claim.data.idempotencyKey, /^cancelled:\d+:key-1$/);
   assert.ok(log.some((entry) => entry.op === "task.updateMany"));
-});
-
-test("Stripe 支付回跳落到真实存在的页面，不再拼已下线的 /{persona}/billing", async () => {
-  const route = await readFile("src/app/api/billing/checkout/route.ts", "utf8");
-  assert.doesNotMatch(route, /\$\{persona\}\/billing/);
-  const match = route.match(/CHECKOUT_RETURN_PATH = "([^"]+)"/);
-  assert.ok(match, "回跳路径要集中在一个常量里");
-  const returnPath = match[1];
-  assert.ok(returnPath.startsWith("/app/"));
-  const page = `src/app/(platform)${returnPath}/page.tsx`;
-  assert.ok(existsSync(page), `${page} 必须存在，否则支付成功后落到 404`);
-  assert.match(route, /successUrl: `\$\{origin\}\$\{CHECKOUT_RETURN_PATH\}\?upgraded=1`/);
-  assert.match(route, /cancelUrl: `\$\{origin\}\$\{CHECKOUT_RETURN_PATH\}`/);
 });
 
 /// 用任意行业、且不含任何优惠字眼的输入，确认兜底文案自己不会编出来。

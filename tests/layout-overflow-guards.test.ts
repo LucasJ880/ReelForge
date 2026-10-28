@@ -20,17 +20,6 @@ test("RF-011 template filters wrap and cards preserve a stretched information gr
   assert.match(source, /mt-auto/);
 });
 
-test("RF-011 page-header and round actions wrap inside their content column", async () => {
-  const [header, actions] = await Promise.all([
-    readFile(path.join(ROOT, "src/components/features/page-header.tsx"), "utf8"),
-    readFile(path.join(ROOT, "src/app/(internal)/internal/rounds/[id]/actions.tsx"), "utf8"),
-  ]);
-  assert.match(header, /lg:flex-row/);
-  assert.match(header, /w-full[^\n]+lg:w-auto/);
-  assert.match(actions, /data-round-actions/);
-  assert.match(actions, /w-full[^\n]+flex-wrap/);
-});
-
 test("RF-011 browser overflow regression covers all three desktop widths", async () => {
   await access(path.join(ROOT, "tests/phase34/layout-overflow.spec.ts"));
   const source = await readFile(

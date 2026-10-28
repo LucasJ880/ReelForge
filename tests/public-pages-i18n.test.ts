@@ -7,7 +7,7 @@ import { PUBLIC_PAGE_COPY, getPublicPageCopy } from "../src/i18n/public-copy";
 const PUBLIC_PAGES = [
   "src/app/(public)/privacy/page.tsx",
   "src/app/(public)/terms/page.tsx",
-  "src/app/(public)/persona/page.tsx",
+  /// /persona 选择页 2026-10-28 删除
 ] as const;
 
 function stringPaths(value: unknown, prefix = ""): string[] {
@@ -44,8 +44,6 @@ test("public pages: legal and persona metadata and visible copy change with loca
   assert.equal(en.privacy.title, "Privacy Policy");
   assert.notEqual(zh.privacy.metadata.title, en.privacy.metadata.title);
   assert.notEqual(zh.terms.metadata.description, en.terms.metadata.description);
-  assert.notEqual(zh.persona.title, en.persona.title);
-  assert.notEqual(zh.persona.footer, en.persona.footer);
 });
 
 test("public pages: every route reads server locale, localizes metadata, and exposes a language switcher", () => {

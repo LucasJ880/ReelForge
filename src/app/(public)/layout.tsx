@@ -1,6 +1,6 @@
 /**
  * Public route group: no auth required, no sidebar.
- * 用于 /persona, /showcase 等营销/选择页。
+ * 用于 /privacy、/terms 等公开法务页。
  */
 export default function PublicLayout({
   children,

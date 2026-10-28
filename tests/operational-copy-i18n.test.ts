@@ -24,7 +24,8 @@ test("RF-013 internal navigation has no hardcoded English operational labels", a
   for (const hardcoded of ["Content reports", "Internal Ops", "Projects (legacy)", "Videos (legacy)"]) {
     assert.doesNotMatch(source, new RegExp(hardcoded.replace(/[()]/g, "\\$&")));
   }
-  for (const key of ["nav.contentReports", "nav.internalOps", "nav.legacySection", "nav.legacyProjects", "nav.legacyVideos"]) {
+  /// 旧中台 2026-10-28 只留帧质检：内容举报等入口随页面删除
+  for (const key of ["nav.frameQa", "nav.internalOps", "nav.legacySection", "nav.legacyProjects", "nav.legacyVideos"]) {
     assert.match(source, new RegExp(key.replace(".", "\\.")));
   }
 });

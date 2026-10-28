@@ -10,7 +10,7 @@ function walk(directory: string): string[] {
   });
 }
 
-test("API inventory accounts for every route file, including provider discovery", () => {
+test("API inventory accounts for every route file", () => {
   const apiRoot = path.join(process.cwd(), "src/app/api");
   const audit = readFileSync("qa/SHIP_AUDIT.md", "utf8");
   const routeFiles = walk(apiRoot).filter((file) => file.endsWith("/route.ts"));
@@ -19,7 +19,7 @@ test("API inventory accounts for every route file, including provider discovery"
     return `/api/${relative}`;
   });
 
-  assert.equal(routeFiles.length, 116);
+  assert.equal(routeFiles.length, 84);
   assert.equal(new Set(endpoints).size, routeFiles.length);
   for (const endpoint of endpoints) {
     assert.ok(
@@ -27,8 +27,7 @@ test("API inventory accounts for every route file, including provider discovery"
       `${endpoint} is implemented but missing from qa/SHIP_AUDIT.md`,
     );
   }
-  assert.match(audit, /API endpoint inventory \(116\/116 route files\)/);
+  assert.match(audit, /API endpoint inventory \(84\/84 route files/);
   assert.match(audit, /GET, POST \| `\/api\/cron\/stitch-dispatch`/);
-  assert.match(audit, /GET \| `\/api\/internal\/video-provider-routes`/);
   assert.match(audit, /GET \| `\/api\/video-generation\/routes`/);
 });

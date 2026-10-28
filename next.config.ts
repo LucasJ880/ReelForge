@@ -96,28 +96,24 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       ...legacyPlatformRedirects,
-      // Operator / internal tooling 全部归到 /internal/*
-      { source: "/orders", destination: "/internal/orders", permanent: true },
-      { source: "/orders/:path*", destination: "/internal/orders/:path*", permanent: true },
-      { source: "/rounds", destination: "/internal/rounds", permanent: true },
-      { source: "/rounds/:path*", destination: "/internal/rounds/:path*", permanent: true },
-      { source: "/briefs", destination: "/internal/briefs", permanent: true },
-      { source: "/briefs/:path*", destination: "/internal/briefs/:path*", permanent: true },
-      { source: "/qa", destination: "/internal/qa", permanent: true },
-      { source: "/qa/:path*", destination: "/internal/qa/:path*", permanent: true },
-      { source: "/publish", destination: "/internal/publish", permanent: true },
-      { source: "/publish/:path*", destination: "/internal/publish/:path*", permanent: true },
-      { source: "/metrics", destination: "/internal/metrics", permanent: true },
-      { source: "/metrics/:path*", destination: "/internal/metrics/:path*", permanent: true },
-      { source: "/distillation", destination: "/internal/distillation", permanent: true },
-      { source: "/distillation/:path*", destination: "/internal/distillation/:path*", permanent: true },
-      { source: "/demo-leads", destination: "/internal/demo-leads", permanent: true },
-      { source: "/demo-leads/:path*", destination: "/internal/demo-leads/:path*", permanent: true },
-      { source: "/admin/ai-usage", destination: "/internal/ai-usage", permanent: true },
-      { source: "/admin/ai-usage/:path*", destination: "/internal/ai-usage/:path*", permanent: true },
-      { source: "/admin", destination: "/internal", permanent: true },
-      { source: "/settings", destination: "/internal/settings", permanent: true },
-      { source: "/settings/:path*", destination: "/internal/settings/:path*", permanent: true },
+      // 旧代运营中台 2026-10-28 删除（只留帧质检运维页）：旧入口一律落到 /internal/frame-qa
+      { source: "/internal", destination: "/internal/frame-qa", permanent: false },
+      ...["/orders", "/rounds", "/briefs", "/qa", "/publish", "/metrics", "/distillation", "/demo-leads", "/admin", "/settings"].flatMap(
+        (path) => [
+          { source: path, destination: "/internal/frame-qa", permanent: false },
+          { source: `${path}/:path*`, destination: "/internal/frame-qa", permanent: false },
+          { source: `/internal${path}`, destination: "/internal/frame-qa", permanent: false },
+          { source: `/internal${path}/:path*`, destination: "/internal/frame-qa", permanent: false },
+        ],
+      ),
+      { source: "/internal/ai-usage/:path*", destination: "/internal/frame-qa", permanent: false },
+      { source: "/internal/ai-usage", destination: "/internal/frame-qa", permanent: false },
+      { source: "/internal/reports/:path*", destination: "/internal/frame-qa", permanent: false },
+      { source: "/internal/reports", destination: "/internal/frame-qa", permanent: false },
+      { source: "/internal/videos", destination: "/internal/frame-qa", permanent: false },
+      // 公开旧页 /persona、/showcase 2026-10-28 删除
+      { source: "/persona", destination: "/app", permanent: false },
+      { source: "/showcase", destination: "/", permanent: false },
 
       // Customer-facing projects → business products
       { source: "/projects", destination: "/app/library", permanent: true },

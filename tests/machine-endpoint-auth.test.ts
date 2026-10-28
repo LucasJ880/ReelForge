@@ -9,8 +9,6 @@ import { GET as sweepStuckTasks } from "../src/app/api/cron/sweep-stuck-tasks/ro
 import { GET as founderDigest } from "../src/app/api/cron/founder-digest/route";
 import { POST as claimStitch } from "../src/app/api/internal/stitch/claim/route";
 import { POST as completeStitch } from "../src/app/api/internal/stitch/complete/route";
-import { GET as claimDigitalHuman } from "../src/app/api/internal/digital-human/claim/route";
-import { POST as completeDigitalHuman } from "../src/app/api/internal/digital-human/complete/route";
 
 type Handler = (request: NextRequest) => Promise<Response>;
 
@@ -23,8 +21,6 @@ const endpoints: Array<{ name: string; path: string; method: "GET" | "POST"; han
   { name: "founder digest", path: "/api/cron/founder-digest", method: "GET", handler: founderDigest },
   { name: "claim stitch", path: "/api/internal/stitch/claim", method: "POST", handler: claimStitch },
   { name: "complete stitch", path: "/api/internal/stitch/complete", method: "POST", handler: completeStitch },
-  { name: "claim digital human", path: "/api/internal/digital-human/claim", method: "GET", handler: claimDigitalHuman },
-  { name: "complete digital human", path: "/api/internal/digital-human/complete", method: "POST", handler: completeDigitalHuman },
 ];
 
 function requestFor(

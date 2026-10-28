@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
-import { resolveBrandPlacement } from "../src/lib/services/brand-placement-policy";
 import {
   categoryLockProfile,
   isProductCategoryId,
@@ -50,49 +49,6 @@ test("B4：未知品类返回 null 而不是猜一个", () => {
   assert.equal(categoryLockProfile(null), null);
   assert.equal(isProductCategoryId("window_shutters"), true);
   assert.equal(isProductCategoryId("随便"), false);
-});
-
-test("🔴 B2：锚点不就绪时诚实降级到角标，绝不标成 natural", () => {
-  for (const anchorStatus of ["PENDING_CUTOUT", "FAILED", null] as const) {
-    const decision = resolveBrandPlacement({
-      anchorStatus,
-      routeSupportsMask: true,
-    });
-    assert.equal(
-      decision.placement,
-      "corner_badge",
-      `锚点 ${anchorStatus} 时不可能是自然植入`,
-    );
-    assert.equal(decision.path, "overlay");
-    assert.ok(decision.reason.includes("降级"), "降级要写明原因");
-  }
-});
-
-test("B2：锚点就绪时按线路能力选路径 A 或 B，两条都是 natural", () => {
-  const pathA = resolveBrandPlacement({
-    anchorStatus: "READY",
-    routeSupportsMask: true,
-  });
-  assert.equal(pathA.placement, "natural");
-  assert.equal(pathA.path, "mask_edit");
-
-  /// Shuyu image2 无 mask 能力 → 路径 B，产品像素同样是真的。
-  const pathB = resolveBrandPlacement({
-    anchorStatus: "READY",
-    routeSupportsMask: false,
-  });
-  assert.equal(pathB.placement, "natural");
-  assert.equal(pathB.path, "composite_back");
-});
-
-test("B2：平面跟踪档在能力表里明确缺席，没有假装支持的分支", () => {
-  const source = readFileSync(
-    path.join(process.cwd(), "src/lib/services/brand-placement-policy.ts"),
-    "utf8",
-  );
-  assert.match(source, /当前不可达/);
-  /// 代码路径里不存在返回 planar_track 的分支。
-  assert.doesNotMatch(source, /placement: "planar_track"/);
 });
 
 test("B3：Brand Kit 视觉配方进的是 imagePrompt，不碰文案", () => {

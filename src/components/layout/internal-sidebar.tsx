@@ -7,20 +7,10 @@ import { signOut, useSession } from "next-auth/react";
 import {
   FolderKanban,
   Film,
-  Send,
-  BarChart3,
-  Sparkles,
-  UsersRound,
-  Settings,
   LogOut,
-  Activity,
-  ClipboardCheck,
-  Swords,
-  Layers,
   ChevronDown,
   ChevronRight,
   Menu,
-  Flag,
   ScanEye,
 } from "lucide-react";
 import { Logo } from "@/components/ui/logo";
@@ -55,32 +45,12 @@ interface NavItem {
  * - 在 Phase 5 Step 5 阶段仍然指向旧路径（如 /orders）保证兼容
  */
 const INTERNAL_NAV: NavItem[] = [
-  { href: "/internal/orders", labelKey: "nav.creativeSets", icon: Layers },
-  { href: "/internal/rounds", labelKey: "nav.creativeBriefs", icon: Swords },
-  { href: "/internal/videos", labelKey: "nav.videos", icon: Film },
-  { href: "/internal/publish", labelKey: "nav.publish", icon: Send },
-  { href: "/internal/metrics", labelKey: "nav.metrics", icon: BarChart3 },
-  { href: "/internal/qa", labelKey: "nav.qualityCheck", icon: ClipboardCheck },
-  { href: "/internal/reports", labelKey: "nav.contentReports", icon: Flag, roles: ["SUPER_ADMIN", "OPERATOR"] },
-  { href: "/internal/distillation", labelKey: "nav.distillation", icon: Sparkles },
-  { href: "/internal/demo-leads", labelKey: "nav.demoLeads", icon: UsersRound },
-  {
-    href: "/internal/ai-usage",
-    labelKey: "nav.aiUsage",
-    icon: Activity,
-    roles: ["SUPER_ADMIN", "OPERATOR"],
-  },
+  /// 旧代运营中台 2026-10-28 删除，只留帧质检运维页（P01-C）。
   {
     href: "/internal/frame-qa",
     labelKey: "nav.frameQa",
     icon: ScanEye,
     roles: ["SUPER_ADMIN", "OPERATOR"],
-  },
-  {
-    href: "/internal/settings",
-    labelKey: "nav.settings",
-    icon: Settings,
-    roles: ["SUPER_ADMIN"],
   },
 ];
 

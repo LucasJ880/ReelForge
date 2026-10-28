@@ -169,14 +169,15 @@ test("no \"use client\" component value-imports a server service module (iron ru
 });
 
 test("iron rule #5 check would have caught the D4 form, and still allows client-safe constant modules", () => {
-  const form = join(SRC, "app", "(internal)", "internal", "orders", "new", "new-order-form.tsx");
-  const before = `"use client";\nimport { SUPPORTED_LOCALES } from "@/lib/services/localization-service";\n`;
+  /// D4 原件（旧中台下单表单）2026-10-28 随旧中台删除；用同形状的客户端文件复现那次漏检。
+  const form = join(SRC, "components", "platform", "platform-shell.tsx");
+  const before = `"use client";\nimport { assertQuotaForSession } from "@/lib/services/quota-service";\n`;
   assert.deepEqual(serviceValueImportViolations(form, before), [
-    "src/app/(internal)/internal/orders/new/new-order-form.tsx → @/lib/services/localization-service",
+    "src/components/platform/platform-shell.tsx → @/lib/services/quota-service",
   ]);
   /// import type 编译期擦除，不算
   assert.deepEqual(
-    serviceValueImportViolations(form, `import type { LocaleCheckIssue } from "@/lib/services/localization-service";\n`),
+    serviceValueImportViolations(form, `import type { UsageMeterSnapshot } from "@/lib/services/quota-service";\n`),
     [],
   );
   /// logo-style-keys 自身没有任何值导入：专为客户端拆出来的常量模块，放行

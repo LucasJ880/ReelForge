@@ -157,8 +157,8 @@ export async function requirePersonaPage(
   if (userType === "PERSONAL") {
     redirect("/personal");
   }
-  /// 没选过 persona → /persona 选一次
-  redirect("/persona");
+  /// 没有身份类型（罕见的存量账号）→ 工作台（/persona 选择页 2026-10-28 已删除）
+  redirect("/app");
 }
 
 /**
@@ -231,7 +231,7 @@ export async function requireInternalPage(
   if (decision === "login") redirect(`/login?from=${encodeURIComponent(intendedPath)}`);
   if (decision === "customer-personal") redirect("/personal");
   if (decision === "customer-business") redirect("/business");
-  if (decision === "deny") redirect("/persona");
+  if (decision === "deny") redirect("/app");
   return session!;
 }
 

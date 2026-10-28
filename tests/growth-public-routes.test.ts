@@ -214,7 +214,7 @@ test("首页：未登录渲染展厅首页、已登录仍按身份直达工作�
   /// 不再读模板库计数（Taste DNA：The hero speaks once, at the bottom），也就不再查库。
   assert.match(page, /<ShowroomLanding locale=\{locale\} fallbackEmail=\{contactEmail\(\)\} \/>/);
   assert.doesNotMatch(page, /listActiveStyleTemplates|PilotLanding/);
-  for (const target of ['redirect("/business")', 'redirect("/personal")', 'redirect("/internal/orders")', 'redirect("/persona")']) {
+  for (const target of ['redirect("/business")', 'redirect("/personal")', 'redirect("/internal/frame-qa")', 'redirect("/app")']) {
     assert.ok(page.includes(target), target);
   }
   assert.doesNotMatch(page, /redirect\("\/login"\)/, "anonymous visitors get the landing page, not the login gate");

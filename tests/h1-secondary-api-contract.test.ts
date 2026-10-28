@@ -9,7 +9,6 @@ import {
   customerApiErrorSchema,
 } from "../src/lib/contracts/customer-api";
 import { db } from "../src/lib/db";
-import { importBusinessVideoMetrics } from "../src/lib/services/business-metrics-import";
 import {
   assertRacingRoundAccess,
   isInternalRacingUser,
@@ -45,192 +44,7 @@ interface RouteContract {
 }
 
 const ROUTES: RouteContract[] = [
-  {
-    file: "src/app/api/admin/users/route.ts",
-    method: "GET",
-    guard: "requireSuperAdmin",
-    successKind: "items",
-    successPatterns: [/NextResponse\.json\(\{\s*items:\s*users\s*\}\)/],
-  },
-  {
-    file: "src/app/api/admin/users/route.ts",
-    method: "POST",
-    guard: "requireSuperAdmin",
-    successKind: "entity",
-    successPatterns: [
-      /NextResponse\.json\(user,\s*\{\s*status:\s*201\s*\}\)/,
-    ],
-  },
-  {
-    file: "src/app/api/admin/users/[id]/route.ts",
-    method: "PATCH",
-    guard: "requireSuperAdmin",
-    successKind: "entity",
-    successPatterns: [/NextResponse\.json\(user\)/],
-  },
   /// A4 5.1：删除改停用。DELETE 仍先过超管守卫，再固定回 405（不再物理删除）。
-  {
-    file: "src/app/api/admin/users/[id]/route.ts",
-    method: "DELETE",
-    guard: "requireSuperAdmin",
-    successKind: "record",
-    successPatterns: [/status:\s*405/],
-  },
-  {
-    file: "src/app/api/admin/users/[id]/disable/route.ts",
-    method: "POST",
-    guard: "requireSuperAdmin",
-    successKind: "record",
-    successPatterns: [/NextResponse\.json\(\{\s*ok:\s*true,\s*userId:/],
-  },
-  {
-    file: "src/app/api/admin/users/[id]/disable/route.ts",
-    method: "DELETE",
-    guard: "requireSuperAdmin",
-    successKind: "record",
-    successPatterns: [/NextResponse\.json\(\{\s*ok:\s*true,\s*\.\.\.result\s*\}\)/],
-  },
-  {
-    file: "src/app/api/delivery-orders/route.ts",
-    method: "GET",
-    guard: "requireOperator",
-    successKind: "list",
-    successPatterns: [/NextResponse\.json\(result\)/],
-  },
-  {
-    file: "src/app/api/delivery-orders/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "entity",
-    successPatterns: [
-      /NextResponse\.json\(order,\s*\{\s*status:\s*201\s*\}\)/,
-    ],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/route.ts",
-    method: "GET",
-    guard: "requireOperator",
-    successKind: "entity",
-    successPatterns: [/NextResponse\.json\(order\)/],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/route.ts",
-    method: "PATCH",
-    guard: "requireOperator",
-    successKind: "entity",
-    successPatterns: [/NextResponse\.json\(updated\)/],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/assets/route.ts",
-    method: "GET",
-    guard: "requireOperator",
-    successKind: "items",
-    successPatterns: [/NextResponse\.json\(\{\s*items\s*\}\)/],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/assets/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "entity-or-items",
-    successPatterns: [
-      /NextResponse\.json\(\{\s*items\s*\}\)/,
-      /NextResponse\.json\(asset\)/,
-    ],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/research/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "ok",
-    successPatterns: [/NextResponse\.json\(\{\s*ok:\s*true\s*\}\)/],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/rounds/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "entity",
-    successPatterns: [
-      /NextResponse\.json\(round,\s*\{\s*status:\s*201\s*\}\)/,
-    ],
-  },
-  {
-    file: "src/app/api/delivery-orders/[id]/selling-points/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "items",
-    successPatterns: [/NextResponse\.json\(\{\s*items:\s*points\s*\}\)/],
-  },
-  {
-    file: "src/app/api/rounds/[id]/route.ts",
-    method: "GET",
-    guard: "requireOperator",
-    successKind: "entity",
-    successPatterns: [/NextResponse\.json\(round\)/],
-  },
-  {
-    file: "src/app/api/rounds/[id]/ad-plans/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "items",
-    successPatterns: [/NextResponse\.json\(\{\s*items\s*\}\)/],
-  },
-  {
-    file: "src/app/api/rounds/[id]/angles/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "items",
-    successPatterns: [/NextResponse\.json\(\{\s*items:\s*angles\s*\}\)/],
-  },
-  {
-    file: "src/app/api/rounds/[id]/distill/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "record",
-    successPatterns: [/NextResponse\.json\(distillation\)/],
-  },
-  {
-    file: "src/app/api/rounds/[id]/iteration/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "record",
-    successPatterns: [/NextResponse\.json\(report\)/],
-  },
-  {
-    file: "src/app/api/rounds/[id]/score/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "record",
-    successPatterns: [/NextResponse\.json\(result\)/],
-  },
-  {
-    file: "src/app/api/metrics/import/route.ts",
-    method: "GET",
-    guard: "requireOperator",
-    successKind: "csv",
-    successPatterns: [
-      /new NextResponse\(METRICS_CSV_TEMPLATE,\s*\{[\s\S]*?text\/csv/,
-    ],
-  },
-  {
-    file: "src/app/api/metrics/import/route.ts",
-    method: "POST",
-    guard: "requireOperator",
-    successKind: "record-or-results",
-    successPatterns: [
-      /NextResponse\.json\(\{\s*results\s*\}\)/,
-      /NextResponse\.json\(snap\)/,
-    ],
-  },
-  {
-    file: "src/app/api/business/metrics/route.ts",
-    method: "POST",
-    guard: "requireBusinessUser",
-    successKind: "business-metrics",
-    successPatterns: [
-      /NextResponse\.json\(\{\s*ok:\s*true,\s*snapshot:\s*snap\s*\}\)/,
-    ],
-    ownership: "business",
-  },
   {
     file: "src/app/api/racing/rounds/[id]/analyze/route.ts",
     method: "POST",
@@ -369,7 +183,8 @@ test("H1 secondary contracts: the declared route-method inventory is complete", 
     ROUTES.map(routeKey).sort(),
     "every second-tier route method must have an explicit contract row",
   );
-  assert.equal(ROUTES.length, 27);
+  /// 2026-10-28 旧中台（admin / delivery-orders / rounds / metrics）随删：27 → 3
+  assert.equal(ROUTES.length, 3);
 });
 
 test("H1 secondary contracts: every method guards before work and locks its success wire shape", async () => {
@@ -513,30 +328,3 @@ test("H1 secondary ownership: racing routes scope customers to their own deliver
   assert.equal(isInternalRacingUser("SUPER_ADMIN"), true);
 });
 
-test("H1 secondary ownership: business metric import is owner- and persona-scoped before mutation", async (t) => {
-  let seenWhere: unknown = null;
-  patch(t, db.videoBrief as unknown as Record<string, unknown>, {
-    findFirst: async (args: { where: unknown }) => {
-      seenWhere = args.where;
-      return null;
-    },
-  });
-
-  await assert.rejects(
-    () =>
-      importBusinessVideoMetrics({
-        userId: "business-owner",
-        briefId: "foreign-brief",
-        windowHours: 24,
-        metrics: { views: 10 },
-      }),
-    /找不到该视频或无权录入数据/,
-  );
-  assert.deepEqual(seenWhere, {
-    id: "foreign-brief",
-    persona: { not: "PERSONAL" },
-    contentAngle: {
-      round: { deliveryOrder: { createdById: "business-owner" } },
-    },
-  });
-});

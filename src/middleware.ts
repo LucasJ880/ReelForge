@@ -8,7 +8,7 @@ import { decideDemoAccess, demoBlockedBody } from "@/lib/demo-account";
  *
  *  - `/login`, `/register`, `/api/auth/*` → 登录 / 公开注册 / NextAuth
  *  - `/forgot-password`, `/reset-password` → 密码找回两页（接口在 `/api/auth/password-reset/*`，随 `/api/auth` 放行）
- *  - `/persona`, `/showcase`, `/privacy`, `/terms` → public landing / legal pages
+ *  - `/privacy`, `/terms` → public legal pages
  *  - `/demo`, `/api/demo` → 旧 demo（Step 8 会删 /demo/ai-video；这里先保留 /demo/real-footage-ads）
  *  - `/api/cron/*` → 定时任务（带 cron secret 鉴权，不走 NextAuth）
  *  - `/api/internal/*` → 外部 runner（stitch / digital-human 等）回调与领单。
@@ -30,8 +30,6 @@ const publicPaths = [
   "/forgot-password",
   "/reset-password",
   "/api/auth",
-  "/persona",
-  "/showcase",
   "/privacy",
   "/terms",
   "/demo",

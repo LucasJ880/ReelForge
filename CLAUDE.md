@@ -24,8 +24,8 @@ npm run context:find -- "关键词1 关键词2"   # 0.3s，给 top 10 文件 + �
 | 位置 | 内容 |
 |---|---|
 | `src/app/(platform)/` | 客户自助面 —— 新定位的主战场 |
-| `src/app/(internal)/` | 旧代运营中台，16 页，**A 级下线中**，别加新功能 |
-| `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页（试点申请）/ 法务与公开样例页 / 登录注册 / 行情大屏 `/wall` |
+| `src/app/(internal)/` | 只剩帧质检运维页 `/internal/frame-qa`（旧代运营中台 16 页 2026-10-28 已删），别加新功能 |
+| `src/app/page.tsx` · `(public)/` · `(auth)/` · `(wall)/` | 公开首页「展厅」/ 法务页（/persona、/showcase 2026-10-28 已删）/ 登录注册 / 行情大屏 `/wall` |
 | `src/app/l/[slug]` · `src/app/t/[code]` | 商家询盘页（匿名可访问）/ 追踪链接跳转（`route.ts`） |
 | `src/app/api/` | 路由只做鉴权 + 参数校验，业务委托 `src/lib/services/` |
 | `src/lib/services/` | 业务层（80+ service），Provider 层封装外部 API |

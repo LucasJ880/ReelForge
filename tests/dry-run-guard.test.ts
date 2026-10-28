@@ -137,44 +137,6 @@ test("dry-run：Shuyu Image 2 提交、轮询与输出下载全程走本地 mock
   assert.ok(output.bytes.length > 0);
 });
 
-test("dry-run：火山 TTS 显式拒绝（fail-closed）", async (t) => {
-  withEnv(t, {
-    AIVORA_DRY_RUN: "1",
-    VOLC_TTS_API_KEY: "fake-tts-key",
-  });
-  const { isVolcTtsConfigured, synthesizeSpeech } = await import(
-    "../src/lib/providers/volc-tts"
-  );
-  assert.equal(isVolcTtsConfigured(), false, "dry-run 下 TTS 视为未配置");
-  await assert.rejects(
-    () => synthesizeSpeech({ text: "你好" }),
-    /AIVORA_DRY_RUN/,
-  );
-});
-
-test("dry-run：OmniHuman 提交显式拒绝（fail-closed）", async (t) => {
-  withEnv(t, {
-    AIVORA_DRY_RUN: "1",
-    VOLCENGINE_ACCESS_KEY_ID: "fake",
-    VOLCENGINE_SECRET_ACCESS_KEY: "fake",
-  });
-  const { submitOmniHumanJob } = await import("../src/lib/providers/omnihuman");
-  await assert.rejects(
-    () =>
-      submitOmniHumanJob({
-        imageUrl: "https://example.com/face.jpg",
-        audioUrl: "https://example.com/voice.mp3",
-      }),
-    /AIVORA_DRY_RUN/,
-  );
-});
-
-test("dry-run：Apify 视为不可用（调用方自动降级）", async (t) => {
-  withEnv(t, { AIVORA_DRY_RUN: "1", APIFY_TOKEN: "fake-token" });
-  const { isApifyAvailable } = await import("../src/lib/providers/apify-tiktok");
-  assert.equal(isApifyAvailable(), false);
-});
-
 test("dry-run：frame-qa 门禁自动禁用（不发 vision 请求）", async (t) => {
   withEnv(t, {
     AIVORA_DRY_RUN: "1",

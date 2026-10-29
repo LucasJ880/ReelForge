@@ -49,6 +49,8 @@ const createSchema = z.object({
   personAssetIds: z.array(z.string().min(1).max(200)).max(STORYBOARD_PERSON_REFS_MAX).default([]),
   approvalPolicy: z.enum(["MANUAL", "AUTO"]).default("MANUAL"),
   purpose: z.string().trim().min(1).max(200).optional(),
+  /// 已定的口播稿：只给镜头卡按台词顺序排镜头、标谁说话（上限与统一创作请求的口播稿一致）。
+  voiceoverScript: z.string().trim().max(2_000).optional(),
 }).strict();
 
 interface StoryboardPostDependencies {

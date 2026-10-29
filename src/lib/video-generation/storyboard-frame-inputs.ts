@@ -127,13 +127,26 @@ const ROLE_DESCRIPTION: Record<StoryboardFrameInputRole, string> = {
     "previous approved storyboard keyframe — continuity only (same room, person, wardrobe, light); do not copy its composition",
 };
 
+/**
+ * 镜头卡标了「换地点」的帧（2026-10-29）：连续性锁换成这一行，前帧只管人、衣着与光线，不再要求同一个房间——
+ * 否则「同一房间」与镜头卡的新地点在同一段提示词里打架。判据就是这一行本身，提交与重做都不用新列。
+ * 前帧说明比原文短，REFERENCE ROLES 的最坏长度（故事预算）不变。
+ */
+export const STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK =
+  "CONTINUITY LOCK: this frame hard-cuts to a new location — keep the same person identity, wardrobe, product identity, camera language and lighting style as the earlier frames, but not their room; change only what the shot card changes.";
+const PRIOR_FRAME_NEW_LOCATION_DESCRIPTION =
+  "previous storyboard keyframe — same person, wardrobe and light only; this frame is a new location, not its room";
+
 /** 入参为空（纯文字起稿）时返回 null：没有图片就不写 REFERENCE ROLES 行。 */
 export function storyboardReferenceRolesLine(
   images: readonly StoryboardFrameInputImage[],
+  options: { newLocation?: boolean } = {},
 ): string | null {
   if (images.length === 0) return null;
+  const describe = (role: StoryboardFrameInputRole) =>
+    role === "prior_frame" && options.newLocation ? PRIOR_FRAME_NEW_LOCATION_DESCRIPTION : ROLE_DESCRIPTION[role];
   return `${STORYBOARD_REFERENCE_ROLES_PREFIX} ${images
-    .map((image, index) => `image ${index + 1} = ${ROLE_DESCRIPTION[image.role]}`)
+    .map((image, index) => `image ${index + 1} = ${describe(image.role)}`)
     .join("; ")}.`;
 }
 
@@ -155,7 +168,9 @@ export function applyStoryboardReferenceRoles(
         !line.startsWith(STORYBOARD_REFERENCE_ROLES_PREFIX) &&
         !line.startsWith("PRESENTER LOCK:"),
     );
-  const rolesLine = storyboardReferenceRolesLine(images);
+  const rolesLine = storyboardReferenceRolesLine(images, {
+    newLocation: lines.includes(STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK),
+  });
   const inserted: string[] = [];
   if (rolesLine) inserted.push(rolesLine);
   if (images.some((image) => image.role === "person")) inserted.push(STORYBOARD_PRESENTER_LOCK);

@@ -1248,13 +1248,15 @@ export function StreamlinedVideoStudio({
         storyboardAttemptRef.current = { fingerprint, key: crypto.randomUUID() };
       }
       persistStoredAttempt(STORYBOARD_ATTEMPT_STORAGE_KEY, storyboardAttemptRef.current);
+      /// 口播稿只给镜头卡排镜头用，不算进提交指纹：改了口播稿再点，照旧回放同一份故事板，不重出一套付费帧。
+      const narration = request.audio?.voiceover?.enabled ? request.audio.voiceover.script.trim() : "";
       const response = await fetch("/api/video-generation/storyboards", {
         method: "POST",
         headers: {
           "content-type": "application/json",
           "Idempotency-Key": storyboardAttemptRef.current.key,
         },
-        body: fingerprint,
+        body: JSON.stringify(narration ? { ...storyboardBody, voiceoverScript: narration } : storyboardBody),
       });
       const payload = await response.json().catch(() => null) as
         | { ok: true; run: StoryboardRunView }

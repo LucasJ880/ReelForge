@@ -147,6 +147,19 @@ test("personAssetIds：开关 internal 时只有内部员工放行（SUPER_ADMIN
   }
 });
 
+test("voiceoverScript（2026-10-29）：trim 后传给 service，只作镜头卡参考；超过 2000 字被 zod 拒绝", async () => {
+  const h = storyboardHarness({ mode: "off" });
+  const accepted = await h.handler(storyboardRequest({ ...validBody, voiceoverScript: "  早上一杯热咖啡。 " }) as never);
+  assert.equal(accepted.status, 201);
+  assert.equal(h.received[0].voiceoverScript, "早上一杯热咖啡。");
+  const omitted = await h.handler(storyboardRequest(validBody) as never);
+  assert.equal(omitted.status, 201);
+  assert.equal(h.received[1].voiceoverScript, undefined);
+  const tooLong = await h.handler(storyboardRequest({ ...validBody, voiceoverScript: "字".repeat(2001) }) as never);
+  assert.equal(tooLong.status, 400);
+  assert.equal(h.received.length, 2);
+});
+
 test("统一创作路由（/plan、/dispatch）的 userAssignedRole=person 受同一个开关控制（静态接线）", async () => {
   const [plan, dispatch] = await Promise.all([
     readFile(new URL("../src/app/api/video-generation/plan/route.ts", import.meta.url), "utf8"),

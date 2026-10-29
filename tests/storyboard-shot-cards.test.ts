@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   SHOT_CARD_LINE_PREFIX,
+  SHOT_CARD_SYSTEM_PROMPT,
   buildShotCardUserPrompt,
   designStoryboardShotCards,
   formatShotCard,
+  formatShotCardSequence,
   normalizeShotCards,
   readShotCardFromFramePrompt,
   storyboardShotCardsEnabled,
@@ -12,9 +15,14 @@ import {
 } from "../src/lib/video-generation/shot-cards";
 import {
   NEGATIVE_CONSTRAINTS_SEPARATOR,
+  STORYBOARD_BEATS_LONG,
   STORYBOARD_BEATS_SHORT,
   groundSegmentPromptInStoryboard,
 } from "../src/lib/video-generation/storyboard-beats";
+import {
+  STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK,
+  applyStoryboardReferenceRoles,
+} from "../src/lib/video-generation/storyboard-frame-inputs";
 import {
   buildRegeneratedStoryboardFramePrompt,
   buildStoryboardFramePlans,
@@ -52,11 +60,11 @@ test("normalize：恰好取 count 张；任何一张缺镜头 / 机位 / 动作�
   assert.match(long.composition, /^a b x+…$/);
 });
 
-test("format / read：一行英文、可从帧提示词读回；没有卡 → null", () => {
+test("format / read：一行英文（动作与尾态排在景别机位前）、可从帧提示词读回；没有卡 → null", () => {
   const text = formatShotCard(CARD);
   assert.equal(
     text,
-    "24mm wide establishing shot. Camera: chest-high beside the sofa, locked off. Composition: family foreground; glare-covered TV midground; zebra blind background left. Action: one adult raises a hand 20cm to shield their eyes over two seconds. Ends on: family squints at the washed-out TV screen. Sound: quiet room tone, faint TV audio.",
+    "Action: one adult raises a hand 20cm to shield their eyes over two seconds. Ends on: family squints at the washed-out TV screen. Shot: 24mm wide establishing shot. Camera: chest-high beside the sofa, locked off. Composition: family foreground; glare-covered TV midground; zebra blind background left. Sound: quiet room tone, faint TV audio.",
   );
   assert.equal(readShotCardFromFramePrompt(`line\n${SHOT_CARD_LINE_PREFIX}${text}\nmore`), text);
   assert.equal(readShotCardFromFramePrompt("no card here"), null);
@@ -142,10 +150,12 @@ test("派发：有卡 → 镜头行带卡与硬切、加 LOOK / 产品不变量 
   assert.equal(groundSegmentPromptInStoryboard(TEMPLATE, { ...base, shotCards: [null, null, null, null] }), plain);
   assert.doesNotMatch(plain, /LOOK:|PRODUCT INVARIANTS|SPEECH TIMING|shot 1/);
 
-  const texts = CARDS.map(formatShotCard);
+  const texts = formatShotCardSequence(CARDS);
   const out = groundSegmentPromptInStoryboard(TEMPLATE, { ...base, shotCards: texts });
-  assert.match(out, /^0-4s · shot 1: recreate storyboard keyframe 1 \(reference image 3\) — immediate problem or desire hook\. 24mm shot 1\. Camera: /m);
-  assert.match(out, /^4-8s · shot 2 \(hard cut\): recreate storyboard keyframe 2 \(reference image 4\)/m);
+  assert.match(out, /^0-4s · shot 1: from storyboard keyframe 1 \(reference image 3\)\. Action: one adult raises a hand .* Shot: 24mm shot 1\. Camera: /m);
+  assert.match(out, /^4-8s · shot 2 \(hard cut\): from storyboard keyframe 2 \(reference image 4\)\. /m);
+  assert.match(out, /^Each shot opens on its keyframe and then moves; never hold a keyframe still\.$/m);
+  assert.doesNotMatch(out, /recreate storyboard keyframe|— immediate problem or desire hook/, "卡模式不再「复刻关键帧」、不写通用节奏句");
   assert.match(out, /^LOOK: photoreal live-action commercial footage/m);
   assert.match(out, /^PRODUCT INVARIANTS: .* of images 1-2;/m);
   assert.match(out, /^SPEECH TIMING: one narrator only; .* by 14s;/m);
@@ -206,7 +216,161 @@ test("派发预算：连一张卡都放不下时整段退回旧格式（不留�
     negativePrompt: "n".repeat(3900),
   };
   const plain = groundSegmentPromptInStoryboard(TEMPLATE, base);
-  const carded = groundSegmentPromptInStoryboard(TEMPLATE, { ...base, shotCards: CARDS.map(formatShotCard) });
+  const carded = groundSegmentPromptInStoryboard(TEMPLATE, { ...base, shotCards: formatShotCardSequence(CARDS) });
   assert.equal(carded, plain);
   assert.doesNotMatch(carded, /LOOK:|PRODUCT INVARIANTS/);
+});
+
+/**
+ * 2026-10-29 · 镜头导演 P0（借鉴朋友的 ai-video-workflow 方法包；计划 docs/superpowers/plans/2026-10-29-shot-direction-p0.md）：
+ * 镜头卡加首态 / 地点 / 谁说话；拆掉互相打架的锁；参考图写清只取什么；口播稿交给镜头卡设计。
+ */
+const DIRECTED = [
+  {
+    startState: "woman at the counter, pot in her right hand, open empty cup",
+    action: "she pours hot coffee into the cup",
+    endState: "cup full and steaming, pot set down",
+    location: "Home kitchen",
+    voice: "voice_over",
+    lens: "35mm medium shot",
+    camera: "chest height, locked off",
+    composition: "pot foreground, woman midground",
+    sound: "coffee pouring",
+  },
+  { action: "her right hand twists the lid shut", endState: "lid closed, hand resting on it", location: "the home kitchen", voice: "voice-over", lens: "85mm close-up", camera: "counter height, slow 10cm push-in", composition: "cup centered", sound: "lid clicks" },
+  { action: "she unscrews the lid", endState: "lid in her right hand, steam rising", location: "office desk", voice: "off-screen", lens: "50mm medium shot", camera: "eye level, locked off", composition: "laptop foreground", sound: "office tone" },
+  { action: "steam drifts up", endState: "whole cup centered", location: "Office desk", voice: "none", lens: "100mm macro", camera: "low angle, locked off", composition: "cup centered", sound: "quiet office" },
+];
+
+const LOCKED_TEMPLATE = [
+  "CHARACTER IDENTITY LOCK: keep the cast.",
+  "SCENE GEOMETRY LOCK: keep one physically coherent location with unchanged windows.",
+  "PRODUCT SHAPE LOCK: keep the product.",
+  "LIP-SYNC LOCK: lips match the words.",
+  "Audio: generate native speech for the approved voice-only dialogue below, with subtle real room ambience.",
+  'Spoken dialogue (voice only, exact wording, zh-CN, warm confident): "早上一杯热咖啡。"',
+  "Do not render subtitles, captions, on-screen text, or a music bed.",
+].join("\n");
+
+test("P0 normalize：首态 / 地点 / 谁说话；没写首态且没换地点就接上一张的尾态，换地点不接；旧的六字段卡照常通过", () => {
+  const cards = normalizeShotCards({ shots: DIRECTED }, 4)!;
+  assert.equal(cards[0].startState, DIRECTED[0].startState);
+  assert.equal(cards[1].startState, "cup full and steaming, pot set down", "同一厨房（大小写、the 不算换地点）→ 接上一张尾态");
+  assert.equal(cards[2].startState, "", "换到办公室不补首态");
+  assert.equal(cards[3].startState, "lid in her right hand, steam rising");
+  assert.deepEqual(cards.map((card) => card.voice), ["voice_over", "voice_over", "voice_over", "none"]);
+  const [odd] = normalizeShotCards({ shots: [{ ...DIRECTED[0], voice: "loudly", location: "back room. v2" }] }, 1)!;
+  assert.equal(odd.voice, null);
+  assert.equal(odd.location, "back room v2", "地点名里的句点去掉，免得搅乱按句读卡");
+  const [legacy] = normalizeShotCards({ shots: [CARD] }, 1)!;
+  assert.equal(legacy.startState, "");
+  assert.equal(legacy.voice, null);
+});
+
+test("P0 format：首态 → 动作 → 尾态 → 谁说话 → 景别 / 机位 / 构图 / 声音；地点和上一张不同的卡（第一张除外）以 New location 开头", () => {
+  const cards = normalizeShotCards({ shots: DIRECTED }, 4)!;
+  const texts = formatShotCardSequence(cards);
+  assert.equal(
+    texts[0],
+    "Starts on: woman at the counter, pot in her right hand, open empty cup. Action: she pours hot coffee into the cup. Ends on: cup full and steaming, pot set down. Voice: off-screen narrator only. Shot: 35mm medium shot. Camera: chest height, locked off. Composition: pot foreground, woman midground. Sound: coffee pouring.",
+  );
+  assert.doesNotMatch(texts[1]!, /New location/);
+  assert.match(texts[2]!, /^New location: office desk\. Action: she unscrews the lid\./);
+  assert.doesNotMatch(texts[3]!, /New location/);
+  assert.match(texts[3]!, /Voice: no narration in this shot\./);
+  assert.deepEqual(formatShotCardSequence([null, cards[1]]), [null, formatShotCard(cards[1])]);
+});
+
+test("P0 design：口播稿进镜头卡的用户提示词（按台词顺序排镜头）；没有口播稿就让 voice 全写 none；系统提示词要首态 / 地点 / 谁说话", () => {
+  const base = { story: "午后客厅太刺眼，拉一下斑马帘就柔和了。", beats: STORYBOARD_BEATS_SHORT, durationSec: 15, aspectRatio: "9:16", productImageCount: 2, personImageCount: 0 };
+  assert.match(
+    buildShotCardUserPrompt({ ...base, voiceoverScript: "  拉一下，\n客厅就柔和了。 " }),
+    /^Voice-over script \(one voice, spoken across the whole video in this order; never rewrite it\): 拉一下， 客厅就柔和了。$/m,
+  );
+  assert.match(buildShotCardUserPrompt(base), /^No voice-over script: set every "voice" to "none"\.$/m);
+  assert.match(SHOT_CARD_SYSTEM_PROMPT, /"startState":"","action":"","endState":"","location":"","voice":""/);
+  assert.match(SHOT_CARD_SYSTEM_PROMPT, /Never name feelings/);
+});
+
+test("P0 出帧：换地点那一帧换用「换地点版」连续性锁，前帧只管人、衣着与光线；提交时重排入参、重做都沿用", () => {
+  const cards = normalizeShotCards({ shots: DIRECTED }, 4)!;
+  const plans = buildStoryboardFramePlans({ prompt: "通勤保温杯", durationSec: 15, aspectRatio: "9:16", productImageCount: 2, shotCards: cards });
+  const [, kitchen, office, desk] = plans.map((plan) => plan.prompt);
+  assert.ok(office.includes(STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK));
+  assert.doesNotMatch(office, /CONTINUITY LOCK: keep the same room/);
+  assert.match(office, /image 3 = previous storyboard keyframe — same person, wardrobe and light only; this frame is a new location, not its room/);
+  for (const prompt of [kitchen, desk]) {
+    assert.match(prompt, /CONTINUITY LOCK: keep the same room/);
+    assert.match(prompt, /previous approved storyboard keyframe — continuity only \(same room/);
+  }
+  const inputs = [
+    { url: "p1", role: "product" as const },
+    { url: "f2", role: "prior_frame" as const },
+  ];
+  assert.match(applyStoryboardReferenceRoles(office, inputs), /image 2 = previous storyboard keyframe — same person, wardrobe and light only/);
+  const regenerated = buildRegeneratedStoryboardFramePrompt({
+    story: "通勤保温杯",
+    durationSec: 15,
+    aspectRatio: "9:16",
+    ordinal: 2,
+    beat: plans[2].beat,
+    shotCard: readShotCardFromFramePrompt(office),
+    inputs,
+  });
+  assert.ok(regenerated.includes(STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK));
+  assert.match(regenerated, /image 2 = previous storyboard keyframe — same person, wardrobe and light only/);
+});
+
+test("P0 派发（Shuyu）：画外音段去掉口型锁并写明没人开口；段内换地点时场景锁只管同一地点、镜头标硬切到新地点；参考图写清只取什么", () => {
+  const texts = formatShotCardSequence(normalizeShotCards({ shots: DIRECTED }, 4)!);
+  const base = { aspectRatio: "9:16", story: "通勤保温杯", beats: STORYBOARD_BEATS_SHORT, productPhotoCount: 2, totalDurationSec: 15, fromSec: 0, toSec: 15 };
+  const out = groundSegmentPromptInStoryboard(LOCKED_TEMPLATE, { ...base, shotCards: texts });
+  assert.doesNotMatch(out, /LIP-SYNC LOCK/);
+  assert.match(out, /^SPEECH TIMING: one off-screen narrator only, and nobody on screen speaks or moves their lips; .* by 14s;/m);
+  assert.match(out, /^SCENE GEOMETRY LOCK: within each location keep/m);
+  assert.doesNotMatch(out, /keep one physically coherent location/);
+  assert.match(out, /^8-11s · shot 3 \(hard cut to a new location\): from storyboard keyframe 3 \(reference image 5\)\. New location: office desk\. Action: /m);
+  assert.doesNotMatch(out, /Voice: /, "谁说话不逐镜写，段里一句写清");
+  assert.match(out, /images 1-2 are real photos of the product — copy only the product itself \(shape, colors, printed marks\), not their background, surface, hands, props, price tags or watermarks\./);
+  assert.match(out, /each is the first moment of its shot: match its people, location, wardrobe, light and framing, then play the action forward from it\./);
+  assert.match(out, /^CHARACTER IDENTITY LOCK/m);
+
+  const kitchenOnly = groundSegmentPromptInStoryboard(LOCKED_TEMPLATE, { ...base, shotCards: [texts[0], texts[1], null, null] });
+  assert.match(kitchenOnly, /^SCENE GEOMETRY LOCK: keep one physically coherent location/m, "不换地点的段场景锁原样");
+
+  const onCamera = normalizeShotCards({ shots: DIRECTED.map((card, index) => ({ ...card, voice: index === 0 ? "on_camera" : "voice_over" })) }, 4)!;
+  const presenter = groundSegmentPromptInStoryboard(LOCKED_TEMPLATE, { ...base, personCount: 1, shotCards: formatShotCardSequence(onCamera) });
+  assert.match(presenter, /^LIP-SYNC LOCK/m);
+  assert.match(presenter, /SPEECH TIMING: one voice only: the presenter speaks on camera in shot 1 and the same voice continues off screen in the other shots;/);
+  assert.match(presenter, /Image 3 is the presenter reference photo — the on-camera person must be this exact person \(same face, hair, skin tone and build\); wardrobe and setting follow the keyframes\./);
+
+  const silent = groundSegmentPromptInStoryboard(LOCKED_TEMPLATE.replace(/^Spoken dialogue.*$/m, ""), { ...base, shotCards: texts });
+  assert.doesNotMatch(silent, /SPEECH TIMING/);
+  assert.match(silent, /^LIP-SYNC LOCK/m, "没有口播就不动口型锁");
+
+  const legacy = groundSegmentPromptInStoryboard(LOCKED_TEMPLATE, { ...base, shotCards: CARDS.map((card) => formatShotCard(card)) });
+  assert.match(legacy, /^SPEECH TIMING: one narrator only;/m, "10-28 的旧卡没写谁说话：旁白时间窗同初版");
+  assert.match(legacy, /^LIP-SYNC LOCK/m);
+  assert.match(legacy, /^SCENE GEOMETRY LOCK: keep one physically coherent location/m);
+});
+
+test("P0 派发：30 秒第二段从换地点那一帧开场——段首换地点不算段内换地点，场景锁原样", () => {
+  const five = normalizeShotCards({ shots: [...DIRECTED, { ...DIRECTED[3], action: "she sips from the cup" }] }, 5)!;
+  const out = groundSegmentPromptInStoryboard(LOCKED_TEMPLATE, {
+    aspectRatio: "9:16", story: "通勤保温杯", beats: STORYBOARD_BEATS_LONG, productPhotoCount: 2,
+    totalDurationSec: 30, fromSec: 15, toSec: 30, shotCards: formatShotCardSequence(five),
+  });
+  assert.match(out, /^0-3s · shot 1: from storyboard keyframe 3 \(reference image 5\)\. New location: office desk\./m);
+  assert.match(out, /^SCENE GEOMETRY LOCK: keep one physically coherent location/m);
+});
+
+test("P0 接线：创作台把口播稿带给故事板但不算进提交指纹；service 只交给镜头卡设计，不进幂等哈希", async () => {
+  const studio = await readFile("src/components/video-generation/streamlined-video-studio.tsx", "utf8");
+  assert.match(studio, /const fingerprint = JSON\.stringify\(storyboardBody\);/);
+  assert.match(studio, /body: JSON\.stringify\(narration \? \{ \.\.\.storyboardBody, voiceoverScript: narration \} : storyboardBody\)/);
+  const service = await readFile("src/lib/video-generation/storyboard-service.ts", "utf8");
+  assert.match(service, /voiceoverScript: input\.voiceoverScript \?\? null,/);
+  const hash = service.slice(service.indexOf("function requestHash("), service.indexOf("function resolveStoryboardPersonImages"));
+  assert.ok(hash.length > 0);
+  assert.doesNotMatch(hash, /voiceover/);
 });

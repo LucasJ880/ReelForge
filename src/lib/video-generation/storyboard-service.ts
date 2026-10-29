@@ -42,15 +42,20 @@ import {
 } from "@/lib/services/rate-limit-service";
 import { getStorageProvider } from "@/lib/storage";
 import { asProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
-import { STORYBOARD_BEATS_LONG, STORYBOARD_BEATS_SHORT } from "@/lib/video-generation/storyboard-beats";
+import {
+  SHOT_CARD_NEW_LOCATION_PREFIX,
+  STORYBOARD_BEATS_LONG,
+  STORYBOARD_BEATS_SHORT,
+} from "@/lib/video-generation/storyboard-beats";
 import {
   SHOT_CARD_LINE_PREFIX,
   designStoryboardShotCards,
-  formatShotCard,
+  formatShotCardSequence,
   readShotCardFromFramePrompt,
   type StoryboardShotCard,
 } from "@/lib/video-generation/shot-cards";
 import {
+  STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK,
   applyStoryboardReferenceRoles,
   composeStoryboardFrameInputImages,
   fitStoryboardFramePrompt,
@@ -145,6 +150,9 @@ export interface CreateStoryboardRunInput {
   /// 用户在创作台直接发起时为 true：新建 run 前按小时计数限流。
   /// 批量内部准备不传——一个批次不能把同一用户的单条创作锁住。
   userInitiated?: boolean;
+  /// 已定的口播稿（2026-10-29）：只给镜头卡设计做参考（按台词顺序排镜头、标谁说话），不入库、不进幂等哈希——
+  /// 改了口播稿再点出故事板，同一提交标识照旧回放，不会冲突，也不会悄悄重出一套付费故事板。
+  voiceoverScript?: string | null;
 }
 
 export interface StoryboardRunView {
@@ -271,6 +279,8 @@ export function buildStoryboardFramePlans(input: {
   const count = storyboardFrameCountForDuration(input.durationSec);
   const beats = storyboardBeatsForDuration(input.durationSec);
   const maxInputImages = input.maxInputImages ?? STORYBOARD_FRAME_INPUT_IMAGES_DEFAULT_MAX;
+  /// 整组一起格式化：地点和上一张不同的卡标 New location（出帧换连续性锁、派发标硬切到新地点）
+  const shotCardTexts = input.shotCards ? formatShotCardSequence(input.shotCards) : null;
   return beats.map((beat, ordinal) => ({
     ordinal,
     beat,
@@ -279,7 +289,7 @@ export function buildStoryboardFramePlans(input: {
       ordinal,
       count,
       beat,
-      shotCard: input.shotCards?.[ordinal] ? formatShotCard(input.shotCards[ordinal]!) : null,
+      shotCard: shotCardTexts?.[ordinal] ?? null,
       aspectRatio: input.aspectRatio,
       inputs: planStoryboardFrameInputs({
         ordinal,
@@ -325,7 +335,10 @@ function buildStoryboardFramePrompt(input: {
     `FORMAT: ${input.aspectRatio}. Add no text, subtitles, logos, watermark, split screen, or collage; a logo or lettering printed on the product itself stays exactly as in the product photos.`,
     SINGLE_SHOT_LOCK,
     "PRODUCT IDENTITY LOCK: reproduce the uploaded product exactly—same shape, construction, material, color, proportions, packaging, hardware, and printed logo or label; do not invent or remove details.",
-    "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
+    /// 镜头卡标了换地点：不再要求同一个房间（REFERENCE ROLES 的前帧说明跟着这一行换，见 storyboard-frame-inputs）
+    shotCard?.startsWith(SHOT_CARD_NEW_LOCATION_PREFIX)
+      ? STORYBOARD_NEW_LOCATION_CONTINUITY_LOCK
+      : "CONTINUITY LOCK: keep the same room, camera language, lighting direction, person identity, wardrobe, and product identity across every frame; change only the story beat and simple action.",
     "Use physically plausible hands, shadows, perspective, contact points, and product mechanics.",
     ...input.tailLines,
   ];
@@ -630,6 +643,7 @@ export async function createStoryboardRun(
         aspectRatio: input.aspectRatio,
         productImageCount: assets.length,
         personImageCount: personAssetIds.length,
+        voiceoverScript: input.voiceoverScript ?? null,
       });
   const plans = buildStoryboardFramePlans({
     prompt: input.prompt,

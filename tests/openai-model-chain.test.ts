@@ -106,7 +106,7 @@ test("链内无重复：重复候选只会白白多打一次请求", () => {
 /* ── P01-A · vision 参数化与回退（2026-10-26）────────────────────────── */
 
 import { mock } from "node:test";
-import { __test__, analyzeImages, openai } from "../src/lib/providers/openai";
+import { REASONING_HEADROOM_TOKENS, __test__, analyzeImages, openai } from "../src/lib/providers/openai";
 import { OpenAiProvider, openAiProbePlan } from "../src/lib/ai/providers/openai-provider";
 
 async function withEnvAsync(
@@ -222,8 +222,8 @@ test("analyzeImages：默认 detail=low、max 1200（历史行为不变）；传
         .filter((part) => part.type === "image_url");
       assert.equal(firstImages.length, 2);
       assert.ok(firstImages.every((part) => part.image_url?.detail === "low"));
-      /// 5.x 系只收 max_completion_tokens（与 chatJson 同一条规则）
-      assert.equal(first.max_completion_tokens, 1200);
+      /// 5.x 系只收 max_completion_tokens（与 chatJson 同一条规则）；正文上限 1200 之外另留思考余量
+      assert.equal(first.max_completion_tokens, 1200 + REASONING_HEADROOM_TOKENS);
       assert.equal(first.max_tokens, undefined);
 
       await analyzeImages(["https://x/1.jpg"], "sys", "user", { detail: "high", maxTokens: 400 });
@@ -231,7 +231,7 @@ test("analyzeImages：默认 detail=low、max 1200（历史行为不变）；传
       const secondImages = (second.messages[1]!.content as Array<{ type: string; image_url?: { detail?: string } }>)
         .filter((part) => part.type === "image_url");
       assert.equal(secondImages[0]?.image_url?.detail, "high");
-      assert.equal(second.max_completion_tokens, 400);
+      assert.equal(second.max_completion_tokens, 400 + REASONING_HEADROOM_TOKENS);
     } finally {
       mock.restoreAll();
     }
@@ -253,7 +253,7 @@ test("AiProvider 抽象层：OpenAiProvider.analyzeImages 把 detail / maxTokens
       const images = (calls[0]!.messages[1]!.content as Array<{ type: string; image_url?: { detail?: string } }>)
         .filter((part) => part.type === "image_url");
       assert.equal(images[0]?.image_url?.detail, "auto");
-      assert.equal(calls[0]!.max_completion_tokens, 900);
+      assert.equal(calls[0]!.max_completion_tokens, 900 + REASONING_HEADROOM_TOKENS);
     } finally {
       mock.restoreAll();
     }

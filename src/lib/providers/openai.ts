@@ -1,6 +1,10 @@
 import OpenAI from "openai";
 import { isDryRun } from "@/lib/config/dry-run";
 import { markCapability } from "@/lib/services/capability-status-service";
+import {
+  inlineImagesAfterDownloadFailure,
+  isImageDownloadError,
+} from "@/lib/providers/openai-vision-inline";
 
 /**
  * OpenAI 模型分层（2026-05 Phase Lifecycle Hardening）：
@@ -156,6 +160,7 @@ export interface ChatJsonOptions {
   user: string;
   model?: string;
   temperature?: number;
+  /** 正文 token 上限；推理模型另加思考余量（见 completionTokenBudget）。 */
   maxTokens?: number;
 }
 
@@ -190,10 +195,29 @@ export function buildTokenLimitParam(
   model: string,
   limit: number,
 ): { max_tokens?: number; max_completion_tokens?: number } {
-  if (/^(gpt-5|gpt-6|o1|o3|o4)/i.test(model)) {
+  if (isReasoningModel(model)) {
     return { max_completion_tokens: limit };
   }
   return { max_tokens: limit };
+}
+
+/** GPT-5.x / GPT-6.x / o 系：会先「思考」再作答的模型。 */
+function isReasoningModel(model: string): boolean {
+  return /^(gpt-5|gpt-6|o1|o3|o4)/i.test(model);
+}
+
+/**
+ * 推理模型的 max_completion_tokens 同时包含思考与正文，而调用方的 maxTokens 是按「正文多长」定的
+ * （一致性设定 1200、镜头卡 2500）。思考把额度吃光时正文为空、finish_reason=length。
+ * 10-29 真机：consistency_bible 在 gpt-5.6-sol 上 reasoning_tokens=1200/1200、正文 0 字；
+ * 同一请求放开上限重跑，思考 133–1375 token 不等，正文只要约 420。镜头卡在 terra 上思考 107–1025。
+ * 所以推理模型在正文上限之外另留一份思考余量。按实际生成计费，上限放宽本身不多花钱。
+ */
+export const REASONING_HEADROOM_TOKENS = 4000;
+
+/** 一次 JSON 调用实际下发的 token 上限：推理模型 = 正文上限 + 思考余量；其它模型 = 正文上限。 */
+export function completionTokenBudget(model: string, answerTokens: number): number {
+  return isReasoningModel(model) ? answerTokens + REASONING_HEADROOM_TOKENS : answerTokens;
 }
 
 /**
@@ -220,7 +244,7 @@ export function buildTemperatureParam(
   model: string,
   requested: number | undefined,
 ): { temperature?: number } {
-  if (/^(gpt-5|gpt-6|o1|o3|o4)/i.test(model)) {
+  if (isReasoningModel(model)) {
     return {};
   }
   if (requested == null) return {};
@@ -280,45 +304,119 @@ async function chatJsonOnce<T = unknown>(
   refreshOpenAiKeyFromEnv();
 
   const model = options.model || resolveModelForTier("fast");
-  const tokenLimit = buildTokenLimitParam(model, options.maxTokens ?? 3500);
   const temperatureParam = buildTemperatureParam(model, options.temperature ?? 0.7);
-  const response = await openai.chat.completions.create({
-    model,
-    messages: [
-      { role: "system", content: options.system },
-      { role: "user", content: options.user },
-    ],
-    response_format: { type: "json_object" },
-    ...temperatureParam,
-    ...tokenLimit,
-  });
+  const { data, raw, tokenUsage } = await createJsonCompletion(
+    {
+      model,
+      messages: [
+        { role: "system", content: options.system },
+        { role: "user", content: options.user },
+      ],
+      ...temperatureParam,
+    },
+    options.maxTokens ?? 3500,
+    "OpenAI ",
+  );
 
-  const content = response.choices[0]?.message?.content;
-  if (!content) {
-    throw new Error("OpenAI 返回了空响应");
+  return { data: data as T, modelUsed: model, tokenUsage, raw };
+}
+
+type JsonCompletionRequest = Omit<
+  OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming,
+  "response_format" | "max_tokens" | "max_completion_tokens"
+>;
+type CompletionChoice = OpenAI.Chat.Completions.ChatCompletion["choices"][number];
+type CompletionUsage = OpenAI.Chat.Completions.ChatCompletion["usage"];
+
+/**
+ * 正文为空 / JSON 被截断时的原因，写进错误信息——调用方会吞掉错误走兜底，日志里得看得出为什么。
+ * 截断时说清思考用了多少额度；拒答、内容过滤直接点名。
+ */
+function describeIncompleteCompletion(
+  model: string,
+  choice: Pick<CompletionChoice, "finish_reason"> & { message?: { refusal?: string | null } | null } | undefined,
+  usage: CompletionUsage | null | undefined,
+  budget: number,
+): string {
+  const refusal = choice?.message?.refusal?.trim();
+  if (refusal) return `model=${model}，模型拒答：${refusal.slice(0, 160)}`;
+  const finish = choice?.finish_reason ?? "无";
+  const completion = usage?.completion_tokens;
+  const reasoning = usage?.completion_tokens_details?.reasoning_tokens;
+  if (finish === "length") {
+    const thinking = typeof reasoning === "number" ? `，其中思考 ${reasoning}` : "";
+    return `model=${model}，finish_reason=length：上限 ${budget} token 用了 ${completion ?? "?"}${thinking}，正文没写完`;
   }
+  if (finish === "content_filter") return `model=${model}，finish_reason=content_filter：被内容过滤拦下`;
+  return `model=${model}，finish_reason=${finish}，completion ${completion ?? "?"} token`;
+}
 
-  let parsed: T;
+function sumTokenUsage(usages: Array<CompletionUsage | null | undefined>): TokenUsage | null {
+  const present = usages.filter((usage): usage is NonNullable<CompletionUsage> => Boolean(usage));
+  if (present.length === 0) return null;
+  return present.reduce<TokenUsage>(
+    (total, usage) => ({
+      promptTokens: total.promptTokens + usage.prompt_tokens,
+      completionTokens: total.completionTokens + usage.completion_tokens,
+      totalTokens: total.totalTokens + usage.total_tokens,
+    }),
+    { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+  );
+}
+
+function parseJsonContent(content: string): { ok: true; value: unknown } | { ok: false; error: string } {
   try {
-    parsed = JSON.parse(content) as T;
+    return { ok: true, value: JSON.parse(content) };
   } catch (err) {
-    throw new Error(
-      `OpenAI 返回的不是合法 JSON：${(err as Error).message}\n原文：${content.slice(0, 300)}`,
+    return { ok: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * 发一次 JSON 模式请求并解析正文（chatJson 与 analyzeImages 共用）。
+ * 输出被截断（finish_reason=length：正文为空或 JSON 不完整）时上限翻倍再问一次——思考长度每次不同，
+ * 重来一次基本都能答完；仍不行就把原因写进错误，不再只是一句「空响应」。tokenUsage 是两次之和。
+ */
+async function createJsonCompletion(
+  request: JsonCompletionRequest,
+  answerTokens: number,
+  label: string,
+): Promise<{ data: unknown; raw: string; tokenUsage: TokenUsage | null }> {
+  const send = (budget: number) =>
+    openai.chat.completions.create({
+      ...request,
+      response_format: { type: "json_object" },
+      ...buildTokenLimitParam(request.model, budget),
+    });
+
+  let budget = completionTokenBudget(request.model, answerTokens);
+  let response = await send(budget);
+  const usages: CompletionUsage[] = [response.usage];
+  let content = response.choices[0]?.message?.content ?? "";
+  let parsed = content ? parseJsonContent(content) : null;
+
+  if (!parsed?.ok && response.choices[0]?.finish_reason === "length") {
+    console.warn(
+      `[openai] ${describeIncompleteCompletion(request.model, response.choices[0], response.usage, budget)}；上限翻倍重试一次`,
     );
+    budget *= 2;
+    response = await send(budget);
+    usages.push(response.usage);
+    content = response.choices[0]?.message?.content ?? "";
+    parsed = content ? parseJsonContent(content) : null;
   }
 
-  return {
-    data: parsed,
-    modelUsed: model,
-    tokenUsage: response.usage
-      ? {
-          promptTokens: response.usage.prompt_tokens,
-          completionTokens: response.usage.completion_tokens,
-          totalTokens: response.usage.total_tokens,
-        }
-      : null,
-    raw: content,
-  };
+  if (parsed?.ok) return { data: parsed.value, raw: content, tokenUsage: sumTokenUsage(usages) };
+
+  const choice = response.choices[0];
+  if (!parsed) {
+    throw new Error(`${label}返回了空响应（${describeIncompleteCompletion(request.model, choice, response.usage, budget)}）`);
+  }
+  const truncated =
+    choice?.finish_reason === "length"
+      ? `（${describeIncompleteCompletion(request.model, choice, response.usage, budget)}）`
+      : "";
+  throw new Error(`${label}返回的不是合法 JSON${truncated}：${parsed.error}\n原文：${content.slice(0, 300)}`);
 }
 
 /**
@@ -397,12 +495,14 @@ function isModelMissingError(err: unknown): boolean {
 export interface VisionAnalyzeOptions {
   /** OpenAI `image_url.detail`。low 省 token 够看字幕；商品 / 人物一致性检查用 high。 */
   detail?: "low" | "high" | "auto";
-  /** 回答 token 上限（5.x 系自动落到 max_completion_tokens）。 */
+  /** 正文 token 上限（5.x 系落到 max_completion_tokens，并另加思考余量，见 completionTokenBudget）。 */
   maxTokens?: number;
 }
 
 export const VISION_DEFAULT_DETAIL: NonNullable<VisionAnalyzeOptions["detail"]> = "low";
 export const VISION_DEFAULT_MAX_TOKENS = 1200;
+/** 一次最多看 8 张。 */
+const VISION_MAX_IMAGES = 8;
 
 /**
  * 视觉分析：参考图理解 / 帧质检 / 故事板抽卡评审都走这里。
@@ -411,6 +511,9 @@ export const VISION_DEFAULT_MAX_TOKENS = 1200;
  * - detail / maxTokens 由调用方决定，不再写死在请求里（默认值保持 low / 1200，行为不变）。
  * - 首选模型「不存在 / 没权限」时按 vision 回退链继续（与 chatJsonByTier 同一规则）。
  *   限流、超时、内容审核等错误不回退——那不是模型选错，重试另一个模型只会多花一次钱。
+ *
+ * 10-29：OpenAI 自己拉图偶尔超时（400 invalid_image_url）。这时服务端取图转 data URL，同一模型重试一次
+ * （openai-vision-inline）。这类失败是图没拉到，不是 key / 额度问题，不回写「AI 看图」能力状态。
  */
 export async function analyzeImages(
   imageUrls: string[],
@@ -419,11 +522,22 @@ export async function analyzeImages(
   options: VisionAnalyzeOptions = {},
 ): Promise<ChatJsonResult<Record<string, unknown>>> {
   const chain = resolveFallbackChain("vision");
+  let urls = imageUrls.slice(0, VISION_MAX_IMAGES);
+  let inlineTried = false;
   let lastErr: unknown = null;
   for (let i = 0; i < chain.length; i++) {
     const candidate = chain[i];
     try {
-      const result = await analyzeImagesOnce(candidate, imageUrls, system, userPrompt, options);
+      let result: ChatJsonResult<Record<string, unknown>>;
+      try {
+        result = await analyzeImagesOnce(candidate, urls, system, userPrompt, options);
+      } catch (err) {
+        if (inlineTried || !isImageDownloadError(err)) throw err;
+        inlineTried = true;
+        /// 转好的 data URL 留给回退链后面的模型继续用
+        urls = await inlineImagesAfterDownloadFailure(urls, options.detail, err);
+        result = await analyzeImagesOnce(candidate, urls, system, userPrompt, options);
+      }
       const fallbackUsed = i > 0;
       if (fallbackUsed) {
         console.warn(
@@ -436,7 +550,9 @@ export async function analyzeImages(
     } catch (err) {
       lastErr = err;
       if (!isModelMissingError(err)) {
-        await markCapability("vision", { error: err }, { detail: { provider: "openai", model: candidate } });
+        if (!isImageDownloadError(err)) {
+          await markCapability("vision", { error: err }, { detail: { provider: "openai", model: candidate } });
+        }
         throw err;
       }
       console.warn(
@@ -469,42 +585,34 @@ async function analyzeImagesOnce(
   refreshOpenAiKeyFromEnv();
 
   const detail = options.detail ?? VISION_DEFAULT_DETAIL;
-  const imageContent = imageUrls.slice(0, 8).map((url) => ({
+  const imageContent = imageUrls.slice(0, VISION_MAX_IMAGES).map((url) => ({
     type: "image_url" as const,
     image_url: { url, detail },
   }));
 
-  const tokenLimit = buildTokenLimitParam(visionModel, options.maxTokens ?? VISION_DEFAULT_MAX_TOKENS);
-  const response = await openai.chat.completions.create({
-    model: visionModel,
-    messages: [
-      { role: "system", content: system },
-      {
-        role: "user",
-        content: [
-          ...imageContent,
-          { type: "text", text: userPrompt },
-        ],
-      },
-    ],
-    response_format: { type: "json_object" },
-    ...tokenLimit,
-  });
-
-  const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("视觉分析返回了空响应");
+  const { data, raw, tokenUsage } = await createJsonCompletion(
+    {
+      model: visionModel,
+      messages: [
+        { role: "system", content: system },
+        {
+          role: "user",
+          content: [
+            ...imageContent,
+            { type: "text", text: userPrompt },
+          ],
+        },
+      ],
+    },
+    options.maxTokens ?? VISION_DEFAULT_MAX_TOKENS,
+    "视觉分析",
+  );
 
   return {
-    data: JSON.parse(content),
+    data: data as Record<string, unknown>,
     modelUsed: visionModel,
-    tokenUsage: response.usage
-      ? {
-          promptTokens: response.usage.prompt_tokens,
-          completionTokens: response.usage.completion_tokens,
-          totalTokens: response.usage.total_tokens,
-        }
-      : null,
-    raw: content,
+    tokenUsage,
+    raw,
     tier: "vision",
   };
 }

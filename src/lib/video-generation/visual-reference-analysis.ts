@@ -11,9 +11,14 @@
  * 结果注入 bible 与每段 prompt，让文字锚和 Omni-Reference 图片锚完全一致。
  *
  * 失败兜底：LLM 不可用 / 分析失败返回 null，管线按旧行为继续（不阻塞出片）。
+ * 分析失败时交给 onDegraded（2026-10-29），方案上记一条「没看图」。
  */
 
 import { analyzeImages, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import {
+  planningDegradation,
+  type RecordPlanningDegradation,
+} from "@/lib/video-generation/planning-degradation";
 import { effectiveAssetRole, type UploadedAsset } from "@/types/video-generation";
 
 export interface VisualReferenceAnalysis {
@@ -62,6 +67,7 @@ RULES:
 export async function analyzeVisualReferences(
   assets: UploadedAsset[],
   briefHint: string,
+  onDegraded?: RecordPlanningDegradation,
 ): Promise<VisualReferenceAnalysis | null> {
   /// GPT-4o 一次最多看 8 张（低清模式）；Seedance Omni-Reference 同样吃得下 8 张。
   /// 主播参考图（person）不是场所 / 产品实拍，不进视觉盘点（P02-A）；logo 照旧参与——
@@ -105,6 +111,7 @@ export async function analyzeVisualReferences(
       "[visual-reference-analysis] vision failed; continuing without:",
       (err as Error).message,
     );
+    onDegraded?.(planningDegradation("visual_reference", err));
     return null;
   }
 }

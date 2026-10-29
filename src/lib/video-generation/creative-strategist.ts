@@ -13,6 +13,10 @@
  */
 
 import { chatJsonByTier, isLLMAvailable, isLLMForcedMock } from "@/lib/ai";
+import {
+  planningDegradation,
+  type RecordPlanningDegradation,
+} from "@/lib/video-generation/planning-degradation";
 import type {
   CreativeBrief,
   InputClassification,
@@ -49,6 +53,8 @@ export interface BuildCreativeBriefArgs {
   request: UnifiedVideoGenerationRequest;
   classification: InputClassification;
   classifiedAssets: UploadedAsset[];
+  /// LLM 失败退回启发式时记一条（方案上可见）；不传 = 只打日志
+  onDegraded?: RecordPlanningDegradation;
 }
 
 export async function buildCreativeBrief(
@@ -74,6 +80,7 @@ export async function buildCreativeBrief(
       "[creative-strategist] LLM failed, falling back to heuristic:",
       (err as Error).message,
     );
+    args.onDegraded?.(planningDegradation("creative_brief", err));
     return heuristicBrief(args);
   }
 }

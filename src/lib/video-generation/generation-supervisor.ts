@@ -16,6 +16,9 @@
  *   10. buildPlanPreview    → PlanPreview
  *
  * 无副作用：不写 DB，不调 Seedance。dispatch 阶段在 API 路由层完成。
+ *
+ * 各步 AI 调用失败都有兜底，方案照常出；哪几步退回了兜底记在 plan.planningDegradations（2026-10-29），
+ * 同时进质量评审的 warning（商家看得到）并打一行运维日志。
  */
 
 import { randomUUID } from "node:crypto";
@@ -36,6 +39,10 @@ import { buildAssemblyPlan } from "@/lib/video-generation/video-assembly-plan";
 import { buildQualityReview } from "@/lib/video-generation/quality-reviewer";
 import { buildPlanPreview } from "@/lib/video-generation/plan-preview";
 import { resolveClientLockProfile } from "@/lib/video-generation/client-lock-profiles";
+import {
+  createPlanningDegradationLog,
+  logPlanningDegradations,
+} from "@/lib/video-generation/planning-degradation";
 import {
   effectiveAssetRole,
   type UnifiedVideoGenerationRequest,
@@ -94,6 +101,7 @@ export async function buildPlan(
   const classifiedAssets = ensureClassified(request.attachments ?? []);
 
   const classification = classifyInput({ ...request, attachments: classifiedAssets });
+  const degradations = createPlanningDegradationLog();
 
   /// 2. Creative brief（可能调 LLM）与 5.45 参考图视觉分析：
   /// 视觉分析让 GPT 真正「看」参考图，提取真实门店 / 产品实拍细节，让文字锚（bible / prompt）和图片锚描述同一个真实场景。
@@ -103,8 +111,9 @@ export async function buildPlan(
       request: { ...request, attachments: classifiedAssets },
       classification,
       classifiedAssets,
+      onDegraded: degradations.record,
     }),
-    analyzeVisualReferences(classifiedAssets, request.rawPrompt),
+    analyzeVisualReferences(classifiedAssets, request.rawPrompt, degradations.record),
   ]);
 
   /// 3. Brand packaging
@@ -159,6 +168,7 @@ export async function buildPlan(
     language: request.language ?? "en-US",
     styleTemplate,
     visualRefs,
+    onDegraded: degradations.record,
   });
 
   /// 6. Per-segment prompts → VideoSegment[]
@@ -174,6 +184,7 @@ export async function buildPlan(
     consistencyLocks,
     visualRefs,
     voiceover: postProduction.audio.voiceover,
+    onDegraded: degradations.record,
   });
 
   /// 7. Assembly plan
@@ -184,6 +195,10 @@ export async function buildPlan(
   });
 
   /// 8. Quality review (SunnyShutter locks only when brand/client matches)
+  /// 到这里会调 AI 的几步都跑完了：降级记录定稿，进质量评审（商家可见）并打一行运维日志。
+  const planId = randomUUID();
+  const planningDegradations = degradations.list();
+  logPlanningDegradations({ source: "plan", planId }, planningDegradations);
   const clientLockProfileId = resolveClientLockProfile({
     brandName: brandPackagingPlan.brandName ?? request.brandKit?.brandName,
   });
@@ -194,6 +209,7 @@ export async function buildPlan(
     segments,
     creativeBrief,
     clientLockProfileId,
+    planningDegradations,
   });
 
   /// 9. Plan preview
@@ -218,7 +234,7 @@ export async function buildPlan(
     }));
 
   return {
-    id: randomUUID(),
+    id: planId,
     inputClassification: classification,
     classifiedAssets,
     creativeBrief,
@@ -231,6 +247,7 @@ export async function buildPlan(
     postProduction,
     qualityReview,
     planPreview,
+    planningDegradations,
     createdAt: new Date().toISOString(),
   };
 }

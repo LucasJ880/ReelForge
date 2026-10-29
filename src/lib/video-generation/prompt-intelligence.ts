@@ -15,7 +15,7 @@
  *
  * 路径：
  *  - isLLMForcedMock() / isLLMAvailable()==false → 启发式
- *  - 否则 → 调 chatJsonByTier(tier: "videoPrompt")；失败回退启发式
+ *  - 否则 → 调 chatJsonByTier(tier: "videoPrompt")；失败回退启发式（交给 onDegraded，方案上记一条）
  *
  * 硬约束（不论 LLM / heuristic）：
  *  - prompt 不写 logo URL / 品牌名 / slogan / URL / QR / 精确 CTA 文本
@@ -38,6 +38,10 @@ import { heuristicBible } from "@/lib/video-generation/consistency-bible";
 import type { ConsistencyLock, StyleTemplate } from "@/lib/video-generation/style-templates";
 import type { VisualReferenceAnalysis } from "@/lib/video-generation/visual-reference-analysis";
 import { resolutionForAspectRatio, type UnifiedSegmentSlot } from "@/lib/video-generation/segment-planner-adapter";
+import {
+  planningDegradation,
+  type RecordPlanningDegradation,
+} from "@/lib/video-generation/planning-degradation";
 
 /**
  * 1028 商品主体轮 P0：品牌跟着商品走。商品自己印着的 logo / 标签字样是商品的一部分，必须照参考图保留。
@@ -128,6 +132,8 @@ export interface BuildSegmentPromptsArgs {
   visualRefs?: VisualReferenceAnalysis | null;
   /** User-approved final wording; overrides any LLM-authored dialogue. */
   voiceover?: VoiceoverSettings | null;
+  /// LLM 失败 / 输出不可用、退回模板镜头表时记一条（方案上可见）；不传 = 只打日志
+  onDegraded?: RecordPlanningDegradation;
 }
 
 export interface SegmentPromptResult {
@@ -525,12 +531,16 @@ async function tryLLMSegmentPrompts(
     const arr = extractArray(data);
     if (!arr) {
       console.warn("[prompt-intelligence] LLM did not return array; falling back");
+      args.onDegraded?.(planningDegradation("segment_prompts", "LLM 没有返回段数组，整片改用模板镜头表"));
       return heuristicSegmentPrompts(args, aiSlots, bible);
     }
 
-    return aiSlots.map((slot, i) => {
+    /// 某一段没给出可用镜头表时那一段单独退回模板镜头表（其余段照用 LLM 的），记一条、列出段号
+    const templateShotSegments: number[] = [];
+    const results = aiSlots.map((slot, i) => {
       const raw = arr[i] && typeof arr[i] === "object" ? (arr[i] as Record<string, unknown>) : {};
       const shots = normalizeShots(raw.shots, slot.durationSec);
+      if (shots.length === 0) templateShotSegments.push(i + 1);
       const seedancePrompt =
         shots.length > 0
           ? composeSeedancePrompt({ bible, shots, slot, args, segIdxInAi: i })
@@ -558,11 +568,21 @@ async function tryLLMSegmentPrompts(
           typeof raw.continuityNotes === "string" ? raw.continuityNotes : "",
       };
     });
+    if (templateShotSegments.length > 0) {
+      args.onDegraded?.(
+        planningDegradation(
+          "segment_prompts",
+          `AI 段第 ${templateShotSegments.join("、")} 段（共 ${aiSlots.length} 段）LLM 没给出可用镜头表，改用模板镜头表`,
+        ),
+      );
+    }
+    return results;
   } catch (err) {
     console.warn(
       "[prompt-intelligence] LLM failed; falling back to heuristic:",
       (err as Error).message,
     );
+    args.onDegraded?.(planningDegradation("segment_prompts", err));
     return heuristicSegmentPrompts(args, aiSlots, bible);
   }
 }

@@ -339,6 +339,18 @@ export const qualityReviewSchema = z.object({
   canDispatch: z.boolean(),
 });
 
+export const planningDegradationSchema = z.object({
+  stage: z.enum(["creative_brief", "visual_reference", "consistency_bible", "segment_prompts", "shot_cards"]),
+  reason: z.string(),
+  fallback: z.enum([
+    "heuristic_brief",
+    "no_visual_analysis",
+    "heuristic_bible",
+    "heuristic_segment_prompts",
+    "template_beats",
+  ]),
+});
+
 export const planPreviewSchema = z.object({
   summary: z.string(),
   breakdown: z.object({
@@ -400,6 +412,7 @@ export const videoGenerationPlanSchema = z.object({
   postProduction: postProductionPlanSchema.nullable().optional(),
   qualityReview: qualityReviewSchema,
   planPreview: planPreviewSchema,
+  planningDegradations: z.array(planningDegradationSchema).optional(),
   createdAt: z.string(),
 });
 

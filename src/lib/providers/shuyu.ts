@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { markCapability } from "@/lib/services/capability-status-service";
-import { ProviderSubmissionError } from "@/lib/video-generation/providers/submission-error";
+import {
+  ProviderSubmissionError,
+  shouldAutomaticallyRetrySubmission,
+} from "@/lib/video-generation/providers/submission-error";
 import {
   parseShuyuCatalog,
   selectAuditedImage2Plan,
@@ -1051,7 +1054,32 @@ function providerConfirmedRefund(message: string): boolean {
   return REFUND_CONFIRMED_PATTERNS.some((pattern) => pattern.test(message));
 }
 
+/**
+ * Shuyu 在错误体里明说「没建任务、没扣点、用同一个 Idempotency-Key 重试」的错误类型。10-29 真机：
+ *   HTTP 503 · {"type":"reference_validation_unavailable",
+ *               "message":"Reference-image validation is temporarily unavailable. Retry with the same
+ *                          Idempotency-Key; no generation points were charged."}
+ * 拒单那一刻没有任务号；当天 Seedance 2.5（方案 113）与 Kling 4.0（方案 107）反复出现，同一单隔几分钟重提时有时无。
+ *
+ * 按错误类型认，不按文案认。只认视频提交：图片端出没出过这个类型没有真机证据，而且单条故事板
+ * 只对 ACK_UNKNOWN 帧自动重投一次——那边改判 REJECTED 反倒少一次自动重投。
+ */
+const SAME_KEY_RETRY_VIDEO_ERROR_TYPES: ReadonlySet<string> = new Set([
+  "reference_validation_unavailable",
+]);
+
+/** 视频提交被拒、且 Shuyu 要求用同一个 Idempotency-Key 重投（见 ShuyuVideoProvider.createVideoJob） */
+export function isShuyuSameKeyRetryable(error: unknown): error is ProviderSubmissionError {
+  return (
+    error instanceof ProviderSubmissionError &&
+    error.providerId === "shuyu" &&
+    SAME_KEY_RETRY_VIDEO_ERROR_TYPES.has(error.code ?? "") &&
+    shouldAutomaticallyRetrySubmission(error)
+  );
+}
+
 function createSubmissionError(args: {
+  kind: "image" | "video";
   response: Response;
   payload: unknown;
 }): ProviderSubmissionError {
@@ -1067,14 +1095,16 @@ function createSubmissionError(args: {
   // already-created task whose ID was not returned to this caller.
   const statusConfirmsNoJob = [400, 401, 402, 403, 404, 429].includes(status);
   const refunded = providerConfirmedRefund(rawMessage);
+  const sameKeyRetry =
+    args.kind === "video" && SAME_KEY_RETRY_VIDEO_ERROR_TYPES.has(code ?? "");
   return new ProviderSubmissionError(message, {
     providerId: "shuyu",
     stage: "provider_response",
     httpStatus: status,
     code,
-    providerConfirmedNoJob: statusConfirmsNoJob || refunded,
-    /// 退款已确认 = 重投不会二次计费，允许自动重试把「线路繁忙」熬过去。
-    retryable: refunded,
+    providerConfirmedNoJob: statusConfirmsNoJob || refunded || sameKeyRetry,
+    /// 退款已确认 / 供应商明说没扣点 = 重投不会二次计费，允许自动重试把「线路繁忙」熬过去。
+    retryable: refunded || sameKeyRetry,
   });
 }
 
@@ -1174,7 +1204,7 @@ export async function createShuyuImageTask(
   }
   if (!response.ok) {
     await markShuyuSubmission("image", response.status);
-    throw createSubmissionError({ response, payload });
+    throw createSubmissionError({ kind: "image", response, payload });
   }
   await markShuyuSubmission("image", response.status);
 
@@ -1264,7 +1294,7 @@ export async function createShuyuVideoTask(
   }
   if (!response.ok) {
     await markShuyuSubmission("video", response.status);
-    throw createSubmissionError({ response, payload });
+    throw createSubmissionError({ kind: "video", response, payload });
   }
   await markShuyuSubmission("video", response.status);
 

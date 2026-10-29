@@ -83,8 +83,10 @@ test("字幕样式分档由 wordTimestampsAvailable 控制：默认仍只列两�
 
 test("P04-B：口播 / 字幕语言按口播稿检测，不再拿界面 locale 代替", () => {
   assert.match(studio, /import \{ detectScriptLanguage \} from "@\/lib\/video-generation\/detect-script-language";/);
-  assert.match(studio, /voiceover:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(voiceoverScript, locale\)/);
-  assert.match(studio, /captions:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(voiceoverScript, locale\)/);
+  /// 2026-10-29：出故事板前 AI 刚写好的稿会作为 voiceoverScriptOverride 传进来（state 还没刷新），语言看的是同一份稿
+  assert.match(studio, /const script = voiceoverScriptOverride \?\? voiceoverScript;/);
+  assert.match(studio, /voiceover:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(script, locale\)/);
+  assert.match(studio, /captions:\s*\{[\s\S]*?language:\s*detectScriptLanguage\(script, locale\)/);
 });
 
 test("automatic scripts are deterministic, localized, and duration-bounded", () => {

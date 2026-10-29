@@ -65,6 +65,7 @@ import type { WorkspaceBrandPackageView } from "@/lib/services/workspace-brand-p
 import { BRAND_END_CARD_ENTRY_ENABLED } from "@/lib/brand/brand-end-card-policy";
 import { BROLL_ROUTE_ENTRY_ENABLED, PRODUCT_IMAGE_STUDIO_ENTRY_ENABLED } from "@/lib/create/entry-policy";
 import { loadVoiceoverDraft, saveVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-storage";
+import { awaitVoiceoverDraft } from "@/lib/video-generation/voiceover-draft-wait";
 import {
   COMMERCE_TEMPLATE_RECIPES,
   COMMERCE_TEMPLATE_SLUGS,
@@ -87,6 +88,8 @@ const STORYBOARD_ATTEMPT_STORAGE_KEY = "aivora.storyboard-attempt.v1";
 const DISPATCH_ATTEMPT_STORAGE_KEY = "aivora.dispatch-attempt.v1";
 const DISMISSED_STORYBOARDS_STORAGE_KEY = "aivora.dismissed-storyboards.v1";
 const DURATIONS = [15, 30, 60] as const;
+/// 出故事板前最多等 AI 口播稿这么久（服务端起稿自己 20 秒就放弃，这里多留一点网络余量）
+const VOICEOVER_AUTO_DRAFT_WAIT_MS = 25_000;
 const ASPECT_RATIOS: AspectRatio[] = ["9:16", "16:9", "1:1"];
 const LEGACY_QUALITY_TEMPLATE_IDS = [
   "tpl_event_watch_party",
@@ -200,6 +203,7 @@ const ZH_COPY = {
   previewPlan: "核对生成方案",
   previewing: "正在准备方案…",
   planningShots: "正在规划镜头…",
+  writingVoiceover: "正在写口播稿…",
   cancelPlanning: "取消",
   planningCancelled: "已取消，素材和描述都保留着。",
   createStoryboard: "生成 AI 故事板",
@@ -319,6 +323,7 @@ const EN_COPY: StudioCopy = {
   previewPlan: "Review generation plan",
   previewing: "Preparing the plan…",
   planningShots: "Planning shots…",
+  writingVoiceover: "Writing the voiceover…",
   cancelPlanning: "Cancel",
   planningCancelled: "Cancelled. Your uploads and description are kept.",
   createStoryboard: "Generate AI storyboard",
@@ -818,6 +823,41 @@ export function StreamlinedVideoStudio({
   /// 2026-10-28：「生成口播稿」由 AI 按商家原话写（/api/video-generation/voiceover-draft）；
   /// AI 不可用、超时或超长时退回本地模板稿（与之前同一份）。AI 稿视同用户确认过的稿，描述再改也不被模板覆盖。
   const [voiceoverDrafting, setVoiceoverDrafting] = useState(false);
+  /// 正在写的那一份 AI 口播稿（离开输入框 / 「生成口播稿」/ 出故事板前自动，三处共用）：同一时间只有一份，
+  /// 出故事板时有就等它，不再并发写第二份。
+  const voiceoverDraftRef = useRef<Promise<string | null> | null>(null);
+  const draftVoiceoverWithAi = useCallback((signal?: AbortSignal): Promise<string | null> => {
+    if (voiceoverDraftRef.current) return voiceoverDraftRef.current;
+    const run = (async () => {
+      setVoiceoverDrafting(true);
+      try {
+        const response = await fetch("/api/video-generation/voiceover-draft", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            prompt: rawPrompt,
+            durationSec: selectedDuration,
+            language: locale,
+            cta: selectedBrandPackage?.cta ?? null,
+          }),
+          signal,
+        });
+        const payload = await response.json().catch(() => null) as { ok?: boolean; script?: string | null } | null;
+        if (!response.ok || !payload?.script) return null;
+        const script = payload.script;
+        voiceoverEditedRef.current = true;
+        setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: script }));
+        return script;
+      } catch {
+        return null;
+      } finally {
+        setVoiceoverDrafting(false);
+        voiceoverDraftRef.current = null;
+      }
+    })();
+    voiceoverDraftRef.current = run;
+    return run;
+  }, [locale, rawPrompt, selectedBrandPackage?.cta, selectedDuration]);
   const regenerateVoiceoverScript = useCallback(async () => {
     const applyTemplate = () => {
       voiceoverEditedRef.current = false;
@@ -829,33 +869,10 @@ export function StreamlinedVideoStudio({
       invalidatePlan();
       return;
     }
-    setVoiceoverDrafting(true);
-    try {
-      const response = await fetch("/api/video-generation/voiceover-draft", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          prompt: rawPrompt,
-          durationSec: selectedDuration,
-          language: locale,
-          cta: selectedBrandPackage?.cta ?? null,
-        }),
-      });
-      const payload = await response.json().catch(() => null) as { ok?: boolean; script?: string | null } | null;
-      if (response.ok && payload?.script) {
-        voiceoverEditedRef.current = true;
-        const script = payload.script;
-        setAudioCaptionSettings((current) => ({ ...current, voiceoverScript: script }));
-      } else {
-        applyTemplate();
-      }
-    } catch {
-      applyTemplate();
-    } finally {
-      setVoiceoverDrafting(false);
-      invalidatePlan();
-    }
-  }, [autoVoiceoverScript, invalidatePlan, locale, narrationFromTemplate, rawPrompt, selectedBrandPackage?.cta, selectedDuration]);
+    const script = await draftVoiceoverWithAi();
+    if (!script) applyTemplate();
+    invalidatePlan();
+  }, [autoVoiceoverScript, draftVoiceoverWithAi, invalidatePlan, narrationFromTemplate, rawPrompt]);
 
   useEffect(() => {
     if (!storyboard || storyboard.status !== "GENERATING") return;
@@ -1049,7 +1066,9 @@ export function StreamlinedVideoStudio({
     invalidatePlan();
   }
 
-  function buildRequest(): OwnedUnifiedVideoGenerationRequest {
+  /// voiceoverScriptOverride：出故事板前刚由 AI 写好的口播稿——同一次点击里 state 还没刷新，直接用它
+  function buildRequest(voiceoverScriptOverride?: string | null): OwnedUnifiedVideoGenerationRequest {
+    const script = voiceoverScriptOverride ?? voiceoverScript;
     const selectedBrandEndingMode: BrandEndingMode = selectedBrandPackage?.endCardAsset?.mimeType.startsWith("video/")
       ? "uploaded_clip"
       : selectedBrandPackage
@@ -1078,8 +1097,8 @@ export function StreamlinedVideoStudio({
           enabled: voiceoverEnabled,
           voiceId,
           /// P04-B：口播 / 字幕语言看稿子本身（含汉字 → zh-CN），不再拿界面 locale 代替
-          language: detectScriptLanguage(voiceoverScript, locale),
-          script: voiceoverScript.trim(),
+          language: detectScriptLanguage(script, locale),
+          script: script.trim(),
         },
         bgm: {
           trackId: bgmTrackId,
@@ -1089,7 +1108,7 @@ export function StreamlinedVideoStudio({
       captions: {
         enabled: captionsEnabled,
         style: captionStyle,
-        language: detectScriptLanguage(voiceoverScript, locale),
+        language: detectScriptLanguage(script, locale),
         position: captionPosition,
         exportSrt,
       },
@@ -1168,8 +1187,8 @@ export function StreamlinedVideoStudio({
       setError(validationError);
       return;
     }
-    const request = buildRequest();
-    const requestKey = JSON.stringify(request);
+    let request = buildRequest();
+    let requestKey = JSON.stringify(request);
     setError(null);
     setBusy("storyboard");
     try {
@@ -1179,6 +1198,25 @@ export function StreamlinedVideoStudio({
         planAbortRef.current = controller;
         setPlanningShots(true);
         try {
+          /// 口播稿还停在模板（没手改、AI 也没写过）或正有一份在写：出方案前先等 AI 按商家原话写的稿。
+          /// 预填的描述（重新生成 / 帮我写 / 试试这些 / 贴链接）从不触发「离开输入框就起稿」，之前成片口播是模板套话；
+          /// 写不出、超时或取消就照旧用模板稿（2026-10-29 灰度真机）。
+          if (
+            voiceoverEnabled
+            && !narrationFromTemplate
+            && rawPrompt.trim().length >= 12
+            && (voiceoverDraftRef.current !== null || !voiceoverEditedRef.current)
+          ) {
+            const drafted = await awaitVoiceoverDraft(
+              draftVoiceoverWithAi(controller.signal),
+              controller.signal,
+              VOICEOVER_AUTO_DRAFT_WAIT_MS,
+            );
+            if (drafted) {
+              request = buildRequest(drafted);
+              requestKey = JSON.stringify(request);
+            }
+          }
           activePlan = await fetchPlan(request, controller.signal);
         } catch (reason) {
           if (controller.signal.aborted) {
@@ -1444,7 +1482,7 @@ export function StreamlinedVideoStudio({
   const primaryLabel = busy === "dispatch"
     ? copy.generating
     : busy === "storyboard"
-      ? (planningShots ? copy.planningShots : copy.creatingStoryboard)
+      ? (planningShots ? (voiceoverDrafting ? copy.writingVoiceover : copy.planningShots) : copy.creatingStoryboard)
       : needsStoryboard
         ? copy.createStoryboard
         : storyboardGenerating

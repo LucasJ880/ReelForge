@@ -320,6 +320,84 @@ test("ambiguous or externally-created jobs fail closed before marker or ledger m
   assert.equal(logCalls, 0);
 });
 
+test("Runway 拒单改交 Shuyu 又被拒：被替换的 Runway 行不占段数，但同样必须「一定没建」", async (t) => {
+  const request = {
+    state: VideoDispatchRequestState.PROCESSING,
+    quotaConsumedAt: new Date("2026-10-28T10:00:00.000Z") as Date | null,
+  };
+  const supersededRunway = {
+    ...safeJob("job-runway", "brief-1"),
+    supersededAt: new Date("2026-10-28T10:00:01.000Z"),
+    replacesJobId: null,
+    finalVideoId: null,
+  };
+  const currentShuyu = {
+    ...safeJob("job-shuyu", "brief-1"),
+    supersededAt: null,
+    replacesJobId: null,
+    finalVideoId: "final-1",
+  };
+  let jobs: Array<Record<string, unknown>> = [supersededRunway, currentShuyu];
+  let meterCalls = 0;
+  const tx = {
+    videoDispatchRequest: {
+      findFirst: async () => ({ ...request }),
+      updateMany: async () => {
+        if (!request.quotaConsumedAt) return { count: 0 };
+        request.quotaConsumedAt = null;
+        return { count: 1 };
+      },
+    },
+    videoBrief: {
+      findMany: async () => [{ id: "brief-1" }],
+      updateMany: async () => ({ count: 1 }),
+    },
+    videoJob: { findMany: async () => jobs },
+    userUsagePeriod: {
+      updateMany: async () => {
+        meterCalls += 1;
+        return { count: 1 };
+      },
+    },
+    usageLog: { create: async (args: { data: unknown }) => args.data },
+  };
+  patch(t, db as unknown as Record<string, unknown>, {
+    $transaction: async (operation: (client: typeof tx) => Promise<unknown>) =>
+      operation(tx),
+  });
+  const input = {
+    requestId: "dispatch-runway-fallback",
+    userId: "customer-1",
+    briefIds: ["brief-1"],
+    videoDispatchAmount: 1,
+    seedanceSegmentAmount: 1,
+    periodKey: "2026-10",
+    quotaWasMetered: true,
+    reason: "all_jobs_rejected_definitely_not_created",
+    responseStatus: 503,
+  };
+
+  assert.deepEqual(await compensateDirectDispatchQuota(input), { compensated: true, replayed: false });
+  assert.equal(meterCalls, 2, "两块计量各返还一次");
+
+  /// 被替换的那一行要是受理过（有外部任务号），照样失败关闭
+  request.quotaConsumedAt = new Date("2026-10-28T10:05:00.000Z");
+  meterCalls = 0;
+  jobs = [
+    {
+      ...supersededRunway,
+      submissionState: ProviderSubmissionState.ACCEPTED,
+      externalJobId: "rw-task-1",
+    },
+    currentShuyu,
+  ];
+  await assert.rejects(
+    () => compensateDirectDispatchQuota({ ...input, requestId: "dispatch-runway-fallback-2" }),
+    DirectDispatchQuotaCompensationError,
+  );
+  assert.equal(meterCalls, 0);
+});
+
 test("dispatch route compensates only after strict evidence and before provider error", async () => {
   const route = await readFile(
     "src/app/api/video-generation/dispatch/route.ts",

@@ -12,6 +12,7 @@ import { QUOTA_LIMITS, REGISTER_RATE_LIMIT, type QuotaPlanId } from "@/lib/confi
 import { quotaNextStepsSentence } from "@/lib/quota-next-steps";
 import { QUOTA_PLAN_WORKSPACE_SELECT, quotaPlanFromWorkspace } from "@/lib/config/quota-tiers";
 import { db } from "@/lib/db";
+import { isCurrentSegmentJob } from "@/lib/video-generation/segment-redo";
 import {
   RateLimitExceededError,
   bumpRateLimit,
@@ -601,6 +602,9 @@ export async function compensateDirectDispatchQuota(
                 submissionState: true,
                 submissionErrorClass: true,
                 externalJobId: true,
+                supersededAt: true,
+                replacesJobId: true,
+                finalVideoId: true,
               },
             });
             const representedBriefIds = new Set(
@@ -609,8 +613,10 @@ export async function compensateDirectDispatchQuota(
             failureStages = jobs.map((job) =>
               directDispatchFailureStage(job.submissionErrorClass),
             );
+            /// 段数只数当前段：Runway 当场拒单改交 Shuyu 后，被替换的 Runway 行（supersededAt）留档在同一 brief 下，
+            /// 它们同样必须「一定没建、没受理」（下面的 every 照查），但不占这一单扣的段数。
             const evidenceIsSafe =
-              jobs.length === params.seedanceSegmentAmount &&
+              jobs.filter(isCurrentSegmentJob).length === params.seedanceSegmentAmount &&
               representedBriefIds.size === uniqueBriefIds.length &&
               jobs.every(
                 (job) =>

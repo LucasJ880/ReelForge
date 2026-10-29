@@ -1,0 +1,374 @@
+<title>视频盲评 __RUN_KEY__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&family=Martian+Mono&family=Noto+Sans+SC:wght@400;500&display=swap">
+<style>
+  /* Layout: a dark screening room — one band per case; two 9:16 players side by side, the brief and seven three-way verdicts beside them (below them on phones). Single dark theme on purpose: video is judged against black, like the Aivora workspace. */
+  :root {
+    --field: #000000;
+    --panel: #131416;
+    --raised: #1b1e23;
+    --bar: rgb(0 0 0 / 0.92);
+    --line: rgb(255 255 255 / 0.08);
+    --line-strong: rgb(255 255 255 / 0.16);
+    --ink: #ffffff;
+    --ink-2: #a1afc5;
+    --ink-3: #818a9d;
+    --signal: #7497fc;
+    --signal-soft: rgb(116 151 252 / 0.16);
+    --gold: #ffc542;
+    --danger: #ff6b8b;
+    --font-body: "Archivo", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --font-mono: "Martian Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --r-sm: 3px;
+    --r-md: 6px;
+    --r-lg: 10px;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--field); color: var(--ink); font: 15px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+  body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bar); }
+  .wrap { max-width: 1240px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+  .bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bar); border-bottom: 1px solid var(--line); }
+  .bar .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; padding-block: 10px; }
+  .bar h1 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: 0.01em; }
+  .mono { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .run { color: var(--ink-3); }
+  .progress { color: var(--ink-2); margin-left: auto; }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink-2); }
+  .status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+  .status[data-state="saved"]::before { background: var(--signal); }
+  .status[data-state="saving"]::before { background: var(--ink-2); }
+  .status[data-state="retry"]::before { background: var(--danger); }
+  .status[data-state="local"]::before { background: var(--gold); }
+
+  .intro { padding-block: 32px 12px; display: grid; gap: 10px; max-width: 68ch; }
+  .intro h2 { margin: 0; font-size: clamp(26px, 3.4vw, 32px); font-weight: 400; line-height: 1.2; text-wrap: balance; }
+  .intro p { margin: 0; color: var(--ink-2); }
+
+  .case { border-top: 1px solid var(--line); padding-block: 28px; display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 6fr); gap: 20px 36px; scroll-margin-top: 64px; }
+  .case-head { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; }
+  .case.empty { display: block; margin: 0; color: var(--ink-2); }
+  .case-index { color: var(--ink-3); }
+  .case-head h3 { margin: 0; font-size: 20px; font-weight: 500; text-wrap: balance; }
+  .case-head h3 span { color: var(--ink-2); font-weight: 400; }
+  .case-done { color: var(--signal); font-size: 13px; }
+
+  .stage { min-width: 0; display: grid; gap: 10px; align-content: start; }
+  .players { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  figure { margin: 0; display: grid; gap: 6px; min-width: 0; }
+  figcaption { color: var(--ink-2); }
+  video { display: block; width: 100%; max-width: 100%; aspect-ratio: 9 / 16; background: var(--panel); border-radius: var(--r-md); }
+  .stage-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  .hint { color: var(--ink-3); font-size: 12.5px; }
+
+  .side { min-width: 0; display: grid; gap: 18px; align-content: start; }
+  .brief { display: grid; gap: 12px; }
+  .field-label { margin: 0 0 2px; font-size: 12px; color: var(--ink-3); }
+  .brief p { margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12.5px; padding: 1px 8px; border: 1px solid var(--line-strong); border-radius: var(--r-sm); color: var(--ink-2); }
+  .photos { display: flex; flex-wrap: wrap; gap: 8px; }
+  .photos button { padding: 0; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); cursor: zoom-in; overflow: hidden; }
+  .photos img { display: block; height: 76px; width: auto; max-width: 100%; }
+  .photos button[aria-pressed="true"] { flex-basis: 100%; cursor: zoom-out; }
+  .photos button[aria-pressed="true"] img { height: auto; width: 100%; }
+
+  .verdicts { display: grid; }
+  .verdict { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 14px; padding-block: 9px; border-top: 1px solid var(--line); }
+  .v-label { font-size: 14px; font-weight: 500; }
+  .v-q { font-size: 12.5px; line-height: 1.45; color: var(--ink-3); }
+  .verdict.overall { border-top-color: var(--line-strong); padding-top: 14px; }
+  .verdict.overall .v-label { font-size: 18px; }
+  .seg { display: inline-grid; grid-template-columns: repeat(3, auto); border: 1px solid var(--line-strong); border-radius: var(--r-md); overflow: hidden; }
+  .opt { position: relative; cursor: pointer; }
+  .opt + .opt { border-left: 1px solid var(--line-strong); }
+  .opt input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+  .opt span { display: block; padding: 6px 12px; font-size: 13px; color: var(--ink-2); white-space: nowrap; text-align: center; user-select: none; }
+  .opt:hover span { color: var(--ink); }
+  .opt input:checked + span { background: var(--signal-soft); color: var(--ink); box-shadow: inset 0 0 0 1px var(--signal); }
+  .opt input:focus-visible + span { outline: 2px solid var(--signal); outline-offset: -2px; }
+
+  .btn { font: 500 13px var(--font-body); color: var(--ink); background: var(--raised); border: 1px solid var(--line-strong); border-radius: var(--r-md); padding: 6px 12px; cursor: pointer; }
+  .btn:hover { border-color: var(--signal); }
+  .btn:focus-visible, .photos button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+
+  .export { border-top: 1px solid var(--line); padding-block: 32px 56px; display: grid; gap: 12px; max-width: 68ch; }
+  .export h3 { margin: 0; font-size: 18px; font-weight: 500; }
+  .export p { margin: 0; color: var(--ink-2); }
+  .export p.warn { color: var(--gold); }
+  .export-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+  textarea { width: 100%; min-height: 180px; background: var(--panel); color: var(--ink); border: 1px solid var(--line-strong); border-radius: var(--r-md); padding: 10px; font: 12px/1.5 var(--font-mono); }
+
+  @media (max-width: 860px) {
+    .case { grid-template-columns: minmax(0, 1fr); }
+  }
+  @media (max-width: 520px) {
+    .progress { margin-left: 0; }
+    .verdict { grid-template-columns: minmax(0, 1fr); }
+    .seg { display: grid; width: 100%; }
+  }
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <h1>视频盲评</h1>
+    <span class="run mono" id="run-key"></span>
+    <span class="progress mono" id="progress"></span>
+    <span class="status" id="status" data-state="connecting" role="status">连接中</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="intro">
+    <h2>每组两条成片，选更能直接发的那条</h2>
+    <p>每组是同一个商家需求做出的两条 15 秒视频，来自两套不同做法。左右顺序随机，看不出哪条是哪套。</p>
+    <p>每项选「左更好 / 差不多 / 右更好」，最后一项选你更愿意直接发出去的那条。选了就自动保存，可以分几次评完。建议先点「两条一起从头播」静音对比画面，再分别开声音听口播。</p>
+  </section>
+  <div id="cases"></div>
+  <section class="export" aria-labelledby="export-title">
+    <h3 id="export-title">评完了</h3>
+    <p id="export-note">评分会自动保存到这页，不用另外提交。</p>
+    <div class="export-row">
+      <button class="btn" type="button" id="copy">复制我的评分</button>
+      <span class="hint" id="copy-note" role="status"></span>
+    </div>
+    <textarea id="copy-out" aria-label="我的评分" readonly hidden></textarea>
+  </section>
+</main>
+
+<script type="application/json" id="run-data">__RUN_DATA__</script>
+<script>
+(() => {
+  const RUN = JSON.parse(document.getElementById("run-data").textContent);
+  const DIMS = [...RUN.dimensions, { id: "overall", label: "整体", question: "哪一条你更愿意直接发出去？" }];
+  const CHOICES = [["left", "左更好"], ["tie", "差不多"], ["right", "右更好"]];
+  const LOCAL_KEY = "golden-set-votes:" + RUN.runKey;
+  const $ = (id) => document.getElementById(id);
+  const el = (tag, props = {}, children = []) => {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(props)) {
+      if (key === "text") node.textContent = value;
+      else if (key === "class") node.className = value;
+      else if (key.startsWith("data-") || key.startsWith("aria-")) node.setAttribute(key, value);
+      else node[key] = value;
+    }
+    for (const child of children) node.append(child);
+    return node;
+  };
+
+  let votes = readLocal();
+  const remote = { state: "connecting", ref: null, isOwner: false, saving: false, dirty: false, timer: null };
+
+  function readLocal() {
+    try {
+      const value = JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
+      return value && typeof value === "object" ? value : {};
+    } catch {
+      return {};
+    }
+  }
+  function writeLocal() {
+    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(votes)); } catch {}
+  }
+
+  function buildCase(item, index) {
+    const head = el("div", { class: "case-head" }, [
+      el("span", { class: "case-index mono", text: String(index + 1).padStart(2, "0") + " / " + String(RUN.cases.length).padStart(2, "0") }),
+      el("h3", {}, [document.createTextNode(item.category + " "), el("span", { text: item.productName })]),
+      el("span", { class: "case-done", id: "done-" + item.id, hidden: true, text: "已评完" }),
+    ]);
+    const player = (side, label) =>
+      el("figure", {}, [
+        el("figcaption", { class: "mono", text: label }),
+        el("video", { src: item[side], controls: true, preload: "metadata", playsInline: true, "aria-label": item.category + " " + label }),
+      ]);
+    const sync = el("button", { class: "btn", type: "button", text: "两条一起从头播（静音）" });
+    sync.addEventListener("click", () => {
+      const videos = [...section.querySelectorAll("video")];
+      for (const video of videos) { video.muted = true; video.currentTime = 0; }
+      videos.forEach((video) => video.play().catch(() => {}));
+    });
+    const stage = el("div", { class: "stage" }, [
+      el("div", { class: "players" }, [player("left", "左"), player("right", "右")]),
+      el("div", { class: "stage-tools" }, [sync, el("span", { class: "hint", text: "开声音：点各自播放器上的喇叭" })]),
+    ]);
+
+    const photos = el("div", { class: "photos" }, item.photos.map((url, photoIndex) => {
+      const button = el("button", { type: "button", "aria-pressed": "false", "aria-label": "商品照 " + (photoIndex + 1) + "，点一下放大" }, [el("img", { src: url, alt: item.productName + " 商品照 " + (photoIndex + 1), loading: "lazy" })]);
+      button.addEventListener("click", () => button.setAttribute("aria-pressed", button.getAttribute("aria-pressed") === "true" ? "false" : "true"));
+      return button;
+    }));
+    const brief = el("div", { class: "brief" }, [
+      el("div", {}, [el("p", { class: "field-label", text: "商家原话" }), el("p", { text: item.story })]),
+      el("div", {}, [el("p", { class: "field-label", text: "口播稿" }), el("p", { text: item.voiceover })]),
+      el("div", {}, [el("p", { class: "field-label", text: "最容易出错的地方" }), el("div", { class: "chips" }, item.watchFor.map((text) => el("span", { class: "chip", text })))]),
+      el("div", {}, [el("p", { class: "field-label", text: "商家的商品照（对照看商品是否一致）" }), photos]),
+    ]);
+
+    const verdicts = el("div", { class: "verdicts" }, DIMS.map((dim) => {
+      const groupLabel = item.category + " · " + dim.label;
+      return el("div", { class: "verdict" + (dim.id === "overall" ? " overall" : "") }, [
+        el("div", {}, [el("div", { class: "v-label", text: dim.label }), el("div", { class: "v-q", text: dim.question })]),
+        el("div", { class: "seg", role: "radiogroup", "aria-label": groupLabel }, CHOICES.map(([value, text]) =>
+          el("label", { class: "opt" }, [
+            el("input", { type: "radio", name: item.id + "-" + dim.id, id: item.id + "-" + dim.id + "-" + value, value, "data-case": item.id, "data-dim": dim.id }),
+            el("span", { text }),
+          ]),
+        )),
+      ]);
+    }));
+
+    const section = el("section", { class: "case", id: "case-" + item.id }, [head, stage, el("div", { class: "side" }, [brief, verdicts])]);
+    return section;
+  }
+
+  function applyVotes() {
+    for (const input of document.querySelectorAll("#cases input[type=radio]")) {
+      input.checked = votes[input.dataset.case]?.[input.dataset.dim] === input.value;
+    }
+  }
+  function updateProgress() {
+    let overall = 0;
+    let items = 0;
+    for (const item of RUN.cases) {
+      const picked = votes[item.id] || {};
+      const count = DIMS.filter((dim) => picked[dim.id]).length;
+      items += count;
+      if (picked.overall) overall += 1;
+      $("done-" + item.id).hidden = count < DIMS.length;
+    }
+    $("progress").textContent = "整体 " + overall + "/" + RUN.cases.length + " · 全部 " + items + "/" + RUN.cases.length * DIMS.length;
+  }
+  function setStatus(state) {
+    const text = { connecting: "连接中", saved: "已保存", saving: "保存中", retry: "没保存上，稍后自动重试", local: "只存在这台设备上" }[state];
+    $("status").dataset.state = state;
+    $("status").textContent = text;
+  }
+  function goLocal() {
+    remote.state = "local";
+    setStatus("local");
+    const note = $("export-note");
+    note.className = "warn";
+    note.textContent = "这页没法替你保存评分（可能没登录，或只有查看权限），评分只存在这台设备上。评完点「复制我的评分」，把内容发给分享这页的人。";
+  }
+
+  const use = (name) =>
+    window.claude && typeof window.claude.use === "function" ? Promise.resolve(window.claude.use(name)).catch(() => null) : Promise.resolve(null);
+  const TERMINAL = new Set(["invalid_argument", "revoked", "not_granted", "capability_disabled", "capability_removed", "transform_error", "quota_exceeded"]);
+
+  async function connect() {
+    const [db, user] = await Promise.all([use("db"), use("user")]);
+    if (!db || !user) return goLocal();
+    const id = await user.id();
+    if (!id || (await user.can("data.write")) === false) return goLocal();
+    remote.isOwner = await user.isOwner();
+    remote.ref = db.doc("votes/" + id);
+    let stored = {};
+    try {
+      const snap = await remote.ref.get();
+      if (snap.exists) stored = snap.data().votes || {};
+    } catch (error) {
+      if (TERMINAL.has(error && error.code)) return goLocal();
+    }
+    /// 以这页存的为准，再补上这台设备上多选的
+    const merged = JSON.parse(JSON.stringify(stored));
+    let added = false;
+    for (const [caseId, picked] of Object.entries(votes)) {
+      for (const [dim, value] of Object.entries(picked || {})) {
+        if (!merged[caseId] || !merged[caseId][dim]) {
+          (merged[caseId] = merged[caseId] || {})[dim] = value;
+          added = true;
+        }
+      }
+    }
+    votes = merged;
+    writeLocal();
+    applyVotes();
+    updateProgress();
+    remote.state = "on";
+    setStatus("saved");
+    if (added) scheduleSave(0);
+  }
+
+  function scheduleSave(delay = 600) {
+    remote.dirty = true;
+    if (remote.state !== "on") return;
+    setStatus("saving");
+    clearTimeout(remote.timer);
+    remote.timer = setTimeout(flush, delay);
+  }
+  async function flush() {
+    if (remote.saving || !remote.dirty || remote.state !== "on") return;
+    remote.saving = true;
+    remote.dirty = false;
+    try {
+      await remote.ref.set({ runKey: RUN.runKey, isOwner: remote.isOwner, votes: JSON.parse(JSON.stringify(votes)), updatedAt: new Date().toISOString() });
+      if (!remote.dirty) setStatus("saved");
+    } catch (error) {
+      if (TERMINAL.has(error && error.code)) {
+        remote.saving = false;
+        return goLocal();
+      }
+      remote.dirty = true;
+      setStatus("retry");
+    }
+    remote.saving = false;
+    if (remote.dirty) {
+      clearTimeout(remote.timer);
+      remote.timer = setTimeout(flush, 2000 + Math.random() * 2000);
+    }
+  }
+
+  $("run-key").textContent = RUN.runKey;
+  $("cases").append(...RUN.cases.map(buildCase));
+  if (RUN.cases.length === 0) {
+    $("cases").append(el("p", { class: "case empty", text: "成片还在生成，出好的组会陆续出现在这里。" }));
+  }
+  applyVotes();
+  updateProgress();
+
+  $("cases").addEventListener("change", (event) => {
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement) || input.type !== "radio") return;
+    const caseId = input.dataset.case;
+    votes[caseId] = { ...(votes[caseId] || {}), [input.dataset.dim]: input.value };
+    writeLocal();
+    updateProgress();
+    scheduleSave();
+  });
+
+  /// 同时只播一组：开播时暂停别的组
+  document.addEventListener("play", (event) => {
+    const video = event.target;
+    if (!(video instanceof HTMLVideoElement)) return;
+    const group = video.closest(".case");
+    for (const other of document.querySelectorAll("video")) {
+      if (other.closest(".case") !== group && !other.paused) other.pause();
+    }
+  }, true);
+
+  $("copy").addEventListener("click", () => {
+    const text = JSON.stringify({ runKey: RUN.runKey, reviewer: remote.isOwner ? "owner" : "", votes }, null, 2);
+    const out = $("copy-out");
+    out.value = text;
+    out.hidden = false;
+    const done = (message) => { $("copy-note").textContent = message; };
+    try {
+      navigator.clipboard.writeText(text).then(
+        () => done("已复制"),
+        () => { out.focus(); out.select(); done("复制不了，已选中下面的文字，请手动复制"); },
+      );
+    } catch {
+      out.focus();
+      out.select();
+      done("复制不了，已选中下面的文字，请手动复制");
+    }
+  });
+
+  setStatus("connecting");
+  connect().catch(goLocal);
+})();
+</script>

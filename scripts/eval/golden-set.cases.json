@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "note": "视频评测集 v1（2026-10-29）：10 个品类、15 秒竖屏、无主播照。商品图是 2026-08-03 模板样片批次生成的商品照（renders/template-samples/template-samples-20260803-v1/）。口播稿固定，新旧两版用同一份；watchFor 是这条最容易翻车的地方，人评与 AI 预评都重点看。",
+  "cases": [
+    {
+      "id": "bottle",
+      "category": "保温杯",
+      "productName": "陶土橙不锈钢保温杯",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/bottle/1785771686133-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/bottle/1785771725707-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/bottle/1785771766733-0.png"
+      ],
+      "story": "我们卖陶土橙色的不锈钢保温杯，杯盖是拉丝钢。想拍：早上出门前女生把刚泡好的热茶倒进杯子，拧紧盖子塞进通勤包；中午在办公室打开，茶还冒着热气。",
+      "voiceover": "早上泡好的热茶，倒进去拧紧就走。到了中午打开，还是烫的。到店或私信下单。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["杯盖始终只有一个", "特写时杯身不变宽变圆", "从家到办公室是硬切、不是房间渐变", "结尾是中午打开冒热气，不是重新装包"]
+    },
+    {
+      "id": "earbuds",
+      "category": "耳机",
+      "productName": "鹅卵石充电盒白色无线耳机",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/earbuds/1785771806346-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/earbuds/1785771850630-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/earbuds/1785771896403-0.png"
+      ],
+      "story": "白色无线耳机，鹅卵石形状的充电盒。拍一个人在嘈杂的地铁车厢里打开充电盒、戴上耳机，周围的声音一下子安静下来，他靠着扶杆闭上眼睛。",
+      "voiceover": "地铁太吵？戴上它，世界一下就安静了。戴一整天也不累耳朵。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["耳机是戴进耳朵、不是贴在耳边", "充电盒形状与开合方向和照片一致", "两只耳机不多不少", "安静下来要有看得见的变化（表情、动作），不是只靠台词"]
+    },
+    {
+      "id": "serum",
+      "category": "护肤精华",
+      "productName": "琥珀玻璃瓶滴管精华",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/serum/1785771935289-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/serum/1785771977211-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/serum/1785772022236-0.png"
+      ],
+      "story": "琥珀色玻璃瓶精华，黑色滴管。想拍晚上卸完妆，在浴室镜子前滴两滴在手心，轻轻按在脸上，皮肤看起来水润有光泽。",
+      "voiceover": "卸完妆，两滴就够。轻轻按开，第二天起来脸是亮的。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["滴管从瓶里拿出来、液体从滴管滴下，物理正确", "瓶子颜色与滴管不变", "镜子里的倒影和人一致", "没有夸大成医美效果"]
+    },
+    {
+      "id": "tintTrio",
+      "category": "彩妆",
+      "productName": "丝绒唇釉三支装",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/tintTrio/1785772055972-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/tintTrio/1785772092163-0.png"
+      ],
+      "story": "三支装丝绒唇釉：玫瑰、珊瑚、浆果三个颜色。想拍一个女生出门前在玄关镜子前试色，最后选了珊瑚色，抿一下嘴笑着出门。",
+      "voiceover": "三个颜色，通勤、约会、周末都够用。今天选珊瑚，抿一下就出门。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["始终是三支、三个颜色不串", "涂上嘴的颜色就是珊瑚色", "唇釉管不凭空多出或消失", "抿嘴动作自然"]
+    },
+    {
+      "id": "watch",
+      "category": "手表",
+      "productName": "极简钢壳野战表",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/watch/1785772141093-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/watch/1785772186524-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/watch/1785772226703-0.png"
+      ],
+      "story": "极简钢壳野战表，黑色表盘、棕色皮表带。想拍清晨露营，男生在帐篷外拉起袖子看时间，表盘在逆光里反光，然后他背上包出发。",
+      "voiceover": "清晨五点半，看一眼就出发。钢壳加皮表带，经得起野外。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["表盘上没有乱码数字或品牌字", "表带颜色与表壳一致", "戴在手腕上、比例对", "背包出发是同一个人、同一身衣服"]
+    },
+    {
+      "id": "sneaker",
+      "category": "鞋",
+      "productName": "鼠尾草绿麂皮复古跑鞋",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/sneaker/1785772266991-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/sneaker/1785772308459-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/sneaker/1785772352251-0.png"
+      ],
+      "story": "鼠尾草绿麂皮复古跑鞋，生胶底、奶白鞋带。拍一个人在城市街头蹲下系好鞋带，然后小跑过斑马线，鞋底在地面上弹起来。",
+      "voiceover": "系紧鞋带，出门就跑。麂皮复古，生胶底踩着就是稳。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["左右脚两只鞋款一致", "系鞋带的手和鞋带不打结穿帮", "跑步时脚步与身体运动连贯", "鞋侧没有凭空出现的品牌标"]
+    },
+    {
+      "id": "backpack",
+      "category": "户外背包",
+      "productName": "橄榄色蜡帆布卷口背包",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/backpack/1785772401409-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/backpack/1785772447829-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/backpack/1785772499247-0.png"
+      ],
+      "story": "橄榄色蜡帆布卷口背包，黑色卡扣、皮质包边。拍一个人在山路上停下来，把卷口打开，从包里拿出一件叠好的外套穿上，再把卷口卷好扣上继续走。",
+      "voiceover": "山上变天也不慌，外套随手就拿得到。卷口一扣，接着走。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["卷口的打开与扣上方向合理", "拿出的外套之前确实在包里", "背包颜色与卡扣不变", "人背包的位置前后一致"]
+    },
+    {
+      "id": "pillow",
+      "category": "家居软装",
+      "productName": "奶油色圈圈绒抱枕",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/pillow/1785772584010-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/pillow/1785772627705-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/pillow/1785772671334-0.png"
+      ],
+      "story": "奶油色圈圈绒抱枕。想拍：原本空荡荡的灰色沙发，女生放上两个抱枕，然后抱着其中一个窝进沙发看书。",
+      "voiceover": "空沙发放上两个，客厅一下就暖了。摸起来软软的，抱着就不想起来。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["开头沙发上确实没有抱枕", "放上去是两个、之后数量不变", "被抱住的抱枕会受压变形（布料物理）", "沙发与客厅布局前后一致"]
+    },
+    {
+      "id": "coffee",
+      "category": "食品饮料",
+      "productName": "单一产地烘焙咖啡豆",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/coffee/1785772718006-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/coffee/1785772760730-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/coffee/1785772813409-0.png"
+      ],
+      "story": "单一产地烘焙咖啡豆，牛皮纸袋包装。拍早上在厨房，咖啡师撕开袋子闻一下，倒豆进磨豆机，冲一杯，杯面浮着一层油脂。",
+      "voiceover": "撕开袋子就是香的。现磨现冲，一口就喝得出来。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["袋子是素面牛皮纸、没有凭空出现的商标字", "豆子从袋里倒出、进磨豆机，顺序对", "冲出来的是一杯、杯面有油脂", "液体与蒸汽物理合理"]
+    },
+    {
+      "id": "petToy",
+      "category": "宠物用品",
+      "productName": "青绿色棉绳编织狗玩具",
+      "productImages": [
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/petToy/1785772857102-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/petToy/1785772904837-0.png",
+        "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/template-samples/template-samples-20260803-v1/petToy/1785772948671-0.png"
+      ],
+      "story": "青绿色棉绳编织狗玩具，带一个绳结环。拍一只金毛在客厅里叼着绳结跑过来，和主人拔河，最后趴在狗窝里继续啃。",
+      "voiceover": "耐咬的棉绳结，拔河、磨牙都靠它。玩累了还抱着睡。",
+      "durationSec": 15,
+      "aspectRatio": "9:16",
+      "watchFor": ["始终是同一只金毛", "玩具只有一个、颜色编织不变", "拔河时绳子两端分别在狗嘴和人手里", "狗的四肢与跑动自然"]
+    }
+  ]
+}

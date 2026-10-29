@@ -62,6 +62,7 @@
     "brand:sunnyshutter:end-card": "tsx --env-file=.env.local scripts/generate-sunnyshutter-end-card.ts",
     "brand:sunnyshutter:business-card": "tsx --env-file=.env.local scripts/generate-sunnyshutter-business-card-endcard.ts",
     "frame:qa": "tsx scripts/frame-qa.ts",
+    "eval:video": "tsx scripts/eval/video-golden-set.ts",
     "demo:rehearsal": "tsx scripts/demo-rehearsal-e2e.ts",
     "demo:sunny-investor": "tsx scripts/sunny-shutter-investor-demo.ts",
     "demo:sunny-investor:v21": "tsx scripts/sunny-shutter-investor-demo-v21.ts",

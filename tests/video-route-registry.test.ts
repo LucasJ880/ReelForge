@@ -39,7 +39,7 @@ test("video route registry explicitly allowlists audited routes", () => {
     id: "runway",
     enabled: true,
     providerAdapter: "runway",
-    model: "seedance2_5",
+    model: "klingO3_pro",
     processingRegion: null,
   });
 });

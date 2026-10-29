@@ -25,12 +25,13 @@ import {
 
 const REAL = { VIDEO_ENGINE_MOCK: "false", VIDEO_PROVIDER: "shuyu" };
 
-test("注册：runway 线路 = Runway 适配器 + Seedance 2.5；快照能读回、能取到对应适配器", () => {
+test("注册：runway 线路 = Runway 适配器 + Kling O3 Pro；快照能读回、能取到对应适配器；换模型前的 Seedance 快照照常可读", () => {
   assert.ok(VIDEO_ROUTE_IDS.includes("runway"));
   const snapshot = createVideoRouteSnapshot("runway");
+  /// 2026-10-28 灰度真机：Seedance 2.5 拦写实人脸参考图，故事板多半有人 → 线路换 Kling O3 Pro
   assert.deepEqual(snapshot, {
     videoRouteSnapshot: "runway",
-    videoModelSnapshot: "seedance2_5",
+    videoModelSnapshot: "klingO3_pro",
     videoProviderAdapterSnapshot: "runway",
   });
   const read = readVideoRouteSnapshot(snapshot);
@@ -38,7 +39,13 @@ test("注册：runway 线路 = Runway 适配器 + Seedance 2.5；快照能读回
   const provider = createVideoProviderByRouteSnapshot(snapshot);
   assert.ok(provider instanceof RunwayVideoProvider);
   assert.equal(provider.id, "runway");
-  assert.equal(provider.maxReferenceImages, 30);
+  /// 已落库的旧任务保留当时的模型，轮询 / 取消仍能拿到 Runway 适配器
+  const legacy = { videoRouteSnapshot: "runway", videoModelSnapshot: "seedance2_5", videoProviderAdapterSnapshot: "runway" } as const;
+  assert.equal(readVideoRouteSnapshot(legacy).videoModelSnapshot, "seedance2_5");
+  assert.ok(createVideoProviderByRouteSnapshot(legacy) instanceof RunwayVideoProvider);
+  assert.equal(createVideoProviderByRouteSnapshot(legacy).maxReferenceImages, 30);
+  /// Kling：首帧之外最多 7 张参考（故事板 4 帧 + 3 张商品图）
+  assert.equal(provider.maxReferenceImages, 7);
   assert.throws(() => createVideoProviderByRouteSnapshot({ ...snapshot, videoProviderAdapterSnapshot: "shuyu" }), /incompatible adapter/);
   assert.throws(() => createVideoProviderByRouteSnapshot({ ...snapshot, videoModelSnapshot: "gen9" }), /unknown model/);
 });

@@ -64,13 +64,15 @@ const ROUTES = {
     model: "studio-video",
     processingRegion: null,
   },
-  /// 2026-10-28 CEO 批的 Runway 开发者 API（官方计费）：Seedance 2.5，1080p、最多 30 张参考图。
+  /// 2026-10-28 CEO 批的 Runway 开发者 API（官方计费）。模型是 Kling O3 Pro：原生 1080p、首帧 + 最多 7 张参考图、$0.17/秒。
+  /// 当晚灰度真机：Seedance 2.5 把故事板里的写实人脸参考图整单拦下（INPUT_PREPROCESSING.SAFETY.THIRD_PARTY，字节的审核，已退款），
+  /// 同一组帧换 Kling O3 Pro 正常出片、logo 不变形——故事板多半有人，所以换掉。Seedance 仍留在适配器里。
   /// 注册不等于可用：没有 RUNWAYML_API_SECRET 时运行就绪检查不过；客户默认线路由 VIDEO_CUSTOMER_ROUTE 决定（默认仍是 buddy）。
   runway: {
     id: "runway",
     enabled: true,
     providerAdapter: "runway",
-    model: "seedance2_5",
+    model: "klingO3_pro",
     processingRegion: null,
   },
 } as const satisfies Record<VideoRouteId, VideoRouteContract>;

@@ -242,6 +242,133 @@ export function groundSegmentPromptInStoryboard(
   return assemble(truncateStoryText(normalizedStory, storyBudget), cardLimit);
 }
 
+/// Runway Kling O3 的提示词上限（UTF-16，含发出时拼上的负面约束），与 providers/runway.ts 的 RUNWAY_MODEL_LIMITS 同值
+///（本模块客户端也引用，不能 import 服务端 provider）。2026-10-28 用 Runway 的请求校验实测。
+export const KLING_VIDEO_PROMPT_LIMIT = 2500;
+const KLING_SHOT_CARD_MAX_CHARS = 240;
+/// 预算再紧也给商家原话留这么多（谁出镜、在哪由它决定），不够就从产品行里让——产品长相实拍图里有
+const KLING_STORY_MIN_CHARS = 200;
+const KLING_PRODUCT_MIN_CHARS = 120;
+const STORY_LINE_PREFIX = "STORY (the merchant's own description; it decides who is on screen, where, and what happens): ";
+
+/** 本段从哪一张关键帧开场（0 起）：与 grounding 的节奏切法一致——每帧占「总时长 ÷ 帧数」秒。 */
+export function storyboardOpeningFrameOrdinal(input: {
+  frameCount: number;
+  totalDurationSec: number;
+  fromSec: number;
+}): number {
+  if (input.frameCount <= 0) return 0;
+  const span = input.totalDurationSec / input.frameCount;
+  if (!(span > 0)) return 0;
+  return Math.min(input.frameCount - 1, Math.max(0, Math.floor(input.fromSec / span + 1e-9)));
+}
+
+/**
+ * 参考图列表里本段开场帧的地址：列表按 实拍 → 切片 → 主播 → 帧 排（referenceLayout 记了各组张数），
+ * 开场帧 = 帧组里本段第一张。布局缺失或越界返回 null（调用方不标首帧，Kling 会在提交前拒绝并写清原因）。
+ */
+export function storyboardOpeningFrameUrl(
+  referenceUrls: readonly string[],
+  layout: Pick<StoryboardReferenceLayout, "productPhotoCount" | "anchorCount" | "personCount" | "frameCount"> | null,
+  segment: { totalDurationSec: number; fromSec: number },
+): string | null {
+  if (!layout || layout.frameCount <= 0) return null;
+  const ordinal = storyboardOpeningFrameOrdinal({
+    frameCount: layout.frameCount,
+    totalDurationSec: segment.totalDurationSec,
+    fromSec: segment.fromSec,
+  });
+  return referenceUrls[layout.productPhotoCount + layout.anchorCount + layout.personCount + ordinal] ?? null;
+}
+
+/**
+ * Runway Kling O3 的故事板视频提示词（2026-10-28 灰度真机：Seedance 拦写实人脸参考图，故事板视频改走 Kling）。
+ *
+ * Kling 是图生视频：本段第一张关键帧单独作开场帧（video-service 标 first_frame），其余实拍 / 切片 / 主播 / 关键帧作参考，
+ * 参考图没有序号语义——这里只按内容描述，不写「image N」。上限 2500 字装不下原模板逐字保留的各条锁行，
+ * 而人物、场景、衣着、光线已经在关键帧里，所以按优先级取舍：
+ * 必留 开场 / 参考说明 / 每帧节奏 / 产品行 / 音频与口播台词 / 不渲染文字 → 商家原话（截断）→ 镜头卡 → 质感行 → 各锁行（放不下整行不加）。
+ * 口播台词一个字不动；商家原话至少留 200 字，不够时从产品行里让（产品行最少留 120 字）。
+ */
+export function groundSegmentPromptForOpeningFrame(
+  original: string,
+  input: Parameters<typeof groundSegmentPromptInStoryboard>[1] & { promptLimit?: number },
+): string {
+  if (original.includes(STORYBOARD_GROUNDING_MARKER) || input.beats.length === 0) return original;
+  const count = input.beats.length;
+  const span = input.totalDurationSec / count;
+  const segmentSec = Math.max(1, input.toSec - input.fromSec);
+  const opening = storyboardOpeningFrameOrdinal({
+    frameCount: count,
+    totalDurationSec: input.totalDurationSec,
+    fromSec: input.fromSec,
+  });
+  const shots = input.beats
+    .map((beat, index) => ({ index, from: index * span, to: (index + 1) * span, beat: beatWithoutTime(beat) }))
+    .filter((shot) => shot.to > input.fromSec && shot.from < input.toSec)
+    .map((shot) => ({
+      ...shot,
+      from: Math.max(0, Math.round(shot.from - input.fromSec)),
+      to: Math.min(segmentSec, Math.round(shot.to - input.fromSec)),
+      card: input.shotCards?.[shot.index]?.trim() || null,
+    }));
+  const photos = input.productPhotoCount;
+  const anchors = input.anchorCount ?? 0;
+  const persons = input.personCount ?? 0;
+  const roles = [
+    ...(photos > 0 ? [`${photos === 1 ? "a real photo" : `${photos} real photos`} of the product (match it exactly)`] : []),
+    ...(anchors > 0 ? [`${anchors === 1 ? "a cut-out view" : `${anchors} cut-out views`} of the same product (match it exactly)`] : []),
+    ...(persons > 0 ? [`the presenter ${persons === 1 ? "photo" : "photos"} (the on-camera person must be this exact person)`] : []),
+    `the other approved storyboard keyframes in story order (match their people, location, wardrobe and light${photos + anchors > 0 ? "" : ", and the product they show"})`,
+  ];
+  const header = `${input.aspectRatio} short video, ${segmentSec}s, one continuous photorealistic story. It opens exactly on the opening frame, which is storyboard keyframe ${opening + 1}.`;
+  const references = `REFERENCE IMAGES: ${roles.join("; ")}.`;
+  const lines = original.split("\n").map((line) => line.trim());
+  let mustKeep = lines
+    .filter((line) => /^(?:PRODUCT(?: \(|:)|Audio:|Spoken dialogue|Do not render)/u.test(line))
+    .map((line) => line.replace("subtle real room ambience", "subtle ambient sound that fits the location"));
+  const locks = lines.filter((line) =>
+    /^(?:CHARACTER IDENTITY LOCK|CHARACTER \(must match the presenter reference photo|SCENE GEOMETRY LOCK|PRODUCT SHAPE LOCK|LIP-SYNC LOCK|LIGHTING CONTINUITY LOCK)/u.test(line),
+  );
+  const negative = input.negativePrompt?.trim() ?? "";
+  const negativeTail = negative ? `${NEGATIVE_CONSTRAINTS_SEPARATOR}${negative}` : "";
+  const budget = (input.promptLimit ?? KLING_VIDEO_PROMPT_LIMIT) - VIDEO_PROMPT_SAFETY - negativeTail.length;
+  const assemble = (story: string, cardLimit: number, extras: readonly string[]) => [
+    header,
+    ...(story ? [`${STORY_LINE_PREFIX}${story}`] : []),
+    references,
+    STORYBOARD_GROUNDING_MARKER,
+    ...shots.map((shot, order) => {
+      const card = shot.card && cardLimit >= SHOT_CARD_MIN_CHARS ? ` ${clipText(shot.card, cardLimit)}` : "";
+      return `${shot.from}-${shot.to}s · shot ${order + 1}${order > 0 ? " (hard cut)" : ""}: storyboard keyframe ${shot.index + 1} — ${shot.beat}.${card}`;
+    }),
+    ...mustKeep,
+    ...extras,
+  ].join("\n");
+
+  /// 必留部分 + 故事保底放不下（产品行特别长、负面特别长）：只截产品行，口播台词一个字不动
+  const story = input.story.replace(/\s+/gu, " ").trim();
+  const storyReserve = story ? Math.min(story.length, KLING_STORY_MIN_CHARS) + STORY_LINE_PREFIX.length + 1 : 0;
+  const overflow = assemble("", 0, []).length + storyReserve - budget;
+  if (overflow > 0) {
+    mustKeep = mustKeep.map((line) =>
+      /^PRODUCT/u.test(line) ? clipText(line, Math.max(KLING_PRODUCT_MIN_CHARS, line.length - overflow)) : line,
+    );
+  }
+  const storyRoom = budget - assemble("", 0, []).length - STORY_LINE_PREFIX.length - 1;
+  const storyText = truncateStoryText(story, Math.max(0, Math.min(STORY_CHAR_BUDGET, storyRoom)));
+  const cardsInSegment = shots.filter((shot) => shot.card).length;
+  const perCard = cardsInSegment === 0
+    ? 0
+    : Math.min(KLING_SHOT_CARD_MAX_CHARS, Math.floor((budget - assemble(storyText, 0, []).length) / cardsInSegment) - 2);
+  const cardLimit = perCard >= SHOT_CARD_MIN_CHARS ? perCard : 0;
+  const extras: string[] = [];
+  for (const line of [LOOK_LINE, ...locks]) {
+    if (assemble(storyText, cardLimit, [...extras, line]).length <= budget) extras.push(line);
+  }
+  return assemble(storyText, cardLimit, extras);
+}
+
 /// 与 shot-cards.ts 的 SHOT_CARD_MAX_CHARS 同值（本模块客户端也引用，不能 import 那个服务端模块）。
 const SHOT_CARD_SEGMENT_MAX_CHARS = 640;
 /// 预算挤到这个长度以下的卡整张不写（半句镜头卡比没有更误导）。

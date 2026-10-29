@@ -267,9 +267,14 @@ export function runwayRatio(model: RunwayVideoModel, aspectRatio: string, resolu
 /// 每个模型能接受的提示词长度（SDK 注释）、参考图上限与时长范围（Runway 模型页）；promptMax null = SDK 没写上限
 export const RUNWAY_MODEL_LIMITS: Record<RunwayVideoModel, { promptMax: number | null; referencesMax: number; minDuration: number; maxDuration: number }> = {
   seedance2_5: { promptMax: 15_000, referencesMax: 30, minDuration: 2, maxDuration: 30 },
-  klingO3_pro: { promptMax: null, referencesMax: 7, minDuration: 3, maxDuration: 15 },
-  klingO3_standard: { promptMax: null, referencesMax: 7, minDuration: 3, maxDuration: 15 },
+  /// Kling 的 2500 字是 2026-10-28 用 Runway 的请求校验实测的（SDK 类型里没写）：超了整单 400
+  klingO3_pro: { promptMax: 2500, referencesMax: 7, minDuration: 3, maxDuration: 15 },
+  klingO3_standard: { promptMax: 2500, referencesMax: 7, minDuration: 3, maxDuration: 15 },
 };
+
+export function isKlingRunwayModel(value: string | null | undefined): value is "klingO3_pro" | "klingO3_standard" {
+  return value === "klingO3_pro" || value === "klingO3_standard";
+}
 
 export function runwayCreditsToUsd(credits: number): number {
   return Math.round(credits * RUNWAY_USD_PER_CREDIT * 100) / 100;

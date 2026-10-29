@@ -90,10 +90,13 @@ import {
   singleVideoReferenceImageLimitForAdapter,
 } from "@/lib/video-generation/storyboard-service";
 import {
+  groundSegmentPromptForOpeningFrame,
   groundSegmentPromptInStoryboard,
   readStoryboardReferenceLayout,
+  storyboardOpeningFrameUrl,
   type StoryboardReferenceLayout,
 } from "@/lib/video-generation/storyboard-beats";
+import { isKlingRunwayModel } from "@/lib/providers/runway";
 const I2V_MODEL_OVERRIDE = process.env.ARK_VIDEO_I2V_MODEL || undefined;
 
 /// Provider 状态查询的可注入 seam；null 时按 VideoJob.provider 路由。
@@ -509,11 +512,18 @@ export async function dispatchVideoForBrief(
     } catch {
       plan = null;
     }
+    /// Runway Kling（图生视频、提示词上限 2500 字）按开场帧版改写；其余线路照旧（2026-10-28 灰度真机）
+    const groundSegment =
+      routeRead.state === "persisted"
+      && routeRead.videoProviderAdapterSnapshot === "runway"
+      && isKlingRunwayModel(routeRead.videoModelSnapshot)
+        ? groundSegmentPromptForOpeningFrame
+        : groundSegmentPromptInStoryboard;
     const groundedPlan: DirectorPlan | null = plan && {
       ...plan,
       segmentPlan: plan.segmentPlan.map((segment) => ({
         ...segment,
-        seedancePrompt: groundSegmentPromptInStoryboard(segment.seedancePrompt, {
+        seedancePrompt: groundSegment(segment.seedancePrompt, {
           aspectRatio: storyboard.aspectRatio,
           story: storyboard.story,
           beats: storyboard.beats,
@@ -699,6 +709,7 @@ export async function dispatchMultiSegmentGeneration(
       segment,
       segmentCount: plan.segmentPlan.length,
       referenceImageUrls,
+      openingFrameUrl: segmentOpeningFrameUrl(routeSnapshot.videoModelSnapshot, brief.directorPlan, plan, segment, referenceImageUrls),
       generateAudio,
       routeSnapshot,
     });
@@ -736,6 +747,8 @@ async function submitSegmentJob(params: {
   segmentCount: number;
   /// 产品参考图（Omni-Reference 模式传给 Seedance 2.0，产品外观跨镜头一致）
   referenceImageUrls?: string[];
+  /// Runway Kling 的开场帧（本段第一张关键帧，标 first_frame）；其余模型为空
+  openingFrameUrl?: string | null;
   generateAudio?: boolean;
   routeSnapshot: VideoRouteSnapshot;
 }) {
@@ -746,6 +759,7 @@ async function submitSegmentJob(params: {
     segment,
     segmentCount,
     referenceImageUrls,
+    openingFrameUrl,
     generateAudio,
     routeSnapshot,
   } = params;
@@ -802,9 +816,9 @@ async function submitSegmentJob(params: {
         model: routeSnapshot.videoModelSnapshot,
         generateAudio: generateAudio ?? false,
         negativePrompt: segment.negativePrompt || undefined,
-        /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V
+        /// 有产品图 → Omni-Reference 模式（产品外观锚定）；无图 → 纯 T2V。Kling 的开场帧标 first_frame
         referenceImages: hasRefs
-          ? referenceImageUrls?.map((url) => ({ url, role: "content" as const }))
+          ? referenceImageUrls?.map((url) => ({ url, role: url === openingFrameUrl ? ("first_frame" as const) : ("content" as const) }))
           : undefined,
         referenceMode: hasRefs ? "reference" : undefined,
         /// 质量对齐：显式要求 1080p（Seedance 2.0 默认更低档位）
@@ -880,6 +894,24 @@ export function segmentReferenceImageLimit(directorPlan: unknown, override?: num
 }
 
 /**
+ * Runway Kling 是图生视频：本段的开场帧 = 帧组里本段第一张关键帧（参考图按 实拍 → 切片 → 主播 → 帧 排，
+ * referenceLayout 记了各组张数）。其他模型、没有故事板布局时返回 null（全部照旧作参考）。
+ */
+function segmentOpeningFrameUrl(
+  model: string | null | undefined,
+  directorPlan: unknown,
+  plan: DirectorPlan,
+  segment: SegmentPlan,
+  referenceUrls: readonly string[] | undefined,
+): string | null {
+  if (!isKlingRunwayModel(model) || !referenceUrls?.length) return null;
+  return storyboardOpeningFrameUrl(referenceUrls, readStoryboardReferenceLayout(directorPlan), {
+    totalDurationSec: Math.max(0, ...plan.segmentPlan.map((item) => item.toSec)),
+    fromSec: segment.fromSec,
+  });
+}
+
+/**
  * 分段重提的供应商参数（失败段重试、成功段重做、重做候选行重试共用一份）：
  * 段计划按 segmentIndex 从 directorPlan 取——计划是唯一来源，重提永远不在上一次的提示词上累加；
  * 与首次 dispatch 同参：参考图 Omni-Reference + 1080p + 口播开关。
@@ -940,7 +972,10 @@ export function buildSegmentSubmitInput(args: {
       generateAudio,
       negativePrompt: segment.negativePrompt || undefined,
       referenceImages: hasRefs
-        ? refs.map((url) => ({ url, role: "content" as const }))
+        ? (() => {
+            const opening = segmentOpeningFrameUrl(args.model, args.brief.directorPlan, plan, segment, refs);
+            return refs.map((url) => ({ url, role: url === opening ? ("first_frame" as const) : ("content" as const) }));
+          })()
         : undefined,
       referenceMode: hasRefs ? "reference" : undefined,
       resolution: "1080p",

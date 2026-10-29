@@ -120,8 +120,10 @@ export function buildRunwayVideoRequest(options: CreateVideoJobOptions, model: R
     };
   }
 
+  /// Kling 是图生视频，必须有开场帧（Runway 校验 promptImage 必填）。故事板派发由 video-service 把本段第一张关键帧标成
+  /// first_frame（实拍在前、帧在后，不能拿第一张参考图顶替）；没有故事板的派发不走 Kling。
   if (!first) {
-    throw preflight(`Runway ${model} 需要一张标了 first_frame 的首帧（故事板路径里取第一张关键帧）`);
+    throw preflight(`Runway ${model} 需要一张标了 first_frame 的首帧（故事板派发里是本段第一张关键帧）`);
   }
   const references = uniqueUrls(images.map((image) => image.url)).filter((url) => !frameUrls.has(url));
   if (references.length > limits.referencesMax) {

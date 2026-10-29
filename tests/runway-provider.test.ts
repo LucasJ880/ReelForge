@@ -133,6 +133,40 @@ test("Kling O3：必须标首帧，其余图进 references（≤7），首尾帧
   );
 });
 
+test("Kling O3 故事板派发：标了 first_frame 的关键帧（排在实拍之后）当开场帧，其余按原顺序作参考；提示词超 2500 字在建任务前拒绝", () => {
+  const url = (name: string) => `https://blob.example/${name}.png`;
+  /// 统一派发的顺序是 实拍 → 帧；video-service 只把本段第一张关键帧标 first_frame
+  const referenceImages = ["p1", "p2", "f1", "f2", "f3", "f4"].map((name) => ({
+    url: url(name),
+    role: name === "f1" ? ("first_frame" as const) : ("content" as const),
+  }));
+  const request = buildRunwayVideoRequest(
+    { prompt: "storyboard video", referenceImages, referenceMode: "reference", durationSec: 15, aspectRatio: "9:16", generateAudio: true },
+    "klingO3_pro",
+  );
+  assert.equal(request.endpoint, "/v1/image_to_video");
+  assert.deepEqual("promptImage" in request.body ? request.body.promptImage : null, [{ uri: url("f1"), position: "first" }]);
+  assert.deepEqual(
+    "references" in request.body ? request.body.references?.map((ref) => ref.uri) : null,
+    ["p1", "p2", "f2", "f3", "f4"].map(url),
+  );
+  assert.equal("ratio" in request.body ? request.body.ratio : null, "1080:1920");
+  assert.equal("audio" in request.body ? request.body.audio : null, true);
+  /// 没标开场帧：参考模式也不拿第一张（是实拍）顶替
+  assert.throws(
+    () => buildRunwayVideoRequest(
+      { prompt: "x", referenceImages: referenceImages.map((image) => ({ ...image, role: "content" as const })), referenceMode: "reference", durationSec: 15, aspectRatio: "9:16" },
+      "klingO3_pro",
+    ),
+    /first_frame/,
+  );
+  /// Runway 实测：Kling 提示词上限 2500（含负面约束）
+  assert.throws(
+    () => buildRunwayVideoRequest({ prompt: "x".repeat(2400), negativePrompt: "n".repeat(200), referenceImages, durationSec: 15, aspectRatio: "9:16" }, "klingO3_pro"),
+    /最多 2500 字/,
+  );
+});
+
 test("提交前校验：时长、画幅、空提示词、参考音视频都在建任务之前拒绝", () => {
   const base = { prompt: "x", durationSec: 5, aspectRatio: "9:16" };
   for (const options of [

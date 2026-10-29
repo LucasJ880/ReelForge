@@ -135,7 +135,7 @@ test("不是状态的标签（样例 / 草案 / 攒样本 / 样片待补）用�
     assert.match(source, pattern, file);
     assert.doesNotMatch(source, /StatusTick/, `${file} 不该再用状态记号`);
   }
-  /// C1：登录门上墙的是 AI 生成的上门服务场景，标 AI 合规标签（不是模板样片，也不借状态记号）
+  /// C1：登录门上墙的是 AI 生成的商品广告镜头（2026-10-28 前是上门服务场景），标 AI 合规标签（不是模板样片，也不借状态记号）
   const gate = readFileSync("src/app/(auth)/layout.tsx", "utf8");
   assert.match(gate, /<AiGeneratedLabel compact \/>/);
   assert.doesNotMatch(gate, /StatusTick/);

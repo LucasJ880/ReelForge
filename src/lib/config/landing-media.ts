@@ -1,22 +1,26 @@
 /**
- * 公开首页的媒体（1025 整合轮 C1）。都在生产 Blob（renders/marketing/landing-1025/），不走 /brand/* 静态路径。
+ * 公开首页的媒体（1025 整合轮 C1）。都在生产 Blob（renders/marketing/…），不走 /brand/* 静态路径。
  *
- *  - hero：Shuyu 生成的上门服务场景（2K 静帧 → 1080P image2video 5 秒），转码成 720P 无缝循环。
- *    是 AI 画面，页面上必须标「AI 生成」，不冒充客户实拍。
+ *  - hero（首页第一幕 + 登录页左半屏）：2026-10-28 晚换成 Runway 上 Veo 3.1 生成的电影感商品广告镜头
+ *    （1920×1080、8 秒、无声；末 1 秒叠化回开头做成 7 秒无缝循环，与 HeroReel 的 7 秒换镜对齐），放 landing-1028/。
+ *    换掉的是 1025 的上门服务场景（窗饰 / 橱柜 / 园艺，720P）——平台卖的是商品短视频，背景就放商品镜头。
+ *    是 AI 画面，页面上必须标「AI 生成」，不冒充客户实拍；不出现任何品牌、文字和人（球鞋那条因侧面三道杠像商标而弃用）。
  *  - proof：SunnyShutter（关联方）用 Aivora 做的三条竖版窗饰广告，540×960 静音版。
  *  - storyboard：proof 第二条的四帧，给「一周会发生什么」的出片样例。
  *
  * 纯数据、无服务端依赖：客户端组件也能引用。
  */
 const BASE = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/marketing/landing-1025";
+const HERO_BASE = "https://jke9jtodu89xlpcy.public.blob.vercel-storage.com/renders/marketing/landing-1028";
 
-export type LandingHeroScene = "blinds" | "kitchen" | "garden" | "inquiry";
+export type LandingHeroScene = "serum" | "coffee" | "candle" | "splash";
 
+/// 冷暖交替：精华（冷，靛蓝光环与站点主色同调）→ 咖啡（暖）→ 香薰（暖）→ 面霜水花（冷）
 export const LANDING_HERO_SCENES: ReadonlyArray<{ scene: LandingHeroScene; video: string; poster: string }> = [
-  { scene: "blinds", video: `${BASE}/hero-blinds.mp4`, poster: `${BASE}/hero-blinds.jpg` },
-  { scene: "kitchen", video: `${BASE}/hero-kitchen.mp4`, poster: `${BASE}/hero-kitchen.jpg` },
-  { scene: "garden", video: `${BASE}/hero-garden.mp4`, poster: `${BASE}/hero-garden.jpg` },
-  { scene: "inquiry", video: `${BASE}/hero-inquiry.mp4`, poster: `${BASE}/hero-inquiry.jpg` },
+  { scene: "serum", video: `${HERO_BASE}/hero-serum.mp4`, poster: `${HERO_BASE}/hero-serum.jpg` },
+  { scene: "coffee", video: `${HERO_BASE}/hero-coffee.mp4`, poster: `${HERO_BASE}/hero-coffee.jpg` },
+  { scene: "candle", video: `${HERO_BASE}/hero-candle.mp4`, poster: `${HERO_BASE}/hero-candle.jpg` },
+  { scene: "splash", video: `${HERO_BASE}/hero-splash.mp4`, poster: `${HERO_BASE}/hero-splash.jpg` },
 ];
 
 export const LANDING_PROOF_VIDEOS: ReadonlyArray<{ video: string; poster: string }> = [

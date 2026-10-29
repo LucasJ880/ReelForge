@@ -125,8 +125,19 @@ test("首页媒体：都在生产 Blob（不走 /brand/*），英雄墙标 AI �
     ...LANDING_STORYBOARD_FRAMES,
   ];
   for (const url of all) {
-    assert.match(url, /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/renders\/marketing\/landing-1025\//, url);
+    /// 1025 的证明片与分镜 + 2026-10-28 晚换上的英雄墙（landing-1028，Veo 3.1 商品广告镜头）
+    assert.match(url, /^https:\/\/[a-z0-9]+\.public\.blob\.vercel-storage\.com\/renders\/marketing\/landing-10(?:25|28)\//, url);
     assert.doesNotMatch(url, /\/brand\//, url);
+  }
+  for (const item of LANDING_HERO_SCENES) {
+    assert.match(item.video, /\/landing-1028\/hero-[a-z]+\.mp4$/, item.video);
+    assert.match(item.poster, /\/landing-1028\/hero-[a-z]+\.jpg$/, item.poster);
+  }
+  /// 英雄墙的场景名中英两套都齐，且不再写上门服务
+  for (const locale of ["zh-CN", "en-US"] as const) {
+    const copy = getGrowthCopy(locale).landing;
+    for (const item of LANDING_HERO_SCENES) assert.ok(copy.heroScenes[item.scene]?.trim(), `${locale} ${item.scene}`);
+    assert.doesNotMatch(copy.heroWallLabel, /上门服务|local service/i);
   }
   /// 2026-10-28 展厅：首屏视频与每张成片卡都标 AI 生成；关联方交付写明关系
   const landing = read("src/components/landing/showroom-landing.tsx");

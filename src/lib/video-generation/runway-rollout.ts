@@ -1,12 +1,16 @@
 /**
- * Runway 灰度（2026-10-28 晚，docs/roadmap/2026-10-28-launch-review.md §6）。
+ * Runway 线路的三种用法（2026-10-29 Evan：Shuyu 作所有客户的默认线路，便宜；Runway 作更高质量的备选；
+ * Shuyu 生成失败再换 Runway）。三种都要配了 `RUNWAYML_API_SECRET` 才生效。
  *
+ * 1. 全员切换 `VIDEO_CUSTOMER_ROUTE=runway`：运维急用开关，所有客户的默认线路改成 Runway（故事板出图同切）。
+ * 2. 高质量选项：客户在创作台主动选「高质量」时这一条走 Runway。`RUNWAY_PREMIUM=off` 全关，
+ *    `=pilot` 只给灰度名单 `RUNWAY_PILOT_ACCOUNTS`（邮箱或 user id，逗号分隔），缺省对所有客户开放。
+ * 3. 失败改交：Shuyu 明确失败（当场拒单 / 退回积分）且整条视频没有能用的段时改交 Runway 重拍
+ *    （判据见 runway-fallback.ts）。`SHUYU_FALLBACK_TO_RUNWAY=off` 关，缺省开。
+ *
+ * 10-28 的灰度名单原本让名单里的账号默认走 Runway；10-29 起默认一律 Shuyu，名单只管 `RUNWAY_PREMIUM=pilot`
+ * 时谁能选高质量，以及名单账号的故事板出图走不走 Runway（与 10-28 一致）。
  * 本地与线上共用生产库，故事板出帧与视频轮询都由线上 cron 推进：Runway 链路只能部署后在生产上验。
- * 灰度名单里的账号先走 Runway（视频线路 + 故事板出图），其余客户照旧 Shuyu；
- * `VIDEO_CUSTOMER_ROUTE=runway` 时全员切换，名单失效。
- *
- * 名单 `RUNWAY_PILOT_ACCOUNTS`：邮箱或 user id，逗号分隔（同 GLOBAL_BRAND_PACKAGE_USERS 的写法）。
- * 没配 `RUNWAYML_API_SECRET` 时名单内账号的视频线路会按运行就绪检查降级回 Shuyu，故事板出图也留在 Shuyu。
  */
 import { runwayApiKey } from "@/lib/providers/runway";
 
@@ -38,12 +42,31 @@ export function isRunwayPilotAccount(account: RolloutAccount | null | undefined,
   return Boolean(email && pilots.includes(email));
 }
 
-/** 这个账号的客户视频线路该不该是 Runway（线路可用性另由运行就绪检查与降级决定）。 */
-export function usesRunwayVideo(account: RolloutAccount | null | undefined, env: Env = process.env): boolean {
-  return isRunwayGlobalRollout(env) || isRunwayPilotAccount(account, env);
+/** 客户默认视频线路是不是 Runway：只看全员开关（10-29 起 Shuyu 是所有人的默认线路，灰度名单不再改默认）。 */
+export function usesRunwayVideo(env: Env = process.env): boolean {
+  return isRunwayGlobalRollout(env);
 }
 
-/** 这个账号的故事板出图该不该走 Runway：与视频同一套灰度，且必须配了 key（没 key 就留在 Shuyu）。 */
+export type RunwayPremiumMode = "off" | "pilot" | "on";
+
+export function runwayPremiumMode(env: Env = process.env): RunwayPremiumMode {
+  const raw = env.RUNWAY_PREMIUM?.trim().toLowerCase();
+  return raw === "off" || raw === "pilot" ? raw : "on";
+}
+
+/** 这个账号能不能选「高质量（Runway）」：配了 key，且开关对它开放。 */
+export function canChooseRunwayPremium(account: RolloutAccount | null | undefined, env: Env = process.env): boolean {
+  if (!runwayApiKey(env)) return false;
+  const mode = runwayPremiumMode(env);
+  return mode === "on" || (mode === "pilot" && isRunwayPilotAccount(account, env));
+}
+
+/** Shuyu 明确失败后改交 Runway 的开关：缺省开，配了 key 才算数。 */
+export function shuyuFallbackToRunwayEnabled(env: Env = process.env): boolean {
+  return env.SHUYU_FALLBACK_TO_RUNWAY?.trim().toLowerCase() !== "off" && Boolean(runwayApiKey(env));
+}
+
+/** 这个账号的故事板出图该不该走 Runway：全员开关或灰度名单（与 10-28 一致），且必须配了 key（没 key 就留在 Shuyu）。 */
 export function usesRunwayStoryboardImages(account: RolloutAccount | null | undefined, env: Env = process.env): boolean {
-  return usesRunwayVideo(account, env) && Boolean(runwayApiKey(env));
+  return (isRunwayGlobalRollout(env) || isRunwayPilotAccount(account, env)) && Boolean(runwayApiKey(env));
 }

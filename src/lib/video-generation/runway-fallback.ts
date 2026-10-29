@@ -3,15 +3,18 @@ import type { VideoGenerationPlan } from "@/types/video-generation";
 import { mapPlanToDirectorPlan } from "./plan-to-director";
 
 /**
- * Runway 拒单自动改交 Shuyu 的纯规则（2026-10-28 晚 Evan「做回退」）。
+ * Runway ⇄ Shuyu 互为备用的纯规则（2026-10-28 晚 Runway 拒单改交 Shuyu；10-29 Evan：Shuyu 是默认线路，
+ * Shuyu 生成失败再换 Runway）。
  *
  * 灰度真机里 Kling 的提交被 400 拒（提示词超 2500 字），派发直接报 PROVIDER_ERROR，商家只看到「请联系支持」；
- * 更早 Seedance 2.5 在任务里把含人脸的参考图整单拦下。Runway 拒了，这条视频就改交 Shuyu 拍，商家照常等成片。
+ * 更早 Seedance 2.5 在任务里把含人脸的参考图整单拦下。一家拒了，这条视频就改交另一家拍，商家照常等成片。
  *
- * 只在「Runway 没收这单的钱、这条视频也没有任何一段还用得上」时换线路：
- *  - 提交被拒：REJECTED + definitely_not_created（4xx / 本地预检），Runway 侧根本没建任务；
- *  - 任务失败：Runway 受理后自己回报 FAILED（审核拦截、内部错误……），失败的任务不计费。
- * 拿不准的一律不换：ACK_UNKNOWN / 提交中 / 超时判死 / 僵死判死（Runway 可能还在跑，换了两家都收钱）；
+ * 只在「主线路没收这单的钱、这条视频也没有任何一段还用得上」时换线路：
+ *  - 提交被拒：REJECTED + definitely_not_created，供应商侧根本没建任务。Runway 连本地预检也算（超 2500 字，
+ *    Shuyu 收得下）；Shuyu 的本地预检不算——那里跑的是我们自己的内容审核，Runway 适配器不审，换线路等于绕过审核；
+ *  - 任务失败：受理后供应商自己回报失败、且这一单不计费：Runway 回 FAILED；Shuyu 回 refunded（积分已退回。
+ *    failed / refund_pending / refund_error 在适配器里仍算处理中，不会走到这里）。
+ * 拿不准的一律不换：ACK_UNKNOWN / 提交中 / 超时判死 / 僵死判死（主线路可能还在跑，换了两家都收钱）；
  * 有段已经成功或还在跑（同一条成片的前后段会出自两家）；客户取消过（CANCELLED 不是 FAILED）。
  */
 
@@ -32,39 +35,55 @@ export type RunwayFallbackTrigger = "submit_rejected" | "provider_failed";
 
 export type RunwayFallbackDecision =
   | { fallback: true; trigger: RunwayFallbackTrigger }
-  | { fallback: false; reason: "no_jobs" | "not_runway" | "still_usable" | "uncertain" };
+  | { fallback: false; reason: "no_jobs" | "not_runway" | "not_shuyu" | "still_usable" | "uncertain" };
 
-function rejectedBeforeCreation(job: RunwayFallbackJob): boolean {
+/** 主线路的适配器：runway（备用 Shuyu）或 shuyu（备用 Runway） */
+export type RouteFallbackPrimary = "runway" | "shuyu";
+
+/// 供应商「自己说失败、且不计费」的终态（大写比较）
+const PROVIDER_FAILED_STATUS: Record<RouteFallbackPrimary, string> = { runway: "FAILED", shuyu: "REFUNDED" };
+
+function rejectedBeforeCreation(job: RunwayFallbackJob, primary: RouteFallbackPrimary): boolean {
+  const errorClass = job.submissionErrorClass ?? "";
   return (
     job.status === "FAILED" &&
     job.submissionState === "REJECTED" &&
     job.externalJobId == null &&
-    (job.submissionErrorClass ?? "").startsWith("definitely_not_created:")
+    errorClass.startsWith("definitely_not_created:") &&
+    !(primary === "shuyu" && errorClass === "definitely_not_created:preflight")
   );
 }
 
-function failedByProvider(job: RunwayFallbackJob): boolean {
+function failedByProvider(job: RunwayFallbackJob, primary: RouteFallbackPrimary): boolean {
   return (
     job.status === "FAILED" &&
     job.submissionState === "ACCEPTED" &&
     job.externalJobId != null &&
     (job.errorMessage ?? "").startsWith(PROVIDER_FAILED_ERROR_PREFIX) &&
-    job.lastProviderStatus?.trim().toUpperCase() === "FAILED"
+    job.lastProviderStatus?.trim().toUpperCase() === PROVIDER_FAILED_STATUS[primary]
   );
 }
 
-/** 这条视频的当前段（isCurrentSegmentJob）够不够格整条改交 Shuyu */
-export function runwayFallbackDecision(currentJobs: readonly RunwayFallbackJob[]): RunwayFallbackDecision {
+/** 这条视频的当前段（isCurrentSegmentJob）够不够格整条改交备用线路 */
+export function routeFallbackDecision(
+  currentJobs: readonly RunwayFallbackJob[],
+  primary: RouteFallbackPrimary,
+): RunwayFallbackDecision {
   if (currentJobs.length === 0) return { fallback: false, reason: "no_jobs" };
-  if (currentJobs.some((job) => job.videoProviderAdapterSnapshot !== "runway")) {
-    return { fallback: false, reason: "not_runway" };
+  if (currentJobs.some((job) => job.videoProviderAdapterSnapshot !== primary)) {
+    return { fallback: false, reason: primary === "runway" ? "not_runway" : "not_shuyu" };
   }
   if (currentJobs.some((job) => job.status !== "FAILED")) return { fallback: false, reason: "still_usable" };
-  if (currentJobs.every(rejectedBeforeCreation)) return { fallback: true, trigger: "submit_rejected" };
-  if (currentJobs.every((job) => rejectedBeforeCreation(job) || failedByProvider(job))) {
+  if (currentJobs.every((job) => rejectedBeforeCreation(job, primary))) return { fallback: true, trigger: "submit_rejected" };
+  if (currentJobs.every((job) => rejectedBeforeCreation(job, primary) || failedByProvider(job, primary))) {
     return { fallback: true, trigger: "provider_failed" };
   }
   return { fallback: false, reason: "uncertain" };
+}
+
+/** Runway 主线路的判据（10-28 原版） */
+export function runwayFallbackDecision(currentJobs: readonly RunwayFallbackJob[]): RunwayFallbackDecision {
+  return routeFallbackDecision(currentJobs, "runway");
 }
 
 /**

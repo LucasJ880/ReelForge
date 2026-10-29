@@ -70,7 +70,7 @@ Phase 3 replacement evidence (2026-07-14): all 33 routes were rescanned against 
 | Unknown page | App not-found UI | `src/app/not-found.tsx` | STATIC VERIFIED |
 | Root/runtime error | App error boundary plus route-owned recovery surfaces | `src/app/error.tsx`, route-group and customer `error.tsx` files | DYNAMIC VERIFIED; RF-012 |
 
-## API endpoint inventory (86/86 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个)
+## API endpoint inventory (87/87 route files; 2026-10-28 删除旧中台 / 数字人 / persona 等 32 个；10-29 加线路目录)
 
 Middleware provides public/session boundaries. Phase 0 statically reviewed the endpoint guard calls, ownership lookup patterns, validators, and machine authentication. Full request/response schema snapshots and hostile-input execution belong to Phase 2.
 
@@ -120,6 +120,7 @@ Contract evidence has two deliberate depths: **strict** first-tier runtime schem
 | POST | `/api/video-generation/plan` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | POST | `/api/video-generation/classify-asset` | Session | VERIFIED H1 light: success wiring + dynamic shared 401 |
 | GET | `/api/video-generation/routes` | Session; read-only | VERIFIED strict: returns only sanitized direct/Shuyu availability; raw supplier balance and credentials are excluded |
+| GET | `/api/video-generation/routes/catalog` | Session; read-only | Customer route card (2026-10-29): standard (Shuyu) / high-quality (Runway) availability + every Shuyu video family with integrated flag; no supplier prices, balance or credentials |
 | POST | `/api/video-generation/dispatch` | Session; idempotency required | VERIFIED H1 strict: complete success DTO, closed error schema, replay/CAS and ambiguous-billing fail-closed tests |
 | POST | `/api/video-generation/storyboards` | Session; idempotency required | VERIFIED: owner-scoped durable Shuyu Image 2 storyboard creation |
 | POST | `/api/video-generation/voiceover-draft` | Session (generation persona) | 2026-10-28: AI voice-over draft from the merchant description; returns null → client keeps the template draft; no quota, no generation |

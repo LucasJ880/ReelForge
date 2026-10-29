@@ -8,7 +8,12 @@ import {
   seedanceApiKey,
 } from "@/lib/config/seedance-runtime";
 import { runwayApiKey } from "@/lib/providers/runway";
-import { usesRunwayVideo, type RolloutAccount } from "./runway-rollout";
+import {
+  canChooseRunwayPremium,
+  shuyuFallbackToRunwayEnabled,
+  usesRunwayVideo,
+  type RolloutAccount,
+} from "./runway-rollout";
 import { shuyuApiKey } from "@/lib/providers/shuyu";
 import { getShuyuRouteRuntimeAvailability } from "./shuyu-runtime";
 import {
@@ -24,17 +29,16 @@ export const STAFF_SELECTABLE_VIDEO_ROUTE_IDS = [
 ] as const;
 
 /**
- * 客户的视频线路（2026-10-28）：平台开关，不是客户的选项。
- * VIDEO_CUSTOMER_ROUTE=runway 全员切到 Runway；灰度名单 RUNWAY_PILOT_ACCOUNTS 里的账号先切（runway-rollout.ts）；
- * 其余都是 buddy（Shuyu）。buddy 始终是审计过的客户线路：切到 Runway 之后，显式点名 buddy 的旧调用方照样放行。
+ * 客户的视频线路（2026-10-29 起）：默认一律 buddy（Shuyu）；VIDEO_CUSTOMER_ROUTE=runway 是全员切到 Runway 的运维开关。
+ * 客户可以主动选「高质量」= runway（开关与名单见 runway-rollout.ts 的 canChooseRunwayPremium）；
+ * 任何时候都能显式点名 buddy，任何时候都不能点名直连线路。
  */
 export type CustomerVideoRouteId = "buddy" | "runway";
 
 export function customerVideoRouteId(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
-  account?: RolloutAccount | null,
 ): CustomerVideoRouteId {
-  return usesRunwayVideo(account, env) ? "runway" : "buddy";
+  return usesRunwayVideo(env) ? "runway" : "buddy";
 }
 
 export type StaffSelectableVideoRouteId =
@@ -59,7 +63,7 @@ function isStaffSelectableRouteId(
 export function selectCustomerVideoRouteSnapshot(args: {
   requestedRouteId?: unknown;
   env?: NodeJS.ProcessEnv | Record<string, string | undefined>;
-  /// 发起人：灰度名单按它判（邮箱或 user id）
+  /// 发起人：「高质量（Runway）」在 RUNWAY_PREMIUM=pilot 时按灰度名单判（邮箱或 user id）
   account?: RolloutAccount | null;
 }): VideoRouteSnapshot {
   const env = args.env ?? process.env;
@@ -72,19 +76,18 @@ export function selectCustomerVideoRouteSnapshot(args: {
     }
     return createVideoRouteSnapshot("mock");
   }
-  const customerRoute = customerVideoRouteId(env, args.account);
+  const customerRoute = customerVideoRouteId(env);
+  if (args.requestedRouteId === undefined) return createVideoRouteSnapshot(customerRoute);
+  if (args.requestedRouteId === "buddy") return createVideoRouteSnapshot("buddy");
   if (
-    args.requestedRouteId !== undefined &&
-    args.requestedRouteId !== "buddy" &&
-    args.requestedRouteId !== customerRoute
+    args.requestedRouteId === "runway" &&
+    (customerRoute === "runway" || canChooseRunwayPremium(args.account, env))
   ) {
-    throw new VideoRouteSelectionError(
-      "FORBIDDEN",
-      "Customers may only use the platform's customer video route",
-    );
+    return createVideoRouteSnapshot("runway");
   }
-  return createVideoRouteSnapshot(
-    args.requestedRouteId === "buddy" ? "buddy" : customerRoute,
+  throw new VideoRouteSelectionError(
+    "FORBIDDEN",
+    "Customers may only use the platform's customer video route",
   );
 }
 
@@ -109,15 +112,19 @@ export const CUSTOMER_FAILOVER_ROUTE_ID = "volcengine_cn_legacy" as const;
  */
 export function customerFailoverRouteSnapshot(
   env: NodeJS.ProcessEnv | Record<string, string | undefined> = process.env,
-  /// 主线路：Runway 的备用是 Shuyu（2026-10-28 晚：两家互为备用的第一步，火山直连欠费不再兜 Runway）；
-  /// 其余主线路照旧降到 CUSTOMER_FAILOVER_ROUTE_ID。
+  /// 主线路：Runway 的备用是 Shuyu（10-28 晚）；Shuyu 的备用是 Runway（10-29 Evan：Shuyu 失败再换 Runway，
+  /// SHUYU_FALLBACK_TO_RUNWAY=off 关）；其余主线路、以及 Runway 没开时照旧降到 CUSTOMER_FAILOVER_ROUTE_ID。
   primaryRouteId?: string,
 ): VideoRouteSnapshot | null {
   /// mock 演练不参与降级：演练线路必须保持确定性
   if (isMockVideoRuntime(env)) return null;
-  const snapshot = createVideoRouteSnapshot(
-    primaryRouteId === "runway" ? "buddy" : CUSTOMER_FAILOVER_ROUTE_ID,
-  );
+  const backupRouteId =
+    primaryRouteId === "runway"
+      ? "buddy"
+      : primaryRouteId === "buddy" && shuyuFallbackToRunwayEnabled(env)
+        ? "runway"
+        : CUSTOMER_FAILOVER_ROUTE_ID;
+  const snapshot = createVideoRouteSnapshot(backupRouteId);
   return isVideoRouteSnapshotRuntimeReady(snapshot, env) ? snapshot : null;
 }
 
@@ -286,7 +293,7 @@ export interface RouteFailoverDeps {
     snapshot: VideoRouteSnapshot;
     shuyuRequiredPoints?: number;
   }) => Promise<VideoRouteRuntimeAvailability>;
-  /// 按主线路给备用（Runway 降到 Shuyu；其余降到 CUSTOMER_FAILOVER_ROUTE_ID）
+  /// 按主线路给备用（Runway ⇄ Shuyu 互为备用；其余降到 CUSTOMER_FAILOVER_ROUTE_ID）
   failoverSnapshot: (primary: VideoRouteSnapshot) => VideoRouteSnapshot | null;
 }
 

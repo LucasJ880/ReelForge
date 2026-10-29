@@ -53,6 +53,10 @@ import {
   VideoRouteSelector,
   type VideoRouteOverride,
 } from "@/components/video-generation/video-route-selector";
+import {
+  CustomerRoutePicker,
+  type CustomerRouteChoice,
+} from "@/components/video-generation/customer-route-picker";
 import { useTranslation } from "@/i18n/useTranslation";
 import { featureGate, type PublicCapabilities } from "@/lib/capabilities/registry";
 import type { CustomerVideoDispatchResponse } from "@/lib/api/customer-video-dispatch";
@@ -167,8 +171,6 @@ const ZH_COPY = {
   quickHintTemplateShots: "镜头先按模板规划，系统照常做质量检查",
   quickHintTemplateShotsNoQa: "镜头先按模板规划；画面质检暂停，成片照常生成",
   route: "生成线路",
-  autoRoute: "Aivora 视频通道",
-  routeHint: "故事板与视频统一走 Aivora 引擎",
   referenceMode: "参考方式",
   referenceAll: "全能参考",
   referenceProduct: "仅产品图",
@@ -287,8 +289,6 @@ const EN_COPY: StudioCopy = {
   quickHintTemplateShots: "Shots are planned from templates for now; quality checks still run",
   quickHintTemplateShotsNoQa: "Shots are planned from templates and frame checks are paused; videos still render",
   route: "Generation route",
-  autoRoute: "Aivora video route",
-  routeHint: "Storyboard and video stay on the Aivora engine",
   referenceMode: "Reference mode",
   referenceAll: "Use all references",
   referenceProduct: "Product only",
@@ -459,6 +459,8 @@ export function StreamlinedVideoStudio({
   /// 尾卡入口也已 A 级下线（BRAND_END_CARD_ENTRY_ENABLED），入口关着时这里恒为 null。
   const [selectedBrandPackageId, setSelectedBrandPackageId] = useState<string | null>(null);
   const [selectedVideoRouteId, setSelectedVideoRouteId] = useState<VideoRouteOverride>("");
+  /// 客户的线路卡：标准（Shuyu，默认）/ 高质量（Runway）。只影响派发，不影响方案与故事板。
+  const [customerRoute, setCustomerRoute] = useState<CustomerRouteChoice>("buddy");
   const [selectedRouteAvailable, setSelectedRouteAvailable] = useState<
     boolean | null
   >(true);
@@ -1391,7 +1393,9 @@ export function StreamlinedVideoStudio({
         storyboardRunId: storyboard.id,
         ...(canSelectVideoRoute && selectedVideoRouteId
           ? { videoRouteId: selectedVideoRouteId }
-          : {}),
+          : !canSelectVideoRoute && customerRoute === "runway"
+            ? { videoRouteId: "runway" }
+            : {}),
       };
       const dispatchFingerprint = JSON.stringify(dispatchBody);
       if (dispatchAttemptRef.current?.fingerprint !== dispatchFingerprint) {
@@ -2023,10 +2027,13 @@ export function StreamlinedVideoStudio({
                 onSelectedAvailabilityChange={handleSelectedRouteAvailabilityChange}
               />
             ) : (
-              <p className="text-body">
-                <span className="font-medium text-foreground">{copy.autoRoute}</span>
-                <span className="text-meta text-muted-foreground"> · {copy.routeHint}</span>
-              </p>
+              <CustomerRoutePicker
+                value={customerRoute}
+                onChange={setCustomerRoute}
+                disabled={locked}
+                active={moreOpen}
+                english={english}
+              />
             )}
           </TicketRow>
           <TicketRow label={copy.referenceMode}>

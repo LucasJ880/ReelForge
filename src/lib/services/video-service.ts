@@ -101,7 +101,7 @@ import { resolveShuyuVideoPlan, shuyuVideoPlanPointsForDuration } from "@/lib/pr
 import {
   directorPlanBeforeGrounding,
   PROVIDER_FAILED_ERROR_PREFIX,
-  runwayFallbackDecision,
+  routeFallbackDecision,
 } from "@/lib/video-generation/runway-fallback";
 import {
   customerFailoverRouteSnapshot,
@@ -478,8 +478,9 @@ const POLL_ERROR_THRESHOLD = Number(
  * 调用方应优先用 dispatchVideoForBrief，让 video-service 自己决定路径，
  * 避免在路由里重复判断逻辑。
  *
- * Runway 当场拒单（4xx / 本地预检，一定没建任务）时这条视频改交 Shuyu 重新派发（fallBackRunwayBriefToShuyu），
- * 返回 Shuyu 的段任务；Shuyu 接不了就原样返回被拒的任务，调用方照旧按「明确未创建」返还额度并报错。
+ * 主线路当场拒单（一定没建任务）时这条视频改交备用线路重新派发（fallBackBriefToBackupRoute：
+ * Runway → Shuyu、Shuyu → Runway），返回备用线路的段任务；备用接不了就原样返回被拒的任务，
+ * 调用方照旧按「明确未创建」返还额度并报错。
  */
 export async function dispatchVideoForBrief(
   briefId: string,
@@ -487,10 +488,14 @@ export async function dispatchVideoForBrief(
 ) {
   const jobs = await dispatchBriefOnPersistedRoute(briefId, options);
   const rows: ReadonlyArray<{ status: VideoJobStatus; videoProviderAdapterSnapshot: string | null }> = jobs;
-  const allRejectedByRunway =
+  const allRejected =
     rows.length > 0 &&
-    rows.every((job) => job.videoProviderAdapterSnapshot === "runway" && job.status === VideoJobStatus.FAILED);
-  return allRejectedByRunway ? ((await fallBackRunwayBriefToShuyu(briefId)) ?? jobs) : jobs;
+    rows.every(
+      (job) =>
+        (job.videoProviderAdapterSnapshot === "runway" || job.videoProviderAdapterSnapshot === "shuyu") &&
+        job.status === VideoJobStatus.FAILED,
+    );
+  return allRejected ? ((await fallBackBriefToBackupRoute(briefId)) ?? jobs) : jobs;
 }
 
 /** 按 brief 上持久化的线路派发：单段 / 多段自动选，故事板改写与参考图上限都按这条线路来 */
@@ -589,11 +594,11 @@ async function dispatchBriefOnPersistedRoute(
   return dispatchVideoGeneration(briefId);
 }
 
-/// Runway 拒单改交 Shuyu 之前要问外面的几件事（测试经 __setRunwayFallbackDepsForTests 注入；缺省走真实配置与供应商）
+/// 主线路失败改交备用线路之前要问外面的几件事（测试经 __setRunwayFallbackDepsForTests 注入；缺省走真实配置与供应商）
 export interface RunwayFallbackDeps {
-  /// Shuyu 线路快照；没配好或在 mock 演练里返回 null
-  backupSnapshot: () => VideoRouteSnapshot | null;
-  /// Shuyu 此刻接不接得了这一条：配置、鉴权、积分够不够这条的时长
+  /// 主线路的备用线路快照（Runway → Shuyu，Shuyu → Runway）；没配好、开关关着或在 mock 演练里返回 null
+  backupSnapshot: (primaryRouteId: string) => VideoRouteSnapshot | null;
+  /// 备用线路此刻接不接得了这一条：配置、鉴权（Shuyu 还看积分够不够这条的时长）
   backupAvailability: (snapshot: VideoRouteSnapshot, durationSec: number) => Promise<VideoRouteRuntimeAvailability>;
   voiceoverDrive: typeof evaluateVoiceoverDrive;
   /// 重新派发要重读已确认的故事板：换线路之前先确认它还在、还完整
@@ -601,7 +606,7 @@ export interface RunwayFallbackDeps {
 }
 
 const DEFAULT_RUNWAY_FALLBACK_DEPS: RunwayFallbackDeps = {
-  backupSnapshot: () => customerFailoverRouteSnapshot(process.env, "runway"),
+  backupSnapshot: (primaryRouteId) => customerFailoverRouteSnapshot(process.env, primaryRouteId),
   backupAvailability: async (snapshot, durationSec) => {
     /// 与派发入口同一口径：套餐解析不出来就不按积分挡，交给提交时的真实结果
     let shuyuRequiredPoints: number | undefined;
@@ -623,22 +628,28 @@ let runwayFallbackDepsOverride: Partial<RunwayFallbackDeps> | null = null;
 
 class RunwayFallbackJobsChangedError extends Error {}
 
-const RUNWAY_FALLBACK_DISPATCH_FAILED_MESSAGE =
+const ROUTE_FALLBACK_DISPATCH_FAILED_MESSAGE =
   "视频任务未能开始生成，请重新生成故事板后再提交；若持续发生，请联系支持。";
 
+/// 线路快照 → 段任务上记的适配器名（判据与「换过一次」都按它比）
+const FALLBACK_ROUTE_ADAPTER: Record<"runway" | "buddy", "runway" | "shuyu"> = { runway: "runway", buddy: "shuyu" };
+const FALLBACK_ROUTE_NAME: Record<"runway" | "shuyu", string> = { runway: "Runway", shuyu: "Shuyu" };
+
 /**
- * Runway 拒单 → 这条视频改交 Shuyu（判据见 runway-fallback.ts；2026-10-28 晚 Evan「做回退」）。
- * 两个入口：派发当场被拒（dispatchVideoForBrief）、任务受理后被 Runway 判失败（reconcileVideoJob）。
+ * 主线路失败 → 这条视频改交备用线路（判据见 runway-fallback.ts）：10-28 晚 Runway 拒单改交 Shuyu；
+ * 10-29 Evan：Shuyu 是默认线路，Shuyu 失败再换 Runway（SHUYU_FALLBACK_TO_RUNWAY=off 关）。
+ * 两个入口：派发当场被拒（dispatchVideoForBrief）、任务受理后被供应商判失败（reconcileVideoJob）。
  *
- * 换之前先确认换得了：Shuyu 配好且积分够这一条、口播方式 Shuyu 做得到、改写前的计划还原得出来、故事板仍已确认且完整。
- * 一个事务里换：brief 的线路快照改成 Shuyu、段计划还原成改写前的原版；Runway 的旧行写 supersededAt、摘下成片、
- * 清掉 logicalJobKey（段任务幂等键，Shuyu 的新行要用）——行与报错都留档，不删。然后按 Shuyu 重新派发：
- * 参考图上限与故事板改写都按 Shuyu 来；额度不动（还是这一条）。
+ * 换之前先确认换得了：备用线路配好且接得了这一条、口播方式备用线路做得到、改写前的计划还原得出来、故事板仍已确认且完整。
+ * 一条视频只换一次：已经从备用线路换过来的（有备用线路的旧行被摘下）不再换回去，免得两家来回扣费。
+ * 一个事务里换：brief 的线路快照改成备用线路、段计划还原成改写前的原版；主线路的旧行写 supersededAt、摘下成片、
+ * 清掉 logicalJobKey（段任务幂等键，新行要用）——行与报错都留档，不删。然后按备用线路重新派发：
+ * 参考图上限与故事板改写都按备用线路来（Runway 是 Kling 开场帧版）；额度不动（还是这一条）。
  *
- * 返回 Shuyu 的段任务；不换（不够格 / Shuyu 接不了 / 另一路已经换过）返回 null，一切照旧。
+ * 返回备用线路的段任务；不换（不够格 / 备用接不了 / 另一路已经换过）返回 null，一切照旧。
  * 换完后派发若抛错（数据库故障等），brief 置 RENDER_FAILED，不留没有任务的「生成中」，再把错误抛给调用方。
  */
-async function fallBackRunwayBriefToShuyu(
+async function fallBackBriefToBackupRoute(
   briefId: string,
 ): Promise<Awaited<ReturnType<typeof dispatchBriefOnPersistedRoute>> | null> {
   const brief = await db.videoBrief.findUnique({
@@ -650,21 +661,31 @@ async function fallBackRunwayBriefToShuyu(
       videoRouteSnapshot: true,
     },
   });
-  if (brief?.videoRouteSnapshot !== "runway") return null;
-  const current = (await db.videoJob.findMany({ where: { videoBriefId: briefId } })).filter(isCurrentSegmentJob);
-  const decision = runwayFallbackDecision(current);
+  const primaryRouteId = brief?.videoRouteSnapshot;
+  if (!brief || (primaryRouteId !== "runway" && primaryRouteId !== "buddy")) return null;
+  const primary = FALLBACK_ROUTE_ADAPTER[primaryRouteId];
+  const backupAdapter = primary === "runway" ? "shuyu" : "runway";
+  const allJobs = await db.videoJob.findMany({ where: { videoBriefId: briefId } });
+  const current = allJobs.filter(isCurrentSegmentJob);
+  const decision = routeFallbackDecision(current, primary);
   const skip = (reason: string) => {
-    console.warn("[video-route-fallback] Runway 拒单，未改交 Shuyu", { briefId, reason });
+    console.warn(`[video-route-fallback] ${FALLBACK_ROUTE_NAME[primary]} 失败，未改交 ${FALLBACK_ROUTE_NAME[backupAdapter]}`, {
+      briefId,
+      reason,
+    });
     return null;
   };
   if (!decision.fallback) return skip(decision.reason);
+  if (allJobs.some((job) => job.supersededAt != null && job.videoProviderAdapterSnapshot === backupAdapter)) {
+    return skip("already_switched_once");
+  }
 
   const { backupSnapshot, backupAvailability, voiceoverDrive, storyboardReady } = {
     ...DEFAULT_RUNWAY_FALLBACK_DEPS,
     ...runwayFallbackDepsOverride,
   };
-  const backup = backupSnapshot();
-  if (!backup) return skip("backup_not_configured");
+  const backup = backupSnapshot(primaryRouteId);
+  if (!backup || backup.videoProviderAdapterSnapshot !== backupAdapter) return skip("backup_not_configured");
   const directorPlan = directorPlanBeforeGrounding(brief);
   if (!directorPlan) return skip("plan_not_restorable");
   const postProduction = postProductionPlanSchema.safeParse(
@@ -685,7 +706,7 @@ async function fallBackRunwayBriefToShuyu(
   try {
     switched = await db.$transaction(async (tx) => {
       const moved = await tx.videoBrief.updateMany({
-        where: { id: briefId, videoRouteSnapshot: "runway" },
+        where: { id: briefId, videoRouteSnapshot: primaryRouteId },
         data: { ...backup, directorPlan: directorPlan as unknown as Prisma.InputJsonValue },
       });
       if (moved.count !== 1) return false;
@@ -701,11 +722,11 @@ async function fallBackRunwayBriefToShuyu(
     throw error;
   }
   if (!switched) return null;
-  console.warn("[video-route-fallback] Runway 拒单，这条视频改交 Shuyu", {
+  console.warn(`[video-route-fallback] ${FALLBACK_ROUTE_NAME[primary]} 失败，这条视频改交 ${FALLBACK_ROUTE_NAME[backupAdapter]}`, {
     briefId,
     trigger: decision.trigger,
-    runwayJobIds: jobIds,
-    runwayErrors: current.map((job) => (job.errorMessage ?? "").slice(0, 300)),
+    primaryJobIds: jobIds,
+    primaryErrors: current.map((job) => (job.errorMessage ?? "").slice(0, 300)),
   });
   try {
     return await dispatchBriefOnPersistedRoute(briefId);
@@ -713,7 +734,7 @@ async function fallBackRunwayBriefToShuyu(
     await db.videoBrief
       .update({
         where: { id: briefId },
-        data: { status: VideoBriefStatus.RENDER_FAILED, errorMessage: RUNWAY_FALLBACK_DISPATCH_FAILED_MESSAGE },
+        data: { status: VideoBriefStatus.RENDER_FAILED, errorMessage: ROUTE_FALLBACK_DISPATCH_FAILED_MESSAGE },
       })
       .catch(() => undefined);
     throw error;
@@ -1576,17 +1597,17 @@ export async function reconcileVideoJob(jobId: string) {
         pollErrors: 0,
       },
     });
-    /// Runway 受理后自己判失败（审核拦截、内部错误……）且整条视频已没有能用的段：改交 Shuyu 重拍，
-    /// 商家看到的仍是「生成中」。换不了（还有段能用、Shuyu 接不了）就照旧失败，等商家重试。
+    /// 供应商受理后自己判失败（Runway FAILED、Shuyu 退回积分）且整条视频已没有能用的段：改交备用线路重拍，
+    /// 商家看到的仍是「生成中」。换不了（还有段能用、备用接不了、已经换过一次）就照旧失败，等商家重试。
     /// 成片后重做某一段的候选行不在此列：成片还在，换线路会让同一条成片出自两家。
     if (
       marked.count === 1 &&
       job.videoBriefId &&
-      job.videoProviderAdapterSnapshot === "runway" &&
+      (job.videoProviderAdapterSnapshot === "runway" || job.videoProviderAdapterSnapshot === "shuyu") &&
       !isSegmentRedoCandidate(job)
     ) {
-      await fallBackRunwayBriefToShuyu(job.videoBriefId).catch((error: unknown) => {
-        console.error("[video-route-fallback] 任务失败后改交 Shuyu 出错", {
+      await fallBackBriefToBackupRoute(job.videoBriefId).catch((error: unknown) => {
+        console.error("[video-route-fallback] 任务失败后改交备用线路出错", {
           briefId: job.videoBriefId,
           error: error instanceof Error ? error.message : String(error),
         });
@@ -2937,7 +2958,7 @@ export const __test__ = {
   persistAcceptedSubmission,
   claimFailedJobForRetry,
   submitSegmentJob,
-  fallBackRunwayBriefToShuyu,
+  fallBackBriefToBackupRoute,
   __setRunwayFallbackDepsForTests(deps: Partial<RunwayFallbackDeps> | null): void {
     runwayFallbackDepsOverride = deps;
   },

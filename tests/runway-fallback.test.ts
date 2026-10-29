@@ -17,6 +17,7 @@ import type { CreateVideoJobOptions } from "../src/lib/video-generation/provider
 import {
   directorPlanBeforeGrounding,
   PROVIDER_FAILED_ERROR_PREFIX,
+  routeFallbackDecision,
   runwayFallbackDecision,
   type RunwayFallbackJob,
 } from "../src/lib/video-generation/runway-fallback";
@@ -198,7 +199,7 @@ function apply(row: Row, data: Row) {
   }
 }
 
-async function fakeVideoStore(t: TestContext) {
+async function fakeVideoStore(t: TestContext, options: { route?: "runway" | "buddy" } = {}) {
   const plan = await nordaPlan();
   const brief: Row = {
     id: "brief-rw",
@@ -211,7 +212,7 @@ async function fakeVideoStore(t: TestContext) {
     /// 派发入口落库的样子：未改写的段计划 + 服务端计划 + Runway 线路快照
     directorPlan: roundTrip(mapPlanToDirectorPlan({ plan: plan as unknown as VideoGenerationPlan, language: "zh-CN" })),
     videoGenerationPlan: plan,
-    ...createVideoRouteSnapshot("runway"),
+    ...createVideoRouteSnapshot(options.route ?? "runway"),
   };
   const jobs: Row[] = [];
   const finalVideos: Row[] = [];
@@ -317,6 +318,7 @@ async function fakeVideoStore(t: TestContext) {
 
   const submitted: CreateVideoJobOptions[] = [];
   const runway = { reject: true };
+  const shuyuSubmit = { reject: false };
   videoService.__setSubmitterForTests(async (options) => {
     submitted.push(options);
     if (options.model === "klingO3_pro") {
@@ -330,11 +332,19 @@ async function fakeVideoStore(t: TestContext) {
       }
       return { jobId: "rw-task-1" };
     }
+    if (shuyuSubmit.reject) {
+      throw new ProviderSubmissionError("Shuyu 422: The requested video option is unavailable", {
+        providerId: "shuyu",
+        stage: "provider_response",
+        httpStatus: 422,
+        providerConfirmedNoJob: true,
+      });
+    }
     return { jobId: `shuyu-task-${submitted.length}` };
   });
   const shuyu = { available: true };
   videoService.__setRunwayFallbackDepsForTests({
-    backupSnapshot: () => createVideoRouteSnapshot("buddy"),
+    backupSnapshot: (primaryRouteId) => createVideoRouteSnapshot(primaryRouteId === "buddy" ? "runway" : "buddy"),
     backupAvailability: async () =>
       shuyu.available
         ? { available: true, funded: true, reason: null }
@@ -347,7 +357,7 @@ async function fakeVideoStore(t: TestContext) {
     videoService.__setStatusFetcherForTests(null);
     videoService.__setRunwayFallbackDepsForTests(null);
   });
-  return { brief, jobs, submitted, runway, shuyu, createFailure };
+  return { brief, jobs, submitted, runway, shuyu, shuyuSubmit, createFailure };
 }
 
 function assertShuyuTookOver(store: Awaited<ReturnType<typeof fakeVideoStore>>, shuyuOptions: CreateVideoJobOptions) {
@@ -446,4 +456,112 @@ test("换完后重新派发抛错：brief 置失败，不留没有任务的「�
   assert.equal(store.brief.videoRouteSnapshot, "buddy");
   assert.equal(store.brief.status, "RENDER_FAILED");
   assert.match(String(store.brief.errorMessage), /请重新生成故事板/);
+});
+
+// ---------------------------------------------------------------------------
+// 10-29 反方向：Shuyu 是默认线路，Shuyu 生成失败再换 Runway（SHUYU_FALLBACK_TO_RUNWAY=off 关）
+// ---------------------------------------------------------------------------
+
+const rejectedByShuyu = (overrides: Partial<RunwayFallbackJob> = {}): RunwayFallbackJob =>
+  rejectedAtSubmit({
+    submissionErrorClass: "definitely_not_created:provider_response",
+    errorMessage: "[provider:rejected] Shuyu 422: The requested video option is unavailable",
+    videoProviderAdapterSnapshot: "shuyu",
+    ...overrides,
+  });
+
+const refundedByShuyu = (overrides: Partial<RunwayFallbackJob> = {}): RunwayFallbackJob =>
+  rejectedByShuyu({
+    submissionState: "ACCEPTED",
+    submissionErrorClass: null,
+    externalJobId: "shuyu-task-1",
+    errorMessage: `${PROVIDER_FAILED_ERROR_PREFIX} Shuyu generation failed and provider points were refunded`,
+    lastProviderStatus: "refunded",
+    ...overrides,
+  });
+
+test("反方向判据：Shuyu 当场拒单、退回积分才换；我们自己的预检（内容审核）拦下的不换，免得绕过审核", () => {
+  assert.deepEqual(routeFallbackDecision([rejectedByShuyu()], "shuyu"), { fallback: true, trigger: "submit_rejected" });
+  assert.deepEqual(routeFallbackDecision([refundedByShuyu()], "shuyu"), { fallback: true, trigger: "provider_failed" });
+  assert.deepEqual(
+    routeFallbackDecision([rejectedByShuyu({ submissionErrorClass: "definitely_not_created:preflight" })], "shuyu"),
+    { fallback: false, reason: "uncertain" },
+  );
+  assert.deepEqual(routeFallbackDecision([refundedByShuyu({ lastProviderStatus: "refund_error" })], "shuyu"), {
+    fallback: false,
+    reason: "uncertain",
+  });
+  assert.deepEqual(routeFallbackDecision([refundedByShuyu(), refundedByShuyu({ status: "RUNNING" })], "shuyu"), {
+    fallback: false,
+    reason: "still_usable",
+  });
+  assert.deepEqual(routeFallbackDecision([rejectedAtSubmit()], "shuyu"), { fallback: false, reason: "not_shuyu" });
+  /// Runway 方向照旧：它的本地预检（超 2500 字，Shuyu 收得下）照样换
+  assert.deepEqual(
+    runwayFallbackDecision([rejectedAtSubmit({ submissionErrorClass: "definitely_not_created:preflight" })]),
+    { fallback: true, trigger: "submit_rejected" },
+  );
+});
+
+test("派发当场被 Shuyu 拒：这条视频改交 Runway，按 Kling 开场帧版改写、第一张关键帧标 first_frame", async (t) => {
+  const store = await fakeVideoStore(t, { route: "buddy" });
+  store.shuyuSubmit.reject = true;
+  store.runway.reject = false;
+  const jobs = await dispatchVideoForBrief("brief-rw");
+
+  assert.equal(store.submitted.length, 2);
+  const [shuyuOptions, kling] = store.submitted;
+  assert.equal(shuyuOptions.model, "studio-video");
+  assert.equal(kling.model, "klingO3_pro");
+  assert.match(kling.prompt, /It opens exactly on the opening frame/);
+  assert.ok(kling.referenceImages?.some((image) => image.role === "first_frame"));
+  assert.equal(store.brief.videoRouteSnapshot, "runway");
+  assert.equal(store.brief.videoProviderAdapterSnapshot, "runway");
+  assert.equal(store.brief.status, "RENDERING", "商家看到的仍是生成中");
+
+  const [shuyuRow, runwayRow] = store.jobs;
+  assert.equal(store.jobs.length, 2);
+  assert.equal(shuyuRow.videoProviderAdapterSnapshot, "shuyu");
+  assert.equal(shuyuRow.status, "FAILED", "旧行留档");
+  assert.ok(shuyuRow.supersededAt instanceof Date);
+  assert.equal(shuyuRow.logicalJobKey, null);
+  assert.equal(runwayRow.videoProviderAdapterSnapshot, "runway");
+  assert.equal(runwayRow.externalJobId, "rw-task-1");
+  assert.equal(runwayRow.logicalJobKey, "brief-rw:segment:0");
+  assert.deepEqual(
+    jobs.map((job) => job.id),
+    [runwayRow.id],
+  );
+});
+
+test("Shuyu 受理后退回积分（refunded）：轮询里改交 Runway", async (t) => {
+  const store = await fakeVideoStore(t, { route: "buddy" });
+  store.runway.reject = false;
+  const [accepted] = await dispatchVideoForBrief("brief-rw");
+  assert.match(String(accepted.externalJobId), /^shuyu-task-/);
+
+  videoService.__setStatusFetcherForTests(async (providerJobId) => ({
+    jobId: providerJobId,
+    status: "failed",
+    rawProviderStatus: "refunded",
+    errorMessage: "Shuyu generation failed and provider points were refunded",
+  }));
+  await reconcileVideoJob(String(accepted.id));
+
+  assert.equal(store.brief.videoRouteSnapshot, "runway");
+  assert.equal(store.submitted.at(-1)?.model, "klingO3_pro");
+  assert.equal(store.jobs.length, 2);
+  assert.ok(store.jobs[0].supersededAt instanceof Date);
+});
+
+test("一条视频只换一次：Runway 拒单换到 Shuyu、Shuyu 也拒，就不再换回 Runway（两家不来回扣费）", async (t) => {
+  const store = await fakeVideoStore(t);
+  store.shuyuSubmit.reject = true;
+  await dispatchVideoForBrief("brief-rw");
+  assert.equal(store.brief.videoRouteSnapshot, "buddy");
+  assert.equal(store.submitted.length, 2);
+
+  assert.equal(await videoService.fallBackBriefToBackupRoute("brief-rw"), null);
+  assert.equal(store.brief.videoRouteSnapshot, "buddy");
+  assert.equal(store.submitted.length, 2, "没有第三次提交");
 });

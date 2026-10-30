@@ -89,6 +89,12 @@ export const runtimeTracingExcludes: Record<string, string[]> = {
  * 这些路径都是页面 GET，影响等价。
  */
 const nextConfig: NextConfig = {
+  /// 会话「发布即失效」的版本号（src/lib/session-policy.ts）：构建时内联，middleware（edge）
+  /// 与 NextAuth（node）拿到同一个值。Vercel 构建时注入 VERCEL_GIT_COMMIT_SHA；
+  /// 本地构建没有 → 空串 → 不按发布失效（闲置超时与绝对上限照常生效）。
+  env: {
+    AIVORA_SESSION_RELEASE: process.env.VERCEL_GIT_COMMIT_SHA ?? "",
+  },
   /// 运行时 require 的包不进打包产物（ffmpeg-static 的入口按 __dirname 定位二进制）
   serverExternalPackages: ["ffmpeg-static"],
   outputFileTracingIncludes: mediaRuntimeTracingIncludes,

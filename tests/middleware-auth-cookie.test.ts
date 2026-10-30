@@ -13,6 +13,8 @@ async function signedSessionToken() {
     token: {
       sub: "middleware-cookie-user",
       email: "middleware-cookie@example.test",
+      /// 会话安全闸（session-policy）：没有登录时刻的 token 视为旧版本签发，会被作废
+      loginAt: Math.floor(Date.now() / 1000),
     },
   });
 }

@@ -2,6 +2,27 @@ import { getToken } from "next-auth/jwt";
 import { NextRequest, NextResponse } from "next/server";
 import { customerApiError } from "@/lib/contracts/customer-api";
 import { decideDemoAccess, demoBlockedBody } from "@/lib/demo-account";
+import { evaluateSessionClaims } from "@/lib/session-policy";
+
+const SESSION_COOKIE = /^(__Secure-)?next-auth\.session-token(\.\d+)?$/;
+
+/// 作废的会话顺手把 cookie 清掉（含分片），浏览器不再拿着死 token 来回撞。
+/// `__Secure-` 前缀的 cookie 必须带 Secure 才清得掉。
+function clearSessionCookies(req: NextRequest, res: NextResponse): NextResponse {
+  for (const { name } of req.cookies.getAll()) {
+    if (!SESSION_COOKIE.test(name)) continue;
+    res.cookies.set({
+      name,
+      value: "",
+      expires: new Date(0),
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: name.startsWith("__Secure-"),
+    });
+  }
+  return res;
+}
 
 /**
  * Phase 5 — middleware whitelist:
@@ -98,21 +119,28 @@ export async function middleware(req: NextRequest) {
       })
     : "allow";
 
-  if (!token || demoAccess === "unauthenticated") {
+  /// 会话安全闸（session-policy）：登录满 7 天、或不是本次发布签发的登录一律作废。
+  /// 闲置超时由 token 自己的 exp 管，getToken 已经判过。
+  const sessionExpired = token !== null && evaluateSessionClaims(token) !== "ok";
+
+  if (!token || sessionExpired || demoAccess === "unauthenticated") {
     if (pathname.startsWith("/api/")) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         customerApiError({
           code: "AUTH_REQUIRED",
-          message: "未登录",
+          message: sessionExpired ? "登录已失效，请重新登录" : "未登录",
           retryable: false,
           action: "sign_in",
         }),
         { status: 401 },
       );
+      return token ? clearSessionCookies(req, response) : response;
     }
     const loginUrl = new URL("/login", req.url);
     loginUrl.searchParams.set("from", pathname);
-    return NextResponse.redirect(loginUrl);
+    if (sessionExpired) loginUrl.searchParams.set("reason", "expired");
+    const response = NextResponse.redirect(loginUrl);
+    return token ? clearSessionCookies(req, response) : response;
   }
 
   if (demoAccess === "blocked") {

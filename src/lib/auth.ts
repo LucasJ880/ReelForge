@@ -14,11 +14,25 @@ import {
   isTestAccountLoginAllowed,
 } from "@/lib/demo-account";
 
+import {
+  SESSION_IDLE_MAX_AGE_SECONDS,
+  evaluateSessionClaims,
+  newSessionClaims,
+} from "@/lib/session-policy";
+
 /**
- * 免登录时长（秒）。登录页 `sessionHint` 文案按这个值表述，两者必须一致。
- * 7 天滚动：每次活动续期，连续 7 天不来才需要重新登录。
+ * 闲置超时（秒）：12 小时没有活动就要重新登录；另有 7 天绝对上限与「发布即失效」，
+ * 见 src/lib/session-policy.ts。登录页 `sessionHint` 文案按这些值表述，两者必须一致。
  */
-export const SESSION_IDLE_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+export { SESSION_IDLE_MAX_AGE_SECONDS };
+
+/** 超过绝对上限、或不是本次发布签发的登录（session-policy）：NextAuth 据此作废会话。 */
+export class SessionInvalidatedError extends Error {
+  constructor(message = "登录已失效") {
+    super(message);
+    this.name = "SessionInvalidatedError";
+  }
+}
 
 /**
  * 停用与角色复核（A4 5.1，取代「删除用户」）。
@@ -139,9 +153,10 @@ export const authOptions: NextAuthOptions = {
   /**
    * 滚动会话：连续 SESSION_IDLE_MAX_AGE_SECONDS 没有活动才失效，活跃用户不会在
    * 干活到一半被踢出去。updateAge 决定「多久续一次签」——设为 1 小时，既不会每次
-   * 请求都重签 JWT，又能保证登录页承诺的免登录时长是真的。
+   * 请求都重签 JWT，又能保证登录页承诺的免登录时长是真的。绝对上限与发布即失效
+   * 在 jwt 回调与 middleware 里另判（session-policy）。
    *
-   * 注意：改小这里等于缩短所有人的免登录时长，登录页 sessionHint 的文案必须同步，
+   * 注意：改这里等于改所有人的免登录时长，登录页 sessionHint 的文案必须同步，
    * tests/session-lifetime.test.ts 会守住两者一致。
    */
   session: {
@@ -162,11 +177,16 @@ export const authOptions: NextAuthOptions = {
         token.userType =
           (user as { userType?: "BUSINESS" | "PERSONAL" | "OPERATOR" | "SUPER_ADMIN" | null })
             .userType ?? null;
+        Object.assign(token, newSessionClaims());
       }
 
       /// 刚登录（authorize 已查过停用）不用再查；之后每次取会话按 TTL 复核。
       /// 前端主动 update() 时不吃缓存，立刻按库里的角色刷新。
       if (!user && token.id) {
+        /// 登录满 7 天、或不是本次发布签发的登录 → 作废（getServerSession 返回 null、清 cookie）
+        if (evaluateSessionClaims(token) !== "ok") {
+          throw new SessionInvalidatedError();
+        }
         let status: AccountStatus | null;
         try {
           status = await loadAccountStatus(

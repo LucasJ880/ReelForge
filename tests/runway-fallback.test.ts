@@ -12,6 +12,7 @@ import {
 import { WATCHDOG_TIMEOUT_PREFIX } from "../src/lib/services/video-watchdog";
 import { buildPlan } from "../src/lib/video-generation/generation-supervisor";
 import { mapPlanToDirectorPlan } from "../src/lib/video-generation/plan-to-director";
+import { ShuyuVideoProvider } from "../src/lib/video-generation/providers/shuyu-video-provider";
 import { ProviderSubmissionError } from "../src/lib/video-generation/providers/submission-error";
 import type { CreateVideoJobOptions } from "../src/lib/video-generation/providers/types";
 import {
@@ -529,6 +530,103 @@ test("派发当场被 Shuyu 拒：这条视频改交 Runway，按 Kling 开场�
   assert.equal(runwayRow.videoProviderAdapterSnapshot, "runway");
   assert.equal(runwayRow.externalJobId, "rw-task-1");
   assert.equal(runwayRow.logicalJobKey, "brief-rw:segment:0");
+  assert.deepEqual(
+    jobs.map((job) => job.id),
+    [runwayRow.id],
+  );
+});
+
+/// 真实适配器只认审计过的套餐：一档 Seedance 2.0 · 720P（按条 900 点，最长 15s）
+const SHUYU_PRICES = {
+  object: "list",
+  data: [
+    {
+      plan_id: "video-plan-02",
+      kind: "video",
+      model: "studio-video",
+      unit: "generation",
+      resolution: "720P",
+      sale_points: 900,
+      display_name: "Seedance 2.0 · 720P",
+      capabilities: {
+        aspect_ratios: ["9:16", "16:9", "1:1"],
+        input_images_max: 9,
+        modes: ["frames2video", "image2video", "text2video"],
+        durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        quality: "720P",
+      },
+      status: "available",
+    },
+  ],
+};
+
+test("Shuyu 当场拒单「参考图校验暂不可用、没扣点」（10-29）：同一个键重投两次仍被拒，这条视频改交 Runway", async (t) => {
+  const store = await fakeVideoStore(t, { route: "buddy" });
+  store.runway.reject = false;
+  /// Shuyu 走真实适配器（分类 + 同键重投），网络换成桩：提交一律 503 reference_validation_unavailable
+  const shuyuKeys: Array<string | null> = [];
+  const sleeps: number[] = [];
+  const shuyu = new ShuyuVideoProvider(
+    "studio-video",
+    {
+      env: { SHUYU_API_KEY: "configured" },
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        if (url.endsWith("/prices")) return new Response(JSON.stringify(SHUYU_PRICES), { status: 200 });
+        if (url.endsWith("/account/balance")) {
+          return new Response(JSON.stringify({ object: "balance", available_points: 10_000, unit: "points" }), {
+            status: 200,
+          });
+        }
+        assert.ok(url.endsWith("/videos/generations"), url);
+        shuyuKeys.push(new Headers(init?.headers).get("idempotency-key"));
+        return new Response(
+          JSON.stringify({
+            error: {
+              type: "reference_validation_unavailable",
+              message:
+                "Reference-image validation is temporarily unavailable. Retry with the same Idempotency-Key; no generation points were charged.",
+            },
+          }),
+          { status: 503 },
+        );
+      },
+    },
+    {
+      now: () => 0,
+      sleep: async (ms) => {
+        sleeps.push(ms);
+      },
+    },
+  );
+  videoService.__setSubmitterForTests(async (options) => {
+    store.submitted.push(options);
+    if (options.model === "klingO3_pro") return { jobId: "rw-task-1" };
+    return shuyu.createVideoJob(options);
+  });
+  const warn = console.warn;
+  console.warn = () => undefined;
+  t.after(() => {
+    console.warn = warn;
+  });
+
+  const jobs = await dispatchVideoForBrief("brief-rw");
+
+  assert.equal(store.jobs.length, 2);
+  const [shuyuRow, runwayRow] = store.jobs;
+  assert.deepEqual(shuyuKeys, Array(3).fill(shuyuRow.providerRequestKey), "Shuyu 要求的：同一个 Idempotency-Key 重投");
+  assert.deepEqual(sleeps, [2_000, 5_000]);
+  assert.equal(shuyuRow.status, "FAILED");
+  assert.equal(shuyuRow.submissionState, "REJECTED", "供应商明说没建任务，不是「确认未知」");
+  assert.equal(shuyuRow.submissionErrorClass, "definitely_not_created:provider_response");
+  assert.equal(shuyuRow.externalJobId, null);
+  assert.ok(shuyuRow.supersededAt instanceof Date, "旧行留档");
+
+  assert.equal(store.brief.videoRouteSnapshot, "runway");
+  assert.equal(store.brief.status, "RENDERING", "商家看到的仍是生成中");
+  assert.equal(store.submitted.at(-1)?.model, "klingO3_pro");
+  assert.equal(runwayRow.externalJobId, "rw-task-1");
+  assert.equal(runwayRow.status, "RUNNING");
   assert.deepEqual(
     jobs.map((job) => job.id),
     [runwayRow.id],

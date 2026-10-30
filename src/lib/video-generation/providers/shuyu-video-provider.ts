@@ -3,6 +3,7 @@ import {
   SHUYU_VIDEO_MODEL,
   shuyuApiKey,
   createShuyuVideoTask,
+  isShuyuSameKeyRetryable,
   isShuyuVideoPlanCoolingDown,
   markShuyuVideoPlanRejected,
   resolveShuyuVideoPlans,
@@ -47,6 +48,27 @@ function requestedShuyuVideoPlanTier(
   return options.qualityTier;
 }
 
+/**
+ * 同键重投（Shuyu 明说没建任务、没扣点、要求用同一个 Idempotency-Key 重试的拒单，见
+ * isShuyuSameKeyRetryable）：退避 2s、5s，最多重投两次，且必须在首次提交后 15s 内开始——
+ * 批量任务的提交租约只有 60s（单次提交的确认上限 45s），单条派发是客户在等的同步请求。
+ * 用完仍被拒就原样抛出（确认未建任务、可重试）：单条视频由派发入口改交 Runway，
+ * 批量由队列按自己的上限换新键退避。
+ */
+const SAME_KEY_RETRY_DELAYS_MS: readonly number[] = [2_000, 5_000];
+const SAME_KEY_RETRY_WINDOW_MS = 15_000;
+
+/** 同键重投的计时与等待（测试注入；缺省真实计时器） */
+export interface ShuyuSubmitRetryClock {
+  now: () => number;
+  sleep: (ms: number) => Promise<void>;
+}
+
+const SYSTEM_CLOCK: ShuyuSubmitRetryClock = {
+  now: () => Date.now(),
+  sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+};
+
 export class ShuyuVideoProvider implements VideoProvider {
   readonly id = "shuyu" as const;
   readonly displayName = "Shuyu API (Seedance partner route)";
@@ -58,6 +80,7 @@ export class ShuyuVideoProvider implements VideoProvider {
   constructor(
     private readonly model: string = SHUYU_VIDEO_MODEL,
     private readonly options: ShuyuFetchOptions = {},
+    private readonly clock: ShuyuSubmitRetryClock = SYSTEM_CLOCK,
   ) {}
 
   isConfigured(): boolean {
@@ -244,6 +267,8 @@ export class ShuyuVideoProvider implements VideoProvider {
     /// draft 档全被拒也不跳到 final(1080P)去扣费。
     /// 显式选择的套餐被拒 → 如实失败,不做静默替换。
     const attemptedPlanIds: string[] = [];
+    const firstSubmitAt = this.clock.now();
+    let sameKeyRetries = 0;
     for (;;) {
       try {
         /// 按「本次实际使用的套餐」截断参考图：降级到的下一档上限可能更小。
@@ -273,6 +298,23 @@ export class ShuyuVideoProvider implements VideoProvider {
           providerUnitPoints: shuyuVideoPlanPointsForDuration(plan, duration),
         };
       } catch (error) {
+        /// 同一个套餐、同一份请求体、同一个键重投（规则见 SAME_KEY_RETRY_DELAYS_MS）；次数与时间窗按整次提交算。
+        const delayMs = SAME_KEY_RETRY_DELAYS_MS[sameKeyRetries];
+        if (
+          isShuyuSameKeyRetryable(error) &&
+          delayMs !== undefined &&
+          this.clock.now() + delayMs - firstSubmitAt <= SAME_KEY_RETRY_WINDOW_MS
+        ) {
+          sameKeyRetries += 1;
+          console.warn("[shuyu] submission rejected before creation; retrying with the same Idempotency-Key", {
+            planId: plan.planId,
+            code: error.code,
+            retry: sameKeyRetries,
+            delayMs,
+          });
+          await this.clock.sleep(delayMs);
+          continue;
+        }
         const optionUnavailable =
           error instanceof ProviderSubmissionError &&
           /video option is unavailable/i.test(error.message);

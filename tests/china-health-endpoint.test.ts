@@ -44,6 +44,8 @@ const ALLOWED_FIELDS = new Set([
   "storageError",
   "envValidation",
   "appVersion",
+  /// 部署 commit（发布后冒烟核对别名用）：只放行十六进制 SHA
+  "release",
   "timestamp",
 ]);
 

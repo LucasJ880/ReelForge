@@ -26,6 +26,7 @@
     "test:phase34:routes": "npm run build && dotenv -e .env.local -- playwright test --config=playwright.phase34.config.ts",
     "test:final-acceptance": "dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
     "test:final-acceptance:soak": "FINAL_ACCEPTANCE_SOAK_MS=300000 FINAL_ACCEPTANCE_MONITOR_DELAY_MS=30000 dotenv -e .env.local -- playwright test --config=playwright.final-acceptance.config.ts",
+    "test:prod-smoke": "playwright test --config=playwright.prod-smoke.config.ts",
     "db:generate": "prisma generate",
     "db:migrate": "node scripts/confirm-production-db.mjs db:migrate && dotenv -e .env.local -- prisma migrate dev",
     "db:migrate:deploy": "dotenv -e .env.local -- sh -c 'DATABASE_URL=\"$NEON_PRODUCTION_OWNER_DATABASE_URL\" prisma migrate deploy'",

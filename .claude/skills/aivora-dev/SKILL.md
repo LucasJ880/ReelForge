@@ -91,6 +91,9 @@ npm run db:migrate          # ⚠️ dotenv -e .env.local = 直连生产库
 | 供应商能力漂移 | Shuyu 套餐 ID 轮换 / 参数下线，health 查不出来 | 真机跑一次小样，别信 health |
 | 刷新后任务状态丢失 | 前端未挂 rehydrate | 走已有的恢复入口，单帧失败不判全死 |
 | 生产上传全挂 | 内容审核开着但 OpenAI key 无 moderation 权限 | 生产已关审核；恢复前先确认 key 权限 |
+| 生产上传「上传失败 (413)」，本地正常 | 文件穿过 Vercel 函数，请求体超 4.5MB 被平台直接拦（`FUNCTION_PAYLOAD_TOO_LARGE`，handler 没被调用）；本地 dev 无此上限 | 前端一律 `uploadBlobWithProgress` 直传 Blob（ticket → PUT → complete）；`upload-direct-to-storage` 守门测试拦回退 |
+| 原生 `<select>` 展开白底看不到字 | 选项面板由浏览器画，select 透明 + 字色继承浅色 | globals.css 已给 `option` 钉 `--popover` 底色；截图拍不到这个面板，别指望视觉基线 |
+| 每次发版所有人被登出 | 设计如此：会话绑定发布版本（`src/lib/session-policy.ts`，另有 12h 闲置 / 7 天绝对上限） | 要停掉按发版登出，让 next.config 的 `AIVORA_SESSION_RELEASE` 取固定值，别删闸 |
 
 ## 五、任务纪律
 
